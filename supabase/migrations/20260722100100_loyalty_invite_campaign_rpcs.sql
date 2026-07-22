@@ -141,7 +141,8 @@ create or replace function public.confirm_loyalty_invite_campaign(
   p_merchant_id uuid,
   p_campaign_id uuid,
   p_legal_basis text,
-  p_link_ttl_days integer default 30
+  p_link_ttl_days integer default 30,
+  p_actor_user_id uuid default null
 )
 returns boolean
 language plpgsql
@@ -174,17 +175,22 @@ begin
       confirmed_at = now()
   where id = p_campaign_id;
 
+  -- A campaign whose eligible list filtered down to zero has nothing to drain;
+  -- complete it immediately so it never appears stuck "in progress".
+  perform public.complete_loyalty_invite_campaign_if_drained(p_campaign_id);
+
   insert into public.product_events (
     event_name, merchant_id, actor_type, actor_id, metadata
   ) values (
-    'loyalty_invite_campaign_sent', p_merchant_id, 'merchant', null,
+    'loyalty_invite_campaign_sent', p_merchant_id, 'merchant',
+    coalesce(p_actor_user_id::text, 'merchant'),
     jsonb_build_object('campaign_id', p_campaign_id, 'legal_basis', p_legal_basis)
   );
   insert into public.audit_logs (
     actor_type, actor_id, merchant_id, target_table, target_id, action, metadata
   ) values (
-    'merchant', 'merchant', p_merchant_id, 'loyalty_invite_campaigns',
-    p_campaign_id, 'loyalty_invite_campaign_confirmed',
+    'merchant', coalesce(p_actor_user_id::text, 'merchant'), p_merchant_id,
+    'loyalty_invite_campaigns', p_campaign_id, 'loyalty_invite_campaign_confirmed',
     jsonb_build_object('legal_basis', p_legal_basis)
   );
 
@@ -192,15 +198,16 @@ begin
 end;
 $$;
 
-revoke all on function public.confirm_loyalty_invite_campaign(uuid, uuid, text, integer)
+revoke all on function public.confirm_loyalty_invite_campaign(uuid, uuid, text, integer, uuid)
   from public, anon, authenticated;
-grant execute on function public.confirm_loyalty_invite_campaign(uuid, uuid, text, integer)
+grant execute on function public.confirm_loyalty_invite_campaign(uuid, uuid, text, integer, uuid)
   to service_role;
 
 -- 3. Cancel: stop unsent deliveries, invalidate unclaimed links, scrub.
 create or replace function public.cancel_loyalty_invite_campaign(
   p_merchant_id uuid,
-  p_campaign_id uuid
+  p_campaign_id uuid,
+  p_actor_user_id uuid default null
 )
 returns boolean
 language plpgsql
@@ -218,7 +225,10 @@ begin
   if v_status is null then
     raise exception 'Campaign not found';
   end if;
-  if v_status not in ('draft', 'sending') then
+  -- A 'completed' campaign has drained its queue but its already-sent links stay
+  -- claimable until the 30-day expiry, so it must remain revocable to invalidate
+  -- those unclaimed links.
+  if v_status not in ('draft', 'sending', 'completed') then
     return false;
   end if;
 
@@ -240,17 +250,18 @@ begin
   insert into public.audit_logs (
     actor_type, actor_id, merchant_id, target_table, target_id, action, metadata
   ) values (
-    'merchant', 'merchant', p_merchant_id, 'loyalty_invite_campaigns',
-    p_campaign_id, 'loyalty_invite_campaign_cancelled', '{}'::jsonb
+    'merchant', coalesce(p_actor_user_id::text, 'merchant'), p_merchant_id,
+    'loyalty_invite_campaigns', p_campaign_id, 'loyalty_invite_campaign_cancelled',
+    jsonb_build_object('previous_status', v_status)
   );
 
   return true;
 end;
 $$;
 
-revoke all on function public.cancel_loyalty_invite_campaign(uuid, uuid)
+revoke all on function public.cancel_loyalty_invite_campaign(uuid, uuid, uuid)
   from public, anon, authenticated;
-grant execute on function public.cancel_loyalty_invite_campaign(uuid, uuid)
+grant execute on function public.cancel_loyalty_invite_campaign(uuid, uuid, uuid)
   to service_role;
 
 -- 4. Lease a batch of due recipients for the drain worker (skip locked).

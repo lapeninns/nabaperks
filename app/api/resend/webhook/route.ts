@@ -31,12 +31,16 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.text()
+  // Resend signs with Svix and sends `svix-*` headers; accept the Standard
+  // Webhooks `webhook-*` aliases too for forward-compatibility.
+  const header = (svix: string, standard: string) =>
+    request.headers.get(svix) ?? request.headers.get(standard) ?? ""
   const verified = verifyStandardWebhook({
     secret,
-    id: request.headers.get("webhook-id") ?? "",
-    timestamp: request.headers.get("webhook-timestamp") ?? "",
+    id: header("svix-id", "webhook-id"),
+    timestamp: header("svix-timestamp", "webhook-timestamp"),
     body,
-    signatureHeader: request.headers.get("webhook-signature") ?? "",
+    signatureHeader: header("svix-signature", "webhook-signature"),
   })
   if (!verified) {
     return NextResponse.json(

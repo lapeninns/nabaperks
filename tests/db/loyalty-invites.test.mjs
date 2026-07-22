@@ -224,3 +224,53 @@ test("only one active campaign per merchant is allowed", { skip }, async () => {
     )
   })
 })
+
+test(
+  "a completed campaign with unclaimed links stays revocable",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const fx = await createRewardPoolFixture(tx)
+      await enableInvites(tx, fx.merchantId)
+      const d = await draft(tx, fx.merchantId, hex64(), hex64(), hex64())
+      await tx`select public.confirm_loyalty_invite_campaign(${fx.merchantId}::uuid, ${d.campaign_id}::uuid, 'venue_email_consent', 30)`
+      // Simulate a fully drained queue whose sent link remains unclaimed.
+      await tx`update public.loyalty_invite_recipients set status = 'sent', sent_at = now() where campaign_id = ${d.campaign_id}::uuid`
+      await tx`update public.loyalty_invite_campaigns set status = 'completed', completed_at = now() where id = ${d.campaign_id}::uuid`
+
+      const [cancelled] = await tx`
+      select public.cancel_loyalty_invite_campaign(${fx.merchantId}::uuid, ${d.campaign_id}::uuid) as ok`
+      assert.equal(cancelled.ok, true, "completed campaigns can be cancelled")
+
+      const [r] = await tx`
+      select status, claim_token_hash from public.loyalty_invite_recipients where campaign_id = ${d.campaign_id}::uuid`
+      assert.equal(r.status, "cancelled")
+      assert.equal(r.claim_token_hash, null, "unclaimed link invalidated")
+    })
+  }
+)
+
+test(
+  "confirming with no eligible recipients completes immediately",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const fx = await createRewardPoolFixture(tx)
+      await enableInvites(tx, fx.merchantId)
+      // The only candidate is suppressed, so the draft has zero recipients.
+      const only = hex64()
+      await tx`insert into public.loyalty_invite_email_suppressions (merchant_id, email_hmac, reason) values (null, ${only}, 'bounced')`
+      const d = await draft(tx, fx.merchantId, only, hex64(), hex64())
+      assert.equal(d.eligible_count, 0)
+
+      await tx`select public.confirm_loyalty_invite_campaign(${fx.merchantId}::uuid, ${d.campaign_id}::uuid, 'venue_email_consent', 30)`
+      const [c] =
+        await tx`select status from public.loyalty_invite_campaigns where id = ${d.campaign_id}::uuid`
+      assert.equal(
+        c.status,
+        "completed",
+        "no recipients -> completes at confirmation, never stuck"
+      )
+    })
+  }
+)

@@ -34,7 +34,9 @@ export async function getActiveLoyaltyInviteCampaign(
       "id, status, eligible_count, invalid_count, duplicate_count, not_eligible_count, legal_basis, created_at, link_expires_at"
     )
     .eq("merchant_id", merchantId)
-    .in("status", ["draft", "sending"])
+    // 'completed' is included so a merchant can still revoke the unclaimed links
+    // of a just-drained campaign until they expire.
+    .in("status", ["draft", "sending", "completed"])
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -52,6 +54,14 @@ export async function getActiveLoyaltyInviteCampaign(
     statusCounts[row.status] = (statusCounts[row.status] ?? 0) + 1
     if (row.email_masked && sample.length < 8) sample.push(row.email_masked)
   }
+
+  // A completed campaign with no unclaimed links has nothing left to revoke, so
+  // don't surface it — let the merchant start a fresh campaign.
+  const unclaimed =
+    (statusCounts.sent ?? 0) +
+    (statusCounts.delivered ?? 0) +
+    (statusCounts.opened ?? 0)
+  if (campaign.status === "completed" && unclaimed === 0) return null
 
   return {
     id: campaign.id,

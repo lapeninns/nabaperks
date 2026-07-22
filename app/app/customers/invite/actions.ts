@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto"
 
 import { revalidatePath } from "next/cache"
 
-import { getCurrentMerchant } from "@/lib/auth/session"
+import { getCurrentMerchant, getCurrentUser } from "@/lib/auth/session"
 import { encryptCustomerEmail } from "@/lib/customer/email-encryption-core"
 import { customerEmailHmac, maskEmail } from "@/lib/customer/email-pii-core"
 import { isLoyaltyInvitesEnabled } from "@/lib/loyalty-invites/access"
@@ -40,7 +40,10 @@ function value(formData: FormData, key: string): string {
 }
 
 async function requireEnabledMerchant() {
-  const merchant = await getCurrentMerchant()
+  const [merchant, user] = await Promise.all([
+    getCurrentMerchant(),
+    getCurrentUser(),
+  ])
   if (!merchant) return { error: "Sign in to invite customers." as const }
   if (!isLoyaltyInvitesEnabled(Boolean(merchant.loyalty_invites_enabled))) {
     return {
@@ -48,7 +51,7 @@ async function requireEnabledMerchant() {
         "Customer invitations aren't available for your venue yet." as const,
     }
   }
-  return { merchant }
+  return { merchant, actorUserId: user?.id ?? null }
 }
 
 export async function previewLoyaltyInviteAction(
@@ -94,7 +97,7 @@ export async function previewLoyaltyInviteAction(
   const supabase = createSupabaseServiceRoleClient()
   const { data, error } = await supabase.rpc("create_loyalty_invite_draft", {
     p_merchant_id: gate.merchant.id,
-    p_created_by: null,
+    p_created_by: gate.actorUserId,
     p_recipient_ids: recipientIds,
     p_email_hmacs: emailHmacs,
     p_email_ciphertexts: ciphertexts,
@@ -167,6 +170,7 @@ export async function sendLoyaltyInviteAction(
     p_campaign_id: campaignId,
     p_legal_basis: legalBasis,
     p_link_ttl_days: LOYALTY_INVITE_LINK_TTL_DAYS,
+    p_actor_user_id: gate.actorUserId,
   })
   if (error) {
     return {
@@ -191,6 +195,7 @@ export async function cancelLoyaltyInviteAction(
   const { error } = await supabase.rpc("cancel_loyalty_invite_campaign", {
     p_merchant_id: gate.merchant.id,
     p_campaign_id: campaignId,
+    p_actor_user_id: gate.actorUserId,
   })
   if (error) {
     return {

@@ -41,7 +41,11 @@ export function InviteCustomersForm({
     )
   }
 
-  if (activeCampaign && activeCampaign.status === "sending") {
+  if (
+    activeCampaign &&
+    (activeCampaign.status === "sending" ||
+      activeCampaign.status === "completed")
+  ) {
     return (
       <InProgressCard
         campaign={activeCampaign}
@@ -117,43 +121,65 @@ function PreviewPanel({
         ) : null}
       </div>
 
-      <fieldset className="grid gap-2">
-        <legend className="text-sm font-semibold">
-          Confirm your lawful basis for emailing these customers
-        </legend>
-        {LEGAL_BASES.map((basis) => (
-          <label key={basis.value} className="flex items-start gap-2 text-sm">
-            <input
-              type="radio"
-              name="legalBasis"
-              value={basis.value}
-              className="mt-1"
-              required
-            />
-            <span>{basis.label}</span>
+      {preview.eligible === 0 ? (
+        <>
+          <p className="text-sm text-muted-foreground">
+            None of these addresses are eligible to invite — they may already be
+            members, have unsubscribed, or have been invited before. Adjust the
+            list and check again.
+          </p>
+          <div>
+            <SubmitButton name="intent" value="preview" variant="secondary">
+              Re-check list
+            </SubmitButton>
+          </div>
+        </>
+      ) : (
+        <>
+          <fieldset className="grid gap-2">
+            <legend className="text-sm font-semibold">
+              Confirm your lawful basis for emailing these customers
+            </legend>
+            {LEGAL_BASES.map((basis) => (
+              <label
+                key={basis.value}
+                className="flex items-start gap-2 text-sm"
+              >
+                <input
+                  type="radio"
+                  name="legalBasis"
+                  value={basis.value}
+                  className="mt-1"
+                  required
+                />
+                <span>{basis.label}</span>
+              </label>
+            ))}
+            {legalError ? <FormMessage>{legalError}</FormMessage> : null}
+          </fieldset>
+
+          <label className="flex items-start gap-2 text-sm">
+            <input type="checkbox" name="attestation" className="mt-1" />
+            <span>
+              I confirm this list isn&apos;t bought, scraped or third-party, and
+              I have a lawful basis to email everyone on it.
+            </span>
           </label>
-        ))}
-        {legalError ? <FormMessage>{legalError}</FormMessage> : null}
-      </fieldset>
+          {attestationError ? (
+            <FormMessage>{attestationError}</FormMessage>
+          ) : null}
 
-      <label className="flex items-start gap-2 text-sm">
-        <input type="checkbox" name="attestation" className="mt-1" />
-        <span>
-          I confirm this list isn&apos;t bought, scraped or third-party, and I
-          have a lawful basis to email everyone on it.
-        </span>
-      </label>
-      {attestationError ? <FormMessage>{attestationError}</FormMessage> : null}
-
-      <div className="flex flex-wrap gap-3">
-        <SubmitButton name="intent" value="send">
-          Send {preview.eligible.toLocaleString("en-GB")} invitation
-          {preview.eligible === 1 ? "" : "s"}
-        </SubmitButton>
-        <SubmitButton name="intent" value="preview" variant="secondary">
-          Re-check list
-        </SubmitButton>
-      </div>
+          <div className="flex flex-wrap gap-3">
+            <SubmitButton name="intent" value="send">
+              Send {preview.eligible.toLocaleString("en-GB")} invitation
+              {preview.eligible === 1 ? "" : "s"}
+            </SubmitButton>
+            <SubmitButton name="intent" value="preview" variant="secondary">
+              Re-check list
+            </SubmitButton>
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -168,6 +194,7 @@ function InProgressCard({
   formError?: string
 }) {
   const counts = campaign.statusCounts
+  const isCompleted = campaign.status === "completed"
   const sent =
     (counts.sent ?? 0) +
     (counts.delivered ?? 0) +
@@ -184,7 +211,9 @@ function InProgressCard({
         </StatusBanner>
       ) : null}
       <div>
-        <Eyebrow>Campaign in progress</Eyebrow>
+        <Eyebrow>
+          {isCompleted ? "Invitations sent" : "Campaign in progress"}
+        </Eyebrow>
         <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-4">
           <Count label="Eligible" value={campaign.eligibleCount} emphasis />
           <Count label="Sent" value={sent} />
@@ -193,14 +222,14 @@ function InProgressCard({
         </dl>
       </div>
       <p className="text-sm text-muted-foreground">
-        Invitations are sent gradually. Cancelling stops any that haven&apos;t
-        sent and invalidates unclaimed links; emails already sent can&apos;t be
-        recalled.
+        {isCompleted
+          ? "All invitations have been sent. Their links stay active until they expire. Cancelling invalidates any that haven't been claimed; emails already sent can't be recalled."
+          : "Invitations are sent gradually. Cancelling stops any that haven't sent and invalidates unclaimed links; emails already sent can't be recalled."}
       </p>
       <form action={action}>
         <input type="hidden" name="campaignId" value={campaign.id} />
         <SubmitButton name="intent" value="cancel" variant="secondary">
-          Cancel campaign
+          {isCompleted ? "Cancel remaining links" : "Cancel campaign"}
         </SubmitButton>
       </form>
     </div>

@@ -23,8 +23,10 @@ test("body carries venue, offer, expiry, claim, privacy and unsubscribe", () => 
   assert.match(email.text, /Old Crown/)
   assert.match(email.text, /two welcome stamps/i)
   assert.match(email.text, /expires in 30 days/)
-  assert.match(email.text, /https:\/\/nabaperks\.com\/invite\/abc/)
-  assert.match(email.text, /Privacy notice: https:\/\/nabaperks\.com\/privacy/)
+  // Plain substring checks (not URL regexes) so an unanchored host pattern
+  // can't silently pass — the links must appear verbatim.
+  assert.ok(email.text.includes(`Collect your stamps: ${BASE.claimUrl}`))
+  assert.ok(email.text.includes(`Privacy notice: ${BASE.privacyUrl}`))
   assert.match(email.text, /Unsubscribe from Old Crown: /)
   assert.match(email.html, /Collect your two stamps/)
   assert.match(email.html, /unsubscribe=1/)

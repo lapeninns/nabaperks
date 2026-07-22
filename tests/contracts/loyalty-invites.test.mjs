@@ -150,3 +150,39 @@ test("legal documentation discloses the invitation data flow", () => {
   assert.match(legal, /unsubscribe/)
   assert.match(legal, /encrypted/)
 })
+
+test("review hardening: Svix headers, actor audit, revocable completed, erase order", () => {
+  const route = read("app/api/resend/webhook/route.ts")
+  assert.match(route, /svix-id/)
+  assert.match(route, /svix-signature/)
+
+  const rpcs = read(
+    "supabase/migrations/20260722100100_loyalty_invite_campaign_rpcs.sql"
+  )
+  assert.match(
+    rpcs,
+    /'draft', 'sending', 'completed'/,
+    "completed stays revocable"
+  )
+  assert.match(rpcs, /p_actor_user_id/, "actor is recorded")
+  assert.match(
+    rpcs,
+    /perform public\.complete_loyalty_invite_campaign_if_drained\(p_campaign_id\)/,
+    "a zero-recipient campaign self-completes at confirmation"
+  )
+
+  const inviteActions = read("app/app/customers/invite/actions.ts")
+  assert.match(inviteActions, /p_actor_user_id: gate\.actorUserId/)
+  assert.match(inviteActions, /p_created_by: gate\.actorUserId/)
+
+  // The invitation scrub must precede the customer-PII erasure that nulls the HMAC.
+  const adminAction = read("app/admin/actions.ts")
+  const scrubIdx = adminAction.indexOf(
+    "admin_erase_loyalty_invitations_for_customer"
+  )
+  const logIdx = adminAction.indexOf("admin_log_data_request")
+  assert.ok(
+    scrubIdx > 0 && scrubIdx < logIdx,
+    "invitation scrub runs before admin_log_data_request"
+  )
+})
