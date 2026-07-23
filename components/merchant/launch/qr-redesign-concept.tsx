@@ -12,6 +12,8 @@ import { SwipePosterPicker } from "@/components/merchant/launch/qr-redesign-swip
 import {
   ChannelButton,
   PosterProof,
+  NfcCardLinks,
+  NfcSquareLinks,
   TableTentLinks,
   TemplateButton,
   WorkspaceStatus,
@@ -25,6 +27,8 @@ import {
   QR_POSTER_PRODUCTION_TEMPLATES,
   type QrPosterTemplateId,
 } from "@/lib/qr/poster-templates"
+import type { NfcCardDesignId } from "@/lib/qr/nfc-card-templates"
+import type { NfcSquareDesignId } from "@/lib/qr/nfc-square-templates"
 import type { TableTentDesignId } from "@/lib/qr/tent-templates"
 
 export type { DistributionChannel } from "@/components/merchant/launch/qr-redesign-concept-parts"
@@ -41,6 +45,8 @@ export function QrWorkspace({
   navigationBaseHref,
   posterHrefs,
   tentHrefs,
+  nfcHrefs,
+  nfcSquareHrefs,
   statusAction,
   warnings,
   printNotice,
@@ -58,6 +64,8 @@ export function QrWorkspace({
   readonly navigationBaseHref: string
   readonly posterHrefs: Readonly<Record<QrPosterTemplateId, string>>
   readonly tentHrefs: Readonly<Record<TableTentDesignId, string>>
+  readonly nfcHrefs: Readonly<Record<NfcCardDesignId, string>>
+  readonly nfcSquareHrefs: Readonly<Record<NfcSquareDesignId, string>>
   readonly statusAction?: ReactNode
   readonly warnings?: ReactNode
   readonly printNotice?: ReactNode
@@ -218,6 +226,8 @@ export function QrWorkspace({
               </>
             )}
             <TableTentLinks tentHrefs={tentHrefs} />
+            <NfcCardLinks nfcHrefs={nfcHrefs} />
+            <NfcSquareLinks nfcSquareHrefs={nfcSquareHrefs} />
             {printNotice ? (
               <div className="lg:col-span-2">{printNotice}</div>
             ) : null}

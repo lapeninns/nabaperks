@@ -10,8 +10,8 @@ import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 
 /**
- * Phone-native alternative to browser printing: email all registered poster
- * A4 counter PDFs to the signed-in merchant. Calls the
+ * Phone-native alternative to browser printing: email the full print kit
+ * (A4 posters, table tents, and NFC cards) to the signed-in merchant. Calls the
  * server action directly (no form) and shows inline feedback, so the QR panel
  * updates without a reload.
  */
@@ -38,12 +38,14 @@ export function EmailPosterButton() {
         ) : (
           <Icon icon={Mail01Icon} size={16} />
         )}
-        {pending ? "Emailing PDFs…" : "Email poster PDFs"}
+        {pending ? "Emailing PDFs…" : "Email print kit PDFs"}
       </Button>
       {state.message ? (
         <StatusBanner
           tone={state.ok ? "success" : "error"}
-          title={state.ok ? "Poster PDFs sent" : "Could not send poster PDFs"}
+          title={
+            state.ok ? "Print kit PDFs sent" : "Could not send print kit PDFs"
+          }
         >
           {state.message}
         </StatusBanner>

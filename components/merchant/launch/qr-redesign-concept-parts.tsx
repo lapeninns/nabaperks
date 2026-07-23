@@ -16,6 +16,14 @@ import {
   TENT_PRODUCTION_DESIGNS,
   type TableTentDesignId,
 } from "@/lib/qr/tent-templates"
+import {
+  NFC_CARD_PRODUCTION_DESIGNS,
+  type NfcCardDesignId,
+} from "@/lib/qr/nfc-card-templates"
+import {
+  NFC_SQUARE_PRODUCTION_DESIGNS,
+  type NfcSquareDesignId,
+} from "@/lib/qr/nfc-square-templates"
 import { cn } from "@/lib/utils"
 
 export type DistributionChannel = "print" | "digital"
@@ -148,6 +156,22 @@ export function buildTentHrefs(
   ) as Readonly<Record<TableTentDesignId, string>>
 }
 
+export function buildNfcCardHrefs(
+  resolveHref: (id: NfcCardDesignId) => string
+): Readonly<Record<NfcCardDesignId, string>> {
+  return Object.fromEntries(
+    NFC_CARD_PRODUCTION_DESIGNS.map((item) => [item.id, resolveHref(item.id)])
+  ) as Readonly<Record<NfcCardDesignId, string>>
+}
+
+export function buildNfcSquareHrefs(
+  resolveHref: (id: NfcSquareDesignId) => string
+): Readonly<Record<NfcSquareDesignId, string>> {
+  return Object.fromEntries(
+    NFC_SQUARE_PRODUCTION_DESIGNS.map((item) => [item.id, resolveHref(item.id)])
+  ) as Readonly<Record<NfcSquareDesignId, string>>
+}
+
 /**
  * The table-tent lane beneath the poster picker: each production tent links to
  * its print-ready page. Tents fold from one A4 sheet, so they get a compact
@@ -183,6 +207,102 @@ export function TableTentLinks({
               <span className="font-extrabold">{tent.name}</span>
               <span className="text-xs leading-5 text-muted-foreground">
                 {tent.useCase}
+              </span>
+            </span>
+            <Icon
+              icon={ArrowUpRight01Icon}
+              size={16}
+              className="text-muted-foreground"
+            />
+          </Link>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+/**
+ * NFC card lane: CR80 tap cards at native 85.5 × 54 mm (front + back pages).
+ * Same venue join URL as posters and tents — venue-branded, not unique per card.
+ */
+export function NfcCardLinks({
+  nfcHrefs,
+}: {
+  readonly nfcHrefs: Readonly<Record<NfcCardDesignId, string>>
+}) {
+  return (
+    <section
+      id="qr-nfc-picker"
+      className="grid scroll-mt-4 gap-3 border-t-2 border-ink pt-5 lg:col-span-2"
+    >
+      <div className="grid gap-1">
+        <h3 className="text-lg font-extrabold">Add NFC cards</h3>
+        <p className="text-sm leading-6 text-muted-foreground">
+          CR80 tap cards for the counter and till. Front and back print at 85.5
+          × 54 mm — same venue QR as your posters and tents.
+        </p>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {NFC_CARD_PRODUCTION_DESIGNS.map((card) => (
+          <Link
+            key={card.id}
+            href={nfcHrefs[card.id]}
+            target="_blank"
+            rel="noreferrer"
+            className="focus-ring grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-lg border-2 border-ink/25 bg-card px-3 py-2.5 transition-[transform,box-shadow,border-color] hover:-translate-y-px hover:border-ink hover:shadow-sm motion-reduce:transition-none"
+          >
+            <span className="grid min-w-0 gap-0.5">
+              <span className="font-extrabold">{card.name}</span>
+              <span className="text-xs leading-5 text-muted-foreground">
+                {card.useCase}
+              </span>
+            </span>
+            <Icon
+              icon={ArrowUpRight01Icon}
+              size={16}
+              className="text-muted-foreground"
+            />
+          </Link>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+/**
+ * Square NFC lane: native 100×100 mm counter plates. Own lane beside CR80 —
+ * same venue join URL, venue-branded, not unique per plate.
+ */
+export function NfcSquareLinks({
+  nfcSquareHrefs,
+}: {
+  readonly nfcSquareHrefs: Readonly<Record<NfcSquareDesignId, string>>
+}) {
+  return (
+    <section
+      id="qr-nfc-square-picker"
+      className="grid scroll-mt-4 gap-3 border-t-2 border-ink pt-5 lg:col-span-2"
+    >
+      <div className="grid gap-1">
+        <h3 className="text-lg font-extrabold">Add wall NFC plates</h3>
+        <p className="text-sm leading-6 text-muted-foreground">
+          100×100 mm one-sided tap plates for the counter and till. Print at
+          native square size — same venue QR as your posters and tents.
+        </p>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {NFC_SQUARE_PRODUCTION_DESIGNS.map((card) => (
+          <Link
+            key={card.id}
+            href={nfcSquareHrefs[card.id]}
+            target="_blank"
+            rel="noreferrer"
+            className="focus-ring grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-lg border-2 border-ink/25 bg-card px-3 py-2.5 transition-[transform,box-shadow,border-color] hover:-translate-y-px hover:border-ink hover:shadow-sm motion-reduce:transition-none"
+          >
+            <span className="grid min-w-0 gap-0.5">
+              <span className="font-extrabold">{card.name}</span>
+              <span className="text-xs leading-5 text-muted-foreground">
+                {card.useCase}
               </span>
             </span>
             <Icon
