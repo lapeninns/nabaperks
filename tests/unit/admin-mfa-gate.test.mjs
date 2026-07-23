@@ -3,6 +3,7 @@ import { test } from "node:test"
 
 import {
   adminMfaStepUpRequired,
+  adminMfaUnenrollmentAllowed,
   isAdminMfaEnrolled,
   resolveAdminMfaState,
 } from "@/lib/admin/mfa-gate"
@@ -35,4 +36,10 @@ test("enforcement keys off the verified factor (nextLevel), never the session al
   // Defensive: an unexpected level string is treated as "no factor", failing
   // OPEN (never locks an admin out) — the app-layer gate is not the DB moat.
   assert.equal(resolveAdminMfaState("aal1", "aal3"), "no-factor")
+})
+
+test("MFA removal requires an already satisfied AAL2 session", () => {
+  assert.equal(adminMfaUnenrollmentAllowed("satisfied"), true)
+  assert.equal(adminMfaUnenrollmentAllowed("step-up-required"), false)
+  assert.equal(adminMfaUnenrollmentAllowed("no-factor"), false)
 })

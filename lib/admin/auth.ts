@@ -16,6 +16,7 @@ export type AdminAccess =
   | {
       status: "allowed"
       email: string
+      userId: string
       mfaState: AdminMfaState
       mfaRequired: boolean
     }
@@ -63,6 +64,7 @@ export const getAdminAccess = cache(async (): Promise<AdminAccess> => {
   return {
     status: "allowed",
     email: data.email,
+    userId: user.id,
     mfaState,
     mfaRequired: isAdminMfaEnrolled(mfaState),
   }

@@ -39,3 +39,11 @@ export function isAdminMfaEnrolled(state: AdminMfaState): boolean {
 export function adminMfaStepUpRequired(state: AdminMfaState): boolean {
   return state === "step-up-required"
 }
+
+/**
+ * Removing the factor itself is stricter than ordinary admin mutations: the
+ * current session must already have proved possession of that factor.
+ */
+export function adminMfaUnenrollmentAllowed(state: AdminMfaState): boolean {
+  return state === "satisfied"
+}
