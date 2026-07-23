@@ -72,6 +72,7 @@ export function drawTentFace(
     kicker: content.kicker,
     fonts,
     ground: p.ground,
+    rail: p.ink,
   })
 
   // Per-design material identity, behind the copy and QR content.

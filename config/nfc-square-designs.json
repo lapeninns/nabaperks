@@ -18,11 +18,11 @@
   },
   "shared": {
     "reassurance": "18+ to redeem · One visit stamp here per UK date · Rewards redeem from the next weekday · Terms apply",
-    "dieRule": "One stamp per UK day · 18+ to redeem",
+    "dieRule": "One stamp/UK date · 18+ to redeem",
     "cutLabel": "Square 100 × 100 mm · print at 100%",
     "numberWords": ["zero", "one", "two", "three", "four", "five", "six"],
-    "friction": "No app · One text · In your browser",
-    "claimFriction": "No NFC? Scan the code",
+    "friction": "One text · No app · In your browser",
+    "claimFriction": "No NFC? Scan the QR code",
     "tokens": {
       "paper": "#f6f1e6",
       "paperDeep": "#ece5d4",
@@ -89,14 +89,14 @@
       "useCase": "Wall and premises tap plate",
       "tone": "wall-billboard-plate",
       "front": {
-        "brandEyebrow": "Venue loyalty",
+        "brandEyebrow": "Your venue reward card",
         "brandName": "Nab a Perks",
         "tapWord": "Tap",
-        "tapSub": "Phone here",
-        "claimLine": "Tap to join — today's stamp after one text",
-        "mysteryKicker": "Mystery inside",
-        "mysteryAccent": "Unlock at {stamps}",
-        "flow": ["Tap", "Stamp", "Unlock"]
+        "tapSub": "To start",
+        "claimLine": "One text. Today's visit can be stamp one.",
+        "mysteryKicker": "Reward sealed",
+        "mysteryAccent": "Reveal at stamp {stamps}",
+        "flow": ["Tap", "Join", "Return"]
       }
     }
   ]

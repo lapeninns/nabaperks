@@ -97,6 +97,12 @@ test("poster catalogue owns the complete customer-copy and print contract", () =
   }
   for (const forbiddenClaim of [
     /first stamp(?:'s| is) (?:free|already|waiting|inked)/i,
+    /free stamp/i,
+    /claim (?:your )?(?:free )?stamp/i,
+    /instantly (?:counts|ink)/i,
+    /chosen exclusively by (?:our )?staff/i,
+    /premium reward/i,
+    /\bfriction(?: is|:)\s*zero/i,
     /everyone wins/i,
     /no spam/i,
     /no account/i,

@@ -9,11 +9,11 @@ import {
 
 test("NFC square content resolves the closed stamp placeholder grammar", () => {
   const tap = resolveNfcSquareContent("tap", 4)
-  assert.match(tap.front.mysteryAccent, /Unlock at 4/)
+  assert.equal(tap.front.mysteryAccent, "Reveal at stamp 4")
   assert.equal(tap.front.tapWord, "Tap")
-  assert.equal(tap.front.tapSub, "Phone here")
-  assert.match(tap.front.claimLine, /today's stamp after one text/)
-  assert.deepEqual(tap.front.flow, ["Tap", "Stamp", "Unlock"])
+  assert.equal(tap.front.tapSub, "To start")
+  assert.equal(tap.front.claimLine, "One text. Today's visit can be stamp one.")
+  assert.deepEqual(tap.front.flow, ["Tap", "Join", "Return"])
   assert.match(tap.dieRule, /18\+ to redeem/)
   assert.equal(resolveNfcSquareText("{stamps} / {StampsWord}", 6), "6 / Six")
   assert.throws(
@@ -62,6 +62,6 @@ test("NFC squares share native 100×100 geometry and QR contract", () => {
     assert.equal(content.qr.errorCorrectionLevel, "H")
     assert.match(content.cutLabel, /100 × 100 mm/)
     assert.match(content.reassurance, /^18\+ to redeem/)
-    assert.match(content.dieRule, /One stamp per UK day/)
+    assert.equal(content.dieRule, "One stamp/UK date · 18+ to redeem")
   }
 })

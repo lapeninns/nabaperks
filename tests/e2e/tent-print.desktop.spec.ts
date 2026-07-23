@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test"
 import jsQR from "jsqr"
+import { PDFDocument } from "pdf-lib"
 import { PNG } from "pngjs"
 
 import { resolveTentContent } from "@/lib/qr/tent-content"
@@ -40,9 +41,26 @@ test.describe("table tent printing", () => {
       // One QR per face — both encode the same venue URL.
       expect(box.qrCount).toBe(2)
 
+      await page.evaluate(() => {
+        const printRoot = document.querySelector(".qr-poster-print-root")
+        if (!(printRoot instanceof HTMLElement)) {
+          throw new Error("Table tent print root was not rendered")
+        }
+        const shell = document.createElement("div")
+        shell.style.paddingLeft = "320px"
+        shell.style.paddingTop = "180px"
+        printRoot.before(shell)
+        shell.append(printRoot)
+      })
       await page.emulateMedia({ media: "print" })
       const printRoot = page.locator(".qr-poster-print-root")
+      const printBounds = await printRoot.evaluate((element) => {
+        const bounds = element.getBoundingClientRect()
+        return { left: bounds.left, top: bounds.top }
+      })
       await expect(printRoot).toHaveCSS("visibility", "visible")
+      expect(printBounds.left).toBeCloseTo(0, 1)
+      expect(printBounds.top).toBeCloseTo(0, 1)
       const qrImages = printRoot.locator("article img")
       await expect(qrImages).toHaveCount(2)
 
@@ -76,6 +94,12 @@ test.describe("table tent printing", () => {
         preferCSSPageSize: true,
         printBackground: true,
       })
+      const document = await PDFDocument.load(pdf)
+
+      expect(document.getPageCount()).toBe(1)
+      const [pdfPage] = document.getPages()
+      expect(pdfPage.getWidth()).toBeCloseTo((210 * 72) / 25.4, 0)
+      expect(pdfPage.getHeight()).toBeCloseTo((297 * 72) / 25.4, 0)
       expect(pdf.byteLength).toBeGreaterThan(10_000)
     })
   }

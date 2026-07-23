@@ -52,20 +52,24 @@ test("NFC card copy stays honest to the join funnel", () => {
   assert.doesNotMatch(blob, /is ready/i)
   assert.doesNotMatch(blob, /Today counts as stamp one/i)
   assert.doesNotMatch(blob, /"Open"/)
+  assert.doesNotMatch(blob, /\bVIP\b/i)
+  assert.doesNotMatch(blob, /premium/i)
+  assert.doesNotMatch(blob, /instant(?:ly)?/i)
+  assert.doesNotMatch(blob, /claim (?:your )?stamp/i)
 
-  assert.match(blob, /Tap to join — today's stamp after one text/)
+  assert.match(blob, /One text\. Start your \{stamps\}-stamp card\./)
   assert.match(blob, /Keep this card/)
-  assert.match(blob, /On your number/)
-  assert.match(blob, /is waiting/)
-  assert.match(blob, /Venue mystery card/)
-  assert.equal(shared.dieRule, "One stamp per UK day · 18+ to redeem")
-  assert.equal(shared.claimFriction, "No NFC? Scan the code")
-  assert.equal(shared.friction, "No app · One text · In your browser")
+  assert.match(blob, /Today's visit/)
+  assert.match(blob, /can be stamp one/)
+  assert.match(blob, /Your sealed reward/)
+  assert.equal(shared.dieRule, "One stamp/UK date · 18+ to redeem")
+  assert.equal(shared.claimFriction, "No NFC? Scan the QR code")
+  assert.equal(shared.friction, "One text · No app · In your browser")
 
   const tap = catalog.designs[0]
-  assert.deepEqual(tap.front.flow, ["Tap", "Stamp", "Unlock"])
+  assert.deepEqual(tap.front.flow, ["Tap", "Join", "Return"])
   assert.deepEqual(
     tap.back.steps.map(({ title }) => title),
-    ["Tap", "Keep", "Return"]
+    ["Tap", "Join", "Return"]
   )
 })

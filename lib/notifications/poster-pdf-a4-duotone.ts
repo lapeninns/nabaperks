@@ -129,7 +129,7 @@ export function drawDuotoneA4(
     size: content.typeTiers.hookPt,
     lineHeight: displayLeading(content.typeTiers.hookPt),
     color: spot,
-    maxLines: 2,
+    maxLines: 3,
   })
   drawWrappedText(page, content.lede, {
     x: left,
@@ -147,7 +147,7 @@ export function drawDuotoneA4(
     for (let column = 0; column < 45; column += 1) {
       page.drawCircle({
         x: left + mm(2) + column * mm(4),
-        y: mm(162) + row * mm(4),
+        y: mm(156) + row * mm(4),
         size: mm(0.8),
         color: spot,
       })

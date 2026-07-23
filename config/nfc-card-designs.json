@@ -18,11 +18,11 @@
   },
   "shared": {
     "reassurance": "18+ to redeem · One visit stamp here per UK date · Rewards redeem from the next weekday · Terms apply",
-    "dieRule": "One stamp per UK day · 18+ to redeem",
+    "dieRule": "One stamp/UK date · 18+ to redeem",
     "cutLabel": "CR80 85.5 × 54 mm · print at 100%",
     "numberWords": ["zero", "one", "two", "three", "four", "five", "six"],
-    "friction": "No app · One text · In your browser",
-    "claimFriction": "No NFC? Scan the code",
+    "friction": "One text · No app · In your browser",
+    "claimFriction": "No NFC? Scan the QR code",
     "tokens": {
       "paper": "#f6f1e6",
       "paperDeep": "#ece5d4",
@@ -89,25 +89,25 @@
       "useCase": "Counter hand-out and till tap",
       "tone": "tap-seal-mystery",
       "front": {
-        "brandEyebrow": "Venue mystery card",
+        "brandEyebrow": "Your sealed reward",
         "brandName": "Nab a Perks",
-        "tapWord": "Tap",
-        "tapSub": "Your phone",
-        "stampCue": "01 is waiting · mystery at {stamps}",
-        "claimKicker": "Mystery inside",
-        "claimLine": "Tap to join — today's stamp after one text",
-        "flow": ["Tap", "Stamp", "Unlock"]
+        "tapWord": "Tap here",
+        "tapSub": "To start",
+        "stampCue": "Start today · reward at {stamps}",
+        "claimKicker": "Reward sealed",
+        "claimLine": "One text. Start your {stamps}-stamp card.",
+        "flow": ["Tap", "Join", "Return"]
       },
       "back": {
         "strap": "Keep this card",
-        "badge": "Mystery",
-        "teaseLead": "Your first stamp",
-        "teaseAccent": "is waiting.",
-        "sealLabel": "{stamps} = ★",
+        "badge": "Reward",
+        "teaseLead": "Today's visit",
+        "teaseAccent": "can be stamp one.",
+        "sealLabel": "At stamp {stamps}",
         "steps": [
-          { "title": "Tap", "detail": "Phone or code" },
-          { "title": "Keep", "detail": "On your number" },
-          { "title": "Return", "detail": "Stamp to unlock" }
+          { "title": "Tap", "detail": "Phone or QR" },
+          { "title": "Join", "detail": "One text" },
+          { "title": "Return", "detail": "Add next stamp" }
         ],
         "footBrand": "Nab a Perks"
       }

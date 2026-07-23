@@ -202,7 +202,8 @@ function drawFrontCard(
 
   const qrSize = mm(content.geometry.qrOuterMm)
   const qrX = originX + half + (half - qrSize) / 2
-  const qrY = originY + mm(10)
+  // Keep the QR below the three flow labels on the compact CR80 face.
+  const qrY = originY + mm(7.5)
   page.drawRectangle({
     x: qrX - mm(0.6),
     y: qrY - mm(0.6),
