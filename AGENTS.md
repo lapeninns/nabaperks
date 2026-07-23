@@ -41,6 +41,14 @@ until every protected-environment credential and independent reviewer exists:
 pnpm ops:github:check
 ```
 
+Vercel governance is also a live, non-decrypting provider readback. It checks
+the Git connection and security settings, custom staging target, cron parity,
+blocking deployment checks, and environment-variable names/scopes:
+
+```bash
+pnpm ops:vercel:check
+```
+
 ## Repository boundaries
 
 - `app/` owns routes, layouts, route handlers, and server actions.

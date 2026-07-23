@@ -100,6 +100,12 @@ non-secret variables, staging isolation and repository-secret scope. It reads
 metadata only and intentionally exits non-zero until every target control has
 live evidence.
 
+Run `pnpm ops:vercel:check` from an authenticated Vercel operator shell to
+validate the linked project, Git security, custom staging target, source/live
+cron parity, blocking Deployment Checks, and environment-variable names and
+protected storage without decrypting or printing values. It also intentionally
+exits non-zero until the provider-owned target state is live.
+
 ### GitHub
 
 - An active `main` GitHub ruleset requires pull requests, conversation
