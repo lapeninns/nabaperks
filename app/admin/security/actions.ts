@@ -162,6 +162,10 @@ export async function unenrollAdminMfa(
     return { ok: false, error: error.message }
   }
 
+  // Auth is now authoritative even if completion logging fails below.
+  revalidatePath("/admin")
+  revalidatePath("/admin/audit")
+
   const { error: completionAuditError } = await supabase
     .from("audit_logs")
     .insert({
@@ -180,7 +184,5 @@ export async function unenrollAdminMfa(
     }
   }
 
-  revalidatePath("/admin")
-  revalidatePath("/admin/audit")
   return { ok: true, error: null }
 }
