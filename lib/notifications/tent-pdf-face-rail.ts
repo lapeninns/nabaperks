@@ -23,15 +23,16 @@ export function drawTentHeaderRail(
     readonly kicker: string
     readonly fonts: PdfFonts
     readonly ground: TentFacePalette["ground"]
+    readonly rail: TentFacePalette["ink"]
   }
 ): void {
-  const { originX, top, width, railH, inset, fonts, ground } = options
+  const { originX, top, width, railH, inset, fonts, ground, rail } = options
   page.drawRectangle({
     x: originX,
     y: top - railH,
     width,
     height: railH,
-    color: POSTER_PDF_COLOR.ink,
+    color: rail,
   })
 
   const mark = mm(TENT_TYPE.brandMarkMm)

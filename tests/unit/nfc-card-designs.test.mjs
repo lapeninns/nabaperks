@@ -9,8 +9,9 @@ import {
 
 test("NFC card content resolves the closed stamp placeholder grammar", () => {
   const tap = resolveNfcCardContent("tap", 4)
-  assert.match(tap.front.stampCue, /mystery at 4/)
-  assert.match(tap.back.sealLabel, /^4 =/)
+  assert.equal(tap.front.stampCue, "Start today · reward at 4")
+  assert.equal(tap.front.claimLine, "One text. Start your 4-stamp card.")
+  assert.equal(tap.back.sealLabel, "At stamp 4")
   assert.equal(resolveNfcCardText("{stamps} / {StampsWord}", 6), "6 / Six")
   assert.throws(
     () => resolveNfcCardText("{mystery}", 4),
@@ -47,10 +48,10 @@ test("every NFC card resolves front and back for each supported stamp count", ()
         /receipt/i
       )
       assert.match(content.front.claimLine, /one text/i)
-      assert.match(content.back.teaseAccent, /waiting/i)
+      assert.match(content.back.teaseAccent, /can be stamp one/i)
       assert.equal(content.front.flow[0], "Tap")
       assert.equal(content.back.steps[0].title, "Tap")
-      assert.match(content.dieRule, /One stamp per UK day/)
+      assert.equal(content.dieRule, "One stamp/UK date · 18+ to redeem")
     }
   }
 })

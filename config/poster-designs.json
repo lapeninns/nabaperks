@@ -120,16 +120,16 @@
       "copy": {
         "ledgerLabel": "Loyalty · Statement of terms",
         "edition": "Nº 06",
-        "headline": "The fair deal starts today.",
-        "clauseOneTitle": "Scan the QR below",
-        "clauseOneDetail": "No app — opens in your browser. One text. No password. Marketing optional.",
-        "clauseTwoTitle": "Today counts as stamp one",
-        "clauseTwoDetail": "Join at this QR and today's visit counts as stamp one.",
-        "clauseThreeTitle": "One stamp per UK date",
-        "clauseThreeDetail": "A visit today can only be stamped today — tomorrow gets its own.",
-        "clauseFourTitle": "Reward: sealed until stamp {stamps}",
-        "clauseFourDetail": "Fill your card to have the reward picked and revealed — until then, it stays under the wax.",
-        "qrCaption": "Scan to sign — today counts as stamp one",
+        "headline": "Start today. Reveal your reward at stamp {stamps}.",
+        "clauseOneTitle": "Start your card",
+        "clauseOneDetail": "Scan below. One text. No app to download. Marketing optional.",
+        "clauseTwoTitle": "Make today stamp one",
+        "clauseTwoDetail": "Complete the join and today's visit can start your card.",
+        "clauseThreeTitle": "One visit stamp per UK date",
+        "clauseThreeDetail": "Each UK date offers one visit stamp at this venue.",
+        "clauseFourTitle": "Your reward stays sealed",
+        "clauseFourDetail": "Fill the card to reveal a reward picked by this venue.",
+        "qrCaption": "Scan to start your card today",
         "issuerLabel": "Issued by",
         "signature": "Signed in ink · Nab a Perks"
       }
@@ -146,7 +146,7 @@
       "sheetSize": "210×297 mm",
       "qrOuterMm": 54,
       "typeTiersPt": {
-        "hook": 84,
+        "hook": 68,
         "substantive": 16,
         "facts": 9
       },
@@ -166,13 +166,13 @@
         "Venue strip and eligibility footer inside the panel"
       ],
       "copy": {
-        "eyebrow": "Read from the street",
+        "eyebrow": "A reward from us",
         "edition": "Nº 08",
-        "headline": "The secret's in here.",
-        "lede": "It's a sealed reward at the end of a stamp card. Step in, scan, and today counts as stamp one.",
-        "sealedOne": "The reward's real — this venue just won't say what it is until your card is full. One way to find out.",
-        "sealedMany": "The reward's real — this venue just won't say what it is until your card is full at {stamps} stamps. One way to find out.",
-        "qrCaption": "Scan, step in — today counts as stamp one"
+        "headline": "Your sealed reward is inside.",
+        "lede": "Step in, scan and complete one text. Today's visit can start your card. No app to download.",
+        "sealedOne": "Fill the card to reveal a reward picked by this venue.",
+        "sealedMany": "Collect {stamps} stamps to reveal a reward picked by this venue.",
+        "qrCaption": "Step in · Scan to start today"
       }
     },
     {
@@ -206,14 +206,14 @@
         "Perforated stamp-one tear-off stubs along the card foot"
       ],
       "copy": {
-        "eyebrow": "A note for regulars",
+        "eyebrow": "A note for our regulars",
         "edition": "Nab a Perks · Nº 09",
-        "headline": "You again? Good.",
-        "ledeOne": "First time or fiftieth, today can count for something. Join at this QR and today's visit counts as stamp one — one stamp fills the card, and this venue keeps the reward sealed until it's full.",
-        "ledeMany": "First time or fiftieth, today can count for something. Join at this QR and today's visit counts as stamp one — {stamps} stamps fill the card, and this venue keeps the reward sealed until it's full.",
-        "qrCaption": "Scan — make today count",
+        "headline": "You belong here. Make today count.",
+        "ledeOne": "First visit or fiftieth, today's visit can start your card. Fill it to reveal a reward picked by this venue.",
+        "ledeMany": "First visit or fiftieth, today's visit can start your card. Collect {stamps} stamps to reveal a reward picked by this venue.",
+        "qrCaption": "Scan to start your card today",
         "stubTop": "Stamp one",
-        "stubBottom": "today"
+        "stubBottom": "starts today"
       }
     },
     {
@@ -247,20 +247,20 @@
         "QR action beside the sealed-by venue block and footer"
       ],
       "copy": {
-        "manifestLabel": "Reward manifest · Contents undisclosed",
+        "manifestLabel": "Top secret · Kept under seal",
         "edition": "Nº 10",
-        "headline": "We're not telling.",
+        "headline": "Your reward is under seal.",
         "rewardLabel": "Reward",
         "sealedTag": "Sealed",
         "opensLabel": "Opens at",
         "opensOne": "Stamp one — a single visit fills this card",
         "opensMany": "Stamp {stamps} — when your card is full",
         "keptLabel": "Kept by",
-        "keptValue": "This venue — it won't say what's under the wax",
+        "keptValue": "Your card — the reward stays hidden until the final stamp",
         "startsLabel": "Starts",
-        "startsValue": "Today — one scan and today counts as stamp one",
-        "frictionLine": "No app — opens in your browser. One text. No password. Marketing optional. Stamps go one per UK date.",
-        "qrCaption": "Scan to open the file — today counts as stamp one",
+        "startsValue": "Complete the join and today's visit can count as stamp one",
+        "frictionLine": "One text. No app to download. Marketing optional. One visit stamp per UK date.",
+        "qrCaption": "Scan to start your card",
         "issuerLabel": "Sealed by",
         "signature": "Wax intact · Nab a Perks"
       }
@@ -296,17 +296,17 @@
         "QR action beside the starred friction list and venue block"
       ],
       "copy": {
-        "eyebrow": "Card on the table",
+        "eyebrow": "Your loyalty card",
         "edition": "Nab a Perks · Nº 11",
-        "headlineOne": "One circle. One secret.",
-        "headlineMany": "{StampsWord} circles. One secret.",
+        "headlineOne": "One stamp. One reward.",
+        "headlineMany": "{StampsWord} stamps. One reward.",
         "cardLabel": "Card Nº ——",
         "cardCount": "0 of {stamps}",
         "todayLabel": "Today",
-        "explainerOne": "Today's circle is the only one — join at the QR below and today's visit counts as stamp one. The reward's real; this venue just won't say what it is until your card is full.",
-        "explainerMany": "The first circle is today's — join at the QR below and today's visit counts as stamp one. The amber one holds something real; this venue won't say what it is until your card is full.",
-        "dateRule": "One stamp per UK date",
-        "qrCaption": "Scan — today inks circle one"
+        "explainerOne": "No app to download. Complete one text and today's visit can count as stamp one. Fill the card to reveal a reward picked by this venue.",
+        "explainerMany": "No app to download. Complete one text and today's visit can count as stamp one. Fill the card to reveal a reward picked by this venue.",
+        "dateRule": "One visit stamp per UK date",
+        "qrCaption": "Scan to start circle one today"
       }
     },
     {
@@ -341,15 +341,15 @@
         "Brand roundel venue strip and eligibility footer"
       ],
       "copy": {
-        "eyebrow": "Honest deadline",
+        "eyebrow": "Today's deadline",
         "edition": "Nab a Perks · Nº 13",
-        "headlineLead": "Today expires at",
-        "headlineAccent": "midnight.",
-        "badge": "Valid today only",
-        "lede": "So does its stamp. Join at the QR and today's visit counts as stamp one — stamps go one per UK date, and tomorrow gets its own.",
-        "sealedOne": "The reward stays sealed — this venue keeps it that way until your card's full. No rush on that part; the only clock is on today.",
-        "sealedMany": "The reward stays sealed — this venue keeps it that way until your card's full at {stamps} stamps. No rush on that part; the only clock is on today.",
-        "qrCaption": "Scan tonight — today counts as stamp one"
+        "headlineLead": "Make today count",
+        "headlineAccent": "before midnight.",
+        "badge": "Today only",
+        "lede": "Complete the join before midnight to make today's visit stamp one. No app to download. One text.",
+        "sealedOne": "Fill the card to reveal a reward picked by this venue. Only today's first-stamp opportunity has a deadline.",
+        "sealedMany": "Collect {stamps} stamps to reveal a reward picked by this venue. Only today's first-stamp opportunity has a deadline.",
+        "qrCaption": "Scan to start with today"
       }
     },
     {
@@ -385,19 +385,19 @@
       "copy": {
         "orderLabel": "Order Nº ——",
         "edition": "Nab a Perks · Nº 14",
-        "hook": "Put it on the card.",
+        "hook": "Don't leave without it.",
         "merchantLabel": "Merchant",
-        "cardLine": "Loyalty card · 0 of {stamps}",
+        "cardLine": "Venue loyalty card · 0 of {stamps}",
         "todayItem": "Today's visit",
-        "todayValue": "Stamp 1",
-        "rewardItem": "Mystery reward",
+        "todayValue": "Can be stamp 1",
+        "rewardItem": "Venue reward",
         "rewardValue": "Sealed",
-        "rewardNoteOne": "Real, chosen by this venue, kept sealed — one stamp fills the card, then you find out.",
-        "rewardNoteMany": "Real, chosen by this venue, kept sealed until stamp {stamps} — full card, then you find out.",
-        "totalLabel": "Total today",
-        "totalValue": "One visit · stamp one",
-        "qrCaption": "Scan — today rings through as stamp one",
-        "footLine": "Reprinted daily · Nab a Perks"
+        "rewardNoteOne": "Picked by this venue and revealed when your card is full. One text. No app.",
+        "rewardNoteMany": "Picked by this venue and revealed at stamp {stamps}. One text. No app.",
+        "totalLabel": "Start today",
+        "totalValue": "Scan to join",
+        "qrCaption": "Scan to start your card",
+        "footLine": "One visit stamp per UK date · Nab a Perks"
       }
     },
     {
@@ -412,7 +412,7 @@
       "sheetSize": "210×297 mm",
       "qrOuterMm": 54,
       "typeTiersPt": {
-        "hook": 76,
+        "hook": 60,
         "substantive": 14,
         "facts": 9
       },
@@ -432,16 +432,16 @@
         "Eligibility footer between the 18+ roundel and padlock doodles"
       ],
       "copy": {
-        "eyebrow": "Specials, sort of",
+        "eyebrow": "Your sealed reward",
         "edition": "Nab a Perks · Nº 15",
-        "headlineLead": "The special",
-        "headlineAccent": "is sealed.",
-        "ledeOne": "Join at the QR — today counts as stamp one, and one stamp fills the card.",
-        "ledeMany": "Join at the QR — today counts as stamp one, and {stamps} stamps fill the card.",
-        "sealedOne": "The special's real — chalked up as a mystery, and this venue won't say what it is until your card's full. One stamp and you find out.",
-        "sealedMany": "The special's real — chalked up as a mystery, and this venue won't say what it is until your card's full. {stamps} stamps and you find out.",
-        "qrCaption": "Scan — chalk up today as stamp one",
-        "stubTop": "Stamp one",
+        "headlineLead": "Unlock your",
+        "headlineAccent": "mystery reward",
+        "ledeOne": "No app to download. Complete one text and today's visit can count as stamp one.",
+        "ledeMany": "No app to download. Complete one text and today's visit can count as stamp one.",
+        "sealedOne": "Collect one stamp to reveal a reward picked by this venue.",
+        "sealedMany": "Collect {stamps} stamps to reveal a reward picked by this venue.",
+        "qrCaption": "Scan to start your card today",
+        "stubTop": "Start",
         "stubBottom": "today"
       }
     }

@@ -102,7 +102,7 @@ In `config/table-tent-designs.json`:
     "accent": "Reward.",
     "body": "Point your camera at the code. Stamp one lands today. Fill the card and the sealed reward opens — no app, no password.",
     "showStamps": true,
-    "cta": "Scan · Start in 10 seconds"
+    "cta": "Scan · Start your card"
   },
   "faceB": {
     "variant": "scan",

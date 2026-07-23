@@ -18,8 +18,11 @@ Do not promote a release until all of these are true:
 4. `pnpm env:check:production`, `pnpm security:audit`,
    `pnpm smoke:supabase:migrations`, `pnpm typecheck` and `pnpm build` pass.
 5. The target Supabase migration ledger matches `supabase/migrations`.
-6. The protected `Staging release proof` passes for the exact revision against
-   an isolated Supabase project and Vercel custom `staging` environment.
+6. The `Cost-neutral ephemeral release proof` passes for the exact revision
+   against a fresh Supabase CLI stack and the loopback production build. If the
+   optional hosted-staging path is later activated, its isolated Supabase
+   project and Vercel custom `staging` environment must pass as an additional
+   gate.
 7. Provider acceptance is recorded for the target environment. Stripe is a
    separate final gate and cannot be inferred from test mode.
 8. A rollback candidate (the last healthy Vercel production deployment) is
@@ -51,12 +54,15 @@ full webhook payloads.
 
 1. Merge the independently reviewed branch through protected `main`; do not
    bypass checks.
-2. Wait for `Production database promotion`: its protected staging job must
-   migrate an isolated project, deploy the exact revision to Vercel's custom
-   `staging` target, replay signed webhooks and roll back its synthetic loyalty
-   journey before the protected production database job becomes eligible.
-   Then wait for `Production deployment`, which builds and attests one Vercel
-   output, stages it without domains, verifies it and promotes that same output.
+2. Wait for `Production database promotion`: its cost-neutral ephemeral proof
+   must start a fresh Supabase CLI stack, build the exact revision on the
+   loopback origin, verify the full migration ledger and authenticated
+   readiness, replay signed webhooks, and roll back its synthetic loyalty
+   journey before the protected production database job becomes eligible. If
+   the optional hosted-staging path is active, wait for that additional gate as
+   well. Then wait for `Production deployment`, which builds and attests one
+   Vercel output, stages it without domains, verifies it and promotes that same
+   output.
 3. Record the deployment URL and Git commit SHA.
 4. Verify the exact revision and both probes:
 
@@ -127,9 +133,18 @@ or print either value:
 Abort and retain the overlap if either probe fails. Do not remove or overwrite
 the only value accepted by the currently promoted deployment.
 
-Configure a separate GitHub `Staging` environment before first use. It may
-permit only `main`; it must not reuse production data or provider credentials.
-Add these secrets:
+The cost-neutral database-promotion path creates a fresh Supabase CLI stack on
+the GitHub runner, builds the exact revision with non-secret provider fixtures,
+starts it on the fixed loopback origin, and proves the complete local migration
+ledger, authenticated liveness/readiness, signed Stripe and Resend replay, and
+the transactionally rolled-back core loyalty journey. It has no production
+credential and cannot promote by itself; the independent `Production`
+environment remains the only path that can release production database
+credentials.
+
+If hosted staging is later funded, configure a separate GitHub `Staging`
+environment before activating that stronger path. It may permit only `main`;
+it must not reuse production data or provider credentials. Add these secrets:
 
 - `STAGING_SUPABASE_ACCESS_TOKEN`, `STAGING_SUPABASE_DB_PASSWORD` and
   `STAGING_SUPABASE_DB_URL`;
@@ -159,18 +174,16 @@ query parameters or a non-standard port. Run IDs, the expected revision and a
 random delivery ID are the only event identifiers sent; no customer or provider
 payload is included.
 
-Review the migration files and a local linked dry run before approving the
-environment gate. The workflow first repeats and applies the plan on isolated
-staging, then verifies exact-revision liveness/readiness, signed Stripe and
-Resend replay, and a transactionally rolled-back merchant, card, reward-pool,
-QR, customer, stamp and reward-unlock journey. Only after that passes can the
-`Production` environment release credentials. The production job repeats the
-dry run immediately before applying forward-only migrations and fails unless
-the remote and repository ledgers match. Never repair, reset or seed production
-from this path. A successful run starts the exact-revision production deployment
-workflow automatically. That workflow generates signed build provenance and a
-CycloneDX SBOM, stages the exact prebuilt output with no domain assignment,
-probes that URL and promotes it. Public-origin smoke starts only after promotion.
+Review the migration files before approving the production environment gate.
+The workflow first runs the cost-neutral ephemeral proof described above. Only
+after it passes can the `Production` environment release credentials. The
+production job runs a linked dry run immediately before applying forward-only
+migrations and fails unless the remote and repository ledgers match. Never
+repair, reset or seed production from this path. A successful run starts the
+exact-revision production deployment workflow automatically. That workflow
+generates signed build provenance and a CycloneDX SBOM, stages the exact
+prebuilt output with no domain assignment, probes that URL and promotes it.
+Public-origin smoke starts only after promotion.
 
 ## Rollback
 

@@ -141,7 +141,12 @@ export function drawChalkA4(
     thicknessMm: 1,
   })
   // The smiley grins in the clear board right of the short accent word.
-  drawChalkSmiley(page, left + accentWidth + mm(16), accentY + mm(9), 7)
+  drawChalkSmiley(
+    page,
+    Math.min(left + accentWidth + mm(16), left + width - mm(7)),
+    accentY + mm(9),
+    7
+  )
 
   drawWrappedText(page, content.lede, {
     x: left,

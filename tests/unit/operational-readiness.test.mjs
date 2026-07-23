@@ -110,6 +110,46 @@ test("database readiness never sends the service role key to an untrusted origin
   assert.equal(calls, 0)
 })
 
+test("loopback readiness requires the exact ephemeral staging opt-in", async () => {
+  let calls = 0
+  const fetcher = async () => {
+    calls += 1
+    return new Response("[]", { status: 200 })
+  }
+
+  const denied = await checkDatabaseReadiness({
+    serviceRoleKey: "service-role-test-key",
+    fetcher,
+    supabaseUrl: "http://127.0.0.1:54321",
+  })
+  assert.deepEqual(denied, { database: "error" })
+  assert.equal(calls, 0)
+
+  const allowed = await checkDatabaseReadiness({
+    allowLoopback: true,
+    serviceRoleKey: "service-role-test-key",
+    fetcher,
+    supabaseUrl: "http://127.0.0.1:54321",
+  })
+  assert.deepEqual(allowed, { database: "ok" })
+  assert.equal(calls, 1)
+
+  for (const supabaseUrl of [
+    "http://localhost:54321",
+    "http://127.0.0.1:54322",
+    "http://127.0.0.1:54321/rest/v1",
+  ]) {
+    const rejected = await checkDatabaseReadiness({
+      allowLoopback: true,
+      serviceRoleKey: "service-role-test-key",
+      fetcher,
+      supabaseUrl,
+    })
+    assert.deepEqual(rejected, { database: "error" })
+  }
+  assert.equal(calls, 1)
+})
+
 test("database readiness collapses timeouts and network errors", async () => {
   const result = await checkDatabaseReadiness({
     serviceRoleKey: "service-role-test-key",
@@ -227,6 +267,27 @@ test("staging readiness can omit production-only cron health without omitting ot
   })
 
   assert.equal(breachedQueue.operational, "error")
+})
+
+test("operational readiness permits only the explicit ephemeral loopback origin", async () => {
+  let request
+  const signals = operationalSignals()
+  const result = await checkOperationalReadiness({
+    allowLoopback: true,
+    serviceRoleKey: "service-role-test-key",
+    thresholds,
+    fetcher: async (input) => {
+      request = String(input)
+      return Response.json(signals)
+    },
+    supabaseUrl: "http://127.0.0.1:54321",
+  })
+
+  assert.deepEqual(result, { operational: "ok", signals })
+  assert.equal(
+    request,
+    "http://127.0.0.1:54321/rest/v1/rpc/production_operational_signals"
+  )
 })
 
 test("operational readiness rejects malformed or untrusted provider responses", async () => {

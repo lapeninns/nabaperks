@@ -67,19 +67,19 @@
 | `accent`     | `Reward.`                                                                                                                |
 | `body`       | `Point your camera at the code. Stamp one lands today. Fill the card and the sealed reward opens — no app, no password.` |
 | `showStamps` | `true`                                                                                                                   |
-| `cta`        | `Scan · Start in 10 seconds`                                                                                             |
+| `cta`        | `Scan · Start your card`                                                                                                 |
 
 **Face B (back)**
 
-| Field        | Value                                                                                                       |
-| ------------ | ----------------------------------------------------------------------------------------------------------- |
-| `variant`    | `scan`                                                                                                      |
-| `tone`       | `paper`                                                                                                     |
-| `headline`   | `["New here?", "Your card", "starts now."]`                                                                 |
-| `accent`     | `starts now.`                                                                                               |
+| Field        | Value                                                                                                              |
+| ------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `variant`    | `scan`                                                                                                             |
+| `tone`       | `paper`                                                                                                            |
+| `headline`   | `["New here?", "Your card", "starts now."]`                                                                        |
+| `accent`     | `starts now.`                                                                                                      |
 | `body`       | `This code opens your card in the browser. Complete the quick join, then collect today's stamp — one per UK date.` |
-| `showStamps` | `true`                                                                                                      |
-| `cta`        | `Scan to open your card`                                                                                    |
+| `showStamps` | `true`                                                                                                             |
+| `cta`        | `Scan to open your card`                                                                                           |
 
 ---
 
