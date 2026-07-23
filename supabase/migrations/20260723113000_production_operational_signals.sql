@@ -58,6 +58,9 @@ create index if not exists operational_cron_runs_job_completed_idx
   on public.operational_cron_runs (job_name, completed_at desc);
 create index if not exists operational_cron_runs_completed_idx
   on public.operational_cron_runs (completed_at);
+create index if not exists notification_deliveries_attempted_non_skipped_idx
+  on public.notification_deliveries (attempted_at desc)
+  where status <> 'skipped';
 
 alter table public.operational_cron_jobs enable row level security;
 alter table public.operational_cron_jobs force row level security;

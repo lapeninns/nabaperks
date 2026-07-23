@@ -15,4 +15,5 @@ test("NFC square download event names the pdf asset type", () => {
   assert.equal(event.eventName, "qr_downloaded")
   assert.equal(event.metadata.asset_type, NFC_SQUARE_DOWNLOAD_ASSET_TYPE)
   assert.equal(event.metadata.template, "tap")
+  assert.equal(event.metadata.source, "nfc_square_print_button")
 })

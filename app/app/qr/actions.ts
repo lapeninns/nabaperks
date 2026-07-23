@@ -206,7 +206,10 @@ export async function emailPosterAction(): Promise<EmailPosterState> {
         ...kitInput,
         shareUrl: nfcShareUrl,
       }),
-      buildNfcSquarePdfAttachments(kitInput),
+      buildNfcSquarePdfAttachments({
+        ...kitInput,
+        shareUrl: nfcShareUrl,
+      }),
     ])
     const attachments = [
       ...posterAttachments,

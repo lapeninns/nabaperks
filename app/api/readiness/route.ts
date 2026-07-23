@@ -40,11 +40,15 @@ export async function GET(request: Request): Promise<Response> {
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
     serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
   }
+  const environment =
+    process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? "unknown"
+  const targetEnvironment = process.env.VERCEL_TARGET_ENV ?? environment
   const [database, operational] = await Promise.all([
     checkDatabaseReadiness(readinessOptions),
     checkOperationalReadiness({
       ...readinessOptions,
       thresholds: productionSlos.thresholds,
+      requireCronHealth: targetEnvironment !== "staging",
     }),
   ])
   const checks = {
@@ -72,12 +76,8 @@ export async function GET(request: Request): Promise<Response> {
       version: packageJson.version,
       revision:
         process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 12) ?? packageJson.version,
-      environment: process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? "unknown",
-      targetEnvironment:
-        process.env.VERCEL_TARGET_ENV ??
-        process.env.VERCEL_ENV ??
-        process.env.NODE_ENV ??
-        "unknown",
+      environment,
+      targetEnvironment,
       checks,
       signals: operational.signals,
       durationMs,

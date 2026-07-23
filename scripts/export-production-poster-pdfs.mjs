@@ -218,7 +218,7 @@ async function exportVenuePrintables(venue, outputRoot, appOrigin) {
     buildPosterPdfAttachments(input),
     buildTentPdfAttachments(input),
     buildNfcCardPdfAttachments(nfcInput),
-    buildNfcSquarePdfAttachments(input),
+    buildNfcSquarePdfAttachments(nfcInput),
   ])
 
   const posterFiles = []

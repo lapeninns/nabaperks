@@ -195,6 +195,40 @@ test("operational readiness permits the bounded first-run warm-up", async () => 
   assert.equal(result.operational, "ok")
 })
 
+test("staging readiness can omit production-only cron health without omitting other signals", async () => {
+  const staleCrons = operationalSignals({
+    cronJobs: operationalSignals().cronJobs.map((job) => ({
+      ...job,
+      state: "stale",
+    })),
+  })
+  const result = await checkOperationalReadiness({
+    serviceRoleKey: "service-role-test-key",
+    thresholds,
+    requireCronHealth: false,
+    fetcher: async () => Response.json(staleCrons),
+    supabaseUrl: "https://project.supabase.co",
+  })
+
+  assert.equal(result.operational, "ok")
+
+  const breachedQueue = await checkOperationalReadiness({
+    serviceRoleKey: "service-role-test-key",
+    thresholds,
+    requireCronHealth: false,
+    fetcher: async () =>
+      Response.json(
+        operationalSignals({
+          notificationQueueAgeMinutes: 30.001,
+          cronJobs: staleCrons.cronJobs,
+        })
+      ),
+    supabaseUrl: "https://project.supabase.co",
+  })
+
+  assert.equal(breachedQueue.operational, "error")
+})
+
 test("operational readiness rejects malformed or untrusted provider responses", async () => {
   for (const signals of [
     { ...operationalSignals(), cronJobs: [] },

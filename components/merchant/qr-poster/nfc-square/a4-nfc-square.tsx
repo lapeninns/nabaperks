@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { ArrowLeft02Icon, PrinterIcon } from "@hugeicons/core-free-icons"
 
+import { recordNfcSquarePrintAction } from "@/app/app/qr/nfc-square/actions"
 import { Icon } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 import {
@@ -54,7 +55,10 @@ export function A4NfcSquare({
           type="button"
           variant="reward"
           className="min-h-11 sm:min-h-9"
-          onClick={() => window.print()}
+          onClick={() => {
+            void recordNfcSquarePrintAction(design)
+            window.print()
+          }}
         >
           <Icon icon={PrinterIcon} size={16} />
           Print or save PDF

@@ -59,6 +59,7 @@ test("production exposes separate versioned liveness and dependency readiness", 
   assert.match(readiness, /PRODUCTION_MONITOR_SECRET_NEXT/)
   assert.match(readiness, /matchesAnyBearerSecret/)
   assert.match(readiness, /checkOperationalReadiness/)
+  assert.match(readiness, /requireCronHealth: targetEnvironment !== "staging"/)
   assert.match(readiness, /signals: operational\.signals/)
   assert.match(proxy, /isOperationalProbePath\(request\.nextUrl\.pathname\)/)
   assert.match(proxy, /customerDevice\?\.isNew/)
@@ -208,6 +209,10 @@ test("operational signals are data-free, durable and wired through every cron", 
   assert.match(migration, /notificationQueueAgeMinutes/)
   assert.match(migration, /loyaltyInviteQueueAgeMinutes/)
   assert.match(migration, /providerDeliveryFailureRate24h/)
+  assert.match(
+    migration,
+    /notification_deliveries_attempted_non_skipped_idx[\s\S]*attempted_at desc[\s\S]*where status <> 'skipped'/
+  )
   assert.match(migration, /consecutiveFailures/)
   assert.match(
     migration,
