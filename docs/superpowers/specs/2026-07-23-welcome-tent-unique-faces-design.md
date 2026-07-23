@@ -59,15 +59,15 @@
 
 **Face A (front)**
 
-| Field        | Value                                                                                                                    |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------ |
-| `variant`    | `plan`                                                                                                                   |
-| `tone`       | `paper`                                                                                                                  |
-| `headline`   | `["How it works.", "Scan.", "Stamp.", "Reward."]`                                                                        |
-| `accent`     | `Reward.`                                                                                                                |
-| `body`       | `Point your camera at the code. Stamp one lands today. Fill the card and the sealed reward opens — no app, no password.` |
-| `showStamps` | `true`                                                                                                                   |
-| `cta`        | `Scan · Start your card`                                                                                                 |
+| Field        | Value                                                                                                                                                |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `variant`    | `plan`                                                                                                                                               |
+| `tone`       | `paper`                                                                                                                                              |
+| `headline`   | `["How it works.", "Scan.", "Stamp.", "Reward."]`                                                                                                    |
+| `accent`     | `Reward.`                                                                                                                                            |
+| `body`       | `Point your camera at the code. Complete the quick join, then today's stamp lands. Fill the card and the sealed reward opens — no app, no password.` |
+| `showStamps` | `true`                                                                                                                                               |
+| `cta`        | `Scan · Start your card`                                                                                                                             |
 
 **Face B (back)**
 

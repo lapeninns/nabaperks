@@ -71,6 +71,7 @@ test("table-tent copy is honest — no fabricated proof, no free-stamp claims", 
     /rewards claimed here/i,
     // The shared poster truthfulness guardrails apply to tents too.
     /claim (?:your )?(?:free )?stamp/i,
+    /stamp (?:one )?lands today/i,
     /instant(?:ly)?/i,
     /\bVIP\b/i,
     /premium reward/i,

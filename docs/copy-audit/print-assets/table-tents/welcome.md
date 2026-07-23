@@ -54,8 +54,8 @@ available now.
 
 - **Headline:** How it works. / Scan. / Stamp. / Reward.
 - **Accent:** Reward.
-- **Body:** Point your camera at the code. Stamp one lands today. Fill the card
-  and the sealed reward opens — no app, no password.
+- **Body:** Point your camera at the code. Complete the quick join, then today's
+  stamp lands. Fill the card and the sealed reward opens — no app, no password.
 - **CTA:** Scan · Start your card
 
 ### Face B
