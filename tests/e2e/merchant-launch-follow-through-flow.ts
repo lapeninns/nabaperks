@@ -393,13 +393,25 @@ export function defineMerchantLaunchFollowThroughTests() {
     await expect(page.getByText("Scans paused — fix billing")).toHaveCount(0)
   })
 
-  test("panel content does not restart the global setup numbering", async ({
+  test("card panel content does not restart the global setup numbering", async ({
     page,
   }) => {
-    await page.goto(`${HARNESS_ROUTES.launch}?tab=card`)
+    const cardPath = `${HARNESS_ROUTES.launch}?tab=card`
+    await gotoHydratedPage(page, cardPath)
+    await expect(page).toHaveURL(/\/dev\/app-harness\/launch\?tab=card$/)
+    await expect(page.getByRole("heading", { name: "Your card" })).toBeVisible()
     await expect(page.getByText("Step 2", { exact: true })).toHaveCount(0)
+  })
 
-    await page.goto(`${HARNESS_ROUTES.launch}?tab=billing`)
+  test("billing panel content does not restart the global setup numbering", async ({
+    page,
+  }) => {
+    const billingPath = `${HARNESS_ROUTES.launch}?tab=billing`
+    await gotoHydratedPage(page, billingPath)
+    await expect(page).toHaveURL(/\/dev\/app-harness\/launch\?tab=billing$/)
+    await expect(
+      page.getByRole("heading", { name: "Activate your venue" })
+    ).toBeVisible()
     await expect(page.getByText(/Step 5 of 5/)).toHaveCount(0)
   })
 }

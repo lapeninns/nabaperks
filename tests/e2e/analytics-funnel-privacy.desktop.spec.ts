@@ -26,11 +26,19 @@ test.describe("desktop privacy-safe merchant funnel", () => {
       })
     })
 
-    await page.goto("/")
+    // Compile the destination before WebKit exercises the client navigation.
+    // Otherwise a first-use `next dev` Fast Refresh can replace that navigation
+    // after the analytics milestone has already been recorded.
+    const signupWarmup = await page.request.get("/signup")
+    expect(signupWarmup.status()).toBeLessThan(400)
+
+    const response = await page.goto("/")
+    expect(response?.status()).toBeLessThan(400)
     await expect
       .poll(() => requests.map(({ event }) => event))
       .toContain("merchant_marketing_viewed")
     await page.getByRole("link", { name: "Start free pilot" }).first().click()
+    await expect(page).toHaveURL(/\/signup$/)
     await expect
       .poll(() => requests.map(({ event }) => event))
       .toContain("merchant_signup_clicked")
