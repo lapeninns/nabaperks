@@ -1,0 +1,18 @@
+{
+  "productionProject": {
+    "ref": "skonlhwstejberyzobep",
+    "name": "nabaperks",
+    "organizationId": "ebsttdnynjakgxdclohg",
+    "region": "eu-west-2",
+    "status": "ACTIVE_HEALTHY",
+    "postgresEngine": "17"
+  },
+  "backups": {
+    "region": "eu-west-2",
+    "walgRequired": true,
+    "pitrRequired": true,
+    "minimumCompletedPhysicalBackups": 7,
+    "maximumLatestAgeHours": 36,
+    "maximumGapHours": 30
+  }
+}

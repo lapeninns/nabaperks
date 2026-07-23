@@ -49,6 +49,14 @@ blocking deployment checks, and environment-variable names/scopes:
 pnpm ops:vercel:check
 ```
 
+Supabase governance reads project, migration-ledger and physical-backup metadata
+without printing database credentials. It intentionally fails until production
+is source-aligned and PITR-backed:
+
+```bash
+pnpm ops:supabase:check
+```
+
 ## Repository boundaries
 
 - `app/` owns routes, layouts, route handlers, and server actions.
