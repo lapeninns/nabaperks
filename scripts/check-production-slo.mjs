@@ -4,8 +4,13 @@ import { pathToFileURL } from "node:url"
 
 const API_VERSION = "2026-03-10"
 const EXPECTED_REPOSITORY = "lapeninns/nabaperks"
+const GITHUB_API_ORIGIN = "https://api.github.com"
 const MAX_PAGES_PER_CHUNK = 10
 const SEARCH_CHUNK_MS = 7 * 86_400_000
+const SLO_RUNS_PATH =
+  "/repos/lapeninns/nabaperks/actions/workflows/slo-report.yml/runs"
+const SMOKE_RUNS_PATH =
+  "/repos/lapeninns/nabaperks/actions/workflows/production-smoke.yml/runs"
 
 export function readSloConfig(path = "config/production-slos.json") {
   const config = JSON.parse(readFileSync(path, "utf8"))
@@ -70,10 +75,7 @@ export async function fetchScheduledSmokeRuns({
     )
     let chunkComplete = false
     for (let page = 1; page <= MAX_PAGES_PER_CHUNK; page += 1) {
-      const url = new URL(
-        `/repos/${repository}/actions/workflows/${workflow}/runs`,
-        "https://api.github.com"
-      )
+      const url = new URL(SMOKE_RUNS_PATH, GITHUB_API_ORIGIN)
       const range = `${new Date(chunkStartMs).toISOString()}..${new Date(chunkEndMs).toISOString()}`
       url.searchParams.set("event", "schedule")
       url.searchParams.set("status", "completed")
@@ -138,10 +140,7 @@ export async function fetchSloMeasurementRuns({
     )
     let chunkComplete = false
     for (let page = 1; page <= MAX_PAGES_PER_CHUNK; page += 1) {
-      const url = new URL(
-        `/repos/${repository}/actions/workflows/slo-report.yml/runs`,
-        "https://api.github.com"
-      )
+      const url = new URL(SLO_RUNS_PATH, GITHUB_API_ORIGIN)
       url.searchParams.set(
         "created",
         `${new Date(chunkStartMs).toISOString()}..${new Date(chunkEndMs).toISOString()}`

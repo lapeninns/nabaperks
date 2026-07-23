@@ -150,7 +150,7 @@ test("staging proof is isolated, exact-revision, replay-safe and rollback-only",
   assert.match(script, /svix-signature/)
   assert.match(script, /x-vercel-protection-bypass/)
   assert.match(script, /delete from public\.stripe_webhook_events/)
-  assert.doesNotMatch(script, /nabaperks\.com/i)
+  assert.equal(script.toLowerCase().includes("nabaperks.com"), false)
 })
 
 test("recovery drill verifies a recent physical backup on a protected disposable target", () => {
