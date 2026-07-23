@@ -65,7 +65,7 @@ export function drawLedgerTop(
     size: content.typeTiers.hookPt,
     lineHeight: displayLeading(content.typeTiers.hookPt),
     color: POSTER_PDF_COLOR.ink,
-    maxLines: 2,
+    maxLines: content.id === "primer" ? 4 : 2,
   })
   return { left, width, headlineBottom }
 }

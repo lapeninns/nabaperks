@@ -311,15 +311,21 @@ function drawPlateFace(
   })
   drawQrCode(page, qrModules, qrX, qrY, qrSize)
 
-  const friction = standardFontText(content.claimFriction, fonts.monoBold)
-  page.drawText(friction, {
-    x:
-      qrX +
-      qrSize / 2 -
-      fonts.monoBold.widthOfTextAtSize(friction, TYPE_FLOOR) / 2,
-    y: originY + mm(2.5),
-    size: TYPE_FLOOR,
-    font: fonts.monoBold,
-    color: POSTER_PDF_COLOR.inkSoft,
+  const [fallbackLead, fallbackAction] = content.claimFriction.split("? ")
+  const fallbackLines = fallbackAction
+    ? [`${fallbackLead}?`, fallbackAction]
+    : [content.claimFriction]
+  fallbackLines.forEach((line, index) => {
+    const fallback = standardFontText(line, fonts.monoBold)
+    page.drawText(fallback, {
+      x:
+        qrX +
+        qrSize / 2 -
+        fonts.monoBold.widthOfTextAtSize(fallback, TYPE_FLOOR) / 2,
+      y: originY + mm(4.5 - index * 2.6),
+      size: TYPE_FLOOR,
+      font: fonts.monoBold,
+      color: POSTER_PDF_COLOR.inkSoft,
+    })
   })
 }

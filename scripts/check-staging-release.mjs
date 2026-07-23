@@ -6,6 +6,8 @@ import postgres from "postgres"
 
 const HTTP_TIMEOUT_MS = 15_000
 const ROLLBACK = Symbol("staging-journey-rollback")
+const HOSTED_MODE = "hosted"
+const EPHEMERAL_MODE = "ephemeral"
 
 if (isMainModule()) {
   await runStagingReleaseProof(process.env)
@@ -17,7 +19,7 @@ export async function runStagingReleaseProof(env) {
     max: 1,
     idle_timeout: 5,
     connect_timeout: 10,
-    ssl: "require",
+    ssl: config.mode === HOSTED_MODE ? "require" : false,
   })
 
   try {
@@ -33,6 +35,12 @@ export async function runStagingReleaseProof(env) {
 }
 
 export function resolveConfig(env) {
+  const mode = env.STAGING_MODE?.trim() || HOSTED_MODE
+  assert.ok(
+    mode === HOSTED_MODE || mode === EPHEMERAL_MODE,
+    "staging mode must be hosted or ephemeral"
+  )
+
   const revision = required(env, "STAGING_EXPECTED_REVISION")
   assert.match(
     revision,
@@ -40,22 +48,9 @@ export function resolveConfig(env) {
     "expected revision must be a full Git SHA"
   )
 
-  const projectRef = required(env, "STAGING_SUPABASE_PROJECT_REF")
-  assert.match(
-    projectRef,
-    /^[a-z\d]{20}$/,
-    "invalid staging Supabase project ref"
-  )
-
   const appUrl = parseOrigin(
     required(env, "STAGING_APP_URL"),
     "staging app URL"
-  )
-  assert.equal(appUrl.protocol, "https:", "staging app must use HTTPS")
-  assert.match(
-    appUrl.hostname,
-    /\.vercel\.app$/,
-    "staging proof must use an immutable Vercel deployment URL"
   )
 
   const dbUrl = required(env, "STAGING_SUPABASE_DB_URL")
@@ -65,21 +60,60 @@ export function resolveConfig(env) {
     /^postgres(?:ql)?:$/,
     "staging DB URL must use PostgreSQL"
   )
-  assert.notEqual(
-    parsedDbUrl.hostname,
-    "localhost",
-    "staging DB must not be local"
-  )
-  assert.notEqual(
-    parsedDbUrl.hostname,
-    "127.0.0.1",
-    "staging DB must not be local"
-  )
-  assert.ok(
-    parsedDbUrl.hostname.includes(projectRef) ||
-      parsedDbUrl.username.endsWith(`.${projectRef}`),
-    "staging DB URL must identify the configured staging project ref"
-  )
+
+  let bypassSecret = ""
+  let projectRef = "local-ephemeral"
+  if (mode === HOSTED_MODE) {
+    projectRef = required(env, "STAGING_SUPABASE_PROJECT_REF")
+    assert.match(
+      projectRef,
+      /^[a-z\d]{20}$/,
+      "invalid staging Supabase project ref"
+    )
+    assert.equal(appUrl.protocol, "https:", "staging app must use HTTPS")
+    assert.match(
+      appUrl.hostname,
+      /\.vercel\.app$/,
+      "staging proof must use an immutable Vercel deployment URL"
+    )
+    assert.notEqual(
+      parsedDbUrl.hostname,
+      "localhost",
+      "hosted staging DB must not be local"
+    )
+    assert.notEqual(
+      parsedDbUrl.hostname,
+      "127.0.0.1",
+      "hosted staging DB must not be local"
+    )
+    assert.ok(
+      parsedDbUrl.hostname.includes(projectRef) ||
+        parsedDbUrl.username.endsWith(`.${projectRef}`),
+      "staging DB URL must identify the configured staging project ref"
+    )
+    bypassSecret = required(env, "STAGING_VERCEL_AUTOMATION_BYPASS_SECRET")
+  } else {
+    assert.equal(
+      appUrl.href,
+      "http://127.0.0.1:3000/",
+      "ephemeral staging app must use the fixed loopback origin"
+    )
+    assert.equal(
+      parsedDbUrl.hostname,
+      "127.0.0.1",
+      "ephemeral staging DB must use loopback"
+    )
+    assert.equal(
+      parsedDbUrl.port,
+      "54322",
+      "ephemeral staging DB must use the Supabase CLI port"
+    )
+    assert.equal(
+      parsedDbUrl.pathname,
+      "/postgres",
+      "ephemeral staging DB must use the local postgres database"
+    )
+  }
 
   const stripeWebhookSecret = required(env, "STAGING_STRIPE_WEBHOOK_SECRET")
   assert.match(
@@ -96,8 +130,9 @@ export function resolveConfig(env) {
 
   return {
     appUrl,
-    bypassSecret: required(env, "STAGING_VERCEL_AUTOMATION_BYPASS_SECRET"),
+    bypassSecret,
     dbUrl,
+    mode,
     monitorSecret: required(env, "STAGING_MONITOR_SECRET"),
     projectRef,
     resendWebhookSecret,
@@ -131,9 +166,7 @@ async function proveDatabaseTarget(sql, config) {
 
 async function proveStagingProbes(config) {
   const expectedRevision = config.revision.slice(0, 12)
-  const bypassHeaders = {
-    "x-vercel-protection-bypass": config.bypassSecret,
-  }
+  const bypassHeaders = protectionHeaders(config)
   const health = await getJson(
     new URL("/api/health", config.appUrl),
     bypassHeaders
@@ -437,7 +470,7 @@ async function proveStripeWebhookReplay(sql, config) {
   const headers = {
     "content-type": "application/json",
     "stripe-signature": `t=${timestamp},v1=${digest}`,
-    "x-vercel-protection-bypass": config.bypassSecret,
+    ...protectionHeaders(config),
   }
 
   try {
@@ -511,7 +544,7 @@ async function proveResendWebhookReplay(config) {
     "svix-id": webhookId,
     "svix-signature": `v1,${signature}`,
     "svix-timestamp": timestamp,
-    "x-vercel-protection-bypass": config.bypassSecret,
+    ...protectionHeaders(config),
   }
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -571,6 +604,12 @@ function standardWebhookKey(secret) {
     secret.replace(/^v1,/, "").replace(/^whsec_/, ""),
     "base64"
   )
+}
+
+function protectionHeaders(config) {
+  return config.bypassSecret
+    ? { "x-vercel-protection-bypass": config.bypassSecret }
+    : {}
 }
 
 function parseOrigin(value, label) {

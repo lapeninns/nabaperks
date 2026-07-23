@@ -70,6 +70,14 @@ test("table-tent copy is honest — no fabricated proof, no free-stamp claims", 
     /took one scan/i,
     /rewards claimed here/i,
     // The shared poster truthfulness guardrails apply to tents too.
+    /claim (?:your )?(?:free )?stamp/i,
+    /instant(?:ly)?/i,
+    /\bVIP\b/i,
+    /premium reward/i,
+    /chosen exclusively by (?:our )?staff/i,
+    /zero friction/i,
+    /10 seconds/i,
+    /expires at closing/i,
     /everyone wins/i,
     /no spam/i,
     /no account/i,
@@ -78,6 +86,14 @@ test("table-tent copy is honest — no fabricated proof, no free-stamp claims", 
   ]) {
     assert.doesNotMatch(copy, forbidden)
   }
+
+  assert.equal(
+    catalog.shared.friction,
+    "One text · No app · Marketing optional"
+  )
+  assert.equal(catalog.shared.footer.left, "One visit stamp per UK date")
+  assert.match(copy, /Today's visit can start your card/)
+  assert.match(copy, /reward picked by this venue/)
 })
 
 test("table-tent adapters use their own catalogue, never the poster one", () => {

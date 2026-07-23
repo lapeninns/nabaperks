@@ -20,12 +20,34 @@ function validEnv(overrides = {}) {
   }
 }
 
+function validEphemeralEnv(overrides = {}) {
+  return validEnv({
+    STAGING_APP_URL: "http://127.0.0.1:3000",
+    STAGING_MODE: "ephemeral",
+    STAGING_SUPABASE_DB_URL:
+      "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
+    STAGING_SUPABASE_PROJECT_REF: "",
+    STAGING_VERCEL_AUTOMATION_BYPASS_SECRET: "",
+    ...overrides,
+  })
+}
+
 test("staging release config accepts isolated immutable targets", () => {
   const config = resolveConfig(validEnv())
 
   assert.equal(config.appUrl.hostname, "nabaperks-staging-proof.vercel.app")
+  assert.equal(config.mode, "hosted")
   assert.equal(config.projectRef, PROJECT_REF)
   assert.equal(config.revision, "a".repeat(40))
+})
+
+test("staging release config accepts a fixed ephemeral loopback target", () => {
+  const config = resolveConfig(validEphemeralEnv())
+
+  assert.equal(config.appUrl.href, "http://127.0.0.1:3000/")
+  assert.equal(config.bypassSecret, "")
+  assert.equal(config.mode, "ephemeral")
+  assert.equal(config.projectRef, "local-ephemeral")
 })
 
 test("staging release config rejects local or mismatched databases", () => {
@@ -59,5 +81,21 @@ test("staging release config rejects mutable or malformed application targets", 
     "https://nabaperks.com",
   ]) {
     assert.throws(() => resolveConfig(validEnv({ STAGING_APP_URL: appUrl })))
+  }
+})
+
+test("ephemeral staging rejects mutable app and database targets", () => {
+  for (const overrides of [
+    { STAGING_APP_URL: "http://localhost:3000" },
+    {
+      STAGING_SUPABASE_DB_URL:
+        "postgresql://postgres:postgres@127.0.0.1:54329/postgres",
+    },
+    {
+      STAGING_SUPABASE_DB_URL:
+        "postgresql://postgres:postgres@db.example.test:54322/postgres",
+    },
+  ]) {
+    assert.throws(() => resolveConfig(validEphemeralEnv(overrides)))
   }
 })

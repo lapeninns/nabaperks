@@ -9,7 +9,7 @@ import {
 
 test("tent content resolves the closed stamp placeholder grammar", () => {
   const sealed = resolveTentContent("sealed", 4)
-  assert.match(sealed.faceB.body, /Four stamps and the amber seal opens/)
+  assert.match(sealed.faceA.body, /Reach stamp 4/)
   assert.equal(resolveTentText("{stamps} / {StampsWord}", 6), "6 / Six")
   assert.throws(
     () => resolveTentText("{mystery}", 4),
@@ -40,6 +40,8 @@ test("every tent resolves both faces for each supported stamp count", () => {
       assert.ok(content.faceB.headline.length >= 1)
       assert.ok(!content.faceA.body.includes("{"))
       assert.ok(!content.faceB.body.includes("{"))
+      assert.equal(content.friction, "One text · No app · Marketing optional")
+      assert.equal(content.footer.left, "One visit stamp per UK date")
     }
   }
 })
@@ -56,7 +58,7 @@ test("all five tents share the folded A4 geometry and QR contract", () => {
     assert.equal(content.qr.errorCorrectionLevel, "H")
     assert.match(content.reassurance, /^18\+ to redeem/)
     // Both faces carry the same shared footer and the venue kicker.
-    assert.equal(content.footer.left, content.footer.left)
+    assert.equal(content.footer.left, "One visit stamp per UK date")
     assert.ok(content.kicker.length > 0)
   }
 })

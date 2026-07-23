@@ -36,6 +36,7 @@ type OperationalReadinessOptions = {
   readonly supabaseUrl: string | undefined
   readonly serviceRoleKey: string | undefined
   readonly thresholds: OperationalThresholds
+  readonly allowLoopback?: boolean
   readonly requireCronHealth?: boolean
   readonly fetcher?: typeof fetch
   readonly timeoutMs?: number
@@ -45,6 +46,7 @@ export async function checkOperationalReadiness({
   supabaseUrl,
   serviceRoleKey,
   thresholds,
+  allowLoopback = false,
   requireCronHealth = true,
   fetcher = fetch,
   timeoutMs = 3_000,
@@ -54,7 +56,9 @@ export async function checkOperationalReadiness({
   }
 
   try {
-    const origin = trustedSupabaseProjectOrigin(supabaseUrl)
+    const origin = trustedSupabaseProjectOrigin(supabaseUrl, {
+      allowLoopback,
+    })
     if (!origin || !validThresholds(thresholds)) return operationalError()
 
     const response = await fetcher(

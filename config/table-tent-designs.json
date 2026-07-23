@@ -22,10 +22,10 @@
     "foldLabel": "Fold to peak",
     "numberWords": ["zero", "one", "two", "three", "four", "five", "six"],
     "footer": {
-      "left": "One stamp per UK date — today's expires at closing",
+      "left": "One visit stamp per UK date",
       "right": "No app · Opens in your browser"
     },
-    "friction": "10 seconds · No app · No password",
+    "friction": "One text · No app · Marketing optional",
     "tokens": {
       "paper": "#f6f1e6",
       "paperDeep": "#ece5d4",
@@ -87,53 +87,53 @@
     {
       "id": "regulars",
       "name": "Regulars",
-      "description": "Loss-aversion front, join-the-regulars back — the recommended all-rounder.",
+      "description": "Belonging-led front, reward-payoff back — the recommended all-rounder.",
       "rollout": "production",
       "useCase": "Busy tables and bar tops",
       "tone": "endowed-progress-loss-aversion",
       "faceA": {
         "variant": "loss",
         "tone": "paper",
-        "headline": ["This table", "starts your", "card."],
-        "accent": "card.",
-        "body": "Stamp one lands the second you scan. One per UK date — leave without scanning and today's is gone.",
+        "headline": ["For our", "local", "regulars."],
+        "accent": "regulars.",
+        "body": "Complete the join before you leave and today's visit can start your card.",
         "showStamps": true,
-        "cta": "Claim before you leave"
+        "cta": "Scan to start your card"
       },
       "faceB": {
         "variant": "social",
         "tone": "paper",
-        "headline": ["Regulars keep", "a card", "here."],
-        "accent": "here.",
-        "body": "Your card opens from this code and remembers every visit. Fill it and the sealed reward opens.",
+        "headline": ["Unlock", "your", "reward."],
+        "accent": "reward.",
+        "body": "Fill your card to reveal a reward picked by this venue.",
         "showStamps": true,
-        "cta": "Scan · Become a regular"
+        "cta": "Scan to start with today"
       }
     },
     {
       "id": "welcome",
       "name": "Welcome",
-      "description": "Join-the-regulars front, loss-aversion back — the Regulars faces in the reverse order.",
+      "description": "Warm welcome front, return-visit payoff back.",
       "rollout": "production",
       "useCase": "Front-of-house and welcome tables",
       "tone": "belonging-first",
       "faceA": {
         "variant": "social",
         "tone": "paper",
-        "headline": ["Regulars keep", "a card", "here."],
-        "accent": "here.",
-        "body": "Your card opens from this code and remembers every visit. Fill it and the sealed reward opens.",
+        "headline": ["Welcome.", "Let's get", "started."],
+        "accent": "started.",
+        "body": "Today's visit can start your card. Fill it to reveal a reward picked by this venue.",
         "showStamps": true,
-        "cta": "Scan · Become a regular"
+        "cta": "Scan to start with today"
       },
       "faceB": {
         "variant": "loss",
         "tone": "paper",
-        "headline": ["This table", "starts your", "card."],
-        "accent": "card.",
-        "body": "Stamp one lands the second you scan. One per UK date — leave without scanning and today's is gone.",
+        "headline": ["Unlock", "your", "reward."],
+        "accent": "reward.",
+        "body": "Return on another UK date to add the next stamp. Fill the card to reveal your reward.",
         "showStamps": true,
-        "cta": "Claim before you leave"
+        "cta": "Scan to start your card"
       }
     },
     {
@@ -146,79 +146,73 @@
       "faceA": {
         "variant": "sealed",
         "tone": "sealed",
-        "badge": "Sealed",
-        "headline": [
-          "We know",
-          "what it is.",
-          "Staff know.",
-          "You don't.",
-          "Yet."
-        ],
-        "accent": "Yet.",
-        "body": "Fill your card and the amber seal opens. Stamp one starts the moment you scan — staff won't spoil what's under it.",
+        "badge": "Top secret",
+        "headline": ["Your", "reward is", "sealed."],
+        "accent": "sealed.",
+        "body": "Today's visit can start your card. Reach stamp {stamps} to break the seal and reveal your reward.",
         "showStamps": false,
-        "cta": "Scan · Break the seal"
+        "cta": "Scan to start your card"
       },
       "faceB": {
         "variant": "plan",
         "tone": "paper",
         "headline": ["How to", "break the", "seal."],
         "accent": "seal.",
-        "body": "Stamp one starts the count the moment you scan. One more each visit — {StampsWord} stamps and the amber seal opens.",
+        "body": "One text starts the card. Fill it to reveal a reward picked by this venue.",
         "showStamps": true,
-        "cta": "Scan · Start the count"
+        "cta": "Scan to start today"
       }
     },
     {
       "id": "today",
       "name": "Today only",
-      "description": "Honest daily urgency front, curiosity back.",
+      "description": "Honest before-you-leave urgency front, reward-payoff back.",
       "rollout": "production",
       "useCase": "Evening and late tables",
       "tone": "honest-daily-urgency",
       "faceA": {
         "variant": "urgency",
         "tone": "ink",
-        "badge": "Valid today",
-        "headline": ["Today's", "stamp expires", "at closing."],
-        "accent": "at closing.",
-        "body": "One stamp per UK date, and today's is waiting in that code. Come back tomorrow and this one's gone.",
+        "badge": "Today only",
+        "headline": ["Don't", "leave this", "behind."],
+        "accent": "behind.",
+        "body": "Complete the join before you leave and today's visit can be stamp one.",
         "showStamps": false,
-        "cta": "Scan in 10 seconds"
+        "cta": "Scan to start with today"
       },
       "faceB": {
         "variant": "sealed",
         "tone": "sealed",
-        "badge": "Sealed",
-        "headline": ["Still wondering", "what's under", "the seal?"],
-        "accent": "the seal?",
-        "body": "Fill your card and the amber seal opens. Today's stamp is already waiting in the code — staff won't spoil the rest.",
+        "badge": "Reward sealed",
+        "headline": ["Reveal", "your", "reward."],
+        "accent": "reward.",
+        "body": "Fill your card to reveal a reward picked by this venue. One text. No app.",
         "showStamps": false,
-        "cta": "Scan · Break the seal"
+        "cta": "Scan to start your card"
       }
     },
     {
       "id": "classic",
       "name": "Classic",
-      "description": "Plain-spoken scan-stamp front, stamp-one-starts-here back.",
+      "description": "Plain-spoken reward front, start-today back.",
       "rollout": "production",
       "useCase": "Any table that wants the simplest read",
       "tone": "plain-spoken",
       "faceA": {
         "variant": "scan",
         "tone": "paper",
-        "headline": ["Scan.", "Stamp.", "Don't ask."],
-        "accent": "Don't ask.",
-        "body": "We can't tell you what the reward is — that's the point. Stamp one starts the moment you scan.",
+        "headline": ["Unlock.", "Your.", "Reward."],
+        "accent": "Reward.",
+        "body": "Complete one text and today's visit can start your card. Fill it to reveal a reward picked by this venue.",
         "showStamps": true,
-        "cta": "Point your camera"
+        "cta": "Point your camera to start"
       },
       "faceB": {
         "variant": "claim",
         "tone": "paper",
-        "headline": ["Stamp one", "starts", "here."],
-        "accent": "here.",
-        "body": "The rest of the card unlocks the mystery. Staff won't spoil it. We won't either.",
+        "headline": ["Make", "today", "stamp one."],
+        "accent": "stamp one.",
+        "body": "One text starts the card. Fill it to reveal your sealed reward.",
         "showStamps": true,
         "cta": "Scan to start your card"
       }

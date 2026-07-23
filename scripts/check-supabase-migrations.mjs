@@ -7,8 +7,7 @@ import { fileURLToPath } from "node:url"
 const projectDir = process.cwd()
 const migrationVersionPattern = /^\d{14}$/
 const migrationFilePattern = /^(\d{14})_.*\.sql$/
-const hookSecretPlaceholder =
-  `v1,${"whsec"}_${"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa="}`
+const hookSecretPlaceholder = `v1,${"whsec"}_${"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa="}`
 const linkedHookUri = "https://nabaperks.com/api/auth/hooks/send-email"
 
 // Baseline for the append-only rule: a migration already present on this ref is
@@ -18,15 +17,24 @@ const APPEND_ONLY_BASELINE_REF = "origin/main"
 const SANCTIONED_MIGRATION_EDITS = []
 
 if (isMain()) {
+  const migrationTarget = process.argv.includes("--local")
+    ? "--local"
+    : "--linked"
+  const targetLabel = migrationTarget === "--local" ? "Local" : "Linked"
+
   // Git-based structural checks run first and need no linked credentials, so
   // they catch drift even where `migration list --linked` cannot connect.
   const localFiles = listLocalMigrationFiles(projectDir)
   const duplicates = detectDuplicateVersions(localFiles.map((f) => f.version))
 
   if (duplicates.length) {
-    console.error("Duplicate migration versions found (two files share a version):")
+    console.error(
+      "Duplicate migration versions found (two files share a version):"
+    )
     for (const version of duplicates) {
-      const names = localFiles.filter((f) => f.version === version).map((f) => f.name)
+      const names = localFiles
+        .filter((f) => f.version === version)
+        .map((f) => f.name)
       console.error(`  ${version}: ${names.join(", ")}`)
     }
     process.exit(1)
@@ -56,10 +64,16 @@ if (isMain()) {
     )
   }
 
-  const result = runSupabaseMigrationList(projectDir, process.env)
+  const result = runSupabaseMigrationList(
+    projectDir,
+    process.env,
+    migrationTarget
+  )
 
   if (result.status !== 0) {
-    console.error("Unable to read linked Supabase migration state.")
+    console.error(
+      `Unable to read ${targetLabel.toLowerCase()} Supabase migration state.`
+    )
     if (result.output.trim()) {
       console.error(result.output.trim())
     }
@@ -77,7 +91,7 @@ if (isMain()) {
 
   if (diff.missingOnRemote.length || diff.extraOnRemote.length) {
     console.error(
-      "Linked Supabase migrations are not aligned with local files."
+      `${targetLabel} Supabase migrations are not aligned with local files.`
     )
 
     if (diff.missingOnRemote.length) {
@@ -92,12 +106,20 @@ if (isMain()) {
   }
 
   console.log(
-    `Linked Supabase migrations are aligned (${localVersions.length} local, ${remoteVersions.length} remote).`
+    `${targetLabel} Supabase migrations are aligned (${localVersions.length} local, ${remoteVersions.length} remote).`
   )
 }
 
-export function runSupabaseMigrationList(projectDir, env) {
-  const result = spawnSync("supabase", ["migration", "list", "--linked"], {
+export function runSupabaseMigrationList(
+  projectDir,
+  env,
+  migrationTarget = "--linked"
+) {
+  if (migrationTarget !== "--linked" && migrationTarget !== "--local") {
+    throw new Error("Supabase migration target must be --linked or --local.")
+  }
+
+  const result = spawnSync("supabase", ["migration", "list", migrationTarget], {
     cwd: projectDir,
     encoding: "utf8",
     env: {
@@ -161,9 +183,15 @@ export function detectDuplicateVersions(versions) {
  * `{ version, sha }`. New or removed files are ignored — only edits to an
  * already-released migration are flagged. Returned sorted.
  */
-export function findEditedAppliedMigrations({ baseline, current, sanctioned = [] }) {
+export function findEditedAppliedMigrations({
+  baseline,
+  current,
+  sanctioned = [],
+}) {
   const sanctionedSet = new Set(sanctioned)
-  const currentByVersion = new Map(current.map((entry) => [entry.version, entry.sha]))
+  const currentByVersion = new Map(
+    current.map((entry) => [entry.version, entry.sha])
+  )
   const edited = []
 
   for (const { version, sha } of baseline) {
@@ -198,7 +226,10 @@ export function gitMigrationBlobs(ref, projectDir) {
 }
 
 /** Working-tree `{version, sha}` using git's own blob-hash algorithm. */
-export function workingTreeMigrationBlobs(projectDir, files = listLocalMigrationFiles(projectDir)) {
+export function workingTreeMigrationBlobs(
+  projectDir,
+  files = listLocalMigrationFiles(projectDir)
+) {
   const migrationDir = join(projectDir, "supabase", "migrations")
   return files.map((file) => ({
     version: file.version,
@@ -209,7 +240,9 @@ export function workingTreeMigrationBlobs(projectDir, files = listLocalMigration
 /** Git's blob object id: sha1 of "blob <len>\0<content>". */
 export function gitBlobHash(buffer) {
   const header = Buffer.from(`blob ${buffer.length}\0`)
-  return createHash("sha1").update(Buffer.concat([header, buffer])).digest("hex")
+  return createHash("sha1")
+    .update(Buffer.concat([header, buffer]))
+    .digest("hex")
 }
 
 export function parseRemoteMigrationVersions(output) {

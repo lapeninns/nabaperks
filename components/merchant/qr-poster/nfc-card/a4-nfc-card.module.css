@@ -92,7 +92,7 @@
   :global(body):has(.page) {
     margin: 0;
     padding: 0;
-    width: auto;
+    width: var(--nfc-card-width, 85.5mm);
     height: auto;
     overflow: visible;
     background: #ffffff;
@@ -111,6 +111,24 @@
     display: none !important;
   }
 
+  :global(body):has(.page) :global([data-slot="sidebar"]),
+  :global(body):has(.page) :global([data-slot="sidebar-gap"]),
+  :global(body):has(.page) :global([data-slot="sidebar-container"]),
+  :global(body):has(.page) :global([data-slot="sidebar-inset"] > header) {
+    display: none !important;
+  }
+
+  :global(body):has(.page) :global([data-slot="sidebar-inset"]) {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  :global(body):has(.page) :global([data-slot="sidebar-inset"] > div) {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+  }
+
   .stage {
     display: block;
     padding: 0;
@@ -119,14 +137,14 @@
   }
 
   .sheetNative {
-    width: auto;
+    width: var(--nfc-card-width);
     margin: 0;
   }
 
   .page {
     position: static;
     display: block;
-    width: auto;
+    width: var(--nfc-card-width);
     height: auto;
     min-height: auto;
     overflow: visible;

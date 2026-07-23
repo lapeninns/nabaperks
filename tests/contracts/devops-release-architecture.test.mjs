@@ -128,23 +128,35 @@ test("production database promotion is CI-led, protected and exact-revision", ()
   assert.match(workflow, /\.conclusion == \"success\"/)
   assert.match(workflow, /attempt <= attempts/)
   assert.match(workflow, /environment: Production/)
-  assert.match(workflow, /name: Staging release proof/)
-  assert.match(workflow, /environment: Staging/)
+  assert.match(workflow, /name: Cost-neutral ephemeral release proof/)
+  assert.doesNotMatch(workflow, /environment: Staging/)
+  assert.match(workflow, /STAGING_MODE: ephemeral/)
+  assert.match(workflow, /supabase start/)
+  assert.match(workflow, /node scripts\/check-supabase-migrations\.mjs --local/)
+  assert.match(workflow, /pnpm build/)
+  assert.match(workflow, /pnpm start/)
   assert.match(workflow, /supabase db push --linked --dry-run --include-all/)
-  assert.match(workflow, /vercel build --target=staging/)
-  assert.match(workflow, /vercel deploy[\s\S]*--target=staging/)
   assert.match(workflow, /run: pnpm smoke:staging/)
   assert.match(workflow, /needs: staging/)
+  assert.doesNotMatch(workflow, /secrets\.STAGING_/)
   assert.match(workflow, /secrets\.SUPABASE_ACCESS_TOKEN/)
   assert.match(workflow, /secrets\.SUPABASE_DB_PASSWORD/)
   assert.match(workflow, /vars\.SUPABASE_PROJECT_REF/)
   assert.match(workflow, /git rev-parse origin\/main/)
 
+  const promoteJob = workflow.indexOf("\n  promote:")
   const dryRun = workflow.indexOf(
-    "supabase db push --linked --dry-run --include-all"
+    "supabase db push --linked --dry-run --include-all",
+    promoteJob
   )
-  const apply = workflow.indexOf("supabase db push --linked --include-all")
-  const verify = workflow.indexOf("node scripts/check-supabase-migrations.mjs")
+  const apply = workflow.indexOf(
+    "supabase db push --linked --include-all",
+    promoteJob
+  )
+  const verify = workflow.indexOf(
+    "node scripts/check-supabase-migrations.mjs",
+    promoteJob
+  )
   assert.ok(dryRun > -1 && apply > dryRun && verify > apply)
   assert.doesNotMatch(workflow, /supabase (db reset|seed|migration repair)/)
   assert.doesNotMatch(workflow, /--force/)
@@ -154,6 +166,9 @@ test("staging proof is isolated, exact-revision, replay-safe and rollback-only",
   const script = read("scripts/check-staging-release.mjs")
 
   assert.match(script, /STAGING_SUPABASE_PROJECT_REF/)
+  assert.match(script, /STAGING_MODE/)
+  assert.match(script, /EPHEMERAL_MODE/)
+  assert.match(script, /fixed loopback origin/)
   assert.match(script, /\.hostname\.includes\(projectRef\)/)
   assert.match(script, /health\.targetEnvironment/)
   assert.match(script, /health\.environment/)

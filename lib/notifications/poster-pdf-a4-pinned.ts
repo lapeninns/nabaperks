@@ -111,7 +111,7 @@ export function drawPinnedA4(
     size: content.typeTiers.hookPt,
     lineHeight: displayLeading(content.typeTiers.hookPt),
     color: POSTER_PDF_COLOR.cobalt,
-    maxLines: 2,
+    maxLines: 3,
   })
   const headlineBottom = drawWrappedText(page, content.headline, {
     x: inset,
@@ -121,7 +121,7 @@ export function drawPinnedA4(
     size: content.typeTiers.hookPt,
     lineHeight: displayLeading(content.typeTiers.hookPt),
     color: POSTER_PDF_COLOR.accent,
-    maxLines: 2,
+    maxLines: 3,
   })
   drawWrappedText(page, content.lede, {
     x: inset,
@@ -137,7 +137,7 @@ export function drawPinnedA4(
   const qrSize = mm(content.qr.outerMm)
   drawKitQrPanel(page, context.qrModules, content.qrCaption, {
     x: inset,
-    y: mm(96),
+    y: mm(86),
     size: qrSize,
     font: fonts.monoBold,
     captionColor: POSTER_PDF_COLOR.ink,
@@ -147,7 +147,7 @@ export function drawPinnedA4(
   const copyX = inset + qrSize + mm(9)
   drawKitFriction(page, content.friction, {
     x: copyX,
-    y: mm(142),
+    y: mm(132),
     maxWidth: innerWidth - qrSize - mm(9),
     size: POSTER_PDF_TYPE.frictionPt,
     font: fonts.bold,
@@ -156,14 +156,14 @@ export function drawPinnedA4(
   })
   drawDashedLine(page, {
     x1: copyX,
-    y1: mm(114),
+    y1: mm(104),
     x2: inset + innerWidth,
-    y2: mm(114),
+    y2: mm(104),
     color: POSTER_PDF_COLOR.inkSoft,
   })
   drawKitVenueLine(page, context.merchantName, {
     x: copyX,
-    y: mm(104),
+    y: mm(94),
     maxWidth: innerWidth - qrSize - mm(9),
     preferredSize: POSTER_PDF_TYPE.laneVenuePt,
     font: fonts.bold,
@@ -171,7 +171,7 @@ export function drawPinnedA4(
   })
   drawKitCapsule(page, content.memberTag, {
     x: copyX,
-    y: mm(93),
+    y: mm(83),
     font: fonts.monoBold,
     size: 8.5,
     textColor: POSTER_PDF_COLOR.inkSoft,

@@ -89,9 +89,9 @@
   :global(body):has(.page) {
     margin: 0;
     padding: 0;
-    width: auto;
-    height: auto;
-    overflow: visible;
+    width: var(--nfc-sq-width, 100mm);
+    height: var(--nfc-sq-height, 100mm);
+    overflow: hidden;
     background: #ffffff;
   }
 
@@ -116,17 +116,20 @@
   }
 
   .sheetNative {
-    width: auto;
+    width: var(--nfc-sq-width);
+    height: var(--nfc-sq-height);
     margin: 0;
   }
 
   .page {
-    position: static;
+    position: fixed;
+    top: 0;
+    left: 0;
     display: block;
-    width: auto;
-    height: auto;
+    width: var(--nfc-sq-width);
+    height: var(--nfc-sq-height);
     min-height: auto;
-    overflow: visible;
+    overflow: hidden;
     padding: 0;
     margin: 0;
     background: #ffffff;
