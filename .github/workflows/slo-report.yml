@@ -58,7 +58,7 @@ jobs:
         run: |
           if [[ -f "$RUNNER_TEMP/production-slo-report.json" ]]; then
             if jq -e . "$RUNNER_TEMP/production-slo-report.json" >/dev/null; then
-              jq -r '"## Production SLO\n\n- State: \(.state)\n- Availability: \(.availabilityRatio * 100)%\n- Objective: \(.objective * 100)%\n- Coverage: \(.coverageRatio * 100)%\n- Observation: \(.observationDays) days (minimum \(.minimumObservationDays))\n- Successful probes: \(.successfulSamples)/\(.expectedSamples)\n- Error-budget slots remaining: \(.remainingUnavailableSamples)\n- Compliant: \(.compliant)"' "$RUNNER_TEMP/production-slo-report.json" >> "$GITHUB_STEP_SUMMARY"
+              jq -r '"## Production SLO\n\n- State: \(.state)\n- Availability: \(.availabilityRatio * 100)%\n- Error rate: \(.errorRate * 100)%\n- Objective: \(.objective * 100)%\n- Coverage: \(.coverageRatio * 100)%\n- Observation: \(.observationDays) days (minimum \(.minimumObservationDays))\n- Successful probes: \(.successfulSamples)/\(.expectedSamples)\n- Error-budget slots remaining: \(.remainingUnavailableSamples)\n- Compliant: \(.compliant)"' "$RUNNER_TEMP/production-slo-report.json" >> "$GITHUB_STEP_SUMMARY"
             else
               echo "## Production SLO\n\nReport generation failed before valid evidence was written." >> "$GITHUB_STEP_SUMMARY"
             fi

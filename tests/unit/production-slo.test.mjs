@@ -49,6 +49,7 @@ test("availability report separates service failures from monitor coverage gaps"
   assert.equal(healthy.expectedSamples, 96)
   assert.equal(healthy.successfulSamples, 96)
   assert.equal(healthy.availabilityRatio, 1)
+  assert.equal(healthy.errorRate, 0)
   assert.equal(healthy.state, "compliant")
   assert.equal(healthy.compliant, true)
 
@@ -56,6 +57,7 @@ test("availability report separates service failures from monitor coverage gaps"
   failedRuns[10] = { ...failedRuns[10], conclusion: "failure" }
   const failed = calculateAvailabilityReport(CONFIG, failedRuns, NOW)
   assert.equal(failed.failedSamples, 1)
+  assert.equal(failed.errorRate, 0.010417)
   assert.equal(failed.consumedUnavailableSamples, 1)
   assert.equal(failed.remainingUnavailableSamples, -1)
   assert.equal(failed.state, "breached")
@@ -64,6 +66,7 @@ test("availability report separates service failures from monitor coverage gaps"
   const missing = calculateAvailabilityReport(CONFIG, scheduledRuns(91), NOW)
   assert.equal(missing.missingSamples, 5)
   assert.equal(missing.availabilityRatio, 1)
+  assert.equal(missing.errorRate, 0)
   assert.equal(missing.consumedUnavailableSamples, 0)
   assert.ok(missing.coverageRatio < CONFIG.minimumCoverageRatio)
   assert.equal(missing.state, "breached")

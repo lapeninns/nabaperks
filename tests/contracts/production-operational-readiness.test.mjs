@@ -56,6 +56,8 @@ test("production exposes separate versioned liveness and dependency readiness", 
   assert.match(readiness, /status: ready \? "ready" : "not_ready"/)
   assert.match(readiness, /status: ready \? 200 : 503/)
   assert.match(readiness, /SUPABASE_SERVICE_ROLE_KEY/)
+  assert.match(readiness, /checkOperationalReadiness/)
+  assert.match(readiness, /signals: operational\.signals/)
   assert.match(proxy, /isOperationalProbePath\(request\.nextUrl\.pathname\)/)
   assert.match(proxy, /customerDevice\?\.isNew/)
   assert.match(proxy, /operationalProbe\s*\?\s*createResponse\(\)/)
@@ -103,8 +105,10 @@ test("scheduled production smoke validates both JSON probe contracts", () => {
   assert.match(workflow, /\.status == "ok" and \.scope == "liveness"/)
   assert.match(
     workflow,
-    /\.status == "ready" and \.scope == "readiness" and \.checks\.database == "ok"/
+    /\.status == "ready" and \.scope == "readiness" and \.checks\.database == "ok" and \.checks\.operational == "ok"/
   )
+  assert.match(workflow, /check-production-probe-latency\.mjs/)
+  assert.match(workflow, /PRODUCTION_SLO_CONFIG: config\/production-slos\.json/)
   assert.match(workflow, /environment: Monitoring/)
   assert.match(workflow, /secrets\.PRODUCTION_ALERT_WEBHOOK_URL/)
   assert.match(workflow, /secrets\.PRODUCTION_ALERT_WEBHOOK_SECRET/)
@@ -134,7 +138,13 @@ test("scheduled production smoke validates both JSON probe contracts", () => {
     ...common,
     status: "ready",
     scope: "readiness",
-    checks: { database: "ok" },
+    checks: { database: "ok", operational: "ok" },
+    signals: {
+      notificationQueueAgeMinutes: 0,
+      loyaltyInviteQueueAgeMinutes: 0,
+      providerDeliveryFailureRate24h: 0,
+      cronJobs: Array.from({ length: 6 }, () => ({})),
+    },
   }
 
   assert.equal(runSmokeFilter(healthFilter, health).status, 0)
@@ -157,4 +167,54 @@ test("scheduled production smoke validates both JSON probe contracts", () => {
     runSmokeFilter(readinessFilter, { ...readiness, scope: "liveness" }).status,
     0
   )
+  assert.notEqual(
+    runSmokeFilter(readinessFilter, {
+      ...readiness,
+      checks: { ...readiness.checks, operational: "error" },
+    }).status,
+    0
+  )
+})
+
+test("operational signals are data-free, durable and wired through every cron", () => {
+  const migration = read(
+    "supabase",
+    "migrations",
+    "20260723113000_production_operational_signals.sql"
+  )
+  const cronRoutes = new Map([
+    ["notifications", ["notifications"]],
+    ["privacy-retention", ["privacy-retention"]],
+    ["merchant-digest", ["merchant-digest"]],
+    ["birthday-rewards", ["birthday-rewards"]],
+    ["referral-bonus-drain", ["referral-bonus-drain"]],
+    ["loyalty-invite-drain", ["loyalty-invite-drain"]],
+  ])
+
+  assert.match(
+    migration,
+    /create table if not exists public\.operational_cron_runs/
+  )
+  assert.match(
+    migration,
+    /create or replace function public\.record_operational_cron_run/
+  )
+  assert.match(
+    migration,
+    /create or replace function public\.production_operational_signals/
+  )
+  assert.match(migration, /notificationQueueAgeMinutes/)
+  assert.match(migration, /loyaltyInviteQueueAgeMinutes/)
+  assert.match(migration, /providerDeliveryFailureRate24h/)
+  assert.match(migration, /consecutiveFailures/)
+  assert.match(
+    migration,
+    /revoke all on function public\.production_operational_signals\(\)[\s\S]*from public, anon, authenticated/
+  )
+
+  for (const [directory, [job]] of cronRoutes) {
+    const route = read("app", "api", "cron", directory, "route.ts")
+    assert.match(route, /runObservedCron/)
+    assert.match(route, new RegExp(`job: "${job}"`))
+  }
 })

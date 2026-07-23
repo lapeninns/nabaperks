@@ -27,7 +27,9 @@ on-call owner and create or update the durable incident record.
    GitHub issue is evidence, not the paging channel.
 2. Capture `/api/health`, `/api/readiness`, Vercel deployment/revision, Supabase
    status, latest migration, provider status, the current rolling SLO report and
-   the first known bad request ID.
+   the first known bad request ID. For operational-readiness failures, record
+   only the aggregate queue age, provider failure rate and affected cron name;
+   never export queued payloads or recipient rows.
 3. Classify whether the fault is deployment, database, auth, email, SMS, push,
    cron or billing. Do not rotate every credential or restart every dependency
    at once; preserve evidence and isolate the failing boundary.

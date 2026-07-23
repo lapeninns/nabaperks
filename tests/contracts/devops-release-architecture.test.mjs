@@ -57,6 +57,7 @@ test("production CD builds once, attests, stages, verifies and then promotes", (
   assert.match(workflow, /sha256sum --check --strict/)
   assert.match(workflow, /vercel-output-after-upload\.tgz/)
   assert.match(workflow, /Verify staged liveness and dependency readiness/)
+  assert.match(workflow, /\.checks\.operational == "ok"/)
   assert.match(workflow, /PROMOTE_PRODUCTION_APPLICATION/)
   assert.doesNotMatch(workflow, /pnpm dlx|npm install --global|@latest/)
 
@@ -184,6 +185,7 @@ test("scheduled smoke history produces a fail-closed rolling SLO and error budge
   const config = read("config/production-slos.json")
   const workflow = read(".github/workflows/slo-report.yml")
   const script = read("scripts/check-production-slo.mjs")
+  const smoke = read(".github/workflows/production-smoke.yml")
 
   assert.match(config, /"availabilityObjective": 0\.999/)
   assert.match(config, /"minimumCoverageRatio": 0\.95/)
@@ -216,6 +218,11 @@ test("scheduled smoke history produces a fail-closed rolling SLO and error budge
   assert.match(script, /\? "compliant"/)
   assert.match(script, /: "breached"/)
   assert.match(script, /availabilityRatio >= config\.availabilityObjective/)
+  assert.match(script, /errorRate/)
+  assert.match(workflow, /Error rate:/)
+  assert.match(smoke, /check-production-probe-latency\.mjs/)
+  assert.match(config, /"livenessResponseMs": 3000/)
+  assert.match(config, /"readinessResponseMs": 5000/)
 })
 
 test("the DevOps maturity contract distinguishes repository and provider proof", () => {

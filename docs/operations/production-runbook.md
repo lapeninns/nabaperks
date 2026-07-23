@@ -68,7 +68,9 @@ full webhook payloads.
    ```
 
    Liveness must report `status=ok` and readiness must report
-   `status=ready`, `checks.database=ok`. Both must show the promoted revision.
+   `status=ready`, `checks.database=ok` and `checks.operational=ok`. Its
+   `signals` object must include six cron jobs plus numeric queue-age and
+   provider-delivery fields. Both probes must show the promoted revision.
 
 5. Confirm `/` returns 404. Run anonymous smoke checks for `/signup`,
    `/privacy`, `/terms`, `/cookies`, `/merchant-terms`, `/data-processing`,
@@ -239,12 +241,36 @@ customer impact using the P0/P1/P2 definitions. Freeze discretionary releases
 while the budget is exhausted unless the incident commander records why a
 release reduces risk. The metric is conservative: a failure elsewhere in the
 Production smoke workflow counts as unavailable even if its HTTP probe passed.
+The retained report also publishes `errorRate`, the failed scheduled-probe
+ratio over the same observed window. Each scheduled run separately enforces the
+3-second liveness and 5-second readiness network thresholds from
+`config/production-slos.json`.
 
 This SLO is hosted by GitHub and shares part of the release control plane. It
 cannot detect a GitHub-wide failure independently and does not replace external
-uptime monitoring, Sentry, queue-age, cron-failure or provider-delivery metrics.
-Corroborate it with those provider-owned signals before claiming complete
-production observability.
+uptime monitoring, Sentry or provider-native delivery and scheduler telemetry.
+The protected readiness endpoint now supplies source-owned queue-age,
+cron-failure and provider-delivery aggregates, but those signals still need
+independent provider corroboration before claiming complete production
+observability.
+
+## Operational readiness signals
+
+`/api/readiness` reads only aggregate values from
+`production_operational_signals()`. It never returns customer identifiers,
+destinations, payloads or provider responses. The endpoint becomes
+`not_ready` when:
+
+- the oldest due push event exceeds 30 minutes;
+- the oldest due loyalty invitation exceeds 15 minutes;
+- the 24-hour push/invitation provider failure rate exceeds 10%;
+- any scheduled Vercel cron misses its bounded maximum gap; or
+- a cron records one consecutive failed run.
+
+New cron monitors have a bounded first-run `warming` state. After that window,
+missing runs become `stale` and fail readiness. Inspect only the returned
+aggregate signal and the relevant provider/job logs; do not copy raw
+notification or invitation rows into incident evidence.
 
 Read back the current state without exposing credentials:
 

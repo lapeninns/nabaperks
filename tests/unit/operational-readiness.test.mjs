@@ -1,7 +1,39 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
+import { checkOperationalReadiness } from "@/lib/observability/operational-signals"
 import { checkDatabaseReadiness } from "@/lib/observability/readiness"
+
+const thresholds = {
+  notificationQueueAgeMinutes: 30,
+  loyaltyInviteQueueAgeMinutes: 15,
+  providerDeliveryFailureRate: 0.1,
+  consecutiveCronFailures: 1,
+}
+
+function operationalSignals(overrides = {}) {
+  return {
+    notificationQueueAgeMinutes: 0,
+    loyaltyInviteQueueAgeMinutes: 0,
+    providerDeliveryAttempts24h: 20,
+    providerDeliveryFailures24h: 1,
+    providerDeliveryFailureRate24h: 0.05,
+    cronJobs: [
+      "notifications",
+      "privacy-retention",
+      "merchant-digest",
+      "birthday-rewards",
+      "referral-bonus-drain",
+      "loyalty-invite-drain",
+    ].map((name) => ({
+      name,
+      state: "ok",
+      consecutiveFailures: 0,
+      lastCompletedAt: "2026-07-23T10:00:00.000Z",
+    })),
+    ...overrides,
+  }
+}
 
 test("database readiness returns ok only for a successful bounded RLS read", async () => {
   let request
@@ -88,4 +120,106 @@ test("database readiness collapses timeouts and network errors", async () => {
   })
 
   assert.deepEqual(result, { database: "error" })
+})
+
+test("operational readiness accepts bounded aggregate signals", async () => {
+  let request
+  const signals = operationalSignals()
+  const result = await checkOperationalReadiness({
+    serviceRoleKey: "service-role-test-key",
+    thresholds,
+    fetcher: async (input, init) => {
+      request = { input: String(input), init }
+      return Response.json(signals)
+    },
+    supabaseUrl: "https://project.supabase.co",
+  })
+
+  assert.deepEqual(result, { operational: "ok", signals })
+  assert.match(
+    request.input,
+    /\/rest\/v1\/rpc\/production_operational_signals$/
+  )
+  assert.equal(request.init.method, "POST")
+  assert.equal(request.init.headers.apikey, "service-role-test-key")
+  assert.equal(request.init.redirect, "error")
+})
+
+test("operational readiness fails closed on breached queue, provider or cron signals", async () => {
+  const breachedSignals = [
+    operationalSignals({ notificationQueueAgeMinutes: 30.001 }),
+    operationalSignals({ loyaltyInviteQueueAgeMinutes: 15.001 }),
+    operationalSignals({
+      providerDeliveryFailures24h: 3,
+      providerDeliveryFailureRate24h: 0.15,
+    }),
+    operationalSignals({
+      cronJobs: operationalSignals().cronJobs.map((job, index) =>
+        index === 0 ? { ...job, state: "failing", consecutiveFailures: 1 } : job
+      ),
+    }),
+    operationalSignals({
+      cronJobs: operationalSignals().cronJobs.map((job, index) =>
+        index === 0 ? { ...job, state: "stale" } : job
+      ),
+    }),
+  ]
+
+  for (const signals of breachedSignals) {
+    const result = await checkOperationalReadiness({
+      serviceRoleKey: "service-role-test-key",
+      thresholds,
+      fetcher: async () => Response.json(signals),
+      supabaseUrl: "https://project.supabase.co",
+    })
+    assert.equal(result.operational, "error")
+    assert.deepEqual(result.signals, signals)
+  }
+})
+
+test("operational readiness permits the bounded first-run warm-up", async () => {
+  const signals = operationalSignals({
+    cronJobs: operationalSignals().cronJobs.map((job) => ({
+      ...job,
+      state: "warming",
+      lastCompletedAt: null,
+    })),
+  })
+  const result = await checkOperationalReadiness({
+    serviceRoleKey: "service-role-test-key",
+    thresholds,
+    fetcher: async () => Response.json(signals),
+    supabaseUrl: "https://project.supabase.co",
+  })
+
+  assert.equal(result.operational, "ok")
+})
+
+test("operational readiness rejects malformed or untrusted provider responses", async () => {
+  for (const signals of [
+    { ...operationalSignals(), cronJobs: [] },
+    { ...operationalSignals(), providerDeliveryFailureRate24h: 2 },
+    { ...operationalSignals(), notificationQueueAgeMinutes: "private detail" },
+  ]) {
+    const result = await checkOperationalReadiness({
+      serviceRoleKey: "service-role-test-key",
+      thresholds,
+      fetcher: async () => Response.json(signals),
+      supabaseUrl: "https://project.supabase.co",
+    })
+    assert.deepEqual(result, { operational: "error", signals: null })
+  }
+
+  let calls = 0
+  const untrusted = await checkOperationalReadiness({
+    serviceRoleKey: "service-role-test-key",
+    thresholds,
+    fetcher: async () => {
+      calls += 1
+      return Response.json(operationalSignals())
+    },
+    supabaseUrl: "https://project.supabase.co.evil.example",
+  })
+  assert.deepEqual(untrusted, { operational: "error", signals: null })
+  assert.equal(calls, 0)
 })

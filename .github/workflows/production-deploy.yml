@@ -192,7 +192,7 @@ jobs:
               '.status == "ok" and .revision == $revision and .environment == "production" and .targetEnvironment == "production"' \
               <<<"$health" >/dev/null 2>&1 \
               && jq -e --arg revision "$expected" \
-                '.status == "ready" and .checks.database == "ok" and .revision == $revision and .environment == "production" and .targetEnvironment == "production"' \
+                '.status == "ready" and .checks.database == "ok" and .checks.operational == "ok" and .revision == $revision and .environment == "production" and .targetEnvironment == "production"' \
                 <<<"$readiness" >/dev/null 2>&1; then
               exit 0
             fi

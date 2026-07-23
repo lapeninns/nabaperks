@@ -234,6 +234,9 @@ export function calculateAvailabilityReport(
   const availabilityRatio = observed.length
     ? Math.min(1, successfulSamples / observed.length)
     : 0
+  const errorRate = observed.length
+    ? Math.min(1, failedSamples / observed.length)
+    : 1
   const allowedUnavailableSamples = Math.floor(
     expectedSamples * (1 - config.availabilityObjective)
   )
@@ -271,6 +274,7 @@ export function calculateAvailabilityReport(
     missingSamples,
     coverageRatio: Number(coverageRatio.toFixed(6)),
     availabilityRatio: Number(availabilityRatio.toFixed(6)),
+    errorRate: Number(errorRate.toFixed(6)),
     allowedUnavailableSamples,
     consumedUnavailableSamples,
     remainingUnavailableSamples,

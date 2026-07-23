@@ -32,6 +32,10 @@ jobs:
     env:
       PRODUCTION_MONITOR_SECRET: ${{ secrets.PRODUCTION_MONITOR_SECRET }}
     steps:
+      - name: Check out the probe contract
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+        with:
+          persist-credentials: false
       - name: Wait for the verified revision to reach production
         if: ${{ env.EXPECTED_REVISION != '' }}
         run: |
@@ -53,7 +57,11 @@ jobs:
       - name: Verify dependency readiness
         run: |
           body="$(curl --fail --silent --show-error --max-time 10 --header "Authorization: Bearer ${PRODUCTION_MONITOR_SECRET}" https://nabaperks.com/api/readiness)"
-          jq -e --arg revision "$EXPECTED_REVISION" '.status == "ready" and .scope == "readiness" and .checks.database == "ok" and .service == "nabaperks" and (try (.time | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601 | type == "number") catch false) and (.revision | type == "string" and length == 12) and ($revision == "" or .revision == ($revision[0:12])) and .environment == "production" and .targetEnvironment == "production"' <<<"$body"
+          jq -e --arg revision "$EXPECTED_REVISION" '.status == "ready" and .scope == "readiness" and .checks.database == "ok" and .checks.operational == "ok" and (.signals.notificationQueueAgeMinutes | type == "number") and (.signals.loyaltyInviteQueueAgeMinutes | type == "number") and (.signals.providerDeliveryFailureRate24h | type == "number") and (.signals.cronJobs | type == "array" and length == 6) and .service == "nabaperks" and (try (.time | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601 | type == "number") catch false) and (.revision | type == "string" and length == 12) and ($revision == "" or .revision == ($revision[0:12])) and .environment == "production" and .targetEnvironment == "production"' <<<"$body"
+      - name: Enforce production probe latency
+        env:
+          PRODUCTION_SLO_CONFIG: config/production-slos.json
+        run: node scripts/check-production-probe-latency.mjs
 
   incident:
     name: Error to insight

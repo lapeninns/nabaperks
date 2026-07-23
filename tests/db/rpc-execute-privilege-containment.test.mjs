@@ -86,6 +86,8 @@ const MUST_BE_LOCKED = [
   "enqueue_notification_event",
   "expire_due_reward_events",
   "record_notification_delivery",
+  "record_operational_cron_run",
+  "production_operational_signals",
   "apply_current_stripe_subscription",
   "claim_billing_checkout_attempt",
   "finalize_billing_checkout_session",
@@ -181,7 +183,11 @@ test("the dangerous subset is locked away from authenticated", async (t) => {
       where n.nspname = 'public' and p.proname = ${name}`
     assert.ok(rows.length > 0, `expected function ${name} to exist`)
     for (const row of rows) {
-      assert.equal(row.can, false, `${name} must not be authenticated-executable`)
+      assert.equal(
+        row.can,
+        false,
+        `${name} must not be authenticated-executable`
+      )
     }
   }
 })
@@ -195,7 +201,10 @@ test("set role authenticated cannot call a locked SECURITY DEFINER RPC", async (
       await tx`select public.admin_purge_stale_customer_pii(now())`
     }),
     (error) => {
-      assert.match(String(error.message), /permission denied|not authorized|service/i)
+      assert.match(
+        String(error.message),
+        /permission denied|not authorized|service/i
+      )
       return true
     }
   )
