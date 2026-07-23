@@ -22,7 +22,7 @@ function assertBefore(source, earlier, later) {
   assert.ok(earlierIndex < laterIndex, `${earlier} appears before ${later}`)
 }
 
-test("Given admin RPCs and RLS policies share the internal-admin helper When SQL is inspected Then admin access is active-row only without AAL2", () => {
+test("Given admin RPCs and RLS policies share the internal-admin helper When SQL is inspected Then the DB gate is active-row only without AAL2 and MFA is enforced at the app layer", () => {
   const migration = readProjectFile(
     "supabase",
     "migrations",
@@ -30,16 +30,19 @@ test("Given admin RPCs and RLS policies share the internal-admin helper When SQL
   )
   const adminAuth = readProjectFile("lib", "admin", "auth.ts")
 
+  // The DB helper MUST stay active-row-only. A DB-level AAL2 requirement
+  // (20260702180000, reverted here) locked out every admin because password
+  // sign-in is aal1 with no in-app way to reach aal2.
   assert.match(
     migration,
     /create or replace function public\.is_internal_admin\(\)/
   )
   assert.doesNotMatch(migration, /=\s*'aal2'/)
   assert.match(migration, /notify pgrst, 'reload schema'/)
-  assert.match(
-    adminAuth,
-    /export function isAdminMfaRequired[\s\S]*return false/
-  )
+
+  // MFA is reinstated at the APP layer only (enforce-only-when-enrolled), so a
+  // gate bug fails open instead of locking admins out of the console.
+  assert.match(adminAuth, /getAuthenticatorAssuranceLevel|resolveAdminMfaState/)
 })
 
 test("Given customer OTP send flows When actions are inspected Then send limits include a phone-only bucket before provider dispatch", () => {
