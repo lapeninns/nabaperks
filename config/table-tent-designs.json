@@ -14,7 +14,7 @@
     "description": "Fold-to-peak table tents for tables, counters and bar tops.",
     "format": "a4-tent",
     "sheet": "a4",
-    "revision": 1
+    "revision": 2
   },
   "shared": {
     "reassurance": "18+ to redeem · One visit stamp here per UK date · Rewards redeem from the next weekday · Terms apply",
@@ -113,27 +113,27 @@
     {
       "id": "welcome",
       "name": "Welcome",
-      "description": "Join-the-regulars front, loss-aversion back — the Regulars faces in the reverse order.",
+      "description": "How-it-works front, first-visit invite back — the front-of-house onboarding tent.",
       "rollout": "production",
       "useCase": "Front-of-house and welcome tables",
-      "tone": "belonging-first",
+      "tone": "how-it-works-onboarding",
       "faceA": {
-        "variant": "social",
+        "variant": "plan",
         "tone": "paper",
-        "headline": ["Regulars keep", "a card", "here."],
-        "accent": "here.",
-        "body": "Your card opens from this code and remembers every visit. Fill it and the sealed reward opens.",
+        "headline": ["How it works.", "Scan.", "Stamp.", "Reward."],
+        "accent": "Reward.",
+        "body": "Point your camera at the code. Stamp one lands today. Fill the card and the sealed reward opens — no app, no password.",
         "showStamps": true,
-        "cta": "Scan · Become a regular"
+        "cta": "Scan · Start in 10 seconds"
       },
       "faceB": {
-        "variant": "loss",
+        "variant": "scan",
         "tone": "paper",
-        "headline": ["This table", "starts your", "card."],
-        "accent": "card.",
-        "body": "Stamp one lands the second you scan. One per UK date — leave without scanning and today's is gone.",
+        "headline": ["New here?", "Your card", "starts now."],
+        "accent": "starts now.",
+        "body": "This code opens your card in the browser. One stamp per UK date — today's is waiting the moment you scan.",
         "showStamps": true,
-        "cta": "Claim before you leave"
+        "cta": "Scan to open your card"
       }
     },
     {

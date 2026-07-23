@@ -24,7 +24,7 @@ test("table-tent catalogue is a closed, all-production five-design A4 system", (
     description: "Fold-to-peak table tents for tables, counters and bar tops.",
     format: "a4-tent",
     sheet: "a4",
-    revision: 1,
+    revision: 2,
   })
   assert.ok(catalog.designs.every(({ rollout }) => rollout === "production"))
   assert.match(catalog.product.kitSummary, /Five print-ready A4 fold-to-peak/)
@@ -96,4 +96,38 @@ test("table-tent adapters use their own catalogue, never the poster one", () => 
 
   assert.doesNotMatch(source, /poster-designs\.json/)
   assert.doesNotMatch(source, /\bb5\b/i)
+})
+
+test("table-tent faces are ten unique headline sets (Welcome is not Regulars reversed)", () => {
+  const catalog = JSON.parse(
+    readProjectFile("config", "table-tent-designs.json")
+  )
+  const faceKey = (face) => face.headline.join(" ").trim()
+  const keys = catalog.designs.flatMap(({ faceA, faceB }) => [
+    faceKey(faceA),
+    faceKey(faceB),
+  ])
+
+  assert.equal(keys.length, 10)
+  assert.equal(new Set(keys).size, 10)
+
+  const welcome = catalog.designs.find(({ id }) => id === "welcome")
+  const regulars = catalog.designs.find(({ id }) => id === "regulars")
+  assert.ok(welcome)
+  assert.ok(regulars)
+  assert.notDeepEqual(
+    [faceKey(welcome.faceA), faceKey(welcome.faceB)].sort(),
+    [faceKey(regulars.faceA), faceKey(regulars.faceB)].sort()
+  )
+  assert.deepEqual(welcome.faceA.headline, [
+    "How it works.",
+    "Scan.",
+    "Stamp.",
+    "Reward.",
+  ])
+  assert.deepEqual(welcome.faceB.headline, [
+    "New here?",
+    "Your card",
+    "starts now.",
+  ])
 })
