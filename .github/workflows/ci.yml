@@ -137,7 +137,10 @@ jobs:
     name: E2E (${{ matrix.project }}, shard ${{ matrix.shard }})
     needs: fast
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # WebKit system dependencies can consume the former ten-minute whole-job
+    # budget before a shard starts. Keep the lane bounded while allowing the
+    # browser install and the single-worker test shard to complete.
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -188,7 +191,7 @@ jobs:
     name: Accessibility (${{ matrix.project }}, shard ${{ matrix.shard }})
     needs: fast
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -231,7 +234,7 @@ jobs:
     name: Visual regression (${{ matrix.project }}, shard ${{ matrix.shard }})
     needs: fast
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
