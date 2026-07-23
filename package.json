@@ -67,6 +67,7 @@
     "smoke:supabase:migrations": "node scripts/check-supabase-migrations.mjs",
     "ops:page": "node scripts/notify-production-alert.mjs",
     "ops:restore:verify": "node scripts/check-restored-backup.mjs",
+    "ops:sentry:check": "node scripts/check-sentry-release.mjs verify",
     "ops:slo:check": "node scripts/check-production-slo.mjs",
     "ops:github:check": "node scripts/check-github-governance.mjs",
     "ops:supabase:check": "node scripts/check-supabase-governance.mjs",

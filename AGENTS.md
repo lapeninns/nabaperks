@@ -57,6 +57,13 @@ is source-aligned and PITR-backed:
 pnpm ops:supabase:check
 ```
 
+Sentry release proof requires protected production credentials and verifies the
+exact full Git SHA, project association and production deploy readback:
+
+```bash
+pnpm ops:sentry:check
+```
+
 ## Repository boundaries
 
 - `app/` owns routes, layouts, route handlers, and server actions.

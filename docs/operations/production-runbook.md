@@ -260,6 +260,14 @@ ruleset, environment, secret-name and variable metadata; it never reads secret
 values. Retain the output with the release evidence and resolve every `FAIL`
 before declaring provider readiness.
 
+The protected production deployment sets `SENTRY_RELEASE` to the full approved
+Git SHA. The Sentry build integration must create that exact release and upload
+its source-map artifacts successfully before Vercel promotion. After promotion,
+`node scripts/check-sentry-release.mjs record-deploy` records the immutable
+Vercel deployment URL and reads the production marker back from Sentry. A
+release mismatch, wrong project, missing artifact upload, API failure or deploy
+readback mismatch fails the protected workflow.
+
 ## Operational readiness signals
 
 `/api/readiness` reads only aggregate values from
