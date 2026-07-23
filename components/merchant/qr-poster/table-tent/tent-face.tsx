@@ -9,16 +9,6 @@ type TentFaceProps = {
   readonly qrDataUrl: string
 }
 
-function venueInitials(venue: string): string {
-  const initials = venue
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => word[0]?.toUpperCase() ?? "")
-    .join("")
-  return initials.length > 0 ? initials : "★"
-}
-
 function Headline({ face }: { readonly face: TentFaceContent }) {
   return (
     <h2 className={styles.headline}>
@@ -62,21 +52,14 @@ function TentIdentity({ id }: { readonly id: TentContent["id"] }) {
 }
 
 /** Endowed-progress strip: N visit stamps, then a separate sealed reward. */
-function StampStrip({
-  venue,
-  stampsRequired,
-}: {
-  readonly venue: string
-  readonly stampsRequired: number
-}) {
-  const initials = venueInitials(venue)
+function StampStrip({ stampsRequired }: { readonly stampsRequired: number }) {
   return (
     <div aria-hidden="true" className={styles.stamps}>
       {Array.from({ length: stampsRequired }, (_, index) => {
         const kind = index === 0 ? "venue" : "empty"
         return (
           <span key={index} className={styles.stamp} data-kind={kind}>
-            {index === 0 ? initials : String(index + 1)}
+            {String(index + 1)}
           </span>
         )
       })}
@@ -119,7 +102,7 @@ export function TentFace({ content, face, venue, qrDataUrl }: TentFaceProps) {
           <Headline face={face} />
           <p className={styles.body}>{face.body}</p>
           {face.showStamps ? (
-            <StampStrip venue={venue} stampsRequired={content.stampsRequired} />
+            <StampStrip stampsRequired={content.stampsRequired} />
           ) : null}
         </div>
         <div className={styles.action}>
