@@ -364,3 +364,20 @@ jobs:
       - run: pnpm test:db
       - run: supabase stop --no-backup
         if: always()
+
+  db-gate:
+    name: DB behavioral moat gate
+    needs: db
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      # Stable required-check name so branch protection can block a merge when
+      # the live Postgres/RLS/RPC moat is red. Mirrors e2e-gate/a11y-gate; the
+      # `db` job is not folded into any other rollup, so without this a broken
+      # ledger invariant could merge (QA plan R-01). Mark this required in
+      # branch protection.
+      - name: Require the DB behavioral moat to pass
+        env:
+          DB_RESULT: ${{ needs.db.result }}
+        run: test "$DB_RESULT" = "success"

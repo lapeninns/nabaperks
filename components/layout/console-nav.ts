@@ -10,6 +10,7 @@ import {
   SecurityCheckIcon,
   Settings01Icon,
   Shield01Icon,
+  SquareLockPasswordIcon,
   Store01Icon,
   UserMultiple02Icon,
 } from "@hugeicons/core-free-icons"
@@ -60,8 +61,7 @@ export function isActiveNavItem(
   if (
     path === "/app/activity" &&
     ACTIVITY_ALIAS_PREFIXES.some(
-      (prefix) =>
-        currentPath === prefix || currentPath.startsWith(`${prefix}/`)
+      (prefix) => currentPath === prefix || currentPath.startsWith(`${prefix}/`)
     )
   ) {
     return true
@@ -128,4 +128,5 @@ export const adminNavItems = [
   { href: "/admin/privacy", label: "Privacy", icon: Shield01Icon },
   { href: "/admin/fraud", label: "Fraud", icon: AlertDiamondIcon },
   { href: "/admin/audit", label: "Audit", icon: SecurityCheckIcon },
+  { href: "/admin/security", label: "Security", icon: SquareLockPasswordIcon },
 ] satisfies readonly ShellNavItem[]

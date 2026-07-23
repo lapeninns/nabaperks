@@ -18,6 +18,13 @@ const devOtpCode = process.env.CUSTOMER_DEV_OTP_CODE ?? "424242"
 const visualPromoNow =
   process.env.PLAYWRIGHT_MARKETING_PROMO_NOW ?? "2026-07-06T12:00:00Z"
 const authHookSecret = `v1,${"whsec"}_${"dGVzdC1ob29rLXNlY3JldA=="}`
+// Known, distinct harness bearers so the cron and readiness gates can be
+// exercised deterministically (see tests/e2e/cron-route-auth.spec.ts). These
+// are throwaway e2e fixtures; production uses real secrets from the deployment
+// environment. They must stay distinct so the readiness route proves it does
+// not accept the cron secret.
+const cronSecret = "pw-cron-secret-e2e-do-not-use-in-production"
+const productionMonitorSecret = "pw-monitor-secret-e2e-do-not-use-in-production"
 const devServerUrl = new URL(baseURL)
 const devServerReadyUrl = new URL("/signup", devServerUrl).toString()
 const devServerPort =
@@ -32,6 +39,8 @@ const devServerEnv = [
   "RESEND_API_KEY=re_playwright_harness",
   "RESEND_FROM=",
   "TWILIO_MESSAGING_SERVICE_SID=",
+  `CRON_SECRET=${cronSecret}`,
+  `PRODUCTION_MONITOR_SECRET=${productionMonitorSecret}`,
 ].join(" ")
 const localWorkerOverride = process.env.PLAYWRIGHT_WORKERS
   ? Number.parseInt(process.env.PLAYWRIGHT_WORKERS, 10)
