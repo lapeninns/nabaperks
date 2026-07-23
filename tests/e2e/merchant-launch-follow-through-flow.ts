@@ -164,7 +164,7 @@ export function defineMerchantLaunchFollowThroughTests() {
       0
     )
     await expect(
-      page.getByRole("button", { name: "Email poster PDFs" })
+      page.getByRole("button", { name: "Email print kit PDFs" })
     ).toHaveCount(0)
     await expect(
       page.getByRole("link", { name: "Go to billing" })
@@ -180,7 +180,7 @@ export function defineMerchantLaunchFollowThroughTests() {
     await expect(page.getByText("Enabled · scans paused")).toBeVisible()
     await expect(page.getByText("Scans paused — fix billing")).toBeVisible()
     await expect(
-      page.getByRole("button", { name: "Email poster PDFs" })
+      page.getByRole("button", { name: "Email print kit PDFs" })
     ).toBeVisible()
     await expect(
       page.getByRole("button", { name: "Pause customer scans" })
@@ -227,7 +227,7 @@ export function defineMerchantLaunchFollowThroughTests() {
     await expect(page.getByText(DISABLED_PROMO_PERK)).toHaveCount(0)
     await expect(page.getByText(DISABLED_PROMO_CLAIM)).toHaveCount(0)
     await expect(
-      page.getByRole("button", { name: "Email poster PDFs" })
+      page.getByRole("button", { name: "Email print kit PDFs" })
     ).toBeVisible()
     await expect(
       page.getByRole("heading", { name: "Launch your counter QR" })
@@ -362,7 +362,7 @@ export function defineMerchantLaunchFollowThroughTests() {
     await expect(page.getByText(DISABLED_PROMO_PERK)).toHaveCount(0)
     await expect(page.getByText(DISABLED_PROMO_CLAIM)).toHaveCount(0)
     await expect(
-      page.getByRole("button", { name: "Email poster PDFs" })
+      page.getByRole("button", { name: "Email print kit PDFs" })
     ).toBeVisible()
     await expect(
       page.getByRole("heading", { name: "Launch your counter QR" })

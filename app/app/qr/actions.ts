@@ -12,10 +12,13 @@ import { LAUNCH_MIN_ACTIVE_REWARDS } from "@/lib/merchant/launch-readiness-contr
 import { isLaunchBillingReady } from "@/lib/merchant/launch-readiness-core"
 import { getQrSetup } from "@/lib/merchant/qr-code"
 import { qrReturnHref, resolveQrReturnBase } from "@/lib/merchant/qr-nav"
+import { buildNfcCardPdfAttachments } from "@/lib/notifications/nfc-card-pdf"
+import { buildNfcSquarePdfAttachments } from "@/lib/notifications/nfc-square-pdf"
 import { buildPosterEmailContent } from "@/lib/notifications/poster-email"
 import { buildPosterPdfAttachments } from "@/lib/notifications/poster-pdf"
 import { buildTentPdfAttachments } from "@/lib/notifications/tent-pdf"
 import { sendTransactionalEmail } from "@/lib/notifications/resend"
+import { appendQrShareChannel } from "@/lib/qr/nfc-card-share-url"
 import { enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
@@ -161,7 +164,7 @@ export async function emailPosterAction(): Promise<EmailPosterState> {
     if (!merchant || !activeCard || !qrCode) {
       return {
         ok: false,
-        message: "Create your venue QR before emailing the poster PDFs.",
+        message: "Create your venue QR before emailing the print kit PDFs.",
       }
     }
 
@@ -172,7 +175,7 @@ export async function emailPosterAction(): Promise<EmailPosterState> {
       return {
         ok: false,
         message:
-          "Add an email to your account before emailing the poster PDFs.",
+          "Add an email to your account before emailing the print kit PDFs.",
       }
     }
 
@@ -185,19 +188,35 @@ export async function emailPosterAction(): Promise<EmailPosterState> {
     const env = getServerEnv()
     const shareUrl = `${env.NEXT_PUBLIC_APP_URL}/q/${qrCode.qr_id}`
     const venueName = merchant.business_name.trim().slice(0, 120)
-    const [posterAttachments, tentAttachments] = await Promise.all([
-      buildPosterPdfAttachments({
-        merchantName: venueName,
-        shareUrl,
-        stampsRequired: activeCard.stamps_required,
+    const kitInput = {
+      merchantName: venueName,
+      shareUrl,
+      stampsRequired: activeCard.stamps_required,
+    }
+    const nfcShareUrl = appendQrShareChannel(shareUrl, "qr")
+    const [
+      posterAttachments,
+      tentAttachments,
+      nfcAttachments,
+      nfcSquareAttachments,
+    ] = await Promise.all([
+      buildPosterPdfAttachments(kitInput),
+      buildTentPdfAttachments(kitInput),
+      buildNfcCardPdfAttachments({
+        ...kitInput,
+        shareUrl: nfcShareUrl,
       }),
-      buildTentPdfAttachments({
-        merchantName: venueName,
-        shareUrl,
-        stampsRequired: activeCard.stamps_required,
+      buildNfcSquarePdfAttachments({
+        ...kitInput,
+        shareUrl: nfcShareUrl,
       }),
     ])
-    const attachments = [...posterAttachments, ...tentAttachments]
+    const attachments = [
+      ...posterAttachments,
+      ...tentAttachments,
+      ...nfcAttachments,
+      ...nfcSquareAttachments,
+    ]
     const content = buildPosterEmailContent({ venueName })
     await sendTransactionalEmail({ to, ...content, attachments })
 
@@ -217,17 +236,17 @@ export async function emailPosterAction(): Promise<EmailPosterState> {
       return {
         ok: false,
         message:
-          "Poster PDFs can be emailed up to 3 times an hour. Try again later.",
+          "Print kit PDFs can be emailed up to 3 times an hour. Try again later.",
       }
     }
 
     console.error(
-      "[qr] poster email failed",
+      "[qr] print kit email failed",
       error instanceof Error ? error.message : error
     )
     return {
       ok: false,
-      message: "Could not email the poster PDFs just now. Try again.",
+      message: "Could not email the print kit PDFs just now. Try again.",
     }
   }
 }

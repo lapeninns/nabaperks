@@ -85,6 +85,8 @@ type ResolveQrForJoinOptions = {
   enforceScanRateLimit?: boolean
   recordScan?: boolean
   scanRateLimitIdentity?: string
+  /** Optional channel tag from ?src= on the share URL (nfc | qr). */
+  scanSource?: string | null
 }
 
 export async function resolveQrForJoin(
@@ -93,6 +95,7 @@ export async function resolveQrForJoin(
     enforceScanRateLimit = true,
     recordScan = true,
     scanRateLimitIdentity = "anonymous",
+    scanSource = null,
   }: ResolveQrForJoinOptions = {}
 ) {
   if (!isValidPublicQrId(qrId)) return null
@@ -157,6 +160,7 @@ export async function resolveQrForJoin(
           metadata: {
             available,
             destination_type: qrCode.destination_type,
+            ...(scanSource ? { src: scanSource } : {}),
           },
         })
       } catch (error) {

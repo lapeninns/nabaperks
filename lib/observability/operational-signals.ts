@@ -36,6 +36,7 @@ type OperationalReadinessOptions = {
   readonly supabaseUrl: string | undefined
   readonly serviceRoleKey: string | undefined
   readonly thresholds: OperationalThresholds
+  readonly requireCronHealth?: boolean
   readonly fetcher?: typeof fetch
   readonly timeoutMs?: number
 }
@@ -44,6 +45,7 @@ export async function checkOperationalReadiness({
   supabaseUrl,
   serviceRoleKey,
   thresholds,
+  requireCronHealth = true,
   fetcher = fetch,
   timeoutMs = 3_000,
 }: OperationalReadinessOptions): Promise<OperationalReadiness> {
@@ -76,7 +78,9 @@ export async function checkOperationalReadiness({
     if (!signals) return operationalError()
 
     return {
-      operational: signalsAreHealthy(signals, thresholds) ? "ok" : "error",
+      operational: signalsAreHealthy(signals, thresholds, requireCronHealth)
+        ? "ok"
+        : "error",
       signals,
     }
   } catch {
@@ -90,13 +94,16 @@ function operationalError(): OperationalReadiness {
 
 function signalsAreHealthy(
   signals: OperationalSignals,
-  thresholds: OperationalThresholds
+  thresholds: OperationalThresholds,
+  requireCronHealth: boolean
 ): boolean {
-  const cronHealthy = signals.cronJobs.every(
-    (job) =>
-      (job.state === "ok" || job.state === "warming") &&
-      job.consecutiveFailures < thresholds.consecutiveCronFailures
-  )
+  const cronHealthy =
+    !requireCronHealth ||
+    signals.cronJobs.every(
+      (job) =>
+        (job.state === "ok" || job.state === "warming") &&
+        job.consecutiveFailures < thresholds.consecutiveCronFailures
+    )
 
   return (
     signals.notificationQueueAgeMinutes <=

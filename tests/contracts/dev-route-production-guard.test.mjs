@@ -32,6 +32,8 @@ const expectedDevPages = [
   "app/dev/home-harness/referral-bank/page.tsx",
   "app/dev/home-harness/rewards/page.tsx",
   "app/dev/home-harness/stamp/page.tsx",
+  "app/dev/nfc-card-preview/page.tsx",
+  "app/dev/nfc-square-preview/page.tsx",
   "app/dev/poster-preview/page.tsx",
   "app/dev/tent-preview/page.tsx",
 ]

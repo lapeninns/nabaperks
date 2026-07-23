@@ -5,8 +5,13 @@ import { pathToFileURL } from "node:url"
 
 import { createClient } from "@supabase/supabase-js"
 
+import { buildNfcCardPdfAttachments } from "@/lib/notifications/nfc-card-pdf"
+import { buildNfcSquarePdfAttachments } from "@/lib/notifications/nfc-square-pdf"
 import { buildPosterPdfAttachments } from "@/lib/notifications/poster-pdf"
 import { buildTentPdfAttachments } from "@/lib/notifications/tent-pdf"
+import { appendQrShareChannel } from "@/lib/qr/nfc-card-share-url"
+import { NFC_CARD_PRODUCTION_DESIGNS } from "@/lib/qr/nfc-card-templates"
+import { NFC_SQUARE_PRODUCTION_DESIGNS } from "@/lib/qr/nfc-square-templates"
 import { QR_POSTER_PRODUCTION_TEMPLATES } from "@/lib/qr/poster-templates"
 import { TENT_PRODUCTION_DESIGNS } from "@/lib/qr/tent-templates"
 
@@ -204,10 +209,16 @@ async function exportVenuePrintables(venue, outputRoot, appOrigin) {
     shareUrl,
     stampsRequired: venue.stampsRequired,
   }
+  const nfcInput = {
+    ...input,
+    shareUrl: appendQrShareChannel(shareUrl, "qr"),
+  }
 
-  const [posters, tents] = await Promise.all([
+  const [posters, tents, nfcCards, nfcSquares] = await Promise.all([
     buildPosterPdfAttachments(input),
     buildTentPdfAttachments(input),
+    buildNfcCardPdfAttachments(nfcInput),
+    buildNfcSquarePdfAttachments(nfcInput),
   ])
 
   const posterFiles = []
@@ -224,6 +235,20 @@ async function exportVenuePrintables(venue, outputRoot, appOrigin) {
     tentFiles.push(attachment.filename)
   }
 
+  const nfcFiles = []
+  for (const attachment of nfcCards) {
+    const filePath = path.join(venueDir, attachment.filename)
+    await writeFile(filePath, Buffer.from(attachment.content, "base64"))
+    nfcFiles.push(attachment.filename)
+  }
+
+  const nfcSquareFiles = []
+  for (const attachment of nfcSquares) {
+    const filePath = path.join(venueDir, attachment.filename)
+    await writeFile(filePath, Buffer.from(attachment.content, "base64"))
+    nfcSquareFiles.push(attachment.filename)
+  }
+
   return {
     folder: folderName,
     merchantId: venue.merchantId,
@@ -234,7 +259,9 @@ async function exportVenuePrintables(venue, outputRoot, appOrigin) {
     shareUrl,
     posterFiles,
     tentFiles,
-    files: [...posterFiles, ...tentFiles],
+    nfcFiles,
+    nfcSquareFiles,
+    files: [...posterFiles, ...tentFiles, ...nfcFiles, ...nfcSquareFiles],
   }
 }
 
@@ -270,7 +297,7 @@ export async function exportProductionPosterPdfs(options = {}) {
   const results = []
   for (const venue of venues) {
     console.log(
-      `Rendering ${QR_POSTER_PRODUCTION_TEMPLATES.length} posters + ${TENT_PRODUCTION_DESIGNS.length} tents for ${venue.businessName} (${venue.qrId})…`
+      `Rendering ${QR_POSTER_PRODUCTION_TEMPLATES.length} posters + ${TENT_PRODUCTION_DESIGNS.length} tents + ${NFC_CARD_PRODUCTION_DESIGNS.length} CR80 NFC + ${NFC_SQUARE_PRODUCTION_DESIGNS.length} square NFC for ${venue.businessName} (${venue.qrId})…`
     )
     results.push(await exportVenuePrintables(venue, outputRoot, appOrigin))
   }
@@ -281,10 +308,17 @@ export async function exportProductionPosterPdfs(options = {}) {
     supabaseHost: new URL(supabaseUrl).hostname,
     posterDesignIds: QR_POSTER_PRODUCTION_TEMPLATES.map(({ id }) => id),
     tentDesignIds: TENT_PRODUCTION_DESIGNS.map(({ id }) => id),
+    nfcDesignIds: NFC_CARD_PRODUCTION_DESIGNS.map(({ id }) => id),
+    nfcSquareDesignIds: NFC_SQUARE_PRODUCTION_DESIGNS.map(({ id }) => id),
     designIds: QR_POSTER_PRODUCTION_TEMPLATES.map(({ id }) => id),
     venueCount: results.length,
     posterCount: results.reduce((sum, row) => sum + row.posterFiles.length, 0),
     tentCount: results.reduce((sum, row) => sum + row.tentFiles.length, 0),
+    nfcCount: results.reduce((sum, row) => sum + row.nfcFiles.length, 0),
+    nfcSquareCount: results.reduce(
+      (sum, row) => sum + row.nfcSquareFiles.length,
+      0
+    ),
     pdfCount: results.reduce((sum, row) => sum + row.files.length, 0),
     venues: results,
   }

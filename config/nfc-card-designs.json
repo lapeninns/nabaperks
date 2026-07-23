@@ -1,0 +1,116 @@
+{
+  "schema": "nabaperks.nfc-card-designs.v1",
+  "purpose": "Single source of truth for the Nabaperks CR80 NFC card registry, copy, and native CR80 print pages (85.5 × 54 mm). Cards are venue-branded: merchant name, stamps required, and the permanent join URL. Honest by contract — no free-stamp claims, no receipt claims, and first-stamp copy matches the OTP + terms join funnel.",
+  "product": {
+    "brand": "Nab a Perks",
+    "operator": "Lapen Inns",
+    "market": "UK hospitality",
+    "visualSystem": "Wet Ink",
+    "kitSummary": "One print-ready CR80 NFC card — front and back as 85.5 × 54 mm pages."
+  },
+  "collection": {
+    "id": "nfc-card",
+    "name": "CR80 NFC cards",
+    "description": "Tap cards for counters, tills and guest hand-out — front and back print at CR80 size (85.5 × 54 mm).",
+    "format": "cr80-nfc",
+    "sheet": "cr80",
+    "revision": 4
+  },
+  "shared": {
+    "reassurance": "18+ to redeem · One visit stamp here per UK date · Rewards redeem from the next weekday · Terms apply",
+    "dieRule": "One stamp per UK day · 18+ to redeem",
+    "cutLabel": "CR80 85.5 × 54 mm · print at 100%",
+    "numberWords": ["zero", "one", "two", "three", "four", "five", "six"],
+    "friction": "No app · One text · In your browser",
+    "claimFriction": "No NFC? Scan the code",
+    "tokens": {
+      "paper": "#f6f1e6",
+      "paperDeep": "#ece5d4",
+      "card": "#fbf8f1",
+      "ink": "#211c16",
+      "inkSoft": "#4f473d",
+      "accent": "#cf330a",
+      "sun": "#f5a623",
+      "leaf": "#16733c",
+      "cobalt": "#2b43c8",
+      "white": "#ffffff",
+      "qr": "#111111",
+      "qrBg": "#ffffff",
+      "fonts": {
+        "display": {
+          "family": "Bricolage Grotesque",
+          "regularFile": "BricolageGrotesque-Regular.ttf",
+          "boldFile": "BricolageGrotesque-Bold.ttf"
+        },
+        "mono": {
+          "family": "Space Mono",
+          "regularFile": "SpaceMono-Regular.ttf",
+          "boldFile": "SpaceMono-Bold.ttf"
+        }
+      }
+    },
+    "placeholders": {
+      "stamps": "Validated venue stampsRequired as a base-10 integer string.",
+      "StampsWord": "The same 1-6 stampsRequired value via shared.numberWords, first letter capitalised."
+    },
+    "placeholderPolicy": "Resolve every customer-copy string before render; reject unknown or unresolved brace tokens.",
+    "rolloutPolicy": "Every registered NFC card renders on direct request and in the dev preview. Merchant surfaces expose production cards only.",
+    "geometry": {
+      "cr80": {
+        "cardWidthMm": 85.5,
+        "cardHeightMm": 54,
+        "cornerRadiusMm": 2.8,
+        "frameInsetMm": 0.45,
+        "qrOuterMm": 18
+      }
+    },
+    "qr": {
+      "unit": "mm",
+      "measurement": "complete light box including quiet zone",
+      "quietZoneModules": 4,
+      "errorCorrectionLevel": "H",
+      "productionRule": "Front QR encodes the venue share URL with src=qr. Program the NFC chip with the same path using src=nfc so analytics can distinguish tap from scan. Preserve square modules; proof tap and scan on representative phones."
+    },
+    "typeTiersPt": {
+      "floor": 6.5,
+      "meta": 7,
+      "body": 8,
+      "title": 11.5,
+      "display": 13,
+      "seal": 12
+    }
+  },
+  "designs": [
+    {
+      "id": "tap",
+      "name": "Tap",
+      "description": "Wet Ink CR80 — centre-left TAP seal, mystery claim lane, QR fallback, calm keep-and-return back.",
+      "rollout": "production",
+      "useCase": "Counter hand-out and till tap",
+      "tone": "tap-seal-mystery",
+      "front": {
+        "brandEyebrow": "Venue mystery card",
+        "brandName": "Nab a Perks",
+        "tapWord": "Tap",
+        "tapSub": "Your phone",
+        "stampCue": "01 is waiting · mystery at {stamps}",
+        "claimKicker": "Mystery inside",
+        "claimLine": "Tap to join — today's stamp after one text",
+        "flow": ["Tap", "Stamp", "Unlock"]
+      },
+      "back": {
+        "strap": "Keep this card",
+        "badge": "Mystery",
+        "teaseLead": "Your first stamp",
+        "teaseAccent": "is waiting.",
+        "sealLabel": "{stamps} = ★",
+        "steps": [
+          { "title": "Tap", "detail": "Phone or code" },
+          { "title": "Keep", "detail": "On your number" },
+          { "title": "Return", "detail": "Stamp to unlock" }
+        ],
+        "footBrand": "Nab a Perks"
+      }
+    }
+  ]
+}

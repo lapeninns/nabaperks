@@ -1,0 +1,103 @@
+{
+  "schema": "nabaperks.nfc-square-designs.v1",
+  "purpose": "Single source of truth for Nabaperks one-sided 100×100 mm wall NFC plates, copy, and native print pages. Venue-branded: merchant name, stamps required, permanent join URL. Honest by contract — no free-stamp claims.",
+  "product": {
+    "brand": "Nab a Perks",
+    "operator": "Lapen Inns",
+    "market": "UK hospitality",
+    "visualSystem": "Wet Ink",
+    "kitSummary": "One print-ready one-sided 100×100 mm wall NFC plate — page size is the die."
+  },
+  "collection": {
+    "id": "nfc-square",
+    "name": "Square NFC plates",
+    "description": "One-sided 100×100 mm wall and premises tap plates — print at native square size.",
+    "format": "nfc-square-100",
+    "sheet": "square-100",
+    "revision": 5
+  },
+  "shared": {
+    "reassurance": "18+ to redeem · One visit stamp here per UK date · Rewards redeem from the next weekday · Terms apply",
+    "dieRule": "One stamp per UK day · 18+ to redeem",
+    "cutLabel": "Square 100 × 100 mm · print at 100%",
+    "numberWords": ["zero", "one", "two", "three", "four", "five", "six"],
+    "friction": "No app · One text · In your browser",
+    "claimFriction": "No NFC? Scan the code",
+    "tokens": {
+      "paper": "#f6f1e6",
+      "paperDeep": "#ece5d4",
+      "card": "#fbf8f1",
+      "ink": "#211c16",
+      "inkSoft": "#4f473d",
+      "accent": "#cf330a",
+      "sun": "#f5a623",
+      "leaf": "#16733c",
+      "cobalt": "#2b43c8",
+      "white": "#ffffff",
+      "qr": "#111111",
+      "qrBg": "#ffffff",
+      "fonts": {
+        "display": {
+          "family": "Bricolage Grotesque",
+          "regularFile": "BricolageGrotesque-Regular.ttf",
+          "boldFile": "BricolageGrotesque-Bold.ttf"
+        },
+        "mono": {
+          "family": "Space Mono",
+          "regularFile": "SpaceMono-Regular.ttf",
+          "boldFile": "SpaceMono-Bold.ttf"
+        }
+      }
+    },
+    "placeholders": {
+      "stamps": "Validated venue stampsRequired as a base-10 integer string.",
+      "StampsWord": "The same 1-6 stampsRequired value via shared.numberWords, first letter capitalised."
+    },
+    "placeholderPolicy": "Resolve every customer-copy string before render; reject unknown or unresolved brace tokens.",
+    "rolloutPolicy": "Every registered square NFC plate renders on direct request and in the dev preview. Merchant surfaces expose production plates only.",
+    "geometry": {
+      "square": {
+        "cardWidthMm": 100,
+        "cardHeightMm": 100,
+        "cornerRadiusMm": 3.2,
+        "frameInsetMm": 0.5,
+        "qrOuterMm": 20
+      }
+    },
+    "qr": {
+      "unit": "mm",
+      "measurement": "complete light box including quiet zone",
+      "quietZoneModules": 4,
+      "errorCorrectionLevel": "H",
+      "productionRule": "Face QR encodes the venue share URL with ?src=qr for scan analytics (NFC NDEF target stays the untinted join URL). Preserve square modules; proof tap and scan on representative phones."
+    },
+    "typeTiersPt": {
+      "floor": 6.5,
+      "meta": 7.5,
+      "body": 9,
+      "title": 13,
+      "display": 28,
+      "seal": 14
+    }
+  },
+  "designs": [
+    {
+      "id": "tap",
+      "name": "Wall plate",
+      "description": "One-sided 100×100 mm wall plate — venue hero, vermillion TAP field, mystery proof band with QR fallback.",
+      "rollout": "production",
+      "useCase": "Wall and premises tap plate",
+      "tone": "wall-billboard-plate",
+      "front": {
+        "brandEyebrow": "Venue loyalty",
+        "brandName": "Nab a Perks",
+        "tapWord": "Tap",
+        "tapSub": "Phone here",
+        "claimLine": "Tap to join — today's stamp after one text",
+        "mysteryKicker": "Mystery inside",
+        "mysteryAccent": "Unlock at {stamps}",
+        "flow": ["Tap", "Stamp", "Unlock"]
+      }
+    }
+  ]
+}

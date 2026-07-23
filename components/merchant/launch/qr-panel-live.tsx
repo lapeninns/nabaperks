@@ -7,6 +7,8 @@ import { EmailPosterButton } from "@/components/merchant/launch/email-poster-but
 import { QrErrorBanner } from "@/components/merchant/launch/qr-error-banner"
 import { QrWorkspace } from "@/components/merchant/launch/qr-redesign-concept"
 import {
+  buildNfcCardHrefs,
+  buildNfcSquareHrefs,
   buildPosterHrefs,
   buildTentHrefs,
   resolveDistributionChannel,
@@ -14,6 +16,8 @@ import {
 } from "@/components/merchant/launch/qr-redesign-concept-parts"
 import { Button } from "@/components/ui/button"
 import { getActivePromo } from "@/lib/marketing/promo"
+import type { NfcCardDesignId } from "@/lib/qr/nfc-card-templates"
+import type { NfcSquareDesignId } from "@/lib/qr/nfc-square-templates"
 import type { QrPosterTemplateId } from "@/lib/qr/poster-templates"
 import type { TableTentDesignId } from "@/lib/qr/tent-templates"
 
@@ -59,6 +63,12 @@ export function QrPanelLive({
   const tentHrefs = buildTentHrefs((design) =>
     productionTentHref(design, qrCodeId, returnHref)
   )
+  const nfcHrefs = buildNfcCardHrefs((design) =>
+    productionNfcHref(design, qrCodeId, returnHref)
+  )
+  const nfcSquareHrefs = buildNfcSquareHrefs((design) =>
+    productionNfcSquareHref(design, qrCodeId, returnHref)
+  )
 
   return (
     <QrWorkspace
@@ -73,6 +83,8 @@ export function QrPanelLive({
       navigationBaseHref={workspaceHref ?? returnHref}
       posterHrefs={posterHrefs}
       tentHrefs={tentHrefs}
+      nfcHrefs={nfcHrefs}
+      nfcSquareHrefs={nfcSquareHrefs}
       statusAction={
         <QrStatusAction
           qrCodeId={qrCodeId}
@@ -204,4 +216,20 @@ function productionTentHref(
   returnHref: string
 ) {
   return `/app/qr/tent/${design}?qr=${qrCodeId}&from=${encodeURIComponent(returnHref)}`
+}
+
+function productionNfcHref(
+  design: NfcCardDesignId,
+  qrCodeId: string,
+  returnHref: string
+) {
+  return `/app/qr/nfc/${design}?qr=${qrCodeId}&from=${encodeURIComponent(returnHref)}`
+}
+
+function productionNfcSquareHref(
+  design: NfcSquareDesignId,
+  qrCodeId: string,
+  returnHref: string
+) {
+  return `/app/qr/nfc-square/${design}?qr=${qrCodeId}&from=${encodeURIComponent(returnHref)}`
 }

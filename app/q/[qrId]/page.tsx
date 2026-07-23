@@ -21,6 +21,7 @@ import {
   getExistingMembershipForCurrentUser,
   resolveQrForJoin,
 } from "@/lib/customer/join"
+import { parseQrShareChannel } from "@/lib/qr/nfc-card-share-url"
 import {
   RateLimitError,
   customerRateLimitIdentityFromHeaders,
@@ -38,7 +39,7 @@ type PublicQrPageProps = {
   params: Promise<{
     qrId: string
   }>
-  searchParams: Promise<{ ref?: string }>
+  searchParams: Promise<{ ref?: string; src?: string }>
 }
 
 export default async function PublicQrPage({
@@ -46,7 +47,8 @@ export default async function PublicQrPage({
   searchParams,
 }: PublicQrPageProps) {
   const { qrId } = await params
-  const { ref } = await searchParams
+  const { ref, src } = await searchParams
+  const scanSource = parseQrShareChannel(src)
 
   // Dev-only boundary probe: lets the DB-free e2e tier render this segment's
   // error boundary (tests/e2e/ux-polish-boundaries.spec.ts) without a
@@ -66,6 +68,7 @@ export default async function PublicQrPage({
       scanRateLimitIdentity: customerRateLimitIdentityFromHeaders(
         await headers()
       ),
+      scanSource,
     })
 
     // The membership lookup stays inside the guard: a failed lookup on a
