@@ -47,27 +47,48 @@ export function drawKitCapsule(
     fill: RGB | undefined,
     labelOn: boolean
   ) => {
-    for (const plateX of [x + radius, x + width - radius]) {
-      page.drawCircle({
-        x: plateX,
-        y: y + radius,
-        size: radius,
+    if (fill) {
+      // Filled badge: rounded stadium — two circle caps plus a straight body.
+      for (const plateX of [x + radius, x + width - radius]) {
+        page.drawCircle({
+          x: plateX,
+          y: y + radius,
+          size: radius,
+          color: fill,
+          borderColor: labelOn ? options.borderColor : undefined,
+          borderWidth: borderOn(labelOn),
+          borderOpacity: options.borderOpacity,
+        })
+      }
+      page.drawRectangle({
+        x: x + radius,
+        y,
+        width: width - height,
+        height,
         color: fill,
-        borderColor: labelOn ? options.borderColor : undefined,
+      })
+    } else if (labelOn && options.borderColor) {
+      // Outline pill: stroke a single stadium path (matching the CSS preview's
+      // border-radius:999px) so there are no inner cap arcs to curve back across
+      // the first/last glyphs. drawSvgPath maps path (px,py) to page (x+px,
+      // y-py), so the path is authored top-left origin, y-down.
+      const r = height / 2
+      const stadium = [
+        `M ${r} 0`,
+        `H ${width - r}`,
+        `A ${r} ${r} 0 0 1 ${width - r} ${height}`,
+        `H ${r}`,
+        `A ${r} ${r} 0 0 1 ${r} 0`,
+        "Z",
+      ].join(" ")
+      page.drawSvgPath(stadium, {
+        x,
+        y: y + height,
+        borderColor: options.borderColor,
         borderWidth: borderOn(labelOn),
         borderOpacity: options.borderOpacity,
       })
     }
-    page.drawRectangle({
-      x: x + radius,
-      y,
-      width: width - height,
-      height,
-      color: fill,
-      borderColor: !fill && labelOn ? options.borderColor : undefined,
-      borderWidth: !fill ? borderOn(labelOn) : 0,
-      borderOpacity: options.borderOpacity,
-    })
     if (labelOn) {
       page.drawText(label, {
         x: x + 8,

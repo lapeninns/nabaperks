@@ -118,13 +118,15 @@ export function drawPrimerA4(
     }
   })
   drawLedgerFoot(context, content, content.issuerLabel, content.signature)
-  // Rubber-stamp frame around the ink signature the foot just set.
-  pushKitRotation(page, -2.5, mm(107), mm(58))
+  // Rubber-stamp frame around the ink signature the foot just set. Kept short
+  // and low so its top edge sits under the venue name (baseline mm(64)) rather
+  // than slicing through it.
+  pushKitRotation(page, -2.5, mm(107), mm(57.5))
   page.drawRectangle({
     x: mm(76),
-    y: mm(52.5),
+    y: mm(54),
     width: mm(62),
-    height: mm(11),
+    height: mm(7),
     borderColor: POSTER_PDF_COLOR.accent,
     borderWidth: 1.6,
     borderOpacity: 0.85,

@@ -103,7 +103,7 @@
         "badge": "Mystery",
         "teaseLead": "Your first stamp",
         "teaseAccent": "is waiting.",
-        "sealLabel": "{stamps} = ★",
+        "sealLabel": "{stamps} = *",
         "steps": [
           { "title": "Tap", "detail": "Phone or code" },
           { "title": "Keep", "detail": "On your number" },

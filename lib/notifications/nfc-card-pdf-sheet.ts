@@ -200,9 +200,12 @@ function drawFrontCard(
     })
   })
 
-  const qrSize = mm(content.geometry.qrOuterMm)
+  // Trim + drop the QR so its panel clears the flow labels above and the
+  // claim-friction line below on the crowded right half (was 18 mm at y 10 mm,
+  // whose panel top overran the "Tap / Stamp / Unlock" labels).
+  const qrSize = mm(16)
   const qrX = originX + half + (half - qrSize) / 2
-  const qrY = originY + mm(10)
+  const qrY = originY + mm(8)
   page.drawRectangle({
     x: qrX - mm(0.6),
     y: qrY - mm(0.6),
@@ -381,7 +384,7 @@ function drawBackCard(
       font: fonts.bold,
       color: POSTER_PDF_COLOR.ink,
     })
-    const detail = standardFontText(step.detail, fonts.monoBold).slice(0, 14)
+    const detail = standardFontText(step.detail, fonts.monoBold).slice(0, 18)
     page.drawText(detail, {
       x: cx - fonts.regular.widthOfTextAtSize(detail, TYPE_FLOOR) / 2,
       y: railY + mm(2),
@@ -417,7 +420,7 @@ function drawBackCard(
     font: fonts.monoBold,
     color: POSTER_PDF_COLOR.white,
   })
-  const dieRule = standardFontText(content.dieRule, fonts.monoBold).slice(0, 34)
+  const dieRule = standardFontText(content.dieRule, fonts.monoBold).slice(0, 40)
   page.drawText(dieRule, {
     x:
       originX +

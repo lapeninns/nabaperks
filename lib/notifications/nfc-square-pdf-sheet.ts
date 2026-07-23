@@ -312,11 +312,14 @@ function drawPlateFace(
   drawQrCode(page, qrModules, qrX, qrY, qrSize)
 
   const friction = standardFontText(content.claimFriction, fonts.monoBold)
+  // Right-align to the QR's own right margin. Centring on the QR (which hugs
+  // the die edge) pushed the last glyph off the plate ("...the cod").
   page.drawText(friction, {
     x:
-      qrX +
-      qrSize / 2 -
-      fonts.monoBold.widthOfTextAtSize(friction, TYPE_FLOOR) / 2,
+      originX +
+      w -
+      mm(3) -
+      fonts.monoBold.widthOfTextAtSize(friction, TYPE_FLOOR),
     y: originY + mm(2.5),
     size: TYPE_FLOOR,
     font: fonts.monoBold,

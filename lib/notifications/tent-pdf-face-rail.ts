@@ -63,7 +63,9 @@ export function drawTentHeaderRail(
     y: brandBaseline,
     size: TENT_TYPE.brandPt,
     font: fonts.bold,
-    color: ground,
+    // The rail is always ink, so the wordmark must be paper (not the face
+    // `ground`, which is ink on ink-tone faces → invisible, as on the today tent).
+    color: POSTER_PDF_COLOR.paper,
   })
   brandX += fonts.bold.widthOfTextAtSize(nab, TENT_TYPE.brandPt)
   page.drawText(a, {
@@ -79,7 +81,7 @@ export function drawTentHeaderRail(
     y: brandBaseline,
     size: TENT_TYPE.brandPt,
     font: fonts.bold,
-    color: ground,
+    color: POSTER_PDF_COLOR.paper,
   })
 
   // Product edition pill: kicker label + venue chip (matches TentFace kicker).

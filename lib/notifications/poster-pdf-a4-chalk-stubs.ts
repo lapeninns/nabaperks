@@ -18,6 +18,19 @@ export const CHALK_STUB_TONES: readonly RGB[] = [
   KIT_NIGHT_LEAF,
 ]
 
+/** Ordinal words so each numbered stub reads its own stamp (not all "one"). */
+const STUB_ORDINALS: readonly string[] = [
+  "ONE",
+  "TWO",
+  "THREE",
+  "FOUR",
+  "FIVE",
+  "SIX",
+  "SEVEN",
+  "EIGHT",
+  "NINE",
+]
+
 /**
  * Numbered stamp-one tear-off stubs along the board foot: one dashed cell
  * per required visit, each with a circled chalk number and the stamp-one
@@ -89,7 +102,12 @@ export function drawChalkStubRow(
     })
     drawChalkFlourish(page, centerX - mm(8.6), circleY, tone)
     drawChalkFlourish(page, centerX + mm(7.4), circleY, tone)
-    drawKitCenteredText(page, content.stubTop.toUpperCase(), {
+    // Each stub matches its numbered circle: "STAMP ONE / TWO / THREE …",
+    // swapping the ordinal in the content's top line rather than repeating "one".
+    const stubTopLabel = content.stubTop
+      .replace(/\bone\b/i, STUB_ORDINALS[stub] ?? String(stub + 1))
+      .toUpperCase()
+    drawKitCenteredText(page, stubTopLabel, {
       centerX,
       y: mm(options.topMm - 25),
       font: fonts.monoBold,
