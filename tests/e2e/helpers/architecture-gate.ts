@@ -7,8 +7,11 @@ type HarnessSurfaceCheck = {
   readonly path: string
   readonly visibleText: string | RegExp
   readonly loadedImageName?: string
+  readonly loadedImagePath?: string
   readonly absentText?: readonly RegExp[]
 }
+
+const HARNESS_QR_IMAGE_PATH = "/app/qr/image/qr_harness"
 
 const SURFACE_CHECKS = [
   {
@@ -42,6 +45,7 @@ const SURFACE_CHECKS = [
     path: HARNESS_ROUTES.qr,
     visibleText: "Your permanent scan code",
     loadedImageName: "QR code for Mystery Visit Card",
+    loadedImagePath: HARNESS_QR_IMAGE_PATH,
   },
   {
     name: "merchant scanner",
@@ -53,7 +57,12 @@ const SURFACE_CHECKS = [
 export async function warmArchitectureHarnessRoutes(
   request: APIRequestContext
 ): Promise<void> {
-  const paths = new Set(SURFACE_CHECKS.map((surface) => surface.path))
+  const paths = new Set(
+    SURFACE_CHECKS.flatMap((surface) => [
+      surface.path,
+      ...("loadedImagePath" in surface ? [surface.loadedImagePath] : []),
+    ])
+  )
 
   for (const path of paths) {
     const response = await request.get(path, { failOnStatusCode: false })
@@ -101,15 +110,18 @@ async function testHarnessSurface(
 
     await expect(image).toBeVisible()
     await expect
-      .poll(async () => {
-        return image.evaluate((node) => {
-          if (!(node instanceof HTMLImageElement)) {
-            return false
-          }
+      .poll(
+        async () => {
+          return image.evaluate((node) => {
+            if (!(node instanceof HTMLImageElement)) {
+              return false
+            }
 
-          return node.complete && node.naturalWidth > 100
-        })
-      })
+            return node.complete && node.naturalWidth > 100
+          })
+        },
+        { message: `${surface.name} image decoded`, timeout: 30_000 }
+      )
       .toBe(true)
   }
 
