@@ -33,6 +33,7 @@ const highEntropySecretEnvNames = new Set([
   "ANALYTICS_PSEUDONYM_SECRET",
   "CRON_SECRET",
   "PRODUCTION_MONITOR_SECRET",
+  "PRODUCTION_MONITOR_SECRET_NEXT",
   "CUSTOMER_SESSION_SECRET",
   "CUSTOMER_PHONE_HMAC_SECRET",
   "CUSTOMER_PHONE_ENCRYPTION_KEY",
@@ -245,9 +246,24 @@ if (hostedOrProductionProfile) {
 
   const cronSecret = values.CRON_SECRET?.trim()
   const monitorSecret = values.PRODUCTION_MONITOR_SECRET?.trim()
+  const nextMonitorSecret = values.PRODUCTION_MONITOR_SECRET_NEXT?.trim()
 
   if (cronSecret && monitorSecret && cronSecret === monitorSecret) {
     invalid.push("PRODUCTION_MONITOR_SECRET must differ from CRON_SECRET")
+  }
+
+  if (cronSecret && nextMonitorSecret && cronSecret === nextMonitorSecret) {
+    invalid.push("PRODUCTION_MONITOR_SECRET_NEXT must differ from CRON_SECRET")
+  }
+
+  if (
+    monitorSecret &&
+    nextMonitorSecret &&
+    monitorSecret === nextMonitorSecret
+  ) {
+    invalid.push(
+      "PRODUCTION_MONITOR_SECRET_NEXT must differ from PRODUCTION_MONITOR_SECRET"
+    )
   }
 }
 

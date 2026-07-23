@@ -8,7 +8,7 @@ import {
   REQUEST_ID_HEADER,
   resolveRequestId,
 } from "@/lib/observability/request-id"
-import { matchesCronSecret } from "@/lib/security/cron-auth"
+import { matchesAnyBearerSecret } from "@/lib/security/cron-auth"
 
 export const dynamic = "force-dynamic"
 
@@ -19,10 +19,10 @@ export async function GET(request: Request): Promise<Response> {
   const requestId = resolveRequestId(request.headers)
 
   if (
-    !matchesCronSecret(
-      request.headers.get("authorization"),
-      process.env.PRODUCTION_MONITOR_SECRET
-    )
+    !matchesAnyBearerSecret(request.headers.get("authorization"), [
+      process.env.PRODUCTION_MONITOR_SECRET,
+      process.env.PRODUCTION_MONITOR_SECRET_NEXT,
+    ])
   ) {
     return Response.json(
       { status: "unauthorized", scope: "readiness" },

@@ -104,6 +104,31 @@ Configure the environment before first use:
   `Production deployment` workflow is activated, while retaining previews if
   desired.
 
+### Zero-downtime monitor-secret rotation
+
+Vercel sensitive values are non-readable after creation. Rotate the production
+readiness credential with a bounded overlap; never export it from a deployment
+or print either value:
+
+1. Generate a new high-entropy value and add it to Vercel Production as
+   `PRODUCTION_MONITOR_SECRET_NEXT`.
+2. Deploy the reviewed revision that accepts both monitor-secret names. Prove
+   `/api/readiness` accepts the existing and next values without recording
+   either value.
+3. Set the new value as `PRODUCTION_MONITOR_SECRET` in the GitHub `Production`
+   environment and repository scope. The repository copy remains only while
+   the unattended `Production smoke` workflow consumes it.
+4. Require a successful protected staged probe and scheduled public probe using
+   the new value.
+5. Replace Vercel Production `PRODUCTION_MONITOR_SECRET` with the new value,
+   remove `PRODUCTION_MONITOR_SECRET_NEXT`, redeploy, and repeat both probes.
+6. Verify the next-name metadata is absent in Vercel and remove the repository
+   copy after `Production smoke` has moved to an unattended least-privilege
+   environment.
+
+Abort and retain the overlap if either probe fails. Do not remove or overwrite
+the only value accepted by the currently promoted deployment.
+
 Configure a separate GitHub `Staging` environment before first use. It may
 permit only `main`; it must not reuse production data or provider credentials.
 Add these secrets:

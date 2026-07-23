@@ -3,6 +3,7 @@ import { test } from "node:test"
 
 import {
   isAuthorizedCronRequest,
+  matchesAnyBearerSecret,
   matchesCronSecret,
 } from "@/lib/security/cron-auth"
 
@@ -33,6 +34,27 @@ test("Given a configured secret When the exact bearer token is presented Then it
   assert.equal(matchesCronSecret("Bearer s3cret", "s3cret"), true)
   // Env values often carry stray whitespace; only the configured side is trimmed.
   assert.equal(matchesCronSecret("Bearer s3cret", "  s3cret\n"), true)
+})
+
+test("Given a monitor-secret rotation overlap When either exact token is presented Then it is accepted", () => {
+  const secrets = ["current-monitor-secret", "next-monitor-secret"]
+
+  assert.equal(
+    matchesAnyBearerSecret("Bearer current-monitor-secret", secrets),
+    true
+  )
+  assert.equal(
+    matchesAnyBearerSecret("Bearer next-monitor-secret", secrets),
+    true
+  )
+  assert.equal(
+    matchesAnyBearerSecret("Bearer wrong-monitor-secret", secrets),
+    false
+  )
+  assert.equal(
+    matchesAnyBearerSecret("Bearer anything", [undefined, ""]),
+    false
+  )
 })
 
 test("Given a request When the gate runs Then it authorizes against CRON_SECRET from the environment", () => {

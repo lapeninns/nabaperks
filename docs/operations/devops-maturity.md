@@ -67,6 +67,10 @@ recovery exercises require separate readback before they may be marked complete.
       source-owned thresholds and network latency, and the rolling SLO reports
       both availability and error rate. Deployment and provider corroboration
       remain provider-owned.
+- [x] Readiness authentication supports a bounded, independently validated
+      two-secret overlap so a non-exportable Vercel sensitive value can be
+      rotated without interrupting staged or public probes. The runbook requires
+      removal of the temporary next value after provider cutover.
 - [x] A protected manual recovery workflow validates a selected physical backup
       and newly created same-region restore target, then proves the as-of-backup
       ledger and core database path without writing to the restored database.

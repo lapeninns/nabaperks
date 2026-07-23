@@ -59,6 +59,33 @@ test("Given a complete production configuration When generated credentials are s
   assert.match(result.stdout, /production environment configuration is valid/)
 })
 
+test("Given a monitor-secret overlap When the next token is reused Then production validation fails closed", () => {
+  const sharedSecret = "P4@wS8#nC2!kV6$rJ9^tB3&yM7*zQ5?e"
+  const result = runEnvCheck({
+    args: ["--profile=production"],
+    environment: {
+      CRON_SECRET: "N7!qL2@vR9#cT4$yH6^mK8&pD3*zF5?x",
+      PRODUCTION_MONITOR_SECRET: sharedSecret,
+      PRODUCTION_MONITOR_SECRET_NEXT: sharedSecret,
+      RESEND_FROM: "Nabaperks <hello@example.test>",
+      STRIPE_GROWTH_ANNUAL_PRICE_ID: "price_annual_fixture",
+      SUPABASE_SEND_EMAIL_HOOK_SECRET: [
+        "v1,wh",
+        "sec_",
+        "SDkhbVEyQHZSNyNjVDQkeUs4XnBEMyZ6RjYqd041P3g=",
+      ].join(""),
+      ...validVapidEnvironment(),
+    },
+  })
+
+  assert.equal(result.status, 1)
+  assert.match(
+    result.stderr,
+    /PRODUCTION_MONITOR_SECRET_NEXT must differ from PRODUCTION_MONITOR_SECRET/
+  )
+  assert.doesNotMatch(result.stderr, new RegExp(escapeRegExp(sharedSecret)))
+})
+
 for (const [name, malformed, message] of [
   [
     "WEB_PUSH_VAPID_PRIVATE_KEY",
@@ -198,6 +225,7 @@ for (const name of [
   "ANALYTICS_PSEUDONYM_SECRET",
   "CRON_SECRET",
   "PRODUCTION_MONITOR_SECRET",
+  "PRODUCTION_MONITOR_SECRET_NEXT",
   "CUSTOMER_SESSION_SECRET",
   "CUSTOMER_PHONE_HMAC_SECRET",
   "CUSTOMER_PHONE_ENCRYPTION_KEY",

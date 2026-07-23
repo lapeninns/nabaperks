@@ -56,6 +56,8 @@ test("production exposes separate versioned liveness and dependency readiness", 
   assert.match(readiness, /status: ready \? "ready" : "not_ready"/)
   assert.match(readiness, /status: ready \? 200 : 503/)
   assert.match(readiness, /SUPABASE_SERVICE_ROLE_KEY/)
+  assert.match(readiness, /PRODUCTION_MONITOR_SECRET_NEXT/)
+  assert.match(readiness, /matchesAnyBearerSecret/)
   assert.match(readiness, /checkOperationalReadiness/)
   assert.match(readiness, /signals: operational\.signals/)
   assert.match(proxy, /isOperationalProbePath\(request\.nextUrl\.pathname\)/)
