@@ -5,10 +5,20 @@ import { cache } from "react"
 import { redirect } from "next/navigation"
 
 import { getCurrentUser } from "@/lib/auth/session"
+import {
+  type AdminMfaState,
+  isAdminMfaEnrolled,
+  resolveAdminMfaState,
+} from "@/lib/admin/mfa-gate"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export type AdminAccess =
-  | { status: "allowed"; email: string; mfaRequired: boolean }
+  | {
+      status: "allowed"
+      email: string
+      mfaState: AdminMfaState
+      mfaRequired: boolean
+    }
   | { status: "denied"; reason: string }
 
 type AllowedAdminAccess = Extract<AdminAccess, { status: "allowed" }>
@@ -38,18 +48,25 @@ export const getAdminAccess = cache(async (): Promise<AdminAccess> => {
     return { status: "denied", reason: "Internal admin access is required." }
   }
 
+  // MFA is enforced at the app layer only (never re-add the DB AAL2 check —
+  // see lib/admin/mfa-gate.ts). Resolve the assurance level; any failure fails
+  // OPEN to "no-factor" so a transient auth error can never lock an admin out.
+  let mfaState: AdminMfaState = "no-factor"
+  try {
+    const { data: aal } =
+      await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+    mfaState = resolveAdminMfaState(aal?.currentLevel, aal?.nextLevel)
+  } catch {
+    mfaState = "no-factor"
+  }
+
   return {
     status: "allowed",
     email: data.email,
-    // Authenticator MFA is not required — admin signs in with email + password
-    // (and email OTP for signup/reset). Kept on the type for shell display.
-    mfaRequired: false,
+    mfaState,
+    mfaRequired: isAdminMfaEnrolled(mfaState),
   }
 })
-
-export function isAdminMfaRequired() {
-  return false
-}
 
 export async function requireAdminRead() {
   const access = await getAdminAccess()
@@ -62,7 +79,18 @@ export async function requireAdminRead() {
 }
 
 export async function requireAdminAction() {
-  return requireAdminRead()
+  const access = await requireAdminRead()
+
+  // Defense-in-depth for direct action calls: an enrolled admin who has not
+  // completed the step-up challenge cannot mutate. The layout already blocks the
+  // UI in this state, and the MFA enrol/step-up actions use requireAdminRead (not
+  // this), so this never bites the legitimate step-up path. Fails open because
+  // getAdminAccess resolves an unknown assurance level to "no-factor".
+  if (access.mfaState === "step-up-required") {
+    throw new Error("Two-factor verification is required before this action.")
+  }
+
+  return access
 }
 
 export async function canRenderAdminPage(): Promise<boolean> {

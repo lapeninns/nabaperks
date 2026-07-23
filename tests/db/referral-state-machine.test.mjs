@@ -88,8 +88,13 @@ async function cardFor(tx, merchantId) {
 // Insert a friend's earned stamp DIRECTLY (bypassing the self-service hook and its
 // instant award), so the qualification transition can be observed on its own.
 async function insertEarnedStamp(tx, s, card, source = "merchant_qr_action") {
+  // referral_bonus and loyalty_invite stamps carry a NULL business date in
+  // production (they bypass the one-per-UK-day cap), so they never collide with
+  // a genuine visit stamp on stamp_events_one_earned_per_business_day_idx.
   const businessDate =
-    source === "referral_bonus" ? tx`null` : tx`public.uk_business_date(now())`
+    source === "referral_bonus" || source === "loyalty_invite"
+      ? tx`null`
+      : tx`public.uk_business_date(now())`
   const [row] = await tx`
     insert into public.stamp_events (
       merchant_id, customer_id, membership_id, loyalty_card_id, location_id,
@@ -115,11 +120,20 @@ async function edge(tx, referredMembershipId) {
 // A referrer + attributed friend at the same venue; friend has an edge, no stamp.
 async function seedReferrerAndFriend(tx, qr) {
   const referrerCustomer = await makeCustomer(tx)
-  const referrer = await joinWithStamp(tx, referrerCustomer, qr.business_slug, qr.qr_id)
+  const referrer = await joinWithStamp(
+    tx,
+    referrerCustomer,
+    qr.business_slug,
+    qr.qr_id
+  )
   const code = await codeFor(tx, referrer.membership_id)
   const friendCustomer = await makeCustomer(tx)
   const friend = await joinNoStamp(tx, friendCustomer, qr.business_slug, code)
-  assert.equal(friend.created_membership, true, "friend is a genuinely new member")
+  assert.equal(
+    friend.created_membership,
+    true,
+    "friend is a genuinely new member"
+  )
   return {
     referrerCustomer,
     referrer,
@@ -141,10 +155,22 @@ test(
 
       const e = await edge(tx, s.friend.membership_id)
       assert.ok(e, "an attribution edge exists")
-      assert.equal(e.status, "attributed", "new edge is attributed, not qualified (SM-4)")
+      assert.equal(
+        e.status,
+        "attributed",
+        "new edge is attributed, not qualified (SM-4)"
+      )
       assert.equal(e.venue_id, qr.merchant_id, "venue_id = merchant (SM-2)")
-      assert.equal(e.referrer_customer_id, s.referrerCustomer, "referrer_customer_id set (SM-2)")
-      assert.equal(e.referred_customer_id, s.friendCustomer, "referred_customer_id set (SM-2)")
+      assert.equal(
+        e.referrer_customer_id,
+        s.referrerCustomer,
+        "referrer_customer_id set (SM-2)"
+      )
+      assert.equal(
+        e.referred_customer_id,
+        s.friendCustomer,
+        "referred_customer_id set (SM-2)"
+      )
       assert.equal(e.qualified_at, null, "not qualified at join (SM-4)")
     })
   }
@@ -165,7 +191,11 @@ test(
       const e = await edge(tx, s.friend.membership_id)
       assert.equal(e.status, "qualified", "edge is now qualified (SM-5)")
       assert.ok(e.qualified_at, "qualified_at is set (SM-5)")
-      assert.equal(e.qualifying_stamp_id, stampId, "qualifying_stamp_id points at the visit stamp (SM-5)")
+      assert.equal(
+        e.qualifying_stamp_id,
+        stampId,
+        "qualifying_stamp_id points at the visit stamp (SM-5)"
+      )
 
       const [{ n }] = await tx`
         select count(*)::int as n from public.product_events
@@ -193,7 +223,12 @@ test(
       )
 
       // A referral_bonus stamp is not a qualifying visit.
-      const bonusStampId = await insertEarnedStamp(tx, s, card, "referral_bonus")
+      const bonusStampId = await insertEarnedStamp(
+        tx,
+        s,
+        card,
+        "referral_bonus"
+      )
       await tx`select public.qualify_referral_on_stamp(${s.friend.membership_id}::uuid, ${bonusStampId}::uuid)`
       assert.equal(
         (await edge(tx, s.friend.membership_id)).status,
@@ -206,7 +241,55 @@ test(
       await tx`select public.qualify_referral_on_stamp(${s.friend.membership_id}::uuid, ${realStampId}::uuid)`
       const e = await edge(tx, s.friend.membership_id)
       assert.equal(e.status, "qualified", "the real visit qualifies (SM-5)")
-      assert.equal(e.qualifying_stamp_id, realStampId, "the non-bonus stamp is the qualifier (SM-6)")
+      assert.equal(
+        e.qualifying_stamp_id,
+        realStampId,
+        "the non-bonus stamp is the qualifier (SM-6)"
+      )
+    })
+  }
+)
+
+test(
+  "REF-06: a loyalty_invite welcome stamp is not a qualifying visit",
+  { skip },
+  async () => {
+    // A bulk two-stamp invitation (source='loyalty_invite') enrols and stamps a
+    // member without a genuine venue visit. Owner decision (2026-07-23): it must
+    // NOT settle a referral bonus, so it is excluded from qualification exactly
+    // like referral_bonus/imported/manual_adjustment.
+    await inRolledBackTxn(async (tx) => {
+      const [qr] = await tx.unsafe(PICK_QR)
+      const s = await seedReferrerAndFriend(tx, qr)
+      const card = await cardFor(tx, qr.merchant_id)
+
+      const inviteStampId = await insertEarnedStamp(
+        tx,
+        s,
+        card,
+        "loyalty_invite"
+      )
+      await tx`select public.qualify_referral_on_stamp(${s.friend.membership_id}::uuid, ${inviteStampId}::uuid)`
+      assert.equal(
+        (await edge(tx, s.friend.membership_id)).status,
+        "attributed",
+        "a loyalty_invite stamp does not qualify (REF-06)"
+      )
+
+      // A genuine venue stamp afterwards still qualifies (exclusion is scoped).
+      const realStampId = await insertEarnedStamp(tx, s, card)
+      await tx`select public.qualify_referral_on_stamp(${s.friend.membership_id}::uuid, ${realStampId}::uuid)`
+      const e = await edge(tx, s.friend.membership_id)
+      assert.equal(
+        e.status,
+        "qualified",
+        "a later real visit still qualifies (REF-06)"
+      )
+      assert.equal(
+        e.qualifying_stamp_id,
+        realStampId,
+        "the genuine visit, not the invite stamp, is the qualifier (REF-06)"
+      )
     })
   }
 )
@@ -225,18 +308,33 @@ test(
       await tx`select public.qualify_referral_on_stamp(${s.friend.membership_id}::uuid, ${stampId}::uuid)`
       const first = await edge(tx, s.friend.membership_id)
       assert.equal(first.status, "qualified")
-      assert.ok(first.updated_at > before.updated_at, "updated_at advanced on the transition (SM-11)")
+      assert.ok(
+        first.updated_at > before.updated_at,
+        "updated_at advanced on the transition (SM-11)"
+      )
 
       // A repeat call does not re-qualify or move qualified_at.
       await tx`select public.qualify_referral_on_stamp(${s.friend.membership_id}::uuid, ${stampId}::uuid)`
       const after = await edge(tx, s.friend.membership_id)
-      assert.equal(after.qualified_at.getTime(), first.qualified_at.getTime(), "qualified_at unchanged (SM-7)")
-      assert.equal(after.qualifying_stamp_id, stampId, "qualifying stamp unchanged (SM-7)")
+      assert.equal(
+        after.qualified_at.getTime(),
+        first.qualified_at.getTime(),
+        "qualified_at unchanged (SM-7)"
+      )
+      assert.equal(
+        after.qualifying_stamp_id,
+        stampId,
+        "qualifying stamp unchanged (SM-7)"
+      )
 
       const [{ n }] = await tx`
         select count(*)::int as n from public.product_events
         where event_name = 'referral_qualified' and metadata->>'referral_edge_id' = ${first.id}::text`
-      assert.equal(n, 1, "only one referral_qualified event despite repeat calls (SM-12)")
+      assert.equal(
+        n,
+        1,
+        "only one referral_qualified event despite repeat calls (SM-12)"
+      )
 
       // An already-awarded edge is never regressed by a later qualify call.
       await tx`update public.referrals set status = 'awarded' where id = ${first.id}`
@@ -270,12 +368,25 @@ test(
 
       // The friend re-joins with the same referrer's code. The join must succeed
       // and must NOT mint a second referrer for the same (venue, customer).
-      const rejoin = await joinNoStamp(tx, s.friendCustomer, qr.business_slug, s.code)
-      assert.equal(rejoin.created_membership, true, "the re-join succeeds (never blocked)")
+      const rejoin = await joinNoStamp(
+        tx,
+        s.friendCustomer,
+        qr.business_slug,
+        s.code
+      )
+      assert.equal(
+        rejoin.created_membership,
+        true,
+        "the re-join succeeds (never blocked)"
+      )
       const [{ n: total }] = await tx`
         select count(*)::int as n from public.referrals
         where venue_id = ${qr.merchant_id} and referred_customer_id = ${s.friendCustomer}`
-      assert.equal(total, 1, "still exactly one referrer per (venue, customer) (SM-3)")
+      assert.equal(
+        total,
+        1,
+        "still exactly one referrer per (venue, customer) (SM-3)"
+      )
 
       // A hand-forced duplicate is silently skipped by the denormalise trigger
       // (RETURN NULL), so invariant #1 holds without ever raising into the join.
@@ -288,13 +399,21 @@ test(
       const [{ n: afterDup }] = await tx`
         select count(*)::int as n from public.referrals
         where venue_id = ${qr.merchant_id} and referred_customer_id = ${s.friendCustomer}`
-      assert.equal(afterDup, 1, "a duplicate (venue, referred_customer) edge is skipped, not duplicated (SM-3)")
+      assert.equal(
+        afterDup,
+        1,
+        "a duplicate (venue, referred_customer) edge is skipped, not duplicated (SM-3)"
+      )
 
       // The unique index exists as the backstop behind the trigger.
       const [{ n: idx }] = await tx`
         select count(*)::int as n from pg_indexes
         where schemaname = 'public' and indexname = 'referrals_venue_referred_customer_key'`
-      assert.equal(idx, 1, "the (venue, referred_customer) unique index exists (SM-3)")
+      assert.equal(
+        idx,
+        1,
+        "the (venue, referred_customer) unique index exists (SM-3)"
+      )
     })
   }
 )
@@ -324,11 +443,19 @@ test(
 
       await tx`select public.backfill_referral_states()`
 
-      assert.equal((await edge(tx, awardedId)).status, "awarded", "awarded_at → awarded (SM-9)")
+      assert.equal(
+        (await edge(tx, awardedId)).status,
+        "awarded",
+        "awarded_at → awarded (SM-9)"
+      )
       const q = await edge(tx, qualifiedId)
       assert.equal(q.status, "qualified", "due_at only → qualified (SM-9)")
       assert.ok(q.qualified_at, "qualified_at backfilled from due_at (SM-9)")
-      assert.equal((await edge(tx, attributedId)).status, "attributed", "no timestamps → attributed (SM-9)")
+      assert.equal(
+        (await edge(tx, attributedId)).status,
+        "attributed",
+        "no timestamps → attributed (SM-9)"
+      )
     })
   }
 )
@@ -344,8 +471,16 @@ test(
       // The friend's real first stamp via the self-service hook: they get their
       // own stamp, the referrer gets exactly one bonus (v1 behaviour preserved),
       // and the edge now carries the full lifecycle: qualified then awarded.
-      const friendStamp = await stamp(tx, s.friend.membership_id, s.friendCustomer, qr.qr_id)
-      assert.ok(friendStamp.stamp_event_id, "the friend still earns their own stamp (SM-10)")
+      const friendStamp = await stamp(
+        tx,
+        s.friend.membership_id,
+        s.friendCustomer,
+        qr.qr_id
+      )
+      assert.ok(
+        friendStamp.stamp_event_id,
+        "the friend still earns their own stamp (SM-10)"
+      )
 
       const [{ n: bonuses }] = await tx`
         select count(*)::int as n from public.stamp_events
@@ -354,15 +489,32 @@ test(
       assert.equal(bonuses, 1, "exactly one referrer bonus, as in v1 (SM-10)")
 
       const e = await edge(tx, s.friend.membership_id)
-      assert.equal(e.status, "awarded", "the edge is awarded after the bonus (SM-10)")
-      assert.ok(e.qualified_at, "qualification was recorded on the way to awarded (SM-5)")
-      assert.ok(e.qualifying_stamp_id, "the qualifying stamp is recorded (SM-5)")
-      assert.ok(e.referrer_bonus_awarded_at, "the v1 awarded timestamp still writes (SM-10)")
-      assert.equal(e.referrer_stamp_event_id, (
-        await tx`select id from public.stamp_events
+      assert.equal(
+        e.status,
+        "awarded",
+        "the edge is awarded after the bonus (SM-10)"
+      )
+      assert.ok(
+        e.qualified_at,
+        "qualification was recorded on the way to awarded (SM-5)"
+      )
+      assert.ok(
+        e.qualifying_stamp_id,
+        "the qualifying stamp is recorded (SM-5)"
+      )
+      assert.ok(
+        e.referrer_bonus_awarded_at,
+        "the v1 awarded timestamp still writes (SM-10)"
+      )
+      assert.equal(
+        e.referrer_stamp_event_id,
+        (
+          await tx`select id from public.stamp_events
           where membership_id = ${s.referrer.membership_id}
             and metadata->>'source' = 'referral_bonus' limit 1`
-      )[0].id, "the v1 bonus-stamp pointer still writes (SM-10)")
+        )[0].id,
+        "the v1 bonus-stamp pointer still writes (SM-10)"
+      )
     })
   }
 )
@@ -378,7 +530,10 @@ test(
       assert.equal(await edge(tx, solo.membership_id), undefined, "no edge")
 
       const s = await stamp(tx, solo.membership_id, soloCustomer, qr.qr_id)
-      assert.ok(s.stamp_event_id, "the solo member earns their stamp unchanged (SM-10)")
+      assert.ok(
+        s.stamp_event_id,
+        "the solo member earns their stamp unchanged (SM-10)"
+      )
       const [{ n }] = await tx`
         select count(*)::int as n from public.stamp_events
         where membership_id = ${solo.membership_id} and metadata->>'source' = 'referral_bonus'`

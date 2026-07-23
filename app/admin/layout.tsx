@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { connection } from "next/server"
 
+import { AdminMfaStepUp } from "@/components/admin/mfa-step-up"
 import { Eyebrow } from "@/components/brand"
 import { AdminShell } from "@/components/layout"
 import { getAdminAccess } from "@/lib/admin/auth"
@@ -30,6 +31,13 @@ export default async function AdminLayout({
         </section>
       </main>
     )
+  }
+
+  // Enrolled admin whose session is still aal1: block ALL admin content behind a
+  // step-up challenge. This card is the only admin surface rendered in this
+  // state, so it can always be completed — no lockout.
+  if (access.mfaState === "step-up-required") {
+    return <AdminMfaStepUp operatorEmail={access.email} />
   }
 
   return (

@@ -17,6 +17,7 @@
 /reports/jscpd/
 /reports/profiles/
 .jscpd
+/.stryker-tmp/
 
 # next.js
 /.next/

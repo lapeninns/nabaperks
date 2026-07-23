@@ -138,7 +138,7 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
     "@lhci/cli": "^0.15.1",
-    "@next/bundle-analyzer": "^16.2.10",
+    "@next/bundle-analyzer": "^16.2.11",
     "@playwright/test": "^1.61.1",
     "@stryker-mutator/core": "^9.6.1",
     "@tailwindcss/postcss": "^4",
@@ -151,7 +151,7 @@
     "@types/web-push": "^3.6.4",
     "dotenv": "17.4.2",
     "eslint": "^9",
-    "eslint-config-next": "16.2.10",
+    "eslint-config-next": "16.2.11",
     "fast-check": "^4.8.0",
     "husky": "^9.1.7",
     "jscpd": "^5.0.12",
