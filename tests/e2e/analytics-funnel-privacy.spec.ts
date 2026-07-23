@@ -46,6 +46,13 @@ test.describe("privacy-safe merchant funnel", () => {
       })
     })
 
+    // This suite runs against `next dev`. Compile the destination before the
+    // WebKit click so an on-demand Fast Refresh reload cannot replace the
+    // in-flight client navigation. The click and URL assertions below still
+    // prove the real acquisition journey.
+    const signupWarmup = await page.request.get("/signup")
+    expect(signupWarmup.status()).toBeLessThan(400)
+
     const response = await page.goto("/")
     expect(response?.status()).toBeLessThan(400)
 

@@ -52,6 +52,7 @@ test("production exposes separate versioned liveness and dependency readiness", 
 
   assert.match(health, /scope: "liveness"/)
   assert.match(health, /VERCEL_GIT_COMMIT_SHA/)
+  assert.match(health, /VERCEL_TARGET_ENV/)
   assert.match(readiness, /status: ready \? "ready" : "not_ready"/)
   assert.match(readiness, /status: ready \? 200 : 503/)
   assert.match(readiness, /SUPABASE_SERVICE_ROLE_KEY/)
@@ -78,7 +79,12 @@ test("global request-error capture omits raw request and exception detail", () =
 test("scheduled production smoke validates both JSON probe contracts", () => {
   const workflow = read(".github", "workflows", "production-smoke.yml")
 
-  assert.match(workflow, /cron: "\*\/15 \* \* \* \*"/)
+  assert.match(workflow, /cron: "7\/15 \* \* \* \*"/)
+  assert.match(workflow, /workflow_run:/)
+  assert.match(workflow, /workflows: \["Production deployment"\]/)
+  assert.match(workflow, /github\.event\.workflow_run\.head_sha/)
+  assert.match(workflow, /Wait for the verified revision to reach production/)
+  assert.match(workflow, /within five minutes/)
   const urls = workflowUrls(workflow)
   assert.equal(hasProductionProbeUrl(urls, "/api/health"), true)
   assert.equal(hasProductionProbeUrl(urls, "/api/readiness"), true)
@@ -87,6 +93,7 @@ test("scheduled production smoke validates both JSON probe contracts", () => {
   assert.match(workflow, /expected_revision:/)
   assert.match(workflow, /EXPECTED_REVISION:/)
   assert.match(workflow, /\.environment == "production"/)
+  assert.match(workflow, /\.targetEnvironment == "production"/)
   assert.match(
     workflow,
     /\$revision == "" or \.revision == \(\$revision\[0:12\]\)/
@@ -98,6 +105,18 @@ test("scheduled production smoke validates both JSON probe contracts", () => {
     workflow,
     /\.status == "ready" and \.scope == "readiness" and \.checks\.database == "ok"/
   )
+  assert.match(workflow, /environment: Monitoring/)
+  assert.match(workflow, /secrets\.PRODUCTION_ALERT_WEBHOOK_URL/)
+  assert.match(workflow, /secrets\.PRODUCTION_ALERT_WEBHOOK_SECRET/)
+  assert.match(workflow, /notify-production-alert\.mjs trigger/)
+  assert.match(workflow, /notify-production-alert\.mjs resolve/)
+  assert.match(
+    workflow,
+    /Check out alert dispatcher\n\s+if: \$\{\{ always\(\) \}\}/
+  )
+  assert.match(workflow, /context\.eventName !== "schedule"/)
+  assert.match(workflow, /production-smoke-recovery-candidate/)
+  assert.match(workflow, /steps\.incident\.outputs\.ready == 'true'/)
 
   const filters = smokeFilters(workflow)
   assert.equal(filters.length, 2)
@@ -107,6 +126,7 @@ test("scheduled production smoke validates both JSON probe contracts", () => {
     service: "nabaperks",
     revision: "abcdef123456",
     environment: "production",
+    targetEnvironment: "production",
     time: "2026-07-13T09:26:44.418Z",
   }
   const health = { ...common, status: "ok", scope: "liveness" }

@@ -147,6 +147,7 @@ test("Given routine pull requests When CI runs Then deep browser proof is sharde
   // The dev-server tiers fan out from the fast lane; the production-bundle
   // consumers fan out from the single production build.
   for (const [job, dependency] of [
+    ["e2e", "fast"],
     ["a11y", "fast"],
     ["visual", "fast"],
     ["db", "fast"],
@@ -165,6 +166,22 @@ test("Given routine pull requests When CI runs Then deep browser proof is sharde
   // bundle is built once and reused instead of rebuilt per consumer.
   assert.match(ci, /name: Typecheck and build/)
   assert.match(ci, /needs: \[fast, quality, build\]/)
+  assert.match(ci, /name: Release gate/)
+  for (const dependency of [
+    "build-gate",
+    "e2e-gate",
+    "a11y-gate",
+    "visual-gate",
+    "lighthouse-gate",
+    "zap-baseline",
+    "db",
+  ]) {
+    assert.match(
+      ci,
+      new RegExp(`release-gate:[\\s\\S]*?- ${dependency}`),
+      `Release gate must require ${dependency}`
+    )
+  }
   const lighthouseJob = ci.slice(
     ci.indexOf("\n  lighthouse:"),
     ci.indexOf("\n  lighthouse-gate:")

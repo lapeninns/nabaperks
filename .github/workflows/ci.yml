@@ -135,6 +135,7 @@ jobs:
 
   e2e:
     name: E2E (${{ matrix.project }}, shard ${{ matrix.shard }})
+    needs: fast
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
@@ -364,3 +365,35 @@ jobs:
       - run: pnpm test:db
       - run: supabase stop --no-backup
         if: always()
+
+  release-gate:
+    name: Release gate
+    needs:
+      - build-gate
+      - e2e-gate
+      - a11y-gate
+      - visual-gate
+      - lighthouse-gate
+      - zap-baseline
+      - db
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Require every release proof
+        env:
+          BUILD_RESULT: ${{ needs.build-gate.result }}
+          E2E_RESULT: ${{ needs.e2e-gate.result }}
+          A11Y_RESULT: ${{ needs.a11y-gate.result }}
+          VISUAL_RESULT: ${{ needs.visual-gate.result }}
+          LIGHTHOUSE_RESULT: ${{ needs.lighthouse-gate.result }}
+          ZAP_RESULT: ${{ needs.zap-baseline.result }}
+          DB_RESULT: ${{ needs.db.result }}
+        run: |
+          test "$BUILD_RESULT" = "success"
+          test "$E2E_RESULT" = "success"
+          test "$A11Y_RESULT" = "success"
+          test "$VISUAL_RESULT" = "success"
+          test "$LIGHTHOUSE_RESULT" = "success"
+          test "$ZAP_RESULT" = "success"
+          test "$DB_RESULT" = "success"

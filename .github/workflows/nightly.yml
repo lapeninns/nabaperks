@@ -32,25 +32,46 @@ env:
 
 jobs:
   cross-browser:
-    name: Full cross-browser Playwright
+    name: Full cross-browser Playwright (${{ matrix.project }})
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [chromium, mobile-safari, desktop-firefox, desktop-safari]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/setup
-      - run: pnpm e2e:install
-      - run: pnpm test:e2e -- --project=chromium --project=mobile-safari --project=desktop-firefox --project=desktop-safari --grep-invert @visual
+      - name: Install project browser
+        uses: ./.github/actions/playwright
+        with:
+          project: ${{ matrix.project }}
+      - run: pnpm test:e2e -- --project="${{ matrix.project }}" --grep-invert @visual
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: ${{ !cancelled() && failure() }}
         with:
-          name: nightly-playwright-report
+          name: nightly-playwright-report-${{ matrix.project }}
           path: |
             playwright-report/
             test-results/
           retention-days: 7
 
+  cross-browser-gate:
+    name: Full cross-browser Playwright
+    needs: cross-browser
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Require every browser project
+        env:
+          CROSS_BROWSER_RESULT: ${{ needs.cross-browser.result }}
+        run: test "$CROSS_BROWSER_RESULT" = "success"
+
   mutation:
     name: Mutation testing
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/setup
@@ -65,6 +86,7 @@ jobs:
   load:
     name: k6 load checks
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/setup
@@ -88,6 +110,7 @@ jobs:
     name: Authenticated stamp and redeem race checks
     if: ${{ vars.STAMP_RACE_URL != '' && vars.REDEEM_RACE_URL != '' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: grafana/setup-k6-action@db07bd9765aac508ef18982e52ab937fe633a065 # v1
@@ -103,6 +126,7 @@ jobs:
   zap-full:
     name: ZAP full scan
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/setup

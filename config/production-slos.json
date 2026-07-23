@@ -1,0 +1,22 @@
+{
+  "schema": "nabaperks.production-slos.v1",
+  "owner": "Lapen Inns product operations",
+  "runbook": "docs/operations/incident-response.md",
+  "probeWorkflow": "production-smoke.yml",
+  "probeSchedule": "7/15 * * * *",
+  "probeIntervalMinutes": 15,
+  "probeMinuteOffset": 7,
+  "evaluationLagMinutes": 10,
+  "windowDays": 30,
+  "availabilityObjective": 0.999,
+  "minimumCoverageRatio": 0.95,
+  "minimumObservationDays": 7,
+  "thresholds": {
+    "livenessResponseMs": 3000,
+    "readinessResponseMs": 5000,
+    "notificationQueueAgeMinutes": 30,
+    "loyaltyInviteQueueAgeMinutes": 15,
+    "providerDeliveryFailureRate": 0.1,
+    "consecutiveCronFailures": 1
+  }
+}

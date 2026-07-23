@@ -54,6 +54,11 @@ export async function GET(request: Request): Promise<Response> {
       revision:
         process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 12) ?? packageJson.version,
       environment: process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? "unknown",
+      targetEnvironment:
+        process.env.VERCEL_TARGET_ENV ??
+        process.env.VERCEL_ENV ??
+        process.env.NODE_ENV ??
+        "unknown",
       checks,
       durationMs,
       time: new Date().toISOString(),
