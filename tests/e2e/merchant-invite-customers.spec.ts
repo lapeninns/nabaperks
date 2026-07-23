@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test"
 
-import { dismissPwaInstall } from "./helpers/harness"
+import { dismissPwaInstall, gotoHydratedPage } from "./helpers/harness"
 
 /**
  * Bulk two-stamp loyalty invitations — the merchant import form renders and is
@@ -18,7 +18,7 @@ test.describe("@merchant-flow merchant invite customers", () => {
   test("renders the invite form with an accessible recipients field", async ({
     page,
   }) => {
-    await page.goto(INVITE)
+    await gotoHydratedPage(page, INVITE)
     await expect(
       page.getByRole("heading", { level: 1, name: "Invite customers" })
     ).toBeVisible()
@@ -29,7 +29,7 @@ test.describe("@merchant-flow merchant invite customers", () => {
   test("the recipients field is keyboard reachable and editable", async ({
     page,
   }) => {
-    await page.goto(INVITE)
+    await gotoHydratedPage(page, INVITE)
     const textarea = page.getByLabel("Email addresses")
     await textarea.focus()
     await expect(textarea).toBeFocused()
@@ -41,7 +41,7 @@ test.describe("@merchant-flow merchant invite customers", () => {
     page,
   }) => {
     await page.setViewportSize({ width: 375, height: 812 })
-    await page.goto(INVITE)
+    await gotoHydratedPage(page, INVITE)
     await expect(
       page.getByRole("heading", { level: 1, name: "Invite customers" })
     ).toBeVisible()
