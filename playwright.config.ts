@@ -57,6 +57,8 @@ const ciLinuxSnapshotPathTemplate =
     : undefined
 const reuseExistingServer =
   !process.env.CI && process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER === "1"
+const chromiumChannel =
+  process.env.PLAYWRIGHT_REGULAR_CHROMIUM === "1" ? "chromium" : undefined
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -95,9 +97,9 @@ export default defineConfig({
       testMatch: ["**/*.desktop.spec.ts", "**/visual.spec.ts"],
       use: {
         ...devices["Desktop Chrome"],
-        // Use regular Chromium's new headless mode. The legacy headless-shell
-        // binary has produced process-level SIGSEGV flakes on GitHub runners.
-        channel: "chromium",
+        // Functional and accessibility CI opt into regular Chromium's new
+        // headless mode. Visual CI stays on the baseline-generating shell.
+        channel: chromiumChannel,
       },
     },
     {
