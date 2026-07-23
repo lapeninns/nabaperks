@@ -95,6 +95,9 @@ export default defineConfig({
       testMatch: ["**/*.desktop.spec.ts", "**/visual.spec.ts"],
       use: {
         ...devices["Desktop Chrome"],
+        // Use regular Chromium's new headless mode. The legacy headless-shell
+        // binary has produced process-level SIGSEGV flakes on GitHub runners.
+        channel: "chromium",
       },
     },
     {
