@@ -77,7 +77,7 @@
 | `tone`       | `paper`                                                                                                     |
 | `headline`   | `["New here?", "Your card", "starts now."]`                                                                 |
 | `accent`     | `starts now.`                                                                                               |
-| `body`       | `This code opens your card in the browser. One stamp per UK date — today's is waiting the moment you scan.` |
+| `body`       | `This code opens your card in the browser. Complete the quick join, then collect today's stamp — one per UK date.` |
 | `showStamps` | `true`                                                                                                      |
 | `cta`        | `Scan to open your card`                                                                                    |
 
