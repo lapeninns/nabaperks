@@ -1,0 +1,134 @@
+.page {
+  --nfc-sq-width: 100mm;
+  --nfc-sq-height: 100mm;
+
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: var(--w-paper);
+  color: var(--w-ink);
+  font-family: var(--font-bricolage-grotesque), system-ui, sans-serif;
+}
+
+.page > * {
+  min-width: 0;
+}
+
+.chrome {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 2px solid var(--w-ink);
+  background: var(--w-paper);
+}
+
+.chromeMeta {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.chromeTitle {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.chromeVenue {
+  font-family: var(--font-space-mono), monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--w-ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stage {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  padding: 1.5rem;
+  overflow: auto;
+  background:
+    radial-gradient(
+      120% 80% at 50% 0%,
+      color-mix(in oklch, var(--w-paper-2) 70%, transparent),
+      transparent 55%
+    ),
+    var(--w-paper);
+}
+
+/* Native 100 mm size on screen — no transform/filter scaling. */
+.sheetNative {
+  width: var(--nfc-sq-width);
+  flex: none;
+}
+
+@media (min-width: 1024px) {
+  .stage {
+    align-content: center;
+  }
+}
+
+@media print {
+  @page {
+    size: 100mm 100mm;
+    margin: 0;
+  }
+
+  :global(html):has(.page),
+  :global(body):has(.page) {
+    margin: 0;
+    padding: 0;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    background: #ffffff;
+  }
+
+  :global(body):has(.page) * {
+    visibility: hidden;
+  }
+
+  .page.page,
+  .page.page * {
+    visibility: visible;
+  }
+
+  .page :global(.qr-poster-chrome) {
+    display: none !important;
+  }
+
+  .stage {
+    display: block;
+    padding: 0;
+    overflow: visible;
+    background: #ffffff;
+  }
+
+  .sheetNative {
+    width: auto;
+    margin: 0;
+  }
+
+  .page {
+    position: static;
+    display: block;
+    width: auto;
+    height: auto;
+    min-height: auto;
+    overflow: visible;
+    padding: 0;
+    margin: 0;
+    background: #ffffff;
+  }
+}

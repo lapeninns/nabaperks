@@ -14,11 +14,22 @@
 The incident commander owns decisions and timeline. The technical lead owns
 diagnosis and recovery. One communications owner gives consistent updates.
 
+An automated rolling-SLO breach is a detection signal, not an automatic impact
+classification. Assign P0, P1 or P2 from the current customer and data impact
+above. During the seven-day SLO warm-up the control fails closed but deliberately
+does not page; a post-warm-up breach or report-generation failure must page the
+on-call owner and create or update the durable incident record.
+
 ## First 15 minutes
 
-1. Open an incident record with UTC and UK-local timestamps.
+1. Open an incident record with UTC and UK-local timestamps. Automated
+   readiness incidents must also have an acknowledged external page; the
+   GitHub issue is evidence, not the paging channel.
 2. Capture `/api/health`, `/api/readiness`, Vercel deployment/revision, Supabase
-   status, latest migration, provider status and the first known bad request ID.
+   status, latest migration, provider status, the current rolling SLO report and
+   the first known bad request ID. For operational-readiness failures, record
+   only the aggregate queue age, provider failure rate and affected cron name;
+   never export queued payloads or recipient rows.
 3. Classify whether the fault is deployment, database, auth, email, SMS, push,
    cron or billing. Do not rotate every credential or restart every dependency
    at once; preserve evidence and isolate the failing boundary.
@@ -36,6 +47,7 @@ Recovery is not complete until:
 - a server/database/provider readback proves the expected side effect;
 - queues and retries are draining without duplicate effects;
 - two consecutive scheduled Production smoke runs succeed after recovery; and
+- the external paging receiver acknowledges the matching `resolve` event; and
 - the communications owner has issued the recovery update.
 
 ## Evidence and communications

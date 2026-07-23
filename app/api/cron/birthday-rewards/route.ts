@@ -1,6 +1,7 @@
 import { type NextRequest } from "next/server"
 
 import { noStoreJson } from "@/lib/http/no-store-json"
+import { runObservedCron } from "@/lib/observability/cron-run"
 import { isAuthorizedCronRequest } from "@/lib/security/cron-auth"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
@@ -17,12 +18,17 @@ export async function GET(request: NextRequest) {
     return noStoreJson({ error: "unauthorized" }, 401)
   }
 
-  const supabase = createSupabaseServiceRoleClient()
-  const { data, error } = await supabase.rpc("issue_birthday_rewards")
+  const observed = await runObservedCron({
+    job: "birthday-rewards",
+    run: async () => {
+      const supabase = createSupabaseServiceRoleClient()
+      const { data, error } = await supabase.rpc("issue_birthday_rewards")
+      if (error) throw new Error("Birthday reward sweep failed")
+      return typeof data === "number" ? data : 0
+    },
+  })
 
-  if (error) {
-    return noStoreJson({ ok: false, error: error.message }, 500)
-  }
-
-  return noStoreJson({ ok: true, issued: data ?? 0 })
+  return observed.ok
+    ? noStoreJson({ ok: true, issued: observed.value })
+    : noStoreJson({ ok: false, error: "cron_failed" }, 500)
 }

@@ -462,7 +462,7 @@ A live-DB test that enumerates `pg_proc` for the loyalty-critical functions and 
 
 ### 12.4 Availability-predicate parity **[new — mitigates R-10]**
 
-A table-driven test over {status ∈ trialing/active/past_due/cancelled/suspended/unknown} × {requires_billing true/false} asserting the _same_ verdict from: the entitlement trigger (`loyalty_billing_entitled`), the RPC reason fn (`loyalty_availability_reason`), and the TS predicate (`launch-readiness-core`/`loyaltyAvailability`). Records the intended `past_due` behaviour (currently: stamps/redeems allowed, launch-not-ready) pending §30-Q2.
+A table-driven test over {status ∈ trialing/active/past*due/cancelled/suspended/unknown} × {requires_billing true/false} asserting the \_same* verdict from: the entitlement trigger (`loyalty_billing_entitled`), the RPC reason fn (`loyalty_availability_reason`), and the TS predicate (`launch-readiness-core`/`loyaltyAvailability`). Records the intended `past_due` behaviour (currently: stamps/redeems allowed, launch-not-ready) pending §30-Q2.
 
 ### 12.5 Two-rail redemption (confirmed correct; keep as regression)
 

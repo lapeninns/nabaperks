@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 
 import { runLoyaltyInviteDrain } from "@/lib/loyalty-invites/delivery-worker"
+import { runObservedCron } from "@/lib/observability/cron-run"
 import { isAuthorizedCronRequest } from "@/lib/security/cron-auth"
 
 /**
@@ -23,6 +24,20 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  const result = await runLoyaltyInviteDrain()
-  return NextResponse.json({ ok: true, result }, { headers: NO_STORE })
+  const observed = await runObservedCron({
+    job: "loyalty-invite-drain",
+    run: () => runLoyaltyInviteDrain(),
+    isSuccessful: (result) => result.skipped === undefined,
+    failureCode: (result) => result.skipped ?? "worker_unavailable",
+  })
+
+  return observed.ok
+    ? NextResponse.json(
+        { ok: true, result: observed.value },
+        { headers: NO_STORE }
+      )
+    : NextResponse.json(
+        { ok: false, error: "cron_failed" },
+        { status: 500, headers: NO_STORE }
+      )
 }

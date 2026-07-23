@@ -1,0 +1,140 @@
+name: Production SLO report
+
+on:
+  schedule:
+    - cron: "13 7 * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+
+concurrency:
+  group: production-slo-report
+  cancel-in-progress: true
+
+jobs:
+  availability:
+    name: 30-day availability and error budget
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: Monitoring
+    steps:
+      - name: Check out SLO contract
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Calculate the rolling SLO
+        id: slo
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PRODUCTION_SLO_CONFIG: config/production-slos.json
+        run: node scripts/check-production-slo.mjs > "$RUNNER_TEMP/production-slo-report.json"
+      - name: Classify the SLO result
+        if: ${{ always() }}
+        id: classification
+        run: |
+          state="error"
+          if [[ -f "$RUNNER_TEMP/production-slo-report.json" ]] && jq -e . "$RUNNER_TEMP/production-slo-report.json" >/dev/null; then
+            state="$(jq -r '.state' "$RUNNER_TEMP/production-slo-report.json")"
+            case "$state" in
+              warming|breached|compliant) ;;
+              *) state="error" ;;
+            esac
+          fi
+          echo "state=$state" >> "$GITHUB_OUTPUT"
+      - name: Publish the evidence artifact
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.2
+        with:
+          name: production-slo-${{ github.run_id }}
+          path: ${{ runner.temp }}/production-slo-report.json
+          if-no-files-found: error
+          retention-days: 365
+      - name: Add the report to the workflow summary
+        if: ${{ always() }}
+        run: |
+          if [[ -f "$RUNNER_TEMP/production-slo-report.json" ]]; then
+            if jq -e . "$RUNNER_TEMP/production-slo-report.json" >/dev/null; then
+              jq -r '"## Production SLO\n\n- State: \(.state)\n- Availability: \(.availabilityRatio * 100)%\n- Error rate: \(.errorRate * 100)%\n- Objective: \(.objective * 100)%\n- Coverage: \(.coverageRatio * 100)%\n- Observation: \(.observationDays) days (minimum \(.minimumObservationDays))\n- Successful probes: \(.successfulSamples)/\(.expectedSamples)\n- Error-budget slots remaining: \(.remainingUnavailableSamples)\n- Compliant: \(.compliant)"' "$RUNNER_TEMP/production-slo-report.json" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "## Production SLO\n\nReport generation failed before valid evidence was written." >> "$GITHUB_STEP_SUMMARY"
+            fi
+          else
+            echo "## Production SLO\n\nReport generation failed before evidence was written." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Create or update the SLO incident
+        if: ${{ always() && (steps.classification.outputs.state == 'breached' || steps.classification.outputs.state == 'error') }}
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const title = "[Production alert] Nabaperks 30-day SLO breach";
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: "area: platform,priority: p1-high",
+              per_page: 100,
+            });
+            const existing = issues.find((issue) => !issue.pull_request && issue.title === title);
+            const body = `The rolling production availability objective or monitor-coverage floor is breached. Triage current customer and data impact before changing severity.\n\nEvidence: ${runUrl}\n\nFollow docs/operations/incident-response.md.`;
+            if (existing) {
+              await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, body });
+            } else {
+              await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body, labels: ["bug", "area: platform", "priority: p1-high"] });
+            }
+      - name: Page the SLO breach
+        if: ${{ always() && (steps.classification.outputs.state == 'breached' || steps.classification.outputs.state == 'error') }}
+        env:
+          PRODUCTION_ALERT_WEBHOOK_URL: ${{ secrets.PRODUCTION_ALERT_WEBHOOK_URL }}
+          PRODUCTION_ALERT_WEBHOOK_SECRET: ${{ secrets.PRODUCTION_ALERT_WEBHOOK_SECRET }}
+        run: node scripts/notify-production-alert.mjs trigger availability-slo
+      - name: Find an open SLO incident
+        if: ${{ steps.classification.outputs.state == 'compliant' }}
+        id: incident
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const title = "[Production alert] Nabaperks 30-day SLO breach";
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: "area: platform,priority: p1-high",
+              per_page: 100,
+            });
+            const existing = issues.find((issue) => !issue.pull_request && issue.title === title);
+            core.setOutput("number", existing?.number ?? "");
+      - name: Resolve the external SLO incident
+        if: ${{ steps.incident.outputs.number != '' }}
+        env:
+          PRODUCTION_ALERT_WEBHOOK_URL: ${{ secrets.PRODUCTION_ALERT_WEBHOOK_URL }}
+          PRODUCTION_ALERT_WEBHOOK_SECRET: ${{ secrets.PRODUCTION_ALERT_WEBHOOK_SECRET }}
+        run: node scripts/notify-production-alert.mjs resolve availability-slo
+      - name: Close the recovered SLO incident
+        if: ${{ steps.incident.outputs.number != '' }}
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        env:
+          INCIDENT_NUMBER: ${{ steps.incident.outputs.number }}
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: Number(process.env.INCIDENT_NUMBER),
+              body: `The rolling SLO recovered in ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}.`,
+            });
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: Number(process.env.INCIDENT_NUMBER),
+              state: "closed",
+            });
+      - name: Enforce the SLO gate
+        if: ${{ always() }}
+        env:
+          SLO_OUTCOME: ${{ steps.slo.outcome }}
+        run: test "$SLO_OUTCOME" = "success"

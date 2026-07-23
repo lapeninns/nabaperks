@@ -58,7 +58,7 @@ const lines = [
       `| ${operation.method} | \`${operation.path}\` | ${operation.summary} | \`${operation.source}\` |`
   ),
   "",
-  "The protected readiness endpoint requires `Authorization: Bearer <PRODUCTION_MONITOR_SECRET>`.",
+  "The protected readiness endpoint requires `Authorization: Bearer <PRODUCTION_MONITOR_SECRET>`. During a documented zero-downtime rotation, the temporary `PRODUCTION_MONITOR_SECRET_NEXT` is also accepted until cutover completes.",
   "",
 ]
 

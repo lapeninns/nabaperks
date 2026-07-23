@@ -3,6 +3,8 @@ import {
   type DistributionChannel,
 } from "@/components/merchant/launch/qr-redesign-concept"
 import {
+  buildNfcCardHrefs,
+  buildNfcSquareHrefs,
   buildPosterHrefs,
   buildTentHrefs,
 } from "@/components/merchant/launch/qr-redesign-concept-parts"
@@ -39,6 +41,10 @@ export function QrRedesignConcept({
         (id) => `/dev/poster-preview?template=${id}`
       )}
       tentHrefs={buildTentHrefs((id) => `/dev/tent-preview?design=${id}`)}
+      nfcHrefs={buildNfcCardHrefs((id) => `/dev/nfc-card-preview?design=${id}`)}
+      nfcSquareHrefs={buildNfcSquareHrefs(
+        (id) => `/dev/nfc-square-preview?design=${id}`
+      )}
     />
   )
 }

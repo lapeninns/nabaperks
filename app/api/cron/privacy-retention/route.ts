@@ -1,6 +1,7 @@
 import { type NextRequest } from "next/server"
 
 import { noStoreJson } from "@/lib/http/no-store-json"
+import { runObservedCron } from "@/lib/observability/cron-run"
 import { logger } from "@/lib/observability/logger"
 import { isAuthorizedCronRequest } from "@/lib/security/cron-auth"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
@@ -18,6 +19,19 @@ export async function GET(request: NextRequest) {
     return noStoreJson({ error: "unauthorized" }, 401)
   }
 
+  const observed = await runObservedCron({
+    job: "privacy-retention",
+    run: runPrivacyRetention,
+    isSuccessful: ({ errorCode }) => errorCode === null,
+    failureCode: ({ errorCode }) => errorCode ?? "partial_failure",
+  })
+
+  return observed.ok
+    ? noStoreJson({ ok: true, result: observed.value.result })
+    : noStoreJson({ ok: false, error: "cron_failed" }, 500)
+}
+
+async function runPrivacyRetention() {
   const cutoff = new Date(
     Date.now() - STALE_CUSTOMER_PII_RETENTION_DAYS * DAY_MS
   ).toISOString()
@@ -33,7 +47,10 @@ export async function GET(request: NextRequest) {
     logger.warn("privacy_abandoned_identity_purge_failed", {
       reason: "database_rejected",
     })
-    return noStoreJson({ error: "abandoned_identity_purge_failed" }, 500)
+    return {
+      errorCode: "abandoned_identity_purge_failed",
+      result: null,
+    }
   }
   const { data, error } = await supabase.rpc("admin_purge_stale_customer_pii", {
     p_cutoff: cutoff,
@@ -41,7 +58,7 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     logger.warn("privacy_retention_purge_failed", { reason: error.message })
-    return noStoreJson({ error: "purge_failed" }, 500)
+    return { errorCode: "purge_failed", result: null }
   }
 
   // Expire + scrub lapsed reward invites, and hard-delete old terminal ones. A
@@ -89,8 +106,11 @@ export async function GET(request: NextRequest) {
     })
   }
 
-  return noStoreJson({
-    ok: true,
+  const partialFailure =
+    inviteError || loyaltyInviteError || bucketError || webVitalError
+
+  return {
+    errorCode: partialFailure ? "partial_failure" : null,
     result: {
       cutoff,
       abandonedCutoff,
@@ -107,5 +127,5 @@ export async function GET(request: NextRequest) {
       purgedWebVitalSamples:
         typeof purgedWebVitals === "number" ? purgedWebVitals : 0,
     },
-  })
+  }
 }

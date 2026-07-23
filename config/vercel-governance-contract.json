@@ -1,0 +1,155 @@
+{
+  "scope": "lapen-inns-projects",
+  "project": {
+    "id": "prj_Au5baPD1CUlACwN3ECminQZOITcQ",
+    "name": "nabaperks",
+    "nodeVersion": "24.x"
+  },
+  "git": {
+    "type": "github",
+    "org": "lapeninns",
+    "repo": "nabaperks",
+    "productionBranch": "main",
+    "createDeployments": "disabled"
+  },
+  "customEnvironment": {
+    "name": "Staging",
+    "slug": "staging",
+    "type": "preview"
+  },
+  "automationBypassCount": 1,
+  "deploymentChecks": [
+    {
+      "name": "Release gate",
+      "externalCheckName": "Release gate",
+      "requires": "build-ready",
+      "blocks": "deployment-alias",
+      "targets": ["production"]
+    },
+    {
+      "name": "Analyze (javascript-typescript)",
+      "externalCheckName": "Analyze (javascript-typescript)",
+      "requires": "build-ready",
+      "blocks": "deployment-alias",
+      "targets": ["production"]
+    },
+    {
+      "name": "Database promotion",
+      "externalCheckName": "Database promotion",
+      "requires": "build-ready",
+      "blocks": "deployment-alias",
+      "targets": ["production"]
+    }
+  ],
+  "environments": {
+    "preview": {
+      "requiredKeys": [
+        "CUSTOMER_EMAIL_ENCRYPTION_KEY",
+        "CUSTOMER_EMAIL_HMAC_SECRET",
+        "CUSTOMER_PHONE_ENCRYPTION_KEY",
+        "CUSTOMER_PHONE_HMAC_SECRET",
+        "CUSTOMER_SESSION_SECRET",
+        "MERCHANT_OTP_ALIAS_TOKEN_ENCRYPTION_KEY",
+        "NEXT_PUBLIC_APP_URL",
+        "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "RESEND_API_KEY",
+        "RESEND_WEBHOOK_SECRET",
+        "STRIPE_GROWTH_PRICE_ID",
+        "STRIPE_SECRET_KEY",
+        "STRIPE_WEBHOOK_SECRET",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "TWILIO_ACCOUNT_SID",
+        "TWILIO_VERIFY_SERVICE_SID"
+      ],
+      "requiredAnyOf": [
+        [["TWILIO_AUTH_TOKEN"], ["TWILIO_API_KEY_SID", "TWILIO_API_KEY_SECRET"]]
+      ],
+      "forbiddenKeys": [
+        "SUPABASE_ACCESS_TOKEN",
+        "SUPABASE_DB_PASSWORD",
+        "SUPABASE_DB_URL",
+        "SUPABASE_PROJECT_REF",
+        "VERCEL_TOKEN"
+      ]
+    },
+    "staging": {
+      "requiredKeys": [
+        "CUSTOMER_EMAIL_ENCRYPTION_KEY",
+        "CUSTOMER_EMAIL_HMAC_SECRET",
+        "CUSTOMER_PHONE_ENCRYPTION_KEY",
+        "CUSTOMER_PHONE_HMAC_SECRET",
+        "CUSTOMER_SESSION_SECRET",
+        "MERCHANT_OTP_ALIAS_TOKEN_ENCRYPTION_KEY",
+        "NEXT_PUBLIC_APP_URL",
+        "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "PRODUCTION_MONITOR_SECRET",
+        "RESEND_API_KEY",
+        "RESEND_WEBHOOK_SECRET",
+        "STRIPE_GROWTH_PRICE_ID",
+        "STRIPE_SECRET_KEY",
+        "STRIPE_WEBHOOK_SECRET",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "TWILIO_ACCOUNT_SID",
+        "TWILIO_VERIFY_SERVICE_SID"
+      ],
+      "requiredAnyOf": [
+        [["TWILIO_AUTH_TOKEN"], ["TWILIO_API_KEY_SID", "TWILIO_API_KEY_SECRET"]]
+      ],
+      "forbiddenKeys": [
+        "SUPABASE_ACCESS_TOKEN",
+        "SUPABASE_DB_PASSWORD",
+        "SUPABASE_DB_URL",
+        "SUPABASE_PROJECT_REF",
+        "VERCEL_TOKEN"
+      ]
+    },
+    "production": {
+      "requiredKeys": [
+        "CRON_SECRET",
+        "CUSTOMER_EMAIL_ENCRYPTION_KEY",
+        "CUSTOMER_EMAIL_HMAC_SECRET",
+        "CUSTOMER_PHONE_ENCRYPTION_KEY",
+        "CUSTOMER_PHONE_HMAC_SECRET",
+        "CUSTOMER_SESSION_SECRET",
+        "MERCHANT_OTP_ALIAS_TOKEN_ENCRYPTION_KEY",
+        "NEXT_PUBLIC_APP_URL",
+        "NEXT_PUBLIC_SENTRY_DSN",
+        "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "PRODUCTION_MONITOR_SECRET",
+        "RESEND_API_KEY",
+        "RESEND_FROM",
+        "RESEND_WEBHOOK_SECRET",
+        "SENTRY_AUTH_TOKEN",
+        "SENTRY_ORG",
+        "SENTRY_PROJECT",
+        "STRIPE_GROWTH_ANNUAL_PRICE_ID",
+        "STRIPE_GROWTH_PRICE_ID",
+        "STRIPE_SECRET_KEY",
+        "STRIPE_WEBHOOK_SECRET",
+        "SUPABASE_SEND_EMAIL_HOOK_SECRET",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "TWILIO_ACCOUNT_SID",
+        "TWILIO_VERIFY_SERVICE_SID",
+        "WEB_PUSH_VAPID_PRIVATE_KEY",
+        "WEB_PUSH_VAPID_PUBLIC_KEY",
+        "WEB_PUSH_VAPID_SUBJECT"
+      ],
+      "requiredAnyOf": [
+        [["TWILIO_AUTH_TOKEN"], ["TWILIO_API_KEY_SID", "TWILIO_API_KEY_SECRET"]]
+      ],
+      "forbiddenKeys": [
+        "SUPABASE_ACCESS_TOKEN",
+        "SUPABASE_DB_PASSWORD",
+        "SUPABASE_DB_URL",
+        "SUPABASE_PROJECT_REF",
+        "VERCEL_TOKEN"
+      ]
+    }
+  }
+}

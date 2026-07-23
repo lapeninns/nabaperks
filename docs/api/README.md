@@ -10,4 +10,4 @@ Externally consumed liveness and protected readiness contracts. Product-internal
 | GET    | `/api/readiness`      | Read protected dependency readiness                    | `app/api/readiness/route.ts`      |
 | POST   | `/api/resend/webhook` | Receive Resend delivery events for loyalty invitations | `app/api/resend/webhook/route.ts` |
 
-The protected readiness endpoint requires `Authorization: Bearer <PRODUCTION_MONITOR_SECRET>`.
+The protected readiness endpoint requires `Authorization: Bearer <PRODUCTION_MONITOR_SECRET>`. During a documented zero-downtime rotation, the temporary `PRODUCTION_MONITOR_SECRET_NEXT` is also accepted until cutover completes.

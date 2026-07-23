@@ -164,7 +164,7 @@ export function defineMerchantLaunchFollowThroughTests() {
       0
     )
     await expect(
-      page.getByRole("button", { name: "Email poster PDFs" })
+      page.getByRole("button", { name: "Email print kit PDFs" })
     ).toHaveCount(0)
     await expect(
       page.getByRole("link", { name: "Go to billing" })
@@ -180,7 +180,7 @@ export function defineMerchantLaunchFollowThroughTests() {
     await expect(page.getByText("Enabled · scans paused")).toBeVisible()
     await expect(page.getByText("Scans paused — fix billing")).toBeVisible()
     await expect(
-      page.getByRole("button", { name: "Email poster PDFs" })
+      page.getByRole("button", { name: "Email print kit PDFs" })
     ).toBeVisible()
     await expect(
       page.getByRole("button", { name: "Pause customer scans" })
@@ -227,7 +227,7 @@ export function defineMerchantLaunchFollowThroughTests() {
     await expect(page.getByText(DISABLED_PROMO_PERK)).toHaveCount(0)
     await expect(page.getByText(DISABLED_PROMO_CLAIM)).toHaveCount(0)
     await expect(
-      page.getByRole("button", { name: "Email poster PDFs" })
+      page.getByRole("button", { name: "Email print kit PDFs" })
     ).toBeVisible()
     await expect(
       page.getByRole("heading", { name: "Launch your counter QR" })
@@ -362,7 +362,7 @@ export function defineMerchantLaunchFollowThroughTests() {
     await expect(page.getByText(DISABLED_PROMO_PERK)).toHaveCount(0)
     await expect(page.getByText(DISABLED_PROMO_CLAIM)).toHaveCount(0)
     await expect(
-      page.getByRole("button", { name: "Email poster PDFs" })
+      page.getByRole("button", { name: "Email print kit PDFs" })
     ).toBeVisible()
     await expect(
       page.getByRole("heading", { name: "Launch your counter QR" })
@@ -393,13 +393,25 @@ export function defineMerchantLaunchFollowThroughTests() {
     await expect(page.getByText("Scans paused — fix billing")).toHaveCount(0)
   })
 
-  test("panel content does not restart the global setup numbering", async ({
+  test("card panel content does not restart the global setup numbering", async ({
     page,
   }) => {
-    await page.goto(`${HARNESS_ROUTES.launch}?tab=card`)
+    const cardPath = `${HARNESS_ROUTES.launch}?tab=card`
+    await gotoHydratedPage(page, cardPath)
+    await expect(page).toHaveURL(/\/dev\/app-harness\/launch\?tab=card$/)
+    await expect(page.getByRole("heading", { name: "Your card" })).toBeVisible()
     await expect(page.getByText("Step 2", { exact: true })).toHaveCount(0)
+  })
 
-    await page.goto(`${HARNESS_ROUTES.launch}?tab=billing`)
+  test("billing panel content does not restart the global setup numbering", async ({
+    page,
+  }) => {
+    const billingPath = `${HARNESS_ROUTES.launch}?tab=billing`
+    await gotoHydratedPage(page, billingPath)
+    await expect(page).toHaveURL(/\/dev\/app-harness\/launch\?tab=billing$/)
+    await expect(
+      page.getByRole("heading", { name: "Activate your venue" })
+    ).toBeVisible()
     await expect(page.getByText(/Step 5 of 5/)).toHaveCount(0)
   })
 }

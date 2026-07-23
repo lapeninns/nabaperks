@@ -1,0 +1,88 @@
+{
+  "repository": "lapeninns/nabaperks",
+  "routineAuthor": "lapeninns",
+  "ruleset": {
+    "name": "Main delivery policy",
+    "requiredRuleTypes": [
+      "deletion",
+      "non_fast_forward",
+      "pull_request",
+      "required_linear_history",
+      "required_status_checks"
+    ],
+    "requiredChecks": [
+      "Release gate",
+      "Analyze (javascript-typescript)",
+      "Review dependency changes"
+    ]
+  },
+  "environments": {
+    "Staging": {
+      "independentReview": true,
+      "requiredSecrets": [
+        "STAGING_MONITOR_SECRET",
+        "STAGING_RESEND_WEBHOOK_SECRET",
+        "STAGING_STRIPE_WEBHOOK_SECRET",
+        "STAGING_SUPABASE_ACCESS_TOKEN",
+        "STAGING_SUPABASE_DB_PASSWORD",
+        "STAGING_SUPABASE_DB_URL",
+        "STAGING_VERCEL_AUTOMATION_BYPASS_SECRET",
+        "STAGING_VERCEL_TOKEN"
+      ],
+      "requiredVariables": [
+        "STAGING_SUPABASE_PROJECT_REF",
+        "STAGING_VERCEL_ORG_ID",
+        "STAGING_VERCEL_PROJECT_ID"
+      ]
+    },
+    "Production": {
+      "independentReview": true,
+      "requiredSecrets": [
+        "PRODUCTION_MONITOR_SECRET",
+        "SENTRY_AUTH_TOKEN",
+        "SUPABASE_ACCESS_TOKEN",
+        "SUPABASE_DB_PASSWORD",
+        "VERCEL_TOKEN"
+      ],
+      "requiredVariables": [
+        "SENTRY_ORG",
+        "SENTRY_PROJECT",
+        "SUPABASE_PROJECT_REF",
+        "VERCEL_ORG_ID",
+        "VERCEL_PROJECT_ID"
+      ]
+    },
+    "Monitoring": {
+      "independentReview": false,
+      "requiredSecrets": [
+        "PRODUCTION_ALERT_WEBHOOK_SECRET",
+        "PRODUCTION_ALERT_WEBHOOK_URL"
+      ],
+      "requiredVariables": []
+    },
+    "Recovery Drill": {
+      "independentReview": true,
+      "requiredSecrets": ["RESTORE_DRILL_DB_URL", "SUPABASE_BACKUP_READ_TOKEN"],
+      "requiredVariables": ["RECOVERY_RTO_MINUTES", "RESTORE_DRILL_PROJECT_REF"]
+    }
+  },
+  "forbiddenRepositorySecrets": [
+    "PRODUCTION_ALERT_WEBHOOK_SECRET",
+    "PRODUCTION_ALERT_WEBHOOK_URL",
+    "PRODUCTION_MONITOR_SECRET",
+    "RESTORE_DRILL_DB_URL",
+    "SENTRY_AUTH_TOKEN",
+    "STAGING_MONITOR_SECRET",
+    "STAGING_RESEND_WEBHOOK_SECRET",
+    "STAGING_STRIPE_WEBHOOK_SECRET",
+    "STAGING_SUPABASE_ACCESS_TOKEN",
+    "STAGING_SUPABASE_DB_PASSWORD",
+    "STAGING_SUPABASE_DB_URL",
+    "STAGING_VERCEL_AUTOMATION_BYPASS_SECRET",
+    "STAGING_VERCEL_TOKEN",
+    "SUPABASE_ACCESS_TOKEN",
+    "SUPABASE_BACKUP_READ_TOKEN",
+    "SUPABASE_DB_PASSWORD",
+    "VERCEL_TOKEN"
+  ]
+}

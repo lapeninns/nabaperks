@@ -1,0 +1,210 @@
+name: Production database promotion
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      expected_revision:
+        description: Full Git SHA currently at the tip of main
+        required: true
+        type: string
+      confirmation:
+        description: Type PROMOTE_PRODUCTION_DATABASE to continue
+        required: true
+        type: string
+
+concurrency:
+  group: production-database-promotion
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  preflight:
+    name: Production database preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      EXPECTED_REVISION: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
+      CONFIRMATION: ${{ inputs.confirmation }}
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_CONCLUSION: ${{ github.event.workflow_run.conclusion || '' }}
+    steps:
+      - name: Require an approved automatic or manual source
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_run" ]]; then
+            test "$SOURCE_CONCLUSION" = "success"
+          else
+            test "$GITHUB_REF" = "refs/heads/main"
+            test "$EXPECTED_REVISION" = "$GITHUB_SHA"
+            test "$CONFIRMATION" = "PROMOTE_PRODUCTION_DATABASE"
+          fi
+      - name: Require successful release and security gates for this revision
+        run: |
+          require_successful_workflow() {
+            local workflow="$1"
+            local attempts="$2"
+            local successful_revision
+            for ((attempt = 1; attempt <= attempts; attempt++)); do
+              successful_revision="$(gh run list \
+                --repo "$GITHUB_REPOSITORY" \
+                --workflow "$workflow" \
+                --commit "$EXPECTED_REVISION" \
+                --branch main \
+                --event push \
+                --limit 20 \
+                --json conclusion,headSha,status \
+                --jq '.[] | select(.status == "completed" and .conclusion == "success") | .headSha' \
+                | head -n 1)"
+              if [[ "$successful_revision" == "$EXPECTED_REVISION" ]]; then
+                return 0
+              fi
+              if ((attempt < attempts)); then
+                sleep 10
+              fi
+            done
+            echo "::error::${workflow} did not succeed for ${EXPECTED_REVISION}."
+            return 1
+          }
+
+          require_successful_workflow ci.yml 1
+          require_successful_workflow codeql.yml 60
+
+  staging:
+    name: Staging release proof
+    needs: preflight
+    environment: Staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    env:
+      EXPECTED_REVISION: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.STAGING_SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.STAGING_SUPABASE_DB_PASSWORD }}
+      SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+      SUPABASE_PROJECT_REF: ${{ vars.STAGING_SUPABASE_PROJECT_REF }}
+      VERCEL_TOKEN: ${{ secrets.STAGING_VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ vars.STAGING_VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.STAGING_VERCEL_PROJECT_ID }}
+      VERCEL_GIT_COMMIT_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
+      VERCEL_ENV: preview
+      VERCEL_TARGET_ENV: staging
+      DO_NOT_TRACK: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
+          fetch-depth: 0
+      - name: Verify immutable staging source and target identities
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_REVISION"
+          test "$(git rev-parse origin/main)" = "$EXPECTED_REVISION"
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          test -n "$SUPABASE_DB_PASSWORD"
+          test -n "$SUPABASE_DB_URL"
+          test -n "$SUPABASE_PROJECT_REF"
+          test -n "$VERCEL_TOKEN"
+          test -n "$VERCEL_ORG_ID"
+          test -n "$VERCEL_PROJECT_ID"
+      - uses: ./.github/actions/setup
+      - uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3
+        with:
+          version: 2.106.0
+      - name: Replay the forward-only migration plan on staging
+        run: |
+          supabase link --project-ref "$SUPABASE_PROJECT_REF"
+          supabase db push --linked --dry-run --include-all
+          supabase db push --linked --include-all
+          node scripts/check-supabase-migrations.mjs
+      - name: Build and deploy the exact revision to Vercel staging
+        id: deploy
+        run: |
+          test "$(pnpm exec vercel --version | tail -n 1)" = "56.5.0"
+          pnpm exec vercel pull --yes --environment=staging --token="$VERCEL_TOKEN"
+          pnpm exec vercel build --target=staging --yes --token="$VERCEL_TOKEN"
+          test -d .vercel/output
+          rm -f .vercel/.env.staging.local
+          if find .vercel -maxdepth 1 -type f -name '.env*' -print -quit | grep -q .; then
+            echo "::error::Pulled Vercel staging environment material remains on disk."
+            exit 1
+          fi
+          deployment_url="$(pnpm exec vercel deploy \
+            --prebuilt \
+            --target=staging \
+            --archive=tgz \
+            --yes \
+            --meta githubCommitSha="$EXPECTED_REVISION" \
+            --token="$VERCEL_TOKEN")"
+          case "$deployment_url" in
+            https://*.vercel.app) ;;
+            *) echo "::error::Vercel returned no immutable staging URL."; exit 1 ;;
+          esac
+          printf 'url=%s\n' "$deployment_url" >> "$GITHUB_OUTPUT"
+      - name: Replay staging webhooks and the core loyalty journey
+        env:
+          STAGING_APP_URL: ${{ steps.deploy.outputs.url }}
+          STAGING_EXPECTED_REVISION: ${{ env.EXPECTED_REVISION }}
+          STAGING_MONITOR_SECRET: ${{ secrets.STAGING_MONITOR_SECRET }}
+          STAGING_RESEND_WEBHOOK_SECRET: ${{ secrets.STAGING_RESEND_WEBHOOK_SECRET }}
+          STAGING_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+          STAGING_STRIPE_WEBHOOK_SECRET: ${{ secrets.STAGING_STRIPE_WEBHOOK_SECRET }}
+          STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+          STAGING_SUPABASE_PROJECT_REF: ${{ vars.STAGING_SUPABASE_PROJECT_REF }}
+          STAGING_VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.STAGING_VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: pnpm smoke:staging
+      - name: Record staging evidence
+        env:
+          STAGING_APP_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          {
+            echo "### Staging release proof"
+            echo
+            echo "- Revision: \`$EXPECTED_REVISION\`"
+            echo "- Deployment: $STAGING_APP_URL"
+            echo "- Migration ledger, signed webhook replay and rolled-back loyalty journey: passed"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  promote:
+    name: Database promotion
+    needs: staging
+    environment: Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      EXPECTED_REVISION: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      DO_NOT_TRACK: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .nvmrc
+      - uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3
+        with:
+          version: 2.106.0
+      - name: Verify immutable revision and protected credentials
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_REVISION"
+          test "$(git rev-parse origin/main)" = "$EXPECTED_REVISION"
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          test -n "$SUPABASE_DB_PASSWORD"
+          test -n "$SUPABASE_PROJECT_REF"
+      - name: Link the approved production project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Prove the forward-only migration plan
+        run: supabase db push --linked --dry-run --include-all
+      - name: Apply forward-only migrations
+        run: supabase db push --linked --include-all
+      - name: Verify the production migration ledger
+        run: node scripts/check-supabase-migrations.mjs

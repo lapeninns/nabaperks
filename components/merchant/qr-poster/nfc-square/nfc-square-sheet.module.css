@@ -1,0 +1,45 @@
+.deck {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  color: var(--w-ink, #211c16);
+  font-family: var(--font-bricolage-grotesque), system-ui, sans-serif;
+}
+
+.screenHint {
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-space-mono), ui-monospace, monospace;
+  font-size: 7pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--w-ink-soft, #4f473d);
+}
+
+.face {
+  position: relative;
+  box-sizing: border-box;
+  overflow: hidden;
+  flex: none;
+  max-width: 100%;
+  max-height: 100%;
+  box-shadow: 6px 6px 0 var(--w-shadow-color, #211c16);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+@media print {
+  .screenHint {
+    display: none !important;
+  }
+
+  .deck {
+    gap: 0;
+    justify-items: start;
+  }
+
+  .face {
+    box-shadow: none;
+  }
+}

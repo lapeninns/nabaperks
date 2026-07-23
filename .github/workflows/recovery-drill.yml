@@ -1,0 +1,88 @@
+name: Recovery drill
+
+on:
+  workflow_dispatch:
+    inputs:
+      backup_id:
+        description: Completed physical production backup ID restored into the disposable project
+        required: true
+        type: string
+      restore_project_ref:
+        description: Disposable Supabase restore-to-new-project ref
+        required: true
+        type: string
+      confirmation:
+        description: Type VERIFY_NON_PRODUCTION_RESTORE
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: recovery-drill
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    name: Prove safe recovery target
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Require main and explicit confirmation
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+          RESTORE_PROJECT_REF: ${{ inputs.restore_project_ref }}
+        run: |
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$CONFIRMATION" = "VERIFY_NON_PRODUCTION_RESTORE"
+          [[ "$RESTORE_PROJECT_REF" =~ ^[a-z0-9]{20}$ ]]
+          test "$RESTORE_PROJECT_REF" != "skonlhwstejberyzobep"
+          [[ "${{ inputs.backup_id }}" =~ ^[0-9]+$ ]]
+
+  verify:
+    name: Verify restored backup
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: Recovery Drill
+    env:
+      CONFIGURED_RESTORE_DRILL_PROJECT_REF: ${{ vars.RESTORE_DRILL_PROJECT_REF }}
+      PRODUCTION_SUPABASE_PROJECT_REF: skonlhwstejberyzobep
+      RECOVERY_RTO_MINUTES: ${{ vars.RECOVERY_RTO_MINUTES }}
+      RESTORE_DRILL_BACKUP_ID: ${{ inputs.backup_id }}
+      RESTORE_DRILL_CONFIRMATION: ${{ inputs.confirmation }}
+      RESTORE_DRILL_PROJECT_REF: ${{ inputs.restore_project_ref }}
+    steps:
+      - name: Check out main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Verify the dispatched main revision
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Set up project
+        uses: ./.github/actions/setup
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v1.6.0
+        with:
+          version: 2.75.0
+      - name: Capture provider backup and project evidence
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_BACKUP_READ_TOKEN }}
+        run: |
+          supabase backups list --project-ref "$PRODUCTION_SUPABASE_PROJECT_REF" --output json > "$RUNNER_TEMP/backups.json"
+          supabase projects list --output json > "$RUNNER_TEMP/projects.json"
+      - name: Verify the restored ledger, RLS and core read path
+        env:
+          RESTORE_DRILL_BACKUPS_FILE: ${{ runner.temp }}/backups.json
+          RESTORE_DRILL_DB_URL: ${{ secrets.RESTORE_DRILL_DB_URL }}
+          RESTORE_DRILL_PROJECTS_FILE: ${{ runner.temp }}/projects.json
+        run: node scripts/check-restored-backup.mjs > "$RUNNER_TEMP/recovery-drill-evidence.json"
+      - name: Publish recovery evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.2
+        with:
+          name: recovery-drill-${{ inputs.backup_id }}
+          path: ${{ runner.temp }}/recovery-drill-evidence.json
+          if-no-files-found: error
+          retention-days: 365

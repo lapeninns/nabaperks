@@ -159,6 +159,13 @@
     "optional": true
   },
   {
+    "name": "PRODUCTION_MONITOR_SECRET_NEXT",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Optional high-entropy overlap token used only for zero-downtime production monitor-secret rotation; remove it after cutover.",
+    "optional": true
+  },
+  {
     "name": "SENTRY_DSN",
     "visibility": "server",
     "kind": "url",

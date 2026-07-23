@@ -1,6 +1,7 @@
 import { type NextRequest } from "next/server"
 
 import { noStoreJson } from "@/lib/http/no-store-json"
+import { runObservedCron } from "@/lib/observability/cron-run"
 import { isAuthorizedCronRequest } from "@/lib/security/cron-auth"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
@@ -20,14 +21,19 @@ export async function GET(request: NextRequest) {
     return noStoreJson({ error: "unauthorized" }, 401)
   }
 
-  const supabase = createSupabaseServiceRoleClient()
-  const { data, error } = await supabase.rpc("drain_due_referral_bonuses", {
-    p_limit: 200,
+  const observed = await runObservedCron({
+    job: "referral-bonus-drain",
+    run: async () => {
+      const supabase = createSupabaseServiceRoleClient()
+      const { data, error } = await supabase.rpc("drain_due_referral_bonuses", {
+        p_limit: 200,
+      })
+      if (error) throw new Error("Referral bonus drain failed")
+      return typeof data === "number" ? data : 0
+    },
   })
 
-  if (error) {
-    return noStoreJson({ ok: false, error: error.message }, 500)
-  }
-
-  return noStoreJson({ ok: true, processed: data ?? 0 })
+  return observed.ok
+    ? noStoreJson({ ok: true, processed: observed.value })
+    : noStoreJson({ ok: false, error: "cron_failed" }, 500)
 }

@@ -34,6 +34,36 @@ pnpm test:a11y
 pnpm test:visual
 ```
 
+Live GitHub governance is a separate provider readback and intentionally fails
+until every protected-environment credential and independent reviewer exists:
+
+```bash
+pnpm ops:github:check
+```
+
+Vercel governance is also a live, non-decrypting provider readback. It checks
+the Git connection and security settings, custom staging target, cron parity,
+blocking deployment checks, and environment-variable names/scopes:
+
+```bash
+pnpm ops:vercel:check
+```
+
+Supabase governance reads project, migration-ledger and physical-backup metadata
+without printing database credentials. It intentionally fails until production
+is source-aligned and PITR-backed:
+
+```bash
+pnpm ops:supabase:check
+```
+
+Sentry release proof requires protected production credentials and verifies the
+exact full Git SHA, project association and production deploy readback:
+
+```bash
+pnpm ops:sentry:check
+```
+
 ## Repository boundaries
 
 - `app/` owns routes, layouts, route handlers, and server actions.
