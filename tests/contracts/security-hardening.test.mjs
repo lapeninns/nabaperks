@@ -80,3 +80,20 @@ test("Given customer OTP verification flows When actions are inspected Then gues
     )
   }
 })
+
+test("Given admin MFA removal When the server action is inspected Then AAL2 and durable audit evidence precede the identity mutation", () => {
+  const actions = readProjectFile("app", "admin", "security", "actions.ts")
+
+  assert.match(actions, /adminMfaUnenrollmentAllowed\(access\.mfaState\)/)
+  assert.match(actions, /actor_id: access\.userId/)
+  assertBefore(
+    actions,
+    'action: "admin_mfa_unenrollment_authorised"',
+    "supabase.auth.mfa.unenroll"
+  )
+  assertBefore(
+    actions,
+    "supabase.auth.mfa.unenroll",
+    'action: "admin_mfa_factor_unenrolled"'
+  )
+})

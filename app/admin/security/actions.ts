@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 
 import { requireAdminRead } from "@/lib/admin/auth"
+import { adminMfaUnenrollmentAllowed } from "@/lib/admin/mfa-gate"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 /**
@@ -122,16 +123,64 @@ export async function unenrollAdminMfa(
   _prev: AdminMfaFormState,
   formData: FormData
 ): Promise<AdminMfaFormState> {
-  await requireAdminRead()
+  const access = await requireAdminRead()
+  if (!adminMfaUnenrollmentAllowed(access.mfaState)) {
+    return {
+      ok: false,
+      error:
+        "Verify with your authenticator before turning off two-factor authentication.",
+    }
+  }
+
   const factorId = String(formData.get("factorId") ?? "")
   if (!factorId) return { ok: false, error: "Missing authenticator factor." }
 
   const supabase = await createSupabaseServerClient()
+
+  // Supabase Auth and Postgres cannot share a transaction. Record the
+  // authorised request first so the destructive identity action never occurs
+  // without a durable trace, then record its successful outcome below.
+  const { error: requestAuditError } = await supabase
+    .from("audit_logs")
+    .insert({
+      actor_type: "admin",
+      actor_id: access.userId,
+      target_table: "auth.mfa_factors",
+      target_id: factorId,
+      action: "admin_mfa_unenrollment_authorised",
+      metadata: { assurance_level: "aal2" },
+    })
+  if (requestAuditError) {
+    return {
+      ok: false,
+      error: "Could not record the security change. Try again.",
+    }
+  }
+
   const { error } = await supabase.auth.mfa.unenroll({ factorId })
   if (error) {
     return { ok: false, error: error.message }
   }
 
+  const { error: completionAuditError } = await supabase
+    .from("audit_logs")
+    .insert({
+      actor_type: "admin",
+      actor_id: access.userId,
+      target_table: "auth.mfa_factors",
+      target_id: factorId,
+      action: "admin_mfa_factor_unenrolled",
+      metadata: { assurance_level: "aal2" },
+    })
+  if (completionAuditError) {
+    return {
+      ok: false,
+      error:
+        "Two-factor authentication was removed, but completion logging failed. Contact support.",
+    }
+  }
+
   revalidatePath("/admin")
+  revalidatePath("/admin/audit")
   return { ok: true, error: null }
 }
