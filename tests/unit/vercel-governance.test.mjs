@@ -157,6 +157,23 @@ test("Vercel evidence rejects release credentials in application runtime", () =>
   assert.match(result.detail, /SUPABASE_DB_PASSWORD/)
 })
 
+test("Vercel evidence requires production Sentry release and source-map settings", () => {
+  const evidence = completeEvidence()
+  evidence.environments.production = evidence.environments.production.filter(
+    ({ key }) => !key.includes("SENTRY")
+  )
+
+  const result = evaluateVercelGovernance(CONTRACT, evidence).find(
+    ({ control }) => control === "vercel:environment:production:keys"
+  )
+
+  assert.equal(result.status, "FAIL")
+  assert.match(result.detail, /NEXT_PUBLIC_SENTRY_DSN/)
+  assert.match(result.detail, /SENTRY_AUTH_TOKEN/)
+  assert.match(result.detail, /SENTRY_ORG/)
+  assert.match(result.detail, /SENTRY_PROJECT/)
+})
+
 test("project evidence drops every environment and deployment value", () => {
   const secretSentinel = "must-not-survive-selection"
   const selected = selectVercelProjectMetadata({
