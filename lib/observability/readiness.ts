@@ -5,6 +5,7 @@ export type DatabaseReadiness = {
 type ReadinessOptions = {
   readonly supabaseUrl: string | undefined
   readonly serviceRoleKey: string | undefined
+  readonly allowLoopback?: boolean
   readonly fetcher?: typeof fetch
   readonly timeoutMs?: number
 }
@@ -12,6 +13,7 @@ type ReadinessOptions = {
 export async function checkDatabaseReadiness({
   supabaseUrl,
   serviceRoleKey,
+  allowLoopback = false,
   fetcher = fetch,
   timeoutMs = 3_000,
 }: ReadinessOptions): Promise<DatabaseReadiness> {
@@ -20,13 +22,12 @@ export async function checkDatabaseReadiness({
   }
 
   try {
-    const origin = trustedSupabaseProjectOrigin(supabaseUrl)
+    const origin = trustedSupabaseProjectOrigin(supabaseUrl, {
+      allowLoopback,
+    })
     if (!origin) return { database: "error" }
 
-    const url = new URL(
-      "/rest/v1/rpc/production_readiness_probe",
-      origin
-    )
+    const url = new URL("/rest/v1/rpc/production_readiness_probe", origin)
 
     const response = await fetcher(url, {
       method: "POST",
@@ -47,7 +48,10 @@ export async function checkDatabaseReadiness({
   }
 }
 
-export function trustedSupabaseProjectOrigin(rawUrl: string): string | null {
+export function trustedSupabaseProjectOrigin(
+  rawUrl: string,
+  { allowLoopback = false }: { readonly allowLoopback?: boolean } = {}
+): string | null {
   try {
     const url = new URL(rawUrl.trim())
     const labels = url.hostname.toLowerCase().split(".")
@@ -56,10 +60,11 @@ export function trustedSupabaseProjectOrigin(rawUrl: string): string | null {
       labels[1] === "supabase" &&
       labels[2] === "co" &&
       /^[a-z0-9-]+$/.test(labels[0])
+    const ephemeralLoopback =
+      allowLoopback && url.href === "http://127.0.0.1:54321/"
 
     if (
-      url.protocol !== "https:" ||
-      !hostedProject ||
+      !((url.protocol === "https:" && hostedProject) || ephemeralLoopback) ||
       url.username ||
       url.password ||
       url.pathname !== "/" ||

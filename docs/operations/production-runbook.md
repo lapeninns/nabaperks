@@ -127,9 +127,18 @@ or print either value:
 Abort and retain the overlap if either probe fails. Do not remove or overwrite
 the only value accepted by the currently promoted deployment.
 
-Configure a separate GitHub `Staging` environment before first use. It may
-permit only `main`; it must not reuse production data or provider credentials.
-Add these secrets:
+The cost-neutral database-promotion path creates a fresh Supabase CLI stack on
+the GitHub runner, builds the exact revision with non-secret provider fixtures,
+starts it on the fixed loopback origin, and proves the complete local migration
+ledger, authenticated liveness/readiness, signed Stripe and Resend replay, and
+the transactionally rolled-back core loyalty journey. It has no production
+credential and cannot promote by itself; the independent `Production`
+environment remains the only path that can release production database
+credentials.
+
+If hosted staging is later funded, configure a separate GitHub `Staging`
+environment before activating that stronger path. It may permit only `main`;
+it must not reuse production data or provider credentials. Add these secrets:
 
 - `STAGING_SUPABASE_ACCESS_TOKEN`, `STAGING_SUPABASE_DB_PASSWORD` and
   `STAGING_SUPABASE_DB_URL`;
@@ -159,18 +168,16 @@ query parameters or a non-standard port. Run IDs, the expected revision and a
 random delivery ID are the only event identifiers sent; no customer or provider
 payload is included.
 
-Review the migration files and a local linked dry run before approving the
-environment gate. The workflow first repeats and applies the plan on isolated
-staging, then verifies exact-revision liveness/readiness, signed Stripe and
-Resend replay, and a transactionally rolled-back merchant, card, reward-pool,
-QR, customer, stamp and reward-unlock journey. Only after that passes can the
-`Production` environment release credentials. The production job repeats the
-dry run immediately before applying forward-only migrations and fails unless
-the remote and repository ledgers match. Never repair, reset or seed production
-from this path. A successful run starts the exact-revision production deployment
-workflow automatically. That workflow generates signed build provenance and a
-CycloneDX SBOM, stages the exact prebuilt output with no domain assignment,
-probes that URL and promotes it. Public-origin smoke starts only after promotion.
+Review the migration files before approving the production environment gate.
+The workflow first runs the cost-neutral ephemeral proof described above. Only
+after it passes can the `Production` environment release credentials. The
+production job runs a linked dry run immediately before applying forward-only
+migrations and fails unless the remote and repository ledgers match. Never
+repair, reset or seed production from this path. A successful run starts the
+exact-revision production deployment workflow automatically. That workflow
+generates signed build provenance and a CycloneDX SBOM, stages the exact
+prebuilt output with no domain assignment, probes that URL and promotes it.
+Public-origin smoke starts only after promotion.
 
 ## Rollback
 

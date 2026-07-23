@@ -36,13 +36,16 @@ export async function GET(request: Request): Promise<Response> {
     )
   }
 
-  const readinessOptions = {
-    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-  }
   const environment =
     process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? "unknown"
   const targetEnvironment = process.env.VERCEL_TARGET_ENV ?? environment
+  const allowLoopback =
+    targetEnvironment === "staging" && process.env.STAGING_MODE === "ephemeral"
+  const readinessOptions = {
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    allowLoopback,
+  }
   const [database, operational] = await Promise.all([
     checkDatabaseReadiness(readinessOptions),
     checkOperationalReadiness({

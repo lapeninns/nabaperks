@@ -76,22 +76,23 @@ jobs:
           require_successful_workflow codeql.yml 60
 
   staging:
-    name: Staging release proof
+    name: Cost-neutral ephemeral release proof
     needs: preflight
-    environment: Staging
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 25
     permissions:
       contents: read
     env:
       EXPECTED_REVISION: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.STAGING_SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_DB_PASSWORD: ${{ secrets.STAGING_SUPABASE_DB_PASSWORD }}
-      SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
-      SUPABASE_PROJECT_REF: ${{ vars.STAGING_SUPABASE_PROJECT_REF }}
-      VERCEL_TOKEN: ${{ secrets.STAGING_VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ vars.STAGING_VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ vars.STAGING_VERCEL_PROJECT_ID }}
+      STAGING_APP_URL: http://127.0.0.1:3000
+      STAGING_EXPECTED_REVISION: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
+      STAGING_MODE: ephemeral
+      STAGING_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+      STAGING_SUPABASE_DB_URL: postgres://postgres:postgres@127.0.0.1:54322/postgres
+      SUPABASE_DB_URL: postgres://postgres:postgres@127.0.0.1:54322/postgres
+      SUPABASE_SEND_EMAIL_HOOK_URI: http://host.docker.internal:3147/api/auth/hooks/send-email
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
       VERCEL_GIT_COMMIT_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
       VERCEL_ENV: preview
       VERCEL_TARGET_ENV: staging
@@ -101,74 +102,93 @@ jobs:
         with:
           ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
           fetch-depth: 0
-      - name: Verify immutable staging source and target identities
+      - name: Verify immutable source and cost-neutral target
         run: |
           test "$(git rev-parse HEAD)" = "$EXPECTED_REVISION"
           test "$(git rev-parse origin/main)" = "$EXPECTED_REVISION"
-          test -n "$SUPABASE_ACCESS_TOKEN"
-          test -n "$SUPABASE_DB_PASSWORD"
-          test -n "$SUPABASE_DB_URL"
-          test -n "$SUPABASE_PROJECT_REF"
-          test -n "$VERCEL_TOKEN"
-          test -n "$VERCEL_ORG_ID"
-          test -n "$VERCEL_PROJECT_ID"
+          test "$STAGING_MODE" = "ephemeral"
+          test "$STAGING_APP_URL" = "http://127.0.0.1:3000"
+          test "$STAGING_SUPABASE_DB_URL" = "postgres://postgres:postgres@127.0.0.1:54322/postgres"
       - uses: ./.github/actions/setup
       - uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3
         with:
           version: 2.106.0
-      - name: Replay the forward-only migration plan on staging
+      - name: Generate ephemeral-only provider fixtures
         run: |
-          supabase link --project-ref "$SUPABASE_PROJECT_REF"
-          supabase db push --linked --dry-run --include-all
-          supabase db push --linked --include-all
-          node scripts/check-supabase-migrations.mjs
-      - name: Build and deploy the exact revision to Vercel staging
-        id: deploy
+          export_fixture() {
+            local name="$1"
+            local value="$2"
+            printf '::add-mask::%s\n' "$value"
+            printf '%s=%s\n' "$name" "$value" >> "$GITHUB_ENV"
+          }
+
+          monitor_secret="$(openssl rand -hex 32)"
+          resend_webhook_secret="whsec_$(openssl rand -base64 32 | tr -d '\n')"
+          stripe_webhook_secret="whsec_$(openssl rand -hex 32)"
+
+          export_fixture CUSTOMER_EMAIL_ENCRYPTION_KEY "$(openssl rand -hex 32)"
+          export_fixture CUSTOMER_EMAIL_HMAC_SECRET "$(openssl rand -hex 32)"
+          export_fixture CUSTOMER_PHONE_ENCRYPTION_KEY "$(openssl rand -hex 32)"
+          export_fixture CUSTOMER_PHONE_HMAC_SECRET "$(openssl rand -hex 32)"
+          export_fixture CUSTOMER_SESSION_SECRET "$(openssl rand -hex 32)"
+          export_fixture MERCHANT_OTP_ALIAS_TOKEN_ENCRYPTION_KEY "$(openssl rand -hex 32)"
+          export_fixture NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY "pk_test_$(openssl rand -hex 16)"
+          export_fixture PRODUCTION_MONITOR_SECRET "$monitor_secret"
+          export_fixture RESEND_API_KEY "re_$(openssl rand -hex 32)"
+          export_fixture RESEND_WEBHOOK_SECRET "$resend_webhook_secret"
+          export_fixture STAGING_MONITOR_SECRET "$monitor_secret"
+          export_fixture STAGING_RESEND_WEBHOOK_SECRET "$resend_webhook_secret"
+          export_fixture STAGING_STRIPE_WEBHOOK_SECRET "$stripe_webhook_secret"
+          export_fixture STRIPE_GROWTH_PRICE_ID "price_$(openssl rand -hex 16)"
+          export_fixture STRIPE_SECRET_KEY "sk_test_$(openssl rand -hex 32)"
+          export_fixture STRIPE_WEBHOOK_SECRET "$stripe_webhook_secret"
+          export_fixture SUPABASE_SEND_EMAIL_HOOK_SECRET "v1,whsec_$(openssl rand -base64 32 | tr -d '\n')"
+          export_fixture TWILIO_ACCOUNT_SID "AC$(openssl rand -hex 16)"
+          export_fixture TWILIO_AUTH_TOKEN "$(openssl rand -hex 32)"
+          export_fixture TWILIO_VERIFY_SERVICE_SID "VA$(openssl rand -hex 16)"
+      - name: Start isolated Supabase and export ephemeral API keys
         run: |
-          test "$(pnpm exec vercel --version | tail -n 1)" = "56.5.0"
-          pnpm exec vercel pull --yes --environment=staging --token="$VERCEL_TOKEN"
-          pnpm exec vercel build --target=staging --yes --token="$VERCEL_TOKEN"
-          test -d .vercel/output
-          rm -f .vercel/.env.staging.local
-          if find .vercel -maxdepth 1 -type f -name '.env*' -print -quit | grep -q .; then
-            echo "::error::Pulled Vercel staging environment material remains on disk."
-            exit 1
-          fi
-          deployment_url="$(pnpm exec vercel deploy \
-            --prebuilt \
-            --target=staging \
-            --archive=tgz \
-            --yes \
-            --meta githubCommitSha="$EXPECTED_REVISION" \
-            --token="$VERCEL_TOKEN")"
-          case "$deployment_url" in
-            https://*.vercel.app) ;;
-            *) echo "::error::Vercel returned no immutable staging URL."; exit 1 ;;
-          esac
-          printf 'url=%s\n' "$deployment_url" >> "$GITHUB_OUTPUT"
-      - name: Replay staging webhooks and the core loyalty journey
-        env:
-          STAGING_APP_URL: ${{ steps.deploy.outputs.url }}
-          STAGING_EXPECTED_REVISION: ${{ env.EXPECTED_REVISION }}
-          STAGING_MONITOR_SECRET: ${{ secrets.STAGING_MONITOR_SECRET }}
-          STAGING_RESEND_WEBHOOK_SECRET: ${{ secrets.STAGING_RESEND_WEBHOOK_SECRET }}
-          STAGING_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
-          STAGING_STRIPE_WEBHOOK_SECRET: ${{ secrets.STAGING_STRIPE_WEBHOOK_SECRET }}
-          STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
-          STAGING_SUPABASE_PROJECT_REF: ${{ vars.STAGING_SUPABASE_PROJECT_REF }}
-          STAGING_VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.STAGING_VERCEL_AUTOMATION_BYPASS_SECRET }}
+          supabase start
+          eval "$(supabase status -o env)"
+          test "$API_URL" = "$NEXT_PUBLIC_SUPABASE_URL"
+          test -n "$ANON_KEY"
+          test -n "$SERVICE_ROLE_KEY"
+          printf 'NEXT_PUBLIC_SUPABASE_ANON_KEY=%s\n' "$ANON_KEY" >> "$GITHUB_ENV"
+          printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
+      - name: Verify the complete migration ledger on ephemeral staging
+        run: node scripts/check-supabase-migrations.mjs --local
+      - name: Build and start the exact revision locally
+        run: |
+          pnpm build
+          pnpm start > "$RUNNER_TEMP/nabaperks-ephemeral-staging.log" 2>&1 &
+          printf '%s\n' "$!" > "$RUNNER_TEMP/nabaperks-ephemeral-staging.pid"
+          for attempt in {1..60}; do
+            if curl --fail --silent --show-error "$STAGING_APP_URL/api/health" >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat "$RUNNER_TEMP/nabaperks-ephemeral-staging.log"
+          exit 1
+      - name: Replay signed webhooks and the rollback-only loyalty journey
         run: pnpm smoke:staging
       - name: Record staging evidence
-        env:
-          STAGING_APP_URL: ${{ steps.deploy.outputs.url }}
         run: |
           {
-            echo "### Staging release proof"
+            echo "### Cost-neutral ephemeral release proof"
             echo
             echo "- Revision: \`$EXPECTED_REVISION\`"
-            echo "- Deployment: $STAGING_APP_URL"
-            echo "- Migration ledger, signed webhook replay and rolled-back loyalty journey: passed"
+            echo "- Target: isolated Supabase CLI stack and loopback production build"
+            echo "- Migration ledger, readiness, signed webhook replay and rolled-back loyalty journey: passed"
+            echo "- No hosted provider or production credential was used"
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Stop ephemeral staging
+        if: always()
+        run: |
+          if [[ -f "$RUNNER_TEMP/nabaperks-ephemeral-staging.pid" ]]; then
+            kill "$(cat "$RUNNER_TEMP/nabaperks-ephemeral-staging.pid")" 2>/dev/null || true
+          fi
+          supabase stop --no-backup || true
 
   promote:
     name: Database promotion
