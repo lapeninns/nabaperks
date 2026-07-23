@@ -99,6 +99,29 @@ test("Given Playwright runs in CI When focused tests are present Then the config
   assert.match(config, /process\.env\.PLAYWRIGHT_REUSE_EXISTING_SERVER === "1"/)
 })
 
+test("Given Chromium CI needs the regular browser When visual snapshots run Then their baseline runtime stays unchanged", () => {
+  const ci = readProjectFile(".github", "workflows", "ci.yml")
+  const config = readProjectFile("playwright.config.ts")
+  const e2eJob = ci.slice(ci.indexOf("\n  e2e:"), ci.indexOf("\n  e2e-gate:"))
+  const a11yJob = ci.slice(
+    ci.indexOf("\n  a11y:"),
+    ci.indexOf("\n  a11y-gate:")
+  )
+  const visualJob = ci.slice(
+    ci.indexOf("\n  visual:"),
+    ci.indexOf("\n  visual-gate:")
+  )
+
+  assert.match(
+    config,
+    /process\.env\.PLAYWRIGHT_REGULAR_CHROMIUM === "1" \? "chromium"/
+  )
+  assert.match(config, /channel: chromiumChannel/)
+  assert.match(e2eJob, /PLAYWRIGHT_REGULAR_CHROMIUM: "1"/)
+  assert.match(a11yJob, /PLAYWRIGHT_REGULAR_CHROMIUM: "1"/)
+  assert.doesNotMatch(visualJob, /PLAYWRIGHT_REGULAR_CHROMIUM/)
+})
+
 test("Given trust moat regressions need runtime proof When CI is inspected Then DB behavioral tests exercise the core RPCs", () => {
   const ci = readProjectFile(".github", "workflows", "ci.yml")
   const packageJson = readProjectFile("package.json")

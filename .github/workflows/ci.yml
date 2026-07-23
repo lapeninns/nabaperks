@@ -150,6 +150,10 @@ jobs:
       # observed 2026-07-20), and failOnFlakyTests turns any recovery into a
       # red run. Wall-clock parallelism comes from sharding instead.
       PLAYWRIGHT_WORKERS: "1"
+      # Regular Chromium avoids process-level SIGSEGV flakes from the separate
+      # headless-shell binary. Visual CI intentionally retains that shell so
+      # its approved pixel baselines keep one stable rendering engine.
+      PLAYWRIGHT_REGULAR_CHROMIUM: "1"
       CUSTOMER_DEV_OTP_CODE: "424242"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -192,6 +196,7 @@ jobs:
         shard: [1/2, 2/2]
     env:
       PLAYWRIGHT_WORKERS: "1"
+      PLAYWRIGHT_REGULAR_CHROMIUM: "1"
       CUSTOMER_DEV_OTP_CODE: "424242"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

@@ -83,6 +83,7 @@ test("global request-error capture omits raw request and exception detail", () =
 
 test("scheduled production smoke validates both JSON probe contracts", () => {
   const workflow = read(".github", "workflows", "production-smoke.yml")
+  const probeJob = workflow.match(/\n  probes:\n([\s\S]*?)\n  incident:\n/)?.[1]
 
   assert.match(workflow, /cron: "7\/15 \* \* \* \*"/)
   assert.match(workflow, /workflow_run:/)
@@ -112,7 +113,9 @@ test("scheduled production smoke validates both JSON probe contracts", () => {
   )
   assert.match(workflow, /check-production-probe-latency\.mjs/)
   assert.match(workflow, /PRODUCTION_SLO_CONFIG: config\/production-slos\.json/)
-  assert.match(workflow, /environment: Monitoring/)
+  assert.ok(probeJob, "production smoke keeps a dedicated probes job")
+  assert.match(probeJob, /environment: Monitoring/)
+  assert.match(probeJob, /secrets\.PRODUCTION_MONITOR_SECRET/)
   assert.match(workflow, /secrets\.PRODUCTION_ALERT_WEBHOOK_URL/)
   assert.match(workflow, /secrets\.PRODUCTION_ALERT_WEBHOOK_SECRET/)
   assert.match(workflow, /notify-production-alert\.mjs trigger/)
