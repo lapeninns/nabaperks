@@ -116,10 +116,7 @@ test("provider readiness makes both Growth billing intervals explicit", () => {
 
 test("Supabase migration smoke stays read-only", () => {
   assert.match(supabaseMigrationScript, /migrationTarget = "--linked"/)
-  assert.match(
-    supabaseMigrationScript,
-    /"migration", "list", migrationTarget/
-  )
+  assert.match(supabaseMigrationScript, /"migration", "list", migrationTarget/)
   assert.match(supabaseMigrationScript, /migrationTarget !== "--local"/)
   assert.doesNotMatch(supabaseMigrationScript, /db push/)
   assert.doesNotMatch(supabaseMigrationScript, /migration repair/)

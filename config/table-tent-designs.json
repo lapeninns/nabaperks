@@ -14,7 +14,7 @@
     "description": "Fold-to-peak table tents for tables, counters and bar tops.",
     "format": "a4-tent",
     "sheet": "a4",
-    "revision": 1
+    "revision": 2
   },
   "shared": {
     "reassurance": "18+ to redeem · One visit stamp here per UK date · Rewards redeem from the next weekday · Terms apply",
@@ -113,27 +113,27 @@
     {
       "id": "welcome",
       "name": "Welcome",
-      "description": "Warm welcome front, return-visit payoff back.",
+      "description": "How-it-works front, first-visit invite back — the front-of-house onboarding tent.",
       "rollout": "production",
       "useCase": "Front-of-house and welcome tables",
-      "tone": "belonging-first",
+      "tone": "how-it-works-onboarding",
       "faceA": {
-        "variant": "social",
+        "variant": "plan",
         "tone": "paper",
-        "headline": ["Welcome.", "Let's get", "started."],
-        "accent": "started.",
-        "body": "Today's visit can start your card. Fill it to reveal a reward picked by this venue.",
+        "headline": ["How it works.", "Scan.", "Stamp.", "Reward."],
+        "accent": "Reward.",
+        "body": "Point your camera at the code. Complete the quick join, then today's stamp lands. Fill the card and the sealed reward opens — no app, no password.",
         "showStamps": true,
-        "cta": "Scan to start with today"
+        "cta": "Scan · Start your card"
       },
       "faceB": {
-        "variant": "loss",
+        "variant": "scan",
         "tone": "paper",
-        "headline": ["Unlock", "your", "reward."],
-        "accent": "reward.",
-        "body": "Return on another UK date to add the next stamp. Fill the card to reveal your reward.",
+        "headline": ["New here?", "Your card", "starts now."],
+        "accent": "starts now.",
+        "body": "This code opens your card in the browser. Complete the quick join, then collect today's stamp — one per UK date.",
         "showStamps": true,
-        "cta": "Scan to start your card"
+        "cta": "Scan to open your card"
       }
     },
     {

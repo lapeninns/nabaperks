@@ -4,7 +4,7 @@
 
 - **Format:** A4 folded table tent, two customer-facing panels
 - **Use case:** Welcome-led variant for a seated customer
-- **Tone:** Warm invitation with a regulars payoff
+- **Tone:** How-it-works onboarding
 - **Source:** `config/table-tent-designs.json` → `designs[id="welcome"]`
 - **Placeholders:** None
 
@@ -52,19 +52,19 @@ available now.
 
 ### Face A
 
-- **Headline:** Welcome. / Let's get / started.
-- **Accent:** started.
-- **Body:** Today's visit can start your card. Fill it to reveal a reward
-  picked by this venue.
-- **CTA:** Scan to start with today
+- **Headline:** How it works. / Scan. / Stamp. / Reward.
+- **Accent:** Reward.
+- **Body:** Point your camera at the code. Complete the quick join, then today's
+  stamp lands. Fill the card and the sealed reward opens — no app, no password.
+- **CTA:** Scan · Start your card
 
 ### Face B
 
-- **Headline:** Unlock / your / reward.
-- **Accent:** reward.
-- **Body:** Return on another UK date to add the next stamp. Fill the card to
-  reveal your reward.
-- **CTA:** Scan to start your card
+- **Headline:** New here? / Your card / starts now.
+- **Accent:** starts now.
+- **Body:** This code opens your card in the browser. Complete the quick join,
+  then collect today's stamp — one per UK date.
+- **CTA:** Scan to open your card
 
 ### Shared footer
 
@@ -72,9 +72,7 @@ available now.
 - **Left:** One visit stamp per UK date
 - **Right:** No app · Opens in your browser
 
-## Questions for the next auditor
+## Audit resolution
 
-- Should this variant remain structurally paired with Regulars or become a
-  genuinely welcome-first design?
-- Is the return-visit message motivating before the customer has joined?
-- Can “picked by this venue” fit without reducing the body text too far?
+Welcome now has two unique how-it-works faces. The back explicitly places stamp
+collection after the join flow instead of promising a stamp at scan time.
