@@ -34,6 +34,13 @@ pnpm test:a11y
 pnpm test:visual
 ```
 
+Live GitHub governance is a separate provider readback and intentionally fails
+until every protected-environment credential and independent reviewer exists:
+
+```bash
+pnpm ops:github:check
+```
+
 ## Repository boundaries
 
 - `app/` owns routes, layouts, route handlers, and server actions.

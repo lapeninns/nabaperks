@@ -254,6 +254,12 @@ cron-failure and provider-delivery aggregates, but those signals still need
 independent provider corroboration before claiming complete production
 observability.
 
+For the monthly GitHub control readback, authenticate `gh` as a repository
+administrator and run `pnpm ops:github:check`. The audit reads only collaborator,
+ruleset, environment, secret-name and variable metadata; it never reads secret
+values. Retain the output with the release evidence and resolve every `FAIL`
+before declaring provider readiness.
+
 ## Operational readiness signals
 
 `/api/readiness` reads only aggregate values from

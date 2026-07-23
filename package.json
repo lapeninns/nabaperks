@@ -68,6 +68,7 @@
     "ops:page": "node scripts/notify-production-alert.mjs",
     "ops:restore:verify": "node scripts/check-restored-backup.mjs",
     "ops:slo:check": "node scripts/check-production-slo.mjs",
+    "ops:github:check": "node scripts/check-github-governance.mjs",
     "env:keys": "node scripts/env-keys.mjs status",
     "env:pull-supabase": "node scripts/env-keys.mjs pull-supabase",
     "env:set-posthog": "node scripts/env-keys.mjs set-posthog",
