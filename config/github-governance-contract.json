@@ -56,7 +56,8 @@
       "independentReview": false,
       "requiredSecrets": [
         "PRODUCTION_ALERT_WEBHOOK_SECRET",
-        "PRODUCTION_ALERT_WEBHOOK_URL"
+        "PRODUCTION_ALERT_WEBHOOK_URL",
+        "PRODUCTION_MONITOR_SECRET"
       ],
       "requiredVariables": []
     },

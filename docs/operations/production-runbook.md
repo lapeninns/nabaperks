@@ -115,16 +115,14 @@ or print either value:
 2. Deploy the reviewed revision that accepts both monitor-secret names. Prove
    `/api/readiness` accepts the existing and next values without recording
    either value.
-3. Set the new value as `PRODUCTION_MONITOR_SECRET` in the GitHub `Production`
-   environment and repository scope. The repository copy remains only while
-   the unattended `Production smoke` workflow consumes it.
+3. Set the new value as `PRODUCTION_MONITOR_SECRET` in both the GitHub
+   `Production` and unattended `Monitoring` environments.
 4. Require a successful protected staged probe and scheduled public probe using
-   the new value.
+   the new value, then remove the obsolete repository-scoped copy.
 5. Replace Vercel Production `PRODUCTION_MONITOR_SECRET` with the new value,
    remove `PRODUCTION_MONITOR_SECRET_NEXT`, redeploy, and repeat both probes.
-6. Verify the next-name metadata is absent in Vercel and remove the repository
-   copy after `Production smoke` has moved to an unattended least-privilege
-   environment.
+6. Verify the next-name metadata is absent in Vercel and the monitor token is
+   present only in the two least-privilege GitHub environments that consume it.
 
 Abort and retain the overlap if either probe fails. Do not remove or overwrite
 the only value accepted by the currently promoted deployment.
@@ -150,8 +148,9 @@ detect configuration drift.
 
 Configure a GitHub `Monitoring` environment that permits only `main` and does
 not require an interactive reviewer, because paging must continue unattended.
-Store `PRODUCTION_ALERT_WEBHOOK_URL` and
-`PRODUCTION_ALERT_WEBHOOK_SECRET` there. The receiver must validate the
+Store `PRODUCTION_MONITOR_SECRET`, `PRODUCTION_ALERT_WEBHOOK_URL` and
+`PRODUCTION_ALERT_WEBHOOK_SECRET` there. The first is consumed only by the
+scheduled public readiness probe. The receiver must validate the
 `x-nabaperks-timestamp` and HMAC-SHA256 `x-nabaperks-signature` over
 `<timestamp>.<raw-body>`, deduplicate on `dedupKey`, map `trigger` to an
 immediate human page, and acknowledge both `trigger` and `resolve` with a 2xx
