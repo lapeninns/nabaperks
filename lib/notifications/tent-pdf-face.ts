@@ -140,7 +140,6 @@ export function drawTentFace(
       x: copyLeft,
       y: Math.max(stampY, mainBottom + mainPad + mm(4)),
       count: content.stampsRequired,
-      venue: options.venue,
       font: fonts.monoBold,
       ink: p.ink,
       soft: p.soft,

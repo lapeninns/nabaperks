@@ -32,16 +32,6 @@ export function tentFacePalette(face: TentFaceContent): TentFacePalette {
   }
 }
 
-function drawVenueInitials(venue: string): string {
-  const initials = venue
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => word[0]?.toUpperCase() ?? "")
-    .join("")
-  return initials.length > 0 ? initials : "*"
-}
-
 /**
  * Stamp strip matching the customer card: N visit stamps, then a separate
  * sealed mystery reward (not the last visit circle).
@@ -52,7 +42,6 @@ export function drawStampStrip(
     readonly x: number
     readonly y: number
     readonly count: number
-    readonly venue: string
     readonly font: PDFFont
     readonly ink: RGB
     readonly soft: RGB
@@ -61,7 +50,6 @@ export function drawStampStrip(
   const radius = mm(5)
   const gap = mm(3)
   const step = radius * 2 + gap
-  const initials = drawVenueInitials(options.venue)
 
   for (let index = 0; index < options.count; index += 1) {
     const centerX = options.x + radius + index * step
@@ -75,8 +63,8 @@ export function drawStampStrip(
         borderColor: POSTER_PDF_COLOR.ink,
         borderWidth: 1,
       })
-      page.drawText(initials, {
-        x: centerX - initials.length * 2.4,
+      page.drawText(String(index + 1), {
+        x: centerX - 2.5,
         y: options.y - 3,
         size: 7,
         font: options.font,
