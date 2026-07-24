@@ -142,8 +142,6 @@ try {
     homeNodes.map((node) => node["@type"]).filter(Boolean)
   )
   const product = homeNodes.find((node) => node["@type"] === "Product")
-  const faq = homeNodes.find((node) => node["@type"] === "FAQPage")
-  const howTo = homeNodes.find((node) => node["@type"] === "HowTo")
   const productOffers = Array.isArray(product?.offers) ? product.offers : []
 
   check(homeTypes.has("WebPage"), "home: WebPage node missing")
@@ -154,16 +152,33 @@ try {
     "home: Product offers must be exactly the £49 monthly and £490 annual prices"
   )
   check(
-    Boolean(faq) && Array.isArray(faq.mainEntity) && faq.mainEntity.length >= 5,
-    "home: FAQPage with the shared FAQ facts missing"
-  )
-  check(
-    Boolean(howTo) && Array.isArray(howTo.step) && howTo.step.length === 5,
-    "home: five-step done-for-you HowTo missing"
-  )
-  check(
     !JSON.stringify(homeNodes).includes('"@type":"Person"'),
     "home: Person node present"
+  )
+
+  // The HowTo and FAQPage nodes moved off `/` with their visible mirrors when
+  // the landing was re-roled to a conversion page (2026-07-24). They now live
+  // on how-it-works, which owns that research depth — assert them there so the
+  // nodes can never be lost in transit.
+  const howItWorksNodes = await fetchNodes(baseUrl, "/how-it-works")
+  const howItWorksFaq = howItWorksNodes.find(
+    (node) => node["@type"] === "FAQPage"
+  )
+  const howItWorksHowTo = howItWorksNodes.find(
+    (node) => node["@type"] === "HowTo"
+  )
+
+  check(
+    Boolean(howItWorksFaq) &&
+      Array.isArray(howItWorksFaq.mainEntity) &&
+      howItWorksFaq.mainEntity.length >= 5,
+    "how-it-works: FAQPage with the shared FAQ facts missing"
+  )
+  check(
+    Boolean(howItWorksHowTo) &&
+      Array.isArray(howItWorksHowTo.step) &&
+      howItWorksHowTo.step.length === 5,
+    "how-it-works: five-step done-for-you HowTo missing"
   )
 
   if (failures.length) {
@@ -172,7 +187,7 @@ try {
     process.exitCode = 1
   } else {
     console.log(
-      "✓ JSON-LD valid: sign-up organisation graph (connected organisations, WebSite, no unsupported locations/Person) and home marketing graph (WebPage, Product 49/490, five-step HowTo, FAQPage)"
+      "✓ JSON-LD valid: sign-up organisation graph (connected organisations, WebSite, no unsupported locations/Person), home marketing graph (WebPage, Product 49/490) and how-it-works graph (five-step HowTo, FAQPage)"
     )
   }
 } finally {
