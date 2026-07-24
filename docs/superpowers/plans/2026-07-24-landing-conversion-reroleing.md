@@ -48,15 +48,16 @@
 - `tests/e2e/public-smoke.spec.ts` — `h1` assertion
 - `scripts/check-jsonld.mjs` — move home HowTo/FAQPage assertions to `/how-it-works`
 
-**Delete** (all five orphan once `/` stops rendering them — verified against the tree, not assumed):
+**Delete** (orphaned once `/` stops rendering them):
 
 - `components/marketing/landing/landing-nav.tsx`
-- `components/marketing/landing/proof-strip.tsx` — superseded by `proof-line.tsx`
 - `components/marketing/landing/venue-fit.tsx` — superseded by `fit-note.tsx`
 - `components/marketing/landing/landing-guides.tsx` — rendered only by `app/page.tsx`
 - `components/marketing/landing/launch-process.tsx` — rendered only by `app/page.tsx`; `/how-it-works` uses `LaunchSteps` directly
 
-**Deliberately NOT deleted** — each keeps a real consumer after the re-role, so knip stays quiet: `GuaranteeStack` and `ScarcityBand` (`/pricing`), `FaqList` (`/pricing`), `LandingFaq` (`/how-it-works`, added in Task 7), `SnapRail` (used by `ProblemPains` and `OutcomeTransformation`), `LaunchSteps` (`/how-it-works`).
+> **CORRECTED DURING EXECUTION (2026-07-24).** This list originally said five files and included `proof-strip.tsx`. It was wrong: **`app/about/page.tsx:86` renders `ProofStrip`**, so it is not an orphan and was kept. `ProofLine` supersedes it on `/` only. Task 9's stop-and-report step caught this before deletion — keep that step.
+
+**Deliberately NOT deleted** — each keeps a real consumer after the re-role, so knip stays quiet: `ProofStrip` (`/about`), `GuaranteeStack` and `ScarcityBand` (`/pricing`), `FaqList` (`/pricing`), `LandingFaq` (`/how-it-works`, added in Task 7), `SnapRail` (used by `ProblemPains` and `OutcomeTransformation`), `LaunchSteps` (`/how-it-works`).
 
 ---
 
