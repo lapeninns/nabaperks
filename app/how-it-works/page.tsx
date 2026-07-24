@@ -3,12 +3,19 @@ import Link from "next/link"
 
 import { PageTitle, SectionHeader } from "@/components/brand"
 import { ContrastBand, MarketingLayout, Section } from "@/components/layout"
-import { LaunchSteps } from "@/components/marketing/landing"
+import {
+  FeaturesListicle,
+  LandingFaq,
+  LaunchSteps,
+  OutcomeTransformation,
+  ProblemPains,
+} from "@/components/marketing/landing"
 import { JsonLd } from "@/components/seo/json-ld"
 import { Button } from "@/components/ui/button"
 import {
   CLAIMS_BOUNDARY,
   DFY_LAUNCH,
+  FAQ_ITEMS,
   GUARANTEE,
   MARKET,
   PRODUCT,
@@ -18,6 +25,7 @@ import {
 } from "@/lib/marketing/facts"
 import {
   breadcrumbSchema,
+  faqPageSchema,
   howToSchema,
   OG_IMAGE,
   webPageSchema,
@@ -57,12 +65,15 @@ export default function HowItWorksPage() {
           description={MARKET.promise}
         />
       </Section>
+      <ProblemPains />
       <Section size="compact">
         <LaunchSteps />
         <p className="pt-4 text-sm leading-6 text-muted-foreground">
           {DFY_LAUNCH.yourPart}
         </p>
       </Section>
+      <FeaturesListicle />
+      <OutcomeTransformation />
       <ContrastBand>
         <div className="grid gap-3">
           <p className="mono-meta text-paper/70">What you get, and the catch</p>
@@ -74,6 +85,7 @@ export default function HowItWorksPage() {
           </p>
         </div>
       </ContrastBand>
+      <LandingFaq />
       <Section>
         <SectionHeader
           eyebrow="Rather set it up yourself?"
@@ -105,6 +117,7 @@ export default function HowItWorksPage() {
               description,
               steps: DFY_LAUNCH.steps,
             }),
+            faqPageSchema(ROUTES.howItWorks, FAQ_ITEMS),
             breadcrumbSchema([
               { name: "Home", path: ROUTES.home },
               { name: "How it works", path: ROUTES.howItWorks },

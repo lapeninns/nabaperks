@@ -389,3 +389,24 @@ test("Given the conversion landing When facts.ts is inspected Then the structura
     "the product moment carries exactly three beats"
   )
 })
+
+test("Given the research depth moved off the landing When how-it-works is inspected Then it owns the problem, features, outcome and FAQ", () => {
+  const howItWorks = readProjectFile("app", "how-it-works", "page.tsx")
+
+  for (const section of [
+    "ProblemPains",
+    "FeaturesListicle",
+    "OutcomeTransformation",
+    "LandingFaq",
+  ]) {
+    assert.match(
+      howItWorks,
+      new RegExp(`<${section}\\b`),
+      `${section} moved off the landing and must render on how-it-works`
+    )
+  }
+
+  // The FAQPage node has to live somewhere — it cannot be lost in transit.
+  assert.match(howItWorks, /faqPageSchema\(/)
+  assert.match(howItWorks, /FAQ_ITEMS/)
+})
