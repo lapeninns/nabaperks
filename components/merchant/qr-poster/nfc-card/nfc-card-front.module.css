@@ -165,22 +165,26 @@
 .tapSealWord {
   position: relative;
   z-index: 1;
+  width: 74%;
   margin: 0;
   font-size: clamp(10pt, 28cqmin, 14pt);
   font-weight: 800;
   letter-spacing: -0.04em;
   line-height: 0.9;
+  text-align: center;
   text-transform: uppercase;
 }
 
 .tapSealSub {
   position: relative;
   z-index: 1;
+  width: 80%;
   margin: 0;
   font-family: var(--font-space-mono), ui-monospace, monospace;
   font-size: 6.5pt;
   font-weight: 700;
   letter-spacing: 0.06em;
+  text-align: center;
   text-transform: uppercase;
   opacity: 0.95;
 }
