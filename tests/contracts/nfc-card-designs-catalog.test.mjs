@@ -9,7 +9,7 @@ const readProjectFile = (...segments) =>
 
 test("NFC card catalogue is a closed, production native-CR80 system", () => {
   const catalog = JSON.parse(readProjectFile("config", "nfc-card-designs.json"))
-  const expectedIds = ["tap"]
+  const expectedIds = ["tap", "google-review"]
 
   assert.equal(catalog.schema, "nabaperks.nfc-card-designs.v1")
   assert.deepEqual(
@@ -23,12 +23,12 @@ test("NFC card catalogue is a closed, production native-CR80 system", () => {
       "Reusable tap-and-scan cards for counters, tills and guest hand-out.",
     format: "cr80-nfc",
     sheet: "cr80",
-    revision: 4,
+    revision: 5,
   })
   assert.ok(catalog.designs.every(({ rollout }) => rollout === "production"))
   assert.equal(
     catalog.product.kitSummary,
-    "One two-sided NFC card ready to print."
+    "Two two-sided NFC cards ready to print."
   )
   assert.equal("cutLabel" in catalog.shared, false)
 })
@@ -41,6 +41,7 @@ test("NFC card geometry is native CR80 pages (not A4 imposition)", () => {
     cornerRadiusMm: 2.8,
     frameInsetMm: 0.45,
     qrOuterMm: 18,
+    googleReviewQrOuterMm: 20,
   })
   assert.equal(catalog.shared.geometry.a4, undefined)
 })
@@ -76,4 +77,10 @@ test("NFC card copy stays honest to the join funnel", () => {
     tap.back.steps.map(({ title }) => title),
     ["Tap", "Join", "Return"]
   )
+  const review = catalog.designs[1]
+  assert.equal(review.front.brandName, "Loved Your Visit?")
+  assert.deepEqual(review.front.flow, ["Tap", "Rate", "Post"])
+  assert.match(review.description, /Google review page/i)
+  assert.match(review.front.stampCue, /\{locality\}/)
+  assert.doesNotMatch(JSON.stringify(review), /Girton/)
 })

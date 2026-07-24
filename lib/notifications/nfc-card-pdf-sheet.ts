@@ -13,6 +13,7 @@ import {
   standardFontText,
 } from "./poster-pdf-style"
 import type { PdfFonts } from "./poster-pdf-types"
+import { drawGoogleReviewCardPages } from "./google-review-nfc-pdf"
 
 /** Catalogue type floor — nothing on the CR80 die may render below this. */
 const TYPE_FLOOR = 6.5
@@ -27,14 +28,31 @@ export function drawNfcCardCr80Pages(
   stampsRequired: number,
   qrModules: BitMatrix,
   fonts: PdfFonts,
-  retainFonts: (page: PDFPage) => void
+  retainFonts: (page: PDFPage) => void,
+  locality?: string | null
 ): void {
-  const content = resolveNfcCardContent(design, stampsRequired)
   const venue = merchantName.trim()
+  const content = resolveNfcCardContent(
+    design,
+    stampsRequired,
+    locality?.trim() || venue
+  )
   const pageSize: [number, number] = [
     mm(content.geometry.cardWidthMm),
     mm(content.geometry.cardHeightMm),
   ]
+
+  if (design === "google-review") {
+    drawGoogleReviewCardPages({
+      document,
+      content,
+      venue,
+      qrModules,
+      fonts,
+      retainFonts,
+    })
+    return
+  }
 
   const front = document.addPage(pageSize)
   retainFonts(front)

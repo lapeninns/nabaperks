@@ -18,7 +18,10 @@ const SQUARE_PT = (100 * 72) / 25.4
 test("NFC square bundle builds one valid 100×100 mm PDF for every production design", async () => {
   const attachments = await buildNfcSquarePdfAttachments({
     merchantName: "Old Crown Girton",
+    locality: "Girton",
     shareUrl: "https://nabaperks.com/q/abc123",
+    googleReviewUrl:
+      "https://search.google.com/local/writereview?placeid=ChIJ-example",
     stampsRequired: 5,
   })
 
@@ -47,10 +50,24 @@ test("NFC square PDFs tolerate unusual venue glyphs", async () => {
   const attachments = await buildAllNfcSquarePdfAttachments({
     merchantName: "Dragon 🐉 Pub",
     shareUrl: "https://nabaperks.com/q/dragon",
+    googleReviewUrl:
+      "https://search.google.com/local/writereview?placeid=ChIJ-dragon",
     stampsRequired: 3,
   })
   assert.equal(attachments.length, NFC_SQUARE_DESIGN_IDS.length)
   for (const attachment of attachments) {
     assert.match(attachment.content, /^JVBERi0/)
   }
+})
+
+test("NFC square bundle omits the review plate without a valid review URL", async () => {
+  const attachments = await buildNfcSquarePdfAttachments({
+    merchantName: "Old Crown Girton",
+    shareUrl: "https://nabaperks.com/q/abc123",
+    stampsRequired: 3,
+  })
+  assert.deepEqual(
+    attachments.map(({ filename }) => filename),
+    ["nabaperks-nfc-square-tap.pdf"]
+  )
 })

@@ -10,7 +10,7 @@ import {
 } from "@/lib/qr/nfc-card-templates"
 
 test("registered NFC cards validate and resolve metadata", () => {
-  assert.equal(NFC_CARD_DESIGN_IDS.length, 1)
+  assert.equal(NFC_CARD_DESIGN_IDS.length, 2)
   for (const id of NFC_CARD_DESIGN_IDS) {
     assert.ok(isNfcCardDesignId(id))
     const design = getNfcCardDesign(id)
@@ -26,7 +26,7 @@ test("registered NFC cards validate and resolve metadata", () => {
 test("the NFC card kit is in the production rotation", () => {
   assert.deepEqual(
     NFC_CARD_PRODUCTION_DESIGNS.map(({ id }) => id),
-    ["tap"]
+    ["tap", "google-review"]
   )
   assert.equal(NFC_CARD_PRODUCTION_DESIGNS.length, NFC_CARD_DESIGNS.length)
 })

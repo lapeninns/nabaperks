@@ -18,6 +18,7 @@ type A4NfcCardProps = {
   readonly design: NfcCardDesignId
   readonly qrDataUrl: string
   readonly merchantName: string
+  readonly locality?: string | null
   readonly stampsRequired: number
   readonly backHref?: string
 }
@@ -26,6 +27,7 @@ export function A4NfcCard({
   design,
   qrDataUrl,
   merchantName,
+  locality,
   stampsRequired,
   backHref,
 }: A4NfcCardProps) {
@@ -70,6 +72,7 @@ export function A4NfcCard({
             design={design}
             qrDataUrl={qrDataUrl}
             merchantName={merchantName}
+            locality={locality}
             stampsRequired={stampsRequired}
           />
         </div>

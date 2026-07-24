@@ -1,6 +1,10 @@
 import { resolveNfcCardContent } from "@/lib/qr/nfc-card-content"
 import type { NfcCardDesignId } from "@/lib/qr/nfc-card-templates"
 
+import {
+  GoogleReviewCardBack,
+  GoogleReviewCardFront,
+} from "./google-review-card"
 import { NfcCardBack } from "./nfc-card-back"
 import { NfcCardFront } from "./nfc-card-front"
 import styles from "./nfc-card-sheet.module.css"
@@ -9,6 +13,7 @@ type NfcCardSheetProps = {
   readonly design: NfcCardDesignId
   readonly qrDataUrl: string
   readonly merchantName: string
+  readonly locality?: string | null
   readonly stampsRequired: number
 }
 
@@ -20,14 +25,20 @@ export function NfcCardSheet({
   design,
   qrDataUrl,
   merchantName,
+  locality,
   stampsRequired,
 }: NfcCardSheetProps) {
-  const content = resolveNfcCardContent(design, stampsRequired)
   const venue = merchantName.trim()
+  const content = resolveNfcCardContent(
+    design,
+    stampsRequired,
+    locality?.trim() || venue
+  )
   const faceStyle = {
     width: `${content.geometry.cardWidthMm}mm`,
     height: `${content.geometry.cardHeightMm}mm`,
   }
+  const isGoogleReview = design === "google-review"
 
   return (
     <div className={styles.deck} data-design={design}>
@@ -36,14 +47,30 @@ export function NfcCardSheet({
         style={faceStyle}
         aria-label="NFC card front"
       >
-        <NfcCardFront content={content} venue={venue} qrDataUrl={qrDataUrl} />
+        {isGoogleReview ? (
+          <GoogleReviewCardFront
+            content={content}
+            venue={venue}
+            qrDataUrl={qrDataUrl}
+          />
+        ) : (
+          <NfcCardFront content={content} venue={venue} qrDataUrl={qrDataUrl} />
+        )}
       </section>
       <section
         className={styles.face}
         style={faceStyle}
         aria-label="NFC card back"
       >
-        <NfcCardBack content={content} venue={venue} />
+        {isGoogleReview ? (
+          <GoogleReviewCardBack
+            content={content}
+            venue={venue}
+            qrDataUrl={qrDataUrl}
+          />
+        ) : (
+          <NfcCardBack content={content} venue={venue} />
+        )}
       </section>
     </div>
   )

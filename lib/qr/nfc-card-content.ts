@@ -42,7 +42,8 @@ export {
 
 function resolveFront(
   designId: NfcCardDesignId,
-  stampsRequired: number
+  stampsRequired: number,
+  locality?: string
 ): NfcCardFrontContent {
   const record = requireRecordField(
     nfcCardDesignRecord(designId),
@@ -53,7 +54,8 @@ function resolveFront(
   return {
     brandEyebrow: resolveNfcCardText(
       requireString(record, "brandEyebrow", path),
-      stampsRequired
+      stampsRequired,
+      locality
     ),
     brandName: resolveNfcCardText(
       requireString(record, "brandName", path),
@@ -69,7 +71,8 @@ function resolveFront(
     ),
     stampCue: resolveNfcCardText(
       requireString(record, "stampCue", path),
-      stampsRequired
+      stampsRequired,
+      locality
     ),
     claimKicker: resolveNfcCardText(
       requireString(record, "claimKicker", path),
@@ -87,7 +90,8 @@ function resolveFront(
 
 function resolveBack(
   designId: NfcCardDesignId,
-  stampsRequired: number
+  stampsRequired: number,
+  locality?: string
 ): NfcCardBackContent {
   const record = requireRecordField(
     nfcCardDesignRecord(designId),
@@ -113,7 +117,8 @@ function resolveBack(
   return {
     strap: resolveNfcCardText(
       requireString(record, "strap", path),
-      stampsRequired
+      stampsRequired,
+      locality
     ),
     badge: resolveNfcCardText(
       requireString(record, "badge", path),
@@ -156,7 +161,8 @@ function nfcCardContentBase(): NfcCardContentBase {
 
 export function resolveNfcCardContent(
   designId: NfcCardDesignId,
-  stampsRequired: number
+  stampsRequired: number,
+  locality?: string
 ): NfcCardContent {
   const stamps = validateNfcCardStamps(stampsRequired)
   const metadata = nfcCardDesignMetadata(designId)
@@ -165,8 +171,8 @@ export function resolveNfcCardContent(
     id: designId,
     name: metadata.name,
     stampsRequired: stamps,
-    front: resolveFront(designId, stamps),
-    back: resolveBack(designId, stamps),
+    front: resolveFront(designId, stamps, locality),
+    back: resolveBack(designId, stamps, locality),
   }
 }
 

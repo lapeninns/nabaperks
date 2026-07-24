@@ -14,9 +14,11 @@ export async function renderNfcCardPdf(
   design: NfcCardDesignId,
   merchantName: string,
   stampsRequired: number,
-  qrModules: BitMatrix
+  qrModules: BitMatrix,
+  locality?: string | null
 ): Promise<string> {
-  resolveNfcCardContent(design, stampsRequired)
+  const reviewLocality = locality?.trim() || merchantName
+  resolveNfcCardContent(design, stampsRequired, reviewLocality)
   const { document, fonts } = await createPosterDocument(
     `Nabaperks ${design} NFC card for ${merchantName}`,
     "CR80 NFC card — front and back at 85.5 × 54 mm"
@@ -28,7 +30,8 @@ export async function renderNfcCardPdf(
     stampsRequired,
     qrModules,
     fonts,
-    (page) => retainPosterFontPrograms(page, fonts)
+    (page) => retainPosterFontPrograms(page, fonts),
+    reviewLocality
   )
   return savePosterDocument(document)
 }

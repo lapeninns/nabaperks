@@ -10,7 +10,7 @@ import {
 } from "@/lib/qr/nfc-square-templates"
 
 test("registered NFC squares validate and resolve metadata", () => {
-  assert.equal(NFC_SQUARE_DESIGN_IDS.length, 1)
+  assert.equal(NFC_SQUARE_DESIGN_IDS.length, 2)
   for (const id of NFC_SQUARE_DESIGN_IDS) {
     assert.ok(isNfcSquareDesignId(id))
     const design = getNfcSquareDesign(id)
@@ -26,7 +26,7 @@ test("registered NFC squares validate and resolve metadata", () => {
 test("the NFC square kit is in the production rotation", () => {
   assert.deepEqual(
     NFC_SQUARE_PRODUCTION_DESIGNS.map(({ id }) => id),
-    ["tap"]
+    ["tap", "google-review"]
   )
   assert.equal(NFC_SQUARE_PRODUCTION_DESIGNS.length, NFC_SQUARE_DESIGNS.length)
 })

@@ -1,0 +1,189 @@
+.plate {
+  --google-blue: #1a73e8;
+  --google-blue-deep: #1557b0;
+  --google-gold: #fbbc04;
+  --google-gold-deep: #e37400;
+  --review-cream: #f7f1e8;
+  --review-ink: #1c1917;
+  --review-soft: #57534e;
+  --review-faint: #6b6259;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 0.26mm solid #d8cdbc;
+  border-radius: 3.5mm;
+  background: var(--review-cream);
+  color: var(--review-ink);
+  font-family: var(--font-bricolage-grotesque), Arial, sans-serif;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.paperZone {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 50%;
+  min-height: 0;
+  padding: 4mm 6.5mm 10.5mm;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.45mm;
+  text-align: center;
+}
+
+.eyebrow,
+.lede {
+  margin: 0;
+}
+
+.eyebrow {
+  color: var(--google-blue);
+  font-size: 8.5pt;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.paperZone h2 {
+  max-width: 88mm;
+  margin: 0;
+  color: var(--review-ink);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 23pt;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.02;
+}
+
+.paperZone h2 em {
+  color: var(--google-blue);
+  font-style: italic;
+  font-weight: inherit;
+}
+
+.lede {
+  max-width: 84mm;
+  color: var(--review-soft);
+  font-size: 9pt;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+.googleBadge {
+  position: absolute;
+  right: auto;
+  bottom: -4mm;
+  left: 50%;
+  width: 18mm;
+  height: 18mm;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(28, 25, 23, 0.22);
+  transform: translateX(-50%);
+}
+
+.googleBadge svg {
+  width: 11.2mm;
+  height: 11.2mm;
+}
+
+.tapStage {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 50%;
+  min-height: 0;
+  padding: 6.7mm 6mm 3mm;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.1mm;
+  background: var(--google-blue);
+}
+
+.stageAction {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.1mm;
+}
+
+.stars {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6mm;
+}
+
+.stars svg {
+  width: 5.2mm;
+  height: 5.2mm;
+}
+
+.tapButton {
+  width: 70mm;
+  min-height: 11.5mm;
+  margin: 0;
+  padding: 0 8mm;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2mm;
+  border: 0.25mm solid var(--google-gold-deep);
+  border-radius: 999px;
+  background: var(--google-gold);
+  box-shadow:
+    0 2px 0 var(--google-gold-deep),
+    0 3px 8px rgba(0, 0, 0, 0.22);
+  color: var(--review-ink);
+  font-size: 14pt;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tapButton svg {
+  width: 5mm;
+  height: 5mm;
+}
+
+.fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2.8mm;
+}
+
+.fallback > span {
+  max-width: 40mm;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 7.5pt;
+  font-weight: 400;
+  line-height: 1.25;
+  text-align: right;
+}
+
+.qrShell {
+  width: 20mm;
+  padding: 1mm;
+  flex: none;
+  border-radius: 1.6mm;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(21, 87, 176, 0.3);
+}
+
+.qrShell img {
+  display: block;
+  width: 100%;
+  height: auto;
+}

@@ -34,11 +34,13 @@ function numberWord(stampsRequired: number): string {
 
 export function resolveNfcCardText(
   value: string,
-  stampsRequired: number
+  stampsRequired: number,
+  locality?: string
 ): string {
   const stamps = validateNfcCardStamps(stampsRequired)
   const resolved = value.replace(PLACEHOLDER_PATTERN, (token, name: string) => {
     if (name === "stamps") return String(stamps)
+    if (name === "locality") return locality?.trim() || "this area"
     if (name === "StampsWord") {
       const word = numberWord(stamps)
       return word.charAt(0).toUpperCase() + word.slice(1)
@@ -88,6 +90,7 @@ export function nfcCardGeometry(): NfcCardGeometry {
     cornerRadiusMm: requireNumber(cr80, "cornerRadiusMm", path),
     frameInsetMm: requireNumber(cr80, "frameInsetMm", path),
     qrOuterMm: requireNumber(cr80, "qrOuterMm", path),
+    googleReviewQrOuterMm: requireNumber(cr80, "googleReviewQrOuterMm", path),
   }
 }
 

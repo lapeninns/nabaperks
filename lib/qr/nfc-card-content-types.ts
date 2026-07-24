@@ -1,4 +1,4 @@
-export type NfcCardDesignId = "tap"
+export type NfcCardDesignId = "tap" | "google-review"
 
 export type NfcCardRollout = "production" | "review" | "experimental"
 
@@ -17,6 +17,7 @@ export type NfcCardGeometry = {
   readonly cornerRadiusMm: number
   readonly frameInsetMm: number
   readonly qrOuterMm: number
+  readonly googleReviewQrOuterMm: number
 }
 
 export type NfcCardQrModel = {

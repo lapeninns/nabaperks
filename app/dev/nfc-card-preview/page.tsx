@@ -4,9 +4,11 @@ import { headers } from "next/headers"
 import { A4NfcCard } from "@/components/merchant/qr-poster/nfc-card/a4-nfc-card"
 import { renderPosterQrCodePng } from "@/lib/qr/assets"
 import { appendQrShareChannel } from "@/lib/qr/nfc-card-share-url"
+import { resolveNfcDestination } from "@/lib/qr/nfc-destination"
 import {
   getNfcCardDesign,
   NFC_CARD_DESIGN_IDS,
+  type NfcCardDesignId,
 } from "@/lib/qr/nfc-card-templates"
 
 export const runtime = "nodejs"
@@ -15,16 +17,21 @@ export const dynamic = "force-dynamic"
 type NfcCardPreviewPageProps = {
   readonly searchParams: Promise<{
     readonly design?: string | readonly string[]
+    readonly locality?: string | readonly string[]
     readonly qr?: string | readonly string[]
+    readonly review?: string | readonly string[]
     readonly venue?: string | readonly string[]
     readonly stamps?: string | readonly string[]
   }>
 }
 
 const PREVIEW_DEFAULTS = {
+  locality: "Girton",
   merchantName: "Old Crown Girton",
   stampsRequired: 3,
   sharePath: "old-crown-girton",
+  googleReviewUrl:
+    "https://search.google.com/local/writereview?placeid=ChIJr-Lmrdt22EcRpM90SQtZug4",
 }
 
 export default async function NfcCardPreviewPage({
@@ -40,6 +47,9 @@ export default async function NfcCardPreviewPage({
   const merchantName =
     firstSearchValue(query.venue)?.trim().slice(0, 120) ||
     PREVIEW_DEFAULTS.merchantName
+  const locality =
+    firstSearchValue(query.locality)?.trim().slice(0, 120) ||
+    PREVIEW_DEFAULTS.locality
   const stampsRequired = previewStamps(firstSearchValue(query.stamps))
   const requestHeaders = await headers()
   const host =
@@ -47,27 +57,54 @@ export default async function NfcCardPreviewPage({
   const protocol = requestHeaders.get("x-forwarded-proto") ?? "http"
   const origin = host ? `${protocol}://${host}` : "http://127.0.0.1:3146"
   const shareUrl = appendQrShareChannel(`${origin}/q/${sharePath}`, "qr")
-  const png = await renderPosterQrCodePng(shareUrl, 900)
-  const qrDataUrl = `data:image/png;base64,${png.toString("base64")}`
+  const googleReviewUrl =
+    firstSearchValue(query.review) ?? PREVIEW_DEFAULTS.googleReviewUrl
 
-  const cardProps = { qrDataUrl, merchantName, stampsRequired }
+  async function renderCard(design: NfcCardDesignId) {
+    const destinationUrl = resolveNfcDestination({
+      designId: design,
+      joinUrl: shareUrl,
+      googleReviewUrl,
+    })
+    if (!destinationUrl) {
+      throw new Error("Preview Google review URL is invalid")
+    }
+    const png = await renderPosterQrCodePng(destinationUrl, 900)
+    const qrDataUrl = `data:image/png;base64,${png.toString("base64")}`
+    return (
+      <A4NfcCard
+        design={design}
+        qrDataUrl={qrDataUrl}
+        merchantName={merchantName}
+        locality={locality}
+        stampsRequired={stampsRequired}
+      />
+    )
+  }
 
   if (designParam) {
     const design = getNfcCardDesign(designParam)
     if (!design) {
       notFound()
     }
-    return <A4NfcCard design={design.id} {...cardProps} />
+    return renderCard(design.id)
   }
+
+  const cards = await Promise.all(
+    NFC_CARD_DESIGN_IDS.map(async (design) => ({
+      design,
+      card: await renderCard(design),
+    }))
+  )
 
   return (
     <div className="grid gap-16 bg-[var(--w-paper)] py-10">
-      {NFC_CARD_DESIGN_IDS.map((design) => (
+      {cards.map(({ design, card }) => (
         <section key={design} className="grid gap-3">
           <p className="text-center font-mono text-xs font-bold tracking-[0.16em] text-[var(--w-ink-soft)] uppercase">
             {getNfcCardDesign(design)?.name ?? design} NFC card
           </p>
-          <A4NfcCard design={design} {...cardProps} />
+          {card}
         </section>
       ))}
     </div>

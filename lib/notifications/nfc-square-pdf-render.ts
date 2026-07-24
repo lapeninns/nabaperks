@@ -14,9 +14,11 @@ export async function renderNfcSquarePdf(
   design: NfcSquareDesignId,
   merchantName: string,
   stampsRequired: number,
-  qrModules: BitMatrix
+  qrModules: BitMatrix,
+  locality?: string | null
 ): Promise<string> {
-  resolveNfcSquareContent(design, stampsRequired)
+  const reviewLocality = locality?.trim() || merchantName
+  resolveNfcSquareContent(design, stampsRequired, reviewLocality)
   const { document, fonts } = await createPosterDocument(
     `Nabaperks ${design} square NFC plate for ${merchantName}`,
     "100×100 mm one-sided wall NFC plate"
@@ -28,7 +30,8 @@ export async function renderNfcSquarePdf(
     stampsRequired,
     qrModules,
     fonts,
-    (page) => retainPosterFontPrograms(page, fonts)
+    (page) => retainPosterFontPrograms(page, fonts),
+    reviewLocality
   )
   return savePosterDocument(document)
 }

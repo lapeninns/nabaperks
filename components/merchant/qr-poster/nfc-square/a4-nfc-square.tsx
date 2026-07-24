@@ -18,6 +18,7 @@ type A4NfcSquareProps = {
   readonly design: NfcSquareDesignId
   readonly qrDataUrl: string
   readonly merchantName: string
+  readonly locality?: string | null
   readonly stampsRequired: number
   readonly backHref?: string
 }
@@ -26,6 +27,7 @@ export function A4NfcSquare({
   design,
   qrDataUrl,
   merchantName,
+  locality,
   stampsRequired,
   backHref,
 }: A4NfcSquareProps) {
@@ -70,6 +72,7 @@ export function A4NfcSquare({
             design={design}
             qrDataUrl={qrDataUrl}
             merchantName={merchantName}
+            locality={locality}
             stampsRequired={stampsRequired}
           />
         </div>

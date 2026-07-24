@@ -15,7 +15,10 @@ import type {
 
 type JsonRecord = Record<string, unknown>
 
-const NFC_SQUARE_DESIGN_ID_VALUES: readonly NfcSquareDesignId[] = ["tap"]
+const NFC_SQUARE_DESIGN_ID_VALUES: readonly NfcSquareDesignId[] = [
+  "tap",
+  "google-review",
+]
 
 let parsedCatalogue: JsonRecord | undefined
 
@@ -75,7 +78,7 @@ export function nfcSquareDesignIds(): readonly NfcSquareDesignId[] {
     ids.length !== NFC_SQUARE_DESIGN_ID_VALUES.length ||
     new Set(ids).size !== ids.length
   ) {
-    throw new Error("NFC square catalogue must contain one unique design")
+    throw new Error("NFC square catalogue must contain every unique design")
   }
   return ids
 }
