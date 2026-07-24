@@ -85,6 +85,7 @@ function drawCardFront(
   const height = mm(content.geometry.cardHeightMm)
   const stageHeight = height * 0.39
   const { front } = content
+  const [headlineLead, headlineAccent] = splitTrailingWords(front.brandName, 1)
 
   drawBase(page, width, height)
   page.drawRectangle({
@@ -106,8 +107,8 @@ function drawCardFront(
   )
   drawMixedCentered(
     page,
-    "Loved Your ",
-    "Pint in Girton?",
+    headlineLead,
+    headlineAccent,
     height - mm(12.7),
     fonts.bold,
     15.5,
@@ -161,15 +162,12 @@ function drawCardBack(
     height: headerHeight,
     color: REVIEW_COLOR.blue,
   })
-  const strapSuffix = "Your Girton Local"
-  const strapLines = back.strap.endsWith(strapSuffix)
-    ? [back.strap.slice(0, -strapSuffix.length).trim(), strapSuffix]
-    : splitAtWidth(
-        standardFontText(back.strap, fonts.bold),
-        fonts.bold,
-        10.5,
-        width - mm(15)
-      ).slice(0, 2)
+  const strapLines = splitAtWidth(
+    standardFontText(back.strap, fonts.bold),
+    fonts.bold,
+    10.5,
+    width - mm(15)
+  ).slice(0, 2)
   strapLines.forEach((line, index) => {
     drawCentered(
       page,
@@ -288,6 +286,7 @@ export function drawGoogleReviewPlate({
   const stageHeight = height * 0.5
   const paperHeight = height - stageHeight
   const { front } = content
+  const [headlineLead, headlineAccent] = splitTrailingWords(front.brandName, 2)
 
   drawBase(page, width, height)
   page.drawRectangle({
@@ -309,7 +308,7 @@ export function drawGoogleReviewPlate({
   )
   drawCentered(
     page,
-    "Drop a Quick",
+    headlineLead,
     0,
     width,
     height - mm(17.5),
@@ -319,7 +318,7 @@ export function drawGoogleReviewPlate({
   )
   drawCentered(
     page,
-    "Google Review.",
+    headlineAccent,
     0,
     width,
     height - mm(25.5),
@@ -575,6 +574,15 @@ function drawMixedCentered(
   const x = (width - firstWidth - gap - secondWidth) / 2
   drawText(page, firstText, x, y, font, size, firstColor)
   drawText(page, secondText, x + firstWidth + gap, y, font, size, secondColor)
+}
+
+function splitTrailingWords(
+  value: string,
+  count: number
+): readonly [string, string] {
+  const words = value.trim().split(/\s+/)
+  const splitAt = Math.max(1, words.length - count)
+  return [words.slice(0, splitAt).join(" "), words.slice(splitAt).join(" ")]
 }
 
 function drawCenteredWrapped(

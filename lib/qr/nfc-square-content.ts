@@ -35,7 +35,8 @@ export {
 
 function resolveFront(
   designId: NfcSquareDesignId,
-  stampsRequired: number
+  stampsRequired: number,
+  locality?: string
 ): NfcSquareFrontContent {
   const record = requireRecordField(
     nfcSquareDesignRecord(designId),
@@ -53,7 +54,8 @@ function resolveFront(
   return {
     brandEyebrow: resolveNfcSquareText(
       requireString(record, "brandEyebrow", path),
-      stampsRequired
+      stampsRequired,
+      locality
     ),
     brandName: resolveNfcSquareText(
       requireString(record, "brandName", path),
@@ -69,7 +71,8 @@ function resolveFront(
     ),
     claimLine: resolveNfcSquareText(
       requireString(record, "claimLine", path),
-      stampsRequired
+      stampsRequired,
+      locality
     ),
     mysteryKicker: resolveNfcSquareText(
       requireString(record, "mysteryKicker", path),
@@ -100,7 +103,8 @@ function nfcSquareContentBase(): NfcSquareContentBase {
 
 export function resolveNfcSquareContent(
   designId: NfcSquareDesignId,
-  stampsRequired: number
+  stampsRequired: number,
+  locality?: string
 ): NfcSquareContent {
   const stamps = validateNfcSquareStamps(stampsRequired)
   const metadata = nfcSquareDesignMetadata(designId)
@@ -109,7 +113,7 @@ export function resolveNfcSquareContent(
     id: designId,
     name: metadata.name,
     stampsRequired: stamps,
-    front: resolveFront(designId, stamps),
+    front: resolveFront(designId, stamps, locality),
   }
 }
 

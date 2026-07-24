@@ -78,7 +78,9 @@ test("NFC card copy stays honest to the join funnel", () => {
     ["Tap", "Join", "Return"]
   )
   const review = catalog.designs[1]
-  assert.equal(review.front.brandName, "Loved Your Pint in Girton?")
+  assert.equal(review.front.brandName, "Loved Your Visit?")
   assert.deepEqual(review.front.flow, ["Tap", "Rate", "Post"])
   assert.match(review.description, /Google review page/i)
+  assert.match(review.front.stampCue, /\{locality\}/)
+  assert.doesNotMatch(JSON.stringify(review), /Girton/)
 })

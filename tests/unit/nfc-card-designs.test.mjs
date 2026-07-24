@@ -90,3 +90,12 @@ test("NFC card share URLs tag the scan channel for analytics", async () => {
     appendQrShareChannel("https://nabaperks.com/q/abc", "poster")
   )
 })
+
+test("Google Review card copy resolves the stored locality", () => {
+  const content = resolveNfcCardContent("google-review", 3, "Sawtry")
+
+  assert.match(content.front.brandEyebrow, /Sawtry/)
+  assert.match(content.front.stampCue, /Sawtry/)
+  assert.match(content.back.strap, /Sawtry/)
+  assert.doesNotMatch(JSON.stringify(content), /Girton/)
+})

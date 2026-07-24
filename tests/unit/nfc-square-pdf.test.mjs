@@ -18,6 +18,7 @@ const SQUARE_PT = (100 * 72) / 25.4
 test("NFC square bundle builds one valid 100×100 mm PDF for every production design", async () => {
   const attachments = await buildNfcSquarePdfAttachments({
     merchantName: "Old Crown Girton",
+    locality: "Girton",
     shareUrl: "https://nabaperks.com/q/abc123",
     googleReviewUrl:
       "https://search.google.com/local/writereview?placeid=ChIJ-example",

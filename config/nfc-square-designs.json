@@ -107,11 +107,11 @@
       "useCase": "Wall, counter or till Google review point",
       "tone": "native-google-local",
       "front": {
-        "brandEyebrow": "Back Your Girton Local",
+        "brandEyebrow": "Support {locality}",
         "brandName": "Drop a Quick Google Review.",
         "tapWord": "Tap to review",
         "tapSub": "Or point your camera at the QR code.",
-        "claimLine": "Got 10 seconds? Tap your phone below to rate your experience. Your review means the world to our staff and helps outsiders find Girton’s best pub.",
+        "claimLine": "Got 10 seconds? Tap below to rate your experience and help more people discover a local venue in {locality}.",
         "mysteryKicker": "No Tap?",
         "mysteryAccent": "Scan to review",
         "flow": ["Tap", "Rate", "Post"]

@@ -9,6 +9,7 @@ type NfcSquareSheetProps = {
   readonly design: NfcSquareDesignId
   readonly qrDataUrl: string
   readonly merchantName: string
+  readonly locality?: string | null
   readonly stampsRequired: number
 }
 
@@ -19,10 +20,15 @@ export function NfcSquareSheet({
   design,
   qrDataUrl,
   merchantName,
+  locality,
   stampsRequired,
 }: NfcSquareSheetProps) {
-  const content = resolveNfcSquareContent(design, stampsRequired)
   const venue = merchantName.trim()
+  const content = resolveNfcSquareContent(
+    design,
+    stampsRequired,
+    locality?.trim() || venue
+  )
   const faceStyle = {
     width: `${content.geometry.cardWidthMm}mm`,
     height: `${content.geometry.cardHeightMm}mm`,

@@ -17,6 +17,7 @@ export const dynamic = "force-dynamic"
 type NfcSquarePreviewPageProps = {
   readonly searchParams: Promise<{
     readonly design?: string | readonly string[]
+    readonly locality?: string | readonly string[]
     readonly qr?: string | readonly string[]
     readonly review?: string | readonly string[]
     readonly venue?: string | readonly string[]
@@ -25,6 +26,7 @@ type NfcSquarePreviewPageProps = {
 }
 
 const PREVIEW_DEFAULTS = {
+  locality: "Girton",
   merchantName: "Old Crown Girton",
   stampsRequired: 3,
   sharePath: "old-crown-girton",
@@ -45,6 +47,9 @@ export default async function NfcSquarePreviewPage({
   const merchantName =
     firstSearchValue(query.venue)?.trim().slice(0, 120) ||
     PREVIEW_DEFAULTS.merchantName
+  const locality =
+    firstSearchValue(query.locality)?.trim().slice(0, 120) ||
+    PREVIEW_DEFAULTS.locality
   const stampsRequired = previewStamps(firstSearchValue(query.stamps))
   const requestHeaders = await headers()
   const host =
@@ -71,6 +76,7 @@ export default async function NfcSquarePreviewPage({
         design={design}
         qrDataUrl={qrDataUrl}
         merchantName={merchantName}
+        locality={locality}
         stampsRequired={stampsRequired}
       />
     )

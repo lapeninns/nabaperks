@@ -28,10 +28,15 @@ export function drawNfcCardCr80Pages(
   stampsRequired: number,
   qrModules: BitMatrix,
   fonts: PdfFonts,
-  retainFonts: (page: PDFPage) => void
+  retainFonts: (page: PDFPage) => void,
+  locality?: string | null
 ): void {
-  const content = resolveNfcCardContent(design, stampsRequired)
   const venue = merchantName.trim()
+  const content = resolveNfcCardContent(
+    design,
+    stampsRequired,
+    locality?.trim() || venue
+  )
   const pageSize: [number, number] = [
     mm(content.geometry.cardWidthMm),
     mm(content.geometry.cardHeightMm),

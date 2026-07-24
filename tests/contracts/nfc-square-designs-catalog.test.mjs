@@ -75,4 +75,6 @@ test("NFC square copy stays honest — no free-stamp claims", () => {
   const review = catalog.designs.find(({ id }) => id === "google-review")
   assert.equal(review.front.brandName, "Drop a Quick Google Review.")
   assert.deepEqual(review.front.flow, ["Tap", "Rate", "Post"])
+  assert.match(review.front.claimLine, /\{locality\}/)
+  assert.doesNotMatch(JSON.stringify(review), /Girton/)
 })

@@ -49,3 +49,17 @@ test("buildPosterEmailContent HTML-escapes the merchant-controlled venue name", 
   // Plain-text part keeps the literal name.
   assert.ok(text.includes('Bob & "Sons" <Bar>'))
 })
+
+test("buildPosterEmailContent omits review-chip setup without review PDFs", () => {
+  const { text, html } = buildPosterEmailContent({
+    ...INPUT,
+    nfcCount: 1,
+    nfcSquareCount: 1,
+    hasGoogleReviewNfc: false,
+  })
+
+  for (const part of [text, html]) {
+    assert.match(part, /loyalty NFC chips/i)
+    assert.doesNotMatch(part, /Google Review NFC chips/i)
+  }
+})

@@ -27,10 +27,15 @@ export function drawNfcSquarePage(
   stampsRequired: number,
   qrModules: BitMatrix,
   fonts: PdfFonts,
-  retainFonts: (page: PDFPage) => void
+  retainFonts: (page: PDFPage) => void,
+  locality?: string | null
 ): void {
-  const content = resolveNfcSquareContent(design, stampsRequired)
   const venue = merchantName.trim()
+  const content = resolveNfcSquareContent(
+    design,
+    stampsRequired,
+    locality?.trim() || venue
+  )
   const pageSize: [number, number] = [
     mm(content.geometry.cardWidthMm),
     mm(content.geometry.cardHeightMm),

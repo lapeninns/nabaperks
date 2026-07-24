@@ -9,11 +9,21 @@ type GoogleReviewCardProps = {
   readonly qrDataUrl: string
 }
 
+function splitTrailingWords(value: string, count: number) {
+  const words = value.trim().split(/\s+/)
+  const splitAt = Math.max(1, words.length - count)
+  return {
+    lead: words.slice(0, splitAt).join(" "),
+    accent: words.slice(splitAt).join(" "),
+  }
+}
+
 export function GoogleReviewCardFront({
   content,
   venue,
 }: GoogleReviewCardProps) {
   const { front } = content
+  const headline = splitTrailingWords(front.brandName, 1)
 
   return (
     <article
@@ -24,7 +34,7 @@ export function GoogleReviewCardFront({
       <section className={styles.paperZone}>
         <p className={styles.eyebrow}>{front.brandEyebrow}</p>
         <h2>
-          Loved Your <em>Pint in Girton?</em>
+          {headline.lead} <em>{headline.accent}</em>
         </h2>
         <p className={styles.lede}>{front.stampCue}</p>
         <span className={styles.googleBadge} aria-hidden="true">
@@ -57,11 +67,7 @@ export function GoogleReviewCardBack({
       aria-label={`${venue} Google Review NFC card back`}
     >
       <header className={styles.blueStrip}>
-        <h2>
-          10 Seconds to Support
-          <br />
-          Your Girton Local
-        </h2>
+        <h2>{back.strap}</h2>
         <span className={styles.stripGoogle} aria-hidden="true">
           <GoogleGMark />
         </span>

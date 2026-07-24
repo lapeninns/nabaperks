@@ -75,6 +75,7 @@ export default async function QrNfcSquarePage({
       design={design.id}
       qrDataUrl={qrDataUrl}
       merchantName={qrContext.merchant.business_name}
+      locality={qrContext.merchant.locals}
       stampsRequired={qrContext.activeCard.stamps_required}
       backHref={backHref}
     />

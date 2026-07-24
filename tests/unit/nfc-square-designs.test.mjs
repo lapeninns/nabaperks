@@ -65,3 +65,11 @@ test("NFC squares share native 100×100 geometry and QR contract", () => {
     assert.equal(content.dieRule, "One stamp/UK date · 18+ to redeem")
   }
 })
+
+test("Google Review plate copy resolves the stored locality", () => {
+  const content = resolveNfcSquareContent("google-review", 3, "Sawtry")
+
+  assert.match(content.front.brandEyebrow, /Sawtry/)
+  assert.match(content.front.claimLine, /Sawtry/)
+  assert.doesNotMatch(JSON.stringify(content), /Girton/)
+})

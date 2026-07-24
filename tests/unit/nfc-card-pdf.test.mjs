@@ -15,6 +15,7 @@ import {
 test("NFC card bundle builds a two-page CR80 PDF for every production design", async () => {
   const attachments = await buildNfcCardPdfAttachments({
     merchantName: "Old Crown Girton",
+    locality: "Girton",
     shareUrl: "https://nabaperks.com/q/abc123",
     googleReviewUrl:
       "https://search.google.com/local/writereview?placeid=ChIJ-example",

@@ -9,12 +9,22 @@ type GoogleReviewSquareProps = {
   readonly qrDataUrl: string
 }
 
+function splitTrailingWords(value: string, count: number) {
+  const words = value.trim().split(/\s+/)
+  const splitAt = Math.max(1, words.length - count)
+  return {
+    lead: words.slice(0, splitAt).join(" "),
+    accent: words.slice(splitAt).join(" "),
+  }
+}
+
 export function GoogleReviewSquare({
   content,
   venue,
   qrDataUrl,
 }: GoogleReviewSquareProps) {
   const { front } = content
+  const headline = splitTrailingWords(front.brandName, 2)
 
   return (
     <article
@@ -25,7 +35,7 @@ export function GoogleReviewSquare({
       <section className={styles.paperZone}>
         <p className={styles.eyebrow}>{front.brandEyebrow}</p>
         <h2>
-          Drop a Quick <em>Google Review.</em>
+          {headline.lead} <em>{headline.accent}</em>
         </h2>
         <p className={styles.lede}>{front.claimLine}</p>
         <span className={styles.googleBadge} aria-hidden="true">

@@ -13,6 +13,7 @@ import { renderNfcSquarePdf } from "./nfc-square-pdf-render"
 
 export type NfcSquarePdfInput = {
   readonly merchantName: string
+  readonly locality?: string | null
   readonly shareUrl: string
   readonly googleReviewUrl?: string | null
   readonly stampsRequired: number
@@ -25,7 +26,13 @@ export type NfcSquarePdfAttachment = {
 
 async function renderAttachments(
   designs: readonly { readonly id: NfcSquareDesignId }[],
-  { merchantName, shareUrl, googleReviewUrl, stampsRequired }: NfcSquarePdfInput
+  {
+    merchantName,
+    locality,
+    shareUrl,
+    googleReviewUrl,
+    stampsRequired,
+  }: NfcSquarePdfInput
 ): Promise<readonly NfcSquarePdfAttachment[]> {
   const boundedMerchantName = merchantName.trim().slice(0, 120)
   const attachments = await Promise.all(
@@ -45,7 +52,8 @@ async function renderAttachments(
           id,
           boundedMerchantName,
           stampsRequired,
-          qrModules
+          qrModules,
+          locality
         ),
       }
     })

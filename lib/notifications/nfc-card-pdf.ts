@@ -13,6 +13,7 @@ import { renderNfcCardPdf } from "./nfc-card-pdf-render"
 
 export type NfcCardPdfInput = {
   readonly merchantName: string
+  readonly locality?: string | null
   readonly shareUrl: string
   readonly googleReviewUrl?: string | null
   readonly stampsRequired: number
@@ -25,7 +26,13 @@ export type NfcCardPdfAttachment = {
 
 async function renderAttachments(
   designs: readonly { readonly id: NfcCardDesignId }[],
-  { merchantName, shareUrl, googleReviewUrl, stampsRequired }: NfcCardPdfInput
+  {
+    merchantName,
+    locality,
+    shareUrl,
+    googleReviewUrl,
+    stampsRequired,
+  }: NfcCardPdfInput
 ): Promise<readonly NfcCardPdfAttachment[]> {
   const boundedMerchantName = merchantName.trim().slice(0, 120)
   const attachments = await Promise.all(
@@ -45,7 +52,8 @@ async function renderAttachments(
           id,
           boundedMerchantName,
           stampsRequired,
-          qrModules
+          qrModules,
+          locality
         ),
       }
     })

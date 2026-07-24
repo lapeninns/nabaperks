@@ -120,17 +120,17 @@
       "useCase": "Counter hand-out for honest Google reviews",
       "tone": "native-google-local",
       "front": {
-        "brandEyebrow": "A Quick Favor For Your Local",
-        "brandName": "Loved Your Pint in Girton?",
+        "brandEyebrow": "A Quick Favour for {locality}",
+        "brandName": "Loved Your Visit?",
         "tapWord": "Tap to review",
         "tapSub": "Hold your phone here",
-        "stampCue": "Local pubs survive on word-of-mouth. Tap your phone below to leave a quick Google review and help others find Girton’s best pub — it takes less than 10 seconds.",
+        "stampCue": "Help more people discover a local venue in {locality} — leave a quick Google review in less than 10 seconds.",
         "claimKicker": "No Tap?",
         "claimLine": "Scan to review",
         "flow": ["Tap", "Rate", "Post"]
       },
       "back": {
-        "strap": "10 Seconds to Support Your Girton Local",
+        "strap": "10 Seconds to Support {locality}",
         "badge": "No Tap?",
         "teaseLead": "Scan",
         "teaseAccent": "to review",
