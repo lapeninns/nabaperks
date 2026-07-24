@@ -61,27 +61,6 @@ export const metadata: Metadata = {
   description:
     "Done-for-you, no-app QR loyalty for single-site UK food-led pubs. One venue QR opens a browser card with measurable return visits. No setup fee.",
   manifest: "/manifest.webmanifest",
-  icons: {
-    icon: [
-      {
-        url: "/icons/nabaperks-icon-192.png",
-        sizes: "192x192",
-        type: "image/png",
-      },
-      {
-        url: "/icons/nabaperks-icon-512.png",
-        sizes: "512x512",
-        type: "image/png",
-      },
-    ],
-    apple: [
-      {
-        url: "/icons/nabaperks-icon-192.png",
-        sizes: "192x192",
-        type: "image/png",
-      },
-    ],
-  },
   appleWebApp: {
     capable: true,
     title: "Nabaperks",
