@@ -16,6 +16,8 @@ test("NFC card bundle builds a two-page CR80 PDF for every production design", a
   const attachments = await buildNfcCardPdfAttachments({
     merchantName: "Old Crown Girton",
     shareUrl: "https://nabaperks.com/q/abc123",
+    googleReviewUrl:
+      "https://search.google.com/local/writereview?placeid=ChIJ-example",
     stampsRequired: 5,
   })
 
@@ -50,6 +52,8 @@ test("NFC card PDFs tolerate venue names with glyphs outside the standard font",
   const attachments = await buildAllNfcCardPdfAttachments({
     merchantName: "Dragon 🐉 Pub",
     shareUrl: "https://nabaperks.com/q/dragon",
+    googleReviewUrl:
+      "https://search.google.com/local/writereview?placeid=ChIJ-dragon",
     stampsRequired: 3,
   })
   assert.equal(attachments.length, NFC_CARD_DESIGN_IDS.length)
@@ -63,6 +67,8 @@ test("NFC card PDFs cover every supported stamp count", async () => {
     const attachments = await buildAllNfcCardPdfAttachments({
       merchantName: "Old Crown Girton",
       shareUrl: "https://nabaperks.com/q/abc123",
+      googleReviewUrl:
+        "https://search.google.com/local/writereview?placeid=ChIJ-example",
       stampsRequired,
     })
     assert.equal(attachments.length, NFC_CARD_DESIGN_IDS.length)
@@ -70,4 +76,17 @@ test("NFC card PDFs cover every supported stamp count", async () => {
       assert.match(attachment.content, /^JVBERi0/)
     }
   }
+})
+
+test("NFC card bundle omits the review card when no valid review URL exists", async () => {
+  const attachments = await buildNfcCardPdfAttachments({
+    merchantName: "Old Crown Girton",
+    shareUrl: "https://nabaperks.com/q/abc123",
+    googleReviewUrl: "https://example.com/review",
+    stampsRequired: 5,
+  })
+  assert.deepEqual(
+    attachments.map(({ filename }) => filename),
+    ["nabaperks-nfc-tap.pdf"]
+  )
 })

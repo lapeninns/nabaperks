@@ -88,6 +88,7 @@ export function nfcCardGeometry(): NfcCardGeometry {
     cornerRadiusMm: requireNumber(cr80, "cornerRadiusMm", path),
     frameInsetMm: requireNumber(cr80, "frameInsetMm", path),
     qrOuterMm: requireNumber(cr80, "qrOuterMm", path),
+    googleReviewQrOuterMm: requireNumber(cr80, "googleReviewQrOuterMm", path),
   }
 }
 

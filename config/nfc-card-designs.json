@@ -6,7 +6,7 @@
     "operator": "Lapen Inns",
     "market": "UK hospitality",
     "visualSystem": "Wet Ink",
-    "kitSummary": "One two-sided NFC card ready to print."
+    "kitSummary": "Two two-sided NFC cards ready to print."
   },
   "collection": {
     "id": "nfc-card",
@@ -14,7 +14,7 @@
     "description": "Reusable tap-and-scan cards for counters, tills and guest hand-out.",
     "format": "cr80-nfc",
     "sheet": "cr80",
-    "revision": 4
+    "revision": 5
   },
   "shared": {
     "reassurance": "18+ to redeem · One visit stamp here per UK date · Rewards redeem from the next weekday · Terms apply",
@@ -60,7 +60,8 @@
         "cardHeightMm": 54,
         "cornerRadiusMm": 2.8,
         "frameInsetMm": 0.45,
-        "qrOuterMm": 18
+        "qrOuterMm": 18,
+        "googleReviewQrOuterMm": 20
       }
     },
     "qr": {
@@ -109,6 +110,37 @@
           { "title": "Return", "detail": "Add next stamp" }
         ],
         "footBrand": "Nab a Perks"
+      }
+    },
+    {
+      "id": "google-review",
+      "name": "Google Review card",
+      "description": "Two-sided tap-and-scan card that opens the venue's Google review page.",
+      "rollout": "production",
+      "useCase": "Counter hand-out for honest Google reviews",
+      "tone": "native-google-local",
+      "front": {
+        "brandEyebrow": "A Quick Favor For Your Local",
+        "brandName": "Loved Your Pint in Girton?",
+        "tapWord": "Tap to review",
+        "tapSub": "Hold your phone here",
+        "stampCue": "Local pubs survive on word-of-mouth. Tap your phone below to leave a quick Google review and help others find Girton’s best pub — it takes less than 10 seconds.",
+        "claimKicker": "No Tap?",
+        "claimLine": "Scan to review",
+        "flow": ["Tap", "Rate", "Post"]
+      },
+      "back": {
+        "strap": "10 Seconds to Support Your Girton Local",
+        "badge": "No Tap?",
+        "teaseLead": "Scan",
+        "teaseAccent": "to review",
+        "sealLabel": "Google",
+        "steps": [
+          { "title": "Tap", "detail": "Hold your phone to the card" },
+          { "title": "Rate", "detail": "Tap the stars" },
+          { "title": "Post", "detail": "Add a photo if you loved it!" }
+        ],
+        "footBrand": "Thank you for visiting"
       }
     }
   ]

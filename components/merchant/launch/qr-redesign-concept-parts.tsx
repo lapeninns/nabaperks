@@ -235,8 +235,8 @@ export function NfcCardLinks({
       <div className="grid gap-1">
         <h3 className="text-lg font-extrabold">Add NFC cards</h3>
         <p className="text-sm leading-6 text-muted-foreground">
-          Reusable cards for the counter and till. Guests can tap or scan to
-          start their venue loyalty card.
+          Reusable cards for the counter and till. Choose a loyalty join card or
+          a Google Review card, each with tap and scan.
         </p>
       </div>
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -282,8 +282,8 @@ export function NfcSquareLinks({
       <div className="grid gap-1">
         <h3 className="text-lg font-extrabold">Add wall NFC plates</h3>
         <p className="text-sm leading-6 text-muted-foreground">
-          Add a fixed tap-and-scan point to a wall, counter or till so guests
-          can start their venue loyalty card.
+          Add a fixed loyalty or Google Review tap-and-scan point to a wall,
+          counter or till.
         </p>
       </div>
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">

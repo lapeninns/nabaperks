@@ -1,6 +1,7 @@
 import { resolveNfcSquareContent } from "@/lib/qr/nfc-square-content"
 import type { NfcSquareDesignId } from "@/lib/qr/nfc-square-templates"
 
+import { GoogleReviewSquare } from "./google-review-square"
 import { NfcSquareFront } from "./nfc-square-front"
 import styles from "./nfc-square-sheet.module.css"
 
@@ -34,7 +35,19 @@ export function NfcSquareSheet({
         style={faceStyle}
         aria-label="Counter NFC plate"
       >
-        <NfcSquareFront content={content} venue={venue} qrDataUrl={qrDataUrl} />
+        {design === "google-review" ? (
+          <GoogleReviewSquare
+            content={content}
+            venue={venue}
+            qrDataUrl={qrDataUrl}
+          />
+        ) : (
+          <NfcSquareFront
+            content={content}
+            venue={venue}
+            qrDataUrl={qrDataUrl}
+          />
+        )}
       </section>
     </div>
   )

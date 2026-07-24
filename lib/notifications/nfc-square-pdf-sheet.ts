@@ -12,6 +12,7 @@ import {
   standardFontText,
 } from "./poster-pdf-style"
 import type { PdfFonts } from "./poster-pdf-types"
+import { drawGoogleReviewPlate } from "./google-review-nfc-pdf"
 
 const TYPE_FLOOR = 6.5
 
@@ -37,6 +38,10 @@ export function drawNfcSquarePage(
 
   const page = document.addPage(pageSize)
   retainFonts(page)
+  if (design === "google-review") {
+    drawGoogleReviewPlate({ page, content, venue, qrModules, fonts })
+    return
+  }
   drawPlateFace(page, content, venue, qrModules, fonts, 0, 0)
 }
 

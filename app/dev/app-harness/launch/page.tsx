@@ -150,6 +150,8 @@ export default async function LaunchHarnessPage({
       business_type: "pub",
       email: "owner@example.test",
       requires_billing: true,
+      pub_google_review:
+        "https://search.google.com/local/writereview?placeid=ChIJr-Lmrdt22EcRpM90SQtZug4",
     },
     location: HARNESS_LOCATION,
     activeCard: HARNESS_ACTIVE_CARD,

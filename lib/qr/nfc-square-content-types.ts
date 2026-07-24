@@ -1,4 +1,4 @@
-export type NfcSquareDesignId = "tap"
+export type NfcSquareDesignId = "tap" | "google-review"
 
 export type NfcSquareRollout = "production" | "review" | "experimental"
 
@@ -17,6 +17,7 @@ export type NfcSquareGeometry = {
   readonly cornerRadiusMm: number
   readonly frameInsetMm: number
   readonly qrOuterMm: number
+  readonly googleReviewQrOuterMm: number
 }
 
 export type NfcSquareQrModel = {

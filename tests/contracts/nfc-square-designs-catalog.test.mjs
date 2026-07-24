@@ -14,7 +14,7 @@ test("NFC square catalogue is a closed, production 100×100 wall plate system", 
   assert.equal(catalog.schema, "nabaperks.nfc-square-designs.v1")
   assert.deepEqual(
     catalog.designs.map(({ id }) => id),
-    ["tap"]
+    ["tap", "google-review"]
   )
   assert.deepEqual(catalog.collection, {
     id: "nfc-square",
@@ -22,7 +22,7 @@ test("NFC square catalogue is a closed, production 100×100 wall plate system", 
     description: "One-sided tap-and-scan plates for walls, counters and tills.",
     format: "nfc-square-100",
     sheet: "square-100",
-    revision: 5,
+    revision: 6,
   })
   assert.ok(catalog.designs.every(({ rollout }) => rollout === "production"))
   assert.ok(catalog.designs.every((design) => !("back" in design)))
@@ -52,6 +52,7 @@ test("NFC square geometry is a native 100×100 die", () => {
   assert.equal(catalog.shared.geometry.square.cardWidthMm, 100)
   assert.equal(catalog.shared.geometry.square.cardHeightMm, 100)
   assert.equal(catalog.shared.geometry.square.qrOuterMm, 20)
+  assert.equal(catalog.shared.geometry.square.googleReviewQrOuterMm, 20)
   assert.equal("a4" in catalog.shared.geometry, false)
   assert.equal("sheetWidthMm" in catalog.shared.geometry.square, false)
   assert.equal("frontOriginXMm" in catalog.shared.geometry.square, false)
@@ -71,4 +72,7 @@ test("NFC square copy stays honest — no free-stamp claims", () => {
   assert.match(blob, /To start/)
   assert.match(blob, /Reward sealed/)
   assert.match(blob, /Reveal at stamp \{stamps\}/)
+  const review = catalog.designs.find(({ id }) => id === "google-review")
+  assert.equal(review.front.brandName, "Drop a Quick Google Review.")
+  assert.deepEqual(review.front.flow, ["Tap", "Rate", "Post"])
 })

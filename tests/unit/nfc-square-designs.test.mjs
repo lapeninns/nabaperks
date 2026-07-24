@@ -32,7 +32,7 @@ test("NFC square content rejects invalid venue stamp counts", () => {
 })
 
 test("every NFC square resolves a wall billboard face for each stamp count", () => {
-  assert.equal(nfcSquareDesignIds().length, 1)
+  assert.equal(nfcSquareDesignIds().length, 2)
   for (const id of nfcSquareDesignIds()) {
     for (const stamps of [1, 2, 3, 4, 5, 6]) {
       const content = resolveNfcSquareContent(id, stamps)
@@ -56,6 +56,7 @@ test("NFC squares share native 100×100 geometry and QR contract", () => {
     assert.equal(content.geometry.cardWidthMm, 100)
     assert.equal(content.geometry.cardHeightMm, 100)
     assert.equal(content.geometry.qrOuterMm, 20)
+    assert.equal(content.geometry.googleReviewQrOuterMm, 20)
     assert.equal("sheetWidthMm" in content.geometry, false)
     assert.equal("frontOriginXMm" in content.geometry, false)
     assert.equal(content.qr.quietZoneModules, 4)

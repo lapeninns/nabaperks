@@ -205,10 +205,12 @@ export async function emailPosterAction(): Promise<EmailPosterState> {
       buildNfcCardPdfAttachments({
         ...kitInput,
         shareUrl: nfcShareUrl,
+        googleReviewUrl: merchant.pub_google_review,
       }),
       buildNfcSquarePdfAttachments({
         ...kitInput,
         shareUrl: nfcShareUrl,
+        googleReviewUrl: merchant.pub_google_review,
       }),
     ])
     const attachments = [
@@ -217,7 +219,11 @@ export async function emailPosterAction(): Promise<EmailPosterState> {
       ...nfcAttachments,
       ...nfcSquareAttachments,
     ]
-    const content = buildPosterEmailContent({ venueName })
+    const content = buildPosterEmailContent({
+      venueName,
+      nfcCount: nfcAttachments.length,
+      nfcSquareCount: nfcSquareAttachments.length,
+    })
     await sendTransactionalEmail({ to, ...content, attachments })
 
     scheduleMerchantActivationEvent({

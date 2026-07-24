@@ -6,7 +6,7 @@
     "operator": "Lapen Inns",
     "market": "UK hospitality",
     "visualSystem": "Wet Ink",
-    "kitSummary": "One wall NFC plate ready to print."
+    "kitSummary": "Two wall NFC plates ready to print."
   },
   "collection": {
     "id": "nfc-square",
@@ -14,7 +14,7 @@
     "description": "One-sided tap-and-scan plates for walls, counters and tills.",
     "format": "nfc-square-100",
     "sheet": "square-100",
-    "revision": 5
+    "revision": 6
   },
   "shared": {
     "reassurance": "18+ to redeem · One visit stamp here per UK date · Rewards redeem from the next weekday · Terms apply",
@@ -60,7 +60,8 @@
         "cardHeightMm": 100,
         "cornerRadiusMm": 3.2,
         "frameInsetMm": 0.5,
-        "qrOuterMm": 20
+        "qrOuterMm": 20,
+        "googleReviewQrOuterMm": 20
       }
     },
     "qr": {
@@ -96,6 +97,24 @@
         "mysteryKicker": "Reward sealed",
         "mysteryAccent": "Reveal at stamp {stamps}",
         "flow": ["Tap", "Join", "Return"]
+      }
+    },
+    {
+      "id": "google-review",
+      "name": "Google Review plate",
+      "description": "One-sided tap-and-scan plate that opens the venue's Google review page.",
+      "rollout": "production",
+      "useCase": "Wall, counter or till Google review point",
+      "tone": "native-google-local",
+      "front": {
+        "brandEyebrow": "Back Your Girton Local",
+        "brandName": "Drop a Quick Google Review.",
+        "tapWord": "Tap to review",
+        "tapSub": "Or point your camera at the QR code.",
+        "claimLine": "Got 10 seconds? Tap your phone below to rate your experience. Your review means the world to our staff and helps outsiders find Girton’s best pub.",
+        "mysteryKicker": "No Tap?",
+        "mysteryAccent": "Scan to review",
+        "flow": ["Tap", "Rate", "Post"]
       }
     }
   ]

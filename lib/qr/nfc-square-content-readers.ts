@@ -87,6 +87,7 @@ export function nfcSquareGeometry(): NfcSquareGeometry {
     cornerRadiusMm: requireNumber(square, "cornerRadiusMm", path),
     frameInsetMm: requireNumber(square, "frameInsetMm", path),
     qrOuterMm: requireNumber(square, "qrOuterMm", path),
+    googleReviewQrOuterMm: requireNumber(square, "googleReviewQrOuterMm", path),
   }
 }
 

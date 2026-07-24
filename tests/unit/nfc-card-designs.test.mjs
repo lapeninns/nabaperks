@@ -33,7 +33,7 @@ test("NFC card content rejects invalid venue stamp counts", () => {
 })
 
 test("every NFC card resolves front and back for each supported stamp count", () => {
-  assert.equal(nfcCardDesignIds().length, 1)
+  assert.equal(nfcCardDesignIds().length, 2)
   for (const id of nfcCardDesignIds()) {
     for (const stamps of [1, 2, 3, 4, 5, 6]) {
       const content = resolveNfcCardContent(id, stamps)
@@ -47,11 +47,17 @@ test("every NFC card resolves front and back for each supported stamp count", ()
         content.back.steps.map((s) => s.detail).join(" "),
         /receipt/i
       )
-      assert.match(content.front.claimLine, /one text/i)
-      assert.match(content.back.teaseAccent, /can be stamp one/i)
       assert.equal(content.front.flow[0], "Tap")
       assert.equal(content.back.steps[0].title, "Tap")
-      assert.equal(content.dieRule, "One stamp/UK date · 18+ to redeem")
+      if (id === "tap") {
+        assert.match(content.front.claimLine, /one text/i)
+        assert.match(content.back.teaseAccent, /can be stamp one/i)
+        assert.equal(content.dieRule, "One stamp/UK date · 18+ to redeem")
+      } else {
+        assert.match(content.front.stampCue, /Google/i)
+        assert.equal(content.front.flow[1], "Rate")
+        assert.equal(content.back.steps[2].title, "Post")
+      }
     }
   }
 })
@@ -62,6 +68,7 @@ test("NFC cards share native CR80 geometry and QR contract", () => {
     assert.equal(content.sheet, "cr80")
     assert.equal(content.geometry.cardWidthMm, 85.5)
     assert.equal(content.geometry.cardHeightMm, 54)
+    assert.equal(content.geometry.googleReviewQrOuterMm, 20)
     assert.equal(content.qr.quietZoneModules, 4)
     assert.equal(content.qr.errorCorrectionLevel, "H")
     assert.match(content.reassurance, /^18\+ to redeem/)
