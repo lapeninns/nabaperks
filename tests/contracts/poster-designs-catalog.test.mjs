@@ -45,7 +45,10 @@ test("poster catalogue is a closed, organised eight-design A4 system", () => {
         revision === 3
     )
   )
-  assert.match(catalog.product.kitSummary, /Eight print-ready A4/)
+  assert.equal(
+    catalog.product.kitSummary,
+    "Eight counter posters ready to print."
+  )
   assert.doesNotMatch(JSON.stringify(catalog), /table-tent|"b5"/i)
 })
 

@@ -97,7 +97,6 @@ export type TentFaceContent = {
 export type TentContentBase = {
   readonly sheet: "a4"
   readonly kicker: string
-  readonly foldLabel: string
   readonly reassurance: string
   readonly footer: TentFooterModel
   readonly friction: string

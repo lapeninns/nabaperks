@@ -29,9 +29,6 @@ export function NfcSquareSheet({
 
   return (
     <div className={styles.deck} data-design={design}>
-      <p className={styles.screenHint} aria-hidden="true">
-        {content.cutLabel}
-      </p>
       <section
         className={styles.face}
         style={faceStyle}

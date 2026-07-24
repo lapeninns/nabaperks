@@ -18,15 +18,19 @@ test("NFC card catalogue is a closed, production native-CR80 system", () => {
   )
   assert.deepEqual(catalog.collection, {
     id: "nfc-card",
-    name: "CR80 NFC cards",
+    name: "NFC cards",
     description:
-      "Tap cards for counters, tills and guest hand-out — front and back print at CR80 size (85.5 × 54 mm).",
+      "Reusable tap-and-scan cards for counters, tills and guest hand-out.",
     format: "cr80-nfc",
     sheet: "cr80",
     revision: 4,
   })
   assert.ok(catalog.designs.every(({ rollout }) => rollout === "production"))
-  assert.match(catalog.product.kitSummary, /85\.5 × 54 mm/)
+  assert.equal(
+    catalog.product.kitSummary,
+    "One two-sided NFC card ready to print."
+  )
+  assert.equal("cutLabel" in catalog.shared, false)
 })
 
 test("NFC card geometry is native CR80 pages (not A4 imposition)", () => {

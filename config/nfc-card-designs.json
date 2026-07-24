@@ -1,17 +1,17 @@
 {
   "schema": "nabaperks.nfc-card-designs.v1",
-  "purpose": "Single source of truth for the Nabaperks CR80 NFC card registry, copy, and native CR80 print pages (85.5 × 54 mm). Cards are venue-branded: merchant name, stamps required, and the permanent join URL. Honest by contract — no free-stamp claims, no receipt claims, and first-stamp copy matches the OTP + terms join funnel.",
+  "purpose": "Single source of truth for the Nabaperks NFC card registry, copy, and print pages. Cards are venue-branded: merchant name, stamps required, and the permanent join URL. Honest by contract — no free-stamp claims, no receipt claims, and first-stamp copy matches the OTP + terms join funnel.",
   "product": {
     "brand": "Nab a Perks",
     "operator": "Lapen Inns",
     "market": "UK hospitality",
     "visualSystem": "Wet Ink",
-    "kitSummary": "One print-ready CR80 NFC card — front and back as 85.5 × 54 mm pages."
+    "kitSummary": "One two-sided NFC card ready to print."
   },
   "collection": {
     "id": "nfc-card",
-    "name": "CR80 NFC cards",
-    "description": "Tap cards for counters, tills and guest hand-out — front and back print at CR80 size (85.5 × 54 mm).",
+    "name": "NFC cards",
+    "description": "Reusable tap-and-scan cards for counters, tills and guest hand-out.",
     "format": "cr80-nfc",
     "sheet": "cr80",
     "revision": 4
@@ -19,7 +19,6 @@
   "shared": {
     "reassurance": "18+ to redeem · One visit stamp here per UK date · Rewards redeem from the next weekday · Terms apply",
     "dieRule": "One stamp/UK date · 18+ to redeem",
-    "cutLabel": "CR80 85.5 × 54 mm · print at 100%",
     "numberWords": ["zero", "one", "two", "three", "four", "five", "six"],
     "friction": "One text · No app · In your browser",
     "claimFriction": "No NFC? Scan the QR code",
@@ -84,7 +83,7 @@
     {
       "id": "tap",
       "name": "Tap",
-      "description": "Wet Ink CR80 — centre-left TAP seal, mystery claim lane, QR fallback, calm keep-and-return back.",
+      "description": "Wet Ink tap card with a mystery-reward message, QR fallback and a keep-and-return back.",
       "rollout": "production",
       "useCase": "Counter hand-out and till tap",
       "tone": "tap-seal-mystery",

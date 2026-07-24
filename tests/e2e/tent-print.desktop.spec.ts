@@ -20,10 +20,10 @@ test.describe("table tent printing", () => {
       const content = resolveTentContent(design, 3)
       const sheet = page.locator(".qr-poster-print-root article")
 
-      // Both faces plus the fold guide are present; the fold copy is a tent
-      // signature (the poster print spec asserts its absence there).
+      // Both faces and an unlabelled visual fold guide are present.
       const text = normalise(await sheet.innerText())
-      expect(text).toContain(normalise(content.foldLabel))
+      expect(text).not.toContain("fold to peak")
+      await expect(sheet.locator('[class*="foldLine"]')).toHaveCount(1)
       for (const face of [content.faceA, content.faceB]) {
         expect(text).toContain(normalise(face.headline.join(" ")))
         expect(text).toContain(normalise(face.cta))

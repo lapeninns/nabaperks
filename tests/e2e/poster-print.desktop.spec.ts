@@ -56,6 +56,48 @@ test.describe("poster printing", () => {
           (image) => image.clientWidth
         ),
       }))
+      const safeGeometry = await posterSheet.evaluate((element) => {
+        const sheet = element.getBoundingClientRect()
+        const criticalRects: DOMRect[] = []
+        const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT)
+        while (walker.nextNode()) {
+          const node = walker.currentNode
+          const parent = node.parentElement
+          if (
+            !node.textContent?.trim() ||
+            !parent ||
+            parent.closest('[aria-hidden="true"]')
+          ) {
+            continue
+          }
+          const style = getComputedStyle(parent)
+          if (style.display === "none" || style.visibility === "hidden") {
+            continue
+          }
+          const range = document.createRange()
+          range.selectNodeContents(node)
+          const bounds = range.getBoundingClientRect()
+          if (bounds.width > 0 && bounds.height > 0) {
+            criticalRects.push(bounds)
+          }
+        }
+        element.querySelectorAll("img").forEach((image) => {
+          criticalRects.push(image.getBoundingClientRect())
+        })
+        return {
+          pixelsPerMm: sheet.width / 210,
+          left: Math.min(
+            ...criticalRects.map((rect) => rect.left - sheet.left)
+          ),
+          top: Math.min(...criticalRects.map((rect) => rect.top - sheet.top)),
+          right: Math.min(
+            ...criticalRects.map((rect) => sheet.right - rect.right)
+          ),
+          bottom: Math.min(
+            ...criticalRects.map((rect) => sheet.bottom - rect.bottom)
+          ),
+        }
+      })
       const renderedText = normalisePosterText(await posterSheet.innerText())
       for (const expected of posterVisibleCopy(content)) {
         expect(renderedText, `${template} renders ${expected}`).toContain(
@@ -78,6 +120,14 @@ test.describe("poster printing", () => {
       physical.qrOuterPixels.forEach((size, index) => {
         expect(size).toBeCloseTo(expectedQrMm[index] * pixelsPerMm, 0)
       })
+      const minimumSafePixels =
+        (content.geometry.safeMarginMm - 0.5) * safeGeometry.pixelsPerMm
+      for (const edge of ["left", "top", "right", "bottom"] as const) {
+        expect(
+          safeGeometry[edge],
+          `${template} ${edge} edge preserves the ${content.geometry.safeMarginMm} mm frame-safe margin`
+        ).toBeGreaterThanOrEqual(minimumSafePixels)
+      }
       if (browserName === "chromium") {
         await page.evaluate(() => {
           window.print = () => {

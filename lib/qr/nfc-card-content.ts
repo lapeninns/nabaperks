@@ -10,7 +10,6 @@ import {
 } from "./nfc-card-design-reader"
 import {
   nfcCardClaimFriction,
-  nfcCardCutLabel,
   nfcCardDieRule,
   nfcCardFonts,
   nfcCardFriction,
@@ -143,7 +142,6 @@ function resolveBack(
 function nfcCardContentBase(): NfcCardContentBase {
   return {
     sheet: "cr80",
-    cutLabel: nfcCardCutLabel(),
     reassurance: nfcCardReassurance(),
     dieRule: nfcCardDieRule(),
     friction: nfcCardFriction(),

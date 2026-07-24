@@ -19,14 +19,14 @@ test("NFC square catalogue is a closed, production 100×100 wall plate system", 
   assert.deepEqual(catalog.collection, {
     id: "nfc-square",
     name: "Square NFC plates",
-    description:
-      "One-sided 100×100 mm wall and premises tap plates — print at native square size.",
+    description: "One-sided tap-and-scan plates for walls, counters and tills.",
     format: "nfc-square-100",
     sheet: "square-100",
     revision: 5,
   })
   assert.ok(catalog.designs.every(({ rollout }) => rollout === "production"))
   assert.ok(catalog.designs.every((design) => !("back" in design)))
+  assert.equal("cutLabel" in catalog.shared, false)
   assert.ok(
     catalog.designs.every(
       (design) =>

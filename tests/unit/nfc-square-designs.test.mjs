@@ -60,7 +60,6 @@ test("NFC squares share native 100×100 geometry and QR contract", () => {
     assert.equal("frontOriginXMm" in content.geometry, false)
     assert.equal(content.qr.quietZoneModules, 4)
     assert.equal(content.qr.errorCorrectionLevel, "H")
-    assert.match(content.cutLabel, /100 × 100 mm/)
     assert.match(content.reassurance, /^18\+ to redeem/)
     assert.equal(content.dieRule, "One stamp/UK date · 18+ to redeem")
   }

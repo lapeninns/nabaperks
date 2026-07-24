@@ -122,7 +122,7 @@
   display: flex;
   flex-direction: column;
   gap: 7mm;
-  padding: 15mm 15mm 8mm;
+  padding: var(--poster-frame-safe-margin) var(--poster-frame-safe-margin) 8mm;
 }
 
 .duotone[data-spot="vermillion"] .top {
@@ -172,7 +172,7 @@
 /* Perforated dot strip between the paper half and the ink panel. */
 .dots {
   height: 12mm;
-  margin: 0 15mm;
+  margin-inline: var(--poster-frame-safe-margin);
   background-image: radial-gradient(var(--duo-spot) 0.8mm, transparent 0.9mm);
   background-size: 4mm 4mm;
   print-color-adjust: exact;
@@ -186,7 +186,7 @@
   gap: 7mm;
   min-height: 0;
   margin-top: 8mm;
-  padding: 12mm 15mm 15mm;
+  padding: 12mm var(--poster-frame-safe-margin) var(--poster-frame-safe-margin);
   background: var(--duo-spot);
   color: #f6f1e6;
   print-color-adjust: exact;

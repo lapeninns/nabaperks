@@ -134,13 +134,13 @@ export function PosterProof({
       <div className="grid gap-1">
         <p className="font-extrabold">{templateName} poster</p>
         <p className="text-xs leading-5 text-muted-foreground">
-          Preview for layout direction. The print-ready page remains the source
-          of truth.
+          See how this design looks for your venue, then open it to print or
+          save.
         </p>
       </div>
       <Button asChild variant="reward" className="w-full">
         <Link href={posterHref} target="_blank" rel="noreferrer">
-          Open print-ready poster
+          Open poster
           <Icon icon={ArrowUpRight01Icon} size={15} />
         </Link>
       </Button>
@@ -173,9 +173,7 @@ export function buildNfcSquareHrefs(
 }
 
 /**
- * The table-tent lane beneath the poster picker: each production tent links to
- * its print-ready page. Tents fold from one A4 sheet, so they get a compact
- * list rather than a full poster-style preview.
+ * The table-tent lane beneath the poster picker.
  */
 export function TableTentLinks({
   tentHrefs,
@@ -190,8 +188,8 @@ export function TableTentLinks({
       <div className="grid gap-1">
         <h3 className="text-lg font-extrabold">Add table tents</h3>
         <p className="text-sm leading-6 text-muted-foreground">
-          Fold-to-peak tents for tables and bar tops. One A4 sheet folds so both
-          faces stand upright — same venue QR on each.
+          Place these on tables and bar tops so guests can scan your venue QR
+          from either side.
         </p>
       </div>
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -222,8 +220,7 @@ export function TableTentLinks({
 }
 
 /**
- * NFC card lane: CR80 tap cards at native 85.5 × 54 mm (front + back pages).
- * Same venue join URL as posters and tents — venue-branded, not unique per card.
+ * NFC card lane for reusable tap-and-scan cards.
  */
 export function NfcCardLinks({
   nfcHrefs,
@@ -238,8 +235,8 @@ export function NfcCardLinks({
       <div className="grid gap-1">
         <h3 className="text-lg font-extrabold">Add NFC cards</h3>
         <p className="text-sm leading-6 text-muted-foreground">
-          CR80 tap cards for the counter and till. Front and back print at 85.5
-          × 54 mm — same venue QR as your posters and tents.
+          Reusable cards for the counter and till. Guests can tap or scan to
+          start their venue loyalty card.
         </p>
       </div>
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -270,8 +267,7 @@ export function NfcCardLinks({
 }
 
 /**
- * Square NFC lane: native 100×100 mm counter plates. Own lane beside CR80 —
- * same venue join URL, venue-branded, not unique per plate.
+ * Wall NFC lane for a fixed tap-and-scan point.
  */
 export function NfcSquareLinks({
   nfcSquareHrefs,
@@ -286,8 +282,8 @@ export function NfcSquareLinks({
       <div className="grid gap-1">
         <h3 className="text-lg font-extrabold">Add wall NFC plates</h3>
         <p className="text-sm leading-6 text-muted-foreground">
-          100×100 mm one-sided tap plates for the counter and till. Print at
-          native square size — same venue QR as your posters and tents.
+          Add a fixed tap-and-scan point to a wall, counter or till so guests
+          can start their venue loyalty card.
         </p>
       </div>
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">

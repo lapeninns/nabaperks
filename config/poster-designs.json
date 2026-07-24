@@ -6,7 +6,7 @@
     "operator": "Lapen Inns",
     "market": "UK hospitality",
     "visualSystem": "Wet Ink",
-    "kitSummary": "Eight print-ready A4 counter posters."
+    "kitSummary": "Eight counter posters ready to print."
   },
   "collections": [
     {
@@ -281,7 +281,7 @@
         "substantive": 12,
         "facts": 9
       },
-      "useCase": "Table or till card demo",
+      "useCase": "Tables and tills",
       "tone": "card-object-demo",
       "copyMode": "concept",
       "source": {
