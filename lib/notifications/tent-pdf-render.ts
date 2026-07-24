@@ -20,7 +20,7 @@ export async function renderTentPdf(
   const content = resolveTentContent(design, stampsRequired)
   const { document, fonts } = await createPosterDocument(
     `Nabaperks ${design} table tent for ${merchantName}`,
-    "A4 fold-to-peak table tent"
+    "A4 table tent"
   )
   const page = document.addPage([
     mm(content.geometry.sheetWidthMm),

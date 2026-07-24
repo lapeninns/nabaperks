@@ -27,7 +27,9 @@
   height: 100%;
   background: #ffffff;
   box-shadow: 1.6mm 1.6mm 0 rgba(33, 28, 22, 0.16);
-  padding: 6mm 8mm;
+  /* The docket itself can sit under a frame lip; its first/last readable
+     rows remain beyond the shared safe inset after the perforation and gap. */
+  padding: calc(var(--poster-frame-safe-margin) - 9mm) 8mm;
   box-sizing: border-box;
   print-color-adjust: exact;
   -webkit-print-color-adjust: exact;

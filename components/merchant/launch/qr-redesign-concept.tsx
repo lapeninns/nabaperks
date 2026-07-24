@@ -194,8 +194,8 @@ export function QrWorkspace({
                       Choose a poster style
                     </h3>
                     <p className="text-sm leading-6 text-muted-foreground">
-                      Pick for the room, not the brand deck. You can change
-                      style without changing the QR.
+                      Choose the style that best fits where you will display it.
+                      You can change it later without changing the QR.
                     </p>
                   </div>
                   <div className="flex [scrollbar-width:none] gap-2 overflow-x-auto pb-2 [-ms-overflow-style:none] lg:grid lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden">

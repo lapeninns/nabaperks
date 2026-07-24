@@ -187,10 +187,6 @@ export function nfcCardTypeTiers(): NfcCardTypeTiers {
   }
 }
 
-export function nfcCardCutLabel(): string {
-  return nfcCardSharedString("cutLabel")
-}
-
 export function nfcCardReassurance(): string {
   return nfcCardSharedString("reassurance")
 }

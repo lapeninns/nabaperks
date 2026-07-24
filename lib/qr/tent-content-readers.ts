@@ -195,10 +195,6 @@ export function tentKicker(): string {
   return tentSharedString("kicker")
 }
 
-export function tentFoldLabel(): string {
-  return tentSharedString("foldLabel")
-}
-
 export function tentReassurance(): string {
   return tentSharedString("reassurance")
 }

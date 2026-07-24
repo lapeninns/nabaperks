@@ -1,17 +1,17 @@
 {
   "schema": "nabaperks.table-tent-designs.v1",
-  "purpose": "Single source of truth for the Nabaperks A4 fold-to-peak table-tent registry, copy, and geometry. A tent is one A4 sheet split into two equal faces; the top face prints rotated 180 degrees so a single mid-sheet fold stands both faces upright, one toward each side of the table. Copy is honest by contract: no fabricated stats, no invented testimonials, no free-stamp claims.",
+  "purpose": "Single source of truth for the Nabaperks A4 table-tent registry, copy, and geometry. A tent is one A4 sheet split into two equal faces; the top face prints rotated 180 degrees so a single middle fold stands both faces upright, one toward each side of the table. Copy is honest by contract: no fabricated stats, no invented testimonials, no free-stamp claims.",
   "product": {
     "brand": "Nab a Perks",
     "operator": "Lapen Inns",
     "market": "UK hospitality",
     "visualSystem": "Wet Ink",
-    "kitSummary": "Five print-ready A4 fold-to-peak table tents."
+    "kitSummary": "Five table tents ready to print."
   },
   "collection": {
     "id": "table-tent",
     "name": "A4 table tents",
-    "description": "Fold-to-peak table tents for tables, counters and bar tops.",
+    "description": "Table tents for tables, counters and bar tops.",
     "format": "a4-tent",
     "sheet": "a4",
     "revision": 2
@@ -19,7 +19,6 @@
   "shared": {
     "reassurance": "18+ to redeem · One visit stamp here per UK date · Rewards redeem from the next weekday · Terms apply",
     "kicker": "Table rewards",
-    "foldLabel": "Fold to peak",
     "numberWords": ["zero", "one", "two", "three", "four", "five", "six"],
     "footer": {
       "left": "One visit stamp per UK date",

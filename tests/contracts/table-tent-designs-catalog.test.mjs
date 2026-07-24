@@ -21,13 +21,14 @@ test("table-tent catalogue is a closed, all-production five-design A4 system", (
   assert.deepEqual(catalog.collection, {
     id: "table-tent",
     name: "A4 table tents",
-    description: "Fold-to-peak table tents for tables, counters and bar tops.",
+    description: "Table tents for tables, counters and bar tops.",
     format: "a4-tent",
     sheet: "a4",
     revision: 2,
   })
   assert.ok(catalog.designs.every(({ rollout }) => rollout === "production"))
-  assert.match(catalog.product.kitSummary, /Five print-ready A4 fold-to-peak/)
+  assert.equal(catalog.product.kitSummary, "Five table tents ready to print.")
+  assert.equal("foldLabel" in catalog.shared, false)
 })
 
 test("table-tent geometry is a real A4 sheet folded into two equal faces", () => {

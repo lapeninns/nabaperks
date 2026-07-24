@@ -75,7 +75,6 @@ export type NfcSquareFrontContent = {
 
 export type NfcSquareContentBase = {
   readonly sheet: "square-100"
-  readonly cutLabel: string
   readonly reassurance: string
   readonly dieRule: string
   readonly friction: string
