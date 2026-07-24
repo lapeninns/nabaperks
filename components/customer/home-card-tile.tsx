@@ -8,6 +8,7 @@ import {
   ReceiptCard,
   VenueMark,
 } from "@/components/brand"
+import { GoogleReviewButton } from "@/components/customer/google-review-button"
 import { ReferralBonusBankMini } from "@/components/customer/referral-bonus-bank-panels"
 import { ReferralShareButton } from "@/components/customer/referral-share-button"
 import { StampGrid } from "@/components/loyalty"
@@ -53,6 +54,9 @@ export function HomeCardTile({ card }: { card: HomeCard }) {
               <h2 className="text-lg leading-tight font-extrabold text-balance break-words">
                 {card.businessName}
               </h2>
+              {card.locality ? (
+                <p className="text-sm text-muted-foreground">{card.locality}</p>
+              ) : null}
             </div>
             <VenueMark size={48} name={card.businessName} />
           </div>
@@ -91,7 +95,7 @@ export function HomeCardTile({ card }: { card: HomeCard }) {
               <p className="text-sm leading-tight font-extrabold break-words">
                 {card.revealedRewardName ?? "Your reward"}
               </p>
-              <span className="w-fit max-w-full rounded-md border-2 border-ink bg-seal/25 px-2 py-0.5 mono-id">
+              <span className="mono-id w-fit max-w-full rounded-md border-2 border-ink bg-seal/25 px-2 py-0.5">
                 {rewardReadyLabel}
               </span>
             </div>
@@ -114,6 +118,12 @@ export function HomeCardTile({ card }: { card: HomeCard }) {
         <ReferralShareButton
           url={card.referralShareUrl}
           membershipId={card.membershipId}
+          venueName={card.businessName}
+        />
+      ) : null}
+      {card.googleReviewUrl ? (
+        <GoogleReviewButton
+          url={card.googleReviewUrl}
           venueName={card.businessName}
         />
       ) : null}
@@ -153,7 +163,7 @@ function TileGiftChip({
       <p className="text-sm leading-tight font-extrabold break-words">
         {gift.rewardName}
       </p>
-      <span className="w-fit max-w-full rounded-md border-2 border-ink bg-seal/25 px-2 py-0.5 mono-id">
+      <span className="mono-id w-fit max-w-full rounded-md border-2 border-ink bg-seal/25 px-2 py-0.5">
         {label}
       </span>
     </div>

@@ -52,6 +52,8 @@ export type CardContext =
       fullWithoutReward?: boolean
       membershipId: string
       merchantName: string
+      locality?: string | null
+      googleReviewUrl?: string | null
       cardName: string
       current: number
       total: number
@@ -199,6 +201,8 @@ function deriveCard(context: CardContext): CustomerExperience {
     kind: "card_collecting",
     membershipId: context.membershipId,
     merchantName: context.merchantName,
+    locality: context.locality,
+    googleReviewUrl: context.googleReviewUrl,
     cardName: context.cardName,
     current: context.current,
     total: context.total,

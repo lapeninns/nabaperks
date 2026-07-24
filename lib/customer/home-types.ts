@@ -18,6 +18,8 @@ export type HomeCard = {
   membershipId: string
   businessName: string
   businessSlug: string
+  locality?: string | null
+  googleReviewUrl?: string | null
   /** Shareable "Bring a Regular" join link (opaque referral_code), if shareable. */
   referralShareUrl?: string
   cardName: string | null

@@ -18,6 +18,10 @@ import {
   rewardStampThresholdMet,
 } from "@/lib/customer/issued-reward-display"
 import { isRedeemableFrom } from "@/lib/customer/uk-date"
+import {
+  normalizeGoogleReviewUrl,
+  normalizeVenueLocality,
+} from "@/lib/customer/venue-details"
 import { customerLoginHref } from "@/lib/navigation/safe-next-path"
 import { logger } from "@/lib/observability/logger"
 
@@ -85,15 +89,17 @@ export async function loadCardExperienceContext(
   }
 
   const target = loyaltyCard.stamps_required
-  const [stampDates, referralBonusBank, firstStampRecovery] = await Promise.all([
-    getMembershipStampDisplayDates(
-      membership.id,
-      target,
-      membership.active_cycle_number
-    ),
-    getReferralBonusBank(membership.id),
-    getJoinFirstStampRecovery(membership.id),
-  ])
+  const [stampDates, referralBonusBank, firstStampRecovery] = await Promise.all(
+    [
+      getMembershipStampDisplayDates(
+        membership.id,
+        target,
+        membership.active_cycle_number
+      ),
+      getReferralBonusBank(membership.id),
+      getJoinFirstStampRecovery(membership.id),
+    ]
+  )
   const current = reconcileCardStampCount({
     membershipCount: membership.current_stamp_count,
     total: target,
@@ -157,6 +163,8 @@ export async function loadCardExperienceContext(
   return {
     membershipId: membership.id,
     merchantName: merchant.business_name,
+    locality: normalizeVenueLocality(merchant.locals),
+    googleReviewUrl: normalizeGoogleReviewUrl(merchant.pub_google_review),
     cardName: loyaltyCard.card_name,
     current,
     total: target,
