@@ -186,6 +186,8 @@ export type CustomerExperience =
       kind: "card_collecting"
       membershipId: string
       merchantName: string
+      locality?: string | null
+      googleReviewUrl?: string | null
       cardName: string
       current: number
       total: number

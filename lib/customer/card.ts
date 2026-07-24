@@ -34,6 +34,8 @@ export type CustomerCardState =
         business_name: string
         business_slug: string
         status: string
+        pub_google_review: string | null
+        locals: string | null
       }
       loyaltyCard: {
         card_name: string
@@ -81,12 +83,16 @@ type RawMembership = {
         business_slug: string
         status: string
         requires_billing: boolean
+        pub_google_review: string | null
+        locals: string | null
       }
     | Array<{
         business_name: string
         business_slug: string
         status: string
         requires_billing: boolean
+        pub_google_review: string | null
+        locals: string | null
       }>
 }
 
@@ -101,7 +107,7 @@ export async function getCustomerCardState(
   const { data, error } = await supabase
     .from("customer_memberships")
     .select(
-      "id, merchant_id, customer_id, current_stamp_count, total_rewards_redeemed, active_cycle_number, referral_code, referral_code_active, merchants(business_name, business_slug, status, requires_billing)"
+      "id, merchant_id, customer_id, current_stamp_count, total_rewards_redeemed, active_cycle_number, referral_code, referral_code_active, merchants(business_name, business_slug, status, requires_billing, pub_google_review, locals)"
     )
     .eq("id", membershipId)
     .maybeSingle()
@@ -186,6 +192,8 @@ export async function getCustomerCardState(
       business_name: merchant.business_name,
       business_slug: merchant.business_slug,
       status: merchant.status,
+      pub_google_review: merchant.pub_google_review,
+      locals: merchant.locals,
     },
     loyaltyCard,
     stampCycleReward: mapRewardSummary(stampCycleReward),
