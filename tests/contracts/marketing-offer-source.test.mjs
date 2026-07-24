@@ -360,3 +360,32 @@ test("Given the demo is an app-like surface When its metadata is inspected Then 
   assert.match(demoPage, /PRIVATE_ROUTE_METADATA/)
   assert.match(seoMetadata, /"\/demo"/)
 })
+
+test("Given the conversion landing When facts.ts is inspected Then the structural copy is single-sourced and claim-safe", () => {
+  const facts = readProjectFile("lib", "marketing", "facts.ts")
+
+  assert.match(facts, /export const LANDING = \{/)
+  assert.match(
+    facts,
+    /headline:\s*\n?\s*"Give your weekend crowd a reason to come back on a Tuesday"/,
+    "the hero headline must use the safe 'a reason to come back' framing"
+  )
+
+  const landingBlock = facts.match(
+    /export const LANDING = \{[\s\S]*?\n\} as const/
+  )?.[0]
+  assert.ok(landingBlock, "LANDING block missing")
+
+  // The landing must never promise an outcome, only a reason to come back.
+  assert.doesNotMatch(
+    landingBlock,
+    /will come back|guarantee|filled tables|more revenue/i,
+    "landing copy must not promise a revenue or return-visit outcome"
+  )
+  // Three product-moment beats, one fit statement.
+  assert.equal(
+    landingBlock.match(/caption: "/g)?.length,
+    3,
+    "the product moment carries exactly three beats"
+  )
+})

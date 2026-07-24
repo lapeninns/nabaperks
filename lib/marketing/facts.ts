@@ -466,6 +466,57 @@ export const TRANSFORMATION = {
   ],
 } as const
 
+// --- Landing composition copy (structural, not offer facts) -----------------
+
+/**
+ * Structural copy for the conversion landing. These are NOT offer facts — they
+ * are the page's own composition: the hero's benefit headline, the three
+ * product-moment beats and the fit statement. Kept here so `/` has a single
+ * source and the marketing contract can assert on the voice.
+ *
+ * Voice rule: publican English, never offer-framework jargon, and never a
+ * revenue or filled-tables promise. The headline uses the safe framing set by
+ * the closing CTA — "a reason to come back", never an outcome claim.
+ */
+export const LANDING = {
+  hero: {
+    eyebrow: "Loyalty for food-led pubs",
+    headline: "Give your weekend crowd a reason to come back on a Tuesday",
+    support:
+      "A no-app loyalty card they open from your counter QR — and we set the whole thing up for you.",
+    demoLink: "or try the live card",
+  },
+  moment: {
+    title: "This is the whole thing",
+    beats: [
+      {
+        caption: "Scan the counter QR",
+        detail: "The card opens in their browser. No app, no wallet pass.",
+      },
+      {
+        caption: "Staff add a stamp",
+        detail: "One scan at the till. Nothing to type, nothing to remember.",
+      },
+      {
+        caption: "The mystery reward reveals",
+        detail: "Drawn from a pool you set, so your margins stay yours.",
+      },
+    ],
+    closing: "And every return visit shows up in your dashboard.",
+  },
+  fit: {
+    title: "Built for one kind of pub",
+    lines: [
+      "Single-site and owner-led",
+      "Serving food Tuesday to Thursday",
+      "Busy at weekends, with regulars worth bringing back",
+    ],
+    honest:
+      "If you're closed most of the week, or you want a promise of full tables, we'll tell you it's not a fit.",
+    link: "See the full fit checklist",
+  },
+} as const
+
 // --- The guarantee stack (offer pack doc 5) ----------------------------------
 
 /**
