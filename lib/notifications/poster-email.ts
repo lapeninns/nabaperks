@@ -39,12 +39,12 @@ export function buildPosterEmailContent({
   const subject = "Your Nabaperks print kit PDFs"
 
   const text = [
-    `Your Nabaperks print kit for ${venueName} is attached: ${POSTER_COUNT} A4 counter posters, ${TENT_COUNT} A4 fold-to-peak table tents, ${NFC_COUNT} CR80 NFC card sheet${NFC_COUNT === 1 ? "" : "s"}, and ${NFC_SQUARE_COUNT} 100×100 mm wall NFC plate sheet${NFC_SQUARE_COUNT === 1 ? "" : "s"}.`,
+    `Your Nabaperks print kit for ${venueName} is attached: ${POSTER_COUNT} poster${POSTER_COUNT === 1 ? "" : "s"}, ${TENT_COUNT} table tent${TENT_COUNT === 1 ? "" : "s"}, ${NFC_COUNT} tap card${NFC_COUNT === 1 ? "" : "s"}, and ${NFC_SQUARE_COUNT} wall tap plate${NFC_SQUARE_COUNT === 1 ? "" : "s"}.`,
     "",
-    "Print at 100% — no fit-to-page. Poster and tent sheets are A4, 210 × 297 mm. CR80 NFC cards print as two 85.5 × 54 mm pages (front then back). Counter NFC plates print as one 100 × 100 mm page.",
+    "Print everything at 100% (actual size), not fit to page. Posters and table tents use A4. Tap cards have a front page and a back page; wall tap plates have one square page.",
     "Fold each table tent along its middle crease so both faces stand upright.",
-    "Program each CR80 chip with the venue join URL plus ?src=nfc — the printed QR already uses ?src=qr so analytics can tell tap from scan.",
-    "Proof one physical print at actual size and test its QR with representative phones before placing them.",
+    "Set up each NFC chip with the venue join link ending ?src=nfc. The printed QR code is already set up for scans.",
+    "Print one copy first and test its QR code and tap point with a few phones before placing the rest.",
     "",
     "Customers scan the QR or tap the card to join in their browser — no app to download.",
   ].join("\n")
@@ -65,10 +65,10 @@ function posterEmailHtml({ venueName }: PosterEmailInput): string {
         <div style="display:inline-block;margin:0 0 16px;background:#cf330a;color:#fff;border:2px solid #211c16;border-radius:999px;padding:8px 11px;font-size:18px;font-weight:800;line-height:1;box-shadow:3px 3px 0 #211c16">*</div>
         <p style="margin:0 0 8px;font:700 11px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;text-transform:uppercase;color:#4f473d">Nabaperks print kit</p>
         <h1 style="margin:0 0 12px;font-size:24px;line-height:1.15;font-weight:800">Your print kit for ${venueName}</h1>
-        <p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:#4f473d">${POSTER_COUNT} A4 counter posters, ${TENT_COUNT} A4 fold-to-peak table tents, ${NFC_COUNT} CR80 NFC card sheet${NFC_COUNT === 1 ? "" : "s"}, and ${NFC_SQUARE_COUNT} 100×100 mm wall NFC plate sheet${NFC_SQUARE_COUNT === 1 ? "" : "s"} are attached.</p>
-        <p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#4f473d">Print at 100% — no fit-to-page. Poster and tent sheets are A4, 210 × 297 mm. CR80 NFC cards print as two 85.5 × 54 mm pages (front then back). Counter NFC plates print as one 100×100 mm page. Fold each table tent along its middle crease.</p>
-        <p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#4f473d">Program each CR80 chip with the venue join URL plus ?src=nfc — the printed QR already uses ?src=qr so analytics can tell tap from scan.</p>
-        <p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#4f473d">Proof one physical print at actual size and test its QR with representative phones before placing them.</p>
+        <p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:#4f473d">${POSTER_COUNT} poster${POSTER_COUNT === 1 ? "" : "s"}, ${TENT_COUNT} table tent${TENT_COUNT === 1 ? "" : "s"}, ${NFC_COUNT} tap card${NFC_COUNT === 1 ? "" : "s"}, and ${NFC_SQUARE_COUNT} wall tap plate${NFC_SQUARE_COUNT === 1 ? "" : "s"} are attached.</p>
+        <p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#4f473d">Print everything at 100% (actual size), not fit to page. Posters and table tents use A4. Tap cards have a front page and a back page; wall tap plates have one square page. Fold each table tent along its middle crease.</p>
+        <p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#4f473d">Set up each NFC chip with the venue join link ending ?src=nfc. The printed QR code is already set up for scans.</p>
+        <p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#4f473d">Print one copy first and test its QR code and tap point with a few phones before placing the rest.</p>
         <p style="margin:0;font-size:13px;line-height:1.6;color:#4f473d">Customers scan the QR or tap the card to join in their browser. No app download needed.</p>
       </td></tr>
     </table>

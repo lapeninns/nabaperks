@@ -20,14 +20,14 @@
   gap: 7mm;
   width: 100%;
   height: 100%;
-  padding: 15mm;
+  padding: var(--poster-frame-safe-margin);
   box-sizing: border-box;
 }
 
 /* ---- The last-orders sky ---- */
 .nightSky {
   position: absolute;
-  right: 15mm;
+  right: var(--poster-frame-safe-margin);
   bottom: 55mm;
   width: 66mm;
   height: 31mm;

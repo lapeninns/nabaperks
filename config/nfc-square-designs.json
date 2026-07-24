@@ -1,17 +1,17 @@
 {
   "schema": "nabaperks.nfc-square-designs.v1",
-  "purpose": "Single source of truth for Nabaperks one-sided 100×100 mm wall NFC plates, copy, and native print pages. Venue-branded: merchant name, stamps required, permanent join URL. Honest by contract — no free-stamp claims.",
+  "purpose": "Single source of truth for Nabaperks one-sided wall NFC plates, copy, and print pages. Venue-branded: merchant name, stamps required, permanent join URL. Honest by contract — no free-stamp claims.",
   "product": {
     "brand": "Nab a Perks",
     "operator": "Lapen Inns",
     "market": "UK hospitality",
     "visualSystem": "Wet Ink",
-    "kitSummary": "One print-ready one-sided 100×100 mm wall NFC plate — page size is the die."
+    "kitSummary": "One wall NFC plate ready to print."
   },
   "collection": {
     "id": "nfc-square",
     "name": "Square NFC plates",
-    "description": "One-sided 100×100 mm wall and premises tap plates — print at native square size.",
+    "description": "One-sided tap-and-scan plates for walls, counters and tills.",
     "format": "nfc-square-100",
     "sheet": "square-100",
     "revision": 5
@@ -19,7 +19,6 @@
   "shared": {
     "reassurance": "18+ to redeem · One visit stamp here per UK date · Rewards redeem from the next weekday · Terms apply",
     "dieRule": "One stamp/UK date · 18+ to redeem",
-    "cutLabel": "Square 100 × 100 mm · print at 100%",
     "numberWords": ["zero", "one", "two", "three", "four", "five", "six"],
     "friction": "One text · No app · In your browser",
     "claimFriction": "No NFC? Scan the QR code",
@@ -84,7 +83,7 @@
     {
       "id": "tap",
       "name": "Wall plate",
-      "description": "One-sided 100×100 mm wall plate — venue hero, vermillion TAP field, mystery proof band with QR fallback.",
+      "description": "One-sided wall plate with the venue name, a clear tap area and a QR fallback.",
       "rollout": "production",
       "useCase": "Wall and premises tap plate",
       "tone": "wall-billboard-plate",

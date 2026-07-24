@@ -90,7 +90,6 @@ export type NfcCardBackContent = {
 
 export type NfcCardContentBase = {
   readonly sheet: "cr80"
-  readonly cutLabel: string
   readonly reassurance: string
   /** Short rule that survives cutting — printed on the CR80 die itself. */
   readonly dieRule: string

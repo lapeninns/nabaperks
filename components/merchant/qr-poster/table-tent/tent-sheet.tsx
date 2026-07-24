@@ -44,9 +44,7 @@ export function TentSheet({
           qrDataUrl={qrDataUrl}
         />
       </div>
-      <div aria-hidden="true" className={styles.foldLine}>
-        <span className={styles.foldLabel}>{content.foldLabel}</span>
-      </div>
+      <div aria-hidden="true" className={styles.foldLine} />
       <div className={styles.faceSlot}>
         <TentFace
           content={content}

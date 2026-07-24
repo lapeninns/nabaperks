@@ -19,14 +19,16 @@ type KitSheetCssProperties = CSSProperties & {
   readonly "--poster-a4-hook-size": string
   readonly "--poster-a4-substantive-size": string
   readonly "--poster-a4-facts-size": string
+  readonly "--poster-frame-safe-margin": string
 }
 
-/** Fixed-A4 sheet style: type-tier variables plus the physical page box. */
+/** Fixed-A4 sheet style: print geometry, type tiers and frame-safe inset. */
 export function kitSheetStyle(content: KitTypeTiers): KitSheetCssProperties {
   return {
     "--poster-a4-hook-size": `${content.typeTiers.hookPt}pt`,
     "--poster-a4-substantive-size": `${content.typeTiers.substantivePt}pt`,
     "--poster-a4-facts-size": `${content.typeTiers.factsPt}pt`,
+    "--poster-frame-safe-margin": `${content.geometry.safeMarginMm}mm`,
     width: `${content.geometry.sheetWidthMm}mm`,
     height: `${content.geometry.sheetHeightMm}mm`,
     minHeight: `${content.geometry.sheetHeightMm}mm`,

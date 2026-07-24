@@ -8,7 +8,6 @@ import {
   tentFriction,
   tentGeometry,
   tentKicker,
-  tentFoldLabel,
   tentPalette,
   tentQr,
   tentReassurance,
@@ -92,7 +91,6 @@ function tentContentBase(): TentContentBase {
   return {
     sheet: "a4",
     kicker: tentKicker(),
-    foldLabel: tentFoldLabel(),
     reassurance: tentReassurance(),
     footer: tentFooter(),
     friction: tentFriction(),

@@ -47,23 +47,6 @@
   pointer-events: none;
 }
 
-.foldLabel {
-  position: absolute;
-  left: 50%;
-  top: 0;
-  transform: translate(-50%, -50%);
-  padding: 0.8mm 2.4mm;
-  background: #ffffff;
-  color: #211c16;
-  border: 0.3mm solid #211c16;
-  font-family: var(--font-space-mono), monospace;
-  font-size: 7pt;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
 @media print {
   .sheet {
     box-shadow: none;

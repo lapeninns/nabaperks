@@ -1,10 +1,8 @@
-import Link from "next/link"
-
 import { MarketingSignupLink } from "@/components/analytics/marketing-signup-link"
 import { Eyebrow, ReceiptCard } from "@/components/brand"
 import { Section } from "@/components/layout"
 import { Button } from "@/components/ui/button"
-import { OFFER, PLAN_LINE, PRODUCT, ROUTES } from "@/lib/marketing/facts"
+import { OFFER, PLAN_LINE, PRODUCT } from "@/lib/marketing/facts"
 
 /** Closing pitch: the investment summary and the risk reversal, then the CTA. */
 export function FinalCta() {
@@ -25,9 +23,6 @@ export function FinalCta() {
         <div className="flex flex-wrap items-center justify-center gap-3">
           <Button asChild size="lg">
             <MarketingSignupLink>Start your free pilot</MarketingSignupLink>
-          </Button>
-          <Button asChild size="lg" variant="secondary">
-            <Link href={ROUTES.pricing}>See full pricing</Link>
           </Button>
         </div>
         <p className="mono-id justify-self-center text-muted-foreground uppercase">

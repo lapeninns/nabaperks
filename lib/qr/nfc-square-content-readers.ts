@@ -186,10 +186,6 @@ export function nfcSquareTypeTiers(): NfcSquareTypeTiers {
   }
 }
 
-export function nfcSquareCutLabel(): string {
-  return nfcSquareSharedString("cutLabel")
-}
-
 export function nfcSquareReassurance(): string {
   return nfcSquareSharedString("reassurance")
 }

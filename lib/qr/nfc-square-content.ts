@@ -5,7 +5,6 @@ import {
 } from "./nfc-square-design-reader"
 import {
   nfcSquareClaimFriction,
-  nfcSquareCutLabel,
   nfcSquareDieRule,
   nfcSquareFonts,
   nfcSquareFriction,
@@ -87,7 +86,6 @@ function resolveFront(
 function nfcSquareContentBase(): NfcSquareContentBase {
   return {
     sheet: "square-100",
-    cutLabel: nfcSquareCutLabel(),
     reassurance: nfcSquareReassurance(),
     dieRule: nfcSquareDieRule(),
     friction: nfcSquareFriction(),
