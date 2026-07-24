@@ -135,7 +135,7 @@ test("Given the finalised offer pack When facts.ts is inspected Then the locked 
   )
 })
 
-test("Given the hybrid SaaS blueprint When the landing composes sections Then they render in the conversion order", () => {
+test("Given the conversion re-role When the landing composes sections Then it renders seven bands and no docs-mode depth", () => {
   const landing = readProjectFile("app", "page.tsx")
 
   // The absorbed components are gone from the landing (their content migrated
@@ -148,23 +148,15 @@ test("Given the hybrid SaaS blueprint When the landing composes sections Then th
     )
   }
 
-  // The intent-led order: orient -> evidence -> problem -> process -> complete
-  // offer -> qualification -> outcome -> guarantees -> pricing -> capacity ->
-  // research guides -> FAQ -> final CTA.
+  // The conversion order: orient -> motion -> proof -> product -> fit ->
+  // price -> close. Seven bands, one decision.
   const order = [
     "LandingHero",
-    "LandingNav",
-    "ProofStrip",
-    "ProblemPains",
-    "LaunchProcess",
-    "FeaturesListicle",
-    "VenueFit",
-    "OutcomeTransformation",
-    "GuaranteeStack",
+    "Marquee",
+    "ProofLine",
+    "ProductMoment",
+    "FitNote",
     "LandingPricing",
-    "ScarcityBand",
-    "LandingGuides",
-    "LandingFaq",
     "FinalCta",
   ]
   let cursor = -1
@@ -173,10 +165,44 @@ test("Given the hybrid SaaS blueprint When the landing composes sections Then th
     assert.ok(at > -1, `landing must render <${section}`)
     assert.ok(
       at > cursor,
-      `${section} must appear after the previous blueprint section`
+      `${section} must appear after the previous conversion band`
     )
     cursor = at
   }
+
+  // The regression guard: the offer pack must not creep back onto the root.
+  // Each of these owns a spoke page now (see the 2026-07-24 re-role spec).
+  const docsMode = [
+    "LandingNav",
+    "ProblemPains",
+    "LaunchProcess",
+    "FeaturesListicle",
+    "VenueFit",
+    "OutcomeTransformation",
+    "GuaranteeStack",
+    "ScarcityBand",
+    "LandingGuides",
+    "LandingFaq",
+  ]
+  for (const section of docsMode) {
+    assert.doesNotMatch(
+      landing,
+      new RegExp(`<${section}\\b`),
+      `${section} is research depth — it belongs on its spoke page, not on /`
+    )
+  }
+
+  // Hero budget: exactly one primary signup CTA in the first viewport.
+  const hero = readProjectFile("components", "marketing", "landing", "hero.tsx")
+  assert.equal(
+    hero.match(/<MarketingSignupLink/g)?.length,
+    1,
+    "the hero carries exactly one signup CTA"
+  )
+
+  // The landing sheds the HowTo and FAQPage nodes with their visible mirrors.
+  assert.doesNotMatch(landing, /howToSchema\(/)
+  assert.doesNotMatch(landing, /faqPageSchema\(/)
 })
 
 test("Given marketing surfaces When scanned for prices Then every £-figure renders via facts, never a literal", () => {
@@ -271,26 +297,49 @@ test("Given the public route registry When llms.txt is compared Then no rebuilt 
   }
 })
 
-test("Given the claims boundary When key surfaces are inspected Then the guarantee stack and boundary render from shared facts", () => {
-  const landing = readProjectFile("app", "page.tsx")
-  const pricing = readProjectFile("app", "pricing", "page.tsx")
+test("Given the claims boundary When any surface names a guarantee Then that same surface renders the boundary", () => {
+  // The rule, not a fixed page list: naming a guarantee obliges a surface to
+  // render its limits. `/` passes by claiming nothing; /pricing and
+  // /how-it-works pass by rendering both. Any future surface is caught too.
+  const offenders = []
+
+  for (const file of marketingSourceFiles()) {
+    const source = readFileSync(path.join(projectRoot, file), "utf8")
+    const namesGuarantee = /\bGUARANTEE(_ROI)?\b/.test(source)
+    const rendersBoundary = /\bCLAIMS_BOUNDARY\b/.test(source)
+
+    if (namesGuarantee && !rendersBoundary) offenders.push(file)
+  }
+
+  // KNOWN PRE-EXISTING GAP, not introduced by the re-role: the three guide
+  // pages print "<GUARANTEE.name>: <GUARANTEE.line>" in their closing CTA
+  // without the boundary beside it. This rule is what surfaces it; closing it
+  // is tracked separately because it edits three indexed pages' copy, which is
+  // outside the re-role's approved scope. Do not widen this list to silence a
+  // NEW offender — fix the file instead.
+  assert.deepEqual(
+    offenders,
+    [
+      "components/marketing/guides/guide-page.tsx",
+      "components/marketing/guides/guides-data.ts",
+    ],
+    "every surface naming a guarantee must also render CLAIMS_BOUNDARY"
+  )
+
+  // The boundary still renders where the guarantee is actually explained.
   const guaranteeStack = readProjectFile(
     "components",
     "marketing",
     "landing",
     "guarantee-stack.tsx"
   )
-  const personaPage = readProjectFile(
-    "components",
-    "marketing",
-    "persona-page.tsx"
-  )
-
-  assert.match(landing, /GuaranteeStack/)
-  assert.match(pricing, /GuaranteeStack/)
   assert.match(guaranteeStack, /CLAIMS_BOUNDARY/)
   assert.match(guaranteeStack, /GUARANTEE_ROI/)
-  assert.match(personaPage, /CLAIMS_BOUNDARY/)
+  assert.match(readProjectFile("app", "pricing", "page.tsx"), /GuaranteeStack/)
+  assert.match(
+    readProjectFile("components", "marketing", "persona-page.tsx"),
+    /CLAIMS_BOUNDARY/
+  )
 })
 
 test("Given honest scarcity When marketing surfaces are scanned Then no availability counter or countdown ships", () => {
@@ -359,4 +408,54 @@ test("Given the demo is an app-like surface When its metadata is inspected Then 
 
   assert.match(demoPage, /PRIVATE_ROUTE_METADATA/)
   assert.match(seoMetadata, /"\/demo"/)
+})
+
+test("Given the conversion landing When facts.ts is inspected Then the structural copy is single-sourced and claim-safe", () => {
+  const facts = readProjectFile("lib", "marketing", "facts.ts")
+
+  assert.match(facts, /export const LANDING = \{/)
+  assert.match(
+    facts,
+    /headline:\s*\n?\s*"Give your weekend crowd a reason to come back on a Tuesday"/,
+    "the hero headline must use the safe 'a reason to come back' framing"
+  )
+
+  const landingBlock = facts.match(
+    /export const LANDING = \{[\s\S]*?\n\} as const/
+  )?.[0]
+  assert.ok(landingBlock, "LANDING block missing")
+
+  // The landing must never promise an outcome, only a reason to come back.
+  assert.doesNotMatch(
+    landingBlock,
+    /will come back|guarantee|filled tables|more revenue/i,
+    "landing copy must not promise a revenue or return-visit outcome"
+  )
+  // Three product-moment beats, one fit statement.
+  assert.equal(
+    landingBlock.match(/caption: "/g)?.length,
+    3,
+    "the product moment carries exactly three beats"
+  )
+})
+
+test("Given the research depth moved off the landing When how-it-works is inspected Then it owns the problem, features, outcome and FAQ", () => {
+  const howItWorks = readProjectFile("app", "how-it-works", "page.tsx")
+
+  for (const section of [
+    "ProblemPains",
+    "FeaturesListicle",
+    "OutcomeTransformation",
+    "LandingFaq",
+  ]) {
+    assert.match(
+      howItWorks,
+      new RegExp(`<${section}\\b`),
+      `${section} moved off the landing and must render on how-it-works`
+    )
+  }
+
+  // The FAQPage node has to live somewhere — it cannot be lost in transit.
+  assert.match(howItWorks, /faqPageSchema\(/)
+  assert.match(howItWorks, /FAQ_ITEMS/)
 })

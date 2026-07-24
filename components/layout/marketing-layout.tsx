@@ -32,7 +32,10 @@ const FOOTER_COLUMNS: readonly FooterColumn[] = [
     links: [
       { href: ROUTES.pubs, label: "Is Nabaperks right for your pub?" },
       { href: `${ROUTES.home}#fit`, label: "Check your pub's fit" },
-      { href: `${ROUTES.home}#guarantees`, label: "Guarantees and conditions" },
+      {
+        href: `${ROUTES.pricing}#guarantees`,
+        label: "Guarantees and conditions",
+      },
     ],
   },
   {

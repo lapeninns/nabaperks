@@ -11,7 +11,7 @@ test.describe("public browser smoke", () => {
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: "The 30-Day First-Regular Launch",
+        name: "Give your weekend crowd a reason to come back on a Tuesday",
       })
     ).toBeVisible()
     await expect(page.getByRole("banner")).toBeVisible()

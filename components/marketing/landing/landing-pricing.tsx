@@ -6,7 +6,7 @@ import { Icon, MonoTag, SectionHeader } from "@/components/brand"
 import { Section } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { PLAN_INCLUDES, PRODUCT, ROUTES } from "@/lib/marketing/facts"
+import { OFFER, PLAN_INCLUDES, PRODUCT, ROUTES } from "@/lib/marketing/facts"
 
 /**
  * On-page pricing — the SaaS-blueprint pricing block, sitting after the proof
@@ -22,13 +22,16 @@ export function LandingPricing() {
         title="One plan, launch included"
         description="No setup fee — we do the whole launch for you. Then a flat monthly price you can cancel anytime."
       />
-      <div className="mt-5 grid gap-3 sm:mt-6 sm:gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+      <div className="mt-5 grid max-w-xl gap-4 sm:mt-6">
         <Card className="border-primary">
           <CardContent className="grid content-start gap-4">
             <div className="flex flex-wrap items-center gap-2">
               <MonoTag tone="accent">{PRODUCT.planName}</MonoTag>
               <MonoTag tone="sun">No setup fee</MonoTag>
             </div>
+            <p className="text-sm leading-6 font-bold text-muted-foreground">
+              {OFFER.name}
+            </p>
             <div className="grid gap-1">
               <p className="flex items-baseline gap-2">
                 <span className="text-4xl leading-none font-extrabold text-foreground">
@@ -43,26 +46,8 @@ export function LandingPricing() {
                 {PRODUCT.pilotCardNote}.
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <Button asChild size="lg">
-                <MarketingSignupLink>Start your free pilot</MarketingSignupLink>
-              </Button>
-              <Button asChild size="lg" variant="secondary">
-                <Link href={ROUTES.pricing}>See full pricing</Link>
-              </Button>
-            </div>
-            <p className="mono-id text-muted-foreground uppercase">
-              {PRODUCT.cancelLine}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="grid content-start gap-3">
-            <p className="mono-meta text-muted-foreground">
-              Every plan includes
-            </p>
             <ul className="grid gap-2.5">
-              {PLAN_INCLUDES.map((item) => (
+              {PLAN_INCLUDES.slice(0, 4).map((item) => (
                 <li key={item} className="flex items-start gap-3">
                   <Icon
                     icon={CheckmarkCircle02Icon}
@@ -75,6 +60,17 @@ export function LandingPricing() {
                 </li>
               ))}
             </ul>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button asChild size="lg">
+                <MarketingSignupLink>Start your free pilot</MarketingSignupLink>
+              </Button>
+              <Button asChild size="lg" variant="secondary">
+                <Link href={ROUTES.pricing}>See full pricing</Link>
+              </Button>
+            </div>
+            <p className="mono-id text-muted-foreground uppercase">
+              {PRODUCT.cancelLine}
+            </p>
           </CardContent>
         </Card>
       </div>

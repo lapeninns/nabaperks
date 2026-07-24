@@ -4,28 +4,18 @@ import { MarketingLayout } from "@/components/layout"
 import { Marquee } from "@/components/marketing"
 import {
   buildQrMatrix,
-  FeaturesListicle,
   FinalCta,
-  GuaranteeStack,
-  LandingFaq,
-  LandingGuides,
+  FitNote,
   LandingHero,
-  LandingNav,
   LandingPricing,
-  LaunchProcess,
-  OutcomeTransformation,
-  ProblemPains,
-  ProofStrip,
-  ScarcityBand,
-  VenueFit,
+  ProductMoment,
+  ProofLine,
 } from "@/components/marketing/landing"
 import { JsonLd } from "@/components/seo/json-ld"
-import { DFY_LAUNCH, FAQ_ITEMS, PRODUCT, ROUTES } from "@/lib/marketing/facts"
+import { PRODUCT, ROUTES } from "@/lib/marketing/facts"
 import {
   absoluteUrl,
-  faqPageSchema,
   growthPlanSchema,
-  howToSchema,
   OG_IMAGE,
   webPageSchema,
 } from "@/lib/seo/structured-data"
@@ -61,18 +51,10 @@ export default function LandingPage() {
     <MarketingLayout>
       <LandingHero demoQr={demoQr} />
       <Marquee />
-      <LandingNav />
-      <ProofStrip />
-      <ProblemPains />
-      <LaunchProcess />
-      <FeaturesListicle />
-      <VenueFit />
-      <OutcomeTransformation />
-      <GuaranteeStack />
+      <ProofLine />
+      <ProductMoment demoQr={demoQr} />
+      <FitNote />
       <LandingPricing />
-      <ScarcityBand />
-      <LandingGuides />
-      <LandingFaq />
       <FinalCta />
       <JsonLd
         id="ld-home"
@@ -81,14 +63,6 @@ export default function LandingPage() {
           "@graph": [
             webPageSchema({ path: ROUTES.home, title, description }),
             growthPlanSchema(),
-            howToSchema({
-              path: ROUTES.home,
-              name: "How the Nabaperks done-for-you pub loyalty launch works",
-              description:
-                "Five steps from venue setup to a live no-app loyalty card and printed counter posters.",
-              steps: DFY_LAUNCH.steps,
-            }),
-            faqPageSchema(ROUTES.home, FAQ_ITEMS),
           ],
         }}
       />
