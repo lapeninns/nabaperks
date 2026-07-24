@@ -29,7 +29,18 @@ export function ProductMoment({ demoQr }: { demoQr: QrMatrix }) {
           </div>
         </Beat>
         <Beat caption={stamp.caption} detail={stamp.detail}>
-          <StampGrid current={2} total={3} rewardSlot="locked" layout="row" />
+          {/* `flow="horizontal"` is load-bearing: the adaptive default wraps
+              each slot onto its own line in a third-width column, which reads
+              as a vertical track and contradicts the card's horizontal row. */}
+          <div className="w-full max-w-[13rem]">
+            <StampGrid
+              current={2}
+              total={3}
+              rewardSlot="locked"
+              layout="row"
+              flow="horizontal"
+            />
+          </div>
         </Beat>
         <Beat caption={reward.caption} detail={reward.detail}>
           <RewardTicket
@@ -56,8 +67,12 @@ function Beat({
   children: ReactNode
 }) {
   return (
-    <div className="grid content-start gap-5">
-      <div className="grid min-h-[10rem] place-items-center">{children}</div>
+    // The beats are grid items, so they already stretch to equal height. Making
+    // the visual area `flex-1` lets it absorb the leftover space in each column,
+    // which lands all three captions on one baseline without pinning a
+    // min-height to the tallest visual.
+    <div className="flex h-full flex-col gap-5">
+      <div className="grid flex-1 place-items-center">{children}</div>
       <div className="grid gap-1">
         <h3 className="text-lg leading-snug font-extrabold text-foreground">
           {caption}
