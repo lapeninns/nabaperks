@@ -89,7 +89,7 @@ export type A4TypeTierModel = {
 export type A4Geometry = {
   readonly sheetWidthMm: 210
   readonly sheetHeightMm: 297
-  readonly safeMarginMm: 18
+  readonly safeMarginMm: 15
 }
 
 export type A4ContentBase = {

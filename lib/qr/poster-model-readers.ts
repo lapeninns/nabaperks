@@ -60,7 +60,7 @@ export function a4ContentBase(templateId: PosterDesignId): A4ContentBase {
         geometry,
         "safeMarginMm",
         "posterDesigns.shared.geometry.a4",
-        18
+        15
       ),
     },
     fonts: posterFonts(),
