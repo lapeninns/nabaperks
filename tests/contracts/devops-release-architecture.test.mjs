@@ -99,13 +99,15 @@ test("nightly browser hardening is isolated, bounded and has a stable gate", () 
   )
   assert.match(
     nightly,
-    /name: Full cross-browser Playwright \(\$\{\{ matrix\.project \}\}\)/
+    /name: Full cross-browser Playwright \(\$\{\{ matrix\.project \}\}, shard \$\{\{ matrix\.shard \}\}\)/
   )
+  assert.match(nightly, /shard: \[1\/2, 2\/2\]/)
+  assert.match(nightly, /--shard="\$\{\{ matrix\.shard \}\}"/)
   assert.match(
     nightly,
     /name: Full cross-browser Playwright\n    needs: cross-browser/
   )
-  for (const timeout of [45, 60, 20, 15, 30]) {
+  for (const timeout of [45, 90, 20, 15, 30]) {
     assert.match(nightly, new RegExp(`timeout-minutes: ${timeout}`))
   }
 })
