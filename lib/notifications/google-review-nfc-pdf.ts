@@ -351,14 +351,14 @@ export function drawGoogleReviewPlate({
   )
 
   const qrSize = mm(content.geometry.googleReviewQrOuterMm)
-  const qrX = mm(70)
-  drawFramedQr(page, qrModules, qrX, mm(3.8), qrSize, 0.8)
+  const qrX = (width - qrSize) / 2
+  drawFramedQr(page, qrModules, qrX, mm(3.2), qrSize, 0.8)
   drawCenteredWrapped(
     page,
     front.tapSub,
-    mm(7),
-    mm(53),
-    mm(13),
+    mm(8),
+    width - mm(16),
+    mm(3.2) + qrSize + mm(2.2),
     fonts.regular,
     7.5,
     POSTER_PDF_COLOR.white,

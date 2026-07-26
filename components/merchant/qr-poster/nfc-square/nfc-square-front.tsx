@@ -86,6 +86,10 @@ export function NfcSquareFront({
             alt="Nabaperks join QR code"
             width={200}
             height={200}
+            style={{
+              width: `${content.geometry.qrOuterMm}mm`,
+              height: `${content.geometry.qrOuterMm}mm`,
+            }}
           />
           <p className={styles.claimFriction}>{claimFriction}</p>
         </div>

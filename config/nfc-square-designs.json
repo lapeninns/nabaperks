@@ -60,8 +60,8 @@
         "cardHeightMm": 100,
         "cornerRadiusMm": 3.2,
         "frameInsetMm": 0.5,
-        "qrOuterMm": 20,
-        "googleReviewQrOuterMm": 20
+        "qrOuterMm": 24,
+        "googleReviewQrOuterMm": 24
       }
     },
     "qr": {
