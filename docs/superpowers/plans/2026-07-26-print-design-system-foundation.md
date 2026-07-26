@@ -1299,11 +1299,37 @@ git commit -m "fix(print): single canonical Nabaperks lockup across the kit"
 
 ---
 
-### Task 10: Catalogue margin 15mm → 18mm
+### Task 10: Catalogue margin 15mm → 18mm — DEFERRED to the posters PR
+
+**Outcome when executed 2026-07-26: deferred, deliberately.** Two facts this task
+was written without:
+
+1. **The verifier re-renders the PDFs itself** (`buildAllPosterPdfAttachments`)
+   rather than reading the on-disk export. Step 3's premise — "re-run against the
+   stale export, it must fail" — could never have tested what it claimed.
+2. **`safeMarginMm` is pinned to `15` in four places**, not one: the strict
+   reader (`lib/qr/poster-model-readers.ts`, `exactNumber(..., 15)`), the literal
+   type (`lib/qr/poster-content-types.ts`), and two tests. Raising it is a
+   deliberate, traceable change — the strict-parser architecture working as
+   designed.
+
+Raising the margin here would leave the seven un-migrated posters failing the
+verifier that Task 12 wires into CI, turning CI red for work this PR does not do.
+
+**Resolution:** `PRINT_FORMATS.a4Poster.marginMm` targets **18mm** and `primer`
+is laid out to it. The catalogue stays at **15mm** until all eight posters are
+re-laid together in the posters PR. Content laid at 18mm satisfies a 15mm frame,
+so `primer` needs no re-work later and CI stays green now.
+
+**The posters PR must** change all four pinned locations in one commit.
+
+**Original task, for the posters PR:**
 
 **Files:**
 
 - Modify: `config/poster-designs.json` (`shared.geometry.a4.safeMarginMm`)
+- Modify: `lib/qr/poster-model-readers.ts`, `lib/qr/poster-content-types.ts`
+- Modify: `tests/unit/poster-designs.test.mjs`, `tests/contracts/poster-designs-catalog.test.mjs`
 
 **Interfaces:**
 
