@@ -95,6 +95,17 @@ jobs:
       - run: pnpm agents:check
       - run: pnpm tokens:check
       - run: pnpm claims:check
+      # The poster PDF verifier has existed unrun since it was written: it was
+      # a package script wired into no workflow, which is why layout defects
+      # reached production. It re-renders every sheet and asserts the safe
+      # frame, QR clearance and decodability.
+      - name: Install PDF QA tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils imagemagick
+          python3 -m pip install --quiet opencv-python-headless pymupdf
+      - name: Verify poster PDF geometry
+        run: pnpm posters:verify-pdfs
 
   build:
     name: Production build
