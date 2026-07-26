@@ -7,12 +7,13 @@ Per the plan's evidence policy, nothing was waived, bypassed, or recorded as pas
 skipped: no `auditConfig.ignoreCves` was added, no protection was toggled, and no poster or
 visual baseline was regenerated.
 
-**Certified subject (single frozen SHA):** `ebcb8b688708e91e66ee71132ed43f78ea635c86`
+**Certified subject (single frozen SHA):** `a6d1c34f76f37be81f79e41bb6ed1fcfe099d693`
 (branch `chore/qa-cert-dep-repair`, [PR #165](https://github.com/lapeninns/nabaperks/pull/165)).
-All Phase 2 local evidence below was gathered on `3a6e8baa`; `ebcb8b68` adds a CI-workflow-only
-change (D-03) that touches no application code, no dependency and no test.
+All Phase 2 local evidence below was gathered on `3a6e8baa`. Everything after it is
+CI-workflow-only — `ebcb8b68` (D-03) and `a6d1c34f` (B-08) touch no application code, no
+dependency and no test, so the Phase 2 evidence carries forward unchanged.
 
-**Run window:** 2026-07-26T08:55Z – 2026-07-26T09:40Z.
+**Run window:** 2026-07-26T08:55Z – 2026-07-26T15:05Z.
 
 **Local environment:** darwin 25.5.0 (arm64) · Node v22.23.1 · pnpm 10.28.0 ·
 Supabase CLI 2.106.0 · Docker 29.3.1 · poppler-utils, ImageMagick, OpenCV 4.13.0, PyMuPDF present.
