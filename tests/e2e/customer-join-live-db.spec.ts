@@ -48,7 +48,19 @@ test.describe("@customer-flow customer join live DB", () => {
         page.getByRole("heading", { name: "Collect your first stamp" })
       ).toBeVisible()
 
-      await page.getByLabel(/Loyalty terms/i).check()
+      const loyaltyTerms = page.getByLabel(/Loyalty terms/i)
+      await page.getByRole("button", { name: "Get my first stamp" }).click()
+      await expect(
+        page.getByText("Accept the loyalty terms to join.", { exact: true })
+      ).toBeVisible()
+      await expect(loyaltyTerms).toHaveAttribute("aria-invalid", "true")
+
+      await loyaltyTerms.check()
+      await expect(
+        page.getByText("Accept the loyalty terms to join.", { exact: true })
+      ).toBeHidden()
+      await expect(loyaltyTerms).toHaveAttribute("aria-invalid", "false")
+
       await Promise.all([
         page.waitForURL(
           (url) =>
@@ -97,6 +109,101 @@ test.describe("@customer-flow customer join live DB", () => {
 
       await expect(
         page.getByText("That code was not accepted.", { exact: true })
+      ).toBeVisible()
+      await expect(
+        page.getByRole("heading", { name: "Enter your code" })
+      ).toBeVisible()
+      await expect(readJoinedMembership(sql, fixture, phone)).resolves.toBe(
+        undefined
+      )
+    } finally {
+      await cleanupCustomerJoinRows(sql, fixture, phone)
+      await cleanupPublicQrRouterFixture(sql, fixture)
+      await sql.end()
+    }
+  })
+
+  test("rate-limits resends without invalidating the current code", async ({
+    page,
+  }) => {
+    const sql = connectLocalDb()
+    test.skip(!sql, "local Supabase DB is not configured")
+    if (!sql) return
+
+    let fixture: PublicQrRouterFixture | undefined
+    const phone = disposableUkMobile()
+
+    try {
+      fixture = await createPublicQrRouterFixture(sql)
+      test.skip(!fixture, "seed merchant owner is not available")
+      if (!fixture) return
+
+      await openOtpStep(page, fixture, phone)
+      const resend = page.getByRole("button", { name: "Resend code" })
+
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        await resend.click()
+        await expect(
+          page.getByText("New code sent. It can take a moment to arrive.", {
+            exact: true,
+          })
+        ).toBeVisible()
+        await expect(resend).toBeEnabled()
+      }
+
+      await resend.click()
+      await expect(
+        page.getByText("Too many verification requests. Try again later.", {
+          exact: true,
+        })
+      ).toBeVisible()
+
+      await page.locator("#otp").fill(DEV_OTP)
+      await page.getByRole("button", { name: "Check code" }).click()
+      await expect(
+        page.getByRole("heading", { name: "Collect your first stamp" })
+      ).toBeVisible()
+    } finally {
+      await cleanupCustomerJoinRows(sql, fixture, phone)
+      await cleanupPublicQrRouterFixture(sql, fixture)
+      await sql.end()
+    }
+  })
+
+  test("locks repeated OTP guesses before accepting a later correct code", async ({
+    page,
+  }) => {
+    const sql = connectLocalDb()
+    test.skip(!sql, "local Supabase DB is not configured")
+    if (!sql) return
+
+    let fixture: PublicQrRouterFixture | undefined
+    const phone = disposableUkMobile()
+
+    try {
+      fixture = await createPublicQrRouterFixture(sql)
+      test.skip(!fixture, "seed merchant owner is not available")
+      if (!fixture) return
+
+      await openOtpStep(page, fixture, phone)
+      const otp = page.locator("#otp")
+      const checkCode = page.getByRole("button", { name: "Check code" })
+
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        await otp.fill(WRONG_OTP)
+        await checkCode.click()
+        await expect(otp).toHaveValue("")
+        await expect(
+          page.getByText("That code was not accepted.", { exact: true })
+        ).toBeVisible()
+      }
+
+      await otp.fill(DEV_OTP)
+      await checkCode.click()
+      await expect(
+        page.getByText("Too many code attempts. Request a new code shortly.", {
+          exact: true,
+        })
       ).toBeVisible()
       await expect(
         page.getByRole("heading", { name: "Enter your code" })
