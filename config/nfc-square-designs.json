@@ -2,7 +2,7 @@
   "schema": "nabaperks.nfc-square-designs.v1",
   "purpose": "Single source of truth for Nabaperks one-sided wall NFC plates, copy, and print pages. Venue-branded: merchant name, stamps required, permanent join URL. Honest by contract — no free-stamp claims.",
   "product": {
-    "brand": "Nab a Perks",
+    "brand": "Nabaperks",
     "operator": "Lapen Inns",
     "market": "UK hospitality",
     "visualSystem": "Wet Ink",
@@ -90,7 +90,7 @@
       "tone": "wall-billboard-plate",
       "front": {
         "brandEyebrow": "Your venue reward card",
-        "brandName": "Nab a Perks",
+        "brandName": "Nabaperks",
         "tapWord": "Tap",
         "tapSub": "To start",
         "claimLine": "One text. Today's visit can be stamp one.",

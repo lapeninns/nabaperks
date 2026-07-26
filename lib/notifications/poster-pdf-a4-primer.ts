@@ -1,5 +1,10 @@
-import type { PrimerPosterContent } from "@/lib/qr/poster-kit-content-types"
+import type { PDFFont } from "pdf-lib"
 
+import type { PrimerPosterContent } from "@/lib/qr/poster-kit-content-types"
+import type { TextMetrics } from "@/lib/print/text"
+
+import type { PrimerMetrics } from "./poster-pdf-a4-primer-layout"
+import { primerLayout } from "./poster-pdf-a4-primer-layout"
 import {
   bodyLeading,
   drawDashedLine,
@@ -11,7 +16,7 @@ import {
 } from "./poster-pdf-style"
 import { drawLedgerFoot, drawLedgerTop } from "./poster-pdf-a4-ledger"
 import { popKitRotation, pushKitRotation } from "./poster-pdf-kit-venue"
-import type { PosterPdfBaseContext } from "./poster-pdf-types"
+import type { PdfFonts, PosterPdfBaseContext } from "./poster-pdf-types"
 
 /** Exercise-book furniture: cobalt feints, red margin rule, punch holes. */
 function drawPrimerRuledPage(
@@ -51,6 +56,14 @@ function drawPrimerRuledPage(
   }
 }
 
+function primerMetrics(fonts: PdfFonts): PrimerMetrics {
+  const from = (font: PDFFont): TextMetrics => ({
+    widthPt: (text, sizePt) => font.widthOfTextAtSize(text, sizePt),
+    normalise: (text) => standardFontText(text, font),
+  })
+  return { display: from(fonts.bold), body: from(fonts.regular) }
+}
+
 export function drawPrimerA4(
   context: PosterPdfBaseContext,
   content: PrimerPosterContent
@@ -64,16 +77,24 @@ export function drawPrimerA4(
     POSTER_PDF_COLOR.paperDeep
   )
   drawPrimerRuledPage(context, (frame.headlineBottom * 25.4) / 72 - 2)
-  const rowTop = frame.headlineBottom - mm(6)
-  const rowHeight = (rowTop - mm(95)) / content.clauses.length
-  const titleDrop = content.typeTiers.substantivePt
-  const detailDrop = titleDrop + bodyLeading(POSTER_PDF_TYPE.bodyPt)
+
+  // Clause geometry comes from the shared layout, which measures each detail
+  // run with these exact fonts and places every separator below the measured
+  // bottom. Guard G2 asserts no rule can land on the text.
+  const { ledger } = primerLayout(content, primerMetrics(fonts))
+  const markAt = (label: string) =>
+    ledger.marks.find((mark) => mark.label === label)
+  const pdfY = (yMm: number, heightMm: number) => mm(297 - yMm - heightMm)
+
   content.clauses.forEach((clause, index) => {
-    const y = rowTop - index * rowHeight
+    const title = markAt(`clause-title-${index}`)
+    const detail = markAt(`clause-detail-${index}`)
+    if (!title || !detail) return
     const color = clause.sealed ? POSTER_PDF_COLOR.leaf : POSTER_PDF_COLOR.ink
+    const titleY = pdfY(title.box.yMm, title.box.heightMm)
     page.drawText(clause.number, {
-      x: frame.left,
-      y: y - titleDrop,
+      x: mm(title.box.xMm),
+      y: titleY,
       size: content.typeTiers.substantivePt,
       font: fonts.monoBold,
       color,
@@ -81,41 +102,32 @@ export function drawPrimerA4(
     page.drawText(
       standardFontText(clause.title.toUpperCase(), fonts.monoBold),
       {
-        x: frame.left + mm(14),
-        y: y - titleDrop,
+        x: mm(title.box.xMm + 14),
+        y: titleY,
         size: content.typeTiers.substantivePt,
         font: fonts.monoBold,
         color,
       }
     )
     drawWrappedText(page, clause.detail, {
-      x: frame.left + mm(14),
-      y: y - detailDrop,
-      maxWidth: frame.width - mm(14),
+      x: mm(detail.box.xMm),
+      y: pdfY(detail.box.yMm, 0) - bodyLeading(POSTER_PDF_TYPE.bodyPt),
+      maxWidth: mm(detail.box.widthMm),
       font: fonts.regular,
       size: POSTER_PDF_TYPE.bodyPt,
       lineHeight: bodyLeading(POSTER_PDF_TYPE.bodyPt),
       color: POSTER_PDF_COLOR.inkSoft,
-      maxLines: 2,
     })
-    const ruleY = y - rowHeight + mm(3)
-    if (index < content.clauses.length - 1) {
-      drawDashedLine(page, {
-        x1: frame.left,
-        y1: ruleY,
-        x2: frame.left + frame.width,
-        y2: ruleY,
-        color: POSTER_PDF_COLOR.inkSoft,
-      })
-    } else {
-      page.drawRectangle({
-        x: frame.left,
-        y: ruleY,
-        width: frame.width,
-        height: 2.2,
-        color: POSTER_PDF_COLOR.ink,
-      })
-    }
+    const rule = markAt(`clause-rule-${index}`)
+    if (!rule) return
+    const ruleY = pdfY(rule.box.yMm, rule.box.heightMm)
+    drawDashedLine(page, {
+      x1: mm(rule.box.xMm),
+      y1: ruleY,
+      x2: mm(rule.box.xMm + rule.box.widthMm),
+      y2: ruleY,
+      color: POSTER_PDF_COLOR.inkSoft,
+    })
   })
   drawLedgerFoot(context, content, content.issuerLabel, content.signature)
   // Rubber-stamp frame around the ink signature the foot just set. Kept short

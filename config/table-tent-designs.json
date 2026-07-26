@@ -2,7 +2,7 @@
   "schema": "nabaperks.table-tent-designs.v1",
   "purpose": "Single source of truth for the Nabaperks A4 table-tent registry, copy, and geometry. A tent is one A4 sheet split into two equal faces; the top face prints rotated 180 degrees so a single middle fold stands both faces upright, one toward each side of the table. Copy is honest by contract: no fabricated stats, no invented testimonials, no free-stamp claims.",
   "product": {
-    "brand": "Nab a Perks",
+    "brand": "Nabaperks",
     "operator": "Lapen Inns",
     "market": "UK hospitality",
     "visualSystem": "Wet Ink",

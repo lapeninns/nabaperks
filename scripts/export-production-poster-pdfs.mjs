@@ -1,33 +1,56 @@
-import { mkdir, writeFile } from "node:fs/promises"
+import { mkdir, rm, writeFile } from "node:fs/promises"
 import { readFileSync, existsSync } from "node:fs"
 import path from "node:path"
 import { pathToFileURL } from "node:url"
 
 import { createClient } from "@supabase/supabase-js"
 
-import { buildNfcCardPdfAttachments } from "@/lib/notifications/nfc-card-pdf"
-import { buildNfcSquarePdfAttachments } from "@/lib/notifications/nfc-square-pdf"
-import { buildPosterPdfAttachments } from "@/lib/notifications/poster-pdf"
-import { buildTentPdfAttachments } from "@/lib/notifications/tent-pdf"
-import { appendQrShareChannel } from "@/lib/qr/nfc-card-share-url"
+import { normalizeGoogleReviewUrl } from "@/lib/customer/venue-details"
+import { closePrintKitBrowser } from "@/lib/notifications/print-kit-browser"
+import {
+  buildNfcCardPdfAttachmentsFromPreview,
+  buildNfcSquarePdfAttachmentsFromPreview,
+  buildPosterPdfAttachmentsFromPreview,
+  buildTentPdfAttachmentsFromPreview,
+} from "@/lib/notifications/print-kit-preview-export"
+import { assertPrintKitPreviewOrigin } from "@/lib/notifications/print-kit-preview-pdf"
 import { NFC_CARD_PRODUCTION_DESIGNS } from "@/lib/qr/nfc-card-templates"
 import { NFC_SQUARE_PRODUCTION_DESIGNS } from "@/lib/qr/nfc-square-templates"
-import { QR_POSTER_PRODUCTION_TEMPLATES } from "@/lib/qr/poster-templates"
+import { QR_POSTER_PRODUCTION_DUPLEX_PAIRS } from "@/lib/qr/poster-duplex-pairs"
 import { TENT_PRODUCTION_DESIGNS } from "@/lib/qr/tent-templates"
 
 const DEFAULT_APP_ORIGIN = "https://nabaperks.com"
 const DEFAULT_OUTPUT = path.join("output", "posters")
 const DEFAULT_HOSTED_ENV = ".env.local.hosted-backup"
+const DEFAULT_LOCAL_ENV = ".env.local"
+const DEFAULT_PREVIEW_ORIGIN = "http://127.0.0.1:3000"
+
+const ASSET_FOLDERS = {
+  posters: "posters",
+  nfcCards: "nfc-cards",
+  nfcPlates: "nfc-plates",
+  tableTents: "table-tents",
+}
 
 /**
- * One-off export: every production-rotation A4 poster PDF for every hosted
- * merchant that has an active join QR. Writes under output/posters/.
+ * Export every production-rotation printable for each merchant with an active
+ * join QR. Posters ship as duplex (2-page) PDFs; NFC cards/plates and table
+ * tents are single-design files. All renders go through Playwright /dev
+ * preview routes. Requires a local Next server (`pnpm dev`).
+ *
+ *   output/posters/
+ *     _manifest.json
+ *     {venue-slug}__{qr-id}/
+ *       posters/nabaperks-poster-{front}-{back}.pdf
+ *       nfc-cards/nabaperks-nfc-card-*.pdf
+ *       nfc-plates/nabaperks-nfc-plate-*.pdf
+ *       table-tents/nabaperks-tent-*.pdf
  *
  * Usage:
+ *   pnpm dev   # in another terminal
  *   pnpm posters:export-production
  *   pnpm posters:export-production -- --limit 1
- *   pnpm posters:export-production -- --allow-local
- *   pnpm posters:export-production -- --env-file .env.local.hosted-backup
+ *   pnpm posters:export-production -- --preview-origin http://127.0.0.1:3000
  */
 
 function readEnvFile(filePath) {
@@ -54,9 +77,10 @@ function parseArgs(argv) {
   const args = {
     limit: null,
     allowLocal: false,
-    envFile: DEFAULT_HOSTED_ENV,
+    envFile: null,
     outputDir: DEFAULT_OUTPUT,
     appOrigin: DEFAULT_APP_ORIGIN,
+    previewOrigin: DEFAULT_PREVIEW_ORIGIN,
   }
   for (let i = 0; i < argv.length; i += 1) {
     const token = argv[i]
@@ -87,9 +111,29 @@ function parseArgs(argv) {
       args.appOrigin = argv[++i].replace(/\/$/, "")
       continue
     }
+    if (token === "--preview-origin") {
+      args.previewOrigin = argv[++i].replace(/\/$/, "")
+      continue
+    }
     throw new Error(`Unknown argument: ${token}`)
   }
+  if (!args.envFile) {
+    args.envFile = args.allowLocal ? DEFAULT_LOCAL_ENV : DEFAULT_HOSTED_ENV
+  }
   return args
+}
+
+async function writePdfBundle(dir, attachments) {
+  await mkdir(dir, { recursive: true })
+  const files = []
+  for (const attachment of attachments) {
+    await writeFile(
+      path.join(dir, attachment.filename),
+      Buffer.from(attachment.content, "base64")
+    )
+    files.push(path.posix.join(path.basename(dir), attachment.filename))
+  }
+  return files
 }
 
 function sanitizeFolderPart(value) {
@@ -139,7 +183,9 @@ async function loadActiveJoinVenues(supabase, limit) {
       merchants!inner (
         id,
         business_name,
-        business_slug
+        business_slug,
+        pub_google_review,
+        locals
       )
     `
     )
@@ -193,61 +239,68 @@ async function loadActiveJoinVenues(supabase, limit) {
       businessSlug: merchant.business_slug ?? null,
       qrId: row.qr_id,
       stampsRequired,
+      googleReviewUrl: normalizeGoogleReviewUrl(
+        merchant.pub_google_review ?? null
+      ),
+      locality:
+        typeof merchant.locals === "string" && merchant.locals.trim()
+          ? merchant.locals.trim()
+          : null,
     })
   }
   return venues
 }
 
-async function exportVenuePrintables(venue, outputRoot, appOrigin) {
+async function exportVenuePrintables(
+  venue,
+  outputRoot,
+  previewOrigin,
+  appOrigin
+) {
   const folderName = venueFolderName(venue)
   const venueDir = path.join(outputRoot, folderName)
+  // Wipe prior layout (flat or typed) so re-exports stay clean.
+  await rm(venueDir, { recursive: true, force: true })
   await mkdir(venueDir, { recursive: true })
 
-  const shareUrl = `${appOrigin}/q/${venue.qrId}`
-  const input = {
+  const previewInput = {
+    previewOrigin,
+    appOrigin,
     merchantName: venue.businessName,
-    shareUrl,
+    qrId: venue.qrId,
     stampsRequired: venue.stampsRequired,
-  }
-  const nfcInput = {
-    ...input,
-    shareUrl: appendQrShareChannel(shareUrl, "qr"),
+    locality: venue.locality,
+    googleReviewUrl: venue.googleReviewUrl,
   }
 
-  const [posters, tents, nfcCards, nfcSquares] = await Promise.all([
-    buildPosterPdfAttachments(input),
-    buildTentPdfAttachments(input),
-    buildNfcCardPdfAttachments(nfcInput),
-    buildNfcSquarePdfAttachments(nfcInput),
-  ])
+  // Serial per venue keeps Chromium memory predictable across designs.
+  const posters = await buildPosterPdfAttachmentsFromPreview(previewInput)
+  const nfcCards = await buildNfcCardPdfAttachmentsFromPreview(previewInput)
+  const nfcSquares = await buildNfcSquarePdfAttachmentsFromPreview(previewInput)
+  const tents = await buildTentPdfAttachmentsFromPreview(previewInput)
 
-  const posterFiles = []
-  for (const attachment of posters) {
-    const filePath = path.join(venueDir, attachment.filename)
-    await writeFile(filePath, Buffer.from(attachment.content, "base64"))
-    posterFiles.push(attachment.filename)
+  if (!venue.googleReviewUrl) {
+    console.warn(
+      `Skipping Google review NFC designs for ${venue.businessName}: no valid pub_google_review URL`
+    )
   }
 
-  const tentFiles = []
-  for (const attachment of tents) {
-    const filePath = path.join(venueDir, attachment.filename)
-    await writeFile(filePath, Buffer.from(attachment.content, "base64"))
-    tentFiles.push(attachment.filename)
-  }
-
-  const nfcFiles = []
-  for (const attachment of nfcCards) {
-    const filePath = path.join(venueDir, attachment.filename)
-    await writeFile(filePath, Buffer.from(attachment.content, "base64"))
-    nfcFiles.push(attachment.filename)
-  }
-
-  const nfcSquareFiles = []
-  for (const attachment of nfcSquares) {
-    const filePath = path.join(venueDir, attachment.filename)
-    await writeFile(filePath, Buffer.from(attachment.content, "base64"))
-    nfcSquareFiles.push(attachment.filename)
-  }
+  const posterFiles = await writePdfBundle(
+    path.join(venueDir, ASSET_FOLDERS.posters),
+    posters
+  )
+  const nfcFiles = await writePdfBundle(
+    path.join(venueDir, ASSET_FOLDERS.nfcCards),
+    nfcCards
+  )
+  const nfcSquareFiles = await writePdfBundle(
+    path.join(venueDir, ASSET_FOLDERS.nfcPlates),
+    nfcSquares
+  )
+  const tentFiles = await writePdfBundle(
+    path.join(venueDir, ASSET_FOLDERS.tableTents),
+    tents
+  )
 
   return {
     folder: folderName,
@@ -256,12 +309,15 @@ async function exportVenuePrintables(venue, outputRoot, appOrigin) {
     businessSlug: venue.businessSlug,
     qrId: venue.qrId,
     stampsRequired: venue.stampsRequired,
-    shareUrl,
+    shareUrl: `${appOrigin}/q/${venue.qrId}`,
+    googleReviewUrl: venue.googleReviewUrl,
+    locality: venue.locality,
+    assetFolders: ASSET_FOLDERS,
     posterFiles,
     tentFiles,
     nfcFiles,
     nfcSquareFiles,
-    files: [...posterFiles, ...tentFiles, ...nfcFiles, ...nfcSquareFiles],
+    files: [...posterFiles, ...nfcFiles, ...nfcSquareFiles, ...tentFiles],
   }
 }
 
@@ -282,6 +338,11 @@ export async function exportProductionPosterPdfs(options = {}) {
   assertHostedTarget(supabaseUrl, Boolean(options.allowLocal))
 
   const appOrigin = (options.appOrigin || DEFAULT_APP_ORIGIN).replace(/\/$/, "")
+  const previewOrigin = (
+    options.previewOrigin || DEFAULT_PREVIEW_ORIGIN
+  ).replace(/\/$/, "")
+  await assertPrintKitPreviewOrigin(previewOrigin)
+
   const outputRoot = path.resolve(options.outputDir || DEFAULT_OUTPUT)
   await mkdir(outputRoot, { recursive: true })
 
@@ -297,20 +358,32 @@ export async function exportProductionPosterPdfs(options = {}) {
   const results = []
   for (const venue of venues) {
     console.log(
-      `Rendering ${QR_POSTER_PRODUCTION_TEMPLATES.length} posters + ${TENT_PRODUCTION_DESIGNS.length} tents + ${NFC_CARD_PRODUCTION_DESIGNS.length} CR80 NFC + ${NFC_SQUARE_PRODUCTION_DESIGNS.length} square NFC for ${venue.businessName} (${venue.qrId})…`
+      `Rendering (preview WYSIWYG) ${QR_POSTER_PRODUCTION_DUPLEX_PAIRS.length} duplex posters + ${NFC_CARD_PRODUCTION_DESIGNS.length} NFC cards + ${NFC_SQUARE_PRODUCTION_DESIGNS.length} NFC plates + ${TENT_PRODUCTION_DESIGNS.length} tents for ${venue.businessName} (${venue.qrId})…`
     )
-    results.push(await exportVenuePrintables(venue, outputRoot, appOrigin))
+    results.push(
+      await exportVenuePrintables(venue, outputRoot, previewOrigin, appOrigin)
+    )
   }
 
   const manifest = {
     generatedAt: new Date().toISOString(),
     appOrigin,
+    previewOrigin,
+    renderMode: "playwright-dev-preview",
     supabaseHost: new URL(supabaseUrl).hostname,
-    posterDesignIds: QR_POSTER_PRODUCTION_TEMPLATES.map(({ id }) => id),
+    layout: {
+      root: path.basename(outputRoot),
+      perVenue:
+        "typed folders — posters/, nfc-cards/, nfc-plates/, table-tents/",
+      assetFolders: ASSET_FOLDERS,
+      posterMode: "duplex-2-page",
+    },
+    posterDuplexPairs: QR_POSTER_PRODUCTION_DUPLEX_PAIRS.map(
+      ({ front, back }) => `${front}+${back}`
+    ),
     tentDesignIds: TENT_PRODUCTION_DESIGNS.map(({ id }) => id),
     nfcDesignIds: NFC_CARD_PRODUCTION_DESIGNS.map(({ id }) => id),
     nfcSquareDesignIds: NFC_SQUARE_PRODUCTION_DESIGNS.map(({ id }) => id),
-    designIds: QR_POSTER_PRODUCTION_TEMPLATES.map(({ id }) => id),
     venueCount: results.length,
     posterCount: results.reduce((sum, row) => sum + row.posterFiles.length, 0),
     tentCount: results.reduce((sum, row) => sum + row.tentFiles.length, 0),
@@ -337,8 +410,13 @@ const invokedPath = process.argv[1]
 
 if (import.meta.url === invokedPath) {
   const args = parseArgs(process.argv.slice(2))
-  const manifest = await exportProductionPosterPdfs(args)
-  console.log(
-    `Exported ${manifest.pdfCount} PDFs across ${manifest.venueCount} venues into ${path.resolve(args.outputDir)}`
-  )
+  try {
+    const manifest = await exportProductionPosterPdfs(args)
+    console.log(
+      `Exported ${manifest.pdfCount} PDFs across ${manifest.venueCount} venues into ${path.resolve(args.outputDir)}`
+    )
+    console.log(`Render mode: Playwright /dev preview at ${args.previewOrigin}`)
+  } finally {
+    await closePrintKitBrowser()
+  }
 }

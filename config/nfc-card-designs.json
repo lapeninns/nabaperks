@@ -2,7 +2,7 @@
   "schema": "nabaperks.nfc-card-designs.v1",
   "purpose": "Single source of truth for the Nabaperks NFC card registry, copy, and print pages. Cards are venue-branded: merchant name, stamps required, and the permanent join URL. Honest by contract — no free-stamp claims, no receipt claims, and first-stamp copy matches the OTP + terms join funnel.",
   "product": {
-    "brand": "Nab a Perks",
+    "brand": "Nabaperks",
     "operator": "Lapen Inns",
     "market": "UK hospitality",
     "visualSystem": "Wet Ink",
@@ -90,7 +90,7 @@
       "tone": "tap-seal-mystery",
       "front": {
         "brandEyebrow": "Your sealed reward",
-        "brandName": "Nab a Perks",
+        "brandName": "Nabaperks",
         "tapWord": "Tap here",
         "tapSub": "To start",
         "stampCue": "Start today · reward at {stamps}",
@@ -109,7 +109,7 @@
           { "title": "Join", "detail": "One text" },
           { "title": "Return", "detail": "Add next stamp" }
         ],
-        "footBrand": "Nab a Perks"
+        "footBrand": "Nabaperks"
       }
     },
     {

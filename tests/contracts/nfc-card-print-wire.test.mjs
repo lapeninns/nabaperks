@@ -48,12 +48,27 @@ test("NFC card artwork encodes the qr channel on the share URL", () => {
   assert.match(nfcPage, /"qr"/)
 })
 
-test("emailed and bulk-exported NFC square PDFs encode the qr channel", () => {
+test("emailed NFC square PDFs encode the qr channel; bulk export uses preview WYSIWYG", () => {
   assert.match(
     posterActions,
     /buildNfcSquarePdfAttachments\(\{\s*\.\.\.kitInput,\s*shareUrl: nfcShareUrl/
   )
-  assert.match(productionExport, /buildNfcSquarePdfAttachments\(nfcInput\)/)
+  assert.match(productionExport, /buildNfcSquarePdfAttachmentsFromPreview/)
+  assert.match(productionExport, /assertPrintKitPreviewOrigin/)
+})
+
+test("bulk print-kit export writes typed folders with duplex posters", () => {
+  assert.match(productionExport, /output", "posters"/)
+  assert.match(productionExport, /ASSET_FOLDERS/)
+  assert.match(productionExport, /nfc-cards/)
+  assert.match(productionExport, /nfc-plates/)
+  assert.match(productionExport, /table-tents/)
+  assert.match(productionExport, /QR_POSTER_PRODUCTION_DUPLEX_PAIRS/)
+  assert.match(productionExport, /buildPosterPdfAttachmentsFromPreview/)
+  assert.match(productionExport, /buildNfcCardPdfAttachmentsFromPreview/)
+  assert.match(productionExport, /buildTentPdfAttachmentsFromPreview/)
+  assert.match(productionExport, /closePrintKitBrowser/)
+  assert.doesNotMatch(productionExport, /buildGoogleReviewPdfAttachments/)
 })
 
 test("public QR join records optional src channel for analytics", () => {

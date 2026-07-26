@@ -12,7 +12,7 @@ test("poster content resolves the closed stamp placeholder grammar", () => {
   const primer = resolvePosterContent("primer", 4)
 
   assert.equal(tally.headline, "Four stamps. One reward.")
-  assert.equal(primer.headline, "Start today. Reveal your reward at stamp 4.")
+  assert.equal(primer.headline, "Start today. Your reward at stamp 4.")
   assert.equal(primer.clauses.at(-1)?.title, "Your reward stays sealed")
   assert.equal(resolvePosterText("{stamps} / {StampsWord}", 6), "6 / Six")
   assert.throws(

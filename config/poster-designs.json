@@ -2,7 +2,7 @@
   "schema": "nabaperks.poster-designs.v3",
   "purpose": "Single source of truth for the Nabaperks print poster registry, copy, format metadata, and layout anatomy. Intended for app runtime and external analysis of the full poster system.",
   "product": {
-    "brand": "Nab a Perks",
+    "brand": "Nabaperks",
     "operator": "Lapen Inns",
     "market": "UK hospitality",
     "visualSystem": "Wet Ink",
@@ -51,7 +51,7 @@
       "join": "One text. No password.",
       "marketing": "Marketing optional"
     },
-    "memberTag": "Nab a Perks · Partner venue",
+    "memberTag": "Nabaperks · Partner venue",
     "placeholders": {
       "stamps": "Validated venue stampsRequired as a base-10 integer string.",
       "StampsWord": "The same 1–6 stampsRequired value via shared.numberWords, first letter capitalised."
@@ -120,7 +120,7 @@
       "copy": {
         "ledgerLabel": "Loyalty · Statement of terms",
         "edition": "Nº 06",
-        "headline": "Start today. Reveal your reward at stamp {stamps}.",
+        "headline": "Start today. Your reward at stamp {stamps}.",
         "clauseOneTitle": "Start your card",
         "clauseOneDetail": "Scan below. One text. No app to download. Marketing optional.",
         "clauseTwoTitle": "Make today stamp one",
@@ -131,7 +131,7 @@
         "clauseFourDetail": "Fill the card to reveal a reward picked by this venue.",
         "qrCaption": "Scan to start your card today",
         "issuerLabel": "Issued by",
-        "signature": "Signed in ink · Nab a Perks"
+        "signature": "Signed in ink · Nabaperks"
       }
     },
     {
@@ -207,7 +207,7 @@
       ],
       "copy": {
         "eyebrow": "A note for our regulars",
-        "edition": "Nab a Perks · Nº 09",
+        "edition": "Nabaperks · Nº 09",
         "headline": "You belong here. Make today count.",
         "ledeOne": "First visit or fiftieth, today's visit can start your card. Fill it to reveal a reward picked by this venue.",
         "ledeMany": "First visit or fiftieth, today's visit can start your card. Collect {stamps} stamps to reveal a reward picked by this venue.",
@@ -262,7 +262,7 @@
         "frictionLine": "One text. No app to download. Marketing optional. One visit stamp per UK date.",
         "qrCaption": "Scan to start your card",
         "issuerLabel": "Sealed by",
-        "signature": "Wax intact · Nab a Perks"
+        "signature": "Wax intact · Nabaperks"
       }
     },
     {
@@ -297,7 +297,7 @@
       ],
       "copy": {
         "eyebrow": "Your loyalty card",
-        "edition": "Nab a Perks · Nº 11",
+        "edition": "Nabaperks · Nº 11",
         "headlineOne": "One stamp. One reward.",
         "headlineMany": "{StampsWord} stamps. One reward.",
         "cardLabel": "Card Nº ——",
@@ -342,7 +342,7 @@
       ],
       "copy": {
         "eyebrow": "Today's deadline",
-        "edition": "Nab a Perks · Nº 13",
+        "edition": "Nabaperks · Nº 13",
         "headlineLead": "Make today count",
         "headlineAccent": "before midnight.",
         "badge": "Today only",
@@ -384,7 +384,7 @@
       ],
       "copy": {
         "orderLabel": "Order Nº ——",
-        "edition": "Nab a Perks · Nº 14",
+        "edition": "Nabaperks · Nº 14",
         "hook": "Don't leave without it.",
         "merchantLabel": "Merchant",
         "cardLine": "Venue loyalty card · 0 of {stamps}",
@@ -397,7 +397,7 @@
         "totalLabel": "Start today",
         "totalValue": "Scan to join",
         "qrCaption": "Scan to start your card",
-        "footLine": "One visit stamp per UK date · Nab a Perks"
+        "footLine": "One visit stamp per UK date · Nabaperks"
       }
     },
     {
@@ -433,7 +433,7 @@
       ],
       "copy": {
         "eyebrow": "Your sealed reward",
-        "edition": "Nab a Perks · Nº 15",
+        "edition": "Nabaperks · Nº 15",
         "headlineLead": "Unlock your",
         "headlineAccent": "mystery reward",
         "ledeOne": "No app to download. Complete one text and today's visit can count as stamp one.",

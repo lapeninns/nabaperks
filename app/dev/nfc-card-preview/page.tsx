@@ -5,6 +5,7 @@ import { A4NfcCard } from "@/components/merchant/qr-poster/nfc-card/a4-nfc-card"
 import { renderPosterQrCodePng } from "@/lib/qr/assets"
 import { appendQrShareChannel } from "@/lib/qr/nfc-card-share-url"
 import { resolveNfcDestination } from "@/lib/qr/nfc-destination"
+import { resolvePreviewShareOrigin } from "@/lib/qr/preview-share-origin"
 import {
   getNfcCardDesign,
   NFC_CARD_DESIGN_IDS,
@@ -22,6 +23,7 @@ type NfcCardPreviewPageProps = {
     readonly review?: string | readonly string[]
     readonly venue?: string | readonly string[]
     readonly stamps?: string | readonly string[]
+    readonly origin?: string | readonly string[]
   }>
 }
 
@@ -55,7 +57,11 @@ export default async function NfcCardPreviewPage({
   const host =
     requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host")
   const protocol = requestHeaders.get("x-forwarded-proto") ?? "http"
-  const origin = host ? `${protocol}://${host}` : "http://127.0.0.1:3146"
+  const origin = resolvePreviewShareOrigin({
+    override: firstSearchValue(query.origin),
+    host,
+    protocol,
+  })
   const shareUrl = appendQrShareChannel(`${origin}/q/${sharePath}`, "qr")
   const googleReviewUrl =
     firstSearchValue(query.review) ?? PREVIEW_DEFAULTS.googleReviewUrl

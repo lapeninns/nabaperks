@@ -4,9 +4,13 @@ type PosterBrandWordmarkPdf = {
   readonly tail: string
 }
 
-/** Uppercase identity-rail segments for PDF drawing (accent on middle A). */
+/**
+ * Canonical lockup segments for PDF drawing, accent on the middle *a*.
+ * Segments concatenate to "Nabaperks"; renderers apply casing at draw time
+ * rather than carrying a second literal.
+ */
 export const POSTER_BRAND_WORDMARK_PDF: PosterBrandWordmarkPdf = {
-  lead: "NAB ",
-  accent: "A",
-  tail: " PERKS",
+  lead: "Nab",
+  accent: "a",
+  tail: "perks",
 }
