@@ -1,3 +1,6 @@
+import { liveArea } from "@/lib/print/geometry"
+import { RHYTHM_BASE_MM } from "@/lib/print/rhythm"
+
 import {
   drawDashedLine,
   mm,
@@ -7,14 +10,29 @@ import {
 import { drawKitCenteredText } from "./poster-pdf-kit-venue"
 import type { PosterPdfBaseContext } from "./poster-pdf-types"
 
-/** Docket strip geometry: a 140 mm thermal strip centred on the A4 sheet. */
+/**
+ * Docket strip geometry, anchored to the print system rather than to six
+ * hand-picked numbers. The strip is inset two rhythm steps from each edge of
+ * the A4 live area, and its own copy inset is one rhythm step — so every value
+ * here is derived, and the symmetry is checkable instead of coincidental.
+ *
+ * Was: left 35, width 140, innerLeft 43, innerWidth 124 — an 8 mm inset off
+ * the scale, which is why nobody could tell whether it was deliberate.
+ */
+const STRIP_INSET_MM = RHYTHM_BASE_MM * 3
+const STRIP_COPY_INSET_MM = RHYTHM_BASE_MM
+
+const A4_LIVE = liveArea("a4Poster")
+const stripLeft = A4_LIVE.xMm + STRIP_INSET_MM
+const stripWidth = A4_LIVE.widthMm - STRIP_INSET_MM * 2
+
 export const RECEIPT_STRIP = {
-  left: 35,
-  width: 140,
+  left: stripLeft,
+  width: stripWidth,
   bottom: 6,
   top: 291,
-  innerLeft: 43,
-  innerWidth: 124,
+  innerLeft: stripLeft + STRIP_COPY_INSET_MM,
+  innerWidth: stripWidth - STRIP_COPY_INSET_MM * 2,
 }
 
 /** Punched perforation dots across the strip head or foot. */
