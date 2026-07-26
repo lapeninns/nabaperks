@@ -40,12 +40,16 @@ import {
   pickSeedMembership,
 } from "./helpers/admin-live-db"
 import { installSeededAdminAal2Session } from "./helpers/admin-mfa-session"
-import { dismissPwaInstall } from "./helpers/harness"
+import {
+  dismissPwaInstall,
+  waitForHydratedPage,
+} from "./helpers/harness"
 
 const LIVE_ADMIN_CONTENT_TIMEOUT_MS = 30_000
 
 async function openFraudAsSeededAdmin(page: Page): Promise<void> {
   await page.goto("/admin/fraud", { waitUntil: "domcontentloaded" })
+  await waitForHydratedPage(page)
   await expect(
     page.getByRole("heading", { exact: true, name: "Fraud" })
   ).toBeVisible({ timeout: LIVE_ADMIN_CONTENT_TIMEOUT_MS })
@@ -108,6 +112,7 @@ async function recordPrivacyActionsThroughUi(
   sql: Sql
 ): Promise<void> {
   await openPrivacyAfterFraudAction(page)
+  await waitForHydratedPage(page)
   await expect(
     page.getByRole("heading", { name: "Privacy support" })
   ).toBeVisible()
