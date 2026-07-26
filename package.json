@@ -99,6 +99,7 @@
       "@vercel/python-analysis>minimatch": "10.2.3",
       "@vercel/python-analysis>smol-toml": "1.6.1",
       "js-yaml@4.2.0": "4.3.0",
+      "minimatch@3.1.5>brace-expansion": "5.0.8",
       "postcss": "8.5.23",
       "qs": "6.15.2",
       "sharp": "^0.35.0",
@@ -106,6 +107,9 @@
       "vercel>smol-toml": "1.6.1",
       "vercel>undici": "6.27.0",
       "uuid": "11.1.1"
+    },
+    "patchedDependencies": {
+      "minimatch@3.1.5": "patches/minimatch@3.1.5.patch"
     }
   },
   "dependencies": {
