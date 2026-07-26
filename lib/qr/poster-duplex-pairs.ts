@@ -5,18 +5,18 @@ import { QR_POSTER_PRODUCTION_TEMPLATES } from "@/lib/qr/poster-templates"
  * Contrasting duplex pairs for print-kit export (front/back of one A4 sheet).
  * Export-only — email kits still send one PDF per design.
  */
-export const QR_POSTER_PRODUCTION_DUPLEX_PAIRS = [
-  { front: "primer", back: "lastcall" },
-  { front: "window", back: "seal" },
-  { front: "pinned", back: "tally" },
-  { front: "receipt", back: "chalk" },
-] as const satisfies ReadonlyArray<{
+export type QrPosterDuplexPair = {
   readonly front: QrPosterTemplateId
   readonly back: QrPosterTemplateId
-}>
+}
 
-export type QrPosterDuplexPair =
-  (typeof QR_POSTER_PRODUCTION_DUPLEX_PAIRS)[number]
+export const QR_POSTER_PRODUCTION_DUPLEX_PAIRS: ReadonlyArray<QrPosterDuplexPair> =
+  [
+    { front: "primer", back: "lastcall" },
+    { front: "window", back: "seal" },
+    { front: "pinned", back: "tally" },
+    { front: "receipt", back: "chalk" },
+  ]
 
 function assertDuplexPairsCoverProduction(): void {
   const productionIds = new Set(
