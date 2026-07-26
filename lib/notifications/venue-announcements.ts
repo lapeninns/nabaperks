@@ -4,6 +4,7 @@ import { recordProductEvent } from "@/lib/analytics/events"
 import { enqueueNotificationEvent } from "@/lib/notifications/events"
 import { londonBusinessDate } from "@/lib/notifications/london-time"
 import {
+  chunkVenueAnnouncementCustomerIds,
   normalizeVenueAnnouncementMemberships,
   resolveVenueAnnouncementAudienceCustomerIds,
   validateVenueAnnouncementText,
@@ -162,47 +163,59 @@ async function resolveAnnouncementAudience(
 ) {
   const supabase = createSupabaseServiceRoleClient()
   const customerIds = [...new Set(memberships.map((row) => row.customerId))]
-  const [preferences, subscriptions, consents] = await Promise.all([
-    supabase
-      .from("notification_preferences")
-      .select("customer_id, marketing_enabled")
-      .in("customer_id", customerIds),
-    supabase
-      .from("push_subscriptions")
-      .select("customer_id")
-      .in("customer_id", customerIds)
-      .eq("enabled", true)
-      .is("revoked_at", null),
-    supabase
-      .from("consent_records")
-      .select("customer_id, channel, consent_status, created_at")
-      .eq("merchant_id", merchantId)
-      .eq("channel", "push")
-      .in("customer_id", customerIds)
-      .order("created_at", { ascending: false }),
-  ])
+  const batches = await Promise.all(
+    chunkVenueAnnouncementCustomerIds(customerIds).map(
+      async (customerIdBatch) => {
+        const [preferences, subscriptions, consents] = await Promise.all([
+          supabase
+            .from("notification_preferences")
+            .select("customer_id, marketing_enabled")
+            .in("customer_id", customerIdBatch),
+          supabase
+            .from("push_subscriptions")
+            .select("customer_id")
+            .in("customer_id", customerIdBatch)
+            .eq("enabled", true)
+            .is("revoked_at", null),
+          supabase
+            .from("consent_records")
+            .select("customer_id, channel, consent_status, created_at")
+            .eq("merchant_id", merchantId)
+            .eq("channel", "push")
+            .in("customer_id", customerIdBatch)
+            .order("created_at", { ascending: false }),
+        ])
 
-  if (preferences.error) {
-    throw new Error(
-      `Unable to load announcement preferences: ${preferences.error.message}`
+        if (preferences.error) {
+          throw new Error(
+            `Unable to load announcement preferences: ${preferences.error.message}`
+          )
+        }
+        if (subscriptions.error) {
+          throw new Error(
+            `Unable to load announcement subscriptions: ${subscriptions.error.message}`
+          )
+        }
+        if (consents.error) {
+          throw new Error(
+            `Unable to load announcement consent: ${consents.error.message}`
+          )
+        }
+
+        return {
+          preferences: preferences.data ?? [],
+          subscriptions: subscriptions.data ?? [],
+          consents: consents.data ?? [],
+        }
+      }
     )
-  }
-  if (subscriptions.error) {
-    throw new Error(
-      `Unable to load announcement subscriptions: ${subscriptions.error.message}`
-    )
-  }
-  if (consents.error) {
-    throw new Error(
-      `Unable to load announcement consent: ${consents.error.message}`
-    )
-  }
+  )
 
   return resolveVenueAnnouncementAudienceCustomerIds({
     memberships,
-    preferences: preferences.data,
-    subscriptions: subscriptions.data,
-    consents: consents.data,
+    preferences: batches.flatMap((batch) => batch.preferences),
+    subscriptions: batches.flatMap((batch) => batch.subscriptions),
+    consents: batches.flatMap((batch) => batch.consents),
   })
 }
 
