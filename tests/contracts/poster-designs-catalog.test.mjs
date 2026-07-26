@@ -85,7 +85,7 @@ test("poster catalogue owns the complete customer-copy and print contract", () =
     "18+ to redeem · One visit stamp here per UK date · Rewards redeem from the next weekday · Terms apply"
   )
   assert.deepEqual(catalog.shared.geometry, {
-    a4: { sheetWidthMm: 210, sheetHeightMm: 297, safeMarginMm: 15 },
+    a4: { sheetWidthMm: 210, sheetHeightMm: 297, safeMarginMm: 18 },
   })
   assert.deepEqual(catalog.shared.qr.a4, { minOuterMm: 52, maxOuterMm: 55 })
   assert.deepEqual(

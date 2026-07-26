@@ -42,7 +42,7 @@ test("all eight designs share the A4 geometry and QR contract", () => {
     assert.deepEqual(content.geometry, {
       sheetWidthMm: 210,
       sheetHeightMm: 297,
-      safeMarginMm: 15,
+      safeMarginMm: 18,
     })
     assert.equal(content.qr.quietZoneModules, 4)
     assert.equal(content.qr.errorCorrectionLevel, "H")
