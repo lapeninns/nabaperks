@@ -32,13 +32,22 @@ env:
 
 jobs:
   cross-browser:
-    name: Full cross-browser Playwright (${{ matrix.project }})
+    name: Full cross-browser Playwright (${{ matrix.project }}, shard ${{ matrix.shard }})
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
         project: [chromium, mobile-safari, desktop-firefox, desktop-safari]
+        # Sharded for memory, not speed. Run unsharded, the webpack dev server
+        # accumulates heap across the whole suite and dies mid-run with
+        # "FATAL ERROR: Ineffective mark-compacts near heap limit - JavaScript
+        # heap out of memory"; every later navigation then fails with
+        # ERR_CONNECTION_REFUSED (run 30196429475: chromium 13 failed / 141
+        # passed, all in tent-print.desktop). Each shard gets its own runner and
+        # its own fresh dev server, which is how the CI e2e tier already avoids
+        # this.
+        shard: [1/2, 2/2]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/setup
@@ -46,11 +55,11 @@ jobs:
         uses: ./.github/actions/playwright
         with:
           project: ${{ matrix.project }}
-      - run: pnpm test:e2e -- --project="${{ matrix.project }}" --grep-invert @visual
+      - run: pnpm test:e2e -- --project="${{ matrix.project }}" --grep-invert @visual --shard="${{ matrix.shard }}"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: ${{ !cancelled() && failure() }}
         with:
-          name: nightly-playwright-report-${{ matrix.project }}
+          name: nightly-playwright-report-${{ matrix.project }}-${{ strategy.job-index }}
           path: |
             playwright-report/
             test-results/
@@ -71,7 +80,14 @@ jobs:
   mutation:
     name: Mutation testing
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # Stryker's `command` runner only supports coverageAnalysis: "off", so the
+    # whole 798-test unit suite re-runs for every mutant across the 8 files in
+    # stryker.conf.json. That has been sitting on the old 60-minute ceiling for
+    # weeks (60m04s, 59m18s, 60m18s, 60m18s on main across 07-23..07-26) and
+    # tipped from pass to timeout on 07-25. Raised so the job reports a real
+    # mutation score instead of a timeout; if it creeps back, shrink `mutate`
+    # rather than raising this again.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/setup
