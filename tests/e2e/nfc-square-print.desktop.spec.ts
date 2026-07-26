@@ -5,6 +5,31 @@ const SQUARE_PAGE_POINTS = (100 * 72) / 25.4
 const SQUARE_PAGE_PIXELS = (100 * 96) / 25.4
 
 test.describe("100 mm NFC square printing", () => {
+  test("keeps the native plate fully visible at a 390 px mobile width", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto("/dev/nfc-square-preview?design=google-review")
+
+    const geometry = await page
+      .locator('[data-nfc-face="square-front"]')
+      .evaluate((element) => {
+        const bounds = element.getBoundingClientRect()
+        return {
+          viewportWidth: window.innerWidth,
+          left: bounds.left,
+          right: bounds.right,
+          width: bounds.width,
+          scrollWidth: element.scrollWidth,
+          clientWidth: element.clientWidth,
+        }
+      })
+
+    expect(geometry.left).toBeGreaterThanOrEqual(0)
+    expect(geometry.right).toBeLessThanOrEqual(geometry.viewportWidth)
+    expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth)
+  })
+
   test("isolates the plate from the app shell at the physical page origin", async ({
     page,
   }) => {

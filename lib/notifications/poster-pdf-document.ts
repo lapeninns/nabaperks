@@ -6,15 +6,14 @@ import { PDFDocument } from "pdf-lib"
 import type { PDFPage } from "pdf-lib"
 
 import type { PdfFonts } from "./poster-pdf-types"
+import { applyPrintPdfMetadata } from "./pdf-metadata"
 
 export async function createPosterDocument(
   title: string,
   subject: string
 ): Promise<{ readonly document: PDFDocument; readonly fonts: PdfFonts }> {
   const document = await PDFDocument.create()
-  document.setTitle(title)
-  document.setAuthor("Nabaperks")
-  document.setSubject(subject)
+  applyPrintPdfMetadata(document, { title, subject })
   document.registerFontkit(fontkit)
   const fontDirectory = path.join(process.cwd(), "assets", "fonts")
   const [regularBytes, boldBytes, monoBytes, monoBoldBytes] = await Promise.all(

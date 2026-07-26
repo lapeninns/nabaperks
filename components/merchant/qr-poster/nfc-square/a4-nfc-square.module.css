@@ -73,6 +73,12 @@
   flex: none;
 }
 
+@media (max-width: 480px) {
+  .stage {
+    padding: 1.5rem 0.375rem;
+  }
+}
+
 @media (min-width: 1024px) {
   .stage {
     align-content: center;

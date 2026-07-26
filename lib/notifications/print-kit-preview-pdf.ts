@@ -1,4 +1,10 @@
+import { PDFDocument } from "pdf-lib"
+
 import { getPrintKitBrowser } from "./print-kit-browser"
+import {
+  applyPrintPdfMetadata,
+  type PrintPdfMetadata,
+} from "./pdf-metadata"
 
 const PRINT_CHROME_HIDE = `
   .qr-poster-chrome { display: none !important; }
@@ -13,6 +19,7 @@ export type PreviewPdfRequest = {
   readonly searchParams: Record<string, string>
   /** Selector that must exist before printing. */
   readonly readySelector?: string
+  readonly metadata?: PrintPdfMetadata
 }
 
 /**
@@ -93,7 +100,12 @@ export async function renderPrintKitPreviewPdf(
       preferCSSPageSize: true,
       margin: { top: "0", right: "0", bottom: "0", left: "0" },
     })
-    return Buffer.from(pdf).toString("base64")
+    if (!request.metadata) {
+      return Buffer.from(pdf).toString("base64")
+    }
+    const pdfDocument = await PDFDocument.load(pdf)
+    applyPrintPdfMetadata(pdfDocument, request.metadata)
+    return Buffer.from(await pdfDocument.save()).toString("base64")
   } finally {
     await page.close()
   }
