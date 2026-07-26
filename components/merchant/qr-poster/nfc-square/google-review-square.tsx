@@ -23,8 +23,9 @@ export function GoogleReviewSquare({
   venue,
   qrDataUrl,
 }: GoogleReviewSquareProps) {
-  const { front } = content
+  const { front, geometry } = content
   const headline = splitTrailingWords(front.brandName, 2)
+  const qrOuterMm = geometry.googleReviewQrOuterMm
 
   return (
     <article
@@ -54,7 +55,7 @@ export function GoogleReviewSquare({
 
         <div className={styles.fallback}>
           <span>{front.tapSub}</span>
-          <div className={styles.qrShell}>
+          <div className={styles.qrShell} style={{ width: `${qrOuterMm}mm` }}>
             {/* eslint-disable-next-line @next/next/no-img-element -- print QR data URL */}
             <img src={qrDataUrl} alt="Google review QR code" />
           </div>

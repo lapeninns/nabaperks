@@ -3,7 +3,7 @@
   width: 100%;
   height: 100%;
   overflow: hidden;
-  border-radius: 2.8mm;
+  border-radius: 0;
   box-shadow: inset 0 0 0 0.45mm var(--w-ink, #211c16);
   background: var(--w-paper, #f6f1e6);
   color: var(--w-ink, #211c16);
