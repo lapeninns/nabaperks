@@ -11,9 +11,21 @@ import {
   NFC_SQUARE_DESIGN_IDS,
   NFC_SQUARE_PRODUCTION_DESIGNS,
 } from "@/lib/qr/nfc-square-templates"
+import { GOOGLE_REVIEW_PLATE_LAYOUT_MM } from "@/lib/notifications/google-review-plate-layout"
 
 /** 100 mm in PDF points (1 pt = 1/72 in; 1 in = 25.4 mm). */
 const SQUARE_PT = (100 * 72) / 25.4
+
+test("Google review plate keeps the QR fallback clear of the tap button", () => {
+  const { button, qr, fallbackCaption } = GOOGLE_REVIEW_PLATE_LAYOUT_MM
+  const qrFrameTop = qr.y + qr.size + qr.framePadding
+
+  assert.ok(qrFrameTop < button.y, "QR frame clears the tap button")
+  assert.ok(
+    fallbackCaption.x + fallbackCaption.width < qr.x - qr.framePadding,
+    "fallback caption clears the QR frame"
+  )
+})
 
 test("NFC square bundle builds one valid 100×100 mm PDF for every production design", async () => {
   const attachments = await buildNfcSquarePdfAttachments({

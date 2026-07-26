@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
-import { PDFDocument } from "pdf-lib"
+import { PDFDocument, PDFName } from "pdf-lib"
 
 import { mergePdfBase64Documents } from "@/lib/notifications/print-kit-pdf-merge"
 import {
@@ -40,4 +40,29 @@ test("mergePdfBase64Documents concatenates pages", async () => {
   ])
   const loaded = await PDFDocument.load(Buffer.from(merged, "base64"))
   assert.equal(loaded.getPageCount(), 2)
+})
+
+test("merged duplex PDFs retain print-specific document metadata", async () => {
+  async function onePagePdf() {
+    const doc = await PDFDocument.create()
+    doc.addPage([210, 297])
+    return Buffer.from(await doc.save()).toString("base64")
+  }
+  const merged = await mergePdfBase64Documents(
+    [await onePagePdf(), await onePagePdf()],
+    {
+      title: "Nabaperks primer and lastcall duplex posters for Old Crown",
+      subject: "A4 duplex counter poster - front and back",
+    }
+  )
+  const loaded = await PDFDocument.load(Buffer.from(merged, "base64"))
+
+  assert.equal(
+    loaded.getTitle(),
+    "Nabaperks primer and lastcall duplex posters for Old Crown"
+  )
+  assert.equal(loaded.getAuthor(), "Nabaperks")
+  assert.equal(loaded.getSubject(), "A4 duplex counter poster - front and back")
+  assert.equal(loaded.getCreator(), "Nabaperks")
+  assert.equal(loaded.catalog.get(PDFName.of("Lang"))?.toString(), "(en-GB)")
 })

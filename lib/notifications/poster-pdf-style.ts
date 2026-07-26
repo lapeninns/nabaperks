@@ -114,6 +114,8 @@ export function standardFontText(
     .filter((character) => supported.has(character.codePointAt(0) ?? -1))
     .join("")
     .replace(/\s+/g, " ")
+    .replace(/^\s*(?:[\/|]\s*)+/u, "")
+    .replace(/(?:\s*[\/|])+\s*$/u, "")
     .trim()
   return printable || fallback
 }
