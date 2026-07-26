@@ -75,6 +75,15 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/setup
+      # Stryker replays the unit suite as its initial test run, and four tests
+      # in tests/unit/google-review-pdf.test.mjs render through a real Chromium
+      # (google-review-pdf -> google-review-pdf-render -> print-kit-browser ->
+      # chromium.launch()). Without a browser those four fail and Stryker aborts
+      # with "There were failed tests in the initial test run" before mutating.
+      - name: Install Chromium for the browser-backed unit tests
+        uses: ./.github/actions/playwright
+        with:
+          project: chromium
       - run: pnpm mutation:check
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: ${{ !cancelled() }}

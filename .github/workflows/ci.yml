@@ -68,6 +68,16 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test:contracts
+      # Four tests in tests/unit/google-review-pdf.test.mjs render through a
+      # real Chromium (google-review-pdf -> google-review-pdf-render ->
+      # print-kit-browser -> chromium.launch()), so the unit tier needs a
+      # browser just like the E2E tiers do. This has never been exercised here:
+      # `security:audit` above has failed on every run since those tests landed,
+      # short-circuiting the job before `test:coverage`.
+      - name: Install Chromium for the browser-backed unit tests
+        uses: ./.github/actions/playwright
+        with:
+          project: chromium
       # The unit suite runs exactly once, with coverage thresholds enforced.
       - run: pnpm test:coverage
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
