@@ -8,7 +8,7 @@ const INTERACTION_TASK_BUDGET_MS = 100
 
 type StampMetrics = {
   layoutShift: number
-  longTasks: number[]
+  longTasks: Array<{ duration: number; startTime: number }>
 }
 
 async function installMetrics(page: Page) {
@@ -29,7 +29,10 @@ async function installMetrics(page: Page) {
 
     new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
-        metrics.longTasks.push(entry.duration)
+        metrics.longTasks.push({
+          duration: entry.duration,
+          startTime: entry.startTime,
+        })
       }
     }).observe({ type: "longtask", buffered: true })
   })
@@ -120,20 +123,43 @@ test.describe("customer stamp choreography — normal motion", () => {
       "nabaperks:stamp:settled",
     ])
 
-    const metrics = await page.evaluate(() => {
+    const metrics = await page.evaluate(async () => {
+      // Let the observer deliver the task that contained the settled mark before
+      // taking the snapshot. Subsequent Playwright assertions are intentionally
+      // outside the app-owned interaction interval.
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => resolve())
+      })
       const target = window as Window & { __stampMetrics?: StampMetrics }
-      return target.__stampMetrics
+      const metrics = target.__stampMetrics
+      const marks = performance
+        .getEntriesByType("mark")
+        .filter((entry) => entry.name.startsWith("nabaperks:stamp:"))
+      const interactionStart = marks.find(
+        (entry) => entry.name === "nabaperks:stamp:checking"
+      )?.startTime
+      const interactionEnd = marks.find(
+        (entry) => entry.name === "nabaperks:stamp:settled"
+      )?.startTime
+      return { interactionEnd, interactionStart, metrics }
     })
-    expect(metrics?.layoutShift ?? 1).toBeLessThan(0.001)
+    expect(metrics.metrics?.layoutShift ?? 1).toBeLessThan(0.001)
+    expect(metrics.interactionStart).toBeDefined()
+    expect(metrics.interactionEnd).toBeDefined()
     const longTasks =
-      metrics?.longTasks.filter(
-        (duration) => duration > LONG_TASK_THRESHOLD_MS
+      metrics.metrics?.longTasks.filter(
+        ({ duration, startTime }) =>
+          duration > LONG_TASK_THRESHOLD_MS &&
+          startTime <= (metrics.interactionEnd ?? 0) &&
+          startTime + duration >= (metrics.interactionStart ?? Infinity)
       ) ?? []
     // Hosted runners can cross the Long Tasks API boundary by a few
     // milliseconds. Keep the interaction well inside the 200 ms "good" INP
     // boundary while still failing repeated or genuinely blocking work.
     expect(longTasks.length).toBeLessThanOrEqual(1)
-    expect(Math.max(0, ...longTasks)).toBeLessThan(INTERACTION_TASK_BUDGET_MS)
+    expect(Math.max(0, ...longTasks.map(({ duration }) => duration))).toBeLessThan(
+      INTERACTION_TASK_BUDGET_MS
+    )
   })
 
   test("reveals the full-card reward and durable CTA in place", async ({
