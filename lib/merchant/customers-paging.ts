@@ -45,6 +45,27 @@ export function resolveCustomersPageRequest(
   return { page, offset: (page - 1) * pageSize }
 }
 
+/**
+ * Convert the count of members ordered before a deep-linked member into its
+ * 1-based page. Keeping this arithmetic pure makes the database rank read easy
+ * to verify without weakening the merchant-scoped query that supplies it.
+ */
+export function resolveCustomersPageForLeadingCount(
+  leadingCount: number,
+  pageSize: number = CUSTOMERS_PAGE_SIZE
+): number {
+  const safeLeadingCount =
+    Number.isFinite(leadingCount) && leadingCount > 0
+      ? Math.floor(leadingCount)
+      : 0
+  const safePageSize =
+    Number.isFinite(pageSize) && pageSize > 0
+      ? Math.max(1, Math.floor(pageSize))
+      : CUSTOMERS_PAGE_SIZE
+
+  return Math.floor(safeLeadingCount / safePageSize) + 1
+}
+
 /** Describe the pagination UI for a resolved page against the true total. */
 export function buildCustomersPagination(
   page: number,
