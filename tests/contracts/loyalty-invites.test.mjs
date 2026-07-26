@@ -149,6 +149,16 @@ test("retention, export and erasure cover the new data", () => {
   const adminAction = read("app/admin/actions.ts")
   assert.match(adminAction, /loyalty_invitations_export_for_customer/)
   assert.match(adminAction, /admin_erase_loyalty_invitations_for_customer/)
+  assert.match(
+    adminAction,
+    /error: invitationErasureError[\s\S]*if \(invitationErasureError\)[\s\S]*Deletion stopped before customer data was erased/,
+    "customer erasure fails closed when invitation data cannot be scrubbed"
+  )
+  assert.match(
+    adminAction,
+    /error: invitationExportError[\s\S]*if \(invitationExportError\)[\s\S]*Subject-access export failed before a complete download could be prepared/,
+    "subject-access exports fail closed instead of returning partial data"
+  )
 })
 
 test("the OpenAPI contract documents the Resend webhook", () => {

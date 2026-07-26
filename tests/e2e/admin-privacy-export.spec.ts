@@ -90,6 +90,13 @@ test.describe("@admin-live-db admin subject-access export", () => {
           "href",
           /^data:application\/json/
         )
+        const href = await download.getAttribute("href")
+        const encodedPayload = href?.split(",", 2).at(1)
+        expect(encodedPayload).toBeTruthy()
+        const exportPayload = JSON.parse(
+          decodeURIComponent(encodedPayload ?? "")
+        ) as { loyalty_invitations?: unknown }
+        expect(Array.isArray(exportPayload.loyalty_invitations)).toBe(true)
       } finally {
         await cleanupAdminMfa()
       }
