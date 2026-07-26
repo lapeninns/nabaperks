@@ -63,15 +63,20 @@ re-raised:
 
 ### QR scannability
 
-Computed from the `qrcode` library at a representative 50-character share URL,
-EC level M → 33 modules, with the catalogue's 4-module quiet zone per side.
+Computed from the `qrcode` library at the catalogue's **actual** settings — error
+correction level **H**, 4-module quiet zone per side — across the realistic range
+of share-URL lengths. Module size in mm:
 
-| Format     | Outer | Module size  | Verdict                |
-| ---------- | ----- | ------------ | ---------------------- |
-| Poster     | 54 mm | 1.317 mm     | fine                   |
-| Tent       | 40 mm | 0.976 mm     | fine                   |
-| NFC card   | 18 mm | **0.439 mm** | below the 0.5 mm floor |
-| NFC square | 20 mm | **0.488 mm** | below the 0.5 mm floor |
+| Format     | Outer | 40 ch (37 mod) | 52 ch (41 mod) | 72 ch (49 mod) | Verdict         |
+| ---------- | ----- | -------------- | -------------- | -------------- | --------------- |
+| Poster     | 54 mm | 1.200          | 1.102          | 0.947          | fine            |
+| Tent       | 40 mm | 0.889          | 0.816          | 0.702          | fine            |
+| NFC card   | 18 mm | **0.400**      | **0.367**      | **0.316**      | far under floor |
+| NFC square | 20 mm | **0.444**      | **0.408**      | **0.351**      | far under floor |
+
+At EC-H worst case (49 modules) a 0.5 mm module needs a **28.5 mm** outer box —
+over half the height of an 85.6 × 54 mm card. Enlarging the QR alone cannot fix
+the NFC formats. See "Owed decision" below.
 
 ### Brand lockup
 
@@ -105,6 +110,10 @@ Five systemic absences produce all 17 defects:
 | NFC square   | 100 × 100            | **3 mm** | 5 mm from trim               | 90 × 90     |
 
 A 12-column grid on the live width. The QR column starts on a grid line.
+
+The A4 margin is a deliberate change from the catalogue's current
+`safeMarginMm: 15`. `assertPosterLayoutGeometry` reads that value from the
+catalogue, so the existing verifier follows the new margin automatically.
 
 ### Rhythm
 
@@ -188,9 +197,30 @@ nothing runs it.
 - Strip crop marks, registration targets and the colour bar from `window`. These
   belong to a press, not to artwork a merchant prints on an office A4.
 - Add 3 mm bleed to both NFC formats with a documented trim box.
-- Raise NFC QR: card **18 → 24 mm**, square **20 → 26 mm** (0.585 mm and
-  0.634 mm per module — comfortable headroom above the floor for longer merchant
-  slugs). Both formats need re-laying regardless.
+- NFC QR sizing is blocked on the owed decision below. Both formats need
+  re-laying regardless, so the re-lay reserves a QR box sized by whichever option
+  is chosen.
+
+### Owed decision — NFC QR (blocks PR 4 only)
+
+Enlarging the QR alone cannot reach the 0.5 mm floor on a business card. Three
+routes, none of which block PRs 1–3:
+
+Measured at the 70-character worst-case slug (option A) and a 30-character short
+link (options B, C):
+
+| Option                                  | Modules | Outer | Module       | Cost                                                                               |
+| --------------------------------------- | ------- | ----- | ------------ | ---------------------------------------------------------------------------------- |
+| A. Drop EC **H → M** for NFC only       | 37      | 24 mm | **0.533 mm** | Less damage tolerance — acceptable for a wallet card, unlike a scuffed wall poster |
+| B. Short NFC link (`/t/AB12CD`), keep H | 33      | 22 mm | **0.537 mm** | New short-code route — real product scope beyond a print re-lay                    |
+| C. A + B together                       | 29      | 20 mm | **0.541 mm** | Both of the above; smallest QR box                                                 |
+
+All three clear the floor, but only just — each outer above is the minimum that
+does. For a 0.6 mm comfort margin the boxes grow to 27 mm (A) and 22 mm (C).
+
+Recommendation: **A** for PR 4, sized at **27 mm** for real headroom, with **B**
+raised separately as product work. A is print-kit-local and unblocks the re-lay
+immediately; if B ships later, the box shrinks to 22 mm at the same comfort.
 
 ### Copy changes
 
