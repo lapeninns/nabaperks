@@ -35,10 +35,13 @@ export function drawKitWordmark(
     readonly casing?: "title" | "upper"
   }
 ): number {
-  const parts =
-    options.casing === "upper"
-      ? POSTER_BRAND_WORDMARK_PDF
-      : { lead: "Nab ", accent: "a", tail: " Perks" }
+  const cased = (segment: string): string =>
+    options.casing === "upper" ? segment.toUpperCase() : segment
+  const parts = {
+    lead: cased(POSTER_BRAND_WORDMARK_PDF.lead),
+    accent: cased(POSTER_BRAND_WORDMARK_PDF.accent),
+    tail: cased(POSTER_BRAND_WORDMARK_PDF.tail),
+  }
   let cursor = options.x
   page.drawText(parts.lead, {
     x: cursor,
