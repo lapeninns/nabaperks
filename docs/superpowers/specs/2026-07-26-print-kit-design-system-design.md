@@ -218,9 +218,24 @@ link (options B, C):
 All three clear the floor, but only just — each outer above is the minimum that
 does. For a 0.6 mm comfort margin the boxes grow to 27 mm (A) and 22 mm (C).
 
-Recommendation: **A** for PR 4, sized at **27 mm** for real headroom, with **B**
-raised separately as product work. A is print-kit-local and unblocks the re-lay
-immediately; if B ships later, the box shrinks to 22 mm at the same comfort.
+**RESOLVED 2026-07-26 — option A at 27 mm.** Both NFC formats drop to error
+correction **M** and size their QR box at **27 mm**. Measured at the 70-character
+worst-case slug that is 37 modules → **0.600 mm** per module, a comfortable
+margin above the 0.5 mm floor rather than the 0.533 mm the minimum size gives.
+
+Rationale: EC-H buys damage tolerance, which earns its cost on a wall poster that
+gets scuffed and splashed. A card in a wallet does not face that, and the poster
+and tent formats keep EC-H unchanged. Option A is print-kit-local, so it unblocks
+PR 4 immediately.
+
+**Still worth doing separately:** option B, a short `/t/XXXXXX` NFC link. It is
+product scope, not a print change, and if it ships later the box shrinks from
+27 mm to 22 mm at the same 0.6 mm comfort — a meaningful reclaim on an
+85.6 × 54 mm card.
+
+**PR 4 must** change the EC level for the NFC catalogues only, set both QR boxes
+to 27 mm, and re-lay both formats around the larger box — which they need anyway
+for the bleed and safe-area work.
 
 ### Copy changes
 
