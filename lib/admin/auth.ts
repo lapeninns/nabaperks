@@ -50,12 +50,27 @@ export const getAdminAccess = cache(async (): Promise<AdminAccess> => {
   }
 
   // MFA is enforced at the app layer only (never re-add the DB AAL2 check —
-  // see lib/admin/mfa-gate.ts). Resolve the assurance level; any failure fails
-  // OPEN to "no-factor" so a transient auth error can never lock an admin out.
+  // see lib/admin/mfa-gate.ts). Passing the access token makes Supabase verify
+  // the user and factor list with Auth instead of trusting session.user from
+  // the cookie-backed storage object. Resolve the assurance level; any failure
+  // fails OPEN to "no-factor" so a transient auth error can never lock an admin
+  // out.
   let mfaState: AdminMfaState = "no-factor"
   try {
-    const { data: aal } =
-      await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession()
+    if (sessionError || !session?.access_token) {
+      throw new Error("Unable to verify the admin session assurance level.")
+    }
+    const { data: aal, error: assuranceError } =
+      await supabase.auth.mfa.getAuthenticatorAssuranceLevel(
+        session.access_token
+      )
+    if (assuranceError) {
+      throw assuranceError
+    }
     mfaState = resolveAdminMfaState(aal?.currentLevel, aal?.nextLevel)
   } catch {
     mfaState = "no-factor"

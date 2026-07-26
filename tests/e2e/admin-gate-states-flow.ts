@@ -28,6 +28,8 @@ type AdminResponseError = {
 const PASSWORD = "NabaperksDemo1!"
 const INTERNAL_ADMIN_REASON = "Internal admin access is required."
 const ADMIN_REDIRECT_TIMEOUT_MS = 30_000
+const INSECURE_SESSION_USER_WARNING =
+  "Using the user object as returned from supabase.auth.getSession()"
 
 const ACTIVE_ADMIN = {
   email: "admin@nabaperks.test",
@@ -198,14 +200,25 @@ export function describeAdminGateStates(): void {
     test("allows a seeded admin into the admin shell with email and password", async ({
       page,
     }) => {
+      const insecureSessionUserWarnings: string[] = []
+      page.on("console", (message) => {
+        if (message.text().includes(INSECURE_SESSION_USER_WARNING)) {
+          insecureSessionUserWarnings.push(message.text())
+        }
+      })
       const adminResponseErrors = collectAdminResponseErrors(page)
       await signInToAdmin(page, ACTIVE_ADMIN)
-      await expect(
-        page.getByRole("navigation", { name: "Admin navigation" })
-      ).toBeVisible()
+      const navigation = page.getByRole("navigation", {
+        name: "Admin navigation",
+      })
+      if (!(await navigation.isVisible())) {
+        await page.getByRole("button", { name: "Toggle Sidebar" }).click()
+      }
+      await expect(navigation).toBeVisible()
       await expect(page.getByText("Operator:")).toBeVisible()
       expect(new URL(page.url()).pathname).toBe("/admin")
       expect(adminResponseErrors).toEqual([])
+      expect(insecureSessionUserWarnings).toEqual([])
     })
   })
 }
