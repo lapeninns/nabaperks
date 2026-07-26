@@ -3,6 +3,7 @@ import { headers } from "next/headers"
 
 import { A4Poster } from "@/components/merchant/qr-poster/a4-poster"
 import { renderPosterQrCodePng } from "@/lib/qr/assets"
+import { resolvePreviewShareOrigin } from "@/lib/qr/preview-share-origin"
 import {
   getQrPosterTemplate,
   QR_POSTER_TEMPLATE_IDS,
@@ -17,6 +18,7 @@ type PosterPreviewPageProps = {
     readonly qr?: string | readonly string[]
     readonly venue?: string | readonly string[]
     readonly stamps?: string | readonly string[]
+    readonly origin?: string | readonly string[]
   }>
 }
 
@@ -44,7 +46,11 @@ export default async function PosterPreviewPage({
   const host =
     requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host")
   const protocol = requestHeaders.get("x-forwarded-proto") ?? "http"
-  const origin = host ? `${protocol}://${host}` : "http://127.0.0.1:3146"
+  const origin = resolvePreviewShareOrigin({
+    override: firstSearchValue(query.origin),
+    host,
+    protocol,
+  })
   const shareUrl = `${origin}/q/${sharePath}`
   const png = await renderPosterQrCodePng(shareUrl, 900)
   const qrDataUrl = `data:image/png;base64,${png.toString("base64")}`
