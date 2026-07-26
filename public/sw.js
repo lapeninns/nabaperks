@@ -164,11 +164,14 @@ async function cacheFirst(request) {
 
   const url = new URL(request.url)
   if (url.pathname.startsWith(NEXT_STATIC_PREFIX)) {
-    // Hashed immutable assets: a ?v= cache-buster never changes the bytes, so
-    // any cached variant is the right answer — critically, offline lookups
-    // must not fall through to the network and stall the document load.
-    const variant = await caches.match(request, { ignoreSearch: true })
-    if (variant) return variant
+    // Production assets are content-hashed, so a search variant can safely
+    // reuse the same bytes. Next dev assets have stable paths plus a mutable
+    // `?v=` build token: serving an older variant there can hydrate new server
+    // HTML with stale client code after a restart.
+    if (!url.searchParams.has("v")) {
+      const variant = await caches.match(request, { ignoreSearch: true })
+      if (variant) return variant
+    }
   }
 
   let response
