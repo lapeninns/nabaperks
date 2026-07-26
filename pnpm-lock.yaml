@@ -6,6 +6,7 @@ settings:
 
 overrides:
   '@hono/node-server': ^2.0.10
+  '@lhci/cli>chrome-launcher': 1.2.1
   brace-expansion@1.1.15: 1.1.16
   brace-expansion@5: ^5.0.8
   body-parser@1.20.5: 1.20.6
@@ -7530,7 +7531,7 @@ snapshots:
   '@lhci/cli@0.15.1':
     dependencies:
       '@lhci/utils': 0.15.1
-      chrome-launcher: 0.13.4
+      chrome-launcher: 1.2.1
       compression: 1.8.1
       debug: 4.4.3
       express: 4.22.2
