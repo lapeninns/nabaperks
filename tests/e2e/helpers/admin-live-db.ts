@@ -110,10 +110,12 @@ export async function databaseIsReady(sql: Sql): Promise<boolean> {
     where proname in (
       'admin_resolve_fraud_flag',
       'admin_record_consent_opt_out',
-      'admin_log_data_request'
+      'admin_log_data_request',
+      'admin_record_unaffiliated_consent_opt_out',
+      'admin_log_unaffiliated_data_request'
     )`
 
-  return (rows.at(0)?.count ?? 0) >= 3
+  return (rows.at(0)?.count ?? 0) >= 5
 }
 
 export async function pickSeedMembership(

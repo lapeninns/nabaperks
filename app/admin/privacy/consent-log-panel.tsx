@@ -66,7 +66,7 @@ export function ConsentLogPanel({
                   fields={[
                     {
                       label: "Merchant",
-                      value: merchant?.business_name ?? "Merchant",
+                      value: merchant?.business_name ?? "Account-wide",
                     },
                     { label: "Channel", value: record.channel },
                     { label: "Policy", value: record.policy_version },
@@ -101,7 +101,7 @@ export function ConsentLogPanel({
                 header: "Merchant",
                 cell: (record) => {
                   const merchant = first(record.merchants)
-                  return merchant?.business_name ?? "Merchant"
+                  return merchant?.business_name ?? "Account-wide"
                 },
               },
               {
