@@ -78,14 +78,14 @@ export async function openOtpStep(
   ).toBeVisible()
   await expect(page.locator("#otp")).toBeVisible()
 
-  // The "Use a different number" back link preserves the entry params — the QR
-  // id and (when present) the referral code — so a bounce-back re-hydrates them.
+  // The different-number link preserves the entry params — the QR id and (when
+  // present) the referral code — so a bounce-back re-hydrates them.
   const backParams = new URLSearchParams()
   if (ref) backParams.set("ref", ref)
   else backParams.set("qr", fixture.activeQrId)
   backParams.set("step", "phone")
   await expect(
-    page.getByRole("link", { name: "Use a different number" })
+    page.getByRole("link", { name: "Wrong number? Use a different one" })
   ).toHaveAttribute(
     "href",
     `/m/${fixture.merchantSlug}/join?${backParams.toString()}`
@@ -126,7 +126,7 @@ export async function openDirectTermsStep(
     page.getByRole("heading", { name: "Enter your code" })
   ).toBeVisible()
   await expect(
-    page.getByRole("link", { name: "Use a different number" })
+    page.getByRole("link", { name: "Wrong number? Use a different one" })
   ).toHaveAttribute("href", `/m/${merchantSlug}/join?step=phone`)
 
   await page.locator("#otp").fill(DEV_OTP)
@@ -158,7 +158,7 @@ export function disposableUkMobile(): DisposablePhone {
     const national = `074${digits}`
     const parsed = parsePhoneNumberFromString(national, "GB")
 
-    if (parsed?.isValid()) {
+    if (parsed?.isValid() && parsed.country === "GB") {
       return disposablePhoneFromParts(national, parsed.number)
     }
   }

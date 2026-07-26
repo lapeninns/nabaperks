@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto"
 
+import { qrScanCodeRateLimitKey } from "@/lib/customer/qr-rate-limit-core"
+
 import type { Sql } from "./admin-live-db"
 import type { PublicQrRouterFixture } from "./public-qr-router-live-db"
 
@@ -92,6 +94,6 @@ function rateLimitIdentity(ip: string, deviceId: string): string {
 
 function qrScanRateLimitBucketKey(qrId: string, identity: string): string {
   return createHash("sha256")
-    .update(`qr-scan:${qrId}:${identity}`)
+    .update(qrScanCodeRateLimitKey(qrId, identity))
     .digest("hex")
 }
