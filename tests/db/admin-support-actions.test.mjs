@@ -82,7 +82,10 @@ test(
       } catch (error) {
         refusedNonAdmin = isAdminRejection(error)
       }
-      assert.ok(refusedNonAdmin, "a non-admin caller cannot resolve fraud flags")
+      assert.ok(
+        refusedNonAdmin,
+        "a non-admin caller cannot resolve fraud flags"
+      )
 
       // Admin access no longer requires AAL2 step-up (migration
       // 20260720100000): an active internal_admins row is sufficient, so an
@@ -95,15 +98,37 @@ test(
         select status from public.fraud_flags where id = ${flagId}::uuid`
       assert.equal(flag.status, "dismissed", "fraud flag status is persisted")
 
-      const [audit] = await tx`
+      // A transport retry of the same decision is a no-op, not a second
+      // operator event. A conflicting terminal decision is rejected.
+      await tx`select public.admin_resolve_fraud_flag(
+        ${flagId}::uuid, 'dismissed', ${reason})`
+
+      let refusedConflictingResolution = false
+      try {
+        await tx.savepoint(async (sp) => {
+          await sp`select public.admin_resolve_fraud_flag(
+            ${flagId}::uuid, 'reviewed', 'Conflicting terminal decision')`
+        })
+      } catch (error) {
+        refusedConflictingResolution = /already resolved/i.test(
+          String(error.message)
+        )
+      }
+      assert.ok(
+        refusedConflictingResolution,
+        "a dismissed flag cannot be flipped to another terminal state"
+      )
+
+      const audits = await tx`
         select metadata
         from public.audit_logs
         where target_table = 'fraud_flags'
           and target_id = ${flagId}::uuid
           and action = 'fraud_flag_resolved'
-        order by created_at desc
-        limit 1`
+        order by created_at desc`
 
+      assert.equal(audits.length, 1, "a retry does not duplicate the audit row")
+      const [audit] = audits
       assert.ok(audit, "fraud resolution writes an audit log row")
       assert.equal(audit.metadata.status, "dismissed")
       assert.equal(audit.metadata.previous_status, "open")
@@ -139,7 +164,10 @@ test(
       } catch (error) {
         refusedNonAdmin = isAdminRejection(error)
       }
-      assert.ok(refusedNonAdmin, "a non-admin caller cannot log privacy requests")
+      assert.ok(
+        refusedNonAdmin,
+        "a non-admin caller cannot log privacy requests"
+      )
 
       // Admin access no longer requires AAL2 step-up (migration
       // 20260720100000): an admin at aal1 logs privacy requests successfully.
@@ -174,7 +202,9 @@ test(
         "export returns portable membership data"
       )
       assert.ok(
-        exportResult.stamp_events.every((stampEvent) => "event_type" in stampEvent),
+        exportResult.stamp_events.every(
+          (stampEvent) => "event_type" in stampEvent
+        ),
         "export returns actual stamp ledger event types"
       )
 

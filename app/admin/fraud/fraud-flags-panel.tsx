@@ -121,7 +121,14 @@ export function FraudFlagsPanel({ flags }: { readonly flags: FraudFlags }) {
           {
             key: "actions",
             header: "Review",
-            cell: (flag) => <FraudFlagActions flagId={flag.id} />,
+            cell: (flag) =>
+              flag.status === "open" ? (
+                <FraudFlagActions flagId={flag.id} />
+              ) : (
+                <span className="text-xs font-semibold text-muted-foreground">
+                  Review complete
+                </span>
+              ),
           },
         ]}
         mobileCard={(flag) => (
@@ -149,9 +156,15 @@ export function FraudFlagsPanel({ flags }: { readonly flags: FraudFlags }) {
               },
             ]}
             action={
-              <AdminRecordActions label="Review actions" group="fraud-review">
-                <FraudFlagActions flagId={flag.id} compact />
-              </AdminRecordActions>
+              flag.status === "open" ? (
+                <AdminRecordActions label="Review actions" group="fraud-review">
+                  <FraudFlagActions flagId={flag.id} compact />
+                </AdminRecordActions>
+              ) : (
+                <span className="text-xs font-semibold text-muted-foreground">
+                  Review complete
+                </span>
+              )
             }
           />
         )}
