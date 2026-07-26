@@ -10,9 +10,11 @@ oversight: merging strictly improved `main`, taking `pnpm audit` from 4 findings
 repairing a production build that had been broken since #164. It does **not** confer
 certification, and `main`'s Release gate remains red on B-01.
 
-Per the plan's evidence policy, nothing was waived, bypassed, or recorded as passed when
-skipped: no `auditConfig.ignoreCves` was added, no protection was toggled, and no poster or
-visual baseline was regenerated.
+Per the plan's evidence policy, no result in this matrix was waived, bypassed, or recorded as
+passed when it was skipped: no `auditConfig.ignoreCves` was added, no gate was loosened, and no
+poster or visual baseline was regenerated. The one protection toggle that did occur — the
+ruleset disable/re-enable around the merge above — was performed by the owner as a deliberate
+delivery decision, and it is recorded here rather than treated as a passing result.
 
 **Certified subject (single frozen SHA):** `a6d1c34f76f37be81f79e41bb6ed1fcfe099d693`
 (branch `chore/qa-cert-dep-repair`, [PR #165](https://github.com/lapeninns/nabaperks/pull/165)).
@@ -27,8 +29,10 @@ Supabase CLI 2.106.0 · Docker 29.3.1 · poppler-utils, ImageMagick, OpenCV 4.13
 
 ## Candidate lineage
 
-The plan's premise held: `main` was not certifiable. Two further defects were found during
-certification, each producing a new candidate per the failure policy.
+The plan's premise held: `main` was not certifiable. Four further defects were found during
+certification (D-01 through D-04), three of them fixed, each fix producing a new candidate per
+the failure policy. `a6d1c34f` is the candidate the evidence below describes; it reached `main`
+as squash commit `1fb7017e`.
 
 | SHA                                            | Change                                                      | Why superseded                                               |
 | ---------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------ |
