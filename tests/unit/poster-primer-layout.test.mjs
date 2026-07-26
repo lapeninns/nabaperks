@@ -12,10 +12,11 @@ const content = resolvePosterContent("primer", 3)
 /** Ground-truth metrics: the same embedded fonts the painter draws with. */
 async function pdfMetrics() {
   const { fonts } = await createPosterDocument("probe", "probe")
-  return {
-    widthPt: (text, sizePt) => fonts.bold.widthOfTextAtSize(text, sizePt),
+  const from = (font) => ({
+    widthPt: (text, sizePt) => font.widthOfTextAtSize(text, sizePt),
     normalise: (text) => text,
-  }
+  })
+  return { display: from(fonts.bold), body: from(fonts.regular) }
 }
 
 test("the primer layout raises no guard violations", async () => {

@@ -17,10 +17,21 @@ const CLAUSE_INDENT_MM = 14
 /** Gap between a clause title and its detail run. */
 const TITLE_TO_DETAIL_MM = 1.5
 
+/**
+ * The headline sets in bold display and the clause details in regular body,
+ * so line counts must be measured with the matching font — one shared
+ * measurer would mis-wrap one of them.
+ */
+export type PrimerMetrics = {
+  readonly display: TextMetrics
+  readonly body: TextMetrics
+}
+
 export type PrimerLayout = {
   readonly zones: ZoneStack
   readonly ledger: Ledger
   readonly headlineLines: readonly string[]
+  readonly clauseDetailLines: readonly (readonly string[])[]
 }
 
 type ClauseBlock = {
@@ -66,11 +77,11 @@ function proofHeightMm(blocks: readonly ClauseBlock[]): number {
  */
 export function primerLayout(
   content: PrimerPosterContent,
-  metrics: TextMetrics
+  metrics: PrimerMetrics
 ): PrimerLayout {
   const liveWidthMm = 174
   const detailWidthMm = liveWidthMm - CLAUSE_INDENT_MM
-  const blocks = measureClauses(content, metrics, detailWidthMm)
+  const blocks = measureClauses(content, metrics.body, detailWidthMm)
   const zones = solveA4Zones(proofHeightMm(blocks))
   const ledger = createLedger()
 
@@ -93,7 +104,7 @@ export function primerLayout(
 
   const headlineLines = wrapLines(
     content.headline,
-    metrics,
+    metrics.display,
     content.typeTiers.hookPt,
     mmToPt(zones.statement.widthMm)
   )
@@ -105,7 +116,9 @@ export function primerLayout(
       box: {
         xMm: zones.statement.xMm,
         yMm: zones.statement.yMm + index * headlineLineMm,
-        widthMm: ptToMm(metrics.widthPt(line, content.typeTiers.hookPt)),
+        widthMm: ptToMm(
+          metrics.display.widthPt(line, content.typeTiers.hookPt)
+        ),
         heightMm: headlineLineMm,
       },
       container: "statement",
@@ -164,5 +177,10 @@ export function primerLayout(
     cursorMm += block.heightMm + RHYTHM_BASE_MM
   })
 
-  return { zones, ledger: ledger.snapshot(), headlineLines }
+  return {
+    zones,
+    ledger: ledger.snapshot(),
+    headlineLines,
+    clauseDetailLines: blocks.map((block) => block.detailLines),
+  }
 }
