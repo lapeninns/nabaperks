@@ -26,7 +26,13 @@ const NON_INDEXABLE_MARKETING_ROUTES = [
 
 const ACQUISITION_ROUTES = ["/", "/pricing", "/signup"] as const
 
+const PRIVATE_AUTH_ROUTES = ["/login", "/reset-password"] as const
+
 test.describe("@public-route-metadata", () => {
+  // Metadata proof must always come from the current server output, never a
+  // previously installed PWA navigation cache.
+  test.use({ serviceWorkers: "block" })
+
   // One test per route (a11y-sweep pattern): a fresh page per navigation keeps
   // the one-time service-worker claim reload from interrupting a second goto.
   for (const route of ACQUISITION_ROUTES) {
@@ -123,6 +129,22 @@ test.describe("@public-route-metadata", () => {
         /noindex/
       )
       await expect(page.locator('meta[name="robots"]')).not.toHaveAttribute(
+        "content",
+        /nofollow/
+      )
+    })
+  }
+
+  for (const route of PRIVATE_AUTH_ROUTES) {
+    test(`${route} keeps account access out of search results`, async ({
+      page,
+    }) => {
+      await page.goto(route)
+      await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+        "content",
+        /noindex/
+      )
+      await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
         "content",
         /nofollow/
       )
