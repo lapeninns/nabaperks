@@ -122,6 +122,14 @@ cron parity, blocking Deployment Checks, and environment-variable names and
 protected storage without decrypting or printing values. It also intentionally
 exits non-zero until the provider-owned target state is live.
 
+Run `pnpm ops:vercel:plan` from the same shell to produce a JSON remediation
+plan from that names-only readback. The command cannot apply changes, rejects
+`--apply`, never includes provider values, and keeps Git auto-deploy disablement
+last. It marks that final step deferred until isolated runtime values,
+forbidden-name removal and blocking Deployment Checks have all been verified.
+For an offline review, point `VERCEL_GOVERNANCE_EVIDENCE_FILE` at a previously
+captured names-only evidence file.
+
 Run `pnpm ops:supabase:check` from an authenticated Supabase operator shell to
 validate the production project identity and health, exact source/remote
 migration-ledger parity, WAL-G, PITR, backup region, freshness, continuity and
@@ -166,6 +174,11 @@ non-zero while the production ledger or recovery posture is behind the target.
   `--prune-forbidden` flag. Use `--replace` separately when rotating existing
   runtime values.
 
+- Follow the plan order: provision isolated Preview and Staging values, add the
+  missing Production Sentry material, remove forbidden runtime credential
+  names, configure and verify all three blocking checks, then disable Git
+  auto-deploy. Every provider mutation requires a separately approved operator
+  action; `ops:vercel:plan` is deliberately read-only.
 - Production Deployment Checks require `Release gate`, CodeQL and
   `Database promotion`. A successful build may be staged, but custom production
   domains are not assigned before all checks pass.
