@@ -151,6 +151,21 @@ non-zero while the production ledger or recovery posture is behind the target.
 
 ### Vercel
 
+- Preview every environment-variable change by name before mutation:
+
+  ```bash
+  pnpm env:push-vercel preview --plan
+  pnpm env:push-vercel staging --plan
+  pnpm env:push-vercel production --plan
+  ```
+
+  The sync helper follows the environment-specific governance contract, never
+  prints values, and excludes deployment/database credentials from application
+  runtime. Existing forbidden names are retained by default; after reviewing
+  the plan, remove only those names with the explicit
+  `--prune-forbidden` flag. Use `--replace` separately when rotating existing
+  runtime values.
+
 - Production Deployment Checks require `Release gate`, CodeQL and
   `Database promotion`. A successful build may be staged, but custom production
   domains are not assigned before all checks pass.

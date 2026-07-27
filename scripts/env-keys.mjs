@@ -3,10 +3,20 @@ import { join } from "node:path"
 import { spawnSync } from "node:child_process"
 
 import { parseEnvText, serializeEnvValue } from "./env-file.mjs"
+import {
+  planVercelEnvironmentSync,
+  requiredEnvironmentGaps,
+} from "./vercel-governance/env-sync.mjs"
 
 const projectDir = process.cwd()
 const contract = JSON.parse(
   readFileSync(join(projectDir, "config/env-contract.json"), "utf8")
+)
+const vercelGovernanceContract = JSON.parse(
+  readFileSync(
+    join(projectDir, "config/vercel-governance-contract.json"),
+    "utf8"
+  )
 )
 const customerOtpBypassModeAnyFourDigits = "any-4-digits"
 const twilioVerifyEnvNames = new Set([
@@ -37,7 +47,7 @@ if (command === "status") {
   pushVercelEnv()
 } else {
   console.error(
-    "Usage: pnpm env:keys | pnpm env:write-local [--force] | pnpm env:pull-supabase <project-ref> | pnpm env:set-posthog | pnpm env:set-resend | pnpm env:push-vercel [production|preview|development] [--replace]"
+    "Usage: pnpm env:keys | pnpm env:write-local [--force] | pnpm env:pull-supabase <project-ref> | pnpm env:set-posthog | pnpm env:set-resend | pnpm env:push-vercel [production|preview|staging|development] [--plan] [--replace] [--prune-forbidden]"
   )
   process.exit(1)
 }
@@ -112,6 +122,7 @@ function printStatus() {
   console.log("  pnpm dlx vercel link")
   console.log("  pnpm dlx vercel env pull .env.local")
   console.log("  pnpm dlx vercel env add <NAME> production")
+  console.log("  pnpm env:push-vercel production --plan")
   console.log("  pnpm env:push-vercel production --replace")
   console.log("")
   console.log("After exporting values in your shell, write .env.local with:")
@@ -316,6 +327,8 @@ function setPostHog() {
 function pushVercelEnv() {
   const environment = parseVercelEnvironment()
   const replace = process.argv.includes("--replace")
+  const planOnly = process.argv.includes("--plan")
+  const pruneForbidden = process.argv.includes("--prune-forbidden")
   const source = join(projectDir, ".env.local")
 
   if (!existsSync(source)) {
@@ -324,24 +337,29 @@ function pushVercelEnv() {
   }
 
   const localValues = parseEnvFile(source)
-  const names = contract
-    .map((entry) => entry.name)
-    .filter((name) => localValues[name]?.trim())
+  const localNames = contract.map((entry) => entry.name)
+  const { missingAlternatives, missingKeys } = requiredEnvironmentGaps(
+    vercelGovernanceContract,
+    environment,
+    localValues
+  )
 
-  const missing = contract
-    .filter((entry) => isRequiredContractEntry(entry, localValues))
-    .filter((entry) => !localValues[entry.name]?.trim())
-    .map((entry) => entry.name)
-
-  if (missing.length) {
+  if (missingKeys.length || missingAlternatives.length) {
     console.error("Cannot push incomplete local env. Missing:")
-    for (const name of missing) {
+    for (const name of missingKeys) {
       console.error(`- ${name}`)
+    }
+    for (const alternatives of missingAlternatives) {
+      console.error(
+        `- one of: ${alternatives
+          .map((names) => names.join(" + "))
+          .join(" or ")}`
+      )
     }
     process.exit(1)
   }
 
-  if (!names.length) {
+  if (!localNames.some((name) => localValues[name]?.trim())) {
     console.error("No contract values found in .env.local.")
     process.exit(1)
   }
@@ -349,35 +367,61 @@ function pushVercelEnv() {
   assertVercelProductionEnvSafe(environment, localValues)
 
   const existingNames = readVercelEnvNames(environment)
-  const pushed = []
-  const skipped = []
+  const sync = planVercelEnvironmentSync({
+    contract: vercelGovernanceContract,
+    environment,
+    existingNames,
+    localNames,
+    localValues,
+    pruneForbidden,
+    replace,
+  })
+  printVercelSyncPlan(environment, sync)
 
-  for (const name of names) {
-    const exists = existingNames.has(name)
+  if (planOnly) {
+    console.log("Plan only; no Vercel environment variables were changed.")
+    return
+  }
 
-    if (exists && !replace) {
-      skipped.push(name)
-      continue
-    }
+  for (const name of sync.removeForbidden) {
+    removeVercelEnv(name, environment)
+  }
 
-    if (exists) {
-      removeVercelEnv(name, environment)
-    }
-
+  for (const name of sync.replace) {
+    removeVercelEnv(name, environment)
     addVercelEnv(name, localValues[name], environment)
-    pushed.push(name)
+  }
+
+  for (const name of sync.add) {
+    addVercelEnv(name, localValues[name], environment)
   }
 
   console.log(`Vercel ${environment} env sync complete.`)
+}
 
-  if (pushed.length) {
-    console.log(`Added/replaced: ${pushed.join(", ")}`)
-  }
+function printVercelSyncPlan(environment, sync) {
+  console.log(`Vercel ${environment} env sync plan (names only).`)
+  printVercelNameGroup("Add", sync.add)
+  printVercelNameGroup("Replace", sync.replace)
+  printVercelNameGroup("Keep existing", sync.skip)
+  printVercelNameGroup("Exclude from application runtime", sync.excludedLocal)
+  printVercelNameGroup("Remove forbidden runtime keys", sync.removeForbidden)
 
-  if (skipped.length) {
-    console.log(`Skipped existing: ${skipped.join(", ")}`)
-    console.log("Re-run with --replace to rotate existing values.")
+  const retainedForbidden = sync.existingForbidden.filter(
+    (name) => !sync.removeForbidden.includes(name)
+  )
+  if (retainedForbidden.length) {
+    console.warn(
+      `Existing forbidden runtime keys were not removed: ${retainedForbidden.join(", ")}`
+    )
+    console.warn(
+      "Review with --plan --prune-forbidden, then remove them explicitly."
+    )
   }
+}
+
+function printVercelNameGroup(label, names) {
+  console.log(`${label}: ${names.length ? names.join(", ") : "none"}`)
 }
 
 function assertVercelProductionEnvSafe(environment, localValues) {
@@ -522,9 +566,11 @@ function parseVercelEnvironment() {
 
   if (!environment) return "production"
 
-  if (!["production", "preview", "development"].includes(environment)) {
+  if (
+    !["production", "preview", "staging", "development"].includes(environment)
+  ) {
     console.error(
-      "Vercel environment must be production, preview, or development."
+      "Vercel environment must be production, preview, staging, or development."
     )
     process.exit(1)
   }
