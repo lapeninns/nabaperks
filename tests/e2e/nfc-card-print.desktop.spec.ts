@@ -40,19 +40,39 @@ test.describe("CR80 NFC card printing", () => {
     await expect(faces).toHaveCount(2)
     await expect(page.locator(".qr-poster-chrome")).toBeHidden()
 
-    const geometry = await faces.evaluateAll((elements) =>
-      elements.map((element) => {
-        const bounds = element.getBoundingClientRect()
-        return {
-          left: bounds.left,
-          top: bounds.top,
-          width: bounds.width,
-          height: bounds.height,
-          scrollWidth: element.scrollWidth,
-          scrollHeight: element.scrollHeight,
-        }
+    const readGeometry = () =>
+      faces.evaluateAll((elements) =>
+        elements.map((element) => {
+          const bounds = element.getBoundingClientRect()
+          return {
+            left: bounds.left,
+            top: bounds.top,
+            width: bounds.width,
+            height: bounds.height,
+            scrollWidth: element.scrollWidth,
+            scrollHeight: element.scrollHeight,
+          }
+        })
+      )
+
+    // WebKit can acknowledge the print-media switch one layout pass before it
+    // has recomputed offsets for a newly reparented print root. Wait on the
+    // physical-page contract itself: this fails permanently for a real shell
+    // leak but does not charge the browser's stale pre-print layout to the app.
+    await expect
+      .poll(async () => {
+        const current = await readGeometry()
+        return current.every(
+          (face, index) =>
+            Math.abs(face.left) < 0.05 &&
+            Math.abs(face.top - index * CARD_HEIGHT_MM * PIXELS_PER_MM) < 0.5 &&
+            Math.abs(face.width - CARD_WIDTH_MM * PIXELS_PER_MM) < 0.5 &&
+            Math.abs(face.height - CARD_HEIGHT_MM * PIXELS_PER_MM) < 0.5
+        )
       })
-    )
+      .toBe(true)
+
+    const geometry = await readGeometry()
 
     expect(geometry).toHaveLength(2)
     for (const [index, face] of geometry.entries()) {
