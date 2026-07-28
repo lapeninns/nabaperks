@@ -1,4 +1,9 @@
-import { GUARANTEE, OPERATOR, PRODUCT } from "@/lib/marketing/facts"
+import {
+  GUARANTEE,
+  GUARANTEE_ROI,
+  OPERATOR,
+  PRODUCT,
+} from "@/lib/marketing/facts"
 
 export type LegalSection = {
   id: string
@@ -245,7 +250,12 @@ export const MERCHANT_TERMS_SECTIONS: LegalSection[] = [
   {
     id: "guarantee",
     title: "First-Regular Guarantee",
-    body: `${GUARANTEE.line} A returning member is a customer who receives another normal visit stamp on a later Europe/London date. ${GUARANTEE.applies} ${GUARANTEE.claim} The extension is applied manually through support; it is not an automatic refund or cash payment.`,
+    body: `${GUARANTEE.line} A returning member is a customer who receives another normal visit stamp on a later Europe/London date. ${GUARANTEE.applies} ${GUARANTEE.conditions} ${GUARANTEE.claim} The extension is applied manually through support; it is not an automatic refund or cash payment.`,
+  },
+  {
+    id: "roi-extension",
+    title: GUARANTEE_ROI.name,
+    body: `${GUARANTEE_ROI.line} ${GUARANTEE_ROI.mechanic} ${GUARANTEE_ROI.conditions} ${GUARANTEE_ROI.claim}`,
   },
   {
     id: "monthly-first-regular-promo",

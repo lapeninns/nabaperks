@@ -42,7 +42,7 @@ _One page. Everything a venue owner needs to say yes._
 | Element                       | Detail                                                                                                                                                                                                                             |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **The product**               | A browser-based loyalty card customers open from your QR — no app, no Apple/Google Wallet pass, no POS or EPOS integration. Each stamp is linked to the venue QR and saved membership and limited to one per customer per UK date. |
-| **The price**                 | £49/month per venue (or £490/year — two months free) · 30-day free pilot · month to month · no contract · card required, cancel anytime from your billing page.                                                                    |
+| **The price**                 | £49/month per venue (or £490/year — two months free) · 30-day free pilot · card required · cancel renewal from billing; cancellation takes effect at the end of the current monthly or annual billing period.                      |
 | **The named offer**           | The 30-Day First-Regular Launch.                                                                                                                                                                                                   |
 | **Activation path**           | Four guided configuration steps, then billing activation before customers can join and stamp.                                                                                                                                      |
 | **The guarantee**             | First-Regular Guarantee — if your live card hasn't brought back a first regular by the end of your 30-day pilot, the pilot stays free until it does.                                                                               |
@@ -178,7 +178,7 @@ _How it reads, top to bottom, on the page and in the room._
 
 No-app QR loyalty for UK cafes, takeaways and pubs. Your customer scans the till QR and the card opens in their browser — saved in one tap, with no app and no Apple or Google Wallet pass to install. Each stamp is tied to the venue QR and saved membership and capped at one per customer per UK date.
 
-**One price. Everything included.** £49/month per venue, a 30-day free pilot, month to month, cancel anytime. At £49/month, one or two extra regulars a week can cover it.
+**One price. Everything included.** £49/month per venue, or £490/year, after a 30-day free pilot. Cancel renewal from billing; cancellation takes effect at the end of the current monthly or annual billing period. At £49/month, one or two extra regulars a week can cover it.
 
 **Build your card first. Activate it when billing is ready.** Four configuration steps prepare the venue, card, rewards and QR; billing is the fifth gate. Once billing is active, customers can join from the live QR and collect stamps.
 

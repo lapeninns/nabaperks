@@ -20,7 +20,7 @@ export function LandingPricing() {
       <SectionHeader
         eyebrow="Pricing"
         title="One plan, launch included"
-        description="No setup fee — we do the whole launch for you. Then a flat monthly price you can cancel anytime."
+        description="No setup fee — we do the whole launch for you. Then a flat monthly price, with renewal managed from billing."
       />
       <div className="mt-5 grid max-w-xl gap-4 sm:mt-6">
         <Card className="border-primary">
