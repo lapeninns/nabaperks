@@ -249,8 +249,11 @@ test("production env check requires provider release secrets without forcing opt
 
   for (const key of [
     "CRON_SECRET",
+    "CUSTOMER_EMAIL_ENCRYPTION_KEY",
+    "CUSTOMER_EMAIL_HMAC_SECRET",
     "MERCHANT_OTP_ALIAS_TOKEN_ENCRYPTION_KEY",
     "RESEND_FROM",
+    "RESEND_WEBHOOK_SECRET",
     "SUPABASE_SEND_EMAIL_HOOK_SECRET",
     "WEB_PUSH_VAPID_PRIVATE_KEY",
     "WEB_PUSH_VAPID_PUBLIC_KEY",

@@ -338,6 +338,32 @@ test("SE-10: the drain pays a held bonus once room frees and respects next_retry
   })
 })
 
+test("operational readiness reports the count and oldest age of due referral bonuses", { skip }, async () => {
+  await inRolledBackTxn(async (tx) => {
+    const [{ signals: before }] = await tx`
+      select public.production_operational_signals() as signals`
+    const [qr] = await tx.unsafe(PICK_QR)
+    assert.ok(qr, "an active join QR exists")
+    const seeded = await seedQualified(tx, qr)
+
+    await tx`
+      update public.referrals
+      set next_retry_at = now() - interval '10 minutes'
+      where id = ${seeded.edgeId}::uuid`
+
+    const [{ signals: after }] = await tx`
+      select public.production_operational_signals() as signals`
+    assert.ok(
+      after.referralBonusBacklogCount >= before.referralBonusBacklogCount + 1,
+      "the due qualified edge is counted"
+    )
+    assert.ok(
+      after.referralBonusBacklogAgeMinutes >= 10,
+      "the oldest-due age is exposed in minutes"
+    )
+  })
+})
+
 test("review hardening: a referred customer qualifies after leave + rejoin", { skip }, async () => {
   await inRolledBackTxn(async (tx) => {
     const [qr] = await tx.unsafe(PICK_QR)

@@ -16,6 +16,7 @@
     "readinessResponseMs": 5000,
     "notificationQueueAgeMinutes": 30,
     "loyaltyInviteQueueAgeMinutes": 15,
+    "referralBonusBacklogAgeMinutes": 30,
     "providerDeliveryFailureRate": 0.1,
     "consecutiveCronFailures": 1
   }

@@ -7,6 +7,7 @@ import { checkDatabaseReadiness } from "@/lib/observability/readiness"
 const thresholds = {
   notificationQueueAgeMinutes: 30,
   loyaltyInviteQueueAgeMinutes: 15,
+  referralBonusBacklogAgeMinutes: 30,
   providerDeliveryFailureRate: 0.1,
   consecutiveCronFailures: 1,
 }
@@ -15,6 +16,8 @@ function operationalSignals(overrides = {}) {
   return {
     notificationQueueAgeMinutes: 0,
     loyaltyInviteQueueAgeMinutes: 0,
+    referralBonusBacklogCount: 0,
+    referralBonusBacklogAgeMinutes: 0,
     providerDeliveryAttempts24h: 20,
     providerDeliveryFailures24h: 1,
     providerDeliveryFailureRate24h: 0.05,
@@ -190,6 +193,10 @@ test("operational readiness fails closed on breached queue, provider or cron sig
     operationalSignals({ notificationQueueAgeMinutes: 30.001 }),
     operationalSignals({ loyaltyInviteQueueAgeMinutes: 15.001 }),
     operationalSignals({
+      referralBonusBacklogCount: 1,
+      referralBonusBacklogAgeMinutes: 30.001,
+    }),
+    operationalSignals({
       providerDeliveryFailures24h: 3,
       providerDeliveryFailureRate24h: 0.15,
     }),
@@ -294,6 +301,11 @@ test("operational readiness rejects malformed or untrusted provider responses", 
   for (const signals of [
     { ...operationalSignals(), cronJobs: [] },
     { ...operationalSignals(), providerDeliveryFailureRate24h: 2 },
+    { ...operationalSignals(), referralBonusBacklogCount: -1 },
+    {
+      ...operationalSignals(),
+      referralBonusBacklogAgeMinutes: "private detail",
+    },
     { ...operationalSignals(), notificationQueueAgeMinutes: "private detail" },
   ]) {
     const result = await checkOperationalReadiness({

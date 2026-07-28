@@ -9,6 +9,8 @@ type CronJobState = "warming" | "ok" | "failing" | "stale"
 export type OperationalSignals = {
   readonly notificationQueueAgeMinutes: number
   readonly loyaltyInviteQueueAgeMinutes: number
+  readonly referralBonusBacklogCount: number
+  readonly referralBonusBacklogAgeMinutes: number
   readonly providerDeliveryAttempts24h: number
   readonly providerDeliveryFailures24h: number
   readonly providerDeliveryFailureRate24h: number
@@ -28,6 +30,7 @@ export type OperationalReadiness = {
 type OperationalThresholds = {
   readonly notificationQueueAgeMinutes: number
   readonly loyaltyInviteQueueAgeMinutes: number
+  readonly referralBonusBacklogAgeMinutes: number
   readonly providerDeliveryFailureRate: number
   readonly consecutiveCronFailures: number
 }
@@ -114,6 +117,8 @@ function signalsAreHealthy(
       thresholds.notificationQueueAgeMinutes &&
     signals.loyaltyInviteQueueAgeMinutes <=
       thresholds.loyaltyInviteQueueAgeMinutes &&
+    signals.referralBonusBacklogAgeMinutes <=
+      thresholds.referralBonusBacklogAgeMinutes &&
     signals.providerDeliveryFailureRate24h <=
       thresholds.providerDeliveryFailureRate &&
     cronHealthy
@@ -126,6 +131,8 @@ function parseOperationalSignals(value: unknown): OperationalSignals | null {
   const {
     notificationQueueAgeMinutes,
     loyaltyInviteQueueAgeMinutes,
+    referralBonusBacklogCount,
+    referralBonusBacklogAgeMinutes,
     providerDeliveryAttempts24h,
     providerDeliveryFailures24h,
     providerDeliveryFailureRate24h,
@@ -135,6 +142,8 @@ function parseOperationalSignals(value: unknown): OperationalSignals | null {
   if (
     !isNonNegativeNumber(notificationQueueAgeMinutes) ||
     !isNonNegativeNumber(loyaltyInviteQueueAgeMinutes) ||
+    !isNonNegativeInteger(referralBonusBacklogCount) ||
+    !isNonNegativeNumber(referralBonusBacklogAgeMinutes) ||
     !isNonNegativeInteger(providerDeliveryAttempts24h) ||
     !isNonNegativeInteger(providerDeliveryFailures24h) ||
     providerDeliveryFailures24h > providerDeliveryAttempts24h ||
@@ -160,6 +169,8 @@ function parseOperationalSignals(value: unknown): OperationalSignals | null {
   return {
     notificationQueueAgeMinutes,
     loyaltyInviteQueueAgeMinutes,
+    referralBonusBacklogCount,
+    referralBonusBacklogAgeMinutes,
     providerDeliveryAttempts24h,
     providerDeliveryFailures24h,
     providerDeliveryFailureRate24h,
@@ -187,6 +198,7 @@ function validThresholds(value: OperationalThresholds): boolean {
   return (
     isNonNegativeNumber(value.notificationQueueAgeMinutes) &&
     isNonNegativeNumber(value.loyaltyInviteQueueAgeMinutes) &&
+    isNonNegativeNumber(value.referralBonusBacklogAgeMinutes) &&
     isRate(value.providerDeliveryFailureRate) &&
     Number.isInteger(value.consecutiveCronFailures) &&
     value.consecutiveCronFailures >= 1

@@ -125,6 +125,8 @@ test("Given operational ledgers When cron outcomes are recorded Then only servic
     assert.equal(failedJob.state, "failing")
     assert.ok(failedJob.consecutiveFailures >= 2)
     assert.equal(typeof failedSignals.notificationQueueAgeMinutes, "number")
+    assert.equal(typeof failedSignals.referralBonusBacklogCount, "number")
+    assert.equal(typeof failedSignals.referralBonusBacklogAgeMinutes, "number")
     assert.equal(typeof failedSignals.providerDeliveryFailureRate24h, "number")
 
     await sql`
