@@ -20,6 +20,7 @@
     "test:e2e:headed": "node scripts/run-playwright.mjs --headed",
     "test:visual": "node scripts/run-playwright.mjs --grep @visual",
     "posters:verify-pdfs": "node --import ./tests/support/register-alias.mjs scripts/verify-poster-pdfs.mjs",
+    "posters:verify-production-pdfs": "node --import ./tests/support/register-alias.mjs scripts/verify-production-print-kit-pdfs.mjs",
     "posters:export-production": "node --import ./tests/support/register-alias.mjs scripts/export-production-poster-pdfs.mjs",
     "test:a11y": "node scripts/run-playwright.mjs --grep @a11y",
     "e2e:install": "playwright install --with-deps chromium firefox webkit",
