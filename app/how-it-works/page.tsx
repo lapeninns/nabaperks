@@ -1,23 +1,22 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 
-import { PageTitle, SectionHeader } from "@/components/brand"
+import { MonoTag, ReceiptCard, SectionHeader } from "@/components/brand"
 import { ContrastBand, MarketingLayout, Section } from "@/components/layout"
+import { Marquee } from "@/components/marketing"
 import {
   FeaturesListicle,
-  LandingFaq,
   LaunchSteps,
   OutcomeTransformation,
   ProblemPains,
+  ProcessHero,
 } from "@/components/marketing/landing"
 import { JsonLd } from "@/components/seo/json-ld"
 import { Button } from "@/components/ui/button"
 import {
   CLAIMS_BOUNDARY,
   DFY_LAUNCH,
-  FAQ_ITEMS,
   GUARANTEE,
-  MARKET,
   PRODUCT,
   ROUTES,
   SCARCITY,
@@ -25,7 +24,6 @@ import {
 } from "@/lib/marketing/facts"
 import {
   breadcrumbSchema,
-  faqPageSchema,
   howToSchema,
   OG_IMAGE,
   webPageSchema,
@@ -55,55 +53,72 @@ export const metadata: Metadata = {
   },
 }
 
+/** The marquee strip echoes the five launch steps the page walks through. */
+const MARQUEE_STEPS = [
+  "Venue + card setup",
+  "Rewards configured",
+  "Automations on",
+  "Posters printed + posted",
+  "You go live",
+]
+
 export default function HowItWorksPage() {
   return (
     <MarketingLayout>
-      <Section>
-        <PageTitle
-          eyebrow="The process"
-          title="We do the launch. You go live."
-          description={MARKET.promise}
-        />
-      </Section>
+      <ProcessHero />
+      <Marquee items={[...MARQUEE_STEPS]} />
       <ProblemPains />
-      <Section size="compact">
-        <LaunchSteps />
-        <p className="pt-4 text-sm leading-6 text-muted-foreground">
-          {DFY_LAUNCH.yourPart}
-        </p>
-      </Section>
+      <LaunchSteps />
       <FeaturesListicle />
       <OutcomeTransformation />
-      <ContrastBand>
-        <div className="grid gap-3">
-          <p className="mono-meta text-paper/70">What you get, and the catch</p>
-          <p className="max-w-2xl text-lg leading-snug font-extrabold">
-            {CLAIMS_BOUNDARY.guarantee}
-          </p>
-          <p className="max-w-2xl text-sm leading-6 text-paper/80">
-            {CLAIMS_BOUNDARY.never} {SCARCITY.capLine} {SCARCITY.capReason}
-          </p>
+      <ContrastBand id="promise">
+        <div className="grid gap-6 lg:grid-cols-2 lg:gap-12">
+          <div className="grid content-start gap-3">
+            <p className="mono-meta text-paper/70">What we promise</p>
+            <p className="max-w-xl text-xl leading-snug font-extrabold text-balance sm:text-2xl">
+              {CLAIMS_BOUNDARY.guarantee}
+            </p>
+          </div>
+          <div className="grid content-start gap-3 rounded-lg border-2 border-dashed border-paper/40 p-4 sm:p-5">
+            <p className="mono-meta text-paper/70">What we never promise</p>
+            <p className="text-base leading-7 font-extrabold text-paper">
+              {CLAIMS_BOUNDARY.never}
+            </p>
+            <p className="text-sm leading-6 text-paper/80">
+              {SCARCITY.capLine} {SCARCITY.capReason}
+            </p>
+          </div>
         </div>
       </ContrastBand>
-      <LandingFaq />
-      <Section>
-        <SectionHeader
-          eyebrow="Rather set it up yourself?"
-          title="The same five steps, whenever you're ready"
-          description={`${SETUP.steps} ${SETUP.noFriction} On a done-for-you launch, Lapen Inns does those steps for you.`}
-        />
-        <div className="grid gap-3 pt-6 sm:flex sm:flex-wrap sm:items-center">
-          <Button asChild size="lg">
-            <Link href={ROUTES.signup}>Start your free pilot</Link>
-          </Button>
-          <Button asChild size="lg" variant="secondary">
-            <Link href={ROUTES.pricing}>See pricing</Link>
-          </Button>
+      <Section id="diy" size="dense">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-12">
+          <div className="grid content-start gap-5">
+            <SectionHeader
+              eyebrow="Rather set it up yourself?"
+              title="The same five steps, whenever you're ready"
+              description={`${SETUP.steps} ${SETUP.noFriction} On a done-for-you launch, Lapen Inns does those steps for you.`}
+            />
+            <div className="flex flex-wrap items-center gap-3">
+              <Button asChild size="lg">
+                <Link href={ROUTES.signup}>Start your free pilot</Link>
+              </Button>
+              <Button asChild size="lg" variant="secondary">
+                <Link href={ROUTES.pricing}>See pricing</Link>
+              </Button>
+            </div>
+          </div>
+          <ReceiptCard edge padding="md" className="h-full content-start gap-3">
+            <MonoTag tone="leaf" className="justify-self-start">
+              {GUARANTEE.name}
+            </MonoTag>
+            <p className="text-base leading-7 font-extrabold text-foreground">
+              “{GUARANTEE.line}”
+            </p>
+            <p className="mono-id mt-auto text-muted-foreground uppercase">
+              {PRODUCT.cancelLine}
+            </p>
+          </ReceiptCard>
         </div>
-        <p className="pt-4 text-sm leading-6 text-muted-foreground">
-          <span className="font-bold text-foreground">{GUARANTEE.name}:</span>{" "}
-          {GUARANTEE.line} {PRODUCT.cancelLine}
-        </p>
       </Section>
       <JsonLd
         id="ld-how-it-works"
@@ -117,7 +132,6 @@ export default function HowItWorksPage() {
               description,
               steps: DFY_LAUNCH.steps,
             }),
-            faqPageSchema(ROUTES.howItWorks, FAQ_ITEMS),
             breadcrumbSchema([
               { name: "Home", path: ROUTES.home },
               { name: "How it works", path: ROUTES.howItWorks },

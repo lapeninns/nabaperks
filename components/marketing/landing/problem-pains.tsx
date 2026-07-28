@@ -1,14 +1,16 @@
 import { SectionHeader } from "@/components/brand"
 import { Section } from "@/components/layout"
 import { PROBLEM } from "@/lib/marketing/facts"
+import { cn } from "@/lib/utils"
 
 import { SnapRail, SnapRailItem } from "./snap-rail"
 
 /**
- * The pain section (offer pack doc 3 Step 2): the quiet-midweek problem plus
- * the objections pub owners actually raise, in their own voice. Sits before
- * pricing so the price feels justified. On phones the eight quotes ride a
- * horizontal snap rail to keep the page short; from `sm` up they grid.
+ * The pain section as the kitchen noticeboard: the eight objections pub
+ * owners actually raise, pinned as numbered tickets in the owner's own voice.
+ * Each ticket tilts a touch off-square from `sm` up — the riso tack of the
+ * board — while on phones they ride the horizontal snap rail to keep the page
+ * short. The "turn" closes the board as one bold declarative.
  */
 export function ProblemPains() {
   return (
@@ -21,25 +23,30 @@ export function ProblemPains() {
       <div className="pt-5 sm:pt-6">
         <SnapRail
           label="What pub owners say about loyalty schemes"
-          className="sm:grid-cols-2"
+          className="sm:grid-cols-2 lg:grid-cols-4"
         >
-          {PROBLEM.pains.map((pain) => (
+          {PROBLEM.pains.map((pain, index) => (
             <SnapRailItem
               key={pain}
-              className="flex items-start gap-3 rounded-lg border-2 border-dashed border-border bg-card p-4"
+              className={cn(
+                "grid content-start gap-3 rounded-lg border-2 border-dashed border-border bg-card p-4",
+                index % 2 === 0 ? "sm:-rotate-1" : "sm:rotate-1"
+              )}
             >
               <span
                 aria-hidden="true"
-                className="mono-meta mt-0.5 shrink-0 text-muted-foreground"
+                className="mono-id text-muted-foreground uppercase"
               >
-                “
+                Nº {String(index + 1).padStart(2, "0")}
               </span>
-              <p className="text-sm leading-6 text-foreground">{pain}</p>
+              <p className="text-sm leading-6 font-bold text-foreground">
+                “{pain}”
+              </p>
             </SnapRailItem>
           ))}
         </SnapRail>
       </div>
-      <p className="pt-4 text-sm leading-6 font-bold text-foreground sm:pt-5">
+      <p className="pt-5 text-base leading-7 font-extrabold text-balance text-foreground sm:pt-6 sm:text-lg">
         {PROBLEM.turn}
       </p>
     </Section>

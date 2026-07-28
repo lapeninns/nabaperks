@@ -36,6 +36,7 @@ test("web vital capture accepts only closed, bounded performance data", () => {
 test("web vital route mapping never emits a raw or unsupported URL", () => {
   assert.equal(webVitalRouteKey("/"), "home")
   assert.equal(webVitalRouteKey("/pricing/"), "pricing")
+  assert.equal(webVitalRouteKey("/faq"), "faq")
   assert.equal(webVitalRouteKey("/signup"), null)
   assert.equal(webVitalRouteKey("/loyalty-for-cafes"), null)
 })

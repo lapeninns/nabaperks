@@ -53,7 +53,12 @@ export function RewardTicket({
   /** Override the state kicker — e.g. "Clear reward" on merchant previews. */
   eyebrow?: string
   className?: string
-  headingLevel?: "h2" | "h3"
+  /**
+   * Outline level for the reward name. `"p"` is for decorative sample tickets
+   * on marketing pages, where the reward name is illustration rather than a
+   * real section — as a heading it outranks the page's own section headings.
+   */
+  headingLevel?: "h2" | "h3" | "p"
 }) {
   const leaf = state === "ready" || state === "redeemed"
   const redeemed = state === "redeemed"

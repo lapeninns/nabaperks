@@ -4,6 +4,7 @@ const INDEXABLE_SITE_URLS = [
   "https://nabaperks.com/",
   "https://nabaperks.com/pricing",
   "https://nabaperks.com/how-it-works",
+  "https://nabaperks.com/faq",
   "https://nabaperks.com/loyalty-for-pubs",
   "https://nabaperks.com/guides/reward-regulars-without-an-app",
   "https://nabaperks.com/guides/best-loyalty-ideas-for-pubs",

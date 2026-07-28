@@ -15,8 +15,10 @@ import { SampleLoyaltyCard } from "./sample-loyalty-card"
 const STAMP_TOTAL = 3
 const HERO_CARD_NAME = "Mystery card"
 
+// The reward name renders as a `p` here (see `headingLevel` below), so the one
+// paragraph clamp covers both the name and its description.
 const HERO_REWARD_TICKET_CLASS =
-  "min-h-[7rem] sm:min-h-[9rem] [&>div:first-child]:content-start [&_h2]:line-clamp-2 [&_p]:line-clamp-2"
+  "min-h-[7rem] sm:min-h-[9rem] [&>div:first-child]:content-start [&_p]:line-clamp-2"
 
 function HeroRewardRow({
   revealed,
@@ -42,7 +44,10 @@ function HeroRewardRow({
       }
       sealSlammed={revealSlam}
       className={HERO_REWARD_TICKET_CLASS}
-      headingLevel="h2"
+      // Illustration, not structure: as an `h2` this sample reward name was
+      // the first heading in the outline on every page that mounts the hero
+      // card, outranking each real section heading below it.
+      headingLevel="p"
     />
   )
 }

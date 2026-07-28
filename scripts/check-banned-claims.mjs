@@ -23,6 +23,7 @@ const SCAN = [
   "app/robots.ts",
   "app/(auth)/signup",
   "app/how-it-works",
+  "app/faq",
   "app/pricing",
   "app/demo",
   "app/about",

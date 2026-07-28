@@ -5,6 +5,7 @@ import { dismissPwaInstall } from "./helpers/harness"
 const routes = [
   { name: "marketing-landing", path: "/" },
   { name: "marketing-how-it-works", path: "/how-it-works" },
+  { name: "marketing-faq", path: "/faq" },
   { name: "marketing-pricing", path: "/pricing" },
   { name: "marketing-loyalty-for-pubs", path: "/loyalty-for-pubs" },
   {

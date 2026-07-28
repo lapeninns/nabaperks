@@ -23,6 +23,7 @@ const FOOTER_COLUMNS: readonly FooterColumn[] = [
     links: [
       { href: ROUTES.howItWorks, label: "How it works" },
       { href: ROUTES.pricing, label: "Pricing" },
+      { href: ROUTES.faq, label: "FAQ" },
       { href: ROUTES.demo, label: "Live demo" },
       { href: ROUTES.signup, label: "Start free pilot" },
     ],

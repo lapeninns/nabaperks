@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 
 import { Section } from "@/components/layout"
 import { RewardTicket, StampGrid } from "@/components/loyalty"
+import { WetInkRise } from "@/components/motion"
 import { LANDING } from "@/lib/marketing/facts"
 
 import type { QrMatrix } from "./qr-matrix"
@@ -23,12 +24,12 @@ export function ProductMoment({ demoQr }: { demoQr: QrMatrix }) {
         {LANDING.moment.title}
       </h2>
       <div className="grid gap-8 pt-8 sm:pt-10 lg:grid-cols-3 lg:gap-10">
-        <Beat caption={scan.caption} detail={scan.detail}>
+        <Beat caption={scan.caption} detail={scan.detail} delay={0}>
           <div className="w-full max-w-[11rem]">
             <VenueQr matrix={demoQr} label="Example venue QR code" />
           </div>
         </Beat>
-        <Beat caption={stamp.caption} detail={stamp.detail}>
+        <Beat caption={stamp.caption} detail={stamp.detail} delay={0.09}>
           {/* `flow="horizontal"` is load-bearing: the adaptive default wraps
               each slot onto its own line in a third-width column, which reads
               as a vertical track and contradicts the card's horizontal row. */}
@@ -42,7 +43,7 @@ export function ProductMoment({ demoQr }: { demoQr: QrMatrix }) {
             />
           </div>
         </Beat>
-        <Beat caption={reward.caption} detail={reward.detail}>
+        <Beat caption={reward.caption} detail={reward.detail} delay={0.18}>
           <RewardTicket
             state="ready"
             name="A free hot drink"
@@ -60,25 +61,31 @@ export function ProductMoment({ demoQr }: { demoQr: QrMatrix }) {
 function Beat({
   caption,
   detail,
+  delay,
   children,
 }: {
   caption: string
   detail: string
+  /** Stagger offset (seconds) so the three beats rise in scan → stamp → reward order. */
+  delay: number
   children: ReactNode
 }) {
   return (
     // The beats are grid items, so they already stretch to equal height. Making
     // the visual area `flex-1` lets it absorb the leftover space in each column,
     // which lands all three captions on one baseline without pinning a
-    // min-height to the tallest visual.
-    <div className="flex h-full flex-col gap-5">
-      <div className="grid flex-1 place-items-center">{children}</div>
-      <div className="grid gap-1">
-        <h3 className="text-lg leading-snug font-extrabold text-foreground">
-          {caption}
-        </h3>
-        <p className="text-sm leading-6 text-muted-foreground">{detail}</p>
+    // min-height to the tallest visual. The WetInkRise wrapper is the grid
+    // item; it staggers each beat as the band scrolls into view.
+    <WetInkRise inView distance={16} delay={delay} className="h-full">
+      <div className="flex h-full flex-col gap-5">
+        <div className="grid flex-1 place-items-center">{children}</div>
+        <div className="grid gap-1">
+          <h3 className="text-lg leading-snug font-extrabold text-foreground">
+            {caption}
+          </h3>
+          <p className="text-sm leading-6 text-muted-foreground">{detail}</p>
+        </div>
       </div>
-    </div>
+    </WetInkRise>
   )
 }

@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@source "../app/**/*.tsx";
+@source "../components/**/*.tsx";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -233,17 +235,22 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /* `clip`, not `hidden`: both contain horizontal overflow identically, but
+     `hidden` makes the element a scroll container, which silently breaks
+     `position: sticky` on every descendant (the sticky element resolves against
+     a scrollport that never scrolls). `clip` creates no scroll container, so
+     sticky chrome works while the no-horizontal-scroll guarantee holds. */
   html {
     @apply scroll-smooth font-sans antialiased;
     min-height: 100%;
-    overflow-x: hidden;
+    overflow-x: clip;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
   body {
     @apply bg-background text-foreground;
     min-height: 100%;
-    overflow-x: hidden;
+    overflow-x: clip;
     text-rendering: optimizeLegibility;
   }
   h1,
