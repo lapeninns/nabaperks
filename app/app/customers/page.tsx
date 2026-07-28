@@ -11,6 +11,7 @@ import { getCurrentMerchant } from "@/lib/auth/session"
 import {
   getMerchantCustomers,
   getMerchantCustomerCount,
+  getMerchantCustomerPage,
 } from "@/lib/merchant/dashboard"
 import {
   CUSTOMERS_PAGE_SIZE,
@@ -44,7 +45,20 @@ export default async function MerchantCustomersPage({
     : ({} satisfies CustomersSearchParams)
 
   const highlightedMembershipId = firstParam(params.highlight)
-  const pageRequest = resolveCustomersPageRequest(params.page)
+  const requestedPage = firstParam(params.page)
+  const pageRequest = resolveCustomersPageRequest(requestedPage)
+
+  if (!requestedPage && highlightedMembershipId) {
+    const highlightedPage = await getMerchantCustomerPage(
+      merchant.id,
+      highlightedMembershipId
+    )
+    if (highlightedPage && highlightedPage !== pageRequest.page) {
+      redirect(
+        customersHighlightHref(highlightedMembershipId, highlightedPage)
+      )
+    }
+  }
 
   return (
     // min-w-0: never let the members table's intrinsic width stretch this
@@ -135,4 +149,12 @@ async function CustomersTableStream({
 
 function firstParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value
+}
+
+function customersHighlightHref(membershipId: string, page: number) {
+  const params = new URLSearchParams({
+    page: String(page),
+    highlight: membershipId,
+  })
+  return `/app/customers?${params.toString()}`
 }

@@ -71,6 +71,42 @@ export type MerchantCustomerRewardInput = {
   activeReward: { id: string; redeemableFrom: string | null } | null
 }
 
+type MerchantCustomerReadbackQueryError = {
+  readonly message: string
+}
+
+export type MerchantCustomerRewardStateErrors = {
+  readonly activeCard: MerchantCustomerReadbackQueryError | null
+  readonly unlockedRewards: MerchantCustomerReadbackQueryError | null
+  readonly redemptions: MerchantCustomerReadbackQueryError | null
+}
+
+/**
+ * Reward-state reads must fail as a unit. Treating one failed query as an empty
+ * result would invent a stamp target or hide a redeemable/redeemed reward.
+ */
+export function assertMerchantCustomerRewardStateLoaded(
+  errors: MerchantCustomerRewardStateErrors
+): void {
+  if (errors.activeCard) {
+    throw new Error(
+      `Unable to load customer card status: ${errors.activeCard.message}`
+    )
+  }
+
+  if (errors.unlockedRewards) {
+    throw new Error(
+      `Unable to load customer reward status: ${errors.unlockedRewards.message}`
+    )
+  }
+
+  if (errors.redemptions) {
+    throw new Error(
+      `Unable to load customer redemption status: ${errors.redemptions.message}`
+    )
+  }
+}
+
 /**
  * Masked-safe row the merchant Customers table renders. The client table only
  * ever receives these view models — raw email and phone never leave the server.

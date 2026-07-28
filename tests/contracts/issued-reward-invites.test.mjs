@@ -48,6 +48,7 @@ test("the send action creates an invite + one-off email for an unmatched contact
   assert.match(action, /if \(!inviteResult\.ok\)/)
   assert.match(action, /buildRewardInviteEmail/)
   assert.match(action, /isInviteEmailSuppressed/)
+  assert.match(action, /shouldSuppressRewardInviteEmail\(result\)/)
   assert.match(action, /invite-email:/)
 
   const email = read("lib", "notifications", "reward-invite-email.ts")

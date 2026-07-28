@@ -4,6 +4,7 @@ import { describe, it } from "node:test"
 import {
   CUSTOMERS_PAGE_SIZE,
   buildCustomersPagination,
+  resolveCustomersPageForLeadingCount,
   resolveCustomersPageRequest,
 } from "@/lib/merchant/customers-paging"
 
@@ -99,5 +100,28 @@ describe("buildCustomersPagination", () => {
     const page = buildCustomersPagination(2, 30, 10)
     assert.equal(page.totalPages, 3)
     assert.deepEqual([page.rangeStart, page.rangeEnd], [11, 20])
+  })
+})
+
+describe("resolveCustomersPageForLeadingCount", () => {
+  it("keeps the newest member on page 1", () => {
+    assert.equal(resolveCustomersPageForLeadingCount(0), 1)
+  })
+
+  it("moves a deep-linked member to the page containing its stable rank", () => {
+    assert.equal(
+      resolveCustomersPageForLeadingCount(CUSTOMERS_PAGE_SIZE),
+      2
+    )
+    assert.equal(
+      resolveCustomersPageForLeadingCount(CUSTOMERS_PAGE_SIZE * 6 + 4),
+      7
+    )
+  })
+
+  it("normalises invalid counts and honours a custom page size", () => {
+    assert.equal(resolveCustomersPageForLeadingCount(-5), 1)
+    assert.equal(resolveCustomersPageForLeadingCount(Number.NaN), 1)
+    assert.equal(resolveCustomersPageForLeadingCount(25, 10), 3)
   })
 })

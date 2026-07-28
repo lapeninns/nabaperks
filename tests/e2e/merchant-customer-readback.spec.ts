@@ -80,7 +80,9 @@ test.describe("@admin-live-db merchant customer readback", () => {
         .locator(".surface-card")
         .filter({ hasText: "Members" })
         .first()
-      await expect(memberStat).toContainText(String(fixture.totalMembers))
+      await expect(memberStat).toContainText(
+        fixture.totalMembers.toLocaleString("en-GB")
+      )
 
       const body = page.locator("body")
       await expect(body).not.toContainText(fixture.rawPrivateEmail)

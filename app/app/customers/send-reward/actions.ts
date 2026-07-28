@@ -19,6 +19,7 @@ import {
   validateSendRewardFields,
   type SendRewardErrors,
 } from "@/lib/merchant/send-reward-fields"
+import { shouldSuppressRewardInviteEmail } from "@/lib/merchant/reward-invite-suppression"
 import { buildRewardInviteEmail } from "@/lib/notifications/reward-invite-email"
 import { sendTransactionalEmail } from "@/lib/notifications/resend"
 import { RateLimitError, enforceRateLimit } from "@/lib/security/rate-limit"
@@ -113,12 +114,12 @@ async function matchMerchantMembershipForContact(
 
 async function isInviteEmailSuppressed(emailHmac: string): Promise<boolean> {
   const supabase = createSupabaseServiceRoleClient()
-  const { data } = await supabase
+  const result = await supabase
     .from("reward_invite_email_suppressions")
     .select("email_hmac")
     .eq("email_hmac", emailHmac)
     .maybeSingle()
-  return Boolean(data)
+  return shouldSuppressRewardInviteEmail(result)
 }
 
 /**

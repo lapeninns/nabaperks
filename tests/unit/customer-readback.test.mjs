@@ -1,7 +1,10 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { buildMerchantCustomerReadback } from "@/lib/merchant/customer-readback"
+import {
+  assertMerchantCustomerRewardStateLoaded,
+  buildMerchantCustomerReadback,
+} from "@/lib/merchant/customer-readback"
 
 const now = new Date("2026-06-30T12:00:00.000Z")
 
@@ -107,4 +110,33 @@ test("customer readback DTO omits server-only identity and reward internals", ()
 
   assert.equal("customer" in row, false)
   assert.equal("activeReward" in row, false)
+})
+
+test("customer reward-state reads fail instead of inventing empty status", () => {
+  const successfulReads = {
+    activeCard: null,
+    unlockedRewards: null,
+    redemptions: null,
+  }
+
+  assert.doesNotThrow(() =>
+    assertMerchantCustomerRewardStateLoaded(successfulReads)
+  )
+
+  for (const [key, expectedLabel] of [
+    ["activeCard", "card status"],
+    ["unlockedRewards", "reward status"],
+    ["redemptions", "redemption status"],
+  ]) {
+    assert.throws(
+      () =>
+        assertMerchantCustomerRewardStateLoaded({
+          ...successfulReads,
+          [key]: { message: "database unavailable" },
+        }),
+      new RegExp(
+        `Unable to load customer ${expectedLabel}: database unavailable`
+      )
+    )
+  }
 })
