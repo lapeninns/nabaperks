@@ -144,6 +144,11 @@ test("poster PDF venue labels omit unsupported glyphs cleanly", async () => {
 
   assert.equal(standardFontText("DRAGON 🐉 PUB", font), "DRAGON PUB")
   assert.equal(standardFontText("🐉", font), "YOUR VENUE")
+  assert.equal(
+    standardFontText("São Tomé / Ynys Môn / 東京", font),
+    "Sao Tome / Ynys Mon"
+  )
+  assert.equal(standardFontText("東京 / London", font), "London")
 })
 
 test("kit venue lines keep a 120-character venue inside the lane", async () => {

@@ -53,6 +53,10 @@ async function renderPosterPage(
     pathname: "/dev/poster-preview",
     searchParams: { ...query, template: templateId },
     readySelector: '[data-sheet="a4"]',
+    metadata: {
+      title: `Nabaperks ${templateId} poster for ${input.merchantName}`,
+      subject: "A4 counter poster",
+    },
   })
 }
 
@@ -70,7 +74,10 @@ export async function buildPosterPdfAttachmentsFromPreview(
     const back = await renderPosterPage(input, query, pair.back)
     attachments.push({
       filename: duplexPosterFilename(pair),
-      content: await mergePdfBase64Documents([front, back]),
+      content: await mergePdfBase64Documents([front, back], {
+        title: `Nabaperks ${pair.front} and ${pair.back} duplex posters for ${input.merchantName}`,
+        subject: "A4 duplex counter poster - front and back",
+      }),
     })
   }
   return attachments
@@ -91,6 +98,10 @@ export async function buildNfcCardPdfAttachmentsFromPreview(
         pathname: "/dev/nfc-card-preview",
         searchParams: { ...query, design: id },
         readySelector: '[data-sheet="cr80-nfc-card"]',
+        metadata: {
+          title: `Nabaperks ${id} NFC card for ${input.merchantName}`,
+          subject: "CR80 NFC card - front and back at 85.5 x 54 mm",
+        },
       }),
     })
   }
@@ -112,6 +123,10 @@ export async function buildNfcSquarePdfAttachmentsFromPreview(
         pathname: "/dev/nfc-square-preview",
         searchParams: { ...query, design: id },
         readySelector: '[data-sheet="nfc-square-100"]',
+        metadata: {
+          title: `Nabaperks ${id} square NFC plate for ${input.merchantName}`,
+          subject: "100 x 100 mm one-sided wall NFC plate",
+        },
       }),
     })
   }
@@ -132,6 +147,10 @@ export async function buildTentPdfAttachmentsFromPreview(
         pathname: "/dev/tent-preview",
         searchParams: { ...query, design: id },
         readySelector: '[data-sheet="a4-tent"]',
+        metadata: {
+          title: `Nabaperks ${id} table tent for ${input.merchantName}`,
+          subject: "A4 table tent",
+        },
       }),
     })
   }
