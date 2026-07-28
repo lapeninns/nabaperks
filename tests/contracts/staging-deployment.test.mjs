@@ -61,5 +61,6 @@ test("hosted Staging alias cannot target a production-owned domain", () => {
   assert.match(workflow, /nabaperks\.com/)
   assert.match(workflow, /www\.nabaperks\.com/)
   assert.match(workflow, /nabaperks\.vercel\.app/)
+  assert.match(workflow, /candidate\.nabaperks\.com/)
   assert.match(workflow, /\*\.vercel\.app/)
 })
