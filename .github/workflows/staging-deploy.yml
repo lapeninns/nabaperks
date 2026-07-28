@@ -78,35 +78,19 @@ jobs:
       - uses: ./.github/actions/setup
       - name: Verify the locked deployment CLI
         run: test "$(pnpm exec vercel --version | tail -n 1)" = "56.5.0"
-      - name: Build the immutable custom-environment output
-        env:
-          STAGING_VERCEL_TOKEN: ${{ secrets.STAGING_VERCEL_TOKEN }}
-        run: |
-          test -n "$STAGING_VERCEL_TOKEN"
-          pnpm exec vercel pull --yes --environment=staging --token="$STAGING_VERCEL_TOKEN"
-          test "$(jq -r '.orgId' .vercel/project.json)" = "$VERCEL_ORG_ID"
-          test "$(jq -r '.projectId' .vercel/project.json)" = "$VERCEL_PROJECT_ID"
-          pnpm exec vercel build --target=staging --yes --token="$STAGING_VERCEL_TOKEN"
-          test -d .vercel/output
-      - name: Remove pulled environment material
-        run: |
-          rm -f .vercel/.env.staging.local
-          if find .vercel -maxdepth 1 -type f -name '.env*' -print -quit | grep -q .; then
-            echo "::error::Pulled Vercel environment material remains on disk."
-            exit 1
-          fi
-      - name: Deploy the candidate without assigning a domain
+      - name: Build and deploy the candidate without assigning a domain
         id: deploy
         env:
           STAGING_VERCEL_TOKEN: ${{ secrets.STAGING_VERCEL_TOKEN }}
         run: |
+          test -n "$STAGING_VERCEL_TOKEN"
           deployment_url="$(pnpm exec vercel deploy \
-            --prebuilt \
             --target=staging \
             --skip-domain \
             --archive=tgz \
             --yes \
             --meta githubCommitSha="$EXPECTED_REVISION" \
+            --build-env NABAPERKS_BUILD_REVISION="$EXPECTED_REVISION" \
             --env NABAPERKS_BUILD_REVISION="$EXPECTED_REVISION" \
             --token="$STAGING_VERCEL_TOKEN")"
           case "$deployment_url" in

@@ -25,11 +25,14 @@ test("hosted Staging deployment is manual, protected and exact-revision", () => 
 })
 
 test("hosted Staging deploys only to the custom target and proves before aliasing", () => {
-  assert.match(workflow, /vercel pull --yes --environment=staging/)
-  assert.match(workflow, /vercel build --target=staging/)
   assert.match(workflow, /vercel deploy[\s\S]*--target=staging/)
   assert.match(workflow, /--skip-domain/)
+  assert.doesNotMatch(workflow, /--prebuilt|vercel pull|vercel build/)
   assert.doesNotMatch(workflow, /--prod|vercel promote/)
+  assert.match(
+    workflow,
+    /--build-env NABAPERKS_BUILD_REVISION="\$EXPECTED_REVISION"/
+  )
   assert.match(workflow, /--env NABAPERKS_BUILD_REVISION="\$EXPECTED_REVISION"/)
   assert.match(workflow, /STAGING_MODE: hosted/)
   assert.match(workflow, /run: pnpm smoke:staging/)
