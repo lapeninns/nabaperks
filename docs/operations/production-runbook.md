@@ -23,28 +23,32 @@ Do not promote a release until all of these are true:
    optional hosted-staging path is later activated, its isolated Supabase
    project and Vercel custom `staging` environment must pass as an additional
    gate.
-7. Provider acceptance is recorded for the target environment. Stripe is a
-   separate final gate and cannot be inferred from test mode.
+7. Provider acceptance is recorded for the target environment. Stripe remains
+   test-mode only under the current deployment policy and is a separate final
+   gate that cannot be inferred from configured variable names alone.
 8. A rollback candidate (the last healthy Vercel production deployment) is
    identified before promotion.
 
-### Stripe live acceptance gate
+### Stripe test-mode acceptance gate
 
 Stripe is accepted only when an operator records all of the following against
-the live account:
+the dedicated test account. Live Stripe keys, objects, events and charges are
+prohibited under the current deployment policy:
 
-1. The live product and both active price IDs match the published monthly and
-   annual GBP amounts, and obsolete prices are inactive.
-2. A Customer Portal session opens for a controlled merchant and returns to
+1. The configured keys are classified as `pk_test_` and `sk_test_` without
+   recording their values. Both active Price lookups report `livemode=false`,
+   match the published monthly and annual GBP amounts, and obsolete test Prices
+   are inactive.
+2. A test Customer Portal session opens for a controlled test merchant and returns to
    `/app/account?tab=billing`; payment-method update, invoice history, and
    cancellation-at-period-end match the product copy.
-3. A signed webhook delivery reaches
+3. A signed test-mode webhook delivery with `livemode=false` reaches
    `https://nabaperks.com/api/stripe/webhook` on the pinned API version and
    returns a success response.
 4. The event ID appears once in `stripe_webhook_events`, with a terminal
    processing state and no duplicate side effects.
 5. The affected merchant subscription and entitlement readback match the
-   Stripe subscription after the webhook is processed.
+   test-mode Stripe subscription after the webhook is processed.
 
 Record only masked customer/merchant identifiers, Stripe object IDs, UTC
 timestamps, response status, and the database readback; never record secrets or

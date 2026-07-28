@@ -76,6 +76,7 @@ function printStatus() {
   console.log("Stripe:")
   console.log("  brew install stripe/stripe-cli/stripe")
   console.log("  stripe login")
+  console.log("  Deployment policy permits Stripe test mode only.")
   console.log("  stripe listen --forward-to localhost:3000/api/stripe/webhook")
   console.log("  STRIPE_WEBHOOK_SECRET=<whsec_... printed by stripe listen>")
   console.log(
@@ -85,7 +86,7 @@ function printStatus() {
     "  STRIPE_GROWTH_ANNUAL_PRICE_ID=<price_... for active GBP 490/year>"
   )
   console.log(
-    "  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY and STRIPE_SECRET_KEY come from Stripe API keys."
+    "  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=<pk_test_...> and STRIPE_SECRET_KEY=<sk_test_...> come from Stripe test-mode API keys."
   )
   console.log("")
   console.log("Google Maps Platform:")
@@ -384,6 +385,19 @@ function assertVercelProductionEnvSafe(environment, localValues) {
   if (environment !== "production") return
 
   const appUrl = localValues.NEXT_PUBLIC_APP_URL?.trim()
+  const publishableKey =
+    localValues.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim() ?? ""
+  const secretKey = localValues.STRIPE_SECRET_KEY?.trim() ?? ""
+
+  if (
+    !publishableKey.startsWith("pk_test_") ||
+    !secretKey.startsWith("sk_test_")
+  ) {
+    console.error(
+      "Production Stripe configuration must use pk_test_ and sk_test_ test-mode keys."
+    )
+    process.exit(1)
+  }
 
   if (!appUrl) return
 

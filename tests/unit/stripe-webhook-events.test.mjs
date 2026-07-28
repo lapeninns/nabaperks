@@ -165,6 +165,67 @@ test("missing or invalid signatures are rejected before claim", async () => {
   assert.equal(claims, 0)
 })
 
+test("a signed live-mode event is rejected before durable claim", async () => {
+  let claims = 0
+  let processCalls = 0
+  const response = await handleStripeWebhookRequest(
+    signedRequest(),
+    routeDependencies({
+      constructEvent: () =>
+        event("customer.subscription.updated", subscription(), {
+          livemode: true,
+        }),
+      claimEvent: async () => {
+        claims += 1
+        throw new Error("must not claim")
+      },
+      processEvent: async () => {
+        processCalls += 1
+        throw new Error("must not process")
+      },
+    })
+  )
+
+  assert.equal(response.status, 400)
+  assert.deepEqual(await response.json(), {
+    error: "Live Stripe events are not accepted",
+  })
+  assert.equal(claims, 0)
+  assert.equal(processCalls, 0)
+})
+
+test("the processor rejects live-mode events before provider or billing work", async () => {
+  let providerReads = 0
+  let billingWrites = 0
+
+  await assert.rejects(
+    processStripeWebhookEvent(
+      {
+        event: event("customer.subscription.updated", subscription(), {
+          livemode: true,
+        }),
+        leaseId: LEASE_ID,
+      },
+      processorDependencies({
+        retrieveSubscription: async () => {
+          providerReads += 1
+          throw new Error("must not read")
+        },
+        applySubscriptionEvent: async () => {
+          billingWrites += 1
+          throw new Error("must not write")
+        },
+      })
+    ),
+    (error) =>
+      error instanceof StripeWebhookProcessingError &&
+      error.code === "live_mode_rejected"
+  )
+
+  assert.equal(providerReads, 0)
+  assert.equal(billingWrites, 0)
+})
+
 test("a missing signature is rejected without consuming the request body", async () => {
   let bodyRead = false
   const request = {
