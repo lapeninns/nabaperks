@@ -70,6 +70,7 @@ export type StripeWebhookProcessorDependencies = {
 }
 
 type StripeWebhookProcessingErrorCode =
+  | "live_mode_rejected"
   | "ownership_mismatch"
   | "lease_lost"
   | "processing_failed"
@@ -117,6 +118,13 @@ export async function handleStripeWebhookRequest(
     event = dependencies.constructEvent(body, signature)
   } catch {
     return Response.json({ error: "Invalid Stripe signature" }, { status: 400 })
+  }
+
+  if (event.livemode !== false) {
+    return Response.json(
+      { error: "Live Stripe events are not accepted" },
+      { status: 400 }
+    )
   }
 
   let claim: StripeWebhookClaimResult
@@ -224,6 +232,10 @@ async function readBoundedWebhookBody(
 export async function claimStripeWebhookEvent(
   event: StripeWebhookEventRecord
 ): Promise<StripeWebhookClaimResult> {
+  if (event.livemode !== false) {
+    throw new StripeWebhookProcessingError("live_mode_rejected")
+  }
+
   const { createSupabaseServiceRoleClient } =
     await import("@/lib/supabase/server")
   const supabase = createSupabaseServiceRoleClient()
@@ -322,6 +334,10 @@ export async function processStripeWebhookEvent(
   },
   dependencies: StripeWebhookProcessorDependencies
 ): Promise<StripeWebhookProcessResult> {
+  if (event.livemode !== false) {
+    throw new StripeWebhookProcessingError("live_mode_rejected")
+  }
+
   const context = subscriptionContext(event)
 
   if (!context) {

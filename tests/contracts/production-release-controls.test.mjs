@@ -59,6 +59,31 @@ test("Given a complete production configuration When generated credentials are s
   assert.match(result.stdout, /production environment configuration is valid/)
 })
 
+test("Given hosted configuration When Stripe live keys are supplied Then deployment fails closed without echoing them", () => {
+  const livePublishableKey = "pk_live_forbidden_value"
+  const liveSecretKey = "sk_live_forbidden_value"
+  const result = runEnvCheck({
+    args: ["--profile=default"],
+    environment: {
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: livePublishableKey,
+      STRIPE_SECRET_KEY: liveSecretKey,
+    },
+    vercelEnv: "production",
+  })
+
+  assert.equal(result.status, 1)
+  assert.match(
+    result.stderr,
+    /NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY must use a Stripe test-mode pk_test_ key/
+  )
+  assert.match(
+    result.stderr,
+    /STRIPE_SECRET_KEY must use a Stripe test-mode sk_test_ key/
+  )
+  assert.doesNotMatch(result.stderr, new RegExp(livePublishableKey))
+  assert.doesNotMatch(result.stderr, new RegExp(liveSecretKey))
+})
+
 test("Given a monitor-secret overlap When the next token is reused Then production validation fails closed", () => {
   const sharedSecret = "P4@wS8#nC2!kV6$rJ9^tB3&yM7*zQ5?e"
   const result = runEnvCheck({
@@ -465,11 +490,15 @@ test("Given final provider acceptance When the production runbook is inspected T
   )
   const incident = readFileSync("docs/operations/incident-response.md", "utf8")
 
-  assert.match(production, /live product and both active price IDs/i)
-  assert.match(production, /Customer Portal session/i)
-  assert.match(production, /signed webhook delivery/i)
+  assert.match(production, /Stripe test-mode acceptance gate/i)
+  assert.match(production, /pk_test_/)
+  assert.match(production, /sk_test_/)
+  assert.match(production, /livemode=false/)
+  assert.match(production, /test Customer Portal session/i)
+  assert.match(production, /signed test-mode webhook delivery/i)
   assert.match(production, /stripe_webhook_events/)
   assert.match(production, /entitlement/i)
+  assert.match(production, /Live Stripe keys, objects, events and charges are/)
   assert.match(incident, /two consecutive scheduled Production smoke runs/i)
   assert.doesNotMatch(incident, /error rate remains normal/i)
 })
@@ -511,6 +540,10 @@ function testValue(entry) {
   if (entry.name === "NEXT_PUBLIC_SUPABASE_URL") {
     return "https://ci.supabase.co"
   }
+  if (entry.name === "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY") {
+    return "pk_test_release"
+  }
+  if (entry.name === "STRIPE_SECRET_KEY") return "sk_test_release"
   if (entry.kind === "url") return "https://example.test"
   if (
     [

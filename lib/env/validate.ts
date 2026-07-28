@@ -68,6 +68,7 @@ function validateEnvEntry(entry: EnvContractEntry, value: string) {
   return [
     ...validateEnvVisibility(entry),
     ...validateEnvUrl(entry.name, entry.kind, value),
+    ...validateStripeTestMode(entry.name, value),
   ]
 }
 
@@ -103,6 +104,23 @@ function validateEnvUrl(name: string, kind: EnvKind, value: string) {
 
 function describeAllowedProtocols(kind: EnvKind) {
   return kind === "postgres-url" ? "postgres or postgresql" : "http or https"
+}
+
+function validateStripeTestMode(name: string, value: string) {
+  if (
+    name === "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY" &&
+    !value.startsWith("pk_test_")
+  ) {
+    return [
+      "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY must use a Stripe test-mode pk_test_ key",
+    ]
+  }
+
+  if (name === "STRIPE_SECRET_KEY" && !value.startsWith("sk_test_")) {
+    return ["STRIPE_SECRET_KEY must use a Stripe test-mode sk_test_ key"]
+  }
+
+  return []
 }
 
 function validateCustomerOtpBypassMode(mode: string | undefined) {

@@ -17,7 +17,10 @@ import {
   loadProjectEnv,
   resolveSupabaseDbUrl,
 } from "../../scripts/provider-readiness/runtime.mjs"
-import { runReadinessChecks } from "../../scripts/provider-readiness/checks.mjs"
+import {
+  checkStripe,
+  runReadinessChecks,
+} from "../../scripts/provider-readiness/checks.mjs"
 import { serializeEnvValue } from "../../scripts/env-file.mjs"
 import {
   diffMigrationVersions,
@@ -110,8 +113,67 @@ test("provider readiness makes both Growth billing intervals explicit", () => {
     assert.match(smokeScript, new RegExp(key))
   }
 
-  assert.match(smokeScript, /active GBP 49\/month/)
-  assert.match(smokeScript, /active GBP 490\/year/)
+  assert.match(smokeScript, /test-mode GBP 49\/month/i)
+  assert.match(smokeScript, /test-mode GBP 490\/year/i)
+  assert.match(smokeScript, /body\.livemode === false/)
+})
+
+test("provider readiness rejects non-test Stripe keys before provider reads", async () => {
+  const report = createReport()
+  let providerReads = 0
+
+  await checkStripe({
+    env: stripeReadinessEnvironment({
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_live_forbidden",
+      STRIPE_SECRET_KEY: "sk_live_forbidden",
+    }),
+    offline: false,
+    report,
+    getJsonRequest: async () => {
+      providerReads += 1
+      throw new Error("must not read Stripe with live credentials")
+    },
+  })
+
+  assert.equal(providerReads, 0)
+  assert.equal(resultFor(report, "stripe-api").status, "FAIL")
+  assert.equal(resultFor(report, "stripe-publishable-key").status, "FAIL")
+})
+
+test("provider readiness requires both recurring Prices to be test-mode objects", async () => {
+  for (const livemode of [false, true]) {
+    const report = createReport()
+
+    await checkStripe({
+      env: stripeReadinessEnvironment(),
+      offline: false,
+      report,
+      getJsonRequest: async (url) => {
+        const annual = url.includes("price_annual")
+        return {
+          ok: true,
+          status: 200,
+          body: {
+            active: true,
+            currency: "gbp",
+            id: annual ? "price_annual" : "price_monthly",
+            livemode,
+            recurring: { interval: annual ? "year" : "month" },
+            unit_amount: annual ? 49_000 : 4_900,
+          },
+        }
+      },
+    })
+
+    assert.equal(
+      resultFor(report, "stripe-price-monthly").status,
+      livemode ? "FAIL" : "PASS"
+    )
+    assert.equal(
+      resultFor(report, "stripe-price-annual").status,
+      livemode ? "FAIL" : "PASS"
+    )
+  }
 })
 
 test("Supabase migration smoke stays read-only", () => {
@@ -371,6 +433,12 @@ function validTestEnvValue(entry) {
   if (entry.name === "NEXT_PUBLIC_SUPABASE_URL") {
     return "https://ci.supabase.co"
   }
+  if (entry.name === "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY") {
+    return "pk_test_provider_readiness"
+  }
+  if (entry.name === "STRIPE_SECRET_KEY") {
+    return "sk_test_provider_readiness"
+  }
   if (entry.kind === "url") return "https://example.com"
   if (entry.kind === "postgres-url") {
     return "postgres://user:password@example.com/database"
@@ -425,6 +493,23 @@ async function postHogConfigResult(projectKey) {
 
   const result = report.results.find(({ gate }) => gate === "posthog-config")
   assert.ok(result, "PostHog readiness emits a configuration result")
+  return result
+}
+
+function stripeReadinessEnvironment(overrides = {}) {
+  return {
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_test_readiness",
+    STRIPE_GROWTH_ANNUAL_PRICE_ID: "price_annual",
+    STRIPE_GROWTH_PRICE_ID: "price_monthly",
+    STRIPE_SECRET_KEY: "sk_test_readiness",
+    STRIPE_WEBHOOK_SECRET: "whsec_readiness",
+    ...overrides,
+  }
+}
+
+function resultFor(report, gate) {
+  const result = report.results.find((candidate) => candidate.gate === gate)
+  assert.ok(result, `${gate} result is present`)
   return result
 }
 
