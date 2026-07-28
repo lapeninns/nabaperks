@@ -170,12 +170,14 @@ configuration drift.
 
 Run the manual `Staging deployment` workflow from `main` with its exact full
 Git SHA and the confirmation `DEPLOY_STAGING_APPLICATION`. It checks out that
-immutable revision, builds and deploys to the Vercel custom `staging` target
-without a Production promotion, and runs the rollback-only hosted proof against
-the immutable candidate URL. The workflow assigns `STAGING_APP_ALIAS` only
-after that proof passes. `NABAPERKS_BUILD_REVISION` is injected from the
-approved SHA as non-secret build and deployment metadata; do not configure it
-as a reusable secret.
+immutable revision and asks Vercel to build it against the custom `staging`
+target without a Production promotion. The build remains remote because
+Vercel's sensitive environment values cannot be decrypted by `vercel pull` for
+a local prebuilt output. The workflow runs the rollback-only hosted proof
+against the immutable candidate URL and assigns `STAGING_APP_ALIAS` only after
+that proof passes. `NABAPERKS_BUILD_REVISION` is injected from the approved SHA
+as non-secret build and deployment metadata; do not configure it as a reusable
+secret.
 
 Configure a GitHub `Monitoring` environment that permits only `main` and does
 not require an interactive reviewer, because paging must continue unattended.
