@@ -56,9 +56,7 @@ async function main() {
 
   await proveAppTarget()
 
-  console.log(
-    `Stress performance probe (${RUNS} run(s) per benchmark, ${policy.mode})\n`
-  )
+  console.log(`Stress performance probe (${RUNS} run(s) per benchmark)\n`)
 
   const sql = postgres(dbUrl, { max: 1 })
   let fixture
