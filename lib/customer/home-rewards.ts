@@ -3,7 +3,10 @@ import {
   pickIssuedUnlockedReward,
   pickPrimaryUnlockedReward,
 } from "@/lib/customer/primary-reward"
-import { narrowRewardSource } from "@/lib/customer/issued-reward-display"
+import {
+  isRewardExpired,
+  narrowRewardSource,
+} from "@/lib/customer/issued-reward-display"
 import type {
   HomeCard,
   HomeCardGift,
@@ -15,6 +18,7 @@ export type RawHomeReward = {
   membership_id: string
   reward_name: string
   redeemable_from: string | null
+  expires_at?: string | null
   source?: string | null
   created_at?: string | null
 }
@@ -22,6 +26,8 @@ export type RawHomeReward = {
 export type RewardCounts = {
   /** Stamp-cycle unlocked reward count — the card's own pending reward(s). */
   stampUnlocked: number
+  /** Exact current reward count across earned and issued rails. */
+  redeemable: number
   /** Stamp-cycle redeemable reward → the tile's "Reward ready" state. */
   stampRewardId: string | null
   stampRewardName: string | null
@@ -35,6 +41,7 @@ export type RewardCounts = {
 export function emptyRewardCounts(): RewardCounts {
   return {
     stampUnlocked: 0,
+    redeemable: 0,
     stampRewardId: null,
     stampRewardName: null,
     revealedRewardName: null,
@@ -58,11 +65,17 @@ export function buildRewardCountsByMembership(
 
   for (const [membershipId, membershipRows] of rewardsByMembership) {
     const entry = emptyRewardCounts()
+    const currentRows = membershipRows.filter(
+      (row) => !isRewardExpired(row.expires_at)
+    )
+    entry.redeemable = currentRows.filter((row) =>
+      isRedeemableFrom(row.redeemable_from)
+    ).length
 
     // Card-completion state reflects the STAMP CYCLE only. Issued rewards are
     // split onto their own gift rail so a birthday/merchant reward never makes
     // an incomplete stamp card read as reward-ready.
-    const stampRows = membershipRows.filter(
+    const stampRows = currentRows.filter(
       (row) => (row.source ?? "stamp_cycle") === "stamp_cycle"
     )
     entry.stampUnlocked = stampRows.length
@@ -83,7 +96,7 @@ export function buildRewardCountsByMembership(
       entry.revealedRewardRedeemableFrom = stampWaiting.redeemable_from
     }
 
-    const issued = pickIssuedUnlockedReward(membershipRows)
+    const issued = pickIssuedUnlockedReward(currentRows)
     if (issued) {
       entry.gift = {
         rewardId: issued.id,

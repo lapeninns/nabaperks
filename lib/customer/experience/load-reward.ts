@@ -2,7 +2,10 @@ import "server-only"
 
 import { getCustomerRewardState } from "@/lib/customer/reward"
 import { getLocationRequirement } from "@/lib/customer/stamp"
-import { rewardStampThresholdMet } from "@/lib/customer/issued-reward-display"
+import {
+  isRewardExpired,
+  rewardStampThresholdMet,
+} from "@/lib/customer/issued-reward-display"
 import { isRedeemableFrom } from "@/lib/customer/uk-date"
 import { customerLoginHref } from "@/lib/navigation/safe-next-path"
 
@@ -38,8 +41,10 @@ export async function loadRewardExperienceContext(
   const { reward, assignedReward, loyaltyCard, merchant, membership } =
     rewardState
   const location = await getLocationRequirement(loyaltyCard.location_id)
+  const expired = isRewardExpired(reward.expires_at)
   const redeemable =
     reward.status === "unlocked" &&
+    !expired &&
     !rewardState.unavailableReason &&
     rewardStampThresholdMet(
       reward.source,
@@ -66,7 +71,9 @@ export async function loadRewardExperienceContext(
     redeemedAt: reward.redeemed_at,
     justRedeemed: flags.justRedeemed === true,
     location,
-    unavailableReason: rewardState.unavailableReason,
+    unavailableReason: expired
+      ? "This reward has expired."
+      : rewardState.unavailableReason,
     profileGate,
   }
 }

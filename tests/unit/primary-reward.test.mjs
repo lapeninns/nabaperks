@@ -56,7 +56,10 @@ test("comparePrimaryUnlockedRewards prefers redeemable rewards within the same s
 })
 
 test("pickIssuedUnlockedReward returns the issued gift and ignores stamp_cycle rewards", () => {
-  assert.equal(pickIssuedUnlockedReward([stampCycle, birthday])?.id, "birthday-1")
+  assert.equal(
+    pickIssuedUnlockedReward([stampCycle, birthday])?.id,
+    "birthday-1"
+  )
   assert.equal(pickIssuedUnlockedReward([stampCycle]), null)
   assert.equal(pickIssuedUnlockedReward([]), null)
 })
@@ -76,5 +79,40 @@ test("pickIssuedUnlockedReward prefers a redeemable gift over a waiting one", ()
     redeemable_from: "2020-01-01",
   }
 
-  assert.equal(pickIssuedUnlockedReward([waitingGift, readyGift])?.id, "bday-ready")
+  assert.equal(
+    pickIssuedUnlockedReward([waitingGift, readyGift])?.id,
+    "bday-ready"
+  )
+})
+
+test("pickIssuedUnlockedReward prefers readiness across different issued sources", () => {
+  const waitingDirect = {
+    id: "direct-wait",
+    source: "merchant_direct",
+    created_at: "2026-07-05T10:00:00.000Z",
+    redeemable_from: "2099-01-01",
+  }
+  const readyBirthday = {
+    id: "birthday-ready",
+    source: "birthday_month",
+    created_at: "2026-07-01T10:00:00.000Z",
+    redeemable_from: "2020-01-01",
+  }
+
+  assert.equal(
+    pickIssuedUnlockedReward([waitingDirect, readyBirthday])?.id,
+    "birthday-ready"
+  )
+})
+
+test("reward pickers ignore expired unlocked rows before ordering", () => {
+  const expiredDirect = {
+    id: "direct-expired",
+    source: "merchant_direct",
+    created_at: "2026-07-05T10:00:00.000Z",
+    redeemable_from: "2020-01-01",
+    expires_at: "2020-01-02T00:00:00.000Z",
+  }
+
+  assert.equal(pickIssuedUnlockedReward([expiredDirect]), null)
 })

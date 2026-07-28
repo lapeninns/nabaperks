@@ -29,7 +29,10 @@ test("Given a reward detail route is loaded When source is inspected Then reward
     /const location = await getLocationRequirement\(loyaltyCard\.location_id\)/
   )
   assert.match(loader, /redeemedAt: reward\.redeemed_at/)
-  assert.match(loader, /unavailableReason: rewardState\.unavailableReason/)
+  assert.match(
+    loader,
+    /unavailableReason: expired[\s\S]*rewardState\.unavailableReason/
+  )
   assert.doesNotMatch(loader, /searchParams|request|customerId:\s*string/)
 })
 
@@ -46,9 +49,30 @@ test("Given a reward might be waiting, blocked, or ready When the loader compute
   )
 
   assert.match(redeemableBlock, /reward\.status === "unlocked"/)
+  assert.match(redeemableBlock, /!expired/)
   assert.match(redeemableBlock, /!rewardState\.unavailableReason/)
   assert.match(redeemableBlock, /rewardStampThresholdMet\(/)
   assert.match(redeemableBlock, /isRedeemableFrom\(reward\.redeemable_from\)/)
+})
+
+test("Given an unlocked reward has passed its expiry instant When detail loads Then it becomes unavailable instead of waiting or ready", () => {
+  const loader = readProjectFile(
+    "lib",
+    "customer",
+    "experience",
+    "load-reward.ts"
+  )
+  const qrRoute = readProjectFile(
+    "app",
+    "reward",
+    "[rewardId]",
+    "qr.png",
+    "route.ts"
+  )
+
+  assert.match(loader, /isRewardExpired\(reward\.expires_at\)/)
+  assert.match(loader, /This reward has expired\./)
+  assert.match(qrRoute, /!isRewardExpired\(rewardState\.reward\.expires_at\)/)
 })
 
 test("Given profile completion is only needed for collection When the reward is not redeemable Then the profile gate is skipped", () => {

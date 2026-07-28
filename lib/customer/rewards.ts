@@ -3,9 +3,15 @@ import "server-only"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import { firstOf, getCurrentCustomer } from "@/lib/customer/identity"
 import {
+  isRewardExpired,
   narrowRewardSource,
   type RewardSource,
 } from "@/lib/customer/issued-reward-display"
+import {
+  CUSTOMER_REWARD_HISTORY_PAGE_SIZE,
+  normalizeRewardHistoryPage,
+  rewardHistoryRange,
+} from "@/lib/customer/reward-history-pagination"
 import { isRedeemableFrom } from "@/lib/customer/uk-date"
 
 export type CustomerRewardItem = {
@@ -27,6 +33,9 @@ export type CustomerRewards = {
   upcoming: CustomerRewardItem[]
   redeemed: CustomerRewardItem[]
   expired: CustomerRewardItem[]
+  historyPage: number
+  historyPageCount: number
+  historyTotal: number
 }
 
 type RawRewardEvent = {
@@ -44,28 +53,51 @@ type RawRewardEvent = {
   merchants: { business_name: string } | Array<{ business_name: string }> | null
 }
 
-export async function getCustomerRewards(): Promise<CustomerRewards> {
+export async function getCustomerRewards(
+  requestedHistoryPage = 1
+): Promise<CustomerRewards> {
   const customer = await getCurrentCustomer()
+  const historyPage = normalizeRewardHistoryPage(requestedHistoryPage)
 
   if (!customer) {
-    return { redeemable: [], upcoming: [], redeemed: [], expired: [] }
+    return emptyRewards(historyPage)
   }
 
   const supabase = createSupabaseServiceRoleClient()
-  const { data, error } = await supabase
-    .from("reward_events")
-    .select(
-      "id, membership_id, status, source, reward_name, reward_terms, redeemable_from, expires_at, expired_at, redeemed_at, created_at, merchants(business_name)"
-    )
-    .eq("customer_id", customer.id)
-    .in("status", ["unlocked", "redeemed", "expired"])
-    .order("created_at", { ascending: false })
+  const historyRange = rewardHistoryRange(historyPage)
+  const rewardFields =
+    "id, membership_id, status, source, reward_name, reward_terms, redeemable_from, expires_at, expired_at, redeemed_at, created_at, merchants(business_name)"
 
-  if (error) {
-    throw new Error(`Unable to load rewards: ${error.message}`)
+  const [activeResult, historyResult] = await Promise.all([
+    supabase
+      .from("reward_events")
+      .select(rewardFields)
+      .eq("customer_id", customer.id)
+      .eq("status", "unlocked")
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("reward_events")
+      .select(rewardFields, { count: "exact" })
+      .eq("customer_id", customer.id)
+      .in("status", ["redeemed", "expired"])
+      .order("created_at", { ascending: false })
+      .range(historyRange.from, historyRange.to),
+  ])
+
+  if (activeResult.error) {
+    throw new Error(
+      `Unable to load active rewards: ${activeResult.error.message}`
+    )
+  }
+  if (historyResult.error) {
+    throw new Error(
+      `Unable to load reward history: ${historyResult.error.message}`
+    )
   }
 
-  const rows = (data ?? []) as RawRewardEvent[]
+  const activeRows = (activeResult.data ?? []) as RawRewardEvent[]
+  const historyRows = (historyResult.data ?? []) as RawRewardEvent[]
+  const rows = [...activeRows, ...historyRows]
   const redeemable: CustomerRewardItem[] = []
   const upcoming: CustomerRewardItem[] = []
   const redeemed: CustomerRewardItem[] = []
@@ -107,9 +139,29 @@ export async function getCustomerRewards(): Promise<CustomerRewards> {
     )
   )
 
-  return { redeemable, upcoming, redeemed, expired }
+  const historyTotal = historyResult.count ?? 0
+
+  return {
+    redeemable,
+    upcoming,
+    redeemed,
+    expired,
+    historyPage,
+    historyPageCount: Math.ceil(
+      historyTotal / CUSTOMER_REWARD_HISTORY_PAGE_SIZE
+    ),
+    historyTotal,
+  }
 }
 
-export function isRewardExpired(expiresAt: string | null, now = new Date()) {
-  return expiresAt ? new Date(expiresAt).getTime() <= now.getTime() : false
+function emptyRewards(historyPage: number): CustomerRewards {
+  return {
+    redeemable: [],
+    upcoming: [],
+    redeemed: [],
+    expired: [],
+    historyPage,
+    historyPageCount: 0,
+    historyTotal: 0,
+  }
 }

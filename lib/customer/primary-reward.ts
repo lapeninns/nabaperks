@@ -1,13 +1,15 @@
 import { isRedeemableFrom } from "@/lib/customer/uk-date"
+import { isRewardExpired } from "@/lib/customer/issued-reward-display"
 
 export type UnlockedRewardPickRow = {
   id: string
   source?: string | null
   created_at?: string | null
   redeemable_from: string | null
+  expires_at?: string | null
 }
 
-/** Earned cycle rewards outrank issued gifts when both are unlocked. */
+/** Earned cycle rewards outrank issued gifts at the same readiness. */
 function sourceRank(source: string | null | undefined): number {
   if (source === "stamp_cycle") return 0
   if (source === "merchant_direct") return 1
@@ -19,12 +21,12 @@ export function comparePrimaryUnlockedRewards(
   a: UnlockedRewardPickRow,
   b: UnlockedRewardPickRow
 ): number {
-  const sourceDelta = sourceRank(a.source) - sourceRank(b.source)
-  if (sourceDelta !== 0) return sourceDelta
-
   const aRedeemable = isRedeemableFrom(a.redeemable_from)
   const bRedeemable = isRedeemableFrom(b.redeemable_from)
   if (aRedeemable !== bRedeemable) return aRedeemable ? -1 : 1
+
+  const sourceDelta = sourceRank(a.source) - sourceRank(b.source)
+  if (sourceDelta !== 0) return sourceDelta
 
   const aCreated = a.created_at ?? ""
   const bCreated = b.created_at ?? ""
@@ -35,17 +37,18 @@ export function comparePrimaryUnlockedRewards(
 export function pickPrimaryUnlockedReward<T extends UnlockedRewardPickRow>(
   rows: readonly T[]
 ): T | null {
-  if (rows.length === 0) return null
-  return [...rows].sort(comparePrimaryUnlockedRewards)[0] ?? null
+  const currentRows = rows.filter((row) => !isRewardExpired(row.expires_at))
+  if (currentRows.length === 0) return null
+  return [...currentRows].sort(comparePrimaryUnlockedRewards)[0] ?? null
 }
 
 /**
  * Only stamp-cycle rewards block new stamps and stamp-route QR collection.
  * Issued rewards (birthday, merchant direct) redeem on their own rail.
  */
-export function pickStampBlockingUnlockedReward<T extends UnlockedRewardPickRow>(
-  rows: readonly T[]
-): T | null {
+export function pickStampBlockingUnlockedReward<
+  T extends UnlockedRewardPickRow,
+>(rows: readonly T[]): T | null {
   return pickPrimaryUnlockedReward(
     rows.filter((row) => (row.source ?? "stamp_cycle") === "stamp_cycle")
   )

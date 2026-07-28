@@ -2,7 +2,7 @@ import type { HomeCard, HomeSummary } from "@/lib/customer/home-types"
 
 /** A card has something to collect now — an earned stamp reward or a ready gift. */
 export function hasRedeemableReward(card: HomeCard): boolean {
-  return Boolean(card.stampRewardId) || Boolean(card.gift?.redeemable)
+  return readyRewardCount(card) > 0
 }
 
 export function sortHomeCards(cards: readonly HomeCard[]): HomeCard[] {
@@ -27,9 +27,22 @@ export function sortHomeCards(cards: readonly HomeCard[]): HomeCard[] {
 export function buildHomeSummary(cards: readonly HomeCard[]): HomeSummary {
   return {
     cardCount: cards.length,
-    redeemableCount: cards.filter(hasRedeemableReward).length,
+    redeemableCount: cards.reduce(
+      (count, card) => count + readyRewardCount(card),
+      0
+    ),
     stampAvailableCount: cards.filter(isStampAvailable).length,
   }
+}
+
+function readyRewardCount(card: HomeCard): number {
+  if (typeof card.redeemableRewards === "number") {
+    return card.redeemableRewards
+  }
+
+  return (
+    Number(Boolean(card.stampRewardId)) + Number(Boolean(card.gift?.redeemable))
+  )
 }
 
 export function homeCardStatusCopy(card: HomeCard): string {
