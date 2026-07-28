@@ -4,6 +4,7 @@ import * as webPush from "web-push"
 import type { PushSubscription, SendResult } from "web-push"
 
 import type { NotificationPayload } from "@/lib/notifications/catalog"
+import { assertDeliveryDestinationAllowed } from "@/lib/notifications/non-production-delivery-policy"
 import { getWebPushServerConfig } from "@/lib/notifications/push-subscriptions"
 
 type WebPushSender = (
@@ -27,6 +28,10 @@ export async function sendWebPushNotification(
   payload: Partial<NotificationPayload>,
   sender: WebPushSender = defaultWebPushSender
 ) {
+  assertDeliveryDestinationAllowed({
+    channel: "web-push",
+    destination: subscription.endpoint,
+  })
   const response = await sender(subscription, JSON.stringify(payload))
   return { ok: true as const, statusCode: response?.statusCode ?? 201 }
 }

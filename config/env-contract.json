@@ -124,6 +124,20 @@
     "optional": true
   },
   {
+    "name": "NON_PRODUCTION_DELIVERY_HMAC_SECRET",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Optional high-entropy HMAC secret for exact hosted Preview/Staging delivery-destination approval. Delivery remains disabled there unless this and NON_PRODUCTION_DELIVERY_ALLOWLIST are both valid.",
+    "optional": true
+  },
+  {
+    "name": "NON_PRODUCTION_DELIVERY_ALLOWLIST",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Optional comma-separated hosted Preview/Staging destination fingerprints in channel:base64url-HMAC form, where channel is email, sms, or web-push. Contains no raw contact PII.",
+    "optional": true
+  },
+  {
     "name": "WEB_PUSH_VAPID_PUBLIC_KEY",
     "visibility": "server",
     "kind": "string",

@@ -55,6 +55,7 @@ function environmentFindings(name, target, entries) {
   const protectedNames = new Set([
     ...target.requiredKeys.filter((key) => !key.startsWith("NEXT_PUBLIC_")),
     ...(target.requiredAnyOf ?? []).flat(2),
+    ...(target.protectedOptionalKeys ?? []),
   ])
   const unsafe = entries
     .filter(
