@@ -5,7 +5,7 @@ import { createRewardScanToken } from "@/lib/customer/reward-scan-token"
 import { getCustomerProfileCompletion } from "@/lib/customer/profile"
 import { rewardStampThresholdMet } from "@/lib/customer/issued-reward-display"
 import { isRedeemableFrom } from "@/lib/customer/uk-date"
-import { getServerEnv } from "@/lib/env/server"
+import { getCanonicalAppOrigin } from "@/lib/env/app-origin"
 import { renderQrCodePng } from "@/lib/qr/assets"
 
 export const runtime = "nodejs"
@@ -17,7 +17,6 @@ type RewardQrRouteContext = {
 }
 
 export async function GET(_request: Request, context: RewardQrRouteContext) {
-  const serverEnv = getServerEnv()
   const { rewardId } = await context.params
   const rewardState = await getCustomerRewardState(rewardId)
 
@@ -48,7 +47,7 @@ export async function GET(_request: Request, context: RewardQrRouteContext) {
     rewardId,
     customerId: rewardState.customerId,
   })
-  const scanUrl = `${serverEnv.NEXT_PUBLIC_APP_URL}/r/${token.scanToken}`
+  const scanUrl = `${getCanonicalAppOrigin()}/r/${token.scanToken}`
   const png = await renderQrCodePng(scanUrl)
 
   return new NextResponse(toArrayBuffer(png), {

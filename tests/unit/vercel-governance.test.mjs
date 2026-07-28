@@ -113,7 +113,7 @@ test("Vercel evidence reports missing isolated runtime material", () => {
     failures.map(({ control, detail }) => [control, detail])
   )
 
-  assert.match(
+  assert.doesNotMatch(
     byControl.get("vercel:environment:preview:keys"),
     /NEXT_PUBLIC_APP_URL/
   )
@@ -123,7 +123,7 @@ test("Vercel evidence reports missing isolated runtime material", () => {
   )
   assert.match(
     byControl.get("vercel:environment:staging:keys"),
-    /PRODUCTION_MONITOR_SECRET/
+    /NEXT_PUBLIC_APP_URL/
   )
 })
 

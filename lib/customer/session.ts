@@ -31,6 +31,13 @@ type PendingPhoneInput = {
   country: string
 }
 
+type PendingPhoneCookieStore = Awaited<ReturnType<typeof cookies>>
+
+export type PreparedPendingPhoneVerification = {
+  readonly cookieStore: PendingPhoneCookieStore
+  readonly cookieValue: string
+}
+
 type PendingEmailInput = {
   email: string
   codeHmac: string
@@ -41,9 +48,14 @@ const pendingPhoneTtlSeconds = 10 * 60
 const pendingEmailTtlSeconds = 10 * 60
 const customerSessionTtlSeconds = 30 * 24 * 60 * 60
 
-export async function setPendingPhoneVerification(
+/**
+ * Resolve every cookie and cryptographic dependency before an irreversible SMS
+ * provider call. The caller commits the prepared value before dispatch so a
+ * missing secret or non-writable cookie context fails without sending.
+ */
+export async function preparePendingPhoneVerification(
   input: PendingPhoneInput
-): Promise<PendingPhonePayload> {
+): Promise<PreparedPendingPhoneVerification> {
   const issuedAt = nowSeconds()
   const payload: PendingPhonePayload = {
     version: 2,
@@ -55,13 +67,23 @@ export async function setPendingPhoneVerification(
     expiresAt: issuedAt + pendingPhoneTtlSeconds,
   }
   const cookieStore = await cookies()
-  cookieStore.set(
-    pendingPhoneCookieName,
-    createPendingPhoneCookieValue(payload, customerSessionSecret()),
-    cookieOptions(pendingPhoneTtlSeconds)
+  const cookieValue = createPendingPhoneCookieValue(
+    payload,
+    customerSessionSecret()
   )
 
-  return payload
+  return { cookieStore, cookieValue }
+}
+
+export function commitPendingPhoneVerification(
+  prepared: PreparedPendingPhoneVerification
+): void {
+  const { cookieStore, cookieValue } = prepared
+  cookieStore.set(
+    pendingPhoneCookieName,
+    cookieValue,
+    cookieOptions(pendingPhoneTtlSeconds)
+  )
 }
 
 export async function getPendingPhoneVerification(): Promise<PendingPhonePayload | null> {

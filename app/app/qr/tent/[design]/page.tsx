@@ -6,7 +6,7 @@ import { Icon, PageTitle, ReceiptCard } from "@/components/brand"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { A4Tent } from "@/components/merchant/qr-poster/table-tent/a4-tent"
 import { Button } from "@/components/ui/button"
-import { getServerEnv } from "@/lib/env/server"
+import { getCanonicalAppOrigin } from "@/lib/env/app-origin"
 import { getOwnedQrImageContext } from "@/lib/merchant/qr-code"
 import { resolveQrReturnBase } from "@/lib/merchant/qr-nav"
 import { renderPosterQrCodePng } from "@/lib/qr/assets"
@@ -45,8 +45,7 @@ export default async function QrTentPage({
     notFound()
   }
 
-  const env = getServerEnv()
-  const shareUrl = `${env.NEXT_PUBLIC_APP_URL}/q/${qrContext.qrCode.qr_id}`
+  const shareUrl = `${getCanonicalAppOrigin()}/q/${qrContext.qrCode.qr_id}`
 
   let qrDataUrl: string
   try {

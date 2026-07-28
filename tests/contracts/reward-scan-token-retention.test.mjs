@@ -26,7 +26,10 @@ test("Given reward QR refreshes can happen repeatedly When tokens are minted The
     migration,
     /create or replace function public\.purge_expired_reward_scan_tokens/
   )
-  assert.match(migration, /delete from public\.reward_scan_tokens[\s\S]*expires_at <= p_now/)
+  assert.match(
+    migration,
+    /delete from public\.reward_scan_tokens[\s\S]*expires_at <= p_now/
+  )
   assert.match(
     migration,
     /perform public\.purge_expired_reward_scan_tokens\(now\(\)\)/
@@ -35,7 +38,10 @@ test("Given reward QR refreshes can happen repeatedly When tokens are minted The
     migration,
     /reward_scan_tokens\.consumed_at is null[\s\S]*reward_scan_tokens\.expires_at > now\(\) \+ interval '5 minutes'/
   )
-  assert.match(migration, /return next;[\s\S]*return;[\s\S]*insert into public\.reward_scan_tokens/)
+  assert.match(
+    migration,
+    /return next;[\s\S]*return;[\s\S]*insert into public\.reward_scan_tokens/
+  )
   assert.match(tokenModule, /rpc\("create_reward_scan_token"/)
   assert.match(qrHelper, /server may reuse a token/)
   assert.doesNotMatch(qrHelper, /each fetch mints a new token/)
@@ -56,14 +62,26 @@ test("Given a reward QR image is requested When source is inspected Then token m
 
   assert.match(route, /getCustomerRewardState\(rewardId\)/)
   assert.match(route, /if \(rewardState\.status !== "ready"\)/)
-  assert.match(route, /return new NextResponse\("Reward QR not found", \{ status: 404 \}\)/)
+  assert.match(
+    route,
+    /return new NextResponse\("Reward QR not found", \{ status: 404 \}\)/
+  )
   assert.match(route, /rewardState\.reward\.status === "unlocked"/)
   assert.match(route, /!rewardState\.unavailableReason/)
   assert.match(route, /rewardStampThresholdMet\(/)
-  assert.match(route, /isRedeemableFrom\(rewardState\.reward\.redeemable_from\)/)
-  assert.match(route, /return new NextResponse\("Reward QR not ready", \{ status: 404 \}\)/)
+  assert.match(
+    route,
+    /isRedeemableFrom\(rewardState\.reward\.redeemable_from\)/
+  )
+  assert.match(
+    route,
+    /return new NextResponse\("Reward QR not ready", \{ status: 404 \}\)/
+  )
   assert.match(route, /rewardId,\s*customerId: rewardState\.customerId/)
-  assert.match(route, /\$\{serverEnv\.NEXT_PUBLIC_APP_URL\}\/r\/\$\{token\.scanToken\}/)
+  assert.match(
+    route,
+    /\$\{getCanonicalAppOrigin\(\)\}\/r\/\$\{token\.scanToken\}/
+  )
   assert.match(route, /"Content-Type": "image\/png"/)
   assert.match(route, /"Cache-Control": "private, no-store"/)
   assert.doesNotMatch(route, /searchParams|request\.url|customerId:\s*string/)

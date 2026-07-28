@@ -8,9 +8,10 @@ import { defaultCountryFromHeaders, normalizePhone } from "@/lib/customer/phone"
 import {
   clearCustomerSession,
   clearPendingPhoneVerification,
+  commitPendingPhoneVerification,
   getPendingPhoneVerification,
+  preparePendingPhoneVerification,
   setCustomerSession,
-  setPendingPhoneVerification,
 } from "@/lib/customer/session"
 import {
   checkCustomerPhoneVerification,
@@ -83,22 +84,13 @@ export async function requestCustomerLoginOtpAction(
     throw error
   }
 
-  const verification = await startCustomerPhoneVerification(contact)
-  if (verification.status === "unavailable") {
-    return {
-      fields: { contact },
-      errors: {
-        form: "We couldn't send a code just now. Try again shortly.",
-      },
-    }
-  }
-
   try {
-    await setPendingPhoneVerification({
+    const preparedVerification = await preparePendingPhoneVerification({
       purpose: "wallet",
       phone: contact,
       country: normalized.phone.country,
     })
+    commitPendingPhoneVerification(preparedVerification)
   } catch (error) {
     logVerificationSendFailure("wallet", error)
 
@@ -106,6 +98,16 @@ export async function requestCustomerLoginOtpAction(
       fields: { contact },
       errors: {
         form: "Verification code could not be sent. Try again shortly.",
+      },
+    }
+  }
+
+  const verification = await startCustomerPhoneVerification(contact)
+  if (verification.status === "unavailable") {
+    return {
+      fields: { contact },
+      errors: {
+        form: "We couldn't send a code just now. Try again shortly.",
       },
     }
   }

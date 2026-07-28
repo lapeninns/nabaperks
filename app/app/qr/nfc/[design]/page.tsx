@@ -6,7 +6,7 @@ import { Icon, PageTitle, ReceiptCard } from "@/components/brand"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { A4NfcCard } from "@/components/merchant/qr-poster/nfc-card/a4-nfc-card"
 import { Button } from "@/components/ui/button"
-import { getServerEnv } from "@/lib/env/server"
+import { getCanonicalAppOrigin } from "@/lib/env/app-origin"
 import { getOwnedQrImageContext } from "@/lib/merchant/qr-code"
 import { resolveQrReturnBase } from "@/lib/merchant/qr-nav"
 import { renderPosterQrCodePng } from "@/lib/qr/assets"
@@ -47,9 +47,8 @@ export default async function QrNfcCardPage({
     notFound()
   }
 
-  const env = getServerEnv()
   const joinUrl = appendQrShareChannel(
-    `${env.NEXT_PUBLIC_APP_URL}/q/${qrContext.qrCode.qr_id}`,
+    `${getCanonicalAppOrigin()}/q/${qrContext.qrCode.qr_id}`,
     "qr"
   )
   const destinationUrl = resolveNfcDestination({

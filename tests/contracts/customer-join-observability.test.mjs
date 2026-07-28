@@ -30,7 +30,7 @@ test("Given join page views When source is inspected Then attribution follows th
 
 test("Given authoritative join transitions When action source is inspected Then milestones follow success", () => {
   const actions = read("app", "m", "[merchantSlug]", "join", "actions.ts")
-  const send = actions.indexOf("await setPendingPhoneVerification")
+  const send = actions.indexOf("commitPendingPhoneVerification")
   const sendEvent = actions.indexOf('eventName: "join_phone_requested"')
   const rpc = actions.indexOf('"join_customer_membership_with_first_stamp"')
   const termsEvent = actions.indexOf('eventName: "join_terms_accepted"')

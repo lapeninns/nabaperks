@@ -329,7 +329,11 @@ function pushVercelEnv() {
     .filter((name) => localValues[name]?.trim())
 
   const missing = contract
-    .filter((entry) => isRequiredContractEntry(entry, localValues))
+    .filter(
+      (entry) =>
+        isRequiredContractEntry(entry, localValues) ||
+        (environment === "production" && entry.name === "NEXT_PUBLIC_APP_URL")
+    )
     .filter((entry) => !localValues[entry.name]?.trim())
     .map((entry) => entry.name)
 
@@ -385,7 +389,10 @@ function assertVercelProductionEnvSafe(environment, localValues) {
 
   const appUrl = localValues.NEXT_PUBLIC_APP_URL?.trim()
 
-  if (!appUrl) return
+  if (!appUrl) {
+    console.error("Production NEXT_PUBLIC_APP_URL is required.")
+    process.exit(1)
+  }
 
   let url
 

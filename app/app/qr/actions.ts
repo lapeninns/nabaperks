@@ -5,7 +5,7 @@ import { redirect } from "next/navigation"
 import { capturePostHogEvent } from "@/lib/analytics/events"
 import { scheduleMerchantActivationEvent } from "@/lib/analytics/merchant-activation-events"
 import { getCurrentUser } from "@/lib/auth/session"
-import { getServerEnv } from "@/lib/env/server"
+import { getCanonicalAppOrigin } from "@/lib/env/app-origin"
 import { revalidateMerchantLaunchSurfaces } from "@/lib/merchant/revalidate-launch-surfaces"
 import { getLaunchBillingReadiness } from "@/lib/merchant/launch-readiness"
 import { LAUNCH_MIN_ACTIVE_REWARDS } from "@/lib/merchant/launch-readiness-contract"
@@ -185,8 +185,7 @@ export async function emailPosterAction(): Promise<EmailPosterState> {
       windowMs: POSTER_EMAIL_WINDOW_MS,
     })
 
-    const env = getServerEnv()
-    const shareUrl = `${env.NEXT_PUBLIC_APP_URL}/q/${qrCode.qr_id}`
+    const shareUrl = `${getCanonicalAppOrigin()}/q/${qrCode.qr_id}`
     const venueName = merchant.business_name.trim().slice(0, 120)
     const kitInput = {
       merchantName: venueName,

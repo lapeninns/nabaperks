@@ -6,6 +6,7 @@ import { redirect } from "next/navigation"
 import type { BillingCheckoutActionState } from "@/components/merchant/account/billing-checkout-form"
 import { observeMerchantBillingCheckoutPreparation } from "@/lib/analytics/merchant-billing-events"
 import { getCurrentMerchant } from "@/lib/auth/session"
+import { getCanonicalAppOrigin } from "@/lib/env/app-origin"
 import { getServerEnv } from "@/lib/env/server"
 import { resolveBillingAppOrigin } from "@/lib/merchant/billing-checkout-core"
 import {
@@ -75,7 +76,7 @@ export async function startCheckoutAction(
               process.env.NODE_ENV === "production"
                 ? "production"
                 : "development",
-            configuredOrigin: env.NEXT_PUBLIC_APP_URL,
+            configuredOrigin: getCanonicalAppOrigin(),
             requestOrigin: await requestOrigin(),
             monthlyPriceId: env.STRIPE_GROWTH_PRICE_ID,
             annualPriceId: env.STRIPE_GROWTH_ANNUAL_PRICE_ID,
@@ -127,11 +128,10 @@ export async function openCustomerPortalAction(formData: FormData) {
     missingCustomer = !billing?.stripe_customer_id
 
     if (billing?.stripe_customer_id) {
-      const env = getServerEnv()
       const origin = resolveBillingAppOrigin({
         environment:
           process.env.NODE_ENV === "production" ? "production" : "development",
-        configuredOrigin: env.NEXT_PUBLIC_APP_URL,
+        configuredOrigin: getCanonicalAppOrigin(),
         requestOrigin: await requestOrigin(),
       })
       const portal = await getStripe().billingPortal.sessions.create({
