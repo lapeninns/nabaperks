@@ -4,12 +4,18 @@ import * as webPush from "web-push"
 import type { PushSubscription, SendResult } from "web-push"
 
 import type { NotificationPayload } from "@/lib/notifications/catalog"
+import { assertDeliveryDestinationAllowed } from "@/lib/notifications/non-production-delivery-policy"
 import { getWebPushServerConfig } from "@/lib/notifications/push-subscriptions"
 
 type WebPushSender = (
   subscription: PushSubscription,
   payload: string
 ) => Promise<SendResult | void>
+
+// Keep provider I/O well inside the five-minute notification-event lease.
+// Without a socket timeout, a stalled push request can survive the lease,
+// allowing a restarted worker to reclaim and deliver the same event again.
+export const WEB_PUSH_SOCKET_TIMEOUT_MS = 15_000
 
 export type PushSubscriptionData = {
   endpoint: string
@@ -22,6 +28,10 @@ export async function sendWebPushNotification(
   payload: Partial<NotificationPayload>,
   sender: WebPushSender = defaultWebPushSender
 ) {
+  assertDeliveryDestinationAllowed({
+    channel: "web-push",
+    destination: subscription.endpoint,
+  })
   const response = await sender(subscription, JSON.stringify(payload))
   return { ok: true as const, statusCode: response?.statusCode ?? 201 }
 }
@@ -63,6 +73,7 @@ async function defaultWebPushSender(
       publicKey: config.publicKey,
       privateKey: config.privateKey,
     },
+    timeout: WEB_PUSH_SOCKET_TIMEOUT_MS,
     TTL: 60 * 60,
     urgency: "normal",
   })

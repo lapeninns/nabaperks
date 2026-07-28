@@ -4,6 +4,7 @@ import {
   buildTransactionalEmailPayload,
   type TransactionalEmailInput,
 } from "@/lib/notifications/transactional-email-payload"
+import { assertDeliveryDestinationAllowed } from "@/lib/notifications/non-production-delivery-policy"
 import { resilientFetch } from "@/lib/observability/resilience"
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails"
@@ -113,6 +114,7 @@ export async function sendTransactionalEmail({
   attachments,
   idempotencyKey,
 }: TransactionalEmailInput) {
+  assertDeliveryDestinationAllowed({ channel: "email", destination: to })
   const { apiKey, from } = readEmailOtpConfig()
 
   const res = await resilientFetch("resend", RESEND_ENDPOINT, {

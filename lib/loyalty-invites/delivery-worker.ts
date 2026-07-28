@@ -15,6 +15,10 @@ import {
   inviteUnsubscribeToken,
 } from "@/lib/loyalty-invites/tokens"
 import { buildLoyaltyInviteEmail } from "@/lib/notifications/loyalty-invite-email"
+import {
+  assertDeliveryDestinationAllowed,
+  isNonProductionDeliveryBlockedError,
+} from "@/lib/notifications/non-production-delivery-policy"
 import { readEmailOtpConfig } from "@/lib/notifications/resend"
 import { buildTransactionalEmailPayload } from "@/lib/notifications/transactional-email-payload"
 import { logger } from "@/lib/observability/logger"
@@ -200,6 +204,15 @@ async function sendOne(
   email: { subject: string; text: string; html: string },
   idempotencyKey: string
 ): Promise<{ status: number | null; providerId: string | null }> {
+  try {
+    assertDeliveryDestinationAllowed({ channel: "email", destination: to })
+  } catch (error) {
+    if (isNonProductionDeliveryBlockedError(error)) {
+      return { status: 403, providerId: null }
+    }
+    throw error
+  }
+
   try {
     const res = await fetch(RESEND_ENDPOINT, {
       method: "POST",

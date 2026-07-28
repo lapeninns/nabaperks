@@ -12,7 +12,10 @@ CONTRACT.sourceCrons =
   JSON.parse(readFileSync("vercel.json", "utf8")).crons ?? []
 
 function entries(target) {
-  const keys = new Set(target.requiredKeys)
+  const keys = new Set([
+    ...target.requiredKeys,
+    ...(target.protectedOptionalKeys ?? []),
+  ])
   for (const alternatives of target.requiredAnyOf ?? []) {
     for (const key of alternatives[0]) keys.add(key)
   }
@@ -140,6 +143,20 @@ test("Vercel evidence detects unsafe server storage and cron drift", () => {
 
   assert.ok(failures.includes("vercel:environment:production:protected"))
   assert.ok(failures.includes("vercel:cron-parity"))
+})
+
+test("Vercel evidence protects an optional non-production delivery secret", () => {
+  const evidence = completeEvidence()
+  evidence.environments.preview.find(
+    ({ key }) => key === "NON_PRODUCTION_DELIVERY_HMAC_SECRET"
+  ).type = "plain"
+
+  const result = evaluateVercelGovernance(CONTRACT, evidence).find(
+    ({ control }) => control === "vercel:environment:preview:protected"
+  )
+
+  assert.equal(result.status, "FAIL")
+  assert.match(result.detail, /NON_PRODUCTION_DELIVERY_HMAC_SECRET/)
 })
 
 test("Vercel evidence rejects release credentials in application runtime", () => {

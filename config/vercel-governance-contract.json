@@ -65,6 +65,7 @@
       "requiredAnyOf": [
         [["TWILIO_AUTH_TOKEN"], ["TWILIO_API_KEY_SID", "TWILIO_API_KEY_SECRET"]]
       ],
+      "protectedOptionalKeys": ["NON_PRODUCTION_DELIVERY_HMAC_SECRET"],
       "forbiddenKeys": [
         "SUPABASE_ACCESS_TOKEN",
         "SUPABASE_DB_PASSWORD",
@@ -98,6 +99,7 @@
       "requiredAnyOf": [
         [["TWILIO_AUTH_TOKEN"], ["TWILIO_API_KEY_SID", "TWILIO_API_KEY_SECRET"]]
       ],
+      "protectedOptionalKeys": ["NON_PRODUCTION_DELIVERY_HMAC_SECRET"],
       "forbiddenKeys": [
         "SUPABASE_ACCESS_TOKEN",
         "SUPABASE_DB_PASSWORD",

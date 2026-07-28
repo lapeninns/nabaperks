@@ -3,12 +3,18 @@ import { afterEach, mock, test } from "node:test"
 
 const PHONE = "+447700900123"
 const CODE = "424242"
+const DELIVERY_SECRET = "N7!qL2@vR9#cT4$yH6^mK8&pD3*zF5?x"
 const { checkCustomerPhoneVerification, startCustomerPhoneVerification } =
   await import("@/lib/customer/verification")
+const { deliveryDestinationFingerprint } =
+  await import("@/lib/notifications/non-production-delivery-policy")
 
 afterEach(() => {
   mock.restoreAll()
   delete process.env.VERCEL_ENV
+  delete process.env.VERCEL_TARGET_ENV
+  delete process.env.NON_PRODUCTION_DELIVERY_HMAC_SECRET
+  delete process.env.NON_PRODUCTION_DELIVERY_ALLOWLIST
 })
 
 test("Given Twilio approves a code When verification runs Then it returns approved with a bounded signal", async () => {
@@ -102,12 +108,25 @@ test("Given malformed provider JSON When verification runs Then it returns unava
   assert.deepEqual(result, { status: "unavailable" })
 })
 
-test("Given a preview deployment When a dev OTP is configured Then provider bypass stays disabled", async () => {
+test("Given Preview and a dev OTP When the phone is not approved Then no bypass or provider send occurs", async () => {
   configureProvider()
   process.env.VERCEL_ENV = "preview"
   process.env.CUSTOMER_DEV_OTP_CODE = CODE
   mock.method(globalThis, "fetch", async () =>
     Response.json({ status: "approved" })
+  )
+  const result = await startCustomerPhoneVerification(PHONE)
+
+  assert.deepEqual(result, { status: "unavailable" })
+  assert.equal(globalThis.fetch.mock.callCount(), 0)
+})
+
+test("Given Preview When the phone is explicitly approved Then Twilio remains available", async () => {
+  configureProvider()
+  process.env.VERCEL_ENV = "preview"
+  allowPhone(PHONE)
+  mock.method(globalThis, "fetch", async () =>
+    Response.json({ status: "pending" })
   )
   const result = await startCustomerPhoneVerification(PHONE)
 
@@ -121,4 +140,13 @@ function configureProvider() {
   process.env.TWILIO_VERIFY_SERVICE_SID = "VA_test"
   delete process.env.CUSTOMER_DEV_OTP_CODE
   delete process.env.CUSTOMER_OTP_BYPASS_MODE
+}
+
+function allowPhone(phone) {
+  process.env.NON_PRODUCTION_DELIVERY_HMAC_SECRET = DELIVERY_SECRET
+  const digest = deliveryDestinationFingerprint(
+    { channel: "sms", destination: phone },
+    DELIVERY_SECRET
+  )
+  process.env.NON_PRODUCTION_DELIVERY_ALLOWLIST = `sms:${digest}`
 }

@@ -55,6 +55,7 @@ const highEntropyTestEnvNames = new Set([
   "CUSTOMER_PHONE_ENCRYPTION_KEY",
   "CUSTOMER_EMAIL_HMAC_SECRET",
   "MERCHANT_OTP_ALIAS_TOKEN_ENCRYPTION_KEY",
+  "NON_PRODUCTION_DELIVERY_HMAC_SECRET",
   "SUPABASE_SEND_EMAIL_HOOK_SECRET",
   "SUPABASE_SEND_SMS_HOOK_SECRET",
 ])
@@ -451,6 +452,9 @@ function validTestEnvValue(entry) {
   }
   if (entry.name === "STRIPE_SECRET_KEY") {
     return "sk_test_provider_readiness"
+  }
+  if (entry.name === "NON_PRODUCTION_DELIVERY_ALLOWLIST") {
+    return `email:${Buffer.alloc(32, 7).toString("base64url")}`
   }
   if (entry.kind === "url") return "https://example.com"
   if (entry.kind === "postgres-url") {

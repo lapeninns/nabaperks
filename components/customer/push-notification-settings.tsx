@@ -175,11 +175,12 @@ export function PushNotificationSettings({
       const registration = await navigator.serviceWorker.ready
       const subscription = await registration.pushManager.getSubscription()
       if (subscription) {
-        await fetch("/api/notifications/push/unsubscribe", {
+        const response = await fetch("/api/notifications/push/unsubscribe", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ subscription: subscription.toJSON() }),
         })
+        if (!response.ok) throw new Error("unsubscribe_failed")
         await subscription.unsubscribe()
       }
       setBrowserState("granted")

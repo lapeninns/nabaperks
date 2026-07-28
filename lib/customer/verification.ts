@@ -1,5 +1,9 @@
 import "server-only"
 
+import {
+  assertDeliveryDestinationAllowed,
+  isNonProductionDeliveryBlockedError,
+} from "@/lib/notifications/non-production-delivery-policy"
 import { logger } from "@/lib/observability/logger"
 
 type VerificationStartResult = { readonly status: "sent" | "unavailable" }
@@ -72,6 +76,17 @@ async function postVerifyForm(
   path: VerifyOperation,
   params: Record<string, string>
 ): Promise<ProviderResult> {
+  try {
+    assertDeliveryDestinationAllowed({
+      channel: "sms",
+      destination: params.To ?? "",
+    })
+  } catch (error) {
+    if (!isNonProductionDeliveryBlockedError(error)) throw error
+    logger.warn("customer_verification_delivery_blocked", { operation: path })
+    return { ok: false }
+  }
+
   const configured = twilioVerifyConfig()
   if (!configured.ok) {
     logger.error("customer_verification_provider_unavailable", {

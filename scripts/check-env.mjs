@@ -41,6 +41,7 @@ const highEntropySecretEnvNames = new Set([
   "CUSTOMER_EMAIL_HMAC_SECRET",
   "CUSTOMER_EMAIL_ENCRYPTION_KEY",
   "MERCHANT_OTP_ALIAS_TOKEN_ENCRYPTION_KEY",
+  "NON_PRODUCTION_DELIVERY_HMAC_SECRET",
   "RESEND_WEBHOOK_SECRET",
   "SUPABASE_SEND_EMAIL_HOOK_SECRET",
   "SUPABASE_SEND_SMS_HOOK_SECRET",
@@ -268,6 +269,27 @@ if (hostedOrProductionProfile || customStagingEnvironment) {
         `${name} must use Standard Webhooks v1,whsec_<base64> format`
       )
     }
+  }
+
+  const deliverySecret = values.NON_PRODUCTION_DELIVERY_HMAC_SECRET?.trim()
+  const deliveryAllowlist = values.NON_PRODUCTION_DELIVERY_ALLOWLIST?.trim()
+  if (deliveryAllowlist && !deliverySecret) {
+    invalid.push(
+      "NON_PRODUCTION_DELIVERY_HMAC_SECRET is required when NON_PRODUCTION_DELIVERY_ALLOWLIST is configured"
+    )
+  }
+  if (
+    deliveryAllowlist &&
+    !deliveryAllowlist
+      .split(/[\s,]+/)
+      .filter(Boolean)
+      .every((entry) =>
+        /^(?:email|sms|web-push):[A-Za-z0-9_-]{43}$/.test(entry)
+      )
+  ) {
+    invalid.push(
+      "NON_PRODUCTION_DELIVERY_ALLOWLIST must contain only channel:base64url-HMAC fingerprints"
+    )
   }
 
   const cronSecret = values.CRON_SECRET?.trim()

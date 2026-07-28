@@ -285,6 +285,7 @@ for (const name of [
   "CUSTOMER_SESSION_SECRET",
   "CUSTOMER_PHONE_HMAC_SECRET",
   "CUSTOMER_PHONE_ENCRYPTION_KEY",
+  "NON_PRODUCTION_DELIVERY_HMAC_SECRET",
   "SUPABASE_SEND_EMAIL_HOOK_SECRET",
   "SUPABASE_SEND_SMS_HOOK_SECRET",
 ]) {
@@ -302,6 +303,37 @@ for (const name of [
     )
   })
 }
+
+test("Given a hosted allowlist without its HMAC secret When configuration is checked Then deployment fails closed", () => {
+  const digest = Buffer.alloc(32, 7).toString("base64url")
+  const result = runEnvCheck({
+    args: ["--profile=default"],
+    environment: {
+      NON_PRODUCTION_DELIVERY_ALLOWLIST: `email:${digest}`,
+    },
+    vercelEnv: "preview",
+  })
+
+  assert.equal(result.status, 1)
+  assert.match(result.stderr, /NON_PRODUCTION_DELIVERY_HMAC_SECRET is required/)
+})
+
+test("Given a malformed hosted delivery allowlist When configuration is checked Then deployment fails closed", () => {
+  const result = runEnvCheck({
+    args: ["--profile=default"],
+    environment: {
+      NON_PRODUCTION_DELIVERY_ALLOWLIST: "email:raw-owner@example.test",
+      NON_PRODUCTION_DELIVERY_HMAC_SECRET: "N7!qL2@vR9#cT4$yH6^mK8&pD3*zF5?x",
+    },
+    vercelEnv: "preview",
+  })
+
+  assert.equal(result.status, 1)
+  assert.match(
+    result.stderr,
+    /NON_PRODUCTION_DELIVERY_ALLOWLIST must contain only channel:base64url-HMAC fingerprints/
+  )
+})
 
 test("Given hosted configuration When a protected secret has low diversity Then the environment fails closed", () => {
   const result = runEnvCheck({
