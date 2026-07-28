@@ -78,7 +78,7 @@ jobs:
       - uses: ./.github/actions/setup
       - name: Verify the locked deployment CLI
         run: test "$(pnpm exec vercel --version | tail -n 1)" = "56.5.0"
-      - name: Build and deploy the candidate without assigning a domain
+      - name: Build and deploy the immutable Staging candidate
         id: deploy
         env:
           STAGING_VERCEL_TOKEN: ${{ secrets.STAGING_VERCEL_TOKEN }}
@@ -86,7 +86,6 @@ jobs:
           test -n "$STAGING_VERCEL_TOKEN"
           deployment_url="$(pnpm exec vercel deploy \
             --target=staging \
-            --skip-domain \
             --archive=tgz \
             --yes \
             --meta githubCommitSha="$EXPECTED_REVISION" \
