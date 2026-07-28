@@ -24,9 +24,8 @@ test("hosted Staging deployment is manual, protected and exact-revision", () => 
   assert.match(workflow, /git rev-parse origin\/main/)
 })
 
-test("hosted Staging deploys only to the custom target and proves before aliasing", () => {
+test("hosted Staging deploys only to the custom target and proves before the explicit alias", () => {
   assert.match(workflow, /vercel deploy[\s\S]*--target=staging/)
-  assert.match(workflow, /--skip-domain/)
   assert.doesNotMatch(workflow, /--prebuilt|vercel pull|vercel build/)
   assert.doesNotMatch(workflow, /--prod|vercel promote/)
   assert.match(
