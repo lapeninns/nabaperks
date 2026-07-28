@@ -29,6 +29,11 @@ test.describe("table tent visual regression @visual", () => {
             [data-nextjs-dev-overlay='true'] {
               display: none !important;
             }
+            /* Keep the sticky preview chrome out of the isolated A4 artwork
+               capture after overflow-x: clip restored sticky positioning. */
+            .qr-poster-chrome {
+              display: none !important;
+            }
             .qr-poster-print-root {
               --tent-screen-scale: 1 !important;
             }
