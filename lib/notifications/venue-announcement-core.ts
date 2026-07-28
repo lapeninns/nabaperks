@@ -37,6 +37,22 @@ export type VenueAnnouncementDailyLimitInput = {
 
 export const VENUE_ANNOUNCEMENT_DAILY_LIMIT = 2
 export const VENUE_ANNOUNCEMENT_DAILY_WINDOW_MS = 24 * 60 * 60 * 1000
+export const VENUE_ANNOUNCEMENT_QUERY_BATCH_SIZE = 100
+
+export function chunkVenueAnnouncementCustomerIds(
+  customerIds: readonly string[],
+  batchSize = VENUE_ANNOUNCEMENT_QUERY_BATCH_SIZE
+) {
+  if (!Number.isInteger(batchSize) || batchSize < 1) {
+    throw new Error("Venue announcement query batch size must be positive.")
+  }
+
+  const batches: string[][] = []
+  for (let index = 0; index < customerIds.length; index += batchSize) {
+    batches.push(customerIds.slice(index, index + batchSize))
+  }
+  return batches
+}
 
 export function validateVenueAnnouncementText(input: {
   readonly title: unknown

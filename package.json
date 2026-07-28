@@ -73,6 +73,7 @@
     "ops:github:check": "node scripts/check-github-governance.mjs",
     "ops:supabase:check": "node scripts/check-supabase-governance.mjs",
     "ops:vercel:check": "node scripts/check-vercel-governance.mjs",
+    "ops:vercel:plan": "node scripts/plan-vercel-governance.mjs",
     "env:keys": "node scripts/env-keys.mjs status",
     "env:pull-supabase": "node scripts/env-keys.mjs pull-supabase",
     "env:set-posthog": "node scripts/env-keys.mjs set-posthog",

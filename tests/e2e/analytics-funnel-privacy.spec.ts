@@ -46,12 +46,7 @@ test.describe("privacy-safe merchant funnel", () => {
       })
     })
 
-    // This suite runs against `next dev`. Compile the destination before the
-    // WebKit click so an on-demand Fast Refresh reload cannot replace the
-    // in-flight client navigation. The click and URL assertions below still
-    // prove the real acquisition journey.
-    const signupWarmup = await page.request.get("/signup")
-    expect(signupWarmup.status()).toBeLessThan(400)
+    await warmSignupDestination(page)
 
     const response = await page.goto("/")
     expect(response?.status()).toBeLessThan(400)
@@ -103,6 +98,7 @@ test.describe("privacy-safe merchant funnel", () => {
       await route.abort("failed")
     })
 
+    await warmSignupDestination(page)
     const response = await page.goto("/")
     expect(response?.status()).toBeLessThan(400)
     await expect
@@ -111,6 +107,7 @@ test.describe("privacy-safe merchant funnel", () => {
       })
       .toContain("merchant_marketing_viewed")
     await page.getByRole("link", { name: "Start free pilot" }).first().click()
+    await expect(page).toHaveURL(/\/signup$/)
     await expect(page.getByLabel(/email/i)).toBeVisible()
 
     const storage = await analyticsStorage(page)
@@ -160,11 +157,13 @@ test.describe("privacy-safe merchant funnel", () => {
       })
     })
 
+    await warmSignupDestination(page)
     await page.goto("/")
     await expect
       .poll(() => abortedEvents)
       .toContain("merchant_marketing_viewed")
     await page.getByRole("link", { name: "Start free pilot" }).first().click()
+    await expect(page).toHaveURL(/\/signup$/)
     await page.getByLabel("Your name").fill("Privacy Proof")
     await page.getByLabel("Email", { exact: true }).fill("proof@example.test")
     await page.getByLabel("Password", { exact: true }).fill("Privacy123")
@@ -181,6 +180,15 @@ test.describe("privacy-safe merchant funnel", () => {
       .toBe(true)
   })
 })
+
+async function warmSignupDestination(page: Page): Promise<void> {
+  // These journeys run against `next dev`. Compile the destination before a
+  // WebKit click so an on-demand Fast Refresh reload cannot replace the
+  // in-flight client navigation. The click and URL assertions still prove the
+  // real acquisition journey.
+  const signupWarmup = await page.request.get("/signup")
+  expect(signupWarmup.status()).toBeLessThan(400)
+}
 
 function toFunnelRequest(request: PlaywrightRequest): FunnelRequest {
   return {

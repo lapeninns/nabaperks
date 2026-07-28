@@ -301,15 +301,40 @@ jobs:
         uses: ./.github/actions/playwright
         with:
           project: ${{ matrix.project }}
-      - run: pnpm test:visual -- --project="${{ matrix.project }}" --shard="${{ matrix.shard }}"
+      - name: Run locked visual regression
+        id: locked-visual
+        continue-on-error: true
+        run: pnpm test:visual -- --project="${{ matrix.project }}" --shard="${{ matrix.shard }}"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        if: ${{ !cancelled() && failure() }}
+        if: ${{ !cancelled() && steps.locked-visual.outcome == 'failure' }}
         with:
           name: visual-playwright-report-${{ matrix.project }}-${{ strategy.job-index }}
           path: |
             playwright-report/
             test-results/
           retention-days: 7
+      - name: Generate review-only Linux baseline candidates
+        if: ${{ steps.locked-visual.outcome == 'failure' }}
+        run: |
+          pnpm test:visual -- \
+            --project="${{ matrix.project }}" \
+            --shard="${{ matrix.shard }}" \
+            --update-snapshots=changed
+          git diff --name-only -- \
+            ":(glob)tests/e2e/**/*-snapshots/*-${{ matrix.project }}-linux.png" \
+            > visual-baseline-candidates.txt
+          test -s visual-baseline-candidates.txt
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        if: ${{ !cancelled() && steps.locked-visual.outcome == 'failure' }}
+        with:
+          name: visual-baseline-candidates-${{ matrix.project }}-${{ strategy.job-index }}
+          path: |
+            visual-baseline-candidates.txt
+            tests/e2e/**/*-snapshots/*-${{ matrix.project }}-linux.png
+          retention-days: 14
+      - name: Preserve the locked visual result
+        if: ${{ steps.locked-visual.outcome == 'failure' }}
+        run: exit 1
 
   visual-gate:
     name: Visual regression
