@@ -3,6 +3,7 @@ import "server-only"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import {
+  assertMerchantCustomerRewardStateLoaded,
   buildMerchantCustomerReadback,
   DEFAULT_STAMPS_REQUIRED,
   type MerchantCustomerReadbackRow,
@@ -161,6 +162,12 @@ export async function getMerchantCustomers(
         .order("redeemed_at", { ascending: false }),
     ])
 
+  assertMerchantCustomerRewardStateLoaded({
+    activeCard: cardResult.error,
+    unlockedRewards: rewardResult.error,
+    redemptions: redeemedResult.error,
+  })
+
   const stampsRequired = resolveStampsRequired(cardResult)
   const rewardByMembership = indexUnlockedRewards(rewardResult)
 
@@ -251,9 +258,7 @@ export async function getMerchantCustomerPage(
 
   const rankError = newerResult.error ?? sameTimeResult.error
   if (rankError) {
-    throw new Error(
-      `Unable to rank highlighted customer: ${rankError.message}`
-    )
+    throw new Error(`Unable to rank highlighted customer: ${rankError.message}`)
   }
 
   return resolveCustomersPageForLeadingCount(
