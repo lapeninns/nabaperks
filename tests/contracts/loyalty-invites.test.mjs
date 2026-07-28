@@ -103,6 +103,25 @@ test("the delivery worker + cron drain are wired with idempotency + retries", ()
   assert.match(vercel, /\*\/5 \* \* \* \*/)
 })
 
+test("the browser journey uses an explicit local synthetic delivery sink", () => {
+  const worker = read("lib/loyalty-invites/delivery-worker.ts")
+  assert.match(worker, /deliverySink\?: LoyaltyInviteDeliverySink/)
+
+  const sink = read("app/dev/loyalty-invite-sink/route.ts")
+  assert.match(sink, /process\.env\.NODE_ENV === "production"/)
+  assert.match(sink, /process\.env\.PLAYWRIGHT_HARNESS !== "1"/)
+  assert.match(sink, /x-nabaperks-synthetic-sink/)
+  assert.match(sink, /deliverySink:/)
+  assert.doesNotMatch(sink, /api\.resend\.com/)
+
+  const journey = read("tests/e2e/merchant-invite-customers.spec.ts")
+  assert.match(journey, /LOYALTY_INVITE_E2E/)
+  assert.match(journey, /merchant invitation journey/)
+  assert.match(journey, /\/dev\/loyalty-invite-sink/)
+  assert.match(journey, /Two stamps to start your card/)
+  assert.match(journey, /inviteStampCount\)\.toBe\(2\)/)
+})
+
 test("the Resend webhook verifies signatures and suppresses bounces", () => {
   const route = read("app/api/resend/webhook/route.ts")
   assert.match(route, /verifyStandardWebhook/)

@@ -43,8 +43,11 @@ test("Given a complete production configuration When generated credentials are s
     args: ["--profile=production"],
     environment: {
       CRON_SECRET: "N7!qL2@vR9#cT4$yH6^mK8&pD3*zF5?x",
+      CUSTOMER_EMAIL_ENCRYPTION_KEY: "E8!mQ3@xV7#tR2$kH9^pD4&yN6*zW5?c",
+      CUSTOMER_EMAIL_HMAC_SECRET: "H5@rC9!vM2#qL7$wT4^nK8&xP3*zD6?y",
       PRODUCTION_MONITOR_SECRET: "P4@wS8#nC2!kV6$rJ9^tB3&yM7*zQ5?e",
       RESEND_FROM: "Nabaperks <hello@example.test>",
+      RESEND_WEBHOOK_SECRET: "R6#tN3!pV8@xK2$wM7^cD4&yQ9*zH5?e",
       STRIPE_GROWTH_ANNUAL_PRICE_ID: "price_annual_fixture",
       SUPABASE_SEND_EMAIL_HOOK_SECRET: [
         "v1,wh",

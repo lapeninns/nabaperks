@@ -114,6 +114,8 @@ test("scheduled production smoke validates both JSON probe contracts", () => {
     workflow,
     /\.status == "ready" and \.scope == "readiness" and \.checks\.database == "ok" and \.checks\.operational == "ok"/
   )
+  assert.match(workflow, /\.signals\.referralBonusBacklogCount/)
+  assert.match(workflow, /\.signals\.referralBonusBacklogAgeMinutes/)
   assert.match(workflow, /check-production-probe-latency\.mjs/)
   assert.match(workflow, /PRODUCTION_SLO_CONFIG: config\/production-slos\.json/)
   assert.ok(probeJob, "production smoke keeps a dedicated probes job")
@@ -151,6 +153,8 @@ test("scheduled production smoke validates both JSON probe contracts", () => {
     signals: {
       notificationQueueAgeMinutes: 0,
       loyaltyInviteQueueAgeMinutes: 0,
+      referralBonusBacklogCount: 0,
+      referralBonusBacklogAgeMinutes: 0,
       providerDeliveryFailureRate24h: 0,
       cronJobs: Array.from({ length: 6 }, () => ({})),
     },
@@ -223,6 +227,22 @@ test("operational signals are data-free, durable and wired through every cron", 
   assert.match(
     migration,
     /revoke all on function public\.production_operational_signals\(\)[\s\S]*from public, anon, authenticated/
+  )
+
+  const referralBacklogMigration = read(
+    "supabase",
+    "migrations",
+    "20260728141000_referral_backlog_operational_signals.sql"
+  )
+  assert.match(referralBacklogMigration, /referralBonusBacklogCount/)
+  assert.match(referralBacklogMigration, /referralBonusBacklogAgeMinutes/)
+  assert.match(
+    referralBacklogMigration,
+    /'referral_bonus', 'imported', 'manual_adjustment', 'loyalty_invite'/
+  )
+  assert.match(
+    referralBacklogMigration,
+    /revoke all on function public\.production_operational_signals\(\)[\s\S]*grant execute on function public\.production_operational_signals\(\)[\s\S]*to service_role/
   )
 
   for (const [directory, [job]] of cronRoutes) {

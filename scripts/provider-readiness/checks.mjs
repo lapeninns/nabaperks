@@ -14,9 +14,14 @@ const remediationRpcs = [
   "admin_erase_customer_pii",
   "admin_purge_stale_customer_pii",
   "admin_resolve_fraud_flag",
+  "claim_due_loyalty_invite_recipients",
   "claim_due_notification_events",
+  "claim_loyalty_invite",
+  "create_loyalty_invite_draft",
+  "drain_due_referral_bonuses",
   "purge_expired_reward_scan_tokens",
   "purge_merchant_email_otp_aliases",
+  "qualify_referral_on_stamp",
   "reconcile_loyalty_card_threshold_rewards",
   "record_notification_delivery",
   "register_push_subscription_for_customer",
@@ -312,6 +317,24 @@ async function checkResend({ env, offline, report }) {
 
 function checkCronAndHooks({ env, report }) {
   requireValue(env, report, "CRON_SECRET", "vercel-cron-secret")
+  requireValue(
+    env,
+    report,
+    "CUSTOMER_EMAIL_ENCRYPTION_KEY",
+    "loyalty-invite-email-encryption"
+  )
+  requireValue(
+    env,
+    report,
+    "CUSTOMER_EMAIL_HMAC_SECRET",
+    "loyalty-invite-email-hmac"
+  )
+  requireValue(
+    env,
+    report,
+    "RESEND_WEBHOOK_SECRET",
+    "loyalty-invite-resend-webhook"
+  )
   requireValue(
     env,
     report,

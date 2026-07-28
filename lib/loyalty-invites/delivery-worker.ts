@@ -46,6 +46,18 @@ type LeasedRecipient = {
 
 type SendOutcome = "sent" | "retry" | "failed"
 
+type LoyaltyInviteEmail = {
+  readonly subject: string
+  readonly text: string
+  readonly html: string
+}
+
+export type LoyaltyInviteDeliverySink = (input: {
+  readonly to: string
+  readonly email: LoyaltyInviteEmail
+  readonly idempotencyKey: string
+}) => Promise<{ status: number | null; providerId: string | null }>
+
 export type LoyaltyInviteDrainResult = {
   drained: number
   sent: number
@@ -60,18 +72,27 @@ function sleep(ms: number): Promise<void> {
 
 export async function runLoyaltyInviteDrain(options?: {
   maxEmails?: number
+  /**
+   * Test/staging proof seam. Runtime callers omit this and use Resend. A
+   * synthetic sink can capture the fully rendered email without any network
+   * delivery; it is never selected by environment configuration.
+   */
+  deliverySink?: LoyaltyInviteDeliverySink
 }): Promise<LoyaltyInviteDrainResult> {
-  let config: { apiKey: string; from: string }
-  try {
-    config = readEmailOtpConfig()
-  } catch {
-    logger.warn("loyalty_invite_drain_unconfigured", {})
-    return {
-      drained: 0,
-      sent: 0,
-      retried: 0,
-      failed: 0,
-      skipped: "resend_unconfigured",
+  let deliverySink = options?.deliverySink
+  if (!deliverySink) {
+    try {
+      const config = readEmailOtpConfig()
+      deliverySink = (input) => sendOne(config, input)
+    } catch {
+      logger.warn("loyalty_invite_drain_unconfigured", {})
+      return {
+        drained: 0,
+        sent: 0,
+        retried: 0,
+        failed: 0,
+        skipped: "resend_unconfigured",
+      }
     }
   }
 
@@ -106,7 +127,9 @@ export async function runLoyaltyInviteDrain(options?: {
     const chunk = leased.slice(i, i + chunkSize)
     const startedAt = Date.now()
     const outcomes = await Promise.all(
-      chunk.map((recipient) => processRecipient(supabase, config, recipient))
+      chunk.map((recipient) =>
+        processRecipient(supabase, deliverySink, recipient)
+      )
     )
     for (const outcome of outcomes) {
       if (outcome === "sent") totals.sent += 1
@@ -125,7 +148,7 @@ export async function runLoyaltyInviteDrain(options?: {
 
 async function processRecipient(
   supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
-  config: { apiKey: string; from: string },
+  deliverySink: LoyaltyInviteDeliverySink,
   recipient: LeasedRecipient
 ): Promise<SendOutcome> {
   let to = ""
@@ -158,12 +181,11 @@ async function processRecipient(
     expiryDays: LOYALTY_INVITE_LINK_TTL_DAYS,
   })
 
-  const { status, providerId } = await sendOne(
-    config,
+  const { status, providerId } = await deliverySink({
     to,
     email,
-    inviteIdempotencyKey(recipient.recipient_id)
-  )
+    idempotencyKey: inviteIdempotencyKey(recipient.recipient_id),
+  })
 
   if (status !== null && status >= 200 && status < 300) {
     await settle(
@@ -196,9 +218,7 @@ async function processRecipient(
 
 async function sendOne(
   config: { apiKey: string; from: string },
-  to: string,
-  email: { subject: string; text: string; html: string },
-  idempotencyKey: string
+  { to, email, idempotencyKey }: Parameters<LoyaltyInviteDeliverySink>[0]
 ): Promise<{ status: number | null; providerId: string | null }> {
   try {
     const res = await fetch(RESEND_ENDPOINT, {
