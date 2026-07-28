@@ -74,11 +74,13 @@ async function resolveFraudFlagThroughUi(
   await expect(dismissForm).toHaveCount(1)
   await dismissForm.getByLabel("Reason").fill(fixture.fraudReviewReason)
   await dismissForm.getByRole("button", { name: "Dismiss" }).click()
-  await expect(
-    page.getByText("Flag dismissed. Logged to the audit trail.", {
+  const reviewComplete = page
+    .getByText("Review complete", {
       exact: true,
     })
-  ).toBeVisible()
+    .filter({ visible: true })
+  await expect(reviewComplete).toHaveCount(1)
+  await expect(reviewComplete).toBeVisible()
   await page.waitForLoadState("load")
 }
 

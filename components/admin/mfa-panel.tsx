@@ -18,8 +18,8 @@ const IDLE: AdminMfaFormState = { ok: false, error: null }
 /**
  * Admin security surface. When no factor is enrolled it walks the operator
  * through TOTP enrolment (enrol → scan → confirm); when a factor exists it shows
- * status and an opt-out. The layout only renders this page when MFA is NOT in a
- * step-up-required state, so enrolment and management are always reachable.
+ * status and factor rotation. Without a factor, the mandatory layout gate
+ * renders this panel before any admin content.
  */
 export function AdminMfaPanel({
   enrolled,

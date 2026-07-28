@@ -8,13 +8,11 @@ import {
   resolveAdminMfaState,
 } from "@/lib/admin/mfa-gate"
 
-test("an admin with no verified factor is allowed at aal1 (nothing to enforce)", () => {
+test("an admin with no verified factor must enrol before using the console", () => {
   // Supabase reports nextLevel 'aal1' when there is no verified factor.
-  assert.equal(resolveAdminMfaState("aal1", "aal1"), "no-factor")
-  assert.equal(resolveAdminMfaState(null, "aal1"), "no-factor")
-  assert.equal(resolveAdminMfaState(null, null), "no-factor")
-  assert.equal(isAdminMfaEnrolled("no-factor"), false)
-  assert.equal(adminMfaStepUpRequired("no-factor"), false)
+  assert.equal(resolveAdminMfaState("aal1", "aal1"), "enrollment-required")
+  assert.equal(isAdminMfaEnrolled("enrollment-required"), false)
+  assert.equal(adminMfaStepUpRequired("enrollment-required"), false)
 })
 
 test("an enrolled admin who has completed the challenge is satisfied", () => {
@@ -29,17 +27,19 @@ test("an enrolled admin still at aal1 must step up", () => {
   assert.equal(adminMfaStepUpRequired("step-up-required"), true)
 })
 
-test("enforcement keys off the verified factor (nextLevel), never the session alone", () => {
+test("unknown assurance state fails closed", () => {
   // The dangerous mistake would be to treat a bare aal1 session as protected.
   // Only nextLevel === 'aal2' proves a factor exists; without it we never gate.
-  assert.equal(resolveAdminMfaState("aal1", undefined), "no-factor")
-  // Defensive: an unexpected level string is treated as "no factor", failing
-  // OPEN (never locks an admin out) — the app-layer gate is not the DB moat.
-  assert.equal(resolveAdminMfaState("aal1", "aal3"), "no-factor")
+  assert.equal(resolveAdminMfaState("aal1", undefined), "unavailable")
+  assert.equal(resolveAdminMfaState(null, "aal1"), "unavailable")
+  assert.equal(resolveAdminMfaState(null, null), "unavailable")
+  assert.equal(resolveAdminMfaState("aal1", "aal3"), "unavailable")
+  assert.equal(isAdminMfaEnrolled("unavailable"), false)
 })
 
 test("MFA removal requires an already satisfied AAL2 session", () => {
   assert.equal(adminMfaUnenrollmentAllowed("satisfied"), true)
   assert.equal(adminMfaUnenrollmentAllowed("step-up-required"), false)
-  assert.equal(adminMfaUnenrollmentAllowed("no-factor"), false)
+  assert.equal(adminMfaUnenrollmentAllowed("enrollment-required"), false)
+  assert.equal(adminMfaUnenrollmentAllowed("unavailable"), false)
 })

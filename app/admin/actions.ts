@@ -285,9 +285,17 @@ export async function logDataRequestAction(
   // invitations (which still hold ciphertext, tokens and queue state) by that
   // HMAC, so it must run while the HMAC is still present.
   if (requestType === "deletion") {
-    await supabase.rpc("admin_erase_loyalty_invitations_for_customer", {
-      p_customer_id: customerId,
-    })
+    const { error: invitationErasureError } = await supabase.rpc(
+      "admin_erase_loyalty_invitations_for_customer",
+      {
+        p_customer_id: customerId,
+      }
+    )
+    if (invitationErasureError) {
+      return adminActionError(
+        "Deletion stopped before customer data was erased. Try again or review audit logs."
+      )
+    }
   }
 
   const { data, error } = await supabase.rpc("admin_log_data_request", {
@@ -312,10 +320,15 @@ export async function logDataRequestAction(
   // companion runs above, before the HMAC is erased.)
   let exportPayload: unknown = data
   if (requestType === "export" && data && typeof data === "object") {
-    const { data: invitations } = await supabase.rpc(
-      "loyalty_invitations_export_for_customer",
-      { p_customer_id: customerId }
-    )
+    const { data: invitations, error: invitationExportError } =
+      await supabase.rpc("loyalty_invitations_export_for_customer", {
+        p_customer_id: customerId,
+      })
+    if (invitationExportError) {
+      return adminActionError(
+        "Subject-access export failed before a complete download could be prepared. Try again or review audit logs."
+      )
+    }
     exportPayload = {
       ...(data as Record<string, unknown>),
       loyalty_invitations: invitations ?? [],

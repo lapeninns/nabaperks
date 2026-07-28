@@ -3,7 +3,7 @@ import { connection } from "next/server"
 
 import { AdminMfaPanel } from "@/components/admin/mfa-panel"
 import { Eyebrow } from "@/components/brand"
-import { requireAdminRead } from "@/lib/admin/auth"
+import { getAdminAccess } from "@/lib/admin/auth"
 import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
@@ -11,18 +11,15 @@ export const metadata: Metadata = PRIVATE_ROUTE_METADATA
 
 export default async function AdminSecurityPage() {
   await connection()
-  // requireAdminRead never step-up-gates (reads stay open); the layout has
-  // already rendered the step-up card if a challenge were pending, so this page
-  // is only reached in the no-factor or satisfied state.
-  const access = await requireAdminRead()
-  const enrolled = access.mfaState !== "no-factor"
+  const access = await getAdminAccess()
+  if (access.status !== "allowed" || access.mfaState !== "satisfied") {
+    return null
+  }
 
   let factorId: string | null = null
-  if (enrolled) {
-    const supabase = await createSupabaseServerClient()
-    const { data } = await supabase.auth.mfa.listFactors()
-    factorId = data?.totp?.[0]?.id ?? null
-  }
+  const supabase = await createSupabaseServerClient()
+  const { data } = await supabase.auth.mfa.listFactors()
+  factorId = data?.totp?.[0]?.id ?? null
 
   return (
     <div className="space-y-6">
@@ -32,7 +29,7 @@ export default async function AdminSecurityPage() {
           Two-factor authentication
         </h1>
       </header>
-      <AdminMfaPanel enrolled={enrolled} factorId={factorId} />
+      <AdminMfaPanel enrolled factorId={factorId} />
     </div>
   )
 }

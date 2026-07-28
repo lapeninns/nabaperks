@@ -22,27 +22,61 @@ function assertBefore(source, earlier, later) {
   assert.ok(earlierIndex < laterIndex, `${earlier} appears before ${later}`)
 }
 
-test("Given admin RPCs and RLS policies share the internal-admin helper When SQL is inspected Then the DB gate is active-row only without AAL2 and MFA is enforced at the app layer", () => {
+test("Given admin RPCs and RLS policies share the internal-admin helper When SQL is inspected Then the final DB gate requires AAL2", () => {
   const migration = readProjectFile(
     "supabase",
     "migrations",
-    "20260720100000_remove_admin_aal2_requirement.sql"
+    "20260728100000_require_admin_aal2.sql"
   )
   const adminAuth = readProjectFile("lib", "admin", "auth.ts")
 
-  // The DB helper MUST stay active-row-only. A DB-level AAL2 requirement
-  // (20260702180000, reverted here) locked out every admin because password
-  // sign-in is aal1 with no in-app way to reach aal2.
   assert.match(
     migration,
     /create or replace function public\.is_internal_admin\(\)/
   )
-  assert.doesNotMatch(migration, /=\s*'aal2'/)
+  assert.match(migration, /=\s*'aal2'/)
+  assert.match(
+    migration,
+    /grant execute on function public\.is_internal_admin\(\) to authenticated, service_role/
+  )
   assert.match(migration, /notify pgrst, 'reload schema'/)
 
-  // MFA is reinstated at the APP layer only (enforce-only-when-enrolled), so a
-  // gate bug fails open instead of locking admins out of the console.
-  assert.match(adminAuth, /getAuthenticatorAssuranceLevel|resolveAdminMfaState/)
+  assert.match(adminAuth, /mfaState\s*=\s*"unavailable"/)
+  assert.match(adminAuth, /access\.mfaState\s*!==\s*"satisfied"/)
+})
+
+test("Given the customer export RPC When later customer tables are added Then coverage expands without changing its signature or exporting secrets", () => {
+  const migration = readProjectFile(
+    "supabase",
+    "migrations",
+    "20260728101000_expand_customer_export_coverage.sql"
+  )
+
+  assert.match(
+    migration,
+    /create function public\.admin_export_customer_data\(\s*p_customer_id uuid,\s*p_merchant_id uuid,\s*p_channel text,\s*p_notes text/
+  )
+  for (const key of [
+    "notification_preferences",
+    "customer_sessions",
+    "loyalty_terms_acceptances",
+    "push_subscriptions",
+    "notification_deliveries",
+    "referrals",
+  ]) {
+    assert.match(migration, new RegExp(`'${key}'`))
+  }
+  assert.match(
+    migration,
+    /grant execute on function public\.admin_export_customer_data\(uuid, uuid, text, text\)[\s\S]*to authenticated, service_role/
+  )
+  assert.match(
+    migration,
+    /revoke all on function public\.admin_export_customer_data_base_v1\(uuid, uuid, text, text\)[\s\S]*from public, anon, authenticated, service_role/
+  )
+  assert.doesNotMatch(migration, /^\s+(endpoint|p256dh|auth),$/m)
+  assert.doesNotMatch(migration, /^\s+referral_code_used,$/m)
+  assert.doesNotMatch(migration, /^\s+(referrer|referred)_customer_id,$/m)
 })
 
 test("Given customer OTP send flows When actions are inspected Then send limits include a phone-only bucket before provider dispatch", () => {
