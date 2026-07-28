@@ -158,8 +158,9 @@ credentials. Add these secrets:
 
 Add `STAGING_APP_ALIAS`, `STAGING_SUPABASE_PROJECT_REF`,
 `STAGING_VERCEL_ORG_ID` and `STAGING_VERCEL_PROJECT_ID` as environment
-variables. The alias must be an isolated `*.vercel.app` hostname and must not be
-a production domain. In Vercel, create a custom environment whose slug is
+variables. The alias must be an isolated `*.vercel.app` hostname or the
+configured custom candidate hostname, `candidate.nabaperks.com`; it must never
+be a production domain. In Vercel, create a custom environment whose slug is
 exactly `staging`, enable system environment variables and Vercel
 Authentication, generate a dedicated Protection Bypass for Automation secret,
 and configure its application variables with staging-only Supabase, Stripe,
