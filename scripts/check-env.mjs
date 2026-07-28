@@ -15,6 +15,7 @@ const envContract = JSON.parse(
 )
 const productionRequiredEnvNames = new Set([
   "CRON_SECRET",
+  "MERCHANT_OTP_ALIAS_TOKEN_ENCRYPTION_KEY",
   "PRODUCTION_MONITOR_SECRET",
   "RESEND_FROM",
   "SUPABASE_SEND_EMAIL_HOOK_SECRET",

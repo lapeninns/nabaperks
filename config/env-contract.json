@@ -255,7 +255,21 @@
     "name": "MERCHANT_OTP_ALIAS_TOKEN_ENCRYPTION_KEY",
     "visibility": "server",
     "kind": "string",
-    "description": "High-entropy key material used to derive AES-GCM keys for merchant email OTP alias tokens at rest (auth otp alias token encryption). Optional at the env level so the app boots without it; alias CREATION fails closed at call time in lib/security/otp-alias-token-core.ts, so set it before deploying the encryption change or merchant email-code login cannot mint new codes.",
+    "description": "High-entropy key material used to derive AES-GCM keys for merchant email OTP alias tokens at rest (auth otp alias token encryption). Optional for local boot and required by the production release profile; alias creation also fails closed at call time in lib/security/otp-alias-token-core.ts.",
+    "optional": true
+  },
+  {
+    "name": "VENUE_GEOCODING_ENDPOINT",
+    "visibility": "server",
+    "kind": "url",
+    "description": "Optional Nominatim-compatible geocoding search endpoint. Manual venue entry remains available without it.",
+    "optional": true
+  },
+  {
+    "name": "VENUE_GEOCODING_CONTACT",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Operator contact email or HTTPS URL sent in the venue geocoder User-Agent. Required at runtime before the optional geocoding endpoint is called.",
     "optional": true
   },
   {

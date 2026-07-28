@@ -12,6 +12,10 @@ const MIGRATION_PATH = join(
   process.cwd(),
   "supabase/migrations/20260710100000_atomic_merchant_onboarding.sql"
 )
+const UNRESOLVED_MIGRATION_PATH = join(
+  process.cwd(),
+  "supabase/migrations/20260728180000_allow_unresolved_manual_onboarding_location.sql"
+)
 const LOCAL_DB_HOSTS = new Set(["127.0.0.1", "localhost"])
 const localDbUrl = resolveLocalDbUrl()
 const skip = localDbUrl
@@ -202,6 +206,105 @@ test(
 
       const state = await readOnboardingState(tx, fixture)
       assertCompleteState(state, fixture, result)
+    })
+  }
+)
+
+test(
+  "manual onboarding completes with an explicit unresolved location when geocoding is unavailable",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      await applyUnresolvedMigration(tx)
+      const [acl] = await tx`
+        select
+          has_function_privilege(
+            'authenticated',
+            'public.complete_merchant_onboarding(text,text,text,text,text,text,text,text,text,text,text,double precision,double precision,integer,boolean,integer,text)',
+            'execute'
+          ) as authenticated_can_execute,
+          has_function_privilege(
+            'service_role',
+            'public.complete_merchant_onboarding(text,text,text,text,text,text,text,text,text,text,text,double precision,double precision,integer,boolean,integer,text)',
+            'execute'
+          ) as service_role_can_execute,
+          has_function_privilege(
+            'anon',
+            'public.complete_merchant_onboarding(text,text,text,text,text,text,text,text,text,text,text,double precision,double precision,integer,boolean,integer,text)',
+            'execute'
+          ) as anon_can_execute,
+          has_function_privilege(
+            'authenticated',
+            'public.complete_merchant_onboarding_resolved(text,text,text,text,text,text,text,text,text,text,text,double precision,double precision,integer,boolean,integer,text)',
+            'execute'
+          ) as authenticated_can_execute_helper`
+      assert.equal(acl.authenticated_can_execute, true)
+      assert.equal(acl.service_role_can_execute, true)
+      assert.equal(acl.anon_can_execute, false)
+      assert.equal(acl.authenticated_can_execute_helper, false)
+
+      const fixture = {
+        ...onboardingFixture("unresolved"),
+        latitude: null,
+        longitude: null,
+        requireGeofence: false,
+        geofencePinSource: "unresolved",
+      }
+      await insertAuthUser(tx, fixture)
+
+      const result = await asAuthenticated(tx, fixture.ownerUserId, (sp) =>
+        completeOnboarding(sp, fixture)
+      )
+
+      assert.equal(result.completed_now, true)
+      const state = await readOnboardingState(tx, fixture)
+      assertCompleteState(state, fixture, result)
+      assert.equal(state.location?.geocoded_at, null)
+      assert.equal(state.location?.geofence_pin_updated_at, null)
+
+      const staleRetry = {
+        ...changedOnboardingFixture(fixture),
+        geofencePinSource: "geocoded",
+      }
+      const retry = await asAuthenticated(tx, fixture.ownerUserId, (sp) =>
+        completeOnboarding(sp, staleRetry)
+      )
+      assert.equal(retry.completed_now, false)
+      assertCompleteState(await readOnboardingState(tx, fixture), fixture, result)
+    })
+  }
+)
+
+test(
+  "unresolved coordinates fail closed when onboarding enables geofence checks",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      await applyUnresolvedMigration(tx)
+      const fixture = {
+        ...onboardingFixture("unresolved-geofence"),
+        latitude: null,
+        longitude: null,
+        requireGeofence: true,
+        geofencePinSource: "unresolved",
+      }
+      await insertAuthUser(tx, fixture)
+
+      const failure = await captureFailure(() =>
+        asAuthenticated(tx, fixture.ownerUserId, (sp) =>
+          completeOnboarding(sp, fixture)
+        )
+      )
+
+      assert.match(
+        failure,
+        /unresolved coordinates require manual address mode with geofence disabled/i
+      )
+      const state = await readOnboardingState(tx, fixture)
+      assert.equal(state.merchantCount, 0)
+      assert.equal(state.locationCount, 0)
+      assert.equal(state.productEventCount, 0)
+      assert.equal(state.auditCount, 0)
     })
   }
 )
@@ -774,6 +877,14 @@ async function completeOnboarding(sql, fixture) {
   return row
 }
 
+async function applyUnresolvedMigration(sql) {
+  assert.ok(
+    existsSync(UNRESOLVED_MIGRATION_PATH),
+    "unresolved-location migration must exist"
+  )
+  await sql.unsafe(readFileSync(UNRESOLVED_MIGRATION_PATH, "utf8"))
+}
+
 async function createLegacyOnboarding(sql, fixture) {
   const [row] = await sql`
     select
@@ -976,8 +1087,13 @@ function assertCompleteState(state, fixture, result) {
       is_primary: true,
     }
   )
-  assert.ok(state.location?.geocoded_at)
-  assert.ok(state.location?.geofence_pin_updated_at)
+  if (fixture.geofencePinSource === "unresolved") {
+    assert.equal(state.location?.geocoded_at, null)
+    assert.equal(state.location?.geofence_pin_updated_at, null)
+  } else {
+    assert.ok(state.location?.geocoded_at)
+    assert.ok(state.location?.geofence_pin_updated_at)
+  }
   assert.equal(state.productEventCount, 1)
   assert.equal(state.auditCount, 1)
 }

@@ -90,7 +90,7 @@ export function VenueLocationForm({
       : null
   const [pin, setPin] = useState(savedCoordinates)
   const [pendingPinSource, setPendingPinSource] = useState<GeofencePinSource>(
-    pinSource ?? "geocoded"
+    pinSource ?? (savedCoordinates ? "geocoded" : "unresolved")
   )
 
   const hasGeocode = geocoded?.latitude != null && geocoded?.longitude != null
@@ -99,10 +99,11 @@ export function VenueLocationForm({
     Number.isFinite(parsedRadius) && parsedRadius > 0 ? parsedRadius : 100
 
   // A manual address edit can no longer be trusted as a provider selection, so
-  // drop provider provenance and reset the pin source back to geocoded.
+  // drop provider provenance and mark coordinates unresolved until the server
+  // geocodes the edited address or the merchant places the pin.
   function handleAddressEdit() {
     setProvenance(MANUAL_VENUE_PROVENANCE)
-    setPendingPinSource("geocoded")
+    setPendingPinSource("unresolved")
   }
 
   function handleFieldChange(

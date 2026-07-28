@@ -1,6 +1,9 @@
 import "server-only"
 
-import { geocodeAddress } from "@/lib/merchant/geocode"
+import {
+  geocodeAddress,
+  type GeocodeResult,
+} from "@/lib/merchant/geocode"
 import {
   formatVenueAddressDisplay,
   formatVenueAddressForGeocode,
@@ -9,16 +12,12 @@ import {
   type VenueAddressPayload,
 } from "@/lib/merchant/venue-address"
 
-const GEOCODE_ERROR =
-  "We could not geocode this address. Check it and try again."
-
 export async function resolveStructuredVenueAddress(
-  fields: VenueAddressFormFields
-): Promise<{ payload: VenueAddressPayload } | { error: string }> {
+  fields: VenueAddressFormFields,
+  geocoder: (address: string) => Promise<GeocodeResult | null> = geocodeAddress
+): Promise<{ payload: VenueAddressPayload }> {
   const structured = toStructuredVenueAddress(fields)
-  const geocoded = await geocodeAddress(formatVenueAddressForGeocode(structured))
-
-  if (!geocoded) return { error: GEOCODE_ERROR }
+  const geocoded = await geocoder(formatVenueAddressForGeocode(structured))
 
   return {
     payload: {
@@ -31,8 +30,8 @@ export async function resolveStructuredVenueAddress(
       address_provider: null,
       address_provider_id: null,
       address_source: "manual_entry",
-      latitude: geocoded.latitude,
-      longitude: geocoded.longitude,
+      latitude: geocoded?.latitude ?? null,
+      longitude: geocoded?.longitude ?? null,
     },
   }
 }

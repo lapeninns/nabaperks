@@ -29,20 +29,22 @@ type VenueAddressCanonicalFields = {
   address_city: string
   address_postcode: string
   address_country: string
-  latitude: number
-  longitude: number
 }
 
 export type ManualVenueAddressPayload = VenueAddressCanonicalFields & {
   address_provider: null
   address_provider_id: null
   address_source: "manual_entry"
+  latitude: number | null
+  longitude: number | null
 }
 
 export type ProviderVenueAddressPayload = VenueAddressCanonicalFields & {
   address_provider: "google_places"
   address_provider_id: string
   address_source: "provider_lookup"
+  latitude: number
+  longitude: number
 }
 
 export type VenueAddressPayload =
@@ -95,7 +97,7 @@ export function parseVenueAddressFields(
   }
 }
 
-export type GeofencePinSource = "geocoded" | "merchant_pin"
+export type GeofencePinSource = "geocoded" | "merchant_pin" | "unresolved"
 
 /**
  * Parse a submitted manual geofence pin. Valid for this slice only when both

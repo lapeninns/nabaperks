@@ -186,6 +186,7 @@ test("production env check requires provider release secrets without forcing opt
 
   for (const key of [
     "CRON_SECRET",
+    "MERCHANT_OTP_ALIAS_TOKEN_ENCRYPTION_KEY",
     "RESEND_FROM",
     "SUPABASE_SEND_EMAIL_HOOK_SECRET",
     "WEB_PUSH_VAPID_PRIVATE_KEY",
@@ -285,6 +286,18 @@ test("production env validation executes with analytics off and fails closed for
 
     const disabled = runProductionEnvCheck(projectDir, baseValues)
     assert.equal(disabled.status, 0, disabled.stderr)
+
+    const missingMerchantOtpKey = { ...baseValues }
+    delete missingMerchantOtpKey.MERCHANT_OTP_ALIAS_TOKEN_ENCRYPTION_KEY
+    const merchantOtpFailure = runProductionEnvCheck(
+      projectDir,
+      missingMerchantOtpKey
+    )
+    assert.equal(merchantOtpFailure.status, 1)
+    assert.match(
+      merchantOtpFailure.stderr,
+      /MERCHANT_OTP_ALIAS_TOKEN_ENCRYPTION_KEY/
+    )
 
     const nonExact = runProductionEnvCheck(projectDir, {
       ...baseValues,

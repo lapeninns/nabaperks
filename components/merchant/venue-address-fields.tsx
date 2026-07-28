@@ -104,7 +104,14 @@ export function VenueAddressFields({
       ) : null}
       <p className={cn("text-xs leading-5 text-muted-foreground", fullSpan)}>
         UK venues only. We use these details to place your venue on the map for
-        optional GPS stamp checks.
+        optional GPS stamp checks. Manual address coordinates use{" "}
+        <a
+          href="https://www.openstreetmap.org/copyright"
+          className="underline underline-offset-2"
+        >
+          OpenStreetMap contributors
+        </a>
+        .
       </p>
     </fieldset>
   )
