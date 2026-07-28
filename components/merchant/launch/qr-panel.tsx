@@ -7,7 +7,7 @@ import { QrErrorBanner } from "@/components/merchant/launch/qr-error-banner"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { QrPanelLive } from "@/components/merchant/launch/qr-panel-live"
 import { Button } from "@/components/ui/button"
-import { getServerEnv } from "@/lib/env/server"
+import { getCanonicalAppOrigin } from "@/lib/env/app-origin"
 import { LAUNCH_MIN_ACTIVE_REWARDS } from "@/lib/merchant/launch-readiness-contract"
 import type { LaunchReadiness } from "@/lib/merchant/launch-readiness"
 import { isLaunchReadinessBillingReady } from "@/lib/merchant/launch-readiness-core"
@@ -139,8 +139,7 @@ export async function QrPanel({
     )
   }
 
-  const env = getServerEnv()
-  const shareUrl = `${env.NEXT_PUBLIC_APP_URL}/q/${qrCode.qr_id}`
+  const shareUrl = `${getCanonicalAppOrigin()}/q/${qrCode.qr_id}`
 
   return (
     <div className="grid min-w-0 gap-3 sm:gap-5">

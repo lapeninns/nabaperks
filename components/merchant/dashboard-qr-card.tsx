@@ -9,7 +9,7 @@ import {
   PresentQrTrigger,
 } from "@/components/merchant/present-qr"
 import { Button } from "@/components/ui/button"
-import { getServerEnv } from "@/lib/env/server"
+import { getCanonicalAppOrigin } from "@/lib/env/app-origin"
 import {
   buildLaunchReadiness,
   getLaunchBillingReadiness,
@@ -34,8 +34,7 @@ export async function DashboardQrCard() {
     return <DashboardQrSetupPrompt />
   }
 
-  const env = getServerEnv()
-  const shareUrl = `${env.NEXT_PUBLIC_APP_URL}/q/${qrCode.qr_id}`
+  const shareUrl = `${getCanonicalAppOrigin()}/q/${qrCode.qr_id}`
   const billing = merchant
     ? await getLaunchBillingReadiness(
         merchant.id,
@@ -153,7 +152,7 @@ export function DashboardQrCardView({
         label={`Venue QR for ${venueName}`}
         className="w-[9.25rem] shadow-[5px_5px_0_var(--w-shadow-color)]"
       >
-        <div className="grid aspect-square size-[7.25rem] place-items-center rounded-md border-2 border-dashed border-ink/25 bg-paper-deep/65 p-3 text-center mono-id tracking-[0.08em] leading-4 text-muted-foreground">
+        <div className="mono-id grid aspect-square size-[7.25rem] place-items-center rounded-md border-2 border-dashed border-ink/25 bg-paper-deep/65 p-3 text-center leading-4 tracking-[0.08em] text-muted-foreground">
           {unavailableCopy.label}
         </div>
       </QrFrame>

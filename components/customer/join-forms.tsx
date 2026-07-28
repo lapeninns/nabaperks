@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useActionState, useEffect, useRef } from "react"
+import { useActionState, useEffect, useRef, useState } from "react"
 
 import {
   joinRewardsAction,
@@ -146,12 +146,16 @@ export function CustomerJoinForm({
     joinInitialState
   )
   const loyaltyTermsRef = useRef<HTMLInputElement>(null)
+  const [loyaltyTermsAccepted, setLoyaltyTermsAccepted] = useState(false)
+  const loyaltyTermsError = loyaltyTermsAccepted
+    ? undefined
+    : state.errors?.loyaltyTerms
 
   useEffect(() => {
-    if (!state.errors?.loyaltyTerms) return
+    if (!loyaltyTermsError) return
     loyaltyTermsRef.current?.focus({ preventScroll: true })
     loyaltyTermsRef.current?.scrollIntoView({ block: "center" })
-  }, [state.errors?.loyaltyTerms])
+  }, [loyaltyTermsError])
 
   return (
     <form action={action} className="grid gap-4">
@@ -168,10 +172,14 @@ export function CustomerJoinForm({
             ref={loyaltyTermsRef}
             name="loyaltyTerms"
             type="checkbox"
+            checked={loyaltyTermsAccepted}
+            onChange={(event) =>
+              setLoyaltyTermsAccepted(event.currentTarget.checked)
+            }
             className="mt-0.5 size-5 shrink-0 accent-primary"
-            aria-invalid={Boolean(state.errors?.loyaltyTerms)}
+            aria-invalid={Boolean(loyaltyTermsError)}
             aria-describedby={
-              state.errors?.loyaltyTerms ? "loyalty-terms-error" : undefined
+              loyaltyTermsError ? "loyalty-terms-error" : undefined
             }
           />
           <span className="grid gap-1">
@@ -205,11 +213,11 @@ export function CustomerJoinForm({
           </span>
         </label>
       </fieldset>
-      {state.errors?.loyaltyTerms ? (
+      {loyaltyTermsError ? (
         // Linked from the checkbox via aria-describedby, matching the phone
         // field's pattern (CUS-P3-02).
         <p id="loyalty-terms-error" className="text-sm text-destructive">
-          {state.errors.loyaltyTerms}
+          {loyaltyTermsError}
         </p>
       ) : null}
       {state.errors?.form ? (

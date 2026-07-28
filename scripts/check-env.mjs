@@ -84,6 +84,8 @@ const hostedVercelEnvironment = ["preview", "production"].includes(
 )
 const hostedOrProductionProfile =
   checkProfile === "production" || hostedVercelEnvironment
+const customStagingEnvironment =
+  values.VERCEL_TARGET_ENV?.trim().toLowerCase() === "staging"
 const twilioVerifyEnvNames = new Set([
   "TWILIO_ACCOUNT_SID",
   "TWILIO_VERIFY_SERVICE_SID",
@@ -95,13 +97,21 @@ for (const entry of envContract) {
   const value = values[entry.name]?.trim()
   const requiredByProfile =
     checkProfile === "production" && productionRequiredEnvNames.has(entry.name)
+  const requiredByCanonicalOrigin =
+    entry.name === "NEXT_PUBLIC_APP_URL" &&
+    (checkProfile === "production" ||
+      values.VERCEL_ENV?.trim() === "production" ||
+      customStagingEnvironment)
   const requiredByAnalytics =
     pseudonymousAnalyticsEnabled &&
     pseudonymousAnalyticsRequiredEnvNames.has(entry.name)
 
   if (!value) {
     if (
-      (!requiredByProfile && !requiredByAnalytics && entry.optional) ||
+      (!requiredByProfile &&
+        !requiredByAnalytics &&
+        !requiredByCanonicalOrigin &&
+        entry.optional) ||
       (customerOtpTwilioBypassed && twilioVerifyEnvNames.has(entry.name))
     ) {
       continue
@@ -151,8 +161,21 @@ if (pseudonymousAnalyticsEnabled) {
   }
 }
 
-if (hostedOrProductionProfile) {
+if (hostedOrProductionProfile || customStagingEnvironment) {
   const supabaseUrl = values.NEXT_PUBLIC_SUPABASE_URL?.trim()
+  const appUrl = values.NEXT_PUBLIC_APP_URL?.trim()
+
+  if (
+    appUrl &&
+    (checkProfile === "production" ||
+      values.VERCEL_ENV?.trim() === "production" ||
+      customStagingEnvironment) &&
+    !isCanonicalHttpsOrigin(appUrl)
+  ) {
+    invalid.push(
+      "NEXT_PUBLIC_APP_URL must be a canonical HTTPS origin for Production or custom Staging"
+    )
+  }
 
   if (supabaseUrl && !isSafeSupabaseProjectOrigin(supabaseUrl)) {
     invalid.push(
@@ -315,6 +338,22 @@ function isSafePostHogHost(value) {
       (url.hostname === "localhost" || url.hostname === "127.0.0.1")
     return (
       (url.protocol === "https:" || localHttp) &&
+      !url.username &&
+      !url.password &&
+      url.pathname === "/" &&
+      !url.search &&
+      !url.hash
+    )
+  } catch {
+    return false
+  }
+}
+
+function isCanonicalHttpsOrigin(value) {
+  try {
+    const url = new URL(value)
+    return (
+      url.protocol === "https:" &&
       !url.username &&
       !url.password &&
       url.pathname === "/" &&

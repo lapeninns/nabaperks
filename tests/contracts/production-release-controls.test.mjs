@@ -38,6 +38,35 @@ test("Given an explicit default profile When Vercel reports production Then expl
   assert.match(result.stdout, /environment configuration is valid/)
 })
 
+test("Given generic Preview When no static app URL is configured Then environment validation succeeds", () => {
+  const result = runEnvCheck({
+    args: ["--profile=default"],
+    environment: {
+      NEXT_PUBLIC_APP_URL: "",
+      VERCEL_TARGET_ENV: "preview",
+      VERCEL_URL: "nabaperks-git-fix-123-lapeninns.vercel.app",
+    },
+    vercelEnv: "preview",
+  })
+
+  assert.equal(result.status, 0, result.stderr)
+})
+
+test("Given custom Staging When no explicit app URL is configured Then environment validation fails", () => {
+  const result = runEnvCheck({
+    args: ["--profile=default"],
+    environment: {
+      NEXT_PUBLIC_APP_URL: "",
+      VERCEL_TARGET_ENV: "staging",
+      VERCEL_URL: "nabaperks-random-deployment.vercel.app",
+    },
+    vercelEnv: "preview",
+  })
+
+  assert.equal(result.status, 1)
+  assert.match(result.stderr, /NEXT_PUBLIC_APP_URL/)
+})
+
 test("Given a complete production configuration When generated credentials are supplied Then the environment succeeds", () => {
   const result = runEnvCheck({
     args: ["--profile=production"],
@@ -503,6 +532,9 @@ function baseEnvironmentFile() {
     .filter((entry) => !entry.optional)
     .map((entry) => `${entry.name}=${serializeEnvValue(testValue(entry))}`)
 
+  values.push(
+    `NEXT_PUBLIC_APP_URL=${serializeEnvValue("https://example.test")}`
+  )
   values.push(`TWILIO_AUTH_TOKEN=${serializeEnvValue("test-auth-token")}`)
   return `${values.join("\n")}\n`
 }

@@ -23,9 +23,10 @@ import { destinationForReturningQrVisit } from "@/lib/customer/returning-qr-redi
 import { defaultCountryFromHeaders, normalizePhone } from "@/lib/customer/phone"
 import {
   clearPendingPhoneVerification,
+  commitPendingPhoneVerification,
   getPendingPhoneVerification,
+  preparePendingPhoneVerification,
   setCustomerSession,
-  setPendingPhoneVerification,
 } from "@/lib/customer/session"
 import {
   checkCustomerPhoneVerification,
@@ -160,22 +161,13 @@ export async function requestCustomerIdentityAction(
     throw error
   }
 
-  const verification = await startCustomerPhoneVerification(contact)
-  if (verification.status === "unavailable") {
-    return {
-      fields: requestFields,
-      errors: {
-        form: "We couldn't send a code just now. Try again shortly.",
-      },
-    }
-  }
-
   try {
-    await setPendingPhoneVerification({
+    const preparedVerification = await preparePendingPhoneVerification({
       purpose: "join",
       phone: contact,
       country: normalized.phone.country,
     })
+    commitPendingPhoneVerification(preparedVerification)
   } catch (error) {
     if (!(error instanceof Error)) {
       throw error
@@ -186,6 +178,16 @@ export async function requestCustomerIdentityAction(
       fields: requestFields,
       errors: {
         form: "Verification code could not be sent. Try again shortly.",
+      },
+    }
+  }
+
+  const verification = await startCustomerPhoneVerification(contact)
+  if (verification.status === "unavailable") {
+    return {
+      fields: requestFields,
+      errors: {
+        form: "We couldn't send a code just now. Try again shortly.",
       },
     }
   }

@@ -156,7 +156,7 @@ test("Given the merchant QR image route is hit When the owned context is absent 
   )
   assert.match(
     imageRoute,
-    /const shareUrl = `\$\{env\.NEXT_PUBLIC_APP_URL\}\/q\/\$\{qrContext\.qrCode\.qr_id\}`/
+    /const shareUrl = `\$\{getCanonicalAppOrigin\(\)\}\/q\/\$\{qrContext\.qrCode\.qr_id\}`/
   )
   assert.match(imageRoute, /renderQrCodePng\(\s*shareUrl,\s*parseQrImageWidth/)
   assert.match(imageRoute, /"Content-Type": "image\/png"/)
@@ -166,7 +166,7 @@ test("Given the merchant QR image route is hit When the owned context is absent 
   )
   assert.ok(
     imageRoute.indexOf("getOwnedQrImageContext(qrCodeId)") <
-      imageRoute.indexOf("const env = getServerEnv()"),
+      imageRoute.indexOf("const shareUrl ="),
     "route must prove ownership before deriving the public QR URL"
   )
   const ownedRenderPath = imageRoute.slice(

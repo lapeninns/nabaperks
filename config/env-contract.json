@@ -3,7 +3,8 @@
     "name": "NEXT_PUBLIC_APP_URL",
     "visibility": "public",
     "kind": "url",
-    "description": "Canonical app origin for links, QR redirects, Stripe return URLs, and local development."
+    "description": "Explicit canonical app origin for Production, custom Staging, and local development. Generic Vercel Preview deployments derive their immutable origin from VERCEL_URL.",
+    "optional": true
   },
   {
     "name": "NEXT_PUBLIC_SUPABASE_URL",

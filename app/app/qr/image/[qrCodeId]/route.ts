@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 
-import { getServerEnv } from "@/lib/env/server"
+import { getCanonicalAppOrigin } from "@/lib/env/app-origin"
 import { getOwnedQrImageContext } from "@/lib/merchant/qr-code"
 import { renderQrCodePng } from "@/lib/qr/assets"
 
@@ -35,8 +35,7 @@ export async function GET(request: Request, context: QrImageRouteContext) {
     return new NextResponse("QR code not found", { status: 404 })
   }
 
-  const env = getServerEnv()
-  const shareUrl = `${env.NEXT_PUBLIC_APP_URL}/q/${qrContext.qrCode.qr_id}`
+  const shareUrl = `${getCanonicalAppOrigin()}/q/${qrContext.qrCode.qr_id}`
   const png = await renderQrCodePng(
     shareUrl,
     parseQrImageWidth(new URL(request.url).searchParams.get("w"))
