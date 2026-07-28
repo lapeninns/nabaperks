@@ -81,7 +81,7 @@ The current approved facts define one public plan:
 - **Trial:** 30 days.
 - **Payment requirement:** A card is required at checkout.
 - **Cancellation:** Self-service through the Stripe customer portal; cancellation takes effect at the end of the current subscription period.
-- **Contract framing:** Cancel anytime, with no separate notice period represented in the current product copy.
+- **Contract framing:** Renewal can be cancelled from billing; cancellation takes effect at the end of the provider-recorded current subscription period, whether monthly or annual.
 
 The annual option is intentionally fail-closed: the UI should not offer it when `STRIPE_GROWTH_ANNUAL_PRICE_ID` is absent. Stripe webhook-derived database state, not a checkout return query parameter, determines whether loyalty is active.
 

@@ -28,7 +28,7 @@ test.describe("merchant billing recovery desktop", () => {
     await expect(page.getByText("£49 a month", { exact: true })).toBeVisible()
     await expect(
       page.getByText(
-        "Secure checkout via Stripe. Cancel anytime from your billing page."
+        "Secure checkout via Stripe. Cancel renewal from your billing page."
       )
     ).toBeVisible()
     await expect(page.getByText("First-Regular Guarantee:")).toBeVisible()

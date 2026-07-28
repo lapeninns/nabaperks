@@ -91,6 +91,9 @@ test("Given the finalised offer pack When facts.ts is inspected Then the locked 
   assert.match(facts, /price: "£49\/month"/)
   assert.match(facts, /priceAnnual: "£490\/year"/)
   assert.match(facts, /pilot: "30-day free pilot"/)
+  assert.match(facts, /cancelChip: "Cancel renewal"/)
+  assert.match(facts, /current annual billing period ends/)
+  assert.doesNotMatch(facts, /cancel anytime/i)
 
   // Guarantee stack: First-Regular plus the 90-Day ROI Extension.
   assert.match(facts, /export const GUARANTEE = \{/)
@@ -102,6 +105,26 @@ test("Given the finalised offer pack When facts.ts is inspected Then the locked 
     "ROI extension headline must match the guarantee doc"
   )
   assert.match(facts, /We do not guarantee midweek revenue or filled tables\./)
+
+  const pricing = readProjectFile("app", "pricing", "page.tsx")
+  assert.match(pricing, /PRODUCT\.cancelAnnualLine/)
+  assert.doesNotMatch(pricing, /switch plans from billing/i)
+  for (const file of marketingSourceFiles()) {
+    const source = readFileSync(path.join(projectRoot, file), "utf8")
+    assert.doesNotMatch(
+      source,
+      /cancel anytime|switch plans from billing/i,
+      `${file} must describe provider-recorded period-end cancellation`
+    )
+  }
+
+  const merchantTerms = readProjectFile("lib", "legal", "content.ts")
+  assert.match(merchantTerms, /GUARANTEE\.conditions/)
+  assert.match(merchantTerms, /title: GUARANTEE_ROI\.name/)
+  assert.match(merchantTerms, /GUARANTEE_ROI\.line/)
+  assert.match(merchantTerms, /GUARANTEE_ROI\.mechanic/)
+  assert.match(merchantTerms, /GUARANTEE_ROI\.conditions/)
+  assert.match(merchantTerms, /GUARANTEE_ROI\.claim/)
 
   // Honest scarcity: the real 5-a-week human cap.
   assert.match(facts, /export const SCARCITY = \{/)
@@ -458,4 +481,31 @@ test("Given the research depth moved off the landing When how-it-works is inspec
   // The FAQPage node has to live somewhere — it cannot be lost in transit.
   assert.match(howItWorks, /faqPageSchema\(/)
   assert.match(howItWorks, /FAQ_ITEMS/)
+})
+
+test("Given a fresh production build When JSON-LD is checked Then canonical and visible rich-result parity cover every public schema family", () => {
+  const jsonLdCheck = readProjectFile("scripts", "check-jsonld.mjs")
+
+  assert.match(jsonLdCheck, /extractVisibleText/)
+  assert.match(jsonLdCheck, /checkCanonicalGraph/)
+  assert.match(jsonLdCheck, /checkBreadcrumb/)
+  assert.match(jsonLdCheck, /checkFaqParity/)
+  assert.match(jsonLdCheck, /checkProductOffers/)
+  assert.match(jsonLdCheck, /checkHowToParity/)
+  assert.match(jsonLdCheck, /checkArticle/)
+  assert.match(jsonLdCheck, /Promise\.all/)
+
+  for (const path of [
+    '"/pricing"',
+    '"/loyalty-for-pubs"',
+    '"/guides/reward-regulars-without-an-app"',
+    '"/guides/best-loyalty-ideas-for-pubs"',
+    '"/guides/paper-vs-qr-loyalty-for-pubs"',
+  ]) {
+    assert.match(
+      jsonLdCheck,
+      new RegExp(path.replaceAll("/", "\\/")),
+      `${path} must stay in the production JSON-LD guard`
+    )
+  }
 })

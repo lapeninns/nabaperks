@@ -149,3 +149,21 @@ test("Given public routes feed SEO and AI discovery When the registry is inspect
   )
   assert.match(signup, /robots: \{ index: false, follow: true \}/)
 })
+
+test("Given monthly and annual renewals When public copy and merchant terms are compared Then cancellation is period-end and guarantees keep their approved conditions", () => {
+  const facts = readProjectFile("lib", "marketing", "facts.ts")
+  const pricing = readProjectFile("app", "pricing", "page.tsx")
+  const merchantTerms = readProjectFile("lib", "legal", "content.ts")
+  const llms = readProjectFile("public", "llms.txt")
+
+  assert.match(facts, /cancelChip: "Cancel renewal"/)
+  assert.match(facts, /current annual billing period ends/)
+  assert.doesNotMatch(pricing, /switch plans from billing/i)
+  assert.match(pricing, /PRODUCT\.cancelAnnualLine/)
+  assert.match(llms, /current monthly or annual billing period ends/)
+
+  assert.match(merchantTerms, /GUARANTEE\.conditions/)
+  for (const part of ["line", "mechanic", "conditions", "claim"]) {
+    assert.match(merchantTerms, new RegExp(`GUARANTEE_ROI\\.${part}`))
+  }
+})

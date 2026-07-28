@@ -80,15 +80,19 @@ export const PRODUCT = {
   counterStamp: "venue-linked stamps",
   counterStampLong: "stamps linked to the venue QR",
   /**
-   * The one cancellation term — a true cancel-anytime as of offer v1
-   * (marketing offer v1). Cancellation is self-serve from the billing
-   * page and takes effect at the end of the current billing month; the
-   * card-required qualifier stays in the sentence form (ASA
-   * material-information). Sentence + chip forms; use these, never a bare
-   * literal.
+   * Cancellation is self-serve from billing and schedules the current
+   * subscription to end at its provider-recorded period end. This distinction
+   * matters for the annual plan: cancelling renewal does not end a paid annual
+   * period immediately. Sentence, compact and annual forms stay single-sourced
+   * so marketing and billing surfaces cannot imply otherwise.
    */
-  cancelLine: "Card required — cancel anytime from your billing page.",
-  cancelChip: "Cancel anytime",
+  cancelLine:
+    "Card required. Cancel renewal from your billing page; cancellation takes effect when the current billing period ends.",
+  cancelChip: "Cancel renewal",
+  cancelAnnualLine:
+    "Cancel renewal from billing; cancellation takes effect when the current annual billing period ends.",
+  cancelMetaLine:
+    "Cancel renewal in billing; it takes effect when the current billing period ends.",
 } as const
 
 // --- The market (offer pack doc 1: pick the right market) -------------------

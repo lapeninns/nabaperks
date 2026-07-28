@@ -28,9 +28,9 @@ import {
 } from "@/lib/seo/structured-data"
 
 const title = `Pricing — ${PRODUCT.price}, 30-Day Free Pilot`
-// 156 code points (budget 145–159); every price renders via the single-source
-// facts. There is no setup fee — the done-for-you launch is included.
-const description = `${PRODUCT.price} or ${PRODUCT.priceAnnual} (${PRODUCT.annualSaving}) after a ${PRODUCT.pilot}. No setup fee — the done-for-you launch is included. Cancel anytime, honest weekly capacity.`
+// 159 code points (budget 145–159); price and cancellation terms render via
+// the shared facts, including the annual period-end qualification.
+const description = `${PRODUCT.price}; ${PRODUCT.priceAnnual} after a ${PRODUCT.pilot}. No setup fee; launch included. ${PRODUCT.cancelMetaLine}`
 
 export const metadata: Metadata = {
   title,
@@ -62,7 +62,7 @@ export default function PricingPage() {
         <PageTitle
           eyebrow="Pricing"
           title="One subscription. No setup fee."
-          description="We do the whole launch for you — no upfront fee. Then one flat price, cancel anytime."
+          description="We do the whole launch for you — no upfront fee. Manage renewal from billing; cancellation takes effect at the end of the current billing period."
         />
         <div className="mt-6 flex flex-wrap items-center gap-3 rounded-lg border-2 border-dashed border-line-strong bg-card p-5">
           <MonoTag tone="sun">No setup fee</MonoTag>
@@ -113,7 +113,7 @@ export default function PricingPage() {
                 instead of every month.
               </p>
               <p className="mono-id mt-auto text-muted-foreground uppercase">
-                {PRODUCT.cancelChip} · switch plans from billing
+                {PRODUCT.cancelAnnualLine}
               </p>
             </CardContent>
           </Card>
