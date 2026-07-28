@@ -18,6 +18,7 @@ const productionExport = readFileSync(
   "scripts/export-production-poster-pdfs.mjs",
   "utf8"
 )
+const ci = readFileSync(".github/workflows/ci.yml", "utf8")
 const publicQr = readFileSync("app/q/[qrId]/page.tsx", "utf8")
 
 test("the NFC print button fires tracking without awaiting, then prints", () => {
@@ -69,6 +70,13 @@ test("bulk print-kit export writes typed folders with duplex posters", () => {
   assert.match(productionExport, /buildTentPdfAttachmentsFromPreview/)
   assert.match(productionExport, /closePrintKitBrowser/)
   assert.doesNotMatch(productionExport, /buildGoogleReviewPdfAttachments/)
+})
+
+test("CI verifies the production preview PDF path as well as vector geometry", () => {
+  assert.match(ci, /Install Chromium for production print-kit rendering/)
+  assert.match(ci, /PRINT_KIT_PREVIEW_ORIGIN: http:\/\/127\.0\.0\.1:3000/)
+  assert.match(ci, /pnpm posters:verify-pdfs/)
+  assert.match(ci, /pnpm posters:verify-production-pdfs/)
 })
 
 test("public QR join records optional src channel for analytics", () => {
