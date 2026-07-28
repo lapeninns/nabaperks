@@ -9,6 +9,13 @@ function read(...parts) {
   return readFileSync(join(root, ...parts), "utf8")
 }
 
+function workspaceOverride(name) {
+  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  return read("pnpm-workspace.yaml")
+    .match(new RegExp(`^  ${escapedName}: (.+)$`, "m"))?.[1]
+    ?.replace(/^["']|["']$/g, "")
+}
+
 test("Supabase-host classification rejects suffix lookalikes", async () => {
   const { shouldRequireSsl } =
     await import("../../scripts/provider-readiness/runtime.mjs")
@@ -28,8 +35,7 @@ test("Supabase-host classification rejects suffix lookalikes", async () => {
 })
 
 test("production dependency policy pins a patched PostCSS", () => {
-  const packageJson = JSON.parse(read("package.json"))
-  const pinnedPostcss = packageJson.pnpm?.overrides?.postcss
+  const pinnedPostcss = workspaceOverride("postcss")
 
   assert.match(
     pinnedPostcss ?? "",
@@ -39,12 +45,16 @@ test("production dependency policy pins a patched PostCSS", () => {
 
 test("build tooling transitive dependencies are pinned past active advisories", () => {
   const packageJson = JSON.parse(read("package.json"))
-  const overrides = packageJson.pnpm?.overrides ?? {}
 
   assert.equal(packageJson.scripts?.["security:audit"], "pnpm audit")
-  assert.equal(overrides.tmp, "0.2.7")
-  assert.equal(overrides.uuid, "11.1.1")
-  assert.equal(overrides.qs, "6.15.2")
+  assert.equal(workspaceOverride("tmp"), "0.2.7")
+  assert.equal(workspaceOverride("uuid"), "11.1.1")
+  assert.equal(workspaceOverride("qs"), "6.15.2")
+  assert.equal(workspaceOverride("brace-expansion"), "5.0.8")
+  assert.match(
+    read("pnpm-workspace.yaml"),
+    /^patchedDependencies:\n  minimatch@3\.1\.5: patches\/minimatch@3\.1\.5\.patch$/m
+  )
 })
 
 test("auth callback success remains conditional on Supabase verification", () => {
