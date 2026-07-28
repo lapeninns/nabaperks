@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 
+import { MarketingSignupLink } from "@/components/analytics/marketing-signup-link"
 import { PageTitle } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
 import { LandingFaq } from "@/components/marketing/landing"
@@ -50,7 +51,7 @@ export default function FaqPage() {
         <LandingFaq showHeader={false} />
         <div className="mx-auto mt-8 flex w-full max-w-3xl flex-wrap items-center gap-3">
           <Button asChild size="lg">
-            <Link href={ROUTES.signup}>Start your free pilot</Link>
+            <MarketingSignupLink>Start your free pilot</MarketingSignupLink>
           </Button>
           <Button asChild size="lg" variant="secondary">
             <Link href={ROUTES.howItWorks}>See how it works</Link>

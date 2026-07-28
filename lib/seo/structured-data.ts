@@ -195,19 +195,24 @@ export function growthPlanSchema(): Record<string, unknown> {
   }
 }
 
-/** Article node for the guides; published by the Nabaperks Organization. */
+/**
+ * Article node for the guides. Nabaperks is the default author; operator-led
+ * pages can identify Lapen Inns so schema and the visible byline stay aligned.
+ */
 export function articleSchema({
   path,
   headline,
   description,
   datePublished,
   dateModified,
+  author = "product",
 }: {
   path: string
   headline: string
   description: string
   datePublished: string
   dateModified: string
+  author?: "product" | "operator"
 }): Record<string, unknown> {
   return {
     "@type": "Article",
@@ -217,7 +222,7 @@ export function articleSchema({
     datePublished,
     dateModified,
     mainEntityOfPage: absoluteUrl(path),
-    author: { "@id": ORG_ID },
+    author: { "@id": author === "operator" ? OPERATOR_ID : ORG_ID },
     publisher: { "@id": ORG_ID },
     inLanguage: "en-GB",
   }

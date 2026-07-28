@@ -808,7 +808,7 @@ export const PUB_STAFF_TIME = {
   perStamp: {
     when: "At the till",
     detail:
-      "One scan, and one short line to say. Nothing to type, nothing to look up, nothing to remember about the guest.",
+      "One scan by the guest, and one short line for staff to say. Nothing for staff to type, look up or remember about the guest.",
   },
   weekly: {
     when: "Every week after that",
@@ -821,7 +821,7 @@ export const PUB_STAFF_TIME = {
       "This is where most schemes quietly cost the most — picking rewards, building the card, chasing artwork and a print shop. On a done-for-you launch, Lapen Inns does those steps instead of handing them to you.",
   },
   warning:
-    "A scheme that needs someone to run a report, chase a list or reconcile a spreadsheet stops being run by week three. Judge any vendor on the till moment, not the feature list.",
+    "A scheme that needs someone to run a report, chase a list or reconcile a spreadsheet creates recurring admin that is easy to defer. Judge any vendor on the till moment, not the feature list.",
 } as const
 
 /** The floor process, walked through once. Four beats, then the honest test. */
@@ -830,7 +830,7 @@ export const PUB_TILL_MOMENT = {
     "A guest orders. The poster is already on the counter, where they're standing anyway.",
     "Staff say one line — the same line every shift, so nobody has to improvise on a busy night.",
     "The guest scans. The card opens in their browser; nothing to install, no account to make first.",
-    "Staff scan to add the stamp. The visit is recorded, and the guest can see how close they are.",
+    "The guest confirms the stamp on their phone. The visit is recorded, and they can see how close they are.",
   ],
   closing:
     "That's the whole floor process. If a vendor's version takes longer to explain than this one, you've learned something useful.",

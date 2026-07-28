@@ -7,6 +7,7 @@ import {
   PUB_GUIDE_SECTIONS,
   type PubGuideSectionId,
 } from "@/lib/marketing/facts"
+import { useHydrated } from "@/lib/motion/use-hydrated"
 import { cn } from "@/lib/utils"
 
 /**
@@ -20,6 +21,7 @@ import { cn } from "@/lib/utils"
  * disclosure. Scroll-spy is progressive: with JS off, every link still jumps.
  */
 export function GuideSpine() {
+  const hydrated = useHydrated()
   const [activeId, setActiveId] = useState<PubGuideSectionId>(
     PUB_GUIDE_SECTIONS[0].id
   )
@@ -61,7 +63,10 @@ export function GuideSpine() {
         aria-expanded={open}
         aria-controls="pub-guide-spine-list"
         onClick={() => setOpen((wasOpen) => !wasOpen)}
-        className="focus-ring flex w-full items-center justify-between gap-3 rounded-sm border-2 border-dashed border-line-strong px-3 py-2.5 text-left lg:hidden"
+        className={cn(
+          "focus-ring w-full items-center justify-between gap-3 rounded-sm border-2 border-dashed border-line-strong px-3 py-2.5 text-left lg:hidden",
+          hydrated ? "flex" : "hidden"
+        )}
       >
         <span className="mono-meta text-muted-foreground">
           {PUB_GUIDE_HERO.jumpLabel}
@@ -79,7 +84,7 @@ export function GuideSpine() {
         id="pub-guide-spine-list"
         className={cn(
           "mt-3 grid gap-0.5 lg:mt-3 lg:block",
-          open ? "grid" : "hidden lg:block"
+          hydrated && !open ? "hidden lg:block" : "grid"
         )}
       >
         {PUB_GUIDE_SECTIONS.map((section, index) => {

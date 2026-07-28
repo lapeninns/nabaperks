@@ -566,6 +566,46 @@ test("Given the pub hub When it composes sections Then it renders no band anothe
     "every option states where it breaks — including ours"
   )
 
+  assert.doesNotMatch(
+    facts,
+    /by week three/i,
+    "the guide must not invent a precise failure point for venue behaviour"
+  )
+  assert.match(
+    facts,
+    /The guest confirms the stamp on their phone/,
+    "the till walkthrough must describe the customer self-stamp flow"
+  )
+  assert.doesNotMatch(
+    facts,
+    /Staff scan to add the stamp/,
+    "the guide must not claim staff scan a customer stamp"
+  )
+
+  const spine = readProjectFile(
+    "components",
+    "marketing",
+    "pubs",
+    "guide-spine.tsx"
+  )
+  assert.match(
+    spine,
+    /hydrated && !open \? "hidden lg:block" : "grid"/,
+    "the mobile section links must remain visible before client enhancement"
+  )
+
+  const structuredData = readProjectFile("lib", "seo", "structured-data.ts")
+  assert.match(
+    hub,
+    /author: "operator"/,
+    "the pub guide Article author must match its Lapen Inns byline"
+  )
+  assert.match(
+    structuredData,
+    /author === "operator" \? OPERATOR_ID : ORG_ID/,
+    "Article schema must support the operator as an explicit author"
+  )
+
   // `/faq` owns the FAQPage node; the vendor-questions band must not fork it.
   const questions = readProjectFile(
     "components",
@@ -588,4 +628,9 @@ test("Given FAQ left how-it-works When the FAQ page is inspected Then it owns th
   assert.match(faq, /faqPageSchema\(/)
   assert.match(faq, /FAQ_ITEMS/)
   assert.match(faq, /ROUTES\.faq/)
+  assert.match(
+    faq,
+    /<MarketingSignupLink>Start your free pilot<\/MarketingSignupLink>/,
+    "the FAQ pilot CTA must emit the signup funnel milestone"
+  )
 })
