@@ -2,6 +2,7 @@ import "server-only"
 
 import type { SupabaseClient } from "@supabase/supabase-js"
 
+import type { GeocodeResult } from "@/lib/merchant/geocode"
 import { resolveStructuredVenueAddress } from "@/lib/merchant/resolve-venue-address"
 import {
   buildProviderVenueAddress,
@@ -45,20 +46,20 @@ export type VenueLocationPersistencePayload = {
   address_line_2: string | null
   address_city: string
   address_postcode: string
-  latitude: number
-  longitude: number
+  latitude: number | null
+  longitude: number | null
   geofence_radius_meters: number
   require_geofence: boolean
   soft_geofence_trigger_stamp_number: number
-  geofence_pin_source: "geocoded" | "merchant_pin"
+  geofence_pin_source: "geocoded" | "merchant_pin" | "unresolved"
 }
 
 export type VenueLocationWritePayload = VenueLocationPersistencePayload & {
   merchant_id: string
   address: string
   address_country: "GB"
-  geocoded_at: string
-  geofence_pin_updated_at: string
+  geocoded_at: string | null
+  geofence_pin_updated_at: string | null
   is_primary: boolean
 }
 
@@ -168,6 +169,8 @@ export async function resolveVenueLocationWritePayload(
 
   const savedAt = new Date().toISOString()
   const payload = resolved.payload
+  const hasCoordinates =
+    payload.latitude !== null && payload.longitude !== null
 
   return {
     payload: {
@@ -182,8 +185,8 @@ export async function resolveVenueLocationWritePayload(
         .filter(Boolean)
         .join(", "),
       address_country: "GB",
-      geocoded_at: savedAt,
-      geofence_pin_updated_at: savedAt,
+      geocoded_at: hasCoordinates ? savedAt : null,
+      geofence_pin_updated_at: hasCoordinates ? savedAt : null,
       is_primary: options.isPrimary ?? true,
     },
   }
@@ -195,6 +198,7 @@ export async function resolveVenueLocationPersistencePayload(
     radius: number
     manualPin: { latitude: number; longitude: number } | null
     softGeofenceTriggerStamp?: number
+    geocodeAddress?: (address: string) => Promise<GeocodeResult | null>
   }
 ): Promise<
   | { payload: VenueLocationPersistencePayload }
@@ -210,14 +214,28 @@ export async function resolveVenueLocationPersistencePayload(
         latitude: submission.providerLatitude,
         longitude: submission.providerLongitude,
       })
-    : await resolveStructuredVenueAddress(submission.addressFields)
+    : await resolveStructuredVenueAddress(
+        submission.addressFields,
+        options.geocodeAddress
+      )
 
   if ("errors" in resolved) {
     return { errors: resolved.errors }
   }
 
-  if ("error" in resolved) {
-    return { errors: { address: resolved.error } }
+  const latitude = options.manualPin?.latitude ?? resolved.payload.latitude
+  const longitude = options.manualPin?.longitude ?? resolved.payload.longitude
+
+  if (
+    submission.requireGeofence &&
+    (latitude === null || longitude === null)
+  ) {
+    return {
+      errors: {
+        form:
+          "Choose a verified place or drop a map pin before using GPS anomaly checks.",
+      },
+    }
   }
 
   return {
@@ -230,12 +248,16 @@ export async function resolveVenueLocationPersistencePayload(
       address_provider: resolved.payload.address_provider,
       address_provider_id: resolved.payload.address_provider_id,
       address_source: resolved.payload.address_source,
-      latitude: options.manualPin?.latitude ?? resolved.payload.latitude,
-      longitude: options.manualPin?.longitude ?? resolved.payload.longitude,
+      latitude,
+      longitude,
       geofence_radius_meters: options.radius,
       require_geofence: submission.requireGeofence,
       soft_geofence_trigger_stamp_number: options.softGeofenceTriggerStamp ?? 3,
-      geofence_pin_source: options.manualPin ? "merchant_pin" : "geocoded",
+      geofence_pin_source: options.manualPin
+        ? "merchant_pin"
+        : latitude === null
+          ? "unresolved"
+          : "geocoded",
     },
   }
 }

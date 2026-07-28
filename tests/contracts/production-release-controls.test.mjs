@@ -72,6 +72,8 @@ test("Given a complete production configuration When generated credentials are s
     args: ["--profile=production"],
     environment: {
       CRON_SECRET: "N7!qL2@vR9#cT4$yH6^mK8&pD3*zF5?x",
+      MERCHANT_OTP_ALIAS_TOKEN_ENCRYPTION_KEY:
+        "H7!qM2@vR9#cT4$yK6^pD3&zF8*wN5?x",
       PRODUCTION_MONITOR_SECRET: "P4@wS8#nC2!kV6$rJ9^tB3&yM7*zQ5?e",
       RESEND_FROM: "Nabaperks <hello@example.test>",
       STRIPE_GROWTH_ANNUAL_PRICE_ID: "price_annual_fixture",

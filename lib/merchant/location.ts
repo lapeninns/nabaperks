@@ -81,7 +81,9 @@ export async function getCurrentVenueLocation() {
           geofence_pin_source:
             location.geofence_pin_source === "merchant_pin"
               ? "merchant_pin"
-              : "geocoded",
+              : location.geofence_pin_source === "unresolved"
+                ? "unresolved"
+                : "geocoded",
           geofence_pin_updated_at: location.geofence_pin_updated_at,
           is_primary: Boolean(location.is_primary),
         }

@@ -16,6 +16,7 @@ import {
 } from "./helpers/merchant-reward-preset-live-db"
 
 const REWARDS_PATH = "/app/launch?tab=rewards"
+const BILLING_PATH = "/app/launch?tab=billing"
 const QR_PATH = "/app/launch?tab=qr"
 type MerchantRewardPresetSql = NonNullable<
   ReturnType<typeof connectMerchantRewardPresetDb>
@@ -170,13 +171,17 @@ export function defineMerchantRewardPresetAtomicAddTests() {
         await expect(success).toBeVisible()
         await expect(success).toBeFocused()
         await expect(page.getByText("3 active · ready")).toBeVisible()
-        await expect(
-          page.getByRole("link", { name: "Proceed to billing" }).last()
-        ).toBeVisible()
-        const readyQrLink = page.getByRole("link", {
-          name: /Venue QR, ready/i,
+        const nextStep = page.getByRole("complementary").getByRole("link", {
+          name: "Billing",
+          exact: true,
         })
-        await expect(readyQrLink).toBeVisible()
+        await expect(nextStep).toBeVisible()
+        await expect(nextStep).toHaveAttribute("href", BILLING_PATH)
+        const lockedQrLink = page.getByRole("link", {
+          name: "Venue QR, to do",
+          exact: true,
+        })
+        await expect(lockedQrLink).toBeVisible()
 
         for (const reward of merchantRewardPresetExpectedRewards) {
           await expect(
@@ -193,17 +198,27 @@ export function defineMerchantRewardPresetAtomicAddTests() {
 
         await assertMerchantRewardPresetDbState(sql, fixture)
 
-        await readyQrLink.click()
+        await lockedQrLink.click()
         await expect(page).toHaveURL(
           (url) => `${url.pathname}${url.search}` === QR_PATH
         )
         await expect(
-          page.getByRole("region", { name: "Venue QR code" })
+          page.getByRole("heading", {
+            name: "Activate billing to unlock your venue QR",
+          })
         ).toBeVisible()
-        await expect(page.getByText("Permanent venue link")).toBeVisible()
         await expect(
-          page.getByText("Finish billing to accept scans.")
+          page.getByRole("alert").filter({
+            hasText: "There is no venue QR to share or print yet.",
+          })
         ).toBeVisible()
+        await expect(
+          page.getByRole("region", { name: "Venue QR code" })
+        ).toHaveCount(0)
+        await expect(page.getByText("Permanent venue link")).toHaveCount(0)
+        await expect(
+          page.getByRole("link", { name: "Go to billing" })
+        ).toHaveAttribute("href", BILLING_PATH)
         await assertMerchantRewardPresetBrowserSession(page, fixture, QR_PATH)
         await assertMerchantRewardPresetDbState(sql, fixture)
       } catch (error) {

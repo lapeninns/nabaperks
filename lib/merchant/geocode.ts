@@ -1,79 +1,46 @@
 import "server-only"
 
-import { resilientFetch } from "@/lib/observability/resilience"
+import {
+  createBoundedGeocodeCache,
+  geocodeAddressWithProvider,
+  type GeocodeProviderConfig,
+  type GeocodeResult,
+} from "@/lib/merchant/geocode-core"
+import { enforceRateLimit } from "@/lib/security/rate-limit"
 
-export type GeocodeResult = {
-  latitude: number
-  longitude: number
-}
-
-type NominatimCandidate = {
-  lat?: unknown
-  lon?: unknown
-}
-
-const NOMINATIM_ENDPOINT = "https://nominatim.openstreetmap.org/search"
-const USER_AGENT =
-  "Nabaperks venue geocoder (https://nabaperks.example; support@nabaperks.example)"
+const GEOCODING_RATE_LIMIT_KEY = "venue-geocoding-provider-global"
+const cache = createBoundedGeocodeCache()
 
 export async function geocodeAddress(
   address: string
 ): Promise<GeocodeResult | null> {
-  const trimmed = address.trim()
+  const config = loadGeocodeProviderConfig()
+  if (!config) return null
 
-  if (!trimmed) return null
+  return geocodeAddressWithProvider(address, config, {
+    cache,
+    fetchImpl: fetch,
+    acquirePermit,
+  })
+}
 
-  const url = new URL(NOMINATIM_ENDPOINT)
-  url.searchParams.set("q", trimmed)
-  url.searchParams.set("format", "jsonv2")
-  url.searchParams.set("limit", "1")
-  url.searchParams.set("addressdetails", "0")
+function loadGeocodeProviderConfig(): GeocodeProviderConfig | null {
+  const endpoint = process.env.VENUE_GEOCODING_ENDPOINT?.trim()
+  const contact = process.env.VENUE_GEOCODING_CONTACT?.trim()
+  return endpoint && contact ? { endpoint, contact } : null
+}
 
+async function acquirePermit() {
   try {
-    const response = await resilientFetch("nominatim", url, undefined, {
-      retries: 2,
-      initForAttempt() {
-        return {
-          headers: {
-            Accept: "application/json",
-            "User-Agent": USER_AGENT,
-          },
-          signal: AbortSignal.timeout(5_000),
-        }
-      },
+    await enforceRateLimit({
+      key: GEOCODING_RATE_LIMIT_KEY,
+      limit: 1,
+      windowMs: 1_000,
     })
-
-    if (!response.ok) return null
-
-    const candidates = await response.json()
-    if (!Array.isArray(candidates)) return null
-
-    return parseCandidate(candidates[0])
-  } catch (error) {
-    if (error instanceof Error) return null
-
-    throw error
+    return true
+  } catch {
+    return false
   }
 }
 
-function parseCandidate(candidate: unknown): GeocodeResult | null {
-  if (!isCandidate(candidate)) return null
-
-  const latitude = parseCoordinate(candidate.lat)
-  const longitude = parseCoordinate(candidate.lon)
-
-  if (latitude === null || longitude === null) return null
-
-  return { latitude, longitude }
-}
-
-function isCandidate(value: unknown): value is NominatimCandidate {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-}
-
-function parseCoordinate(value: unknown) {
-  if (typeof value !== "string") return null
-
-  const parsed = Number(value)
-  return Number.isFinite(parsed) ? parsed : null
-}
+export type { GeocodeResult } from "@/lib/merchant/geocode-core"
