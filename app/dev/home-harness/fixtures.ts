@@ -7,6 +7,9 @@ import type { CustomerRewards } from "@/lib/customer/rewards"
  * ready-for-scan bucket), plus redeemed + expired history.
  */
 export const HOME_HARNESS_REWARDS: CustomerRewards = {
+  historyPage: 1,
+  historyPageCount: 1,
+  historyTotal: 2,
   redeemable: [
     {
       rewardId: "rwd_earned",

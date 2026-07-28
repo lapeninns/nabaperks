@@ -180,6 +180,9 @@ test.describe("customer stamp choreography — normal motion", () => {
     await expect(
       root.getByRole("list", { name: /5 of 5 stamps earned/ })
     ).toBeVisible()
+    await expect(
+      root.getByRole("img", { name: "Mystery reward, unlocked" })
+    ).toBeVisible()
     await expect(root.getByText("That's the full card.")).toBeVisible()
     await expect(root.locator('[data-ticket-state="waiting"]')).toBeVisible()
     await expect(
@@ -312,6 +315,9 @@ test.describe("customer stamp choreography — normal motion", () => {
     await expect(root).toHaveAttribute("data-stamp-phase", "idle")
     await expect(
       root.getByRole("list", { name: /5 of 5 stamps earned/ })
+    ).toBeVisible()
+    await expect(
+      root.getByRole("img", { name: "Mystery reward, unlocked" })
     ).toBeVisible()
     await expect(root.locator('[data-ticket-state="waiting"]')).toBeVisible()
     await expect(root.getByText("Your reward is ready to open.")).toBeVisible()

@@ -2,6 +2,7 @@ import "server-only"
 
 import { REFERRAL_BONUS_STAMP_LABEL } from "@/lib/customer/card-stamp-labels"
 import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
+import { ukTodayIso } from "@/lib/customer/uk-date"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export {
@@ -53,7 +54,7 @@ export async function getMembershipStampDisplayDates(
 export async function getMembershipStampDisplayDatesByMembership(
   membershipIds: readonly string[],
   limitByMembership: number,
-  activeCycleByMembership?: ReadonlyMap<string, number>
+  activeCycleByMembership: ReadonlyMap<string, number>
 ): Promise<Map<string, MembershipStampDisplayDates>> {
   const uniqueMembershipIds = [...new Set(membershipIds)]
   const stampDatesByMembership = new Map<string, MembershipStampDisplayDates>()
@@ -68,47 +69,64 @@ export async function getMembershipStampDisplayDatesByMembership(
   if (uniqueMembershipIds.length === 0) return stampDatesByMembership
 
   const supabase = createSupabaseServiceRoleClient()
-  const query = supabase
-    .from("stamp_events")
-    .select("membership_id, earned_business_date, cycle_number, metadata")
-    .in("membership_id", uniqueMembershipIds)
-    .eq("event_type", "earned")
-
-  const { data, error } = await query.order("created_at", {
-    ascending: true,
-  })
-
-  if (error) {
-    throw new Error(`Unable to load stamp dates: ${error.message}`)
-  }
-
-  const labelsByMembership = new Map<string, string[]>()
-  const latestBusinessDateByMembership = new Map<string, string>()
-
-  for (const row of (data ?? []) as RawMembershipStampEvent[]) {
-    if (typeof row.earned_business_date === "string") {
-      latestBusinessDateByMembership.set(
-        row.membership_id,
-        row.earned_business_date
+  const today = ukTodayIso()
+  const activeCycleFilters = uniqueMembershipIds.map((membershipId) => {
+    const cycleNumber = activeCycleByMembership.get(membershipId)
+    if (typeof cycleNumber !== "number" || !Number.isFinite(cycleNumber)) {
+      throw new Error(
+        `Active stamp cycle missing for membership ${membershipId}`
       )
     }
 
-    const activeCycle = activeCycleByMembership?.get(row.membership_id)
-    if (activeCycle !== undefined && row.cycle_number !== activeCycle) continue
+    return `and(membership_id.eq.${membershipId},cycle_number.eq.${cycleNumber})`
+  })
 
+  const [activeCycleResult, todayResult] = await Promise.all([
+    supabase
+      .from("stamp_events")
+      .select("membership_id, earned_business_date, cycle_number, metadata")
+      .eq("event_type", "earned")
+      .or(activeCycleFilters.join(","))
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("stamp_events")
+      .select("membership_id")
+      .in("membership_id", uniqueMembershipIds)
+      .eq("event_type", "earned")
+      .eq("earned_business_date", today),
+  ])
+
+  if (activeCycleResult.error) {
+    throw new Error(
+      `Unable to load active-cycle stamp dates: ${activeCycleResult.error.message}`
+    )
+  }
+  if (todayResult.error) {
+    throw new Error(
+      `Unable to load today's stamp status: ${todayResult.error.message}`
+    )
+  }
+
+  const labelsByMembership = new Map<string, string[]>()
+  const stampedTodayMemberships = new Set(
+    (todayResult.data ?? []).map((row) => row.membership_id)
+  )
+
+  for (const row of (activeCycleResult.data ??
+    []) as RawMembershipStampEvent[]) {
     const labels = labelsByMembership.get(row.membership_id) ?? []
     if (labels.length < limitByMembership) {
       labels.push(stampEventDisplayLabel(row))
       labelsByMembership.set(row.membership_id, labels)
     }
-
   }
 
-  for (const [membershipId, stampDates] of labelsByMembership) {
+  for (const membershipId of uniqueMembershipIds) {
     stampDatesByMembership.set(membershipId, {
-      stampDates,
-      latestBusinessDate:
-        latestBusinessDateByMembership.get(membershipId) ?? null,
+      stampDates: labelsByMembership.get(membershipId) ?? [],
+      latestBusinessDate: stampedTodayMemberships.has(membershipId)
+        ? today
+        : null,
     })
   }
 

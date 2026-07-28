@@ -144,7 +144,7 @@ export async function getCustomerHomeDashboard(): Promise<HomeDashboard> {
     supabase
       .from("reward_events")
       .select(
-        "id, membership_id, reward_name, redeemable_from, source, created_at"
+        "id, membership_id, reward_name, redeemable_from, expires_at, source, created_at"
       )
       .in("membership_id", membershipIds)
       .eq("status", "unlocked"),
@@ -253,6 +253,7 @@ export async function getCustomerHomeDashboard(): Promise<HomeDashboard> {
           ? Math.max(stampsRequired - currentStamps, 0)
           : 0,
       unlockedRewards: rewards.stampUnlocked,
+      redeemableRewards: rewards.redeemable,
       referralBonusBank,
       ...(rewards.stampRewardId
         ? { stampRewardId: rewards.stampRewardId }

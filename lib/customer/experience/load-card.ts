@@ -14,6 +14,7 @@ import {
   isShareableReferralCode,
 } from "@/lib/customer/referral"
 import {
+  isRewardExpired,
   narrowRewardSource,
   rewardStampThresholdMet,
 } from "@/lib/customer/issued-reward-display"
@@ -120,6 +121,7 @@ export async function loadCardExperienceContext(
           redeemableFrom: stampCycleReward.redeemable_from,
           redeemable:
             isRedeemableFrom(stampCycleReward.redeemable_from) &&
+            !isRewardExpired(stampCycleReward.expires_at) &&
             rewardStampThresholdMet(
               stampCycleReward.source,
               membership.current_stamp_count,
@@ -137,7 +139,9 @@ export async function loadCardExperienceContext(
           name: issuedReward.reward_name,
           source: narrowRewardSource(issuedReward.source),
           redeemableFrom: issuedReward.redeemable_from,
-          redeemable: isRedeemableFrom(issuedReward.redeemable_from),
+          redeemable:
+            !isRewardExpired(issuedReward.expires_at) &&
+            isRedeemableFrom(issuedReward.redeemable_from),
         }
       : null
 

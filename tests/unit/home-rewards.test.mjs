@@ -24,7 +24,11 @@ function row(overrides = {}) {
 
 test("stamp-cycle and issued rewards land on separate rails", () => {
   const counts = buildRewardCountsByMembership([
-    row({ id: "stamp_ready", source: "stamp_cycle", reward_name: "Free coffee" }),
+    row({
+      id: "stamp_ready",
+      source: "stamp_cycle",
+      reward_name: "Free coffee",
+    }),
     row({
       id: "bday_ready",
       source: "birthday_month",
@@ -94,7 +98,11 @@ test("getTopRedeemable surfaces a redeemable gift when there is no earned reward
 
 test("getTopRedeemable prefers the earned stamp reward over a gift on the same card", () => {
   const counts = buildRewardCountsByMembership([
-    row({ id: "stamp_ready", source: "stamp_cycle", reward_name: "Free coffee" }),
+    row({
+      id: "stamp_ready",
+      source: "stamp_cycle",
+      reward_name: "Free coffee",
+    }),
     row({
       id: "gift_ready",
       source: "birthday_month",
@@ -113,4 +121,35 @@ test("getTopRedeemable ignores a gift that is not yet redeemable", () => {
   const cards = [{ membershipId: "mem_1", businessName: "Old Crown" }]
 
   assert.equal(getTopRedeemable(cards, counts), undefined)
+})
+
+test("expired unlocked rewards are absent from every home reward rail", () => {
+  const counts = buildRewardCountsByMembership([
+    row({
+      id: "expired_stamp",
+      source: "stamp_cycle",
+      expires_at: "2020-01-02T00:00:00.000Z",
+    }),
+    row({
+      id: "expired_gift",
+      source: "merchant_direct",
+      expires_at: "2020-01-02T00:00:00.000Z",
+    }),
+  ])
+  const mem = counts.get("mem_1")
+
+  assert.equal(mem.stampUnlocked, 0)
+  assert.equal(mem.redeemable, 0)
+  assert.equal(mem.stampRewardId, null)
+  assert.equal(mem.gift, null)
+})
+
+test("home reward counts include earned and issued rewards on the same card", () => {
+  const counts = buildRewardCountsByMembership([
+    row({ id: "stamp_ready", source: "stamp_cycle" }),
+    row({ id: "direct_ready", source: "merchant_direct" }),
+    row({ id: "birthday_ready", source: "birthday_month" }),
+  ])
+
+  assert.equal(counts.get("mem_1").redeemable, 3)
 })

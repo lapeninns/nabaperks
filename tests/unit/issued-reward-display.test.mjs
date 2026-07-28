@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 
 import {
+  isRewardExpired,
   narrowRewardSource,
   rewardExpiryNote,
   rewardSourceBadge,
@@ -14,8 +15,14 @@ import {
  */
 
 test("rewardSourceBadge labels each issued source and stays quiet for earned rewards", () => {
-  assert.equal(rewardSourceBadge("birthday_month", "Old Crown"), "Birthday treat")
-  assert.equal(rewardSourceBadge("merchant_direct", "Old Crown"), "Sent by Old Crown")
+  assert.equal(
+    rewardSourceBadge("birthday_month", "Old Crown"),
+    "Birthday treat"
+  )
+  assert.equal(
+    rewardSourceBadge("merchant_direct", "Old Crown"),
+    "Sent by Old Crown"
+  )
   assert.equal(rewardSourceBadge("stamp_cycle", "Old Crown"), null)
 })
 
@@ -37,6 +44,15 @@ test("rewardExpiryNote formats a London date (matching the wallet style) and pas
     rewardExpiryNote("2026-07-15T12:00:00.000Z"),
     "Expires 15 Jul 2026"
   )
+})
+
+test("isRewardExpired applies the same wall-clock boundary on every customer surface", () => {
+  const now = new Date("2026-07-28T12:00:00.000Z")
+
+  assert.equal(isRewardExpired(null, now), false)
+  assert.equal(isRewardExpired("2026-07-28T12:00:00.001Z", now), false)
+  assert.equal(isRewardExpired("2026-07-28T12:00:00.000Z", now), true)
+  assert.equal(isRewardExpired("2026-07-28T11:59:59.999Z", now), true)
 })
 
 test("rewardStampThresholdMet requires a full card for earned rewards only", () => {

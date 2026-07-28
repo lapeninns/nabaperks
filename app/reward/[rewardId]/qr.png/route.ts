@@ -3,7 +3,10 @@ import { NextResponse } from "next/server"
 import { getCustomerRewardState } from "@/lib/customer/reward"
 import { createRewardScanToken } from "@/lib/customer/reward-scan-token"
 import { getCustomerProfileCompletion } from "@/lib/customer/profile"
-import { rewardStampThresholdMet } from "@/lib/customer/issued-reward-display"
+import {
+  isRewardExpired,
+  rewardStampThresholdMet,
+} from "@/lib/customer/issued-reward-display"
 import { isRedeemableFrom } from "@/lib/customer/uk-date"
 import { getCanonicalAppOrigin } from "@/lib/env/app-origin"
 import { renderQrCodePng } from "@/lib/qr/assets"
@@ -26,6 +29,7 @@ export async function GET(_request: Request, context: RewardQrRouteContext) {
 
   const redeemable =
     rewardState.reward.status === "unlocked" &&
+    !isRewardExpired(rewardState.reward.expires_at) &&
     !rewardState.unavailableReason &&
     rewardStampThresholdMet(
       rewardState.reward.source,

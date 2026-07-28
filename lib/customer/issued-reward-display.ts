@@ -55,6 +55,17 @@ export function rewardStampThresholdMet(
   return currentStampCount >= stampsRequired
 }
 
+/** Wall-clock expiry gate shared by home, card, wallet, detail, and QR routes. */
+export function isRewardExpired(
+  expiresAt: string | null | undefined,
+  now = new Date()
+): boolean {
+  if (!expiresAt) return false
+
+  const expiryTime = Date.parse(expiresAt)
+  return Number.isFinite(expiryTime) && expiryTime <= now.getTime()
+}
+
 /** "Expires 15 Jul 2026" for a reward with an expiry instant, else null. */
 export function rewardExpiryNote(expiresAt: string | null): string | null {
   if (!expiresAt) return null

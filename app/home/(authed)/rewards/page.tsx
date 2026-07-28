@@ -1,3 +1,5 @@
+import Link from "next/link"
+import { redirect } from "next/navigation"
 import { GiftIcon } from "@hugeicons/core-free-icons"
 
 import { EmptyState, PageTitle, SectionHeader } from "@/components/brand"
@@ -5,15 +7,37 @@ import {
   QuietReward,
   RedeemableReward,
 } from "@/components/customer/reward-list-cards"
+import { Button } from "@/components/ui/button"
 import { formatDate } from "@/lib/customer/format"
+import { normalizeRewardHistoryPage } from "@/lib/customer/reward-history-pagination"
 import { getCustomerRewards } from "@/lib/customer/rewards"
 
 export const metadata = {
   title: "Your rewards · Nabaperks",
 }
 
-export default async function HomeRewardsPage() {
-  const { redeemable, upcoming, redeemed, expired } = await getCustomerRewards()
+type HomeRewardsPageProps = {
+  searchParams: Promise<{ page?: string | string[] }>
+}
+
+export default async function HomeRewardsPage({
+  searchParams,
+}: HomeRewardsPageProps) {
+  const query = await searchParams
+  const requestedPage = normalizeRewardHistoryPage(firstParam(query.page))
+  const {
+    redeemable,
+    upcoming,
+    redeemed,
+    expired,
+    historyPage,
+    historyPageCount,
+  } = await getCustomerRewards(requestedPage)
+
+  if (historyPageCount > 0 && historyPage > historyPageCount) {
+    redirect(`/home/rewards?page=${historyPageCount}`)
+  }
+
   const hasAny =
     redeemable.length + upcoming.length + redeemed.length + expired.length > 0
 
@@ -105,8 +129,41 @@ export default async function HomeRewardsPage() {
               ))}
             </section>
           ) : null}
+
+          {historyPageCount > 1 ? (
+            <nav
+              aria-label="Reward history pages"
+              className="flex items-center justify-between gap-3"
+            >
+              {historyPage > 1 ? (
+                <Button asChild variant="secondary">
+                  <Link href={`/home/rewards?page=${historyPage - 1}`}>
+                    Newer history
+                  </Link>
+                </Button>
+              ) : (
+                <span />
+              )}
+              <span className="mono-id text-muted-foreground">
+                Page {historyPage} of {historyPageCount}
+              </span>
+              {historyPage < historyPageCount ? (
+                <Button asChild variant="secondary">
+                  <Link href={`/home/rewards?page=${historyPage + 1}`}>
+                    Older history
+                  </Link>
+                </Button>
+              ) : (
+                <span />
+              )}
+            </nav>
+          ) : null}
         </div>
       )}
     </div>
   )
+}
+
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value
 }

@@ -32,6 +32,8 @@ export type HomeCard = {
   stampsRemaining: number
   /** Stamp-cycle unlocked reward count — the card's own pending reward(s). */
   unlockedRewards: number
+  /** Exact ready reward count across the stamp and issued-gift rails. */
+  redeemableRewards?: number
   referralBonusBank?: ReferralBonusBank
   /** Stamp-cycle redeemable reward → the tile's "Reward ready" state and QR link. */
   stampRewardId?: string
