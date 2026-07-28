@@ -22,7 +22,7 @@
     "name": "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
     "visibility": "public",
     "kind": "string",
-    "description": "Stripe publishable key used by client-side Stripe flows."
+    "description": "Stripe test-mode pk_test_ publishable key used by client-side Stripe flows. Live-mode keys are prohibited by deployment policy."
   },
   {
     "name": "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY",
@@ -90,7 +90,7 @@
     "name": "STRIPE_SECRET_KEY",
     "visibility": "server",
     "kind": "string",
-    "description": "Stripe secret key for server-side billing and portal calls."
+    "description": "Stripe test-mode sk_test_ secret key for server-side billing and portal calls. Live-mode keys are prohibited by deployment policy."
   },
   {
     "name": "STRIPE_GROWTH_PRICE_ID",

@@ -129,6 +129,8 @@ for (const entry of envContract) {
     invalid.push(`${entry.name} must not be prefixed with NEXT_PUBLIC_`)
   }
 
+  invalid.push(...validateStripeTestMode(entry.name, value))
+
   if (entry.kind === "url") {
     try {
       const url = new URL(value)
@@ -364,6 +366,23 @@ function isCanonicalHttpsOrigin(value) {
   } catch {
     return false
   }
+}
+
+function validateStripeTestMode(name, value) {
+  if (
+    name === "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY" &&
+    !value.startsWith("pk_test_")
+  ) {
+    return [
+      "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY must use a Stripe test-mode pk_test_ key",
+    ]
+  }
+
+  if (name === "STRIPE_SECRET_KEY" && !value.startsWith("sk_test_")) {
+    return ["STRIPE_SECRET_KEY must use a Stripe test-mode sk_test_ key"]
+  }
+
+  return []
 }
 
 function hasHighEntropySecretShape(secret) {
