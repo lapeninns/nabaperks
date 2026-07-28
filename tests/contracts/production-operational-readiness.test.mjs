@@ -48,10 +48,15 @@ function hasProductionProbeUrl(urls, pathname) {
 test("production exposes separate versioned liveness and dependency readiness", () => {
   const health = read("app", "api", "health", "route.ts")
   const readiness = read("app", "api", "readiness", "route.ts")
+  const releaseRevision = read("lib", "observability", "release-revision.ts")
   const proxy = read("proxy.ts")
 
   assert.match(health, /scope: "liveness"/)
-  assert.match(health, /VERCEL_GIT_COMMIT_SHA/)
+  assert.match(health, /releaseRevision\(\{ fallback: VERSION \}\)/)
+  assert.match(releaseRevision, /VERCEL_GIT_COMMIT_SHA/)
+  assert.match(releaseRevision, /NABAPERKS_BUILD_REVISION/)
+  assert.match(releaseRevision, /revision-mismatch/)
+  assert.match(releaseRevision, /invalid-revision/)
   assert.match(health, /VERCEL_TARGET_ENV/)
   assert.match(readiness, /status: ready \? "ready" : "not_ready"/)
   assert.match(readiness, /status: ready \? 200 : 503/)

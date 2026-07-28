@@ -142,9 +142,9 @@ credential and cannot promote by itself; the independent `Production`
 environment remains the only path that can release production database
 credentials.
 
-If hosted staging is later funded, configure a separate GitHub `Staging`
-environment before activating that stronger path. It may permit only `main`;
-it must not reuse production data or provider credentials. Add these secrets:
+To activate hosted staging, configure a separate GitHub `Staging` environment.
+It may permit only `main`; it must not reuse production data or provider
+credentials. Add these secrets:
 
 - `STAGING_SUPABASE_ACCESS_TOKEN`, `STAGING_SUPABASE_DB_PASSWORD` and
   `STAGING_SUPABASE_DB_URL`;
@@ -152,14 +152,25 @@ it must not reuse production data or provider credentials. Add these secrets:
   `STAGING_MONITOR_SECRET`,
   `STAGING_STRIPE_WEBHOOK_SECRET` and `STAGING_RESEND_WEBHOOK_SECRET`.
 
-Add `STAGING_SUPABASE_PROJECT_REF`, `STAGING_VERCEL_ORG_ID` and
-`STAGING_VERCEL_PROJECT_ID` as environment variables. In Vercel, create a
-custom environment whose slug is exactly `staging`, enable system environment
-variables and Vercel Authentication, generate a dedicated Protection Bypass for
-Automation secret, and configure its application variables with staging-only
-Supabase, Stripe, Resend, Twilio and monitor credentials. The GitHub and Vercel
-webhook secrets must describe the same staging endpoints so signed replay can
-detect configuration drift.
+Add `STAGING_APP_ALIAS`, `STAGING_SUPABASE_PROJECT_REF`,
+`STAGING_VERCEL_ORG_ID` and `STAGING_VERCEL_PROJECT_ID` as environment
+variables. The alias must be an isolated `*.vercel.app` hostname and must not be
+a production domain. In Vercel, create a custom environment whose slug is
+exactly `staging`, enable system environment variables and Vercel
+Authentication, generate a dedicated Protection Bypass for Automation secret,
+and configure its application variables with staging-only Supabase, Stripe,
+Resend, Twilio and monitor credentials. The GitHub and Vercel webhook secrets
+must describe the same staging endpoints so signed replay can detect
+configuration drift.
+
+Run the manual `Staging deployment` workflow from `main` with its exact full
+Git SHA and the confirmation `DEPLOY_STAGING_APPLICATION`. It checks out that
+immutable revision, builds and deploys to the Vercel custom `staging` target
+without a Production promotion, and runs the rollback-only hosted proof against
+the immutable candidate URL. The workflow assigns `STAGING_APP_ALIAS` only
+after that proof passes. `NABAPERKS_BUILD_REVISION` is injected from the
+approved SHA as non-secret build and deployment metadata; do not configure it
+as a reusable secret.
 
 Configure a GitHub `Monitoring` environment that permits only `main` and does
 not require an interactive reviewer, because paging must continue unattended.

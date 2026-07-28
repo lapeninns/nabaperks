@@ -30,6 +30,7 @@
         "STAGING_VERCEL_TOKEN"
       ],
       "requiredVariables": [
+        "STAGING_APP_ALIAS",
         "STAGING_SUPABASE_PROJECT_REF",
         "STAGING_VERCEL_ORG_ID",
         "STAGING_VERCEL_PROJECT_ID"
