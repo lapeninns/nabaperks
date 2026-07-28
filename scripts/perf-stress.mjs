@@ -9,10 +9,10 @@
  *   PERF_STRESS_RUNS=5 pnpm perf:stress
  */
 
+import { randomUUID } from "node:crypto"
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { performance } from "node:perf_hooks"
-import { randomUUID } from "node:crypto"
 import { createClient } from "@supabase/supabase-js"
 import { chromium } from "@playwright/test"
 import postgres from "postgres"
@@ -22,24 +22,25 @@ import {
   printDatabaseConnectionHelp,
 } from "./db-connection-help.mjs"
 import { parseStressFixture } from "./perf-stress-fixture.mjs"
+import {
+  assertPerformanceBudgets,
+  assertStagingHealth,
+  resolvePerfStressPolicy,
+} from "./perf-stress-policy.mjs"
 
 const projectDir = process.cwd()
 const MERCHANT_ID = "10000000-0000-0000-0000-000000000001"
 const MERCHANT_PASSWORD = "NabaperksDemo1!"
 const CUSTOMERS_PAGE_SIZE = 15
-const RUNS = Math.max(
-  1,
-  Number.parseInt(process.env.PERF_STRESS_RUNS ?? "3", 10)
-)
-const APP_URL = (
-  process.env.PERF_STRESS_APP_URL ?? "http://localhost:3000"
-).replace(/\/$/, "")
 
 const env = {
   ...readEnvFile(join(projectDir, ".env.local")),
   ...readEnvFile(join(projectDir, ".env")),
   ...process.env,
 }
+const policy = resolvePerfStressPolicy(env)
+const RUNS = parseRuns(env.PERF_STRESS_RUNS)
+const APP_URL = policy.appOrigin
 
 async function main() {
   const dbUrl = env.SUPABASE_DB_URL?.trim()
@@ -53,7 +54,11 @@ async function main() {
     process.exit(1)
   }
 
-  console.log(`Stress performance probe (${RUNS} run(s) per benchmark)\n`)
+  await proveAppTarget()
+
+  console.log(
+    `Stress performance probe (${RUNS} run(s) per benchmark, ${policy.mode})\n`
+  )
 
   const sql = postgres(dbUrl, { max: 1 })
   let fixture
@@ -90,15 +95,9 @@ async function main() {
   )
 
   const httpResults = await runHttpBenchmarks(fixture.ownerEmail)
-  if (Array.isArray(httpResults) && httpResults.length) {
-    printResults(`HTTP page loads (${APP_URL}, authenticated)`, httpResults)
-  } else if (!Array.isArray(httpResults) && httpResults.skipped) {
-    console.log(`\nHTTP benchmarks skipped: ${httpResults.reason}`)
-  } else {
-    console.log(
-      "\nHTTP benchmarks skipped (dev server not reachable). Start with: pnpm dev"
-    )
-  }
+  printResults(`HTTP page loads (${APP_URL}, authenticated)`, httpResults)
+  assertPerformanceBudgets(queryResults, httpResults, policy.thresholds)
+  console.log("Performance budgets passed.")
 }
 
 async function verifyStressFixture(sql) {
@@ -211,23 +210,7 @@ async function runQueryBenchmarks(client) {
 }
 
 async function runHttpBenchmarks(ownerEmail) {
-  if (!(await isAppReachable())) {
-    return []
-  }
-
-  let browser
-  try {
-    browser = await chromium.launch({ headless: true })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    if (message.includes("Executable doesn't exist")) {
-      return {
-        skipped: true,
-        reason: "Playwright browsers missing. Run: pnpm e2e:install",
-      }
-    }
-    throw error
-  }
+  const browser = await chromium.launch({ headless: true })
 
   const context = await browser.newContext({
     extraHTTPHeaders: {
@@ -291,15 +274,25 @@ async function runHttpBenchmarks(ownerEmail) {
   }
 }
 
-async function isAppReachable() {
+async function proveAppTarget() {
+  let response
   try {
-    const response = await fetch(`${APP_URL}/login`, {
+    response = await fetch(`${APP_URL}/api/health`, {
       signal: AbortSignal.timeout(3000),
     })
-    return response.ok
-  } catch {
-    return false
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error)
+    throw new Error(`Performance app target is unreachable: ${detail}`)
   }
+
+  if (!response.ok) {
+    throw new Error(
+      `Performance app health check failed with HTTP ${response.status}`
+    )
+  }
+
+  const payload = await response.json()
+  assertStagingHealth(payload, policy.mode)
 }
 
 async function bench(label, runs, fn) {
@@ -356,6 +349,14 @@ function fmtMs(value) {
 
 function round(value) {
   return Math.round(value * 10) / 10
+}
+
+function parseRuns(raw) {
+  const value = Number.parseInt(raw ?? "3", 10)
+  if (!Number.isSafeInteger(value) || value < 3) {
+    throw new Error("PERF_STRESS_RUNS must be an integer of at least 3")
+  }
+  return value
 }
 
 function readEnvFile(path) {

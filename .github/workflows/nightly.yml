@@ -133,7 +133,8 @@ jobs:
 
   load-race:
     name: Authenticated stamp and redeem race checks
-    if: ${{ vars.STAMP_RACE_URL != '' && vars.REDEEM_RACE_URL != '' }}
+    if: ${{ vars.STAMP_RACE_URL != '' && vars.REDEEM_RACE_URL != '' && vars.RACE_STATE_URL != '' && vars.ISOLATED_STAGING_LOAD_ORIGIN != '' }}
+    environment: Staging
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -142,8 +143,14 @@ jobs:
       - name: Run authenticated race check
         run: k6 run tests/load/stamp-redeem-race.js
         env:
+          LOAD_TARGET_MODE: isolated-staging
+          LOAD_ISOLATED_STAGING_ORIGIN: ${{ vars.ISOLATED_STAGING_LOAD_ORIGIN }}
+          LOAD_ISOLATED_STAGING_CONFIRMED: "1"
           STAMP_RACE_URL: ${{ vars.STAMP_RACE_URL }}
           REDEEM_RACE_URL: ${{ vars.REDEEM_RACE_URL }}
+          RACE_STATE_URL: ${{ vars.RACE_STATE_URL }}
+          RACE_RUN_ID: nightly-${{ github.run_id }}-${{ github.run_attempt }}
+          RACE_CONTENDERS: "8"
           STAMP_RACE_AUTH_TOKEN: ${{ secrets.STAMP_RACE_AUTH_TOKEN }}
           STAMP_RACE_BODY: ${{ vars.STAMP_RACE_BODY }}
           REDEEM_RACE_BODY: ${{ vars.REDEEM_RACE_BODY }}
