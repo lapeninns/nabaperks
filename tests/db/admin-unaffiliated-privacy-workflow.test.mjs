@@ -12,7 +12,7 @@ after(async () => {
   await closeDb()
 })
 
-async function actAsAuthenticated(tx, userId, aal = "aal1") {
+async function actAsAuthenticated(tx, userId, aal = "aal2") {
   await tx`select set_config('request.jwt.claim.role', 'authenticated', true)`
   await tx`select set_config('request.jwt.claim.sub', ${userId}, true)`
   await tx`select set_config('request.jwt.claim.aal', ${aal}, true)`

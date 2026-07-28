@@ -197,7 +197,7 @@ export function describeAdminGateStates(): void {
       }
     })
 
-    test("allows a seeded admin into the admin shell with email and password", async ({
+    test("requires a seeded password-only admin to enrol MFA before rendering the shell", async ({
       page,
     }) => {
       const insecureSessionUserWarnings: string[] = []
@@ -208,17 +208,32 @@ export function describeAdminGateStates(): void {
       })
       const adminResponseErrors = collectAdminResponseErrors(page)
       await signInToAdmin(page, ACTIVE_ADMIN)
-      const navigation = page.getByRole("navigation", {
-        name: "Admin navigation",
-      })
-      if (!(await navigation.isVisible())) {
-        await page.getByRole("button", { name: "Toggle Sidebar" }).click()
-      }
-      await expect(navigation).toBeVisible()
-      await expect(page.getByText("Operator:")).toBeVisible()
+      await expect(
+        page.getByRole("heading", {
+          name: "Two-factor authentication is required",
+        })
+      ).toBeVisible()
+      await expect(
+        page.getByRole("button", { name: "Set up two-factor" })
+      ).toBeVisible()
+      await expect(
+        page.getByRole("navigation", { name: "Admin navigation" })
+      ).toHaveCount(0)
+      await expect(page.getByText("Operator:")).toHaveCount(0)
       expect(new URL(page.url()).pathname).toBe("/admin")
       expect(adminResponseErrors).toEqual([])
       expect(insecureSessionUserWarnings).toEqual([])
+
+      await page.goto("/admin/security")
+      await expect(
+        page.getByRole("heading", {
+          name: "Two-factor authentication is required",
+        })
+      ).toBeVisible()
+      await expect(
+        page.getByRole("navigation", { name: "Admin navigation" })
+      ).toHaveCount(0)
+      expect(adminResponseErrors).toEqual([])
     })
   })
 }

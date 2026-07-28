@@ -16,4 +16,9 @@ test("admin MFA assurance verifies factors through the access-token path", () =>
     /getAuthenticatorAssuranceLevel\(\s*\)/,
     "the cookie-backed session user must not determine factor enrolment"
   )
+  assert.match(
+    auth,
+    /catch\s*\{[\s\S]*mfaState\s*=\s*"unavailable"/,
+    "an Auth or assurance failure must fail closed"
+  )
 })

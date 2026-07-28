@@ -100,6 +100,7 @@ test(
 
       // Authorised erasure as the seeded internal admin.
       await tx`select set_config('request.jwt.claim.sub', ${ADMIN_UID}, true)`
+      await tx`select set_config('request.jwt.claim.aal', 'aal2', true)`
       const [{ result }] = await tx`
         select public.admin_erase_customer_pii(
           ${customer.id}::uuid, ${v.merchant_id}::uuid, 'email',
@@ -115,21 +116,39 @@ test(
       const [push] = await tx`
         select enabled, revoked_at from public.push_subscriptions where id = ${seeded.pushId}`
       assert.equal(push.enabled, false, "the push subscription is disabled")
-      assert.ok(push.revoked_at, "the push subscription carries a revoked timestamp")
+      assert.ok(
+        push.revoked_at,
+        "the push subscription carries a revoked timestamp"
+      )
 
       // ---- Pending notifications cancelled; terminal history retained.
       const [queued] = await tx`
         select status, cancelled_at from public.notification_events where id = ${seeded.notif.queued}`
-      assert.equal(queued.status, "cancelled", "the queued notification is cancelled")
-      assert.ok(queued.cancelled_at, "the cancelled notification carries a timestamp")
+      assert.equal(
+        queued.status,
+        "cancelled",
+        "the queued notification is cancelled"
+      )
+      assert.ok(
+        queued.cancelled_at,
+        "the cancelled notification carries a timestamp"
+      )
 
       const [delivering] = await tx`
         select status from public.notification_events where id = ${seeded.notif.delivering}`
-      assert.equal(delivering.status, "cancelled", "the delivering notification is cancelled")
+      assert.equal(
+        delivering.status,
+        "cancelled",
+        "the delivering notification is cancelled"
+      )
 
       const [sent] = await tx`
         select status from public.notification_events where id = ${seeded.notif.sent}`
-      assert.equal(sent.status, "sent", "terminal (sent) notification history is retained")
+      assert.equal(
+        sent.status,
+        "sent",
+        "terminal (sent) notification history is retained"
+      )
 
       // ---- The loyalty ledger is RETAINED.
       const [{ n: membershipsAfter }] = await tx`
@@ -169,8 +188,13 @@ test(
         select public.admin_purge_stale_customer_pii() as purged`
       assert.ok(purged >= 1, "at least the stale customer was purged")
 
-      const [{ email }] = await tx`select email from public.customers where id = ${customer.id}`
-      assert.match(email, /^erased\+[0-9a-f]+@privacy\.invalid$/i, "the stale customer is anonymised")
+      const [{ email }] =
+        await tx`select email from public.customers where id = ${customer.id}`
+      assert.match(
+        email,
+        /^erased\+[0-9a-f]+@privacy\.invalid$/i,
+        "the stale customer is anonymised"
+      )
 
       const [session] = await tx`
         select revoked_at from public.customer_sessions where id = ${seeded.sessionId}::uuid`
@@ -178,16 +202,31 @@ test(
 
       const [push] = await tx`
         select enabled, revoked_at from public.push_subscriptions where id = ${seeded.pushId}`
-      assert.equal(push.enabled, false, "the stale customer's push subscription is disabled")
-      assert.ok(push.revoked_at, "the stale customer's push subscription carries a revoked timestamp")
+      assert.equal(
+        push.enabled,
+        false,
+        "the stale customer's push subscription is disabled"
+      )
+      assert.ok(
+        push.revoked_at,
+        "the stale customer's push subscription carries a revoked timestamp"
+      )
 
       const [queued] = await tx`
         select status from public.notification_events where id = ${seeded.notif.queued}`
-      assert.equal(queued.status, "cancelled", "the stale customer's queued notification is cancelled")
+      assert.equal(
+        queued.status,
+        "cancelled",
+        "the stale customer's queued notification is cancelled"
+      )
 
       const [sent] = await tx`
         select status from public.notification_events where id = ${seeded.notif.sent}`
-      assert.equal(sent.status, "sent", "terminal notification history is retained by the purge")
+      assert.equal(
+        sent.status,
+        "sent",
+        "terminal notification history is retained by the purge"
+      )
     })
   }
 )

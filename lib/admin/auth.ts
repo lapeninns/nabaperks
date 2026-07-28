@@ -49,13 +49,10 @@ export const getAdminAccess = cache(async (): Promise<AdminAccess> => {
     return { status: "denied", reason: "Internal admin access is required." }
   }
 
-  // MFA is enforced at the app layer only (never re-add the DB AAL2 check —
-  // see lib/admin/mfa-gate.ts). Passing the access token makes Supabase verify
-  // the user and factor list with Auth instead of trusting session.user from
-  // the cookie-backed storage object. Resolve the assurance level; any failure
-  // fails OPEN to "no-factor" so a transient auth error can never lock an admin
-  // out.
-  let mfaState: AdminMfaState = "no-factor"
+  // Passing the access token makes Supabase verify the user and factor list
+  // with Auth instead of trusting session.user from cookie-backed storage.
+  // Unknown or unavailable assurance state fails closed.
+  let mfaState: AdminMfaState = "unavailable"
   try {
     const {
       data: { session },
@@ -73,7 +70,7 @@ export const getAdminAccess = cache(async (): Promise<AdminAccess> => {
     }
     mfaState = resolveAdminMfaState(aal?.currentLevel, aal?.nextLevel)
   } catch {
-    mfaState = "no-factor"
+    mfaState = "unavailable"
   }
 
   return {
@@ -86,8 +83,20 @@ export const getAdminAccess = cache(async (): Promise<AdminAccess> => {
 })
 
 export async function requireAdminRead() {
-  const access = await getAdminAccess()
+  const access = await requireAdminIdentity()
+  if (access.mfaState !== "satisfied") {
+    throw new Error("Two-factor verification is required before admin access.")
+  }
 
+  return access
+}
+
+/**
+ * Active-admin identity gate used only by the MFA enrolment and step-up path.
+ * It deliberately does not grant access to admin data or mutations.
+ */
+export async function requireAdminIdentity() {
+  const access = await getAdminAccess()
   if (!isAllowedAdminAccess(access)) {
     throw new Error("Internal admin access is required.")
   }
@@ -95,23 +104,11 @@ export async function requireAdminRead() {
   return access
 }
 
-export async function requireAdminAction() {
-  const access = await requireAdminRead()
-
-  // Defense-in-depth for direct action calls: an enrolled admin who has not
-  // completed the step-up challenge cannot mutate. The layout already blocks the
-  // UI in this state, and the MFA enrol/step-up actions use requireAdminRead (not
-  // this), so this never bites the legitimate step-up path. Fails open because
-  // getAdminAccess resolves an unknown assurance level to "no-factor".
-  if (access.mfaState === "step-up-required") {
-    throw new Error("Two-factor verification is required before this action.")
-  }
-
-  return access
-}
+export const requireAdminAction = requireAdminRead
 
 export async function canRenderAdminPage(): Promise<boolean> {
-  return isAllowedAdminAccess(await getAdminAccess())
+  const access = await getAdminAccess()
+  return isAllowedAdminAccess(access) && access.mfaState === "satisfied"
 }
 
 function isAllowedAdminAccess(

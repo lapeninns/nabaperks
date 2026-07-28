@@ -1,8 +1,6 @@
 import { Shield01Icon } from "@hugeicons/core-free-icons"
 
-import {
-  AdminLookupErrorState,
-} from "@/components/admin/lookup-controls"
+import { AdminLookupErrorState } from "@/components/admin/lookup-controls"
 import {
   AdminPanel,
   SourceLabel,
@@ -15,7 +13,6 @@ import type { AdminDataRequestActivityRow } from "@/lib/admin/data"
 import {
   dataRequestAgeCopy,
   describeDataRequestAge,
-  DATA_REQUEST_WINDOW_DAYS,
 } from "@/lib/admin/data-request-status"
 
 /**
@@ -34,7 +31,7 @@ export function LoggedRequestsPanel({
     <AdminPanel>
       <SectionHeader
         title="Logged data requests"
-        description={`Recent requests from the audit trail with their age against the ${DATA_REQUEST_WINDOW_DAYS}-day response window. Exports and erasures complete at the moment they are logged.`}
+        description="Recent requests from the audit trail with their age against the one-calendar-month response deadline. Exports and erasures complete at the moment they are logged."
         actions={<SourceLabel>Source: audit_logs</SourceLabel>}
       />
       {requests ? (
@@ -63,7 +60,11 @@ function toFeedItem(request: AdminDataRequestActivityRow) {
 
   return {
     id: request.id,
-    tone: pending ? (age.overdue ? ("accent" as const) : ("sun" as const)) : ("leaf" as const),
+    tone: pending
+      ? age.overdue
+        ? ("accent" as const)
+        : ("sun" as const)
+      : ("leaf" as const),
     title: (
       <span className="flex flex-wrap items-center gap-2">
         {requestTitle(request)}

@@ -2,70 +2,80 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 
 import {
-  DATA_REQUEST_WINDOW_DAYS,
   dataRequestAgeCopy,
   describeDataRequestAge,
 } from "@/lib/admin/data-request-status"
 
-const NOW = new Date("2026-07-02T12:00:00Z")
-
-function daysAgo(days) {
-  return new Date(NOW.getTime() - days * 24 * 60 * 60 * 1000).toISOString()
-}
-
-test("describeDataRequestAge counts whole elapsed days against the 30-day window", () => {
-  assert.deepEqual(describeDataRequestAge(daysAgo(0), NOW), {
-    days: 0,
-    remainingDays: 30,
-    overdue: false,
-  })
-  assert.deepEqual(describeDataRequestAge(daysAgo(12), NOW), {
-    days: 12,
-    remainingDays: 18,
-    overdue: false,
-  })
-  assert.deepEqual(describeDataRequestAge(daysAgo(30), NOW), {
-    days: 30,
-    remainingDays: 0,
-    overdue: false,
-  })
+test("describeDataRequestAge uses one calendar month and clamps short months", () => {
+  assert.deepEqual(
+    describeDataRequestAge(
+      "2027-01-31T12:00:00.000Z",
+      new Date("2027-02-27T12:00:00.000Z")
+    ),
+    { days: 27, remainingDays: 1, overdue: false }
+  )
+  assert.deepEqual(
+    describeDataRequestAge(
+      "2027-01-31T12:00:00.000Z",
+      new Date("2027-02-28T12:00:00.000Z")
+    ),
+    { days: 28, remainingDays: 0, overdue: false }
+  )
+  assert.deepEqual(
+    describeDataRequestAge(
+      "2027-01-31T12:00:00.000Z",
+      new Date("2027-03-01T12:00:00.000Z")
+    ),
+    { days: 29, remainingDays: -1, overdue: true }
+  )
 })
 
-test("describeDataRequestAge flags overdue requests and never returns negative age", () => {
-  const overdue = describeDataRequestAge(daysAgo(45), NOW)
-  assert.equal(overdue.days, 45)
-  assert.equal(overdue.remainingDays, -15)
-  assert.equal(overdue.overdue, true)
+test("describeDataRequestAge honours 31-day months and UK calendar dates", () => {
+  assert.deepEqual(
+    describeDataRequestAge(
+      "2026-07-01T12:00:00.000Z",
+      new Date("2026-08-01T12:00:00.000Z")
+    ),
+    { days: 31, remainingDays: 0, overdue: false }
+  )
+  assert.deepEqual(
+    describeDataRequestAge(
+      "2026-07-30T23:30:00.000Z",
+      new Date("2026-08-31T22:30:00.000Z")
+    ),
+    { days: 31, remainingDays: 0, overdue: false }
+  )
+})
 
-  // A clock-skewed future timestamp clamps to zero days old.
-  const future = describeDataRequestAge(daysAgo(-2), NOW)
-  assert.equal(future.days, 0)
-  assert.equal(future.overdue, false)
+test("describeDataRequestAge never returns a negative age for a future request", () => {
+  assert.deepEqual(
+    describeDataRequestAge(
+      "2026-08-01T12:00:00.000Z",
+      new Date("2026-07-01T12:00:00.000Z")
+    ),
+    { days: 0, remainingDays: 31, overdue: false }
+  )
 })
 
 test("dataRequestAgeCopy reads as calm en-GB status lines", () => {
   assert.equal(
-    dataRequestAgeCopy(describeDataRequestAge(daysAgo(0), NOW)),
-    "Logged today · 30 days left of the 30-day window"
+    dataRequestAgeCopy({ days: 0, remainingDays: 28, overdue: false }),
+    "Logged today · 28 days left until the one-calendar-month deadline"
   )
   assert.equal(
-    dataRequestAgeCopy(describeDataRequestAge(daysAgo(1), NOW)),
-    "Logged 1 day ago · 29 days left of the 30-day window"
+    dataRequestAgeCopy({ days: 1, remainingDays: 27, overdue: false }),
+    "Logged 1 day ago · 27 days left until the one-calendar-month deadline"
   )
   assert.equal(
-    dataRequestAgeCopy(describeDataRequestAge(daysAgo(29), NOW)),
-    "Logged 29 days ago · 1 day left of the 30-day window"
+    dataRequestAgeCopy({ days: 28, remainingDays: 0, overdue: false }),
+    "Logged 28 days ago · due today"
   )
   assert.equal(
-    dataRequestAgeCopy(describeDataRequestAge(daysAgo(31), NOW)),
-    "Logged 31 days ago · 1 day over the 30-day window"
+    dataRequestAgeCopy({ days: 29, remainingDays: -1, overdue: true }),
+    "Logged 29 days ago · 1 day past the one-calendar-month deadline"
   )
   assert.equal(
-    dataRequestAgeCopy(describeDataRequestAge(daysAgo(45), NOW)),
-    "Logged 45 days ago · 15 days over the 30-day window"
+    dataRequestAgeCopy({ days: 45, remainingDays: -15, overdue: true }),
+    "Logged 45 days ago · 15 days past the one-calendar-month deadline"
   )
-})
-
-test("the window constant matches the statutory copy", () => {
-  assert.equal(DATA_REQUEST_WINDOW_DAYS, 30)
 })

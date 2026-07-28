@@ -2,17 +2,15 @@
 
 import { revalidatePath } from "next/cache"
 
-import { requireAdminRead } from "@/lib/admin/auth"
+import { requireAdminIdentity, requireAdminRead } from "@/lib/admin/auth"
 import { adminMfaUnenrollmentAllowed } from "@/lib/admin/mfa-gate"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 /**
  * Admin authenticator (TOTP) enrol / step-up server actions.
  *
- * All gate on requireAdminRead (an active internal admin) — NOT
- * requireAdminAction, because that refuses when step-up is required and the
- * whole point of step-up is to reach aal2 from aal1. MFA is enforced at the app
- * layer only (lib/admin/mfa-gate.ts); these actions never touch the DB gate.
+ * Enrolment and step-up use the identity-only gate because their purpose is to
+ * reach AAL2. Ordinary reads and factor removal still require satisfied AAL2.
  */
 
 export type AdminMfaEnrollment =
@@ -29,7 +27,10 @@ function readCode(formData: FormData): string {
 
 /** Start enrolment: mint a new unverified TOTP factor and return its QR + secret. */
 export async function beginAdminMfaEnrollment(): Promise<AdminMfaEnrollment> {
-  await requireAdminRead()
+  const access = await requireAdminIdentity()
+  if (access.mfaState !== "enrollment-required") {
+    return { ok: false, error: "Authenticator enrolment is not available." }
+  }
   const supabase = await createSupabaseServerClient()
 
   const { data, error } = await supabase.auth.mfa.enroll({
@@ -91,7 +92,10 @@ export async function verifyAdminMfaEnrollment(
   _prev: AdminMfaFormState,
   formData: FormData
 ): Promise<AdminMfaFormState> {
-  await requireAdminRead()
+  const access = await requireAdminIdentity()
+  if (access.mfaState !== "enrollment-required") {
+    return { ok: false, error: "Authenticator enrolment is not available." }
+  }
   return challengeAndVerify(
     String(formData.get("factorId") ?? ""),
     readCode(formData)
@@ -103,7 +107,10 @@ export async function stepUpAdminMfa(
   _prev: AdminMfaFormState,
   formData: FormData
 ): Promise<AdminMfaFormState> {
-  await requireAdminRead()
+  const access = await requireAdminIdentity()
+  if (access.mfaState !== "step-up-required") {
+    return { ok: false, error: "Authenticator verification is not required." }
+  }
   const supabase = await createSupabaseServerClient()
 
   const { data, error } = await supabase.auth.mfa.listFactors()
@@ -118,7 +125,7 @@ export async function stepUpAdminMfa(
   return challengeAndVerify(factor.id, readCode(formData))
 }
 
-/** Remove an enrolled authenticator (returns the admin to no-factor). */
+/** Remove a factor; the mandatory gate requires re-enrolment immediately. */
 export async function unenrollAdminMfa(
   _prev: AdminMfaFormState,
   formData: FormData

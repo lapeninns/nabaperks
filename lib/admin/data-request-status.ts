@@ -1,12 +1,10 @@
-/**
- * Pure age/deadline maths for logged GDPR data requests (UK GDPR: respond
- * within one calendar month; the console tracks a conservative 30-day
- * window). No IO — unit-tested directly; the privacy panel renders the copy.
- */
-
-export const DATA_REQUEST_WINDOW_DAYS = 30
-
 const DAY_MS = 24 * 60 * 60 * 1000
+const UK_DATE_FORMATTER = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Europe/London",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+})
 
 export type DataRequestAge = {
   readonly days: number
@@ -18,10 +16,16 @@ export function describeDataRequestAge(
   createdAt: string,
   now: Date = new Date()
 ): DataRequestAge {
-  const created = new Date(createdAt).getTime()
-  const elapsed = now.getTime() - created
-  const days = Math.max(0, Math.floor(elapsed / DAY_MS))
-  const remainingDays = DATA_REQUEST_WINDOW_DAYS - days
+  const createdDate = new Date(createdAt)
+  const created = toUkDateParts(createdDate)
+  const current = toUkDateParts(now)
+  const createdOrdinal = toOrdinal(created)
+  const currentOrdinal = toOrdinal(current)
+  const deadline = addCalendarMonth(created)
+  const deadlineOrdinal = toOrdinal(deadline)
+  const effectiveCurrentOrdinal = Math.max(currentOrdinal, createdOrdinal)
+  const days = effectiveCurrentOrdinal - createdOrdinal
+  const remainingDays = deadlineOrdinal - effectiveCurrentOrdinal
 
   return {
     days,
@@ -30,7 +34,7 @@ export function describeDataRequestAge(
   }
 }
 
-/** Human line for a pending request, e.g. "Logged 12 days ago · 18 days left of the 30-day window". */
+/** Human line for a pending request against its one-calendar-month deadline. */
 export function dataRequestAgeCopy(age: DataRequestAge): string {
   const logged =
     age.days === 0
@@ -41,10 +45,50 @@ export function dataRequestAgeCopy(age: DataRequestAge): string {
 
   if (age.overdue) {
     const over = Math.abs(age.remainingDays)
-    return `${logged} · ${over} ${over === 1 ? "day" : "days"} over the ${DATA_REQUEST_WINDOW_DAYS}-day window`
+    return `${logged} · ${over} ${over === 1 ? "day" : "days"} past the one-calendar-month deadline`
+  }
+
+  if (age.remainingDays === 0) {
+    return `${logged} · due today`
   }
 
   return `${logged} · ${age.remainingDays} ${
     age.remainingDays === 1 ? "day" : "days"
-  } left of the ${DATA_REQUEST_WINDOW_DAYS}-day window`
+  } left until the one-calendar-month deadline`
+}
+
+type DateParts = {
+  readonly year: number
+  readonly month: number
+  readonly day: number
+}
+
+function toUkDateParts(value: Date): DateParts {
+  if (Number.isNaN(value.getTime())) {
+    throw new Error("Invalid data request timestamp.")
+  }
+
+  const parts = Object.fromEntries(
+    UK_DATE_FORMATTER.formatToParts(value).map(({ type, value: part }) => [
+      type,
+      part,
+    ])
+  )
+  return {
+    year: Number(parts.year),
+    month: Number(parts.month),
+    day: Number(parts.day),
+  }
+}
+
+function toOrdinal(value: DateParts): number {
+  return Date.UTC(value.year, value.month - 1, value.day) / DAY_MS
+}
+
+function addCalendarMonth(value: DateParts): DateParts {
+  const monthIndex = value.month
+  const year = value.year + Math.floor(monthIndex / 12)
+  const month = (monthIndex % 12) + 1
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate()
+  return { year, month, day: Math.min(value.day, lastDay) }
 }

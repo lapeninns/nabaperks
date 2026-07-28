@@ -87,10 +87,23 @@ test(
         "a non-admin caller cannot resolve fraud flags"
       )
 
-      // Admin access no longer requires AAL2 step-up (migration
-      // 20260720100000): an active internal_admins row is sufficient, so an
-      // admin at aal1 resolves fraud flags successfully.
-      await actAsAuthenticated(tx, ADMIN_UID, "aal1")
+      let refusedAal1Admin = false
+      try {
+        await tx.savepoint(async (sp) => {
+          await actAsAuthenticated(sp, ADMIN_UID, "aal1")
+          await sp`select public.admin_resolve_fraud_flag(
+            ${flagId}::uuid, 'dismissed', ${reason})`
+        })
+      } catch (error) {
+        refusedAal1Admin = isAdminRejection(error)
+      }
+      assert.ok(
+        refusedAal1Admin,
+        "an active admin at aal1 cannot resolve fraud flags"
+      )
+
+      // The same active admin succeeds only after the session reaches AAL2.
+      await actAsAuthenticated(tx, ADMIN_UID, "aal2")
       await tx`select public.admin_resolve_fraud_flag(
         ${flagId}::uuid, 'dismissed', ${reason})`
 
@@ -169,9 +182,27 @@ test(
         "a non-admin caller cannot log privacy requests"
       )
 
-      // Admin access no longer requires AAL2 step-up (migration
-      // 20260720100000): an admin at aal1 logs privacy requests successfully.
-      await actAsAuthenticated(tx, ADMIN_UID, "aal1")
+      let refusedAal1Admin = false
+      try {
+        await tx.savepoint(async (sp) => {
+          await actAsAuthenticated(sp, ADMIN_UID, "aal1")
+          await sp`select public.admin_log_data_request(
+            ${membership.customer_id}::uuid,
+            ${membership.merchant_id}::uuid,
+            'access',
+            'email',
+            ${accessNotes}
+          )`
+        })
+      } catch (error) {
+        refusedAal1Admin = isAdminRejection(error)
+      }
+      assert.ok(
+        refusedAal1Admin,
+        "an active admin at aal1 cannot log privacy requests"
+      )
+
+      await actAsAuthenticated(tx, ADMIN_UID, "aal2")
 
       const [{ result: accessResult }] = await tx`
         select public.admin_log_data_request(
