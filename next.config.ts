@@ -8,9 +8,19 @@ import {
 } from "./lib/security/csp"
 
 const playwrightDistDir = process.env.PLAYWRIGHT_NEXT_DIST_DIR?.trim()
+const buildRevision =
+  process.env.NABAPERKS_BUILD_REVISION?.trim() ||
+  process.env.VERCEL_GIT_COMMIT_SHA?.trim()
+
+if (buildRevision && !/^[a-f\d]{40}$/i.test(buildRevision)) {
+  throw new Error("Build revision must be a full Git SHA")
+}
 
 const nextConfig: NextConfig = {
   ...(playwrightDistDir ? { distDir: playwrightDistDir } : {}),
+  ...(buildRevision
+    ? { env: { NABAPERKS_BUILD_REVISION: buildRevision.toLowerCase() } }
+    : {}),
   // Drop the `x-powered-by: Next.js` response header — a free stack info-leak
   // hardening (flagged in the 2026-07-05 GEO/technical audit).
   poweredByHeader: false,

@@ -8,6 +8,7 @@ import {
   REQUEST_ID_HEADER,
   resolveRequestId,
 } from "@/lib/observability/request-id"
+import { releaseRevision } from "@/lib/observability/release-revision"
 import { matchesAnyBearerSecret } from "@/lib/security/cron-auth"
 
 export const dynamic = "force-dynamic"
@@ -77,8 +78,7 @@ export async function GET(request: Request): Promise<Response> {
       scope: "readiness",
       service: SERVICE,
       version: packageJson.version,
-      revision:
-        process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 12) ?? packageJson.version,
+      revision: releaseRevision({ fallback: packageJson.version }),
       environment,
       targetEnvironment,
       checks,

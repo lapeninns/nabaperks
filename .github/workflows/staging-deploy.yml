@@ -1,0 +1,138 @@
+name: Staging deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_revision:
+        description: Full Git SHA currently at the tip of main
+        required: true
+        type: string
+      confirmation:
+        description: Type DEPLOY_STAGING_APPLICATION to continue
+        required: true
+        type: string
+
+concurrency:
+  group: staging-deployment
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Protected Staging deployment
+    environment: Staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      EXPECTED_REVISION: ${{ inputs.expected_revision }}
+      NABAPERKS_BUILD_REVISION: ${{ inputs.expected_revision }}
+      STAGING_APP_ALIAS: ${{ vars.STAGING_APP_ALIAS }}
+      STAGING_EXPECTED_REVISION: ${{ inputs.expected_revision }}
+      STAGING_MODE: hosted
+      STAGING_MONITOR_SECRET: ${{ secrets.STAGING_MONITOR_SECRET }}
+      STAGING_RESEND_WEBHOOK_SECRET: ${{ secrets.STAGING_RESEND_WEBHOOK_SECRET }}
+      STAGING_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+      STAGING_STRIPE_WEBHOOK_SECRET: ${{ secrets.STAGING_STRIPE_WEBHOOK_SECRET }}
+      STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+      STAGING_SUPABASE_PROJECT_REF: ${{ vars.STAGING_SUPABASE_PROJECT_REF }}
+      STAGING_VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.STAGING_VERCEL_AUTOMATION_BYPASS_SECRET }}
+      VERCEL_GIT_COMMIT_SHA: ${{ inputs.expected_revision }}
+      VERCEL_ORG_ID: ${{ vars.STAGING_VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.STAGING_VERCEL_PROJECT_ID }}
+      DO_NOT_TRACK: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.expected_revision }}
+          fetch-depth: 0
+      - name: Verify immutable source and isolated target
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          test "$GITHUB_REF" = "refs/heads/main"
+          [[ "$EXPECTED_REVISION" =~ ^[a-f0-9]{40}$ ]]
+          test "$CONFIRMATION" = "DEPLOY_STAGING_APPLICATION"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_REVISION"
+          test "$(git rev-parse origin/main)" = "$EXPECTED_REVISION"
+          test -n "$STAGING_MONITOR_SECRET"
+          test -n "$STAGING_RESEND_WEBHOOK_SECRET"
+          test -n "$STAGING_STRIPE_WEBHOOK_SECRET"
+          test -n "$STAGING_SUPABASE_DB_URL"
+          test -n "$STAGING_SUPABASE_PROJECT_REF"
+          test -n "$STAGING_VERCEL_AUTOMATION_BYPASS_SECRET"
+          test -n "$VERCEL_ORG_ID"
+          test -n "$VERCEL_PROJECT_ID"
+          case "$STAGING_APP_ALIAS" in
+            ""|nabaperks.com|www.nabaperks.com|nabaperks.vercel.app)
+              echo "::error::The Staging alias is empty or production-owned."
+              exit 1
+              ;;
+            *.vercel.app) ;;
+            *)
+              echo "::error::The Staging alias must be an isolated vercel.app hostname."
+              exit 1
+              ;;
+          esac
+      - uses: ./.github/actions/setup
+      - name: Verify the locked deployment CLI
+        run: test "$(pnpm exec vercel --version | tail -n 1)" = "56.5.0"
+      - name: Build the immutable custom-environment output
+        env:
+          STAGING_VERCEL_TOKEN: ${{ secrets.STAGING_VERCEL_TOKEN }}
+        run: |
+          test -n "$STAGING_VERCEL_TOKEN"
+          pnpm exec vercel pull --yes --environment=staging --token="$STAGING_VERCEL_TOKEN"
+          test "$(jq -r '.orgId' .vercel/project.json)" = "$VERCEL_ORG_ID"
+          test "$(jq -r '.projectId' .vercel/project.json)" = "$VERCEL_PROJECT_ID"
+          pnpm exec vercel build --target=staging --yes --token="$STAGING_VERCEL_TOKEN"
+          test -d .vercel/output
+      - name: Remove pulled environment material
+        run: |
+          rm -f .vercel/.env.staging.local
+          if find .vercel -maxdepth 1 -type f -name '.env*' -print -quit | grep -q .; then
+            echo "::error::Pulled Vercel environment material remains on disk."
+            exit 1
+          fi
+      - name: Deploy the candidate without assigning a domain
+        id: deploy
+        env:
+          STAGING_VERCEL_TOKEN: ${{ secrets.STAGING_VERCEL_TOKEN }}
+        run: |
+          deployment_url="$(pnpm exec vercel deploy \
+            --prebuilt \
+            --target=staging \
+            --skip-domain \
+            --archive=tgz \
+            --yes \
+            --meta githubCommitSha="$EXPECTED_REVISION" \
+            --env NABAPERKS_BUILD_REVISION="$EXPECTED_REVISION" \
+            --token="$STAGING_VERCEL_TOKEN")"
+          case "$deployment_url" in
+            https://*.vercel.app) ;;
+            *) echo "::error::Vercel returned no immutable deployment URL."; exit 1 ;;
+          esac
+          printf 'url=%s\n' "$deployment_url" >> "$GITHUB_OUTPUT"
+      - name: Prove the immutable candidate
+        env:
+          STAGING_APP_URL: ${{ steps.deploy.outputs.url }}
+        run: pnpm smoke:staging
+      - name: Alias the proven candidate
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
+          STAGING_VERCEL_TOKEN: ${{ secrets.STAGING_VERCEL_TOKEN }}
+        run: |
+          pnpm exec vercel alias set "$DEPLOYMENT_URL" "$STAGING_APP_ALIAS" \
+            --token="$STAGING_VERCEL_TOKEN"
+      - name: Record the proven Staging release
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          {
+            echo "### Staging deployment"
+            echo
+            echo "- Revision: \`$EXPECTED_REVISION\`"
+            echo "- Immutable candidate: \`$DEPLOYMENT_URL\`"
+            echo "- Alias: \`$STAGING_APP_ALIAS\`"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -2,6 +2,7 @@ import {
   REQUEST_ID_HEADER,
   resolveRequestId,
 } from "@/lib/observability/request-id"
+import { releaseRevision } from "@/lib/observability/release-revision"
 import packageJson from "@/package.json"
 
 export const dynamic = "force-dynamic"
@@ -18,7 +19,7 @@ export async function GET(request: Request): Promise<Response> {
       scope: "liveness",
       service: SERVICE,
       version: VERSION,
-      revision: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 12) ?? VERSION,
+      revision: releaseRevision({ fallback: VERSION }),
       environment: process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? "unknown",
       targetEnvironment:
         process.env.VERCEL_TARGET_ENV ??
