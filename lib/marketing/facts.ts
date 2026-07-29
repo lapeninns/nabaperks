@@ -107,7 +107,7 @@ export const MARKET = {
   /** Venues the offer prioritises (doc 1's qualification rules). */
   qualify: [
     "Single-site and owner-operated, or owner-led day-to-day",
-    "Serves food Tuesday to Thursday",
+    "Serves food on quiet midweek days too",
     "Visible weekend demand and a meaningful existing customer base",
     "One manager willing to own the launch and keep the QR counter materials displayed",
     "Wants the implementation done for you, not empty software access",
@@ -508,7 +508,7 @@ export const LANDING = {
     title: "Built for one kind of pub",
     lines: [
       "Single-site and owner-led",
-      "Serving food Tuesday to Thursday",
+      "Serves food on quiet midweek days too",
       "Busy at weekends, with regulars worth bringing back",
     ],
     honest:
@@ -618,6 +618,321 @@ export const PLAN_INCLUDES = [
   "Weekly digest of visits, regulars and redemptions",
   "Optional location checks at your venue",
 ] as const
+
+// --- The pub buyer's guide (the /loyalty-for-pubs hub) ----------------------
+
+/**
+ * The pub hub's own content layer — the decision a publican makes *before*
+ * choosing a vendor, which no other route owns. `/` sells, `/how-it-works`
+ * explains our mechanics, `/pricing` states the commercials and the three
+ * `/guides/*` pages go deep on one question each; this block is the layer above
+ * them all: should you run a scheme, which shape, and what does it cost you on
+ * the floor.
+ *
+ * Voice rule (same as `LANDING`): publican English, never offer-framework
+ * jargon, and never a revenue or filled-tables promise. Every option below is
+ * described honestly in both directions — including the ones we don't sell and
+ * the case for doing nothing — because a buyer's guide that only flatters its
+ * own product isn't one.
+ */
+
+export type PubGuideSectionId =
+  | "decide"
+  | "options"
+  | "staff-time"
+  | "at-the-till"
+  | "failures"
+  | "questions"
+  | "fit"
+  | "guides"
+
+export type PubGuideSection = {
+  readonly id: PubGuideSectionId
+  /** Spine label — short enough for the sticky rail. */
+  readonly navLabel: string
+  readonly eyebrow: string
+  readonly heading: string
+  /** Lead prose; each section's structured payload renders after it. */
+  readonly paragraphs: readonly string[]
+}
+
+/** The ordered spine. The jump nav and the section markers both derive here. */
+export const PUB_GUIDE_SECTIONS: readonly PubGuideSection[] = [
+  {
+    id: "decide",
+    navLabel: "Should you?",
+    eyebrow: "The first question",
+    heading: "Should your pub run a loyalty scheme at all?",
+    paragraphs: [
+      "A loyalty scheme doesn't create demand. It gives the people already walking through your door a reason to choose you again sooner — so the honest test is whether you have returning faces to work with in the first place.",
+      "If your weekends are full and Tuesday to Thursday is thin, you have the raw material: a crowd that already likes the place, arriving on the nights you don't need the help. That gap is the opportunity, and it's the one thing a card can act on.",
+      "If you're quiet every night, or you're new enough that nobody has been in twice yet, a card is the wrong tool and any vendor telling you otherwise is selling. Fix the reason people aren't coming first — no stamp card manufactures a first visit.",
+    ],
+  },
+  {
+    id: "options",
+    navLabel: "The four options",
+    eyebrow: "The landscape",
+    heading: "The four ways pubs run loyalty",
+    paragraphs: [
+      "Nearly every scheme you'll be pitched is one of four shapes. They fail in different places, and the right one depends far less on the feature list than on what your guests and your staff will genuinely do at a busy counter.",
+    ],
+  },
+  {
+    id: "staff-time",
+    navLabel: "Staff time",
+    eyebrow: "The real cost",
+    heading: "What it actually costs your staff",
+    paragraphs: [
+      "The subscription is the easy number. The one that decides whether a scheme survives its first busy Friday is what it asks of the person behind the bar.",
+    ],
+  },
+  {
+    id: "at-the-till",
+    navLabel: "At the till",
+    eyebrow: "On the floor",
+    heading: "What changes at the counter",
+    paragraphs: [
+      "This is the part worth picturing before you sign anything, because it's the part that happens a hundred times a week.",
+    ],
+  },
+  {
+    id: "failures",
+    navLabel: "How they fail",
+    eyebrow: "Before you commit",
+    heading: "How pub loyalty schemes actually fail",
+    paragraphs: [
+      "Almost none of these are software problems — which is exactly why comparing feature lists doesn't protect you from them.",
+    ],
+  },
+  {
+    id: "questions",
+    navLabel: "What to ask",
+    eyebrow: "Due diligence",
+    heading: "What to ask any loyalty vendor",
+    paragraphs: [
+      "Ask these of anyone you talk to, us included. The answers separate the products faster than a demo will.",
+    ],
+  },
+  {
+    id: "fit",
+    navLabel: "Is your pub a fit?",
+    eyebrow: "Check the fit",
+    heading: "Built for a strong weekend and a quieter middle",
+    paragraphs: [],
+  },
+  {
+    id: "guides",
+    navLabel: "Go deeper",
+    eyebrow: "Keep reading",
+    heading: "Go deeper on one question",
+    paragraphs: [
+      "Three practical guides, each on a single decision you'll face once you've picked a shape.",
+    ],
+  },
+] as const
+
+export type PubLoyaltyOption = {
+  readonly key: "paper" | "app" | "wallet" | "qr"
+  readonly name: string
+  /** True only for the shape this product actually is — labelled on-page. */
+  readonly ours: boolean
+  readonly guestDoes: string
+  readonly youBuy: string
+  readonly youLearn: string
+  readonly failsWhen: string
+  readonly bestWhen: string
+}
+
+/**
+ * The options landscape, stated honestly in all four directions. The three
+ * shapes we don't sell keep their genuine strengths, and ours keeps its real
+ * failure mode — a comparison that only flatters the seller is worth nothing to
+ * the reader and gets treated that way.
+ */
+export const PUB_LOYALTY_OPTIONS: readonly PubLoyaltyOption[] = [
+  {
+    key: "paper",
+    name: "Paper stamp card",
+    ours: false,
+    guestDoes: "Carries a card and remembers to bring it back",
+    youBuy: "Printing, reprinted every time you run out",
+    youLearn: "Nothing — no record survives the counter",
+    failsWhen:
+      "Cards get lost, stamps get given twice, and a year on you still can't say whether it worked",
+    bestWhen:
+      "You want something running this week and genuinely don't need to measure it",
+  },
+  {
+    key: "app",
+    name: "Your own branded app",
+    ours: false,
+    guestDoes: "Installs an app and makes an account before the first stamp",
+    youBuy: "A build, then upkeep across two app stores",
+    youLearn: "A great deal — from the guests who actually install it",
+    failsWhen:
+      "The install ask lands mid-queue with people waiting behind, and most guests quietly decline",
+    bestWhen:
+      "You have a large, frequent customer base and the budget to keep an app alive",
+  },
+  {
+    key: "wallet",
+    name: "A wallet pass",
+    ours: false,
+    guestDoes: "Adds a pass to Apple Wallet or Google Wallet",
+    youBuy: "A pass platform subscription",
+    youLearn: "Some — installs and pushes, less about the visit itself",
+    failsWhen:
+      "Stamping still needs a device and an agreed process at the till, and the two wallet platforms don't behave alike",
+    bestWhen:
+      "Your guests already live in their wallet app and someone owns the setup",
+  },
+  {
+    key: "qr",
+    name: "A QR browser card",
+    ours: true,
+    guestDoes:
+      "Scans the counter code; the card opens in the browser they already have",
+    youBuy: "A subscription — nothing to print again, nothing to build",
+    youLearn:
+      "Visits, members and returning customers, plus a weekly digest by email",
+    failsWhen:
+      "The code isn't displayed where people queue, or staff never mention it",
+    bestWhen:
+      "You want the smallest possible ask of a guest mid-queue, and you want the visits recorded",
+  },
+] as const
+
+/** What the scheme asks of the people running it, split by when it's asked. */
+export const PUB_STAFF_TIME = {
+  perStamp: {
+    when: "At the till",
+    detail:
+      "One scan by the guest, and one short line for staff to say. Nothing for staff to type, look up or remember about the guest.",
+  },
+  weekly: {
+    when: "Every week after that",
+    detail:
+      "Keep the poster where people queue, and honour the rewards guests turn up with. That is the entire ongoing job.",
+  },
+  setup: {
+    when: "Up front",
+    detail:
+      "This is where most schemes quietly cost the most — picking rewards, building the card, chasing artwork and a print shop. On a done-for-you launch, Lapen Inns does those steps instead of handing them to you.",
+  },
+  warning:
+    "A scheme that needs someone to run a report, chase a list or reconcile a spreadsheet creates recurring admin that is easy to defer. Judge any vendor on the till moment, not the feature list.",
+} as const
+
+/** The floor process, walked through once. Four beats, then the honest test. */
+export const PUB_TILL_MOMENT = {
+  steps: [
+    "A guest orders. The poster is already on the counter, where they're standing anyway.",
+    "Staff say one line — the same line every shift, so nobody has to improvise on a busy night.",
+    "The guest scans. The card opens in their browser; nothing to install, no account to make first.",
+    "The guest confirms the stamp on their phone. The visit is recorded, and they can see how close they are.",
+  ],
+  closing:
+    "That's the whole floor process. If a vendor's version takes longer to explain than this one, you've learned something useful.",
+} as const
+
+export type PubLoyaltyFailure = {
+  readonly symptom: string
+  readonly why: string
+  readonly fix: string
+}
+
+/**
+ * The five ways these schemes die. Each maps to something the launch or the
+ * qualification rules already address, so the page can be honest about the
+ * failure mode without turning the section into a pitch.
+ */
+export const PUB_LOYALTY_FAILURES: readonly PubLoyaltyFailure[] = [
+  {
+    symptom: "The code is never seen",
+    why: "It ends up on a table talker nobody reads, or behind the bar where only staff can reach it.",
+    fix: "Put it where people already stand still — the counter, at the moment they're waiting to pay.",
+  },
+  {
+    symptom: "Staff never mention it",
+    why: "When the line isn't agreed, everyone invents their own, and on a busy night they skip it entirely.",
+    fix: "One short line, briefed once, identical for every shift.",
+  },
+  {
+    symptom: "The reward isn't worth the trip",
+    why: "A few percent off doesn't move anyone off the sofa on a wet Tuesday.",
+    fix: "Make it something a guest would mention to someone else — and keep your margin by drawing from a pool you set.",
+  },
+  {
+    symptom: "Nobody ever measures it",
+    why: "A paper card records nothing, so the scheme runs for a year on a feeling.",
+    fix: "Pick something that records visits and returning customers, then actually look at it each week.",
+  },
+  {
+    symptom: "It rewards the nights already busy",
+    why: "A scheme stamping hardest on a packed Saturday is discounting trade you already had.",
+    fix: "Point the reward at the quiet stretch you're actually trying to fill.",
+  },
+] as const
+
+export type PubVendorQuestion = {
+  readonly ask: string
+  readonly why: string
+  readonly ourAnswer: string
+}
+
+/**
+ * The due-diligence list. Our own answers sit beside each question rather than
+ * in a separate pitch — including the last one, where the answer has to state
+ * the limit as plainly as the promise.
+ */
+export const PUB_VENDOR_QUESTIONS: readonly PubVendorQuestion[] = [
+  {
+    ask: "Does my guest have to install anything?",
+    why: "Every install is a place the queue breaks down.",
+    ourAnswer: `${PRODUCT.cardLine} No app, and no wallet pass.`,
+  },
+  {
+    ask: "Does it touch my POS?",
+    why: "POS work turns a small decision into an IT project with a third supplier in the middle.",
+    ourAnswer: `${PRODUCT.posLine} The till process stays a scan and one short line.`,
+  },
+  {
+    ask: "Who sets it up — me, or you?",
+    why: "“Software access” and “a launched scheme” are very different purchases at a similar price.",
+    ourAnswer: `${DFY_LAUNCH.intro} ${DFY_LAUNCH.covers}`,
+  },
+  {
+    ask: "What will I actually be able to see?",
+    why: "If it can't show you returning customers, you can't tell whether any of it worked.",
+    ourAnswer:
+      "A dashboard for visits, members, stamps and returning customers, plus a weekly digest of visits, regulars and redemptions by email.",
+  },
+  {
+    ask: "What does it cost once the trial ends?",
+    why: "The trial price is never the question. The twelfth month is.",
+    ourAnswer: `${PLAN_LINE} ${PRODUCT.cancelLine}`,
+  },
+  {
+    ask: "And what if it doesn't work?",
+    why: "Ask what a vendor stands behind — then ask, just as carefully, what they don't.",
+    ourAnswer: `${GUARANTEE.name}: ${GUARANTEE.line}`,
+  },
+] as const
+
+/** The pub hub's own hero copy — deliberately a guide H1, never the `/` one. */
+export const PUB_GUIDE_HERO = {
+  eyebrow: "Buyer's guide · food-led pubs",
+  headline:
+    "Loyalty cards for pubs: how to choose one your regulars will actually use",
+  support:
+    "An honest look at the four ways pubs run loyalty — what each one asks of your guests, what it costs your staff, and how to tell which fits your pub. Written by the team that runs these launches.",
+  jumpLabel: "On this page",
+  /** Article dates for the byline + Article schema. ISO plus its display twin. */
+  publishedOn: "2026-07-28",
+  updatedOn: "2026-07-28",
+  updatedLabel: "28 July 2026",
+} as const
 
 // --- Persona spokes ---------------------------------------------------------
 
@@ -779,6 +1094,7 @@ export const ROUTES = {
   signup: "/signup",
   signupVerify: "/signup/verify",
   howItWorks: "/how-it-works",
+  faq: "/faq",
   pricing: "/pricing",
   demo: "/demo",
   about: "/about",
@@ -808,6 +1124,7 @@ export const PUBLIC_SITE_ROUTES = [
   { path: ROUTES.home, priority: 1, changeFrequency: "weekly" },
   { path: ROUTES.pricing, priority: 0.9, changeFrequency: "monthly" },
   { path: ROUTES.howItWorks, priority: 0.8, changeFrequency: "monthly" },
+  { path: ROUTES.faq, priority: 0.8, changeFrequency: "monthly" },
   { path: ROUTES.pubs, priority: 0.8, changeFrequency: "monthly" },
   { path: ROUTES.guideNoApp, priority: 0.5, changeFrequency: "monthly" },
   { path: ROUTES.guideIdeas, priority: 0.5, changeFrequency: "monthly" },

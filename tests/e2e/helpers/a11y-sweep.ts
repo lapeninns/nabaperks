@@ -6,6 +6,7 @@ import { dismissPwaInstall, HARNESS_ROUTES } from "./harness"
 const PUBLIC_ROUTES = [
   "/",
   "/how-it-works",
+  "/faq",
   "/pricing",
   "/loyalty-for-pubs",
   "/loyalty-for-cafes",

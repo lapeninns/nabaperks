@@ -30,6 +30,12 @@ test.describe("poster sheet visual regression @visual", () => {
             [data-nextjs-dev-overlay='true'] {
               display: none !important;
             }
+            /* The preview chrome is sticky in production. Element screenshots
+               scroll the A4 sheet into view, so leaving the chrome visible
+               would cover the top of the artwork we are trying to isolate. */
+            .qr-poster-chrome {
+              display: none !important;
+            }
             /* Capture the sheet at its true A4 pixel size: the preview's
                fractional fit-to-viewport scale rasterises with run-to-run
                anti-aliasing jitter. */

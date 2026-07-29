@@ -157,28 +157,46 @@ try {
   )
 
   // The HowTo and FAQPage nodes moved off `/` with their visible mirrors when
-  // the landing was re-roled to a conversion page (2026-07-24). They now live
-  // on how-it-works, which owns that research depth — assert them there so the
-  // nodes can never be lost in transit.
+  // the landing was re-roled to a conversion page (2026-07-24). Each now sits
+  // on the route that owns its visible mirror — the HowTo on how-it-works, the
+  // FAQPage on /faq — so assert them where they live, not where they passed
+  // through. One node per owning route: two FAQPage graphs would compete.
   const howItWorksNodes = await fetchNodes(baseUrl, "/how-it-works")
-  const howItWorksFaq = howItWorksNodes.find(
-    (node) => node["@type"] === "FAQPage"
-  )
   const howItWorksHowTo = howItWorksNodes.find(
     (node) => node["@type"] === "HowTo"
-  )
-
-  check(
-    Boolean(howItWorksFaq) &&
-      Array.isArray(howItWorksFaq.mainEntity) &&
-      howItWorksFaq.mainEntity.length >= 5,
-    "how-it-works: FAQPage with the shared FAQ facts missing"
   )
   check(
     Boolean(howItWorksHowTo) &&
       Array.isArray(howItWorksHowTo.step) &&
       howItWorksHowTo.step.length === 5,
     "how-it-works: five-step done-for-you HowTo missing"
+  )
+  check(
+    !howItWorksNodes.some((node) => node["@type"] === "FAQPage"),
+    "how-it-works: FAQPage must not linger here — /faq owns it"
+  )
+
+  const faqNodes = await fetchNodes(baseUrl, "/faq")
+  const faqPage = faqNodes.find((node) => node["@type"] === "FAQPage")
+  check(
+    Boolean(faqPage) &&
+      Array.isArray(faqPage.mainEntity) &&
+      faqPage.mainEntity.length >= 5,
+    "faq: FAQPage with the shared FAQ facts missing"
+  )
+
+  // The pub hub is a buyer's guide, so it carries an Article node — and must
+  // not fork the FAQPage that /faq owns.
+  const pubNodes = await fetchNodes(baseUrl, "/loyalty-for-pubs")
+  check(
+    pubNodes.some(
+      (node) => node["@type"] === "Article" && Boolean(node.headline)
+    ),
+    "loyalty-for-pubs: Article node with a headline missing"
+  )
+  check(
+    !pubNodes.some((node) => node["@type"] === "FAQPage"),
+    "loyalty-for-pubs: FAQPage must not compete with /faq"
   )
 
   if (failures.length) {
@@ -187,7 +205,7 @@ try {
     process.exitCode = 1
   } else {
     console.log(
-      "✓ JSON-LD valid: sign-up organisation graph (connected organisations, WebSite, no unsupported locations/Person), home marketing graph (WebPage, Product 49/490) and how-it-works graph (five-step HowTo, FAQPage)"
+      "✓ JSON-LD valid: sign-up organisation graph (connected organisations, WebSite, no unsupported locations/Person), home marketing graph (WebPage, Product 49/490), how-it-works HowTo (five steps), /faq FAQPage and the pub-hub Article — each node on its owning route"
     )
   }
 } finally {

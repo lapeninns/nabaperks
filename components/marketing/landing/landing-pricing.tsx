@@ -22,7 +22,7 @@ export function LandingPricing() {
         title="One plan, launch included"
         description="No setup fee — we do the whole launch for you. Then a flat monthly price you can cancel anytime."
       />
-      <div className="mt-5 grid max-w-xl gap-4 sm:mt-6">
+      <div className="mx-auto mt-5 grid w-full max-w-xl gap-4 sm:mt-6">
         <Card className="border-primary">
           <CardContent className="grid content-start gap-4">
             <div className="flex flex-wrap items-center gap-2">

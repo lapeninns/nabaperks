@@ -73,6 +73,7 @@ function isMarketingPage(pathname: string): boolean {
     pathname === "/" ||
     pathname === "/pricing" ||
     pathname === "/how-it-works" ||
+    pathname === "/faq" ||
     pathname === "/about" ||
     pathname === "/loyalty-for-pubs" ||
     pathname.startsWith("/guides/")

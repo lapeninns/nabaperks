@@ -112,6 +112,19 @@ export function GuidePage({ guide }: { guide: Guide }) {
             )
           )}
         </ul>
+        {/* The spoke→hub edge. Every guide answers one question inside a bigger
+            decision; the hub is where that decision actually gets made, so each
+            guide points back to it rather than only sideways at its siblings. */}
+        <p className="mt-4 text-sm leading-6 text-muted-foreground">
+          Still deciding whether to run a scheme at all?{" "}
+          <Link
+            href={ROUTES.pubs}
+            className="focus-ring rounded-sm font-bold text-primary underline underline-offset-4"
+          >
+            Start with the pub buyer&rsquo;s guide
+          </Link>{" "}
+          — it compares all four options and what each costs your staff.
+        </p>
       </Section>
       <Section width="narrow" size="compact" className="pb-10">
         <ReceiptCard edge padding="md" className="gap-3">

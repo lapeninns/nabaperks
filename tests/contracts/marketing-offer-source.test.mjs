@@ -39,6 +39,7 @@ function walk(dir) {
 const MARKETING_PAGE_ROOTS = [
   "app/page.tsx",
   "app/how-it-works",
+  "app/faq",
   "app/pricing",
   "app/demo",
   "app/about",
@@ -56,6 +57,18 @@ function marketingSourceFiles() {
     return statSync(abs).isDirectory() ? walk(root) : [root]
   })
 }
+
+test("Given the public marketing roots When claims scanning runs Then every route is covered", () => {
+  const scanner = readProjectFile("scripts", "check-banned-claims.mjs")
+
+  for (const root of MARKETING_PAGE_ROOTS) {
+    assert.match(
+      scanner,
+      new RegExp(`"${root.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`),
+      `${root} must stay inside the banned-public-claims scan`
+    )
+  }
+})
 
 test("Given the finalised offer pack When facts.ts is inspected Then the locked commercial model is encoded", () => {
   const facts = readProjectFile("lib", "marketing", "facts.ts")
@@ -264,6 +277,7 @@ test("Given the public route registry When llms.txt is compared Then no rebuilt 
     "/",
     "/pricing",
     "/how-it-works",
+    "/faq",
     "/loyalty-for-pubs",
     "/guides/reward-regulars-without-an-app",
     "/guides/best-loyalty-ideas-for-pubs",
@@ -283,6 +297,7 @@ test("Given the public route registry When llms.txt is compared Then no rebuilt 
     ["app", "page.tsx"],
     ["app", "pricing", "page.tsx"],
     ["app", "how-it-works", "page.tsx"],
+    ["app", "faq", "page.tsx"],
     ["app", "loyalty-for-pubs", "page.tsx"],
     ["app", "guides", "reward-regulars-without-an-app", "page.tsx"],
     ["app", "guides", "best-loyalty-ideas-for-pubs", "page.tsx"],
@@ -439,14 +454,13 @@ test("Given the conversion landing When facts.ts is inspected Then the structura
   )
 })
 
-test("Given the research depth moved off the landing When how-it-works is inspected Then it owns the problem, features, outcome and FAQ", () => {
+test("Given the research depth moved off the landing When how-it-works is inspected Then it owns the problem, features and outcome", () => {
   const howItWorks = readProjectFile("app", "how-it-works", "page.tsx")
 
   for (const section of [
     "ProblemPains",
     "FeaturesListicle",
     "OutcomeTransformation",
-    "LandingFaq",
   ]) {
     assert.match(
       howItWorks,
@@ -455,7 +469,168 @@ test("Given the research depth moved off the landing When how-it-works is inspec
     )
   }
 
-  // The FAQPage node has to live somewhere — it cannot be lost in transit.
-  assert.match(howItWorks, /faqPageSchema\(/)
-  assert.match(howItWorks, /FAQ_ITEMS/)
+  assert.doesNotMatch(howItWorks, /LandingFaq/)
+  assert.doesNotMatch(howItWorks, /faqPageSchema\(/)
+})
+
+test("Given the pub hub When it composes sections Then it renders no band another route owns and routes into the guide cluster", () => {
+  const hub = readProjectFile(
+    "components",
+    "marketing",
+    "pubs",
+    "pubs-page.tsx"
+  )
+
+  // The rebuild's whole point. Before it, /loyalty-for-pubs re-rendered eight
+  // bands owned by /, /how-it-works and /pricing — the same duplication the
+  // landing re-role guard above exists to prevent, one route over.
+  const ownedElsewhere = [
+    ["ProofLine", "/"],
+    ["ProductMoment", "/"],
+    ["LandingPricing", "/"],
+    ["FinalCta", "/"],
+    ["LaunchSteps", "/how-it-works"],
+    ["FeaturesListicle", "/how-it-works"],
+    ["OutcomeTransformation", "/how-it-works"],
+    ["ProblemPains", "/how-it-works"],
+    ["GuaranteeStack", "/pricing"],
+    ["ScarcityBand", "/pricing"],
+    ["LandingFaq", "/faq"],
+  ]
+  for (const [section, owner] of ownedElsewhere) {
+    assert.doesNotMatch(
+      hub,
+      new RegExp(`<${section}\\b`),
+      `${section} is owned by ${owner} — the hub must link there, not re-render it`
+    )
+  }
+
+  // Two indexable routes cannot share an H1. The hub carries its own.
+  const hero = readProjectFile(
+    "components",
+    "marketing",
+    "pubs",
+    "pub-guide-hero.tsx"
+  )
+  assert.match(hero, /PUB_GUIDE_HERO\.headline/)
+  assert.doesNotMatch(
+    hero,
+    /LANDING\.hero/,
+    "the hub's H1 must not reuse the landing's headline"
+  )
+  const facts = readProjectFile("lib", "marketing", "facts.ts")
+  const guideHero = facts.match(
+    /export const PUB_GUIDE_HERO = \{[\s\S]*?\n\} as const/
+  )?.[0]
+  assert.ok(guideHero, "PUB_GUIDE_HERO block missing")
+  assert.doesNotMatch(
+    guideHero,
+    /will come back|guarantee|filled tables|more revenue/i,
+    "hub hero copy must not promise a revenue or return-visit outcome"
+  )
+
+  // The hub is the cluster's parent: it must link every guide, and each guide
+  // must link back. Before the rebuild the page linked to none of them.
+  const handoff = readProjectFile(
+    "components",
+    "marketing",
+    "pubs",
+    "hub-handoff.tsx"
+  )
+  assert.match(handoff, /GUIDES/, "the hub must render the guide index")
+  assert.match(
+    readProjectFile("components", "marketing", "guides", "guide-page.tsx"),
+    /ROUTES\.pubs/,
+    "every guide must link back to the hub"
+  )
+
+  // The comparison is only worth ranking if it stays honest about the three
+  // shapes we don't sell — and about ours.
+  const options = facts.match(
+    /export const PUB_LOYALTY_OPTIONS[\s\S]*?\n\] as const/
+  )?.[0]
+  assert.ok(options, "PUB_LOYALTY_OPTIONS registry missing")
+  assert.equal(
+    options.match(/key: "(paper|app|wallet|qr)"/g)?.length,
+    4,
+    "the landscape compares all four shapes, not just ours"
+  )
+  assert.equal(
+    options.match(/ours: true/g)?.length,
+    1,
+    "exactly one option is ours, and it is labelled as such"
+  )
+  assert.equal(
+    options.match(/failsWhen:/g)?.length,
+    4,
+    "every option states where it breaks — including ours"
+  )
+
+  assert.doesNotMatch(
+    facts,
+    /by week three/i,
+    "the guide must not invent a precise failure point for venue behaviour"
+  )
+  assert.match(
+    facts,
+    /The guest confirms the stamp on their phone/,
+    "the till walkthrough must describe the customer self-stamp flow"
+  )
+  assert.doesNotMatch(
+    facts,
+    /Staff scan to add the stamp/,
+    "the guide must not claim staff scan a customer stamp"
+  )
+
+  const spine = readProjectFile(
+    "components",
+    "marketing",
+    "pubs",
+    "guide-spine.tsx"
+  )
+  assert.match(
+    spine,
+    /hydrated && !open \? "hidden lg:block" : "grid"/,
+    "the mobile section links must remain visible before client enhancement"
+  )
+
+  const structuredData = readProjectFile("lib", "seo", "structured-data.ts")
+  assert.match(
+    hub,
+    /author: "operator"/,
+    "the pub guide Article author must match its Lapen Inns byline"
+  )
+  assert.match(
+    structuredData,
+    /author === "operator" \? OPERATOR_ID : ORG_ID/,
+    "Article schema must support the operator as an explicit author"
+  )
+
+  // `/faq` owns the FAQPage node; the vendor-questions band must not fork it.
+  const questions = readProjectFile(
+    "components",
+    "marketing",
+    "pubs",
+    "vendor-questions.tsx"
+  )
+  assert.doesNotMatch(questions, /faqPageSchema\(/)
+  assert.match(
+    questions,
+    /CLAIMS_BOUNDARY/,
+    "the band naming a guarantee answer must render its limits"
+  )
+})
+
+test("Given FAQ left how-it-works When the FAQ page is inspected Then it owns the FAQ ledger and FAQPage schema", () => {
+  const faq = readProjectFile("app", "faq", "page.tsx")
+
+  assert.match(faq, /<LandingFaq\b/)
+  assert.match(faq, /faqPageSchema\(/)
+  assert.match(faq, /FAQ_ITEMS/)
+  assert.match(faq, /ROUTES\.faq/)
+  assert.match(
+    faq,
+    /<MarketingSignupLink>Start your free pilot<\/MarketingSignupLink>/,
+    "the FAQ pilot CTA must emit the signup funnel milestone"
+  )
 })

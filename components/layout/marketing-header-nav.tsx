@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils"
 const NAV_ITEMS = [
   { href: ROUTES.howItWorks, label: "How it works" },
   { href: ROUTES.pricing, label: "Pricing" },
-  { href: `${ROUTES.howItWorks}#faq`, label: "FAQ" },
+  { href: ROUTES.faq, label: "FAQ" },
 ] as const
 
 /**

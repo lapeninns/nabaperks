@@ -55,6 +55,27 @@ test("Phase 3 captures privacy-bounded field metrics and keeps brochure routes o
   assert.match(migration, /force row level security/)
 })
 
+test("Phase 3 keeps the browser and database web-vital route vocabularies aligned", () => {
+  const contract = read("lib", "analytics", "web-vitals-contract.ts")
+  const migration = read(
+    "supabase",
+    "migrations",
+    "20260728190000_add_faq_web_vital_route.sql"
+  )
+  const routeKeys = contract
+    .match(/WEB_VITAL_ROUTE_KEYS = \[([\s\S]*?)\] as const/)?.[1]
+    ?.match(/"([^"]+)"/g)
+    ?.map((value) => value.slice(1, -1))
+  const databaseKeys = migration
+    .match(/route_key in \(([\s\S]*?)\)/)?.[1]
+    ?.match(/'([^']+)'/g)
+    ?.map((value) => value.slice(1, -1))
+
+  assert.ok(routeKeys, "application web-vital route keys missing")
+  assert.ok(databaseKeys, "database web-vital route constraint missing")
+  assert.deepEqual(databaseKeys, routeKeys)
+})
+
 test("Phase 4 produces evidence-led crawl smoking guns without mutating crawler policy", () => {
   const result = run("analyze-crawl-logs.mjs", "seo-crawl-logs.csv")
   assert.equal(result.status, 0, result.stderr)

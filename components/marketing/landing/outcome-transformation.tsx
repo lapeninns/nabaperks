@@ -4,19 +4,24 @@ import {
   CheckmarkCircle02Icon,
 } from "@hugeicons/core-free-icons"
 
-import { Icon, ReceiptCard, SectionHeader } from "@/components/brand"
+import {
+  Icon,
+  IconRoundel,
+  ReceiptCard,
+  SectionHeader,
+} from "@/components/brand"
 import { Section } from "@/components/layout"
 import { TRANSFORMATION, VALUE_MATH } from "@/lib/marketing/facts"
 
 import { SnapRail, SnapRailItem } from "./snap-rail"
 
 /**
- * The transformation (offer pack doc 3 Step 1): before → after, in concrete
- * buckets with no invented precision, then the price-to-value maths that leads
- * straight into the pricing section. On phones the Before and After cards sit
- * on a swipe rail (the swipe IS the transformation); from `sm` up they sit
- * side by side around the arrow. The maths always renders with its example
- * label.
+ * The transformation: the venue's week, reprinted. The "before" ticket is a
+ * dashed draft — muted, cancellable; the "after" ticket is the solid printed
+ * card with leaf checks. On phones the two tickets ride a swipe rail (the
+ * swipe IS the transformation); from `sm` up they sit around the hand-off
+ * roundel. The maths closes as a tilted till-roll total, always with its
+ * illustrative-example label.
  */
 export function OutcomeTransformation() {
   return (
@@ -48,12 +53,15 @@ export function OutcomeTransformation() {
             aria-hidden="true"
             className="hidden sm:grid sm:place-items-center"
           >
-            <span className="grid size-11 place-items-center rounded-full border-2 border-ink bg-primary text-primary-foreground">
-              <Icon icon={ArrowRight02Icon} size={20} />
-            </span>
+            <IconRoundel
+              size="lg"
+              tone="primary"
+              icon={ArrowRight02Icon}
+              iconSize={20}
+            />
           </li>
           <SnapRailItem className="grid content-start gap-3 rounded-lg border-2 border-ink bg-card p-4 shadow-sm sm:p-6">
-            <p className="mono-meta text-primary">After</p>
+            <p className="mono-meta text-reward">After</p>
             <ul className="grid gap-2.5">
               {TRANSFORMATION.after.map((item) => (
                 <li key={item} className="flex items-start gap-3">
@@ -73,15 +81,16 @@ export function OutcomeTransformation() {
       </div>
       <ReceiptCard
         edge
+        rotated
         padding="md"
-        wrapperClassName="pt-4 sm:pt-6"
+        wrapperClassName="mx-auto max-w-2xl pt-5 sm:pt-7"
         className="gap-2"
       >
         <p className="mono-meta text-muted-foreground">Does the maths work?</p>
         <p className="text-sm leading-6 text-muted-foreground">
           {VALUE_MATH.assumptionLine}
         </p>
-        <p className="text-xl leading-snug font-extrabold text-foreground">
+        <p className="text-2xl leading-tight font-extrabold text-balance text-foreground sm:text-3xl">
           {VALUE_MATH.coverLine}
         </p>
         <p className="mono-id text-muted-foreground uppercase">
