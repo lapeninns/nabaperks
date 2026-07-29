@@ -1,8 +1,8 @@
 import { MonoTag, SectionHeader } from "@/components/brand"
 import { Section } from "@/components/layout"
 import {
+  BRAND,
   CLAIMS_BOUNDARY,
-  OPERATOR,
   PRODUCT,
   SCARCITY,
 } from "@/lib/marketing/facts"
@@ -15,8 +15,8 @@ import {
 export function ProofStrip() {
   const proof = [
     {
-      label: "Operator",
-      value: `Built and run by ${OPERATOR.name}`,
+      label: "Independent pubs",
+      value: BRAND.pointOfView,
     },
     {
       label: "Customer journey",

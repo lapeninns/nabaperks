@@ -1,5 +1,7 @@
 import { ImageResponse } from "next/og"
 
+import { BRAND } from "@/lib/marketing/facts"
+
 /**
  * Static Wet Ink social-preview image (build-time, statically optimised). Applies
  * at the app root, so it is the default og:image / twitter:image for the homepage
@@ -9,7 +11,7 @@ import { ImageResponse } from "next/og"
  * shadow.
  */
 export const alt =
-  "Nabaperks — done-for-you loyalty cards for food-led pubs. No app. No setup fee. 30-day pilot, then £49/month."
+  "Nabaperks — pub loyalty, sorted. Done-for-you loyalty cards for food-led pubs. No app. No setup fee. 30-day pilot, then £49/month."
 
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
@@ -61,6 +63,17 @@ export default function OpengraphImage() {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+        <div
+          style={{
+            fontSize: 27,
+            fontWeight: 700,
+            letterSpacing: "0.16em",
+            textTransform: "uppercase",
+            color: VERMILLION,
+          }}
+        >
+          {BRAND.motto}
+        </div>
         <div
           style={{
             fontSize: 66,

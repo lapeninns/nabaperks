@@ -112,7 +112,6 @@ try {
   const types = new Set(nodes.map((node) => node["@type"]).filter(Boolean))
   const organisations = nodes.filter((node) => node["@type"] === "Organization")
   const nabaperks = organisations.find((node) => node.name === "Nabaperks")
-  const operator = organisations.find((node) => node.name === "Lapen Inns")
 
   check(types.has("Organization"), "sign-up: Organization node missing")
   check(types.has("WebSite"), "sign-up: WebSite node missing")
@@ -121,20 +120,17 @@ try {
     "sign-up: Person node present"
   )
   check(Boolean(nabaperks), "sign-up: Nabaperks Organization missing")
-  check(Boolean(operator), "sign-up: Lapen Inns Organization missing")
   check(
-    nabaperks?.parentOrganization?.["@id"] === operator?.["@id"],
-    "sign-up: parentOrganization does not reference Lapen Inns"
+    organisations.length === 1,
+    "sign-up: Nabaperks must be the only public Organization"
   )
   check(
-    operator?.location === undefined,
-    "sign-up: operator must not expose unsupported estate locations"
+    nabaperks?.parentOrganization === undefined,
+    "sign-up: Nabaperks must not expose a parent-brand relationship"
   )
   check(
-    !/companieshouse|company-information|linkedin\.com\/in/i.test(
-      JSON.stringify(operator?.sameAs ?? [])
-    ),
-    "sign-up: operator sameAs contains a banned URL"
+    !/Lapen Inns/i.test(JSON.stringify(nodes)),
+    "sign-up: retired operator entity is present"
   )
 
   const homeNodes = await fetchNodes(baseUrl, "/")
@@ -205,7 +201,7 @@ try {
     process.exitCode = 1
   } else {
     console.log(
-      "✓ JSON-LD valid: sign-up organisation graph (connected organisations, WebSite, no unsupported locations/Person), home marketing graph (WebPage, Product 49/490), how-it-works HowTo (five steps), /faq FAQPage and the pub-hub Article — each node on its owning route"
+      "✓ JSON-LD valid: sign-up Nabaperks organisation graph (single Organization, WebSite, no parent/Person), home marketing graph (WebPage, Product 49/490), how-it-works HowTo (five steps), /faq FAQPage and the pub-hub Article — each node on its owning route"
     )
   }
 } finally {

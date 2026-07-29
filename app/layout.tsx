@@ -7,8 +7,9 @@ import { AppPwa } from "@/components/pwa/app-pwa"
 import { JsonLd } from "@/components/seo/json-ld"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
+import { BRAND } from "@/lib/marketing/facts"
 import {
-  operatorSchema,
+  OG_IMAGE,
   organizationSchema,
   SITE_URL,
   websiteSchema,
@@ -59,7 +60,24 @@ export const metadata: Metadata = {
     template: "%s | Nabaperks",
   },
   description:
-    "Done-for-you, no-app QR loyalty for single-site UK food-led pubs. One venue QR opens a browser card with measurable return visits. No setup fee.",
+    "Done-for-you, no-app QR loyalty made for independent UK food-led pubs. One venue QR opens a browser card with measurable return visits. No setup fee.",
+  // Root social defaults. The keyword-bearing `title` above stays the SERP and
+  // browser-tab line; the motto leads only on shared cards. Routes with their
+  // own `openGraph` object override this — and must then restate `images`,
+  // because a child `openGraph` drops the root opengraph-image (see OG_IMAGE).
+  openGraph: {
+    title: `${BRAND.name} — ${BRAND.motto}`,
+    type: "website",
+    siteName: BRAND.name,
+    url: SITE_URL,
+    locale: "en_GB",
+    images: [OG_IMAGE],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${BRAND.name} — ${BRAND.motto}`,
+    images: [OG_IMAGE],
+  },
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
@@ -105,7 +123,7 @@ export default function RootLayout({
           id="ld-site"
           data={{
             "@context": "https://schema.org",
-            "@graph": [operatorSchema(), organizationSchema(), websiteSchema()],
+            "@graph": [organizationSchema(), websiteSchema()],
           }}
         />
       </body>

@@ -4,7 +4,7 @@ import Link from "next/link"
 import { Eyebrow, PageTitle, ReceiptCard } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
 import { Button } from "@/components/ui/button"
-import { OPERATOR } from "@/lib/marketing/facts"
+import { LEGAL_CONTACT } from "@/lib/marketing/facts"
 import { PRIVACY_META, PRIVACY_SECTIONS } from "@/lib/legal/content"
 import { OG_IMAGE } from "@/lib/seo/structured-data"
 
@@ -95,19 +95,19 @@ export default function PrivacyPage() {
           </ReceiptCard>
 
           <div className="surface-card grid gap-2 p-5">
-            <Eyebrow>Operator and contact</Eyebrow>
+            <Eyebrow>Legal and privacy contact</Eyebrow>
             <p className="text-sm leading-6 text-muted-foreground">
-              Nabaperks is operated by{" "}
+              The current legal and privacy contact for Nabaperks is{" "}
               <strong className="font-bold text-foreground">
-                {OPERATOR.name}
+                {LEGAL_CONTACT.name}
               </strong>
               . For privacy, access, export, deletion, or consent requests,
               contact{" "}
               <a
-                href={`mailto:${OPERATOR.privacyEmail}`}
+                href={`mailto:${LEGAL_CONTACT.privacyEmail}`}
                 className={externalLinkClass}
               >
-                {OPERATOR.privacyEmail}
+                {LEGAL_CONTACT.privacyEmail}
               </a>
               .
             </p>

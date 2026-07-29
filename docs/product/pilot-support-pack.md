@@ -2,14 +2,14 @@
 
 Sprint: Sharpen for UK Pubs
 
-Status: operator-support draft. This pack does not publish a case study, send
-outreach, or create public claims. It gives the operator the exact assets and
+Status: launch-team draft. This pack does not publish a case study, send
+outreach, or create public claims. It gives the Nabaperks team the exact assets and
 approvals needed before any public case-study page or sales outreach can use the
 material.
 
 ## Purpose
 
-Support a 2-3 pub pilot readout for Lapen Inns while keeping proof honest:
+Support a 2-3 pub pilot readout for Nabaperks while keeping proof honest:
 
 - Use programme-level Nabaperks proof until venue-level figures are pulled and
   approved.
@@ -21,11 +21,11 @@ Support a 2-3 pub pilot readout for Lapen Inns while keeping proof honest:
 
 ## Candidate Shortlist
 
-| Priority | Venue | Why this venue | Use now | Needs operator approval |
-| --- | --- | --- | --- | --- |
-| 1 | Old Crown, CB3 0QD | Best named case-study candidate from prior proof planning. Good fit for regulars, food and drink visits, and Cambridge-local story. | Candidate name only. Use programme-level stats, not venue-specific performance. | Public quote, photos, exact operating context, any venue-specific metrics. |
-| 2 | The Queen Elizabeth, PE30 4EL | Food-led pub angle. Useful for roast, lunch, dinner, and family reward examples. | Backup candidate for food-led pub framing. | Quote, food photos, approval to describe the pub as food-led in Nabaperks materials. |
-| 3 | White Horse, CB25 9HP | Community-local trust angle. Useful for no-app, low-friction regulars story. | Backup candidate for village/local pub framing. | Quote, bar/till photos, approval to use local-regulars language. |
+| Priority | Venue                         | Why this venue                                                                                                                      | Use now                                                                         | Needs operator approval                                                              |
+| -------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| 1        | Old Crown, CB3 0QD            | Best named case-study candidate from prior proof planning. Good fit for regulars, food and drink visits, and Cambridge-local story. | Candidate name only. Use programme-level stats, not venue-specific performance. | Public quote, photos, exact operating context, any venue-specific metrics.           |
+| 2        | The Queen Elizabeth, PE30 4EL | Food-led pub angle. Useful for roast, lunch, dinner, and family reward examples.                                                    | Backup candidate for food-led pub framing.                                      | Quote, food photos, approval to describe the pub as food-led in Nabaperks materials. |
+| 3        | White Horse, CB25 9HP         | Community-local trust angle. Useful for no-app, low-friction regulars story.                                                        | Backup candidate for village/local pub framing.                                 | Quote, bar/till photos, approval to use local-regulars language.                     |
 
 Do not present these as published case studies until each venue confirms the
 quote, photography, and numbers.
@@ -35,17 +35,17 @@ quote, photography, and numbers.
 Pull metrics for each candidate over a fixed, stated window. Recommended first
 window: last 90 complete days, plus all-time context where useful.
 
-| Metric | Why it matters | Public use rule |
-| --- | --- | --- |
-| Loyalty members | Shows adoption. | Use per venue only after operator approval. |
-| Members with 2+ visits | Shows repeat behaviour. | Prefer percentage plus raw count when approved. |
-| Stamps issued | Shows counter usage. | Good internal proof; public only if context is clear. |
-| Rewards earned | Shows card completion. | Pair with redeemed count to avoid inflated promise. |
-| Rewards redeemed | Shows real counter collection. | Strong public proof when approved. |
-| Average stamps per active member | Shows depth of usage. | Internal sales enablement unless easy to explain. |
-| QR scans to joined members | Shows funnel quality. | Use carefully; QR scans can include tests and repeat scans. |
-| Weekly digest receipt and send id | Proves WS-2 when live. | Do not use until real digest delivery is received. |
-| Announcement push receipt | Proves WS-4 when live. | Use only after consented device proof. |
+| Metric                            | Why it matters                 | Public use rule                                             |
+| --------------------------------- | ------------------------------ | ----------------------------------------------------------- |
+| Loyalty members                   | Shows adoption.                | Use per venue only after operator approval.                 |
+| Members with 2+ visits            | Shows repeat behaviour.        | Prefer percentage plus raw count when approved.             |
+| Stamps issued                     | Shows counter usage.           | Good internal proof; public only if context is clear.       |
+| Rewards earned                    | Shows card completion.         | Pair with redeemed count to avoid inflated promise.         |
+| Rewards redeemed                  | Shows real counter collection. | Strong public proof when approved.                          |
+| Average stamps per active member  | Shows depth of usage.          | Internal sales enablement unless easy to explain.           |
+| QR scans to joined members        | Shows funnel quality.          | Use carefully; QR scans can include tests and repeat scans. |
+| Weekly digest receipt and send id | Proves WS-2 when live.         | Do not use until real digest delivery is received.          |
+| Announcement push receipt         | Proves WS-4 when live.         | Use only after consented device proof.                      |
 
 Programme-level fallback proof remains the approved June 2026 snapshot:
 
@@ -61,16 +61,16 @@ proof. Do not imply the figures belong to a single venue.
 
 Capture real usage, not stock-style atmosphere.
 
-| Shot | Required | Notes |
-| --- | --- | --- |
-| Bar or till with Nabaperks QR visible | Yes | QR must be live or a safe staging/test poster. No customer PII. |
-| Staff scanning or pointing to QR | Yes | Hands/device are enough; avoid identifiable guests without release. |
-| Printed poster in place | Yes | Include enough surroundings to show it works at the counter. |
-| Food-led context | For Queen Elizabeth | Plate, table, or specials board without implying a specific reward unless true. |
-| Regulars/local context | For Old Crown or White Horse | Keep people anonymous unless releases exist. |
-| Merchant dashboard screenshot | Optional | Blur/mask PII. Use only after operator approval. |
-| Digest email screenshot | WS-2 proof | Capture inbox receipt, subject, timestamp, and Resend id if available. |
-| Announcement push screenshot | WS-4 proof | Capture device notification and matching server/send proof. |
+| Shot                                  | Required                     | Notes                                                                           |
+| ------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------- |
+| Bar or till with Nabaperks QR visible | Yes                          | QR must be live or a safe staging/test poster. No customer PII.                 |
+| Staff scanning or pointing to QR      | Yes                          | Hands/device are enough; avoid identifiable guests without release.             |
+| Printed poster in place               | Yes                          | Include enough surroundings to show it works at the counter.                    |
+| Food-led context                      | For Queen Elizabeth          | Plate, table, or specials board without implying a specific reward unless true. |
+| Regulars/local context                | For Old Crown or White Horse | Keep people anonymous unless releases exist.                                    |
+| Merchant dashboard screenshot         | Optional                     | Blur/mask PII. Use only after operator approval.                                |
+| Digest email screenshot               | WS-2 proof                   | Capture inbox receipt, subject, timestamp, and Resend id if available.          |
+| Announcement push screenshot          | WS-4 proof                   | Capture device notification and matching server/send proof.                     |
 
 Reject dark, cropped, or purely atmospheric shots. The material should prove the
 product working in a pub setting.
@@ -93,7 +93,7 @@ Useful angles:
 - anything that felt better than paper loyalty cards
 
 Please avoid exact numbers unless you are happy for us to check and approve them
-with the Lapen Inns team first.
+with the Nabaperks team first.
 
 If you are happy for us to use your quote, reply with:
 
