@@ -179,8 +179,14 @@ export function PushNotificationSettings({
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ subscription: subscription.toJSON() }),
-        })
-        if (!response.ok) throw new Error("unsubscribe_failed")
+        }).catch(() => null)
+        if (!response?.ok) {
+          // The server record is still active, so stay in the subscribed
+          // state: flipping to "error" here would offer "Enable push" while
+          // the subscription is live and hide the retryable disable action.
+          setMessage("Push could not be turned off here. Try again.")
+          return
+        }
         await subscription.unsubscribe()
       }
       setBrowserState("granted")

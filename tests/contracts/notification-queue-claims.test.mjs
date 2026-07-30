@@ -346,11 +346,20 @@ test("Given server-side push revocation fails When a customer turns push off The
   )
   assert.match(
     unsubscribeBlock,
-    /if \(!response\.ok\) throw new Error\("unsubscribe_failed"\)/
+    /if \(!response\?\.ok\) \{/,
+    "a failed or rejected revocation request must be handled, not assumed ok"
   )
   assert.ok(
-    unsubscribeBlock.indexOf("if (!response.ok)") <
+    unsubscribeBlock.indexOf("if (!response?.ok)") <
       unsubscribeBlock.indexOf("await subscription.unsubscribe()"),
     "the browser must unsubscribe only after the authoritative server revocation succeeds"
+  )
+  assert.doesNotMatch(
+    unsubscribeBlock.slice(
+      unsubscribeBlock.indexOf("if (!response?.ok)"),
+      unsubscribeBlock.indexOf("await subscription.unsubscribe()")
+    ),
+    /setBrowserState/,
+    "revocation failure must keep the subscribed state so the disable action stays available"
   )
 })
