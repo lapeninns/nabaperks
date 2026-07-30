@@ -1,4 +1,4 @@
-import { GUARANTEE, OPERATOR, PRODUCT } from "@/lib/marketing/facts"
+import { GUARANTEE, LEGAL_CONTACT, PRODUCT } from "@/lib/marketing/facts"
 
 export type LegalSection = {
   id: string
@@ -59,7 +59,7 @@ export const PLATFORM_TERMS_SECTIONS: LegalSection[] = [
   {
     id: "records-and-support",
     title: "Records and support",
-    body: `Stamp, reward, consent, fraud, billing, and support actions are kept as event and audit records so later corrections do not silently rewrite the original history. For loyalty, privacy, access, export, deletion, or consent support, contact ${OPERATOR.supportEmail}.`,
+    body: `Stamp, reward, consent, fraud, billing, and support actions are kept as event and audit records so later corrections do not silently rewrite the original history. For loyalty, privacy, access, export, deletion, or consent support, contact ${LEGAL_CONTACT.supportEmail}.`,
   },
 ]
 
@@ -131,7 +131,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
   {
     id: "contact",
     title: "Contact",
-    body: `For privacy, access, export, deletion, or consent requests, contact ${OPERATOR.privacyEmail}. Include enough information to identify the relevant customer or merchant record, but do not send passwords or one-time codes.`,
+    body: `For privacy, access, export, deletion, or consent requests, contact ${LEGAL_CONTACT.privacyEmail}. Include enough information to identify the relevant customer or merchant record, but do not send passwords or one-time codes.`,
   },
 ]
 
@@ -250,7 +250,7 @@ export const MERCHANT_TERMS_SECTIONS: LegalSection[] = [
   {
     id: "monthly-first-regular-promo",
     title: "Time-limited promotions",
-    body: `When a First-Regular poster promotion is shown, a venue that goes live by the displayed London calendar deadline can email ${OPERATOR.supportEmail} to arrange its first counter-poster print run. The promotion applies only while it is enabled and shown, covers the first run for that venue, and does not change the Growth Plan price, 30-day trial, or First-Regular Guarantee.`,
+    body: `When a First-Regular poster promotion is shown, a venue that goes live by the displayed London calendar deadline can email ${LEGAL_CONTACT.supportEmail} to arrange its first counter-poster print run. The promotion applies only while it is enabled and shown, covers the first run for that venue, and does not change the Growth Plan price, 30-day trial, or First-Regular Guarantee.`,
   },
   {
     id: "support-and-records",

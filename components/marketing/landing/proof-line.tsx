@@ -1,5 +1,5 @@
 import { Section } from "@/components/layout"
-import { OPERATOR, PRODUCT, SCARCITY } from "@/lib/marketing/facts"
+import { BRAND, PRODUCT, SCARCITY } from "@/lib/marketing/facts"
 
 /**
  * A bare fact row — deliberately headerless. Every band on the old landing
@@ -8,7 +8,7 @@ import { OPERATOR, PRODUCT, SCARCITY } from "@/lib/marketing/facts"
  */
 export function ProofLine() {
   const facts = [
-    `Built and run by ${OPERATOR.name}`,
+    BRAND.pointOfView,
     `A ${PRODUCT.term} — no app to download`,
     "Return visits shown in your dashboard",
     SCARCITY.capLine,

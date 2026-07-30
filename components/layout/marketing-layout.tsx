@@ -5,7 +5,7 @@ import { WebVitalsReporter } from "@/components/analytics/web-vitals-reporter"
 import Link from "next/link"
 
 import { Logo } from "@/components/brand"
-import { OPERATOR, ROUTES } from "@/lib/marketing/facts"
+import { BRAND, LEGAL_CONTACT, ROUTES } from "@/lib/marketing/facts"
 
 import { MarketingHeaderNav } from "./marketing-header-nav"
 
@@ -50,8 +50,8 @@ const FOOTER_COLUMNS: readonly FooterColumn[] = [
   {
     heading: "Company",
     links: [
-      { href: ROUTES.about, label: `About ${OPERATOR.name}` },
-      { href: `mailto:${OPERATOR.supportEmail}`, label: "Contact" },
+      { href: ROUTES.about, label: `About ${BRAND.name}` },
+      { href: `mailto:${LEGAL_CONTACT.supportEmail}`, label: "Contact" },
     ],
   },
 ]
@@ -125,7 +125,7 @@ export function MarketingLayout({
               ))}
             </nav>
             <div className="flex flex-col items-center gap-3 border-t-2 border-dashed border-border pt-6 sm:flex-row sm:justify-between">
-              <FooterIdentity />
+              <FooterIdentity withMotto />
               <FooterLegalNav />
             </div>
           </div>
@@ -135,13 +135,24 @@ export function MarketingLayout({
   )
 }
 
-function FooterIdentity() {
-  return (
+function FooterIdentity({ withMotto = false }: { withMotto?: boolean }) {
+  const row = (
     <div className="flex items-center gap-3">
       <Logo label="nabaperks" linked={false} />
       <span className="mono-id tracking-[0.08em] whitespace-nowrap text-muted-foreground">
         © {new Date().getFullYear()}
       </span>
+    </div>
+  )
+
+  // The focused (auth funnel) footer keeps the bare row so its blessed visual
+  // baselines stay stable. Only the full marketing footer carries the motto.
+  if (!withMotto) return row
+
+  return (
+    <div className="grid justify-items-center gap-1 sm:justify-items-start">
+      {row}
+      <p className="text-muted-foreground">{BRAND.motto}</p>
     </div>
   )
 }

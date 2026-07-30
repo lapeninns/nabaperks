@@ -3,7 +3,7 @@
   "purpose": "Single source of truth for the Nabaperks print poster registry, copy, format metadata, and layout anatomy. Intended for app runtime and external analysis of the full poster system.",
   "product": {
     "brand": "Nabaperks",
-    "operator": "Lapen Inns",
+    "positioning": "Loyalty made for independent pubs",
     "market": "UK hospitality",
     "visualSystem": "Wet Ink",
     "kitSummary": "Eight counter posters ready to print."

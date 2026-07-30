@@ -3,20 +3,17 @@
  * let every page cross-reference the same Organization/WebSite nodes, so answer
  * engines resolve "Nabaperks" to one real entity (the Trust pillar of E-E-A-T).
  *
- * Two organizations are modelled: Nabaperks (the product/brand) and its
- * operator, Lapen Inns. Nabaperks links to Lapen Inns via
- * `parentOrganization`. Organization-only — no Person nodes, unsupported venue
- * counts, company-registry identifiers or personal profiles. Keep every value
- * byte-aligned with the visible copy it describes.
+ * Nabaperks is modelled as the single public product/brand organization.
+ * Organization-only — no parent-brand relationship, Person nodes, unsupported
+ * venue counts, company-registry identifiers or personal profiles. Keep every
+ * value byte-aligned with the visible copy it describes.
  */
-import { OPERATOR, PRODUCT, type MarketingFaq } from "@/lib/marketing/facts"
+import { BRAND, PRODUCT, type MarketingFaq } from "@/lib/marketing/facts"
 
 export const SITE_URL = "https://nabaperks.com"
 
 export const ORG_ID = `${SITE_URL}/#organization`
 const WEBSITE_ID = `${SITE_URL}/#website`
-/** The operator (Lapen Inns) entity id, keyed off its own public website. */
-const OPERATOR_ID = `${OPERATOR.website}/#organization`
 
 /** Resolve a site-relative path to an absolute URL for schema/canonicals. */
 export function absoluteUrl(path = "/"): string {
@@ -32,38 +29,18 @@ export const OG_IMAGE = {
   url: "/opengraph-image",
   width: 1200,
   height: 630,
-  alt: "Nabaperks — no-app loyalty cards for food-led pubs.",
+  alt: `${BRAND.name} — ${BRAND.motto.toLowerCase()}. No-app loyalty cards for food-led pubs.`,
 } as const
-
-/**
- * Lapen Inns — the operator Organization. `sameAs` carries only the operator's
- * own public website (no registry identifiers or personal profiles).
- */
-export function operatorSchema(): Record<string, unknown> {
-  return {
-    "@type": "Organization",
-    "@id": OPERATOR_ID,
-    name: OPERATOR.name,
-    url: OPERATOR.website,
-    description: `${OPERATOR.name} is the ${OPERATOR.role} behind Nabaperks. It builds and runs the product.`,
-    areaServed: { "@type": "Country", name: OPERATOR.country },
-    email: OPERATOR.supportEmail,
-    sameAs: [OPERATOR.website],
-  }
-}
 
 export function organizationSchema(): Record<string, unknown> {
   return {
     "@type": "Organization",
     "@id": ORG_ID,
-    name: "Nabaperks",
+    name: BRAND.name,
     url: SITE_URL,
     logo: absoluteUrl("/icons/nabaperks-icon-512.png"),
-    description:
-      "Done-for-you, no-app QR loyalty for single-site UK food-led pubs. Each stamp claim is linked to the venue QR and saved membership, with one claim per customer per UK date.",
+    description: `${BRAND.positioning}. Done-for-you, no-app QR loyalty built around how independent food-led pubs actually work.`,
     areaServed: { "@type": "Country", name: "United Kingdom" },
-    email: OPERATOR.supportEmail,
-    parentOrganization: { "@id": OPERATOR_ID },
     sameAs: [] as string[],
   }
 }
@@ -195,24 +172,18 @@ export function growthPlanSchema(): Record<string, unknown> {
   }
 }
 
-/**
- * Article node for the guides. Nabaperks is the default author; operator-led
- * pages can identify Lapen Inns so schema and the visible byline stay aligned.
- */
 export function articleSchema({
   path,
   headline,
   description,
   datePublished,
   dateModified,
-  author = "product",
 }: {
   path: string
   headline: string
   description: string
   datePublished: string
   dateModified: string
-  author?: "product" | "operator"
 }): Record<string, unknown> {
   return {
     "@type": "Article",
@@ -222,7 +193,7 @@ export function articleSchema({
     datePublished,
     dateModified,
     mainEntityOfPage: absoluteUrl(path),
-    author: { "@id": author === "operator" ? OPERATOR_ID : ORG_ID },
+    author: { "@id": ORG_ID },
     publisher: { "@id": ORG_ID },
     inLanguage: "en-GB",
   }

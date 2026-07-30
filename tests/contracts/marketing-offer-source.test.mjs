@@ -70,6 +70,37 @@ test("Given the public marketing roots When claims scanning runs Then every rout
   }
 })
 
+test("Given Nabaperks owns the public narrative When marketing and entity sources are inspected Then no retired operator relationship is published", () => {
+  const publicNarrativeFiles = [
+    ...marketingSourceFiles(),
+    "app/layout.tsx",
+    "components/layout/marketing-layout.tsx",
+    "lib/seo/structured-data.ts",
+    "public/llms.txt",
+    "config/poster-designs.json",
+    "config/nfc-card-designs.json",
+    "config/nfc-square-designs.json",
+    "config/table-tent-designs.json",
+    "docs/product/grand-slam-offer.md",
+    "docs/product/nabaperks-comprehensive-product-dossier.md",
+    "docs/product/pilot-support-pack.md",
+  ]
+  const publicNarrative = publicNarrativeFiles
+    .map((file) => readProjectFile(...file.split("/")))
+    .join("\n")
+
+  assert.doesNotMatch(publicNarrative, /Lapen Inns/)
+  assert.doesNotMatch(
+    publicNarrative,
+    /operatorSchema|OPERATOR_ID|parentOrganization/
+  )
+  assert.match(publicNarrative, /Loyalty made for independent pubs/)
+  assert.match(publicNarrative, /BRAND\.pointOfView/)
+
+  const facts = readProjectFile("lib", "marketing", "facts.ts")
+  assert.match(facts, /Built around how independent pubs actually work/)
+})
+
 test("Given the finalised offer pack When facts.ts is inspected Then the locked commercial model is encoded", () => {
   const facts = readProjectFile("lib", "marketing", "facts.ts")
 
@@ -595,15 +626,15 @@ test("Given the pub hub When it composes sections Then it renders no band anothe
   )
 
   const structuredData = readProjectFile("lib", "seo", "structured-data.ts")
-  assert.match(
+  assert.doesNotMatch(
     hub,
     /author: "operator"/,
-    "the pub guide Article author must match its Lapen Inns byline"
+    "the pub guide must keep Nabaperks as its sole public author"
   )
   assert.match(
     structuredData,
-    /author === "operator" \? OPERATOR_ID : ORG_ID/,
-    "Article schema must support the operator as an explicit author"
+    /author: \{ "@id": ORG_ID \}/,
+    "Article schema must attribute guides to Nabaperks"
   )
 
   // `/faq` owns the FAQPage node; the vendor-questions band must not fork it.

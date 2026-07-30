@@ -5,13 +5,7 @@ import { PageTitle, ReceiptCard } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
 import { JsonLd } from "@/components/seo/json-ld"
 import { Button } from "@/components/ui/button"
-import {
-  GUARANTEE,
-  OPERATOR,
-  PLAN_LINE,
-  PRODUCT,
-  ROUTES,
-} from "@/lib/marketing/facts"
+import { GUARANTEE, PLAN_LINE, PRODUCT, ROUTES } from "@/lib/marketing/facts"
 import {
   articleSchema,
   breadcrumbSchema,
@@ -60,7 +54,7 @@ export function GuidePage({ guide }: { guide: Guide }) {
           description={guide.intro}
         />
         <p className="mono-id mt-4 text-muted-foreground uppercase">
-          Published by Nabaperks · operated by {OPERATOR.name} · updated{" "}
+          Published by the Nabaperks team · updated{" "}
           <time dateTime={guide.updatedOn}>19 July 2026</time>
         </p>
       </Section>

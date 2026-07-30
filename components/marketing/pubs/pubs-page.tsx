@@ -112,7 +112,6 @@ export function PubsPage({
               description,
               datePublished: PUB_GUIDE_HERO.publishedOn,
               dateModified: PUB_GUIDE_HERO.updatedOn,
-              author: "operator",
             }),
             breadcrumbSchema([
               { name: "Home", path: ROUTES.home },

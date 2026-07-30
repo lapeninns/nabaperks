@@ -2,12 +2,12 @@
 
 **The Complete Grand Slam Offer**
 
-No-app QR loyalty for UK hospitality · £49/month · Operated by Lapen Inns
+No-app QR loyalty for independent pubs · £49/month · Pub loyalty, sorted
 
 |                     |                                                                                                  |
 | ------------------- | ------------------------------------------------------------------------------------------------ |
 | **Prepared**        | 9 July 2026                                                                                      |
-| **Operator**        | Lapen Inns — a hospitality operator running 9 pubs across England                                |
+| **Positioning**     | Loyalty made for independent pubs · built around how independent pubs actually work              |
 | **Product**         | A browser-based loyalty card customers open from your QR code                                    |
 | **Framework**       | Alex Hormozi, _$100M Offers_ (Value Equation · Bonuses · Guarantees · Scarcity/Urgency · Naming) |
 | **Source of truth** | Single-sourced in `lib/marketing/facts.ts` and verified by retained contract tests               |
@@ -139,7 +139,7 @@ Reversing risk is the number-one way to lift conversion. This is a **conditional
 >
 > Best case, your regulars come back and the £49 pays for itself. Worst case, you pay nothing more until one does.
 >
-> Applies from the day your venue QR goes live. Email info@lapeninns.com and the team applies the extension.
+> Applies from the day your venue QR goes live. Contact the Nabaperks team and we’ll apply the extension.
 
 Mechanically, the guarantee is honoured as a manual Stripe trial extension — no billing code depends on the copy, and no regular is ever left holding a broken seal. It is an owner-approved commercial promise, deliberately distinct from any (banned) compliance guarantee.
 
@@ -153,7 +153,7 @@ Honest urgency needs something real to be scarce. This is a **rolling seasonal p
 >
 > **Go live by 31 August 2026 and we print and post your first counter-poster run — free.**
 >
-> Go live before the date, then email info@lapeninns.com and we sort your print run.
+> Go live before the date, then contact the Nabaperks team and we’ll sort your print run.
 
 Two honesty safeguards are built in. The promo only renders while it is switched on (`PROMO.enabled`), so nothing depends on a live countdown; and an automated check (`isPromoStale`) **fails the build the moment the deadline passes**, forcing a deliberate refresh or switch-off. A stale, past-dated promo can never quietly linger — which is exactly what UK advertising rules (and Hormozi) demand of urgency.
 
@@ -217,4 +217,4 @@ Before this reaches production:
 
 ---
 
-_Nabaperks is operated by Lapen Inns. This document reflects the offer as built on 9 July 2026 and is grounded in Alex Hormozi's_ $100M Offers.
+_Nabaperks is loyalty made for independent pubs. This document reflects the offer as built on 9 July 2026 and is grounded in Alex Hormozi's_ $100M Offers.

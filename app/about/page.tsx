@@ -7,10 +7,11 @@ import { ProofStrip } from "@/components/marketing/landing"
 import { JsonLd } from "@/components/seo/json-ld"
 import { Button } from "@/components/ui/button"
 import {
+  BRAND,
   CLAIMS_BOUNDARY,
   DFY_LAUNCH,
+  LEGAL_CONTACT,
   MARKET,
-  OPERATOR,
   PRODUCT,
   ROUTES,
   SCARCITY,
@@ -21,8 +22,8 @@ import {
   webPageSchema,
 } from "@/lib/seo/structured-data"
 
-const title = "About Lapen Inns, the Operator Behind Nabaperks"
-const description = `Nabaperks is built and run by ${OPERATOR.name}, the hospitality operator behind the product — a loyalty card for the quiet-midweek problem.`
+const title = "About Nabaperks — Loyalty Made for Independent Pubs"
+const description = `${BRAND.pointOfView}. A done-for-you browser loyalty card for independent food-led pubs with busy weekends and quieter midweek trade.`
 
 export const metadata: Metadata = {
   title,
@@ -51,20 +52,25 @@ export default function AboutPage() {
       <Section width="narrow">
         <PageTitle
           eyebrow="About"
-          title="A pub operator's answer to quiet Tuesdays"
-          description={`Nabaperks is built and run by ${OPERATOR.name}, the hospitality operator behind the product.`}
+          title="Pub loyalty built around the counter"
+          description={`${BRAND.name} is ${BRAND.positioning.toLowerCase()} — practical for staff, simple for regulars and ready to run without another software project.`}
         />
         <div className="grid gap-4 pt-6">
           <p className="text-sm leading-7 text-muted-foreground">
-            The problem it exists for is the one pubs live with every week:{" "}
+            It starts with a pattern independent pubs know well:{" "}
             {MARKET.profileLine.toLowerCase()} Strong weekend rooms, then rent,
             staffing and kitchen capacity sitting underused from Tuesday to
             Thursday.
           </p>
           <p className="text-sm leading-7 text-muted-foreground">
-            The answer is deliberately small: {PRODUCT.cardLine}{" "}
-            {PRODUCT.posLine} {DFY_LAUNCH.intro} The venue’s part stays short —
-            display the posters, honour the rewards, brief the staff.
+            Independent pubs do not need another complicated software project.
+            They need something regulars can understand and staff can run during
+            service. The answer is deliberately small: {PRODUCT.cardLine}{" "}
+            {PRODUCT.posLine}
+          </p>
+          <p className="text-sm leading-7 text-muted-foreground">
+            {DFY_LAUNCH.intro} The venue’s part stays short — display the
+            posters, honour the rewards and brief the staff.
           </p>
           <p className="text-sm leading-7 text-muted-foreground">
             Here’s what we promise, and what we don’t. {CLAIMS_BOUNDARY.never}{" "}
@@ -72,12 +78,12 @@ export default function AboutPage() {
             launch, {SCARCITY.capLine.toLowerCase()} {SCARCITY.capReason}
           </p>
           <p className="text-sm leading-7 text-muted-foreground">
-            Questions, straight to the operator:{" "}
+            Questions, straight to the Nabaperks team:{" "}
             <a
               className="focus-ring rounded-sm font-bold text-foreground underline underline-offset-4"
-              href={`mailto:${OPERATOR.supportEmail}`}
+              href={`mailto:${LEGAL_CONTACT.supportEmail}`}
             >
-              {OPERATOR.supportEmail}
+              Contact us
             </a>
             .
           </p>

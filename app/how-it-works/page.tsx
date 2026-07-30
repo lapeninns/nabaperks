@@ -96,7 +96,7 @@ export default function HowItWorksPage() {
             <SectionHeader
               eyebrow="Rather set it up yourself?"
               title="The same five steps, whenever you're ready"
-              description={`${SETUP.steps} ${SETUP.noFriction} On a done-for-you launch, Lapen Inns does those steps for you.`}
+              description={`${SETUP.steps} ${SETUP.noFriction} On a done-for-you launch, the Nabaperks team does those steps for you.`}
             />
             <div className="flex flex-wrap items-center gap-3">
               <Button asChild size="lg">
