@@ -11,6 +11,11 @@ type WebPushSender = (
   payload: string
 ) => Promise<SendResult | void>
 
+// Keep provider I/O well inside the five-minute notification-event lease.
+// Without a socket timeout, a stalled push request can survive the lease,
+// allowing a restarted worker to reclaim and deliver the same event again.
+export const WEB_PUSH_SOCKET_TIMEOUT_MS = 15_000
+
 export type PushSubscriptionData = {
   endpoint: string
   p256dh: string
@@ -63,6 +68,7 @@ async function defaultWebPushSender(
       publicKey: config.publicKey,
       privateKey: config.privateKey,
     },
+    timeout: WEB_PUSH_SOCKET_TIMEOUT_MS,
     TTL: 60 * 60,
     urgency: "normal",
   })
