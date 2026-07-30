@@ -20,6 +20,7 @@ after(closeDb)
 
 const ADMIN_UID = "00000000-0000-0000-0000-000000000001"
 const MERCHANT_ID = "10000000-0000-0000-0000-000000000001"
+const MERCHANT_OWNER_UID = "00000000-0000-0000-0000-000000000101"
 
 async function actAsService(tx) {
   await tx`select set_config('request.jwt.claim.role', 'service_role', true)`
@@ -108,11 +109,6 @@ test("OV-4/OV-5/OV-6: merchant_referral_summary is owner-only aggregate with no 
     await seedReferral(tx, MERCHANT_ID, "qualified")
     await seedReferral(tx, MERCHANT_ID, "awarded")
     await seedReferral(tx, MERCHANT_ID, "held")
-    const [merchant] = await tx`
-      select owner_user_id
-      from public.merchants
-      where id = ${MERCHANT_ID}::uuid`
-    assert.ok(merchant?.owner_user_id, "the seeded merchant has an owner")
 
     // A non-owner is rejected (OV-6).
     let rejected = false
@@ -127,7 +123,7 @@ test("OV-4/OV-5/OV-6: merchant_referral_summary is owner-only aggregate with no 
     assert.ok(rejected, "a non-owner cannot read the summary (OV-6)")
 
     // The owner gets aggregate counts (OV-4).
-    await actAsAuthenticated(tx, merchant.owner_user_id)
+    await actAsAuthenticated(tx, MERCHANT_OWNER_UID)
     const [summary] = await tx`select * from public.merchant_referral_summary(${MERCHANT_ID}::uuid)`
     assert.ok(summary, "the owner gets a summary row (OV-4)")
     assert.ok(Number(summary.attributed_count) >= 1, "attributed counted")
