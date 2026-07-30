@@ -11,7 +11,9 @@ const expectedIndexes = Object.freeze([
   "customer_terms_qr_code_id_idx",
   "loyalty_invite_recipients_claimed_customer_id_idx",
   "loyalty_invite_recipients_claimed_membership_id_idx",
+  "loyalty_invite_recipients_merchant_id_idx",
   "referrals_qualifying_stamp_id_idx",
+  "referrals_referred_customer_id_idx",
   "referrals_referrer_customer_id_idx",
   "referrals_referrer_stamp_event_id_idx",
 ])
