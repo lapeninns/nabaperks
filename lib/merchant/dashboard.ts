@@ -3,11 +3,15 @@ import "server-only"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import {
+  assertMerchantCustomerRewardStateLoaded,
   buildMerchantCustomerReadback,
   DEFAULT_STAMPS_REQUIRED,
   type MerchantCustomerReadbackRow,
 } from "@/lib/merchant/customer-readback"
-import { CUSTOMERS_PAGE_SIZE } from "@/lib/merchant/customers-paging"
+import {
+  CUSTOMERS_PAGE_SIZE,
+  resolveCustomersPageForLeadingCount,
+} from "@/lib/merchant/customers-paging"
 import {
   createSupabaseServerClient,
   createSupabaseServiceRoleClient,
@@ -89,6 +93,8 @@ export async function getMerchantActivity(merchantId: string, limit = 40) {
 
 /** Members redeemed earlier than this many days ago no longer drive the badge. */
 const REDEEMED_HISTORY_WINDOW_DAYS = 90
+const UUID_SHAPE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /**
  * Masked-safe customer rows for the Customers table. The merchant session reads
@@ -119,6 +125,7 @@ export async function getMerchantCustomers(
     )
     .eq("merchant_id", merchantId)
     .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
     .range(offset, offset + limit - 1)
 
   if (error) {
@@ -154,6 +161,12 @@ export async function getMerchantCustomers(
         .gte("redeemed_at", redeemedSinceIso)
         .order("redeemed_at", { ascending: false }),
     ])
+
+  assertMerchantCustomerRewardStateLoaded({
+    activeCard: cardResult.error,
+    unlockedRewards: rewardResult.error,
+    redemptions: redeemedResult.error,
+  })
 
   const stampsRequired = resolveStampsRequired(cardResult)
   const rewardByMembership = indexUnlockedRewards(rewardResult)
@@ -193,6 +206,65 @@ export async function getMerchantCustomers(
     }
     return buildMerchantCustomerReadback(internalRow, now)
   })
+}
+
+/**
+ * Resolve an activity/readback deep link to the page containing that member.
+ *
+ * The membership lookup is both merchant-filtered and RLS-backed. A missing,
+ * malformed, or other-merchant id returns null, so the route neither reveals
+ * whether the id exists nor redirects into another venue's member set.
+ */
+export async function getMerchantCustomerPage(
+  merchantId: string,
+  membershipId: string,
+  pageSize: number = CUSTOMERS_PAGE_SIZE
+): Promise<number | null> {
+  if (!UUID_SHAPE.test(membershipId)) return null
+
+  const supabase = await createSupabaseServerClient()
+  const targetResult = await supabase
+    .from("customer_memberships")
+    .select("id, created_at")
+    .eq("merchant_id", merchantId)
+    .eq("id", membershipId)
+    .maybeSingle()
+
+  if (targetResult.error) {
+    throw new Error(
+      `Unable to resolve highlighted customer: ${targetResult.error.message}`
+    )
+  }
+
+  const target = targetResult.data as {
+    id: string
+    created_at: string
+  } | null
+  if (!target) return null
+
+  const [newerResult, sameTimeResult] = await Promise.all([
+    supabase
+      .from("customer_memberships")
+      .select("id", { count: "exact", head: true })
+      .eq("merchant_id", merchantId)
+      .gt("created_at", target.created_at),
+    supabase
+      .from("customer_memberships")
+      .select("id", { count: "exact", head: true })
+      .eq("merchant_id", merchantId)
+      .eq("created_at", target.created_at)
+      .gt("id", target.id),
+  ])
+
+  const rankError = newerResult.error ?? sameTimeResult.error
+  if (rankError) {
+    throw new Error(`Unable to rank highlighted customer: ${rankError.message}`)
+  }
+
+  return resolveCustomersPageForLeadingCount(
+    (newerResult.count ?? 0) + (sameTimeResult.count ?? 0),
+    pageSize
+  )
 }
 
 async function loadMaskedCustomers(
