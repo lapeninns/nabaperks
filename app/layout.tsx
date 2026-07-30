@@ -65,11 +65,13 @@ export const metadata: Metadata = {
   // browser-tab line; the motto leads only on shared cards. Routes with their
   // own `openGraph` object override this — and must then restate `images`,
   // because a child `openGraph` drops the root opengraph-image (see OG_IMAGE).
+  // Deliberately no `url`: the routes that inherit this object are the shared
+  // private ones (/q/, /r/), and a root og:url would canonicalise every venue
+  // share to the homepage object. Absent og:url, crawlers keep the fetched URL.
   openGraph: {
     title: `${BRAND.name} — ${BRAND.motto}`,
     type: "website",
     siteName: BRAND.name,
-    url: SITE_URL,
     locale: "en_GB",
     images: [OG_IMAGE],
   },
