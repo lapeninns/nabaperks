@@ -62,6 +62,44 @@ test.describe("PWA offline fallback", () => {
       await context.setOffline(false)
     }
   })
+
+  test("does not reuse stale Next dev assets across build tokens", async ({
+    page,
+  }) => {
+    await page.goto("/home/login")
+    await page.waitForFunction(
+      () => navigator.serviceWorker.controller !== null
+    )
+
+    const result = await page.evaluate(async () => {
+      const cache = await caches.open("nabaperks-pwa-v3")
+      const staleUrl =
+        "/_next/static/chunks/nabaperks-stale-cache-proof.js?v=old"
+      const freshUrl =
+        "/_next/static/chunks/nabaperks-stale-cache-proof.js?v=new"
+
+      await cache.put(
+        staleUrl,
+        new Response("stale-client-bundle", {
+          headers: { "Content-Type": "application/javascript" },
+          status: 200,
+        })
+      )
+
+      try {
+        const response = await fetch(freshUrl)
+        return {
+          body: await response.text(),
+          status: response.status,
+        }
+      } finally {
+        await cache.delete(staleUrl)
+      }
+    })
+
+    expect(result.status).toBe(404)
+    expect(result.body).not.toContain("stale-client-bundle")
+  })
 })
 
 async function readServiceWorkerScope(page: Page): Promise<string | null> {
