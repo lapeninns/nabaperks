@@ -4,6 +4,7 @@ import { rgb, type PDFDocument, type PDFPage } from "pdf-lib"
 import type { NfcCardContent } from "@/lib/qr/nfc-card-content"
 import type { NfcSquareContent } from "@/lib/qr/nfc-square-content"
 
+import { GOOGLE_REVIEW_PLATE_LAYOUT_MM } from "./google-review-plate-layout"
 import {
   drawQrCode,
   mm,
@@ -286,6 +287,7 @@ export function drawGoogleReviewPlate({
   const stageHeight = height * 0.5
   const paperHeight = height - stageHeight
   const { front } = content
+  const layout = GOOGLE_REVIEW_PLATE_LAYOUT_MM
   const [headlineLead, headlineAccent] = splitTrailingWords(front.brandName, 2)
 
   drawBase(page, width, height)
@@ -337,28 +339,41 @@ export function drawGoogleReviewPlate({
     POSTER_PDF_COLOR.inkSoft,
     3
   )
-  drawGoogleBadge(page, width / 2, paperHeight + mm(2), mm(9))
-  drawStars(page, width / 2 - mm(15.5), mm(37.8), mm(5.2))
+  drawGoogleBadge(
+    page,
+    width / 2,
+    paperHeight + mm(layout.badgeCentreOffset),
+    mm(9)
+  )
+  drawStars(page, width / 2 - mm(15.5), mm(layout.starsY), mm(5.2))
   drawButton(
     page,
     front.tapWord.toUpperCase(),
-    (width - mm(70)) / 2,
-    mm(25.5),
-    mm(70),
-    mm(11),
+    mm(layout.button.x),
+    mm(layout.button.y),
+    mm(layout.button.width),
+    mm(layout.button.height),
     fonts,
     14
   )
 
+  // QR size stays on the configured design geometry (like the browser plate)
+  // so a config change cannot silently resize only one render path.
   const qrSize = mm(content.geometry.googleReviewQrOuterMm)
-  const qrX = (width - qrSize) / 2
-  drawFramedQr(page, qrModules, qrX, mm(3.2), qrSize, 0.8)
+  drawFramedQr(
+    page,
+    qrModules,
+    mm(layout.qr.x),
+    mm(layout.qr.y),
+    qrSize,
+    layout.qr.framePadding
+  )
   drawCenteredWrapped(
     page,
     front.tapSub,
-    mm(8),
-    width - mm(16),
-    mm(3.2) + qrSize + mm(2.2),
+    mm(layout.fallbackCaption.x),
+    mm(layout.fallbackCaption.width),
+    mm(layout.fallbackCaption.firstY),
     fonts.regular,
     7.5,
     POSTER_PDF_COLOR.white,

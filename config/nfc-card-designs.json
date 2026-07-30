@@ -3,7 +3,7 @@
   "purpose": "Single source of truth for the Nabaperks NFC card registry, copy, and print pages. Cards are venue-branded: merchant name, stamps required, and the permanent join URL. Honest by contract — no free-stamp claims, no receipt claims, and first-stamp copy matches the OTP + terms join funnel.",
   "product": {
     "brand": "Nabaperks",
-    "operator": "Lapen Inns",
+    "positioning": "Loyalty made for independent pubs",
     "market": "UK hospitality",
     "visualSystem": "Wet Ink",
     "kitSummary": "Two two-sided NFC cards ready to print."

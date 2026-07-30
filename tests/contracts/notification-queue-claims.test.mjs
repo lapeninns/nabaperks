@@ -321,3 +321,45 @@ test("Given one endpoint succeeds and another fails temporarily When the event r
     /if \(result\.sent > 0\) \{\s+await markEvent\(supabase, event\.id, "sent"\)\s+\} else if \(\s+retryableFailures > 0/
   )
 })
+
+test("Given a push provider stalls When a notification is sent Then socket I/O times out before the delivery lease expires", () => {
+  const sender = readProjectFile("lib", "notifications", "push-sender.ts")
+
+  assert.match(sender, /WEB_PUSH_SOCKET_TIMEOUT_MS = 15_000/)
+  assert.match(sender, /timeout: WEB_PUSH_SOCKET_TIMEOUT_MS/)
+})
+
+test("Given server-side push revocation fails When a customer turns push off Then the browser subscription stays active and the UI reports failure", () => {
+  const settings = readProjectFile(
+    "components",
+    "customer",
+    "push-notification-settings.tsx"
+  )
+  const unsubscribeBlock = settings.slice(
+    settings.indexOf("async function handleDisable()"),
+    settings.indexOf("async function updatePreference(")
+  )
+
+  assert.match(
+    unsubscribeBlock,
+    /const response = await fetch\("\/api\/notifications\/push\/unsubscribe"/
+  )
+  assert.match(
+    unsubscribeBlock,
+    /if \(!response\?\.ok\) \{/,
+    "a failed or rejected revocation request must be handled, not assumed ok"
+  )
+  assert.ok(
+    unsubscribeBlock.indexOf("if (!response?.ok)") <
+      unsubscribeBlock.indexOf("await subscription.unsubscribe()"),
+    "the browser must unsubscribe only after the authoritative server revocation succeeds"
+  )
+  assert.doesNotMatch(
+    unsubscribeBlock.slice(
+      unsubscribeBlock.indexOf("if (!response?.ok)"),
+      unsubscribeBlock.indexOf("await subscription.unsubscribe()")
+    ),
+    /setBrowserState/,
+    "revocation failure must keep the subscribed state so the disable action stays available"
+  )
+})

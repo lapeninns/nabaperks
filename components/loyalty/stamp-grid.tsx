@@ -46,6 +46,12 @@ export function RewardChip({
 }) {
   const sealState = slotSealState(slotState)
   const ready = slotState === "ready"
+  const revealed = slotState === "revealed"
+  const statusLabel = ready
+    ? "ready for merchant scan"
+    : revealed
+      ? "unlocked"
+      : "sealed"
 
   return (
     <span className={cn("grid justify-items-center gap-1", className)}>
@@ -64,13 +70,13 @@ export function RewardChip({
           <RewardSeal
             state={sealState}
             size="sm"
-            label={`${label}, ${ready ? "ready for merchant scan" : "sealed"}`}
+            label={`${label}, ${statusLabel}`}
             wiggle={placeholder && slotState === "locked"}
           />
         </span>
       </WetInkPop>
       <span className="mono-id text-muted-foreground">
-        {ready ? "Ready" : "Reward"}
+        {ready ? "Ready" : revealed ? "Unlocked" : "Reward"}
       </span>
     </span>
   )

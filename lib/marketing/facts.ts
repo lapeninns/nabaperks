@@ -1,6 +1,6 @@
 /**
  * Approved public marketing facts — the single source of truth for every public
- * claim Nabaperks makes about its operator, vertical focus, product wording, and
+ * claim Nabaperks makes about its brand, vertical focus, product wording, and
  * first-party proof. Centralised so marketing copy can't drift and so the
  * banned-claim guardrail (`scripts/check-banned-claims.mjs`) has one durable
  * place to protect.
@@ -35,23 +35,39 @@
  *   the first poster run is already part of the core launch.
  */
 
-// --- Public operator entity (the E-E-A-T Organization fact sheet) ----------
+// --- Legal and service contact ---------------------------------------------
 
-export const OPERATOR = {
+/**
+ * The current legal/service contact remains available where a contract,
+ * privacy notice or support route needs it. It is deliberately not a marketing
+ * authority, public byline or parent brand: Nabaperks owns the public product
+ * narrative and its structured-data entity.
+ */
+export const LEGAL_CONTACT = {
   name: "Lapen Inns",
-  /** Organization-only role wording — never a personal title. */
-  role: "hospitality operator",
-  roleAlt: "pub operator",
-  /** One-line operator descriptor used in trust copy and schema. */
-  descriptor: "Lapen Inns, hospitality operator",
-  region: "England",
-  country: "United Kingdom",
-  /** Public operator website — the first allowed sameAs URL. */
-  website: "https://www.lapeninns.com",
-  /** Public contact + support email. */
+  /** Existing support address until a verified Nabaperks mailbox replaces it. */
   supportEmail: "info@lapeninns.com",
-  /** Privacy / data-controller contact email. */
+  /** Existing privacy / data-controller contact address. */
   privacyEmail: "info@lapeninns.com",
+} as const
+
+// --- Brand identity --------------------------------------------------------
+
+/**
+ * The brand's own name and motto. The motto is a slogan — it sits beside the
+ * wordmark and on the social card, and it never replaces the benefit copy that
+ * does the selling (`LANDING.hero`) or the keyword-bearing page `<title>`.
+ *
+ * Voice rule: a motto states what the brand is, never what the venue will get.
+ * "Sorted" is a posture, not an outcome — keep it that way. Anything that
+ * promises revenue, full tables or a guaranteed result belongs nowhere near
+ * this constant, and `scripts/check-banned-claims.mjs` is the backstop.
+ */
+export const BRAND = {
+  name: "Nabaperks",
+  motto: "Pub loyalty, sorted",
+  positioning: "Loyalty made for independent pubs",
+  pointOfView: "Built around how independent pubs actually work",
 } as const
 
 // --- Product terminology ---------------------------------------------------
@@ -205,12 +221,13 @@ export const PLAN_LINE = `${PRODUCT.price}, or ${PRODUCT.priceAnnual} — ${PROD
 // --- The done-for-you launch (offer pack docs 3 + 8) -------------------------
 
 /**
- * The assembled delivery pitch: Lapen Inns does the launch. The five steps are
+ * The assembled delivery pitch: the Nabaperks team does the launch. The five steps are
  * the master doc's own sequence and drive the how-it-works page's HowTo schema.
  * `covers` is the plain description of the launch work (no fee framing).
  */
 export const DFY_LAUNCH = {
-  intro: "Instead of handing you empty software, Lapen Inns does the launch.",
+  intro:
+    "Instead of handing you empty software, the Nabaperks team does the launch.",
   covers:
     "We handle the whole launch: venue and card configuration, a margin-safe mystery reward pool, and your first A4 counter-poster run — generated, printed and posted to your pub.",
   steps: [
@@ -480,7 +497,7 @@ export const TRANSFORMATION = {
  */
 export const LANDING = {
   hero: {
-    eyebrow: "Loyalty for food-led pubs",
+    eyebrow: BRAND.positioning,
     headline: "Give your weekend crowd a reason to come back on a Tuesday",
     support:
       "A no-app loyalty card they open from your counter QR — and we set the whole thing up for you.",
@@ -531,7 +548,7 @@ export const GUARANTEE = {
   name: "First-Regular Guarantee",
   line: "If your live card hasn't brought back a first regular by the end of your 30-day pilot, the pilot stays free until it does.",
   applies: "Applies from the day your venue QR goes live.",
-  claim: `Email ${OPERATOR.supportEmail} and the team applies the extension.`,
+  claim: "Contact the Nabaperks team and we’ll apply the extension.",
   conditions:
     "Conditions: the done-for-you setup is completed, the approved posters are displayed, rewards are honoured, and no deliberate staff gaming of the card.",
 } as const
@@ -545,10 +562,10 @@ export const GUARANTEE = {
 export const GUARANTEE_ROI = {
   name: "90-Day ROI Extension",
   line: "If your loyalty card doesn't record enough return visits to cover your first three subscriptions within 90 days, your next 3 months are completely free.",
-  mechanic: `${VALUE_MATH.ninetyDayLine} If your dashboard hasn't recorded them by day 90, Lapen Inns applies a 100% discount to your next three months.`,
+  mechanic: `${VALUE_MATH.ninetyDayLine} If your dashboard hasn't recorded them by day 90, Nabaperks applies a 100% discount to your next three months.`,
   conditions:
     "Conditions: the QR stays actively displayed at the counter for the full 90 days, rewards are honoured, and no test or staff gaming of the card.",
-  claim: `Email ${OPERATOR.supportEmail} and the team applies the discount.`,
+  claim: "Contact the Nabaperks team and we’ll apply the discount.",
 } as const
 
 /**
@@ -595,7 +612,7 @@ export const URGENCY = {
  * Setup copy grounded in the real launch checklist
  * (`lib/merchant/launch-readiness-core`): venue, card and rewards come before
  * billing activation; billing then unlocks venue QR setup. This is the
- * software's own guided flow — the done-for-you launch is Lapen Inns driving
+ * software's own guided flow — the done-for-you launch is Nabaperks driving
  * these same steps for the venue.
  */
 export const SETUP = {
@@ -818,7 +835,7 @@ export const PUB_STAFF_TIME = {
   setup: {
     when: "Up front",
     detail:
-      "This is where most schemes quietly cost the most — picking rewards, building the card, chasing artwork and a print shop. On a done-for-you launch, Lapen Inns does those steps instead of handing them to you.",
+      "This is where most schemes quietly cost the most — picking rewards, building the card, chasing artwork and a print shop. On a done-for-you launch, the Nabaperks team does those steps instead of handing them to you.",
   },
   warning:
     "A scheme that needs someone to run a report, chase a list or reconcile a spreadsheet creates recurring admin that is easy to defer. Judge any vendor on the till moment, not the feature list.",

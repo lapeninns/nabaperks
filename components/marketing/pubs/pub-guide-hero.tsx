@@ -6,7 +6,7 @@ import { Section } from "@/components/layout"
 import { HeroSampleCard, type QrMatrix } from "@/components/marketing/landing"
 import { Button } from "@/components/ui/button"
 import {
-  OPERATOR,
+  BRAND,
   PRODUCT,
   PUB_GUIDE_HERO,
   ROUTES,
@@ -59,7 +59,7 @@ export function PubGuideHero({
           </MarketingSignupLink>
         </div>
         <p className="mono-id text-muted-foreground uppercase">
-          Written by {OPERATOR.name}, {OPERATOR.role} · reviewed {updatedOn} ·{" "}
+          Written by the {BRAND.name} team · reviewed {updatedOn} ·{" "}
           {PRODUCT.cancelChip}
         </p>
       </div>

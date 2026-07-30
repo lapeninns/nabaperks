@@ -3,13 +3,13 @@
 **Document purpose:** Code-derived product, architecture, operations, and audit brief for human or language-model review  
 **Evidence date:** 18 July 2026  
 **Evidence basis:** Current application code, database migrations, automated tests, machine-readable configuration, and package scripts in the checked-out Nabaperks repository  
-**Product operator:** Lapen Inns
+**Public product brand:** Nabaperks
 
 > This dossier intentionally does not use README files, product narratives, architecture notes, audit reports, support packs, runbooks, or other prose documents as product evidence. A statement is included only when it can be traced to active TypeScript/TSX/JavaScript, SQL migrations, tests, JSON configuration, service-worker code, or package scripts. Source comments and customer-facing constants are treated as evidence of intended behaviour, while runtime paths and database rules are treated as stronger evidence of implemented behaviour. This is not a declaration that every provider, deployment, or migration has been verified in a live environment.
 
 ## 1. Executive summary
 
-Nabaperks is a browser-based, QR-led loyalty product for UK hospitality and other local counter-service businesses. It is designed primarily for pubs, cafes, bars, takeaways, gastropubs, food-led pubs, ale and cask-led locals, wine bars, and pub restaurants. Lapen Inns, described in the approved public facts as a hospitality operator running nine pubs across England, operates the product.
+Nabaperks is a browser-based, QR-led loyalty product for UK hospitality and other local counter-service businesses. It is designed primarily for pubs, cafes, bars, takeaways, gastropubs, food-led pubs, ale and cask-led locals, wine bars, and pub restaurants. Its public positioning is loyalty made for independent pubs, built around how independent pubs actually work.
 
 The product replaces a conventional paper stamp card with a venue-specific digital card that opens in a customer's mobile browser. Customers do not need to download a native app, add a wallet pass, create a password, or connect to a venue's POS/EPOS system. A venue displays a permanent QR code at the counter. A customer scans it, verifies a mobile number by one-time code, accepts the applicable terms, and saves a membership. A qualifying QR join can issue the first stamp. Returning customers scan the venue QR to add one normal visit stamp per Europe/London calendar date.
 
@@ -34,7 +34,7 @@ Nabaperks is all of the following:
 - A merchant launch, operations, reporting, messaging, and billing console.
 - A customer wallet containing cards, rewards, activity, profile, consent, and notification controls.
 - An administrative support, audit, fraud, privacy, billing, and referral-operations console.
-- A managed service operated by Lapen Inns, with external providers for hosting, authentication/data, billing, email, SMS verification, push delivery, mapping, analytics, and error reporting.
+- A managed service delivered by the Nabaperks team, with external providers for hosting, authentication/data, billing, email, SMS verification, push delivery, mapping, analytics, and error reporting.
 
 ### 2.2 What Nabaperks is not
 

@@ -112,7 +112,7 @@ test(
                set current_stamp_count = ${m.stamps_required} where id = ${m.membership_id}`
       // Start with an INCOMPLETE profile: clear name + DOB, keep verified email.
       await tx`update public.customers
-               set full_name = null, date_of_birth = null, email_verified_at = now()
+               set full_name = null, date_of_birth = null
                where id = ${m.customer_id}`
       await ensureVerifiedCustomerEmail(tx, m.customer_id)
       const [reward] = await tx`

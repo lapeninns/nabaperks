@@ -1,5 +1,3 @@
-import { OPERATOR } from "@/lib/marketing/facts"
-
 /**
  * Promotional infrastructure is retained but disabled. The first poster run is
  * part of the standard done-for-you launch, so presenting it as a monthly perk
@@ -80,7 +78,8 @@ export function getActivePromo(
   const ctx = getLondonMonthContext(now)
   const name = `${ctx.monthLabel} First-Regular promo`
   const perk = `Go live by ${ctx.deadlineLabel} and we print and post your first counter-poster run — free.`
-  const claim = `Go live before the date, then email ${OPERATOR.supportEmail} and we sort your print run.`
+  const claim =
+    "Go live before the date, then contact the Nabaperks team and we’ll sort your print run."
 
   return {
     name,

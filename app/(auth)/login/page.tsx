@@ -1,3 +1,5 @@
+import type { Metadata } from "next"
+
 import { Tick02Icon } from "@hugeicons/core-free-icons"
 import { redirect } from "next/navigation"
 
@@ -10,7 +12,14 @@ import { MarketingLayout } from "@/components/layout"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { getCurrentUser } from "@/lib/auth/session"
 import { safeMerchantNextPath } from "@/lib/navigation/safe-next-path"
+import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 import { cn } from "@/lib/utils"
+
+export const metadata: Metadata = {
+  ...PRIVATE_ROUTE_METADATA,
+  title: "Merchant log in",
+  description: "Log in to your Nabaperks merchant console.",
+}
 
 const trustPoints = [
   "QR kit, stamps, and rewards in one console",

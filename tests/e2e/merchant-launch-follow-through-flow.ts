@@ -10,7 +10,7 @@ import {
 const DISABLED_PROMO_PERK =
   "Go live by 31 July 2026 and we print and post your first counter-poster run — free."
 const DISABLED_PROMO_CLAIM =
-  "Go live before the date, then email info@lapeninns.com and we sort your print run."
+  "Go live before the date, then contact the Nabaperks team and we’ll sort your print run."
 
 export function defineMerchantLaunchFollowThroughTests() {
   test.beforeEach(async ({ page }) => {
