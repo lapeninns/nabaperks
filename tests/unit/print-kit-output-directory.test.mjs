@@ -97,3 +97,33 @@ test("next export restores an output interrupted during promotion", async (t) =>
   )
   await assert.rejects(readFile(path.join(backup, "_manifest.json"), "utf8"))
 })
+
+test("output directories containing the working tree are rejected", async () => {
+  const ancestor = path.resolve(process.cwd(), "..")
+  await assert.rejects(
+    withStagedOutputDirectory(ancestor, async () => "never"),
+    /Refusing to replace unsafe output directory/
+  )
+  await assert.rejects(
+    recoverInterruptedOutputDirectory(ancestor),
+    /Refusing to replace unsafe output directory/
+  )
+})
+
+test("abandoned staging trees are reclaimed before a new render", async (t) => {
+  const root = await temporaryRoot(t)
+  const output = path.join(root, "posters")
+  const abandoned = path.join(root, ".posters.staging-abandoned")
+  await mkdir(abandoned, { recursive: true })
+  await writeFile(path.join(abandoned, "half-rendered.pdf"), "stale")
+
+  await withStagedOutputDirectory(output, async (stagedRoot) => {
+    await writeFile(path.join(stagedRoot, "_manifest.json"), "{}\n")
+    return "promoted"
+  })
+
+  const leftovers = (await readdir(root)).filter((entry) =>
+    entry.startsWith(".posters.staging-")
+  )
+  assert.deepEqual(leftovers, [])
+})

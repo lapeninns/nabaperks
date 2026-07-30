@@ -104,19 +104,41 @@ export function fitSingleLineText(
   return "..."
 }
 
+// An edge separator run is only an artefact when an unsupported glyph was
+// dropped from inside that run (e.g. "☕ | Tap" -> " | Tap"); a name that
+// legitimately starts or ends with "/" or "|" must survive untouched.
+function edgeLosesGlyph(
+  characters: readonly string[],
+  supported: ReadonlySet<number>,
+  fromEnd: boolean
+): boolean {
+  const sequence = fromEnd ? [...characters].reverse() : characters
+  for (const character of sequence) {
+    if (!supported.has(character.codePointAt(0) ?? -1)) return true
+    if (/^[\s\/|]$/u.test(character)) continue
+    return false
+  }
+  return false
+}
+
 export function standardFontText(
   value: string,
   font: PDFFont,
   fallback = "YOUR VENUE"
 ): string {
   const supported = new Set(font.getCharacterSet())
-  const printable = Array.from(value.normalize("NFKD"))
+  const characters = Array.from(value.normalize("NFKD"))
+  let printable = characters
     .filter((character) => supported.has(character.codePointAt(0) ?? -1))
     .join("")
     .replace(/\s+/g, " ")
-    .replace(/^\s*(?:[\/|]\s*)+/u, "")
-    .replace(/(?:\s*[\/|])+\s*$/u, "")
-    .trim()
+  if (edgeLosesGlyph(characters, supported, false)) {
+    printable = printable.replace(/^\s*(?:[\/|]\s*)+/u, "")
+  }
+  if (edgeLosesGlyph(characters, supported, true)) {
+    printable = printable.replace(/(?:\s*[\/|])+\s*$/u, "")
+  }
+  printable = printable.trim()
   return printable || fallback
 }
 

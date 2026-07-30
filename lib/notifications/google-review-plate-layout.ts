@@ -12,10 +12,11 @@ export const GOOGLE_REVIEW_PLATE_LAYOUT_MM = {
     width: 37,
     firstY: 16,
   },
+  // QR size deliberately absent: both render paths take it from the design
+  // geometry (googleReviewQrOuterMm), never from this positional layout.
   qr: {
     x: 58,
     y: 1.5,
-    size: 24,
     framePadding: 0.8,
   },
 } as const

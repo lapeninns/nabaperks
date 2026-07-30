@@ -1,4 +1,4 @@
-import { access, mkdir, mkdtemp, rename, rm } from "node:fs/promises"
+import { access, mkdir, mkdtemp, readdir, rename, rm } from "node:fs/promises"
 import path from "node:path"
 
 async function pathExists(candidate: string): Promise<boolean> {
@@ -12,9 +12,14 @@ async function pathExists(candidate: string): Promise<boolean> {
 
 function safeOutputRoot(outputRoot: string): string {
   const resolved = path.resolve(outputRoot)
+  const workingTree = path.resolve(process.cwd())
+  // Promotion renames the output away and later deletes that backup, so an
+  // output that contains the working tree (e.g. --output ..) would replace
+  // the repository and everything beside it with the staged print kit.
   if (
     resolved === path.parse(resolved).root ||
-    resolved === path.resolve(process.cwd())
+    resolved === workingTree ||
+    workingTree.startsWith(resolved + path.sep)
   ) {
     throw new Error(`Refusing to replace unsafe output directory: ${resolved}`)
   }
@@ -94,6 +99,15 @@ export async function withStagedOutputDirectory<T>(
   const { parent, stagingPrefix } = swapPaths(outputRoot)
   await mkdir(parent, { recursive: true })
   await recoverInterruptedOutputDirectory(outputRoot)
+
+  // A killed exporter never reaches the finally below, so reclaim any
+  // abandoned staging trees from earlier runs before creating a new one.
+  const stagingBasePrefix = path.basename(stagingPrefix)
+  for (const entry of await readdir(parent)) {
+    if (entry.startsWith(stagingBasePrefix)) {
+      await rm(path.join(parent, entry), { recursive: true, force: true })
+    }
+  }
 
   const stagedRoot = await mkdtemp(stagingPrefix)
   try {

@@ -149,6 +149,12 @@ test("poster PDF venue labels omit unsupported glyphs cleanly", async () => {
     "Sao Tome / Ynys Mon"
   )
   assert.equal(standardFontText("東京 / London", font), "London")
+  // Legitimate edge separators survive when no adjacent glyph was dropped.
+  assert.equal(
+    standardFontText("| The Tap Room |", font),
+    "| The Tap Room |"
+  )
+  assert.equal(standardFontText("/M/", font), "/M/")
 })
 
 test("kit venue lines keep a 120-character venue inside the lane", async () => {

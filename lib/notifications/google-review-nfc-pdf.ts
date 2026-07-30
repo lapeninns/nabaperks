@@ -357,7 +357,9 @@ export function drawGoogleReviewPlate({
     14
   )
 
-  const qrSize = mm(layout.qr.size)
+  // QR size stays on the configured design geometry (like the browser plate)
+  // so a config change cannot silently resize only one render path.
+  const qrSize = mm(content.geometry.googleReviewQrOuterMm)
   drawFramedQr(
     page,
     qrModules,
