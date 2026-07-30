@@ -30,6 +30,8 @@ const privatePrefixes = [
 ]
 
 const privateRouteFiles = [
+  ["app", "(auth)", "login", "page.tsx"],
+  ["app", "(auth)", "reset-password", "page.tsx"],
   ["app", "app", "layout.tsx"],
   ["app", "home", "(authed)", "layout.tsx"],
   ["app", "home", "login", "page.tsx"],

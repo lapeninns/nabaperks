@@ -54,6 +54,11 @@ describe("contract-merchant-venue-announcements-ui source contract", () => {
       summaryHelper,
       /resolveAnnouncementAudience\(\s*memberships,\s*merchantId\s*\)/
     )
+    assert.match(
+      announcements,
+      /chunkVenueAnnouncementCustomerIds\(customerIds\)/
+    )
+    assert.match(announcements, /\.in\("customer_id", customerIdBatch\)/)
     assert.doesNotMatch(summaryHelper, /enqueueNotificationEvent/)
   })
 

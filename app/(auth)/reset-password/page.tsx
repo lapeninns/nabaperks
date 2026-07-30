@@ -1,3 +1,5 @@
+import type { Metadata } from "next"
+
 import { Tick02Icon } from "@hugeicons/core-free-icons"
 import { headers } from "next/headers"
 
@@ -12,7 +14,14 @@ import {
 import { readMerchantOtpResendCooldown } from "@/lib/auth/merchant-otp-resend"
 import { safeMerchantNextPath } from "@/lib/navigation/safe-next-path"
 import { rateLimitIdentityFromHeaders } from "@/lib/security/rate-limit-core"
+import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 import { cn } from "@/lib/utils"
+
+export const metadata: Metadata = {
+  ...PRIVATE_ROUTE_METADATA,
+  title: "Reset merchant password",
+  description: "Reset the password for your Nabaperks merchant console.",
+}
 
 const otpCodeLabel = merchantEmailOtpAliasDigitLabel()
 const trustPoints = [
