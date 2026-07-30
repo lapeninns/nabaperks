@@ -1,4 +1,4 @@
-import { mkdir, rm, writeFile } from "node:fs/promises"
+import { mkdir, writeFile } from "node:fs/promises"
 import { readFileSync, existsSync } from "node:fs"
 import path from "node:path"
 import { pathToFileURL } from "node:url"
@@ -7,6 +7,7 @@ import { createClient } from "@supabase/supabase-js"
 
 import { normalizeGoogleReviewUrl } from "@/lib/customer/venue-details"
 import { closePrintKitBrowser } from "@/lib/notifications/print-kit-browser"
+import { withStagedOutputDirectory } from "@/lib/notifications/print-kit-output-directory"
 import {
   buildNfcCardPdfAttachmentsFromPreview,
   buildNfcSquarePdfAttachmentsFromPreview,
@@ -259,8 +260,6 @@ async function exportVenuePrintables(
 ) {
   const folderName = venueFolderName(venue)
   const venueDir = path.join(outputRoot, folderName)
-  // Wipe prior layout (flat or typed) so re-exports stay clean.
-  await rm(venueDir, { recursive: true, force: true })
   await mkdir(venueDir, { recursive: true })
 
   const previewInput = {
@@ -344,7 +343,6 @@ export async function exportProductionPosterPdfs(options = {}) {
   await assertPrintKitPreviewOrigin(previewOrigin)
 
   const outputRoot = path.resolve(options.outputDir || DEFAULT_OUTPUT)
-  await mkdir(outputRoot, { recursive: true })
 
   const supabase = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
@@ -355,53 +353,57 @@ export async function exportProductionPosterPdfs(options = {}) {
     throw new Error("No active join QR venues found to export.")
   }
 
-  const results = []
-  for (const venue of venues) {
-    console.log(
-      `Rendering (preview WYSIWYG) ${QR_POSTER_PRODUCTION_DUPLEX_PAIRS.length} duplex posters + ${NFC_CARD_PRODUCTION_DESIGNS.length} NFC cards + ${NFC_SQUARE_PRODUCTION_DESIGNS.length} NFC plates + ${TENT_PRODUCTION_DESIGNS.length} tents for ${venue.businessName} (${venue.qrId})…`
+  return withStagedOutputDirectory(outputRoot, async (stagedRoot) => {
+    const results = []
+    for (const venue of venues) {
+      console.log(
+        `Rendering (preview WYSIWYG) ${QR_POSTER_PRODUCTION_DUPLEX_PAIRS.length} duplex posters + ${NFC_CARD_PRODUCTION_DESIGNS.length} NFC cards + ${NFC_SQUARE_PRODUCTION_DESIGNS.length} NFC plates + ${TENT_PRODUCTION_DESIGNS.length} tents for ${venue.businessName} (${venue.qrId})…`
+      )
+      results.push(
+        await exportVenuePrintables(venue, stagedRoot, previewOrigin, appOrigin)
+      )
+    }
+
+    const manifest = {
+      generatedAt: new Date().toISOString(),
+      appOrigin,
+      previewOrigin,
+      renderMode: "playwright-dev-preview",
+      supabaseHost: new URL(supabaseUrl).hostname,
+      layout: {
+        root: path.basename(outputRoot),
+        perVenue:
+          "typed folders — posters/, nfc-cards/, nfc-plates/, table-tents/",
+        assetFolders: ASSET_FOLDERS,
+        posterMode: "duplex-2-page",
+      },
+      posterDuplexPairs: QR_POSTER_PRODUCTION_DUPLEX_PAIRS.map(
+        ({ front, back }) => `${front}+${back}`
+      ),
+      tentDesignIds: TENT_PRODUCTION_DESIGNS.map(({ id }) => id),
+      nfcDesignIds: NFC_CARD_PRODUCTION_DESIGNS.map(({ id }) => id),
+      nfcSquareDesignIds: NFC_SQUARE_PRODUCTION_DESIGNS.map(({ id }) => id),
+      venueCount: results.length,
+      posterCount: results.reduce(
+        (sum, row) => sum + row.posterFiles.length,
+        0
+      ),
+      tentCount: results.reduce((sum, row) => sum + row.tentFiles.length, 0),
+      nfcCount: results.reduce((sum, row) => sum + row.nfcFiles.length, 0),
+      nfcSquareCount: results.reduce(
+        (sum, row) => sum + row.nfcSquareFiles.length,
+        0
+      ),
+      pdfCount: results.reduce((sum, row) => sum + row.files.length, 0),
+      venues: results,
+    }
+
+    await writeFile(
+      path.join(stagedRoot, "_manifest.json"),
+      `${JSON.stringify(manifest, null, 2)}\n`
     )
-    results.push(
-      await exportVenuePrintables(venue, outputRoot, previewOrigin, appOrigin)
-    )
-  }
-
-  const manifest = {
-    generatedAt: new Date().toISOString(),
-    appOrigin,
-    previewOrigin,
-    renderMode: "playwright-dev-preview",
-    supabaseHost: new URL(supabaseUrl).hostname,
-    layout: {
-      root: path.basename(outputRoot),
-      perVenue:
-        "typed folders — posters/, nfc-cards/, nfc-plates/, table-tents/",
-      assetFolders: ASSET_FOLDERS,
-      posterMode: "duplex-2-page",
-    },
-    posterDuplexPairs: QR_POSTER_PRODUCTION_DUPLEX_PAIRS.map(
-      ({ front, back }) => `${front}+${back}`
-    ),
-    tentDesignIds: TENT_PRODUCTION_DESIGNS.map(({ id }) => id),
-    nfcDesignIds: NFC_CARD_PRODUCTION_DESIGNS.map(({ id }) => id),
-    nfcSquareDesignIds: NFC_SQUARE_PRODUCTION_DESIGNS.map(({ id }) => id),
-    venueCount: results.length,
-    posterCount: results.reduce((sum, row) => sum + row.posterFiles.length, 0),
-    tentCount: results.reduce((sum, row) => sum + row.tentFiles.length, 0),
-    nfcCount: results.reduce((sum, row) => sum + row.nfcFiles.length, 0),
-    nfcSquareCount: results.reduce(
-      (sum, row) => sum + row.nfcSquareFiles.length,
-      0
-    ),
-    pdfCount: results.reduce((sum, row) => sum + row.files.length, 0),
-    venues: results,
-  }
-
-  await writeFile(
-    path.join(outputRoot, "_manifest.json"),
-    `${JSON.stringify(manifest, null, 2)}\n`
-  )
-
-  return manifest
+    return manifest
+  })
 }
 
 const invokedPath = process.argv[1]

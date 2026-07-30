@@ -105,17 +105,45 @@ jobs:
       - run: pnpm agents:check
       - run: pnpm tokens:check
       - run: pnpm claims:check
-      # The poster PDF verifier has existed unrun since it was written: it was
-      # a package script wired into no workflow, which is why layout defects
-      # reached production. It re-renders every sheet and asserts the safe
-      # frame, QR clearance and decodability.
+      # Keep the vector/pdf-lib poster geometry proof, then render the exact
+      # Playwright production bundle (duplex posters, tents, cards and plates)
+      # so the release gate cannot pass against a stand-in PDF path.
       - name: Install PDF QA tooling
         run: |
           sudo apt-get update
           sudo apt-get install -y poppler-utils imagemagick
           python3 -m pip install --quiet opencv-python-headless pymupdf
-      - name: Verify poster PDF geometry
+      - name: Install Chromium for production print-kit rendering
+        uses: ./.github/actions/playwright
+        with:
+          project: chromium
+      - name: Verify pdf-lib poster geometry
         run: pnpm posters:verify-pdfs
+      - name: Verify production preview print-kit PDFs
+        env:
+          PRINT_KIT_PREVIEW_ORIGIN: http://127.0.0.1:3000
+        run: |
+          preview_log="$RUNNER_TEMP/print-kit-preview.log"
+          pnpm exec next dev --webpack -H 127.0.0.1 > "$preview_log" 2>&1 &
+          preview_pid=$!
+          trap 'kill "$preview_pid" 2>/dev/null || true' EXIT
+
+          ready=0
+          for attempt in {1..60}; do
+            if curl --silent --fail \
+              "$PRINT_KIT_PREVIEW_ORIGIN/dev/poster-preview?template=seal" \
+              >/dev/null; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then
+            cat "$preview_log"
+            exit 1
+          fi
+
+          pnpm posters:verify-production-pdfs
 
   build:
     name: Production build
