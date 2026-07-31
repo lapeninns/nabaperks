@@ -39,6 +39,18 @@ test.describe("CR80 NFC card printing", () => {
     const faces = printRoot.locator('section[aria-label^="NFC card "]')
     await expect(faces).toHaveCount(2)
     await expect(page.locator(".qr-poster-chrome")).toBeHidden()
+    await expect
+      .poll(
+        () =>
+          faces
+            .first()
+            .evaluate((element) => element.getBoundingClientRect().top),
+        {
+          message: "WebKit applies the zero-offset print layout",
+          timeout: 15_000,
+        }
+      )
+      .toBeCloseTo(0, 1)
 
     const geometry = await faces.evaluateAll((elements) =>
       elements.map((element) => {
