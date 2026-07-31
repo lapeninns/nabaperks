@@ -36,7 +36,7 @@ test.describe("merchant billing recovery desktop", () => {
     await expect(page.getByText("First-Regular Guarantee:")).toBeVisible()
     await expect(
       page.getByText(
-        "Monthly customers keep the pilot free until their first regular returns. Annual customers get the same time added to their paid term at no cost."
+        "If your live card hasn't brought back a first regular by the end of your 28-day pilot, the platform pilot stays free until it does."
       )
     ).toBeVisible()
     await expectNoAxeViolations(

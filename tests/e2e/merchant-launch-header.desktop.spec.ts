@@ -40,7 +40,9 @@ test.describe("merchant launch header @launch-header", () => {
       page.getByRole("link", { name: "Proceed to billing" })
     ).toHaveCount(0)
     await expect(
-      page.getByRole("button", { name: /Proceed to billing/ })
+      page.getByRole("button", {
+        name: /Continue.*£299\.99.*£69\.99.*28 days/i,
+      })
     ).toBeVisible()
     await expect(page.getByText("Next step", { exact: true })).toHaveCount(0)
   })
