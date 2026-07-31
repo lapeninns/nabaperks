@@ -313,3 +313,5 @@ grant execute on function public.satisfy_merchant_launch_fee(uuid, text, text, t
 
 revoke all on function public.reset_billing_checkout_offer_binding()
   from public, anon, authenticated;
+grant execute on function public.reset_billing_checkout_offer_binding()
+  to service_role;
