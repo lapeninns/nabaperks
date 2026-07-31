@@ -29,7 +29,7 @@ import {
 } from "@/lib/seo/structured-data"
 
 const title = `Pricing — ${PRODUCT.launchFee} launch, then ${PRODUCT.price}`
-const description = `${PRODUCT.launchFee} pays for the done-for-you launch today. After a ${PRODUCT.pilot}, the platform costs ${PRODUCT.price}. ${PRODUCT.billingDisclosure}`
+const description = `${PRODUCT.launchFee} covers your done-for-you pub loyalty launch today. Test the platform free for 28 days, then pay ${PRODUCT.price}. No app for customers.`
 
 export const metadata: Metadata = {
   title,

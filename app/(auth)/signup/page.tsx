@@ -13,7 +13,7 @@ import { OG_IMAGE } from "@/lib/seo/structured-data"
 import { cn } from "@/lib/utils"
 
 const title = "Start Your Loyalty Launch — No-App QR Loyalty"
-const description = `Start your done-for-you pub loyalty launch. ${PRODUCT.launchFee} today, a ${PRODUCT.pilot}, then ${PRODUCT.price}. ${PRODUCT.billingDisclosure} ${PRODUCT.cancelLine}`
+const description = `Start your done-for-you pub loyalty launch for ${PRODUCT.launchFee} today. Test the platform free for 28 days, then pay ${PRODUCT.price}. No app for customers.`
 
 /** Conversion utility route: follow its links, but keep the thin auth form out
  * of search results in favour of the substantive landing and pricing pages. */

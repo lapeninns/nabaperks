@@ -74,10 +74,10 @@ test.describe("@public-route-metadata", () => {
   }) => {
     await page.goto("/signup")
 
-    await expect(page).toHaveTitle(/Start Your Free Pilot/)
+    await expect(page).toHaveTitle(/Start Your Loyalty Launch/)
     await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
       "content",
-      /Start Your Free Pilot/
+      /Start Your Loyalty Launch/
     )
   })
 
