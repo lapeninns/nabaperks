@@ -12,31 +12,28 @@ test("Stripe SDK and API version stay on the supported June 2026 stable contract
   assert.match(stripeServer, /apiVersion:\s*["']2026-06-24\.dahlia["']/)
 })
 
-test("annual Growth price is documented and production-required", () => {
+test("launch and 28-day Growth prices are documented and production-ready", () => {
   const envExample = read(".env.example")
   const envKeys = read("scripts/env-keys.mjs")
-  const envCheck = read("scripts/check-env.mjs")
 
-  assert.match(
-    envExample,
-    /STRIPE_GROWTH_ANNUAL_PRICE_ID=price_replace_me/
-  )
-  assert.match(envKeys, /STRIPE_GROWTH_ANNUAL_PRICE_ID=<price_/)
-  assert.match(
-    envCheck,
-    /productionRequiredEnvNames[\s\S]*"STRIPE_GROWTH_ANNUAL_PRICE_ID"/
-  )
+  assert.match(envExample, /STRIPE_LAUNCH_PRICE_ID=price_replace_me/)
+  assert.match(envExample, /STRIPE_GROWTH_PRICE_ID=price_replace_me/)
+  assert.doesNotMatch(envExample, /STRIPE_GROWTH_ANNUAL_PRICE_ID/)
+  assert.match(envKeys, /STRIPE_LAUNCH_PRICE_ID=<price_/)
+  assert.match(envKeys, /STRIPE_GROWTH_PRICE_ID=<price_/)
 })
 
-test("provider readiness checks both exact Growth recurring prices without writes", () => {
+test("provider readiness checks the launch and 28-day Price without writes", () => {
   const checks = read("scripts/provider-readiness/checks.mjs")
 
-  assert.match(checks, /STRIPE_GROWTH_ANNUAL_PRICE_ID/)
-  assert.match(checks, /unit_amount === 4900/)
-  assert.match(checks, /recurring\?\.interval === "month"/)
-  assert.match(checks, /unit_amount === 49000/)
-  assert.match(checks, /recurring\?\.interval === "year"/)
-  assert.match(checks, /Growth monthly price is active GBP 49\/month/)
-  assert.match(checks, /Growth annual price is active GBP 490\/year/)
+  assert.match(checks, /STRIPE_LAUNCH_PRICE_ID/)
+  assert.doesNotMatch(checks, /STRIPE_GROWTH_ANNUAL_PRICE_ID/)
+  assert.match(checks, /unit_amount === 29999/)
+  assert.match(checks, /body\.recurring == null/)
+  assert.match(checks, /unit_amount === 6999/)
+  assert.match(checks, /recurring\?\.interval === "day"/)
+  assert.match(checks, /recurring\?\.interval_count === 28/)
+  assert.match(checks, /Launch price is active one-time GBP 299\.99/)
+  assert.match(checks, /Growth price is active GBP 69\.99 every 28 days/)
   assert.doesNotMatch(checks, /method:\s*["']POST["']/)
 })

@@ -265,7 +265,10 @@ export type ProviderSubscription = {
       current_period_end?: number | null
       price?: {
         id?: string | null
-        recurring?: { interval?: string | null } | null
+        recurring?: {
+          interval?: string | null
+          interval_count?: number | null
+        } | null
         unit_amount?: number | null
         currency?: string | null
       } | null
@@ -282,7 +285,7 @@ export type AuthoritativeBillingSnapshot = {
   stripe_subscription_status: string
   stripe_subscription_created_at: string
   stripe_price_id: string
-  billing_interval: "month" | "year"
+  billing_interval: "day" | "month" | "year"
   unit_amount: number
   currency: string
   current_period_end: string
@@ -311,6 +314,7 @@ export function mapProviderSubscriptionSnapshot(
   const price = item?.price
   const customerId = providerId(subscription.customer)
   const interval = price?.recurring?.interval
+  const intervalCount = price?.recurring?.interval_count
   const unitAmount = price?.unit_amount
   const currency = price?.currency?.toLowerCase()
   const periodEnd =
@@ -320,8 +324,12 @@ export function mapProviderSubscriptionSnapshot(
     throw new Error("Provider subscription is missing customer id")
   }
 
-  if (interval !== "month" && interval !== "year") {
+  if (interval !== "day" && interval !== "month" && interval !== "year") {
     throw new Error("Provider subscription has unsupported billing interval")
+  }
+
+  if (interval === "day" && intervalCount !== 28) {
+    throw new Error("Provider subscription has unsupported daily interval")
   }
 
   if (!Number.isSafeInteger(unitAmount) || (unitAmount ?? -1) < 0) {

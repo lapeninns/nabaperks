@@ -124,12 +124,13 @@ const BASE_BILLING: BillingPresentationSource = {
   status: "active",
   stripe_subscription_status: "active",
   stripe_customer_id: "cus_harness_owned",
-  billing_interval: "month",
-  unit_amount: 4_900,
+  billing_interval: "day",
+  unit_amount: 6_999,
   currency: "gbp",
   current_period_end: "2026-08-09T12:00:00.000Z",
   cancel_at_period_end: false,
   cancel_at: null,
+  launch_fee_status: "grandfathered",
 }
 
 function resolveHarnessBilling(
@@ -147,7 +148,7 @@ function resolveHarnessBilling(
     return {
       ...BASE_BILLING,
       billing_interval: "year",
-      unit_amount: 49_000,
+      unit_amount: 69_000,
       current_period_end: "2027-07-10T12:00:00.000Z",
     }
   }

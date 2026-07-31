@@ -35,7 +35,7 @@ export function LandingHero({ demoQr }: { demoQr: QrMatrix }) {
         </p>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
           <Button asChild size="lg">
-            <MarketingSignupLink>Start free pilot</MarketingSignupLink>
+            <MarketingSignupLink>Start your launch</MarketingSignupLink>
           </Button>
           <Link
             className="focus-ring rounded-sm text-sm font-bold text-foreground underline underline-offset-4"

@@ -19,7 +19,7 @@ import {
  * The H1 comes from `PUB_GUIDE_HERO` and deliberately never from the landing's
  * own hero copy: two indexable routes sharing one H1 is what this rebuild
  * exists to fix, and the contract test asserts the separation. The
- * primary action is reading (jump to the comparison), with the pilot CTA
+ * primary action is reading (jump to the comparison), with the launch CTA
  * secondary — a buyer's guide that opens by selling isn't one.
  * Server component.
  */
@@ -55,7 +55,7 @@ export function PubGuideHero({
             <Link href="#options">Compare the four options</Link>
           </Button>
           <MarketingSignupLink className="focus-ring rounded-sm text-sm font-bold text-foreground underline underline-offset-4">
-            Or start a free pilot
+            Or start your launch
           </MarketingSignupLink>
         </div>
         <p className="mono-id text-muted-foreground uppercase">

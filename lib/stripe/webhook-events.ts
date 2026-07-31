@@ -63,6 +63,13 @@ export type StripeWebhookProcessorDependencies = {
     snapshot: ReturnType<typeof mapStripeSubscriptionSnapshot>
     entitlementStatus: ReturnType<typeof mapStripeSubscriptionStatus>
   }) => Promise<SubscriptionApplyResult>
+  satisfyLaunchFee: (input: {
+    merchantId: string
+    stripeCustomerId: string
+    stripeSubscriptionId: string
+    policy: "charged" | "annual_included"
+  }) => Promise<boolean>
+  hasSatisfiedLaunchFee: (merchantId: string) => Promise<boolean>
   completeEvent: (input: {
     eventId: string
     leaseId: string
@@ -352,6 +359,13 @@ export async function processStripeWebhookEvent(
 
   const snapshot = mapStripeSubscriptionSnapshot(subscription)
   const entitlementStatus = mapStripeSubscriptionStatus(subscription.status)
+  await satisfyWebhookLaunchFee({
+    event,
+    subscription,
+    merchantId: ownership.merchantId,
+    entitlementStatus,
+    dependencies,
+  })
   const applyStatus = await dependencies.applySubscriptionEvent({
     eventId: event.id,
     leaseId,
@@ -384,8 +398,96 @@ export function createStripeWebhookProcessorDependencies(
       stripe.subscriptions.retrieve(subscriptionId),
     resolveSubscriptionMerchant: resolveStripeSubscriptionMerchant,
     applySubscriptionEvent: applyStripeSubscriptionEvent,
+    satisfyLaunchFee: async (input) => {
+      const { createSupabaseServiceRoleClient } =
+        await import("@/lib/supabase/server")
+      const supabase = createSupabaseServiceRoleClient()
+      const { data, error } = await supabase.rpc("satisfy_merchant_launch_fee", {
+        p_merchant_id: input.merchantId,
+        p_stripe_customer_id: input.stripeCustomerId,
+        p_stripe_subscription_id: input.stripeSubscriptionId,
+        p_launch_fee_policy: input.policy,
+      })
+
+      if (error) throw new Error("Unable to record launch fee satisfaction")
+      return data === true
+    },
+    hasSatisfiedLaunchFee: async (merchantId) => {
+      const { createSupabaseServiceRoleClient } =
+        await import("@/lib/supabase/server")
+      const supabase = createSupabaseServiceRoleClient()
+      const { data, error } = await supabase
+        .from("billing_customers")
+        .select("launch_fee_status")
+        .eq("merchant_id", merchantId)
+        .maybeSingle()
+
+      if (error) throw new Error("Unable to verify launch fee status")
+      return data?.launch_fee_status != null
+    },
     completeEvent: completeStripeWebhookEvent,
   }
+}
+
+async function satisfyWebhookLaunchFee({
+  event,
+  subscription,
+  merchantId,
+  entitlementStatus,
+  dependencies,
+}: {
+  event: Stripe.Event
+  subscription: Stripe.Subscription
+  merchantId: string
+  entitlementStatus: ReturnType<typeof mapStripeSubscriptionStatus>
+  dependencies: StripeWebhookProcessorDependencies
+}) {
+  if (
+    entitlementStatus !== "trialing" &&
+    entitlementStatus !== "active" &&
+    entitlementStatus !== "past_due"
+  ) {
+    return
+  }
+
+  const policy = subscription.metadata?.launch_fee_policy
+  if (policy === "charged" && !checkoutLaunchChargePaid(event)) {
+    const alreadySatisfied =
+      await dependencies.hasSatisfiedLaunchFee(merchantId)
+    if (!alreadySatisfied) {
+      throw new StripeWebhookProcessingError("processing_failed")
+    }
+    return
+  }
+
+  if (policy !== "charged" && policy !== "annual_included") {
+    const alreadySatisfied =
+      await dependencies.hasSatisfiedLaunchFee(merchantId)
+    if (!alreadySatisfied) {
+      throw new StripeWebhookProcessingError("ownership_mismatch")
+    }
+    return
+  }
+
+  const stripeCustomerId = stripeId(subscription.customer)
+  if (!stripeCustomerId) {
+    throw new StripeWebhookProcessingError("ownership_mismatch")
+  }
+
+  const satisfied = await dependencies.satisfyLaunchFee({
+    merchantId,
+    stripeCustomerId,
+    stripeSubscriptionId: subscription.id,
+    policy,
+  })
+  if (!satisfied) throw new StripeWebhookProcessingError("processing_failed")
+}
+
+function checkoutLaunchChargePaid(event: Stripe.Event): boolean {
+  return (
+    event.type === "checkout.session.completed" &&
+    event.data.object.payment_status === "paid"
+  )
 }
 
 type SubscriptionEventContext = {

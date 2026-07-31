@@ -60,7 +60,7 @@ export const metadata: Metadata = {
     template: "%s | Nabaperks",
   },
   description:
-    "Done-for-you, no-app QR loyalty made for independent UK food-led pubs. One venue QR opens a browser card with measurable return visits. No setup fee.",
+    "Done-for-you, no-app QR loyalty made for independent UK food-led pubs. One venue QR opens a browser card with measurable return visits.",
   // Root social defaults. The keyword-bearing `title` above stays the SERP and
   // browser-tab line; the motto leads only on shared cards. Routes with their
   // own `openGraph` object override this — and must then restate `images`,

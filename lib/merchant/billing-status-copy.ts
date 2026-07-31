@@ -58,9 +58,9 @@ export function merchantBillingStateCopy(status: string): MerchantBillingCopy {
       actionVariant: "default",
     },
     trialing: {
-      title: "Free trial active",
+      title: "Free platform pilot active",
       description:
-        "Your 30-day free trial is running, with everything switched on.",
+        "Your 28-day free platform pilot is running, with everything switched on.",
       className: `${baseNoticeClassName} border-reward/30 bg-accent`,
       noteClassName: calmNoteClassName,
       actionHref: "/app/account?tab=billing",

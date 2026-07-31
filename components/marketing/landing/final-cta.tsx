@@ -22,7 +22,7 @@ export function FinalCta() {
         </p>
         <div className="flex flex-wrap items-center justify-center gap-3">
           <Button asChild size="lg">
-            <MarketingSignupLink>Start your free pilot</MarketingSignupLink>
+            <MarketingSignupLink>Start your launch</MarketingSignupLink>
           </Button>
         </div>
         <p className="mono-id justify-self-center text-muted-foreground uppercase">

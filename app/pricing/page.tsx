@@ -17,6 +17,7 @@ import {
   PRICING_FAQ_ITEMS,
   PRODUCT,
   ROUTES,
+  TAKEOVER,
   VALUE_MATH,
 } from "@/lib/marketing/facts"
 import {
@@ -27,10 +28,8 @@ import {
   webPageSchema,
 } from "@/lib/seo/structured-data"
 
-const title = `Pricing — ${PRODUCT.price}, 30-Day Free Pilot`
-// 156 code points (budget 145–159); every price renders via the single-source
-// facts. There is no setup fee — the done-for-you launch is included.
-const description = `${PRODUCT.price} or ${PRODUCT.priceAnnual} (${PRODUCT.annualSaving}) after a ${PRODUCT.pilot}. No setup fee — the done-for-you launch is included. Cancel anytime, honest weekly capacity.`
+const title = `Pricing — ${PRODUCT.launchFee} launch, then ${PRODUCT.price}`
+const description = `${PRODUCT.launchFee} pays for the done-for-you launch today. After a ${PRODUCT.pilot}, the platform costs ${PRODUCT.price}. ${PRODUCT.billingDisclosure}`
 
 export const metadata: Metadata = {
   title,
@@ -61,26 +60,27 @@ export default function PricingPage() {
       <Section>
         <PageTitle
           eyebrow="Pricing"
-          title="One subscription. No setup fee."
-          description="We do the whole launch for you — no upfront fee. Then one flat price, cancel anytime."
+          title="One core plan. One clear billing cycle."
+          description="Pay for the physical launch today. Prove the platform during the free pilot before recurring billing starts."
         />
         <div className="mt-6 flex flex-wrap items-center gap-3 rounded-lg border-2 border-dashed border-line-strong bg-card p-5">
-          <MonoTag tone="sun">No setup fee</MonoTag>
+          <MonoTag tone="sun">Done-for-you launch</MonoTag>
           <p className="text-sm leading-6 font-bold text-foreground">
-            {DFY_LAUNCH.covers}
+            {DFY_LAUNCH.covers} The one-time launch fee is {PRODUCT.launchFee}.
           </p>
         </div>
         <div className="grid gap-3.5 pt-6 sm:grid-cols-2">
           <Card size="sm" className="border-primary">
             <CardContent className="grid h-full content-start gap-3">
               <MonoTag tone="accent" className="justify-self-start">
-                {PRODUCT.planName} · monthly
+                {PRODUCT.planName} · standard
               </MonoTag>
               <p className="text-3xl leading-none font-extrabold text-foreground">
                 {PRODUCT.price}
               </p>
               <p className="text-sm leading-6 font-bold text-foreground">
-                After a {PRODUCT.pilotCardNote}. No setup fee.
+                {PRODUCT.launchFee} launch fee due at checkout. Then a{" "}
+                {PRODUCT.pilotCardNote} before the first recurring payment.
               </p>
               <ul className="grid gap-1.5">
                 {PLAN_INCLUDES.map((item) => (
@@ -93,34 +93,35 @@ export default function PricingPage() {
                 ))}
               </ul>
               <p className="mono-id mt-auto text-muted-foreground uppercase">
+                {PRODUCT.billingDisclosure} {PRODUCT.processingFeeLine}{" "}
                 {PRODUCT.cancelLine}
               </p>
             </CardContent>
           </Card>
           <Card size="sm">
             <CardContent className="grid h-full content-start gap-3">
-              <MonoTag className="justify-self-start">
-                {PRODUCT.planName} · yearly
+              <MonoTag tone="sun" className="justify-self-start">
+                Bespoke engagement
               </MonoTag>
               <p className="text-3xl leading-none font-extrabold text-foreground">
-                {PRODUCT.priceAnnual}
+                {TAKEOVER.price}
               </p>
               <p className="text-sm leading-6 font-bold text-foreground">
-                {PRODUCT.annualSaving} against paying monthly.
+                {TAKEOVER.name}
               </p>
               <p className="text-sm leading-6 text-muted-foreground">
-                Same plan, same pilot, same guarantees — billed once a year
-                instead of every month.
+                {TAKEOVER.qualifier} This is an enquiry-only alternative and is
+                not available through self-serve checkout.
               </p>
-              <p className="mono-id mt-auto text-muted-foreground uppercase">
-                {PRODUCT.cancelChip} · switch plans from billing
-              </p>
+              <Button asChild variant="secondary" className="mt-auto w-fit">
+                <Link href={ROUTES.demo}>{TAKEOVER.action}</Link>
+              </Button>
             </CardContent>
           </Card>
         </div>
         <div className="flex flex-wrap items-center gap-3 pt-6">
           <Button asChild size="lg">
-            <Link href={ROUTES.signup}>Start your free pilot</Link>
+            <Link href={ROUTES.signup}>Start your launch</Link>
           </Button>
           <Button asChild size="lg" variant="secondary">
             <Link href={ROUTES.howItWorks}>See how the launch works</Link>

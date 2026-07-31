@@ -82,7 +82,10 @@ export function mapStripeSubscriptionSnapshot(
         price: {
           id: item.price.id,
           recurring: item.price.recurring
-            ? { interval: item.price.recurring.interval }
+            ? {
+                interval: item.price.recurring.interval,
+                interval_count: item.price.recurring.interval_count,
+              }
             : null,
           unit_amount: item.price.unit_amount,
           currency: item.price.currency,

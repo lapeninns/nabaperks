@@ -32,7 +32,7 @@ export function ScarcityBand() {
             <p className="text-sm leading-6 text-paper">{URGENCY.printBatch}</p>
           </div>
           <Button asChild size="lg" className="justify-self-start">
-            <MarketingSignupLink>Start your free pilot</MarketingSignupLink>
+            <MarketingSignupLink>Start your launch</MarketingSignupLink>
           </Button>
         </div>
       </div>

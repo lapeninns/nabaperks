@@ -11,7 +11,16 @@ import {
   type ProviderSubscription,
 } from "@/lib/merchant/billing-checkout-core"
 
-export type BillingInterval = "month" | "year"
+/**
+ * Durable Checkout-attempt discriminator retained for compatibility with the
+ * existing ledger. It selects the sole recurring plan; the Stripe Price itself
+ * is authoritatively validated as `day × 28` and stored as `day` after sync.
+ */
+export type BillingInterval = "month"
+export type LaunchFeePolicy =
+  | "charged"
+  | "annual_included"
+  | "previously_satisfied"
 
 export type BillingMerchant = {
   id: string
@@ -24,8 +33,8 @@ export type PrepareBillingCheckoutInput = {
   environment: BillingRuntimeEnvironment
   configuredOrigin: string
   requestOrigin?: string | null
-  monthlyPriceId: string
-  annualPriceId?: string | null
+  launchPriceId: string
+  recurringPriceId: string
 }
 
 export type BillingCheckoutAttempt = {
@@ -69,6 +78,12 @@ export type BillingCheckoutOwnership = {
   billingUpdatedAt: string | null
 }
 
+export type CheckoutOfferBinding = {
+  status: "bound" | "existing" | "conflict"
+  launchFeePolicy: LaunchFeePolicy | null
+  stripeLaunchPriceId: string | null
+}
+
 export type BillingCheckoutDependencies = {
   now: () => Date
   claimAttempt: (input: {
@@ -79,6 +94,12 @@ export type BillingCheckoutDependencies = {
     cancelUrl: string
     attemptExpiresAt: string
   }) => Promise<BillingCheckoutAttempt>
+  bindOffer: (input: {
+    merchantId: string
+    attemptId: string
+    workerLeaseId: string
+    configuredLaunchPriceId: string
+  }) => Promise<CheckoutOfferBinding>
   bindCustomer: (input: {
     merchantId: string
     attemptId: string
@@ -123,18 +144,20 @@ export type BillingCheckoutDependencies = {
       customer: string
       line_items: Array<{ price: string; quantity: number }>
       subscription_data: {
-        trial_period_days: number
+        trial_period_days?: number
         metadata: {
           merchant_id: string
           plan: "growth"
-          interval: BillingInterval
+          billing_cadence: "28_days"
+          launch_fee_policy: LaunchFeePolicy
         }
       }
       metadata: {
         merchant_id: string
         attempt_id: string
         plan: "growth"
-        interval: BillingInterval
+        billing_cadence: "28_days"
+        launch_fee_policy: LaunchFeePolicy
       }
       success_url: string
       cancel_url: string
@@ -160,6 +183,13 @@ export type BillingCheckoutDependencies = {
     entitlementStatus: BillingEntitlementStatus
     expectedBillingUpdatedAt: string | null
   }) => Promise<"applied" | "stale">
+  satisfyLaunchFee: (input: {
+    merchantId: string
+    stripeCustomerId: string
+    stripeSubscriptionId: string
+    policy: "charged" | "annual_included"
+  }) => Promise<boolean>
+  hasSatisfiedLaunchFee: (merchantId: string) => Promise<boolean>
 }
 
 export type BillingEntitlementStatus =
@@ -205,10 +235,7 @@ function addMilliseconds(date: Date, milliseconds: number): string {
 }
 
 function checkoutPriceId(input: PrepareBillingCheckoutInput): string | null {
-  const value =
-    input.interval === "year" ? input.annualPriceId : input.monthlyPriceId
-
-  return value?.trim() || null
+  return input.recurringPriceId.trim() || null
 }
 
 function hasCreationLease(
@@ -290,6 +317,18 @@ async function materializeCheckoutSession(
   if (!hasCreationLease(attempt)) return null
 
   try {
+    const offer = await deps.bindOffer({
+      merchantId: input.merchant.id,
+      attemptId: attempt.attemptId,
+      workerLeaseId: attempt.workerLeaseId,
+      configuredLaunchPriceId: input.launchPriceId,
+    })
+
+    if (offer.status === "conflict" || !offer.launchFeePolicy) {
+      await releaseCreationLease(attempt, input.merchant.id, deps)
+      return null
+    }
+
     let customerId = attempt.stripeCustomerId
 
     if (!customerId) {
@@ -334,20 +373,27 @@ async function materializeCheckoutSession(
       params: {
         mode: "subscription",
         customer: customerId,
-        line_items: [{ price: attempt.stripePriceId, quantity: 1 }],
+        line_items: [
+          { price: attempt.stripePriceId, quantity: 1 },
+          ...(offer.stripeLaunchPriceId
+            ? [{ price: offer.stripeLaunchPriceId, quantity: 1 }]
+            : []),
+        ],
         subscription_data: {
-          trial_period_days: 30,
+          trial_period_days: 28,
           metadata: {
             merchant_id: input.merchant.id,
             plan: "growth",
-            interval: attempt.billingInterval,
+            billing_cadence: "28_days",
+            launch_fee_policy: offer.launchFeePolicy,
           },
         },
         metadata: {
           merchant_id: input.merchant.id,
           attempt_id: attempt.attemptId,
           plan: "growth",
-          interval: attempt.billingInterval,
+          billing_cadence: "28_days",
+          launch_fee_policy: offer.launchFeePolicy,
         },
         success_url: attempt.successUrl,
         cancel_url: attempt.cancelUrl,
@@ -589,6 +635,49 @@ function subscriptionMatchesMerchant(
   )
 }
 
+async function satisfyLaunchFeeFromSubscription(
+  subscription: StripeSubscriptionLike,
+  merchantId: string,
+  deps: BillingCheckoutDependencies,
+  launchChargePaid: boolean
+): Promise<void> {
+  if (
+    subscription.status !== "trialing" &&
+    subscription.status !== "active" &&
+    subscription.status !== "past_due"
+  ) {
+    return
+  }
+
+  const policy = subscription.metadata?.launch_fee_policy
+  if (policy === "charged" && !launchChargePaid) {
+    const alreadySatisfied = await deps.hasSatisfiedLaunchFee(merchantId)
+    if (!alreadySatisfied) {
+      throw new Error("The launch fee payment is not verified")
+    }
+    return
+  }
+
+  if (policy !== "charged" && policy !== "annual_included") {
+    const alreadySatisfied = await deps.hasSatisfiedLaunchFee(merchantId)
+    if (!alreadySatisfied) {
+      throw new Error("Subscription is missing its launch fee policy")
+    }
+    return
+  }
+
+  const stripeCustomerId = providerId(subscription.customer)
+  if (!stripeCustomerId) throw new Error("Subscription customer is missing")
+
+  const satisfied = await deps.satisfyLaunchFee({
+    merchantId,
+    stripeCustomerId,
+    stripeSubscriptionId: subscription.id,
+    policy,
+  })
+  if (!satisfied) throw new Error("Launch fee satisfaction was not recorded")
+}
+
 /** Verify the exact returned Session and persist only its exact Subscription. */
 export async function confirmBillingCheckoutReturn(
   input: { merchantId: string; sessionId: string | null | undefined },
@@ -636,6 +725,12 @@ export async function confirmBillingCheckoutReturn(
 
     const snapshot = mapProviderSubscriptionSnapshot(subscription)
     const entitlementStatus = mapEntitlementStatus(subscription.status)
+    await satisfyLaunchFeeFromSubscription(
+      subscription,
+      input.merchantId,
+      deps,
+      session?.payment_status === "paid"
+    )
 
     // This Session and its exact Subscription are now verified. Observe before
     // the durable apply so a webhook-winning stale result cannot erase a real
@@ -691,6 +786,12 @@ export async function reconcileBillingPortalReturn(
     }
 
     const snapshot = mapProviderSubscriptionSnapshot(subscription)
+    await satisfyLaunchFeeFromSubscription(
+      subscription,
+      input.merchantId,
+      deps,
+      false
+    )
     const applied = await deps.applyCurrentSubscription({
       merchantId: input.merchantId,
       snapshot,
@@ -791,6 +892,26 @@ export async function createBillingCheckoutDependencies(): Promise<BillingChecko
         p_stripe_customer_id: null,
       })) as RpcResult<CheckoutAttemptRpcRow[]>
       return mapAttemptRow(requireRpcRow(result, "Checkout attempt claim"))
+    },
+    bindOffer: async (input) => {
+      const result = (await supabase.rpc("bind_billing_checkout_offer", {
+        p_merchant_id: input.merchantId,
+        p_attempt_id: input.attemptId,
+        p_worker_lease_id: input.workerLeaseId,
+        p_configured_launch_price_id: input.configuredLaunchPriceId,
+      })) as RpcResult<
+        Array<{
+          bind_status: CheckoutOfferBinding["status"]
+          launch_fee_policy: LaunchFeePolicy | null
+          stripe_launch_price_id: string | null
+        }>
+      >
+      const row = requireRpcRow(result, "Checkout offer binding")
+      return {
+        status: row.bind_status,
+        launchFeePolicy: row.launch_fee_policy,
+        stripeLaunchPriceId: row.stripe_launch_price_id,
+      }
     },
     bindCustomer: async (input) => {
       const result = (await supabase.rpc("bind_billing_checkout_customer", {
@@ -915,6 +1036,25 @@ export async function createBillingCheckoutDependencies(): Promise<BillingChecko
         p_expected_updated_at: expectedBillingUpdatedAt,
       })) as RpcResult<"applied" | "stale">
       return requireRpcScalar(result, "Current Subscription application")
+    },
+    satisfyLaunchFee: async (input) => {
+      const result = (await supabase.rpc("satisfy_merchant_launch_fee", {
+        p_merchant_id: input.merchantId,
+        p_stripe_customer_id: input.stripeCustomerId,
+        p_stripe_subscription_id: input.stripeSubscriptionId,
+        p_launch_fee_policy: input.policy,
+      })) as RpcResult<boolean>
+      return requireRpcScalar(result, "Launch fee satisfaction")
+    },
+    hasSatisfiedLaunchFee: async (merchantId) => {
+      const result = await supabase
+        .from("billing_customers")
+        .select("launch_fee_status")
+        .eq("merchant_id", merchantId)
+        .maybeSingle()
+
+      if (result.error) throw new Error("Unable to verify launch fee status")
+      return result.data?.launch_fee_status != null
     },
   }
 }

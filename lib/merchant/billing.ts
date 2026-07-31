@@ -17,6 +17,7 @@ export type MerchantBilling = {
   currency: string | null
   cancel_at_period_end: boolean | null
   cancel_at: string | null
+  launch_fee_status: string | null
 }
 
 export type MerchantBillingResult =
@@ -43,7 +44,7 @@ async function loadMerchantBilling(
     const { data, error } = await supabase
       .from("billing_customers")
       .select(
-        "status, current_period_end, stripe_customer_id, stripe_subscription_id, stripe_subscription_status, stripe_subscription_created_at, stripe_price_id, billing_interval, unit_amount, currency, cancel_at_period_end, cancel_at"
+        "status, current_period_end, stripe_customer_id, stripe_subscription_id, stripe_subscription_status, stripe_subscription_created_at, stripe_price_id, billing_interval, unit_amount, currency, cancel_at_period_end, cancel_at, launch_fee_status"
       )
       .eq("merchant_id", merchantId)
       .maybeSingle()

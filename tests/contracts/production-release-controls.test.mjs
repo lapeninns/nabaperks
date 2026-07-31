@@ -45,7 +45,6 @@ test("Given a complete production configuration When generated credentials are s
       CRON_SECRET: "N7!qL2@vR9#cT4$yH6^mK8&pD3*zF5?x",
       PRODUCTION_MONITOR_SECRET: "P4@wS8#nC2!kV6$rJ9^tB3&yM7*zQ5?e",
       RESEND_FROM: "Nabaperks <hello@example.test>",
-      STRIPE_GROWTH_ANNUAL_PRICE_ID: "price_annual_fixture",
       SUPABASE_SEND_EMAIL_HOOK_SECRET: [
         "v1,wh",
         "sec_",
@@ -68,7 +67,6 @@ test("Given a monitor-secret overlap When the next token is reused Then producti
       PRODUCTION_MONITOR_SECRET: sharedSecret,
       PRODUCTION_MONITOR_SECRET_NEXT: sharedSecret,
       RESEND_FROM: "Nabaperks <hello@example.test>",
-      STRIPE_GROWTH_ANNUAL_PRICE_ID: "price_annual_fixture",
       SUPABASE_SEND_EMAIL_HOOK_SECRET: [
         "v1,wh",
         "sec_",

@@ -33,8 +33,10 @@ Do not promote a release until all of these are true:
 Stripe is accepted only when an operator records all of the following against
 the live account:
 
-1. The live product and both active price IDs match the published monthly and
-   annual GBP amounts, and obsolete prices are inactive.
+1. The live product and both active Price IDs match the published terms: the
+   one-time launch is GBP 299.99 and the recurring Price is GBP 69.99 with
+   `interval=day` and `interval_count=28`. Obsolete prices are inactive for new
+   checkout while historical subscriptions remain manageable.
 2. A Customer Portal session opens for a controlled merchant and returns to
    `/app/account?tab=billing`; payment-method update, invoice history, and
    cancellation-at-period-end match the product copy.

@@ -28,7 +28,7 @@ const COMPLIMENTARY_ACCESS_MESSAGE =
 function submittedInterval(
   value: FormDataEntryValue | null
 ): BillingInterval | null {
-  return value === "month" || value === "year" ? value : null
+  return value === "day" ? "month" : null
 }
 
 async function requestOrigin(): Promise<string | null> {
@@ -77,8 +77,8 @@ export async function startCheckoutAction(
                 : "development",
             configuredOrigin: env.NEXT_PUBLIC_APP_URL,
             requestOrigin: await requestOrigin(),
-            monthlyPriceId: env.STRIPE_GROWTH_PRICE_ID,
-            annualPriceId: env.STRIPE_GROWTH_ANNUAL_PRICE_ID,
+            launchPriceId: env.STRIPE_LAUNCH_PRICE_ID,
+            recurringPriceId: env.STRIPE_GROWTH_PRICE_ID,
           },
           deps
         )

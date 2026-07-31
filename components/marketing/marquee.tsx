@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils"
 
 const DEFAULT_ITEMS = [
   "One venue QR",
-  "30 days free",
+  "28-day platform pilot",
   "No POS setup",
   "Fast at the counter",
 ]

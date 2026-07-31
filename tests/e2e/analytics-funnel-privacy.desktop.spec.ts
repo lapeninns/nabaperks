@@ -37,7 +37,7 @@ test.describe("desktop privacy-safe merchant funnel", () => {
     await expect
       .poll(() => requests.map(({ event }) => event))
       .toContain("merchant_marketing_viewed")
-    await page.getByRole("link", { name: "Start free pilot" }).first().click()
+    await page.getByRole("link", { name: "Start your launch" }).first().click()
     await expect(page).toHaveURL(/\/signup$/)
     await expect
       .poll(() => requests.map(({ event }) => event))

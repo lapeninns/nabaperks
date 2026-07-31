@@ -64,12 +64,14 @@ const live = buildLaunchReadiness({
 test("needsBilling: activation truthfully unlocks the QR", () => {
   const header = resolveLaunchHeaderModel(needsBilling, "venue")
 
-  assert.equal(header.heading, "Activate to unlock your QR")
+  assert.equal(header.heading, "Launch to unlock your QR")
+  assert.match(header.description, /one-time launch fee/)
+  assert.match(header.description, /28-day platform pilot/)
   assert.equal(
     header.mobileContext,
-    "Start your free trial, then create your venue QR."
+    "Pay the launch fee, start the pilot, then create your venue QR."
   )
-  assert.match(header.description, /free trial/i)
+  assert.match(header.description, /28-day platform pilot/i)
   assert.match(header.description, /venue QR/i)
 })
 

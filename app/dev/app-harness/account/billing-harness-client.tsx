@@ -35,8 +35,8 @@ export function BillingHarnessClient({
       // short enough to keep the DB-free suite fast and deterministic.
       await new Promise((resolve) => window.setTimeout(resolve, 600))
 
-      const interval = formData.get("interval")
-      const intervalLabel = interval === "year" ? "annual" : "monthly"
+      const intervalLabel =
+        formData.get("interval") === "day" ? "28-day" : "unknown"
 
       return checkoutActionMode === "fail"
         ? {
@@ -65,7 +65,6 @@ export function BillingHarnessClient({
         billing={billing}
         outcome={outcome}
         requiresBilling={requiresBilling}
-        annualBillingAvailable
         checkoutAction={checkoutAction}
         portalAction={portalAction}
         refreshHref={refreshHref}

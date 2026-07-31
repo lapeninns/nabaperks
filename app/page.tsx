@@ -20,8 +20,8 @@ import {
   webPageSchema,
 } from "@/lib/seo/structured-data"
 
-const title = "The 30-Day First-Regular Pub Loyalty Launch"
-const description = `A done-for-you browser loyalty card for single-site UK food-led pubs. No setup fee: rewards configured and posters posted. ${PRODUCT.pilot}, then ${PRODUCT.price}.`
+const title = "The 28-Day First-Regular Pub Loyalty Launch"
+const description = `A done-for-you browser loyalty card for single-site UK food-led pubs. ${PRODUCT.launchFee} launch today, a ${PRODUCT.pilot}, then ${PRODUCT.price}.`
 
 export const metadata: Metadata = {
   title,

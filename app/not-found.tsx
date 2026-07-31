@@ -20,7 +20,7 @@ export default function NotFound() {
           actions={
             <div className="grid w-full gap-2">
               <Button asChild>
-                <Link href="/signup">Start a free pilot</Link>
+                <Link href="/signup">Start your launch</Link>
               </Button>
               <Button asChild variant="secondary">
                 <Link href="/home">{OPEN_MY_CARDS_LABEL}</Link>

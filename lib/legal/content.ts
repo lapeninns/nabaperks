@@ -219,8 +219,8 @@ export const MERCHANT_TERMS_SECTIONS: LegalSection[] = [
   },
   {
     id: "price-and-trial",
-    title: "Price and free trial",
-    body: `The monthly Growth Plan is ${PRODUCT.price} per venue. Where the annual checkout option is configured and shown, it is ${PRODUCT.priceAnnual} paid yearly. A new Stripe subscription starts with a 30-day free trial and requires a payment card at checkout. The selected recurring charge begins after the trial unless the subscription is cancelled or the trial is extended through the First-Regular Guarantee support process.`,
+    title: "Launch fee, recurring price and free pilot",
+    body: `The Growth Plan has a one-off ${PRODUCT.launchFee} launch fee per venue, charged at checkout, followed by a ${PRODUCT.pilot} and then ${PRODUCT.price}. ${PRODUCT.billingDisclosure} The plan requires a payment card at checkout; its recurring charge begins after the pilot unless the subscription is cancelled or the pilot is extended through the First-Regular Guarantee support process. The launch includes venue and loyalty-card configuration, a margin-safe reward setup, and the first bespoke A4 counter-poster run with delivery. Nabaperks does not add a separate card-processing surcharge. The annual plan is closed to new customers; any existing annual subscription continues under the terms agreed when it was purchased.`,
   },
   {
     id: "activation",
@@ -240,17 +240,17 @@ export const MERCHANT_TERMS_SECTIONS: LegalSection[] = [
   {
     id: "cancellation",
     title: "Cancellation",
-    body: "The merchant manages cancellation through the Stripe billing portal. A scheduled cancellation takes effect at the end of the current subscription period recorded by Stripe, whether the selected plan is monthly or annual. Cancelling future renewal does not erase loyalty, reward, consent, billing, product-event, or audit records. Customer joins, stamps, reward issue, and redemption are paused when the stored subscription is no longer active or trialling.",
+    body: "The merchant manages cancellation through the Stripe billing portal. A scheduled cancellation takes effect at the end of the current subscription period recorded by Stripe. Cancelling future renewal does not erase loyalty, reward, consent, billing, product-event, or audit records. Customer joins, stamps, reward issue, and redemption are paused when the stored subscription is no longer active or trialling.",
   },
   {
     id: "guarantee",
     title: "First-Regular Guarantee",
-    body: `${GUARANTEE.line} A returning member is a customer who receives another normal visit stamp on a later Europe/London date. ${GUARANTEE.applies} ${GUARANTEE.claim} The extension is applied manually through support; it is not an automatic refund or cash payment.`,
+    body: `${GUARANTEE.line} A returning member is a customer who receives another normal visit stamp on a later Europe/London date. ${GUARANTEE.applies} ${GUARANTEE.claim} An extension delays recurring billing. It is applied manually through support; it is not an automatic refund or cash payment.`,
   },
   {
-    id: "monthly-first-regular-promo",
+    id: "first-regular-promo",
     title: "Time-limited promotions",
-    body: `When a First-Regular poster promotion is shown, a venue that goes live by the displayed London calendar deadline can email ${LEGAL_CONTACT.supportEmail} to arrange its first counter-poster print run. The promotion applies only while it is enabled and shown, covers the first run for that venue, and does not change the Growth Plan price, 30-day trial, or First-Regular Guarantee.`,
+    body: `Any separate time-limited promotion applies only while it is explicitly shown at checkout and does not change the standard launch deliverables, the plan's 28-day free platform pilot, the 28-day recurring Growth Plan price, or the First-Regular Guarantee. Questions about fulfilment can be sent to ${LEGAL_CONTACT.supportEmail}.`,
   },
   {
     id: "support-and-records",
@@ -260,12 +260,12 @@ export const MERCHANT_TERMS_SECTIONS: LegalSection[] = [
 ]
 
 export const MERCHANT_TERMS_META = {
-  eyebrow: "For venue operators · effective 15 July 2026",
+  eyebrow: "For venue operators · effective 31 July 2026",
   title: "Merchant subscription terms.",
   description:
     "The commercial and operational terms for a venue using the Nabaperks Growth Plan.",
   cardTitle: "Merchant terms",
-  docNumber: "MT-2026-07",
+  docNumber: "MT-2026-07-31",
 }
 
 export const DATA_PROCESSING_SECTIONS: LegalSection[] = [

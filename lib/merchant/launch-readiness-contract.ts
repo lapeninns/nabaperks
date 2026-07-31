@@ -53,7 +53,8 @@ export const MERCHANT_SETUP_STEPS = [
   {
     id: "billing",
     title: LAUNCH_SETUP_STEP_LABELS.billing,
-    description: "Start your free trial to unlock your permanent venue QR.",
+    description:
+      "Pay the one-time launch fee and start your 28-day platform pilot to unlock your permanent venue QR.",
   },
   {
     id: "qr",

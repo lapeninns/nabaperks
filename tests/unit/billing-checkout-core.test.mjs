@@ -245,7 +245,7 @@ test("a fast webhook can replace the cleared attempt as durable ownership proof"
   )
 })
 
-test("provider subscription terms map to one complete authoritative snapshot", () => {
+test("28-day provider terms map to one complete authoritative snapshot", () => {
   assert.deepEqual(
     mapProviderSubscriptionSnapshot({
       id: "sub_owned",
@@ -257,9 +257,9 @@ test("provider subscription terms map to one complete authoritative snapshot", (
           {
             current_period_end: 1_700_086_400,
             price: {
-              id: "price_month",
-              recurring: { interval: "month" },
-              unit_amount: 4_900,
+              id: "price_28_day",
+              recurring: { interval: "day", interval_count: 28 },
+              unit_amount: 6_999,
               currency: "GBP",
             },
           },
@@ -273,14 +273,42 @@ test("provider subscription terms map to one complete authoritative snapshot", (
       stripe_subscription_id: "sub_owned",
       stripe_subscription_status: "trialing",
       stripe_subscription_created_at: "2023-11-14T22:13:20.000Z",
-      stripe_price_id: "price_month",
-      billing_interval: "month",
-      unit_amount: 4_900,
+      stripe_price_id: "price_28_day",
+      billing_interval: "day",
+      unit_amount: 6_999,
       currency: "gbp",
       current_period_end: "2023-11-15T22:13:20.000Z",
       cancel_at_period_end: false,
       cancel_at: null,
     }
+  )
+})
+
+test("a daily Price with the wrong interval count fails closed", () => {
+  assert.throws(
+    () =>
+      mapProviderSubscriptionSnapshot({
+        id: "sub_wrong_daily",
+        created: 1_700_000_000,
+        status: "active",
+        customer: "cus_owned",
+        items: {
+          data: [
+            {
+              current_period_end: 1_700_086_400,
+              price: {
+                id: "price_wrong_daily",
+                recurring: { interval: "day", interval_count: 27 },
+                unit_amount: 6_999,
+                currency: "gbp",
+              },
+            },
+          ],
+        },
+        cancel_at_period_end: false,
+        cancel_at: null,
+      }),
+    /unsupported daily interval/
   )
 })
 

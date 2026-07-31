@@ -1,0 +1,95 @@
+import assert from "node:assert/strict"
+import { readFileSync } from "node:fs"
+import test from "node:test"
+
+const read = (path) => readFileSync(path, "utf8")
+
+test("28-day Checkout charges launch now and trials only the platform", () => {
+  const checkout = read("lib/stripe/checkout.ts")
+
+  assert.match(checkout, /stripeLaunchPriceId/)
+  assert.match(
+    checkout,
+    /line_items:[\s\S]*attempt\.stripePriceId[\s\S]*offer\.stripeLaunchPriceId/
+  )
+  assert.match(checkout, /launch_fee_policy: offer\.launchFeePolicy/)
+  assert.match(checkout, /trial_period_days: 28/)
+  assert.match(checkout, /billing_cadence: "28_days"/)
+  assert.match(checkout, /session\?\.payment_status === "paid"/)
+  assert.match(checkout, /annual_included/)
+  assert.match(checkout, /previously_satisfied/)
+})
+
+test("new annual checkout is closed while historical policies remain readable", () => {
+  const action = read("app/app/billing/actions.ts")
+  const checkout = read("lib/stripe/checkout.ts")
+  const form = read("components/merchant/account/billing-checkout-form.tsx")
+
+  assert.match(action, /value === "day" \? "month" : null/)
+  assert.doesNotMatch(action, /STRIPE_GROWTH_ANNUAL_PRICE_ID/)
+  assert.doesNotMatch(checkout, /annualPriceId/)
+  assert.match(form, /value="day"/)
+  assert.doesNotMatch(form, /value="year"|Choose yearly/)
+  assert.match(checkout, /annual_included/)
+})
+
+test("launch-fee decisions and satisfaction are durable and private", () => {
+  const migration = read(
+    "supabase/migrations/20260731120000_launch_fee_checkout_policy.sql"
+  )
+
+  for (const column of [
+    "launch_fee_status",
+    "launch_fee_satisfied_at",
+    "launch_fee_subscription_id",
+    "checkout_offer_bound",
+    "stripe_launch_price_id",
+    "launch_fee_policy",
+  ]) {
+    assert.match(migration, new RegExp(`add column if not exists ${column}`))
+  }
+
+  for (const fn of [
+    "bind_billing_checkout_offer",
+    "satisfy_merchant_launch_fee",
+  ]) {
+    assert.match(
+      migration,
+      new RegExp(`create or replace function public\\.${fn}\\(`)
+    )
+    assert.match(
+      migration,
+      new RegExp(
+        `revoke all on function public\\.${fn}\\([\\s\\S]*?from public, anon, authenticated`
+      )
+    )
+  }
+
+  assert.match(migration, /launch_fee_status = 'grandfathered'/)
+  assert.match(migration, /launch_fee_policy = 'previously_satisfied'/)
+  assert.match(migration, /launch_fee_policy = 'annual_included'/)
+  assert.match(migration, /launch_fee_policy = 'charged'/)
+})
+
+test("the provider contract pins the approved 28-day prices", () => {
+  const env = read("config/env-contract.json")
+  const readiness = read("scripts/provider-readiness/checks.mjs")
+
+  assert.match(env, /STRIPE_LAUNCH_PRICE_ID/)
+  assert.match(readiness, /unit_amount === 29999/)
+  assert.match(readiness, /unit_amount === 6999/)
+  assert.match(readiness, /recurring\?\.interval === "day"/)
+  assert.match(readiness, /recurring\?\.interval_count === 28/)
+})
+
+test("authoritative billing state accepts exact daily provider snapshots", () => {
+  const migration = read(
+    "supabase/migrations/20260731130000_28_day_billing.sql"
+  )
+
+  assert.match(migration, /billing_interval in \('day', 'month', 'year'\)/)
+  assert.match(
+    migration,
+    /p_billing_interval not in \('day', 'month', 'year'\)/
+  )
+})

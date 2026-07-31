@@ -11,7 +11,7 @@ import { BRAND } from "@/lib/marketing/facts"
  * shadow.
  */
 export const alt =
-  "Nabaperks — pub loyalty, sorted. Done-for-you loyalty cards for food-led pubs. No app. No setup fee. 30-day pilot, then £49/month."
+  "Nabaperks — pub loyalty, sorted. £299.99 launch, 28-day platform pilot, then £69.99 every 28 days."
 
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
@@ -87,7 +87,7 @@ export default function OpengraphImage() {
         </div>
         {/* Satori needs literals — this is the ink-soft token (--w-ink-soft). */}
         <div style={{ fontSize: 33, maxWidth: 920, color: "#4f473d" }}>
-          No customer app. No POS integration. No setup fee.
+          No customer app. No POS integration. Launch done for you.
         </div>
       </div>
 
@@ -105,7 +105,7 @@ export default function OpengraphImage() {
             boxShadow: `8px 8px 0 ${VERMILLION}`,
           }}
         >
-          30-day pilot, then £49/month
+          £299.99 launch · 28-day pilot · £69.99 / 28 days
         </div>
       </div>
     </div>,

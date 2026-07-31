@@ -12,17 +12,17 @@
  * hard compliance/guarantee claims. The exact banned strings are enforced by
  * `scripts/check-banned-claims.mjs`.
  *
- * Offer v3 (2026-07-18, marketing offer v3) is sourced exclusively from the
+ * Offer v6 (2026-07-31) is sourced from the owner's finalised offer pack and
+ * subsequent approved pricing decisions. Owner-approved commercial terms:
  * owner's finalised offer pack in `Offers- Nabaperks-Finalized/` (8 docs:
  * market, value equation, offer creation, bonus stack, guarantee stack,
  * scarcity & urgency, naming, master). Owner-approved commercial terms:
  * - Public pages lead with the offer pack's safer `First-Regular Launch`
  *   wrapper. The original `Revenue Accelerator` wording is retained only as a
  *   campaign wrapper that requires separate approval before public use.
- * - There is NO setup fee (owner decision 2026-07-19 — the upfront fee and its
- *   waiver were both removed). The offer is a pure subscription after the free
- *   pilot; `PLAN_LINE` is the single-sourced investment line and the
- *   done-for-you launch is included in the plan.
+ * - New customers pay the done-for-you launch fee before the free 28-day
+ *   platform pilot, then pay every 28 days. New annual sales are closed.
+ *   `PLAN_LINE` is the single-sourced investment line.
  * - `GUARANTEE` (First-Regular, offer v1) + `GUARANTEE_ROI` (90-Day ROI
  *   Extension, offer v3) are conditional service promises honoured manually by
  *   support through Stripe trial extensions/discounts — business terms, not
@@ -79,26 +79,23 @@ export const PRODUCT = {
   planName: "Growth Plan",
   cardLine: "A browser-based loyalty card customers open from your QR code.",
   posLine: "No extra hardware. No POS or EPOS integration required.",
-  price: "£49/month",
-  priceShort: "£49/mo",
-  /**
-   * Annual plan — 12 × £49 = £588, offered at £490 up front = exactly two
-   * months free. The annual Stripe Price is created by the operator; the
-   * optional `STRIPE_GROWTH_ANNUAL_PRICE_ID` gates the annual checkout option
-   * until it exists, so a stray annual submit can never bill an undefined price.
-   */
-  priceAnnual: "£490/year",
-  priceAnnualShort: "£490/yr",
-  annualSaving: "2 months free",
-  pilot: "30-day free pilot",
-  pilotCardNote: "30-day free pilot (card required)",
+  launchFee: "£299.99",
+  launchFeeAmount: "299.99",
+  price: "£69.99 every 28 days",
+  priceShort: "£69.99/28 days",
+  priceAmount: "69.99",
+  pilot: "28-day free platform pilot",
+  pilotCardNote: "28-day free platform pilot (card required)",
+  billingDisclosure:
+    "13 payments totalling £909.87 in each 364-day billing year.",
+  processingFeeLine: "No separate card-processing surcharge.",
   /** Public phrasing for claims tied to the venue QR and saved membership. */
   counterStamp: "venue-linked stamps",
   counterStampLong: "stamps linked to the venue QR",
   /**
    * The one cancellation term — a true cancel-anytime as of offer v1
    * (marketing offer v1). Cancellation is self-serve from the billing
-   * page and takes effect at the end of the current billing month; the
+   * page and takes effect at the end of the current billing period; the
    * card-required qualifier stays in the sentence form (ASA
    * material-information). Sentence + chip forms; use these, never a bare
    * literal.
@@ -149,15 +146,15 @@ export const MARKET = {
  * composed with `GUARANTEE` and single-sourced so no surface forks it.
  */
 export const OFFER = {
-  name: "The 30-Day First-Regular Launch",
-  campaignName: "The 30-Day Gastropub Mid-Week Revenue Accelerator",
-  nameSafe: "The 30-Day First-Regular Launch",
+  name: "The 28-Day First-Regular Launch",
+  campaignName: "The 28-Day Gastropub Mid-Week Revenue Accelerator",
+  nameSafe: "The 28-Day First-Regular Launch",
   nameNote:
     "Built to encourage measurable return visits — never a promise of revenue or filled tables.",
   audience:
     "For single-site UK food-led pubs that are busy at weekends and quiet midweek.",
   riskFraming:
-    "Best case, your regulars come back and the £49 pays for itself. Worst case, you pay nothing more until one does.",
+    "You pay for the physical launch today. The platform stays free through the 28-day pilot before recurring billing begins.",
 } as const
 
 // --- Value equation (offer pack doc 2) --------------------------------------
@@ -203,20 +200,28 @@ export const VALUE_MATH = {
   assumptionLine:
     "Say an average return visit is worth about £12 to you once costs are out.",
   coverLine:
-    "~5 return visits a month cover the £49 subscription — roughly one extra return visit a week.",
+    "After the launch year, roughly 6 additional profitable visits every 28 days cover the £69.99 subscription.",
+  firstYearLine:
+    "Roughly 8 additional profitable visits every 28 days cover the £299.99 launch and 12 post-pilot payments during the first 364 days.",
   ninetyDayLine:
-    "15 verified return visits cover your first three months of £49 subscriptions.",
+    "18 verified return visits contribute about £216 and cover the first three £69.99 payments.",
   illustrativeNote:
     "That £12 is only an example — your margins will differ. You’ll see the real numbers in your own dashboard.",
 } as const
 
 /**
- * The one investment line — the whole price, no setup fee. Owner decision
- * 2026-07-19: the setup fee is removed entirely. The offer is a pure
- * subscription after the free pilot. Composed from `PRODUCT` and single-sourced
- * so every acquisition surface states it identically.
+ * The one investment line, composed from `PRODUCT` so every acquisition
+ * surface states the launch, pilot, recurring price, and cadence identically.
  */
-export const PLAN_LINE = `${PRODUCT.price}, or ${PRODUCT.priceAnnual} — ${PRODUCT.annualSaving}, after a ${PRODUCT.pilot}.`
+export const PLAN_LINE = `${PRODUCT.launchFee} done-for-you launch today. Then a ${PRODUCT.pilot}, followed by ${PRODUCT.price}. ${PRODUCT.billingDisclosure}`
+
+/** A genuine bespoke, enquiry-only alternative; no checkout is offered. */
+export const TAKEOVER = {
+  name: "The Ultimate Pub Loyalty Takeover",
+  price: "£4,999.99",
+  qualifier: "Bespoke scope agreed before purchase.",
+  action: "Discuss a bespoke takeover",
+} as const
 
 // --- The done-for-you launch (offer pack docs 3 + 8) -------------------------
 
@@ -538,15 +543,13 @@ export const LANDING = {
 
 /**
  * The First-Regular Guarantee — the offer's core risk reversal, owner-approved
- * 2026-07-05 (marketing offer v1). A commercial trial-extension promise
- * honoured by support as a manual Stripe trial extension, so no billing code
- * depends on this copy. Compose surfaces from these parts; never fork the
- * promise as a page literal. `conditions` (offer v3) states the operator
- * conditions from the guarantee doc.
+ * 2026-07-05 and updated for the 28-day billing plan on 2026-07-31. Support
+ * extends the Stripe trial. No billing code depends on this copy. Compose
+ * surfaces from these parts; never fork the promise as a page literal.
  */
 export const GUARANTEE = {
   name: "First-Regular Guarantee",
-  line: "If your live card hasn't brought back a first regular by the end of your 30-day pilot, the pilot stays free until it does.",
+  line: "If your live card hasn't brought back a first regular by the end of your 28-day pilot, the platform pilot stays free until it does.",
   applies: "Applies from the day your venue QR goes live.",
   claim: "Contact the Nabaperks team and we’ll apply the extension.",
   conditions:
@@ -556,13 +559,13 @@ export const GUARANTEE = {
 /**
  * The 90-Day ROI Extension — the offer pack's second, value risk reversal
  * (owner-approved 2026-07-18, marketing offer v3). Honoured by support as a
- * manual 100% Stripe discount on the following three months; no billing code
- * depends on this copy.
+ * manual 100% Stripe discount on the following three payments; no billing
+ * code depends on this copy.
  */
 export const GUARANTEE_ROI = {
   name: "90-Day ROI Extension",
-  line: "If your loyalty card doesn't record enough return visits to cover your first three subscriptions within 90 days, your next 3 months are completely free.",
-  mechanic: `${VALUE_MATH.ninetyDayLine} If your dashboard hasn't recorded them by day 90, Nabaperks applies a 100% discount to your next three months.`,
+  line: "If your loyalty card doesn't record 18 verified return visits within 90 days, your next three 28-day payments are free.",
+  mechanic: `${VALUE_MATH.ninetyDayLine} If your dashboard hasn't recorded them by day 90, Nabaperks applies a 100% discount to the next three payments.`,
   conditions:
     "Conditions: the QR stays actively displayed at the counter for the full 90 days, rewards are honoured, and no test or staff gaming of the card.",
   claim: "Contact the Nabaperks team and we’ll apply the discount.",
@@ -575,7 +578,7 @@ export const GUARANTEE_ROI = {
  */
 export const CLAIMS_BOUNDARY = {
   guarantee:
-    "What we do promise: a completed launch, and a pilot that stays free until the card brings back your first regular — a promise tied to a number you can check on your own dashboard.",
+    "What we do promise: a completed launch and extra pilot time if the card has not brought back your first regular within 28 days — a promise tied to a number you can check on your own dashboard.",
   never: "We do not guarantee midweek revenue or filled tables.",
   yourPart: DFY_LAUNCH.yourPart,
 } as const
@@ -625,7 +628,7 @@ export const SETUP = {
 } as const
 
 /**
- * What the £49 plan includes. Retained as an approved commercial fact set for
+ * What the Growth Plan includes. Retained as an approved commercial fact set for
  * merchant billing and marketing pricing copy.
  */
 export const PLAN_INCLUDES = [
@@ -997,7 +1000,7 @@ export const PERSONAS: readonly MarketingPersona[] = [
     noun: "café",
     title: "Loyalty for cafés",
     navLabel: "Cafés",
-    offerName: "The 30-Day First-Regular Launch",
+    offerName: "The 28-Day First-Regular Launch",
     primary: false,
     audience:
       "Counter-service cafés with a real base of regulars and a quiet stretch in the week.",
@@ -1011,7 +1014,7 @@ export const PERSONAS: readonly MarketingPersona[] = [
     noun: "bar",
     title: "Loyalty for bars",
     navLabel: "Bars",
-    offerName: "The 30-Day First-Regular Launch",
+    offerName: "The 28-Day First-Regular Launch",
     primary: false,
     audience:
       "Independent bars with strong weekend nights and a meaningful base of returning faces.",
@@ -1025,7 +1028,7 @@ export const PERSONAS: readonly MarketingPersona[] = [
     noun: "takeaway",
     title: "Loyalty for takeaways",
     navLabel: "Takeaways",
-    offerName: "The 30-Day First-Regular Launch",
+    offerName: "The 28-Day First-Regular Launch",
     primary: false,
     audience:
       "Counter takeaways with regular customers and order peaks that leave the rest of the week quiet.",
@@ -1068,11 +1071,11 @@ export const FAQ_ITEMS: readonly MarketingFaq[] = [
   },
   {
     question: "What does it cost?",
-    answer: `${PRODUCT.price}, or ${PRODUCT.priceAnnual} — ${PRODUCT.annualSaving} — after a ${PRODUCT.pilot}. There's no setup fee: the launch is included. ${PRODUCT.cancelLine}`,
+    answer: `${PRODUCT.launchFee} pays for the done-for-you launch today. After a ${PRODUCT.pilot}, the platform costs ${PRODUCT.price}. ${PRODUCT.billingDisclosure} ${PRODUCT.cancelLine}`,
   },
   {
-    question: "Is there a setup fee?",
-    answer: `No. ${DFY_LAUNCH.covers} That's all included in the ${PRODUCT.price} plan — nothing extra to pay up front.`,
+    question: "Is there a launch fee?",
+    answer: `Yes. The one-time ${PRODUCT.launchFee} launch fee covers configuration, bespoke printed launch materials and delivery. It is charged at checkout and is separate from the free platform pilot.`,
   },
   {
     question: "What if nobody comes back?",
@@ -1097,7 +1100,7 @@ export const PRICING_FAQ_ITEMS: readonly MarketingFaq[] = FAQ_ITEMS.filter(
   (faq) =>
     [
       "What does it cost?",
-      "Is there a setup fee?",
+      "Is there a launch fee?",
       "What if nobody comes back?",
       "What do you not guarantee?",
       "Why do you only take 5 launches a week?",

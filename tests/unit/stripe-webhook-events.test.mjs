@@ -16,15 +16,18 @@ function subscription(overrides = {}) {
     created: 1_783_684_800,
     status: "trialing",
     customer: "cus_owned",
-    metadata: { merchant_id: MERCHANT_ID },
+    metadata: {
+      merchant_id: MERCHANT_ID,
+      launch_fee_policy: "annual_included",
+    },
     items: {
       data: [
         {
           current_period_end: 1_786_363_200,
           price: {
-            id: "price_year_490",
+            id: "price_year_690",
             recurring: { interval: "year" },
-            unit_amount: 49_000,
+            unit_amount: 69_000,
             currency: "gbp",
           },
         },
@@ -56,6 +59,8 @@ function processorDependencies(overrides = {}) {
       stripeSubscriptionId: null,
     }),
     applySubscriptionEvent: async () => "applied",
+    satisfyLaunchFee: async () => true,
+    hasSatisfiedLaunchFee: async () => true,
     completeEvent: async () => true,
     ...overrides,
   }
@@ -210,12 +215,14 @@ test("oversized Stripe webhook bodies are rejected before verification", async (
 test("Checkout completion hydrates and atomically applies the exact current Subscription", async () => {
   let retrievedId = null
   let applied = null
+  let satisfied = null
   let completed = 0
   const checkoutEvent = event("checkout.session.completed", {
     id: "cs_owned",
     mode: "subscription",
     customer: "cus_owned",
     subscription: "sub_owned",
+    payment_status: "paid",
     metadata: { merchant_id: MERCHANT_ID },
   })
 
@@ -230,6 +237,10 @@ test("Checkout completion hydrates and atomically applies the exact current Subs
         applied = value
         return "applied"
       },
+      satisfyLaunchFee: async (value) => {
+        satisfied = value
+        return true
+      },
       completeEvent: async () => {
         completed += 1
         return true
@@ -242,14 +253,20 @@ test("Checkout completion hydrates and atomically applies the exact current Subs
   assert.equal(applied.eventId, "evt_owned")
   assert.equal(applied.leaseId, LEASE_ID)
   assert.equal(applied.merchantId, MERCHANT_ID)
+  assert.deepEqual(satisfied, {
+    merchantId: MERCHANT_ID,
+    stripeCustomerId: "cus_owned",
+    stripeSubscriptionId: "sub_owned",
+    policy: "annual_included",
+  })
   assert.deepEqual(applied.snapshot, {
     stripe_customer_id: "cus_owned",
     stripe_subscription_id: "sub_owned",
     stripe_subscription_status: "trialing",
     stripe_subscription_created_at: "2026-07-10T12:00:00.000Z",
-    stripe_price_id: "price_year_490",
+    stripe_price_id: "price_year_690",
     billing_interval: "year",
-    unit_amount: 49_000,
+    unit_amount: 69_000,
     currency: "gbp",
     current_period_end: "2026-08-10T12:00:00.000Z",
     cancel_at_period_end: false,
@@ -270,6 +287,79 @@ test("Checkout completion hydrates and atomically applies the exact current Subs
       },
     ],
   })
+})
+
+test("an unfinished legacy checkout cannot activate without a launch policy", async () => {
+  let applies = 0
+
+  await assert.rejects(
+    processStripeWebhookEvent(
+      {
+        event: event("checkout.session.completed", {
+          id: "cs_legacy",
+          mode: "subscription",
+          customer: "cus_owned",
+          subscription: "sub_owned",
+          metadata: { merchant_id: MERCHANT_ID },
+        }),
+        leaseId: LEASE_ID,
+      },
+      processorDependencies({
+        retrieveSubscription: async () =>
+          subscription({ metadata: { merchant_id: MERCHANT_ID } }),
+        hasSatisfiedLaunchFee: async () => false,
+        applySubscriptionEvent: async () => {
+          applies += 1
+          return "applied"
+        },
+      })
+    ),
+    (error) =>
+      error instanceof StripeWebhookProcessingError &&
+      error.code === "ownership_mismatch"
+  )
+
+  assert.equal(applies, 0)
+})
+
+test("a monthly Subscription event cannot activate before launch payment proof", async () => {
+  let applies = 0
+
+  await assert.rejects(
+    processStripeWebhookEvent(
+      {
+        event: event(
+          "customer.subscription.created",
+          subscription({
+            metadata: {
+              merchant_id: MERCHANT_ID,
+              launch_fee_policy: "charged",
+            },
+          })
+        ),
+        leaseId: LEASE_ID,
+      },
+      processorDependencies({
+        retrieveSubscription: async () =>
+          subscription({
+            metadata: {
+              merchant_id: MERCHANT_ID,
+              launch_fee_policy: "charged",
+            },
+          }),
+        hasSatisfiedLaunchFee: async () => false,
+        applySubscriptionEvent: async () => {
+          applies += 1
+          return "applied"
+        },
+      })
+    ),
+    (error) =>
+      error instanceof StripeWebhookProcessingError &&
+      error.code === "processing_failed"
+  )
+
+  assert.equal(applies, 0)
 })
 
 test("a stale event is completed but emits no revalidation or analytics intent", async () => {

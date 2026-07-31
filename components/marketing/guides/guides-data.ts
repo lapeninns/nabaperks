@@ -63,7 +63,7 @@ export const PAPER_VS_QR_ROWS: readonly ComparisonRow[] = [
   {
     aspect: "Ongoing cost",
     paper: "Reprints whenever cards run out",
-    qr: `${PRODUCT.price} after a ${PRODUCT.pilot}`,
+    qr: `${PRODUCT.price} after the ${PRODUCT.pilot}`,
   },
 ]
 
@@ -78,7 +78,7 @@ export const GUIDES: readonly Guide[] = [
     path: ROUTES.guideNoApp,
     title: "Reward regulars without an app",
     metaTitle: "How to Reward Regulars Without an App",
-    description: `A practical way to run pub loyalty when customers won't download another app: a browser card from your venue QR — ${PRODUCT.pilot}, then ${PRODUCT.price}.`,
+    description: `A practical way to run pub loyalty when customers won't download another app: a browser card from your venue QR — the ${PRODUCT.pilot} comes before ${PRODUCT.price}.`,
     intro:
       "“My customers will not download another app.” It's one of the most common objections owners raise about loyalty schemes — and it's fair. Here's how to reward regulars with nothing to install.",
     publishedOn: "2026-07-19",

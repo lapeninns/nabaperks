@@ -12,10 +12,8 @@ import { safeMerchantNextPath } from "@/lib/navigation/safe-next-path"
 import { OG_IMAGE } from "@/lib/seo/structured-data"
 import { cn } from "@/lib/utils"
 
-const title = "Start Your Free Pilot — No-App QR Loyalty"
-// 148 code points (budget 145–159); the cancellation term renders only via
-// the single-source constant (marketing-auth-legal contract).
-const description = `Start your done-for-you pub loyalty launch — ${PRODUCT.pilot}, then ${PRODUCT.price}. No setup fee. ${PRODUCT.cancelLine}`
+const title = "Start Your Loyalty Launch — No-App QR Loyalty"
+const description = `Start your done-for-you pub loyalty launch. ${PRODUCT.launchFee} today, a ${PRODUCT.pilot}, then ${PRODUCT.price}. ${PRODUCT.billingDisclosure} ${PRODUCT.cancelLine}`
 
 /** Conversion utility route: follow its links, but keep the thin auth form out
  * of search results in favour of the substantive landing and pricing pages. */
@@ -60,7 +58,8 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
     "/app/onboarding"
   )
   const trustPoints = [
-    "No setup fee — the done-for-you launch is included",
+    `${PRODUCT.launchFee} launch · ${PRODUCT.price} after the pilot`,
+    "28-day free platform pilot before recurring billing",
     "No app for your customers to download",
     "Customers stamp themselves from your venue QR",
     PRODUCT.cancelLine,
@@ -77,7 +76,7 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
       >
         <div className="order-2 grid gap-6 lg:order-1">
           <PageTitle
-            eyebrow="Start free pilot"
+            eyebrow="Start your launch"
             title="Your loyalty card starts here."
             description={`Create your account and verify your email with a ${otpCodeLabel} code. Then share your venue details and approve the pre-filled card and rewards before billing unlocks your QR.`}
             titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"
@@ -104,7 +103,7 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
 
         <ReceiptCard edge className="order-1 w-full lg:order-2">
           <div className="mb-5 grid gap-1">
-            <Eyebrow>30 days free · then {PRODUCT.price} per venue</Eyebrow>
+            <Eyebrow>{PRODUCT.pilot} before recurring billing</Eyebrow>
             <h2 className="text-[clamp(1.75rem,4vw,2.25rem)] leading-tight font-extrabold text-balance">
               Create your account
             </h2>

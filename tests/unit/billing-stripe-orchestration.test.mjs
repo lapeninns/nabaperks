@@ -32,8 +32,8 @@ const input = {
   environment: "development",
   configuredOrigin: "http://localhost:3000",
   requestOrigin: "http://localhost:4317",
-  monthlyPriceId: "price_month",
-  annualPriceId: "price_year",
+  launchPriceId: "price_launch_29999",
+  recurringPriceId: "price_28_day",
 }
 
 function attempt(overrides = {}) {
@@ -42,7 +42,7 @@ function attempt(overrides = {}) {
     merchantId: merchant.id,
     attemptId: "10000000-0000-4000-8000-000000000001",
     billingInterval: "month",
-    stripePriceId: "price_month",
+    stripePriceId: "price_28_day",
     successUrl:
       "http://localhost:4317/app/launch?tab=billing&checkout=success&session_id={CHECKOUT_SESSION_ID}",
     cancelUrl:
@@ -64,15 +64,18 @@ function subscription(overrides = {}) {
     created: 1_752_067_200,
     status: "trialing",
     customer: "cus_owned",
-    metadata: { merchant_id: merchant.id },
+    metadata: {
+      merchant_id: merchant.id,
+      launch_fee_policy: "charged",
+    },
     items: {
       data: [
         {
           current_period_end: 1_754_659_200,
           price: {
-            id: "price_month",
-            recurring: { interval: "month" },
-            unit_amount: 4_900,
+            id: "price_28_day",
+            recurring: { interval: "day", interval_count: 28 },
+            unit_amount: 6_999,
             currency: "gbp",
           },
         },
@@ -88,6 +91,11 @@ function dependencies(overrides = {}) {
   return {
     now: () => NOW,
     claimAttempt: async () => attempt(),
+    bindOffer: async () => ({
+      status: "bound",
+      launchFeePolicy: "charged",
+      stripeLaunchPriceId: "price_launch_29999",
+    }),
     bindCustomer: async () => true,
     finalizeSession: async () => true,
     releaseAttempt: async () => true,
@@ -111,7 +119,7 @@ function dependencies(overrides = {}) {
       id: "cs_owned",
       url: "https://checkout.stripe.test/cs_owned",
       status: "complete",
-      payment_status: "no_payment_required",
+      payment_status: "paid",
       expires_at: Math.floor(new Date(SESSION_EXPIRY).getTime() / 1_000),
       customer: "cus_owned",
       subscription: "sub_owned",
@@ -127,6 +135,8 @@ function dependencies(overrides = {}) {
       billingUpdatedAt: null,
     }),
     applyCurrentSubscription: async () => "applied",
+    satisfyLaunchFee: async () => true,
+    hasSatisfiedLaunchFee: async () => true,
     ...overrides,
   }
 }
@@ -339,9 +349,18 @@ test("a fresh attempt creates one customer and one exact idempotent Session", as
         )
         assert.equal(params.customer, "cus_owned")
         assert.deepEqual(params.line_items, [
-          { price: "price_month", quantity: 1 },
+          { price: "price_28_day", quantity: 1 },
+          { price: "price_launch_29999", quantity: 1 },
         ])
-        assert.equal(params.subscription_data.trial_period_days, 30)
+        assert.equal(params.subscription_data.trial_period_days, 28)
+        assert.equal(
+          params.subscription_data.metadata.billing_cadence,
+          "28_days"
+        )
+        assert.equal(
+          params.subscription_data.metadata.launch_fee_policy,
+          "charged"
+        )
         assert.equal(params.metadata.merchant_id, merchant.id)
         assert.equal(params.metadata.attempt_id, attempt().attemptId)
         assert.equal(params.success_url, attempt().successUrl)
@@ -417,17 +436,19 @@ test("provider failure releases only its fenced attempt and returns safe retry c
   assert.equal(released.workerLeaseId, attempt().workerLeaseId)
 })
 
-test("an interval switch expires the exact open Session before fenced rotation", async () => {
+test("a stale annual attempt rotates to the sole 28-day plan", async () => {
   const order = []
   const result = await prepareBillingCheckout(
-    { ...input, interval: "year" },
+    input,
     dependencies({
       claimAttempt: async () =>
         attempt({
           claimStatus: "interval_conflict",
           stripeCustomerId: "cus_owned",
-          stripeCheckoutSessionId: "cs_month",
-          stripeCheckoutSessionUrl: "https://checkout.stripe.test/cs_month",
+          billingInterval: "year",
+          stripePriceId: "price_year",
+          stripeCheckoutSessionId: "cs_year",
+          stripeCheckoutSessionUrl: "https://checkout.stripe.test/cs_year",
           workerLeaseId: null,
           workerLeaseExpiresAt: null,
         }),
@@ -446,43 +467,52 @@ test("an interval switch expires the exact open Session before fenced rotation",
       rotateAttempt: async (value) => {
         order.push(`rotate:${value.expectedSessionId}`)
         assert.equal(value.expectedAttemptId, attempt().attemptId)
-        assert.equal(value.billingInterval, "year")
-        assert.equal(value.stripePriceId, "price_year")
+        assert.equal(value.billingInterval, "month")
+        assert.equal(value.stripePriceId, "price_28_day")
         return attempt({
           claimStatus: "claimed",
           attemptId: "10000000-0000-4000-8000-000000000002",
-          billingInterval: "year",
-          stripePriceId: "price_year",
+          billingInterval: "month",
+          stripePriceId: "price_28_day",
           stripeCustomerId: "cus_owned",
         })
       },
       createCheckoutSession: async ({ params, idempotencyKey }) => {
-        order.push("create:year")
-        assert.equal(params.line_items[0].price, "price_year")
-        assert.equal(params.metadata.interval, "year")
+        order.push("create:28-day")
+        assert.deepEqual(params.line_items, [
+          { price: "price_28_day", quantity: 1 },
+          { price: "price_launch_29999", quantity: 1 },
+        ])
+        assert.equal(params.subscription_data.trial_period_days, 28)
+        assert.equal(params.metadata.billing_cadence, "28_days")
         assert.equal(
           idempotencyKey,
           "billing-checkout:10000000-0000-4000-8000-000000000002"
         )
         return {
-          id: "cs_year",
-          url: "https://checkout.stripe.test/cs_year",
+          id: "cs_28_day",
+          url: "https://checkout.stripe.test/cs_28_day",
           status: "open",
           expires_at: Math.floor(new Date(SESSION_EXPIRY).getTime() / 1_000),
         }
       },
+      bindOffer: async () => ({
+        status: "bound",
+        launchFeePolicy: "charged",
+        stripeLaunchPriceId: "price_launch_29999",
+      }),
     })
   )
 
   assert.deepEqual(result, {
     status: "redirect",
-    url: "https://checkout.stripe.test/cs_year",
+    url: "https://checkout.stripe.test/cs_28_day",
   })
   assert.deepEqual(order, [
-    "retrieve:cs_month",
-    "expire:cs_month",
-    "rotate:cs_month",
-    "create:year",
+    "retrieve:cs_year",
+    "expire:cs_year",
+    "rotate:cs_year",
+    "create:28-day",
   ])
 })
 
@@ -604,6 +634,51 @@ test("an owned completed trial applies only its exact current Subscription", asy
   assert.equal(applied.entitlementStatus, "trialing")
   assert.equal(applied.expectedBillingUpdatedAt, BILLING_UPDATED_AT)
   assert.deepEqual(verifiedReturns, [{ merchantId: merchant.id }])
+})
+
+test("a legacy unfinished checkout cannot bypass the launch fee policy", async () => {
+  let applies = 0
+  const result = await confirmBillingCheckoutReturn(
+    { merchantId: merchant.id, sessionId: "cs_owned" },
+    dependencies({
+      retrieveSubscription: async () =>
+        subscription({ metadata: { merchant_id: merchant.id } }),
+      hasSatisfiedLaunchFee: async () => false,
+      applyCurrentSubscription: async () => {
+        applies += 1
+        return "applied"
+      },
+    })
+  )
+
+  assert.deepEqual(result, { kind: "catching_up" })
+  assert.equal(applies, 0)
+})
+
+test("a 28-day Checkout return cannot activate until its launch charge is paid", async () => {
+  let applies = 0
+  const result = await confirmBillingCheckoutReturn(
+    { merchantId: merchant.id, sessionId: "cs_owned" },
+    dependencies({
+      retrieveCheckoutSession: async () => ({
+        id: "cs_owned",
+        mode: "subscription",
+        status: "complete",
+        payment_status: "no_payment_required",
+        customer: "cus_owned",
+        subscription: "sub_owned",
+        metadata: { merchant_id: merchant.id },
+      }),
+      hasSatisfiedLaunchFee: async () => false,
+      applyCurrentSubscription: async () => {
+        applies += 1
+        return "applied"
+      },
+    })
+  )
+
+  assert.deepEqual(result, { kind: "catching_up" })
+  assert.equal(applies, 0)
 })
 
 test("provider or database ambiguity returns catching-up rather than success", async () => {
