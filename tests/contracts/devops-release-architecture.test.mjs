@@ -136,6 +136,13 @@ test("production database promotion is CI-led, protected and exact-revision", ()
   assert.match(workflow, /pnpm build/)
   assert.match(workflow, /pnpm start/)
   assert.match(workflow, /supabase db push --linked --dry-run --include-all/)
+  // The promote job must carry the linked auth-hook defaults: the CLI parses
+  // config.toml hooks even for db push, and their absence stalled the first
+  // production promotion for a week (2026-07-31 incident).
+  assert.match(
+    workflow,
+    /SUPABASE_SEND_EMAIL_HOOK_URI: https:\/\/nabaperks\.com\/api\/auth\/hooks\/send-email/
+  )
   assert.match(workflow, /run: pnpm smoke:staging/)
   assert.match(workflow, /needs: staging/)
   assert.doesNotMatch(workflow, /secrets\.STAGING_/)
