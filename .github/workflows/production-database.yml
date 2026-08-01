@@ -139,6 +139,7 @@ jobs:
           export_fixture STAGING_MONITOR_SECRET "$monitor_secret"
           export_fixture STAGING_RESEND_WEBHOOK_SECRET "$resend_webhook_secret"
           export_fixture STAGING_STRIPE_WEBHOOK_SECRET "$stripe_webhook_secret"
+          export_fixture STRIPE_GROWTH_ANNUAL_PRICE_ID "price_$(openssl rand -hex 16)"
           export_fixture STRIPE_GROWTH_PRICE_ID "price_$(openssl rand -hex 16)"
           export_fixture STRIPE_SECRET_KEY "sk_test_$(openssl rand -hex 32)"
           export_fixture STRIPE_WEBHOOK_SECRET "$stripe_webhook_secret"

@@ -139,7 +139,7 @@ export function howToSchema({
 }
 
 /**
- * The Growth Plan as a Product with its one self-serve recurring offer. The
+ * The Growth Plan as a Product with its two self-serve recurring offers. The
  * one-time physical launch is disclosed in the offer description.
  */
 export function growthPlanSchema(): Record<string, unknown> {
@@ -149,15 +149,26 @@ export function growthPlanSchema(): Record<string, unknown> {
     name: `Nabaperks ${PRODUCT.planName}`,
     description: `${PRODUCT.cardLine} ${PRODUCT.posLine}`,
     brand: { "@id": ORG_ID },
-    offers: {
-      "@type": "Offer",
-      name: `${PRODUCT.planName} — 28-day billing`,
-      price: PRODUCT.priceAmount,
-      priceCurrency: "GBP",
-      description: `${PRODUCT.launchFee} done-for-you launch, then a ${PRODUCT.pilot} followed by ${PRODUCT.price}. ${PRODUCT.billingDisclosure} ${PRODUCT.cancelLine}`,
-      url: absoluteUrl("/pricing"),
-      availability: "https://schema.org/InStock",
-    },
+    offers: [
+      {
+        "@type": "Offer",
+        name: `${PRODUCT.planName} — 28-day billing`,
+        price: PRODUCT.priceAmount,
+        priceCurrency: "GBP",
+        description: `${PRODUCT.launchFee} done-for-you launch, then a ${PRODUCT.pilot} followed by ${PRODUCT.price}. ${PRODUCT.billingDisclosure} ${PRODUCT.cancelLine}`,
+        url: absoluteUrl("/pricing"),
+        availability: "https://schema.org/InStock",
+      },
+      {
+        "@type": "Offer",
+        name: `${PRODUCT.planName} — annual prepay`,
+        price: PRODUCT.annualPriceAmount,
+        priceCurrency: "GBP",
+        description: `${PRODUCT.launchFee} done-for-you launch, then a ${PRODUCT.pilot} followed by ${PRODUCT.annualPrice}. ${PRODUCT.annualSaving} ${PRODUCT.cancelLine}`,
+        url: absoluteUrl("/pricing"),
+        availability: "https://schema.org/InStock",
+      },
+    ],
   }
 }
 

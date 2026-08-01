@@ -34,6 +34,7 @@ const input = {
   requestOrigin: "http://localhost:4317",
   launchPriceId: "price_launch_29999",
   recurringPriceId: "price_28_day",
+  annualPriceId: "price_annual_69990",
 }
 
 function attempt(overrides = {}) {
@@ -436,7 +437,7 @@ test("provider failure releases only its fenced attempt and returns safe retry c
   assert.equal(released.workerLeaseId, attempt().workerLeaseId)
 })
 
-test("a stale annual attempt rotates to the sole 28-day plan", async () => {
+test("a stale annual attempt rotates safely when 28-day billing is selected", async () => {
   const order = []
   const result = await prepareBillingCheckout(
     input,
@@ -514,6 +515,46 @@ test("a stale annual attempt rotates to the sole 28-day plan", async () => {
     "rotate:cs_year",
     "create:28-day",
   ])
+})
+
+test("annual Checkout uses the annual Price, the launch fee and the same pilot", async () => {
+  const annualInput = { ...input, interval: "year" }
+  const result = await prepareBillingCheckout(
+    annualInput,
+    dependencies({
+      claimAttempt: async (value) => {
+        assert.equal(value.billingInterval, "year")
+        assert.equal(value.stripePriceId, "price_annual_69990")
+        return attempt({
+          billingInterval: "year",
+          stripePriceId: "price_annual_69990",
+        })
+      },
+      createCheckoutSession: async ({ params }) => {
+        assert.deepEqual(params.line_items, [
+          { price: "price_annual_69990", quantity: 1 },
+          { price: "price_launch_29999", quantity: 1 },
+        ])
+        assert.equal(params.subscription_data.trial_period_days, 28)
+        assert.equal(
+          params.subscription_data.metadata.billing_cadence,
+          "annual"
+        )
+        assert.equal(params.metadata.billing_cadence, "annual")
+        return {
+          id: "cs_annual",
+          url: "https://checkout.stripe.test/cs_annual",
+          status: "open",
+          expires_at: Math.floor(new Date(SESSION_EXPIRY).getTime() / 1_000),
+        }
+      },
+    })
+  )
+
+  assert.deepEqual(result, {
+    status: "redirect",
+    url: "https://checkout.stripe.test/cs_annual",
+  })
 })
 
 test("a durable non-restartable billing state creates no provider object", async () => {

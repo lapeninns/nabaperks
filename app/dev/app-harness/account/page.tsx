@@ -148,7 +148,7 @@ function resolveHarnessBilling(
     return {
       ...BASE_BILLING,
       billing_interval: "year",
-      unit_amount: 69_000,
+      unit_amount: 69_990,
       current_period_end: "2027-07-10T12:00:00.000Z",
     }
   }

@@ -12,28 +12,33 @@ test("Stripe SDK and API version stay on the supported June 2026 stable contract
   assert.match(stripeServer, /apiVersion:\s*["']2026-06-24\.dahlia["']/)
 })
 
-test("launch and 28-day Growth prices are documented and production-ready", () => {
+test("launch, 28-day and annual Growth prices are documented", () => {
   const envExample = read(".env.example")
   const envKeys = read("scripts/env-keys.mjs")
 
   assert.match(envExample, /STRIPE_LAUNCH_PRICE_ID=price_replace_me/)
   assert.match(envExample, /STRIPE_GROWTH_PRICE_ID=price_replace_me/)
-  assert.doesNotMatch(envExample, /STRIPE_GROWTH_ANNUAL_PRICE_ID/)
+  assert.match(envExample, /STRIPE_GROWTH_ANNUAL_PRICE_ID=price_replace_me/)
   assert.match(envKeys, /STRIPE_LAUNCH_PRICE_ID=<price_/)
   assert.match(envKeys, /STRIPE_GROWTH_PRICE_ID=<price_/)
+  assert.match(envKeys, /STRIPE_GROWTH_ANNUAL_PRICE_ID=<price_/)
 })
 
-test("provider readiness checks the launch and 28-day Price without writes", () => {
+test("provider readiness checks all live Prices without writes", () => {
   const checks = read("scripts/provider-readiness/checks.mjs")
 
   assert.match(checks, /STRIPE_LAUNCH_PRICE_ID/)
-  assert.doesNotMatch(checks, /STRIPE_GROWTH_ANNUAL_PRICE_ID/)
+  assert.match(checks, /STRIPE_GROWTH_ANNUAL_PRICE_ID/)
   assert.match(checks, /unit_amount === 29999/)
   assert.match(checks, /body\.recurring == null/)
   assert.match(checks, /unit_amount === 6999/)
   assert.match(checks, /recurring\?\.interval === "day"/)
   assert.match(checks, /recurring\?\.interval_count === 28/)
+  assert.match(checks, /unit_amount === 69990/)
+  assert.match(checks, /recurring\?\.interval === "year"/)
+  assert.match(checks, /recurring\?\.interval_count === 1/)
   assert.match(checks, /Launch price is active one-time GBP 299\.99/)
   assert.match(checks, /Growth price is active GBP 69\.99 every 28 days/)
+  assert.match(checks, /Annual Growth price is active GBP 699\.90 each year/)
   assert.doesNotMatch(checks, /method:\s*["']POST["']/)
 })

@@ -463,8 +463,10 @@ test("Given final provider acceptance When the production runbook is inspected T
   )
   const incident = readFileSync("docs/operations/incident-response.md", "utf8")
 
-  assert.match(production, /live product and both active price IDs/i)
-  assert.match(production, /Customer Portal session/i)
+  assert.match(production, /live product and all three active Price IDs/i)
+  assert.match(production, /prepaid annual Price is\s+GBP 699\.90/i)
+  assert.match(production, /payment-method-update flow/i)
+  assert.match(production, /exit review/i)
   assert.match(production, /signed webhook delivery/i)
   assert.match(production, /stripe_webhook_events/)
   assert.match(production, /entitlement/i)

@@ -21,7 +21,7 @@
  *   wrapper. The original `Revenue Accelerator` wording is retained only as a
  *   campaign wrapper that requires separate approval before public use.
  * - New customers pay the done-for-you launch fee before the free 28-day
- *   platform pilot, then pay every 28 days. New annual sales are closed.
+ *   platform pilot, then choose 28-day billing or discounted annual prepay.
  *   `PLAN_LINE` is the single-sourced investment line.
  * - `GUARANTEE` (First-Regular, offer v1) + `GUARANTEE_ROI` (90-Day ROI
  *   Extension, offer v3) are conditional service promises honoured manually by
@@ -84,6 +84,21 @@ export const PRODUCT = {
   price: "£69.99 every 28 days",
   priceShort: "£69.99/28 days",
   priceAmount: "69.99",
+  annualPrice: "£699.90 a year",
+  annualPriceShort: "£699.90/year",
+  annualPriceAmount: "699.90",
+  annualSaving: "Save £209.97 against 13 separate 28-day payments.",
+  /** Chip form of the annual saving, for tight tags beside the annual price. */
+  annualSavingShort: "Save £209.97",
+  /**
+   * Display-split pairs of `price`/`annualPrice` for ticket-style price
+   * lockups (big amount, small cadence) — kept in sync with the sentence
+   * forms above and drift-guarded by the marketing offer-source contract.
+   */
+  priceCadence: "every 28 days",
+  annualPriceCadence: "a year",
+  annualBillingDisclosure:
+    "One prepaid yearly payment after the 28-day platform pilot.",
   pilot: "28-day free platform pilot",
   pilotCardNote: "28-day free platform pilot (card required)",
   billingDisclosure:
@@ -100,8 +115,9 @@ export const PRODUCT = {
    * material-information). Sentence + chip forms; use these, never a bare
    * literal.
    */
-  cancelLine: "Card required — cancel anytime from your billing page.",
-  cancelChip: "Cancel anytime",
+  cancelLine:
+    "Card required — cancel renewal anytime after a short exit review from your billing page.",
+  cancelChip: "Cancel renewal anytime after a short exit review",
 } as const
 
 // --- The market (offer pack doc 1: pick the right market) -------------------
@@ -192,21 +208,21 @@ export const VALUE_EQUATION = [
 ] as const
 
 /**
- * The price-to-value maths from the offer pack, kept honest: the £12 gross
+ * The price-to-value maths from the offer pack, kept honest: the £25 gross
  * contribution per return visit is an illustrative example, and every page
  * that renders these lines must carry `illustrativeNote` alongside them.
  */
 export const VALUE_MATH = {
   assumptionLine:
-    "Say an average return visit is worth about £12 to you once costs are out.",
+    "Say an average return visit is worth about £25 to you once costs are out.",
   coverLine:
-    "After the launch year, roughly 6 additional profitable visits every 28 days cover the £69.99 subscription.",
+    "After the launch year, roughly 3 additional profitable visits every 28 days cover the £69.99 subscription.",
   firstYearLine:
-    "Roughly 8 additional profitable visits every 28 days cover the £299.99 launch and 12 post-pilot payments during the first 364 days.",
+    "Roughly 4 additional profitable visits every 28 days cover the £299.99 launch and 12 post-pilot payments during the first 364 days.",
   ninetyDayLine:
-    "18 verified return visits contribute about £216 and cover the first three £69.99 payments.",
+    "18 verified return visits contribute about £450 and cover the first three £69.99 payments.",
   illustrativeNote:
-    "That £12 is only an example — your margins will differ. You’ll see the real numbers in your own dashboard.",
+    "That £25 is only an example — your margins will differ. You’ll see the real numbers in your own dashboard.",
 } as const
 
 /**
@@ -559,13 +575,18 @@ export const GUARANTEE = {
 /**
  * The 90-Day ROI Extension — the offer pack's second, value risk reversal
  * (owner-approved 2026-07-18, marketing offer v3). Honoured by support as a
- * manual 100% Stripe discount on the following three payments; no billing
- * code depends on this copy.
+ * manual plan-fee relief worth £209.97; no billing code depends on this copy.
  */
 export const GUARANTEE_ROI = {
   name: "90-Day ROI Extension",
-  line: "If your loyalty card doesn't record 18 verified return visits within 90 days, your next three 28-day payments are free.",
-  mechanic: `${VALUE_MATH.ninetyDayLine} If your dashboard hasn't recorded them by day 90, Nabaperks applies a 100% discount to the next three payments.`,
+  line: "If your loyalty card doesn't record 18 verified return visits within 90 days, you receive £209.97 of plan-fee relief.",
+  mechanic: `${VALUE_MATH.ninetyDayLine} If your dashboard hasn't recorded them by day 90, Nabaperks provides £209.97 of plan-fee relief: three fully discounted renewal invoices on 28-day billing, or £209.97 returned from the current annual subscription payment.`,
+  starts:
+    "The 90 days start on the Europe/London calendar date when Nabaperks records your venue QR as live after setup.",
+  claimWindow:
+    "Submit a claim from day 90 through day 104, inclusive, using the support address in the merchant terms.",
+  fulfilment:
+    "For 28-day billing, the next three renewal invoices receive a 100% discount. For annual prepay, the equivalent £209.97 is returned from the current annual subscription payment.",
   conditions:
     "Conditions: the QR stays actively displayed at the counter for the full 90 days, rewards are honoured, and no test or staff gaming of the card.",
   claim: "Contact the Nabaperks team and we’ll apply the discount.",
@@ -1071,7 +1092,7 @@ export const FAQ_ITEMS: readonly MarketingFaq[] = [
   },
   {
     question: "What does it cost?",
-    answer: `${PRODUCT.launchFee} pays for the done-for-you launch today. After a ${PRODUCT.pilot}, the platform costs ${PRODUCT.price}. ${PRODUCT.billingDisclosure} ${PRODUCT.cancelLine}`,
+    answer: `${PRODUCT.launchFee} pays for the done-for-you launch today. After a ${PRODUCT.pilot}, choose ${PRODUCT.price} or ${PRODUCT.annualPrice} prepaid annually. ${PRODUCT.annualSaving} ${PRODUCT.cancelLine}`,
   },
   {
     question: "Is there a launch fee?",

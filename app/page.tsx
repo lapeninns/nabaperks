@@ -4,6 +4,7 @@ import { MarketingLayout } from "@/components/layout"
 import { Marquee } from "@/components/marketing"
 import {
   buildQrMatrix,
+  CommercialEvidenceProof,
   FinalCta,
   FitNote,
   LandingHero,
@@ -52,6 +53,7 @@ export default function LandingPage() {
       <LandingHero demoQr={demoQr} />
       <Marquee />
       <ProofLine />
+      <CommercialEvidenceProof />
       <ProductMoment demoQr={demoQr} />
       <FitNote />
       <LandingPricing />

@@ -8,6 +8,7 @@ import {
   type BillingCheckoutAction,
 } from "@/components/merchant/account/billing-checkout-form"
 import { GUARANTEE, PRODUCT } from "@/lib/marketing/facts"
+import { SeasonalOfferBanner } from "@/components/marketing"
 
 /**
  * First-run billing activation surface — plan facts, one primary "Proceed to
@@ -50,6 +51,8 @@ export function SetupBillingActivationCard({
         <PlanRow label="Launch today" value={PRODUCT.launchFee} />
         <PlanRow label="Platform pilot" value="28 days free" />
         <PlanRow label="Then" value={PRODUCT.price} />
+        <PlanRow label="Or prepay" value={PRODUCT.annualPrice} />
+        <PlanRow label="Annual saving" value="£209.97" />
         <PlanRow
           label="Recurring year"
           value="£909.87 across 13 payments per 364 days"
@@ -59,6 +62,7 @@ export function SetupBillingActivationCard({
       </dl>
 
       <div className="grid gap-2">
+        <SeasonalOfferBanner />
         <BillingCheckoutForm
           checkoutAction={checkoutAction}
           returnTo={billingReturnTo}

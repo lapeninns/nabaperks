@@ -85,6 +85,9 @@ function printStatus() {
     "  STRIPE_GROWTH_PRICE_ID=<price_... for active GBP 69.99 every 28 days>"
   )
   console.log(
+    "  STRIPE_GROWTH_ANNUAL_PRICE_ID=<price_... for active GBP 699.90 each year>"
+  )
+  console.log(
     "  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY and STRIPE_SECRET_KEY come from Stripe API keys."
   )
   console.log("")

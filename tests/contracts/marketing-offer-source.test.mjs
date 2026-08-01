@@ -140,13 +140,21 @@ test("Given the finalised offer pack When facts.ts is inspected Then the locked 
   assert.match(facts, /name: "The Ultimate Pub Loyalty Takeover"/)
   assert.match(facts, /price: "£4,999\.99"/)
 
+  // The display-split pairs behind the pricing sheet's price lockups stay
+  // pinned to the sentence forms above.
+  assert.match(facts, /priceAmount: "69\.99"/)
+  assert.match(facts, /priceCadence: "every 28 days"/)
+  assert.match(facts, /annualPriceAmount: "699\.90"/)
+  assert.match(facts, /annualPriceCadence: "a year"/)
+  assert.match(facts, /annualSavingShort: "Save £209\.97"/)
+
   // Guarantee stack: First-Regular plus the 90-Day ROI Extension.
   assert.match(facts, /export const GUARANTEE = \{/)
   assert.match(facts, /export const GUARANTEE_ROI = \{/)
   assert.match(facts, /name: "90-Day ROI Extension"/)
   assert.match(
     facts,
-    /your next three 28-day payments are free/,
+    /you receive £209\.97 of plan-fee relief/,
     "ROI extension headline must match the guarantee doc"
   )
   assert.match(facts, /We do not guarantee midweek revenue or filled tables\./)
@@ -313,7 +321,8 @@ test("Given the launch pricing changed When all source is scanned Then no retire
   )
   assert.match(checkoutForm, /PRODUCT\.price/)
   assert.match(checkoutForm, /PRODUCT\.launchFee/)
-  assert.doesNotMatch(checkoutForm, /priceAnnual|annualBillingAvailable/)
+  assert.match(checkoutForm, /PRODUCT\.annualPrice/)
+  assert.match(checkoutForm, /PRODUCT\.annualSaving/)
 })
 
 test("Given the public route registry When llms.txt is compared Then no rebuilt route is missing", () => {
@@ -362,6 +371,78 @@ test("Given the public route registry When llms.txt is compared Then no rebuilt 
       `${segments.join("/")} must exist`
     )
   }
+})
+
+test("Given one Growth Plan When pricing renders Then both payment schedules share one sheet", () => {
+  const pricing = readProjectFile("app", "pricing", "page.tsx")
+
+  assert.match(
+    pricing,
+    /<GrowthPlanPricing\b/,
+    "pricing must compose the extracted GrowthPlanPricing sheet"
+  )
+  assert.doesNotMatch(
+    pricing,
+    /data-payment-option|data-growth-plan-pricing/,
+    "the payment choices live in the GrowthPlanPricing component, not page JSX"
+  )
+
+  const sheet = readProjectFile(
+    "components",
+    "marketing",
+    "growth-plan-pricing.tsx"
+  )
+
+  // One unmistakable outer boundary; both schedules inside it as options of
+  // the SAME plan, followed by the shared feature list and one CTA.
+  assert.equal(
+    sheet.match(/data-growth-plan-pricing/g)?.length,
+    1,
+    "pricing should render one Growth Plan sheet"
+  )
+  assert.match(sheet, /data-payment-option="28-day"/)
+  assert.match(sheet, /data-payment-option="annual"/)
+  assert.match(sheet, /Both choices include the same Growth Plan/)
+  assert.match(sheet, /PLAN_INCLUDES/)
+  assert.match(sheet, /Start your launch/)
+
+  // Every figure is sourced from facts — never a literal.
+  for (const fact of [
+    "PRODUCT.launchFeeAmount",
+    "PRODUCT.priceAmount",
+    "PRODUCT.priceCadence",
+    "PRODUCT.annualPriceAmount",
+    "PRODUCT.annualPriceCadence",
+    "PRODUCT.annualSavingShort",
+    "PRODUCT.annualSaving",
+    "PRODUCT.billingDisclosure",
+    "PRODUCT.processingFeeLine",
+    "PRODUCT.cancelLine",
+    "TAKEOVER.price",
+  ]) {
+    assert.match(
+      sheet,
+      new RegExp(fact.replace(".", "\\.")),
+      `the sheet must render ${fact} from lib/marketing/facts.ts`
+    )
+  }
+
+  // The takeover is enquiry-only, rendered OUTSIDE (after) the Growth Plan
+  // boundary so it can never read as a third tier.
+  assert.match(sheet, /data-takeover-enquiry/)
+  assert.ok(
+    sheet.indexOf("data-takeover-enquiry") >
+      sheet.indexOf("data-growth-plan-pricing"),
+    "the takeover enquiry must render outside the Growth Plan sheet"
+  )
+
+  // The schedule choice is information, not a checkout control — the sheet
+  // stays server-rendered.
+  assert.doesNotMatch(
+    sheet,
+    /"use client"/,
+    "the pricing sheet must stay server-rendered"
+  )
 })
 
 test("Given the claims boundary When any surface names a guarantee Then that same surface renders the boundary", () => {

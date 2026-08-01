@@ -24,9 +24,9 @@ test("annual billing receipt @visual", async ({ page }) => {
     portal.shadowRoot?.append(style)
   })
 
-  await expect(page.getByText("£690 a year", { exact: true })).toBeVisible()
+  await expect(page.getByText("£699.90 a year", { exact: true })).toBeVisible()
   await expect(
-    page.getByText("Paid upfront · no free trial", { exact: true })
+    page.getByText("Paid upfront after the pilot", { exact: true })
   ).toBeVisible()
   await expect(page.getByText("Free trial", { exact: true })).toHaveCount(0)
   await expect(page).toHaveScreenshot("annual-billing-receipt.png", {

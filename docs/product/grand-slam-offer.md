@@ -16,7 +16,7 @@ No-app QR loyalty for independent pubs · £69.99 every 28 days · Pub loyalty, 
 
 > **Note:** This is the durable narrative of the offer. The authoritative copy lives in `lib/marketing/facts.ts` (`OFFER`, `MARKET`, `PLAN_LINE`, `DFY_LAUNCH`, `CORE_OFFER`, `BONUS_STACK`, `GUARANTEE`, `GUARANTEE_ROI`, `SCARCITY`, `URGENCY`); if the two ever disagree, the code is right and this doc should be updated.
 
-> **Offer v6 (31 July 2026).** The done-for-you launch is separated from the ongoing platform value. New customers pay a **£299.99 launch fee** before a 28-day free platform pilot, then **£69.99 every 28 days** — 13 recurring payments in each 364-day billing year. The annual plan is closed to new customers. The First-Regular and 90-Day ROI guarantees, and the real five-launches-a-week capacity limit, remain in place.
+> **Offer v7 (31 July 2026).** The done-for-you launch is separated from the ongoing platform value. New customers pay a **£299.99 launch fee** before a 28-day free platform pilot, then choose **£69.99 every 28 days** — 13 payments totalling £909.87 per 364 days — or **£699.90 prepaid yearly**, saving £209.97 against that cadence. The First-Regular and legally specified 90-Day ROI guarantees, the evidence approval ledger, exit review, and fixed seasonal campaign windows are in place.
 
 ---
 
@@ -24,7 +24,7 @@ No-app QR loyalty for independent pubs · £69.99 every 28 days · Pub loyalty, 
 
 Nabaperks gives UK pubs, cafes, bars and takeaways a browser-based loyalty card with **no app, no wallet pass and no POS integration**. The customer scans a till QR, saves the card in their browser, and each stamp is linked to that venue QR and saved membership.
 
-The core price is **£299.99 for the launch today, then £69.99 every 28 days after a 28-day free platform pilot**. The honest high-ticket alternative is the **£4,999.99 Ultimate Pub Loyalty Takeover**, enquiry only, with scope agreed before purchase. The offer _around_ those terms is what makes it a Grand Slam Offer — four moves, each drawn straight from the _$100M Offers_ playbook:
+The core price is **£299.99 for the launch today, then either £69.99 every 28 days or £699.90 prepaid yearly after a 28-day free platform pilot**. The honest high-ticket alternative is the **£4,999.99 Ultimate Pub Loyalty Takeover**, enquiry only, with scope agreed before purchase. The offer _around_ those terms is what makes it a Grand Slam Offer — four moves, each drawn straight from the _$100M Offers_ playbook:
 
 - **A clear setup path.** Four configuration steps are followed by billing activation, so operators know exactly when the venue becomes live.
 - **A stacked launch kit.** Five already-built assets, presented as named bonuses, each answering a real objection.
@@ -42,7 +42,7 @@ _One page. Everything a venue owner needs to say yes._
 | Element                       | Detail                                                                                                                                                                                                                             |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **The product**               | A browser-based loyalty card customers open from your QR — no app, no Apple/Google Wallet pass, no POS or EPOS integration. Each stamp is linked to the venue QR and saved membership and limited to one per customer per UK date. |
-| **The price**                 | £299.99 done-for-you launch today, then a 28-day free platform pilot followed by £69.99 every 28 days. That is 13 payments per 364 days. Card required; cancellation is managed from billing. |
+| **The price**                 | £299.99 done-for-you launch today, then a 28-day free platform pilot followed by £69.99 every 28 days or £699.90 prepaid yearly. Annual prepay saves £209.97 against 13 separate 28-day payments. Card required; cancellation starts with a short exit review from billing. |
 | **The named offer**           | The 28-Day First-Regular Launch.                                                                                                                                                                                                   |
 | **Activation path**           | Four guided configuration steps, then billing activation before customers can join and stamp.                                                                                                                                      |
 | **The guarantee**             | First-Regular Guarantee — the platform pilot stays free until a first regular returns, subject to the published conditions.                                                        |
@@ -73,7 +73,7 @@ You raise the top and drive the bottom toward zero. Here is how The 28-Day First
 
 ## 4. The core offer: launch plus platform
 
-Customers pay £299.99 for configuration, bespoke printed launch materials and delivery, then receive a 28-day free platform pilot before £69.99 billing every 28 days begins. Nabaperks adds no separate card-processing surcharge. What the plan includes:
+Customers pay £299.99 for configuration, bespoke printed launch materials and delivery, then receive a 28-day free platform pilot before their chosen £69.99 every-28-days billing or £699.90 yearly prepayment begins. Nabaperks adds no separate card-processing surcharge. What the plan includes:
 
 - Unlimited stamps and members
 - Simple reward setup
@@ -81,7 +81,7 @@ Customers pay £299.99 for configuration, bespoke printed launch materials and d
 - Weekly digest of visits, regulars and redemptions
 - Optional location checks at your venue
 
-**The maths we lead with:** using the illustrative £12 contribution, roughly eight additional profitable visits every 28 days cover the launch and 12 post-pilot payments during the first 364 days; roughly six every 28 days cover the ongoing subscription after that. The dashboard lets each merchant judge the real result from their own numbers.
+**The maths we lead with:** using the illustrative £25 contribution, roughly four additional profitable visits every 28 days cover the launch and 12 post-pilot payments during the first 364 days; roughly three every 28 days cover the ongoing subscription after that. The dashboard lets each merchant judge the real result from their own numbers.
 
 ---
 
@@ -125,11 +125,11 @@ A single offer is worth less than the same offer broken into named, stacked part
 | **Privacy jobs, handled**                | The data rules feel like a minefield. | Consent-led marketing kept separate from loyalty, an 18+ age gate at redemption, and automatic data-retention tidy-ups.    | _(mechanisms only — no price)_                                                     |
 | **The operator's loyalty guides**        | Unsure what actually works in a pub.  | Three practical guides from the counter: reward ideas that suit a pub, paper vs QR, and rewarding regulars without an app. | _(included)_                                                                       |
 
-The value of the stack is designed to justify the £299.99 launch fee and £69.99 recurring payment — not with a fabricated total, but with real, defensible comparisons and hours-per-week saved. Everything is framed against the commercial path it genuinely belongs to, never as “normally sold separately”.
+The value of the stack is designed to justify the £299.99 launch fee and chosen recurring plan — not with a fabricated total, but with real, defensible comparisons and hours-per-week saved. Everything is framed against the commercial path it genuinely belongs to, never as “normally sold separately”.
 
 ---
 
-## 8. The First-Regular Guarantee (risk reversal)
+## 8. The guarantee stack (risk reversal)
 
 Reversing risk is the number-one way to lift conversion. This is a **conditional service guarantee** — Hormozi's personal favourite — because it guarantees the outcome and removes the element of time.
 
@@ -140,6 +140,12 @@ Reversing risk is the number-one way to lift conversion. This is a **conditional
 > Applies from the day your venue QR goes live. Contact the Nabaperks team and we’ll apply the extension.
 
 Mechanically, the guarantee is honoured as a manual Stripe trial extension — no billing code depends on the copy. It is an owner-approved commercial promise, deliberately distinct from any (banned) compliance guarantee.
+
+> ### 90-Day ROI Extension
+>
+> If your loyalty card does not record 18 verified return visits within 90 days, you receive £209.97 of plan-fee relief, subject to the published conditions and claim window.
+
+For 28-day billing, the remedy is a 100% discount on the next three renewal invoices. For annual prepay, it is a £209.97 refund from the current annual subscription payment. This is a service-price remedy, not a promise of revenue, profit, or filled tables; the merchant terms define the start date, verification rules, 14-day claim window, and fulfilment timing.
 
 ---
 
@@ -159,7 +165,7 @@ The site never invents a live availability counter or countdown. Capacity is con
 
 What makes this offer defensible as well as persuasive:
 
-- **True cancel-anytime.** No notice period; cancellation takes effect at the end of the billing month, earned rewards stay redeemable.
+- **True cancel-anytime.** Cancellation starts with a short exit review and then opens Stripe; it takes effect at the end of the current subscription period recorded by Stripe.
 - **No invented anchors.** Bonus values are real external comparisons or genuine time savings — never a fabricated RRP or "was" price (UK CAP Code).
 - **Mechanisms, not compliance claims.** The privacy bonus describes what it does (consent separation, 18+ age gate, retention tidy-ups) — never "GDPR guaranteed" or "compliant," which are hard-banned in copy.
 - **Real commitments.** The guarantees and weekly launch capacity are honoured by manual operations, not empty marketing.
@@ -174,7 +180,7 @@ _How it reads, top to bottom, on the page and in the room._
 
 No-app QR loyalty for UK cafes, takeaways and pubs. Your customer scans the till QR and the card opens in their browser — saved in one tap, with no app and no Apple or Google Wallet pass to install. Each stamp is tied to the venue QR and saved membership and capped at one per customer per UK date.
 
-**Start with the launch.** Pay £299.99 today, use the platform free for 28 days, then pay £69.99 every 28 days. That is 13 payments per 364 days. The £4,999.99 bespoke takeover remains enquiry only.
+**Start with the launch.** Pay £299.99 today, use the platform free for 28 days, then choose £69.99 every 28 days or £699.90 prepaid yearly. Annual prepay saves £209.97 against 13 separate 28-day payments. The £4,999.99 bespoke takeover remains enquiry only.
 
 **Build your card first. Activate it when billing is ready.** Four configuration steps prepare the venue, card, rewards and QR; billing is the fifth gate. Once billing is active, customers can join from the live QR and collect stamps.
 

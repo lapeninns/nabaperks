@@ -169,21 +169,43 @@ export function BillingPanelView({
                       " launch · then " +
                       PRODUCT.price
                 }
+                annualLabel={
+                  billing?.launch_fee_status
+                    ? presentation.primaryAction.label +
+                      " · " +
+                      PRODUCT.annualPrice
+                    : presentation.primaryAction.label +
+                      " · " +
+                      PRODUCT.launchFee +
+                      " launch · then " +
+                      PRODUCT.annualPrice
+                }
               />
             ) : presentation.primaryAction.kind === "portal" && portalAction ? (
-              <form action={portalAction} className="grid gap-2">
-                {billingReturnTo ? (
-                  <input
-                    type="hidden"
-                    name="returnTo"
-                    value={billingReturnTo}
-                  />
-                ) : null}
-                <Button type="submit" className="min-h-11 w-full sm:w-fit">
-                  Open Stripe portal
-                  <Icon icon={ArrowRight01Icon} size={16} />
+              <div className="grid gap-3 sm:flex sm:flex-wrap">
+                <form action={portalAction}>
+                  {billingReturnTo ? (
+                    <input
+                      type="hidden"
+                      name="returnTo"
+                      value={billingReturnTo}
+                    />
+                  ) : null}
+                  <Button type="submit" className="min-h-11 w-full sm:w-fit">
+                    Update payment method
+                    <Icon icon={ArrowRight01Icon} size={16} />
+                  </Button>
+                </form>
+                <Button
+                  asChild
+                  variant="secondary"
+                  className="min-h-11 w-full sm:w-fit"
+                >
+                  <Link href="/app/account/cancel">
+                    Review cancellation options
+                  </Link>
                 </Button>
-              </form>
+              </div>
             ) : (
               <div className="grid gap-2">
                 <p className="text-sm leading-6 text-muted-foreground">
@@ -202,7 +224,7 @@ export function BillingPanelView({
                 ? "Secure checkout via Stripe. " +
                   PRODUCT.cancelChip +
                   " from your billing page."
-                : "Manage your card and invoices securely in Stripe."}
+                : "Update your payment method in Stripe, or complete the short exit review before cancelling."}
             </p>
           </div>
         </ReceiptCard>
@@ -330,7 +352,7 @@ function BillingReceipt({
             label="Annual plan"
             value={`${receipt.amountLabel} a year`}
           />
-          <PlanRow label="Payment" value="Paid upfront · no free trial" />
+          <PlanRow label="Payment" value="Paid upfront after the pilot" />
         </>
       )}
       <PlanRow label="Billed" value="Per location" />

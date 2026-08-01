@@ -6,6 +6,7 @@ import { Icon, MonoTag, SectionHeader } from "@/components/brand"
 import { Section } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { SeasonalOfferBanner } from "@/components/marketing"
 import {
   OFFER,
   PLAN_INCLUDES,
@@ -46,7 +47,16 @@ export function LandingPricing() {
                 {PRODUCT.launchFee} launch fee today, then the{" "}
                 {PRODUCT.pilotCardNote} before recurring billing starts.
               </p>
+              <div className="mt-2 grid gap-1 border-t-2 border-dashed border-border pt-3">
+                <p className="text-lg leading-6 font-extrabold text-foreground">
+                  Or {PRODUCT.annualPrice}
+                </p>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  {PRODUCT.annualBillingDisclosure} {PRODUCT.annualSaving}
+                </p>
+              </div>
             </div>
+            <SeasonalOfferBanner />
             <ul className="grid gap-2.5">
               {PLAN_INCLUDES.slice(0, 4).map((item) => (
                 <li key={item} className="flex items-start gap-3">

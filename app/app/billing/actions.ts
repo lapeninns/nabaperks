@@ -12,7 +12,10 @@ import {
   billingReturnHref,
   resolveBillingReturnBase,
 } from "@/lib/merchant/billing-nav"
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
+import {
+  createSupabaseServerClient,
+  createSupabaseServiceRoleClient,
+} from "@/lib/supabase/server"
 import {
   createBillingCheckoutDependencies,
   prepareBillingCheckout,
@@ -25,10 +28,17 @@ const BILLING_ACTION_ERROR =
 const COMPLIMENTARY_ACCESS_MESSAGE =
   "This venue has complimentary access. No Stripe checkout is needed."
 
+export type CancellationInterviewActionState =
+  | { status: "idle" }
+  | { status: "error"; message: string }
+  | { status: "follow_up_requested" }
+
 function submittedInterval(
   value: FormDataEntryValue | null
 ): BillingInterval | null {
-  return value === "day" ? "month" : null
+  if (value === "day") return "month"
+  if (value === "year") return "year"
+  return null
 }
 
 async function requestOrigin(): Promise<string | null> {
@@ -79,6 +89,7 @@ export async function startCheckoutAction(
             requestOrigin: await requestOrigin(),
             launchPriceId: env.STRIPE_LAUNCH_PRICE_ID,
             recurringPriceId: env.STRIPE_GROWTH_PRICE_ID,
+            annualPriceId: env.STRIPE_GROWTH_ANNUAL_PRICE_ID,
           },
           deps
         )
@@ -134,11 +145,19 @@ export async function openCustomerPortalAction(formData: FormData) {
         configuredOrigin: env.NEXT_PUBLIC_APP_URL,
         requestOrigin: await requestOrigin(),
       })
+      const returnUrl = `${origin}${billingReturnHref(returnBase, {
+        portal: "returned",
+      })}`
       const portal = await getStripe().billingPortal.sessions.create({
         customer: billing.stripe_customer_id,
-        return_url: `${origin}${billingReturnHref(returnBase, {
-          portal: "returned",
-        })}`,
+        return_url: returnUrl,
+        flow_data: {
+          type: "payment_method_update",
+          after_completion: {
+            type: "redirect",
+            redirect: { return_url: returnUrl },
+          },
+        },
       })
 
       if (!portal.url) throw new Error("portal_url_missing")
@@ -165,4 +184,121 @@ export async function openCustomerPortalAction(formData: FormData) {
   }
 
   redirect(portalUrl)
+}
+
+/** Record the exit interview before opening Stripe's direct cancel flow. */
+export async function submitCancellationInterviewAction(
+  _previousState: CancellationInterviewActionState,
+  formData: FormData
+): Promise<CancellationInterviewActionState> {
+  const merchant = await getCurrentMerchant()
+  if (!merchant) redirect("/app/onboarding")
+
+  const primaryReason = formData.get("primaryReason")
+  const details = formData.get("details")
+  const requestedResolution = formData.get("requestedResolution")
+
+  if (
+    typeof primaryReason !== "string" ||
+    typeof details !== "string" ||
+    (requestedResolution !== "continue_cancellation" &&
+      requestedResolution !== "support_call")
+  ) {
+    return {
+      status: "error",
+      message:
+        "Choose a cancellation reason and what you would like to do next.",
+    }
+  }
+
+  let cancellationPortalUrl: string | null = null
+  try {
+    const supabase = await createSupabaseServerClient()
+    const [{ data, error }, billingResult] = await Promise.all([
+      supabase.rpc("record_merchant_cancellation_interview", {
+        p_merchant_id: merchant.id,
+        p_primary_reason: primaryReason,
+        p_details: details,
+        p_requested_resolution: requestedResolution,
+      }),
+      supabase
+        .from("billing_customers")
+        .select("stripe_customer_id")
+        .eq("merchant_id", merchant.id)
+        .maybeSingle(),
+    ])
+
+    const row = Array.isArray(data) ? data[0] : null
+    if (
+      error ||
+      billingResult.error ||
+      !row ||
+      typeof row.stripe_subscription_id !== "string"
+    ) {
+      return {
+        status: "error",
+        message: "The exit review could not be saved. Please try again.",
+      }
+    }
+
+    if (!row.should_open_portal) {
+      return { status: "follow_up_requested" }
+    }
+
+    if (!billingResult.data?.stripe_customer_id) {
+      return {
+        status: "error",
+        message: "Stripe billing is still syncing. Please try again shortly.",
+      }
+    }
+
+    const env = getServerEnv()
+    const origin = resolveBillingAppOrigin({
+      environment:
+        process.env.NODE_ENV === "production" ? "production" : "development",
+      configuredOrigin: env.NEXT_PUBLIC_APP_URL,
+      requestOrigin: await requestOrigin(),
+    })
+    const returnUrl = `${origin}/app/account?tab=billing&portal=returned`
+    const portal = await getStripe().billingPortal.sessions.create({
+      customer: billingResult.data.stripe_customer_id,
+      return_url: returnUrl,
+      flow_data: {
+        type: "subscription_cancel",
+        subscription_cancel: { subscription: row.stripe_subscription_id },
+        after_completion: {
+          type: "redirect",
+          redirect: { return_url: returnUrl },
+        },
+      },
+    })
+
+    if (!portal.url) {
+      return {
+        status: "error",
+        message: "Stripe cancellation could not be opened. Please try again.",
+      }
+    }
+
+    cancellationPortalUrl = portal.url
+  } catch (error) {
+    console.error("[billing] cancellation interview failed", {
+      merchantId: merchant.id,
+      code: "cancellation_interview_failed",
+      error: error instanceof Error ? error.name : "unknown",
+    })
+    return {
+      status: "error",
+      message: "The exit review could not be completed. Please try again.",
+    }
+  }
+
+  if (!cancellationPortalUrl) {
+    return {
+      status: "error",
+      message: "Stripe cancellation could not be opened. Please try again.",
+    }
+  }
+
+  redirect(cancellationPortalUrl)
 }

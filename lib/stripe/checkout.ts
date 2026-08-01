@@ -10,13 +10,14 @@ import {
   type ProviderCheckoutSession,
   type ProviderSubscription,
 } from "@/lib/merchant/billing-checkout-core"
+import { getActiveSeasonalOffer } from "@/lib/marketing/seasonal-offer"
 
 /**
  * Durable Checkout-attempt discriminator retained for compatibility with the
- * existing ledger. It selects the sole recurring plan; the Stripe Price itself
- * is authoritatively validated as `day × 28` and stored as `day` after sync.
+ * existing ledger. It selects either the 28-day or annual recurring Price;
+ * provider terms are authoritatively validated and stored after sync.
  */
-export type BillingInterval = "month"
+export type BillingInterval = "month" | "year"
 export type LaunchFeePolicy =
   | "charged"
   | "annual_included"
@@ -35,6 +36,7 @@ export type PrepareBillingCheckoutInput = {
   requestOrigin?: string | null
   launchPriceId: string
   recurringPriceId: string
+  annualPriceId: string
 }
 
 export type BillingCheckoutAttempt = {
@@ -148,7 +150,7 @@ export type BillingCheckoutDependencies = {
         metadata: {
           merchant_id: string
           plan: "growth"
-          billing_cadence: "28_days"
+          billing_cadence: "28_days" | "annual"
           launch_fee_policy: LaunchFeePolicy
         }
       }
@@ -156,9 +158,13 @@ export type BillingCheckoutDependencies = {
         merchant_id: string
         attempt_id: string
         plan: "growth"
-        billing_cadence: "28_days"
+        billing_cadence: "28_days" | "annual"
         launch_fee_policy: LaunchFeePolicy
+        offer_wrapper_slug: string
+        offer_wrapper_name: string
+        offer_wrapper_deadline: string
       }
+      custom_text?: { submit: { message: string } }
       success_url: string
       cancel_url: string
       expires_at: number
@@ -235,7 +241,13 @@ function addMilliseconds(date: Date, milliseconds: number): string {
 }
 
 function checkoutPriceId(input: PrepareBillingCheckoutInput): string | null {
-  return input.recurringPriceId.trim() || null
+  const configuredPrice =
+    input.interval === "year" ? input.annualPriceId : input.recurringPriceId
+  return configuredPrice.trim() || null
+}
+
+function checkoutCadence(interval: BillingInterval) {
+  return interval === "year" ? "annual" : "28_days"
 }
 
 function hasCreationLease(
@@ -369,6 +381,23 @@ async function materializeCheckoutSession(
       new Date(attempt.attemptExpiresAt).getTime() -
         CHECKOUT_SESSION_EXPIRY_MARGIN_MS
     ).toISOString()
+    const attemptCreatedAt = new Date(
+      new Date(attempt.attemptExpiresAt).getTime() -
+        CHECKOUT_ATTEMPT_LIFETIME_MS
+    )
+    const seasonalOffer = getActiveSeasonalOffer(attemptCreatedAt)
+    const cadence = checkoutCadence(attempt.billingInterval)
+    const offerWrapper = seasonalOffer
+      ? {
+          slug: seasonalOffer.slug,
+          name: seasonalOffer.name,
+          deadline: seasonalOffer.endDateISO,
+        }
+      : {
+          slug: "standard",
+          name: "The 28-Day First-Regular Launch",
+          deadline: "none",
+        }
     const session = await deps.createCheckoutSession({
       params: {
         mode: "subscription",
@@ -384,7 +413,7 @@ async function materializeCheckoutSession(
           metadata: {
             merchant_id: input.merchant.id,
             plan: "growth",
-            billing_cadence: "28_days",
+            billing_cadence: cadence,
             launch_fee_policy: offer.launchFeePolicy,
           },
         },
@@ -392,9 +421,21 @@ async function materializeCheckoutSession(
           merchant_id: input.merchant.id,
           attempt_id: attempt.attemptId,
           plan: "growth",
-          billing_cadence: "28_days",
+          billing_cadence: cadence,
           launch_fee_policy: offer.launchFeePolicy,
+          offer_wrapper_slug: offerWrapper.slug,
+          offer_wrapper_name: offerWrapper.name,
+          offer_wrapper_deadline: offerWrapper.deadline,
         },
+        ...(seasonalOffer
+          ? {
+              custom_text: {
+                submit: {
+                  message: `${seasonalOffer.name}: ${seasonalOffer.deadlineLine} Standard Growth Plan terms are unchanged.`,
+                },
+              },
+            }
+          : {}),
         success_url: attempt.successUrl,
         cancel_url: attempt.cancelUrl,
         expires_at: Math.floor(new Date(sessionExpiry).getTime() / 1_000),

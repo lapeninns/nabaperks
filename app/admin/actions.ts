@@ -386,3 +386,99 @@ export async function logPilotNoteAction(
   revalidatePath("/admin/audit")
   return adminActionSuccess("Pilot note logged to the audit trail.")
 }
+
+export async function captureCommercialEvidenceAction(
+  _previousState: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
+  await requireAdminAction()
+  const merchantId = value(formData, "merchantId")
+  const sourceKind = value(formData, "sourceKind")
+  const beforeSummary = value(formData, "beforeSummary")
+  const afterSummary = value(formData, "afterSummary")
+  const testimonialQuote = value(formData, "testimonialQuote")
+  const attributionName = value(formData, "attributionName")
+  const measurementStart = value(formData, "measurementStart")
+  const measurementEnd = value(formData, "measurementEnd")
+  const sourceReference = value(formData, "sourceReference")
+  const assetReference = value(formData, "assetReference")
+  const approvalReference = value(formData, "approvalReference")
+  const merchantApproved = formData.has("merchantApproved")
+  const publish = value(formData, "caseStatus") === "published"
+
+  if (
+    !merchantId ||
+    !sourceKind ||
+    !beforeSummary ||
+    !afterSummary ||
+    !measurementStart ||
+    !measurementEnd ||
+    !sourceReference
+  ) {
+    return adminActionError("Complete every required evidence field.")
+  }
+
+  if (
+    beforeSummary.length > 1200 ||
+    afterSummary.length > 1200 ||
+    testimonialQuote.length > 600 ||
+    attributionName.length > 160 ||
+    sourceReference.length > 500 ||
+    assetReference.length > 500 ||
+    approvalReference.length > 500
+  ) {
+    return adminActionError("One or more evidence fields are too long.")
+  }
+
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(measurementStart) ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(measurementEnd)
+  ) {
+    return adminActionError("The evidence measurement window is invalid.")
+  }
+
+  if (
+    publish &&
+    (!merchantApproved || !approvalReference || !attributionName)
+  ) {
+    return adminActionError(
+      "Published evidence needs merchant approval, an approval reference and an approved attribution."
+    )
+  }
+
+  const supabase = await createSupabaseServerClient()
+  const { error } = await supabase.rpc(
+    "admin_capture_commercial_evidence_case",
+    {
+      p_merchant_id: merchantId,
+      p_source_kind: sourceKind,
+      p_before_summary: beforeSummary,
+      p_after_summary: afterSummary,
+      p_testimonial_quote: testimonialQuote || null,
+      p_attribution_name: attributionName || null,
+      p_measurement_start: measurementStart,
+      p_measurement_end: measurementEnd,
+      p_source_reference: sourceReference,
+      p_asset_reference: assetReference || null,
+      p_approval_reference: approvalReference || null,
+      p_merchant_approved: merchantApproved,
+      p_publish: publish,
+    }
+  )
+
+  const failure = rpcFailure(
+    error,
+    "Evidence capture failed. Check the dates and approval record, then try again."
+  )
+  if (failure) return failure
+
+  revalidateCacheTag("commercial-evidence")
+  revalidatePath("/admin/evidence")
+  revalidatePath("/admin/audit")
+  revalidatePath("/")
+  return adminActionSuccess(
+    publish
+      ? "Approved evidence published with a reproducible metric snapshot."
+      : "Evidence draft saved with a reproducible metric snapshot."
+  )
+}

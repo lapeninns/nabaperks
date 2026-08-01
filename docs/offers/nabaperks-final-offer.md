@@ -30,11 +30,11 @@
 | Recurring price | £69.99 every 28 days |
 | Platform pilot | 28 days free (card required); applies only to software |
 | Billing disclosure | 13 payments in each 364-day billing year (£909.87 total) |
-| Annual plan | Closed to new customers; existing subscriptions retain their agreed terms |
+| Annual plan | £699.90 prepaid yearly after the pilot; saves £209.97 against 13 separate 28-day payments |
 | Bespoke alternative | The Ultimate Pub Loyalty Takeover — £4,999.99, enquiry only, scope agreed before purchase |
 | Card-processing surcharge | None |
 | Stamps | venue-linked stamps |
-| Cancellation | Card required — cancel anytime from your billing page. |
+| Cancellation | Card required — cancel renewal anytime after a short exit review from your billing page. |
 
 **Investment line (single-sourced):**  
 `£299.99 done-for-you launch today. Then a 28-day free platform pilot, followed by £69.99 every 28 days. 13 payments in each 364-day billing year.`
@@ -43,7 +43,7 @@
 
 **Bespoke anchor:** The £4,999.99 Ultimate Pub Loyalty Takeover is a genuine enquiry-only alternative. Its scope must be agreed before purchase; no unapproved deliverables may be implied and there is no self-serve checkout.
 
-**Annual plan:** Closed to new customers. Existing annual subscriptions continue under the terms agreed when they were purchased.
+**Annual plan:** £699.90 is charged after the same 28-day platform pilot and then yearly until renewal is cancelled. It saves £209.97 against 13 separate £69.99 payments.
 
 ---
 
@@ -98,11 +98,11 @@ Nabaperks sets up and launches a no-app browser loyalty card for a single-site U
 
 ### Value maths (illustrative only)
 
-- Say an average return visit is worth about £12 to you once costs are out.
+- Say an average return visit is worth about £25 to you once costs are out.
 - Roughly 8 additional profitable visits every 28 days cover the £299.99 launch and 12 post-pilot payments during the first 364 days.
-- After the launch year, roughly 6 visits every 28 days cover each £69.99 payment.
-- **Note:** That £12 is only an example — your margins will differ. You’ll see the real numbers in your own dashboard.
-- **First-364-days basis:** £299.99 launch fee plus 12 payments of £69.99 after the 28-day pilot totals £1,139.87. At the illustrative £12 contribution, 95 additional profitable visits contribute £1,140. The ongoing recurring year is 13 payments totalling £909.87.
+- After the launch year, roughly 3 visits every 28 days cover each £69.99 payment.
+- **Note:** That £25 is only an example — your margins will differ. You’ll see the real numbers in your own dashboard.
+- **First-364-days basis:** £299.99 launch fee plus 12 payments of £69.99 after the 28-day pilot totals £1,139.87. At the illustrative £25 contribution, 46 additional profitable visits contribute £1,150. The ongoing recurring year is 13 payments totalling £909.87.
 
 ---
 
@@ -205,8 +205,8 @@ Nabaperks sets up and launches a no-app browser loyalty card for a single-site U
 
 ### 90-Day ROI Extension
 
-- **Line:** If your loyalty card doesn't record 18 verified return visits within 90 days, your next three 28-day payments are free.
-- **Mechanic:** Three £69.99 payments total £209.97. At the illustrative £12 contribution per return visit, 18 verified return visits contribute £216 and cover that threshold. If your dashboard hasn't recorded 18 verified return visits by day 90, Lapen Inns applies a 100% discount to the next three payments.
+- **Line:** If your loyalty card doesn't record 18 verified return visits within 90 days, you receive £209.97 of plan-fee relief.
+- **Mechanic:** Three £69.99 payments total £209.97. At the illustrative £25 contribution per return visit, 18 verified return visits contribute £450 and cover that threshold. For 28-day billing, Lapen Inns applies a 100% discount to the next three renewal invoices. For annual prepay, it returns £209.97 from the current annual subscription payment.
 - **Conditions:** the QR stays actively displayed at the counter for the full 90 days, rewards are honoured, and no test or staff gaming of the card.
 - **Claim:** Email info@lapeninns.com and the team applies the discount.
 

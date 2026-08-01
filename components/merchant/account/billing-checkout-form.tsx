@@ -25,10 +25,12 @@ export function BillingCheckoutForm({
   checkoutAction,
   returnTo,
   label = `Continue · ${PRODUCT.launchFee} launch · then ${PRODUCT.price}`,
+  annualLabel = `Pay annually · ${PRODUCT.launchFee} launch · then ${PRODUCT.annualPrice}`,
 }: {
   checkoutAction: BillingCheckoutAction
   returnTo?: string
   label?: string
+  annualLabel?: string
 }) {
   const [state, formAction, pending] = useActionState(
     checkoutAction,
@@ -57,16 +59,34 @@ export function BillingCheckoutForm({
         {/* h-auto + whitespace-normal: the plan labels are long enough that
             the Button base's nowrap otherwise sets a ~360px intrinsic floor
             and drags the whole receipt past a 320px viewport. */}
-        <Button
-          type="submit"
-          name="interval"
-          value="day"
-          disabled={pending}
-          className="h-auto min-h-11 w-full whitespace-normal"
-        >
-          <Icon icon={CreditCardIcon} size={16} />
-          {label}
-        </Button>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Button
+            type="submit"
+            name="interval"
+            value="day"
+            disabled={pending}
+            className="h-auto min-h-11 w-full whitespace-normal"
+          >
+            <Icon icon={CreditCardIcon} size={16} />
+            {label}
+          </Button>
+          <Button
+            type="submit"
+            name="interval"
+            value="year"
+            disabled={pending}
+            variant="secondary"
+            className="h-auto min-h-11 w-full whitespace-normal"
+          >
+            <Icon icon={CreditCardIcon} size={16} />
+            {annualLabel}
+          </Button>
+        </div>
+
+        <p className="text-xs leading-5 text-muted-foreground">
+          Annual prepay starts after the same 28-day pilot.{" "}
+          {PRODUCT.annualSaving}
+        </p>
 
         {pending ? (
           <p

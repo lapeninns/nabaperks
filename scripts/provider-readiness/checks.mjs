@@ -110,6 +110,7 @@ async function checkStripe({ env, offline, report }) {
   const apiKey = value(env, "STRIPE_SECRET_KEY")
   const launchPriceId = value(env, "STRIPE_LAUNCH_PRICE_ID")
   const recurringPriceId = value(env, "STRIPE_GROWTH_PRICE_ID")
+  const annualPriceId = value(env, "STRIPE_GROWTH_ANNUAL_PRICE_ID")
   const webhookSecret = value(env, "STRIPE_WEBHOOK_SECRET")
 
   if (!apiKey) report.fail("stripe-api", "STRIPE_SECRET_KEY is missing.")
@@ -118,6 +119,12 @@ async function checkStripe({ env, offline, report }) {
   }
   if (!recurringPriceId) {
     report.fail("stripe-price-recurring", "STRIPE_GROWTH_PRICE_ID is missing.")
+  }
+  if (!annualPriceId) {
+    report.fail(
+      "stripe-price-annual",
+      "STRIPE_GROWTH_ANNUAL_PRICE_ID is missing."
+    )
   }
   if (!webhookSecret)
     report.fail("stripe-webhook-secret", "STRIPE_WEBHOOK_SECRET is missing.")
@@ -136,6 +143,12 @@ async function checkStripe({ env, offline, report }) {
         "offline mode skipped the 28-day Stripe Price lookup."
       )
     }
+    if (annualPriceId) {
+      report.blocked(
+        "stripe-price-annual",
+        "offline mode skipped the annual Stripe Price lookup."
+      )
+    }
   } else {
     await Promise.all([
       launchPriceId
@@ -145,6 +158,13 @@ async function checkStripe({ env, offline, report }) {
         ? checkRecurringStripePrice({
             apiKey,
             priceId: recurringPriceId,
+            report,
+          })
+        : Promise.resolve(),
+      annualPriceId
+        ? checkAnnualStripePrice({
+            apiKey,
+            priceId: annualPriceId,
             report,
           })
         : Promise.resolve(),
@@ -226,6 +246,36 @@ async function checkRecurringStripePrice({ apiKey, priceId, report }) {
     report.fail(
       "stripe-price-recurring",
       "Growth price does not match active GBP 69.99 every 28 days."
+    )
+  }
+}
+
+async function checkAnnualStripePrice({ apiKey, priceId, report }) {
+  const body = await loadStripePrice({
+    apiKey,
+    priceId,
+    gate: "stripe-price-annual",
+    report,
+  })
+  if (!body) return
+
+  const matchesPlan =
+    body.id === priceId &&
+    body.active === true &&
+    body.currency === "gbp" &&
+    body.unit_amount === 69990 &&
+    body.recurring?.interval === "year" &&
+    body.recurring?.interval_count === 1
+
+  if (matchesPlan) {
+    report.pass(
+      "stripe-price-annual",
+      "Annual Growth price is active GBP 699.90 each year."
+    )
+  } else {
+    report.fail(
+      "stripe-price-annual",
+      "Annual Growth price does not match active GBP 699.90 each year."
     )
   }
 }

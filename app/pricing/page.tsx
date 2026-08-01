@@ -1,23 +1,19 @@
 import type { Metadata } from "next"
-import Link from "next/link"
 
 import { MonoTag, PageTitle, ReceiptCard } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
+import { GrowthPlanPricing, SeasonalOfferBanner } from "@/components/marketing"
 import {
   FaqList,
   GuaranteeStack,
   ScarcityBand,
 } from "@/components/marketing/landing"
 import { JsonLd } from "@/components/seo/json-ld"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import {
   DFY_LAUNCH,
-  PLAN_INCLUDES,
   PRICING_FAQ_ITEMS,
   PRODUCT,
   ROUTES,
-  TAKEOVER,
   VALUE_MATH,
 } from "@/lib/marketing/facts"
 import {
@@ -60,7 +56,7 @@ export default function PricingPage() {
       <Section>
         <PageTitle
           eyebrow="Pricing"
-          title="One core plan. One clear billing cycle."
+          title="One core plan. Two clear ways to pay."
           description="Pay for the physical launch today. Prove the platform during the free pilot before recurring billing starts."
         />
         <div className="mt-6 flex flex-wrap items-center gap-3 rounded-lg border-2 border-dashed border-line-strong bg-card p-5">
@@ -69,64 +65,8 @@ export default function PricingPage() {
             {DFY_LAUNCH.covers} The one-time launch fee is {PRODUCT.launchFee}.
           </p>
         </div>
-        <div className="grid gap-3.5 pt-6 sm:grid-cols-2">
-          <Card size="sm" className="border-primary">
-            <CardContent className="grid h-full content-start gap-3">
-              <MonoTag tone="accent" className="justify-self-start">
-                {PRODUCT.planName} · standard
-              </MonoTag>
-              <p className="text-3xl leading-none font-extrabold text-foreground">
-                {PRODUCT.price}
-              </p>
-              <p className="text-sm leading-6 font-bold text-foreground">
-                {PRODUCT.launchFee} launch fee due at checkout. Then a{" "}
-                {PRODUCT.pilotCardNote} before the first recurring payment.
-              </p>
-              <ul className="grid gap-1.5">
-                {PLAN_INCLUDES.map((item) => (
-                  <li
-                    key={item}
-                    className="border-b-2 border-dashed border-border pb-1.5 text-sm leading-6 text-muted-foreground"
-                  >
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <p className="mono-id mt-auto text-muted-foreground uppercase">
-                {PRODUCT.billingDisclosure} {PRODUCT.processingFeeLine}{" "}
-                {PRODUCT.cancelLine}
-              </p>
-            </CardContent>
-          </Card>
-          <Card size="sm">
-            <CardContent className="grid h-full content-start gap-3">
-              <MonoTag tone="sun" className="justify-self-start">
-                Bespoke engagement
-              </MonoTag>
-              <p className="text-3xl leading-none font-extrabold text-foreground">
-                {TAKEOVER.price}
-              </p>
-              <p className="text-sm leading-6 font-bold text-foreground">
-                {TAKEOVER.name}
-              </p>
-              <p className="text-sm leading-6 text-muted-foreground">
-                {TAKEOVER.qualifier} This is an enquiry-only alternative and is
-                not available through self-serve checkout.
-              </p>
-              <Button asChild variant="secondary" className="mt-auto w-fit">
-                <Link href={ROUTES.demo}>{TAKEOVER.action}</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-        <div className="flex flex-wrap items-center gap-3 pt-6">
-          <Button asChild size="lg">
-            <Link href={ROUTES.signup}>Start your launch</Link>
-          </Button>
-          <Button asChild size="lg" variant="secondary">
-            <Link href={ROUTES.howItWorks}>See how the launch works</Link>
-          </Button>
-        </div>
+        <SeasonalOfferBanner className="mt-4" />
+        <GrowthPlanPricing className="pt-6" />
       </Section>
       <Section size="compact">
         <ReceiptCard edge padding="md" className="gap-2">

@@ -104,6 +104,12 @@
     "description": "Stripe recurring Price ID for the Growth Plan at GBP 69.99 every 28 days (interval day, interval_count 28)."
   },
   {
+    "name": "STRIPE_GROWTH_ANNUAL_PRICE_ID",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Stripe recurring Price ID for the prepaid Growth Plan at GBP 699.90 each year (interval year, interval_count 1)."
+  },
+  {
     "name": "STRIPE_WEBHOOK_SECRET",
     "visibility": "server",
     "kind": "string",

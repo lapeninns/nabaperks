@@ -28,9 +28,11 @@ test.describe("merchant billing recovery desktop", () => {
     await expect(
       page.getByText("£69.99 every 28 days", { exact: true })
     ).toBeVisible()
+    await expect(page.getByText("£699.90 a year", { exact: true })).toBeVisible()
+    await expect(page.getByText("£209.97", { exact: true })).toBeVisible()
     await expect(
       page.getByText(
-        "Secure checkout via Stripe. Cancel anytime from your billing page."
+        "Secure checkout via Stripe. Cancel renewal anytime after a short exit review from your billing page."
       )
     ).toBeVisible()
     await expect(page.getByText("First-Regular Guarantee:")).toBeVisible()
@@ -47,6 +49,9 @@ test.describe("merchant billing recovery desktop", () => {
     for (const button of [
       page.getByRole("button", {
         name: /Continue.*£299\.99.*£69\.99.*28 days/i,
+      }),
+      page.getByRole("button", {
+        name: /Pay annually.*£299\.99.*£699\.90.*year/i,
       }),
     ]) {
       await expect(button).toBeVisible()
@@ -143,9 +148,9 @@ test.describe("merchant billing recovery desktop", () => {
   }) => {
     await page.goto(`${HARNESS_ROUTES.account}?tab=billing&billing=active-year`)
 
-    await expect(page.getByText("£690 a year", { exact: true })).toBeVisible()
+    await expect(page.getByText("£699.90 a year", { exact: true })).toBeVisible()
     await expect(
-      page.getByText("Paid upfront · no free trial", { exact: true })
+      page.getByText("Paid upfront after the pilot", { exact: true })
     ).toBeVisible()
     await expect(page.getByText("Free trial", { exact: true })).toHaveCount(0)
     await expect(page.getByText("£69 a month", { exact: true })).toHaveCount(0)

@@ -20,16 +20,17 @@ test("28-day Checkout charges launch now and trials only the platform", () => {
   assert.match(checkout, /previously_satisfied/)
 })
 
-test("new annual checkout is closed while historical policies remain readable", () => {
+test("annual checkout is explicit while historical policies remain readable", () => {
   const action = read("app/app/billing/actions.ts")
   const checkout = read("lib/stripe/checkout.ts")
   const form = read("components/merchant/account/billing-checkout-form.tsx")
 
-  assert.match(action, /value === "day" \? "month" : null/)
-  assert.doesNotMatch(action, /STRIPE_GROWTH_ANNUAL_PRICE_ID/)
-  assert.doesNotMatch(checkout, /annualPriceId/)
+  assert.match(action, /if \(value === "day"\) return "month"/)
+  assert.match(action, /if \(value === "year"\) return "year"/)
+  assert.match(action, /STRIPE_GROWTH_ANNUAL_PRICE_ID/)
+  assert.match(checkout, /annualPriceId/)
   assert.match(form, /value="day"/)
-  assert.doesNotMatch(form, /value="year"|Choose yearly/)
+  assert.match(form, /value="year"/)
   assert.match(checkout, /annual_included/)
 })
 
@@ -71,15 +72,19 @@ test("launch-fee decisions and satisfaction are durable and private", () => {
   assert.match(migration, /launch_fee_policy = 'charged'/)
 })
 
-test("the provider contract pins the approved 28-day prices", () => {
+test("the provider contract pins the approved 28-day and annual prices", () => {
   const env = read("config/env-contract.json")
   const readiness = read("scripts/provider-readiness/checks.mjs")
 
   assert.match(env, /STRIPE_LAUNCH_PRICE_ID/)
+  assert.match(env, /STRIPE_GROWTH_ANNUAL_PRICE_ID/)
   assert.match(readiness, /unit_amount === 29999/)
   assert.match(readiness, /unit_amount === 6999/)
+  assert.match(readiness, /unit_amount === 69990/)
   assert.match(readiness, /recurring\?\.interval === "day"/)
   assert.match(readiness, /recurring\?\.interval_count === 28/)
+  assert.match(readiness, /recurring\?\.interval === "year"/)
+  assert.match(readiness, /recurring\?\.interval_count === 1/)
 })
 
 test("authoritative billing state accepts exact daily provider snapshots", () => {
