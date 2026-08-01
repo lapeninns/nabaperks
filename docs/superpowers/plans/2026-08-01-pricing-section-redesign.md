@@ -91,14 +91,10 @@ import { test } from "node:test"
 const read = (path) =>
   readFileSync(new URL(`../../${path}`, import.meta.url), "utf8")
 
-const PRICING_MODULE = [
-  "components/marketing/pricing/price-lockup.tsx",
-  "components/marketing/pricing/plan-includes-list.tsx",
-  "components/marketing/pricing/campaign-strip.tsx",
-  "components/marketing/pricing/fine-print-strip.tsx",
-  "components/marketing/pricing/pricing-sheet.tsx",
-  "components/marketing/pricing/takeover-anchor.tsx",
-]
+// Task 5 widens this to the whole module once every file exists. It stays scoped
+// to the files that exist RIGHT NOW so the suite is never committed red:
+// pnpm quality:fast runs contracts, and a red contract would block Tasks 2-4.
+const PRICING_MODULE = ["components/marketing/pricing/price-lockup.tsx"]
 
 test("the pricing vocabulary stays server-rendered", () => {
   for (const path of PRICING_MODULE) {
@@ -203,11 +199,12 @@ export function PriceLockup({
 
 Run: `node --test tests/contracts/pricing-vocabulary.test.mjs`
 
-Expected: the two `"use client"` / `£\d` tests still fail with `ENOENT` on the five not-yet-created files; the `PriceLockup` inline test PASSES. That is expected mid-task — Tasks 2–5 create the rest.
+Expected: PASS, 3/3. The suite must be green at commit time — `pnpm quality:fast` runs contracts, so a red one here would block every later task.
 
-To check only this task's assertion:
-`node --test --test-name-pattern "inline variant" tests/contracts/pricing-vocabulary.test.mjs`
-Expected: 1 pass, 0 fail.
+Then confirm the whole contract tier is still green:
+
+Run: `pnpm quality:fast`
+Expected: PASS.
 
 - [ ] **Step 5: Commit**
 
@@ -597,15 +594,31 @@ export { SeasonalOfferBanner } from "./seasonal-offer-banner"
 export * from "./pricing"
 ```
 
-- [ ] **Step 4: Run the full contract test — now every file exists**
+- [ ] **Step 4: Widen the contract test to the whole module — every file now exists**
+
+In `tests/contracts/pricing-vocabulary.test.mjs`, replace the scoped `PRICING_MODULE` constant and its Task-1 comment with the full list:
+
+```js
+const PRICING_MODULE = [
+  "components/marketing/pricing/price-lockup.tsx",
+  "components/marketing/pricing/plan-includes-list.tsx",
+  "components/marketing/pricing/campaign-strip.tsx",
+  "components/marketing/pricing/fine-print-strip.tsx",
+  "components/marketing/pricing/pricing-sheet.tsx",
+  "components/marketing/pricing/takeover-anchor.tsx",
+]
+```
 
 Run: `node --test tests/contracts/pricing-vocabulary.test.mjs`
-Expected: PASS, 3/3.
+Expected: PASS, 3/3 — now guarding all six files.
+
+Run: `pnpm quality:fast`
+Expected: PASS.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add components/marketing/pricing/ components/marketing/index.ts
+git add components/marketing/pricing/ components/marketing/index.ts tests/contracts/pricing-vocabulary.test.mjs
 git commit -m "feat(pricing): add the ink TakeoverAnchor and the pricing barrel"
 ```
 
@@ -987,10 +1000,13 @@ In the activation card's nine `PlanRow`s, replace only these two values:
 
 This renders `£69.99 every 28 days` and `£699.90 a year` as single text nodes — identical output to the previous `PRODUCT.price` / `PRODUCT.annualPrice` strings, now composed from the same primitive the marketing sheet uses.
 
-Also replace the two hardcoded literals flagged during exploration:
-
-- `Annual saving` value `"£209.97"` → `{PRODUCT.annualSavingShort.replace("Save ", "")}` — **no**: that is a fragile transform. Leave `"£209.97"` as-is for now and note it; changing it risks the exact-text spec for no design benefit.
-- `Recurring year` value `"£909.87 across 13 payments per 364 days"` → leave as-is, same reason.
+**Leave the other seven `PlanRow` values exactly as they are.** Two of them are
+hardcoded literals rather than facts references (`Annual saving` → `"£209.97"`,
+`Recurring year` → `"£909.87 across 13 payments per 364 days"`). That is a real
+inconsistency, but routing them through facts would mean a string transform such
+as `PRODUCT.annualSavingShort.replace("Save ", "")` — fragile, and it risks the
+exact-text specs for no design benefit. Out of scope for this task; record it as a
+deferred minor rather than fixing it here.
 
 - [ ] **Step 3: Add the campaign strip and restyle the activation card shell**
 
