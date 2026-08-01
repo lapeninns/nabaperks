@@ -148,8 +148,8 @@ try {
   check(homeTypes.has("Organization"), "home: Organization node missing")
   check(Boolean(product), "home: Growth Plan Product node missing")
   check(
-    productOffers.map((offer) => offer.price).join(",") === "69.99",
-    "home: Product offer must be exactly £69.99 every 28 days"
+    productOffers.map((offer) => offer.price).join(",") === "69.99,699.90",
+    "home: Product offers must be exactly £69.99 every 28 days and £699.90 annually"
   )
   check(
     !JSON.stringify(homeNodes).includes('"@type":"Person"'),
@@ -205,7 +205,7 @@ try {
     process.exitCode = 1
   } else {
     console.log(
-      "✓ JSON-LD valid: sign-up Nabaperks organisation graph (single Organization, WebSite, no parent/Person), home marketing graph (WebPage, Product 69/690), how-it-works HowTo (five steps), /faq FAQPage and the pub-hub Article — each node on its owning route"
+      "✓ JSON-LD valid: sign-up Nabaperks organisation graph (single Organization, WebSite, no parent/Person), home marketing graph (WebPage, Product £69.99/£699.90), how-it-works HowTo (five steps), /faq FAQPage and the pub-hub Article — each node on its owning route"
     )
   }
 } finally {
