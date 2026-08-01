@@ -1097,42 +1097,141 @@ git commit -m "feat(billing): share the marketing price lockup with the merchant
 
 ---
 
-### Task 10: Merchant checkout form and skeleton
+### Task 10: Rebuild the activation card on `PricingSheet`
 
 **Files:**
 
-- Modify: `components/merchant/account/billing-checkout-form.tsx`
-- Modify: `components/merchant/loading-skeletons.tsx` (`AccountBillingPanelSkeleton`, ~line 473)
+- Modify: `components/merchant/account/billing-activation-card.tsx` (structural rebuild)
 
-**Interfaces:** none produced.
+**Interfaces:** none produced. `PlanRow` keeps its Task 9 signature.
 
-**Restyle only.** No behaviour change. Do not touch: `value="day"` / `value="year"`, the four `PRODUCT` bindings in the default labels, `data-billing-checkout-form`, `aria-busy`, the `role="status"` pending line, the focus-on-error `Alert`, or `useActionState`.
+**Why this replaces the original Task 10.** The original was a cosmetic button-gap tweak plus a
+skeleton update that Task 9 made unnecessary (Task 9 deliberately left the `<dl>` rhythm alone).
+That had no design goal and touched a live payment form for nothing. The owner's actual choice was a
+genuine rebuild so the activation card mirrors the marketing sheet.
 
-- [ ] **Step 1: Confirm the untouchables before editing**
+**The merchant/merchant split this creates, deliberately.** `billing-panel-view.tsx` keeps
+`ReceiptCard edge` for its post-purchase states. That is intended, not an oversight: the activation
+card is the **pre-purchase** surface presenting plan facts to someone deciding — it earns the sheet.
+The panel view is the **post-purchase receipt** of what you already bought — it keeps the receipt
+shell and its perforated edge. Do not "harmonise" them.
 
-Run: `node --test tests/contracts/launch-fee-pricing.test.mjs`
-Expected: PASS. Re-run after every edit in this task.
+**Untouchable — every one of these is asserted by a live e2e spec:**
 
-- [ ] **Step 2: Restyle the two submit buttons**
+- Exact single text nodes: `£299.99`, `28 days free`, `£69.99 every 28 days`, `£699.90 a year`,
+  `£209.97`. Keep all nine `PlanRow`s and the `<dl>` classes exactly as they are.
+- `<h2>` with accessible name `Activate your venue`.
+- The sentence `Secure checkout via Stripe. Cancel renewal anytime after a short exit review from your billing page.`
+  must stay contiguous inside ONE element.
+- `GUARANTEE.name` + `GUARANTEE.line` must both still render.
+- `BillingCheckoutForm` untouched — its buttons, `value="day"`/`value="year"`, `data-billing-checkout-form`,
+  `aria-busy`, the `role="status"` line and the error alert are all pinned.
+- No page horizontal overflow at 320px; checkout buttons stay ≥44px.
+- `PRODUCT.planName` referenced; `<BillingCheckoutForm` present.
 
-Keep `h-auto min-h-11 w-full whitespace-normal` — the comment at lines 59-61 explains that removing them creates a ~360px intrinsic floor that breaks 320px viewports. Restyle is limited to the wrapper grid gap and the pending line's type, so the accessible-name regexes and the ≥44px height assertions are untouched.
+- [ ] **Step 1: Rebuild the component body**
 
-- [ ] **Step 3: Update `AccountBillingPanelSkeleton` to match the row rhythm**
+Replace the `ReceiptCard` shell with `PricingSheet`, bond the campaign strip to the top edge, add a
+`lead` price lockup, and move the "Manage billing" line into a bonded fine-print strip:
 
-Only if Task 9 changed the receipt row count or spacing. It did not — Task 9 deliberately left the `<dl>` classes alone. **Verify, then skip this step if the rhythm is unchanged.**
+```tsx
+<PricingSheet>
+  <CampaignStrip variant="strip" />
+  <PricingSheetBody className="gap-5">
+    <div className="grid gap-2">
+      <Eyebrow>Billing</Eyebrow>
+      <h2 className="text-lg leading-snug font-extrabold text-foreground sm:text-xl">
+        Activate your venue
+      </h2>
+      <p className="text-sm leading-6 text-pretty text-muted-foreground">
+        Add a card through Stripe to activate your venue and start accepting
+        stamps.
+      </p>
+    </div>
 
-Run: `pnpm test:e2e --grep "billing"` and compare the loading state visually.
+    <div className="grid gap-1">
+      <PriceLockup
+        size="lead"
+        amount={PRODUCT.priceAmount}
+        cadence={PRODUCT.priceCadence}
+      />
+      <p className="text-sm leading-6 text-muted-foreground">
+        Recurring billing starts after the {PRODUCT.pilot}.
+      </p>
+    </div>
 
-- [ ] **Step 4: Full merchant gate**
+    {/* the existing <dl> and all nine PlanRows, unchanged */}
 
-Run: `pnpm quality:fast`
-Expected: PASS.
+    <div className="grid gap-2">
+      <BillingCheckoutForm
+        checkoutAction={checkoutAction}
+        returnTo={billingReturnTo}
+      />
+      <p className="text-center text-xs leading-5 text-muted-foreground">
+        Secure checkout via Stripe. {PRODUCT.cancelChip} from your billing page.
+      </p>
+      {/* the existing guarantee block, unchanged */}
+    </div>
+  </PricingSheetBody>
+  <FinePrintStrip>
+    <Link
+      href="/app/account?tab=billing"
+      className="font-bold underline decoration-2 underline-offset-4"
+    >
+      Manage billing in Account
+    </Link>{" "}
+    once your venue is live.
+  </FinePrintStrip>
+</PricingSheet>
+```
+
+Notes:
+
+- `SeasonalOfferBanner` is removed from the body — the bonded `CampaignStrip variant="strip"`
+  replaces it. Drop the now-unused import.
+- The supporting line deliberately does NOT repeat the launch fee; the `<dl>`'s "Launch today" row
+  already carries it, and repeating it would put a second `£299.99` on the surface.
+- `FinePrintStrip` applies `.mono-meta`, which is uppercase. The link renders uppercase; CSS
+  `text-transform` does not change the accessible name, so the link's name stays
+  `Manage billing in Account`.
+- `ReceiptCard` and its `edge` are intentionally lost here. That is the point of the rebuild.
+
+- [ ] **Step 2: Verify the untouchables survived**
+
+Run and report real output:
+
+```
+pnpm typecheck
+pnpm lint
+node --test tests/contracts/merchant-ux-audit-closure.test.mjs tests/contracts/merchant-launch-follow-through.test.mjs tests/contracts/launch-fee-pricing.test.mjs
+pnpm quality:fast
+```
+
+- [ ] **Step 3: Prove it against the real DOM**
+
+`pnpm test:e2e --grep "billing"`
+
+**`pnpm test:e2e` exits 0 even when Playwright fails — read the actual output, never the exit code.**
+Before running, check nothing is holding port 3146 (`lsof -ti :3146`); a leftover server makes the
+run die instantly with a misleading error.
+
+Expect ~22 pre-existing failures unrelated to pricing, plus the `harness-launch-billing` visual
+baseline (which this task legitimately changes). What must PASS:
+`merchant-billing-recovery.spec.ts` and `merchant-billing-recovery.desktop.spec.ts` — they carry
+every exact-text assertion. If either fails, do NOT edit the test; report which assertion and what
+the rendered text was.
+
+- [ ] **Step 4: Delete any auto-created baselines**
+
+Playwright writes missing baselines mid-run and reports the test failed. Run `git status --short`
+and delete every untracked or modified `.png` under `tests/e2e/**-snapshots/`. Baselines are
+re-recorded at Task 11 after a human reviews the render — never as a test side effect.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add components/merchant/account/billing-checkout-form.tsx components/merchant/loading-skeletons.tsx
-git commit -m "refactor(billing): align the checkout form with the pricing sheet rhythm"
+git add components/merchant/account/billing-activation-card.tsx
+git commit -m "feat(billing): rebuild the activation card on the shared pricing sheet"
 ```
 
 ---
