@@ -2,13 +2,19 @@ import Link from "next/link"
 import { CheckmarkBadge04Icon } from "@hugeicons/core-free-icons"
 
 import { startCheckoutAction } from "@/app/app/billing/actions"
-import { Eyebrow, Icon, ReceiptCard } from "@/components/brand"
+import { Eyebrow, Icon } from "@/components/brand"
 import {
   BillingCheckoutForm,
   type BillingCheckoutAction,
 } from "@/components/merchant/account/billing-checkout-form"
 import { GUARANTEE, PRODUCT } from "@/lib/marketing/facts"
-import { PriceLockup, SeasonalOfferBanner } from "@/components/marketing"
+import {
+  CampaignStrip,
+  FinePrintStrip,
+  PriceLockup,
+  PricingSheet,
+  PricingSheetBody,
+} from "@/components/marketing"
 
 /**
  * First-run billing activation surface — plan facts, one primary "Proceed to
@@ -17,6 +23,9 @@ import { PriceLockup, SeasonalOfferBanner } from "@/components/marketing"
  * {@link import("./billing-panel").BillingPanel} and
  * the DB-free `/dev/app-harness/launch?tab=billing` state both render this one
  * component. Checkout still runs through the `/app/billing` server action.
+ * Rebuilt on the shared `PricingSheet` so it mirrors the marketing pricing
+ * sheet: a bonded campaign strip at the top edge, a `lead` price lockup, and
+ * the "Manage billing" line moved into a bonded fine-print strip.
  */
 export function SetupBillingActivationCard({
   billingReturnTo,
@@ -26,92 +35,102 @@ export function SetupBillingActivationCard({
   checkoutAction?: BillingCheckoutAction
 }) {
   return (
-    <ReceiptCard
-      edge
-      padding="sm"
-      className="grid gap-4 sm:gap-5 sm:[--card-spacing:--spacing(6)]"
-    >
-      {/* The page header carries the state/progress ("One step from live");
-          this card carries the ACTION. Titling it "Activate your venue" matches the
-          billing-status copy and the account billing card, so every
-          add-a-card surface shares one title instead of repeating the header. */}
-      <div className="grid gap-2">
-        <Eyebrow>Billing</Eyebrow>
-        <h2 className="text-lg leading-snug font-extrabold text-foreground sm:text-xl">
-          Activate your venue
-        </h2>
-        <p className="text-sm leading-6 text-pretty text-muted-foreground">
-          Add a card through Stripe to activate your venue and start accepting
-          stamps.
-        </p>
-      </div>
-
-      <dl className="grid gap-0 rounded-lg border border-border bg-secondary/40 px-3 py-1 text-sm">
-        <PlanRow label="Plan" value={PRODUCT.planName} />
-        <PlanRow label="Launch today" value={PRODUCT.launchFee} />
-        <PlanRow label="Platform pilot" value="28 days free" />
-        <PlanRow
-          label="Then"
-          value={
-            <PriceLockup
-              size="inline"
-              amount={PRODUCT.priceAmount}
-              cadence={PRODUCT.priceCadence}
-            />
-          }
-        />
-        <PlanRow
-          label="Or prepay"
-          value={
-            <PriceLockup
-              size="inline"
-              amount={PRODUCT.annualPriceAmount}
-              cadence={PRODUCT.annualPriceCadence}
-            />
-          }
-        />
-        <PlanRow label="Annual saving" value="£209.97" />
-        <PlanRow
-          label="Recurring year"
-          value="£909.87 across 13 payments per 364 days"
-        />
-        <PlanRow label="Card surcharge" value="None" />
-        <PlanRow label="Billing" value="Per location" />
-      </dl>
-
-      <div className="grid gap-2">
-        <SeasonalOfferBanner />
-        <BillingCheckoutForm
-          checkoutAction={checkoutAction}
-          returnTo={billingReturnTo}
-        />
-        <p className="text-center text-xs leading-5 text-muted-foreground">
-          Secure checkout via Stripe. {PRODUCT.cancelChip} from your billing
-          page.
-        </p>
-        <div className="flex items-start gap-2 rounded-lg border border-reward/30 bg-reward/8 px-3 py-2">
-          <Icon
-            icon={CheckmarkBadge04Icon}
-            size={16}
-            className="mt-0.5 shrink-0 text-reward"
-          />
-          <p className="text-xs leading-5 text-muted-foreground">
-            <span className="font-bold text-foreground">{GUARANTEE.name}:</span>{" "}
-            {GUARANTEE.line}
+    <PricingSheet>
+      <CampaignStrip variant="strip" />
+      <PricingSheetBody className="gap-5">
+        {/* The page header carries the state/progress ("One step from live");
+            this card carries the ACTION. Titling it "Activate your venue" matches the
+            billing-status copy and the account billing card, so every
+            add-a-card surface shares one title instead of repeating the header. */}
+        <div className="grid gap-2">
+          <Eyebrow>Billing</Eyebrow>
+          <h2 className="text-lg leading-snug font-extrabold text-foreground sm:text-xl">
+            Activate your venue
+          </h2>
+          <p className="text-sm leading-6 text-pretty text-muted-foreground">
+            Add a card through Stripe to activate your venue and start accepting
+            stamps.
           </p>
         </div>
-      </div>
 
-      <p className="text-xs leading-5 text-muted-foreground">
+        <div className="grid gap-1">
+          <PriceLockup
+            size="lead"
+            amount={PRODUCT.priceAmount}
+            cadence={PRODUCT.priceCadence}
+          />
+          <p className="text-sm leading-6 text-muted-foreground">
+            Recurring billing starts after the {PRODUCT.pilot}.
+          </p>
+        </div>
+
+        <dl className="grid gap-0 rounded-lg border border-border bg-secondary/40 px-3 py-1 text-sm">
+          <PlanRow label="Plan" value={PRODUCT.planName} />
+          <PlanRow label="Launch today" value={PRODUCT.launchFee} />
+          <PlanRow label="Platform pilot" value="28 days free" />
+          <PlanRow
+            label="Then"
+            value={
+              <PriceLockup
+                size="inline"
+                amount={PRODUCT.priceAmount}
+                cadence={PRODUCT.priceCadence}
+              />
+            }
+          />
+          <PlanRow
+            label="Or prepay"
+            value={
+              <PriceLockup
+                size="inline"
+                amount={PRODUCT.annualPriceAmount}
+                cadence={PRODUCT.annualPriceCadence}
+              />
+            }
+          />
+          <PlanRow label="Annual saving" value="£209.97" />
+          <PlanRow
+            label="Recurring year"
+            value="£909.87 across 13 payments per 364 days"
+          />
+          <PlanRow label="Card surcharge" value="None" />
+          <PlanRow label="Billing" value="Per location" />
+        </dl>
+
+        <div className="grid gap-2">
+          <BillingCheckoutForm
+            checkoutAction={checkoutAction}
+            returnTo={billingReturnTo}
+          />
+          <p className="text-center text-xs leading-5 text-muted-foreground">
+            Secure checkout via Stripe. {PRODUCT.cancelChip} from your billing
+            page.
+          </p>
+          <div className="flex items-start gap-2 rounded-lg border border-reward/30 bg-reward/8 px-3 py-2">
+            <Icon
+              icon={CheckmarkBadge04Icon}
+              size={16}
+              className="mt-0.5 shrink-0 text-reward"
+            />
+            <p className="text-xs leading-5 text-muted-foreground">
+              <span className="font-bold text-foreground">
+                {GUARANTEE.name}:
+              </span>{" "}
+              {GUARANTEE.line}
+            </p>
+          </div>
+        </div>
+      </PricingSheetBody>
+      <FinePrintStrip>
         <Link
           href="/app/account?tab=billing"
-          className="font-bold text-foreground underline decoration-2 underline-offset-4"
+          className="font-bold underline decoration-2 underline-offset-4"
         >
           Manage billing in Account
         </Link>{" "}
         once your venue is live.
-      </p>
-    </ReceiptCard>
+      </FinePrintStrip>
+    </PricingSheet>
   )
 }
 
