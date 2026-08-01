@@ -1,32 +1,10 @@
-import { MonoTag } from "@/components/brand"
-import { getActiveSeasonalOffer } from "@/lib/marketing/seasonal-offer"
-import { cn } from "@/lib/utils"
+import { CampaignStrip } from "./pricing/campaign-strip"
 
+/**
+ * SeasonalOfferBanner — the standalone card-shaped seasonal offer.
+ * Retained as a named alias so the merchant billing and landing call sites
+ * keep a stable import; the markup now lives in CampaignStrip.
+ */
 export function SeasonalOfferBanner({ className }: { className?: string }) {
-  const offer = getActiveSeasonalOffer()
-
-  if (!offer) return null
-
-  return (
-    <aside
-      aria-label="Current seasonal offer"
-      className={cn(
-        "grid gap-2 rounded-lg border-2 border-dashed border-primary bg-primary/8 p-4",
-        className
-      )}
-    >
-      <MonoTag tone="sun" className="justify-self-start">
-        Fixed campaign window
-      </MonoTag>
-      <p className="text-base leading-6 font-extrabold text-foreground">
-        {offer.name}
-      </p>
-      <p className="text-sm leading-6 font-bold text-foreground">
-        {offer.deadlineLine}
-      </p>
-      <p className="text-xs leading-5 text-muted-foreground">
-        {offer.termsLine}
-      </p>
-    </aside>
-  )
+  return <CampaignStrip variant="card" className={className} />
 }
