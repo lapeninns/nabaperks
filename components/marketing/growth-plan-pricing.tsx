@@ -1,194 +1,153 @@
-import Link from "next/link"
-import { CheckmarkCircle02Icon } from "@hugeicons/core-free-icons"
-
 import { MarketingSignupLink } from "@/components/analytics/marketing-signup-link"
-import { Icon, MonoTag } from "@/components/brand"
+import { MonoTag } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 import {
+  DFY_LAUNCH,
   OFFER,
   PLAN_INCLUDES,
   PRODUCT,
-  ROUTES,
-  TAKEOVER,
 } from "@/lib/marketing/facts"
+import { getActiveSeasonalOffer } from "@/lib/marketing/seasonal-offer"
+import {
+  CampaignStrip,
+  FinePrintStrip,
+  PlanIncludesList,
+  PriceLockup,
+  PricingSheet,
+  PricingSheetBody,
+} from "./pricing"
 
 /**
- * The pricing sheet — one Growth Plan presented as a printed offer, not a
- * set of SaaS plan cards. A single ink-boundary sheet carries the shared
- * purchase sequence (launch fee today, free platform pilot, then a payment
- * schedule) and splits the two schedules inside ONE payment-selector band
- * divided by a ticket perforation, so the relationship reads inside five
- * seconds: same plan, two ways to pay, one shared feature list, one CTA.
+ * The pricing sheet — one Growth Plan presented as a printed offer, not a set
+ * of SaaS plan cards.
  *
- * The bespoke takeover is deliberately OUTSIDE the sheet — a subordinate,
- * enquiry-only footnote, never a third tier. Every figure renders from
- * `lib/marketing/facts.ts`; the sheet stays server-rendered because the
- * schedule choice is information, not a checkout control (billing cadence
- * is chosen later, at billing activation).
+ * The recurring price is the sheet's dominant numeral; the annual schedule is
+ * a secondary lockup beneath a perforation, not a co-equal column. That
+ * asymmetry is the point: two equal columns read as a specification table and
+ * leave the reader with nothing to anchor on.
+ *
+ * There is deliberately no billing toggle. The cadence is chosen later, at
+ * billing activation — a control here would imply a decision that is not
+ * actually being taken, and it would force the sheet to become a client
+ * component. Both schedules stay rendered, always.
+ *
+ * The bespoke takeover is NOT rendered here; the page stacks TakeoverAnchor
+ * below the sheet so it can never read as a third tier.
  */
 export function GrowthPlanPricing({ className }: { className?: string }) {
+  const offer = getActiveSeasonalOffer()
+
   return (
-    <div className={className}>
-      <div data-growth-plan-pricing className="surface-card">
-        <div className="grid gap-6 p-5 sm:p-7">
-          <div className="grid gap-2">
-            <p className="mono-meta text-muted-foreground">{OFFER.name}</p>
-            <h2 className="text-2xl leading-tight font-extrabold text-foreground sm:text-3xl">
+    <PricingSheet data-growth-plan-pricing className={className}>
+      <CampaignStrip variant="strip" />
+      <PricingSheetBody>
+        <div className="grid gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <MonoTag tone="accent" className="-rotate-1">
               {PRODUCT.planName}
-            </h2>
-            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              {OFFER.riskFraming}
-            </p>
+            </MonoTag>
+            <MonoTag>{PRODUCT.pilot}</MonoTag>
           </div>
+          <h2 className="text-2xl leading-tight font-extrabold text-foreground sm:text-3xl">
+            {OFFER.name}
+          </h2>
+        </div>
 
-          <ol
-            aria-label="How buying the Growth Plan works"
-            className="grid border-t-2 border-dashed border-line-strong"
+        <div className="grid gap-4">
+          <div
+            data-payment-option="28-day"
+            role="group"
+            aria-label="Pay as you go"
+            className="grid gap-2"
           >
-            <li className="grid content-start gap-1 border-b-2 border-dashed border-border py-4 md:border-b-0 md:py-0 md:pr-5">
-              <p className="mono-meta text-muted-foreground">Step 1 · Today</p>
-              <p className="numeric-tabular text-2xl leading-none font-extrabold text-foreground sm:text-3xl">
-                £{PRODUCT.launchFeeAmount}
-              </p>
-              <p className="text-sm leading-6 text-muted-foreground">
-                Launch fee for the done-for-you launch, due at checkout.
-              </p>
-            </li>
-            <li className="grid content-start gap-1 border-b-2 border-dashed border-border py-4 md:border-b-0 md:border-l-2 md:px-5 md:py-0">
-              <p className="mono-meta text-muted-foreground">
-                Step 2 · Days 1–28
-              </p>
-              <p className="text-2xl leading-none font-extrabold text-foreground sm:text-3xl">
-                28 days
-              </p>
-              <p className="text-sm leading-6 text-muted-foreground">
-                Free platform pilot. Card required — recurring billing starts
-                only after the pilot.
-              </p>
-            </li>
-            <li className="grid content-start gap-1 py-4 md:border-l-2 md:border-dashed md:px-5 md:py-0 md:pr-0">
-              <p className="mono-meta text-muted-foreground">
-                Step 3 · After the pilot
-              </p>
-              <p className="text-2xl leading-none font-extrabold text-foreground sm:text-3xl">
-                2 ways
-              </p>
-              <p className="text-sm leading-6 text-muted-foreground">
-                The pilot ends, then one of two payment schedules begins.
-              </p>
-            </li>
-          </ol>
-
-          <div className="grid gap-3">
-            <h3
-              id="growth-plan-schedule-heading"
-              className="text-lg leading-snug font-extrabold text-foreground"
-            >
-              Choose your payment schedule
-            </h3>
-            <ul
-              aria-labelledby="growth-plan-schedule-heading"
-              className="grid overflow-hidden rounded-lg border-2 border-ink md:grid-cols-2"
-            >
-              <li
-                data-payment-option="28-day"
-                className="grid content-start gap-2 p-4 sm:p-5"
-              >
-                <MonoTag className="justify-self-start">Pay as you go</MonoTag>
-                <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                  <span className="numeric-tabular text-3xl leading-none font-extrabold text-foreground sm:text-4xl">
-                    £{PRODUCT.priceAmount}
-                  </span>
-                  <span className="text-sm font-bold text-muted-foreground">
-                    {PRODUCT.priceCadence}
-                  </span>
-                </p>
-                <p className="text-sm leading-6 text-muted-foreground">
-                  {PRODUCT.billingDisclosure}
-                </p>
-              </li>
-              <li
-                data-payment-option="annual"
-                className="grid content-start gap-2 border-t-2 border-dashed border-line-strong p-4 sm:p-5 md:border-t-0 md:border-l-2"
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <MonoTag tone="leaf" className="justify-self-start">
-                    Prepay a year
-                  </MonoTag>
-                  <MonoTag tone="sun" className="justify-self-start">
-                    {PRODUCT.annualSavingShort}
-                  </MonoTag>
-                </div>
-                <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                  <span className="numeric-tabular text-3xl leading-none font-extrabold text-foreground sm:text-4xl">
-                    £{PRODUCT.annualPriceAmount}
-                  </span>
-                  <span className="text-sm font-bold text-muted-foreground">
-                    {PRODUCT.annualPriceCadence}
-                  </span>
-                </p>
-                <p className="text-sm leading-6 text-muted-foreground">
-                  {PRODUCT.annualBillingDisclosure} {PRODUCT.annualSaving}
-                </p>
-              </li>
-            </ul>
+            <PriceLockup
+              size="hero"
+              amount={PRODUCT.priceAmount}
+              cadence={PRODUCT.priceCadence}
+            />
+            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+              £{PRODUCT.launchFeeAmount} launch fee today, then the{" "}
+              {PRODUCT.pilotCardNote} before recurring billing starts.
+            </p>
           </div>
 
-          <div className="grid gap-3 border-t-2 border-dashed border-border pt-5">
-            <p className="text-sm leading-6 font-bold text-foreground">
-              Both choices include the same Growth Plan:
-            </p>
-            <ul className="grid gap-2.5 sm:grid-cols-2">
-              {PLAN_INCLUDES.map((item) => (
-                <li key={item} className="flex items-start gap-3">
-                  <Icon
-                    icon={CheckmarkCircle02Icon}
-                    size={18}
-                    className="mt-0.5 shrink-0 text-reward"
-                  />
-                  <span className="text-sm leading-6 text-foreground">
-                    {item}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <div className="flex flex-wrap items-center gap-3 pt-1">
-              <Button asChild size="lg">
-                <MarketingSignupLink>Start your launch</MarketingSignupLink>
-              </Button>
+          <hr className="w-rule my-0 border-line-strong" />
+
+          <div
+            data-payment-option="annual"
+            role="group"
+            aria-label="Prepay a year"
+            className="grid gap-2 sm:flex sm:flex-wrap sm:items-baseline sm:justify-between sm:gap-x-6"
+          >
+            <div className="grid gap-2">
+              <PriceLockup
+                size="lead"
+                amount={PRODUCT.annualPriceAmount}
+                cadence={PRODUCT.annualPriceCadence}
+              />
+              <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+                {PRODUCT.annualBillingDisclosure} {PRODUCT.annualSaving}
+              </p>
             </div>
-            <p className="mono-id text-muted-foreground uppercase">
-              {PRODUCT.processingFeeLine} {PRODUCT.cancelLine}
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <MonoTag className="w-fit shrink-0">Prepay a year</MonoTag>
+              <MonoTag tone="sun" className="w-fit shrink-0 rotate-1">
+                {PRODUCT.annualSavingShort}
+              </MonoTag>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div
-        data-takeover-enquiry
-        className="mt-5 grid gap-3 border-t-2 border-dashed border-border pt-5 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-4"
-      >
-        <div className="grid gap-1">
-          <p className="mono-meta text-muted-foreground">
-            Bespoke engagement · enquiry only
-          </p>
-          <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span className="numeric-tabular text-xl leading-tight font-extrabold text-foreground">
-              {TAKEOVER.price}
+        <ol
+          aria-label="How buying the Growth Plan works"
+          className="grid gap-0 border-y-2 border-dashed border-border text-muted-foreground"
+        >
+          <li className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-dashed border-border py-2 last:border-b-0">
+            <span className="mono-meta text-foreground">Today</span>
+            {/* The amount is its own node so it can carry emphasis and
+                tabular figures — and tests/e2e/growth-plan-pricing.spec.ts:42
+                asserts an exact-text match on PRODUCT.launchFeeAmount alone,
+                which requires exactly one element whose text is exactly the
+                bare launch-fee figure, nothing folded into a sentence. */}
+            <span className="text-sm leading-6">
+              <span className="numeric-tabular text-foreground">
+                £{PRODUCT.launchFeeAmount}
+              </span>{" "}
+              launch fee at checkout. {DFY_LAUNCH.covers}
             </span>
-            <span className="text-sm font-bold text-foreground">
-              {TAKEOVER.name}
+          </li>
+          <li className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-dashed border-border py-2 last:border-b-0">
+            <span className="mono-meta text-foreground">Days 1–28</span>
+            <span className="text-sm leading-6">
+              Free platform pilot. Card required — recurring billing starts only
+              after the pilot.
             </span>
+          </li>
+          <li className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2">
+            <span className="mono-meta text-foreground">After the pilot</span>
+            <span className="text-sm leading-6">
+              One of the two payment schedules above begins.
+            </span>
+          </li>
+        </ol>
+
+        <div className="grid gap-3">
+          <p className="text-sm leading-6 font-bold text-foreground">
+            Both choices include the same Growth Plan:
           </p>
-          <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-            {TAKEOVER.qualifier} Not a Growth Plan tier — no self-serve
-            checkout.
-          </p>
+          <PlanIncludesList items={PLAN_INCLUDES} columns={2} />
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <Button asChild size="lg">
+              <MarketingSignupLink>Start your launch</MarketingSignupLink>
+            </Button>
+          </div>
         </div>
-        <Button asChild variant="secondary" className="w-fit shrink-0">
-          <Link href={ROUTES.demo}>{TAKEOVER.action}</Link>
-        </Button>
-      </div>
-    </div>
+      </PricingSheetBody>
+      <FinePrintStrip>
+        {PRODUCT.billingDisclosure} {PRODUCT.processingFeeLine}{" "}
+        {PRODUCT.cancelLine}
+        {offer ? ` ${offer.termsLine}` : ""}
+      </FinePrintStrip>
+    </PricingSheet>
   )
 }
