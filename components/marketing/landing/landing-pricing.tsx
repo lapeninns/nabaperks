@@ -42,7 +42,7 @@ export function LandingPricing() {
             </p>
             <div className="grid gap-1">
               <PriceLockup
-                size="lead"
+                size="hero"
                 amount={PRODUCT.priceAmount}
                 cadence={PRODUCT.priceCadence}
               />
@@ -78,7 +78,7 @@ export function LandingPricing() {
         <Card>
           <CardContent className="grid h-full content-start gap-4">
             <MonoTag className="justify-self-start">Bespoke anchor</MonoTag>
-            <p className="text-4xl leading-none font-extrabold text-foreground">
+            <p className="text-2xl leading-none font-extrabold text-foreground sm:text-3xl">
               {TAKEOVER.price}
             </p>
             <p className="text-lg leading-snug font-extrabold text-foreground">
