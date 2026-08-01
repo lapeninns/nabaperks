@@ -8,21 +8,20 @@ import {
   type BillingCheckoutAction,
 } from "@/components/merchant/account/billing-checkout-form"
 import { GUARANTEE, PRODUCT } from "@/lib/marketing/facts"
+import { SeasonalOfferBanner } from "@/components/marketing"
 
 /**
  * First-run billing activation surface — plan facts, one primary "Proceed to
  * billing" action, no duplicate copy. Purely presentational (no DB reads): it
- * takes only the env-derived annual availability and an optional return path,
- * so the real launch/account {@link import("./billing-panel").BillingPanel} and
+ * takes an optional return path, so the real launch/account
+ * {@link import("./billing-panel").BillingPanel} and
  * the DB-free `/dev/app-harness/launch?tab=billing` state both render this one
  * component. Checkout still runs through the `/app/billing` server action.
  */
 export function SetupBillingActivationCard({
-  annualBillingAvailable,
   billingReturnTo,
   checkoutAction = startCheckoutAction,
 }: {
-  annualBillingAvailable: boolean
   billingReturnTo?: string
   checkoutAction?: BillingCheckoutAction
 }) {
@@ -49,18 +48,24 @@ export function SetupBillingActivationCard({
 
       <dl className="grid gap-0 rounded-lg border border-border bg-secondary/40 px-3 py-1 text-sm">
         <PlanRow label="Plan" value={PRODUCT.planName} />
-        <PlanRow label="Free trial" value="30 days" />
-        <PlanRow label="Due today" value="£0" />
-        <PlanRow label="Then" value="£49 a month" />
-        <PlanRow label="Billed" value="Per location" />
+        <PlanRow label="Launch today" value={PRODUCT.launchFee} />
+        <PlanRow label="Platform pilot" value="28 days free" />
+        <PlanRow label="Then" value={PRODUCT.price} />
+        <PlanRow label="Or prepay" value={PRODUCT.annualPrice} />
+        <PlanRow label="Annual saving" value="£209.97" />
+        <PlanRow
+          label="Recurring year"
+          value="£909.87 across 13 payments per 364 days"
+        />
+        <PlanRow label="Card surcharge" value="None" />
+        <PlanRow label="Billing" value="Per location" />
       </dl>
 
       <div className="grid gap-2">
+        <SeasonalOfferBanner />
         <BillingCheckoutForm
           checkoutAction={checkoutAction}
-          annualBillingAvailable={annualBillingAvailable}
           returnTo={billingReturnTo}
-          stacked
         />
         <p className="text-center text-xs leading-5 text-muted-foreground">
           Secure checkout via Stripe. {PRODUCT.cancelChip} from your billing

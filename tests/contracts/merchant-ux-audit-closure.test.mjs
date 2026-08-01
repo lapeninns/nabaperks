@@ -33,7 +33,8 @@ const onboardingHarness = source("app/dev/app-harness/onboarding/page.tsx")
 test("the Growth Plan name is single-sourced across activation and account billing", () => {
   assert.match(facts, /planName:\s*["']Growth Plan["']/)
   assert.match(activationCard, /PRODUCT\.planName/)
-  assert.match(activationCard, /<BillingCheckoutForm[\s\S]*?stacked/)
+  assert.match(activationCard, /<BillingCheckoutForm/)
+  assert.doesNotMatch(activationCard, /annualBillingAvailable/)
   assert.match(billingPanel, /PRODUCT\.planName/)
 })
 

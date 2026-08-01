@@ -78,9 +78,6 @@ export async function BillingPanel({
       cleanupOutcomeQuery={cleanupOutcomeQuery}
       requiresBilling={requiresBilling}
       mode={mode}
-      annualBillingAvailable={Boolean(
-        process.env.STRIPE_GROWTH_ANNUAL_PRICE_ID
-      )}
       checkoutAction={startCheckoutAction}
       portalAction={openCustomerPortalAction}
       billingReturnTo={billingReturnTo}

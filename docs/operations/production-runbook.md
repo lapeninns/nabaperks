@@ -33,17 +33,24 @@ Do not promote a release until all of these are true:
 Stripe is accepted only when an operator records all of the following against
 the live account:
 
-1. The live product and both active price IDs match the published monthly and
-   annual GBP amounts, and obsolete prices are inactive.
-2. A Customer Portal session opens for a controlled merchant and returns to
-   `/app/account?tab=billing`; payment-method update, invoice history, and
-   cancellation-at-period-end match the product copy.
-3. A signed webhook delivery reaches
+1. The live product and all three active Price IDs match the published terms:
+   the one-time launch is GBP 299.99, the 28-day recurring Price is GBP 69.99
+   with `interval=day` and `interval_count=28`, and the prepaid annual Price is
+   GBP 699.90 with `interval=year` and `interval_count=1`. Obsolete prices are
+   inactive for new checkout while historical subscriptions remain manageable.
+2. Both subscription choices complete a controlled Checkout after the same
+   28-day trial. The launch fee appears once, the chosen recurring cadence is
+   correct, and the webhook-derived merchant billing record matches Stripe.
+3. The billing page opens Stripe's payment-method-update flow and returns to
+   `/app/account?tab=billing`. Cancellation is available only after the short
+   Nabaperks exit review; choosing cancellation opens Stripe's
+   cancellation-at-period-end flow and does not cancel immediately.
+4. A signed webhook delivery reaches
    `https://nabaperks.com/api/stripe/webhook` on the pinned API version and
    returns a success response.
-4. The event ID appears once in `stripe_webhook_events`, with a terminal
+5. The event ID appears once in `stripe_webhook_events`, with a terminal
    processing state and no duplicate side effects.
-5. The affected merchant subscription and entitlement readback match the
+6. The affected merchant subscription and entitlement readback match the
    Stripe subscription after the webhook is processed.
 
 Record only masked customer/merchant identifiers, Stripe object IDs, UTC

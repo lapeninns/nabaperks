@@ -45,7 +45,6 @@ test("Given a complete production configuration When generated credentials are s
       CRON_SECRET: "N7!qL2@vR9#cT4$yH6^mK8&pD3*zF5?x",
       PRODUCTION_MONITOR_SECRET: "P4@wS8#nC2!kV6$rJ9^tB3&yM7*zQ5?e",
       RESEND_FROM: "Nabaperks <hello@example.test>",
-      STRIPE_GROWTH_ANNUAL_PRICE_ID: "price_annual_fixture",
       SUPABASE_SEND_EMAIL_HOOK_SECRET: [
         "v1,wh",
         "sec_",
@@ -68,7 +67,6 @@ test("Given a monitor-secret overlap When the next token is reused Then producti
       PRODUCTION_MONITOR_SECRET: sharedSecret,
       PRODUCTION_MONITOR_SECRET_NEXT: sharedSecret,
       RESEND_FROM: "Nabaperks <hello@example.test>",
-      STRIPE_GROWTH_ANNUAL_PRICE_ID: "price_annual_fixture",
       SUPABASE_SEND_EMAIL_HOOK_SECRET: [
         "v1,wh",
         "sec_",
@@ -465,8 +463,10 @@ test("Given final provider acceptance When the production runbook is inspected T
   )
   const incident = readFileSync("docs/operations/incident-response.md", "utf8")
 
-  assert.match(production, /live product and both active price IDs/i)
-  assert.match(production, /Customer Portal session/i)
+  assert.match(production, /live product and all three active Price IDs/i)
+  assert.match(production, /prepaid annual Price is\s+GBP 699\.90/i)
+  assert.match(production, /payment-method-update flow/i)
+  assert.match(production, /exit review/i)
   assert.match(production, /signed webhook delivery/i)
   assert.match(production, /stripe_webhook_events/)
   assert.match(production, /entitlement/i)

@@ -92,17 +92,22 @@
     "description": "Stripe secret key for server-side billing and portal calls."
   },
   {
+    "name": "STRIPE_LAUNCH_PRICE_ID",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Stripe one-time Price ID for the done-for-you launch at GBP 299.99, charged only on a merchant's first checkout."
+  },
+  {
     "name": "STRIPE_GROWTH_PRICE_ID",
     "visibility": "server",
     "kind": "string",
-    "description": "Stripe recurring Price ID for the Growth Plan at GBP 49/month."
+    "description": "Stripe recurring Price ID for the Growth Plan at GBP 69.99 every 28 days (interval day, interval_count 28)."
   },
   {
     "name": "STRIPE_GROWTH_ANNUAL_PRICE_ID",
     "visibility": "server",
     "kind": "string",
-    "description": "Stripe recurring Price ID for the Growth Plan annual option at GBP 490/year (2 months free). Optional for local boot and required by the production release profile.",
-    "optional": true
+    "description": "Stripe recurring Price ID for the prepaid Growth Plan at GBP 699.90 each year (interval year, interval_count 1)."
   },
   {
     "name": "STRIPE_WEBHOOK_SECRET",

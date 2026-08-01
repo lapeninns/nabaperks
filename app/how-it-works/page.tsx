@@ -100,7 +100,7 @@ export default function HowItWorksPage() {
             />
             <div className="flex flex-wrap items-center gap-3">
               <Button asChild size="lg">
-                <Link href={ROUTES.signup}>Start your free pilot</Link>
+                <Link href={ROUTES.signup}>Start your launch</Link>
               </Button>
               <Button asChild size="lg" variant="secondary">
                 <Link href={ROUTES.pricing}>See pricing</Link>

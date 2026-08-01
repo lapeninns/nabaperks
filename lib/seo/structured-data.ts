@@ -139,8 +139,8 @@ export function howToSchema({
 }
 
 /**
- * The Growth Plan as a Product with its two real subscription offers. There is
- * no setup fee — the done-for-you launch is included in the subscription.
+ * The Growth Plan as a Product with its two self-serve recurring offers. The
+ * one-time physical launch is disclosed in the offer description.
  */
 export function growthPlanSchema(): Record<string, unknown> {
   return {
@@ -152,19 +152,19 @@ export function growthPlanSchema(): Record<string, unknown> {
     offers: [
       {
         "@type": "Offer",
-        name: `${PRODUCT.planName} — monthly`,
-        price: "49",
+        name: `${PRODUCT.planName} — 28-day billing`,
+        price: PRODUCT.priceAmount,
         priceCurrency: "GBP",
-        description: `${PRODUCT.price} after a ${PRODUCT.pilot}. ${PRODUCT.cancelLine}`,
+        description: `${PRODUCT.launchFee} done-for-you launch, then a ${PRODUCT.pilot} followed by ${PRODUCT.price}. ${PRODUCT.billingDisclosure} ${PRODUCT.cancelLine}`,
         url: absoluteUrl("/pricing"),
         availability: "https://schema.org/InStock",
       },
       {
         "@type": "Offer",
-        name: `${PRODUCT.planName} — annual`,
-        price: "490",
+        name: `${PRODUCT.planName} — annual prepay`,
+        price: PRODUCT.annualPriceAmount,
         priceCurrency: "GBP",
-        description: `${PRODUCT.priceAnnual} up front — ${PRODUCT.annualSaving}.`,
+        description: `${PRODUCT.launchFee} done-for-you launch, then a ${PRODUCT.pilot} followed by ${PRODUCT.annualPrice}. ${PRODUCT.annualSaving} ${PRODUCT.cancelLine}`,
         url: absoluteUrl("/pricing"),
         availability: "https://schema.org/InStock",
       },

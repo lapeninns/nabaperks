@@ -73,7 +73,7 @@ export async function QrPanel({
           headingLevel={2}
           eyebrow="Venue QR"
           title="Activate billing to unlock your venue QR"
-          description="Your venue, card and rewards are ready. Start the free trial and your permanent QR will be created next."
+          description="Your venue, card and rewards are ready. Pay the launch fee, start the 28-day platform pilot and your permanent QR will be created next."
           titleClassName="sm:text-3xl"
         />
         <StatusBanner tone="warning" title="QR locked until billing is active">

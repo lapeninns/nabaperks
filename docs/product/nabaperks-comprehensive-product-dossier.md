@@ -15,7 +15,7 @@ The product replaces a conventional paper stamp card with a venue-specific digit
 
 When a customer completes the venue's stamp target, Nabaperks assigns a reward. The first completed cycle receives the first active configured reward; later cycles use the venue's configured reward weightings. Cycle rewards are not immediately redeemable: the current legal and database rules make them redeemable from the next Europe/London weekday, skipping Saturday and Sunday. Before generating a redemption QR, the customer must complete required identity and eligibility gates. The venue scans a short-lived, single-use reward token, and the database records redemption and opens the next stamp cycle.
 
-For merchants, Nabaperks provides guided venue launch, loyalty-card configuration, a weighted mystery reward pool, permanent venue QR creation, print-ready A4 counter posters, visit and return reporting, member and activity readback, a reward scanner, direct reward sending, birthday rewards, referral operations, browser-push announcements, a weekly digest, billing management, and account settings. The current commercial plan is the **Growth Plan** at **£49 per month per venue** or **£490 per year** where annual checkout is configured. A new Stripe subscription starts with a **30-day free trial** and requires a payment card.
+For merchants, Nabaperks provides guided venue launch, loyalty-card configuration, a weighted mystery reward pool, permanent venue QR creation, print-ready A4 counter posters, visit and return reporting, member and activity readback, a reward scanner, direct reward sending, birthday rewards, referral operations, browser-push announcements, a weekly digest, billing management, and account settings. The current commercial plan is the **Growth Plan**. New customers pay a **£299.99 one-time launch fee**, receive a **28-day free platform pilot**, then choose **£69.99 every 28 days per venue** or **£699.90 prepaid yearly**. The 28-day cadence totals £909.87 across 13 payments per 364 days; annual prepay saves £209.97 against that cadence. Checkout requires a payment card; Nabaperks adds no separate card-processing surcharge.
 
 The product's central design rule is that server state is authoritative. Loyalty balances, stamp eligibility, rewards, billing entitlement, consent, identity, referral settlement, and administrative interventions are controlled by server actions, route handlers, Supabase/Postgres functions, Row Level Security, Stripe webhooks, or trusted background workers. Browser storage is used only for sessions, flow continuity, security, preferences, cached static assets, and optional notification state.
 
@@ -76,14 +76,16 @@ There is no active general staff-PIN subsystem in the current product surface. H
 The current approved facts define one public plan:
 
 - **Plan:** Growth Plan.
-- **Monthly:** £49 per venue per month.
-- **Annual:** £490 per venue per year, described as two months free, when the annual Stripe price is configured and shown.
-- **Trial:** 30 days.
+- **Launch:** £299.99 one-time per venue, charged at checkout for configuration, bespoke printed launch materials, and delivery.
+- **Recurring:** £69.99 every 28 days after the pilot; 13 payments total £909.87 over 364 days.
+- **Pilot:** 28 days free for the platform only. The launch fee is still charged today.
+- **Annual:** £699.90 prepaid yearly after the pilot, saving £209.97 against 13 separate 28-day payments.
+- **Bespoke anchor:** The Ultimate Pub Loyalty Takeover is £4,999.99, enquiry only, with scope agreed before purchase.
 - **Payment requirement:** A card is required at checkout.
-- **Cancellation:** Self-service through the Stripe customer portal; cancellation takes effect at the end of the current subscription period.
-- **Contract framing:** Cancel anytime, with no separate notice period represented in the current product copy.
+- **Cancellation:** The merchant completes a short exit review, then can continue directly to Stripe cancellation; cancellation takes effect at the end of the current subscription period.
+- **Contract framing:** Cancel renewal anytime after the exit review, with no separate notice period represented in the current product copy.
 
-The annual option is intentionally fail-closed: the UI should not offer it when `STRIPE_GROWTH_ANNUAL_PRICE_ID` is absent. Stripe webhook-derived database state, not a checkout return query parameter, determines whether loyalty is active.
+New checkout requires the active one-time `STRIPE_LAUNCH_PRICE_ID`, 28-day `STRIPE_GROWTH_PRICE_ID`, and yearly `STRIPE_GROWTH_ANNUAL_PRICE_ID`. Provider readiness verifies GBP 69.99 with `interval=day` and `interval_count=28`, and GBP 699.90 with `interval=year` and `interval_count=1`. Stripe webhook-derived database state, not a checkout return query parameter, determines whether loyalty is active. Launch-fee satisfaction is recorded durably so it is not charged again when an eligible merchant restarts billing.
 
 ### 4.2 Included capabilities
 
@@ -99,21 +101,13 @@ The wider implemented product also contains poster templates, mystery reward pre
 
 ### 4.3 Named offer and service commitments
 
-The public offer is named **The 30-Day First-Regular Launch**. It includes a manually operated **First-Regular Guarantee**: if a live card has not brought back a first regular by the end of the 30-day pilot, support extends the pilot until it does. Current merchant terms define a returning member as a customer who receives another normal visit stamp on a later Europe/London date. The guarantee is a manual Stripe trial extension, not an automatic refund or cash payment.
+The public offer is named **The 28-Day First-Regular Launch**. It includes a manually operated **First-Regular Guarantee**: if a live card has not brought back a first regular within 28 days, support extends the platform pilot. Current merchant terms define a returning member as a customer who receives another normal visit stamp on a later Europe/London date. The guarantee is a manual service extension, not an automatic refund or cash payment.
 
-The repository also supports a time-limited first-poster promotion. The current promotion logic is separately configured and must be checked before repeating a deadline or capacity claim. A build check is intended to prevent a stale promotion from remaining published.
+The first bespoke A4 counter-poster run is a standard launch deliverable, not a promotional extra. New customers fund it through the one-time launch fee. Seasonal wrappers use fixed, explicitly configured campaign windows and cannot silently regenerate an expired deadline; they do not change the standard deliverables, prices, or guarantee conditions.
 
 ### 4.4 Public proof and its boundary
 
-Approved marketing facts include a named snapshot, the **Nabaperks Counter-Loyalty Index, June 2026**:
-
-- 1,842 loyalty members.
-- 812 members returned.
-- 2,934 rewards earned.
-- 1,180 rewards redeemed.
-- 46.8% repeat rate.
-
-The claim registry states that the methodology is first-party loyalty data from UK food-and-drink venues from March 2024 to June 2026, with a June 2026 snapshot. The codebase contains the fixed figures and display strings, but the dossier did not find an executable query or checked-in dataset that independently regenerates them. They should therefore be treated as centrally governed marketing claims, not as figures proven by the application code or attributable to any one venue.
+Public performance evidence now comes from `commercial_evidence_cases`. An internal admin selects a merchant and measurement window; a security-definer function recomputes new members, normal visit stamps, verified return visits, and redeemed rewards from the loyalty ledgers under `normal-return-visits-v1`, then hashes the snapshot. A case can be published only with an approved attribution, a source reference, recorded merchant approval, and an approval reference. Public pages select only published fields and never expose the internal source or approval references. Until an approved case exists, the public proof section renders nothing rather than inventing an aggregate claim.
 
 ## 5. End-to-end product model
 
@@ -122,7 +116,7 @@ flowchart LR
   A["Merchant signs up"] --> B["Configure venue"]
   B --> C["Build loyalty card"]
   C --> D["Publish at least 3 rewards"]
-  D --> E["Activate Stripe trial or subscription"]
+  D --> E["Pay launch fee and activate 28-day platform pilot"]
   E --> F["Create permanent venue QR and posters"]
   F --> G["Customer scans QR"]
   G --> H{"Existing member?"}
@@ -188,9 +182,9 @@ The first completed card cycle receives the first active configured reward. Late
 
 ### 6.6 Billing activation and account management
 
-Stripe Checkout creates the subscription and free trial. A durable checkout-attempt ledger prevents ambiguous retries and binds the Stripe customer/subscription to the merchant. Stripe webhooks are signature-verified and processed through an event ledger with claiming, completion, failure, and retry semantics. Provider subscription snapshots are mapped into durable billing fields, including price, interval, currency, current period end, cancellation timing, and entitlement status.
+Stripe Checkout creates either the 28-day or annual recurring subscription with a 28-day platform trial and adds the one-time launch Price to the initial checkout. A durable checkout-attempt ledger prevents ambiguous retries and binds the Stripe customer/subscription to the merchant. Stripe webhooks are signature-verified and processed through an event ledger with claiming, completion, failure, and retry semantics. Provider subscription snapshots are mapped into durable billing fields, including price, interval, currency, current period end, cancellation timing, and entitlement status. Historical monthly subscriptions remain supported for readback and portal management.
 
-The merchant billing page can open Stripe's customer portal for payment-method management, invoices, and cancellation. The product must reconcile against the exact known subscription; broad email searches are not accepted as ownership proof.
+The merchant billing page opens Stripe for payment-method and invoice management. Cancellation has a separate exit-review route: the reason and requested next step are written to a merchant-scoped ledger and audit log before the app opens Stripe's direct `subscription_cancel` flow. The product reconciles against the exact known subscription; broad email searches are not accepted as ownership proof.
 
 ### 6.7 QR and poster assets
 
@@ -643,7 +637,7 @@ The normal repository gates are `pnpm quality:fast`, `pnpm quality:check`, and `
 
 - Human legal review is still required for customer terms, merchant-specific terms, privacy notice, data-processing wording, age gate, reward terms, and the effect of billing lapse on earned rewards.
 - The repository intentionally avoids assigning controller/processor/joint-controller roles that have not been legally established.
-- The First-Regular Guarantee and poster promotion require real operational fulfilment and support capacity.
+- The First-Regular Guarantee and included first poster run require real operational fulfilment and support capacity.
 - Public proof requires a reproducible source and approval; programme-level figures must not be presented as individual venue performance.
 - Reward names, exclusions, alcohol-related fulfilment, and consumer-law obligations remain partly merchant responsibilities.
 
@@ -662,7 +656,7 @@ This dossier excludes all narrative-document claims. The following ambiguities r
 1. The marketing claim registry contains fixed programme-level proof figures but no executable source query or checked-in dataset that regenerates them.
 2. The guarantee and print-promotion constants describe manual service commitments. The code can render and govern the wording, but it cannot prove that an operator fulfilled an individual claim.
 3. Earlier SQL migrations contain staff/PIN structures, while later migrations remove or revoke that subsystem and current routes use authenticated merchant reward scanning. Latest migrations and active runtime routes take precedence over historical schema definitions.
-4. Some optional features are represented by code but are inert without environment configuration, including annual Stripe pricing, Web Push, external analytics, error reporting, mapping assistance, and some email flows.
+4. Some optional features are represented by code but are inert without environment configuration, including Web Push, external analytics, error reporting, mapping assistance, and some email flows.
 5. Vercel cron schedules prove intended invocation frequency, not actual execution or provider delivery.
 
 An LM audit should classify every claim as presentation-only, runtime-implemented, SQL-enforced, test-covered, configuration-dependent, or externally unverifiable.
@@ -675,7 +669,7 @@ An auditing LM should evaluate Nabaperks in the following passes.
 
 - Map each public claim in `lib/marketing/facts.ts` to an implemented route, database rule, configuration gate, or documented manual operation.
 - Reject claims that cannot be traced to executable code, migrations, tests, or machine-readable configuration.
-- Check price, trial, cancellation, annual saving, poster count, reward mechanics, and guarantee wording for drift.
+- Check launch price, recurring cadence, pilot, cancellation, poster count, reward mechanics, and guarantee wording for drift.
 
 ### Pass 2: Journey completeness
 

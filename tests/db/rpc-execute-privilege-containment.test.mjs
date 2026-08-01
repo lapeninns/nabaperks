@@ -35,6 +35,7 @@ const AUTHENTICATED_DIRECT_RPCS = [
   "admin_erase_loyalty_invitations_for_customer",
   "loyalty_invitations_export_for_customer",
   "admin_log_pilot_note",
+  "admin_capture_commercial_evidence_case",
   "save_loyalty_card",
   "upsert_reward_pool_item",
   "set_reward_pool_item_active",
@@ -46,6 +47,7 @@ const AUTHENTICATED_DIRECT_RPCS = [
   "complete_merchant_onboarding",
   "create_or_get_join_qr",
   "set_qr_active",
+  "record_merchant_cancellation_interview",
 ]
 
 // Group B — functions the planner evaluates AS the authenticated caller during
@@ -89,8 +91,10 @@ const MUST_BE_LOCKED = [
   "record_operational_cron_run",
   "production_operational_signals",
   "apply_current_stripe_subscription",
+  "bind_billing_checkout_offer",
   "claim_billing_checkout_attempt",
   "finalize_billing_checkout_session",
+  "satisfy_merchant_launch_fee",
   "register_customer_session",
   "record_customer_marketing_consent",
   "join_customer_membership_with_first_stamp",

@@ -131,7 +131,7 @@ export function GuidePage({ guide }: { guide: Guide }) {
           </p>
           <div className="flex flex-wrap gap-3">
             <Button asChild>
-              <Link href={ROUTES.signup}>Start your free pilot</Link>
+              <Link href={ROUTES.signup}>Start your launch</Link>
             </Button>
             <Button asChild variant="secondary">
               <Link href={ROUTES.howItWorks}>See how the launch works</Link>

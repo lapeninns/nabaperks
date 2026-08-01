@@ -57,7 +57,7 @@ export function MarketingHeaderNav() {
             void captureMarketingFunnelEvent("merchant_signup_clicked")
           }}
         >
-          Start free pilot
+          Start your launch
         </Link>
       </Button>
     </nav>

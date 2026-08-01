@@ -8,21 +8,43 @@ const monthlyBilling = {
   stripe_subscription_status: "active",
   stripe_customer_id: "cus_owned",
   billing_interval: "month",
-  unit_amount: 4_900,
+  unit_amount: 6_900,
   currency: "gbp",
   current_period_end: "2026-08-10T12:00:00.000Z",
   cancel_at_period_end: false,
   cancel_at: null,
 }
 
+const cycleBilling = {
+  ...monthlyBilling,
+  billing_interval: "day",
+  unit_amount: 6_999,
+  current_period_end: "2026-08-07T12:00:00.000Z",
+}
+
+test("28-day billing presents the exact recurring cadence", () => {
+  const presentation = buildBillingPresentation(cycleBilling)
+
+  assert.deepEqual(presentation.receipt, {
+    kind: "cycle",
+    amountLabel: "£69.99",
+    cadenceLabel: "every 28 days",
+    summary: "£69.99 every 28 days",
+  })
+  assert.deepEqual(presentation.primaryAction, {
+    kind: "portal",
+    label: "Open Stripe portal",
+  })
+})
+
 test("monthly billing presents its stored receipt and manages the existing Subscription", () => {
   const presentation = buildBillingPresentation(monthlyBilling)
 
   assert.deepEqual(presentation.receipt, {
     kind: "monthly",
-    amountLabel: "£49",
+    amountLabel: "£69",
     cadenceLabel: "per month",
-    summary: "£49 per month",
+    summary: "£69 per month",
   })
   assert.deepEqual(presentation.primaryAction, {
     kind: "portal",
@@ -38,7 +60,7 @@ test("annual billing presents exact stored annual terms and scheduled cancellati
   const presentation = buildBillingPresentation({
     ...monthlyBilling,
     billing_interval: "year",
-    unit_amount: 49_000,
+    unit_amount: 69_000,
     current_period_end: "2027-07-10T12:00:00.000Z",
     cancel_at_period_end: true,
     cancel_at: "2027-07-10T12:00:00.000Z",
@@ -46,9 +68,9 @@ test("annual billing presents exact stored annual terms and scheduled cancellati
 
   assert.deepEqual(presentation.receipt, {
     kind: "annual",
-    amountLabel: "£490",
+    amountLabel: "£690",
     cadenceLabel: "per year",
-    summary: "£490 per year",
+    summary: "£690 per year",
   })
   assert.equal(presentation.periodMessage, "Cancels on 10 July 2027.")
 })
@@ -69,7 +91,7 @@ test("cancelled billing exposes restart Checkout while retaining its annual rece
     status: "cancelled",
     stripe_subscription_status: "canceled",
     billing_interval: "year",
-    unit_amount: 49_000,
+    unit_amount: 69_000,
   })
 
   assert.equal(presentation.receipt.kind, "annual")

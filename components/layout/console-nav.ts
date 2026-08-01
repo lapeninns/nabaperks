@@ -121,6 +121,7 @@ export const adminNavItems = [
   // special-cases the bare "/admin" path).
   { href: "/admin", label: "Overview", icon: Home01Icon },
   { href: "/admin/pilot", label: "Pilot", icon: AnalyticsUpIcon },
+  { href: "/admin/evidence", label: "Evidence", icon: AnalyticsUpIcon },
   { href: "/admin/merchants", label: "Merchants", icon: Store01Icon },
   { href: "/admin/customers", label: "Customers", icon: UserMultiple02Icon },
   { href: "/admin/referrals", label: "Referrals", icon: Megaphone01Icon },

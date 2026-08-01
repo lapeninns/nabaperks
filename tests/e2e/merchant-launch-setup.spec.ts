@@ -55,7 +55,9 @@ test.describe("merchant launch setup @launch-setup", () => {
       page.getByRole("heading", { name: "Activate your venue" })
     ).toBeVisible()
     await expect(
-      page.getByRole("button", { name: /Proceed to billing/ })
+      page.getByRole("button", {
+        name: "Continue · £299.99 launch · then £69.99 every 28 days",
+      })
     ).toBeVisible()
   })
 
@@ -67,12 +69,14 @@ test.describe("merchant launch setup @launch-setup", () => {
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: "Activate to unlock your QR",
+        name: "Launch to unlock your QR",
       })
     ).toBeVisible()
     await expect(
       page
-        .getByText("Start your free trial, then create your venue QR.")
+        .getByText(
+          "Pay the launch fee, start the pilot, then create your venue QR."
+        )
         .first()
     ).toBeVisible()
   })

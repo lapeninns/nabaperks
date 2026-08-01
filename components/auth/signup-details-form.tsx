@@ -191,7 +191,7 @@ export function SignupDetailsForm({
         </SubmitButton>
       </form>
       <p className="text-center text-sm text-muted-foreground">
-        Already piloting?{" "}
+        Already have an account?{" "}
         <AuthPromptLink
           href={merchantLoginHref({
             email: state.fields?.email ?? initialEmail,

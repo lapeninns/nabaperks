@@ -13,13 +13,14 @@ export type BillingPresentationSource = {
   current_period_end?: string | null
   cancel_at_period_end?: boolean | null
   cancel_at?: string | null
+  launch_fee_status?: string | null
 }
 
 export type BillingReceiptModel =
   | {
-      kind: "monthly" | "annual"
+      kind: "cycle" | "monthly" | "annual"
       amountLabel: string
-      cadenceLabel: "per month" | "per year"
+      cadenceLabel: "every 28 days" | "per month" | "per year"
       summary: string
     }
   | {
@@ -74,7 +75,7 @@ function buildReceipt(
   const { billing_interval: interval, unit_amount: amount, currency } = source
 
   if (
-    (interval !== "month" && interval !== "year") ||
+    (interval !== "day" && interval !== "month" && interval !== "year") ||
     !Number.isSafeInteger(amount) ||
     (amount ?? -1) < 0 ||
     !currency ||
@@ -90,11 +91,17 @@ function buildReceipt(
       minimumFractionDigits: (amount as number) % 100 === 0 ? 0 : 2,
       maximumFractionDigits: 2,
     }).format((amount as number) / 100)
-    const monthly = interval === "month"
-    const cadenceLabel = monthly ? "per month" : "per year"
+    const kind =
+      interval === "day" ? "cycle" : interval === "month" ? "monthly" : "annual"
+    const cadenceLabel =
+      kind === "cycle"
+        ? "every 28 days"
+        : kind === "monthly"
+          ? "per month"
+          : "per year"
 
     return {
-      kind: monthly ? "monthly" : "annual",
+      kind,
       amountLabel,
       cadenceLabel,
       summary: `${amountLabel} ${cadenceLabel}`,

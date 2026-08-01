@@ -93,7 +93,7 @@ export default function AboutPage() {
       <Section width="narrow" size="compact" className="pb-10">
         <div className="flex flex-wrap items-center gap-3">
           <Button asChild size="lg">
-            <Link href={ROUTES.signup}>Start your free pilot</Link>
+            <Link href={ROUTES.signup}>Start your launch</Link>
           </Button>
           <Button asChild size="lg" variant="secondary">
             <Link href={ROUTES.howItWorks}>See how the launch works</Link>

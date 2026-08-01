@@ -102,16 +102,20 @@ test("provider readiness smoke covers the remaining release gates", () => {
   }
 })
 
-test("provider readiness makes both Growth billing intervals explicit", () => {
+test("provider readiness makes every live Stripe Price explicit", () => {
   for (const key of [
+    "STRIPE_LAUNCH_PRICE_ID",
     "STRIPE_GROWTH_PRICE_ID",
     "STRIPE_GROWTH_ANNUAL_PRICE_ID",
   ]) {
     assert.match(smokeScript, new RegExp(key))
   }
 
-  assert.match(smokeScript, /active GBP 49\/month/)
-  assert.match(smokeScript, /active GBP 490\/year/)
+  assert.match(smokeScript, /active one-time GBP 299\.99/)
+  assert.match(smokeScript, /active GBP 69\.99 every 28 days/)
+  assert.match(smokeScript, /active GBP 699\.90 each year/)
+  assert.match(smokeScript, /interval_count === 28/)
+  assert.match(smokeScript, /interval_count === 1/)
 })
 
 test("Supabase migration smoke stays read-only", () => {
@@ -191,7 +195,6 @@ test("production env check requires provider release secrets without forcing opt
     "WEB_PUSH_VAPID_PRIVATE_KEY",
     "WEB_PUSH_VAPID_PUBLIC_KEY",
     "WEB_PUSH_VAPID_SUBJECT",
-    "STRIPE_GROWTH_ANNUAL_PRICE_ID",
   ]) {
     assert.match(envCheckScript, new RegExp(`"${key}"`))
   }

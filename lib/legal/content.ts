@@ -1,4 +1,9 @@
-import { GUARANTEE, LEGAL_CONTACT, PRODUCT } from "@/lib/marketing/facts"
+import {
+  GUARANTEE,
+  GUARANTEE_ROI,
+  LEGAL_CONTACT,
+  PRODUCT,
+} from "@/lib/marketing/facts"
 
 export type LegalSection = {
   id: string
@@ -76,7 +81,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
   {
     id: "data-collected",
     title: "Information held",
-    body: "For customers, Nabaperks may hold a verified phone identity, phone country and last four digits, full name, date of birth, email and verification state. It also records venue memberships, accepted venue terms, stamps, rewards, referrals, consent choices, notifications, push subscriptions, fraud signals, sessions, product events, and support activity. For merchants, it may hold account, venue, address, loyalty-card, reward, QR, subscription, billing-reference, operational, and support records.",
+    body: "For customers, Nabaperks may hold a verified phone identity, phone country and last four digits, full name, date of birth, email and verification state. It also records venue memberships, accepted venue terms, stamps, rewards, referrals, consent choices, notifications, push subscriptions, fraud signals, sessions, product events, and support activity. For merchants, it may hold account, venue, address, loyalty-card, reward, QR, subscription, billing-reference, operational, support, cancellation-interview, and approved commercial-evidence records. Commercial evidence can include an approved attribution, before-and-after notes, a testimonial, reproducible aggregate metric snapshots, and secure references to supporting screenshots, recordings, or transcripts.",
   },
   {
     id: "identity-protection",
@@ -219,8 +224,8 @@ export const MERCHANT_TERMS_SECTIONS: LegalSection[] = [
   },
   {
     id: "price-and-trial",
-    title: "Price and free trial",
-    body: `The monthly Growth Plan is ${PRODUCT.price} per venue. Where the annual checkout option is configured and shown, it is ${PRODUCT.priceAnnual} paid yearly. A new Stripe subscription starts with a 30-day free trial and requires a payment card at checkout. The selected recurring charge begins after the trial unless the subscription is cancelled or the trial is extended through the First-Regular Guarantee support process.`,
+    title: "Launch fee, recurring price and free pilot",
+    body: `The Growth Plan has a one-off ${PRODUCT.launchFee} launch fee per venue, charged at checkout, followed by a ${PRODUCT.pilot}. At checkout, the merchant chooses either ${PRODUCT.price} (${PRODUCT.billingDisclosure}) or ${PRODUCT.annualPrice} paid in advance (${PRODUCT.annualBillingDisclosure} ${PRODUCT.annualSaving}). The selected recurring charge begins after the pilot unless the subscription is cancelled or the pilot is extended through the First-Regular Guarantee support process. The annual subscription renews yearly at the then-disclosed annual price unless renewal is cancelled before the renewal date. The launch includes venue and loyalty-card configuration, a margin-safe reward setup, and the first bespoke A4 counter-poster run with delivery. Nabaperks does not add a separate card-processing surcharge.`,
   },
   {
     id: "activation",
@@ -239,18 +244,28 @@ export const MERCHANT_TERMS_SECTIONS: LegalSection[] = [
   },
   {
     id: "cancellation",
-    title: "Cancellation",
-    body: "The merchant manages cancellation through the Stripe billing portal. A scheduled cancellation takes effect at the end of the current subscription period recorded by Stripe, whether the selected plan is monthly or annual. Cancelling future renewal does not erase loyalty, reward, consent, billing, product-event, or audit records. Customer joins, stamps, reward issue, and redemption are paused when the stored subscription is no longer active or trialling.",
+    title: "Cancellation and exit review",
+    body: "The merchant starts cancellation from the Nabaperks billing page and completes a short exit review before Stripe opens the subscription-cancellation flow. The review records the main reason, optional detail, and whether the merchant wants a support call or another available resolution. It does not remove the merchant's right to cancel. A scheduled cancellation takes effect at the end of the current subscription period recorded by Stripe; an annual prepayment is not automatically refunded merely because renewal is cancelled. Cancelling future renewal does not erase loyalty, reward, consent, billing, product-event, cancellation-interview, or audit records. Customer joins, stamps, reward issue, and redemption are paused when the stored subscription is no longer active or trialling.",
   },
   {
     id: "guarantee",
     title: "First-Regular Guarantee",
-    body: `${GUARANTEE.line} A returning member is a customer who receives another normal visit stamp on a later Europe/London date. ${GUARANTEE.applies} ${GUARANTEE.claim} The extension is applied manually through support; it is not an automatic refund or cash payment.`,
+    body: `${GUARANTEE.line} A returning member is a customer who receives another normal visit stamp on a later Europe/London date. ${GUARANTEE.applies} ${GUARANTEE.claim} An extension delays recurring billing. It is applied manually through support; it is not an automatic refund or cash payment.`,
   },
   {
-    id: "monthly-first-regular-promo",
+    id: "roi-extension",
+    title: "90-Day ROI Extension",
+    body: `${GUARANTEE_ROI.line} ${GUARANTEE_ROI.starts} A verified return visit is a normal visit stamp recorded for a member after that member already received a normal visit stamp on an earlier Europe/London date. ${GUARANTEE_ROI.conditions} ${GUARANTEE_ROI.claimWindow} Nabaperks validates the dashboard ledger and the operating conditions. For a valid claim on 28-day billing, it applies a 100% discount to the next three renewal invoices; unused discounts end if the subscription is cancelled before those invoices. For a valid annual-prepay claim, it refunds £209.97 from the current annual subscription payment. Nabaperks applies the discount or submits the refund within 10 calendar days after validation. The extension is a service-price remedy, not a promise of revenue, profit, or filled tables.`,
+  },
+  {
+    id: "commercial-evidence",
+    title: "Commercial evidence and testimonials",
+    body: "Nabaperks may invite a merchant to contribute a case study, testimonial, screenshot, or recorded before-and-after account. Participation is optional. Nothing is published unless the merchant's approval, approved attribution, source reference, and approval evidence are recorded. Aggregate product metrics are snapshotted from the underlying loyalty ledgers under a versioned definition so the published figure can be reproduced. A merchant may ask Nabaperks to stop new publication of its attributed evidence; the withdrawal and any required historical record are retained in the audit trail.",
+  },
+  {
+    id: "first-regular-promo",
     title: "Time-limited promotions",
-    body: `When a First-Regular poster promotion is shown, a venue that goes live by the displayed London calendar deadline can email ${LEGAL_CONTACT.supportEmail} to arrange its first counter-poster print run. The promotion applies only while it is enabled and shown, covers the first run for that venue, and does not change the Growth Plan price, 30-day trial, or First-Regular Guarantee.`,
+    body: `A seasonal name or time-limited wrapper applies only during its fixed displayed campaign window. It does not change the standard launch deliverables, either Growth Plan billing option, or either guarantee. The checkout must show the active wrapper and deadline; an expired wrapper is not silently renewed. Questions about fulfilment can be sent to ${LEGAL_CONTACT.supportEmail}.`,
   },
   {
     id: "support-and-records",
@@ -260,12 +275,12 @@ export const MERCHANT_TERMS_SECTIONS: LegalSection[] = [
 ]
 
 export const MERCHANT_TERMS_META = {
-  eyebrow: "For venue operators · effective 15 July 2026",
+  eyebrow: "For venue operators · effective 31 July 2026",
   title: "Merchant subscription terms.",
   description:
     "The commercial and operational terms for a venue using the Nabaperks Growth Plan.",
   cardTitle: "Merchant terms",
-  docNumber: "MT-2026-07",
+  docNumber: "MT-2026-07-31",
 }
 
 export const DATA_PROCESSING_SECTIONS: LegalSection[] = [

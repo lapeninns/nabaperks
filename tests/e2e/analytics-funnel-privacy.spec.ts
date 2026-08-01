@@ -62,7 +62,7 @@ test.describe("privacy-safe merchant funnel", () => {
       })
       .toContain("merchant_marketing_viewed")
 
-    await page.getByRole("link", { name: "Start free pilot" }).first().click()
+    await page.getByRole("link", { name: "Start your launch" }).first().click()
     await expect(page).toHaveURL(/\/signup$/)
     await expect
       .poll(() => eventsFrom(funnelRequests))
@@ -110,7 +110,7 @@ test.describe("privacy-safe merchant funnel", () => {
         message: "the browser attempts first-party measurement before failure",
       })
       .toContain("merchant_marketing_viewed")
-    await page.getByRole("link", { name: "Start free pilot" }).first().click()
+    await page.getByRole("link", { name: "Start your launch" }).first().click()
     await expect(page.getByLabel(/email/i)).toBeVisible()
 
     const storage = await analyticsStorage(page)
@@ -164,7 +164,7 @@ test.describe("privacy-safe merchant funnel", () => {
     await expect
       .poll(() => abortedEvents)
       .toContain("merchant_marketing_viewed")
-    await page.getByRole("link", { name: "Start free pilot" }).first().click()
+    await page.getByRole("link", { name: "Start your launch" }).first().click()
     await page.getByLabel("Your name").fill("Privacy Proof")
     await page.getByLabel("Email", { exact: true }).fill("proof@example.test")
     await page.getByLabel("Password", { exact: true }).fill("Privacy123")

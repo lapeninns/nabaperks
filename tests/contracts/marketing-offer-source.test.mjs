@@ -7,9 +7,9 @@ import { fileURLToPath } from "node:url"
 /**
  * Marketing rebuild contracts (offer v3, sourced from the finalised offer
  * pack): the locked commercial model lives in `lib/marketing/facts.ts`, every
- * marketing surface renders prices through those facts, there is no setup fee
- * (removed 2026-07-19), and the public route registry cannot drift from
- * llms.txt.
+ * marketing surface renders prices through those facts, monthly and annual
+ * launch-fee treatment cannot drift, and the public route registry cannot
+ * drift from llms.txt.
  */
 
 const projectRoot = path.resolve(
@@ -106,12 +106,12 @@ test("Given the finalised offer pack When facts.ts is inspected Then the locked 
 
   // The safer wrapper leads public pages; the campaign wrapper is retained
   // only for a separately approved campaign.
-  assert.match(facts, /name: "The 30-Day First-Regular Launch"/)
+  assert.match(facts, /name: "The 28-Day First-Regular Launch"/)
   assert.match(
     facts,
-    /campaignName: "The 30-Day Gastropub Mid-Week Revenue Accelerator"/
+    /campaignName: "The 28-Day Gastropub Mid-Week Revenue Accelerator"/
   )
-  assert.match(facts, /nameSafe: "The 30-Day First-Regular Launch"/)
+  assert.match(facts, /nameSafe: "The 28-Day First-Regular Launch"/)
   // The name is contextualised with a plain benefit line, and must never
   // render the revenue-promise disclaimer voice or the word "guarantee".
   assert.match(
@@ -120,21 +120,33 @@ test("Given the finalised offer pack When facts.ts is inspected Then the locked 
   )
   assert.doesNotMatch(facts, /nameNote:[^\n]*guarantee/i)
 
-  // No setup fee (owner decision 2026-07-19 — removed entirely). The offer is
-  // a pure subscription: PLAN_LINE is the single-sourced investment line, and
-  // the SETUP_FEE constant and its price line no longer exist.
+  // The launch fee and recurring cadence live with PRODUCT; PLAN_LINE
+  // single-sources the complete standard investment.
   assert.doesNotMatch(
     facts,
     /export const SETUP_FEE\b/,
-    "the SETUP_FEE constant must be gone — there is no setup fee"
+    "launch pricing must remain part of the PRODUCT fact set"
   )
   assert.match(facts, /export const PLAN_LINE = /)
-  assert.match(facts, /There is NO setup fee/i)
+  assert.match(facts, /launchFee: "£299\.99"/)
+  assert.match(
+    facts,
+    /13 payments totalling £909\.87 in each 364-day billing year\./
+  )
 
-  // Subscription facts stay the surviving £49/£490 model.
-  assert.match(facts, /price: "£49\/month"/)
-  assert.match(facts, /priceAnnual: "£490\/year"/)
-  assert.match(facts, /pilot: "30-day free pilot"/)
+  // Subscription and anchor facts stay on the approved model.
+  assert.match(facts, /price: "£69\.99 every 28 days"/)
+  assert.match(facts, /pilot: "28-day free platform pilot"/)
+  assert.match(facts, /name: "The Ultimate Pub Loyalty Takeover"/)
+  assert.match(facts, /price: "£4,999\.99"/)
+
+  // The display-split pairs behind the pricing sheet's price lockups stay
+  // pinned to the sentence forms above.
+  assert.match(facts, /priceAmount: "69\.99"/)
+  assert.match(facts, /priceCadence: "every 28 days"/)
+  assert.match(facts, /annualPriceAmount: "699\.90"/)
+  assert.match(facts, /annualPriceCadence: "a year"/)
+  assert.match(facts, /annualSavingShort: "Save £209\.97"/)
 
   // Guarantee stack: First-Regular plus the 90-Day ROI Extension.
   assert.match(facts, /export const GUARANTEE = \{/)
@@ -142,7 +154,7 @@ test("Given the finalised offer pack When facts.ts is inspected Then the locked 
   assert.match(facts, /name: "90-Day ROI Extension"/)
   assert.match(
     facts,
-    /your next 3 months are completely free/,
+    /you receive £209\.97 of plan-fee relief/,
     "ROI extension headline must match the guarantee doc"
   )
   assert.match(facts, /We do not guarantee midweek revenue or filled tables\./)
@@ -177,6 +189,13 @@ test("Given the finalised offer pack When facts.ts is inspected Then the locked 
     6,
     "FEATURES must carry the six product-feature tabs"
   )
+})
+
+test("Given date-bound campaign wrappers When public marketing routes render Then they revalidate", () => {
+  for (const route of ["app/page.tsx", "app/pricing/page.tsx"]) {
+    const source = readProjectFile(...route.split("/"))
+    assert.match(source, /export const revalidate = 300/)
+  }
 })
 
 test("Given the conversion re-role When the landing composes sections Then it renders seven bands and no docs-mode depth", () => {
@@ -260,7 +279,7 @@ test("Given marketing surfaces When scanned for prices Then every £-figure rend
   }
 })
 
-test("Given the setup fee was removed When all source is scanned Then no setup-fee constant, £99, or £0-setup copy survives", () => {
+test("Given the launch pricing changed When all source is scanned Then no retired setup-fee constant or price survives", () => {
   const allSource = [...walk("app"), ...walk("components"), ...walk("lib")]
 
   for (const file of allSource) {
@@ -268,11 +287,27 @@ test("Given the setup fee was removed When all source is scanned Then no setup-f
 
     assert.ok(
       !source.includes("SETUP_FEE"),
-      `${file} must not reference SETUP_FEE — the setup fee was removed entirely`
+      `${file} must keep launch pricing inside PRODUCT rather than a parallel SETUP_FEE constant`
     )
     assert.ok(
-      !/£99|£0 setup/i.test(source),
-      `${file} must not mention the old £99 / £0-setup fee`
+      !/£99|£249(?!\.99)|£299(?!\.99)|£49\/month|£69\/month|£490\/year|£690\/year|£0 setup/i.test(
+        source
+      ),
+      `${file} must not mention a retired setup or subscription price`
+    )
+  }
+
+  for (const file of [
+    path.join("public", "llms.txt"),
+    path.join("docs", "offers", "nabaperks-final-offer.md"),
+    path.join("docs", "product", "grand-slam-offer.md"),
+    path.join("docs", "product", "nabaperks-comprehensive-product-dossier.md"),
+  ]) {
+    const source = readFileSync(path.join(projectRoot, file), "utf8")
+    assert.doesNotMatch(
+      source,
+      /£99|£249(?!\.99)|£299(?!\.99)|£49\/month|£69\/month|£490\/year|£690\/year|£0 setup/i,
+      `${file} must not mention a retired setup or subscription price`
     )
   }
 
@@ -284,7 +319,7 @@ test("Given the setup fee was removed When all source is scanned Then no setup-f
     "setup-price-line.tsx must be deleted"
   )
 
-  // The surviving £49/£490 checkout binds to PRODUCT facts only.
+  // Checkout labels bind to PRODUCT facts only.
   const checkoutForm = readProjectFile(
     "components",
     "merchant",
@@ -292,7 +327,9 @@ test("Given the setup fee was removed When all source is scanned Then no setup-f
     "billing-checkout-form.tsx"
   )
   assert.match(checkoutForm, /PRODUCT\.price/)
-  assert.match(checkoutForm, /PRODUCT\.priceAnnual/)
+  assert.match(checkoutForm, /PRODUCT\.launchFee/)
+  assert.match(checkoutForm, /PRODUCT\.annualPrice/)
+  assert.match(checkoutForm, /PRODUCT\.annualSaving/)
 })
 
 test("Given the public route registry When llms.txt is compared Then no rebuilt route is missing", () => {
@@ -341,6 +378,78 @@ test("Given the public route registry When llms.txt is compared Then no rebuilt 
       `${segments.join("/")} must exist`
     )
   }
+})
+
+test("Given one Growth Plan When pricing renders Then both payment schedules share one sheet", () => {
+  const pricing = readProjectFile("app", "pricing", "page.tsx")
+
+  assert.match(
+    pricing,
+    /<GrowthPlanPricing\b/,
+    "pricing must compose the extracted GrowthPlanPricing sheet"
+  )
+  assert.doesNotMatch(
+    pricing,
+    /data-payment-option|data-growth-plan-pricing/,
+    "the payment choices live in the GrowthPlanPricing component, not page JSX"
+  )
+
+  const sheet = readProjectFile(
+    "components",
+    "marketing",
+    "growth-plan-pricing.tsx"
+  )
+
+  // One unmistakable outer boundary; both schedules inside it as options of
+  // the SAME plan, followed by the shared feature list and one CTA.
+  assert.equal(
+    sheet.match(/data-growth-plan-pricing/g)?.length,
+    1,
+    "pricing should render one Growth Plan sheet"
+  )
+  assert.match(sheet, /data-payment-option="28-day"/)
+  assert.match(sheet, /data-payment-option="annual"/)
+  assert.match(sheet, /Both choices include the same Growth Plan/)
+  assert.match(sheet, /PLAN_INCLUDES/)
+  assert.match(sheet, /Start your launch/)
+
+  // Every figure is sourced from facts — never a literal.
+  for (const fact of [
+    "PRODUCT.launchFeeAmount",
+    "PRODUCT.priceAmount",
+    "PRODUCT.priceCadence",
+    "PRODUCT.annualPriceAmount",
+    "PRODUCT.annualPriceCadence",
+    "PRODUCT.annualSavingShort",
+    "PRODUCT.annualSaving",
+    "PRODUCT.billingDisclosure",
+    "PRODUCT.processingFeeLine",
+    "PRODUCT.cancelLine",
+    "TAKEOVER.price",
+  ]) {
+    assert.match(
+      sheet,
+      new RegExp(fact.replace(".", "\\.")),
+      `the sheet must render ${fact} from lib/marketing/facts.ts`
+    )
+  }
+
+  // The takeover is enquiry-only, rendered OUTSIDE (after) the Growth Plan
+  // boundary so it can never read as a third tier.
+  assert.match(sheet, /data-takeover-enquiry/)
+  assert.ok(
+    sheet.indexOf("data-takeover-enquiry") >
+      sheet.indexOf("data-growth-plan-pricing"),
+    "the takeover enquiry must render outside the Growth Plan sheet"
+  )
+
+  // The schedule choice is information, not a checkout control — the sheet
+  // stays server-rendered.
+  assert.doesNotMatch(
+    sheet,
+    /"use client"/,
+    "the pricing sheet must stay server-rendered"
+  )
 })
 
 test("Given the claims boundary When any surface names a guarantee Then that same surface renders the boundary", () => {
@@ -439,12 +548,16 @@ test("Given the pub-first SEO strategy When persona surfaces are inspected Then 
   }
 })
 
-test("Given the owner removed the setup fee When the finalised pack is scanned Then no stale £99 commercial term remains", () => {
+test("Given the commercial model changed When the finalised pack is scanned Then no retired price or pilot copy remains", () => {
   const offerDir = path.join(projectRoot, "Offers- Nabaperks-Finalized")
   for (const file of readdirSync(offerDir)) {
     if (!file.endsWith(".md")) continue
     const source = readFileSync(path.join(offerDir, file), "utf8")
-    assert.doesNotMatch(source, /£99/, `${file} contains the retired setup fee`)
+    assert.doesNotMatch(
+      source,
+      /£99|£249(?!\.99)|£299(?!\.99)|£49(?:\/month|\b)|£69\/month|£490|£690\/year|30-day|no setup fee/i,
+      `${file} contains retired pricing or pilot copy`
+    )
   }
 })
 
@@ -661,7 +774,7 @@ test("Given FAQ left how-it-works When the FAQ page is inspected Then it owns th
   assert.match(faq, /ROUTES\.faq/)
   assert.match(
     faq,
-    /<MarketingSignupLink>Start your free pilot<\/MarketingSignupLink>/,
-    "the FAQ pilot CTA must emit the signup funnel milestone"
+    /<MarketingSignupLink>Start your launch<\/MarketingSignupLink>/,
+    "the FAQ launch CTA must emit the signup funnel milestone"
   )
 })

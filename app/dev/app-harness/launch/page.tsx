@@ -257,23 +257,19 @@ export default async function LaunchHarnessPage({
                 status: "active",
                 stripe_subscription_status: "active",
                 stripe_customer_id: "cus_harness",
-                billing_interval: "month",
-                unit_amount: 4900,
+                billing_interval: "day",
+                unit_amount: 6999,
                 currency: "gbp",
                 current_period_end: "2026-08-11T00:00:00.000Z",
               }}
               outcome={null}
               mode="setup"
-              annualBillingAvailable
               checkoutAction={startCheckoutAction}
               portalAction={openCustomerPortalAction}
               billingReturnTo="/app/launch?tab=billing"
             />
           ) : (
-            <SetupBillingActivationCard
-              annualBillingAvailable
-              billingReturnTo="/app/launch?tab=billing"
-            />
+            <SetupBillingActivationCard billingReturnTo="/app/launch?tab=billing" />
           )
         ) : (
           <VenueLocationForm

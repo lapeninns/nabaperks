@@ -50,7 +50,6 @@ export function BillingPanelView({
   cleanupOutcomeQuery = Boolean(outcome),
   requiresBilling = true,
   mode = "account",
-  annualBillingAvailable,
   checkoutAction,
   portalAction,
   billingReturnTo,
@@ -62,7 +61,6 @@ export function BillingPanelView({
   cleanupOutcomeQuery?: boolean
   requiresBilling?: boolean
   mode?: "account" | "setup"
-  annualBillingAvailable: boolean
   checkoutAction: BillingCheckoutAction
   portalAction?: BillingPortalAction
   billingReturnTo?: string
@@ -108,11 +106,11 @@ export function BillingPanelView({
           : PRODUCT.planName
   const panelDescription =
     restartableReason === "cancelled"
-      ? "Choose monthly or annual billing to safely restart this venue's plan."
+      ? "Restart this venue's 28-day billing plan safely."
       : restartableReason === "incomplete_expired"
         ? "Your earlier checkout expired before completion. Try again without creating a duplicate plan."
         : presentation.eligibility.allowed
-          ? "Add a card through Stripe to activate your venue — the first 30 days are free."
+          ? "Add a card through Stripe to activate your venue — the platform is free for the first 28 days."
           : "Your receipt reflects the latest subscription terms stored from Stripe."
 
   return (
@@ -138,7 +136,6 @@ export function BillingPanelView({
 
       {!billingLoadFailed && setupActivation ? (
         <SetupBillingActivationCard
-          annualBillingAvailable={annualBillingAvailable}
           billingReturnTo={billingReturnTo}
           checkoutAction={checkoutAction}
         />
@@ -162,26 +159,53 @@ export function BillingPanelView({
             {presentation.primaryAction.kind === "checkout" ? (
               <BillingCheckoutForm
                 checkoutAction={checkoutAction}
-                annualBillingAvailable={annualBillingAvailable}
                 returnTo={billingReturnTo}
-                monthlyLabel={
-                  presentation.primaryAction.label + " · " + PRODUCT.price
+                label={
+                  billing?.launch_fee_status
+                    ? presentation.primaryAction.label + " · " + PRODUCT.price
+                    : presentation.primaryAction.label +
+                      " · " +
+                      PRODUCT.launchFee +
+                      " launch · then " +
+                      PRODUCT.price
+                }
+                annualLabel={
+                  billing?.launch_fee_status
+                    ? presentation.primaryAction.label +
+                      " · " +
+                      PRODUCT.annualPrice
+                    : presentation.primaryAction.label +
+                      " · " +
+                      PRODUCT.launchFee +
+                      " launch · then " +
+                      PRODUCT.annualPrice
                 }
               />
             ) : presentation.primaryAction.kind === "portal" && portalAction ? (
-              <form action={portalAction} className="grid gap-2">
-                {billingReturnTo ? (
-                  <input
-                    type="hidden"
-                    name="returnTo"
-                    value={billingReturnTo}
-                  />
-                ) : null}
-                <Button type="submit" className="min-h-11 w-full sm:w-fit">
-                  Open Stripe portal
-                  <Icon icon={ArrowRight01Icon} size={16} />
+              <div className="grid gap-3 sm:flex sm:flex-wrap">
+                <form action={portalAction}>
+                  {billingReturnTo ? (
+                    <input
+                      type="hidden"
+                      name="returnTo"
+                      value={billingReturnTo}
+                    />
+                  ) : null}
+                  <Button type="submit" className="min-h-11 w-full sm:w-fit">
+                    Update payment method
+                    <Icon icon={ArrowRight01Icon} size={16} />
+                  </Button>
+                </form>
+                <Button
+                  asChild
+                  variant="secondary"
+                  className="min-h-11 w-full sm:w-fit"
+                >
+                  <Link href="/app/account/cancel">
+                    Review cancellation options
+                  </Link>
                 </Button>
-              </form>
+              </div>
             ) : (
               <div className="grid gap-2">
                 <p className="text-sm leading-6 text-muted-foreground">
@@ -200,7 +224,7 @@ export function BillingPanelView({
                 ? "Secure checkout via Stripe. " +
                   PRODUCT.cancelChip +
                   " from your billing page."
-                : "Manage your card and invoices securely in Stripe."}
+                : "Update your payment method in Stripe, or complete the short exit review before cancelling."}
             </p>
           </div>
         </ReceiptCard>
@@ -300,18 +324,36 @@ function BillingReceipt({
 
   return (
     <dl className="grid gap-0 rounded-lg border border-border bg-secondary/40 px-3 py-1 text-sm">
-      <PlanRow label="Free trial" value="30 days" />
       {receipt.kind === "unknown" ? (
         <PlanRow label="Plan details" value={receipt.message} />
+      ) : receipt.kind === "cycle" ? (
+        <>
+          <PlanRow label="Free pilot" value="28 days" />
+          <PlanRow
+            label="Then"
+            value={`${receipt.amountLabel} every 28 days`}
+          />
+          <PlanRow
+            label="Recurring year"
+            value="£909.87 across 13 payments per 364 days"
+          />
+        </>
+      ) : receipt.kind === "monthly" ? (
+        <>
+          <PlanRow
+            label="Historical monthly plan"
+            value={`${receipt.amountLabel} a month`}
+          />
+          <PlanRow label="Availability" value="Closed to new customers" />
+        </>
       ) : (
-        <PlanRow
-          label="Then"
-          value={
-            receipt.amountLabel +
-            " a " +
-            (receipt.kind === "monthly" ? "month" : "year")
-          }
-        />
+        <>
+          <PlanRow
+            label="Annual plan"
+            value={`${receipt.amountLabel} a year`}
+          />
+          <PlanRow label="Payment" value="Paid upfront after the pilot" />
+        </>
       )}
       <PlanRow label="Billed" value="Per location" />
     </dl>
@@ -365,7 +407,7 @@ function billingOutcomeModel(outcome: Exclude<BillingPanelOutcome, null>): {
       title: "Checkout confirmed",
       message:
         outcome.status === "trialing"
-          ? "Your 30-day free trial is active. Your venue billing is ready."
+          ? "Your 28-day free platform pilot is active. Your venue billing is ready."
           : "Your Growth Plan is active and the receipt below is up to date.",
     }
   }

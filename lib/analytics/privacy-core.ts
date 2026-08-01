@@ -55,7 +55,7 @@ const externalPropertyValues: Readonly<Record<string, ReadonlySet<string>>> = {
     "qr_poster",
   ]),
   tab: new Set(["card", "rewards", "qr", "billing", "launch", "profile"]),
-  billing_interval: new Set(["monthly", "annual"]),
+  billing_interval: new Set(["28_day", "monthly", "annual"]),
   outcome: new Set([
     "success",
     "cancelled",

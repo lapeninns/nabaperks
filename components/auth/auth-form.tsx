@@ -199,7 +199,7 @@ function SwitchPrompt({
     <p className="text-center text-sm text-muted-foreground">
       New venue?{" "}
       <SwitchPromptLink href={merchantSignupHref({ email, next })}>
-        Start free pilot
+        Start your launch
       </SwitchPromptLink>
     </p>
   )

@@ -79,10 +79,13 @@ function printStatus() {
   console.log("  stripe listen --forward-to localhost:3000/api/stripe/webhook")
   console.log("  STRIPE_WEBHOOK_SECRET=<whsec_... printed by stripe listen>")
   console.log(
-    "  STRIPE_GROWTH_PRICE_ID=<price_... from dashboard or stripe prices list>"
+    "  STRIPE_LAUNCH_PRICE_ID=<price_... for the one-time GBP 299.99 launch>"
   )
   console.log(
-    "  STRIPE_GROWTH_ANNUAL_PRICE_ID=<price_... for active GBP 490/year>"
+    "  STRIPE_GROWTH_PRICE_ID=<price_... for active GBP 69.99 every 28 days>"
+  )
+  console.log(
+    "  STRIPE_GROWTH_ANNUAL_PRICE_ID=<price_... for active GBP 699.90 each year>"
   )
   console.log(
     "  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY and STRIPE_SECRET_KEY come from Stripe API keys."

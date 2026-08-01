@@ -51,7 +51,7 @@ export default function FaqPage() {
         <LandingFaq showHeader={false} />
         <div className="mx-auto mt-8 flex w-full max-w-3xl flex-wrap items-center gap-3">
           <Button asChild size="lg">
-            <MarketingSignupLink>Start your free pilot</MarketingSignupLink>
+            <MarketingSignupLink>Start your launch</MarketingSignupLink>
           </Button>
           <Button asChild size="lg" variant="secondary">
             <Link href={ROUTES.howItWorks}>See how it works</Link>

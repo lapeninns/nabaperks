@@ -132,7 +132,7 @@ test.describe("root not-found boundary", { tag: "@polish" }, () => {
       page.getByRole("heading", { name: "Page not found" })
     ).toBeVisible()
     await expect(
-      page.getByRole("link", { name: "Start a free pilot" })
+      page.getByRole("link", { name: "Start your launch" })
     ).toHaveAttribute("href", "/signup")
     await expect(
       page.getByRole("link", { name: "Open my cards" })

@@ -1,5 +1,6 @@
 # dependencies
 /node_modules
+/.pnpm-store/
 /.pnp
 .pnp.*
 .yarn/*
@@ -38,6 +39,7 @@ supabase/.temp/
 
 # local agent/tooling output
 .deepsec/
+.superpowers/
 .omo/
 Goal/
 artifacts/
