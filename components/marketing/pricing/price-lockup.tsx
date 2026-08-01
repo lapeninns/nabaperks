@@ -45,6 +45,9 @@ export function PriceLockup({
       className={cn("flex flex-wrap items-baseline gap-x-2 gap-y-1", className)}
       {...props}
     >
+      {/* No text node between these two spans on purpose: it keeps this <p>'s
+          textContent distinct from the `inline` variant's exact-text locator,
+          which several merchant billing specs rely on to stay single-match. */}
       <span
         className={cn(
           "numeric-tabular font-extrabold text-foreground",

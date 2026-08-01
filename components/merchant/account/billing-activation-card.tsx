@@ -15,7 +15,7 @@ import {
   PriceLockup,
   PricingSheet,
   PricingSheetBody,
-} from "@/components/marketing"
+} from "@/components/marketing/pricing"
 
 /**
  * First-run billing activation surface — plan facts, one primary "Proceed to
@@ -127,7 +127,7 @@ export function SetupBillingActivationCard({
       <FinePrintStrip>
         <Link
           href="/app/account?tab=billing"
-          className="font-bold underline decoration-2 underline-offset-4"
+          className="font-bold text-foreground underline decoration-2 underline-offset-4"
         >
           Manage billing in Account
         </Link>{" "}
