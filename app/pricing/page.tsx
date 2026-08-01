@@ -2,7 +2,11 @@ import type { Metadata } from "next"
 
 import { MonoTag, PageTitle, ReceiptCard } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
-import { GrowthPlanPricing, SeasonalOfferBanner } from "@/components/marketing"
+import {
+  GrowthPlanPricing,
+  SeasonalOfferBanner,
+  TakeoverAnchor,
+} from "@/components/marketing"
 import {
   FaqList,
   GuaranteeStack,
@@ -70,6 +74,7 @@ export default function PricingPage() {
         </div>
         <SeasonalOfferBanner className="mt-4" />
         <GrowthPlanPricing className="pt-6" />
+        <TakeoverAnchor className="mt-5" />
       </Section>
       <Section size="compact">
         <ReceiptCard edge padding="md" className="gap-2">
