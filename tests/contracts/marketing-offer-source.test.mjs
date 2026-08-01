@@ -136,7 +136,7 @@ test("Given the finalised offer pack When facts.ts is inspected Then the locked 
 
   // Subscription and anchor facts stay on the approved model.
   assert.match(facts, /price: "£69\.99 every 28 days"/)
-  assert.match(facts, /pilot: "28-day free platform pilot"/)
+  assert.match(facts, /pilot: "28-day free platform pilot from poster delivery"/)
   assert.match(facts, /name: "The Ultimate Pub Loyalty Takeover"/)
   assert.match(facts, /price: "£4,999\.99"/)
 

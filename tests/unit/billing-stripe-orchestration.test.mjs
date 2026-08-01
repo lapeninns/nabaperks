@@ -353,7 +353,7 @@ test("a fresh attempt creates one customer and one exact idempotent Session", as
           { price: "price_28_day", quantity: 1 },
           { price: "price_launch_29999", quantity: 1 },
         ])
-        assert.equal(params.subscription_data.trial_period_days, 28)
+        assert.equal(params.subscription_data.trial_period_days, 42)
         assert.equal(
           params.subscription_data.metadata.billing_cadence,
           "28_days"
@@ -364,6 +364,9 @@ test("a fresh attempt creates one customer and one exact idempotent Session", as
         )
         assert.equal(params.metadata.merchant_id, merchant.id)
         assert.equal(params.metadata.attempt_id, attempt().attemptId)
+        assert.equal(params.metadata.pilot_anchor, "confirmed_delivery")
+        assert.equal(params.metadata.fulfilment_allowance_days, "14")
+        assert.equal(params.metadata.usable_pilot_days, "28")
         assert.equal(params.success_url, attempt().successUrl)
         assert.equal("payment_method_types" in params, false)
         return {
@@ -484,7 +487,7 @@ test("a stale annual attempt rotates safely when 28-day billing is selected", as
           { price: "price_28_day", quantity: 1 },
           { price: "price_launch_29999", quantity: 1 },
         ])
-        assert.equal(params.subscription_data.trial_period_days, 28)
+        assert.equal(params.subscription_data.trial_period_days, 42)
         assert.equal(params.metadata.billing_cadence, "28_days")
         assert.equal(
           idempotencyKey,
@@ -535,7 +538,7 @@ test("annual Checkout uses the annual Price, the launch fee and the same pilot",
           { price: "price_annual_69990", quantity: 1 },
           { price: "price_launch_29999", quantity: 1 },
         ])
-        assert.equal(params.subscription_data.trial_period_days, 28)
+        assert.equal(params.subscription_data.trial_period_days, 42)
         assert.equal(
           params.subscription_data.metadata.billing_cadence,
           "annual"

@@ -8,6 +8,7 @@ import {
   BillingPanelView,
   type BillingPanelOutcome,
 } from "@/components/merchant/account/billing-panel-view"
+import { LaunchFulfilmentStatus } from "@/components/merchant/account/launch-fulfilment-status"
 import { getCurrentMerchant } from "@/lib/auth/session"
 import {
   completeBillingCheckoutReturn,
@@ -19,6 +20,7 @@ import {
   getMerchantBillingFresh,
   type MerchantBillingResult,
 } from "@/lib/merchant/billing"
+import { getMerchantLaunchFulfilment } from "@/lib/merchant/launch-fulfilment"
 
 export type BillingPanelParams = {
   checkout?: string
@@ -65,27 +67,36 @@ export async function BillingPanel({
     }
   }
 
-  const result: MerchantBillingResult =
+  const billingPromise: Promise<MerchantBillingResult> =
     requiresBilling && reconciled
-      ? await getMerchantBillingFresh(merchant.id)
-      : await getMerchantBilling(merchant.id)
+      ? getMerchantBillingFresh(merchant.id)
+      : getMerchantBilling(merchant.id)
+  const [result, fulfilment] = await Promise.all([
+    billingPromise,
+    getMerchantLaunchFulfilment(merchant.id),
+  ])
   const billingReturnTo = mode === "setup" ? BILLING_LAUNCH_TAB_PATH : undefined
 
   return (
-    <BillingPanelView
-      billing={result.ok ? result.billing : null}
-      outcome={outcome}
-      cleanupOutcomeQuery={cleanupOutcomeQuery}
-      requiresBilling={requiresBilling}
-      mode={mode}
-      checkoutAction={startCheckoutAction}
-      portalAction={openCustomerPortalAction}
-      billingReturnTo={billingReturnTo}
-      billingLoadFailed={!result.ok}
-      refreshHref={
-        mode === "setup" ? BILLING_LAUNCH_TAB_PATH : "/app/account?tab=billing"
-      }
-    />
+    <div className="grid gap-6">
+      <BillingPanelView
+        billing={result.ok ? result.billing : null}
+        outcome={outcome}
+        cleanupOutcomeQuery={cleanupOutcomeQuery}
+        requiresBilling={requiresBilling}
+        mode={mode}
+        checkoutAction={startCheckoutAction}
+        portalAction={openCustomerPortalAction}
+        billingReturnTo={billingReturnTo}
+        billingLoadFailed={!result.ok}
+        refreshHref={
+          mode === "setup"
+            ? BILLING_LAUNCH_TAB_PATH
+            : "/app/account?tab=billing"
+        }
+      />
+      {fulfilment ? <LaunchFulfilmentStatus fulfilment={fulfilment} /> : null}
+    </div>
   )
 }
 

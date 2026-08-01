@@ -139,7 +139,7 @@ test(
   "exact Checkout return observes only the verified seam before apply and leaves Portal untouched",
   requiresTelemetry,
   () => {
-    const checkout = readProjectFile("lib", "stripe", "checkout.ts")
+    const checkout = readProjectFile("lib", "stripe", "checkout-return.ts")
     const checkoutReturn = readProjectFile(
       "lib",
       "merchant",

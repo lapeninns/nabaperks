@@ -7,6 +7,7 @@ import {
   formatAdminDate,
 } from "@/components/admin/support"
 import { AdminRecordCard } from "@/components/admin/record-card"
+import { BillingFulfilmentActions } from "@/components/admin/billing-fulfilment-actions"
 import { CreditCardIcon } from "@hugeicons/core-free-icons"
 
 import { EmptyState, PageTitle } from "@/components/brand"
@@ -19,7 +20,11 @@ import { buildLookupHref } from "@/lib/admin/lookup-query"
  * Cross-links for a billing investigation: the merchant's account list and
  * their members, pre-filtered via the venue lookup param.
  */
-function BillingCrossLinks({ merchantName }: { readonly merchantName: string }) {
+function BillingCrossLinks({
+  merchantName,
+}: {
+  readonly merchantName: string
+}) {
   return (
     <span className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
       <Link
@@ -38,6 +43,23 @@ function BillingCrossLinks({ merchantName }: { readonly merchantName: string }) 
   )
 }
 
+function fulfilmentLabel(status: string): string {
+  if (status === "awaiting_dispatch") return "Awaiting dispatch"
+  if (status === "dispatched") return "Dispatched"
+  if (status === "delivered") return "Delivered"
+  return "Not started"
+}
+
+function fulfilmentTone(
+  status: string,
+  reviewRequired: boolean
+): "neutral" | "good" | "warning" | "danger" {
+  if (reviewRequired) return "danger"
+  if (status === "delivered") return "good"
+  if (status === "dispatched") return "warning"
+  return "neutral"
+}
+
 export const metadata = { title: "Admin — Billing" }
 
 export default async function AdminBillingPage() {
@@ -50,12 +72,14 @@ export default async function AdminBillingPage() {
       <PageTitle
         eyebrow="Internal admin"
         title="Billing"
-        description="Stripe subscription state synced into Supabase."
+        description="Stripe subscription, poster fulfilment and delivery-anchored pilot state."
       />
 
       <AdminPanel className="p-0">
         <div className="border-b p-5">
-          <SourceLabel>Source: billing_customers</SourceLabel>
+          <SourceLabel>
+            Source: billing_customers + merchant_launch_fulfilments
+          </SourceLabel>
         </div>
         <DataTable
           caption="Admin billing subscription readback"
@@ -114,6 +138,34 @@ export default async function AdminBillingPage() {
               ),
             },
             {
+              key: "fulfilment",
+              header: "Launch fulfilment",
+              cell: (row) => (
+                <div className="grid min-w-48 gap-2">
+                  <StatusPill
+                    tone={fulfilmentTone(
+                      row.fulfilmentStatus,
+                      row.operationsReviewRequired
+                    )}
+                  >
+                    {row.operationsReviewRequired
+                      ? "Review required"
+                      : fulfilmentLabel(row.fulfilmentStatus)}
+                  </StatusPill>
+                  <span className="text-xs text-muted-foreground">
+                    Delivery {formatAdminDate(row.deliveredAt)}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    Pilot end {formatAdminDate(row.basePilotEndsAt)}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    Stripe {row.syncStatus} ·{" "}
+                    {formatAdminDate(row.confirmedStripeTrialEnd)}
+                  </span>
+                </div>
+              ),
+            },
+            {
               key: "stripe",
               header: "Stripe refs",
               cell: (row) => (
@@ -123,6 +175,17 @@ export default async function AdminBillingPage() {
                     Customer {row.stripeCustomerRef}
                   </span>
                 </div>
+              ),
+            },
+            {
+              key: "actions",
+              header: "Controls",
+              cell: (row) => (
+                <BillingFulfilmentActions
+                  merchantId={row.merchantId}
+                  fulfilmentStatus={row.fulfilmentStatus}
+                  basePilotEndsAt={row.basePilotEndsAt}
+                />
               ),
             },
           ]}
@@ -142,7 +205,9 @@ export default async function AdminBillingPage() {
                   },
                   {
                     label: "Links",
-                    value: <BillingCrossLinks merchantName={row.merchantName} />,
+                    value: (
+                      <BillingCrossLinks merchantName={row.merchantName} />
+                    ),
                   },
                   { label: "Plan", value: row.plan },
                   {
@@ -152,6 +217,24 @@ export default async function AdminBillingPage() {
                   {
                     label: "Updated",
                     value: formatAdminDate(row.updatedAt),
+                  },
+                  {
+                    label: "Poster fulfilment",
+                    value: row.operationsReviewRequired
+                      ? "Review required"
+                      : fulfilmentLabel(row.fulfilmentStatus),
+                  },
+                  {
+                    label: "Delivery confirmed",
+                    value: formatAdminDate(row.deliveredAt),
+                  },
+                  {
+                    label: "Included pilot end",
+                    value: formatAdminDate(row.basePilotEndsAt),
+                  },
+                  {
+                    label: "Stripe trial sync",
+                    value: `${row.syncStatus} · ${formatAdminDate(row.confirmedStripeTrialEnd)}`,
                   },
                   {
                     label: "Stripe subscription",
@@ -164,6 +247,13 @@ export default async function AdminBillingPage() {
                     mono: true,
                   },
                 ]}
+                action={
+                  <BillingFulfilmentActions
+                    merchantId={row.merchantId}
+                    fulfilmentStatus={row.fulfilmentStatus}
+                    basePilotEndsAt={row.basePilotEndsAt}
+                  />
+                }
               />
             )
           }}

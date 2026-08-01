@@ -20,8 +20,9 @@
  * - Public pages lead with the offer pack's safer `First-Regular Launch`
  *   wrapper. The original `Revenue Accelerator` wording is retained only as a
  *   campaign wrapper that requires separate approval before public use.
- * - New customers pay the done-for-you launch fee before the free 28-day
- *   platform pilot, then choose 28-day billing or discounted annual prepay.
+ * - New customers pay the done-for-you launch fee, allow up to 14 days for
+ *   print and delivery, then receive the free 28-day platform pilot from
+ *   confirmed poster delivery before recurring billing.
  *   `PLAN_LINE` is the single-sourced investment line.
  * - `GUARANTEE` (First-Regular, offer v1) + `GUARANTEE_ROI` (90-Day ROI
  *   Extension, offer v3) are conditional service promises honoured manually by
@@ -98,9 +99,13 @@ export const PRODUCT = {
   priceCadence: "every 28 days",
   annualPriceCadence: "a year",
   annualBillingDisclosure:
-    "One prepaid yearly payment after the 28-day platform pilot.",
-  pilot: "28-day free platform pilot",
-  pilotCardNote: "28-day free platform pilot (card required)",
+    "One prepaid yearly payment after the delivery-anchored 28-day platform pilot.",
+  pilot: "28-day free platform pilot from poster delivery",
+  pilotCardNote:
+    "28-day free platform pilot from poster delivery (card required)",
+  fulfilmentAllowance: "Allow up to 14 calendar days for print and delivery.",
+  pilotAnchorLine:
+    "Your 28-day platform pilot begins when your posters are delivered.",
   billingDisclosure:
     "13 payments totalling £909.87 in each 364-day billing year.",
   processingFeeLine: "No separate card-processing surcharge.",
@@ -170,7 +175,7 @@ export const OFFER = {
   audience:
     "For single-site UK food-led pubs that are busy at weekends and quiet midweek.",
   riskFraming:
-    "You pay for the physical launch today. The platform stays free through the 28-day pilot before recurring billing begins.",
+    "You pay for the physical launch today. Allow up to 14 calendar days for print and delivery. Your 28-day platform pilot begins when your posters are delivered, then recurring billing begins after that pilot.",
 } as const
 
 // --- Value equation (offer pack doc 2) --------------------------------------
@@ -229,7 +234,7 @@ export const VALUE_MATH = {
  * The one investment line, composed from `PRODUCT` so every acquisition
  * surface states the launch, pilot, recurring price, and cadence identically.
  */
-export const PLAN_LINE = `${PRODUCT.launchFee} done-for-you launch today. Then a ${PRODUCT.pilot}, followed by ${PRODUCT.price}. ${PRODUCT.billingDisclosure}`
+export const PLAN_LINE = `${PRODUCT.launchFee} done-for-you launch today. ${PRODUCT.fulfilmentAllowance} ${PRODUCT.pilotAnchorLine} Then ${PRODUCT.price}. ${PRODUCT.billingDisclosure}`
 
 /** A genuine bespoke, enquiry-only alternative; no checkout is offered. */
 export const TAKEOVER = {
@@ -250,7 +255,7 @@ export const DFY_LAUNCH = {
   intro:
     "Instead of handing you empty software, the Nabaperks team does the launch.",
   covers:
-    "We handle the whole launch: venue and card configuration, a margin-safe mystery reward pool, and your first A4 counter-poster run — generated, printed and posted to your pub.",
+    "We handle the whole launch: venue and card configuration, a margin-safe mystery reward pool, and your first A4 counter-poster run — generated, printed and posted to your pub. Allow up to 14 calendar days for print and delivery.",
   steps: [
     {
       title: "We set up your venue",
@@ -270,12 +275,12 @@ export const DFY_LAUNCH = {
     {
       title: "We print and post your posters",
       detail:
-        "Your first A4 counter-poster run is generated with your venue QR and counter copy, then physically printed and posted to the pub.",
+        "Your first A4 counter-poster run is generated with your venue QR and counter copy, then physically printed and posted to the pub. Allow up to 14 calendar days for print and delivery.",
     },
     {
       title: "You go live",
       detail:
-        "A permanent venue QR at the counter — no customer app, no POS integration, and no extra work at the till.",
+        "Your 28-day platform pilot begins when your posters are delivered. Put the permanent venue QR at the counter — no customer app, no POS integration, and no extra work at the till.",
     },
   ],
   yourPart:
@@ -1092,11 +1097,11 @@ export const FAQ_ITEMS: readonly MarketingFaq[] = [
   },
   {
     question: "What does it cost?",
-    answer: `${PRODUCT.launchFee} pays for the done-for-you launch today. After a ${PRODUCT.pilot}, choose ${PRODUCT.price} or ${PRODUCT.annualPrice} prepaid annually. ${PRODUCT.annualSaving} ${PRODUCT.cancelLine}`,
+    answer: `${PRODUCT.launchFee} pays for the done-for-you launch today. ${PRODUCT.fulfilmentAllowance} ${PRODUCT.pilotAnchorLine} After the pilot, choose ${PRODUCT.price} or ${PRODUCT.annualPrice} prepaid annually. ${PRODUCT.annualSaving} ${PRODUCT.cancelLine}`,
   },
   {
     question: "Is there a launch fee?",
-    answer: `Yes. The one-time ${PRODUCT.launchFee} launch fee covers configuration, bespoke printed launch materials and delivery. It is charged at checkout and is separate from the free platform pilot.`,
+    answer: `Yes. The one-time ${PRODUCT.launchFee} launch fee covers configuration, bespoke printed launch materials and delivery. It is charged at checkout and is separate from the free platform pilot. ${PRODUCT.fulfilmentAllowance} ${PRODUCT.pilotAnchorLine}`,
   },
   {
     question: "What if nobody comes back?",

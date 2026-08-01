@@ -41,15 +41,22 @@ export function SetupBillingActivationCard({
           Activate your venue
         </h2>
         <p className="text-sm leading-6 text-pretty text-muted-foreground">
-          Add a card through Stripe to activate your venue and start accepting
-          stamps.
+          Pay for the done-for-you launch through Stripe. Your 28-day platform
+          pilot begins when your posters are delivered.
         </p>
       </div>
 
       <dl className="grid gap-0 rounded-lg border border-border bg-secondary/40 px-3 py-1 text-sm">
         <PlanRow label="Plan" value={PRODUCT.planName} />
         <PlanRow label="Launch today" value={PRODUCT.launchFee} />
-        <PlanRow label="Platform pilot" value="28 days free" />
+        <PlanRow
+          label="Print and delivery"
+          value="Allow up to 14 calendar days"
+        />
+        <PlanRow
+          label="Platform pilot"
+          value="28 days free from poster delivery"
+        />
         <PlanRow label="Then" value={PRODUCT.price} />
         <PlanRow label="Or prepay" value={PRODUCT.annualPrice} />
         <PlanRow label="Annual saving" value="£209.97" />
@@ -68,8 +75,8 @@ export function SetupBillingActivationCard({
           returnTo={billingReturnTo}
         />
         <p className="text-center text-xs leading-5 text-muted-foreground">
-          Secure checkout via Stripe. {PRODUCT.cancelChip} from your billing
-          page.
+          Secure checkout via Stripe. The launch fee applies to both billing
+          schedules. {PRODUCT.cancelChip} from your billing page.
         </p>
         <div className="flex items-start gap-2 rounded-lg border border-reward/30 bg-reward/8 px-3 py-2">
           <Icon

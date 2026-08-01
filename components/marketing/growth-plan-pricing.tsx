@@ -43,7 +43,7 @@ export function GrowthPlanPricing({ className }: { className?: string }) {
 
           <ol
             aria-label="How buying the Growth Plan works"
-            className="grid border-t-2 border-dashed border-line-strong"
+            className="grid border-t-2 border-dashed border-line-strong md:grid-cols-3 md:pt-4"
           >
             <li className="grid content-start gap-1 border-b-2 border-dashed border-border py-4 md:border-b-0 md:py-0 md:pr-5">
               <p className="mono-meta text-muted-foreground">Step 1 · Today</p>
@@ -56,25 +56,26 @@ export function GrowthPlanPricing({ className }: { className?: string }) {
             </li>
             <li className="grid content-start gap-1 border-b-2 border-dashed border-border py-4 md:border-b-0 md:border-l-2 md:px-5 md:py-0">
               <p className="mono-meta text-muted-foreground">
-                Step 2 · Days 1–28
+                Step 2 · Print and delivery
               </p>
               <p className="text-2xl leading-none font-extrabold text-foreground sm:text-3xl">
-                28 days
+                Up to 14 days
               </p>
               <p className="text-sm leading-6 text-muted-foreground">
-                Free platform pilot. Card required — recurring billing starts
-                only after the pilot.
+                We configure your launch, print your first poster run and post
+                it to your venue.
               </p>
             </li>
             <li className="grid content-start gap-1 py-4 md:border-l-2 md:border-dashed md:px-5 md:py-0 md:pr-0">
               <p className="mono-meta text-muted-foreground">
-                Step 3 · After the pilot
+                Step 3 · From poster delivery
               </p>
               <p className="text-2xl leading-none font-extrabold text-foreground sm:text-3xl">
-                2 ways
+                28 days free
               </p>
               <p className="text-sm leading-6 text-muted-foreground">
-                The pilot ends, then one of two payment schedules begins.
+                Your platform pilot begins on confirmed delivery. Then your
+                chosen 28-day or annual billing schedule begins.
               </p>
             </li>
           </ol>

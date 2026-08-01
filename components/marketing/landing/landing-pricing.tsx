@@ -25,7 +25,7 @@ export function LandingPricing() {
       <SectionHeader
         eyebrow="Pricing"
         title="Launch first. Prove the platform. Then continue."
-        description="The physical launch is paid today. Recurring software billing starts only after the free pilot."
+        description="The physical launch is paid today. Allow up to 14 days for poster delivery; the 28-day platform pilot starts on confirmed delivery, then recurring billing begins."
       />
       <div className="mx-auto mt-5 grid w-full max-w-4xl gap-4 sm:mt-6 md:grid-cols-[minmax(0,1.35fr)_minmax(0,0.85fr)]">
         <Card className="border-primary">
