@@ -54,7 +54,12 @@ export function GrowthPlanPricing({ className }: { className?: string }) {
         </div>
 
         <div className="grid gap-4">
-          <div data-payment-option="28-day" className="grid gap-2">
+          <div
+            data-payment-option="28-day"
+            role="group"
+            aria-label="Pay as you go"
+            className="grid gap-2"
+          >
             <PriceLockup
               size="hero"
               amount={PRODUCT.priceAmount}
@@ -70,6 +75,8 @@ export function GrowthPlanPricing({ className }: { className?: string }) {
 
           <div
             data-payment-option="annual"
+            role="group"
+            aria-label="Prepay a year"
             className="grid gap-2 sm:flex sm:flex-wrap sm:items-baseline sm:justify-between sm:gap-x-6"
           >
             <div className="grid gap-2">
@@ -82,40 +89,43 @@ export function GrowthPlanPricing({ className }: { className?: string }) {
                 {PRODUCT.annualBillingDisclosure} {PRODUCT.annualSaving}
               </p>
             </div>
-            <MonoTag tone="sun" className="w-fit shrink-0 rotate-1">
-              {PRODUCT.annualSavingShort}
-            </MonoTag>
+            <div className="flex flex-wrap items-center gap-2">
+              <MonoTag className="w-fit shrink-0">Prepay a year</MonoTag>
+              <MonoTag tone="sun" className="w-fit shrink-0 rotate-1">
+                {PRODUCT.annualSavingShort}
+              </MonoTag>
+            </div>
           </div>
         </div>
 
         <ol
           aria-label="How buying the Growth Plan works"
-          className="mono-meta grid gap-0 border-y-2 border-dashed border-border text-muted-foreground"
+          className="grid gap-0 border-y-2 border-dashed border-border text-muted-foreground"
         >
           <li className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-dashed border-border py-2 last:border-b-0">
-            <span className="text-foreground">Today</span>
-            {/* The launch fee is deliberately not a display numeral here —
-                the recurring price stays the sheet's only hero — but the
-                amount is semantically distinct from the surrounding prose,
-                so it gets its own element rather than folding into the
-                sentence's text node. */}
-            <span className="normal-case">
-              <span className="text-foreground">
+            <span className="mono-meta text-foreground">Today</span>
+            {/* The amount is its own node so it can carry emphasis and
+                tabular figures — and tests/e2e/growth-plan-pricing.spec.ts:42
+                asserts an exact-text match on PRODUCT.launchFeeAmount alone,
+                which requires exactly one element whose text is exactly the
+                bare launch-fee figure, nothing folded into a sentence. */}
+            <span className="text-sm leading-6">
+              <span className="numeric-tabular text-foreground">
                 £{PRODUCT.launchFeeAmount}
               </span>{" "}
               launch fee at checkout. {DFY_LAUNCH.covers}
             </span>
           </li>
           <li className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-dashed border-border py-2 last:border-b-0">
-            <span className="text-foreground">Days 1–28</span>
-            <span className="normal-case">
+            <span className="mono-meta text-foreground">Days 1–28</span>
+            <span className="text-sm leading-6">
               Free platform pilot. Card required — recurring billing starts only
               after the pilot.
             </span>
           </li>
           <li className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2">
-            <span className="text-foreground">After the pilot</span>
-            <span className="normal-case">
+            <span className="mono-meta text-foreground">After the pilot</span>
+            <span className="text-sm leading-6">
               One of the two payment schedules above begins.
             </span>
           </li>

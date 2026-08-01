@@ -73,7 +73,7 @@ export default function PricingPage() {
           </p>
         </div>
         <SeasonalOfferBanner className="mt-4" />
-        <GrowthPlanPricing className="pt-6" />
+        <GrowthPlanPricing className="mt-6" />
         <TakeoverAnchor className="mt-5" />
       </Section>
       <Section size="compact">
