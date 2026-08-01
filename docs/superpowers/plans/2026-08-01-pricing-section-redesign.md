@@ -1026,7 +1026,10 @@ Leave these branches exactly as they are. They already emit single contiguous te
 Run:
 
 ```
-node --test tests/unit/billing-presentation.test.mjs tests/unit/complimentary-billing-access.test.mjs tests/unit/billing-checkout-return.test.mjs
+# Unit tests import through the `@/` alias, so they need the loader that
+# package.json's own test:unit script uses. A bare `node --test` fails with
+# ERR_MODULE_NOT_FOUND. Contract tests read files with readFileSync and do not.
+node --import ./tests/support/register-alias.mjs --test tests/unit/billing-presentation.test.mjs tests/unit/complimentary-billing-access.test.mjs tests/unit/billing-checkout-return.test.mjs
 node --test tests/contracts/merchant-ux-audit-closure.test.mjs tests/contracts/merchant-launch-follow-through.test.mjs tests/contracts/launch-fee-pricing.test.mjs
 pnpm test:e2e --grep "billing"
 ```
