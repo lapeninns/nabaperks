@@ -94,9 +94,16 @@ export function GrowthPlanPricing({ className }: { className?: string }) {
         >
           <li className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-dashed border-border py-2 last:border-b-0">
             <span className="text-foreground">Today</span>
+            {/* The launch fee is deliberately not a display numeral here —
+                the recurring price stays the sheet's only hero — but the
+                amount is semantically distinct from the surrounding prose,
+                so it gets its own element rather than folding into the
+                sentence's text node. */}
             <span className="normal-case">
-              £{PRODUCT.launchFeeAmount} launch fee at checkout.{" "}
-              {DFY_LAUNCH.covers}
+              <span className="text-foreground">
+                £{PRODUCT.launchFeeAmount}
+              </span>{" "}
+              launch fee at checkout. {DFY_LAUNCH.covers}
             </span>
           </li>
           <li className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-dashed border-border py-2 last:border-b-0">
