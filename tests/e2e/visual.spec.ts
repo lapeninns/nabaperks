@@ -89,6 +89,17 @@ test.describe("visual regression @visual", () => {
         )
         .toBe(true)
       if (
+        route.name === "marketing-loyalty-for-pubs" &&
+        testInfo.project.name === "mobile-safari"
+      ) {
+        // The mobile guide spine hides its server-rendered list after hydration.
+        // Wait for that stable post-hydration state before taking a full-page
+        // screenshot, otherwise the list can be captured mid-transition.
+        await expect(
+          page.locator('[aria-controls="pub-guide-spine-list"]')
+        ).toBeVisible()
+      }
+      if (
         route.name === "harness-dashboard" ||
         route.name === "harness-dashboard-empty"
       ) {
