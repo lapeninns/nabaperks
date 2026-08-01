@@ -19,6 +19,7 @@ env:
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
   SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
   STRIPE_SECRET_KEY: sk_test_ci
+  STRIPE_LAUNCH_PRICE_ID: price_launch_ci
   STRIPE_GROWTH_PRICE_ID: price_ci
   STRIPE_GROWTH_ANNUAL_PRICE_ID: price_annual_ci
   STRIPE_WEBHOOK_SECRET: ci_test_webhook_secret

@@ -45,6 +45,9 @@ export const metadata: Metadata = {
   },
 }
 
+// Refresh the date-bound campaign wrapper without freezing it at build time.
+export const revalidate = 300
+
 export default function LandingPage() {
   const demoQr = buildQrMatrix(absoluteUrl(ROUTES.demo))
 

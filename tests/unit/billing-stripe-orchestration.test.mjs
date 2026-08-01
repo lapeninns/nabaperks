@@ -677,6 +677,37 @@ test("an owned completed trial applies only its exact current Subscription", asy
   assert.deepEqual(verifiedReturns, [{ merchantId: merchant.id }])
 })
 
+test("a first Checkout return refreshes the CAS after launch-fee satisfaction", async () => {
+  let ownershipReads = 0
+  let applied = null
+  const result = await confirmBillingCheckoutReturn(
+    { merchantId: merchant.id, sessionId: "cs_owned" },
+    dependencies({
+      loadCheckoutOwnership: async () => {
+        ownershipReads += 1
+        return {
+          recordedSessionId: "cs_owned",
+          stripeCustomerId: "cus_owned",
+          stripeSubscriptionId: null,
+          billingUpdatedAt: ownershipReads === 1 ? null : BILLING_UPDATED_AT,
+        }
+      },
+      applyCurrentSubscription: async (value) => {
+        applied = value
+        return "applied"
+      },
+    })
+  )
+
+  assert.deepEqual(result, {
+    kind: "confirmed",
+    source: "checkout",
+    status: "trialing",
+  })
+  assert.equal(ownershipReads, 2)
+  assert.equal(applied.expectedBillingUpdatedAt, BILLING_UPDATED_AT)
+})
+
 test("a legacy unfinished checkout cannot bypass the launch fee policy", async () => {
   let applies = 0
   const result = await confirmBillingCheckoutReturn(

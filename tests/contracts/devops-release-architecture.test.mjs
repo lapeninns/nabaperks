@@ -93,6 +93,7 @@ test("production CD builds once, attests, stages, verifies and then promotes", (
 test("nightly browser hardening is isolated, bounded and has a stable gate", () => {
   const nightly = read(".github/workflows/nightly.yml")
 
+  assert.match(nightly, /STRIPE_LAUNCH_PRICE_ID: price_launch_ci/)
   assert.match(
     nightly,
     /project: \[chromium, mobile-safari, desktop-firefox, desktop-safari\]/
@@ -129,6 +130,7 @@ test("production database promotion is CI-led, protected and exact-revision", ()
   assert.match(workflow, /attempt <= attempts/)
   assert.match(workflow, /environment: Production/)
   assert.match(workflow, /name: Cost-neutral ephemeral release proof/)
+  assert.match(workflow, /export_fixture STRIPE_LAUNCH_PRICE_ID/)
   assert.doesNotMatch(workflow, /environment: Staging/)
   assert.match(workflow, /STAGING_MODE: ephemeral/)
   assert.match(workflow, /supabase start/)

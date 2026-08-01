@@ -773,6 +773,11 @@ export async function confirmBillingCheckoutReturn(
       session?.payment_status === "paid"
     )
 
+    // Satisfying the launch fee can create the billing row on a first
+    // checkout. Refresh the optimistic-concurrency token after that write so
+    // the apply CAS does not compare against the pre-insert null revision.
+    const applyOwnership = await deps.loadCheckoutOwnership(input.merchantId)
+
     // This Session and its exact Subscription are now verified. Observe before
     // the durable apply so a webhook-winning stale result cannot erase a real
     // return; analytics must never change the billing outcome.
@@ -786,7 +791,7 @@ export async function confirmBillingCheckoutReturn(
       merchantId: input.merchantId,
       snapshot,
       entitlementStatus,
-      expectedBillingUpdatedAt: ownership.billingUpdatedAt,
+      expectedBillingUpdatedAt: applyOwnership.billingUpdatedAt,
     })
 
     return applied === "applied"

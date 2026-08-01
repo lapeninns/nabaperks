@@ -191,6 +191,13 @@ test("Given the finalised offer pack When facts.ts is inspected Then the locked 
   )
 })
 
+test("Given date-bound campaign wrappers When public marketing routes render Then they revalidate", () => {
+  for (const route of ["app/page.tsx", "app/pricing/page.tsx"]) {
+    const source = readProjectFile(...route.split("/"))
+    assert.match(source, /export const revalidate = 300/)
+  }
+})
+
 test("Given the conversion re-role When the landing composes sections Then it renders seven bands and no docs-mode depth", () => {
   const landing = readProjectFile("app", "page.tsx")
 
