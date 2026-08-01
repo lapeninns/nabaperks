@@ -8,6 +8,7 @@ import {
   type BillingCheckoutAction,
 } from "@/components/merchant/account/billing-checkout-form"
 import { GUARANTEE, PRODUCT } from "@/lib/marketing/facts"
+import { getActiveSeasonalOffer } from "@/lib/marketing/seasonal-offer"
 import {
   CampaignStrip,
   FinePrintStrip,
@@ -34,6 +35,8 @@ export function SetupBillingActivationCard({
   billingReturnTo?: string
   checkoutAction?: BillingCheckoutAction
 }) {
+  const offer = getActiveSeasonalOffer()
+
   return (
     <PricingSheet>
       <CampaignStrip variant="strip" />
@@ -129,6 +132,7 @@ export function SetupBillingActivationCard({
           Manage billing in Account
         </Link>{" "}
         once your venue is live.
+        {offer ? ` ${offer.termsLine}` : ""}
       </FinePrintStrip>
     </PricingSheet>
   )

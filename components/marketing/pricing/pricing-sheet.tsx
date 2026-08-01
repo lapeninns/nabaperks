@@ -11,6 +11,10 @@ import { cn } from "@/lib/utils"
  *
  * `overflow-hidden` is load-bearing: it clips the bonded campaign strip and
  * fine-print strip to the sheet's corners.
+ *
+ * `min-w-0` is load-bearing too: as a grid/flex child the sheet must be
+ * allowed to shrink below its content's intrinsic width, or wide descendants
+ * (nowrap buttons, long values) push it past a 320px viewport.
  */
 export function PricingSheet({
   children,
@@ -20,7 +24,7 @@ export function PricingSheet({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-(--radius-sheet) border-2 border-ink bg-card text-card-foreground shadow-md",
+        "min-w-0 overflow-hidden rounded-(--radius-sheet) border-2 border-ink bg-card text-card-foreground shadow-md",
         className
       )}
       {...props}
