@@ -5,10 +5,14 @@ import { test } from "node:test"
 const read = (path) =>
   readFileSync(new URL(`../../${path}`, import.meta.url), "utf8")
 
-// Task 5 widens this to the whole module once every file exists. It stays scoped
-// to the files that exist RIGHT NOW so the suite is never committed red:
-// pnpm quality:fast runs contracts, and a red contract would block Tasks 2-4.
-const PRICING_MODULE = ["components/marketing/pricing/price-lockup.tsx"]
+const PRICING_MODULE = [
+  "components/marketing/pricing/price-lockup.tsx",
+  "components/marketing/pricing/plan-includes-list.tsx",
+  "components/marketing/pricing/campaign-strip.tsx",
+  "components/marketing/pricing/fine-print-strip.tsx",
+  "components/marketing/pricing/pricing-sheet.tsx",
+  "components/marketing/pricing/takeover-anchor.tsx",
+]
 
 test("the pricing vocabulary stays server-rendered", () => {
   for (const path of PRICING_MODULE) {
