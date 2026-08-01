@@ -1110,11 +1110,27 @@ skeleton update that Task 9 made unnecessary (Task 9 deliberately left the `<dl>
 That had no design goal and touched a live payment form for nothing. The owner's actual choice was a
 genuine rebuild so the activation card mirrors the marketing sheet.
 
-**The merchant/merchant split this creates, deliberately.** `billing-panel-view.tsx` keeps
-`ReceiptCard edge` for its post-purchase states. That is intended, not an oversight: the activation
-card is the **pre-purchase** surface presenting plan facts to someone deciding — it earns the sheet.
-The panel view is the **post-purchase receipt** of what you already bought — it keeps the receipt
-shell and its perforated edge. Do not "harmonise" them.
+**Scope: FIRST activation only — and the earlier justification for this was wrong.**
+
+An earlier draft of this task claimed the split was principled: activation card = pre-purchase =
+sheet, panel view = post-purchase = receipt. Review checked the code and that is not what is
+implemented. `billing-panel-view.tsx` gates the sheet on `mode === "setup" && allowed && reason ===
+"absent"`, so the real boundary is **route**, not purchase state. Three genuinely pre-purchase
+surfaces keep `ReceiptCard edge`:
+
+- `/app/account?tab=billing` with no billing yet — same "Activate your venue" title, same
+  `BillingCheckoutForm`
+- `restartableReason === "cancelled"` — "Restart your Growth Plan" plus a checkout form
+- `incomplete_expired` — "Finish billing setup" plus a checkout form
+
+So the honest scope of this task is: **the sheet is used for first activation only.** The remaining
+checkout-bearing states are pre-existing shell fragmentation that this task narrows rather than
+creates. Extending the sheet to them is a reasonable follow-up; it was deliberately NOT done here
+because it would edit `billing-panel-view.tsx` (kept untouched by this plan), put the
+`/Restart billing.*/` accessible-name regex at risk, and add baseline churn on a live Stripe path.
+
+Do not "harmonise" the two shells on the strength of the old pre/post-purchase story — it was
+post-hoc.
 
 **Untouchable — every one of these is asserted by a live e2e spec:**
 
