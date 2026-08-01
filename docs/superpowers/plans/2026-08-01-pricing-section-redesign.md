@@ -13,9 +13,9 @@
 - **Every figure comes from `lib/marketing/facts.ts`.** Never fork a price, cadence or disclosure into a page literal.
 - **No literal `/£\d/` in any file under `app/`, `components/`, `lib/`.** `tests/contracts/marketing-offer-source.test.mjs:266` enforces it. `£{PRODUCT.priceAmount}` is legal — `£` followed by `{` does not match.
 - **No `"use client"` anywhere in `components/marketing/pricing/` or in `components/marketing/growth-plan-pricing.tsx`.** Pinned at `marketing-offer-source.test.mjs:452`.
-- **These four data hooks must survive:** `data-growth-plan-pricing` (exactly one), `data-payment-option="28-day"`, `data-payment-option="annual"`, `data-takeover-enquiry` (must appear _after_ the sheet marker in source order).
+- **These four data hooks must survive:** `data-growth-plan-pricing` (exactly one, in `growth-plan-pricing.tsx`), `data-payment-option="28-day"`, `data-payment-option="annual"`, and `data-takeover-enquiry`. From Task 6 onward `data-takeover-enquiry` lives in `components/marketing/pricing/takeover-anchor.tsx` and must NOT appear in `growth-plan-pricing.tsx`; the "after the sheet" invariant becomes a composition check on `app/pricing/page.tsx` (`<TakeoverAnchor` after `<GrowthPlanPricing`). Task 6 Step 3 rewrites the contract assertions accordingly — this was a decided change, not drift.
 - **The string `Both choices include the same Growth Plan` must remain in `growth-plan-pricing.tsx`.**
-- **`growth-plan-pricing.tsx` must keep referencing** `PRODUCT.launchFeeAmount`, `priceAmount`, `priceCadence`, `annualPriceAmount`, `annualPriceCadence`, `annualSavingShort`, `annualSaving`, `billingDisclosure`, `processingFeeLine`, `cancelLine`, and `TAKEOVER.price`.
+- **`growth-plan-pricing.tsx` must keep referencing** `PRODUCT.launchFeeAmount`, `priceAmount`, `priceCadence`, `annualPriceAmount`, `annualPriceCadence`, `annualSavingShort`, `annualSaving`, `billingDisclosure`, `processingFeeLine`, `cancelLine`. **`TAKEOVER.price` moves to `takeover-anchor.tsx`** and is asserted there from Task 6 onward.
 - **Merchant exact-text nodes are inviolable.** These must each remain a _single contiguous text node_: `£69.99 every 28 days`, `£699.90 a year`, `£299.99`, `£209.97`, `28 days free`, `£0`, `Paid upfront after the pilot`. `Free trial` and `£69 a month` must never appear.
 - **Merchant accessible names** must still satisfy `/Continue.*£299\.99.*£69\.99.*28 days/i`, `/Pay annually.*£299\.99.*£699\.90.*year/i`, `/Restart billing.*£69\.99 every 28 days/i`. `Activate your venue` stays an `<h2>`.
 - **Type floor is 10px.** Only two sanctioned micro sizes: `.mono-meta` (11.5px) and `.mono-id` (10px). `scripts/check-design-tokens.mjs` fails on arbitrary `text-[…]` below 10px.
@@ -629,6 +629,8 @@ git commit -m "feat(pricing): add the ink TakeoverAnchor and the pricing barrel"
 **Files:**
 
 - Modify: `components/marketing/growth-plan-pricing.tsx` (full rewrite)
+- Modify: `tests/contracts/marketing-offer-source.test.mjs:417-444`
+- Modify: `app/pricing/page.tsx` (minimal — render `TakeoverAnchor` only)
 - Modify: `tests/e2e/growth-plan-pricing.desktop.spec.ts:28-35`
 
 **Interfaces:**
@@ -782,12 +784,60 @@ Two things to check here rather than assume:
 - `offer.termsLine` is carried into the fine print because the `strip` variant drops it, and it is a claims-safety line.
 - The `<ol>` uses `.mono-meta` for the step label and `normal-case` on the detail so the sentence is not uppercased. `.mono-meta` sets `text-transform: uppercase` at the parent.
 
-- [ ] **Step 2: Run the contract test to confirm no pin broke**
+- [ ] **Step 2: Render `TakeoverAnchor` from the page (minimal change)**
+
+The sheet no longer renders the takeover. Add it to `app/pricing/page.tsx` immediately after `<GrowthPlanPricing …/>`, and add `TakeoverAnchor` to the existing `@/components/marketing` import:
+
+```tsx
+        <GrowthPlanPricing className="pt-6" />
+        <TakeoverAnchor className="mt-5" />
+```
+
+Change nothing else in that file — Task 8 owns the rest of the page re-composition (removing the DFY callout and the standalone seasonal banner). Keeping this minimal is what stops the gate going red between Tasks 6 and 8.
+
+- [ ] **Step 3: Update the takeover assertions in the contract test**
+
+The refactor relocates the takeover from a block inside `growth-plan-pricing.tsx` to its own component composed by the page. The invariants are unchanged — one sheet boundary, the takeover outside and after it, figures from facts — but the assertions currently test _string order inside one file_, which is an implementation detail the refactor legitimately moves.
+
+In `tests/contracts/marketing-offer-source.test.mjs`, remove `"TAKEOVER.price"` from the facts loop at line 417-435 (it now lives in `takeover-anchor.tsx`), and replace the block at lines 437-444 with:
+
+```js
+// The takeover is enquiry-only and lives in its OWN component, composed
+// after the sheet, so it can never read as a third tier. Asserting on
+// composition rather than string order inside one file is stricter: it
+// proves the takeover is genuinely outside the sheet component.
+assert.doesNotMatch(
+  sheet,
+  /data-takeover-enquiry/,
+  "the takeover must not live inside the Growth Plan sheet component"
+)
+
+const takeover = readProjectFile(
+  "components",
+  "marketing",
+  "pricing",
+  "takeover-anchor.tsx"
+)
+assert.match(takeover, /data-takeover-enquiry/)
+assert.match(
+  takeover,
+  /TAKEOVER\.price/,
+  "the takeover must render its price from lib/marketing/facts.ts"
+)
+assert.ok(
+  pricing.indexOf("<TakeoverAnchor") > pricing.indexOf("<GrowthPlanPricing"),
+  "the takeover enquiry must render after the Growth Plan sheet"
+)
+```
+
+`readProjectFile` is variadic (`tests/contracts/marketing-offer-source.test.mjs:20`), so the four-segment path is fine. `pricing` is already in scope from line 384.
+
+- [ ] **Step 4: Run the contract test**
 
 Run: `node --test tests/contracts/marketing-offer-source.test.mjs`
-Expected: PASS. If it fails on a missing `PRODUCT.*` reference, add the reference back — the pin list is in Global Constraints.
+Expected: PASS. If it fails on a missing `PRODUCT.*` reference, add the reference back to the sheet — the pin list is in Global Constraints. Do NOT delete an assertion to make it pass.
 
-- [ ] **Step 3: Update the desktop e2e spec**
+- [ ] **Step 5: Update the desktop e2e spec**
 
 In `tests/e2e/growth-plan-pricing.desktop.spec.ts`, replace lines 28–35:
 
@@ -818,15 +868,17 @@ expect(annualBox.y).toBeGreaterThanOrEqual(paygBox.y + paygBox.height - 1)
 
 Also update the file's doc comment on line 8 from "sit side by side inside the single Growth Plan boundary" to "stack inside the single Growth Plan boundary, the recurring price leading", and the test title on line 18 from "Then the schedules sit side by side and the page passes axe" to "Then the schedules stack inside one boundary and the page passes axe".
 
-- [ ] **Step 4: Run both pricing e2e specs**
+- [ ] **Step 6: Run both pricing e2e specs**
 
 Run: `pnpm test:e2e --grep "Growth Plan pricing sheet"`
 Expected: PASS on all projects. If axe reports a contrast failure on the sun campaign strip, that is a real finding — `bg-seal`/`text-seal-foreground` must clear 4.5:1. Report it rather than suppressing it.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
-git add components/marketing/growth-plan-pricing.tsx tests/e2e/growth-plan-pricing.desktop.spec.ts
+git add components/marketing/growth-plan-pricing.tsx app/pricing/page.tsx \
+  tests/contracts/marketing-offer-source.test.mjs \
+  tests/e2e/growth-plan-pricing.desktop.spec.ts
 git commit -m "feat(pricing): rebuild the Growth Plan sheet around an asymmetric hero"
 ```
 
