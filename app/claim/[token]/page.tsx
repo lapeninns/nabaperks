@@ -15,8 +15,6 @@ import {
 } from "@/lib/security/rate-limit"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
-import { unsubscribeRewardInviteAction } from "./actions"
-
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
@@ -34,13 +32,10 @@ type ClaimContext = {
 
 export default async function ClaimRewardPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ token: string }>
-  searchParams?: Promise<{ unsubscribe?: string }>
 }) {
   const { token } = await params
-  const sp = searchParams ? await searchParams : {}
   const claimTokenHash = createHash("sha256").update(token).digest("hex")
 
   // Public route: cap by IP so a leaked link can't be brute-forced.
@@ -61,48 +56,6 @@ export default async function ClaimRewardPage({
       )
     }
     throw error
-  }
-
-  if (sp.unsubscribe === "done") {
-    return (
-      <ClaimShell title="You're unsubscribed">
-        <p className="text-sm leading-6 text-muted-foreground">
-          You won&rsquo;t get invite emails about this reward again.
-        </p>
-      </ClaimShell>
-    )
-  }
-
-  if (sp.unsubscribe === "failed") {
-    return (
-      <ClaimShell title="We couldn't save that change">
-        <p className="text-sm leading-6 text-muted-foreground">
-          Please try again. Your email preference has not been changed yet.
-        </p>
-        <form action={unsubscribeRewardInviteAction}>
-          <input type="hidden" name="token" value={token} />
-          <Button type="submit" variant="secondary" className="w-full">
-            Try again
-          </Button>
-        </form>
-      </ClaimShell>
-    )
-  }
-
-  if (sp.unsubscribe) {
-    return (
-      <ClaimShell title="Stop these emails?">
-        <p className="text-sm leading-6 text-muted-foreground">
-          We only email once about a reward, but you can stop it here.
-        </p>
-        <form action={unsubscribeRewardInviteAction}>
-          <input type="hidden" name="token" value={token} />
-          <Button type="submit" variant="secondary" className="w-full">
-            Stop these emails
-          </Button>
-        </form>
-      </ClaimShell>
-    )
   }
 
   const supabase = createSupabaseServiceRoleClient()

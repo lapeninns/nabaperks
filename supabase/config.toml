@@ -227,7 +227,14 @@ double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
 enable_confirmations = true
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
-secure_password_change = false
+# Required. Without it, any still-valid bearer session can replace the account password and mint a
+# durable credential for the same auth.users.id — turning temporary session theft into permanent
+# access. The product's only password sink, confirmMerchantPasswordReset in app/(auth)/actions.ts,
+# runs on a session that verifyOtp({ type: "recovery" }) minted moments earlier, so it takes
+# GoTrue's recent-login exemption and needs no nonce ceremony. Do not add a signed-in "change
+# password" surface without also wiring /reauthenticate and a send-email hook branch for
+# email_action_type = "reauthentication".
+secure_password_change = true
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
 max_frequency = "1m0s"
 # Number of characters used in the email OTP.

@@ -1,7 +1,13 @@
 const SENSITIVE_ROUTE_PATTERNS: ReadonlyArray<
   readonly [pattern: RegExp, replacement: string]
 > = [
+  // Order matters: the more specific unsubscribe routes must match before the
+  // single-segment rules, which would otherwise fall through and emit the raw
+  // bearer token as a pathname.
+  [/^\/claim\/unsubscribe\/[^/]+\/?$/, "/claim/unsubscribe/[token]"],
+  [/^\/invite\/unsubscribe\/[^/]+\/?$/, "/invite/unsubscribe/[token]"],
   [/^\/claim\/[^/]+\/?$/, "/claim/[token]"],
+  [/^\/invite\/[^/]+\/?$/, "/invite/[token]"],
   [/^\/r\/[^/]+\/?$/, "/r/[token]"],
   [/^\/app\/rewards\/scan\/[^/]+\/?$/, "/app/rewards/scan/[scanToken]"],
 ]

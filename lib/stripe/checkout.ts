@@ -19,9 +19,7 @@ import { getActiveSeasonalOffer } from "@/lib/marketing/seasonal-offer"
  */
 export type BillingInterval = "month" | "year"
 export type LaunchFeePolicy =
-  | "charged"
-  | "annual_included"
-  | "previously_satisfied"
+  "charged" | "annual_included" | "previously_satisfied"
 
 export type BillingMerchant = {
   id: string
@@ -80,10 +78,14 @@ export type BillingCheckoutOwnership = {
   billingUpdatedAt: string | null
 }
 
+/** Frozen at bind time so an idempotent retry rebuilds the same request body. */
+export type TrialPolicy = "introductory_28_day" | "not_eligible"
+
 export type CheckoutOfferBinding = {
   status: "bound" | "existing" | "conflict"
   launchFeePolicy: LaunchFeePolicy | null
   stripeLaunchPriceId: string | null
+  trialPolicy: TrialPolicy | null
 }
 
 export type BillingCheckoutDependencies = {
@@ -199,15 +201,10 @@ export type BillingCheckoutDependencies = {
 }
 
 export type BillingEntitlementStatus =
-  | "trialing"
-  | "active"
-  | "past_due"
-  | "cancelled"
-  | "suspended"
+  "trialing" | "active" | "past_due" | "cancelled" | "suspended"
 
 export type PrepareBillingCheckoutResult =
-  | { status: "redirect"; url: string }
-  | { status: "error"; message: string }
+  { status: "redirect"; url: string } | { status: "error"; message: string }
 
 export type BillingReturnOutcome =
   | { kind: "confirmed"; source: "checkout" | "portal"; status: string }
@@ -409,7 +406,12 @@ async function materializeCheckoutSession(
             : []),
         ],
         subscription_data: {
-          trial_period_days: 28,
+          // Once per merchant. Eligibility was decided under the merchant
+          // advisory lock at bind time and frozen onto the attempt, so an
+          // idempotent retry of this same attempt rebuilds an identical body.
+          ...(offer.trialPolicy === "introductory_28_day"
+            ? { trial_period_days: 28 }
+            : {}),
           metadata: {
             merchant_id: input.merchant.id,
             plan: "growth",
@@ -950,6 +952,7 @@ export async function createBillingCheckoutDependencies(): Promise<BillingChecko
           bind_status: CheckoutOfferBinding["status"]
           launch_fee_policy: LaunchFeePolicy | null
           stripe_launch_price_id: string | null
+          trial_policy: TrialPolicy | null
         }>
       >
       const row = requireRpcRow(result, "Checkout offer binding")
@@ -957,6 +960,7 @@ export async function createBillingCheckoutDependencies(): Promise<BillingChecko
         status: row.bind_status,
         launchFeePolicy: row.launch_fee_policy,
         stripeLaunchPriceId: row.stripe_launch_price_id,
+        trialPolicy: row.trial_policy,
       }
     },
     bindCustomer: async (input) => {

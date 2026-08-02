@@ -62,8 +62,45 @@ test("the claim page + unsubscribe are public and IP-limited", () => {
   assert.match(page, /enforceRateLimit/)
   assert.match(page, /attachRewardInvitesForCustomer/)
 
-  const actions = read("app", "claim", "[token]", "actions.ts")
-  assert.match(actions, /suppress_reward_invite_email/)
+  const unsubscribePage = read(
+    "app",
+    "claim",
+    "unsubscribe",
+    "[token]",
+    "page.tsx"
+  )
+  assert.match(unsubscribePage, /enforceRateLimit/)
+
+  const actions = read("app", "claim", "unsubscribe", "[token]", "actions.ts")
+  assert.match(actions, /suppress_reward_invite_email_by_token/)
+})
+
+test("the claim token carries no unsubscribe authority", () => {
+  // One 256-bit value used to serve BOTH capabilities — the unsubscribe link
+  // was literally `/claim/<claimToken>?unsubscribe=1` — so a leaked claim URL
+  // silenced that address across every venue.
+  const page = read("app", "claim", "[token]", "page.tsx")
+  assert.doesNotMatch(page, /unsubscribe/i)
+
+  const send = read("app", "app", "customers", "send-reward", "actions.ts")
+  assert.match(send, /unsubscribeTokenHash/)
+  assert.match(send, /p_unsubscribe_token_hash/)
+  // The unsubscribe URL must be built from its own secret, not the claim token.
+  assert.doesNotMatch(send, /\$\{claimUrl\}\?unsubscribe/)
+  assert.match(send, /\/claim\/unsubscribe\/\$\{unsubscribeToken\}/)
+
+  // Send-time suppression is venue-scoped.
+  assert.match(send, /reward_invite_email_suppressed/)
+  assert.match(send, /p_merchant_id: merchantId/)
+
+  const unsubscribeActions = read(
+    "app",
+    "claim",
+    "unsubscribe",
+    "[token]",
+    "actions.ts"
+  )
+  assert.doesNotMatch(unsubscribeActions, /claim_token_hash/)
 })
 
 test("the retention cron sweeps invites and the env contract declares the secret", () => {

@@ -33,3 +33,35 @@ export function customerOtpVerifyIdentityRateLimitKey(
 ): string {
   return `customer-otp:verify:identity:${requestIdentity}`
 }
+
+/**
+ * The dispatch budget: the only OTP ceiling whose key a caller cannot rotate.
+ *
+ * Every other bucket is keyed on a subject the sender controls — phone, device
+ * hash, source IP — so a distributed sender simply varies them and the platform
+ * pays for unbounded SMS. The scope here comes from a closed set chosen by the
+ * server action, never from a header, cookie or form field.
+ *
+ * Burst blunts a spike; sustained bounds the hour. A one-hour sustained window
+ * is deliberate: a saturated budget must self-heal without an operator, so the
+ * blast radius of a successful exhaustion attempt is an hour of degraded
+ * sign-in rather than a day of it.
+ */
+export type CustomerOtpDispatchScope = "wallet" | "join"
+
+export const customerOtpDispatchBurstWindowMs = 60_000
+export const customerOtpDispatchBurstLimit = 30
+export const customerOtpDispatchSustainedWindowMs = 60 * 60_000
+export const customerOtpDispatchSustainedLimit = 150
+
+export function customerOtpDispatchBurstRateLimitKey(
+  scope: CustomerOtpDispatchScope
+): string {
+  return `customer-otp:send:dispatch-budget:${scope}:burst`
+}
+
+export function customerOtpDispatchSustainedRateLimitKey(
+  scope: CustomerOtpDispatchScope
+): string {
+  return `customer-otp:send:dispatch-budget:${scope}:sustained`
+}

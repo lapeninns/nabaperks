@@ -11,6 +11,8 @@ import {
   type LocationRequirement,
   type ProfileGate,
   type RewardView,
+  externalAccessProblem,
+  type InternalAccessProblem,
 } from "./types"
 import type { ReferralBonusBank } from "@/lib/customer/referral-bonus-bank"
 import type { JoinFirstStampRecovery } from "@/lib/customer/join-first-stamp-recovery"
@@ -25,7 +27,13 @@ import type { JoinFirstStampRecovery } from "@/lib/customer/join-first-stamp-rec
 
 // --- Loader → derive contracts (one per entry route) ---
 
-type AccessFailure = { access: AccessProblem; recovery?: AccessRecovery }
+// Loaders pass the RAW lookup state; accessUnavailable collapses it. Keeping
+// the wide type here and the narrow one on the rendered experience is what makes
+// the compiler flag any new caller that tries to surface "unauthorized".
+type AccessFailure = {
+  access: InternalAccessProblem
+  recovery?: AccessRecovery
+}
 
 /** Default gate for callers that don't load one — treat as complete and let the
  *  server/RPC enforce. Loaders that can resolve the customer pass the real gate. */
@@ -510,10 +518,19 @@ function deriveJoin(context: JoinContext): CustomerExperience {
 }
 
 function accessUnavailable(
-  access: AccessProblem,
+  access: InternalAccessProblem,
   recovery?: AccessRecovery
 ): CustomerExperience {
-  return { kind: "unavailable", reason: accessProblemReason(access), recovery }
+  // Backstop at the one sink that turns an access state into customer-visible
+  // copy, so an untyped or future caller cannot reintroduce the existence
+  // oracle, and a collapsed state never carries a recovery control the
+  // not_found branch would not have.
+  const external = externalAccessProblem(access)
+  return {
+    kind: "unavailable",
+    reason: accessProblemReason(external),
+    recovery: external === "unauthenticated" ? recovery : undefined,
+  }
 }
 
 function accessProblemReason(access: AccessProblem): string {
@@ -522,8 +539,6 @@ function accessProblemReason(access: AccessProblem): string {
       // Names the action the recovery button performs (sign in), instead of
       // pointing at the venue QR while the button opens login (CUS-P2-08).
       return "Sign in with your number to open this card."
-    case "unauthorized":
-      return "This belongs to another customer."
     case "not_found":
       return "This could not be found."
     default:

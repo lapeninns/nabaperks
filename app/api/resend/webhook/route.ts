@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 
+import { readSignedWebhookBody } from "@/lib/http/signed-webhook-body"
 import { parseResendDeliveryEvent } from "@/lib/loyalty-invites/webhook-core"
 import { verifyStandardWebhook } from "@/lib/notifications/standard-webhook"
 import { logger } from "@/lib/observability/logger"
@@ -30,7 +31,16 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const body = await request.text()
+  // Bounded BEFORE the HMAC: an unauthenticated caller must not choose how much
+  // we allocate or how much we hash.
+  const body = await readSignedWebhookBody(request)
+  if (body === null) {
+    return NextResponse.json(
+      { error: "payload_too_large" },
+      { status: 413, headers: NO_STORE }
+    )
+  }
+
   // Resend signs with Svix and sends `svix-*` headers; accept the Standard
   // Webhooks `webhook-*` aliases too for forward-compatibility.
   const header = (svix: string, standard: string) =>

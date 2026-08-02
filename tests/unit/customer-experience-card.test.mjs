@@ -44,7 +44,7 @@ function rewardContext(overrides = {}) {
   }
 }
 
-test("card ownership failures render a non-leaking unavailable state", () => {
+test("card ownership and absence are externally indistinguishable", () => {
   const experience = deriveCustomerExperience({
     entry: "card",
     context: { access: "unauthorized" },
@@ -52,7 +52,7 @@ test("card ownership failures render a non-leaking unavailable state", () => {
 
   assert.deepEqual(experience, {
     kind: "unavailable",
-    reason: "This belongs to another customer.",
+    reason: "This could not be found.",
     recovery: undefined,
   })
 })
@@ -230,4 +230,27 @@ test("redeemed reward proof carries collection time and one-shot celebration fla
   assert.equal(experience.kind, "redeemed_proof")
   assert.equal(experience.reward.redeemedAt, "2026-07-03T12:30:00.000Z")
   assert.equal(experience.justRedeemed, true)
+})
+
+test("a foreign card and a missing card are byte-identical to the customer", () => {
+  // The whole point: if these two differ in ANY observable way, the page is an
+  // existence oracle for another customer's membership UUID.
+  const foreign = deriveCustomerExperience({
+    entry: "card",
+    context: { access: "unauthorized" },
+  })
+  const missing = deriveCustomerExperience({
+    entry: "card",
+    context: { access: "not_found" },
+  })
+
+  assert.deepEqual(foreign, missing)
+
+  // Sign-in recovery must stay distinguishable — it does not depend on the
+  // object, and the login CTA rides on it.
+  const anonymous = deriveCustomerExperience({
+    entry: "card",
+    context: { access: "unauthenticated" },
+  })
+  assert.notDeepEqual(anonymous, missing)
 })

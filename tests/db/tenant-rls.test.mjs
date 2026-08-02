@@ -124,7 +124,11 @@ async function assertAnonCannotReadMaskedCustomers(tx) {
   assert.ok(refused, "anon cannot read the masked customer view")
 }
 
-async function assertAuthenticatedCannotReadRawCustomerPii(tx, ownerUserId, customerId) {
+async function assertAuthenticatedCannotReadRawCustomerPii(
+  tx,
+  ownerUserId,
+  customerId
+) {
   let refused = false
   try {
     await tx.savepoint(async (sp) => {
@@ -171,13 +175,26 @@ async function selectVisibleMaskedCustomers(sp, fixture) {
 }
 
 async function updateOtherTenantMembership(sp, membershipId) {
-  const rows = await sp`
-    update public.customer_memberships
-    set current_stamp_count = current_stamp_count + 1
-    where id = ${membershipId}::uuid
-    returning id
-  `
-  return rows.length
+  // Since 20260801130000 `authenticated` holds no UPDATE grant on this table at
+  // all, so the cross-tenant write is refused outright rather than silently
+  // matching no rows. Both outcomes satisfy the invariant; a hard denial is the
+  // stronger one, so treat it as zero affected rows.
+  // Nested savepoint so the refusal aborts only this statement — otherwise the
+  // enclosing savepoint stays aborted and its own cleanup fails.
+  try {
+    return await sp.savepoint(async (attempt) => {
+      const rows = await attempt`
+        update public.customer_memberships
+        set current_stamp_count = current_stamp_count + 1
+        where id = ${membershipId}::uuid
+        returning id
+      `
+      return rows.length
+    })
+  } catch (error) {
+    if (error?.code === "42501") return 0
+    throw error
+  }
 }
 
 async function selectServiceRoleCustomers(sp, fixture) {

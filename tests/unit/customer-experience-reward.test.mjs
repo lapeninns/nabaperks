@@ -34,7 +34,7 @@ function rewardContext(overrides = {}) {
   }
 }
 
-test("reward ownership failures render a non-leaking unavailable state", () => {
+test("reward ownership and absence are externally indistinguishable", () => {
   const experience = deriveCustomerExperience({
     entry: "reward",
     context: { access: "unauthorized" },
@@ -42,7 +42,7 @@ test("reward ownership failures render a non-leaking unavailable state", () => {
 
   assert.deepEqual(experience, {
     kind: "unavailable",
-    reason: "This belongs to another customer.",
+    reason: "This could not be found.",
     recovery: undefined,
   })
 })

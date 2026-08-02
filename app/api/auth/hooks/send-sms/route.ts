@@ -4,6 +4,11 @@ import {
   hookError,
   openSignedHookEnvelope,
 } from "@/app/api/auth/hooks/signed-hook-envelope"
+import {
+  claimAuthHookDelivery,
+  completeAuthHookDelivery,
+  failAuthHookDelivery,
+} from "@/lib/auth/auth-hook-delivery"
 import { sendSmsOtp } from "@/lib/notifications/twilio"
 
 export const runtime = "nodejs"
@@ -41,11 +46,23 @@ export async function POST(request: NextRequest) {
     return hookError(400, "Missing recipient phone or code.")
   }
 
+  // Consume the authenticated webhook id BEFORE the provider call. A replay of
+  // an already-completed delivery answers with the ordinary success body, so
+  // GoTrue's retry contract is untouched; anything else sends, because a
+  // missing OTP is far worse than a duplicate one.
+  const claim = await claimAuthHookDelivery("sms", envelope.webhookId)
+  if (claim === "replay") {
+    return NextResponse.json({})
+  }
+
   try {
     await sendSmsOtp({ to, code })
   } catch {
+    await failAuthHookDelivery("sms", envelope.webhookId)
     return hookError(500, "SMS could not be sent.")
   }
+
+  await completeAuthHookDelivery("sms", envelope.webhookId)
 
   return NextResponse.json({})
 }

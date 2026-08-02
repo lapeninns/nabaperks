@@ -64,6 +64,10 @@ const AUTHENTICATED_CALLER_CONTEXT = [
   "owned_merchant_ids",
   "is_allowed_web_push_endpoint",
   "generate_membership_referral_code",
+  // Lets the admin console read its OWN MFA-enrolment state authoritatively;
+  // the session cookie's factor list is stale for pre-enrolment sessions.
+  // Discloses nothing about any other user (it is bound to auth.uid()).
+  "viewer_has_verified_mfa_factor",
 ]
 
 // Merchant self-service helpers other governed specs pin as

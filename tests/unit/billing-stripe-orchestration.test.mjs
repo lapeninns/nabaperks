@@ -96,6 +96,7 @@ function dependencies(overrides = {}) {
       status: "bound",
       launchFeePolicy: "charged",
       stripeLaunchPriceId: "price_launch_29999",
+      trialPolicy: "introductory_28_day",
     }),
     bindCustomer: async () => true,
     finalizeSession: async () => true,
@@ -501,6 +502,7 @@ test("a stale annual attempt rotates safely when 28-day billing is selected", as
         status: "bound",
         launchFeePolicy: "charged",
         stripeLaunchPriceId: "price_launch_29999",
+        trialPolicy: "introductory_28_day",
       }),
     })
   )
@@ -879,4 +881,68 @@ test("Portal reconciliation hydrates the known Subscription and preserves schedu
   assert.equal(applied.snapshot.cancel_at_period_end, true)
   assert.equal(applied.snapshot.cancel_at, "2025-08-08T13:20:00.000Z")
   assert.equal(applied.expectedBillingUpdatedAt, BILLING_UPDATED_AT)
+})
+
+test("a first-time merchant still receives the 28-day introductory trial", async () => {
+  let params = null
+  await prepareBillingCheckout(
+    input,
+    dependencies({
+      createCheckoutSession: async (input) => {
+        params = input.params
+        return {
+          id: "cs_first",
+          url: "https://stripe.test/cs_first",
+          status: "open",
+          expires_at: Math.floor(new Date(SESSION_EXPIRY).getTime() / 1_000),
+          customer: "cus_owned",
+          subscription: null,
+          metadata: {},
+          mode: "subscription",
+        }
+      },
+    })
+  )
+  assert.equal(params.subscription_data.trial_period_days, 28)
+})
+
+test("a returning merchant does not get a second introductory trial", async () => {
+  // Eligibility is decided at bind time under the merchant advisory lock and
+  // frozen onto the attempt, so the body an idempotent retry rebuilds is
+  // identical. A merchant who already consumed the trial binds "not_eligible".
+  let params = null
+  await prepareBillingCheckout(
+    input,
+    dependencies({
+      bindOffer: async () => ({
+        status: "bound",
+        launchFeePolicy: "previously_satisfied",
+        stripeLaunchPriceId: null,
+        trialPolicy: "not_eligible",
+      }),
+      createCheckoutSession: async (input) => {
+        params = input.params
+        return {
+          id: "cs_restart",
+          url: "https://stripe.test/cs_restart",
+          status: "open",
+          expires_at: Math.floor(new Date(SESSION_EXPIRY).getTime() / 1_000),
+          customer: "cus_owned",
+          subscription: null,
+          metadata: {},
+          mode: "subscription",
+        }
+      },
+    })
+  )
+
+  assert.equal(
+    params.subscription_data.trial_period_days,
+    undefined,
+    "cancel-and-restart must not mint another 28 free days"
+  )
+  assert.ok(
+    !("trial_period_days" in params.subscription_data),
+    "the key is omitted entirely, not sent as undefined"
+  )
 })

@@ -3,6 +3,8 @@ import { test } from "node:test"
 
 import {
   MERCHANT_OTP_RESEND_COOLDOWN_MS,
+  MERCHANT_OTP_RESEND_RECIPIENT_WINDOW_LIMIT,
+  enforceInitialSignupRecipientBudget,
   MERCHANT_OTP_RESEND_WINDOW_MS,
   MerchantOtpResendRateLimitError,
   enforceMerchantOtpResend,
@@ -62,6 +64,12 @@ test("a resend enforces a 60-second cooldown and bounded long window", async () 
     [
       { limit: 1, windowMs: MERCHANT_OTP_RESEND_COOLDOWN_MS },
       { limit: 5, windowMs: MERCHANT_OTP_RESEND_WINDOW_MS },
+      // The recipient budget is debited LAST and carries no source identity,
+      // so rotating IPs no longer buys a fresh allowance for this mailbox.
+      {
+        limit: MERCHANT_OTP_RESEND_RECIPIENT_WINDOW_LIMIT,
+        windowMs: MERCHANT_OTP_RESEND_WINDOW_MS,
+      },
     ]
   )
 })
@@ -100,7 +108,7 @@ test("a blocked resend returns the latest durable non-sliding reset time", async
   )
 })
 
-test("initial signup records only the cooldown and GET readback preserves it", async () => {
+test("initial signup records only the cooldown; the mailbox was charged pre-send", async () => {
   const calls = []
   const retryAt = "2026-07-09T12:01:00.000Z"
   const dependencies = {
@@ -117,6 +125,9 @@ test("initial signup records only the cooldown and GET readback preserves it", a
   assert.deepEqual(await recordInitialSignupOtpCooldown(input, dependencies), {
     retryAt,
   })
+  // The mailbox budget is debited by enforceInitialSignupRecipientBudget
+  // BEFORE the provider call; charging it again here would bill one message
+  // twice.
   assert.equal(calls.length, 1)
   assert.equal(calls[0].limit, 1)
   assert.equal(calls[0].windowMs, MERCHANT_OTP_RESEND_COOLDOWN_MS)
@@ -149,5 +160,71 @@ test("GET readback preserves the exhausted long window after cooldown expires", 
   assert.equal(
     await readMerchantOtpResendCooldown(input, dependencies),
     windowRetryAt
+  )
+})
+
+test("rotating the source identity cannot buy a fresh recipient allowance", () => {
+  const a = merchantOtpResendKeys({ ...input, requestIdentity: "ip-hash-a" })
+  const b = merchantOtpResendKeys({ ...input, requestIdentity: "ip-hash-b" })
+
+  // The per-source buckets legitimately differ...
+  assert.notEqual(a.cooldown, b.cooldown)
+  assert.notEqual(a.window, b.window)
+
+  // ...but the mailbox budget is the same bucket regardless of where the
+  // request came from. This is the whole finding.
+  assert.equal(a.recipientWindow, b.recipientWindow)
+  assert.match(a.recipientWindow, /:recipient-window$/)
+  assert.ok(
+    !a.recipientWindow.includes("ip-hash-a"),
+    "the recipient key must carry no source identity"
+  )
+})
+
+test("a different mailbox or purpose is a different recipient budget", () => {
+  const signup = merchantOtpResendKeys({ ...input, purpose: "signup" })
+  const recovery = merchantOtpResendKeys({ ...input, purpose: "recovery" })
+  const other = merchantOtpResendKeys({ ...input, email: "other@example.test" })
+
+  assert.notEqual(signup.recipientWindow, recovery.recipientWindow)
+  assert.notEqual(signup.recipientWindow, other.recipientWindow)
+})
+
+test("the first signup email is charged to the mailbox BEFORE it is sent", async () => {
+  // recordInitialSignupOtpCooldown runs after the provider send, so it can
+  // record a debit but never prevent a message. Without a pre-send gate the
+  // first email to any mailbox bypassed the recipient cap, and rotating source
+  // IPs still bought one free send each.
+  const calls = []
+  const dependencies = {
+    enforceRateLimit: async (config) => {
+      calls.push(config)
+    },
+    peekRateLimit: async () => ({ remaining: 1, resetAt: null }),
+  }
+
+  await enforceInitialSignupRecipientBudget(input, dependencies)
+
+  assert.equal(calls.length, 1)
+  assert.equal(calls[0].limit, MERCHANT_OTP_RESEND_RECIPIENT_WINDOW_LIMIT)
+  assert.match(calls[0].key, /:recipient-window$/)
+  assert.ok(
+    !calls[0].key.includes(input.requestIdentity),
+    "the pre-send gate must not be rotatable by source"
+  )
+})
+
+test("an exhausted mailbox budget blocks the signup send", async () => {
+  const retryAt = "2026-08-02T12:15:00.000Z"
+  const dependencies = {
+    enforceRateLimit: async () => {
+      throw new Error("should not reach the provider")
+    },
+    peekRateLimit: async () => ({ remaining: 0, resetAt: retryAt }),
+  }
+
+  await assert.rejects(
+    () => enforceInitialSignupRecipientBudget(input, dependencies),
+    (error) => error instanceof MerchantOtpResendRateLimitError
   )
 })
