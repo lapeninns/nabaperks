@@ -68,6 +68,7 @@ async function TrialHarnessState({
         : state === "review"
           ? REVIEW
           : DELIVERED
+  const billingStatus = state === "expired" ? "active" : "trialing"
 
   return (
     <div className="grid gap-6">
@@ -76,7 +77,10 @@ async function TrialHarnessState({
         title="Billing and launch"
         description="Delivery evidence and the exact platform pilot dates linked to recurring billing."
       />
-      <LaunchFulfilmentStatus fulfilment={fulfilment} />
+      <LaunchFulfilmentStatus
+        fulfilment={fulfilment}
+        billingStatus={billingStatus}
+      />
     </div>
   )
 }

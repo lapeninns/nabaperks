@@ -15,10 +15,12 @@ const dateFormat = new Intl.DateTimeFormat("en-GB", {
 
 export function LaunchFulfilmentStatus({
   fulfilment,
+  billingStatus,
 }: {
   readonly fulfilment: MerchantLaunchFulfilment
+  readonly billingStatus: string | null
 }) {
-  const model = statusModel(fulfilment)
+  const model = statusModel(fulfilment, billingStatus)
   const trialEndPending =
     fulfilment.syncStatus === "pending" || fulfilment.syncStatus === "retry"
   const recurringBillingDate = trialEndPending
@@ -113,7 +115,10 @@ function formatLaunchDate(value: string): string {
   return dateFormat.format(new Date(value))
 }
 
-function statusModel(fulfilment: MerchantLaunchFulfilment): {
+function statusModel(
+  fulfilment: MerchantLaunchFulfilment,
+  billingStatus: string | null
+): {
   title: string
   detail: string
   tone: "success" | "warning" | "info"
@@ -151,6 +156,13 @@ function statusModel(fulfilment: MerchantLaunchFulfilment): {
       detail:
         "The 28-day platform pilot has not started yet. It begins when delivery is confirmed.",
       tone: "info",
+    }
+  }
+  if (billingStatus === "active") {
+    return {
+      title: "Your 28-day platform pilot has ended",
+      detail: "Your venue is now on its recurring billing schedule.",
+      tone: "success",
     }
   }
   if (

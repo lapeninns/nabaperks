@@ -72,6 +72,20 @@ export function defineDeliveryAnchoredPilotTests() {
     await expectNoHorizontalOverflow(page)
   })
 
+  test("merchant sees a completed pilot after recurring billing starts @a11y", async ({
+    page,
+  }) => {
+    await page.goto(`${HARNESS_ROUTES.trial}?state=expired`)
+
+    const fulfilmentAlert = page.locator('[data-slot="alert"]')
+    await expect(fulfilmentAlert).toContainText(
+      "Your 28-day platform pilot has ended"
+    )
+    await expect(fulfilmentAlert).not.toContainText("pilot is running")
+    await expectNoAxeViolations(page, "completed merchant pilot")
+    await expectNoHorizontalOverflow(page)
+  })
+
   test("public pricing explains launch, delivery and pilot before both cadences @a11y", async ({
     page,
   }) => {

@@ -67,30 +67,33 @@ type AdminFulfilmentRawRecord = {
 
 export async function getAdminBillingRecords(): Promise<AdminBillingRecord[]> {
   const supabase = await createAdminServiceRoleClient()
-  const [billingResult, fulfilmentResult] = await Promise.all([
-    supabase
-      .from("billing_customers")
-      .select(
-        "id, merchant_id, plan, status, stripe_customer_id, stripe_subscription_id, current_period_end, updated_at, merchants(business_name, email)"
-      )
-      .order("updated_at", { ascending: false })
-      .limit(100),
-    supabase
-      .from("merchant_launch_fulfilments")
-      .select(
-        "merchant_id, fulfilment_status, dispatched_at, delivered_at, pilot_starts_at, base_pilot_ends_at, desired_stripe_trial_end, confirmed_stripe_trial_end, sync_status, operations_review_required"
-      )
-      .limit(100),
-  ])
+  const billingResult = await supabase
+    .from("billing_customers")
+    .select(
+      "id, merchant_id, plan, status, stripe_customer_id, stripe_subscription_id, current_period_end, updated_at, merchants(business_name, email)"
+    )
+    .order("updated_at", { ascending: false })
+    .limit(100)
+  if (billingResult.error) throw new Error("Unable to load billing records")
 
-  if (billingResult.error || fulfilmentResult.error) {
-    throw new Error("Unable to load billing and fulfilment records")
+  const billingRows = billingResult.data ?? []
+  const merchantIds = billingRows.map((row) => row.merchant_id)
+  if (merchantIds.length === 0) return []
+
+  const fulfilmentResult = await supabase
+    .from("merchant_launch_fulfilments")
+    .select(
+      "merchant_id, fulfilment_status, dispatched_at, delivered_at, pilot_starts_at, base_pilot_ends_at, desired_stripe_trial_end, confirmed_stripe_trial_end, sync_status, operations_review_required"
+    )
+    .in("merchant_id", merchantIds)
+  if (fulfilmentResult.error) {
+    throw new Error("Unable to load fulfilment records")
   }
 
   const fulfilments = new Map<string, AdminFulfilmentRawRecord>(
     (fulfilmentResult.data ?? []).map((row) => [row.merchant_id, row])
   )
-  return (billingResult.data ?? []).map((row) =>
+  return billingRows.map((row) =>
     toAdminBillingRecord(row, fulfilments.get(row.merchant_id))
   )
 }

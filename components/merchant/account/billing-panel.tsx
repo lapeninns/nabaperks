@@ -95,7 +95,18 @@ export async function BillingPanel({
             : "/app/account?tab=billing"
         }
       />
-      {fulfilment ? <LaunchFulfilmentStatus fulfilment={fulfilment} /> : null}
+      {fulfilment ? (
+        <LaunchFulfilmentStatus
+          fulfilment={fulfilment}
+          billingStatus={
+            result.ok
+              ? (result.billing?.stripe_subscription_status ??
+                result.billing?.status ??
+                null)
+              : null
+          }
+        />
+      ) : null}
     </div>
   )
 }

@@ -1,10 +1,12 @@
 import "server-only"
 
 import { getActiveSeasonalOffer } from "@/lib/marketing/seasonal-offer"
+import { CHECKOUT_CONTRACT_VERSION } from "@/lib/stripe/checkout-contracts"
 import type {
   BillingCheckoutAttempt,
   BillingCheckoutDependencies,
   BillingInterval,
+  CheckoutContractVersion,
   PilotMetadata,
   PrepareBillingCheckoutInput,
   StripeCheckoutSessionLike,
@@ -38,6 +40,7 @@ function hasCreationLease(
   successUrl: string
   cancelUrl: string
   attemptExpiresAt: string
+  checkoutContractVersion: CheckoutContractVersion
   workerLeaseId: string
 } {
   return Boolean(
@@ -47,6 +50,7 @@ function hasCreationLease(
     attempt.successUrl &&
     attempt.cancelUrl &&
     attempt.attemptExpiresAt &&
+    attempt.checkoutContractVersion &&
     attempt.workerLeaseId
   )
 }
@@ -167,11 +171,15 @@ export async function materializeCheckoutSession(
           name: "The 28-Day First-Regular Launch",
           deadline: "none",
         }
-    const pilotMetadata: PilotMetadata = {
-      pilot_anchor: "confirmed_delivery",
-      fulfilment_allowance_days: "14",
-      usable_pilot_days: "28",
-    }
+    const usesDeliveryAnchoredContract =
+      attempt.checkoutContractVersion === CHECKOUT_CONTRACT_VERSION.current
+    const pilotMetadata: Partial<PilotMetadata> = usesDeliveryAnchoredContract
+      ? {
+          pilot_anchor: "confirmed_delivery",
+          fulfilment_allowance_days: "14",
+          usable_pilot_days: "28",
+        }
+      : {}
     const session = await deps.createCheckoutSession({
       params: {
         mode: "subscription",
@@ -183,7 +191,7 @@ export async function materializeCheckoutSession(
             : []),
         ],
         subscription_data: {
-          trial_period_days: 42,
+          trial_period_days: usesDeliveryAnchoredContract ? 42 : 28,
           metadata: {
             merchant_id: input.merchant.id,
             plan: "growth",

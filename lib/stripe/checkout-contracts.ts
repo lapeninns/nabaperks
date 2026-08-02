@@ -9,6 +9,23 @@ export type BillingInterval = "month" | "year"
 export type LaunchFeePolicy =
   "charged" | "annual_included" | "previously_satisfied"
 
+export const CHECKOUT_CONTRACT_VERSION = {
+  legacy: "legacy_28_day",
+  current: "delivery_anchored_42_day",
+} as const
+
+export type CheckoutContractVersion =
+  (typeof CHECKOUT_CONTRACT_VERSION)[keyof typeof CHECKOUT_CONTRACT_VERSION]
+
+export function isCheckoutContractVersion(
+  value: unknown
+): value is CheckoutContractVersion {
+  return (
+    value === CHECKOUT_CONTRACT_VERSION.legacy ||
+    value === CHECKOUT_CONTRACT_VERSION.current
+  )
+}
+
 export type BillingMerchant = { id: string }
 
 export type PrepareBillingCheckoutInput = {
@@ -38,6 +55,7 @@ export type BillingCheckoutAttempt = {
   successUrl: string | null
   cancelUrl: string | null
   attemptExpiresAt: string | null
+  checkoutContractVersion: CheckoutContractVersion | null
   stripeCustomerId: string | null
   stripeCheckoutSessionId: string | null
   stripeCheckoutSessionUrl: string | null
@@ -140,7 +158,7 @@ export type BillingCheckoutDependencies = {
           plan: "growth"
           billing_cadence: "28_days" | "annual"
           launch_fee_policy: LaunchFeePolicy
-        } & PilotMetadata
+        } & Partial<PilotMetadata>
       }
       metadata: {
         merchant_id: string
@@ -151,7 +169,7 @@ export type BillingCheckoutDependencies = {
         offer_wrapper_slug: string
         offer_wrapper_name: string
         offer_wrapper_deadline: string
-      } & PilotMetadata
+      } & Partial<PilotMetadata>
       custom_text?: { submit: { message: string } }
       success_url: string
       cancel_url: string

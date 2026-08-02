@@ -3,6 +3,50 @@
 -- ledger owns fulfilment evidence, synchronisation leases and safe operations
 -- review without placing provider calls inside database transactions.
 
+alter table public.billing_checkout_attempts
+  add column if not exists checkout_contract_version text;
+
+-- Attempts already holding an idempotency key were created with the former
+-- 28-day provider request. Empty ledgers and all later attempts use the
+-- delivery-anchored 42-day contract.
+update public.billing_checkout_attempts
+set checkout_contract_version = case
+  when attempt_id is null then 'delivery_anchored_42_day'
+  else 'legacy_28_day'
+end
+where checkout_contract_version is null;
+
+alter table public.billing_checkout_attempts
+  alter column checkout_contract_version
+    set default 'delivery_anchored_42_day',
+  alter column checkout_contract_version set not null,
+  add constraint billing_checkout_attempts_contract_version_valid check (
+    checkout_contract_version in (
+      'legacy_28_day', 'delivery_anchored_42_day'
+    )
+  );
+
+create function public.set_billing_checkout_contract_version()
+returns trigger
+language plpgsql
+set search_path = pg_catalog, public
+as $function$
+begin
+  if new.attempt_id is not null
+    and new.attempt_id is distinct from old.attempt_id then
+    new.checkout_contract_version := 'delivery_anchored_42_day';
+  end if;
+  return new;
+end
+$function$;
+
+create trigger billing_checkout_attempts_contract_version
+before update of attempt_id on public.billing_checkout_attempts
+for each row execute function public.set_billing_checkout_contract_version();
+
+revoke all on function public.set_billing_checkout_contract_version()
+  from public, anon, authenticated, service_role;
+
 create table public.merchant_launch_fulfilments (
   id uuid primary key default extensions.gen_random_uuid(),
   merchant_id uuid not null unique
@@ -388,12 +432,15 @@ begin
       desired_stripe_trial_end = greatest(
         v_at + interval '28 days',
         coalesce(fulfilments.approved_extension_end, '-infinity'::timestamptz),
+        coalesce(fulfilments.desired_stripe_trial_end, '-infinity'::timestamptz),
         coalesce(fulfilments.confirmed_stripe_trial_end, '-infinity'::timestamptz),
         v_notice_floor
       ),
       sync_status = case when greatest(
         v_at + interval '28 days',
         coalesce(fulfilments.approved_extension_end, '-infinity'::timestamptz),
+        coalesce(fulfilments.desired_stripe_trial_end, '-infinity'::timestamptz),
+        coalesce(fulfilments.confirmed_stripe_trial_end, '-infinity'::timestamptz),
         v_notice_floor
       ) > coalesce(
         fulfilments.confirmed_stripe_trial_end,
@@ -402,6 +449,8 @@ begin
       next_retry_at = case when greatest(
         v_at + interval '28 days',
         coalesce(fulfilments.approved_extension_end, '-infinity'::timestamptz),
+        coalesce(fulfilments.desired_stripe_trial_end, '-infinity'::timestamptz),
+        coalesce(fulfilments.confirmed_stripe_trial_end, '-infinity'::timestamptz),
         v_notice_floor
       ) > coalesce(
         fulfilments.confirmed_stripe_trial_end,

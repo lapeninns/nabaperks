@@ -22,7 +22,10 @@ test("Checkout charges launch now and provisions fulfilment plus the platform pi
     /line_items:[\s\S]*attempt\.stripePriceId[\s\S]*offer\.stripeLaunchPriceId/
   )
   assert.match(source, /launch_fee_policy: offer\.launchFeePolicy/)
-  assert.match(source, /trial_period_days: 42/)
+  assert.match(
+    source,
+    /trial_period_days: usesDeliveryAnchoredContract \? 42 : 28/
+  )
   assert.match(source, /pilot_anchor: "confirmed_delivery"/)
   assert.match(source, /fulfilment_allowance_days: "14"/)
   assert.match(source, /usable_pilot_days: "28"/)

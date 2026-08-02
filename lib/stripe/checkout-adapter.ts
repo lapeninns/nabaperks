@@ -1,9 +1,13 @@
 import "server-only"
 
+import {
+  bindCheckoutContractVersion,
+  mapCheckoutAttemptRow,
+  type CheckoutAttemptRpcRow,
+} from "@/lib/stripe/checkout-attempt-record"
 import type {
   BillingCheckoutAttempt,
   BillingCheckoutDependencies,
-  BillingInterval,
   CheckoutOfferBinding,
   LaunchFeePolicy,
 } from "@/lib/stripe/checkout-contracts"
@@ -21,44 +25,6 @@ function requireRpcScalar<T>(result: RpcResult<T>, operation: string): T {
   return result.data
 }
 
-type CheckoutAttemptRpcRow = {
-  claim_status?: BillingCheckoutAttempt["claimStatus"]
-  rotation_status?: BillingCheckoutAttempt["claimStatus"]
-  merchant_id?: string | null
-  attempt_id: string | null
-  billing_interval: BillingInterval | null
-  stripe_price_id: string | null
-  success_url: string | null
-  cancel_url: string | null
-  attempt_expires_at: string | null
-  stripe_customer_id: string | null
-  stripe_checkout_session_id?: string | null
-  stripe_checkout_session_url?: string | null
-  stripe_checkout_session_expires_at?: string | null
-  worker_lease_id: string | null
-  worker_lease_expires_at: string | null
-}
-
-function mapAttemptRow(row: CheckoutAttemptRpcRow): BillingCheckoutAttempt {
-  return {
-    claimStatus: row.claim_status ?? row.rotation_status ?? "conflict",
-    merchantId: row.merchant_id ?? null,
-    attemptId: row.attempt_id,
-    billingInterval: row.billing_interval,
-    stripePriceId: row.stripe_price_id,
-    successUrl: row.success_url,
-    cancelUrl: row.cancel_url,
-    attemptExpiresAt: row.attempt_expires_at,
-    stripeCustomerId: row.stripe_customer_id,
-    stripeCheckoutSessionId: row.stripe_checkout_session_id ?? null,
-    stripeCheckoutSessionUrl: row.stripe_checkout_session_url ?? null,
-    stripeCheckoutSessionExpiresAt:
-      row.stripe_checkout_session_expires_at ?? null,
-    workerLeaseId: row.worker_lease_id,
-    workerLeaseExpiresAt: row.worker_lease_expires_at,
-  }
-}
-
 export async function createBillingCheckoutDependencies(): Promise<BillingCheckoutDependencies> {
   const [{ createSupabaseServiceRoleClient }, { getStripe }] =
     await Promise.all([
@@ -67,6 +33,24 @@ export async function createBillingCheckoutDependencies(): Promise<BillingChecko
     ])
   const supabase = createSupabaseServiceRoleClient()
   const stripe = getStripe()
+  const attachCheckoutContractVersion = async (
+    attempt: BillingCheckoutAttempt,
+    merchantId: string
+  ): Promise<BillingCheckoutAttempt> => {
+    if (!attempt.attemptId) return attempt
+
+    const result = await supabase
+      .from("billing_checkout_attempts")
+      .select("checkout_contract_version")
+      .eq("merchant_id", merchantId)
+      .eq("attempt_id", attempt.attemptId)
+      .maybeSingle()
+    if (result.error) throw new Error("Checkout contract version lookup failed")
+    return bindCheckoutContractVersion(
+      attempt,
+      result.data?.checkout_contract_version
+    )
+  }
 
   return {
     now: () => new Date(),
@@ -80,7 +64,10 @@ export async function createBillingCheckoutDependencies(): Promise<BillingChecko
         p_attempt_expires_at: input.attemptExpiresAt,
         p_stripe_customer_id: null,
       })) as RpcResult<CheckoutAttemptRpcRow[]>
-      return mapAttemptRow(requireRpcRow(result, "Checkout attempt claim"))
+      return attachCheckoutContractVersion(
+        mapCheckoutAttemptRow(requireRpcRow(result, "Checkout attempt claim")),
+        input.merchantId
+      )
     },
     bindOffer: async (input) => {
       const result = (await supabase.rpc("bind_billing_checkout_offer", {
@@ -142,7 +129,12 @@ export async function createBillingCheckoutDependencies(): Promise<BillingChecko
         p_cancel_url: input.cancelUrl,
         p_attempt_expires_at: input.attemptExpiresAt,
       })) as RpcResult<CheckoutAttemptRpcRow[]>
-      return mapAttemptRow(requireRpcRow(result, "Checkout attempt rotation"))
+      return attachCheckoutContractVersion(
+        mapCheckoutAttemptRow(
+          requireRpcRow(result, "Checkout attempt rotation")
+        ),
+        input.merchantId
+      )
     },
     findCustomer: async ({ merchantId }) => {
       const customers = await stripe.customers.search({

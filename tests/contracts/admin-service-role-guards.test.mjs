@@ -57,10 +57,19 @@ test("Given admin pages load service-role backed data When source is inspected T
   for (const filePath of adminPages) {
     const source = readProjectFile(...filePath)
     const gateIndex = source.indexOf("await canRenderAdminPage()")
-    const loaderMatch = source.match(/await (?:Promise\.all\(\[)?\s*(?:getAdmin[A-Z]|getPilotFunnelCounts)/)
+    const loaderMatch = source.match(
+      /await (?:Promise\.all\(\[)?\s*(?:getAdmin[A-Z]|getPilotFunnelCounts)/
+    )
 
-    assert.notEqual(gateIndex, -1, `${filePath.join("/")} is missing the admin page gate`)
-    assert.ok(loaderMatch, `${filePath.join("/")} has no inspected admin loader`)
+    assert.notEqual(
+      gateIndex,
+      -1,
+      `${filePath.join("/")} is missing the admin page gate`
+    )
+    assert.ok(
+      loaderMatch,
+      `${filePath.join("/")} has no inspected admin loader`
+    )
     assert.ok(
       gateIndex < loaderMatch.index,
       `${filePath.join("/")} loads admin data before the page gate`
@@ -87,4 +96,18 @@ test("Given admin billing reads provider identifiers When records reach the page
   assert.match(page, /StatusPill tone=\{row\.statusTone\}/)
   assert.doesNotMatch(page, /stripe_subscription_id/)
   assert.doesNotMatch(page, /stripe_customer_id/)
+})
+
+test("Given billing pagination selects merchants When fulfilments load Then the query follows those merchant ids", () => {
+  const data = readProjectFile("lib", "admin", "billing-data.ts")
+
+  assert.match(data, /const merchantIds = billingRows\.map/)
+  assert.match(data, /if \(merchantIds\.length === 0\) return \[\]/)
+  assert.match(data, /\.in\("merchant_id", merchantIds\)/)
+
+  const fulfilmentQuery = data.match(
+    /\.from\("merchant_launch_fulfilments"\)([\s\S]*?)if \(fulfilmentResult\.error\)/
+  )?.[1]
+  assert.ok(fulfilmentQuery)
+  assert.doesNotMatch(fulfilmentQuery, /\.limit\(/)
 })

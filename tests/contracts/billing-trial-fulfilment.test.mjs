@@ -55,6 +55,24 @@ test("Given admins update fulfilment When actions replay or race Then idempotent
   )
 })
 
+test("Given an undelivered safety claim is in flight When delivery is confirmed Then the desired trial end remains monotonic", () => {
+  const migration = read(
+    "supabase/migrations/20260801120000_delivery_anchored_pilot.sql"
+  )
+  const deliveryFunction = migration.match(
+    /create or replace function public\.admin_confirm_merchant_launch_delivered\([\s\S]*?\$function\$;/
+  )?.[0]
+
+  assert.ok(deliveryFunction)
+  assert.equal(
+    deliveryFunction.match(
+      /coalesce\(fulfilments\.desired_stripe_trial_end, '-infinity'::timestamptz\)/g
+    )?.length,
+    3,
+    "the assigned target and both pending checks must preserve the existing desired end"
+  )
+})
+
 test("Given billing trials need delivery anchoring When scheduled work runs Then the route is protected and registered", () => {
   const route = read("app/api/cron/billing-trial-sync/route.ts")
   const vercel = JSON.parse(read("vercel.json"))

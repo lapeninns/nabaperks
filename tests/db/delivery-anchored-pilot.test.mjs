@@ -159,6 +159,52 @@ test(
   }
 )
 
+test(
+  "delivery confirmation preserves a later undelivered safety claim",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const fixture = await createFixture(tx)
+      await actAsService(tx)
+      await tx`
+        update public.billing_customers
+        set current_period_end = transaction_timestamp() + interval '1 day'
+        where merchant_id = ${fixture.merchantId}::uuid`
+      await tx`
+        update public.merchant_launch_fulfilments
+        set provisional_stripe_trial_end = transaction_timestamp() + interval '1 day',
+            desired_stripe_trial_end = transaction_timestamp() + interval '1 day',
+            confirmed_stripe_trial_end = transaction_timestamp() + interval '1 day'
+        where merchant_id = ${fixture.merchantId}::uuid`
+
+      const [claim] =
+        await tx`select * from public.claim_merchant_launch_trial_sync()`
+      assert.equal(claim.sync_reason, "undelivered_safety")
+
+      await actAsAdmin(tx, fixture.adminId)
+      const [delivery] = await tx`
+        select (public.admin_confirm_merchant_launch_delivered(
+          ${fixture.merchantId}::uuid,
+          transaction_timestamp() - interval '21 days'
+        )).*`
+      assert.equal(
+        delivery.desired_stripe_trial_end.toISOString(),
+        claim.desired_trial_end.toISOString()
+      )
+
+      await actAsService(tx)
+      const [{ confirmed }] = await tx`
+        select public.confirm_merchant_launch_trial_sync(
+          ${claim.fulfilment_id}::uuid,
+          ${claim.lease_id}::uuid,
+          ${claim.stripe_subscription_id},
+          ${claim.desired_trial_end}
+        ) as confirmed`
+      assert.equal(confirmed, true)
+    })
+  }
+)
+
 async function isDeliveryPilotReady() {
   if (!dbUrl()) return false
   try {

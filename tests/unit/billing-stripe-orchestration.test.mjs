@@ -49,6 +49,7 @@ function attempt(overrides = {}) {
     cancelUrl:
       "http://localhost:4317/app/launch?tab=billing&checkout=cancelled",
     attemptExpiresAt: ATTEMPT_EXPIRY,
+    checkoutContractVersion: "delivery_anchored_42_day",
     stripeCustomerId: null,
     stripeCheckoutSessionId: null,
     stripeCheckoutSessionUrl: null,
@@ -416,6 +417,39 @@ test("an ambiguous retry replays the attempt's deterministic Session expiry", as
     "retries must not change Stripe's idempotent request parameters"
   )
   assert.equal(result.status, "redirect")
+})
+
+test("a legacy ambiguous attempt replays the original 28-day provider contract", async () => {
+  const result = await prepareBillingCheckout(
+    input,
+    dependencies({
+      claimAttempt: async () =>
+        attempt({
+          checkoutContractVersion: "legacy_28_day",
+          stripeCustomerId: "cus_owned",
+        }),
+      createCheckoutSession: async ({ params, idempotencyKey }) => {
+        assert.equal(
+          idempotencyKey,
+          "billing-checkout:10000000-0000-4000-8000-000000000001"
+        )
+        assert.equal(params.subscription_data.trial_period_days, 28)
+        assert.equal("pilot_anchor" in params.subscription_data.metadata, false)
+        assert.equal("pilot_anchor" in params.metadata, false)
+        return {
+          id: "cs_legacy",
+          url: "https://checkout.stripe.test/cs_legacy",
+          status: "open",
+          expires_at: params.expires_at,
+        }
+      },
+    })
+  )
+
+  assert.deepEqual(result, {
+    status: "redirect",
+    url: "https://checkout.stripe.test/cs_legacy",
+  })
 })
 
 test("provider failure releases only its fenced attempt and returns safe retry copy", async () => {
