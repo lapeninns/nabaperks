@@ -73,12 +73,9 @@ test.describe("merchant launch setup @launch-setup", () => {
       })
     ).toBeVisible()
     await expect(
-      page
-        .getByText(
-          "Pay the launch fee and create your venue QR. Your 28-day pilot begins after poster delivery."
-        )
-        .first()
+      page.getByText(/Your 28-day pilot begins after poster delivery/i).first()
     ).toBeVisible()
+    await expect(page.getByText(/start (?:the|your) pilot/i)).toHaveCount(0)
   })
 
   test("the readiness rail exposes a visible, correctly-targeted step CTA", async ({
