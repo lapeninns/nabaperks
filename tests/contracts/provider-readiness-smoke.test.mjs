@@ -17,7 +17,12 @@ import {
   loadProjectEnv,
   resolveSupabaseDbUrl,
 } from "../../scripts/provider-readiness/runtime.mjs"
-import { runReadinessChecks } from "../../scripts/provider-readiness/checks.mjs"
+import {
+  isExpectedAnnualStripePrice,
+  isExpectedLaunchStripePrice,
+  isExpectedRecurringStripePrice,
+  runReadinessChecks,
+} from "../../scripts/provider-readiness/checks.mjs"
 import { serializeEnvValue } from "../../scripts/env-file.mjs"
 import {
   diffMigrationVersions,
@@ -102,20 +107,51 @@ test("provider readiness smoke covers the remaining release gates", () => {
   }
 })
 
-test("provider readiness makes every live Stripe Price explicit", () => {
-  for (const key of [
-    "STRIPE_LAUNCH_PRICE_ID",
-    "STRIPE_GROWTH_PRICE_ID",
-    "STRIPE_GROWTH_ANNUAL_PRICE_ID",
-  ]) {
-    assert.match(smokeScript, new RegExp(key))
+test("provider readiness accepts only the approved live Stripe Price contracts", () => {
+  const launch = {
+    id: "price_launch",
+    active: true,
+    currency: "gbp",
+    unit_amount: 29999,
+    recurring: null,
+  }
+  const recurring = {
+    id: "price_growth",
+    active: true,
+    currency: "gbp",
+    unit_amount: 6999,
+    recurring: { interval: "day", interval_count: 28 },
+  }
+  const annual = {
+    id: "price_annual",
+    active: true,
+    currency: "gbp",
+    unit_amount: 69990,
+    recurring: { interval: "year", interval_count: 1 },
   }
 
-  assert.match(smokeScript, /active one-time GBP 299\.99/)
-  assert.match(smokeScript, /active GBP 69\.99 every 28 days/)
-  assert.match(smokeScript, /active GBP 699\.90 each year/)
-  assert.match(smokeScript, /interval_count === 28/)
-  assert.match(smokeScript, /interval_count === 1/)
+  assert.equal(isExpectedLaunchStripePrice(launch, launch.id), true)
+  assert.equal(isExpectedRecurringStripePrice(recurring, recurring.id), true)
+  assert.equal(isExpectedAnnualStripePrice(annual, annual.id), true)
+
+  assert.equal(
+    isExpectedLaunchStripePrice(
+      { ...launch, recurring: annual.recurring },
+      launch.id
+    ),
+    false
+  )
+  assert.equal(
+    isExpectedRecurringStripePrice(
+      { ...recurring, recurring: { interval: "month", interval_count: 1 } },
+      recurring.id
+    ),
+    false
+  )
+  assert.equal(
+    isExpectedAnnualStripePrice({ ...annual, unit_amount: 6999 }, annual.id),
+    false
+  )
 })
 
 test("Supabase migration smoke stays read-only", () => {
