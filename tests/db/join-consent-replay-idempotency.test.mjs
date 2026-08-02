@@ -172,3 +172,46 @@ async function joinConsentCount(tx, fixture) {
       and consent_status = 'opted_in'`
   return row.n
 }
+
+test(
+  "re-consenting after an opt-out is recorded, not swallowed",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const fixture = await joinable(tx)
+
+      await join(tx, fixture)
+      await tx`
+        insert into public.consent_records
+          (merchant_id, customer_id, channel, consent_status, source, policy_version)
+        values
+          (${fixture.merchantId}::uuid, ${fixture.customerId}::uuid, 'email',
+           'opted_out', 'customer_join', ${POLICY})`
+
+      // The customer changes their mind and joins again. Deduping purely on the
+      // key swallowed this, leaving opted_out as the newest row — so a fresh,
+      // explicit consent was silently discarded.
+      await join(tx, fixture)
+
+      const [latest] = await tx`
+        select consent_status from public.consent_records
+        where customer_id = ${fixture.customerId}::uuid
+          and source = 'customer_join'
+        order by created_at desc, id desc
+        limit 1`
+      assert.equal(
+        latest.consent_status,
+        "opted_in",
+        "renewed consent is recorded"
+      )
+    })
+  }
+)
+
+test("replay is still bounded while consent stands", { skip }, async () => {
+  await inRolledBackTxn(async (tx) => {
+    const fixture = await joinable(tx)
+    for (let i = 0; i < 4; i += 1) await join(tx, fixture)
+    assert.equal(await joinConsentCount(tx, fixture), 1)
+  })
+})

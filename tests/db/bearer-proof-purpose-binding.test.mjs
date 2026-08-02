@@ -230,7 +230,8 @@ async function createInvite(tx, merchantId, opts = {}) {
       ${opts.emailHmac ? "r***@example.com" : null},
       ${opts.phoneHmac ? "4242" : null},
       'A drink on us', 'A drink on us — thanks for being a regular.',
-      null, 30, ${opts.tokenHash ?? hex64()})`
+      null, 30, ${opts.tokenHash ?? hex64()},
+      ${opts.unsubscribeTokenHash ?? null})`
   return row
 }
 
@@ -277,3 +278,73 @@ async function registerPush(tx, customerId, endpoint) {
       ${`auth-${randomUUID()}`}, 'test-agent', 'granted') as id`
   return row.id
 }
+
+test(
+  "a recipient who claimed their reward can still unsubscribe",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const fixture = await createRewardPoolFixture(tx)
+      const emailHmac = hex64()
+      const claimHash = hex64()
+      const unsubHash = hex64()
+
+      await createInvite(tx, fixture.merchantId, {
+        emailHmac,
+        tokenHash: claimHash,
+        unsubscribeTokenHash: unsubHash,
+      })
+      await tx`
+        update public.customers set email_hmac = ${emailHmac}
+        where id = ${fixture.customerId}::uuid`
+
+      // Claiming scrubs the invite's contact hashes.
+      await attach(tx, fixture.customerId, {
+        email: emailHmac,
+        token: claimHash,
+      })
+      const [invite] = await tx`
+        select email_hmac from public.pending_reward_invites
+        where unsubscribe_token_hash = ${unsubHash}`
+      assert.equal(invite.email_hmac, null, "attach scrubs the invite contact")
+
+      // ...but the unsubscribe link in their inbox must still work, resolving
+      // through the customer the reward was attached to.
+      const [row] = await tx`
+        select public.suppress_reward_invite_email_by_token(${unsubHash}) as ok`
+      assert.equal(row.ok, true, "opting out must survive claiming")
+      assert.equal(await isSuppressed(tx, fixture.merchantId, emailHmac), true)
+    })
+  }
+)
+
+test(
+  "an unsubscribe link already in an inbox keeps working, venue-scoped",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const venueA = await createRewardPoolFixture(tx)
+      const venueB = await createRewardPoolFixture(tx)
+      const emailHmac = hex64()
+      const legacyClaimHash = hex64()
+
+      // Emails sent before the token split carry /claim/<claimToken>?unsubscribe=1
+      // and nothing else. Breaking them would strip a live opt-out route.
+      await createInvite(tx, venueA.merchantId, {
+        emailHmac,
+        tokenHash: legacyClaimHash,
+      })
+
+      const [row] = await tx`
+        select public.suppress_reward_invite_email_by_token(${legacyClaimHash}) as ok`
+      assert.equal(row.ok, true, "legacy links must still unsubscribe")
+
+      assert.equal(await isSuppressed(tx, venueA.merchantId, emailHmac), true)
+      assert.equal(
+        await isSuppressed(tx, venueB.merchantId, emailHmac),
+        false,
+        "but only for the venue that sent it — the global scope was the finding"
+      )
+    })
+  }
+)

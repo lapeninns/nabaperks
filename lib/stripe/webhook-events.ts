@@ -365,11 +365,6 @@ export async function processStripeWebhookEvent(
     entitlementStatus,
     dependencies,
   })
-  await recordIntroductoryTrialUse({
-    subscription,
-    merchantId: ownership.merchantId,
-    dependencies,
-  })
   const applyStatus = await dependencies.applySubscriptionEvent({
     eventId: event.id,
     leaseId,
@@ -381,6 +376,17 @@ export async function processStripeWebhookEvent(
   if (applyStatus === "stale") {
     return { status: "stale", merchantId: null, productEvents: [] }
   }
+
+  // AFTER the apply, deliberately. consume_merchant_introductory_trial updates
+  // billing_customers, and on a merchant's very first subscription event that
+  // row does not exist yet — running this first matched nothing, silently
+  // recorded no trial, and left cancel-and-restart able to claim a second one.
+  // A stale event is skipped above so it cannot consume anything either.
+  await recordIntroductoryTrialUse({
+    subscription,
+    merchantId: ownership.merchantId,
+    dependencies,
+  })
 
   return {
     status: "applied",

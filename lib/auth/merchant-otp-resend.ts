@@ -102,19 +102,42 @@ export async function enforceMerchantOtpResend(
   }
 }
 
+/**
+ * Gate the FIRST signup email against the recipient budget.
+ *
+ * recordInitialSignupOtpCooldown runs after the provider send, so it records
+ * the debit but cannot prevent the message. Without this, the first email to
+ * any mailbox bypassed the recipient cap entirely and rotating source IPs still
+ * bought one free send each.
+ */
+export async function enforceInitialSignupRecipientBudget(
+  input: MerchantOtpResendInput,
+  dependencies: MerchantOtpResendDependencies = defaultDependencies
+): Promise<void> {
+  const recipientWindow = recipientWindowConfig(
+    merchantOtpResendKeys(input).recipientWindow
+  )
+
+  const blockedUntil = await activeResetAt(recipientWindow, dependencies)
+  if (blockedUntil) {
+    throw new MerchantOtpResendRateLimitError(blockedUntil)
+  }
+
+  await dependencies.enforceRateLimit(recipientWindow)
+}
+
 export async function recordInitialSignupOtpCooldown(
   input: MerchantOtpResendInput,
   dependencies: MerchantOtpResendDependencies = defaultDependencies
 ): Promise<{ retryAt: string | undefined }> {
   const keys = merchantOtpResendKeys(input)
   const cooldown = cooldownConfig(keys.cooldown)
-  const recipientWindow = recipientWindowConfig(keys.recipientWindow)
 
   try {
+    // The recipient budget was already debited BEFORE the send by
+    // enforceInitialSignupRecipientBudget; debiting again here would charge the
+    // mailbox twice for one message.
     await dependencies.enforceRateLimit(cooldown)
-    // The signup send is a real message to this mailbox, so it must not be
-    // free against the recipient cap.
-    await dependencies.enforceRateLimit(recipientWindow)
   } catch (error) {
     // The provider send already succeeded. If another request established the
     // same cooldown first, preserve its durable reset instead of turning that

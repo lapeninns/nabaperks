@@ -20,6 +20,7 @@ import {
 import { runMerchantOtpProviderVerification } from "@/lib/auth/merchant-email-otp-provider"
 import { cleanupFailedMerchantRecoverySession } from "@/lib/auth/merchant-recovery-session-cleanup"
 import {
+  enforceInitialSignupRecipientBudget,
   enforceMerchantOtpResend,
   MerchantOtpResendRateLimitError,
   recordInitialSignupOtpCooldown,
@@ -58,9 +59,7 @@ export type AuthActionState = {
 type AuthMode = "sign-in" | "sign-up"
 
 type AuthRateLimitScope =
-  | "merchant-signup"
-  | "merchant-signin"
-  | "merchant-verify"
+  "merchant-signup" | "merchant-signin" | "merchant-verify"
 
 function value(formData: FormData, key: string) {
   const raw = formData.get(key)
@@ -115,6 +114,25 @@ export async function signUpAction(
       fields: { name, email, next },
       errors: { form: rateLimitResult.message },
     }
+
+  // Signing up sends an email, so the mailbox budget must be charged BEFORE
+  // the provider call — rotating source IPs otherwise bought one free send per
+  // address each time.
+  try {
+    await enforceInitialSignupRecipientBudget({
+      email,
+      purpose: "signup",
+      requestIdentity: await merchantRequestIdentity(),
+    })
+  } catch (error) {
+    if (error instanceof MerchantOtpResendRateLimitError) {
+      return {
+        fields: { name, email, next },
+        errors: { form: rateLimitMessage("merchant-signup") },
+      }
+    }
+    throw error
+  }
 
   const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase.auth.signUp({

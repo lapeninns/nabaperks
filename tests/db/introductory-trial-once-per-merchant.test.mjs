@@ -175,3 +175,57 @@ async function bind(tx, merchantId, attemptId, leaseId) {
       'price_launch_29999')`
   return row
 }
+
+test(
+  "consumption is recorded even when the billing row is created by the same event",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const merchantId = (await createRewardPoolFixture(tx)).merchantId
+
+      // A merchant's FIRST subscription event has no billing_customers row yet.
+      // Consuming before the row exists matched nothing and silently recorded
+      // no trial, leaving cancel-and-restart able to claim a second one.
+      const beforeRow = await consumeTrial(tx, merchantId)
+      assert.equal(beforeRow, false, "there is nothing to update yet")
+
+      await seedBillingCustomer(tx, merchantId, "trialing")
+      assert.equal(
+        await consumeTrial(tx, merchantId),
+        true,
+        "consumption must run after the billing row exists"
+      )
+
+      const [row] = await tx`
+        select introductory_trial_status from public.billing_customers
+        where merchant_id = ${merchantId}::uuid`
+      assert.equal(row.introductory_trial_status, "consumed")
+    })
+  }
+)
+
+test(
+  "an in-flight bound attempt keeps its trial after the ledger ships",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const merchantId = (await createRewardPoolFixture(tx)).merchantId
+      const bound = await claimAndBind(tx, merchantId)
+
+      // Simulate an attempt bound before 20260802110000: policy still null.
+      await tx`
+        update public.billing_checkout_attempts set trial_policy = null
+        where merchant_id = ${merchantId}::uuid`
+
+      // The deploy backfill treats those as trial-bearing, because that is what
+      // Stripe was already asked for — a retry must rebuild the same body.
+      await tx`
+        update public.billing_checkout_attempts
+        set trial_policy = 'introductory_28_day'
+        where checkout_offer_bound and trial_policy is null`
+
+      const again = await bind(tx, merchantId, bound.attemptId, bound.leaseId)
+      assert.equal(again.trial_policy, "introductory_28_day")
+    })
+  }
+)

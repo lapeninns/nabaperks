@@ -4,6 +4,7 @@ import { test } from "node:test"
 import {
   MERCHANT_OTP_RESEND_COOLDOWN_MS,
   MERCHANT_OTP_RESEND_RECIPIENT_WINDOW_LIMIT,
+  enforceInitialSignupRecipientBudget,
   MERCHANT_OTP_RESEND_WINDOW_MS,
   MerchantOtpResendRateLimitError,
   enforceMerchantOtpResend,
@@ -107,7 +108,7 @@ test("a blocked resend returns the latest durable non-sliding reset time", async
   )
 })
 
-test("initial signup records the cooldown and the recipient budget", async () => {
+test("initial signup records only the cooldown; the mailbox was charged pre-send", async () => {
   const calls = []
   const retryAt = "2026-07-09T12:01:00.000Z"
   const dependencies = {
@@ -124,13 +125,12 @@ test("initial signup records the cooldown and the recipient budget", async () =>
   assert.deepEqual(await recordInitialSignupOtpCooldown(input, dependencies), {
     retryAt,
   })
-  // A signup send is a real message to this mailbox, so it must not be free
-  // against the recipient cap.
-  assert.equal(calls.length, 2)
+  // The mailbox budget is debited by enforceInitialSignupRecipientBudget
+  // BEFORE the provider call; charging it again here would bill one message
+  // twice.
+  assert.equal(calls.length, 1)
   assert.equal(calls[0].limit, 1)
   assert.equal(calls[0].windowMs, MERCHANT_OTP_RESEND_COOLDOWN_MS)
-  assert.equal(calls[1].limit, MERCHANT_OTP_RESEND_RECIPIENT_WINDOW_LIMIT)
-  assert.equal(calls[1].windowMs, MERCHANT_OTP_RESEND_WINDOW_MS)
   assert.equal(
     await readMerchantOtpResendCooldown(input, dependencies),
     retryAt
@@ -188,4 +188,43 @@ test("a different mailbox or purpose is a different recipient budget", () => {
 
   assert.notEqual(signup.recipientWindow, recovery.recipientWindow)
   assert.notEqual(signup.recipientWindow, other.recipientWindow)
+})
+
+test("the first signup email is charged to the mailbox BEFORE it is sent", async () => {
+  // recordInitialSignupOtpCooldown runs after the provider send, so it can
+  // record a debit but never prevent a message. Without a pre-send gate the
+  // first email to any mailbox bypassed the recipient cap, and rotating source
+  // IPs still bought one free send each.
+  const calls = []
+  const dependencies = {
+    enforceRateLimit: async (config) => {
+      calls.push(config)
+    },
+    peekRateLimit: async () => ({ remaining: 1, resetAt: null }),
+  }
+
+  await enforceInitialSignupRecipientBudget(input, dependencies)
+
+  assert.equal(calls.length, 1)
+  assert.equal(calls[0].limit, MERCHANT_OTP_RESEND_RECIPIENT_WINDOW_LIMIT)
+  assert.match(calls[0].key, /:recipient-window$/)
+  assert.ok(
+    !calls[0].key.includes(input.requestIdentity),
+    "the pre-send gate must not be rotatable by source"
+  )
+})
+
+test("an exhausted mailbox budget blocks the signup send", async () => {
+  const retryAt = "2026-08-02T12:15:00.000Z"
+  const dependencies = {
+    enforceRateLimit: async () => {
+      throw new Error("should not reach the provider")
+    },
+    peekRateLimit: async () => ({ remaining: 0, resetAt: retryAt }),
+  }
+
+  await assert.rejects(
+    () => enforceInitialSignupRecipientBudget(input, dependencies),
+    (error) => error instanceof MerchantOtpResendRateLimitError
+  )
 })
