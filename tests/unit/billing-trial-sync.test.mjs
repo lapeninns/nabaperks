@@ -110,15 +110,16 @@ test("Given Stripe already has a later trial When synchronising Then the provide
 })
 
 test("Given a worker lost its lease When it resumes Then no stale Stripe mutation is attempted", async () => {
+  let retrieveCalls = 0
   let updateCalls = 0
   let failed = null
   const result = await processBillingTrialSyncClaim(
     claim,
     dependencies({
-      retrieveSubscription: async () => ({
-        ...subscription,
-        trial_end: subscription.trial_end - 24 * 60 * 60,
-      }),
+      retrieveSubscription: async () => {
+        retrieveCalls += 1
+        return subscription
+      },
       refreshClaim: async () => null,
       updateSubscription: async () => {
         updateCalls += 1
@@ -131,12 +132,49 @@ test("Given a worker lost its lease When it resumes Then no stale Stripe mutatio
     })
   )
 
+  assert.equal(retrieveCalls, 0)
   assert.equal(updateCalls, 0)
   assert.equal(failed.errorCode, "database_lease_refresh_failed")
   assert.deepEqual(result, {
     status: "failed",
     errorCode: "database_lease_refresh_failed",
   })
+})
+
+test("Given Stripe is extended before the fenced provider read When synchronising Then the later provider target is preserved", async () => {
+  const desiredTrialEnd = Math.floor(
+    new Date(claim.desiredTrialEnd).getTime() / 1_000
+  )
+  const laterTrialEnd = desiredTrialEnd + 7 * 24 * 60 * 60
+  let providerTrialEnd = desiredTrialEnd - 24 * 60 * 60
+  let updateCalls = 0
+  let confirmedTrialEnd = null
+
+  const result = await processBillingTrialSyncClaim(
+    claim,
+    dependencies({
+      refreshClaim: async () => {
+        providerTrialEnd = laterTrialEnd
+        return claim.desiredTrialEnd
+      },
+      retrieveSubscription: async () => ({
+        ...subscription,
+        trial_end: providerTrialEnd,
+      }),
+      updateSubscription: async () => {
+        updateCalls += 1
+        return subscription
+      },
+      confirm: async (input) => {
+        confirmedTrialEnd = input.confirmedTrialEnd
+        return true
+      },
+    })
+  )
+
+  assert.equal(updateCalls, 0)
+  assert.equal(confirmedTrialEnd, new Date(laterTrialEnd * 1_000).toISOString())
+  assert.deepEqual(result, { status: "synchronised" })
 })
 
 test("Given the desired target advanced during a claim When the lease refreshes Then Stripe receives the latest target", async () => {

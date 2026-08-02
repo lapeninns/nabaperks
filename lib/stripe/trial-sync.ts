@@ -88,28 +88,6 @@ export async function processBillingTrialSyncClaim(
   claim: BillingTrialSyncClaim,
   deps: BillingTrialSyncDependencies
 ): Promise<BillingTrialSyncClaimResult> {
-  const desiredTrialEndMs = new Date(claim.desiredTrialEnd).getTime()
-  if (!Number.isFinite(desiredTrialEndMs)) {
-    return recordFailure(claim, "invalid_trial_end", deps)
-  }
-
-  let subscription: TrialSubscription | null
-  try {
-    subscription = await deps.retrieveSubscription(claim.stripeSubscriptionId)
-  } catch {
-    return recordFailure(claim, "stripe_retrieve_failed", deps)
-  }
-  if (!subscription) return recordFailure(claim, "subscription_missing", deps)
-  if (subscription.id !== claim.stripeSubscriptionId) {
-    return recordFailure(claim, "ownership_mismatch", deps)
-  }
-  if (subscription.metadata.merchant_id !== claim.merchantId) {
-    return recordFailure(claim, "ownership_mismatch", deps)
-  }
-  if (!isTrialSynchronisable(subscription.status)) {
-    return recordFailure(claim, "subscription_not_trialing", deps)
-  }
-
   let refreshedDesiredTrialEnd: string | null
   try {
     refreshedDesiredTrialEnd = await deps.refreshClaim({
@@ -128,6 +106,23 @@ export async function processBillingTrialSyncClaim(
   ).getTime()
   if (!Number.isFinite(refreshedDesiredTrialEndMs)) {
     return recordFailure(claim, "invalid_trial_end", deps)
+  }
+
+  let subscription: TrialSubscription | null
+  try {
+    subscription = await deps.retrieveSubscription(claim.stripeSubscriptionId)
+  } catch {
+    return recordFailure(claim, "stripe_retrieve_failed", deps)
+  }
+  if (!subscription) return recordFailure(claim, "subscription_missing", deps)
+  if (subscription.id !== claim.stripeSubscriptionId) {
+    return recordFailure(claim, "ownership_mismatch", deps)
+  }
+  if (subscription.metadata.merchant_id !== claim.merchantId) {
+    return recordFailure(claim, "ownership_mismatch", deps)
+  }
+  if (!isTrialSynchronisable(subscription.status)) {
+    return recordFailure(claim, "subscription_not_trialing", deps)
   }
 
   const desiredTrialEnd = Math.floor(refreshedDesiredTrialEndMs / 1_000)
