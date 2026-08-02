@@ -103,7 +103,8 @@ export async function processBillingTrialSyncClaim(
     return recordFailure(claim, "subscription_not_trialing", deps)
   }
 
-  const trialEnd = Math.floor(desiredTrialEndMs / 1_000)
+  const desiredTrialEnd = Math.floor(desiredTrialEndMs / 1_000)
+  const trialEnd = Math.max(desiredTrialEnd, subscription.trial_end ?? 0)
   let updated: TrialSubscription
   try {
     updated = await deps.updateSubscription(claim.stripeSubscriptionId, {

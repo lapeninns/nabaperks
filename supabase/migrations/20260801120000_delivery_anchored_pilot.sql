@@ -673,12 +673,21 @@ begin
     or v_row.worker_lease_id is distinct from p_lease_id
     or v_row.worker_lease_expires_at <= transaction_timestamp()
     or v_row.stripe_subscription_id is distinct from p_stripe_subscription_id
-    or v_row.desired_stripe_trial_end is distinct from p_confirmed_trial_end then
+    or p_confirmed_trial_end is null
+    or v_row.desired_stripe_trial_end is null
+    or v_row.desired_stripe_trial_end > p_confirmed_trial_end then
     return false;
   end if;
 
   update public.merchant_launch_fulfilments as fulfilments
-  set confirmed_stripe_trial_end = p_confirmed_trial_end,
+  set desired_stripe_trial_end = greatest(
+        coalesce(
+          fulfilments.desired_stripe_trial_end,
+          '-infinity'::timestamptz
+        ),
+        p_confirmed_trial_end
+      ),
+      confirmed_stripe_trial_end = p_confirmed_trial_end,
       sync_status = case when fulfilments.fulfilment_status = 'delivered'
         then 'synchronised' else 'awaiting_delivery' end,
       retry_count = 0,

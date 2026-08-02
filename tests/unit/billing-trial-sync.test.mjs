@@ -70,6 +70,36 @@ test("Given a claimed owned trial When Stripe is updated Then the exact trial en
   assert.deepEqual(result, { status: "synchronised" })
 })
 
+test("Given Stripe already has a later trial When synchronising Then the provider extension is preserved and confirmed", async () => {
+  const laterTrialEnd =
+    Math.floor(new Date(claim.desiredTrialEnd).getTime() / 1_000) +
+    7 * 24 * 60 * 60
+  let updatedTrialEnd = null
+  let confirmedTrialEnd = null
+
+  const result = await processBillingTrialSyncClaim(
+    claim,
+    dependencies({
+      retrieveSubscription: async () => ({
+        ...subscription,
+        trial_end: laterTrialEnd,
+      }),
+      updateSubscription: async (_subscriptionId, params) => {
+        updatedTrialEnd = params.trial_end
+        return { ...subscription, trial_end: params.trial_end }
+      },
+      confirm: async (input) => {
+        confirmedTrialEnd = input.confirmedTrialEnd
+        return true
+      },
+    })
+  )
+
+  assert.equal(updatedTrialEnd, laterTrialEnd)
+  assert.equal(confirmedTrialEnd, new Date(laterTrialEnd * 1_000).toISOString())
+  assert.deepEqual(result, { status: "synchronised" })
+})
+
 test("Given Stripe update is unavailable When a claim runs Then a safe retry code is recorded without confirmation", async () => {
   let failed = null
   let confirmCalls = 0

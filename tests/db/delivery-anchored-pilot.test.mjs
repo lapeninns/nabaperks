@@ -207,6 +207,86 @@ test(
   }
 )
 
+test(
+  "trial confirmation accepts a later provider end but rejects a stale lower end",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const providerFixture = await createFixture(tx)
+      await actAsAdmin(tx, providerFixture.adminId)
+      await tx`
+        select public.admin_confirm_merchant_launch_delivered(
+          ${providerFixture.merchantId}::uuid, null
+        )`
+      await actAsService(tx)
+      const [providerClaim] =
+        await tx`select * from public.claim_merchant_launch_trial_sync()`
+      const providerTrialEnd = new Date(
+        providerClaim.desired_trial_end.getTime() + 7 * 24 * 60 * 60 * 1_000
+      )
+      const [{ providerConfirmed }] = await tx`
+        select public.confirm_merchant_launch_trial_sync(
+          ${providerClaim.fulfilment_id}::uuid,
+          ${providerClaim.lease_id}::uuid,
+          ${providerClaim.stripe_subscription_id},
+          ${providerTrialEnd}
+        ) as "providerConfirmed"`
+      assert.equal(providerConfirmed, true)
+
+      const [providerSettled] = await tx`
+        select desired_stripe_trial_end, confirmed_stripe_trial_end
+        from public.merchant_launch_fulfilments
+        where merchant_id = ${providerFixture.merchantId}::uuid`
+      assert.equal(
+        providerSettled.desired_stripe_trial_end.toISOString(),
+        providerTrialEnd.toISOString()
+      )
+      assert.equal(
+        providerSettled.confirmed_stripe_trial_end.toISOString(),
+        providerTrialEnd.toISOString()
+      )
+
+      const staleFixture = await createFixture(tx)
+      await actAsAdmin(tx, staleFixture.adminId)
+      await tx`
+        select public.admin_confirm_merchant_launch_delivered(
+          ${staleFixture.merchantId}::uuid, null
+        )`
+      await actAsService(tx)
+      const [staleClaim] =
+        await tx`select * from public.claim_merchant_launch_trial_sync()`
+      const advancedTrialEnd = new Date(
+        staleClaim.desired_trial_end.getTime() + 7 * 24 * 60 * 60 * 1_000
+      )
+      await tx`
+        update public.merchant_launch_fulfilments
+        set desired_stripe_trial_end = ${advancedTrialEnd}
+        where id = ${staleClaim.fulfilment_id}::uuid`
+      const [{ staleConfirmed }] = await tx`
+        select public.confirm_merchant_launch_trial_sync(
+          ${staleClaim.fulfilment_id}::uuid,
+          ${staleClaim.lease_id}::uuid,
+          ${staleClaim.stripe_subscription_id},
+          ${staleClaim.desired_trial_end}
+        ) as "staleConfirmed"`
+      assert.equal(staleConfirmed, false)
+
+      const [staleSettled] = await tx`
+        select desired_stripe_trial_end, confirmed_stripe_trial_end
+        from public.merchant_launch_fulfilments
+        where merchant_id = ${staleFixture.merchantId}::uuid`
+      assert.equal(
+        staleSettled.desired_stripe_trial_end.toISOString(),
+        advancedTrialEnd.toISOString()
+      )
+      assert.ok(
+        staleSettled.confirmed_stripe_trial_end <
+          staleSettled.desired_stripe_trial_end
+      )
+    })
+  }
+)
+
 async function isDeliveryPilotReady() {
   if (!dbUrl()) return false
   try {
