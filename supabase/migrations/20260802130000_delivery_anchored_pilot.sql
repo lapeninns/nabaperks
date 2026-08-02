@@ -660,7 +660,9 @@ begin
       end,
       sync_status = 'pending',
       worker_lease_id = v_lease,
-      worker_lease_expires_at = transaction_timestamp() + interval '5 minutes',
+      -- The route is capped at five minutes. A ten-minute lease guarantees
+      -- that a live invocation cannot be reclaimed before its provider write.
+      worker_lease_expires_at = transaction_timestamp() + interval '10 minutes',
       last_attempt_at = transaction_timestamp(),
       updated_at = transaction_timestamp()
   from public.billing_customers as billing
@@ -675,6 +677,34 @@ begin
     v_lease,
     case when fulfilments.fulfilment_status = 'delivered'
       then 'delivery_confirmed'::text else 'undelivered_safety'::text end;
+end
+$function$;
+
+create or replace function public.refresh_merchant_launch_trial_sync_claim(
+  p_fulfilment_id uuid,
+  p_lease_id uuid,
+  p_stripe_subscription_id text
+)
+returns timestamptz
+language plpgsql
+security definer
+set search_path = pg_catalog, public
+as $function$
+declare
+  v_desired_trial_end timestamptz;
+begin
+  update public.merchant_launch_fulfilments as fulfilments
+  set worker_lease_expires_at = transaction_timestamp() + interval '10 minutes',
+      updated_at = transaction_timestamp()
+  where fulfilments.id = p_fulfilment_id
+    and fulfilments.worker_lease_id = p_lease_id
+    and fulfilments.worker_lease_expires_at > transaction_timestamp()
+    and fulfilments.stripe_subscription_id = p_stripe_subscription_id
+    and fulfilments.sync_status in ('pending', 'retry')
+    and fulfilments.desired_stripe_trial_end is not null
+  returning fulfilments.desired_stripe_trial_end into v_desired_trial_end;
+
+  return v_desired_trial_end;
 end
 $function$;
 
@@ -749,7 +779,8 @@ declare
 begin
   if p_error_code not in (
     'stripe_retrieve_failed', 'stripe_update_failed',
-    'stripe_readback_mismatch', 'database_confirm_failed',
+    'stripe_readback_mismatch', 'database_lease_refresh_failed',
+    'database_confirm_failed',
     'subscription_not_trialing', 'subscription_missing',
     'ownership_mismatch', 'invalid_trial_end'
   ) then
@@ -870,6 +901,9 @@ revoke all on function public.admin_set_merchant_launch_pilot_extension(uuid, ti
   from public, anon;
 revoke all on function public.claim_merchant_launch_trial_sync()
   from public, anon, authenticated;
+revoke all on function public.refresh_merchant_launch_trial_sync_claim(
+  uuid, uuid, text
+) from public, anon, authenticated;
 revoke all on function public.confirm_merchant_launch_trial_sync(
   uuid, uuid, text, timestamptz
 ) from public, anon, authenticated;
@@ -891,6 +925,9 @@ grant execute on function public.admin_set_merchant_launch_pilot_extension(
 ) to authenticated, service_role;
 grant execute on function public.claim_merchant_launch_trial_sync()
   to service_role;
+grant execute on function public.refresh_merchant_launch_trial_sync_claim(
+  uuid, uuid, text
+) to service_role;
 grant execute on function public.confirm_merchant_launch_trial_sync(
   uuid, uuid, text, timestamptz
 ) to service_role;

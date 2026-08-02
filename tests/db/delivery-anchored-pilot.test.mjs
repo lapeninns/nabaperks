@@ -49,12 +49,13 @@ test(
             'admin_confirm_merchant_launch_delivered',
             'admin_set_merchant_launch_pilot_extension',
             'claim_merchant_launch_trial_sync',
+            'refresh_merchant_launch_trial_sync_claim',
             'confirm_merchant_launch_trial_sync',
             'fail_merchant_launch_trial_sync'
           )
         order by proname`
 
-      assert.equal(functions.length, 6)
+      assert.equal(functions.length, 7)
       for (const fn of functions) {
         assert.equal(fn.prosecdef, true, `${fn.proname}: SECURITY DEFINER`)
         assert.equal(
@@ -129,6 +130,24 @@ test(
         0,
         "an active lease prevents a duplicate worker claim"
       )
+
+      const [{ refreshedTrialEnd }] = await tx`
+        select public.refresh_merchant_launch_trial_sync_claim(
+          ${claim.fulfilment_id}::uuid,
+          ${claim.lease_id}::uuid,
+          ${claim.stripe_subscription_id}
+        ) as "refreshedTrialEnd"`
+      assert.equal(
+        refreshedTrialEnd.toISOString(),
+        claim.desired_trial_end.toISOString()
+      )
+      const [refreshedLease] = await tx`
+        select extract(epoch from (
+          worker_lease_expires_at - transaction_timestamp()
+        ))::int as remaining_seconds
+        from public.merchant_launch_fulfilments
+        where id = ${claim.fulfilment_id}::uuid`
+      assert.ok(refreshedLease.remaining_seconds >= 599)
 
       const [{ confirmed }] = await tx`
         select public.confirm_merchant_launch_trial_sync(
@@ -260,8 +279,31 @@ test(
       )
       await tx`
         update public.merchant_launch_fulfilments
-        set desired_stripe_trial_end = ${advancedTrialEnd}
+        set desired_stripe_trial_end = ${advancedTrialEnd},
+            worker_lease_expires_at = transaction_timestamp() - interval '1 second'
         where id = ${staleClaim.fulfilment_id}::uuid`
+      const [{ staleRefresh }] = await tx`
+        select public.refresh_merchant_launch_trial_sync_claim(
+          ${staleClaim.fulfilment_id}::uuid,
+          ${staleClaim.lease_id}::uuid,
+          ${staleClaim.stripe_subscription_id}
+        ) as "staleRefresh"`
+      assert.equal(staleRefresh, null)
+
+      const [reclaimed] =
+        await tx`select * from public.claim_merchant_launch_trial_sync()`
+      assert.notEqual(reclaimed.lease_id, staleClaim.lease_id)
+      const [{ reclaimedRefresh }] = await tx`
+        select public.refresh_merchant_launch_trial_sync_claim(
+          ${reclaimed.fulfilment_id}::uuid,
+          ${reclaimed.lease_id}::uuid,
+          ${reclaimed.stripe_subscription_id}
+        ) as "reclaimedRefresh"`
+      assert.equal(
+        reclaimedRefresh.toISOString(),
+        advancedTrialEnd.toISOString()
+      )
+
       const [{ staleConfirmed }] = await tx`
         select public.confirm_merchant_launch_trial_sync(
           ${staleClaim.fulfilment_id}::uuid,

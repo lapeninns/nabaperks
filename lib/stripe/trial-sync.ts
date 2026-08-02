@@ -23,6 +23,7 @@ type TrialSyncErrorCode =
   | "stripe_retrieve_failed"
   | "stripe_update_failed"
   | "stripe_readback_mismatch"
+  | "database_lease_refresh_failed"
   | "database_confirm_failed"
   | "subscription_not_trialing"
   | "subscription_missing"
@@ -44,6 +45,11 @@ export type BillingTrialSyncDependencies = {
     params: TrialUpdateParams,
     idempotencyKey: string
   ) => Promise<TrialSubscription>
+  readonly refreshClaim: (input: {
+    fulfilmentId: string
+    leaseId: string
+    stripeSubscriptionId: string
+  }) => Promise<string | null>
   readonly confirm: (input: {
     fulfilmentId: string
     leaseId: string
@@ -104,7 +110,27 @@ export async function processBillingTrialSyncClaim(
     return recordFailure(claim, "subscription_not_trialing", deps)
   }
 
-  const desiredTrialEnd = Math.floor(desiredTrialEndMs / 1_000)
+  let refreshedDesiredTrialEnd: string | null
+  try {
+    refreshedDesiredTrialEnd = await deps.refreshClaim({
+      fulfilmentId: claim.fulfilmentId,
+      leaseId: claim.leaseId,
+      stripeSubscriptionId: claim.stripeSubscriptionId,
+    })
+  } catch {
+    return recordFailure(claim, "database_lease_refresh_failed", deps)
+  }
+  if (refreshedDesiredTrialEnd === null) {
+    return recordFailure(claim, "database_lease_refresh_failed", deps)
+  }
+  const refreshedDesiredTrialEndMs = new Date(
+    refreshedDesiredTrialEnd
+  ).getTime()
+  if (!Number.isFinite(refreshedDesiredTrialEndMs)) {
+    return recordFailure(claim, "invalid_trial_end", deps)
+  }
+
+  const desiredTrialEnd = Math.floor(refreshedDesiredTrialEndMs / 1_000)
   const trialEnd = Math.max(desiredTrialEnd, subscription.trial_end ?? 0)
   let updated = subscription
   if (subscription.trial_end !== trialEnd) {
@@ -239,6 +265,18 @@ export async function runBillingTrialSync() {
       stripe.subscriptions.retrieve(subscriptionId),
     updateSubscription: (subscriptionId, params, idempotencyKey) =>
       stripe.subscriptions.update(subscriptionId, params, { idempotencyKey }),
+    refreshClaim: async (input) => {
+      const result = await supabase.rpc(
+        "refresh_merchant_launch_trial_sync_claim",
+        {
+          p_fulfilment_id: input.fulfilmentId,
+          p_lease_id: input.leaseId,
+          p_stripe_subscription_id: input.stripeSubscriptionId,
+        }
+      )
+      if (result.error) throw new Error("Trial sync lease refresh failed")
+      return typeof result.data === "string" ? result.data : null
+    },
     confirm: async (input) => {
       const result = await supabase.rpc("confirm_merchant_launch_trial_sync", {
         p_fulfilment_id: input.fulfilmentId,

@@ -31,6 +31,7 @@ function dependencies(overrides = {}) {
       ...subscription,
       trial_end: params.trial_end,
     }),
+    refreshClaim: async () => claim.desiredTrialEnd,
     confirm: async () => true,
     fail: async () => true,
     ...overrides,
@@ -105,6 +106,61 @@ test("Given Stripe already has a later trial When synchronising Then the provide
   assert.equal(updateCalls, 0)
   assert.equal(updatedTrialEnd, null)
   assert.equal(confirmedTrialEnd, new Date(laterTrialEnd * 1_000).toISOString())
+  assert.deepEqual(result, { status: "synchronised" })
+})
+
+test("Given a worker lost its lease When it resumes Then no stale Stripe mutation is attempted", async () => {
+  let updateCalls = 0
+  let failed = null
+  const result = await processBillingTrialSyncClaim(
+    claim,
+    dependencies({
+      retrieveSubscription: async () => ({
+        ...subscription,
+        trial_end: subscription.trial_end - 24 * 60 * 60,
+      }),
+      refreshClaim: async () => null,
+      updateSubscription: async () => {
+        updateCalls += 1
+        return subscription
+      },
+      fail: async (input) => {
+        failed = input
+        return false
+      },
+    })
+  )
+
+  assert.equal(updateCalls, 0)
+  assert.equal(failed.errorCode, "database_lease_refresh_failed")
+  assert.deepEqual(result, {
+    status: "failed",
+    errorCode: "database_lease_refresh_failed",
+  })
+})
+
+test("Given the desired target advanced during a claim When the lease refreshes Then Stripe receives the latest target", async () => {
+  const advancedTrialEnd = "2026-09-19T12:00:00.000Z"
+  let updatedTrialEnd = null
+  const result = await processBillingTrialSyncClaim(
+    claim,
+    dependencies({
+      retrieveSubscription: async () => ({
+        ...subscription,
+        trial_end: subscription.trial_end - 24 * 60 * 60,
+      }),
+      refreshClaim: async () => advancedTrialEnd,
+      updateSubscription: async (_subscriptionId, params) => {
+        updatedTrialEnd = params.trial_end
+        return { ...subscription, trial_end: params.trial_end }
+      },
+    })
+  )
+
+  assert.equal(
+    updatedTrialEnd,
+    Math.floor(new Date(advancedTrialEnd).getTime() / 1_000)
+  )
   assert.deepEqual(result, { status: "synchronised" })
 })
 
