@@ -59,7 +59,7 @@ export default function PricingPage() {
         <PageTitle
           eyebrow="Pricing"
           title="One core plan. Two clear ways to pay."
-          description="Pay for the physical launch today. Prove the platform during the free pilot before recurring billing starts."
+          description="Pay for the physical launch today. Allow up to 14 days for poster delivery; the 28-day platform pilot begins on confirmed delivery before recurring billing."
         />
         <GrowthPlanPricing className="mt-6" />
         <TakeoverAnchor className="mt-5" />

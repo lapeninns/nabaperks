@@ -4,6 +4,21 @@ import path from "node:path"
 import { test } from "node:test"
 import { fileURLToPath } from "node:url"
 
+import {
+  BONUS_STACK,
+  CORE_OFFER,
+  DFY_LAUNCH,
+  FEATURES,
+  GUARANTEE,
+  GUARANTEE_ROI,
+  OFFER,
+  PLAN_LINE,
+  PROBLEM,
+  PRODUCT,
+  SCARCITY,
+  TRANSFORMATION,
+} from "../../lib/marketing/facts.ts"
+
 /**
  * Marketing rebuild contracts (offer v3, sourced from the finalised offer
  * pack): the locked commercial model lives in `lib/marketing/facts.ts`, every
@@ -101,94 +116,94 @@ test("Given Nabaperks owns the public narrative When marketing and entity source
   assert.match(facts, /Built around how independent pubs actually work/)
 })
 
-test("Given the finalised offer pack When facts.ts is inspected Then the locked commercial model is encoded", () => {
-  const facts = readProjectFile("lib", "marketing", "facts.ts")
-
-  // The safer wrapper leads public pages; the campaign wrapper is retained
-  // only for a separately approved campaign.
-  assert.match(facts, /name: "The 28-Day First-Regular Launch"/)
-  assert.match(
-    facts,
-    /campaignName: "The 28-Day Gastropub Mid-Week Revenue Accelerator"/
+test("Given the finalised offer pack When marketing facts are loaded Then the public commercial contract is exact", () => {
+  assert.deepEqual(
+    {
+      name: OFFER.name,
+      campaignName: OFFER.campaignName,
+      nameSafe: OFFER.nameSafe,
+    },
+    {
+      name: "The 28-Day First-Regular Launch",
+      campaignName: "The 28-Day Gastropub Mid-Week Revenue Accelerator",
+      nameSafe: "The 28-Day First-Regular Launch",
+    }
   )
-  assert.match(facts, /nameSafe: "The 28-Day First-Regular Launch"/)
-  // The name is contextualised with a plain benefit line, and must never
-  // render the revenue-promise disclaimer voice or the word "guarantee".
-  assert.match(
-    facts,
-    /nameNote:\s*\n?\s*"Built to encourage measurable return visits/
-  )
-  assert.doesNotMatch(facts, /nameNote:[^\n]*guarantee/i)
+  assert.match(OFFER.nameNote, /^Built to encourage measurable return visits/)
+  assert.doesNotMatch(OFFER.nameNote, /guarantee/i)
 
-  // The launch fee and recurring cadence live with PRODUCT; PLAN_LINE
-  // single-sources the complete standard investment.
-  assert.doesNotMatch(
-    facts,
-    /export const SETUP_FEE\b/,
-    "launch pricing must remain part of the PRODUCT fact set"
-  )
-  assert.match(facts, /export const PLAN_LINE = /)
-  assert.match(facts, /launchFee: "£299\.99"/)
-  assert.match(
-    facts,
-    /13 payments totalling £909\.87 in each 364-day billing year\./
-  )
-
-  // Subscription and anchor facts stay on the approved model.
-  assert.match(facts, /price: "£69\.99 every 28 days"/)
-  assert.match(facts, /pilot: "28-day free platform pilot"/)
-  assert.match(facts, /name: "The Ultimate Pub Loyalty Takeover"/)
-  assert.match(facts, /price: "£4,999\.99"/)
-
-  // The display-split pairs behind the pricing sheet's price lockups stay
-  // pinned to the sentence forms above.
-  assert.match(facts, /priceAmount: "69\.99"/)
-  assert.match(facts, /priceCadence: "every 28 days"/)
-  assert.match(facts, /annualPriceAmount: "699\.90"/)
-  assert.match(facts, /annualPriceCadence: "a year"/)
-  assert.match(facts, /annualSavingShort: "Save £209\.97"/)
-
-  // Guarantee stack: First-Regular plus the 90-Day ROI Extension.
-  assert.match(facts, /export const GUARANTEE = \{/)
-  assert.match(facts, /export const GUARANTEE_ROI = \{/)
-  assert.match(facts, /name: "90-Day ROI Extension"/)
-  assert.match(
-    facts,
-    /you receive £209\.97 of plan-fee relief/,
-    "ROI extension headline must match the guarantee doc"
-  )
-  assert.match(facts, /We do not guarantee midweek revenue or filled tables\./)
-
-  // Honest scarcity: the real 5-a-week human cap.
-  assert.match(facts, /export const SCARCITY = \{/)
-  assert.match(facts, /5 new pubs a week/)
-
-  // Delivery: the five done-for-you steps and the three bonuses.
-  const dfySteps = facts.match(
-    /title: "(We set up|We configure|We turn on|We print|You go live)/g
+  assert.deepEqual(
+    {
+      launchFee: PRODUCT.launchFee,
+      recurringPrice: PRODUCT.price,
+      annualPrice: PRODUCT.annualPrice,
+      pilot: PRODUCT.pilot,
+      fulfilmentAllowance: PRODUCT.fulfilmentAllowance,
+    },
+    {
+      launchFee: "£299.99",
+      recurringPrice: "£69.99 every 28 days",
+      annualPrice: "£699.90 a year",
+      pilot: "28-day free platform pilot from poster delivery",
+      fulfilmentAllowance:
+        "Allow up to 14 calendar days for print and delivery.",
+    }
   )
   assert.equal(
-    dfySteps?.length,
-    5,
-    "DFY_LAUNCH must carry the five master-doc steps"
+    PLAN_LINE,
+    "£299.99 done-for-you launch today. Allow up to 14 calendar days for print and delivery. Your 28-day platform pilot begins when your posters are delivered. Then £69.99 every 28 days. 13 payments totalling £909.87 in each 364-day billing year."
   )
-  assert.match(facts, /export const CORE_OFFER = \[/)
-  assert.match(facts, /export const BONUS_STACK = \[/)
-  assert.match(facts, /Bring a Regular/)
+  assert.deepEqual(
+    {
+      priceAmount: PRODUCT.priceAmount,
+      priceCadence: PRODUCT.priceCadence,
+      annualPriceAmount: PRODUCT.annualPriceAmount,
+      annualPriceCadence: PRODUCT.annualPriceCadence,
+      annualSavingShort: PRODUCT.annualSavingShort,
+    },
+    {
+      priceAmount: "69.99",
+      priceCadence: "every 28 days",
+      annualPriceAmount: "699.90",
+      annualPriceCadence: "a year",
+      annualSavingShort: "Save £209.97",
+    }
+  )
 
-  // Hybrid SaaS-blueprint sections are sourced from the pack: the pain
-  // objections (doc 3 Step 2), the feature set, and the before/after outcome.
-  assert.match(facts, /export const PROBLEM = \{/)
-  assert.match(facts, /export const FEATURES: readonly MarketingFeature\[\]/)
-  assert.match(facts, /export const TRANSFORMATION = \{/)
-  const featureTabs = facts.match(
-    /key: "(no-app-qr|mystery-rewards|dashboard|birthdays|referrals|posters)"/g
+  assert.equal(GUARANTEE.name, "First-Regular Guarantee")
+  assert.equal(GUARANTEE_ROI.name, "90-Day ROI Extension")
+  assert.match(GUARANTEE_ROI.line, /£209\.97 of plan-fee relief/)
+  assert.match(OFFER.nameNote, /never a promise of revenue or filled tables/i)
+  assert.match(SCARCITY.capLine, /5 new pubs a week/)
+
+  assert.equal(DFY_LAUNCH.steps.length, 5)
+  assert.deepEqual(
+    DFY_LAUNCH.steps.map(({ title }) => title),
+    [
+      "We set up your venue",
+      "We configure your rewards",
+      "We turn on the automations",
+      "We print and post your posters",
+      "You go live",
+    ]
   )
-  assert.equal(
-    featureTabs?.length,
-    6,
-    "FEATURES must carry the six product-feature tabs"
+  assert.ok(CORE_OFFER.length > 0)
+  assert.equal(BONUS_STACK.length, 3)
+  assert.ok(BONUS_STACK.some(({ name }) => name.includes("Bring a Regular")))
+  assert.ok(PROBLEM.pains.length > 0)
+  assert.deepEqual(
+    FEATURES.map(({ key }) => key),
+    [
+      "no-app-qr",
+      "mystery-rewards",
+      "dashboard",
+      "birthdays",
+      "referrals",
+      "posters",
+    ]
   )
+  assert.ok(TRANSFORMATION.before.length > 0)
+  assert.ok(TRANSFORMATION.after.length > 0)
 })
 
 test("Given date-bound campaign wrappers When public marketing routes render Then they revalidate", () => {

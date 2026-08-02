@@ -23,16 +23,20 @@ test.describe("merchant billing recovery", () => {
       page.getByRole("heading", { name: "Activate your venue" })
     ).toBeVisible()
     await expect(page.getByText("Growth Plan", { exact: true })).toBeVisible()
-    await expect(page.getByText("28 days free", { exact: true })).toBeVisible()
+    await expect(
+      page.getByText(/28-day free platform pilot.*poster delivery/i)
+    ).toBeVisible()
     await expect(page.getByText("£299.99", { exact: true })).toBeVisible()
     await expect(
       page.getByText("£69.99 every 28 days", { exact: true })
     ).toBeVisible()
-    await expect(page.getByText("£699.90 a year", { exact: true })).toBeVisible()
+    await expect(
+      page.getByText("£699.90 a year", { exact: true })
+    ).toBeVisible()
     await expect(page.getByText("£209.97", { exact: true })).toBeVisible()
     await expect(
       page.getByText(
-        "Secure checkout via Stripe. Cancel renewal anytime after a short exit review from your billing page."
+        /Secure checkout via Stripe.*launch fee applies to both billing schedules.*Cancel renewal anytime/i
       )
     ).toBeVisible()
     await expect(page.getByText("First-Regular Guarantee:")).toBeVisible()
@@ -81,7 +85,9 @@ test.describe("merchant billing recovery", () => {
       page.getByRole("heading", { name: "Checkout confirmed" })
     ).toBeVisible()
     await expect(
-      page.getByText("28-day free platform pilot is active")
+      page.getByText(
+        /holding recurring billing.*delivery-anchored platform pilot/i
+      )
     ).toBeVisible()
     await expect(
       page.getByRole("link", { name: "See your venue QR" })
@@ -145,7 +151,9 @@ test.describe("merchant billing recovery", () => {
   }) => {
     await page.goto(`${HARNESS_ROUTES.account}?tab=billing&billing=active-year`)
 
-    await expect(page.getByText("£699.90 a year", { exact: true })).toBeVisible()
+    await expect(
+      page.getByText("£699.90 a year", { exact: true })
+    ).toBeVisible()
     await expect(
       page.getByText("Paid upfront after the pilot", { exact: true })
     ).toBeVisible()

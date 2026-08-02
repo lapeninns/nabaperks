@@ -169,3 +169,17 @@ test("Given admin billing reads provider identifiers When records reach the page
   assert.doesNotMatch(page, /stripe_subscription_id/)
   assert.doesNotMatch(page, /stripe_customer_id/)
 })
+
+test("Given billing pagination selects merchants When fulfilments load Then the query follows those merchant ids", () => {
+  const data = readProjectFile("lib", "admin", "billing-data.ts")
+
+  assert.match(data, /const merchantIds = billingRows\.map/)
+  assert.match(data, /if \(merchantIds\.length === 0\) return \[\]/)
+  assert.match(data, /\.in\("merchant_id", merchantIds\)/)
+
+  const fulfilmentQuery = data.match(
+    /\.from\("merchant_launch_fulfilments"\)([\s\S]*?)if \(fulfilmentResult\.error\)/
+  )?.[1]
+  assert.ok(fulfilmentQuery)
+  assert.doesNotMatch(fulfilmentQuery, /\.limit\(/)
+})

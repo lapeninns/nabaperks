@@ -9,8 +9,7 @@ import { Button } from "@/components/ui/button"
 import { PRODUCT } from "@/lib/marketing/facts"
 
 export type BillingCheckoutActionState =
-  | { status: "idle" }
-  | { status: "error"; message: string }
+  { status: "idle" } | { status: "error"; message: string }
 
 export const IDLE_BILLING_CHECKOUT_ACTION_STATE: BillingCheckoutActionState = {
   status: "idle",
@@ -84,7 +83,7 @@ export function BillingCheckoutForm({
         </div>
 
         <p className="text-xs leading-5 text-muted-foreground">
-          Annual prepay starts after the same 28-day pilot.{" "}
+          Annual prepay starts after the same delivery-anchored 28-day pilot.{" "}
           {PRODUCT.annualSaving}
         </p>
 

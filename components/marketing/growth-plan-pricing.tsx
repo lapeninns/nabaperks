@@ -41,12 +41,14 @@ export function GrowthPlanPricing({ className }: { className?: string }) {
     <PricingSheet data-growth-plan-pricing className={className}>
       <CampaignStrip variant="strip" />
       <PricingSheetBody>
-        <div className="grid gap-3">
+        <div className="grid min-w-0 gap-3 [&>*]:min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <MonoTag tone="accent" className="-rotate-1">
               {PRODUCT.planName}
             </MonoTag>
-            <MonoTag>{PRODUCT.pilot}</MonoTag>
+            <MonoTag className="h-auto max-w-full basis-full whitespace-normal sm:basis-auto [&>span]:overflow-visible [&>span]:text-clip [&>span]:whitespace-normal">
+              {PRODUCT.pilot}
+            </MonoTag>
           </div>
           <h2 className="text-2xl leading-tight font-extrabold text-foreground sm:text-3xl">
             {OFFER.name}
@@ -117,16 +119,28 @@ export function GrowthPlanPricing({ className }: { className?: string }) {
             </span>
           </li>
           <li className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-dashed border-border py-2 last:border-b-0">
-            <span className="mono-meta text-foreground">Days 1–28</span>
+            <span className="mono-meta text-foreground">
+              Print and delivery
+            </span>
             <span className="text-sm leading-6">
-              Free platform pilot. Card required — recurring billing starts only
-              after the pilot.
+              <span className="font-extrabold text-foreground">
+                Up to 14 days
+              </span>{" "}
+              to configure your launch, print your first poster run and deliver
+              it to your venue.
             </span>
           </li>
           <li className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2">
-            <span className="mono-meta text-foreground">After the pilot</span>
+            <span className="mono-meta text-foreground">
+              From poster delivery
+            </span>
             <span className="text-sm leading-6">
-              One of the two payment schedules above begins.
+              <span className="font-extrabold text-foreground">
+                28 days free
+              </span>
+              {". "}
+              {PRODUCT.pilotAnchorLine} Recurring billing starts after that
+              pilot.
             </span>
           </li>
         </ol>

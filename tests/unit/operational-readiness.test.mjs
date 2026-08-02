@@ -25,6 +25,7 @@ function operationalSignals(overrides = {}) {
       "birthday-rewards",
       "referral-bonus-drain",
       "loyalty-invite-drain",
+      "billing-trial-sync",
     ].map((name) => ({
       name,
       state: "ok",

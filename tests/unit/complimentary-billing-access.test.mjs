@@ -23,7 +23,9 @@ test("complimentary merchant billing bypasses provider reconciliation but preser
 
   assert.match(panel, /merchant\.requires_billing !== false/)
   assert.match(panel, /if \(!requiresBilling\)/)
-  assert.match(panel, /await getMerchantBilling\(merchant\.id\)/)
+  assert.match(panel, /requiresBilling && reconciled/)
+  assert.match(panel, /: getMerchantBilling\(merchant\.id\)/)
+  assert.match(panel, /await Promise\.all\(\[/)
   assert.match(panel, /requiresBilling=\{requiresBilling\}/)
   assert.match(panel, /cleanupOutcomeQuery=\{cleanupOutcomeQuery\}/)
 

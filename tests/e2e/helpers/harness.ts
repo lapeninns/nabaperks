@@ -25,6 +25,8 @@ export const HARNESS_ROUTES = {
   onboarding: "/dev/app-harness/onboarding",
   skeletons: "/dev/app-harness/skeletons",
   states: "/dev/app-harness/states",
+  trial: "/dev/app-harness/trial",
+  trialAdmin: "/dev/app-harness/trial/admin",
   designSystem: "/dev/design-system",
   posterPreview: "/dev/poster-preview",
   tentPreview: "/dev/tent-preview",

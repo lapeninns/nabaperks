@@ -49,6 +49,7 @@ function attempt(overrides = {}) {
     cancelUrl:
       "http://localhost:4317/app/launch?tab=billing&checkout=cancelled",
     attemptExpiresAt: ATTEMPT_EXPIRY,
+    checkoutContractVersion: "delivery_anchored_42_day",
     stripeCustomerId: null,
     stripeCheckoutSessionId: null,
     stripeCheckoutSessionUrl: null,
@@ -354,7 +355,7 @@ test("a fresh attempt creates one customer and one exact idempotent Session", as
           { price: "price_28_day", quantity: 1 },
           { price: "price_launch_29999", quantity: 1 },
         ])
-        assert.equal(params.subscription_data.trial_period_days, 28)
+        assert.equal(params.subscription_data.trial_period_days, 42)
         assert.equal(
           params.subscription_data.metadata.billing_cadence,
           "28_days"
@@ -365,6 +366,9 @@ test("a fresh attempt creates one customer and one exact idempotent Session", as
         )
         assert.equal(params.metadata.merchant_id, merchant.id)
         assert.equal(params.metadata.attempt_id, attempt().attemptId)
+        assert.equal(params.metadata.pilot_anchor, "confirmed_delivery")
+        assert.equal(params.metadata.fulfilment_allowance_days, "14")
+        assert.equal(params.metadata.usable_pilot_days, "28")
         assert.equal(params.success_url, attempt().successUrl)
         assert.equal("payment_method_types" in params, false)
         return {
@@ -414,6 +418,45 @@ test("an ambiguous retry replays the attempt's deterministic Session expiry", as
     "retries must not change Stripe's idempotent request parameters"
   )
   assert.equal(result.status, "redirect")
+})
+
+test("a legacy ambiguous attempt replays the original 28-day provider contract", async () => {
+  const result = await prepareBillingCheckout(
+    input,
+    dependencies({
+      claimAttempt: async () =>
+        attempt({
+          checkoutContractVersion: "legacy_28_day",
+          stripeCustomerId: "cus_owned",
+        }),
+      bindOffer: async () => ({
+        status: "existing",
+        launchFeePolicy: "charged",
+        stripeLaunchPriceId: "price_launch_29999",
+        trialPolicy: null,
+      }),
+      createCheckoutSession: async ({ params, idempotencyKey }) => {
+        assert.equal(
+          idempotencyKey,
+          "billing-checkout:10000000-0000-4000-8000-000000000001"
+        )
+        assert.equal(params.subscription_data.trial_period_days, 28)
+        assert.equal("pilot_anchor" in params.subscription_data.metadata, false)
+        assert.equal("pilot_anchor" in params.metadata, false)
+        return {
+          id: "cs_legacy",
+          url: "https://checkout.stripe.test/cs_legacy",
+          status: "open",
+          expires_at: params.expires_at,
+        }
+      },
+    })
+  )
+
+  assert.deepEqual(result, {
+    status: "redirect",
+    url: "https://checkout.stripe.test/cs_legacy",
+  })
 })
 
 test("provider failure releases only its fenced attempt and returns safe retry copy", async () => {
@@ -485,7 +528,7 @@ test("a stale annual attempt rotates safely when 28-day billing is selected", as
           { price: "price_28_day", quantity: 1 },
           { price: "price_launch_29999", quantity: 1 },
         ])
-        assert.equal(params.subscription_data.trial_period_days, 28)
+        assert.equal(params.subscription_data.trial_period_days, 42)
         assert.equal(params.metadata.billing_cadence, "28_days")
         assert.equal(
           idempotencyKey,
@@ -537,7 +580,7 @@ test("annual Checkout uses the annual Price, the launch fee and the same pilot",
           { price: "price_annual_69990", quantity: 1 },
           { price: "price_launch_29999", quantity: 1 },
         ])
-        assert.equal(params.subscription_data.trial_period_days, 28)
+        assert.equal(params.subscription_data.trial_period_days, 42)
         assert.equal(
           params.subscription_data.metadata.billing_cadence,
           "annual"
@@ -883,7 +926,7 @@ test("Portal reconciliation hydrates the known Subscription and preserves schedu
   assert.equal(applied.expectedBillingUpdatedAt, BILLING_UPDATED_AT)
 })
 
-test("a first-time merchant still receives the 28-day introductory trial", async () => {
+test("a first-time merchant receives the delivery-safe provisional trial", async () => {
   let params = null
   await prepareBillingCheckout(
     input,
@@ -903,7 +946,8 @@ test("a first-time merchant still receives the 28-day introductory trial", async
       },
     })
   )
-  assert.equal(params.subscription_data.trial_period_days, 28)
+  assert.equal(params.subscription_data.trial_period_days, 42)
+  assert.equal(params.metadata.pilot_anchor, "confirmed_delivery")
 })
 
 test("a returning merchant does not get a second introductory trial", async () => {
@@ -945,4 +989,6 @@ test("a returning merchant does not get a second introductory trial", async () =
     !("trial_period_days" in params.subscription_data),
     "the key is omitted entirely, not sent as undefined"
   )
+  assert.equal("pilot_anchor" in params.subscription_data.metadata, false)
+  assert.equal("pilot_anchor" in params.metadata, false)
 })

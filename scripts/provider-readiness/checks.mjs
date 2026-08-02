@@ -186,12 +186,7 @@ async function checkLaunchStripePrice({ apiKey, priceId, report }) {
   })
   if (!body) return
 
-  const matchesLaunch =
-    body.id === priceId &&
-    body.active === true &&
-    body.currency === "gbp" &&
-    body.unit_amount === 29999 &&
-    body.recurring == null
+  const matchesLaunch = isExpectedLaunchStripePrice(body, priceId)
 
   if (matchesLaunch) {
     report.pass(
@@ -204,6 +199,16 @@ async function checkLaunchStripePrice({ apiKey, priceId, report }) {
       "Launch price does not match active one-time GBP 299.99."
     )
   }
+}
+
+export function isExpectedLaunchStripePrice(body, priceId) {
+  return (
+    body.id === priceId &&
+    body.active === true &&
+    body.currency === "gbp" &&
+    body.unit_amount === 29999 &&
+    body.recurring == null
+  )
 }
 
 async function loadStripePrice({ apiKey, priceId, gate, report }) {
@@ -229,13 +234,7 @@ async function checkRecurringStripePrice({ apiKey, priceId, report }) {
   })
   if (!body) return
 
-  const matchesPlan =
-    body.id === priceId &&
-    body.active === true &&
-    body.currency === "gbp" &&
-    body.unit_amount === 6999 &&
-    body.recurring?.interval === "day" &&
-    body.recurring?.interval_count === 28
+  const matchesPlan = isExpectedRecurringStripePrice(body, priceId)
 
   if (matchesPlan) {
     report.pass(
@@ -250,6 +249,17 @@ async function checkRecurringStripePrice({ apiKey, priceId, report }) {
   }
 }
 
+export function isExpectedRecurringStripePrice(body, priceId) {
+  return (
+    body.id === priceId &&
+    body.active === true &&
+    body.currency === "gbp" &&
+    body.unit_amount === 6999 &&
+    body.recurring?.interval === "day" &&
+    body.recurring?.interval_count === 28
+  )
+}
+
 async function checkAnnualStripePrice({ apiKey, priceId, report }) {
   const body = await loadStripePrice({
     apiKey,
@@ -259,13 +269,7 @@ async function checkAnnualStripePrice({ apiKey, priceId, report }) {
   })
   if (!body) return
 
-  const matchesPlan =
-    body.id === priceId &&
-    body.active === true &&
-    body.currency === "gbp" &&
-    body.unit_amount === 69990 &&
-    body.recurring?.interval === "year" &&
-    body.recurring?.interval_count === 1
+  const matchesPlan = isExpectedAnnualStripePrice(body, priceId)
 
   if (matchesPlan) {
     report.pass(
@@ -278,6 +282,17 @@ async function checkAnnualStripePrice({ apiKey, priceId, report }) {
       "Annual Growth price does not match active GBP 699.90 each year."
     )
   }
+}
+
+export function isExpectedAnnualStripePrice(body, priceId) {
+  return (
+    body.id === priceId &&
+    body.active === true &&
+    body.currency === "gbp" &&
+    body.unit_amount === 69990 &&
+    body.recurring?.interval === "year" &&
+    body.recurring?.interval_count === 1
+  )
 }
 
 async function checkTwilio({ env, offline, report }) {

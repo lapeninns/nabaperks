@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { usePathname } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
+import { isMerchantAuthRoute } from "@/lib/pwa/app-pwa-routes"
 import { cn } from "@/lib/utils"
 
 type InstallOutcome = "accepted" | "dismissed"
@@ -25,7 +26,7 @@ type InstallCopy = { readonly title: string; readonly description: string }
 
 const DISMISS_STORAGE_KEY = "nabaperks:pwa-install-dismissed:v2"
 const CUSTOMER_PREFIXES = ["/home", "/card", "/reward", "/m", "/q"] as const
-const MERCHANT_PREFIXES = ["/app", "/login", "/signup"] as const
+const MERCHANT_PREFIXES = ["/app"] as const
 const IOS_INSTALL_DESCRIPTION =
   "On iPhone, open Safari's Share menu, then choose Add to Home Screen."
 const INSTALL_COPY = {
@@ -244,6 +245,7 @@ export function AppPwa() {
     !hasMounted ||
     pathname === "/offline" ||
     pathname.startsWith("/m/") ||
+    isMerchantAuthRoute(pathname) ||
     // Setup owns the phone's bottom action area. Deferring the optional install
     // prompt keeps it from covering the reward batch tray or another launch CTA.
     pathname === "/app/launch" ||

@@ -407,7 +407,7 @@ function billingOutcomeModel(outcome: Exclude<BillingPanelOutcome, null>): {
       title: "Checkout confirmed",
       message:
         outcome.status === "trialing"
-          ? "Your 28-day free platform pilot is active. Your venue billing is ready."
+          ? "Stripe is holding recurring billing while your delivery-anchored platform pilot is prepared. See the poster and pilot dates below."
           : "Your Growth Plan is active and the receipt below is up to date.",
     }
   }
