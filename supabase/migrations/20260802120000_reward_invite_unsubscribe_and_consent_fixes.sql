@@ -102,16 +102,28 @@ stable
 security definer
 set search_path = public
 as $$
+  -- Deterministic on ties. Ordering by (created_at, id) is not: consent rows
+  -- written inside one transaction share now(), and `id` is a random uuid, so
+  -- "the latest row" would be decided by uuid sort order. Instead take every
+  -- row at the newest timestamp and treat the key as granted only if they ALL
+  -- say opted_in — so an ambiguous tie records the customer's explicit
+  -- re-consent rather than silently discarding it.
   select coalesce(
     (
-      select consent_status = 'opted_in'
-      from public.consent_records
-      where merchant_id = p_merchant_id
-        and customer_id = p_customer_id
-        and channel = p_channel
-        and policy_version = p_policy_version
-      order by created_at desc, id desc
-      limit 1
+      select bool_and(latest.consent_status = 'opted_in')
+      from public.consent_records latest
+      where latest.merchant_id = p_merchant_id
+        and latest.customer_id = p_customer_id
+        and latest.channel = p_channel
+        and latest.policy_version = p_policy_version
+        and latest.created_at = (
+          select max(peak.created_at)
+          from public.consent_records peak
+          where peak.merchant_id = p_merchant_id
+            and peak.customer_id = p_customer_id
+            and peak.channel = p_channel
+            and peak.policy_version = p_policy_version
+        )
     ),
     false
   );
