@@ -14,6 +14,7 @@ export type {
   LaunchFeePolicy,
   PrepareBillingCheckoutInput,
   PrepareBillingCheckoutResult,
+  TrialPolicy,
 } from "@/lib/stripe/checkout-contracts"
 export { prepareBillingCheckout } from "@/lib/stripe/checkout-prepare"
 export {

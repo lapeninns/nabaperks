@@ -10,6 +10,7 @@ import type {
   BillingCheckoutDependencies,
   CheckoutOfferBinding,
   LaunchFeePolicy,
+  TrialPolicy,
 } from "@/lib/stripe/checkout-contracts"
 
 type RpcResult<T> = { data: T | null; error: { message: string } | null }
@@ -80,6 +81,7 @@ export async function createBillingCheckoutDependencies(): Promise<BillingChecko
           bind_status: CheckoutOfferBinding["status"]
           launch_fee_policy: LaunchFeePolicy | null
           stripe_launch_price_id: string | null
+          trial_policy: TrialPolicy | null
         }>
       >
       const row = requireRpcRow(result, "Checkout offer binding")
@@ -87,6 +89,7 @@ export async function createBillingCheckoutDependencies(): Promise<BillingChecko
         status: row.bind_status,
         launchFeePolicy: row.launch_fee_policy,
         stripeLaunchPriceId: row.stripe_launch_price_id,
+        trialPolicy: row.trial_policy,
       }
     },
     bindCustomer: async (input) => {

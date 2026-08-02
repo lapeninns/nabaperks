@@ -8,6 +8,7 @@ import type {
 export type BillingInterval = "month" | "year"
 export type LaunchFeePolicy =
   "charged" | "annual_included" | "previously_satisfied"
+export type TrialPolicy = "introductory_28_day" | "not_eligible"
 
 export const CHECKOUT_CONTRACT_VERSION = {
   legacy: "legacy_28_day",
@@ -86,6 +87,7 @@ export type CheckoutOfferBinding = {
   status: "bound" | "existing" | "conflict"
   launchFeePolicy: LaunchFeePolicy | null
   stripeLaunchPriceId: string | null
+  trialPolicy: TrialPolicy | null
 }
 
 export type PilotMetadata = {

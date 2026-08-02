@@ -57,12 +57,18 @@ test("build tooling transitive dependencies are pinned past active advisories", 
   )
 })
 
-test("auth callback success remains conditional on Supabase verification", () => {
+test("auth callback installs a session only from a browser-bound PKCE exchange", () => {
   const source = read("app", "auth", "confirm", "route.ts")
 
   assert.match(source, /exchangeCodeForSession\(code\)/)
-  assert.match(source, /verifyOtp\(\{[\s\S]*token_hash: tokenHash/)
-  assert.equal((source.match(/if \(!error\) \{/g) ?? []).length, 2)
+
+  // A bare email token hash is a bearer proof with no browser binding, so
+  // redeeming it here let anyone holding one sign an unrelated browser into
+  // that account. The pin is inverted: this branch must never come back.
+  assert.doesNotMatch(source, /auth\.verifyOtp\(/)
+  assert.doesNotMatch(source, /searchParams\.get\("token_hash"\)/)
+  assert.equal((source.match(/if \(!error\) \{/g) ?? []).length, 1)
+
   assert.match(source, /url\.origin !== origin/)
   assert.match(source, /merchantLoginHref\(\{ error: "verification", next \}\)/)
 })

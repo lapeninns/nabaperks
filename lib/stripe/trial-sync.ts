@@ -41,7 +41,8 @@ export type BillingTrialSyncDependencies = {
   ) => Promise<TrialSubscription | null>
   readonly updateSubscription: (
     subscriptionId: string,
-    params: TrialUpdateParams
+    params: TrialUpdateParams,
+    idempotencyKey: string
   ) => Promise<TrialSubscription>
   readonly confirm: (input: {
     fulfilmentId: string
@@ -105,14 +106,20 @@ export async function processBillingTrialSyncClaim(
 
   const desiredTrialEnd = Math.floor(desiredTrialEndMs / 1_000)
   const trialEnd = Math.max(desiredTrialEnd, subscription.trial_end ?? 0)
-  let updated: TrialSubscription
-  try {
-    updated = await deps.updateSubscription(claim.stripeSubscriptionId, {
-      trial_end: trialEnd,
-      proration_behavior: "none",
-    })
-  } catch {
-    return recordFailure(claim, "stripe_update_failed", deps)
+  let updated = subscription
+  if (subscription.trial_end !== trialEnd) {
+    try {
+      updated = await deps.updateSubscription(
+        claim.stripeSubscriptionId,
+        {
+          trial_end: trialEnd,
+          proration_behavior: "none",
+        },
+        `billing-trial-sync:${claim.fulfilmentId}:${claim.leaseId}`
+      )
+    } catch {
+      return recordFailure(claim, "stripe_update_failed", deps)
+    }
   }
   if (!isTrialSynchronisable(updated.status)) {
     return recordFailure(claim, "subscription_not_trialing", deps)
@@ -230,8 +237,8 @@ export async function runBillingTrialSync() {
     },
     retrieveSubscription: (subscriptionId) =>
       stripe.subscriptions.retrieve(subscriptionId),
-    updateSubscription: (subscriptionId, params) =>
-      stripe.subscriptions.update(subscriptionId, params),
+    updateSubscription: (subscriptionId, params, idempotencyKey) =>
+      stripe.subscriptions.update(subscriptionId, params, { idempotencyKey }),
     confirm: async (input) => {
       const result = await supabase.rpc("confirm_merchant_launch_trial_sync", {
         p_fulfilment_id: input.fulfilmentId,

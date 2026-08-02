@@ -4,8 +4,10 @@ import { test } from "node:test"
 import {
   adminMfaStepUpRequired,
   adminMfaUnenrollmentAllowed,
+  adminStepUpSatisfied,
   isAdminMfaEnrolled,
   resolveAdminMfaState,
+  resolveAdminMfaStateFromFacts,
 } from "@/lib/admin/mfa-gate"
 
 test("an admin with no verified factor is allowed at aal1 (nothing to enforce)", () => {
@@ -42,4 +44,43 @@ test("MFA removal requires an already satisfied AAL2 session", () => {
   assert.equal(adminMfaUnenrollmentAllowed("satisfied"), true)
   assert.equal(adminMfaUnenrollmentAllowed("step-up-required"), false)
   assert.equal(adminMfaUnenrollmentAllowed("no-factor"), false)
+  assert.equal(adminMfaUnenrollmentAllowed("unknown"), false)
+})
+
+test("a pending step-up blocks privileged surfaces but never the step-up itself", () => {
+  // Gates the RLS-bypassing service-role client, the leaf page guard, admin
+  // mutations, and new-factor enrolment. An enrolled admin sitting at aal1 is
+  // exactly the compromised-session case, so it must be false there.
+  assert.equal(adminStepUpSatisfied("satisfied"), true)
+  assert.equal(adminStepUpSatisfied("no-factor"), true)
+  assert.equal(adminStepUpSatisfied("step-up-required"), false)
+})
+
+test("the gate resolves enrolment from the database, not the session cookie", () => {
+  // hasVerifiedFactor comes from viewer_has_verified_mfa_factor(); currentLevel
+  // from the signed JWT. A stale cookie can no longer report "no factor".
+  assert.equal(resolveAdminMfaStateFromFacts(false, "aal1"), "no-factor")
+  assert.equal(resolveAdminMfaStateFromFacts(false, "aal2"), "no-factor")
+  assert.equal(resolveAdminMfaStateFromFacts(true, "aal2"), "satisfied")
+  assert.equal(resolveAdminMfaStateFromFacts(true, "aal1"), "step-up-required")
+})
+
+test("an unreadable assurance fact is unknown, never a permissive default", () => {
+  // getAuthenticatorAssuranceLevel returns { data: null, error } instead of
+  // throwing, so null must not collapse into "no-factor" (which allows).
+  assert.equal(resolveAdminMfaStateFromFacts(null, "aal2"), "unknown")
+  assert.equal(resolveAdminMfaStateFromFacts(undefined, "aal1"), "unknown")
+  assert.equal(resolveAdminMfaStateFromFacts(true, null), "unknown")
+  assert.equal(resolveAdminMfaStateFromFacts(true, undefined), "unknown")
+  assert.equal(resolveAdminMfaStateFromFacts(true, "aal3"), "unknown")
+})
+
+test("an indeterminate assurance level fails closed", () => {
+  // resolveAdminMfaState never returns "unknown"; getAdminAccess does, when
+  // Supabase cannot report the assurance level at all. Treating that as
+  // "no-factor" (the old behaviour) silently re-opened every privileged
+  // surface, so it must deny instead.
+  assert.equal(adminStepUpSatisfied("unknown"), false)
+  assert.equal(isAdminMfaEnrolled("unknown"), true)
+  assert.equal(adminMfaStepUpRequired("unknown"), true)
 })

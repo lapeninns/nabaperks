@@ -6,6 +6,13 @@
 alter table public.billing_checkout_attempts
   add column if not exists checkout_contract_version text;
 
+-- Main's once-per-merchant trial ledger was added after this feature branch.
+-- Attempts whose offer was already frozen must keep the trial-bearing request
+-- body that Stripe may already have accepted under their idempotency key.
+update public.billing_checkout_attempts
+set trial_policy = 'introductory_28_day'
+where checkout_offer_bound and trial_policy is null;
+
 -- Attempts already holding an idempotency key were created with the former
 -- 28-day provider request. Empty ledgers and all later attempts use the
 -- delivery-anchored 42-day contract.
@@ -159,6 +166,14 @@ begin
   if new.launch_fee_status is null or new.stripe_subscription_id is null then
     return new;
   end if;
+  if new.stripe_subscription_status <> 'trialing'
+    and not exists (
+      select 1
+      from public.merchant_launch_fulfilments as fulfilments
+      where fulfilments.merchant_id = new.merchant_id
+    ) then
+    return new;
+  end if;
 
   insert into public.merchant_launch_fulfilments (
     merchant_id,
@@ -250,7 +265,8 @@ create or replace function public.bind_billing_checkout_offer(
 returns table (
   bind_status text,
   launch_fee_policy text,
-  stripe_launch_price_id text
+  stripe_launch_price_id text,
+  trial_policy text
 )
 language plpgsql
 security definer
@@ -259,6 +275,7 @@ as $function$
 declare
   v_attempt public.billing_checkout_attempts%rowtype;
   v_launch_fee_status text;
+  v_trial_status text;
 begin
   if p_merchant_id is null
     or p_attempt_id is null
@@ -276,7 +293,8 @@ begin
     or v_attempt.attempt_id is distinct from p_attempt_id
     or v_attempt.worker_lease_id is distinct from p_worker_lease_id
     or v_attempt.worker_lease_expires_at <= transaction_timestamp() then
-    return query select 'conflict'::text, null::text, null::text;
+    return query select
+      'conflict'::text, null::text, null::text, null::text;
     return;
   end if;
 
@@ -284,13 +302,20 @@ begin
     return query select
       'existing'::text,
       v_attempt.launch_fee_policy,
-      v_attempt.stripe_launch_price_id;
+      v_attempt.stripe_launch_price_id,
+      v_attempt.trial_policy;
     return;
   end if;
 
-  select customers.launch_fee_status into v_launch_fee_status
+  select customers.launch_fee_status, customers.introductory_trial_status
+  into v_launch_fee_status, v_trial_status
   from public.billing_customers as customers
   where customers.merchant_id = p_merchant_id;
+
+  v_attempt.trial_policy := case
+    when v_trial_status is not null then 'not_eligible'
+    else 'introductory_28_day'
+  end;
 
   if v_launch_fee_status is not null then
     v_attempt.launch_fee_policy := 'previously_satisfied';
@@ -299,7 +324,8 @@ begin
     v_attempt.launch_fee_policy := 'charged';
     v_attempt.stripe_launch_price_id := btrim(p_configured_launch_price_id);
   else
-    return query select 'conflict'::text, null::text, null::text;
+    return query select
+      'conflict'::text, null::text, null::text, null::text;
     return;
   end if;
 
@@ -307,6 +333,7 @@ begin
   set checkout_offer_bound = true,
       launch_fee_policy = v_attempt.launch_fee_policy,
       stripe_launch_price_id = v_attempt.stripe_launch_price_id,
+      trial_policy = v_attempt.trial_policy,
       updated_at = transaction_timestamp()
   where attempts.merchant_id = p_merchant_id
     and attempts.attempt_id = p_attempt_id
@@ -316,7 +343,8 @@ begin
   return query select
     'bound'::text,
     v_attempt.launch_fee_policy,
-    v_attempt.stripe_launch_price_id;
+    v_attempt.stripe_launch_price_id,
+    v_attempt.trial_policy;
 end
 $function$;
 

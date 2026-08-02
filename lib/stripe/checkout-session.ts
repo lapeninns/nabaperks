@@ -173,13 +173,17 @@ export async function materializeCheckoutSession(
         }
     const usesDeliveryAnchoredContract =
       attempt.checkoutContractVersion === CHECKOUT_CONTRACT_VERSION.current
-    const pilotMetadata: Partial<PilotMetadata> = usesDeliveryAnchoredContract
-      ? {
-          pilot_anchor: "confirmed_delivery",
-          fulfilment_allowance_days: "14",
-          usable_pilot_days: "28",
-        }
-      : {}
+    const hasIntroductoryTrial =
+      attempt.checkoutContractVersion === CHECKOUT_CONTRACT_VERSION.legacy ||
+      offer.trialPolicy === "introductory_28_day"
+    const pilotMetadata: Partial<PilotMetadata> =
+      usesDeliveryAnchoredContract && hasIntroductoryTrial
+        ? {
+            pilot_anchor: "confirmed_delivery",
+            fulfilment_allowance_days: "14",
+            usable_pilot_days: "28",
+          }
+        : {}
     const session = await deps.createCheckoutSession({
       params: {
         mode: "subscription",
@@ -191,7 +195,9 @@ export async function materializeCheckoutSession(
             : []),
         ],
         subscription_data: {
-          trial_period_days: usesDeliveryAnchoredContract ? 42 : 28,
+          ...(hasIntroductoryTrial
+            ? { trial_period_days: usesDeliveryAnchoredContract ? 42 : 28 }
+            : {}),
           metadata: {
             merchant_id: input.merchant.id,
             plan: "growth",

@@ -112,13 +112,17 @@ async function matchMerchantMembershipForContact(
   return (data?.id as string | undefined) ?? null
 }
 
-async function isInviteEmailSuppressed(emailHmac: string): Promise<boolean> {
+async function isInviteEmailSuppressed(
+  merchantId: string,
+  emailHmac: string
+): Promise<boolean> {
   const supabase = createSupabaseServiceRoleClient()
-  const result = await supabase
-    .from("reward_invite_email_suppressions")
-    .select("email_hmac")
-    .eq("email_hmac", emailHmac)
-    .maybeSingle()
+  // Venue-scoped: one venue's unsubscribe must not silence every other venue.
+  // Legacy unscoped rows (merchant_id is null) still suppress everywhere.
+  const result = await supabase.rpc("reward_invite_email_suppressed", {
+    p_merchant_id: merchantId,
+    p_email_hmac: emailHmac,
+  })
   return shouldSuppressRewardInviteEmail(result)
 }
 
@@ -164,8 +168,14 @@ async function createRewardInviteForUnmatchedContact(
     }
   }
 
+  // Two independent capabilities. Reusing one value for both meant a leaked
+  // claim URL also carried unsubscribe authority.
   const token = randomBytes(32).toString("base64url")
   const claimTokenHash = createHash("sha256").update(token).digest("hex")
+  const unsubscribeToken = randomBytes(32).toString("base64url")
+  const unsubscribeTokenHash = createHash("sha256")
+    .update(unsubscribeToken)
+    .digest("hex")
 
   const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase.rpc("create_merchant_reward_invite", {
@@ -179,6 +189,7 @@ async function createRewardInviteForUnmatchedContact(
     p_personal_message: input.message || null,
     p_reward_expires_after_days: expiresInDays,
     p_claim_token_hash: claimTokenHash,
+    p_unsubscribe_token_hash: unsubscribeTokenHash,
   })
   if (error) return { ok: false }
 
@@ -186,7 +197,7 @@ async function createRewardInviteForUnmatchedContact(
   const deduped = data?.[0]?.deduped === true
 
   if (!isEmail || !emailHmac || deduped) return { ok: true }
-  if (await isInviteEmailSuppressed(emailHmac)) return { ok: true }
+  if (await isInviteEmailSuppressed(merchant.id, emailHmac)) return { ok: true }
 
   try {
     await enforceRateLimit({
@@ -207,7 +218,9 @@ async function createRewardInviteForUnmatchedContact(
     rewardName: input.rewardName,
     personalMessage: input.message || null,
     claimUrl,
-    unsubscribeUrl: `${claimUrl}?unsubscribe=1`,
+    // Its own route and its own secret: the claim token must not be replayable
+    // as an opt-out, and the opt-out must not be replayable as a claim.
+    unsubscribeUrl: `${appUrl}/claim/unsubscribe/${unsubscribeToken}`,
   })
 
   after(async () => {

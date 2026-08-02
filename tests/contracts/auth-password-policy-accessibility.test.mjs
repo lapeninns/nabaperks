@@ -79,3 +79,42 @@ test("focused auth keeps one linked home mark and a static footer wordmark", () 
   assert.match(logo, /if \(!linked\)/)
   assert.match(layout, /focused[\s\S]*<Logo[^>]*linked=\{false\}/)
 })
+
+test("password replacement requires recent authentication and recovery supplies it", () => {
+  const config = readProjectFile("supabase", "config.toml")
+  const actions = readProjectFile("app", "(auth)", "actions.ts")
+
+  // Without this, a still-valid stolen session can replace the password and
+  // turn temporary access into a permanent credential.
+  assert.match(config, /^secure_password_change = true$/m)
+  assert.doesNotMatch(config, /^secure_password_change = false$/m)
+
+  // Exactly one password sink in the product, and it is the OTP-gated action.
+  assert.equal(
+    (actions.match(/auth\.updateUser\(\{ password/g) ?? []).length,
+    1
+  )
+
+  const confirm = actions.match(
+    /async function confirmMerchantPasswordReset\([\s\S]*?\n}\n/
+  )?.[0]
+  assert.ok(confirm, "confirmMerchantPasswordReset must stay one function")
+
+  // One client instance: the session verifyOtp mints must be the one that
+  // carries updateUser, or the recent-login exemption stops applying and
+  // recovery starts failing with reauthentication_needed.
+  assert.equal(
+    (confirm.match(/createSupabaseServerClient\(\)/g) ?? []).length,
+    1
+  )
+
+  const verifyIndex = confirm.indexOf("verifyMerchantEmailOtpAlias({")
+  const recoveryIndex = confirm.indexOf('type: "recovery"')
+  const updateIndex = confirm.indexOf("supabase.auth.updateUser({ password })")
+  assert.ok(verifyIndex > -1, "recovery verifies an emailed alias")
+  assert.ok(recoveryIndex > verifyIndex, "the alias is scoped to recovery")
+  assert.ok(
+    updateIndex > recoveryIndex,
+    "the password write follows verification"
+  )
+})

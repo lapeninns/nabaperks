@@ -259,6 +259,21 @@ test("Given Supabase auth hooks receive external payloads When the shared envelo
   // JSON syntax failure returns the Supabase hook error shape.
   assert.match(envelope, /verifyStandardWebhook\(\{/)
   assert.match(envelope, /request\.headers\.get\("webhook-signature"\)/)
+
+  // The body is buffered before the HMAC, so it must be bounded first or an
+  // unauthenticated caller decides how much we allocate and hash. Assert the
+  // ORDER by index: a regex like /readSignedWebhookBody[\s\S]*verifyStandard/
+  // is satisfied by the import line alone and would pass on a regression.
+  assert.match(envelope, /readSignedWebhookBody\(request\)/)
+  assert.match(envelope, /body === null[\s\S]{0,160}hookError\(413/)
+  assert.doesNotMatch(envelope, /request\.text\(\)/)
+  const boundedReadAt = envelope.indexOf("await readSignedWebhookBody(request)")
+  const verifyAt = envelope.indexOf("verifyStandardWebhook({")
+  assert.ok(boundedReadAt > -1, "the envelope reads through the bounded reader")
+  assert.ok(
+    verifyAt > boundedReadAt,
+    "the bounded read must precede HMAC verification"
+  )
   assert.match(envelope, /verifyStandardWebhook[\s\S]*let parsedBody: unknown/)
   assert.match(envelope, /hookError\(401, "Invalid signature\."\)/)
   assert.match(envelope, /error instanceof SyntaxError/)

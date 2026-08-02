@@ -5,6 +5,11 @@ import {
   openSignedHookEnvelope,
 } from "@/app/api/auth/hooks/signed-hook-envelope"
 import {
+  claimAuthHookDelivery,
+  completeAuthHookDelivery,
+  failAuthHookDelivery,
+} from "@/lib/auth/auth-hook-delivery"
+import {
   createMerchantEmailOtpAlias,
   revokeMerchantEmailOtpAlias,
 } from "@/lib/auth/merchant-email-otp-alias"
@@ -57,6 +62,15 @@ export async function POST(request: NextRequest) {
         : "signup"
     const audience =
       purpose === "recovery" ? "merchant-reset" : "merchant-verify"
+
+    // Consume the authenticated webhook id BEFORE creating an alias. Alias
+    // creation supersedes the recipient's live code, so a replay would both
+    // resend and invalidate the code they are currently typing.
+    const claim = await claimAuthHookDelivery("email", envelope.webhookId)
+    if (claim === "replay") {
+      return NextResponse.json({})
+    }
+
     await runMerchantOtpDelivery({
       createAlias: () =>
         createMerchantEmailOtpAlias({
@@ -82,8 +96,11 @@ export async function POST(request: NextRequest) {
       throw error
     }
 
+    await failAuthHookDelivery("email", envelope.webhookId)
     return hookError(500, "Email could not be sent.")
   }
+
+  await completeAuthHookDelivery("email", envelope.webhookId)
 
   return NextResponse.json({})
 }

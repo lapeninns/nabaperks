@@ -43,8 +43,12 @@ test("Given a claimed owned trial When Stripe is updated Then the exact trial en
   const result = await processBillingTrialSyncClaim(
     claim,
     dependencies({
-      updateSubscription: async (subscriptionId, params) => {
-        updated = { subscriptionId, params }
+      retrieveSubscription: async () => ({
+        ...subscription,
+        trial_end: subscription.trial_end - 24 * 60 * 60,
+      }),
+      updateSubscription: async (subscriptionId, params, idempotencyKey) => {
+        updated = { subscriptionId, params, idempotencyKey }
         return { ...subscription, trial_end: params.trial_end }
       },
       confirm: async (input) => {
@@ -60,6 +64,7 @@ test("Given a claimed owned trial When Stripe is updated Then the exact trial en
       trial_end: Math.floor(new Date(claim.desiredTrialEnd).getTime() / 1_000),
       proration_behavior: "none",
     },
+    idempotencyKey: `billing-trial-sync:${claim.fulfilmentId}:${claim.leaseId}`,
   })
   assert.deepEqual(confirmed, {
     fulfilmentId: claim.fulfilmentId,
@@ -75,6 +80,7 @@ test("Given Stripe already has a later trial When synchronising Then the provide
     Math.floor(new Date(claim.desiredTrialEnd).getTime() / 1_000) +
     7 * 24 * 60 * 60
   let updatedTrialEnd = null
+  let updateCalls = 0
   let confirmedTrialEnd = null
 
   const result = await processBillingTrialSyncClaim(
@@ -85,6 +91,7 @@ test("Given Stripe already has a later trial When synchronising Then the provide
         trial_end: laterTrialEnd,
       }),
       updateSubscription: async (_subscriptionId, params) => {
+        updateCalls += 1
         updatedTrialEnd = params.trial_end
         return { ...subscription, trial_end: params.trial_end }
       },
@@ -95,7 +102,8 @@ test("Given Stripe already has a later trial When synchronising Then the provide
     })
   )
 
-  assert.equal(updatedTrialEnd, laterTrialEnd)
+  assert.equal(updateCalls, 0)
+  assert.equal(updatedTrialEnd, null)
   assert.equal(confirmedTrialEnd, new Date(laterTrialEnd * 1_000).toISOString())
   assert.deepEqual(result, { status: "synchronised" })
 })
@@ -106,6 +114,10 @@ test("Given Stripe update is unavailable When a claim runs Then a safe retry cod
   const result = await processBillingTrialSyncClaim(
     claim,
     dependencies({
+      retrieveSubscription: async () => ({
+        ...subscription,
+        trial_end: subscription.trial_end - 24 * 60 * 60,
+      }),
       updateSubscription: async () => {
         throw new Error("sk_live_secret provider outage")
       },

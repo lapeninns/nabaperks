@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 
+import { readSignedWebhookBody } from "@/lib/http/signed-webhook-body"
 import { verifyStandardWebhook } from "@/lib/notifications/standard-webhook"
 
 /** Error body shape Supabase expects back from an auth hook endpoint. */
@@ -11,7 +12,12 @@ export function hookError(httpCode: number, message: string) {
 }
 
 export type SignedHookEnvelope =
-  | { readonly ok: true; readonly payload: unknown }
+  | {
+      readonly ok: true
+      readonly payload: unknown
+      /** The authenticated Standard-Webhooks id, for replay consumption. */
+      readonly webhookId: string
+    }
   | { readonly ok: false; readonly response: NextResponse }
 
 /**
@@ -23,10 +29,17 @@ export async function openSignedHookEnvelope(
   request: NextRequest,
   secret: string
 ): Promise<SignedHookEnvelope> {
-  const body = await request.text()
+  // Bounded BEFORE the HMAC: an unauthenticated caller must not choose how much
+  // we allocate or how much we hash.
+  const body = await readSignedWebhookBody(request)
+  if (body === null) {
+    return { ok: false, response: hookError(413, "Payload too large.") }
+  }
+
+  const webhookId = request.headers.get("webhook-id") ?? ""
   const verified = verifyStandardWebhook({
     secret,
-    id: request.headers.get("webhook-id") ?? "",
+    id: webhookId,
     timestamp: request.headers.get("webhook-timestamp") ?? "",
     signatureHeader: request.headers.get("webhook-signature") ?? "",
     body,
@@ -46,5 +59,5 @@ export async function openSignedHookEnvelope(
     return { ok: false, response: hookError(400, "Malformed payload.") }
   }
 
-  return { ok: true, payload: parsedBody }
+  return { ok: true, payload: parsedBody, webhookId }
 }

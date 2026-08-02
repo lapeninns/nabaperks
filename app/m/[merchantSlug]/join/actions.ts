@@ -148,6 +148,7 @@ export async function requestCustomerIdentityAction(
       phone: contact,
       requestIdentity,
       trustedIp: clientIp,
+      scope: "join",
     })
   } catch (error) {
     if (error instanceof RateLimitError) {

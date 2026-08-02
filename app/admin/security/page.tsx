@@ -15,7 +15,9 @@ export default async function AdminSecurityPage() {
   // already rendered the step-up card if a challenge were pending, so this page
   // is only reached in the no-factor or satisfied state.
   const access = await requireAdminRead()
-  const enrolled = access.mfaState !== "no-factor"
+  // Database-sourced, so a session cookie predating the enrolment cannot make
+  // the page offer first-factor enrolment to an already-enrolled admin.
+  const enrolled = access.mfaEnrolled
 
   let factorId: string | null = null
   if (enrolled) {

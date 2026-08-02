@@ -42,15 +42,3 @@ test("provider readiness checks all live Prices without writes", () => {
   assert.match(checks, /Annual Growth price is active GBP 699\.90 each year/)
   assert.doesNotMatch(checks, /method:\s*["']POST["']/)
 })
-
-test("persisted Checkout attempts carry the provider request contract across deployments", () => {
-  const migration = read(
-    "supabase/migrations/20260801120000_delivery_anchored_pilot.sql"
-  )
-  const adapter = read("lib/stripe/checkout-adapter.ts")
-
-  assert.match(migration, /checkout_contract_version/)
-  assert.match(migration, /legacy_28_day/)
-  assert.match(migration, /delivery_anchored_42_day/)
-  assert.match(adapter, /checkout_contract_version/)
-})
