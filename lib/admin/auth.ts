@@ -7,8 +7,9 @@ import { redirect } from "next/navigation"
 import { getCurrentUser } from "@/lib/auth/session"
 import {
   type AdminMfaState,
+  adminStepUpSatisfied,
   isAdminMfaEnrolled,
-  resolveAdminMfaState,
+  resolveAdminMfaStateFromFacts,
 } from "@/lib/admin/mfa-gate"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
@@ -18,6 +19,8 @@ export type AdminAccess =
       email: string
       userId: string
       mfaState: AdminMfaState
+      /** Authoritative (database-sourced) enrolment state, not the cookie's. */
+      mfaEnrolled: boolean
       mfaRequired: boolean
     }
   | { status: "denied"; reason: string }
@@ -49,16 +52,14 @@ export const getAdminAccess = cache(async (): Promise<AdminAccess> => {
     return { status: "denied", reason: "Internal admin access is required." }
   }
 
-  // MFA is enforced at the app layer only (never re-add the DB AAL2 check —
-  // see lib/admin/mfa-gate.ts). Resolve the assurance level; any failure fails
-  // OPEN to "no-factor" so a transient auth error can never lock an admin out.
-  let mfaState: AdminMfaState = "no-factor"
-  try {
-    const { data: aal } =
-      await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
-    mfaState = resolveAdminMfaState(aal?.currentLevel, aal?.nextLevel)
-  } catch {
-    mfaState = "no-factor"
+  const mfaState = await resolveAssuranceState(supabase)
+
+  // An assurance level we cannot read means the session itself is unusable, so
+  // there is nothing to step up FROM and no in-console way out. Send the admin
+  // back through sign-in, which mints a fresh session: fail-closed, and
+  // recoverable without a dead-end card.
+  if (mfaState === "unknown") {
+    redirect("/login?next=/admin")
   }
 
   return {
@@ -66,9 +67,46 @@ export const getAdminAccess = cache(async (): Promise<AdminAccess> => {
     email: data.email,
     userId: user.id,
     mfaState,
+    mfaEnrolled: isAdminMfaEnrolled(mfaState),
     mfaRequired: isAdminMfaEnrolled(mfaState),
   }
 })
+
+/**
+ * Enrolment comes from the database and the current level from the signed JWT.
+ * Neither may come from `getAuthenticatorAssuranceLevel().nextLevel`, which
+ * supabase-js computes from the cached session cookie's factor list — stale for
+ * any session minted before the factor was enrolled.
+ *
+ * Note `getAuthenticatorAssuranceLevel` reports failure by RETURNING
+ * `{ data: null, error }`; it does not throw. Both shapes must be handled or
+ * the gate silently degrades to "no factor" and lets everything through.
+ */
+async function resolveAssuranceState(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>
+): Promise<AdminMfaState> {
+  let hasVerifiedFactor: boolean | null = null
+  let currentLevel: string | null = null
+
+  try {
+    const { data: enrolled, error: enrolledError } = await supabase.rpc(
+      "viewer_has_verified_mfa_factor"
+    )
+    if (!enrolledError && typeof enrolled === "boolean") {
+      hasVerifiedFactor = enrolled
+    }
+
+    const { data: aal, error: aalError } =
+      await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+    if (!aalError && aal) {
+      currentLevel = aal.currentLevel ?? null
+    }
+  } catch {
+    return "unknown"
+  }
+
+  return resolveAdminMfaStateFromFacts(hasVerifiedFactor, currentLevel)
+}
 
 export async function requireAdminRead() {
   const access = await getAdminAccess()
@@ -80,23 +118,33 @@ export async function requireAdminRead() {
   return access
 }
 
-export async function requireAdminAction() {
+/**
+ * Admin identity only. Never step-up-gated, because /admin/security must stay
+ * reachable for the admin to complete the challenge. Callers that reach real
+ * admin data must use requireAdminStepUp (directly or via the service-role
+ * factory) instead.
+ */
+export async function requireAdminStepUp() {
   const access = await requireAdminRead()
 
-  // Defense-in-depth for direct action calls: an enrolled admin who has not
-  // completed the step-up challenge cannot mutate. The layout already blocks the
-  // UI in this state, and the MFA enrol/step-up actions use requireAdminRead (not
-  // this), so this never bites the legitimate step-up path. Fails open because
-  // getAdminAccess resolves an unknown assurance level to "no-factor".
-  if (access.mfaState === "step-up-required") {
+  if (!adminStepUpSatisfied(access.mfaState)) {
     throw new Error("Two-factor verification is required before this action.")
   }
 
   return access
 }
 
+export async function requireAdminAction() {
+  return requireAdminStepUp()
+}
+
 export async function canRenderAdminPage(): Promise<boolean> {
-  return isAllowedAdminAccess(await getAdminAccess())
+  const access = await getAdminAccess()
+
+  // Leaf pages are gated on the step-up too, not just the role: the layout card
+  // is presentation, and a direct RSC-payload request for a nested admin
+  // segment does not have to render the layout at all.
+  return isAllowedAdminAccess(access) && adminStepUpSatisfied(access.mfaState)
 }
 
 function isAllowedAdminAccess(

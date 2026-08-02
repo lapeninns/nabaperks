@@ -3,16 +3,24 @@
 import { revalidatePath } from "next/cache"
 
 import { requireAdminRead } from "@/lib/admin/auth"
-import { adminMfaUnenrollmentAllowed } from "@/lib/admin/mfa-gate"
+import {
+  adminMfaEnrollmentAllowed,
+  adminMfaUnenrollmentAllowed,
+} from "@/lib/admin/mfa-gate"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 /**
  * Admin authenticator (TOTP) enrol / step-up server actions.
  *
- * All gate on requireAdminRead (an active internal admin) — NOT
- * requireAdminAction, because that refuses when step-up is required and the
- * whole point of step-up is to reach aal2 from aal1. MFA is enforced at the app
- * layer only (lib/admin/mfa-gate.ts); these actions never touch the DB gate.
+ * These gate on requireAdminRead rather than requireAdminStepUp, because the
+ * whole point of step-up is to reach aal2 from aal1 and a step-up gate here
+ * would be unsatisfiable. Stepping up is safe on that gate alone: the server
+ * picks the existing factor itself, so the caller cannot substitute one.
+ *
+ * ADDING a factor is different. It is a security-state transition that mints a
+ * new credential, so it carries its own adminMfaEnrollmentAllowed check —
+ * otherwise a compromised aal1 session on an already-enrolled admin could enrol
+ * an attacker-controlled authenticator and use it to reach aal2.
  */
 
 export type AdminMfaEnrollment =
@@ -27,9 +35,16 @@ function readCode(formData: FormData): string {
   return String(formData.get("code") ?? "").replace(/\s+/g, "")
 }
 
+const ENROLLMENT_BLOCKED =
+  "Verify with your existing authenticator before adding another one."
+
 /** Start enrolment: mint a new unverified TOTP factor and return its QR + secret. */
 export async function beginAdminMfaEnrollment(): Promise<AdminMfaEnrollment> {
-  await requireAdminRead()
+  const access = await requireAdminRead()
+  if (!adminMfaEnrollmentAllowed(access.mfaState)) {
+    return { ok: false, error: ENROLLMENT_BLOCKED }
+  }
+
   const supabase = await createSupabaseServerClient()
 
   const { data, error } = await supabase.auth.mfa.enroll({
@@ -91,7 +106,11 @@ export async function verifyAdminMfaEnrollment(
   _prev: AdminMfaFormState,
   formData: FormData
 ): Promise<AdminMfaFormState> {
-  await requireAdminRead()
+  const access = await requireAdminRead()
+  if (!adminMfaEnrollmentAllowed(access.mfaState)) {
+    return { ok: false, error: ENROLLMENT_BLOCKED }
+  }
+
   return challengeAndVerify(
     String(formData.get("factorId") ?? ""),
     readCode(formData)

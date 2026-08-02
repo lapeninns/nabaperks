@@ -5,6 +5,7 @@ import { AdminMfaStepUp } from "@/components/admin/mfa-step-up"
 import { Eyebrow } from "@/components/brand"
 import { AdminShell } from "@/components/layout"
 import { getAdminAccess } from "@/lib/admin/auth"
+import { adminMfaStepUpRequired } from "@/lib/admin/mfa-gate"
 import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 
 export const metadata: Metadata = PRIVATE_ROUTE_METADATA
@@ -36,7 +37,7 @@ export default async function AdminLayout({
   // Enrolled admin whose session is still aal1: block ALL admin content behind a
   // step-up challenge. This card is the only admin surface rendered in this
   // state, so it can always be completed — no lockout.
-  if (access.mfaState === "step-up-required") {
+  if (adminMfaStepUpRequired(access.mfaState)) {
     return <AdminMfaStepUp operatorEmail={access.email} />
   }
 
