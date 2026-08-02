@@ -22,16 +22,21 @@ export function SnapRail({
   children: ReactNode
 }) {
   return (
-    <ul
-      aria-label={label}
-      tabIndex={0}
-      className={cn(
-        "focus-ring -mx-6 flex snap-x snap-mandatory gap-3 overflow-x-auto rounded-sm px-6 pb-2 sm:mx-0 sm:grid sm:gap-3.5 sm:overflow-visible sm:px-0 sm:pb-0",
-        className
-      )}
-    >
-      {children}
-    </ul>
+    <div className="grid gap-2 sm:block">
+      <p className="mono-id flex items-center justify-end gap-1 text-primary uppercase sm:hidden">
+        Swipe to see every card <span aria-hidden="true">→</span>
+      </p>
+      <ul
+        aria-label={label}
+        tabIndex={0}
+        className={cn(
+          "focus-ring -mx-6 flex snap-x snap-mandatory gap-3 overflow-x-auto rounded-sm px-6 pb-2 sm:mx-0 sm:grid sm:gap-3.5 sm:overflow-visible sm:px-0 sm:pb-0",
+          className
+        )}
+      >
+        {children}
+      </ul>
+    </div>
   )
 }
 

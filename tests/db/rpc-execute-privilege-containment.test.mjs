@@ -27,8 +27,11 @@ import { closeDb, db, isLiveDbReady } from "./helpers/db.mjs"
 const AUTHENTICATED_DIRECT_RPCS = [
   "admin_adjust_membership_stamps",
   "admin_cancel_reward",
+  "admin_confirm_merchant_launch_delivered",
   "admin_resolve_fraud_flag",
+  "admin_mark_merchant_launch_dispatched",
   "admin_set_qr_active",
+  "admin_set_merchant_launch_pilot_extension",
   "admin_regenerate_qr_code",
   "admin_record_consent_opt_out",
   "admin_log_data_request",

@@ -46,7 +46,9 @@ export function GrowthPlanPricing({ className }: { className?: string }) {
             <MonoTag tone="accent" className="-rotate-1">
               {PRODUCT.planName}
             </MonoTag>
-            <MonoTag>{PRODUCT.pilot}</MonoTag>
+            <MonoTag className="h-auto max-w-full basis-full whitespace-normal sm:basis-auto [&>span]:overflow-visible [&>span]:text-clip [&>span]:whitespace-normal">
+              {PRODUCT.pilot}
+            </MonoTag>
           </div>
           <h2 className="text-2xl leading-tight font-extrabold text-foreground sm:text-3xl">
             {OFFER.name}

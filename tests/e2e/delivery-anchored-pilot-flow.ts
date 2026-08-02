@@ -1,9 +1,15 @@
 import { expect, test, type Page } from "@playwright/test"
 
 import { expectNoAxeViolations } from "./helpers/axe"
-import { dismissPwaInstall, HARNESS_ROUTES } from "./helpers/harness"
+import {
+  dismissPwaInstall,
+  gotoHydratedPage,
+  HARNESS_ROUTES,
+} from "./helpers/harness"
 
 export function defineDeliveryAnchoredPilotTests() {
+  test.use({ serviceWorkers: "block" })
+
   test.beforeEach(async ({ page }) => {
     await dismissPwaInstall(page)
   })
@@ -11,7 +17,7 @@ export function defineDeliveryAnchoredPilotTests() {
   test("merchant sees fulfilment state and exact delivery-anchored pilot dates @a11y", async ({
     page,
   }) => {
-    await page.goto(`${HARNESS_ROUTES.trial}?state=dispatched`)
+    await gotoHydratedPage(page, `${HARNESS_ROUTES.trial}?state=dispatched`)
 
     await expect(
       page.getByText("Posters and platform pilot", { exact: true })
@@ -24,7 +30,7 @@ export function defineDeliveryAnchoredPilotTests() {
     )
     await expectNoHorizontalOverflow(page)
 
-    await page.goto(`${HARNESS_ROUTES.trial}?state=delivered`)
+    await gotoHydratedPage(page, `${HARNESS_ROUTES.trial}?state=delivered`)
     await expect(fulfilmentAlert).toContainText(
       "Your 28-day platform pilot is running"
     )
@@ -42,7 +48,7 @@ export function defineDeliveryAnchoredPilotTests() {
     await expectNoAxeViolations(page, "delivery-anchored merchant pilot")
     await expectNoHorizontalOverflow(page)
 
-    await page.goto(`${HARNESS_ROUTES.trial}?state=review`)
+    await gotoHydratedPage(page, `${HARNESS_ROUTES.trial}?state=review`)
     await expect(fulfilmentAlert).toContainText(
       "We are checking your pilot dates"
     )
@@ -51,7 +57,7 @@ export function defineDeliveryAnchoredPilotTests() {
   test("admin can enter delivery evidence without losing fulfilment context @a11y", async ({
     page,
   }) => {
-    await page.goto(HARNESS_ROUTES.trialAdmin)
+    await gotoHydratedPage(page, HARNESS_ROUTES.trialAdmin)
 
     await expect(
       page.getByRole("heading", { name: "Launch fulfilment" })
@@ -75,7 +81,7 @@ export function defineDeliveryAnchoredPilotTests() {
   test("merchant sees a completed pilot after recurring billing starts @a11y", async ({
     page,
   }) => {
-    await page.goto(`${HARNESS_ROUTES.trial}?state=expired`)
+    await gotoHydratedPage(page, `${HARNESS_ROUTES.trial}?state=expired`)
 
     const fulfilmentAlert = page.locator('[data-slot="alert"]')
     await expect(fulfilmentAlert).toContainText(
@@ -89,16 +95,15 @@ export function defineDeliveryAnchoredPilotTests() {
   test("public pricing explains launch, delivery and pilot before both cadences @a11y", async ({
     page,
   }) => {
-    await page.goto("/pricing")
+    await gotoHydratedPage(page, "/pricing")
     const pricing = page.locator("[data-growth-plan-pricing]")
 
     await expect(pricing.getByText("£299.99", { exact: true })).toBeVisible()
     await expect(
       pricing.getByText("Up to 14 days", { exact: true })
     ).toBeVisible()
-    await expect(
-      pricing.getByText("28 days free", { exact: true })
-    ).toBeVisible()
+    await expect(pricing).toContainText("28-day free platform pilot")
+    await expect(pricing).toContainText("poster delivery")
     await expect(pricing.getByText("£69.99", { exact: true })).toBeVisible()
     await expect(pricing.getByText("£699.90", { exact: true })).toBeVisible()
     await expect(pricing).not.toContainText("launch fee included")

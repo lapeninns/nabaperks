@@ -149,7 +149,7 @@ export default async function AdminBillingPage() {
                     )}
                   >
                     {row.operationsReviewRequired
-                      ? "Review required"
+                      ? "Needs attention"
                       : fulfilmentLabel(row.fulfilmentStatus)}
                   </StatusPill>
                   <span className="text-xs text-muted-foreground">
@@ -221,7 +221,7 @@ export default async function AdminBillingPage() {
                   {
                     label: "Poster fulfilment",
                     value: row.operationsReviewRequired
-                      ? "Review required"
+                      ? "Needs attention"
                       : fulfilmentLabel(row.fulfilmentStatus),
                   },
                   {

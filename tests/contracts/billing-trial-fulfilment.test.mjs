@@ -53,6 +53,17 @@ test("Given admins update fulfilment When actions replay or race Then idempotent
     migration,
     /grant execute on function public\.claim_merchant_launch_trial_sync[\s\S]*to service_role/
   )
+  for (const fn of [
+    "set_billing_checkout_contract_version",
+    "sync_merchant_launch_from_billing",
+  ]) {
+    assert.match(
+      migration,
+      new RegExp(
+        `grant execute on function public\\.${fn}\\(\\)[\\s\\S]*?to service_role`
+      )
+    )
+  }
 })
 
 test("Given an undelivered safety claim is in flight When delivery is confirmed Then the desired trial end remains monotonic", () => {

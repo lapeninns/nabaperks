@@ -122,9 +122,11 @@ test(
       assert.equal(claim.merchant_id, fixture.merchantId)
       assert.equal(claim.stripe_subscription_id, fixture.subscriptionId)
       assert.equal(claim.sync_reason, "delivery_confirmed")
-      assert.deepEqual(
-        await tx`select * from public.claim_merchant_launch_trial_sync()`,
-        [],
+      const duplicateClaims =
+        await tx`select * from public.claim_merchant_launch_trial_sync()`
+      assert.equal(
+        duplicateClaims.length,
+        0,
         "an active lease prevents a duplicate worker claim"
       )
 

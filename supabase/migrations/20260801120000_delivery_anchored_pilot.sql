@@ -842,6 +842,10 @@ revoke all on function public.fail_merchant_launch_trial_sync(uuid, uuid, text)
 grant execute on function public.admin_mark_merchant_launch_dispatched(
   uuid, timestamptz
 ) to authenticated, service_role;
+grant execute on function public.set_billing_checkout_contract_version()
+  to service_role;
+grant execute on function public.sync_merchant_launch_from_billing()
+  to service_role;
 grant execute on function public.admin_confirm_merchant_launch_delivered(
   uuid, timestamptz
 ) to authenticated, service_role;

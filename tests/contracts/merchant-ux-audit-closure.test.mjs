@@ -29,6 +29,7 @@ const launchPage = source("app/app/launch/page.tsx")
 const launchHarness = source("app/dev/app-harness/launch/page.tsx")
 const onboardingPage = source("app/app/onboarding/page.tsx")
 const onboardingHarness = source("app/dev/app-harness/onboarding/page.tsx")
+const appPwa = source("components/pwa/app-pwa.tsx")
 
 test("the Growth Plan name is single-sourced across activation and account billing", () => {
   assert.match(facts, /planName:\s*["']Growth Plan["']/)
@@ -66,4 +67,12 @@ test("production and harness onboarding share summary and roadmap components", (
   )
   assert.match(onboardingPage, /OnboardingJourneyOrientation/)
   assert.match(onboardingHarness, /OnboardingJourneyOrientation/)
+})
+
+test("merchant authentication stays unobstructed by the install prompt", () => {
+  assert.match(
+    appPwa,
+    /AUTH_PREFIXES = \["\/login", "\/signup", "\/reset-password"\]/
+  )
+  assert.match(appPwa, /isAuthRoute\(pathname\)/)
 })
