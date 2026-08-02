@@ -140,6 +140,7 @@ async function processRecipient(
     await settle(
       supabase,
       recipient.recipient_id,
+      recipient.attempt_count,
       "failed",
       null,
       null,
@@ -169,6 +170,7 @@ async function processRecipient(
     await settle(
       supabase,
       recipient.recipient_id,
+      recipient.attempt_count,
       "sent",
       providerId,
       null,
@@ -180,12 +182,21 @@ async function processRecipient(
   const dueAtMs = nextRetryDueAtMs(recipient.attempt_count, status, Date.now())
   const reason = `status_${status ?? "network"}`
   if (dueAtMs === null) {
-    await settle(supabase, recipient.recipient_id, "failed", null, null, reason)
+    await settle(
+      supabase,
+      recipient.recipient_id,
+      recipient.attempt_count,
+      "failed",
+      null,
+      null,
+      reason
+    )
     return "failed"
   }
   await settle(
     supabase,
     recipient.recipient_id,
+    recipient.attempt_count,
     "retry",
     null,
     new Date(dueAtMs).toISOString(),
@@ -227,16 +238,26 @@ async function sendOne(
   }
 }
 
+/**
+ * Settle one send under the generation that claimed it.
+ *
+ * Returns false when this worker no longer owns the row — its lease expired and
+ * another worker reclaimed it. Writing anyway would let a stale outcome
+ * overwrite newer state, so the database refuses and we surface it rather than
+ * swallowing it.
+ */
 async function settle(
   supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
   recipientId: string,
+  expectedAttemptCount: number,
   outcome: SendOutcome,
   providerId: string | null,
   nextAttemptAt: string | null,
   reason: string | null
-): Promise<void> {
-  const { error } = await supabase.rpc("settle_loyalty_invite_send", {
+): Promise<boolean> {
+  const { data, error } = await supabase.rpc("settle_loyalty_invite_send", {
     p_recipient_id: recipientId,
+    p_expected_attempt_count: expectedAttemptCount,
     p_outcome: outcome,
     p_provider_message_id: providerId,
     p_next_attempt_at: nextAttemptAt,
@@ -244,5 +265,11 @@ async function settle(
   })
   if (error) {
     logger.warn("loyalty_invite_settle_failed", { reason: "database_rejected" })
+    return false
   }
+  if (data === false) {
+    logger.warn("loyalty_invite_settle_failed", { reason: "lease_lost" })
+    return false
+  }
+  return true
 }

@@ -70,6 +70,7 @@ export type StripeWebhookProcessorDependencies = {
     policy: "charged" | "annual_included"
   }) => Promise<boolean>
   hasSatisfiedLaunchFee: (merchantId: string) => Promise<boolean>
+  consumeIntroductoryTrial: (merchantId: string) => Promise<void>
   completeEvent: (input: {
     eventId: string
     leaseId: string
@@ -77,9 +78,7 @@ export type StripeWebhookProcessorDependencies = {
 }
 
 type StripeWebhookProcessingErrorCode =
-  | "ownership_mismatch"
-  | "lease_lost"
-  | "processing_failed"
+  "ownership_mismatch" | "lease_lost" | "processing_failed"
 
 const MAX_STRIPE_WEBHOOK_BODY_BYTES = 1_048_576
 
@@ -366,6 +365,11 @@ export async function processStripeWebhookEvent(
     entitlementStatus,
     dependencies,
   })
+  await recordIntroductoryTrialUse({
+    subscription,
+    merchantId: ownership.merchantId,
+    dependencies,
+  })
   const applyStatus = await dependencies.applySubscriptionEvent({
     eventId: event.id,
     leaseId,
@@ -402,15 +406,28 @@ export function createStripeWebhookProcessorDependencies(
       const { createSupabaseServiceRoleClient } =
         await import("@/lib/supabase/server")
       const supabase = createSupabaseServiceRoleClient()
-      const { data, error } = await supabase.rpc("satisfy_merchant_launch_fee", {
-        p_merchant_id: input.merchantId,
-        p_stripe_customer_id: input.stripeCustomerId,
-        p_stripe_subscription_id: input.stripeSubscriptionId,
-        p_launch_fee_policy: input.policy,
-      })
+      const { data, error } = await supabase.rpc(
+        "satisfy_merchant_launch_fee",
+        {
+          p_merchant_id: input.merchantId,
+          p_stripe_customer_id: input.stripeCustomerId,
+          p_stripe_subscription_id: input.stripeSubscriptionId,
+          p_launch_fee_policy: input.policy,
+        }
+      )
 
       if (error) throw new Error("Unable to record launch fee satisfaction")
       return data === true
+    },
+    consumeIntroductoryTrial: async (merchantId) => {
+      const { createSupabaseServiceRoleClient } =
+        await import("@/lib/supabase/server")
+      const supabase = createSupabaseServiceRoleClient()
+      const { error } = await supabase.rpc(
+        "consume_merchant_introductory_trial",
+        { p_merchant_id: merchantId }
+      )
+      if (error) throw new Error("Unable to record introductory trial use")
     },
     hasSatisfiedLaunchFee: async (merchantId) => {
       const { createSupabaseServiceRoleClient } =
@@ -427,6 +444,30 @@ export function createStripeWebhookProcessorDependencies(
     },
     completeEvent: completeStripeWebhookEvent,
   }
+}
+
+/**
+ * A trial can never be un-consumed, so record it the first time Stripe confirms
+ * one — deliberately WITHOUT a status guard. A `customer.subscription.deleted`
+ * carrying trial evidence is precisely the case this finding is about: the
+ * merchant used their free days and cancelled, and must not get 28 more on
+ * restart.
+ */
+async function recordIntroductoryTrialUse({
+  subscription,
+  merchantId,
+  dependencies,
+}: {
+  subscription: Stripe.Subscription
+  merchantId: string
+  dependencies: StripeWebhookProcessorDependencies
+}) {
+  const trialled =
+    typeof subscription.trial_start === "number" ||
+    typeof subscription.trial_end === "number"
+  if (!trialled) return
+
+  await dependencies.consumeIntroductoryTrial(merchantId)
 }
 
 async function satisfyWebhookLaunchFee({

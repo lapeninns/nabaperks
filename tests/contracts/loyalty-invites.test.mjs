@@ -108,6 +108,19 @@ test("the Resend webhook verifies signatures and suppresses bounces", () => {
   assert.match(route, /verifyStandardWebhook/)
   assert.match(route, /RESEND_WEBHOOK_SECRET/)
   assert.match(route, /apply_loyalty_invite_delivery_event/)
+
+  // Bound the body before hashing it. Ordering is asserted by index because a
+  // [\s\S]* regex is satisfied by the import statement alone.
+  assert.match(route, /readSignedWebhookBody\(request\)/)
+  assert.match(route, /body === null[\s\S]{0,200}status: 413/)
+  assert.doesNotMatch(route, /request\.text\(\)/)
+  const boundedReadAt = route.indexOf("await readSignedWebhookBody(request)")
+  const verifyAt = route.indexOf("verifyStandardWebhook({")
+  assert.ok(boundedReadAt > -1, "the route reads through the bounded reader")
+  assert.ok(
+    verifyAt > boundedReadAt,
+    "the bounded read must precede HMAC verification"
+  )
   const rpc = read(
     "supabase/migrations/20260722100100_loyalty_invite_campaign_rpcs.sql"
   )

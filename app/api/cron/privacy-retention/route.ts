@@ -106,8 +106,23 @@ async function runPrivacyRetention() {
     })
   }
 
+  // Replay-consumption evidence for the auth hooks. The signature window is
+  // ±300s, so a day is generous; leaving these forever would grow unbounded.
+  const { data: purgedAuthHooks, error: authHookError } = await supabase.rpc(
+    "purge_auth_hook_deliveries"
+  )
+  if (authHookError) {
+    logger.warn("privacy_retention_auth_hook_purge_failed", {
+      reason: authHookError.message,
+    })
+  }
+
   const partialFailure =
-    inviteError || loyaltyInviteError || bucketError || webVitalError
+    inviteError ||
+    loyaltyInviteError ||
+    bucketError ||
+    webVitalError ||
+    authHookError
 
   return {
     errorCode: partialFailure ? "partial_failure" : null,
@@ -123,6 +138,8 @@ async function runPrivacyRetention() {
         typeof expiredLoyaltyInvites === "number" ? expiredLoyaltyInvites : 0,
       purgedRateLimitBuckets:
         typeof purgedBuckets === "number" ? purgedBuckets : 0,
+      purgedAuthHookDeliveries:
+        typeof purgedAuthHooks === "number" ? purgedAuthHooks : 0,
       webVitalCutoff,
       purgedWebVitalSamples:
         typeof purgedWebVitals === "number" ? purgedWebVitals : 0,
