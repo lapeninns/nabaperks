@@ -52,9 +52,9 @@ export function resolveLaunchHeaderModel(
     return {
       heading: "Launch to unlock your QR",
       mobileContext:
-        "Pay the launch fee, start the pilot, then create your venue QR.",
+        "Pay the launch fee and create your venue QR. Your 28-day pilot begins after poster delivery.",
       description:
-        "Pay the one-time launch fee and start your 28-day platform pilot to unlock the venue QR customers scan.",
+        "Pay the one-time launch fee to unlock your venue QR and poster fulfilment. Your 28-day platform pilot begins when delivery is confirmed.",
       // On the billing tab the activation card carries the real Stripe checkout,
       // so the header CTA must not compete with it — suppress it there.
       actionTab: null,

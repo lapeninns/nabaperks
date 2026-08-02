@@ -24,13 +24,16 @@ export function LaunchFulfilmentStatus({
   const model = statusModel(fulfilment, billingStatus)
   const trialEndPending =
     fulfilment.syncStatus === "pending" || fulfilment.syncStatus === "retry"
-  const recurringBillingDate = trialEndPending
-    ? (fulfilment.desiredStripeTrialEnd ??
-      fulfilment.confirmedStripeTrialEnd ??
-      fulfilment.provisionalStripeTrialEnd)
-    : (fulfilment.confirmedStripeTrialEnd ??
-      fulfilment.desiredStripeTrialEnd ??
-      fulfilment.provisionalStripeTrialEnd)
+  const deliveryConfirmed = fulfilment.deliveredAt !== null
+  const recurringBillingDate = deliveryConfirmed
+    ? trialEndPending
+      ? (fulfilment.desiredStripeTrialEnd ??
+        fulfilment.confirmedStripeTrialEnd ??
+        fulfilment.provisionalStripeTrialEnd)
+      : (fulfilment.confirmedStripeTrialEnd ??
+        fulfilment.desiredStripeTrialEnd ??
+        fulfilment.provisionalStripeTrialEnd)
+    : null
 
   return (
     <ReceiptCard edge padding="none">
@@ -70,7 +73,11 @@ export function LaunchFulfilmentStatus({
             />
           ) : null}
           <LaunchDate
-            label="Recurring billing scheduled"
+            label={
+              deliveryConfirmed
+                ? "Recurring billing scheduled"
+                : "Recurring billing date"
+            }
             value={recurringBillingDate}
             pending={trialEndPending}
           />

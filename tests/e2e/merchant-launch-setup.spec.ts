@@ -75,7 +75,7 @@ test.describe("merchant launch setup @launch-setup", () => {
     await expect(
       page
         .getByText(
-          "Pay the launch fee, start the pilot, then create your venue QR."
+          "Pay the launch fee and create your venue QR. Your 28-day pilot begins after poster delivery."
         )
         .first()
     ).toBeVisible()

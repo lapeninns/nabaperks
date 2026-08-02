@@ -28,6 +28,15 @@ export function defineDeliveryAnchoredPilotTests() {
     await expect(fulfilmentAlert).toContainText(
       "The 28-day platform pilot has not started yet"
     )
+    await expect(
+      page.getByText("Recurring billing date", { exact: true })
+    ).toBeVisible()
+    await expect(
+      page.getByText("Recurring billing scheduled", { exact: true })
+    ).toHaveCount(0)
+    await expect(
+      page.getByText("12 September 2026", { exact: true })
+    ).toHaveCount(0)
     await expectNoHorizontalOverflow(page)
 
     await gotoHydratedPage(page, `${HARNESS_ROUTES.trial}?state=delivered`)

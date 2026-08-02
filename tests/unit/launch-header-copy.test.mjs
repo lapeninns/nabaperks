@@ -69,8 +69,10 @@ test("needsBilling: activation truthfully unlocks the QR", () => {
   assert.match(header.description, /28-day platform pilot/)
   assert.equal(
     header.mobileContext,
-    "Pay the launch fee, start the pilot, then create your venue QR."
+    "Pay the launch fee and create your venue QR. Your 28-day pilot begins after poster delivery."
   )
+  assert.doesNotMatch(header.description, /start your 28-day platform pilot/i)
+  assert.match(header.description, /delivery is confirmed/i)
   assert.match(header.description, /28-day platform pilot/i)
   assert.match(header.description, /venue QR/i)
 })
