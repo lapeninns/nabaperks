@@ -45,6 +45,13 @@ const REVIEW: MerchantLaunchFulfilment = {
   operationsReviewRequired: true,
 }
 
+const EXPIRED_BY_DATE: MerchantLaunchFulfilment = {
+  ...DELIVERED,
+  basePilotEndsAt: "2020-02-01T12:00:00.000Z",
+  desiredStripeTrialEnd: "2020-02-01T12:00:00.000Z",
+  confirmedStripeTrialEnd: "2020-02-01T12:00:00.000Z",
+}
+
 export default function TrialHarnessPage({
   searchParams,
 }: {
@@ -67,7 +74,9 @@ async function TrialHarnessState({
         ? DISPATCHED
         : state === "review"
           ? REVIEW
-          : DELIVERED
+          : state === "expired-by-date"
+            ? EXPIRED_BY_DATE
+            : DELIVERED
   const billingStatus = state === "expired" ? "active" : "trialing"
 
   return (

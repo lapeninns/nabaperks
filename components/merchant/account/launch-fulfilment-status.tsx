@@ -7,6 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import type { MerchantLaunchFulfilment } from "@/lib/merchant/launch-fulfilment"
+import { hasLaunchPilotEnded } from "@/lib/merchant/launch-pilot-status"
 
 const dateFormat = new Intl.DateTimeFormat("en-GB", {
   dateStyle: "long",
@@ -158,7 +159,13 @@ function statusModel(
       tone: "info",
     }
   }
-  if (billingStatus === "active") {
+  if (
+    hasLaunchPilotEnded({
+      billingStatus,
+      syncStatus: fulfilment.syncStatus,
+      confirmedStripeTrialEnd: fulfilment.confirmedStripeTrialEnd,
+    })
+  ) {
     return {
       title: "Your 28-day platform pilot has ended",
       detail: "Your venue is now on its recurring billing schedule.",

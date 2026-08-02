@@ -88,6 +88,15 @@ export function defineDeliveryAnchoredPilotTests() {
       "Your 28-day platform pilot has ended"
     )
     await expect(fulfilmentAlert).not.toContainText("pilot is running")
+
+    await gotoHydratedPage(
+      page,
+      `${HARNESS_ROUTES.trial}?state=expired-by-date`
+    )
+    await expect(fulfilmentAlert).toContainText(
+      "Your 28-day platform pilot has ended"
+    )
+    await expect(fulfilmentAlert).not.toContainText("pilot is running")
     await expectNoAxeViolations(page, "completed merchant pilot")
     await expectNoHorizontalOverflow(page)
   })
