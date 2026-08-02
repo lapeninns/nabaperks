@@ -136,7 +136,10 @@ test("Given the finalised offer pack When facts.ts is inspected Then the locked 
 
   // Subscription and anchor facts stay on the approved model.
   assert.match(facts, /price: "£69\.99 every 28 days"/)
-  assert.match(facts, /pilot: "28-day free platform pilot from poster delivery"/)
+  assert.match(
+    facts,
+    /pilot: "28-day free platform pilot from poster delivery"/
+  )
   assert.match(facts, /name: "The Ultimate Pub Loyalty Takeover"/)
   assert.match(facts, /price: "£4,999\.99"/)
 
@@ -425,7 +428,6 @@ test("Given one Growth Plan When pricing renders Then both payment schedules sha
     "PRODUCT.billingDisclosure",
     "PRODUCT.processingFeeLine",
     "PRODUCT.cancelLine",
-    "TAKEOVER.price",
   ]) {
     assert.match(
       sheet,
@@ -434,13 +436,31 @@ test("Given one Growth Plan When pricing renders Then both payment schedules sha
     )
   }
 
-  // The takeover is enquiry-only, rendered OUTSIDE (after) the Growth Plan
-  // boundary so it can never read as a third tier.
-  assert.match(sheet, /data-takeover-enquiry/)
+  // The takeover is enquiry-only and lives in its OWN component, composed
+  // after the sheet, so it can never read as a third tier. Asserting on
+  // composition rather than string order inside one file is stricter: it
+  // proves the takeover is genuinely outside the sheet component.
+  assert.doesNotMatch(
+    sheet,
+    /data-takeover-enquiry/,
+    "the takeover must not live inside the Growth Plan sheet component"
+  )
+
+  const takeover = readProjectFile(
+    "components",
+    "marketing",
+    "pricing",
+    "takeover-anchor.tsx"
+  )
+  assert.match(takeover, /data-takeover-enquiry/)
+  assert.match(
+    takeover,
+    /TAKEOVER\.price/,
+    "the takeover must render its price from lib/marketing/facts.ts"
+  )
   assert.ok(
-    sheet.indexOf("data-takeover-enquiry") >
-      sheet.indexOf("data-growth-plan-pricing"),
-    "the takeover enquiry must render outside the Growth Plan sheet"
+    pricing.indexOf("<TakeoverAnchor") > pricing.indexOf("<GrowthPlanPricing"),
+    "the takeover enquiry must render after the Growth Plan sheet"
   )
 
   // The schedule choice is information, not a checkout control — the sheet

@@ -1,12 +1,15 @@
 import Link from "next/link"
-import { CheckmarkCircle02Icon } from "@hugeicons/core-free-icons"
 
 import { MarketingSignupLink } from "@/components/analytics/marketing-signup-link"
-import { Icon, MonoTag, SectionHeader } from "@/components/brand"
+import { MonoTag, SectionHeader } from "@/components/brand"
 import { Section } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { SeasonalOfferBanner } from "@/components/marketing"
+import {
+  PlanIncludesList,
+  PriceLockup,
+  SeasonalOfferBanner,
+} from "@/components/marketing"
 import {
   OFFER,
   PLAN_INCLUDES,
@@ -38,11 +41,11 @@ export function LandingPricing() {
               {OFFER.name}
             </p>
             <div className="grid gap-1">
-              <p className="flex items-baseline gap-2">
-                <span className="text-4xl leading-none font-extrabold text-foreground">
-                  {PRODUCT.price}
-                </span>
-              </p>
+              <PriceLockup
+                size="hero"
+                amount={PRODUCT.priceAmount}
+                cadence={PRODUCT.priceCadence}
+              />
               <p className="text-sm leading-6 font-bold text-foreground">
                 {PRODUCT.launchFee} launch fee today, then the{" "}
                 {PRODUCT.pilotCardNote} before recurring billing starts.
@@ -57,20 +60,7 @@ export function LandingPricing() {
               </div>
             </div>
             <SeasonalOfferBanner />
-            <ul className="grid gap-2.5">
-              {PLAN_INCLUDES.slice(0, 4).map((item) => (
-                <li key={item} className="flex items-start gap-3">
-                  <Icon
-                    icon={CheckmarkCircle02Icon}
-                    size={18}
-                    className="mt-0.5 shrink-0 text-reward"
-                  />
-                  <span className="text-sm leading-6 text-foreground">
-                    {item}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <PlanIncludesList items={PLAN_INCLUDES.slice(0, 4)} />
             <div className="flex flex-wrap items-center gap-3">
               <Button asChild size="lg">
                 <MarketingSignupLink>Start your launch</MarketingSignupLink>
@@ -88,7 +78,7 @@ export function LandingPricing() {
         <Card>
           <CardContent className="grid h-full content-start gap-4">
             <MonoTag className="justify-self-start">Bespoke anchor</MonoTag>
-            <p className="text-4xl leading-none font-extrabold text-foreground">
+            <p className="text-2xl leading-none font-extrabold text-foreground sm:text-3xl">
               {TAKEOVER.price}
             </p>
             <p className="text-lg leading-snug font-extrabold text-foreground">

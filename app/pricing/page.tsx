@@ -1,8 +1,8 @@
 import type { Metadata } from "next"
 
-import { MonoTag, PageTitle, ReceiptCard } from "@/components/brand"
+import { PageTitle, ReceiptCard } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
-import { GrowthPlanPricing, SeasonalOfferBanner } from "@/components/marketing"
+import { GrowthPlanPricing, TakeoverAnchor } from "@/components/marketing"
 import {
   FaqList,
   GuaranteeStack,
@@ -10,7 +10,6 @@ import {
 } from "@/components/marketing/landing"
 import { JsonLd } from "@/components/seo/json-ld"
 import {
-  DFY_LAUNCH,
   PRICING_FAQ_ITEMS,
   PRODUCT,
   ROUTES,
@@ -62,14 +61,8 @@ export default function PricingPage() {
           title="One core plan. Two clear ways to pay."
           description="Pay for the physical launch today. Allow up to 14 days for poster delivery; the 28-day platform pilot begins on confirmed delivery before recurring billing."
         />
-        <div className="mt-6 flex flex-wrap items-center gap-3 rounded-lg border-2 border-dashed border-line-strong bg-card p-5">
-          <MonoTag tone="sun">Done-for-you launch</MonoTag>
-          <p className="text-sm leading-6 font-bold text-foreground">
-            {DFY_LAUNCH.covers} The one-time launch fee is {PRODUCT.launchFee}.
-          </p>
-        </div>
-        <SeasonalOfferBanner className="mt-4" />
-        <GrowthPlanPricing className="pt-6" />
+        <GrowthPlanPricing className="mt-6" />
+        <TakeoverAnchor className="mt-5" />
       </Section>
       <Section size="compact">
         <ReceiptCard edge padding="md" className="gap-2">
