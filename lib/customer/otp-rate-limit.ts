@@ -13,6 +13,13 @@ import {
   customerOtpVerifyIdentityRateLimitKey,
   customerOtpVerifyPhoneRateLimitKey,
   customerOtpVerifyRateLimit,
+  customerOtpDispatchBurstLimit,
+  customerOtpDispatchBurstRateLimitKey,
+  customerOtpDispatchBurstWindowMs,
+  customerOtpDispatchSustainedLimit,
+  customerOtpDispatchSustainedRateLimitKey,
+  customerOtpDispatchSustainedWindowMs,
+  type CustomerOtpDispatchScope,
 } from "@/lib/customer/otp-rate-limit-core"
 import { enforceRateLimit } from "@/lib/security/rate-limit"
 
@@ -23,12 +30,15 @@ type CustomerOtpRateLimitInput = {
 
 type CustomerOtpSendRateLimitInput = CustomerOtpRateLimitInput & {
   readonly trustedIp: string
+  /** Closed set, chosen by the server action — never caller-supplied. */
+  readonly scope: CustomerOtpDispatchScope
 }
 
 export async function enforceCustomerOtpSendRateLimit({
   phone,
   requestIdentity,
   trustedIp,
+  scope,
 }: CustomerOtpSendRateLimitInput): Promise<void> {
   await enforceRateLimit({
     key: customerOtpSendIpRateLimitKey(trustedIp),
@@ -44,6 +54,21 @@ export async function enforceCustomerOtpSendRateLimit({
     key: customerOtpSendPhoneRateLimitKey(phone),
     limit: customerOtpSendRateLimit,
     windowMs: customerOtpRateLimitWindowMs,
+  })
+
+  // Debited LAST, and narrowest-subject-first above it. Each enforce is its own
+  // transaction, so a bucket consumed before a later rejection stays consumed —
+  // putting the shared platform budget last means a request some narrower
+  // bucket was already going to refuse can never burn budget on its way out.
+  await enforceRateLimit({
+    key: customerOtpDispatchBurstRateLimitKey(scope),
+    limit: customerOtpDispatchBurstLimit,
+    windowMs: customerOtpDispatchBurstWindowMs,
+  })
+  await enforceRateLimit({
+    key: customerOtpDispatchSustainedRateLimitKey(scope),
+    limit: customerOtpDispatchSustainedLimit,
+    windowMs: customerOtpDispatchSustainedWindowMs,
   })
 }
 

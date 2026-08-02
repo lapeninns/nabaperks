@@ -3,6 +3,7 @@ import { test } from "node:test"
 
 import {
   MERCHANT_OTP_RESEND_COOLDOWN_MS,
+  MERCHANT_OTP_RESEND_RECIPIENT_WINDOW_LIMIT,
   MERCHANT_OTP_RESEND_WINDOW_MS,
   MerchantOtpResendRateLimitError,
   enforceMerchantOtpResend,
@@ -62,6 +63,12 @@ test("a resend enforces a 60-second cooldown and bounded long window", async () 
     [
       { limit: 1, windowMs: MERCHANT_OTP_RESEND_COOLDOWN_MS },
       { limit: 5, windowMs: MERCHANT_OTP_RESEND_WINDOW_MS },
+      // The recipient budget is debited LAST and carries no source identity,
+      // so rotating IPs no longer buys a fresh allowance for this mailbox.
+      {
+        limit: MERCHANT_OTP_RESEND_RECIPIENT_WINDOW_LIMIT,
+        windowMs: MERCHANT_OTP_RESEND_WINDOW_MS,
+      },
     ]
   )
 })
@@ -100,7 +107,7 @@ test("a blocked resend returns the latest durable non-sliding reset time", async
   )
 })
 
-test("initial signup records only the cooldown and GET readback preserves it", async () => {
+test("initial signup records the cooldown and the recipient budget", async () => {
   const calls = []
   const retryAt = "2026-07-09T12:01:00.000Z"
   const dependencies = {
@@ -117,9 +124,13 @@ test("initial signup records only the cooldown and GET readback preserves it", a
   assert.deepEqual(await recordInitialSignupOtpCooldown(input, dependencies), {
     retryAt,
   })
-  assert.equal(calls.length, 1)
+  // A signup send is a real message to this mailbox, so it must not be free
+  // against the recipient cap.
+  assert.equal(calls.length, 2)
   assert.equal(calls[0].limit, 1)
   assert.equal(calls[0].windowMs, MERCHANT_OTP_RESEND_COOLDOWN_MS)
+  assert.equal(calls[1].limit, MERCHANT_OTP_RESEND_RECIPIENT_WINDOW_LIMIT)
+  assert.equal(calls[1].windowMs, MERCHANT_OTP_RESEND_WINDOW_MS)
   assert.equal(
     await readMerchantOtpResendCooldown(input, dependencies),
     retryAt
@@ -150,4 +161,31 @@ test("GET readback preserves the exhausted long window after cooldown expires", 
     await readMerchantOtpResendCooldown(input, dependencies),
     windowRetryAt
   )
+})
+
+test("rotating the source identity cannot buy a fresh recipient allowance", () => {
+  const a = merchantOtpResendKeys({ ...input, requestIdentity: "ip-hash-a" })
+  const b = merchantOtpResendKeys({ ...input, requestIdentity: "ip-hash-b" })
+
+  // The per-source buckets legitimately differ...
+  assert.notEqual(a.cooldown, b.cooldown)
+  assert.notEqual(a.window, b.window)
+
+  // ...but the mailbox budget is the same bucket regardless of where the
+  // request came from. This is the whole finding.
+  assert.equal(a.recipientWindow, b.recipientWindow)
+  assert.match(a.recipientWindow, /:recipient-window$/)
+  assert.ok(
+    !a.recipientWindow.includes("ip-hash-a"),
+    "the recipient key must carry no source identity"
+  )
+})
+
+test("a different mailbox or purpose is a different recipient budget", () => {
+  const signup = merchantOtpResendKeys({ ...input, purpose: "signup" })
+  const recovery = merchantOtpResendKeys({ ...input, purpose: "recovery" })
+  const other = merchantOtpResendKeys({ ...input, email: "other@example.test" })
+
+  assert.notEqual(signup.recipientWindow, recovery.recipientWindow)
+  assert.notEqual(signup.recipientWindow, other.recipientWindow)
 })

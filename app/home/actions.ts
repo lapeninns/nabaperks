@@ -71,6 +71,7 @@ export async function requestCustomerLoginOtpAction(
       phone: contact,
       requestIdentity,
       trustedIp: clientIp,
+      scope: "wallet",
     })
   } catch (error) {
     if (error instanceof RateLimitError) {

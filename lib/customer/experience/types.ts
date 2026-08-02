@@ -14,14 +14,31 @@ import type { JoinFirstStampRecovery } from "@/lib/customer/join-first-stamp-rec
 
 /** Which route the customer entered from. Same facts can mean different UI. */
 export type CustomerExperienceEntry =
-  | "qr"
-  | "join"
-  | "card"
-  | "stamp"
-  | "reward"
+  "qr" | "join" | "card" | "stamp" | "reward"
 
-/** Identity/access failures that short-circuit every route to a recovery panel. */
-export type AccessProblem = "unauthenticated" | "unauthorized" | "not_found"
+/**
+ * Access failures the customer presentation layer is allowed to observe.
+ *
+ * `unauthorized` is deliberately ABSENT. An object that exists but belongs to
+ * another customer and an object that does not exist must be externally
+ * indistinguishable, or the card/stamp/reward pages become an existence oracle
+ * for foreign membership and reward UUIDs. /reward/[rewardId]/status already
+ * collapses both to one 404 — this brings the pages into line with it.
+ *
+ * `unauthenticated` stays distinct: it does not depend on the object at all,
+ * and the sign-in recovery CTA rides on it.
+ */
+export type AccessProblem = "unauthenticated" | "not_found"
+
+/** The raw states the service-role loaders in lib/customer/{card,reward}.ts produce. */
+export type InternalAccessProblem = AccessProblem | "unauthorized"
+
+/** Collapse an internal lookup state to what a customer may observe. */
+export function externalAccessProblem(
+  status: InternalAccessProblem
+): AccessProblem {
+  return status === "unauthenticated" ? "unauthenticated" : "not_found"
+}
 
 /**
  * Typed reasons a stamp can be blocked. Panels never inspect raw RPC strings —

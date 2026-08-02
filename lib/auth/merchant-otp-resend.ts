@@ -7,6 +7,9 @@ import {
 export const MERCHANT_OTP_RESEND_COOLDOWN_MS = 60_000
 export const MERCHANT_OTP_RESEND_WINDOW_MS = 15 * 60_000
 export const MERCHANT_OTP_RESEND_WINDOW_LIMIT = 5
+// Deliberately independent of requestIdentity: rotating source IPs must not buy
+// a fresh send allowance against the same mailbox.
+export const MERCHANT_OTP_RESEND_RECIPIENT_WINDOW_LIMIT = 5
 
 export type MerchantOtpResendPurpose = "signup" | "recovery"
 
@@ -57,11 +60,16 @@ export function merchantOtpResendKeys({
 }: MerchantOtpResendInput) {
   const normalizedEmail = email.trim().toLowerCase()
   const identity = requestIdentity.trim() || "unknown"
-  const scope = `merchant-otp-resend:${purpose}:${normalizedEmail}:${identity}`
+  const recipientScope = `merchant-otp-resend:${purpose}:${normalizedEmail}`
+  const scope = `${recipientScope}:${identity}`
 
+  // The source-scoped keys keep their exact previous strings, so live buckets
+  // are not orphaned on deploy. The recipient key ends in `:recipient-window`
+  // (hyphen, not colon), so no identity value can collide with a source key.
   return {
     cooldown: `${scope}:cooldown`,
     window: `${scope}:window`,
+    recipientWindow: `${recipientScope}:recipient-window`,
   } as const
 }
 
@@ -72,18 +80,25 @@ export async function enforceMerchantOtpResend(
   const keys = merchantOtpResendKeys(input)
   const cooldown = cooldownConfig(keys.cooldown)
   const window = windowConfig(keys.window)
-  const configs = [cooldown, window]
+  const recipientWindow = recipientWindowConfig(keys.recipientWindow)
+  const configs = [cooldown, window, recipientWindow]
 
   const blockedUntil = await latestActiveResetAt(configs, dependencies)
   if (blockedUntil) {
     throw new MerchantOtpResendRateLimitError(blockedUntil)
   }
 
+  // Per-source buckets first, the shared recipient budget LAST: each enforce is
+  // its own transaction, so a request the cooldown was going to refuse must not
+  // spend the mailbox's budget on its way to being told no.
   await enforceWithDurableReadback(cooldown, configs, dependencies)
   await enforceWithDurableReadback(window, configs, dependencies)
+  await enforceWithDurableReadback(recipientWindow, configs, dependencies)
 
   return {
-    retryAt: await activeResetAt(cooldown, dependencies),
+    // Across all three, so the send that exhausts the recipient window reports
+    // the true 15-minute wait rather than the 60-second cooldown.
+    retryAt: await latestActiveResetAt(configs, dependencies),
   }
 }
 
@@ -91,10 +106,15 @@ export async function recordInitialSignupOtpCooldown(
   input: MerchantOtpResendInput,
   dependencies: MerchantOtpResendDependencies = defaultDependencies
 ): Promise<{ retryAt: string | undefined }> {
-  const cooldown = cooldownConfig(merchantOtpResendKeys(input).cooldown)
+  const keys = merchantOtpResendKeys(input)
+  const cooldown = cooldownConfig(keys.cooldown)
+  const recipientWindow = recipientWindowConfig(keys.recipientWindow)
 
   try {
     await dependencies.enforceRateLimit(cooldown)
+    // The signup send is a real message to this mailbox, so it must not be
+    // free against the recipient cap.
+    await dependencies.enforceRateLimit(recipientWindow)
   } catch (error) {
     // The provider send already succeeded. If another request established the
     // same cooldown first, preserve its durable reset instead of turning that
@@ -113,7 +133,11 @@ export async function readMerchantOtpResendCooldown(
 ): Promise<string | undefined> {
   const keys = merchantOtpResendKeys(input)
   return latestActiveResetAt(
-    [cooldownConfig(keys.cooldown), windowConfig(keys.window)],
+    [
+      cooldownConfig(keys.cooldown),
+      windowConfig(keys.window),
+      recipientWindowConfig(keys.recipientWindow),
+    ],
     dependencies
   )
 }
@@ -170,6 +194,14 @@ function windowConfig(key: string): RateLimitConfig {
   return {
     key,
     limit: MERCHANT_OTP_RESEND_WINDOW_LIMIT,
+    windowMs: MERCHANT_OTP_RESEND_WINDOW_MS,
+  }
+}
+
+function recipientWindowConfig(key: string): RateLimitConfig {
+  return {
+    key,
+    limit: MERCHANT_OTP_RESEND_RECIPIENT_WINDOW_LIMIT,
     windowMs: MERCHANT_OTP_RESEND_WINDOW_MS,
   }
 }
