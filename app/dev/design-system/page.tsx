@@ -30,6 +30,7 @@ import {
   TrendChart,
 } from "@/components/data"
 import {
+  OfferPass,
   ProgressTrack,
   QrFrame,
   RewardCelebration,
@@ -40,6 +41,7 @@ import {
   StampGrid,
   StampJourneyPreview,
   StatusBanner,
+  type OfferPassState,
   type RewardSealState,
   type RewardSlotState,
   type RewardTicketState,
@@ -136,6 +138,12 @@ const TICKET_STATES: RewardTicketState[] = [
   "redeemed",
 ]
 const REWARD_CHIP_STATES: RewardSlotState[] = ["locked", "ready", "revealed"]
+const OFFER_PASS_STATES: OfferPassState[] = [
+  "active",
+  "not_started",
+  "expired",
+  "revoked",
+]
 
 /** Deterministic demo QR matrix — no randomness, stable across renders. */
 const QR_CELLS = Array.from(
@@ -392,7 +400,8 @@ export default function DesignSystemPage() {
           <div className="grid gap-2">
             <Eyebrow>Member marks · merchant member lists</Eyebrow>
             <p className="text-sm leading-6 text-muted-foreground">
-              Paper ledger roundels for people — not venue stamps or visit discs.
+              Paper ledger roundels for people — not venue stamps or visit
+              discs.
             </p>
             <div className="flex flex-wrap items-center gap-4">
               <MemberMark initials="JE" tone="collecting" size={36} />
@@ -684,6 +693,33 @@ export default function DesignSystemPage() {
                 </div>
               </QrFrame>
             </div>
+          </div>
+        </div>
+
+        <div className="grid gap-4">
+          <Eyebrow>
+            Offer pass · the discount face, separate from any reward
+          </Eyebrow>
+          <p className="max-w-prose text-xs leading-5 text-muted-foreground">
+            A pass has unlimited uses inside its window, so it is its own record
+            and its own face — never a reward ticket. Four states: in date, not
+            open yet, finished, withdrawn. Only the first shows a code.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {OFFER_PASS_STATES.map((state) => (
+              <OfferPass
+                key={state}
+                state={state}
+                venueName="The Old Crown"
+                discountPercent={10}
+                validFrom="2026-08-10"
+                validTo="2026-09-30"
+                requiresIdCheck={state === "active"}
+                extraTerms={
+                  state === "active" ? "Food only, not on match days." : null
+                }
+              />
+            ))}
           </div>
         </div>
 

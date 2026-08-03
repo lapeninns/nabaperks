@@ -11,6 +11,7 @@ import {
   clearInviteCookie,
   readInviteCookie,
 } from "@/lib/loyalty-invites/invite-cookie"
+import { clearOfferCookie, readOfferCookie } from "@/lib/offers/offer-cookie"
 import { triggerBirthdayIssuanceForCustomer } from "@/lib/rewards/issue-birthday"
 import {
   getCurrentCustomer,
@@ -411,6 +412,90 @@ async function claimLoyaltyInviteIfPresent(
   return null
 }
 
+/**
+ * Consume a merchant offer campaign for this venue, if the encrypted cookie set
+ * by /offer/[token] is present. Mirrors claimLoyaltyInviteIfPresent: returns
+ * null when there is no offer for this merchant (so the caller does a normal
+ * join); redirects to the card on a claim, a replay, or an existing membership;
+ * otherwise returns an error state. The cookie is cleared on every path that
+ * reaches the RPC, so a refusal cannot be replayed by resubmitting the form.
+ */
+async function claimOfferCampaignIfPresent(
+  customerId: string,
+  merchantSlug: string,
+  marketingOptIn: boolean
+): Promise<CustomerJoinState | null> {
+  const cookie = await readOfferCookie()
+  if (!cookie || cookie.merchantSlug !== merchantSlug) return null
+
+  const supabase = createSupabaseServiceRoleClient()
+  const { data, error } = await supabase.rpc("claim_offer_campaign", {
+    p_customer_id: customerId,
+    p_claim_token_hash: cookie.claimTokenHash,
+    p_policy_version: policyVersion,
+    p_marketing_opt_in: marketingOptIn,
+  })
+  await clearOfferCookie()
+
+  if (error) {
+    return {
+      errors: {
+        form: "We couldn't add this offer. Try again or ask the venue team.",
+      },
+    }
+  }
+
+  const row = Array.isArray(data) ? data[0] : data
+  const status = row?.status as string | undefined
+  const membershipId = row?.membership_id as string | undefined
+
+  if (status === "claimed" && membershipId) {
+    after(() => triggerBirthdayIssuanceForCustomer(customerId))
+    after(() => attachRewardInvitesForCustomer(customerId))
+    redirect(`/card/${membershipId}?welcome=1&offer=1`)
+  }
+  // A second scan of the same poster awards nothing and opens what they hold.
+  if (status === "already_claimed" && membershipId) {
+    redirect(`/card/${membershipId}?offer=claimed`)
+  }
+  // Offers are a welcome for new members, so an existing one is sent to their
+  // card rather than given the benefit a second time.
+  if (status === "already_member" && membershipId) {
+    redirect(`/card/${membershipId}?membership=existing`)
+  }
+  if (status === "not_started") {
+    return {
+      errors: {
+        form: "This offer has not opened yet, so nothing was added to your card.",
+      },
+    }
+  }
+  if (status === "paused") {
+    return {
+      errors: {
+        form: "This offer is paused just now, so nothing was added to your card.",
+      },
+    }
+  }
+  if (status === "expired") {
+    return {
+      errors: {
+        form: "This offer has finished, so nothing was added to your card.",
+      },
+    }
+  }
+  if (status === "card_too_short" || status === "unavailable") {
+    return {
+      errors: {
+        form: "This venue's loyalty card isn't available right now, so nothing was added.",
+      },
+    }
+  }
+
+  // 'invalid' — an unknown, replaced or ended link. Fall through to a normal join.
+  return null
+}
+
 export async function joinRewardsAction(
   _state: CustomerJoinState,
   formData: FormData
@@ -441,6 +526,16 @@ export async function joinRewardsAction(
     marketingOptIn
   )
   if (inviteState) return inviteState
+
+  // Merchant offer campaign: the same shape, driven by the cookie /offer/[token]
+  // sets. One atomic transaction adds the membership, the campaign's bonus
+  // stamps and the discount pass, or refuses and adds nothing.
+  const offerState = await claimOfferCampaignIfPresent(
+    customer.id,
+    merchantSlug,
+    marketingOptIn
+  )
+  if (offerState) return offerState
 
   const supabase = createSupabaseServiceRoleClient()
   // Omit p_ref unless a referral code is actually present, so the call still

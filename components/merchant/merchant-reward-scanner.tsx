@@ -21,13 +21,14 @@ import { normalizeScannedRewardDestination } from "@/lib/merchant/reward-scanner
 export function ScanCardHeader() {
   return (
     <div className="grid gap-1.5">
-      <Eyebrow>Reward collection</Eyebrow>
+      <Eyebrow>Customer codes</Eyebrow>
       <h1 className="text-3xl leading-tight font-extrabold tracking-[-0.01em] sm:text-4xl">
-        Scan reward QR
+        Scan customer code
       </h1>
       <p className="text-sm leading-6 text-muted-foreground">
-        Point your camera at the QR on the member&apos;s phone. We will open the
-        collection screen when it is ready to mark collected.
+        Point your camera at the code on the customer&apos;s phone. It can be a
+        reward to collect or a discount pass to honour, and we will open the
+        right screen for it.
       </p>
     </div>
   )
@@ -52,7 +53,10 @@ const SCAN_CONFIG = {
   qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
     const edge = Math.max(
       180,
-      Math.min(250, Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.8))
+      Math.min(
+        250,
+        Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.8)
+      )
     )
     return { width: edge, height: edge }
   },
@@ -256,11 +260,11 @@ export function MerchantRewardScanner() {
     status.kind === "idle"
       ? "Starting camera…"
       : status.kind === "scanning"
-        ? "Scanning for a reward QR…"
+        ? "Scanning for a customer code…"
         : status.kind === "decoded"
-          ? "Reward QR found. Opening collection…"
+          ? "Customer code found. Opening it…"
           : status.kind === "invalid"
-            ? "That is not a reward QR from a member card"
+            ? "That is not a reward or discount pass code from a customer"
             : CAMERA_ERROR_STATUS[status.reason]
 
   return (
@@ -287,7 +291,11 @@ export function MerchantRewardScanner() {
       </div>
 
       {status.kind === "camera-error" ? (
-        <Button type="button" className="w-full sm:w-auto" onClick={retryCamera}>
+        <Button
+          type="button"
+          className="w-full sm:w-auto"
+          onClick={retryCamera}
+        >
           Try again
         </Button>
       ) : null}

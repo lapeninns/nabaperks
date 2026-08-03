@@ -347,8 +347,9 @@ wrappers, never raw shadcn or inline keyframes:
   `MetricTile`/`EmptyState`, and the `Icon` wrapper over `@hugeicons`.
 - **Loyalty** (`components/loyalty`): the one stamp/reward vocabulary —
   `StampGrid`/`StampDot`, `RewardChip`, `RewardSeal` (one seal, 3 sizes, 4
-  states), `RewardTicket`, `ProgressTrack`, `QrFrame`, `StatusBanner`,
-  `RewardCelebration`. The pint reward is retired.
+  states), `RewardTicket`, `OfferPass` (the discount pass face — unlimited uses
+  inside its window, so never a reward ticket), `ProgressTrack`, `QrFrame`,
+  `StatusBanner`, `RewardCelebration`. The pint reward is retired.
 - **Motion** (`components/motion`): the `WetInk*` primitives only (see Motion
   above) — never raw `animation: w-*` / `animate-[w-*]`.
 - **Forms / data** (`components/forms`, `components/data`): `FormField`,

@@ -7,6 +7,7 @@ import { signOutAction } from "@/app/(auth)/actions"
 import { MerchantAppShell } from "@/components/layout"
 import { MerchantSetupReminder } from "@/components/merchant/merchant-setup-reminder"
 import { getCurrentUser } from "@/lib/auth/session"
+import { isOfferCampaignsEnabledForCurrentVenue } from "@/lib/merchant/offer-access"
 import { merchantLoginHref } from "@/lib/navigation/safe-next-path"
 import { readMerchantRequestPath } from "@/lib/navigation/request-path"
 import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
@@ -29,6 +30,12 @@ export default async function MerchantAppLayout({
   const cookieStore = await cookies()
   const sidebarCookieOpen = cookieStore.get("sidebar_state")?.value !== "false"
 
+  // Pilot-gated sections are resolved here, not in the client shell: the flag's
+  // environment variable is server-only, so a client-side check would disagree
+  // with the markup it hydrated. Short-circuits on the flag, so this is free
+  // while the pilot is dark.
+  const offersEnabled = await isOfferCampaignsEnabledForCurrentVenue()
+
   // The shell derives its variant (full vs. setup) and mobile-chrome suppression
   // from the live pathname on the client. This layout is shared across every
   // `/app/*` route and the App Router preserves it across soft navigations, so a
@@ -38,6 +45,7 @@ export default async function MerchantAppLayout({
     <MerchantAppShell
       signOutAction={signOutAction}
       defaultSidebarOpen={sidebarCookieOpen}
+      offersEnabled={offersEnabled}
     >
       <Suspense fallback={null}>
         <MerchantSetupReminder />

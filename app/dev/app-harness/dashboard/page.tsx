@@ -139,7 +139,10 @@ export default async function DashboardHarnessPage({
         eyebrow="Your venue"
         title={HARNESS_MERCHANT.business_name}
         description="A quick read on how your loyalty card is doing: members, repeat visits, and rewards."
-        actions={<MerchantDashboardHeaderActions readiness={readiness} />}
+        actions={
+          // DB-free harness: this venue stands in for one inside every pilot.
+          <MerchantDashboardHeaderActions readiness={readiness} offersEnabled />
+        }
       />
 
       <DashboardQrCardView

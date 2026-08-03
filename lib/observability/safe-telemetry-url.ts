@@ -6,6 +6,12 @@ const SENSITIVE_ROUTE_PATTERNS: ReadonlyArray<
   // bearer token as a pathname.
   [/^\/claim\/unsubscribe\/[^/]+\/?$/, "/claim/unsubscribe/[token]"],
   [/^\/invite\/unsubscribe\/[^/]+\/?$/, "/invite/unsubscribe/[token]"],
+  // Offer campaigns: the claim link, the pass-scan handoff, the customer pass
+  // and the staff deep link all carry bearer-like path parameters.
+  [/^\/offer\/[^/]+\/?$/, "/offer/[token]"],
+  [/^\/p\/[^/]+\/?$/, "/p/[token]"],
+  [/^\/pass\/[^/]+\/?$/, "/pass/[entitlementId]"],
+  [/^\/app\/offers\/scan\/[^/]+\/?$/, "/app/offers/scan/[passToken]"],
   [/^\/claim\/[^/]+\/?$/, "/claim/[token]"],
   [/^\/invite\/[^/]+\/?$/, "/invite/[token]"],
   [/^\/r\/[^/]+\/?$/, "/r/[token]"],

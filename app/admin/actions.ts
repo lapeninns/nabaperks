@@ -213,6 +213,59 @@ export async function regenerateQrAction(
   return adminActionSuccess("QR code regenerated. Logged to the audit trail.")
 }
 
+/**
+ * Add or remove a venue from the Offers pilot allowlist
+ * (`merchants.offer_campaigns_enabled`).
+ *
+ * Routed through `admin_set_merchant_offer_campaigns` rather than a table
+ * update: the RPC carries the `is_internal_admin()` guard and writes the
+ * `offer_campaigns_allowlist_set` audit row itself, and a service-role update
+ * to `merchants` would bypass both. `requireAdminAction` is the same step-up
+ * gate every other mutating admin action uses, and the RPC is called with the
+ * operator's own session so the database-side guard actually sees them.
+ *
+ * There is deliberately no operator-reason field here, unlike the QR controls
+ * above: the RPC takes no reason parameter, and a box whose text the audit
+ * trail never stores would be a record that does not exist. The consequence is
+ * spelled out in the form's confirmation instead.
+ */
+export async function setMerchantOfferCampaignsAction(
+  _previousState: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
+  await requireAdminAction()
+  const merchantId = value(formData, "merchantId")
+  const enabled = value(formData, "enabled") === "true"
+
+  if (!merchantId) {
+    return adminActionError("Merchant context is required.")
+  }
+
+  const supabase = await createSupabaseServerClient()
+  const { data, error } = await supabase.rpc(
+    "admin_set_merchant_offer_campaigns",
+    { p_merchant_id: merchantId, p_enabled: enabled }
+  )
+
+  const failure = rpcFailure(
+    error,
+    "Offers allowlist update failed. Try again or review audit logs."
+  )
+  if (failure) return failure
+
+  if (data !== true) {
+    return adminActionError("That merchant no longer exists.")
+  }
+
+  revalidatePath("/admin/merchants")
+  revalidatePath("/admin/audit")
+  return adminActionSuccess(
+    enabled
+      ? "Offers turned on for this venue. Its merchants can now build a campaign; nothing is published yet. Logged to the audit trail."
+      : "Offers turned off for this venue. Passes customers already hold still work. Logged to the audit trail."
+  )
+}
+
 export async function recordConsentOptOutAction(
   _previousState: AdminActionState,
   formData: FormData
@@ -288,6 +341,14 @@ export async function logDataRequestAction(
     await supabase.rpc("admin_erase_loyalty_invitations_for_customer", {
       p_customer_id: customerId,
     })
+    // Offer campaigns hold no contact detail, so there is nothing to scrub;
+    // what erasure removes is the subject's outstanding pass scan tokens, the
+    // redeemable state of any pass they still hold, and the claim linkage
+    // wherever no redemption sits beneath it. The append-only redemption ledger
+    // is left intact and is de-identified by the customer-row anonymisation.
+    await supabase.rpc("admin_erase_offer_claims_for_customer", {
+      p_customer_id: customerId,
+    })
   }
 
   const { data, error } = await supabase.rpc("admin_log_data_request", {
@@ -310,15 +371,22 @@ export async function logDataRequestAction(
   // Extend the subject-access export to cover bulk two-stamp loyalty invitation
   // data, which the monolithic customer export RPC does not touch. (The deletion
   // companion runs above, before the HMAC is erased.)
+  // Offer claims, discount passes and redemptions are outside that RPC too, so
+  // they are merged in alongside as their own object.
   let exportPayload: unknown = data
   if (requestType === "export" && data && typeof data === "object") {
     const { data: invitations } = await supabase.rpc(
       "loyalty_invitations_export_for_customer",
       { p_customer_id: customerId }
     )
+    const { data: offerClaims } = await supabase.rpc(
+      "offer_claims_export_for_customer",
+      { p_customer_id: customerId }
+    )
     exportPayload = {
       ...(data as Record<string, unknown>),
       loyalty_invitations: invitations ?? [],
+      offer_campaigns: offerClaims ?? {},
     }
   }
 

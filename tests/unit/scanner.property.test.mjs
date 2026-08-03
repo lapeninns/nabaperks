@@ -45,6 +45,23 @@ test("Given arbitrary reward tokens When normalized Then the href is canonical a
   )
 })
 
+test("Given arbitrary pass tokens When normalized Then the href is canonical and idempotent", () => {
+  fc.assert(
+    fc.property(fc.uuid(), (token) => {
+      const payload = `${ORIGIN}/p/${token}?utm=ignored#section`
+      const first = normalizeScannedRewardDestination(payload, ORIGIN)
+      const second = normalizeScannedRewardDestination(payload, ORIGIN)
+
+      assert.deepEqual(first, {
+        kind: "valid",
+        href: `/app/offers/scan/${token}`,
+      })
+      assert.deepEqual(second, first)
+    }),
+    { numRuns: 100 }
+  )
+})
+
 test("Given arbitrary cross-origin values When normalized Then scanners reject them", () => {
   fc.assert(
     fc.property(qrIdArbitrary, fc.uuid(), (qrId, token) => {

@@ -50,7 +50,7 @@ const SURFACE_CHECKS = [
   {
     name: "merchant scanner",
     path: HARNESS_ROUTES.scan,
-    visibleText: /Starting camera|Scan reward QR|Scan a reward QR/i,
+    visibleText: /Starting camera|Scan customer code|Scan a customer code/i,
   },
 ] as const satisfies readonly HarnessSurfaceCheck[]
 

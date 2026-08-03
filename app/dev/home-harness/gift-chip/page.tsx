@@ -99,7 +99,7 @@ export default function GiftChipHarnessPage() {
           eyebrow="Incomplete card · ready gift"
           title="Progress stays honest; the gift rides its own chip"
         />
-        <HomeCardTile card={INCOMPLETE_WITH_READY_GIFT} />
+        <HomeCardTile card={INCOMPLETE_WITH_READY_GIFT} offerPasses={[]} />
       </section>
 
       <section className="grid gap-4">
@@ -107,7 +107,7 @@ export default function GiftChipHarnessPage() {
           eyebrow="Incomplete card · waiting gift"
           title="A not-yet-open gift shows a calm ready date"
         />
-        <HomeCardTile card={INCOMPLETE_WITH_WAITING_GIFT} />
+        <HomeCardTile card={INCOMPLETE_WITH_WAITING_GIFT} offerPasses={[]} />
       </section>
 
       <section className="grid gap-4">
@@ -115,7 +115,7 @@ export default function GiftChipHarnessPage() {
           eyebrow="Incomplete card · referral bank"
           title="Applied bonuses show on the grid; the rest stay banked"
         />
-        <HomeCardTile card={INCOMPLETE_WITH_REFERRAL_BANK} />
+        <HomeCardTile card={INCOMPLETE_WITH_REFERRAL_BANK} offerPasses={[]} />
       </section>
 
       <section className="grid gap-4">
@@ -123,7 +123,7 @@ export default function GiftChipHarnessPage() {
           eyebrow="Completed card · plus a gift"
           title="An earned reward and a gift can sit side by side"
         />
-        <HomeCardTile card={COMPLETE_WITH_GIFT} />
+        <HomeCardTile card={COMPLETE_WITH_GIFT} offerPasses={[]} />
       </section>
     </div>
   )

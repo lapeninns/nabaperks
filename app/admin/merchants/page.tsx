@@ -24,7 +24,9 @@ import { EmptyState, Icon, PageTitle, SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { SubmitButton } from "@/components/forms"
 import { Input } from "@/components/ui/input"
+import { OfferPilotPanel } from "@/app/admin/merchants/offer-pilot-panel"
 import { canRenderAdminPage } from "@/lib/admin/auth"
+import { getOfferPilotAllowlist } from "@/lib/admin/offer-allowlist"
 import { getAdminMerchants, getAdminQrCodes } from "@/lib/admin/data"
 import { formatAdminBillingStatus } from "@/lib/admin/billing-redaction"
 import { buildLookupHref } from "@/lib/admin/lookup-query"
@@ -55,9 +57,10 @@ function accountStatusTone(status: string) {
 export default async function AdminMerchantsPage() {
   if (!(await canRenderAdminPage())) return null
 
-  const [merchants, qrCodes] = await Promise.all([
+  const [merchants, qrCodes, offerAllowlist] = await Promise.all([
     getAdminMerchants(),
     getAdminQrCodes(),
+    getOfferPilotAllowlist(),
   ])
 
   return (
@@ -65,10 +68,12 @@ export default async function AdminMerchantsPage() {
       <PageTitle
         eyebrow="Internal admin"
         title="Merchants"
-        description="Merchant account, plan status, and QR support controls."
+        description="Merchant account, plan status, Offers pilot, and QR support controls."
       />
 
       <MerchantAccountsPanel merchants={merchants} />
+
+      <OfferPilotPanel allowlist={offerAllowlist} />
 
       <QrRecordsPanel qrCodes={qrCodes} />
     </div>
@@ -107,6 +112,9 @@ function MerchantCrossLinks({
         })}
       >
         Privacy
+      </Link>
+      <Link className={linkClasses} href="#offers-pilot">
+        Offers pilot
       </Link>
       <Link className={linkClasses} href="#qr-records">
         QR records

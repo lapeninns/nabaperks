@@ -68,6 +68,13 @@ export const productEventNames = [
   "dashboard_viewed",
   "loyalty_card_updated",
   "merchant_profile_updated",
+  "offer_campaign_published",
+  "offer_campaign_paused",
+  "offer_campaign_resumed",
+  "offer_campaign_ended",
+  "offer_campaign_token_rotated",
+  "offer_campaign_claimed",
+  "offer_pass_redeemed",
 ] as const
 
 export type ProductEventName = (typeof productEventNames)[number]

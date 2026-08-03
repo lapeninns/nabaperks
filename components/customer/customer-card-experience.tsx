@@ -3,6 +3,7 @@ import Link from "next/link"
 import {
   ArrowDown01Icon,
   ArrowLeft01Icon,
+  DiscountTag01Icon,
   GiftIcon,
 } from "@hugeicons/core-free-icons"
 
@@ -28,6 +29,7 @@ import {
 import {
   RewardCelebration,
   StatusBanner,
+  formatOfferPassDate,
   type RewardTicketState,
 } from "@/components/loyalty"
 import { StampCelebration } from "@/components/motion"
@@ -41,6 +43,8 @@ import {
 import { rewardSourceBadge } from "@/lib/customer/issued-reward-display"
 import { hasVisibleReferralBonusBank } from "@/lib/customer/referral-bonus-bank-copy"
 import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
+import type { CustomerOfferPass } from "@/lib/customer/offer-pass"
+import type { OfferClaimNotice } from "@/lib/customer/offer-pass-view"
 import type {
   CustomerExperience,
   CustomerExperienceKind,
@@ -51,11 +55,26 @@ import type {
  * derives a {@link CustomerExperience}; this component maps it to the shell chrome
  * (one headline, from the view model) and the matching panel (one job, one CTA).
  * Join states are rendered by `JoinWizard`, not here.
+ *
+ * `offerPasses` arrives separately from the experience union on purpose. A
+ * discount pass is not a reward: it has unlimited uses inside its window while
+ * a reward is consumed once, so it is its own record and gets its own rail
+ * rather than being folded into `RewardSource` or the reward panels.
+ *
+ * Both offer props are **required** with no default. An optional `= []` compiled
+ * silently while no route fed it, which is how the rail shipped as unreachable
+ * dead code; required props make forgetting them a type error instead. A route
+ * that never renders the card-progress panel passes `[]` and `null` explicitly,
+ * which states the decision rather than hiding it.
  */
 export function CustomerCardExperience({
   experience,
+  offerPasses,
+  offerClaimNotice,
 }: {
   experience: CustomerExperience
+  offerPasses: readonly CustomerOfferPass[]
+  offerClaimNotice: OfferClaimNotice | null
 }) {
   const vm = getCustomerExperienceViewModel(experience)
 
@@ -68,7 +87,12 @@ export function CustomerCardExperience({
         className="pb-28"
         screenLabel={screenLabelFor(experience.kind)}
       >
-        <ExperiencePanel experience={experience} vm={vm} />
+        <ExperiencePanel
+          experience={experience}
+          vm={vm}
+          offerPasses={offerPasses}
+          offerClaimNotice={offerClaimNotice}
+        />
       </CustomerFlowShell>
       <CustomerTabBar />
     </>
@@ -78,13 +102,23 @@ export function CustomerCardExperience({
 function ExperiencePanel({
   experience,
   vm,
+  offerPasses,
+  offerClaimNotice,
 }: {
   experience: CustomerExperience
   vm: CustomerExperienceViewModel
+  offerPasses: readonly CustomerOfferPass[]
+  offerClaimNotice: OfferClaimNotice | null
 }) {
   switch (experience.kind) {
     case "card_collecting":
-      return <CardProgressPanel exp={experience} />
+      return (
+        <CardProgressPanel
+          exp={experience}
+          offerPasses={offerPasses}
+          offerClaimNotice={offerClaimNotice}
+        />
+      )
     case "card_stamped_today":
     case "stamp_confirm":
       return <StampScreenPanel exp={experience} />
@@ -104,8 +138,12 @@ function ExperiencePanel({
 
 function CardProgressPanel({
   exp,
+  offerPasses,
+  offerClaimNotice,
 }: {
   exp: Extract<CustomerExperience, { kind: "card_collecting" }>
+  offerPasses: readonly CustomerOfferPass[]
+  offerClaimNotice: OfferClaimNotice | null
 }) {
   const cardComplete = exp.total > 0 && exp.current >= exp.total
   const rewardState: RewardTicketState =
@@ -176,6 +214,8 @@ function CardProgressPanel({
         <Icon icon={ArrowLeft01Icon} size={16} />
         Your cards
       </Link>
+
+      {offerClaimNotice ? <OfferClaimBanner notice={offerClaimNotice} /> : null}
 
       <CustomerStampCard
         venueName={exp.merchantName}
@@ -283,6 +323,10 @@ function CardProgressPanel({
         <CardGiftChip gift={exp.gift} merchantName={exp.merchantName} />
       ) : null}
 
+      {offerPasses.map((pass) => (
+        <CardOfferPassChip key={pass.entitlementId} pass={pass} />
+      ))}
+
       {hasVisibleReferralBonusBank(exp.referralBonusBank) ? (
         <ReferralBonusBankNotice bank={exp.referralBonusBank} />
       ) : null}
@@ -345,6 +389,98 @@ function CardGiftChip({
       )}
     </div>
   )
+}
+
+/**
+ * What the join flow just decided, answered on the card the customer lands on.
+ * `app/m/[merchantSlug]/join/actions.ts` redirects here with `?offer=1`,
+ * `?offer=claimed` or `?membership=existing`; without this the customer arrives
+ * on an ordinary card with no word on whether the poster they scanned did
+ * anything.
+ *
+ * The copy states standing rather than narrating a moment, so it stays true if
+ * the customer refreshes with the parameter still on the URL.
+ *
+ * `already_member` deliberately names no mechanism: `?membership=existing` is
+ * emitted by the loyalty-invite claim as well as the offer claim, so calling it
+ * an offer would be wrong half the time.
+ */
+function OfferClaimBanner({ notice }: { notice: OfferClaimNotice }) {
+  if (notice === "claimed") {
+    return (
+      <StatusBanner title="Offer added to your card." tone="success">
+        Your discount pass is saved here. Open it when you are at the venue and
+        the team will scan it.
+      </StatusBanner>
+    )
+  }
+
+  if (notice === "already_claimed") {
+    return (
+      <StatusBanner title="You already have this offer." tone="neutral">
+        Nothing was added a second time. Your discount pass is saved on this
+        card.
+      </StatusBanner>
+    )
+  }
+
+  return (
+    <StatusBanner title="You are already a member here." tone="neutral">
+      The welcome is for new members, so nothing extra was added. Your stamps
+      and rewards are unchanged.
+    </StatusBanner>
+  )
+}
+
+/**
+ * A discount pass shown on its own rail beside the card, never inside the
+ * reward panels. The stamp card and the pass are separate promises: a pass can
+ * be used again and again while it is in date, so folding it into the reward
+ * rail would either imply it is spent after one use or imply the card is
+ * further along than it is. The full face and the scannable code live on
+ * `/pass/<id>`; this chip is the way in.
+ */
+function CardOfferPassChip({ pass }: { pass: CustomerOfferPass }) {
+  const closes = formatOfferPassDate(pass.validTo)
+  const opens = formatOfferPassDate(pass.validFrom)
+
+  return (
+    <div className="grid gap-2 rounded-lg border-2 border-ink bg-seal/15 p-3">
+      <div className="flex items-center gap-1.5">
+        <Icon icon={DiscountTag01Icon} size={16} />
+        <span className="mono-id tracking-[0.08em] text-ink">
+          Discount pass
+        </span>
+      </div>
+      <p className="text-sm leading-tight font-extrabold break-words">
+        {pass.discountPercent}% off at {pass.venueName}
+      </p>
+      {pass.presentable ? (
+        <Button asChild size="sm" variant="reward" className="w-full">
+          <Link href={`/pass/${pass.entitlementId}`}>Show pass QR</Link>
+        </Button>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          {offerPassChipNote(pass, opens, closes)}
+        </p>
+      )}
+    </div>
+  )
+}
+
+function offerPassChipNote(
+  pass: CustomerOfferPass,
+  opens: string | null,
+  closes: string | null
+): string {
+  if (pass.state === "not_started") {
+    return opens ? `Opens ${opens}.` : "Opens on its start date."
+  }
+  if (pass.state === "revoked") return "No longer active."
+  if (pass.state === "expired") {
+    return closes ? `Ran until ${closes}.` : "This pass has finished."
+  }
+  return pass.unavailableReason ?? "Not available just now."
 }
 
 /**

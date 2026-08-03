@@ -27,7 +27,7 @@ export function defineMerchantLaunchFollowThroughTests() {
     await expect(finishSetup).toBeVisible()
     await expect(finishSetup).toHaveAttribute("href", "/app/launch?tab=rewards")
     const main = page.getByRole("main")
-    await expect(main.getByRole("link", { name: "Scan reward" })).toHaveCount(0)
+    await expect(main.getByRole("link", { name: "Scan code" })).toHaveCount(0)
     await expect(main.getByRole("link", { name: "Announce" })).toHaveCount(0)
     await expectNoAxeViolations(page, "incomplete merchant dashboard")
     await expectNoHorizontalOverflow(page)
@@ -44,7 +44,7 @@ export function defineMerchantLaunchFollowThroughTests() {
     await expect(finishSetup).toBeVisible()
     await expect(finishSetup).toHaveAttribute("href", "/app/launch?tab=rewards")
     const main = page.getByRole("main")
-    await expect(main.getByRole("link", { name: "Scan reward" })).toHaveCount(0)
+    await expect(main.getByRole("link", { name: "Scan code" })).toHaveCount(0)
     await expect(main.getByRole("link", { name: "Announce" })).toHaveCount(0)
     await expectNoAxeViolations(page, "incomplete merchant dashboard")
     await expectNoHorizontalOverflow(page)
@@ -93,7 +93,7 @@ export function defineMerchantLaunchFollowThroughTests() {
     const finishSetup = page.getByRole("link", { name: "Finish setup" })
     await expect(finishSetup).toHaveAttribute("href", "/app/launch?tab=billing")
     await expect(
-      page.getByRole("main").getByRole("link", { name: "Scan reward" })
+      page.getByRole("main").getByRole("link", { name: "Scan code" })
     ).toHaveCount(0)
   })
 
@@ -103,9 +103,7 @@ export function defineMerchantLaunchFollowThroughTests() {
     for (const suffix of ["", "?qr=paused"]) {
       await page.goto(`${HARNESS_ROUTES.dashboard}${suffix}`)
       const main = page.getByRole("main")
-      await expect(
-        main.getByRole("link", { name: "Scan reward" })
-      ).toBeVisible()
+      await expect(main.getByRole("link", { name: "Scan code" })).toBeVisible()
       await expect(main.getByRole("link", { name: "Announce" })).toBeVisible()
       await expect(
         page.getByRole("link", { name: "Finish setup" })

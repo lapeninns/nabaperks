@@ -4,6 +4,7 @@ import {
   AnalyticsUpIcon,
   Building02Icon,
   CreditCardIcon,
+  DiscountTag01Icon,
   Home01Icon,
   Megaphone01Icon,
   QrCode01Icon,
@@ -83,6 +84,15 @@ export function isActiveNavItem(
   return isActivePath(currentPath, href)
 }
 
+/**
+ * The Offers section only exists for venues inside the pilot: the feature flag
+ * is default-off and the venue allowlist is opt-in, and every /app/offers route
+ * answers `notFound()` otherwise. The nav item is registered below like any
+ * other so the ordering stays readable, and {@link merchantNavItemsFor} drops it
+ * at render time for venues that would only meet a 404.
+ */
+export const OFFERS_NAV_HREF = "/app/offers"
+
 export const merchantNavItems = [
   { href: "/app", label: "Dashboard", icon: Home01Icon, prefetch: "auto" },
   { href: "/app/launch", label: "Setup", icon: Settings01Icon },
@@ -100,7 +110,30 @@ export const merchantNavItems = [
     prefetch: "auto",
   },
   { href: "/app/announcements", label: "Announce", icon: Megaphone01Icon },
+  {
+    href: "/app/offers",
+    label: "Offers",
+    icon: DiscountTag01Icon,
+    prefetch: "auto",
+  },
 ] satisfies readonly ShellNavItem[]
+
+/** Which pilot-gated sections this venue may see. */
+export type MerchantNavAccess = {
+  readonly offersEnabled: boolean
+}
+
+/**
+ * The sidebar items a given venue should actually be offered. Filters rather
+ * than rebuilds, so the registered order above stays the rendered order and a
+ * new gated section only has to be named here once.
+ */
+export function merchantNavItemsFor(
+  access: MerchantNavAccess
+): readonly ShellNavItem[] {
+  if (access.offersEnabled) return merchantNavItems
+  return merchantNavItems.filter((item) => item.href !== OFFERS_NAV_HREF)
+}
 
 export const merchantAccountItems = [
   {

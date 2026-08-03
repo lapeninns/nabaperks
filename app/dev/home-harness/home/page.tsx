@@ -55,7 +55,7 @@ export default async function HomeHarnessHomePage({
 
       {hasDob ? null : <HomeBirthdayPrompt />}
 
-      <HomeCardTile card={VENUE_DETAILS_CARD} />
+      <HomeCardTile card={VENUE_DETAILS_CARD} offerPasses={[]} />
     </div>
   )
 }

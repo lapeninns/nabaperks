@@ -35,6 +35,21 @@ const routes = [
     name: "harness-dashboard-empty",
     path: "/dev/app-harness/dashboard?members=empty",
   },
+  // The offers lane renders one surface per request. Each of the four carries a
+  // state the others cannot show, so each needs its own baseline.
+  { name: "harness-offers-desk", path: "/dev/app-harness/offers" },
+  {
+    name: "harness-offers-creator",
+    path: "/dev/app-harness/offers?surface=creator&step=review",
+  },
+  {
+    name: "harness-offers-customer",
+    path: "/dev/app-harness/offers?surface=customer",
+  },
+  {
+    name: "harness-offers-staff",
+    path: "/dev/app-harness/offers?surface=staff",
+  },
 ] as const
 
 const auditClosureRoutes = new Set([

@@ -17,6 +17,11 @@ export const PRIVATE_ROUTE_PREFIXES = [
   "/reward/",
   "/q/",
   "/r/",
+  // The pass-scan handoff mirrors "/r/": it is a staff-facing redirect shim, so
+  // disallowing it costs nothing. "/offer/" and "/pass/" are deliberately
+  // absent — listing a confidential, unlisted path in robots.txt advertises it,
+  // so those carry per-route metadata.robots instead.
+  "/p/",
   "/scan",
   "/start",
   "/m/",
