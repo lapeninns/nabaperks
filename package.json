@@ -150,22 +150,5 @@
       "prettier --write"
     ],
     "*.{mjs,json,md,yaml,yml}": "prettier --write"
-  },
-  "pnpm": {
-    "auditConfig": {
-      "ignoreGhsas": [
-        "GHSA-rgw5-rvv9-x895",
-        "GHSA-7p8r-x3mc-p8w7",
-        "GHSA-mwp4-54f8-5fhr",
-        "GHSA-4xrf-jv44-h6hh",
-        "GHSA-22jq-vg5j-6vgg",
-        "GHSA-4cwx-7wf7-3272",
-        "GHSA-8xcm-r25x-g524",
-        "GHSA-m8rv-5g2x-5cg5",
-        "GHSA-jr45-8vmc-qm54",
-        "GHSA-v3r7-h72x-cjcm",
-        "GHSA-8j4g-w8fx-2239"
-      ]
-    }
   }
 }
