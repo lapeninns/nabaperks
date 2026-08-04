@@ -6,6 +6,28 @@ const SENSITIVE_ROUTE_PATTERNS: ReadonlyArray<
   // bearer token as a pathname.
   [/^\/claim\/unsubscribe\/[^/]+\/?$/, "/claim/unsubscribe/[token]"],
   [/^\/invite\/unsubscribe\/[^/]+\/?$/, "/invite/unsubscribe/[token]"],
+  // Offer campaigns: the claim link, the pass-scan handoff, the customer pass
+  // and the staff deep link all carry bearer-like path parameters.
+  //
+  // A rule anchored immediately after the parameter only ever matches the leaf.
+  // /pass/<entitlementId> has a child — /pass/<entitlementId>/qr.png, which the
+  // pass screen refetches on a timer — and an anchored single-segment rule
+  // never sees it, so every image request, resource breadcrumb and error URL
+  // carried the raw entitlement id to Sentry while this block claimed to be
+  // masking it. The three token namespaces therefore end in a rule that matches
+  // the parameter followed by ANY remaining path, so a child route added later
+  // is masked from the day it exists rather than from the day someone notices.
+  // Named children are listed first, so telemetry keeps the route detail it can
+  // safely have.
+  [/^\/offer\/[^/]+(?:\/|$)/, "/offer/[token]"],
+  [/^\/p\/[^/]+(?:\/|$)/, "/p/[token]"],
+  [/^\/pass\/[^/]+\/qr\.png\/?$/, "/pass/[entitlementId]/qr.png"],
+  [/^\/pass\/[^/]+(?:\/|$)/, "/pass/[entitlementId]"],
+  // /app/offers has legible siblings (/app/offers itself, /app/offers/new), so
+  // this namespace is masked route by route rather than by prefix.
+  [/^\/app\/offers\/scan\/[^/]+\/?$/, "/app/offers/scan/[passToken]"],
+  [/^\/app\/offers\/[^/]+\/qr\.png\/?$/, "/app/offers/[campaignId]/qr.png"],
+  [/^\/app\/offers\/[^/]+\/qr\/?$/, "/app/offers/[campaignId]/qr"],
   [/^\/claim\/[^/]+\/?$/, "/claim/[token]"],
   [/^\/invite\/[^/]+\/?$/, "/invite/[token]"],
   [/^\/r\/[^/]+\/?$/, "/r/[token]"],

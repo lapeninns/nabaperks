@@ -34,5 +34,15 @@ export default async function StampPage({
     redirect(`/reward/${experience.reward.rewardId}`)
   }
 
-  return <CustomerCardExperience experience={experience} />
+  // The stamp entry never derives `card_collecting` (see `deriveStamp`), so the
+  // discount-pass rail cannot render on this screen and loading passes here
+  // would be a read thrown away. The empty rail is passed explicitly rather
+  // than defaulted, so the decision is visible and cannot rot into an omission.
+  return (
+    <CustomerCardExperience
+      experience={experience}
+      offerPasses={[]}
+      offerClaimNotice={null}
+    />
+  )
 }

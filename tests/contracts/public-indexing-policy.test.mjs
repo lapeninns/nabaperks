@@ -77,3 +77,82 @@ test("Given crawlers read robots.txt When private route prefixes are generated T
     )
   }
 })
+
+/**
+ * robots.txt matches by PREFIX, and app/robots.ts expands every entry in
+ * PRIVATE_ROUTE_PREFIXES into its bare form as well ("/p/" also emits "/p").
+ * A short private prefix can therefore silently de-index a public page that
+ * merely starts with the same characters. Adding "/p/" once disallowed
+ * /pricing and /privacy, which only a Lighthouse SEO assertion caught.
+ */
+test("no private route prefix can prefix-match a public page", () => {
+  const metadata = readProjectFile("lib", "seo", "metadata.ts")
+  const block = metadata.slice(
+    metadata.indexOf("export const PRIVATE_ROUTE_PREFIXES = ["),
+    metadata.indexOf(
+      "]",
+      metadata.indexOf("export const PRIVATE_ROUTE_PREFIXES = [")
+    )
+  )
+  // Strip `//` comments first: the block documents which prefixes are
+  // deliberately absent, and those quoted examples are not entries.
+  const entries = block
+    .split("\n")
+    .filter((line) => !line.trim().startsWith("//"))
+    .join("\n")
+  const prefixes = [...entries.matchAll(/"([^"]+)"/g)].map((m) => m[1])
+  assert.ok(prefixes.length > 0, "expected to parse the private prefix list")
+
+  // Every public, indexable route segment directly under app/.
+  const publicRoutes = [
+    "/pricing",
+    "/privacy",
+    "/about",
+    "/faq",
+    "/terms",
+    "/cookies",
+    "/guides",
+    "/how-it-works",
+    "/loyalty-for-pubs",
+    "/loyalty-for-cafes",
+    "/loyalty-for-bars",
+    "/loyalty-for-takeaways",
+    "/data-processing",
+    "/merchant-terms",
+  ]
+
+  // Mirror app/robots.ts: each prefix is emitted bare as well as with its slash.
+  const disallowed = [
+    ...new Set(
+      prefixes.flatMap((prefix) => [
+        prefix,
+        prefix.endsWith("/") ? prefix.slice(0, -1) : prefix,
+      ])
+    ),
+  ]
+
+  // Known and pre-existing, NOT introduced by the offers work: the bare
+  // "/merchant" rule (from the "/merchant/" prefix, present since #118)
+  // prefix-matches the public "/merchant-terms" legal page. Lower severity
+  // than the /pricing case because that page is absent from app/sitemap.ts,
+  // but it is the same defect and deserves its own fix. Listed here so it
+  // stays visible and greppable rather than silently tolerated.
+  const knownPreexisting = new Set([
+    "/m|/merchant-terms",
+    "/merchant|/merchant-terms",
+  ])
+
+  const collisions = []
+  for (const route of publicRoutes) {
+    for (const rule of disallowed) {
+      if (!route.startsWith(rule)) continue
+      if (knownPreexisting.has(`${rule}|${route}`)) continue
+      collisions.push(
+        `robots.txt rule "${rule}" prefix-matches the public page "${route}"; ` +
+          `use per-route PRIVATE_ROUTE_METADATA instead of a short shared prefix`
+      )
+    }
+  }
+
+  assert.deepEqual(collisions, [])
+})

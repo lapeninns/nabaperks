@@ -82,6 +82,19 @@ async function runPrivacyRetention() {
     })
   }
 
+  // Activate offer campaigns whose start date has arrived, retire campaigns
+  // past their end date, expire discount passes past their own valid_to, and
+  // purge dead pass scan tokens. Ending a campaign never cancels a pass already
+  // issued. A failure here is logged and folded into the partial-failure code.
+  const { data: sweptOffers, error: offerError } = await supabase.rpc(
+    "expire_and_purge_offer_campaigns"
+  )
+  if (offerError) {
+    logger.warn("privacy_retention_offer_campaign_purge_failed", {
+      reason: offerError.message,
+    })
+  }
+
   // Drop rate-limit buckets whose window ended over 24h ago — per-IP/email
   // keys otherwise accumulate forever (db integrity hardening).
   const { data: purgedBuckets, error: bucketError } = await supabase.rpc(
@@ -120,6 +133,7 @@ async function runPrivacyRetention() {
   const partialFailure =
     inviteError ||
     loyaltyInviteError ||
+    offerError ||
     bucketError ||
     webVitalError ||
     authHookError
@@ -136,6 +150,8 @@ async function runPrivacyRetention() {
         typeof expiredInvites === "number" ? expiredInvites : 0,
       expiredLoyaltyInviteCount:
         typeof expiredLoyaltyInvites === "number" ? expiredLoyaltyInvites : 0,
+      sweptOfferCampaignCount:
+        typeof sweptOffers === "number" ? sweptOffers : 0,
       purgedRateLimitBuckets:
         typeof purgedBuckets === "number" ? purgedBuckets : 0,
       purgedAuthHookDeliveries:

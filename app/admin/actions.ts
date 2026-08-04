@@ -284,10 +284,39 @@ export async function logDataRequestAction(
   // nulls the customer's email HMAC — the companion RPC matches unclaimed
   // invitations (which still hold ciphertext, tokens and queue state) by that
   // HMAC, so it must run while the HMAC is still present.
+  //
+  // Each companion's own error is checked and aborts the whole action. These
+  // are separate transactions from the request log below, so ignoring one
+  // would leave the erasure request recorded as handled while the data it was
+  // supposed to remove — unclaimed invitations, or a subject's live pass scan
+  // tokens and redeemable discount passes — was still there. An erasure that
+  // reports success it did not achieve is the one failure mode this action must
+  // never have.
   if (requestType === "deletion") {
-    await supabase.rpc("admin_erase_loyalty_invitations_for_customer", {
-      p_customer_id: customerId,
-    })
+    const { error: inviteEraseError } = await supabase.rpc(
+      "admin_erase_loyalty_invitations_for_customer",
+      { p_customer_id: customerId }
+    )
+    const inviteEraseFailure = rpcFailure(
+      inviteEraseError,
+      "Loyalty invitation erasure failed, so nothing was recorded. Try again or review audit logs."
+    )
+    if (inviteEraseFailure) return inviteEraseFailure
+
+    // Offer campaigns hold no contact detail, so there is nothing to scrub;
+    // what erasure removes is the subject's outstanding pass scan tokens, the
+    // redeemable state of any pass they still hold, and the claim linkage
+    // wherever no redemption sits beneath it. The append-only redemption ledger
+    // is left intact and is de-identified by the customer-row anonymisation.
+    const { error: offerEraseError } = await supabase.rpc(
+      "admin_erase_offer_claims_for_customer",
+      { p_customer_id: customerId }
+    )
+    const offerEraseFailure = rpcFailure(
+      offerEraseError,
+      "Offer claim erasure failed, so nothing was recorded. Loyalty invitation data was already scrubbed; try again or review audit logs."
+    )
+    if (offerEraseFailure) return offerEraseFailure
   }
 
   const { data, error } = await supabase.rpc("admin_log_data_request", {
@@ -310,15 +339,36 @@ export async function logDataRequestAction(
   // Extend the subject-access export to cover bulk two-stamp loyalty invitation
   // data, which the monolithic customer export RPC does not touch. (The deletion
   // companion runs above, before the HMAC is erased.)
+  // Offer claims, discount passes and redemptions are outside that RPC too, so
+  // they are merged in alongside as their own object.
+  //
+  // A failing companion is a failed export, not an empty one: `?? []` and
+  // `?? {}` cannot tell "this customer has none" apart from "this read did not
+  // happen", and shipping the second as the first hands the subject an
+  // incomplete disclosure with nothing to say so. The request stays logged —
+  // it was genuinely made — but the download is withheld and the operator is
+  // told to retry.
   let exportPayload: unknown = data
   if (requestType === "export" && data && typeof data === "object") {
-    const { data: invitations } = await supabase.rpc(
+    const { data: invitations, error: invitationsError } = await supabase.rpc(
       "loyalty_invitations_export_for_customer",
       { p_customer_id: customerId }
     )
+    const { data: offerClaims, error: offerClaimsError } = await supabase.rpc(
+      "offer_claims_export_for_customer",
+      { p_customer_id: customerId }
+    )
+
+    const exportFailure = rpcFailure(
+      invitationsError ?? offerClaimsError,
+      "The export is incomplete, so it has not been produced. The request is logged; try again or review audit logs."
+    )
+    if (exportFailure) return exportFailure
+
     exportPayload = {
       ...(data as Record<string, unknown>),
       loyalty_invitations: invitations ?? [],
+      offer_campaigns: offerClaims ?? {},
     }
   }
 

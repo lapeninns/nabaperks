@@ -31,7 +31,18 @@ export default async function RewardPage({
   })
   const experience = deriveCustomerExperience({ entry: "reward", context })
 
-  return <CustomerCardExperience experience={experience} />
+  // The reward entry never derives `card_collecting` (see `deriveReward`), so
+  // the discount-pass rail cannot render here. It should not: this screen has
+  // one job — present the QR for this reward — and a second scannable
+  // destination beside it invites the wrong code being shown at the counter.
+  // The empty rail is passed explicitly so the decision is visible.
+  return (
+    <CustomerCardExperience
+      experience={experience}
+      offerPasses={[]}
+      offerClaimNotice={null}
+    />
+  )
 }
 
 function firstParam(value: string | string[] | undefined) {

@@ -17,6 +17,17 @@ export const PRIVATE_ROUTE_PREFIXES = [
   "/reward/",
   "/q/",
   "/r/",
+  // "/p/" (the pass-scan handoff), "/offer/" and "/pass/" are deliberately
+  // absent. Two separate reasons, both load-bearing:
+  //
+  //  1. app/robots.ts expands every entry here into its bare form as well, so
+  //     "/p/" would also emit `Disallow: /p` — and robots.txt matches by
+  //     prefix, which silently de-indexes /pricing and /privacy. Any future
+  //     entry short enough to prefix a public route has the same hazard.
+  //  2. Listing a confidential, unlisted path in robots.txt advertises it.
+  //
+  // All three routes carry PRIVATE_ROUTE_METADATA per route instead, which
+  // keeps them out of search without publishing their existence.
   "/scan",
   "/start",
   "/m/",

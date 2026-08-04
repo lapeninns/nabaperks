@@ -50,7 +50,19 @@ test("build tooling transitive dependencies are pinned past active advisories", 
   assert.equal(workspaceOverride("tmp"), "0.2.7")
   assert.equal(workspaceOverride("uuid"), "11.1.1")
   assert.equal(workspaceOverride("qs"), "6.15.2")
-  assert.equal(workspaceOverride("brace-expansion"), "5.0.8")
+  // Each of these is a floor, not a preference: the version below it carries a
+  // live advisory. brace-expansion moved 5.0.8 -> 5.0.9 (GHSA-rgw5-rvv9-x895),
+  // fast-uri 3.1.4 -> 3.1.5 (GHSA-7p8r-x3mc-p8w7), hono 4.12.27 -> 4.12.34
+  // (GHSA-8j4g-w8fx-2239) and vercel's undici 6.27.0 -> 6.28.0, alongside new
+  // pins for ip-address and the 7.x undici under @vercel/sandbox. Lowering any
+  // of them reintroduces the advisory, so `pnpm security:audit` is the thing
+  // that decides these numbers — not convenience.
+  assert.equal(workspaceOverride("brace-expansion"), "5.0.9")
+  assert.equal(workspaceOverride("fast-uri"), "^3.1.5")
+  assert.equal(workspaceOverride("ip-address"), "^10.3.1")
+  assert.equal(workspaceOverride("vercel>undici"), "6.28.0")
+  assert.equal(workspaceOverride('"@vercel/sandbox>undici"'), "^7.29.0")
+  assert.equal(workspaceOverride("hono@4.12.25"), "4.12.34")
   assert.match(
     read("pnpm-workspace.yaml"),
     /^patchedDependencies:\n  minimatch@3\.1\.5: patches\/minimatch@3\.1\.5\.patch$/m

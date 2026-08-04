@@ -84,7 +84,10 @@ export function MerchantDashboardMetricsSkeleton() {
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[0, 1, 2, 3].map((tile) => (
-            <div key={tile} className="surface-card grid content-start gap-2 p-4">
+            <div
+              key={tile}
+              className="surface-card grid content-start gap-2 p-4"
+            >
               <Skeleton className="h-3 w-20" />
               <div className="flex items-end justify-between gap-3">
                 <Skeleton className="h-7 w-12" />
@@ -541,6 +544,123 @@ export function RewardScanContentSkeleton() {
       </div>
 
       <Skeleton className="h-20 w-full" />
+      <Skeleton className="h-11 w-full" />
+    </div>
+  )
+}
+
+// ─── Offers ────────────────────────────────────────────────────────────────────
+
+/**
+ * Mirrors {@link OfferCampaignPanel}: the ink-bordered campaign card (header +
+ * status tag, the rules readback, the link row and the manage row) followed by
+ * the four-up results tiles, so the swap-in never shifts the manage controls.
+ */
+export function OfferCampaignPanelSkeleton() {
+  return (
+    <div className="grid gap-5" role="status" aria-label="Loading your offer">
+      <section className="grid gap-5 rounded-lg border-2 border-ink bg-card p-4 shadow-[var(--shadow-hard)] sm:p-6">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="grid gap-2">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-6 w-56 max-w-full" />
+            <Skeleton className="h-4 w-full max-w-md" />
+          </div>
+          <Skeleton className="h-5 w-16 rounded-full" />
+        </div>
+
+        {/* Rules readback: label/value rows on a dashed rule. */}
+        <div className="grid gap-0">
+          {[0, 1, 2, 3].map((row) => (
+            <div
+              key={row}
+              className="flex items-center justify-between gap-4 border-b border-dashed border-ink/15 py-2.5 last:border-b-0"
+            >
+              <Skeleton className="h-3 w-28" />
+              <Skeleton className="h-4 w-40 max-w-[50%]" />
+            </div>
+          ))}
+        </div>
+
+        {/* Confidential link + share actions. */}
+        <div className="grid gap-3 border-t-2 border-dashed border-ink/20 pt-5">
+          <Skeleton className="h-3 w-32" />
+          <Skeleton className="h-4 w-full max-w-lg" />
+          <div className="flex flex-wrap gap-2">
+            <Skeleton className="h-11 w-32" />
+            <Skeleton className="h-11 w-32" />
+            <Skeleton className="h-11 w-44" />
+          </div>
+        </div>
+
+        {/* Manage row. */}
+        <div className="grid gap-4 border-t-2 border-dashed border-ink/20 pt-5">
+          <Skeleton className="h-3 w-16" />
+          <div className="flex flex-wrap gap-2">
+            <Skeleton className="h-11 w-40" />
+            <Skeleton className="h-11 w-36" />
+            <Skeleton className="h-11 w-32" />
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-2">
+        <Skeleton className="h-3 w-28" />
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {[0, 1, 2, 3].map((tile) => (
+            <div
+              key={tile}
+              className="surface-card grid content-start gap-2 p-4"
+            >
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-7 w-12" />
+              <Skeleton className="h-3 w-24" />
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  )
+}
+
+/**
+ * Mirrors the offer pass scan body at app/app/offers/scan/[passToken]: the
+ * receipt-card pass face (eyebrow, percentage lockup, validity and terms), the
+ * member/card readback, the status banner, and the attestation block plus
+ * confirm action the staff member is about to use.
+ *
+ * This route's `<Suspense fallback>` renders it, so the shapes here and the
+ * shapes there must move together.
+ */
+export function OfferPassScanContentSkeleton() {
+  return (
+    <div className="grid gap-4" role="status" aria-label="Loading offer pass">
+      <div>
+        <div className="grid gap-2 rounded-lg border-2 border-ink bg-card p-4">
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-9 w-36" />
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-4 w-full max-w-xs" />
+        </div>
+        <div aria-hidden="true" className="receipt-edge" />
+      </div>
+
+      <div className="grid gap-2 rounded-xl border-2 border-ink bg-card p-4">
+        {[0, 1].map((line) => (
+          <div key={line} className="flex items-center justify-between gap-4">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-28" />
+          </div>
+        ))}
+      </div>
+
+      {/* Status banner, then two attestation rows and the confirm action. */}
+      <Skeleton className="h-20 w-full" />
+      <div className="grid gap-2">
+        {[0, 1].map((row) => (
+          <Skeleton key={row} className="h-14 w-full" />
+        ))}
+      </div>
       <Skeleton className="h-11 w-full" />
     </div>
   )

@@ -2,6 +2,7 @@ import Link from "next/link"
 import {
   ArrowRight02Icon,
   Camera01Icon,
+  DiscountTag01Icon,
   Megaphone01Icon,
 } from "@hugeicons/core-free-icons"
 
@@ -35,10 +36,16 @@ export function MerchantDashboardHeaderActions({
   }
 
   // Scanning a reward is the reach-for counter action. `flex-col-reverse`
-  // keeps it above the secondary action when buttons stack on a phone, while
+  // keeps it above the secondary actions when buttons stack on a phone, while
   // the desktop row restores the usual primary-rightmost order.
   return (
     <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row">
+      <Button asChild variant="ghost" className="w-full sm:w-auto">
+        <Link href="/app/offers" prefetch={false}>
+          <Icon icon={DiscountTag01Icon} size={16} />
+          Offers
+        </Link>
+      </Button>
       <Button asChild variant="secondary" className="w-full sm:w-auto">
         <Link href="/app/announcements" prefetch={false}>
           <Icon icon={Megaphone01Icon} size={16} />
@@ -48,7 +55,7 @@ export function MerchantDashboardHeaderActions({
       <Button asChild className="w-full sm:w-auto">
         <Link href="/app/scan" prefetch={false}>
           <Icon icon={Camera01Icon} size={16} />
-          Scan reward
+          Scan code
         </Link>
       </Button>
     </div>

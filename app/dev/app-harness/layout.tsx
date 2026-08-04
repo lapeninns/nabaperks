@@ -43,6 +43,7 @@ const LANE_ACTIVE_PATH: Record<string, string> = {
   customers: "/app/customers",
   activity: "/app/activity",
   announcements: "/app/announcements",
+  offers: "/app/offers",
   account: "/app/account",
   qr: "/app/qr",
   scan: "/app/scan",

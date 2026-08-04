@@ -1,3 +1,9 @@
+export {
+  OfferPass,
+  formatOfferPassDate,
+  type OfferPassProps,
+  type OfferPassState,
+} from "./offer-pass"
 export { ProgressTrack } from "./progress-track"
 export { QrFrame } from "./qr-frame"
 export { RewardCelebration } from "./reward-celebration"

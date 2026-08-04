@@ -3,7 +3,7 @@ import type { Metadata } from "next"
 import { MerchantRewardScannerLoader } from "@/components/merchant/merchant-reward-scanner-loader"
 
 export const metadata: Metadata = {
-  title: "Scan reward QR",
+  title: "Scan customer code",
 }
 
 export const dynamic = "force-dynamic"

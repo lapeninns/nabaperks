@@ -29,7 +29,7 @@ test("dashboard production and harness share one readiness-driven header action"
   assert.match(dashboardHarness, /MerchantDashboardHeaderActions/)
   assert.match(dashboardActions, /isVenueOperational\(readiness\)/)
   assert.match(dashboardActions, /Finish setup/)
-  assert.match(dashboardActions, /Scan reward/)
+  assert.match(dashboardActions, /Scan code/)
   assert.match(dashboardHarness, /requiresBilling:\s*true/)
 })
 

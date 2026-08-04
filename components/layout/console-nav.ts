@@ -4,6 +4,7 @@ import {
   AnalyticsUpIcon,
   Building02Icon,
   CreditCardIcon,
+  DiscountTag01Icon,
   Home01Icon,
   Megaphone01Icon,
   QrCode01Icon,
@@ -100,6 +101,12 @@ export const merchantNavItems = [
     prefetch: "auto",
   },
   { href: "/app/announcements", label: "Announce", icon: Megaphone01Icon },
+  {
+    href: "/app/offers",
+    label: "Offers",
+    icon: DiscountTag01Icon,
+    prefetch: "auto",
+  },
 ] satisfies readonly ShellNavItem[]
 
 export const merchantAccountItems = [

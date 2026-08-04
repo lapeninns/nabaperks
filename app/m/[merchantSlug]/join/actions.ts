@@ -11,6 +11,11 @@ import {
   clearInviteCookie,
   readInviteCookie,
 } from "@/lib/loyalty-invites/invite-cookie"
+import {
+  claimHandoffOrder,
+  isFinalOfferClaimOutcome,
+} from "@/lib/offers/claim-handoff"
+import { clearOfferCookie, readOfferCookie } from "@/lib/offers/offer-cookie"
 import { triggerBirthdayIssuanceForCustomer } from "@/lib/rewards/issue-birthday"
 import {
   getCurrentCustomer,
@@ -411,6 +416,111 @@ async function claimLoyaltyInviteIfPresent(
   return null
 }
 
+/**
+ * Consume a merchant offer campaign for this venue, if the encrypted cookie set
+ * by /offer/[token] is present. Mirrors claimLoyaltyInviteIfPresent: returns
+ * null when there is no offer for this merchant (so the caller does a normal
+ * join); redirects to the card on a claim, a replay, or an existing membership;
+ * otherwise returns an error state.
+ *
+ * The cookie is spent only once the answer is FINAL — see
+ * `isFinalOfferClaimOutcome`. A transient failure must leave it intact, because
+ * the message such a failure returns invites a retry, and a retry with no offer
+ * cookie is an ordinary join: no benefit, and an existing membership from then
+ * on, which locks the customer out of the offer for good.
+ */
+async function claimOfferCampaignIfPresent(
+  customerId: string,
+  merchantSlug: string,
+  marketingOptIn: boolean
+): Promise<CustomerJoinState | null> {
+  const cookie = await readOfferCookie()
+  if (!cookie || cookie.merchantSlug !== merchantSlug) return null
+
+  const supabase = createSupabaseServiceRoleClient()
+  const { data, error } = await supabase.rpc("claim_offer_campaign", {
+    p_customer_id: customerId,
+    p_claim_token_hash: cookie.claimTokenHash,
+    p_policy_version: policyVersion,
+    p_marketing_opt_in: marketingOptIn,
+  })
+
+  if (error) {
+    // Transport or database failure: the offer is untouched, so the handoff
+    // stays and the retry this message asks for still carries it.
+    return {
+      errors: {
+        form: "We couldn't add this offer. Try again or ask the venue team.",
+      },
+    }
+  }
+
+  const row = Array.isArray(data) ? data[0] : data
+  const status = typeof row?.status === "string" ? row.status : undefined
+  const membershipId =
+    typeof row?.membership_id === "string" ? row.membership_id : undefined
+
+  // ── Not final: keep the handoff so a later attempt still carries the offer ──
+  if (status === "card_too_short" || status === "unavailable") {
+    return {
+      errors: {
+        form: "This venue's loyalty card isn't available right now, so nothing was added.",
+      },
+    }
+  }
+  if (!isFinalOfferClaimOutcome(status)) {
+    // A missing row, or a status this build does not recognise. Refuse rather
+    // than fall through to an ordinary join, which would spend the membership.
+    return {
+      errors: {
+        form: "We couldn't add this offer. Try again or ask the venue team.",
+      },
+    }
+  }
+
+  // ── Final: the answer will not change on a retry, so the handoff is spent ──
+  await clearOfferCookie()
+
+  if (status === "claimed" && membershipId) {
+    after(() => triggerBirthdayIssuanceForCustomer(customerId))
+    after(() => attachRewardInvitesForCustomer(customerId))
+    redirect(`/card/${membershipId}?welcome=1&offer=1`)
+  }
+  // A second scan of the same poster awards nothing and opens what they hold.
+  if (status === "already_claimed" && membershipId) {
+    redirect(`/card/${membershipId}?offer=claimed`)
+  }
+  // Offers are a welcome for new members, so an existing one is sent to their
+  // card rather than given the benefit a second time.
+  if (status === "already_member" && membershipId) {
+    redirect(`/card/${membershipId}?membership=existing`)
+  }
+  if (status === "not_started") {
+    return {
+      errors: {
+        form: "This offer has not opened yet, so nothing was added to your card.",
+      },
+    }
+  }
+  if (status === "paused") {
+    return {
+      errors: {
+        form: "This offer is paused just now, so nothing was added to your card.",
+      },
+    }
+  }
+  if (status === "expired") {
+    return {
+      errors: {
+        form: "This offer has finished, so nothing was added to your card.",
+      },
+    }
+  }
+
+  // 'invalid' — an unknown, replaced or ended link. Fall through to a normal join.
+  return null
+}
+
 export async function joinRewardsAction(
   _state: CustomerJoinState,
   formData: FormData
@@ -430,17 +540,46 @@ export async function joinRewardsAction(
     return { errors: { loyaltyTerms: "Accept the loyalty terms to join." } }
   }
 
-  // Bulk two-stamp loyalty invitation: if this join carries a validated
-  // invitation cookie for THIS venue, consume it in one atomic transaction
-  // (membership + immutable terms + exactly two welcome stamps) instead of the
-  // normal QR-first-stamp join. Redirects on success; returns an error state on
-  // a non-award outcome; falls through to a normal join only if there is none.
-  const inviteState = await claimLoyaltyInviteIfPresent(
-    customer.id,
-    merchantSlug,
-    marketingOptIn
-  )
-  if (inviteState) return inviteState
+  // Two independent handoffs can be waiting at once, and each of them creates
+  // the membership itself:
+  //
+  //  * a bulk two-stamp loyalty invitation, from /invite/[token], which joins
+  //    the customer in one atomic transaction with exactly two welcome stamps
+  //    instead of the normal QR-first-stamp join; and
+  //  * a merchant offer campaign, from /offer/[token], the same shape, adding
+  //    the campaign's bonus stamps and the discount pass.
+  //
+  // Both redirect on success, return an error state on a non-award outcome, and
+  // fall through to a normal join when their cookie is absent or not for this
+  // venue. Running them in a fixed order let a stale invitation — they last an
+  // hour — create the membership ahead of an offer claim the customer started
+  // seconds ago, and an offer is only ever for someone who is not already a
+  // member, so that lost it permanently. The most recently started claim wins,
+  // in either direction; see `claimHandoffOrder`.
+  const [inviteCookie, offerCookie] = await Promise.all([
+    readInviteCookie(),
+    readOfferCookie(),
+  ])
+  const claimHandoff = {
+    invite: () =>
+      claimLoyaltyInviteIfPresent(customer.id, merchantSlug, marketingOptIn),
+    offer: () =>
+      claimOfferCampaignIfPresent(customer.id, merchantSlug, marketingOptIn),
+  } as const
+  const [firstHandoff, secondHandoff] = claimHandoffOrder({
+    invite:
+      inviteCookie?.merchantSlug === merchantSlug
+        ? inviteCookie.expiresAt
+        : null,
+    offer:
+      offerCookie?.merchantSlug === merchantSlug ? offerCookie.expiresAt : null,
+  })
+
+  const firstState = await claimHandoff[firstHandoff]()
+  if (firstState) return firstState
+
+  const secondState = await claimHandoff[secondHandoff]()
+  if (secondState) return secondState
 
   const supabase = createSupabaseServiceRoleClient()
   // Omit p_ref unless a referral code is actually present, so the call still

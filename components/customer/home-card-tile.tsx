@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { GiftIcon } from "@hugeicons/core-free-icons"
+import { DiscountTag01Icon, GiftIcon } from "@hugeicons/core-free-icons"
 
 import {
   Eyebrow,
@@ -11,15 +11,33 @@ import {
 import { GoogleReviewButton } from "@/components/customer/google-review-button"
 import { ReferralBonusBankMini } from "@/components/customer/referral-bonus-bank-panels"
 import { ReferralShareButton } from "@/components/customer/referral-share-button"
-import { StampGrid } from "@/components/loyalty"
+import { StampGrid, formatOfferPassDate } from "@/components/loyalty"
+import { Button } from "@/components/ui/button"
 import { homeCardStatusCopy } from "@/lib/customer/home-dashboard"
 import { rewardSourceBadge } from "@/lib/customer/issued-reward-display"
 import { hasVisibleReferralBonusBank } from "@/lib/customer/referral-bonus-bank-copy"
 import { formatRewardReadyDate } from "@/lib/customer/uk-calendar"
 import type { HomeCard } from "@/lib/customer/home"
 import type { HomeCardGift } from "@/lib/customer/home-types"
+import type { CustomerOfferPass } from "@/lib/customer/offer-pass"
 
-export function HomeCardTile({ card }: { card: HomeCard }) {
+/**
+ * `offerPasses` is passed beside the card rather than hung off `HomeCard`: a
+ * discount pass is its own record with unlimited uses inside its window, not a
+ * reward the card can complete, and the tile must never let one imply the
+ * other.
+ *
+ * It is deliberately **required** with no default. An optional `= []` compiled
+ * silently while no route fed it, which is how the rail shipped as unreachable
+ * dead code; a required prop makes forgetting it a type error instead.
+ */
+export function HomeCardTile({
+  card,
+  offerPasses,
+}: {
+  card: HomeCard
+  offerPasses: readonly CustomerOfferPass[]
+}) {
   const href = card.stampRewardId
     ? `/reward/${card.stampRewardId}`
     : `/card/${card.membershipId}`
@@ -114,6 +132,15 @@ export function HomeCardTile({ card }: { card: HomeCard }) {
           ) : null}
         </ReceiptCard>
       </Link>
+      {/* The pass rail sits outside the tile's link on purpose. The tile links
+          to the reward, not the card, as soon as a stamp reward is redeemable,
+          and so does every other route out of home — so a chip nested in that
+          link could carry no link of its own and the customer would see their
+          pass with no way to open its code. Out here each chip carries its own
+          destination, and no anchor is ever nested inside another. */}
+      {offerPasses.map((pass) => (
+        <TilePassChip key={pass.entitlementId} pass={pass} />
+      ))}
       {card.referralShareUrl ? (
         <ReferralShareButton
           url={card.referralShareUrl}
@@ -129,6 +156,56 @@ export function HomeCardTile({ card }: { card: HomeCard }) {
       ) : null}
     </div>
   )
+}
+
+/**
+ * A discount pass shown beside the tile — its own chip, never inside the reward
+ * ticket, because a pass has unlimited uses inside its window while a reward is
+ * a single collection. It sits outside the tile's own link so that a pass the
+ * venue can honour carries the customer straight to its code, whatever the
+ * tile itself is pointing at.
+ */
+function TilePassChip({ pass }: { pass: CustomerOfferPass }) {
+  return (
+    <div
+      data-reward-ticket="offer-pass"
+      className="grid gap-1.5 rounded-lg border-2 border-ink bg-seal/15 p-3"
+    >
+      <div className="flex items-center gap-1.5">
+        <Icon icon={DiscountTag01Icon} size={14} />
+        <Eyebrow>Discount pass</Eyebrow>
+      </div>
+      <p className="text-sm leading-tight font-extrabold break-words">
+        {pass.discountPercent}% off at {pass.venueName}
+      </p>
+      <span className="mono-id w-fit max-w-full rounded-md border-2 border-ink bg-seal/25 px-2 py-0.5">
+        {tilePassLabel(pass)}
+      </span>
+      {pass.presentable ? (
+        <Button asChild size="sm" variant="reward" className="w-full">
+          <Link href={`/pass/${pass.entitlementId}`}>Show pass QR</Link>
+        </Button>
+      ) : null}
+    </div>
+  )
+}
+
+/**
+ * The pass's standing in one short line, above the way in to the code. A pass
+ * the venue cannot honour keeps this line and offers no code at all.
+ */
+function tilePassLabel(pass: CustomerOfferPass): string {
+  if (pass.presentable) {
+    const closes = formatOfferPassDate(pass.validTo)
+    return closes ? `Use until · ${closes}` : "Ready to use"
+  }
+  if (pass.state === "not_started") {
+    const opens = formatOfferPassDate(pass.validFrom)
+    return opens ? `Opens · ${opens}` : "Opens soon"
+  }
+  if (pass.state === "revoked") return "No longer active"
+  if (pass.state === "expired") return "Finished"
+  return "Not available just now"
 }
 
 /**

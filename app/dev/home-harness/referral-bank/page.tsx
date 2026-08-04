@@ -36,5 +36,12 @@ export default function ReferralBankHarnessPage() {
     notFound()
   }
 
-  return <CustomerCardExperience experience={REFERRAL_BANK_EXPERIENCE} />
+  // This harness lane exercises the referral bank, not the offers rail.
+  return (
+    <CustomerCardExperience
+      experience={REFERRAL_BANK_EXPERIENCE}
+      offerPasses={[]}
+      offerClaimNotice={null}
+    />
+  )
 }

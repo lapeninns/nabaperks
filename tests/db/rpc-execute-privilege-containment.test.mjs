@@ -37,6 +37,8 @@ const AUTHENTICATED_DIRECT_RPCS = [
   "admin_log_data_request",
   "admin_erase_loyalty_invitations_for_customer",
   "loyalty_invitations_export_for_customer",
+  "admin_erase_offer_claims_for_customer",
+  "offer_claims_export_for_customer",
   "admin_log_pilot_note",
   "admin_capture_commercial_evidence_case",
   "save_loyalty_card",
