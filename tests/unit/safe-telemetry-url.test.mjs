@@ -27,7 +27,7 @@ test("telemetry URLs replace claim and scan credentials with route labels", () =
 test("invite and unsubscribe bearers are masked, most specific route first", () => {
   // Loyalty-invite tokens are HMACs that grant membership plus two stamps; the
   // unsubscribe siblings carry consent authority. Neither route was in the
-  // allowlist, so both reached Sentry verbatim.
+  // allowlist, so both reached telemetry consumers verbatim.
   assert.equal(
     sanitizeTelemetryUrl("/invite/a-secret-claim-token"),
     "/invite/[token]"

@@ -21,7 +21,7 @@ body:
     id: signals
     attributes:
       label: Signals
-      description: Add health/readiness result, Sentry issue, deployment revision, and request IDs without secrets or PII.
+      description: Add health/readiness result, deployment revision, and request IDs without secrets or PII.
     validations:
       required: true
   - type: textarea

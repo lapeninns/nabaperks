@@ -1,7 +1,5 @@
 import type { Instrumentation } from "next"
-import * as Sentry from "@sentry/nextjs"
 
-import { isFeatureEnabled } from "@/lib/feature-flags"
 import { REQUEST_ID_HEADER } from "@/lib/observability/request-id"
 import { logger } from "@/lib/observability/logger"
 import { sanitizeTelemetryUrl } from "@/lib/observability/safe-telemetry-url"
@@ -11,15 +9,6 @@ import { sanitizeTelemetryUrl } from "@/lib/observability/safe-telemetry-url"
 // observability and is the seam where an OTel/PostHog server SDK would be
 // registered when `OTEL_*` / collector env is present.
 export async function register() {
-  if (isFeatureEnabled("platform_error_reporting")) {
-    if (process.env.NEXT_RUNTIME === "nodejs") {
-      await import("./sentry.server.config")
-    }
-    if (process.env.NEXT_RUNTIME === "edge") {
-      await import("./sentry.edge.config")
-    }
-  }
-
   logger.info("server.start", {
     runtime: process.env.NEXT_RUNTIME ?? "nodejs",
     nodeEnv: process.env.NODE_ENV ?? "development",
@@ -44,24 +33,6 @@ export const onRequestError: Instrumentation.onRequestError = async (
       : null
   const requestId = headerValue(request.headers?.[REQUEST_ID_HEADER])
   const safeRoutePath = sanitizeTelemetryUrl(context.routePath)
-
-  if (isFeatureEnabled("platform_error_reporting")) {
-    Sentry.withScope((scope) => {
-      scope.setTag("request.id", requestId ?? "missing")
-      scope.setTag("next.router_kind", context.routerKind)
-      scope.setTag("next.route_path", safeRoutePath)
-      scope.setTag("next.route_type", context.routeType)
-      Sentry.captureRequestError(
-        err,
-        {
-          method: request.method,
-          path: safeRoutePath,
-          headers: requestId ? { [REQUEST_ID_HEADER]: requestId } : {},
-        },
-        { ...context, routePath: safeRoutePath }
-      )
-    })
-  }
 
   logger.error("request.error", {
     errorName,

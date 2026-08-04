@@ -19,7 +19,7 @@ For merchants, Nabaperks provides guided venue launch, loyalty-card configuratio
 
 The product's central design rule is that server state is authoritative. Loyalty balances, stamp eligibility, rewards, billing entitlement, consent, identity, referral settlement, and administrative interventions are controlled by server actions, route handlers, Supabase/Postgres functions, Row Level Security, Stripe webhooks, or trusted background workers. Browser storage is used only for sessions, flow continuity, security, preferences, cached static assets, and optional notification state.
 
-The codebase is substantially more developed than a simple prototype. It contains extensive contract, unit, live-database, and browser-test coverage; auditable administration; privacy workflows; durable notification and billing ledgers; fraud controls; liveness/readiness handlers; Sentry instrumentation; and scheduled-job configuration. However, source maturity is not production acceptance. Twilio, Resend, Stripe live mode, Web Push, Vercel cron execution, physical QR/device behaviour, target Supabase migration parity, and the exact deployed configuration require evidence outside the codebase.
+The codebase is substantially more developed than a simple prototype. It contains extensive contract, unit, live-database, and browser-test coverage; auditable administration; privacy workflows; durable notification and billing ledgers; fraud controls; liveness/readiness handlers; structured operational logging; and scheduled-job configuration. However, source maturity is not production acceptance. Twilio, Resend, Stripe live mode, Web Push, Vercel cron execution, physical QR/device behaviour, target Supabase migration parity, and the exact deployed configuration require evidence outside the codebase.
 
 ## 2. Product definition
 
@@ -394,7 +394,7 @@ Prose documents are deliberately outside the evidence hierarchy for this dossier
 - Resend for transactional and merchant/admin authentication email.
 - Web Push with VAPID keys and a service worker.
 - Vercel hosting and scheduled jobs in the London region.
-- Optional Google Places, OpenStreetMap Nominatim, server-side pseudonymous PostHog, and Sentry.
+- Optional Google Places, OpenStreetMap Nominatim, and server-side pseudonymous PostHog.
 - PDF generation for branded poster assets.
 
 ### 10.2 Route architecture
@@ -448,7 +448,7 @@ Other route handlers implement browser-session operations, Supabase auth hooks, 
 - OTP, QR scans, announcements, and other sensitive operations use durable rate limits.
 - Reward redemption uses short-lived, single-use, merchant-scoped tokens.
 - External analytics applies pseudonyms and property allowlists; contact details, tokens, secrets, provider IDs, URLs, IPs, and precise location are rejected.
-- Sentry is optional and configured to minimise personal information.
+- Structured logs and request identifiers are designed to avoid unnecessary personal information.
 - Security headers and nonce-backed scripts are configured at the Next.js boundary.
 
 ### 11.2 Identity and PII handling
@@ -520,7 +520,7 @@ The application includes audited access, export, consent, and erasure workflows.
 
 Nabaperks records first-party product and funnel events in Supabase. These support marketing acquisition, merchant activation, QR scans, joins, stamps, reward issuance/redemption, referrals, billing events, and operational diagnostics. Funnel continuity uses a session-only first-party token rather than a persistent browser advertising identity.
 
-Optional PostHog processing is server-side and disabled unless explicitly set to pseudonymous mode with the required secret and project configuration. The application uses an allowlist and generated pseudonyms rather than forwarding contact details. Sentry provides optional technical error and release context; it is controlled by a typed feature flag and environment configuration.
+Optional PostHog processing is server-side and disabled unless explicitly set to pseudonymous mode with the required secret and project configuration. The application uses an allowlist and generated pseudonyms rather than forwarding contact details. Operational diagnostics use structured logs, request identifiers, liveness/readiness probes, and first-party audit records.
 
 Metrics should be interpreted carefully:
 
@@ -574,7 +574,7 @@ The app has a manifest, installable icons, a service worker, and an offline page
 - Retry/backoff and durable failure state for asynchronous work.
 - Safe no-store responses for identity-sensitive status/readback routes.
 - Separate liveness and authenticated readiness probes.
-- Structured logging, request IDs, Sentry hooks, and first-party product/audit events.
+- Structured logging, request IDs, readiness hooks, and first-party product/audit events.
 
 ### 16.2 Build and deployment controls visible in code
 
@@ -697,7 +697,7 @@ An auditing LM should evaluate Nabaperks in the following passes.
 
 - Trace phone/email encryption and HMAC lookup boundaries.
 - Verify consent separation and marketing filters at enqueue and delivery.
-- Check raw PII exclusion from merchant DTOs, analytics, notifications, logs, and Sentry.
+- Check raw PII exclusion from merchant DTOs, analytics, notifications, and logs.
 - Review OTP bypass, service-role use, cron secrets, webhook verification, rate limits, open redirects, QR/token exposure, and admin MFA.
 - Compare retention copy with executable retention functions and cron schedule.
 

@@ -101,7 +101,6 @@ jobs:
       - run: pnpm deadcode:check
       - run: pnpm duplicates:check
       - run: pnpm debt:check
-      - run: pnpm flags:check
       - run: pnpm docs:check
       - run: pnpm agents:check
       - run: pnpm tokens:check

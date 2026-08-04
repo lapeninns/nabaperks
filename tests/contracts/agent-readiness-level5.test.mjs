@@ -51,19 +51,6 @@ test("Given database-backed routes When query regressions run Then N plus one pl
   assert.match(queryPlanTest, /Actual Loops/)
 })
 
-test("Given a risky change When it is deployed Then flags have ownership expiry and stale-flag validation", () => {
-  const packageJson = JSON.parse(read("package.json"))
-  const flags = JSON.parse(read("config/feature-flags.json"))
-  const runtime = read("lib/feature-flags.ts")
-  const instrumentation = read("instrumentation.ts")
-
-  assert.equal(typeof packageJson.scripts["flags:check"], "string")
-  assert.ok(flags.flags.length > 0)
-  assert.ok(flags.flags.every((flag) => flag.owner && flag.expiresOn))
-  assert.match(runtime, /isFeatureEnabled/)
-  assert.match(instrumentation, /platform_error_reporting/)
-})
-
 test("Given HTTP APIs When docs are generated Then a valid source-linked OpenAPI contract stays current", () => {
   const packageJson = JSON.parse(read("package.json"))
   const openapi = JSON.parse(read("docs/api/openapi.json"))
@@ -87,26 +74,6 @@ test("Given an autonomous agent When it enters the repository Then current comma
   assert.match(agents, /docs\/operations\/agent-readiness\.md/)
   assert.match(skill, /^---[\s\S]*name:[\s\S]*description:/)
   assert.match(freshness, /AGENTS\.md/)
-})
-
-test("Given a production error When observability is configured Then it carries context source maps alerts and issue automation", () => {
-  const packageJson = JSON.parse(read("package.json"))
-  const nextConfig = read("next.config.ts")
-  const instrumentation = read("instrumentation.ts")
-  const serverConfig = read("sentry.server.config.ts")
-  const edgeConfig = read("sentry.edge.config.ts")
-  const clientConfig = read("instrumentation-client.ts")
-  const smoke = read(".github/workflows/production-smoke.yml")
-
-  assert.equal(typeof packageJson.dependencies["@sentry/nextjs"], "string")
-  assert.match(nextConfig, /withSentryConfig/)
-  assert.match(instrumentation, /captureRequestError/)
-  for (const config of [serverConfig, edgeConfig, clientConfig]) {
-    assert.match(config, /sendDefaultPii:\s*false/)
-    assert.match(config, /tracesSampleRate/)
-  }
-  assert.match(smoke, /issues:\s*write/)
-  assert.match(smoke, /Create or update incident issue/)
 })
 
 test("Given routine pull requests When CI runs Then deep browser proof is sharded for sub-ten-minute feedback", () => {

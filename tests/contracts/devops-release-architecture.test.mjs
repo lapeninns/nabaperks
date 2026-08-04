@@ -58,9 +58,6 @@ test("production CD builds once, attests, stages, verifies and then promotes", (
   assert.match(workflow, /vercel-output-after-upload\.tgz/)
   assert.match(workflow, /Verify staged liveness and dependency readiness/)
   assert.match(workflow, /\.checks\.operational == "ok"/)
-  assert.match(workflow, /SENTRY_RELEASE: \$\{\{ github\.event_name/)
-  assert.match(workflow, /run: pnpm ops:sentry:check/)
-  assert.match(workflow, /check-sentry-release\.mjs record-deploy/)
   assert.match(workflow, /PROMOTE_PRODUCTION_APPLICATION/)
   assert.doesNotMatch(workflow, /pnpm dlx|npm install --global|@latest/)
 
@@ -69,21 +66,8 @@ test("production CD builds once, attests, stages, verifies and then promotes", (
   const verify = workflow.indexOf(
     "Verify staged liveness and dependency readiness"
   )
-  const sentryRelease = workflow.indexOf(
-    "Verify exact Sentry release and source-map upload"
-  )
   const promote = workflow.indexOf("Promote the verified staged deployment")
-  const sentryDeploy = workflow.indexOf(
-    "Record and verify the Sentry production deploy"
-  )
-  assert.ok(
-    sentryRelease > -1 &&
-      attest > sentryRelease &&
-      stage > sentryRelease &&
-      verify > stage &&
-      promote > verify &&
-      sentryDeploy > promote
-  )
+  assert.ok(attest < stage && stage < verify && verify < promote)
   assert.ok(
     workflow.indexOf("PROMOTE_PRODUCTION_APPLICATION") <
       workflow.indexOf("environment: Production")

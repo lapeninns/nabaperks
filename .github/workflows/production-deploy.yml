@@ -60,9 +60,6 @@ jobs:
       VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
       VERCEL_GIT_COMMIT_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
       VERCEL_ENV: production
-      SENTRY_ORG: ${{ vars.SENTRY_ORG }}
-      SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
-      SENTRY_RELEASE: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
       DO_NOT_TRACK: "1"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -80,21 +77,12 @@ jobs:
         run: test "$(pnpm exec vercel --version | tail -n 1)" = "56.5.0"
       - name: Build the immutable Vercel output once
         env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           test -n "$VERCEL_TOKEN"
-          test -n "$SENTRY_AUTH_TOKEN"
-          test -n "$SENTRY_ORG"
-          test -n "$SENTRY_PROJECT"
-          test "$SENTRY_RELEASE" = "$EXPECTED_REVISION"
           pnpm exec vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
           pnpm exec vercel build --prod --yes --token="$VERCEL_TOKEN"
           test -d .vercel/output
-      - name: Verify exact Sentry release and source-map upload
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-        run: pnpm ops:sentry:check
       - name: Remove pulled environment material and inventory the output
         run: |
           rm -f .vercel/.env.production.local
@@ -221,11 +209,6 @@ jobs:
             --yes \
             --timeout=3m \
             --token="$VERCEL_TOKEN"
-      - name: Record and verify the Sentry production deploy
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_DEPLOYMENT_URL: ${{ steps.stage.outputs.url }}
-        run: node scripts/check-sentry-release.mjs record-deploy
       - name: Record release evidence
         env:
           DEPLOYMENT_URL: ${{ steps.stage.outputs.url }}

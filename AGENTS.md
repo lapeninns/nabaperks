@@ -21,7 +21,7 @@ Use the smallest relevant check while iterating, then run the repository gate:
 
 ```bash
 pnpm quality:fast   # lint, typecheck, contract tests, and unit tests
-pnpm quality:check  # plus dead code, duplication, debt, flags, and docs
+pnpm quality:check  # plus dead code, duplication, debt, and docs
 pnpm build          # production Next.js build
 ```
 
@@ -55,13 +55,6 @@ is source-aligned and PITR-backed:
 
 ```bash
 pnpm ops:supabase:check
-```
-
-Sentry release proof requires protected production credentials and verifies the
-exact full Git SHA, project association and production deploy readback:
-
-```bash
-pnpm ops:sentry:check
 ```
 
 ## Repository boundaries
@@ -98,8 +91,6 @@ auditable. Browser-only proof cannot substitute for DB/RLS/webhook proof.
   brand/UI components when visual work is in scope.
 - Keep copy in plain British English. Avoid invented product or venue claims.
 - Treat `.env.example` and `config/env-contract.json` as a synchronized pair.
-- Every feature flag needs an owner, expiry, runtime usage, and passing
-  `pnpm flags:check` lifecycle validation.
 - Link TODO/FIXME debt markers to an issue, such as `TODO(#123)`.
 - Update `docs/api/openapi.json` when an externally consumed HTTP contract
   changes, then run `pnpm docs:generate`.

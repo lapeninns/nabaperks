@@ -292,7 +292,7 @@ ratio over the same observed window. Each scheduled run separately enforces the
 
 This SLO is hosted by GitHub and shares part of the release control plane. It
 cannot detect a GitHub-wide failure independently and does not replace external
-uptime monitoring, Sentry or provider-native delivery and scheduler telemetry.
+uptime monitoring or provider-native delivery and scheduler telemetry.
 The protected readiness endpoint now supplies source-owned queue-age,
 cron-failure and provider-delivery aggregates, but those signals still need
 independent provider corroboration before claiming complete production
@@ -303,14 +303,6 @@ administrator and run `pnpm ops:github:check`. The audit reads only collaborator
 ruleset, environment, secret-name and variable metadata; it never reads secret
 values. Retain the output with the release evidence and resolve every `FAIL`
 before declaring provider readiness.
-
-The protected production deployment sets `SENTRY_RELEASE` to the full approved
-Git SHA. The Sentry build integration must create that exact release and upload
-its source-map artifacts successfully before Vercel promotion. After promotion,
-`node scripts/check-sentry-release.mjs record-deploy` records the immutable
-Vercel deployment URL and reads the production marker back from Sentry. A
-release mismatch, wrong project, missing artifact upload, API failure or deploy
-readback mismatch fails the protected workflow.
 
 ## Operational readiness signals
 
