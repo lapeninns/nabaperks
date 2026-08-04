@@ -192,7 +192,7 @@ function OfferHistory({
   // merchant knows whether opening it is worth the tap.
   return (
     <Disclosure
-      label={`Offers that have ended (${campaigns.length})`}
+      label={`Recent ended offers (up to ${ENDED_HISTORY_LIMIT})`}
       className="min-w-0"
     >
       <ul className="grid gap-2">
