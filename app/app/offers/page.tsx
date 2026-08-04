@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { DiscountTag01Icon } from "@hugeicons/core-free-icons"
 
 import { EmptyState, Eyebrow, MonoTag, PageTitle } from "@/components/brand"
+import { Disclosure } from "@/components/merchant/launch/disclosure"
 import { OfferCampaignPanelSkeleton } from "@/components/merchant/loading-skeletons"
 import {
   OfferActionNotice,
@@ -186,9 +187,14 @@ function OfferHistory({
 }: {
   campaigns: readonly EndedOfferCampaign[]
 }) {
+  // Read-only history below a live campaign and its counts: worth keeping, not
+  // worth a screen. Folded by default, and the count is on the summary so the
+  // merchant knows whether opening it is worth the tap.
   return (
-    <section className="grid gap-3" aria-label="Offers that have ended">
-      <Eyebrow>Offers that have ended</Eyebrow>
+    <Disclosure
+      label={`Offers that have ended (${campaigns.length})`}
+      className="min-w-0"
+    >
       <ul className="grid gap-2">
         {campaigns.map((campaign) => (
           <li
@@ -215,7 +221,7 @@ function OfferHistory({
         Ended offers are read-only. Their links no longer work, but any pass
         already issued keeps its own terms until its end date.
       </p>
-    </section>
+    </Disclosure>
   )
 }
 

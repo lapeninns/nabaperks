@@ -101,6 +101,20 @@ export function describeOfferCampaignJourney(): void {
       await expect(page.getByText("Always included")).toBeVisible()
     })
 
+    test("Step 1b — Given a future opening date When the closing date is chosen Then its 366-day window follows that opening date", async ({
+      page,
+    }) => {
+      await gotoSurface(page, "?surface=creator&step=rules")
+
+      const opens = page.locator("#startsOn")
+      const closes = page.locator("#endsOn")
+      await opens.fill("2026-09-01")
+
+      await expect(closes).toHaveAttribute("max", "2027-09-01")
+      await closes.fill("2027-08-31")
+      await expect(closes).toHaveValue("2027-08-31")
+    })
+
     test("Step 1c — Given the creator's review step When the 2-stamp plus 10% offer is read back Then the promise is complete before anything is published", async ({
       page,
     }) => {
