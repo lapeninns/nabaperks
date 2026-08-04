@@ -225,6 +225,16 @@ test("Given a window of exactly 366 days When the draft is validated Then it is 
   assert.equal(campaignWindowDays(draft.startsOn, draft.endsOn), 366)
 })
 
+test("Given a future opening date When the campaign closes within 366 days of it Then the draft is accepted", () => {
+  const draft = expectDraft(
+    validateOfferCampaignDraft(
+      draftInput({ startsOn: "2026-09-01", endsOn: "2027-08-31" })
+    )
+  )
+
+  assert.equal(campaignWindowDays(draft.startsOn, draft.endsOn), 365)
+})
+
 test("Given a window one day too long When the draft is validated Then the end date is refused", () => {
   const errors = expectErrors(
     validateOfferCampaignDraft(

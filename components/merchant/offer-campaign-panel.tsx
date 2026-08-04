@@ -22,6 +22,7 @@ import {
 } from "@/components/brand"
 import { SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty/status-banner"
+import { Disclosure } from "@/components/merchant/launch/disclosure"
 import {
   OfferRulesSummary,
   formatOfferDate,
@@ -126,6 +127,7 @@ export function OfferCampaignPanel({
           requiresIdCheck={campaign.requiresIdCheck}
           extraTerms={campaign.extraTerms}
           stampsRequired={stampsRequired}
+          collapsed={!isDraft}
         />
 
         {claimUrl !== null && !isDraft && showShareRow ? (
@@ -450,13 +452,20 @@ function CampaignMetrics({ campaign }: { campaign: MerchantOfferCampaign }) {
           helper="Times staff have honoured a pass."
         />
       </div>
+      {/* The caveat stays on screen: the tiles must never be read as people
+          through the door. Only the elaboration folds away. */}
       <p className="text-xs leading-5 text-muted-foreground">
-        Claims, stamps and redemptions are exact. Link opens are not: they count
-        page loads, not people, so a refresh, a second device and an automated
-        preview each add one, and we cannot tell them apart without tracking
-        whoever opened it. Nothing is counted while your offer is paused, before
-        it opens or after it ends. Read it as interest, not as visitors.
+        Claims, stamps and redemptions are exact. Link opens are not — they
+        count page loads, not people.
       </p>
+      <Disclosure label="How these are counted">
+        <p className="text-xs leading-5 text-muted-foreground">
+          A refresh, a second device and an automated preview each add one to
+          link opens, and we cannot tell them apart without tracking whoever
+          opened it. Nothing is counted while your offer is paused, before it
+          opens or after it ends. Read it as interest, not as visitors.
+        </p>
+      </Disclosure>
     </section>
   )
 }

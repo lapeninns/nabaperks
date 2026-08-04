@@ -25,6 +25,7 @@ import {
   formatOfferDate,
 } from "@/components/merchant/offers/offer-rules-summary"
 import { Button } from "@/components/ui/button"
+import { addUkCalendarDays } from "@/lib/customer/uk-calendar"
 import { OFFERS_HOME_PATH, OFFERS_NEW_PATH } from "@/lib/merchant/offer-nav"
 import { OFFER_NO_STACKING_TERM } from "@/lib/merchant/offer-campaign-fields"
 import {
@@ -35,6 +36,7 @@ import {
   offerBenefitRequires,
 } from "@/lib/offers/campaign-core"
 import {
+  OFFER_CAMPAIGN_MAX_DURATION_DAYS,
   OFFER_DISCOUNT_PERCENT_MAX,
   OFFER_DISCOUNT_PERCENT_MIN,
   isOfferBenefitKind,
@@ -287,6 +289,10 @@ function RulesStep({
 }) {
   const fields = state.fields
   const errors = state.errors
+  const [startsOn, setStartsOn] = useState(fields?.startsOn || today)
+  const endDateMax = startsOn
+    ? addUkCalendarDays(startsOn, OFFER_CAMPAIGN_MAX_DURATION_DAYS - 1)
+    : latestEndDate
 
   return (
     <div className="grid gap-5">
@@ -356,6 +362,7 @@ function RulesStep({
           min={today}
           max={latestEndDate}
           defaultValue={fields?.startsOn || today}
+          onChange={(event) => setStartsOn(event.currentTarget.value)}
           hint="Publish ahead of this date and the offer waits, scheduled."
           error={errors?.startsOn}
         />
@@ -365,7 +372,7 @@ function RulesStep({
           label="Closes"
           type="date"
           min={today}
-          max={latestEndDate}
+          max={endDateMax}
           defaultValue={fields?.endsOn || ""}
           hint="An offer can run for at most 366 days."
           error={errors?.endsOn}
