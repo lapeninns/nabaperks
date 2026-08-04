@@ -235,7 +235,7 @@ function OfferShell({
 }) {
   const name = venue?.trim()
   return (
-    <main className="min-h-svh bg-background px-4 py-10">
+    <main className="min-h-svh bg-background px-4 py-6 sm:py-10">
       <div className="mx-auto grid w-full max-w-customer gap-6">
         <Logo href="/home" />
         <ReceiptCard className="grid gap-4">

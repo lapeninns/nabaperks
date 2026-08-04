@@ -1,4 +1,11 @@
+import {
+  DiscountTag01Icon,
+  GiftCardIcon,
+  StampIcon,
+} from "@hugeicons/core-free-icons"
+
 import { Eyebrow, MonoTag, ReceiptCard } from "@/components/brand"
+import type { IconGlyph } from "@/components/brand/icon"
 import { OfferClaimLanding } from "@/components/customer/offer-claim-landing"
 import { Button } from "@/components/ui/button"
 import type { OfferBenefitKind } from "@/lib/offers/constants"
@@ -21,6 +28,7 @@ export type OfferBenefitPreset = {
   readonly kind: OfferBenefitKind
   readonly title: string
   readonly description: string
+  readonly icon: IconGlyph
 }
 
 /**
@@ -33,18 +41,21 @@ export const OFFER_BENEFIT_PRESETS: readonly OfferBenefitPreset[] = [
     title: "Welcome stamps",
     description:
       "New members start with stamps already on their card, so their first reward feels within reach.",
+    icon: StampIcon,
   },
   {
     kind: "discount",
     title: "Discount pass",
     description:
       "New members get a percentage off the whole bill, as often as they like while the offer runs.",
+    icon: DiscountTag01Icon,
   },
   {
     kind: "both",
     title: "Welcome stamps and a discount pass",
     description:
       "Both benefits, given together the moment someone joins through the offer link.",
+    icon: GiftCardIcon,
   },
 ] as const
 

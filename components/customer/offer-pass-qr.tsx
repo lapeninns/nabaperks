@@ -75,7 +75,13 @@ export function OfferPassQr({
 
   return (
     <div className="grid gap-3">
-      <QrFrame label={`Staff-scan QR for your ${discountPercent}% pass`}>
+      {/* Capped so the helper banner and the fresh-code button stay above the
+          fold at the counter; the code inside scales up crisply because the
+          route renders it at full resolution. */}
+      <QrFrame
+        label={`Staff-scan QR for your ${discountPercent}% pass`}
+        className="mx-auto w-full max-w-[16rem] sm:max-w-[18rem]"
+      >
         <div className="relative aspect-square w-full">
           {loaded ? null : (
             <div
