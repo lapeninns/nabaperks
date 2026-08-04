@@ -19,6 +19,13 @@ import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
  * only then asks Postgres for a code. `create_offer_pass_scan_token` re-proves
  * ownership under a row lock, so this is defence in depth rather than the only
  * check — but it is what lets the page render a calm state instead of an error.
+ *
+ * A pass is presentable on its own merits: it is in date, it has not been
+ * withdrawn, and the venue can still honour it. Nothing outside those three
+ * facts decides whether the customer sees a code. Pausing or ending a campaign
+ * is the separate, product-level control, and it deliberately does not cancel
+ * passes already issued — the entitlement rows keep their window and their
+ * snapshotted terms either way.
  */
 
 /** Mirrors the `OfferPassState` the loyalty primitive renders. */

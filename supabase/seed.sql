@@ -242,18 +242,6 @@ set business_name = excluded.business_name,
     locals = excluded.locals,
     status = excluded.status;
 
--- Offers pilot allowlist: Old Crown Girton is the pilot venue, so local and
--- staging fixtures start inside the allowlist and the /app/offers surface is
--- reachable without an operator hand-running the admin toggle first. This is
--- fixture state only — production is turned on through the Offers pilot control
--- on /admin/merchants, which goes via admin_set_merchant_offer_campaigns and
--- leaves an audit row. Bubble Yard is left outside so the "not in the pilot"
--- state is exercised too. The venue still sees nothing until
--- NABAPERKS_FEATURE_MERCHANT_OFFER_CAMPAIGNS is true for the environment.
-update public.merchants
-set offer_campaigns_enabled = (business_slug = 'old-crown-girton')
-where business_slug in ('old-crown-girton', 'bubble-yard');
-
 -- Old Crown Girton pilot venue: operator-supplied entrance coordinates, a 100m
 -- soft radius for a small single-site venue, geofence on, and a merchant-placed
 -- pin (coordinate provenance is recorded separately from address provenance).

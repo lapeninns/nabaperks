@@ -9,12 +9,16 @@ import {
 } from "@/lib/cache/tags"
 import { redeemMerchantOfferPass } from "@/lib/merchant/offer-pass-redemption"
 import { validateOfferPassAttestations } from "@/lib/offers/redeem-core"
-import { loadOfferDeskContext } from "../../actions"
 
 /**
  * The only mutation in the discount-pass flow. Scanning navigates; a member of
  * staff redeems here, having confirmed both attestations. No bill amount, no ID
  * number and no date of birth is accepted — the form posts two booleans.
+ *
+ * A server action is its own HTTP entry point, so authorisation is not
+ * inherited from the page that rendered the form. `redeemMerchantOfferPass`
+ * proves the merchant session itself and passes that venue's id to
+ * `redeem_offer_pass`, which refuses a pass minted anywhere else.
  */
 
 export type MerchantOfferPassRedemptionActionState = {
@@ -33,22 +37,6 @@ export async function confirmOfferPassRedemptionAction(
 
   if (!scanToken) {
     return { errors: { form: "Discount pass unavailable." } }
-  }
-
-  // The same kill switch the page renders behind (page.tsx). A server action is
-  // its own HTTP entry point, so gating only the page left a crafted POST able
-  // to redeem at a venue that had been switched off — the flag would have
-  // stopped new claims but not redemptions, which is not what a rollout control
-  // means.
-  //
-  // A flag flipped between rendering this form and submitting it therefore
-  // refuses the redemption in hand. That is deliberate: a venue taken out of
-  // the pilot should complete no further redemptions, and nothing is lost —
-  // the scan token is untouched and the pass is redeemable again the moment the
-  // venue is switched back on.
-  const desk = await loadOfferDeskContext()
-  if (!desk.enabled) {
-    return { errors: { form: "Offers aren't available for your venue yet." } }
   }
 
   // requiresIdCheck is a rendering hint from the form, used only to decide

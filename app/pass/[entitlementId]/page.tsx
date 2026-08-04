@@ -87,8 +87,9 @@ export default async function CustomerOfferPassPage({
 
 /**
  * The code, or the reason there is none. `presentable` already folds together
- * the pass's own state and whether the venue can honour it at all, so a pass
- * that cannot be used never reaches the QR.
+ * the pass's own state and whether the venue can honour it at all — so a pass
+ * that no member of staff could redeem never reaches the QR, and nothing is
+ * minted for it either.
  */
 function PassBody({ pass }: { pass: CustomerOfferPass }) {
   if (pass.presentable) {
@@ -104,8 +105,8 @@ function PassBody({ pass }: { pass: CustomerOfferPass }) {
   if (pass.unavailableReason && pass.state === "active") {
     return (
       <StatusBanner title="Not available just now" tone="warning">
-        {pass.unavailableReason} Your pass is safe — it will be here when the
-        venue is back.
+        {pass.unavailableReason} Your pass is safe and unchanged — it will be
+        here when passes can be scanned again.
       </StatusBanner>
     )
   }

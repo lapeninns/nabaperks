@@ -20,7 +20,6 @@ import {
   type ProductEventInput,
 } from "@/lib/analytics/events"
 import { getMerchantLaunchReadiness } from "@/lib/merchant/launch-readiness"
-import { isOfferCampaignsEnabledForCurrentVenue } from "@/lib/merchant/offer-access"
 import { getMerchantOnboardingStatus } from "@/lib/merchant/onboarding"
 import { timeServerLoader } from "@/lib/perf/server-timing"
 
@@ -41,9 +40,6 @@ export default async function MerchantAppPage() {
   // Reused from the layout's setup reminder within the same request (cache()),
   // so this adds no query — it just lets the header CTA match the venue's state.
   const readiness = await getMerchantLaunchReadiness()
-  // Same gate the sidebar and every /app/offers route use, so the dashboard
-  // never offers a section that would answer 404 for this venue.
-  const offersEnabled = await isOfferCampaignsEnabledForCurrentVenue()
 
   scheduleDashboardViewed({
     eventName: "dashboard_viewed",
@@ -58,12 +54,7 @@ export default async function MerchantAppPage() {
         eyebrow="Your venue"
         title={merchant.business_name}
         description="A quick read on how your loyalty card is doing: members, repeat visits, and rewards."
-        actions={
-          <MerchantDashboardHeaderActions
-            readiness={readiness}
-            offersEnabled={offersEnabled}
-          />
-        }
+        actions={<MerchantDashboardHeaderActions readiness={readiness} />}
       />
 
       {/* Counter QR sits first: the code a customer scans is the most-reached-for

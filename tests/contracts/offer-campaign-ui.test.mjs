@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { readFileSync } from "node:fs"
+import { readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, it } from "node:test"
 
@@ -7,16 +7,33 @@ import { describe, it } from "node:test"
  * Source contract for the merchant Offers surface (/app/offers).
  *
  * These pins guard the properties that are invisible at runtime until they are
- * already wrong: the surface must not exist for a venue outside the pilot, the
- * only link a merchant is ever shown must be one the customer landing page
- * would accept, the campaign QR bytes must never be cached, and no tile may
- * report a number this feature does not record.
+ * already wrong: the route wiring must stay consistent, the only link a
+ * merchant is ever shown must be one the customer landing page would accept,
+ * the campaign QR bytes must never be cached, and no tile may report a number
+ * this feature does not record.
  */
 
 const projectRoot = process.cwd()
 
 function readProjectFile(...segments) {
   return readFileSync(join(projectRoot, ...segments), "utf8")
+}
+
+/**
+ * The migration that defines a given SQL function, found by content rather than
+ * by filename: a later migration may redefine it, and the pin should follow the
+ * definition instead of a date stamp.
+ */
+function readMigrationDefining(functionName) {
+  const directory = join(projectRoot, "supabase", "migrations")
+  const needle = `function public.${functionName}(`
+
+  return readdirSync(directory)
+    .filter((name) => name.endsWith(".sql"))
+    .sort()
+    .map((name) => readFileSync(join(directory, name), "utf8"))
+    .filter((sql) => sql.includes(needle))
+    .join("\n")
 }
 
 /** JSX copy is line-wrapped by the formatter, so assert on flattened text. */
@@ -75,7 +92,7 @@ describe("contract-offer-campaign-ui source contract", () => {
     assert.match(homeActions, /href="\/app\/offers"/)
   })
 
-  it("shows neither entry point to a venue outside the pilot", () => {
+  it("offers every merchant the section, with no rollout switch left to read", () => {
     const nav = readProjectFile("components/layout/console-nav.ts")
     const shell = readProjectFile("components/layout/merchant-app-shell.tsx")
     const homeActions = readProjectFile(
@@ -83,31 +100,17 @@ describe("contract-offer-campaign-ui source contract", () => {
     )
     const layout = readProjectFile("app/app/layout.tsx")
     const dashboard = readProjectFile("app/app/page.tsx")
-    const access = readProjectFile("lib/merchant/offer-access.ts")
 
-    // The nav literal keeps its registered order; the gate filters at render.
-    assert.match(nav, /export function merchantNavItemsFor\(/)
-    assert.match(nav, /item\.href !== OFFERS_NAV_HREF/)
-    assert.match(shell, /merchantNavItemsFor\(\{ offersEnabled \}\)/)
-
-    // Both entry points take the decision as a required prop, so neither can be
-    // rendered by a caller that never asked whether the venue is in the pilot.
-    assert.match(shell, /^\s+offersEnabled: boolean$/m)
-    assert.match(homeActions, /^\s+readonly offersEnabled: boolean$/m)
-    assert.match(homeActions, /\{offersEnabled \? \(/)
-
-    // Resolved once, on the server, from the flag AND the venue allowlist.
-    assert.match(access, /from "@\/lib\/offers\/access"/)
-    assert.match(access, /isOfferCampaignsEnabled\(/)
-    assert.match(access, /isFeatureEnabled\("merchant_offer_campaigns"\)/)
-    assert.match(access, /offer_campaigns_enabled/)
-    for (const source of [layout, dashboard]) {
-      assert.match(source, /isOfferCampaignsEnabledForCurrentVenue\(\)/)
+    // Offers is an ordinary merchant section: the sidebar renders the registered
+    // list as it stands, and neither entry point takes a switch to decide by.
+    assert.match(shell, /items=\{merchantNavItems\}/)
+    for (const source of [nav, shell, homeActions, layout, dashboard]) {
+      assert.doesNotMatch(source, /offersEnabled/)
+      assert.doesNotMatch(source, /merchantNavItemsFor/)
     }
-    assert.match(layout, /offersEnabled=\{offersEnabled\}/)
   })
 
-  it("gates every offers route on the flag, the allowlist and a merchant session", () => {
+  it("keeps every offers route on its merchant session and onboarding redirect", () => {
     const routes = [
       "app/app/offers/page.tsx",
       "app/app/offers/new/page.tsx",
@@ -119,59 +122,35 @@ describe("contract-offer-campaign-ui source contract", () => {
       assert.match(source, /export const dynamic = "force-dynamic"/, route)
       assert.match(source, /getCurrentMerchant\(\)/, route)
       assert.match(source, /redirect\("\/app\/onboarding"\)/, route)
-      assert.match(source, /loadOfferDeskContext\(\)/, route)
-      assert.match(source, /notFound\(\)/, route)
     }
-
-    // The image route has no redirect target, so it fails closed with a 404.
-    const image = readProjectFile("app/app/offers/[campaignId]/qr.png/route.ts")
-    assert.match(image, /loadOfferDeskContext\(\)/)
-    assert.match(image, /status: 404/)
   })
 
-  it("gates the staff pass-scan surface too, and says why the RPCs are not", () => {
+  it("keeps the staff pass-scan surface on its own session guard", () => {
     const scan = readProjectFile("app/app/offers/scan/[passToken]/page.tsx")
     const copy = flattenCopy(scan)
 
     assert.match(scan, /export const dynamic = "force-dynamic"/)
     assert.match(scan, /getCurrentMerchant\(\)/)
-    assert.match(scan, /loadOfferDeskContext\(\)/)
-    assert.match(scan, /if \(!desk\.enabled\) \{\s*notFound\(\)/)
 
-    // The asymmetry between the surface gate and the ungated RPCs is a decision,
-    // so it is recorded where the gate is rather than left to be re-derived.
-    assert.match(copy, /ROLLOUT control/)
-    assert.match(copy, /PRODUCT control/)
+    // Pausing or ending a campaign stops new claims and leaves passes already
+    // issued redeemable — the surface says so where staff can read it.
     assert.match(copy, /does NOT cancel passes/)
-
-    // The redemption is a server action, which is its own HTTP entry point: a
-    // gate on the page alone leaves a crafted POST able to redeem at a venue
-    // that has been switched off, so the action re-proves it for itself.
-    const action = readProjectFile("app/app/offers/scan/[passToken]/actions.ts")
-    assert.match(action, /loadOfferDeskContext\(\)/)
-    assert.match(action, /if \(!desk\.enabled\)/)
-    assert.ok(
-      action.indexOf("loadOfferDeskContext()") <
-        action.indexOf("redeemMerchantOfferPass(scanToken"),
-      "the kill switch must be checked before the redemption is attempted"
-    )
   })
 
-  it("resolves the allowlist gate through lib/offers/access.ts", () => {
+  it("proves the merchant session on every mutation, not the rendering page", () => {
     const actions = readProjectFile("app/app/offers/actions.ts")
-    const access = readProjectFile("lib/merchant/offer-access.ts")
+    const gate = blockBetween(
+      actions,
+      "async function requireOfferDesk",
+      "// ─── Draft"
+    )
 
     assert.match(actions, /"use server"/)
-    assert.match(actions, /from "@\/lib\/merchant\/offer-access"/)
-    assert.match(actions, /isOfferCampaignsEnabledForCurrentVenue\(\)/)
-    assert.match(access, /from "@\/lib\/offers\/access"/)
-    assert.match(access, /isOfferCampaignsEnabled\(/)
-    assert.match(access, /offer_campaigns_enabled/)
-    // Re-proved on every mutation, not trusted from the rendering page.
-    assert.match(
-      blockBetween(actions, "async function requireOfferDesk", "// ─── Draft"),
-      /context\.enabled/
-    )
+    assert.match(gate, /getCurrentMerchant\(\)/)
+    assert.match(gate, /code: "sign_in"/)
+    // No rollout switch survives anywhere on the mutation path.
+    assert.doesNotMatch(actions, /isOfferCampaignsEnabled/)
+    assert.doesNotMatch(actions, /not_enabled/)
   })
 
   it("dispatches all six intents from one server action", () => {
@@ -306,18 +285,23 @@ describe("contract-offer-campaign-ui source contract", () => {
       assert.match(metrics, new RegExp(`label="${label}"`), label)
     }
 
-    // Every tile must read a field of OfferCampaignMetrics, which is populated
-    // from a ledger row by row — no tile may be computed, defaulted or guessed.
+    // Every tile must read a field of OfferCampaignMetrics, and every field must
+    // be a total the database counted over a real ledger — no tile may be
+    // computed, defaulted or guessed on the way to the screen.
     const reader = readProjectFile("lib/merchant/offer-campaigns.ts")
-    for (const [field, table] of [
-      ["linkOpens", "offer_campaign_open_counts"],
-      ["claims", "offer_campaign_claims"],
-      ["bonusStampsIssued", "offer_campaign_claims"],
-      ["activePasses", "offer_discount_entitlements"],
-      ["passRedemptions", "offer_redemptions"],
+    const aggregate = readMigrationDefining("offer_campaign_metrics")
+
+    assert.match(reader, /\.rpc\("offer_campaign_metrics"/)
+    for (const [field, column, table] of [
+      ["linkOpens", "link_opens", "offer_campaign_open_counts"],
+      ["claims", "claims", "offer_campaign_claims"],
+      ["bonusStampsIssued", "bonus_stamps_issued", "offer_campaign_claims"],
+      ["activePasses", "active_passes", "offer_discount_entitlements"],
+      ["passRedemptions", "pass_redemptions", "offer_redemptions"],
     ]) {
       assert.match(metrics, new RegExp(`metrics\\.${field}\\b`), field)
-      assert.match(reader, new RegExp(`\\.from\\("${table}"\\)`), table)
+      assert.match(reader, new RegExp(`totals\\.${column}\\b`), field)
+      assert.match(aggregate, new RegExp(`from public\\.${table}\\b`), table)
     }
   })
 
@@ -359,7 +343,6 @@ describe("contract-offer-campaign-ui source contract", () => {
     // The recorder re-decides claimability itself, so an open can never be
     // attributed to a paused, unopened, finished or rotated link.
     assert.match(migration, /v\.status not in \('scheduled', 'live'\)/)
-    assert.match(migration, /not v\.offer_campaigns_enabled/)
 
     // Written after the response, never during the render, and never fatal.
     assert.match(landing, /import \{ after \} from "next\/server"/)

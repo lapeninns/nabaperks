@@ -1,6 +1,6 @@
 import "server-only"
 
-import { getCurrentMerchant } from "@/lib/auth/session"
+import { getCurrentMerchant, getCurrentUser } from "@/lib/auth/session"
 import { formatMerchantCustomerIdentifier } from "@/lib/merchant/customer-identity-display"
 import { LOYALTY_PROGRAMME_UNAVAILABLE } from "@/lib/copy/product-copy"
 import type { OfferPassScanStatus } from "@/lib/offers/redeem-core"
@@ -27,13 +27,27 @@ import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
  * same reason, as lib/merchant/reward-collection.ts.
  */
 
+/**
+ * The scan statuses that arrive WITH a pass attached.
+ *
+ * `unauthorized` is deliberately excluded. get_offer_pass_scan_context answers a
+ * token issued by another venue with the status alone — no entitlement, no
+ * membership, no discount — precisely so nothing about another venue's member
+ * leaks sideways, so it cannot be modelled as a pass-bearing row.
+ */
+type MerchantOfferPassDetailStatus = Exclude<
+  OfferPassScanStatus,
+  "unauthorized"
+>
+
 // Split rather than combined ("unauthenticated" | "not_found" on one member) so
 // a route can narrow to the pass-bearing member by discriminant alone.
 export type MerchantOfferPassScanContext =
   | { status: "unauthenticated" }
   | { status: "not_found" }
+  | { status: "unauthorized" }
   | {
-      status: OfferPassScanStatus
+      status: MerchantOfferPassDetailStatus
       scanToken: string
       entitlementId: string
       discountPercent: number
@@ -86,12 +100,19 @@ export async function loadMerchantOfferPassScanContext(
 
   if (!scanStatus || scanStatus === "not_found") return { status: "not_found" }
 
+  // Answered here rather than through passContext. A token belonging to another
+  // venue comes back as the status on its own, so the required-field checks in
+  // passContext would read it as a half-populated row and collapse it into a
+  // 404 — leaving the "this pass belongs to another venue" banner unreachable.
+  // Every other status carries the full pass, because the RPC assigns the
+  // identity fields before it branches on expiry, consumption or blocking.
+  if (scanStatus === "unauthorized") return { status: "unauthorized" }
+
   if (
     scanStatus !== "ready" &&
     scanStatus !== "redeemed" &&
     scanStatus !== "blocked" &&
-    scanStatus !== "expired" &&
-    scanStatus !== "unauthorized"
+    scanStatus !== "expired"
   ) {
     return { status: "not_found" }
   }
@@ -103,7 +124,17 @@ export async function redeemMerchantOfferPass(
   scanToken: string,
   attestations: MerchantOfferPassAttestations
 ): Promise<MerchantOfferPassRedemptionResult> {
-  const merchant = await getCurrentMerchant()
+  // Both come from the same request-cached session read, so asking for the user
+  // beside the merchant costs nothing extra. The user id is what makes the
+  // attestations mean something: redeem_offer_pass stores it as
+  // offer_redemptions.redeemed_by_user_id and uses it as the actor on the
+  // product and audit records, so a venue can tell WHICH member of staff
+  // confirmed the ID check and the no-stacking rule. Omitting it recorded every
+  // redemption against a null user and a generic 'merchant' actor.
+  const [merchant, user] = await Promise.all([
+    getCurrentMerchant(),
+    getCurrentUser(),
+  ])
   if (!merchant)
     return {
       status: "blocked",
@@ -116,6 +147,7 @@ export async function redeemMerchantOfferPass(
     p_merchant_id: merchant.id,
     p_id_check_attested: attestations.idChecked,
     p_no_stacking_attested: attestations.noStacking,
+    p_actor_user_id: user?.id ?? null,
   })
 
   if (error) {
@@ -192,7 +224,7 @@ function merchantOfferPassBlockedCopy(message: string): string {
 function passContext(
   scanToken: string,
   row: Record<string, unknown>,
-  status: OfferPassScanStatus
+  status: MerchantOfferPassDetailStatus
 ): MerchantOfferPassScanContext {
   // Identity fields the union promises are always present. A partially
   // populated row falls back to not_found rather than rendering a pass face

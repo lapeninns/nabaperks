@@ -311,12 +311,5 @@
     "kind": "string",
     "description": "Svix/Standard-Webhooks signing secret (whsec_...) for the Resend delivery webhook (delivered/bounced/complained/failed). Optional at the env level; the webhook fails closed at call time when unset.",
     "optional": true
-  },
-  {
-    "name": "NABAPERKS_FEATURE_MERCHANT_OFFER_CAMPAIGNS",
-    "visibility": "server",
-    "kind": "string",
-    "description": "Feature-flag override for merchant offer campaigns and campaign QR; true enables and false disables the whole surface. Default-off, and layered with the per-merchant allowlist in lib/offers/access.ts so both must pass.",
-    "optional": true
   }
 ]

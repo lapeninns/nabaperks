@@ -84,12 +84,6 @@ function shiftDate(iso, days) {
   return new Date(stamp).toISOString().slice(0, 10)
 }
 
-async function enableOffers(tx, merchantId) {
-  await tx`
-    update public.merchants set offer_campaigns_enabled = true
-    where id = ${merchantId}::uuid`
-}
-
 async function freshPhoneCustomer(tx) {
   const authId = randomUUID()
   const customerId = randomUUID()
@@ -219,7 +213,6 @@ test(
   async () => {
     await inRolledBackTxn(async (tx) => {
       const fx = await createRewardPoolFixture(tx)
-      await enableOffers(tx, fx.merchantId)
       const customerId = await freshPhoneCustomer(tx)
       const campaign = await publishCampaign(tx, fx.merchantId, {
         bonusStampCount: 2,
@@ -300,7 +293,6 @@ test(
   async () => {
     await inRolledBackTxn(async (tx) => {
       const fx = await createRewardPoolFixture(tx)
-      await enableOffers(tx, fx.merchantId)
       const customerId = await freshPhoneCustomer(tx)
       const campaign = await publishCampaign(tx, fx.merchantId, {
         bonusStampCount: 2,
@@ -334,7 +326,6 @@ test(
   async () => {
     await inRolledBackTxn(async (tx) => {
       const fx = await createRewardPoolFixture(tx)
-      await enableOffers(tx, fx.merchantId)
       const customerId = await freshPhoneCustomer(tx)
       const campaign = await publishCampaign(tx, fx.merchantId, {
         bonusStampCount: 1,
@@ -376,7 +367,6 @@ test(
   async () => {
     await inRolledBackTxn(async (tx) => {
       const fx = await createRewardPoolFixture(tx)
-      await enableOffers(tx, fx.merchantId)
       const customerId = await freshPhoneCustomer(tx)
       const campaign = await publishCampaign(tx, fx.merchantId, {
         bonusStampCount: 1,
@@ -412,7 +402,6 @@ test(
   async () => {
     await inRolledBackTxn(async (tx) => {
       const fx = await createRewardPoolFixture(tx)
-      await enableOffers(tx, fx.merchantId)
       // fx.customerId is already a member of fx.merchantId. Give them a verified
       // phone so the claim reaches the membership check rather than the identity
       // guard.
@@ -449,7 +438,6 @@ test(
   async () => {
     await inRolledBackTxn(async (tx) => {
       const fx = await createRewardPoolFixture(tx)
-      await enableOffers(tx, fx.merchantId)
       const now = await today(tx)
 
       const scheduled = await publishCampaign(tx, fx.merchantId, {
@@ -504,7 +492,6 @@ test(
   async () => {
     await inRolledBackTxn(async (tx) => {
       const fx = await createRewardPoolFixture(tx)
-      await enableOffers(tx, fx.merchantId)
       const campaign = await publishCampaign(tx, fx.merchantId, {
         bonusStampCount: 1,
       })
@@ -534,7 +521,6 @@ test(
   async () => {
     await inRolledBackTxn(async (tx) => {
       const fx = await createRewardPoolFixture(tx)
-      await enableOffers(tx, fx.merchantId)
       const campaign = await publishCampaign(tx, fx.merchantId, {
         bonusStampCount: 1,
       })
@@ -551,34 +537,11 @@ test(
 )
 
 test(
-  "a venue removed from the allowlist stops issuing benefits",
-  { skip },
-  async () => {
-    await inRolledBackTxn(async (tx) => {
-      const fx = await createRewardPoolFixture(tx)
-      await enableOffers(tx, fx.merchantId)
-      const campaign = await publishCampaign(tx, fx.merchantId, {
-        bonusStampCount: 1,
-      })
-      await tx`
-        update public.merchants set offer_campaigns_enabled = false
-        where id = ${fx.merchantId}::uuid`
-
-      const customerId = await freshPhoneCustomer(tx)
-      const [res] = await claim(tx, customerId, campaign.claimHash)
-      assert.equal(res.status, "unavailable")
-      assert.equal(res.stamps_awarded, 0)
-    })
-  }
-)
-
-test(
   "the card-length rule is re-checked at claim time, not just at draft time",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
       const fx = await createRewardPoolFixture(tx)
-      await enableOffers(tx, fx.merchantId)
       // Legal at draft time against a three-stamp card.
       const campaign = await publishCampaign(tx, fx.merchantId, {
         bonusStampCount: 2,
@@ -603,7 +566,6 @@ test(
 test("only one non-terminal campaign per venue", { skip }, async () => {
   await inRolledBackTxn(async (tx) => {
     const fx = await createRewardPoolFixture(tx)
-    await enableOffers(tx, fx.merchantId)
     await publishCampaign(tx, fx.merchantId, { bonusStampCount: 1 })
 
     await assert.rejects(
@@ -619,7 +581,6 @@ test(
   async () => {
     await inRolledBackTxn(async (tx) => {
       const fx = await createRewardPoolFixture(tx)
-      await enableOffers(tx, fx.merchantId)
       const customerId = await freshPhoneCustomer(tx)
       const campaign = await publishCampaign(tx, fx.merchantId, {
         discountPercent: 25,
@@ -667,7 +628,6 @@ test(
   async () => {
     await inRolledBackTxn(async (tx) => {
       const fx = await createRewardPoolFixture(tx)
-      await enableOffers(tx, fx.merchantId)
       const campaign = await publishCampaign(tx, fx.merchantId, {
         discountPercent: 10,
       })
@@ -697,7 +657,6 @@ test(
   async () => {
     await inRolledBackTxn(async (tx) => {
       const fx = await createRewardPoolFixture(tx)
-      await enableOffers(tx, fx.merchantId)
       const referredId = await freshPhoneCustomer(tx)
       const campaign = await publishCampaign(tx, fx.merchantId, {
         bonusStampCount: 2,
@@ -759,7 +718,6 @@ test(
   async () => {
     await inRolledBackTxn(async (tx) => {
       const fx = await createRewardPoolFixture(tx)
-      await enableOffers(tx, fx.merchantId)
       const customerId = await freshPhoneCustomer(tx)
       const campaign = await publishCampaign(tx, fx.merchantId, {
         bonusStampCount: 1,
@@ -809,7 +767,6 @@ test("offer records are invisible to another tenant", { skip }, async () => {
   await inRolledBackTxn(async (tx) => {
     const host = await createRewardPoolFixture(tx)
     const stranger = await createRewardPoolFixture(tx)
-    await enableOffers(tx, host.merchantId)
     const customerId = await freshPhoneCustomer(tx)
     const campaign = await publishCampaign(tx, host.merchantId, {
       bonusStampCount: 1,
@@ -859,7 +816,6 @@ test(
   async () => {
     await inRolledBackTxn(async (tx) => {
       const fx = await createRewardPoolFixture(tx)
-      await enableOffers(tx, fx.merchantId)
       const campaign = await publishCampaign(tx, fx.merchantId, {
         discountPercent: 10,
         name: "  Old Crown welcome  ",
@@ -930,7 +886,6 @@ test(
   async () => {
     await inRolledBackTxn(async (tx) => {
       const fx = await createRewardPoolFixture(tx)
-      await enableOffers(tx, fx.merchantId)
 
       // A 10-argument overload left behind would make every existing call
       // ambiguous, so the widening had to be a drop-and-create.
@@ -990,7 +945,6 @@ test(
   async () => {
     await inRolledBackTxn(async (tx) => {
       const fx = await createRewardPoolFixture(tx)
-      await enableOffers(tx, fx.merchantId)
       const name = "Old Crown welcome"
       const description = "A tenth off while you are a new member."
       const campaign = await publishCampaign(tx, fx.merchantId, {
@@ -1083,7 +1037,6 @@ test(
   async () => {
     await inRolledBackTxn(async (tx) => {
       const fx = await createRewardPoolFixture(tx)
-      await enableOffers(tx, fx.merchantId)
       const startsOn = await today(tx)
       const campaign = await publishCampaign(tx, fx.merchantId, {
         discountPercent: 10,
@@ -1130,7 +1083,6 @@ test(
     const claimantAuthId = randomUUID()
 
     try {
-      await enableOffers(setup, fixture.merchantId)
       await setup`insert into auth.users (id) values (${claimantAuthId}::uuid)`
       await setup`
         insert into public.customers (id, auth_user_id, phone_hmac, phone_verified_at)

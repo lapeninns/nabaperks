@@ -21,15 +21,8 @@ import {
  */
 export function MerchantDashboardHeaderActions({
   readiness,
-  offersEnabled,
 }: {
   readonly readiness: LaunchReadiness
-  /**
-   * Whether this venue is inside the Offers pilot (feature flag AND the venue
-   * allowlist). Required rather than defaulted, so a caller cannot silently
-   * reintroduce an entry point that leads to a 404.
-   */
-  readonly offersEnabled: boolean
 }) {
   if (!isVenueOperational(readiness)) {
     return (
@@ -47,17 +40,12 @@ export function MerchantDashboardHeaderActions({
   // the desktop row restores the usual primary-rightmost order.
   return (
     <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row">
-      {/* Offers is behind a flag and a per-venue allowlist, and the hub itself
-          404s for venues outside the pilot — so the entry point is shown only
-          where it leads somewhere, exactly like the sidebar item. */}
-      {offersEnabled ? (
-        <Button asChild variant="ghost" className="w-full sm:w-auto">
-          <Link href="/app/offers" prefetch={false}>
-            <Icon icon={DiscountTag01Icon} size={16} />
-            Offers
-          </Link>
-        </Button>
-      ) : null}
+      <Button asChild variant="ghost" className="w-full sm:w-auto">
+        <Link href="/app/offers" prefetch={false}>
+          <Icon icon={DiscountTag01Icon} size={16} />
+          Offers
+        </Link>
+      </Button>
       <Button asChild variant="secondary" className="w-full sm:w-auto">
         <Link href="/app/announcements" prefetch={false}>
           <Icon icon={Megaphone01Icon} size={16} />

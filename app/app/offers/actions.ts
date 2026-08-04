@@ -5,7 +5,6 @@ import { redirect } from "next/navigation"
 
 import { getCurrentMerchant, getCurrentUser } from "@/lib/auth/session"
 import { ukTodayIso } from "@/lib/customer/uk-calendar"
-import { isOfferCampaignsEnabledForCurrentVenue } from "@/lib/merchant/offer-access"
 import {
   OFFER_CAMPAIGN_DRAFT_SUCCESS,
   readOfferCampaignFields,
@@ -29,8 +28,7 @@ import {
  * The single mutation entry point for the merchant Offers surface. One
  * dispatcher drives one `useActionState` in the creator, and the same dispatcher
  * serves the management panel's lifecycle buttons — so there is exactly one
- * place where a merchant session is proved, the venue allowlist is re-checked
- * and a claim link is derived.
+ * place where a merchant session is proved and a claim link is derived.
  *
  * Two response shapes on purpose:
  *   * `draft` returns state, because the creator has to show field-level errors
@@ -40,9 +38,8 @@ import {
  *     the screen they acted from, resolved through the allowlist in
  *     lib/merchant/offer-nav.ts so the posted value is never reflected.
  *
- * The gate is deliberately re-evaluated on every call rather than trusted from
- * the rendering page: the flag is default-off and the per-venue allowlist can be
- * withdrawn between a page render and a submit.
+ * The merchant session is deliberately re-proved on every call rather than
+ * trusted from the rendering page: a server action is its own HTTP entry point.
  */
 
 export type OfferCreatorStep = "benefits" | "rules" | "review"
@@ -55,12 +52,12 @@ export type OfferCreatorStep = "benefits" | "rules" | "review"
  */
 export type OfferNoticeCode =
   | "sign_in"
-  | "not_enabled"
   | "link"
   | "already_ended"
   | "not_published"
   | "window_passed"
   | "not_found"
+  | "not_acknowledged"
   | "generic"
 
 export type OfferNoticeFlag =
@@ -76,49 +73,40 @@ export type OfferCampaignState = {
 }
 
 /**
- * What every offer route needs before it renders: whether the surface exists at
- * all for this venue, and the card length that bounds the bonus-stamp field.
- * Takes no arguments and reports only on the caller's own venue.
+ * What every offer route needs before it renders: the card length that bounds
+ * the bonus-stamp field, and the reward it leads to. Takes no arguments and
+ * reports only on the caller's own venue.
  */
 export type OfferDeskContext = {
-  enabled: boolean
   /** 0 when the venue has no active loyalty card yet. */
   stampsRequired: number
   rewardName: string | null
 }
 
 const SIGN_IN_ERROR = "Sign in to manage your offers."
-const NOT_ENABLED_ERROR = "Offers aren't available for your venue yet."
 const LINK_ERROR =
   "The campaign link couldn't be prepared. Try again, and contact support if it keeps happening."
 
 export async function loadOfferDeskContext(): Promise<OfferDeskContext> {
   const merchant = await getCurrentMerchant()
   if (!merchant) {
-    return { enabled: false, stampsRequired: 0, rewardName: null }
+    return { stampsRequired: 0, rewardName: null }
   }
 
   const supabase = await createSupabaseServerClient()
-  const [enabled, card] = await Promise.all([
-    // The flag-and-allowlist question has one answer, in lib/merchant/offer-access.ts,
-    // shared with the console shell so the entry points and the surface can
-    // never disagree about whether this venue is in the pilot.
-    isOfferCampaignsEnabledForCurrentVenue(),
-    supabase
-      .from("loyalty_cards")
-      .select("stamps_required, reward_name")
-      .eq("merchant_id", merchant.id)
-      .eq("is_active", true)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle(),
-  ])
+  const card = await supabase
+    .from("loyalty_cards")
+    .select("stamps_required, reward_name")
+    .eq("merchant_id", merchant.id)
+    .eq("is_active", true)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle()
 
   const stampsRequired = card.data?.stamps_required
   const rewardName = card.data?.reward_name
 
   return {
-    enabled,
     stampsRequired: typeof stampsRequired === "number" ? stampsRequired : 0,
     rewardName: typeof rewardName === "string" ? rewardName : null,
   }
@@ -157,17 +145,17 @@ type OfferDeskGate =
   | { ok: true; merchantId: string; actorUserId: string | null }
   | { ok: false; error: string; code: OfferNoticeCode }
 
+/**
+ * Proves the caller owns a merchant venue before any campaign row is touched.
+ * A server action is its own HTTP entry point, so the session is re-proved here
+ * rather than trusted from the page that rendered the form.
+ */
 async function requireOfferDesk(): Promise<OfferDeskGate> {
   const [merchant, user] = await Promise.all([
     getCurrentMerchant(),
     getCurrentUser(),
   ])
   if (!merchant) return { ok: false, error: SIGN_IN_ERROR, code: "sign_in" }
-
-  const context = await loadOfferDeskContext()
-  if (!context.enabled) {
-    return { ok: false, error: NOT_ENABLED_ERROR, code: "not_enabled" }
-  }
 
   return { ok: true, merchantId: merchant.id, actorUserId: user?.id ?? null }
 }
@@ -242,11 +230,34 @@ async function draftCampaign(
 
 // ─── Publish ──────────────────────────────────────────────────────────────────
 
+/**
+ * Every publish submission must carry this exact value in an `acknowledgement`
+ * field. Publishing freezes the benefit, the dates, the ID rule and the terms
+ * for the life of the campaign — the database refuses to rewrite them
+ * afterwards — so the confirmation the screen presents as mandatory has to be
+ * mandatory here too. An HTML `required` checkbox is a courtesy to the person
+ * using a browser; it is not a control, because nothing stops a submission that
+ * never rendered it. The value is a literal rather than the browser's default
+ * "on" so the field cannot be satisfied by an unrelated checkbox of the same
+ * name, and so a grep finds every surface that claims to have asked.
+ */
+const PUBLISH_ACKNOWLEDGEMENT = "terms-locked"
+
 async function publishCampaign(
   gate: Extract<OfferDeskGate, { ok: true }>,
   formData: FormData
 ): Promise<never> {
   const campaignId = textValue(formData, "campaignId")
+
+  if (textValue(formData, "acknowledgement") !== PUBLISH_ACKNOWLEDGEMENT) {
+    redirect(
+      offerReturnHref(
+        resolveOfferReturnBase(formData.get("returnTo")),
+        "error=not_acknowledged"
+      )
+    )
+  }
+
   const supabase = createSupabaseServiceRoleClient()
   const { data, error } = await supabase.rpc("publish_offer_campaign", {
     p_merchant_id: gate.merchantId,
@@ -377,7 +388,6 @@ function draftErrorCopy(error: { message: string } | null): string {
   if (/already has an offer running/i.test(message)) {
     return "You already have an offer running. End it before you create another."
   }
-  if (/not enabled/i.test(message)) return NOT_ENABLED_ERROR
   if (/no active loyalty card/i.test(message)) {
     return "Build your loyalty card before you create an offer."
   }

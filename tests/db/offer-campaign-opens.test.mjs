@@ -13,9 +13,9 @@ import { closeDb, db, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
  * prove what the ledger actually promises:
  *   * an open of a CLAIMABLE link increments a counter, on the right campaign
  *     and the right UK business date, and repeat opens accumulate on one row;
- *   * an unknown, rotated, draft, paused, unopened, finished, ended or
- *     de-allowlisted link records nothing — the recorder decides claimability
- *     for itself and never trusts the caller;
+ *   * an unknown, rotated, draft, paused, unopened, finished or ended link
+ *     records nothing — the recorder decides claimability for itself and never
+ *     trusts the caller;
  *   * the definition matches get_offer_claim_context exactly, asserted by
  *     calling both against the same link rather than by reading the source;
  *   * counts already recorded survive pause, resume and end, because they are
@@ -66,12 +66,6 @@ async function today(tx) {
 function shiftDate(iso, days) {
   const stamp = Date.parse(`${iso}T00:00:00Z`) + days * 86_400_000
   return new Date(stamp).toISOString().slice(0, 10)
-}
-
-async function enableOffers(tx, merchantId, enabled = true) {
-  await tx`
-    update public.merchants set offer_campaigns_enabled = ${enabled}
-    where id = ${merchantId}::uuid`
 }
 
 /** Draft, install a link and publish — the desk's whole path to a printable QR. */
@@ -196,7 +190,6 @@ test(
   async () => {
     await inRolledBackTxn(async (tx) => {
       const fx = await createRewardPoolFixture(tx)
-      await enableOffers(tx, fx.merchantId)
       const campaign = await publishCampaign(tx, fx.merchantId)
       assert.equal(campaign.status, "live")
       assert.equal(
@@ -232,7 +225,6 @@ test(
   async () => {
     await inRolledBackTxn(async (tx) => {
       const fx = await createRewardPoolFixture(tx)
-      await enableOffers(tx, fx.merchantId)
       const campaign = await publishCampaign(tx, fx.merchantId)
 
       assert.equal(
@@ -274,8 +266,6 @@ test(
     await inRolledBackTxn(async (tx) => {
       const host = await createRewardPoolFixture(tx)
       const neighbour = await createRewardPoolFixture(tx)
-      await enableOffers(tx, host.merchantId)
-      await enableOffers(tx, neighbour.merchantId)
 
       const hostCampaign = await publishCampaign(tx, host.merchantId)
       const neighbourCampaign = await publishCampaign(tx, neighbour.merchantId)
@@ -303,7 +293,6 @@ test(
   async () => {
     await inRolledBackTxn(async (tx) => {
       const fx = await createRewardPoolFixture(tx)
-      await enableOffers(tx, fx.merchantId)
       const start = await today(tx)
 
       // Draft: the link exists but was never published, so it is not public.
@@ -349,19 +338,14 @@ test(
       assert.equal(await claimStatus(tx, campaign.claimHash), "expired")
       assert.equal(await recordOpen(tx, campaign.claimHash), false)
 
-      // Back in window, but the venue has left the pilot allowlist. The
-      // allowlist doubles as the venue kill switch on the public path.
+      // Back inside the window, so the link is claimable again and this load
+      // is the one that counts.
       await timeTravelWindow(
         tx,
         campaign.campaignId,
         start,
         shiftDate(start, 20)
       )
-      await enableOffers(tx, fx.merchantId, false)
-      assert.equal(await claimStatus(tx, campaign.claimHash), "unavailable")
-      assert.equal(await recordOpen(tx, campaign.claimHash), false)
-
-      await enableOffers(tx, fx.merchantId, true)
       assert.equal(await claimStatus(tx, campaign.claimHash), "available")
       assert.equal(await recordOpen(tx, campaign.claimHash), true)
 
@@ -380,7 +364,6 @@ test(
   async () => {
     await inRolledBackTxn(async (tx) => {
       const fx = await createRewardPoolFixture(tx)
-      await enableOffers(tx, fx.merchantId)
       const campaign = await publishCampaign(tx, fx.merchantId)
 
       await recordOpen(tx, campaign.claimHash)
@@ -439,7 +422,6 @@ test(
   async () => {
     await inRolledBackTxn(async (tx) => {
       const fx = await createRewardPoolFixture(tx)
-      await enableOffers(tx, fx.merchantId)
       const campaign = await publishCampaign(tx, fx.merchantId)
       await recordOpen(tx, campaign.claimHash)
 
@@ -480,7 +462,6 @@ test(
     await inRolledBackTxn(async (tx) => {
       const host = await createRewardPoolFixture(tx)
       const stranger = await createRewardPoolFixture(tx)
-      await enableOffers(tx, host.merchantId)
       const campaign = await publishCampaign(tx, host.merchantId)
       await recordOpen(tx, campaign.claimHash)
 

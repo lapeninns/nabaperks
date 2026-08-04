@@ -22,7 +22,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { CONSOLE_SIDEBAR_STYLE, ConsoleSidebarNav } from "./console-sidebar-nav"
-import { merchantAccountItems, merchantNavItemsFor } from "./console-nav"
+import { merchantAccountItems, merchantNavItems } from "./console-nav"
 
 export function MerchantAppShell({
   children,
@@ -31,17 +31,9 @@ export function MerchantAppShell({
   variant: variantProp,
   defaultSidebarOpen = true,
   hideMobileChrome: hideMobileChromeProp,
-  offersEnabled,
 }: {
   children: ReactNode
   signOutAction: ComponentProps<"form">["action"]
-  /**
-   * Whether this venue is inside the Offers pilot. Resolved on the server and
-   * passed down: the flag's environment variable is not public, so the client
-   * cannot read it without disagreeing with the server it hydrated from.
-   * Required, so a caller cannot leave a pilot-only section advertised.
-   */
-  offersEnabled: boolean
   /** Override the nav highlight target. Defaults to the live pathname. */
   activePath?: string
   /** Force a chrome variant. Defaults to deriving it from the live pathname. */
@@ -142,7 +134,7 @@ export function MerchantAppShell({
         <SidebarContent className="flex flex-1 flex-col px-2 py-3">
           <ConsoleSidebarNav
             ariaLabel="Merchant navigation"
-            items={merchantNavItemsFor({ offersEnabled })}
+            items={merchantNavItems}
             secondaryItems={merchantAccountItems}
             secondaryLabel="Account"
             activePath={activePath}

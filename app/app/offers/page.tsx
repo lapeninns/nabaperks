@@ -1,6 +1,6 @@
 import { Suspense } from "react"
 import Link from "next/link"
-import { notFound, redirect } from "next/navigation"
+import { redirect } from "next/navigation"
 import { DiscountTag01Icon } from "@hugeicons/core-free-icons"
 
 import { EmptyState, Eyebrow, MonoTag, PageTitle } from "@/components/brand"
@@ -34,9 +34,9 @@ import { loadOfferDeskContext } from "./actions"
  * management panel for the campaign that exists — plus a short read-only
  * history of offers that have ended.
  *
- * The whole surface is gated: when the feature flag or the venue allowlist is
- * off, `notFound()` makes it behave as though the section does not exist rather
- * than advertising something the venue cannot use.
+ * Offers is an ordinary merchant feature with no rollout gate: the venue's own
+ * session is the whole of the authorisation, and every campaign row is read
+ * through it.
  *
  * The campaign, its counts and the ended history are several round trips, so
  * they stream behind {@link OfferCampaignPanelSkeleton} while the title and any
@@ -62,9 +62,6 @@ export default async function MerchantOffersPage({
   }
 
   const desk = await loadOfferDeskContext()
-  if (!desk.enabled) {
-    notFound()
-  }
 
   const params = await searchParams
 

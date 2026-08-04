@@ -9,15 +9,6 @@
       "createdOn": "2026-07-15",
       "expiresOn": "2027-01-15",
       "description": "Allows server-side Sentry capture to be disabled independently during an incident."
-    },
-    {
-      "key": "merchant_offer_campaigns",
-      "environmentVariable": "NABAPERKS_FEATURE_MERCHANT_OFFER_CAMPAIGNS",
-      "defaultEnabled": false,
-      "owner": "area: merchant-growth",
-      "createdOn": "2026-08-03",
-      "expiresOn": "2027-02-03",
-      "description": "Global kill switch for merchant offer campaigns and campaign QR. Layered with the per-merchant allowlist in lib/offers/access.ts; both must pass."
     }
   ]
 }

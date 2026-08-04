@@ -6,8 +6,6 @@ import { resolveOfferClaimLink } from "@/lib/merchant/offer-campaigns"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { renderQrCodePng } from "@/lib/qr/assets"
 
-import { loadOfferDeskContext } from "../../actions"
-
 /**
  * The campaign QR as bytes, for the on-screen code and for the download button.
  *
@@ -40,11 +38,6 @@ export async function GET(
 ): Promise<NextResponse> {
   const merchant = await getCurrentMerchant()
   if (!merchant) {
-    return notAvailable()
-  }
-
-  const desk = await loadOfferDeskContext()
-  if (!desk.enabled) {
     return notAvailable()
   }
 

@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { notFound, redirect } from "next/navigation"
+import { redirect } from "next/navigation"
 
 import { PageTitle } from "@/components/brand"
 import { StatusBanner } from "@/components/loyalty/status-banner"
@@ -45,9 +45,6 @@ export default async function NewOfferPage({
   }
 
   const desk = await loadOfferDeskContext()
-  if (!desk.enabled) {
-    notFound()
-  }
 
   const active = await getActiveOfferCampaign(merchant.id)
   if (active && active.status !== "draft") {

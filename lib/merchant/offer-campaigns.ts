@@ -1,6 +1,5 @@
 import "server-only"
 
-import { ukTodayIso } from "@/lib/customer/uk-calendar"
 import {
   isNonTerminalOfferStatus,
   isOfferCampaignStatus,
@@ -34,6 +33,13 @@ import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
  * was claimable, so repeat visits, link previews and crawlers are all in it and
  * cannot be separated without identifying the visitor. The merchant-facing copy
  * says exactly that rather than letting the tile imply attendance.
+ *
+ * All five totals are aggregated in SQL by `offer_campaign_metrics`
+ * (20260804103000) and arrive as one row. They are NOT summed here, and no
+ * caller may go back to reading claim rows to count them: supabase/config.toml
+ * caps a PostgREST collection response at `max_rows = 1000`, so a campaign past
+ * a thousand claims would report exactly 1000 and the stamp sum of only the
+ * first thousand, with nothing in the response to say it had been truncated.
  */
 
 export type OfferCampaignMetrics = {
@@ -146,51 +152,54 @@ export async function getActiveOfferCampaign(
   }
 }
 
+const NO_METRICS: OfferCampaignMetrics = {
+  linkOpens: 0,
+  claims: 0,
+  bonusStampsIssued: 0,
+  activePasses: 0,
+  passRedemptions: 0,
+}
+
+/**
+ * One row of five exact totals, counted by the database over the whole ledger.
+ * A failure reports zeroes rather than a partial figure, because a tile that is
+ * quietly short is worse than a tile that is quietly empty.
+ */
 export async function loadOfferCampaignMetrics(
   campaignId: string
 ): Promise<OfferCampaignMetrics> {
   const supabase = createSupabaseServiceRoleClient()
-  const today = ukTodayIso()
+  const { data, error } = await supabase.rpc("offer_campaign_metrics", {
+    p_campaign_id: campaignId,
+  })
 
-  const [opens, claims, passes, redemptions] = await Promise.all([
-    // One row per day, and a campaign window is capped at 366 days, so the
-    // whole rollup is read and summed here rather than through an aggregate.
-    supabase
-      .from("offer_campaign_open_counts")
-      .select("open_count")
-      .eq("campaign_id", campaignId),
-    supabase
-      .from("offer_campaign_claims")
-      .select("bonus_stamps_awarded")
-      .eq("campaign_id", campaignId),
-    supabase
-      .from("offer_discount_entitlements")
-      .select("id", { count: "exact", head: true })
-      .eq("campaign_id", campaignId)
-      .eq("status", "active")
-      .gte("valid_to", today),
-    supabase
-      .from("offer_redemptions")
-      .select("id", { count: "exact", head: true })
-      .eq("campaign_id", campaignId),
-  ])
+  if (error) return NO_METRICS
 
-  const claimRows: ReadonlyArray<{ bonus_stamps_awarded: number | null }> =
-    claims.data ?? []
-  const openRows: ReadonlyArray<{ open_count: number | null }> =
-    opens.data ?? []
+  const row = Array.isArray(data) ? data[0] : data
+  if (!row || typeof row !== "object") return NO_METRICS
 
+  const totals = row as Record<string, unknown>
   return {
-    linkOpens: openRows.reduce(
-      (total, row) => total + (row.open_count ?? 0),
-      0
-    ),
-    claims: claimRows.length,
-    bonusStampsIssued: claimRows.reduce(
-      (total, row) => total + (row.bonus_stamps_awarded ?? 0),
-      0
-    ),
-    activePasses: passes.count ?? 0,
-    passRedemptions: redemptions.count ?? 0,
+    linkOpens: wholeCount(totals.link_opens),
+    claims: wholeCount(totals.claims),
+    bonusStampsIssued: wholeCount(totals.bonus_stamps_issued),
+    activePasses: wholeCount(totals.active_passes),
+    passRedemptions: wholeCount(totals.pass_redemptions),
   }
+}
+
+/**
+ * The totals are `bigint` in SQL. This boundary accepts a number or a numeric
+ * string and refuses everything else, so a shape change at the transport can
+ * never put NaN on a merchant's screen where a count belongs.
+ */
+function wholeCount(value: unknown): number {
+  const parsed =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && /^\d+$/.test(value)
+        ? Number(value)
+        : Number.NaN
+
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : 0
 }

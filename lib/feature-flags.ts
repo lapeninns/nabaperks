@@ -3,10 +3,6 @@ const FEATURE_FLAGS = {
     environmentVariable: "NABAPERKS_FEATURE_PLATFORM_ERROR_REPORTING",
     defaultEnabled: true,
   },
-  merchant_offer_campaigns: {
-    environmentVariable: "NABAPERKS_FEATURE_MERCHANT_OFFER_CAMPAIGNS",
-    defaultEnabled: false,
-  },
 } as const
 
 export type FeatureFlagName = keyof typeof FEATURE_FLAGS

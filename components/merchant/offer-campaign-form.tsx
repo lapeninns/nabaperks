@@ -498,9 +498,12 @@ function ReviewStep({
             />
 
             <label className="focus-ring-within flex cursor-pointer items-start gap-3 rounded-lg border-2 border-ink bg-secondary/40 p-3">
+              {/* The value is checked server-side on every publish, so this
+                  box is the confirmation rather than a picture of one. */}
               <input
                 type="checkbox"
                 name="acknowledgement"
+                value="terms-locked"
                 required
                 className="mt-0.5 size-4 shrink-0 accent-[var(--w-leaf)]"
               />

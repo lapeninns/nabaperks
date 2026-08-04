@@ -96,10 +96,6 @@ export default async function AppHarnessLayout({
       activePath={activePath}
       variant={variant}
       defaultSidebarOpen={!sidebarCollapsed}
-      // The harness is the DB-free proof surface for the whole console, so it
-      // shows a venue that is inside every pilot. There is no session and no
-      // allowlist row to read here.
-      offersEnabled
     >
       {children}
     </MerchantAppShell>

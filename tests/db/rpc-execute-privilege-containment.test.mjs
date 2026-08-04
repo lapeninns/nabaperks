@@ -30,7 +30,6 @@ const AUTHENTICATED_DIRECT_RPCS = [
   "admin_confirm_merchant_launch_delivered",
   "admin_resolve_fraud_flag",
   "admin_mark_merchant_launch_dispatched",
-  "admin_set_merchant_offer_campaigns",
   "admin_set_qr_active",
   "admin_set_merchant_launch_pilot_extension",
   "admin_regenerate_qr_code",

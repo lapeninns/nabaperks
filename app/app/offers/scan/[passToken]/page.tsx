@@ -19,8 +19,6 @@ import {
   offerPassValidityLabel,
 } from "@/lib/offers/redeem-core"
 
-import { loadOfferDeskContext } from "../../actions"
-
 export const dynamic = "force-dynamic"
 
 // Pass scan tokens are uuid-typed in the RPC; reject a malformed one before the
@@ -84,23 +82,10 @@ async function PassScanStream({
     redirect(loginHref)
   }
 
-  // The offers kill switch covers this surface too, exactly like every other
-  // /app/offers/* route. The database RPCs behind it stay ungated on purpose,
-  // and the two controls mean different things:
-  //   * the feature flag and the per-venue allowlist are a ROLLOUT control.
-  //     Turning them off removes the whole surface for a venue; passes already
-  //     issued are untouched data and become redeemable again the moment the
-  //     venue is switched back on.
-  //   * pausing or ending a campaign is the PRODUCT control. It stops new
-  //     claims and, per the specification, deliberately does NOT cancel passes
-  //     already issued.
-  // Gating the RPCs as well would collapse the first into the second and strand
-  // customers holding a valid pass.
-  const desk = await loadOfferDeskContext()
-  if (!desk.enabled) {
-    notFound()
-  }
-
+  // Venue ownership is proved by the loader, from the merchant's own session
+  // rather than from the token in the URL. Pausing or ending a campaign stops
+  // new claims and, per the specification, deliberately does NOT cancel passes
+  // already issued — so a pass in date stays redeemable here.
   const context = await loadMerchantOfferPassScanContext(passToken)
 
   if (context.status === "unauthenticated") {
@@ -109,6 +94,14 @@ async function PassScanStream({
 
   if (context.status === "not_found") {
     notFound()
+  }
+
+  // A pass minted by another venue. It carries no pass detail at all — that is
+  // the point, nothing about another venue's member should reach this screen —
+  // so it gets the banner and a way out rather than the pass face, and never a
+  // 404, which would leave staff guessing whether the code was even real.
+  if (context.status === "unauthorized") {
+    return <UnmatchedPassNotice />
   }
 
   const banner = offerPassScanBanner(context.status, context.blockedReason)
@@ -154,6 +147,21 @@ async function PassScanStream({
           <Link href="/app/scan">Scan another code</Link>
         </Button>
       ) : null}
+      <Button asChild variant="secondary">
+        <Link href="/app">Back to dashboard</Link>
+      </Button>
+    </>
+  )
+}
+
+function UnmatchedPassNotice() {
+  const banner = offerPassScanBanner("unauthorized")
+
+  return (
+    <>
+      <StatusBanner title={banner.title} tone={banner.tone}>
+        {banner.body}
+      </StatusBanner>
       <Button asChild variant="secondary">
         <Link href="/app">Back to dashboard</Link>
       </Button>

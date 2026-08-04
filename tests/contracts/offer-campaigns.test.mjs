@@ -24,7 +24,7 @@ import { describe, it } from "node:test"
 
 const projectRoot = process.cwd()
 
-/** The seven migrations that make up the feature, in application order. */
+/** The eight migrations that make up the feature, in application order. */
 const OFFER_MIGRATIONS = {
   schema: "20260803100000_offer_campaign_schema.sql",
   lifecycle: "20260803100100_offer_campaign_lifecycle_rpcs.sql",
@@ -33,6 +33,7 @@ const OFFER_MIGRATIONS = {
   referral: "20260803100400_referral_exclude_offer_stamp_qualification.sql",
   retention: "20260803100500_offer_campaign_retention.sql",
   identity: "20260803100600_offer_campaign_identity.sql",
+  alwaysOn: "20260804120000_offer_campaigns_always_on.sql",
 }
 
 /** The five tables the feature owns. All are customer or bearer material. */
@@ -63,7 +64,6 @@ const OFFER_SOURCE_FILES = [
   "app/p/[token]/page.tsx",
   "app/pass/[entitlementId]/page.tsx",
   "app/pass/[entitlementId]/qr.png/route.ts",
-  "lib/offers/access.ts",
   "lib/offers/campaign-core.ts",
   "lib/offers/claim-context.ts",
   "lib/offers/constants.ts",
@@ -75,7 +75,6 @@ const OFFER_SOURCE_FILES = [
   "lib/offers/tokens.ts",
   "lib/customer/offer-pass.ts",
   "lib/customer/offer-pass-view.ts",
-  "lib/merchant/offer-access.ts",
   "lib/merchant/offer-campaign-fields.ts",
   "lib/merchant/offer-campaigns.ts",
   "lib/merchant/offer-nav.ts",
@@ -252,7 +251,11 @@ describe("contract-offer-campaigns migration source contract", () => {
   })
 
   it("grants bonus stamps with a NULL business date and an offer source", () => {
-    const claim = readMigration(OFFER_MIGRATIONS.claim)
+    // Read from the migration that holds the LIVE definition of
+    // claim_offer_campaign. 20260803100200 introduced the function, but
+    // 20260804120000 replaced it, and a pin on a superseded body proves nothing
+    // about the function the database is running.
+    const claim = readMigration(OFFER_MIGRATIONS.alwaysOn)
     const insert = claim.slice(claim.indexOf("insert into public.stamp_events"))
 
     assert.match(
@@ -352,6 +355,37 @@ describe("contract-offer-campaigns migration source contract", () => {
         )
       }
     }
+  })
+
+  it("leaves no per-venue gate behind in the database", () => {
+    const alwaysOn = readMigration(OFFER_MIGRATIONS.alwaysOn)
+
+    // Offers is an ordinary merchant feature: every venue has it, always. A
+    // column left in place with nothing reading it is how a pilot list grows
+    // back, so the column and its only writer are dropped rather than ignored.
+    assert.match(
+      alwaysOn,
+      /alter table public\.merchants\s+drop column if exists offer_campaigns_enabled;/,
+      "the allowlist column must be dropped, not merely left unread"
+    )
+    assert.match(
+      alwaysOn,
+      /drop function if exists public\.admin_set_merchant_offer_campaigns\(uuid, boolean\);/,
+      "the admin toggle must be dropped with the column it wrote"
+    )
+
+    // The re-created bodies must not carry the test forward. Scoped to the
+    // function definitions, since the teardown below them names the column by
+    // design.
+    const bodies = alwaysOn.slice(
+      alwaysOn.indexOf("create or replace function"),
+      alwaysOn.indexOf("drop function if exists")
+    )
+    assert.equal(
+      bodies.includes("offer_campaigns_enabled"),
+      false,
+      "no re-created RPC may still read the allowlist column"
+    )
   })
 
   it("bounds the merchant-authored copy in the database, not only the form", () => {

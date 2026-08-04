@@ -247,75 +247,124 @@ function LifecycleControls({
   campaign: MerchantOfferCampaign
   returnTo: string
 }) {
-  const [confirming, setConfirming] = useState<"rotate" | "end" | null>(null)
+  const [confirming, setConfirming] = useState<
+    "publish" | "rotate" | "end" | null
+  >(null)
+
+  const isDraft = campaign.status === "draft"
+  const publishing = isDraft && confirming === "publish"
+  const showPause =
+    campaign.status === "live" || campaign.status === "scheduled"
+  const showResume = campaign.status === "paused"
+  const anySubmit =
+    publishing ||
+    showPause ||
+    showResume ||
+    confirming === "rotate" ||
+    confirming === "end"
 
   return (
     <div className="grid gap-4 border-t-2 border-dashed border-ink/20 pt-5">
       <Eyebrow>Manage</Eyebrow>
 
-      <form action={action} className="flex flex-wrap gap-2">
-        <input type="hidden" name="campaignId" value={campaign.id} />
-        <input type="hidden" name="returnTo" value={returnTo} />
+      {anySubmit ? (
+        <form action={action} className="grid gap-3">
+          <input type="hidden" name="campaignId" value={campaign.id} />
+          <input type="hidden" name="returnTo" value={returnTo} />
 
-        {campaign.status === "draft" ? (
-          <SubmitButton
-            name="intent"
-            value="publish"
-            variant="reward"
-            pendingLabel="Publishing…"
-          >
-            Publish this offer
-          </SubmitButton>
-        ) : null}
+          {/* Publishing from here locks the same things publishing from the
+            creator locks, so it asks for the same acknowledgement — and the
+            server refuses any publish that does not carry it. */}
+          {publishing ? (
+            <label className="focus-ring-within flex cursor-pointer items-start gap-3 rounded-lg border-2 border-ink bg-secondary/40 p-3">
+              <input
+                type="checkbox"
+                name="acknowledgement"
+                value="terms-locked"
+                required
+                className="mt-0.5 size-4 shrink-0 accent-[var(--w-leaf)]"
+              />
+              <span className="text-sm leading-6 text-foreground">
+                I understand these terms are locked once published, and that
+                only customers who are not already members can claim.
+              </span>
+            </label>
+          ) : null}
 
-        {campaign.status === "live" || campaign.status === "scheduled" ? (
-          <SubmitButton
-            name="intent"
-            value="pause"
-            variant="secondary"
-            pendingLabel="Pausing…"
-          >
-            Pause new claims
-          </SubmitButton>
-        ) : null}
+          <div className="flex flex-wrap gap-2">
+            {publishing ? (
+              <SubmitButton
+                name="intent"
+                value="publish"
+                variant="reward"
+                pendingLabel="Publishing…"
+              >
+                Yes, publish this offer
+              </SubmitButton>
+            ) : null}
 
-        {campaign.status === "paused" ? (
-          <SubmitButton
-            name="intent"
-            value="resume"
-            variant="secondary"
-            pendingLabel="Resuming…"
-          >
-            Accept claims again
-          </SubmitButton>
-        ) : null}
+            {showPause ? (
+              <SubmitButton
+                name="intent"
+                value="pause"
+                variant="secondary"
+                pendingLabel="Pausing…"
+              >
+                Pause new claims
+              </SubmitButton>
+            ) : null}
 
-        {confirming === "rotate" ? (
-          <SubmitButton
-            name="intent"
-            value="rotate"
-            variant="destructive"
-            pendingLabel="Rotating…"
-          >
-            <Icon icon={RefreshIcon} size={16} />
-            Yes, replace the link
-          </SubmitButton>
-        ) : null}
+            {showResume ? (
+              <SubmitButton
+                name="intent"
+                value="resume"
+                variant="secondary"
+                pendingLabel="Resuming…"
+              >
+                Accept claims again
+              </SubmitButton>
+            ) : null}
 
-        {confirming === "end" ? (
-          <SubmitButton
-            name="intent"
-            value="end"
-            variant="destructive"
-            pendingLabel="Ending…"
-          >
-            Yes, end this offer
-          </SubmitButton>
-        ) : null}
-      </form>
+            {confirming === "rotate" ? (
+              <SubmitButton
+                name="intent"
+                value="rotate"
+                variant="destructive"
+                pendingLabel="Rotating…"
+              >
+                <Icon icon={RefreshIcon} size={16} />
+                Yes, replace the link
+              </SubmitButton>
+            ) : null}
+
+            {confirming === "end" ? (
+              <SubmitButton
+                name="intent"
+                value="end"
+                variant="destructive"
+                pendingLabel="Ending…"
+              >
+                Yes, end this offer
+              </SubmitButton>
+            ) : null}
+          </div>
+        </form>
+      ) : null}
 
       <div className="flex flex-wrap gap-2">
-        {campaign.status !== "draft" ? (
+        {isDraft ? (
+          <Button
+            type="button"
+            variant={publishing ? "ghost" : "reward"}
+            onClick={() =>
+              setConfirming(confirming === "publish" ? null : "publish")
+            }
+          >
+            {publishing ? "Not yet" : "Publish this offer"}
+          </Button>
+        ) : null}
+
+        {!isDraft ? (
           <Button
             type="button"
             variant="ghost"
@@ -327,7 +376,7 @@ function LifecycleControls({
           </Button>
         ) : null}
 
-        {campaign.status !== "draft" ? (
+        {!isDraft ? (
           <Button
             type="button"
             variant="ghost"
@@ -337,6 +386,14 @@ function LifecycleControls({
           </Button>
         ) : null}
       </div>
+
+      {publishing ? (
+        <StatusBanner tone="warning" title="Publishing cannot be undone">
+          The benefit, the dates, the ID rule and the terms are fixed from the
+          moment you publish, and nothing can edit them afterwards. You can
+          still pause new claims, rotate the link or end the offer.
+        </StatusBanner>
+      ) : null}
 
       {confirming === "rotate" ? (
         <StatusBanner tone="warning" title="The old link stops working at once">
@@ -444,12 +501,13 @@ const NOTICE_COPY: Record<
 
 const ERROR_COPY: Record<OfferNoticeCode, string> = {
   sign_in: "Sign in to manage your offers.",
-  not_enabled: "Offers aren't available for your venue yet.",
   link: "The campaign link couldn't be prepared. Try again, and contact support if it keeps happening.",
   already_ended: "That offer has already ended.",
   not_published: "Publish the offer before you change it.",
   window_passed: "That offer's dates have passed, so it can't be restarted.",
   not_found: "That offer could not be found.",
+  not_acknowledged:
+    "Confirm you understand the terms are locked before you publish. Nothing was published.",
   generic: "That didn't work. Try again.",
 }
 

@@ -215,7 +215,12 @@ function CardProgressPanel({
         Your cards
       </Link>
 
-      {offerClaimNotice ? <OfferClaimBanner notice={offerClaimNotice} /> : null}
+      {offerClaimNotice ? (
+        <OfferClaimBanner
+          notice={offerClaimNotice}
+          hasDiscountPass={offerPasses.length > 0}
+        />
+      ) : null}
 
       <CustomerStampCard
         venueName={exp.merchantName}
@@ -404,13 +409,28 @@ function CardGiftChip({
  * `already_member` deliberately names no mechanism: `?membership=existing` is
  * emitted by the loyalty-invite claim as well as the offer claim, so calling it
  * an offer would be wrong half the time.
+ *
+ * `hasDiscountPass` is what stops the copy promising something that was never
+ * issued. A campaign may award bonus stamps only, in which case
+ * `claim_offer_campaign` creates no entitlement and there is no pass to open —
+ * so the pass sentence appears only when this card actually carries one, and the
+ * bonus-only case gets benefit-neutral wording instead. It is read from the
+ * pass rail rendered on this very screen, so the banner can never point at a
+ * pass the customer cannot see.
  */
-function OfferClaimBanner({ notice }: { notice: OfferClaimNotice }) {
+function OfferClaimBanner({
+  notice,
+  hasDiscountPass,
+}: {
+  notice: OfferClaimNotice
+  hasDiscountPass: boolean
+}) {
   if (notice === "claimed") {
     return (
       <StatusBanner title="Offer added to your card." tone="success">
-        Your discount pass is saved here. Open it when you are at the venue and
-        the team will scan it.
+        {hasDiscountPass
+          ? "Your discount pass is saved here. Open it when you are at the venue and the team will scan it."
+          : "Everything the offer gives you is on this card already, so there is nothing else to collect."}
       </StatusBanner>
     )
   }
@@ -418,8 +438,9 @@ function OfferClaimBanner({ notice }: { notice: OfferClaimNotice }) {
   if (notice === "already_claimed") {
     return (
       <StatusBanner title="You already have this offer." tone="neutral">
-        Nothing was added a second time. Your discount pass is saved on this
-        card.
+        {hasDiscountPass
+          ? "Nothing was added a second time. Your discount pass is saved on this card."
+          : "Nothing was added a second time. What you claimed is already on this card."}
       </StatusBanner>
     )
   }

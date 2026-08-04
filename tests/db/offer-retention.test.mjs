@@ -111,11 +111,11 @@ async function freshMerchant(tx) {
   await tx`
     insert into public.merchants (
       id, owner_user_id, business_name, business_slug, business_type,
-      email, status, requires_billing, offer_campaigns_enabled
+      email, status, requires_billing
     ) values (
       ${merchantId}::uuid, ${ownerUserId}::uuid, 'Offer Retention Venue',
       ${`offer-retention-${runId}`}, 'pub',
-      ${`offer-retention-${runId}@example.test`}, 'active', false, true
+      ${`offer-retention-${runId}@example.test`}, 'active', false
     )`
   return merchantId
 }

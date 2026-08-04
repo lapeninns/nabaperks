@@ -16,9 +16,11 @@ import {
 } from "@/lib/offers/claim-context"
 import {
   RateLimitError,
+  customerRateLimitIdentityFromHeaders,
   enforceRateLimit,
   rateLimitIdentityFromHeaders,
 } from "@/lib/security/rate-limit"
+import { CUSTOMER_DEVICE_HEADER } from "@/lib/security/rate-limit-core"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 import { startOfferClaimAction } from "./actions"
@@ -30,8 +32,9 @@ import { startOfferClaimAction } from "./actions"
  * invitation it is a shared secret with a wide blast radius. Two consequences
  * are deliberate here: the route carries its own noindex metadata and is kept
  * OUT of PRIVATE_ROUTE_PREFIXES (listing a confidential path in robots.txt
- * advertises it), and every request is rate limited by IP so a leaked or
- * guessed link cannot be walked.
+ * advertises it), and every request passes a two-bucket rate limit — see
+ * `enforceOfferLandingRateLimit` for why one bucket per address is the wrong
+ * shape for a poster.
  *
  * The render only reads. Claiming happens after the customer has verified their
  * mobile and accepted the loyalty terms in the existing join flow; the action
@@ -61,6 +64,52 @@ const OFFER_DATE_FORMATTER = new Intl.DateTimeFormat("en-GB", {
   timeZone: "UTC",
 })
 
+const OFFER_LANDING_WINDOW_MS = 15 * 60 * 1000
+const OFFER_LANDING_DEVICE_LIMIT = 30
+const OFFER_LANDING_ADDRESS_LIMIT = 600
+
+/**
+ * Two buckets, because one address is not one customer here.
+ *
+ * This link is printed and scanned in the room, so the traffic it is built for
+ * is a surge of genuine people sharing a single address: the venue's guest
+ * Wi-Fi, or a mobile carrier's NAT. A per-address-only allowance therefore
+ * refuses exactly the customers the poster was printed for.
+ *
+ * The narrow bucket is per device. The proxy already mints a signed
+ * `nabaperks_device` cookie on this route and forwards its id as a header, and
+ * the customer identity below folds that together with the address. Thirty loads
+ * in a quarter of an hour is far more than one phone needs, refreshes included.
+ * It is enforced first so a single device hammering the link is cut off without
+ * first spending the room's allowance.
+ *
+ * The wide bucket is the per-address ceiling that still has to exist. A brand
+ * new browser has no device cookie on its very first request — the proxy sets it
+ * on the way out — so first loads from one address all share one identity by
+ * construction, and the narrow bucket cannot be relied on to admit them. Six
+ * hundred loads in a quarter of an hour covers a full house several times over
+ * while still bounding the work one address can ask of the database. It is not
+ * what makes the link unguessable: the token is a 256-bit HMAC digest, so
+ * walking the token space is hopeless with or without a limit.
+ */
+async function enforceOfferLandingRateLimit(
+  requestHeaders: Headers
+): Promise<void> {
+  if (requestHeaders.get(CUSTOMER_DEVICE_HEADER)?.trim()) {
+    await enforceRateLimit({
+      key: `offer:device:${customerRateLimitIdentityFromHeaders(requestHeaders)}`,
+      limit: OFFER_LANDING_DEVICE_LIMIT,
+      windowMs: OFFER_LANDING_WINDOW_MS,
+    })
+  }
+
+  await enforceRateLimit({
+    key: `offer:ip:${rateLimitIdentityFromHeaders(requestHeaders)}`,
+    limit: OFFER_LANDING_ADDRESS_LIMIT,
+    windowMs: OFFER_LANDING_WINDOW_MS,
+  })
+}
+
 export default async function OfferClaimPage({
   params,
 }: {
@@ -69,11 +118,7 @@ export default async function OfferClaimPage({
   const { token } = await params
 
   try {
-    await enforceRateLimit({
-      key: `offer:${rateLimitIdentityFromHeaders(await headers())}`,
-      limit: 30,
-      windowMs: 15 * 60 * 1000,
-    })
+    await enforceOfferLandingRateLimit(await headers())
   } catch (error) {
     if (error instanceof RateLimitError) {
       return (

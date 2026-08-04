@@ -44,9 +44,6 @@ export default async function OfferCampaignQrPage({
   }
 
   const desk = await loadOfferDeskContext()
-  if (!desk.enabled) {
-    notFound()
-  }
 
   const { campaignId } = await params
   const query = await searchParams
