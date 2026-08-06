@@ -2,6 +2,7 @@ import "server-only"
 
 import {
   blockReasonCopy,
+  stampBlockReasonFromSqlState,
   toStampBlockReason,
 } from "@/lib/customer/experience/block-reasons"
 import { getCurrentCustomer } from "@/lib/customer/identity"
@@ -62,10 +63,30 @@ export async function issueSelfServiceStamp(
   )
 
   if (error) {
-    return blockKnownStampFailure(error.message, membershipId)
+    const blocked = blockKnownStampFailure(
+      error.message,
+      membershipId,
+      error.code
+    )
+    await recordLocationRefusal(supabase, membershipId, customer.id, error.code)
+    return blocked
   }
 
-  const issuedStamp = issuedStampResult(firstRecord(data))
+  const row = firstRecord(data)
+
+  // A settled referral bonus can fill the card before the visit stamp is
+  // reached, in which case the RPC records the visit and returns no stamp id
+  // (20260805100300). That is a block, not a failure — the customer has a reward
+  // waiting, and telling them so is the correct outcome.
+  if (
+    row &&
+    !stringValue(row.stamp_event_id) &&
+    booleanValue(row.reward_unlocked)
+  ) {
+    return { status: "blocked", reason: blockReasonCopy("reward_ready_first") }
+  }
+
+  const issuedStamp = issuedStampResult(row)
   if (!issuedStamp) throw new Error("Unable to issue a stamp")
 
   return issuedStamp
@@ -88,11 +109,50 @@ function buildIssueStampRpcParams(
   }
 }
 
+/**
+ * Persist a location refusal, which the RPC itself cannot do.
+ *
+ * NBS10/NBS11 are raised, and a raise aborts the transaction — so a fraud flag
+ * written inside `issue_self_service_stamp` is rolled back with the refusal it
+ * describes. Recording from here works because the failed RPC has already ended
+ * its transaction and this is a new one.
+ *
+ * Best-effort by design: the customer has already been told why their stamp did
+ * not land, and losing the signal must never turn into a second error on that
+ * screen.
+ */
+async function recordLocationRefusal(
+  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
+  membershipId: string,
+  customerId: string,
+  code: string | null | undefined
+): Promise<void> {
+  const reason = stampBlockReasonFromSqlState(code)
+  if (reason !== "location_out_of_range" && reason !== "location_required")
+    return
+
+  try {
+    await supabase.rpc("record_stamp_location_refusal", {
+      p_membership_id: membershipId,
+      p_customer_id: customerId,
+      p_reason: reason,
+    })
+  } catch (cause) {
+    logger.warn("stamp_location_refusal_record_failed", {
+      membershipId,
+      reason: cause instanceof Error ? cause.message : "unknown",
+    })
+  }
+}
+
 function blockKnownStampFailure(
   rpcMessage: string,
-  membershipId: string
+  membershipId: string,
+  rpcCode?: string | null
 ): IssueSelfServiceStampResult {
-  const reason = toStampBlockReason(rpcMessage)
+  // The SQLSTATE is authoritative; the message is only consulted for refusals
+  // that do not carry one yet (see block-reasons.ts).
+  const reason = toStampBlockReason(rpcMessage, rpcCode)
 
   if (reason === "unknown") {
     throw new Error(`Unable to issue a stamp: ${rpcMessage}`)

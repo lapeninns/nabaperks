@@ -41,6 +41,14 @@ export const productEventNames = [
   "merchant_billing_checkout_returned",
   "merchant_billing_activated",
   "loyalty_card_created",
+  // Written by SQL, not by recordProductEvent: the stamping wrapper records
+  // these directly (20260805100300) so a referral degradation or a visit that
+  // could not be stamped leaves a durable, queryable row instead of a server-log
+  // warning. Registered here so the product's event vocabulary stays in one list.
+  "referral_settlement_failed",
+  "referral_bonus_failed",
+  "visit_without_stamp",
+  "stamp_refused_location",
   "qr_created",
   "qr_downloaded",
   "qr_enabled",

@@ -14,7 +14,11 @@ import type { JoinFirstStampRecovery } from "@/lib/customer/join-first-stamp-rec
 
 /** Which route the customer entered from. Same facts can mean different UI. */
 export type CustomerExperienceEntry =
-  "qr" | "join" | "card" | "stamp" | "reward"
+  | "qr"
+  | "join"
+  | "card"
+  | "stamp"
+  | "reward"
 
 /**
  * Access failures the customer presentation layer is allowed to observe.
@@ -51,6 +55,8 @@ export type StampBlockReason =
   | "pool_unavailable"
   | "unauthenticated"
   | "profile_incomplete"
+  | "location_required"
+  | "location_out_of_range"
   | "unavailable"
   | "unknown"
 

@@ -68,12 +68,16 @@ async function seed(tx) {
     select * from public.issue_self_service_stamp(
       ${membershipId}::uuid, ${customer.id}::uuid, ${v.qr_id}::text,
       ${lat}::numeric, ${long}::numeric, 10::numeric, 'granted'::text, 1200::integer)`
-  const count = async () => (await tx`
+  const count = async () =>
+    (
+      await tx`
     select current_stamp_count from public.customer_memberships where id = ${membershipId}`
-  )[0].current_stamp_count
-  const rewards = async () => (await tx`
+    )[0].current_stamp_count
+  const rewards = async () =>
+    (
+      await tx`
     select count(*)::int as n from public.reward_events where membership_id = ${membershipId}`
-  )[0].n
+    )[0].n
   return { v, customer, membershipId, ageStamps, stamp, count, rewards }
 }
 
@@ -81,80 +85,152 @@ test("a full card refuses further stamps", { skip }, async () => {
   await inRolledBackTxn(async (tx) => {
     const s = await seed(tx)
     // Fill to 3/3 (join gave #1) → reward unlocks but is NOT redeemed.
-    await s.ageStamps(); await s.stamp()
-    await s.ageStamps(); await s.stamp()
+    await s.ageStamps()
+    await s.stamp()
+    await s.ageStamps()
+    await s.stamp()
     assert.equal(await s.count(), 3, "card is full at 3/3")
-    assert.equal(await s.rewards(), 1, "the full card has minted exactly one reward")
+    assert.equal(
+      await s.rewards(),
+      1,
+      "the full card has minted exactly one reward"
+    )
 
     await s.ageStamps()
     let refused = false
     try {
-      await tx.savepoint(async () => { await s.stamp() })
+      await tx.savepoint(async () => {
+        await s.stamp()
+      })
     } catch (error) {
       refused = /already ready to redeem/i.test(String(error.message))
     }
     assert.ok(refused, "a full, unredeemed card cannot take another stamp")
-    assert.equal(await s.count(), 3, "the rejected stamp did not advance the card")
+    assert.equal(
+      await s.count(),
+      3,
+      "the rejected stamp did not advance the card"
+    )
   })
 })
 
-test("mid-cycle stamps_required reduction bricks the card (no reward minted)", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    const s = await seed(tx) // join → 1 stamp in cycle 1
-    assert.equal(await s.count(), 1, "one stamp in flight")
-    assert.equal(await s.rewards(), 0, "no reward yet")
+test(
+  "mid-cycle stamps_required reduction bricks the card (no reward minted)",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const s = await seed(tx) // join → 1 stamp in cycle 1
+      assert.equal(await s.count(), 1, "one stamp in flight")
+      assert.equal(await s.rewards(), 0, "no reward yet")
 
-    // Lower the card threshold UNDER the in-flight cycle count.
-    await tx`update public.loyalty_cards set stamps_required = 1 where id = ${s.v.loyalty_card_id}`
+      // Lower the card threshold UNDER the in-flight cycle count.
+      await tx`update public.loyalty_cards set stamps_required = 1 where id = ${s.v.loyalty_card_id}`
 
-    await s.ageStamps()
-    let bricked = false
-    try {
-      await tx.savepoint(async () => { await s.stamp() })
-    } catch (error) {
-      bricked = /already ready to redeem/i.test(String(error.message))
-    }
-    assert.ok(bricked, "the card is wedged: the guard fires before any unlock")
-    assert.equal(await s.rewards(), 0, "BRICK: card reads full but no reward was ever minted")
-  })
-})
+      await s.ageStamps()
+      let bricked = false
+      try {
+        await tx.savepoint(async () => {
+          await s.stamp()
+        })
+      } catch (error) {
+        bricked = /already ready to redeem/i.test(String(error.message))
+      }
+      assert.ok(
+        bricked,
+        "the card is wedged: the guard fires before any unlock"
+      )
+      assert.equal(
+        await s.rewards(),
+        0,
+        "BRICK: card reads full but no reward was ever minted"
+      )
+    })
+  }
+)
 
-test("geofence is soft: an out-of-range trigger stamp still lands and flags", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    const s = await seed(tx)
-    await s.ageStamps(); await s.stamp() // #2, in range
-    await s.ageStamps()
-    // #3 is the trigger stamp; push ~111km away (1 degree of latitude).
-    const [s3] = await s.stamp(Number(s.v.latitude) + 1.0, s.v.longitude)
-    assert.equal(s3.reward_unlocked, true, "the stamp STILL lands and unlocks the reward")
-    assert.equal(s3.geo_flagged, true, "the out-of-range location is flagged")
-    assert.equal(await s.count(), 3, "the card advanced despite being out of range")
-    const [{ n }] = await tx`
+test(
+  "geofence refuses an out-of-range stamp from the third visit (20260805100100)",
+  { skip },
+  async () => {
+    // Was: "geofence is soft — an out-of-range trigger stamp still lands and
+    // flags". It no longer lands. A position supplied by the device that is not
+    // the venue is the one case we hold positive evidence of absence, so it is
+    // the one case that refuses; everything else still collects.
+    await inRolledBackTxn(async (tx) => {
+      const s = await seed(tx)
+      await s.ageStamps()
+      await s.stamp() // #2, in range
+      await s.ageStamps()
+
+      // #3 is the first verified visit; push ~111km away (1 degree of latitude).
+      let code = null
+      try {
+        await tx.savepoint(async () => {
+          await s.stamp(Number(s.v.latitude) + 1.0, s.v.longitude)
+        })
+      } catch (error) {
+        code = error.code ?? null
+      }
+
+      assert.equal(code, "NBS10", "the out-of-range stamp is refused")
+      assert.equal(
+        await s.count(),
+        2,
+        "the card did NOT advance from out of range"
+      )
+      assert.equal(await s.rewards(), 0, "and no reward was unlocked")
+
+      // The flag cannot be written inside the refusing transaction — it would be
+      // rolled back with it — so the caller records it afterwards through
+      // record_stamp_location_refusal (20260805100600).
+      const [{ n }] = await tx`
       select count(*)::int as n from public.fraud_flags
       where membership_id = ${s.membershipId} and signal = 'self_service_geofence_out_of_range'`
-    assert.ok(n >= 1, "a geofence fraud flag was raised")
-  })
-})
+      assert.equal(n, 0, "nothing survives the aborted transaction, by design")
 
-test("the unlocking stamp is refused when the reward pool has < 3 active items", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    const s = await seed(tx)
-    await s.ageStamps(); await s.stamp() // #2 → card at 2/3
-    // Drop the pool below the minimum before the unlocking stamp.
-    await tx`
+      await tx`select public.record_stamp_location_refusal(
+      ${s.membershipId}::uuid, ${s.customer.id}::uuid, 'location_out_of_range')`
+      const [{ n: recorded }] = await tx`
+      select count(*)::int as n from public.fraud_flags
+      where membership_id = ${s.membershipId} and signal = 'self_service_geofence_out_of_range'`
+      assert.equal(recorded, 1, "the caller's record commits the signal")
+    })
+  }
+)
+
+test(
+  "the unlocking stamp is refused when the reward pool has < 3 active items",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const s = await seed(tx)
+      await s.ageStamps()
+      await s.stamp() // #2 → card at 2/3
+      // Drop the pool below the minimum before the unlocking stamp.
+      await tx`
       update public.reward_pool_items set is_active = false
       where id = (select id from public.reward_pool_items
                   where merchant_id = ${s.v.merchant_id} and loyalty_card_id = ${s.v.loyalty_card_id}
                     and is_active order by display_order limit 1)`
-    await s.ageStamps()
-    let refused = false
-    try {
-      await tx.savepoint(async () => { await s.stamp() })
-    } catch (error) {
-      refused = /3 active reward pool items/i.test(String(error.message))
-    }
-    assert.ok(refused, "the unlocking stamp is blocked when the pool is too small")
-    assert.equal(await s.count(), 2, "the card did not complete into an unready pool")
-    assert.equal(await s.rewards(), 0, "no reward was minted")
-  })
-})
+      await s.ageStamps()
+      let refused = false
+      try {
+        await tx.savepoint(async () => {
+          await s.stamp()
+        })
+      } catch (error) {
+        refused = /3 active reward pool items/i.test(String(error.message))
+      }
+      assert.ok(
+        refused,
+        "the unlocking stamp is blocked when the pool is too small"
+      )
+      assert.equal(
+        await s.count(),
+        2,
+        "the card did not complete into an unready pool"
+      )
+      assert.equal(await s.rewards(), 0, "no reward was minted")
+    })
+  }
+)
