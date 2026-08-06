@@ -46,7 +46,7 @@ export function ProcessHero() {
             <MarketingSignupLink>Start your launch</MarketingSignupLink>
           </Button>
           <Link
-            className="focus-ring rounded-sm text-sm font-bold text-foreground underline underline-offset-4"
+            className="focus-ring rounded-sm text-sm font-bold whitespace-nowrap text-foreground underline underline-offset-4"
             href={ROUTES.pricing}
           >
             See pricing
