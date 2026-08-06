@@ -14,7 +14,17 @@ const linkedHookUri = "https://nabaperks.com/api/auth/hooks/send-email"
 // "released" and must not be edited on a feature branch. Versions listed here
 // are explicitly-sanctioned edits (each SHOULD be exceptional and reviewed).
 const APPEND_ONLY_BASELINE_REF = "origin/main"
-const SANCTIONED_MIGRATION_EDITS = []
+// 20260802130000: the delivery-anchored-pilot backfill computed
+// `operations_review_required` (a NOT NULL boolean) with
+// `status <> 'trialing'`, which is NULL for a subscription whose status has not
+// been read back from Stripe. The migration therefore aborted with 23502
+// against any database that already held billing rows, blocking every later
+// migration behind it. CI and the ephemeral staging proof both start from an
+// empty database, so neither could observe it. The edit only adds the null
+// guard the same file's trigger already uses; rows with a non-null status are
+// computed exactly as before, so an environment that already applied this
+// migration successfully is unaffected.
+const SANCTIONED_MIGRATION_EDITS = ["20260802130000"]
 
 if (isMain()) {
   const migrationTarget = process.argv.includes("--local")
