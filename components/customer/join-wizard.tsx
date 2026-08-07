@@ -202,10 +202,19 @@ function PhoneUnlockingReminder({
         <span className="eyebrow text-muted-foreground">
           You&apos;re unlocking
         </span>
-        {/* Two lines before clipping — long venue · card compounds stay
-            readable at 375 (VCU-P3-09). */}
-        <span className="line-clamp-2 text-sm leading-tight font-extrabold break-words">
-          {merchant.name} · {card.name}
+        {/* Two rows, not one clamped compound. The venue and card names used to
+            share a single `line-clamp-2` line in a 187px column (271 inner
+            minus the 40px mark, the 20px seal and two 12px gaps), so at text-sm
+            that is ~26 characters a line and "The Old Crown Girton · Coffee
+            Loyalty Card" clamped mid-phrase — on the member's motivation strip,
+            at the highest-friction step of the funnel (CUS 02#57). The venue
+            takes the eyebrow row and truncates cleanly; the card name keeps the
+            emphasis line and wraps. */}
+        <span className="mono-meta truncate text-ink-soft">
+          {merchant.name}
+        </span>
+        <span className="text-sm leading-tight font-extrabold break-words">
+          {card.name}
         </span>
         <p className="text-xs leading-snug text-muted-foreground">
           {joinUnlockingRewardHook(card.stampsRequired)}
