@@ -23,8 +23,15 @@ export function SnapRail({
 }) {
   return (
     <div className="grid gap-2 sm:block">
-      <p className="mono-id flex items-center justify-end gap-1 text-primary uppercase sm:hidden">
-        Swipe to see every card <span aria-hidden="true">→</span>
+      {/* Decorative: the rail itself is a labelled, focusable scroll region,
+          so a screen reader already announces it and is not swiping. The hint
+          is for sighted touch users only — and at `.mono-id` in the accent
+          colour it was the smallest, lowest-contrast text on the page. */}
+      <p
+        aria-hidden="true"
+        className="mono-meta flex items-center justify-end gap-1 text-muted-foreground sm:hidden"
+      >
+        Swipe to see every card <span>→</span>
       </p>
       <ul
         aria-label={label}

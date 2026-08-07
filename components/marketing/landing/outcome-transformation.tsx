@@ -49,9 +49,15 @@ export function OutcomeTransformation() {
               ))}
             </ul>
           </SnapRailItem>
+          {/* `role="presentation"` rather than a bare `aria-hidden` <li>: an
+              aria-hidden item still holds a position in the list for some AT,
+              so the labelled two-item comparison announced as three. It is
+              also no longer `hidden` below `sm:` — the arrow IS the
+              transformation, and hiding it left the swipe with no directional
+              cue at all. */}
           <li
-            aria-hidden="true"
-            className="hidden sm:grid sm:place-items-center"
+            role="presentation"
+            className="grid shrink-0 place-items-center px-1 sm:px-0"
           >
             <IconRoundel
               size="lg"

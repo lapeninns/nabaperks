@@ -6,6 +6,7 @@ import { Section } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
+  FinePrint,
   PlanIncludesList,
   PriceLockup,
   SeasonalOfferBanner,
@@ -72,10 +73,10 @@ export function LandingPricing() {
                 <Link href={ROUTES.pricing}>See full pricing</Link>
               </Button>
             </div>
-            <p className="mono-id text-muted-foreground uppercase">
+            <FinePrint>
               {PRODUCT.billingDisclosure} {PRODUCT.processingFeeLine}{" "}
               {PRODUCT.cancelLine}
-            </p>
+            </FinePrint>
           </CardContent>
         </Card>
         <Card>

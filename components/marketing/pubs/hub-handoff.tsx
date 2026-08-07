@@ -3,6 +3,7 @@ import Link from "next/link"
 
 import { MarketingSignupLink } from "@/components/analytics/marketing-signup-link"
 import { Icon, MonoTag } from "@/components/brand"
+import { FinePrint } from "@/components/marketing/fine-print"
 import { GUIDES } from "@/components/marketing/guides/guides-data"
 import { Button } from "@/components/ui/button"
 import { OFFER, PLAN_LINE, PRODUCT, ROUTES } from "@/lib/marketing/facts"
@@ -64,9 +65,7 @@ export function HubHandoff() {
             <Link href={ROUTES.pricing}>See full pricing</Link>
           </Button>
         </div>
-        <p className="mono-id text-muted-foreground uppercase">
-          {PRODUCT.cancelLine}
-        </p>
+        <FinePrint>{PRODUCT.cancelLine}</FinePrint>
       </div>
     </div>
   )

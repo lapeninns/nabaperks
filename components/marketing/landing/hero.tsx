@@ -3,6 +3,7 @@ import Link from "next/link"
 import { MarketingSignupLink } from "@/components/analytics/marketing-signup-link"
 import { Eyebrow } from "@/components/brand"
 import { Section } from "@/components/layout"
+import { FinePrint } from "@/components/marketing/fine-print"
 import { MARKETING_TEXT_LINK } from "@/components/marketing/text-link"
 import { Button } from "@/components/ui/button"
 import { LANDING, PRODUCT, ROUTES } from "@/lib/marketing/facts"
@@ -46,9 +47,7 @@ export function LandingHero({ demoQr }: { demoQr: QrMatrix }) {
             {LANDING.hero.demoLink}
           </Link>
         </div>
-        <p className="mono-id text-muted-foreground uppercase">
-          {PRODUCT.cancelLine}
-        </p>
+        <FinePrint>{PRODUCT.cancelLine}</FinePrint>
       </div>
       <div className="mx-auto w-full max-w-[26rem] lg:mx-0 lg:max-w-none lg:justify-self-end">
         <HeroSampleCard qrMatrix={demoQr} />

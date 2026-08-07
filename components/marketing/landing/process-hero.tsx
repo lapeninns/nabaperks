@@ -3,6 +3,7 @@ import Link from "next/link"
 import { MarketingSignupLink } from "@/components/analytics/marketing-signup-link"
 import { Eyebrow, IconRoundel, ReceiptCard } from "@/components/brand"
 import { Section } from "@/components/layout"
+import { FinePrint } from "@/components/marketing/fine-print"
 import { MARKETING_TEXT_LINK } from "@/components/marketing/text-link"
 import { Button } from "@/components/ui/button"
 import { DFY_LAUNCH, MARKET, PRODUCT, ROUTES } from "@/lib/marketing/facts"
@@ -54,9 +55,7 @@ export function ProcessHero() {
             See pricing
           </Link>
         </div>
-        <p className="mono-id text-muted-foreground uppercase">
-          {PRODUCT.cancelLine}
-        </p>
+        <FinePrint>{PRODUCT.cancelLine}</FinePrint>
       </div>
       <LaunchTicket />
     </Section>

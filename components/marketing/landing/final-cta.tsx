@@ -1,6 +1,7 @@
 import { MarketingSignupLink } from "@/components/analytics/marketing-signup-link"
 import { Eyebrow, ReceiptCard } from "@/components/brand"
 import { Section } from "@/components/layout"
+import { FinePrint } from "@/components/marketing/fine-print"
 import { Button } from "@/components/ui/button"
 import { OFFER, PLAN_LINE, PRODUCT } from "@/lib/marketing/facts"
 
@@ -25,9 +26,9 @@ export function FinalCta() {
             <MarketingSignupLink>Start your launch</MarketingSignupLink>
           </Button>
         </div>
-        <p className="mono-id justify-self-center text-muted-foreground uppercase">
+        <FinePrint className="justify-self-center">
           {PRODUCT.cancelLine}
-        </p>
+        </FinePrint>
       </ReceiptCard>
     </Section>
   )

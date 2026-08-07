@@ -3,6 +3,7 @@ import Link from "next/link"
 
 import { PageTitle, ReceiptCard } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
+import { FinePrint } from "@/components/marketing/fine-print"
 import { MARKETING_TEXT_LINK } from "@/components/marketing/text-link"
 import { JsonLd } from "@/components/seo/json-ld"
 import { Button } from "@/components/ui/button"
@@ -139,9 +140,7 @@ export function GuidePage({ guide }: { guide: Guide }) {
               <Link href={ROUTES.howItWorks}>See how the launch works</Link>
             </Button>
           </div>
-          <p className="mono-id text-muted-foreground uppercase">
-            {PRODUCT.cancelLine}
-          </p>
+          <FinePrint>{PRODUCT.cancelLine}</FinePrint>
         </ReceiptCard>
       </Section>
       <JsonLd
