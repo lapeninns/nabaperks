@@ -77,7 +77,7 @@ Findings 63–69 are the legal surface and are out of this lane's scope.
 | 01#66 | Medium   | [x]     | CLOSED by the root agent: .w-rule replaced with an explicit dashed top border + first:border-t-0                                                                                                                      |
 | 01#67 | High     | [ ]     | Out of scope for this lane — legal surface migration needs human sign-off (docs/ui-audit/NEEDS-SIGNOFF.md §4).                                                                                                        |
 | 01#68 | Medium   | [ ]     | Out of scope for this lane — legal surface migration needs human sign-off (docs/ui-audit/NEEDS-SIGNOFF.md §4).                                                                                                        |
-| 01#69 | Low      | [ ]     | Out of scope for this lane — legal surface migration needs human sign-off (docs/ui-audit/NEEDS-SIGNOFF.md §4).                                                                                                        |
+| 01#69 | Low      | [x]     | CLOSED by the root agent: LegalRelatedLinks shared across all five legal pages, now a labelled nav landmark.                                                                                                          |
 
 ## Gates
 
