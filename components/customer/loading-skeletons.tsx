@@ -253,26 +253,49 @@ export function CustomerPageTitleSkeleton() {
 }
 
 /**
- * Mirrors the home dashboard: the page title and a stack of {@link HomeCardTile}
- * receipts. Rendered inside the persistent {@link CustomerAppShell}, so it omits
- * the shell and tab bar (the layout already holds them).
+ * Mirrors the home dashboard: the compact heading row and a stack of
+ * {@link HomeCardTile} receipts. Rendered inside the persistent
+ * {@link CustomerAppShell}, so it omits the shell and tab bar (the layout
+ * already holds them).
+ *
+ * The measurements here are taken from the real components, not chosen: this
+ * file's own promise is that "the swap to real content never shifts the
+ * layout", and it was not keeping it (CUS 02#16). It used `gap-5`/`gap-3.5`
+ * where the page is `gap-5`/`gap-4`; it drew a `ReceiptCard edge` (a 12px
+ * perforation) and an `<hr class="w-rule">` (28px of margin) that HomeCardTile
+ * does not render at all; and it omitted the tag row and the `bg-accent p-3`
+ * stamp well that it does. Each tile jumped ~40px on arrival. Now: no edge, no
+ * rule, the real gaps, a tag-row block and the accent stamp well.
  */
 export function CustomerHomeSkeleton() {
   return (
     <div className="grid gap-5" role="status" aria-label="Loading your cards">
-      <CustomerPageTitleSkeleton />
-      <div className="grid gap-3.5">
+      {/* The heading row: one h1-sized line plus the summary eyebrow. */}
+      <div className="grid gap-1.5">
+        <Skeleton className="h-6 w-36" />
+        <Skeleton className="h-3 w-52 max-w-full" />
+      </div>
+      <div className="grid gap-4">
         {[0, 1].map((tile) => (
-          <ReceiptCard key={tile} edge className="grid gap-4">
+          <ReceiptCard key={tile} className="grid gap-4">
             <div className="flex items-start justify-between gap-4">
-              <div className="grid min-w-0 flex-1 gap-1.5">
+              <div className="grid min-w-0 flex-1 gap-1">
                 <Skeleton className="h-3 w-20" />
                 <Skeleton className="h-5 w-36 max-w-full" />
+                <Skeleton className="h-4 w-24 max-w-full" />
               </div>
-              <Skeleton className="size-[52px] shrink-0 rounded-full" />
+              <Skeleton className="size-12 shrink-0 rounded-full" />
             </div>
-            <hr className="w-rule" />
-            <StampRowSkeleton size="size-10" />
+            {/* The tag row HomeCardTile prints above its stamp well. */}
+            <div className="flex gap-2">
+              <Skeleton className="h-[26px] w-24 rounded-full" />
+              <Skeleton className="h-[26px] w-20 rounded-full" />
+            </div>
+            {/* The `rounded-lg bg-accent p-3` stamp well, not a bare row. */}
+            <div className="rounded-lg bg-accent p-3">
+              <StampRowSkeleton size="size-10" />
+            </div>
+            <Skeleton className="h-4 w-full max-w-[16rem]" />
           </ReceiptCard>
         ))}
       </div>
