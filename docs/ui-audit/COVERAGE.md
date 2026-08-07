@@ -15,11 +15,11 @@ branch is green after every merge.
 | Report           | Tracked |    Done | Partial |  Stale |   Open |
 | ---------------- | ------: | ------: | ------: | -----: | -----: |
 | 01 marketing     |      69 |      42 |      18 |      3 |      6 |
-| 02 customer      |      70 |      48 |      13 |      2 |      7 |
+| 02 customer      |      70 |      49 |      13 |      2 |      6 |
 | 03 merchant      |      67 |      44 |      15 |      5 |      3 |
 | 04 admin         |      74 |      54 |       9 |      9 |      2 |
 | 05 design system |      67 |      60 |       3 |      1 |      3 |
-| **Total**        | **347** | **248** |  **58** | **20** | **21** |
+| **Total**        | **347** | **249** |  **58** | **20** | **20** |
 
 ## "Stale" is a real category (20 findings)
 
@@ -60,17 +60,29 @@ relaxed for whitespace only after Prettier re-wrapped a ternary
 `isPosterPrintPath` (`merchant-shell`). One test was added
 (`motion-tokens-bounded`).
 
-## Remaining 21 open, by reason
+## Remaining 19 open, by reason
 
-- **Needs a browser** — 01#12 heroes, 02#27/28/29 stamp-grid geometry, 04#60
-  sticky table header, 04#67 density, 05#47 footer density.
-- **Copy or product decision** — 01#23 (cut 8 objections to 5), 01#55 (persona
-  spokes), 02#50/02#64 (conversion copy on the acquisition funnel), 04#54
+Exactly: 01#23, 01#49, 01#55, 01#63, 01#65, 01#67, 02#6, 02#27, 02#28, 02#29, 02#50, 02#64, 03#13, 03#16, 03#37, 04#54, 04#60, 05#13, 05#47.
+
+- **Blocked by a contract test** (attempted, reverted, no assertion weakened) —
+  01#49 (GuideSpine hydration), 01#63 (legal TOC order — legal-p3-polish
+  requires the opposite), 01#65 (legal clause headings — legal-heading-structure
+  pins `mono-meta`).
+- **Copy / product decision** — 01#23 (cut 8 objections to 5), 01#55 (persona
+  spokes), 02#50 and 02#64 (conversion copy on the acquisition funnel), 04#54
   (operator procedure copy).
+- **Needs a browser** — 02#27/28/29 (stamp-grid columns, disc sizing, reward
+  slot: each changes every card in the product), 05#47 (footer density),
+  04#60's sticky-header half.
 - **Needs a data-layer change** — 03#13 (`MerchantNextActions` has no
-  merchant-scoped aggregate), 02#6 (breakpoint sweep needs measurement).
-- **Blocked by a contract test** — 01#49, 01#65.
-- **Explicitly out of scope** — 01#67 legal migration, 05#13 Button size API.
+  merchant-scoped aggregate), 03#16 (DataTable needs an `lg` cardBreakpoint AND
+  per-renderer row props), 02#6 (breakpoint sweep needs measurement).
+- **Explicitly out of scope** — 01#67 (legal migration, NEEDS-SIGNOFF §4),
+  05#13 (Button size-variant API removal).
+- **Large API addition** — 04#60 sorting/aria-sort across 8 live panels.
+- **Partially reassigned** — 03#37 (m-offers shipped the shared
+  PrintPreviewNav; the single-route collapse is pinned by
+  qr-a4-poster-templates).
 
 ## Not verified by any of this
 
