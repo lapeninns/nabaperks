@@ -940,12 +940,22 @@ body[data-grain="true"]::after {
   }
 }
 
+/* "You are here" is a location marker, not an action. It used to render as a
+   solid --w-accent fill with a 2px ink shadow — visually identical to the
+   page's primary button, so every console screen carried two elements claiming
+   to be the hottest thing on it. DESIGN.md reserves the filled vermillion as
+   THE action/stamp ink, so the active item now takes the card ground, the ink
+   border, an 800 label and a vermillion left bar: unmistakable as position,
+   without spending the action ink on it. (03#7) */
 [data-slot="sidebar-menu-button"][data-active="true"],
 [data-slot="sidebar-menu-button"][data-active="true"]:hover,
 [data-slot="sidebar-menu-button"][data-active="true"]:focus-visible {
   border-color: var(--w-ink);
-  background: var(--sidebar-primary);
-  color: var(--sidebar-primary-foreground);
+  border-left-width: 4px;
+  border-left-color: var(--primary);
+  background: var(--card);
+  color: var(--foreground);
+  font-weight: 800;
   --tw-shadow: 2px 2px 0 var(--w-shadow-color);
 }
 
