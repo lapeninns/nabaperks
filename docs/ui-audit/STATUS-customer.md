@@ -1,0 +1,166 @@
+# UI audit — customer lane status (`docs/ui-audit/02-customer.md`)
+
+Branch: `feat/ui-audit-customer`. Worktree: `Nabaperks-ui-customer`.
+
+**70 findings — 40 done, 10 partial, 18 open, 2 stale.**
+
+Every commit below was gated on `pnpm typecheck && pnpm lint && pnpm test`
+(607 contract + 958 unit) and `pnpm build`, with `deadcode:check` and
+`check-design-tokens` where the change could affect them.
+
+## Commits
+
+- `f5b530ab` — fix(customer): tab-bar clearance token, tap feedback, tile a11y label
+- `a26081d4` — fix(customer): type scale, circle dialect, ink alphas, PWA nudge suppression
+- `22b638ab` — fix(scan): sized decode region, torch, reticle, decode/failure feedback
+- `57942a0c` — fix(customer): the code first — QR padding, reward/pass order, panel parity
+- `c54f024d` — fix(stamp): the disc before the ticket, a right-sized band, a visible gesture
+- `3735cb1f` — fix(loyalty): retire the RewardTeaser shim, ink the pass terms, flatten the stub
+- `45e5d826` — fix(home): put a loyalty card above the fold
+- `1746e1c6` — fix(home): one activity row, a collapsed reward archive, per-tab skeletons
+- `3f2a9f61` — fix(offer,auth): one customer column for /offer, real recovery, honest progress
+- `072a9bc6` — fix(customer): one disclosure vocabulary, honest fallback, unclamped motivation
+- `5eea8798` — fix(customer): tone the non-failures, one primary per intent
+
+## Findings
+
+| ID    | Priority | Status  | Note                                                                                                                                                                                                                            |
+| ----- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 02#1  | Medium   | [x]     | TAB_BAR_CLEARANCE declared beside the bar; shell, card experience, pass page and both flow skeletons all use it (was pb-32/pb-28 x4).                                                                                           |
+| 02#2  | Medium   | [ ]     | Header still py-3 with a full-weight Log out. Moving sign-out to Profile is a nav/product decision; customer-p2-polish CUS-P2-14 pins the 44px header action.                                                                   |
+| 02#3  | Medium   | [x]     | text-[0.6875rem] -> text-xs; roundel size-9 -> size-8 so the 56px bar height is unchanged.                                                                                                                                      |
+| 02#4  | High     | [x]     | active:translate-y-px, pressed roundel fill, useLinkStatus pending fill (the console-sidebar pattern), and a 2px ink rule above the active column.                                                                              |
+| 02#5  | Medium   | [stale] | Both shells already use max-w-customer and are pinned to it by customer-p2-polish CUS-P2-12/16. The two columns are the same column.                                                                                            |
+| 02#6  | High     | [ ]     | Only 24 sm:/md: variants remain in customer scope and most are px/pt gutters that do fire above 640px. A sweep needs a browser to judge each.                                                                                   |
+| 02#7  | Critical | [x]     | PageTitle + summary band replaced by one heading row (text-xl h1 + summary eyebrow). ~150px reclaimed. PageTitle description removed, flagged in the commit.                                                                    |
+| 02#8  | High     | [x]     | HomeRedeemBanner is now a flat pinned summary row, ~110px lighter, every word kept. Not deleted outright: the reward NAME appears nowhere else on /home.                                                                        |
+| 02#9  | Medium   | [x]     | border-ink/25 -> border-line, rounded-[var(--radius)] -> rounded-lg, tracking override dropped, then the band itself folded into homeSummaryLine().                                                                             |
+| 02#10 | Critical | [~]     | Chrome above the tile cut ~300px. The tile itself cannot become a summary row: offer-customer-pass-wiring requires its own /pass link outside the tile Link, and referral-bonus-stamp requires ReferralBonusBankMini inside it. |
+| 02#11 | High     | [x]     | aria-label now follows the same branch as href (WCAG 2.5.3 Label in Name).                                                                                                                                                      |
+| 02#12 | Medium   | [x]     | The empty dashed placeholder is gone. Also fixed a bug the audit missed: a paused card with a revealed reward never rendered its unavailable status line.                                                                       |
+| 02#13 | High     | [ ]     | One PromiseChip primitive spans home-card-tile and customer-card-experience; the spot-ink split (reward/pass/gift/bonus) is a visual decision needing a browser.                                                                |
+| 02#14 | High     | [x]     | EmptyState gets p-5 for the customer column and the nested ReceiptCard (with its dead max-w-xl inside a max-w-sm parent) is gone. +64px measure, ~150px height.                                                                 |
+| 02#15 | High     | [x]     | Snippet is now one line per visit via the shared ActivityRow at compact density. ~300px saved; descriptions still live on the Activity tab.                                                                                     |
+| 02#16 | Medium   | [x]     | Skeleton derived from the real components: real gaps, no edge, no hr, plus the tag row and the bg-accent stamp well it was missing.                                                                                             |
+| 02#17 | Medium   | [x]     | Moved below the wallet and re-dressed as a dashed aside (~185px -> ~110px). All copy kept.                                                                                                                                      |
+| 02#18 | Critical | [x]     | New primaryAction slot on CustomerStampCard: grid -> status band -> disc -> ticket. The disc was the receipt's last child at ~y900 on a 667px viewport.                                                                         |
+| 02#19 | High     | [x]     | h-28 + overflow-y-auto -> min-h-20 with auto rows and no inner scroll. Resting border-line -> border-ink. Recovers 32px, removes a hidden scroll trap.                                                                          |
+| 02#20 | Critical | [~]     | ReferralSharePanel's duplicated primary demoted to a link. The five-rail accordion is not done: those rails are contract-pinned and what to close by default is a product call.                                                 |
+| 02#21 | High     | [ ]     | Partly addressed by 02#22 (headline down to text-3xl/text-2xl). Dropping vm.headline on /card and rewriting the welcome banner is a copy decision.                                                                              |
+| 02#22 | Medium   | [x]     | text-[2.1rem]/[1.65rem]/[0.96rem] -> text-3xl / text-2xl / text-sm leading-6, matching PageTitle for the same role.                                                                                                             |
+| 02#23 | Medium   | [ ]     | Needs the receipt's footerLeft/footerRight wired on the card route while hideFooter is on; wants a look at the rendered page.                                                                                                   |
+| 02#24 | High     | [x]     | DESIGN.md's 50% disabled opacity plus a dashed border on the closed disc. The reason line is not duplicated: 02#18 moved the status band directly above it.                                                                     |
+| 02#25 | Medium   | [x]     | 'Tap or hold to stamp' printed under the disc at .mono-meta; the gesture was sr-only and the ring only appears 130ms in.                                                                                                        |
+| 02#26 | Medium   | [x]     | Bespoke rounded-lg bg-secondary block removed; same words as plain muted text under the control.                                                                                                                                |
+| 02#27 | High     | [ ]     | The total->columns table belongs in StampGrid and changes every card in the product. Implemented locally for the offer preview (02#66); the real card wants a browser.                                                          |
+| 02#28 | High     | [ ]     | Pinning the disc to two fixed sizes changes the card object everywhere. Visual judgement, no browser.                                                                                                                           |
+| 02#29 | Medium   | [ ]     | Making the reward slot a full-bleed seal needs a seal size that tracks the grid; RewardSeal has three fixed sizes. Visual decision.                                                                                             |
+| 02#30 | High     | [~]     | Dropped sm:w-[88px] (it only ever widened the stub inside a 410px column). Base w-20 kept: its floor is 'REDEEMED' at the 10px mono-id floor. Terms not clamped behind a disclosure.                                            |
+| 02#31 | Medium   | [ ]     | CustomerStampCard always renders the ticket, so 'rewardSlot=undefined when a ticket shows' would delete the row's terminal chip from every card. Visual judgement.                                                              |
+| 02#32 | High     | [~]     | Three non-failure states re-toned off vermillion (reward waiting, two join-recovery states). Routing instructions to CustomerActionNote across five files is left open.                                                         |
+| 02#33 | Critical | [~]     | QrFrame's doubled quiet zone collapsed to one p-3: +24px of code everywhere. No counter mode: there is no web brightness API and full-bleed presentation needs a browser and a product call.                                    |
+| 02#34 | Low      | [~]     | rounded-2xl was already rounded-lg (stale). Confetti offsets moved to percentages in the outer fifth; py-6 -> py-5.                                                                                                             |
+| 02#35 | Low      | [~]     | RewardTeaser migrated to RewardTicket and deleted. ProgressTrack is NOT dead (three merchant surfaces) — the audit is wrong; dropping it from the barrel needs a merchant-lane import change.                                   |
+| 02#36 | High     | [x]     | Live rewards keep cards; redeemed + expired collapse into one closed <details> of 44px rows. customer-home-rewards pins title="Expired" and its note strings, so those are kept verbatim inside.                                |
+| 02#37 | Medium   | [x]     | One truncating venue tag left, one state tag right, flex-nowrap; the source badge reads as a sentence instead of a third pill repeating the venue.                                                                              |
+| 02#38 | Critical | [x]     | Title-only 'Ready for merchant scan.' banner deleted (zero information beside the ticket's own kicker) and the QR hoisted above the ticket.                                                                                     |
+| 02#39 | High     | [x]     | Shared error copy, caption suppressed with the code, and 'Show a fresh code' always present on the reward panel as it already was on the pass panel.                                                                            |
+| 02#40 | Medium   | [~]     | rounded-xl is already gone from all five named files (stale). The login success box's 1px border-reward/30 is now the Wet Ink success face; kept as role=status, not StatusBanner (role=alert).                                 |
+| 02#41 | High     | [x]     | Shell title dropped (OfferPass owns the h1 lockup) and a new `code` slot puts the QR under the lockup, above the lead. Terms stay on the face.                                                                                  |
+| 02#42 | Low      | [x]     | list-disc replaced by rows with a 4px ink square marker; the no-stacking rule raised to text-sm. No term hidden or removed.                                                                                                     |
+| 02#43 | High     | [~]     | Day grouping with sticky eyebrow headers, ~56px hairline rows, timestamps up to .mono-meta. FilterPills and a Show-more cap need client state and a decision on the 40-item default.                                            |
+| 02#44 | Medium   | [x]     | components/customer/activity-row.tsx extracted with the tone map beside it; both the page and the snippet import it.                                                                                                            |
+| 02#45 | High     | [ ]     | Converting three sections to one Accordion with state hints is a real information-architecture change to a settings page; not attempted without a browser.                                                                      |
+| 02#46 | High     | [ ]     | BLOCKED: needs [data-slot=switch] / [data-slot=checkbox] rules in app/globals.css, which is out of bounds for this lane. An unthemed shadcn control would look foreign.                                                         |
+| 02#47 | Medium   | [ ]     | Depends on 02#46's switch; a pending chip beside a native checkbox is a half-measure.                                                                                                                                           |
+| 02#48 | Low      | [x]     | PushSettingsFallback now uses the themed <Skeleton> at the real dimensions (h-[76px], h-11 w-32, three h-14).                                                                                                                   |
+| 02#49 | Medium   | [x]     | summary gains .focus-ring and the ArrowDown01Icon chevron with group-open:rotate-180, matching CardDetailsDisclosure.                                                                                                           |
+| 02#50 | Critical | [ ]     | Removing TermsFirstStampPreview's RewardTicket is a conversion-affecting content cut; customer-join-frictionless-ux pins the preview's presence on the QR path.                                                                 |
+| 02#51 | High     | [x]     | FlowProgress gains stepProgress; the shared verification step is half-filled on phone and full on code, so a successful submit always moves the bar.                                                                            |
+| 02#52 | Critical | [ ]     | BLOCKED with 02#46: separating the row needs ui/checkbox theming in globals.css for aria-invalid to drive a visible state.                                                                                                      |
+| 02#53 | High     | [ ]     | BLOCKED with 02#46: InputOTP slots need [data-slot=input-otp-slot] theming in globals.css.                                                                                                                                      |
+| 02#54 | High     | [x]     | Once a code is sent the phone form collapses to 'Code sent to <number>' and Resend demotes to variant=link size=sm, leaving one vermillion slot.                                                                                |
+| 02#55 | Medium   | [ ]     | One shared PhoneField is the right fix but the two hints differ deliberately (retention vs code) — unifying them is a copy decision.                                                                                            |
+| 02#56 | Medium   | [x]     | Hand-rolled 20px -rotate-6 disc at text-[0.7rem] replaced by IconRoundel size=sm tone=primary, matching HomeEmptyState.                                                                                                         |
+| 02#57 | Medium   | [x]     | Venue and card split onto two rows: venue truncates on a .mono-meta line, card name wraps freely. Nothing clamps mid-phrase.                                                                                                    |
+| 02#58 | Critical | [x]     | Torch toggle (capability-gated, self-removing if refused), four corner reticle marks, a 12s no-decode timeout with new guidance, and vibrate(24) on decode.                                                                     |
+| 02#59 | High     | [x]     | qrbox is now a QrDimensionFunction at 75% of the short edge, and the reticle is drawn at the same 75%.                                                                                                                          |
+| 02#60 | High     | [~]     | Exits suppressed when the tab bar is present, in both loader and loaded scanner. Dropping 'Back to start' for signed-out members is blocked by customer-error-boundaries, which pins both exits and their demotion.             |
+| 02#61 | Medium   | [x]     | Invalid decode flashes border-destructive for 600ms and fires vibrate([12,60,12]), debounced at 1.5s.                                                                                                                           |
+| 02#62 | Medium   | [stale] | The drift claim is wrong: loader and resting loaded scanner already agree; the camera-error swap is deliberate and contract-pinned. Extraction is blocked by CUS-P2-11 pinning the copy to customer-qr-scanner.tsx.             |
+| 02#63 | High     | [x]     | /offer/[token] renders through CustomerFlowShell — header lockup, 410px column, rhythm and safe area inherited instead of re-guessed.                                                                                           |
+| 02#64 | Critical | [ ]     | Cutting three of four restatements and making the CTA sticky is a conversion + copy decision on the acquisition funnel; offer-campaign-ui pins where StampGrid and OfferPass may appear.                                        |
+| 02#65 | High     | [x]     | Every non-claimable branch now gets a tone-matched StatusBanner plus UnavailableRecoveryActions — including the rate-limit branch, which had no action at all.                                                                  |
+| 02#66 | Medium   | [x]     | previewColumns(stampsRequired) replaces wrapColumns={5}: 6 -> 4+3, 10 -> 4+4+3, no stranded reward chip.                                                                                                                        |
+| 02#67 | High     | [x]     | CustomerActivitySkeleton / CustomerRewardsSkeleton / CustomerProfileSkeleton added with a loading.tsx per segment.                                                                                                              |
+| 02#68 | Medium   | [ ]     | One CustomerErrorShell across four boundaries, top-aligned, with the venue's own mark — needs a decision on where the venue name comes from on a failed card read.                                                              |
+| 02#69 | High     | [x]     | isCustomerTransactionalRoute added to the early-return list: no install nudge on /card/_/stamp, /reward/_, /pass/* or /scan.                                                                                                    |
+| 02#70 | Low      | [x]     | Chips: rounded-md border border-ink/20 -> rounded-lg border-2 border-line. The floating aside gets shadow-md like every other floating surface.                                                                                 |
+
+## Where the audit was wrong
+
+- **02#5** — `CustomerShell` and `CustomerAppShell` already share `max-w-customer`,
+  and `customer-p2-polish` CUS-P2-12/16 pins them to it. There is one column.
+- **02#34 / 02#40** — `rounded-2xl` on `RewardCelebration` and `rounded-xl` across
+  the five named customer files were already fixed before this lane started.
+- **02#35** — `ProgressTrack` is not dead code. `invite-customers-form`,
+  `dashboard-next-actions` and `launch-readiness-panel` all render it.
+- **02#62** — the loader and the resting loaded scanner already agree on their
+  button variants. The variant swap the finding calls "drift" is the deliberate,
+  contract-pinned camera-error demotion.
+
+## Where a contract test overrode the audit
+
+- **02#10** — `offer-customer-pass-wiring` requires `HomeCardTile` to carry its own
+  `/pass/<id>` route _outside_ its own `<Link>`, and `referral-bonus-stamp`
+  requires `<ReferralBonusBankMini>` inside the tile. The finding asks for both
+  to move to the card page. The tests win.
+- **02#36** — `customer-home-rewards` pins `title="Expired"`, the "no longer
+  available to scan" line and the `Expired ${formatDate(reward.expiredAt)}` note.
+  The two History sub-headers are therefore kept verbatim _inside_ the new
+  disclosure rather than collapsed into one.
+- **02#60** — `customer-error-boundaries` pins both scanner exits and their
+  camera-error demotion, so "Back to start" stays for signed-out members.
+- **02#62** — `customer-p2-polish` CUS-P2-11 pins the barista description to
+  `customer-qr-scanner.tsx`, and the loader cannot statically import the chunk it
+  lazily loads, so the shared chrome cannot be extracted.
+
+## Blocked on `app/globals.css` (out of bounds for this lane)
+
+**02#46, 02#47, 02#52, 02#53.** All four need slot theming added to the unlayered
+Wet Ink layer before they can ship:
+
+- `[data-slot="switch"]` and `[data-slot="checkbox"]` — 2px ink border,
+  `--radius-sm`, a hard 2px offset shadow, vermillion fill, and an
+  `aria-invalid` state that can drive a `border-destructive` ring.
+- `[data-slot="input-otp-slot"]` — six 44x52px ink-bordered cells.
+
+Shipping an unthemed shadcn `Switch`/`Checkbox`/`InputOTP` into the Wet Ink
+journey would look foreign on the exact screens (consent, push, OTP) where the
+finding says trust matters most, so nothing was shipped half-done.
+
+## Left for a browser or a product decision
+
+- **02#2** header hierarchy, **02#6** the `sm:`/`md:` sweep, **02#13** the
+  PromiseChip spot-ink split, **02#21** / **02#23** the card-screen headline and
+  disclosure, **02#27** / **02#28** / **02#29** / **02#31** the stamp-grid shape,
+  disc sizing and seal count, **02#45** the profile accordion, **02#50** the
+  terms-step preview, **02#64** the offer landing's four restatements,
+  **02#68** the error-boundary shell.
+- **02#33**'s counter mode specifically: there is no web API for screen
+  brightness, and a full-bleed QR presentation layer is a design decision.
+
+## Bugs found that the audit did not report
+
+1. **`HomeCardTile` hid the unavailable state.** A paused card that also had a
+   revealed reward took the `rewardSlot === "revealed"` branch, so
+   `homeCardStatusCopy`'s "This card is unavailable right now" was never
+   rendered — the tile advertised a reward and never said the card could not be
+   used. Fixed in `f5b530ab`.
+2. **`RewardCollectionQr` told members to pull down to refresh** on a page with
+   no pull-to-refresh, and offered its "show a fresh code" control _only_ after
+   an image error — so a member whose single-use code was scanned mid-queue had
+   no way to mint another. Fixed in `57942a0c`.
+3. **`--tab-bar-h` was declared on the authed shell only**, so the three other
+   surfaces that render `CustomerTabBar` could not have used it even if they
+   tried. The token now lives beside the bar. Fixed in `f5b530ab`.
