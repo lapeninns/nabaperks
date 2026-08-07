@@ -126,6 +126,7 @@ jobs:
           deployment_url="$(pnpm exec vercel deploy \
             --prod \
             --skip-domain \
+            --no-wait \
             --archive=tgz \
             --yes \
             --meta githubCommitSha="$EXPECTED_REVISION" \

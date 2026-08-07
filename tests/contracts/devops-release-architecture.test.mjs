@@ -60,6 +60,7 @@ test("production CD attests immutable source, builds remotely, verifies and then
   assert.match(workflow, /pnpm exec vercel deploy/)
   assert.match(workflow, /--prod/)
   assert.match(workflow, /--skip-domain/)
+  assert.match(workflow, /--no-wait/)
   assert.match(workflow, /--archive=tgz/)
   assert.match(workflow, /Verify staged liveness and dependency readiness/)
   assert.match(workflow, /\.checks\.operational == "ok"/)
