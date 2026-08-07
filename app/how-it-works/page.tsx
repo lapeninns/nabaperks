@@ -71,7 +71,7 @@ export default function HowItWorksPage() {
       <LaunchSteps />
       <FeaturesListicle />
       <OutcomeTransformation />
-      <ContrastBand id="promise">
+      <ContrastBand id="promise" size="dense">
         <div className="grid gap-6 md:grid-cols-2 md:gap-10 lg:gap-12">
           <div className="grid content-start gap-3">
             <p className="mono-meta text-paper/70">What we promise</p>

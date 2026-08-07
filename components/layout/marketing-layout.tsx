@@ -7,11 +7,21 @@ import Link from "next/link"
 import { Logo } from "@/components/brand"
 import { BRAND, LEGAL_CONTACT, ROUTES } from "@/lib/marketing/facts"
 
-import { MarketingHeaderNav } from "./marketing-header-nav"
+import { MarketingHeaderNav, MarketingHeaderRail } from "./marketing-header-nav"
+import { MARKETING_GUTTER } from "./section"
 import { SkipLink } from "./skip-link"
 
 const footerLinkClass =
   "focus-ring inline-flex min-h-11 items-center rounded-full px-3 underline-offset-4 hover:bg-accent hover:text-accent-foreground hover:underline"
+
+/**
+ * Legal links are low-frequency and were costing three wrapped rows of 44px
+ * pills at the bottom of every public page. They now set as one wrapped
+ * sentence of 36px targets — still well clear of the WCAG 2.2 target-size
+ * minimum, roughly 90px shorter on a phone.
+ */
+const legalLinkClass =
+  "focus-ring inline-flex min-h-9 items-center rounded-full px-2 underline-offset-4 hover:bg-accent hover:text-accent-foreground hover:underline"
 
 type FooterColumn = {
   heading: string
@@ -74,7 +84,9 @@ export function MarketingLayout({
       <WebVitalsReporter />
       <SkipLink />
       <header className="sticky top-0 z-40 border-b-2 border-ink bg-card">
-        <div className="mx-auto flex w-full max-w-marketing-chrome items-center justify-between gap-3 px-4 py-3 sm:px-6">
+        <div
+          className={`mx-auto flex w-full max-w-marketing-chrome items-center justify-between gap-3 py-3 ${MARKETING_GUTTER}`}
+        >
           {/* Linked on every surface (default) so auth funnel pages keep the
               "Nabaperks home" escape hatch the a11y contract requires. */}
           <Logo
@@ -83,6 +95,10 @@ export function MarketingLayout({
           />
           {focused ? null : <MarketingHeaderNav />}
         </div>
+        {/* Below `md:` the header bar has room for the logo and one key only,
+            so the rest of the nav rides a second scrollable row rather than
+            being exiled to a footer that sits several viewports down. */}
+        {focused ? null : <MarketingHeaderRail />}
       </header>
       <main id="main" tabIndex={-1}>
         {children}
@@ -91,15 +107,21 @@ export function MarketingLayout({
         {focused ? (
           // Focused (auth funnel) keeps the original single-row footer —
           // markup-identical so the blessed auth visual baselines stay stable.
-          <div className="mx-auto flex w-full max-w-marketing-chrome flex-col items-center gap-3 px-6 py-6 text-sm text-muted-foreground sm:flex-row sm:justify-between">
+          <div
+            className={`mx-auto flex w-full max-w-marketing-chrome flex-col items-center gap-3 py-6 text-sm text-muted-foreground sm:flex-row sm:justify-between ${MARKETING_GUTTER}`}
+          >
             <FooterIdentity />
             <FooterLegalNav />
           </div>
         ) : (
-          <div className="mx-auto w-full max-w-marketing-chrome px-6 py-6 text-sm text-muted-foreground sm:py-8">
+          <div
+            className={`mx-auto w-full max-w-marketing-chrome py-6 text-sm text-muted-foreground sm:py-8 ${MARKETING_GUTTER}`}
+          >
+            {/* Four across from `sm:` — the old `lg:` threshold left tablets
+                rendering the phone's two-row stack for no reason. */}
             <nav
               aria-label="Site links"
-              className="grid grid-cols-2 gap-x-3 gap-y-5 pb-6 sm:gap-6 lg:grid-cols-4"
+              className="grid grid-cols-2 gap-x-3 gap-y-5 pb-6 sm:grid-cols-4 sm:gap-6"
             >
               {FOOTER_COLUMNS.map((column) => (
                 <div key={column.heading} className="grid content-start gap-1">
@@ -155,24 +177,44 @@ function FooterIdentity({ withMotto = false }: { withMotto?: boolean }) {
   )
 }
 
+/**
+ * One wrapped sentence rather than five 44px pills — see `legalLinkClass`.
+ * The hrefs stay literal in the markup: `tests/contracts/legal-pack-code-alignment`
+ * greps this file for `href="/cookies"` and friends.
+ */
 function FooterLegalNav() {
   return (
-    <nav aria-label="Legal links" className="flex flex-wrap gap-2">
-      <Link className={footerLinkClass} href="/terms">
+    <nav
+      aria-label="Legal links"
+      className="flex flex-wrap items-center justify-center gap-x-0.5 gap-y-1 sm:justify-start"
+    >
+      <Link className={legalLinkClass} href="/terms">
         Terms
       </Link>
-      <Link className={footerLinkClass} href="/privacy">
+      <LegalSeparator />
+      <Link className={legalLinkClass} href="/privacy">
         Privacy
       </Link>
-      <Link className={footerLinkClass} href="/cookies">
+      <LegalSeparator />
+      <Link className={legalLinkClass} href="/cookies">
         Cookies
       </Link>
-      <Link className={footerLinkClass} href="/merchant-terms">
+      <LegalSeparator />
+      <Link className={legalLinkClass} href="/merchant-terms">
         Merchant terms
       </Link>
-      <Link className={footerLinkClass} href="/data-processing">
+      <LegalSeparator />
+      <Link className={legalLinkClass} href="/data-processing">
         Data processing
       </Link>
     </nav>
+  )
+}
+
+function LegalSeparator() {
+  return (
+    <span aria-hidden="true" className="text-border">
+      ·
+    </span>
   )
 }

@@ -1,6 +1,8 @@
 import type { ReactNode } from "react"
 
+import { MARKETING_ANCHOR_OFFSET } from "@/components/layout"
 import type { PubGuideSection } from "@/lib/marketing/facts"
+import { cn } from "@/lib/utils"
 
 /**
  * One numbered band of the pub buyer's guide — the hub's section primitive.
@@ -22,7 +24,10 @@ export function GuideSection({
   children?: ReactNode
 }) {
   return (
-    <section id={section.id} className="grid scroll-mt-28 gap-4">
+    <section
+      id={section.id}
+      className={cn("grid gap-4", MARKETING_ANCHOR_OFFSET)}
+    >
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <p className="mono-meta text-primary">
           Nº{String(index + 1).padStart(2, "0")}

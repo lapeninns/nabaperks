@@ -3,6 +3,8 @@ import type { ComponentPropsWithoutRef, ReactNode } from "react"
 import { WetInkRise } from "@/components/motion"
 import { cn } from "@/lib/utils"
 
+import { MARKETING_ANCHOR_OFFSET, MARKETING_GUTTER } from "./section"
+
 /**
  * ContrastBand — full-bleed inverted ink/paper band (the marquee's palette, so
  * it stays legible in either theme) used for the "how it works" and anti-fraud
@@ -18,11 +20,16 @@ import { cn } from "@/lib/utils"
  */
 type BandSize = "default" | "dense" | "compact"
 
+/**
+ * Deliberately the same numbers as `Section`'s scale, one step up: the band is
+ * a peer section that happens to be inked, not a chapter break. It used to pad
+ * 1.5-2x its neighbours, which is how two ink bands cost ~140px of pure
+ * padding.
+ */
 const innerPad: Record<BandSize, string> = {
-  default: "py-9 sm:py-12",
-  /** Mobile-dense: compact phone rhythm, default desktop rhythm. */
-  dense: "py-6 sm:py-12",
-  compact: "py-7 sm:py-9",
+  default: "py-6 sm:py-12",
+  dense: "py-4 sm:py-8",
+  compact: "py-3 sm:py-5",
 }
 
 type ContrastBandProps = {
@@ -41,7 +48,8 @@ export function ContrastBand({
   ...props
 }: ContrastBandProps) {
   const innerClassName = cn(
-    "mx-auto w-full max-w-marketing px-6",
+    "mx-auto w-full max-w-marketing",
+    MARKETING_GUTTER,
     innerPad[size],
     containerClassName
   )
@@ -49,7 +57,8 @@ export function ContrastBand({
   return (
     <section
       className={cn(
-        "scroll-mt-24 border-y-2 border-ink bg-ink text-paper",
+        MARKETING_ANCHOR_OFFSET,
+        "border-y-2 border-ink bg-ink text-paper",
         className
       )}
       {...props}
