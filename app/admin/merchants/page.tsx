@@ -323,9 +323,12 @@ function QrStateForm({
       >
         <Input name="reason" required minLength={4} />
       </AdminField>
+      {/* Disabling is reversible (the helper says so), so it takes the
+          reversible weight. The irreversible control on this record is
+          Regenerate, which owns `destructive` below. */}
       <SubmitButton
         pendingLabel={nextActive ? "Enabling…" : "Disabling…"}
-        variant={nextActive ? "secondary" : "destructive"}
+        variant={nextActive ? "secondary" : "outline"}
       >
         <Icon icon={nextActive ? ToggleOnIcon : Cancel01Icon} size={16} />
         {nextActive ? "Enable QR" : "Disable QR"}
@@ -345,7 +348,7 @@ function RegenerateQrForm({ qrCodeId }: { readonly qrCodeId: string }) {
         <Input name="reason" required minLength={4} />
       </AdminField>
       <AdminConfirmCheck label="I understand the current printed poster QR will stop working." />
-      <SubmitButton pendingLabel="Regenerating…" variant="secondary">
+      <SubmitButton pendingLabel="Regenerating…" variant="destructive">
         <Icon icon={RefreshIcon} size={16} />
         Regenerate QR
       </SubmitButton>

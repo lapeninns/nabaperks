@@ -80,13 +80,17 @@ export function AdminField({
  */
 export function AdminConfirmCheck({ label }: { label: ReactNode }) {
   return (
-    <label className="flex items-start gap-2 text-sm font-normal">
+    // The irreversibility gate reads as a gate: a 2px-ink well, a 20px box on
+    // the 44px tap row, and foreground (not muted) consequence copy. A 16px
+    // native tick set in muted grey was the quietest element in a destructive
+    // form.
+    <label className="focus-ring-within flex min-h-11 items-start gap-3 rounded-lg border-2 border-ink bg-destructive/8 px-3 py-2.5 text-sm font-normal">
       <input
         type="checkbox"
         required
-        className="focus-ring mt-0.5 size-4 shrink-0 accent-primary"
+        className="mt-0.5 size-5 shrink-0 accent-destructive"
       />
-      <span className="leading-5 text-muted-foreground">{label}</span>
+      <span className="leading-5 font-semibold text-foreground">{label}</span>
     </label>
   )
 }
@@ -124,8 +128,13 @@ export function StatusPill({
         // rule forces uppercase and defeats any layered utility.
         "border-ink",
         tone === "good" && "bg-reward/15 text-foreground",
-        tone === "warning" && "bg-primary/15 text-foreground",
-        tone === "danger" && "bg-destructive/15 text-foreground",
+        // Warning takes the sun wash, not `primary`. `--primary` (#cf330a) and
+        // `--destructive` (#ea5f46) are both red-orange, so at a 15% wash a
+        // warning flag and a danger flag were separable only by their glyph —
+        // unusable for scanning a fraud queue by severity. Sun gives warning
+        // its own hue; danger keeps red and gains weight via a heavier wash.
+        tone === "warning" && "bg-seal/30 text-foreground",
+        tone === "danger" && "bg-destructive/25 text-foreground",
         tone === "neutral" && "bg-secondary text-secondary-foreground"
       )}
     >
@@ -186,10 +195,12 @@ export function maskAdminContact(value?: string | null) {
  * at rest (db phone plaintext retirement); phone-identity customers are
  * disambiguated by their stored last4.
  */
-export function maskAdminCustomer(customer?: {
-  email?: string | null
-  phone_last4?: string | null
-} | null) {
+export function maskAdminCustomer(
+  customer?: {
+    email?: string | null
+    phone_last4?: string | null
+  } | null
+) {
   if (customer?.email) return maskAdminContact(customer.email)
   if (customer?.phone_last4) return `Phone ending ${customer.phone_last4}`
   return "Customer"

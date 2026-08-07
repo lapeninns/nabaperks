@@ -142,11 +142,7 @@ function CustomerMobileCard({
       {isSelected ? (
         <div className="grid gap-2 border-t-2 border-ink/15 px-3 py-2.5">
           {row.badge.redeemable ? (
-            <Button
-              asChild
-              size="default"
-              className="w-full gap-1.5 mono-meta"
-            >
+            <Button asChild size="default" className="mono-meta w-full gap-1.5">
               <Link href="/app/scan">
                 <Icon icon={ScanIcon} size={14} />
                 Open scanner
@@ -210,7 +206,7 @@ function buildColumns(
         const isHighlighted = row.id === highlightedMembershipId
         return (
           <span
-            className="flex min-w-0 items-center gap-2.5 outline-none"
+            className="focus-ring flex min-w-0 items-center gap-2.5 rounded-sm"
             // Deep-link target: the mount effect scrolls + focuses this so an
             // arriving member is brought into view on the loaded page. The
             // shared DataTable owns the <tr>, so the marker lives on the cell.
@@ -297,7 +293,7 @@ function buildColumns(
               <Button
                 asChild
                 size="sm"
-                className="gap-1.5 mono-id [@media(pointer:coarse)]:min-h-11"
+                className="mono-id gap-1.5 [@media(pointer:coarse)]:min-h-11"
               >
                 <Link
                   href="/app/scan"
@@ -313,7 +309,7 @@ function buildColumns(
               asChild
               size="sm"
               variant="secondary"
-              className="gap-1.5 mono-id [@media(pointer:coarse)]:min-h-11"
+              className="mono-id gap-1.5 [@media(pointer:coarse)]:min-h-11"
             >
               <Link
                 href={`/app/customers/send-reward?member=${encodeURIComponent(row.id)}&label=${encodeURIComponent(row.identifier)}`}
@@ -561,11 +557,7 @@ export function CustomerReadbackTable({
             {selected.identifier} has a reward ready. Ask them to show their
             reward QR.
           </span>
-          <Button
-            asChild
-            size="sm"
-            className="gap-1.5 mono-meta"
-          >
+          <Button asChild size="sm" className="mono-meta gap-1.5">
             <Link href="/app/scan">
               <Icon icon={ScanIcon} size={14} />
               Open scanner

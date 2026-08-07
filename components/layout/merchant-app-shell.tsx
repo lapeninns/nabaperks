@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/sidebar"
 import { CONSOLE_SIDEBAR_STYLE, ConsoleSidebarNav } from "./console-sidebar-nav"
 import { merchantAccountItems, merchantNavItems } from "./console-nav"
+import { SkipLink } from "./skip-link"
 
 export function MerchantAppShell({
   children,
@@ -60,6 +61,7 @@ export function MerchantAppShell({
   if (variant === "setup") {
     return (
       <div className="min-h-svh bg-background [--setup-header-h:3.5rem] sm:[--setup-header-h:4rem]">
+        <SkipLink />
         <header className="fixed inset-x-0 top-0 z-40 border-b-2 border-ink bg-card">
           <div className="mx-auto flex h-(--setup-header-h) w-full max-w-merchant min-w-0 items-center justify-between gap-x-3 overflow-x-clip px-4 sm:px-6">
             <Logo
@@ -100,7 +102,11 @@ export function MerchantAppShell({
             </div>
           </div>
         </header>
-        <main className="w-full min-w-0 overflow-x-clip px-4 pt-[calc(var(--setup-header-h)+0.75rem)] pb-16 sm:px-6 sm:pt-[calc(var(--setup-header-h)+2rem)] sm:pb-10">
+        <main
+          id="main"
+          tabIndex={-1}
+          className="w-full min-w-0 overflow-x-clip px-4 pt-[calc(var(--setup-header-h)+0.75rem)] pb-16 sm:px-6 sm:pt-[calc(var(--setup-header-h)+2rem)] sm:pb-10"
+        >
           <div className="mx-auto w-full max-w-merchant min-w-0">
             {children}
           </div>
@@ -115,6 +121,7 @@ export function MerchantAppShell({
       style={CONSOLE_SIDEBAR_STYLE}
       defaultOpen={defaultSidebarOpen}
     >
+      <SkipLink />
       <Sidebar collapsible="icon">
         <SidebarHeader className="border-b-2 border-ink p-4">
           <div
@@ -154,7 +161,7 @@ export function MerchantAppShell({
           </form>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset className="min-w-0">
+      <SidebarInset id="main" tabIndex={-1} className="min-w-0">
         {hideMobileChrome ? null : (
           <header className="sticky top-0 z-30 flex min-h-14 items-center gap-3 border-b-2 border-ink bg-card px-4 py-2 pt-[calc(0.5rem_+_env(safe-area-inset-top))] md:hidden">
             <SidebarTrigger

@@ -15,4 +15,5 @@ export {
 } from "./console-nav"
 export { ConsoleSidebarNav } from "./console-sidebar-nav"
 export { Section } from "./section"
+export { SkipLink } from "./skip-link"
 export { ContrastBand } from "./contrast-band"

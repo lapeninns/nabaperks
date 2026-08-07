@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/sidebar"
 import { CONSOLE_SIDEBAR_STYLE, ConsoleSidebarNav } from "./console-sidebar-nav"
 import { adminNavItems } from "./console-nav"
+import { SkipLink } from "./skip-link"
 
 const supportStatusItems = [
   "Service-role readbacks",
@@ -37,9 +38,26 @@ export function AdminShell({
       className="min-h-svh bg-background"
       style={CONSOLE_SIDEBAR_STYLE}
     >
-      <Sidebar collapsible="offcanvas">
+      <SkipLink />
+      {/* `icon`, not `offcanvas`: offcanvas has no desktop affordance, so a
+          1280px laptop was permanently pinned to ~960px of content while the
+          DataTable switches to table mode at exactly that width. Mirrors the
+          merchant console's header trigger. */}
+      <Sidebar collapsible="icon">
         <SidebarHeader className="border-b-2 border-ink p-4">
-          <Logo href="/admin" label="Nabaperks Admin" />
+          <div
+            data-sidebar-header-row
+            className="flex items-center justify-between gap-2"
+          >
+            <span data-collapse-hide className="inline-flex min-w-0">
+              <Logo href="/admin" label="Nabaperks Admin" />
+            </span>
+            <SidebarTrigger
+              className="hidden shrink-0 md:flex"
+              aria-label="Toggle navigation"
+              title="Toggle navigation"
+            />
+          </div>
         </SidebarHeader>
         <SidebarContent className="px-2 py-3">
           <ConsoleSidebarNav
@@ -79,7 +97,7 @@ export function AdminShell({
           </span>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset className="min-w-0">
+      <SidebarInset id="main" tabIndex={-1} className="min-w-0">
         <header className="sticky top-0 z-30 flex min-h-14 items-center gap-3 border-b-2 border-ink bg-card px-4 py-2 md:hidden">
           <SidebarTrigger className="size-11 shrink-0" />
           <Logo
@@ -100,7 +118,7 @@ export function AdminShell({
           </div>
         ) : null}
         <div className="w-full px-4 py-8 sm:px-6">
-          <div className="mx-auto w-full max-w-7xl">{children}</div>
+          <div className="mx-auto w-full max-w-merchant">{children}</div>
         </div>
       </SidebarInset>
     </SidebarProvider>

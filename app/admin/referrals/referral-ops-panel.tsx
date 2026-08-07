@@ -6,6 +6,7 @@ import {
   SourceLabel,
   StatusPill,
   formatAdminAuditDate,
+  maskAdminContact,
 } from "@/components/admin/support"
 import { EmptyState, SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
@@ -62,9 +63,23 @@ export function ReferralOpsPanel({
             header: "Referrer → referred",
             cell: (row) => (
               <div className="grid min-w-40 gap-1 text-xs leading-5">
-                <span className="text-foreground">{row.referrerEmail ?? "—"}</span>
+                {/* Masked like every other admin surface: raw customer
+                    email must not render in the console. */}
+                <span
+                  className="text-foreground"
+                  title={
+                    row.referrerEmail ? "Referrer contact (masked)" : undefined
+                  }
+                >
+                  {row.referrerEmail
+                    ? maskAdminContact(row.referrerEmail)
+                    : "—"}
+                </span>
                 <span className="text-muted-foreground">
-                  → {row.referredEmail ?? "—"}
+                  →{" "}
+                  {row.referredEmail
+                    ? maskAdminContact(row.referredEmail)
+                    : "—"}
                 </span>
               </div>
             ),
@@ -74,7 +89,9 @@ export function ReferralOpsPanel({
             header: "State",
             cell: (row) => (
               <div className="grid gap-1">
-                <StatusPill tone={statusTone(row.status)}>{row.status}</StatusPill>
+                <StatusPill tone={statusTone(row.status)}>
+                  {row.status}
+                </StatusPill>
                 {row.holdReason ? (
                   <span className="text-xs text-muted-foreground">
                     {row.holdReason.replaceAll("_", " ")}
@@ -96,7 +113,9 @@ export function ReferralOpsPanel({
                 </span>
                 <span>
                   qualified{" "}
-                  {row.qualifiedAt ? formatAdminAuditDate(row.qualifiedAt) : "—"}
+                  {row.qualifiedAt
+                    ? formatAdminAuditDate(row.qualifiedAt)
+                    : "—"}
                 </span>
                 <span>
                   awarded{" "}
@@ -121,11 +140,23 @@ export function ReferralOpsPanel({
           <AdminRecordCard
             title={row.venueName ?? "Referral"}
             status={
-              <StatusPill tone={statusTone(row.status)}>{row.status}</StatusPill>
+              <StatusPill tone={statusTone(row.status)}>
+                {row.status}
+              </StatusPill>
             }
             fields={[
-              { label: "Referrer", value: row.referrerEmail ?? "—" },
-              { label: "Referred", value: row.referredEmail ?? "—" },
+              {
+                label: "Referrer",
+                value: row.referrerEmail
+                  ? maskAdminContact(row.referrerEmail)
+                  : "—",
+              },
+              {
+                label: "Referred",
+                value: row.referredEmail
+                  ? maskAdminContact(row.referredEmail)
+                  : "—",
+              },
               { label: "Hold", value: row.holdReason ?? "—" },
               {
                 label: "Retries / flags",
