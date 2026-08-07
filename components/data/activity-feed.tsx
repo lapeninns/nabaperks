@@ -32,16 +32,26 @@ export type ActivityFeedItem = {
    * one event reads the same on every surface. Takes precedence over `tone`.
    */
   category?: ActivityCategory
+  /**
+   * Optional row-level action. An SLA feed whose overdue item cannot be acted
+   * on forces the operator to scroll back to another panel and re-find the
+   * subject by hand, so a feed row can now carry its own control (typically a
+   * `Button variant="link" size="xs"` or a small link).
+   */
+  action?: ReactNode
 }
 
 export function ActivityFeed({
   items,
   emptyState,
+  density = "comfortable",
   "aria-label": ariaLabel,
   className,
 }: {
   items: ActivityFeedItem[]
   emptyState?: ReactNode
+  /** `compact` is the console density (p-3/gap-1) for long admin feeds. */
+  density?: "comfortable" | "compact"
   /** Accessible name for the feed list (parity with DataTable's caption). */
   "aria-label"?: string
   className?: string
@@ -61,9 +71,14 @@ export function ActivityFeed({
       {items.map((item) => (
         <li
           key={item.id}
-          className="grid gap-2 p-4 sm:grid-cols-[1fr_auto] sm:items-start"
+          className={cn(
+            "grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2",
+            density === "compact" ? "p-3" : "p-4"
+          )}
         >
-          <div className="grid gap-1">
+          <div
+            className={cn("grid", density === "compact" ? "gap-0.5" : "gap-1")}
+          >
             <p className="flex items-center gap-2 font-bold">
               {item.category ? (
                 <Icon
@@ -93,14 +108,20 @@ export function ActivityFeed({
               </div>
             ) : null}
           </div>
-          {item.timestamp ? (
-            <time
-              dateTime={item.timestamp}
-              className="numeric-tabular text-sm text-muted-foreground"
-            >
-              {formatActivityDate(item.timestamp)}
-            </time>
-          ) : null}
+          {/* The timestamp stays right-aligned at every width — it used to
+              drop beneath the content below `sm`, so a dated feed lost its
+              date column exactly where space was tightest. */}
+          <div className="grid justify-items-end gap-1">
+            {item.timestamp ? (
+              <time
+                dateTime={item.timestamp}
+                className="numeric-tabular text-sm text-muted-foreground"
+              >
+                {formatActivityDate(item.timestamp)}
+              </time>
+            ) : null}
+            {item.action}
+          </div>
         </li>
       ))}
     </ol>

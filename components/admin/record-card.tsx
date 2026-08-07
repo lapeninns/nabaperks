@@ -65,12 +65,7 @@ export function AdminRecordCard({
   className,
 }: AdminRecordCardProps) {
   return (
-    <article
-      className={cn(
-        "surface-card @container grid min-w-0 gap-3 p-4",
-        className
-      )}
-    >
+    <article className={cn("surface-card grid min-w-0 gap-3 p-4", className)}>
       <div className="grid min-w-0 gap-1">
         {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
         <p className="min-w-0 font-bold [overflow-wrap:anywhere] break-words">
@@ -81,7 +76,10 @@ export function AdminRecordCard({
         ) : null}
       </div>
 
-      <dl className="grid min-w-0 gap-2.5">
+      {/* The container is the field list itself, so `@sm` below asks how wide
+          THIS CARD is, not how wide the window is — the same card renders in a
+          full-width panel and in a two-column grid. */}
+      <dl className="@container grid min-w-0 gap-2.5">
         {fields.map((field, index) => (
           <div
             key={`${index}-${field.label}`}

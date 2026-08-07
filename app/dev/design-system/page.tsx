@@ -891,8 +891,14 @@ export default function DesignSystemPage() {
       >
         <div className="surface-card-flat grid gap-3 p-5">
           <Eyebrow>Responsive DataTable · admin xl cards</Eyebrow>
+          {/* The caption said "admin xl cards" while the demo passed no
+              cardBreakpoint at all, so the one live reference for the admin
+              table pattern demonstrated the `sm` default — a developer copying
+              from the catalogue shipped the wrong breakpoint. */}
           <DataTable
             caption="Demo console membership readback"
+            cardBreakpoint="xl"
+            mobilePageSize={10}
             rows={CONSOLE_ROWS}
             getRowKey={(row) => row.id}
             emptyState={

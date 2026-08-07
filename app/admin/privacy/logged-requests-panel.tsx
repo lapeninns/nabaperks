@@ -1,4 +1,8 @@
+import Link from "next/link"
 import { Shield01Icon } from "@hugeicons/core-free-icons"
+
+import { Button } from "@/components/ui/button"
+import { buildLookupHref } from "@/lib/admin/lookup-query"
 
 import { AdminLookupErrorState } from "@/components/admin/lookup-controls"
 import {
@@ -38,6 +42,7 @@ export function LoggedRequestsPanel({
       />
       {requests ? (
         <ActivityFeed
+          density="compact"
           aria-label="Logged data requests"
           items={requests.map((request) => toFeedItem(request))}
           emptyState={
@@ -90,6 +95,18 @@ function toFeedItem(request: AdminDataRequestActivityRow) {
         </time>
       </span>
     ),
+    // An SLA row that cannot be acted on made the operator scroll back to the
+    // request workflow and re-find the subject by hand. Open requests now
+    // deep-link into the workflow view, pre-filtered by venue.
+    action: pending ? (
+      <Button asChild variant="link" size="xs">
+        <Link
+          href={buildLookupHref("/admin/privacy", { venue: request.merchant })}
+        >
+          Open subject
+        </Link>
+      </Button>
+    ) : undefined,
   }
 }
 
