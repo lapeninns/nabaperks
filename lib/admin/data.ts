@@ -10,10 +10,7 @@ import {
   type AdminPageMeta,
 } from "./lookup-query"
 
-export {
-  getAdminBillingRecords,
-  type AdminBillingRecord,
-} from "./billing-data"
+export { getAdminBillingRecords, type AdminBillingRecord } from "./billing-data"
 export { getAdminPilotMerchants, getAdminPilotReport } from "./pilot-report"
 
 /**
@@ -42,38 +39,72 @@ export async function getAdminOverview() {
   return { merchants, customers, billingIssues, recentAudits }
 }
 
-export async function getAdminMerchants() {
+/**
+ * Merchant accounts, searchable and paged like every other admin list. The
+ * previous hard `.limit(100)` returned the newest 100 rows with no filter, no
+ * total and no signpost, so past 100 merchants "is this venue on the
+ * platform?" was silently answered wrong.
+ */
+export async function getAdminMerchants(lookup: AdminLookupQuery = {}) {
   const supabase = await createAdminServiceRoleClient()
-  const { data, error } = await supabase
+  const page = lookup.page ?? 1
+  const window = lookupRange(page)
+
+  let query = supabase
     .from("merchants")
     .select(
-      "id, business_name, business_slug, email, status, created_at, billing_customers(status, plan, current_period_end)"
+      "id, business_name, business_slug, email, status, created_at, billing_customers(status, plan, current_period_end)",
+      { count: "exact" }
     )
+
+  if (lookup.venue) {
+    query = query.ilike("business_name", containsPattern(lookup.venue))
+  }
+
+  const { data, error, count } = await query
     .order("created_at", { ascending: false })
-    .limit(100)
+    .range(window.from, window.to)
 
   if (error) {
     throw new Error(`Unable to load merchants: ${error.message}`)
   }
 
-  return data ?? []
+  return { rows: data ?? [], meta: pageMeta(count ?? 0, page) }
 }
 
-export async function getAdminQrCodes() {
+/**
+ * QR records, paged and venue-filterable. `merchants!inner` is safe here:
+ * `qr_codes.merchant_id` is NOT NULL, so the join drops no rows — it only
+ * lets the venue fragment filter the parent.
+ */
+export async function getAdminQrCodes(lookup: AdminLookupQuery = {}) {
   const supabase = await createAdminServiceRoleClient()
-  const { data, error } = await supabase
+  const page = lookup.page ?? 1
+  const window = lookupRange(page)
+
+  let query = supabase
     .from("qr_codes")
     .select(
-      "id, qr_id, is_active, destination_type, created_at, merchants(business_name)"
+      "id, qr_id, is_active, destination_type, created_at, merchants!inner(business_name)",
+      { count: "exact" }
     )
+
+  if (lookup.venue) {
+    query = query.ilike(
+      "merchants.business_name",
+      containsPattern(lookup.venue)
+    )
+  }
+
+  const { data, error, count } = await query
     .order("created_at", { ascending: false })
-    .limit(100)
+    .range(window.from, window.to)
 
   if (error) {
     throw new Error(`Unable to load QR codes: ${error.message}`)
   }
 
-  return data ?? []
+  return { rows: data ?? [], meta: pageMeta(count ?? 0, page) }
 }
 
 export async function getAdminCustomers(lookup: AdminLookupQuery = {}) {
@@ -313,9 +344,12 @@ export async function getAdminReferralOps(): Promise<AdminReferralOpsRow[]> {
       venueName: typeof r.venue_name === "string" ? r.venue_name : null,
       status: String(r.status ?? ""),
       holdReason: typeof r.hold_reason === "string" ? r.hold_reason : null,
-      referrerEmail: typeof r.referrer_email === "string" ? r.referrer_email : null,
-      referredEmail: typeof r.referred_email === "string" ? r.referred_email : null,
-      attributedAt: typeof r.attributed_at === "string" ? r.attributed_at : null,
+      referrerEmail:
+        typeof r.referrer_email === "string" ? r.referrer_email : null,
+      referredEmail:
+        typeof r.referred_email === "string" ? r.referred_email : null,
+      attributedAt:
+        typeof r.attributed_at === "string" ? r.attributed_at : null,
       qualifiedAt: typeof r.qualified_at === "string" ? r.qualified_at : null,
       bonusAwardedAt:
         typeof r.bonus_awarded_at === "string" ? r.bonus_awarded_at : null,

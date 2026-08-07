@@ -4,6 +4,7 @@ import { Search01Icon } from "@hugeicons/core-free-icons"
 
 import { AdminField } from "@/components/admin/support"
 import { Icon } from "@/components/brand"
+import { SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,19 +23,27 @@ export function AdminLookupControls({
   basePath,
   lookup,
   label = "Member lookup",
+  fields = "venue-and-contact",
 }: {
   readonly basePath: string
   readonly lookup: AdminLookupState
   readonly label?: string
+  /** Lists without a customer dimension (merchants) search by venue only. */
+  readonly fields?: "venue-and-contact" | "venue"
 }) {
-  const active = Boolean(lookup.venue || lookup.contact)
+  const withContact = fields === "venue-and-contact"
+  const active = Boolean(lookup.venue || (withContact && lookup.contact))
 
   return (
     <Form
       action={basePath}
       role="search"
       aria-label={label}
-      className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end"
+      className={
+        withContact
+          ? "grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end"
+          : "grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
+      }
     >
       <AdminField label="Venue">
         <Input
@@ -45,25 +54,36 @@ export function AdminLookupControls({
           autoComplete="off"
         />
       </AdminField>
-      <AdminField label="Member contact">
-        <Input
-          type="search"
-          name="contact"
-          defaultValue={lookup.contact ?? ""}
-          placeholder="Email or phone fragment"
-          autoComplete="off"
-        />
-      </AdminField>
+      {withContact ? (
+        <AdminField label="Member contact">
+          <Input
+            type="search"
+            name="contact"
+            defaultValue={lookup.contact ?? ""}
+            placeholder="Email or phone fragment"
+            autoComplete="off"
+          />
+        </AdminField>
+      ) : null}
       <div className="flex flex-wrap gap-2">
-        <Button type="submit">
+        {/* A service-role readback can take a second; without a pending
+            affordance the operator re-submits. */}
+        <SubmitButton pendingLabel="Searching…">
           <Icon icon={Search01Icon} size={16} />
           Search
-        </Button>
+        </SubmitButton>
+        {/* Clear always occupies its slot — it used to appear and disappear
+            with the filter, so the button row width changed as the operator
+            searched. */}
         {active ? (
           <Button asChild variant="ghost">
             <Link href={basePath}>Clear</Link>
           </Button>
-        ) : null}
+        ) : (
+          <Button variant="ghost" disabled>
+            Clear
+          </Button>
+        )}
       </div>
     </Form>
   )

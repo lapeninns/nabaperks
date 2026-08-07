@@ -1,5 +1,4 @@
-import Link from "next/link"
-
+import { AdminCrossLinks } from "@/components/admin/cross-links"
 import {
   AdminPanel,
   SourceLabel,
@@ -26,20 +25,19 @@ function BillingCrossLinks({
   readonly merchantName: string
 }) {
   return (
-    <span className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
-      <Link
-        className="focus-ring rounded-sm font-semibold text-primary underline underline-offset-2 hover:text-[color-mix(in_srgb,var(--primary)_80%,var(--w-ink))]"
-        href="/admin/merchants"
-      >
-        Account
-      </Link>
-      <Link
-        className="focus-ring rounded-sm font-semibold text-primary underline underline-offset-2 hover:text-[color-mix(in_srgb,var(--primary)_80%,var(--w-ink))]"
-        href={buildLookupHref("/admin/customers", { venue: merchantName })}
-      >
-        Members
-      </Link>
-    </span>
+    <AdminCrossLinks
+      label={`${merchantName} related records`}
+      links={[
+        {
+          label: "Account",
+          href: buildLookupHref("/admin/merchants", { venue: merchantName }),
+        },
+        {
+          label: "Members",
+          href: buildLookupHref("/admin/customers", { venue: merchantName }),
+        },
+      ]}
+    />
   )
 }
 
