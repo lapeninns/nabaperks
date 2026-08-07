@@ -35,24 +35,27 @@ export function MerchantDashboardHeaderActions({
     )
   }
 
-  // Scanning a reward is the reach-for counter action. `flex-col-reverse`
-  // keeps it above the secondary actions when buttons stack on a phone, while
-  // the desktop row restores the usual primary-rightmost order.
+  // Phones get nothing here: three stacked full-width buttons cost 148px above
+  // the first number, and all three destinations are one tap away in the
+  // console chrome — Scan sits in the bottom tab bar, Offers and Announce in
+  // the drawer. From `sm` up the row is horizontal and costs one line, so the
+  // shortcuts stay. Scan is the counter action, so it keeps the primary ink and
+  // the rightmost (nearest-thumb) slot.
   return (
-    <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row">
-      <Button asChild variant="ghost" className="w-full sm:w-auto">
+    <div className="hidden gap-2 sm:flex sm:w-auto">
+      <Button asChild variant="ghost">
         <Link href="/app/offers" prefetch={false}>
           <Icon icon={DiscountTag01Icon} size={16} />
           Offers
         </Link>
       </Button>
-      <Button asChild variant="secondary" className="w-full sm:w-auto">
+      <Button asChild variant="secondary">
         <Link href="/app/announcements" prefetch={false}>
           <Icon icon={Megaphone01Icon} size={16} />
           Announce
         </Link>
       </Button>
-      <Button asChild className="w-full sm:w-auto">
+      <Button asChild>
         <Link href="/app/scan" prefetch={false}>
           <Icon icon={Camera01Icon} size={16} />
           Scan code

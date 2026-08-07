@@ -4,6 +4,7 @@ import { Suspense } from "react"
 
 import { PageTitle } from "@/components/brand"
 import { MerchantDashboardHeaderActions } from "@/components/merchant/dashboard-header-actions"
+import { MerchantBillingNotice } from "@/components/merchant/billing-status"
 import { DashboardQrCard } from "@/components/merchant/dashboard-qr-card"
 import {
   MerchantCompactActivityStream,
@@ -19,6 +20,7 @@ import {
   capturePostHogEvent,
   type ProductEventInput,
 } from "@/lib/analytics/events"
+import { getMerchantBilling } from "@/lib/merchant/billing"
 import { getMerchantLaunchReadiness } from "@/lib/merchant/launch-readiness"
 import { getMerchantOnboardingStatus } from "@/lib/merchant/onboarding"
 import { timeServerLoader } from "@/lib/perf/server-timing"
@@ -40,6 +42,15 @@ export default async function MerchantAppPage() {
   // Reused from the layout's setup reminder within the same request (cache()),
   // so this adds no query — it just lets the header CTA match the venue's state.
   const readiness = await getMerchantLaunchReadiness()
+  // Same trick for billing: readiness already resolved `getMerchantBilling`
+  // (request-memoized), so this is a cache hit, not a second query. Reading it
+  // here rather than inside the metrics stream keeps the most consequential
+  // message on the page out of a Suspense boundary — it used to be the first
+  // child of `MerchantDashboardStream`, whose skeleton reserves no space for
+  // it, so a past-due banner appeared late and pushed the page down.
+  const billingResult = await getMerchantBilling(merchant.id)
+  const billingStatus =
+    (billingResult.ok ? billingResult.billing?.status : null) ?? merchant.status
 
   scheduleDashboardViewed({
     eventName: "dashboard_viewed",
@@ -56,6 +67,8 @@ export default async function MerchantAppPage() {
         description="A quick read on how your loyalty card is doing: members, repeat visits, and rewards."
         actions={<MerchantDashboardHeaderActions readiness={readiness} />}
       />
+
+      <MerchantBillingNotice status={billingStatus} />
 
       {/* Counter QR sits first: the code a customer scans is the most-reached-for
           action at the till, so it renders one glance (one tap to full screen)

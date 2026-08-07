@@ -40,6 +40,8 @@ export function DashboardQrCardSkeleton() {
       className="grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start sm:gap-6"
     >
       <div className="mx-auto grid w-fit justify-items-center gap-2 sm:mx-0">
+        {/* 9.25rem is the frame, not the code: a 6rem QR inside p-4 + inner p-2
+            + 2px borders. Mirrors DashboardQrCardView exactly. */}
         <Skeleton className="aspect-square size-[9.25rem] rounded-lg" />
         <Skeleton className="h-3 w-32" />
       </div>
@@ -53,7 +55,7 @@ export function DashboardQrCardSkeleton() {
         </div>
         <Skeleton className="h-4 w-full max-w-md" />
         <div className="flex flex-wrap gap-2">
-          <Skeleton className="h-11 w-40" />
+          <Skeleton className="h-11 w-36" />
           <Skeleton className="h-11 w-28" />
           <Skeleton className="h-9 w-32" />
         </div>
@@ -75,14 +77,14 @@ export function MerchantDashboardMetricsSkeleton() {
       role="status"
       aria-label="Loading dashboard metrics"
     >
-      <section className="grid gap-3">
+      <section className="grid gap-3.5">
         <div className="grid gap-3">
           <Skeleton className="h-3 w-24" />
           <Skeleton className="h-6 w-56 max-w-full" />
           <Skeleton className="h-4 w-full max-w-xl" />
         </div>
 
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3.5 md:grid-cols-4">
           {[0, 1, 2, 3].map((tile) => (
             <div
               key={tile}

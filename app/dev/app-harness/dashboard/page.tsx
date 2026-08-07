@@ -155,14 +155,14 @@ export default async function DashboardHarnessPage({
       {showEmptyMembers ? (
         <DashboardMembersEmptyState />
       ) : (
-        <section className="grid gap-3">
+        <section className="grid gap-3.5">
           <SectionHeader
             eyebrow="Last 14 days"
             title="How the week is going"
             description="Deltas compare this week with the seven days before; the lines trace the last fortnight."
           />
 
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3.5 md:grid-cols-4">
             {HARNESS_KPIS.map((kpi, index) => (
               <WetInkRise
                 key={kpi.label}
