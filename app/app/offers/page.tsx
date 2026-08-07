@@ -3,7 +3,13 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { DiscountTag01Icon } from "@hugeicons/core-free-icons"
 
-import { EmptyState, Eyebrow, MonoTag, PageTitle } from "@/components/brand"
+import {
+  EmptyState,
+  Eyebrow,
+  Icon,
+  MonoTag,
+  PageTitle,
+} from "@/components/brand"
 import { Disclosure } from "@/components/merchant/launch/disclosure"
 import { OfferCampaignPanelSkeleton } from "@/components/merchant/loading-skeletons"
 import {
@@ -145,14 +151,19 @@ function OffersEmptyState() {
 
       <section className="grid gap-3" aria-label="What an offer can give">
         <Eyebrow>What an offer can give</Eyebrow>
-        <ul className="grid gap-2 sm:grid-cols-3">
+        {/* Snap-scroll rail of compact icon rows on the phone; three-up grid
+            from sm. Mirrored by the offers harness lane. */}
+        <ul className="flex snap-x [scrollbar-width:none] gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0 [&::-webkit-scrollbar]:hidden">
           {OFFER_BENEFIT_PRESETS.map((preset) => (
             <li
               key={preset.kind}
-              className="grid content-start gap-1.5 rounded-lg border-[1.5px] border-border bg-card p-4"
+              className="grid w-60 shrink-0 snap-start content-start gap-1.5 rounded-lg border-[1.5px] border-border bg-card p-3 sm:w-auto sm:min-w-0 sm:p-4"
             >
-              <span className="text-sm font-semibold text-foreground">
-                {preset.title}
+              <span className="flex items-center gap-2">
+                <Icon icon={preset.icon} size={16} />
+                <span className="text-sm font-semibold text-foreground">
+                  {preset.title}
+                </span>
               </span>
               <span className="text-xs leading-5 text-muted-foreground">
                 {preset.description}

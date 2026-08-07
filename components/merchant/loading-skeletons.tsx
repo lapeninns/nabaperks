@@ -552,14 +552,15 @@ export function RewardScanContentSkeleton() {
 // ─── Offers ────────────────────────────────────────────────────────────────────
 
 /**
- * Mirrors {@link OfferCampaignPanel}: the ink-bordered campaign card (header +
- * status tag, the rules readback, the link row and the manage row) followed by
- * the four-up results tiles, so the swap-in never shifts the manage controls.
+ * Mirrors {@link OfferCampaignPanel}: the ink-bordered campaign card as one
+ * compact header (title block + status tag), the Share/Manage/Results mono-pill
+ * tab strip, and a single content area — the default Share tab's copy-field
+ * well and action row — so the swap-in never shifts the tab strip.
  */
 export function OfferCampaignPanelSkeleton() {
   return (
     <div className="grid gap-5" role="status" aria-label="Loading your offer">
-      <section className="grid gap-5 rounded-lg border-2 border-ink bg-card p-4 shadow-[var(--shadow-hard)] sm:p-6">
+      <section className="grid gap-4 rounded-lg border-2 border-ink bg-card p-4 shadow-[var(--shadow-hard)] sm:gap-5 sm:p-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="grid gap-2">
             <Skeleton className="h-3 w-20" />
@@ -569,54 +570,22 @@ export function OfferCampaignPanelSkeleton() {
           <Skeleton className="h-5 w-16 rounded-full" />
         </div>
 
-        {/* Rules readback: label/value rows on a dashed rule. */}
-        <div className="grid gap-0">
-          {[0, 1, 2, 3].map((row) => (
-            <div
-              key={row}
-              className="flex items-center justify-between gap-4 border-b border-dashed border-ink/15 py-2.5 last:border-b-0"
-            >
-              <Skeleton className="h-3 w-28" />
-              <Skeleton className="h-4 w-40 max-w-[50%]" />
-            </div>
-          ))}
+        {/* Tab strip: three mono pills in a non-wrapping row. */}
+        <div className="flex gap-2">
+          <Skeleton className="h-9 w-20 rounded-full" />
+          <Skeleton className="h-9 w-24 rounded-full" />
+          <Skeleton className="h-9 w-20 rounded-full" />
         </div>
 
-        {/* Confidential link + share actions. */}
-        <div className="grid gap-3 border-t-2 border-dashed border-ink/20 pt-5">
+        {/* Default Share tab: eyebrow, copy-field well, action row. */}
+        <div className="grid gap-3">
           <Skeleton className="h-3 w-32" />
+          <Skeleton className="h-12 w-full" />
           <Skeleton className="h-4 w-full max-w-lg" />
           <div className="flex flex-wrap gap-2">
             <Skeleton className="h-11 w-32" />
-            <Skeleton className="h-11 w-32" />
             <Skeleton className="h-11 w-44" />
           </div>
-        </div>
-
-        {/* Manage row. */}
-        <div className="grid gap-4 border-t-2 border-dashed border-ink/20 pt-5">
-          <Skeleton className="h-3 w-16" />
-          <div className="flex flex-wrap gap-2">
-            <Skeleton className="h-11 w-40" />
-            <Skeleton className="h-11 w-36" />
-            <Skeleton className="h-11 w-32" />
-          </div>
-        </div>
-      </section>
-
-      <section className="grid gap-2">
-        <Skeleton className="h-3 w-28" />
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {[0, 1, 2, 3].map((tile) => (
-            <div
-              key={tile}
-              className="surface-card grid content-start gap-2 p-4"
-            >
-              <Skeleton className="h-3 w-20" />
-              <Skeleton className="h-7 w-12" />
-              <Skeleton className="h-3 w-24" />
-            </div>
-          ))}
         </div>
       </section>
     </div>

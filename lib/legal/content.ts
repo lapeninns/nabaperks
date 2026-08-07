@@ -106,7 +106,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
   {
     id: "services",
     title: "Services used",
-    body: "The current application uses Supabase and PostgreSQL for application data and authentication, Stripe for merchant subscriptions, Twilio Verify for customer phone codes, Resend for email, browser Web Push services for optional notifications, and Vercel for deployment and scheduled jobs. Optional integrations include PostHog for pseudonymous server-side analytics, Sentry for technical error reporting, Google Places for merchant venue suggestions, and OpenStreetMap Nominatim for venue-address geocoding.",
+    body: "The current application uses Supabase and PostgreSQL for application data and authentication, Stripe for merchant subscriptions, Twilio Verify for customer phone codes, Resend for email, browser Web Push services for optional notifications, and Vercel for deployment and scheduled jobs. Optional integrations include PostHog for pseudonymous server-side analytics, Google Places for merchant venue suggestions, and OpenStreetMap Nominatim for venue-address geocoding.",
   },
   {
     id: "communications",
@@ -115,8 +115,8 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
   },
   {
     id: "analytics",
-    title: "Analytics and error reporting",
-    body: "First-party session measurement and product events are stored in Nabaperks. Public marketing pages also send limited browser performance measurements: the metric name, value, rating, page category, and navigation type. These measurements do not include a raw URL, contact details, precise location, or a stored IP address and are deleted after 90 days. Optional pseudonymous PostHog processing is disabled unless it is configured. Contact, form, provider, URL, and precise-location values are excluded and are not sent to PostHog; IP addresses, tokens, secrets, and provider identifiers are also rejected from its payload. Optional Sentry error reporting is configured without default personal-information collection, but technical diagnostics and navigation information may be processed when Sentry is enabled.",
+    title: "Analytics",
+    body: "First-party session measurement and product events are stored in Nabaperks. Public marketing pages also send limited browser performance measurements: the metric name, value, rating, page category, and navigation type. These measurements do not include a raw URL, contact details, precise location, or a stored IP address and are deleted after 90 days. Optional pseudonymous PostHog processing is disabled unless it is configured. Contact, form, provider, URL, and precise-location values are excluded and are not sent to PostHog; IP addresses, tokens, secrets, and provider identifiers are also rejected from its payload.",
   },
   {
     id: "retention",
@@ -312,12 +312,12 @@ export const DATA_PROCESSING_SECTIONS: LegalSection[] = [
   {
     id: "external-services",
     title: "External services",
-    body: "The current application can send relevant data to Supabase and PostgreSQL for data and authentication, Stripe for subscriptions and billing, Twilio Verify for phone codes, Resend for email, browser Web Push services for push delivery, Vercel for deployment and scheduled jobs, Google Places for optional venue suggestions, OpenStreetMap Nominatim for venue-address geocoding, PostHog for optional pseudonymous server-side analytics, and Sentry for optional technical error reporting.",
+    body: "The current application can send relevant data to Supabase and PostgreSQL for data and authentication, Stripe for subscriptions and billing, Twilio Verify for phone codes, Resend for email, browser Web Push services for push delivery, Vercel for deployment and scheduled jobs, Google Places for optional venue suggestions, OpenStreetMap Nominatim for venue-address geocoding, and PostHog for optional pseudonymous server-side analytics.",
   },
   {
     id: "marketing-and-analytics",
     title: "Marketing and analytics controls",
-    body: "Customer marketing choices are stored separately from loyalty participation. First-party product events are stored in Supabase. Optional PostHog processing uses server-generated pseudonyms and an allowlist of properties; contact details, IP addresses, URLs, precise coordinates, provider identifiers, tokens, and secrets are rejected from the external analytics payload. Optional Sentry is configured with default personal-information collection disabled.",
+    body: "Customer marketing choices are stored separately from loyalty participation. First-party product events are stored in Supabase. Optional PostHog processing uses server-generated pseudonyms and an allowlist of properties; contact details, IP addresses, URLs, precise coordinates, provider identifiers, tokens, and secrets are rejected from the external analytics payload.",
   },
   {
     id: "requests",

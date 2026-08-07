@@ -292,11 +292,27 @@ export function describeOfferCampaignJourney(): void {
       await expect(page.locator("#desk-empty")).toContainText(
         "No offer running"
       )
-      await expect(page.locator("#desk-draft")).toContainText(
-        "Nobody can claim this yet"
-      )
+
+      const draft = page.locator("#desk-draft")
+      await expect(draft).toContainText("Nobody can claim this yet")
+      // A draft has nothing to share yet, so the panel skips the Share tab
+      // and opens on Manage and its publish flow.
+      await expect(draft.getByRole("tab", { name: "Share" })).toHaveCount(0)
+      await expect(
+        draft.getByRole("button", { name: "Publish this offer" })
+      ).toBeVisible()
+
       await expect(page.locator("#desk-scheduled")).toContainText("Scheduled")
-      await expect(page.locator("#desk-live")).toContainText("Live")
+
+      const live = page.locator("#desk-live")
+      await expect(live).toContainText("Live")
+      // A live offer opens on Share; the recorded counts are one tab away.
+      await expect(live.getByRole("tab", { name: "Share" })).toHaveAttribute(
+        "aria-selected",
+        "true"
+      )
+      await live.getByRole("tab", { name: "Results" }).click()
+      await expect(live).toContainText("Link opened")
 
       const paused = page.locator("#desk-paused")
       await expect(paused).toContainText("No new claims")
@@ -321,8 +337,11 @@ export function describeOfferCampaignJourney(): void {
       await gotoSurface(page, "?surface=desk")
 
       const longCopy = page.locator("#desk-long-copy")
-      // The three maximums the database enforces, read back in full.
+      // The three maximums the database enforces, read back in full. The
+      // description and the terms sit on the Manage tab — a live offer opens
+      // on Share — so the tab is opened the way a merchant would open it.
       await expect(longCopy).toContainText(LONGEST_NAME)
+      await longCopy.getByRole("tab", { name: "Manage" }).click()
       await expect(longCopy).toContainText(LONGEST_DESCRIPTION_TAIL)
       await expect(longCopy).toContainText(LONGEST_TERMS_TAIL)
     })
@@ -353,6 +372,14 @@ function describeOfferCampaignBreakpoints(): void {
           page,
         }) => {
           await gotoSurface(page, surface.query)
+          // Content that moved behind a panel tab is reached the same way a
+          // merchant reaches it before it is read back.
+          if (surface.openTab) {
+            await page
+              .locator(surface.longestCopy)
+              .getByRole("tab", { name: surface.openTab })
+              .click()
+          }
           await expect(page.locator(surface.longestCopy)).toContainText(
             surface.expected
           )
@@ -380,12 +407,22 @@ const LONGEST_DESCRIPTION_TAIL = "while the summer offer is still running."
 const LONGEST_TERMS_TAIL =
   "Please be patient with the team on a busy night. Thank you"
 
-const SURFACE_CHECKS = [
+type SurfaceCheck = {
+  readonly label: string
+  readonly query: string
+  readonly longestCopy: string
+  readonly expected: string
+  /** A panel tab to open before the copy is read (the desk defaults to Share). */
+  readonly openTab?: string
+}
+
+const SURFACE_CHECKS: readonly SurfaceCheck[] = [
   {
     label: "the merchant desk",
     query: "?surface=desk",
     longestCopy: "#desk-long-copy",
     expected: LONGEST_TERMS_TAIL,
+    openTab: "Manage",
   },
   {
     label: "the creator's review step",
@@ -405,7 +442,7 @@ const SURFACE_CHECKS = [
     longestCopy: "#scan-long-copy",
     expected: LONGEST_TERMS_TAIL,
   },
-] as const
+]
 
 function escapeForRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")

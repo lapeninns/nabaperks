@@ -126,11 +126,13 @@ export function OfferPass({
       )}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="flex items-center gap-1.5">
+        <span className="flex shrink-0 items-center gap-1.5">
           <Icon icon={DiscountTag01Icon} size={16} />
           <Eyebrow>Discount pass</Eyebrow>
         </span>
-        <span className="flex flex-wrap items-center gap-1.5">
+        {/* The tags move as one unit: on a very narrow screen the pair drops
+            to a second row whole rather than breaking mid-tag. */}
+        <span className="flex shrink-0 flex-wrap items-center gap-1.5">
           {requiresIdCheck ? (
             <MonoTag tone="sun" icon={IdentityCardIcon}>
               Photo ID
@@ -150,7 +152,7 @@ export function OfferPass({
           >
             {discountPercent}%
           </span>
-          <span className="text-sm leading-tight font-extrabold break-words">
+          <span className="min-w-0 text-sm leading-tight font-extrabold break-words">
             off the whole bill at {venueName}
           </span>
         </Heading>
@@ -168,7 +170,7 @@ export function OfferPass({
         {passLead(state, opens, closes)}
       </p>
 
-      <ul className="grid list-disc gap-1.5 pl-4 text-xs leading-5 text-muted-foreground">
+      <ul className="grid list-disc gap-1 pl-4 text-xs leading-5 text-muted-foreground">
         {/* Always printed, never editable by the venue: staff attest to this
             same rule on every redemption. */}
         <li>{OFFER_NO_STACKING_TERM}</li>
@@ -181,7 +183,14 @@ export function OfferPass({
         {extraTerms ? <li>{extraTerms}</li> : null}
       </ul>
 
-      {children}
+      {/* The QR slot sits behind a dashed rule, ticket-stub style: the face
+          above is what the pass promises, what follows is how it is shown. */}
+      {children ? (
+        <>
+          <hr className="w-rule my-0" />
+          {children}
+        </>
+      ) : null}
     </section>
   )
 }

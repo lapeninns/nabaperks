@@ -1,6 +1,5 @@
 import type { NextConfig } from "next"
 import withBundleAnalyzer from "@next/bundle-analyzer"
-import { withSentryConfig } from "@sentry/nextjs"
 
 import {
   COMMON_SECURITY_HEADERS,
@@ -108,23 +107,4 @@ const analyzedConfig = withBundleAnalyzer({
   enabled: process.env.ANALYZE === "true",
 })(nextConfig)
 
-export default withSentryConfig(analyzedConfig, {
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT,
-  authToken: process.env.SENTRY_AUTH_TOKEN,
-  release: {
-    name: process.env.SENTRY_RELEASE ?? process.env.VERCEL_GIT_COMMIT_SHA,
-  },
-  silent: !process.env.CI,
-  telemetry: false,
-  bundleSizeOptimizations: {
-    excludeDebugStatements: true,
-    excludeReplayIframe: true,
-    excludeReplayShadowDom: true,
-    excludeReplayWorker: true,
-  },
-  sourcemaps: {
-    disable: !process.env.SENTRY_AUTH_TOKEN,
-    deleteSourcemapsAfterUpload: true,
-  },
-})
+export default analyzedConfig

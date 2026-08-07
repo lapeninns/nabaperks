@@ -39,8 +39,8 @@ describe("contract-offer-claim-path source contract", () => {
    * A1 (the public claim path had no global feature-flag check) has been
    * OVERTAKEN, not fixed. A concurrent change on this branch removed the kill
    * switch outright — the `merchant_offer_campaigns` flag is gone from
-   * `lib/feature-flags.ts` and `config/feature-flags.json`,
-   * `lib/offers/access.ts` and `lib/merchant/offer-access.ts` are deleted, and
+   * the feature-flag configuration, `lib/offers/access.ts` and
+   * `lib/merchant/offer-access.ts` are deleted, and
    * `supabase/migrations/20260804120000_offer_campaigns_always_on.sql` drops
    * `merchants.offer_campaigns_enabled` and the allowlist test inside
    * `get_offer_claim_context`, `claim_offer_campaign` and

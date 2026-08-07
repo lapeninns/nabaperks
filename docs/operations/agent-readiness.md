@@ -17,8 +17,6 @@ of implementation truth.
 | Technical debt tracking       | Issue-linked TODO/FIXME policy enforced by `pnpm debt:check`       |
 | N+1 query detection           | Live `EXPLAIN ANALYZE` loop-count proof in the RLS DB suite        |
 | Fast CI feedback              | Playwright project/shard matrix plus the fast quality lane         |
-| Feature flag infrastructure   | Typed runtime flag reader and lifecycle registry                   |
-| Dead feature flag detection   | Owner, expiry, and runtime-usage validation                        |
 | Release notes automation      | Release Drafter workflow and label categories                      |
 | Unused dependencies           | Knip dependency analysis                                           |
 | AGENTS.md                     | Root agent guide with commands and product boundaries              |
@@ -26,7 +24,7 @@ of implementation truth.
 | Skills configuration          | Focused Factory readiness skill                                    |
 | API schema docs               | OpenAPI 3 contract under `docs/api/openapi.json`                   |
 | AGENTS.md freshness           | `pnpm agents:check` validates commands and referenced paths        |
-| Error tracking contextualized | Sentry request, route, release, source-map, and navigation context |
+| Error tracking contextualized | Structured request, route, revision, and readiness context         |
 | Alerting configured           | Signed external page plus deduplicated incident issue              |
 | Profiling instrumentation     | `pnpm profile:server` writes Node CPU profiles                     |
 | Issue templates               | Structured bug, feature, debt, and incident forms                  |
@@ -61,9 +59,6 @@ of implementation truth.
   fail-closed coverage breach, requires seven observed days and 95% evidence
   coverage, and retains a daily report. Because both signals are GitHub-hosted,
   this is not proof of independent external monitoring.
-- Sentry remains an optional dormant integration and is not required by the
-  current production release path.
-
 Factory evaluates repository state from GitHub. After these controls merge,
 refresh the report and inspect every binary criterion rather than inferring a
 score from the local checkout.

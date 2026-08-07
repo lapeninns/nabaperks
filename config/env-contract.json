@@ -31,13 +31,6 @@
     "optional": true
   },
   {
-    "name": "NEXT_PUBLIC_SENTRY_DSN",
-    "visibility": "public",
-    "kind": "url",
-    "description": "Optional Sentry DSN used for privacy-minimised browser and server error capture.",
-    "optional": true
-  },
-  {
     "name": "ANALYTICS_EXTERNAL_PROCESSING_MODE",
     "visibility": "server",
     "kind": "string",
@@ -168,41 +161,6 @@
     "visibility": "server",
     "kind": "string",
     "description": "Optional high-entropy overlap token used only for zero-downtime production monitor-secret rotation; remove it after cutover.",
-    "optional": true
-  },
-  {
-    "name": "SENTRY_DSN",
-    "visibility": "server",
-    "kind": "url",
-    "description": "Optional server-only Sentry DSN override.",
-    "optional": true
-  },
-  {
-    "name": "SENTRY_ORG",
-    "visibility": "server",
-    "kind": "string",
-    "description": "Optional Sentry organization slug for release and source-map association.",
-    "optional": true
-  },
-  {
-    "name": "SENTRY_PROJECT",
-    "visibility": "server",
-    "kind": "string",
-    "description": "Optional Sentry project slug linked to the Nabaperks GitHub repository.",
-    "optional": true
-  },
-  {
-    "name": "SENTRY_AUTH_TOKEN",
-    "visibility": "server",
-    "kind": "string",
-    "description": "Optional Sentry build token used only to upload production source maps.",
-    "optional": true
-  },
-  {
-    "name": "NABAPERKS_FEATURE_PLATFORM_ERROR_REPORTING",
-    "visibility": "server",
-    "kind": "string",
-    "description": "Feature-flag override for server-side error reporting; true enables and false disables capture.",
     "optional": true
   },
   {

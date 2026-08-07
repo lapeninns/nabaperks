@@ -28,6 +28,7 @@ import {
   formatOfferDate,
 } from "@/components/merchant/offers/offer-rules-summary"
 import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { MerchantOfferCampaign } from "@/lib/merchant/offer-campaigns"
 import type { OfferCampaignStatus } from "@/lib/offers/constants"
 
@@ -35,6 +36,15 @@ import type { OfferCampaignStatus } from "@/lib/offers/constants"
  * The management face of a venue's single live offer: the confidential link,
  * the campaign QR, the lifecycle controls and the counts that were actually
  * recorded.
+ *
+ * The face is a compact header plus three tabs — Share, Manage and Results —
+ * so the screen a merchant works from at the counter is never one tall card.
+ * The header and its status banners stay visible on every tab: what the offer
+ * is called, whether it can be claimed right now, and what it is waiting for.
+ * Share is offered only when there is a working link to share (never for a
+ * draft, and suppressed on the QR screen, which shows the link in its own
+ * hero); the default tab is the first useful one, so a draft lands on Manage
+ * and its publish flow.
  *
  * Three honesty rules are load-bearing here:
  *   * The link shown is the one the customer landing page will accept, or none
@@ -92,68 +102,85 @@ export function OfferCampaignPanel({
   const tag = STATUS_TAG[campaign.status]
   const isDraft = campaign.status === "draft"
   const shareable = !isDraft && claimUrl !== null
+  const showShare = shareable && showShareRow
 
   return (
-    <div className="grid min-w-0 gap-5">
-      <section className="grid min-w-0 gap-5 rounded-lg border-2 border-ink bg-card p-4 shadow-[var(--shadow-hard)] sm:p-6">
-        <SectionHeader
-          eyebrow={campaign.name ?? "Your offer"}
-          title={headline(campaign)}
-          description={summary(campaign)}
-          actions={<MonoTag tone={tag.tone}>{tag.label}</MonoTag>}
-        />
+    <section className="grid min-w-0 gap-4 rounded-lg border-2 border-ink bg-card p-4 shadow-[var(--shadow-hard)] sm:gap-5 sm:p-6">
+      <SectionHeader
+        eyebrow={campaign.name ?? "Your offer"}
+        title={headline(campaign)}
+        description={summary(campaign)}
+        actions={<MonoTag tone={tag.tone}>{tag.label}</MonoTag>}
+      />
 
-        {isDraft ? (
-          <StatusBanner tone="info" title="Nobody can claim this yet">
-            Your offer is saved but not published. The link and the QR start
-            working the moment you publish it.
-          </StatusBanner>
+      {isDraft ? (
+        <StatusBanner tone="info" title="Nobody can claim this yet">
+          Your offer is saved but not published. The link and the QR start
+          working the moment you publish it.
+        </StatusBanner>
+      ) : null}
+
+      {campaign.status === "paused" ? (
+        <StatusBanner tone="warning" title="No new claims">
+          Nobody new can claim while the offer is paused. Passes already issued
+          keep working until their own end date.
+        </StatusBanner>
+      ) : null}
+
+      {!isDraft && !shareable ? (
+        <StatusBanner tone="warning" title="Your link needs replacing">
+          We can&apos;t show a link for this offer that customers would be able
+          to use. Rotate the link below to issue a working one, then reprint
+          anything that carries the old one.
+        </StatusBanner>
+      ) : null}
+
+      <Tabs defaultValue={showShare ? "share" : "manage"}>
+        <TabsList aria-label="Offer sections">
+          {showShare ? <TabsTrigger value="share">Share</TabsTrigger> : null}
+          <TabsTrigger value="manage">Manage</TabsTrigger>
+          <TabsTrigger value="results">Results</TabsTrigger>
+        </TabsList>
+
+        {showShare && claimUrl !== null ? (
+          <TabsContent value="share">
+            <ShareRow
+              claimUrl={claimUrl}
+              qrHref={qrHref}
+              qrImageHref={qrImageHref}
+              showQrLink={showQrLink}
+            />
+          </TabsContent>
         ) : null}
 
-        {campaign.status === "paused" ? (
-          <StatusBanner tone="warning" title="No new claims">
-            Nobody new can claim while the offer is paused. Passes already
-            issued keep working until their own end date.
-          </StatusBanner>
-        ) : null}
-
-        <OfferRulesSummary
-          name={campaign.name}
-          customerDescription={campaign.customerDescription}
-          bonusStampCount={campaign.bonusStampCount}
-          discountPercent={campaign.discountPercent}
-          startsOn={campaign.startsOn}
-          endsOn={campaign.endsOn}
-          requiresIdCheck={campaign.requiresIdCheck}
-          extraTerms={campaign.extraTerms}
-          stampsRequired={stampsRequired}
-          collapsed={!isDraft}
-        />
-
-        {claimUrl !== null && !isDraft && showShareRow ? (
-          <ShareRow
-            claimUrl={claimUrl}
-            qrHref={qrHref}
-            qrImageHref={qrImageHref}
-            showQrLink={showQrLink}
+        <TabsContent value="manage" className="gap-5">
+          <OfferRulesSummary
+            name={campaign.name}
+            customerDescription={campaign.customerDescription}
+            bonusStampCount={campaign.bonusStampCount}
+            discountPercent={campaign.discountPercent}
+            startsOn={campaign.startsOn}
+            endsOn={campaign.endsOn}
+            requiresIdCheck={campaign.requiresIdCheck}
+            extraTerms={campaign.extraTerms}
+            stampsRequired={stampsRequired}
+            collapsed={!isDraft}
           />
-        ) : !isDraft && !shareable ? (
-          <StatusBanner tone="warning" title="Your link needs replacing">
-            We can&apos;t show a link for this offer that customers would be
-            able to use. Rotate the link below to issue a working one, then
-            reprint anything that carries the old one.
-          </StatusBanner>
-        ) : null}
 
-        <LifecycleControls
-          action={action}
-          campaign={campaign}
-          returnTo={returnTo}
-        />
-      </section>
+          <hr className="w-rule my-0" />
 
-      <CampaignMetrics campaign={campaign} />
-    </div>
+          <LifecycleControls
+            action={action}
+            campaign={campaign}
+            returnTo={returnTo}
+          />
+        </TabsContent>
+
+        <TabsContent value="results">
+          <CampaignMetrics campaign={campaign} />
+        </TabsContent>
+      </Tabs>
+    </section>
   )
 }
 
@@ -171,17 +198,14 @@ function ShareRow({
   showQrLink: boolean
 }) {
   return (
-    <div className="grid gap-3 border-t-2 border-dashed border-ink/20 pt-5">
+    <div className="grid gap-3">
       <Eyebrow>Confidential link</Eyebrow>
-      <p className="font-mono text-xs leading-5 break-all text-muted-foreground">
-        {claimUrl}
-      </p>
+      <CopyLinkField claimUrl={claimUrl} />
       <p className="text-sm leading-6 text-muted-foreground">
         Anyone who opens this link can claim the offer, so put it only where you
         want it claimed.
       </p>
       <div className="flex flex-wrap gap-2">
-        <CopyClaimLinkButton claimUrl={claimUrl} />
         {showQrLink ? (
           <Button asChild variant="secondary">
             <Link href={qrHref} prefetch={false}>
@@ -201,7 +225,14 @@ function ShareRow({
   )
 }
 
-function CopyClaimLinkButton({ claimUrl }: { claimUrl: string }) {
+/**
+ * The link as a copy-field: the mono URL truncates inside an ink-bordered well
+ * with the copy button inline, so the Share tab stays one compact row instead
+ * of a break-all paragraph stack. If the clipboard write fails the full link
+ * is revealed under the well, because a truncated URL cannot be copied by
+ * hand.
+ */
+function CopyLinkField({ claimUrl }: { claimUrl: string }) {
   const [copied, setCopied] = useState(false)
   const [failed, setFailed] = useState(false)
 
@@ -219,14 +250,26 @@ function CopyClaimLinkButton({ claimUrl }: { claimUrl: string }) {
   }
 
   return (
-    <span className="inline-grid gap-1">
-      <Button type="button" onClick={copy}>
-        {failed
-          ? "Copy failed — copy it by hand"
-          : copied
-            ? "Copied"
-            : "Copy the link"}
-      </Button>
+    <div className="grid gap-2">
+      <div className="flex min-w-0 items-center gap-2 rounded-lg border-2 border-ink bg-secondary/40 py-2 pr-2 pl-3">
+        <span className="min-w-0 flex-1 truncate font-mono text-xs leading-6 text-foreground">
+          {claimUrl}
+        </span>
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          className="shrink-0"
+          onClick={copy}
+        >
+          {failed ? "Copy failed" : copied ? "Copied" : "Copy"}
+        </Button>
+      </div>
+      {failed ? (
+        <p className="font-mono text-xs leading-5 break-all text-muted-foreground">
+          {claimUrl}
+        </p>
+      ) : null}
       <span className="sr-only" aria-live="polite">
         {failed
           ? "Copy failed. Use the visible link instead."
@@ -234,7 +277,7 @@ function CopyClaimLinkButton({ claimUrl }: { claimUrl: string }) {
             ? "Offer link copied."
             : ""}
       </span>
-    </span>
+    </div>
   )
 }
 
@@ -266,9 +309,7 @@ function LifecycleControls({
     confirming === "end"
 
   return (
-    <div className="grid gap-4 border-t-2 border-dashed border-ink/20 pt-5">
-      <Eyebrow>Manage</Eyebrow>
-
+    <div className="grid gap-4">
       {anySubmit ? (
         <form action={action} className="grid gap-3">
           <input type="hidden" name="campaignId" value={campaign.id} />
@@ -423,30 +464,37 @@ function CampaignMetrics({ campaign }: { campaign: MerchantOfferCampaign }) {
   const { metrics } = campaign
 
   return (
-    <section className="grid gap-2" aria-label="Offer results">
+    <section className="grid gap-3" aria-label="Offer results">
       <Eyebrow>Results so far</Eyebrow>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      {/* Five tiles never squeeze into two phone columns: below lg they run as
+          a snap-scroll rail at a steady 10rem, from lg they take the grid. */}
+      <div className="flex snap-x [scrollbar-width:none] gap-3 overflow-x-auto pb-1 lg:grid lg:grid-cols-5 lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden">
         <MetricTile
+          className="min-w-[10rem] snap-start lg:min-w-0"
           label="Link opened"
           value={metrics.linkOpens.toLocaleString("en-GB")}
           helper="Times the offer page loaded while it was open to claims."
         />
         <MetricTile
+          className="min-w-[10rem] snap-start lg:min-w-0"
           label="Claimed"
           value={metrics.claims.toLocaleString("en-GB")}
           helper="Customers who joined through this offer."
         />
         <MetricTile
+          className="min-w-[10rem] snap-start lg:min-w-0"
           label="Welcome stamps"
           value={metrics.bonusStampsIssued.toLocaleString("en-GB")}
           helper="Stamps granted across those claims."
         />
         <MetricTile
+          className="min-w-[10rem] snap-start lg:min-w-0"
           label="Passes in date"
           value={metrics.activePasses.toLocaleString("en-GB")}
           helper="Discount passes still inside their window."
         />
         <MetricTile
+          className="min-w-[10rem] snap-start lg:min-w-0"
           label="Pass redemptions"
           value={metrics.passRedemptions.toLocaleString("en-GB")}
           helper="Times staff have honoured a pass."

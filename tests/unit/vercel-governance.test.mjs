@@ -157,13 +157,20 @@ test("Vercel evidence rejects release credentials in application runtime", () =>
   assert.match(result.detail, /SUPABASE_DB_PASSWORD/)
 })
 
-test("Vercel production does not require optional Sentry settings", () => {
-  assert.deepEqual(
-    CONTRACT.environments.production.requiredKeys.filter((key) =>
+test("Vercel evidence does not require the removed error-reporting integration", () => {
+  assert.equal(
+    CONTRACT.environments.production.requiredKeys.some((key) =>
       key.includes("SENTRY")
     ),
-    []
+    false
   )
+
+  const failures = evaluateVercelGovernance(
+    CONTRACT,
+    completeEvidence()
+  ).filter(({ status }) => status === "FAIL")
+
+  assert.deepEqual(failures, [])
 })
 
 test("project evidence drops every environment and deployment value", () => {

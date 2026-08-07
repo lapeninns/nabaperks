@@ -2,12 +2,16 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { DiscountTag01Icon } from "@hugeicons/core-free-icons"
+import {
+  CheckmarkCircle02Icon,
+  DiscountTag01Icon,
+} from "@hugeicons/core-free-icons"
 
 import type { OfferCampaignState } from "@/app/app/offers/actions"
 import {
   EmptyState,
   Eyebrow,
+  Icon,
   MonoTag,
   ReceiptCard,
   SectionHeader,
@@ -337,14 +341,19 @@ function DeskSurface() {
           />
           <section className="grid gap-3" aria-label="What an offer can give">
             <Eyebrow>What an offer can give</Eyebrow>
-            <ul className="grid gap-2 sm:grid-cols-3">
+            {/* Mirrors the hub's snap-scroll rail on the phone, three-up grid
+                from sm — the two surfaces map the same presets. */}
+            <ul className="flex snap-x [scrollbar-width:none] gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0 [&::-webkit-scrollbar]:hidden">
               {OFFER_BENEFIT_PRESETS.map((preset) => (
                 <li
                   key={preset.kind}
-                  className="grid content-start gap-1.5 rounded-lg border-[1.5px] border-border bg-card p-4"
+                  className="grid w-60 shrink-0 snap-start content-start gap-1.5 rounded-lg border-[1.5px] border-border bg-card p-3 sm:w-auto sm:min-w-0 sm:p-4"
                 >
-                  <span className="text-sm font-semibold text-foreground">
-                    {preset.title}
+                  <span className="flex items-center gap-2">
+                    <Icon icon={preset.icon} size={16} />
+                    <span className="text-sm font-semibold text-foreground">
+                      {preset.title}
+                    </span>
                   </span>
                   <span className="text-xs leading-5 text-muted-foreground">
                     {preset.description}
@@ -579,24 +588,58 @@ function CustomerSurface() {
         title="The offer a new customer scans into"
       >
         <LandingShell venue={VENUE_NAME} campaignName="Summer welcome">
-          <h3 className="text-xl leading-tight font-extrabold">
+          <h3 className="text-xl leading-tight font-extrabold text-balance">
             2 bonus stamps and 10% off to start with
           </h3>
           <p className="text-sm leading-6 text-foreground">
             Two stamps on your card the moment you join, and 10% off the whole
             bill while the offer runs.
           </p>
-          <ul className="grid gap-2 text-sm leading-6 text-muted-foreground">
-            <li>
-              2 bonus stamps added to your card the moment you join. There is no
-              app to download.
+          {/* The real landing renders these lines as a compact checkmark
+              list; the transcription keeps the same shape and wording. */}
+          <ul className="grid gap-1.5 text-sm leading-6 text-muted-foreground">
+            <li className="flex items-start gap-1.5">
+              <Icon
+                icon={CheckmarkCircle02Icon}
+                size={16}
+                className="mt-1 shrink-0 text-reward"
+              />
+              <span className="min-w-0">
+                2 bonus stamps added to your card the moment you join. There is
+                no app to download.
+              </span>
             </li>
-            <li>
-              A 10% discount pass you can use as often as you like while the
-              offer runs.
+            <li className="flex items-start gap-1.5">
+              <Icon
+                icon={CheckmarkCircle02Icon}
+                size={16}
+                className="mt-1 shrink-0 text-reward"
+              />
+              <span className="min-w-0">
+                A 10% discount pass you can use as often as you like while the
+                offer runs.
+              </span>
             </li>
-            <li>The offer runs until 30 September 2026.</li>
-            <li>The discount cannot be used with any other offer.</li>
+            <li className="flex items-start gap-1.5">
+              <Icon
+                icon={CheckmarkCircle02Icon}
+                size={16}
+                className="mt-1 shrink-0 text-reward"
+              />
+              <span className="min-w-0">
+                The offer runs until 30 September 2026.
+              </span>
+            </li>
+            <li className="flex items-start gap-1.5">
+              <Icon
+                icon={CheckmarkCircle02Icon}
+                size={16}
+                className="mt-1 shrink-0 text-reward"
+              />
+              <span className="min-w-0">
+                The discount cannot be used with any other offer.
+              </span>
+            </li>
           </ul>
           <ClaimForm />
         </LandingShell>
@@ -608,17 +651,51 @@ function CustomerSurface() {
         title="The same landing at every maximum length"
       >
         <LandingShell venue={VENUE_NAME} campaignName={LONG_NAME}>
-          <h3 className="text-xl leading-tight font-extrabold">
+          <h3 className="text-xl leading-tight font-extrabold text-balance">
             2 bonus stamps and 25% off to start with
           </h3>
           <p className="text-sm leading-6 text-foreground">
             {LONG_DESCRIPTION}
           </p>
-          <ul className="grid gap-2 text-sm leading-6 text-muted-foreground">
-            <li>The offer runs until 30 September 2026.</li>
-            <li>Bring photo identification when you use the discount.</li>
-            <li>The discount cannot be used with any other offer.</li>
-            <li>{LONG_TERMS}</li>
+          <ul className="grid gap-1.5 text-sm leading-6 text-muted-foreground">
+            <li className="flex items-start gap-1.5">
+              <Icon
+                icon={CheckmarkCircle02Icon}
+                size={16}
+                className="mt-1 shrink-0 text-reward"
+              />
+              <span className="min-w-0">
+                The offer runs until 30 September 2026.
+              </span>
+            </li>
+            <li className="flex items-start gap-1.5">
+              <Icon
+                icon={CheckmarkCircle02Icon}
+                size={16}
+                className="mt-1 shrink-0 text-reward"
+              />
+              <span className="min-w-0">
+                Bring photo identification when you use the discount.
+              </span>
+            </li>
+            <li className="flex items-start gap-1.5">
+              <Icon
+                icon={CheckmarkCircle02Icon}
+                size={16}
+                className="mt-1 shrink-0 text-reward"
+              />
+              <span className="min-w-0">
+                The discount cannot be used with any other offer.
+              </span>
+            </li>
+            <li className="flex items-start gap-1.5">
+              <Icon
+                icon={CheckmarkCircle02Icon}
+                size={16}
+                className="mt-1 shrink-0 text-reward"
+              />
+              <span className="min-w-0">{LONG_TERMS}</span>
+            </li>
           </ul>
           <ClaimForm />
         </LandingShell>
@@ -898,12 +975,18 @@ function StaffScanScreen({
     <div className="mx-auto grid w-full max-w-xl gap-4">
       <ReceiptCard edge padding="md">
         <Eyebrow>Discount pass</Eyebrow>
-        <p className="text-3xl font-extrabold tracking-tight">
-          {offerPassDiscountLabel(discountPercent)}
-        </p>
-        {validity ? (
-          <p className="text-sm font-bold text-muted-foreground">{validity}</p>
-        ) : null}
+        {/* Mirrors the route's PassFace: the two facts staff check first, read
+            across a counter as one line. */}
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <p className="text-3xl font-extrabold tracking-tight">
+            {offerPassDiscountLabel(discountPercent)}
+          </p>
+          {validity ? (
+            <p className="text-sm font-bold text-muted-foreground">
+              {validity}
+            </p>
+          ) : null}
+        </div>
         {extraTerms ? (
           <p className="text-sm leading-6 text-muted-foreground">
             {extraTerms}
@@ -915,16 +998,12 @@ function StaffScanScreen({
         </p>
       </ReceiptCard>
 
-      <dl className="grid gap-2 rounded-xl border-2 border-ink bg-card p-4 text-sm">
-        <div className="flex justify-between gap-4">
-          <dt className="font-bold text-muted-foreground">Member</dt>
-          {/* Merchant surfaces show a masked identifier and never a number. */}
-          <dd className="text-right font-bold">Phone ending 421</dd>
-        </div>
-        <div className="flex justify-between gap-4">
-          <dt className="font-bold text-muted-foreground">Card</dt>
-          <dd className="mono-id text-right">{MEMBERSHIP_ID.slice(0, 8)}</dd>
-        </div>
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-xl border-2 border-ink bg-card p-4 text-sm">
+        <dt className="font-bold text-muted-foreground">Member</dt>
+        {/* Merchant surfaces show a masked identifier and never a number. */}
+        <dd className="text-right font-bold">Phone ending 421</dd>
+        <dt className="font-bold text-muted-foreground">Card</dt>
+        <dd className="mono-id text-right">{MEMBERSHIP_ID.slice(0, 8)}</dd>
       </dl>
 
       <StatusBanner title={banner.title} tone={banner.tone}>

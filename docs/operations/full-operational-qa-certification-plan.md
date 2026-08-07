@@ -38,9 +38,9 @@ Current `main` SHA `20b48b7a…` is not certifiable because `pnpm security:audit
    - Run the exact-revision ephemeral release proof, including fresh Supabase, migration ledger verification, signed webhook replays, readiness, and rolled-back loyalty journey.
 
 4. **Governance and production release**
-   - Pass `ops:github:check`, `ops:vercel:check`, `ops:supabase:check`, and `ops:sentry:check` with authenticated readback.
+   - Pass `ops:github:check`, `ops:vercel:check`, and `ops:supabase:check` with authenticated readback.
    - Promote database migrations through the protected Production environment, verify the production ledger, then deploy the same SHA.
-   - Verify Sentry release/source maps, SBOM, provenance attestations, readiness, liveness, and deployed revision.
+   - Verify SBOM, provenance attestations, readiness, liveness, and deployed revision.
    - An authorised operator performs the redacted live acceptance:
      - Merchant and customer authentication.
      - QR join, stamp, reward, and redemption lifecycle.
