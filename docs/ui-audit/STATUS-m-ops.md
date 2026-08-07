@@ -43,6 +43,22 @@ commit. No browser, database or provider check was available in this lane.
 - **Anything outside this lane's file scope.** 03#53, the offers-scan twin in
   03#65, and `/app/customers` in 03#66.
 
+## Relayed from other lanes
+
+- **03#49 (`profile-form.tsx`, `announcement-compose.tsx`) — not done here.**
+  m-launch's `components/merchant/launch/form-action-bar.tsx` does not exist on
+  this branch, so adopting it would not build; hand-rolling a second sticky bar
+  would duplicate the component it is meant to replace and conflict at merge.
+  Both forms are also short — four fields and a title + textarea respectively —
+  so neither is one of the "longer than one viewport" forms the finding names
+  (`venue-location-form`, `onboarding-form`). Best done in one pass after the
+  lanes merge, by whoever owns `FormActionBar`.
+- **Fixed/sticky bottom surfaces under the new `md:hidden` tab bar.** Audited
+  this lane: `grep -rn 'fixed .*bottom-|sticky .*bottom-|bottom-0'` across every
+  in-scope file returns only the scanner reticle's corner marks and the torch
+  button, which are `absolute` inside the viewfinder, not viewport-fixed.
+  Nothing in this lane sits under the tab bar.
+
 ## Bug found that the audit did not name
 
 `/app/activity` "Load more" was a dead control at the ceiling, not merely an

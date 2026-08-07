@@ -153,8 +153,6 @@ export function MerchantCompactActivitySkeleton() {
   )
 }
 
-// ─── Activity detail feed ──────────────────────────────────────────────────────
-
 // ─── Announcements ────────────────────────────────────────────────────────────
 
 /**
@@ -197,6 +195,8 @@ export function AnnouncementComposeSkeleton() {
     </div>
   )
 }
+
+// ─── Activity detail feed ──────────────────────────────────────────────────────
 
 /**
  * Mirrors {@link ActivityDetailFeed}: the search + filter-pill bar, the "shown"
