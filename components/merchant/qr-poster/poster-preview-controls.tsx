@@ -101,7 +101,7 @@ export function PosterTemplateLinks({
             className={cn(
               "mono-id text-muted-foreground",
               isStrip
-                ? "flex shrink-0 items-center px-1 tracking-[0.1em]"
+                ? "flex shrink-0 items-center px-1 tracking-tag"
                 : "mt-2 first:mt-0"
             )}
           >

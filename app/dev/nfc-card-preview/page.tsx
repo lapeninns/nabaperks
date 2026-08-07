@@ -107,7 +107,7 @@ export default async function NfcCardPreviewPage({
     <div className="grid gap-16 bg-[var(--w-paper)] py-10">
       {cards.map(({ design, card }) => (
         <section key={design} className="grid gap-3">
-          <p className="text-center font-mono text-xs font-bold tracking-[0.16em] text-[var(--w-ink-soft)] uppercase">
+          <p className="text-center font-mono text-xs font-bold tracking-code text-[var(--w-ink-soft)] uppercase">
             {getNfcCardDesign(design)?.name ?? design} NFC card
           </p>
           {card}

@@ -61,6 +61,21 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
+  /* Letter-spacing rungs. Eleven distinct tracking-[…] arbitraries were in use
+     against a two-value contract; these are the only sanctioned rungs.
+     meta = .mono-meta/.mono-id/.eyebrow's own 0.06em; tag = the wider MonoTag
+     register; code = genuine character separation for OTP digits and serials. */
+  /* The two sanctioned sizes below text-xs, as standalone utilities. They
+     previously existed only INSIDE .mono-id / .mono-meta, which also bundle the
+     mono family, 700 weight and uppercase — so any surface wanting just the
+     size hand-rolled text-[10px] / text-[11px] / text-[0.6875rem] instead. */
+  --text-micro: 0.625rem;
+  --text-meta: 0.71875rem;
+
+  --tracking-meta: 0.06em;
+  --tracking-tag: 0.08em;
+  --tracking-code: 0.18em;
+
   --font-sans: var(--font-bricolage-grotesque);
   --font-heading: var(--font-bricolage-grotesque);
   --font-mono: var(--font-space-mono);

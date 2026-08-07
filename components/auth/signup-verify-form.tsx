@@ -162,7 +162,7 @@ export function SignupVerifyForm({
             event.preventDefault()
             setOtp(pastedOtp)
           }}
-          className="font-mono tracking-[0.18em]"
+          className="font-mono tracking-code"
           error={state.errors?.otp}
         />
         <SubmitButton

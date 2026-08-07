@@ -159,7 +159,7 @@ function FooterIdentity({ withMotto = false }: { withMotto?: boolean }) {
   const row = (
     <div className="flex items-center gap-3">
       <Logo label="nabaperks" linked={false} />
-      <span className="mono-id tracking-[0.08em] whitespace-nowrap text-muted-foreground">
+      <span className="mono-id tracking-tag whitespace-nowrap text-muted-foreground">
         © {new Date().getFullYear()}
       </span>
     </div>

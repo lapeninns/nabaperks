@@ -111,7 +111,7 @@ export function RewardTicket({
           // title, still hand-slammed off-square.
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute bottom-2.5 left-4 flex -rotate-[8deg] items-center gap-1.5 rounded-md border-2 border-reward bg-reward/10 px-3 py-1 font-mono text-base font-extrabold tracking-[0.08em] text-reward uppercase"
+            className="pointer-events-none absolute bottom-2.5 left-4 flex -rotate-[8deg] items-center gap-1.5 rounded-md border-2 border-reward bg-reward/10 px-3 py-1 font-mono text-base font-extrabold tracking-tag text-reward uppercase"
           >
             <Icon icon={CheckmarkCircle02Icon} size={18} strokeWidth={2.5} />
             Redeemed

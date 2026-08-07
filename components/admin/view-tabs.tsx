@@ -46,7 +46,7 @@ export function AdminViewTabs({
             href={tab.href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "tap-floor focus-ring mono-meta inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border-2 px-3.5 tracking-[0.04em] whitespace-nowrap transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none",
+              "tap-floor focus-ring mono-meta inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border-2 px-3.5 tracking-meta whitespace-nowrap transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none",
               active
                 ? "border-ink bg-primary text-primary-foreground shadow-xs forced-colors:underline forced-colors:underline-offset-4"
                 : "border-ink bg-card text-ink-soft hover:bg-secondary"
@@ -56,7 +56,7 @@ export function AdminViewTabs({
             {typeof tab.count === "number" ? (
               <span
                 className={cn(
-                  "numeric-tabular rounded-full px-1.5 text-[0.625rem] leading-4",
+                  "numeric-tabular rounded-full px-1.5 text-micro leading-4",
                   active
                     ? "bg-primary-foreground text-primary"
                     : "bg-paper-deep text-ink-soft"

@@ -8,7 +8,7 @@ function countLabel(count: number, singular: string, plural = `${singular}s`) {
  * The dashboard's three counts as one line.
  *
  * This used to be a bordered band of its own — `rounded-[var(--radius)]
- * border-2 border-dashed border-ink/25 … tracking-[0.08em]`, three off-contract
+ * border-2 border-dashed border-ink/25 … tracking-tag`, three off-contract
  * values, ~40px plus a 24px gap, restating facts the tiles below already carry
  * (CUS 02#9). The counts are worth keeping as an at-a-glance line; the band
  * around them was not. The home header now prints this string as its eyebrow.

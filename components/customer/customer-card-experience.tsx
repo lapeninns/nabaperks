@@ -376,7 +376,7 @@ function CardGiftChip({
     <div className="grid gap-2 rounded-lg border-2 border-ink bg-seal/15 p-3">
       <div className="flex items-center gap-1.5">
         <Icon icon={GiftIcon} size={16} />
-        <span className="mono-id tracking-[0.08em] text-ink">{badge}</span>
+        <span className="mono-id tracking-tag text-ink">{badge}</span>
       </div>
       <p className="text-sm leading-tight font-extrabold break-words">
         {gift.rewardName}
@@ -469,9 +469,7 @@ function CardOfferPassChip({ pass }: { pass: CustomerOfferPass }) {
     <div className="grid gap-2 rounded-lg border-2 border-ink bg-seal/15 p-3">
       <div className="flex items-center gap-1.5">
         <Icon icon={DiscountTag01Icon} size={16} />
-        <span className="mono-id tracking-[0.08em] text-ink">
-          Discount pass
-        </span>
+        <span className="mono-id tracking-tag text-ink">Discount pass</span>
       </div>
       <p className="text-sm leading-tight font-extrabold break-words">
         {pass.discountPercent}% off at {pass.venueName}
@@ -520,7 +518,7 @@ function CardDetailsDisclosure({ cardNumber }: { cardNumber: string }) {
           className="text-ink-soft transition-transform duration-[var(--w-dur-fast)] ease-[var(--w-ease)] group-open:rotate-180 motion-reduce:transition-none"
         />
       </summary>
-      <dl className="mono-id mt-2 grid gap-1.5 tracking-[0.08em] text-muted-foreground">
+      <dl className="mono-id mt-2 grid gap-1.5 tracking-tag text-muted-foreground">
         <div className="flex justify-between gap-3">
           <dt>{cardNumber}</dt>
           <dd>One stamp per UK business day</dd>

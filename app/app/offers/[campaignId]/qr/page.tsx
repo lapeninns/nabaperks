@@ -81,7 +81,7 @@ export default async function OfferCampaignQrPage({
           className="grid justify-items-center gap-5 rounded-lg border-2 border-ink bg-ink p-6 text-paper sm:p-10"
         >
           <div className="grid justify-items-center gap-2 text-center">
-            <p className="mono-meta tracking-[0.2em] text-paper/70">
+            <p className="mono-meta tracking-code text-paper/70">
               Scan to claim
             </p>
             <h2 className="max-w-[18ch] text-2xl leading-tight font-extrabold text-balance sm:text-3xl">
@@ -111,7 +111,7 @@ export default async function OfferCampaignQrPage({
               you want it claimed. People who already hold your loyalty card
               cannot claim.
             </p>
-            <p className="font-mono text-[11px] leading-5 break-all text-paper/60">
+            <p className="font-mono text-meta leading-5 break-all text-paper/60">
               {claimUrl.replace(/^https?:\/\//, "")}
             </p>
             <Button asChild variant="secondary">

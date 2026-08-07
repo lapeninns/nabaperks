@@ -26,7 +26,7 @@ export function Marquee({
         items.map((item, index) => (
           <span
             key={`${repeat}-${index}`}
-            className="mono-meta flex items-center tracking-[0.12em] whitespace-nowrap"
+            className="mono-meta flex items-center tracking-tag whitespace-nowrap"
           >
             {item}
             <span aria-hidden="true" className="px-4 text-primary">

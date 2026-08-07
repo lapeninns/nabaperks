@@ -54,7 +54,7 @@ export function FilterPills({
               // the 44px Wet Ink tap-target minimum (DESIGN.md, WCAG 2.5.8)
               // without distorting the desktop pill height.
               "tap-floor",
-              "mono-meta tracking-[0.04em] whitespace-nowrap",
+              "mono-meta tracking-meta whitespace-nowrap",
               "transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)]",
               // Focus comes from the shared .focus-ring recipe (globals.css).
               "focus-ring outline-none motion-reduce:transition-none",
@@ -67,7 +67,7 @@ export function FilterPills({
             {typeof item.count === "number" ? (
               <span
                 className={cn(
-                  "numeric-tabular rounded-full px-1.5 text-[0.625rem] leading-4",
+                  "numeric-tabular rounded-full px-1.5 text-micro leading-4",
                   selected
                     ? "bg-primary-foreground text-primary"
                     : "bg-paper-deep text-ink-soft"

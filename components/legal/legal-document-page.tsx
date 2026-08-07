@@ -60,7 +60,7 @@ export function LegalDocumentPage({
           <ReceiptCard edge className="grid gap-0">
             <div className="flex items-baseline justify-between gap-4">
               <p className="text-xl font-extrabold">{meta.cardTitle}</p>
-              <span className="mono-id tracking-[0.08em] text-muted-foreground">
+              <span className="mono-id tracking-tag text-muted-foreground">
                 Nº {meta.docNumber}
               </span>
             </div>
@@ -71,7 +71,7 @@ export function LegalDocumentPage({
                 tabIndex={-1}
                 className="w-rule focus-ring grid scroll-mt-28 gap-2 pt-4"
               >
-                <h2 className="mono-meta tracking-[0.08em] text-foreground">
+                <h2 className="mono-meta tracking-tag text-foreground">
                   {section.title}
                 </h2>
                 <p className="text-sm leading-6 text-muted-foreground">

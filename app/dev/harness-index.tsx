@@ -27,7 +27,7 @@ export function HarnessIndex({
         <a
           key={section.id}
           href={`#${section.id}`}
-          className="focus-ring tap-floor mono-meta inline-flex h-9 shrink-0 items-center rounded-full border-2 border-ink bg-card px-3.5 tracking-[0.04em] whitespace-nowrap text-ink-soft normal-case hover:bg-secondary"
+          className="focus-ring tap-floor mono-meta inline-flex h-9 shrink-0 items-center rounded-full border-2 border-ink bg-card px-3.5 tracking-meta whitespace-nowrap text-ink-soft normal-case hover:bg-secondary"
         >
           {section.label}
         </a>

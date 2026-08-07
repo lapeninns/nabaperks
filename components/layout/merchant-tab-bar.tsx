@@ -36,7 +36,7 @@ export function MerchantTabBar() {
               aria-current={active ? "page" : undefined}
               data-active={active}
               className={cn(
-                "group focus-ring flex min-h-14 flex-col items-center justify-center gap-1 text-[0.6875rem] font-bold transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none",
+                "group focus-ring flex min-h-14 flex-col items-center justify-center gap-1 text-meta font-bold transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none",
                 active
                   ? "text-foreground"
                   : "text-ink-soft hover:text-foreground"

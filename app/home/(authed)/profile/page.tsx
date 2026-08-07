@@ -55,7 +55,7 @@ export default async function HomeProfilePage() {
 
       <PushNotificationSettingsDisclosure />
 
-      <p className="mono-id tracking-[0.08em] text-muted-foreground">
+      <p className="mono-id tracking-tag text-muted-foreground">
         Member since {formatMonthYear(profile.memberSince)} · {venueLabel}
       </p>
     </div>

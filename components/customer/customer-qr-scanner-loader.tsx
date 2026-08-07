@@ -60,7 +60,7 @@ function CustomerQrScannerLoading({
           />
           <span
             aria-live="polite"
-            className="mono-id tracking-[0.08em] text-muted-foreground"
+            className="mono-id tracking-tag text-muted-foreground"
           >
             Starting camera
           </span>

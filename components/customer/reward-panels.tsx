@@ -132,7 +132,7 @@ export function RedeemedProofPanel({
         The merchant has scanned your QR. A new stamp cycle has started.
       </StatusBanner>
       {proofLine ? (
-        <p className="mono-id text-center tracking-[0.08em] text-muted-foreground">
+        <p className="mono-id text-center tracking-tag text-muted-foreground">
           {proofLine}
         </p>
       ) : null}

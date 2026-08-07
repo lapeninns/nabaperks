@@ -64,13 +64,13 @@ function StampDiscFace({
         <Icon icon={CheckmarkBadge04Icon} size={34} />
       ) : pending ? (
         <span className="grid justify-items-center gap-1">
-          <span className="font-mono text-lg font-bold tracking-[0.04em] uppercase">
+          <span className="font-mono text-lg font-bold tracking-meta uppercase">
             {initials}
           </span>
           <span className="mono-id">Checking</span>
         </span>
       ) : initials ? (
-        <span className="font-mono text-xl font-bold tracking-[0.04em] uppercase">
+        <span className="font-mono text-xl font-bold tracking-meta uppercase">
           {initials}
         </span>
       ) : (

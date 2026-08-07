@@ -209,7 +209,7 @@ export function ResetPasswordForm({
               autoComplete="one-time-code"
               autoFocus={initialOtpSent}
               maxLength={otpLength}
-              className="font-mono tracking-[0.18em]"
+              className="font-mono tracking-code"
               value={otp}
               onChange={(event) => {
                 setOtp(

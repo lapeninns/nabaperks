@@ -118,7 +118,7 @@ function HowItWorksList() {
       {/* IconRoundel is the sanctioned framing circle (DESIGN.md · Shapes), and
           HomeEmptyState already numbers the identical how-it-works list with
           it. The hand-rolled 20px disc was a fourth circle dialect at a fifth
-          unsanctioned micro size (text-[0.7rem]), and its -rotate-6 borrowed
+          unsanctioned micro size (text-meta), and its -rotate-6 borrowed
           the stamp/reward tilt for a step number that cannot be earned
           (CUS 02#56). */}
       <ol className="grid gap-2">

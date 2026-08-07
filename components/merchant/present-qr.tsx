@@ -56,7 +56,7 @@ export function PresentQrRoot({
           </DialogPrimitive.Close>
 
           <div className="grid justify-items-center gap-2 text-center">
-            <p className="mono-meta tracking-[0.2em] text-paper/70">
+            <p className="mono-meta tracking-code text-paper/70">
               Scan to join
             </p>
             <DialogPrimitive.Title className="max-w-[16ch] text-2xl leading-tight font-extrabold text-balance text-paper sm:text-3xl">
@@ -80,7 +80,7 @@ export function PresentQrRoot({
               Customers scan to join and collect today&apos;s stamp — no app to
               download.
             </p>
-            <p className="font-mono text-[11px] tracking-[0.06em] break-all text-paper/55">
+            <p className="font-mono text-meta tracking-meta break-all text-paper/55">
               {shareLabel}
             </p>
           </div>

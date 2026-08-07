@@ -87,7 +87,7 @@ export function PosterPreviewChrome({
           <h1 className="truncate text-base leading-tight font-extrabold text-balance sm:text-lg">
             {templateName}
           </h1>
-          <p className="mono-id truncate tracking-[0.08em] text-muted-foreground">
+          <p className="mono-id truncate tracking-tag text-muted-foreground">
             {merchantName}
           </p>
         </div>
@@ -161,7 +161,7 @@ export function PosterDesktopSidecar({
   return (
     <aside className="qr-poster-sidecar hidden min-h-0 min-w-0 flex-col gap-4 border-l-2 border-ink bg-paper/95 p-4 lg:flex lg:overflow-y-auto">
       <div className="grid gap-2">
-        <p className="mono-id tracking-[0.12em] text-muted-foreground">
+        <p className="mono-id tracking-tag text-muted-foreground">
           Poster collection
         </p>
         <PosterTemplateLinks
@@ -173,11 +173,11 @@ export function PosterDesktopSidecar({
       </div>
 
       <div className="grid gap-2">
-        <p className="mono-id tracking-[0.12em] text-muted-foreground">
+        <p className="mono-id tracking-tag text-muted-foreground">
           Print setup
         </p>
         <PosterGuidanceText />
-        <p className="mono-id tracking-[0.1em] text-muted-foreground">
+        <p className="mono-id tracking-tag text-muted-foreground">
           {printSizeMeta()}
         </p>
       </div>
@@ -202,7 +202,7 @@ export function PosterActionBar({ ref, template }: PosterActionBarProps) {
       className="qr-poster-action-bar border-t-2 border-ink bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-sm lg:hidden"
     >
       <div className="mx-auto grid w-full max-w-[var(--poster-frame-max)] gap-2 px-4 py-2.5 sm:grid-cols-[1fr_auto] sm:items-center sm:gap-4 sm:px-6 sm:py-3">
-        <p className="mono-id tracking-[0.1em] text-muted-foreground">
+        <p className="mono-id tracking-tag text-muted-foreground">
           {printSizeMeta()}
         </p>
         <PrintButton className="w-full sm:w-fit" template={template} />

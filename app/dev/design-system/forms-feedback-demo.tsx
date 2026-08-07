@@ -76,7 +76,7 @@ export function FormsFeedbackDemo() {
               autoComplete="one-time-code"
               maxLength={6}
               aria-label="One-time passcode"
-              className="font-mono tracking-[0.18em]"
+              className="font-mono tracking-code"
             />
           </div>
         </div>

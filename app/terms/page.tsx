@@ -70,7 +70,7 @@ export default function TermsPage() {
               <p className="text-xl font-extrabold">
                 {PLATFORM_TERMS_META.cardTitle}
               </p>
-              <span className="mono-id tracking-[0.08em] text-muted-foreground">
+              <span className="mono-id tracking-tag text-muted-foreground">
                 Nº {PLATFORM_TERMS_META.docNumber}
               </span>
             </div>
@@ -113,7 +113,7 @@ function TermsBlock({
       tabIndex={-1}
       className="w-rule focus-ring grid scroll-mt-28 gap-2 pt-4"
     >
-      <h2 className="mono-meta tracking-[0.08em] text-foreground">{title}</h2>
+      <h2 className="mono-meta tracking-tag text-foreground">{title}</h2>
       <p className="text-sm leading-6 text-muted-foreground">{body}</p>
     </section>
   )
