@@ -14,14 +14,14 @@ branch is green after every merge.
 
 | Report           | Tracked |    Done | Partial |  Stale |   Open |
 | ---------------- | ------: | ------: | ------: | -----: | -----: |
-| 01 marketing     |      69 |      43 |      17 |      3 |      6 |
-| 02 customer      |      70 |      47 |      13 |      2 |      8 |
+| 01 marketing     |      69 |      42 |      18 |      3 |      6 |
+| 02 customer      |      70 |      48 |      13 |      2 |      7 |
 | 03 merchant      |      67 |      44 |      15 |      5 |      3 |
-| 04 admin         |      74 |      54 |       9 |      8 |      3 |
+| 04 admin         |      74 |      54 |       9 |      9 |      2 |
 | 05 design system |      67 |      60 |       3 |      1 |      3 |
-| **Total**        | **347** | **248** |  **57** | **19** | **23** |
+| **Total**        | **347** | **248** |  **58** | **20** | **21** |
 
-## "Stale" is a real category (19 findings)
+## "Stale" is a real category (20 findings)
 
 Not reproducible against the current tree, and recorded rather than invented
 into a change. Examples: `border-[1.5px]` no longer exists (03#25); both
@@ -48,8 +48,8 @@ Two findings were also proved wrong on the merits rather than merely stale:
 ## Where contract tests beat the audit
 
 No assertion was weakened or deleted. Findings refused on this basis:
-01#9, 01#10, 01#38, 01#49, 01#65 (landing band order, claims boundary,
-GuideSpine, legal clause headings), 02#10, 02#36, 02#60, 02#62, 02#53
+01#9, 01#10, 01#38, 01#49, 01#63, 01#65 (landing band order, claims boundary,
+GuideSpine, legal TOC order, legal clause headings), 02#10, 02#36, 02#60, 02#62, 02#53
 (pass wiring, rewards history copy, scanner exits, barista copy, input-otp
 absence), 03#47 (RA-11 pins the fixed/static reward tray), 03#37 (poster URL
 shape), 03#55 (announcement maxLength).
@@ -60,7 +60,7 @@ relaxed for whitespace only after Prettier re-wrapped a ternary
 `isPosterPrintPath` (`merchant-shell`). One test was added
 (`motion-tokens-bounded`).
 
-## Remaining 23 open, by reason
+## Remaining 21 open, by reason
 
 - **Needs a browser** — 01#12 heroes, 02#27/28/29 stamp-grid geometry, 04#60
   sticky table header, 04#67 density, 05#47 footer density.
