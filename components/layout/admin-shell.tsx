@@ -135,7 +135,12 @@ export function AdminShell({
             wordmarkClassName="hidden sm:inline"
           />
         </header>
-        <div className="w-full px-4 py-8 sm:px-6">
+        {/* One console rhythm (05#65). The merchant shell ramps
+            px-4 py-5 -> sm:py-6 -> lg:px-8 lg:py-8; admin was a flat
+            px-4 py-8 sm:px-6, so two sibling consoles padded their content
+            differently at every width. Admin has no bottom tab bar, so it
+            takes the same ramp without the tab-bar reserve. */}
+        <div className="w-full px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
           <div className="mx-auto w-full max-w-merchant">{children}</div>
         </div>
       </SidebarInset>
