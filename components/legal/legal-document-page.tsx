@@ -1,8 +1,6 @@
-import Link from "next/link"
-
 import { Eyebrow, PageTitle, ReceiptCard } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
-import { Button } from "@/components/ui/button"
+import { LegalRelatedLinks } from "./legal-related-links"
 import type { LegalSection } from "@/lib/legal/content"
 
 type LegalDocumentMeta = {
@@ -111,13 +109,7 @@ export function LegalDocumentPage({
             ))}
           </ReceiptCard>
 
-          <div className="flex flex-wrap gap-3">
-            {relatedLinks.map((link) => (
-              <Button key={link.href} asChild variant="secondary">
-                <Link href={link.href}>{link.label}</Link>
-              </Button>
-            ))}
-          </div>
+          <LegalRelatedLinks links={relatedLinks} />
         </article>
       </Section>
     </MarketingLayout>

@@ -3,7 +3,7 @@ import Link from "next/link"
 
 import { Eyebrow, PageTitle, ReceiptCard } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
-import { Button } from "@/components/ui/button"
+import { LegalRelatedLinks } from "@/components/legal/legal-related-links"
 import { LEGAL_CONTACT } from "@/lib/marketing/facts"
 import { PRIVACY_META, PRIVACY_SECTIONS } from "@/lib/legal/content"
 import { OG_IMAGE } from "@/lib/seo/structured-data"
@@ -124,9 +124,9 @@ export default function PrivacyPage() {
             </p>
           </div>
 
-          <Button asChild variant="secondary" className="w-fit">
-            <Link href="/terms">Platform terms</Link>
-          </Button>
+          <LegalRelatedLinks
+            links={[{ href: "/terms", label: "Platform terms" }]}
+          />
         </article>
       </Section>
     </MarketingLayout>

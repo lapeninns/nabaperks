@@ -1,9 +1,8 @@
 import type { Metadata } from "next"
-import Link from "next/link"
 
 import { Eyebrow, PageTitle, ReceiptCard } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
-import { Button } from "@/components/ui/button"
+import { LegalRelatedLinks } from "@/components/legal/legal-related-links"
 import {
   PLATFORM_TERMS_META,
   PLATFORM_TERMS_SECTIONS,
@@ -84,14 +83,12 @@ export default function TermsPage() {
             ))}
           </ReceiptCard>
 
-          <div className="flex flex-wrap gap-3">
-            <Button asChild variant="secondary">
-              <Link href="/privacy">Privacy notice</Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link href="/cookies">Cookie notice</Link>
-            </Button>
-          </div>
+          <LegalRelatedLinks
+            links={[
+              { href: "/privacy", label: "Privacy notice" },
+              { href: "/cookies", label: "Cookie notice" },
+            ]}
+          />
         </article>
       </Section>
     </MarketingLayout>
