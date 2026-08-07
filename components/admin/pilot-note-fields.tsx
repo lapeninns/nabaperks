@@ -34,9 +34,15 @@ export function PilotNoteFields() {
   }, [])
 
   return (
+    // Container query, not `xl:`. This form sits four boxes deep (panel p-5 →
+    // card p-4 → disclosure px-3 → here), so at a 1280px viewport it had about
+    // 820px into which the `xl:` rule asked for 220 + 160 + 1fr + auto — it
+    // switched to its widest layout exactly where it least fit. `@2xl` keys off
+    // the disclosure body's own width instead, and `items-end` keeps the
+    // two-row textarea, the select and the submit on one baseline.
     <div
       ref={containerRef}
-      className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[220px_160px_minmax(0,1fr)_auto]"
+      className="@container grid gap-3 sm:grid-cols-2 @2xl:grid-cols-[minmax(0,14rem)_minmax(0,10rem)_minmax(0,1fr)_auto] @2xl:items-end"
     >
       <AdminField label="Note type">
         <SelectField
@@ -64,7 +70,7 @@ export function PilotNoteFields() {
           placeholder="1-3"
         />
       </AdminField>
-      <AdminField label="Notes" className="sm:col-span-2 xl:col-span-1">
+      <AdminField label="Notes" className="sm:col-span-2 @2xl:col-span-1">
         <Textarea
           name="notes"
           required
@@ -75,7 +81,7 @@ export function PilotNoteFields() {
       </AdminField>
       <SubmitButton
         pendingLabel="Saving…"
-        className="justify-self-start sm:col-span-2 xl:col-span-1 xl:self-end"
+        className="justify-self-start sm:col-span-2 @2xl:col-span-1"
       >
         <Icon icon={CheckmarkCircle02Icon} size={16} />
         Save note
