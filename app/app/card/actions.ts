@@ -11,6 +11,10 @@ import {
 } from "@/lib/merchant/customer-readback"
 import { autoProvisionJoinQrFromSetup } from "@/lib/merchant/ensure-join-qr"
 import {
+  REWARD_EXPIRY_ERROR,
+  parseRewardExpiryDays,
+} from "@/lib/merchant/reward-expiry-fields"
+import {
   isDefiniteRewardPresetRollbackCode,
   MAX_REWARD_PRESET_BATCH,
   resolveRewardPresetsByIds,
@@ -35,12 +39,14 @@ export type LoyaltyCardActionState = {
     cardName?: string
     stampsRequired?: string
     rewardTerms?: string
+    rewardExpiryDays?: string
     isActive?: boolean
   }
   errors?: {
     cardName?: string
     stampsRequired?: string
     rewardTerms?: string
+    rewardExpiryDays?: string
     form?: string
   }
 }
@@ -142,16 +148,23 @@ export async function saveLoyaltyCardAction(
   const cardName = value(formData, "cardName")
   const stampsRequired = value(formData, "stampsRequired")
   const rewardTerms = value(formData, "rewardTerms")
+  const rewardExpiryDays = value(formData, "rewardExpiryDays")
   const isActive = formData.get("isActive") === "on"
   const fields = {
     cardId,
     cardName,
     stampsRequired,
     rewardTerms,
+    rewardExpiryDays,
     isActive,
   }
   const errors: NonNullable<LoyaltyCardActionState["errors"]> = {}
   const parsedStampsRequired = parseInteger(stampsRequired)
+  const parsedRewardExpiryDays = parseRewardExpiryDays(rewardExpiryDays)
+
+  if (parsedRewardExpiryDays === null) {
+    errors.rewardExpiryDays = REWARD_EXPIRY_ERROR
+  }
 
   if (!cardName) errors.cardName = "Enter a card name."
   if (cardName.length > 80) errors.cardName = "Use 80 characters or fewer."
@@ -173,7 +186,11 @@ export async function saveLoyaltyCardAction(
     errors.rewardTerms = "Use 500 characters or fewer."
   }
 
-  if (Object.keys(errors).length || parsedStampsRequired === null) {
+  if (
+    Object.keys(errors).length ||
+    parsedStampsRequired === null ||
+    parsedRewardExpiryDays === null
+  ) {
     return { fields, errors }
   }
 
@@ -186,6 +203,7 @@ export async function saveLoyaltyCardAction(
     p_reward_name: "Surprise reward",
     p_reward_terms: rewardTerms,
     p_is_active: isActive,
+    p_reward_expires_after_days: parsedRewardExpiryDays,
   })
 
   if (error) {

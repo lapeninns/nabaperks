@@ -39,14 +39,11 @@
       "independentReview": true,
       "requiredSecrets": [
         "PRODUCTION_MONITOR_SECRET",
-        "SENTRY_AUTH_TOKEN",
         "SUPABASE_ACCESS_TOKEN",
         "SUPABASE_DB_PASSWORD",
         "VERCEL_TOKEN"
       ],
       "requiredVariables": [
-        "SENTRY_ORG",
-        "SENTRY_PROJECT",
         "SUPABASE_PROJECT_REF",
         "VERCEL_ORG_ID",
         "VERCEL_PROJECT_ID"

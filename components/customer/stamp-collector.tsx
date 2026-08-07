@@ -45,7 +45,12 @@ export type StampCollectorProps = {
   todayLabel: string
   rewardName: string
   rewardUnlocked?: boolean
-  location: { requireGeofence: boolean; geofenceRadiusMeters: number }
+  location: {
+    requireGeofence: boolean
+    geofenceRadiusMeters: number
+    firstVerifiedVisit?: number
+    nextVisitNumber?: number
+  }
   submitStamp?: StampSubmitter
   refreshCard?: () => void
 }
@@ -111,7 +116,11 @@ export function StampCollector({
   const [locationNotice] = useState(
     () =>
       canStamp &&
-      shouldAttemptStampLocation(location.requireGeofence, current + 1)
+      shouldAttemptStampLocation(
+        location.requireGeofence,
+        location.nextVisitNumber ?? current + 1,
+        location.firstVerifiedVisit
+      )
   )
   const locationPromiseRef =
     useRef<Promise<StampLocationCapture | null> | null>(null)

@@ -152,7 +152,7 @@ test("scheduled production smoke validates both JSON probe contracts", () => {
       notificationQueueAgeMinutes: 0,
       loyaltyInviteQueueAgeMinutes: 0,
       providerDeliveryFailureRate24h: 0,
-      cronJobs: Array.from({ length: 6 }, () => ({})),
+      cronJobs: Array.from({ length: 7 }, () => ({})),
     },
   }
 

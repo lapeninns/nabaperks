@@ -22,6 +22,8 @@ export type LoyaltyCardSummary = {
   reward_name: string
   reward_terms: string
   is_active: boolean
+  /** Days an earned reward stays claimable before it lapses and frees the card. */
+  reward_expires_after_days: number | null
   birthday_reward_enabled: boolean
   birthday_reward_name: string | null
   birthday_reward_terms: string | null
@@ -91,7 +93,7 @@ async function loadLoyaltyCardSetup(
   const { data: card, error: cardError } = await supabase
     .from("loyalty_cards")
     .select(
-      "id, card_name, stamps_required, reward_name, reward_terms, is_active, birthday_reward_enabled, birthday_reward_name, birthday_reward_terms"
+      "id, card_name, stamps_required, reward_name, reward_terms, is_active, reward_expires_after_days, birthday_reward_enabled, birthday_reward_name, birthday_reward_terms"
     )
     .eq("merchant_id", merchant.id)
     .eq("location_id", location.id)

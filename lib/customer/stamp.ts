@@ -1,7 +1,9 @@
 import "server-only"
 
+import { recordProductEvent } from "@/lib/analytics/events"
 import {
   blockReasonCopy,
+  stampBlockReasonFromSqlState,
   toStampBlockReason,
 } from "@/lib/customer/experience/block-reasons"
 import { getCurrentCustomer } from "@/lib/customer/identity"
@@ -41,11 +43,14 @@ type IssueStampRpcParams = {
   readonly p_accuracy_meters: number | null
   readonly p_location_status: string | null
   readonly p_capture_elapsed_ms: number | null
+  readonly p_referral_bonuses_pre_drained: number
 }
 
 export type LocationRequirement = {
   requireGeofence: boolean
   geofenceRadiusMeters: number
+  firstVerifiedVisit: number
+  nextVisitNumber: number
 }
 
 export async function issueSelfServiceStamp(
@@ -56,16 +61,45 @@ export async function issueSelfServiceStamp(
   if (!customer) return { status: "blocked", reason: "Open your cards first." }
 
   const supabase = createSupabaseServiceRoleClient()
+  const referralBonusesPreDrained = await drainReferralBonusesBeforeStamp(
+    supabase,
+    membershipId,
+    customer.id
+  )
   const { data, error } = await supabase.rpc(
     "issue_self_service_stamp",
-    buildIssueStampRpcParams(membershipId, customer.id, coordinates)
+    buildIssueStampRpcParams(
+      membershipId,
+      customer.id,
+      coordinates,
+      referralBonusesPreDrained
+    )
   )
 
   if (error) {
-    return blockKnownStampFailure(error.message, membershipId)
+    const blocked = blockKnownStampFailure(
+      error.message,
+      membershipId,
+      error.code
+    )
+    await recordLocationRefusal(supabase, membershipId, customer.id, error.code)
+    return blocked
   }
 
-  const issuedStamp = issuedStampResult(firstRecord(data))
+  const row = firstRecord(data)
+
+  // A separately settled referral bonus can fill the card before the visit stamp
+  // is reached. The RPC returns no stamp id so the customer sees the waiting
+  // reward without the scan being counted as a location-verified visit.
+  if (
+    row &&
+    !stringValue(row.stamp_event_id) &&
+    booleanValue(row.reward_unlocked)
+  ) {
+    return { status: "blocked", reason: blockReasonCopy("reward_ready_first") }
+  }
+
+  const issuedStamp = issuedStampResult(row)
   if (!issuedStamp) throw new Error("Unable to issue a stamp")
 
   return issuedStamp
@@ -74,7 +108,8 @@ export async function issueSelfServiceStamp(
 function buildIssueStampRpcParams(
   membershipId: string,
   customerId: string,
-  coordinates: GeoCoordinates | undefined
+  coordinates: GeoCoordinates | undefined,
+  referralBonusesPreDrained: number
 ): IssueStampRpcParams {
   return {
     p_membership_id: membershipId,
@@ -85,14 +120,95 @@ function buildIssueStampRpcParams(
     p_accuracy_meters: coordinates?.accuracyMeters ?? null,
     p_location_status: coordinates?.locationStatus ?? null,
     p_capture_elapsed_ms: coordinates?.captureElapsedMs ?? null,
+    p_referral_bonuses_pre_drained: referralBonusesPreDrained,
+  }
+}
+
+async function drainReferralBonusesBeforeStamp(
+  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
+  membershipId: string,
+  customerId: string
+): Promise<number> {
+  const { data, error } = await supabase.rpc(
+    "drain_due_referrer_bonuses_for_membership",
+    { p_referrer_membership_id: membershipId }
+  )
+
+  if (!error) return numberValue(data) ?? 0
+
+  try {
+    await recordProductEvent({
+      eventName: "referral_settlement_failed",
+      customerId,
+      membershipId,
+      actorType: "system",
+      actorId: "system",
+      metadata: {
+        outcome: "failed",
+        stage: "settle_before_stamp",
+        sqlstate: error.code ?? "unknown",
+        error: error.message.slice(0, 500),
+      },
+    })
+  } catch (cause) {
+    logger.warn("referral_settlement_failure_record_failed", {
+      membershipId,
+      reason: cause instanceof Error ? cause.message : "unknown",
+    })
+  }
+
+  logger.warn("referral_settlement_before_stamp_failed", {
+    membershipId,
+    sqlstate: error.code ?? "unknown",
+  })
+  return 0
+}
+
+/**
+ * Persist a location refusal, which the RPC itself cannot do.
+ *
+ * NBS10/NBS11 are raised, and a raise aborts the transaction — so a fraud flag
+ * written inside `issue_self_service_stamp` is rolled back with the refusal it
+ * describes. Recording from here works because the failed RPC has already ended
+ * its transaction and this is a new one.
+ *
+ * Best-effort by design: the customer has already been told why their stamp did
+ * not land, and losing the signal must never turn into a second error on that
+ * screen.
+ */
+async function recordLocationRefusal(
+  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
+  membershipId: string,
+  customerId: string,
+  code: string | null | undefined
+): Promise<void> {
+  const reason = stampBlockReasonFromSqlState(code)
+  if (reason !== "location_out_of_range" && reason !== "location_required")
+    return
+
+  try {
+    const { error } = await supabase.rpc("record_stamp_location_refusal", {
+      p_membership_id: membershipId,
+      p_customer_id: customerId,
+      p_reason: reason,
+    })
+    if (error) throw new Error(error.message)
+  } catch (cause) {
+    logger.warn("stamp_location_refusal_record_failed", {
+      membershipId,
+      reason: cause instanceof Error ? cause.message : "unknown",
+    })
   }
 }
 
 function blockKnownStampFailure(
   rpcMessage: string,
-  membershipId: string
+  membershipId: string,
+  rpcCode?: string | null
 ): IssueSelfServiceStampResult {
-  const reason = toStampBlockReason(rpcMessage)
+  // The SQLSTATE is authoritative; the message is only consulted for refusals
+  // that do not carry one yet (see block-reasons.ts).
+  const reason = toStampBlockReason(rpcMessage, rpcCode)
 
   if (reason === "unknown") {
     throw new Error(`Unable to issue a stamp: ${rpcMessage}`)
@@ -158,14 +274,27 @@ export async function getMembershipLocationRequirement(
   const merchantId = stringValue(membership.merchant_id)
   if (!merchantId) return defaultLocationRequirement()
 
-  return getMerchantStampLocationRequirement(merchantId)
+  const { count, error: visitCountError } = await supabase
+    .from("stamp_events")
+    .select("id", { count: "exact", head: true })
+    .eq("membership_id", membershipId)
+    .eq("event_type", "earned")
+    .eq("metadata->>source", "self_service_qr")
+
+  if (visitCountError) {
+    throw new Error(
+      `Unable to load membership visits: ${visitCountError.message}`
+    )
+  }
+
+  const requirement = await getMerchantStampLocationRequirement(merchantId)
+  return { ...requirement, nextVisitNumber: (count ?? 0) + 1 }
 }
 
 /**
  * Location gate for a merchant's active loyalty card, resolved without a
- * membership. Returning QR visits use this to decide whether the next existing
- * member stamp should land on the stamp screen for the cycle-stamp-3 soft
- * location attempt.
+ * membership. Join flows use the venue policy; returning-member stamp flows add
+ * the membership's next lifetime visit number separately.
  */
 export async function getMerchantStampLocationRequirement(
   merchantId: string
@@ -200,7 +329,9 @@ export async function getLocationRequirement(
   const supabase = createSupabaseServiceRoleClient()
   const { data: location, error } = await supabase
     .from("merchant_locations")
-    .select("require_geofence, geofence_radius_meters")
+    .select(
+      "require_geofence, geofence_radius_meters, soft_geofence_trigger_stamp_number"
+    )
     .eq("id", locationId)
     .maybeSingle()
 
@@ -213,6 +344,11 @@ export async function getLocationRequirement(
   return {
     requireGeofence: booleanValue(location.require_geofence),
     geofenceRadiusMeters: numberValue(location.geofence_radius_meters) ?? 150,
+    firstVerifiedVisit: Math.max(
+      numberValue(location.soft_geofence_trigger_stamp_number) ?? 3,
+      1
+    ),
+    nextVisitNumber: 1,
   }
 }
 
@@ -220,6 +356,8 @@ function defaultLocationRequirement(): LocationRequirement {
   return {
     requireGeofence: false,
     geofenceRadiusMeters: 150,
+    firstVerifiedVisit: 3,
+    nextVisitNumber: 1,
   }
 }
 

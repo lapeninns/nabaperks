@@ -10,6 +10,7 @@ import {
 } from "@/lib/merchant/loyalty-card-copy"
 import { DEFAULT_STAMPS_REQUIRED } from "@/lib/merchant/customer-readback"
 import { getLoyaltyCardSetup } from "@/lib/merchant/loyalty-card"
+import { DEFAULT_REWARD_EXPIRY_DAYS } from "@/lib/merchant/reward-expiry-fields"
 import { CARD_CADENCE_PRESETS } from "@/lib/merchant/reward-presets"
 
 export type CardPanelParams = {
@@ -54,6 +55,9 @@ export async function CardPanel({ params }: { params: CardPanelParams }) {
             clampStampsRequired(
               card?.stamps_required ?? DEFAULT_STAMPS_REQUIRED
             )
+          ),
+          rewardExpiryDays: String(
+            card?.reward_expires_after_days ?? DEFAULT_REWARD_EXPIRY_DAYS
           ),
           rewardTerms: resolveLoyaltyCardRewardTerms(
             clampStampsRequired(

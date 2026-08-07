@@ -63,11 +63,30 @@ async function farStamp(tx, fixture) {
       ${FAR.latitude}, ${FAR.longitude}, 10, 'granted', 900)`
 }
 
-async function geofenceFlags(tx, membershipId) {
-  return tx`
-    select metadata from public.fraud_flags
-    where membership_id = ${membershipId}::uuid
-      and signal = 'self_service_geofence_out_of_range'`
+/**
+ * The SQLSTATE a far stamp raises, or null when it collects.
+ *
+ * Since 20260805100100 an out-of-range position REFUSES instead of flagging, so
+ * the knob is now observed through the refusal rather than through a
+ * fraud_flags row — a row written inside the refusing transaction is rolled
+ * back with it.
+ */
+async function farStampSqlstate(tx, fixture) {
+  try {
+    await tx.savepoint(async (sp) => {
+      await farStamp(sp, fixture)
+    })
+    return null
+  } catch (error) {
+    return error.code ?? null
+  }
+}
+
+async function earnedCount(tx, membershipId) {
+  const [row] = await tx`
+    select count(*)::int as n from public.stamp_events
+    where membership_id = ${membershipId}::uuid and event_type = 'earned'`
+  return row.n
 }
 
 test("the trigger bound is 1–99 at the SQL layer", { skip }, async () => {
@@ -84,7 +103,9 @@ test("the trigger bound is 1–99 at the SQL layer", { skip }, async () => {
                    where id = ${venue.location_id}::uuid`
         })
       } catch (error) {
-        refused = error?.code === "23514" || /check constraint/i.test(String(error.message))
+        refused =
+          error?.code === "23514" ||
+          /check constraint/i.test(String(error.message))
       }
       assert.ok(refused, `${bad} must violate the 1–99 CHECK`)
     }
@@ -95,56 +116,81 @@ test("the trigger bound is 1–99 at the SQL layer", { skip }, async () => {
     const [row] = await tx`
       select soft_geofence_trigger_stamp_number from public.merchant_locations
       where id = ${venue.location_id}::uuid`
-    assert.equal(row.soft_geofence_trigger_stamp_number, 7, "an in-range value persists")
+    assert.equal(
+      row.soft_geofence_trigger_stamp_number,
+      7,
+      "an in-range value persists"
+    )
   })
 })
 
-test("a configured trigger of 2 fires the soft check on cycle stamp 2", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    const [venue] = await tx.unsafe(PICK)
-    await tx`update public.merchant_locations
-             set soft_geofence_trigger_stamp_number = 2
+test(
+  "a configured trigger of 2 requires a verified location from visit 2",
+  { skip },
+  async () => {
+    // The knob still decides WHEN verification starts; what changed in
+    // 20260805100100 is what happens then — a refusal, not a flag.
+    await inRolledBackTxn(async (tx) => {
+      const [venue] = await tx.unsafe(PICK)
+      await tx`update public.merchant_locations
+             set soft_geofence_trigger_stamp_number = 2, require_geofence = true
              where id = ${venue.location_id}::uuid`
 
-    const fixture = await joinAndBackdateFirstStamp(tx, venue)
-    await farStamp(tx, fixture) // cycle stamp 2, far away
+      const fixture = await joinAndBackdateFirstStamp(tx, venue)
+      const code = await farStampSqlstate(tx, fixture) // visit 2, far away
 
-    const flags = await geofenceFlags(tx, fixture.membershipId)
-    assert.equal(flags.length, 1, "the out-of-range flag is recorded at the configured stamp")
-    assert.equal(
-      flags[0].metadata.cycle_stamp_number,
-      2,
-      "the flag carries the configured cycle stamp number"
-    )
-    assert.equal(
-      flags[0].metadata.reason,
-      "cycle_stamp_2_soft_geofence",
-      "the flag reason reflects the configured trigger, not a hardcoded 3"
-    )
-  })
-})
+      assert.equal(
+        code,
+        "NBS10",
+        "verification starts at the configured visit, not a hardcoded 3"
+      )
+      assert.equal(
+        await earnedCount(tx, fixture.membershipId),
+        1,
+        "the refused stamp did not land"
+      )
+    })
+  }
+)
 
-test("the default keeps today's behavior: no flag at stamp 2, flag at stamp 3", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    const [venue] = await tx.unsafe(PICK)
-    // Default (3) — untouched.
-    const fixture = await joinAndBackdateFirstStamp(tx, venue)
+test(
+  "the default (3) exempts visits 1-2 and requires verification from visit 3",
+  { skip },
+  async () => {
+    // The first two visits of a membership are exempt outright, so joining and
+    // the first return are never gated on a location permission prompt.
+    await inRolledBackTxn(async (tx) => {
+      const [venue] = await tx.unsafe(PICK)
+      await tx`update public.merchant_locations
+             set require_geofence = true
+             where id = ${venue.location_id}::uuid`
 
-    await farStamp(tx, fixture) // cycle stamp 2 — before the trigger
-    assert.equal(
-      (await geofenceFlags(tx, fixture.membershipId)).length,
-      0,
-      "stamp 2 does not fire the check for a default venue"
-    )
+      const fixture = await joinAndBackdateFirstStamp(tx, venue)
 
-    await tx`
+      // Visit 2, far away — exempt, so it still collects.
+      assert.equal(
+        await farStampSqlstate(tx, fixture),
+        null,
+        "visit 2 is exempt for a default venue"
+      )
+      assert.equal(await earnedCount(tx, fixture.membershipId), 2)
+
+      await tx`
       update public.stamp_events
       set earned_business_date = earned_business_date - 1
       where membership_id = ${fixture.membershipId}::uuid`
-    await farStamp(tx, fixture) // cycle stamp 3 — the default trigger
 
-    const flags = await geofenceFlags(tx, fixture.membershipId)
-    assert.equal(flags.length, 1, "stamp 3 fires the check for a default venue")
-    assert.equal(flags[0].metadata.cycle_stamp_number, 3, "the flag records stamp 3")
-  })
-})
+      // Visit 3 — the first verified visit.
+      assert.equal(
+        await farStampSqlstate(tx, fixture),
+        "NBS10",
+        "visit 3 must present a location that is actually the venue"
+      )
+      assert.equal(
+        await earnedCount(tx, fixture.membershipId),
+        2,
+        "the refused stamp did not land"
+      )
+    })
+  }
+)

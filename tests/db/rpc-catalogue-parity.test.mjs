@@ -29,7 +29,7 @@ import { closeDb, db, isLiveDbReady } from "./helpers/db.mjs"
 const EXPECTED_SIGNATURES = {
   issue_self_service_stamp: [
     "p_membership_id uuid, p_customer_id uuid, p_latitude numeric, p_longitude numeric, p_accuracy_meters numeric, p_location_status text, p_capture_elapsed_ms integer",
-    "p_membership_id uuid, p_customer_id uuid, p_qr_id text, p_latitude numeric, p_longitude numeric, p_accuracy_meters numeric, p_location_status text, p_capture_elapsed_ms integer",
+    "p_membership_id uuid, p_customer_id uuid, p_qr_id text, p_latitude numeric, p_longitude numeric, p_accuracy_meters numeric, p_location_status text, p_capture_elapsed_ms integer, p_referral_bonuses_pre_drained integer",
   ],
   join_customer_membership_with_first_stamp: [
     "p_customer_id uuid, p_merchant_slug text, p_qr_id text, p_marketing_opt_in boolean, p_policy_version text, p_latitude numeric, p_longitude numeric, p_ref text",

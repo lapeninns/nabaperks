@@ -58,8 +58,10 @@ export function AdvancedGpsChecks({
       defaultOpen={requireGeofence || Boolean(geofenceRadiusError)}
     >
       <p className="text-xs leading-5 text-muted-foreground">
-        Off by default. When on, a stamp from outside the radius still goes
-        through — it is only flagged for you to review later.
+        On by default. A member&apos;s first two visits never ask for location.
+        After that, a stamp is refused only when their phone reports a position
+        outside the radius. If location is switched off or cannot be read, they
+        still collect a few times before it is required.
       </p>
       <label className="flex items-center justify-between gap-4 rounded-lg border-2 border-ink bg-card px-4 py-3 text-sm font-bold">
         <span>Use GPS anomaly checks</span>
@@ -87,7 +89,7 @@ export function AdvancedGpsChecks({
       </p>
       <GpsField
         id="softGeofenceTriggerStamp"
-        label="Check on stamp number"
+        label="Verify from visit number"
         name="softGeofenceTriggerStamp"
         inputMode="numeric"
         pattern="[0-9]*"
@@ -96,8 +98,9 @@ export function AdvancedGpsChecks({
         error={softGeofenceTriggerStampError}
       />
       <p className="text-xs leading-5 text-muted-foreground">
-        Which stamp in each card cycle runs the location check. 3 works for
-        most venues; use 1–99.
+        The visit from which a member must be at the venue to collect. Counted
+        across all their visits to you, not per card. 3 works for most venues;
+        use 1–99.
       </p>
       {requireGeofence && pin ? (
         <div className="grid gap-2">
