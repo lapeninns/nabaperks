@@ -59,6 +59,10 @@ export const wetInkTransition = {
     ease: [0.16, 1.2, 0.3, 1], // --w-ease-slam (overshoot)
   },
 
+  /**
+   * One bounded ±3° tease, then rests — not a loop. 2.6s.
+   * Used by WetInkWiggle to draw the eye once without holding it.
+   */
   wiggle: {
     duration: 2.6,
     ease: "easeInOut",
@@ -84,13 +88,14 @@ export const wetInkTransition = {
   },
 
   /**
-   * Marquee scroll: infinite horizontal loop, 26s.
-   * Used by WetInkMarquee on marketing strip.
+   * Marquee scroll: 26s per lap. Used by WetInkMarquee on the marketing strip,
+   * which reads `duration` only — the loop itself is a CSS animation, so no
+   * `repeat` belongs here. (A `repeat: Infinity` sat in this token unread,
+   * which made the token file look like it sanctioned indefinite motion.)
    */
   marquee: {
     duration: 26,
     ease: "linear",
-    repeat: Infinity,
   },
 
   /**
