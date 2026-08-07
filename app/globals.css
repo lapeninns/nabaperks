@@ -185,6 +185,9 @@
   --sidebar-border: var(--w-line);
   --sidebar-ring: var(--w-accent);
 
+  /* Tell the UA which form controls, scrollbars and canvas to render. */
+  color-scheme: light;
+
   /* Shape — sharp-ish print shapes; circles are reserved for the stamp family. */
   --radius: 10px;
   --radius-sheet: 18px;
@@ -203,6 +206,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   /* Wet Ink, night printing — same riso logic on dark paper. */
   --w-paper: #1b1712;
   --w-paper-2: #27211a;
@@ -658,7 +662,18 @@ body[data-grain="true"]::after {
 }
 
 [data-slot="skeleton"] {
-  background-color: color-mix(in oklch, var(--w-ink) 13%, transparent);
+  /* 13% ink read at ~1.3:1 against paper — below the 3:1 non-text floor, so a
+     loading placeholder was barely perceivable. 20% lands near 1.6:1 for the
+     fill; the dashed hairline below carries the shape when the pulse is off. */
+  background-color: color-mix(in oklch, var(--w-ink) 20%, transparent);
+}
+
+/* Without the pulse, a flat block is easy to mistake for real empty content.
+   A static dashed edge keeps the placeholder legible as a placeholder. */
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="skeleton"] {
+    border: 2px dashed var(--w-line);
+  }
 }
 
 [data-slot="sheet-content"] {
@@ -973,12 +988,18 @@ body[data-grain="true"]::after {
     scroll-behavior: auto;
   }
 
+  /* Kill motion, not feedback. A blanket `transition-duration` reset also
+     flattened colour, border and shadow transitions — including the 90ms
+     press settle and every hover state — which removes affordance rather than
+     motion. Reduced-motion users still want to see that a control responded;
+     they just do not want it to travel. */
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
+    transition-property: transform, translate, scale, rotate !important;
     transition-duration: 0.01ms !important;
   }
 
