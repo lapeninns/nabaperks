@@ -64,8 +64,7 @@ export type AnnouncementSubmitFailure = {
 }
 
 export type AnnouncementSubmitResult =
-  | AnnouncementSubmitSuccess
-  | AnnouncementSubmitFailure
+  AnnouncementSubmitSuccess | AnnouncementSubmitFailure
 
 export type AnnouncementSubmit = (
   input: AnnouncementSubmitInput
@@ -144,7 +143,11 @@ export function AnnouncementCompose({
     <form
       onSubmit={handleSubmit}
       className={cn(
-        "surface-card grid min-w-0 gap-5 rounded-lg border-2 border-ink bg-card p-4 shadow-xs sm:p-5",
+        // `.surface-card` already carries the 2px ink border, the 10px radius,
+        // the card ground and the 4px hard shadow. Restating three of them and
+        // overriding the elevation to `shadow-xs` put the composer at a
+        // different elevation from every other console card (03#54).
+        "surface-card grid min-w-0 gap-5 p-4 sm:p-5",
         className
       )}
     >

@@ -214,12 +214,7 @@ export function ActivityDetailFeed({
           {hasMore ? ", more available" : ""}.
         </p>
         {hasMore ? (
-          <Button
-            asChild
-            variant="secondary"
-            size="sm"
-            className="min-h-11 sm:min-h-9"
-          >
+          <Button asChild variant="secondary" size="sm">
             {/* The feed's Suspense boundary is keyed on filter only, so this
                 navigation extends the list in place — the label is the only
                 loading signal, hence the useLinkStatus pending swap. */}
