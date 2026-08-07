@@ -76,27 +76,21 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
 
   return (
     <div className="grid min-w-0 gap-2 overflow-x-clip sm:gap-6">
-      {/* Mobile setup context — the visual PageTitle is sm+ only, so on a phone
-          the readiness rail would otherwise appear with no heading or "what's
-          left" line. This carries the single page-level h1 on mobile (sm:hidden);
-          the PageTitle h1 takes over from sm up, so exactly one h1 renders per
-          breakpoint and the heading level never shifts per tab. */}
-      <div className="grid gap-1 sm:hidden">
-        <span className="eyebrow">Merchant setup</span>
-        <h1 className="text-2xl leading-tight font-extrabold text-balance">
-          {header.heading}
-        </h1>
-        <p className="text-sm leading-6 text-pretty text-muted-foreground">
-          {header.mobileContext}
-        </p>
-      </div>
-      <div className="hidden sm:grid">
-        <PageTitle
-          eyebrow="Merchant setup"
-          title={header.heading}
-          description={header.description}
-        />
-      </div>
+      {/* ONE heading block at every breakpoint. PageTitle owns the single h1
+          (and its responsive .type-page-title step) so the page never carries
+          two heading sources to keep in sync; only the supporting line swaps —
+          the short "what's left" context on a phone, the full description from
+          sm up. Both strings still come from lib/merchant/launch-header-copy. */}
+      <PageTitle
+        eyebrow="Merchant setup"
+        title={header.heading}
+        description={
+          <>
+            <span className="sm:hidden">{header.mobileContext}</span>
+            <span className="hidden sm:inline">{header.description}</span>
+          </>
+        }
+      />
 
       <LaunchReadinessPanel
         readiness={readiness}
