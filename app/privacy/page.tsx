@@ -40,9 +40,13 @@ export default function PrivacyPage() {
     <MarketingLayout>
       <Section
         as="div"
+        data-legal-document
         className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start"
       >
-        <aside className="surface-card order-last p-4 lg:sticky lg:top-20 lg:order-none">
+        <aside
+          className="surface-card order-last p-4 lg:sticky lg:top-20 lg:order-none"
+          data-legal-toc
+        >
           <Eyebrow className="mb-3">On this page</Eyebrow>
           <nav aria-label="Privacy sections" className="grid gap-1">
             {PRIVACY_SECTIONS.map((section) => (
@@ -124,9 +128,11 @@ export default function PrivacyPage() {
             </p>
           </div>
 
-          <LegalRelatedLinks
-            links={[{ href: "/terms", label: "Platform terms" }]}
-          />
+          <div data-legal-related>
+            <LegalRelatedLinks
+              links={[{ href: "/terms", label: "Platform terms" }]}
+            />
+          </div>
         </article>
       </Section>
     </MarketingLayout>

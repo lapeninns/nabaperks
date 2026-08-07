@@ -29,13 +29,20 @@ export function LegalDocumentPage({
     <MarketingLayout>
       <Section
         as="div"
+        data-legal-document
         className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start"
       >
-        {/* 01#63: this was `order-last`, so on a phone the table of contents
-            rendered AFTER the entire document — thousands of pixels below the
-            only place it is useful. It now sits above the prose and collapses,
-            so it costs a summary row rather than a screen. */}
-        <aside className="surface-card p-4 lg:sticky lg:top-20">
+        {/* 01#63 asks for the TOC above the prose on mobile. NOT applied:
+            tests/contracts/legal-p3-polish (MKT-P3-14/15, VCU-P3-14) requires
+            the /terms and /privacy TOC to sit AFTER the article below lg so the
+            h1 stays above the fold, and shipping two different orders across
+            five interlinked legal pages is worse than one debatable order.
+            The collapsible summary below is kept — it costs a row instead of a
+            block wherever it sits. */}
+        <aside
+          className="surface-card order-last p-4 lg:sticky lg:top-20 lg:order-none"
+          data-legal-toc
+        >
           <details open className="group">
             <summary className="focus-ring mb-3 flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 rounded-full lg:pointer-events-none">
               <Eyebrow>On this page</Eyebrow>
@@ -109,7 +116,9 @@ export function LegalDocumentPage({
             ))}
           </ReceiptCard>
 
-          <LegalRelatedLinks links={relatedLinks} />
+          <div data-legal-related>
+            <LegalRelatedLinks links={relatedLinks} />
+          </div>
         </article>
       </Section>
     </MarketingLayout>

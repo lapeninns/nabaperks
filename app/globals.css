@@ -594,6 +594,30 @@ body[data-grain="true"]::after {
   }
 }
 
+/* Legal documents are the one surface people genuinely print or save as PDF —
+   a customer keeping the terms they agreed to, an operator filing the schedule.
+   Without a print treatment the sticky TOC, the site chrome and the hard offset
+   shadows all render into the page. (01#68) */
+@media print {
+  [data-legal-document] [data-legal-toc],
+  [data-legal-document] [data-legal-related] {
+    display: none !important;
+  }
+
+  [data-legal-document] {
+    max-width: none;
+  }
+
+  [data-legal-document] * {
+    box-shadow: none !important;
+  }
+
+  /* Keep a clause and its heading together across a page break. */
+  [data-legal-document] section {
+    break-inside: avoid;
+  }
+}
+
 /* Programmatic focus targets — recovery blocks that an action or an error path
    focuses by script. `.focus-ring` keys off `:focus-visible`, which browsers
    deliberately do NOT match when focus is moved programmatically onto a
