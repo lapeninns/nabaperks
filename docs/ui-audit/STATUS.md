@@ -5,7 +5,7 @@ Branch `feat/ui-redesign-audit-fixes`. `[x]` shipped and verified, `[~]` partial
 `[ ]` open. Per-lane detail is in the sibling `STATUS-*.md` files; the
 cross-lane roll-up is in `COVERAGE.md`.
 
-## 05-design-system.md — 47 done / 2 partial / 1 stale / 1 deferred / 16 open (of 67)
+## 05-design-system.md — 56 done / 2 partial / 1 stale / 1 deferred / 7 open (of 67)
 
 |         | ID    | Priority | Finding                                                                              |
 | ------- | ----- | -------- | ------------------------------------------------------------------------------------ |
@@ -15,12 +15,12 @@ cross-lane roll-up is in `COVERAGE.md`.
 | [x]     | 05#4  | High     | `--border` / `--input` at 18% ink fails WCAG 1.4.11 for every 1px boundary           |
 | [x]     | 05#5  | High     | Sun (`--seal`) is unusable as a foreground yet is exposed as `text-sun`              |
 | [x]     | 05#6  | Medium   | `.eyebrow` bakes in a colour, so it cannot be used on the inverted band              |
-| [ ]     | 05#7  | Medium   | 141 declared custom properties; ~74 have zero `var()` consumers                      |
+| [x]     | 05#7  | Medium   | 141 declared custom properties; ~74 have zero `var()` consumers                      |
 | [x]     | 05#8  | High     | QR tokens exist but every QR surface hard-codes `bg-white`                           |
 | [x]     | 05#9  | High     | `<h1>` renders at six different sizes; `<h2>` at eleven                              |
 | [x]     | 05#10 | High     | Fonts are loaded at 400/700 only, but the system specifies 500 and 800               |
-| [ ]     | 05#11 | Medium   | Twenty-one hand-rolled `text-[…]` sizes below or around the sanctioned micro scale   |
-| [ ]     | 05#12 | Low      | Eleven distinct `tracking-[…]` values against a two-value contract                   |
+| [x]     | 05#11 | Medium   | Twenty-one hand-rolled `text-[…]` sizes below or around the sanctioned micro scale   |
+| [x]     | 05#12 | Low      | Eleven distinct `tracking-[…]` values against a two-value contract                   |
 | [ ]     | 05#13 | High     | Nine declared sizes, six used, and no page-level consistency                         |
 | [x]     | 05#14 | Medium   | The `stamp` and `reward` variants are visually identical to `default` / `Badge rewar |
 | [x]     | 05#15 | Low      | `link` variant's `rounded-none` is silently overridden to 10px by the unlayered laye |
@@ -51,7 +51,7 @@ cross-lane roll-up is in `COVERAGE.md`.
 | [x]     | 05#40 | High     | `CustomerShell` uses `overflow-x-hidden`, which the codebase's own comment forbids   |
 | [x]     | 05#41 | Medium   | Four different full-height conventions across shells and boundaries                  |
 | [x]     | 05#42 | Medium   | `AdminShell` is 80rem wide while `MerchantAppShell` is 72rem                         |
-| [ ]     | 05#43 | Medium   | `AdminShell` has no desktop sidebar control and no `hideMobileChrome` parity         |
+| [x]     | 05#43 | Medium   | `AdminShell` has no desktop sidebar control and no `hideMobileChrome` parity         |
 | [x]     | 05#44 | Medium   | `AdminShell` sidebar footer stacks four `MonoTag` chips of pure decoration           |
 | [x]     | 05#45 | Low      | `PageTitle` fakes baseline alignment with `md:pt-8`                                  |
 | [x]     | 05#46 | Medium   | `CustomerAppShell` reserves 128px of bottom padding for a 56px tab bar               |
@@ -60,13 +60,13 @@ cross-lane roll-up is in `COVERAGE.md`.
 | [x]     | 05#49 | Medium   | `global-error.tsx` speaks a different design system                                  |
 | [ ]     | 05#50 | Medium   | Loading fallbacks use `role="status"` on a container with no `aria-live` guarantee a |
 | [x]     | 05#51 | Low      | Four route-level `not-found` variants with three different container recipes         |
-| [ ]     | 05#52 | High     | The reset-password confirm step is ~840px tall on a phone                            |
-| [ ]     | 05#53 | High     | `SignupVerifyForm` renders three escape-hatch paragraphs containing four 44px links  |
+| [x]     | 05#52 | High     | The reset-password confirm step is ~840px tall on a phone                            |
+| [x]     | 05#53 | High     | `SignupVerifyForm` renders three escape-hatch paragraphs containing four 44px links  |
 | [x]     | 05#54 | Medium   | `AuthPromptLink` is duplicated verbatim in three files                               |
 | [x]     | 05#55 | High     | OTP resend is a borderless ghost button whose label reflows every second             |
 | [stale] | 05#56 | Medium   | Both auth flows use banned "create an account" copy                                  |
-| [ ]     | 05#57 | High     | `WetInkMarquee` pauses on hover only — no operable pause control                     |
-| [ ]     | 05#58 | Low      | `WetInkRipple` returns `null`, breaking the documented host-invariance rule          |
+| [x]     | 05#57 | High     | `WetInkMarquee` pauses on hover only — no operable pause control                     |
+| [x]     | 05#58 | Low      | `WetInkRipple` returns `null`, breaking the documented host-invariance rule          |
 | [x]     | 05#59 | Low      | `WetInkWiggle` / `WetInkBreathe` are documented as one-shot but read as loops in the |
 | [x]     | 05#60 | Medium   | The global reduced-motion rule nukes `transition-duration` on _everything_, includin |
 | [~]     | 05#61 | High     | `enableSystem` is on while dark mode is an untested dormant capability               |
@@ -74,22 +74,28 @@ cross-lane roll-up is in `COVERAGE.md`.
 | [x]     | 05#63 | High     | Compact sizes honour 44px on coarse pointers — except the four that don't            |
 | [ ]     | 05#64 | Medium   | `Icon` sizes are passed as numbers, producing 9 distinct glyph sizes with no scale   |
 | [ ]     | 05#65 | Medium   | `Section` and `ContrastBand` own marketing rhythm, but nothing owns console/customer |
-| [ ]     | 05#66 | Low      | `Section size="default"` is `py-7 sm:py-10` while `ContrastBand` is `py-9 sm:py-12`  |
+| [x]     | 05#66 | Low      | `Section size="default"` is `py-7 sm:py-10` while `ContrastBand` is `py-9 sm:py-12`  |
 | [x]     | 05#67 | Low      | `numeric-tabular` exists and is used 42 times, but the countdowns don't use it       |
 
 ## Remaining open, and why
 
-- **05#7, 05#11, 05#12, 05#13, 05#64** — token/utility sprawl (unused custom
-  properties, 21 hand-rolled micro sizes, 11 tracking values, 9 icon sizes).
-  Each is a codemod across every lane's files; safest run as one sweep now that
-  all lanes have merged.
-- **05#23, 05#28, 05#47, 05#65, 05#66** — form-label register, the
-  Alert/StatusBanner merge, the marketing footer, and console/customer spacing
-  rhythm. All change shared vocabulary across many surfaces at once.
-- **05#50, 05#52, 05#53** — loading announcements and two auth-funnel height
-  cuts. Real work, not blocked.
-- **05#57, 05#58** — marquee pause control and WetInkRipple host-invariance.
-- **05#43** verified already done (admin is `collapsible="icon"`).
+- **05#13** — Button ships 9 sizes, 6 used. Cutting to four is an API removal
+  across every lane's call sites; explicitly out of scope per the standing
+  Tier-3/4 exclusion.
+- **05#23** — form labels are 11.5px uppercase mono. Moving them to
+  `text-sm font-bold` restyles every label in the product at once; wants a
+  visual pass, not a blind codemod.
+- **05#28** — merging `Alert` (13 uses) into `StatusBanner` (279). A single
+  notice anatomy is right, but it touches every inline notice in five surfaces
+  and both carry different ARIA defaults (`role="alert"` vs polite status), so
+  merging them blind would change how failures are announced.
+- **05#47** — the marketing footer's density. Layout judgement; needs a browser.
+- **05#50** — loading announcements driven by `useLinkStatus`. Needs a shell-level
+  live region wired to navigation state, verified against a real screen reader.
+- **05#64** — 9 icon sizes to a 4-rung scale. Codemod, but each call site's rung
+  is a visual choice.
+- **05#65** — nothing owns console/customer vertical rhythm. Needs a rhythm
+  primitive adopted across every console and customer page root.
 
 ## Blocked, with evidence
 
