@@ -55,50 +55,76 @@ function HeroRewardRow({
 /**
  * Hero sample card — stamps slam in one by one, then the mystery seal unlocks.
  * Loops gently for the landing hero; reduced motion shows the finished state.
+ *
+ * WCAG 2.2.2: the cycle runs ~5.9s and repeats for as long as the page is
+ * open, on `/` and on `/loyalty-for-pubs`. `prefers-reduced-motion` is honoured
+ * inside the hook, but 2.2.2 also requires a mechanism for users who have not
+ * set that flag — `WetInkMarquee` got one for exactly this reason, and this
+ * card is the more assertive animation of the two. The toggle freezes the card
+ * on the finished frame, which is the same rest state SSR and reduced motion
+ * render, so pausing never leaves a half-stamped card on screen.
  */
 export function HeroSampleCard({ qrMatrix }: { qrMatrix: QrMatrix }) {
   const [stampDates] = useState(() => stampDisplayDatesEndingToday(STAMP_TOTAL))
-  const { earnedCount, slamIndex, revealed, revealSlam, cycleIndex } =
-    useStampJourneyLoop(STAMP_TOTAL)
-  const reward = heroSampleReward(cycleIndex)
+  const [playing, setPlaying] = useState(true)
+  const loop = useStampJourneyLoop(STAMP_TOTAL)
+  const { earnedCount, slamIndex, revealed, revealSlam } = playing
+    ? loop
+    : {
+        earnedCount: STAMP_TOTAL,
+        slamIndex: -1,
+        revealed: true,
+        revealSlam: false,
+      }
+  const reward = heroSampleReward(loop.cycleIndex)
 
   return (
-    <SampleLoyaltyCard
-      className="max-sm:rotate-[0.75deg] sm:rotate-[1.5deg]"
-      shellClassName="flex flex-col gap-3 sm:gap-4 [&_.w-rule]:my-0"
-      venue="Old Crown · CB3 0QD"
-      title={HERO_CARD_NAME}
-      venueInitials="OC"
-      hideStampRow
-      bodyClassName="grid gap-3 sm:gap-4"
-      stamps={{
-        current: earnedCount,
-        total: STAMP_TOTAL,
-      }}
-      slamIndex={slamIndex}
-    >
-      {/* QR on the same phone you are reading cannot be scanned — keep the
-          scan beat from sm up; phones get stamps + reward only. */}
-      <div className="hidden sm:block">
-        <CardScanRow
-          qrMatrix={qrMatrix}
-          eyebrow="Venue QR scanned"
-          title="Venue QR opens the card in the browser."
-        />
-      </div>
-      <CardStampRow
-        current={earnedCount}
-        total={STAMP_TOTAL}
-        dates={stampDates.slice(0, earnedCount)}
+    <div className="grid gap-2">
+      <SampleLoyaltyCard
+        className="max-sm:rotate-[0.75deg] sm:rotate-[1.5deg]"
+        shellClassName="flex flex-col gap-3 sm:gap-4 [&_.w-rule]:my-0"
+        venue="Old Crown · CB3 0QD"
+        title={HERO_CARD_NAME}
         venueInitials="OC"
-        showEmptySlotNumbers
+        hideStampRow
+        bodyClassName="grid gap-3 sm:gap-4"
+        stamps={{
+          current: earnedCount,
+          total: STAMP_TOTAL,
+        }}
         slamIndex={slamIndex}
-      />
-      <HeroRewardRow
-        revealed={revealed}
-        revealSlam={revealSlam}
-        reward={reward}
-      />
-    </SampleLoyaltyCard>
+      >
+        {/* QR on the same phone you are reading cannot be scanned — keep the
+          scan beat from sm up; phones get stamps + reward only. */}
+        <div className="hidden sm:block">
+          <CardScanRow
+            qrMatrix={qrMatrix}
+            eyebrow="Venue QR scanned"
+            title="Venue QR opens the card in the browser."
+          />
+        </div>
+        <CardStampRow
+          current={earnedCount}
+          total={STAMP_TOTAL}
+          dates={stampDates.slice(0, earnedCount)}
+          venueInitials="OC"
+          showEmptySlotNumbers
+          slamIndex={slamIndex}
+        />
+        <HeroRewardRow
+          revealed={revealed}
+          revealSlam={revealSlam}
+          reward={reward}
+        />
+      </SampleLoyaltyCard>
+      <button
+        type="button"
+        aria-pressed={!playing}
+        onClick={() => setPlaying((wasPlaying) => !wasPlaying)}
+        className="focus-ring mono-id tap-floor inline-flex min-h-11 items-center justify-self-end rounded-(--radius-md) px-2 text-muted-foreground uppercase hover:text-foreground"
+      >
+        {playing ? "Pause the demo" : "Play the demo"}
+      </button>
+    </div>
   )
 }
