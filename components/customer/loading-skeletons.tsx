@@ -302,3 +302,92 @@ export function CustomerHomeSkeleton() {
     </div>
   )
 }
+
+// ─── Home tab skeletons ──────────────────────────────────────────────────────
+
+/**
+ * Mirrors `/home/activity`: the page title, then day-grouped hairline rows.
+ *
+ * Every authed tab used to fall through to {@link CustomerHomeSkeleton}, so
+ * navigating to Activity showed two fake loyalty cards with stamp rows and then
+ * swapped to a feed — a skeleton that actively lies about what is arriving is
+ * worse than a neutral one, and it produced a large re-layout on every tab
+ * switch (CUS 02#67).
+ */
+export function CustomerActivitySkeleton() {
+  return (
+    <div
+      className="grid gap-6"
+      role="status"
+      aria-label="Loading your activity"
+    >
+      <CustomerPageTitleSkeleton />
+      <div className="grid gap-5">
+        {[0, 1].map((day) => (
+          <section key={day} className="grid gap-1">
+            <Skeleton className="h-3 w-24" />
+            <div className="grid">
+              {[0, 1, 2].map((row) => (
+                <div
+                  key={row}
+                  className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-2.5 gap-y-1 border-b border-dashed border-line py-2.5 last:border-b-0"
+                >
+                  <Skeleton className="mt-[0.45em] size-2 rounded-full" />
+                  <Skeleton className="h-4 w-40 max-w-full" />
+                  <Skeleton className="col-start-2 h-4 w-full max-w-[15rem]" />
+                </div>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/** Mirrors `/home/rewards`: title, two ready reward cards, one history row. */
+export function CustomerRewardsSkeleton() {
+  return (
+    <div className="grid gap-6" role="status" aria-label="Loading your rewards">
+      <CustomerPageTitleSkeleton />
+      <div className="grid gap-4">
+        <div className="grid gap-2">
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-5 w-32" />
+        </div>
+        {[0, 1].map((reward) => (
+          <ReceiptCard key={reward} className="grid gap-3 bg-accent">
+            <div className="flex items-center justify-between gap-2">
+              <Skeleton className="h-[26px] w-32 rounded-full" />
+              <Skeleton className="h-[26px] w-16 rounded-full" />
+            </div>
+            <Skeleton className="h-5 w-44 max-w-full" />
+            <Skeleton className="h-4 w-full max-w-[15rem]" />
+            <Skeleton className="h-12 w-full" />
+          </ReceiptCard>
+        ))}
+        <div className="surface-card p-4">
+          <Skeleton className="h-5 w-40" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Mirrors `/home/profile`: title and three settings sections. */
+export function CustomerProfileSkeleton() {
+  return (
+    <div className="grid gap-6" role="status" aria-label="Loading your profile">
+      <CustomerPageTitleSkeleton />
+      <div className="grid gap-6">
+        {[0, 1, 2].map((section) => (
+          <div key={section} className="surface-card grid gap-3 p-5">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-5 w-40 max-w-full" />
+            <Skeleton className="h-11 w-full" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}

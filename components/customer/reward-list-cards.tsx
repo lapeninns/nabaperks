@@ -32,16 +32,28 @@ export function RedeemableReward({ reward }: { reward: CustomerRewardItem }) {
 
   return (
     <ReceiptCard className="grid gap-3 bg-accent text-accent-foreground">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <MonoTag tone="leaf">{reward.businessName}</MonoTag>
-          {badge ? <MonoTag tone="leaf">{badge}</MonoTag> : null}
-        </div>
-        <MonoTag tone="leaf">Ready</MonoTag>
+      {/* One venue tag left, one state tag right. The header used to print the
+          venue name, then `rewardSourceBadge(source, businessName)` — which
+          EMBEDS the venue name for a merchant-sent reward — then "Ready": three
+          pills wrapping to two rows for any venue name over ~14 characters, and
+          MonoTag truncates, so a long name became "THE OLD CROWN GI…" twice on
+          the member's most valuable object (CUS 02#37). `flex-nowrap` with a
+          truncating venue tag degrades predictably instead. */}
+      <div className="flex flex-nowrap items-center justify-between gap-2">
+        <MonoTag tone="leaf" className="min-w-0 flex-1">
+          {reward.businessName}
+        </MonoTag>
+        <MonoTag tone="leaf" className="shrink-0">
+          Ready
+        </MonoTag>
       </div>
       <h2 className="text-lg leading-tight font-extrabold">
         {reward.rewardName}
       </h2>
+      {/* The source is a sentence now, not a third pill — it reads as what it
+          is ("Birthday treat from The Old Crown") instead of competing with the
+          venue tag it repeats. */}
+      {badge ? <p className="text-sm leading-6 font-bold">{badge}</p> : null}
       {description ? (
         <p className="text-sm leading-6 text-muted-foreground">{description}</p>
       ) : null}
@@ -52,6 +64,33 @@ export function RedeemableReward({ reward }: { reward: CustomerRewardItem }) {
         <Link href={`/reward/${reward.rewardId}`}>Open reward QR</Link>
       </Button>
     </ReceiptCard>
+  )
+}
+
+/**
+ * A past reward as a single line — the History disclosure's row.
+ *
+ * Archive was charged at full ReceiptCard weight with a hard offset shadow,
+ * ~120px each, so a realistic member's six historic rewards outweighed their
+ * two live ones 3:1 (CUS 02#36). Same three facts, ~44px.
+ */
+export function QuietRewardRow({
+  reward,
+  note,
+}: {
+  reward: CustomerRewardItem
+  note: string
+}) {
+  return (
+    <li className="flex flex-nowrap items-center gap-2 border-b border-dashed border-line py-2 last:border-b-0">
+      <MonoTag tone="plain" className="max-w-[7rem] min-w-0 shrink-0">
+        {reward.businessName}
+      </MonoTag>
+      <span className="min-w-0 flex-1 truncate text-sm leading-snug font-bold">
+        {reward.rewardName}
+      </span>
+      <span className="mono-meta shrink-0 text-muted-foreground">{note}</span>
+    </li>
   )
 }
 
