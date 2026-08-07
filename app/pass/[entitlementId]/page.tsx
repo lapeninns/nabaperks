@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation"
 
 import { CustomerFlowShell } from "@/components/customer/customer-flow-system"
 import { OfferPassQr } from "@/components/customer/offer-pass-qr"
-import { CustomerTabBar } from "@/components/layout"
+import { CustomerTabBar, TAB_BAR_CLEARANCE } from "@/components/layout"
 import { OfferPass, StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import {
@@ -58,7 +58,7 @@ export default async function CustomerOfferPassPage({
         eyebrow="Discount pass"
         title={`${pass.discountPercent}% off at ${pass.venueName}`}
         description={shellSupportLine(pass)}
-        className="pb-28"
+        className={TAB_BAR_CLEARANCE}
         screenLabel="Customer discount pass"
       >
         <div className="grid gap-4">

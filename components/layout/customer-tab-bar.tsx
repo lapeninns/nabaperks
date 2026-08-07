@@ -1,6 +1,6 @@
 "use client"
 
-import Link from "next/link"
+import Link, { useLinkStatus } from "next/link"
 import { usePathname } from "next/navigation"
 import {
   Activity03Icon,
@@ -18,6 +18,16 @@ type TabItem = {
   label: string
   icon: typeof Home01Icon
 }
+
+/**
+ * Every scroll container that sits behind the fixed bar reserves its clearance
+ * from here, so the reservation and the bar can never drift (CUS 02#1). The bar
+ * is `min-h-14` (56px) plus its own 2px top rule; the extra 1rem is breathing
+ * room under the last element. Declared beside the component it measures rather
+ * than copied as `pb-28` / `pb-32` magic numbers into four different surfaces.
+ */
+export const TAB_BAR_CLEARANCE =
+  "[--tab-bar-h:calc(3.5rem+2px)] pb-[calc(var(--tab-bar-h)+env(safe-area-inset-bottom)+1rem)]"
 
 const tabs: TabItem[] = [
   { href: "/home", label: "Home", icon: Home01Icon },
@@ -43,6 +53,37 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
+/**
+ * The tap feedback. `/home` and `/scan` are server-rendered with real I/O, so
+ * between tap and route commit there can be hundreds of milliseconds with no
+ * hover state to fall back on — which is what produced double taps. The roundel
+ * therefore fills the moment the navigation starts (`useLinkStatus`), not when
+ * it lands (CUS 02#4).
+ */
+function TabRoundel({
+  active,
+  icon,
+}: {
+  active: boolean
+  icon: TabItem["icon"]
+}) {
+  const { pending } = useLinkStatus()
+
+  return (
+    <span
+      data-state={active ? "active" : pending ? "pending" : "idle"}
+      className={cn(
+        "grid size-8 place-items-center rounded-full border-2 transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none",
+        active
+          ? "border-ink bg-ink text-paper shadow-xs"
+          : "border-transparent text-ink-soft group-hover:border-ink/30 group-active:border-ink group-active:bg-secondary group-active:text-foreground data-[state=pending]:border-ink data-[state=pending]:bg-secondary data-[state=pending]:text-foreground"
+      )}
+    >
+      <Icon icon={icon} size={20} />
+    </span>
+  )
+}
+
 export function CustomerTabBar() {
   const pathname = usePathname()
 
@@ -63,22 +104,26 @@ export function CustomerTabBar() {
               aria-current={active ? "page" : undefined}
               data-active={active}
               className={cn(
-                "group focus-ring flex min-h-14 flex-col items-center justify-center gap-1 text-[0.6875rem] font-bold transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none",
+                // text-xs, not the hand-rolled 11px: below text-xs the contract
+                // sanctions only .mono-meta / .mono-id, both Space Mono
+                // (CUS 02#3). The roundel drops to size-8 to keep the 56px bar.
+                "group focus-ring relative flex min-h-14 flex-col items-center justify-center gap-1 text-xs font-bold transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] active:translate-y-px motion-reduce:transition-none motion-reduce:active:translate-y-0",
                 active
                   ? "text-foreground"
                   : "text-ink-soft hover:text-foreground"
               )}
             >
+              {/* The active tab carries a 2px ink rule on the bar's own top
+                  border, so the selected column reads without relying on the
+                  roundel fill alone. */}
               <span
+                aria-hidden="true"
                 className={cn(
-                  "grid size-9 place-items-center rounded-full border-2 transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none",
-                  active
-                    ? "border-ink bg-ink text-paper shadow-xs"
-                    : "border-transparent text-ink-soft group-hover:border-ink/30"
+                  "pointer-events-none absolute inset-x-3 top-0 h-0.5",
+                  active ? "bg-ink" : "bg-transparent"
                 )}
-              >
-                <Icon icon={tab.icon} size={20} />
-              </span>
+              />
+              <TabRoundel active={active} icon={tab.icon} />
               {tab.label}
             </Link>
           )

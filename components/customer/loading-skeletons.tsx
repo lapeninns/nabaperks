@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 
 import { ReceiptCard } from "@/components/brand"
-import { CustomerTabBar } from "@/components/layout"
+import { CustomerTabBar, TAB_BAR_CLEARANCE } from "@/components/layout"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
@@ -123,7 +123,7 @@ function StampRowSkeleton({ size = "size-12" }: { size?: string }) {
 export function CustomerCardSkeleton() {
   return (
     <>
-      <CustomerFlowShellSkeleton className="pb-28">
+      <CustomerFlowShellSkeleton className={TAB_BAR_CLEARANCE}>
         <div className="grid gap-4">
           <Skeleton className="h-4 w-24" />
           <ReceiptCard edge className="grid gap-4">
@@ -155,7 +155,7 @@ export function CustomerCardSkeleton() {
 export function CustomerRewardSkeleton() {
   return (
     <>
-      <CustomerFlowShellSkeleton className="pb-28">
+      <CustomerFlowShellSkeleton className={TAB_BAR_CLEARANCE}>
         <ReceiptCard edge className="grid gap-4">
           <div className="flex items-start justify-between gap-4">
             <Skeleton className="h-3 w-28" />
