@@ -8,7 +8,7 @@ import {
   verifyCustomerOtpAction,
   type CustomerIdentityState,
 } from "@/app/m/[merchantSlug]/join/actions"
-import { customerInputClass } from "@/components/customer/input-class"
+import { customerOtpInputClass } from "@/components/customer/input-class"
 import { SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
@@ -87,7 +87,7 @@ export function CustomerOtpForm({
                 inputMode="numeric"
                 autoComplete="one-time-code"
                 autoFocus
-                className={`${customerInputClass} font-mono`}
+                className={customerOtpInputClass}
                 aria-invalid={Boolean(state.errors?.otp)}
                 aria-describedby={state.errors?.otp ? "otp-error" : "otp-hint"}
                 onInput={(event) => {

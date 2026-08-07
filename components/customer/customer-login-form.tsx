@@ -7,7 +7,10 @@ import {
   verifyCustomerLoginOtpAction,
   type CustomerLoginOtpState,
 } from "@/app/home/actions"
-import { customerInputClass } from "@/components/customer/input-class"
+import {
+  customerInputClass,
+  customerOtpInputClass,
+} from "@/components/customer/input-class"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
@@ -158,7 +161,7 @@ export function CustomerLoginForm({ next }: CustomerLoginFormProps) {
               autoComplete="one-time-code"
               autoFocus
               maxLength={otpFieldMaxLength()}
-              className={`${customerInputClass} font-mono`}
+              className={customerOtpInputClass}
               aria-invalid={Boolean(verifyError)}
               aria-describedby={verifyError ? "otp-error" : undefined}
             />
