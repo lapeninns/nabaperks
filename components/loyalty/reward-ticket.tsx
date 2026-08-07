@@ -127,7 +127,13 @@ export function RewardTicket({
 
       <div
         className={cn(
-          "grid w-20 shrink-0 content-center justify-items-center gap-2 p-2 text-center sm:w-[88px] sm:p-3",
+          // Flat w-20. `sm:w-[88px]` widened the stub by 8px at >=640px — but
+          // the customer column is capped at 410px, so that only ever ate
+          // measure on the surface where the terms are already squeezed into a
+          // 213px newspaper column (CUS 02#30). The base width is set by the
+          // stub word at the mono-id floor ("REDEEMED"), so shrinking it
+          // further needs a rendered measurement, not a guess.
+          "grid w-20 shrink-0 content-center justify-items-center gap-2 p-2 text-center sm:p-3",
           leaf ? "bg-reward/10" : "bg-seal/10"
         )}
       >
