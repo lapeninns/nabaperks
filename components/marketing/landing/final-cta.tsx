@@ -56,7 +56,8 @@ export function FinalCta() {
         </div>
         <p className="max-w-md justify-self-center text-sm leading-6 text-muted-foreground">
           <span className="font-bold text-foreground">{GUARANTEE.name}:</span>{" "}
-          {GUARANTEE.line} {CLAIMS_BOUNDARY.never}
+          {GUARANTEE.line} {GUARANTEE.claim} {GUARANTEE.conditions}{" "}
+          {CLAIMS_BOUNDARY.never}
         </p>
         <p className="mono-id justify-self-center text-muted-foreground uppercase">
           {PRODUCT.billingDisclosure} {PRODUCT.cancelLine}
