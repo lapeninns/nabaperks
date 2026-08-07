@@ -1,20 +1,18 @@
-# UI audit — per-finding status
+# UI audit — design-system per-finding status
 
-Branch `feat/ui-redesign-audit-fixes`. `[x]` shipped and verified, `[~]` partial
-(remainder in NEEDS-SIGNOFF.md), `[stale]` audit claim not reproducible in the
-current tree, `[defer]` overlaps a lane owned by another agent, `[ ]` open.
+Branch `feat/ui-redesign-audit-fixes`. `[x]` shipped and verified, `[~]` partial,
+`[stale]` not reproducible in the current tree, `[defer]` overlaps another lane,
+`[ ]` open. Per-lane detail is in the sibling `STATUS-*.md` files; the
+cross-lane roll-up is in `COVERAGE.md`.
 
-Every `[x]` was verified with pnpm lint, typecheck, quality:fast and build
-before commit.
-
-## 05-design-system.md — 42 done / 2 partial / 1 stale / 1 deferred / 21 open (of 67)
+## 05-design-system.md — 47 done / 2 partial / 1 stale / 1 deferred / 16 open (of 67)
 
 |         | ID    | Priority | Finding                                                                              |
 | ------- | ----- | -------- | ------------------------------------------------------------------------------------ |
 | [x]     | 05#1  | High     | The radius scale is declared four sizes wider than the contract and is being used    |
 | [x]     | 05#2  | Critical | Twenty-two different ways to draw "the Wet Ink card"                                 |
 | [x]     | 05#3  | Medium   | `--radius-sheet` never becomes a utility, so sheets are hand-numbered                |
-| [ ]     | 05#4  | High     | `--border` / `--input` at 18% ink fails WCAG 1.4.11 for every 1px boundary           |
+| [x]     | 05#4  | High     | `--border` / `--input` at 18% ink fails WCAG 1.4.11 for every 1px boundary           |
 | [x]     | 05#5  | High     | Sun (`--seal`) is unusable as a foreground yet is exposed as `text-sun`              |
 | [x]     | 05#6  | Medium   | `.eyebrow` bakes in a colour, so it cannot be used on the inverted band              |
 | [ ]     | 05#7  | Medium   | 141 declared custom properties; ~74 have zero `var()` consumers                      |
@@ -29,8 +27,8 @@ before commit.
 | [x]     | 05#16 | Medium   | Ghost/link press travels 2px down, not the documented 1px settle                     |
 | [x]     | 05#17 | Medium   | `outline` variant declares a 1px `border-input` that can never render                |
 | [x]     | 05#18 | High     | `Card`'s stock 24px radius survives on nested images and its `ring-1` survives every |
-| [ ]     | 05#19 | High     | `Card`'s `overflow-hidden` clips the rotated stamp family                            |
-| [ ]     | 05#20 | Medium   | `CardTitle` renders at `text-base font-medium` and relies on CSS to fix the weight   |
+| [x]     | 05#19 | High     | `Card`'s `overflow-hidden` clips the rotated stamp family                            |
+| [x]     | 05#20 | Medium   | `CardTitle` renders at `text-base font-medium` and relies on CSS to fix the weight   |
 | [x]     | 05#21 | Medium   | `ReceiptCard`'s four padding presets fork the 14/22px spacing contract               |
 | [x]     | 05#22 | High     | Three input heights (44/48/48) and a hand-rolled fourth well                         |
 | [ ]     | 05#23 | High     | Form labels are 11.5px uppercase mono                                                |
@@ -61,11 +59,11 @@ before commit.
 | [x]     | 05#48 | High     | No error boundary moves focus or announces itself                                    |
 | [x]     | 05#49 | Medium   | `global-error.tsx` speaks a different design system                                  |
 | [ ]     | 05#50 | Medium   | Loading fallbacks use `role="status"` on a container with no `aria-live` guarantee a |
-| [ ]     | 05#51 | Low      | Four route-level `not-found` variants with three different container recipes         |
+| [x]     | 05#51 | Low      | Four route-level `not-found` variants with three different container recipes         |
 | [ ]     | 05#52 | High     | The reset-password confirm step is ~840px tall on a phone                            |
 | [ ]     | 05#53 | High     | `SignupVerifyForm` renders three escape-hatch paragraphs containing four 44px links  |
 | [x]     | 05#54 | Medium   | `AuthPromptLink` is duplicated verbatim in three files                               |
-| [ ]     | 05#55 | High     | OTP resend is a borderless ghost button whose label reflows every second             |
+| [x]     | 05#55 | High     | OTP resend is a borderless ghost button whose label reflows every second             |
 | [stale] | 05#56 | Medium   | Both auth flows use banned "create an account" copy                                  |
 | [ ]     | 05#57 | High     | `WetInkMarquee` pauses on hover only — no operable pause control                     |
 | [ ]     | 05#58 | Low      | `WetInkRipple` returns `null`, breaking the documented host-invariance rule          |
@@ -79,27 +77,27 @@ before commit.
 | [ ]     | 05#66 | Low      | `Section size="default"` is `py-7 sm:py-10` while `ContrastBand` is `py-9 sm:py-12`  |
 | [x]     | 05#67 | Low      | `numeric-tabular` exists and is used 42 times, but the countdowns don't use it       |
 
-## Parallel lanes
+## Remaining open, and why
 
-Four lane branches were merged into this branch (18 commits, all gates green on
-the combined result): `feat/ui-audit-{admin,merchant,customer,marketing}`.
-Three further merchant sub-lanes are in flight:
-`feat/ui-audit-m-{offers,launch,ops}`.
+- **05#7, 05#11, 05#12, 05#13, 05#64** — token/utility sprawl (unused custom
+  properties, 21 hand-rolled micro sizes, 11 tracking values, 9 icon sizes).
+  Each is a codemod across every lane's files; safest run as one sweep now that
+  all lanes have merged.
+- **05#23, 05#28, 05#47, 05#65, 05#66** — form-label register, the
+  Alert/StatusBanner merge, the marketing footer, and console/customer spacing
+  rhythm. All change shared vocabulary across many surfaces at once.
+- **05#50, 05#52, 05#53** — loading announcements and two auth-funnel height
+  cuts. Real work, not blocked.
+- **05#57, 05#58** — marquee pause control and WetInkRipple host-invariance.
+- **05#43** verified already done (admin is `collapsible="icon"`).
 
-Per-lane detail lives in each lane's own STATUS-<lane>.md once it reports.
+## Blocked, with evidence
 
-### Cross-lane facts established (do not re-fix)
-
-- 03#25 STALE — `border-[1.5px]` no longer exists anywhere in the tree.
-- 03#29 STALE — both remaining `<select>`s already compose SelectField.
-- 03#28 done tree-wide by the merchant lane.
-- 03#38 done — `isPosterPrintPath` now covers poster/tent/nfc/nfc-square.
-- A fixed mobile bottom tab bar now exists (components/layout/merchant-tab-bar.tsx,
-  `md:hidden`); the merchant shell reserves
-  `pb-[calc(5rem+env(safe-area-inset-bottom))]`. Any sticky-bottom element on a
-  phone must clear it.
-
-## Platform constraint
-
-Sub-agents cannot spawn sub-agents: `RLM_MAX_DEPTH=1`. Extra parallelism has to
-be added as sibling lanes from the root agent.
+- **05#61 (dark mode)** — flipping `enableSystem` changes the next-themes
+  bootstrap script and invalidates the CSP hash pinned in `lib/security/csp.ts`.
+  Measured both hashes; see NEEDS-SIGNOFF §6. The suite stays green either way
+  because the CSP test builds its own config literal.
+- **05#24 (confirm password)** — reveal toggle shipped; removing the field is
+  Tier-4 and touches server validation.
+- **05#56** — "Create account" is a copy/product decision in the merchant funnel,
+  where DESIGN.md's customer-voice ban may not apply.
