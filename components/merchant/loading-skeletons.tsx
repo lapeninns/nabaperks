@@ -397,7 +397,7 @@ export function LaunchPanelSkeleton({
         role="status"
         aria-label="Loading setup form"
       >
-        <div className="grid min-w-0 gap-3 rounded-lg border border-border bg-card p-3 sm:gap-5 sm:p-6">
+        <div className="surface-card grid min-w-0 gap-3 p-3 sm:gap-5 sm:p-6">
           <div className="flex items-start justify-between gap-3">
             <div className="grid gap-2">
               <Skeleton className="h-6 w-32" />

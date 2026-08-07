@@ -1,6 +1,7 @@
 "use client"
 
 import { useActionState, useState } from "react"
+import Link from "next/link"
 import {
   CheckmarkCircle02Icon,
   ShieldUserIcon,
@@ -14,8 +15,10 @@ import {
 import { Eyebrow, Icon, MonoTag, SectionHeader } from "@/components/brand"
 import { FormMessage, SubmitButton } from "@/components/forms"
 import { ProgressTrack } from "@/components/loyalty"
+import { Button } from "@/components/ui/button"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { InvitationPreview } from "@/components/merchant/invite/invitation-preview"
+import { Disclosure } from "@/components/merchant/launch/disclosure"
 import { WhatHappensNext } from "@/components/merchant/invite/what-happens-next"
 import { TextareaField } from "@/components/merchant/loyalty-card-form"
 import { LOYALTY_INVITE_MAX_RECIPIENTS } from "@/lib/loyalty-invites/constants"
@@ -45,6 +48,10 @@ const LEGAL_BASES = [
 // (and DB eligibility) is resolved by "Check list" on the server. Kept in sync
 // with the parser's shape rule (import-core's EMAIL_RE) without importing it,
 // since that module transitively pulls in node:crypto.
+/** Shared shell for the lawful-basis radios and the attestation checkbox. */
+const COMPLIANCE_TILE_CLASS =
+  "focus-ring-within tap-floor flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border-2 border-ink/25 bg-card p-3.5 transition-[border-color,background-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] has-checked:border-ink has-checked:bg-secondary has-checked:shadow-[var(--shadow-hard-sm)] motion-reduce:transition-none"
+
 const RECOGNISED_EMAIL_RE = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/
 function countRecognised(raw: string): number {
   return raw
@@ -73,10 +80,18 @@ export function InviteCustomersForm({
     return <SentConfirmation message={state.message} />
   }
 
+  // The payoff first, the work second — on a phone the merchant used to scroll
+  // past the entire compose form to reach the preview of what they are about to
+  // send, then scroll back. `order-first` in DeskLayout hoists the rail above
+  // the form below `lg`; the desk layout is unchanged. The four-step explainer
+  // folds into a Disclosure so it costs a summary row rather than ~260px on
+  // every visit, on both axes.
   const rail = (
-    <div className="grid content-start gap-6 lg:sticky lg:top-6">
+    <div className="grid content-start gap-4 lg:sticky lg:top-6 lg:gap-6">
       <InvitationPreview merchantName={merchantName} />
-      <WhatHappensNext />
+      <Disclosure label="How it works" summaryClassName="min-h-11">
+        <WhatHappensNext />
+      </Disclosure>
     </div>
   )
 
@@ -113,7 +128,7 @@ export function InviteCustomersForm({
 
         <form
           action={action}
-          className="grid min-w-0 gap-5 rounded-lg border border-border bg-card p-4 sm:p-6"
+          className="surface-card grid min-w-0 gap-5 p-4 sm:p-6"
         >
           <SectionHeader
             eyebrow="Compose"
@@ -158,8 +173,8 @@ function DeskLayout({
 }) {
   return (
     <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-8">
-      <div className="min-w-0">{children}</div>
-      <div className="min-w-0">{aside}</div>
+      <div className="min-w-0 lg:order-none">{children}</div>
+      <div className="order-first min-w-0 lg:order-none">{aside}</div>
     </div>
   )
 }
@@ -180,7 +195,11 @@ function RecipientsField({
         id="recipients"
         label="Email addresses"
         name="recipients"
-        rows={8}
+        // Five rows that grow with the paste, not eight rows of empty box:
+        // `field-sizing-content` lets the control size to what is actually in
+        // it, with min/max rows so it neither collapses nor runs away.
+        rows={5}
+        className="field-sizing-content max-h-72 min-h-32"
         defaultValue={defaultValue}
         onInput={(event) =>
           setCount(countRecognised(event.currentTarget.value))
@@ -332,14 +351,19 @@ function ConfirmAndSend({
         {LEGAL_BASES.map((basis) => (
           <label
             key={basis.value}
-            className="focus-ring-within flex cursor-pointer items-start gap-3 rounded-lg border-2 border-border bg-card p-3 transition-[border-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] has-checked:border-ink motion-reduce:transition-none"
+            // These attestations are the GDPR gate for the whole feature, so
+            // the answered state has to be unmistakable: full ink border, the
+            // secondary ground and the hard shadow, not a border alpha nudge.
+            // The tile also carries the 44px tap floor the 16px native control
+            // could never meet on its own.
+            className={COMPLIANCE_TILE_CLASS}
           >
             <input
               type="radio"
               name="legalBasis"
               value={basis.value}
               required
-              className="mt-0.5 size-4 shrink-0 accent-[var(--w-ink)]"
+              className="mt-0.5 size-5 shrink-0 accent-[var(--w-ink)]"
             />
             <span className="grid min-w-0 gap-0.5">
               <span className="text-sm font-semibold text-foreground">
@@ -355,11 +379,11 @@ function ConfirmAndSend({
       </fieldset>
 
       <div className="grid gap-1.5">
-        <label className="focus-ring-within flex cursor-pointer items-start gap-3 rounded-lg border-2 border-border bg-card p-3 transition-[border-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] has-checked:border-ink motion-reduce:transition-none">
+        <label className={COMPLIANCE_TILE_CLASS}>
           <input
             type="checkbox"
             name="attestation"
-            className="mt-0.5 size-4 shrink-0 accent-[var(--w-leaf)]"
+            className="mt-0.5 size-5 shrink-0 accent-[var(--w-leaf)]"
           />
           <span className="text-sm leading-6 text-foreground">
             I confirm this list isn&apos;t bought, scraped or third-party, and I
@@ -488,6 +512,12 @@ function CampaignStat({
   )
 }
 
+/**
+ * The confirmation used to be terminal: an icon, "Done." and the message, with
+ * no link, no button and no way back to Members or to a second batch short of
+ * a browser back or a nav tap. It now ends on the merchant's two natural next
+ * actions.
+ */
 function SentConfirmation({ message }: { message: string }) {
   return (
     <div className="mx-auto grid max-w-xl justify-items-center gap-5 rounded-lg border-2 border-ink bg-card p-6 text-center shadow-[var(--shadow-hard)] sm:p-8">
@@ -500,6 +530,18 @@ function SentConfirmation({ message }: { message: string }) {
         <p className="max-w-md text-sm leading-6 text-muted-foreground">
           {message}
         </p>
+      </div>
+      <div className="flex flex-wrap justify-center gap-2">
+        <Button asChild>
+          <Link href="/app/customers" prefetch={false}>
+            Back to members
+          </Link>
+        </Button>
+        <Button asChild variant="secondary">
+          <Link href="/app/customers/invite" prefetch={false}>
+            Send another batch
+          </Link>
+        </Button>
       </div>
     </div>
   )
