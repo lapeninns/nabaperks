@@ -845,12 +845,26 @@ select
         billing.stripe_subscription_created_at + interval '42 days'
       ) > billing.current_period_end then 'pending'
     when billing.stripe_subscription_status = 'trialing' then 'awaiting_delivery'
+    when billing.stripe_subscription_status is null then 'awaiting_delivery'
     else 'review_required'
   end,
   case when billing.stripe_subscription_status = 'trialing'
     then transaction_timestamp() else null end,
-  billing.stripe_subscription_status <> 'trialing',
-  case when billing.stripe_subscription_status <> 'trialing'
+  -- NULL-safe, and deliberately the same rule this file's own trigger applies
+  -- at enforce_merchant_launch_fulfilment_sync (see the insert around line 195):
+  --   new.stripe_subscription_status is not null
+  --     and new.stripe_subscription_status <> 'trialing'
+  -- Without the null guard, `status <> 'trialing'` yields NULL for a
+  -- subscription whose status has not been read back from Stripe yet, and NULL
+  -- into `operations_review_required boolean not null` aborts the whole
+  -- migration with 23502. That is not hypothetical: it is what stopped this
+  -- migration applying to a database that already holds billing rows, which is
+  -- every environment except a freshly created one. CI and the ephemeral
+  -- staging proof both build from empty, so neither could see it.
+  billing.stripe_subscription_status is not null
+    and billing.stripe_subscription_status <> 'trialing',
+  case when billing.stripe_subscription_status is not null
+    and billing.stripe_subscription_status <> 'trialing'
     then 'already_billed_delivery_review' else null end,
   transaction_timestamp(),
   transaction_timestamp()
