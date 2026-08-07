@@ -51,6 +51,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
 
+import { AdminVocabularyDemo } from "./admin-vocabulary-demo"
 import { FilterPillsDemo } from "./console-viz-demo"
 import { FormsFeedbackDemo } from "./forms-feedback-demo"
 import { MotionPlayground } from "./motion-playground"
@@ -191,6 +192,7 @@ const CATALOGUE_SECTIONS = [
   { id: "loyalty", label: "Loyalty" },
   { id: "console-viz", label: "Console viz" },
   { id: "console-data", label: "Console data" },
+  { id: "admin", label: "Admin" },
 ] as const
 
 export default function DesignSystemPage() {
@@ -1020,6 +1022,15 @@ export default function DesignSystemPage() {
             />
           </div>
         </div>
+      </Section>
+
+      <Section
+        id="admin"
+        eyebrow="Console"
+        title="Admin vocabulary"
+        description="The internal console's own components. Every drift found in the admin audit — two select stories, two label systems, four rule tones, three mono registers, inverted destructive semantics — happened because this vocabulary had no reference surface while the catalogue calls itself the acceptance gate."
+      >
+        <AdminVocabularyDemo />
       </Section>
     </div>
   )

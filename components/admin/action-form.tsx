@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, type ReactNode } from "react"
 
 import { Download01Icon } from "@hugeicons/core-free-icons"
+import { toast } from "sonner"
 
 import { Icon } from "@/components/brand"
 import { StatusBanner } from "@/components/loyalty/status-banner"
@@ -43,6 +44,18 @@ export function AdminActionForm({
   useEffect(() => {
     if (state.status === "success") {
       formRef.current?.reset()
+    }
+    // The inline banner renders INSIDE the record's disclosure, which may be
+    // thousands of pixels down the page — and opening the next record closes
+    // this one (that is what the shared accordion `name` is for), taking the
+    // confirmation with it. A page-level toast means an audited mutation can
+    // never complete with no perceivable confirmation. sonner's Toaster is
+    // already mounted app-wide and themed via .cn-toast.
+    if (state.status === "success" && state.message) {
+      toast.success(state.message)
+    }
+    if (state.status === "error" && state.message) {
+      toast.error(state.message)
     }
   }, [state])
 
