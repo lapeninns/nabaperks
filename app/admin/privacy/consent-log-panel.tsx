@@ -68,7 +68,10 @@ export function ConsentLogPanel({
                       label: "Merchant",
                       value: merchant?.business_name ?? "Merchant",
                     },
-                    { label: "Channel", value: record.channel },
+                    {
+                      label: "Channel",
+                      value: `${record.channel} · ${record.source}`,
+                    },
                     { label: "Policy", value: record.policy_version },
                     {
                       label: "When",
@@ -78,10 +81,6 @@ export function ConsentLogPanel({
                           {formatAdminDate(record.created_at)}
                         </time>
                       ),
-                    },
-                    {
-                      label: "Source",
-                      value: <SourceLabel>Source: {record.source}</SourceLabel>,
                     },
                   ]}
                 />
@@ -114,15 +113,19 @@ export function ConsentLogPanel({
                 ),
               },
               {
+                // Channel and source merged: "Source:" was a constant 14
+                // characters repeated down a whole column on a table already
+                // fighting for width, and the panel header already says the
+                // records come from consent_records.
                 key: "channel",
                 header: "Channel",
-                cell: (record) => record.channel,
-              },
-              {
-                key: "source",
-                header: "Source",
                 cell: (record) => (
-                  <SourceLabel>Source: {record.source}</SourceLabel>
+                  <span className="grid gap-1">
+                    <span>{record.channel}</span>
+                    <span className="mono-meta text-muted-foreground">
+                      {record.source}
+                    </span>
+                  </span>
                 ),
               },
               {

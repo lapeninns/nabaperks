@@ -4,6 +4,7 @@ import {
 } from "@/app/admin/actions"
 import { AdminActionForm } from "@/components/admin/action-form"
 import {
+  AdminAppliedFilters,
   AdminLookupControls,
   AdminLookupErrorState,
   AdminLookupPagination,
@@ -18,7 +19,7 @@ import {
 import { AdminIdChip } from "@/components/admin/id-chip"
 import { AdminRecordActions } from "@/components/admin/record-actions"
 import { AdminRecordCard } from "@/components/admin/record-card"
-import { EmptyState, SectionHeader } from "@/components/brand"
+import { EmptyState, Eyebrow, SectionHeader } from "@/components/brand"
 import { SubmitButton, SelectField } from "@/components/forms"
 import { Input } from "@/components/ui/input"
 import type { getAdminPrivacySupportRows } from "@/lib/admin/data"
@@ -49,11 +50,15 @@ export function DataRequestWorkflowPanel({
         description="Verify the requester outside this console, find the relevant customer and merchant row by venue or contact fragment, log the request, then handle export, deletion, or consent follow-up manually until self-service exists."
         actions={<SourceLabel>Source: service-role admin readback</SourceLabel>}
       />
+      {/* The control sits with the results it governs. It used to filter the
+          unaffiliated panel thousands of pixels below as well — that panel is
+          now its own view with its own contact search. */}
       <AdminLookupControls
         basePath="/admin/privacy"
         lookup={lookup}
         label="Data request subject lookup"
       />
+      <AdminAppliedFilters basePath="/admin/privacy" lookup={lookup} />
       {result ? (
         result.rows.length ? (
           <>
@@ -104,21 +109,33 @@ function PrivacySupportRecord({ row }: { readonly row: PrivacySupportRow }) {
           value: merchant?.business_name ?? "Merchant",
         },
         {
-          label: "References",
-          value: (
+          // One primary reference (the membership the request is about); the
+          // customer and merchant ids move into the disclosure. Three
+          // near-identical 8-character mono strings were the loudest element
+          // on the card while being the least often needed.
+          label: "Membership",
+          value: <AdminIdChip value={row.id} prefix="membership" />,
+        },
+      ]}
+      action={
+        <AdminRecordActions label="Privacy actions" group="privacy-record">
+          <div className="grid gap-2">
+            <Eyebrow>Record consent opt-out</Eyebrow>
+            <ConsentOptOutForm row={row} />
+          </div>
+          <hr className="w-rule my-0" />
+          <div className="grid gap-2">
+            <Eyebrow>Log a data request</Eyebrow>
+            <DataRequestForm row={row} />
+          </div>
+          <hr className="w-rule my-0" />
+          <div className="grid gap-2">
+            <Eyebrow>References</Eyebrow>
             <span className="flex flex-wrap gap-x-3 gap-y-1">
               <AdminIdChip value={row.customer_id} prefix="customer" />
               <AdminIdChip value={row.merchant_id} prefix="merchant" />
               <AdminIdChip value={row.id} prefix="membership" />
             </span>
-          ),
-        },
-      ]}
-      action={
-        <AdminRecordActions label="Privacy actions" group="privacy-record">
-          <div className="grid gap-4 xl:grid-cols-2">
-            <ConsentOptOutForm row={row} />
-            <DataRequestForm row={row} />
           </div>
         </AdminRecordActions>
       }
