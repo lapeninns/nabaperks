@@ -70,7 +70,7 @@ export function AdvancedGpsChecks({
           type="checkbox"
           checked={requireGeofence}
           onChange={(event) => onRequireGeofenceChange(event.target.checked)}
-          className="size-5 accent-primary"
+          className="ink-check focus-ring"
         />
       </label>
       <GpsField

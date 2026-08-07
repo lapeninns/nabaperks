@@ -151,7 +151,7 @@ function MarketingChannelRow({
             setOptimistic(event.currentTarget.checked)
             event.currentTarget.form?.requestSubmit()
           }}
-          className="size-5 shrink-0 accent-primary disabled:opacity-60"
+          className="ink-check focus-ring shrink-0 disabled:opacity-60"
         />
       </label>
     </form>

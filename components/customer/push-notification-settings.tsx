@@ -297,7 +297,7 @@ export function PushNotificationSettings({
                 onChange={(event) =>
                   void updatePreference(row.key, event.currentTarget.checked)
                 }
-                className="size-5 shrink-0 accent-primary disabled:opacity-60"
+                className="ink-check focus-ring shrink-0 disabled:opacity-60"
               />
             </label>
           </li>

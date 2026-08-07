@@ -518,6 +518,71 @@ body[data-grain="true"]::after {
   outline-offset: 2px;
 }
 
+/* Native checkboxes — the consent gates, the highest-trust controls in the
+   funnel — shipped as bare `accent-primary` browser defaults: a ~16-20px UA
+   widget with a hairline that carries none of the 2px-ink vocabulary, and no
+   invalid state despite aria-invalid being wired. This themes the native
+   control rather than importing an unthemed shadcn Checkbox, so the existing
+   markup, labels and form semantics are untouched.
+
+   `appearance: none` is scoped to checkboxes that opt in via .ink-check so a
+   stray checkbox elsewhere cannot lose its affordance silently. */
+.ink-check {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1.375rem;
+  height: 1.375rem;
+  border: 2px solid var(--w-ink);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  box-shadow: var(--shadow-hard-sm);
+  display: grid;
+  place-content: center;
+  cursor: pointer;
+  transition:
+    background-color var(--w-dur-fast) var(--w-ease),
+    box-shadow var(--w-dur-fast) var(--w-ease);
+}
+
+.ink-check::after {
+  content: "";
+  width: 0.6rem;
+  height: 0.34rem;
+  border-left: 2.5px solid var(--primary-foreground);
+  border-bottom: 2.5px solid var(--primary-foreground);
+  transform: rotate(-45deg) translate(1px, -1px) scale(0);
+  transition: transform var(--w-dur-fast) var(--w-ease);
+}
+
+.ink-check:checked {
+  background: var(--primary);
+}
+
+.ink-check:checked::after {
+  transform: rotate(-45deg) translate(1px, -1px) scale(1);
+}
+
+.ink-check:active:not(:disabled) {
+  box-shadow: none;
+  translate: 2px 2px;
+}
+
+.ink-check[aria-invalid="true"] {
+  border-color: var(--destructive);
+}
+
+.ink-check:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ink-check,
+  .ink-check::after {
+    transition: none;
+  }
+}
+
 /* Programmatic focus targets — recovery blocks that an action or an error path
    focuses by script. `.focus-ring` keys off `:focus-visible`, which browsers
    deliberately do NOT match when focus is moved programmatically onto a

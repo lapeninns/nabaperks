@@ -176,7 +176,7 @@ export function CustomerJoinForm({
             onChange={(event) =>
               setLoyaltyTermsAccepted(event.currentTarget.checked)
             }
-            className="mt-0.5 size-5 shrink-0 accent-primary"
+            className="ink-check focus-ring mt-0.5 shrink-0"
             aria-invalid={Boolean(loyaltyTermsError)}
             aria-describedby={
               loyaltyTermsError ? "loyalty-terms-error" : undefined
@@ -203,7 +203,7 @@ export function CustomerJoinForm({
           <input
             name="marketingOptIn"
             type="checkbox"
-            className="mt-0.5 size-5 shrink-0 accent-primary"
+            className="ink-check focus-ring mt-0.5 shrink-0"
           />
           <span className="grid gap-1">
             <Eyebrow>Marketing updates</Eyebrow>

@@ -137,7 +137,7 @@ export default async function AdminEvidencePage() {
               <input
                 type="checkbox"
                 name="merchantApproved"
-                className="focus-ring size-4 accent-primary"
+                className="ink-check focus-ring"
               />
               Merchant approved this attribution, quote and result summary
             </label>

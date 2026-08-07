@@ -66,7 +66,7 @@ export function CancellationInterviewForm() {
             name="requestedResolution"
             value="support_call"
             defaultChecked
-            className="focus-ring mt-0.5 size-4 accent-primary"
+            className="ink-check focus-ring mt-0.5"
           />
           <span>
             <strong className="block">Ask for a support call</strong>
@@ -81,7 +81,7 @@ export function CancellationInterviewForm() {
             type="radio"
             name="requestedResolution"
             value="continue_cancellation"
-            className="focus-ring mt-0.5 size-4 accent-primary"
+            className="ink-check focus-ring mt-0.5"
           />
           <span>
             <strong className="block">Continue to cancellation</strong>

@@ -81,7 +81,7 @@ export function AdminConfirmCheck({ label }: { label: ReactNode }) {
       <input
         type="checkbox"
         required
-        className="mt-0.5 size-5 shrink-0 accent-destructive"
+        className="ink-check focus-ring mt-0.5 shrink-0"
       />
       <span className="leading-5 font-semibold text-foreground">{label}</span>
     </label>
