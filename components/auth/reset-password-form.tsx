@@ -190,16 +190,22 @@ export function ResetPasswordForm({
           >
             <input type="hidden" name="intent" value="confirm" />
             <input type="hidden" name="next" value={state.context.next} />
-            <AuthField
-              id="email"
-              label="Venue email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              value={currentEmail}
-              readOnly
-              error={errors.email}
-            />
+            {/* A read-only input is a ~92px field that cannot be edited. The
+                value still has to reach the action, so it submits hidden and
+                displays as a summary row — same information, ~60px less of the
+                tallest step in the funnel. */}
+            <input type="hidden" name="email" value={currentEmail} />
+            <div className="flex items-center justify-between gap-3 py-1">
+              <span className="eyebrow">Venue email</span>
+              <span className="min-w-0 truncate text-sm font-bold text-foreground">
+                {currentEmail}
+              </span>
+            </div>
+            {errors.email ? (
+              <p role="alert" className="text-sm text-destructive">
+                {errors.email}
+              </p>
+            ) : null}
             <AuthField
               id="otp"
               label="Reset code"

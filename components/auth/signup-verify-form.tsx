@@ -234,23 +234,32 @@ export function SignupVerifyForm({
         Wrong email?{" "}
         <AuthPromptLink href={correctionHref}>Back to sign up</AuthPromptLink>
       </p>
-      <p className="text-center text-sm text-muted-foreground">
-        Used this email before?{" "}
-        <AuthPromptLink
-          href={merchantLoginHref({ email: currentEmail, next: currentNext })}
-        >
-          Log in
-        </AuthPromptLink>{" "}
-        or{" "}
-        <AuthPromptLink
-          href={merchantPasswordResetHref({
-            email: currentEmail,
-            next: currentNext,
-          })}
-        >
-          reset your password
-        </AuthPromptLink>
-      </p>
+      {/* Two of the three escape hatches move behind a disclosure. "Wrong
+          email?" stays inline because it is the one a stuck user needs at this
+          exact step; the account-recovery pair is for a different situation and
+          was costing ~90px of always-on chrome under the primary action. No
+          copy or destination removed. */}
+      <details className="w-rule group text-center">
+        <summary className="focus-ring mx-auto inline-flex min-h-11 cursor-pointer list-none items-center justify-center rounded-full px-3 text-sm font-bold text-primary underline-offset-4 hover:underline [&::-webkit-details-marker]:hidden">
+          Used this email before?
+        </summary>
+        <p className="pt-2 text-center text-sm text-muted-foreground">
+          <AuthPromptLink
+            href={merchantLoginHref({ email: currentEmail, next: currentNext })}
+          >
+            Log in
+          </AuthPromptLink>{" "}
+          or{" "}
+          <AuthPromptLink
+            href={merchantPasswordResetHref({
+              email: currentEmail,
+              next: currentNext,
+            })}
+          >
+            reset your password
+          </AuthPromptLink>
+        </p>
+      </details>
     </div>
   )
 }
