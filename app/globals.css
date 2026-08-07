@@ -157,8 +157,8 @@
   --destructive-foreground: #ffffff;
   --destructive-strong: #a62918;
 
-  --border: var(--w-line);
-  --input: var(--w-line);
+  --border: var(--w-line-strong);
+  --input: var(--w-line-strong);
   --ring: var(--w-accent);
 
   /* Loyalty semantics */

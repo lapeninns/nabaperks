@@ -17,7 +17,7 @@ function Card({
         // there, so it shipped as a stray hairline outside the 2px ink border;
         // and the stock 24px image corners did not inherit the 10px card
         // radius, so nested images bulged past their own container.
-        "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-lg bg-card py-(--card-spacing) text-sm text-card-foreground [--card-spacing:--spacing(5)] has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(4)] *:[img:first-child]:rounded-t-lg *:[img:last-child]:rounded-b-lg",
+        "group/card flex flex-col gap-(--card-spacing) overflow-visible rounded-lg bg-card py-(--card-spacing) text-sm text-card-foreground [--card-spacing:--spacing(5)] has-[>img]:overflow-hidden has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(4)] *:[img:first-child]:rounded-t-lg *:[img:last-child]:rounded-b-lg",
         className
       )}
       {...props}
@@ -38,11 +38,15 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
+// Weight is owned by the unlayered [data-slot="card-title"] rule (800). The
+// `font-medium` that used to sit in the class string never shipped — it showed a
+// reader of this file a 500 title that the layer immediately overrode. Size stays
+// here; ux-production-polish pins the text-base default.
 function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-title"
-      className={cn("font-heading text-base font-medium", className)}
+      className={cn("font-heading text-base", className)}
       {...props}
     />
   )
