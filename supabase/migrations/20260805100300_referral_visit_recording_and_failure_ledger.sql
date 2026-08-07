@@ -40,11 +40,17 @@
 -- last_visit_at. Keep that routine as the locked, atomic core and wrap it at its
 -- public boundary so referral awards never masquerade as location-verified
 -- visits. Calling relink first handles churned memberships before the snapshot.
+create schema if not exists nabaperks_internal;
+revoke all on schema nabaperks_internal
+  from public, anon, authenticated, service_role;
+
 do $$
 begin
-  if to_regprocedure('public.settle_referral_bonus_with_visit(uuid)') is null then
+  if to_regprocedure('nabaperks_internal.settle_referral_bonus_with_visit(uuid)') is null then
     alter function public.settle_referral_bonus(uuid)
       rename to settle_referral_bonus_with_visit;
+    alter function public.settle_referral_bonus_with_visit(uuid)
+      set schema nabaperks_internal;
   end if;
 end;
 $$;
@@ -74,7 +80,7 @@ begin
     where memberships.id = v_membership_id;
   end if;
 
-  v_outcome := public.settle_referral_bonus_with_visit(p_referral_id);
+  v_outcome := nabaperks_internal.settle_referral_bonus_with_visit(p_referral_id);
 
   if v_outcome = 'awarded' and v_membership_id is not null then
     update public.customer_memberships memberships
@@ -87,7 +93,7 @@ begin
 end;
 $$;
 
-revoke all on function public.settle_referral_bonus_with_visit(uuid)
+revoke all on function nabaperks_internal.settle_referral_bonus_with_visit(uuid)
   from public, anon, authenticated, service_role;
 revoke all on function public.settle_referral_bonus(uuid)
   from public, anon, authenticated;
