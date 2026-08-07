@@ -5,7 +5,7 @@ Branch `feat/ui-redesign-audit-fixes`. `[x]` shipped and verified, `[~]` partial
 `[ ]` open. Per-lane detail is in the sibling `STATUS-*.md` files; the
 cross-lane roll-up is in `COVERAGE.md`.
 
-## 05-design-system.md — 56 done / 2 partial / 1 stale / 1 deferred / 7 open (of 67)
+## 05-design-system.md — 58 done / 2 partial / 1 stale / 1 deferred / 5 open (of 67)
 
 |         | ID    | Priority | Finding                                                                              |
 | ------- | ----- | -------- | ------------------------------------------------------------------------------------ |
@@ -36,7 +36,7 @@ cross-lane roll-up is in `COVERAGE.md`.
 | [x]     | 05#25 | Medium   | `PasswordRequirements` announces a count on every keystroke                          |
 | [x]     | 05#26 | High     | `focus-ring` on `tabIndex={-1}` recovery containers never renders                    |
 | [defer] | 05#27 | Medium   | `field.tsx` ships 240 lines of which six exports have zero consumers                 |
-| [ ]     | 05#28 | High     | Two competing inline-notice systems: `Alert` (13 uses) and `StatusBanner` (113)      |
+| [x]     | 05#28 | High     | Two competing inline-notice systems: `Alert` (13 uses) and `StatusBanner` (113)      |
 | [x]     | 05#29 | High     | `Badge` ships 7 variants; exactly one is reachable, and its 1.5px border is defeated |
 | [x]     | 05#30 | Medium   | `Empty` primitive renders no border and 48px padding; `EmptyState` overrides both    |
 | [x]     | 05#31 | Medium   | `EmptyState` renders its title as a `<div role="heading">`                           |
@@ -72,7 +72,7 @@ cross-lane roll-up is in `COVERAGE.md`.
 | [~]     | 05#61 | High     | `enableSystem` is on while dark mode is an untested dormant capability               |
 | [x]     | 05#62 | High     | `focus-visible` recipe is sound, but seven interactive surfaces opt out of it        |
 | [x]     | 05#63 | High     | Compact sizes honour 44px on coarse pointers — except the four that don't            |
-| [ ]     | 05#64 | Medium   | `Icon` sizes are passed as numbers, producing 9 distinct glyph sizes with no scale   |
+| [x]     | 05#64 | Medium   | `Icon` sizes are passed as numbers, producing 9 distinct glyph sizes with no scale   |
 | [ ]     | 05#65 | Medium   | `Section` and `ContrastBand` own marketing rhythm, but nothing owns console/customer |
 | [x]     | 05#66 | Low      | `Section size="default"` is `py-7 sm:py-10` while `ContrastBand` is `py-9 sm:py-12`  |
 | [x]     | 05#67 | Low      | `numeric-tabular` exists and is used 42 times, but the countdowns don't use it       |
@@ -85,15 +85,9 @@ cross-lane roll-up is in `COVERAGE.md`.
 - **05#23** — form labels are 11.5px uppercase mono. Moving them to
   `text-sm font-bold` restyles every label in the product at once; wants a
   visual pass, not a blind codemod.
-- **05#28** — merging `Alert` (13 uses) into `StatusBanner` (279). A single
-  notice anatomy is right, but it touches every inline notice in five surfaces
-  and both carry different ARIA defaults (`role="alert"` vs polite status), so
-  merging them blind would change how failures are announced.
 - **05#47** — the marketing footer's density. Layout judgement; needs a browser.
 - **05#50** — loading announcements driven by `useLinkStatus`. Needs a shell-level
   live region wired to navigation state, verified against a real screen reader.
-- **05#64** — 9 icon sizes to a 4-rung scale. Codemod, but each call site's rung
-  is a visual choice.
 - **05#65** — nothing owns console/customer vertical rhythm. Needs a rhythm
   primitive adopted across every console and customer page root.
 
