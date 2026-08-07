@@ -1,5 +1,7 @@
 import type { ReactNode } from "react"
 import { notFound } from "next/navigation"
+
+import { HarnessIndex } from "@/app/dev/harness-index"
 import {
   Activity03Icon,
   CheckmarkBadge04Icon,
@@ -37,6 +39,13 @@ const ZERO_KPIS = [
  * empty/error branches — otherwise only reachable by manipulating live DB rows —
  * are screenshot-provable.
  */
+const STATE_SECTIONS = [
+  { id: "customers-empty", label: "Customers empty" },
+  { id: "activity-empty", label: "Activity empty" },
+  { id: "dashboard-empty", label: "Dashboard empty" },
+  { id: "error-banners", label: "Error banners" },
+] as const
+
 export default function StatesHarnessPage() {
   if (process.env.NODE_ENV === "production") {
     notFound()
@@ -49,6 +58,8 @@ export default function StatesHarnessPage() {
         title="Empty & error states"
         description="The first-run empty states and load-failure banners across the /app surface, mounted via the real body components with empty/error fixtures."
       />
+
+      <HarnessIndex label="State sections" sections={STATE_SECTIONS} />
 
       <HarnessSection id="customers-empty" title="Members — empty (no members)">
         <CustomerReadbackTable
@@ -134,7 +145,10 @@ export default function StatesHarnessPage() {
         title="Error fixtures — the real StatusBanner load-failure surfaces"
       >
         <div className="grid gap-4">
-          <StatusBanner tone="error" title="Billing details could not be loaded">
+          <StatusBanner
+            tone="error"
+            title="Billing details could not be loaded"
+          >
             Try again.
           </StatusBanner>
           <StatusBanner tone="error" title="QR action failed.">

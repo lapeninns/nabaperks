@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation"
 
 import { BillingFulfilmentActions } from "@/components/admin/billing-fulfilment-actions"
-import { AdminPanel, SourceLabel, StatusPill } from "@/components/admin/support"
-import { PageTitle } from "@/components/brand"
+import { AdminPanel, StatusPill } from "@/components/admin/support"
+import { PageTitle, SectionHeader } from "@/components/brand"
 
 export const dynamic = "force-dynamic"
 
@@ -17,15 +17,15 @@ export default function TrialAdminHarnessPage() {
         description="Record poster evidence and protect the merchant's usable platform pilot."
       />
       <AdminPanel>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="grid gap-1">
-            <h2 className="font-heading text-xl font-extrabold">
-              The Old Crown
-            </h2>
-            <SourceLabel>Awaiting delivery evidence</SourceLabel>
-          </div>
-          <StatusPill tone="warning">Posters dispatched</StatusPill>
-        </div>
+        {/* The fixture renders the same components as the real billing route
+            (SectionHeader + StatusPill + .w-rule): a harness whose fixture
+            diverges from production yields false screenshot proof. It used to
+            carry a bespoke text-xl heading and its own dashed tone. */}
+        <SectionHeader
+          title="The Old Crown"
+          description="Awaiting delivery evidence."
+          actions={<StatusPill tone="warning">Posters dispatched</StatusPill>}
+        />
         <hr className="w-rule my-0" />
         <dl className="grid gap-3 sm:grid-cols-3">
           <AdminDate label="Dispatched" value="6 August 2026, 11:30" />

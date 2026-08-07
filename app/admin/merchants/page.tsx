@@ -20,7 +20,10 @@ import {
   first,
   formatAdminDate,
 } from "@/components/admin/support"
+import { Suspense } from "react"
+
 import { AdminCrossLinks } from "@/components/admin/cross-links"
+import { AdminTableSkeleton } from "@/components/admin/skeletons"
 import {
   AdminLookupControls,
   AdminLookupPagination,
@@ -78,11 +81,6 @@ export default async function AdminMerchantsPage({
   const lookup = parseAdminLookupParams(params)
   const qrPage = parsePageParam(params.qrPage)
 
-  const [merchants, qrCodes] = await Promise.all([
-    getAdminMerchants(lookup),
-    getAdminQrCodes({ venue: lookup.venue, page: qrPage }),
-  ])
-
   return (
     <div className="grid gap-6">
       <PageTitle
@@ -91,30 +89,65 @@ export default async function AdminMerchantsPage({
         description="Merchant account, plan status, and QR support controls."
       />
 
-      <MerchantAccountsPanel
-        merchants={merchants}
-        lookup={lookup}
-        hrefForPage={(page) =>
-          buildLookupHref("/admin/merchants", {
-            venue: lookup.venue,
-            page,
-            qrPage,
-          })
-        }
-      />
+      {/* Two independent readbacks, two boundaries: the QR list no longer
+          holds up the merchant table (and vice versa), and the page title and
+          search paint first. */}
+      <Suspense fallback={<AdminTableSkeleton />}>
+        <MerchantAccountsView lookup={lookup} qrPage={qrPage} />
+      </Suspense>
 
-      <QrRecordsPanel
-        qrCodes={qrCodes}
-        venue={lookup.venue}
-        hrefForPage={(page) =>
-          `${buildLookupHref("/admin/merchants", {
-            venue: lookup.venue,
-            page: lookup.page,
-            qrPage: page,
-          })}#qr-records`
-        }
-      />
+      <Suspense fallback={<AdminTableSkeleton />}>
+        <QrRecordsView lookup={lookup} qrPage={qrPage} />
+      </Suspense>
     </div>
+  )
+}
+
+async function MerchantAccountsView({
+  lookup,
+  qrPage,
+}: {
+  readonly lookup: AdminLookupState
+  readonly qrPage: number
+}) {
+  const merchants = await getAdminMerchants(lookup)
+
+  return (
+    <MerchantAccountsPanel
+      merchants={merchants}
+      lookup={lookup}
+      hrefForPage={(page) =>
+        buildLookupHref("/admin/merchants", {
+          venue: lookup.venue,
+          page,
+          qrPage,
+        })
+      }
+    />
+  )
+}
+
+async function QrRecordsView({
+  lookup,
+  qrPage,
+}: {
+  readonly lookup: AdminLookupState
+  readonly qrPage: number
+}) {
+  const qrCodes = await getAdminQrCodes({ venue: lookup.venue, page: qrPage })
+
+  return (
+    <QrRecordsPanel
+      qrCodes={qrCodes}
+      venue={lookup.venue}
+      hrefForPage={(page) =>
+        `${buildLookupHref("/admin/merchants", {
+          venue: lookup.venue,
+          page: lookup.page,
+          qrPage: page,
+        })}#qr-records`
+      }
+    />
   )
 }
 

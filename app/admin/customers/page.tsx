@@ -1,3 +1,6 @@
+import { Suspense } from "react"
+
+import { AdminTableSkeleton } from "@/components/admin/skeletons"
 import { AdminViewTabs } from "@/components/admin/view-tabs"
 import { PageTitle } from "@/components/brand"
 import { canRenderAdminPage } from "@/lib/admin/auth"
@@ -87,11 +90,15 @@ export default async function AdminCustomersPage({
         ]}
       />
 
-      {view === "memberships" ? (
-        <MembershipsView lookup={lookup} />
-      ) : (
-        <RewardsView rewardsPage={rewardsPage} />
-      )}
+      {/* The list streams behind its own boundary so the title, tabs and
+          search paint before the service-role readback resolves. */}
+      <Suspense fallback={<AdminTableSkeleton />}>
+        {view === "memberships" ? (
+          <MembershipsView lookup={lookup} />
+        ) : (
+          <RewardsView rewardsPage={rewardsPage} />
+        )}
+      </Suspense>
     </div>
   )
 }

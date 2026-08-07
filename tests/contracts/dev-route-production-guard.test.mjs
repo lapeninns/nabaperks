@@ -9,6 +9,9 @@ const projectRoot = path.resolve(
   "../.."
 )
 
+// Inventory, not a permission list: the guard assertions below (the /dev
+// layout's production notFound + noindex robots) are what protect these pages.
+// Adding a page means adding it here so the inventory stays exact.
 const expectedDevPages = [
   "app/dev/app-harness/account/page.tsx",
   "app/dev/app-harness/activity/page.tsx",
@@ -19,6 +22,7 @@ const expectedDevPages = [
   "app/dev/app-harness/launch/page.tsx",
   "app/dev/app-harness/offers/page.tsx",
   "app/dev/app-harness/onboarding/page.tsx",
+  "app/dev/app-harness/page.tsx",
   "app/dev/app-harness/pilot-note/page.tsx",
   "app/dev/app-harness/qr/page.tsx",
   "app/dev/app-harness/reward-scan/page.tsx",
@@ -37,6 +41,7 @@ const expectedDevPages = [
   "app/dev/home-harness/stamp/page.tsx",
   "app/dev/nfc-card-preview/page.tsx",
   "app/dev/nfc-square-preview/page.tsx",
+  "app/dev/page.tsx",
   "app/dev/poster-preview/page.tsx",
   "app/dev/tent-preview/page.tsx",
 ]

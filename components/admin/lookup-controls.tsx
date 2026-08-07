@@ -1,3 +1,5 @@
+import type { ReactNode } from "react"
+
 import Link from "next/link"
 import Form from "next/form"
 import { Cancel01Icon, Search01Icon } from "@hugeicons/core-free-icons"
@@ -198,11 +200,14 @@ export function AdminLookupPagination({
   }
 
   return (
+    // Count and controls sit together on the right rather than at opposite
+    // ends of a panel that can be 900px wide — the eye had to cross the whole
+    // panel to confirm the page after every press.
     <nav
       aria-label={label}
-      className="flex flex-wrap items-center justify-between gap-3"
+      className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2"
     >
-      <p className="text-sm text-muted-foreground">
+      <p className="mr-auto text-sm text-muted-foreground">
         <span className="numeric-tabular">
           {numberFormat.format(meta.total)}
         </span>{" "}
@@ -215,31 +220,72 @@ export function AdminLookupPagination({
           {numberFormat.format(meta.pageCount)}
         </span>
       </p>
-      <div className="flex gap-2">
-        {previous !== null ? (
-          <Button asChild variant="secondary" size="sm">
-            <Link href={hrefForPage(previous)} rel="prev">
-              Previous
-            </Link>
-          </Button>
-        ) : (
-          <Button variant="secondary" size="sm" disabled>
-            Previous
-          </Button>
-        )}
-        {next !== null ? (
-          <Button asChild variant="secondary" size="sm">
-            <Link href={hrefForPage(next)} rel="next">
-              Next
-            </Link>
-          </Button>
-        ) : (
-          <Button variant="secondary" size="sm" disabled>
-            Next
-          </Button>
-        )}
+      <div className="flex flex-wrap items-center gap-2">
+        {/* First/last matter here: 25 rows per page against a 999-page ceiling
+            meant reaching the end of a list took one round trip per page. */}
+        <PageLink
+          href={hrefForPage(1)}
+          disabled={meta.page <= 1}
+          label="First page"
+        >
+          First
+        </PageLink>
+        <PageLink
+          href={previous !== null ? hrefForPage(previous) : "#"}
+          disabled={previous === null}
+          rel="prev"
+          label="Previous page"
+        >
+          Previous
+        </PageLink>
+        <PageLink
+          href={next !== null ? hrefForPage(next) : "#"}
+          disabled={next === null}
+          rel="next"
+          label="Next page"
+        >
+          Next
+        </PageLink>
+        <PageLink
+          href={hrefForPage(meta.pageCount)}
+          disabled={meta.page >= meta.pageCount}
+          label="Last page"
+        >
+          Last
+        </PageLink>
       </div>
     </nav>
+  )
+}
+
+function PageLink({
+  href,
+  disabled,
+  rel,
+  label,
+  children,
+}: {
+  readonly href: string
+  readonly disabled: boolean
+  readonly rel?: string
+  /** Accessible name — "Next" alone is ambiguous with several paginators. */
+  readonly label: string
+  readonly children: ReactNode
+}) {
+  if (disabled) {
+    return (
+      <Button variant="secondary" size="sm" disabled aria-label={label}>
+        {children}
+      </Button>
+    )
+  }
+
+  return (
+    <Button asChild variant="secondary" size="sm">
+      <Link href={href} rel={rel} aria-label={label}>
+        {children}
+      </Link>
+    </Button>
   )
 }
 

@@ -1,3 +1,9 @@
+import { Suspense } from "react"
+
+import {
+  AdminPanelSkeleton,
+  AdminTableSkeleton,
+} from "@/components/admin/skeletons"
 import { AdminViewTabs } from "@/components/admin/view-tabs"
 import { PageTitle } from "@/components/brand"
 import { canRenderAdminPage } from "@/lib/admin/auth"
@@ -108,19 +114,35 @@ export default async function AdminPrivacyPage({
         />
       </div>
 
+      {/* Each view streams behind its own boundary: the page shell, tabs and
+          lookup paint immediately instead of waiting on a service-role
+          readback. */}
       {view === "requests" ? (
-        <RequestsView
-          lookup={lookup}
-          consentPage={consentPage}
-          unaffiliatedPage={unaffiliatedPage}
-        />
+        <Suspense fallback={<AdminPanelSkeleton rows={3} />}>
+          <RequestsView
+            lookup={lookup}
+            consentPage={consentPage}
+            unaffiliatedPage={unaffiliatedPage}
+          />
+        </Suspense>
       ) : null}
       {view === "unaffiliated" ? (
-        <UnaffiliatedView lookup={lookup} unaffiliatedPage={unaffiliatedPage} />
+        <Suspense fallback={<AdminPanelSkeleton rows={3} />}>
+          <UnaffiliatedView
+            lookup={lookup}
+            unaffiliatedPage={unaffiliatedPage}
+          />
+        </Suspense>
       ) : null}
-      {view === "activity" ? <ActivityView /> : null}
+      {view === "activity" ? (
+        <Suspense fallback={<AdminPanelSkeleton rows={4} />}>
+          <ActivityView />
+        </Suspense>
+      ) : null}
       {view === "consent" ? (
-        <ConsentView lookup={lookup} consentPage={consentPage} />
+        <Suspense fallback={<AdminTableSkeleton />}>
+          <ConsentView lookup={lookup} consentPage={consentPage} />
+        </Suspense>
       ) : null}
     </div>
   )
