@@ -20,9 +20,14 @@ export function VendorQuestions() {
         {PUB_VENDOR_QUESTIONS.map((question, index) => (
           <li
             key={question.ask}
-            className="grid gap-3 border-b-2 border-dashed border-border py-4 first:pt-0 last:border-b-0 sm:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] sm:gap-6"
+            className="grid gap-3 border-b-2 border-dashed border-border py-4 first:pt-0 last:border-b-0 sm:grid-cols-[minmax(0,6fr)_minmax(0,5fr)] sm:gap-6"
           >
-            <div className="grid content-start gap-1.5">
+            {/* The question is the carded, wider element and our answer is
+                plain prose beside it — the reverse of how this shipped. The
+                section's premise is "ask these of anyone you talk to, us
+                included": rendering OUR answers as the dominant object turns a
+                due-diligence checklist into a sales sheet. */}
+            <div className="surface-card-flat grid content-start gap-1.5 p-4 sm:p-5">
               <p className="mono-id text-primary uppercase">
                 Question {index + 1}
               </p>
@@ -33,7 +38,7 @@ export function VendorQuestions() {
                 {question.why}
               </p>
             </div>
-            <div className="surface-card-flat grid content-start gap-1.5 p-3.5">
+            <div className="grid content-start gap-1.5">
               <p className="mono-id text-muted-foreground uppercase">
                 Our answer
               </p>

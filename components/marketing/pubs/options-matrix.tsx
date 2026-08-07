@@ -1,6 +1,6 @@
 import Link from "next/link"
 
-import { MonoTag } from "@/components/brand"
+import { MarketingDisclosure } from "@/components/marketing"
 import {
   Table,
   TableBody,
@@ -40,9 +40,21 @@ const ASPECTS = [
  * honestly in all four directions.
  *
  * Our own column is *labelled* as ours rather than quietly styled to win — a
- * comparison the reader can't audit is worth nothing to them. Table from `lg`
- * up (four prose columns need the width); option cards below that, following
- * the guides' established comparison idiom.
+ * comparison the reader can't audit is worth nothing to them.
+ *
+ * Table from `xl:` up, not `lg:`. The table is `min-w-[56rem]` (896px) and at
+ * `lg` the content column is ~736px after the gutter, the 12rem spine and the
+ * gap — so the "table from lg up" scrolled horizontally at every laptop width,
+ * losing the aspect label as soon as the reader compared columns three and
+ * four. The aspect row label is `sticky left-0` for the widths where it still
+ * scrolls.
+ *
+ * Below `xl:` the comparison is grouped by ASPECT, not by option: five
+ * disclosures, first open, each holding all four options for one question.
+ * Grouping by option meant four ~380px cards — ~1,550px of vertical read for
+ * something whose entire purpose is LATERAL comparison, where the reader had
+ * to hold "what your guest does" for Paper in mind while scrolling past 380px
+ * to reach it for QR.
  * Server component.
  */
 export function OptionsMatrix() {
@@ -50,7 +62,7 @@ export function OptionsMatrix() {
     <div className="grid gap-4">
       {/* `Table` supplies its own focusable overflow container — don't nest a
           second scroll region around it. */}
-      <div className="surface-card-flat hidden lg:block">
+      <div className="surface-card-flat hidden xl:block">
         <Table className="min-w-[56rem]">
           <TableCaption className="sr-only">{CAPTION}</TableCaption>
           <TableHeader>
@@ -73,7 +85,7 @@ export function OptionsMatrix() {
               <TableRow key={aspect.field}>
                 <TableHead
                   scope="row"
-                  className="align-top text-sm font-bold whitespace-normal text-foreground"
+                  className="sticky left-0 z-10 bg-card align-top text-sm font-bold whitespace-normal text-foreground"
                 >
                   {aspect.label}
                 </TableHead>
@@ -96,35 +108,39 @@ export function OptionsMatrix() {
         </Table>
       </div>
 
-      <ul aria-label={CAPTION} className="grid gap-3 sm:grid-cols-2 lg:hidden">
-        {PUB_LOYALTY_OPTIONS.map((option) => (
-          <li
-            key={option.key}
-            className={cn(
-              "grid content-start gap-3 rounded-lg border-2 p-4 sm:p-5",
-              option.ours
-                ? "border-ink bg-card shadow-sm"
-                : "border-dashed border-line-strong bg-card"
-            )}
-          >
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-lg leading-snug font-extrabold text-foreground">
-                {option.name}
-              </h3>
-              {option.ours ? <MonoTag tone="accent">Ours</MonoTag> : null}
-            </div>
-            <dl className="grid gap-2">
-              {ASPECTS.map((aspect) => (
-                <div key={aspect.field} className="grid gap-0.5">
-                  <dt className="mono-id text-muted-foreground uppercase">
-                    {aspect.label}
-                  </dt>
-                  <dd className="text-sm leading-6 text-muted-foreground">
-                    {option[aspect.field]}
-                  </dd>
-                </div>
-              ))}
-            </dl>
+      <ul aria-label={CAPTION} className="grid gap-3 xl:hidden">
+        {ASPECTS.map((aspect, index) => (
+          <li key={aspect.field}>
+            <MarketingDisclosure
+              className="surface-card-flat"
+              defaultOpen={index === 0}
+              summary={aspect.label}
+            >
+              <dl className="grid gap-3 sm:grid-cols-2">
+                {PUB_LOYALTY_OPTIONS.map((option) => (
+                  <div
+                    key={option.key}
+                    className={cn(
+                      "grid content-start gap-0.5 border-l-2 pl-3",
+                      option.ours ? "border-primary" : "border-border"
+                    )}
+                  >
+                    <dt
+                      className={cn(
+                        "mono-id uppercase",
+                        option.ours ? "text-primary" : "text-muted-foreground"
+                      )}
+                    >
+                      {option.name}
+                      {option.ours ? " · ours" : null}
+                    </dt>
+                    <dd className="text-sm leading-6 text-muted-foreground">
+                      {option[aspect.field]}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </MarketingDisclosure>
           </li>
         ))}
       </ul>

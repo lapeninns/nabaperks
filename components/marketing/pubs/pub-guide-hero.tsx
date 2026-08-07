@@ -68,22 +68,29 @@ export function PubGuideHero({
         </p>
       </div>
 
+      {/* Two surfaces, not four grounds. This was a sun sheet behind a cobalt
+          panel behind the warm-paper card — the only place in the product
+          where the card sits on saturated cobalt, adding a fourth colour to a
+          hero that already carries a cobalt and a sun MonoTag, and ~80px of
+          nested padding for decoration. The sun sheet now sits directly behind
+          the card, and the tag + demo link move to a dashed caption bar under
+          it, where they read as a caption rather than competing chrome. */}
       <div className="relative mx-auto w-full max-w-[26rem] lg:mx-0 lg:justify-self-end">
         <div
           aria-hidden="true"
-          className="absolute -top-3 -right-3 bottom-3 left-3 rotate-2 rounded-sheet border-2 border-ink bg-seal"
+          className="absolute -top-3 -right-3 bottom-6 left-3 rotate-2 rounded-sheet border-2 border-ink bg-seal"
         />
-        <div className="relative grid gap-5 rounded-sheet border-2 border-ink bg-cobalt p-5 shadow-md sm:p-7">
-          <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="relative grid gap-3">
+          <HeroSampleCard qrMatrix={demoQr} />
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border-2 border-dashed border-line-strong bg-card px-3 py-2">
             <MonoTag tone="sun">The QR option</MonoTag>
             <Link
               href={ROUTES.demo}
-              className="focus-ring mono-id rounded-sm text-paper/90 uppercase underline underline-offset-4"
+              className="focus-ring mono-id tap-floor inline-flex min-h-11 items-center rounded-(--radius-md) px-2 text-foreground uppercase underline underline-offset-4"
             >
               Try it live
             </Link>
           </div>
-          <HeroSampleCard qrMatrix={demoQr} />
         </div>
       </div>
     </Section>

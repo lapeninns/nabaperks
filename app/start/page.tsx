@@ -39,24 +39,28 @@ export default async function StartPage() {
           </div>
         </div>
 
-        <div className="grid gap-2">
+        {/* `gap-3`: two full-width 48px keys 8px apart do not read as two
+            separate targets — the system's own card gap is 14px. */}
+        <div className="grid gap-3">
           <Button asChild size="lg">
             <Link href="/scan">Scan a QR</Link>
           </Button>
           <Button asChild variant="secondary" size="lg">
             <Link href="/home/login">{OPEN_MY_CARDS_LABEL}</Link>
           </Button>
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="justify-self-center text-muted-foreground underline underline-offset-4"
-          >
+        </div>
+
+        {/* Running a venue is a different audience, not a lesser version of
+            this one — so it gets its own labelled lane below the rule rather
+            than a 36px ghost link buried under the customer keys. */}
+        <div className="grid justify-items-center gap-2 border-t-2 border-dashed border-foreground/25 pt-4">
+          <p className="mono-meta text-muted-foreground">Running a venue?</p>
+          <Button asChild variant="ghost" size="sm">
             <Link href="/login">Merchant sign-in</Link>
           </Button>
         </div>
 
-        <p className="border-t-2 border-dashed border-foreground/25 pt-4 text-center text-sm leading-6 text-muted-foreground">
+        <p className="text-center text-sm leading-6 text-muted-foreground">
           New here? Scan a venue&apos;s QR code to collect your first stamp —
           your first card is created automatically.
         </p>
