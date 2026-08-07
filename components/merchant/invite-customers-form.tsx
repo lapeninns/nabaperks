@@ -217,7 +217,7 @@ function RecipientsField({
       >
         {count > 0 ? (
           <>
-            <Icon icon={UserMultiple02Icon} size={13} strokeWidth={2.25} />
+            <Icon icon={UserMultiple02Icon} size={14} strokeWidth={2.25} />
             {count.toLocaleString("en-GB")}{" "}
             {count === 1 ? "address" : "addresses"} recognised
             {overLimit

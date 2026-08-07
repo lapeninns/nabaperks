@@ -97,7 +97,7 @@ export default async function AccountHarnessPage({
               className="mt-1 inline-flex w-fit items-center gap-1.5 text-sm font-bold text-ink underline decoration-2 underline-offset-4 transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:text-primary motion-reduce:transition-none"
             >
               Edit venue details
-              <Icon icon={ArrowRight01Icon} size={15} />
+              <Icon icon={ArrowRight01Icon} size={16} />
             </Link>
           </section>
 

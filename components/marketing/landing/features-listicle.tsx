@@ -65,7 +65,7 @@ export function FeaturesListicle() {
                   <li key={item} className="flex items-start gap-2.5">
                     <Icon
                       icon={CheckmarkCircle02Icon}
-                      size={17}
+                      size={16}
                       className="mt-0.5 shrink-0 text-reward"
                     />
                     <span className="text-sm leading-6 text-muted-foreground">

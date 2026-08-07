@@ -56,7 +56,7 @@ export function KpiTile({
     <Card className={cn("h-full", className)} size="sm" data-elevation="flat">
       <CardHeader className="h-full gap-2">
         <p className="eyebrow flex min-h-5 items-center gap-1.5">
-          {icon ? <Icon icon={icon} size={13} strokeWidth={2.25} /> : null}
+          {icon ? <Icon icon={icon} size={14} strokeWidth={2.25} /> : null}
           {label}
         </p>
         <div className="flex items-end justify-between gap-3">

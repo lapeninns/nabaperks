@@ -167,7 +167,7 @@ export function OfferPass({
         {/* mono-meta, not mono-id: the window is the one fact a customer has to
             be able to read across a counter, so it stays above the 10px floor. */}
         <span className="mono-meta flex w-fit max-w-full items-center gap-1.5 rounded-md border-2 border-ink bg-seal/25 px-2 py-0.5 text-ink">
-          <Icon icon={Calendar03Icon} size={13} strokeWidth={2.25} />
+          <Icon icon={Calendar03Icon} size={14} strokeWidth={2.25} />
           <span className="min-w-0 truncate">
             {opens && closes ? `${opens} to ${closes}` : "Dates from the venue"}
           </span>

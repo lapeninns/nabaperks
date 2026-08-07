@@ -141,7 +141,7 @@ export function PosterProof({
       <Button asChild variant="reward" className="w-full">
         <Link href={posterHref} target="_blank" rel="noreferrer">
           Open poster
-          <Icon icon={ArrowUpRight01Icon} size={15} />
+          <Icon icon={ArrowUpRight01Icon} size={16} />
         </Link>
       </Button>
     </aside>

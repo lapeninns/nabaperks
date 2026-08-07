@@ -200,7 +200,7 @@ export function DashboardQrCardView({
               <CopyUrlButton url={shareUrl} />
               <Button asChild variant="ghost" size="sm">
                 <Link href="/app/qr" prefetch={false}>
-                  <Icon icon={PrinterIcon} size={15} />
+                  <Icon icon={PrinterIcon} size={16} />
                   Poster &amp; print
                 </Link>
               </Button>

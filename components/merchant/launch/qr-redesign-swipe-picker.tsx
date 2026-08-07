@@ -161,7 +161,7 @@ export function SwipePosterPicker({
                 rel="noreferrer"
               >
                 Open {item.name.toLowerCase()} poster
-                <Icon icon={ArrowUpRight01Icon} size={15} />
+                <Icon icon={ArrowUpRight01Icon} size={16} />
               </Link>
             </Button>
           </article>

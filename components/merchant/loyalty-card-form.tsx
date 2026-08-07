@@ -175,7 +175,7 @@ export function LoyaltyCardForm({
                         {selected ? (
                           <Icon
                             icon={Tick02Icon}
-                            size={15}
+                            size={16}
                             strokeWidth={2.5}
                             className="shrink-0"
                           />

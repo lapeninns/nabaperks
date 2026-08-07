@@ -12,6 +12,13 @@ export type IconGlyph = ComponentProps<typeof HugeiconsIcon>["icon"]
  * colour, no shrink) so call sites stay terse. Decorative by default — pass
  * `label` to give the icon an accessible name, otherwise it renders
  * `aria-hidden`. Size via the `size` prop or a `size-*` utility class.
+ *
+ * SIZE SCALE (05#64). Thirteen distinct sizes were in use across 146 call
+ * sites. The accidental near-misses (13, 15, 17) have been snapped to their
+ * neighbour, leaving: 14 (inline, beside mono/micro type), 16 (the default for
+ * in-row and button glyphs, 93 uses), 18 (list and nav glyphs), 20 (the
+ * component default), and 24+ for display glyphs in empty states and heroes.
+ * Prefer one of those; a new intermediate value needs a reason.
  */
 export function Icon({
   icon,

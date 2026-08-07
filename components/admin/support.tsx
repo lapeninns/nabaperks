@@ -180,7 +180,7 @@ export function SourceLabel({
         className
       )}
     >
-      <Icon icon={Database01Icon} size={13} strokeWidth={2.25} />
+      <Icon icon={Database01Icon} size={14} strokeWidth={2.25} />
       <span className="min-w-0 truncate">{children}</span>
     </span>
   )

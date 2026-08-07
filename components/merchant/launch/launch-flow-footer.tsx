@@ -24,7 +24,7 @@ export function LaunchFlowFooter({ cta }: { cta: LaunchFlowCta | null }) {
             {cta.label}
             <Icon
               icon={ArrowRight02Icon}
-              size={15}
+              size={16}
               className="transition-transform duration-[var(--w-dur-fast)] group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5 motion-reduce:transition-none"
             />
           </Link>

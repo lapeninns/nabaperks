@@ -277,7 +277,7 @@ export function LaunchReadinessPanel({
             <Button asChild variant="secondary">
               <Link href={nextStep?.href ?? "/app/launch"} prefetch={false}>
                 {nextStep?.actionLabel ?? "Open setup"}
-                <Icon icon={ArrowRight02Icon} size={15} />
+                <Icon icon={ArrowRight02Icon} size={16} />
               </Link>
             </Button>
           </div>
@@ -346,7 +346,7 @@ function LaunchReadinessCompact({
       <Button asChild className="w-full shrink-0 sm:w-auto">
         <Link href={nextStep?.href ?? "/app/launch"} prefetch={false}>
           {nextStep?.actionLabel ?? "Open setup"}
-          <Icon icon={ArrowRight02Icon} size={15} />
+          <Icon icon={ArrowRight02Icon} size={16} />
         </Link>
       </Button>
     </ReceiptCard>

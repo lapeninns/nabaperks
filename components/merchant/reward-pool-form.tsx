@@ -386,7 +386,7 @@ export function RewardPoolForm({
                   >
                     <Icon
                       icon={PencilEdit02Icon}
-                      size={17}
+                      size={16}
                       strokeWidth={2.25}
                     />
                     <span className="sr-only">
@@ -652,7 +652,7 @@ function RewardRow({
           // 44px tap floor on coarse pointers (the Button icon-xs idiom).
           className="focus-ring grid size-8 min-h-8 shrink-0 place-items-center rounded-lg border border-border bg-card text-foreground transition-[color,background-color,border-color,opacity] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:border-ink hover:bg-secondary/60 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
         >
-          <Icon icon={PencilEdit02Icon} size={15} strokeWidth={2} />
+          <Icon icon={PencilEdit02Icon} size={16} strokeWidth={2} />
         </button>
       </div>
     </div>
@@ -900,7 +900,7 @@ function DeleteRewardButton({
         size="sm"
         onClick={() => setArmed(true)}
       >
-        <Icon icon={Delete02Icon} size={15} />
+        <Icon icon={Delete02Icon} size={16} />
         Delete
       </Button>
     )
@@ -915,7 +915,7 @@ function DeleteRewardButton({
         size="sm"
         formAction={deleteRewardPoolItemAction}
       >
-        <Icon icon={Delete02Icon} size={15} />
+        <Icon icon={Delete02Icon} size={16} />
         Confirm delete
       </Button>
       <Button
