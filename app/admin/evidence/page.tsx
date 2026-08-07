@@ -6,12 +6,11 @@ import {
   AdminPanel,
   SourceLabel,
   StatusPill,
-  adminSelectClasses,
   first,
   formatAdminDate,
 } from "@/components/admin/support"
 import { EmptyState, PageTitle, SectionHeader } from "@/components/brand"
-import { SubmitButton } from "@/components/forms"
+import { SubmitButton, SelectField } from "@/components/forms"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { canRenderAdminPage } from "@/lib/admin/auth"
@@ -54,23 +53,23 @@ export default async function AdminEvidencePage() {
         >
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <AdminField label="Merchant">
-              <select name="merchantId" required className={adminSelectClasses}>
+              <SelectField name="merchantId" required>
                 <option value="">Select a merchant</option>
                 {workspace.merchants.map((merchant) => (
                   <option key={merchant.id} value={merchant.id}>
                     {merchant.business_name}
                   </option>
                 ))}
-              </select>
+              </SelectField>
             </AdminField>
             <AdminField label="Evidence source">
-              <select name="sourceKind" required className={adminSelectClasses}>
+              <SelectField name="sourceKind" required>
                 {SOURCE_KINDS.map(([value, label]) => (
                   <option key={value} value={value}>
                     {label}
                   </option>
                 ))}
-              </select>
+              </SelectField>
             </AdminField>
             <AdminField label="Measurement starts">
               <Input name="measurementStart" type="date" required />
@@ -142,10 +141,10 @@ export default async function AdminEvidencePage() {
               Merchant approved this attribution, quote and result summary
             </label>
             <AdminField label="Save as">
-              <select name="caseStatus" className={adminSelectClasses}>
+              <SelectField name="caseStatus">
                 <option value="draft">Internal draft</option>
                 <option value="published">Approved and published</option>
-              </select>
+              </SelectField>
             </AdminField>
             <SubmitButton pendingLabel="Snapshotting…">
               Capture evidence

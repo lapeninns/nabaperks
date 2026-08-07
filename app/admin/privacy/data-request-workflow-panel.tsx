@@ -12,7 +12,6 @@ import {
   AdminField,
   AdminPanel,
   SourceLabel,
-  adminSelectClasses,
   first,
   maskAdminCustomer,
 } from "@/components/admin/support"
@@ -20,7 +19,7 @@ import { AdminIdChip } from "@/components/admin/id-chip"
 import { AdminRecordActions } from "@/components/admin/record-actions"
 import { AdminRecordCard } from "@/components/admin/record-card"
 import { EmptyState, SectionHeader } from "@/components/brand"
-import { SubmitButton } from "@/components/forms"
+import { SubmitButton, SelectField } from "@/components/forms"
 import { Input } from "@/components/ui/input"
 import type { getAdminPrivacySupportRows } from "@/lib/admin/data"
 import { MARKETING_POLICY_VERSION } from "@/lib/customer/consent"
@@ -139,11 +138,11 @@ function ConsentOptOutForm({ row }: { readonly row: PrivacySupportRow }) {
         value={MARKETING_POLICY_VERSION}
       />
       <AdminField label="Channel">
-        <select name="channel" required className={adminSelectClasses}>
+        <SelectField name="channel" required>
           <option value="email">Email</option>
           <option value="sms">SMS</option>
           <option value="whatsapp">WhatsApp</option>
-        </select>
+        </SelectField>
       </AdminField>
       <AdminField label="Reason">
         <Input name="reason" required minLength={4} />
@@ -160,21 +159,21 @@ function DataRequestForm({ row }: { readonly row: PrivacySupportRow }) {
       <input type="hidden" name="merchantId" value={row.merchant_id} />
       <div className="grid grid-cols-2 gap-2">
         <AdminField label="Request type">
-          <select name="requestType" required className={adminSelectClasses}>
+          <SelectField name="requestType" required>
             <option value="access">Access</option>
             <option value="export">Export</option>
             <option value="deletion">Deletion</option>
             <option value="rectification">Rectification</option>
             <option value="consent">Consent</option>
-          </select>
+          </SelectField>
         </AdminField>
         <AdminField label="Channel">
-          <select name="channel" required className={adminSelectClasses}>
+          <SelectField name="channel" required>
             <option value="email">Email</option>
             <option value="phone">Phone</option>
             <option value="in_person">In person</option>
             <option value="other">Other</option>
-          </select>
+          </SelectField>
         </AdminField>
       </div>
       <AdminField label="Notes">

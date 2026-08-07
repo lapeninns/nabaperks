@@ -18,16 +18,6 @@ const STATUS_PILL_ICON: Record<
   danger: STATUS_ICON.error,
 }
 
-/**
- * Native `<select>` styling on the one-input story: the same well as the
- * `[data-slot=input]` layer (2px ink border, 10px radius, card background,
- * focus-visible border swap + `.focus-ring` outline). Text inputs and
- * textareas do NOT use this — they compose the themed `Input`/`Textarea`
- * primitives, which the unlayered ink layer already themes.
- */
-export const adminSelectClasses =
-  "focus-ring min-h-11 rounded-lg border-2 border-ink bg-card px-3 text-sm outline-none transition-[border-color,outline-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none focus-visible:border-ring"
-
 export function AdminPanel({
   children,
   className,

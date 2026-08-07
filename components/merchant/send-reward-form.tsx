@@ -7,7 +7,7 @@ import {
   type SendRewardState,
 } from "@/app/app/customers/send-reward/actions"
 import { Eyebrow } from "@/components/brand"
-import { SubmitButton } from "@/components/forms"
+import { SubmitButton, SelectField } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { Field, TextareaField } from "@/components/merchant/loyalty-card-form"
 import {
@@ -119,21 +119,20 @@ export function SendRewardForm({
         <label htmlFor="send-reward-expiry">
           <Eyebrow>Expires in</Eyebrow>
         </label>
-        <select
+        <SelectField
           id="send-reward-expiry"
           name="expiresInDays"
           defaultValue={
             state.fields?.expiresInDays ??
             String(DEFAULT_SEND_REWARD_EXPIRY_DAYS)
           }
-          className="surface-card-flat h-12 px-3 text-foreground"
         >
           {SEND_REWARD_EXPIRY_OPTIONS.map((days) => (
             <option key={days} value={days}>
               {days} days
             </option>
           ))}
-        </select>
+        </SelectField>
         {state.errors?.expiresInDays ? (
           <p className="text-sm text-destructive">
             {state.errors.expiresInDays}

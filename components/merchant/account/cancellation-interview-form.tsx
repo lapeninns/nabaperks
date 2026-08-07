@@ -9,10 +9,9 @@ import {
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { SelectField } from "@/components/forms"
 
 const INITIAL_STATE: CancellationInterviewActionState = { status: "idle" }
-const SELECT_CLASSES =
-  "focus-ring min-h-11 w-full rounded-lg border border-input bg-secondary/60 px-4 text-sm outline-none"
 
 export function CancellationInterviewForm() {
   const [state, action, pending] = useActionState(
@@ -33,7 +32,7 @@ export function CancellationInterviewForm() {
     <form action={action} aria-busy={pending} className="grid gap-4">
       <label className="grid gap-1.5 text-sm font-bold">
         Main reason for leaving
-        <select name="primaryReason" required className={SELECT_CLASSES}>
+        <SelectField name="primaryReason" required>
           <option value="price">The price no longer works</option>
           <option value="not_using">We are not using it enough</option>
           <option value="missing_feature">A feature is missing</option>
@@ -48,7 +47,7 @@ export function CancellationInterviewForm() {
           </option>
           <option value="closing">The venue is closing</option>
           <option value="other">Another reason</option>
-        </select>
+        </SelectField>
       </label>
 
       <label className="grid gap-1.5 text-sm font-bold">

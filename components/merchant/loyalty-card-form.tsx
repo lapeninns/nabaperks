@@ -15,6 +15,7 @@ import {
   ToggleRow,
 } from "@/components/merchant/merchant-form-fields"
 import { Button } from "@/components/ui/button"
+import { SelectField } from "@/components/forms"
 import {
   MAX_STAMPS_REQUIRED,
   MIN_STAMPS_REQUIRED,
@@ -192,21 +193,20 @@ export function LoyaltyCardForm({
           >
             Reward stays claimable for
           </label>
-          <select
+          <SelectField
             id="rewardExpiryDays"
             name="rewardExpiryDays"
             value={draft.rewardExpiryDays}
             onChange={(event) =>
               updateDraft("rewardExpiryDays", event.target.value)
             }
-            className="h-11 w-full rounded-lg border border-input bg-background px-3 text-sm"
           >
             {REWARD_EXPIRY_OPTIONS.map((days) => (
               <option key={days} value={String(days)}>
                 {rewardExpiryLabel(days)}
               </option>
             ))}
-          </select>
+          </SelectField>
           <p className="text-xs leading-5 text-muted-foreground">
             After this, an uncollected reward lapses and the member starts a
             fresh card. Without it a full card would stop collecting for good.

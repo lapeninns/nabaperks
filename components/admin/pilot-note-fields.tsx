@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react"
 import { CheckmarkCircle02Icon } from "@hugeicons/core-free-icons"
 
 import { Icon } from "@/components/brand"
-import { AdminField, adminSelectClasses } from "@/components/admin/support"
-import { SubmitButton } from "@/components/forms"
+import { AdminField } from "@/components/admin/support"
+import { SubmitButton, SelectField } from "@/components/forms"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -39,10 +39,9 @@ export function PilotNoteFields() {
       className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[220px_160px_minmax(0,1fr)_auto]"
     >
       <AdminField label="Note type">
-        <select
+        <SelectField
           name="noteType"
           required
-          className={adminSelectClasses}
           value={noteType}
           onChange={(event) => setNoteType(event.target.value)}
         >
@@ -51,7 +50,7 @@ export function PilotNoteFields() {
               {type.label}
             </option>
           ))}
-        </select>
+        </SelectField>
       </AdminField>
       <AdminField
         label="Setup check minutes"
