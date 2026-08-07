@@ -16,6 +16,6 @@ export {
   type ShellNavItem,
 } from "./console-nav"
 export { ConsoleSidebarNav } from "./console-sidebar-nav"
-export { Section } from "./section"
+export { Section, MARKETING_ANCHOR_OFFSET, MARKETING_GUTTER } from "./section"
 export { SkipLink } from "./skip-link"
 export { ContrastBand } from "./contrast-band"

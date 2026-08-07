@@ -7,6 +7,7 @@ import {
   SectionHeader,
 } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
+import { FinePrint } from "@/components/marketing/fine-print"
 import { JsonLd } from "@/components/seo/json-ld"
 import { Button } from "@/components/ui/button"
 import {
@@ -203,9 +204,7 @@ export function PersonaSpokePage({
               <Link href={ROUTES.howItWorks}>See how the launch works</Link>
             </Button>
           </div>
-          <p className="mono-id text-muted-foreground uppercase">
-            {PRODUCT.cancelLine}
-          </p>
+          <FinePrint>{PRODUCT.cancelLine}</FinePrint>
         </div>
       </Section>
       <JsonLd

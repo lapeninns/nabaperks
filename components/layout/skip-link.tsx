@@ -11,8 +11,9 @@ import { cn } from "@/lib/utils"
  * shell's `<main id="main">`.
  *
  * Visually hidden until focused, then pinned top-left above sticky headers
- * (z-50) using the standard 2px ink border and `--radius` so it matches the
- * Wet Ink surface vocabulary rather than inventing a one-off pill.
+ * (z-50) using the standard 2px ink border, `--radius-lg`, the offset shadow
+ * and the one sanctioned focus recipe (`.focus-ring`), so the first thing a
+ * keyboard user meets looks like the rest of the system rather than a one-off.
  */
 export function SkipLink({
   className,
@@ -24,7 +25,7 @@ export function SkipLink({
     <a
       href={href}
       className={cn(
-        "sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-3 focus-visible:left-3 focus-visible:z-50 focus-visible:rounded-lg focus-visible:border-2 focus-visible:border-ink focus-visible:bg-card focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:font-bold focus-visible:no-underline focus-visible:shadow-sm",
+        "focus-ring sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-3 focus-visible:left-3 focus-visible:z-50 focus-visible:inline-flex focus-visible:min-h-11 focus-visible:items-center focus-visible:rounded-(--radius-lg) focus-visible:border-2 focus-visible:border-ink focus-visible:bg-card focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:font-bold focus-visible:no-underline focus-visible:shadow-sm",
         className
       )}
       {...props}

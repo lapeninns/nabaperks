@@ -3,8 +3,11 @@ import Link from "next/link"
 import { MarketingSignupLink } from "@/components/analytics/marketing-signup-link"
 import { Eyebrow } from "@/components/brand"
 import { Section } from "@/components/layout"
+import { FinePrint } from "@/components/marketing/fine-print"
+import { MARKETING_TEXT_LINK } from "@/components/marketing/text-link"
 import { Button } from "@/components/ui/button"
 import { LANDING, PRODUCT, ROUTES } from "@/lib/marketing/facts"
+import { cn } from "@/lib/utils"
 
 import { HeroSampleCard } from "./hero-sample-card"
 import type { QrMatrix } from "./qr-matrix"
@@ -27,7 +30,7 @@ export function LandingHero({ demoQr }: { demoQr: QrMatrix }) {
     >
       <div className="grid gap-5">
         <Eyebrow>{LANDING.hero.eyebrow}</Eyebrow>
-        <h1 className="max-w-xl text-4xl leading-[1.03] font-extrabold tracking-tight text-balance text-foreground sm:text-6xl">
+        <h1 className="max-w-[18ch] text-4xl leading-[1.03] font-extrabold tracking-tight text-balance text-foreground sm:max-w-xl sm:text-5xl lg:text-6xl">
           {LANDING.hero.headline}
         </h1>
         <p className="max-w-md text-base leading-7 text-muted-foreground sm:text-lg">
@@ -38,15 +41,13 @@ export function LandingHero({ demoQr }: { demoQr: QrMatrix }) {
             <MarketingSignupLink>Start your launch</MarketingSignupLink>
           </Button>
           <Link
-            className="focus-ring rounded-sm text-sm font-bold text-foreground underline underline-offset-4"
+            className={cn(MARKETING_TEXT_LINK, "text-foreground")}
             href={ROUTES.demo}
           >
             {LANDING.hero.demoLink}
           </Link>
         </div>
-        <p className="mono-id text-muted-foreground uppercase">
-          {PRODUCT.cancelLine}
-        </p>
+        <FinePrint>{PRODUCT.cancelLine}</FinePrint>
       </div>
       <div className="mx-auto w-full max-w-[26rem] lg:mx-0 lg:max-w-none lg:justify-self-end">
         <HeroSampleCard qrMatrix={demoQr} />

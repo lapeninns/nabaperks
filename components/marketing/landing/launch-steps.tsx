@@ -26,8 +26,13 @@ export const LAUNCH_STEP_GLYPHS: readonly IconGlyph[] = [
 ]
 
 /**
- * The done-for-you launch sequence as a vertical print timeline: each step is
- * a card hung on a dashed tear line, its roundel the stamp that marks it.
+ * The done-for-you launch sequence as a print timeline. Below `sm:` it hangs
+ * vertically off a dashed tear line, each roundel the stamp that marks its
+ * step. From `sm:` up it turns horizontal — two-up, then five-up from `lg:` —
+ * because five full-width cards stacked vertically was ~1,250px, the single
+ * tallest block on `/how-it-works`, for five short steps that are a SEQUENCE:
+ * the horizontal relationship is the meaning.
+ *
  * Steps one to four wear the "Done for you" tag; the fifth turns primary and
  * hands over to the venue. The venue's own part closes the band in a dashed
  * well. Shared by the landing page's offer story and the how-it-works page so
@@ -43,29 +48,30 @@ export function LaunchSteps() {
         title="Five steps — four of them ours"
         description={DFY_LAUNCH.intro}
       />
-      <ol className="grid gap-3.5 pt-5 sm:gap-4 sm:pt-6">
+      <ol className="grid gap-3.5 pt-5 sm:grid-cols-2 sm:gap-4 sm:pt-6 lg:grid-cols-5">
         {DFY_LAUNCH.steps.map((step, index) => {
           const last = index === lastIndex
 
           return (
             <li
               key={step.title}
-              className="grid grid-cols-[auto_minmax(0,1fr)] items-stretch gap-4"
+              className="grid grid-cols-[auto_minmax(0,1fr)] items-stretch gap-4 sm:grid-cols-1 sm:gap-3"
             >
-              <div className="grid justify-items-center">
+              <div className="grid justify-items-center sm:justify-items-start">
                 <IconRoundel
                   size="md"
                   tone={last ? "primary" : "secondary"}
                   icon={LAUNCH_STEP_GLYPHS[index]}
                 />
+                {/* The tear line only exists in the vertical arrangement. */}
                 {last ? null : (
                   <span
                     aria-hidden="true"
-                    className="mt-1.5 w-0 flex-1 border-l-2 border-dashed border-line-strong"
+                    className="mt-1.5 w-0 flex-1 border-l-2 border-dashed border-line-strong sm:hidden"
                   />
                 )}
               </div>
-              <div className="grid content-start gap-2 rounded-lg border-2 border-ink bg-card p-4 shadow-sm sm:p-5">
+              <div className="grid h-full content-start gap-2 rounded-lg border-2 border-ink bg-card p-4 shadow-sm sm:p-5">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
                   <MonoTag tone={last ? "accent" : "plain"}>
                     {last ? "You go live" : "Done for you"}

@@ -1,20 +1,19 @@
 import type { Metadata } from "next"
 
-import { PageTitle, ReceiptCard } from "@/components/brand"
+import { PageTitle } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
-import { GrowthPlanPricing, TakeoverAnchor } from "@/components/marketing"
+import {
+  GrowthPlanPricing,
+  TakeoverAnchor,
+  ValueMathReceipt,
+} from "@/components/marketing"
 import {
   FaqList,
   GuaranteeStack,
   ScarcityBand,
 } from "@/components/marketing/landing"
 import { JsonLd } from "@/components/seo/json-ld"
-import {
-  PRICING_FAQ_ITEMS,
-  PRODUCT,
-  ROUTES,
-  VALUE_MATH,
-} from "@/lib/marketing/facts"
+import { PRICING_FAQ_ITEMS, PRODUCT, ROUTES } from "@/lib/marketing/facts"
 import {
   breadcrumbSchema,
   faqPageSchema,
@@ -65,20 +64,7 @@ export default function PricingPage() {
         <TakeoverAnchor className="mt-5" />
       </Section>
       <Section size="compact">
-        <ReceiptCard edge padding="md" className="gap-2">
-          <p className="mono-meta text-muted-foreground">
-            Does the maths work?
-          </p>
-          <p className="text-sm leading-6 text-muted-foreground">
-            {VALUE_MATH.assumptionLine}
-          </p>
-          <p className="text-xl leading-snug font-extrabold text-foreground">
-            {VALUE_MATH.coverLine}
-          </p>
-          <p className="mono-id text-muted-foreground uppercase">
-            {VALUE_MATH.illustrativeNote}
-          </p>
-        </ReceiptCard>
+        <ValueMathReceipt />
       </Section>
       <GuaranteeStack />
       <ScarcityBand />

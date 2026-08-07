@@ -1,6 +1,7 @@
 import { MarketingSignupLink } from "@/components/analytics/marketing-signup-link"
 import { Eyebrow, ReceiptCard } from "@/components/brand"
 import { Section } from "@/components/layout"
+import { FinePrint } from "@/components/marketing/fine-print"
 import { Button } from "@/components/ui/button"
 import { OFFER, PLAN_LINE, PRODUCT } from "@/lib/marketing/facts"
 
@@ -10,8 +11,8 @@ export function FinalCta() {
     <Section id="start" size="dense">
       <ReceiptCard
         edge
-        padding="md"
-        className="items-center gap-3 text-center sm:gap-4 sm:[--card-spacing:--spacing(8)]"
+        padding="lg"
+        className="items-center gap-3 text-center sm:gap-4"
       >
         <Eyebrow className="justify-self-center">Ready when you are</Eyebrow>
         <h2 className="max-w-2xl justify-self-center text-2xl leading-tight font-extrabold text-balance text-foreground sm:text-3xl">
@@ -25,9 +26,9 @@ export function FinalCta() {
             <MarketingSignupLink>Start your launch</MarketingSignupLink>
           </Button>
         </div>
-        <p className="mono-id justify-self-center text-muted-foreground uppercase">
+        <FinePrint className="justify-self-center">
           {PRODUCT.cancelLine}
-        </p>
+        </FinePrint>
       </ReceiptCard>
     </Section>
   )

@@ -8,8 +8,9 @@ import { cn } from "@/lib/utils"
  *
  * Every public marketing section funnels its outer wrapper through here so the
  * page's density is tunable from one place (was a per-file `py-12 sm:py-16`
- * scattered across ~16 components). `scroll-mt-24` is always on so JumpNav /
- * hero anchors clear the sticky header. Pass `className` to extend or override —
+ * scattered across ~16 components). `MARKETING_ANCHOR_OFFSET` is always on so
+ * JumpNav / hero anchors clear the sticky header (including the mobile link
+ * rail). Pass `className` to extend or override —
  * it merges last via `cn`, so a caller can swap in its own grid/padding (e.g.
  * the hero's two-column grid). `entrance` defaults on so marketing sections
  * rise independently as they enter the viewport; opt out for sticky chrome.
@@ -18,12 +19,31 @@ import { cn } from "@/lib/utils"
 type SectionSize = "default" | "dense" | "compact" | "tight" | "flush"
 type SectionWidth = "marketing" | "narrow"
 
+/**
+ * The single anchor offset for the public marketing surface. The sticky header
+ * is ~68px tall from `md:` up; below that it also carries the mobile link rail
+ * (~53px), so a `#hash` jump needs to clear ~121px. Every marketing anchor
+ * target imports this rather than picking its own `scroll-mt-*`, which is how
+ * `/#pricing`, `#options` and the guide sections used to land at three
+ * different offsets.
+ */
+export const MARKETING_ANCHOR_OFFSET = "scroll-mt-32 md:scroll-mt-24"
+
+/** The one marketing gutter: chrome, content bands and the ink band share it. */
+export const MARKETING_GUTTER = "px-6 lg:px-8"
+
+/**
+ * Monotonic at BOTH breakpoints — every step down is smaller on a phone and on
+ * a desktop, so `dense` always compresses relative to `default` and `compact`
+ * always compresses relative to `dense`. (The previous scale aliased
+ * `default`/`dense` from `sm:` up and `dense`/`compact` below it, so half the
+ * tokens were no-ops at whichever breakpoint the author was looking at.)
+ */
 const sizePad: Record<SectionSize, string> = {
-  default: "py-7 sm:py-10",
-  /** Mobile-dense: compact phone rhythm, default desktop rhythm. */
-  dense: "py-4 sm:py-10",
-  compact: "py-4 sm:py-5",
-  tight: "py-3 sm:py-4",
+  default: "py-6 sm:py-12",
+  dense: "py-4 sm:py-8",
+  compact: "py-3 sm:py-5",
+  tight: "py-2 sm:py-3",
   flush: "py-0",
 }
 
@@ -50,7 +70,9 @@ export function Section({
   ...props
 }: SectionProps) {
   const sectionClassName = cn(
-    "mx-auto w-full scroll-mt-24 px-6",
+    "mx-auto w-full",
+    MARKETING_ANCHOR_OFFSET,
+    MARKETING_GUTTER,
     widthMax[width],
     sizePad[size],
     className

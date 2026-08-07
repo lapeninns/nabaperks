@@ -3,7 +3,7 @@ import Link from "next/link"
 
 import { MonoTag, ReceiptCard, SectionHeader } from "@/components/brand"
 import { ContrastBand, MarketingLayout, Section } from "@/components/layout"
-import { Marquee } from "@/components/marketing"
+import { FinePrint } from "@/components/marketing"
 import {
   FeaturesListicle,
   LaunchSteps,
@@ -53,35 +53,29 @@ export const metadata: Metadata = {
   },
 }
 
-/** The marquee strip echoes the five launch steps the page walks through. */
-const MARQUEE_STEPS = [
-  "Venue + card setup",
-  "Rewards configured",
-  "Automations on",
-  "Posters printed + posted",
-  "You go live",
-]
-
 export default function HowItWorksPage() {
   return (
     <MarketingLayout>
       <ProcessHero />
-      <Marquee items={[...MARQUEE_STEPS]} />
       <ProblemPains />
       <LaunchSteps />
       <FeaturesListicle />
       <OutcomeTransformation />
-      <ContrastBand id="promise">
+      <ContrastBand id="promise" size="dense">
         <div className="grid gap-6 md:grid-cols-2 md:gap-10 lg:gap-12">
-          <div className="grid content-start gap-3">
+          {/* Equal weight, deliberately: the boundary is the ASA-critical
+              half of the pair and the reason the band exists, so it gets the
+              same type size as the promise and a real ground rather than a
+              faint dashed outline. */}
+          <div className="grid content-start gap-3 rounded-lg border-2 border-paper/60 bg-paper/10 p-4 sm:p-5">
             <p className="mono-meta text-paper/70">What we promise</p>
-            <p className="max-w-xl text-xl leading-snug font-extrabold text-balance sm:text-2xl">
+            <p className="max-w-xl text-lg leading-snug font-extrabold text-balance sm:text-xl">
               {CLAIMS_BOUNDARY.guarantee}
             </p>
           </div>
-          <div className="grid content-start gap-3 rounded-lg border-2 border-dashed border-paper/40 p-4 sm:p-5">
+          <div className="grid content-start gap-3 rounded-lg border-2 border-paper/60 bg-paper/10 p-4 sm:p-5">
             <p className="mono-meta text-paper/70">What we never promise</p>
-            <p className="text-base leading-7 font-extrabold text-paper">
+            <p className="text-lg leading-snug font-extrabold text-balance text-paper sm:text-xl">
               {CLAIMS_BOUNDARY.never}
             </p>
             <p className="text-sm leading-6 text-paper/80">
@@ -114,9 +108,7 @@ export default function HowItWorksPage() {
             <p className="text-base leading-7 font-extrabold text-foreground">
               “{GUARANTEE.line}”
             </p>
-            <p className="mono-id mt-auto text-muted-foreground uppercase">
-              {PRODUCT.cancelLine}
-            </p>
+            <FinePrint className="mt-auto">{PRODUCT.cancelLine}</FinePrint>
           </ReceiptCard>
         </div>
       </Section>

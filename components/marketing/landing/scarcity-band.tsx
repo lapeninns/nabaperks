@@ -10,7 +10,14 @@ import { SCARCITY, URGENCY } from "@/lib/marketing/facts"
  */
 export function ScarcityBand() {
   return (
-    <ContrastBand id="capacity" size="dense">
+    // `--w-shadow-color` -> paper: the CTA's ink offset shadow is invisible
+    // on the ink ground, which silently removes the press choreography from
+    // one of the two highest-intent buttons on the surface.
+    <ContrastBand
+      id="capacity"
+      size="dense"
+      className="[--w-shadow-color:var(--w-paper)]"
+    >
       <div className="grid gap-5 sm:gap-8 md:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] md:gap-10 lg:gap-12">
         <div className="grid content-start gap-3">
           <p className="mono-meta text-paper/70">
