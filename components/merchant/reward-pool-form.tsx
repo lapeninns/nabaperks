@@ -235,7 +235,7 @@ export function RewardPoolForm({
   return (
     <section
       className={cn(
-        "grid min-w-0 gap-4 rounded-lg border border-border bg-card p-3 sm:p-6",
+        "surface-card grid min-w-0 gap-4 p-3 sm:p-6",
         selectedPresetIds.length > 0 &&
           editingId === null &&
           "pb-[8.75rem] sm:pb-6"

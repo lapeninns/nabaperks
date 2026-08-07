@@ -96,7 +96,7 @@ export function LoyaltyCardForm({
     <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-6">
       <form
         action={action}
-        className="order-1 grid min-w-0 gap-3 rounded-lg border border-border bg-card p-3 sm:gap-5 sm:p-6 lg:order-none"
+        className="surface-card order-1 grid min-w-0 gap-3 p-3 sm:gap-5 sm:p-6 lg:order-none"
       >
         <input type="hidden" name="cardId" value={draft.cardId ?? ""} />
         <input

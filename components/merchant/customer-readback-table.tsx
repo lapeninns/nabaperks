@@ -4,10 +4,20 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import type { ReactNode } from "react"
 import Link from "next/link"
 
-import { ScanIcon, Search01Icon } from "@hugeicons/core-free-icons"
+import {
+  ScanIcon,
+  Search01Icon,
+  UserMultiple02Icon,
+} from "@hugeicons/core-free-icons"
 
-import { DataTable, StatStrip, type DataTableColumn } from "@/components/data"
-import { FilterPills, Icon, MemberMark, MonoTag } from "@/components/brand"
+import { DataTable, type DataTableColumn } from "@/components/data"
+import {
+  EmptyState,
+  FilterPills,
+  Icon,
+  MemberMark,
+  MonoTag,
+} from "@/components/brand"
 import { StampGrid } from "@/components/loyalty/stamp-grid"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -65,7 +75,11 @@ function CustomerMobileCard({
     <div
       className={cn(
         "surface-card grid overflow-hidden transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none",
-        isSelected && "bg-primary/10 ring-1 ring-primary/30 ring-inset"
+        // Selection is an ink decision, not a ring: a 1px ring at 30% alpha over
+        // a 10% vermillion wash cannot clear 3:1 non-text contrast, and
+        // per-component ring alphas are exactly what DESIGN.md bans. The card's
+        // own 2px border switches to the accent instead.
+        isSelected && "border-primary bg-secondary"
       )}
     >
       {/* Clickable card body */}
@@ -92,7 +106,7 @@ function CustomerMobileCard({
               {row.identifier}
             </span>
             {row.phoneLine ? (
-              <span className="font-mono text-[0.66rem] font-bold tracking-[0.04em] text-muted-foreground">
+              <span className="mono-id text-muted-foreground">
                 {row.phoneLine}
               </span>
             ) : null}
@@ -224,7 +238,7 @@ function buildColumns(
                 {row.identifier}
               </span>
               {row.phoneLine ? (
-                <span className="font-mono text-[0.66rem] font-bold tracking-[0.04em] text-muted-foreground">
+                <span className="mono-id text-muted-foreground">
                   {row.phoneLine}
                 </span>
               ) : null}
@@ -281,47 +295,18 @@ function buildColumns(
     {
       key: "reward",
       header: "Reward",
-      cell: (row) => {
-        const style = BADGE_STYLES[row.badge.tone]
-        return (
-          <span className="flex flex-col items-start gap-1.5">
-            <MonoTag tone={style.tag}>{row.badge.label}</MonoTag>
-            {/* A real focusable control so the scan action is keyboard-reachable
-                without relying on the mouse-only row selection (WCAG 2.1.1 /
-                4.1.2). Mirrors the inline CTA the mobile card already exposes. */}
-            {row.badge.redeemable ? (
-              <Button
-                asChild
-                size="sm"
-                className="mono-id gap-1.5 [@media(pointer:coarse)]:min-h-11"
-              >
-                <Link
-                  href="/app/scan"
-                  onClick={(event) => event.stopPropagation()}
-                  aria-label={`Open scanner for ${row.identifier}'s reward QR`}
-                >
-                  <Icon icon={ScanIcon} size={14} />
-                  Scan
-                </Link>
-              </Button>
-            ) : null}
-            <Button
-              asChild
-              size="sm"
-              variant="secondary"
-              className="mono-id gap-1.5 [@media(pointer:coarse)]:min-h-11"
-            >
-              <Link
-                href={`/app/customers/send-reward?member=${encodeURIComponent(row.id)}&label=${encodeURIComponent(row.identifier)}`}
-                onClick={(event) => event.stopPropagation()}
-                aria-label={`Send a reward to ${row.identifier}`}
-              >
-                Send
-              </Link>
-            </Button>
-          </span>
-        )
-      },
+      // The tag alone. This cell used to stack the tag, a conditional Scan
+      // button and an always-present Send button — ~128px per redeemable row,
+      // and 100 competing CTAs on a full page, none of which is the row's
+      // actual primary action. Both actions now live in the selected-member
+      // bar above the table, which is keyboard-reachable the moment a row is
+      // activated (the row is a real Enter/Space control) and mirrors what the
+      // card renderer already did on phones.
+      cell: (row) => (
+        <MonoTag tone={BADGE_STYLES[row.badge.tone].tag}>
+          {row.badge.label}
+        </MonoTag>
+      ),
     },
   ]
 }
@@ -461,12 +446,17 @@ export function CustomerReadbackTable({
     if ((totalMembers ?? 0) > 0) {
       return (
         <div className="grid gap-3">
-          <div className="surface-card px-4 py-10 text-center">
-            <p className="text-sm font-semibold">Nothing on this page</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Your {totalLabel} members end before page {pagination.page}.
-            </p>
-          </div>
+          <EmptyState
+            headingLevel={3}
+            icon={UserMultiple02Icon}
+            title="Nothing on this page"
+            description={`Your ${totalLabel} members end before page ${pagination.page}.`}
+            actions={
+              <Button asChild variant="secondary">
+                <Link href={customersPageHref(1)}>Back to page 1</Link>
+              </Button>
+            }
+          />
           <CustomersPaginationRow
             pagination={pagination}
             totalLabel={totalLabel}
@@ -489,22 +479,11 @@ export function CustomerReadbackTable({
     // chain: at worst the ui Table's own overflow-x-auto container scrolls,
     // and the page (intro, filter pills) never overflows the viewport.
     <div className="grid min-w-0 gap-4" ref={rootRef}>
-      <StatStrip
-        items={[
-          {
-            label: "Members",
-            // Prefer the true server-side total over the (paged) loaded count
-            // so large merchants see their real membership size — formatted
-            // with en-GB grouping to match the dashboard KPI ("1,842", not
-            // "1842").
-            value: totalLabel,
-            tone: "ink",
-          },
-          { label: "Ready", value: readyCount, tone: "primary" },
-          { label: "Quiet", value: quietCount, tone: "sun" },
-        ]}
-      />
-
+      {/* The StatStrip that used to sit here read Members / Ready / Quiet —
+          two thirds of which the filter pills below already show as counts,
+          for ~90px on the screen a merchant opens to find one person. The
+          only number it owned alone was the true server-side total, which now
+          leads the readback line under the controls. No count was dropped. */}
       <div className="grid gap-3 sm:flex sm:items-center sm:justify-between">
         <div className="relative sm:max-w-xs sm:flex-1">
           <Icon
@@ -538,41 +517,78 @@ export function CustomerReadbackTable({
         />
       </div>
 
-      {/* Multi-page honesty: search/filter run client-side over the loaded
-          page only, so say so — every member is reachable via the page
-          controls below the list. */}
-      {pagination.totalPages > 1 ? (
-        <p className="px-1 text-xs text-muted-foreground">
-          Showing members {pagination.rangeStart}–{pagination.rangeEnd} of{" "}
-          {totalLabel}, newest first — search and filters cover this page only.
-          Older members are on the later pages.
-        </p>
-      ) : null}
+      {/* One readback line: the true member count (previously the StatStrip's
+          only unique number) plus, on a multi-page list, the multi-page
+          honesty note — search/filter still run client-side over the loaded
+          page, and every member is reachable via the page controls below. */}
+      <p className="mono-meta px-1 text-muted-foreground">
+        {pagination.totalPages > 1 ? (
+          <>
+            {totalLabel} members · showing {pagination.rangeStart}–
+            {pagination.rangeEnd}, newest first. Search and filters cover this
+            page only — older members are on the later pages.
+          </>
+        ) : (
+          <>{totalLabel} members, newest first</>
+        )}
+      </p>
 
-      {/* Scan-reward banner — table widths only (the card list, shown below
-          lg, carries the same CTA inline in the selected card) */}
-      {selected?.badge.redeemable ? (
+      {/* Selected-member action bar — table widths only (the card list, shown
+          below lg, carries the same actions inline in the selected card). It
+          renders for ANY selected row, not just a redeemable one, because it is
+          now the only place the desktop table offers Send; Scan is added on top
+          when there is a reward waiting. */}
+      {selected ? (
         <div className="surface-card hidden flex-wrap items-center justify-between gap-3 px-4 py-3 lg:flex">
           <span className="min-w-0 text-sm font-semibold">
-            {selected.identifier} has a reward ready. Ask them to show their
-            reward QR.
+            {selected.badge.redeemable
+              ? `${selected.identifier} has a reward ready. Ask them to show their reward QR.`
+              : `${selected.identifier} — ${selected.currentStampCount} of ${selected.stampsRequired} stamps.`}
           </span>
-          <Button asChild size="sm" className="mono-meta gap-1.5">
-            <Link href="/app/scan">
-              <Icon icon={ScanIcon} size={14} />
-              Open scanner
-            </Link>
-          </Button>
+          <span className="flex flex-wrap items-center gap-2">
+            {selected.badge.redeemable ? (
+              <Button asChild size="sm" className="mono-meta gap-1.5">
+                <Link href="/app/scan">
+                  <Icon icon={ScanIcon} size={14} />
+                  Open scanner
+                </Link>
+              </Button>
+            ) : null}
+            <Button asChild size="sm" variant="secondary">
+              <Link
+                href={`/app/customers/send-reward?member=${encodeURIComponent(selected.id)}&label=${encodeURIComponent(selected.identifier)}`}
+                aria-label={`Send a reward to ${selected.identifier}`}
+              >
+                Send reward
+              </Link>
+            </Button>
+          </span>
         </div>
       ) : null}
 
       {filtered.length === 0 ? (
-        <div className="surface-card px-4 py-10 text-center">
-          <p className="text-sm font-semibold">No members match your filter</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Try a different status or clear the search.
-          </p>
-        </div>
+        // One empty-state voice across all three edge cases (this one, the
+        // "nothing on this page" case above, and the page's no-members state):
+        // the brand EmptyState, at h3 under the page title, with a real
+        // recovery action instead of prose naming the fix.
+        <EmptyState
+          headingLevel={3}
+          icon={Search01Icon}
+          title="No members match your filter"
+          description="Try a different status, or clear the search and start again."
+          actions={
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setQuery("")
+                setFilter("all")
+              }}
+            >
+              Clear filters
+            </Button>
+          }
+        />
       ) : (
         <>
           {/* Phone + tablet: card list (hidden at lg and above). The switch
@@ -625,7 +641,7 @@ export function CustomerReadbackTable({
                   // into selectedId, and the fallback re-selected the deep-linked
                   // row after the user toggled it off.
                   row.id === selectedId
-                    ? "bg-primary/10 ring-1 ring-primary/30 ring-inset"
+                    ? "bg-secondary [&>td:first-child]:border-l-4 [&>td:first-child]:border-primary"
                     : undefined
                 )
               }
@@ -660,38 +676,55 @@ function CustomersPaginationRow({
       aria-label="Members pages"
       className="flex flex-wrap items-center justify-between gap-3"
     >
-      <Button
-        asChild={pagination.hasPrev}
-        variant="secondary"
-        size="sm"
-        disabled={!pagination.hasPrev}
-      >
-        {pagination.hasPrev ? (
-          <Link href={customersPageHref(pagination.page - 1)} prefetch={false}>
-            Previous page
-          </Link>
-        ) : (
-          <span>Previous page</span>
-        )}
-      </Button>
+      {/* At a boundary the control renders as a real disabled <button> with
+          plain text children and aria-disabled, not an `asChild` <span>: the
+          old shape left a visible element out of the tab order with no state
+          for a screen reader to announce, so a keyboard user simply lost it. */}
+      <PageStepButton
+        href={customersPageHref(pagination.page - 1)}
+        enabled={pagination.hasPrev}
+        label="Previous page"
+        boundaryHint="you are on the first page"
+      />
       <span className="mono-meta numeric-tabular text-muted-foreground">
         Page {pagination.page} of {pagination.totalPages} · {totalLabel} members
       </span>
-      <Button
-        asChild={pagination.hasNext}
-        variant="secondary"
-        size="sm"
-        disabled={!pagination.hasNext}
-      >
-        {pagination.hasNext ? (
-          <Link href={customersPageHref(pagination.page + 1)} prefetch={false}>
-            Next page
-          </Link>
-        ) : (
-          <span>Next page</span>
-        )}
-      </Button>
+      <PageStepButton
+        href={customersPageHref(pagination.page + 1)}
+        enabled={pagination.hasNext}
+        label="Next page"
+        boundaryHint="you are on the last page"
+      />
     </nav>
+  )
+}
+
+function PageStepButton({
+  href,
+  enabled,
+  label,
+  boundaryHint,
+}: {
+  href: string
+  enabled: boolean
+  label: string
+  boundaryHint: string
+}) {
+  if (!enabled) {
+    return (
+      <Button variant="secondary" size="sm" disabled aria-disabled="true">
+        {label}
+        <span className="sr-only">, {boundaryHint}</span>
+      </Button>
+    )
+  }
+
+  return (
+    <Button asChild variant="secondary" size="sm">
+      <Link href={href} prefetch={false}>
+        {label}
+      </Link>
+    </Button>
   )
 }
 

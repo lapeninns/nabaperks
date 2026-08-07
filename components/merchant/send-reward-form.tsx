@@ -7,7 +7,7 @@ import {
   type SendRewardState,
 } from "@/app/app/customers/send-reward/actions"
 import { Eyebrow } from "@/components/brand"
-import { SubmitButton, SelectField } from "@/components/forms"
+import { FormField, SubmitButton, SelectField } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { Field, TextareaField } from "@/components/merchant/loyalty-card-form"
 import {
@@ -115,10 +115,14 @@ export function SendRewardForm({
         error={state.errors?.rewardTerms}
       />
 
-      <div className="grid gap-1.5">
-        <label htmlFor="send-reward-expiry">
-          <Eyebrow>Expires in</Eyebrow>
-        </label>
+      {/* FormField, not a hand-rolled <label> + error <p>: the select then gets
+          the same label binding, aria-describedby and aria-invalid wiring as
+          every Field/TextareaField beside it. */}
+      <FormField
+        id="send-reward-expiry"
+        label={<Eyebrow>Expires in</Eyebrow>}
+        error={state.errors?.expiresInDays}
+      >
         <SelectField
           id="send-reward-expiry"
           name="expiresInDays"
@@ -133,12 +137,7 @@ export function SendRewardForm({
             </option>
           ))}
         </SelectField>
-        {state.errors?.expiresInDays ? (
-          <p className="text-sm text-destructive">
-            {state.errors.expiresInDays}
-          </p>
-        ) : null}
-      </div>
+      </FormField>
 
       <TextareaField
         id="send-reward-message"
@@ -152,9 +151,9 @@ export function SendRewardForm({
       />
 
       {state.errors?.form ? (
-        <p className="text-sm text-destructive" role="alert">
+        <StatusBanner tone="error" title="Reward not sent.">
           {state.errors.form}
-        </p>
+        </StatusBanner>
       ) : null}
 
       <SubmitButton className="w-fit" pendingLabel="Sending…">

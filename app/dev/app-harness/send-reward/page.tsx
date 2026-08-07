@@ -31,7 +31,7 @@ export default async function SendRewardHarnessPage({
         title="Send a reward"
         description="Give a member a reward outside the stamp card. It redeems like any other reward, and you choose when it expires."
       />
-      <section className="grid gap-4 rounded-lg border border-border bg-card p-4 sm:p-6">
+      <section className="surface-card grid gap-4 p-4 sm:p-6">
         <SendRewardForm
           membershipId={membershipId}
           memberLabel={membershipId ? "Phone ending 4242" : undefined}

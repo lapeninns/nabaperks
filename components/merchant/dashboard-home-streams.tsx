@@ -15,7 +15,6 @@ import {
 } from "@/components/brand"
 import { TrendChart } from "@/components/data"
 import { ActivityCompactFeed } from "@/components/merchant/activity-compact-feed"
-import { MerchantBillingNotice } from "@/components/merchant/billing-status"
 import { WetInkRise } from "@/components/motion"
 import { Button } from "@/components/ui/button"
 import { getEnrichedMerchantActivity } from "@/lib/merchant/activity"
@@ -76,62 +75,60 @@ export async function MerchantDashboardStream({
 
   return (
     <>
-      <MerchantBillingNotice status={dashboard.billingStatus} />
-
       {metrics.members === 0 ? (
         // Brand-new venue: a grid of zeros reads as failure. Point at the QR
         // instead — the first join/stamp/reward populates this in place.
         <DashboardMembersEmptyState />
       ) : (
-      <section className="grid gap-3">
-        <SectionHeader
-          eyebrow="Last 14 days"
-          title="How the week is going"
-          description="Deltas compare this week with the seven days before; the lines trace the last fortnight."
-        />
-
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {kpis.map((kpi, index) => (
-            <WetInkRise
-              key={kpi.label}
-              className="min-w-0"
-              delay={index * 0.045}
-              distance={12}
-            >
-              <KpiTile
-                label={kpi.label}
-                value={kpi.value}
-                icon={kpi.icon}
-                series={kpi.series}
-                seriesColor={kpi.seriesColor}
-                trend={kpi.trend}
-              />
-            </WetInkRise>
-          ))}
-        </div>
-
-        <ReceiptCard className="grid gap-3" padding="md">
-          <p className="eyebrow">Stamps vs joins</p>
-          <TrendChart
-            startLabel="2 weeks ago"
-            endLabel="Today"
-            aria-label="Daily stamps issued and new members over the last 14 days"
-            series={[
-              {
-                label: "Stamps",
-                color: "var(--primary)",
-                data: series.stamps,
-                fill: true,
-              },
-              {
-                label: "Joins",
-                color: "var(--w-cobalt)",
-                data: series.joins,
-              },
-            ]}
+        <section className="grid gap-3.5">
+          <SectionHeader
+            eyebrow="Last 14 days"
+            title="How the week is going"
+            description="Deltas compare this week with the seven days before; the lines trace the last fortnight."
           />
-        </ReceiptCard>
-      </section>
+
+          <div className="grid grid-cols-2 gap-3.5 md:grid-cols-4">
+            {kpis.map((kpi, index) => (
+              <WetInkRise
+                key={kpi.label}
+                className="min-w-0"
+                delay={index * 0.045}
+                distance={12}
+              >
+                <KpiTile
+                  label={kpi.label}
+                  value={kpi.value}
+                  icon={kpi.icon}
+                  series={kpi.series}
+                  seriesColor={kpi.seriesColor}
+                  trend={kpi.trend}
+                />
+              </WetInkRise>
+            ))}
+          </div>
+
+          <ReceiptCard className="grid gap-3" padding="md">
+            <p className="eyebrow">Stamps vs joins</p>
+            <TrendChart
+              startLabel="2 weeks ago"
+              endLabel="Today"
+              aria-label="Daily stamps issued and new members over the last 14 days"
+              series={[
+                {
+                  label: "Stamps",
+                  color: "var(--primary)",
+                  data: series.stamps,
+                  fill: true,
+                },
+                {
+                  label: "Joins",
+                  color: "var(--w-cobalt)",
+                  data: series.joins,
+                },
+              ]}
+            />
+          </ReceiptCard>
+        </section>
       )}
     </>
   )

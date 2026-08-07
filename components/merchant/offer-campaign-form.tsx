@@ -156,7 +156,7 @@ export function OfferCampaignForm({
 
           <fieldset
             hidden={currentStep !== "benefits"}
-            className="grid min-w-0 gap-5 rounded-lg border border-border bg-card p-4 sm:p-6"
+            className="surface-card grid min-w-0 gap-5 p-4 sm:p-6"
           >
             <BenefitStep
               benefitKind={benefitKind}
@@ -176,7 +176,7 @@ export function OfferCampaignForm({
 
           <fieldset
             hidden={currentStep !== "rules"}
-            className="grid min-w-0 gap-5 rounded-lg border border-border bg-card p-4 sm:p-6"
+            className="surface-card grid min-w-0 gap-5 p-4 sm:p-6"
           >
             <RulesStep
               state={state}
@@ -464,7 +464,7 @@ function ReviewStep({
       ) : null}
 
       <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-6">
-        <div className="grid min-w-0 gap-5 rounded-lg border border-border bg-card p-4 sm:p-6">
+        <div className="surface-card grid min-w-0 gap-5 p-4 sm:p-6">
           <SectionHeader
             eyebrow="Step 3"
             title="Review and publish"

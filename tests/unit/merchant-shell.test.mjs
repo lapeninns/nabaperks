@@ -3,6 +3,7 @@ import { test } from "node:test"
 
 import {
   isMerchantSetupPath,
+  isPosterPrintPath,
   shouldShowMerchantSetupReminder,
 } from "@/lib/navigation/merchant-shell"
 
@@ -29,5 +30,15 @@ test("setup reminder shows on merchant console routes except launch and onboardi
     false
   )
   assert.equal(shouldShowMerchantSetupReminder("/app/qr/poster/window"), false)
+  assert.equal(shouldShowMerchantSetupReminder("/app/qr/tent/classic"), false)
   assert.equal(shouldShowMerchantSetupReminder("/home"), false)
+})
+
+test("every print preview suppresses the shell's mobile chrome", () => {
+  assert.equal(isPosterPrintPath("/app/qr/poster/window"), true)
+  assert.equal(isPosterPrintPath("/app/qr/tent/classic"), true)
+  assert.equal(isPosterPrintPath("/app/qr/nfc/tap"), true)
+  assert.equal(isPosterPrintPath("/app/qr/nfc-square/tap"), true)
+  assert.equal(isPosterPrintPath("/app/qr"), false)
+  assert.equal(isPosterPrintPath("/app/qr/image"), false)
 })

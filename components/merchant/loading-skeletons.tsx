@@ -40,6 +40,8 @@ export function DashboardQrCardSkeleton() {
       className="grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start sm:gap-6"
     >
       <div className="mx-auto grid w-fit justify-items-center gap-2 sm:mx-0">
+        {/* 9.25rem is the frame, not the code: a 6rem QR inside p-4 + inner p-2
+            + 2px borders. Mirrors DashboardQrCardView exactly. */}
         <Skeleton className="aspect-square size-[9.25rem] rounded-lg" />
         <Skeleton className="h-3 w-32" />
       </div>
@@ -53,7 +55,7 @@ export function DashboardQrCardSkeleton() {
         </div>
         <Skeleton className="h-4 w-full max-w-md" />
         <div className="flex flex-wrap gap-2">
-          <Skeleton className="h-11 w-40" />
+          <Skeleton className="h-11 w-36" />
           <Skeleton className="h-11 w-28" />
           <Skeleton className="h-9 w-32" />
         </div>
@@ -75,14 +77,14 @@ export function MerchantDashboardMetricsSkeleton() {
       role="status"
       aria-label="Loading dashboard metrics"
     >
-      <section className="grid gap-3">
+      <section className="grid gap-3.5">
         <div className="grid gap-3">
           <Skeleton className="h-3 w-24" />
           <Skeleton className="h-6 w-56 max-w-full" />
           <Skeleton className="h-4 w-full max-w-xl" />
         </div>
 
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3.5 md:grid-cols-4">
           {[0, 1, 2, 3].map((tile) => (
             <div
               key={tile}
@@ -234,20 +236,9 @@ export function MerchantCustomersTableSkeleton() {
       role="status"
       aria-label="Loading loyalty members"
     >
-      {/* Summary strip */}
-      <div className="surface-card grid grid-cols-3 gap-px overflow-hidden bg-line">
-        {[0, 1, 2].map((cell) => (
-          <div
-            key={cell}
-            className="grid justify-items-center gap-1.5 bg-card px-2 py-3"
-          >
-            <Skeleton className="h-6 w-10" />
-            <Skeleton className="h-3 w-14" />
-          </div>
-        ))}
-      </div>
-
-      {/* Search + filter pills */}
+      {/* Search + filter pills. The summary strip that used to lead this
+          fallback is gone with the table's own StatStrip (03#22); the counts
+          live in the pills and the readback line below. */}
       <div className="grid gap-3 sm:flex sm:items-center sm:justify-between">
         <Skeleton className="h-11 w-full sm:max-w-xs" />
         <div className="flex flex-wrap gap-2">
@@ -256,6 +247,9 @@ export function MerchantCustomersTableSkeleton() {
           ))}
         </div>
       </div>
+
+      {/* Readback line */}
+      <Skeleton className="h-3 w-56 max-w-full" />
 
       {/* Phone + tablet: stacked cards (the real card list shows below lg) */}
       <ul className="grid gap-2.5 lg:hidden">
@@ -403,7 +397,7 @@ export function LaunchPanelSkeleton({
         role="status"
         aria-label="Loading setup form"
       >
-        <div className="grid min-w-0 gap-3 rounded-lg border border-border bg-card p-3 sm:gap-5 sm:p-6">
+        <div className="surface-card grid min-w-0 gap-3 p-3 sm:gap-5 sm:p-6">
           <div className="flex items-start justify-between gap-3">
             <div className="grid gap-2">
               <Skeleton className="h-6 w-32" />

@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation"
 import type { CSSProperties, MouseEvent } from "react"
 
 import { Icon } from "@/components/brand"
+import { Spinner } from "@/components/ui/spinner"
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -132,9 +133,8 @@ function ConsoleSidebarGroup({
                     className="gap-3"
                     onClick={handleLinkClick}
                   >
-                    {item.icon ? <Icon icon={item.icon} size={16} /> : null}
+                    <NavItemGlyph icon={item.icon} />
                     <span data-collapse-label>{item.label}</span>
-                    <NavPendingIndicator />
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -146,15 +146,20 @@ function ConsoleSidebarGroup({
   )
 }
 
-function NavPendingIndicator() {
+/**
+ * Every merchant route is `force-dynamic`, so a nav tap can sit for a second or
+ * more on venue Wi-Fi. The previous signal was a 6px dot at 60% opacity in the
+ * trailing slot, which `data-collapse-hide` also removed from the collapsed
+ * icon rail — i.e. no signal at all on the surface with the least context.
+ * Swapping the leading glyph for the shared `Spinner` puts the feedback at full
+ * contrast in the one slot that renders in both rail states.
+ */
+function NavItemGlyph({ icon }: { icon?: ShellNavItem["icon"] }) {
   const { pending } = useLinkStatus()
 
-  return (
-    <span
-      aria-hidden="true"
-      data-pending={pending}
-      data-collapse-hide
-      className="ml-auto size-1.5 shrink-0 rounded-full bg-current opacity-0 transition-opacity delay-100 duration-[var(--w-dur-fast)] ease-[var(--w-ease)] data-[pending=true]:opacity-60 motion-reduce:transition-none"
-    />
-  )
+  if (pending) {
+    return <Spinner className="size-4 shrink-0" aria-label="Loading page" />
+  }
+
+  return icon ? <Icon icon={icon} size={16} /> : null
 }
