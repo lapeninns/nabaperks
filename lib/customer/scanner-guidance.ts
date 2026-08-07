@@ -6,11 +6,7 @@
  * - `showRetry` gates the "Try the camera again" control.
  */
 export type ScannerStatusKind =
-  | "idle"
-  | "scanning"
-  | "decoded"
-  | "invalid"
-  | "camera-error"
+  "idle" | "scanning" | "struggling" | "decoded" | "invalid" | "camera-error"
 
 export type ScannerGuidance = {
   readonly detail: string | null
@@ -25,6 +21,12 @@ const CAMERA_ERROR_DETAIL =
 const INVALID_DETAIL =
   "Point your camera at the venue QR on the table or counter."
 
+// A live camera that has found nothing for twelve seconds is almost always a
+// lighting problem, so the guidance names the two things that fix it rather
+// than repeating "scanning…" indefinitely (CUS 02#58).
+const STRUGGLING_DETAIL =
+  "Struggling? Try more light or the torch, hold steady about 20cm away, or ask the team for the venue QR."
+
 export function scannerGuidance(kind: ScannerStatusKind): ScannerGuidance {
   if (kind === "camera-error") {
     return { detail: CAMERA_ERROR_DETAIL, showRetry: true }
@@ -32,6 +34,10 @@ export function scannerGuidance(kind: ScannerStatusKind): ScannerGuidance {
 
   if (kind === "invalid") {
     return { detail: INVALID_DETAIL, showRetry: false }
+  }
+
+  if (kind === "struggling") {
+    return { detail: STRUGGLING_DETAIL, showRetry: false }
   }
 
   return { detail: null, showRetry: false }
