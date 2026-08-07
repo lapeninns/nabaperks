@@ -25,6 +25,7 @@ import {
   formatOfferDate,
 } from "@/components/merchant/offers/offer-rules-summary"
 import { Button } from "@/components/ui/button"
+import { Progress } from "@/components/ui/progress"
 import { addUkCalendarDays } from "@/lib/customer/uk-calendar"
 import { OFFERS_HOME_PATH, OFFERS_NEW_PATH } from "@/lib/merchant/offer-nav"
 import { OFFER_NO_STACKING_TERM } from "@/lib/merchant/offer-campaign-fields"
@@ -483,19 +484,6 @@ function ReviewStep({
             stampsRequired={stampsRequired}
           />
 
-          <StatusBanner tone="info" title="The link is the eligibility">
-            Anyone who opens your confidential link can claim this offer, so
-            treat it like the key to the offer itself. Print it on your poster,
-            put it where you want it seen, and rotate it if it goes somewhere it
-            shouldn&apos;t.
-          </StatusBanner>
-
-          <StatusBanner tone="neutral" title="New members only">
-            Customers who already hold a digital loyalty card with you cannot
-            claim this offer. They are told so plainly and are sent to their
-            existing card instead.
-          </StatusBanner>
-
           <form action={action} className="grid gap-4">
             <input type="hidden" name="intent" value="publish" />
             <input
@@ -504,21 +492,55 @@ function ReviewStep({
               value={state.campaignId ?? ""}
             />
 
-            <label className="focus-ring-within flex cursor-pointer items-start gap-3 rounded-lg border-2 border-ink bg-secondary/40 p-3">
-              {/* The value is checked server-side on every publish, so this
-                  box is the confirmation rather than a picture of one. */}
-              <input
-                type="checkbox"
-                name="acknowledgement"
-                value="terms-locked"
-                required
-                className="mt-0.5 size-4 shrink-0 accent-[var(--w-leaf)]"
-              />
-              <span className="text-sm leading-6 text-foreground">
-                I understand these terms are locked once published, and that
-                only customers who are not already members can claim.
-              </span>
-            </label>
+            {/* The two policy notes used to be full StatusBanners stacked above
+                this card, making three consecutive banner tones (success, info,
+                neutral) immediately before the only irreversible action in the
+                product — which desensitises the merchant to banners at exactly
+                the wrong moment. They are the same words, moved into the card
+                that acknowledges them, because that is what is being
+                acknowledged. The banner slot above is now reserved for action
+                outcomes alone. */}
+            <div className="grid gap-3 rounded-lg border-2 border-ink bg-secondary/40 p-3 sm:p-4">
+              <ul className="grid gap-2.5">
+                <li className="grid gap-1">
+                  <p className="text-sm leading-snug font-extrabold text-foreground">
+                    The link is the eligibility
+                  </p>
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    Anyone who opens your confidential link can claim this
+                    offer, so treat it like the key to the offer itself. Print
+                    it on your poster, put it where you want it seen, and rotate
+                    it if it goes somewhere it shouldn&apos;t.
+                  </p>
+                </li>
+                <li className="grid gap-1">
+                  <p className="text-sm leading-snug font-extrabold text-foreground">
+                    New members only
+                  </p>
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    Customers who already hold a digital loyalty card with you
+                    cannot claim this offer. They are told so plainly and are
+                    sent to their existing card instead.
+                  </p>
+                </li>
+              </ul>
+
+              <label className="focus-ring-within tap-floor flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border-2 border-ink/25 bg-card p-3.5 transition-[border-color,background-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] has-checked:border-ink has-checked:bg-secondary has-checked:shadow-[var(--shadow-hard-sm)] motion-reduce:transition-none">
+                {/* The value is checked server-side on every publish, so this
+                    box is the confirmation rather than a picture of one. */}
+                <input
+                  type="checkbox"
+                  name="acknowledgement"
+                  value="terms-locked"
+                  required
+                  className="mt-0.5 size-5 shrink-0 accent-[var(--w-leaf)]"
+                />
+                <span className="text-sm leading-6 text-foreground">
+                  I understand these terms are locked once published, and that
+                  only customers who are not already members can claim.
+                </span>
+              </label>
+            </div>
 
             <div className="flex flex-wrap gap-3">
               <SubmitButton
@@ -570,9 +592,32 @@ function ReviewStep({
 
 function StepTrack({ current }: { current: OfferCreatorStep }) {
   const currentIndex = STEP_LABELS.findIndex((entry) => entry.step === current)
+  const currentLabel = STEP_LABELS[currentIndex]?.label ?? STEP_LABELS[0].label
 
   return (
-    <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
+    <>
+      {/* Phones get a readback plus a bar. The pill row is `flex flex-wrap`, so
+          below `sm` it wrapped to three lines with the `›` separators orphaned on
+          their own — ~70px of chrome above every step of a three-step form. */}
+      <div className="grid gap-1.5 sm:hidden">
+        <p className="mono-meta text-muted-foreground">
+          Step {currentIndex + 1} of {STEP_LABELS.length} ·{" "}
+          <span className="text-foreground">{currentLabel}</span>
+        </p>
+        <Progress
+          aria-label={`Offer setup progress: step ${currentIndex + 1} of ${STEP_LABELS.length}`}
+          value={((currentIndex + 1) / STEP_LABELS.length) * 100}
+        />
+      </div>
+
+      <StepPills currentIndex={currentIndex} />
+    </>
+  )
+}
+
+function StepPills({ currentIndex }: { currentIndex: number }) {
+  return (
+    <ol className="hidden flex-wrap items-center gap-x-2 gap-y-1 sm:flex">
       {STEP_LABELS.map((entry, index) => (
         <li key={entry.step} className="flex items-center gap-2">
           <span

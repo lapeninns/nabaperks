@@ -51,15 +51,18 @@ export function ConsoleSidebarNav({
   const currentPath = activePath ?? pathname
   const currentTab = searchParams.get("tab")
   const secondaryNavItems = secondaryItems ?? []
-  const navGroups: readonly ShellNavGroup[] = groups ?? [
-    { label: "", items: items ?? [] },
-  ]
+  // Two consoles arrived at grouping independently and both are kept:
+  // the admin shell passes explicit `groups`, while the merchant shell passes a
+  // flat `items` array whose entries carry an optional `group` field (its
+  // contract tests pin `items={merchantNavItems}`, so the array must stay flat).
+  // Explicit groups win; otherwise derive them from the items.
+  const navGroups = groups ?? groupNavItems(items ?? [])
 
   return (
     <nav aria-label={ariaLabel} className="flex min-h-0 flex-1 flex-col gap-2">
       {navGroups.map((group) => (
         <ConsoleSidebarGroup
-          key={group.label || "primary"}
+          key={group.label || "__ungrouped"}
           items={group.items}
           label={group.label || undefined}
           currentPath={currentPath}
@@ -78,6 +81,32 @@ export function ConsoleSidebarNav({
       ) : null}
     </nav>
   )
+}
+
+/**
+ * Partition a flat nav list into its labelled `group`s, preserving
+ * first-appearance order. A list with no `group` anywhere collapses to a single
+ * unlabelled group, which is byte-identical to the previous render (the admin
+ * rail relies on that).
+ */
+function groupNavItems(items: readonly ShellNavItem[]): ReadonlyArray<{
+  label?: string
+  items: ShellNavItem[]
+}> {
+  const groups: { label?: string; items: ShellNavItem[] }[] = []
+
+  for (const item of items) {
+    const existing = groups.find((group) => group.label === item.group)
+
+    if (existing) {
+      existing.items.push(item)
+      continue
+    }
+
+    groups.push({ label: item.group, items: [item] })
+  }
+
+  return groups
 }
 
 function ConsoleSidebarGroup({

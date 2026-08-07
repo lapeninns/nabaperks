@@ -4,6 +4,7 @@ import { ArrowLeft02Icon, Download04Icon } from "@hugeicons/core-free-icons"
 
 import { Icon } from "@/components/brand"
 import { StatusBanner } from "@/components/loyalty/status-banner"
+import { Disclosure } from "@/components/merchant/launch/disclosure"
 import {
   OfferActionNotice,
   OfferCampaignPanel,
@@ -129,16 +130,23 @@ export default async function OfferCampaignQrPage({
         </StatusBanner>
       )}
 
-      <OfferCampaignPanel
-        campaign={campaign}
-        claimUrl={claimUrl}
-        qrHref={qrPath}
-        qrImageHref={`${qrPath}.png`}
-        returnTo={qrPath}
-        stampsRequired={desk.stampsRequired}
-        showQrLink={false}
-        showShareRow={false}
-      />
+      {/* This is the present-mode screen — the one a merchant holds up at the
+          counter — so the full management panel (rules summary, lifecycle
+          controls, five metric tiles) folds away behind a disclosure instead of
+          re-rendering below the hero. Nothing was removed: the same panel, one
+          tap away, and no second visible "End this offer" on the same journey. */}
+      <Disclosure label="Manage this offer" summaryClassName="min-h-11">
+        <OfferCampaignPanel
+          campaign={campaign}
+          claimUrl={claimUrl}
+          qrHref={qrPath}
+          qrImageHref={`${qrPath}.png`}
+          returnTo={qrPath}
+          stampsRequired={desk.stampsRequired}
+          showQrLink={false}
+          showShareRow={false}
+        />
+      </Disclosure>
     </div>
   )
 }

@@ -126,7 +126,7 @@ export function MerchantCompactActivitySkeleton() {
     // Sibling of MerchantDashboardMetricsSkeleton on /app — that skeleton owns
     // the single authoritative `role="status"` announcement, so this fallback is
     // hidden from assistive tech to avoid a duplicate "Loading…" on stream.
-    <ReceiptCard className="grid gap-4" aria-hidden="true">
+    <ReceiptCard className="grid gap-3.5" aria-hidden="true">
       <div className="flex items-end justify-between gap-3">
         <Skeleton className="h-5 w-36" />
         <Skeleton className="h-9 w-20" />

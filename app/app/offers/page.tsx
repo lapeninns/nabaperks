@@ -3,7 +3,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { DiscountTag01Icon } from "@hugeicons/core-free-icons"
 
-import { EmptyState, Eyebrow, MonoTag, PageTitle } from "@/components/brand"
+import { EmptyState, MonoTag, PageTitle } from "@/components/brand"
 import { Disclosure } from "@/components/merchant/launch/disclosure"
 import { OfferCampaignPanelSkeleton } from "@/components/merchant/loading-skeletons"
 import {
@@ -119,7 +119,7 @@ async function OffersDesk({
           stampsRequired={stampsRequired}
         />
       ) : (
-        <OffersEmptyState />
+        <OffersEmptyState firstRun={history.length === 0} />
       )}
 
       {history.length > 0 ? <OfferHistory campaigns={history} /> : null}
@@ -129,7 +129,13 @@ async function OffersDesk({
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
-function OffersEmptyState() {
+/**
+ * A venue that has already run offers lands back here every time one ends, so
+ * the three-card preset explainer becomes permanent noise about 300px above the
+ * CTA. It stays open on a genuine first run and folds into a disclosure once
+ * there is history to prove the merchant has read it. No copy was removed.
+ */
+function OffersEmptyState({ firstRun }: { firstRun: boolean }) {
   return (
     <div className="grid gap-5">
       <EmptyState
@@ -143,8 +149,7 @@ function OffersEmptyState() {
         }
       />
 
-      <section className="grid gap-3" aria-label="What an offer can give">
-        <Eyebrow>What an offer can give</Eyebrow>
+      <Disclosure label="What an offer can give" defaultOpen={firstRun}>
         <ul className="grid gap-2 sm:grid-cols-3">
           {OFFER_BENEFIT_PRESETS.map((preset) => (
             <li
@@ -164,7 +169,7 @@ function OffersEmptyState() {
           Offers are for people who are not yet members. Customers who already
           hold your loyalty card cannot claim one.
         </p>
-      </section>
+      </Disclosure>
     </div>
   )
 }
