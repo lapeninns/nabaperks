@@ -9,7 +9,8 @@ import {
   verifyHomeProfileEmailAction,
   type ProfileEditState,
 } from "@/app/home/(authed)/profile/actions"
-import { MonoTag, SectionHeader } from "@/components/brand"
+import { MonoTag } from "@/components/brand"
+import { ProfileSection } from "@/components/customer/profile-section"
 import {
   ProfileDetailRow as DetailRow,
   ProfileEmailDetailRow as EmailDetailRow,
@@ -81,9 +82,12 @@ export function CustomerProfileAboutYou({
   }
 
   return (
-    <section className="surface-card grid gap-4 p-5">
-      <SectionHeader eyebrow="About you" title="Your contact details" />
-
+    <ProfileSection
+      title="Your contact details"
+      hint={aboutYouHint(profile)}
+      defaultOpen
+      className="grid gap-4"
+    >
       {mode === "view" ? (
         <AboutYouView profile={profile} onEdit={() => setMode("edit")} />
       ) : null}
@@ -99,7 +103,7 @@ export function CustomerProfileAboutYou({
       ) : null}
 
       {mode === "verify" ? <AboutYouEmailVerify email={profile.email} /> : null}
-    </section>
+    </ProfileSection>
   )
 }
 
@@ -282,4 +286,21 @@ function AboutYouEmailVerify({ email }: { email: string | null }) {
       </div>
     </div>
   )
+}
+
+/** Summary shown on the collapsed row so state is readable without opening. */
+function aboutYouHint(profile: {
+  fullName: string | null
+  dateOfBirth: string | null
+  email: string | null
+  emailVerified: boolean
+}) {
+  const missing = [
+    profile.fullName ? null : "name",
+    profile.dateOfBirth ? null : "date of birth",
+  ].filter(Boolean)
+
+  if (missing.length) return `Add your ${missing.join(" and ")}`
+  if (!profile.email) return "No email added"
+  return profile.emailVerified ? "Email verified" : "Email needs verifying"
 }

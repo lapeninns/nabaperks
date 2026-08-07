@@ -6,7 +6,8 @@ import {
   updateHomeMarketingConsentAction,
   type MarketingConsentState,
 } from "@/app/home/(authed)/profile/actions"
-import { Eyebrow, SectionHeader } from "@/components/brand"
+import { Eyebrow } from "@/components/brand"
+import { ProfileSection } from "@/components/customer/profile-section"
 import { marketingConsentRowState } from "@/lib/customer/experience/marketing-consent-row"
 
 type MarketingConsent = {
@@ -61,8 +62,11 @@ export function CustomerProfileMarketing({
   )
 
   return (
-    <section className="surface-card grid gap-4 p-5">
-      <SectionHeader eyebrow="Marketing" title="Updates from your venues" />
+    <ProfileSection
+      title="Updates from your venues"
+      hint={marketingHint(optedInByChannel)}
+      className="grid gap-4"
+    >
       <p className="text-sm leading-6 text-muted-foreground">
         Optional. Turning these off won&apos;t affect stamps or rewards.
       </p>
@@ -88,7 +92,7 @@ export function CustomerProfileMarketing({
           You choose this when you join a venue — change it here any time.
         </p>
       ) : null}
-    </section>
+    </ProfileSection>
   )
 }
 
@@ -169,4 +173,17 @@ function MarketingChannelRow({
       </div>
     </form>
   )
+}
+
+/** Collapsed-row summary: which channels are on, without opening the section. */
+function marketingHint(
+  optedInByChannel: Map<MarketingConsent["channel"], boolean>
+) {
+  const on = CHANNELS.filter(
+    (entry) => optedInByChannel.get(entry.channel) ?? false
+  )
+
+  if (!on.length) return "All off"
+  if (on.length === CHANNELS.length) return "All on"
+  return `${on.map((entry) => entry.label).join(", ")} on`
 }
