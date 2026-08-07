@@ -155,6 +155,49 @@ export function MerchantCompactActivitySkeleton() {
 
 // ─── Activity detail feed ──────────────────────────────────────────────────────
 
+// ─── Announcements ────────────────────────────────────────────────────────────
+
+/**
+ * Mirrors {@link AnnouncementCompose}: the section header, the dashed audience
+ * strip, the two labelled fields with their character counters, and the footer
+ * row that carries the Send button.
+ */
+export function AnnouncementComposeSkeleton() {
+  return (
+    <div
+      role="status"
+      aria-label="Loading announcement composer"
+      className="surface-card grid min-w-0 gap-5 p-4 sm:p-5"
+    >
+      <div className="grid gap-2">
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-6 w-56 max-w-full" />
+        <Skeleton className="h-4 w-full max-w-md" />
+      </div>
+
+      <div className="grid gap-2 rounded-lg border-2 border-dashed border-ink/30 bg-secondary/45 px-4 py-3">
+        <Skeleton className="h-4 w-3/5" />
+        <Skeleton className="h-3 w-4/5" />
+      </div>
+
+      {[0, 1].map((field) => (
+        <div key={field} className="grid gap-2">
+          <div className="flex items-center justify-between gap-3">
+            <Skeleton className="h-3 w-32" />
+            <Skeleton className="h-3 w-10" />
+          </div>
+          <Skeleton className={field === 0 ? "h-11 w-full" : "h-24 w-full"} />
+        </div>
+      ))}
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Skeleton className="h-4 w-56 max-w-full" />
+        <Skeleton className="h-11 w-full sm:w-48" />
+      </div>
+    </div>
+  )
+}
+
 /**
  * Mirrors {@link ActivityDetailFeed}: the search + filter-pill bar, the "shown"
  * line, and two grouped timelines of dot + card rows.

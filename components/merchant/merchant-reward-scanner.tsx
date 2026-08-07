@@ -1,5 +1,6 @@
 "use client"
 
+import { FlashlightIcon, FlashlightOffIcon } from "@hugeicons/core-free-icons"
 import {
   Html5Qrcode,
   Html5QrcodeScannerState,
@@ -9,30 +10,9 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useRef, useState } from "react"
 
-import { Eyebrow, ReceiptCard } from "@/components/brand"
+import { Icon, ReceiptCard } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 import { normalizeScannedRewardDestination } from "@/lib/merchant/reward-scanner"
-
-// Single source for the scan-card header. The live scanner, the dynamic-import
-// fallback, and the route-level loading skeleton all render this so the
-// eyebrow/title/lede/size stay in lockstep with one copy edit, and the title
-// matches the PageTitle size used by the reward-scan deep-link page
-// (text-3xl sm:text-4xl) rather than the old bespoke text-2xl heading.
-export function ScanCardHeader() {
-  return (
-    <div className="grid gap-1.5">
-      <Eyebrow>Customer codes</Eyebrow>
-      <h1 className="text-3xl leading-tight font-extrabold tracking-[-0.01em] sm:text-4xl">
-        Scan customer code
-      </h1>
-      <p className="text-sm leading-6 text-muted-foreground">
-        Point your camera at the code on the customer&apos;s phone. It can be a
-        reward to collect or a discount pass to honour, and we will open the
-        right screen for it.
-      </p>
-    </div>
-  )
-}
 
 type CameraErrorReason = "denied" | "not-found" | "busy" | "unavailable"
 
@@ -44,20 +24,22 @@ type ScannerStatus =
   | { readonly kind: "camera-error"; readonly reason: CameraErrorReason }
 
 const SCANNER_ELEMENT_ID = "nabaperks-merchant-reward-scanner"
+
+/**
+ * Decode region as a share of the viewfinder's short edge, drawn at exactly the
+ * same share by {@link ScanReticle} below, so the frame the merchant aims
+ * inside IS the region the decoder reads. Mirrors the customer scanner, which
+ * settled this geometry (CUS 02#59).
+ */
+const QRBOX_RATIO = 0.75
+
 const SCAN_CONFIG = {
   fps: 10,
-  // Viewport-relative shaded box: scale to 80% of the smaller camera edge so it
-  // never crowds the ~272px inner width of the p-6 ReceiptCard on a 320px phone,
-  // while still capping at 250px on larger screens. >=180px keeps the box usable
-  // on the smallest target. UI/config only — no scan semantics change.
   qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-    const edge = Math.max(
-      180,
-      Math.min(
-        250,
-        Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.8)
-      )
+    const edge = Math.floor(
+      Math.min(viewfinderWidth, viewfinderHeight) * QRBOX_RATIO
     )
+
     return { width: edge, height: edge }
   },
   aspectRatio: 1,
@@ -146,8 +128,11 @@ async function stopAndClearScanner(scanner: Html5Qrcode): Promise<void> {
 export function MerchantRewardScanner() {
   const router = useRouter()
   const hasDecodedRef = useRef(false)
+  const scannerRef = useRef<Html5Qrcode | null>(null)
   const [status, setStatus] = useState<ScannerStatus>({ kind: "idle" })
   const [retryCount, setRetryCount] = useState(0)
+  const [torchSupported, setTorchSupported] = useState(false)
+  const [torchOn, setTorchOn] = useState(false)
 
   useEffect(() => {
     let disposed = false
@@ -162,6 +147,7 @@ export function MerchantRewardScanner() {
       useBarCodeDetectorIfSupported: true,
       verbose: false,
     })
+    scannerRef.current = scanner
 
     async function navigateAfterScan(result: { readonly href: string }) {
       try {
@@ -218,6 +204,14 @@ export function MerchantRewardScanner() {
         }
 
         setStatus({ kind: "scanning" })
+        // Only mount the torch control where the running track actually
+        // advertises it — a lamp button that does nothing is worse than none.
+        setTorchSupported(
+          scanner
+            .getRunningTrackCameraCapabilities()
+            .torchFeature()
+            .isSupported()
+        )
       } catch (error) {
         if (disposed) {
           return
@@ -239,6 +233,7 @@ export function MerchantRewardScanner() {
 
     return () => {
       disposed = true
+      scannerRef.current = null
       // Release the camera hardware synchronously first — `stopAndClearScanner`
       // is async and may not settle before navigation unmounts us, leaving the
       // MediaStream (and the camera light) alive.
@@ -250,11 +245,32 @@ export function MerchantRewardScanner() {
   const retryCamera = useCallback(() => {
     hasDecodedRef.current = false
     setStatus({ kind: "idle" })
+    setTorchSupported(false)
+    setTorchOn(false)
     // Bump retryCount so the camera-lifecycle effect re-runs and re-creates the
     // scanner, without calling a setState-bearing callback synchronously from
     // the effect body.
     setRetryCount((count) => count + 1)
   }, [])
+
+  const toggleTorch = useCallback(() => {
+    const scanner = scannerRef.current
+    if (!scanner) return
+
+    const next = !torchOn
+    void scanner
+      .getRunningTrackCameraCapabilities()
+      .torchFeature()
+      .apply(next)
+      .then(() => {
+        setTorchOn(next)
+      })
+      .catch(() => {
+        // A camera that refuses the constraint loses the control rather than
+        // keeping a button that lies about the lamp.
+        setTorchSupported(false)
+      })
+  }, [torchOn])
 
   const statusText =
     status.kind === "idle"
@@ -269,17 +285,38 @@ export function MerchantRewardScanner() {
 
   return (
     <ReceiptCard edge className="grid gap-5 p-6">
-      <ScanCardHeader />
-
       {/* role="group", not role="img": a live video region announced as a
           static image reads wrong to screen readers — a labelled plain region
           is enough, and the aria-live status line below narrates state. */}
       <div
-        id={SCANNER_ELEMENT_ID}
         role="group"
         aria-label="Camera viewfinder"
-        className="min-h-64 overflow-hidden rounded-[var(--radius-lg)] border-2 border-dashed border-ink/35 bg-card [&_video]:min-h-64 [&_video]:object-cover"
-      />
+        className="relative mx-auto aspect-square w-full max-w-sm overflow-hidden rounded-[var(--radius-lg)] border-2 border-dashed border-ink/35 bg-card"
+      >
+        <div
+          id={SCANNER_ELEMENT_ID}
+          className="size-full [&_video]:size-full [&_video]:object-cover"
+        />
+        <ScanReticle />
+        {torchSupported ? (
+          <Button
+            type="button"
+            size="icon-lg"
+            variant={torchOn ? "default" : "secondary"}
+            aria-pressed={torchOn}
+            onClick={toggleTorch}
+            className="absolute right-3 bottom-3"
+          >
+            <Icon
+              icon={torchOn ? FlashlightIcon : FlashlightOffIcon}
+              size={20}
+            />
+            <span className="sr-only">
+              {torchOn ? "Turn the torch off" : "Turn the torch on"}
+            </span>
+          </Button>
+        ) : null}
+      </div>
 
       <div aria-live="polite" className="grid gap-1.5">
         <p className="text-sm font-bold">{statusText}</p>
@@ -304,5 +341,27 @@ export function MerchantRewardScanner() {
         <Link href="/app">Back to dashboard</Link>
       </Button>
     </ReceiptCard>
+  )
+}
+
+/**
+ * Four corner marks at exactly {@link QRBOX_RATIO}, so the frame staff aim
+ * inside is the region the decoder reads. The viewfinder was previously a plain
+ * dashed box with nothing to aim at (03#64).
+ */
+function ScanReticle() {
+  const inset = `${((1 - QRBOX_RATIO) / 2) * 100}%`
+
+  return (
+    <span
+      aria-hidden="true"
+      className="pointer-events-none absolute"
+      style={{ top: inset, right: inset, bottom: inset, left: inset }}
+    >
+      <span className="absolute top-0 left-0 size-6 border-t-2 border-l-2 border-ink" />
+      <span className="absolute top-0 right-0 size-6 border-t-2 border-r-2 border-ink" />
+      <span className="absolute bottom-0 left-0 size-6 border-b-2 border-l-2 border-ink" />
+      <span className="absolute right-0 bottom-0 size-6 border-r-2 border-b-2 border-ink" />
+    </span>
   )
 }
