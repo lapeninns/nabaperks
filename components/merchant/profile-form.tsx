@@ -121,10 +121,14 @@ export function MerchantProfileForm({
         defaultValue={fields?.phone}
         error={state.errors?.phone}
       />
+      {/* The 2px ink contract, same as StatusBanner's tones. These stay plain
+          paragraphs rather than becoming StatusBanner: `Alert` bakes in
+          `role="alert"`, and a saved-successfully message must stay a polite
+          `role="status"` rather than interrupting (03#60). */}
       {state.errors?.form ? (
         <p
           role="alert"
-          className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          className="rounded-lg border-2 border-ink bg-destructive/10 px-3 py-2 text-sm font-semibold text-destructive-strong"
         >
           {state.errors.form}
         </p>
@@ -133,7 +137,7 @@ export function MerchantProfileForm({
         <p
           role="status"
           aria-live="polite"
-          className="rounded-lg border border-reward/30 bg-accent px-3 py-2 text-sm text-accent-foreground"
+          className="rounded-lg border-2 border-ink bg-reward/12 px-3 py-2 text-sm font-semibold text-foreground"
         >
           {state.message}
         </p>
