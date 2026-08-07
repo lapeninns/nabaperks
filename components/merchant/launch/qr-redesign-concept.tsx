@@ -21,6 +21,7 @@ import {
   type DistributionChannel,
   type QrWorkspaceStatus,
 } from "@/components/merchant/launch/qr-redesign-concept-parts"
+import { PrintAssetTabs } from "@/components/merchant/qr-poster/print-asset-tabs"
 import { Button } from "@/components/ui/button"
 import {
   getQrPosterUseCase,
@@ -78,67 +79,55 @@ export function QrWorkspace({
 
   return (
     <article className="grid min-w-0 gap-4 sm:gap-5">
-      <section className="surface-card overflow-hidden">
-        <header className="grid gap-3 border-b-2 border-ink bg-paper-deep/55 p-4 sm:p-6">
-          <Eyebrow>Venue QR</Eyebrow>
-          <div className="grid gap-2 sm:flex sm:items-end sm:justify-between">
-            <div className="grid gap-1.5">
-              <h2 className="text-2xl leading-tight font-extrabold text-balance sm:text-3xl">
-                Launch your counter QR
-              </h2>
-              <p className="max-w-xl text-sm leading-6 text-muted-foreground">
-                Choose where customers will see it, then put it to work at the
-                till.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <WorkspaceStatus status={status} />
-              {statusAction}
-            </div>
+      {/* A status strip, not a second hero: the page title above already says
+          "Venue QR" and the dashboard already shows this code at size. The job
+          here is to confirm the code is live and hand over to the picker. */}
+      <section className="surface-card grid min-w-0 gap-3 p-4 sm:p-5">
+        <div className="grid min-w-0 gap-3 sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-4">
+          <div className="w-24 shrink-0 rounded-lg border-2 border-ink bg-qr-foreground p-2 shadow-sm sm:w-28">
+            {/* eslint-disable-next-line @next/next/no-img-element -- protected merchant QR may come from an authenticated route */}
+            <img
+              src={qrImageSrc}
+              alt={`Permanent venue QR code for ${activeCardName}`}
+              width={512}
+              height={512}
+              className="aspect-square w-full"
+            />
           </div>
-        </header>
 
-        <div className="grid items-center gap-5 p-4 sm:p-6 lg:grid-cols-[minmax(15rem,0.7fr)_minmax(0,1.3fr)] lg:gap-8">
-          <div className="mx-auto grid w-full max-w-[18rem] gap-2.5">
-            <div className="rounded-lg border-2 border-ink bg-qr-foreground p-4 shadow-xl">
-              {/* eslint-disable-next-line @next/next/no-img-element -- protected merchant QR may come from an authenticated route */}
-              <img
-                src={qrImageSrc}
-                alt={`QR code for ${activeCardName}`}
-                width={512}
-                height={512}
-                className="aspect-square w-full"
-              />
+          <div className="grid min-w-0 content-start gap-2">
+            <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+              <Eyebrow>Ready at {venueName}</Eyebrow>
+              <div className="flex flex-wrap items-center gap-2">
+                <WorkspaceStatus status={status} />
+                {statusAction}
+              </div>
             </div>
-            <p className="mono-id text-center tracking-[0.08em] text-muted-foreground">
-              Permanent venue QR
+            <h2 className="text-lg font-extrabold sm:text-xl">
+              {activeCardName}
+            </h2>
+            <p className="text-sm leading-6 text-muted-foreground">
+              One permanent QR for joining and collecting stamps. It keeps the
+              same address when you change posters.
             </p>
           </div>
+        </div>
 
-          <div className="grid min-w-0 gap-4">
-            <div className="grid gap-1">
-              <Eyebrow>Ready at {venueName}</Eyebrow>
-              <h3 className="text-xl font-extrabold">{activeCardName}</h3>
-              <p className="text-sm leading-6 text-muted-foreground">
-                One permanent QR for joining and collecting stamps. It keeps the
-                same address when you change posters.
-              </p>
-            </div>
-            <div className="rounded-lg border-2 border-dashed border-ink/25 bg-paper-deep/45 p-3">
-              <p className="eyebrow">Permanent venue link</p>
-              <p className="mt-1 overflow-hidden font-mono text-xs text-ellipsis whitespace-nowrap sm:text-sm">
-                {shareUrl}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button asChild variant="reward">
-                <Link href={shareUrl} target="_blank" rel="noreferrer">
-                  <Icon icon={LinkSquare02Icon} size={16} />
-                  Open customer link
-                </Link>
-              </Button>
-              <CopyUrlButton url={shareUrl} />
-            </div>
+        <div className="grid min-w-0 gap-2 rounded-lg border-2 border-dashed border-ink/25 bg-paper-deep/45 p-3 sm:flex sm:items-center sm:justify-between sm:gap-3">
+          <div className="min-w-0">
+            <p className="eyebrow">Permanent venue link</p>
+            <p className="mt-1 overflow-hidden font-mono text-xs text-ellipsis whitespace-nowrap sm:text-sm">
+              {shareUrl}
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <Button asChild variant="reward">
+              <Link href={shareUrl} target="_blank" rel="noreferrer">
+                <Icon icon={LinkSquare02Icon} size={16} />
+                Open customer link
+              </Link>
+            </Button>
+            <CopyUrlButton url={shareUrl} />
           </div>
         </div>
       </section>
@@ -177,63 +166,88 @@ export function QrWorkspace({
         </div>
 
         {channel === "print" ? (
-          <div className="grid gap-5 border-t-2 border-ink pt-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(16rem,0.9fr)]">
-            {posterPickerVariant === "swipe" ? (
-              <SwipePosterPicker
-                initialTemplate={template}
-                qrDataUrl={qrImageSrc}
-                venueName={venueName}
-                stampsRequired={stampsRequired}
-                posterHrefs={posterHrefs}
-              />
-            ) : (
-              <>
-                <div id="qr-poster-picker" className="grid scroll-mt-4 gap-3">
-                  <div className="grid gap-1">
-                    <h3 className="text-lg font-extrabold">
-                      Choose a poster style
-                    </h3>
-                    <p className="text-sm leading-6 text-muted-foreground">
-                      Choose the style that best fits where you will display it.
-                      You can change it later without changing the QR.
-                    </p>
-                  </div>
-                  <div className="flex [scrollbar-width:none] gap-2 overflow-x-auto pb-2 [-ms-overflow-style:none] lg:grid lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden">
-                    {QR_POSTER_PRODUCTION_TEMPLATES.map((item) => (
-                      <TemplateButton
-                        key={item.id}
-                        active={template === item.id}
-                        template={item}
-                        useCase={getQrPosterUseCase(item.id)}
-                        href={workspaceHref(
-                          navigationBaseHref,
-                          "print",
-                          item.id
-                        )}
+          <div className="grid min-w-0 gap-5 border-t-2 border-ink pt-5">
+            {/* One asset lane at a time. Stacked, the four lanes ran to roughly
+                2,400px at 390px wide before the merchant reached the one they
+                came for. */}
+            <PrintAssetTabs
+              label="Print asset type"
+              lanes={[
+                {
+                  id: "poster",
+                  label: "Posters",
+                  panel:
+                    posterPickerVariant === "swipe" ? (
+                      <SwipePosterPicker
+                        initialTemplate={template}
+                        qrDataUrl={qrImageSrc}
+                        venueName={venueName}
+                        stampsRequired={stampsRequired}
+                        posterHrefs={posterHrefs}
                       />
-                    ))}
-                  </div>
-                </div>
+                    ) : (
+                      <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(16rem,0.9fr)]">
+                        <div
+                          id="qr-poster-picker"
+                          className="grid scroll-mt-4 gap-3"
+                        >
+                          <div className="grid gap-1">
+                            <h3 className="text-lg font-extrabold">
+                              Choose a poster style
+                            </h3>
+                            <p className="text-sm leading-6 text-muted-foreground">
+                              Choose the style that best fits where you will
+                              display it. You can change it later without
+                              changing the QR.
+                            </p>
+                          </div>
+                          <div className="flex [scrollbar-width:none] gap-2 overflow-x-auto pb-2 [-ms-overflow-style:none] lg:grid lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden">
+                            {QR_POSTER_PRODUCTION_TEMPLATES.map((item) => (
+                              <TemplateButton
+                                key={item.id}
+                                active={template === item.id}
+                                template={item}
+                                useCase={getQrPosterUseCase(item.id)}
+                                href={workspaceHref(
+                                  navigationBaseHref,
+                                  "print",
+                                  item.id
+                                )}
+                              />
+                            ))}
+                          </div>
+                        </div>
 
-                <PosterProof
-                  template={template}
-                  templateName={selectedTemplate.name}
-                  qrDataUrl={qrImageSrc}
-                  venueName={venueName}
-                  stampsRequired={stampsRequired}
-                  posterHref={posterHrefs[template]}
-                />
-              </>
-            )}
-            <TableTentLinks tentHrefs={tentHrefs} />
-            <NfcCardLinks nfcHrefs={nfcHrefs} />
-            <NfcSquareLinks nfcSquareHrefs={nfcSquareHrefs} />
-            {printNotice ? (
-              <div className="lg:col-span-2">{printNotice}</div>
-            ) : null}
-            {printActions ? (
-              <div className="lg:col-span-2">{printActions}</div>
-            ) : null}
+                        <PosterProof
+                          template={template}
+                          templateName={selectedTemplate.name}
+                          qrDataUrl={qrImageSrc}
+                          venueName={venueName}
+                          stampsRequired={stampsRequired}
+                          posterHref={posterHrefs[template]}
+                        />
+                      </div>
+                    ),
+                },
+                {
+                  id: "tent",
+                  label: "Table tents",
+                  panel: <TableTentLinks tentHrefs={tentHrefs} />,
+                },
+                {
+                  id: "nfc",
+                  label: "NFC cards",
+                  panel: <NfcCardLinks nfcHrefs={nfcHrefs} />,
+                },
+                {
+                  id: "nfc-square",
+                  label: "Wall plates",
+                  panel: <NfcSquareLinks nfcSquareHrefs={nfcSquareHrefs} />,
+                },
+              ]}
+            />
+            {printNotice}
+            {printActions}
           </div>
         ) : (
           <div className="grid gap-4 border-t-2 border-ink pt-5">
