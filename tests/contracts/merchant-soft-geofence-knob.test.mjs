@@ -20,7 +20,10 @@ const historical = readFileSync(
   "supabase/migrations/20260619120000_cycle_stamp_soft_geofence.sql",
   "utf8"
 )
-const submission = readFileSync("lib/merchant/venue-location-submission.ts", "utf8")
+const submission = readFileSync(
+  "lib/merchant/venue-location-submission.ts",
+  "utf8"
+)
 const gpsChecks = readFileSync(
   "components/merchant/launch/advanced-gps-checks.tsx",
   "utf8"
@@ -79,7 +82,13 @@ test("the control lives on the real venue form", () => {
   )
   assert.match(
     gpsChecks,
-    /Check on stamp number/,
+    /Verify from visit number/,
     "the control is labelled for the merchant"
   )
+  // The copy must describe what 20260805100100 actually does: a lifetime visit
+  // number that requires being at the venue, not a per-cycle advisory check
+  // that lets an out-of-range stamp through.
+  assert.match(gpsChecks, /must be at the venue to collect/)
+  assert.doesNotMatch(gpsChecks, /still goes through/)
+  assert.doesNotMatch(gpsChecks, /each card cycle/)
 })

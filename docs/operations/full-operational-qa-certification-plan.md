@@ -22,7 +22,7 @@ Current `main` SHA `20b48b7a…` is not certifiable because `pnpm security:audit
    - Run provider smoke in offline mode, then live mode using protected credentials.
 
 3. **Hosted CI and non-production QA**
-   - Require the complete CI release gate on the frozen SHA:
+   - Collect the complete hosted CI evidence on the frozen SHA:
      - Contract, unit, coverage, build, security, CodeQL, and dependency checks.
      - E2E across Chromium, Firefox, desktop Safari, and mobile Safari.
      - Accessibility and visual suites across desktop and mobile projects.

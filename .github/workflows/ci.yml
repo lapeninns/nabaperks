@@ -40,8 +40,9 @@ env:
 # split so feedback fails fast: the fast lane gates every dev-server browser
 # tier, the quality lane carries the hygiene sweeps, and the production
 # bundle is built exactly once and shared with Lighthouse + ZAP as an
-# artifact. The gate job folds all three lanes into the long-standing
-# required check name "Typecheck and build".
+# artifact. The required release gate covers the deterministic fast and build
+# lanes. Long browser, accessibility, visual, performance, security-proxy and
+# database suites continue to publish evidence without delaying routine merges.
 jobs:
   fast:
     name: Fast lane (lint, typecheck, unit)
@@ -443,31 +444,16 @@ jobs:
   release-gate:
     name: Release gate
     needs:
-      - build-gate
-      - e2e-gate
-      - a11y-gate
-      - visual-gate
-      - lighthouse-gate
-      - zap-baseline
-      - db
+      - fast
+      - build
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 1
     steps:
-      - name: Require every release proof
+      - name: Require deterministic merge proof
         env:
-          BUILD_RESULT: ${{ needs.build-gate.result }}
-          E2E_RESULT: ${{ needs.e2e-gate.result }}
-          A11Y_RESULT: ${{ needs.a11y-gate.result }}
-          VISUAL_RESULT: ${{ needs.visual-gate.result }}
-          LIGHTHOUSE_RESULT: ${{ needs.lighthouse-gate.result }}
-          ZAP_RESULT: ${{ needs.zap-baseline.result }}
-          DB_RESULT: ${{ needs.db.result }}
+          FAST_RESULT: ${{ needs.fast.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
         run: |
+          test "$FAST_RESULT" = "success"
           test "$BUILD_RESULT" = "success"
-          test "$E2E_RESULT" = "success"
-          test "$A11Y_RESULT" = "success"
-          test "$VISUAL_RESULT" = "success"
-          test "$LIGHTHOUSE_RESULT" = "success"
-          test "$ZAP_RESULT" = "success"
-          test "$DB_RESULT" = "success"

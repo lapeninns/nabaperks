@@ -30,7 +30,7 @@ export function LandingPricing() {
         title="Launch first. Prove the platform. Then continue."
         description="The physical launch is paid today. Allow up to 14 days for poster delivery; the 28-day platform pilot starts on confirmed delivery, then recurring billing begins."
       />
-      <div className="mx-auto mt-5 grid w-full max-w-4xl gap-4 sm:mt-6 md:grid-cols-[minmax(0,1.35fr)_minmax(0,0.85fr)]">
+      <div className="mx-auto mt-5 grid w-full max-w-4xl gap-4 sm:mt-6">
         <Card className="border-primary">
           <CardContent className="grid content-start gap-4">
             <div className="flex flex-wrap items-center gap-2">
@@ -51,9 +51,12 @@ export function LandingPricing() {
                 {PRODUCT.pilotCardNote} before recurring billing starts.
               </p>
               <div className="mt-2 grid gap-1 border-t-2 border-dashed border-border pt-3">
-                <p className="text-lg leading-6 font-extrabold text-foreground">
-                  Or {PRODUCT.annualPrice}
-                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-lg leading-6 font-extrabold text-foreground">
+                    Or {PRODUCT.annualPrice}
+                  </p>
+                  <MonoTag tone="sun">Best value</MonoTag>
+                </div>
                 <p className="text-sm leading-6 text-muted-foreground">
                   {PRODUCT.annualBillingDisclosure} {PRODUCT.annualSaving}
                 </p>
@@ -76,18 +79,26 @@ export function LandingPricing() {
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="grid h-full content-start gap-4">
-            <MonoTag className="justify-self-start">Bespoke anchor</MonoTag>
-            <p className="text-2xl leading-none font-extrabold text-foreground sm:text-3xl">
-              {TAKEOVER.price}
-            </p>
-            <p className="text-lg leading-snug font-extrabold text-foreground">
-              {TAKEOVER.name}
-            </p>
-            <p className="text-sm leading-6 text-muted-foreground">
-              {TAKEOVER.qualifier} Enquiry only; no online checkout.
-            </p>
-            <Button asChild variant="secondary" className="mt-auto w-full">
+          <CardContent className="flex h-full flex-col gap-4 md:flex-row md:items-center md:gap-6">
+            <div className="grid shrink-0 content-start gap-2">
+              <MonoTag className="justify-self-start">Bespoke anchor</MonoTag>
+              <p className="text-2xl leading-none font-extrabold text-foreground sm:text-3xl">
+                {TAKEOVER.price}
+              </p>
+            </div>
+            <div className="grid gap-1">
+              <p className="text-lg leading-snug font-extrabold text-foreground">
+                {TAKEOVER.name}
+              </p>
+              <p className="text-sm leading-6 text-muted-foreground">
+                {TAKEOVER.qualifier} Enquiry only; no online checkout.
+              </p>
+            </div>
+            <Button
+              asChild
+              variant="secondary"
+              className="w-full md:ml-auto md:w-auto md:shrink-0"
+            >
               <Link href={ROUTES.demo}>{TAKEOVER.action}</Link>
             </Button>
           </CardContent>

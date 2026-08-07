@@ -68,8 +68,8 @@ full webhook payloads.
    journey before the protected production database job becomes eligible. If
    the optional hosted-staging path is active, wait for that additional gate as
    well. Then wait for `Production deployment`, which builds and attests one
-   Vercel output, stages it without domains, verifies it and promotes that same
-   output.
+   immutable source revision, lets Vercel build it with protected production
+   values, stages it without domains, verifies it and then promotes it.
 3. Record the deployment URL and Git commit SHA.
 4. Verify the exact revision and both probes:
 
@@ -82,7 +82,7 @@ full webhook payloads.
 
    Liveness must report `status=ok` and readiness must report
    `status=ready`, `checks.database=ok` and `checks.operational=ok`. Its
-   `signals` object must include six cron jobs plus numeric queue-age and
+   `signals` object must include seven cron jobs plus numeric queue-age and
    provider-delivery fields. Both probes must show the promoted revision.
 
 5. Confirm `/` returns 404. Run anonymous smoke checks for `/signup`,
@@ -188,8 +188,8 @@ production job runs a linked dry run immediately before applying forward-only
 migrations and fails unless the remote and repository ledgers match. Never
 repair, reset or seed production from this path. A successful run starts the
 exact-revision production deployment workflow automatically. That workflow
-generates signed build provenance and a CycloneDX SBOM, stages the exact
-prebuilt output with no domain assignment, probes that URL and promotes it.
+generates signed source provenance and a CycloneDX SBOM, stages a hosted Vercel
+build with no domain assignment, probes that URL and promotes it.
 Public-origin smoke starts only after promotion.
 
 ## Rollback

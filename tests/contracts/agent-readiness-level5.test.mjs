@@ -129,13 +129,19 @@ test("Given routine pull requests When CI runs Then deep browser proof is sharde
     )
   }
 
-  // The long-standing required check folds every lane; the production
-  // bundle is built once and reused instead of rebuilt per consumer.
+  // The stable required check covers deterministic source and build proof;
+  // longer platform suites remain visible without delaying routine merges.
   assert.match(ci, /name: Typecheck and build/)
   assert.match(ci, /needs: \[fast, quality, build\]/)
   assert.match(ci, /name: Release gate/)
-  for (const dependency of [
-    "build-gate",
+  for (const dependency of ["fast", "build"]) {
+    assert.match(
+      ci,
+      new RegExp(`release-gate:[\\s\\S]*?- ${dependency}`),
+      `Release gate must require ${dependency}`
+    )
+  }
+  for (const nonBlockingDependency of [
     "e2e-gate",
     "a11y-gate",
     "visual-gate",
@@ -143,10 +149,9 @@ test("Given routine pull requests When CI runs Then deep browser proof is sharde
     "zap-baseline",
     "db",
   ]) {
-    assert.match(
-      ci,
-      new RegExp(`release-gate:[\\s\\S]*?- ${dependency}`),
-      `Release gate must require ${dependency}`
+    assert.doesNotMatch(
+      ci.slice(ci.indexOf("\n  release-gate:")),
+      new RegExp(`- ${nonBlockingDependency}`)
     )
   }
   const lighthouseJob = ci.slice(

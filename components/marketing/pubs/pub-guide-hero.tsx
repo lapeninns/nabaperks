@@ -54,7 +54,7 @@ export function PubGuideHero({
           <Button asChild size="lg">
             <Link href="#options">Compare the four options</Link>
           </Button>
-          <MarketingSignupLink className="focus-ring rounded-sm text-sm font-bold text-foreground underline underline-offset-4">
+          <MarketingSignupLink className="focus-ring rounded-sm text-sm font-bold whitespace-nowrap text-foreground underline underline-offset-4">
             Or start your launch
           </MarketingSignupLink>
         </div>

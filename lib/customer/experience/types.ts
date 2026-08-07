@@ -51,6 +51,8 @@ export type StampBlockReason =
   | "pool_unavailable"
   | "unauthenticated"
   | "profile_incomplete"
+  | "location_required"
+  | "location_out_of_range"
   | "unavailable"
   | "unknown"
 
@@ -61,6 +63,8 @@ export type CardRewardStatus = "none" | "waiting" | "ready"
 export type LocationRequirement = {
   requireGeofence: boolean
   geofenceRadiusMeters: number
+  firstVerifiedVisit?: number
+  nextVisitNumber?: number
 }
 
 /** Recovery target for unavailable/unauthenticated panels (customer sign-in). */

@@ -29,7 +29,7 @@ of implementation truth.
 | Profiling instrumentation     | `pnpm profile:server` writes Node CPU profiles                     |
 | Issue templates               | Structured bug, feature, debt, and incident forms                  |
 | Error-to-insight pipeline     | Production monitor failures become labelled GitHub issues          |
-| Stable release gate           | One CI check aggregates all release-critical repository proof      |
+| Stable release gate           | One CI check aggregates deterministic source and build proof       |
 | Exact-revision verification   | Successful main CI triggers production revision/readiness proof    |
 | Isolated staging gate         | Protected staging migration, webhook and rollback-only journey     |
 | Recovery verification         | Read-only physical-backup drill against a disposable project       |
@@ -59,7 +59,6 @@ of implementation truth.
   fail-closed coverage breach, requires seven observed days and 95% evidence
   coverage, and retains a daily report. Because both signals are GitHub-hosted,
   this is not proof of independent external monitoring.
-
 Factory evaluates repository state from GitHub. After these controls merge,
 refresh the report and inspect every binary criterion rather than inferring a
 score from the local checkout.
