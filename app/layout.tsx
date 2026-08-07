@@ -22,9 +22,24 @@ const bricolageGrotesque = localFont({
       weight: "400",
       style: "normal",
     },
+    // DESIGN.md typography: body/small are weight 500 and every heading is
+    // 800. Without these two faces the browser synthesised both from the 400
+    // and 700 files, so `font-medium` fell back to Regular and `font-extrabold`
+    // was a faux-bolded 700 — collapsing the bold/extrabold distinction the
+    // system relies on to separate card titles from page titles.
+    {
+      path: "../assets/fonts/BricolageGrotesque-Medium.ttf",
+      weight: "500",
+      style: "normal",
+    },
     {
       path: "../assets/fonts/BricolageGrotesque-Bold.ttf",
       weight: "700",
+      style: "normal",
+    },
+    {
+      path: "../assets/fonts/BricolageGrotesque-ExtraBold.ttf",
+      weight: "800",
       style: "normal",
     },
   ],
