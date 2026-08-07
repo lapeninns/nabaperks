@@ -17,6 +17,16 @@ export type FlowProgress = {
   step: number
   total: number
   label?: string
+  /**
+   * How far through the CURRENT step we are, 0-1, default 1 (finished).
+   *
+   * The join wizard maps two screens — phone and code — onto one "verify your
+   * number" step, so submitting the phone form successfully left the bar
+   * visually unchanged at exactly the point with the highest abandonment risk,
+   * which reads as "my submission failed" (CUS 02#51). A half-filled segment
+   * lets one step carry two screens honestly.
+   */
+  stepProgress?: number
 }
 
 export function CustomerFlowShell({
@@ -124,6 +134,7 @@ export function CustomerFlowShell({
 function OnboardingProgress({ progress }: { progress: FlowProgress }) {
   const total = Math.max(progress.total, 1)
   const step = Math.min(Math.max(progress.step, 1), total)
+  const stepProgress = Math.min(Math.max(progress.stepProgress ?? 1, 0), 1)
 
   return (
     // The text row ("Step 2 of 3") is real content and stays readable to
@@ -136,15 +147,22 @@ function OnboardingProgress({ progress }: { progress: FlowProgress }) {
         </span>
       </div>
       <div className="flex gap-1.5" aria-hidden="true">
-        {Array.from({ length: total }).map((_, index) => (
-          <span
-            key={index}
-            className={cn(
-              "h-1.5 flex-1 rounded-full border border-ink transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none",
-              index < step ? "bg-primary" : "bg-secondary"
-            )}
-          />
-        ))}
+        {Array.from({ length: total }).map((_, index) => {
+          const filled =
+            index < step - 1 ? 1 : index === step - 1 ? stepProgress : 0
+
+          return (
+            <span
+              key={index}
+              className="h-1.5 flex-1 overflow-hidden rounded-full border border-ink bg-secondary"
+            >
+              <span
+                className="block h-full rounded-full bg-primary transition-[width] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none"
+                style={{ width: `${filled * 100}%` }}
+              />
+            </span>
+          )
+        })}
       </div>
     </div>
   )
@@ -256,6 +274,7 @@ export function CustomerStampCard({
   wrapStamps = false,
   compact = false,
   afterGrid,
+  primaryAction,
   children,
   rewardSlot,
   onSlamComplete,
@@ -290,6 +309,13 @@ export function CustomerStampCard({
   /** Slot rendered between the stamp grid and the reward ticket — used for
    * celebrations so the grid stays the receipt's first focal point. */
   afterGrid?: ReactNode
+  /**
+   * Slot between {@link afterGrid} and the reward ticket. The stamp route puts
+   * its press disc here: it used to be the receipt's LAST child, below the
+   * ticket, which put the product's primary verb at roughly y 900 on a 667px
+   * phone (CUS 02#18). The ticket is motivation and belongs after the act.
+   */
+  primaryAction?: ReactNode
   children?: ReactNode
   rewardSlot?: RewardSlotState
   onSlamComplete?: () => void
@@ -328,6 +354,7 @@ export function CustomerStampCard({
         onSlamComplete={onSlamComplete}
       />
       {afterGrid}
+      {primaryAction}
       <RewardTicket
         state={reward.state}
         name={reward.name}

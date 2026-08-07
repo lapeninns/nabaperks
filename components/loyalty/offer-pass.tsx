@@ -180,21 +180,50 @@ export function OfferPass({
         {passLead(state, opens, closes)}
       </p>
 
-      <ul className="grid list-disc gap-1.5 pl-4 text-xs leading-5 text-muted-foreground">
+      {/* `list-disc` browser bullets were the one un-designed element on an
+          otherwise fully-inked face, and the only bulleted list in the whole
+          member journey. Each term is now a row with a 4px ink square marker,
+          in the stamp/seal-free vocabulary the rest of the card uses. The
+          no-stacking rule — the one staff actually enforce, and the one a
+          member is asked to read across a counter — moves up to text-sm; the
+          rest stay at text-xs. No term is removed or hidden (CUS 02#42). */}
+      <ul className="grid gap-2 text-muted-foreground">
         {/* Always printed, never editable by the venue: staff attest to this
             same rule on every redemption. */}
-        <li>{OFFER_NO_STACKING_TERM}</li>
+        <PassTerm emphasis>{OFFER_NO_STACKING_TERM}</PassTerm>
         {requiresIdCheck ? (
-          <li>
+          <PassTerm>
             Bring photo identification. The team will check it before the
             discount is applied.
-          </li>
+          </PassTerm>
         ) : null}
-        {extraTerms ? <li>{extraTerms}</li> : null}
+        {extraTerms ? <PassTerm>{extraTerms}</PassTerm> : null}
       </ul>
 
       {children}
     </section>
+  )
+}
+
+/**
+ * One printed term. The marker is a 4px ink square — flat and hard-edged, and
+ * deliberately not a circle, because circles belong to the stamp and reward
+ * family and a term is neither.
+ */
+function PassTerm({
+  children,
+  emphasis = false,
+}: {
+  children: ReactNode
+  emphasis?: boolean
+}) {
+  return (
+    <li className="grid grid-cols-[auto_1fr] items-start gap-2">
+      <span aria-hidden="true" className="mt-[0.45em] size-1 shrink-0 bg-ink" />
+      <span className={emphasis ? "text-sm leading-5" : "text-xs leading-5"}>
+        {children}
+      </span>
+    </li>
   )
 }
 

@@ -3,8 +3,11 @@
 import { useState } from "react"
 import dynamic from "next/dynamic"
 
-import { IconRoundel, SectionHeader } from "@/components/brand"
+import { ArrowDown01Icon } from "@hugeicons/core-free-icons"
+
+import { Icon, SectionHeader } from "@/components/brand"
 import type { PushNotificationSettingsProps } from "@/components/customer/push-notification-settings"
+import { Skeleton } from "@/components/ui/skeleton"
 
 const DeferredPushNotificationSettings = dynamic<PushNotificationSettingsProps>(
   () =>
@@ -22,14 +25,19 @@ export function PushNotificationSettingsDisclosure() {
       className="surface-card p-5"
       onToggle={(event) => setOpen(event.currentTarget.open)}
     >
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 [&::-webkit-details-marker]:hidden">
+      {/* `.focus-ring` so keyboard users get a visible ring on a primary
+          disclosure (CardDetailsDisclosure, the journey's other <details>,
+          already has one), and the same ArrowDown01Icon chevron it uses instead
+          of an IconRoundel printing a literal "-" / "+" — a hyphen rendered as
+          a minus is optically off-centre, and DESIGN.md reserves the Icon
+          wrapper for every functional glyph (CUS 02#49). */}
+      <summary className="group focus-ring flex cursor-pointer list-none items-center justify-between gap-4 rounded-lg [&::-webkit-details-marker]:hidden">
         <SectionHeader eyebrow="Push" title="Browser notifications" />
-        <IconRoundel
-          size="sm"
-          className="bg-transparent font-mono text-sm font-black"
-        >
-          {open ? "-" : "+"}
-        </IconRoundel>
+        <Icon
+          icon={ArrowDown01Icon}
+          size={18}
+          className="shrink-0 text-ink-soft transition-transform duration-[var(--w-dur-fast)] ease-[var(--w-ease)] group-open:rotate-180 motion-reduce:transition-none"
+        />
       </summary>
       {open ? (
         <div className="pt-4">
@@ -43,15 +51,22 @@ export function PushNotificationSettingsDisclosure() {
   )
 }
 
+/**
+ * The real content is an h-[76px] status box, a `size="sm"` button and three
+ * two-line preference rows (~55px each). The fallback measured 16 / 9 / 10 and
+ * used bare `bg-muted` divs — a different grey from every other loading state
+ * in the app, which all render the themed `[data-slot="skeleton"]` fill — so
+ * the disclosure visibly jumped ~50px when the chunk landed (CUS 02#48).
+ */
 function PushSettingsFallback() {
   return (
     <div className="grid gap-3" aria-hidden="true">
-      <div className="h-16 rounded-lg border-2 border-ink bg-secondary/60" />
-      <div className="h-9 w-32 rounded-lg border-2 border-ink bg-muted" />
+      <Skeleton className="h-[76px] rounded-lg" />
+      <Skeleton className="h-11 w-32 rounded-lg" />
       <div className="grid gap-2">
-        <div className="h-10 rounded-lg bg-muted" />
-        <div className="h-10 rounded-lg bg-muted" />
-        <div className="h-10 rounded-lg bg-muted" />
+        <Skeleton className="h-14 rounded-lg" />
+        <Skeleton className="h-14 rounded-lg" />
+        <Skeleton className="h-14 rounded-lg" />
       </div>
     </div>
   )

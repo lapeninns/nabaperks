@@ -12,7 +12,6 @@ export {
   type RewardSealSize,
   type RewardSealState,
 } from "./reward-seal"
-export { RewardTeaser } from "./reward-teaser"
 export { RewardTicket, type RewardTicketState } from "./reward-ticket"
 export { StampJourneyPreview } from "./stamp-journey-preview"
 export { useStampJourneyLoop } from "./use-stamp-journey-loop"

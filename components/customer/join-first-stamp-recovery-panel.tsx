@@ -14,10 +14,15 @@ export function JoinFirstStampRecoveryPanel({
   readonly recovery: JoinFirstStampRecovery
 }) {
   switch (recovery.resolution) {
+    // Tones follow the state, not the fact that something is outstanding. The
+    // card IS saved in all three branches — that is the reassurance the copy
+    // leads with — so a vermillion warning wash contradicted the words
+    // (CUS 02#32). Retry and rescan are things to do (info); "your card is
+    // saved, the venue is paused" is a neutral standing fact.
     case "retry":
       return (
         <div className="grid gap-3">
-          <StatusBanner title="Your first stamp is still waiting." tone="warning">
+          <StatusBanner title="Your first stamp is still waiting." tone="info">
             Your card is saved. Give the stamp one calm retry.
           </StatusBanner>
           <form action={retryJoinFirstStampAction}>
@@ -31,7 +36,7 @@ export function JoinFirstStampRecoveryPanel({
     case "rescan":
       return (
         <div className="grid gap-3">
-          <StatusBanner title="Scan the venue QR once more." tone="warning">
+          <StatusBanner title="Scan the venue QR once more." tone="info">
             Your card is saved. A fresh venue scan will collect the missing
             stamp.
           </StatusBanner>
@@ -42,7 +47,7 @@ export function JoinFirstStampRecoveryPanel({
       )
     case "venue_action":
       return (
-        <StatusBanner title="Your card is saved." tone="warning">
+        <StatusBanner title="Your card is saved." tone="neutral">
           This venue is not taking stamps just now. Ask the team before trying
           again.
         </StatusBanner>
