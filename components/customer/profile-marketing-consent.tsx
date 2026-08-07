@@ -126,34 +126,47 @@ function MarketingChannelRow({
       <div className="grid gap-1">
         <Eyebrow>{label}</Eyebrow>
         <p className="text-sm leading-6 text-muted-foreground">{helper}</p>
-        <p
-          role="status"
-          aria-live="polite"
-          className={
-            !message
-              ? "sr-only"
-              : state.error
-                ? "text-sm font-bold text-destructive"
-                : "text-sm font-bold text-foreground"
-          }
-        >
+        {/* The announcement stays here for assistive tech (it is adjacent to
+            the label that names the channel), but it is visually hidden — the
+            SIGHTED response now sits beside the control that caused it, below.
+            A confirmation rendering in the description column reads as body
+            copy, not as an answer to "did that save?". */}
+        <p role="status" aria-live="polite" className="sr-only">
           {message}
         </p>
       </div>
-      <label className="-m-3 mt-0.5 inline-flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center p-3">
-        <span className="sr-only">Receive {label} updates</span>
-        <input
-          type="checkbox"
-          name="optedIn"
-          checked={displayChecked}
-          disabled={pending}
-          onChange={(event) => {
-            setOptimistic(event.currentTarget.checked)
-            event.currentTarget.form?.requestSubmit()
-          }}
-          className="ink-check focus-ring shrink-0 disabled:opacity-60"
-        />
-      </label>
+      <div className="flex shrink-0 items-center gap-2">
+        {/* State at the point of interaction: SAVING… while the action is in
+            flight, then the outcome, on the trailing edge of the switch. */}
+        <span
+          aria-hidden="true"
+          className={
+            pending
+              ? "mono-id text-muted-foreground"
+              : message
+                ? state.error
+                  ? "mono-id text-destructive"
+                  : "mono-id text-reward"
+                : "sr-only"
+          }
+        >
+          {pending ? "Saving…" : state.error ? "Not saved" : "Saved"}
+        </span>
+        <label className="-m-3 mt-0.5 inline-flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center p-3">
+          <span className="sr-only">Receive {label} updates</span>
+          <input
+            type="checkbox"
+            name="optedIn"
+            checked={displayChecked}
+            disabled={pending}
+            onChange={(event) => {
+              setOptimistic(event.currentTarget.checked)
+              event.currentTarget.form?.requestSubmit()
+            }}
+            className="ink-check focus-ring shrink-0 disabled:opacity-60"
+          />
+        </label>
+      </div>
     </form>
   )
 }

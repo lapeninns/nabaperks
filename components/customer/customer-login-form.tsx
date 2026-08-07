@@ -7,10 +7,8 @@ import {
   verifyCustomerLoginOtpAction,
   type CustomerLoginOtpState,
 } from "@/app/home/actions"
-import {
-  customerInputClass,
-  customerOtpInputClass,
-} from "@/components/customer/input-class"
+import { customerOtpInputClass } from "@/components/customer/input-class"
+import { PhoneField } from "@/components/customer/phone-field"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
@@ -54,50 +52,16 @@ export function CustomerLoginForm({ next }: CustomerLoginFormProps) {
             primary buttons on one screen with the destructive-to-progress one
             first in reading order, and with the keyboard up "Resend code" was
             often the only one visible (CUS 02#54). */}
-        <div
+        <PhoneField
+          label="Phone number"
           className={
             otpSent && !state.errors?.contact ? "hidden" : "grid gap-2"
           }
-        >
-          <label htmlFor="contact" className="eyebrow">
-            Phone number
-          </label>
-          <input
-            id="contact"
-            name="contact"
-            type="tel"
-            inputMode="tel"
-            autoComplete="tel"
-            placeholder="07400 123456"
-            defaultValue={state.fields?.contact}
-            className={customerInputClass}
-            aria-invalid={Boolean(state.errors?.contact)}
-            aria-describedby={
-              state.errors?.contact ? "contact-error" : "contact-hint"
-            }
-          />
-          {state.errors?.contact ? (
-            // role="alert" so the inline error announces on arrival, matching
-            // the OTP error below — described-by alone stays silent until the
-            // field is re-focused.
-            <p
-              id="contact-error"
-              role="alert"
-              className="text-sm text-destructive"
-            >
-              {state.errors.contact}
-            </p>
-          ) : (
-            // Same expectation-setting hint as the join phone step
-            // (CUS-P3-14).
-            <p
-              id="contact-hint"
-              className="text-xs leading-5 text-muted-foreground"
-            >
-              {JOIN_PHONE_CODE_HINT}
-            </p>
-          )}
-        </div>
+          hint={JOIN_PHONE_CODE_HINT}
+          error={state.errors?.contact}
+          defaultValue={state.fields?.contact}
+          autoFocus={false}
+        />
         {formError && formError !== verifyError ? (
           // Wet Ink error treatment (CUS-P2-07): the shared banner (2px ink,
           // role="alert" via Alert) instead of a hand-rolled 1px box.
