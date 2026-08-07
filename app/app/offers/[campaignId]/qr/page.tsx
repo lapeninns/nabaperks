@@ -93,14 +93,14 @@ export default async function OfferCampaignQrPage({
             ) : null}
           </div>
 
-          <div className="rounded-lg border-2 border-ink bg-white p-4 shadow-[8px_8px_0_var(--w-shadow-color)] sm:p-6">
+          <div className="rounded-lg border-2 border-ink bg-qr-foreground p-4 shadow-2xl sm:p-6">
             {/* eslint-disable-next-line @next/next/no-img-element -- merchant-scoped, no-store QR bytes */}
             <img
               src={`${qrPath}.png`}
               alt={`Campaign QR code for ${venueName}`}
               width={720}
               height={720}
-              className="aspect-square h-auto w-[min(80vmin,30rem)] rounded-lg bg-white"
+              className="aspect-square h-auto w-[min(80vmin,30rem)] rounded-lg bg-qr-foreground"
             />
           </div>
 

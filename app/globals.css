@@ -518,6 +518,22 @@ body[data-grain="true"]::after {
   outline-offset: 2px;
 }
 
+/* Programmatic focus targets — recovery blocks that an action or an error path
+   focuses by script. `.focus-ring` keys off `:focus-visible`, which browsers
+   deliberately do NOT match when focus is moved programmatically onto a
+   `tabIndex={-1}` container, so those blocks were focused with no visible
+   indication at all. Plain `:focus` is correct here precisely because scripted
+   focus is the intended trigger. scroll-margin keeps the block clear of the
+   sticky header when it is scrolled into view. */
+.focus-target {
+  scroll-margin-top: 5rem;
+}
+
+.focus-target:focus {
+  outline: 2px solid color-mix(in oklch, var(--ring) 85%, transparent);
+  outline-offset: 2px;
+}
+
 /* Destructive is excluded here and owns its full treatment below — its
    border/shadow are destructive-inked, and leaving it in this rule would
    need specificity games Lightning CSS's minifier optimises away. */

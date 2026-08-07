@@ -45,7 +45,7 @@ export function CustomerErrorState({
       ref={headingRef}
       tabIndex={-1}
       role="alert"
-      className="focus-ring grid justify-items-center gap-5 rounded-lg text-center"
+      className="focus-target grid justify-items-center gap-5 rounded-lg text-center"
     >
       <VenueMark size={56} name="Nabaperks" caption="Nabaperks" />
       <StatusBanner title={title} tone="error" className="w-full text-center">

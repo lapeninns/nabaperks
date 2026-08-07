@@ -100,7 +100,7 @@ export function QrWorkspace({
 
         <div className="grid items-center gap-5 p-4 sm:p-6 lg:grid-cols-[minmax(15rem,0.7fr)_minmax(0,1.3fr)] lg:gap-8">
           <div className="mx-auto grid w-full max-w-[18rem] gap-2.5">
-            <div className="rounded-lg border-2 border-ink bg-white p-4 shadow-[6px_6px_0_var(--w-shadow-color)]">
+            <div className="rounded-lg border-2 border-ink bg-qr-foreground p-4 shadow-xl">
               {/* eslint-disable-next-line @next/next/no-img-element -- protected merchant QR may come from an authenticated route */}
               <img
                 src={qrImageSrc}

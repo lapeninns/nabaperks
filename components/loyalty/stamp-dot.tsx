@@ -134,7 +134,7 @@ function EmptyStampContent({ emptyLabel }: { readonly emptyLabel: string }) {
   return (
     <span
       aria-hidden="true"
-      className="text-base leading-none font-extrabold tabular-nums"
+      className="numeric-tabular text-base leading-none font-extrabold"
     >
       {emptyLabel}
     </span>

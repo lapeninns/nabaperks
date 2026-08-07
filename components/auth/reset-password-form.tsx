@@ -153,7 +153,7 @@ export function ResetPasswordForm({
             role="group"
             aria-label="Reset-code recovery options"
             tabIndex={-1}
-            className="focus-ring grid gap-3 rounded-lg"
+            className="focus-target grid gap-3 rounded-lg"
           >
             {errors.form ? <ErrorFeedback message={errors.form} /> : null}
             <OtpResendControl
@@ -308,12 +308,12 @@ export function ResetPasswordForm({
             role="group"
             aria-label="Code recovery options"
             tabIndex={-1}
-            className="focus-ring grid gap-3 rounded-lg"
+            className="focus-target grid gap-3 rounded-lg"
           >
             {errors.form ? <ErrorFeedback message={errors.form} /> : null}
             {state.message ? <SuccessFeedback message={state.message} /> : null}
             {verificationWait.active && verificationWait.ready ? (
-              <p className="text-center text-xs leading-5 font-semibold text-muted-foreground tabular-nums">
+              <p className="numeric-tabular text-center text-xs leading-5 font-semibold text-muted-foreground">
                 Try this code again in {verificationWait.remainingSeconds}s.
               </p>
             ) : null}

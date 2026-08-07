@@ -41,7 +41,9 @@ export function OtpResendControl({
       <SubmitButton
         pendingLabel={pendingLabel}
         variant={variant}
-        className="w-full"
+        // numeric-tabular: the label counts down every second, so proportional
+        // digits made the button text jitter on each tick.
+        className="numeric-tabular w-full"
         disabled={disabled || countdown.active}
       >
         {countdown.active && countdown.ready
@@ -75,8 +77,7 @@ export function useOtpRetryCountdown(retryAt: string | undefined) {
   const hasParsableRetryAt = Boolean(retryAt) && Number.isFinite(retryAtMs)
   const clockMatchesRetry = clock.retryAt === retryAt
   const ready =
-    !hasParsableRetryAt ||
-    (clockMatchesRetry && typeof clock.now === "number")
+    !hasParsableRetryAt || (clockMatchesRetry && typeof clock.now === "number")
   const countdown = !ready
     ? {
         active: true,

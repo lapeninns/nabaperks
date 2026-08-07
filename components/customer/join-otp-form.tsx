@@ -149,7 +149,7 @@ export function CustomerOtpForm({
                   Resend code
                 </SubmitButton>
               </div>
-              <p className="text-sm font-bold tabular-nums">
+              <p className="numeric-tabular text-sm font-bold">
                 Phone ending {contactLast4}
               </p>
               {resendError ? (

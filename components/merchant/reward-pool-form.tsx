@@ -445,7 +445,7 @@ export function RewardPoolForm({
           ref={batchErrorRef}
           role="alert"
           tabIndex={-1}
-          className="focus-ring rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          className="focus-target rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
         >
           {batchState.errors.form}
         </p>
@@ -455,7 +455,7 @@ export function RewardPoolForm({
           role="status"
           aria-live="polite"
           tabIndex={-1}
-          className="focus-ring rounded-lg border border-reward/40 bg-reward/10 px-3 py-2 text-sm font-bold text-foreground"
+          className="focus-target rounded-lg border border-reward/40 bg-reward/10 px-3 py-2 text-sm font-bold text-foreground"
         >
           {batchState.message}
           {batchState.activeRewardCount !== undefined ? (

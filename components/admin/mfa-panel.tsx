@@ -112,7 +112,7 @@ function EnrollPanel() {
       <img
         src={enrollment.qrCodeSvg}
         alt="Authenticator setup QR code"
-        className="h-44 w-44 rounded-lg bg-white p-2"
+        className="h-44 w-44 rounded-lg border-2 border-ink bg-qr-foreground p-2"
       />
       <p className="font-mono text-xs break-all text-muted-foreground">
         Key: {enrollment.secret}

@@ -33,7 +33,7 @@ export function ErrorAlertRegion({
       ref={ref}
       tabIndex={-1}
       role="alert"
-      className={cn("focus-ring w-full rounded-lg", className)}
+      className={cn("focus-target w-full rounded-lg", className)}
     >
       {children}
     </div>
