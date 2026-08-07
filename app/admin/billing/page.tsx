@@ -4,7 +4,9 @@ import { AdminCrossLinks } from "@/components/admin/cross-links"
 import { AdminIdChip } from "@/components/admin/id-chip"
 import { AdminRecordActions } from "@/components/admin/record-actions"
 import {
+  AdminEmptyState,
   AdminPanel,
+  AdminPanelHeader,
   SourceLabel,
   StatusPill,
   formatAdminDate,
@@ -13,7 +15,7 @@ import { AdminRecordCard } from "@/components/admin/record-card"
 import { BillingFulfilmentActions } from "@/components/admin/billing-fulfilment-actions"
 import { CreditCardIcon } from "@hugeicons/core-free-icons"
 
-import { EmptyState, PageTitle, SectionHeader } from "@/components/brand"
+import { PageTitle, SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { canRenderAdminPage } from "@/lib/admin/auth"
 import { getAdminBillingRecords } from "@/lib/admin/billing-data"
@@ -80,10 +82,10 @@ export default async function AdminBillingPage() {
         description="Stripe subscription, poster fulfilment and delivery-anchored pilot state."
       />
 
-      <AdminPanel className="p-0">
+      <AdminPanel variant="flush">
         {/* Every sibling panel carries the eyebrow/title/description/actions
             anatomy; this one was a lone provenance pill in a ~60px strip. */}
-        <div className="border-b p-5">
+        <AdminPanelHeader>
           <SectionHeader
             title="Subscriptions and poster fulfilment"
             description="Stripe subscription state joined to poster dispatch, delivery confirmation and the delivery-anchored pilot window."
@@ -93,7 +95,7 @@ export default async function AdminBillingPage() {
               </SourceLabel>
             }
           />
-        </div>
+        </AdminPanelHeader>
         <DataTable
           caption="Admin billing subscription readback"
           cardBreakpoint="xl"
@@ -103,10 +105,9 @@ export default async function AdminBillingPage() {
           mobilePageSize={10}
           getRowKey={(row) => row.id}
           emptyState={
-            <EmptyState
+            <AdminEmptyState
               icon={CreditCardIcon}
               title="No billing records yet"
-              className="rounded-none border-0 shadow-none"
             />
           }
           columns={[

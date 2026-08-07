@@ -2,13 +2,14 @@ import { UserGroupIcon } from "@hugeicons/core-free-icons"
 
 import { AdminRecordCard } from "@/components/admin/record-card"
 import {
+  AdminEmptyState,
   AdminPanel,
   SourceLabel,
   StatusPill,
   formatAdminAuditDate,
   maskAdminContact,
 } from "@/components/admin/support"
-import { EmptyState, SectionHeader } from "@/components/brand"
+import { SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import type { AdminReferralOpsRow } from "@/lib/admin/data"
 
@@ -50,10 +51,10 @@ export function ReferralOpsPanel({
         rows={rows as AdminReferralOpsRow[]}
         getRowKey={(row) => row.referralId}
         emptyState={
-          <EmptyState
+          <AdminEmptyState
             icon={UserGroupIcon}
             title="No referrals yet"
-            className="rounded-none border-0 p-0 shadow-none"
+            padded={false}
           />
         }
         columns={[

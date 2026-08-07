@@ -1,7 +1,10 @@
 import { SecurityCheckIcon } from "@hugeicons/core-free-icons"
 
 import {
+  AdminEmptyState,
   AdminPanel,
+  AdminPanelFooter,
+  AdminPanelHeader,
   SourceLabel,
   first,
   formatAdminAction,
@@ -15,7 +18,7 @@ import {
   AdminLookupPagination,
 } from "@/components/admin/lookup-controls"
 import { AdminRecordCard } from "@/components/admin/record-card"
-import { EmptyState, PageTitle, SectionHeader } from "@/components/brand"
+import { PageTitle, SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { canRenderAdminPage } from "@/lib/admin/auth"
 import { getAdminAuditPage } from "@/lib/admin/data"
@@ -52,11 +55,11 @@ export default async function AdminAuditPage({
         description="Actor, action, context, timestamp, and non-sensitive metadata. Newest first, times in UK local time."
       />
 
-      <AdminPanel className="p-0">
+      <AdminPanel variant="flush">
         {/* Was a bare provenance pill in a 60px strip; the panel now carries
             the same eyebrow/title/description anatomy as its siblings, and
             the venue search + paginator the log always needed. */}
-        <div className="grid gap-4 border-b p-5">
+        <AdminPanelHeader>
           <SectionHeader
             title="Audit trail"
             description="Search by venue to answer questions about one merchant, and page through the whole trail rather than the newest hundred rows."
@@ -69,7 +72,7 @@ export default async function AdminAuditPage({
             fields="venue"
           />
           <AdminAppliedFilters basePath="/admin/audit" lookup={lookup} />
-        </div>
+        </AdminPanelHeader>
         <DataTable
           caption="Admin audit log readback"
           cardBreakpoint="xl"
@@ -79,7 +82,7 @@ export default async function AdminAuditPage({
           rows={logs.rows}
           getRowKey={(log) => log.id}
           emptyState={
-            <EmptyState
+            <AdminEmptyState
               icon={SecurityCheckIcon}
               title={
                 searching ? "No matching audit entries" : "No audit logs yet"
@@ -89,7 +92,6 @@ export default async function AdminAuditPage({
                   ? "No audited action is recorded against that venue. Clear the search to see the whole trail."
                   : "Audited support and security-sensitive actions will appear here."
               }
-              className="rounded-none border-0 shadow-none"
             />
           }
           mobileCard={(log) => {
@@ -186,7 +188,7 @@ export default async function AdminAuditPage({
           ]}
         />
         {logs.meta.total > 0 ? (
-          <div className="p-5 pt-0">
+          <AdminPanelFooter className="pt-0">
             <AdminLookupPagination
               label="Audit log pages"
               unit="audited actions"
@@ -195,7 +197,7 @@ export default async function AdminAuditPage({
                 buildLookupHref("/admin/audit", { venue: lookup.venue, page })
               }
             />
-          </div>
+          </AdminPanelFooter>
         ) : null}
       </AdminPanel>
     </div>

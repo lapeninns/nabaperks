@@ -21,7 +21,17 @@ export function AdminRecordActions({
   children: ReactNode
 }) {
   return (
-    <Disclosure label={label} name={group} summaryClassName="min-h-11">
+    <Disclosure
+      label={label}
+      name={group}
+      summaryClassName="min-h-11"
+      // DESIGN.md sanctions exactly two dashed tones (--w-line 18% and
+      // --w-line-strong 50%); the shared Disclosure defaults to a third
+      // (ink/25). This is the most-repeated chrome in the console — it wraps
+      // every per-record action on six routes — so it pins the contract tone
+      // here rather than letting the drift spread.
+      className="border-line"
+    >
       {children}
     </Disclosure>
   )

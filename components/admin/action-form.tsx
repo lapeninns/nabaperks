@@ -2,6 +2,11 @@
 
 import { useActionState, useEffect, useRef, type ReactNode } from "react"
 
+import { Download01Icon } from "@hugeicons/core-free-icons"
+
+import { Icon } from "@/components/brand"
+import { StatusBanner } from "@/components/loyalty/status-banner"
+import { Button } from "@/components/ui/button"
 import {
   idleAdminActionState,
   type AdminActionState,
@@ -42,35 +47,37 @@ export function AdminActionForm({
   }, [state])
 
   return (
-    <form ref={formRef} action={formAction} className={cn("grid gap-2", className)}>
+    <form
+      ref={formRef}
+      action={formAction}
+      className={cn("grid gap-2", className)}
+    >
       {children}
+      {/* One banner recipe, not three hand-copies of it. StatusBanner pairs
+          each tone with its semantic glyph, so an outcome reads as icon +
+          colour + copy rather than colour alone. */}
       {state.status === "success" ? (
-        <p
-          role="status"
-          aria-live="polite"
-          className="rounded-lg border-2 border-ink bg-reward/12 px-3 py-2 text-sm font-semibold text-foreground"
-        >
-          {state.message}
-        </p>
-      ) : null}
-      {state.status === "success" && state.download ? (
-        <a
-          download={state.download.filename}
-          href={`data:${state.download.mimeType};charset=utf-8,${encodeURIComponent(
-            state.download.content
-          )}`}
-          className="inline-flex w-fit items-center gap-2 rounded-lg border-2 border-ink bg-reward/12 px-3 py-2 text-sm font-semibold text-foreground underline decoration-2 underline-offset-2 hover:bg-reward/20"
-        >
-          Download customer data export
-        </a>
+        <div role="status" aria-live="polite" className="grid gap-2">
+          <StatusBanner tone="success" title={state.message} />
+          {state.download ? (
+            <Button asChild variant="secondary" size="sm" className="w-fit">
+              <a
+                download={state.download.filename}
+                href={`data:${state.download.mimeType};charset=utf-8,${encodeURIComponent(
+                  state.download.content
+                )}`}
+              >
+                <Icon icon={Download01Icon} size={16} />
+                Download customer data export
+              </a>
+            </Button>
+          ) : null}
+        </div>
       ) : null}
       {state.status === "error" ? (
-        <p
-          role="alert"
-          className="rounded-lg border-2 border-ink bg-destructive/10 px-3 py-2 text-sm font-semibold text-destructive-strong"
-        >
-          {state.message}
-        </p>
+        <div role="alert">
+          <StatusBanner tone="error" title={state.message} />
+        </div>
       ) : null}
     </form>
   )

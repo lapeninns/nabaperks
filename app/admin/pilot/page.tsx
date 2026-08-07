@@ -1,6 +1,7 @@
 import { logPilotNoteAction } from "@/app/admin/actions"
 import { AdminActionForm } from "@/components/admin/action-form"
 import {
+  AdminEmptyState,
   AdminPanel,
   SourceLabel,
   first,
@@ -11,12 +12,7 @@ import { AdminRecordCard } from "@/components/admin/record-card"
 import { PilotNoteFields } from "@/components/admin/pilot-note-fields"
 import { Store01Icon } from "@hugeicons/core-free-icons"
 
-import {
-  EmptyState,
-  MetricTile,
-  PageTitle,
-  SectionHeader,
-} from "@/components/brand"
+import { MetricTile, PageTitle, SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { ShowMoreList } from "@/components/data/show-more-list"
 import { canRenderAdminPage } from "@/lib/admin/auth"
@@ -78,7 +74,7 @@ export default async function AdminPilotPage() {
           rows={report.metrics}
           getRowKey={(metric) => metric.label}
           emptyState={
-            <EmptyState
+            <AdminEmptyState
               title="No pilot metrics available yet"
               description="Pilot metrics appear here once the report source returns data."
             />
@@ -194,10 +190,10 @@ export default async function AdminPilotPage() {
             })}
           />
         ) : (
-          <EmptyState
+          <AdminEmptyState
             icon={Store01Icon}
             title="No pilot merchants yet"
-            className="rounded-none border-0 p-0 shadow-none"
+            padded={false}
           />
         )}
       </AdminPanel>

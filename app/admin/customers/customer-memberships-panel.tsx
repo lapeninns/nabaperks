@@ -8,8 +8,11 @@ import {
   AdminLookupPagination,
 } from "@/components/admin/lookup-controls"
 import {
+  AdminEmptyState,
   AdminField,
   AdminPanel,
+  AdminPanelFooter,
+  AdminPanelHeader,
   SourceLabel,
   first,
   formatAdminDate,
@@ -17,7 +20,7 @@ import {
 } from "@/components/admin/support"
 import { AdminRecordActions } from "@/components/admin/record-actions"
 import { AdminRecordCard } from "@/components/admin/record-card"
-import { EmptyState, Icon, SectionHeader } from "@/components/brand"
+import { Icon, SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { SubmitButton } from "@/components/forms"
 import { Input } from "@/components/ui/input"
@@ -38,8 +41,8 @@ export function CustomerMembershipsPanel({
   const searching = Boolean(lookup.venue || lookup.contact)
 
   return (
-    <AdminPanel className="p-0">
-      <div className="grid gap-4 border-b p-5">
+    <AdminPanel variant="flush">
+      <AdminPanelHeader>
         <SectionHeader
           title="Memberships"
           description="Search every membership by venue or masked-contact fragment. Masked customer contacts and merchant-scoped stamp counters from service-role support reads."
@@ -52,7 +55,7 @@ export function CustomerMembershipsPanel({
           lookup={lookup}
           label="Membership lookup"
         />
-      </div>
+      </AdminPanelHeader>
       {result ? (
         <>
           <DataTable
@@ -64,17 +67,15 @@ export function CustomerMembershipsPanel({
             getRowKey={(row) => row.id}
             emptyState={
               searching ? (
-                <EmptyState
+                <AdminEmptyState
                   icon={UserMultiple02Icon}
                   title="No matching memberships"
                   description="Adjust the venue or contact search, or clear it to see the newest memberships."
-                  className="rounded-none border-0 shadow-none"
                 />
               ) : (
-                <EmptyState
+                <AdminEmptyState
                   icon={UserMultiple02Icon}
                   title="No customer memberships yet"
-                  className="rounded-none border-0 shadow-none"
                 />
               )
             }
@@ -198,20 +199,20 @@ export function CustomerMembershipsPanel({
             ]}
           />
           {result.meta.total > 0 ? (
-            <div className="p-5 pt-0">
+            <AdminPanelFooter className="pt-0">
               <AdminLookupPagination
                 label="Membership pages"
                 unit="memberships"
                 meta={result.meta}
                 hrefForPage={hrefForPage}
               />
-            </div>
+            </AdminPanelFooter>
           ) : null}
         </>
       ) : (
-        <div className="p-5 pt-0">
+        <AdminPanelFooter className="pt-0">
           <AdminLookupErrorState title="Membership lookup unavailable" />
-        </div>
+        </AdminPanelFooter>
       )}
     </AdminPanel>
   )

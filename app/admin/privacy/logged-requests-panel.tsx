@@ -1,15 +1,14 @@
 import { Shield01Icon } from "@hugeicons/core-free-icons"
 
+import { AdminLookupErrorState } from "@/components/admin/lookup-controls"
 import {
-  AdminLookupErrorState,
-} from "@/components/admin/lookup-controls"
-import {
+  AdminEmptyState,
   AdminPanel,
   SourceLabel,
   StatusPill,
   formatAdminDate,
 } from "@/components/admin/support"
-import { EmptyState, SectionHeader } from "@/components/brand"
+import { SectionHeader } from "@/components/brand"
 import { ActivityFeed } from "@/components/data/activity-feed"
 import type { AdminDataRequestActivityRow } from "@/lib/admin/data"
 import {
@@ -42,11 +41,11 @@ export function LoggedRequestsPanel({
           aria-label="Logged data requests"
           items={requests.map((request) => toFeedItem(request))}
           emptyState={
-            <EmptyState
+            <AdminEmptyState
               icon={Shield01Icon}
               title="No data requests logged yet"
               description="Requests logged through the workflow above will appear here with their response deadline."
-              className="rounded-none border-0 p-0 shadow-none"
+              padded={false}
             />
           }
         />
@@ -63,7 +62,11 @@ function toFeedItem(request: AdminDataRequestActivityRow) {
 
   return {
     id: request.id,
-    tone: pending ? (age.overdue ? ("accent" as const) : ("sun" as const)) : ("leaf" as const),
+    tone: pending
+      ? age.overdue
+        ? ("accent" as const)
+        : ("sun" as const)
+      : ("leaf" as const),
     title: (
       <span className="flex flex-wrap items-center gap-2">
         {requestTitle(request)}

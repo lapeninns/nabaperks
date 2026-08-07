@@ -9,6 +9,7 @@ import { AdminActionForm } from "@/components/admin/action-form"
 import { AdminRecordActions } from "@/components/admin/record-actions"
 import { AdminRecordCard } from "@/components/admin/record-card"
 import {
+  AdminEmptyState,
   AdminField,
   AdminPanel,
   SourceLabel,
@@ -16,12 +17,7 @@ import {
   formatAdminAction,
   formatAdminAuditDate,
 } from "@/components/admin/support"
-import {
-  EmptyState,
-  Icon,
-  SectionHeader,
-  type IconGlyph,
-} from "@/components/brand"
+import { Icon, SectionHeader, type IconGlyph } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { SubmitButton } from "@/components/forms"
 import { Input } from "@/components/ui/input"
@@ -72,7 +68,7 @@ export function FraudFlagsPanel({
         rows={flags}
         getRowKey={(flag) => flag.id}
         emptyState={
-          <EmptyState
+          <AdminEmptyState
             icon={AlertDiamondIcon}
             title={
               queue === "open" ? "No open fraud flags" : "No fraud flags yet"
@@ -82,7 +78,7 @@ export function FraudFlagsPanel({
                 ? "Nothing is waiting for review. Switch to All flags to read resolved ones."
                 : undefined
             }
-            className="rounded-none border-0 p-0 shadow-none"
+            padded={false}
           />
         }
         columns={[

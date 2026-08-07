@@ -2,6 +2,7 @@ import { captureCommercialEvidenceAction } from "@/app/admin/actions"
 import { AdminActionForm } from "@/components/admin/action-form"
 import { AdminRecordCard } from "@/components/admin/record-card"
 import {
+  AdminEmptyState,
   AdminField,
   AdminPanel,
   SourceLabel,
@@ -9,7 +10,7 @@ import {
   first,
   formatAdminDate,
 } from "@/components/admin/support"
-import { EmptyState, PageTitle, SectionHeader } from "@/components/brand"
+import { PageTitle, SectionHeader } from "@/components/brand"
 import { SubmitButton, SelectField } from "@/components/forms"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -206,10 +207,10 @@ export default async function AdminEvidencePage() {
             })}
           </div>
         ) : (
-          <EmptyState
+          <AdminEmptyState
             title="No evidence cases yet"
             description="Capture the first case after a merchant win and approval source are available."
-            className="rounded-none border-0 p-0 shadow-none"
+            padded={false}
           />
         )}
       </AdminPanel>
