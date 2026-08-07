@@ -120,7 +120,7 @@ export function SendRewardForm({
           every Field/TextareaField beside it. */}
       <FormField
         id="send-reward-expiry"
-        label={<Eyebrow>Expires in</Eyebrow>}
+        label="Expires in"
         error={state.errors?.expiresInDays}
       >
         <SelectField

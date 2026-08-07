@@ -1,6 +1,5 @@
 "use client"
 
-import { Eyebrow } from "@/components/brand"
 import { FormField } from "@/components/forms"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -53,12 +52,7 @@ export function Field({
   error?: string
 }) {
   return (
-    <FormField
-      id={id}
-      label={<Eyebrow>{label}</Eyebrow>}
-      description={hint}
-      error={error}
-    >
+    <FormField id={id} label={label} description={hint} error={error}>
       <Input id={id} className="h-12" {...props} />
     </FormField>
   )
@@ -78,12 +72,7 @@ export function TextareaField({
   error?: string
 }) {
   return (
-    <FormField
-      id={id}
-      label={<Eyebrow>{label}</Eyebrow>}
-      description={hint}
-      error={error}
-    >
+    <FormField id={id} label={label} description={hint} error={error}>
       <Textarea id={id} rows={rows} {...props} />
     </FormField>
   )

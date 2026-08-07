@@ -3,7 +3,7 @@
 import { useId, useState } from "react"
 import { ViewIcon, ViewOffSlashIcon } from "@hugeicons/core-free-icons"
 
-import { Eyebrow, Icon } from "@/components/brand"
+import { Icon } from "@/components/brand"
 import { FormField } from "@/components/forms/form-field"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
@@ -27,12 +27,7 @@ export function AuthField({
   const toggleId = useId()
 
   return (
-    <FormField
-      id={id}
-      label={<Eyebrow>{label}</Eyebrow>}
-      description={description}
-      error={error}
-    >
+    <FormField id={id} label={label} description={description} error={error}>
       {/* Well styling (border, ground, radius, focus/invalid) comes from the
           unlayered [data-slot=input] layer — only layout classes live here.
           Aria wiring comes from FormField, which injects aria-describedby

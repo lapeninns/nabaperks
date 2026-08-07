@@ -3,7 +3,6 @@
 import dynamic from "next/dynamic"
 import type { InputHTMLAttributes } from "react"
 
-import { Eyebrow } from "@/components/brand"
 import { FormField } from "@/components/forms"
 import { Disclosure } from "@/components/merchant/launch/disclosure"
 import { Input } from "@/components/ui/input"
@@ -140,7 +139,7 @@ function GpsField({
   error?: string
 }) {
   return (
-    <FormField id={id} label={<Eyebrow>{label}</Eyebrow>} error={error}>
+    <FormField id={id} label={label} error={error}>
       <Input id={id} className="h-12 text-sm" {...props} />
     </FormField>
   )

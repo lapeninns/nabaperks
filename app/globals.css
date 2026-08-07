@@ -823,6 +823,16 @@ body[data-grain="true"]::after {
    first adoption cannot ship the stock rounded-2xl + 1px hairline. The
    selector only fires when a Field is nested, so plain field labels
    (FormField) stay borderless. */
+/* Field labels are the most human thing on a form, so they take the spoken
+   register (Bricolage 14px/700), not the printed one. They used to be wrapped
+   in <Eyebrow> at every call site — 11.5px uppercase Space Mono, which defeats
+   word-shape recognition and sits below the practical floor for dyslexic
+   readers. DESIGN.md reserves mono/uppercase for IDs, codes, dates and
+   metadata; .eyebrow stays for the SECTION kicker above a field group. (05#23) */
+[data-slot="field-label"] {
+  font-weight: 700;
+}
+
 [data-slot="field-label"]:has(> [data-slot="field"]) {
   border: 2px solid var(--w-ink);
   border-radius: var(--radius-lg);

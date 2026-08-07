@@ -11,7 +11,6 @@ import {
   updateMerchantProfileAction,
   type MerchantProfileState,
 } from "@/app/app/profile/actions"
-import { Eyebrow } from "@/components/brand"
 import { FormField, SelectField, SubmitButton } from "@/components/forms"
 import { Input } from "@/components/ui/input"
 
@@ -87,7 +86,7 @@ export function MerchantProfileForm({
       />
       <FormField
         id="businessType"
-        label={<Eyebrow>Business type</Eyebrow>}
+        label="Business type"
         error={state.errors?.businessType}
       >
         <SelectField
@@ -164,12 +163,7 @@ function Field({
   error?: string
 }) {
   return (
-    <FormField
-      id={id}
-      label={<Eyebrow>{label}</Eyebrow>}
-      description={description}
-      error={error}
-    >
+    <FormField id={id} label={label} description={description} error={error}>
       <Input id={id} className="h-12" {...props} />
     </FormField>
   )
