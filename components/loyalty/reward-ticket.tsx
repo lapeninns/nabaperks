@@ -41,6 +41,7 @@ export function RewardTicket({
   eyebrow,
   className,
   headingLevel: Heading = "h3",
+  hideStubSeal = false,
 }: {
   state: RewardTicketState
   /** Reward name once revealed, or the sealed mystery title. */
@@ -59,6 +60,17 @@ export function RewardTicket({
    * real section — as a heading it outranks the page's own section headings.
    */
   headingLevel?: "h2" | "h3" | "p"
+  /**
+   * Drop the stub's seal, keeping the stub word.
+   *
+   * The system's rule (CustomerStampCard) is that the sealed mystery shows
+   * ONCE — as the stamp row's terminal chip, or once revealed on this ticket —
+   * "never two seals competing in one view". But a sealed card rendered both:
+   * a `size="sm"` seal as the row chip AND this `size="md"` one in the stub.
+   * The card passes this so the row keeps its terminal chip and the ticket
+   * stops repeating it. (02#31)
+   */
+  hideStubSeal?: boolean
 }) {
   const leaf = state === "ready" || state === "redeemed"
   const redeemed = state === "redeemed"
@@ -137,13 +149,15 @@ export function RewardTicket({
           leaf ? "bg-reward/10" : "bg-seal/10"
         )}
       >
-        <RewardSeal
-          state={state}
-          size="md"
-          wiggle={state === "sealed"}
-          breathe={state === "waiting" || state === "ready"}
-          slammed={sealSlammed}
-        />
+        {hideStubSeal ? null : (
+          <RewardSeal
+            state={state}
+            size="md"
+            wiggle={state === "sealed"}
+            breathe={state === "waiting" || state === "ready"}
+            slammed={sealSlammed}
+          />
+        )}
         <span className="mono-id text-muted-foreground">
           {STUB_WORD[state]}
         </span>

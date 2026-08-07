@@ -328,6 +328,11 @@ export function CustomerStampCard({
   const wrapColumnCount =
     total + (reward.state === "sealed" ? 1 : 0) <= 4 ? total + 1 : 3
 
+  // True when the stamp row is the one showing the sealed mystery.
+  const showsLockedRowChip =
+    (rewardSlot ?? (reward.state === "sealed" ? "locked" : undefined)) ===
+    "locked"
+
   return (
     <CustomerReceipt
       venueName={venueName}
@@ -361,6 +366,11 @@ export function CustomerStampCard({
         description={reward.description}
         readyDate={reward.readyDate}
         sealSlammed={reward.sealSlammed}
+        // Honour the invariant three lines above: while the mystery is sealed
+        // the stamp row already carries the seal as its terminal chip, so the
+        // ticket stub prints the stub word only. Once revealed the row chip is
+        // gone and the seal belongs here. (02#31)
+        hideStubSeal={showsLockedRowChip}
       />
       {children}
     </CustomerReceipt>

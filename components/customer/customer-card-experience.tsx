@@ -1,7 +1,6 @@
 import type { ReactNode } from "react"
 import Link from "next/link"
 import {
-  ArrowDown01Icon,
   ArrowLeft01Icon,
   DiscountTag01Icon,
   GiftIcon,
@@ -351,7 +350,7 @@ function CardProgressPanel({
         />
       ) : null}
 
-      <CardDetailsDisclosure cardNumber={cardNumber(exp.membershipId)} />
+      <CardDetailsRow cardNumber={cardNumber(exp.membershipId)} />
     </div>
   )
 }
@@ -507,24 +506,21 @@ function offerPassChipNote(
  * disclosure so the dashboard reads as a reward, not a contract. Collapsed by
  * default — one calm line until the customer asks for the specifics.
  */
-function CardDetailsDisclosure({ cardNumber }: { cardNumber: string }) {
+/**
+ * Card number and the stamping rule, printed rather than hidden.
+ *
+ * This was a `<details>` whose entire payload was ONE 20px row, behind an
+ * unlabelled 12px trigger at the bottom of a ~1,500px page. A disclosure that
+ * conceals 20px is pure interaction cost — and the fact it concealed ("one
+ * stamp per UK business day") is the rule members ask about most, so it was
+ * exactly the wrong thing to bury. (02#23)
+ */
+function CardDetailsRow({ cardNumber }: { cardNumber: string }) {
   return (
-    <details className="group text-left">
-      <summary className="focus-ring flex w-fit cursor-pointer list-none items-center gap-1.5 rounded-sm text-xs font-bold text-ink-soft underline-offset-4 hover:underline [&::-webkit-details-marker]:hidden">
-        Card details
-        <Icon
-          icon={ArrowDown01Icon}
-          size={14}
-          className="text-ink-soft transition-transform duration-[var(--w-dur-fast)] ease-[var(--w-ease)] group-open:rotate-180 motion-reduce:transition-none"
-        />
-      </summary>
-      <dl className="mono-id mt-2 grid gap-1.5 tracking-tag text-muted-foreground">
-        <div className="flex justify-between gap-3">
-          <dt>{cardNumber}</dt>
-          <dd>One stamp per UK business day</dd>
-        </div>
-      </dl>
-    </details>
+    <dl className="mono-id flex justify-between gap-3 tracking-tag text-muted-foreground">
+      <dt>{cardNumber}</dt>
+      <dd>One stamp per UK business day</dd>
+    </dl>
   )
 }
 
