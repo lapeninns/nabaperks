@@ -9,6 +9,7 @@ import {
   type AdminMfaEnrollment,
   type AdminMfaFormState,
 } from "@/app/admin/security/actions"
+import { AdminConfirmCheck } from "@/components/admin/support"
 import { FormField, SubmitButton } from "@/components/forms"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -51,7 +52,12 @@ function EnrolledPanel({ factorId }: { factorId: string | null }) {
               {state.error}
             </p>
           ) : null}
-          <SubmitButton variant="outline" pendingLabel="Removing…">
+          {/* Removing the second factor weakens admin access and cannot be
+              undone without a fresh enrolment, so it takes the destructive
+              weight and the same irreversibility gate as the other admin
+              write actions (AdminConfirmCheck). */}
+          <AdminConfirmCheck label="I understand admin sign-in will no longer require an authenticator code." />
+          <SubmitButton variant="destructive" pendingLabel="Removing…">
             Turn off two-factor
           </SubmitButton>
         </form>
