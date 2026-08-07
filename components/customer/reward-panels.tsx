@@ -40,7 +40,11 @@ export function RewardWaitingPanel({
         description={rewardTermsNode(exp.reward)}
         readyDate={readyDate}
       />
-      <StatusBanner title="Give it a day to breathe" tone="warning">
+      {/* `info` (cobalt), not `warning` (vermillion). A reward that is unlocked
+          and simply not redeemable until the next opening day is good news with
+          a date on it — the vermillion wash signalled failure for a state that
+          is not one (CUS 02#32). */}
+      <StatusBanner title="Give it a day to breathe" tone="info">
         {waitingRewardTiming(exp.reward.redeemableFrom)}
       </StatusBanner>
       <Button asChild size="lg" variant="secondary" className="w-full">
