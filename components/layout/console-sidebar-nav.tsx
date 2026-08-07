@@ -44,11 +44,15 @@ export function ConsoleSidebarNav({
 
   return (
     <nav aria-label={ariaLabel} className="flex min-h-0 flex-1 flex-col gap-2">
-      <ConsoleSidebarGroup
-        items={items}
-        currentPath={currentPath}
-        currentTab={currentTab}
-      />
+      {groupNavItems(items).map((group) => (
+        <ConsoleSidebarGroup
+          key={group.label ?? "__ungrouped"}
+          items={group.items}
+          currentPath={currentPath}
+          currentTab={currentTab}
+          label={group.label}
+        />
+      ))}
       {secondaryNavItems.length > 0 ? (
         <div className="mt-auto">
           <ConsoleSidebarGroup
@@ -61,6 +65,32 @@ export function ConsoleSidebarNav({
       ) : null}
     </nav>
   )
+}
+
+/**
+ * Partition a flat nav list into its labelled `group`s, preserving
+ * first-appearance order. A list with no `group` anywhere collapses to a single
+ * unlabelled group, which is byte-identical to the previous render (the admin
+ * rail relies on that).
+ */
+function groupNavItems(items: readonly ShellNavItem[]): ReadonlyArray<{
+  label?: string
+  items: ShellNavItem[]
+}> {
+  const groups: { label?: string; items: ShellNavItem[] }[] = []
+
+  for (const item of items) {
+    const existing = groups.find((group) => group.label === item.group)
+
+    if (existing) {
+      existing.items.push(item)
+      continue
+    }
+
+    groups.push({ label: item.group, items: [item] })
+  }
+
+  return groups
 }
 
 function ConsoleSidebarGroup({

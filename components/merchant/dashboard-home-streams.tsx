@@ -142,7 +142,7 @@ export async function MerchantDashboardStream({
  */
 export function DashboardMembersEmptyState() {
   return (
-    <ReceiptCard className="grid gap-4" padding="md">
+    <ReceiptCard className="grid gap-3.5" padding="md">
       <EmptyState
         icon={UserMultiple02Icon}
         title="No members yet — that's expected"
@@ -166,7 +166,11 @@ export async function MerchantCompactActivityStream({
   )
 
   return (
-    <ReceiptCard className="grid gap-4">
+    // gap-3.5 inside a card, gap-6 between page sections: the dashboard used to
+    // stack gap-6 / gap-3 / gap-3 / gap-4 in one column, so the nesting gap and
+    // the sibling gap were not reliably different and the eye could not tell
+    // which blocks were siblings.
+    <ReceiptCard className="grid gap-3.5">
       <SectionHeader
         title="Recent activity"
         actions={

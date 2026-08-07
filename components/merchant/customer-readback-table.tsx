@@ -679,22 +679,40 @@ function CustomersPaginationRow({
       {/* At a boundary the control renders as a real disabled <button> with
           plain text children and aria-disabled, not an `asChild` <span>: the
           old shape left a visible element out of the tab order with no state
-          for a screen reader to announce, so a keyboard user simply lost it. */}
-      <PageStepButton
-        href={customersPageHref(pagination.page - 1)}
-        enabled={pagination.hasPrev}
-        label="Previous page"
-        boundaryHint="you are on the first page"
-      />
+          for a screen reader to announce, so a keyboard user simply lost it.
+          First/Last are here because prev/next alone made the oldest members of
+          a large venue an unbounded number of taps away. */}
+      <span className="flex flex-wrap items-center gap-2">
+        <PageStepButton
+          href={customersPageHref(1)}
+          enabled={pagination.hasPrev}
+          label="First"
+          boundaryHint="you are on the first page"
+        />
+        <PageStepButton
+          href={customersPageHref(pagination.page - 1)}
+          enabled={pagination.hasPrev}
+          label="Previous page"
+          boundaryHint="you are on the first page"
+        />
+      </span>
       <span className="mono-meta numeric-tabular text-muted-foreground">
         Page {pagination.page} of {pagination.totalPages} · {totalLabel} members
       </span>
-      <PageStepButton
-        href={customersPageHref(pagination.page + 1)}
-        enabled={pagination.hasNext}
-        label="Next page"
-        boundaryHint="you are on the last page"
-      />
+      <span className="flex flex-wrap items-center gap-2">
+        <PageStepButton
+          href={customersPageHref(pagination.page + 1)}
+          enabled={pagination.hasNext}
+          label="Next page"
+          boundaryHint="you are on the last page"
+        />
+        <PageStepButton
+          href={customersPageHref(pagination.totalPages)}
+          enabled={pagination.hasNext}
+          label="Last"
+          boundaryHint="you are on the last page"
+        />
+      </span>
     </nav>
   )
 }
