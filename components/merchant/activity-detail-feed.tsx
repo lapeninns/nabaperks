@@ -4,13 +4,12 @@ import Link, { useLinkStatus } from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 
-import { ArrowUp01Icon, Search01Icon } from "@hugeicons/core-free-icons"
+import { ArrowUp01Icon } from "@hugeicons/core-free-icons"
 
-import { EmptyState, FilterPills, Icon } from "@/components/brand"
-import { StatStrip } from "@/components/data"
+import { EmptyState, Icon } from "@/components/brand"
+import { ConsoleFilterBar, StatStrip } from "@/components/data"
 import { WetInkRise } from "@/components/motion"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import type {
   ActivityCategory,
   ActivityDisplayRow,
@@ -129,34 +128,21 @@ export function ActivityDetailFeed({
           ]}
         />
       </section>
-
       <section className="surface-card grid gap-3 p-3 sm:p-4">
-        <div className="relative">
-          <Icon
-            icon={Search01Icon}
-            size={16}
-            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            type="search"
-            value={query}
-            onChange={(event) => {
-              const nextQuery = event.target.value
-              setQuery(nextQuery)
-              scheduleQueryUrlWrite(nextQuery)
-            }}
-            placeholder="Search activity"
-            aria-label="Search activity"
-            className="pl-9"
-          />
-        </div>
-        {/* flex-wrap keeps every pill visible on narrow phones instead of
-            clipping mid-pill in the hidden-scrollbar row with no affordance
-            (same fix as the members table). */}
-        <FilterPills
-          aria-label="Filter activity by type"
-          value={filter}
-          onValueChange={(id) => {
+        {/* One console toolbar composition (03#53) — shared with the members
+            table via components/data/ConsoleFilterBar. Activity keeps its own
+            URL-debounced query strategy; the bar owns the layout only. */}
+        <ConsoleFilterBar
+          query={query}
+          onQueryChange={(nextQuery) => {
+            setQuery(nextQuery)
+            scheduleQueryUrlWrite(nextQuery)
+          }}
+          searchPlaceholder="Search activity"
+          searchLabel="Search activity"
+          filterLabel="Filter activity by type"
+          filterValue={filter}
+          onFilterChange={(id) => {
             const next = normalizeFilter(id)
             setFilter(next)
             // A pill click writes filter + current query immediately; cancel
@@ -165,26 +151,21 @@ export function ActivityDetailFeed({
             cancelPendingUrlWrite()
             updateUrl({ filter: next, query })
           }}
-          className="flex-wrap"
           items={filterOptions.map((option) => ({
             id: option.id,
             label: option.label,
           }))}
+          resultLabel={
+            <>
+              {filteredRows.length} shown
+              {filteredRows.length === rows.length
+                ? ""
+                : ` from ${rows.length}`}
+              .
+            </>
+          }
         />
-        {/* Announce the result count (and the empty state below) to assistive
-            tech as it changes. Compare against rows.length — the number of
-            rendered cards — not the raw event count, so "from N" only appears
-            when the search/filter actually hides rows. */}
-        <p
-          className="text-xs text-muted-foreground"
-          role="status"
-          aria-live="polite"
-        >
-          {filteredRows.length} shown
-          {filteredRows.length === rows.length ? "" : ` from ${rows.length}`}.
-        </p>
-      </section>
-
+      </section>{" "}
       {filteredRows.length === 0 ? (
         <EmptyState
           title="No events in this filter"
@@ -209,7 +190,6 @@ export function ActivityDetailFeed({
           ))}
         </div>
       )}
-
       <footer className="flex flex-wrap items-center justify-between gap-3 px-1">
         {/* Count the rendered rows (threaded), not raw product_events, so the
             number matches the cards on screen. `hasMore` (the server's +1

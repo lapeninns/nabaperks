@@ -10,17 +10,14 @@ import {
   UserMultiple02Icon,
 } from "@hugeicons/core-free-icons"
 
-import { DataTable, type DataTableColumn } from "@/components/data"
 import {
-  EmptyState,
-  FilterPills,
-  Icon,
-  MemberMark,
-  MonoTag,
-} from "@/components/brand"
+  ConsoleFilterBar,
+  DataTable,
+  type DataTableColumn,
+} from "@/components/data"
+import { EmptyState, Icon, MemberMark, MonoTag } from "@/components/brand"
 import { StampGrid } from "@/components/loyalty/stamp-grid"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import {
   buildCustomersPagination,
   type CustomersPagination,
@@ -484,38 +481,22 @@ export function CustomerReadbackTable({
           for ~90px on the screen a merchant opens to find one person. The
           only number it owned alone was the true server-side total, which now
           leads the readback line under the controls. No count was dropped. */}
-      <div className="grid gap-3 sm:flex sm:items-center sm:justify-between">
-        <div className="relative sm:max-w-xs sm:flex-1">
-          <Icon
-            icon={Search01Icon}
-            size={16}
-            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            type="search"
-            inputMode="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search members"
-            aria-label="Search members"
-            className="pl-9"
-          />
-        </div>
-        {/* flex-wrap keeps every pill visible on narrow phones instead of
-            clipping mid-pill in the hidden-scrollbar row with no affordance. */}
-        <FilterPills
-          aria-label="Filter members by reward status"
-          value={filter}
-          onValueChange={(id) => setFilter(id as CustomerFilter)}
-          className="flex-wrap sm:justify-end"
-          items={[
-            { id: "all", label: "All", count: customers.length },
-            { id: "ready", label: "Ready", count: readyCount },
-            { id: "active", label: "Active", count: activeCount },
-            { id: "quiet", label: "Quiet", count: quietCount },
-          ]}
-        />
-      </div>
+      <ConsoleFilterBar
+        layout="inline"
+        query={query}
+        onQueryChange={setQuery}
+        searchPlaceholder="Search members"
+        searchLabel="Search members"
+        filterLabel="Filter members by reward status"
+        filterValue={filter}
+        onFilterChange={(id) => setFilter(id as CustomerFilter)}
+        items={[
+          { id: "all", label: "All", count: customers.length },
+          { id: "ready", label: "Ready", count: readyCount },
+          { id: "active", label: "Active", count: activeCount },
+          { id: "quiet", label: "Quiet", count: quietCount },
+        ]}
+      />
 
       {/* One readback line: the true member count (previously the StatStrip's
           only unique number) plus, on a multi-page list, the multi-page

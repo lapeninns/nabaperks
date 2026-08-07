@@ -17,3 +17,4 @@ export {
   type StatStripProps,
   type StatStripTone,
 } from "./stat-strip"
+export { ConsoleFilterBar } from "./console-filter-bar"
