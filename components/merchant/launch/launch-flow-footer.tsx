@@ -12,11 +12,13 @@ export function LaunchFlowFooter({ cta }: { cta: LaunchFlowCta | null }) {
     <aside className="surface-card grid min-w-0 gap-3 bg-muted p-3 sm:flex sm:items-center sm:justify-between sm:p-4">
       <div className="min-w-0">
         <p className="eyebrow">Next step</p>
+        {/* Name the concrete destination. "Keep your setup moving" repeated the
+            eyebrow and told the merchant nothing the button had not said. */}
         <p className="text-sm font-semibold text-foreground">
-          Keep your setup moving
+          Continue to {cta.label}
         </p>
       </div>
-      <div className="min-w-0 pb-1 pr-1">
+      <div className="min-w-0 pr-1 pb-1">
         <Button asChild className="group w-full justify-between sm:w-auto">
           <Link href={cta.href}>
             {cta.label}

@@ -28,6 +28,7 @@ import {
   type RewardPoolItemActionState,
 } from "@/app/app/card/actions"
 import { EmptyState, Eyebrow, Icon, MonoTag } from "@/components/brand"
+import { SubmitButton } from "@/components/forms"
 import { Disclosure } from "@/components/merchant/launch/disclosure"
 import {
   Field,
@@ -81,6 +82,9 @@ export function RewardPoolForm({
     buildBlankRewardValues(rewardPoolItems.length + 1)
   )
   const [newRewardKey, setNewRewardKey] = useState("blank")
+  const [presetsDefaultOpen] = useState(
+    () => rewardPoolItems.length < LAUNCH_MIN_ACTIVE_REWARDS
+  )
   const batchErrorRef = useRef<HTMLParagraphElement>(null)
   const batchSuccessRef = useRef<HTMLParagraphElement>(null)
 
@@ -283,14 +287,16 @@ export function RewardPoolForm({
       </p>
 
       {presets.length > 0 ? (
-        <div className="grid gap-3 rounded-lg bg-secondary p-3">
-          <div className="grid gap-1">
-            <Eyebrow>Reward ideas</Eyebrow>
-            <p className="max-w-[54ch] text-xs leading-5 text-muted-foreground">
-              Pick a few to start. Nothing is saved until you tap Add. You can
-              edit each reward afterwards.
-            </p>
-          </div>
+        // Returning merchants come here to read their pool, not to shop the
+        // catalogue: nine dashed tiles ahead of the list cost ~700px on a
+        // phone. The ideas open on first paint only while the pool is still
+        // short of the launch minimum. Frozen at mount so the browser's own
+        // toggle is never yanked back mid-edit when a save lands.
+        <Disclosure label="Reward ideas" defaultOpen={presetsDefaultOpen}>
+          <p className="max-w-[54ch] text-xs leading-5 text-muted-foreground">
+            Pick a few to start. Nothing is saved until you tap Add. You can
+            edit each reward afterwards.
+          </p>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {presets.map((preset) => {
               const existingItem = pooledRewardsByName.get(
@@ -391,13 +397,18 @@ export function RewardPoolForm({
               )
             })}
           </div>
-        </div>
+        </Disclosure>
       ) : null}
 
       {selectedPresetIds.length > 0 && editingId === null ? (
+        // The tray floats above the md:hidden console tab bar (3.5rem + safe
+        // area) — at the old 0.75rem offset the Clear/Add row sat underneath
+        // it on a phone. It stays `fixed` below sm by contract: RA-11 in
+        // tests/contracts/reward-preset-atomic-add requires one mobile-
+        // persistent Add action that never needs scrolling to reach.
         <form
           action={batchAction}
-          className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 mx-auto grid max-w-[calc(100vw-1.5rem)] gap-3 rounded-lg border-2 border-ink bg-card/95 p-3 shadow-hard backdrop-blur-sm sm:static sm:inset-auto sm:z-auto sm:max-w-none sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:bg-card sm:p-4 sm:backdrop-blur-none"
+          className="fixed inset-x-3 bottom-[calc(3.5rem+max(0.75rem,env(safe-area-inset-bottom)))] z-30 mx-auto grid max-w-[calc(100vw-1.5rem)] gap-2 rounded-lg border-2 border-ink bg-card/95 p-3 shadow-hard backdrop-blur-sm sm:static sm:inset-auto sm:z-auto sm:max-w-none sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-3 sm:bg-card sm:p-4 sm:backdrop-blur-none"
         >
           <input type="hidden" name="loyaltyCardId" value={loyaltyCardId} />
           {selectedPresetIds.map((presetId) => (
@@ -408,15 +419,15 @@ export function RewardPoolForm({
               value={presetId}
             />
           ))}
-          <div className="grid gap-0.5">
-            <p className="text-sm font-extrabold text-foreground">
-              {activeRewardCount} active now · {selectedPresetIds.length}{" "}
-              selected · {projectedActiveRewardCount} active after add
-            </p>
-            <p className="text-xs leading-5 text-muted-foreground">
+          {/* One line: the resting count is already in the header MonoTag, so
+              the tray only carries what the selection changes. */}
+          <p className="text-sm font-extrabold text-pretty text-foreground">
+            {selectedPresetIds.length} selected · {projectedActiveRewardCount}{" "}
+            active after add
+            <span className="block text-xs leading-5 font-normal text-muted-foreground">
               One press adds the full selection. If one fails, none are added.
-            </p>
-          </div>
+            </span>
+          </p>
           <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-2 sm:flex">
             <Button
               type="button"
@@ -529,6 +540,12 @@ export function RewardPoolForm({
           Add a reward
         </button>
       ) : null}
+
+      {selectedPresetIds.length > 0 && editingId === null ? (
+        // The section's own pb clears the fixed tray; this clears the console
+        // tab bar the tray now floats above, so the last row stays reachable.
+        <div aria-hidden="true" className="h-14 sm:hidden" />
+      ) : null}
     </section>
   )
 }
@@ -633,7 +650,7 @@ function RewardRow({
           aria-label={`Edit ${rewardName}`}
           // Honest compact size: 32px square on fine pointers, grown to the
           // 44px tap floor on coarse pointers (the Button icon-xs idiom).
-          className="focus-ring grid size-8 min-h-8 shrink-0 place-items-center rounded-md border border-border bg-card text-foreground transition-[color,background-color,border-color,opacity] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:border-ink hover:bg-secondary/60 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
+          className="focus-ring grid size-8 min-h-8 shrink-0 place-items-center rounded-lg border border-border bg-card text-foreground transition-[color,background-color,border-color,opacity] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:border-ink hover:bg-secondary/60 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
         >
           <Icon icon={PencilEdit02Icon} size={15} strokeWidth={2} />
         </button>
@@ -736,7 +753,7 @@ function RewardPoolItemForm({
   onSaved: (item: RewardPoolItemValues) => void
 }) {
   const router = useRouter()
-  const [state, action, pending] = useActionState(
+  const [state, action] = useActionState(
     saveRewardPoolItemAction,
     initialPoolState
   )
@@ -843,9 +860,9 @@ function RewardPoolItemForm({
         ) : null}
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button type="submit" disabled={pending}>
-            {pending ? "Saving…" : isNew ? "Add reward" : "Save reward"}
-          </Button>
+          <SubmitButton pendingLabel="Saving…">
+            {isNew ? "Add reward" : "Save reward"}
+          </SubmitButton>
           <Button type="button" variant="ghost" onClick={onCancel}>
             <Icon icon={Cancel01Icon} size={16} />
             Cancel

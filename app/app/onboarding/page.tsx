@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 
-import { PageTitle, ReceiptCard } from "@/components/brand"
+import { PageTitle } from "@/components/brand"
 import { OnboardingJourneyOrientation } from "@/components/merchant/onboarding-journey-orientation"
 import { OnboardingForm } from "@/components/merchant/onboarding-form"
 import { getGoogleMapsPublicKey } from "@/lib/env/google-maps-public-key"
@@ -22,8 +22,13 @@ export default async function OnboardingPage() {
   }
 
   return (
-    <div className="mx-auto grid w-full max-w-5xl gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <ReceiptCard className="grid gap-3">
+    // Two children, two columns: the title + form share one left lane and the
+    // roadmap is the second child. The old three-child grid only held together
+    // because the aside pinned itself with explicit row/column placement.
+    <div className="mx-auto grid w-full max-w-5xl gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+      <div className="grid min-w-0 gap-4">
+        {/* No ReceiptCard around the heading: on lg its only other payload
+            (the summary line) is hidden, so it framed a heading and nothing. */}
         <PageTitle
           eyebrow="Merchant setup"
           title="Share your venue details"
@@ -35,12 +40,12 @@ export default async function OnboardingPage() {
           titleClassName="sm:text-3xl"
         />
         <OnboardingJourneyOrientation variant="summary" />
-      </ReceiptCard>
-      <OnboardingForm
-        initialFields={setup.initialFields}
-        draftUserId={user!.id}
-        googleMapsApiKey={getGoogleMapsPublicKey()}
-      />
+        <OnboardingForm
+          initialFields={setup.initialFields}
+          draftUserId={user!.id}
+          googleMapsApiKey={getGoogleMapsPublicKey()}
+        />
+      </div>
 
       <OnboardingJourneyOrientation variant="roadmap" />
     </div>

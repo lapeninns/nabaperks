@@ -19,6 +19,7 @@ import {
   onboardingInputClassName,
   type BusinessTypeOption,
 } from "@/components/merchant/onboarding-form-fields"
+import { FormActionBar } from "@/components/merchant/launch/form-action-bar"
 import { VenueAddressFields } from "@/components/merchant/venue-address-fields"
 import {
   MANUAL_VENUE_PROVENANCE,
@@ -56,6 +57,55 @@ function onboardingDraftStorageKey(userId: string) {
 
 type OnboardingDraft = NonNullable<OnboardingActionState["fields"]>
 type ClientErrors = NonNullable<OnboardingActionState["errors"]>
+type RequiredFieldName = Extract<
+  keyof ClientErrors,
+  | "businessName"
+  | "businessType"
+  | "addressLine1"
+  | "addressCity"
+  | "addressPostcode"
+>
+
+/**
+ * The five server-required fields, in DOM order. One list drives blur-time
+ * validation, the submit sweep, the focus target and the error summary, so the
+ * three can never drift apart.
+ */
+const REQUIRED_FIELDS: readonly {
+  readonly name: RequiredFieldName
+  readonly label: string
+  readonly message: string
+}[] = [
+  {
+    name: "businessName",
+    label: "Venue name",
+    message: "Enter the venue name.",
+  },
+  {
+    name: "businessType",
+    label: "Business type",
+    message: "Choose a business type.",
+  },
+  {
+    name: "addressLine1",
+    label: "Address line 1",
+    message: "Enter the first line of the address.",
+  },
+  {
+    name: "addressCity",
+    label: "Town or city",
+    message: "Enter the town or city.",
+  },
+  {
+    name: "addressPostcode",
+    label: "Postcode",
+    message: "Enter the postcode.",
+  },
+]
+
+function isRequiredFieldName(name: string): name is RequiredFieldName {
+  return REQUIRED_FIELDS.some((field) => field.name === name)
+}
 
 export function mergeOnboardingDraft(
   serverFields: OnboardingDraft,
@@ -102,6 +152,7 @@ export function OnboardingForm({
   const [clientErrors, setClientErrors] = useState<ClientErrors>({})
   const [validationAttempt, setValidationAttempt] = useState(0)
   const errors = { ...clientErrors, ...(state.errors ?? {}) }
+  const invalidFields = REQUIRED_FIELDS.filter((field) => errors[field.name])
   const [businessName, setBusinessName] = useState(
     state.fields?.businessName ?? initialFields.businessName ?? ""
   )
@@ -184,6 +235,36 @@ export function OnboardingForm({
     }
   }
 
+  /** Blur-time check for one required field; the submit sweep stays the backstop. */
+  function validateRequiredField(name: RequiredFieldName, value: string) {
+    const field = REQUIRED_FIELDS.find((entry) => entry.name === name)
+    if (!field) return
+
+    setClientErrors((current) => {
+      const next = { ...current }
+
+      if (value.trim()) {
+        delete next[name]
+      } else {
+        next[name] = field.message
+      }
+
+      return next
+    })
+  }
+
+  function clearClientError(name: string) {
+    if (!isRequiredFieldName(name)) return
+
+    setClientErrors((current) => {
+      if (!current[name]) return current
+
+      const next = { ...current }
+      delete next[name]
+      return next
+    })
+  }
+
   function handleAddressEdit() {
     setProvenance(MANUAL_VENUE_PROVENANCE)
     setProviderCoordinates({ latitude: "", longitude: "" })
@@ -195,6 +276,7 @@ export function OnboardingForm({
   ) {
     setAddress((previous) => ({ ...previous, [field]: value }))
     updateDraft({ [field]: value })
+    if (value.trim()) clearClientError(field)
   }
 
   function handlePlaceSelected(selection: VenuePlaceSelection) {
@@ -218,45 +300,44 @@ export function OnboardingForm({
       ref={formRef}
       action={action}
       noValidate
+      onBlur={(event) => {
+        // Blur-time validation for the required fields: the merchant learns a
+        // field is empty as they leave it, not after a full-form submit throws
+        // them back up the page behind a phone keyboard.
+        const target = event.target
+        if (!(
+          target instanceof HTMLInputElement ||
+          target instanceof HTMLSelectElement
+        )) {
+          return
+        }
+        if (!isRequiredFieldName(target.name)) return
+
+        validateRequiredField(target.name, target.value)
+      }}
       onSubmit={(event) => {
         const formData = new FormData(event.currentTarget)
         const readField = (key: string) =>
           (formData.get(key)?.toString() ?? "").trim()
         const nextErrors: ClientErrors = {}
-        if (!readField("businessName"))
-          nextErrors.businessName = "Enter the venue name."
-        if (!readField("businessType"))
-          nextErrors.businessType = "Choose a business type."
-        if (!readField("addressLine1"))
-          nextErrors.addressLine1 = "Enter the first line of the address."
-        if (!readField("addressCity"))
-          nextErrors.addressCity = "Enter the town or city."
-        if (!readField("addressPostcode"))
-          nextErrors.addressPostcode = "Enter the postcode."
+        for (const field of REQUIRED_FIELDS) {
+          if (!readField(field.name)) nextErrors[field.name] = field.message
+        }
 
         if (Object.keys(nextErrors).length) {
           event.preventDefault()
           setClientErrors(nextErrors)
           setValidationAttempt((attempt) => attempt + 1)
-          const firstInvalid = [
-            "businessName",
-            "businessType",
-            "addressLine1",
-            "addressCity",
-            "addressPostcode",
-          ].find((key) => nextErrors[key as keyof ClientErrors])
-          document.getElementById(firstInvalid ?? "businessName")?.focus()
+          const firstInvalid = REQUIRED_FIELDS.find(
+            (field) => nextErrors[field.name]
+          )
+          document.getElementById(firstInvalid?.name ?? "businessName")?.focus()
           return
         }
         setClientErrors({})
       }}
       className={cn("surface-card grid gap-4 p-6", className)}
     >
-      {validationAttempt > 0 && Object.keys(clientErrors).length > 0 ? (
-        <p key={validationAttempt} role="alert" className="sr-only">
-          Check the highlighted fields. The first problem is focused below.
-        </p>
-      ) : null}
       <div className="grid gap-1">
         <Eyebrow>Your venue</Eyebrow>
         <p className="text-sm leading-6 text-muted-foreground">
@@ -272,6 +353,7 @@ export function OnboardingForm({
         onChange={(event) => {
           setBusinessName(event.target.value)
           updateDraft({ businessName: event.target.value })
+          if (event.target.value.trim()) clearClientError("businessName")
         }}
         error={errors.businessName}
       />
@@ -279,7 +361,10 @@ export function OnboardingForm({
         value={state.fields?.businessType}
         options={businessTypeOptions}
         error={errors.businessType}
-        onChange={(value) => updateDraft({ businessType: value })}
+        onChange={(value) => {
+          updateDraft({ businessType: value })
+          if (value.trim()) clearClientError("businessType")
+        }}
       />
       <OnboardingField
         id="phone"
@@ -333,9 +418,42 @@ export function OnboardingForm({
       {errors.form ? (
         <OnboardingFormError>{errors.form}</OnboardingFormError>
       ) : null}
-      <SubmitButton className="w-full" pendingLabel="Saving…">
-        Finish setup
-      </SubmitButton>
+      {/* A summary above the commit, so the merchant sees every outstanding
+          field at once and can jump straight to one instead of being thrown
+          back up the form a field at a time. */}
+      {invalidFields.length > 0 && (validationAttempt > 0 || state.errors) ? (
+        <div
+          key={validationAttempt}
+          role="alert"
+          className="grid gap-2 rounded-lg border-2 border-destructive/40 bg-destructive/10 px-3 py-2.5"
+        >
+          <p className="text-sm font-extrabold text-destructive">
+            Check {invalidFields.length}{" "}
+            {invalidFields.length === 1 ? "field" : "fields"} before finishing
+            setup.
+          </p>
+          <ul className="grid">
+            {invalidFields.map((field) => (
+              <li key={field.name}>
+                <a
+                  href={`#${field.name}`}
+                  onClick={() => {
+                    document.getElementById(field.name)?.focus()
+                  }}
+                  className="focus-ring inline-flex min-h-11 items-center rounded-lg text-sm text-destructive underline underline-offset-2"
+                >
+                  {field.label} — {errors[field.name]}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      <FormActionBar className="-mx-6 px-6 sm:px-0" offset="safe-area">
+        <SubmitButton className="w-full" pendingLabel="Saving…">
+          Finish setup
+        </SubmitButton>
+      </FormActionBar>
     </form>
   )
 }
