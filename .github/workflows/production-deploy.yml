@@ -126,6 +126,7 @@ jobs:
           deployment_url="$(pnpm exec vercel deploy \
             --prod \
             --skip-domain \
+            --no-wait \
             --archive=tgz \
             --yes \
             --meta githubCommitSha="$EXPECTED_REVISION" \
@@ -142,7 +143,7 @@ jobs:
         run: |
           test -n "$PRODUCTION_MONITOR_SECRET"
           expected="${EXPECTED_REVISION:0:12}"
-          for attempt in {1..30}; do
+          for attempt in {1..90}; do
             health="$(curl --fail --silent --show-error --max-time 10 \
               "$DEPLOYMENT_URL/api/health" || true)"
             readiness="$(curl --fail --silent --show-error --max-time 10 \
