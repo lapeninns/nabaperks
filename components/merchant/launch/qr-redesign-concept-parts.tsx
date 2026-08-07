@@ -173,7 +173,7 @@ export function buildNfcSquareHrefs(
 }
 
 /**
- * The table-tent lane beneath the poster picker.
+ * The table-tent lane of the print channel.
  */
 export function TableTentLinks({
   tentHrefs,
@@ -181,10 +181,7 @@ export function TableTentLinks({
   readonly tentHrefs: Readonly<Record<TableTentDesignId, string>>
 }) {
   return (
-    <section
-      id="qr-tent-picker"
-      className="grid scroll-mt-4 gap-3 border-t-2 border-ink pt-5 lg:col-span-2"
-    >
+    <section id="qr-tent-picker" className="grid min-w-0 scroll-mt-4 gap-3">
       <div className="grid gap-1">
         <h3 className="text-lg font-extrabold">Add table tents</h3>
         <p className="text-sm leading-6 text-muted-foreground">
@@ -220,7 +217,7 @@ export function TableTentLinks({
 }
 
 /**
- * NFC card lane for reusable tap-and-scan cards.
+ * The NFC card lane — reusable tap-and-scan cards.
  */
 export function NfcCardLinks({
   nfcHrefs,
@@ -228,10 +225,7 @@ export function NfcCardLinks({
   readonly nfcHrefs: Readonly<Record<NfcCardDesignId, string>>
 }) {
   return (
-    <section
-      id="qr-nfc-picker"
-      className="grid scroll-mt-4 gap-3 border-t-2 border-ink pt-5 lg:col-span-2"
-    >
+    <section id="qr-nfc-picker" className="grid min-w-0 scroll-mt-4 gap-3">
       <div className="grid gap-1">
         <h3 className="text-lg font-extrabold">Add NFC cards</h3>
         <p className="text-sm leading-6 text-muted-foreground">
@@ -267,7 +261,7 @@ export function NfcCardLinks({
 }
 
 /**
- * Wall NFC lane for a fixed tap-and-scan point.
+ * The wall NFC lane — a fixed tap-and-scan point.
  */
 export function NfcSquareLinks({
   nfcSquareHrefs,
@@ -277,7 +271,7 @@ export function NfcSquareLinks({
   return (
     <section
       id="qr-nfc-square-picker"
-      className="grid scroll-mt-4 gap-3 border-t-2 border-ink pt-5 lg:col-span-2"
+      className="grid min-w-0 scroll-mt-4 gap-3"
     >
       <div className="grid gap-1">
         <h3 className="text-lg font-extrabold">Add wall NFC plates</h3>

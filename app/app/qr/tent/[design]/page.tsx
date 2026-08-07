@@ -1,11 +1,7 @@
-import Link from "next/link"
-import { ArrowLeft01Icon } from "@hugeicons/core-free-icons"
 import { notFound } from "next/navigation"
 
-import { Icon, PageTitle, ReceiptCard } from "@/components/brand"
-import { StatusBanner } from "@/components/loyalty/status-banner"
+import { PrintAssetError } from "@/components/merchant/qr-poster/print-asset-error"
 import { A4Tent } from "@/components/merchant/qr-poster/table-tent/a4-tent"
-import { Button } from "@/components/ui/button"
 import { getServerEnv } from "@/lib/env/server"
 import { getOwnedQrImageContext } from "@/lib/merchant/qr-code"
 import { resolveQrReturnBase } from "@/lib/merchant/qr-nav"
@@ -53,7 +49,7 @@ export default async function QrTentPage({
     const png = await renderPosterQrCodePng(shareUrl, 900)
     qrDataUrl = `data:image/png;base64,${png.toString("base64")}`
   } catch {
-    return <TentRenderError backHref={backHref} />
+    return <PrintAssetError kind="tent" reason="render" backHref={backHref} />
   }
 
   return (
@@ -62,33 +58,9 @@ export default async function QrTentPage({
       qrDataUrl={qrDataUrl}
       merchantName={qrContext.merchant.business_name}
       stampsRequired={qrContext.activeCard.stamps_required}
+      qrCodeId={qrCodeId}
       backHref={backHref}
     />
-  )
-}
-
-function TentRenderError({ backHref }: { readonly backHref: string }) {
-  return (
-    <main className="grid min-h-dvh place-items-center bg-[var(--w-paper)] p-6">
-      <ReceiptCard className="grid w-full max-w-md gap-4" edge>
-        <PageTitle
-          eyebrow="Table tent"
-          title="Tent could not be generated"
-          description="The QR image failed to render just now. This is usually momentary — head back and reopen the tent."
-          titleClassName="sm:text-2xl"
-        />
-        <StatusBanner tone="error" title="QR render failed.">
-          If it keeps happening, check the venue QR is still live on the QR
-          page.
-        </StatusBanner>
-        <Button asChild variant="outline" className="w-fit">
-          <Link href={backHref}>
-            <Icon icon={ArrowLeft01Icon} size={16} />
-            Back to QR
-          </Link>
-        </Button>
-      </ReceiptCard>
-    </main>
   )
 }
 
