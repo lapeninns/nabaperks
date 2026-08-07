@@ -76,6 +76,25 @@ function routeSurface(pathname: string): AppSurface {
  * it never floats over the tabs' top edge (VCU-P3-13). `/scan` stays at the
  * default offset: its most common, unauthenticated state has no tab bar.
  */
+/**
+ * The member's two transactional moments: the stamp disc at the counter and any
+ * screen whose whole job is to hold a scannable code up to a phone or a
+ * scanner. `/app/launch` is already excluded for exactly this reason; these
+ * carry the same claim on the bottom of the screen, and an optional install
+ * nudge that covers the stamp button or the reward QR is the worst possible
+ * moment to ask (CUS 02#69). `/scan` is included because `hasCustomerTabBar`
+ * deliberately leaves it at the default offset, which puts the card straight
+ * over the scanner's own exits.
+ */
+function isCustomerTransactionalRoute(pathname: string): boolean {
+  return (
+    pathname === "/scan" ||
+    pathname.startsWith("/reward/") ||
+    pathname.startsWith("/pass/") ||
+    (pathname.startsWith("/card/") && pathname.endsWith("/stamp"))
+  )
+}
+
 function hasCustomerTabBar(pathname: string): boolean {
   if (pathname.startsWith("/card/") || pathname.startsWith("/reward/")) {
     return true
@@ -249,6 +268,9 @@ export function AppPwa() {
     // Setup owns the phone's bottom action area. Deferring the optional install
     // prompt keeps it from covering the reward batch tray or another launch CTA.
     pathname === "/app/launch" ||
+    // The stamp disc and the scannable codes own the bottom of the screen for
+    // the seconds they are in use.
+    isCustomerTransactionalRoute(pathname) ||
     // Marketing routes never prompt — except /start, the manifest start_url
     // and customer switchboard, where the install offer is the point (this is
     // what makes INSTALL_COPY.marketing reachable).
@@ -278,7 +300,9 @@ export function AppPwa() {
     <aside
       aria-label="Install Nabaperks"
       className={cn(
-        "fixed right-3 left-3 z-50 mx-auto grid max-w-md gap-3 rounded-lg border-2 border-ink bg-card p-4 text-foreground shadow-xs sm:right-5 sm:left-auto sm:w-[24rem]",
+        // shadow-md, not shadow-xs: this floats above the page, and every
+        // other floating surface in the system carries the 4px offset.
+        "fixed right-3 left-3 z-50 mx-auto grid max-w-md gap-3 rounded-lg border-2 border-ink bg-card p-4 text-foreground shadow-md sm:right-5 sm:left-auto sm:w-[24rem]",
         // Above the fixed customer tab bar (56px bar + border + breathing
         // room) instead of floating over its top edge (VCU-P3-13).
         hasCustomerTabBar(pathname)
@@ -300,12 +324,16 @@ export function AppPwa() {
           </p>
         </div>
       </div>
+      {/* The chips were `rounded-md border border-ink/20`: a 6px radius and a
+          1px border at a third ink alpha, in a system that is 10px and 2px
+          everywhere else — the most OS-like surface in the product was the one
+          that least looked like it (CUS 02#70). */}
       {isIos && !deferredPrompt ? (
         <div className="grid grid-cols-2 gap-2 text-xs font-bold">
-          <span className="rounded-md border border-ink/20 bg-secondary px-3 py-2">
+          <span className="rounded-lg border-2 border-line bg-secondary px-3 py-2">
             1. Tap Share
           </span>
-          <span className="rounded-md border border-ink/20 bg-secondary px-3 py-2">
+          <span className="rounded-lg border-2 border-line bg-secondary px-3 py-2">
             2. Add to Home Screen
           </span>
         </div>

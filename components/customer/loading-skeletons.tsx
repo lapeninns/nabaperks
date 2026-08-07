@@ -92,7 +92,7 @@ function RewardTicketSkeleton() {
       </div>
       <span
         aria-hidden="true"
-        className="border-l-2 border-dashed border-ink/50"
+        className="border-l-2 border-dashed border-line-strong"
       />
       <div className="grid w-[84px] content-center justify-items-center gap-2 p-3">
         <Skeleton className="size-10 rounded-full" />

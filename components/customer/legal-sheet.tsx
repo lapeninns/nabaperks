@@ -59,7 +59,9 @@ export function CustomerLegalSheet({
         side="bottom"
         className="max-h-[min(85vh,640px)] gap-0 rounded-t-sheet border-t-2 border-ink p-0"
       >
-        <SheetHeader className="shrink-0 border-b border-ink/10 px-6 pt-6 pb-4 text-left">
+        {/* border-line, not border-ink/10: --w-line (18%) and --w-line-strong
+            (50%) are the only two rule tones the contract carries. */}
+        <SheetHeader className="shrink-0 border-b-2 border-line px-6 pt-6 pb-4 text-left">
           <SheetTitle className="font-heading text-xl leading-tight">
             {title}
           </SheetTitle>

@@ -76,7 +76,7 @@ function TabRoundel({
         "grid size-8 place-items-center rounded-full border-2 transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none",
         active
           ? "border-ink bg-ink text-paper shadow-xs"
-          : "border-transparent text-ink-soft group-hover:border-ink/30 group-active:border-ink group-active:bg-secondary group-active:text-foreground data-[state=pending]:border-ink data-[state=pending]:bg-secondary data-[state=pending]:text-foreground"
+          : "border-transparent text-ink-soft group-hover:border-line-strong group-active:border-ink group-active:bg-secondary group-active:text-foreground data-[state=pending]:border-ink data-[state=pending]:bg-secondary data-[state=pending]:text-foreground"
       )}
     >
       <Icon icon={icon} size={20} />

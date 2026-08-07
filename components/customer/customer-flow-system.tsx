@@ -59,7 +59,7 @@ export function CustomerFlowShell({
         className={cn(
           // One customer column: the shared 410px token (CUS-P2-12/16), so
           // skeleton and content agree at every width.
-          "mx-auto grid w-full min-w-0 max-w-customer",
+          "mx-auto grid w-full max-w-customer min-w-0",
           dense ? "gap-4" : "gap-5",
           className
         )}
@@ -93,15 +93,22 @@ export function CustomerFlowShell({
             {title ? (
               <h1
                 className={cn(
+                  // Scale steps, not arbitraries. text-[2.1rem]/text-[1.65rem]
+                  // were 33.6px/26.4px — two headline sizes that exist in no
+                  // scale and in no contract, so /home titles (30px) and /card
+                  // titles never lined up. text-3xl matches PageTitle for the
+                  // same role; dense drops one step (CUS 02#22).
                   "leading-[1.04] font-extrabold tracking-tight text-balance",
-                  dense ? "text-[1.65rem]" : "text-[2.1rem]"
+                  dense ? "text-2xl" : "text-3xl"
                 )}
               >
                 {title}
               </h1>
             ) : null}
+            {/* text-sm, not text-[0.96rem]: the contract body size, and the
+                size every other customer description already uses. */}
             {description ? (
-              <p className="mx-auto max-w-[31ch] text-[0.96rem] leading-6 text-muted-foreground">
+              <p className="mx-auto max-w-[31ch] text-sm leading-6 text-muted-foreground">
                 {description}
               </p>
             ) : null}
@@ -122,7 +129,7 @@ function OnboardingProgress({ progress }: { progress: FlowProgress }) {
     // The text row ("Step 2 of 3") is real content and stays readable to
     // screen readers; only the decorative bars hide (CUS-P3-03).
     <div className="grid gap-2">
-      <div className="flex items-center justify-between mono-id tracking-[0.08em] text-muted-foreground">
+      <div className="mono-id flex items-center justify-between tracking-[0.08em] text-muted-foreground">
         <span>{progress.label ?? "Setup"}</span>
         <span>
           Step {step} of {total}
@@ -208,7 +215,7 @@ export function CustomerReceipt({
       <hr className="w-rule" />
       {children}
       {metaLines ? (
-        <div className="grid gap-1 mono-id tracking-[0.08em] text-muted-foreground">
+        <div className="mono-id grid gap-1 tracking-[0.08em] text-muted-foreground">
           {metaLines}
         </div>
       ) : null}
