@@ -12,6 +12,7 @@ import {
   AdvancedGpsChecks,
   type VenueCoordinates,
 } from "@/components/merchant/launch/advanced-gps-checks"
+import { FormActionBar } from "@/components/merchant/launch/form-action-bar"
 import {
   VenuePlaceAutocomplete,
   type VenuePlaceSelection,
@@ -185,9 +186,11 @@ export function VenueLocationForm({
         </p>
       ) : null}
 
-      <SubmitButton pendingLabel="Saving venue…" className="w-full">
-        Save venue details
-      </SubmitButton>
+      <FormActionBar className="-mx-6 px-6 sm:px-0">
+        <SubmitButton pendingLabel="Saving venue…" className="w-full">
+          Save venue details
+        </SubmitButton>
+      </FormActionBar>
     </form>
   )
 }
