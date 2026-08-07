@@ -11,7 +11,7 @@ export default function CustomerCardError({
   reset: () => void
 }) {
   return (
-    <CustomerShell className="grid content-center">
+    <CustomerShell>
       <CustomerErrorState
         title="Card unavailable"
         description="This card could not be loaded safely. Ask a team member for the current loyalty QR and try again."

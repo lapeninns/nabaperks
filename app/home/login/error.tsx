@@ -10,7 +10,7 @@ export default function CustomerLoginError({
   reset: () => void
 }) {
   return (
-    <CustomerShell className="grid content-center">
+    <CustomerShell>
       <CustomerErrorState
         title="Sign in unavailable"
         description="Signing in could not be loaded safely. Your cards and stamps are safe — try again in a moment."
