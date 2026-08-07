@@ -9,10 +9,11 @@ overrides:
   "@vercel/fun>@tootallnate/once": 2.0.1
   "@vercel/fun>path-to-regexp": 8.4.0
   "@vercel/fun>tar": ^7.5.21
-  "@vercel/python-analysis>js-yaml": 4.3.0
+  "@vercel/python-analysis>js-yaml": 4.3.1
   "@vercel/python-analysis>minimatch": 10.2.3
   "@vercel/python-analysis>smol-toml": 1.6.1
-  js-yaml@4.2.0: 4.3.0
+  js-yaml@3.15.0: 3.15.1
+  js-yaml@4.2.0: 4.3.1
   postcss: 8.5.23
   qs: 6.15.2
   sharp: ^0.35.0
