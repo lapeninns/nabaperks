@@ -8,6 +8,7 @@ import {
   ReceiptCard,
   VenueMark,
 } from "@/components/brand"
+import { PromiseChip } from "@/components/customer/promise-chip"
 import { GoogleReviewButton } from "@/components/customer/google-review-button"
 import { ReferralBonusBankMini } from "@/components/customer/referral-bonus-bank-panels"
 import { ReferralShareButton } from "@/components/customer/referral-share-button"
@@ -113,10 +114,7 @@ export function HomeCardTile({
           ) : null}
 
           {rewardSlot === "revealed" ? (
-            <div
-              data-reward-ticket="revealed"
-              className="grid gap-1.5 rounded-lg border-2 border-ink bg-seal/15 p-3"
-            >
+            <PromiseChip data-reward-ticket="revealed" kind="reward">
               <Eyebrow>Your reward</Eyebrow>
               {/* Reward name wraps freely on its own row — never truncated or clipped. */}
               <p className="text-sm leading-tight font-extrabold break-words">
@@ -125,7 +123,7 @@ export function HomeCardTile({
               <span className="mono-id w-fit max-w-full rounded-md border-2 border-ink bg-seal/25 px-2 py-0.5">
                 {rewardReadyLabel}
               </span>
-            </div>
+            </PromiseChip>
           ) : null}
 
           {/* A paused card kept its status line hidden whenever a reward had
@@ -182,10 +180,7 @@ export function HomeCardTile({
  */
 function TilePassChip({ pass }: { pass: CustomerOfferPass }) {
   return (
-    <div
-      data-reward-ticket="offer-pass"
-      className="grid gap-1.5 rounded-lg border-2 border-ink bg-seal/15 p-3"
-    >
+    <PromiseChip data-reward-ticket="offer-pass" kind="pass">
       <div className="flex items-center gap-1.5">
         <Icon icon={DiscountTag01Icon} size={14} />
         <Eyebrow>Discount pass</Eyebrow>
@@ -201,7 +196,7 @@ function TilePassChip({ pass }: { pass: CustomerOfferPass }) {
           <Link href={`/pass/${pass.entitlementId}`}>Show pass QR</Link>
         </Button>
       ) : null}
-    </div>
+    </PromiseChip>
   )
 }
 
@@ -244,10 +239,7 @@ function TileGiftChip({
       : "Back next opening day"
 
   return (
-    <div
-      data-reward-ticket="gift"
-      className="grid gap-1.5 rounded-lg border-2 border-ink bg-seal/15 p-3"
-    >
+    <PromiseChip data-reward-ticket="gift" kind="gift">
       <div className="flex items-center gap-1.5">
         <Icon icon={GiftIcon} size={14} />
         <Eyebrow>{badge}</Eyebrow>
@@ -258,6 +250,6 @@ function TileGiftChip({
       <span className="mono-id w-fit max-w-full rounded-md border-2 border-ink bg-seal/25 px-2 py-0.5">
         {label}
       </span>
-    </div>
+    </PromiseChip>
   )
 }

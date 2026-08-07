@@ -7,6 +7,7 @@ import {
 } from "@hugeicons/core-free-icons"
 
 import { Icon } from "@/components/brand"
+import { PromiseChip } from "@/components/customer/promise-chip"
 import { CelebrationUrlCleanup } from "@/components/customer/celebration-url-cleanup"
 import { GoogleReviewButton } from "@/components/customer/google-review-button"
 import { JoinFirstStampRecoveryPanel } from "@/components/customer/join-first-stamp-recovery-panel"
@@ -372,7 +373,7 @@ function CardGiftChip({
   const badge = rewardSourceBadge(gift.source, merchantName) ?? "Gift"
 
   return (
-    <div className="grid gap-2 rounded-lg border-2 border-ink bg-seal/15 p-3">
+    <PromiseChip kind="gift" className="gap-2">
       <div className="flex items-center gap-1.5">
         <Icon icon={GiftIcon} size={16} />
         <span className="mono-id tracking-tag text-ink">{badge}</span>
@@ -391,7 +392,7 @@ function CardGiftChip({
             : "Ready from the next opening day."}
         </p>
       )}
-    </div>
+    </PromiseChip>
   )
 }
 
@@ -465,7 +466,7 @@ function CardOfferPassChip({ pass }: { pass: CustomerOfferPass }) {
   const opens = formatOfferPassDate(pass.validFrom)
 
   return (
-    <div className="grid gap-2 rounded-lg border-2 border-ink bg-seal/15 p-3">
+    <PromiseChip kind="pass" className="gap-2">
       <div className="flex items-center gap-1.5">
         <Icon icon={DiscountTag01Icon} size={16} />
         <span className="mono-id tracking-tag text-ink">Discount pass</span>
@@ -482,7 +483,7 @@ function CardOfferPassChip({ pass }: { pass: CustomerOfferPass }) {
           {offerPassChipNote(pass, opens, closes)}
         </p>
       )}
-    </div>
+    </PromiseChip>
   )
 }
 
