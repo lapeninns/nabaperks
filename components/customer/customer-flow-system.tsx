@@ -256,6 +256,7 @@ export function CustomerStampCard({
   wrapStamps = false,
   compact = false,
   afterGrid,
+  primaryAction,
   children,
   rewardSlot,
   onSlamComplete,
@@ -290,6 +291,13 @@ export function CustomerStampCard({
   /** Slot rendered between the stamp grid and the reward ticket — used for
    * celebrations so the grid stays the receipt's first focal point. */
   afterGrid?: ReactNode
+  /**
+   * Slot between {@link afterGrid} and the reward ticket. The stamp route puts
+   * its press disc here: it used to be the receipt's LAST child, below the
+   * ticket, which put the product's primary verb at roughly y 900 on a 667px
+   * phone (CUS 02#18). The ticket is motivation and belongs after the act.
+   */
+  primaryAction?: ReactNode
   children?: ReactNode
   rewardSlot?: RewardSlotState
   onSlamComplete?: () => void
@@ -328,6 +336,7 @@ export function CustomerStampCard({
         onSlamComplete={onSlamComplete}
       />
       {afterGrid}
+      {primaryAction}
       <RewardTicket
         state={reward.state}
         name={reward.name}

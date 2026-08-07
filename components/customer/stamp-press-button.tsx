@@ -27,12 +27,20 @@ function vibrate(pattern: number | number[]) {
 function StampDiscFace({
   confirmed,
   pending,
+  closed,
   initials,
 }: {
   /** Server-confirmed stamp — the only state that earns the green leaf disc. */
   confirmed: boolean
   /** Optimistic stamp in flight — stays the neutral stamp colour, lightly dimmed. */
   pending: boolean
+  /**
+   * The control is not accepting input and has no stamp of its own to show for
+   * it — already stamped today, or the window is shut. It used to render
+   * pixel-identical to the live disc, so a member tapped something that looked
+   * fully available and nothing happened (CUS 02#24).
+   */
+  closed: boolean
   initials: string
 }) {
   return (
@@ -46,7 +54,10 @@ function StampDiscFace({
             : "bg-stamp text-stamp-foreground",
         pending && !confirmed
           ? "border-dashed border-stamp shadow-none"
-          : undefined
+          : undefined,
+        // DESIGN.md's disabled treatment: 50% opacity, and the dashed ink
+        // border the empty stamp slots already use for "nothing here yet".
+        closed ? "border-dashed opacity-50 shadow-none" : undefined
       )}
     >
       {confirmed ? (
@@ -303,6 +314,7 @@ export function StampPressButton({
           <StampDiscFace
             confirmed={confirmed}
             pending={pending}
+            closed={inactive && !confirmed && !pending}
             initials={initials}
           />
         </span>
@@ -312,6 +324,20 @@ export function StampPressButton({
           Tap, or press and hold, to add today&apos;s stamp.
         </span>
       </button>
+      {/* The hold gesture — a 600ms charge with a ring and haptics — was
+          announced only to screen readers, and the ring appears 130ms into the
+          hold, so sighted members had no way to know the path existed and
+          always tapped. One printed line makes it an affordance (CUS 02#25).
+          Hidden while the control is closed, where the band above carries the
+          reason instead. */}
+      {inactive ? null : (
+        <span
+          aria-hidden="true"
+          className="mono-meta mt-1 text-center text-muted-foreground"
+        >
+          Tap or hold to stamp
+        </span>
+      )}
     </span>
   )
 }
