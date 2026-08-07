@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils"
  * rise independently as they enter the viewport; opt out for sticky chrome.
  * Server component.
  */
-type SectionSize = "default" | "dense" | "compact" | "tight" | "flush"
+type SectionSize = "default" | "dense" | "compact" | "tight" | "last" | "flush"
 type SectionWidth = "marketing" | "narrow"
 
 /**
@@ -44,6 +44,12 @@ const sizePad: Record<SectionSize, string> = {
   dense: "py-4 sm:py-8",
   compact: "py-3 sm:py-5",
   tight: "py-2 sm:py-3",
+  /**
+   * The closing section of a page: compact above, but with real air before the
+   * footer's dashed rule. Three call sites had hard-coded `className="pb-10"`
+   * to get this, which is the tell that the scale was missing a step.
+   */
+  last: "py-3 pb-10 sm:py-5 sm:pb-14",
   flush: "py-0",
 }
 

@@ -26,6 +26,7 @@ export function MarketingDisclosure({
   className,
   summaryClassName,
   bodyClassName,
+  defaultOpen = false,
 }: {
   summary: ReactNode
   /** Optional leading node (the FAQ ledger's mono index). */
@@ -34,9 +35,14 @@ export function MarketingDisclosure({
   className?: string
   summaryClassName?: string
   bodyClassName?: string
+  /**
+   * Render open in the initial HTML. The browser owns it from there — this is
+   * the `open` attribute, not controlled state.
+   */
+  defaultOpen?: boolean
 }) {
   return (
-    <details className={cn("group", className)}>
+    <details open={defaultOpen} className={cn("group", className)}>
       <summary
         className={cn(
           "focus-ring flex min-h-11 cursor-pointer list-none items-center gap-3 rounded-lg px-4 py-3 [&::-webkit-details-marker]:hidden",

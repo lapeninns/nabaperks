@@ -188,7 +188,7 @@ export function PersonaSpokePage({
           </p>
         </ReceiptCard>
       </Section>
-      <Section size="compact" className="pb-10">
+      <Section size="last">
         <div className="grid gap-4">
           <p className="text-sm leading-6 font-bold text-foreground">
             {PLAN_LINE}

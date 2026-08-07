@@ -1,3 +1,4 @@
+import { IconRoundel } from "@/components/brand"
 import { PUB_TILL_MOMENT } from "@/lib/marketing/facts"
 
 /**
@@ -14,12 +15,13 @@ export function TillMoment() {
             key={step}
             className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-4 border-b-2 border-dashed border-border py-3.5 last:border-b-0"
           >
-            <span
-              aria-hidden="true"
-              className="mono-meta grid size-7 place-items-center rounded-full border-2 border-ink bg-card text-foreground"
-            >
+            {/* DESIGN.md · Shapes: new framing circles reach for IconRoundel
+                rather than hand-rolling `rounded-full`. `sm` is the numbered
+                step disc LaunchSteps and ProcessHero already use, so the same
+                idiom is now one size across the three pages. */}
+            <IconRoundel size="sm" tone="card" className="mono-meta">
               {index + 1}
-            </span>
+            </IconRoundel>
             <p className="max-w-[64ch] text-base leading-7 text-muted-foreground">
               {step}
             </p>

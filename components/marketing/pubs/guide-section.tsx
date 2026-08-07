@@ -26,7 +26,14 @@ export function GuideSection({
   return (
     <section
       id={section.id}
-      className={cn("grid gap-4", MARKETING_ANCHOR_OFFSET)}
+      className={cn(
+        // The dashed rule is the section separator: the page used to hold a
+        // 48-64px gap between bands, which is the largest gap token on the
+        // marketing surface applied to the tallest page in the product. The
+        // first band sits under the hero and needs no rule.
+        "grid gap-4 border-t-2 border-dashed border-border pt-8 first:border-t-0 first:pt-0",
+        MARKETING_ANCHOR_OFFSET
+      )}
     >
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <p className="mono-meta text-primary">

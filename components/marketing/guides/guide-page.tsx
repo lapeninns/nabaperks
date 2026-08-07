@@ -123,7 +123,7 @@ export function GuidePage({ guide }: { guide: Guide }) {
           — it compares all four options and what each costs your staff.
         </p>
       </Section>
-      <Section width="narrow" size="compact" className="pb-10">
+      <Section width="narrow" size="last">
         <ReceiptCard edge padding="md" className="gap-3">
           <p className="mono-meta text-muted-foreground">
             If you’d rather not do any of this yourself
