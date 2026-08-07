@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils"
 import type { MetricTrendDirection } from "@/lib/merchant/dashboard-trends"
 import { metricTrendClassName } from "@/lib/merchant/dashboard-trends"
 import { Icon, type IconGlyph } from "./icon"
+import { IconRoundel } from "./icon-roundel"
 import {
   Card,
   CardContent,
@@ -196,14 +197,17 @@ export function EmptyState({
   return (
     <Empty className={cn("border-2 bg-card p-6 text-center", className)}>
       <EmptyHeader>
+        {/* IconRoundel is the sanctioned framing circle and its docblock names
+            this exact family; the hand-rolled span was a second copy of it. */}
         {icon ? (
-          <span className="mx-auto grid size-11 place-items-center rounded-full border-2 border-ink bg-secondary text-muted-foreground">
-            <Icon icon={icon} size={22} />
-          </span>
+          <IconRoundel
+            icon={icon}
+            iconSize={22}
+            size="lg"
+            className="mx-auto text-muted-foreground"
+          />
         ) : null}
-        <EmptyTitle role="heading" aria-level={headingLevel}>
-          {title}
-        </EmptyTitle>
+        <EmptyTitle as={`h${headingLevel}`}>{title}</EmptyTitle>
         {description ? (
           <EmptyDescription>{description}</EmptyDescription>
         ) : null}

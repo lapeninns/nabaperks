@@ -67,9 +67,9 @@ export function PubGuideHero({
       <div className="relative mx-auto w-full max-w-[26rem] lg:mx-0 lg:justify-self-end">
         <div
           aria-hidden="true"
-          className="absolute -top-3 -right-3 bottom-3 left-3 rotate-2 rounded-[var(--radius-sheet)] border-2 border-ink bg-seal"
+          className="absolute -top-3 -right-3 bottom-3 left-3 rotate-2 rounded-sheet border-2 border-ink bg-seal"
         />
-        <div className="relative grid gap-5 rounded-[var(--radius-sheet)] border-2 border-ink bg-cobalt p-5 shadow-md sm:p-7">
+        <div className="relative grid gap-5 rounded-sheet border-2 border-ink bg-cobalt p-5 shadow-md sm:p-7">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <MonoTag tone="sun">The QR option</MonoTag>
             <Link

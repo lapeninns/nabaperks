@@ -5,11 +5,19 @@ import { Progress as ProgressPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * A progress bar is a graphical control with no intrinsic text, so it needs an
+ * accessible name. All four consumers already supply one; the type now makes
+ * that a compile-time requirement rather than a convention a future call site
+ * can quietly drop.
+ */
 function Progress({
   className,
   value,
   ...props
-}: React.ComponentProps<typeof ProgressPrimitive.Root>) {
+}: React.ComponentProps<typeof ProgressPrimitive.Root> & {
+  "aria-label": string
+}) {
   return (
     <ProgressPrimitive.Root
       data-slot="progress"

@@ -74,6 +74,11 @@
   --radius-sm: calc(var(--radius) - 6px);
   --radius-md: calc(var(--radius) - 4px);
   --radius-lg: var(--radius);
+  /* The sheet rung. Declared in @theme (not only :root) so it compiles to real
+     `rounded-sheet` / `rounded-t-sheet` utilities — previously it existed only
+     as a custom property, so every sheet hand-numbered it as
+     `rounded-(--radius-sheet)` or, worse, a raw `rounded-t-[18px]`. */
+  --radius-sheet: 18px;
 
   /* Wet Ink elevation — hard offset shadows, never blurred. */
   --shadow-2xs: 1px 1px 0 var(--w-shadow-color);
@@ -774,6 +779,14 @@ body[data-grain="true"]::after {
   border-radius: var(--radius-lg);
   color: var(--sidebar-foreground);
   font-weight: 800;
+}
+
+/* The `size` prop was inert: this layer pinned every nav item to 44px, so the
+   component's own min-h-10 / min-h-12 could never render and `size="lg"`
+   (used by the console nav's primary rail) silently rendered at the default
+   height. Express the second rung here, where it can actually win. */
+[data-slot="sidebar-menu-button"][data-size="lg"] {
+  min-height: 3rem;
 }
 
 [data-slot="sidebar-menu-button"]:focus-visible {

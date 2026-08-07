@@ -13,26 +13,23 @@ import { cn } from "@/lib/utils"
  * width for icon sizes.
  */
 const buttonVariants = cva(
-  "pressable inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-bold outline-none transition-[color,background-color,border-color,box-shadow,transform] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] active:translate-y-px motion-reduce:transition-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*=size-])]:size-4",
+  "pressable inline-flex shrink-0 items-center justify-center gap-2 rounded-full text-sm font-bold whitespace-nowrap transition-[color,background-color,border-color,box-shadow,transform] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none disabled:pointer-events-none disabled:opacity-50 motion-reduce:transition-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*=size-])]:size-4",
   {
     variants: {
       variant: {
         default:
           "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
-        stamp:
-          "bg-stamp text-stamp-foreground shadow-xs hover:bg-stamp/90",
-        reward:
-          "bg-reward text-reward-foreground shadow-xs hover:bg-reward/90",
+        stamp: "bg-stamp text-stamp-foreground shadow-xs hover:bg-stamp/90",
+        reward: "bg-reward text-reward-foreground shadow-xs hover:bg-reward/90",
         secondary:
           "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",
-        outline:
-          "border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground",
-        ghost:
-          "hover:bg-accent hover:text-accent-foreground",
+        // Border/radius/shadow come from the unlayered [data-slot="button"]
+        // rule; declaring them here is dead weight that misreads as live.
+        outline: "bg-background hover:bg-accent hover:text-accent-foreground",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
         destructive:
           "bg-destructive text-destructive-foreground shadow-xs hover:bg-destructive/90",
-        link:
-          "h-auto rounded-none p-0 text-primary underline-offset-4 shadow-none hover:underline",
+        link: "h-auto rounded-none p-0 text-primary underline-offset-4 shadow-none hover:underline",
       },
       size: {
         xs: "h-8 min-h-8 px-3 text-xs [@media(pointer:coarse)]:min-h-11",
