@@ -45,12 +45,24 @@ function severityTone(severity: string) {
   return SEVERITY_TONE[severity.toLowerCase()] ?? "warning"
 }
 
-export function FraudFlagsPanel({ flags }: { readonly flags: FraudFlags }) {
+const QUEUE_DESCRIPTION: Record<string, string> = {
+  open: "Open flags only, highest severity first. Masked customer context and bucketed location evidence.",
+  high: "Every high-severity flag, open or resolved, newest first.",
+  all: "Every flag, highest severity first, including reviewed and dismissed.",
+}
+
+export function FraudFlagsPanel({
+  flags,
+  queue = "open",
+}: {
+  readonly flags: FraudFlags
+  readonly queue?: string
+}) {
   return (
     <AdminPanel>
       <SectionHeader
         title="Fraud flags"
-        description="Security support signals with masked customer context and bucketed location evidence."
+        description={QUEUE_DESCRIPTION[queue] ?? QUEUE_DESCRIPTION.all}
         actions={<SourceLabel>Source: service-role admin readback</SourceLabel>}
       />
       <DataTable
@@ -62,7 +74,14 @@ export function FraudFlagsPanel({ flags }: { readonly flags: FraudFlags }) {
         emptyState={
           <EmptyState
             icon={AlertDiamondIcon}
-            title="No fraud flags yet"
+            title={
+              queue === "open" ? "No open fraud flags" : "No fraud flags yet"
+            }
+            description={
+              queue === "open"
+                ? "Nothing is waiting for review. Switch to All flags to read resolved ones."
+                : undefined
+            }
             className="rounded-none border-0 p-0 shadow-none"
           />
         }

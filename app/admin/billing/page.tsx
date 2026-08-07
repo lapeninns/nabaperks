@@ -1,4 +1,8 @@
+import type { ReactNode } from "react"
+
 import { AdminCrossLinks } from "@/components/admin/cross-links"
+import { AdminIdChip } from "@/components/admin/id-chip"
+import { AdminRecordActions } from "@/components/admin/record-actions"
 import {
   AdminPanel,
   SourceLabel,
@@ -9,10 +13,13 @@ import { AdminRecordCard } from "@/components/admin/record-card"
 import { BillingFulfilmentActions } from "@/components/admin/billing-fulfilment-actions"
 import { CreditCardIcon } from "@hugeicons/core-free-icons"
 
-import { EmptyState, PageTitle } from "@/components/brand"
+import { EmptyState, PageTitle, SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { canRenderAdminPage } from "@/lib/admin/auth"
 import { getAdminBillingRecords } from "@/lib/admin/billing-data"
+
+type AdminBillingRecords = Awaited<ReturnType<typeof getAdminBillingRecords>>
+type AdminBillingRow = AdminBillingRecords[number]
 import { buildLookupHref } from "@/lib/admin/lookup-query"
 
 /**
@@ -74,10 +81,18 @@ export default async function AdminBillingPage() {
       />
 
       <AdminPanel className="p-0">
+        {/* Every sibling panel carries the eyebrow/title/description/actions
+            anatomy; this one was a lone provenance pill in a ~60px strip. */}
         <div className="border-b p-5">
-          <SourceLabel>
-            Source: billing_customers + merchant_launch_fulfilments
-          </SourceLabel>
+          <SectionHeader
+            title="Subscriptions and poster fulfilment"
+            description="Stripe subscription state joined to poster dispatch, delivery confirmation and the delivery-anchored pilot window."
+            actions={
+              <SourceLabel>
+                Source: billing_customers + merchant_launch_fulfilments
+              </SourceLabel>
+            }
+          />
         </div>
         <DataTable
           caption="Admin billing subscription readback"
@@ -85,6 +100,7 @@ export default async function AdminBillingPage() {
           className="rounded-none border-0 shadow-none"
           mobileClassName="p-5"
           rows={billing}
+          mobilePageSize={10}
           getRowKey={(row) => row.id}
           emptyState={
             <EmptyState
@@ -136,10 +152,17 @@ export default async function AdminBillingPage() {
               ),
             },
             {
+              // The state plus the one decision-relevant date. Delivery, pilot
+              // end and the Stripe sync stamp used to stack as three 12px
+              // muted lines per row — the wrong register for dates an operator
+              // must verify, and a third multi-line column on a table already
+              // past its comfortable width. They live in the row's Details
+              // disclosure now, and dates read as printed facts (.mono-meta),
+              // not prose.
               key: "fulfilment",
               header: "Launch fulfilment",
               cell: (row) => (
-                <div className="grid min-w-48 gap-2">
+                <div className="grid min-w-40 gap-2">
                   <StatusPill
                     tone={fulfilmentTone(
                       row.fulfilmentStatus,
@@ -150,27 +173,8 @@ export default async function AdminBillingPage() {
                       ? "Needs attention"
                       : fulfilmentLabel(row.fulfilmentStatus)}
                   </StatusPill>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="mono-meta text-muted-foreground">
                     Delivery {formatAdminDate(row.deliveredAt)}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    Pilot end {formatAdminDate(row.basePilotEndsAt)}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    Stripe {row.syncStatus} ·{" "}
-                    {formatAdminDate(row.confirmedStripeTrialEnd)}
-                  </span>
-                </div>
-              ),
-            },
-            {
-              key: "stripe",
-              header: "Stripe refs",
-              cell: (row) => (
-                <div className="grid gap-1 font-mono text-xs">
-                  <span>Subscription {row.stripeSubscriptionRef}</span>
-                  <span className="text-muted-foreground">
-                    Customer {row.stripeCustomerRef}
                   </span>
                 </div>
               ),
@@ -179,11 +183,19 @@ export default async function AdminBillingPage() {
               key: "actions",
               header: "Actions",
               cell: (row) => (
-                <BillingFulfilmentActions
-                  merchantId={row.merchantId}
-                  fulfilmentStatus={row.fulfilmentStatus}
-                  basePilotEndsAt={row.basePilotEndsAt}
-                />
+                <div className="grid min-w-52 gap-2">
+                  <BillingFulfilmentActions
+                    merchantId={row.merchantId}
+                    fulfilmentStatus={row.fulfilmentStatus}
+                    basePilotEndsAt={row.basePilotEndsAt}
+                  />
+                  <AdminRecordActions
+                    label="Details"
+                    group="billing-details-table"
+                  >
+                    <BillingDetails row={row} />
+                  </AdminRecordActions>
+                </div>
               ),
             },
           ]}
@@ -192,14 +204,34 @@ export default async function AdminBillingPage() {
               <AdminRecordCard
                 title={row.merchantName}
                 status={
-                  <StatusPill tone={row.statusTone}>
-                    {row.statusLabel}
-                  </StatusPill>
+                  <>
+                    <StatusPill tone={row.statusTone}>
+                      {row.statusLabel}
+                    </StatusPill>
+                    <StatusPill
+                      tone={fulfilmentTone(
+                        row.fulfilmentStatus,
+                        row.operationsReviewRequired
+                      )}
+                    >
+                      {row.operationsReviewRequired
+                        ? "Needs attention"
+                        : fulfilmentLabel(row.fulfilmentStatus)}
+                    </StatusPill>
+                  </>
                 }
+                // Four headline fields, not eleven. A card of eleven two-line
+                // dt/dd stacks ran to ~800px before its action disclosure, and
+                // no operator reads eleven labelled fields per merchant — the
+                // decision-relevant ones were buried among Stripe refs. The
+                // other seven are preserved verbatim in the Details
+                // disclosure below.
                 fields={[
+                  { label: "Email", value: row.merchantEmail },
+                  { label: "Plan", value: row.plan },
                   {
-                    label: "Email",
-                    value: row.merchantEmail,
+                    label: "Period end",
+                    value: formatAdminDate(row.currentPeriodEnd),
                   },
                   {
                     label: "Links",
@@ -207,56 +239,84 @@ export default async function AdminBillingPage() {
                       <BillingCrossLinks merchantName={row.merchantName} />
                     ),
                   },
-                  { label: "Plan", value: row.plan },
-                  {
-                    label: "Period end",
-                    value: formatAdminDate(row.currentPeriodEnd),
-                  },
-                  {
-                    label: "Updated",
-                    value: formatAdminDate(row.updatedAt),
-                  },
-                  {
-                    label: "Poster fulfilment",
-                    value: row.operationsReviewRequired
-                      ? "Needs attention"
-                      : fulfilmentLabel(row.fulfilmentStatus),
-                  },
-                  {
-                    label: "Delivery confirmed",
-                    value: formatAdminDate(row.deliveredAt),
-                  },
-                  {
-                    label: "Included pilot end",
-                    value: formatAdminDate(row.basePilotEndsAt),
-                  },
-                  {
-                    label: "Stripe trial sync",
-                    value: `${row.syncStatus} · ${formatAdminDate(row.confirmedStripeTrialEnd)}`,
-                  },
-                  {
-                    label: "Stripe subscription",
-                    value: row.stripeSubscriptionRef,
-                    mono: true,
-                  },
-                  {
-                    label: "Stripe customer",
-                    value: row.stripeCustomerRef,
-                    mono: true,
-                  },
                 ]}
                 action={
-                  <BillingFulfilmentActions
-                    merchantId={row.merchantId}
-                    fulfilmentStatus={row.fulfilmentStatus}
-                    basePilotEndsAt={row.basePilotEndsAt}
-                  />
+                  <>
+                    <BillingFulfilmentActions
+                      merchantId={row.merchantId}
+                      fulfilmentStatus={row.fulfilmentStatus}
+                      basePilotEndsAt={row.basePilotEndsAt}
+                    />
+                    <AdminRecordActions label="Details" group="billing-details">
+                      <BillingDetails row={row} />
+                    </AdminRecordActions>
+                  </>
                 }
               />
             )
           }}
         />
       </AdminPanel>
+    </div>
+  )
+}
+
+/**
+ * Everything the row summary no longer shows, in one place: the dates an
+ * operator verifies during a billing investigation and the two Stripe
+ * identifiers they paste into the dashboard. The refs go through AdminIdChip
+ * (click-to-copy, full value in `title`) like every other identifier in the
+ * console — they were the only ids rendered as plain, hand-selectable mono.
+ */
+function BillingDetails({ row }: { readonly row: AdminBillingRow }) {
+  return (
+    <dl className="grid gap-2.5 text-sm">
+      <BillingDetail
+        label="Poster fulfilment"
+        value={
+          row.operationsReviewRequired
+            ? "Needs attention"
+            : fulfilmentLabel(row.fulfilmentStatus)
+        }
+      />
+      <BillingDetail
+        label="Delivery confirmed"
+        value={formatAdminDate(row.deliveredAt)}
+      />
+      <BillingDetail
+        label="Included pilot end"
+        value={formatAdminDate(row.basePilotEndsAt)}
+      />
+      <BillingDetail
+        label="Stripe trial sync"
+        value={`${row.syncStatus} · ${formatAdminDate(row.confirmedStripeTrialEnd)}`}
+      />
+      <BillingDetail label="Updated" value={formatAdminDate(row.updatedAt)} />
+      <BillingDetail
+        label="Stripe subscription"
+        value={<AdminIdChip value={row.stripeSubscriptionRef} prefix="sub" />}
+      />
+      <BillingDetail
+        label="Stripe customer"
+        value={<AdminIdChip value={row.stripeCustomerRef} prefix="cus" />}
+      />
+    </dl>
+  )
+}
+
+function BillingDetail({
+  label,
+  value,
+}: {
+  readonly label: string
+  readonly value: ReactNode
+}) {
+  return (
+    <div className="grid min-w-0 gap-1">
+      <dt className="eyebrow">{label}</dt>
+      <dd className="min-w-0 [overflow-wrap:anywhere] break-words text-muted-foreground">
+        {value}
+      </dd>
     </div>
   )
 }
