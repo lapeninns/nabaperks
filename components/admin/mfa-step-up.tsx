@@ -24,9 +24,7 @@ export function AdminMfaStepUp({ operatorEmail }: { operatorEmail: string }) {
     <main className="flex min-h-svh items-center justify-center px-6 py-10">
       <section className="surface-card w-full max-w-sm p-6">
         <Eyebrow>Internal admin</Eyebrow>
-        <h1 className="mt-2 text-3xl leading-tight font-extrabold">
-          Verify it&rsquo;s you
-        </h1>
+        <h1 className="type-page-title mt-2">Verify it&rsquo;s you</h1>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
           Two-factor authentication is on for {operatorEmail}. Enter the current
           6-digit code from your authenticator app to continue.

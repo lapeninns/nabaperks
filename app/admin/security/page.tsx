@@ -30,9 +30,7 @@ export default async function AdminSecurityPage() {
     <div className="space-y-6">
       <header>
         <Eyebrow>Security</Eyebrow>
-        <h1 className="mt-2 text-3xl leading-tight font-extrabold">
-          Two-factor authentication
-        </h1>
+        <h1 className="type-page-title mt-2">Two-factor authentication</h1>
       </header>
       <AdminMfaPanel enrolled={enrolled} factorId={factorId} />
     </div>

@@ -334,6 +334,30 @@ body[data-grain="true"]::after {
     color: var(--card-foreground);
   }
 
+  /* Heading ranks — the named half of the type scale, mirroring DESIGN.md's
+     `typography` block so a rank is set in one place instead of being retyped
+     as utilities at every call site (the audit measured <h1> at 7 size
+     combinations and <h2> at 11). Font-size and leading only: colour, balance
+     and tracking stay at the call site.
+
+     Only the page-title rank is minted. The card-title rank is owned by its own
+     slot rule below, which tests/contracts/ux-production-polish locks to
+     weight-only — a size there would defeat MetricTile's text-2xl KPI value.
+     Body/small (15px/13.5px at weight 500) are not minted either: production
+     sets body with `text-sm`, and redefining it would restyle every paragraph
+     in the product — a design decision, not a codemod. */
+  .type-page-title {
+    font-size: 1.875rem; /* 30px — DESIGN.md page-title (mobile) */
+    line-height: 1.05;
+    font-weight: 800;
+  }
+
+  @media (width >= 40rem) {
+    .type-page-title {
+      font-size: 2.25rem; /* 36px — DESIGN.md page-title (sm+) */
+    }
+  }
+
   /* Micro-type scale — the ONLY sizes below text-xs. Two mono utilities
      (colour left to the call site) plus the eyebrow, which is mono-meta with
      the muted colour baked in. Nothing in the product may render text below

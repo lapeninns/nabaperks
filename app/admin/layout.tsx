@@ -23,9 +23,7 @@ export default async function AdminLayout({
       <main className="flex min-h-svh items-center justify-center px-6 py-10">
         <section className="surface-card w-full max-w-sm p-6 text-center">
           <Eyebrow>Internal admin</Eyebrow>
-          <h1 className="mt-2 text-3xl leading-tight font-extrabold">
-            Access denied
-          </h1>
+          <h1 className="type-page-title mt-2">Access denied</h1>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
             {access.reason}
           </p>

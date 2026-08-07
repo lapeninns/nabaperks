@@ -66,7 +66,7 @@ export function PageTitle({
         {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
         <Heading
           className={cn(
-            "max-w-3xl min-w-0 text-3xl leading-tight font-extrabold text-balance break-words text-foreground sm:text-4xl",
+            "type-page-title max-w-3xl min-w-0 text-balance break-words text-foreground",
             titleClassName
           )}
         >
