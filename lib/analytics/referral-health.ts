@@ -9,6 +9,8 @@ import {
 import { logger } from "@/lib/observability/logger"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
+const PAGE_SIZE = 500
+
 /**
  * Forward recently recorded referral-health rows to PostHog.
  *
@@ -29,31 +31,39 @@ export async function mirrorReferralHealthEvents(
       Date.now() - Math.max(windowMinutes, 1) * 60_000
     ).toISOString()
 
-    const { data, error } = await supabase
-      .from("product_events")
-      .select(
-        "id, event_name, merchant_id, customer_id, membership_id, metadata"
-      )
-      .in("event_name", [...REFERRAL_HEALTH_EVENT_NAMES])
-      .gte("created_at", since)
-      .order("created_at", { ascending: true })
-      .limit(500)
-
-    if (error) {
-      logger.warn("referral_health_mirror_read_failed", {
-        reason: error.message,
-      })
-      return 0
-    }
-
-    const rows = Array.isArray(data) ? (data as ReferralHealthRow[]) : []
     let mirrored = 0
+    let offset = 0
 
-    for (const row of rows) {
-      const event = buildReferralHealthMirrorEvent(row)
-      if (!event) continue
-      await capturePostHogEvent(event)
-      mirrored += 1
+    while (true) {
+      const { data, error } = await supabase
+        .from("product_events")
+        .select(
+          "id, event_name, merchant_id, customer_id, membership_id, metadata"
+        )
+        .in("event_name", [...REFERRAL_HEALTH_EVENT_NAMES])
+        .gte("created_at", since)
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(offset, offset + PAGE_SIZE - 1)
+
+      if (error) {
+        logger.warn("referral_health_mirror_read_failed", {
+          reason: error.message,
+        })
+        return mirrored
+      }
+
+      const rows = Array.isArray(data) ? (data as ReferralHealthRow[]) : []
+
+      for (const row of rows) {
+        const event = buildReferralHealthMirrorEvent(row)
+        if (!event) continue
+        await capturePostHogEvent(event)
+        mirrored += 1
+      }
+
+      if (rows.length < PAGE_SIZE) break
+      offset += PAGE_SIZE
     }
 
     return mirrored

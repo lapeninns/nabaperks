@@ -1,5 +1,5 @@
--- Loyalty integrity — a referral can no longer fail in silence, and a visit is
--- never swallowed by one.
+-- Loyalty integrity — referral settlement cannot fabricate a verified visit or
+-- fail in silence.
 --
 -- TWO DEFECTS, BOTH IN THE QR STAMP WRAPPER (20260805100100 / 20260712100000).
 --
@@ -10,17 +10,11 @@
 -- primitive at that point raises NBS02 and would roll the bonus back with it.
 --
 -- The early return is right. What it did on the way out was not: it reported the
--- REFERRAL BONUS row as `stamp_event_id`, hardcoded `geo_flagged := false`
--- whatever the customer's location said, and left last_visit_at untouched. The
--- customer stood in the venue, scanned, and the visit existed nowhere — not in
--- last_visit_at, not in product_events, not in the venue's dashboard. For a
--- product sold on measuring return visits that is the wrong thing to lose.
---
--- The stamp itself still cannot be added; a full card is a full card, and that is
--- the same answer any full card gives. What changes is that the VISIT is now
--- recorded even though the STAMP is not: last_visit_at moves, a product_event is
--- written, and the returned stamp_event_id is null rather than a bonus row
--- wearing a visit's clothes.
+-- REFERRAL BONUS row as `stamp_event_id` and the bonus settlement itself advanced
+-- last_visit_at even though this path never reached location verification. A
+-- referral stamp is not evidence that the referrer visited the venue. Settlement
+-- now preserves the previous visit timestamp, and the wrapper returns a null
+-- stamp_event_id rather than a bonus row wearing a visit's clothes.
 --
 -- 2. REFERRAL FAILURES WENT TO THE SERVER LOG AND NOWHERE ELSE
 -- Both referral calls were wrapped in `exception when others then raise warning`.
@@ -30,18 +24,76 @@
 -- A referral bonus could be lost permanently with no ledger and no signal, which
 -- is indistinguishable from never having been owed.
 --
--- Both handlers now write a durable product_events row carrying the SQLSTATE and
--- the message, so the failure is queryable, countable and alertable. The warning
--- is kept as well, because it costs nothing and is useful when tailing logs.
+-- The post-stamp handler writes a durable product_events row. The pre-stamp call
+-- is executed by the application before entering this transaction, which lets it
+-- persist the same failure signal even when the later stamp transaction rejects.
 --
 -- `outcome` is used as the metadata key deliberately: it is already on the
 -- external analytics allowlist in lib/analytics/privacy-core.ts. The referral
--- failures use the value 'failed', which that allowlist already permits;
--- visit_without_stamp uses 'blocked', which is added to the same key's value set
--- in this change. Both are fixed enum tokens, so nothing customer-identifying is
--- widened — the allowlist still drops any property it does not recognise.
+-- failures use the value 'failed', which that allowlist already permits. It is a
+-- fixed enum token, so nothing customer-identifying is widened — the allowlist
+-- still drops any property it does not recognise.
 --
 -- Forward-only and re-runnable.
+
+-- The existing settlement routine awards the stamp correctly but also advances
+-- last_visit_at. Keep that routine as the locked, atomic core and wrap it at its
+-- public boundary so referral awards never masquerade as location-verified
+-- visits. Calling relink first handles churned memberships before the snapshot.
+do $$
+begin
+  if to_regprocedure('public.settle_referral_bonus_with_visit(uuid)') is null then
+    alter function public.settle_referral_bonus(uuid)
+      rename to settle_referral_bonus_with_visit;
+  end if;
+end;
+$$;
+
+create or replace function public.settle_referral_bonus(p_referral_id uuid)
+returns text
+language plpgsql
+security definer
+set search_path = public, auth, extensions
+as $$
+declare
+  v_membership_id uuid;
+  v_last_visit_at timestamptz;
+  v_outcome text;
+begin
+  perform public.relink_referral_memberships(p_referral_id);
+
+  select referrals.referrer_membership_id
+  into v_membership_id
+  from public.referrals referrals
+  where referrals.id = p_referral_id;
+
+  if v_membership_id is not null then
+    select memberships.last_visit_at
+    into v_last_visit_at
+    from public.customer_memberships memberships
+    where memberships.id = v_membership_id;
+  end if;
+
+  v_outcome := public.settle_referral_bonus_with_visit(p_referral_id);
+
+  if v_outcome = 'awarded' and v_membership_id is not null then
+    update public.customer_memberships memberships
+    set last_visit_at = v_last_visit_at
+    where memberships.id = v_membership_id
+      and memberships.last_visit_at is distinct from v_last_visit_at;
+  end if;
+
+  return v_outcome;
+end;
+$$;
+
+revoke all on function public.settle_referral_bonus_with_visit(uuid)
+  from public, anon, authenticated, service_role;
+revoke all on function public.settle_referral_bonus(uuid)
+  from public, anon, authenticated;
+grant execute on function public.settle_referral_bonus(uuid) to service_role;
+
+drop function if exists public.issue_self_service_stamp(uuid, uuid, text, numeric, numeric, numeric, text, integer);
 
 create or replace function public.issue_self_service_stamp(
   p_membership_id uuid,
@@ -51,7 +103,8 @@ create or replace function public.issue_self_service_stamp(
   p_longitude numeric default null,
   p_accuracy_meters numeric default null,
   p_location_status text default null,
-  p_capture_elapsed_ms integer default null
+  p_capture_elapsed_ms integer default null,
+  p_referral_bonuses_pre_drained integer default null
 )
 returns table (
   stamp_event_id uuid,
@@ -65,7 +118,7 @@ set search_path = public, auth, extensions
 as $$
 declare
   v_membership record;
-  v_drained integer := 0;
+  v_drained integer := coalesce(p_referral_bonuses_pre_drained, 0);
   v_qr_id text := trim(coalesce(p_qr_id, ''));
 begin
   if v_qr_id = '' then
@@ -103,25 +156,14 @@ begin
     raise exception 'Valid venue QR scan proof required' using errcode = 'NBS08';
   end if;
 
-  begin
-    v_drained := public.drain_due_referrer_bonuses_for_membership(p_membership_id);
-  exception
-    when others then
-      raise warning 'referral settle-before-stamp skipped for %: %', p_membership_id, sqlerrm;
-      insert into public.product_events (
-        event_name, merchant_id, customer_id, membership_id,
-        actor_type, actor_id, metadata
-      ) values (
-        'referral_settlement_failed', v_membership.merchant_id,
-        v_membership.customer_id, p_membership_id, 'system', 'system',
-        jsonb_build_object(
-          'outcome', 'failed',
-          'stage', 'settle_before_stamp',
-          'sqlstate', sqlstate,
-          'error', left(sqlerrm, 500)
-        )
-      );
-  end;
+  if p_referral_bonuses_pre_drained is null then
+    begin
+      v_drained := public.drain_due_referrer_bonuses_for_membership(p_membership_id);
+    exception
+      when others then
+        raise warning 'referral settle-before-stamp skipped for %: %', p_membership_id, sqlerrm;
+    end;
+  end if;
 
   if v_drained > 0 then
     select memberships.current_stamp_count
@@ -130,29 +172,9 @@ begin
     where memberships.id = p_membership_id;
 
     if new_stamp_count >= v_membership.stamps_required then
-      -- The card filled on the settled bonus, so no visit stamp can be added.
-      -- Record the VISIT anyway: it happened, and it is what the venue is
-      -- paying to measure.
-      update public.customer_memberships
-      set last_visit_at = now()
-      where customer_memberships.id = p_membership_id;
-
-      insert into public.product_events (
-        event_name, merchant_id, customer_id, membership_id,
-        actor_type, actor_id, metadata
-      ) values (
-        'visit_without_stamp', v_membership.merchant_id, v_membership.customer_id,
-        p_membership_id, 'customer', p_customer_id::text,
-        jsonb_build_object(
-          'outcome', 'blocked',
-          'reason', 'reward_ready_after_referral_settlement',
-          'settled_bonuses', v_drained,
-          'new_stamp_count', new_stamp_count
-        )
-      );
-
-      -- Null, not the referral bonus row: no visit stamp was issued, and
-      -- returning a bonus id here made the caller believe one was.
+      -- No visit is recorded here: a full card cannot enter the normal location
+      -- verifier, so counting this scan as an in-venue visit would weaken the
+      -- integrity of the merchant's return-visit metric.
       stamp_event_id := null;
       reward_unlocked := true;
       geo_flagged := false;
@@ -195,12 +217,12 @@ begin
 end;
 $$;
 
-comment on function public.issue_self_service_stamp(uuid, uuid, text, numeric, numeric, numeric, text, integer) is
-  'QR visit-stamp wrapper. Settles owed referral bonuses first; records the visit even when a settled bonus leaves no room for a stamp; and writes a durable product_events row for any referral degradation instead of only a server-log warning.';
+comment on function public.issue_self_service_stamp(uuid, uuid, text, numeric, numeric, numeric, text, integer, integer) is
+  'QR visit-stamp wrapper. Accepts a separately committed pre-drain count, keeps full-card scans out of visit metrics, and writes post-stamp referral degradation to product_events.';
 
-revoke all on function public.issue_self_service_stamp(uuid, uuid, text, numeric, numeric, numeric, text, integer)
+revoke all on function public.issue_self_service_stamp(uuid, uuid, text, numeric, numeric, numeric, text, integer, integer)
   from public, anon, authenticated;
-grant execute on function public.issue_self_service_stamp(uuid, uuid, text, numeric, numeric, numeric, text, integer)
+grant execute on function public.issue_self_service_stamp(uuid, uuid, text, numeric, numeric, numeric, text, integer, integer)
   to service_role;
 
 notify pgrst, 'reload schema';

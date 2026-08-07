@@ -47,7 +47,6 @@ export const productEventNames = [
   // warning. Registered here so the product's event vocabulary stays in one list.
   "referral_settlement_failed",
   "referral_bonus_failed",
-  "visit_without_stamp",
   "stamp_refused_location",
   "qr_created",
   "qr_downloaded",

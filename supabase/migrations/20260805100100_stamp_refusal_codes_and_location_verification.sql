@@ -101,10 +101,6 @@ grant execute on function public.geofence_unverified_grace_limit() to service_ro
 alter table public.merchant_locations
   alter column require_geofence set default true;
 
-update public.merchant_locations
-set require_geofence = true
-where require_geofence is distinct from true;
-
 -- 3. Mint a missing reward for a completed cycle --------------------------------
 -- A cycle can reach stamps_required WITHOUT a reward_event existing. The visit
 -- stamp path always mints on the completing stamp, but the promotional grants do
@@ -781,6 +777,7 @@ begin
   from public.stamp_events
   where stamp_events.membership_id = p_membership_id
     and stamp_events.event_type = 'earned'
+    and stamp_events.metadata->>'source' = 'self_service_qr'
     and stamp_events.created_at > now() - interval '15 minutes';
 
   if recent_stamp_count >= 3 and not exists (

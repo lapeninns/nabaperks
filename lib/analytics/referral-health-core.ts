@@ -31,7 +31,6 @@ import type { ProductEventInput } from "@/lib/analytics/events"
 export const REFERRAL_HEALTH_EVENT_NAMES = [
   "referral_settlement_failed",
   "referral_bonus_failed",
-  "visit_without_stamp",
 ] as const
 
 export type ReferralHealthEventName =

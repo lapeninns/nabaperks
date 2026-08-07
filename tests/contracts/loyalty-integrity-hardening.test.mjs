@@ -122,10 +122,27 @@ test("Given the velocity signal Then it is scoped to the membership, not the ven
   // Merchant-wide >= 20 in 15 minutes fired on a good Friday service.
   assert.match(
     STAMP_CODES,
-    /stamp_events\.membership_id = p_membership_id\s*\n\s*and stamp_events\.event_type = 'earned'\s*\n\s*and stamp_events\.created_at > now\(\) - interval '15 minutes'/
+    /stamp_events\.membership_id = p_membership_id\s*\n\s*and stamp_events\.event_type = 'earned'\s*\n\s*and stamp_events\.metadata->>'source' = 'self_service_qr'\s*\n\s*and stamp_events\.created_at > now\(\) - interval '15 minutes'/
   )
   assert.match(STAMP_CODES, /if recent_stamp_count >= 3 and not exists/)
   assert.match(STAMP_CODES, /'scope', 'membership'/)
+})
+
+test("Given promotional stamps Then they do not contribute to visit velocity", () => {
+  const velocityQuery = STAMP_CODES.slice(
+    STAMP_CODES.indexOf("into recent_stamp_count"),
+    STAMP_CODES.indexOf("if recent_stamp_count >= 3")
+  )
+
+  assert.match(velocityQuery, /metadata->>'source' = 'self_service_qr'/)
+})
+
+test("Given an existing geofence opt-out Then the new default does not overwrite it", () => {
+  assert.match(STAMP_CODES, /alter column require_geofence set default true/)
+  assert.doesNotMatch(
+    STAMP_CODES,
+    /update public\.merchant_locations\s+set require_geofence = true/
+  )
 })
 
 test("Given the reward-pool draw Then a vanished item refuses instead of rolling the stamp back", () => {
@@ -192,20 +209,26 @@ test("Given the referral wrapper Then no failure path is silent", () => {
     "utf8"
   )
 
-  // Both handlers must degrade AND leave a durable row. A warning alone reaches
-  // the server log and nothing else.
-  const handlers = [...REFERRAL.matchAll(/when others then([\s\S]*?)end;/g)]
+  // The post-stamp handler can safely write in the wrapper because no later
+  // operation can roll it back. The pre-stamp failure is recorded by the caller
+  // in a separate request instead (covered below).
+  const wrapperBody = REFERRAL.slice(
+    REFERRAL.indexOf(
+      "create or replace function public.issue_self_service_stamp"
+    )
+  )
+  const handlers = [...wrapperBody.matchAll(/when others then([\s\S]*?)end;/g)]
   assert.equal(handlers.length, 2, "both referral calls are guarded")
-  for (const [, body] of handlers) {
-    assert.match(body, /raise warning/)
-    assert.match(body, /insert into public\.product_events/)
-    assert.match(body, /'sqlstate', sqlstate/)
-  }
+  assert.match(handlers[0][1], /raise warning/)
+  assert.doesNotMatch(handlers[0][1], /insert into public\.product_events/)
+  assert.match(handlers[1][1], /raise warning/)
+  assert.match(handlers[1][1], /insert into public\.product_events/)
+  assert.match(handlers[1][1], /'sqlstate', sqlstate/)
 
-  // The visit is recorded even when no stamp can be issued...
-  assert.match(REFERRAL, /'visit_without_stamp'/)
-  assert.match(REFERRAL, /set last_visit_at = now\(\)/)
-  // ...and the bonus row is no longer returned dressed as a visit stamp.
+  // A full card cannot run the normal location verifier, so it is not counted
+  // as a paid visit. The bonus row is also not returned dressed as a visit stamp.
+  assert.doesNotMatch(REFERRAL, /'visit_without_stamp'/)
+  assert.doesNotMatch(REFERRAL, /set last_visit_at = now\(\)/)
   assert.match(REFERRAL, /stamp_event_id := null;/)
 
   // STRICT would make every optional-argument call return NULL without running.
@@ -331,6 +354,10 @@ test("Given a location refusal Then the caller records it outside the aborted tr
     STAMP_TS,
     /async function recordLocationRefusal\([\s\S]*?try \{[\s\S]*?\} catch/
   )
+  assert.match(
+    STAMP_TS,
+    /const \{ error \} = await supabase\.rpc\([\s\S]*?"record_stamp_location_refusal"[\s\S]*?if \(error\)/
+  )
 
   // Both refusal reasons map to a signal, and nothing else does.
   assert.match(
@@ -344,4 +371,29 @@ test("Given a location refusal Then the caller records it outside the aborted tr
   // Ownership is verified, not trusted — this is reachable from service role.
   assert.match(REFUSAL, /v_membership\.customer_id <> p_customer_id/)
   assert.match(REFUSAL, /'outcome', 'blocked'/)
+})
+
+test("Given referral settlement fails before stamping Then evidence is committed by the caller", () => {
+  const STAMP_TS = readFileSync(
+    new URL("../../lib/customer/stamp.ts", import.meta.url),
+    "utf8"
+  )
+
+  assert.match(
+    STAMP_TS,
+    /const referralBonusesPreDrained = await drainReferralBonusesBeforeStamp\([\s\S]*?const \{ data, error \} = await supabase\.rpc\(\s*"issue_self_service_stamp"/
+  )
+  assert.match(STAMP_TS, /eventName: "referral_settlement_failed"/)
+  assert.match(STAMP_TS, /p_referral_bonuses_pre_drained:/)
+})
+
+test("Given more than one referral-health page Then the mirror reads every page", () => {
+  const MIRROR = readFileSync(
+    new URL("../../lib/analytics/referral-health.ts", import.meta.url),
+    "utf8"
+  )
+
+  assert.match(MIRROR, /\.range\(offset, offset \+ PAGE_SIZE - 1\)/)
+  assert.match(MIRROR, /if \(rows\.length < PAGE_SIZE\) break/)
+  assert.match(MIRROR, /offset \+= PAGE_SIZE/)
 })

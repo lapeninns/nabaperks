@@ -387,6 +387,41 @@ test(
   }
 )
 
+test("promotional grants do not trigger visit velocity", { skip }, async () => {
+  await inRolledBackTxn(async (tx) => {
+    const [v] = await tx.unsafe(PICK)
+    const customerId = await newCustomer(tx, "velocity-promo")
+    const membershipId = await joinWithLongCard(tx, v, customerId)
+
+    await tx`
+      insert into public.stamp_events
+        (merchant_id, customer_id, membership_id, loyalty_card_id, location_id,
+         event_type, stamps_delta, earned_business_date, cycle_number, metadata)
+      select ${v.merchant_id}, ${customerId}, ${membershipId},
+             ${v.loyalty_card_id}, ${v.location_id}, 'earned', 1, null, 1,
+             jsonb_build_object('source', 'offer_campaign')
+      from generate_series(1, 2)`
+
+    await ageStamps(tx, membershipId)
+    await stampAt(tx, v, membershipId, customerId, { status: "denied" })
+
+    const [before] = await tx`
+      select count(*)::int as n from public.fraud_flags
+      where membership_id = ${membershipId}
+        and signal = 'high_stamp_velocity'`
+    assert.equal(before.n, 0, "two grants plus two visits are not velocity")
+
+    await ageStamps(tx, membershipId)
+    await stampAt(tx, v, membershipId, customerId, { status: "denied" })
+
+    const [after] = await tx`
+      select count(*)::int as n from public.fraud_flags
+      where membership_id = ${membershipId}
+        and signal = 'high_stamp_velocity'`
+    assert.equal(after.n, 1, "the third real visit raises the signal")
+  })
+})
+
 // ---------------------------------------------------------------------------
 // 20260805100200 — expiry releases the cycle
 // ---------------------------------------------------------------------------
