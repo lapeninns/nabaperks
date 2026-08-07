@@ -179,7 +179,6 @@
   /* Loyalty semantics */
   --stamp: var(--w-accent);
   --stamp-foreground: var(--w-accent-ink);
-  --stamp-empty: var(--w-line);
 
   --seal: var(--w-sun);
   --seal-foreground: var(--w-ink);
@@ -220,9 +219,6 @@
   --w-dur-move: 320ms;
   --w-dur-slam: 380ms;
   --w-dur-shake: 300ms;
-  --ease-stamp: var(--w-ease);
-  --duration-fast: var(--w-dur-fast);
-  --duration-reveal: var(--w-dur-move);
 }
 
 .dark {

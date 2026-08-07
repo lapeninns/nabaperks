@@ -39,7 +39,13 @@ export const MARKETING_GUTTER = "px-6 lg:px-8"
  * `default`/`dense` from `sm:` up and `dense`/`compact` below it, so half the
  * tokens were no-ops at whichever breakpoint the author was looking at.)
  */
-const sizePad: Record<SectionSize, string> = {
+/**
+ * The single source of marketing vertical rhythm. Exported so `ContrastBand`
+ * consumes these exact strings rather than keeping a parallel copy — the two
+ * had already drifted once (band at py-9 sm:py-12 against section at
+ * py-7 sm:py-10), which is how two ink bands cost ~140px of pure padding.
+ */
+export const SECTION_PAD: Record<SectionSize, string> = {
   default: "py-6 sm:py-12",
   dense: "py-4 sm:py-8",
   compact: "py-3 sm:py-5",
@@ -80,7 +86,7 @@ export function Section({
     MARKETING_ANCHOR_OFFSET,
     MARKETING_GUTTER,
     widthMax[width],
-    sizePad[size],
+    SECTION_PAD[size],
     className
   )
 

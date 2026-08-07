@@ -3,7 +3,11 @@ import type { ComponentPropsWithoutRef, ReactNode } from "react"
 import { WetInkRise } from "@/components/motion"
 import { cn } from "@/lib/utils"
 
-import { MARKETING_ANCHOR_OFFSET, MARKETING_GUTTER } from "./section"
+import {
+  MARKETING_ANCHOR_OFFSET,
+  MARKETING_GUTTER,
+  SECTION_PAD,
+} from "./section"
 
 /**
  * ContrastBand — full-bleed inverted ink/paper band (the marquee's palette, so
@@ -21,15 +25,16 @@ import { MARKETING_ANCHOR_OFFSET, MARKETING_GUTTER } from "./section"
 type BandSize = "default" | "dense" | "compact"
 
 /**
- * Deliberately the same numbers as `Section`'s scale, one step up: the band is
- * a peer section that happens to be inked, not a chapter break. It used to pad
- * 1.5-2x its neighbours, which is how two ink bands cost ~140px of pure
- * padding.
+ * The band is a peer section that happens to be inked, not a chapter break, so
+ * it takes `Section`'s rhythm verbatim rather than keeping a parallel copy.
+ * Importing SECTION_PAD means the two can no longer diverge (they already had:
+ * the band used to pad 1.5-2x its neighbours, which is how two ink bands cost
+ * ~140px of pure padding).
  */
 const innerPad: Record<BandSize, string> = {
-  default: "py-6 sm:py-12",
-  dense: "py-4 sm:py-8",
-  compact: "py-3 sm:py-5",
+  default: SECTION_PAD.default,
+  dense: SECTION_PAD.dense,
+  compact: SECTION_PAD.compact,
 }
 
 type ContrastBandProps = {
