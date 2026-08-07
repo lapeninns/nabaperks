@@ -108,13 +108,17 @@ function TermsBlock({
   body: string
 }) {
   return (
+    // Same readability contract as LegalDocumentPage (01#64/65/66): a clause
+    // heading that outranks its clause, body at 16px capped to a 68ch measure
+    // on the foreground colour, and an explicit dashed rule instead of
+    // .w-rule's injected margins. No clause wording is changed.
     <section
       id={id}
       tabIndex={-1}
-      className="w-rule focus-ring grid scroll-mt-28 gap-2 pt-4"
+      className="focus-target grid scroll-mt-28 gap-2 border-t-2 border-dashed border-border pt-5 first:border-t-0 first:pt-0"
     >
       <h2 className="mono-meta tracking-tag text-foreground">{title}</h2>
-      <p className="text-sm leading-6 text-muted-foreground">{body}</p>
+      <p className="max-w-[68ch] text-base leading-7 text-foreground">{body}</p>
     </section>
   )
 }

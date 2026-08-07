@@ -33,19 +33,36 @@ export function LegalDocumentPage({
         as="div"
         className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start"
       >
-        <aside className="surface-card order-last p-4 lg:sticky lg:top-20 lg:order-none">
-          <Eyebrow className="mb-3">On this page</Eyebrow>
-          <nav aria-label={`${meta.cardTitle} sections`} className="grid gap-1">
-            {sections.map((section) => (
-              <a
-                key={section.id}
-                href={`#${section.id}`}
-                className="focus-ring inline-flex min-h-11 items-center rounded-full px-3 py-2 text-sm text-muted-foreground underline-offset-4 hover:bg-accent hover:text-accent-foreground"
+        {/* 01#63: this was `order-last`, so on a phone the table of contents
+            rendered AFTER the entire document — thousands of pixels below the
+            only place it is useful. It now sits above the prose and collapses,
+            so it costs a summary row rather than a screen. */}
+        <aside className="surface-card p-4 lg:sticky lg:top-20">
+          <details open className="group">
+            <summary className="focus-ring mb-3 flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 rounded-full lg:pointer-events-none">
+              <Eyebrow>On this page</Eyebrow>
+              <span
+                aria-hidden="true"
+                className="text-muted-foreground group-open:rotate-180 lg:hidden"
               >
-                {section.title}
-              </a>
-            ))}
-          </nav>
+                ▾
+              </span>
+            </summary>
+            <nav
+              aria-label={`${meta.cardTitle} sections`}
+              className="grid gap-1"
+            >
+              {sections.map((section) => (
+                <a
+                  key={section.id}
+                  href={`#${section.id}`}
+                  className="focus-ring inline-flex min-h-11 items-center rounded-full px-3 py-2 text-sm text-muted-foreground underline-offset-4 hover:bg-accent hover:text-accent-foreground"
+                >
+                  {section.title}
+                </a>
+              ))}
+            </nav>
+          </details>
         </aside>
 
         <article className="grid gap-6">
@@ -69,12 +86,25 @@ export function LegalDocumentPage({
                 key={section.id}
                 id={section.id}
                 tabIndex={-1}
-                className="w-rule focus-ring grid scroll-mt-28 gap-2 pt-4"
+                // 01#66: `.w-rule` injects its own margins, which fought the
+                // parent's spacing. An explicit dashed top border on all but the
+                // first clause is the same rule with predictable rhythm.
+                className="focus-target grid scroll-mt-28 gap-2 border-t-2 border-dashed border-border pt-5 first:border-t-0 first:pt-0"
               >
+                {/* 01#65 asks for a larger clause heading. NOT applied:
+                    tests/contracts/legal-heading-structure pins
+                    `<h2 className="mono-meta` on /terms and /privacy as a
+                    deliberate decision, and shipping two different legal
+                    heading treatments would be worse than one wrong one.
+                    Recorded for renegotiation instead. */}
                 <h2 className="mono-meta tracking-tag text-foreground">
                   {section.title}
                 </h2>
-                <p className="text-sm leading-6 text-muted-foreground">
+                {/* 01#64 (Critical): 14px muted text in an ~840px column runs at
+                    ~125 characters per line. Capped at 68ch and raised to 16px
+                    on the foreground colour — legal body text is not secondary
+                    content. No clause wording changed. */}
+                <p className="max-w-[68ch] text-base leading-7 text-foreground">
                   {section.body}
                 </p>
               </section>
