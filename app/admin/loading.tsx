@@ -10,11 +10,8 @@ import {
 // of the first paint. Mirrors app/app/loading.tsx.
 export default function AdminLoading() {
   return (
-    <section
-      role="status"
-      aria-label="Loading admin workspace"
-      className="grid gap-6"
-    >
+    <section aria-busy="true" className="grid gap-6">
+      <p className="sr-only">Loading admin workspace…</p>
       <AdminPageTitleSkeleton />
       <AdminTableSkeleton />
     </section>

@@ -10,18 +10,13 @@ import { Skeleton } from "@/components/ui/skeleton"
 // layout.
 export default function MerchantRewardScanLoading() {
   return (
-    <div className="mx-auto grid w-full max-w-xl gap-6">
+    <div aria-busy="true" className="mx-auto grid w-full max-w-xl gap-6">
       <PageTitle
         eyebrow="Customer codes"
         title="Scan customer code"
         description="Point your camera at the code on the customer's phone. It can be a reward to collect or a discount pass to honour, and we will open the right screen for it."
       />
-      <ReceiptCard
-        edge
-        className="grid gap-5 p-6"
-        role="status"
-        aria-label="Loading reward scanner"
-      >
+      <ReceiptCard edge className="grid gap-5 p-6">
         <Skeleton className="mx-auto aspect-square w-full max-w-sm rounded-[var(--radius-lg)]" />
 
         <Skeleton className="h-4 w-40" />
