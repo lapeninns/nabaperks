@@ -7,13 +7,14 @@ import {
 import { AdminIdChip } from "@/components/admin/id-chip"
 import { AdminRecordCard } from "@/components/admin/record-card"
 import {
+  AdminEmptyState,
   AdminPanel,
   SourceLabel,
   StatusPill,
   formatAdminDate,
   maskAdminCustomer,
 } from "@/components/admin/support"
-import { EmptyState, SectionHeader } from "@/components/brand"
+import { SectionHeader } from "@/components/brand"
 import type { getAdminUnaffiliatedCustomers } from "@/lib/admin/data"
 import type { AdminLookupState } from "@/lib/admin/lookup-query"
 import { Shield01Icon } from "@hugeicons/core-free-icons"
@@ -78,18 +79,18 @@ export function UnaffiliatedCustomersPanel({
             />
           </>
         ) : searching ? (
-          <EmptyState
+          <AdminEmptyState
             icon={Shield01Icon}
             title="No matching customers"
             description="No unaffiliated customer matches that contact fragment."
-            className="rounded-none border-0 p-0 shadow-none"
+            padded={false}
           />
         ) : (
-          <EmptyState
+          <AdminEmptyState
             icon={Shield01Icon}
             title="No unaffiliated customers"
             description="Every verified customer has joined at least one venue."
-            className="rounded-none border-0 p-0 shadow-none"
+            padded={false}
           />
         )
       ) : (

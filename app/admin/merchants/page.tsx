@@ -10,21 +10,27 @@ import { regenerateQrAction, setQrActiveAction } from "@/app/admin/actions"
 import { AdminActionForm } from "@/components/admin/action-form"
 import {
   AdminConfirmCheck,
+  AdminEmptyState,
   AdminField,
   AdminPanel,
+  AdminPanelFooter,
+  AdminPanelHeader,
   SourceLabel,
   StatusPill,
   first,
   formatAdminDate,
 } from "@/components/admin/support"
+import { Suspense } from "react"
+
 import { AdminCrossLinks } from "@/components/admin/cross-links"
+import { AdminTableSkeleton } from "@/components/admin/skeletons"
 import {
   AdminLookupControls,
   AdminLookupPagination,
 } from "@/components/admin/lookup-controls"
 import { AdminRecordActions } from "@/components/admin/record-actions"
 import { AdminRecordCard } from "@/components/admin/record-card"
-import { EmptyState, Icon, PageTitle, SectionHeader } from "@/components/brand"
+import { Icon, PageTitle, SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { SubmitButton } from "@/components/forms"
 import { Input } from "@/components/ui/input"
@@ -75,11 +81,6 @@ export default async function AdminMerchantsPage({
   const lookup = parseAdminLookupParams(params)
   const qrPage = parsePageParam(params.qrPage)
 
-  const [merchants, qrCodes] = await Promise.all([
-    getAdminMerchants(lookup),
-    getAdminQrCodes({ venue: lookup.venue, page: qrPage }),
-  ])
-
   return (
     <div className="grid gap-6">
       <PageTitle
@@ -88,30 +89,65 @@ export default async function AdminMerchantsPage({
         description="Merchant account, plan status, and QR support controls."
       />
 
-      <MerchantAccountsPanel
-        merchants={merchants}
-        lookup={lookup}
-        hrefForPage={(page) =>
-          buildLookupHref("/admin/merchants", {
-            venue: lookup.venue,
-            page,
-            qrPage,
-          })
-        }
-      />
+      {/* Two independent readbacks, two boundaries: the QR list no longer
+          holds up the merchant table (and vice versa), and the page title and
+          search paint first. */}
+      <Suspense fallback={<AdminTableSkeleton />}>
+        <MerchantAccountsView lookup={lookup} qrPage={qrPage} />
+      </Suspense>
 
-      <QrRecordsPanel
-        qrCodes={qrCodes}
-        venue={lookup.venue}
-        hrefForPage={(page) =>
-          `${buildLookupHref("/admin/merchants", {
-            venue: lookup.venue,
-            page: lookup.page,
-            qrPage: page,
-          })}#qr-records`
-        }
-      />
+      <Suspense fallback={<AdminTableSkeleton />}>
+        <QrRecordsView lookup={lookup} qrPage={qrPage} />
+      </Suspense>
     </div>
+  )
+}
+
+async function MerchantAccountsView({
+  lookup,
+  qrPage,
+}: {
+  readonly lookup: AdminLookupState
+  readonly qrPage: number
+}) {
+  const merchants = await getAdminMerchants(lookup)
+
+  return (
+    <MerchantAccountsPanel
+      merchants={merchants}
+      lookup={lookup}
+      hrefForPage={(page) =>
+        buildLookupHref("/admin/merchants", {
+          venue: lookup.venue,
+          page,
+          qrPage,
+        })
+      }
+    />
+  )
+}
+
+async function QrRecordsView({
+  lookup,
+  qrPage,
+}: {
+  readonly lookup: AdminLookupState
+  readonly qrPage: number
+}) {
+  const qrCodes = await getAdminQrCodes({ venue: lookup.venue, page: qrPage })
+
+  return (
+    <QrRecordsPanel
+      qrCodes={qrCodes}
+      venue={lookup.venue}
+      hrefForPage={(page) =>
+        `${buildLookupHref("/admin/merchants", {
+          venue: lookup.venue,
+          page: lookup.page,
+          qrPage: page,
+        })}#qr-records`
+      }
+    />
   )
 }
 
@@ -168,8 +204,8 @@ function MerchantAccountsPanel({
   const searching = Boolean(lookup.venue)
 
   return (
-    <AdminPanel className="p-0">
-      <div className="grid gap-4 border-b p-5">
+    <AdminPanel variant="flush">
+      <AdminPanelHeader>
         <SectionHeader
           title="Merchant accounts"
           description="Service-role admin readback of account status and billing joins."
@@ -183,7 +219,7 @@ function MerchantAccountsPanel({
           label="Merchant lookup"
           fields="venue"
         />
-      </div>
+      </AdminPanelHeader>
       <DataTable
         caption="Admin merchant account readback"
         cardBreakpoint="xl"
@@ -194,18 +230,16 @@ function MerchantAccountsPanel({
         getRowKey={(merchant) => merchant.id}
         emptyState={
           searching ? (
-            <EmptyState
+            <AdminEmptyState
               icon={Store01Icon}
               title="No matching merchants"
               description="Adjust the venue search, or clear it to see the newest merchant accounts."
-              className="rounded-none border-0 shadow-none"
             />
           ) : (
-            <EmptyState
+            <AdminEmptyState
               icon={Store01Icon}
               title="No merchants yet"
               description="Merchant accounts will appear once onboarding creates records."
-              className="rounded-none border-0 shadow-none"
             />
           )
         }
@@ -300,14 +334,14 @@ function MerchantAccountsPanel({
         }}
       />
       {merchants.meta.total > 0 ? (
-        <div className="p-5 pt-0">
+        <AdminPanelFooter className="pt-0">
           <AdminLookupPagination
             label="Merchant pages"
             unit="merchant accounts"
             meta={merchants.meta}
             hrefForPage={hrefForPage}
           />
-        </div>
+        </AdminPanelFooter>
       ) : null}
     </AdminPanel>
   )
@@ -331,8 +365,8 @@ function QrRecordsPanel({
   readonly hrefForPage: (page: number) => string
 }) {
   return (
-    <AdminPanel id="qr-records" className="scroll-mt-6 p-0">
-      <div className="border-b p-5">
+    <AdminPanel id="qr-records" variant="flush" className="scroll-mt-6">
+      <AdminPanelHeader>
         <SectionHeader
           title="QR records"
           description="Audited QR activation and regeneration controls. Reasons are required before mutation. Filtered by the venue search above."
@@ -340,7 +374,7 @@ function QrRecordsPanel({
             <SourceLabel>Source: service-role admin readback</SourceLabel>
           }
         />
-      </div>
+      </AdminPanelHeader>
       <DataTable
         caption="Admin QR record readback"
         cardBreakpoint="xl"
@@ -350,7 +384,7 @@ function QrRecordsPanel({
         rows={qrCodes.rows}
         getRowKey={(qrCode) => qrCode.id}
         emptyState={
-          <EmptyState
+          <AdminEmptyState
             icon={QrCode01Icon}
             title={venue ? "No matching QR records" : "No QR records yet"}
             description={
@@ -358,7 +392,6 @@ function QrRecordsPanel({
                 ? "Clear the venue search to see the newest QR records."
                 : undefined
             }
-            className="rounded-none border-0 shadow-none"
           />
         }
         columns={[
@@ -412,14 +445,14 @@ function QrRecordsPanel({
         mobileCard={(qrCode) => <QrRecord qrCode={qrCode} />}
       />
       {qrCodes.meta.total > 0 ? (
-        <div className="p-5 pt-0">
+        <AdminPanelFooter className="pt-0">
           <AdminLookupPagination
             label="QR record pages"
             unit="QR records"
             meta={qrCodes.meta}
             hrefForPage={hrefForPage}
           />
-        </div>
+        </AdminPanelFooter>
       ) : null}
     </AdminPanel>
   )

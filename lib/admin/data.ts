@@ -264,19 +264,46 @@ export async function getAdminRewards(page = 1) {
   return { rows: data ?? [], meta: pageMeta(count ?? 0, page) }
 }
 
-export async function getAdminFraudSignals() {
+/** fraud_flags.status check constraint: open / reviewed / dismissed. */
+export type AdminFraudQueue = "open" | "high" | "all"
+
+/** Severity rank for triage ordering; fraud_flags.severity is low/medium/high. */
+const FRAUD_SEVERITY_RANK: Record<string, number> = {
+  high: 0,
+  medium: 1,
+  low: 2,
+}
+
+/**
+ * Triage-shaped fraud readback. Flags used to arrive newest-first regardless of
+ * status or severity, so an operator scrolled past resolved work to find open
+ * work and a high-severity flag had no priority position. `queue` filters
+ * server-side (default: open only) and the returned page is ordered by severity
+ * then recency — the sort happens in memory over the fetched window because
+ * `severity` is a text column whose alphabetical order (high/low/medium) is not
+ * its severity order.
+ */
+export async function getAdminFraudSignals(queue: AdminFraudQueue = "open") {
   const supabase = await createAdminServiceRoleClient()
+  let flagQuery = supabase
+    .from("fraud_flags")
+    .select(
+      "id, signal, severity, status, metadata, created_at, merchants(business_name), customers(email, phone_last4)",
+      { count: "exact" }
+    )
+
+  if (queue === "open") {
+    flagQuery = flagQuery.eq("status", "open")
+  }
+  if (queue === "high") {
+    flagQuery = flagQuery.eq("severity", "high")
+  }
+
   const [
-    { data: fraudFlags, error: flagsError },
+    { data: fraudFlags, error: flagsError, count: flagCount },
     { data: failures, error: failureError },
   ] = await Promise.all([
-    supabase
-      .from("fraud_flags")
-      .select(
-        "id, signal, severity, status, metadata, created_at, merchants(business_name), customers(email, phone_last4)"
-      )
-      .order("created_at", { ascending: false })
-      .limit(100),
+    flagQuery.order("created_at", { ascending: false }).limit(100),
     supabase
       .from("product_events")
       .select("id, event_name, created_at, merchants(business_name)")
@@ -293,11 +320,41 @@ export async function getAdminFraudSignals() {
     throw new Error(`Unable to load fraud events: ${failureError.message}`)
   }
 
+  const flags = Array.isArray(fraudFlags) ? fraudFlags.map(redactFraudFlag) : []
+  flags.sort((left, right) => {
+    const rank =
+      (FRAUD_SEVERITY_RANK[left.severity.toLowerCase()] ?? 1) -
+      (FRAUD_SEVERITY_RANK[right.severity.toLowerCase()] ?? 1)
+    if (rank !== 0) return rank
+    return right.created_at.localeCompare(left.created_at)
+  })
+
   return {
-    fraudFlags: Array.isArray(fraudFlags)
-      ? fraudFlags.map(redactFraudFlag)
-      : [],
+    fraudFlags: flags,
+    flagTotal: flagCount ?? flags.length,
     failures: failures ?? [],
+  }
+}
+
+/** Bucket counts for the fraud queue tabs (head-only, no rows transferred). */
+export async function getAdminFraudQueueCounts() {
+  const supabase = await createAdminServiceRoleClient()
+  const [open, high, all] = await Promise.all([
+    supabase
+      .from("fraud_flags")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "open"),
+    supabase
+      .from("fraud_flags")
+      .select("*", { count: "exact", head: true })
+      .eq("severity", "high"),
+    supabase.from("fraud_flags").select("*", { count: "exact", head: true }),
+  ])
+
+  return {
+    open: open.count ?? 0,
+    high: high.count ?? 0,
+    all: all.count ?? 0,
   }
 }
 

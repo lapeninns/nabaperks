@@ -8,6 +8,7 @@ import {
 
 import { AdminIdChip } from "@/components/admin/id-chip"
 import {
+  AdminEmptyState,
   AdminPanel,
   SourceLabel,
   first,
@@ -15,12 +16,7 @@ import {
   formatAdminAuditDate,
   maskAdminCustomer,
 } from "@/components/admin/support"
-import {
-  EmptyState,
-  MetricTile,
-  PageTitle,
-  SectionHeader,
-} from "@/components/brand"
+import { MetricTile, PageTitle, SectionHeader } from "@/components/brand"
 import { ActivityFeed } from "@/components/data/activity-feed"
 import { FunnelChart } from "@/components/data/funnel-chart"
 import { Button } from "@/components/ui/button"
@@ -135,11 +131,11 @@ export default async function AdminHomePage() {
             toRecentAuditItem(log)
           )}
           emptyState={
-            <EmptyState
+            <AdminEmptyState
               icon={SecurityCheckIcon}
               title="No audited actions yet"
               description="Audited support actions will appear here as operators work."
-              className="rounded-none border-0 p-0 shadow-none"
+              padded={false}
             />
           }
         />

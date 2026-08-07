@@ -2,12 +2,13 @@ import { Cancel01Icon } from "@hugeicons/core-free-icons"
 
 import { AdminRecordCard } from "@/components/admin/record-card"
 import {
+  AdminEmptyState,
   AdminPanel,
   SourceLabel,
   first,
   formatAdminDate,
 } from "@/components/admin/support"
-import { EmptyState, SectionHeader } from "@/components/brand"
+import { SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import type { getAdminFraudSignals } from "@/lib/admin/data"
 
@@ -34,10 +35,10 @@ export function RedemptionFailuresPanel({
         rows={failures}
         getRowKey={(event) => event.id}
         emptyState={
-          <EmptyState
+          <AdminEmptyState
             icon={Cancel01Icon}
             title="No redemption failures yet"
-            className="rounded-none border-0 p-0 shadow-none"
+            padded={false}
           />
         }
         columns={[

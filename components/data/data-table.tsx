@@ -1,6 +1,5 @@
 import type { KeyboardEventHandler, ReactNode } from "react"
 
-import { Eyebrow } from "@/components/brand"
 import { ShowMoreList } from "@/components/data/show-more-list"
 import { cn } from "@/lib/utils"
 import {
@@ -65,11 +64,15 @@ export type DataTableProps<T> = {
   /** Class applied to the mobile-card list (only when `mobileCard` is set). */
   mobileClassName?: string
   /**
-   * Opt-in progressive reveal for the mobile card stack: phones start with
-   * this many cards and a "Show more" control instead of the full stack (an
-   * unpaginated 100-row readback is a ~9,000px page at 375px). Desktop tables
-   * are unaffected. Ignored when `onRowClick`/`getRowProps` are used — those
-   * need per-row handlers the reveal wrapper does not thread through.
+   * Progressive reveal for the card stack: narrow viewports start with this
+   * many cards and a "Show more" control instead of the full stack (an
+   * unpaginated 100-row readback is a ~9,000px page at 375px). DEFAULTS TO 10
+   * — the mitigation was opt-in and had been applied to 2 of 8 admin tables,
+   * so the phone experience of the console varied by an order of magnitude
+   * between routes. Pass a larger number, or `Number.POSITIVE_INFINITY`, to
+   * render the whole stack. Desktop tables are unaffected. Ignored when
+   * `onRowClick`/`getRowProps` are used — those need per-row handlers the
+   * reveal wrapper does not thread through.
    */
   mobilePageSize?: number
   /**
@@ -86,6 +89,9 @@ export type DataTableProps<T> = {
  * Do not build these by interpolation — Tailwind cannot statically extract
  * dynamically composed class names.
  */
+/** Cards revealed before the "Show more" control; see `mobilePageSize`. */
+const DEFAULT_MOBILE_PAGE_SIZE = 10
+
 const CARD_BREAKPOINT_CLASSES = {
   sm: { cards: "sm:hidden", table: "hidden sm:block" },
   xl: { cards: "xl:hidden", table: "hidden xl:block" },
@@ -121,14 +127,18 @@ function DataTableCore<T>({
         <TableHeader className="bg-secondary/60">
           <TableRow className="border-b-2 border-ink hover:bg-transparent">
             {columns.map((column) => (
+              // One type recipe: the `th` used to set a 12px Bricolage
+              // uppercase style that the nested `.eyebrow` then overrode to
+              // 11.5px mono, and the block <p> defeated the h-10 centring.
+              // .eyebrow lives on the cell now; the wrapper element is gone.
               <TableHead
                 key={column.key}
                 className={cn(
-                  "h-10 px-4 text-xs font-extrabold whitespace-nowrap text-muted-foreground uppercase",
+                  "eyebrow h-10 px-4 whitespace-nowrap",
                   column.className
                 )}
               >
-                <Eyebrow>{column.header}</Eyebrow>
+                {column.header}
               </TableHead>
             ))}
           </TableRow>
@@ -204,7 +214,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     getRowProps,
     mobileCard,
     mobileClassName,
-    mobilePageSize,
+    mobilePageSize = DEFAULT_MOBILE_PAGE_SIZE,
     cardBreakpoint = "sm",
   } = props
 

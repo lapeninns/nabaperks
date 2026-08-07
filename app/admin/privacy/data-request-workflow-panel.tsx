@@ -10,6 +10,7 @@ import {
   AdminLookupPagination,
 } from "@/components/admin/lookup-controls"
 import {
+  AdminEmptyState,
   AdminField,
   AdminPanel,
   SourceLabel,
@@ -19,7 +20,7 @@ import {
 import { AdminIdChip } from "@/components/admin/id-chip"
 import { AdminRecordActions } from "@/components/admin/record-actions"
 import { AdminRecordCard } from "@/components/admin/record-card"
-import { EmptyState, Eyebrow, SectionHeader } from "@/components/brand"
+import { Eyebrow, SectionHeader } from "@/components/brand"
 import { SubmitButton, SelectField } from "@/components/forms"
 import { Input } from "@/components/ui/input"
 import type { getAdminPrivacySupportRows } from "@/lib/admin/data"
@@ -75,18 +76,18 @@ export function DataRequestWorkflowPanel({
             />
           </>
         ) : searching ? (
-          <EmptyState
+          <AdminEmptyState
             icon={Shield01Icon}
             title="No matching memberships"
             description="Adjust the venue or contact search, or clear it to see the newest memberships."
-            className="rounded-none border-0 p-0 shadow-none"
+            padded={false}
           />
         ) : (
-          <EmptyState
+          <AdminEmptyState
             icon={Shield01Icon}
             title="No privacy support rows yet"
             description="No customer memberships are available for privacy support yet."
-            className="rounded-none border-0 p-0 shadow-none"
+            padded={false}
           />
         )
       ) : (

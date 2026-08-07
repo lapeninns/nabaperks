@@ -9,6 +9,7 @@ import { AdminActionForm } from "@/components/admin/action-form"
 import { AdminRecordActions } from "@/components/admin/record-actions"
 import { AdminRecordCard } from "@/components/admin/record-card"
 import {
+  AdminEmptyState,
   AdminField,
   AdminPanel,
   SourceLabel,
@@ -16,12 +17,7 @@ import {
   formatAdminAction,
   formatAdminAuditDate,
 } from "@/components/admin/support"
-import {
-  EmptyState,
-  Icon,
-  SectionHeader,
-  type IconGlyph,
-} from "@/components/brand"
+import { Icon, SectionHeader, type IconGlyph } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { SubmitButton } from "@/components/forms"
 import { Input } from "@/components/ui/input"
@@ -45,12 +41,24 @@ function severityTone(severity: string) {
   return SEVERITY_TONE[severity.toLowerCase()] ?? "warning"
 }
 
-export function FraudFlagsPanel({ flags }: { readonly flags: FraudFlags }) {
+const QUEUE_DESCRIPTION: Record<string, string> = {
+  open: "Open flags only, highest severity first. Masked customer context and bucketed location evidence.",
+  high: "Every high-severity flag, open or resolved, newest first.",
+  all: "Every flag, highest severity first, including reviewed and dismissed.",
+}
+
+export function FraudFlagsPanel({
+  flags,
+  queue = "open",
+}: {
+  readonly flags: FraudFlags
+  readonly queue?: string
+}) {
   return (
     <AdminPanel>
       <SectionHeader
         title="Fraud flags"
-        description="Security support signals with masked customer context and bucketed location evidence."
+        description={QUEUE_DESCRIPTION[queue] ?? QUEUE_DESCRIPTION.all}
         actions={<SourceLabel>Source: service-role admin readback</SourceLabel>}
       />
       <DataTable
@@ -60,10 +68,17 @@ export function FraudFlagsPanel({ flags }: { readonly flags: FraudFlags }) {
         rows={flags}
         getRowKey={(flag) => flag.id}
         emptyState={
-          <EmptyState
+          <AdminEmptyState
             icon={AlertDiamondIcon}
-            title="No fraud flags yet"
-            className="rounded-none border-0 p-0 shadow-none"
+            title={
+              queue === "open" ? "No open fraud flags" : "No fraud flags yet"
+            }
+            description={
+              queue === "open"
+                ? "Nothing is waiting for review. Switch to All flags to read resolved ones."
+                : undefined
+            }
+            padded={false}
           />
         }
         columns={[

@@ -1,9 +1,10 @@
-import type { ReactNode } from "react"
+import type { ComponentProps, ReactNode } from "react"
 
 import { cn } from "@/lib/utils"
 import { Database01Icon } from "@hugeicons/core-free-icons"
 
 import {
+  EmptyState,
   Eyebrow,
   Icon,
   MonoTag,
@@ -25,16 +26,79 @@ export function AdminPanel({
   children,
   className,
   id,
+  variant = "padded",
 }: {
   children: ReactNode
   className?: string
   /** Optional anchor id so cross-links can target a panel on the same page. */
   id?: string
+  /**
+   * `flush` is the table/list panel: no padding, so a DataTable meets the
+   * card edge. Seven panels hand-wrote `className="p-0"` plus an inner
+   * `border-b p-5` header; the recipe lives here now.
+   */
+  variant?: "padded" | "flush"
 }) {
   return (
-    <section id={id} className={cn("surface-card grid gap-4 p-5", className)}>
+    <section
+      id={id}
+      className={cn(
+        "surface-card grid",
+        variant === "flush" ? "gap-0 p-0" : "gap-4 p-5",
+        className
+      )}
+    >
       {children}
     </section>
+  )
+}
+
+/** Header block for a `flush` panel: the one bordered, padded header row. */
+export function AdminPanelHeader({
+  children,
+  className,
+}: {
+  children: ReactNode
+  className?: string
+}) {
+  return (
+    <div className={cn("grid gap-4 border-b p-5", className)}>{children}</div>
+  )
+}
+
+/** Footer block for a `flush` panel (paginators sit here). */
+export function AdminPanelFooter({
+  children,
+  className,
+}: {
+  children: ReactNode
+  className?: string
+}) {
+  return <div className={cn("p-5", className)}>{children}</div>
+}
+
+/**
+ * The de-styled EmptyState, once. Eleven-plus call sites copied
+ * `className="rounded-none border-0 p-0 shadow-none"` — inconsistently, so
+ * some inline empty states were inset by p-6 and some were flush.
+ */
+export function AdminEmptyState({
+  className,
+  padded = true,
+  ...props
+}: ComponentProps<typeof EmptyState> & {
+  /** Keep the EmptyState's own padding (inside a flush panel body). */
+  padded?: boolean
+}) {
+  return (
+    <EmptyState
+      {...props}
+      className={cn(
+        "rounded-none border-0 shadow-none",
+        padded ? undefined : "p-0",
+        className
+      )}
+    />
   )
 }
 
@@ -50,9 +114,16 @@ export function AdminField({
   className?: string
 }) {
   return (
-    <label className={cn("grid gap-1.5 text-sm font-bold", className)}>
-      <Eyebrow>{label}</Eyebrow>
-      {children}
+    // The helper sits OUTSIDE the <label>. Inside it, it was concatenated into
+    // the field's accessible name — a screen reader announced "DELTA POSITIVE
+    // ADDS STAMPS, NEGATIVE REMOVES THEM" as the name of the number input, and
+    // the helper was never exposed as a description. It is now sibling
+    // guidance, so the name is just the label.
+    <div className={cn("grid min-w-0 gap-1.5", className)}>
+      <label className="grid min-w-0 gap-1.5 text-sm font-bold">
+        <Eyebrow>{label}</Eyebrow>
+        {children}
+      </label>
       {helper ? (
         // whitespace-normal: inside a table cell the helper would inherit the
         // cell's nowrap, and its single-line min-content inflates the field's
@@ -61,7 +132,7 @@ export function AdminField({
           {helper}
         </span>
       ) : null}
-    </label>
+    </div>
   )
 }
 

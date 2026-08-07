@@ -6,14 +6,17 @@ import {
   AdminLookupPagination,
 } from "@/components/admin/lookup-controls"
 import {
+  AdminEmptyState,
   AdminPanel,
+  AdminPanelFooter,
+  AdminPanelHeader,
   SourceLabel,
   StatusPill,
   first,
   formatAdminDate,
   maskAdminCustomer,
 } from "@/components/admin/support"
-import { EmptyState, SectionHeader } from "@/components/brand"
+import { SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import type { getAdminConsentRecords } from "@/lib/admin/data"
 
@@ -27,14 +30,14 @@ export function ConsentLogPanel({
   readonly hrefForPage: (page: number) => string
 }) {
   return (
-    <AdminPanel className="p-0">
-      <div className="border-b p-5">
+    <AdminPanel variant="flush">
+      <AdminPanelHeader>
         <SectionHeader
           title="Consent log"
           description="Historical opt-in and opt-out records are retained as evidence."
           actions={<SourceLabel>Source: consent_records</SourceLabel>}
         />
-      </div>
+      </AdminPanelHeader>
       {result ? (
         <>
           <DataTable
@@ -46,10 +49,9 @@ export function ConsentLogPanel({
             mobileClassName="p-5"
             mobilePageSize={10}
             emptyState={
-              <EmptyState
+              <AdminEmptyState
                 icon={FileValidationIcon}
                 title="No consent records yet"
-                className="rounded-none border-0 shadow-none"
               />
             }
             mobileCard={(record) => {
@@ -148,20 +150,20 @@ export function ConsentLogPanel({
             ]}
           />
           {result.meta.total > 0 ? (
-            <div className="p-5">
+            <AdminPanelFooter>
               <AdminLookupPagination
                 label="Consent record pages"
                 unit="consent records"
                 meta={result.meta}
                 hrefForPage={hrefForPage}
               />
-            </div>
+            </AdminPanelFooter>
           ) : null}
         </>
       ) : (
-        <div className="p-5">
+        <AdminPanelFooter>
           <AdminLookupErrorState title="Consent readback unavailable" />
-        </div>
+        </AdminPanelFooter>
       )}
     </AdminPanel>
   )

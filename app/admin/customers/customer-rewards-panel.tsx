@@ -8,8 +8,11 @@ import {
 } from "@/components/admin/lookup-controls"
 import {
   AdminConfirmCheck,
+  AdminEmptyState,
   AdminField,
   AdminPanel,
+  AdminPanelFooter,
+  AdminPanelHeader,
   SourceLabel,
   StatusPill,
   first,
@@ -18,7 +21,7 @@ import {
 } from "@/components/admin/support"
 import { AdminRecordActions } from "@/components/admin/record-actions"
 import { AdminRecordCard } from "@/components/admin/record-card"
-import { EmptyState, Icon, SectionHeader } from "@/components/brand"
+import { Icon, SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { SubmitButton } from "@/components/forms"
 import { Input } from "@/components/ui/input"
@@ -34,8 +37,8 @@ export function CustomerRewardsPanel({
   readonly hrefForPage: (page: number) => string
 }) {
   return (
-    <AdminPanel className="p-0">
-      <div className="border-b p-5">
+    <AdminPanel variant="flush">
+      <AdminPanelHeader>
         <SectionHeader
           title="Rewards"
           description="Assigned reward readbacks preserve customer masking and require a reason before cancellation."
@@ -43,7 +46,7 @@ export function CustomerRewardsPanel({
             <SourceLabel>Source: service-role admin readback</SourceLabel>
           }
         />
-      </div>
+      </AdminPanelHeader>
       {result ? (
         <>
           <DataTable
@@ -54,11 +57,7 @@ export function CustomerRewardsPanel({
             rows={result.rows}
             getRowKey={(reward) => reward.id}
             emptyState={
-              <EmptyState
-                icon={GiftIcon}
-                title="No rewards yet"
-                className="rounded-none border-0 shadow-none"
-              />
+              <AdminEmptyState icon={GiftIcon} title="No rewards yet" />
             }
             mobileCard={(reward) => {
               const loyaltyCard = first(reward.loyalty_cards)
@@ -181,20 +180,20 @@ export function CustomerRewardsPanel({
             ]}
           />
           {result.meta.total > 0 ? (
-            <div className="p-5 pt-0">
+            <AdminPanelFooter className="pt-0">
               <AdminLookupPagination
                 label="Reward pages"
                 unit="reward events"
                 meta={result.meta}
                 hrefForPage={hrefForPage}
               />
-            </div>
+            </AdminPanelFooter>
           ) : null}
         </>
       ) : (
-        <div className="p-5 pt-0">
+        <AdminPanelFooter className="pt-0">
           <AdminLookupErrorState title="Reward readback unavailable" />
-        </div>
+        </AdminPanelFooter>
       )}
     </AdminPanel>
   )

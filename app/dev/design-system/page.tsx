@@ -180,6 +180,19 @@ const CONSOLE_ROWS: ConsoleRow[] = [
   },
 ]
 
+/** In-page index for the nine catalogue sections (ids match each Section). */
+const CATALOGUE_SECTIONS = [
+  { id: "tokens", label: "Tokens" },
+  { id: "typography", label: "Typography" },
+  { id: "surfaces", label: "Surfaces" },
+  { id: "forms-feedback", label: "Forms" },
+  { id: "iconography", label: "Icons" },
+  { id: "motion", label: "Motion" },
+  { id: "loyalty", label: "Loyalty" },
+  { id: "console-viz", label: "Console viz" },
+  { id: "console-data", label: "Console data" },
+] as const
+
 export default function DesignSystemPage() {
   return (
     <div className="mx-auto grid w-full max-w-6xl gap-12 px-6 py-10">
@@ -194,6 +207,25 @@ export default function DesignSystemPage() {
           </div>
         }
       />
+
+      {/* Nine sections already carried ids and scroll-mt, but nothing on the
+          page linked to them (count of in-page anchors before this: zero), so
+          finding the button sizes in ~15,000px of catalogue meant
+          scroll-hunting. The anchors existed only for external deep links. */}
+      <nav
+        aria-label="Catalogue sections"
+        className="surface-card-flat sticky top-2 z-20 flex flex-wrap gap-2 p-3"
+      >
+        {CATALOGUE_SECTIONS.map((section) => (
+          <a
+            key={section.id}
+            href={`#${section.id}`}
+            className="focus-ring tap-floor mono-meta inline-flex h-9 shrink-0 items-center rounded-full border-2 border-ink bg-card px-3.5 tracking-[0.04em] whitespace-nowrap text-ink-soft hover:bg-secondary"
+          >
+            {section.label}
+          </a>
+        ))}
+      </nav>
 
       <Section
         id="tokens"
@@ -890,8 +922,14 @@ export default function DesignSystemPage() {
       >
         <div className="surface-card-flat grid gap-3 p-5">
           <Eyebrow>Responsive DataTable · admin xl cards</Eyebrow>
+          {/* The caption said "admin xl cards" while the demo passed no
+              cardBreakpoint at all, so the one live reference for the admin
+              table pattern demonstrated the `sm` default — a developer copying
+              from the catalogue shipped the wrong breakpoint. */}
           <DataTable
             caption="Demo console membership readback"
+            cardBreakpoint="xl"
+            mobilePageSize={10}
             rows={CONSOLE_ROWS}
             getRowKey={(row) => row.id}
             emptyState={
