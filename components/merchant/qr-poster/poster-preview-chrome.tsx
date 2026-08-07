@@ -199,7 +199,7 @@ export function PosterActionBar({ ref, template }: PosterActionBarProps) {
   return (
     <footer
       ref={ref}
-      className="qr-poster-action-bar border-t-2 border-ink bg-paper/95 backdrop-blur-sm lg:hidden"
+      className="qr-poster-action-bar border-t-2 border-ink bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-sm lg:hidden"
     >
       <div className="mx-auto grid w-full max-w-[var(--poster-frame-max)] gap-2 px-4 py-2.5 sm:grid-cols-[1fr_auto] sm:items-center sm:gap-4 sm:px-6 sm:py-3">
         <p className="mono-id tracking-[0.1em] text-muted-foreground">
