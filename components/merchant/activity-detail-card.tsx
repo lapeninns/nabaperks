@@ -25,7 +25,11 @@ export function ActivityDetailCard({ row }: ActivityDetailCardProps) {
           activityDotClass(row.category)
         )}
       />
-      <article className="group/activity surface-card border-ink px-4 py-3 transition-[border-color,box-shadow,transform] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none hover:-translate-y-0.5">
+      {/* No hover lift: the card itself is inert (only the optional action
+          inside it navigates), and the lift is the system's strongest
+          "this is pressable" signal — 03#51. `.surface-card` already supplies
+          the 2px ink border, so `border-ink` was restating it. */}
+      <article className="surface-card px-4 py-3">
         <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-start">
           <div className="min-w-0">
             <p className="text-sm leading-6 font-extrabold text-foreground">
@@ -56,7 +60,7 @@ export function ActivityDetailCard({ row }: ActivityDetailCardProps) {
               asChild
               variant="secondary"
               size="sm"
-              className="min-h-11 justify-self-start sm:min-h-9 sm:justify-self-end"
+              className="justify-self-start sm:justify-self-end"
             >
               <Link href={row.primaryAction.href}>
                 {row.primaryAction.label}

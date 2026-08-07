@@ -19,6 +19,14 @@ import {
 // and must never be statically cached.
 export const dynamic = "force-dynamic"
 
+/**
+ * Hard ceiling on the grown window. `parseActivityLimit` clamps to it, so a
+ * "Load more" press at the ceiling used to re-render the same rows and read as
+ * a bug — the feed now names the wall instead of offering the control (03#52).
+ */
+const ACTIVITY_LIMIT_CEILING = 250
+const ACTIVITY_LIMIT_DEFAULT = 25
+
 type MerchantActivitySearchParams = {
   filter?: string | string[]
   q?: string | string[]
@@ -93,6 +101,8 @@ async function ActivityFeedStream({
       rows={activity.rows}
       limit={activity.limit}
       hasMore={activity.hasMore}
+      atCeiling={activity.limit >= ACTIVITY_LIMIT_CEILING}
+      ceiling={ACTIVITY_LIMIT_CEILING}
       initialFilter={filter}
       initialQuery={searchQuery}
       emptyState={
@@ -119,11 +129,11 @@ function firstParam(value: string | string[] | undefined) {
 }
 
 function parseActivityLimit(value: string | undefined) {
-  if (!value) return 25
+  if (!value) return ACTIVITY_LIMIT_DEFAULT
 
   const parsed = Number(value)
-  if (!Number.isFinite(parsed)) return 25
-  return Math.min(Math.max(Math.floor(parsed), 1), 250)
+  if (!Number.isFinite(parsed)) return ACTIVITY_LIMIT_DEFAULT
+  return Math.min(Math.max(Math.floor(parsed), 1), ACTIVITY_LIMIT_CEILING)
 }
 
 function normalizeActivityFilter(

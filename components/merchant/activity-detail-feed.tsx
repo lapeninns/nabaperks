@@ -4,7 +4,7 @@ import Link, { useLinkStatus } from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 
-import { Search01Icon } from "@hugeicons/core-free-icons"
+import { ArrowUp01Icon, Search01Icon } from "@hugeicons/core-free-icons"
 
 import { EmptyState, FilterPills, Icon } from "@/components/brand"
 import { StatStrip } from "@/components/data"
@@ -36,6 +36,8 @@ export function ActivityDetailFeed({
   rows,
   limit,
   hasMore,
+  atCeiling = false,
+  ceiling,
   initialFilter = "all",
   initialQuery = "",
   emptyState,
@@ -44,6 +46,10 @@ export function ActivityDetailFeed({
   rows: ActivityDisplayRow[]
   limit: number
   hasMore: boolean
+  /** True once the grown window has hit the page's hard row ceiling. */
+  atCeiling?: boolean
+  /** The ceiling itself, so the footer can name the wall rather than imply it. */
+  ceiling?: number
   initialFilter?: "all" | ActivityCategory
   initialQuery?: string
   emptyState: ReactNode
@@ -208,26 +214,35 @@ export function ActivityDetailFeed({
         {/* Count the rendered rows (threaded), not raw product_events, so the
             number matches the cards on screen. `hasMore` (the server's +1
             sentinel) drives the affordance instead of a now-removed exact
-            total. */}
+            total. At the ceiling the wall is named: the URL limit is clamped
+            server-side, so another "Load more" would have re-rendered the same
+            rows and read as a bug (03#52). */}
         <p className="text-xs text-muted-foreground">
           {rows.length} {rows.length === 1 ? "event" : "events"} loaded
-          {hasMore ? ", more available" : ""}.
+          {hasMore && !atCeiling ? ", more available" : ""}.
+          {hasMore && atCeiling ? (
+            <>
+              {" "}
+              This page shows the most recent {ceiling ?? rows.length}. Search
+              or filter to reach older activity.
+            </>
+          ) : null}
         </p>
-        {hasMore ? (
-          <Button
-            asChild
-            variant="secondary"
-            size="sm"
-            className="min-h-11 sm:min-h-9"
-          >
-            {/* The feed's Suspense boundary is keyed on filter only, so this
-                navigation extends the list in place — the label is the only
-                loading signal, hence the useLinkStatus pending swap. */}
-            <Link href={loadMoreHref({ filter, limit, query })}>
-              <LoadMoreLabel />
-            </Link>
-          </Button>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* A grown window is thousands of pixels tall, and every load leaves
+              the merchant at the bottom of it (03#52). */}
+          {rows.length > 25 ? <BackToTopLink /> : null}
+          {hasMore && !atCeiling ? (
+            <Button asChild variant="secondary" size="sm">
+              {/* The feed's Suspense boundary is keyed on filter only, so this
+                  navigation extends the list in place — the label is the only
+                  loading signal, hence the useLinkStatus pending swap. */}
+              <Link href={loadMoreHref({ filter, limit, query })}>
+                <LoadMoreLabel />
+              </Link>
+            </Button>
+          ) : null}
+        </div>
       </footer>
     </div>
   )
@@ -265,6 +280,22 @@ export function ActivityDetailFeed({
       scroll: false,
     })
   }
+}
+
+/**
+ * Returns the merchant to the top of the console column after a grown window.
+ * `#main` is the shell's `SidebarInset`, which already carries `tabIndex={-1}`,
+ * so this moves the keyboard caret as well as the scroll position.
+ */
+function BackToTopLink() {
+  return (
+    <Button asChild variant="ghost" size="sm">
+      <a href="#main">
+        <Icon icon={ArrowUp01Icon} size={16} />
+        Back to top
+      </a>
+    </Button>
+  )
 }
 
 /** Pending feedback for the in-place "Load more" navigation. */

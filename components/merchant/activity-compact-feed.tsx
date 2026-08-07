@@ -45,12 +45,7 @@ export function ActivityCompactFeed({
             <p className="text-sm leading-6 font-bold">{row.headline}</p>
           </div>
           {row.primaryAction ? (
-            <Button
-              asChild
-              variant="secondary"
-              size="sm"
-              className="min-h-11 sm:min-h-9"
-            >
+            <Button asChild variant="secondary" size="sm">
               <Link href={row.primaryAction.href}>
                 {row.primaryAction.label}
               </Link>

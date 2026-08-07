@@ -141,15 +141,20 @@ async function RewardScanStream({
       )}
 
       {/* Post-collection the natural next task at a busy counter is the NEXT
-          member — lead with "Scan another" once this reward is closed. */}
-      {isRedeemed ? (
-        <Button asChild>
-          <Link href="/app/scan">Scan another reward</Link>
+          member — lead with "Scan another" once this reward is closed. The row
+          is a flex wrap, not a grid child: as direct children of the shell's
+          `grid gap-4` section both buttons stretched full width and stacked,
+          reading as two equal-weight choices (03#65). */}
+      <div className="flex flex-wrap gap-2">
+        {isRedeemed ? (
+          <Button asChild>
+            <Link href="/app/scan">Scan another reward</Link>
+          </Button>
+        ) : null}
+        <Button asChild variant="secondary">
+          <Link href="/app">Back to dashboard</Link>
         </Button>
-      ) : null}
-      <Button asChild variant="secondary">
-        <Link href="/app">Back to dashboard</Link>
-      </Button>
+      </div>
     </>
   )
 }

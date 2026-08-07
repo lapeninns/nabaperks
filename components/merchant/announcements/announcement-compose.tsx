@@ -64,8 +64,7 @@ export type AnnouncementSubmitFailure = {
 }
 
 export type AnnouncementSubmitResult =
-  | AnnouncementSubmitSuccess
-  | AnnouncementSubmitFailure
+  AnnouncementSubmitSuccess | AnnouncementSubmitFailure
 
 export type AnnouncementSubmit = (
   input: AnnouncementSubmitInput
@@ -108,6 +107,19 @@ export function AnnouncementCompose({
     trimmedTitle.length > 0 &&
     trimmedBody.length > 0 &&
     !pending
+  // A disabled primary action with no stated cause is a dead end — two of the
+  // five blocking conditions already had banners, the other three were silent
+  // and a screen reader announced only "Send announcement, dimmed" (03#56).
+  const blockedReason = !hasEligibleAudience
+    ? "No members can receive announcements yet."
+    : dailyLimitReached
+      ? "You have sent today's announcements."
+      : trimmedTitle.length === 0
+        ? "Add a title to send this."
+        : trimmedBody.length === 0
+          ? "Add a message to send this."
+          : null
+  const blockedReasonId = `${fieldId}-send-blocked`
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -144,7 +156,11 @@ export function AnnouncementCompose({
     <form
       onSubmit={handleSubmit}
       className={cn(
-        "surface-card grid min-w-0 gap-5 rounded-lg border-2 border-ink bg-card p-4 shadow-xs sm:p-5",
+        // `.surface-card` already carries the 2px ink border, the 10px radius,
+        // the card ground and the 4px hard shadow. Restating three of them and
+        // overriding the elevation to `shadow-xs` put the composer at a
+        // different elevation from every other console card (03#54).
+        "surface-card grid min-w-0 gap-5 p-4 sm:p-5",
         className
       )}
     >
@@ -209,12 +225,12 @@ export function AnnouncementCompose({
       <div className="grid gap-2">
         <div className="flex items-center justify-between gap-3">
           <Label htmlFor={`${fieldId}-title`}>Announcement title</Label>
-          <span
+          <CharacterCounter
             id={`${fieldId}-title-count`}
-            className="numeric-tabular text-xs font-semibold text-muted-foreground"
-          >
-            {title.length}/{TITLE_LIMIT}
-          </span>
+            noun="Title"
+            length={title.length}
+            limit={TITLE_LIMIT}
+          />
         </div>
         <Input
           id={`${fieldId}-title`}
@@ -231,12 +247,12 @@ export function AnnouncementCompose({
       <div className="grid gap-2">
         <div className="flex items-center justify-between gap-3">
           <Label htmlFor={`${fieldId}-body`}>Announcement body</Label>
-          <span
+          <CharacterCounter
             id={`${fieldId}-body-count`}
-            className="numeric-tabular text-xs font-semibold text-muted-foreground"
-          >
-            {body.length}/{BODY_LIMIT}
-          </span>
+            noun="Message"
+            length={body.length}
+            limit={BODY_LIMIT}
+          />
         </div>
         <Textarea
           id={`${fieldId}-body`}
@@ -251,9 +267,22 @@ export function AnnouncementCompose({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="max-w-md text-xs leading-5 text-muted-foreground">
-          Sent only to members with push updates enabled for this venue.
-        </p>
+        <div className="grid max-w-md gap-1">
+          <p className="text-xs leading-5 text-muted-foreground">
+            Sent only to members with push updates enabled for this venue.
+          </p>
+          {/* The visible half of the disabled button's reason, named by
+              aria-describedby below so it is announced with the control
+              instead of only on focus (03#56). */}
+          {blockedReason && !pending ? (
+            <p
+              id={blockedReasonId}
+              className="text-xs leading-5 font-bold text-foreground"
+            >
+              {blockedReason}
+            </p>
+          ) : null}
+        </div>
         {/* Muted secondary while unsendable: a half-opacity vermillion reads
             as an off-palette pink button rather than a disabled state. Real
             ellipsis on the pending label (console-wide convention). */}
@@ -261,6 +290,9 @@ export function AnnouncementCompose({
           type="submit"
           variant={canSubmit || pending ? "default" : "secondary"}
           disabled={!canSubmit}
+          aria-describedby={
+            blockedReason && !pending ? blockedReasonId : undefined
+          }
           className="w-full sm:w-auto"
         >
           <Icon icon={Megaphone01Icon} size={16} />
@@ -268,6 +300,58 @@ export function AnnouncementCompose({
         </Button>
       </div>
     </form>
+  )
+}
+
+/**
+ * The character counter for a limited field (03#55).
+ *
+ * Two deliberate choices. The visible count turns `text-destructive` inside the
+ * last 10% so the ceiling is seen before it is hit, rather than staying muted
+ * until typing silently stops. And the announcement is NOT on the count itself
+ * — a polite live region on a per-keystroke number is unusable — but on a
+ * separate sr-only line that only changes when the field crosses into the last
+ * 10% and again when it fills, so assistive tech hears the threshold, not the
+ * typing.
+ *
+ * `maxLength` stays on both controls: it is pinned by
+ * `tests/contracts/merchant-venue-announcements-ui`, which is authoritative
+ * over the audit's "replace the hard limit with soft validation".
+ */
+function CharacterCounter({
+  id,
+  noun,
+  length,
+  limit,
+}: {
+  readonly id: string
+  readonly noun: string
+  readonly length: number
+  readonly limit: number
+}) {
+  const remaining = limit - length
+  const isNearLimit = remaining <= Math.ceil(limit * 0.1)
+  const isFull = remaining <= 0
+
+  return (
+    <>
+      <span
+        id={id}
+        className={cn(
+          "numeric-tabular text-xs font-semibold",
+          isNearLimit ? "text-destructive" : "text-muted-foreground"
+        )}
+      >
+        {length}/{limit}
+      </span>
+      <span aria-live="polite" className="sr-only">
+        {isFull
+          ? `${noun} is full at ${limit} characters. Trim it to add more.`
+          : isNearLimit
+            ? `${remaining} characters left in the ${noun.toLowerCase()}.`
+            : ""}
+      </span>
+    </>
   )
 }
 
