@@ -149,7 +149,7 @@ export function OfferRulesSummary({
     <section className="grid gap-4" aria-label="Offer rules">
       {rules}
 
-      <div className="grid gap-2 rounded-lg border-[1.5px] border-border bg-secondary/40 p-3 sm:p-4">
+      <div className="grid gap-2 rounded-lg border-2 border-border bg-secondary/40 p-3 sm:p-4">
         <Eyebrow>Terms shown to customers</Eyebrow>
         {terms}
       </div>

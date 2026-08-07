@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 
 const INITIAL_STATE: CancellationInterviewActionState = { status: "idle" }
 const SELECT_CLASSES =
-  "focus-ring min-h-11 w-full rounded-2xl border border-input bg-secondary/60 px-4 text-sm outline-none"
+  "focus-ring min-h-11 w-full rounded-lg border border-input bg-secondary/60 px-4 text-sm outline-none"
 
 export function CancellationInterviewForm() {
   const [state, action, pending] = useActionState(

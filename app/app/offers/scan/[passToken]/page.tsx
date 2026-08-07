@@ -111,7 +111,7 @@ async function PassScanStream({
       <PassFace context={context} />
 
       <h2 className="sr-only">Member and card details</h2>
-      <dl className="grid gap-2 rounded-xl border-2 border-ink bg-card p-4 text-sm">
+      <dl className="grid gap-2 rounded-lg border-2 border-ink bg-card p-4 text-sm">
         <div className="flex justify-between gap-4">
           <dt className="font-bold text-muted-foreground">Member</dt>
           <dd className="text-right font-bold">{context.customerLabel}</dd>

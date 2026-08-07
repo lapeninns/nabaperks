@@ -149,7 +149,7 @@ function OffersEmptyState() {
           {OFFER_BENEFIT_PRESETS.map((preset) => (
             <li
               key={preset.kind}
-              className="grid content-start gap-1.5 rounded-lg border-[1.5px] border-border bg-card p-4"
+              className="grid content-start gap-1.5 rounded-lg border-2 border-border bg-card p-4"
             >
               <span className="text-sm font-semibold text-foreground">
                 {preset.title}
@@ -199,7 +199,7 @@ function OfferHistory({
         {campaigns.map((campaign) => (
           <li
             key={campaign.id}
-            className="grid gap-2 rounded-lg border-[1.5px] border-border bg-card p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+            className="grid gap-2 rounded-lg border-2 border-border bg-card p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
           >
             <div className="grid gap-1">
               <span className="text-sm font-semibold text-foreground">

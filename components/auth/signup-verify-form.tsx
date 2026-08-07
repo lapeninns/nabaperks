@@ -121,7 +121,7 @@ export function SignupVerifyForm({
 
   return (
     <div className="grid gap-4">
-      <div className="rounded-xl border-2 border-dashed border-border bg-secondary/55 px-3 py-2">
+      <div className="rounded-lg border-2 border-dashed border-border bg-secondary/55 px-3 py-2">
         <Eyebrow>Email address</Eyebrow>
         <p className="text-sm leading-6 font-extrabold break-words">
           {currentEmail}

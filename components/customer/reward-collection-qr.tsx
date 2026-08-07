@@ -111,7 +111,7 @@ export function RewardCollectionQr({
           </div>
         </QrFrame>
       )}
-      <p className="rounded-xl bg-secondary px-3 py-2 text-center text-sm font-bold text-foreground">
+      <p className="rounded-lg bg-secondary px-3 py-2 text-center text-sm font-bold text-foreground">
         Merchant scans this QR from their device
       </p>
     </div>

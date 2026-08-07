@@ -103,7 +103,7 @@ const COLOR_TOKENS: { name: string; className: string; ink?: boolean }[] = [
   { name: "destructive", className: "bg-destructive" },
 ]
 
-const RADIUS_TOKENS = ["rounded-md", "rounded-lg", "rounded-xl", "rounded-full"]
+const RADIUS_TOKENS = ["rounded-md", "rounded-lg", "rounded-lg", "rounded-full"]
 
 const SHADOW_TOKENS = [
   { name: "shadow-xs", className: "shadow-xs" },

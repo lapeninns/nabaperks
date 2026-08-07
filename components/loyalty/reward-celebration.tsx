@@ -35,7 +35,7 @@ export function RewardCelebration({
       // a polite live region, so it reads out even when a host surface forgets
       // its own announcement.
       role="status"
-      className="relative grid justify-items-center gap-3 overflow-hidden rounded-2xl border-2 border-ink bg-reward/12 px-5 py-6 text-center"
+      className="relative grid justify-items-center gap-3 overflow-hidden rounded-lg border-2 border-ink bg-reward/12 px-5 py-6 text-center"
     >
       <span aria-hidden="true" className="pointer-events-none absolute inset-0">
         {CONFETTI.map((dot, index) => (

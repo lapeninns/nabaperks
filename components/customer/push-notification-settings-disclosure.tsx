@@ -46,7 +46,7 @@ export function PushNotificationSettingsDisclosure() {
 function PushSettingsFallback() {
   return (
     <div className="grid gap-3" aria-hidden="true">
-      <div className="h-16 rounded-xl border-2 border-ink bg-secondary/60" />
+      <div className="h-16 rounded-lg border-2 border-ink bg-secondary/60" />
       <div className="h-9 w-32 rounded-lg border-2 border-ink bg-muted" />
       <div className="grid gap-2">
         <div className="h-10 rounded-lg bg-muted" />

@@ -591,7 +591,7 @@ function RewardRow({
   return (
     <div
       data-active={item.isActive}
-      className="grid grid-cols-[auto_1fr_auto] items-start gap-x-2.5 gap-y-0 rounded-lg border-[1.5px] p-2.5 transition-[border-color,background-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] data-[active=false]:border-border data-[active=false]:bg-background data-[active=true]:border-transparent data-[active=true]:bg-secondary motion-reduce:transition-none"
+      className="grid grid-cols-[auto_1fr_auto] items-start gap-x-2.5 gap-y-0 rounded-lg border-2 p-2.5 transition-[border-color,background-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] data-[active=false]:border-border data-[active=false]:bg-background data-[active=true]:border-transparent data-[active=true]:bg-secondary motion-reduce:transition-none"
     >
       <span
         aria-hidden="true"
@@ -710,7 +710,7 @@ function RewardActiveToggle({
       // coarse pointers (the FilterPills / Button compact-size idiom) — this
       // switch is THE control that activates rewards toward the launch gate.
       className={cn(
-        "w-tag pressable focus-ring inline-flex shrink-0 items-center justify-center rounded-2xl border transition-[color,background-color,border-color,opacity] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11",
+        "w-tag pressable focus-ring inline-flex shrink-0 items-center justify-center rounded-lg border transition-[color,background-color,border-color,opacity] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11",
         compact ? "h-5 px-2" : "h-6 px-2.5 py-0.5",
         optimisticActive
           ? "border-ink bg-reward text-reward-foreground"

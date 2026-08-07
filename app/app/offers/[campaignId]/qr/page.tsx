@@ -93,7 +93,7 @@ export default async function OfferCampaignQrPage({
             ) : null}
           </div>
 
-          <div className="rounded-2xl border-2 border-ink bg-white p-4 shadow-[8px_8px_0_var(--w-shadow-color)] sm:p-6">
+          <div className="rounded-lg border-2 border-ink bg-white p-4 shadow-[8px_8px_0_var(--w-shadow-color)] sm:p-6">
             {/* eslint-disable-next-line @next/next/no-img-element -- merchant-scoped, no-store QR bytes */}
             <img
               src={`${qrPath}.png`}

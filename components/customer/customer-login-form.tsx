@@ -93,7 +93,7 @@ export function CustomerLoginForm({ next }: CustomerLoginFormProps) {
           <div
             role="status"
             aria-live="polite"
-            className="grid gap-1 rounded-xl border border-reward/30 bg-accent px-3 py-2 text-sm text-accent-foreground"
+            className="grid gap-1 rounded-lg border border-reward/30 bg-accent px-3 py-2 text-sm text-accent-foreground"
           >
             <p>{state.message}</p>
             <p className="text-xs leading-5">

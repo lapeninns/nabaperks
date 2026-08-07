@@ -64,13 +64,16 @@
   --font-heading: var(--font-bricolage-grotesque);
   --font-mono: var(--font-space-mono);
 
+  /* Three shapes, not seven. DESIGN.md's contract is sm (chips/tags), lg (every
+     surface) and full (the stamp family only). The xl/2xl/3xl/4xl rungs existed
+     only because stock shadcn shipped them, and they had drifted onto 29 real
+     surfaces while the unlayered Wet Ink layer silently overrode them on
+     another 5 — two radii for one card, decided by whether a slot happened to
+     be themed. Removed so `rounded-xl` cannot compile and the drift cannot
+     recur. */
   --radius-sm: calc(var(--radius) - 6px);
   --radius-md: calc(var(--radius) - 4px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
 
   /* Wet Ink elevation — hard offset shadows, never blurred. */
   --shadow-2xs: 1px 1px 0 var(--w-shadow-color);

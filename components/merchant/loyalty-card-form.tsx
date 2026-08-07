@@ -147,7 +147,7 @@ export function LoyaltyCardForm({
                       updateStampsRequired(String(preset.stampsRequired))
                     }
                     className={cn(
-                      "focus-ring grid min-h-16 min-w-0 gap-1 rounded-lg border-[1.5px] px-3 py-2.5 text-left transition-[background-color,border-color,color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none",
+                      "focus-ring grid min-h-16 min-w-0 gap-1 rounded-lg border-2 px-3 py-2.5 text-left transition-[background-color,border-color,color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none",
                       selected
                         ? "border-ink bg-ink text-paper shadow-sm"
                         : "border-border bg-secondary text-foreground hover:border-ink"

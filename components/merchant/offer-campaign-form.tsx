@@ -239,7 +239,7 @@ function BenefitStep({
             <label
               key={preset.kind}
               className={cn(
-                "focus-ring-within flex cursor-pointer items-start gap-3 rounded-lg border-[1.5px] border-border bg-card p-3 transition-[border-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] has-checked:border-ink motion-reduce:transition-none",
+                "focus-ring-within flex cursor-pointer items-start gap-3 rounded-lg border-2 border-border bg-card p-3 transition-[border-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] has-checked:border-ink motion-reduce:transition-none",
                 unavailable && "cursor-not-allowed opacity-60"
               )}
             >
@@ -379,7 +379,7 @@ function RulesStep({
         />
       </div>
 
-      <label className="focus-ring-within flex cursor-pointer items-start gap-3 rounded-lg border-[1.5px] border-border bg-card p-3 transition-[border-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] has-checked:border-ink motion-reduce:transition-none">
+      <label className="focus-ring-within flex cursor-pointer items-start gap-3 rounded-lg border-2 border-border bg-card p-3 transition-[border-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] has-checked:border-ink motion-reduce:transition-none">
         <input
           type="checkbox"
           name="requiresIdCheck"
@@ -408,7 +408,7 @@ function RulesStep({
         error={errors?.extraTerms}
       />
 
-      <div className="grid gap-1.5 rounded-lg border-[1.5px] border-dashed border-border bg-secondary/40 p-3">
+      <div className="grid gap-1.5 rounded-lg border-2 border-dashed border-border bg-secondary/40 p-3">
         <span className="flex items-center gap-2">
           <Icon icon={LockKeyIcon} size={14} strokeWidth={2.25} />
           <Eyebrow>Always included</Eyebrow>
@@ -578,7 +578,7 @@ function StepTrack({ current }: { current: OfferCreatorStep }) {
           <span
             aria-current={index === currentIndex ? "step" : undefined}
             className={cn(
-              "mono-meta rounded-full border-[1.5px] px-2.5 py-1",
+              "mono-meta rounded-full border-2 px-2.5 py-1",
               index === currentIndex
                 ? "border-ink bg-ink text-paper"
                 : index < currentIndex

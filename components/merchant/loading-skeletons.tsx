@@ -378,7 +378,7 @@ export function LaunchPanelSkeleton({
             {[0, 1, 2].map((row) => (
               <div
                 key={row}
-                className="grid grid-cols-[auto_1fr_auto] items-start gap-2.5 rounded-lg border-[1.5px] border-border p-2.5"
+                className="grid grid-cols-[auto_1fr_auto] items-start gap-2.5 rounded-lg border-2 border-border p-2.5"
               >
                 <Skeleton className="size-8 rounded-full" />
                 <div className="grid gap-1.5">
@@ -534,7 +534,7 @@ export function RewardScanContentSkeleton() {
         </div>
       </div>
 
-      <div className="grid gap-2 rounded-xl border-2 border-ink bg-card p-4">
+      <div className="grid gap-2 rounded-lg border-2 border-ink bg-card p-4">
         {[0, 1].map((line) => (
           <div key={line} className="flex items-center justify-between gap-4">
             <Skeleton className="h-4 w-20" />
@@ -645,7 +645,7 @@ export function OfferPassScanContentSkeleton() {
         <div aria-hidden="true" className="receipt-edge" />
       </div>
 
-      <div className="grid gap-2 rounded-xl border-2 border-ink bg-card p-4">
+      <div className="grid gap-2 rounded-lg border-2 border-ink bg-card p-4">
         {[0, 1].map((line) => (
           <div key={line} className="flex items-center justify-between gap-4">
             <Skeleton className="h-4 w-20" />

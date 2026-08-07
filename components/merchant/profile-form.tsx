@@ -124,7 +124,7 @@ export function MerchantProfileForm({
       {state.errors?.form ? (
         <p
           role="alert"
-          className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
         >
           {state.errors.form}
         </p>
@@ -133,7 +133,7 @@ export function MerchantProfileForm({
         <p
           role="status"
           aria-live="polite"
-          className="rounded-xl border border-reward/30 bg-accent px-3 py-2 text-sm text-accent-foreground"
+          className="rounded-lg border border-reward/30 bg-accent px-3 py-2 text-sm text-accent-foreground"
         >
           {state.message}
         </p>

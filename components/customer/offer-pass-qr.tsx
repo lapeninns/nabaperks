@@ -99,7 +99,7 @@ export function OfferPassQr({
           />
         </div>
       </QrFrame>
-      <p className="rounded-xl bg-secondary px-3 py-2 text-center text-sm font-bold text-foreground">
+      <p className="rounded-lg bg-secondary px-3 py-2 text-center text-sm font-bold text-foreground">
         A team member scans this before they apply the discount
       </p>
       {/* Each code is single-use and lasts ten minutes, but the pass itself has

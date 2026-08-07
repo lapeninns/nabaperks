@@ -341,7 +341,7 @@ function DeskSurface() {
               {OFFER_BENEFIT_PRESETS.map((preset) => (
                 <li
                   key={preset.kind}
-                  className="grid content-start gap-1.5 rounded-lg border-[1.5px] border-border bg-card p-4"
+                  className="grid content-start gap-1.5 rounded-lg border-2 border-border bg-card p-4"
                 >
                   <span className="text-sm font-semibold text-foreground">
                     {preset.title}
@@ -691,7 +691,7 @@ function CustomerSurface() {
             requiresIdCheck={false}
             state="active"
           >
-            <p className="rounded-xl bg-secondary px-3 py-2 text-center text-sm font-bold text-foreground">
+            <p className="rounded-lg bg-secondary px-3 py-2 text-center text-sm font-bold text-foreground">
               A team member scans this before they apply the discount
             </p>
           </OfferPass>
@@ -915,7 +915,7 @@ function StaffScanScreen({
         </p>
       </ReceiptCard>
 
-      <dl className="grid gap-2 rounded-xl border-2 border-ink bg-card p-4 text-sm">
+      <dl className="grid gap-2 rounded-lg border-2 border-ink bg-card p-4 text-sm">
         <div className="flex justify-between gap-4">
           <dt className="font-bold text-muted-foreground">Member</dt>
           {/* Merchant surfaces show a masked identifier and never a number. */}

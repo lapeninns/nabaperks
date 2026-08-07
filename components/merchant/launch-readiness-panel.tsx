@@ -448,7 +448,7 @@ function LaunchStepRail({
                 }
                 aria-label={`${step.label}, ${stateLabel}`}
                 className={cn(
-                  "pressable focus-ring flex min-h-11 w-full min-w-0 flex-col items-center rounded-xl border-2 transition-[border-color,background-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none",
+                  "pressable focus-ring flex min-h-11 w-full min-w-0 flex-col items-center rounded-lg border-2 transition-[border-color,background-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none",
                   compact
                     ? "gap-0.5 px-0.5 py-1 min-[360px]:gap-1 min-[360px]:px-1 min-[360px]:py-1.5"
                     : "gap-1 px-1 py-1.5",
