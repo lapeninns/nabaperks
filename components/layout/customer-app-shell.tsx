@@ -18,8 +18,12 @@ export function CustomerAppShell({
       <SkipLink />
       <header className="sticky top-0 z-40 border-b-2 border-ink bg-card">
         {/* One customer column: the shared 410px token (CUS-P2-12/16). */}
-        <div className="mx-auto flex w-full max-w-customer items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <Logo href="/home" />
+        {/* py-2, not py-3: the row height is already set by the 44px tap floor on
+            both children, so the extra 4px each side was pure chrome on every
+            authed screen. Compact logo below sm reclaims width for the action.
+            (02#2, partial) */}
+        <div className="mx-auto flex w-full max-w-customer items-center justify-between gap-4 px-4 py-2 sm:px-6">
+          <Logo href="/home" wordmarkClassName="hidden min-[380px]:inline" />
           <form action={signOutAction}>
             {/* Default size keeps the header action on the 44px tap contract
                 (CUS-P2-14). */}
