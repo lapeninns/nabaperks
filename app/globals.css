@@ -318,6 +318,21 @@ body[data-grain="true"]::after {
     transition-duration: 0s;
   }
 
+  /* The 44px tap floor, as one utility. Button's size variants already carry
+     this via `[@media(pointer:coarse)]:min-h-11`; anything interactive that is
+     NOT a Button (asChild badges, hand-rolled pills, interactive table cells)
+     should use `.tap-floor` rather than re-deriving the media query. */
+  .tap-floor {
+    touch-action: manipulation;
+  }
+
+  @media (pointer: coarse) {
+    .tap-floor {
+      min-height: 2.75rem;
+      min-width: 2.75rem;
+    }
+  }
+
   .surface-card {
     border: 2px solid var(--w-ink);
     border-radius: var(--radius-lg);

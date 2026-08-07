@@ -35,7 +35,7 @@ export function FilterPills({
       role="group"
       aria-label={ariaLabel}
       className={cn(
-        "flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+        "flex [scrollbar-width:none] gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden",
         className
       )}
     >
@@ -53,7 +53,7 @@ export function FilterPills({
               // visual rhythm; on coarse (touch) pointers the hit area grows to
               // the 44px Wet Ink tap-target minimum (DESIGN.md, WCAG 2.5.8)
               // without distorting the desktop pill height.
-              "[@media(pointer:coarse)]:min-h-11",
+              "tap-floor",
               "mono-meta tracking-[0.04em] whitespace-nowrap",
               "transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)]",
               // Focus comes from the shared .focus-ring recipe (globals.css).

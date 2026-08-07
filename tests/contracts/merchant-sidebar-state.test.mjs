@@ -21,7 +21,9 @@ test("Given merchant layout state is preserved When the cookie-backed default ch
   assert.match(sidebar, /const \[internalOpenState, setInternalOpenState\]/)
   assert.match(
     sidebar,
-    /const resetKey =\s*openProp === undefined \? `uncontrolled-\$\{String\(defaultOpen\)\}` : "controlled"/
+    // Whitespace-tolerant (like the internalOpenState assertion below): the
+    // asserted logic is the reset-key derivation, not Prettier's line wrapping.
+    /const resetKey =\s*openProp === undefined\s*\?\s*`uncontrolled-\$\{String\(defaultOpen\)\}`\s*:\s*"controlled"/
   )
   assert.match(
     sidebar,

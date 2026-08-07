@@ -151,7 +151,10 @@ function Sidebar({
           data-mobile="true"
           side={side}
           className={cn(
-            "w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden",
+            // SheetContent's close button is deliberately NOT hidden here: the mobile
+            // nav drawer previously offered no visible dismissal at all (only Escape,
+            // an overlay tap or a swipe), which is undiscoverable on touch.
+            "w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground",
             className
           )}
           {...props}

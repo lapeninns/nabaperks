@@ -116,7 +116,7 @@ function DataTableCore<T>({
     // card only CLIPS to its rounded corners (overflow-hidden), so there are
     // no nested scroll regions / double scrollbars.
     <div className={cn("surface-card overflow-hidden", className)}>
-      <Table className="min-w-full text-sm">
+      <Table label={caption} className="min-w-full text-sm">
         <caption className="sr-only">{caption}</caption>
         <TableHeader className="bg-secondary/60">
           <TableRow className="border-b-2 border-ink hover:bg-transparent">
