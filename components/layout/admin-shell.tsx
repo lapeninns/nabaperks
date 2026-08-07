@@ -1,8 +1,14 @@
 "use client"
 
-import type { ReactNode } from "react"
+import Link from "next/link"
+import type { ComponentProps, ReactNode } from "react"
+import {
+  Logout01Icon,
+  SquareLockPasswordIcon,
+} from "@hugeicons/core-free-icons"
 
-import { Logo, MonoTag } from "@/components/brand"
+import { Icon, Logo, MonoTag } from "@/components/brand"
+import { Button } from "@/components/ui/button"
 import {
   Sidebar,
   SidebarContent,
@@ -13,7 +19,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { CONSOLE_SIDEBAR_STYLE, ConsoleSidebarNav } from "./console-sidebar-nav"
-import { adminNavItems } from "./console-nav"
+import { adminNavGroups } from "./console-nav"
 import { SkipLink } from "./skip-link"
 
 export function AdminShell({
@@ -21,16 +27,23 @@ export function AdminShell({
   operatorEmail,
   mfaRequired = false,
   activePath,
+  signOutAction,
+  defaultSidebarOpen = true,
 }: {
   children: ReactNode
   operatorEmail?: string
   mfaRequired?: boolean
   activePath?: string
+  /** Ends the admin session from inside the console (shared-machine safety). */
+  signOutAction?: ComponentProps<"form">["action"]
+  /** Seeds the desktop expanded/collapsed state from the persisted cookie. */
+  defaultSidebarOpen?: boolean
 }) {
   return (
     <SidebarProvider
       className="min-h-svh bg-background"
       style={CONSOLE_SIDEBAR_STYLE}
+      defaultOpen={defaultSidebarOpen}
     >
       <SkipLink />
       {/* `icon`, not `offcanvas`: offcanvas has no desktop affordance, so a
@@ -56,22 +69,28 @@ export function AdminShell({
         <SidebarContent className="px-2 py-3">
           <ConsoleSidebarNav
             ariaLabel="Admin navigation"
-            items={adminNavItems}
+            groups={adminNavGroups}
             activePath={activePath}
           />
         </SidebarContent>
-        {/* Footer tags truncate at sidebar width; each carries `title` (via a
-            wrapper, MonoTag exposes no title prop) so a long operator email is
-            still readable on hover. */}
+        {/* Identity and session controls, not product copy. Footer tags
+            truncate at sidebar width; each carries `title` (via a wrapper,
+            MonoTag exposes no title prop) so a long operator email is still
+            readable on hover, and both collapse away in icon mode. */}
         <SidebarFooter className="border-t-2 border-ink p-4">
           {operatorEmail ? (
-            <span title={`Operator: ${operatorEmail}`} className="grid min-w-0">
+            <span
+              data-collapse-hide
+              title={`Operator: ${operatorEmail}`}
+              className="grid min-w-0"
+            >
               <MonoTag tone="ink" className="max-w-full truncate">
                 Operator: {operatorEmail}
               </MonoTag>
             </span>
           ) : null}
           <span
+            data-collapse-hide
             title={mfaRequired ? "AAL2 verified" : "Admin verified"}
             className="grid min-w-0"
           >
@@ -79,6 +98,32 @@ export function AdminShell({
               {mfaRequired ? "AAL2 verified" : "Admin verified"}
             </MonoTag>
           </span>
+          <Button
+            asChild
+            variant="ghost"
+            data-collapse-center
+            className="w-full justify-start"
+          >
+            <Link href="/admin/security" prefetch={false}>
+              <Icon icon={SquareLockPasswordIcon} size={16} />
+              <span data-collapse-label>Security</span>
+            </Link>
+          </Button>
+          {/* An operator on a shared machine must be able to end the admin
+              session from inside the console (mirrors the merchant shell). */}
+          {signOutAction ? (
+            <form action={signOutAction}>
+              <Button
+                type="submit"
+                variant="secondary"
+                data-collapse-center
+                className="w-full justify-start"
+              >
+                <Icon icon={Logout01Icon} size={16} />
+                <span data-collapse-label>Log out</span>
+              </Button>
+            </form>
+          ) : null}
         </SidebarFooter>
       </Sidebar>
       <SidebarInset id="main" tabIndex={-1} className="min-w-0">
@@ -90,17 +135,6 @@ export function AdminShell({
             wordmarkClassName="hidden sm:inline"
           />
         </header>
-        {mfaRequired ? (
-          <div
-            role="status"
-            // `text-foreground` on the 12% leaf wash: `--reward-foreground`
-            // is white in light mode (near-black in dark), which is illegible
-            // over a tint of paper in both themes.
-            className="border-b-2 border-ink bg-reward/12 px-4 py-3 text-sm font-semibold text-foreground sm:px-6"
-          >
-            MFA enforcement is enabled for this admin session.
-          </div>
-        ) : null}
         <div className="w-full px-4 py-8 sm:px-6">
           <div className="mx-auto w-full max-w-merchant">{children}</div>
         </div>

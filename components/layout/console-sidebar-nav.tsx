@@ -14,7 +14,11 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { isActiveNavItem, type ShellNavItem } from "./console-nav"
+import {
+  isActiveNavItem,
+  type ShellNavGroup,
+  type ShellNavItem,
+} from "./console-nav"
 
 export const CONSOLE_SIDEBAR_STYLE: CSSProperties &
   Record<"--sidebar-width" | "--sidebar-width-icon", string> = {
@@ -22,32 +26,45 @@ export const CONSOLE_SIDEBAR_STYLE: CSSProperties &
   "--sidebar-width-icon": "4.5rem",
 }
 
-export function ConsoleSidebarNav({
-  items,
-  secondaryItems,
-  secondaryLabel = "Account",
-  activePath,
-  ariaLabel,
-}: {
-  items: readonly ShellNavItem[]
+type ConsoleSidebarNavProps = {
   secondaryItems?: readonly ShellNavItem[]
   secondaryLabel?: string
   activePath?: string
   ariaLabel: string
-}) {
+} & (
+  | { items: readonly ShellNavItem[]; groups?: never }
+  /** Labelled groups instead of one flat list (the admin console). */
+  | { groups: readonly ShellNavGroup[]; items?: never }
+)
+
+export function ConsoleSidebarNav({
+  items,
+  groups,
+  secondaryItems,
+  secondaryLabel = "Account",
+  activePath,
+  ariaLabel,
+}: ConsoleSidebarNavProps) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const currentPath = activePath ?? pathname
   const currentTab = searchParams.get("tab")
   const secondaryNavItems = secondaryItems ?? []
+  const navGroups: readonly ShellNavGroup[] = groups ?? [
+    { label: "", items: items ?? [] },
+  ]
 
   return (
     <nav aria-label={ariaLabel} className="flex min-h-0 flex-1 flex-col gap-2">
-      <ConsoleSidebarGroup
-        items={items}
-        currentPath={currentPath}
-        currentTab={currentTab}
-      />
+      {navGroups.map((group) => (
+        <ConsoleSidebarGroup
+          key={group.label || "primary"}
+          items={group.items}
+          label={group.label || undefined}
+          currentPath={currentPath}
+          currentTab={currentTab}
+        />
+      ))}
       {secondaryNavItems.length > 0 ? (
         <div className="mt-auto">
           <ConsoleSidebarGroup

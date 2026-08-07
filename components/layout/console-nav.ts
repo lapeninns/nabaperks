@@ -122,6 +122,11 @@ export const merchantAccountItems = [
   },
 ] satisfies readonly ShellNavItem[]
 
+export type ShellNavGroup = {
+  label: string
+  items: readonly ShellNavItem[]
+}
+
 export const adminNavItems = [
   // The console hub itself — without this entry the overview shows no active
   // item and is unreachable from the sidebar (isActiveNavItem already
@@ -138,3 +143,42 @@ export const adminNavItems = [
   { href: "/admin/audit", label: "Audit", icon: SecurityCheckIcon },
   { href: "/admin/security", label: "Security", icon: SquareLockPasswordIcon },
 ] satisfies readonly ShellNavItem[]
+
+/**
+ * The same eleven routes, grouped by the job they serve. A flat list makes
+ * scanning positional rather than semantic; the three groups are the three
+ * reasons an operator opens the console. Source of truth stays
+ * `adminNavItems` — these are lookups into it, so a route cannot be listed
+ * twice or silently dropped from the sidebar.
+ */
+function adminNavItem(href: string): ShellNavItem {
+  const item = adminNavItems.find((candidate) => candidate.href === href)
+  if (!item) throw new Error(`Unknown admin nav route: ${href}`)
+  return item
+}
+
+export const adminNavGroups = [
+  {
+    label: "Support",
+    items: [
+      adminNavItem("/admin"),
+      adminNavItem("/admin/merchants"),
+      adminNavItem("/admin/customers"),
+      adminNavItem("/admin/billing"),
+      adminNavItem("/admin/referrals"),
+    ],
+  },
+  {
+    label: "Insight",
+    items: [adminNavItem("/admin/pilot"), adminNavItem("/admin/evidence")],
+  },
+  {
+    label: "Compliance",
+    items: [
+      adminNavItem("/admin/privacy"),
+      adminNavItem("/admin/fraud"),
+      adminNavItem("/admin/audit"),
+      adminNavItem("/admin/security"),
+    ],
+  },
+] satisfies readonly ShellNavGroup[]
