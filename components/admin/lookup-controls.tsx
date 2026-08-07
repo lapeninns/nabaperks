@@ -1,14 +1,19 @@
 import Link from "next/link"
 import Form from "next/form"
-import { Search01Icon } from "@hugeicons/core-free-icons"
+import { Cancel01Icon, Search01Icon } from "@hugeicons/core-free-icons"
 
 import { AdminField } from "@/components/admin/support"
 import { Icon } from "@/components/brand"
+import { SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import type { AdminLookupState, AdminPageMeta } from "@/lib/admin/lookup-query"
-import { nextPage, previousPage } from "@/lib/admin/lookup-query"
+import {
+  buildLookupHref,
+  nextPage,
+  previousPage,
+} from "@/lib/admin/lookup-query"
 
 const numberFormat = new Intl.NumberFormat("en-GB")
 
@@ -22,50 +27,142 @@ export function AdminLookupControls({
   basePath,
   lookup,
   label = "Member lookup",
+  fields = "venue-and-contact",
+  hiddenParams,
 }: {
   readonly basePath: string
   readonly lookup: AdminLookupState
   readonly label?: string
+  /**
+   * Lists without a customer dimension (merchants) search by venue only;
+   * lists with no venue dimension (unaffiliated customers) by contact only.
+   */
+  readonly fields?: "venue-and-contact" | "venue" | "contact"
+  /**
+   * Params the GET submit must carry through (e.g. the active view), since a
+   * `next/form` submit rebuilds the query string from the form's own fields.
+   */
+  readonly hiddenParams?: Readonly<Record<string, string | undefined>>
 }) {
-  const active = Boolean(lookup.venue || lookup.contact)
+  const withVenue = fields !== "contact"
+  const withContact = fields !== "venue"
+  const active = Boolean(
+    (withVenue && lookup.venue) || (withContact && lookup.contact)
+  )
 
   return (
     <Form
       action={basePath}
       role="search"
       aria-label={label}
-      className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end"
+      className={
+        withVenue && withContact
+          ? "grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end"
+          : "grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
+      }
     >
-      <AdminField label="Venue">
-        <Input
-          type="search"
-          name="venue"
-          defaultValue={lookup.venue ?? ""}
-          placeholder="Business name"
-          autoComplete="off"
-        />
-      </AdminField>
-      <AdminField label="Member contact">
-        <Input
-          type="search"
-          name="contact"
-          defaultValue={lookup.contact ?? ""}
-          placeholder="Email or phone fragment"
-          autoComplete="off"
-        />
-      </AdminField>
+      {Object.entries(hiddenParams ?? {}).map(([name, value]) =>
+        value ? (
+          <input key={name} type="hidden" name={name} value={value} />
+        ) : null
+      )}
+      {withVenue ? (
+        <AdminField label="Venue">
+          <Input
+            type="search"
+            name="venue"
+            defaultValue={lookup.venue ?? ""}
+            placeholder="Business name"
+            autoComplete="off"
+          />
+        </AdminField>
+      ) : null}
+      {withContact ? (
+        <AdminField label="Member contact">
+          <Input
+            type="search"
+            name="contact"
+            defaultValue={lookup.contact ?? ""}
+            placeholder="Email or phone fragment"
+            autoComplete="off"
+          />
+        </AdminField>
+      ) : null}
       <div className="flex flex-wrap gap-2">
-        <Button type="submit">
+        {/* A service-role readback can take a second; without a pending
+            affordance the operator re-submits. */}
+        <SubmitButton pendingLabel="Searching…">
           <Icon icon={Search01Icon} size={16} />
           Search
-        </Button>
+        </SubmitButton>
+        {/* Clear always occupies its slot — it used to appear and disappear
+            with the filter, so the button row width changed as the operator
+            searched. */}
         {active ? (
           <Button asChild variant="ghost">
-            <Link href={basePath}>Clear</Link>
+            <Link href={buildLookupHref(basePath, hiddenParams ?? {})}>
+              Clear
+            </Link>
           </Button>
-        ) : null}
+        ) : (
+          <Button variant="ghost" disabled>
+            Clear
+          </Button>
+        )}
       </div>
     </Form>
+  )
+}
+
+/**
+ * The applied lookup, shown where the results are. The privacy page's second
+ * list was filtered by a control thousands of pixels above it that visually
+ * belonged to another panel — the only signpost was a sentence — so an empty
+ * result read as "no such customer". Each chip removes just its own term.
+ */
+export function AdminAppliedFilters({
+  basePath,
+  lookup,
+  extraParams,
+}: {
+  readonly basePath: string
+  readonly lookup: AdminLookupState
+  /** Params to preserve when a term is removed (e.g. the active view). */
+  readonly extraParams?: Record<string, string | number | undefined>
+}) {
+  const terms = [
+    { key: "venue" as const, label: "Venue", value: lookup.venue },
+    { key: "contact" as const, label: "Contact", value: lookup.contact },
+  ].filter((term) => Boolean(term.value))
+
+  if (terms.length === 0) return null
+
+  return (
+    <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+      <span>Filtered by</span>
+      {terms.map((term) => (
+        <Button
+          key={term.key}
+          asChild
+          variant="secondary"
+          size="xs"
+          title={`Remove the ${term.label.toLowerCase()} filter`}
+        >
+          <Link
+            href={buildLookupHref(basePath, {
+              ...extraParams,
+              venue: term.key === "venue" ? undefined : lookup.venue,
+              contact: term.key === "contact" ? undefined : lookup.contact,
+            })}
+          >
+            <span className="min-w-0 truncate">
+              {term.label}: {term.value}
+            </span>
+            <Icon icon={Cancel01Icon} size={14} />
+          </Link>
+        </Button>
+      ))}
+    </p>
   )
 }
 

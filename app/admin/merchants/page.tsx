@@ -1,4 +1,3 @@
-import Link from "next/link"
 import {
   Cancel01Icon,
   QrCode01Icon,
@@ -18,6 +17,11 @@ import {
   first,
   formatAdminDate,
 } from "@/components/admin/support"
+import { AdminCrossLinks } from "@/components/admin/cross-links"
+import {
+  AdminLookupControls,
+  AdminLookupPagination,
+} from "@/components/admin/lookup-controls"
 import { AdminRecordActions } from "@/components/admin/record-actions"
 import { AdminRecordCard } from "@/components/admin/record-card"
 import { EmptyState, Icon, PageTitle, SectionHeader } from "@/components/brand"
@@ -27,14 +31,20 @@ import { Input } from "@/components/ui/input"
 import { canRenderAdminPage } from "@/lib/admin/auth"
 import { getAdminMerchants, getAdminQrCodes } from "@/lib/admin/data"
 import { formatAdminBillingStatus } from "@/lib/admin/billing-redaction"
-import { buildLookupHref } from "@/lib/admin/lookup-query"
+import {
+  buildLookupHref,
+  parseAdminLookupParams,
+  parsePageParam,
+  type AdminLookupState,
+  type AdminSearchParams,
+} from "@/lib/admin/lookup-query"
 
 export const metadata = { title: "Admin — Merchants" }
 
-type AdminMerchants = Awaited<ReturnType<typeof getAdminMerchants>>
-type AdminMerchant = AdminMerchants[number]
-type AdminQrCodes = Awaited<ReturnType<typeof getAdminQrCodes>>
-type AdminQrCode = AdminQrCodes[number]
+type AdminMerchantsResult = Awaited<ReturnType<typeof getAdminMerchants>>
+type AdminMerchant = AdminMerchantsResult["rows"][number]
+type AdminQrCodesResult = Awaited<ReturnType<typeof getAdminQrCodes>>
+type AdminQrCode = AdminQrCodesResult["rows"][number]
 
 /** merchants.status check constraint: trial/active/paused/cancelled/suspended. */
 const ACCOUNT_STATUS_TONE: Record<
@@ -52,12 +62,22 @@ function accountStatusTone(status: string) {
   return ACCOUNT_STATUS_TONE[status.toLowerCase()] ?? "neutral"
 }
 
-export default async function AdminMerchantsPage() {
+type AdminMerchantsPageProps = {
+  searchParams?: Promise<AdminSearchParams>
+}
+
+export default async function AdminMerchantsPage({
+  searchParams,
+}: AdminMerchantsPageProps) {
   if (!(await canRenderAdminPage())) return null
 
+  const params = searchParams ? await searchParams : {}
+  const lookup = parseAdminLookupParams(params)
+  const qrPage = parsePageParam(params.qrPage)
+
   const [merchants, qrCodes] = await Promise.all([
-    getAdminMerchants(),
-    getAdminQrCodes(),
+    getAdminMerchants(lookup),
+    getAdminQrCodes({ venue: lookup.venue, page: qrPage }),
   ])
 
   return (
@@ -68,9 +88,29 @@ export default async function AdminMerchantsPage() {
         description="Merchant account, plan status, and QR support controls."
       />
 
-      <MerchantAccountsPanel merchants={merchants} />
+      <MerchantAccountsPanel
+        merchants={merchants}
+        lookup={lookup}
+        hrefForPage={(page) =>
+          buildLookupHref("/admin/merchants", {
+            venue: lookup.venue,
+            page,
+            qrPage,
+          })
+        }
+      />
 
-      <QrRecordsPanel qrCodes={qrCodes} />
+      <QrRecordsPanel
+        qrCodes={qrCodes}
+        venue={lookup.venue}
+        hrefForPage={(page) =>
+          `${buildLookupHref("/admin/merchants", {
+            venue: lookup.venue,
+            page: lookup.page,
+            qrPage: page,
+          })}#qr-records`
+        }
+      />
     </div>
   )
 }
@@ -85,44 +125,51 @@ function MerchantCrossLinks({
 }: {
   readonly merchant: AdminMerchant
 }) {
-  const linkClasses =
-    "focus-ring rounded-sm font-semibold text-primary underline underline-offset-2 hover:text-[color-mix(in_srgb,var(--primary)_80%,var(--w-ink))]"
   return (
-    <span className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
-      <Link
-        className={linkClasses}
-        href={buildLookupHref("/admin/customers", {
-          venue: merchant.business_name,
-        })}
-      >
-        Members
-      </Link>
-      <Link className={linkClasses} href="/admin/billing">
-        Billing
-      </Link>
-      <Link
-        className={linkClasses}
-        href={buildLookupHref("/admin/privacy", {
-          venue: merchant.business_name,
-        })}
-      >
-        Privacy
-      </Link>
-      <Link className={linkClasses} href="#qr-records">
-        QR records
-      </Link>
-    </span>
+    <AdminCrossLinks
+      label={`${merchant.business_name} related records`}
+      links={[
+        {
+          label: "Members",
+          href: buildLookupHref("/admin/customers", {
+            venue: merchant.business_name,
+          }),
+        },
+        { label: "Billing", href: "/admin/billing" },
+        {
+          label: "Privacy",
+          href: buildLookupHref("/admin/privacy", {
+            venue: merchant.business_name,
+          }),
+        },
+        {
+          // The QR panel below is filtered by the same `venue` param, so the
+          // cross-link now narrows it to this venue instead of dropping the
+          // operator thousands of pixels into an unfiltered wall.
+          label: "QR records",
+          href: `${buildLookupHref("/admin/merchants", {
+            venue: merchant.business_name,
+          })}#qr-records`,
+        },
+      ]}
+    />
   )
 }
 
 function MerchantAccountsPanel({
   merchants,
+  lookup,
+  hrefForPage,
 }: {
-  readonly merchants: AdminMerchants
+  readonly merchants: AdminMerchantsResult
+  readonly lookup: AdminLookupState
+  readonly hrefForPage: (page: number) => string
 }) {
+  const searching = Boolean(lookup.venue)
+
   return (
     <AdminPanel className="p-0">
-      <div className="border-b p-5">
+      <div className="grid gap-4 border-b p-5">
         <SectionHeader
           title="Merchant accounts"
           description="Service-role admin readback of account status and billing joins."
@@ -130,21 +177,37 @@ function MerchantAccountsPanel({
             <SourceLabel>Source: service-role admin readback</SourceLabel>
           }
         />
+        <AdminLookupControls
+          basePath="/admin/merchants"
+          lookup={lookup}
+          label="Merchant lookup"
+          fields="venue"
+        />
       </div>
       <DataTable
         caption="Admin merchant account readback"
         cardBreakpoint="xl"
         className="rounded-none border-0 shadow-none"
         mobileClassName="p-5"
-        rows={merchants}
+        mobilePageSize={10}
+        rows={merchants.rows}
         getRowKey={(merchant) => merchant.id}
         emptyState={
-          <EmptyState
-            icon={Store01Icon}
-            title="No merchants yet"
-            description="Merchant accounts will appear once onboarding creates records."
-            className="rounded-none border-0 shadow-none"
-          />
+          searching ? (
+            <EmptyState
+              icon={Store01Icon}
+              title="No matching merchants"
+              description="Adjust the venue search, or clear it to see the newest merchant accounts."
+              className="rounded-none border-0 shadow-none"
+            />
+          ) : (
+            <EmptyState
+              icon={Store01Icon}
+              title="No merchants yet"
+              description="Merchant accounts will appear once onboarding creates records."
+              className="rounded-none border-0 shadow-none"
+            />
+          )
         }
         columns={[
           {
@@ -236,32 +299,138 @@ function MerchantAccountsPanel({
           )
         }}
       />
+      {merchants.meta.total > 0 ? (
+        <div className="p-5 pt-0">
+          <AdminLookupPagination
+            label="Merchant pages"
+            unit="merchant accounts"
+            meta={merchants.meta}
+            hrefForPage={hrefForPage}
+          />
+        </div>
+      ) : null}
     </AdminPanel>
   )
 }
 
-function QrRecordsPanel({ qrCodes }: { readonly qrCodes: AdminQrCodes }) {
+/**
+ * QR records used to be the one admin list with no table, no pagination, no
+ * search and no breakpoint switch: 100 record cards at every width, roughly
+ * 20,000px, appended under the merchant table. It is now the same DataTable
+ * everything else uses — cards through tablet, a semantic table from xl, a
+ * revealed card stack on phones — filtered by the page's venue lookup and
+ * paged 25 at a time.
+ */
+function QrRecordsPanel({
+  qrCodes,
+  venue,
+  hrefForPage,
+}: {
+  readonly qrCodes: AdminQrCodesResult
+  readonly venue?: string
+  readonly hrefForPage: (page: number) => string
+}) {
   return (
-    <AdminPanel id="qr-records" className="scroll-mt-6">
-      <SectionHeader
-        title="QR records"
-        description="Audited QR activation and regeneration controls. Reasons are required before mutation."
-        actions={<SourceLabel>Source: service-role admin readback</SourceLabel>}
-      />
-      {qrCodes.length ? (
-        <div className="grid gap-3">
-          {qrCodes.map((qrCode) => (
-            <QrRecord key={qrCode.id} qrCode={qrCode} />
-          ))}
-        </div>
-      ) : (
-        <EmptyState
-          icon={QrCode01Icon}
-          title="No QR records yet"
-          className="rounded-none border-0 p-0 shadow-none"
+    <AdminPanel id="qr-records" className="scroll-mt-6 p-0">
+      <div className="border-b p-5">
+        <SectionHeader
+          title="QR records"
+          description="Audited QR activation and regeneration controls. Reasons are required before mutation. Filtered by the venue search above."
+          actions={
+            <SourceLabel>Source: service-role admin readback</SourceLabel>
+          }
         />
-      )}
+      </div>
+      <DataTable
+        caption="Admin QR record readback"
+        cardBreakpoint="xl"
+        className="rounded-none border-0 shadow-none"
+        mobileClassName="p-5"
+        mobilePageSize={10}
+        rows={qrCodes.rows}
+        getRowKey={(qrCode) => qrCode.id}
+        emptyState={
+          <EmptyState
+            icon={QrCode01Icon}
+            title={venue ? "No matching QR records" : "No QR records yet"}
+            description={
+              venue
+                ? "Clear the venue search to see the newest QR records."
+                : undefined
+            }
+            className="rounded-none border-0 shadow-none"
+          />
+        }
+        columns={[
+          {
+            key: "qr",
+            header: "QR id",
+            cell: (qrCode) => (
+              <span className="font-mono text-xs">{qrCode.qr_id}</span>
+            ),
+          },
+          {
+            key: "merchant",
+            header: "Merchant",
+            cell: (qrCode) => (
+              <span className="font-bold">
+                {first(qrCode.merchants)?.business_name ?? "Merchant"}
+              </span>
+            ),
+          },
+          {
+            key: "state",
+            header: "State",
+            cell: (qrCode) => (
+              <StatusPill tone={qrCode.is_active ? "good" : "danger"}>
+                {qrCode.is_active ? "active" : "inactive"}
+              </StatusPill>
+            ),
+          },
+          {
+            key: "created",
+            header: "Created",
+            cell: (qrCode) => (
+              <time
+                className="text-muted-foreground"
+                dateTime={qrCode.created_at}
+              >
+                {formatAdminDate(qrCode.created_at)}
+              </time>
+            ),
+          },
+          {
+            key: "actions",
+            header: "Actions",
+            cell: (qrCode) => (
+              <AdminRecordActions label="QR controls" group="qr-record-table">
+                <QrRecordForms qrCode={qrCode} />
+              </AdminRecordActions>
+            ),
+          },
+        ]}
+        mobileCard={(qrCode) => <QrRecord qrCode={qrCode} />}
+      />
+      {qrCodes.meta.total > 0 ? (
+        <div className="p-5 pt-0">
+          <AdminLookupPagination
+            label="QR record pages"
+            unit="QR records"
+            meta={qrCodes.meta}
+            hrefForPage={hrefForPage}
+          />
+        </div>
+      ) : null}
     </AdminPanel>
+  )
+}
+
+function QrRecordForms({ qrCode }: { readonly qrCode: AdminQrCode }) {
+  return (
+    <div className="grid gap-3 lg:grid-cols-2">
+      <QrStateForm qrCodeId={qrCode.id} nextActive={!qrCode.is_active} />
+      <RegenerateQrForm qrCodeId={qrCode.id} />
+    </div>
   )
 }
 
@@ -292,10 +461,7 @@ function QrRecord({ qrCode }: { readonly qrCode: AdminQrCode }) {
       ]}
       action={
         <AdminRecordActions label="QR controls" group="qr-record">
-          <div className="grid gap-3 lg:grid-cols-2">
-            <QrStateForm qrCodeId={qrCode.id} nextActive={!qrCode.is_active} />
-            <RegenerateQrForm qrCodeId={qrCode.id} />
-          </div>
+          <QrRecordForms qrCode={qrCode} />
         </AdminRecordActions>
       }
     />

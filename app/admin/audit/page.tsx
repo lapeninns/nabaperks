@@ -1,28 +1,48 @@
+import { SecurityCheckIcon } from "@hugeicons/core-free-icons"
+
 import {
   AdminPanel,
   SourceLabel,
   first,
+  formatAdminAction,
   formatAdminAuditDate,
   maskAdminCustomer,
 } from "@/components/admin/support"
-import { SecurityCheckIcon } from "@hugeicons/core-free-icons"
-
 import { AdminIdChip } from "@/components/admin/id-chip"
+import {
+  AdminAppliedFilters,
+  AdminLookupControls,
+  AdminLookupPagination,
+} from "@/components/admin/lookup-controls"
 import { AdminRecordCard } from "@/components/admin/record-card"
-import { EmptyState, PageTitle } from "@/components/brand"
+import { EmptyState, PageTitle, SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { canRenderAdminPage } from "@/lib/admin/auth"
-import { getAdminAuditLogs } from "@/lib/admin/data"
+import { getAdminAuditPage } from "@/lib/admin/data"
+import {
+  buildLookupHref,
+  parseAdminLookupParams,
+  type AdminSearchParams,
+} from "@/lib/admin/lookup-query"
 
-type AdminAuditLogs = Awaited<ReturnType<typeof getAdminAuditLogs>>
-type AdminAuditLog = AdminAuditLogs[number]
+type AdminAuditPage = Awaited<ReturnType<typeof getAdminAuditPage>>
+type AdminAuditLog = AdminAuditPage["rows"][number]
 
 export const metadata = { title: "Admin — Audit logs" }
 
-export default async function AdminAuditPage() {
+type AdminAuditPageProps = {
+  searchParams?: Promise<AdminSearchParams>
+}
+
+export default async function AdminAuditPage({
+  searchParams,
+}: AdminAuditPageProps) {
   if (!(await canRenderAdminPage())) return null
 
-  const logs = await getAdminAuditLogs()
+  const params = searchParams ? await searchParams : {}
+  const lookup = parseAdminLookupParams(params)
+  const logs = await getAdminAuditPage(lookup)
+  const searching = Boolean(lookup.venue)
 
   return (
     <div className="grid gap-6">
@@ -33,8 +53,22 @@ export default async function AdminAuditPage() {
       />
 
       <AdminPanel className="p-0">
-        <div className="border-b p-5">
-          <SourceLabel>Source: audit_logs</SourceLabel>
+        {/* Was a bare provenance pill in a 60px strip; the panel now carries
+            the same eyebrow/title/description anatomy as its siblings, and
+            the venue search + paginator the log always needed. */}
+        <div className="grid gap-4 border-b p-5">
+          <SectionHeader
+            title="Audit trail"
+            description="Search by venue to answer questions about one merchant, and page through the whole trail rather than the newest hundred rows."
+            actions={<SourceLabel>Source: audit_logs</SourceLabel>}
+          />
+          <AdminLookupControls
+            basePath="/admin/audit"
+            lookup={lookup}
+            label="Audit log lookup"
+            fields="venue"
+          />
+          <AdminAppliedFilters basePath="/admin/audit" lookup={lookup} />
         </div>
         <DataTable
           caption="Admin audit log readback"
@@ -42,13 +76,19 @@ export default async function AdminAuditPage() {
           className="rounded-none border-0 shadow-none"
           mobileClassName="p-5"
           mobilePageSize={10}
-          rows={logs}
+          rows={logs.rows}
           getRowKey={(log) => log.id}
           emptyState={
             <EmptyState
               icon={SecurityCheckIcon}
-              title="No audit logs yet"
-              description="Audited support and security-sensitive actions will appear here."
+              title={
+                searching ? "No matching audit entries" : "No audit logs yet"
+              }
+              description={
+                searching
+                  ? "No audited action is recorded against that venue. Clear the search to see the whole trail."
+                  : "Audited support and security-sensitive actions will appear here."
+              }
               className="rounded-none border-0 shadow-none"
             />
           }
@@ -57,7 +97,8 @@ export default async function AdminAuditPage() {
             const customer = first(log.customers)
             return (
               <AdminRecordCard
-                title={log.action}
+                title={formatAdminAction(log.action)}
+                eyebrow={log.action}
                 fields={[
                   {
                     label: "Actor",
@@ -93,7 +134,18 @@ export default async function AdminAuditPage() {
             {
               key: "action",
               header: "Action",
-              cell: (log) => <span className="font-bold">{log.action}</span>,
+              // Spoken name in the display face, exact key in mono beneath —
+              // operators still need the raw token to grep for.
+              cell: (log) => (
+                <span className="grid gap-1">
+                  <span className="font-bold">
+                    {formatAdminAction(log.action)}
+                  </span>
+                  <span className="mono-id text-muted-foreground">
+                    {log.action}
+                  </span>
+                </span>
+              ),
             },
             {
               key: "actor",
@@ -133,6 +185,18 @@ export default async function AdminAuditPage() {
             },
           ]}
         />
+        {logs.meta.total > 0 ? (
+          <div className="p-5 pt-0">
+            <AdminLookupPagination
+              label="Audit log pages"
+              unit="audited actions"
+              meta={logs.meta}
+              hrefForPage={(page) =>
+                buildLookupHref("/admin/audit", { venue: lookup.venue, page })
+              }
+            />
+          </div>
+        ) : null}
       </AdminPanel>
     </div>
   )

@@ -179,8 +179,21 @@ export function CustomerMembershipsPanel({
               },
               {
                 key: "action",
-                header: "Audited action",
-                cell: (row) => <StampAdjustmentForm membershipId={row.id} />,
+                // Desktop folds the write form behind the same exclusive
+                // disclosure the phone card already used: 25 always-open
+                // two-field forms was ~4,000px of markup and 25 simultaneous
+                // focusable field groups in the tab order, for an action taken
+                // on roughly one row per session. The helper text now prints
+                // once, inside the open panel.
+                header: "Actions",
+                cell: (row) => (
+                  <AdminRecordActions
+                    label="Adjust stamps"
+                    group="membership-support-table"
+                  >
+                    <StampAdjustmentForm membershipId={row.id} />
+                  </AdminRecordActions>
+                ),
               },
             ]}
           />

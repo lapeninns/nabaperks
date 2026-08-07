@@ -1,8 +1,11 @@
 import type { ReactNode } from "react"
 
 import { cn } from "@/lib/utils"
+import { Database01Icon } from "@hugeicons/core-free-icons"
+
 import {
   Eyebrow,
+  Icon,
   MonoTag,
   STATUS_ICON,
   type IconGlyph,
@@ -85,6 +88,13 @@ export function AdminConfirmCheck({ label }: { label: ReactNode }) {
   )
 }
 
+/**
+ * Provenance, not state. It used to be a `MonoTag` sharing mono face, ink
+ * border and secondary fill with a neutral `StatusPill`, so "pending" and
+ * "Source: audit_logs" had the same silhouette in the same row. Metadata now
+ * reads as a quiet glyph + label with no pill outline, leaving the bordered
+ * pill to mean state and nothing else.
+ */
 export function SourceLabel({
   children,
   className,
@@ -93,12 +103,15 @@ export function SourceLabel({
   className?: string
 }) {
   return (
-    <MonoTag
-      tone="plain"
-      className={cn("border-ink bg-secondary text-muted-foreground", className)}
+    <span
+      className={cn(
+        "mono-meta inline-flex min-w-0 items-center gap-1.5 text-muted-foreground",
+        className
+      )}
     >
-      {children}
-    </MonoTag>
+      <Icon icon={Database01Icon} size={13} strokeWidth={2.25} />
+      <span className="min-w-0 truncate">{children}</span>
+    </span>
   )
 }
 
@@ -131,6 +144,22 @@ export function StatusPill({
       {children}
     </MonoTag>
   )
+}
+
+/**
+ * One humanising step for the snake_case keys the database stores
+ * (`data_request_logged`, `customer_pii_erased`, `qr_regenerated`). The audit
+ * page printed them raw in bold Bricolage while fraud and privacy each
+ * humanised the same class of value their own way — three readings of one
+ * datum, and snake_case in the display face is a register violation (mono is
+ * the printed voice). The raw token stays available wherever an operator
+ * needs to grep for it.
+ */
+export function formatAdminAction(value?: string | null) {
+  if (!value) return "-"
+  const spaced = value.replaceAll("_", " ").trim()
+  if (!spaced) return "-"
+  return `${spaced.charAt(0).toUpperCase()}${spaced.slice(1)}`
 }
 
 // Operators are UK-based: pin the console clock to Europe/London so audit and

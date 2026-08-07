@@ -153,14 +153,28 @@ export function CustomerRewardsPanel({
               },
               {
                 key: "action",
-                header: "Audited action",
+                // 25 armed destructive forms on screen at once is a mis-click
+                // surface, not a safety design, and the irreversibility copy
+                // loses all weight through repetition. The reason field, the
+                // confirmation gate and the danger copy now appear once, at
+                // the moment of decision, behind an exclusive disclosure.
+                // Ineligible rows keep the column one shape with an em dash.
+                header: "Actions",
                 cell: (reward) =>
                   reward.status !== "redeemed" &&
                   reward.status !== "cancelled" ? (
-                    <RewardCancelForm rewardId={reward.id} />
+                    <AdminRecordActions
+                      label="Cancel reward"
+                      group="reward-support-table"
+                    >
+                      <RewardCancelForm rewardId={reward.id} />
+                    </AdminRecordActions>
                   ) : (
-                    <span className="text-sm text-muted-foreground">
-                      No action available
+                    <span
+                      className="text-sm text-muted-foreground"
+                      title="No action available"
+                    >
+                      —<span className="sr-only">No action available</span>
                     </span>
                   ),
               },

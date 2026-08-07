@@ -1,5 +1,8 @@
 import type { Metadata } from "next"
+import { cookies } from "next/headers"
 import { connection } from "next/server"
+
+import { signOutAction } from "@/app/(auth)/actions"
 
 import { AdminMfaStepUp } from "@/components/admin/mfa-step-up"
 import { Eyebrow } from "@/components/brand"
@@ -39,8 +42,19 @@ export default async function AdminLayout({
     return <AdminMfaStepUp operatorEmail={access.email} />
   }
 
+  // Seed the desktop expanded/collapsed rail from the persisted sidebar
+  // cookie, exactly as the merchant console does, so a collapsed console
+  // survives a reload.
+  const cookieStore = await cookies()
+  const sidebarCookieOpen = cookieStore.get("sidebar_state")?.value !== "false"
+
   return (
-    <AdminShell operatorEmail={access.email} mfaRequired={access.mfaRequired}>
+    <AdminShell
+      operatorEmail={access.email}
+      mfaRequired={access.mfaRequired}
+      signOutAction={signOutAction}
+      defaultSidebarOpen={sidebarCookieOpen}
+    >
       {children}
     </AdminShell>
   )

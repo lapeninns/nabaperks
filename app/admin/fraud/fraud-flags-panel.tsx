@@ -13,6 +13,7 @@ import {
   AdminPanel,
   SourceLabel,
   StatusPill,
+  formatAdminAction,
   formatAdminAuditDate,
 } from "@/components/admin/support"
 import {
@@ -71,7 +72,7 @@ export function FraudFlagsPanel({ flags }: { readonly flags: FraudFlags }) {
             header: "Signal",
             cell: (flag) => (
               <span className="font-bold">
-                {flag.signal.replaceAll("_", " ")}
+                {formatAdminAction(flag.signal)}
               </span>
             ),
           },
@@ -120,13 +121,24 @@ export function FraudFlagsPanel({ flags }: { readonly flags: FraudFlags }) {
           },
           {
             key: "actions",
-            header: "Review",
-            cell: (flag) => <FraudFlagActions flagId={flag.id} />,
+            // Two complete write forms per row, each with a required text
+            // input, made a triage row ~250px tall — a 100-flag queue was a
+            // ~26,000px page you could not scan. Both forms now live behind
+            // the same exclusive disclosure the phone card uses.
+            header: "Actions",
+            cell: (flag) => (
+              <AdminRecordActions
+                label="Review actions"
+                group="fraud-review-table"
+              >
+                <FraudFlagActions flagId={flag.id} />
+              </AdminRecordActions>
+            ),
           },
         ]}
         mobileCard={(flag) => (
           <AdminRecordCard
-            title={flag.signal.replaceAll("_", " ")}
+            title={formatAdminAction(flag.signal)}
             status={
               <>
                 <StatusPill tone={severityTone(flag.severity)}>
@@ -150,7 +162,7 @@ export function FraudFlagsPanel({ flags }: { readonly flags: FraudFlags }) {
             ]}
             action={
               <AdminRecordActions label="Review actions" group="fraud-review">
-                <FraudFlagActions flagId={flag.id} compact />
+                <FraudFlagActions flagId={flag.id} />
               </AdminRecordActions>
             }
           />
@@ -170,7 +182,7 @@ function FraudFlagEvidence({ flag }: { readonly flag: FraudFlag }) {
   return (
     <div className="grid min-w-44 gap-1 text-xs leading-5">
       <span className="font-semibold text-foreground">
-        {flag.reason.replaceAll("_", " ")}
+        {formatAdminAction(flag.reason)}
       </span>
       <span className="text-muted-foreground">
         location {flag.locationStatus.replaceAll("_", " ")} · distance{" "}
@@ -186,15 +198,9 @@ function FraudFlagEvidence({ flag }: { readonly flag: FraudFlag }) {
   )
 }
 
-function FraudFlagActions({
-  flagId,
-  compact = false,
-}: {
-  readonly flagId: string
-  readonly compact?: boolean
-}) {
+function FraudFlagActions({ flagId }: { readonly flagId: string }) {
   return (
-    <div className={compact ? "grid gap-2" : "grid min-w-56 gap-2"}>
+    <div className="grid gap-2">
       <FraudFlagResolutionForm
         flagId={flagId}
         status="reviewed"

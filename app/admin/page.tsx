@@ -11,19 +11,18 @@ import {
   AdminPanel,
   SourceLabel,
   first,
+  formatAdminAction,
   formatAdminAuditDate,
   maskAdminCustomer,
 } from "@/components/admin/support"
 import {
   EmptyState,
-  Icon,
   MetricTile,
   PageTitle,
   SectionHeader,
 } from "@/components/brand"
 import { ActivityFeed } from "@/components/data/activity-feed"
 import { FunnelChart } from "@/components/data/funnel-chart"
-import { adminNavItems } from "@/components/layout/console-nav"
 import { Button } from "@/components/ui/button"
 import {
   formatFirstStampSevenDayOutcome,
@@ -56,22 +55,40 @@ export default async function AdminHomePage() {
         description="Restricted support views and audited manual actions."
       />
 
+      {/* Each KPI is a link into the list it counts — clicking a number is the
+          natural gesture, and it was a dead end. "Billing issues" is the only
+          actionable tile, so when it is non-zero it takes the destructive wash
+          instead of reading like the two vanity counts. */}
       <section className="grid gap-3 sm:grid-cols-3">
-        <MetricTile
-          label="Merchants"
-          value={overview.merchants}
-          icon={Store01Icon}
-        />
-        <MetricTile
-          label="Customers"
-          value={overview.customers}
-          icon={UserMultiple02Icon}
-        />
-        <MetricTile
-          label="Billing issues"
-          value={overview.billingIssues}
-          icon={CreditCardIcon}
-        />
+        <AdminMetricLink href="/admin/merchants" label="Merchants">
+          <MetricTile
+            label="Merchants"
+            value={overview.merchants}
+            icon={Store01Icon}
+          />
+        </AdminMetricLink>
+        <AdminMetricLink href="/admin/customers" label="Customers">
+          <MetricTile
+            label="Customers"
+            value={overview.customers}
+            icon={UserMultiple02Icon}
+          />
+        </AdminMetricLink>
+        <AdminMetricLink href="/admin/billing" label="Billing issues">
+          <MetricTile
+            label="Billing issues"
+            value={overview.billingIssues}
+            icon={CreditCardIcon}
+            className={
+              overview.billingIssues > 0 ? "bg-destructive/10" : undefined
+            }
+            helper={
+              overview.billingIssues > 0
+                ? "Needs attention: open billing states in the billing console."
+                : undefined
+            }
+          />
+        </AdminMetricLink>
       </section>
 
       <AdminPanel>
@@ -84,7 +101,11 @@ export default async function AdminHomePage() {
           aria-label="Merchant activation funnel"
           items={toMerchantActivationFunnelItems(activationFacts)}
         />
-        <div className="grid gap-2 border-t border-ink/20 pt-4 text-sm sm:grid-cols-2">
+        {/* The sanctioned 2px dashed receipt rule, not a one-off ink/20
+            hairline: DESIGN.md mints exactly two dashed tones and .w-rule is
+            the panel divider. */}
+        <hr className="w-rule my-0" />
+        <div className="grid gap-2 text-sm sm:grid-cols-2">
           <p>
             <span className="font-bold">Median account to poster:</span>{" "}
             <span className="numeric-tabular text-muted-foreground">
@@ -128,20 +149,32 @@ export default async function AdminHomePage() {
           </Button>
         </div>
       </AdminPanel>
-
-      {/* 8 nav links: 2-col from sm, 4-col from lg — grid-cols-7 compressed
-          each cell below the whitespace-nowrap label width at 1024-1280. */}
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {adminNavItems.map((item) => (
-          <Button key={item.href} asChild variant="secondary">
-            <Link href={item.href}>
-              {item.icon ? <Icon icon={item.icon} size={16} /> : null}
-              {item.label}
-            </Link>
-          </Button>
-        ))}
-      </section>
     </div>
+  )
+}
+
+/**
+ * Full-tile link wrapper. `MetricTile` renders a Card, so the affordance has
+ * to live on a block-level anchor around it; the accessible name is stated
+ * explicitly because the tile's number would otherwise read first.
+ */
+function AdminMetricLink({
+  href,
+  label,
+  children,
+}: {
+  href: string
+  label: string
+  children: React.ReactNode
+}) {
+  return (
+    <Link
+      href={href}
+      aria-label={`${label} — open`}
+      className="focus-ring block rounded-lg"
+    >
+      {children}
+    </Link>
   )
 }
 
@@ -151,7 +184,7 @@ function toRecentAuditItem(log: AdminRecentAudit) {
 
   return {
     id: log.id as string,
-    title: log.action as string,
+    title: formatAdminAction(log.action as string),
     description: (
       <>
         {merchant?.business_name ?? "No merchant"}
