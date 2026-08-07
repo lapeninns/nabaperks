@@ -25,7 +25,7 @@ import {
   VenueProviderProvenanceFields,
   type ProviderProvenance,
 } from "@/components/merchant/venue-provider-provenance-fields"
-import { Button } from "@/components/ui/button"
+import { SubmitButton } from "@/components/forms"
 import type { VenueAddressFormFields } from "@/lib/merchant/venue-address"
 import { cn } from "@/lib/utils"
 
@@ -90,7 +90,7 @@ export function OnboardingForm({
 }) {
   const draftStorageKey = onboardingDraftStorageKey(draftUserId)
   const hasInitialFields = Object.values(initialFields).some(Boolean)
-  const [state, action, pending] = useActionState(
+  const [state, action] = useActionState(
     completeOnboardingAction,
     hasInitialFields ? { ...initialState, fields: initialFields } : initialState
   )
@@ -333,14 +333,9 @@ export function OnboardingForm({
       {errors.form ? (
         <OnboardingFormError>{errors.form}</OnboardingFormError>
       ) : null}
-      <Button
-        type="submit"
-        disabled={pending}
-        aria-busy={pending}
-        className="w-full"
-      >
-        {pending ? "Saving…" : "Finish setup"}
-      </Button>
+      <SubmitButton className="w-full" pendingLabel="Saving…">
+        Finish setup
+      </SubmitButton>
     </form>
   )
 }

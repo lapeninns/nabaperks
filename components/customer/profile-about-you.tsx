@@ -18,6 +18,7 @@ import {
 } from "@/components/customer/profile-form-parts"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
+import { SubmitButton } from "@/components/forms"
 import { formatDateOfBirth } from "@/lib/customer/format"
 import { latestAdultBirthDate } from "@/lib/customer/profile-fields"
 
@@ -200,9 +201,9 @@ function AboutYouEditForm({
       ) : null}
 
       <div className="grid gap-2">
-        <Button type="submit" size="lg" disabled={pending} className="w-full">
-          {pending ? "Saving…" : "Save changes"}
-        </Button>
+        <SubmitButton size="lg" className="w-full" pendingLabel="Saving…">
+          Save changes
+        </SubmitButton>
         <Button
           type="button"
           variant="ghost"
@@ -218,7 +219,7 @@ function AboutYouEditForm({
 }
 
 function AboutYouEmailVerify({ email }: { email: string | null }) {
-  const [state, action, pending] = useActionState(
+  const [state, action] = useActionState(
     verifyHomeProfileEmailAction,
     initialState
   )
@@ -260,9 +261,9 @@ function AboutYouEmailVerify({ email }: { email: string | null }) {
           </StatusBanner>
         ) : null}
 
-        <Button type="submit" size="lg" disabled={pending} className="w-full">
-          {pending ? "Confirming…" : "Confirm email"}
-        </Button>
+        <SubmitButton size="lg" className="w-full" pendingLabel="Confirming…">
+          Confirm email
+        </SubmitButton>
       </form>
 
       {/* size="sm" keeps these on the tap contract at the queuing moment —

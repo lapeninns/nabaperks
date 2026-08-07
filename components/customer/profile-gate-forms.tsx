@@ -11,6 +11,7 @@ import {
 import { profileInputClass } from "@/components/customer/profile-form-parts"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
+import { SubmitButton } from "@/components/forms"
 import { otpFieldMaxLength } from "@/lib/customer/experience/otp-field"
 import type { ProfileGate } from "@/lib/customer/experience/types"
 import { latestAdultBirthDate } from "@/lib/customer/profile-fields"
@@ -132,10 +133,7 @@ function ProfileEmailStep({
   rewardId: string
   email: string | null
 }) {
-  const [state, action, pending] = useActionState(
-    verifyProfileEmailAction,
-    initialState
-  )
+  const [state, action] = useActionState(verifyProfileEmailAction, initialState)
   const [resendState, resendAction, resendPending] = useActionState(
     resendProfileEmailAction,
     initialState
@@ -184,9 +182,9 @@ function ProfileEmailStep({
           </StatusBanner>
         ) : null}
 
-        <Button type="submit" size="lg" disabled={pending} className="w-full">
-          {pending ? "Confirming…" : "Confirm email"}
-        </Button>
+        <SubmitButton size="lg" className="w-full" pendingLabel="Confirming…">
+          Confirm email
+        </SubmitButton>
       </form>
 
       {/* size="sm" keeps these on the tap contract at the queuing moment —

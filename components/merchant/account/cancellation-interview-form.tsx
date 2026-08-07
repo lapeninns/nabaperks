@@ -7,9 +7,8 @@ import {
   type CancellationInterviewActionState,
 } from "@/app/app/billing/actions"
 import { StatusBanner } from "@/components/loyalty/status-banner"
-import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { SelectField } from "@/components/forms"
+import { SelectField, SubmitButton } from "@/components/forms"
 
 const INITIAL_STATE: CancellationInterviewActionState = { status: "idle" }
 
@@ -100,9 +99,12 @@ export function CancellationInterviewForm() {
         </StatusBanner>
       ) : null}
 
-      <Button type="submit" disabled={pending} className="w-full sm:w-fit">
-        {pending ? "Saving your review…" : "Continue"}
-      </Button>
+      <SubmitButton
+        className="w-full sm:w-fit"
+        pendingLabel="Saving your review…"
+      >
+        Continue
+      </SubmitButton>
       <p className="text-xs leading-5 text-muted-foreground">
         Choosing a support call does not cancel your subscription. Choosing to
         continue opens Stripe, where you confirm the cancellation date.
