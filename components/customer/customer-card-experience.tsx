@@ -254,14 +254,19 @@ function CardProgressPanel({
               />
             ) : exp.justJoined && !exp.firstStampRecovery ? (
               <StampCelebration>
+                {/* The banner says the NEW thing only. "Welcome to {venue}"
+                    is already the h1 above it, and the venue name is in the
+                    eyebrow above that — so this title used to be the second
+                    verbatim print of the headline and the third print of the
+                    venue name on one screen. (02#21) */}
                 <StatusBanner
-                  title={`Welcome to ${exp.merchantName}.`}
+                  title="You're in."
                   tone="success"
                   className="text-center"
                 >
                   {exp.justStamped
-                    ? "You're in, your first stamp is on the card."
-                    : "You're in. Scan the venue QR in store to collect your first stamp."}
+                    ? "Your first stamp is on the card."
+                    : "Scan the venue QR in store to collect your first stamp."}
                 </StatusBanner>
               </StampCelebration>
             ) : exp.justStamped ? (
