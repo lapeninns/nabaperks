@@ -416,7 +416,6 @@ export default function DesignSystemPage() {
               {(
                 [
                   "default",
-                  "stamp",
                   "reward",
                   "secondary",
                   "outline",

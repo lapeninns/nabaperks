@@ -19,7 +19,11 @@ const buttonVariants = cva(
       variant: {
         default:
           "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
-        stamp: "bg-stamp text-stamp-foreground shadow-xs hover:bg-stamp/90",
+        // `reward` is the one sanctioned second filled silhouette (leaf), for
+        // reward collection. A `stamp` variant used to sit beside it rendering
+        // bg-stamp/text-stamp-foreground — but --stamp resolves to --w-accent,
+        // exactly as --primary does, so it was a pixel-identical duplicate of
+        // `default`, and it had zero call sites. Removed.
         reward: "bg-reward text-reward-foreground shadow-xs hover:bg-reward/90",
         secondary:
           "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",

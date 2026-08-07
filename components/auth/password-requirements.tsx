@@ -1,3 +1,6 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import { Tick02Icon } from "@hugeicons/core-free-icons"
 
 import { Icon } from "@/components/brand"
@@ -36,6 +39,21 @@ export function PasswordRequirements({
   ).length
   const allMet = allPasswordRequirementsMet(requirements)
 
+  const summary = allMet
+    ? "Password meets all 3 rules"
+    : `Password meets ${metCount} of ${RULE_COUNT} rules`
+
+  // The live region previously recomputed on every keystroke, so a screen
+  // reader announced "Password meets 1 of 3 rules" once per character typed —
+  // a running commentary that drowns out the field itself. Announce only once
+  // the user pauses; the visual chips still update immediately.
+  const [announced, setAnnounced] = useState(summary)
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setAnnounced(summary), 600)
+    return () => window.clearTimeout(timer)
+  }, [summary])
+
   return (
     <section
       id={id}
@@ -56,9 +74,10 @@ export function PasswordRequirements({
           allMet ? "text-reward" : "text-muted-foreground"
         )}
       >
-        {allMet
-          ? "Password meets all 3 rules"
-          : `Password meets ${metCount} of ${RULE_COUNT} rules`}
+        {/* aria-hidden copy is the immediate visual readout; the live region
+            below carries the debounced announcement. */}
+        <span aria-hidden="true">{summary}</span>
+        <span className="sr-only">{announced}</span>
       </p>
     </section>
   )

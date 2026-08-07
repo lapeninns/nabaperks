@@ -4,11 +4,22 @@ import { WetInkShake } from "@/components/motion"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
 
+/**
+ * Two real paddings, not four. `Card` itself defaults to --spacing(5) (20px)
+ * and its `sm` size to 16px, so ReceiptCard's 24px/32px rungs meant one card
+ * could carry 16, 20, 24 or 32px of internal padding depending only on which
+ * wrapper a page happened to use.
+ *
+ * `md` now matches Card's own 20px default, and `lg` is an alias of it rather
+ * than a third value — 32px was the single largest contributor to console page
+ * height and had one call site. The key is kept (not deleted) so consumer files
+ * owned by other lanes need no edit; it simply no longer buys a distinct size.
+ */
 const PADDING = {
   none: "[--card-spacing:0]",
   sm: "[--card-spacing:--spacing(4)]",
-  md: "[--card-spacing:--spacing(6)]",
-  lg: "[--card-spacing:--spacing(8)]",
+  md: "[--card-spacing:--spacing(5)]",
+  lg: "[--card-spacing:--spacing(5)]",
 } as const
 
 type ReceiptCardProps = ComponentProps<typeof Card> & {
