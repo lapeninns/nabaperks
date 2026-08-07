@@ -16,12 +16,6 @@ import { CONSOLE_SIDEBAR_STYLE, ConsoleSidebarNav } from "./console-sidebar-nav"
 import { adminNavItems } from "./console-nav"
 import { SkipLink } from "./skip-link"
 
-const supportStatusItems = [
-  "Service-role readbacks",
-  "Audited support actions",
-  "MFA-aware access",
-]
-
 export function AdminShell({
   children,
   operatorEmail,
@@ -77,16 +71,6 @@ export function AdminShell({
               </MonoTag>
             </span>
           ) : null}
-          {supportStatusItems.map((item) => (
-            <span key={item} title={item} className="grid min-w-0">
-              <MonoTag
-                tone="plain"
-                className="max-w-full truncate border-ink bg-background text-muted-foreground"
-              >
-                {item}
-              </MonoTag>
-            </span>
-          ))}
           <span
             title={mfaRequired ? "AAL2 verified" : "Admin verified"}
             className="grid min-w-0"

@@ -13,7 +13,10 @@ export function CustomerAppShell({
   signOutAction: React.ComponentProps<"form">["action"]
 }) {
   return (
-    <div className="min-h-svh bg-background">
+    // --tab-bar-h is declared once here and consumed by the content padding
+    // below, so the reserved space and the bar can no longer drift (it was
+    // pb-32 = 128px reserved for a 56px bar).
+    <div className="min-h-svh bg-background [--tab-bar-h:3.5rem]">
       <SkipLink />
       <header className="sticky top-0 z-40 border-b-2 border-ink bg-card">
         {/* One customer column: the shared 410px token (CUS-P2-12/16). */}
@@ -31,7 +34,7 @@ export function CustomerAppShell({
       {/* pb clears the fixed bottom tab bar + iOS safe area. */}
       <main
         id="main"
-        className="mx-auto w-full max-w-customer px-4 pt-6 pb-32 sm:px-6"
+        className="mx-auto w-full max-w-customer px-4 pt-6 pb-[calc(var(--tab-bar-h)+env(safe-area-inset-bottom)+1rem)] sm:px-6"
       >
         {children}
       </main>

@@ -59,7 +59,7 @@ export function PageTitle({
   return (
     <section
       className={cn(
-        "grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-start",
+        "grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end",
         className
       )}
     >
@@ -85,7 +85,7 @@ export function PageTitle({
         ) : null}
       </div>
       {actions ? (
-        <div className="flex flex-wrap gap-2 md:justify-self-end md:pt-8">
+        <div className="flex flex-wrap gap-2 md:self-end md:justify-self-end">
           {actions}
         </div>
       ) : null}

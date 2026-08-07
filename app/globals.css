@@ -44,6 +44,7 @@
   --color-cobalt: var(--w-cobalt);
   --color-leaf: var(--w-leaf);
   --color-sun: var(--w-sun);
+  --color-sun-ink: var(--w-sun-ink);
 
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
@@ -124,6 +125,10 @@
   --w-cobalt: #2b43c8;
   --w-leaf: #16733c;
   --w-sun: #f5a623;
+  /* Sun is a FILL ink: #f5a623 on paper is ~1.8:1, unusable as text. This is
+     its text partner — the same hue driven into the ink — for the rare case a
+     sun-toned surface needs sun-coloured type. */
+  --w-sun-ink: color-mix(in oklch, var(--w-sun) 55%, var(--w-ink));
 
   --w-shadow-color: var(--w-ink);
 
@@ -221,6 +226,7 @@
   --w-cobalt: #7c90ec;
   --w-leaf: #3fae6e;
   --w-sun: #f5a623;
+  --w-sun-ink: color-mix(in oklch, var(--w-sun) 62%, var(--w-paper));
 
   --w-shadow-color: #0d0a07;
 
@@ -398,8 +404,14 @@ body[data-grain="true"]::after {
     text-transform: uppercase;
   }
 
+  /* Colour is indirected through --eyebrow-color so an inverted surface can
+     re-point it instead of forking .eyebrow or hand-patching call sites. */
   .eyebrow {
-    color: var(--muted-foreground);
+    color: var(--eyebrow-color, var(--muted-foreground));
+  }
+
+  .on-ink {
+    --eyebrow-color: color-mix(in oklch, var(--w-paper) 72%, transparent);
   }
 
   .mono-id {
