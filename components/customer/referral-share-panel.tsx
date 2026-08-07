@@ -95,7 +95,7 @@ export function ReferralSharePanel({
           </span>
           <div className="grid min-w-0 gap-1">
             <Eyebrow>Referral</Eyebrow>
-            <h2 className="text-sm leading-tight font-black text-foreground">
+            <h2 className="text-base leading-tight font-extrabold text-foreground">
               Bring a regular
             </h2>
             <p className="text-sm leading-6 text-ink-soft">
