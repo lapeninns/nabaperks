@@ -845,6 +845,7 @@ select
         billing.stripe_subscription_created_at + interval '42 days'
       ) > billing.current_period_end then 'pending'
     when billing.stripe_subscription_status = 'trialing' then 'awaiting_delivery'
+    when billing.stripe_subscription_status is null then 'awaiting_delivery'
     else 'review_required'
   end,
   case when billing.stripe_subscription_status = 'trialing'
