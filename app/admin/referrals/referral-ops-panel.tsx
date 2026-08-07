@@ -17,7 +17,13 @@ import type { AdminReferralOpsRow } from "@/lib/admin/data"
  * detail: referrer → referred, lifecycle state + hold reason, the attribution /
  * qualification / award timeline, and retry/fraud-flag counts. Read-only.
  */
-function statusTone(status: string): "neutral" | "warning" | "danger" {
+/**
+ * The happy path has to be visible: an awarded or qualified referral used to
+ * render as the same neutral grey as "pending", so an operator could not see
+ * at a glance whether settlement was working.
+ */
+function statusTone(status: string): "neutral" | "good" | "warning" | "danger" {
+  if (status === "awarded" || status === "qualified") return "good"
   if (status === "held") return "warning"
   if (status === "rejected" || status === "cancelled" || status === "expired") {
     return "danger"
@@ -62,7 +68,10 @@ export function ReferralOpsPanel({
             key: "people",
             header: "Referrer → referred",
             cell: (row) => (
-              <div className="grid min-w-40 gap-1 text-xs leading-5">
+              // Identity is not metadata: the row reads at the console's
+              // small size, with text-xs/.mono-meta reserved for the timeline
+              // and counters.
+              <div className="grid min-w-40 gap-1 text-sm leading-5">
                 {/* Masked like every other admin surface: raw customer
                     email must not render in the console. */}
                 <span
@@ -93,7 +102,7 @@ export function ReferralOpsPanel({
                   {row.status}
                 </StatusPill>
                 {row.holdReason ? (
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-sm text-muted-foreground">
                     {row.holdReason.replaceAll("_", " ")}
                   </span>
                 ) : null}
@@ -104,7 +113,7 @@ export function ReferralOpsPanel({
             key: "timeline",
             header: "Timeline",
             cell: (row) => (
-              <div className="grid gap-1 text-xs leading-5 text-muted-foreground">
+              <div className="mono-meta grid gap-1 leading-5 text-muted-foreground">
                 <span>
                   attributed{" "}
                   {row.attributedAt
@@ -130,7 +139,7 @@ export function ReferralOpsPanel({
             key: "signals",
             header: "Retries / flags",
             cell: (row) => (
-              <span className="text-xs">
+              <span className="numeric-tabular text-sm">
                 retries {row.retryCount} · flags {row.fraudFlagCount}
               </span>
             ),

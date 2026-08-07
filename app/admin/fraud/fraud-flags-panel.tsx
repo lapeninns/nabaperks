@@ -13,6 +13,7 @@ import {
   AdminPanel,
   SourceLabel,
   StatusPill,
+  formatAdminAction,
   formatAdminAuditDate,
 } from "@/components/admin/support"
 import {
@@ -71,7 +72,7 @@ export function FraudFlagsPanel({ flags }: { readonly flags: FraudFlags }) {
             header: "Signal",
             cell: (flag) => (
               <span className="font-bold">
-                {flag.signal.replaceAll("_", " ")}
+                {formatAdminAction(flag.signal)}
               </span>
             ),
           },
@@ -137,7 +138,7 @@ export function FraudFlagsPanel({ flags }: { readonly flags: FraudFlags }) {
         ]}
         mobileCard={(flag) => (
           <AdminRecordCard
-            title={flag.signal.replaceAll("_", " ")}
+            title={formatAdminAction(flag.signal)}
             status={
               <>
                 <StatusPill tone={severityTone(flag.severity)}>
@@ -181,7 +182,7 @@ function FraudFlagEvidence({ flag }: { readonly flag: FraudFlag }) {
   return (
     <div className="grid min-w-44 gap-1 text-xs leading-5">
       <span className="font-semibold text-foreground">
-        {flag.reason.replaceAll("_", " ")}
+        {formatAdminAction(flag.reason)}
       </span>
       <span className="text-muted-foreground">
         location {flag.locationStatus.replaceAll("_", " ")} · distance{" "}

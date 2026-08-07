@@ -11,6 +11,7 @@ import {
   AdminPanel,
   SourceLabel,
   first,
+  formatAdminAction,
   formatAdminAuditDate,
   maskAdminCustomer,
 } from "@/components/admin/support"
@@ -183,7 +184,7 @@ function toRecentAuditItem(log: AdminRecentAudit) {
 
   return {
     id: log.id as string,
-    title: log.action as string,
+    title: formatAdminAction(log.action as string),
     description: (
       <>
         {merchant?.business_name ?? "No merchant"}

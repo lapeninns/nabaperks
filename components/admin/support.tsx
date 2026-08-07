@@ -146,6 +146,22 @@ export function StatusPill({
   )
 }
 
+/**
+ * One humanising step for the snake_case keys the database stores
+ * (`data_request_logged`, `customer_pii_erased`, `qr_regenerated`). The audit
+ * page printed them raw in bold Bricolage while fraud and privacy each
+ * humanised the same class of value their own way — three readings of one
+ * datum, and snake_case in the display face is a register violation (mono is
+ * the printed voice). The raw token stays available wherever an operator
+ * needs to grep for it.
+ */
+export function formatAdminAction(value?: string | null) {
+  if (!value) return "-"
+  const spaced = value.replaceAll("_", " ").trim()
+  if (!spaced) return "-"
+  return `${spaced.charAt(0).toUpperCase()}${spaced.slice(1)}`
+}
+
 // Operators are UK-based: pin the console clock to Europe/London so audit and
 // fraud timestamps do not silently read an hour off during BST on UTC hosts.
 const ADMIN_TIME_ZONE = "Europe/London"

@@ -419,6 +419,47 @@ function redactDataRequestActivity(row: unknown): AdminDataRequestActivityRow {
   }
 }
 
+/**
+ * Paged audit readback with an optional venue filter. The audit log is a
+ * search surface by definition ("what did we do to venue X?"); it used to
+ * render the newest 100 rows with no filter, no total and no way to reach row
+ * 101. `merchants!inner` is only used when a venue fragment is supplied —
+ * plenty of audit rows have no merchant, and an unconditional inner join
+ * would silently drop them.
+ */
+export async function getAdminAuditPage(lookup: AdminLookupQuery = {}) {
+  const supabase = await createAdminServiceRoleClient()
+  const page = lookup.page ?? 1
+  const window = lookupRange(page)
+  const merchantEmbed = lookup.venue
+    ? "merchants!inner(business_name)"
+    : "merchants(business_name)"
+
+  let query = supabase
+    .from("audit_logs")
+    .select(
+      `id, actor_type, actor_id, action, target_table, target_id, metadata, created_at, ${merchantEmbed}, customers(email, phone_last4)`,
+      { count: "exact" }
+    )
+
+  if (lookup.venue) {
+    query = query.ilike(
+      "merchants.business_name",
+      containsPattern(lookup.venue)
+    )
+  }
+
+  const { data, error, count } = await query
+    .order("created_at", { ascending: false })
+    .range(window.from, window.to)
+
+  if (error) {
+    throw new Error(`Unable to load audit logs: ${error.message}`)
+  }
+
+  return { rows: data ?? [], meta: pageMeta(count ?? 0, page) }
+}
+
 export async function getAdminAuditLogs(limit = 100) {
   const supabase = await createAdminServiceRoleClient()
   const { data, error } = await supabase
