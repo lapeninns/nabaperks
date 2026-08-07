@@ -2,7 +2,7 @@
 
 import { AlertDiamondIcon } from "@hugeicons/core-free-icons"
 
-import { EmptyState } from "@/components/brand"
+import { EmptyState, ErrorAlertRegion } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 
 // Sits inside MerchantAppShell, so the header and nav survive while one section
@@ -15,17 +15,19 @@ export default function MerchantError({
 }) {
   return (
     <div className="mx-auto grid min-h-[50vh] w-full max-w-2xl place-items-center px-6 py-10">
-      <EmptyState
-        headingLevel={1}
-        icon={AlertDiamondIcon}
-        title="That didn't load"
-        description="Something interrupted your workspace. Try again. Your card, members, and rewards are safe on the server."
-        actions={
-          <Button type="button" onClick={reset}>
-            Try again
-          </Button>
-        }
-      />
+      <ErrorAlertRegion>
+        <EmptyState
+          headingLevel={1}
+          icon={AlertDiamondIcon}
+          title="That didn't load"
+          description="Something interrupted your workspace. Try again. Your card, members, and rewards are safe on the server."
+          actions={
+            <Button type="button" onClick={reset}>
+              Try again
+            </Button>
+          }
+        />
+      </ErrorAlertRegion>
     </div>
   )
 }

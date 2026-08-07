@@ -1,6 +1,6 @@
 "use client"
 
-import { useTransition, type ReactNode } from "react"
+import { useEffect, useRef, useTransition, type ReactNode } from "react"
 import Link from "next/link"
 
 import { VenueMark } from "@/components/brand"
@@ -29,9 +29,24 @@ export function CustomerErrorState({
 }) {
   const [isPending, startTransition] = useTransition()
   const retry = retryButtonState(isPending)
+  const headingRef = useRef<HTMLElement>(null)
+
+  // An error boundary replaces the page under the user without moving focus,
+  // so a screen-reader or keyboard user was left with focus on a node that no
+  // longer exists and no announcement that anything had failed. Move focus to
+  // the error surface once, on mount; `role="alert"` announces it for users
+  // who are not keyboard-driven.
+  useEffect(() => {
+    headingRef.current?.focus()
+  }, [])
 
   return (
-    <section className="grid justify-items-center gap-5 text-center">
+    <section
+      ref={headingRef}
+      tabIndex={-1}
+      role="alert"
+      className="focus-ring grid justify-items-center gap-5 rounded-lg text-center"
+    >
       <VenueMark size={56} name="Nabaperks" caption="Nabaperks" />
       <StatusBanner title={title} tone="error" className="w-full text-center">
         {description}
