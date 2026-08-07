@@ -58,3 +58,35 @@ pruned so the files read as what they render.
 and the unlayered layer already supplies their treatment. The test is
 authoritative; the audit finding should be closed as won't-fix or the contract
 renegotiated deliberately.
+
+## 6. The CSP theme-hash test cannot detect provider drift (found during 05#61)
+
+`lib/security/csp.ts` pins three SHA-256 hashes for the next-themes bootstrap
+script. `tests/unit/csp-theme-hash.test.mjs` verifies the pin — but it builds
+its **own** config literal:
+
+```js
+{ attribute: "class", defaultTheme: "light", enableSystem: true, ... }
+```
+
+rather than reading `components/theme-provider.tsx`. So if the real provider's
+props change, the injected script changes, the pinned hash goes stale, CSP
+blocks the theme script in production — **and the suite stays green**.
+
+Measured while attempting 05#61:
+
+| provider config                                | script SHA-256                                        |
+| ---------------------------------------------- | ----------------------------------------------------- |
+| `enableSystem: true` (current, pinned)         | `sha256-J1wQB5qnh90IAwdc5uHGmBFTTupFNURrdioqoKFQF0w=` |
+| `enableSystem: false` (audit's recommendation) | `sha256-UB8ZQDPPx/Vb2cqBe4pW3j8hm5RWjlg5zlcRw0uxtiE=` |
+
+Two things are needed before 05#61 can be actioned:
+
+1. Make the test import the real `ThemeProvider` (or export its options object)
+   so config and pin cannot drift apart.
+2. Re-pin all three hashes together — `NEXT_THEMES_SCRIPT_SHA256`,
+   `..._SERVER_RENDER_...` and `..._APP_RENDER_...` cover different render
+   paths, and only the server-render one is trivially reproducible.
+
+This is security configuration, so it wants a deliberate change with a
+staging readback, not a drive-by edit.
