@@ -4,14 +4,10 @@ import {
   CheckmarkCircle02Icon,
 } from "@hugeicons/core-free-icons"
 
-import {
-  Icon,
-  IconRoundel,
-  ReceiptCard,
-  SectionHeader,
-} from "@/components/brand"
+import { Icon, IconRoundel, SectionHeader } from "@/components/brand"
 import { Section } from "@/components/layout"
-import { TRANSFORMATION, VALUE_MATH } from "@/lib/marketing/facts"
+import { ValueMathReceipt } from "@/components/marketing"
+import { TRANSFORMATION } from "@/lib/marketing/facts"
 
 import { SnapRail, SnapRailItem } from "./snap-rail"
 
@@ -85,24 +81,10 @@ export function OutcomeTransformation() {
           </SnapRailItem>
         </SnapRail>
       </div>
-      <ReceiptCard
-        edge
+      <ValueMathReceipt
         rotated
-        padding="md"
         wrapperClassName="mx-auto max-w-2xl pt-5 sm:pt-7"
-        className="gap-2"
-      >
-        <p className="mono-meta text-muted-foreground">Does the maths work?</p>
-        <p className="text-sm leading-6 text-muted-foreground">
-          {VALUE_MATH.assumptionLine}
-        </p>
-        <p className="text-2xl leading-tight font-extrabold text-balance text-foreground sm:text-3xl">
-          {VALUE_MATH.coverLine}
-        </p>
-        <p className="mono-id text-muted-foreground uppercase">
-          {VALUE_MATH.illustrativeNote}
-        </p>
-      </ReceiptCard>
+      />
     </Section>
   )
 }

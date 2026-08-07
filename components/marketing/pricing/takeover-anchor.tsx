@@ -12,13 +12,21 @@ import { cn } from "@/lib/utils"
  * side-by-side column would read as a third tier, which the offer explicitly
  * is not. The ink ground gives it presence without granting it parity.
  * `TAKEOVER.price` is enquiry-only — there is no self-serve checkout.
+ *
+ * The aside carried `shadow-md` — an ink offset shadow on an ink ground, i.e.
+ * nothing. It is dropped, and `--w-shadow-color` is re-pointed to paper for
+ * the subtree so the button inside keeps its printed silhouette and its press
+ * choreography, which is DESIGN.md's system-wide signature. (The button's ink
+ * BORDER is still invisible here: fixing that needs the unlayered
+ * `[data-slot="button"]` rule in globals.css, which this change does not
+ * own.)
  */
 export function TakeoverAnchor({ className }: { className?: string }) {
   return (
     <aside
       data-takeover-enquiry
       className={cn(
-        "grid gap-4 rounded-sheet border-2 border-ink bg-ink p-5 text-paper shadow-md sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-6 sm:p-7",
+        "grid gap-4 rounded-sheet border-2 border-ink bg-ink p-5 text-paper [--w-shadow-color:var(--w-paper)] sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-6 sm:p-7",
         className
       )}
     >

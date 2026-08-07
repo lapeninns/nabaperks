@@ -1,6 +1,7 @@
 export { GrowthPlanPricing } from "./growth-plan-pricing"
 export { Marquee } from "./marquee"
 export { SeasonalOfferBanner } from "./seasonal-offer-banner"
+export { MarketingDisclosure } from "./disclosure"
 export { FinePrint } from "./fine-print"
 export { MARKETING_TEXT_LINK } from "./text-link"
 export * from "./pricing"

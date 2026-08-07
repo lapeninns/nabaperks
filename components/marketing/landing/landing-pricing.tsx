@@ -10,14 +10,9 @@ import {
   PlanIncludesList,
   PriceLockup,
   SeasonalOfferBanner,
+  TakeoverAnchor,
 } from "@/components/marketing"
-import {
-  OFFER,
-  PLAN_INCLUDES,
-  PRODUCT,
-  ROUTES,
-  TAKEOVER,
-} from "@/lib/marketing/facts"
+import { OFFER, PLAN_INCLUDES, PRODUCT, ROUTES } from "@/lib/marketing/facts"
 
 /**
  * On-page pricing — the standard self-serve plan and the genuine enquiry-only
@@ -31,7 +26,14 @@ export function LandingPricing() {
         title="Launch first. Prove the platform. Then continue."
         description="The physical launch is paid today. Allow up to 14 days for poster delivery; the 28-day platform pilot starts on confirmed delivery, then recurring billing begins."
       />
-      <div className="mx-auto mt-5 grid w-full max-w-4xl gap-4 sm:mt-6 md:grid-cols-[minmax(0,1.35fr)_minmax(0,0.85fr)]">
+      {/* The bespoke offer is `TakeoverAnchor`, the same component /pricing
+          renders, stacked BELOW the plan — not a second column beside it. Its
+          own docblock forbids the side-by-side arrangement ("a side-by-side
+          column would read as a third tier, which the offer explicitly is
+          not"), and the landing's hand-rolled copy had drifted to a different
+          ground, a different tag tone, a different button width and a
+          differently-worded enquiry-only disclaimer. */}
+      <div className="mx-auto mt-5 grid w-full max-w-4xl gap-4 sm:mt-6">
         <Card className="border-primary">
           <CardContent className="grid content-start gap-4">
             <div className="flex flex-wrap items-center gap-2">
@@ -64,7 +66,7 @@ export function LandingPricing() {
             {/* The full list, not `slice(0, 4)`: dropping the fifth include
                 meant `/` and `/pricing` published different contents for the
                 same plan. */}
-            <PlanIncludesList items={PLAN_INCLUDES} />
+            <PlanIncludesList items={PLAN_INCLUDES} columns={2} />
             <div className="flex flex-wrap items-center gap-3">
               <Button asChild size="lg">
                 <MarketingSignupLink>Start your launch</MarketingSignupLink>
@@ -79,23 +81,7 @@ export function LandingPricing() {
             </FinePrint>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="grid h-full content-start gap-4">
-            <MonoTag className="justify-self-start">Bespoke anchor</MonoTag>
-            <p className="text-2xl leading-none font-extrabold text-foreground sm:text-3xl">
-              {TAKEOVER.price}
-            </p>
-            <p className="text-lg leading-snug font-extrabold text-foreground">
-              {TAKEOVER.name}
-            </p>
-            <p className="text-sm leading-6 text-muted-foreground">
-              {TAKEOVER.qualifier} Enquiry only; no online checkout.
-            </p>
-            <Button asChild variant="secondary" className="mt-auto w-full">
-              <Link href={ROUTES.demo}>{TAKEOVER.action}</Link>
-            </Button>
-          </CardContent>
-        </Card>
+        <TakeoverAnchor />
       </div>
     </Section>
   )
