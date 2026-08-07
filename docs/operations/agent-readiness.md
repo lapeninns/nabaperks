@@ -61,9 +61,8 @@ of implementation truth.
   fail-closed coverage breach, requires seven observed days and 95% evidence
   coverage, and retains a daily report. Because both signals are GitHub-hosted,
   this is not proof of independent external monitoring.
-- Sentry capture, exact-SHA release verification, source-map upload and
-  production deploy readback are active only when the documented Sentry
-  environment values are supplied in the protected deployment environment.
+- Sentry remains an optional dormant integration and is not required by the
+  current production release path.
 
 Factory evaluates repository state from GitHub. After these controls merge,
 refresh the report and inspect every binary criterion rather than inferring a
