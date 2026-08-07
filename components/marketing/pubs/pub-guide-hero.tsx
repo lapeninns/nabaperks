@@ -4,6 +4,7 @@ import { MarketingSignupLink } from "@/components/analytics/marketing-signup-lin
 import { Eyebrow, MonoTag } from "@/components/brand"
 import { Section } from "@/components/layout"
 import { HeroSampleCard, type QrMatrix } from "@/components/marketing/landing"
+import { MARKETING_TEXT_LINK } from "@/components/marketing/text-link"
 import { Button } from "@/components/ui/button"
 import {
   BRAND,
@@ -12,6 +13,7 @@ import {
   ROUTES,
   type MarketingPersona,
 } from "@/lib/marketing/facts"
+import { cn } from "@/lib/utils"
 
 /**
  * The hub hero — a guide masthead, not a sales hero.
@@ -40,7 +42,7 @@ export function PubGuideHero({
     >
       <div className="grid gap-5">
         <Eyebrow>{PUB_GUIDE_HERO.eyebrow}</Eyebrow>
-        <h1 className="max-w-3xl text-3xl leading-[1.05] font-extrabold tracking-tight text-balance text-foreground sm:text-5xl">
+        <h1 className="max-w-3xl text-3xl leading-[1.05] font-extrabold tracking-tight text-balance text-foreground sm:text-4xl lg:text-5xl">
           {PUB_GUIDE_HERO.headline}
         </h1>
         <p className="max-w-[62ch] text-base leading-7 text-muted-foreground sm:text-lg">
@@ -54,7 +56,9 @@ export function PubGuideHero({
           <Button asChild size="lg">
             <Link href="#options">Compare the four options</Link>
           </Button>
-          <MarketingSignupLink className="focus-ring rounded-sm text-sm font-bold text-foreground underline underline-offset-4">
+          <MarketingSignupLink
+            className={cn(MARKETING_TEXT_LINK, "text-foreground")}
+          >
             Or start your launch
           </MarketingSignupLink>
         </div>

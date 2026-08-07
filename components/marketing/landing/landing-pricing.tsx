@@ -60,7 +60,10 @@ export function LandingPricing() {
               </div>
             </div>
             <SeasonalOfferBanner />
-            <PlanIncludesList items={PLAN_INCLUDES.slice(0, 4)} />
+            {/* The full list, not `slice(0, 4)`: dropping the fifth include
+                meant `/` and `/pricing` published different contents for the
+                same plan. */}
+            <PlanIncludesList items={PLAN_INCLUDES} />
             <div className="flex flex-wrap items-center gap-3">
               <Button asChild size="lg">
                 <MarketingSignupLink>Start your launch</MarketingSignupLink>

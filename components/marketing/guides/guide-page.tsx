@@ -3,9 +3,11 @@ import Link from "next/link"
 
 import { PageTitle, ReceiptCard } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
+import { MARKETING_TEXT_LINK } from "@/components/marketing/text-link"
 import { JsonLd } from "@/components/seo/json-ld"
 import { Button } from "@/components/ui/button"
 import { GUARANTEE, PLAN_LINE, PRODUCT, ROUTES } from "@/lib/marketing/facts"
+import { cn } from "@/lib/utils"
 import {
   articleSchema,
   breadcrumbSchema,
@@ -98,7 +100,7 @@ export function GuidePage({ guide }: { guide: Guide }) {
               >
                 <Link
                   href={candidate.path}
-                  className="focus-ring rounded-sm text-sm font-bold text-primary underline underline-offset-4"
+                  className={cn(MARKETING_TEXT_LINK, "text-primary")}
                 >
                   {candidate.title}
                 </Link>

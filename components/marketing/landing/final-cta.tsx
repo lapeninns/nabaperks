@@ -10,8 +10,8 @@ export function FinalCta() {
     <Section id="start" size="dense">
       <ReceiptCard
         edge
-        padding="md"
-        className="items-center gap-3 text-center sm:gap-4 sm:[--card-spacing:--spacing(8)]"
+        padding="lg"
+        className="items-center gap-3 text-center sm:gap-4"
       >
         <Eyebrow className="justify-self-center">Ready when you are</Eyebrow>
         <h2 className="max-w-2xl justify-self-center text-2xl leading-tight font-extrabold text-balance text-foreground sm:text-3xl">

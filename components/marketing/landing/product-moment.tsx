@@ -20,7 +20,7 @@ export function ProductMoment({ demoQr }: { demoQr: QrMatrix }) {
 
   return (
     <Section id="how" size="default">
-      <h2 className="max-w-2xl text-3xl leading-tight font-extrabold text-balance text-foreground sm:text-4xl">
+      <h2 className="max-w-2xl text-2xl leading-tight font-extrabold text-balance text-foreground sm:text-3xl">
         {LANDING.moment.title}
       </h2>
       <div className="grid gap-8 pt-8 sm:grid-cols-2 sm:pt-10 md:grid-cols-3 lg:gap-10">
