@@ -18,8 +18,8 @@ branch is green after every merge.
 | 02 customer      |      70 |      44 |      11 |      2 |     13 |
 | 03 merchant      |      67 |      44 |      15 |      5 |      3 |
 | 04 admin         |      74 |      54 |       9 |      8 |      3 |
-| 05 design system |      67 |      58 |       2 |      1 |      6 |
-| **Total**        | **347** | **243** |  **54** | **19** | **31** |
+| 05 design system |      67 |      60 |       3 |      1 |      3 |
+| **Total**        | **347** | **245** |  **55** | **19** | **28** |
 
 ## "Stale" is a real category (19 findings)
 
@@ -60,7 +60,7 @@ relaxed for whitespace only after Prettier re-wrapped a ternary
 `isPosterPrintPath` (`merchant-shell`). One test was added
 (`motion-tokens-bounded`).
 
-## Remaining 31 open, by reason
+## Remaining 28 open, by reason
 
 - **Needs a browser** — 01#12 heroes, 02#27/28/29 stamp-grid geometry, 04#60
   sticky table header, 04#67 density, 05#47 footer density.

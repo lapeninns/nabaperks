@@ -5,7 +5,7 @@ Branch `feat/ui-redesign-audit-fixes`. `[x]` shipped and verified, `[~]` partial
 `[ ]` open. Per-lane detail is in the sibling `STATUS-*.md` files; the
 cross-lane roll-up is in `COVERAGE.md`.
 
-## 05-design-system.md — 58 done / 2 partial / 1 stale / 1 deferred / 5 open (of 67)
+## 05-design-system.md — 60 done / 3 partial / 1 stale / 1 deferred / 2 open (of 67)
 
 |         | ID    | Priority | Finding                                                                              |
 | ------- | ----- | -------- | ------------------------------------------------------------------------------------ |
@@ -31,7 +31,7 @@ cross-lane roll-up is in `COVERAGE.md`.
 | [x]     | 05#20 | Medium   | `CardTitle` renders at `text-base font-medium` and relies on CSS to fix the weight   |
 | [x]     | 05#21 | Medium   | `ReceiptCard`'s four padding presets fork the 14/22px spacing contract               |
 | [x]     | 05#22 | High     | Three input heights (44/48/48) and a hand-rolled fourth well                         |
-| [ ]     | 05#23 | High     | Form labels are 11.5px uppercase mono                                                |
+| [x]     | 05#23 | High     | Form labels are 11.5px uppercase mono                                                |
 | [~]     | 05#24 | High     | No password visibility toggle, but a "Confirm password" field on two flows           |
 | [x]     | 05#25 | Medium   | `PasswordRequirements` announces a count on every keystroke                          |
 | [x]     | 05#26 | High     | `focus-ring` on `tabIndex={-1}` recovery containers never renders                    |
@@ -58,7 +58,7 @@ cross-lane roll-up is in `COVERAGE.md`.
 | [ ]     | 05#47 | High     | The marketing footer is a 4-column, 13-link, 44px-per-row block on every page        |
 | [x]     | 05#48 | High     | No error boundary moves focus or announces itself                                    |
 | [x]     | 05#49 | Medium   | `global-error.tsx` speaks a different design system                                  |
-| [ ]     | 05#50 | Medium   | Loading fallbacks use `role="status"` on a container with no `aria-live` guarantee a |
+| [x]     | 05#50 | Medium   | Loading fallbacks use `role="status"` on a container with no `aria-live` guarantee a |
 | [x]     | 05#51 | Low      | Four route-level `not-found` variants with three different container recipes         |
 | [x]     | 05#52 | High     | The reset-password confirm step is ~840px tall on a phone                            |
 | [x]     | 05#53 | High     | `SignupVerifyForm` renders three escape-hatch paragraphs containing four 44px links  |
@@ -73,7 +73,7 @@ cross-lane roll-up is in `COVERAGE.md`.
 | [x]     | 05#62 | High     | `focus-visible` recipe is sound, but seven interactive surfaces opt out of it        |
 | [x]     | 05#63 | High     | Compact sizes honour 44px on coarse pointers — except the four that don't            |
 | [x]     | 05#64 | Medium   | `Icon` sizes are passed as numbers, producing 9 distinct glyph sizes with no scale   |
-| [ ]     | 05#65 | Medium   | `Section` and `ContrastBand` own marketing rhythm, but nothing owns console/customer |
+| [~]     | 05#65 | Medium   | `Section` and `ContrastBand` own marketing rhythm, but nothing owns console/customer |
 | [x]     | 05#66 | Low      | `Section size="default"` is `py-7 sm:py-10` while `ContrastBand` is `py-9 sm:py-12`  |
 | [x]     | 05#67 | Low      | `numeric-tabular` exists and is used 42 times, but the countdowns don't use it       |
 
@@ -82,12 +82,7 @@ cross-lane roll-up is in `COVERAGE.md`.
 - **05#13** — Button ships 9 sizes, 6 used. Cutting to four is an API removal
   across every lane's call sites; explicitly out of scope per the standing
   Tier-3/4 exclusion.
-- **05#23** — form labels are 11.5px uppercase mono. Moving them to
-  `text-sm font-bold` restyles every label in the product at once; wants a
-  visual pass, not a blind codemod.
 - **05#47** — the marketing footer's density. Layout judgement; needs a browser.
-- **05#50** — loading announcements driven by `useLinkStatus`. Needs a shell-level
-  live region wired to navigation state, verified against a real screen reader.
 - **05#65** — nothing owns console/customer vertical rhythm. Needs a rhythm
   primitive adopted across every console and customer page root.
 
