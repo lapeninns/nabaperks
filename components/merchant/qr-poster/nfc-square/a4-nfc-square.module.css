@@ -14,17 +14,25 @@
   min-width: 0;
 }
 
+/* Two rows: the bar (back, title, print) and, on a merchant's own preview,
+   the shared asset/design switcher below it. */
 .chrome {
   position: sticky;
   top: 0;
   z-index: 20;
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 2px solid var(--w-ink);
+  background: var(--w-paper);
+}
+
+.chromeBar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1rem 1.5rem;
-  border-bottom: 2px solid var(--w-ink);
-  background: var(--w-paper);
+  min-width: 0;
 }
 
 .chromeMeta {

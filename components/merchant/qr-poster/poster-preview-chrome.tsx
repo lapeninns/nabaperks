@@ -8,6 +8,7 @@ import {
 } from "@hugeicons/core-free-icons"
 
 import { Icon } from "@/components/brand"
+import { PrintKindNav } from "@/components/merchant/qr-poster/print-preview-nav"
 import { Button } from "@/components/ui/button"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import type { QrPosterTemplateId } from "@/lib/qr/poster-templates"
@@ -112,14 +113,25 @@ export function PosterPreviewChrome({
       </div>
 
       {qrCodeId ? (
-        <PosterTemplateLinks
-          template={template}
-          qrCodeId={qrCodeId}
-          backHref={backHref}
-          layout="strip"
-          activePillRef={activePillRef}
-          navRef={navRef}
-        />
+        <>
+          {/* The four print assets are one journey; the kind row is the same
+              control the tent, NFC card and wall plate previews now carry. */}
+          <div className="mx-auto w-full max-w-[var(--poster-frame-max)] px-4 pb-2.5 sm:px-6 lg:max-w-none">
+            <PrintKindNav
+              kind="poster"
+              qrCodeId={qrCodeId}
+              backHref={backHref}
+            />
+          </div>
+          <PosterTemplateLinks
+            template={template}
+            qrCodeId={qrCodeId}
+            backHref={backHref}
+            layout="strip"
+            activePillRef={activePillRef}
+            navRef={navRef}
+          />
+        </>
       ) : null}
 
       {guidanceOpen ? (

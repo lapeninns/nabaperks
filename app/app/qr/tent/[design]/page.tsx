@@ -58,6 +58,7 @@ export default async function QrTentPage({
       qrDataUrl={qrDataUrl}
       merchantName={qrContext.merchant.business_name}
       stampsRequired={qrContext.activeCard.stamps_required}
+      qrCodeId={qrCodeId}
       backHref={backHref}
     />
   )
