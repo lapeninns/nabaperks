@@ -52,7 +52,8 @@ async function joinNoStamp(tx, customerId, slug, ref = null) {
   return row
 }
 async function codeFor(tx, membershipId) {
-  const [{ referral_code }] = await tx`select referral_code from public.customer_memberships where id = ${membershipId}`
+  const [{ referral_code }] =
+    await tx`select referral_code from public.customer_memberships where id = ${membershipId}`
   return referral_code
 }
 async function cardFor(tx, merchantId) {
@@ -80,7 +81,8 @@ async function bonusStamps(tx, membershipId) {
     and event_type = 'earned' and metadata->>'source' = 'referral_bonus'`
 }
 async function notifCount(tx, membershipId, eventType) {
-  const [{ n }] = await tx`select count(*)::int as n from public.notification_events
+  const [{ n }] =
+    await tx`select count(*)::int as n from public.notification_events
     where membership_id = ${membershipId} and event_type = ${eventType}`
   return n
 }
@@ -93,11 +95,23 @@ async function eventCount(tx, edgeId, eventName) {
 // Referrer (no same-day stamp) + friend qualified, ready to settle/hold.
 async function seedQualified(tx, qr) {
   const referrerCustomer = await makeCustomer(tx)
-  const referrer = await joinNoStamp(tx, referrerCustomer, qr.business_slug, null)
+  const referrer = await joinNoStamp(
+    tx,
+    referrerCustomer,
+    qr.business_slug,
+    null
+  )
   const code = await codeFor(tx, referrer.membership_id)
   const friendCustomer = await makeCustomer(tx)
   const friend = await joinNoStamp(tx, friendCustomer, qr.business_slug, code)
-  const s = { referrerCustomer, referrer, friendCustomer, friend, code, merchantId: qr.merchant_id }
+  const s = {
+    referrerCustomer,
+    referrer,
+    friendCustomer,
+    friend,
+    code,
+    merchantId: qr.merchant_id,
+  }
   s.card = await cardFor(tx, qr.merchant_id)
   const stampId = await insertFriendVisit(tx, s, s.card)
   await tx`select public.qualify_referral_on_stamp(${friend.membership_id}::uuid, ${stampId}::uuid)`
@@ -105,125 +119,270 @@ async function seedQualified(tx, qr) {
   return s
 }
 
-test("RO-1/RO-6: creating an edge writes referral_attributed + one deduped friend-joined notification", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    const [qr] = await tx.unsafe(PICK_QR)
-    assert.ok(qr, "an active join QR exists")
-    const referrerCustomer = await makeCustomer(tx)
-    const referrer = await joinNoStamp(tx, referrerCustomer, qr.business_slug, null)
-    const code = await codeFor(tx, referrer.membership_id)
-    const friendCustomer = await makeCustomer(tx)
-    const friend = await joinNoStamp(tx, friendCustomer, qr.business_slug, code)
-    const e = await edgeRow(tx, friend.membership_id)
+test(
+  "RO-1/RO-6: creating an edge writes referral_attributed + one deduped friend-joined notification",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const [qr] = await tx.unsafe(PICK_QR)
+      assert.ok(qr, "an active join QR exists")
+      const referrerCustomer = await makeCustomer(tx)
+      const referrer = await joinNoStamp(
+        tx,
+        referrerCustomer,
+        qr.business_slug,
+        null
+      )
+      const code = await codeFor(tx, referrer.membership_id)
+      const friendCustomer = await makeCustomer(tx)
+      const friend = await joinNoStamp(
+        tx,
+        friendCustomer,
+        qr.business_slug,
+        code
+      )
+      const e = await edgeRow(tx, friend.membership_id)
 
-    assert.equal(await eventCount(tx, e.id, "referral_attributed"), 1, "one referral_attributed event (RO-1)")
-    assert.equal(await notifCount(tx, referrer.membership_id, "referral_friend_joined"), 1, "one friend-joined notification (RO-1)")
-    const [notification] = await tx`
+      assert.equal(
+        await eventCount(tx, e.id, "referral_attributed"),
+        1,
+        "one referral_attributed event (RO-1)"
+      )
+      assert.equal(
+        await notifCount(tx, referrer.membership_id, "referral_friend_joined"),
+        1,
+        "one friend-joined notification (RO-1)"
+      )
+      const [notification] = await tx`
       select payload from public.notification_events
       where membership_id = ${referrer.membership_id}
         and event_type = 'referral_friend_joined'`
-    assert.equal(notification.payload.title, "Your friend joined", "SQL outbox includes referral title")
-    assert.ok(notification.payload.body.includes("just joined"), "SQL outbox includes referral body")
-    assert.ok(notification.payload.tag, "SQL outbox includes a stable tag")
-    assert.equal(notification.payload.eventType, "referral_friend_joined", "SQL outbox includes event type")
-  })
-})
+      assert.equal(
+        notification.payload.title,
+        "Your friend joined",
+        "SQL outbox includes referral title"
+      )
+      assert.ok(
+        notification.payload.body.includes("just joined"),
+        "SQL outbox includes referral body"
+      )
+      assert.ok(notification.payload.tag, "SQL outbox includes a stable tag")
+      assert.equal(
+        notification.payload.eventType,
+        "referral_friend_joined",
+        "SQL outbox includes event type"
+      )
+    })
+  }
+)
 
-test("RO-2/RO-3/RO-4/RO-6: qualified, held, and awarded each notify the referrer once", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    const [qr] = await tx.unsafe(PICK_QR)
-    const s = await seedQualified(tx, qr)
-    assert.equal(await notifCount(tx, s.referrer.membership_id, "referral_qualified"), 1, "one referral_qualified notification (RO-2)")
+test(
+  "RO-2/RO-3/RO-4/RO-6: qualified, held, and awarded each notify the referrer once",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const [qr] = await tx.unsafe(PICK_QR)
+      const s = await seedQualified(tx, qr)
+      assert.equal(
+        await notifCount(tx, s.referrer.membership_id, "referral_qualified"),
+        1,
+        "one referral_qualified notification (RO-2)"
+      )
 
-    // Full card → hold → bonus-saved notification.
-    await tx`update public.customer_memberships set current_stamp_count = ${s.card.stamps_required} where id = ${s.referrer.membership_id}`
-    await tx`select public.settle_referral_bonus(${s.edgeId}::uuid)`
-    assert.equal((await edgeRow(tx, s.friend.membership_id)).status, "held", "edge held")
-    assert.equal(await notifCount(tx, s.referrer.membership_id, "referral_bonus_saved"), 1, "one bonus-saved notification (RO-3)")
+      // Full card → hold → bonus-saved notification.
+      await tx`update public.customer_memberships set current_stamp_count = ${s.card.stamps_required} where id = ${s.referrer.membership_id}`
+      await tx`select public.settle_referral_bonus(${s.edgeId}::uuid)`
+      assert.equal(
+        (await edgeRow(tx, s.friend.membership_id)).status,
+        "held",
+        "edge held"
+      )
+      assert.equal(
+        await notifCount(tx, s.referrer.membership_id, "referral_bonus_saved"),
+        1,
+        "one bonus-saved notification (RO-3)"
+      )
 
-    // Repeated hold does not double-notify (RO-6).
-    await tx`select public.settle_referral_bonus(${s.edgeId}::uuid)`
-    assert.equal(await notifCount(tx, s.referrer.membership_id, "referral_bonus_saved"), 1, "bonus-saved deduped (RO-6)")
+      // Repeated hold does not double-notify (RO-6).
+      await tx`select public.settle_referral_bonus(${s.edgeId}::uuid)`
+      assert.equal(
+        await notifCount(tx, s.referrer.membership_id, "referral_bonus_saved"),
+        1,
+        "bonus-saved deduped (RO-6)"
+      )
 
-    // Free room, settle → awarded notification (RO-4).
-    await tx`update public.customer_memberships set current_stamp_count = 0 where id = ${s.referrer.membership_id}`
-    await tx`select public.settle_referral_bonus(${s.edgeId}::uuid)`
-    assert.equal((await edgeRow(tx, s.friend.membership_id)).status, "awarded", "edge awarded")
-    assert.equal(await notifCount(tx, s.referrer.membership_id, "referral_bonus_stamp_issued"), 1, "one awarded notification (RO-4)")
-  })
-})
+      // Free room, settle → awarded notification (RO-4).
+      await tx`update public.customer_memberships set current_stamp_count = 0 where id = ${s.referrer.membership_id}`
+      await tx`select public.settle_referral_bonus(${s.edgeId}::uuid)`
+      assert.equal(
+        (await edgeRow(tx, s.friend.membership_id)).status,
+        "awarded",
+        "edge awarded"
+      )
+      assert.equal(
+        await notifCount(
+          tx,
+          s.referrer.membership_id,
+          "referral_bonus_stamp_issued"
+        ),
+        1,
+        "one awarded notification (RO-4)"
+      )
+    })
+  }
+)
 
-test("RO-5: an unexpected settlement error emits referral_bonus_failed distinct from held", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    const [qr] = await tx.unsafe(PICK_QR)
-    const s = await seedQualified(tx, qr)
-    await tx`alter table public.stamp_events add constraint tmp_block_bonus
+test(
+  "RO-5: an unexpected settlement error emits referral_bonus_failed distinct from held",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const [qr] = await tx.unsafe(PICK_QR)
+      const s = await seedQualified(tx, qr)
+      await tx`alter table public.stamp_events add constraint tmp_block_bonus
              check (coalesce(metadata->>'source','') <> 'referral_bonus') not valid`
-    await tx`select public.settle_referral_bonus(${s.edgeId}::uuid)`
-    const e = await edgeRow(tx, s.friend.membership_id)
-    assert.equal(e.hold_reason, "temporary_processing_error", "held on error")
-    assert.equal(await eventCount(tx, s.edgeId, "referral_bonus_failed"), 1, "one referral_bonus_failed event (RO-5)")
-    assert.ok(await eventCount(tx, s.edgeId, "referral_bonus_held") >= 1, "and a held event too (RO-5)")
-  })
-})
+      await tx`select public.settle_referral_bonus(${s.edgeId}::uuid)`
+      const e = await edgeRow(tx, s.friend.membership_id)
+      assert.equal(e.hold_reason, "temporary_processing_error", "held on error")
+      assert.equal(
+        await eventCount(tx, s.edgeId, "referral_bonus_failed"),
+        1,
+        "one referral_bonus_failed event (RO-5)"
+      )
+      assert.ok(
+        (await eventCount(tx, s.edgeId, "referral_bonus_held")) >= 1,
+        "and a held event too (RO-5)"
+      )
+    })
+  }
+)
 
-test("RO-7: a held card_full bonus settles on the referrer's next venue visit (stamp ordering)", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    const [qr] = await tx.unsafe(PICK_QR)
-    const s = await seedQualified(tx, qr) // referrer joined without a same-day stamp
-    // Full card → hold card_full.
-    await tx`update public.customer_memberships set current_stamp_count = ${s.card.stamps_required} where id = ${s.referrer.membership_id}`
-    await tx`select public.settle_referral_bonus(${s.edgeId}::uuid)`
-    assert.equal((await edgeRow(tx, s.friend.membership_id)).status, "held", "held on the full card")
+test(
+  "RO-7: a held card_full bonus settles on the referrer's next venue visit (stamp ordering)",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const [qr] = await tx.unsafe(PICK_QR)
+      const s = await seedQualified(tx, qr) // referrer joined without a same-day stamp
+      // Full card → hold card_full.
+      await tx`update public.customer_memberships set current_stamp_count = ${s.card.stamps_required} where id = ${s.referrer.membership_id}`
+      await tx`select public.settle_referral_bonus(${s.edgeId}::uuid)`
+      assert.equal(
+        (await edgeRow(tx, s.friend.membership_id)).status,
+        "held",
+        "held on the full card"
+      )
 
-    // Room frees and the referrer makes their next visit: the settlement stamp
-    // ordering hook settles the owed bonus before their own stamp — exactly once.
-    await tx`update public.customer_memberships set current_stamp_count = 0 where id = ${s.referrer.membership_id}`
-    await tx`select * from public.issue_self_service_stamp(
+      // Room frees and the referrer makes their next visit: the settlement stamp
+      // ordering hook settles the owed bonus before their own stamp — exactly once.
+      await tx`update public.customer_memberships set current_stamp_count = 0 where id = ${s.referrer.membership_id}`
+      await tx`select * from public.issue_self_service_stamp(
       ${s.referrer.membership_id}::uuid, ${s.referrerCustomer}::uuid, ${qr.qr_id}, null, null)`
-    assert.equal((await bonusStamps(tx, s.referrer.membership_id)).length, 1, "the held bonus settled on the visit (RO-7)")
-    assert.equal((await edgeRow(tx, s.friend.membership_id)).status, "awarded", "edge awarded once")
-  })
-})
+      assert.equal(
+        (await bonusStamps(tx, s.referrer.membership_id)).length,
+        1,
+        "the held bonus settled on the visit (RO-7)"
+      )
+      assert.equal(
+        (await edgeRow(tx, s.friend.membership_id)).status,
+        "awarded",
+        "edge awarded once"
+      )
+    })
+  }
+)
 
-test("RO-9: replenishing the reward pool settles a reward_unavailable hold", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    const [qr] = await tx.unsafe(PICK_QR_REWARDS)
-    if (!qr) return // no rewards-rich multi-stamp card seeded
-    const s = await seedQualified(tx, qr)
-    // Completing bonus, but the pool is emptied → hold reward_unavailable.
-    await tx`update public.customer_memberships set current_stamp_count = ${qr.stamps_required - 1} where id = ${s.referrer.membership_id}`
-    await tx`update public.reward_pool_items set is_active = false where loyalty_card_id = ${qr.loyalty_card_id}::uuid`
-    await tx`select public.settle_referral_bonus(${s.edgeId}::uuid)`
-    assert.equal((await edgeRow(tx, s.friend.membership_id)).hold_reason, "reward_unavailable", "held reward_unavailable")
+test(
+  "RO-9: replenishing the reward pool settles a reward_unavailable hold",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const [qr] = await tx.unsafe(PICK_QR_REWARDS)
+      if (!qr) return // no rewards-rich multi-stamp card seeded
+      const s = await seedQualified(tx, qr)
+      // Completing bonus, but the pool is emptied → hold reward_unavailable.
+      await tx`update public.customer_memberships set current_stamp_count = ${qr.stamps_required - 1} where id = ${s.referrer.membership_id}`
+      await tx`update public.reward_pool_items set is_active = false where loyalty_card_id = ${qr.loyalty_card_id}::uuid`
+      await tx`select public.settle_referral_bonus(${s.edgeId}::uuid)`
+      assert.equal(
+        (await edgeRow(tx, s.friend.membership_id)).hold_reason,
+        "reward_unavailable",
+        "held reward_unavailable"
+      )
 
-    // Merchant re-activates the pool → the retry trigger settles the held bonus.
-    await tx`update public.reward_pool_items set is_active = true where loyalty_card_id = ${qr.loyalty_card_id}::uuid`
-    assert.equal((await bonusStamps(tx, s.referrer.membership_id)).length, 1, "the held bonus settled on replenish (RO-9)")
-    assert.equal((await edgeRow(tx, s.friend.membership_id)).status, "awarded", "edge awarded")
-  })
-})
+      // Merchant re-activates the pool → the retry trigger settles the held bonus.
+      await tx`update public.reward_pool_items set is_active = true where loyalty_card_id = ${qr.loyalty_card_id}::uuid`
+      assert.equal(
+        (await bonusStamps(tx, s.referrer.membership_id)).length,
+        1,
+        "the held bonus settled on replenish (RO-9)"
+      )
+      assert.equal(
+        (await edgeRow(tx, s.friend.membership_id)).status,
+        "awarded",
+        "edge awarded"
+      )
+    })
+  }
+)
 
-test("review hardening: a bonus that completes the card survives the QR transaction", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    const [qr] = await tx.unsafe(PICK_QR_REWARDS)
-    if (!qr) return
-    const s = await seedQualified(tx, qr)
-    await tx`update public.customer_memberships
+test(
+  "review hardening: a bonus that completes the card survives the QR transaction",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const [qr] = await tx.unsafe(PICK_QR_REWARDS)
+      if (!qr) return
+      const s = await seedQualified(tx, qr)
+      await tx`update public.customer_memberships
       set current_stamp_count = ${qr.stamps_required - 1}
       where id = ${s.referrer.membership_id}`
 
-    const [result] = await tx`select * from public.issue_self_service_stamp(
+      const [before] = await tx`
+      select last_visit_at from public.customer_memberships
+      where id = ${s.referrer.membership_id}`
+
+      const [result] = await tx`select * from public.issue_self_service_stamp(
       ${s.referrer.membership_id}::uuid, ${s.referrerCustomer}::uuid, ${qr.qr_id}, null, null)`
 
-    assert.equal(result.reward_unlocked, true, "the scan reports the reward unlocked by the bonus")
-    assert.equal((await bonusStamps(tx, s.referrer.membership_id)).length, 1, "the completing bonus is not rolled back")
-    assert.equal((await edgeRow(tx, s.friend.membership_id)).status, "awarded", "the referral remains awarded")
-    const [{ n: visits }] = await tx`
+      assert.equal(
+        result.reward_unlocked,
+        true,
+        "the scan reports the reward unlocked by the bonus"
+      )
+      assert.equal(
+        (await bonusStamps(tx, s.referrer.membership_id)).length,
+        1,
+        "the completing bonus is not rolled back"
+      )
+      assert.equal(
+        (await edgeRow(tx, s.friend.membership_id)).status,
+        "awarded",
+        "the referral remains awarded"
+      )
+      const [{ n: visits }] = await tx`
       select count(*)::int as n from public.stamp_events
       where membership_id = ${s.referrer.membership_id}
         and event_type = 'earned'
         and coalesce(metadata->>'source', '') <> 'referral_bonus'`
-    assert.equal(visits, 0, "the wrapper stops before adding a visit stamp to the completed card")
-  })
-})
+      assert.equal(
+        visits,
+        0,
+        "the wrapper stops before adding a visit stamp to the completed card"
+      )
+      const [after] = await tx`
+      select last_visit_at from public.customer_memberships
+      where id = ${s.referrer.membership_id}`
+      assert.equal(
+        after.last_visit_at?.toISOString() ?? null,
+        before.last_visit_at?.toISOString() ?? null,
+        "a scan that skipped location verification is not counted as a visit"
+      )
+      const [{ n: visitEvents }] = await tx`
+      select count(*)::int as n from public.product_events
+      where membership_id = ${s.referrer.membership_id}
+        and event_name = 'visit_without_stamp'`
+      assert.equal(visitEvents, 0, "no unverified visit event is emitted")
+    })
+  }
+)

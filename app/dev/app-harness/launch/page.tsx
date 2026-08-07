@@ -13,6 +13,7 @@ import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-pan
 import { BirthdayRewardPanel } from "@/components/merchant/launch/birthday-panel"
 import { LaunchFlowFooter } from "@/components/merchant/launch/launch-flow-footer"
 import { birthdayRewardTemplateForBusinessType } from "@/lib/merchant/birthday-reward-template"
+import { DEFAULT_REWARD_EXPIRY_DAYS } from "@/lib/merchant/reward-expiry-fields"
 import {
   LoyaltyCardForm,
   RewardPoolForm,
@@ -207,6 +208,7 @@ export default async function LaunchHarnessPage({
               cardName: "Mystery Visit Card",
               stampsRequired: "3",
               rewardTerms: "A surprise reward on the house after 3 visits.",
+              rewardExpiryDays: String(DEFAULT_REWARD_EXPIRY_DAYS),
               isActive: true,
             }}
             cadencePresets={CARD_CADENCE_PRESETS}

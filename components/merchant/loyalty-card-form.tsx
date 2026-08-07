@@ -24,6 +24,10 @@ import {
   isDefaultLoyaltyCardRewardTerms,
 } from "@/lib/merchant/loyalty-card-copy"
 import type { CardCadencePreset } from "@/lib/merchant/reward-presets"
+import {
+  REWARD_EXPIRY_OPTIONS,
+  rewardExpiryLabel,
+} from "@/lib/merchant/reward-expiry-fields"
 import { cn } from "@/lib/utils"
 
 type LoyaltyCardFormValues = {
@@ -31,6 +35,7 @@ type LoyaltyCardFormValues = {
   cardName: string
   stampsRequired: string
   rewardTerms: string
+  rewardExpiryDays: string
   isActive: boolean
 }
 
@@ -179,6 +184,39 @@ export function LoyaltyCardForm({
           hint="Shown on the member card. The suggested copy updates when you change visits, until you edit this field."
           error={state.errors?.rewardTerms}
         />
+
+        <div className="space-y-2">
+          <label
+            htmlFor="rewardExpiryDays"
+            className="text-sm font-medium text-foreground"
+          >
+            Reward stays claimable for
+          </label>
+          <select
+            id="rewardExpiryDays"
+            name="rewardExpiryDays"
+            value={draft.rewardExpiryDays}
+            onChange={(event) =>
+              updateDraft("rewardExpiryDays", event.target.value)
+            }
+            className="h-11 w-full rounded-lg border border-input bg-background px-3 text-sm"
+          >
+            {REWARD_EXPIRY_OPTIONS.map((days) => (
+              <option key={days} value={String(days)}>
+                {rewardExpiryLabel(days)}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs leading-5 text-muted-foreground">
+            After this, an uncollected reward lapses and the member starts a
+            fresh card. Without it a full card would stop collecting for good.
+          </p>
+          {state.errors?.rewardExpiryDays ? (
+            <p className="text-sm text-destructive">
+              {state.errors.rewardExpiryDays}
+            </p>
+          ) : null}
+        </div>
 
         <ToggleRow
           name="isActive"

@@ -57,8 +57,9 @@ is source-aligned and PITR-backed:
 pnpm ops:supabase:check
 ```
 
-Sentry release proof requires protected production credentials and verifies the
-exact full Git SHA, project association and production deploy readback:
+Sentry is optional and is not a production release gate. If it is deliberately
+configured later, its release proof verifies the exact full Git SHA, project
+association and production deploy readback:
 
 ```bash
 pnpm ops:sentry:check

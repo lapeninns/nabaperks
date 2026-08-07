@@ -1,5 +1,7 @@
 "use client"
 
+export { shouldAttemptStampLocation } from "@/lib/customer/stamp-location-capture"
+
 export const SOFT_GPS_CAPTURE_TIMEOUT_MS = 1200
 
 const LOCATION_DENIAL_MEMORY_KEY = "nabaperks:soft-gps-denied:v1"
@@ -10,13 +12,6 @@ export type StampLocationCapture = {
   readonly accuracyMeters: number | null
   readonly locationStatus: string
   readonly captureElapsedMs: number
-}
-
-export function shouldAttemptStampLocation(
-  requireGeofence: boolean,
-  nextCycleStampNumber: number
-): boolean {
-  return requireGeofence && nextCycleStampNumber === 3
 }
 
 export function resolveStampLocation(
