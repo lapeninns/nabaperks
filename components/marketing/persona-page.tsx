@@ -135,7 +135,7 @@ export function PersonaSpokePage({
             eyebrow="Who it's built for"
             title="Is this right for your pub?"
           />
-          <div className="grid gap-5 pt-5 lg:grid-cols-2">
+          <div className="grid gap-5 pt-5 md:grid-cols-2">
             <div className="grid content-start gap-2">
               <MonoTag tone="leaf" className="justify-self-start">
                 Right for you

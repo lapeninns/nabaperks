@@ -37,7 +37,7 @@ export function GuaranteeStack() {
         title="Two guarantees behind your launch"
         description={OFFER.riskFraming}
       />
-      <div className="grid gap-4 pt-5 sm:gap-5 sm:pt-6 lg:grid-cols-2">
+      <div className="grid gap-4 pt-5 sm:gap-5 sm:pt-6 md:grid-cols-2">
         {guarantees.map((guarantee) => (
           <ReceiptCard
             key={guarantee.name}

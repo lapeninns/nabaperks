@@ -21,7 +21,7 @@ export async function CommercialEvidenceProof() {
         title="Results tied back to the loyalty ledger"
         description="Each figure is a dated aggregate snapshot. Nothing appears here without the venue’s recorded approval."
       />
-      <div className="grid gap-4 pt-5 lg:grid-cols-3">
+      <div className="grid gap-4 pt-5 sm:grid-cols-2 md:grid-cols-3">
         {cases.map((caseStudy) => (
           <ReceiptCard key={caseStudy.id} edge padding="md" className="gap-3">
             <MonoTag tone="leaf" className="justify-self-start">

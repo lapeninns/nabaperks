@@ -17,7 +17,7 @@ export function PubFitTest({ persona }: { persona: MarketingPersona }) {
       <p className="max-w-[68ch] text-base leading-7 text-muted-foreground">
         {persona.fitNote}
       </p>
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid gap-5 md:grid-cols-2">
         <div className="grid content-start gap-4 rounded-lg border-2 border-ink bg-card p-5 shadow-sm sm:p-6">
           <MonoTag tone="leaf" className="justify-self-start">
             This fits

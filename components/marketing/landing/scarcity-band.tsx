@@ -11,7 +11,7 @@ import { SCARCITY, URGENCY } from "@/lib/marketing/facts"
 export function ScarcityBand() {
   return (
     <ContrastBand id="capacity" size="dense">
-      <div className="grid gap-5 sm:gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-12">
+      <div className="grid gap-5 sm:gap-8 md:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] md:gap-10 lg:gap-12">
         <div className="grid content-start gap-3">
           <p className="mono-meta text-paper/70">
             Why there’s sometimes a wait

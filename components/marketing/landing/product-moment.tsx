@@ -23,7 +23,7 @@ export function ProductMoment({ demoQr }: { demoQr: QrMatrix }) {
       <h2 className="max-w-2xl text-3xl leading-tight font-extrabold text-balance text-foreground sm:text-4xl">
         {LANDING.moment.title}
       </h2>
-      <div className="grid gap-8 pt-8 sm:pt-10 lg:grid-cols-3 lg:gap-10">
+      <div className="grid gap-8 pt-8 sm:grid-cols-2 sm:pt-10 md:grid-cols-3 lg:gap-10">
         <Beat caption={scan.caption} detail={scan.detail} delay={0}>
           <div className="w-full max-w-[11rem]">
             <VenueQr matrix={demoQr} label="Example venue QR code" />

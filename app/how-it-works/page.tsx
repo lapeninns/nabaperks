@@ -72,7 +72,7 @@ export default function HowItWorksPage() {
       <FeaturesListicle />
       <OutcomeTransformation />
       <ContrastBand id="promise">
-        <div className="grid gap-6 lg:grid-cols-2 lg:gap-12">
+        <div className="grid gap-6 md:grid-cols-2 md:gap-10 lg:gap-12">
           <div className="grid content-start gap-3">
             <p className="mono-meta text-paper/70">What we promise</p>
             <p className="max-w-xl text-xl leading-snug font-extrabold text-balance sm:text-2xl">
@@ -91,7 +91,7 @@ export default function HowItWorksPage() {
         </div>
       </ContrastBand>
       <Section id="diy" size="dense">
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-12">
+        <div className="grid gap-6 md:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] md:gap-10 lg:gap-12">
           <div className="grid content-start gap-5">
             <SectionHeader
               eyebrow="Rather set it up yourself?"
