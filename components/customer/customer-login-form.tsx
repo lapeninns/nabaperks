@@ -44,7 +44,18 @@ export function CustomerLoginForm({ next }: CustomerLoginFormProps) {
   return (
     <div className="grid gap-4">
       <form action={requestAction} className="grid gap-4">
-        <div className="grid gap-2">
+        {/* Once the code is out, the phone field collapses to a read-only
+            summary — the pattern join-otp-form already uses. Before this, the
+            page showed a full phone field and a vermillion "Resend code"
+            button ABOVE the OTP field and its "Open my cards" button: two
+            primary buttons on one screen with the destructive-to-progress one
+            first in reading order, and with the keyboard up "Resend code" was
+            often the only one visible (CUS 02#54). */}
+        <div
+          className={
+            otpSent && !state.errors?.contact ? "hidden" : "grid gap-2"
+          }
+        >
           <label htmlFor="contact" className="eyebrow">
             Phone number
           </label>
@@ -107,9 +118,29 @@ export function CustomerLoginForm({ next }: CustomerLoginFormProps) {
             </p>
           </div>
         ) : null}
-        <Button type="submit" disabled={requestPending}>
-          {requestPending ? "Sending…" : otpSent ? "Resend code" : "Send code"}
-        </Button>
+        {/* The field stays mounted (hidden) rather than unmounted, so the
+            resend submits the same number without the member retyping it. */}
+        {otpSent && !state.errors?.contact ? (
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <p className="text-sm leading-6">
+              <span className="eyebrow">Code sent to</span>{" "}
+              <span className="font-bold">{contact}</span>
+            </p>
+            <Button
+              type="submit"
+              size="sm"
+              variant="link"
+              className="px-0"
+              disabled={requestPending}
+            >
+              {requestPending ? "Sending…" : "Resend code"}
+            </Button>
+          </div>
+        ) : (
+          <Button type="submit" disabled={requestPending}>
+            {requestPending ? "Sending…" : "Send code"}
+          </Button>
+        )}
       </form>
 
       {otpSent ? (

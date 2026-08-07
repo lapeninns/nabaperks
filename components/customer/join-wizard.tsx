@@ -411,7 +411,19 @@ function joinProgress(
     join_terms: hasQr ? "Collect your stamp" : "Keep your card",
   }[kind]
 
-  return { step, total: ONBOARDING_STEPS, label }
+  // Phone and code share step 2 on the QR path, so the bar did not move when a
+  // member successfully submitted their number — at the step with the highest
+  // abandonment risk, an indicator that does not advance reads as a failed
+  // submit (CUS 02#51). The shared step is now half-filled on the phone screen
+  // and full on the code screen, so every successful action moves it.
+  const sharesVerificationStep = hasQr && kind === "join_phone"
+
+  return {
+    step,
+    total: ONBOARDING_STEPS,
+    label,
+    stepProgress: sharesVerificationStep ? 0.5 : 1,
+  }
 }
 
 function UnavailableJoin() {
