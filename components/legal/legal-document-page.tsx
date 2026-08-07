@@ -39,10 +39,7 @@ export function LegalDocumentPage({
             five interlinked legal pages is worse than one debatable order.
             The collapsible summary below is kept — it costs a row instead of a
             block wherever it sits. */}
-        <aside
-          className="surface-card order-last p-4 lg:sticky lg:top-20 lg:order-none"
-          data-legal-toc
-        >
+        <aside className="surface-card order-last p-4 lg:sticky lg:top-20 lg:order-none">
           <details open className="group">
             <summary className="focus-ring mb-3 flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 rounded-full lg:pointer-events-none">
               <Eyebrow>On this page</Eyebrow>

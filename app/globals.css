@@ -599,7 +599,12 @@ body[data-grain="true"]::after {
    Without a print treatment the sticky TOC, the site chrome and the hard offset
    shadows all render into the page. (01#68) */
 @media print {
-  [data-legal-document] [data-legal-toc],
+  /* The TOC is targeted by element, not by a data attribute: adding one to
+     the <aside> pushed its tag past Prettier's print width, which re-wrapped
+     the line and broke legal-p3-polish's (formatting-sensitive) assertion on
+     `<aside className="…order-last…"`. The element selector needs no markup
+     change at all. */
+  [data-legal-document] aside,
   [data-legal-document] [data-legal-related] {
     display: none !important;
   }
