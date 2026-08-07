@@ -6,14 +6,17 @@ function read(path) {
   return readFileSync(path, "utf8")
 }
 
-test("CI exposes one stable release gate over every release proof", () => {
+test("CI exposes one stable release gate over deterministic merge proof", () => {
   const ci = read(".github/workflows/ci.yml")
   const releaseGate = ci.slice(ci.indexOf("\n  release-gate:"))
 
   assert.match(ci, /\n  e2e:\n[\s\S]*?\n    needs: fast\n/)
   assert.match(releaseGate, /name: Release gate/)
-  for (const dependency of [
-    "build-gate",
+  for (const dependency of ["fast", "build"]) {
+    assert.match(releaseGate, new RegExp(`- ${dependency}`))
+    assert.match(releaseGate, new RegExp(`needs\\.${dependency}\\.result`))
+  }
+  for (const nonBlockingDependency of [
     "e2e-gate",
     "a11y-gate",
     "visual-gate",
@@ -21,8 +24,7 @@ test("CI exposes one stable release gate over every release proof", () => {
     "zap-baseline",
     "db",
   ]) {
-    assert.match(releaseGate, new RegExp(`- ${dependency}`))
-    assert.match(releaseGate, new RegExp(`needs\\.${dependency}\\.result`))
+    assert.doesNotMatch(releaseGate, new RegExp(`- ${nonBlockingDependency}`))
   }
 })
 
@@ -60,8 +62,10 @@ test("production CD attests immutable source, builds remotely, verifies and then
   assert.match(workflow, /pnpm exec vercel deploy/)
   assert.match(workflow, /--prod/)
   assert.match(workflow, /--skip-domain/)
+  assert.match(workflow, /--no-wait/)
   assert.match(workflow, /--archive=tgz/)
   assert.match(workflow, /Verify staged liveness and dependency readiness/)
+  assert.match(workflow, /for attempt in \{1\.\.90\}/)
   assert.match(workflow, /\.checks\.operational == "ok"/)
   assert.doesNotMatch(workflow, /SENTRY_/)
   assert.doesNotMatch(workflow, /ops:sentry:check/)

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { readFileSync } from "node:fs"
 import { test } from "node:test"
 
 import {
@@ -73,7 +74,7 @@ test("findEditedAppliedMigrations ignores new and removed files", () => {
   )
 })
 
-test("findEditedAppliedMigrations honours the sanctioned-edit allowlist", () => {
+test("Given an approved migration edit When both hashes match Then the edit is sanctioned", () => {
   const baseline = [{ version: "20260102000000", sha: "bbb" }]
   const current = [{ version: "20260102000000", sha: "CHANGED" }]
 
@@ -81,8 +82,46 @@ test("findEditedAppliedMigrations honours the sanctioned-edit allowlist", () => 
     findEditedAppliedMigrations({
       baseline,
       current,
-      sanctioned: ["20260102000000"],
+      sanctioned: [
+        {
+          version: "20260102000000",
+          baselineSha: "bbb",
+          currentSha: "CHANGED",
+        },
+      ],
     }),
     []
+  )
+})
+
+test("Given a later migration edit When its hash differs Then the sanction no longer applies", () => {
+  const baseline = [{ version: "20260102000000", sha: "bbb" }]
+  const current = [{ version: "20260102000000", sha: "LATER-EDIT" }]
+
+  assert.deepEqual(
+    findEditedAppliedMigrations({
+      baseline,
+      current,
+      sanctioned: [
+        {
+          version: "20260102000000",
+          baselineSha: "bbb",
+          currentSha: "CHANGED",
+        },
+      ],
+    }),
+    ["20260102000000"]
+  )
+})
+
+test("Given a legacy null Stripe status When the pilot backfill runs Then it stays awaiting delivery", () => {
+  const migration = readFileSync(
+    "supabase/migrations/20260802130000_delivery_anchored_pilot.sql",
+    "utf8"
+  )
+
+  assert.match(
+    migration,
+    /when billing\.stripe_subscription_status is null\s+then 'awaiting_delivery'/
   )
 })
