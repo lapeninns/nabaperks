@@ -63,7 +63,7 @@ export function AdvancedGpsChecks({
         outside the radius. If location is switched off or cannot be read, they
         still collect a few times before it is required.
       </p>
-      <label className="flex items-center justify-between gap-4 rounded-lg border-2 border-ink bg-card px-4 py-3 text-sm font-bold">
+      <label className="surface-card-flat flex items-center justify-between gap-4 px-4 py-3 text-sm font-bold">
         <span>Use GPS anomaly checks</span>
         <input
           name="requireGeofence"

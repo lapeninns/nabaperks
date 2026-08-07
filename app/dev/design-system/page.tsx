@@ -203,10 +203,7 @@ export default function DesignSystemPage() {
       >
         <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-4">
           {COLOR_TOKENS.map((token) => (
-            <div
-              key={token.name}
-              className="grid gap-2 rounded-lg border-2 border-ink bg-card p-3"
-            >
+            <div key={token.name} className="surface-card-flat grid gap-2 p-3">
               <span
                 className={cn(
                   "h-12 rounded-md border-2 border-ink",
@@ -219,7 +216,7 @@ export default function DesignSystemPage() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
-          <div className="grid gap-3 rounded-lg border-2 border-ink bg-card p-4">
+          <div className="surface-card-flat grid gap-3 p-4">
             <Eyebrow>Radius</Eyebrow>
             <div className="flex flex-wrap items-end gap-3">
               {RADIUS_TOKENS.map((radius) => (
@@ -238,7 +235,7 @@ export default function DesignSystemPage() {
             </div>
           </div>
 
-          <div className="grid gap-3 rounded-lg border-2 border-ink bg-card p-4">
+          <div className="surface-card-flat grid gap-3 p-4">
             <Eyebrow>Shadow</Eyebrow>
             <div className="flex flex-wrap items-end gap-4">
               {SHADOW_TOKENS.map((shadow) => (
@@ -260,7 +257,7 @@ export default function DesignSystemPage() {
             </div>
           </div>
 
-          <div className="grid gap-3 rounded-lg border-2 border-ink bg-card p-4">
+          <div className="surface-card-flat grid gap-3 p-4">
             <Eyebrow>Motion timing</Eyebrow>
             <dl className="grid gap-1.5">
               {MOTION_TOKENS.map(([label, value]) => (
@@ -293,7 +290,7 @@ export default function DesignSystemPage() {
         title="Typography & tags"
         description="Display headings, the mono eyebrow, metric tiles, and the MonoTag tones."
       >
-        <div className="grid gap-5 rounded-lg border-2 border-ink bg-card p-5">
+        <div className="surface-card-flat grid gap-5 p-5">
           <Eyebrow>Eyebrow / mono caption</Eyebrow>
           <PageTitle
             eyebrow="Page title"
@@ -389,7 +386,7 @@ export default function DesignSystemPage() {
           </ReceiptCard>
         </div>
 
-        <div className="grid gap-4 rounded-lg border-2 border-ink bg-card p-5">
+        <div className="surface-card-flat grid gap-4 p-5">
           <Eyebrow>Logo &amp; identity marks</Eyebrow>
           <div className="flex flex-wrap items-center gap-5">
             <Logo />
@@ -412,7 +409,7 @@ export default function DesignSystemPage() {
           </div>
         </div>
 
-        <div className="grid gap-4 rounded-lg border-2 border-ink bg-card p-5">
+        <div className="surface-card-flat grid gap-4 p-5">
           <div className="flex flex-wrap items-center gap-4">
             <VenueMark size={56} />
             <div className="flex flex-wrap gap-3">
@@ -472,7 +469,7 @@ export default function DesignSystemPage() {
         title="Iconography"
         description="The @hugeicons free set is the single icon system. The Icon wrapper applies house defaults (2 px stroke, current colour, no shrink) and accepts an accessible label for non-decorative uses. The two semantic maps give every status kind and activity category a canonical glyph."
       >
-        <div className="grid gap-3 rounded-lg border-2 border-ink bg-card p-5">
+        <div className="surface-card-flat grid gap-3 p-5">
           <Eyebrow>Icon wrapper · size variants</Eyebrow>
           <div className="flex flex-wrap items-end gap-6">
             {[16, 20, 28].map((px) => (
@@ -489,7 +486,7 @@ export default function DesignSystemPage() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="grid content-start gap-3 rounded-lg border-2 border-ink bg-card p-5">
+          <div className="surface-card-flat grid content-start gap-3 p-5">
             <Eyebrow>Status icons</Eyebrow>
             <div className="flex flex-wrap gap-4">
               {Object.entries(STATUS_ICON).map(([key, glyph]) => (
@@ -500,7 +497,7 @@ export default function DesignSystemPage() {
               ))}
             </div>
           </div>
-          <div className="grid content-start gap-3 rounded-lg border-2 border-ink bg-card p-5">
+          <div className="surface-card-flat grid content-start gap-3 p-5">
             <Eyebrow>Activity category icons</Eyebrow>
             <div className="flex flex-wrap gap-4">
               {Object.entries(ACTIVITY_CATEGORY_ICON).map(([key, glyph]) => (
@@ -530,7 +527,7 @@ export default function DesignSystemPage() {
         description="One stamp/reward system: the stamp grid, the single seal at three sizes and four states, the reward ticket, status banners, progress, and the QR frame."
       >
         <div className="grid gap-4 lg:grid-cols-2">
-          <div className="grid content-start gap-3 rounded-lg border-2 border-ink bg-card p-5">
+          <div className="surface-card-flat grid content-start gap-3 p-5">
             <Eyebrow>Stamp grid</Eyebrow>
             <StampGrid current={2} total={6} venueName="The Old Crown" />
             <StampGrid
@@ -550,7 +547,7 @@ export default function DesignSystemPage() {
               />
             </div>
           </div>
-          <div className="grid content-start gap-3 rounded-lg border-2 border-ink bg-card p-5">
+          <div className="surface-card-flat grid content-start gap-3 p-5">
             <Eyebrow>Join journey preview</Eyebrow>
             <StampJourneyPreview total={6} venueName="The Old Crown" />
             <p className="text-xs leading-5 text-muted-foreground">
@@ -560,7 +557,7 @@ export default function DesignSystemPage() {
           </div>
         </div>
 
-        <div className="grid gap-4 rounded-lg border-2 border-ink bg-card p-5">
+        <div className="surface-card-flat grid gap-4 p-5">
           <Eyebrow>Stamp dot · anatomy</Eyebrow>
           <div className="flex flex-wrap gap-6">
             <div className="grid justify-items-center gap-2">
@@ -612,7 +609,7 @@ export default function DesignSystemPage() {
           </div>
         </div>
 
-        <div className="grid gap-4 rounded-lg border-2 border-ink bg-card p-5">
+        <div className="surface-card-flat grid gap-4 p-5">
           <Eyebrow>Reward chip · three states</Eyebrow>
           <div className="flex flex-wrap gap-6">
             {REWARD_CHIP_STATES.map((state) => (
@@ -626,7 +623,7 @@ export default function DesignSystemPage() {
           </div>
         </div>
 
-        <div className="grid gap-4 rounded-lg border-2 border-ink bg-card p-5">
+        <div className="surface-card-flat grid gap-4 p-5">
           <Eyebrow>Reward seal · four states · three sizes</Eyebrow>
           <div className="grid gap-4 sm:grid-cols-4">
             {SEAL_STATES.map((state) => (
@@ -658,7 +655,7 @@ export default function DesignSystemPage() {
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
-          <div className="grid content-start gap-3 rounded-lg border-2 border-ink bg-card p-5">
+          <div className="surface-card-flat grid content-start gap-3 p-5">
             <Eyebrow>Status banners</Eyebrow>
             <StatusBanner tone="success" title="Stamp added">
               That is one stamp on your card.
@@ -673,7 +670,7 @@ export default function DesignSystemPage() {
               Your card lives on this phone.
             </StatusBanner>
           </div>
-          <div className="grid content-start gap-5 rounded-lg border-2 border-ink bg-card p-5">
+          <div className="surface-card-flat grid content-start gap-5 p-5">
             <div className="grid gap-2">
               <Eyebrow>Progress track</Eyebrow>
               <ProgressTrack current={2} total={6} label="Stamps" />
@@ -741,7 +738,7 @@ export default function DesignSystemPage() {
         description="The merchant dashboard family: KPI tiles, the stat strip, trend and funnel charts, sparklines, the activity feed, filter pills, and category badges — plus the loading vocabulary."
       >
         <div className="grid gap-4 lg:grid-cols-2">
-          <div className="grid content-start gap-3 rounded-lg border-2 border-ink bg-card p-5">
+          <div className="surface-card-flat grid content-start gap-3 p-5">
             <Eyebrow>KPI tiles · flat elevation + sparkline</Eyebrow>
             <div className="grid grid-cols-2 gap-3">
               <KpiTile
@@ -764,7 +761,7 @@ export default function DesignSystemPage() {
             />
           </div>
 
-          <div className="grid content-start gap-3 rounded-lg border-2 border-ink bg-card p-5">
+          <div className="surface-card-flat grid content-start gap-3 p-5">
             <Eyebrow>Stat strip · this week</Eyebrow>
             <StatStrip
               items={[
@@ -785,7 +782,7 @@ export default function DesignSystemPage() {
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
-          <div className="grid content-start gap-3 rounded-lg border-2 border-ink bg-card p-5">
+          <div className="surface-card-flat grid content-start gap-3 p-5">
             <Eyebrow>Trend chart · two series + empty state</Eyebrow>
             <TrendChart
               aria-label="Demo trend: stamps and joins, last fortnight"
@@ -813,7 +810,7 @@ export default function DesignSystemPage() {
             />
           </div>
 
-          <div className="grid content-start gap-3 rounded-lg border-2 border-ink bg-card p-5">
+          <div className="surface-card-flat grid content-start gap-3 p-5">
             <Eyebrow>Funnel · the one progress anatomy</Eyebrow>
             <FunnelChart
               aria-label="Demo pilot funnel"
@@ -828,7 +825,7 @@ export default function DesignSystemPage() {
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
-          <div className="grid content-start gap-3 rounded-lg border-2 border-ink bg-card p-5">
+          <div className="surface-card-flat grid content-start gap-3 p-5">
             <Eyebrow>Activity feed · category glyphs + tone dots</Eyebrow>
             <ActivityFeed
               aria-label="Demo activity feed"
@@ -857,7 +854,7 @@ export default function DesignSystemPage() {
             />
           </div>
 
-          <div className="grid content-start gap-4 rounded-lg border-2 border-ink bg-card p-5">
+          <div className="surface-card-flat grid content-start gap-4 p-5">
             <div className="grid gap-2">
               <Eyebrow>Filter pills · interactive</Eyebrow>
               <FilterPillsDemo />
@@ -892,7 +889,7 @@ export default function DesignSystemPage() {
         title="Console data tables & record cards"
         description="The responsive admin list pattern. DataTable renders card records until the chosen breakpoint, then switches to the semantic table. Admin consoles use xl so dense support data reads on phones and tablets without horizontal scroll. Shared by 7+ admin tables (customers, merchants, fraud, billing, audit, pilot, privacy)."
       >
-        <div className="grid gap-3 rounded-lg border-2 border-ink bg-card p-5">
+        <div className="surface-card-flat grid gap-3 p-5">
           <Eyebrow>Responsive DataTable · admin xl cards</Eyebrow>
           <DataTable
             caption="Demo console membership readback"
@@ -960,7 +957,7 @@ export default function DesignSystemPage() {
           />
         </div>
 
-        <div className="grid gap-3 rounded-lg border-2 border-ink bg-card p-5">
+        <div className="surface-card-flat grid gap-3 p-5">
           <Eyebrow>AdminRecordCard · the mobile renderer in isolation</Eyebrow>
           <p className="text-sm leading-6 text-muted-foreground">
             Title, optional status, stacked label/value fields, and a full-width

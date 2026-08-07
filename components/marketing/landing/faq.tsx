@@ -11,10 +11,7 @@ export function FaqList({ items }: { items: readonly MarketingFaq[] }) {
   return (
     <div className="grid gap-3">
       {items.map((faq) => (
-        <details
-          key={faq.question}
-          className="group rounded-lg border-2 border-ink bg-card"
-        >
+        <details key={faq.question} className="group surface-card-flat">
           <summary className="focus-ring flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-4 py-3 text-sm font-bold text-foreground [&::-webkit-details-marker]:hidden">
             {faq.question}
             <span

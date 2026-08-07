@@ -518,7 +518,7 @@ export function AccountBillingPanelSkeleton() {
 export function RewardScanContentSkeleton() {
   return (
     <div className="grid gap-4" role="status" aria-label="Loading reward">
-      <div className="flex overflow-hidden rounded-lg border-2 border-ink bg-card">
+      <div className="surface-card-flat flex overflow-hidden">
         <div className="grid flex-1 content-center gap-2 p-4">
           <Skeleton className="h-3 w-24" />
           <Skeleton className="h-5 w-40 max-w-full" />
@@ -636,7 +636,7 @@ export function OfferPassScanContentSkeleton() {
   return (
     <div className="grid gap-4" role="status" aria-label="Loading offer pass">
       <div>
-        <div className="grid gap-2 rounded-lg border-2 border-ink bg-card p-4">
+        <div className="surface-card-flat grid gap-2 p-4">
           <Skeleton className="h-3 w-24" />
           <Skeleton className="h-9 w-36" />
           <Skeleton className="h-4 w-40" />

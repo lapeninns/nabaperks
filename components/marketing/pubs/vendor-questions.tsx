@@ -33,7 +33,7 @@ export function VendorQuestions() {
                 {question.why}
               </p>
             </div>
-            <div className="grid content-start gap-1.5 rounded-lg border-2 border-ink bg-card p-3.5">
+            <div className="surface-card-flat grid content-start gap-1.5 p-3.5">
               <p className="mono-id text-muted-foreground uppercase">
                 Our answer
               </p>

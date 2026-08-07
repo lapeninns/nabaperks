@@ -37,7 +37,7 @@ function MotionDemo({
   const [nonce, setNonce] = useState(0)
 
   return (
-    <div className="grid content-start gap-3 rounded-lg border-2 border-ink bg-card p-4">
+    <div className="surface-card-flat grid content-start gap-3 p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="grid gap-0.5">
           <span className="mono-meta text-foreground">{name}</span>

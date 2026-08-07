@@ -84,7 +84,7 @@ function CustomerFlowShellSkeleton({
 /** The receipt's reward-ticket chit: face + dashed tear-line + seal stub. */
 function RewardTicketSkeleton() {
   return (
-    <div className="flex overflow-hidden rounded-lg border-2 border-ink bg-card">
+    <div className="surface-card-flat flex overflow-hidden">
       <div className="grid flex-1 content-center gap-2 p-4">
         <Skeleton className="h-3 w-20" />
         <Skeleton className="h-5 w-36 max-w-full" />

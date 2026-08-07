@@ -318,6 +318,19 @@ body[data-grain="true"]::after {
     box-shadow: var(--shadow-md);
   }
 
+  /* Flat sibling of .surface-card — same ink border, radius and card ground,
+     no elevation. This is the single most-repeated surface in the product
+     (47 hand-rolled copies of `rounded-lg border-2 border-ink bg-card`
+     before it existed). Elevation is the ONLY difference between the two, so
+     "is this raised?" stays a one-token decision instead of a class-string
+     one. */
+  .surface-card-flat {
+    border: 2px solid var(--w-ink);
+    border-radius: var(--radius-lg);
+    background: var(--card);
+    color: var(--card-foreground);
+  }
+
   /* Micro-type scale — the ONLY sizes below text-xs. Two mono utilities
      (colour left to the call site) plus the eyebrow, which is mono-meta with
      the muted colour baked in. Nothing in the product may render text below

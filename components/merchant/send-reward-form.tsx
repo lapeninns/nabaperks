@@ -126,7 +126,7 @@ export function SendRewardForm({
             state.fields?.expiresInDays ??
             String(DEFAULT_SEND_REWARD_EXPIRY_DAYS)
           }
-          className="h-12 rounded-lg border-2 border-ink bg-card px-3 text-foreground"
+          className="surface-card-flat h-12 px-3 text-foreground"
         >
           {SEND_REWARD_EXPIRY_OPTIONS.map((days) => (
             <option key={days} value={days}>

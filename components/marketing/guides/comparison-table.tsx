@@ -23,7 +23,7 @@ export function ComparisonTable({
 }) {
   return (
     <div className="grid gap-3">
-      <div className="hidden overflow-x-auto rounded-lg border-2 border-ink bg-card sm:block">
+      <div className="surface-card-flat hidden overflow-x-auto sm:block">
         <Table>
           <TableCaption className="sr-only">{caption}</TableCaption>
           <TableHeader>
@@ -52,10 +52,7 @@ export function ComparisonTable({
       </div>
       <ul aria-label={caption} className="grid gap-3 sm:hidden">
         {rows.map((row) => (
-          <li
-            key={row.aspect}
-            className="grid gap-2 rounded-lg border-2 border-ink bg-card p-4"
-          >
+          <li key={row.aspect} className="surface-card-flat grid gap-2 p-4">
             <p className="eyebrow">{row.aspect}</p>
             <p className="text-sm leading-6 text-muted-foreground">
               <span className="font-bold text-foreground">Paper: </span>

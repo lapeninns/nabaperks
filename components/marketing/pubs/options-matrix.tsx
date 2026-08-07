@@ -50,7 +50,7 @@ export function OptionsMatrix() {
     <div className="grid gap-4">
       {/* `Table` supplies its own focusable overflow container — don't nest a
           second scroll region around it. */}
-      <div className="hidden rounded-lg border-2 border-ink bg-card lg:block">
+      <div className="surface-card-flat hidden lg:block">
         <Table className="min-w-[56rem]">
           <TableCaption className="sr-only">{CAPTION}</TableCaption>
           <TableHeader>
