@@ -55,32 +55,46 @@ export function RewardReadyPanel({
 }: {
   exp: Extract<CustomerExperience, { kind: "reward_ready" }>
 }) {
+  const ticket = (
+    <RewardTicket
+      state="ready"
+      name={exp.reward.rewardName}
+      description={rewardTermsNode(exp.reward)}
+    />
+  )
+
   return (
     <CustomerReceipt
       venueName={exp.merchantName}
       eyebrow="Mystery reward"
       footerLeft={cardNumber(exp.reward.membershipId)}
     >
-      <RewardTicket
-        state="ready"
-        name={exp.reward.rewardName}
-        description={rewardTermsNode(exp.reward)}
-      />
+      {/* Act, then context. The code used to sit under the ticket AND under a
+          title-only "Ready for merchant scan." banner, which put its top edge
+          around y 520 on a 375x667 phone — the member could not frame the whole
+          code for a scanner without scrolling. The ticket already says
+          "Your reward · ready" in its kicker, so the banner carried no
+          information at all and is gone; the QR now leads and the ticket
+          follows as the context it is (CUS 02#38).
+
+          The profile gate keeps the old order: there is no code to show until
+          the gate is satisfied, so the ticket is the thing being explained. */}
       {exp.profileGate.complete ? (
         <>
-          {/* One instruction per screen (F18b): the title confirms the state and
-              the single "scans this QR" line lives beside the QR itself. */}
-          <StatusBanner title="Ready for merchant scan." tone="success" />
           <RewardCollectionLive
             rewardId={exp.reward.rewardId}
             rewardName={exp.reward.rewardName}
           />
+          {ticket}
         </>
       ) : (
-        <CustomerProfileGateForm
-          rewardId={exp.reward.rewardId}
-          gate={exp.profileGate}
-        />
+        <>
+          {ticket}
+          <CustomerProfileGateForm
+            rewardId={exp.reward.rewardId}
+            gate={exp.profileGate}
+          />
+        </>
       )}
     </CustomerReceipt>
   )
@@ -114,7 +128,7 @@ export function RedeemedProofPanel({
         The merchant has scanned your QR. A new stamp cycle has started.
       </StatusBanner>
       {proofLine ? (
-        <p className="text-center mono-id tracking-[0.08em] text-muted-foreground">
+        <p className="mono-id text-center tracking-[0.08em] text-muted-foreground">
           {proofLine}
         </p>
       ) : null}

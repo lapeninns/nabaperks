@@ -88,6 +88,15 @@ export type OfferPassProps = {
    * it from a rail. Omitted for a pass that cannot be presented.
    */
   readonly children?: ReactNode
+  /**
+   * Slot directly under the discount lockup and date chip, above the lead
+   * sentence and the terms. The pass screen puts the scannable code here: it is
+   * the only reason that page exists, and behind the lead plus the four printed
+   * terms it started roughly 430px down, on a screen used standing at a till
+   * (CUS 02#41). Nothing is hidden to make room — the terms are what staff
+   * enforce and stay on the face, they simply stop coming first.
+   */
+  readonly code?: ReactNode
   readonly className?: string
   /**
    * Outline level for the discount lockup. `h1` is for the pass screen, where
@@ -105,6 +114,7 @@ export function OfferPass({
   extraTerms,
   state = "active",
   children,
+  code,
   className,
   headingLevel: Heading = "h3",
 }: OfferPassProps) {
@@ -163,6 +173,8 @@ export function OfferPass({
           </span>
         </span>
       </div>
+
+      {code}
 
       <p className="text-sm leading-6 text-muted-foreground">
         {passLead(state, opens, closes)}
