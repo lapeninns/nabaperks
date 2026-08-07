@@ -11,10 +11,27 @@ const hookSecretPlaceholder = `v1,${"whsec"}_${"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 const linkedHookUri = "https://nabaperks.com/api/auth/hooks/send-email"
 
 // Baseline for the append-only rule: a migration already present on this ref is
-// "released" and must not be edited on a feature branch. Versions listed here
-// are explicitly-sanctioned edits (each SHOULD be exceptional and reviewed).
+// "released" and must not be edited on a feature branch. Exact hash transitions
+// listed here are explicitly sanctioned (each SHOULD be exceptional and
+// reviewed); later edits to the same version remain blocked.
 const APPEND_ONLY_BASELINE_REF = "origin/main"
-const SANCTIONED_MIGRATION_EDITS = []
+// 20260802130000: the delivery-anchored-pilot backfill computed
+// `operations_review_required` (a NOT NULL boolean) with
+// `status <> 'trialing'`, which is NULL for a subscription whose status has not
+// been read back from Stripe. The migration therefore aborted with 23502
+// against any database that already held billing rows, blocking every later
+// migration behind it. CI and the ephemeral staging proof both start from an
+// empty database, so neither could observe it. The edit only adds the null
+// guard the same file's trigger already uses; rows with a non-null status are
+// computed exactly as before, so an environment that already applied this
+// migration successfully is unaffected.
+const SANCTIONED_MIGRATION_EDITS = [
+  {
+    version: "20260802130000",
+    baselineSha: "f2ac78380cf419137556837740d2f95916609303",
+    currentSha: "6c9f8da5a9ae33dd82ef3e8a2092d0af3dff9d8c",
+  },
+]
 
 if (isMain()) {
   const migrationTarget = process.argv.includes("--local")
@@ -179,7 +196,7 @@ export function detectDuplicateVersions(versions) {
 
 /**
  * Versions present in BOTH baseline and current whose content hash changed and
- * are not on the sanctioned-edit list. baseline/current are arrays of
+ * do not match an exact sanctioned hash transition. baseline/current are arrays of
  * `{ version, sha }`. New or removed files are ignored — only edits to an
  * already-released migration are flagged. Returned sorted.
  */
@@ -188,16 +205,23 @@ export function findEditedAppliedMigrations({
   current,
   sanctioned = [],
 }) {
-  const sanctionedSet = new Set(sanctioned)
+  const sanctionedSet = new Set(
+    sanctioned.map(
+      ({ version, baselineSha, currentSha }) =>
+        `${version}:${baselineSha}:${currentSha}`
+    )
+  )
   const currentByVersion = new Map(
     current.map((entry) => [entry.version, entry.sha])
   )
   const edited = []
 
   for (const { version, sha } of baseline) {
-    if (sanctionedSet.has(version)) continue
     if (!currentByVersion.has(version)) continue
-    if (currentByVersion.get(version) !== sha) edited.push(version)
+    const currentSha = currentByVersion.get(version)
+    if (currentSha === sha) continue
+    if (sanctionedSet.has(`${version}:${sha}:${currentSha}`)) continue
+    edited.push(version)
   }
 
   return [...new Set(edited)].sort()

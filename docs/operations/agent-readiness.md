@@ -31,7 +31,7 @@ of implementation truth.
 | Profiling instrumentation     | `pnpm profile:server` writes Node CPU profiles                     |
 | Issue templates               | Structured bug, feature, debt, and incident forms                  |
 | Error-to-insight pipeline     | Production monitor failures become labelled GitHub issues          |
-| Stable release gate           | One CI check aggregates all release-critical repository proof      |
+| Stable release gate           | One CI check aggregates deterministic source and build proof       |
 | Exact-revision verification   | Successful main CI triggers production revision/readiness proof    |
 | Isolated staging gate         | Protected staging migration, webhook and rollback-only journey     |
 | Recovery verification         | Read-only physical-backup drill against a disposable project       |
