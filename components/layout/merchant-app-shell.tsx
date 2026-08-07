@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/sidebar"
 import { CONSOLE_SIDEBAR_STYLE, ConsoleSidebarNav } from "./console-sidebar-nav"
 import { merchantAccountItems, merchantNavItems } from "./console-nav"
+import { MerchantTabBar } from "./merchant-tab-bar"
 import { SkipLink } from "./skip-link"
 
 export function MerchantAppShell({
@@ -41,7 +42,7 @@ export function MerchantAppShell({
   variant?: "full" | "setup"
   /** Seeds the desktop expanded/collapsed state from the persisted cookie. */
   defaultSidebarOpen?: boolean
-  /** Drops the mobile sticky header + bottom tab bar for full-bleed surfaces
+  /** Drops the mobile sticky header and the bottom tab bar for full-bleed surfaces
    *  like the poster print preview, which carry their own focused chrome.
    *  Defaults to deriving it from the live pathname. */
   hideMobileChrome?: boolean
@@ -169,6 +170,33 @@ export function MerchantAppShell({
               aria-label="Open menu"
             />
             <Logo href="/app" prefetch={false} />
+            {/* Same right-hand cluster as the setup header: a shared tablet
+                behind the bar must be able to reach the account and sign out
+                without first discovering the drawer. */}
+            <div className="ml-auto flex shrink-0 items-center gap-1.5">
+              <Button
+                asChild
+                variant="secondary"
+                size="icon-sm"
+                aria-label="Account profile"
+                title="Account profile"
+              >
+                <Link href="/app/account?tab=profile" prefetch={false}>
+                  <Icon icon={Building02Icon} size={16} />
+                </Link>
+              </Button>
+              <form action={signOutAction}>
+                <Button
+                  type="submit"
+                  variant="outline"
+                  size="icon-sm"
+                  aria-label="Log out"
+                  title="Log out"
+                >
+                  <Icon icon={Logout01Icon} size={16} />
+                </Button>
+              </form>
+            </div>
           </header>
         )}
         {/* hideMobileChrome strips ALL content padding for the full-bleed
@@ -180,7 +208,7 @@ export function MerchantAppShell({
           className={
             hideMobileChrome
               ? "w-full min-w-0"
-              : "w-full px-4 py-8 pb-16 sm:px-6 md:pb-10"
+              : "w-full px-4 py-5 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-6 md:pb-8 lg:px-8 lg:py-8"
           }
         >
           <div
@@ -193,6 +221,7 @@ export function MerchantAppShell({
             {children}
           </div>
         </div>
+        {hideMobileChrome ? null : <MerchantTabBar />}
       </SidebarInset>
     </SidebarProvider>
   )

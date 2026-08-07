@@ -8,6 +8,7 @@ import {
   Home01Icon,
   Megaphone01Icon,
   QrCode01Icon,
+  ScanIcon,
   SecurityCheckIcon,
   Settings01Icon,
   Shield01Icon,
@@ -105,6 +106,21 @@ export const merchantNavItems = [
     href: "/app/offers",
     label: "Offers",
     icon: DiscountTag01Icon,
+    prefetch: "auto",
+  },
+] satisfies readonly ShellNavItem[]
+
+/** The phone counter rail (`MerchantTabBar`): the four highest-frequency
+ *  surfaces. Scan has no sidebar item of its own — it aliases to Activity
+ *  there — so the tab bar is the only one-tap route to the scanner. */
+export const merchantTabBarItems = [
+  { href: "/app", label: "Dashboard", icon: Home01Icon, prefetch: "auto" },
+  { href: "/app/scan", label: "Scan", icon: ScanIcon, prefetch: "auto" },
+  { href: "/app/qr", label: "Poster", icon: QrCode01Icon },
+  {
+    href: "/app/customers",
+    label: "Members",
+    icon: UserMultiple02Icon,
     prefetch: "auto",
   },
 ] satisfies readonly ShellNavItem[]
