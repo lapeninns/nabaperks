@@ -179,7 +179,7 @@ export default async function AdminBillingPage() {
             },
             {
               key: "actions",
-              header: "Controls",
+              header: "Actions",
               cell: (row) => (
                 <BillingFulfilmentActions
                   merchantId={row.merchantId}

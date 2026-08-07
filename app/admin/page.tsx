@@ -100,7 +100,11 @@ export default async function AdminHomePage() {
           aria-label="Merchant activation funnel"
           items={toMerchantActivationFunnelItems(activationFacts)}
         />
-        <div className="grid gap-2 border-t border-ink/20 pt-4 text-sm sm:grid-cols-2">
+        {/* The sanctioned 2px dashed receipt rule, not a one-off ink/20
+            hairline: DESIGN.md mints exactly two dashed tones and .w-rule is
+            the panel divider. */}
+        <hr className="w-rule my-0" />
+        <div className="grid gap-2 text-sm sm:grid-cols-2">
           <p>
             <span className="font-bold">Median account to poster:</span>{" "}
             <span className="numeric-tabular text-muted-foreground">

@@ -131,7 +131,8 @@ export default async function AdminEvidencePage() {
             </AdminField>
           </div>
 
-          <div className="grid gap-3 border-t-2 border-dashed border-ink/20 pt-4 sm:grid-cols-[minmax(0,1fr)_220px_auto] sm:items-end">
+          <hr className="w-rule my-0" />
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_220px_auto] sm:items-end">
             <label className="flex min-h-11 items-center gap-3 text-sm font-bold">
               <input
                 type="checkbox"

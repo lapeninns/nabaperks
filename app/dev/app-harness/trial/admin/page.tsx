@@ -26,7 +26,8 @@ export default function TrialAdminHarnessPage() {
           </div>
           <StatusPill tone="warning">Posters dispatched</StatusPill>
         </div>
-        <dl className="grid gap-3 border-y border-dashed border-ink/30 py-4 sm:grid-cols-3">
+        <hr className="w-rule my-0" />
+        <dl className="grid gap-3 sm:grid-cols-3">
           <AdminDate label="Dispatched" value="6 August 2026, 11:30" />
           <AdminDate label="Pilot starts" value="On confirmed delivery" />
           <AdminDate
@@ -34,6 +35,7 @@ export default function TrialAdminHarnessPage() {
             value="Held until pilot is protected"
           />
         </dl>
+        <hr className="w-rule my-0" />
         <BillingFulfilmentActions
           merchantId="10000000-0000-4000-8000-000000000001"
           fulfilmentStatus="dispatched"
