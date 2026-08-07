@@ -236,20 +236,9 @@ export function MerchantCustomersTableSkeleton() {
       role="status"
       aria-label="Loading loyalty members"
     >
-      {/* Summary strip */}
-      <div className="surface-card grid grid-cols-3 gap-px overflow-hidden bg-line">
-        {[0, 1, 2].map((cell) => (
-          <div
-            key={cell}
-            className="grid justify-items-center gap-1.5 bg-card px-2 py-3"
-          >
-            <Skeleton className="h-6 w-10" />
-            <Skeleton className="h-3 w-14" />
-          </div>
-        ))}
-      </div>
-
-      {/* Search + filter pills */}
+      {/* Search + filter pills. The summary strip that used to lead this
+          fallback is gone with the table's own StatStrip (03#22); the counts
+          live in the pills and the readback line below. */}
       <div className="grid gap-3 sm:flex sm:items-center sm:justify-between">
         <Skeleton className="h-11 w-full sm:max-w-xs" />
         <div className="flex flex-wrap gap-2">
@@ -258,6 +247,9 @@ export function MerchantCustomersTableSkeleton() {
           ))}
         </div>
       </div>
+
+      {/* Readback line */}
+      <Skeleton className="h-3 w-56 max-w-full" />
 
       {/* Phone + tablet: stacked cards (the real card list shows below lg) */}
       <ul className="grid gap-2.5 lg:hidden">
