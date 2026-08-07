@@ -15,7 +15,7 @@ test("private admin routes prohibit indexing across redirects and layouts", asyn
   )
 })
 
-test("Lighthouse is a blocking multi-run mobile release gate", () => {
+test("Lighthouse remains a multi-run mobile quality signal", () => {
   const lighthouse = JSON.parse(readFileSync(".lighthouserc.json", "utf8"))
   const workflow = readFileSync(".github/workflows/ci.yml", "utf8")
   const lighthouseJob = workflow.slice(workflow.indexOf("  lighthouse:"))
