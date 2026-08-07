@@ -11,8 +11,14 @@ import {
 import type { ComparisonRow } from "./guides-data"
 
 /**
- * Paper-vs-QR comparison. Semantic table from `sm:` up; below that each aspect
+ * Paper-vs-QR comparison. Semantic table from `md:` up; below that each aspect
  * stacks as a labelled card so no cell copy is squeezed off a phone screen.
+ *
+ * `md:`, not `sm:`: at 640px inside a `width="narrow"` section each of the
+ * three prose columns was ~197px minus cell padding, i.e. ~26 characters a
+ * line. The outer `overflow-x-auto` is gone too — `Table` supplies its own
+ * focusable scroll container, and nesting a second one is exactly what
+ * options-matrix.tsx warns against.
  */
 export function ComparisonTable({
   rows,
@@ -23,7 +29,7 @@ export function ComparisonTable({
 }) {
   return (
     <div className="grid gap-3">
-      <div className="surface-card-flat hidden overflow-x-auto sm:block">
+      <div className="surface-card-flat hidden md:block">
         <Table>
           <TableCaption className="sr-only">{caption}</TableCaption>
           <TableHeader>
@@ -50,7 +56,7 @@ export function ComparisonTable({
           </TableBody>
         </Table>
       </div>
-      <ul aria-label={caption} className="grid gap-3 sm:hidden">
+      <ul aria-label={caption} className="grid gap-3 sm:grid-cols-2 md:hidden">
         {rows.map((row) => (
           <li key={row.aspect} className="surface-card-flat grid gap-2 p-4">
             <p className="eyebrow">{row.aspect}</p>

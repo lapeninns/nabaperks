@@ -2,7 +2,12 @@ import type { Metadata } from "next"
 import Link from "next/link"
 
 import { PageTitle, ReceiptCard } from "@/components/brand"
-import { MarketingLayout, Section } from "@/components/layout"
+import {
+  MarketingLayout,
+  MARKETING_ANCHOR_OFFSET,
+  Section,
+} from "@/components/layout"
+import { MarketingDisclosure } from "@/components/marketing"
 import { FinePrint } from "@/components/marketing/fine-print"
 import { MARKETING_TEXT_LINK } from "@/components/marketing/text-link"
 import { JsonLd } from "@/components/seo/json-ld"
@@ -18,6 +23,26 @@ import {
 
 import { ComparisonTable } from "./comparison-table"
 import { GUIDES, PAPER_VS_QR_ROWS, type Guide } from "./guides-data"
+
+const updatedOnFormat = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC",
+})
+
+/** `2026-07-19` -> `19 July 2026`, from the one field of record. */
+function formatUpdatedOn(value: string) {
+  return updatedOnFormat.format(new Date(`${value}T12:00:00Z`))
+}
+
+/** Stable anchor id for a section heading, so every section is deep-linkable. */
+function sectionId(heading: string) {
+  return heading
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+}
 
 /** Shared metadata recipe for the guide routes. */
 export function guidePageMetadata(guide: Guide): Metadata {
@@ -58,20 +83,59 @@ export function GuidePage({ guide }: { guide: Guide }) {
         />
         <p className="mono-id mt-4 text-muted-foreground uppercase">
           Published by the Nabaperks team · updated{" "}
-          <time dateTime={guide.updatedOn}>19 July 2026</time>
+          {/* Formatted from the SAME field the `dateTime` attribute and the
+              articleSchema `dateModified` read. It used to be the string
+              literal "19 July 2026", so all three guides displayed one date
+              whatever their real `updatedOn` said, and the visible byline
+              would silently contradict the structured data on the first
+              revision. */}
+          <time dateTime={guide.updatedOn}>
+            {formatUpdatedOn(guide.updatedOn)}
+          </time>
         </p>
       </Section>
       <Section width="narrow" size="compact" as="div">
-        <article className="grid gap-8">
+        {/* The longest-form reading on the marketing surface had no anchors,
+            no ids and no table of contents, while the hub next door has a
+            sticky spine and the legal pages have an aside list. A collapsed
+            native disclosure is the cheapest of the three and gives every
+            section a deep link. */}
+        <MarketingDisclosure
+          className="surface-card-flat"
+          summary="On this page"
+        >
+          <ol className="grid gap-0.5">
+            {guide.sections.map((section, index) => (
+              <li key={section.heading}>
+                <Link
+                  href={`#${sectionId(section.heading)}`}
+                  className="focus-ring flex min-h-11 items-baseline gap-2.5 rounded-sm text-sm leading-6 font-bold text-muted-foreground hover:text-foreground"
+                >
+                  <span aria-hidden="true" className="mono-id text-primary">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  {section.heading}
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </MarketingDisclosure>
+        <article className="grid gap-8 pt-6">
           {guide.sections.map((section) => (
             <section key={section.heading} className="grid gap-3">
-              <h2 className="text-xl leading-snug font-extrabold text-foreground">
+              <h2
+                id={sectionId(section.heading)}
+                className={cn(
+                  "text-xl leading-snug font-extrabold text-balance text-foreground sm:text-2xl",
+                  MARKETING_ANCHOR_OFFSET
+                )}
+              >
                 {section.heading}
               </h2>
               {section.paragraphs.map((paragraph) => (
                 <p
                   key={paragraph}
-                  className="text-sm leading-7 text-muted-foreground"
+                  className="max-w-[68ch] text-base leading-7 text-muted-foreground"
                 >
                   {paragraph}
                 </p>

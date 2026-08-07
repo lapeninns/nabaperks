@@ -1,12 +1,15 @@
 import Link from "next/link"
+import { Cancel01Icon, CheckmarkCircle02Icon } from "@hugeicons/core-free-icons"
 
 import {
+  Icon,
   MonoTag,
   PageTitle,
   ReceiptCard,
   SectionHeader,
 } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
+import { PriceLockup } from "@/components/marketing"
 import { FinePrint } from "@/components/marketing/fine-print"
 import { JsonLd } from "@/components/seo/json-ld"
 import { Button } from "@/components/ui/button"
@@ -114,17 +117,24 @@ export function PersonaSpokePage({
           eyebrow="What's included"
           title="What the launch sets up for you"
         />
-        <ul className="grid gap-2.5 pt-5">
+        {/* "What you get", "who it's for" and "who it's not for" used to be
+            three visually identical grey dashed lists. This one is the
+            checked-inclusion idiom the pricing sheet owns. */}
+        <ul className="grid gap-3 pt-5 md:grid-cols-2 md:gap-x-8">
           {CORE_OFFER.map((component) => (
-            <li
-              key={component.name}
-              className="grid gap-1 border-b-2 border-dashed border-border pb-2.5"
-            >
-              <span className="text-sm font-extrabold text-foreground">
-                {component.name}
-              </span>
-              <span className="text-sm leading-6 text-muted-foreground">
-                {component.why}
+            <li key={component.name} className="flex items-start gap-3">
+              <Icon
+                icon={CheckmarkCircle02Icon}
+                size={18}
+                className="mt-0.5 shrink-0 text-reward"
+              />
+              <span className="grid gap-1">
+                <span className="text-sm font-extrabold text-foreground">
+                  {component.name}
+                </span>
+                <span className="text-sm leading-6 text-muted-foreground">
+                  {component.why}
+                </span>
               </span>
             </li>
           ))}
@@ -137,32 +147,43 @@ export function PersonaSpokePage({
             title="Is this right for your pub?"
           />
           <div className="grid gap-5 pt-5 md:grid-cols-2">
-            <div className="grid content-start gap-2">
+            {/* Bordered card for the qualifier, dashed card for the "not yet",
+                with the same glyph vocabulary the hub's fit test uses — so the
+                two lists are legible at a glance instead of being two
+                identical grey dashed stacks. */}
+            <div className="grid content-start gap-4 rounded-lg border-2 border-ink bg-card p-5 shadow-sm sm:p-6">
               <MonoTag tone="leaf" className="justify-self-start">
                 Right for you
               </MonoTag>
-              <ul className="grid gap-2">
+              <ul className="grid gap-3">
                 {MARKET.qualify.map((rule) => (
-                  <li
-                    key={rule}
-                    className="border-b-2 border-dashed border-border pb-2 text-sm leading-6 text-muted-foreground"
-                  >
-                    {rule}
+                  <li key={rule} className="flex items-start gap-3">
+                    <Icon
+                      icon={CheckmarkCircle02Icon}
+                      size={18}
+                      className="mt-0.5 shrink-0 text-reward"
+                    />
+                    <span className="text-sm leading-6 text-foreground">
+                      {rule}
+                    </span>
                   </li>
                 ))}
               </ul>
             </div>
-            <div className="grid content-start gap-2">
-              <MonoTag tone="ink" className="justify-self-start">
-                Not right yet
-              </MonoTag>
-              <ul className="grid gap-2">
+            <div className="grid content-start gap-4 rounded-lg border-2 border-dashed border-line-strong bg-card p-5 sm:p-6">
+              {/* `plain`, not `ink` — see pub-fit-test.tsx. */}
+              <MonoTag className="justify-self-start">Not right yet</MonoTag>
+              <ul className="grid gap-3">
                 {MARKET.disqualify.map((rule) => (
-                  <li
-                    key={rule}
-                    className="border-b-2 border-dashed border-border pb-2 text-sm leading-6 text-muted-foreground"
-                  >
-                    {rule}
+                  <li key={rule} className="flex items-start gap-3">
+                    <Icon
+                      icon={Cancel01Icon}
+                      size={18}
+                      className="mt-0.5 shrink-0 text-muted-foreground"
+                    />
+                    <span className="text-sm leading-6 text-muted-foreground">
+                      {rule}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -190,6 +211,14 @@ export function PersonaSpokePage({
       </Section>
       <Section size="last">
         <div className="grid gap-4">
+          {/* The spokes never showed a numeral, so a page bought for direct
+              traffic forced a second click before the first objection could be
+              answered. The plan line stays; the price now leads it. */}
+          <PriceLockup
+            size="lead"
+            amount={PRODUCT.priceAmount}
+            cadence={PRODUCT.priceCadence}
+          />
           <p className="text-sm leading-6 font-bold text-foreground">
             {PLAN_LINE}
           </p>
