@@ -9,10 +9,15 @@ import {
   type AdminMfaEnrollment,
   type AdminMfaFormState,
 } from "@/app/admin/security/actions"
-import { AdminConfirmCheck } from "@/components/admin/support"
+import { Copy01Icon, Tick02Icon } from "@hugeicons/core-free-icons"
+
+import { AdminConfirmCheck, AdminPanel } from "@/components/admin/support"
+import { Eyebrow, Icon, SectionHeader } from "@/components/brand"
 import { FormField, SubmitButton } from "@/components/forms"
+import { StatusBanner } from "@/components/loyalty/status-banner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Spinner } from "@/components/ui/spinner"
 
 const IDLE: AdminMfaFormState = { ok: false, error: null }
 
@@ -35,34 +40,37 @@ export function AdminMfaPanel({
 function EnrolledPanel({ factorId }: { factorId: string | null }) {
   const [state, action] = useActionState(unenrollAdminMfa, IDLE)
 
+  // AdminPanel + SectionHeader, not `surface-card space-y-4 p-6` with a
+  // text-xl heading: the console's panel anatomy is p-5 / gap-4 / text-lg.
   return (
-    <div className="surface-card space-y-4 p-6">
-      <h2 className="text-xl font-extrabold">
-        Two-factor authentication is on
-      </h2>
-      <p className="text-sm leading-6 text-muted-foreground">
-        Admin sign-in requires a 6-digit authenticator code. Keep your recovery
-        options safe — losing the authenticator means losing admin access.
-      </p>
+    <AdminPanel>
+      <SectionHeader
+        title="Two-factor authentication is on"
+        description="Admin sign-in requires a 6-digit authenticator code. Keep your recovery options safe — losing the authenticator means losing admin access."
+      />
       {factorId ? (
-        <form action={action} className="space-y-2">
+        <form action={action} className="grid gap-3">
           <input type="hidden" name="factorId" value={factorId} />
           {state.error ? (
-            <p role="alert" className="text-sm text-destructive">
-              {state.error}
-            </p>
+            <div role="alert">
+              <StatusBanner tone="error" title={state.error} />
+            </div>
           ) : null}
           {/* Removing the second factor weakens admin access and cannot be
               undone without a fresh enrolment, so it takes the destructive
               weight and the same irreversibility gate as the other admin
               write actions (AdminConfirmCheck). */}
           <AdminConfirmCheck label="I understand admin sign-in will no longer require an authenticator code." />
-          <SubmitButton variant="destructive" pendingLabel="Removing…">
+          <SubmitButton
+            variant="destructive"
+            pendingLabel="Removing…"
+            className="w-fit"
+          >
             Turn off two-factor
           </SubmitButton>
         </form>
       ) : null}
-    </div>
+    </AdminPanel>
   )
 }
 
@@ -81,43 +89,67 @@ function EnrollPanel() {
 
   if (!enrollment?.ok) {
     return (
-      <div className="surface-card space-y-4 p-6">
-        <h2 className="text-xl font-extrabold">
-          Set up two-factor authentication
-        </h2>
-        <p className="text-sm leading-6 text-muted-foreground">
-          Protect the admin console with a 6-digit code from an authenticator
-          app (for example Google Authenticator or 1Password).
-        </p>
+      <AdminPanel>
+        {/* Step counter: pressing "Set up" swapped the whole card body with no
+            indication that this is a two-step machine. */}
+        <Eyebrow>Step 1 of 2</Eyebrow>
+        <SectionHeader
+          title="Set up two-factor authentication"
+          description="Protect the admin console with a 6-digit code from an authenticator app (for example Google Authenticator or 1Password)."
+        />
         {enrollment && !enrollment.ok ? (
-          <p role="alert" className="text-sm text-destructive">
-            {enrollment.error}
-          </p>
+          <div role="alert">
+            <StatusBanner tone="error" title={enrollment.error} />
+          </div>
         ) : null}
-        <Button type="button" onClick={begin} disabled={starting}>
-          {starting ? "Starting…" : "Set up two-factor"}
+        {/* One pending idiom: the hand-rolled `starting ? "Starting…"` label
+            had no Spinner and no aria-busy, so this was the only action in the
+            console whose busy state was not announced. */}
+        <Button
+          type="button"
+          onClick={begin}
+          disabled={starting}
+          aria-busy={starting || undefined}
+          className="w-fit"
+        >
+          {starting ? (
+            <>
+              <Spinner aria-hidden="true" role="presentation" />
+              Starting…
+            </>
+          ) : (
+            "Set up two-factor"
+          )}
         </Button>
-      </div>
+      </AdminPanel>
     )
   }
 
   return (
-    <div className="surface-card space-y-4 p-6">
-      <h2 className="text-xl font-extrabold">Scan and confirm</h2>
-      <p className="text-sm leading-6 text-muted-foreground">
-        Scan this with your authenticator app, or enter the key by hand, then
-        confirm the current code.
-      </p>
+    <AdminPanel>
+      <Eyebrow>Step 2 of 2</Eyebrow>
+      <SectionHeader
+        title="Scan and confirm"
+        description="Scan this with your authenticator app, or copy the key by hand, then confirm the current code."
+      />
       {/* eslint-disable-next-line @next/next/no-img-element -- data: SVG QR minted server-side by Supabase enrol */}
       <img
         src={enrollment.qrCodeSvg}
         alt="Authenticator setup QR code"
         className="h-44 w-44 rounded-lg border-2 border-ink bg-qr-foreground p-2"
       />
-      <p className="font-mono text-xs break-all text-muted-foreground">
-        Key: {enrollment.secret}
-      </p>
-      <form action={verifyAction} className="space-y-4">
+      {/* Transcribing a 32-character base32 secret is the highest-error step
+          of enrolment, and it used to be break-all mono text with no copy
+          control — the only identifier in the console without one. Grouped in
+          4-character blocks for reading, copied in full. */}
+      <div className="grid gap-2">
+        <Eyebrow>Setup key</Eyebrow>
+        <p className="mono-meta break-words text-muted-foreground normal-case">
+          {groupSecret(enrollment.secret)}
+        </p>
+        <CopyKeyButton secret={enrollment.secret} />
+      </div>
+      <form action={verifyAction} className="grid gap-4">
         <input type="hidden" name="factorId" value={enrollment.factorId} />
         <FormField
           id="admin-mfa-enroll-code"
@@ -132,10 +164,51 @@ function EnrollPanel() {
             placeholder="123456"
           />
         </FormField>
-        <SubmitButton pendingLabel="Confirming…">
-          Confirm and turn on
-        </SubmitButton>
+        <div className="flex flex-wrap gap-2">
+          <SubmitButton pendingLabel="Confirming…">
+            Confirm and turn on
+          </SubmitButton>
+          {/* No way back: an operator who could not scan was trapped in the
+              second state with no way to abandon the started enrolment. */}
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setEnrollment(null)}
+          >
+            Back
+          </Button>
+        </div>
       </form>
-    </div>
+    </AdminPanel>
+  )
+}
+
+/** `ABCD EFGH …` — grouped for transcription, copied whole. */
+function groupSecret(secret: string) {
+  return secret.replaceAll(/(.{4})/g, "$1 ").trim()
+}
+
+function CopyKeyButton({ secret }: { secret: string }) {
+  const [copied, setCopied] = useState(false)
+
+  return (
+    <Button
+      type="button"
+      variant="secondary"
+      size="sm"
+      className="w-fit"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(secret)
+          setCopied(true)
+          setTimeout(() => setCopied(false), 1600)
+        } catch {
+          // Clipboard unavailable: the key is on screen and selectable.
+        }
+      }}
+    >
+      <Icon icon={copied ? Tick02Icon : Copy01Icon} size={16} />
+      {copied ? "Key copied" : "Copy key"}
+    </Button>
   )
 }
