@@ -63,6 +63,9 @@ const externalPropertyValues: Readonly<Record<string, ReadonlySet<string>>> = {
     "failed",
     "eligible",
     "ineligible",
+    // 20260805100300: a visit that happened but could not be stamped, and
+    // referral degradations. Fixed tokens, no customer detail.
+    "blocked",
   ]),
   entitlement_status: new Set([
     "trialing",

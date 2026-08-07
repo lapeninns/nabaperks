@@ -107,15 +107,22 @@ test.describe("merchant launch setup @launch-setup", () => {
   })
 
   test("no horizontal overflow on any launch tab at mobile width", async ({
-    page,
+    context,
   }) => {
     for (const tab of LAUNCH_TABS) {
-      await page.goto(`${HARNESS_ROUTES.launch}?tab=${tab}`)
-      await expect(page.locator("body")).toBeVisible()
-      expect(
-        await horizontalOverflow(page),
-        `horizontal overflow on tab=${tab}`
-      ).toBeLessThanOrEqual(1)
+      const tabPage = await context.newPage()
+      await dismissPwaInstall(tabPage)
+
+      try {
+        await tabPage.goto(`${HARNESS_ROUTES.launch}?tab=${tab}`)
+        await expect(tabPage.locator("body")).toBeVisible()
+        expect(
+          await horizontalOverflow(tabPage),
+          `horizontal overflow on tab=${tab}`
+        ).toBeLessThanOrEqual(1)
+      } finally {
+        await tabPage.close()
+      }
     }
   })
 

@@ -25,7 +25,10 @@ import { ensureVerifiedCustomerEmail } from "./helpers/verified-customer-email.m
  *   1. current_stamp_count    == count(earned events where cycle = active cycle)
  *   2. total_stamps_earned    == count(stamp_events event_type='earned')
  *   3. total_rewards_redeemed == count(reward_events status='redeemed')
- *   4. active_cycle_number    == total_rewards_redeemed + 1
+ *   4. active_cycle_number    == total_rewards_redeemed + total_rewards_expired + 1
+ *      (20260805100200 made an expired stamp-cycle reward release the card, so an
+ *      expiry advances the cycle exactly as a redemption does; total_rewards_expired
+ *      is what keeps the identity true instead of quietly breaking it.)
  * Only #3 is asserted across all seeded memberships: a redeemed-reward tally that
  * disagrees with the reward rows is always a bug, regardless of how a row was
  * produced.
@@ -53,7 +56,7 @@ const PICK = /* sql */ `
 async function reconcile(tx, membershipId) {
   const [row] = await tx`
     select cm.current_stamp_count, cm.total_stamps_earned,
-           cm.total_rewards_redeemed, cm.active_cycle_number,
+           cm.total_rewards_redeemed, cm.total_rewards_expired, cm.active_cycle_number,
            (select count(*) from public.stamp_events se
              where se.membership_id = cm.id and se.event_type = 'earned'
                and se.cycle_number = cm.active_cycle_number)::int as earned_active_cycle,
@@ -83,8 +86,8 @@ function assertReconciled(m, label) {
   )
   assert.equal(
     m.active_cycle_number,
-    m.total_rewards_redeemed + 1,
-    `${label}: active_cycle_number == total_rewards_redeemed + 1`
+    m.total_rewards_redeemed + m.total_rewards_expired + 1,
+    `${label}: active_cycle_number == total_rewards_redeemed + total_rewards_expired + 1`
   )
 }
 

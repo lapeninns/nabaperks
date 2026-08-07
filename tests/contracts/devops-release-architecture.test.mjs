@@ -37,10 +37,11 @@ test("successful application promotion verifies the exact production revision", 
   assert.match(smoke, /timeout-minutes: 7/)
   assert.match(smoke, /EXPECTED_REVISION:0:12/)
   assert.match(smoke, /for attempt in \{1\.\.30\}/)
+  assert.match(smoke, /\.signals\.cronJobs[\s\S]*length == 7/)
   assert.match(smoke, /Production did not expose expected revision/)
 })
 
-test("production CD builds once, attests, stages, verifies and then promotes", () => {
+test("production CD attests immutable source, builds remotely, verifies and then promotes", () => {
   const workflow = read(".github/workflows/production-deploy.yml")
 
   assert.match(workflow, /workflows: \["Production database promotion"\]/)
@@ -48,42 +49,35 @@ test("production CD builds once, attests, stages, verifies and then promotes", (
   assert.match(workflow, /needs: preflight/)
   assert.match(workflow, /environment: Production/)
   assert.match(workflow, /git rev-parse origin\/main/)
-  assert.match(workflow, /pnpm exec vercel build --prod/)
+  assert.doesNotMatch(workflow, /pnpm exec vercel pull/)
+  assert.doesNotMatch(workflow, /pnpm exec vercel build --prod/)
+  assert.doesNotMatch(workflow, /--prebuilt/)
+  assert.match(workflow, /git archive --format=tar/)
+  assert.match(workflow, /runner\.temp.*release-source\.tgz/)
   assert.match(workflow, /syft-version: v1\.49\.0/)
   assert.match(workflow, /uses: actions\/attest@[a-f0-9]{40}/)
-  assert.match(workflow, /sbom-path: release-sbom\.cdx\.json/)
-  assert.match(workflow, /--prebuilt/)
+  assert.match(workflow, /sbom-path:.*runner\.temp.*release-sbom\.cdx\.json/)
+  assert.match(workflow, /pnpm exec vercel deploy/)
+  assert.match(workflow, /--prod/)
   assert.match(workflow, /--skip-domain/)
-  assert.match(workflow, /sha256sum --check --strict/)
-  assert.match(workflow, /vercel-output-after-upload\.tgz/)
+  assert.match(workflow, /--no-wait/)
+  assert.match(workflow, /--archive=tgz/)
   assert.match(workflow, /Verify staged liveness and dependency readiness/)
+  assert.match(workflow, /for attempt in \{1\.\.90\}/)
   assert.match(workflow, /\.checks\.operational == "ok"/)
-  assert.match(workflow, /SENTRY_RELEASE: \$\{\{ github\.event_name/)
-  assert.match(workflow, /run: pnpm ops:sentry:check/)
-  assert.match(workflow, /check-sentry-release\.mjs record-deploy/)
+  assert.doesNotMatch(workflow, /SENTRY_/)
+  assert.doesNotMatch(workflow, /ops:sentry:check/)
+  assert.doesNotMatch(workflow, /check-sentry-release\.mjs/)
   assert.match(workflow, /PROMOTE_PRODUCTION_APPLICATION/)
   assert.doesNotMatch(workflow, /pnpm dlx|npm install --global|@latest/)
 
-  const attest = workflow.indexOf("Attest build provenance")
-  const stage = workflow.indexOf("Stage the attested output")
+  const attest = workflow.indexOf("Attest source provenance")
+  const stage = workflow.indexOf("Stage a hosted production build")
   const verify = workflow.indexOf(
     "Verify staged liveness and dependency readiness"
   )
-  const sentryRelease = workflow.indexOf(
-    "Verify exact Sentry release and source-map upload"
-  )
   const promote = workflow.indexOf("Promote the verified staged deployment")
-  const sentryDeploy = workflow.indexOf(
-    "Record and verify the Sentry production deploy"
-  )
-  assert.ok(
-    sentryRelease > -1 &&
-      attest > sentryRelease &&
-      stage > sentryRelease &&
-      verify > stage &&
-      promote > verify &&
-      sentryDeploy > promote
-  )
+  assert.ok(attest > -1 && stage > attest && verify > stage && promote > verify)
   assert.ok(
     workflow.indexOf("PROMOTE_PRODUCTION_APPLICATION") <
       workflow.indexOf("environment: Production")

@@ -40,7 +40,7 @@ if not decoded:
 print(json.dumps(decoded))
 `
 const FITZ_QR_GEOMETRY = `
-import fitz, json, statistics, sys
+import json, pymupdf as fitz, statistics, sys
 page = fitz.open(sys.argv[1])[0]
 drawings = page.get_drawings()
 
@@ -87,7 +87,7 @@ for drawing in drawings:
 print(json.dumps(boxes))
 `
 const FITZ_LAYOUT_GEOMETRY = `
-import fitz, json, sys
+import json, pymupdf as fitz, sys
 page = fitz.open(sys.argv[1])[0]
 mm = 72 / 25.4
 drawings = page.get_drawings()
@@ -199,7 +199,7 @@ function requiredTools() {
       throw new Error(`Missing required PDF QA tool: ${name}`)
     tools.set(name, result.stdout.trim())
   }
-  run(tools.get("python3"), ["-c", "import cv2, fitz"])
+  run(tools.get("python3"), ["-c", "import cv2, pymupdf"])
   return tools
 }
 

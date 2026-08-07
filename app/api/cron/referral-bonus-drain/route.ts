@@ -1,5 +1,6 @@
 import { type NextRequest } from "next/server"
 
+import { mirrorReferralHealthEvents } from "@/lib/analytics/referral-health"
 import { noStoreJson } from "@/lib/http/no-store-json"
 import { runObservedCron } from "@/lib/observability/cron-run"
 import { isAuthorizedCronRequest } from "@/lib/security/cron-auth"
@@ -29,6 +30,12 @@ export async function GET(request: NextRequest) {
         p_limit: 200,
       })
       if (error) throw new Error("Referral bonus drain failed")
+
+      // Mirror the referral-health ledger written by 20260805100300. It never
+      // throws and is not part of the drain's success: a degraded referral is
+      // already recorded in product_events whether or not PostHog hears of it.
+      await mirrorReferralHealthEvents()
+
       return typeof data === "number" ? data : 0
     },
   })

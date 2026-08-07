@@ -24,14 +24,18 @@ test.describe("@soft-geofence merchant soft-geofence trigger", () => {
     // with a button role — target the summary text directly.
     await page.getByText("Advanced GPS checks", { exact: true }).click()
 
-    const trigger = page.getByLabel("Check on stamp number")
+    const trigger = page.getByLabel("Verify from visit number")
     await expect(trigger).toBeVisible()
     await expect(trigger).toHaveValue("3")
 
     await trigger.fill("7")
     await expect(trigger).toHaveValue("7")
+    // 20260805100100 made this a lifetime visit number that REQUIRES a verified
+    // location, not a per-cycle advisory check, so the hint says so.
     await expect(
-      page.getByText("Which stamp in each card cycle runs the location check.")
+      page.getByText(
+        "The visit from which a member must be at the venue to collect."
+      )
     ).toBeVisible()
   })
 })

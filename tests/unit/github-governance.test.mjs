@@ -107,6 +107,17 @@ test("complete governance evidence satisfies every target control", () => {
   )
 })
 
+test("GitHub production does not require optional Sentry credentials", () => {
+  const production = CONTRACT.environments.Production
+
+  assert.deepEqual(
+    [...production.requiredSecrets, ...production.requiredVariables].filter(
+      (name) => name.includes("SENTRY")
+    ),
+    []
+  )
+})
+
 test("governance evidence fails closed on self-review, broad secrets and shared staging", () => {
   const evidence = completeEvidence()
   evidence.collaborators = evidence.collaborators.slice(0, 1)
