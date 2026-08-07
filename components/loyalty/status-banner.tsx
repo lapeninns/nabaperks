@@ -25,6 +25,21 @@ const toneIconKind: Record<StatusBannerTone, StatusKind> = {
   neutral: "info",
 }
 
+/**
+ * Tone drives the announcement, not just the colour. `Alert` hardcodes
+ * `role="alert"`, which is assertive — it interrupts whatever a screen reader
+ * is currently saying. That is right for an error or a warning and wrong for a
+ * save confirmation or an informational note, which should queue politely.
+ * Since Alert spreads props after its own role, passing one here wins.
+ */
+const toneRole: Record<StatusBannerTone, "alert" | "status"> = {
+  success: "status",
+  warning: "alert",
+  error: "alert",
+  info: "status",
+  neutral: "status",
+}
+
 export function StatusBanner({
   title,
   children,
@@ -36,8 +51,14 @@ export function StatusBanner({
   tone?: StatusBannerTone
   className?: string
 }) {
+  const role = toneRole[tone]
+
   return (
-    <Alert className={cn(statusClasses[tone], className)}>
+    <Alert
+      role={role}
+      aria-live={role === "status" ? "polite" : undefined}
+      className={cn(statusClasses[tone], className)}
+    >
       <Icon icon={STATUS_ICON[toneIconKind[tone]]} className="text-current" />
       <AlertTitle className="font-extrabold">{title}</AlertTitle>
       {children ? (
