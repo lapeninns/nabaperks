@@ -41,6 +41,13 @@ export function HomeCardTile({
   const href = card.stampRewardId
     ? `/reward/${card.stampRewardId}`
     : `/card/${card.membershipId}`
+  // The accessible name follows the same branch as the href. A tile pointing at
+  // the reward QR was still named "Open your … card": the wrong destination,
+  // and a name that did not contain the visible "Open reward QR" label
+  // (WCAG 2.5.3 Label in Name, CUS 02#11).
+  const ariaLabel = card.stampRewardId
+    ? `Open reward QR for your ${card.businessName} card`
+    : `Open your ${card.businessName} card`
   const rewardTag =
     card.stampRewardId !== undefined
       ? { tone: "leaf" as const, label: "Reward ready" }
@@ -61,7 +68,7 @@ export function HomeCardTile({
       <Link
         href={href}
         className="focus-ring block rounded-[var(--radius)]"
-        aria-label={`Open your ${card.businessName} card`}
+        aria-label={ariaLabel}
       >
         {/* No hover shadow utilities here: the unlayered card layer pins the
             slotted shadow, so hover:shadow-* is silently defeated (DESIGN.md). */}
@@ -88,6 +95,10 @@ export function HomeCardTile({
             ) : null}
           </div>
 
+          {/* No stamp row when there is nothing to draw. The old else-branch
+              rendered an empty dashed box — 26px of bordered nothing that read
+              as a rendering failure; the status line below carries the state
+              (CUS 02#12). */}
           {card.stampsRequired !== null && card.available ? (
             <StampGrid
               current={card.currentStamps}
@@ -99,9 +110,7 @@ export function HomeCardTile({
               compact
               className="rounded-lg bg-accent p-3"
             />
-          ) : (
-            <div className="rounded-lg border-2 border-dashed border-ink/20 bg-card p-3" />
-          )}
+          ) : null}
 
           {rewardSlot === "revealed" ? (
             <div
@@ -117,11 +126,17 @@ export function HomeCardTile({
                 {rewardReadyLabel}
               </span>
             </div>
-          ) : (
+          ) : null}
+
+          {/* A paused card kept its status line hidden whenever a reward had
+              also been revealed, so the tile showed the reward and never said
+              the card could not be used. The status line now always renders
+              when the card is unavailable. */}
+          {rewardSlot !== "revealed" || !card.available ? (
             <p className="text-sm leading-6 text-muted-foreground">
               {homeCardStatusCopy(card)}
             </p>
-          )}
+          ) : null}
 
           {hasVisibleReferralBonusBank(card.referralBonusBank) ? (
             <ReferralBonusBankMini bank={card.referralBonusBank} />

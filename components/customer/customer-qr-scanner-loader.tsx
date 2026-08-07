@@ -8,16 +8,31 @@ import { Eyebrow, Icon, IconRoundel, ReceiptCard } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
 
-const CustomerQrScanner = dynamic(
-  () =>
-    import("./customer-qr-scanner").then((module) => module.CustomerQrScanner),
-  {
-    ssr: false,
-    loading: () => <CustomerQrScannerLoading />,
-  }
-)
+const loadScanner = () =>
+  import("./customer-qr-scanner").then((module) => module.CustomerQrScanner)
 
-function CustomerQrScannerLoading() {
+/**
+ * Two handles onto the *same* chunk. `dynamic`'s `loading` element is fixed at
+ * module scope, so this is the only way the fallback can know whether the tab
+ * bar is already on screen — and it has to know, or the exits it draws are the
+ * pair the loaded scanner then removes, which is a visible jump at first paint
+ * (CUS 02#60). Same import specifier, so webpack emits one chunk.
+ */
+const CustomerQrScannerStandalone = dynamic(loadScanner, {
+  ssr: false,
+  loading: () => <CustomerQrScannerLoading hasAppNavigation={false} />,
+})
+
+const CustomerQrScannerInAppShell = dynamic(loadScanner, {
+  ssr: false,
+  loading: () => <CustomerQrScannerLoading hasAppNavigation />,
+})
+
+function CustomerQrScannerLoading({
+  hasAppNavigation,
+}: {
+  hasAppNavigation: boolean
+}) {
   return (
     <ReceiptCard edge className="grid gap-5 p-6">
       <div className="grid gap-3">
@@ -52,18 +67,32 @@ function CustomerQrScannerLoading() {
         </span>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Button asChild variant="secondary" className="w-full">
-          <Link href="/start">Back to start</Link>
-        </Button>
-        <Button asChild className="w-full">
-          <Link href="/home">{OPEN_MY_CARDS_LABEL}</Link>
-        </Button>
-      </div>
+      {/* Matches the loaded scanner: signed in, the tab bar is the navigation
+          and the loader must not flash a pair of exits that the loaded state
+          will not render (CUS 02#60). */}
+      {hasAppNavigation ? null : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Button asChild variant="secondary" className="w-full">
+            <Link href="/start">Back to start</Link>
+          </Button>
+          <Button asChild className="w-full">
+            <Link href="/home">{OPEN_MY_CARDS_LABEL}</Link>
+          </Button>
+        </div>
+      )}
     </ReceiptCard>
   )
 }
 
-export function CustomerQrScannerLoader() {
-  return <CustomerQrScanner />
+export function CustomerQrScannerLoader({
+  hasAppNavigation = false,
+}: {
+  /** True when /scan renders inside CustomerAppShell — see CustomerQrScanner. */
+  hasAppNavigation?: boolean
+}) {
+  const Scanner = hasAppNavigation
+    ? CustomerQrScannerInAppShell
+    : CustomerQrScannerStandalone
+
+  return <Scanner hasAppNavigation={hasAppNavigation} />
 }

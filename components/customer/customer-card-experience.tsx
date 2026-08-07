@@ -18,7 +18,7 @@ import {
   CustomerStampCard,
 } from "@/components/customer/customer-flow-system"
 import { ReferralBonusBankNotice } from "@/components/customer/referral-bonus-bank-panels"
-import { CustomerTabBar } from "@/components/layout"
+import { CustomerTabBar, TAB_BAR_CLEARANCE } from "@/components/layout"
 import { ReferralSharePanel } from "@/components/customer/referral-share-panel"
 import { StampCollector } from "@/components/customer/stamp-collector"
 import {
@@ -84,7 +84,7 @@ export function CustomerCardExperience({
         eyebrow={vm.eyebrow}
         title={vm.headline}
         description={vm.supportLine}
-        className="pb-28"
+        className={TAB_BAR_CLEARANCE}
         screenLabel={screenLabelFor(experience.kind)}
       >
         <ExperiencePanel

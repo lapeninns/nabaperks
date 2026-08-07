@@ -90,10 +90,16 @@ export function CustomerLoginForm({ next }: CustomerLoginFormProps) {
           <StatusBanner tone="error" title={formError} />
         ) : null}
         {state.message ? (
+          // The Wet Ink success face (2px ink, reward wash) rather than a 1px
+          // border-reward/30 box — a 1px border in a 2px system, in a colour
+          // that appears nowhere else, reading as ghosted rather than
+          // confirmed (CUS 02#40). This is not StatusBanner because that face
+          // carries role="alert"; "we sent your code" is a polite status, not
+          // an interruption, so the live region stays as it was.
           <div
             role="status"
             aria-live="polite"
-            className="grid gap-1 rounded-lg border border-reward/30 bg-accent px-3 py-2 text-sm text-accent-foreground"
+            className="grid gap-1 rounded-lg border-2 border-ink bg-reward/12 px-3 py-2 text-sm text-foreground"
           >
             <p>{state.message}</p>
             <p className="text-xs leading-5">

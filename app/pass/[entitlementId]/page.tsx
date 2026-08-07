@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation"
 
 import { CustomerFlowShell } from "@/components/customer/customer-flow-system"
 import { OfferPassQr } from "@/components/customer/offer-pass-qr"
-import { CustomerTabBar } from "@/components/layout"
+import { CustomerTabBar, TAB_BAR_CLEARANCE } from "@/components/layout"
 import { OfferPass, StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import {
@@ -54,11 +54,16 @@ export default async function CustomerOfferPassPage({
 
   return (
     <>
+      {/* No shell `title` here. It printed "{n}% off at {venue}" at the page
+          headline size, and OfferPass immediately restates the identical fact
+          as a text-5xl numeral with the venue beside it — two renderings of one
+          number, ~70px, above a code the member is holding out at a till
+          (CUS 02#41). OfferPass owns the h1 lockup instead of an h2, so the
+          outline keeps exactly one level-1 heading. The support line stays. */}
       <CustomerFlowShell
         eyebrow="Discount pass"
-        title={`${pass.discountPercent}% off at ${pass.venueName}`}
         description={shellSupportLine(pass)}
-        className="pb-28"
+        className={TAB_BAR_CLEARANCE}
         screenLabel="Customer discount pass"
       >
         <div className="grid gap-4">
@@ -70,10 +75,12 @@ export default async function CustomerOfferPassPage({
             requiresIdCheck={pass.requiresIdCheck}
             extraTerms={pass.extraTerms}
             state={pass.state}
-            headingLevel="h2"
-          >
-            <PassBody pass={pass} />
-          </OfferPass>
+            headingLevel="h1"
+            // The code sits under the lockup, above the lead and the terms.
+            // Terms are unchanged and still on the face — they simply stop
+            // standing between the member and the thing being scanned.
+            code={<PassBody pass={pass} />}
+          />
 
           <Button asChild size="lg" variant="secondary" className="w-full">
             <Link href={`/card/${pass.membershipId}`}>Back to your card</Link>

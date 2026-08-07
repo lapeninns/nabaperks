@@ -59,7 +59,12 @@ export function RewardCollectionQr({
       {errored ? (
         <StatusBanner title="We could not show your reward QR" tone="warning">
           <span className="grid gap-3">
-            <span>Pull down to refresh, or ask a team member.</span>
+            {/* Was "Pull down to refresh, or ask a team member." — an
+                instruction that does nothing on a page with no pull-to-refresh,
+                and different copy from the pass QR's identical failure. Both
+                now say the same thing, and it is a thing the member can
+                actually do (CUS 02#39). */}
+            <span>Try again, or ask a team member to help.</span>
             {suggestSignIn ? (
               <span>
                 Still not showing? You may be signed out on this phone —{" "}
@@ -81,7 +86,7 @@ export function RewardCollectionQr({
               className="w-full"
               onClick={retry}
             >
-              Show a fresh QR
+              Show a fresh code
             </Button>
           </span>
         </StatusBanner>
@@ -111,9 +116,31 @@ export function RewardCollectionQr({
           </div>
         </QrFrame>
       )}
-      <p className="rounded-lg bg-secondary px-3 py-2 text-center text-sm font-bold text-foreground">
-        Merchant scans this QR from their device
-      </p>
+      {/* The caption explains a code that is not on screen while the failure
+          banner is up — the pass QR replaces its whole panel on error and this
+          one kept its caption (CUS 02#39). */}
+      {errored ? null : (
+        <p className="rounded-lg bg-secondary px-3 py-2 text-center text-sm font-bold text-foreground">
+          Merchant scans this QR from their device
+        </p>
+      )}
+      {/* The reward code is single-use with a ten-minute TTL, exactly like the
+          pass code — but the refresh control only existed on the error path, so
+          a member whose code was scanned or expired mid-queue could do nothing
+          but wait for the interval. The pass QR has always offered this; the
+          two failures are the same failure and now behave the same
+          (CUS 02#39). */}
+      {errored ? null : (
+        <Button
+          type="button"
+          size="lg"
+          variant="secondary"
+          className="w-full"
+          onClick={retry}
+        >
+          Show a fresh code
+        </Button>
+      )}
     </div>
   )
 }
