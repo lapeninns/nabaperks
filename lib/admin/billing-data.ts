@@ -65,6 +65,26 @@ type AdminFulfilmentRawRecord = {
   readonly operations_review_required: boolean
 }
 
+/** Newest-first window. Named so a truncation notice cannot drift from it. */
+export const BILLING_RECORD_LIMIT = 100
+
+/**
+ * Total billing rows before the window.
+ *
+ * A separate head-only query rather than a `count` on the readback, because
+ * `admin-service-role-guards` pins `getAdminBillingRecords`'s early
+ * `return []` guard and therefore its array return shape. Head-only means no
+ * rows cross the wire — the same pattern `getAdminFraudQueueCounts` uses.
+ */
+export async function getAdminBillingRecordTotal(): Promise<number> {
+  const supabase = await createAdminServiceRoleClient()
+  const { count } = await supabase
+    .from("billing_customers")
+    .select("*", { count: "exact", head: true })
+
+  return count ?? 0
+}
+
 export async function getAdminBillingRecords(): Promise<AdminBillingRecord[]> {
   const supabase = await createAdminServiceRoleClient()
   const billingResult = await supabase
@@ -73,7 +93,7 @@ export async function getAdminBillingRecords(): Promise<AdminBillingRecord[]> {
       "id, merchant_id, plan, status, stripe_customer_id, stripe_subscription_id, current_period_end, updated_at, merchants(business_name, email)"
     )
     .order("updated_at", { ascending: false })
-    .limit(100)
+    .limit(BILLING_RECORD_LIMIT)
   if (billingResult.error) throw new Error("Unable to load billing records")
 
   const billingRows = billingResult.data ?? []

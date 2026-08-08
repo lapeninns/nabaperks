@@ -18,7 +18,10 @@ import { CreditCardIcon } from "@hugeicons/core-free-icons"
 import { PageTitle, SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { canRenderAdminPage } from "@/lib/admin/auth"
-import { getAdminBillingRecords } from "@/lib/admin/billing-data"
+import {
+  getAdminBillingRecordTotal,
+  getAdminBillingRecords,
+} from "@/lib/admin/billing-data"
 
 type AdminBillingRecords = Awaited<ReturnType<typeof getAdminBillingRecords>>
 type AdminBillingRow = AdminBillingRecords[number]
@@ -72,7 +75,10 @@ export const metadata = { title: "Admin — Billing" }
 export default async function AdminBillingPage() {
   if (!(await canRenderAdminPage())) return null
 
-  const billing = await getAdminBillingRecords()
+  const [billing, billingTotal] = await Promise.all([
+    getAdminBillingRecords(),
+    getAdminBillingRecordTotal(),
+  ])
 
   return (
     <div className="grid gap-6">
@@ -96,6 +102,17 @@ export default async function AdminBillingPage() {
             }
           />
         </AdminPanelHeader>
+        {/* The readback is capped at BILLING_RECORD_LIMIT and said so
+            nowhere, so past the cap the table read as every billing record on
+            the platform (ADM 04#6). Only rendered when it truncates. */}
+        {billingTotal > billing.length ? (
+          <p role="status" className="text-sm text-muted-foreground">
+            Showing the newest{" "}
+            <span className="numeric-tabular">{billing.length}</span> of{" "}
+            <span className="numeric-tabular">{billingTotal}</span> billing
+            records.
+          </p>
+        ) : null}
         <DataTable
           caption="Admin billing subscription readback"
           cardBreakpoint="xl"
