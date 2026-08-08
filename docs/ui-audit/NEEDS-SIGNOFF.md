@@ -503,7 +503,8 @@ visual baselines regenerated either way.
 
 ## 16. Hard caps that are signposted but not solved (04#6)
 
-Four admin surfaces now say when they are truncating:
+Five admin surfaces now say when they are truncating — every hard `.limit()` in
+`lib/admin/*` now either paginates or admits it:
 
 | surface                  | cap | notice                                           |
 | ------------------------ | --: | ------------------------------------------------ |
