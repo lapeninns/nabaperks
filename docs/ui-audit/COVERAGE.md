@@ -392,3 +392,25 @@ honest merchant label.
 
 Five of the remaining eighteen were spot-checked by grep (04#2, 04#46, 04#59,
 04#29, 01#11) and all hold.
+
+### Post-merge regression sweep
+
+03#25 showed a merge can resurrect a closed finding, so I swept the 301 files
+main touched against every pattern this campaign had removed: `rounded-xl`,
+`rounded-2xl`, `list-disc`, `max-w-7xl`, `adminSelectClasses`, `sm:w-[88px]`,
+`shadow-md`, `border-[1.5px]`.
+
+Result: **two real regressions, both already fixed** — the six `border-[1.5px]`
+main reintroduced, and one `rounded-xl` I left in the offers harness while
+fixing its real twin during conflict resolution. Everything else was either a
+false positive (the pattern appearing inside the comment that explains its
+removal) or out of the relevant finding's scope.
+
+Two observations recorded rather than acted on, because no finding covers them:
+`offer-rules-summary.tsx` still uses `list-disc` on a merchant surface while the
+customer sees ink markers for the same terms; and eight files use 1px
+`border-b border-dashed` dividers, which DESIGN.md's 2px `.w-rule` rule does not
+actually govern.
+
+Worth building into any future merge: re-run the greps that justified each
+closure. A closed finding is a claim about a tree, and the tree moves.

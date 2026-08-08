@@ -23,6 +23,20 @@ Browser matrix, journeys only: chromium 204 · desktop-firefox 187 ·
 desktop-safari 187 · mobile-safari 235 — 0 failed. `pnpm test:a11y` 270 passed
 across all four.
 
+## Re-run before any future merge
+
+A closed finding is a claim about a tree, and the tree moves. Merging main
+resurrected 03#25 (six `border-[1.5px]` back across four files). The cheap guard
+is to re-grep the swept patterns after any merge:
+
+```bash
+grep -rn 'border-\[1.5px\]\|rounded-xl\|max-w-7xl\|adminSelectClasses' \
+  --include=*.tsx --include=*.ts components app
+```
+
+All four should return nothing. Matches inside explanatory comments are fine;
+live classes are not.
+
 ## BLOCKING before merge
 
 **Lighthouse LCP is red on three marketing routes** and green on main. Caused by
