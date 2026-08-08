@@ -661,6 +661,31 @@ body[data-grain="true"]::after {
   --tw-shadow: 1px 1px 0 var(--w-shadow-color);
 }
 
+/* ── On-ink surfaces (MKT 01#32) ────────────────────────────────────────────
+   A button's silhouette is a 2px ink border over a 3px ink offset shadow. Put
+   that on `bg-ink` and both vanish: the press affordance and the printed edge
+   that define the button are simply gone.
+
+   `data-on-ink` flips both to paper. It replaces the hand-rolled
+   `[--w-shadow-color:var(--w-paper)]` that TakeoverAnchor and ScarcityBand each
+   carried — that fixed the shadow and left the border invisible, which is the
+   half of this finding that was still open.
+
+   Mirrors the base rule's variant exclusions exactly: ghost and link have no
+   border to flip, and destructive keeps its own inked border so it stays
+   legible as a warning even here. */
+[data-on-ink] {
+  --w-shadow-color: var(--w-paper);
+}
+
+[data-on-ink]
+  [data-slot="button"]:not([data-variant="ghost"]):not([data-variant="link"]):not(
+    [data-variant="destructive"]
+  ) {
+  border-color: var(--w-paper);
+}
+
+
 [data-slot="button"][data-variant="ghost"],
 [data-slot="button"][data-variant="link"] {
   border-radius: var(--radius-lg);

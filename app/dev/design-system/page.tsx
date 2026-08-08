@@ -31,7 +31,6 @@ import {
 } from "@/components/data"
 import {
   OfferPass,
-  ProgressTrack,
   QrFrame,
   RewardCelebration,
   RewardChip,
@@ -46,6 +45,7 @@ import {
   type RewardSlotState,
   type RewardTicketState,
 } from "@/components/loyalty"
+import { ProgressTrack } from "@/components/loyalty/progress-track"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"

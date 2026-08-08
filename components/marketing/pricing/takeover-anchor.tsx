@@ -25,8 +25,9 @@ export function TakeoverAnchor({ className }: { className?: string }) {
   return (
     <aside
       data-takeover-enquiry
+      data-on-ink
       className={cn(
-        "grid gap-4 rounded-sheet border-2 border-ink bg-ink p-5 text-paper [--w-shadow-color:var(--w-paper)] sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-6 sm:p-7",
+        "grid gap-4 rounded-sheet border-2 border-ink bg-ink p-5 text-paper sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-6 sm:p-7",
         className
       )}
     >

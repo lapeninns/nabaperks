@@ -14,7 +14,7 @@ import {
 } from "@/app/app/customers/invite/actions"
 import { Eyebrow, Icon, MonoTag, SectionHeader } from "@/components/brand"
 import { FormMessage, SubmitButton } from "@/components/forms"
-import { ProgressTrack } from "@/components/loyalty"
+import { ProgressTrack } from "@/components/loyalty/progress-track"
 import { Button } from "@/components/ui/button"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { InvitationPreview } from "@/components/merchant/invite/invitation-preview"
