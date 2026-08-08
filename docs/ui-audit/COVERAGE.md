@@ -723,3 +723,99 @@ sitemap.xml and disallowed it in robots.txt simultaneously.
 A contract allowlist is a defect someone chose to defer, written down in the one
 place that will never be read by a design audit. Worth grepping at the start of
 work like this, not turn 34.
+
+### The contract sweep, run harder
+
+The first sweep grepped for "KNOWN", "pre-existing", "tracked separately" and
+"allowlist" and found two live defects. This one went after the quieter shapes —
+`.filter(`, `.slice(`, hard-coded expected arrays, conditional skips, and gate
+scripts with exception lists. Nine checks came back clean **with numbers**, and
+three things came back that nobody had recorded.
+
+#### Clean, and here is the measurement
+
+| checked                                             | result                                                                                                                                                                         |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| skipped / `todo` contract tests                     | **0**. The one conditional skip gates on two files that both exist; both suites report `# skipped 0 # todo 0`                                                                  |
+| `.filter(` in contracts                             | 16 sites, 15 are parsing. The 16th narrows the "no Supabase server client" rule to `components/` — redundant, `eslint.config.mjs` bans that import for **all** `components/**` |
+| file-scoped `focus-visible:ring` bans (6 contracts) | **1** occurrence tree-wide, and it is a comment in `globals.css`                                                                                                               |
+| hard-coded `deepEqual` arrays                       | 19. Eighteen are positive specifications that fail when reality moves; the one exclusion list is the known claims gap                                                          |
+| `existsSync(…) ? read : ""` readers (4 contracts)   | all **28** paths exist, so no `doesNotMatch` is running against an empty string                                                                                                |
+| loops over walked directories                       | every one carries an explicit `length >= N` guard except `tent-source-quality:44`, which overlaps a guarded set in the same file                                               |
+| `check-design-tokens.mjs` escape hatches            | `SUBFLOOR_EXCEPTIONS` is empty; all **22** DESIGN.md colour keys are mapped and compared, so "keys absent from this map are skipped" is skipping nothing                       |
+| "only the pub spoke is indexable"                   | verified over HTTP against a production build: cafes/bars/takeaways each serve `<meta name="robots" content="noindex, follow">`                                                |
+| robots.txt vs sitemap.xml                           | fetched both from a production build; **zero** of the 14 sitemap paths are prefix-matched by any Disallow rule. The `/merchant-terms` fix holds                                |
+
+The eight patterns the campaign removed were re-grepped too: `border-[1.5px]` 0,
+`max-w-7xl` 0, `adminSelectClasses` 0, `rounded-xl` 1 (a comment), `sm:w-[88px]`
+1 (a comment), `rounded-2xl` 7 (the six known-dead primitives plus a comment),
+`list-disc` 3 (the two already recorded plus `field.tsx`). `shadow-md` shows 19
+and is **not** a regression: `--shadow-md` is a declared Wet Ink token
+(`4px 4px 0 var(--w-shadow-color)`), not stock Tailwind elevation.
+
+#### 1. `deadcode:check` cannot report an unused export at all
+
+`pnpm deadcode:check` is `knip --include files,dependencies,unresolved`. The
+`exports`, `types`, `nsExports` and `duplicates` rules never reach the output —
+and `knip.json` sets them to `"warn"`, which would not fail anyway. Measured
+today: **236 unused exports**.
+
+This is the larger sibling of the `components/ui/**` entry-pattern blind spot
+already recorded. The six dead `field.tsx` exports had two independent reasons to
+survive, not one. Removing the `components/ui` entry pattern surfaces 8 more:
+`AlertAction`, `badgeVariants`, `CardFooter`, `CardAction`, `EmptyMedia`,
+`SheetClose`, `SheetFooter`, `TableFooter`.
+
+Not changed here. Turning the rule on is a 236-item decision.
+
+#### 2. A dead component kept alive by two separate mechanisms
+
+`components/merchant/launch/launch-billing-cta.tsx` has **zero** references in
+the entire repository outside its own file and one contract.
+
+- `knip.json` lists that exact file as an `entry`. Remove the line and knip
+  reports exactly one unused file — that one. The exemption exists only to hide
+  it.
+- `tests/contracts/launch-billing-local-stripe.test.mjs` asserts
+  `export function LaunchBillingActivationBanner` **exists**, so the dead
+  component is contract-pinned.
+
+Read the test's own intent: its point is
+`assert.doesNotMatch(qrPanel, /LaunchBillingActivationBanner/)`. The existence
+assertion was there to prove the symbol was defined somewhere, and it now pins a
+component nothing renders.
+
+**Not fixed, deliberately** — deleting it means deleting a contract assertion.
+Worth knowing before someone deletes it: its three strings ("Your account is
+created.", "Proceed to billing to activate your venue and start accepting
+stamps.", "Proceed to billing") are duplicated inline across `launch/page.tsx`,
+`billing-panel.tsx`, `qr-panel.tsx` and `rewards-panel.tsx`
+(`reports/marketing/copy-slices/inv-B-merchant.md`), so this looks like an
+extraction that was never adopted rather than a component that lost its caller.
+
+#### 3. FIXED — the list that produced the `/merchant-terms` defect is still a hand-mirror
+
+`public-indexing-policy`'s collision test carries a literal list of 14 public
+routes. What the site actually publishes is `PUBLIC_SITE_ROUTES` in
+`lib/marketing/facts.ts`. Nothing forced them to agree, and they already differ:
+the test carries the three noindexed persona spokes and omits `/` and the three
+guide paths.
+
+There is **no live collision** — I checked the served robots.txt against the
+served sitemap.xml. But the mechanism that produced the `/merchant-terms` defect
+was intact: publish a new indexed route and this test would not know about it.
+
+Fixed additively: the test now resolves `PUBLIC_SITE_ROUTES` from facts.ts
+(following `ROUTES.*` indirection) and requires its own list to cover every
+published path, exactly or by an ancestor segment. The list may stay broader,
+never narrower. Sabotage-checked three ways — a new literal path, a new
+`ROUTES.*` path, and a renamed `ROUTES` block (which makes the resolver return
+nulls) each fail it, and all three restore clean.
+
+#### One loose assertion, currently true
+
+`ux-production-polish:172` builds `darkBlock` as `globalsCss.slice(indexOf(".dark {"))`
+— everything to end of file, not the `.dark` block — then asserts
+`--w-line-strong:` appears in it. Parsed the braces: the token really is inside
+`.dark` (line 239), so the assertion is honest today. Left alone; recorded so a
+future reader does not mistake it for proof of scoping.
