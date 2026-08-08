@@ -1,3 +1,4 @@
+import type { ComponentPropsWithoutRef } from "react"
 import {
   CheckmarkCircle02Icon,
   ClockIcon,
@@ -11,7 +12,7 @@ import { MYSTERY_REWARD_SEALED_LABEL } from "@/lib/copy/product-copy"
 import { cn } from "@/lib/utils"
 
 export type RewardSealState = "sealed" | "waiting" | "ready" | "redeemed"
-export type RewardSealSize = "sm" | "md" | "lg"
+export type RewardSealSize = "sm" | "slot" | "md" | "lg"
 
 /** The seal's mark per state — the redeemed check is earned only, never a promise. */
 const GLYPH: Record<RewardSealState, IconGlyph> = {
@@ -24,6 +25,7 @@ const GLYPH: Record<RewardSealState, IconGlyph> = {
 /** Icon px per seal size, tuned to sit inside the disc. */
 const ICON_PX: Record<RewardSealSize, number> = {
   sm: 12,
+  slot: 20,
   md: 26,
   lg: 48,
 }
@@ -38,6 +40,12 @@ const DEFAULT_LABEL: Record<RewardSealState, string> = {
 const SIZE: Record<RewardSealSize, string> = {
   // 0.625rem is the mono-id floor — nothing in the system prints below 10px.
   sm: "size-5 text-micro",
+  /**
+   * Fills its grid slot. Used by the stamp row's reward chip so the mystery is
+   * a circle the same size as the discs beside it, instead of a 20px seal
+   * floating inside a 56px rounded SQUARE — one shape family, one size. (02#29)
+   */
+  slot: "size-full text-lg",
   md: "size-12 text-2xl",
   lg: "size-24 text-4xl",
 }
@@ -58,6 +66,7 @@ export function RewardSeal({
   breathe = false,
   slammed = false,
   className,
+  ...rest
 }: {
   state: RewardSealState
   size?: RewardSealSize
@@ -70,7 +79,10 @@ export function RewardSeal({
   /** Fire the print-pop keyframe on reveal / redeem. */
   slammed?: boolean
   className?: string
-}) {
+} & Omit<
+  ComponentPropsWithoutRef<"span">,
+  "className" | "role" | "aria-label"
+>) {
   const leaf = state === "ready" || state === "redeemed"
   // The idle wiggle is reserved for the sealed mystery only.
   const idleWiggle = wiggle && state === "sealed"
@@ -86,6 +98,7 @@ export function RewardSeal({
             role="img"
             aria-label={label ?? DEFAULT_LABEL[state]}
             data-reward-seal={state}
+            {...rest}
             className={cn(
               "grid -rotate-6 place-items-center rounded-full border-2 border-ink font-extrabold shadow-xs",
               SIZE[size],

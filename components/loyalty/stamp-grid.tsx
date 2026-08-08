@@ -1,6 +1,5 @@
 import type { CSSProperties } from "react"
 
-import { WetInkPop } from "@/components/motion"
 import { cn } from "@/lib/utils"
 
 import { RewardSeal, type RewardSealState } from "./reward-seal"
@@ -54,30 +53,27 @@ export function RewardChip({
       : "sealed"
 
   return (
-    <span className={cn("grid justify-items-center gap-1", className)}>
-      <WetInkPop active={slammed} className="block w-full">
-        <span
-          data-reward-slot={slotState}
-          data-slammed={slammed ? true : undefined}
-          className={cn(
-            "grid aspect-square w-full -rotate-6 place-items-center rounded-md border-2 shadow-xs",
-            compact ? "min-h-9" : "min-h-11",
-            ready
-              ? "border-ink bg-reward/15"
-              : "border-dashed border-line-strong bg-seal/15"
-          )}
-        >
-          <RewardSeal
-            state={sealState}
-            size="sm"
-            label={`${label}, ${statusLabel}`}
-            wiggle={placeholder && slotState === "locked"}
-          />
-        </span>
-      </WetInkPop>
-      <span className="mono-id text-muted-foreground">
-        {ready ? "Ready" : revealed ? "Unlocked" : "Reward"}
-      </span>
+    // A full-bleed seal, not a seal inside a box. This used to be a rounded
+    // SQUARE with a 20px `size="sm"` seal centred in it, sitting in a row of
+    // 56px circles — the only square in the stamp family, with the meaningful
+    // mark at ~36% of its own slot, plus a mono-id caption the discs do not
+    // have. The seal now IS the slot: same circle, same size, same -6° as its
+    // neighbours, with the dashed ring carried on the seal while locked. The
+    // caption is dropped because the aria-label already reads
+    // "Mystery reward, sealed". (02#29)
+    <span className={cn("grid", className)}>
+      <RewardSeal
+        state={sealState}
+        size={compact ? "sm" : "slot"}
+        label={`${label}, ${statusLabel}`}
+        wiggle={placeholder && slotState === "locked"}
+        slammed={slammed}
+        className={cn(
+          "aspect-square w-full",
+          ready ? "bg-reward/15" : "border-dashed border-line-strong bg-seal/15"
+        )}
+        data-reward-slot={slotState}
+      />
     </span>
   )
 }
