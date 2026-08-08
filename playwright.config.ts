@@ -86,9 +86,33 @@ export default defineConfig({
       snapshotPathTemplate: ciLinuxSnapshotPathTemplate,
       // Desktop-only scenarios (e.g. the merchant pin-map proof) opt out of the
       // mobile project via `testIgnore` so mobile captures stay iPhone-only.
-      testIgnore: "**/*.desktop.spec.ts",
+      testIgnore: ["**/*.desktop.spec.ts", "**/*.motion.spec.ts"],
       use: {
         ...devices["iPhone 14"],
+      },
+    },
+    {
+      // The only project that lets animation run.
+      //
+      // Every other project inherits `use.contextOptions.reducedMotion:
+      // "reduce"` above — which is deliberate, since it keeps the visual
+      // baselines and the journeys deterministic. The side effect is that all
+      // motion in this codebase is guarded by `prefers-reduced-motion`, so none
+      // of it executes in any other project: the hero stamp loop never advances
+      // in an ordinary run, and a broken pause control would pass every tier
+      // (MKT 01#17).
+      //
+      // `contextOptions.reducedMotion` and not the `reducedMotion` test option:
+      // the root sets the former, and it wins over the latter, so a file-level
+      // `test.use({ reducedMotion })` silently does nothing.
+      name: "motion",
+      testMatch: ["**/*.motion.spec.ts"],
+      use: {
+        ...devices["Desktop Chrome"],
+        channel: chromiumChannel,
+        contextOptions: {
+          reducedMotion: "no-preference",
+        },
       },
     },
     {
