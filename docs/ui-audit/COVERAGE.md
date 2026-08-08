@@ -305,3 +305,26 @@ Nine recorded blockers re-tested; seven did not survive:
 
 The shape repeats: someone with the right instinct stopped one question early.
 Two were mine (the font contract, and this list's own framing of 04#47).
+
+### A counting bug in my own tally, and the lane-scope class of blocker
+
+Two things surfaced together while closing 03#65/66.
+
+**The tally was undercounting.** `STATUS-m-ops.md` puts the status marker in
+column 1; every other lane file puts it in columns 2-4. My `mark_of()` scanned
+columns 2-4 only, so seventeen m-ops rows parsed as "no marker" and fell back to
+whatever `STATUS-merchant.md` said — which for several was a stale `[~]`. Fixed
+by parsing both shapes. The total is still 347, so nothing was lost, but per-
+report numbers before this point understated 03.
+
+Reconciling the two files then surfaced exactly one genuine disagreement:
+03#53, open in m-ops and done in merchant. Checked the code —
+`components/data/console-filter-bar.tsx` exists and both
+`customer-readback-table.tsx` and `activity-detail-feed.tsx` import it. The
+m-ops row was stale and is now synced.
+
+**"Outside this lane's file scope" is not a blocker for the root.** Three
+findings (03#53, 03#65, 03#66) were recorded blocked purely because a sub-agent
+could not touch another lane's files. That was true for them and never true for
+the root agent. Worth checking for whenever a note blames ownership rather than
+the code.
