@@ -127,7 +127,7 @@ export function DashboardQrCardView({
     <PresentQrTrigger>
       <button
         type="button"
-        className="pressable group/ticket mx-auto grid w-fit justify-items-center gap-2 rounded-lg sm:mx-0"
+        className="pressable group/ticket mx-auto grid w-fit justify-items-center gap-2 rounded-lg @md:mx-0"
       >
         <QrFrame
           label={`Venue QR for ${venueName}`}
@@ -153,7 +153,7 @@ export function DashboardQrCardView({
       </button>
     </PresentQrTrigger>
   ) : (
-    <div className="mx-auto grid w-fit justify-items-center gap-2 sm:mx-0">
+    <div className="mx-auto grid w-fit justify-items-center gap-2 @md:mx-0">
       <QrFrame
         label={`Venue QR for ${venueName}`}
         className="w-[9.25rem] shadow-[5px_5px_0_var(--w-shadow-color)]"
@@ -167,63 +167,71 @@ export function DashboardQrCardView({
   )
 
   const card = (
-    <ReceiptCard
-      edge
-      className="grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start sm:gap-6"
-    >
-      {ticket}
+    // `@container`, not `sm:` — 03#12 puts this ticket in an 18rem sidecar
+    // beside the KPI grid at `xl`, and a viewport breakpoint cannot tell the
+    // difference between a 288px sidecar and a 288px phone. Measured: inside
+    // the sidecar a `sm:` two-column split leaves the copy track 84px wide.
+    // The card now splits on its OWN width, so it is one column in the sidecar
+    // and on a phone, and two columns whenever it is given the page.
+    <div className="@container">
+      <ReceiptCard
+        edge
+        className="grid gap-4 @md:grid-cols-[auto_minmax(0,1fr)] @md:items-start @md:gap-6"
+      >
+        {ticket}
 
-      <div className="grid min-w-0 gap-3">
-        <div className="grid gap-1.5">
-          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-            <Eyebrow>Counter QR</Eyebrow>
-            <MonoTag tone={status.tone}>{status.label}</MonoTag>
+        <div className="grid min-w-0 gap-3">
+          <div className="grid gap-1.5">
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+              <Eyebrow>Counter QR</Eyebrow>
+              <MonoTag tone={status.tone}>{status.label}</MonoTag>
+            </div>
+            <h2 className="text-xl leading-tight font-extrabold text-balance break-words @md:text-2xl">
+              {venueName}
+            </h2>
           </div>
-          <h2 className="text-xl leading-tight font-extrabold text-balance break-words sm:text-2xl">
-            {venueName}
-          </h2>
-        </div>
 
-        {scansAvailable ? (
-          <>
-            <p className="text-sm leading-6 text-muted-foreground">
-              Customers scan to join and take today&apos;s stamp.
-            </p>
-            <div className="flex flex-wrap items-center gap-2">
-              {/* One wrap row, not a mixed-width stack: the primary used to be
-                  `w-full sm:w-auto` while the two beside it were auto, so on a
-                  phone it rendered as a full-width block with two small buttons
-                  orphaned underneath. */}
-              <PresentQrTrigger>
-                <Button type="button">Show full screen</Button>
-              </PresentQrTrigger>
-              <CopyUrlButton url={shareUrl} />
-              <Button asChild variant="ghost" size="sm">
-                <Link href="/app/qr" prefetch={false}>
-                  <Icon icon={PrinterIcon} size={16} />
-                  Poster &amp; print
+          {scansAvailable ? (
+            <>
+              <p className="text-sm leading-6 text-muted-foreground">
+                Customers scan to join and take today&apos;s stamp.
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                {/* One wrap row, not a mixed-width stack: the primary used to
+                    be `w-full sm:w-auto` while the two beside it were auto, so
+                    on a phone it rendered as a full-width block with two small
+                    buttons orphaned underneath. */}
+                <PresentQrTrigger>
+                  <Button type="button">Show full screen</Button>
+                </PresentQrTrigger>
+                <CopyUrlButton url={shareUrl} />
+                <Button asChild variant="ghost" size="sm">
+                  <Link href="/app/qr" prefetch={false}>
+                    <Icon icon={PrinterIcon} size={16} />
+                    Poster &amp; print
+                  </Link>
+                </Button>
+              </div>
+            </>
+          ) : (
+            <div className="grid gap-2 rounded-lg border-2 border-dashed border-ink/25 bg-paper-deep/45 p-3">
+              <p className="text-sm leading-5 font-extrabold">
+                {unavailableCopy.title}
+              </p>
+              <p className="text-xs leading-5 font-bold text-muted-foreground">
+                {unavailableCopy.body}
+              </p>
+              <Button asChild variant="outline" size="sm" className="w-fit">
+                <Link href={actionHref} prefetch={false}>
+                  {actionLabel}
+                  <Icon icon={ArrowRight01Icon} size={14} />
                 </Link>
               </Button>
             </div>
-          </>
-        ) : (
-          <div className="grid gap-2 rounded-lg border-2 border-dashed border-ink/25 bg-paper-deep/45 p-3">
-            <p className="text-sm leading-5 font-extrabold">
-              {unavailableCopy.title}
-            </p>
-            <p className="text-xs leading-5 font-bold text-muted-foreground">
-              {unavailableCopy.body}
-            </p>
-            <Button asChild variant="outline" size="sm" className="w-fit">
-              <Link href={actionHref} prefetch={false}>
-                {actionLabel}
-                <Icon icon={ArrowRight01Icon} size={14} />
-              </Link>
-            </Button>
-          </div>
-        )}
-      </div>
-    </ReceiptCard>
+          )}
+        </div>
+      </ReceiptCard>
+    </div>
   )
 
   // The dialog root only mounts when there is something to present.

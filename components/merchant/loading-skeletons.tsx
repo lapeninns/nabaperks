@@ -35,32 +35,38 @@ export function MerchantPageTitleSkeleton() {
  *  mono caption) beside the status row, venue title, and action row. */
 export function DashboardQrCardSkeleton() {
   return (
-    <ReceiptCard
-      edge
-      className="grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start sm:gap-6"
-    >
-      <div className="mx-auto grid w-fit justify-items-center gap-2 sm:mx-0">
-        {/* 9.25rem is the frame, not the code: a 6rem QR inside p-4 + inner p-2
-            + 2px borders. Mirrors DashboardQrCardView exactly. */}
-        <Skeleton className="aspect-square size-[9.25rem] rounded-lg" />
-        <Skeleton className="h-3 w-32" />
-      </div>
-      <div className="grid gap-3">
-        <div className="grid gap-2">
-          <div className="flex items-center gap-2.5">
-            <Skeleton className="h-3 w-24" />
-            <Skeleton className="h-5 w-14 rounded-full" />
+    // Same `@container` split as DashboardQrCardView: the skeleton stands in
+    // for a card that may be in the page column or in the xl sidecar, and a
+    // viewport breakpoint here would reserve a two-column shape the real card
+    // then renders as one (03#12).
+    <div className="@container">
+      <ReceiptCard
+        edge
+        className="grid gap-4 @md:grid-cols-[auto_minmax(0,1fr)] @md:items-start @md:gap-6"
+      >
+        <div className="mx-auto grid w-fit justify-items-center gap-2 @md:mx-0">
+          {/* 9.25rem is the frame, not the code: a 6rem QR inside p-4 + inner
+              p-2 + 2px borders. Mirrors DashboardQrCardView exactly. */}
+          <Skeleton className="aspect-square size-[9.25rem] rounded-lg" />
+          <Skeleton className="h-3 w-32" />
+        </div>
+        <div className="grid gap-3">
+          <div className="grid gap-2">
+            <div className="flex items-center gap-2.5">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-5 w-14 rounded-full" />
+            </div>
+            <Skeleton className="h-6 w-52 max-w-full" />
           </div>
-          <Skeleton className="h-6 w-52 max-w-full" />
+          <Skeleton className="h-4 w-full max-w-md" />
+          <div className="flex flex-wrap gap-2">
+            <Skeleton className="h-11 w-36" />
+            <Skeleton className="h-11 w-28" />
+            <Skeleton className="h-9 w-32" />
+          </div>
         </div>
-        <Skeleton className="h-4 w-full max-w-md" />
-        <div className="flex flex-wrap gap-2">
-          <Skeleton className="h-11 w-36" />
-          <Skeleton className="h-11 w-28" />
-          <Skeleton className="h-9 w-32" />
-        </div>
-      </div>
-    </ReceiptCard>
+      </ReceiptCard>
+    </div>
   )
 }
 
