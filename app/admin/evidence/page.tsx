@@ -11,6 +11,11 @@ import {
   first,
   formatAdminDate,
 } from "@/components/admin/support"
+import {
+  AdminAppliedFilters,
+  AdminLookupControls,
+  AdminLookupPagination,
+} from "@/components/admin/lookup-controls"
 import { AdminViewTabs } from "@/components/admin/view-tabs"
 import { PageTitle, SectionHeader } from "@/components/brand"
 import { SubmitButton, SelectField } from "@/components/forms"
@@ -18,6 +23,10 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { canRenderAdminPage } from "@/lib/admin/auth"
 import { getAdminEvidenceWorkspace } from "@/lib/admin/evidence"
+import {
+  buildLookupHref,
+  parseAdminLookupParams,
+} from "@/lib/admin/lookup-query"
 import type { AdminSearchParams } from "@/lib/admin/lookup-query"
 
 export const metadata = { title: "Admin — Commercial evidence" }
@@ -49,7 +58,17 @@ export default async function AdminEvidencePage({
   const rawView = Array.isArray(params.view) ? params.view[0] : params.view
   const view = rawView === "capture" ? "capture" : "ledger"
 
-  const workspace = await getAdminEvidenceWorkspace()
+  const lookup = parseAdminLookupParams(params)
+  const workspace = await getAdminEvidenceWorkspace(lookup)
+  // Preserve the active view (and drop `page`, which the pager re-adds) so a
+  // paged ledger does not bounce the operator back to the capture form.
+  const ledgerHref = (page: number) =>
+    buildLookupHref("/admin/evidence", {
+      view: view === "ledger" ? undefined : view,
+      venue: lookup.venue,
+      page,
+      size: lookup.size,
+    })
 
   return (
     <div className="grid gap-6">
@@ -217,14 +236,20 @@ export default async function AdminEvidencePage({
               <SourceLabel>Source: commercial_evidence_cases</SourceLabel>
             }
           />
-          {workspace.caseTotal > workspace.cases.length ? (
-            <p role="status" className="text-sm text-muted-foreground">
-              Showing the newest{" "}
-              <span className="numeric-tabular">{workspace.cases.length}</span>{" "}
-              of <span className="numeric-tabular">{workspace.caseTotal}</span>{" "}
-              evidence cases.
-            </p>
-          ) : null}
+          {/* The ledger is searchable and paged now, so it no longer needs the
+              truncation notice that stood in for it (ADM 04#6). */}
+          <AdminLookupControls
+            basePath="/admin/evidence"
+            lookup={lookup}
+            label="Search evidence by venue"
+            fields="venue"
+            hiddenParams={{ view: view === "ledger" ? undefined : view }}
+          />
+          <AdminAppliedFilters
+            basePath="/admin/evidence"
+            lookup={lookup}
+            extraParams={{ view: view === "ledger" ? undefined : view }}
+          />
           {workspace.cases.length ? (
             <div className="grid gap-4 lg:grid-cols-2">
               {workspace.cases.map((caseStudy) => {
@@ -302,6 +327,14 @@ export default async function AdminEvidencePage({
               padded={false}
             />
           )}
+          {workspace.caseMeta.total > 0 ? (
+            <AdminLookupPagination
+              label="Evidence ledger pages"
+              unit="evidence cases"
+              meta={workspace.caseMeta}
+              hrefForPage={ledgerHref}
+            />
+          ) : null}
         </AdminPanel>
       )}
     </div>
