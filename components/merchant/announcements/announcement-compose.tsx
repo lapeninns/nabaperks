@@ -5,6 +5,7 @@ import { Megaphone01Icon } from "@hugeicons/core-free-icons"
 
 import { Eyebrow, EmptyState, Icon, SectionHeader } from "@/components/brand"
 import { StatusBanner } from "@/components/loyalty/status-banner"
+import { FormActionBar } from "@/components/merchant/launch/form-action-bar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -266,23 +267,35 @@ export function AnnouncementCompose({
         />
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="grid max-w-md gap-1">
-          <p className="text-xs leading-5 text-muted-foreground">
-            Sent only to members with push updates enabled for this venue.
-          </p>
-          {/* The visible half of the disabled button's reason, named by
+      {/* 03#49: this form measures 883-948px on a 390x844 phone, so the send
+          control sat below the fold behind the keyboard. FormActionBar sticks
+          it to the bottom under `sm` and returns it to the flow from `sm` up.
+          `offset="tab-bar"` because /app/announcements is a full-shell route
+          and the md:hidden bottom tab bar would otherwise cover it. */}
+      <FormActionBar
+        offset="tab-bar"
+        className="-mx-6 px-6 sm:px-0"
+        // `hint` renders inside a <p>, so this slot must stay phrasing content —
+        // a <div> here is invalid HTML and produced a hydration mismatch.
+        hint={
+          <span className="grid max-w-md gap-1">
+            <span className="text-xs leading-5 text-muted-foreground">
+              Sent only to members with push updates enabled for this venue.
+            </span>
+            {/* The visible half of the disabled button's reason, named by
               aria-describedby below so it is announced with the control
               instead of only on focus (03#56). */}
-          {blockedReason && !pending ? (
-            <p
-              id={blockedReasonId}
-              className="text-xs leading-5 font-bold text-foreground"
-            >
-              {blockedReason}
-            </p>
-          ) : null}
-        </div>
+            {blockedReason && !pending ? (
+              <span
+                id={blockedReasonId}
+                className="text-xs leading-5 font-bold text-foreground"
+              >
+                {blockedReason}
+              </span>
+            ) : null}
+          </span>
+        }
+      >
         {/* Muted secondary while unsendable: a half-opacity vermillion reads
             as an off-palette pink button rather than a disabled state. Real
             ellipsis on the pending label (console-wide convention). */}
@@ -298,7 +311,7 @@ export function AnnouncementCompose({
           <Icon icon={Megaphone01Icon} size={16} />
           {pending ? "Sending…" : "Send announcement"}
         </Button>
-      </div>
+      </FormActionBar>
     </form>
   )
 }
