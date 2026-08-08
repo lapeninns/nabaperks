@@ -500,3 +500,32 @@ the other two on purpose.
 
 Both are defensible. Picking between them is a design call, and it wants the
 visual baselines regenerated either way.
+
+## 16. Hard caps that are signposted but not solved (04#6)
+
+Four admin surfaces now say when they are truncating:
+
+| surface                  | cap | notice                                           |
+| ------------------------ | --: | ------------------------------------------------ |
+| fraud flags              | 100 | "Showing the newest N of M flags in this queue." |
+| redemption failures      | 100 | "Showing the newest N of M recorded failures."   |
+| evidence case ledger     | 100 | "Showing the newest N of M evidence cases."      |
+| evidence merchant picker | 200 | "First N of M venues, alphabetically."           |
+
+That is the audit's stated MINIMUM, and it is not the fix. The merchant picker
+is the one to look at: it is an alphabetical `<select>`, so past 200 venues a
+late-alphabet name cannot be selected at all. The notice stops an operator
+concluding the venue is not on the platform; it does not let them file evidence
+against it.
+
+The real fixes, in rough order of value:
+
+1. Make the merchant picker searchable (server-side lookup, same
+   `AdminLookupControls` pattern the merchants and audit lists now use).
+2. Give fraud, referrals and billing the lookup + paginator those two already
+   have.
+3. The Cmd-K palette over the same query params.
+
+Each needs a lookup query per route, which is a data-layer change rather than a
+UI one, and (1) also needs a decision on whether the evidence form should be
+able to reference a venue an operator cannot see in a list.
