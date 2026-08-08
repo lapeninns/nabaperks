@@ -653,9 +653,12 @@ A single `quality:check` run in the final verification of this turn reported
 had piped it through. Eight subsequent runs — six of `test:unit`, three of the
 full `quality:check` — are clean at 955/955.
 
-I could not reproduce it and I could not name it, so this is not a diagnosis; it
-is a note that it happened once, on a branch whose whole claim is that its gates
-are green. If a unit test starts failing intermittently in CI, this is the first
+I could not reproduce it and I could not name it. Since then: **10 further full
+`test:unit` runs** (all 955/955) and **21 targeted runs** across the seven
+time-sensitive files (`activity-display`, `birthday-window`, `marketing-promo`,
+`profile-fields`, `resilience`, `seed-stress`, `standard-webhook`) — every one
+clean. So this is not a diagnosis; it is a note that it happened once, on a
+branch whose whole claim is that its gates are green. If a unit test starts failing intermittently in CI, this is the first
 evidence of it and the likely candidates are the time-sensitive suites
 (`tests/unit` files touching `Date.now`, `setTimeout` or `new Date()`).
 
