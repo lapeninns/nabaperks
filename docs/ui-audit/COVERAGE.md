@@ -532,3 +532,16 @@ border syntax. Recorded so a future sweep does not turn a checkmark into a box.
 Generalising: when a finding is "pattern X appears at N call sites", check
 whether the design system's own source declares X too. The call sites are
 usually imitating something.
+
+### The tally table was wrong for most of the campaign
+
+`COVERAGE.md`'s summary read 253/60/20/14 — many turns out of date — while every
+turn's reported figure came from a fresh parse. Prettier aligns these tables
+into padded columns and the update regex assumed single spaces, so it matched
+nothing, silently, every time. HANDOFF's unpadded `| Done | N |` rows DID match,
+so the two files disagreed and neither looked broken.
+
+Two habits would have caught it, and both are ones this campaign already relies
+on elsewhere: read back what an automated edit produced, and cross-check two
+documents that should agree. A regex that matches nothing and a regex that
+matches correctly exit the same way.
