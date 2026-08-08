@@ -475,7 +475,12 @@ function CampaignMetrics({ campaign }: { campaign: MerchantOfferCampaign }) {
       <Eyebrow>Results so far</Eyebrow>
       {/* Five tiles never squeeze into two phone columns: below lg they run as
           a snap-scroll rail at a steady 10rem, from lg they take the grid. */}
-      <div className="flex snap-x [scrollbar-width:none] gap-3 overflow-x-auto pb-1 lg:grid lg:grid-cols-5 lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden">
+      <div
+        role="group"
+        aria-label="Offer performance"
+        tabIndex={0}
+        className="focus-ring flex snap-x [scrollbar-width:none] gap-3 overflow-x-auto rounded-sm pb-1 lg:grid lg:grid-cols-5 lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden"
+      >
         <MetricTile
           className="min-w-[10rem] snap-start lg:min-w-0"
           label="Link opened"
