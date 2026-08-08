@@ -397,3 +397,50 @@ motion enabled on `/` and `/loyalty-for-pubs`:
 
 Worth noting for future work: any finding about motion has this blind spot. The
 browser tiers cannot see animation at all.
+
+## 14. 05#61 — `enableSystem` is one word, guarded by three CSP hashes
+
+The defect is real and High: `components/theme-provider.tsx` still passes
+`enableSystem`, so anyone whose OS is set to dark gets `.dark` applied — against
+a palette **no component has been designed for**. There are exactly three
+`dark:` variants in the whole product (`badge.tsx` x2, `stat-strip.tsx` x1).
+DESIGN.md is explicit that dark is "a dormant capability… no user-facing toggle
+exists and none is planned."
+
+The `color-scheme` half of this finding is already done.
+
+### Why I stopped
+
+`lib/security/csp.ts` pins three SHA-256 hashes of next-themes' inline bootstrap
+script, and that script's body is a function of the provider's props. Changing
+`enableSystem` changes the script, so all three hashes must be regenerated or
+CSP blocks the theme bootstrap in production — a failure that would not show up
+in any local gate.
+
+`tests/unit/csp-theme-hash.test.mjs` recomputes only
+`NEXT_THEMES_SERVER_RENDER_SCRIPT_SHA256`. The other two are asserted to be
+_present in the CSP string_, not to match any real script.
+
+I built the app, served it, and hashed the inline scripts it actually emits. The
+method reproduced `NEXT_THEMES_SCRIPT_SHA256`
+(`sha256-G04KaBzNliDSI5Rx3yKGSBrkZtxusQxAU2jyz3KK2Vc=`) exactly from `/`, which
+proves the approach — but `SERVER_RENDER` and `APP_RENDER` come from render paths
+I could not reach without live credentials. Two of three unverifiable is not a
+margin I will take on a security header.
+
+### The recipe
+
+1. `enableSystem` -> `enableSystem={false}` in `components/theme-provider.tsx`.
+   `forcedTheme="light"` is not needed: `defaultTheme` is already light and the
+   dark-preview hotkey is unreachable (nothing passes `enableHotkey`, so the
+   catalogue cannot toggle dark today either).
+2. Mirror the prop change in `tests/unit/csp-theme-hash.test.mjs:24`, which
+   constructs the provider to recompute the hash.
+3. Regenerate all three constants in `lib/security/csp.ts` by serving a
+   production build and hashing every inline `<script>` whose body matches
+   `/theme|colorScheme|localStorage/`, across a static marketing route, an
+   authed `/app` route, and a client-navigated route.
+4. Confirm no CSP violation in the browser console on each of those three.
+
+One word of code, and about twenty minutes of verification I cannot do from
+here.
