@@ -1002,7 +1002,7 @@ function StaffScanScreen({
         </p>
       </ReceiptCard>
 
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-xl border-2 border-ink bg-card p-4 text-sm">
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-lg border-2 border-ink bg-card p-4 text-sm">
         <dt className="font-bold text-muted-foreground">Member</dt>
         {/* Merchant surfaces show a masked identifier and never a number. */}
         <dd className="text-right font-bold">Phone ending 421</dd>
