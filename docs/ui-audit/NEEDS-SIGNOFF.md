@@ -255,7 +255,23 @@ Note the diagnosis is not the obvious one: the fonts are not slow to arrive
 (~50ms on localhost) and TBT is 0ms. It is simulated-throttling bandwidth
 contention on the preload, which is why this only shows up in Lighthouse.
 
-### Why woff2 is not committed
+### PARTLY FIXED — re-read the contract, it pins less than I said
+
+`poster-font-assets.test.mjs` hash-pins only the four ORIGINAL files. Medium and
+ExtraBold — the two this branch added, and the entire cause — are not pinned, so
+they now ship as woff2 (113KB -> 46KB each) while Regular and Bold stay .ttf for
+PDF parity. Local LCP 6,343ms -> 5,011ms; main measures 4,213ms on the same
+machine. The residual ~92KB of preload over main is the real price of not
+synthesising two weights, and may still exceed the CI budget.
+
+Two other levers measured and rejected: `preload: false` (LCP 4,666ms but FCP
+2,708ms vs a 2,500ms budget) and subsetting (impossible — the originals are
+hash-pinned). All four weights are genuinely used, so none can be dropped.
+
+If CI is still red, option 2 below (drop the two faces, accept synthesised
+weights) is the remaining lever and it is a design call, not an engineering one.
+
+### Original note — why I first thought woff2 was impossible
 
 `tests/contracts/poster-font-assets.test.mjs:57` — "the app and PDF renderer
 consume the same four local font files" — pins `BricolageGrotesque-Regular.ttf`
