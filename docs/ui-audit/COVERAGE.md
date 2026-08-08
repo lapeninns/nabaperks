@@ -1084,3 +1084,25 @@ Two of these deserve their own line rather than a category:
 
 The two new `admin-pagination-controls` tests ran inside both matrices
 (chromium 63-64/255, mobile-safari 66-67/303) and passed in both.
+
+### The wrong-file risk, swept
+
+After 03#46 shipped a broken submit because I read `tests/contracts/<name>` when
+the assertion lived in `tests/e2e/<name>-flow.ts`, I enumerated every name that
+exists as BOTH:
+
+    analytics-funnel-privacy            merchant-account-compat-routes
+    customer-abandoned-identity-retention  merchant-activation-ledger
+    customer-join-observability         merchant-launch-follow-through
+    customer-stamp-choreography         merchant-onboarding-continuity
+
+Eight names, and only two findings cite one in their notes: 03#46 (the defect)
+and 03#61.
+
+03#61 checked out. Its claim is about `Button`'s tap-floor variants; the e2e
+`merchant-launch-follow-through-flow.ts` contains no `min-h-11` or
+`pointer:coarse` assertion at all, and the spec passes 15/15 on chromium. So the
+contract really was the only relevant file there.
+
+One defect, not a pattern — but the sweep was worth the ten minutes, because the
+cost of the one was a form button that silently did nothing.
