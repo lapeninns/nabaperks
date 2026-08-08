@@ -701,3 +701,25 @@ are three:
 One of three, not an epidemic. Worth checking each time anyway: a pointer to an
 existing pattern is the most persuasive line in a finding, and the one least
 likely to be re-derived by whoever implements it.
+
+### Contract allowlists are a list of known defects
+
+The claims gap (NEEDS-SIGNOFF 24) came out of an allowlist inside a contract, so
+I grepped every contract for the same shape — "KNOWN", "pre-existing", "tracked
+separately", "allowlist". Twelve comments, eight files, and two were real
+defects the audit never saw:
+
+1. **`marketing-offer-source`** allowlists two guides files from the "name a
+   guarantee, render its boundary" rule. Escalated, not fixed: it is copy on
+   three indexed pages and a claims question (section 24).
+2. **`public-indexing-policy`** allowlisted `Disallow: /merchant` blocking the
+   public `/merchant-terms`. Fixed here, and the allowlist is now empty.
+
+The second one had drifted worse than its own comment: the note justified the
+low severity by saying the page was absent from the sitemap, and
+`/merchant-terms` is in `PUBLIC_SITE_ROUTES`. The site published it in
+sitemap.xml and disallowed it in robots.txt simultaneously.
+
+A contract allowlist is a defect someone chose to defer, written down in the one
+place that will never be read by a design audit. Worth grepping at the start of
+work like this, not turn 34.
