@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useEffect, useState } from "react"
 
+import { PresentCodeButton } from "@/components/customer/present-code-button"
 import { QrFrame, StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import { customerLoginHref } from "@/lib/navigation/safe-next-path"
@@ -102,6 +103,19 @@ export function OfferPassQr({
       <p className="rounded-lg bg-secondary px-3 py-2 text-center text-sm font-bold text-foreground">
         A team member scans this before they apply the discount
       </p>
+      {/* Counter mode (02#33) — same refreshing source, full-bleed. */}
+      <PresentCodeButton
+        label="Show at the counter"
+        title={`${discountPercent}% off at ${venueName}`}
+        caption="Hold this up for the team to scan"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- same-origin pass QR from a protected route */}
+        <img
+          src={offerPassQrCacheBustedSrc(entitlementId, tick)}
+          alt={`QR code for your ${discountPercent}% discount pass at ${venueName}`}
+          className="aspect-square w-full object-contain"
+        />
+      </PresentCodeButton>
       {/* Each code is single-use and lasts ten minutes, but the pass itself has
           no limit. Without this control a customer using the pass twice in one
           visit would stare at a code that has already been collected until the

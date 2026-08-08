@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 
 import { QrFrame, StatusBanner } from "@/components/loyalty"
+import { PresentCodeButton } from "@/components/customer/present-code-button"
 import { Button } from "@/components/ui/button"
 import {
   rewardQrCacheBustedSrc,
@@ -123,6 +124,23 @@ export function RewardCollectionQr({
         <p className="rounded-lg bg-secondary px-3 py-2 text-center text-sm font-bold text-foreground">
           Merchant scans this QR from their device
         </p>
+      )}
+      {/* Counter mode (02#33): the framed code is ~271px inside the receipt,
+          which is fine held still and not fine across a bar at arm's length.
+          Same refreshing source, full-bleed, nothing else on screen. */}
+      {errored ? null : (
+        <PresentCodeButton
+          label="Show at the counter"
+          title={rewardName}
+          caption="Hold this up for the team to scan"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- same-origin reward QR from a protected route */}
+          <img
+            src={rewardQrCacheBustedSrc(rewardId, tick)}
+            alt={`QR code for collecting ${rewardName}`}
+            className="aspect-square w-full object-contain"
+          />
+        </PresentCodeButton>
       )}
       {/* The reward code is single-use with a ten-minute TTL, exactly like the
           pass code — but the refresh control only existed on the error path, so
