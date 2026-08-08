@@ -530,3 +530,40 @@ The real fixes, in rough order of value:
 Each needs a lookup query per route, which is a data-layer change rather than a
 UI one, and (1) also needs a decision on whether the evidence form should be
 able to reference a venue an operator cannot see in a list.
+
+## 17. The last 1.5px is `.w-tag` itself (03#25)
+
+I closed 03#25 twice — once before the merge, once after re-sweeping the six
+`border-[1.5px]` call sites main reintroduced. Both times I was reporting the
+Tailwind call sites and not the utility they were imitating.
+
+`app/globals.css`'s `.w-tag` is:
+
+```css
+border: 1.5px solid var(--w-line);
+border-radius: 999px;
+```
+
+and `components/brand/mono-tag.tsx` applies `.w-tag` to every `MonoTag`, which
+renders in **52 files**. So the finding's premise — "DESIGN.md states borders are
+2px solid ink everywhere… there is no 1.5px in the system" — is still true of
+DESIGN.md and still false of the tree, in the one place that matters most.
+
+The call sites are worth having fixed regardless: they were hand-rolled pills
+diverging from the shared one. But raising `.w-tag` to 2px changes every mono
+pill in the product, and the baselines are already stale, so it is a decision
+rather than a sweep.
+
+Three ways to resolve it, in the order I would consider them:
+
+1. **Raise `.w-tag` to 2px.** Consistent with DESIGN.md as written, and the pill
+   gains 1px per side (padding is `4px 11px`, so nothing reflows).
+2. **Document 1.5px as a sanctioned exception** in DESIGN.md, on the grounds
+   that a 2px stroke on an 11px pill reads heavier than the same stroke on a
+   card. That is a legitimate typographic argument and DESIGN.md currently does
+   not make it.
+3. Leave both as they are, which is the only option that keeps the design
+   system's stated rule and its shipped utility disagreeing.
+
+03#25 is back to `[~]` until one of those is chosen. I would rather correct a
+closure than carry a green mark that a reader would find wrong in one grep.
