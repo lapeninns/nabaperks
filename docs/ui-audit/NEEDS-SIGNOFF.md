@@ -316,3 +316,26 @@ Nothing is weakened; the branch ships .ttf and the red Lighthouse check.
    -system raised.
 3. **Raise the LCP budget.** Not recommended without a reason beyond "our fonts
    got bigger".
+
+## 11. 02#20 — collapsing the card rails, with the blocker corrected
+
+The lane recorded this as "contract-pinned plus a product call". The first half
+is wrong and I have corrected it in STATUS: **no test anywhere in `tests/`
+references any of the five rail components**, and the contracts that do read
+`customer-card-experience.tsx` pin only the pass rail's prop shape, its
+`/pass/{id}` href, and that it sits outside the tile's own link. An accordion
+around the rails breaks none of that.
+
+So the accordion is buildable. What stops me is the product call, and it is
+sharper than "closed by default":
+
+- **`ReferralBonusBankNotice`, `ReferralSharePanel`, `GoogleReviewButton`** are
+  evergreen promotion. Collapsing them costs a member nothing.
+- **`CardOfferPassChip` and `CardGiftChip` are time-sensitive and actionable.**
+  A pass has an expiry. Hiding one behind a closed disclosure by default is a
+  real risk of a member missing something they own.
+
+The audit asks for three rows closed by default, which would collapse all five.
+A split — actionable rails stay visible, promotional rails collapse — reads
+better to me, but that is a product judgement about what the card screen is
+_for_, and it is not mine to make quietly. Both options are one small change.
