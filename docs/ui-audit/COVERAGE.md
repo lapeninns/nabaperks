@@ -14,12 +14,12 @@ branch is green after every merge.
 
 | Report           | Tracked |    Done | Partial |  Stale |   Open |
 | ---------------- | ------: | ------: | ------: | -----: | -----: |
-| 01 marketing     |      69 |      49 |      11 |      3 |      6 |
+| 01 marketing     |      69 |      53 |       7 |      3 |      6 |
 | 02 customer      |      70 |      59 |       7 |      2 |      2 |
 | 03 merchant      |      67 |      53 |       8 |      4 |      2 |
 | 04 admin         |      74 |      61 |       2 |      9 |      2 |
 | 05 design system |      67 |      64 |       2 |      0 |      1 |
-| **Total**        | **347** | **286** |  **30** | **18** | **13** |
+| **Total**        | **347** | **290** |  **26** | **18** | **13** |
 
 > > > > > > > lane/merchant
 

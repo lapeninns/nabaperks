@@ -72,6 +72,14 @@
   --text-micro: 0.625rem;
   --text-meta: 0.71875rem;
 
+  /* DESIGN.md's `marketing-hero` rank, minted the same way `.type-page-title`
+     mints the page-title rank. The two site heroes hand-numbered themselves
+     `lg:text-6xl` (60px) against a contract that says 56px, so the design
+     system and the largest type object on the site disagreed by 4px. The
+     rung is a size only — weight, leading and tracking stay at the call
+     site, as they do for every other minted rank. (01#15) */
+  --text-marketing-hero: 3.5rem; /* 56px — DESIGN.md typography.marketing-hero */
+
   --tracking-meta: 0.06em;
   --tracking-tag: 0.08em;
   --tracking-code: 0.18em;
@@ -619,6 +627,20 @@ body[data-grain="true"]::after {
     max-width: none;
   }
 
+  /* Chrome off the printed record. 01#68's own complaint is that a merchant
+     who prints the terms to file them gets the sticky site header and the
+     four-column footer on the page; measured before this rule, both still
+     rendered at print media on /terms. `:has()` scopes it to a legal document
+     so printing any other screen still shows where it came from. It is NOT
+     paired with a "expand every <details>" rule: measured, the only
+     <details> on a legal route are the footer's own columns (the TOC
+     disclosure is inside the aside this block already hides), and no
+     cross-browser CSS can force one open in any case. */
+  body:has([data-legal-document]) > * > header,
+  body:has([data-legal-document]) > * > footer {
+    display: none !important;
+  }
+
   [data-legal-document] * {
     box-shadow: none !important;
   }
@@ -685,12 +707,11 @@ body[data-grain="true"]::after {
 }
 
 [data-on-ink]
-  [data-slot="button"]:not([data-variant="ghost"]):not([data-variant="link"]):not(
-    [data-variant="destructive"]
-  ) {
+  [data-slot="button"]:not([data-variant="ghost"]):not(
+    [data-variant="link"]
+  ):not([data-variant="destructive"]) {
   border-color: var(--w-paper);
 }
-
 
 [data-slot="button"][data-variant="ghost"],
 [data-slot="button"][data-variant="link"] {
@@ -1261,4 +1282,3 @@ details[data-just-updated="true"] > summary::after {
   text-transform: uppercase;
   color: var(--reward);
 }
-

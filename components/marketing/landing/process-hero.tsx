@@ -38,7 +38,7 @@ export function ProcessHero() {
     >
       <div className="grid gap-5">
         <Eyebrow>The process</Eyebrow>
-        <h1 className="max-w-[18ch] text-4xl leading-[1.03] font-extrabold tracking-tight text-balance text-foreground sm:max-w-xl sm:text-5xl lg:text-6xl">
+        <h1 className="max-w-[18ch] text-4xl leading-[1.03] font-extrabold tracking-tight text-balance text-foreground sm:max-w-xl sm:text-5xl lg:text-marketing-hero">
           We do the launch. You go live.
         </h1>
         <p className="max-w-md text-base leading-7 text-muted-foreground sm:text-lg">
