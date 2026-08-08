@@ -40,12 +40,23 @@ export function FormField({
   label,
   description,
   error,
+  trailing,
   children,
 }: {
   id: string
   label: ReactNode
   description?: ReactNode
   error?: ReactNode
+  /**
+   * Control affixed inside the field well (a password reveal toggle).
+   *
+   * It has to be a SIBLING of the control rather than a wrapper around it:
+   * `wireControl` clones the single child to inject `id`, `aria-describedby`
+   * and `aria-invalid`, so wrapping the input in a positioning element sends
+   * that wiring to the wrapper and leaves the input with no accessible name at
+   * all. Caught by auth-password-policy in the browser, not by any static test.
+   */
+  trailing?: ReactNode
   children: ReactNode
 }) {
   const descriptionId = description ? `${id}-description` : undefined
@@ -54,7 +65,14 @@ export function FormField({
   return (
     <Field data-invalid={Boolean(error)}>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      {wireControl(children, { id, descriptionId, errorId, error })}
+      {trailing ? (
+        <span className="relative block min-w-0">
+          {wireControl(children, { id, descriptionId, errorId, error })}
+          {trailing}
+        </span>
+      ) : (
+        wireControl(children, { id, descriptionId, errorId, error })
+      )}
       {description ? (
         <FieldDescription id={descriptionId}>{description}</FieldDescription>
       ) : null}
