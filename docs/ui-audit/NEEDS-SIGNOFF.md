@@ -686,3 +686,34 @@ Neither is unsolvable — server-side search over a materialised label column
 would fix (1), and threading could look back a row across the cursor for (2).
 Both are data-layer work with a privacy review attached, which is a different
 kind of change from the rest of this campaign.
+
+## 22. The three contract-blocked findings, read closely
+
+03#46 turned out to be blocked by a misreading — the contract forbade a `??`
+error merge, not the blur validation the note blamed. So I read the other three
+the same way. All three blocks are real. They are not the same KIND of block,
+and that matters if you renegotiate any of them.
+
+**01#63 — mechanism conflict, most renegotiable.** `legal-p3-polish` asserts
+`<aside className="… order-last … lg:order-none">`, and its header gives the
+reason: on mobile the TOC must sit below the content _so the title is above the
+fold_. The audit wants the TOC above the article — but as a **collapsed
+`<details>`, ~56px**. That serves the very goal the assertion protects. The
+conflict is in the mechanism, not the intent, which makes this the one worth
+reopening first.
+
+**01#65 — genuine design disagreement.** `legal-heading-structure` asserts
+`<h2 className="mono-meta` and explains that clause titles must be real headings
+carrying the sanctioned mono utility. The audit wants them to stop being mono
+micro-type entirely (`text-base sm:text-lg font-extrabold`, because an 11.5px
+heading over 14px body is inverted hierarchy). Both positions are coherent. The
+contract encodes one; the audit argues the other. Someone has to choose.
+
+**01#49 — the measured one.** Covered in section 7: the pinned expression causes
+CLS 0.1924 against a 0.1 threshold. This is the only one of the three where the
+contract's own goal (no pre-hydration flash) and the measured outcome (a large
+layout shift) are in tension with each other, rather than with the audit.
+
+Ranked by what I would revisit: 01#49 (a measured defect), then 01#63 (a
+mechanism swap that keeps the goal), then 01#65 (a taste decision that wants an
+owner).
