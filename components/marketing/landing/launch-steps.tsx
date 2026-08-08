@@ -44,6 +44,7 @@ export function LaunchSteps() {
   return (
     <Section id="launch" size="dense">
       <SectionHeader
+        size="band"
         eyebrow="The launch sequence"
         title="Five steps — four of them ours"
         description={DFY_LAUNCH.intro}

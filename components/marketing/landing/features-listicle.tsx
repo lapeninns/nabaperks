@@ -35,6 +35,7 @@ export function FeaturesListicle() {
   return (
     <Section id="features" size="dense">
       <SectionHeader
+        size="band"
         eyebrow="What's included"
         title="Everything set up before you go live"
         description="Six parts of the launch, each tied to a practical objection it removes."

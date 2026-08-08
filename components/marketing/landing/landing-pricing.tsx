@@ -22,6 +22,7 @@ export function LandingPricing() {
   return (
     <Section id="pricing" size="dense">
       <SectionHeader
+        size="band"
         eyebrow="Pricing"
         title="Launch first. Prove the platform. Then continue."
         description="The physical launch is paid today. Allow up to 14 days for poster delivery; the 28-day platform pilot starts on confirmed delivery, then recurring billing begins."

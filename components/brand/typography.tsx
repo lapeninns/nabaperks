@@ -93,17 +93,38 @@ export function PageTitle({
   )
 }
 
+/**
+ * Rank for a `SectionHeader`'s `h2`.
+ *
+ * `panel` (the default) is the console register: a heading inside a card,
+ * competing with the data under it, deliberately small. `band` is the marketing
+ * register: a heading that owns a full-width band of the page.
+ *
+ * They were the same 18px, so on the landing page one scroll met an h2 at 18px
+ * (Pricing, Merchant evidence), 24px (the closing CTA) and 36px (the product
+ * moment) — three sizes for one rank, with the band headings the SMALLEST
+ * (MKT 01#14). Console callers pass nothing and render exactly as before.
+ */
+export type SectionHeaderSize = "band" | "panel"
+
+const SECTION_HEADER_TITLE: Record<SectionHeaderSize, string> = {
+  band: "text-2xl leading-tight sm:text-3xl",
+  panel: "text-lg leading-snug",
+}
+
 export function SectionHeader({
   eyebrow,
   title,
   description,
   actions,
+  size = "panel",
   className,
 }: {
   eyebrow?: ReactNode
   title: ReactNode
   description?: ReactNode
   actions?: ReactNode
+  size?: SectionHeaderSize
   className?: string
 }) {
   return (
@@ -115,7 +136,12 @@ export function SectionHeader({
     >
       <div className="grid gap-2">
         {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
-        <h2 className="text-lg leading-snug font-extrabold text-foreground">
+        <h2
+          className={cn(
+            SECTION_HEADER_TITLE[size],
+            "font-extrabold text-foreground"
+          )}
+        >
           {title}
         </h2>
         {description ? (

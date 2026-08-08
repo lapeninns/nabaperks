@@ -17,6 +17,7 @@ export async function CommercialEvidenceProof() {
   return (
     <Section id="merchant-evidence" size="compact">
       <SectionHeader
+        size="band"
         eyebrow="Approved merchant evidence"
         title="Results tied back to the loyalty ledger"
         description="Each figure is a dated aggregate snapshot. Nothing appears here without the venue’s recorded approval."

@@ -114,6 +114,7 @@ export function PersonaSpokePage({
       </Section>
       <Section size="compact">
         <SectionHeader
+          size="band"
           eyebrow="What's included"
           title="What the launch sets up for you"
         />

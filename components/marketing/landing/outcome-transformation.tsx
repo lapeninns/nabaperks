@@ -22,7 +22,11 @@ import { SnapRail, SnapRailItem } from "./snap-rail"
 export function OutcomeTransformation() {
   return (
     <Section id="outcome" size="dense">
-      <SectionHeader eyebrow="The change" title={TRANSFORMATION.heading} />
+      <SectionHeader
+        size="band"
+        eyebrow="The change"
+        title={TRANSFORMATION.heading}
+      />
       <div className="pt-5 sm:pt-6">
         <SnapRail
           label="Before and after the launch"

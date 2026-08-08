@@ -34,6 +34,7 @@ export function GuaranteeStack() {
   return (
     <Section id="guarantees" size="dense">
       <SectionHeader
+        size="band"
         eyebrow="Our guarantees"
         title="Two guarantees behind your launch"
         description={OFFER.riskFraming}
