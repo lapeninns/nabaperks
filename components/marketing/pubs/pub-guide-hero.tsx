@@ -38,7 +38,7 @@ export function PubGuideHero({
   return (
     <Section
       size="default"
-      className="grid items-center gap-8 pt-7 sm:pt-12 lg:grid-cols-[minmax(0,6fr)_minmax(0,5fr)] lg:gap-14"
+      className="grid items-center gap-8 pt-7 sm:pt-12 md:grid-cols-[minmax(0,6fr)_minmax(0,5fr)] md:gap-8 lg:gap-14"
     >
       <div className="grid gap-5">
         <Eyebrow>{PUB_GUIDE_HERO.eyebrow}</Eyebrow>
