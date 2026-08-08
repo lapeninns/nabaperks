@@ -7,13 +7,12 @@ import {
   verifyCustomerLoginOtpAction,
   type CustomerLoginOtpState,
 } from "@/app/home/actions"
-import { customerOtpInputClass } from "@/components/customer/input-class"
+import { CustomerOtpInput } from "@/components/customer/customer-otp-input"
 import { PhoneField } from "@/components/customer/phone-field"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
 import { JOIN_PHONE_CODE_HINT } from "@/lib/customer/experience/copy"
-import { otpFieldMaxLength } from "@/lib/customer/experience/otp-field"
 
 const initialState: CustomerLoginOtpState = {}
 
@@ -118,16 +117,11 @@ export function CustomerLoginForm({ next }: CustomerLoginFormProps) {
             <label htmlFor="otp" className="eyebrow">
               Phone code
             </label>
-            <input
+            <CustomerOtpInput
               id="otp"
-              name="otp"
-              inputMode="numeric"
-              autoComplete="one-time-code"
               autoFocus
-              maxLength={otpFieldMaxLength()}
-              className={customerOtpInputClass}
-              aria-invalid={Boolean(verifyError)}
-              aria-describedby={verifyError ? "otp-error" : undefined}
+              invalid={Boolean(verifyError)}
+              describedBy={verifyError ? "otp-error" : undefined}
             />
             {verifyError ? (
               <p

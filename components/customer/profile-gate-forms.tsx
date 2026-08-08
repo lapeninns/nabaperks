@@ -10,10 +10,10 @@ import {
 } from "@/app/reward/[rewardId]/actions"
 import { profileInputClass } from "@/components/customer/profile-form-parts"
 import { CustomerActionNote } from "@/components/customer/customer-flow-system"
+import { CustomerOtpInput } from "@/components/customer/customer-otp-input"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import { SubmitButton } from "@/components/forms"
-import { otpFieldMaxLength } from "@/lib/customer/experience/otp-field"
 import type { ProfileGate } from "@/lib/customer/experience/types"
 import { latestAdultBirthDate } from "@/lib/customer/profile-fields"
 
@@ -150,17 +150,10 @@ function ProfileEmailStep({
           <label htmlFor="profile-otp" className="eyebrow">
             Email code
           </label>
-          <input
+          <CustomerOtpInput
             id="profile-otp"
-            name="otp"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            maxLength={otpFieldMaxLength()}
-            className={`${profileInputClass} font-mono`}
-            aria-invalid={Boolean(state.errors?.otp)}
-            aria-describedby={
-              state.errors?.otp ? "profile-otp-error" : undefined
-            }
+            invalid={Boolean(state.errors?.otp)}
+            describedBy={state.errors?.otp ? "profile-otp-error" : undefined}
             onFocus={(event) =>
               event.currentTarget.scrollIntoView({ block: "center" })
             }
