@@ -19,6 +19,7 @@ export {
   RewardChip,
   StampDot,
   StampGrid,
+  balancedStampColumns,
   type RewardSlotState,
 } from "./stamp-grid"
 export { StatusBanner, type StatusBannerTone } from "./status-banner"

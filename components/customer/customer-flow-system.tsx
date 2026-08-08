@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 
 import { Eyebrow, MonoTag, ReceiptCard, VenueMark } from "@/components/brand"
 import {
+  balancedStampColumns,
   RewardSeal,
   RewardTicket,
   StampGrid,
@@ -271,7 +272,7 @@ export function CustomerStampCard({
   metaLines,
   hideFooter = false,
   hideHeaderText = false,
-  wrapStamps = false,
+  wrapStamps = true,
   compact = false,
   afterGrid,
   primaryAction,
@@ -303,6 +304,12 @@ export function CustomerStampCard({
    */
   hideHeaderText?: boolean
   /** Wrap stamp slots onto multiple rows in narrow surfaces such as launch preview. */
+  /**
+   * Balanced wrap (default). `false` restores the width-driven auto-fit row,
+   * which fills each row to the measure and leaves a ragged last row — a
+   * 6-stamp card plus its reward chip laid out 5 + 2, a 10-stamp card
+   * 5 + 5 + 1. (02#27)
+   */
   wrapStamps?: boolean
   /** Tighter stamp grid for narrow merchant preview surfaces. */
   compact?: boolean
@@ -324,9 +331,12 @@ export function CustomerStampCard({
   // ProgressTrack underneath was a duplicate readout — one progress signal only.
   // The sealed mystery shows once: as the row's end chip *or*, once revealed,
   // only on the ticket below — never two seals competing in one view.
-  // Three stamps + reward still fit one row; four or more stamps wrap on a 3-col grid.
-  const wrapColumnCount =
-    total + (reward.state === "sealed" ? 1 : 0) <= 4 ? total + 1 : 3
+  // Column count comes from the slot total, not from available width, so the
+  // last row is never mostly empty (02#27). Measured before: a 6-stamp card
+  // plus its reward chip laid out 5 + 2, and a 10-stamp card 5 + 5 + 1.
+  const wrapColumnCount = balancedStampColumns(
+    total + (reward.state === "sealed" ? 1 : 0)
+  )
 
   // True when the stamp row is the one showing the sealed mystery.
   const showsLockedRowChip =

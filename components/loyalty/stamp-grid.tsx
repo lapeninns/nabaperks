@@ -82,6 +82,45 @@ export function RewardChip({
   )
 }
 
+/**
+ * Column count for a card's stamp grid, chosen from the TOTAL rather than from
+ * available width.
+ *
+ * The adaptive `auto-fit` track fits as many discs as the measure allows, which
+ * produces ragged last rows. Measured in a browser at 375px: a 6-stamp card
+ * plus its reward chip lays out 5 + 2, and a 10-stamp card 5 + 5 + 1 — a lone
+ * reward chip owning a whole third row.
+ *
+ * This picks the column count that minimises rows first, then leaves the
+ * fullest last row: 7 slots -> 4 (4+3), 9 -> 5 (5+4), 11 -> 4 (4+4+3). Five is
+ * the ceiling because a sixth track drops the disc below the 44px tap floor on
+ * a 375px card. (02#27)
+ */
+export function balancedStampColumns(slotCount: number): number {
+  const MAX_COLUMNS = 5
+  if (slotCount <= MAX_COLUMNS) return Math.max(slotCount, 1)
+
+  let bestColumns = MAX_COLUMNS
+  let bestKey: [number, number] | null = null
+
+  for (let columns = 2; columns <= MAX_COLUMNS; columns += 1) {
+    const rows = Math.ceil(slotCount / columns)
+    const emptyInLastRow = columns - (slotCount - (rows - 1) * columns)
+    const key: [number, number] = [rows, emptyInLastRow]
+
+    if (
+      !bestKey ||
+      key[0] < bestKey[0] ||
+      (key[0] === bestKey[0] && key[1] < bestKey[1])
+    ) {
+      bestKey = key
+      bestColumns = columns
+    }
+  }
+
+  return bestColumns
+}
+
 type StampGridSlot =
   | { kind: "stamp"; index: number }
   | { kind: "reward"; slotState: RewardSlotState }
@@ -184,9 +223,7 @@ export function StampGrid({
           compact={compact}
           venueName={venueName}
           venueInitials={venueInitials}
-          onSlamComplete={
-            slot.index === slamIndex ? onSlamComplete : undefined
-          }
+          onSlamComplete={slot.index === slamIndex ? onSlamComplete : undefined}
         />
       </span>
     )
@@ -198,6 +235,8 @@ export function StampGrid({
   // one fixed track per slot so dense readbacks stay a single row; the table's
   // overflow-x container absorbs any extra width.
   const minTrack = compact ? "2.25rem" : "2.75rem"
+  // The two sanctioned disc sizes: 40px in a tile, 56px on the card page.
+  const discTrack = compact ? "2.5rem" : "3.5rem"
   const gridStyle: CSSProperties =
     flow === "horizontal"
       ? {
@@ -205,7 +244,13 @@ export function StampGrid({
         }
       : layout === "wrap"
         ? {
-            gridTemplateColumns: `repeat(${Math.max(wrapColumns, 1)}, minmax(0, 1fr))`,
+            // FIXED tracks, not 1fr. With flexible tracks the disc size is a
+            // function of how many fit per row, so the same component rendered
+            // a 68px disc on a 4-slot card and 52px on a 5-slot one — and once
+            // 02#27 balanced the rows, a 6-slot card ballooned to 84px.
+            // A short card now gets whitespace instead of giant discs. (02#28)
+            gridTemplateColumns: `repeat(${Math.max(wrapColumns, 1)}, ${discTrack})`,
+            justifyContent: "space-between",
           }
         : {
             gridTemplateColumns: `repeat(auto-fit, minmax(min(${minTrack}, 100%), 1fr))`,
