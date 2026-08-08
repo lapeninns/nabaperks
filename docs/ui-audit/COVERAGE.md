@@ -15,11 +15,11 @@ branch is green after every merge.
 | Report           | Tracked |    Done | Partial |  Stale |   Open |
 | ---------------- | ------: | ------: | ------: | -----: | -----: |
 | 01 marketing     |      69 |      42 |      18 |      3 |      6 |
-| 02 customer      |      70 |      51 |      13 |      2 |      4 |
+| 02 customer      |      70 |      52 |      14 |      2 |      2 |
 | 03 merchant      |      67 |      44 |      15 |      5 |      3 |
 | 04 admin         |      74 |      54 |       9 |      9 |      2 |
 | 05 design system |      67 |      61 |       3 |      1 |      2 |
-| **Total**        | **347** | **252** |  **58** | **20** | **17** |
+| **Total**        | **347** | **253** |  **59** | **20** | **15** |
 
 ## "Stale" is a real category (20 findings)
 
@@ -60,9 +60,9 @@ relaxed for whitespace only after Prettier re-wrapped a ternary
 `isPosterPrintPath` (`merchant-shell`). One test was added
 (`motion-tokens-bounded`).
 
-## Remaining 16 open, by reason
+## Remaining 14 open, by reason
 
-Exactly: 01#23, 01#49, 01#55, 01#63, 01#65, 01#67, 02#6, 02#29, 02#50, 02#64, 03#13, 03#16, 03#37, 04#54, 04#60, 05#13.
+Exactly: 01#23, 01#49, 01#55, 01#63, 01#65, 01#67, 02#50, 02#64, 03#13, 03#16, 03#37, 04#54, 04#60, 05#13.
 
 "Needs a browser" is no longer a category — Playwright works here, and the
 findings previously parked under it (02#27, 02#28, 05#47, 04#67) were measured
@@ -81,9 +81,6 @@ and either fixed or closed with evidence.
 - **Partially reassigned** — 03#37 (m-offers shipped the shared
   PrintPreviewNav; the single-route collapse is pinned by
   qr-a4-poster-templates).
-- **Depends on a closed sibling** — 02#29 (full-bleed reward seal) needs a seal
-  size that tracks the grid; now that 02#28 pins the disc to 56/40px this is
-  tractable, but RewardSeal still ships three fixed sizes.
 
 ## Browser verification — RUN, and it found real regressions
 
