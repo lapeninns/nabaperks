@@ -145,13 +145,19 @@ export function RewardTicket({
 
       <div
         className={cn(
-          // Flat w-20. `sm:w-[88px]` widened the stub by 8px at >=640px — but
+          // w-18 (72px), measured not guessed. The stub's floor is set by the
+          // longest stub word: "REDEEMED" at .mono-id measures 54px, plus p-2
+          // either side = 70px. 72px is the nearest rung that clears it. The
+          // audit's suggested w-14 (56px) is NOT viable — it would leave 40px
+          // of content box for a 54px word. (02#30)
+          //
+          // Flat, not responsive. `sm:w-[88px]` widened the stub by 8px at >=640px — but
           // the customer column is capped at 410px, so that only ever ate
           // measure on the surface where the terms are already squeezed into a
           // 213px newspaper column (CUS 02#30). The base width is set by the
           // stub word at the mono-id floor ("REDEEMED"), so shrinking it
           // further needs a rendered measurement, not a guess.
-          "grid w-20 shrink-0 content-center justify-items-center gap-2 p-2 text-center",
+          "grid w-18 shrink-0 content-center justify-items-center gap-2 p-2 text-center",
           leaf ? "bg-reward/10" : "bg-seal/10"
         )}
       >
