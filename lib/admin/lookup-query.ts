@@ -110,6 +110,34 @@ export function contactOrIlikeFilter(term: string): string {
   return `email.ilike.${quoted},phone_last4.ilike.${quoted}`
 }
 
+/**
+ * How a venue *name fragment* resolves against the venues it matched, for the
+ * one admin list whose reader cannot take a fragment: `admin_referral_ops`
+ * filters by a single `p_merchant_id`.
+ *
+ * The `none` case is the one that matters. Falling back to "no venue id" when
+ * a fragment matches nothing would run the query unfiltered and answer a
+ * different question — every referral on the platform, presented as this
+ * venue's.
+ */
+export type AdminVenueFilterDecision =
+  | { readonly kind: "unfiltered" }
+  | { readonly kind: "single"; readonly venueId: string }
+  | { readonly kind: "none" }
+  | { readonly kind: "ambiguous" }
+
+export function decideVenueFilter(
+  venue: string | undefined,
+  matches: ReadonlyArray<{ readonly id: string }>
+): AdminVenueFilterDecision {
+  if (!venue) return { kind: "unfiltered" }
+  if (matches.length === 0) return { kind: "none" }
+  if (matches.length > 1) return { kind: "ambiguous" }
+
+  const venueId = matches[0]?.id
+  return venueId ? { kind: "single", venueId } : { kind: "none" }
+}
+
 /** Zero-based inclusive `.range()` window for a 1-based page. */
 export function lookupRange(
   page: number,

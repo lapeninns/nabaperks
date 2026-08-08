@@ -6,6 +6,7 @@ import {
   buildLookupHref,
   contactOrIlikeFilter,
   containsPattern,
+  decideVenueFilter,
   escapeLikePattern,
   lookupRange,
   nextPage,
@@ -117,8 +118,31 @@ test("previousPage and nextPage stay inside the reachable window", () => {
   assert.equal(nextPage(pageMeta(101, 9)), null)
 })
 
+test("decideVenueFilter pushes a single match down and refuses to guess otherwise", () => {
+  assert.deepEqual(decideVenueFilter(undefined, []), { kind: "unfiltered" })
+  assert.deepEqual(decideVenueFilter("crown", [{ id: "venue-1" }]), {
+    kind: "single",
+    venueId: "venue-1",
+  })
+  assert.deepEqual(
+    decideVenueFilter("the", [{ id: "venue-1" }, { id: "venue-2" }]),
+    { kind: "ambiguous" }
+  )
+})
+
+test("decideVenueFilter treats a fragment that matches no venue as an empty result, never as unfiltered", () => {
+  // The referral reader takes one venue id; answering "no match" with a null
+  // id would run the query unfiltered and present every referral on the
+  // platform as that venue's.
+  assert.deepEqual(decideVenueFilter("zzz", []), { kind: "none" })
+  assert.notEqual(decideVenueFilter("zzz", []).kind, "unfiltered")
+})
+
 test("buildLookupHref serialises only meaningful params and keeps page 1 implicit", () => {
-  assert.equal(buildLookupHref("/admin/customers", { page: 1 }), "/admin/customers")
+  assert.equal(
+    buildLookupHref("/admin/customers", { page: 1 }),
+    "/admin/customers"
+  )
   assert.equal(
     buildLookupHref("/admin/customers", {
       venue: "Red Lion",

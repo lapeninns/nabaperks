@@ -6,11 +6,17 @@ import { AdminRecordActions } from "@/components/admin/record-actions"
 import {
   AdminEmptyState,
   AdminPanel,
+  AdminPanelFooter,
   AdminPanelHeader,
   SourceLabel,
   StatusPill,
   formatAdminDate,
 } from "@/components/admin/support"
+import {
+  AdminAppliedFilters,
+  AdminLookupControls,
+  AdminLookupPagination,
+} from "@/components/admin/lookup-controls"
 import { AdminRecordCard } from "@/components/admin/record-card"
 import { BillingFulfilmentActions } from "@/components/admin/billing-fulfilment-actions"
 import { CreditCardIcon } from "@hugeicons/core-free-icons"
@@ -25,7 +31,12 @@ import {
 
 type AdminBillingRecords = Awaited<ReturnType<typeof getAdminBillingRecords>>
 type AdminBillingRow = AdminBillingRecords[number]
-import { buildLookupHref } from "@/lib/admin/lookup-query"
+import {
+  buildLookupHref,
+  pageMeta,
+  parseAdminLookupParams,
+  type AdminSearchParams,
+} from "@/lib/admin/lookup-query"
 
 /**
  * Cross-links for a billing investigation: the merchant's account list and
@@ -72,13 +83,25 @@ function fulfilmentTone(
 
 export const metadata = { title: "Admin — Billing" }
 
-export default async function AdminBillingPage() {
+type AdminBillingPageProps = {
+  searchParams?: Promise<AdminSearchParams>
+}
+
+export default async function AdminBillingPage({
+  searchParams,
+}: AdminBillingPageProps) {
   if (!(await canRenderAdminPage())) return null
 
+  const params = searchParams ? await searchParams : {}
+  const lookup = parseAdminLookupParams(params)
+
   const [billing, billingTotal] = await Promise.all([
-    getAdminBillingRecords(),
-    getAdminBillingRecordTotal(),
+    getAdminBillingRecords(lookup),
+    getAdminBillingRecordTotal(lookup),
   ])
+  const meta = pageMeta(billingTotal, lookup.page)
+  const hrefForPage = (page: number) =>
+    buildLookupHref("/admin/billing", { venue: lookup.venue, page })
 
   return (
     <div className="grid gap-6">
@@ -101,18 +124,18 @@ export default async function AdminBillingPage() {
               </SourceLabel>
             }
           />
+          {/* The readback used to be a hard cap of 100 newest rows with a
+              truncation notice under it (ADM 04#6). A notice tells an operator
+              the venue they cannot see might exist; a lookup lets them reach
+              it. Venue only — a billing row has no customer dimension. */}
+          <AdminLookupControls
+            basePath="/admin/billing"
+            lookup={lookup}
+            label="Billing lookup"
+            fields="venue"
+          />
+          <AdminAppliedFilters basePath="/admin/billing" lookup={lookup} />
         </AdminPanelHeader>
-        {/* The readback is capped at BILLING_RECORD_LIMIT and said so
-            nowhere, so past the cap the table read as every billing record on
-            the platform (ADM 04#6). Only rendered when it truncates. */}
-        {billingTotal > billing.length ? (
-          <p role="status" className="text-sm text-muted-foreground">
-            Showing the newest{" "}
-            <span className="numeric-tabular">{billing.length}</span> of{" "}
-            <span className="numeric-tabular">{billingTotal}</span> billing
-            records.
-          </p>
-        ) : null}
         <DataTable
           caption="Admin billing subscription readback"
           cardBreakpoint="xl"
@@ -122,10 +145,18 @@ export default async function AdminBillingPage() {
           mobilePageSize={10}
           getRowKey={(row) => row.id}
           emptyState={
-            <AdminEmptyState
-              icon={CreditCardIcon}
-              title="No billing records yet"
-            />
+            lookup.venue ? (
+              <AdminEmptyState
+                icon={CreditCardIcon}
+                title="No matching billing records"
+                description="Adjust the venue search, or clear it to see the most recently updated records."
+              />
+            ) : (
+              <AdminEmptyState
+                icon={CreditCardIcon}
+                title="No billing records yet"
+              />
+            )
           }
           columns={[
             {
@@ -274,6 +305,16 @@ export default async function AdminBillingPage() {
             )
           }}
         />
+        {meta.total > 0 ? (
+          <AdminPanelFooter className="pt-0">
+            <AdminLookupPagination
+              label="Billing pages"
+              unit="billing records"
+              meta={meta}
+              hrefForPage={hrefForPage}
+            />
+          </AdminPanelFooter>
+        ) : null}
       </AdminPanel>
     </div>
   )

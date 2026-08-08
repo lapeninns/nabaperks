@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { UserGroupIcon } from "@hugeicons/core-free-icons"
 
 import { AdminRecordCard } from "@/components/admin/record-card"
@@ -9,9 +10,22 @@ import {
   formatAdminAuditDate,
   maskAdminContact,
 } from "@/components/admin/support"
+import {
+  AdminAppliedFilters,
+  AdminLookupControls,
+  AdminLookupPagination,
+} from "@/components/admin/lookup-controls"
 import { SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
-import type { AdminReferralOpsRow } from "@/lib/admin/data"
+import { Button } from "@/components/ui/button"
+import type {
+  AdminReferralOpsPage,
+  AdminReferralVenueMatch,
+} from "@/lib/admin/data"
+import {
+  buildLookupHref,
+  type AdminLookupState,
+} from "@/lib/admin/lookup-query"
 
 /**
  * Support operational referral view (referral ops visibility). Internal-admin
@@ -33,10 +47,16 @@ function statusTone(status: string): "neutral" | "good" | "warning" | "danger" {
 }
 
 export function ReferralOpsPanel({
-  rows,
+  referrals,
+  lookup,
+  hrefForPage,
 }: {
-  readonly rows: readonly AdminReferralOpsRow[]
+  readonly referrals: AdminReferralOpsPage
+  readonly lookup: AdminLookupState
+  readonly hrefForPage: (page: number) => string
 }) {
+  const ambiguous = referrals.venueMatches.length > 1
+
   return (
     <AdminPanel>
       <SectionHeader
@@ -44,18 +64,51 @@ export function ReferralOpsPanel({
         description="Referrer and referred member, current state and hold reason, timeline, and retry/fraud signals."
         actions={<SourceLabel>Source: service-role admin readback</SourceLabel>}
       />
+      {/* The readback was the newest 100 referrals with no filter, no total
+          and no signpost (04#6). Venue only: the RPC exposes no searchable
+          member contact, and the emails it does return are masked here. */}
+      <AdminLookupControls
+        basePath="/admin/referrals"
+        lookup={lookup}
+        label="Referral lookup"
+        fields="venue"
+      />
+      <AdminAppliedFilters basePath="/admin/referrals" lookup={lookup} />
+      {ambiguous ? (
+        <VenueDisambiguation matches={referrals.venueMatches} />
+      ) : null}
       <DataTable
         caption="Admin referral ops readback"
         cardBreakpoint="xl"
         className="rounded-lg shadow-none"
-        rows={rows as AdminReferralOpsRow[]}
+        rows={referrals.rows}
         getRowKey={(row) => row.referralId}
         emptyState={
-          <AdminEmptyState
-            icon={UserGroupIcon}
-            title="No referrals yet"
-            padded={false}
-          />
+          ambiguous ? (
+            <AdminEmptyState
+              icon={UserGroupIcon}
+              title="Choose a venue"
+              description="The venue search matches more than one venue; pick one above to see its referrals."
+              padded={false}
+            />
+          ) : lookup.venue ? (
+            <AdminEmptyState
+              icon={UserGroupIcon}
+              title="No matching referrals"
+              description={
+                referrals.venueMatches.length === 0
+                  ? "No venue name contains that fragment. Clear the search to see every referral."
+                  : "That venue has no referral records yet."
+              }
+              padded={false}
+            />
+          ) : (
+            <AdminEmptyState
+              icon={UserGroupIcon}
+              title="No referrals yet"
+              padded={false}
+            />
+          )
         }
         columns={[
           {
@@ -176,6 +229,47 @@ export function ReferralOpsPanel({
           />
         )}
       />
+      {referrals.meta.total > 0 ? (
+        <AdminLookupPagination
+          label="Referral pages"
+          unit="referral records"
+          meta={referrals.meta}
+          hrefForPage={hrefForPage}
+        />
+      ) : null}
     </AdminPanel>
+  )
+}
+
+/**
+ * `admin_referral_ops` filters by one venue id, so a fragment matching several
+ * venues cannot be pushed down. Applying it to whichever venue sorted first
+ * would silently answer a different question, so the operator picks; each chip
+ * re-submits the exact name, which then resolves to one venue.
+ */
+function VenueDisambiguation({
+  matches,
+}: {
+  readonly matches: readonly AdminReferralVenueMatch[]
+}) {
+  return (
+    <div className="grid gap-2">
+      <p className="text-sm text-muted-foreground">
+        That search matches{" "}
+        <span className="numeric-tabular">{matches.length}</span> venues. Choose
+        one:
+      </p>
+      <p className="flex flex-wrap gap-2">
+        {matches.map((match) => (
+          <Button key={match.id} asChild variant="secondary" size="xs">
+            <Link
+              href={buildLookupHref("/admin/referrals", { venue: match.name })}
+            >
+              <span className="min-w-0 truncate">{match.name}</span>
+            </Link>
+          </Button>
+        ))}
+      </p>
+    </div>
   )
 }

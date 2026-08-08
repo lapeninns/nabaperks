@@ -4,6 +4,7 @@ import { createAdminServiceRoleClient } from "@/lib/admin/service-role"
 import {
   contactOrIlikeFilter,
   containsPattern,
+  decideVenueFilter,
   lookupRange,
   pageMeta,
   type AdminLookupState,
@@ -375,19 +376,95 @@ export type AdminReferralOpsRow = {
   readonly fraudFlagCount: number
 }
 
+/** A venue the referral lookup fragment matched, for disambiguation. */
+export type AdminReferralVenueMatch = {
+  readonly id: string
+  readonly name: string
+}
+
+export type AdminReferralOpsPage = {
+  readonly rows: AdminReferralOpsRow[]
+  readonly meta: AdminPageMeta
+  /**
+   * Populated only when the venue fragment matched more than one venue. The
+   * RPC filters by a single `p_merchant_id`, so an ambiguous fragment cannot
+   * be pushed down; the panel asks which venue instead of silently showing
+   * one of them or nothing.
+   */
+  readonly venueMatches: readonly AdminReferralVenueMatch[]
+}
+
+/** Venues whose name contains the fragment, newest name order, capped. */
+const REFERRAL_VENUE_MATCH_LIMIT = 25
+
+async function findReferralVenues(
+  supabase: Awaited<ReturnType<typeof createAdminServiceRoleClient>>,
+  venue: string
+): Promise<AdminReferralVenueMatch[]> {
+  const { data, error } = await supabase
+    .from("merchants")
+    .select("id, business_name")
+    .ilike("business_name", containsPattern(venue))
+    .order("business_name", { ascending: true })
+    .limit(REFERRAL_VENUE_MATCH_LIMIT)
+
+  if (error) {
+    throw new Error(`Unable to resolve referral venue: ${error.message}`)
+  }
+
+  return (data ?? []).map((row) => ({
+    id: String(row.id),
+    name: String(row.business_name),
+  }))
+}
+
 /**
  * Support operational referral view (referral ops visibility): the
  * internal-admin detail behind /admin/referrals. Reads the admin_referral_ops RPC
  * through the gated admin service-role client (its is_service_role_request branch
  * accepts the loader; requireAdminRead has already gated the page).
+ *
+ * Paged, counted and venue-filterable (04#6). Two shapes the other admin
+ * lists do not have to deal with, both forced by the RPC's fixed signature
+ * `admin_referral_ops(uuid, text, integer, integer)`:
+ *
+ * 1. It returns no total, so the count is a separate head-only read of
+ *    `referrals` — the same pattern billing uses.
+ * 2. It filters by one venue id, not a name fragment. The fragment is
+ *    resolved against `merchants` first; a single match is pushed down, and
+ *    an ambiguous one is returned as `venueMatches` for the operator to
+ *    choose from rather than being applied to whichever venue sorted first.
  */
-export async function getAdminReferralOps(): Promise<AdminReferralOpsRow[]> {
+export async function getAdminReferralOps(
+  lookup: AdminLookupQuery = {}
+): Promise<AdminReferralOpsPage> {
   const supabase = await createAdminServiceRoleClient()
+  const page = lookup.page ?? 1
+  const window = lookupRange(page)
+
+  const matches = lookup.venue
+    ? await findReferralVenues(supabase, lookup.venue)
+    : []
+  const decision = decideVenueFilter(lookup.venue, matches)
+  if (decision.kind === "none" || decision.kind === "ambiguous") {
+    // Not "fall back to unfiltered": a fragment that resolves to no single
+    // venue must not be answered with every referral on the platform.
+    return { rows: [], meta: pageMeta(0, page), venueMatches: matches }
+  }
+  const venueId = decision.kind === "single" ? decision.venueId : null
+
+  const countQuery = supabase
+    .from("referrals")
+    .select("id", { count: "exact", head: true })
+  const { count } = await (venueId
+    ? countQuery.eq("venue_id", venueId)
+    : countQuery)
+
   const { data, error } = await supabase.rpc("admin_referral_ops", {
-    p_merchant_id: null,
+    p_merchant_id: venueId,
     p_status: null,
-    p_limit: 100,
-    p_offset: 0,
+    p_limit: window.to - window.from + 1,
+    p_offset: window.from,
   })
 
   if (error) {
@@ -395,28 +472,35 @@ export async function getAdminReferralOps(): Promise<AdminReferralOpsRow[]> {
   }
 
   const rows: unknown = data
-  if (!Array.isArray(rows)) return []
+  if (!Array.isArray(rows)) {
+    return { rows: [], meta: pageMeta(count ?? 0, page), venueMatches: [] }
+  }
 
-  return rows.map((row) => {
-    const r = (row ?? {}) as Record<string, unknown>
-    return {
-      referralId: String(r.referral_id ?? ""),
-      venueName: typeof r.venue_name === "string" ? r.venue_name : null,
-      status: String(r.status ?? ""),
-      holdReason: typeof r.hold_reason === "string" ? r.hold_reason : null,
-      referrerEmail:
-        typeof r.referrer_email === "string" ? r.referrer_email : null,
-      referredEmail:
-        typeof r.referred_email === "string" ? r.referred_email : null,
-      attributedAt:
-        typeof r.attributed_at === "string" ? r.attributed_at : null,
-      qualifiedAt: typeof r.qualified_at === "string" ? r.qualified_at : null,
-      bonusAwardedAt:
-        typeof r.bonus_awarded_at === "string" ? r.bonus_awarded_at : null,
-      retryCount: Number(r.retry_count ?? 0),
-      fraudFlagCount: Number(r.fraud_flag_count ?? 0),
-    }
-  })
+  return {
+    rows: rows.map(toAdminReferralOpsRow),
+    meta: pageMeta(count ?? 0, page),
+    venueMatches: [],
+  }
+}
+
+function toAdminReferralOpsRow(row: unknown): AdminReferralOpsRow {
+  const r = (row ?? {}) as Record<string, unknown>
+  return {
+    referralId: String(r.referral_id ?? ""),
+    venueName: typeof r.venue_name === "string" ? r.venue_name : null,
+    status: String(r.status ?? ""),
+    holdReason: typeof r.hold_reason === "string" ? r.hold_reason : null,
+    referrerEmail:
+      typeof r.referrer_email === "string" ? r.referrer_email : null,
+    referredEmail:
+      typeof r.referred_email === "string" ? r.referred_email : null,
+    attributedAt: typeof r.attributed_at === "string" ? r.attributed_at : null,
+    qualifiedAt: typeof r.qualified_at === "string" ? r.qualified_at : null,
+    bonusAwardedAt:
+      typeof r.bonus_awarded_at === "string" ? r.bonus_awarded_at : null,
+    retryCount: Number(r.retry_count ?? 0),
+    fraudFlagCount: Number(r.fraud_flag_count ?? 0),
+  }
 }
 
 /**
