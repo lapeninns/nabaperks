@@ -599,3 +599,30 @@ available. Until then the guides keep the disclosure, which has no shift at all.
 
 Doing 01#60 "properly" first would make the site more consistent and measurably
 worse.
+
+## 19. 02#10 — the wallet tile, measured and de-risked
+
+The audit wants `HomeCardTile` to become a fixed ~120px summary row. Measured on
+the home harness at 390px: the tile's link is **294px** and the block including
+the pass rail is **338px**. (The audit said ~330px for the tile itself; it was
+close, and it is 294px now that the chrome above it was cut.)
+
+Both contract claims in the status note are real, and they constrain the shape
+differently from how the note reads:
+
+- `offer-customer-pass-wiring` requires the `/pass` link to sit **outside** the
+  tile's own `Link`. That is a sibling rail, so it does **not** block a summary
+  row — it just cannot be folded inside one.
+- `referral-bonus-stamp:168` requires `ReferralBonusBankMini` to render **inside**
+  `home-card-tile.tsx`. That one is inside the tile, and a 120px row has to keep
+  it.
+
+So the row is buildable and the blocker is not a wall. What it is, is a redesign
+of the customer's first screen: deciding what a wallet tile shows at a glance
+(venue, progress, one action) and what moves behind a tap, while keeping a
+compact bank panel and a pass rail visible. That is a product decision about the
+home surface, not a resize, which is why I have not taken it.
+
+If you want it, the cheap first step is deciding whether the stamp grid belongs
+on the tile at all — it is the single tallest block in there, and `/card/[id]`
+already renders the full one.
