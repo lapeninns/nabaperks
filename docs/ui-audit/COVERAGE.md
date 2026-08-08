@@ -571,3 +571,34 @@ which is excluded by standing instruction anyway.
 Both were recorded as blocked and both were blocked — for different reasons than
 the ones written down. A wrong reason is a bad instruction to whoever picks it
 up: one of these would have been "fixed" into a regression.
+
+### The contract-blocked notes are trustworthy
+
+After correcting two blockers that gave the wrong reason (01#60, 01#9), I checked
+the rest of the same class: every status note that names a contract test.
+Nineteen claims across the five reports, seven of them checked assertion by
+assertion.
+
+**All nineteen are accurate.** The named file exists in every case, and where I
+read the assertions they say what the note says they say:
+
+| finding | claim                                                                  | verified            |
+| ------- | ---------------------------------------------------------------------- | ------------------- |
+| 03#47   | `reward-preset-atomic-add` pins `fixed … sm:static` and `pb-[8.75rem]` | lines 109-111       |
+| 03#55   | `merchant-venue-announcements-ui` pins `maxLength={80}` / `{180}`      | lines 87-88         |
+| 02#50   | `customer-join-frictionless-ux` pins `TermsFirstStampPreview`          | present             |
+| 02#60   | `customer-error-boundaries` pins both exits                            | present             |
+| 02#64   | `offer-campaign-ui` pins where `StampGrid` renders                     | present             |
+| 01#63   | `legal-p3-polish` implements MKT-P3-14/15                              | header + assertions |
+| 01#65   | `legal-heading-structure` pins the `mono-meta` h2                      | present             |
+
+So a reader can act on "blocked by contract X" without re-deriving it. The two
+wrong reasons were both about the SHAPE of the block — 01#60 named refactor size
+when the real gate was a CLS defect, 01#9 named a duplication that measurement
+does not support — not about whether a contract existed.
+
+Worth noting how the check went: my first pass reported 03#55 as unfounded, and
+my second reported 03#47's spacer as unpinned. Both were my own escaping —
+`maxLength=\{80\}` and `pb-\[8\.75rem\]` appear escaped inside the test's
+regexes. A verification tool that returns "not found" is making a claim too, and
+it needs the same scepticism as the thing it is checking.
