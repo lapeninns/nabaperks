@@ -329,15 +329,22 @@ export function StampPressButton({
           hold, so sighted members had no way to know the path existed and
           always tapped. One printed line makes it an affordance (CUS 02#25).
           Hidden while the control is closed, where the band above carries the
-          reason instead. */}
-      {inactive ? null : (
-        <span
-          aria-hidden="true"
-          className="mono-meta mt-1 text-center text-muted-foreground"
-        >
-          Tap or hold to stamp
-        </span>
-      )}
+          reason instead.
+
+          It is hidden with `invisible`, NOT unmounted: removing it from flow
+          mid-press changes the page height, which toggles the document
+          scrollbar and shifts the centred disc sideways under the finger.
+          customer-stamp-choreography measures the press target's box across the
+          hold and caught exactly that. */}
+      <span
+        aria-hidden="true"
+        className={cn(
+          "mono-meta mt-1 text-center text-muted-foreground",
+          inactive && "invisible"
+        )}
+      >
+        Tap or hold to stamp
+      </span>
     </span>
   )
 }

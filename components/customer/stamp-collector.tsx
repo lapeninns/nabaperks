@@ -71,14 +71,20 @@ function StampStatusBand({
     <section
       data-stamp-status-band
       data-phase={phase}
-      // Reserving the band is the right call (DESIGN.md's readback rule: growth
-      // must not move the grid) but `h-28` sized it against the worst-case
-      // string, so the common idle case carried ~50px of slack, and
-      // `overflow-y-auto` turned the longest blocked message into a hidden
-      // inner scroll region on a phone. `min-h-20` with auto rows lets it grow
-      // downward instead, which moves nothing above it (CUS 02#19).
+      // The band's height is RESERVED, not grown (DESIGN.md's readback rule:
+      // growth must not move the grid). 02#19 replaced the original fixed
+      // `h-28` with `min-h-20` to reclaim the ~50px of slack the idle case
+      // carried — but a growable band changes the page height mid-press, which
+      // toggles the document scrollbar and shifts the centred press disc
+      // sideways. customer-stamp-choreography measures exactly that
+      // ("holds once without remounting", "target stable and prints once") and
+      // failed on it.
+      //
+      // So: fixed height, at the smaller 02#19 size rather than the original
+      // one. `overflow-y-auto` returns for the rare worst-case string, which is
+      // the trade the original made and the reason the height could be pinned.
       className={cn(
-        "grid min-h-20 grid-rows-[auto_1fr] content-start gap-1 rounded-lg border-2 px-4 py-3 text-center",
+        "grid h-20 grid-rows-[auto_1fr] content-start gap-1 overflow-y-auto rounded-lg border-2 px-4 py-3 text-center",
         view.confirmed
           ? "border-reward bg-reward/10"
           : phase === "blocked"

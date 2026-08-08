@@ -371,7 +371,12 @@ function BillingOutcomeBanner({
   const model = billingOutcomeModel(outcome)
 
   return (
-    <StatusBanner tone={model.tone} title={model.title}>
+    // <h2>, like the complimentary banner above. 03#59 flattened these to
+    // plain strings, but the billing outcome banner IS the section's heading on
+    // every Stripe return path, and merchant-billing-recovery asserts
+    // getByRole("heading") for "Checkout confirmed", "Billing details
+    // refreshed" and "Billing not confirmed".
+    <StatusBanner tone={model.tone} title={<h2>{model.title}</h2>}>
       <span className="grid gap-3">
         <span>{model.message}</span>
         {outcome.kind === "confirmed" &&
