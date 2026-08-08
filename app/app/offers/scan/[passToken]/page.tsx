@@ -138,14 +138,21 @@ async function PassScanStream({
         />
       ) : null}
 
-      {context.status === "redeemed" ? (
-        <Button asChild className="w-full">
-          <Link href="/app/scan">Scan another code</Link>
+      {/* The twin of the rewards scan exits (03#65). As direct children of
+          the shell's `grid gap-4` section both buttons stretched full width and
+          stacked, reading as two equal-weight choices; at a busy counter the
+          next task is the next member, so "Scan another" leads and the row
+          wraps instead. */}
+      <div className="flex flex-wrap gap-2">
+        {context.status === "redeemed" ? (
+          <Button asChild>
+            <Link href="/app/scan">Scan another code</Link>
+          </Button>
+        ) : null}
+        <Button asChild variant="secondary">
+          <Link href="/app">Back to dashboard</Link>
         </Button>
-      ) : null}
-      <Button asChild variant="secondary" className="w-full">
-        <Link href="/app">Back to dashboard</Link>
-      </Button>
+      </div>
     </>
   )
 }
