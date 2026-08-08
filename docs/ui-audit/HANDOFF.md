@@ -23,6 +23,14 @@ Browser matrix, journeys only: chromium 204 · desktop-firefox 187 ·
 desktop-safari 187 · mobile-safari 235 — 0 failed. `pnpm test:a11y` 270 passed
 across all four.
 
+## Keeping this document honest
+
+`pnpm ui-audit:check` (in `quality:check`) parses the STATUS files and fails if
+any number in COVERAGE.md or HANDOFF.md disagrees with them. It exists because
+those tables were wrong for most of the campaign and nothing noticed.
+
+If you edit a status mark by hand, run it.
+
 ## Re-run before any future merge
 
 A closed finding is a claim about a tree, and the tree moves. Merging main
