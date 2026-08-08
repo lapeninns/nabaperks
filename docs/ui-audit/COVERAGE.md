@@ -545,3 +545,29 @@ Two habits would have caught it, and both are ones this campaign already relies
 on elsewhere: read back what an automated edit produced, and cross-check two
 documents that should agree. A regex that matches nothing and a regex that
 matches correctly exit the same way.
+
+### Blocked-on-each-other, and premises worth measuring
+
+Two corrections this turn, neither of which changed a count but both of which
+change what a reader should do next.
+
+**01#60 is gated on 01#49, not on refactor size.** Its note said reusing
+`GuideSpine` meant "a larger refactor of a contract-pinned client component".
+`marketing-offer-source` pins exactly one line in that file, not the component's
+shape — and that line is 01#49's measured CLS 0.1924. Reusing the spine would
+take a layout-shift defect that currently affects one page and put it on every
+guide. Doing 01#60 "properly" first would make the site more consistent and
+measurably worse.
+
+**01#9's premise is overstated.** The finding says the Marquee and ProofLine
+"say the same four things". They do not: the marquee says "One venue QR /
+28-day platform pilot / No POS setup / Fast at the counter", the ProofLine says
+"Built around how independent pubs actually work / A [term] — no app to
+download / Return visits shown in your dashboard / [capLine]". Four different
+strings in the same register. The contract pin on their presence is real; the
+duplication it is protecting is thematic, and rewording is a marketing copy cut,
+which is excluded by standing instruction anyway.
+
+Both were recorded as blocked and both were blocked — for different reasons than
+the ones written down. A wrong reason is a bad instruction to whoever picks it
+up: one of these would have been "fixed" into a regression.
