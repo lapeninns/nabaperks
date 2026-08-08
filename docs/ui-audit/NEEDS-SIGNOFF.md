@@ -748,3 +748,43 @@ audit wants deleted.
 
 Deleting that disclaimer without fixing the search underneath it would be the
 one genuinely bad outcome available here.
+
+## 24. A claims gap the audit missed, and the contract already knew about
+
+Found while verifying 01#38's "[stale]" note. Worth reading even if nothing else
+here gets actioned, because it is the only item in this document that is about
+what the site _claims_ rather than how it looks.
+
+`tests/contracts/marketing-offer-source.test.mjs` enforces a rule, not a page
+list: **any marketing surface that names a guarantee must also render
+`CLAIMS_BOUNDARY`** — its limits. The test then allowlists two files:
+
+```
+"components/marketing/guides/guide-page.tsx",
+"components/marketing/guides/guides-data.ts",
+```
+
+with a comment calling it a "KNOWN PRE-EXISTING GAP … closing it is tracked
+separately because it edits three indexed pages' copy, which is outside the
+re-role's approved scope."
+
+Verified against the tree: both files print `${GUARANTEE.name}: ${GUARANTEE.line}`
+in the guides' closing CTA, and `CLAIMS_BOUNDARY` appears nowhere under
+`components/marketing/guides/`. So the three `/guides/*` pages — which are
+indexed — state a guarantee without its limits.
+
+**The audit never mentions this.** Its only `CLAIMS_BOUNDARY` finding is 01#38,
+which asks for the boundary to be stated _less often_ on the landing. So the
+audit is asking to reduce the boundary where it is present, and is silent where
+it is absent.
+
+I have not fixed it. It is an addition to marketing copy on three indexed pages
+and it is a claims question, which is the category this campaign has
+consistently escalated rather than guessed at (see 01#67). But it is a different
+kind of open item from the rest of this document: everything else here is a
+design or performance tradeoff, and this is a statement about a commercial
+guarantee appearing without its conditions.
+
+The fix is small — render `CLAIMS_BOUNDARY` beside the guarantee in the guides'
+closing CTA, then delete those two entries from the contract's allowlist, which
+will then enforce it forever.

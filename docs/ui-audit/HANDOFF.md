@@ -53,6 +53,14 @@ grep -rn 'border-\[1.5px\]\|rounded-xl\|max-w-7xl\|adminSelectClasses' \
 All four should return nothing. Matches inside explanatory comments are fine;
 live classes are not.
 
+### Read this one first
+
+`NEEDS-SIGNOFF.md` §24: the three indexed `/guides/*` pages name a commercial
+guarantee without rendering its limits. The contract that enforces "name a
+guarantee, show its boundary" allowlists them as a known gap; the audit never
+noticed it and asks for the boundary to appear LESS often elsewhere. Small fix,
+claims question, not mine to make.
+
 ## BLOCKING before merge
 
 **Lighthouse LCP is red on three marketing routes** and green on main. Caused by
