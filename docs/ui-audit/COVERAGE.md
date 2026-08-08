@@ -206,3 +206,15 @@ principle and wrong for the specific surface.
 
 `pnpm test:db` (needs live database credentials) and the 121 stale visual
 baselines, which are a human approval rather than a run.
+
+### A note on inherited assumptions
+
+03#49 was closed this turn only because a lane's stated reason for skipping it
+turned out to be half wrong. m-ops declined it on the grounds that neither
+remaining form is "longer than one viewport". Measured at 390x844:
+announcement compose is 883px and 948px; account/profile is 659px. The
+assumption held for one form and not the other.
+
+Where a finding was skipped on a factual claim, that claim is worth measuring
+before trusting it — including claims made by the agents doing the work, and
+including my own.
