@@ -17,7 +17,7 @@ function Table({
   return (
     <div
       data-slot="table-container"
-      className="relative w-full overflow-x-auto"
+      className="scroll-x-fade relative w-full overflow-x-auto"
       tabIndex={0}
       role="region"
       aria-label={label ? `${label} (scrollable)` : "Table (scrollable)"}

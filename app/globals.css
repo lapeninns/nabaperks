@@ -1166,3 +1166,35 @@ body[data-grain="true"]::after {
     translate: 1px 1px;
   }
 }
+
+/* ── Scrollable-region edge fade (ADM 04#62) ────────────────────────────────
+   The third and last sanctioned functional gradient, alongside the zigzag edge
+   and the conic stamp ring. A focusable overflow-x container tells a screen
+   reader there is more to the right; it tells a sighted user nothing, and on
+   the billing and fraud tables the hidden columns carry the action controls.
+
+   Pure CSS, no scroll listener: the two opaque "cover" layers are attached
+   `local` so they travel with the content, and the two shadow layers are
+   attached `scroll` so they stay pinned to the box. At the left end the cover
+   sits over the left shadow and hides it; scroll right and the cover moves away,
+   revealing it. The fades therefore appear only on the side that has more
+   content, and a table that does not overflow shows neither. */
+.scroll-x-fade {
+  background:
+    linear-gradient(to right, var(--card) 60%, transparent) 0 0 / 28px 100%
+      no-repeat local,
+    linear-gradient(to left, var(--card) 60%, transparent) 100% 0 / 28px 100%
+      no-repeat local,
+    linear-gradient(
+        to right,
+        color-mix(in oklch, var(--foreground) 16%, transparent),
+        transparent
+      )
+      0 0 / 16px 100% no-repeat scroll,
+    linear-gradient(
+        to left,
+        color-mix(in oklch, var(--foreground) 16%, transparent),
+        transparent
+      )
+      100% 0 / 16px 100% no-repeat scroll;
+}
