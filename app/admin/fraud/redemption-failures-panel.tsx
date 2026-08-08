@@ -18,9 +18,18 @@ type RedemptionFailures = Awaited<
 
 export function RedemptionFailuresPanel({
   failures,
+  total,
 }: {
   readonly failures: RedemptionFailures
+  /** Server-side count, before the 100-row window. */
+  readonly total?: number
 }) {
+  // Same 100-row window as the flags table, and until now the loader did not
+  // even ask for a count — so a support question like "how often is this
+  // failing?" was answered by a number that silently stopped at 100
+  // (ADM 04#6).
+  const truncated = typeof total === "number" && total > failures.length
+
   return (
     <AdminPanel>
       <SectionHeader
@@ -28,6 +37,13 @@ export function RedemptionFailuresPanel({
         description="Product-event failures retained for support analysis without exposing raw RPC payloads."
         actions={<SourceLabel>Source: product_events</SourceLabel>}
       />
+      {truncated ? (
+        <p role="status" className="text-sm text-muted-foreground">
+          Showing the newest{" "}
+          <span className="numeric-tabular">{failures.length}</span> of{" "}
+          <span className="numeric-tabular">{total}</span> recorded failures.
+        </p>
+      ) : null}
       <DataTable
         caption="Admin redemption failure event readback"
         cardBreakpoint="xl"

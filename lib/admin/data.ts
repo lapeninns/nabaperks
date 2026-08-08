@@ -301,12 +301,14 @@ export async function getAdminFraudSignals(queue: AdminFraudQueue = "open") {
 
   const [
     { data: fraudFlags, error: flagsError, count: flagCount },
-    { data: failures, error: failureError },
+    { data: failures, error: failureError, count: failureCount },
   ] = await Promise.all([
     flagQuery.order("created_at", { ascending: false }).limit(100),
     supabase
       .from("product_events")
-      .select("id, event_name, created_at, merchants(business_name)")
+      .select("id, event_name, created_at, merchants(business_name)", {
+        count: "exact",
+      })
       .eq("event_name", "reward_redemption_failed")
       .order("created_at", { ascending: false })
       .limit(100),
@@ -333,6 +335,7 @@ export async function getAdminFraudSignals(queue: AdminFraudQueue = "open") {
     fraudFlags: flags,
     flagTotal: flagCount ?? flags.length,
     failures: failures ?? [],
+    failureTotal: failureCount ?? failures?.length ?? 0,
   }
 }
 

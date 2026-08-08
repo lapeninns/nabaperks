@@ -49,11 +49,21 @@ const QUEUE_DESCRIPTION: Record<string, string> = {
 
 export function FraudFlagsPanel({
   flags,
+  total,
   queue = "open",
 }: {
   readonly flags: FraudFlags
+  /** Server-side count for the active queue, before the 100-row window. */
+  readonly total?: number
   readonly queue?: string
 }) {
+  // The loader already asks PostgREST for an exact count and the page is capped
+  // at 100 rows, but the count was discarded — so past 100 flags the table
+  // looked like the whole queue and an operator could reasonably conclude
+  // there was nothing else to triage (ADM 04#6). Only shown when the window
+  // actually truncates, so the ordinary case gains no chrome.
+  const truncated = typeof total === "number" && total > flags.length
+
   return (
     <AdminPanel>
       <SectionHeader
@@ -61,6 +71,13 @@ export function FraudFlagsPanel({
         description={QUEUE_DESCRIPTION[queue] ?? QUEUE_DESCRIPTION.all}
         actions={<SourceLabel>Source: service-role admin readback</SourceLabel>}
       />
+      {truncated ? (
+        <p role="status" className="text-sm text-muted-foreground">
+          Showing the newest{" "}
+          <span className="numeric-tabular">{flags.length}</span> of{" "}
+          <span className="numeric-tabular">{total}</span> flags in this queue.
+        </p>
+      ) : null}
       <DataTable
         caption="Admin fraud flag readback"
         cardBreakpoint="xl"

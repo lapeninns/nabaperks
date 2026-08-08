@@ -96,9 +96,16 @@ export default async function AdminFraudPage({
       />
 
       {view === "failures" ? (
-        <RedemptionFailuresPanel failures={fraud.failures} />
+        <RedemptionFailuresPanel
+          failures={fraud.failures}
+          total={fraud.failureTotal}
+        />
       ) : (
-        <FraudFlagsPanel flags={fraud.fraudFlags} queue={view} />
+        <FraudFlagsPanel
+          flags={fraud.fraudFlags}
+          total={fraud.flagTotal}
+          queue={view}
+        />
       )}
     </div>
   )
