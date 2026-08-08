@@ -125,6 +125,12 @@
 
 :root {
   /* Wet Ink base palette — warm paper, warm near-black ink, flat spot inks. */
+  /* The marketing sticky header: py-3 around a min-h-11 logo ~= 68px. Five
+     different numbers used to clear it — scroll-mt-24, scroll-mt-28,
+     lg:top-24, lg:top-20 — so an anchor jump landed under the header on some
+     surfaces and 44px below it on others (MKT 01#5). One number now. */
+  --marketing-header-h: 4.25rem;
+
   --w-paper: #f6f1e6;
   --w-paper-2: #ece5d4;
   --w-card: #fbf8f1;

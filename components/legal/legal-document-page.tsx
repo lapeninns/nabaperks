@@ -1,7 +1,12 @@
 import { Eyebrow, PageTitle, ReceiptCard } from "@/components/brand"
-import { MarketingLayout, Section } from "@/components/layout"
+import {
+  MARKETING_ANCHOR_OFFSET,
+  MarketingLayout,
+  Section,
+} from "@/components/layout"
 import { LegalRelatedLinks } from "./legal-related-links"
 import type { LegalSection } from "@/lib/legal/content"
+import { cn } from "@/lib/utils"
 
 type LegalDocumentMeta = {
   readonly eyebrow: string
@@ -39,7 +44,7 @@ export function LegalDocumentPage({
             five interlinked legal pages is worse than one debatable order.
             The collapsible summary below is kept — it costs a row instead of a
             block wherever it sits. */}
-        <aside className="surface-card order-last p-4 lg:sticky lg:top-20 lg:order-none">
+        <aside className="surface-card order-last p-4 lg:sticky lg:top-[calc(var(--marketing-header-h)+0.75rem)] lg:order-none">
           <details open className="group">
             <summary className="focus-ring mb-3 flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 rounded-full lg:pointer-events-none">
               <Eyebrow>On this page</Eyebrow>
@@ -91,7 +96,10 @@ export function LegalDocumentPage({
                 // 01#66: `.w-rule` injects its own margins, which fought the
                 // parent's spacing. An explicit dashed top border on all but the
                 // first clause is the same rule with predictable rhythm.
-                className="focus-target grid scroll-mt-28 gap-2 border-t-2 border-dashed border-border pt-5 first:border-t-0 first:pt-0"
+                className={cn(
+                  MARKETING_ANCHOR_OFFSET,
+                  "focus-target grid gap-2 border-t-2 border-dashed border-border pt-5 first:border-t-0 first:pt-0"
+                )}
               >
                 {/* 01#65 asks for a larger clause heading. NOT applied:
                     tests/contracts/legal-heading-structure pins

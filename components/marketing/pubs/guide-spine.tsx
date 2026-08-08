@@ -20,6 +20,28 @@ import { cn } from "@/lib/utils"
  * sticky overlay on a phone would fight the reading column, hence the
  * disclosure. Scroll-spy is progressive: with JS off, every link still jumps.
  */
+/**
+ * The marketing header height in px, from `--marketing-header-h`.
+ *
+ * One number drives the anchor offset, both sticky asides and this observer
+ * band; reading it here keeps the rail's active section in step with where an
+ * anchor jump actually lands. Falls back to the token's own 68px if the
+ * property is missing, so a stylesheet failure degrades to the old constant
+ * rather than to zero.
+ */
+function marketingHeaderPx(): number {
+  if (typeof window === "undefined") return 68
+
+  const raw = getComputedStyle(document.documentElement)
+    .getPropertyValue("--marketing-header-h")
+    .trim()
+  const rem = Number.parseFloat(raw)
+
+  if (!Number.isFinite(rem)) return 68
+
+  return raw.endsWith("rem") ? Math.round(rem * 16) : Math.round(rem)
+}
+
 export function GuideSpine() {
   const hydrated = useHydrated()
   const [activeId, setActiveId] = useState<PubGuideSectionId>(
@@ -36,6 +58,10 @@ export function GuideSpine() {
 
     // A thin band below the sticky header: whichever section sits highest
     // inside it owns the rail. Cheaper and steadier than a scroll listener.
+    //
+    // The band's top edge reads --marketing-header-h rather than repeating 96,
+    // which is what made this the fifth different number for one 68px header
+    // (01#5).
     const observer = new IntersectionObserver(
       (entries) => {
         const inBand = entries
@@ -46,7 +72,7 @@ export function GuideSpine() {
 
         if (inBand) setActiveId(inBand.target.id as PubGuideSectionId)
       },
-      { rootMargin: "-96px 0px -70% 0px" }
+      { rootMargin: `-${marketingHeaderPx()}px 0px -70% 0px` }
     )
 
     for (const target of targets) observer.observe(target)
@@ -56,7 +82,7 @@ export function GuideSpine() {
   return (
     <nav
       aria-label={PUB_GUIDE_HERO.jumpLabel}
-      className="lg:sticky lg:top-24 lg:self-start"
+      className="lg:sticky lg:top-[calc(var(--marketing-header-h)+0.75rem)] lg:self-start"
     >
       <button
         type="button"
