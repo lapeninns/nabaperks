@@ -127,7 +127,27 @@ So the campaign is achieving the compaction it set out to achieve. The growths
 are mostly surfaces that gained something deliberate — skip links, print rules,
 state hints on collapsed rows, the restored headings above.
 
+### `pnpm test:e2e` — run, and it found five more regressions
+
+The full journey suite had never been run either. It surfaced failures that both
+the static contract tests and the 960 unit tests passed straight through:
+
+| Failure                                                                        | Cause                                                                                                                                                                   | Fix                                               |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| every password field on /signup and /reset-password had **no accessible name** | 05#24's reveal toggle wrapped the Input in a `<span>`; FormField clones its single child to inject id/aria-describedby/aria-invalid, so all of it landed on the wrapper | FormField gained a `trailing` sibling slot        |
+| verify screen hid its recovery links                                           | 05#53 put "Log in"/"reset your password" behind a disclosure; merchant-auth-recovery asserts they stay visible ("keeps recovery paths")                                 | reverted, 05#53 recorded as blocked by test       |
+| three billing outcome banners lost heading role                                | 03#59 flattened `title={<h2>}` to plain strings, but that banner is the section's only heading on every Stripe return path                                              | `<h2>` restored for that banner                   |
+| the press disc moved 21px sideways mid-hold                                    | 02#25's hint line unmounted during a press, changing page height and toggling the scrollbar                                                                             | hidden with `invisible`, space kept               |
+| …same test, second cause                                                       | 02#19 made the status band growable (`min-h-20`); the original fixed height existed so growth could not move the grid                                                   | fixed `h-20` — 02#19's smaller size, pinned again |
+
+Four of the five are audit findings that were right in principle and wrong for
+the specific surface. The password one is the most serious defect this campaign
+produced, and nothing but a browser would have caught it.
+
+Traced by bisection against the campaign base, not by guesswork.
+
 ### Still not run
 
-`pnpm test:e2e` in full (the untagged journeys) and `pnpm test:db`, which needs
-live database credentials.
+`pnpm test:db`, which needs live database credentials. The full
+`pnpm test:e2e` run is long (>90 min); the four clusters it flagged have been
+fixed and re-run individually and as a group (25 passed / 1 stale baseline).
