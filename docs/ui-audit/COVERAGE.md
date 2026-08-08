@@ -767,3 +767,43 @@ start or, worse, attaches to the FIRST lane's dev server and tests the wrong
 worktree. One run in this lane reported 8 failures that way and passed
 immediately on a private port. Set `PLAYWRIGHT_BASE_URL=http://127.0.0.1:<port>`
 per worktree before reading anything into a browser failure.
+
+### Full journey matrix, re-run for the merged branch state (admin lane)
+
+Run on a private port (`PLAYWRIGHT_BASE_URL=http://127.0.0.1:3246`) after two
+runs were destroyed by cross-worktree contention — see the port note above.
+
+| project       | passed | failed | skipped | wall  |
+| ------------- | -----: | -----: | ------: | ----- |
+| chromium      |    203 |      3 |      49 | 39.6m |
+| mobile-safari |    231 |      6 |      66 | 51.1m |
+
+Every one of the nine failures was re-run in isolation, and every one of them
+passed. Classification:
+
+| spec                           | project | in isolation | class                                    |
+| ------------------------------ | ------- | ------------ | ---------------------------------------- |
+| analytics-funnel-privacy       | both    | passes       | known saturated-pool flake               |
+| merchant-auth-recovery-flow    | chr     | passes       | known saturated-pool flake               |
+| merchant-onboarding-continuity | chr     | **fails**    | pre-existing — fails on 62f95803 too     |
+| auth-confirm-safety            | mob     | passes       | saturation                               |
+| merchant-birthday-config       | mob     | passes       | saturation (base fails a DIFFERENT test) |
+| merchant-signup-verify         | mob     | passes 3/3   | saturation (base passes)                 |
+| offer-campaign step 1a + 1b    | mob     | passes       | saturation                               |
+
+Two of these deserve their own line rather than a category:
+
+- **merchant-onboarding-continuity** ("required-field failures … refocus on
+  every attempt") is NOT on the known-flake list and does NOT pass alone. It
+  fails identically on the base commit `62f95803` with `toBeFocused()` →
+  `inactive` on `input[name="businessName"]`. Pre-existing on this machine, not
+  a regression from any lane's work — but it is a real red test that the
+  three-name flake list does not cover.
+- **merchant-birthday-config** and **analytics-funnel-privacy** each failed a
+  _different_ test on the base commit than on the branch. A spec that fails a
+  different assertion each run under load is a flaky spec, not a flaky
+  assertion, which is why re-running the exact failed test is not sufficient
+  evidence on its own.
+
+The two new `admin-pagination-controls` tests ran inside both matrices
+(chromium 63-64/255, mobile-safari 66-67/303) and passed in both.

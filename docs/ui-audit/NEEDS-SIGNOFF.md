@@ -410,6 +410,37 @@ That is a UX decision, not a bug fix, so it is here rather than in a commit.
 Everything else in 04#26 (lookup, filter chips, count, range, venue filter,
 paginator) is done.
 
+### Update: rows-per-page raises the stake, with a measurement
+
+The catalogue's console table (the same `DataTable` every admin list uses)
+measures a **40px `thead`** and **69px rows** at 1440x900 with two-line cells.
+So a full page of admin table is now:
+
+| rows per page | table height | viewport heights at 900px |
+| ------------: | -----------: | ------------------------: |
+|            25 |     ~1,765px |                      ~2.0 |
+|            50 |     ~3,490px |                      ~3.9 |
+|           100 |     ~6,940px |                      ~7.7 |
+
+At 25 rows the operator loses the column headers about two thirds of the way
+down one list. At 100 — now selectable, 04#56 — the headers are off-screen for
+roughly seven screens of scrolling, on tables whose columns are pills, dates
+and masked identifiers that are genuinely hard to tell apart without a header.
+
+That does not change the mechanism (the container still has no bounded height,
+still computes `overflow: auto/auto`, and `overflow-y: clip` is still coerced
+to `hidden`; do not re-measure that). It changes the value of fixing it, and it
+adds a cheaper option to the two already recorded:
+
+- bound the table region (`max-h-[70svh]`) on every admin table — the full
+  nested-scroll change, all eleven routes, needs sign-off;
+- bound it **only when the page size exceeds the default**, i.e. the operator
+  who asked for 100 rows opts into a scroll region and nobody else's page
+  rhythm changes. Same CSS, scoped by a param that now exists.
+
+The second is a much smaller decision than the first, and it is the one I would
+put in front of a human. It is still a UX change, so it is still here.
+
 ## 13. ~~One manual look: the hero card loop~~ CLOSED — now covered by a test
 
 The gap is gone. `tests/e2e/hero-motion.motion.spec.ts` runs under a new
