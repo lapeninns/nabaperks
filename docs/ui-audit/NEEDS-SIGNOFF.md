@@ -567,3 +567,35 @@ Three ways to resolve it, in the order I would consider them:
 
 03#25 is back to `[~]` until one of those is chosen. I would rather correct a
 closure than carry a green mark that a reader would find wrong in one grep.
+
+## 18. 01#60 waits on 01#49 — one decision, not two
+
+These read as separate blocked findings and are the same one.
+
+01#60 asks for a single TOC pattern across the three long-document families, and
+prefers reusing `GuideSpine`. Its "at minimum" alternative is done and verified:
+every guide `h2` has a slug id, all five TOC links resolve, the anchor offset is
+the shared 128px, and the "On this page" disclosure is collapsed by default.
+
+The lane recorded the rest as "a larger refactor of a contract-pinned client
+component". That reason is wrong in a way worth correcting:
+`marketing-offer-source` pins exactly **one line** in `guide-spine.tsx` —
+
+```js
+;/hydrated && !open \? "hidden lg:block" : "grid"/
+```
+
+— not the component's shape. A generic spine could keep it.
+
+The real reason is that this line is 01#49: the section list is 302px at first
+paint and 0px after hydration, which measures **CLS 0.1924** against Google's
+0.1 "good" threshold (section 7). Reusing the spine as it stands would take a
+measured layout-shift defect that currently affects one page and put it on every
+guide.
+
+So the order is fixed: resolve 01#49 — which means renegotiating that assertion,
+since the fix was written and reverted — and 01#60's preferred form becomes
+available. Until then the guides keep the disclosure, which has no shift at all.
+
+Doing 01#60 "properly" first would make the site more consistent and measurably
+worse.
