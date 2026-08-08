@@ -269,3 +269,20 @@ That is now three findings closed by re-testing a recorded blocker rather than
 writing new analysis: 03#49 (a measurement that was half wrong), 01#12 (a
 constraint that had dissolved), 02#33 (one impossible half blocking a possible
 one). It is worth treating "blocked" notes as claims with a shelf life.
+
+### A fourth and fifth stale blocker (02#30, 04#62)
+
+- **02#30** said shrinking the ticket stub "needs a rendered measurement, not a
+  guess". Measured: "REDEEMED" is 54px, so the floor is 70px and the audit's own
+  `w-14` (56px) suggestion was never viable. Shipped at 72px.
+- **04#62** said the edge fade "needs scroll detection". It does not — two
+  background layers at `local` and two at `scroll` do it with no listener.
+
+Five of the last six findings closed came from re-testing a recorded blocker
+rather than writing new analysis. The blockers were written in good faith by
+agents with the right instinct that stopped one question early. Treat every
+"[~] blocked" note as a claim with a shelf life.
+
+This applies to my own notes too: NEEDS-SIGNOFF §10 recorded the font fix as
+"blocked by a contract" before I had checked _which files_ that contract pinned.
+It pinned four, and the two causing the regression were not among them.
