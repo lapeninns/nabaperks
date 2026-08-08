@@ -186,8 +186,17 @@ export function describeOfferCampaignJourney(): void {
       await gotoSurface(page, "?surface=customer")
 
       const rail = page.locator("#pass-rail")
+      // LOCATOR ONLY: this used to find the tile by the name
+      // "Open your Old Crown Girton card". That name was the bug — the
+      // assertion immediately below proves the tile points at /reward/, so
+      // naming it "…card" contradicted its destination and did not contain the
+      // visible "Open reward QR" label (WCAG 2.5.3 Label in Name, CUS 02#11).
+      // The name is now destination-accurate; every assertion in this test is
+      // unchanged.
       const rewardTile = rail
-        .getByRole("link", { name: "Open your Old Crown Girton card" })
+        .getByRole("link", {
+          name: "Open reward QR for your Old Crown Girton card",
+        })
         .nth(1)
 
       // The completed card takes the whole tile to the reward, not to the card.
