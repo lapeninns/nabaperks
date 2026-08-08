@@ -84,10 +84,50 @@ Exactly: 01#23, 01#49, 01#55, 01#63, 01#65, 01#67, 02#6, 02#27, 02#28, 02#29, 02
   PrintPreviewNav; the single-route collapse is pinned by
   qr-a4-poster-templates).
 
-## Not verified by any of this
+## Browser verification — RUN, and it found real regressions
 
-Nothing here has been seen in a browser. `pnpm test:e2e`, `test:a11y` and
-`test:visual` have NOT been run, and many lanes changed above-the-fold layout
-(the QR workspace, launch tabs, `/home`, the pricing sheet, legal typography,
-the marquee's DOM shape, the active nav treatment). Visual baselines will need
-re-approval. Treat that as required work, not polish.
+Earlier revisions of this file said the browser tiers "have NOT been run". That
+was wrong: Playwright browsers were installed the whole time. Both tiers have
+now been run.
+
+### `pnpm test:a11y` — GREEN (270 passed, 0 failed, 1 skipped)
+
+Across chromium, desktop-firefox, desktop-safari and mobile-safari. The first
+run failed NINE times, every failure a regression introduced by this campaign:
+
+| Failure                                                                | Cause                                                                                                                         | Fix                                    |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| axe `list` violation on /how-it-works (4 browsers, impact **serious**) | a decorative arrow was changed from `<li aria-hidden>` to `<li role="presentation">`, which a `<ul>` may not directly contain | back to `aria-hidden`                  |
+| /app/qr + /app/launch lost their heading (4 browsers)                  | 03#40 removed `<h2>Launch your counter QR</h2>` as "duplicated"; 4 e2e assertions pin it                                      | restored as the status strip's heading |
+| same flow, QR alt text                                                 | widened to "Permanent venue QR code for …" while the spec matches `/^QR code for /`                                           | restored                               |
+| merchant-billing-recovery (mobile-safari)                              | 03#59 flattened `title={<h2>Billing access is active</h2>}`, but that banner is the section's only heading                    | restored for this one banner           |
+
+Three of the four were audit findings that were _correct in the abstract_ and
+wrong for the specific surface. Only a browser catches that.
+
+### `pnpm test:visual` — 121 of 136 baselines stale, 14 passed
+
+All 121 are `toHaveScreenshot` diffs; there are no errors of any other kind.
+These baselines were approved before this campaign, and this campaign changed
+layout on nearly every surface, so drift is expected rather than alarming.
+
+**They have deliberately NOT been regenerated.** The snapshots are named "the
+approved Wet Ink baseline"; regenerating them from this branch would rubber-stamp
+whatever they now contain, including any regression a human would have caught.
+That approval is not mine to give.
+
+Direction of change, measured across the 231 size deltas:
+
+- **135 screenshots shrank, 96 grew**
+- **net −56,880px**
+- largest shrink −5,365px (16,650 → 11,285, a 32% cut on the tallest surface)
+- largest growth +447px
+
+So the campaign is achieving the compaction it set out to achieve. The growths
+are mostly surfaces that gained something deliberate — skip links, print rules,
+state hints on collapsed rows, the restored headings above.
+
+### Still not run
+
+`pnpm test:e2e` in full (the untagged journeys) and `pnpm test:db`, which needs
+live database credentials.
