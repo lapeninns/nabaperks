@@ -16,10 +16,10 @@ branch is green after every merge.
 | ---------------- | ------: | ------: | ------: | -----: | -----: |
 | 01 marketing     |      69 |      42 |      18 |      3 |      6 |
 | 02 customer      |      70 |      52 |      14 |      2 |      2 |
-| 03 merchant      |      67 |      44 |      15 |      5 |      3 |
+| 03 merchant      |      67 |      44 |      16 |      5 |      2 |
 | 04 admin         |      74 |      54 |       9 |      9 |      2 |
 | 05 design system |      67 |      61 |       3 |      1 |      2 |
-| **Total**        | **347** | **253** |  **59** | **20** | **15** |
+| **Total**        | **347** | **253** |  **60** | **20** | **14** |
 
 ## "Stale" is a real category (20 findings)
 
@@ -60,9 +60,9 @@ relaxed for whitespace only after Prettier re-wrapped a ternary
 `isPosterPrintPath` (`merchant-shell`). One test was added
 (`motion-tokens-bounded`).
 
-## Remaining 14 open, by reason
+## Remaining 13 open, by reason
 
-Exactly: 01#23, 01#49, 01#55, 01#63, 01#65, 01#67, 02#50, 02#64, 03#13, 03#16, 03#37, 04#54, 04#60, 05#13.
+Exactly: 01#23, 01#49, 01#55, 01#63, 01#65, 01#67, 02#50, 02#64, 03#13, 03#16, 04#54, 04#60, 05#13.
 
 "Needs a browser" is no longer a category — Playwright works here, and the
 findings previously parked under it (02#27, 02#28, 05#47, 04#67) were measured
@@ -71,16 +71,22 @@ and either fixed or closed with evidence.
 - **Blocked by a contract or e2e test** (each attempted, reverted, nothing
   weakened) — 01#49, 01#63, 01#65, 03#46 (recorded in STATUS-m-launch).
 - **Copy / product decision** — 01#23, 01#55, 02#50, 02#64, 04#54.
-- **Needs a data-layer change** — 03#13 (no merchant-scoped aggregate for
-  readyCount/quietCount), 03#16 (DataTable needs an `lg` cardBreakpoint AND
-  per-renderer row props), 02#6 (breakpoint sweep needs measurement per surface).
+- **Needs a data-layer change** — 03#13 and 03#16.
+  03#13's blocker is specific: `deriveMerchantCustomerRewardBadge` runs
+  per-member over `activeReward`, `lastVisitAt`, stamp count and redemption
+  history, so a merchant-wide "rewards ready / gone quiet" count means either
+  duplicating that logic in SQL (drift risk on audited data) or loading every
+  member. Counting the loaded page instead would print "3 rewards ready" when
+  there are 12 — a false readback on a console whose whole premise is truthful
+  readbacks, and worse than having no task layer.
+  03#16 needs an `lg` cardBreakpoint AND per-renderer row props on DataTable;
+  note the merchant lane proved the finding's premise wrong (DataTable's own
+  mobileCard path also double-mounts), so the migration would not remove the
+  double render it cites.
 - **Explicitly out of scope** — 01#67 (legal migration), 05#13 (Button
   size-variant API removal).
 - **Large API addition** — 04#60 sorting/aria-sort across 8 live panels; its
   sticky-header half is blocked by the `overflow-x-auto` scroll container.
-- **Partially reassigned** — 03#37 (m-offers shipped the shared
-  PrintPreviewNav; the single-route collapse is pinned by
-  qr-a4-poster-templates).
 
 ## Browser verification — RUN, and it found real regressions
 
