@@ -239,3 +239,20 @@ icon-sm 6, icon 4, icon-lg 2, xl 0, icon-xs 0. Only `xl` and `icon-xs` are
 genuinely unreachable. A four-rung cut would touch roughly 90 live call sites,
 not the handful the finding implies — which materially changes the cost of a
 decision that was already out of scope.
+
+### 01#12 completed — the last "needs a browser" deferral
+
+The three marketing heroes were parked as needing visual judgement. Measured and
+swept this turn. Hero grid height at 768px:
+
+| hero          | stacked | two-column | saved |
+| ------------- | ------: | ---------: | ----: |
+| landing       | 1,044px |      708px | 336px |
+| /how-it-works |   975px |      643px | 332px |
+| pub guide     | 1,117px |      721px | 396px |
+
+No horizontal overflow at 768, 900 or 1024. At 768px the prose track is 313px —
+what a 390px phone already renders it at after gutters — and the card track is
+375px, wider than the phone rendering it replaces.
+
+Nothing in this campaign is now deferred for lack of a browser.

@@ -35,7 +35,14 @@ Still open, and genuinely design decisions rather than codemods:
   token, so there is nothing to implement against — the rank needs specifying
   before it can be enforced.
 
-## 3. Three heroes and the legal TOC spines (finding 01#12) — blocked on visual check
+## 3. ~~Three heroes~~ RESOLVED; legal TOC spines superseded
+
+The three heroes were measured and swept — see 01#12 in STATUS-marketing.md
+(1,044/975/1,117px stacked at 768px, 708/643/721px two-column, no overflow at
+768/900/1024). The legal TOC order is now covered by item 7's contract question
+rather than a visual one.
+
+Original text follows for history:
 
 The `md:` breakpoint sweep shipped for eight content grids. Left at `lg:`:
 `landing/hero`, `landing/process-hero`, `pubs/pub-guide-hero`, and the
