@@ -6,6 +6,11 @@ import {
   type AdminBillingStatusTone,
 } from "@/lib/admin/billing-redaction"
 import { createAdminServiceRoleClient } from "@/lib/admin/service-role"
+import {
+  containsPattern,
+  lookupRange,
+  type AdminLookupState,
+} from "@/lib/admin/lookup-query"
 
 export type AdminBillingRecord = {
   readonly id: string
@@ -65,35 +70,77 @@ type AdminFulfilmentRawRecord = {
   readonly operations_review_required: boolean
 }
 
-/** Newest-first window. Named so a truncation notice cannot drift from it. */
-export const BILLING_RECORD_LIMIT = 100
+/**
+ * Venue fragment + 1-based page, the same shape every other admin list takes.
+ * The type comes from `lookup-query` rather than `data.ts` because `data.ts`
+ * re-exports this module, and importing back from it would be a cycle.
+ */
+export type AdminBillingLookup = Partial<AdminLookupState>
 
 /**
- * Total billing rows before the window.
+ * Total billing rows matching the lookup, before the page window.
  *
  * A separate head-only query rather than a `count` on the readback, because
  * `admin-service-role-guards` pins `getAdminBillingRecords`'s early
  * `return []` guard and therefore its array return shape. Head-only means no
  * rows cross the wire — the same pattern `getAdminFraudQueueCounts` uses.
  */
-export async function getAdminBillingRecordTotal(): Promise<number> {
+export async function getAdminBillingRecordTotal(
+  lookup: AdminBillingLookup = {}
+): Promise<number> {
   const supabase = await createAdminServiceRoleClient()
-  const { count } = await supabase
+  let query = supabase
     .from("billing_customers")
-    .select("*", { count: "exact", head: true })
+    .select(lookup.venue ? "id, merchants!inner(id)" : "id", {
+      count: "exact",
+      head: true,
+    })
 
+  if (lookup.venue) {
+    query = query.ilike(
+      "merchants.business_name",
+      containsPattern(lookup.venue)
+    )
+  }
+
+  const { count } = await query
   return count ?? 0
 }
 
-export async function getAdminBillingRecords(): Promise<AdminBillingRecord[]> {
+/**
+ * One page of billing records, venue-filterable.
+ *
+ * `billing_customers.merchant_id` is NOT NULL (initial schema), so
+ * `merchants!inner` drops no rows — it only lets the venue fragment filter the
+ * parent, the reasoning `getAdminQrCodes` already records. The embed is still
+ * only switched to `!inner` when a fragment is supplied, so the unfiltered
+ * read keeps its plain join and cannot silently change shape.
+ */
+export async function getAdminBillingRecords(
+  lookup: AdminBillingLookup = {}
+): Promise<AdminBillingRecord[]> {
   const supabase = await createAdminServiceRoleClient()
-  const billingResult = await supabase
+  const window = lookupRange(lookup.page ?? 1, lookup.size)
+  const merchantEmbed = lookup.venue
+    ? "merchants!inner(business_name, email)"
+    : "merchants(business_name, email)"
+
+  let billingQuery = supabase
     .from("billing_customers")
     .select(
-      "id, merchant_id, plan, status, stripe_customer_id, stripe_subscription_id, current_period_end, updated_at, merchants(business_name, email)"
+      `id, merchant_id, plan, status, stripe_customer_id, stripe_subscription_id, current_period_end, updated_at, ${merchantEmbed}`
     )
+
+  if (lookup.venue) {
+    billingQuery = billingQuery.ilike(
+      "merchants.business_name",
+      containsPattern(lookup.venue)
+    )
+  }
+
+  const billingResult = await billingQuery
     .order("updated_at", { ascending: false })
-    .limit(BILLING_RECORD_LIMIT)
+    .range(window.from, window.to)
   if (billingResult.error) throw new Error("Unable to load billing records")
 
   const billingRows = billingResult.data ?? []

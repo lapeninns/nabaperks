@@ -15,18 +15,11 @@ branch is green after every merge.
 | Report           | Tracked |    Done | Partial |  Stale |   Open |
 | ---------------- | ------: | ------: | ------: | -----: | -----: |
 | 01 marketing     |      69 |      49 |      11 |      3 |      6 |
-| <<<<<<< HEAD     |
 | 02 customer      |      70 |      59 |       7 |      2 |      2 |
-| 03 merchant      |      67 |      51 |      10 |      4 |      2 |
-| 04 admin         |      74 |      60 |       3 |      9 |      2 |
-| 05 design system |      67 |      64 |       2 |      0 |      1 |
-| **Total**        | **347** | **283** |  **33** | **18** | **13** |
-| =======          |
-| 02 customer      |      70 |      54 |      12 |      2 |      2 |
 | 03 merchant      |      67 |      53 |       8 |      4 |      2 |
-| 04 admin         |      74 |      60 |       3 |      9 |      2 |
-| 05 design system |      67 |      63 |       3 |      0 |      1 |
-| **Total**        | **347** | **279** |  **37** | **18** | **13** |
+| 04 admin         |      74 |      61 |       2 |      9 |      2 |
+| 05 design system |      67 |      64 |       2 |      0 |      1 |
+| **Total**        | **347** | **286** |  **30** | **18** | **13** |
 
 > > > > > > > lane/merchant
 
@@ -711,8 +704,6 @@ One of three, not an epidemic. Worth checking each time anyway: a pointer to an
 existing pattern is the most persuasive line in a finding, and the one least
 likely to be re-derived by whoever implements it.
 
-<<<<<<< HEAD
-
 ### A grep that searched for the wrong noun (02#20)
 
 NEEDS-SIGNOFF 11 corrected the customer lane by proving that **no test in
@@ -744,7 +735,6 @@ already dropped, under a comment claiming the two surfaces match.
 Two lessons, both cheap: scan the surface, not the file list a finding happens
 to cite; and strip comments before asserting a class is absent, because the
 comment explaining why a class was removed contains the class.
-=======
 
 ### The merchant lane's blocker sweep (03#1, 12, 37, 47, 55, 64)
 
@@ -917,3 +907,47 @@ nulls) each fail it, and all three restore clean.
 `--w-line-strong:` appears in it. Parsed the braces: the token really is inside
 `.dark` (line 239), so the assertion is honest today. Left alone; recorded so a
 future reader does not mistake it for proof of scoping.
+
+### A blocker that named a file, and an RPC that a `.limit(` grep cannot see
+
+Two 04#6 sweeps recorded that "every hard `.limit()` in `lib/admin/*` now
+paginates or admits it". Both were run with a grep for `.limit(`. The referrals
+list reads a Postgres RPC, and its cap is an ARGUMENT — `p_limit: 100` — so it
+matched nothing and was reported clean by two consecutive sweeps. It was the
+only hard cap in the console with neither pagination nor a truncation notice.
+
+The corollary is worth stating as a rule: an inventory grep proves an absence
+only for the syntax it greps. Caps arrive as `.limit(n)`, `.range(a, b)`, an
+RPC argument, a `LIMIT` inside a migration's function body, or a slice in the
+component. The four in this codebase.
+
+The second half of that finding said referrals "follows the merchants/audit
+pattern exactly". It does not. Merchants and audit are PostgREST table reads
+with `count: "exact"` and an `ilike` on a joined column. `admin_referral_ops`
+returns no total (the count is now a separate head-only read) and filters by a
+single venue **id**, so a name fragment has to be resolved first and can be
+ambiguous. Same finding, same sentence, one half right.
+
+### A control with no reachable surface stays unbuilt
+
+04#56's rows-per-page control was open for the whole campaign behind "a size
+param must thread through every admin route" — a genuine but small piece of
+work (10 readers, 6 pages). What kept it un-attempted is more interesting: all
+eleven admin routes are auth-gated, so there was nowhere to LOOK at the
+paginator. The catalogue documented the panel, the tabs, the skeleton and the
+id chip, and had a placeholder that read "Paginator sits here."
+
+A live `AdminLookupPagination` now sits in the admin catalogue section, which
+is what made a browser test of the control possible at all
+(`admin-pagination-controls`, chromium + mobile-safari). Where a component is
+only mounted behind auth, the catalogue is not documentation — it is the only
+test surface.
+
+### Playwright's dev server port is shared between worktrees
+
+Every lane's `playwright.config.ts` defaults to `127.0.0.1:3146`. Two lanes
+running browsers at once fight over that port: the second run either refuses to
+start or, worse, attaches to the FIRST lane's dev server and tests the wrong
+worktree. One run in this lane reported 8 failures that way and passed
+immediately on a private port. Set `PLAYWRIGHT_BASE_URL=http://127.0.0.1:<port>`
+per worktree before reading anything into a browser failure.

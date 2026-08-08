@@ -575,10 +575,11 @@ the other two on purpose.
 Both are defensible. Picking between them is a design call, and it wants the
 visual baselines regenerated either way.
 
-## 16. Hard caps that are signposted but not solved (04#6)
+## 16. Hard caps in the admin console (04#6) — two closed, two left
 
-Five admin surfaces now say when they are truncating — every hard `.limit()` in
-`lib/admin/*` now either paginates or admits it:
+Billing and referrals no longer truncate: both take a venue lookup and a
+paginator (25/50/100 rows). What is left is two surfaces where a notice is
+still the whole answer:
 
 | surface                  | cap | notice                                           |
 | ------------------------ | --: | ------------------------------------------------ |
@@ -587,23 +588,40 @@ Five admin surfaces now say when they are truncating — every hard `.limit()` i
 | evidence case ledger     | 100 | "Showing the newest N of M evidence cases."      |
 | evidence merchant picker | 200 | "First N of M venues, alphabetically."           |
 
-That is the audit's stated MINIMUM, and it is not the fix. The merchant picker
-is the one to look at: it is an alphabetical `<select>`, so past 200 venues a
-late-alphabet name cannot be selected at all. The notice stops an operator
-concluding the venue is not on the platform; it does not let them file evidence
-against it.
+The merchant picker is still the one to look at: it is an alphabetical
+`<select>`, so past 200 venues a late-alphabet name cannot be selected at all.
+The notice stops an operator concluding the venue is not on the platform; it
+does not let them file evidence against it. Making it searchable also needs a
+decision on whether the evidence form may reference a venue an operator cannot
+see in a list, which is why it is here and not in a commit.
 
-The real fixes, in rough order of value:
+### One thing on referrals that is a judgement call, not a bug
 
-1. Make the merchant picker searchable (server-side lookup, same
-   `AdminLookupControls` pattern the merchants and audit lists now use).
-2. Give fraud, referrals and billing the lookup + paginator those two already
-   have.
-3. The Cmd-K palette over the same query params.
+`admin_referral_ops` is a guarded RPC whose signature is fixed at
+`(uuid, text, integer, integer)`: it filters by ONE venue id, not a name
+fragment. The lookup therefore resolves the fragment against `merchants`
+first, and when it matches more than one venue the panel renders a chooser
+instead of picking one. Three dispositions were considered:
 
-Each needs a lookup query per route, which is a data-layer change rather than a
-UI one, and (1) also needs a decision on whether the evidence form should be
-able to reference a venue an operator cannot see in a list.
+1. apply the fragment to whichever venue sorted first — silently answers a
+   different question, rejected;
+2. run unfiltered when the fragment is not unique — the same defect, at larger
+   scale, rejected (and `decideVenueFilter` has a unit test that fails if the
+   no-match branch ever returns "unfiltered");
+3. ask which venue — shipped.
+
+The alternative to all three is extending the RPC with a `p_venue text`
+argument. That is a schema change, not a UI one: `create or replace` with a
+different argument list adds an overload rather than replacing, so every
+defaulted call site becomes ambiguous, and doing it properly needs
+`drop function` + recreate proved against a live database (`pnpm test:db`),
+which this branch cannot run. If a venue-name fragment on referrals is wanted
+without the chooser, that is the work.
+
+### Cmd-K and the sticky filter bar
+
+Still open, and still the least valuable third of the finding: both are
+navigation over query params that now exist on six of eleven routes.
 
 ## 17. The last 1.5px is `.w-tag` itself (03#25)
 

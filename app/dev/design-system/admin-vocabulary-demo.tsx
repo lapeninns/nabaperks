@@ -1,4 +1,5 @@
 import { AdminIdChip } from "@/components/admin/id-chip"
+import { AdminLookupPagination } from "@/components/admin/lookup-controls"
 import { AdminRecordActions } from "@/components/admin/record-actions"
 import { AdminPanelSkeleton } from "@/components/admin/skeletons"
 import {
@@ -14,6 +15,7 @@ import { AdminViewTabs } from "@/components/admin/view-tabs"
 import { Eyebrow, SectionHeader } from "@/components/brand"
 import { SelectField } from "@/components/forms"
 import { Input } from "@/components/ui/input"
+import { buildLookupHref, pageMeta } from "@/lib/admin/lookup-query"
 
 /**
  * The internal console's own vocabulary, as a catalogue section. Every drift
@@ -140,6 +142,29 @@ export function AdminVocabularyDemo() {
           ]}
         />
         <AdminPanelSkeleton rows={2} />
+      </div>
+
+      {/* The console's paginator had no reference surface, which is how the
+          rows-per-page control (04#56) went unbuilt for so long: every admin
+          list route is auth-gated, so the only way to look at this thing was
+          to log in. It is a live instance — the links and both GET forms
+          really navigate, to this catalogue with the params applied. */}
+      <div className="surface-card-flat grid gap-3 p-5">
+        <Eyebrow>Pagination · page jump and rows per page</Eyebrow>
+        <p className="text-sm leading-6 text-muted-foreground">
+          AdminLookupPagination: count, range, First/Previous/Next/Last, a
+          numeric page jump, and a rows-per-page select wired to the{" "}
+          <code className="mono-meta">size</code> query param. Links and plain
+          GET forms only, so paging works with JS off.
+        </p>
+        <AdminLookupPagination
+          label="Catalogue example pages"
+          unit="example records"
+          meta={pageMeta(420, 3)}
+          hrefForPage={(page) =>
+            `${buildLookupHref("/dev/design-system", { page })}#admin`
+          }
+        />
       </div>
     </>
   )

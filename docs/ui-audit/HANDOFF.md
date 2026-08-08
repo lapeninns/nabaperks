@@ -9,11 +9,11 @@ Read `COVERAGE.md` for the evidence behind every number here.
 | ------------------------------------ | ----: |
 | Findings tracked (each exactly once) |   347 |
 | <<<<<<< HEAD                         |
-| Done                                 |   283 |
-| Partial                              |    33 |
+| Done                                 |   286 |
+| Partial                              |    30 |
 | =======                              |
-| Done                                 |   279 |
-| Partial                              |    37 |
+| Done                                 |   286 |
+| Partial                              |    30 |
 
 > > > > > > > lane/merchant
 > > > > > > > | Stale — not reproducible in the tree | 18 |
