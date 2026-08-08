@@ -8,8 +8,8 @@ Read `COVERAGE.md` for the evidence behind every number here.
 |                                      |        count |
 | ------------------------------------ | -----------: |
 | Findings tracked (each exactly once) |          347 |
-| Done                                 |          273 |
-| Partial                              |           43 |
+| Done                                 |          274 |
+| Partial                              |           42 |
 | Stale — not reproducible in the tree |           18 |
 | Open                                 |           13 |
 | **Criticals closed**                 | **30 of 33** |
