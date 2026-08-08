@@ -89,10 +89,16 @@ export function RewardTicket({
     >
       <div
         className={cn(
-          "relative grid min-w-0 flex-1 content-center gap-1 p-3 sm:p-4",
+          // One padding, not a viewport-keyed pair. The ticket lives inside the
+          // 410px customer column, which is already at its cap by ~700px — so
+          // `sm:p-4` (640px) enlarged the padding on a screen where the ticket
+          // is exactly as wide as it was at 375px, taking measure away from the
+          // terms it wraps. Measured: column 375px -> 410px and then flat.
+          // (02#6)
+          "relative grid min-w-0 flex-1 content-center gap-1 p-3",
           // Reserve a clear band for the redeemed stamp so it never sits on
           // top of the reward name.
-          redeemed && "pb-12 sm:pb-12"
+          redeemed && "pb-12"
         )}
       >
         <span className="eyebrow text-muted-foreground">
@@ -145,7 +151,7 @@ export function RewardTicket({
           // 213px newspaper column (CUS 02#30). The base width is set by the
           // stub word at the mono-id floor ("REDEEMED"), so shrinking it
           // further needs a rendered measurement, not a guess.
-          "grid w-20 shrink-0 content-center justify-items-center gap-2 p-2 text-center sm:p-3",
+          "grid w-20 shrink-0 content-center justify-items-center gap-2 p-2 text-center",
           leaf ? "bg-reward/10" : "bg-seal/10"
         )}
       >
