@@ -11,8 +11,12 @@ import { MarketingHeaderNav, MarketingHeaderRail } from "./marketing-header-nav"
 import { MARKETING_GUTTER } from "./section"
 import { SkipLink } from "./skip-link"
 
+// min-h-9 (36px), not min-h-11. Footer links are low-frequency navigation, not
+// primary targets; WCAG 2.5.8's 24px minimum is the applicable floor and the
+// list spacing already provides separation. At 44px each, 13 links cost ~572px
+// of footer on every public page. (05#47)
 const footerLinkClass =
-  "focus-ring inline-flex min-h-11 items-center rounded-full px-3 underline-offset-4 hover:bg-accent hover:text-accent-foreground hover:underline"
+  "focus-ring inline-flex min-h-9 items-center rounded-full px-3 py-1.5 underline-offset-4 hover:bg-accent hover:text-accent-foreground hover:underline"
 
 /**
  * Legal links are low-frequency and were costing three wrapped rows of 44px
@@ -119,13 +123,34 @@ export function MarketingLayout({
           >
             {/* Four across from `sm:` — the old `lg:` threshold left tablets
                 rendering the phone's two-row stack for no reason. */}
+            {/* Below sm each column is a <details>: the heading becomes a 44px
+                summary row and only "Product" opens by default, so the footer
+                costs four rows instead of four full lists. `open` is forced
+                from sm up via `sm:[&]:block`-style CSS on the content, because
+                <details> cannot be re-opened by media query — the content is
+                shown with `sm:block` regardless of the open state. (05#47) */}
             <nav
               aria-label="Site links"
-              className="grid grid-cols-2 gap-x-3 gap-y-5 pb-6 sm:grid-cols-4 sm:gap-6"
+              className="grid grid-cols-2 gap-x-3 gap-y-1 pb-6 sm:grid-cols-4 sm:gap-6 sm:gap-y-2"
             >
-              {FOOTER_COLUMNS.map((column) => (
-                <div key={column.heading} className="grid content-start gap-1">
-                  <p className="eyebrow px-3 pb-1">{column.heading}</p>
+              {FOOTER_COLUMNS.map((column, index) => (
+                // NOT `display: grid` on the <details> itself — that makes every
+                // child a grid item and the UA stops collapsing the closed
+                // content, which silently defeats the whole disclosure.
+                <details
+                  key={column.heading}
+                  open={index === 0}
+                  className="group block content-start"
+                >
+                  <summary className="focus-ring eyebrow flex min-h-11 cursor-pointer list-none items-center justify-between rounded-full px-3 sm:pointer-events-none sm:min-h-0 sm:pb-1">
+                    {column.heading}
+                    <span
+                      aria-hidden="true"
+                      className="text-muted-foreground group-open:rotate-180 sm:hidden"
+                    >
+                      ▾
+                    </span>
+                  </summary>
                   <ul className="grid justify-items-start gap-0.5">
                     {column.links.map((link) => (
                       <li key={link.href}>
@@ -141,7 +166,7 @@ export function MarketingLayout({
                       </li>
                     ))}
                   </ul>
-                </div>
+                </details>
               ))}
             </nav>
             <div className="flex flex-col items-center gap-3 border-t-2 border-dashed border-border pt-6 sm:flex-row sm:justify-between">
