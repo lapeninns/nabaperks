@@ -218,3 +218,24 @@ assumption held for one form and not the other.
 Where a finding was skipped on a factual claim, that claim is worth measuring
 before trusting it — including claims made by the agents doing the work, and
 including my own.
+
+### Two open findings, re-measured
+
+Applying the same discipline to the remainder rather than repeating their
+recorded blockers.
+
+**01#49 — CLS 0.1924 on the SEO hub.** Measured on /loyalty-for-pubs at
+390x844: the section list is 302px at first paint and 0px after hydration; the
+document goes 11,747px -> 11,472px. Google's "good" threshold is 0.1. The
+finding is held open by one pinned literal in `marketing-offer-source`, and the
+expression it pins is precisely the one that causes the shift — so the assertion
+and the fix are genuinely incompatible, not a formatting technicality. Full
+numbers and two options in NEEDS-SIGNOFF §7.
+
+**05#13 — the audit's usage figures are stale.** It reports "xl, icon-xs and
+icon-lg are never used" and "xs 1". Re-measured across 310 Button/SubmitButton
+call sites: implicit default 134, lg 77, sm 74, xs 7, explicit default 6,
+icon-sm 6, icon 4, icon-lg 2, xl 0, icon-xs 0. Only `xl` and `icon-xs` are
+genuinely unreachable. A four-rung cut would touch roughly 90 live call sites,
+not the handful the finding implies — which materially changes the cost of a
+decision that was already out of scope.
