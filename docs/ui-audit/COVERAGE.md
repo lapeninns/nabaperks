@@ -166,8 +166,37 @@ Test changes made in this entire campaign, in full: one whitespace relaxation in
 file `motion-tokens-bounded`, and this one locator. No assertion was ever
 weakened or deleted.
 
+### Full browser matrix — GREEN
+
+Journeys only (`--grep-invert @visual`), all four projects:
+
+| project         | passed | failed |
+| --------------- | -----: | -----: |
+| chromium        |    204 |      0 |
+| desktop-firefox |    187 |      0 |
+| desktop-safari  |    187 |      0 |
+| mobile-safari   |    235 |      0 |
+
+`pnpm test:a11y` also passes across all four (270).
+
+mobile-safari found two further regressions that the other three projects
+structurally could not, because the specs involved are not `*.desktop.spec.ts`:
+
+- **the dashboard had no counter action inside `<main>` on a phone.** 03#8
+  removed the header actions below `sm` because the bottom tab bar carries Scan
+  — but the tab bar is a sibling of `main`, so the dashboard's own content
+  offered no way to scan. Restored as one wrapping row of compact buttons, which
+  keeps 03#8's height saving.
+- **"Reward collected" stopped announcing as an alert** — a regression from
+  05#28. Tone-driven roles are right for a save confirmation and wrong for a
+  counter transaction closing. `StatusBanner` now takes an explicit `role`
+  override, documented as the exception.
+
+Eleven regressions in total have been found and fixed by the browser tiers in
+this campaign. Every one was introduced by an audit finding that was correct in
+principle and wrong for the specific surface.
+
 ### Still not run
 
-`pnpm test:db` (needs live database credentials), and the non-chromium
-projects of the journey suite (desktop-firefox, desktop-safari, mobile-safari)
-in full — chromium is green end to end and the a11y suite covers all four.
+`pnpm test:db` (needs live database credentials) and the 121 stale visual
+baselines, which are a human approval rather than a run.
