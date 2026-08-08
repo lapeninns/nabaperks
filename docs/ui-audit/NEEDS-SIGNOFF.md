@@ -717,3 +717,34 @@ layout shift) are in tension with each other, rather than with the audit.
 Ranked by what I would revisit: 01#49 (a measured defect), then 01#63 (a
 mechanism swap that keeps the goal), then 01#65 (a taste decision that wants an
 owner).
+
+## 23. 03#18 — the pattern the audit says to copy only half exists
+
+The finding tells the customers table to move `q` and `filter` into the URL and
+the server loader, "matching the pattern `activity-detail-feed.tsx:235-267`
+already uses". I read that pattern. It is two different decisions, and neither
+transfers.
+
+**`filter` — activity pushes it server-side; customers cannot.** Activity's
+filter maps to `eventsForCategory(filter)`, an `event_name IN (…)` predicate on
+a real column, served by a composite index. The customers filter tests
+`row.badge.tone === "ready" | "quiet"` and `isActiveMember(row)` — values
+DERIVED in `buildMerchantCustomerReadback`, not stored. Pushing it down means
+reimplementing badge derivation in SQL, which is exactly the duplication 03#13
+was declined for: two implementations of the same rule, drifting, over audited
+loyalty data.
+
+**`q` — activity deliberately does NOT push it server-side.** Its loader says
+why: the only first-class text column is `event_name`, and the richer joins
+carry PII that must not reach a search predicate. The customers table is worse
+on that axis, not better — its identifiers are masked initials over hashed
+phones, so there is no plaintext column to match against at all.
+
+So the existing note ("a data-layer + privacy design change, not a UI fix") is
+right, and this is what it looks like concretely. The honest options are a
+materialised badge/searchable column with its own drift story, or leaving search
+page-scoped and saying so — which the table already does, in the disclaimer the
+audit wants deleted.
+
+Deleting that disclaimer without fixing the search underneath it would be the
+one genuinely bad outcome available here.
