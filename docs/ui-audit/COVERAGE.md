@@ -374,3 +374,21 @@ failed commit. `--no-warn-ignored` fixes it without weakening anything.
 Also re-ran the sabotage check on the one test this campaign added,
 `motion-tokens-bounded`: adding `repeat: Infinity` to a token fails it, removing
 it passes. It is a real test.
+
+### Auditing the [stale] markings
+
+[stale] had been the one status I never questioned — it means "the audit is
+describing code that no longer exists", which sounds self-verifying. Checked all 20. Two were wrong.
+
+**03#25 was reopened by a merge.** Its note read "does not appear anywhere in the
+tree. Verified by grep", which was true when written. Merging main brought back
+six `border-[1.5px]` occurrences across four files. A [stale] note is only true
+as of the commit that wrote it, and a merge can resurrect a closed finding —
+worth re-running the greps that justified a closure after any significant merge.
+
+**05#56 was marked [stale] with no reasoning**, and the copy it describes was
+still in the tree. Resolved by scoping the DESIGN.md rule rather than changing an
+honest merchant label.
+
+Five of the remaining eighteen were spot-checked by grep (04#2, 04#46, 04#59,
+04#29, 01#11) and all hold.
