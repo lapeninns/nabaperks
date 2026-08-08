@@ -38,8 +38,7 @@ const MIN_TEXT_PX = 10
  * lanes. Remove entries as those lanes sweep their files; new violations in
  * any other file fail immediately.
  */
-const SUBFLOOR_EXCEPTIONS = new Set([
-])
+const SUBFLOOR_EXCEPTIONS = new Set([])
 
 /**
  * Custom-property prefixes owned by frameworks/runtimes rather than the repo
@@ -71,7 +70,6 @@ const MAPPING = {
   primary: "--primary",
   "on-primary": "--primary-foreground",
   stamp: "--stamp",
-  "stamp-empty": "--stamp-empty",
   seal: "--seal",
   "reward-ready": "--reward",
   qr: "--qr",
@@ -111,11 +109,13 @@ function normalise(value) {
 function parseDesignColors(md) {
   const fenceRe = /^---\s*$/m
   const first = md.search(fenceRe)
-  if (first === -1) throw new Error("DESIGN.md: no opening --- frontmatter fence")
+  if (first === -1)
+    throw new Error("DESIGN.md: no opening --- frontmatter fence")
   const afterFirst = first + md.slice(first).match(fenceRe)[0].length
   const rest = md.slice(afterFirst)
   const secondRel = rest.search(fenceRe)
-  if (secondRel === -1) throw new Error("DESIGN.md: no closing --- frontmatter fence")
+  if (secondRel === -1)
+    throw new Error("DESIGN.md: no closing --- frontmatter fence")
   const frontmatter = rest.slice(0, secondRel)
 
   const lines = frontmatter.split("\n")
@@ -190,7 +190,9 @@ function parseRootBlock(css) {
  * mismatch surfaces rather than silently passing).
  */
 function resolveVar(value, props, seen = new Set()) {
-  const m = String(value).trim().match(/^var\(\s*(--[A-Za-z0-9_-]+)\s*(?:,[\s\S]*)?\)$/)
+  const m = String(value)
+    .trim()
+    .match(/^var\(\s*(--[A-Za-z0-9_-]+)\s*(?:,[\s\S]*)?\)$/)
   if (!m) return { value, from: null }
   const target = m[1]
   if (seen.has(target)) return { value, from: target } // cycle guard
@@ -228,9 +230,10 @@ for (const [designKey, cssProp] of Object.entries(MAPPING)) {
 
   const resolved = resolveVar(rootProps[cssProp], rootProps)
   const cssValRaw = resolved.value
-  const resolvedFrom = resolved.from && resolved.from !== cssProp
-    ? `${cssProp} -> ${resolved.from}`
-    : cssProp
+  const resolvedFrom =
+    resolved.from && resolved.from !== cssProp
+      ? `${cssProp} -> ${resolved.from}`
+      : cssProp
 
   checked++
   if (normalise(designValRaw) !== normalise(cssValRaw)) {
@@ -246,7 +249,12 @@ for (const [designKey, cssProp] of Object.entries(MAPPING)) {
 let failed = false
 
 if (failures.length) {
-  const headers = ["key", "DESIGN.md value", "globals.css value", "resolved-from"]
+  const headers = [
+    "key",
+    "DESIGN.md value",
+    "globals.css value",
+    "resolved-from",
+  ]
   const rows = failures.map((f) => [f.key, f.design, f.css, f.from])
   const widths = headers.map((h, i) =>
     Math.max(h.length, ...rows.map((r) => String(r[i]).length))
@@ -254,14 +262,18 @@ if (failures.length) {
   const fmt = (cells) =>
     cells.map((c, i) => String(c).padEnd(widths[i])).join("  |  ")
 
-  console.error(`✗ ${failures.length} design-token drift(s) between DESIGN.md and app/globals.css:\n`)
+  console.error(
+    `✗ ${failures.length} design-token drift(s) between DESIGN.md and app/globals.css:\n`
+  )
   console.error(`  ${fmt(headers)}`)
   console.error(`  ${widths.map((w) => "-".repeat(w)).join("--+--")}`)
   for (const r of rows) console.error(`  ${fmt(r)}`)
   console.error("")
   failed = true
 } else {
-  console.log(`✓ design tokens in sync: ${checked} colour token(s) match between DESIGN.md and app/globals.css`)
+  console.log(
+    `✓ design tokens in sync: ${checked} colour token(s) match between DESIGN.md and app/globals.css`
+  )
 }
 
 /* ------------------------------------------------------------------ */
@@ -414,7 +426,9 @@ function parseSelectorBlock(cssSource, selector) {
 }
 
 function hexToRgb(value) {
-  const m = String(value).trim().match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i)
+  const m = String(value)
+    .trim()
+    .match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i)
   if (!m) return null
   let h = m[1]
   if (h.length === 3) h = [...h].map((c) => c + c).join("")
@@ -460,7 +474,12 @@ function checkContrast(themeName, props, ringAlpha) {
     ["--primary-foreground", "--primary", 4.5, "primary button text"],
     ["--seal-foreground", "--seal", 4.5, "seal glyph on sun"],
     ["--reward-foreground", "--reward", 4.5, "reward text on leaf"],
-    ["--destructive-foreground", "--destructive", 4.5, "filled destructive text"],
+    [
+      "--destructive-foreground",
+      "--destructive",
+      4.5,
+      "filled destructive text",
+    ],
     ["--destructive", "--card", 4.5, "outline-danger button text"],
   ]
 
@@ -512,7 +531,9 @@ if (!ringMixMatch) {
 }
 
 if (contrastProblems.length) {
-  console.error(`✗ ${contrastProblems.length} WCAG contrast floor violation(s):\n`)
+  console.error(
+    `✗ ${contrastProblems.length} WCAG contrast floor violation(s):\n`
+  )
   for (const p of contrastProblems) console.error(`  ${p}`)
   console.error(
     "\n  Adjust the token (or the ring mix %) until the pair clears its floor — DESIGN.md · Colors.\n"

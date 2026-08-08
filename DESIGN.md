@@ -19,7 +19,6 @@ colors:
   primary: "#cf330a"
   on-primary: "#ffffff"
   stamp: "#cf330a"
-  stamp-empty: "rgba(33, 28, 22, 0.18)"
   seal: "#f5a623"
   reward-ready: "#16733c"
   qr: "#111111"
