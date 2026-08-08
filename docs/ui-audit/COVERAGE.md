@@ -286,3 +286,22 @@ agents with the right instinct that stopped one question early. Treat every
 This applies to my own notes too: NEEDS-SIGNOFF §10 recorded the font fix as
 "blocked by a contract" before I had checked _which files_ that contract pinned.
 It pinned four, and the two causing the regression were not among them.
+
+### The blocker sweep, totalled
+
+Nine recorded blockers re-tested; seven did not survive:
+
+| finding | recorded blocker                   | what it actually was                                 |
+| ------- | ---------------------------------- | ---------------------------------------------------- |
+| 03#49   | "neither form exceeds a viewport"  | one was 883-948px                                    |
+| 01#12   | "needs a browser"                  | the browser existed                                  |
+| 02#33   | "no web brightness API"            | true, but blocked the achievable half                |
+| 02#30   | "needs a rendered measurement"     | floor is 70px; the audit's own target was impossible |
+| 04#62   | "needs scroll detection"           | pure CSS does it                                     |
+| 04#72   | (chip row only)                    | `?only=` was a wrapper, not 16 props                 |
+| 02#20   | "rails are contract-pinned"        | **no test references any rail**                      |
+| 02#68   | "a boundary has no venue data"     | true — and it was shielding a wrong-venue bug        |
+| 04#47   | "needs ids through ~20 call sites" | `useId` + clone; 79 call sites untouched             |
+
+The shape repeats: someone with the right instinct stopped one question early.
+Two were mine (the font contract, and this list's own framing of 04#47).
