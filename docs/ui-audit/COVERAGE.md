@@ -15,11 +15,11 @@ branch is green after every merge.
 | Report           | Tracked |    Done | Partial |  Stale |   Open |
 | ---------------- | ------: | ------: | ------: | -----: | -----: |
 | 01 marketing     |      69 |      42 |      18 |      3 |      6 |
-| 02 customer      |      70 |      49 |      13 |      2 |      6 |
+| 02 customer      |      70 |      51 |      13 |      2 |      4 |
 | 03 merchant      |      67 |      44 |      15 |      5 |      3 |
 | 04 admin         |      74 |      54 |       9 |      9 |      2 |
-| 05 design system |      67 |      60 |       3 |      1 |      3 |
-| **Total**        | **347** | **249** |  **58** | **20** | **20** |
+| 05 design system |      67 |      61 |       3 |      1 |      2 |
+| **Total**        | **347** | **252** |  **58** | **20** | **17** |
 
 ## "Stale" is a real category (20 findings)
 
@@ -60,29 +60,30 @@ relaxed for whitespace only after Prettier re-wrapped a ternary
 `isPosterPrintPath` (`merchant-shell`). One test was added
 (`motion-tokens-bounded`).
 
-## Remaining 19 open, by reason
+## Remaining 16 open, by reason
 
-Exactly: 01#23, 01#49, 01#55, 01#63, 01#65, 01#67, 02#6, 02#27, 02#28, 02#29, 02#50, 02#64, 03#13, 03#16, 03#37, 04#54, 04#60, 05#13, 05#47.
+Exactly: 01#23, 01#49, 01#55, 01#63, 01#65, 01#67, 02#6, 02#29, 02#50, 02#64, 03#13, 03#16, 03#37, 04#54, 04#60, 05#13.
 
-- **Blocked by a contract test** (attempted, reverted, no assertion weakened) —
-  01#49 (GuideSpine hydration), 01#63 (legal TOC order — legal-p3-polish
-  requires the opposite), 01#65 (legal clause headings — legal-heading-structure
-  pins `mono-meta`).
-- **Copy / product decision** — 01#23 (cut 8 objections to 5), 01#55 (persona
-  spokes), 02#50 and 02#64 (conversion copy on the acquisition funnel), 04#54
-  (operator procedure copy).
-- **Needs a browser** — 02#27/28/29 (stamp-grid columns, disc sizing, reward
-  slot: each changes every card in the product), 05#47 (footer density),
-  04#60's sticky-header half.
-- **Needs a data-layer change** — 03#13 (`MerchantNextActions` has no
-  merchant-scoped aggregate), 03#16 (DataTable needs an `lg` cardBreakpoint AND
-  per-renderer row props), 02#6 (breakpoint sweep needs measurement).
-- **Explicitly out of scope** — 01#67 (legal migration, NEEDS-SIGNOFF §4),
-  05#13 (Button size-variant API removal).
-- **Large API addition** — 04#60 sorting/aria-sort across 8 live panels.
+"Needs a browser" is no longer a category — Playwright works here, and the
+findings previously parked under it (02#27, 02#28, 05#47, 04#67) were measured
+and either fixed or closed with evidence.
+
+- **Blocked by a contract or e2e test** (each attempted, reverted, nothing
+  weakened) — 01#49, 01#63, 01#65, 03#46 (recorded in STATUS-m-launch).
+- **Copy / product decision** — 01#23, 01#55, 02#50, 02#64, 04#54.
+- **Needs a data-layer change** — 03#13 (no merchant-scoped aggregate for
+  readyCount/quietCount), 03#16 (DataTable needs an `lg` cardBreakpoint AND
+  per-renderer row props), 02#6 (breakpoint sweep needs measurement per surface).
+- **Explicitly out of scope** — 01#67 (legal migration), 05#13 (Button
+  size-variant API removal).
+- **Large API addition** — 04#60 sorting/aria-sort across 8 live panels; its
+  sticky-header half is blocked by the `overflow-x-auto` scroll container.
 - **Partially reassigned** — 03#37 (m-offers shipped the shared
   PrintPreviewNav; the single-route collapse is pinned by
   qr-a4-poster-templates).
+- **Depends on a closed sibling** — 02#29 (full-bleed reward seal) needs a seal
+  size that tracks the grid; now that 02#28 pins the disc to 56/40px this is
+  tractable, but RewardSeal still ships three fixed sizes.
 
 ## Browser verification — RUN, and it found real regressions
 

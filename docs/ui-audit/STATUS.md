@@ -5,7 +5,7 @@ Branch `feat/ui-redesign-audit-fixes`. `[x]` shipped and verified, `[~]` partial
 `[ ]` open. Per-lane detail is in the sibling `STATUS-*.md` files; the
 cross-lane roll-up is in `COVERAGE.md`.
 
-## 05-design-system.md — 60 done / 3 partial / 1 stale / 1 deferred / 2 open (of 67)
+## 05-design-system.md — 61 done / 3 partial / 1 stale / 1 deferred / 1 open (of 67)
 
 |         | ID    | Priority | Finding                                                                              |
 | ------- | ----- | -------- | ------------------------------------------------------------------------------------ |
@@ -55,7 +55,7 @@ cross-lane roll-up is in `COVERAGE.md`.
 | [x]     | 05#44 | Medium   | `AdminShell` sidebar footer stacks four `MonoTag` chips of pure decoration           |
 | [x]     | 05#45 | Low      | `PageTitle` fakes baseline alignment with `md:pt-8`                                  |
 | [x]     | 05#46 | Medium   | `CustomerAppShell` reserves 128px of bottom padding for a 56px tab bar               |
-| [ ]     | 05#47 | High     | The marketing footer is a 4-column, 13-link, 44px-per-row block on every page        |
+| [x]     | 05#47 | High     | The marketing footer is a 4-column, 13-link, 44px-per-row block on every page        |
 | [x]     | 05#48 | High     | No error boundary moves focus or announces itself                                    |
 | [x]     | 05#49 | Medium   | `global-error.tsx` speaks a different design system                                  |
 | [x]     | 05#50 | Medium   | Loading fallbacks use `role="status"` on a container with no `aria-live` guarantee a |
