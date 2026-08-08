@@ -144,3 +144,52 @@ formatting technicality and I have not touched it.
 
 Either way the assertion needs rewriting to express the intent rather than the
 implementation. Recommend option 2 and an assertion on the rendered guarantee.
+
+## 8. The copy/product decisions, measured
+
+These five were flagged as "needs a product decision" and left at that. Here is
+what each actually costs, so the decision is not made on prose.
+
+### 02#64 — offer landing (Critical)
+
+Measured at 390x844 on the offers harness, customer surface:
+
+|                                 | value         |
+| ------------------------------- | ------------- |
+| "Claim this offer" CTA position | **y = 904px** |
+| viewport                        | 844px         |
+| page height                     | 7,102px       |
+
+The primary conversion action sits **below the fold** — a member must scroll
+before they can claim. The audit estimated y760; the measured figure is worse.
+The decision is whether the four restatements of the benefit above it earn
+those 904px.
+
+### 01#55 — the three persona spokes
+
+| route                  |   height | words |
+| ---------------------- | -------: | ----: |
+| /loyalty-for-pubs      | 11,472px | 1,741 |
+| /loyalty-for-bars      |  2,363px |   359 |
+| /loyalty-for-cafes     |  2,373px |   361 |
+| /loyalty-for-takeaways |  2,373px |   361 |
+
+The three spokes render from one `PersonaSpokePage`; their page sources are
+**98.1% identical**. They are the same ~360-word page three times with the noun
+swapped. The decision is binary: either write genuinely vertical-specific copy
+(~1,080 words), or collapse them to one route and redirect. Shipping three
+near-identical noindexed pages is the only option with no upside.
+
+### 02#50 — join wizard terms step (Critical)
+
+NOT measurable here: the join flow needs live Supabase credentials
+(`customer-join-*-live-db.spec.ts` all skip without them), so I could not put a
+number on the CTA position. The audit's own arithmetic puts it at ~y780 on a
+667px viewport. Worth measuring against a live DB before deciding.
+
+### 01#23 and 04#54
+
+Both are copy edits whose cost is the copy itself, not layout: 01#23 cuts eight
+objections to five, 04#54 shortens five admin panel descriptions. Neither has a
+measurable geometry argument — they turn on whether the words are load-bearing,
+which only the product owner can say.
