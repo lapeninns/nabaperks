@@ -223,3 +223,57 @@ member is actually entitled to. Collapsing them behind a tap by default is a
 product and arguably a consumer-terms decision, not a layout one. The legal
 sheet infrastructure (`components/customer/legal-sheet.tsx`) already exists if
 you want it.
+
+## 10. BLOCKING: this branch regresses Lighthouse LCP, and the obvious fix hits a contract
+
+CI is red on `Lighthouse (home)`, `(pricing)` and `(loyalty-for-pubs)`. All
+three pass on `main`. This is a real regression introduced by this branch and it
+should block the merge.
+
+Measured on /loyalty-for-pubs (CI, 3 runs): **LCP 4,854 / 5,130 / 5,265ms**
+against a **4,000ms** budget. Reproduced locally at 6,343ms.
+
+### Cause
+
+The typography fix added two font faces (Medium 500 and ExtraBold 800) so that
+`font-medium` and `font-extrabold` stopped being browser-synthesised. That put
+**four preloaded ~113KB .ttf files** on the critical path. Lighthouse's
+simulated mobile throttling charges all of it against LCP.
+
+Confirmed by experiment — removing just those two faces:
+
+| build                     | LCP (local, 1 run) |
+| ------------------------- | -----------------: |
+| this branch               |            6,343ms |
+| minus the two added faces |            4,257ms |
+| all four faces as woff2   |            4,721ms |
+
+So the two faces cost **2,086ms**, and shipping the same four faces as woff2
+recovers **1,622ms** of it while keeping the typography fix.
+
+Note the diagnosis is not the obvious one: the fonts are not slow to arrive
+(~50ms on localhost) and TBT is 0ms. It is simulated-throttling bandwidth
+contention on the preload, which is why this only shows up in Lighthouse.
+
+### Why woff2 is not committed
+
+`tests/contracts/poster-font-assets.test.mjs:57` — "the app and PDF renderer
+consume the same four local font files" — pins `BricolageGrotesque-Regular.ttf`
+in `app/layout.tsx`. The PDF renderer needs .ttf (pdf-lib cannot read woff2), so
+serving woff2 to the browser breaks the assertion. The contract's intent is
+sound: screen and printed poster must not drift onto different faces.
+
+I converted the fonts, measured the win, saw the contract fail, and reverted.
+Nothing is weakened; the branch ships .ttf and the red Lighthouse check.
+
+### The three options
+
+1. **Extend the contract** to require the app and PDF to use the same
+   _typeface family and weights_, with woff2 for the browser and .ttf for the
+   PDF, asserting the two lists stay in step. Keeps typography and performance.
+   Needs the assertion rewritten by someone entitled to change its intent.
+2. **Drop the two added faces.** Recovers 2,086ms; `font-medium` and
+   `font-extrabold` go back to being synthesised, which is the defect 05-design
+   -system raised.
+3. **Raise the LCP budget.** Not recommended without a reason beyond "our fonts
+   got bigger".

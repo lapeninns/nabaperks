@@ -23,6 +23,14 @@ Browser matrix, journeys only: chromium 204 · desktop-firefox 187 ·
 desktop-safari 187 · mobile-safari 235 — 0 failed. `pnpm test:a11y` 270 passed
 across all four.
 
+## BLOCKING before merge
+
+**Lighthouse LCP is red on three marketing routes** and green on main. Caused by
+this branch's two added font faces: 4 preloaded ~113KB .ttf on the critical path,
+measured at 4,854-5,265ms against a 4,000ms budget. woff2 recovers 1,622ms but
+`poster-font-assets` pins .ttf for PDF parity, so it is reverted and recorded.
+Three options in NEEDS-SIGNOFF §10.
+
 ## What still needs YOU, not more engineering
 
 Four decisions unblock most of the remainder. Each now carries measured
