@@ -102,6 +102,21 @@ export default async function AdminEvidencePage({
               </SourceLabel>
             }
           />
+          {/* Same `?venue=` term the ledger uses. On this view it narrows the
+              merchant picker, which is the only way to reach a venue past the
+              alphabetical cap. */}
+          <AdminLookupControls
+            basePath="/admin/evidence"
+            lookup={lookup}
+            label="Find a venue to file evidence against"
+            fields="venue"
+            hiddenParams={{ view: "capture" }}
+          />
+          <AdminAppliedFilters
+            basePath="/admin/evidence"
+            lookup={lookup}
+            extraParams={{ view: "capture" }}
+          />
           <AdminActionForm
             action={captureCommercialEvidenceAction}
             className="grid gap-4"
@@ -109,14 +124,15 @@ export default async function AdminEvidencePage({
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <AdminField
                 label="Merchant"
-                // The picker is alphabetical and hard-capped, so past the cap a
-                // venue late in the alphabet was simply absent with nothing on
+                // The picker is alphabetical and hard-capped, so past the cap
+                // a venue late in the alphabet was absent with nothing on
                 // screen to say so — an operator would read "not on the
-                // platform" (ADM 04#6). Only rendered when it actually
-                // truncates.
+                // platform" and stop. The search above now narrows this list,
+                // so the helper points at the way out rather than just naming
+                // the ceiling (ADM 04#6).
                 helper={
                   workspace.merchantTotal > workspace.merchants.length
-                    ? `First ${workspace.merchants.length} of ${workspace.merchantTotal} venues, alphabetically. Later names are not listed yet.`
+                    ? `First ${workspace.merchants.length} of ${workspace.merchantTotal} venues, alphabetically. Search by venue above to reach a name further down.`
                     : undefined
                 }
               >

@@ -49,10 +49,24 @@ export async function getAdminEvidenceWorkspace(
     )
   }
 
+  // The picker is an alphabetical <select> capped at MERCHANT_PICKER_LIMIT, so
+  // past the cap a venue late in the alphabet could not be chosen AT ALL — an
+  // operator could not file evidence against it, and the list gave no hint the
+  // name was missing. The same `?venue=` term that filters the ledger now
+  // narrows the picker, so any venue is reachable in one search (ADM 04#6).
+  let merchantQuery = supabase
+    .from("merchants")
+    .select("id,business_name", { count: "exact" })
+
+  if (lookup.venue) {
+    merchantQuery = merchantQuery.ilike(
+      "business_name",
+      containsPattern(lookup.venue)
+    )
+  }
+
   const [merchantsResult, casesResult] = await Promise.all([
-    supabase
-      .from("merchants")
-      .select("id,business_name", { count: "exact" })
+    merchantQuery
       .order("business_name", { ascending: true })
       .limit(MERCHANT_PICKER_LIMIT),
     caseQuery
