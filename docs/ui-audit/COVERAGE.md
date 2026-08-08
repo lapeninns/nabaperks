@@ -510,3 +510,25 @@ arbitrary rather than least-important. That is what made silence there a wrong
 answer rather than a small omission.
 
 Applying a pattern is not the same as applying it everywhere.
+
+### Auditing the source, not just the call sites
+
+03#25 was closed twice on call-site greps while the utility those call sites
+imitated — `.w-tag`, at 1.5px — went unchecked. That prompted a sweep of every
+border width declared in `app/globals.css` against DESIGN.md's "borders are 2px
+solid ink everywhere".
+
+Five non-2px declarations, and one of them was mine: the `data-just-updated`
+stamp I added for 04#50 shipped at 1.5px, days after sweeping 1.5px out of the
+tree. Fixed. A rule is only as good as the next thing written under it, and I
+was the next thing.
+
+Two are legitimate and should be left: `.ink-check::after` at 2.5px and the
+earned-stamp inner ring at 1px are **glyph strokes**, not container borders — a
+tick drawn from two borders, and a decorative ring inside a stamp. DESIGN.md
+governs the edge of an element, not the weight of a mark that happens to use
+border syntax. Recorded so a future sweep does not turn a checkmark into a box.
+
+Generalising: when a finding is "pattern X appears at N call sites", check
+whether the design system's own source declares X too. The call sites are
+usually imitating something.
