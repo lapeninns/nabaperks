@@ -444,3 +444,41 @@ margin I will take on a security header.
 
 One word of code, and about twenty minutes of verification I cannot do from
 here.
+
+## 15. 05#65 — `ConsoleSection` declined, with the numbers
+
+Half of this finding is done: 03#1 unified the merchant and admin shells to
+`px-4 py-5 sm:py-6 lg:px-8 lg:py-8`, which is the `py-8 -> py-6` reclaim the
+finding asks for.
+
+The other half — mint `<ConsoleSection>` and route every `/app/*` and `/admin/*`
+page section through it — I am declining, and here is the evidence rather than
+an opinion.
+
+**Console page rhythm is already conventional.** Gap values across `app/app` and
+`app/admin`:
+
+| value   | count | what it is                            |
+| ------- | ----: | ------------------------------------- |
+| `gap-6` |    41 | page-level rhythm — already one value |
+| `gap-2` |    27 | inline rows inside components         |
+| `gap-4` |    17 | mostly nested panels                  |
+| `gap-3` |    15 | intra-component                       |
+| `gap-1` |    13 | label/value pairs                     |
+| `gap-5` |     6 | mixed                                 |
+
+**The `py-*` claim does not hold for console pages.** The finding cites "26
+distinct `py-*` values"; in `app/app` and `app/admin` the entire spread is
+`py-10` x4, `py-2.5` x2, `py-16` x2, `py-12` x1, `py-0` x1. The 26 came from
+counting the whole tree, marketing included.
+
+**Only one page-level grid deviates** (`app/app/offers/page.tsx:147`, `gap-5`).
+Everything else in the non-`gap-6` list is intra-component spacing that a section
+component would not own anyway.
+
+So the component would rename `<div className="grid gap-6">` to
+`<ConsoleSection>` across 33+ files, produce no user-visible change, and churn
+the visual baselines — which is the API sprawl 05#7 criticises, arriving as a
+fix. If you want the abstraction anyway, as a named place to change console
+rhythm later, that is a reasonable call and it is one commit; I am not making it
+on the strength of a premise that measurement does not support.
