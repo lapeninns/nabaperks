@@ -788,3 +788,74 @@ guarantee appearing without its conditions.
 The fix is small — render `CLAIMS_BOUNDARY` beside the guarantee in the guides'
 closing CTA, then delete those two entries from the contract's allowlist, which
 will then enforce it forever.
+
+## 25. Report 01 — three marketing judgements, now measured
+
+All three were recorded as "needs a decision" or "wants a browser". Two of them
+are now decided by measurement and closed against the numbers below; the third
+is still a decision, but a narrower one than the note implied.
+
+### 01#30 — two-columning the pricing sheet: measured and declined
+
+Chromium, `/pricing`, `[data-growth-plan-pricing]`:
+
+| viewport | sheet height, one column | with `grid-cols-[1.1fr_0.9fr]` |      delta |
+| -------- | -----------------------: | -----------------------------: | ---------: |
+| 390      |                  1,585px |            n/a (single column) |          — |
+| 768      |                  1,119px |                        1,552px | **+433px** |
+| 1024     |                  1,001px |                        1,004px |       +3px |
+| 1280+    |                    977px |                          908px |  **-69px** |
+
+The sheet caps at 1,088px wide, so nothing changes above 1280. The 768px
+regression is the `ol`: its `10.5rem` label track plus a sentence does not fit a
+0.9fr rail, and the three rows go from 246px to 918px. Moving the threshold to
+`lg:` removes that regression and leaves a best case of -69px (-7%) on one
+breakpoint.
+
+The audit's "= 450px on tablet+" was priced before the `ol` fix that has already
+shipped, which is where the saving actually went (`ol` at 1280: 174px). Not
+shipped. If anyone wants to revisit, the missing ingredient is a narrower label
+track inside a rail, not the two-column grid.
+
+### 01#22 — collapsing four of the five launch steps on mobile: rejection confirmed
+
+Measured at 390x844 on `/how-it-works`:
+
+| thing                              |                      value |
+| ---------------------------------- | -------------------------: |
+| document height                    |                    6,211px |
+| `#launch` section                  |                    1,372px |
+| the steps `<ol>` alone             |                    1,101px |
+| the `<ol>` at 1280                 |                      677px |
+| saving from a `<details>` collapse | ~725px (11.7% of the page) |
+
+The rejection stands and now has its number: 11.7% of the page, bought by
+hiding four of five steps on the page whose job is to explain them. The audit's
+"= 900px" was priced against the ~1,250px vertical stack that the horizontal
+conversion has already removed.
+
+### 01#20 — a compact GrowthPlanPricing on `/`: still a decision, and not contract-blocked
+
+Two things the note did not say.
+
+It is **not** contract-blocked. `marketing-offer-source` pins the string
+`<LandingPricing` into the landing's seven-band ORDER; it says nothing about
+what that component renders, so its interior can be swapped whenever the
+presentation is decided.
+
+Both remaining halves are the **same** decision. "Drop See full pricing" only
+becomes redundant once `/` shows the real sheet, so it cannot be actioned on
+its own.
+
+I looked for an objective divergence hiding behind the decision and did not
+find one. In particular the landing's `SeasonalOfferBanner` is
+`CampaignStrip variant="card"`, which does render `offer.termsLine`, so the
+seasonal terms are published on both surfaces. What is left is presentation:
+
+| aspect       | `/pricing`                                      | `/`                               |
+| ------------ | ----------------------------------------------- | --------------------------------- |
+| container    | `PricingSheet`, 18px ink sheet, bonded strips   | `Card border-primary`             |
+| `OFFER.name` | `<h2>` at 24/30px                               | `<p>` at 14px                     |
+| annual       | `PriceLockup size="lead"` + `annualSavingShort` | "Or {annualPrice}" + "Best value" |
+| timeline     | 3-row `ol` (174px at 1280)                      | absent                            |
+| CTAs         | 1                                               | 2                                 |
