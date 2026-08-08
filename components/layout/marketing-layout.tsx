@@ -15,8 +15,15 @@ import { SkipLink } from "./skip-link"
 // primary targets; WCAG 2.5.8's 24px minimum is the applicable floor and the
 // list spacing already provides separation. At 44px each, 13 links cost ~572px
 // of footer on every public page. (05#47)
+//
+// `rounded-(--radius-md)`, not `rounded-full`. DESIGN.md reserves full circles
+// for the stamp family and names its exceptions, one of which is "the
+// legal-link halo family" — that is `legalLinkClass` below, the /terms
+// /privacy /cookies row. These thirteen are site navigation, not legal links,
+// so the pill here was drift. They now read as smaller siblings of the 10px
+// button rather than soft SaaS pills. (01#6)
 const footerLinkClass =
-  "focus-ring inline-flex min-h-9 items-center rounded-full px-3 py-1.5 underline-offset-4 hover:bg-accent hover:text-accent-foreground hover:underline"
+  "focus-ring inline-flex min-h-9 items-center rounded-(--radius-md) px-3 py-1.5 underline-offset-4 hover:bg-accent hover:text-accent-foreground hover:underline"
 
 /**
  * Legal links are low-frequency and were costing three wrapped rows of 44px
@@ -150,7 +157,7 @@ export function MarketingLayout({
                     open={index === 0}
                     className="group block content-start"
                   >
-                    <summary className="focus-ring eyebrow flex min-h-11 cursor-pointer list-none items-center justify-between rounded-full px-3">
+                    <summary className="focus-ring eyebrow flex min-h-11 cursor-pointer list-none items-center justify-between rounded-(--radius-md) px-3">
                       {column.heading}
                       <span
                         aria-hidden="true"
