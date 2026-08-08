@@ -367,9 +367,18 @@ That is a UX decision, not a bug fix, so it is here rather than in a commit.
 Everything else in 04#26 (lookup, filter chips, count, range, venue filter,
 paginator) is done.
 
-## 13. One manual look: the hero card loop (01#17)
+## 13. ~~One manual look: the hero card loop~~ CLOSED — now covered by a test
 
-Not a decision — a verification gap I cannot close from here.
+The gap is gone. `tests/e2e/hero-motion.motion.spec.ts` runs under a new
+`motion` Playwright project that overrides `contextOptions.reducedMotion`, and
+covers all four behaviours below automatically. Verified by sabotage: reverting
+`if (paused) return` makes it fail.
+
+Run it with `pnpm exec playwright test --project=motion`.
+
+Original note follows.
+
+### Original: a verification gap I could not close from here
 
 `playwright.config.ts` sets `reducedMotion: "reduce"` on every project, and
 `useStampJourneyLoop` short-circuits under reduced motion. So the stamp loop

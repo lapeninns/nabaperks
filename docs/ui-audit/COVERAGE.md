@@ -341,6 +341,19 @@ automated run, on this branch or on the unmodified baseline. A probe that
 appeared to show a resume regression was in fact counting unrelated page
 timeouts.
 
-So motion findings can be reasoned about and gated, but not watched. That is a
-real hole in this campaign's evidence, and it is recorded in NEEDS-SIGNOFF §13
-rather than papered over.
+FIXED: a `motion` Playwright project now overrides
+`contextOptions.reducedMotion` for `**/*.motion.spec.ts`, and
+`hero-motion.motion.spec.ts` watches the hero loop for real.
+
+Two lessons from building it.
+
+**The override has to be `contextOptions.reducedMotion`, not the `reducedMotion`
+test option.** The root config sets the former and it wins, so a file-level
+`test.use({ reducedMotion: "no-preference" })` silently does nothing — the page
+still reports `reduce: true`.
+
+**Two of my three tests passed with the fix reverted.** Pausing always froze the
+picture; the defect was that the loop kept scheduling underneath and
+`cycleIndex` drifted. Only the reward NAME exposes that. A test that cannot fail
+proves nothing, and sabotage-checking every new assertion is cheap next to
+shipping one. That check should be routine, not a flourish.
