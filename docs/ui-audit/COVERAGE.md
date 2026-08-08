@@ -357,3 +357,20 @@ picture; the defect was that the loop kept scheduling underneath and
 `cycleIndex` drifted. Only the reward NAME exposes that. A test that cannot fail
 proves nothing, and sabotage-checking every new assertion is cheap next to
 shipping one. That check should be routine, not a flourish.
+
+### Two tooling blind spots found while closing 05#27
+
+**`deadcode:check` cannot see `components/ui/`.** `knip.json` lists
+`components/ui/**/*.{ts,tsx}` as an ENTRY pattern, so every export there is
+reachable by definition. Six dead exports in `field.tsx` and an entirely unused
+`separator.tsx` sat behind a green dead-code gate. A passing `deadcode:check`
+says nothing about a primitive.
+
+**Editing `.design-sync/` was uncommittable.** It is eslint-ignored on purpose,
+but lint-staged still passed staged files to eslint, which warned "File ignored
+because of a matching ignore pattern" — and `--max-warnings=0` made that a
+failed commit. `--no-warn-ignored` fixes it without weakening anything.
+
+Also re-ran the sabotage check on the one test this campaign added,
+`motion-tokens-bounded`: adding `repeat: Infinity` to a token fails it, removing
+it passes. It is a real test.
