@@ -1198,3 +1198,32 @@ body[data-grain="true"]::after {
       )
       100% 0 / 16px 100% no-repeat scroll;
 }
+
+/* ── Transient "updated" stamp on an admin record (ADM 04#50) ───────────────
+   AdminActionForm sets data-just-updated on the enclosing <details> after a
+   successful audited mutation and clears it after 8s. The mark goes on the
+   SUMMARY, which is the only part still on screen once the accordion collapses
+   the record — so an operator who has moved on and come back can still see
+   which record they changed.
+
+   Rendered with ::after rather than a React node so the collapsed state needs
+   no extra markup and no client re-render.
+
+   No entrance animation. The w-prefixed CSS animation vocabulary was
+   deliberately removed and motion-vocabulary.test.mjs keeps it out — including
+   out of comments, since it greps raw source. A fade is not worth reviving it,
+   so the stamp simply appears. */
+details[data-just-updated="true"] > summary::after {
+  content: "updated";
+  margin-inline-start: 0.5rem;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--reward);
+  padding-inline: 0.375rem;
+  font-family: var(--font-space-mono), ui-monospace, monospace;
+  font-size: 0.625rem;
+  line-height: 1.4;
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+  color: var(--reward);
+}
+

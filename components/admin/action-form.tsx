@@ -57,6 +57,46 @@ export function AdminActionForm({
     if (state.status === "error" && state.message) {
       toast.error(state.message)
     }
+
+    if (state.status !== "success") {
+      return
+    }
+
+    // Bring the record back to the operator, and leave a mark on it (04#50).
+    //
+    // The toast above guarantees the outcome is *perceived*; it does not say
+    // WHICH of a thousand records it belongs to, and by the time it fades the
+    // operator may have opened another record — which closes this one, because
+    // that is what the shared accordion `name` does.
+    //
+    // So: scroll this record's summary back into view, and stamp the summary
+    // itself rather than anything inside the panel. The summary is the only
+    // part that survives the disclosure being collapsed, so the mark is still
+    // there when the operator comes back to it.
+    const details = formRef.current?.closest("details")
+
+    if (!details) {
+      return
+    }
+
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches
+
+    details.querySelector("summary")?.scrollIntoView({
+      block: "nearest",
+      behavior: reduceMotion ? "auto" : "smooth",
+    })
+
+    details.dataset.justUpdated = "true"
+
+    const clear = window.setTimeout(() => {
+      delete details.dataset.justUpdated
+    }, 8000)
+
+    return () => {
+      window.clearTimeout(clear)
+    }
   }, [state])
 
   return (
