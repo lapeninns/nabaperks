@@ -22,6 +22,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 ## A. Customer shell, chrome and navigation
 
 ### 1. Authed shell reserves 128px of bottom padding for a 58px tab bar
+
 - **File(s):** `components/layout/customer-app-shell.tsx:30`; `components/layout/customer-tab-bar.tsx:52-55`
 - **Current UX/UI Problem:** `<main className="… px-4 pt-6 pb-32 sm:px-6">` reserves
   `pb-32` = 128px. The bar it clears is `min-h-14` (56px) + `border-t-2` (2px) +
@@ -37,11 +38,12 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
   `globals.css`, then `pb-[calc(var(--customer-tabbar-h)+env(safe-area-inset-bottom)+0.75rem)]`.
   Apply the identical token in `CustomerCardExperience`'s `className="pb-28"`
   (`components/customer/customer-card-experience.tsx:87`) and
-  `app/pass/[entitlementId]/page.tsx:62`, which currently use a *different*
+  `app/pass/[entitlementId]/page.tsx:62`, which currently use a _different_
   magic number (112px) for the same bar.
 - **Priority:** Medium
 
 ### 2. Sticky header spends ~70px on a logo and a "Log out" button
+
 - **File(s):** `components/layout/customer-app-shell.tsx:16-28`
 - **Current UX/UI Problem:** The sticky header is `py-3` around a `Logo`
   (`min-h-11`) and a default-size `Button` (`h-11`) → ~70px permanently
@@ -61,11 +63,12 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 3. Tab-bar labels use an unsanctioned micro-type size
+
 - **File(s):** `components/layout/customer-tab-bar.tsx:66`
 - **Current UX/UI Problem:** `text-[0.6875rem]` = 11px Bricolage. `DESIGN.md`
   states that below `text-xs` (12px) there are **exactly two** sanctioned sizes,
   both Space Mono: `.mono-meta` (11.5px) and `.mono-id` (10px). This is a third,
-  hand-rolled size in the *spoken* face, in the most-seen component in the app.
+  hand-rolled size in the _spoken_ face, in the most-seen component in the app.
 - **Why It Is a Problem:** Contract drift in the navigation sets the precedent
   every other surface copies; and 11px Bricolage 700 at 5-across is genuinely
   tight on a 320px device (82px → 64px per tab).
@@ -77,9 +80,10 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 4. Tab-bar tap target is 56px tall but the visual affordance is only 36px
+
 - **File(s):** `components/layout/customer-tab-bar.tsx:65-82`
 - **Current UX/UI Problem:** The `<Link>` is `min-h-14` and full column width so
-  the hit area is fine, but the *only* visual state change is the `size-9` (36px)
+  the hit area is fine, but the _only_ visual state change is the `size-9` (36px)
   roundel filling with ink. An inactive tab has `border-transparent` and a
   hover-only `group-hover:border-ink/30` — there is no `active:` press feedback
   and no `data-active` underline/rule. On touch there is no hover, so the tab bar
@@ -96,6 +100,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 5. `CustomerShell` and `CustomerAppShell` are two different columns for one journey
+
 - **File(s):** `components/layout/customer-shell.tsx:13`; `components/layout/customer-app-shell.tsx:30`; `components/customer/customer-flow-system.tsx:48-56`
 - **Current UX/UI Problem:** Three shells wrap the same 410px measure with three
   different rhythms: `CustomerShell` = `px-4 pt-6 pb-[max(1.5rem,safe)] sm:px-6 sm:pt-10 sm:pb-10`;
@@ -114,6 +119,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 6. `sm:` / `md:` breakpoints inside a 410px-capped column are inert or misleading
+
 - **File(s):** `components/layout/customer-shell.tsx:13`; `components/customer/customer-flow-system.tsx:49,55`; `components/loyalty/reward-ticket.tsx:80,83,130`; `components/customer/customer-qr-scanner.tsx:232`; `components/brand/typography.tsx:61,87`
 - **Current UX/UI Problem:** The customer column never exceeds 410px, yet the
   markup is full of viewport queries: `sm:px-6` (fires at 640px viewport where
@@ -122,7 +128,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
   `sm:grid-cols-2` exits, `PageTitle`'s `md:grid-cols-[minmax(0,1fr)_auto] md:pt-8`
   action rail. None of these respond to the thing that actually varies — the
   **column width**, which is 343px at SE and 362px at Pro Max.
-- **Why It Is a Problem:** The reward ticket is physically *smaller* on a 430px
+- **Why It Is a Problem:** The reward ticket is physically _smaller_ on a 430px
   phone (`w-20` stub, `p-3`) than on a desktop browser showing the same 410px
   column (`w-[88px]`, `p-4`). Responsiveness is being applied to the wrong axis,
   so the design cannot be tuned for the phones it actually ships to.
@@ -138,6 +144,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 ## B. Home dashboard (`/home`)
 
 ### 7. No loyalty card is visible on first paint on a 375px phone
+
 - **File(s):** `app/home/(authed)/page.tsx:33-61`
 - **Current UX/UI Problem:** Measured stack above the first `HomeCardTile`, at
   375×667 with one redeemable reward:
@@ -151,7 +158,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
   chrome (title, summary, banner) outrank the object the member opened the app
   to see.
 - **Recommended Redesign:** (a) delete `PageTitle` here — the tab bar already
-  says *Home* and the venue names are the real headings; replace with a single
+  says _Home_ and the venue names are the real headings; replace with a single
   `Eyebrow`-sized line or nothing. (b) Fold `HomeSummaryStrip` into that line.
   (c) Demote `HomeRedeemBanner` to a 56px-tall pinned summary row that expands,
   or delete it because the redeemable card is already sorted first
@@ -161,6 +168,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Critical
 
 ### 8. `HomeRedeemBanner` duplicates the first card tile verbatim
+
 - **File(s):** `components/customer/home-redeem-banner.tsx:13-39`; `components/customer/home-card-tile.tsx:44-89`
 - **Current UX/UI Problem:** The banner prints `MonoTag "Ready for scan"`,
   `MonoTag {businessName}`, the reward name at `text-lg`, a support sentence, and
@@ -178,9 +186,10 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 9. `HomeSummaryStrip` is a low-value 40px band with off-contract styling
+
 - **File(s):** `components/customer/home-summary-strip.tsx:15`
 - **Current UX/UI Problem:** `rounded-[var(--radius)] border-2 border-dashed
-  border-ink/25 bg-card px-4 py-3 mono-meta tracking-[0.08em]` renders
+border-ink/25 bg-card px-4 py-3 mono-meta tracking-[0.08em]` renders
   "2 cards / 1 reward ready / 2 stamps today" — every fact is derivable by
   looking at the tiles below. Three contract breaks in one line: `border-ink/25`
   is a **third dashed tone** (DESIGN.md sanctions exactly `--w-line` 18% and
@@ -198,12 +207,13 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 10. `HomeCardTile` is ~330px tall and stacks up to six sub-blocks per venue
+
 - **File(s):** `components/customer/home-card-tile.tsx:59-158`
 - **Current UX/UI Problem:** One tile can render, vertically:
   ReceiptCard 24px padding → venue header (eyebrow + `text-lg` h2 + locality +
   48px `VenueMark`) ≈ 61 → `gap-4` → tag row ≈ 26 → `gap-4` → stamp grid box
   (`rounded-lg bg-accent p-3`, 2 rows of ~40px compact discs + reward-chip label)
-  ≈ 124 → `gap-4` → reward chip *or* status line ≈ 24-100 → `gap-4` →
+  ≈ 124 → `gap-4` → reward chip _or_ status line ≈ 24-100 → `gap-4` →
   `ReferralBonusBankMini` ≈ 90 → `gap-4` → `TileGiftChip` ≈ 100 → close 24; then
   **outside** the card: `TilePassChip` (~130 each), `ReferralShareButton` (44),
   `GoogleReviewButton` (44). A fully-loaded tile exceeds **600px**. Three venues
@@ -221,6 +231,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Critical
 
 ### 11. Tile accessible name contradicts its destination when a reward is ready
+
 - **File(s):** `components/customer/home-card-tile.tsx:41-43,61-64`
 - **Current UX/UI Problem:** `href` becomes `/reward/{stampRewardId}` when a
   reward is redeemable, but `aria-label` is hard-coded
@@ -234,6 +245,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 12. The unavailable-card branch renders an empty 26px dashed box
+
 - **File(s):** `components/customer/home-card-tile.tsx:102-104`
 - **Current UX/UI Problem:** When `stampsRequired === null || !card.available`
   the tile renders `<div className="rounded-lg border-2 border-dashed border-ink/20 bg-card p-3" />`
@@ -250,6 +262,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 13. Gift, pass and bonus-bank chips are three visually identical blocks
+
 - **File(s):** `components/customer/home-card-tile.tsx:106-119,168-191,231-247`; `components/customer/referral-bonus-bank-panels.tsx:51-69`; `components/customer/customer-card-experience.tsx:364-397,464-490`
 - **Current UX/UI Problem:** Five separate components all render
   `grid gap-1.5 rounded-lg border-2 border-ink bg-seal/15 p-3` with a 14-16px
@@ -270,6 +283,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 14. `HomeEmptyState` is ~500px of nested cards with conflicting max-widths
+
 - **File(s):** `components/customer/home-empty-state.tsx:22-55`; `components/brand/typography.tsx:196-213`; `components/ui/empty.tsx:5-15,84-94`
 - **Current UX/UI Problem:** `EmptyState` renders `Empty` with `p-12` (48px each
   side). Inside `EmptyContent` (which is `max-w-sm`, 384px) sits a
@@ -290,8 +304,9 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 15. `HomeActivitySnippet` repeats the Activity tab at full row weight
+
 - **File(s):** `components/customer/home-activity-snippet.tsx:27-56`; `app/home/(authed)/activity/page.tsx:52-72`
-- **Current UX/UI Problem:** The snippet renders the *identical* row markup as
+- **Current UX/UI Problem:** The snippet renders the _identical_ row markup as
   the Activity page (`surface-card grid gap-2 p-4` + tag row + title + 2-line
   description) — ~110px per row, plus a `SectionHeader` (eyebrow + `text-lg` h2)
   ≈ 50 and a "See all activity" link. Three items ≈ **420px** appended to the
@@ -306,6 +321,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 16. Home page rhythm does not match its own loading skeleton
+
 - **File(s):** `app/home/(authed)/page.tsx:34,48`; `components/customer/loading-skeletons.tsx:260-280`
 - **Current UX/UI Problem:** The page is `grid gap-6` with an inner `grid gap-4`;
   `CustomerHomeSkeleton` is `grid gap-5` with an inner `grid gap-3.5`. The
@@ -324,6 +340,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 17. `HomeBirthdayPrompt` is a full card for an optional, dismissible nudge
+
 - **File(s):** `components/customer/home-birthday-prompt.tsx:62-81`
 - **Current UX/UI Problem:** A `ReceiptCard` (24px padding, hard shadow, ink
   border) with a `MonoTag`, an `h2`, a 2-line paragraph and two `size="sm"`
@@ -344,6 +361,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 ## C. Card and stamp experience (`/card/[membershipId]`, `/card/[membershipId]/stamp`)
 
 ### 18. The stamp button — the product's primary verb — is the last element on the screen
+
 - **File(s):** `components/customer/stamp-collector.tsx:235-282`; `components/customer/customer-flow-system.tsx:298-333`
 - **Current UX/UI Problem:** `CustomerStampCard` renders in strict DOM order:
   `StampGrid` → `afterGrid` (the 112px `StampStatusBand`) → `RewardTicket` →
@@ -367,9 +385,10 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Critical
 
 ### 19. The stamp status band reserves a fixed 112px scroll container
+
 - **File(s):** `components/customer/stamp-collector.tsx:63-91`
 - **Current UX/UI Problem:** `grid h-28 grid-rows-[1.5rem_1fr] content-start
-  gap-1 overflow-y-auto rounded-lg border-2 px-4 py-3` — a hard 112px box with
+gap-1 overflow-y-auto rounded-lg border-2 px-4 py-3` — a hard 112px box with
   its own scrollbar, present in every phase including idle, where it contains
   only "Ready for today's stamp." / "Tap the stamp, or press and hold, to print
   today's mark." (about 60px of real content). The 52px of slack exists so the
@@ -388,6 +407,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 20. Card screen appends five optional rails below the card, unbounded
+
 - **File(s):** `components/customer/customer-card-experience.tsx:327-354`
 - **Current UX/UI Problem:** After the receipt the panel stacks, each in
   `grid gap-4`: `CardGiftChip` (~110), one `CardOfferPassChip` per pass (~130
@@ -410,6 +430,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Critical
 
 ### 21. The card screen prints one headline three times
+
 - **File(s):** `components/customer/customer-card-experience.tsx:83-89`; `lib/customer/experience/copy.ts:213-224`; `components/customer/customer-flow-system.tsx:299-306`
 - **Current UX/UI Problem:** For `card_collecting`, `vm.eyebrow = merchantName`
   and `vm.headline = cardName`, so the flow shell prints a `MonoTag` with the
@@ -425,11 +446,12 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
   fact.
 - **Recommended Redesign:** On the card route drop `vm.headline` to
   `text-[1.35rem]` (or reuse `dense`), and make the welcome `StatusBanner` say
-  the *new* thing only ("Your first stamp is on the card") without repeating the
+  the _new_ thing only ("Your first stamp is on the card") without repeating the
   venue. Saving ≈ 60px and one duplicated sentence.
 - **Priority:** High
 
 ### 22. `CustomerFlowShell` headline uses arbitrary type sizes outside the scale
+
 - **File(s):** `components/customer/customer-flow-system.tsx:97,104`
 - **Current UX/UI Problem:** `dense ? "text-[1.65rem]" : "text-[2.1rem]"` (26.4px
   / 33.6px) and the description at `text-[0.96rem]` (15.36px). `DESIGN.md`
@@ -446,6 +468,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 23. `CardDetailsDisclosure` hides a summary row that could carry real state
+
 - **File(s):** `components/customer/customer-card-experience.tsx:512-531`
 - **Current UX/UI Problem:** A `<details>` whose entire payload is one `dl` row:
   `CARD Nº XXXXXXXX` and `One stamp per UK business day` at `mono-id` (10px). The
@@ -463,6 +486,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 24. Stamp press disc has no disabled/secured visual and no error affordance in place
+
 - **File(s):** `components/customer/stamp-press-button.tsx:258-314,27-70`
 - **Current UX/UI Problem:** When `inactive` (`disabled || secured`) the button
   keeps `aria-disabled` and swaps `cursor-pointer` → `cursor-default`, but
@@ -482,6 +506,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 25. Hold-to-stamp gesture is discoverable only to screen readers
+
 - **File(s):** `components/customer/stamp-press-button.tsx:309-313`
 - **Current UX/UI Problem:** "Tap, or press and hold, to add today's stamp" lives
   in an `sr-only` span. The 600ms hold with a charging ring is a signature
@@ -497,9 +522,10 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 26. Location notice is a permanent grey block below the primary control
+
 - **File(s):** `components/customer/stamp-collector.tsx:274-280`
 - **Current UX/UI Problem:** `rounded-lg bg-secondary px-3 py-2 text-center
-  text-xs leading-5 text-muted-foreground` renders two lines of geofence
+text-xs leading-5 text-muted-foreground` renders two lines of geofence
   explanation (~56px) directly under the stamp disc, on every qualifying visit,
   before the member has done anything. It uses `rounded-lg` + `bg-secondary` with
   no border — a fourth surface treatment that matches nothing else in the system
@@ -518,6 +544,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 ## D. Loyalty primitives
 
 ### 27. Stamp grid produces ragged, unbalanced rows at 6/8/10 stamps
+
 - **File(s):** `components/loyalty/stamp-grid.tsx:200-228`
 - **Current UX/UI Problem:** The default row layout is
   `repeat(auto-fit, minmax(min(2.75rem,100%), 1fr))` with `gap-2`. Computed
@@ -527,9 +554,9 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
   - 8 + reward = 9 slots → **5 + 4**.
   - 10 + reward = 11 slots → **5 + 5 + 1** — a single lonely reward chip
     occupying a whole third row (~68px including its `mono-id` label).
-  At 430px (362px inner) it becomes 6 columns → 6+1 / 6+3 / 6+5, i.e. the
-  layout reflows completely between two common phones.
-- **Why It Is a Problem:** A loyalty card is a *designed object*; a 5+1 or 5+2
+    At 430px (362px inner) it becomes 6 columns → 6+1 / 6+3 / 6+5, i.e. the
+    layout reflows completely between two common phones.
+- **Why It Is a Problem:** A loyalty card is a _designed object_; a 5+1 or 5+2
   ragged row reads as a bug, not a card. The reward chip stranded alone on row 3
   disconnects it from the row it terminates. And because the column count is
   viewport-derived, the same card looks materially different on an SE and a Pro
@@ -545,6 +572,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 28. Stamp discs scale by count, so a 3-stamp card has 68px discs and a 10-stamp card 52px
+
 - **File(s):** `components/loyalty/stamp-grid.tsx:211`; `components/loyalty/stamp-dot.tsx:59-66`
 - **Current UX/UI Problem:** Because the tracks are `1fr`, the disc size is a
   function of how many fit per row: 4 slots → (295−24)/4 = **67.8px**; 5 slots →
@@ -555,7 +583,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
   compact tile shows a bare day number with no month.
 - **Why It Is a Problem:** The card's most important object has no consistent
   size across venues, and its printed date is legible at 68px, tight at 52px and
-  meaningless at 40px. A bare "12" reads as a stamp *number*, not a date, next to
+  meaningless at 40px. A bare "12" reads as a stamp _number_, not a date, next to
   empty slots that literally show numbers (`showEmptySlotNumbers`).
 - **Recommended Redesign:** Pin the disc to two sizes only — 56px on the card
   page and 40px in tiles — via a fixed track (`repeat(var(--cols), 3.5rem)`)
@@ -566,10 +594,11 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 29. `RewardChip` is a square in a row of circles, breaking the stamp family rule
+
 - **File(s):** `components/loyalty/stamp-grid.tsx:56-82`
 - **Current UX/UI Problem:** The reward slot renders
   `aspect-square … rounded-md border-2 -rotate-6` with a `RewardSeal size="sm"`
-  (a 20px circle, `size-5`) centred inside it — a rounded *square* containing a
+  (a 20px circle, `size-5`) centred inside it — a rounded _square_ containing a
   tiny circle, sitting in a row of 52px circles, plus a `mono-id` caption below
   it that the stamp dots do not have. The `size-5` seal inside a ~52px square
   means the meaningful mark occupies 15% of the slot's area.
@@ -586,6 +615,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 30. Reward ticket stub steals 27% of the measure and its terms get 213px
+
 - **File(s):** `components/loyalty/reward-ticket.tsx:128-144,78-101`
 - **Current UX/UI Problem:** The stub is `w-20` (80px, `sm:w-[88px]`) plus a 2px
   perforation, leaving the face **213px** at 375px (295 − 82) for
@@ -605,6 +635,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 31. `RewardTicket` and `StampGrid`'s reward chip show the same seal twice on one screen
+
 - **File(s):** `components/customer/customer-flow-system.tsx:307-330`; `components/loyalty/stamp-grid.tsx:56-82`
 - **Current UX/UI Problem:** `CustomerStampCard` passes `rewardSlot` to
   `StampGrid` (rendering a sealed `RewardSeal size="sm"` at the end of the row)
@@ -623,6 +654,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 32. `StatusBanner` is used for instructions, confirmations, warnings and errors alike
+
 - **File(s):** `components/loyalty/status-banner.tsx:7-14`; `customer-card-experience.tsx:308-319,430-453`; `reward-panels.tsx:43-45,73,113-115`; `profile-gate-forms.tsx:50-58,78-80,146-149`
 - **Current UX/UI Problem:** One component in five tones carries: an instruction
   ("Scan the venue code to add your stamp", neutral), a confirmation ("Stamp
@@ -645,13 +677,14 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 33. `QrFrame` double-pads the QR and offers no counter-mode presentation
+
 - **File(s):** `components/loyalty/qr-frame.tsx:15-24`; `components/customer/reward-collection-qr.tsx:89-112`; `components/customer/offer-pass-qr.tsx:78-101`
 - **Current UX/UI Problem:** `QrFrame` is `border-2 p-4` wrapping an inner
   `rounded-md bg-white p-2` — 12px of doubled white padding on top of the QR
   image's own quiet zone. Inside a `CustomerReceipt` at 375px the chain is
   343 (column) − 48 (receipt) − 32 (`p-4`) − 16 (`p-2`) = **247px of actual QR**.
   There is no brightness boost, no full-screen/"show at counter" mode, and the QR
-  sits *below* the reward ticket and a `StatusBanner` (`reward-panels.tsx:64-78`),
+  sits _below_ the reward ticket and a `StatusBanner` (`reward-panels.tsx:64-78`),
   so it is typically ~500px down the page.
 - **Why It Is a Problem:** This is the transaction. A 247px code, at whatever
   screen brightness the member happens to have, requiring a scroll, in a pub with
@@ -667,6 +700,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Critical
 
 ### 34. `RewardCelebration` uses the sheet radius and an unbounded confetti layer
+
 - **File(s):** `components/loyalty/reward-celebration.tsx:38,10-16`
 - **Current UX/UI Problem:** `rounded-2xl` = `calc(var(--radius) + 8px)` = 18px,
   which is `--radius-sheet` — the radius `DESIGN.md` reserves for bottom sheets
@@ -683,9 +717,10 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Low
 
 ### 35. `ProgressTrack` and `RewardTeaser` are dead/duplicate progress vocabulary
+
 - **File(s):** `components/loyalty/progress-track.tsx:5-31`; `components/loyalty/reward-teaser.tsx:13-34`
 - **Current UX/UI Problem:** `ProgressTrack` renders an `eyebrow` + a leaf
-  `MonoTag` "3 / 8" + a `Progress` bar — a *second* progress readout for a system
+  `MonoTag` "3 / 8" + a `Progress` bar — a _second_ progress readout for a system
   whose entire design is that the stamp grid is the progress readout (the comment
   at `customer-flow-system.tsx:290-292` says exactly this). `RewardTeaser` is a
   documented `@deprecated` shim around `RewardTicket`. Neither is referenced from
@@ -705,6 +740,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 ## E. Rewards, passes and the collection moment
 
 ### 36. `/home/rewards` stacks four permanently-expanded sections with full headers
+
 - **File(s):** `app/home/(authed)/rewards/page.tsx:20-110`
 - **Current UX/UI Problem:** Up to four `<section>`s (`Ready for scan`,
   `Coming soon`, `History · Redeemed`, `History · Expired`) at `grid gap-8`
@@ -728,6 +764,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 37. `RedeemableReward` repeats the venue name three times in one card
+
 - **File(s):** `components/customer/reward-list-cards.tsx:28-56`; `lib/customer/issued-reward-display.ts`
 - **Current UX/UI Problem:** The header row renders `MonoTag {businessName}`,
   then `MonoTag {rewardSourceBadge(source, businessName)}` (which itself embeds
@@ -744,10 +781,11 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 38. Reward-ready screen shows the QR behind a scroll, under two other blocks
+
 - **File(s):** `components/customer/reward-panels.tsx:53-87`
 - **Current UX/UI Problem:** `RewardReadyPanel` renders inside a
   `CustomerReceipt`: `RewardTicket` (~150) → `StatusBanner "Ready for merchant
-  scan."` (a title-only banner, ~54px, saying what the ticket's `KICKER` already
+scan."` (a title-only banner, ~54px, saying what the ticket's `KICKER` already
   says — `reward-ticket.tsx:15` prints "Your reward · ready") →
   `RewardCollectionLive` → `RewardCollectionQr` (247px QR + `p-4` frame + a
   `rounded-xl bg-secondary` caption ~40). Plus the flow shell's headline
@@ -764,10 +802,11 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Critical
 
 ### 39. Two near-identical QR components drifted apart
+
 - **File(s):** `components/customer/reward-collection-qr.tsx:57-118`; `components/customer/offer-pass-qr.tsx:66-121`
 - **Current UX/UI Problem:** The pass QR (docblock: "Mirrors
   `reward-collection-qr.tsx`") returns the error state **early**, replacing the
-  whole component; the reward QR renders the error state *inline* and keeps its
+  whole component; the reward QR renders the error state _inline_ and keeps its
   caption. The pass QR has a persistent `Button size="lg" variant="secondary"`
   "Show a fresh code"; the reward QR has that button **only in the error state** —
   so a member whose reward code was just scanned/expired mid-queue has no way to
@@ -784,6 +823,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 40. QR caption blocks use `rounded-xl` — a radius that exists nowhere in the contract
+
 - **File(s):** `components/customer/reward-collection-qr.tsx:114`; `components/customer/offer-pass-qr.tsx:102`; `components/customer/customer-login-form.tsx:96`; `components/customer/push-notification-settings.tsx:238`; `components/customer/push-notification-settings-disclosure.tsx:49`
 - **Current UX/UI Problem:** Five customer surfaces use `rounded-xl`
   (`calc(--radius + 4px)` = 14px). `DESIGN.md` sanctions exactly two radii —
@@ -801,6 +841,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 41. `/pass/[entitlementId]` prints the discount and venue three times before the code
+
 - **File(s):** `app/pass/[entitlementId]/page.tsx:56-82`; `components/loyalty/offer-pass.tsx:143-165`
 - **Current UX/UI Problem:** The flow shell's `title` is
   `` `${pass.discountPercent}% off at ${pass.venueName}` `` at `text-[2.1rem]`
@@ -820,6 +861,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 42. `OfferPass` terms list is the only bulleted list in the customer journey
+
 - **File(s):** `components/loyalty/offer-pass.tsx:171-182`
 - **Current UX/UI Problem:** `<ul className="grid list-disc gap-1.5 pl-4 text-xs leading-5 text-muted-foreground">`
   — browser disc bullets at 12px. Nothing else in the member journey uses
@@ -840,13 +882,14 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 ## F. Activity and Profile
 
 ### 43. `/home/activity` renders 40 unbounded ~110px rows with no grouping or paging
+
 - **File(s):** `app/home/(authed)/activity/page.tsx:42-72`; `lib/customer/activity.ts:26`
 - **Current UX/UI Problem:** `getCustomerActivity()` defaults to
   `DEFAULT_LIMIT = 40`. Each `ActivityRow` is
   `surface-card grid gap-2 p-4` → 32 padding + tag row 26 + `gap-2` 8 + title 20
-  + 8 + 2-line description 48 ≈ **142px**, plus `gap-3` between. 40 rows ≈
-  **5,800px** of scrolling with no date separators, no filters, no venue grouping
-  and no pagination. Timestamps are `.mono-id` (10px).
+  - 8 + 2-line description 48 ≈ **142px**, plus `gap-3` between. 40 rows ≈
+    **5,800px** of scrolling with no date separators, no filters, no venue grouping
+    and no pagination. Timestamps are `.mono-id` (10px).
 - **Why It Is a Problem:** A five-screen wall of visually identical cards with no
   landmarks. Finding "when did I last visit the Old Crown" requires reading every
   row. 10px relative timestamps are the smallest type in the app on the one
@@ -862,6 +905,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 44. Activity rows are duplicated between the snippet and the page
+
 - **File(s):** `components/customer/home-activity-snippet.tsx:30-48`; `app/home/(authed)/activity/page.tsx:52-72`
 - **Current UX/UI Problem:** The `<li>` markup, the `toneByCategory` map (both
   files declare it independently, lines 10-17 in each) and the `formatRelativeTime`
@@ -874,14 +918,15 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 45. Profile is three near-identical `surface-card p-5` sections, ~150px of which is heading chrome
+
 - **File(s):** `app/home/(authed)/profile/page.tsx:28-61`; `profile-about-you.tsx:83-84`; `profile-marketing-consent.tsx:64-65`; `push-notification-settings-disclosure.tsx:21-33`
 - **Current UX/UI Problem:** Three consecutive `section.surface-card.p-5` blocks,
   each opening with a `SectionHeader` (eyebrow + `text-lg` h2 ≈ 50px) —
   "About you / Your contact details", "Marketing / Updates from your venues",
   "Push / Browser notifications". Total page ≈ 107 (`PageTitle`) + 334 + 340 + 90
-  + gaps 96 + `pt-6` 24 + `pb-32` 128 ≈ **1,120px** for what is functionally a
-  settings list with 4 read-only values and 6 toggles. Only the push section is a
-  disclosure; the other two are always expanded.
+  - gaps 96 + `pt-6` 24 + `pb-32` 128 ≈ **1,120px** for what is functionally a
+    settings list with 4 read-only values and 6 toggles. Only the push section is a
+    disclosure; the other two are always expanded.
 - **Why It Is a Problem:** Repetitive section cards with duplicated heading
   patterns, ~150px of pure chrome, and inconsistent progressive disclosure (one
   of three collapses, for no user-visible reason).
@@ -894,9 +939,10 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 46. Consent and push toggles are bare native checkboxes at `size-5`
+
 - **File(s):** `components/customer/profile-marketing-consent.tsx:143-155`; `components/customer/push-notification-settings.tsx:292-302`; `components/customer/join-forms.tsx:170-214`
 - **Current UX/UI Problem:** `<input type="checkbox" className="size-5 shrink-0
-  accent-primary">` inside a `-m-3 … min-h-11 min-w-11 p-3` label. The hit area
+accent-primary">` inside a `-m-3 … min-h-11 min-w-11 p-3` label. The hit area
   is correct, but the control is the **browser default** checkbox tinted with
   `accent-primary` — no 2px ink border, no hard offset shadow, no press collapse,
   no dashed empty state. Every other control in the system is fully inked. The
@@ -915,6 +961,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 47. Marketing toggles auto-submit with no visible pending state on the control
+
 - **File(s):** `components/customer/profile-marketing-consent.tsx:121-155`
 - **Current UX/UI Problem:** `onChange` calls `form.requestSubmit()` and the
   checkbox is `disabled={pending}` with `disabled:opacity-60`. The confirmation
@@ -931,6 +978,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 48. Push settings' skeleton bears no relation to its content
+
 - **File(s):** `components/customer/push-notification-settings-disclosure.tsx:46-58`
 - **Current UX/UI Problem:** `PushSettingsFallback` renders `h-16` status box,
   `h-9 w-32` button and three `h-10 rounded-lg bg-muted` bars. The real content
@@ -946,6 +994,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Low
 
 ### 49. Profile disclosure trigger uses `IconRoundel` as a +/− toggle with no state semantics
+
 - **File(s):** `components/customer/push-notification-settings-disclosure.tsx:25-33`
 - **Current UX/UI Problem:** The `<summary>` has `list-none` and a hand-rolled
   `IconRoundel size="sm" className="bg-transparent font-mono text-sm font-black"`
@@ -969,6 +1018,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 ## G. Join wizard and login
 
 ### 50. The join wizard's step 3 is the tallest form in the app and buries its CTA
+
 - **File(s):** `components/customer/join-wizard.tsx:143-173,219-264`; `components/customer/join-forms.tsx:160-244`
 - **Current UX/UI Problem:** `TermsStep` (dense shell) stacks: header 36 +
   `gap-4` + headline `text-[1.65rem]` ~35 + description 2 lines 48 + `gap-4` +
@@ -991,6 +1041,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Critical
 
 ### 51. The 3-step progress bar lies on the no-QR path
+
 - **File(s):** `components/customer/join-wizard.tsx:396-415`; `components/customer/customer-flow-system.tsx:117-143`
 - **Current UX/UI Problem:** `joinProgress` maps `join_phone` to step
   `hasQr ? 2 : 1`, `join_otp` to **2**, `join_terms` to **3**, always out of
@@ -1010,13 +1061,14 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 52. The consent fieldset's checkbox rows have unequal hit areas and no error affordance on the row
+
 - **File(s):** `components/customer/join-forms.tsx:168-222`
 - **Current UX/UI Problem:** `<label className="flex items-start gap-3">` with a
   `size-5 mt-0.5` checkbox. The label is the hit target, but it wraps
   `CustomerLegalConsentLinks`, which contains three `<button>` sheet triggers
   ("venue terms", "Nabaperks customer terms", "privacy notice") that call
   `stopPropagation` (`legal-sheet.tsx:107-109`). So roughly 40% of the loyalty
-  consent row's surface is *not* a toggle. On error, `loyaltyTermsError` renders
+  consent row's surface is _not_ a toggle. On error, `loyaltyTermsError` renders
   a `<p>` **outside** the fieldset (line 216-222) and the checkbox gets
   `aria-invalid` but **no visual change** — `accent-primary` on a native checkbox
   cannot express invalid.
@@ -1032,6 +1084,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Critical
 
 ### 53. The OTP field is a single free-text input, not a code field
+
 - **File(s):** `components/customer/join-otp-form.tsx:84-101`; `components/customer/customer-login-form.tsx:117-127`; `components/customer/profile-gate-forms.tsx:157-171`
 - **Current UX/UI Problem:** Three separate places render
   `<input inputMode="numeric" autoComplete="one-time-code" className={`${customerInputClass} font-mono`}>`
@@ -1051,6 +1104,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 54. Login page's two forms stack into one long column with two competing submits
+
 - **File(s):** `components/customer/customer-login-form.tsx:44-144`
 - **Current UX/UI Problem:** After a code is requested, the page shows: phone
   field + hint + a `role="status"` message box + a `Button` reading
@@ -1059,7 +1113,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
   member's next action ("enter the code") is below a button that would restart
   the flow.
 - **Why It Is a Problem:** Two primary vermillion buttons on one screen, with the
-  *destructive-to-progress* one first in reading order. On a phone with the
+  _destructive-to-progress_ one first in reading order. On a phone with the
   keyboard up (~300px of viewport), "Resend code" is often the only visible
   button.
 - **Recommended Redesign:** Once `otpSent`, collapse the phone form to a
@@ -1070,6 +1124,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 55. Login and join phone steps set different expectations for the same SMS
+
 - **File(s):** `components/customer/customer-login-form.tsx:83`; `components/customer/join-forms.tsx:84`; `lib/customer/experience/copy.ts:54-63`
 - **Current UX/UI Problem:** Login shows `JOIN_PHONE_CODE_HINT` = "We'll send a
   one-time code by text." Join shows `JOIN_PHONE_RETENTION_HINT` = "Use a UK
@@ -1084,32 +1139,34 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 56. Welcome step's numbered step markers are a fourth circle dialect
+
 - **File(s):** `components/customer/join-welcome-step.tsx:119-128`
 - **Current UX/UI Problem:** `<span className="mt-0.5 grid size-5 shrink-0
-  -rotate-6 place-items-center rounded-full border-2 border-ink bg-primary
-  text-[0.7rem] leading-none font-extrabold text-primary-foreground">` — a 20px
+-rotate-6 place-items-center rounded-full border-2 border-ink bg-primary
+text-[0.7rem] leading-none font-extrabold text-primary-foreground">` — a 20px
   rotated vermillion disc with 11.2px text. `DESIGN.md` explicitly names
   `IconRoundel` as the sanctioned framing circle ("new framing circles reach for
   `IconRoundel` rather than hand-rolling `rounded-full`"), and `IconRoundel
-  size="sm"` is 32px, **unrotated**. `HomeEmptyState` uses `IconRoundel` for the
+size="sm"` is 32px, **unrotated**. `HomeEmptyState` uses `IconRoundel` for the
   identical pattern (`home-empty-state.tsx:35-41`).
 - **Why It Is a Problem:** Two how-it-works lists in one journey render their
   step numbers at 20px-rotated and 32px-static respectively; `text-[0.7rem]` is a
-  fifth unsanctioned micro size; and rotation is reserved for the *reward/stamp*
+  fifth unsanctioned micro size; and rotation is reserved for the _reward/stamp_
   family, so a step number wearing a stamp tilt implies it is earnable.
 - **Recommended Redesign:** Use `IconRoundel size="sm" tone="primary"` with
   `font-mono text-xs font-extrabold`, exactly as `HomeEmptyState` does.
 - **Priority:** Medium
 
 ### 57. `UnlockingReminder` truncates the venue · card compound to two clamped lines
+
 - **File(s):** `components/customer/join-wizard.tsx:198-217`
 - **Current UX/UI Problem:** `<span className="line-clamp-2 text-sm leading-tight
-  font-extrabold break-words">{merchant.name} · {card.name}</span>` inside a
+font-extrabold break-words">{merchant.name} · {card.name}</span>` inside a
   `flex` row whose fixed siblings are a 40px `VenueMark` and a 20px `RewardSeal`,
   plus `gap-3` ×2 → the text column is 271 − 40 − 20 − 24 = **187px**. At
   `text-sm` that is ~26 characters per line; "The Old Crown Girton · Coffee
   Loyalty Card" clamps mid-phrase.
-- **Why It Is a Problem:** The member's motivation strip — the *why* at the
+- **Why It Is a Problem:** The member's motivation strip — the _why_ at the
   highest-friction step — becomes "The Old Crown Girton · Coffee Loyalt…".
 - **Recommended Redesign:** Split onto two rows: venue name as `Eyebrow`
   (truncating), card name as the `text-sm font-extrabold` line. Or drop the
@@ -1122,9 +1179,10 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 ## H. Scan (`/scan`)
 
 ### 58. No torch, no manual entry, no aiming reticle — the pub-lighting case is unhandled
+
 - **File(s):** `components/customer/customer-qr-scanner.tsx:28-33,201-230`
 - **Current UX/UI Problem:** `SCAN_CONFIG` is `{ fps: 10, qrbox: {width:250,
-  height:250}, aspectRatio: 1, disableFlip: false }`. There is no torch toggle
+height:250}, aspectRatio: 1, disableFlip: false }`. There is no torch toggle
   (html5-qrcode exposes `getRunningTrackCapabilities().torch`), no zoom, no
   "enter the code manually" fallback, and the viewfinder is a plain
   `aspect-square … border-2 border-dashed border-border` box with **no corner
@@ -1145,6 +1203,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Critical
 
 ### 59. `qrbox` is a fixed 250px inside a viewfinder that is 247-314px wide
+
 - **File(s):** `components/customer/customer-qr-scanner.tsx:31`
 - **Current UX/UI Problem:** The viewfinder's width is the receipt inner
   measure: **247px at 320px viewport**, 295px at 375, 314px at 430. The scan box
@@ -1156,15 +1215,16 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
   not agree.
 - **Recommended Redesign:** Pass a function
   `qrbox: (w, h) => { const s = Math.floor(Math.min(w, h) * 0.75); return { width: s, height: s } }`
-  and draw the reticle at the same 75% so the visible frame *is* the decode
+  and draw the reticle at the same 75% so the visible frame _is_ the decode
   region.
 - **Priority:** High
 
 ### 60. The scanner's primary exit sends authed members out of the app
+
 - **File(s):** `components/customer/customer-qr-scanner.tsx:232-239`; `app/scan/page.tsx:20-26`
 - **Current UX/UI Problem:** The exits are `grid gap-3 sm:grid-cols-2` with
   `<Link href="/start">Back to start</Link>` and `<Link href="/home">Open my
-  cards</Link>`. When a session exists, `ScanPage` wraps the scanner in
+cards</Link>`. When a session exists, `ScanPage` wraps the scanner in
   `CustomerAppShell` (with the tab bar), so a signed-in member gets **two**
   navigation systems plus a link to the marketing switchboard `/start` they have
   no reason to visit. The `sm:grid-cols-2` never fires on a phone, so both are
@@ -1179,6 +1239,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 61. The invalid-QR state is a silent text swap that keeps scanning
+
 - **File(s):** `components/customer/customer-qr-scanner.tsx:107-113,159-168`
 - **Current UX/UI Problem:** A non-Nabaperks QR sets `status: "invalid"` and
   changes the `aria-live` line to a 3-line sentence; `hasDecodedRef` stays false
@@ -1195,6 +1256,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 62. Loader and loaded scanner duplicate ~40 lines of chrome that can drift
+
 - **File(s):** `components/customer/customer-qr-scanner-loader.tsx:20-65`; `components/customer/customer-qr-scanner.tsx:180-241`
 - **Current UX/UI Problem:** The two files repeat the `IconRoundel` + `Eyebrow` +
   `h1` + description block and the two exit buttons verbatim — and have **already
@@ -1215,6 +1277,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 ## I. Offer claim (`/offer/[token]`)
 
 ### 63. `OfferShell` is a fourth customer column with its own padding and no tab bar
+
 - **File(s):** `app/offer/[token]/page.tsx:227-253`
 - **Current UX/UI Problem:** `<main className="min-h-svh bg-background px-4 py-10">`
   with `mx-auto grid w-full max-w-customer gap-6` — `py-10` (40px) where every
@@ -1222,7 +1285,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
   `gap-5`, `min-h-svh` where the flow shell uses `min-h-[100dvh]`, a bare `Logo`
   instead of the ✱ + wordmark header lockup used by `CustomerFlowShell`, and no
   safe-area bottom padding at all.
-- **Why It Is a Problem:** The poster-scan landing is many members' *first ever*
+- **Why It Is a Problem:** The poster-scan landing is many members' _first ever_
   Nabaperks screen and it does not look like the rest of the product; the missing
   `env(safe-area-inset-bottom)` means the claim button can sit under the iOS home
   indicator.
@@ -1232,6 +1295,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 64. Offer landing states the same benefit up to four times before the CTA
+
 - **File(s):** `components/customer/offer-claim-landing.tsx:89-149,223-251`
 - **Current UX/UI Problem:** For a "2 stamps + 20% off" campaign the member
   reads, in order: venue `MonoTag`; `Eyebrow` campaign name; `h1`
@@ -1254,11 +1318,12 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Critical
 
 ### 65. Offer recovery states are a bare paragraph and an underlined text link
+
 - **File(s):** `app/offer/[token]/page.tsx:124-132,146-160`
 - **Current UX/UI Problem:** The rate-limited state renders only a `text-sm`
   paragraph inside `OfferShell` — no icon, no `StatusBanner`, and **no action at
   all**. The expired/paused/not-started states add `<p className="text-sm"><Link
-  className="underline">Go to Nabaperks</Link></p>` — a plain inline link where
+className="underline">Go to Nabaperks</Link></p>` — a plain inline link where
   every comparable dead-end in the journey uses `UnavailableRecoveryActions`
   (two `size="lg"` buttons, `components/customer/unavailable-recovery.tsx`).
 - **Why It Is a Problem:** A member who scanned a poster and hit an expired
@@ -1271,9 +1336,10 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 66. `CardProgress` on the offer landing hard-codes a 5-column stamp grid
+
 - **File(s):** `components/customer/offer-claim-landing.tsx:179-187`
 - **Current UX/UI Problem:** `<StampGrid layout="wrap" wrapColumns={5} compact
-  rewardSlot="locked" …>` regardless of `stampsRequired`. For a 6-stamp card
+rewardSlot="locked" …>` regardless of `stampsRequired`. For a 6-stamp card
   (6 + reward = 7 slots) that is 5 + 2 — a row with three empty columns; for a
   10-stamp card, 5 + 5 + 1 — a stranded reward chip. The offer landing renders
   inside `ReceiptCard` at `padding="md"` with no additional padding, so at 375px
@@ -1291,6 +1357,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 ## J. Loading, error and PWA states
 
 ### 67. One home skeleton stands in for four structurally different tabs
+
 - **File(s):** `app/home/(authed)/loading.tsx:1-8`; `components/customer/loading-skeletons.tsx:260-280`
 - **Current UX/UI Problem:** The file's own comment says it "covers the
   dashboard, activity, rewards, and profile tabs". `CustomerHomeSkeleton` renders
@@ -1309,6 +1376,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 68. Error boundaries centre content in a 60dvh box and lose the page's identity
+
 - **File(s):** `app/home/(authed)/error.tsx:13-21`; `app/card/[membershipId]/error.tsx:14-21`; `app/scan/error.tsx`; `app/home/login/error.tsx`
 - **Current UX/UI Problem:** `grid min-h-[60dvh] content-center py-8` (home) and
   `CustomerShell className="grid content-center"` (card/scan/login) both centre a
@@ -1328,6 +1396,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 69. PWA install prompt overlaps the primary action area on customer routes
+
 - **File(s):** `components/pwa/app-pwa.tsx:277-323,79-89`
 - **Current UX/UI Problem:** The prompt is `fixed right-3 left-3 z-50` at
   `bottom-[calc(env(safe-area-inset-bottom)+4.5rem)]` on tab-bar routes — a
@@ -1347,9 +1416,10 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 70. Install prompt's iOS step chips use 1px borders and a non-token radius
+
 - **File(s):** `components/pwa/app-pwa.tsx:304-311`
 - **Current UX/UI Problem:** `rounded-md border border-ink/20 bg-secondary px-3
-  py-2` — a **1px** border at a third dashed/solid ink alpha (`/20`), on
+py-2` — a **1px** border at a third dashed/solid ink alpha (`/20`), on
   `rounded-md` (6px) where the system uses 10px. The card itself uses
   `shadow-xs` (2px) where every other floating surface uses `shadow-md` (4px).
 - **Why It Is a Problem:** The most "OS-like" surface in the product is the one
@@ -1458,18 +1528,18 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 
 ## Appendix — measured heights (375×667 unless stated)
 
-| Surface | Approx. height | Fits one viewport? |
-|---|---|---|
-| `/home` chrome above first card | ~503px | first card ~100px visible |
-| `/home` with 3 venues (loaded tiles) | ~1,800-2,200px | no (~3.5 screens) |
-| `/card/[id]` collecting, all rails | ~1,500px | no |
-| `/card/[id]/stamp` (button at ~y 900) | ~1,100px | **no — primary control off-screen** |
-| `/reward/[id]` ready (QR at ~y 520) | ~900px | no |
-| `/pass/[id]` (QR at ~y 430) | ~850px | no |
-| `/home/rewards` (2 ready, 6 history) | ~1,850px | no |
-| `/home/activity` (40 rows) | ~5,800px | no |
-| `/home/profile` | ~1,120px | no |
-| `/m/…/join` terms step (CTA at ~y 780) | ~830px | **no — CTA off-screen** |
-| `/offer/[token]` (claim at ~y 760) | ~900px | **no — CTA off-screen** |
-| `/scan` (viewfinder + exits) | ~700px | marginal |
-| `/home/login` (code requested) | ~640px | marginal, fails with keyboard up |
+| Surface                                | Approx. height | Fits one viewport?                  |
+| -------------------------------------- | -------------- | ----------------------------------- |
+| `/home` chrome above first card        | ~503px         | first card ~100px visible           |
+| `/home` with 3 venues (loaded tiles)   | ~1,800-2,200px | no (~3.5 screens)                   |
+| `/card/[id]` collecting, all rails     | ~1,500px       | no                                  |
+| `/card/[id]/stamp` (button at ~y 900)  | ~1,100px       | **no — primary control off-screen** |
+| `/reward/[id]` ready (QR at ~y 520)    | ~900px         | no                                  |
+| `/pass/[id]` (QR at ~y 430)            | ~850px         | no                                  |
+| `/home/rewards` (2 ready, 6 history)   | ~1,850px       | no                                  |
+| `/home/activity` (40 rows)             | ~5,800px       | no                                  |
+| `/home/profile`                        | ~1,120px       | no                                  |
+| `/m/…/join` terms step (CTA at ~y 780) | ~830px         | **no — CTA off-screen**             |
+| `/offer/[token]` (claim at ~y 760)     | ~900px         | **no — CTA off-screen**             |
+| `/scan` (viewfinder + exits)           | ~700px         | marginal                            |
+| `/home/login` (code requested)         | ~640px         | marginal, fails with keyboard up    |
