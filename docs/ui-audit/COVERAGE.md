@@ -453,3 +453,19 @@ Also verified while sweeping for undercounted call sites that the `rounded-2xl`
 still present in six shadcn primitives is dead source, not a live defect: the
 unlayered theme wins, and the computed radii are 10px on input/textarea/alert,
 999px on badge, 4px on progress. 02#34's [stale] marking was right.
+
+### I duplicated an existing analysis
+
+NEEDS-SIGNOFF 6 already documented the CSP theme-hash drift hole — measured, with
+the `enableSystem: false` hash recorded — before I investigated 05#61 and wrote
+it up again as 14. Two sections describing one problem, the later one thinner.
+
+Folded 14 into 6 and implemented 6's own prerequisite 1: `NEXT_THEMES_OPTIONS`
+is now one shared module, so flipping `enableSystem` fails the hash assertion
+instead of silently breaking CSP in production.
+
+The lesson is about method, not tidiness: I searched the CODE for prior art and
+not the campaign's own documents. NEEDS-SIGNOFF is 500 lines across sixteen
+sections written over many turns, and it is now the second most likely place for
+a prior answer to already exist. Read it before investigating anything it might
+cover.

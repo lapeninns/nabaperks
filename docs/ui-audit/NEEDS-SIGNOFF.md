@@ -87,16 +87,36 @@ Measured while attempting 05#61:
 | `enableSystem: true` (current, pinned)         | `sha256-J1wQB5qnh90IAwdc5uHGmBFTTupFNURrdioqoKFQF0w=` |
 | `enableSystem: false` (audit's recommendation) | `sha256-UB8ZQDPPx/Vb2cqBe4pW3j8hm5RWjlg5zlcRw0uxtiE=` |
 
-Two things are needed before 05#61 can be actioned:
+### Update: prerequisite 1 is now done
 
-1. Make the test import the real `ThemeProvider` (or export its options object)
-   so config and pin cannot drift apart.
+`NEXT_THEMES_OPTIONS` lives in `lib/theme/next-themes-options.ts` and is
+imported by both the provider and the test, so the config and the pin cannot
+drift apart. Verified by flipping `enableSystem` to false — the exact 05#61
+change — which now FAILS the hash assertion instead of passing silently.
+
+Remaining before 05#61 can be actioned:
+
+1. ~~Make the test import the real provider config.~~ Done.
 2. Re-pin all three hashes together — `NEXT_THEMES_SCRIPT_SHA256`,
    `..._SERVER_RENDER_...` and `..._APP_RENDER_...` cover different render
    paths, and only the server-render one is trivially reproducible.
 
-This is security configuration, so it wants a deliberate change with a
-staging readback, not a drive-by edit.
+This is security configuration, so it wants a deliberate change with a staging
+readback, not a drive-by edit.
+
+I attempted step 2 independently and stopped: serving a production build and
+hashing its inline scripts reproduced `NEXT_THEMES_SCRIPT_SHA256` exactly, which
+proves the method, but `SERVER_RENDER` and `APP_RENDER` come from render paths
+needing live credentials. Two of three unverifiable is not a margin worth taking
+on a security header. The table above already carries the measured
+`enableSystem: false` server-render hash.
+
+Worth noting for the record: the defect is real and High. `enableSystem` is on,
+so an OS-dark user gets `.dark` applied against a palette with exactly three
+`dark:` variants in the product, and DESIGN.md calls dark "a dormant capability…
+no user-facing toggle exists and none is planned". The dark-preview hotkey is
+already unreachable (nothing passes `enableHotkey`), so forcing light costs the
+catalogue nothing.
 
 ## 7. 01#49 — a measured CLS 0.19 on the SEO hub, held open by one assertion
 
@@ -398,54 +418,7 @@ motion enabled on `/` and `/loyalty-for-pubs`:
 Worth noting for future work: any finding about motion has this blind spot. The
 browser tiers cannot see animation at all.
 
-## 14. 05#61 — `enableSystem` is one word, guarded by three CSP hashes
-
-The defect is real and High: `components/theme-provider.tsx` still passes
-`enableSystem`, so anyone whose OS is set to dark gets `.dark` applied — against
-a palette **no component has been designed for**. There are exactly three
-`dark:` variants in the whole product (`badge.tsx` x2, `stat-strip.tsx` x1).
-DESIGN.md is explicit that dark is "a dormant capability… no user-facing toggle
-exists and none is planned."
-
-The `color-scheme` half of this finding is already done.
-
-### Why I stopped
-
-`lib/security/csp.ts` pins three SHA-256 hashes of next-themes' inline bootstrap
-script, and that script's body is a function of the provider's props. Changing
-`enableSystem` changes the script, so all three hashes must be regenerated or
-CSP blocks the theme bootstrap in production — a failure that would not show up
-in any local gate.
-
-`tests/unit/csp-theme-hash.test.mjs` recomputes only
-`NEXT_THEMES_SERVER_RENDER_SCRIPT_SHA256`. The other two are asserted to be
-_present in the CSP string_, not to match any real script.
-
-I built the app, served it, and hashed the inline scripts it actually emits. The
-method reproduced `NEXT_THEMES_SCRIPT_SHA256`
-(`sha256-G04KaBzNliDSI5Rx3yKGSBrkZtxusQxAU2jyz3KK2Vc=`) exactly from `/`, which
-proves the approach — but `SERVER_RENDER` and `APP_RENDER` come from render paths
-I could not reach without live credentials. Two of three unverifiable is not a
-margin I will take on a security header.
-
-### The recipe
-
-1. `enableSystem` -> `enableSystem={false}` in `components/theme-provider.tsx`.
-   `forcedTheme="light"` is not needed: `defaultTheme` is already light and the
-   dark-preview hotkey is unreachable (nothing passes `enableHotkey`, so the
-   catalogue cannot toggle dark today either).
-2. Mirror the prop change in `tests/unit/csp-theme-hash.test.mjs:24`, which
-   constructs the provider to recompute the hash.
-3. Regenerate all three constants in `lib/security/csp.ts` by serving a
-   production build and hashing every inline `<script>` whose body matches
-   `/theme|colorScheme|localStorage/`, across a static marketing route, an
-   authed `/app` route, and a client-navigated route.
-4. Confirm no CSP violation in the browser console on each of those three.
-
-One word of code, and about twenty minutes of verification I cannot do from
-here.
-
-## 15. 05#65 — `ConsoleSection` declined, with the numbers
+## 14. 05#65 — `ConsoleSection` declined, with the numbers
 
 Half of this finding is done: 03#1 unified the merchant and admin shells to
 `px-4 py-5 sm:py-6 lg:px-8 lg:py-8`, which is the `py-8 -> py-6` reclaim the
@@ -483,7 +456,7 @@ fix. If you want the abstraction anyway, as a named place to change console
 rhythm later, that is a reasonable call and it is one commit; I am not making it
 on the strength of a premise that measurement does not support.
 
-## 16. 01#54 — the hero half of the type scale
+## 15. 01#54 — the hero half of the type scale
 
 The page-title half is done: seven `titleClassName` clamp overrides deleted, so
 legal, auth and every marketing page now share `type-page-title` (30px / 36px).
