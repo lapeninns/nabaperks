@@ -121,6 +121,50 @@ test("no private route prefix can prefix-match a public page", () => {
     "/merchant-terms",
   ]
 
+  // The literal list above is a HAND-MIRROR of what the site actually
+  // publishes, and a hand-mirror is how the /merchant-terms defect happened.
+  // So derive the published set from lib/marketing/facts.ts and require this
+  // test's list to cover every one of them, either exactly or by an ancestor
+  // segment it already carries (it lists "/guides", not each guide). The list
+  // is allowed to be BROADER — it also carries the noindexed persona spokes —
+  // but never narrower, because a published route this test does not know
+  // about is a collision nobody would see.
+  const facts = readProjectFile("lib", "marketing", "facts.ts")
+  const routeLiterals = Object.fromEntries(
+    [
+      ...(facts
+        .slice(
+          facts.indexOf("export const ROUTES = {"),
+          facts.indexOf("} as const", facts.indexOf("export const ROUTES = {"))
+        )
+        .matchAll(/(\w+):\s*"([^"]+)"/g) ?? []),
+    ].map((m) => [m[1], m[2]])
+  )
+  const publicRoutesBlock = facts.slice(
+    facts.indexOf("export const PUBLIC_SITE_ROUTES = ["),
+    facts.indexOf(
+      "] as const",
+      facts.indexOf("export const PUBLIC_SITE_ROUTES = [")
+    )
+  )
+  const publishedPaths = [
+    ...publicRoutesBlock.matchAll(/path:\s*(?:ROUTES\.(\w+)|"([^"]+)")/g),
+  ].map(([, key, literal]) => literal ?? routeLiterals[key])
+
+  assert.ok(
+    publishedPaths.length >= 10 && publishedPaths.every(Boolean),
+    `expected to resolve every PUBLIC_SITE_ROUTES path, got ${JSON.stringify(publishedPaths)}`
+  )
+  for (const published of publishedPaths) {
+    if (published === "/") continue
+    assert.ok(
+      publicRoutes.some(
+        (route) => published === route || published.startsWith(`${route}/`)
+      ),
+      `${published} is published in PUBLIC_SITE_ROUTES but this test's public-route list does not cover it`
+    )
+  }
+
   // Mirror app/robots.ts: each prefix is emitted with its slash, and bare as
   // well UNLESS the bare form would prefix-match a public page. The guard lives
   // in robots.ts; this mirrors it so the two cannot drift.
