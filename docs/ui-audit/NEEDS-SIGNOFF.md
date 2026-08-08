@@ -339,3 +339,30 @@ The audit asks for three rows closed by default, which would collapse all five.
 A split — actionable rails stay visible, promotional rails collapse — reads
 better to me, but that is a product judgement about what the card screen is
 _for_, and it is not mine to make quietly. Both options are one small change.
+
+## 12. 04#26 — sticky table headers need a nested scroll region
+
+Re-tested in chromium rather than taken on trust, and the recorded blocker
+holds. Measured on the customers harness at 1280x700:
+
+- `[data-slot="table-container"]` computes `overflow-x: auto`, and CSS makes
+  `overflow-y` **auto** with it. It is therefore a scroll container on both
+  axes — but it has no height constraint, so `containerScrollsY` is `false`.
+  Sticky-top inside it has a scrollport that never scrolls.
+- Its parent is `surface-card overflow-hidden`, hidden on both axes.
+- Proof: with `position: sticky; top: 0` forced onto the `<thead>`, a 400px page
+  scroll moved it 269px -> 177px. It travelled with the page.
+
+I also tried the clever way out — `overflow-y: clip`, which should leave no Y
+scrollport and let sticky resolve against the viewport. Chrome coerces it to
+`hidden` next to `overflow-x: auto`, and the header still did not stick.
+
+So the only real fix is to bound the container's height (`max-h-[70svh]` or
+similar) and let the table scroll vertically inside itself. That works, and it
+turns every admin table into a nested scroll region — a different interaction
+model on both desktop and touch, and a visible change to page rhythm across
+eleven routes.
+
+That is a UX decision, not a bug fix, so it is here rather than in a commit.
+Everything else in 04#26 (lookup, filter chips, count, range, venue filter,
+paginator) is done.
