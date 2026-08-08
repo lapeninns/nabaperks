@@ -255,6 +255,25 @@ export function OnboardingForm({
           return
         }
 
+        // Do not validate on the way OUT to a submit control. The blur fires on
+        // mousedown, so writing state here re-renders between mousedown and
+        // mouseup and the click never becomes a submit — the merchant presses
+        // "Finish setup" with an empty field focused and NOTHING happens. The
+        // submit sweep below validates every required field anyway, so this
+        // path loses no coverage. (Caught by
+        // merchant-onboarding-continuity's "refocus on every attempt", which is
+        // what the original 03#46 blocker was pointing at.)
+        const next = event.relatedTarget as HTMLElement | null
+
+        if (next?.closest("form") === event.currentTarget) {
+          const tag = next?.tagName.toLowerCase()
+          const type = (next as HTMLButtonElement | null)?.type
+
+          if (tag === "button" && (type === "submit" || type === undefined)) {
+            return
+          }
+        }
+
         const message = field.value.trim()
           ? undefined
           : REQUIRED_FIELD_MESSAGES[name]
