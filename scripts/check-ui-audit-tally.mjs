@@ -112,6 +112,38 @@ for (const file of ["COVERAGE.md", "HANDOFF.md"]) {
   }
 }
 
+/**
+ * STATUS.md's own per-report heading. It drifted unchecked for a long time
+ * ("61 done / 3 partial / 1 stale / 1 deferred / 1 open" when no 05 row has
+ * ever carried [stale] or [defer]) because this script only validated the
+ * COVERAGE.md and HANDOFF.md tables. A number a reader sees is a number worth
+ * checking, wherever it lives.
+ */
+{
+  const status = readFileSync(path.join(DIR, "STATUS.md"), "utf8")
+  const heading = status.match(/^##\s*05-design-system\.md\s*—\s*([^\n]+)$/m)
+
+  if (!heading) {
+    problems.push("STATUS.md is missing its 05-design-system heading")
+  } else {
+    const counts = perReport["05"] ?? {
+      "[x]": 0,
+      "[~]": 0,
+      "[stale]": 0,
+      open: 0,
+    }
+    const nums = heading[1].match(/\d+/g)?.map(Number) ?? []
+    const want = [counts["[x]"], counts["[~]"], counts.open, 67]
+
+    if (want.some((n, i) => n !== nums[i])) {
+      problems.push(
+        `STATUS.md 05 heading reads ${nums}, parse says ` +
+          `${counts["[x]"]} done / ${counts["[~]"]} partial / ${counts.open} open (of 67)`
+      )
+    }
+  }
+}
+
 if (problems.length > 0) {
   console.error("✗ UI-audit tally is out of sync:\n")
   for (const problem of problems) console.error(`  ${problem}`)

@@ -951,3 +951,37 @@ start or, worse, attaches to the FIRST lane's dev server and tests the wrong
 worktree. One run in this lane reported 8 failures that way and passed
 immediately on a private port. Set `PLAYWRIGHT_BASE_URL=http://127.0.0.1:<port>`
 per worktree before reading anything into a browser failure.
+
+### Two claims of mine the lanes disproved, and one gate gap they found
+
+The parallel lanes were briefed to re-test recorded blockers. Three of the things
+they disproved were mine, published in this document or NEEDS-SIGNOFF.
+
+1. **"An OS-dark user gets `.dark` applied" (05#61) was wrong.** I escalated it as
+   a live High defect. Measured in Chromium at `colorScheme=dark` against a
+   production build with `enableSystem: true`, `html` stays `light`: next-themes
+   only consults `prefers-color-scheme` when the stored or default theme is the
+   literal string `"system"`, and `defaultTheme` is `"light"`. Verified here too —
+   nothing in the tree calls `setTheme("system")` (`sonner.tsx` only defaults a
+   destructure). The finding's own wording, "one config flag away", was accurate;
+   my paraphrase of it was not. 05#61 shipped as defence-in-depth.
+
+2. **"SERVER_RENDER and APP_RENDER need live credentials" was wrong.** They are
+   bundler outputs — webpack-minified, `react-dom/server`, and dev/SWC — all
+   reachable on `/login` with no auth. That mistake is why I refused 05#61 twice.
+
+3. **`pnpm deadcode:check` cannot report an unused export.** It runs
+   `knip --include files,dependencies,unresolved`, so the exports rule never
+   reaches the output; `knip.json` also sets it to `warn`. Enabling it surfaces
+   78 unused exports by a conservative count. This is the larger sibling of the
+   `components/ui/**` entry-pattern blind spot already recorded above: 05#27's six
+   dead exports had TWO independent reasons to survive a green gate.
+
+And a gap in my own tally gate: it validated the COVERAGE and HANDOFF tables but
+not STATUS.md's per-report heading, which had drifted to "61 done / 3 partial /
+1 stale / 1 deferred / 1 open" when no 05 row has ever carried `[stale]` or
+`[defer]`. The gate now checks that heading too, sabotage-verified against the
+exact historical wording.
+
+The pattern is the one this campaign keeps rediscovering: a number a reader sees
+is a number worth checking, and the checker needs checking as much as the thing.

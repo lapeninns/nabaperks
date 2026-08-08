@@ -1087,3 +1087,34 @@ seasonal terms are published on both surfaces. What is left is presentation:
 | annual       | `PriceLockup size="lead"` + `annualSavingShort` | "Or {annualPrice}" + "Best value" |
 | timeline     | 3-row `ol` (174px at 1280)                      | absent                            |
 | CTAs         | 1                                               | 2                                 |
+
+## 29. `deadcode:check` structurally cannot report an unused export
+
+Found by the design-system lane while sweeping contract allowlists, verified
+here.
+
+`package.json` runs `knip --include files,dependencies,unresolved`. The
+`exports`, `types`, `nsExports` and `duplicates` rules are therefore never in the
+output, and `knip.json` sets them to `warn` regardless. So a green
+`pnpm deadcode:check` says nothing at all about unused exports.
+
+Enabling the rule reports **78 unused exports** on a conservative count (the lane
+counted 236 including types and namespace exports). Removing the
+`components/ui/**` entry pattern surfaces eight more on top: `AlertAction`,
+`badgeVariants`, `CardFooter`, `CardAction`, `EmptyMedia`, `SheetClose`,
+`SheetFooter`, `TableFooter`.
+
+This is the same blind spot that let 05#27's six dead `field.tsx` exports survive
+a green gate — they had **two** independent reasons to be invisible.
+
+Not turned on here: switching the rule from `warn` to `error` is a 78-to-236 item
+decision with a real chance of deleting something a future feature wants, and it
+belongs to whoever owns the dependency graph. But the current gate's name
+promises something it does not deliver, and that is worth knowing before trusting
+it.
+
+Related and also unactioned: `components/merchant/launch/launch-billing-cta.tsx`
+is dead — zero references outside itself — and two mechanisms keep it alive. It
+is listed as an `entry` in `knip.json`, and `launch-billing-local-stripe` asserts
+the symbol exists. Deleting it means deleting a contract assertion, so it is
+escalated rather than done.
