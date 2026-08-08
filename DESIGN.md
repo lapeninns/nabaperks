@@ -133,8 +133,10 @@ Riso-print logic: one paper, one ink, a small set of hot spot inks.
   themeable), cobalt (#2b43c8 — info, joins), leaf (#16733c — success,
   ready-to-redeem), sun (#f5a623 — the mystery seal).
 - **QR codes always sit on pure white** inside an ink-bordered frame, even in
-  dark mode. No gradients except functional ones (zigzag edge, conic ring,
-  scrollable-region edge fade).
+  dark mode. No gradients except these functional ones, which is the whole list:
+  the receipt zigzag edge (`.receipt-edge`), the earned stamp's ink texture and
+  conic ring (`[data-stamp-earned]`), and the scrollable-region edge fade
+  (`.scroll-x-fade`).
 
 All shadcn semantic tokens (`--background`, `--primary`, `--muted`, …) alias
 the `--w-*` palette in `app/globals.css`. The superseded v1 Honey & Ink aliases
