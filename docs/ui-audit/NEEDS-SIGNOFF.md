@@ -268,8 +268,31 @@ Two other levers measured and rejected: `preload: false` (LCP 4,666ms but FCP
 2,708ms vs a 2,500ms budget) and subsetting (impossible — the originals are
 hash-pinned). All four weights are genuinely used, so none can be dropped.
 
-If CI is still red, option 2 below (drop the two faces, accept synthesised
-weights) is the remaining lever and it is a design call, not an engineering one.
+CI after the woff2 change: **4,534 / 5,117 / 5,526ms** (was 4,854 / 5,130 /
+5,265). The assertion floor moved 320ms; the runner variance is larger than the
+fix. So the engineering levers are now exhausted and what remains is a design
+call. Everything measured:
+
+| lever                                | LCP (local) | verdict                                         |
+| ------------------------------------ | ----------: | ----------------------------------------------- |
+| baseline (this branch)               |     6,343ms | —                                               |
+| **woff2 for the two unpinned faces** | **5,011ms** | **shipped**                                     |
+| `display: optional`                  |     5,010ms | no effect — proves it is bandwidth, not swap    |
+| `preload: false`                     |     4,666ms | rejected: FCP 2,708ms vs a 2,500ms budget       |
+| drop the two added faces             |     4,257ms | works, but reverts the typography fix           |
+| subset the .ttf                      |         n/a | impossible — the four originals are hash-pinned |
+| main, same machine                   |     4,213ms | the control                                     |
+
+`display: optional` measuring identically to `swap` is the useful datum: the
+cost is preload bandwidth on the simulated critical path, not the font swap, so
+no loading-strategy tweak will recover it. Only fewer or smaller bytes will.
+
+**The decision:** two font faces, ~92KB preloaded over main, buy real
+`font-medium` and `font-extrabold` instead of browser-synthesised ones — which
+is defect 05#* that this branch was asked to fix. Either that is worth roughly
+500-1,000ms of simulated LCP or it is not. I do not think an agent should
+quietly pick either way, so the branch ships the typography fix and a red
+Lighthouse check, with the revert one commit away.
 
 ### Original note — why I first thought woff2 was impossible
 
