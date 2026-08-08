@@ -621,3 +621,27 @@ One real instance, one checked negative. The remaining `sm:` variants in the
 customer files are outer gutters growing past a column that is already capped,
 which is harmless — so the `@container` conversion 02#6 recommends is a
 tidiness pass, not a defect, and should be budgeted as one.
+
+### Full re-verification, third pass — and a named flake set
+
+Re-ran both journey tiers after the SectionHeader band prop, the SnapRail client
+conversion, the scanner exits, four admin truncation notices, the theme-provider
+refactor, six deleted `field.tsx` exports and the globals.css border audit.
+
+| tier                   | result                               |
+| ---------------------- | ------------------------------------ |
+| chromium journeys      | **202 passed**, 49 skipped, 2 failed |
+| mobile-safari journeys | **232 passed**, 66 skipped, 3 failed |
+
+All five re-ran clean in isolation. More usefully, the failures are the SAME
+FILES every run, across three separate full-matrix passes:
+
+- `analytics-funnel-privacy` (both tiers)
+- `cron-route-auth` (mobile-safari)
+- `merchant-auth-recovery-flow` (chromium)
+
+Session-identity and cron-secret routes, all timing-sensitive, all passing
+alone and failing only under a saturated worker pool. None of them touches
+anything this branch changed — worth knowing before someone reads a red matrix
+as a regression, and worth quarantining or serialising if it keeps costing CI
+runs.

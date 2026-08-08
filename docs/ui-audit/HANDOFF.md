@@ -31,6 +31,14 @@ those tables were wrong for most of the campaign and nothing noticed.
 
 If you edit a status mark by hand, run it.
 
+### The known flake set
+
+Three spec files fail only under a saturated worker pool and pass alone, on
+every full-matrix run: `analytics-funnel-privacy`, `cron-route-auth`,
+`merchant-auth-recovery-flow`. Session-identity and cron-secret routes, none
+touched by this branch. Re-run them in isolation before treating a red matrix as
+a regression.
+
 ## Re-run before any future merge
 
 A closed finding is a claim about a tree, and the tree moves. Merging main
