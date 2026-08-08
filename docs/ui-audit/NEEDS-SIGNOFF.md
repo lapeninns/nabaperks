@@ -1149,3 +1149,36 @@ is dead — zero references outside itself — and two mechanisms keep it alive.
 is listed as an `entry` in `knip.json`, and `launch-billing-local-stripe` asserts
 the symbol exists. Deleting it means deleting a contract assertion, so it is
 escalated rather than done.
+
+## 30. The fraud queue cannot be paged without a rank column (04#6)
+
+Five of the eleven admin lists now have venue lookup and a paginator. The fraud
+queue is the one that stopped, and not for want of trying.
+
+`getAdminFraudSignals` fetches a window and then sorts it **in memory**:
+
+```js
+flags.sort((left, right) => FRAUD_SEVERITY_RANK[left.severity] - …)
+```
+
+because `severity` is a text column whose alphabetical order — high, low,
+medium — is not its severity order. That is fine for one window. Page it
+server-side and each page gets sorted independently, so a **high**-severity flag
+on page 3 sits below a **low**-severity one on page 1. A triage queue that
+reorders by accident is worse than a long one.
+
+Two honest fixes, both data-layer:
+
+1. **A `severity_rank` smallint** on `fraud_flags`, written alongside
+   `severity`, ordered in SQL. Fast, and adds a column that can drift from the
+   text one.
+2. **Order by a CASE expression** in a view or RPC. No new column, but PostgREST
+   cannot express it through the query builder, so it needs a database object.
+
+Until then the queue keeps its 100-row window and its truncation notice, which
+tells the truth.
+
+This is the same shape as 03#18, and worth stating as a rule: **the audit's
+"page it like the others" transfers only where the underlying read is already
+ordered the way the page displays it.** Merchants, audit, billing, referrals and
+the evidence ledger all are. Fraud and the members table are not.
