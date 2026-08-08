@@ -90,3 +90,57 @@ Two things are needed before 05#61 can be actioned:
 
 This is security configuration, so it wants a deliberate change with a
 staging readback, not a drive-by edit.
+
+## 7. 01#49 — a measured CLS 0.19 on the SEO hub, held open by one assertion
+
+The marketing lane wrote the fix, hit the contract, and reverted. I have now
+measured what that costs, so the renegotiation can be decided on numbers.
+
+`components/marketing/pubs/guide-spine.tsx` renders the mobile section list as
+`hydrated && !open ? "hidden lg:block" : "grid"`. The server sends the full
+8-link list visible; hydration collapses it.
+
+Measured on /loyalty-for-pubs at 390x844 (chromium):
+
+|                                    | value                |
+| ---------------------------------- | -------------------- |
+| section list height at first paint | **302px**            |
+| after hydration                    | **0px**              |
+| document height                    | 11,747px -> 11,472px |
+| **Cumulative Layout Shift**        | **0.1924**           |
+
+Google's "good" threshold is 0.1. This is the site's longest page and its SEO
+hub (an `Article` with `dateModified`), so the shift is both a Core Web Vital
+regression and a visible flash of content that then vanishes.
+
+### Why it is still open
+
+`tests/contracts/marketing-offer-source` pins the literal expression:
+
+```js
+assert.match(
+  spine,
+  /hydrated && !open \? "hidden lg:block" : "grid"/,
+  "the mobile section links must remain visible before client enhancement"
+)
+```
+
+The stated intent — links reachable without JS — is sound. But the expression
+that satisfies it is exactly the expression that causes the shift: it shows the
+list, then hides it. Any fix that removes the shift changes that expression, so
+the assertion and the finding are genuinely incompatible. This is not a
+formatting technicality and I have not touched it.
+
+### Two options, both needing a decision
+
+1. **Native `<details>`/`<summary>`** (the audit's recommendation). No JS, no
+   hydration branch, no shift. Links become _operable_ without JS rather than
+   _visible_ — which may or may not satisfy the assertion's author.
+2. **Stop collapsing on hydration.** Keep the list server-rendered and visible
+   on mobile; make the toggle an enhancement that never hides content by
+   default. Strictly better against the assertion's stated intent (visible
+   before AND after), and removes the shift — but the pinned literal no longer
+   matches.
+
+Either way the assertion needs rewriting to express the intent rather than the
+implementation. Recommend option 2 and an assertion on the rendered guarantee.
