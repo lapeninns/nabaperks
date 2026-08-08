@@ -328,3 +328,19 @@ findings (03#53, 03#65, 03#66) were recorded blocked purely because a sub-agent
 could not touch another lane's files. That was true for them and never true for
 the root agent. Worth checking for whenever a note blames ownership rather than
 the code.
+
+### The browser tiers are blind to motion
+
+`playwright.config.ts` sets `reducedMotion: "reduce"` on every project. Anything
+guarded by `prefers-reduced-motion` — which is every animation in this codebase,
+by design — is therefore inert in all 813 journeys, the a11y sweep and the visual
+baselines.
+
+Found while trying to verify 01#17: the hero stamp loop never advances in an
+automated run, on this branch or on the unmodified baseline. A probe that
+appeared to show a resume regression was in fact counting unrelated page
+timeouts.
+
+So motion findings can be reasoned about and gated, but not watched. That is a
+real hole in this campaign's evidence, and it is recorded in NEEDS-SIGNOFF §13
+rather than papered over.

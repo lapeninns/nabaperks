@@ -366,3 +366,25 @@ eleven routes.
 That is a UX decision, not a bug fix, so it is here rather than in a commit.
 Everything else in 04#26 (lookup, filter chips, count, range, venue filter,
 paginator) is done.
+
+## 13. One manual look: the hero card loop (01#17)
+
+Not a decision — a verification gap I cannot close from here.
+
+`playwright.config.ts` sets `reducedMotion: "reduce"` on every project, and
+`useStampJourneyLoop` short-circuits under reduced motion. So the stamp loop
+never animates in ANY automated run. I confirmed this on the unmodified baseline
+as well as this branch: `earnedCount` stays at its rest value throughout.
+
+That means the fix in 01#17 — pause now genuinely stops scheduling, and the loop
+stops when the card scrolls off-screen — is correct by inspection and green on
+every gate, but has never actually been watched. Worth thirty seconds with
+motion enabled on `/` and `/loyalty-for-pubs`:
+
+1. the stamps should cycle;
+2. "Pause the demo" should freeze it on the finished frame;
+3. "Play the demo" should start it cycling again;
+4. scrolling the hero away and back should stop and restart it.
+
+Worth noting for future work: any finding about motion has this blind spot. The
+browser tiers cannot see animation at all.
