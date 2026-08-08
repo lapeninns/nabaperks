@@ -9,7 +9,8 @@ export const dynamic = "force-dynamic"
  * The /dev index. Every harness lane already existed but nothing linked to
  * them: `/dev` and `/dev/app-harness` both 404'd, so a developer had to read
  * the file tree to discover the lanes, and the two screenshot query params
- * (`?w=` on the /dev layout, `?sidebar=collapsed` on the app harness) were
+ * (`?w=` on the /dev layout, `?sidebar=collapsed` on the app harness,
+ * `?only=` on the skeletons and states pages) were
  * documented nowhere in the product.
  */
 const DEV_GROUPS = [
@@ -100,6 +101,14 @@ export default function DevIndexPage() {
             <dt className="eyebrow">?sidebar=collapsed</dt>
             <dd className="text-muted-foreground">
               Starts the app-harness console with the sidebar rail collapsed.
+            </dd>
+          </div>
+          <div className="grid gap-1">
+            <dt className="eyebrow">?only=&lt;section-id&gt;</dt>
+            <dd className="text-muted-foreground">
+              Renders one section of the skeletons or states harness on its own,
+              so a screenshot of a single fallback does not carry eleven others.
+              The section ids are the chips at the top of those pages.
             </dd>
           </div>
         </dl>

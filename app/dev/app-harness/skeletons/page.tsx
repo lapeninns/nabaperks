@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 import { notFound } from "next/navigation"
 
-import { HarnessIndex } from "@/app/dev/harness-index"
+import { HarnessIndex, HarnessSections } from "@/app/dev/harness-index"
 
 import { PageTitle } from "@/components/brand"
 import {
@@ -44,7 +44,13 @@ const SKELETON_SECTIONS = [
   { id: "reward-scan", label: "Reward scan" },
 ] as const
 
-export default function SkeletonsHarnessPage() {
+export default async function SkeletonsHarnessPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ only?: string | string[] }>
+}) {
+  const requested = (await searchParams).only
+  const only = Array.isArray(requested) ? requested[0] : requested
   if (process.env.NODE_ENV === "production") {
     notFound()
   }
@@ -57,67 +63,82 @@ export default function SkeletonsHarnessPage() {
         description="Every /app Suspense fallback, rendered statically so its responsive structure is screenshot-provable. Each mirrors the layout of the surface it stands in for."
       />
 
-      <HarnessIndex label="Skeleton sections" sections={SKELETON_SECTIONS} />
+      <HarnessIndex
+        label="Skeleton sections"
+        sections={SKELETON_SECTIONS}
+        only={only}
+      />
 
-      <HarnessSection id="page-title" title="MerchantPageTitleSkeleton">
-        <MerchantPageTitleSkeleton />
-      </HarnessSection>
+      <HarnessSections only={only}>
+        <HarnessSection id="page-title" title="MerchantPageTitleSkeleton">
+          <MerchantPageTitleSkeleton />
+        </HarnessSection>
 
-      <HarnessSection
-        id="dashboard-metrics"
-        title="MerchantDashboardMetricsSkeleton"
-      >
-        <MerchantDashboardMetricsSkeleton />
-      </HarnessSection>
+        <HarnessSection
+          id="dashboard-metrics"
+          title="MerchantDashboardMetricsSkeleton"
+        >
+          <MerchantDashboardMetricsSkeleton />
+        </HarnessSection>
 
-      <HarnessSection
-        id="compact-activity"
-        title="MerchantCompactActivitySkeleton"
-      >
-        <MerchantCompactActivitySkeleton />
-      </HarnessSection>
+        <HarnessSection
+          id="compact-activity"
+          title="MerchantCompactActivitySkeleton"
+        >
+          <MerchantCompactActivitySkeleton />
+        </HarnessSection>
 
-      <HarnessSection id="activity-feed" title="ActivityFeedSkeleton">
-        <ActivityFeedSkeleton />
-      </HarnessSection>
+        <HarnessSection id="activity-feed" title="ActivityFeedSkeleton">
+          <ActivityFeedSkeleton />
+        </HarnessSection>
 
-      <HarnessSection
-        id="customers-table"
-        title="MerchantCustomersTableSkeleton"
-      >
-        <MerchantCustomersTableSkeleton />
-      </HarnessSection>
+        <HarnessSection
+          id="customers-table"
+          title="MerchantCustomersTableSkeleton"
+        >
+          <MerchantCustomersTableSkeleton />
+        </HarnessSection>
 
-      <HarnessSection id="launch-venue" title='LaunchPanelSkeleton tab="venue"'>
-        <LaunchPanelSkeleton tab="venue" />
-      </HarnessSection>
+        <HarnessSection
+          id="launch-venue"
+          title='LaunchPanelSkeleton tab="venue"'
+        >
+          <LaunchPanelSkeleton tab="venue" />
+        </HarnessSection>
 
-      <HarnessSection id="launch-card" title='LaunchPanelSkeleton tab="card"'>
-        <LaunchPanelSkeleton tab="card" />
-      </HarnessSection>
+        <HarnessSection id="launch-card" title='LaunchPanelSkeleton tab="card"'>
+          <LaunchPanelSkeleton tab="card" />
+        </HarnessSection>
 
-      <HarnessSection
-        id="launch-rewards"
-        title='LaunchPanelSkeleton tab="rewards"'
-      >
-        <LaunchPanelSkeleton tab="rewards" />
-      </HarnessSection>
+        <HarnessSection
+          id="launch-rewards"
+          title='LaunchPanelSkeleton tab="rewards"'
+        >
+          <LaunchPanelSkeleton tab="rewards" />
+        </HarnessSection>
 
-      <HarnessSection id="launch-qr" title='LaunchPanelSkeleton tab="qr"'>
-        <LaunchPanelSkeleton tab="qr" />
-      </HarnessSection>
+        <HarnessSection id="launch-qr" title='LaunchPanelSkeleton tab="qr"'>
+          <LaunchPanelSkeleton tab="qr" />
+        </HarnessSection>
 
-      <HarnessSection id="account-profile" title="AccountProfilePanelSkeleton">
-        <AccountProfilePanelSkeleton />
-      </HarnessSection>
+        <HarnessSection
+          id="account-profile"
+          title="AccountProfilePanelSkeleton"
+        >
+          <AccountProfilePanelSkeleton />
+        </HarnessSection>
 
-      <HarnessSection id="account-billing" title="AccountBillingPanelSkeleton">
-        <AccountBillingPanelSkeleton />
-      </HarnessSection>
+        <HarnessSection
+          id="account-billing"
+          title="AccountBillingPanelSkeleton"
+        >
+          <AccountBillingPanelSkeleton />
+        </HarnessSection>
 
-      <HarnessSection id="reward-scan" title="RewardScanContentSkeleton">
-        <RewardScanContentSkeleton />
-      </HarnessSection>
+        <HarnessSection id="reward-scan" title="RewardScanContentSkeleton">
+          <RewardScanContentSkeleton />
+        </HarnessSection>
+      </HarnessSections>
     </div>
   )
 }

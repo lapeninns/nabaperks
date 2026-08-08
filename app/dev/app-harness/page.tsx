@@ -59,7 +59,7 @@ export default function AppHarnessIndexPage() {
       <PageTitle
         eyebrow="Developer surfaces"
         title="Merchant app harness"
-        description="Signed-out fixtures of the authenticated merchant surfaces, rendered inside the real console shell. Append ?w=<px> to pin a breakpoint, or ?sidebar=collapsed to start with the rail closed."
+        description="Signed-out fixtures of the authenticated merchant surfaces, rendered inside the real console shell. Append ?w=<px> to pin a breakpoint, ?sidebar=collapsed to start with the rail closed, or ?only=<section-id> on the skeletons and states pages to isolate one section."
       />
 
       {HARNESS_LANES.map((group) => (
