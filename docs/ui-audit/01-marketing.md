@@ -1,4 +1,5 @@
 # Nabaperks — UX/UI Redesign Audit
+
 ## Area 01: Public marketing + legal surface
 
 **Scope:** `app/page.tsx`, `/pricing`, `/how-it-works`, `/about`, `/faq`, `/start`, `/demo`,
@@ -13,20 +14,21 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 
 **Baseline measurements used throughout**
 
-| Surface | Composition | Est. mobile height |
-|---|---|---|
-| `/` (landing) | 8 bands + footer | **≈ 5,400 px ≈ 8 viewports** |
-| `/how-it-works` | 8 bands + footer | **≈ 4,600 px ≈ 7 viewports** |
-| `/pricing` | 6 bands + footer | **≈ 3,500 px ≈ 5 viewports** |
-| `/loyalty-for-pubs` | hero + 8 guide sections + footer | **≈ 8,500–9,000 px ≈ 13 viewports** |
-| `/privacy` | 12 clauses, single 880 px measure | **≈ 3,200 px** |
-| Marketing footer (every page) | 4 link columns @ `min-h-11` + legal row | **≈ 620–660 px** |
+| Surface                       | Composition                             | Est. mobile height                  |
+| ----------------------------- | --------------------------------------- | ----------------------------------- |
+| `/` (landing)                 | 8 bands + footer                        | **≈ 5,400 px ≈ 8 viewports**        |
+| `/how-it-works`               | 8 bands + footer                        | **≈ 4,600 px ≈ 7 viewports**        |
+| `/pricing`                    | 6 bands + footer                        | **≈ 3,500 px ≈ 5 viewports**        |
+| `/loyalty-for-pubs`           | hero + 8 guide sections + footer        | **≈ 8,500–9,000 px ≈ 13 viewports** |
+| `/privacy`                    | 12 clauses, single 880 px measure       | **≈ 3,200 px**                      |
+| Marketing footer (every page) | 4 link columns @ `min-h-11` + legal row | **≈ 620–660 px**                    |
 
 ---
 
 ## A. Global marketing chrome — `components/layout/*`
 
 ### 1. Primary navigation is entirely absent below 768 px
+
 - **File(s):** `components/layout/marketing-header-nav.tsx:28-49`; `components/layout/marketing-layout.tsx:80-90`
 - **Current UX/UI Problem:** the nav list is `className="hidden items-center gap-1 md:flex"`, and the
   "Log in" button is `className="max-sm:hidden"`. So on a phone the sticky header contains only the
@@ -46,6 +48,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Critical
 
 ### 2. The marketing footer is a 650 px tax on every page
+
 - **File(s):** `components/layout/marketing-layout.tsx:101-131`, `12-13`, `20-57`
 - **Current UX/UI Problem:** `FOOTER_COLUMNS` renders 4 headings and 13 links, each link
   `inline-flex min-h-11 items-center rounded-full px-3`, in a `grid grid-cols-2 gap-x-3 gap-y-5`
@@ -53,7 +56,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
   column 4 has 2 — two grid rows ≈ 400 px — plus a 5-link legal nav that wraps to ~3 rows of 44 px
   (≈ 140 px), plus the identity block and motto. Total ≈ 620–660 px.
 - **Why It Is a Problem:** the footer alone is a full mobile viewport, repeated on 16 public routes.
-  It is also, per finding 1, currently the *only* navigation on a phone — so the site's nav is a
+  It is also, per finding 1, currently the _only_ navigation on a phone — so the site's nav is a
   650 px wall at the bottom of an 8-viewport page.
 - **Recommended Redesign:** below `sm`, collapse each `FooterColumn` into a native
   `<details><summary class="eyebrow min-h-11">` disclosure (zero JS, matches the `FaqList` and
@@ -64,6 +67,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 3. `Section` size tokens do nothing on desktop and collapse into each other on mobile
+
 - **File(s):** `components/layout/section.tsx:21-28`
 - **Current UX/UI Problem:** the scale is `default: "py-7 sm:py-10"`, `dense: "py-4 sm:py-10"`,
   `compact: "py-4 sm:py-5"`, `tight: "py-3 sm:py-4"`. `default` and `dense` are **identical from
@@ -82,6 +86,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 4. Content gutter does not match chrome gutter, so the logo never aligns with the H1
+
 - **File(s):** `components/layout/section.tsx:53`; `components/layout/marketing-layout.tsx:81`, `101`
 - **Current UX/UI Problem:** `Section` is `mx-auto w-full scroll-mt-24 px-6` (24 px, all widths).
   The header container is `px-4 py-3 sm:px-6` (16 px on mobile) and the footer container is `px-6`.
@@ -96,6 +101,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 5. Four different sticky/scroll-margin offsets for one 68 px header
+
 - **File(s):** `components/layout/section.tsx:53` (`scroll-mt-24` = 96 px);
   `components/marketing/pubs/guide-section.tsx:25` (`scroll-mt-28` = 112 px);
   `components/legal/legal-document-page.tsx:72` (`scroll-mt-28`);
@@ -113,6 +119,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 6. Header nav pills use `rounded-full` outside the sanctioned circle exceptions
+
 - **File(s):** `components/layout/marketing-header-nav.tsx:38`; `components/layout/marketing-layout.tsx:13`
 - **Current UX/UI Problem:** nav links and footer links are `rounded-full`, while the `Button` beside
   them is forced to `border-radius: var(--radius-lg)` (10 px) by the unlayered
@@ -130,19 +137,21 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Low
 
 ### 7. Skip link radius and border are one-offs
+
 - **File(s):** `components/layout/marketing-layout.tsx:74-79`
 - **Current UX/UI Problem:** `focus:rounded-md focus:border-2 focus:border-ink focus:bg-card
-  focus:px-4 focus:py-2 focus:text-sm focus:font-bold` — 6 px radius, no offset shadow, no
+focus:px-4 focus:py-2 focus:text-sm focus:font-bold` — 6 px radius, no offset shadow, no
   `focus-ring` outline recipe.
 - **Why It Is a Problem:** the one element a keyboard-only user meets first is the one element that
   does not look like the system: every other bordered surface carries `--radius` 10 px and a hard
   offset shadow, and every other focusable element carries the 2 px vermillion outline.
 - **Recommended Redesign:** `focus:rounded-(--radius-lg) focus:border-2 focus:border-ink
-  focus:bg-card focus:shadow-sm focus:min-h-11 focus:inline-flex focus:items-center` and add the
+focus:bg-card focus:shadow-sm focus:min-h-11 focus:inline-flex focus:items-center` and add the
   `focus-ring` class so it inherits the single sanctioned outline recipe.
 - **Priority:** Low
 
 ### 8. `ContrastBand` has only three sizes and is used twice, at two unrelated densities
+
 - **File(s):** `components/layout/contrast-band.tsx:21-26`; `app/how-it-works/page.tsx:74`;
   `components/marketing/landing/scarcity-band.tsx:13`
 - **Current UX/UI Problem:** the band ships `default: "py-9 sm:py-12"`, `dense: "py-6 sm:py-12"`,
@@ -166,14 +175,15 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 → `ProductMoment` → `FitNote` → `LandingPricing` → `FinalCta`. Eight bands, ~5,400 px on a phone.
 
 ### 9. Marquee and ProofLine are adjacent and say the same four things
+
 - **File(s):** `app/page.tsx:57-58`; `components/marketing/marquee.tsx:4-9`;
   `components/marketing/landing/proof-line.tsx:10-15`
 - **Current UX/UI Problem:** the marquee scrolls `["One venue QR", "28-day platform pilot",
-  "No POS setup", "Fast at the counter"]`. The `ProofLine` immediately below it renders
+"No POS setup", "Fast at the counter"]`. The `ProofLine` immediately below it renders
   `[BRAND.pointOfView, "A browser-based loyalty card — no app to download", "Return visits shown in
-  your dashboard", SCARCITY.capLine]`. Both are four short bold claims; the marquee is
+your dashboard", SCARCITY.capLine]`. Both are four short bold claims; the marquee is
   `aria-hidden="true"` so it contributes nothing to AT or SEO; `ProofLine`'s own docblock calls
-  itself "the page's first break in rhythm" — but it is the *second* consecutive fact strip.
+  itself "the page's first break in rhythm" — but it is the _second_ consecutive fact strip.
 - **Why It Is a Problem:** ~215 px of stacked vertical space for one idea, delivered twice, one copy
   of which is invisible to half the audience and costs a `requestAnimationFrame` loop. It also
   breaks the "value before friction" voice rule by front-loading marketing assertions before the
@@ -185,12 +195,13 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 10. `FinalCta` restates the hero headline verbatim and stacks against the pricing CTA
+
 - **File(s):** `components/marketing/landing/final-cta.tsx:17-27`;
   `components/marketing/landing/hero.tsx:30-31` (`LANDING.hero.headline`);
   `components/marketing/landing/landing-pricing.tsx:64-71`
 - **Current UX/UI Problem:** hero H1 = "Give your weekend crowd a reason to come back on a Tuesday".
   `FinalCta` H2 = "Give your weekend customers a reason to come back midweek". `FinalCta` body is
-  `{PLAN_LINE} {OFFER.riskFraming}` — `OFFER.riskFraming` is *also* the description of
+  `{PLAN_LINE} {OFFER.riskFraming}` — `OFFER.riskFraming` is _also_ the description of
   `GuaranteeStack` and `PLAN_LINE` restates the pricing card directly above. Both bands are
   `size="dense"` (`py-4`) so there are 32 px between the pricing CTA and a second CTA card.
 - **Why It Is a Problem:** the page closes by paraphrasing its own opening, in a card, 12 px from an
@@ -203,15 +214,16 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 11. `ProductMoment` is a 1,100 px single-column band until 1024 px
+
 - **File(s):** `components/marketing/landing/product-moment.tsx:26`
 - **Current UX/UI Problem:** `className="grid gap-8 pt-8 sm:pt-10 lg:grid-cols-3 lg:gap-10"`. The
   three beats (QR ≈ 176 px + caption block, `StampGrid` ≈ 120 px + caption, `RewardTicket` ≈ 150 px
-  + caption) stack full-width at every width below `lg`. Each beat's visual is capped at
-  `max-w-[11rem]` / `max-w-[13rem]` and centred via `grid flex-1 place-items-center`, so on a 768 px
-  tablet you get three 176 px objects floating in 768 px of white space over ~900 px of scroll.
-- **Why It Is a Problem:** this is the page's *one dominant composition* per its own docblock, and it
+  - caption) stack full-width at every width below `lg`. Each beat's visual is capped at
+    `max-w-[11rem]` / `max-w-[13rem]` and centred via `grid flex-1 place-items-center`, so on a 768 px
+    tablet you get three 176 px objects floating in 768 px of white space over ~900 px of scroll.
+- **Why It Is a Problem:** this is the page's _one dominant composition_ per its own docblock, and it
   is the single tallest band on `/`. Three tiny centred glyphs stacked vertically read as three
-  unrelated illustrations, not one three-beat sequence — the horizontal relationship *is* the
+  unrelated illustrations, not one three-beat sequence — the horizontal relationship _is_ the
   meaning ("scan → stamp → reward").
 - **Recommended Redesign:** go horizontal much earlier: `grid-cols-3 gap-4 sm:gap-8` from the base
   breakpoint (the objects are ≤ 208 px, they fit three-across at 375 px if the captions go below the
@@ -220,12 +232,13 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 12. Every multi-column marketing layout jumps 1 → N at `lg`, so tablets render as phones
+
 - **File(s):** `product-moment.tsx:26` (`lg:grid-cols-3`); `guarantee-stack.tsx:40`
   (`lg:grid-cols-2`); `scarcity-band.tsx:14` (`lg:grid-cols-[7fr_5fr]`);
   `commercial-evidence-proof.tsx:24` (`lg:grid-cols-3`); `pub-fit-test.tsx:20` (`lg:grid-cols-2`);
   `persona-page.tsx:138` (`lg:grid-cols-2`); `app/how-it-works/page.tsx:75`, `94`;
   `hero.tsx:26`, `process-hero.tsx:34`, `pub-guide-hero.tsx:39` (all `lg:grid-cols-…`)
-- **Current UX/UI Problem:** eleven layouts in scope use `lg:` (1024 px) as their *first* column
+- **Current UX/UI Problem:** eleven layouts in scope use `lg:` (1024 px) as their _first_ column
   break, with no `sm:` or `md:` step. Tailwind's `md` (768 px) is used nowhere in the landing family
   except `landing-pricing.tsx:33`.
 - **Why It Is a Problem:** iPad portrait (768/810), half-screen laptop windows, and Surface-class
@@ -239,6 +252,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Critical
 
 ### 13. `CommercialEvidenceProof` blocks the whole landing render and vanishes with no fallback
+
 - **File(s):** `app/page.tsx:59`; `components/marketing/landing/commercial-evidence-proof.tsx:12-15`
 - **Current UX/UI Problem:** `export async function CommercialEvidenceProof()` awaits
   `getPublishedCommercialEvidence()` and is rendered **directly** in `app/page.tsx` with no
@@ -254,6 +268,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 14. Heading scale on `/` is three unrelated sizes for the same rank
+
 - **File(s):** `product-moment.tsx:23` (`h2 text-3xl sm:text-4xl`); `fit-note.tsx:18` and
   `final-cta.tsx:17` (`h2 text-2xl sm:text-3xl`); `components/brand/typography.tsx:117`
   (`SectionHeader` → `h2 text-lg`, used by `landing-pricing.tsx:28` and
@@ -274,6 +289,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 15. Hero headline scale skips the whole tablet range and misses its own token
+
 - **File(s):** `components/marketing/landing/hero.tsx:30`; `process-hero.tsx:38`
 - **Current UX/UI Problem:** `text-4xl leading-[1.03] … sm:text-6xl` — 36 px below 640 px, 60 px at
   and above. DESIGN.md's `marketing-hero` token is **56 px**. `max-w-xl` (576 px) means the 60 px
@@ -288,10 +304,11 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 16. The hero's secondary action is a 20 px-tall tap target
+
 - **File(s):** `hero.tsx:40-45`; also `process-hero.tsx:48-53`, `fit-note.tsx:31-36`,
   `pub-guide-hero.tsx:57-59`, `options-matrix.tsx:134-138`, `guide-page.tsx:114-119`
 - **Current UX/UI Problem:** `className="focus-ring rounded-sm text-sm font-bold text-foreground
-  underline underline-offset-4"` on a `<Link>` — no `inline-flex`, no `min-h-11`, no padding. The
+underline underline-offset-4"` on a `<Link>` — no `inline-flex`, no `min-h-11`, no padding. The
   rendered hit area is the text box: ~14 px tall, ~150 px wide, sitting on the same baseline as a
   48 px `size="lg"` button.
 - **Why It Is a Problem:** DESIGN.md · Layout & Spacing: "Primary tap targets ≥ 44px". This is the
@@ -300,12 +317,13 @@ were modified, no builds or tests run. Heights below are estimated from the actu
   repeated at six call sites.
 - **Recommended Redesign:** mint one `marketingTextLink` class:
   `focus-ring inline-flex min-h-11 items-center rounded-(--radius-md) px-1 text-sm font-bold
-  underline underline-offset-4` and use it at all six sites. Alternatively use
+underline underline-offset-4` and use it at all six sites. Alternatively use
   `<Button variant="link" size="default">`, which already carries `.pressable`'s 2.75 rem
   `min-height` and the shared focus recipe.
 - **Priority:** High
 
 ### 17. The hero sample card runs an infinite animation with no pause mechanism
+
 - **File(s):** `components/marketing/landing/hero-sample-card.tsx:59-63`;
   `components/loyalty/use-stamp-journey-loop.ts:32-85`
 - **Current UX/UI Problem:** `useStampJourneyLoop(3)` schedules
@@ -325,24 +343,26 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 18. `ProofLine` renders four sentences as an unseparated wrapped stack
+
 - **File(s):** `components/marketing/landing/proof-line.tsx:19-27`
 - **Current UX/UI Problem:** `<ul className="flex flex-wrap items-center gap-x-6 gap-y-2 border-y-2
-  border-ink py-3">` with `<li className="text-sm leading-6 font-bold">`. `SCARCITY.capLine` and
+border-ink py-3">` with `<li className="text-sm leading-6 font-bold">`. `SCARCITY.capLine` and
   `BRAND.pointOfView` are full clauses, so on a 375 px screen all four wrap to their own lines with
   8 px between them and no bullet, rule, or mono marker.
 - **Why It Is a Problem:** four bold 14 px sentences stacked 8 px apart inside one ink-bordered box
   read as a single run-on paragraph in bold — the worst possible legibility treatment. The
   `items-center` + `gap-x-6` layout only works at ≥ 1024 px where all four fit on one line.
 - **Recommended Redesign:** `grid grid-cols-1 divide-y-2 divide-dashed divide-border sm:grid-cols-2
-  sm:divide-y-0 sm:divide-x-2 lg:grid-cols-4`, each cell `py-2 sm:px-4`, and prefix each with a
+sm:divide-y-0 sm:divide-x-2 lg:grid-cols-4`, each cell `py-2 sm:px-4`, and prefix each with a
   `mono-id` index (`01`–`04`) so it reads as a printed fact ledger — the receipt idiom the page
   already owns.
 - **Priority:** Medium
 
 ### 19. `FitNote` is a centred grey block with no visual anchor
+
 - **File(s):** `components/marketing/landing/fit-note.tsx:16-38`
 - **Current UX/UI Problem:** `<div className="mx-auto grid max-w-2xl justify-items-center gap-5
-  text-center">` — an H2, a bare `<ul className="grid gap-1.5">` of three unmarked lines each
+text-center">` — an H2, a bare `<ul className="grid gap-1.5">` of three unmarked lines each
   `text-base leading-7`, a muted paragraph, and a 20 px underlined link. No card, no border, no
   eyebrow, no icons.
 - **Why It Is a Problem:** it is the only centred, chromeless band on `/`, sandwiched between the
@@ -356,6 +376,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 20. `LandingPricing` violates the pricing system's own "never beside it" rule and forks the plan
+
 - **File(s):** `components/marketing/landing/landing-pricing.tsx:33-95`;
   `components/marketing/pricing/takeover-anchor.tsx:8-15`
 - **Current UX/UI Problem:** the band is `md:grid-cols-[minmax(0,1.35fr)_minmax(0,0.85fr)]` with the
@@ -375,10 +396,11 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 21. `FinalCta` uses an arbitrary card-spacing override instead of the existing padding token
+
 - **File(s):** `components/marketing/landing/final-cta.tsx:14`;
   `components/brand/receipt-card.tsx:7-12`
 - **Current UX/UI Problem:** `className="items-center gap-3 text-center sm:gap-4
-  sm:[--card-spacing:--spacing(8)]"` — a hand-rolled arbitrary property when `ReceiptCard` already
+sm:[--card-spacing:--spacing(8)]"` — a hand-rolled arbitrary property when `ReceiptCard` already
   exposes `padding="lg"` mapped to exactly `--spacing(8)`.
 - **Why It Is a Problem:** the component's padding API is bypassed, so a future change to `PADDING.lg`
   will not reach this card and the two will drift. It also hides a responsive padding change from
@@ -396,6 +418,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 `FeaturesListicle` → `OutcomeTransformation` → `ContrastBand` → `#diy Section`. ≈ 4,600 px mobile.
 
 ### 22. The five launch steps are printed twice, ~800 px apart
+
 - **File(s):** `components/marketing/landing/process-hero.tsx:16-22`, `85-101`;
   `components/marketing/landing/launch-steps.tsx:46-87`; `app/how-it-works/page.tsx:57-63`, `69`
 - **Current UX/UI Problem:** `ProcessHero`'s `LaunchTicket` prints `STEP_TICKET_LINES` = ["Venue +
@@ -414,6 +437,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Critical
 
 ### 23. `ProblemPains` states eight objections and answers none of them in place
+
 - **File(s):** `components/marketing/landing/problem-pains.tsx:15-52`;
   `lib/marketing/facts.ts` `PROBLEM.pains` (8 items)
 - **Current UX/UI Problem:** eight quoted objections as numbered dashed tickets. On mobile they ride
@@ -433,9 +457,10 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 24. `FeaturesListicle` sets full sentences in 10 px uppercase mono
+
 - **File(s):** `components/marketing/landing/features-listicle.tsx:77-79`
 - **Current UX/UI Problem:** `<p className="mono-id mt-auto border-t-2 border-dashed border-border
-  pt-2.5 text-primary uppercase">{feature.removes}</p>` where `feature.removes` is e.g.
+pt-2.5 text-primary uppercase">{feature.removes}</p>` where `feature.removes` is e.g.
   `Removes the "download our app" objection at the counter.` — a 52-character sentence at
   **10 px Space Mono 700, 0.06em, uppercase, vermillion on card (4.79:1)**.
 - **Why It Is a Problem:** DESIGN.md is explicit — "Receipt voice (Space Mono, uppercase) for facts…
@@ -449,12 +474,13 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 25. `PRODUCT.cancelLine` — 96 characters of material commercial information — is rendered at 10 px in nine places
+
 - **File(s):** `hero.tsx:47-49`, `process-hero.tsx:55-57`, `final-cta.tsx:28-30`,
   `landing-pricing.tsx:72-75`, `growth-plan-pricing.tsx:160-164`, `persona-page.tsx:206-208`,
   `guide-page.tsx:140-142`, `hub-handoff.tsx:67-69`, `app/how-it-works/page.tsx:117-119`
 - **Current UX/UI Problem:** every one is `className="mono-id text-muted-foreground uppercase"` —
-  10 px Space Mono, uppercase, tracked — carrying *"Card required — cancel renewal anytime after a
-  short exit review from your billing page."* In `growth-plan-pricing.tsx` the `FinePrintStrip`
+  10 px Space Mono, uppercase, tracked — carrying _"Card required — cancel renewal anytime after a
+  short exit review from your billing page."_ In `growth-plan-pricing.tsx` the `FinePrintStrip`
   concatenates it with `billingDisclosure` and `processingFeeLine` into a ~200-character
   `mono-meta` (11.5 px) uppercase paragraph.
 - **Why It Is a Problem:** this is ASA material information about a recurring charge. Uppercase mono
@@ -462,16 +488,17 @@ were modified, no builds or tests run. Heights below are estimated from the actu
   all-caps run is effectively unread. It is also nine independent renderings of one legal string
   with no shared component, so a wording change touches nine files.
 - **Recommended Redesign:** create `<FinePrint>` in `components/brand`: `text-xs leading-5
-  text-muted-foreground` (12 px sentence case) with an optional `mono-id` label. Reserve `mono-id`
+text-muted-foreground` (12 px sentence case) with an optional `mono-id` label. Reserve `mono-id`
   for genuine IDs and dates. Use it at all nine call sites and inside `FinePrintStrip`.
 - **Priority:** High
 
 ### 26. `OutcomeTransformation` puts a bare decorative `<li>` inside a labelled list, and the rail semantics break at `sm`
+
 - **File(s):** `components/marketing/landing/outcome-transformation.tsx:31-80`;
   `components/marketing/landing/snap-rail.tsx:29-38`
 - **Current UX/UI Problem:** the `SnapRail` renders `<ul aria-label="Before and after the launch"
-  tabIndex={0}>`; its children are `SnapRailItem` (before), a raw `<li aria-hidden="true"
-  className="hidden sm:grid">` holding the arrow roundel, and `SnapRailItem` (after). The grid class
+tabIndex={0}>`; its children are `SnapRailItem` (before), a raw `<li aria-hidden="true"
+className="hidden sm:grid">` holding the arrow roundel, and `SnapRailItem` (after). The grid class
   is `sm:grid-cols-[1fr_auto_1fr]`.
 - **Why It Is a Problem:** an `aria-hidden` list item still occupies a position in the list for some
   AT implementations, so the labelled 2-item comparison announces as a 3-item list. On mobile the
@@ -484,9 +511,10 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 27. `SnapRail`'s only affordance is a 10 px vermillion hint that is announced to screen readers
+
 - **File(s):** `components/marketing/landing/snap-rail.tsx:26-28`, `29-35`, `52-56`
 - **Current UX/UI Problem:** `<p className="mono-id flex items-center justify-end gap-1 text-primary
-  uppercase sm:hidden">Swipe to see every card <span aria-hidden>→</span></p>` — 10 px, vermillion
+uppercase sm:hidden">Swipe to see every card <span aria-hidden>→</span></p>` — 10 px, vermillion
   (4.79:1 on card, i.e. exactly at the AA floor), right-aligned, not `aria-hidden`. Items are
   `w-[76vw] max-w-xs`, the rail is `-mx-6 px-6 overflow-x-auto snap-x snap-mandatory` with
   `tabIndex={0}`.
@@ -502,10 +530,11 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 28. The `#promise` contrast band gives the honest disclaimer a lighter treatment than the promise
+
 - **File(s):** `app/how-it-works/page.tsx:74-92`
 - **Current UX/UI Problem:** "What we promise" is `text-xl sm:text-2xl font-extrabold` on the bare
   ink ground; "What we never promise" sits in a `rounded-lg border-2 border-dashed border-paper/40
-  p-4` box at `text-base leading-7`. The dashed `paper/40` border computes to **3.5:1** against ink
+p-4` box at `text-base leading-7`. The dashed `paper/40` border computes to **3.5:1** against ink
   — acceptable for a non-text boundary but visually faint — and the box has no fill.
 - **Why It Is a Problem:** the boundary statement is the ASA-critical half of the pair and the whole
   reason the band exists ("the honesty is part of the offer" per `GuaranteeStack`'s docblock), but
@@ -517,6 +546,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 29. The `#diy` section's H2 is smaller than the quote beside it
+
 - **File(s):** `app/how-it-works/page.tsx:96-100`, `110-120`;
   `components/brand/typography.tsx:117`
 - **Current UX/UI Problem:** `SectionHeader` renders "The same five steps, whenever you're ready" as
@@ -539,6 +569,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 `ReceiptCard` → `GuaranteeStack` → `ScarcityBand` → `#pricing-faq`.
 
 ### 30. The pricing sheet is a ~1,200 px single column with eight unequal blocks
+
 - **File(s):** `components/marketing/growth-plan-pricing.tsx:41-165`;
   `components/marketing/pricing/pricing-sheet.tsx:46`
 - **Current UX/UI Problem:** `PricingSheetBody` is `grid gap-6 p-5 sm:p-7`, holding: tag row, `h2`,
@@ -547,7 +578,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
   375 px that is ≈ 1,150–1,250 px of continuous scroll before the reader reaches the CTA. Nothing
   goes multi-column until `sm:` and even then only `PlanIncludesList columns={2}` splits.
 - **Why It Is a Problem:** the price, the schedule, the timeline and the includes are four different
-  *kinds* of information given identical visual weight and a uniform 24 px gap, so there is no
+  _kinds_ of information given identical visual weight and a uniform 24 px gap, so there is no
   scanning path. A pricing page's job is to answer "how much and what do I get" in one screen; here
   it takes four.
 - **Recommended Redesign:** two-column the sheet from `md:` —
@@ -559,9 +590,10 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 31. Two `role="group"` regions with no visible headings and no choice to make
+
 - **File(s):** `components/marketing/growth-plan-pricing.tsx:59-63`, `78-83`
 - **Current UX/UI Problem:** `<div data-payment-option="28-day" role="group" aria-label="Pay as you
-  go">` and `<div data-payment-option="annual" role="group" aria-label="Prepay a year">`. Sighted
+go">` and `<div data-payment-option="annual" role="group" aria-label="Prepay a year">`. Sighted
   users see two prices separated by an `hr.w-rule` with **no label at all** on the first one; the
   second's label appears only as a `MonoTag` floated to the right at `sm:`. The docblock explicitly
   states there is deliberately no billing toggle.
@@ -575,6 +607,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 32. Buttons on ink grounds lose their border and shadow entirely
+
 - **File(s):** `components/marketing/pricing/takeover-anchor.tsx:41-43`;
   `components/marketing/landing/scarcity-band.tsx:34-36`;
   `app/how-it-works/page.tsx:74-92` (band ground)
@@ -591,11 +624,12 @@ were modified, no builds or tests run. Heights below are estimated from the actu
   perceived edge against the band.
 - **Recommended Redesign:** add an `onInk` treatment to the unlayered layer — e.g.
   `[data-on-ink] [data-slot="button"] { border-color: var(--w-paper); --tw-shadow: 3px 3px 0
-  var(--w-paper); }` — and set `data-on-ink` on `ContrastBand` and `TakeoverAnchor`. Remove
+var(--w-paper); }` — and set `data-on-ink` on `ContrastBand` and `TakeoverAnchor`. Remove
   `shadow-md` from the `TakeoverAnchor` aside.
 - **Priority:** High
 
 ### 33. `TakeoverAnchor` and the landing bespoke card are two renderings of one offer
+
 - **File(s):** `components/marketing/pricing/takeover-anchor.tsx:18-44`;
   `components/marketing/landing/landing-pricing.tsx:78-94`
 - **Current UX/UI Problem:** `/pricing` renders the takeover as an ink `<aside>` with a sun-toned
@@ -612,6 +646,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 34. `GuaranteeStack`'s disclosure summary is a 10 px control label with three sibling dialects
+
 - **File(s):** `components/marketing/landing/guarantee-stack.tsx:54-70`;
   `components/marketing/landing/faq.tsx:18-32` and `61-83`
 - **Current UX/UI Problem:** three `<details>` treatments coexist on the marketing surface:
@@ -629,11 +664,12 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Recommended Redesign:** extract one `<Disclosure>` primitive in `components/brand` — `summary`
   at `text-sm font-bold min-h-11 px-4 py-3`, glyph via `Icon` (`PlusSignIcon` / `MinusSignIcon`,
   16 px) per the Hugeicons contract rather than text `+`/`−`, body `border-t-2 border-dashed px-4
-  py-3`. Use it in all three places and delete `FaqList`/`LandingFaq`'s duplicate markup (see
+py-3`. Use it in all three places and delete `FaqList`/`LandingFaq`'s duplicate markup (see
   finding 36).
 - **Priority:** Medium
 
 ### 35. The "Does the maths work?" receipt exists twice at two type scales
+
 - **File(s):** `app/pricing/page.tsx:67-82`;
   `components/marketing/landing/outcome-transformation.tsx:82-99`
 - **Current UX/UI Problem:** both render `VALUE_MATH.assumptionLine` / `coverLine` /
@@ -650,6 +686,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 36. `FaqList` and `LandingFaq` are the same component with a number bolted on
+
 - **File(s):** `components/marketing/landing/faq.tsx:10-40` and `48-104`
 - **Current UX/UI Problem:** ~95 lines in one file, of which the two `<details>` blocks differ only
   by: an index `<span className="mono-id w-6">`, `shadow-sm` on the card, `flex-1` on the question,
@@ -663,6 +700,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Low
 
 ### 37. `/pricing`'s FAQ stretches a 14 px accordion across 1,152 px
+
 - **File(s):** `app/pricing/page.tsx:85-94`; `components/marketing/landing/faq.tsx:10-16`
 - **Current UX/UI Problem:** `<Section id="pricing-faq">` is `max-w-marketing` (1152 px);
   `FaqList` renders `<div className="grid gap-3">` with no measure constraint, so each question row
@@ -677,6 +715,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 38. `ScarcityBand` and `GuaranteeStack` restate `CLAIMS_BOUNDARY` for the third and fourth time
+
 - **File(s):** `components/marketing/landing/guarantee-stack.tsx:74-85`;
   `components/marketing/landing/scarcity-band.tsx:19-27`; `app/how-it-works/page.tsx:83-89`;
   `components/marketing/landing/proof-strip.tsx:31`
@@ -689,7 +728,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
   catch box and then again 32 px later as the `ScarcityBand` H2 — the same sentence twice in one
   scroll. Repetition of a limitation reads as defensiveness rather than honesty.
 - **Recommended Redesign:** on `/pricing`, delete the "The catch" box from `GuaranteeStack` and let
-  `ScarcityBand` (which is right below it and is *about* the cap) own `capLine`/`capReason`; keep
+  `ScarcityBand` (which is right below it and is _about_ the cap) own `capLine`/`capReason`; keep
   `CLAIMS_BOUNDARY.never` in one place per page. Saving ≈ 200 px on `/pricing` and a clearer story.
 - **Priority:** Medium
 
@@ -698,6 +737,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 ## E. `/faq`, `/about`, `/demo`, `/start`, `/offline`
 
 ### 39. `/faq` misaligns its H1 axis against its own content column
+
 - **File(s):** `app/faq/page.tsx:45-51`; `components/marketing/landing/faq.tsx:57`
 - **Current UX/UI Problem:** the `<Section id="faq">` is `max-w-marketing` (1152 px). `PageTitle`
   renders full-width inside it (heading capped at `max-w-3xl`, description at `max-w-2xl`, both
@@ -711,6 +751,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 40. `/faq` closes with three equal-weight `size="lg"` buttons
+
 - **File(s):** `app/faq/page.tsx:52-62`
 - **Current UX/UI Problem:** `flex flex-wrap items-center gap-3` holding one `default` and two
   `secondary` `size="lg"` (h-12) buttons. On a 375 px screen these stack into a **168 px CTA tower**;
@@ -725,6 +766,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 41. `/about` is five 14 px paragraphs at a 105-character measure, with no subheadings
+
 - **File(s):** `app/about/page.tsx:58-90`
 - **Current UX/UI Problem:** `<div className="grid gap-4 pt-6">` containing five
   `<p className="text-sm leading-7 text-muted-foreground">`. The section is `width="narrow"` =
@@ -741,6 +783,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 42. `/about` ends with a bare button row and a hardcoded `pb-10`
+
 - **File(s):** `app/about/page.tsx:93-102`; also `persona-page.tsx:190`, `guide-page.tsx:123`
 - **Current UX/UI Problem:** `<Section width="narrow" size="compact" className="pb-10">` wrapping
   only two buttons — no heading, no context sentence, no card. The `className="pb-10"` override
@@ -755,6 +798,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Low
 
 ### 43. `/demo` builds its rhythm from four different `pt-*` values instead of a gap
+
 - **File(s):** `app/demo/page.tsx:25-52`
 - **Current UX/UI Problem:** inside one `<Section width="narrow">`: `PageTitle` (left-aligned),
   then `<div className="mx-auto w-full max-w-sm pt-8">`, then a tag row `pt-6`, then a paragraph
@@ -771,6 +815,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 44. `/start` stacks two equal-weight `size="lg"` buttons 8 px apart
+
 - **File(s):** `app/start/page.tsx:42-57`
 - **Current UX/UI Problem:** `<div className="grid gap-2">` holding `Button size="lg"` (default,
   vermillion, "Scan a QR"), `Button variant="secondary" size="lg"` ("Open my cards") and a
@@ -785,6 +830,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 45. `/offline` uses an empty `href` and a variant nothing else on the surface uses
+
 - **File(s):** `app/offline/page.tsx:35-40`
 - **Current UX/UI Problem:** `<Button asChild><a href="">Try again</a></Button>` — an empty string
   href — and `<Button asChild variant="outline">` for the secondary. `outline` appears nowhere else
@@ -806,6 +852,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 `GuideSection`s, each with prose plus a structured payload. Estimated ≈ **8,500–9,000 px mobile**.
 
 ### 46. 96 px between sections, on the longest page in the product
+
 - **File(s):** `components/marketing/pubs/pubs-page.tsx:95`
 - **Current UX/UI Problem:** `<div className="grid gap-12 pt-6 lg:gap-16 lg:pt-0">` — 48 px gap on
   mobile, 64 px from `lg`. `GuideSection` itself adds `grid gap-4` internally, and each payload adds
@@ -819,6 +866,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 47. `OptionsMatrix` renders 20 label/value pairs as stacked cards on mobile
+
 - **File(s):** `components/marketing/pubs/options-matrix.tsx:99-130`; `lib/marketing/facts.ts`
   `PUB_LOYALTY_OPTIONS` (4 options) × `ASPECTS` (5 rows)
 - **Current UX/UI Problem:** below `lg` the table is replaced by
@@ -826,7 +874,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
   of 5 `dt`(`mono-id`, 10 px) + `dd`(`text-sm leading-6`, prose) pairs. Each option card is
   ≈ 380 px; four of them ≈ **1,550 px** for one comparison.
 - **Why It Is a Problem:** this is the hub's declared centrepiece and on a phone it is a 1,550 px
-  vertical read where the whole point is *lateral comparison*. A reader cannot hold "what your guest
+  vertical read where the whole point is _lateral comparison_. A reader cannot hold "what your guest
   does" for Paper in mind while scrolling 380 px to read it for QR. The 10 px `dt` labels repeat 20
   times, adding noise without adding structure.
 - **Recommended Redesign:** invert the mobile layout — group by **aspect**, not by option: five
@@ -837,11 +885,12 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 48. The desktop comparison table horizontally scrolls at every laptop width
+
 - **File(s):** `components/marketing/pubs/options-matrix.tsx:53-54`;
   `components/marketing/pubs/pubs-page.tsx:92`; `components/ui/table.tsx:9-13`
 - **Current UX/UI Problem:** the table is `hidden … lg:block` with `<Table className="min-w-[56rem]">`
   (896 px). At `lg` the available content column is `1024 − 48 (gutter) − 192 (spine) − 48 (gap)
-  ≈ 736 px`. `Table` wraps itself in `overflow-x-auto tabIndex={0}`, so the "table from lg up"
+≈ 736 px`. `Table` wraps itself in `overflow-x-auto tabIndex={0}`, so the "table from lg up"
   **always scrolls horizontally** between 1024 px and ~1,280 px.
 - **Why It Is a Problem:** the stated reason for gating the table at `lg` is that "four prose columns
   need the width" — but at `lg` they do not have it. A horizontally scrolling 5-row table with no
@@ -854,6 +903,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 49. `GuideSpine` collapses after hydration, shifting the layout on every mobile load
+
 - **File(s):** `components/marketing/pubs/guide-spine.tsx:61-88`; `lib/motion/use-hydrated`
 - **Current UX/UI Problem:** the toggle button is `hydrated ? "flex" : "hidden"` and the `<ol>` is
   `hydrated && !open ? "hidden lg:block" : "grid"`. So the server sends the **full 8-link list**
@@ -868,11 +918,12 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 50. `VendorQuestions` gives the answer more visual weight than the question
+
 - **File(s):** `components/marketing/pubs/vendor-questions.tsx:20-45`
 - **Current UX/UI Problem:** each of the six rows is `sm:grid-cols-[5fr_6fr]`. The left cell (the
-  question the reader is meant to *ask a vendor*) is bare text on the page ground; the right cell
+  question the reader is meant to _ask a vendor_) is bare text on the page ground; the right cell
   (our answer) is `rounded-lg border-2 border-ink bg-card p-3.5` — a bordered card with a lighter
-  ground. The answer column is also the *wider* one (6fr vs 5fr).
+  ground. The answer column is also the _wider_ one (6fr vs 5fr).
 - **Why It Is a Problem:** the section's whole premise is "ask these of anyone you talk to, us
   included" — a due-diligence checklist. Rendering our own answers as the visually dominant,
   wider, carded element turns a checklist into a sales sheet, undermining the credibility the
@@ -885,10 +936,11 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 51. `TillMoment` hand-rolls a circle that `IconRoundel` already owns
+
 - **File(s):** `components/marketing/pubs/till-moment.tsx:17-22`;
   `components/brand/icon-roundel.tsx:6-13`
 - **Current UX/UI Problem:** `<span className="mono-meta grid size-7 place-items-center rounded-full
-  border-2 border-ink bg-card text-foreground">{index + 1}</span>` — a 28 px numbered circle.
+border-2 border-ink bg-card text-foreground">{index + 1}</span>` — a 28 px numbered circle.
   `IconRoundel size="sm"` is exactly this at 32 px, with `children` as the documented "step number"
   mode, and DESIGN.md says "new framing circles reach for `IconRoundel` rather than hand-rolling
   `rounded-full`".
@@ -898,6 +950,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Low
 
 ### 52. `StaffTime`'s three-up grid produces a ~25-character measure at `sm`
+
 - **File(s):** `components/marketing/pubs/staff-time.tsx:19-33`
 - **Current UX/UI Problem:** `<ul className="grid gap-3 sm:grid-cols-3">` with each card
   `p-4 sm:p-5` holding a `MonoTag` and a `text-sm leading-6` paragraph. At 640 px inside the guide
@@ -911,6 +964,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 53. `PubGuideHero` stacks three ink-bordered surfaces around one card
+
 - **File(s):** `components/marketing/pubs/pub-guide-hero.tsx:67-84`
 - **Current UX/UI Problem:** an `aria-hidden` `bg-seal` sheet rotated 2° behind a
   `rounded-[var(--radius-sheet)] border-2 border-ink bg-cobalt p-5 shadow-md sm:p-7` panel, which
@@ -922,17 +976,18 @@ were modified, no builds or tests run. Heights below are estimated from the actu
   than supporting it, and the nested `p-5 sm:p-7` adds ~80 px of height for decoration alone.
 - **Recommended Redesign:** drop the cobalt panel; keep the sun offset sheet directly behind the
   card (one rotation, two surfaces), and move the "The QR option" tag + "Try it live" link to a
-  dashed caption bar *below* the card. Fewer grounds, ~90 px shorter, and the card stays the hero.
+  dashed caption bar _below_ the card. Fewer grounds, ~90 px shorter, and the card stays the hero.
 - **Priority:** Medium
 
 ### 54. Five different page-title scales across six page types
+
 - **File(s):** `hero.tsx:30` (`text-4xl sm:text-6xl`); `process-hero.tsx:38` (same);
   `pub-guide-hero.tsx:43` (`text-3xl sm:text-5xl`); `components/brand/typography.tsx:69`
   (`text-3xl sm:text-4xl`); `app/terms/page.tsx:64`, `privacy/page.tsx:65`,
   `legal-document-page.tsx:56` (`text-[clamp(2.1rem,4.5vw,3.2rem)]`)
 - **Current UX/UI Problem:** the H1 renders at 36→60 px on `/` and `/how-it-works`, 30→48 px on
   `/loyalty-for-pubs`, 30→36 px on `/pricing`, `/faq`, `/about`, `/demo`, and a fluid 33.6→51.2 px on
-  the five legal pages — the legal H1 is therefore *larger* than the pricing page's H1 on desktop.
+  the five legal pages — the legal H1 is therefore _larger_ than the pricing page's H1 on desktop.
 - **Why It Is a Problem:** page titles are the strongest signal of where you are in a site. Five
   scales means the cookie notice announces itself more loudly than the pricing page. DESIGN.md
   defines exactly two: `marketing-hero` 56 px and `page-title` 30/36 px.
@@ -946,6 +1001,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 ## G. `/loyalty-for-{bars,cafes,takeaways}` — the persona spokes
 
 ### 55. Three routes, one template, zero vertical-specific content
+
 - **File(s):** `app/loyalty-for-bars/page.tsx`, `-cafes`, `-takeaways` (21 lines each);
   `components/marketing/persona-page.tsx:79-226`
 - **Current UX/UI Problem:** the three spokes differ only in `persona.title`, `persona.audience`,
@@ -963,12 +1019,13 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 56. `PersonaSpokePage` renders four content types with one identical treatment
+
 - **File(s):** `components/marketing/persona-page.tsx:111-189`
 - **Current UX/UI Problem:** four consecutive `<Section size="compact">` (`py-4 sm:py-5` — i.e. no
   rhythm change at all, see finding 3). `CORE_OFFER` items are
   `border-b-2 border-dashed border-border pb-2.5` + `text-sm text-muted-foreground`;
   `MARKET.qualify` items are `border-b-2 border-dashed border-border pb-2` + `text-sm
-  text-muted-foreground`; `MARKET.disqualify` items are **identical**. The only card on the whole
+text-muted-foreground`; `MARKET.disqualify` items are **identical**. The only card on the whole
   page is the guarantees `ReceiptCard`. No icons, no colour, no imagery, no rail.
 - **Why It Is a Problem:** "what you get", "who it's for", and "who it's not for" are three different
   jobs rendered as three visually identical grey dashed lists, ~1,200 px of them. A reader cannot
@@ -982,6 +1039,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 57. `MonoTag tone="ink"` makes the disqualifier louder than the qualifier
+
 - **File(s):** `components/marketing/persona-page.tsx:140`, `155`;
   `components/marketing/pubs/pub-fit-test.tsx:22`, `44`; `components/brand/mono-tag.tsx:15`
 - **Current UX/UI Problem:** "Right for you" uses `tone="leaf"` (green fill, white text);
@@ -996,6 +1054,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Low
 
 ### 58. The persona spokes never show a price
+
 - **File(s):** `components/marketing/persona-page.tsx:190-209`
 - **Current UX/UI Problem:** the closing section renders `PLAN_LINE` (a prose sentence) and
   `SCARCITY.capLine`, then two `size="lg"` buttons and the 10 px `cancelLine`. There is no
@@ -1004,7 +1063,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
   a second click before the primary objection can be resolved. Every other conversion surface on the
   site leads with the numeral.
 - **Recommended Redesign:** insert `<PriceLockup size="lead" amount={PRODUCT.priceAmount}
-  cadence={PRODUCT.priceCadence} />` plus the launch-fee line above the CTA row, or render
+cadence={PRODUCT.priceCadence} />` plus the launch-fee line above the CTA row, or render
   `<GrowthPlanPricing variant="compact" />` (see finding 20).
 - **Priority:** Medium
 
@@ -1013,6 +1072,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 ## H. `/guides/*`
 
 ### 59. A hardcoded display date that will silently contradict the machine-readable one
+
 - **File(s):** `components/marketing/guides/guide-page.tsx:56-59`
 - **Current UX/UI Problem:** `<time dateTime={guide.updatedOn}>19 July 2026</time>` — the visible
   text is a **string literal**, while the `dateTime` attribute and the `articleSchema`
@@ -1022,11 +1082,12 @@ were modified, no builds or tests run. Heights below are estimated from the actu
   and the structured data will disagree the moment any guide is revised, which is both a
   credibility problem for readers and a schema-mismatch signal for crawlers.
 - **Recommended Redesign:** format `guide.updatedOn` with the same `Intl.DateTimeFormat("en-GB", {
-  day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })` helper already used in
+day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })` helper already used in
   `commercial-evidence-proof.tsx:5-10`.
 - **Priority:** High
 
 ### 60. Guides have no on-page navigation while their two neighbours have two different ones
+
 - **File(s):** `components/marketing/guides/guide-page.tsx:61-87` (5 sections, ~1,500 words);
   compare `components/marketing/pubs/guide-spine.tsx` (sticky rail) and
   `components/legal/legal-document-page.tsx:36-49` (aside TOC)
@@ -1034,7 +1095,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
   `h2 text-xl` sections with no anchors, no ids, no TOC, no "back to top". The hub next door has a
   sticky scroll-spy spine; the legal pages have a sticky aside list.
 - **Why It Is a Problem:** three different answers to "how do I navigate a long document" across
-  three page families a user moves between, and the one with the *most* prose has none. The
+  three page families a user moves between, and the one with the _most_ prose has none. The
   `h2`s also have no `id`, so a reader cannot deep-link a section of a guide at all.
 - **Recommended Redesign:** reuse `GuideSpine` (make it generic over a section list) on the guides,
   or at minimum add `id` + `scroll-mt` to each `h2` and a collapsed `<details>` "On this page" above
@@ -1042,6 +1103,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 61. Guide body prose is 14 px at a 768 px measure, with a flat 1.43 heading ratio
+
 - **File(s):** `components/marketing/guides/guide-page.tsx:65-74`
 - **Current UX/UI Problem:** `h2 text-xl leading-snug` (20 px) over `p text-sm leading-7`
   (14 px), inside `Section width="narrow"` (768 px) with no `max-w-[Nch]` cap → **≈ 108 characters
@@ -1056,6 +1118,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 62. `ComparisonTable` switches to a table at 640 px — a 26-character column
+
 - **File(s):** `components/marketing/guides/comparison-table.tsx:26-52`
 - **Current UX/UI Problem:** `<div className="hidden overflow-x-auto … sm:block">` with a
   three-column prose table. At 640 px, inside `Section width="narrow"` with `px-6`, each column is
@@ -1074,11 +1137,12 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 
 ## I. Legal surface — `/terms`, `/privacy`, `/cookies`, `/merchant-terms`, `/data-processing`
 
-### 63. The table of contents renders *below* the document on mobile
+### 63. The table of contents renders _below_ the document on mobile
+
 - **File(s):** `components/legal/legal-document-page.tsx:36`; `app/terms/page.tsx:44`;
   `app/privacy/page.tsx:45`
 - **Current UX/UI Problem:** `<aside className="surface-card order-last p-4 lg:sticky lg:top-20
-  lg:order-none">` — `order-last` puts the "On this page" nav after the `<article>` in the grid at
+lg:order-none">` — `order-last` puts the "On this page" nav after the `<article>` in the grid at
   every width below `lg`. On `/privacy` that means the 12-item TOC appears after ≈ **3,200 px** of
   legal prose.
 - **Why It Is a Problem:** a table of contents that a reader only reaches after reading the whole
@@ -1091,6 +1155,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 64. Legal clause bodies run at a ~125-character measure
+
 - **File(s):** `components/legal/legal-document-page.tsx:77-79`; `app/terms/page.tsx:117`;
   `app/privacy/page.tsx:152`
 - **Current UX/UI Problem:** `<p className="text-sm leading-6 text-muted-foreground">` inside a
@@ -1107,12 +1172,13 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Critical
 
 ### 65. Clause headings are 11.5 px uppercase mono — smaller than the body they head
+
 - **File(s):** `components/legal/legal-document-page.tsx:74-76`; `app/terms/page.tsx:116`;
   `app/privacy/page.tsx:151`
 - **Current UX/UI Problem:** `<h2 className="mono-meta tracking-[0.08em] text-foreground">` — 11.5 px
   Space Mono 700 uppercase — above a 14 px body paragraph. Ten to twelve of these per page, with no
   number, no size step, no colour differentiation.
-- **Why It Is a Problem:** hierarchy is inverted: the heading is 2.5 px *smaller* than the text it
+- **Why It Is a Problem:** hierarchy is inverted: the heading is 2.5 px _smaller_ than the text it
   introduces, so a 12-clause privacy notice presents as an undifferentiated grey slab. It also
   contradicts DESIGN.md's register rule — clause titles like "How we use your information" are
   spoken voice, not printed metadata. And `tracking-[0.08em]` is an arbitrary override of
@@ -1123,6 +1189,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 66. `.w-rule` is applied to `<section>` elements, injecting 14 px margins the parent thinks it removed
+
 - **File(s):** `components/legal/legal-document-page.tsx:72`; `app/terms/page.tsx:114`;
   `app/privacy/page.tsx:149`; `app/globals.css` `.w-rule`
 - **Current UX/UI Problem:** each clause is
@@ -1142,10 +1209,11 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 67. `/terms` and `/privacy` are hand-rolled copies of `LegalDocumentPage`
+
 - **File(s):** `app/terms/page.tsx:38-120`; `app/privacy/page.tsx:38-155`;
   `components/legal/legal-document-page.tsx:21-95`
 - **Current UX/UI Problem:** all three render the identical shell — `Section as="div"
-  grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)]`, the same `aside` TOC, the same `PageTitle` with
+grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)]`, the same `aside` TOC, the same `PageTitle` with
   the same `titleClassName` clamp, the same `ReceiptCard edge grid gap-0` with the same
   `cardTitle`/`docNumber` header row, the same section renderer, the same related-link button row.
   `/terms` has a private `TermsBlock` and `/privacy` a private `PolicyBlock` that are
@@ -1159,6 +1227,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 68. Legal pages carry no effective date, version or print treatment
+
 - **File(s):** `lib/legal/content.ts` (`*_META` exposes `eyebrow`, `title`, `description`,
   `cardTitle`, `docNumber` only); `components/legal/legal-document-page.tsx:60-66`
 - **Current UX/UI Problem:** the card header shows `cardTitle` and `Nº {docNumber}`. There is no
@@ -1173,6 +1242,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 69. Related-link rows use three different button treatments across five legal pages
+
 - **File(s):** `app/terms/page.tsx:87-94` (two `variant="secondary"` default size);
   `app/privacy/page.tsx:127-129` (one `variant="secondary" className="w-fit"`);
   `components/legal/legal-document-page.tsx:84-90` (N `variant="secondary"`, wrapped)

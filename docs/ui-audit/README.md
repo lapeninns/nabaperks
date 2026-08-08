@@ -8,14 +8,14 @@ estimated rendered heights and grep-quantified consistency metrics. No source wa
 
 ## Contents
 
-| File | Area | Findings |
-|---|---|---|
-| [`00-master-redesign-audit.md`](./00-master-redesign-audit.md) | Consolidated report (all areas, with summary tables) | 347 |
-| [`01-marketing.md`](./01-marketing.md) | Marketing and legal surface, 16 public routes | 69 |
-| [`02-customer.md`](./02-customer.md) | Customer / member journey | 70 |
-| [`03-merchant.md`](./03-merchant.md) | Merchant console | 67 |
-| [`04-admin.md`](./04-admin.md) | Admin back-office, shared data display, dev surfaces | 74 |
-| [`05-design-system.md`](./05-design-system.md) | Design system, primitives, shells, accessibility | 67 |
+| File                                                           | Area                                                 | Findings |
+| -------------------------------------------------------------- | ---------------------------------------------------- | -------- |
+| [`00-master-redesign-audit.md`](./00-master-redesign-audit.md) | Consolidated report (all areas, with summary tables) | 347      |
+| [`01-marketing.md`](./01-marketing.md)                         | Marketing and legal surface, 16 public routes        | 69       |
+| [`02-customer.md`](./02-customer.md)                           | Customer / member journey                            | 70       |
+| [`03-merchant.md`](./03-merchant.md)                           | Merchant console                                     | 67       |
+| [`04-admin.md`](./04-admin.md)                                 | Admin back-office, shared data display, dev surfaces | 74       |
+| [`05-design-system.md`](./05-design-system.md)                 | Design system, primitives, shells, accessibility     | 67       |
 
 Severity split: 33 Critical, 131 High, 146 Medium, 37 Low.
 
@@ -24,16 +24,16 @@ classes), why it is a problem, recommended redesign, and priority.
 
 ## Measured page heights (375px phone)
 
-| Surface | Height | Note |
-|---|---|---|
-| `/admin/fraud` | ~26,000px | every row carries two full write forms |
-| `/admin/merchants` | ~20,000px | 100 QR records, unpaginated card wall |
-| `/admin/privacy` | ~13,500px | 4 stacked panels, 3 paginators on one URL |
-| `/loyalty-for-pubs` | ~9,000px | tallest public page |
-| `/home/activity` | ~5,800px | 40 unbounded rows, no grouping or paging |
-| `/` landing | ~5,400px | ~8 viewports |
-| `/app` dashboard | ~1,800px | ~4.6 viewports |
-| Marketing footer | ~650px | repeated on every public route |
+| Surface             | Height    | Note                                      |
+| ------------------- | --------- | ----------------------------------------- |
+| `/admin/fraud`      | ~26,000px | every row carries two full write forms    |
+| `/admin/merchants`  | ~20,000px | 100 QR records, unpaginated card wall     |
+| `/admin/privacy`    | ~13,500px | 4 stacked panels, 3 paginators on one URL |
+| `/loyalty-for-pubs` | ~9,000px  | tallest public page                       |
+| `/home/activity`    | ~5,800px  | 40 unbounded rows, no grouping or paging  |
+| `/` landing         | ~5,400px  | ~8 viewports                              |
+| `/app` dashboard    | ~1,800px  | ~4.6 viewports                            |
+| Marketing footer    | ~650px    | repeated on every public route            |
 
 ## Quantified inconsistency (full-codebase grep)
 

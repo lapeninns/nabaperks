@@ -44,6 +44,16 @@ block it, and the first is authoritative:
    (`/app/qr/poster/${template}?qr=${qrCodeId}&from=${…}`) as a source contract.
    Contracts win over the audit, and weakening that assertion to allow a move is
    exactly the change the brief forbids.
+
+   Re-verified by the root, precisely: the assertion is line 31 and it pins the
+   whole template literal, matching `qr-panel-live.tsx:210`. A second pin the
+   note missed: `tests/unit/merchant-shell.test.mjs:38-41` asserts
+   `isPosterPrintPath` is true for all four `/app/qr/{poster,tent,nfc,nfc-square}/`
+   prefixes, so the shell's own chrome suppression is pinned to the current
+   paths too. Note for anyone re-checking: `grep 'app/qr/poster'` finds NEITHER
+   assertion, because both are regex-escaped as `app\/qr\/poster` — a grep that
+   returns nothing is making a claim, and this one is false.
+
 2. Four e2e specs (`poster-print`, `poster-visual`, `tent-print`, `tent-visual`)
    navigate the current paths, and none of them can be run in this lane.
 3. Each kind has its own print-tracking server action

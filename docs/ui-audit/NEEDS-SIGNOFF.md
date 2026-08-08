@@ -906,3 +906,95 @@ which is not a customer file: `PageTitle`/`SectionHeader` have call sites in 9
 merchant directories, 9 marketing ones and 8 admin ones, so converting its `md:`
 action rail would relayout every console and marketing page to fix a customer
 finding.
+
+## 26. The merchant setup reminder: 172-268px on every console route, and the audit's fix costs more than it saves
+
+03#1's second half asks for the setup reminder to become "a _slot_ the page opts
+into next to its title (or a one-line strip inside `PageTitle`'s `actions`)
+rather than an unconditional stacked card". The word "unconditional" was wrong
+and the note carried it for the whole campaign — `app/app/layout.tsx` renders
+`<MerchantSetupReminder>` inside `<Suspense>`, and the component returns null on
+`/app/onboarding`, `/app/launch` and the four print previews
+(`shouldShowMerchantSetupReminder`) and again whenever `readiness.launchReady`.
+It appears only while a venue is genuinely unlaunched, and disappears for good
+the moment it launches.
+
+What it costs while it is there, measured on the dashboard harness (top of the
+page `<h1>`, launch-ready vs setup-incomplete):
+
+| viewport | h1 top, ready | h1 top, incomplete | pushed down | card height |
+| -------- | ------------: | -----------------: | ----------: | ----------: |
+| 320px    |         109px |              377px |       268px |       233px |
+| 390px    |         109px |              353px |       244px |       209px |
+| 768px    |          66px |              271px |       205px |       185px |
+| 1280px   |          59px |              231px |       172px |       137px |
+
+On a 390x844 phone that is 29% of the first screen, on every console route, for
+the whole pre-launch period.
+
+**Why I have not converted it to a slot.** Two costs, one of them structural:
+
+1. A slot is an opt-in on every console page. A page that forgets it silently
+   drops the only surface telling a merchant why their venue is not live. The
+   layout version cannot be forgotten.
+2. The dashboard already shows readiness twice while incomplete — this card
+   ("Next: Your rewards" / "Add rewards") and the `PageTitle` action
+   ("Finish setup"), 172px apart at 1280 and pointing at the same place. A slot
+   next to the title would put them adjacent rather than remove either.
+   Multiplying readiness representations is precisely what 03#43 spent its
+   effort undoing and what 03#3 declined to add a third of.
+
+**The decision that is actually available**, with the number attached: the
+compact card spends roughly 48px of its 209px on `stepHint`, a sentence that
+repeats what `/app/launch` says on arrival ("Add at least three live rewards so
+every full card has something to reveal."). Dropping it below `sm` would take
+the phone cost from 244px to ~196px on seven routes. That is a content
+judgement about the pre-launch console, not a layout one, so it is here rather
+than in a commit.
+
+## 27. RA-11's fixed reward tray overlays 208px of the phone viewport, and that is the thing the audit wanted removed
+
+03#47 asks for the reward-pool selection bar to become
+`sticky bottom-0` so it "participates in flow and the `pb-[8.75rem]` hack
+disappears". `tests/contracts/reward-preset-atomic-add.test.mjs` lines 109-111
+pin the opposite — `fixed … sm:static`, the `editingId === null … fixed` guard,
+and `pb-[8.75rem] … sm:pb-6` — so the change cannot be made without editing
+assertions. It has not been made.
+
+Two of the finding's supporting claims are now measurably stale, and one cost is
+measurably real.
+
+**Stale — "the spacer is guesswork".** Measured at 320, 360 and 390px for every
+selection count from 1 to 7: the tray renders at exactly **140px** in all 21
+cases. `pb-[8.75rem]` is 140px. The wrap the finding predicts ("two lines of
+copy + a two-button row wraps differently at 320px") does not happen, because
+the copy was shortened to one line plus one sub-line and the buttons sit in a
+fixed `grid-cols-[auto_minmax(0,1fr)]` row.
+
+**Stale — "shorten the bar to one line with the two buttons inline".** At 320px
+the tray's inner width is 272px. The count line alone measures 202px and the two
+buttons 76px and 184px, so the single-line layout needs about 478px. It does not
+become possible on any phone in the matrix.
+
+**Real — the overlay.** The tray floats `calc(3.5rem + max(0.75rem, env(safe-area-inset-bottom)))`
+above the viewport bottom (the console tab bar plus a gutter), so its total
+footprint is **208px** of overlaid viewport on a device with no home indicator
+and **230px** on one with a 34px inset. At maximum scroll on `/app/launch?tab=rewards`
+with a selection pending, that band covers the birthday-reward toggle's
+checkbox: a Playwright click on `input[name="enabled"]` times out as
+unactionable there. The surrounding `<label>` is still partly tappable, so this
+is degraded rather than blocked — but it is a control the merchant cannot hit
+directly, and it is below the component that owns the spacer, so no change
+inside `reward-pool-form.tsx` can reach it.
+
+That last point is the whole argument in one line: a `fixed` bar's clearance
+belongs to the scroll container, and the contract pins the clearance to the
+section. A `sticky` bar would not have the problem, which is what 03#47 said.
+
+**The decision:** whether RA-11's intent ("one mobile-persistent Add action that
+never needs scrolling to reach") is satisfied by `sticky bottom-0` — which also
+never needs scrolling to reach — or whether the assertion is meant to pin
+`fixed` specifically. Only the author of RA-11 can say. If it is the intent, the
+three pinned literals can be re-expressed and 03#47 closes; if it is the
+mechanism, 03#47 should be marked declined rather than partial, and this section
+is the reason.

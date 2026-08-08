@@ -6,27 +6,27 @@ shared design system. **Method:** component-by-component read of JSX + className
 
 **Total findings: 347** — 33 Critical / 131 High / 146 Medium / 37 Low.
 
-| Area | Findings | Crit | High | Med | Low |
-|---|---|---|---|---|---|
-| A. Marketing & legal | 69 | 4 | 25 | 31 | 9 |
-| B. Customer journey | 70 | 10 | 29 | 26 | 5 |
-| C. Merchant console | 67 | 5 | 20 | 34 | 8 |
-| D. Admin & data display | 74 | 11 | 29 | 27 | 7 |
-| E. Design system & a11y | 67 | 3 | 28 | 28 | 8 |
+| Area                    | Findings | Crit | High | Med | Low |
+| ----------------------- | -------- | ---- | ---- | --- | --- |
+| A. Marketing & legal    | 69       | 4    | 25   | 31  | 9   |
+| B. Customer journey     | 70       | 10   | 29   | 26  | 5   |
+| C. Merchant console     | 67       | 5    | 20   | 34  | 8   |
+| D. Admin & data display | 74       | 11   | 29   | 27  | 7   |
+| E. Design system & a11y | 67       | 3    | 28   | 28  | 8   |
 
 ## Measured page heights (375px phone)
 
-| Surface | Height | Viewports |
-|---|---|---|
-| `/loyalty-for-pubs` | ~8,500-9,000px | ~13 |
-| `/home/activity` (40 rows) | ~5,800px | ~9 |
-| `/` landing | ~5,400px | ~8 |
-| `/how-it-works` | ~4,600px | ~7 |
-| `/pricing` | ~3,500px | ~5 |
-| `/app` dashboard | ~1,800px | ~4.6 |
-| `/app/qr` print channel | ~2,400px | ~3.6 |
-| `/card/[id]/stamp` | ~1,100px | primary control at y900 |
-| Marketing footer (every route) | ~650px | — |
+| Surface                        | Height         | Viewports               |
+| ------------------------------ | -------------- | ----------------------- |
+| `/loyalty-for-pubs`            | ~8,500-9,000px | ~13                     |
+| `/home/activity` (40 rows)     | ~5,800px       | ~9                      |
+| `/` landing                    | ~5,400px       | ~8                      |
+| `/how-it-works`                | ~4,600px       | ~7                      |
+| `/pricing`                     | ~3,500px       | ~5                      |
+| `/app` dashboard               | ~1,800px       | ~4.6                    |
+| `/app/qr` print channel        | ~2,400px       | ~3.6                    |
+| `/card/[id]/stamp`             | ~1,100px       | primary control at y900 |
+| Marketing footer (every route) | ~650px         | —                       |
 
 ## Quantified inconsistency (full-codebase grep)
 
@@ -43,11 +43,10 @@ shared design system. **Method:** component-by-component read of JSX + className
 
 ---
 
-
-
 # A. Marketing & Legal Surface (16 public routes)
 
 # Nabaperks — UX/UI Redesign Audit
+
 ## Area 01: Public marketing + legal surface
 
 **Scope:** `app/page.tsx`, `/pricing`, `/how-it-works`, `/about`, `/faq`, `/start`, `/demo`,
@@ -62,20 +61,21 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 
 **Baseline measurements used throughout**
 
-| Surface | Composition | Est. mobile height |
-|---|---|---|
-| `/` (landing) | 8 bands + footer | **≈ 5,400 px ≈ 8 viewports** |
-| `/how-it-works` | 8 bands + footer | **≈ 4,600 px ≈ 7 viewports** |
-| `/pricing` | 6 bands + footer | **≈ 3,500 px ≈ 5 viewports** |
-| `/loyalty-for-pubs` | hero + 8 guide sections + footer | **≈ 8,500–9,000 px ≈ 13 viewports** |
-| `/privacy` | 12 clauses, single 880 px measure | **≈ 3,200 px** |
-| Marketing footer (every page) | 4 link columns @ `min-h-11` + legal row | **≈ 620–660 px** |
+| Surface                       | Composition                             | Est. mobile height                  |
+| ----------------------------- | --------------------------------------- | ----------------------------------- |
+| `/` (landing)                 | 8 bands + footer                        | **≈ 5,400 px ≈ 8 viewports**        |
+| `/how-it-works`               | 8 bands + footer                        | **≈ 4,600 px ≈ 7 viewports**        |
+| `/pricing`                    | 6 bands + footer                        | **≈ 3,500 px ≈ 5 viewports**        |
+| `/loyalty-for-pubs`           | hero + 8 guide sections + footer        | **≈ 8,500–9,000 px ≈ 13 viewports** |
+| `/privacy`                    | 12 clauses, single 880 px measure       | **≈ 3,200 px**                      |
+| Marketing footer (every page) | 4 link columns @ `min-h-11` + legal row | **≈ 620–660 px**                    |
 
 ---
 
 ## A. Global marketing chrome — `components/layout/*`
 
 ### 1. Primary navigation is entirely absent below 768 px
+
 - **File(s):** `components/layout/marketing-header-nav.tsx:28-49`; `components/layout/marketing-layout.tsx:80-90`
 - **Current UX/UI Problem:** the nav list is `className="hidden items-center gap-1 md:flex"`, and the
   "Log in" button is `className="max-sm:hidden"`. So on a phone the sticky header contains only the
@@ -95,6 +95,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Critical
 
 ### 2. The marketing footer is a 650 px tax on every page
+
 - **File(s):** `components/layout/marketing-layout.tsx:101-131`, `12-13`, `20-57`
 - **Current UX/UI Problem:** `FOOTER_COLUMNS` renders 4 headings and 13 links, each link
   `inline-flex min-h-11 items-center rounded-full px-3`, in a `grid grid-cols-2 gap-x-3 gap-y-5`
@@ -102,7 +103,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
   column 4 has 2 — two grid rows ≈ 400 px — plus a 5-link legal nav that wraps to ~3 rows of 44 px
   (≈ 140 px), plus the identity block and motto. Total ≈ 620–660 px.
 - **Why It Is a Problem:** the footer alone is a full mobile viewport, repeated on 16 public routes.
-  It is also, per finding 1, currently the *only* navigation on a phone — so the site's nav is a
+  It is also, per finding 1, currently the _only_ navigation on a phone — so the site's nav is a
   650 px wall at the bottom of an 8-viewport page.
 - **Recommended Redesign:** below `sm`, collapse each `FooterColumn` into a native
   `<details><summary class="eyebrow min-h-11">` disclosure (zero JS, matches the `FaqList` and
@@ -113,6 +114,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 3. `Section` size tokens do nothing on desktop and collapse into each other on mobile
+
 - **File(s):** `components/layout/section.tsx:21-28`
 - **Current UX/UI Problem:** the scale is `default: "py-7 sm:py-10"`, `dense: "py-4 sm:py-10"`,
   `compact: "py-4 sm:py-5"`, `tight: "py-3 sm:py-4"`. `default` and `dense` are **identical from
@@ -131,6 +133,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 4. Content gutter does not match chrome gutter, so the logo never aligns with the H1
+
 - **File(s):** `components/layout/section.tsx:53`; `components/layout/marketing-layout.tsx:81`, `101`
 - **Current UX/UI Problem:** `Section` is `mx-auto w-full scroll-mt-24 px-6` (24 px, all widths).
   The header container is `px-4 py-3 sm:px-6` (16 px on mobile) and the footer container is `px-6`.
@@ -145,6 +148,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 5. Four different sticky/scroll-margin offsets for one 68 px header
+
 - **File(s):** `components/layout/section.tsx:53` (`scroll-mt-24` = 96 px);
   `components/marketing/pubs/guide-section.tsx:25` (`scroll-mt-28` = 112 px);
   `components/legal/legal-document-page.tsx:72` (`scroll-mt-28`);
@@ -162,6 +166,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 6. Header nav pills use `rounded-full` outside the sanctioned circle exceptions
+
 - **File(s):** `components/layout/marketing-header-nav.tsx:38`; `components/layout/marketing-layout.tsx:13`
 - **Current UX/UI Problem:** nav links and footer links are `rounded-full`, while the `Button` beside
   them is forced to `border-radius: var(--radius-lg)` (10 px) by the unlayered
@@ -179,19 +184,21 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Low
 
 ### 7. Skip link radius and border are one-offs
+
 - **File(s):** `components/layout/marketing-layout.tsx:74-79`
 - **Current UX/UI Problem:** `focus:rounded-md focus:border-2 focus:border-ink focus:bg-card
-  focus:px-4 focus:py-2 focus:text-sm focus:font-bold` — 6 px radius, no offset shadow, no
+focus:px-4 focus:py-2 focus:text-sm focus:font-bold` — 6 px radius, no offset shadow, no
   `focus-ring` outline recipe.
 - **Why It Is a Problem:** the one element a keyboard-only user meets first is the one element that
   does not look like the system: every other bordered surface carries `--radius` 10 px and a hard
   offset shadow, and every other focusable element carries the 2 px vermillion outline.
 - **Recommended Redesign:** `focus:rounded-(--radius-lg) focus:border-2 focus:border-ink
-  focus:bg-card focus:shadow-sm focus:min-h-11 focus:inline-flex focus:items-center` and add the
+focus:bg-card focus:shadow-sm focus:min-h-11 focus:inline-flex focus:items-center` and add the
   `focus-ring` class so it inherits the single sanctioned outline recipe.
 - **Priority:** Low
 
 ### 8. `ContrastBand` has only three sizes and is used twice, at two unrelated densities
+
 - **File(s):** `components/layout/contrast-band.tsx:21-26`; `app/how-it-works/page.tsx:74`;
   `components/marketing/landing/scarcity-band.tsx:13`
 - **Current UX/UI Problem:** the band ships `default: "py-9 sm:py-12"`, `dense: "py-6 sm:py-12"`,
@@ -215,14 +222,15 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 → `ProductMoment` → `FitNote` → `LandingPricing` → `FinalCta`. Eight bands, ~5,400 px on a phone.
 
 ### 9. Marquee and ProofLine are adjacent and say the same four things
+
 - **File(s):** `app/page.tsx:57-58`; `components/marketing/marquee.tsx:4-9`;
   `components/marketing/landing/proof-line.tsx:10-15`
 - **Current UX/UI Problem:** the marquee scrolls `["One venue QR", "28-day platform pilot",
-  "No POS setup", "Fast at the counter"]`. The `ProofLine` immediately below it renders
+"No POS setup", "Fast at the counter"]`. The `ProofLine` immediately below it renders
   `[BRAND.pointOfView, "A browser-based loyalty card — no app to download", "Return visits shown in
-  your dashboard", SCARCITY.capLine]`. Both are four short bold claims; the marquee is
+your dashboard", SCARCITY.capLine]`. Both are four short bold claims; the marquee is
   `aria-hidden="true"` so it contributes nothing to AT or SEO; `ProofLine`'s own docblock calls
-  itself "the page's first break in rhythm" — but it is the *second* consecutive fact strip.
+  itself "the page's first break in rhythm" — but it is the _second_ consecutive fact strip.
 - **Why It Is a Problem:** ~215 px of stacked vertical space for one idea, delivered twice, one copy
   of which is invisible to half the audience and costs a `requestAnimationFrame` loop. It also
   breaks the "value before friction" voice rule by front-loading marketing assertions before the
@@ -234,12 +242,13 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 10. `FinalCta` restates the hero headline verbatim and stacks against the pricing CTA
+
 - **File(s):** `components/marketing/landing/final-cta.tsx:17-27`;
   `components/marketing/landing/hero.tsx:30-31` (`LANDING.hero.headline`);
   `components/marketing/landing/landing-pricing.tsx:64-71`
 - **Current UX/UI Problem:** hero H1 = "Give your weekend crowd a reason to come back on a Tuesday".
   `FinalCta` H2 = "Give your weekend customers a reason to come back midweek". `FinalCta` body is
-  `{PLAN_LINE} {OFFER.riskFraming}` — `OFFER.riskFraming` is *also* the description of
+  `{PLAN_LINE} {OFFER.riskFraming}` — `OFFER.riskFraming` is _also_ the description of
   `GuaranteeStack` and `PLAN_LINE` restates the pricing card directly above. Both bands are
   `size="dense"` (`py-4`) so there are 32 px between the pricing CTA and a second CTA card.
 - **Why It Is a Problem:** the page closes by paraphrasing its own opening, in a card, 12 px from an
@@ -252,15 +261,16 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 11. `ProductMoment` is a 1,100 px single-column band until 1024 px
+
 - **File(s):** `components/marketing/landing/product-moment.tsx:26`
 - **Current UX/UI Problem:** `className="grid gap-8 pt-8 sm:pt-10 lg:grid-cols-3 lg:gap-10"`. The
   three beats (QR ≈ 176 px + caption block, `StampGrid` ≈ 120 px + caption, `RewardTicket` ≈ 150 px
-  + caption) stack full-width at every width below `lg`. Each beat's visual is capped at
-  `max-w-[11rem]` / `max-w-[13rem]` and centred via `grid flex-1 place-items-center`, so on a 768 px
-  tablet you get three 176 px objects floating in 768 px of white space over ~900 px of scroll.
-- **Why It Is a Problem:** this is the page's *one dominant composition* per its own docblock, and it
+  - caption) stack full-width at every width below `lg`. Each beat's visual is capped at
+    `max-w-[11rem]` / `max-w-[13rem]` and centred via `grid flex-1 place-items-center`, so on a 768 px
+    tablet you get three 176 px objects floating in 768 px of white space over ~900 px of scroll.
+- **Why It Is a Problem:** this is the page's _one dominant composition_ per its own docblock, and it
   is the single tallest band on `/`. Three tiny centred glyphs stacked vertically read as three
-  unrelated illustrations, not one three-beat sequence — the horizontal relationship *is* the
+  unrelated illustrations, not one three-beat sequence — the horizontal relationship _is_ the
   meaning ("scan → stamp → reward").
 - **Recommended Redesign:** go horizontal much earlier: `grid-cols-3 gap-4 sm:gap-8` from the base
   breakpoint (the objects are ≤ 208 px, they fit three-across at 375 px if the captions go below the
@@ -269,12 +279,13 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 12. Every multi-column marketing layout jumps 1 → N at `lg`, so tablets render as phones
+
 - **File(s):** `product-moment.tsx:26` (`lg:grid-cols-3`); `guarantee-stack.tsx:40`
   (`lg:grid-cols-2`); `scarcity-band.tsx:14` (`lg:grid-cols-[7fr_5fr]`);
   `commercial-evidence-proof.tsx:24` (`lg:grid-cols-3`); `pub-fit-test.tsx:20` (`lg:grid-cols-2`);
   `persona-page.tsx:138` (`lg:grid-cols-2`); `app/how-it-works/page.tsx:75`, `94`;
   `hero.tsx:26`, `process-hero.tsx:34`, `pub-guide-hero.tsx:39` (all `lg:grid-cols-…`)
-- **Current UX/UI Problem:** eleven layouts in scope use `lg:` (1024 px) as their *first* column
+- **Current UX/UI Problem:** eleven layouts in scope use `lg:` (1024 px) as their _first_ column
   break, with no `sm:` or `md:` step. Tailwind's `md` (768 px) is used nowhere in the landing family
   except `landing-pricing.tsx:33`.
 - **Why It Is a Problem:** iPad portrait (768/810), half-screen laptop windows, and Surface-class
@@ -288,6 +299,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Critical
 
 ### 13. `CommercialEvidenceProof` blocks the whole landing render and vanishes with no fallback
+
 - **File(s):** `app/page.tsx:59`; `components/marketing/landing/commercial-evidence-proof.tsx:12-15`
 - **Current UX/UI Problem:** `export async function CommercialEvidenceProof()` awaits
   `getPublishedCommercialEvidence()` and is rendered **directly** in `app/page.tsx` with no
@@ -303,6 +315,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 14. Heading scale on `/` is three unrelated sizes for the same rank
+
 - **File(s):** `product-moment.tsx:23` (`h2 text-3xl sm:text-4xl`); `fit-note.tsx:18` and
   `final-cta.tsx:17` (`h2 text-2xl sm:text-3xl`); `components/brand/typography.tsx:117`
   (`SectionHeader` → `h2 text-lg`, used by `landing-pricing.tsx:28` and
@@ -323,6 +336,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 15. Hero headline scale skips the whole tablet range and misses its own token
+
 - **File(s):** `components/marketing/landing/hero.tsx:30`; `process-hero.tsx:38`
 - **Current UX/UI Problem:** `text-4xl leading-[1.03] … sm:text-6xl` — 36 px below 640 px, 60 px at
   and above. DESIGN.md's `marketing-hero` token is **56 px**. `max-w-xl` (576 px) means the 60 px
@@ -337,10 +351,11 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 16. The hero's secondary action is a 20 px-tall tap target
+
 - **File(s):** `hero.tsx:40-45`; also `process-hero.tsx:48-53`, `fit-note.tsx:31-36`,
   `pub-guide-hero.tsx:57-59`, `options-matrix.tsx:134-138`, `guide-page.tsx:114-119`
 - **Current UX/UI Problem:** `className="focus-ring rounded-sm text-sm font-bold text-foreground
-  underline underline-offset-4"` on a `<Link>` — no `inline-flex`, no `min-h-11`, no padding. The
+underline underline-offset-4"` on a `<Link>` — no `inline-flex`, no `min-h-11`, no padding. The
   rendered hit area is the text box: ~14 px tall, ~150 px wide, sitting on the same baseline as a
   48 px `size="lg"` button.
 - **Why It Is a Problem:** DESIGN.md · Layout & Spacing: "Primary tap targets ≥ 44px". This is the
@@ -349,12 +364,13 @@ were modified, no builds or tests run. Heights below are estimated from the actu
   repeated at six call sites.
 - **Recommended Redesign:** mint one `marketingTextLink` class:
   `focus-ring inline-flex min-h-11 items-center rounded-(--radius-md) px-1 text-sm font-bold
-  underline underline-offset-4` and use it at all six sites. Alternatively use
+underline underline-offset-4` and use it at all six sites. Alternatively use
   `<Button variant="link" size="default">`, which already carries `.pressable`'s 2.75 rem
   `min-height` and the shared focus recipe.
 - **Priority:** High
 
 ### 17. The hero sample card runs an infinite animation with no pause mechanism
+
 - **File(s):** `components/marketing/landing/hero-sample-card.tsx:59-63`;
   `components/loyalty/use-stamp-journey-loop.ts:32-85`
 - **Current UX/UI Problem:** `useStampJourneyLoop(3)` schedules
@@ -374,24 +390,26 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 18. `ProofLine` renders four sentences as an unseparated wrapped stack
+
 - **File(s):** `components/marketing/landing/proof-line.tsx:19-27`
 - **Current UX/UI Problem:** `<ul className="flex flex-wrap items-center gap-x-6 gap-y-2 border-y-2
-  border-ink py-3">` with `<li className="text-sm leading-6 font-bold">`. `SCARCITY.capLine` and
+border-ink py-3">` with `<li className="text-sm leading-6 font-bold">`. `SCARCITY.capLine` and
   `BRAND.pointOfView` are full clauses, so on a 375 px screen all four wrap to their own lines with
   8 px between them and no bullet, rule, or mono marker.
 - **Why It Is a Problem:** four bold 14 px sentences stacked 8 px apart inside one ink-bordered box
   read as a single run-on paragraph in bold — the worst possible legibility treatment. The
   `items-center` + `gap-x-6` layout only works at ≥ 1024 px where all four fit on one line.
 - **Recommended Redesign:** `grid grid-cols-1 divide-y-2 divide-dashed divide-border sm:grid-cols-2
-  sm:divide-y-0 sm:divide-x-2 lg:grid-cols-4`, each cell `py-2 sm:px-4`, and prefix each with a
+sm:divide-y-0 sm:divide-x-2 lg:grid-cols-4`, each cell `py-2 sm:px-4`, and prefix each with a
   `mono-id` index (`01`–`04`) so it reads as a printed fact ledger — the receipt idiom the page
   already owns.
 - **Priority:** Medium
 
 ### 19. `FitNote` is a centred grey block with no visual anchor
+
 - **File(s):** `components/marketing/landing/fit-note.tsx:16-38`
 - **Current UX/UI Problem:** `<div className="mx-auto grid max-w-2xl justify-items-center gap-5
-  text-center">` — an H2, a bare `<ul className="grid gap-1.5">` of three unmarked lines each
+text-center">` — an H2, a bare `<ul className="grid gap-1.5">` of three unmarked lines each
   `text-base leading-7`, a muted paragraph, and a 20 px underlined link. No card, no border, no
   eyebrow, no icons.
 - **Why It Is a Problem:** it is the only centred, chromeless band on `/`, sandwiched between the
@@ -405,6 +423,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 20. `LandingPricing` violates the pricing system's own "never beside it" rule and forks the plan
+
 - **File(s):** `components/marketing/landing/landing-pricing.tsx:33-95`;
   `components/marketing/pricing/takeover-anchor.tsx:8-15`
 - **Current UX/UI Problem:** the band is `md:grid-cols-[minmax(0,1.35fr)_minmax(0,0.85fr)]` with the
@@ -424,10 +443,11 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 21. `FinalCta` uses an arbitrary card-spacing override instead of the existing padding token
+
 - **File(s):** `components/marketing/landing/final-cta.tsx:14`;
   `components/brand/receipt-card.tsx:7-12`
 - **Current UX/UI Problem:** `className="items-center gap-3 text-center sm:gap-4
-  sm:[--card-spacing:--spacing(8)]"` — a hand-rolled arbitrary property when `ReceiptCard` already
+sm:[--card-spacing:--spacing(8)]"` — a hand-rolled arbitrary property when `ReceiptCard` already
   exposes `padding="lg"` mapped to exactly `--spacing(8)`.
 - **Why It Is a Problem:** the component's padding API is bypassed, so a future change to `PADDING.lg`
   will not reach this card and the two will drift. It also hides a responsive padding change from
@@ -445,6 +465,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 `FeaturesListicle` → `OutcomeTransformation` → `ContrastBand` → `#diy Section`. ≈ 4,600 px mobile.
 
 ### 22. The five launch steps are printed twice, ~800 px apart
+
 - **File(s):** `components/marketing/landing/process-hero.tsx:16-22`, `85-101`;
   `components/marketing/landing/launch-steps.tsx:46-87`; `app/how-it-works/page.tsx:57-63`, `69`
 - **Current UX/UI Problem:** `ProcessHero`'s `LaunchTicket` prints `STEP_TICKET_LINES` = ["Venue +
@@ -463,6 +484,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Critical
 
 ### 23. `ProblemPains` states eight objections and answers none of them in place
+
 - **File(s):** `components/marketing/landing/problem-pains.tsx:15-52`;
   `lib/marketing/facts.ts` `PROBLEM.pains` (8 items)
 - **Current UX/UI Problem:** eight quoted objections as numbered dashed tickets. On mobile they ride
@@ -482,9 +504,10 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 24. `FeaturesListicle` sets full sentences in 10 px uppercase mono
+
 - **File(s):** `components/marketing/landing/features-listicle.tsx:77-79`
 - **Current UX/UI Problem:** `<p className="mono-id mt-auto border-t-2 border-dashed border-border
-  pt-2.5 text-primary uppercase">{feature.removes}</p>` where `feature.removes` is e.g.
+pt-2.5 text-primary uppercase">{feature.removes}</p>` where `feature.removes` is e.g.
   `Removes the "download our app" objection at the counter.` — a 52-character sentence at
   **10 px Space Mono 700, 0.06em, uppercase, vermillion on card (4.79:1)**.
 - **Why It Is a Problem:** DESIGN.md is explicit — "Receipt voice (Space Mono, uppercase) for facts…
@@ -498,12 +521,13 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 25. `PRODUCT.cancelLine` — 96 characters of material commercial information — is rendered at 10 px in nine places
+
 - **File(s):** `hero.tsx:47-49`, `process-hero.tsx:55-57`, `final-cta.tsx:28-30`,
   `landing-pricing.tsx:72-75`, `growth-plan-pricing.tsx:160-164`, `persona-page.tsx:206-208`,
   `guide-page.tsx:140-142`, `hub-handoff.tsx:67-69`, `app/how-it-works/page.tsx:117-119`
 - **Current UX/UI Problem:** every one is `className="mono-id text-muted-foreground uppercase"` —
-  10 px Space Mono, uppercase, tracked — carrying *"Card required — cancel renewal anytime after a
-  short exit review from your billing page."* In `growth-plan-pricing.tsx` the `FinePrintStrip`
+  10 px Space Mono, uppercase, tracked — carrying _"Card required — cancel renewal anytime after a
+  short exit review from your billing page."_ In `growth-plan-pricing.tsx` the `FinePrintStrip`
   concatenates it with `billingDisclosure` and `processingFeeLine` into a ~200-character
   `mono-meta` (11.5 px) uppercase paragraph.
 - **Why It Is a Problem:** this is ASA material information about a recurring charge. Uppercase mono
@@ -511,16 +535,17 @@ were modified, no builds or tests run. Heights below are estimated from the actu
   all-caps run is effectively unread. It is also nine independent renderings of one legal string
   with no shared component, so a wording change touches nine files.
 - **Recommended Redesign:** create `<FinePrint>` in `components/brand`: `text-xs leading-5
-  text-muted-foreground` (12 px sentence case) with an optional `mono-id` label. Reserve `mono-id`
+text-muted-foreground` (12 px sentence case) with an optional `mono-id` label. Reserve `mono-id`
   for genuine IDs and dates. Use it at all nine call sites and inside `FinePrintStrip`.
 - **Priority:** High
 
 ### 26. `OutcomeTransformation` puts a bare decorative `<li>` inside a labelled list, and the rail semantics break at `sm`
+
 - **File(s):** `components/marketing/landing/outcome-transformation.tsx:31-80`;
   `components/marketing/landing/snap-rail.tsx:29-38`
 - **Current UX/UI Problem:** the `SnapRail` renders `<ul aria-label="Before and after the launch"
-  tabIndex={0}>`; its children are `SnapRailItem` (before), a raw `<li aria-hidden="true"
-  className="hidden sm:grid">` holding the arrow roundel, and `SnapRailItem` (after). The grid class
+tabIndex={0}>`; its children are `SnapRailItem` (before), a raw `<li aria-hidden="true"
+className="hidden sm:grid">` holding the arrow roundel, and `SnapRailItem` (after). The grid class
   is `sm:grid-cols-[1fr_auto_1fr]`.
 - **Why It Is a Problem:** an `aria-hidden` list item still occupies a position in the list for some
   AT implementations, so the labelled 2-item comparison announces as a 3-item list. On mobile the
@@ -533,9 +558,10 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 27. `SnapRail`'s only affordance is a 10 px vermillion hint that is announced to screen readers
+
 - **File(s):** `components/marketing/landing/snap-rail.tsx:26-28`, `29-35`, `52-56`
 - **Current UX/UI Problem:** `<p className="mono-id flex items-center justify-end gap-1 text-primary
-  uppercase sm:hidden">Swipe to see every card <span aria-hidden>→</span></p>` — 10 px, vermillion
+uppercase sm:hidden">Swipe to see every card <span aria-hidden>→</span></p>` — 10 px, vermillion
   (4.79:1 on card, i.e. exactly at the AA floor), right-aligned, not `aria-hidden`. Items are
   `w-[76vw] max-w-xs`, the rail is `-mx-6 px-6 overflow-x-auto snap-x snap-mandatory` with
   `tabIndex={0}`.
@@ -551,10 +577,11 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 28. The `#promise` contrast band gives the honest disclaimer a lighter treatment than the promise
+
 - **File(s):** `app/how-it-works/page.tsx:74-92`
 - **Current UX/UI Problem:** "What we promise" is `text-xl sm:text-2xl font-extrabold` on the bare
   ink ground; "What we never promise" sits in a `rounded-lg border-2 border-dashed border-paper/40
-  p-4` box at `text-base leading-7`. The dashed `paper/40` border computes to **3.5:1** against ink
+p-4` box at `text-base leading-7`. The dashed `paper/40` border computes to **3.5:1** against ink
   — acceptable for a non-text boundary but visually faint — and the box has no fill.
 - **Why It Is a Problem:** the boundary statement is the ASA-critical half of the pair and the whole
   reason the band exists ("the honesty is part of the offer" per `GuaranteeStack`'s docblock), but
@@ -566,6 +593,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 29. The `#diy` section's H2 is smaller than the quote beside it
+
 - **File(s):** `app/how-it-works/page.tsx:96-100`, `110-120`;
   `components/brand/typography.tsx:117`
 - **Current UX/UI Problem:** `SectionHeader` renders "The same five steps, whenever you're ready" as
@@ -588,6 +616,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 `ReceiptCard` → `GuaranteeStack` → `ScarcityBand` → `#pricing-faq`.
 
 ### 30. The pricing sheet is a ~1,200 px single column with eight unequal blocks
+
 - **File(s):** `components/marketing/growth-plan-pricing.tsx:41-165`;
   `components/marketing/pricing/pricing-sheet.tsx:46`
 - **Current UX/UI Problem:** `PricingSheetBody` is `grid gap-6 p-5 sm:p-7`, holding: tag row, `h2`,
@@ -596,7 +625,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
   375 px that is ≈ 1,150–1,250 px of continuous scroll before the reader reaches the CTA. Nothing
   goes multi-column until `sm:` and even then only `PlanIncludesList columns={2}` splits.
 - **Why It Is a Problem:** the price, the schedule, the timeline and the includes are four different
-  *kinds* of information given identical visual weight and a uniform 24 px gap, so there is no
+  _kinds_ of information given identical visual weight and a uniform 24 px gap, so there is no
   scanning path. A pricing page's job is to answer "how much and what do I get" in one screen; here
   it takes four.
 - **Recommended Redesign:** two-column the sheet from `md:` —
@@ -608,9 +637,10 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 31. Two `role="group"` regions with no visible headings and no choice to make
+
 - **File(s):** `components/marketing/growth-plan-pricing.tsx:59-63`, `78-83`
 - **Current UX/UI Problem:** `<div data-payment-option="28-day" role="group" aria-label="Pay as you
-  go">` and `<div data-payment-option="annual" role="group" aria-label="Prepay a year">`. Sighted
+go">` and `<div data-payment-option="annual" role="group" aria-label="Prepay a year">`. Sighted
   users see two prices separated by an `hr.w-rule` with **no label at all** on the first one; the
   second's label appears only as a `MonoTag` floated to the right at `sm:`. The docblock explicitly
   states there is deliberately no billing toggle.
@@ -624,6 +654,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 32. Buttons on ink grounds lose their border and shadow entirely
+
 - **File(s):** `components/marketing/pricing/takeover-anchor.tsx:41-43`;
   `components/marketing/landing/scarcity-band.tsx:34-36`;
   `app/how-it-works/page.tsx:74-92` (band ground)
@@ -640,11 +671,12 @@ were modified, no builds or tests run. Heights below are estimated from the actu
   perceived edge against the band.
 - **Recommended Redesign:** add an `onInk` treatment to the unlayered layer — e.g.
   `[data-on-ink] [data-slot="button"] { border-color: var(--w-paper); --tw-shadow: 3px 3px 0
-  var(--w-paper); }` — and set `data-on-ink` on `ContrastBand` and `TakeoverAnchor`. Remove
+var(--w-paper); }` — and set `data-on-ink` on `ContrastBand` and `TakeoverAnchor`. Remove
   `shadow-md` from the `TakeoverAnchor` aside.
 - **Priority:** High
 
 ### 33. `TakeoverAnchor` and the landing bespoke card are two renderings of one offer
+
 - **File(s):** `components/marketing/pricing/takeover-anchor.tsx:18-44`;
   `components/marketing/landing/landing-pricing.tsx:78-94`
 - **Current UX/UI Problem:** `/pricing` renders the takeover as an ink `<aside>` with a sun-toned
@@ -661,6 +693,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 34. `GuaranteeStack`'s disclosure summary is a 10 px control label with three sibling dialects
+
 - **File(s):** `components/marketing/landing/guarantee-stack.tsx:54-70`;
   `components/marketing/landing/faq.tsx:18-32` and `61-83`
 - **Current UX/UI Problem:** three `<details>` treatments coexist on the marketing surface:
@@ -678,11 +711,12 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Recommended Redesign:** extract one `<Disclosure>` primitive in `components/brand` — `summary`
   at `text-sm font-bold min-h-11 px-4 py-3`, glyph via `Icon` (`PlusSignIcon` / `MinusSignIcon`,
   16 px) per the Hugeicons contract rather than text `+`/`−`, body `border-t-2 border-dashed px-4
-  py-3`. Use it in all three places and delete `FaqList`/`LandingFaq`'s duplicate markup (see
+py-3`. Use it in all three places and delete `FaqList`/`LandingFaq`'s duplicate markup (see
   finding 36).
 - **Priority:** Medium
 
 ### 35. The "Does the maths work?" receipt exists twice at two type scales
+
 - **File(s):** `app/pricing/page.tsx:67-82`;
   `components/marketing/landing/outcome-transformation.tsx:82-99`
 - **Current UX/UI Problem:** both render `VALUE_MATH.assumptionLine` / `coverLine` /
@@ -699,6 +733,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 36. `FaqList` and `LandingFaq` are the same component with a number bolted on
+
 - **File(s):** `components/marketing/landing/faq.tsx:10-40` and `48-104`
 - **Current UX/UI Problem:** ~95 lines in one file, of which the two `<details>` blocks differ only
   by: an index `<span className="mono-id w-6">`, `shadow-sm` on the card, `flex-1` on the question,
@@ -712,6 +747,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Low
 
 ### 37. `/pricing`'s FAQ stretches a 14 px accordion across 1,152 px
+
 - **File(s):** `app/pricing/page.tsx:85-94`; `components/marketing/landing/faq.tsx:10-16`
 - **Current UX/UI Problem:** `<Section id="pricing-faq">` is `max-w-marketing` (1152 px);
   `FaqList` renders `<div className="grid gap-3">` with no measure constraint, so each question row
@@ -726,6 +762,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 38. `ScarcityBand` and `GuaranteeStack` restate `CLAIMS_BOUNDARY` for the third and fourth time
+
 - **File(s):** `components/marketing/landing/guarantee-stack.tsx:74-85`;
   `components/marketing/landing/scarcity-band.tsx:19-27`; `app/how-it-works/page.tsx:83-89`;
   `components/marketing/landing/proof-strip.tsx:31`
@@ -738,7 +775,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
   catch box and then again 32 px later as the `ScarcityBand` H2 — the same sentence twice in one
   scroll. Repetition of a limitation reads as defensiveness rather than honesty.
 - **Recommended Redesign:** on `/pricing`, delete the "The catch" box from `GuaranteeStack` and let
-  `ScarcityBand` (which is right below it and is *about* the cap) own `capLine`/`capReason`; keep
+  `ScarcityBand` (which is right below it and is _about_ the cap) own `capLine`/`capReason`; keep
   `CLAIMS_BOUNDARY.never` in one place per page. Saving ≈ 200 px on `/pricing` and a clearer story.
 - **Priority:** Medium
 
@@ -747,6 +784,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 ## E. `/faq`, `/about`, `/demo`, `/start`, `/offline`
 
 ### 39. `/faq` misaligns its H1 axis against its own content column
+
 - **File(s):** `app/faq/page.tsx:45-51`; `components/marketing/landing/faq.tsx:57`
 - **Current UX/UI Problem:** the `<Section id="faq">` is `max-w-marketing` (1152 px). `PageTitle`
   renders full-width inside it (heading capped at `max-w-3xl`, description at `max-w-2xl`, both
@@ -760,6 +798,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 40. `/faq` closes with three equal-weight `size="lg"` buttons
+
 - **File(s):** `app/faq/page.tsx:52-62`
 - **Current UX/UI Problem:** `flex flex-wrap items-center gap-3` holding one `default` and two
   `secondary` `size="lg"` (h-12) buttons. On a 375 px screen these stack into a **168 px CTA tower**;
@@ -774,6 +813,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 41. `/about` is five 14 px paragraphs at a 105-character measure, with no subheadings
+
 - **File(s):** `app/about/page.tsx:58-90`
 - **Current UX/UI Problem:** `<div className="grid gap-4 pt-6">` containing five
   `<p className="text-sm leading-7 text-muted-foreground">`. The section is `width="narrow"` =
@@ -790,6 +830,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 42. `/about` ends with a bare button row and a hardcoded `pb-10`
+
 - **File(s):** `app/about/page.tsx:93-102`; also `persona-page.tsx:190`, `guide-page.tsx:123`
 - **Current UX/UI Problem:** `<Section width="narrow" size="compact" className="pb-10">` wrapping
   only two buttons — no heading, no context sentence, no card. The `className="pb-10"` override
@@ -804,6 +845,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Low
 
 ### 43. `/demo` builds its rhythm from four different `pt-*` values instead of a gap
+
 - **File(s):** `app/demo/page.tsx:25-52`
 - **Current UX/UI Problem:** inside one `<Section width="narrow">`: `PageTitle` (left-aligned),
   then `<div className="mx-auto w-full max-w-sm pt-8">`, then a tag row `pt-6`, then a paragraph
@@ -820,6 +862,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 44. `/start` stacks two equal-weight `size="lg"` buttons 8 px apart
+
 - **File(s):** `app/start/page.tsx:42-57`
 - **Current UX/UI Problem:** `<div className="grid gap-2">` holding `Button size="lg"` (default,
   vermillion, "Scan a QR"), `Button variant="secondary" size="lg"` ("Open my cards") and a
@@ -834,6 +877,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 45. `/offline` uses an empty `href` and a variant nothing else on the surface uses
+
 - **File(s):** `app/offline/page.tsx:35-40`
 - **Current UX/UI Problem:** `<Button asChild><a href="">Try again</a></Button>` — an empty string
   href — and `<Button asChild variant="outline">` for the secondary. `outline` appears nowhere else
@@ -855,6 +899,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 `GuideSection`s, each with prose plus a structured payload. Estimated ≈ **8,500–9,000 px mobile**.
 
 ### 46. 96 px between sections, on the longest page in the product
+
 - **File(s):** `components/marketing/pubs/pubs-page.tsx:95`
 - **Current UX/UI Problem:** `<div className="grid gap-12 pt-6 lg:gap-16 lg:pt-0">` — 48 px gap on
   mobile, 64 px from `lg`. `GuideSection` itself adds `grid gap-4` internally, and each payload adds
@@ -868,6 +913,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 47. `OptionsMatrix` renders 20 label/value pairs as stacked cards on mobile
+
 - **File(s):** `components/marketing/pubs/options-matrix.tsx:99-130`; `lib/marketing/facts.ts`
   `PUB_LOYALTY_OPTIONS` (4 options) × `ASPECTS` (5 rows)
 - **Current UX/UI Problem:** below `lg` the table is replaced by
@@ -875,7 +921,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
   of 5 `dt`(`mono-id`, 10 px) + `dd`(`text-sm leading-6`, prose) pairs. Each option card is
   ≈ 380 px; four of them ≈ **1,550 px** for one comparison.
 - **Why It Is a Problem:** this is the hub's declared centrepiece and on a phone it is a 1,550 px
-  vertical read where the whole point is *lateral comparison*. A reader cannot hold "what your guest
+  vertical read where the whole point is _lateral comparison_. A reader cannot hold "what your guest
   does" for Paper in mind while scrolling 380 px to read it for QR. The 10 px `dt` labels repeat 20
   times, adding noise without adding structure.
 - **Recommended Redesign:** invert the mobile layout — group by **aspect**, not by option: five
@@ -886,11 +932,12 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 48. The desktop comparison table horizontally scrolls at every laptop width
+
 - **File(s):** `components/marketing/pubs/options-matrix.tsx:53-54`;
   `components/marketing/pubs/pubs-page.tsx:92`; `components/ui/table.tsx:9-13`
 - **Current UX/UI Problem:** the table is `hidden … lg:block` with `<Table className="min-w-[56rem]">`
   (896 px). At `lg` the available content column is `1024 − 48 (gutter) − 192 (spine) − 48 (gap)
-  ≈ 736 px`. `Table` wraps itself in `overflow-x-auto tabIndex={0}`, so the "table from lg up"
+≈ 736 px`. `Table` wraps itself in `overflow-x-auto tabIndex={0}`, so the "table from lg up"
   **always scrolls horizontally** between 1024 px and ~1,280 px.
 - **Why It Is a Problem:** the stated reason for gating the table at `lg` is that "four prose columns
   need the width" — but at `lg` they do not have it. A horizontally scrolling 5-row table with no
@@ -903,6 +950,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 49. `GuideSpine` collapses after hydration, shifting the layout on every mobile load
+
 - **File(s):** `components/marketing/pubs/guide-spine.tsx:61-88`; `lib/motion/use-hydrated`
 - **Current UX/UI Problem:** the toggle button is `hydrated ? "flex" : "hidden"` and the `<ol>` is
   `hydrated && !open ? "hidden lg:block" : "grid"`. So the server sends the **full 8-link list**
@@ -917,11 +965,12 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 50. `VendorQuestions` gives the answer more visual weight than the question
+
 - **File(s):** `components/marketing/pubs/vendor-questions.tsx:20-45`
 - **Current UX/UI Problem:** each of the six rows is `sm:grid-cols-[5fr_6fr]`. The left cell (the
-  question the reader is meant to *ask a vendor*) is bare text on the page ground; the right cell
+  question the reader is meant to _ask a vendor_) is bare text on the page ground; the right cell
   (our answer) is `rounded-lg border-2 border-ink bg-card p-3.5` — a bordered card with a lighter
-  ground. The answer column is also the *wider* one (6fr vs 5fr).
+  ground. The answer column is also the _wider_ one (6fr vs 5fr).
 - **Why It Is a Problem:** the section's whole premise is "ask these of anyone you talk to, us
   included" — a due-diligence checklist. Rendering our own answers as the visually dominant,
   wider, carded element turns a checklist into a sales sheet, undermining the credibility the
@@ -934,10 +983,11 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 51. `TillMoment` hand-rolls a circle that `IconRoundel` already owns
+
 - **File(s):** `components/marketing/pubs/till-moment.tsx:17-22`;
   `components/brand/icon-roundel.tsx:6-13`
 - **Current UX/UI Problem:** `<span className="mono-meta grid size-7 place-items-center rounded-full
-  border-2 border-ink bg-card text-foreground">{index + 1}</span>` — a 28 px numbered circle.
+border-2 border-ink bg-card text-foreground">{index + 1}</span>` — a 28 px numbered circle.
   `IconRoundel size="sm"` is exactly this at 32 px, with `children` as the documented "step number"
   mode, and DESIGN.md says "new framing circles reach for `IconRoundel` rather than hand-rolling
   `rounded-full`".
@@ -947,6 +997,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Low
 
 ### 52. `StaffTime`'s three-up grid produces a ~25-character measure at `sm`
+
 - **File(s):** `components/marketing/pubs/staff-time.tsx:19-33`
 - **Current UX/UI Problem:** `<ul className="grid gap-3 sm:grid-cols-3">` with each card
   `p-4 sm:p-5` holding a `MonoTag` and a `text-sm leading-6` paragraph. At 640 px inside the guide
@@ -960,6 +1011,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 53. `PubGuideHero` stacks three ink-bordered surfaces around one card
+
 - **File(s):** `components/marketing/pubs/pub-guide-hero.tsx:67-84`
 - **Current UX/UI Problem:** an `aria-hidden` `bg-seal` sheet rotated 2° behind a
   `rounded-[var(--radius-sheet)] border-2 border-ink bg-cobalt p-5 shadow-md sm:p-7` panel, which
@@ -971,17 +1023,18 @@ were modified, no builds or tests run. Heights below are estimated from the actu
   than supporting it, and the nested `p-5 sm:p-7` adds ~80 px of height for decoration alone.
 - **Recommended Redesign:** drop the cobalt panel; keep the sun offset sheet directly behind the
   card (one rotation, two surfaces), and move the "The QR option" tag + "Try it live" link to a
-  dashed caption bar *below* the card. Fewer grounds, ~90 px shorter, and the card stays the hero.
+  dashed caption bar _below_ the card. Fewer grounds, ~90 px shorter, and the card stays the hero.
 - **Priority:** Medium
 
 ### 54. Five different page-title scales across six page types
+
 - **File(s):** `hero.tsx:30` (`text-4xl sm:text-6xl`); `process-hero.tsx:38` (same);
   `pub-guide-hero.tsx:43` (`text-3xl sm:text-5xl`); `components/brand/typography.tsx:69`
   (`text-3xl sm:text-4xl`); `app/terms/page.tsx:64`, `privacy/page.tsx:65`,
   `legal-document-page.tsx:56` (`text-[clamp(2.1rem,4.5vw,3.2rem)]`)
 - **Current UX/UI Problem:** the H1 renders at 36→60 px on `/` and `/how-it-works`, 30→48 px on
   `/loyalty-for-pubs`, 30→36 px on `/pricing`, `/faq`, `/about`, `/demo`, and a fluid 33.6→51.2 px on
-  the five legal pages — the legal H1 is therefore *larger* than the pricing page's H1 on desktop.
+  the five legal pages — the legal H1 is therefore _larger_ than the pricing page's H1 on desktop.
 - **Why It Is a Problem:** page titles are the strongest signal of where you are in a site. Five
   scales means the cookie notice announces itself more loudly than the pricing page. DESIGN.md
   defines exactly two: `marketing-hero` 56 px and `page-title` 30/36 px.
@@ -995,6 +1048,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 ## G. `/loyalty-for-{bars,cafes,takeaways}` — the persona spokes
 
 ### 55. Three routes, one template, zero vertical-specific content
+
 - **File(s):** `app/loyalty-for-bars/page.tsx`, `-cafes`, `-takeaways` (21 lines each);
   `components/marketing/persona-page.tsx:79-226`
 - **Current UX/UI Problem:** the three spokes differ only in `persona.title`, `persona.audience`,
@@ -1012,12 +1066,13 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 56. `PersonaSpokePage` renders four content types with one identical treatment
+
 - **File(s):** `components/marketing/persona-page.tsx:111-189`
 - **Current UX/UI Problem:** four consecutive `<Section size="compact">` (`py-4 sm:py-5` — i.e. no
   rhythm change at all, see finding 3). `CORE_OFFER` items are
   `border-b-2 border-dashed border-border pb-2.5` + `text-sm text-muted-foreground`;
   `MARKET.qualify` items are `border-b-2 border-dashed border-border pb-2` + `text-sm
-  text-muted-foreground`; `MARKET.disqualify` items are **identical**. The only card on the whole
+text-muted-foreground`; `MARKET.disqualify` items are **identical**. The only card on the whole
   page is the guarantees `ReceiptCard`. No icons, no colour, no imagery, no rail.
 - **Why It Is a Problem:** "what you get", "who it's for", and "who it's not for" are three different
   jobs rendered as three visually identical grey dashed lists, ~1,200 px of them. A reader cannot
@@ -1031,6 +1086,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 57. `MonoTag tone="ink"` makes the disqualifier louder than the qualifier
+
 - **File(s):** `components/marketing/persona-page.tsx:140`, `155`;
   `components/marketing/pubs/pub-fit-test.tsx:22`, `44`; `components/brand/mono-tag.tsx:15`
 - **Current UX/UI Problem:** "Right for you" uses `tone="leaf"` (green fill, white text);
@@ -1045,6 +1101,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Low
 
 ### 58. The persona spokes never show a price
+
 - **File(s):** `components/marketing/persona-page.tsx:190-209`
 - **Current UX/UI Problem:** the closing section renders `PLAN_LINE` (a prose sentence) and
   `SCARCITY.capLine`, then two `size="lg"` buttons and the 10 px `cancelLine`. There is no
@@ -1053,7 +1110,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
   a second click before the primary objection can be resolved. Every other conversion surface on the
   site leads with the numeral.
 - **Recommended Redesign:** insert `<PriceLockup size="lead" amount={PRODUCT.priceAmount}
-  cadence={PRODUCT.priceCadence} />` plus the launch-fee line above the CTA row, or render
+cadence={PRODUCT.priceCadence} />` plus the launch-fee line above the CTA row, or render
   `<GrowthPlanPricing variant="compact" />` (see finding 20).
 - **Priority:** Medium
 
@@ -1062,6 +1119,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 ## H. `/guides/*`
 
 ### 59. A hardcoded display date that will silently contradict the machine-readable one
+
 - **File(s):** `components/marketing/guides/guide-page.tsx:56-59`
 - **Current UX/UI Problem:** `<time dateTime={guide.updatedOn}>19 July 2026</time>` — the visible
   text is a **string literal**, while the `dateTime` attribute and the `articleSchema`
@@ -1071,11 +1129,12 @@ were modified, no builds or tests run. Heights below are estimated from the actu
   and the structured data will disagree the moment any guide is revised, which is both a
   credibility problem for readers and a schema-mismatch signal for crawlers.
 - **Recommended Redesign:** format `guide.updatedOn` with the same `Intl.DateTimeFormat("en-GB", {
-  day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })` helper already used in
+day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })` helper already used in
   `commercial-evidence-proof.tsx:5-10`.
 - **Priority:** High
 
 ### 60. Guides have no on-page navigation while their two neighbours have two different ones
+
 - **File(s):** `components/marketing/guides/guide-page.tsx:61-87` (5 sections, ~1,500 words);
   compare `components/marketing/pubs/guide-spine.tsx` (sticky rail) and
   `components/legal/legal-document-page.tsx:36-49` (aside TOC)
@@ -1083,7 +1142,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
   `h2 text-xl` sections with no anchors, no ids, no TOC, no "back to top". The hub next door has a
   sticky scroll-spy spine; the legal pages have a sticky aside list.
 - **Why It Is a Problem:** three different answers to "how do I navigate a long document" across
-  three page families a user moves between, and the one with the *most* prose has none. The
+  three page families a user moves between, and the one with the _most_ prose has none. The
   `h2`s also have no `id`, so a reader cannot deep-link a section of a guide at all.
 - **Recommended Redesign:** reuse `GuideSpine` (make it generic over a section list) on the guides,
   or at minimum add `id` + `scroll-mt` to each `h2` and a collapsed `<details>` "On this page" above
@@ -1091,6 +1150,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 61. Guide body prose is 14 px at a 768 px measure, with a flat 1.43 heading ratio
+
 - **File(s):** `components/marketing/guides/guide-page.tsx:65-74`
 - **Current UX/UI Problem:** `h2 text-xl leading-snug` (20 px) over `p text-sm leading-7`
   (14 px), inside `Section width="narrow"` (768 px) with no `max-w-[Nch]` cap → **≈ 108 characters
@@ -1105,6 +1165,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 62. `ComparisonTable` switches to a table at 640 px — a 26-character column
+
 - **File(s):** `components/marketing/guides/comparison-table.tsx:26-52`
 - **Current UX/UI Problem:** `<div className="hidden overflow-x-auto … sm:block">` with a
   three-column prose table. At 640 px, inside `Section width="narrow"` with `px-6`, each column is
@@ -1123,11 +1184,12 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 
 ## I. Legal surface — `/terms`, `/privacy`, `/cookies`, `/merchant-terms`, `/data-processing`
 
-### 63. The table of contents renders *below* the document on mobile
+### 63. The table of contents renders _below_ the document on mobile
+
 - **File(s):** `components/legal/legal-document-page.tsx:36`; `app/terms/page.tsx:44`;
   `app/privacy/page.tsx:45`
 - **Current UX/UI Problem:** `<aside className="surface-card order-last p-4 lg:sticky lg:top-20
-  lg:order-none">` — `order-last` puts the "On this page" nav after the `<article>` in the grid at
+lg:order-none">` — `order-last` puts the "On this page" nav after the `<article>` in the grid at
   every width below `lg`. On `/privacy` that means the 12-item TOC appears after ≈ **3,200 px** of
   legal prose.
 - **Why It Is a Problem:** a table of contents that a reader only reaches after reading the whole
@@ -1140,6 +1202,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 64. Legal clause bodies run at a ~125-character measure
+
 - **File(s):** `components/legal/legal-document-page.tsx:77-79`; `app/terms/page.tsx:117`;
   `app/privacy/page.tsx:152`
 - **Current UX/UI Problem:** `<p className="text-sm leading-6 text-muted-foreground">` inside a
@@ -1156,12 +1219,13 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Critical
 
 ### 65. Clause headings are 11.5 px uppercase mono — smaller than the body they head
+
 - **File(s):** `components/legal/legal-document-page.tsx:74-76`; `app/terms/page.tsx:116`;
   `app/privacy/page.tsx:151`
 - **Current UX/UI Problem:** `<h2 className="mono-meta tracking-[0.08em] text-foreground">` — 11.5 px
   Space Mono 700 uppercase — above a 14 px body paragraph. Ten to twelve of these per page, with no
   number, no size step, no colour differentiation.
-- **Why It Is a Problem:** hierarchy is inverted: the heading is 2.5 px *smaller* than the text it
+- **Why It Is a Problem:** hierarchy is inverted: the heading is 2.5 px _smaller_ than the text it
   introduces, so a 12-clause privacy notice presents as an undifferentiated grey slab. It also
   contradicts DESIGN.md's register rule — clause titles like "How we use your information" are
   spoken voice, not printed metadata. And `tracking-[0.08em]` is an arbitrary override of
@@ -1172,6 +1236,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 66. `.w-rule` is applied to `<section>` elements, injecting 14 px margins the parent thinks it removed
+
 - **File(s):** `components/legal/legal-document-page.tsx:72`; `app/terms/page.tsx:114`;
   `app/privacy/page.tsx:149`; `app/globals.css` `.w-rule`
 - **Current UX/UI Problem:** each clause is
@@ -1191,10 +1256,11 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 67. `/terms` and `/privacy` are hand-rolled copies of `LegalDocumentPage`
+
 - **File(s):** `app/terms/page.tsx:38-120`; `app/privacy/page.tsx:38-155`;
   `components/legal/legal-document-page.tsx:21-95`
 - **Current UX/UI Problem:** all three render the identical shell — `Section as="div"
-  grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)]`, the same `aside` TOC, the same `PageTitle` with
+grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)]`, the same `aside` TOC, the same `PageTitle` with
   the same `titleClassName` clamp, the same `ReceiptCard edge grid gap-0` with the same
   `cardTitle`/`docNumber` header row, the same section renderer, the same related-link button row.
   `/terms` has a private `TermsBlock` and `/privacy` a private `PolicyBlock` that are
@@ -1208,6 +1274,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** High
 
 ### 68. Legal pages carry no effective date, version or print treatment
+
 - **File(s):** `lib/legal/content.ts` (`*_META` exposes `eyebrow`, `title`, `description`,
   `cardTitle`, `docNumber` only); `components/legal/legal-document-page.tsx:60-66`
 - **Current UX/UI Problem:** the card header shows `cardTitle` and `Nº {docNumber}`. There is no
@@ -1222,6 +1289,7 @@ were modified, no builds or tests run. Heights below are estimated from the actu
 - **Priority:** Medium
 
 ### 69. Related-link rows use three different button treatments across five legal pages
+
 - **File(s):** `app/terms/page.tsx:87-94` (two `variant="secondary"` default size);
   `app/privacy/page.tsx:127-129` (one `variant="secondary" className="w-fit"`);
   `components/legal/legal-document-page.tsx:84-90` (N `variant="secondary"`, wrapped)
@@ -1313,8 +1381,6 @@ affordance never appears on a linked card.
    Fixing the scale is the single change that most improves perceived quality across every page in
    scope, and the `cancelLine` fix has a compliance dimension as well as a legibility one.
 
-
-
 # B. Customer / Member Journey
 
 # Nabaperks — Customer (Member) Journey UX/UI Redesign Audit
@@ -1341,6 +1407,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 ## A. Customer shell, chrome and navigation
 
 ### 1. Authed shell reserves 128px of bottom padding for a 58px tab bar
+
 - **File(s):** `components/layout/customer-app-shell.tsx:30`; `components/layout/customer-tab-bar.tsx:52-55`
 - **Current UX/UI Problem:** `<main className="… px-4 pt-6 pb-32 sm:px-6">` reserves
   `pb-32` = 128px. The bar it clears is `min-h-14` (56px) + `border-t-2` (2px) +
@@ -1356,11 +1423,12 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
   `globals.css`, then `pb-[calc(var(--customer-tabbar-h)+env(safe-area-inset-bottom)+0.75rem)]`.
   Apply the identical token in `CustomerCardExperience`'s `className="pb-28"`
   (`components/customer/customer-card-experience.tsx:87`) and
-  `app/pass/[entitlementId]/page.tsx:62`, which currently use a *different*
+  `app/pass/[entitlementId]/page.tsx:62`, which currently use a _different_
   magic number (112px) for the same bar.
 - **Priority:** Medium
 
 ### 2. Sticky header spends ~70px on a logo and a "Log out" button
+
 - **File(s):** `components/layout/customer-app-shell.tsx:16-28`
 - **Current UX/UI Problem:** The sticky header is `py-3` around a `Logo`
   (`min-h-11`) and a default-size `Button` (`h-11`) → ~70px permanently
@@ -1380,11 +1448,12 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 3. Tab-bar labels use an unsanctioned micro-type size
+
 - **File(s):** `components/layout/customer-tab-bar.tsx:66`
 - **Current UX/UI Problem:** `text-[0.6875rem]` = 11px Bricolage. `DESIGN.md`
   states that below `text-xs` (12px) there are **exactly two** sanctioned sizes,
   both Space Mono: `.mono-meta` (11.5px) and `.mono-id` (10px). This is a third,
-  hand-rolled size in the *spoken* face, in the most-seen component in the app.
+  hand-rolled size in the _spoken_ face, in the most-seen component in the app.
 - **Why It Is a Problem:** Contract drift in the navigation sets the precedent
   every other surface copies; and 11px Bricolage 700 at 5-across is genuinely
   tight on a 320px device (82px → 64px per tab).
@@ -1396,9 +1465,10 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 4. Tab-bar tap target is 56px tall but the visual affordance is only 36px
+
 - **File(s):** `components/layout/customer-tab-bar.tsx:65-82`
 - **Current UX/UI Problem:** The `<Link>` is `min-h-14` and full column width so
-  the hit area is fine, but the *only* visual state change is the `size-9` (36px)
+  the hit area is fine, but the _only_ visual state change is the `size-9` (36px)
   roundel filling with ink. An inactive tab has `border-transparent` and a
   hover-only `group-hover:border-ink/30` — there is no `active:` press feedback
   and no `data-active` underline/rule. On touch there is no hover, so the tab bar
@@ -1415,6 +1485,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 5. `CustomerShell` and `CustomerAppShell` are two different columns for one journey
+
 - **File(s):** `components/layout/customer-shell.tsx:13`; `components/layout/customer-app-shell.tsx:30`; `components/customer/customer-flow-system.tsx:48-56`
 - **Current UX/UI Problem:** Three shells wrap the same 410px measure with three
   different rhythms: `CustomerShell` = `px-4 pt-6 pb-[max(1.5rem,safe)] sm:px-6 sm:pt-10 sm:pb-10`;
@@ -1433,6 +1504,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 6. `sm:` / `md:` breakpoints inside a 410px-capped column are inert or misleading
+
 - **File(s):** `components/layout/customer-shell.tsx:13`; `components/customer/customer-flow-system.tsx:49,55`; `components/loyalty/reward-ticket.tsx:80,83,130`; `components/customer/customer-qr-scanner.tsx:232`; `components/brand/typography.tsx:61,87`
 - **Current UX/UI Problem:** The customer column never exceeds 410px, yet the
   markup is full of viewport queries: `sm:px-6` (fires at 640px viewport where
@@ -1441,7 +1513,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
   `sm:grid-cols-2` exits, `PageTitle`'s `md:grid-cols-[minmax(0,1fr)_auto] md:pt-8`
   action rail. None of these respond to the thing that actually varies — the
   **column width**, which is 343px at SE and 362px at Pro Max.
-- **Why It Is a Problem:** The reward ticket is physically *smaller* on a 430px
+- **Why It Is a Problem:** The reward ticket is physically _smaller_ on a 430px
   phone (`w-20` stub, `p-3`) than on a desktop browser showing the same 410px
   column (`w-[88px]`, `p-4`). Responsiveness is being applied to the wrong axis,
   so the design cannot be tuned for the phones it actually ships to.
@@ -1457,6 +1529,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 ## B. Home dashboard (`/home`)
 
 ### 7. No loyalty card is visible on first paint on a 375px phone
+
 - **File(s):** `app/home/(authed)/page.tsx:33-61`
 - **Current UX/UI Problem:** Measured stack above the first `HomeCardTile`, at
   375×667 with one redeemable reward:
@@ -1470,7 +1543,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
   chrome (title, summary, banner) outrank the object the member opened the app
   to see.
 - **Recommended Redesign:** (a) delete `PageTitle` here — the tab bar already
-  says *Home* and the venue names are the real headings; replace with a single
+  says _Home_ and the venue names are the real headings; replace with a single
   `Eyebrow`-sized line or nothing. (b) Fold `HomeSummaryStrip` into that line.
   (c) Demote `HomeRedeemBanner` to a 56px-tall pinned summary row that expands,
   or delete it because the redeemable card is already sorted first
@@ -1480,6 +1553,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Critical
 
 ### 8. `HomeRedeemBanner` duplicates the first card tile verbatim
+
 - **File(s):** `components/customer/home-redeem-banner.tsx:13-39`; `components/customer/home-card-tile.tsx:44-89`
 - **Current UX/UI Problem:** The banner prints `MonoTag "Ready for scan"`,
   `MonoTag {businessName}`, the reward name at `text-lg`, a support sentence, and
@@ -1497,9 +1571,10 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 9. `HomeSummaryStrip` is a low-value 40px band with off-contract styling
+
 - **File(s):** `components/customer/home-summary-strip.tsx:15`
 - **Current UX/UI Problem:** `rounded-[var(--radius)] border-2 border-dashed
-  border-ink/25 bg-card px-4 py-3 mono-meta tracking-[0.08em]` renders
+border-ink/25 bg-card px-4 py-3 mono-meta tracking-[0.08em]` renders
   "2 cards / 1 reward ready / 2 stamps today" — every fact is derivable by
   looking at the tiles below. Three contract breaks in one line: `border-ink/25`
   is a **third dashed tone** (DESIGN.md sanctions exactly `--w-line` 18% and
@@ -1517,12 +1592,13 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 10. `HomeCardTile` is ~330px tall and stacks up to six sub-blocks per venue
+
 - **File(s):** `components/customer/home-card-tile.tsx:59-158`
 - **Current UX/UI Problem:** One tile can render, vertically:
   ReceiptCard 24px padding → venue header (eyebrow + `text-lg` h2 + locality +
   48px `VenueMark`) ≈ 61 → `gap-4` → tag row ≈ 26 → `gap-4` → stamp grid box
   (`rounded-lg bg-accent p-3`, 2 rows of ~40px compact discs + reward-chip label)
-  ≈ 124 → `gap-4` → reward chip *or* status line ≈ 24-100 → `gap-4` →
+  ≈ 124 → `gap-4` → reward chip _or_ status line ≈ 24-100 → `gap-4` →
   `ReferralBonusBankMini` ≈ 90 → `gap-4` → `TileGiftChip` ≈ 100 → close 24; then
   **outside** the card: `TilePassChip` (~130 each), `ReferralShareButton` (44),
   `GoogleReviewButton` (44). A fully-loaded tile exceeds **600px**. Three venues
@@ -1540,6 +1616,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Critical
 
 ### 11. Tile accessible name contradicts its destination when a reward is ready
+
 - **File(s):** `components/customer/home-card-tile.tsx:41-43,61-64`
 - **Current UX/UI Problem:** `href` becomes `/reward/{stampRewardId}` when a
   reward is redeemable, but `aria-label` is hard-coded
@@ -1553,6 +1630,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 12. The unavailable-card branch renders an empty 26px dashed box
+
 - **File(s):** `components/customer/home-card-tile.tsx:102-104`
 - **Current UX/UI Problem:** When `stampsRequired === null || !card.available`
   the tile renders `<div className="rounded-lg border-2 border-dashed border-ink/20 bg-card p-3" />`
@@ -1569,6 +1647,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 13. Gift, pass and bonus-bank chips are three visually identical blocks
+
 - **File(s):** `components/customer/home-card-tile.tsx:106-119,168-191,231-247`; `components/customer/referral-bonus-bank-panels.tsx:51-69`; `components/customer/customer-card-experience.tsx:364-397,464-490`
 - **Current UX/UI Problem:** Five separate components all render
   `grid gap-1.5 rounded-lg border-2 border-ink bg-seal/15 p-3` with a 14-16px
@@ -1589,6 +1668,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 14. `HomeEmptyState` is ~500px of nested cards with conflicting max-widths
+
 - **File(s):** `components/customer/home-empty-state.tsx:22-55`; `components/brand/typography.tsx:196-213`; `components/ui/empty.tsx:5-15,84-94`
 - **Current UX/UI Problem:** `EmptyState` renders `Empty` with `p-12` (48px each
   side). Inside `EmptyContent` (which is `max-w-sm`, 384px) sits a
@@ -1609,8 +1689,9 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 15. `HomeActivitySnippet` repeats the Activity tab at full row weight
+
 - **File(s):** `components/customer/home-activity-snippet.tsx:27-56`; `app/home/(authed)/activity/page.tsx:52-72`
-- **Current UX/UI Problem:** The snippet renders the *identical* row markup as
+- **Current UX/UI Problem:** The snippet renders the _identical_ row markup as
   the Activity page (`surface-card grid gap-2 p-4` + tag row + title + 2-line
   description) — ~110px per row, plus a `SectionHeader` (eyebrow + `text-lg` h2)
   ≈ 50 and a "See all activity" link. Three items ≈ **420px** appended to the
@@ -1625,6 +1706,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 16. Home page rhythm does not match its own loading skeleton
+
 - **File(s):** `app/home/(authed)/page.tsx:34,48`; `components/customer/loading-skeletons.tsx:260-280`
 - **Current UX/UI Problem:** The page is `grid gap-6` with an inner `grid gap-4`;
   `CustomerHomeSkeleton` is `grid gap-5` with an inner `grid gap-3.5`. The
@@ -1643,6 +1725,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 17. `HomeBirthdayPrompt` is a full card for an optional, dismissible nudge
+
 - **File(s):** `components/customer/home-birthday-prompt.tsx:62-81`
 - **Current UX/UI Problem:** A `ReceiptCard` (24px padding, hard shadow, ink
   border) with a `MonoTag`, an `h2`, a 2-line paragraph and two `size="sm"`
@@ -1663,6 +1746,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 ## C. Card and stamp experience (`/card/[membershipId]`, `/card/[membershipId]/stamp`)
 
 ### 18. The stamp button — the product's primary verb — is the last element on the screen
+
 - **File(s):** `components/customer/stamp-collector.tsx:235-282`; `components/customer/customer-flow-system.tsx:298-333`
 - **Current UX/UI Problem:** `CustomerStampCard` renders in strict DOM order:
   `StampGrid` → `afterGrid` (the 112px `StampStatusBand`) → `RewardTicket` →
@@ -1686,9 +1770,10 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Critical
 
 ### 19. The stamp status band reserves a fixed 112px scroll container
+
 - **File(s):** `components/customer/stamp-collector.tsx:63-91`
 - **Current UX/UI Problem:** `grid h-28 grid-rows-[1.5rem_1fr] content-start
-  gap-1 overflow-y-auto rounded-lg border-2 px-4 py-3` — a hard 112px box with
+gap-1 overflow-y-auto rounded-lg border-2 px-4 py-3` — a hard 112px box with
   its own scrollbar, present in every phase including idle, where it contains
   only "Ready for today's stamp." / "Tap the stamp, or press and hold, to print
   today's mark." (about 60px of real content). The 52px of slack exists so the
@@ -1707,6 +1792,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 20. Card screen appends five optional rails below the card, unbounded
+
 - **File(s):** `components/customer/customer-card-experience.tsx:327-354`
 - **Current UX/UI Problem:** After the receipt the panel stacks, each in
   `grid gap-4`: `CardGiftChip` (~110), one `CardOfferPassChip` per pass (~130
@@ -1729,6 +1815,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Critical
 
 ### 21. The card screen prints one headline three times
+
 - **File(s):** `components/customer/customer-card-experience.tsx:83-89`; `lib/customer/experience/copy.ts:213-224`; `components/customer/customer-flow-system.tsx:299-306`
 - **Current UX/UI Problem:** For `card_collecting`, `vm.eyebrow = merchantName`
   and `vm.headline = cardName`, so the flow shell prints a `MonoTag` with the
@@ -1744,11 +1831,12 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
   fact.
 - **Recommended Redesign:** On the card route drop `vm.headline` to
   `text-[1.35rem]` (or reuse `dense`), and make the welcome `StatusBanner` say
-  the *new* thing only ("Your first stamp is on the card") without repeating the
+  the _new_ thing only ("Your first stamp is on the card") without repeating the
   venue. Saving ≈ 60px and one duplicated sentence.
 - **Priority:** High
 
 ### 22. `CustomerFlowShell` headline uses arbitrary type sizes outside the scale
+
 - **File(s):** `components/customer/customer-flow-system.tsx:97,104`
 - **Current UX/UI Problem:** `dense ? "text-[1.65rem]" : "text-[2.1rem]"` (26.4px
   / 33.6px) and the description at `text-[0.96rem]` (15.36px). `DESIGN.md`
@@ -1765,6 +1853,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 23. `CardDetailsDisclosure` hides a summary row that could carry real state
+
 - **File(s):** `components/customer/customer-card-experience.tsx:512-531`
 - **Current UX/UI Problem:** A `<details>` whose entire payload is one `dl` row:
   `CARD Nº XXXXXXXX` and `One stamp per UK business day` at `mono-id` (10px). The
@@ -1782,6 +1871,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 24. Stamp press disc has no disabled/secured visual and no error affordance in place
+
 - **File(s):** `components/customer/stamp-press-button.tsx:258-314,27-70`
 - **Current UX/UI Problem:** When `inactive` (`disabled || secured`) the button
   keeps `aria-disabled` and swaps `cursor-pointer` → `cursor-default`, but
@@ -1801,6 +1891,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 25. Hold-to-stamp gesture is discoverable only to screen readers
+
 - **File(s):** `components/customer/stamp-press-button.tsx:309-313`
 - **Current UX/UI Problem:** "Tap, or press and hold, to add today's stamp" lives
   in an `sr-only` span. The 600ms hold with a charging ring is a signature
@@ -1816,9 +1907,10 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 26. Location notice is a permanent grey block below the primary control
+
 - **File(s):** `components/customer/stamp-collector.tsx:274-280`
 - **Current UX/UI Problem:** `rounded-lg bg-secondary px-3 py-2 text-center
-  text-xs leading-5 text-muted-foreground` renders two lines of geofence
+text-xs leading-5 text-muted-foreground` renders two lines of geofence
   explanation (~56px) directly under the stamp disc, on every qualifying visit,
   before the member has done anything. It uses `rounded-lg` + `bg-secondary` with
   no border — a fourth surface treatment that matches nothing else in the system
@@ -1837,6 +1929,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 ## D. Loyalty primitives
 
 ### 27. Stamp grid produces ragged, unbalanced rows at 6/8/10 stamps
+
 - **File(s):** `components/loyalty/stamp-grid.tsx:200-228`
 - **Current UX/UI Problem:** The default row layout is
   `repeat(auto-fit, minmax(min(2.75rem,100%), 1fr))` with `gap-2`. Computed
@@ -1846,9 +1939,9 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
   - 8 + reward = 9 slots → **5 + 4**.
   - 10 + reward = 11 slots → **5 + 5 + 1** — a single lonely reward chip
     occupying a whole third row (~68px including its `mono-id` label).
-  At 430px (362px inner) it becomes 6 columns → 6+1 / 6+3 / 6+5, i.e. the
-  layout reflows completely between two common phones.
-- **Why It Is a Problem:** A loyalty card is a *designed object*; a 5+1 or 5+2
+    At 430px (362px inner) it becomes 6 columns → 6+1 / 6+3 / 6+5, i.e. the
+    layout reflows completely between two common phones.
+- **Why It Is a Problem:** A loyalty card is a _designed object_; a 5+1 or 5+2
   ragged row reads as a bug, not a card. The reward chip stranded alone on row 3
   disconnects it from the row it terminates. And because the column count is
   viewport-derived, the same card looks materially different on an SE and a Pro
@@ -1864,6 +1957,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 28. Stamp discs scale by count, so a 3-stamp card has 68px discs and a 10-stamp card 52px
+
 - **File(s):** `components/loyalty/stamp-grid.tsx:211`; `components/loyalty/stamp-dot.tsx:59-66`
 - **Current UX/UI Problem:** Because the tracks are `1fr`, the disc size is a
   function of how many fit per row: 4 slots → (295−24)/4 = **67.8px**; 5 slots →
@@ -1874,7 +1968,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
   compact tile shows a bare day number with no month.
 - **Why It Is a Problem:** The card's most important object has no consistent
   size across venues, and its printed date is legible at 68px, tight at 52px and
-  meaningless at 40px. A bare "12" reads as a stamp *number*, not a date, next to
+  meaningless at 40px. A bare "12" reads as a stamp _number_, not a date, next to
   empty slots that literally show numbers (`showEmptySlotNumbers`).
 - **Recommended Redesign:** Pin the disc to two sizes only — 56px on the card
   page and 40px in tiles — via a fixed track (`repeat(var(--cols), 3.5rem)`)
@@ -1885,10 +1979,11 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 29. `RewardChip` is a square in a row of circles, breaking the stamp family rule
+
 - **File(s):** `components/loyalty/stamp-grid.tsx:56-82`
 - **Current UX/UI Problem:** The reward slot renders
   `aspect-square … rounded-md border-2 -rotate-6` with a `RewardSeal size="sm"`
-  (a 20px circle, `size-5`) centred inside it — a rounded *square* containing a
+  (a 20px circle, `size-5`) centred inside it — a rounded _square_ containing a
   tiny circle, sitting in a row of 52px circles, plus a `mono-id` caption below
   it that the stamp dots do not have. The `size-5` seal inside a ~52px square
   means the meaningful mark occupies 15% of the slot's area.
@@ -1905,6 +2000,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 30. Reward ticket stub steals 27% of the measure and its terms get 213px
+
 - **File(s):** `components/loyalty/reward-ticket.tsx:128-144,78-101`
 - **Current UX/UI Problem:** The stub is `w-20` (80px, `sm:w-[88px]`) plus a 2px
   perforation, leaving the face **213px** at 375px (295 − 82) for
@@ -1924,6 +2020,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 31. `RewardTicket` and `StampGrid`'s reward chip show the same seal twice on one screen
+
 - **File(s):** `components/customer/customer-flow-system.tsx:307-330`; `components/loyalty/stamp-grid.tsx:56-82`
 - **Current UX/UI Problem:** `CustomerStampCard` passes `rewardSlot` to
   `StampGrid` (rendering a sealed `RewardSeal size="sm"` at the end of the row)
@@ -1942,6 +2039,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 32. `StatusBanner` is used for instructions, confirmations, warnings and errors alike
+
 - **File(s):** `components/loyalty/status-banner.tsx:7-14`; `customer-card-experience.tsx:308-319,430-453`; `reward-panels.tsx:43-45,73,113-115`; `profile-gate-forms.tsx:50-58,78-80,146-149`
 - **Current UX/UI Problem:** One component in five tones carries: an instruction
   ("Scan the venue code to add your stamp", neutral), a confirmation ("Stamp
@@ -1964,13 +2062,14 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 33. `QrFrame` double-pads the QR and offers no counter-mode presentation
+
 - **File(s):** `components/loyalty/qr-frame.tsx:15-24`; `components/customer/reward-collection-qr.tsx:89-112`; `components/customer/offer-pass-qr.tsx:78-101`
 - **Current UX/UI Problem:** `QrFrame` is `border-2 p-4` wrapping an inner
   `rounded-md bg-white p-2` — 12px of doubled white padding on top of the QR
   image's own quiet zone. Inside a `CustomerReceipt` at 375px the chain is
   343 (column) − 48 (receipt) − 32 (`p-4`) − 16 (`p-2`) = **247px of actual QR**.
   There is no brightness boost, no full-screen/"show at counter" mode, and the QR
-  sits *below* the reward ticket and a `StatusBanner` (`reward-panels.tsx:64-78`),
+  sits _below_ the reward ticket and a `StatusBanner` (`reward-panels.tsx:64-78`),
   so it is typically ~500px down the page.
 - **Why It Is a Problem:** This is the transaction. A 247px code, at whatever
   screen brightness the member happens to have, requiring a scroll, in a pub with
@@ -1986,6 +2085,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Critical
 
 ### 34. `RewardCelebration` uses the sheet radius and an unbounded confetti layer
+
 - **File(s):** `components/loyalty/reward-celebration.tsx:38,10-16`
 - **Current UX/UI Problem:** `rounded-2xl` = `calc(var(--radius) + 8px)` = 18px,
   which is `--radius-sheet` — the radius `DESIGN.md` reserves for bottom sheets
@@ -2002,9 +2102,10 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Low
 
 ### 35. `ProgressTrack` and `RewardTeaser` are dead/duplicate progress vocabulary
+
 - **File(s):** `components/loyalty/progress-track.tsx:5-31`; `components/loyalty/reward-teaser.tsx:13-34`
 - **Current UX/UI Problem:** `ProgressTrack` renders an `eyebrow` + a leaf
-  `MonoTag` "3 / 8" + a `Progress` bar — a *second* progress readout for a system
+  `MonoTag` "3 / 8" + a `Progress` bar — a _second_ progress readout for a system
   whose entire design is that the stamp grid is the progress readout (the comment
   at `customer-flow-system.tsx:290-292` says exactly this). `RewardTeaser` is a
   documented `@deprecated` shim around `RewardTicket`. Neither is referenced from
@@ -2024,6 +2125,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 ## E. Rewards, passes and the collection moment
 
 ### 36. `/home/rewards` stacks four permanently-expanded sections with full headers
+
 - **File(s):** `app/home/(authed)/rewards/page.tsx:20-110`
 - **Current UX/UI Problem:** Up to four `<section>`s (`Ready for scan`,
   `Coming soon`, `History · Redeemed`, `History · Expired`) at `grid gap-8`
@@ -2047,6 +2149,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 37. `RedeemableReward` repeats the venue name three times in one card
+
 - **File(s):** `components/customer/reward-list-cards.tsx:28-56`; `lib/customer/issued-reward-display.ts`
 - **Current UX/UI Problem:** The header row renders `MonoTag {businessName}`,
   then `MonoTag {rewardSourceBadge(source, businessName)}` (which itself embeds
@@ -2063,10 +2166,11 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 38. Reward-ready screen shows the QR behind a scroll, under two other blocks
+
 - **File(s):** `components/customer/reward-panels.tsx:53-87`
 - **Current UX/UI Problem:** `RewardReadyPanel` renders inside a
   `CustomerReceipt`: `RewardTicket` (~150) → `StatusBanner "Ready for merchant
-  scan."` (a title-only banner, ~54px, saying what the ticket's `KICKER` already
+scan."` (a title-only banner, ~54px, saying what the ticket's `KICKER` already
   says — `reward-ticket.tsx:15` prints "Your reward · ready") →
   `RewardCollectionLive` → `RewardCollectionQr` (247px QR + `p-4` frame + a
   `rounded-xl bg-secondary` caption ~40). Plus the flow shell's headline
@@ -2083,10 +2187,11 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Critical
 
 ### 39. Two near-identical QR components drifted apart
+
 - **File(s):** `components/customer/reward-collection-qr.tsx:57-118`; `components/customer/offer-pass-qr.tsx:66-121`
 - **Current UX/UI Problem:** The pass QR (docblock: "Mirrors
   `reward-collection-qr.tsx`") returns the error state **early**, replacing the
-  whole component; the reward QR renders the error state *inline* and keeps its
+  whole component; the reward QR renders the error state _inline_ and keeps its
   caption. The pass QR has a persistent `Button size="lg" variant="secondary"`
   "Show a fresh code"; the reward QR has that button **only in the error state** —
   so a member whose reward code was just scanned/expired mid-queue has no way to
@@ -2103,6 +2208,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 40. QR caption blocks use `rounded-xl` — a radius that exists nowhere in the contract
+
 - **File(s):** `components/customer/reward-collection-qr.tsx:114`; `components/customer/offer-pass-qr.tsx:102`; `components/customer/customer-login-form.tsx:96`; `components/customer/push-notification-settings.tsx:238`; `components/customer/push-notification-settings-disclosure.tsx:49`
 - **Current UX/UI Problem:** Five customer surfaces use `rounded-xl`
   (`calc(--radius + 4px)` = 14px). `DESIGN.md` sanctions exactly two radii —
@@ -2120,6 +2226,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 41. `/pass/[entitlementId]` prints the discount and venue three times before the code
+
 - **File(s):** `app/pass/[entitlementId]/page.tsx:56-82`; `components/loyalty/offer-pass.tsx:143-165`
 - **Current UX/UI Problem:** The flow shell's `title` is
   `` `${pass.discountPercent}% off at ${pass.venueName}` `` at `text-[2.1rem]`
@@ -2139,6 +2246,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 42. `OfferPass` terms list is the only bulleted list in the customer journey
+
 - **File(s):** `components/loyalty/offer-pass.tsx:171-182`
 - **Current UX/UI Problem:** `<ul className="grid list-disc gap-1.5 pl-4 text-xs leading-5 text-muted-foreground">`
   — browser disc bullets at 12px. Nothing else in the member journey uses
@@ -2159,13 +2267,14 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 ## F. Activity and Profile
 
 ### 43. `/home/activity` renders 40 unbounded ~110px rows with no grouping or paging
+
 - **File(s):** `app/home/(authed)/activity/page.tsx:42-72`; `lib/customer/activity.ts:26`
 - **Current UX/UI Problem:** `getCustomerActivity()` defaults to
   `DEFAULT_LIMIT = 40`. Each `ActivityRow` is
   `surface-card grid gap-2 p-4` → 32 padding + tag row 26 + `gap-2` 8 + title 20
-  + 8 + 2-line description 48 ≈ **142px**, plus `gap-3` between. 40 rows ≈
-  **5,800px** of scrolling with no date separators, no filters, no venue grouping
-  and no pagination. Timestamps are `.mono-id` (10px).
+  - 8 + 2-line description 48 ≈ **142px**, plus `gap-3` between. 40 rows ≈
+    **5,800px** of scrolling with no date separators, no filters, no venue grouping
+    and no pagination. Timestamps are `.mono-id` (10px).
 - **Why It Is a Problem:** A five-screen wall of visually identical cards with no
   landmarks. Finding "when did I last visit the Old Crown" requires reading every
   row. 10px relative timestamps are the smallest type in the app on the one
@@ -2181,6 +2290,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 44. Activity rows are duplicated between the snippet and the page
+
 - **File(s):** `components/customer/home-activity-snippet.tsx:30-48`; `app/home/(authed)/activity/page.tsx:52-72`
 - **Current UX/UI Problem:** The `<li>` markup, the `toneByCategory` map (both
   files declare it independently, lines 10-17 in each) and the `formatRelativeTime`
@@ -2193,14 +2303,15 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 45. Profile is three near-identical `surface-card p-5` sections, ~150px of which is heading chrome
+
 - **File(s):** `app/home/(authed)/profile/page.tsx:28-61`; `profile-about-you.tsx:83-84`; `profile-marketing-consent.tsx:64-65`; `push-notification-settings-disclosure.tsx:21-33`
 - **Current UX/UI Problem:** Three consecutive `section.surface-card.p-5` blocks,
   each opening with a `SectionHeader` (eyebrow + `text-lg` h2 ≈ 50px) —
   "About you / Your contact details", "Marketing / Updates from your venues",
   "Push / Browser notifications". Total page ≈ 107 (`PageTitle`) + 334 + 340 + 90
-  + gaps 96 + `pt-6` 24 + `pb-32` 128 ≈ **1,120px** for what is functionally a
-  settings list with 4 read-only values and 6 toggles. Only the push section is a
-  disclosure; the other two are always expanded.
+  - gaps 96 + `pt-6` 24 + `pb-32` 128 ≈ **1,120px** for what is functionally a
+    settings list with 4 read-only values and 6 toggles. Only the push section is a
+    disclosure; the other two are always expanded.
 - **Why It Is a Problem:** Repetitive section cards with duplicated heading
   patterns, ~150px of pure chrome, and inconsistent progressive disclosure (one
   of three collapses, for no user-visible reason).
@@ -2213,9 +2324,10 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 46. Consent and push toggles are bare native checkboxes at `size-5`
+
 - **File(s):** `components/customer/profile-marketing-consent.tsx:143-155`; `components/customer/push-notification-settings.tsx:292-302`; `components/customer/join-forms.tsx:170-214`
 - **Current UX/UI Problem:** `<input type="checkbox" className="size-5 shrink-0
-  accent-primary">` inside a `-m-3 … min-h-11 min-w-11 p-3` label. The hit area
+accent-primary">` inside a `-m-3 … min-h-11 min-w-11 p-3` label. The hit area
   is correct, but the control is the **browser default** checkbox tinted with
   `accent-primary` — no 2px ink border, no hard offset shadow, no press collapse,
   no dashed empty state. Every other control in the system is fully inked. The
@@ -2234,6 +2346,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 47. Marketing toggles auto-submit with no visible pending state on the control
+
 - **File(s):** `components/customer/profile-marketing-consent.tsx:121-155`
 - **Current UX/UI Problem:** `onChange` calls `form.requestSubmit()` and the
   checkbox is `disabled={pending}` with `disabled:opacity-60`. The confirmation
@@ -2250,6 +2363,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 48. Push settings' skeleton bears no relation to its content
+
 - **File(s):** `components/customer/push-notification-settings-disclosure.tsx:46-58`
 - **Current UX/UI Problem:** `PushSettingsFallback` renders `h-16` status box,
   `h-9 w-32` button and three `h-10 rounded-lg bg-muted` bars. The real content
@@ -2265,6 +2379,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Low
 
 ### 49. Profile disclosure trigger uses `IconRoundel` as a +/− toggle with no state semantics
+
 - **File(s):** `components/customer/push-notification-settings-disclosure.tsx:25-33`
 - **Current UX/UI Problem:** The `<summary>` has `list-none` and a hand-rolled
   `IconRoundel size="sm" className="bg-transparent font-mono text-sm font-black"`
@@ -2288,6 +2403,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 ## G. Join wizard and login
 
 ### 50. The join wizard's step 3 is the tallest form in the app and buries its CTA
+
 - **File(s):** `components/customer/join-wizard.tsx:143-173,219-264`; `components/customer/join-forms.tsx:160-244`
 - **Current UX/UI Problem:** `TermsStep` (dense shell) stacks: header 36 +
   `gap-4` + headline `text-[1.65rem]` ~35 + description 2 lines 48 + `gap-4` +
@@ -2310,6 +2426,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Critical
 
 ### 51. The 3-step progress bar lies on the no-QR path
+
 - **File(s):** `components/customer/join-wizard.tsx:396-415`; `components/customer/customer-flow-system.tsx:117-143`
 - **Current UX/UI Problem:** `joinProgress` maps `join_phone` to step
   `hasQr ? 2 : 1`, `join_otp` to **2**, `join_terms` to **3**, always out of
@@ -2329,13 +2446,14 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 52. The consent fieldset's checkbox rows have unequal hit areas and no error affordance on the row
+
 - **File(s):** `components/customer/join-forms.tsx:168-222`
 - **Current UX/UI Problem:** `<label className="flex items-start gap-3">` with a
   `size-5 mt-0.5` checkbox. The label is the hit target, but it wraps
   `CustomerLegalConsentLinks`, which contains three `<button>` sheet triggers
   ("venue terms", "Nabaperks customer terms", "privacy notice") that call
   `stopPropagation` (`legal-sheet.tsx:107-109`). So roughly 40% of the loyalty
-  consent row's surface is *not* a toggle. On error, `loyaltyTermsError` renders
+  consent row's surface is _not_ a toggle. On error, `loyaltyTermsError` renders
   a `<p>` **outside** the fieldset (line 216-222) and the checkbox gets
   `aria-invalid` but **no visual change** — `accent-primary` on a native checkbox
   cannot express invalid.
@@ -2351,6 +2469,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Critical
 
 ### 53. The OTP field is a single free-text input, not a code field
+
 - **File(s):** `components/customer/join-otp-form.tsx:84-101`; `components/customer/customer-login-form.tsx:117-127`; `components/customer/profile-gate-forms.tsx:157-171`
 - **Current UX/UI Problem:** Three separate places render
   `<input inputMode="numeric" autoComplete="one-time-code" className={`${customerInputClass} font-mono`}>`
@@ -2370,6 +2489,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 54. Login page's two forms stack into one long column with two competing submits
+
 - **File(s):** `components/customer/customer-login-form.tsx:44-144`
 - **Current UX/UI Problem:** After a code is requested, the page shows: phone
   field + hint + a `role="status"` message box + a `Button` reading
@@ -2378,7 +2498,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
   member's next action ("enter the code") is below a button that would restart
   the flow.
 - **Why It Is a Problem:** Two primary vermillion buttons on one screen, with the
-  *destructive-to-progress* one first in reading order. On a phone with the
+  _destructive-to-progress_ one first in reading order. On a phone with the
   keyboard up (~300px of viewport), "Resend code" is often the only visible
   button.
 - **Recommended Redesign:** Once `otpSent`, collapse the phone form to a
@@ -2389,6 +2509,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 55. Login and join phone steps set different expectations for the same SMS
+
 - **File(s):** `components/customer/customer-login-form.tsx:83`; `components/customer/join-forms.tsx:84`; `lib/customer/experience/copy.ts:54-63`
 - **Current UX/UI Problem:** Login shows `JOIN_PHONE_CODE_HINT` = "We'll send a
   one-time code by text." Join shows `JOIN_PHONE_RETENTION_HINT` = "Use a UK
@@ -2403,32 +2524,34 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 56. Welcome step's numbered step markers are a fourth circle dialect
+
 - **File(s):** `components/customer/join-welcome-step.tsx:119-128`
 - **Current UX/UI Problem:** `<span className="mt-0.5 grid size-5 shrink-0
-  -rotate-6 place-items-center rounded-full border-2 border-ink bg-primary
-  text-[0.7rem] leading-none font-extrabold text-primary-foreground">` — a 20px
+-rotate-6 place-items-center rounded-full border-2 border-ink bg-primary
+text-[0.7rem] leading-none font-extrabold text-primary-foreground">` — a 20px
   rotated vermillion disc with 11.2px text. `DESIGN.md` explicitly names
   `IconRoundel` as the sanctioned framing circle ("new framing circles reach for
   `IconRoundel` rather than hand-rolling `rounded-full`"), and `IconRoundel
-  size="sm"` is 32px, **unrotated**. `HomeEmptyState` uses `IconRoundel` for the
+size="sm"` is 32px, **unrotated**. `HomeEmptyState` uses `IconRoundel` for the
   identical pattern (`home-empty-state.tsx:35-41`).
 - **Why It Is a Problem:** Two how-it-works lists in one journey render their
   step numbers at 20px-rotated and 32px-static respectively; `text-[0.7rem]` is a
-  fifth unsanctioned micro size; and rotation is reserved for the *reward/stamp*
+  fifth unsanctioned micro size; and rotation is reserved for the _reward/stamp_
   family, so a step number wearing a stamp tilt implies it is earnable.
 - **Recommended Redesign:** Use `IconRoundel size="sm" tone="primary"` with
   `font-mono text-xs font-extrabold`, exactly as `HomeEmptyState` does.
 - **Priority:** Medium
 
 ### 57. `UnlockingReminder` truncates the venue · card compound to two clamped lines
+
 - **File(s):** `components/customer/join-wizard.tsx:198-217`
 - **Current UX/UI Problem:** `<span className="line-clamp-2 text-sm leading-tight
-  font-extrabold break-words">{merchant.name} · {card.name}</span>` inside a
+font-extrabold break-words">{merchant.name} · {card.name}</span>` inside a
   `flex` row whose fixed siblings are a 40px `VenueMark` and a 20px `RewardSeal`,
   plus `gap-3` ×2 → the text column is 271 − 40 − 20 − 24 = **187px**. At
   `text-sm` that is ~26 characters per line; "The Old Crown Girton · Coffee
   Loyalty Card" clamps mid-phrase.
-- **Why It Is a Problem:** The member's motivation strip — the *why* at the
+- **Why It Is a Problem:** The member's motivation strip — the _why_ at the
   highest-friction step — becomes "The Old Crown Girton · Coffee Loyalt…".
 - **Recommended Redesign:** Split onto two rows: venue name as `Eyebrow`
   (truncating), card name as the `text-sm font-extrabold` line. Or drop the
@@ -2441,9 +2564,10 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 ## H. Scan (`/scan`)
 
 ### 58. No torch, no manual entry, no aiming reticle — the pub-lighting case is unhandled
+
 - **File(s):** `components/customer/customer-qr-scanner.tsx:28-33,201-230`
 - **Current UX/UI Problem:** `SCAN_CONFIG` is `{ fps: 10, qrbox: {width:250,
-  height:250}, aspectRatio: 1, disableFlip: false }`. There is no torch toggle
+height:250}, aspectRatio: 1, disableFlip: false }`. There is no torch toggle
   (html5-qrcode exposes `getRunningTrackCapabilities().torch`), no zoom, no
   "enter the code manually" fallback, and the viewfinder is a plain
   `aspect-square … border-2 border-dashed border-border` box with **no corner
@@ -2464,6 +2588,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Critical
 
 ### 59. `qrbox` is a fixed 250px inside a viewfinder that is 247-314px wide
+
 - **File(s):** `components/customer/customer-qr-scanner.tsx:31`
 - **Current UX/UI Problem:** The viewfinder's width is the receipt inner
   measure: **247px at 320px viewport**, 295px at 375, 314px at 430. The scan box
@@ -2475,15 +2600,16 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
   not agree.
 - **Recommended Redesign:** Pass a function
   `qrbox: (w, h) => { const s = Math.floor(Math.min(w, h) * 0.75); return { width: s, height: s } }`
-  and draw the reticle at the same 75% so the visible frame *is* the decode
+  and draw the reticle at the same 75% so the visible frame _is_ the decode
   region.
 - **Priority:** High
 
 ### 60. The scanner's primary exit sends authed members out of the app
+
 - **File(s):** `components/customer/customer-qr-scanner.tsx:232-239`; `app/scan/page.tsx:20-26`
 - **Current UX/UI Problem:** The exits are `grid gap-3 sm:grid-cols-2` with
   `<Link href="/start">Back to start</Link>` and `<Link href="/home">Open my
-  cards</Link>`. When a session exists, `ScanPage` wraps the scanner in
+cards</Link>`. When a session exists, `ScanPage` wraps the scanner in
   `CustomerAppShell` (with the tab bar), so a signed-in member gets **two**
   navigation systems plus a link to the marketing switchboard `/start` they have
   no reason to visit. The `sm:grid-cols-2` never fires on a phone, so both are
@@ -2498,6 +2624,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 61. The invalid-QR state is a silent text swap that keeps scanning
+
 - **File(s):** `components/customer/customer-qr-scanner.tsx:107-113,159-168`
 - **Current UX/UI Problem:** A non-Nabaperks QR sets `status: "invalid"` and
   changes the `aria-live` line to a 3-line sentence; `hasDecodedRef` stays false
@@ -2514,6 +2641,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 62. Loader and loaded scanner duplicate ~40 lines of chrome that can drift
+
 - **File(s):** `components/customer/customer-qr-scanner-loader.tsx:20-65`; `components/customer/customer-qr-scanner.tsx:180-241`
 - **Current UX/UI Problem:** The two files repeat the `IconRoundel` + `Eyebrow` +
   `h1` + description block and the two exit buttons verbatim — and have **already
@@ -2534,6 +2662,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 ## I. Offer claim (`/offer/[token]`)
 
 ### 63. `OfferShell` is a fourth customer column with its own padding and no tab bar
+
 - **File(s):** `app/offer/[token]/page.tsx:227-253`
 - **Current UX/UI Problem:** `<main className="min-h-svh bg-background px-4 py-10">`
   with `mx-auto grid w-full max-w-customer gap-6` — `py-10` (40px) where every
@@ -2541,7 +2670,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
   `gap-5`, `min-h-svh` where the flow shell uses `min-h-[100dvh]`, a bare `Logo`
   instead of the ✱ + wordmark header lockup used by `CustomerFlowShell`, and no
   safe-area bottom padding at all.
-- **Why It Is a Problem:** The poster-scan landing is many members' *first ever*
+- **Why It Is a Problem:** The poster-scan landing is many members' _first ever_
   Nabaperks screen and it does not look like the rest of the product; the missing
   `env(safe-area-inset-bottom)` means the claim button can sit under the iOS home
   indicator.
@@ -2551,6 +2680,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 64. Offer landing states the same benefit up to four times before the CTA
+
 - **File(s):** `components/customer/offer-claim-landing.tsx:89-149,223-251`
 - **Current UX/UI Problem:** For a "2 stamps + 20% off" campaign the member
   reads, in order: venue `MonoTag`; `Eyebrow` campaign name; `h1`
@@ -2573,11 +2703,12 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Critical
 
 ### 65. Offer recovery states are a bare paragraph and an underlined text link
+
 - **File(s):** `app/offer/[token]/page.tsx:124-132,146-160`
 - **Current UX/UI Problem:** The rate-limited state renders only a `text-sm`
   paragraph inside `OfferShell` — no icon, no `StatusBanner`, and **no action at
   all**. The expired/paused/not-started states add `<p className="text-sm"><Link
-  className="underline">Go to Nabaperks</Link></p>` — a plain inline link where
+className="underline">Go to Nabaperks</Link></p>` — a plain inline link where
   every comparable dead-end in the journey uses `UnavailableRecoveryActions`
   (two `size="lg"` buttons, `components/customer/unavailable-recovery.tsx`).
 - **Why It Is a Problem:** A member who scanned a poster and hit an expired
@@ -2590,9 +2721,10 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 66. `CardProgress` on the offer landing hard-codes a 5-column stamp grid
+
 - **File(s):** `components/customer/offer-claim-landing.tsx:179-187`
 - **Current UX/UI Problem:** `<StampGrid layout="wrap" wrapColumns={5} compact
-  rewardSlot="locked" …>` regardless of `stampsRequired`. For a 6-stamp card
+rewardSlot="locked" …>` regardless of `stampsRequired`. For a 6-stamp card
   (6 + reward = 7 slots) that is 5 + 2 — a row with three empty columns; for a
   10-stamp card, 5 + 5 + 1 — a stranded reward chip. The offer landing renders
   inside `ReceiptCard` at `padding="md"` with no additional padding, so at 375px
@@ -2610,6 +2742,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 ## J. Loading, error and PWA states
 
 ### 67. One home skeleton stands in for four structurally different tabs
+
 - **File(s):** `app/home/(authed)/loading.tsx:1-8`; `components/customer/loading-skeletons.tsx:260-280`
 - **Current UX/UI Problem:** The file's own comment says it "covers the
   dashboard, activity, rewards, and profile tabs". `CustomerHomeSkeleton` renders
@@ -2628,6 +2761,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 68. Error boundaries centre content in a 60dvh box and lose the page's identity
+
 - **File(s):** `app/home/(authed)/error.tsx:13-21`; `app/card/[membershipId]/error.tsx:14-21`; `app/scan/error.tsx`; `app/home/login/error.tsx`
 - **Current UX/UI Problem:** `grid min-h-[60dvh] content-center py-8` (home) and
   `CustomerShell className="grid content-center"` (card/scan/login) both centre a
@@ -2647,6 +2781,7 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** Medium
 
 ### 69. PWA install prompt overlaps the primary action area on customer routes
+
 - **File(s):** `components/pwa/app-pwa.tsx:277-323,79-89`
 - **Current UX/UI Problem:** The prompt is `fixed right-3 left-3 z-50` at
   `bottom-[calc(env(safe-area-inset-bottom)+4.5rem)]` on tab-bar routes — a
@@ -2666,9 +2801,10 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 - **Priority:** High
 
 ### 70. Install prompt's iOS step chips use 1px borders and a non-token radius
+
 - **File(s):** `components/pwa/app-pwa.tsx:304-311`
 - **Current UX/UI Problem:** `rounded-md border border-ink/20 bg-secondary px-3
-  py-2` — a **1px** border at a third dashed/solid ink alpha (`/20`), on
+py-2` — a **1px** border at a third dashed/solid ink alpha (`/20`), on
   `rounded-md` (6px) where the system uses 10px. The card itself uses
   `shadow-xs` (2px) where every other floating surface uses `shadow-md` (4px).
 - **Why It Is a Problem:** The most "OS-like" surface in the product is the one
@@ -2777,23 +2913,21 @@ inner width**. At 430px the column caps at 410px → **362px inner**. Every
 
 ## Appendix — measured heights (375×667 unless stated)
 
-| Surface | Approx. height | Fits one viewport? |
-|---|---|---|
-| `/home` chrome above first card | ~503px | first card ~100px visible |
-| `/home` with 3 venues (loaded tiles) | ~1,800-2,200px | no (~3.5 screens) |
-| `/card/[id]` collecting, all rails | ~1,500px | no |
-| `/card/[id]/stamp` (button at ~y 900) | ~1,100px | **no — primary control off-screen** |
-| `/reward/[id]` ready (QR at ~y 520) | ~900px | no |
-| `/pass/[id]` (QR at ~y 430) | ~850px | no |
-| `/home/rewards` (2 ready, 6 history) | ~1,850px | no |
-| `/home/activity` (40 rows) | ~5,800px | no |
-| `/home/profile` | ~1,120px | no |
-| `/m/…/join` terms step (CTA at ~y 780) | ~830px | **no — CTA off-screen** |
-| `/offer/[token]` (claim at ~y 760) | ~900px | **no — CTA off-screen** |
-| `/scan` (viewfinder + exits) | ~700px | marginal |
-| `/home/login` (code requested) | ~640px | marginal, fails with keyboard up |
-
-
+| Surface                                | Approx. height | Fits one viewport?                  |
+| -------------------------------------- | -------------- | ----------------------------------- |
+| `/home` chrome above first card        | ~503px         | first card ~100px visible           |
+| `/home` with 3 venues (loaded tiles)   | ~1,800-2,200px | no (~3.5 screens)                   |
+| `/card/[id]` collecting, all rails     | ~1,500px       | no                                  |
+| `/card/[id]/stamp` (button at ~y 900)  | ~1,100px       | **no — primary control off-screen** |
+| `/reward/[id]` ready (QR at ~y 520)    | ~900px         | no                                  |
+| `/pass/[id]` (QR at ~y 430)            | ~850px         | no                                  |
+| `/home/rewards` (2 ready, 6 history)   | ~1,850px       | no                                  |
+| `/home/activity` (40 rows)             | ~5,800px       | no                                  |
+| `/home/profile`                        | ~1,120px       | no                                  |
+| `/m/…/join` terms step (CTA at ~y 780) | ~830px         | **no — CTA off-screen**             |
+| `/offer/[token]` (claim at ~y 760)     | ~900px         | **no — CTA off-screen**             |
+| `/scan` (viewfinder + exits)           | ~700px         | marginal                            |
+| `/home/login` (code requested)         | ~640px         | marginal, fails with keyboard up    |
 
 # C. Merchant Console
 
@@ -2818,24 +2952,26 @@ only); merchant column max 1152px (`max-w-merchant`); 44px tap-target floor.
 ## 1. App shell, sidebar and console navigation
 
 ### 1. Merchant shell content padding is one fixed rhythm from 320px to 1920px
+
 - **File(s):** `components/layout/merchant-app-shell.tsx:172-188`
 - **Current UX/UI Problem:** the content wrapper is
   `"w-full px-4 py-8 pb-16 sm:px-6 md:pb-10"` and the inner column is
   `"mx-auto w-full max-w-merchant"`. There is no `lg:`/`xl:` step in either axis, and `py-8 pb-16`
   (32px top / 64px bottom) is applied on a phone where vertical space is scarcest. Meanwhile
   `MerchantSetupReminder` (`app/app/layout.tsx:42-44` → `merchant-setup-reminder.tsx:27`) injects a
-  `className="mb-6"` ReceiptCard *above* every page's `PageTitle`, so on a phone the first pixel of
+  `className="mb-6"` ReceiptCard _above_ every page's `PageTitle`, so on a phone the first pixel of
   real page content sits ~32px + full readiness card + 24px down the page.
 - **Why It Is a Problem:** 96px of pure padding per screen on the smallest viewport is the single
   biggest contributor to console scroll length; and because the shell never widens its gutters at
   `lg+`, a 1440px screen renders a 1152px column with 24px gutters — the console reads cramped on
   desktop and airy on mobile, the opposite of what each needs.
 - **Recommended Redesign:** move to `px-4 py-5 pb-10 sm:px-6 sm:py-6 lg:px-8 lg:py-8 md:pb-8`.
-  Make the setup reminder a *slot* the page opts into next to its title (or a one-line strip inside
+  Make the setup reminder a _slot_ the page opts into next to its title (or a one-line strip inside
   `PageTitle`'s `actions`) rather than an unconditional stacked card with its own bottom margin.
 - **Priority:** High
 
 ### 2. Mobile chrome is a bare hamburger + logo; the documented bottom tab bar does not exist
+
 - **File(s):** `components/layout/merchant-app-shell.tsx:43-46` (prop doc), `:158-166` (render)
 - **Current UX/UI Problem:** the `hideMobileChrome` prop is documented as dropping "the mobile sticky
   header **+ bottom tab bar**", but only a header is rendered:
@@ -2854,11 +2990,12 @@ only); merchant column max 1152px (`max-w-merchant`); 44px tap-target floor.
 - **Priority:** Critical
 
 ### 3. Sidebar is a flat 7-item list with no grouping and no counts
+
 - **File(s):** `components/layout/console-nav.ts:87-110`, `components/layout/console-sidebar-nav.tsx:44-62`
 - **Current UX/UI Problem:** `merchantNavItems` renders Dashboard, Setup, Poster, Members, Activity,
   Announce, Offers as one ungrouped `SidebarMenu`; only the two account items get a
-  `SidebarGroupLabel` ("Account"). The seven items mix *setup-time* surfaces (Setup, Poster) with
-  *daily-operations* surfaces (Members, Activity, Scan-adjacent) and *growth* surfaces (Announce,
+  `SidebarGroupLabel` ("Account"). The seven items mix _setup-time_ surfaces (Setup, Poster) with
+  _daily-operations_ surfaces (Members, Activity, Scan-adjacent) and _growth_ surfaces (Announce,
   Offers) at identical visual weight.
 - **Why It Is a Problem:** no scent of task frequency; a launched venue keeps staring at "Setup"
   forever, and a pre-launch venue gets Offers/Announce it cannot use. Nothing indicates state
@@ -2871,6 +3008,7 @@ only); merchant column max 1152px (`max-w-merchant`); 44px tap-target floor.
 - **Priority:** High
 
 ### 4. Nav labels do not match the page titles they lead to
+
 - **File(s):** `components/layout/console-nav.ts:88-109` vs `app/app/qr/page.tsx:37`,
   `app/app/launch/page.tsx:85`, `app/app/customers/page.tsx:70`, `app/app/announcements/page.tsx:31`
 - **Current UX/UI Problem:** "Poster" → page titled **Venue QR**; "Setup" → page eyebrow **Merchant
@@ -2884,6 +3022,7 @@ only); merchant column max 1152px (`max-w-merchant`); 44px tap-target floor.
 - **Priority:** Medium
 
 ### 5. Navigation pending feedback is a 6px dot at 60% opacity
+
 - **File(s):** `components/layout/console-sidebar-nav.tsx:132-142`
 - **Current UX/UI Problem:** `NavPendingIndicator` renders
   `className="ml-auto size-1.5 shrink-0 rounded-full bg-current opacity-0 … data-[pending=true]:opacity-60"`.
@@ -2897,8 +3036,9 @@ only); merchant column max 1152px (`max-w-merchant`); 44px tap-target floor.
 - **Priority:** Medium
 
 ### 6. Log out and Account are unreachable from the mobile header
+
 - **File(s):** `components/layout/merchant-app-shell.tsx:143-155` (footer, inside the drawer) vs
-  `:60-102` (the setup variant, which *does* expose Dashboard / Account / Log out inline)
+  `:60-102` (the setup variant, which _does_ expose Dashboard / Account / Log out inline)
 - **Current UX/UI Problem:** in the full console the sign-out form and the account items live only
   inside the sidebar drawer footer; the mobile header has trigger + logo and nothing else. The setup
   variant header, by contrast, carries three controls at `size-sm`/`size="icon-sm"`.
@@ -2909,6 +3049,7 @@ only); merchant column max 1152px (`max-w-merchant`); 44px tap-target floor.
 - **Priority:** Medium
 
 ### 7. Active sidebar item and primary CTAs share the same filled vermillion
+
 - **File(s):** `app/globals.css:756-763` (`[data-slot="sidebar-menu-button"][data-active="true"]` →
   `background: var(--sidebar-primary)`), vs `Button` default variant
 - **Current UX/UI Problem:** the "you are here" state is a solid `--w-accent` fill with a 2px ink
@@ -2926,10 +3067,12 @@ only); merchant column max 1152px (`max-w-merchant`); 44px tap-target floor.
 
 Rough height audit at 390px wide: setup reminder card (~180px) + `PageTitle` with three stacked
 full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + section header (~110px)
-+ 2×2 KPI grid (~230px) + trend card (~230px) + recent-activity card with 4 rows (~420px)
-≈ **1,800px, ~4.6 phone screens**, before any activity row is read.
+
+- 2×2 KPI grid (~230px) + trend card (~230px) + recent-activity card with 4 rows (~420px)
+  ≈ **1,800px, ~4.6 phone screens**, before any activity row is read.
 
 ### 8. Three full-width stacked buttons sit between the title and the first data
+
 - **File(s):** `components/merchant/dashboard-header-actions.tsx:41-62`, rendered via
   `app/app/page.tsx:57`
 - **Current UX/UI Problem:** `flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row` with three
@@ -2945,6 +3088,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** High
 
 ### 9. `PageTitle` fakes baseline alignment with a magic `md:pt-8`
+
 - **File(s):** `components/brand/typography.tsx:86-90`
 - **Current UX/UI Problem:** the actions slot is
   `"flex flex-wrap gap-2 md:justify-self-end md:pt-8"`. The 2rem top padding is hand-tuned to sit
@@ -2960,6 +3104,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** Medium
 
 ### 10. KPI tiles use an arbitrary off-scale value size and produce ragged heights
+
 - **File(s):** `components/brand/kpi-tile.tsx:56-84`, consumed at
   `components/merchant/dashboard-home-streams.tsx:93-111`
 - **Current UX/UI Problem:** the value is
@@ -2977,6 +3122,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** Medium
 
 ### 11. KPI grid stays 2-up from 640px all the way to 1024px
+
 - **File(s):** `components/merchant/dashboard-home-streams.tsx:93`
 - **Current UX/UI Problem:** `"grid grid-cols-2 gap-3 lg:grid-cols-4"`. Between `sm` and `lg` the
   tiles are 2-up and extremely wide relative to their content (a 3-character number + a 64px
@@ -2989,6 +3135,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** Medium
 
 ### 12. The dashboard QR ticket is the tallest block on the page and repeats the Poster page
+
 - **File(s):** `components/merchant/dashboard-qr-card.tsx:124-219`
 - **Current UX/UI Problem:** the card renders a 9.25rem (148px) `QrFrame` with a 7.25rem image, a
   "Tap to show full screen" caption, an eyebrow + status tag, a `text-xl sm:text-2xl` venue heading,
@@ -3004,13 +3151,14 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** High
 
 ### 13. Dashboard "Do next" exists as a component but is only wired into the dev harness
+
 - **File(s):** `components/merchant/dashboard-next-actions.tsx` (whole file) — the only importers are
   `app/dev/app-harness/dashboard/page.tsx:23,201`; `app/app/page.tsx` never renders it
 - **Current UX/UI Problem:** the production dashboard has KPIs, a chart and a raw activity list, but
   no answer to "what should I do now". The written component (rewards ready to redeem, members gone
   quiet, repeat-member progress) is shipped and unused.
-- **Why It Is a Problem:** the dashboard is currently a *reporting* surface for an operator who
-  needs a *task* surface; the highest-value merchant action (someone has a reward waiting) is buried
+- **Why It Is a Problem:** the dashboard is currently a _reporting_ surface for an operator who
+  needs a _task_ surface; the highest-value merchant action (someone has a reward waiting) is buried
   in the Members table's `readyCount` badge.
 - **Recommended Redesign:** render `MerchantNextActions` on `/app` directly under the QR ticket,
   above the KPI grid, and make its two rows deep-link into `/app/customers?filter=ready`. Then the
@@ -3018,6 +3166,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** High
 
 ### 14. Billing notice is inside the metrics stream, so it pops in late and shifts the page
+
 - **File(s):** `components/merchant/dashboard-home-streams.tsx:79` inside `MerchantDashboardStream`,
   which is Suspended at `app/app/page.tsx:73-77`
 - **Current UX/UI Problem:** `<MerchantBillingNotice status={dashboard.billingStatus} />` is the
@@ -3031,6 +3180,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** Medium
 
 ### 15. Empty-state and populated dashboards have different vertical rhythms
+
 - **File(s):** `app/app/page.tsx:52` (`grid gap-6`), `dashboard-home-streams.tsx:86` (`grid gap-3`),
   `:113` (ReceiptCard `padding="md"`), `:172` (`grid gap-4`)
 - **Current UX/UI Problem:** four different gap values stack inside one page: page `gap-6`, metrics
@@ -3048,6 +3198,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 ## 3. Members (`/app/customers`)
 
 ### 16. The members table hand-rolls a second responsive renderer instead of using `DataTable`'s
+
 - **File(s):** `components/merchant/customer-readback-table.tsx:51-198` (mobile card + list),
   `:586-641` (`lg:hidden` / `hidden … lg:block` split)
 - **Current UX/UI Problem:** the component renders the **whole filtered list twice** — once as
@@ -3060,7 +3211,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
   rendered records, 100 `StampGrid`s, and two copies of every `data-customer-highlight` marker (the
   effect at `:443-454` has to filter by `offsetParent !== null` to work around it); (b) the two
   renderers have already drifted — the mobile card exposes "Open scanner" + "Send reward" only when
-  *selected*, the desktop row always shows Scan/Send; (c) the design system now has two member-row
+  _selected_, the desktop row always shows Scan/Send; (c) the design system now has two member-row
   vocabularies to maintain.
 - **Recommended Redesign:** move the split into `DataTable` — either extend the shared contract with
   an `lg` breakpoint (one line in the shared component, then delete ~150 lines here) or accept `xl`
@@ -3069,6 +3220,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** Critical
 
 ### 17. The Reward column stacks up to three controls, inflating every row
+
 - **File(s):** `components/merchant/customer-readback-table.tsx:285-329`
 - **Current UX/UI Problem:** the cell is
   `<span className="flex flex-col items-start gap-1.5">` containing a `MonoTag`, a conditional
@@ -3085,11 +3237,12 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** High
 
 ### 18. Search and filter only cover the loaded page, and the UI apologises in prose
+
 - **File(s):** `components/merchant/customer-readback-table.tsx:512-554`,
   `app/app/customers/page.tsx:117-123`
 - **Current UX/UI Problem:** filtering runs client-side over one `CUSTOMERS_PAGE_SIZE` window
-  (`filterCustomers`, `:358-372`), and the honesty note at `:548-554` reads *"search and filters
-  cover this page only. Older members are on the later pages."* Pagination is prev/next only
+  (`filterCustomers`, `:358-372`), and the honesty note at `:548-554` reads _"search and filters
+  cover this page only. Older members are on the later pages."_ Pagination is prev/next only
   (`:657-704`).
 - **Why It Is a Problem:** for any venue past one page, search is functionally broken — the merchant
   types a member's initials, gets "No members match your filter", and has no way to know which page
@@ -3101,22 +3254,24 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** Critical
 
 ### 19. Hand-rolled sub-`text-xs` mono breaks the documented micro-type contract
+
 - **File(s):** `components/merchant/customer-readback-table.tsx:95` and `:231`
 - **Current UX/UI Problem:** both renderers print the phone line as
   `"font-mono text-[0.66rem] font-bold tracking-[0.04em] text-muted-foreground"` — 10.56px with a
-  bespoke 0.04em tracking. DESIGN.md: *"Do not hand-roll `font-mono text-[0.x rem] tracking-[…]`
-  strings — reach for one of these utilities."*
+  bespoke 0.04em tracking. DESIGN.md: _"Do not hand-roll `font-mono text-[0.x rem] tracking-[…]`
+  strings — reach for one of these utilities."_
 - **Why It Is a Problem:** a third mono size alongside `.mono-meta` (11.5px) and `.mono-id` (10px),
   duplicated in two places, one token check away from failing.
 - **Recommended Redesign:** replace both with `className="mono-id text-muted-foreground"`.
 - **Priority:** Medium
 
 ### 20. Row selection is a 1px translucent ring on a 2px-ink system
+
 - **File(s):** `components/merchant/customer-readback-table.tsx:68` (card) and `:630-639` (row)
 - **Current UX/UI Problem:** selected state is
   `"bg-primary/10 ring-1 ring-primary/30 ring-inset"` in both renderers. A 1px ring at 30% alpha over
   a 10% vermillion wash is a low-contrast, non-Wet-Ink treatment.
-- **Why It Is a Problem:** it will not meet 3:1 non-text contrast, and it is the *only* signal that
+- **Why It Is a Problem:** it will not meet 3:1 non-text contrast, and it is the _only_ signal that
   the row's expanded actions belong to that member. It also reintroduces per-component ring alphas,
   which DESIGN.md bans ("Never reintroduce per-component `focus-visible:ring-*` alphas").
 - **Recommended Redesign:** selected row = `bg-secondary` + a 3px solid vermillion left cell border
@@ -3125,11 +3280,12 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** Medium
 
 ### 21. Disabled pagination buttons render a non-focusable `<span>`
+
 - **File(s):** `components/merchant/customer-readback-table.tsx:671-701`
 - **Current UX/UI Problem:** `<Button asChild={pagination.hasPrev} … disabled={!pagination.hasPrev}>`
   swaps between a `Link` and a bare `<span>Previous page</span>`. With `asChild=false` the `disabled`
   prop lands on a real `<button>` — but the child is a `<span>`, so the accessible name is fine while
-  the element is removed from the tab order with no `aria-disabled` explanation of *why*.
+  the element is removed from the tab order with no `aria-disabled` explanation of _why_.
 - **Why It Is a Problem:** keyboard users tabbing through the pager skip an element whose presence
   they can see, with no state announced.
 - **Recommended Redesign:** always render a `<Button disabled aria-disabled="true">` with plain text
@@ -3139,6 +3295,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** Low
 
 ### 22. Five stacked control blocks precede the first member row
+
 - **File(s):** `components/merchant/customer-readback-table.tsx:495-575`
 - **Current UX/UI Problem:** in order: `StatStrip` (3 stats), search + `FilterPills` row (4 pills,
   `flex-wrap` so 2 lines on a phone), the multi-page honesty paragraph, the conditional scan banner
@@ -3153,12 +3310,13 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** High
 
 ### 23. Three separate empty/edge states with three different treatments
+
 - **File(s):** `components/merchant/customer-readback-table.tsx:462-489` ("Nothing on this page" /
   passthrough `emptyState`), `:577-583` ("No members match your filter"),
   `app/app/customers/page.tsx:131-145` (`EmptyState` with a CTA)
 - **Current UX/UI Problem:** two of the three are bespoke
   `<div className="surface-card px-4 py-10 text-center">` blocks with an `<p className="text-sm
-  font-semibold">` title, while the third uses the brand `EmptyState` (icon roundel, `p-6`,
+font-semibold">` title, while the third uses the brand `EmptyState` (icon roundel, `p-6`,
   `EmptyTitle`). Different padding (`py-10` vs `p-6`), different type, no icon, and only one offers
   a recovery action.
 - **Why It Is a Problem:** inconsistent voice at exactly the moments the merchant needs guidance;
@@ -3172,6 +3330,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 ## 4. Invite customers (`/app/customers/invite`)
 
 ### 24. An 8-row textarea plus a 340px rail makes a ~1,900px first screen on mobile
+
 - **File(s):** `components/merchant/invite-customers-form.tsx:76-149`, `:152-165` (`DeskLayout`),
   `:179-191` (`rows={8}`)
 - **Current UX/UI Problem:** `DeskLayout` is
@@ -3183,11 +3342,12 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
   reassurance content that should have preceded the paste, then scrolls back. The 8-row textarea is
   ~200px of empty box before anything is typed.
 - **Recommended Redesign:** `rows={5}` with `field-sizing-content` growth; hoist the invitation
-  preview *above* the form on mobile (`order-first lg:order-none`) so the payoff is seen before the
+  preview _above_ the form on mobile (`order-first lg:order-none`) so the payoff is seen before the
   work; fold `WhatHappensNext` into a `<Disclosure label="How it works">` below `lg`.
 - **Priority:** High
 
 ### 25. `border-[1.5px]` is used as a de-facto fourth border width
+
 - **File(s):** `invite-customers-form.tsx:335`, `:358`, `:477`; also
   `offer-campaign-form.tsx:242`, `:382`, `:581`; `offers/page.tsx:152`, `:202`;
   `offer-rules-summary.tsx:152`; `reward-pool-form.tsx:594`; `loyalty-card-form.tsx:150`, `:317`
@@ -3196,13 +3356,14 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
   2px dashed for empty/receipt rules; there is no 1.5px in the system.
 - **Why It Is a Problem:** at 1.5px the ink hairline renders differently on 1x vs 2x displays and
   reads as a "cheap" third weight between the 1px `border-border` and the 2px ink; interactive
-  choice tiles end up looking *less* substantial than the static cards around them.
+  choice tiles end up looking _less_ substantial than the static cards around them.
 - **Recommended Redesign:** global find-and-replace `border-[1.5px]` → `border-2`, and let the
   unselected state carry a low-alpha ink colour (`border-ink/25`) rather than a thinner stroke — the
   pattern `reward-pool-form.tsx:311-317` already uses correctly.
 - **Priority:** Medium
 
 ### 26. The sent confirmation is a dead end
+
 - **File(s):** `components/merchant/invite-customers-form.tsx:72-74`, `:491-505`
 - **Current UX/UI Problem:** `if (state.message) return <SentConfirmation … />` replaces the whole
   form with a centred card — icon roundel, "Invitations queued", "Done.", and the message. There is
@@ -3217,6 +3378,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** High
 
 ### 27. Compliance radio tiles carry the legal weight but read as ordinary form rows
+
 - **File(s):** `components/merchant/invite-customers-form.tsx:328-372`
 - **Current UX/UI Problem:** the lawful-basis radios and the attestation checkbox are
   `border-[1.5px] border-border bg-card p-3` tiles with a native
@@ -3237,6 +3399,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 ## 5. Send a reward (`/app/customers/send-reward`)
 
 ### 28. 1px `border-border` cards on a 2px-ink system
+
 - **File(s):** `app/app/customers/send-reward/page.tsx:54`, `:63`; also
   `reward-pool-form.tsx:238`, `offer-campaign-form.tsx:159`, `:179`, `:467`,
   `invite-customers-form.tsx:116`, `loyalty-card-form.tsx:98`, `launch/birthday-panel.tsx:30`
@@ -3254,6 +3417,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** High
 
 ### 29. Three different `<select>` treatments in one console
+
 - **File(s):** `components/merchant/send-reward-form.tsx:122-136`
   (`h-12 rounded-lg border-2 border-ink bg-card px-3`), `components/merchant/loyalty-card-form.tsx:195-209`
   (`h-11 w-full rounded-lg border border-input bg-background px-3 text-sm`), vs the sanctioned
@@ -3262,8 +3426,8 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
   different border weights (2px ink vs 1px input), different grounds (card vs background) and
   **no house chevron**, sitting next to `Field`/`TextareaField` inputs that all come from the themed
   `[data-slot=input]` well.
-- **Why It Is a Problem:** DESIGN.md is explicit: *"Native selects compose through `SelectField`,
-  which keeps the same input well and adds the house chevron."* The bare selects also inherit the OS
+- **Why It Is a Problem:** DESIGN.md is explicit: _"Native selects compose through `SelectField`,
+  which keeps the same input well and adds the house chevron."_ The bare selects also inherit the OS
   arrow, breaking the print aesthetic, and the `border-input` one is nearly invisible on paper.
 - **Recommended Redesign:** convert both to `SelectField` inside a `FormField` so label, hint,
   `aria-describedby` and error wiring come for free — and the hand-rolled `<label>` +
@@ -3272,6 +3436,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** High
 
 ### 30. "Recently sent" is an unbounded list with no empty state and no status legend
+
 - **File(s):** `app/app/customers/send-reward/page.tsx:62-73`, `:78-93`
 - **Current UX/UI Problem:** `getMerchantSentRewards` results render as an unpaginated `<ul>` of
   `bg-secondary px-3 py-2.5` rows; the section is simply omitted when empty (`sent.length > 0 ?`),
@@ -3290,11 +3455,12 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 ## 6. Offers (`/app/offers`, `/new`, `/[id]/qr`)
 
 ### 31. Step pills are full circles, banned outside the stamp family
+
 - **File(s):** `components/merchant/offer-campaign-form.tsx:571-600`
 - **Current UX/UI Problem:** `StepTrack` renders each step as
-  `"mono-meta rounded-full border-[1.5px] px-2.5 py-1"` with a `›` separator. DESIGN.md: *"Full
+  `"mono-meta rounded-full border-[1.5px] px-2.5 py-1"` with a `›` separator. DESIGN.md: _"Full
   circles are reserved for the stamp family… The mono pill `.w-tag` is the only generic pill shape
-  outside the stamp family."*
+  outside the stamp family."_
 - **Why It Is a Problem:** a stadium-shaped step chip competes visually with `MonoTag`/`w-tag`
   status pills that mean something entirely different, and the 1.5px border compounds finding #25.
   It also wraps to three lines on a phone (`flex flex-wrap`) with the `›` separators orphaned.
@@ -3304,6 +3470,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** Medium
 
 ### 32. The review step stacks two full StatusBanners plus a locked-terms card before the publish button
+
 - **File(s):** `components/merchant/offer-campaign-form.tsx:458-543`
 - **Current UX/UI Problem:** in order: optional "Offer saved" success banner, `SectionHeader`,
   `OfferRulesSummary` (7 dashed rows + a terms card), an **info** banner ("The link is the
@@ -3314,13 +3481,14 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
   the merchant to banners right before the only irreversible action in the product. On a phone the
   publish button is roughly 1,400px down.
 - **Recommended Redesign:** merge the two policy banners into two bullet lines inside the
-  acknowledgement card (they *are* what is being acknowledged); keep exactly one banner slot for
+  acknowledgement card (they _are_ what is being acknowledged); keep exactly one banner slot for
   action outcomes. Make the publish row a sticky footer bar
   (`sticky bottom-0 -mx-4 border-t-2 border-ink bg-card/95 px-4 py-3`) so the commit control is
   always reachable while the merchant reads the readback.
 - **Priority:** High
 
-### 33. Lifecycle confirmations appear *above* the button that was pressed
+### 33. Lifecycle confirmations appear _above_ the button that was pressed
+
 - **File(s):** `components/merchant/offer-campaign-panel.tsx:268-416`
 - **Current UX/UI Problem:** `LifecycleControls` renders the confirm `<form>` block first
   (`:272-354`), then the trigger row (`:356-390`), then the warning banner (`:392-415`). Pressing
@@ -3328,7 +3496,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
   banner **below** it, pushing the trigger row down mid-interaction.
 - **Why It Is a Problem:** the confirm target moves away from the finger/pointer at the exact moment
   precision matters, on a destructive, irreversible action. It also means the warning explaining the
-  consequence renders *after* the button that performs it, in DOM order.
+  consequence renders _after_ the button that performs it, in DOM order.
 - **Recommended Redesign:** render as one stable stack: trigger row → warning banner → confirm row,
   with the confirm control appended in place (never above the trigger). Better: use the shared
   `AlertDialog`/`Sheet` so the destructive confirmation is modal, focus-trapped and cannot be
@@ -3337,6 +3505,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** High
 
 ### 34. Five metric tiles in a `grid-cols-2 lg:grid-cols-5` leave an orphan on every mid-size screen
+
 - **File(s):** `components/merchant/offer-campaign-panel.tsx:428-454`
 - **Current UX/UI Problem:** five `MetricTile`s at `grid-cols-2 lg:grid-cols-5`: from 320px to
   1023px that is 3 rows with a lone tile on row 3. Each tile also carries a `helper` sentence
@@ -3349,15 +3518,16 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
   ~140px and makes the tiles scannable.
 - **Priority:** Medium
 
-### 35. The campaign QR page renders a full-bleed ink hero *and* the entire management panel again
+### 35. The campaign QR page renders a full-bleed ink hero _and_ the entire management panel again
+
 - **File(s):** `app/app/offers/[campaignId]/qr/page.tsx:61-142`
 - **Current UX/UI Problem:** the hero is
   `"grid justify-items-center gap-5 rounded-lg border-2 border-ink bg-ink p-6 text-paper sm:p-10"`
   wrapping a QR at `w-[min(80vmin,30rem)]` in a `rounded-2xl` frame (`:96`) — up to 480px of QR plus
   120–160px of section padding — and then re-renders `<OfferCampaignPanel>` in full below it
   (`:132-141`), including the rules summary, lifecycle controls and all five metric tiles.
-- **Why It Is a Problem:** ~3 screens on a phone for a page whose stated job is *"the one screen a
-  merchant holds up"*; the duplicated management panel means two identical "End this offer" controls
+- **Why It Is a Problem:** ~3 screens on a phone for a page whose stated job is _"the one screen a
+  merchant holds up"_; the duplicated management panel means two identical "End this offer" controls
   exist on the same journey. `rounded-2xl` (18px) is also off-scale for a frame — 18px is reserved
   for sheets and large panels.
 - **Recommended Redesign:** make this a genuine present-mode surface — the ink hero, the claim URL,
@@ -3366,6 +3536,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** High
 
 ### 36. Offers hub explains the three benefit presets on every visit, forever
+
 - **File(s):** `app/app/offers/page.tsx:132-170`
 - **Current UX/UI Problem:** `OffersEmptyState` renders an `EmptyState` **and** a three-card "What an
   offer can give" grid **and** a trailing eligibility paragraph — shown to every venue with no live
@@ -3383,6 +3554,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 ## 7. Poster / QR asset kit (`/app/qr` + four print routes)
 
 ### 37. Four near-duplicate print routes with four different chromes
+
 - **File(s):** `app/app/qr/poster/[template]/page.tsx` (114 lines),
   `app/app/qr/tent/[design]/page.tsx` (100), `app/app/qr/nfc/[design]/page.tsx` (139),
   `app/app/qr/nfc-square/[design]/page.tsx` (143); renderers
@@ -3390,7 +3562,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
   `nfc-card/a4-nfc-card.tsx`, `nfc-square/a4-nfc-square.tsx`
 - **Current UX/UI Problem:** a diff of `tent` against `nfc` shows they differ only in the design
   lookup, the destination URL and the error copy — the load / notFound / render-PNG / error-fallback
-  skeleton is byte-identical. But the *chrome* has diverged badly: `A4Poster` gets
+  skeleton is byte-identical. But the _chrome_ has diverged badly: `A4Poster` gets
   `PosterPreviewChrome` (sticky header with back, title, sidebar trigger, print CTA, a guidance
   toggle, and a horizontally scrolling **template switcher**), a `PosterDesktopSidecar` and a sticky
   `PosterActionBar`; `A4Tent` gets a bespoke `styles.chrome` header with a Back button and a
@@ -3400,12 +3572,13 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
   tab (all four lanes use `target="_blank"`). Four maintenance surfaces for one job, and the print
   CTA changes variant, size and position depending on which asset you opened.
 - **Recommended Redesign:** one route — `/app/qr/print/[kind]/[design]` — with `kind ∈ {poster, tent,
-  nfc, nfc-square}` driving a shared registry (the `poster-renderer-registry.tsx` pattern already
+nfc, nfc-square}` driving a shared registry (the `poster-renderer-registry.tsx` pattern already
   exists). One `PrintPreviewChrome` with a **kind tab row** (Poster · Tent · NFC card · NFC plate)
   above the existing design strip, one sidecar, one action bar, one error component.
 - **Priority:** Critical
 
 ### 38. Tent / NFC / NFC-square print previews double-stack headers on mobile
+
 - **File(s):** `lib/navigation/merchant-shell.ts:19-21`, `components/layout/merchant-app-shell.tsx:58`,
   `components/merchant/qr-poster/table-tent/a4-tent.tsx:52-79`
 - **Current UX/UI Problem:** `isPosterPrintPath` matches only `"/app/qr/poster/"`. The tent, NFC and
@@ -3422,6 +3595,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** High
 
 ### 39. The print channel dumps four asset lanes into one endless column
+
 - **File(s):** `components/merchant/launch/qr-redesign-concept.tsx:179-237`,
   `qr-redesign-concept-parts.tsx:178-314`
 - **Current UX/UI Problem:** selecting "Print for the till" renders, in one
@@ -3440,6 +3614,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** Critical
 
 ### 40. The QR workspace hero repeats the venue QR the dashboard already showed
+
 - **File(s):** `components/merchant/launch/qr-redesign-concept.tsx:81-144`
 - **Current UX/UI Problem:** a `surface-card` with its own `border-b-2 bg-paper-deep/55 p-4 sm:p-6`
   header (eyebrow, `text-2xl sm:text-3xl` h2, description, status tag, status action), then a
@@ -3447,7 +3622,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
   frame, a caption, an eyebrow, an h3, a paragraph, a dashed link well and two buttons — before the
   distribution section even starts.
 - **Why It Is a Problem:** it is a second, larger copy of `DashboardQrCard` (finding #12), on a page
-  the merchant reached *specifically* to print something. The h2 "Launch your counter QR" also
+  the merchant reached _specifically_ to print something. The h2 "Launch your counter QR" also
   contradicts the `PageTitle` h1 "Venue QR" directly above it (`app/app/qr/page.tsx:35-39`).
 - **Recommended Redesign:** collapse the hero to a single `grid-cols-[auto_minmax(0,1fr)_auto]`
   status strip — 96px QR, venue name + status tag, Copy + Pause controls — and let the distribution
@@ -3455,6 +3630,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** High
 
 ### 41. Four copies of one render-error surface
+
 - **File(s):** `app/app/qr/poster/[template]/page.tsx:83-106`,
   `tent/[design]/page.tsx:69-…`, `nfc/[design]/page.tsx:86-…`, `nfc-square/[design]/page.tsx`
 - **Current UX/UI Problem:** each route defines its own `…RenderError` returning the identical
@@ -3472,6 +3648,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 ## 8. Setup / launch hub (`/app/launch`) and readiness
 
 ### 42. The launch page renders its heading block twice
+
 - **File(s):** `app/app/launch/page.tsx:84-99`
 - **Current UX/UI Problem:** a mobile-only block
   (`<div className="grid gap-1 sm:hidden">` with an eyebrow, an `h1` and a context paragraph) and a
@@ -3481,13 +3658,14 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Why It Is a Problem:** two heading sources to keep in sync, duplicated text for crawlers and
   screen-reader "list all headings" (only one renders visually, but the pattern is fragile), and a
   bespoke `text-2xl` h1 that does not match `PageTitle`'s `text-3xl sm:text-4xl` — so the heading
-  size *jumps* at the `sm` boundary by two steps.
+  size _jumps_ at the `sm` boundary by two steps.
 - **Recommended Redesign:** one `PageTitle` with `descriptionClassName="hidden sm:block"` plus a
   mobile-only short line, or pass a responsive description. Let `PageTitle` own the h1 at every
   breakpoint.
 - **Priority:** Medium
 
 ### 43. The readiness panel states the same progress three ways at once
+
 - **File(s):** `components/merchant/launch-readiness-panel.tsx:140-293`
 - **Current UX/UI Problem:** inside one `ReceiptCard` the panel can render: a `MonoTag`
   "N of M complete" in the header (`:155-157`), a mobile `Progress` bar + a second `MonoTag` "N / M"
@@ -3504,6 +3682,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** High
 
 ### 44. The launch flow has two competing "next step" CTAs on the same screen
+
 - **File(s):** `components/merchant/launch-readiness-panel.tsx:278-292` (ink CTA strip) and
   `components/merchant/launch/launch-flow-footer.tsx:8-33` (rendered at
   `app/app/launch/page.tsx:210`)
@@ -3519,6 +3698,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** Medium
 
 ### 45. Onboarding puts a 6-field address form and a roadmap aside in an awkward 3-child grid
+
 - **File(s):** `app/app/onboarding/page.tsx:25-46`,
   `components/merchant/onboarding-journey-orientation.tsx:27`
 - **Current UX/UI Problem:** the page is
@@ -3537,6 +3717,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** Medium
 
 ### 46. The onboarding form validates only on submit and commits with one full-width button
+
 - **File(s):** `components/merchant/onboarding-form.tsx:216-345`
 - **Current UX/UI Problem:** validation is an `onSubmit` sweep of five required fields
   (`:221-252`) that `preventDefault`s, sets `clientErrors`, and focuses the first invalid input. There
@@ -3552,10 +3733,11 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** Medium
 
 ### 47. The reward-pool form is an endless scroll with a fixed bottom bar and a padding hack
+
 - **File(s):** `components/merchant/reward-pool-form.tsx:235-532`
 - **Current UX/UI Problem:** one `<section>` renders: header + counter tag, an sr-only status, a
   helper paragraph, a preset well containing up to 9 dashed tiles in `sm:grid-cols-2
-  lg:grid-cols-3`, a selection bar, a feedback paragraph, an empty state, the reward list, and an
+lg:grid-cols-3`, a selection bar, a feedback paragraph, an empty state, the reward list, and an
   "Add a reward" dashed button. The selection bar is
   `"fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 … sm:static"` — a fixed
   overlay on mobile that becomes a static row at `sm` — and the section compensates with
@@ -3572,13 +3754,14 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** High
 
 ### 48. The reward pool mixes four radii, three border weights and a bespoke pending label
+
 - **File(s):** `reward-pool-form.tsx:238` (`rounded-lg border border-border`), `:594`
   (`rounded-lg border-[1.5px]`), `:713` (`rounded-2xl` on the active toggle), `:784`
   (`rounded-lg border-2 border-ink … shadow-sm`), `:846-848`
 - **Current UX/UI Problem:** the section uses a 1px border, reward rows use 1.5px, the active/off
-  switch is `rounded-2xl` (18px — the *sheet* radius) at `h-5`, and the open editor uses 2px ink with
+  switch is `rounded-2xl` (18px — the _sheet_ radius) at `h-5`, and the open editor uses 2px ink with
   `shadow-sm`. The editor's submit is `<Button type="submit" disabled={pending}>{pending ? "Saving…"
-  : …}</Button>` instead of `SubmitButton`, so it announces no `aria-busy` and shows no `Spinner`.
+: …}</Button>` instead of `SubmitButton`, so it announces no `aria-busy` and shows no `Spinner`.
 - **Why It Is a Problem:** an 18px radius on a 20px-tall pill makes it a full stadium — the shape
   DESIGN.md reserves for stamps/tags — and it sits directly beside a 6px-radius icon button
   (`:636`, `rounded-md`). Four radii in one card is visual noise on the launch-critical step.
@@ -3588,6 +3771,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** Medium
 
 ### 49. Only one long console form has a sticky save bar
+
 - **File(s):** `components/merchant/loyalty-card-form.tsx:235-239` (has one) vs
   `venue-location-form.tsx:188-190`, `profile-form.tsx:141`, `onboarding-form.tsx:336-343`,
   `announcement-compose.tsx:260-268` (none)
@@ -3605,6 +3789,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** Medium
 
 ### 50. The card builder's stepper and preset row are three different selection grammars
+
 - **File(s):** `components/merchant/loyalty-card-form.tsx:123-175`, `:280-332`
 - **Current UX/UI Problem:** "Visits to reveal" offers (a) a `Stepper` — an
   `inline-flex … rounded-lg bg-secondary` group with `min-h-9 w-11` −/+ buttons and a
@@ -3618,7 +3803,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Recommended Redesign:** make the presets the primary control (three `min-h-14` tiles with the
   count as the large numeral) and demote the stepper to a small "or choose a custom number" row
   beneath, with an `aria-describedby` linking them. Selected preset = 2px ink border + `bg-secondary`
-  + a check glyph, not a full ink fill.
+  - a check glyph, not a full ink fill.
 - **Priority:** Medium
 
 ---
@@ -3626,6 +3811,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 ## 9. Activity (`/app/activity`)
 
 ### 51. Activity cards lift on hover but are not clickable
+
 - **File(s):** `components/merchant/activity-detail-card.tsx:28`
 - **Current UX/UI Problem:** the `<article>` carries
   `"group/activity surface-card border-ink px-4 py-3 transition-[border-color,box-shadow,transform] … hover:-translate-y-0.5"`.
@@ -3640,6 +3826,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** Medium
 
 ### 52. "Load more" grows the list by 50 with no ceiling feedback and no virtualisation
+
 - **File(s):** `components/merchant/activity-detail-feed.tsx:307-329`,
   `app/app/activity/page.tsx:121-127`
 - **Current UX/UI Problem:** `loadMoreHref` sets `limit = limit + 50`, and the page clamps at 250.
@@ -3654,6 +3841,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** Medium
 
 ### 53. The search + filter block is duplicated between Activity and Members
+
 - **File(s):** `activity-detail-feed.tsx:127-180` vs `customer-readback-table.tsx:512-543`
 - **Current UX/UI Problem:** both render the same composition by hand — an absolutely positioned
   `Icon icon={Search01Icon} size={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 …"`
@@ -3672,6 +3860,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 ## 10. Announcements (`/app/announcements`)
 
 ### 54. The composer fights its own surface class
+
 - **File(s):** `components/merchant/announcements/announcement-compose.tsx:146-149`
 - **Current UX/UI Problem:** the form className is
   `"surface-card grid min-w-0 gap-5 rounded-lg border-2 border-ink bg-card p-4 shadow-xs sm:p-5"`.
@@ -3685,6 +3874,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** Low
 
 ### 55. Character counters are decorative, and the limit is enforced silently
+
 - **File(s):** `announcement-compose.tsx:209-251`
 - **Current UX/UI Problem:** each field pairs a `<Label>` with
   `<span className="numeric-tabular text-xs font-semibold text-muted-foreground">{title.length}/{TITLE_LIMIT}</span>`,
@@ -3698,11 +3888,12 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** Medium
 
 ### 56. The disabled Send button never says why
+
 - **File(s):** `announcement-compose.tsx:105-110`, `:260-268`
 - **Current UX/UI Problem:** `canSubmit` is a conjunction of five conditions (eligible audience,
   under the daily limit, non-empty title, non-empty body, not pending). When false the button
   renders `variant="secondary" disabled` with no `aria-describedby` pointing at a reason. Two of the
-  five reasons *do* get banners (no audience, daily limit) but the other three are silent.
+  five reasons _do_ get banners (no audience, daily limit) but the other three are silent.
 - **Why It Is a Problem:** a disabled primary action with no stated cause is the classic dead-end;
   screen-reader users get "Send announcement, dimmed" and nothing more.
 - **Recommended Redesign:** keep the button enabled and validate on submit (surfacing a
@@ -3715,10 +3906,11 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 ## 11. Account, profile and billing
 
 ### 57. The account tab bar is styled as a primary CTA
+
 - **File(s):** `components/merchant/account/account-tab-bar.tsx:17-38`
 - **Current UX/UI Problem:** the active tab is
   `"bg-primary text-primary-foreground"` inside a `rounded-lg border-2 border-ink bg-card p-1
-  shadow-sm` island, with inactive tabs as plain muted text. There are only two tabs (Profile,
+shadow-sm` island, with inactive tabs as plain muted text. There are only two tabs (Profile,
   Billing) and they use `auto-cols-fr grid-flow-col` full width on mobile.
 - **Why It Is a Problem:** same issue as finding #7 — the filled vermillion is the action ink, and a
   full-width filled block at the top of the page reads as "press me" rather than "you are here".
@@ -3729,6 +3921,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** Medium
 
 ### 58. Billing receipt rows use 1px borders and a `py-1` container
+
 - **File(s):** `components/merchant/account/billing-panel-view.tsx:284-288`, `:326-359`
 - **Current UX/UI Problem:** both `<dl>`s are
   `"grid gap-0 rounded-lg border border-border bg-secondary/40 px-3 py-1 text-sm"` — a 1px border and
@@ -3741,6 +3934,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** Medium
 
 ### 59. `StatusBanner` titles smuggle `<h2>` elements into banners
+
 - **File(s):** `billing-panel-view.tsx:124`, `:262`, `:290`, `:371`
 - **Current UX/UI Problem:** four call sites pass `title={<h2>Billing details could not be loaded</h2>}`
   into the banner's title slot, while every other console banner passes a string
@@ -3754,6 +3948,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** Medium
 
 ### 60. Off-scale `rounded-xl` on profile feedback and scan detail lists
+
 - **File(s):** `components/merchant/profile-form.tsx:127`, `:136`;
   `app/app/rewards/scan/[scanToken]/page.tsx:110`;
   `app/app/offers/scan/[passToken]/page.tsx:114`
@@ -3770,6 +3965,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** Low
 
 ### 61. `min-h-11 w-full sm:w-fit` is pasted onto buttons that are already 44px tall
+
 - **File(s):** `billing-panel-view.tsx:194`, `:202`, `:216`, `:306`, `:379`;
   `activity-detail-feed.tsx:221`; `activity-detail-card.tsx:59`;
   `activity-compact-feed.tsx:52`; `customer-readback-table.tsx:300`, `:316`;
@@ -3777,8 +3973,8 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Current UX/UI Problem:** twelve-plus call sites re-assert the tap floor by hand, in three
   different dialects: `min-h-11`, `min-h-11 sm:min-h-9`, and
   `[@media(pointer:coarse)]:min-h-11`. DESIGN.md states compact button sizes are already
-  *"honest — they render at their declared height on fine pointers and grow to the 44px floor on
-  coarse (touch) pointers"*, so `Button size="sm"` should need none of this.
+  _"honest — they render at their declared height on fine pointers and grow to the 44px floor on
+  coarse (touch) pointers"_, so `Button size="sm"` should need none of this.
 - **Why It Is a Problem:** if the Button variant's coarse-pointer growth is working, these are
   no-ops that also break the honest compact height on desktop (a `min-h-11` `size="sm"` button is a
   44px button pretending to be small). If it is not working, the fix belongs in one place.
@@ -3788,10 +3984,11 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** Medium
 
 ### 62. The cancellation page is a single card with a full-width secondary escape
+
 - **File(s):** `app/app/account/cancel/page.tsx:22-42`
 - **Current UX/UI Problem:** `PageTitle` + one `ReceiptCard edge padding="md" className="gap-5"`
   containing the interview form and, at the bottom, `Button asChild variant="secondary"
-  className="w-full sm:w-fit"` → "Back to billing". When `cancellable` is false the card shows one
+className="w-full sm:w-fit"` → "Back to billing". When `cancellable` is false the card shows one
   muted sentence and the same full-width button.
 - **Why It Is a Problem:** the "stay" path (Back to billing) is the outcome the product wants, yet it
   is a secondary control below the fold of a form; and the non-cancellable state renders a nearly
@@ -3806,12 +4003,13 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 ## 12. Counter scanning (`/app/scan`, `/app/rewards/scan/*`, `/app/offers/scan/*`)
 
 ### 63. The scan page breaks the console's column width and puts an `h1` inside a card
+
 - **File(s):** `app/app/scan/page.tsx:12-16`, `components/merchant/merchant-reward-scanner.tsx:21-34`,
   `:270-306`
 - **Current UX/UI Problem:** the page is `<div className="mx-auto w-full max-w-xl">` (576px) inside
   a shell that already constrains to `max-w-merchant` (1152px), and the page's only heading is
   `ScanCardHeader`'s `<h1 className="text-3xl leading-tight font-extrabold tracking-[-0.01em]
-  sm:text-4xl">` rendered **inside** the `ReceiptCard`. Every other console route puts the `PageTitle`
+sm:text-4xl">` rendered **inside** the `ReceiptCard`. Every other console route puts the `PageTitle`
   above the card.
 - **Why It Is a Problem:** navigating from `/app` (1152px, title outside) to `/app/scan` (576px,
   title inside a card) is a jarring layout jump on desktop, and it means the scan page has no page
@@ -3821,6 +4019,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** Medium
 
 ### 64. Camera failure offers only "Try again" — no manual code entry
+
 - **File(s):** `components/merchant/merchant-reward-scanner.tsx:90-105`, `:284-301`
 - **Current UX/UI Problem:** the four camera error reasons are well written, but the only recovery
   control is a `Try again` button plus a `Back to dashboard` link. There is no way to type or paste
@@ -3837,6 +4036,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** High
 
 ### 65. Both scan detail pages stack full-width buttons in a grid
+
 - **File(s):** `app/app/rewards/scan/[scanToken]/page.tsx:145-152`, `:157-167`;
   `app/app/offers/scan/[passToken]/page.tsx:145-152`, `:201-212`
 - **Current UX/UI Problem:** `ScanShell` renders `<section className="grid gap-4">` and the buttons
@@ -3856,11 +4056,12 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 ## 13. Skeletons, loading and error surfaces
 
 ### 66. The generic route skeleton is a page title only, so every route "pops in"
+
 - **File(s):** `app/app/loading.tsx:7-16`, vs the structural skeletons in
   `components/merchant/loading-skeletons.tsx`
 - **Current UX/UI Problem:** `/app/*` route transitions render `MerchantPageTitleSkeleton` alone — one
   eyebrow bar, one title bar, one description bar, one action block. Every page then streams its own
-  structural skeleton *inside* Suspense. So a navigation shows: title skeleton → real title +
+  structural skeleton _inside_ Suspense. So a navigation shows: title skeleton → real title +
   section skeleton → content. Three layout states per navigation.
 - **Why It Is a Problem:** the comment at `:3-6` calls this "a single predictable step", but in
   practice the merchant sees the page height jump twice. On `/app/customers` the difference between
@@ -3872,6 +4073,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
 - **Priority:** Medium
 
 ### 67. The console error boundary offers one action and no support path
+
 - **File(s):** `app/app/error.tsx:16-30`
 - **Current UX/UI Problem:** `min-h-[50vh] … max-w-2xl` `EmptyState` with a single `Try again`
   button. No "Back to dashboard", no error digest surfaced, no contact route — despite the
@@ -3891,7 +4093,7 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
    `rounded-lg border border-border bg-card p-4 sm:p-6` (1px, no shadow) — the latter in 9 places
    (`send-reward/page.tsx:54,63`, `reward-pool-form.tsx:238`, `offer-campaign-form.tsx:159,179,467`,
    `invite-customers-form.tsx:116`, `loyalty-card-form.tsx:98`, `birthday-panel.tsx:30`). Every one
-   of them is a *form* surface, so the console's most important screens are its least-styled.
+   of them is a _form_ surface, so the console's most important screens are its least-styled.
 2. **`border-[1.5px]` as a phantom third border weight** — 11 call sites (finding #25). Always on
    selectable tiles, i.e. exactly where the ink contract should be loudest.
 3. **Off-scale radii.** `rounded-2xl` (`reward-pool-form.tsx:713`, `offers/[id]/qr/page.tsx:96`),
@@ -3941,8 +4143,6 @@ full-width buttons (~230px) + `DashboardQrCard` (~380px) + billing notice + sect
    touches ~15 files and makes the console's setup path — the activation-critical path — look like
    the same product as its dashboard.
 
-
-
 # D. Admin Back-office, Shared Data Display & Dev Surfaces
 
 # Nabaperks — UX/UI Redesign Audit: Internal Admin / Back-Office & Shared Data Display
@@ -3963,15 +4163,15 @@ two dashed tones only (`--w-line` 18% / `--w-line-strong` 50%), one focus recipe
 
 Rough stacked-height estimates from the markup (desktop >=1280px, default readbacks):
 
-| Route | Structure | Est. height |
-|---|---|---|
-| `/admin/privacy` | PageTitle + **4 stacked panels**, 25 record cards x2 panels, feed, 25-row table, **3 independent paginators** | **~13,000-14,000px** desktop, ~20,000px+ on phone |
-| `/admin/merchants` | PageTitle + 100-row table + **100 QR `AdminRecordCard`s in a plain grid** (no pagination, no reveal) | **~20,000px+** at every breakpoint |
-| `/admin/customers` | 25-row membership table where **every desktop row embeds a 2-field + submit form (~160px/row)** + 25-row rewards table with per-row cancel forms | **~7,000-8,000px** |
-| `/admin/fraud` | 100 flags x a row containing **two full `AdminActionForm`s, each with a required text input** (~250px/row) | **~26,000px** |
-| `/admin/audit` | 100 unpaginated rows, no filters, no sticky header | ~6,000px |
-| `/admin/billing` | 100 rows; phone card renders **11 stacked label/value fields** (~800px/card) | ~8,000px desktop, ~80,000px phone |
-| `/dev/design-system` | 9 `gap-12` sections, 992 lines of demos, **no table of contents** | ~15,000px |
+| Route                | Structure                                                                                                                                        | Est. height                                       |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
+| `/admin/privacy`     | PageTitle + **4 stacked panels**, 25 record cards x2 panels, feed, 25-row table, **3 independent paginators**                                    | **~13,000-14,000px** desktop, ~20,000px+ on phone |
+| `/admin/merchants`   | PageTitle + 100-row table + **100 QR `AdminRecordCard`s in a plain grid** (no pagination, no reveal)                                             | **~20,000px+** at every breakpoint                |
+| `/admin/customers`   | 25-row membership table where **every desktop row embeds a 2-field + submit form (~160px/row)** + 25-row rewards table with per-row cancel forms | **~7,000-8,000px**                                |
+| `/admin/fraud`       | 100 flags x a row containing **two full `AdminActionForm`s, each with a required text input** (~250px/row)                                       | **~26,000px**                                     |
+| `/admin/audit`       | 100 unpaginated rows, no filters, no sticky header                                                                                               | ~6,000px                                          |
+| `/admin/billing`     | 100 rows; phone card renders **11 stacked label/value fields** (~800px/card)                                                                     | ~8,000px desktop, ~80,000px phone                 |
+| `/dev/design-system` | 9 `gap-12` sections, 992 lines of demos, **no table of contents**                                                                                | ~15,000px                                         |
 
 The pattern behind all of it is identical: **one panel per concern, stacked vertically, with every
 per-record write form rendered inline and expanded.** Every fix below is a variant of four moves —
@@ -3983,13 +4183,15 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 ## A. Admin shell, navigation and wayfinding
 
 ### 1. Admin sidebar cannot be collapsed on desktop, and its width fights the table breakpoint
+
 - **File(s):** `components/layout/admin-shell.tsx:40` (`<Sidebar collapsible="offcanvas">`), `:83-90` (trigger only inside the `md:hidden` header), `components/layout/console-sidebar-nav.tsx:19-23` (`--sidebar-width: 17rem`); contrast `components/layout/merchant-app-shell.tsx:118` (`collapsible="icon"`) and `:127-131` (a desktop `SidebarTrigger`).
 - **Current UX/UI Problem:** the admin `Sidebar` is `offcanvas`, so at `md+` it renders as a fixed 272px rail (`fixed inset-y-0 w-(--sidebar-width) md:flex`) with **no trigger anywhere on desktop** — the only `SidebarTrigger` lives in the `md:hidden` header. On a 1280px laptop the content column is `1280 - 272 - 48 (px-6) ~= 960px`, yet every admin `DataTable` switches from cards to the semantic table at `cardBreakpoint="xl"` — a **viewport** query at 1280px.
 - **Why It Is a Problem:** the console renders 6-7 column tables into ~960px exactly at the width where it decides they fit. Combined with `TableCell`'s inherited `whitespace-nowrap` (finding 59) this guarantees horizontal scrolling on the most common admin viewport, and the operator has no way to reclaim the 272px. It also diverges from the merchant console, which can collapse.
-- **Recommended Redesign:** switch to `collapsible="icon"`, add the same `hidden shrink-0 md:flex` `SidebarTrigger` to `SidebarHeader` that `merchant-app-shell.tsx:127` uses, and persist via the existing sidebar cookie. Then move `DataTable`'s breakpoint off the viewport: wrap the panel body in `@container` and use `@6xl:block` / `@6xl:hidden` so the table appears when *the panel* is wide enough, not the window.
+- **Recommended Redesign:** switch to `collapsible="icon"`, add the same `hidden shrink-0 md:flex` `SidebarTrigger` to `SidebarHeader` that `merchant-app-shell.tsx:127` uses, and persist via the existing sidebar cookie. Then move `DataTable`'s breakpoint off the viewport: wrap the panel body in `@container` and use `@6xl:block` / `@6xl:hidden` so the table appears when _the panel_ is wide enough, not the window.
 - **Priority:** Critical
 
 ### 2. Admin content column uses an unsanctioned max width
+
 - **File(s):** `components/layout/admin-shell.tsx:102-103` (`px-4 py-8 sm:px-6` -> `mx-auto w-full max-w-7xl`).
 - **Current UX/UI Problem:** `max-w-7xl` (80rem/1280px) is a raw Tailwind value; `DESIGN.md` mints `--container-merchant: 72rem` and the `max-w-merchant` utility for exactly this job, used at `merchant-app-shell.tsx:184`.
 - **Why It Is a Problem:** the two consoles measure differently for no product reason and the 80rem value is outside the token contract, so it will drift again. Panel descriptions also run past the `max-w-2xl` that `SectionHeader` assumes.
@@ -3997,13 +4199,15 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** Medium
 
 ### 3. The MFA banner is a permanent, non-actionable strip on every admin page
+
 - **File(s):** `components/layout/admin-shell.tsx:91-101` (`role="status"` ... `border-b-2 border-ink bg-reward/12 px-4 py-3 text-sm font-semibold`).
 - **Current UX/UI Problem:** "MFA enforcement is enabled for this admin session." renders full-width above the content on every route, always, with no dismiss and no link — ~49px plus border, forever.
 - **Why It Is a Problem:** a banner that never changes is banner-blindness fuel; it also devalues the identical treatment (`bg-reward/12` + 2px ink) that `AdminActionForm` uses for real success messages (`components/admin/action-form.tsx:51`), so a genuine "Stamps adjusted" reads as chrome. `role="status"` on a static string is noise on every navigation.
-- **Recommended Redesign:** demote to a `MonoTag tone="leaf"` in the sidebar footer beside the existing "AAL2 verified" chip (they say the same thing) and delete the strip. If a page-level signal is required, render it only for an *unsatisfied* state.
+- **Recommended Redesign:** demote to a `MonoTag tone="leaf"` in the sidebar footer beside the existing "AAL2 verified" chip (they say the same thing) and delete the strip. If a page-level signal is required, render it only for an _unsatisfied_ state.
 - **Priority:** High
 
 ### 4. Sidebar footer is three decorative marketing chips, and there is no sign-out
+
 - **File(s):** `components/layout/admin-shell.tsx:18-22` (`supportStatusItems`), `:54-80`.
 - **Current UX/UI Problem:** the footer stacks five `MonoTag`s — operator email, "Service-role readbacks", "Audited support actions", "MFA-aware access", "AAL2 verified" — about 170px of sidebar. Three are static product claims, not state. There is **no log-out control at all** (merchant has one at `merchant-app-shell.tsx:143-155`) and no link to `/admin/security` in the account area.
 - **Why It Is a Problem:** an internal console's footer should carry identity and session controls, not copy. An operator on a shared machine cannot end an admin session from within the console.
@@ -4011,6 +4215,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** High
 
 ### 5. Sidebar has 11 flat nav items with no grouping
+
 - **File(s):** `components/layout/console-nav.ts` `adminNavItems` (11 entries), consumed at `components/layout/admin-shell.tsx:45-49`; `console-sidebar-nav.tsx:45-61` already supports `secondaryItems`/`secondaryLabel`, which admin does not pass.
 - **Current UX/UI Problem:** Overview, Pilot, Evidence, Merchants, Customers, Referrals, Billing, Privacy, Fraud, Audit, Security render as one undifferentiated `min-h-12` list about 570px tall.
 - **Why It Is a Problem:** the items span three unrelated jobs (support/lookup, commercial/analytics, compliance/security). A flat list makes scanning positional rather than semantic and will not survive the next two routes.
@@ -4018,6 +4223,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** Medium
 
 ### 6. No global search / command palette; five routes have no filter at all
+
 - **File(s):** `components/admin/lookup-controls.tsx:21-69` is mounted only at `app/admin/customers/customer-memberships-panel.tsx:51` and `app/admin/privacy/data-request-workflow-panel.tsx:53`. `merchants`, `audit`, `fraud`, `referrals`, `billing` mount no search.
 - **Current UX/UI Problem:** to find one merchant an operator loads `/admin/merchants`, which returns the newest 100 rows (`lib/admin/data.ts` `getAdminMerchants().limit(100)`) with no filter, no pagination and no total, then browser-finds by eye.
 - **Why It Is a Problem:** the most common admin task (find this venue / this event) is unsupported on 5 of 11 routes, and the 100-row cap is invisible, so an operator can conclude a merchant "does not exist".
@@ -4029,6 +4235,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 ## B. `/admin` overview
 
 ### 7. The overview repeats the entire sidebar as a button grid
+
 - **File(s):** `app/admin/page.tsx:132-143`.
 - **Current UX/UI Problem:** all `adminNavItems` render again as `variant="secondary"` buttons in `sm:grid-cols-2 lg:grid-cols-4` — 11 links, about 160px. The adjacent comment still says "8 nav links", so it is stale by three items and the `lg:grid-cols-4` rationale no longer matches the row count.
 - **Why It Is a Problem:** duplicated navigation with no added information (no counts, no state, no recency), below the fold of a page that already has a persistent sidebar. It is pure height.
@@ -4036,6 +4243,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** High
 
 ### 8. KPI tiles are dead ends and under-specified
+
 - **File(s):** `app/admin/page.tsx:59-75`.
 - **Current UX/UI Problem:** three `MetricTile`s (Merchants / Customers / Billing issues) in `sm:grid-cols-3`, none wrapped in a link, none carrying a `trend`, and "Billing issues" — the only actionable one — is styled identically to the two vanity counts.
 - **Why It Is a Problem:** the one number an operator must act on has no affordance and no visual priority; clicking a KPI is the natural gesture and does nothing.
@@ -4043,6 +4251,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** Medium
 
 ### 9. Funnel panel's derived-metrics footer uses a one-off hairline
+
 - **File(s):** `app/admin/page.tsx:87` (`border-t border-ink/20 pt-4`).
 - **Current UX/UI Problem:** a 1px solid `ink/20` rule. Elsewhere the same job is done by `border-b` (1px `--border`) at `customers/customer-memberships-panel.tsx:42`, by `border-t-2 border-dashed border-ink/20` at `evidence/page.tsx:135`, and by `border-y border-dashed border-ink/30` at `app/dev/app-harness/trial/admin/page.tsx:29`. `.w-rule` — the sanctioned 2px dashed receipt rule — is used **zero times** in the admin tree.
 - **Why It Is a Problem:** four rule treatments for one semantic ("divide a panel"), none of which is the documented one. `DESIGN.md` sanctions exactly two dashed tones; `ink/20` and `ink/30` are neither.
@@ -4054,6 +4263,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 ## C. `/admin/customers`
 
 ### 10. Every desktop membership row embeds a live two-field write form
+
 - **File(s):** `app/admin/customers/customer-memberships-panel.tsx:180-184` (column `action` -> `StampAdjustmentForm`), `:207-235`.
 - **Current UX/UI Problem:** the `Audited action` column renders `AdminActionForm` with a `Delta` number input plus helper text, a `Reason` input and a 44px submit — a `min-w-[280px]` block about 160px tall — for **all 25 rows**. The mobile card folds the identical form behind `AdminRecordActions` (`:120-126`). `DESIGN.md` calls these "the same `StampAdjustmentForm`"; they are, but only one is progressively disclosed.
 - **Why It Is a Problem:** about 4,000px of always-visible form for an action taken on maybe one row per session; 25 simultaneous focusable form groups wreck tab order; row height makes member scanning impossible; and 25 copies of "Positive adds stamps, negative removes them." is pure repetition.
@@ -4061,6 +4271,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** Critical
 
 ### 11. Reward cancellation renders its destructive form inline on every eligible row
+
 - **File(s):** `app/admin/customers/customer-rewards-panel.tsx:154-166`, `:189-209`.
 - **Current UX/UI Problem:** each eligible desktop row shows a `Reason` input, a two-line irreversibility helper, a required `AdminConfirmCheck` and a `variant="destructive"` submit — about 190px per row. Ineligible rows print the bare sentence "No action available" in the same column.
 - **Why It Is a Problem:** 25 armed destructive controls on screen at once is a mis-click surface, not a safety design; the safety copy loses all weight through repetition; and the mixed "form vs sentence" column makes the table ragged.
@@ -4068,6 +4279,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** Critical
 
 ### 12. Two panels, two paginators, one URL — and only one has a search box
+
 - **File(s):** `app/admin/customers/page.tsx:47-78` (`page` + `rewardsPage` params), `customer-memberships-panel.tsx:51` (lookup) vs `customer-rewards-panel.tsx` (none).
 - **Current UX/UI Problem:** the route owns two independently paginated lists. Paging Rewards re-renders the whole route and returns the operator to the top, above about 4,000px of memberships. Rewards cannot be searched at all, though the venue/contact fragment is already parsed.
 - **Why It Is a Problem:** two paginators on one scroll surface is a classic orientation failure; the operator loses their place on every page change, and the shared search silently applies to only one list.
@@ -4079,6 +4291,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 ## D. `/admin/privacy` — the tallest page in the product
 
 ### 13. Four stacked panels with three independent paginators
+
 - **File(s):** `app/admin/privacy/page.tsx:65-113` (`DataRequestWorkflowPanel` -> `UnaffiliatedCustomersPanel` -> `LoggedRequestsPanel` -> `ConsentLogPanel`), params `page` / `consentPage` / `unaffiliatedPage` at `:38-40`.
 - **Current UX/UI Problem:** four full `AdminPanel`s in `grid gap-6`. Panel 1 renders up to 25 `AdminRecordCard`s (~230px each => ~5,750px), panel 2 up to 25 more (~170px each => ~4,250px), panel 3 an `ActivityFeed`, panel 4 a 25-row table with its own paginator. Estimated **~13,000-14,000px desktop**.
 - **Why It Is a Problem:** nothing below panel 1 is discoverable; three paginators mutate one URL so each page change re-lays the whole document; and the four panels serve three jobs (service a request / find an orphan account / track SLA / read evidence) never needed simultaneously.
@@ -4086,6 +4299,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** Critical
 
 ### 14. The lookup control filters a panel it does not sit in
+
 - **File(s):** `app/admin/privacy/data-request-workflow-panel.tsx:53-57` (lookup inside panel 1); `unaffiliated-customers-panel.tsx:42` — the description literally reads "Filtered by the contact search at the top of the page."
 - **Current UX/UI Problem:** panel 2's filtering affordance is thousands of pixels above it and visually owned by panel 1; the only signpost is a sentence.
 - **Why It Is a Problem:** a control governing a region it is not adjacent to is a discoverability failure; the operator will assume panel 2 is unfiltered and mis-read an empty state as "no such customer".
@@ -4093,6 +4307,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** High
 
 ### 15. Privacy record cards make three raw UUID chips the loudest element
+
 - **File(s):** `app/admin/privacy/data-request-workflow-panel.tsx:107-116`.
 - **Current UX/UI Problem:** a `References` field renders three `AdminIdChip`s (`customer:`, `merchant:`, `membership:`) side by side, each an 8-hex-character truncation with a dotted underline.
 - **Why It Is a Problem:** three near-identical mono strings dominate the card while being the least often needed; the dotted underline reads as a hyperlink but is a copy button; and an 8-character prefix is not safe to quote in a GDPR record.
@@ -4100,6 +4315,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** Medium
 
 ### 16. Two different write forms sit side by side in one disclosure with no headings
+
 - **File(s):** `app/admin/privacy/data-request-workflow-panel.tsx:119-124` (`grid gap-4 xl:grid-cols-2` -> `ConsentOptOutForm` + `DataRequestForm`).
 - **Current UX/UI Problem:** below `xl` the two forms stack with only `gap-4` and no headings — Channel/Reason/[Record opt-out] runs straight into Request type/Channel/Notes/[Log request]. `xl:grid-cols-2` is again a viewport query inside a card nested three levels deep, so at 1280px each column is about 330px.
 - **Why It Is a Problem:** two unlabelled forms sharing a "Channel" field read as one form; submitting the wrong one writes the wrong audit record. That is a correctness risk, not just aesthetics.
@@ -4107,6 +4323,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** High
 
 ### 17. Consent-log "Source" is a whole column of identical pills
+
 - **File(s):** `app/admin/privacy/consent-log-panel.tsx:121-127` (desktop column), `:82-85` (mobile field).
 - **Current UX/UI Problem:** every row renders `<SourceLabel>Source: {record.source}</SourceLabel>` — a pill whose first word is the constant "Source:" — while the panel header already carries `Source: consent_records` (`:35`).
 - **Why It Is a Problem:** about 14 characters of constant text times 25 rows, in a column competing for width on a table that already overflows.
@@ -4118,6 +4335,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 ## E. `/admin/merchants`
 
 ### 18. 100 QR records render as an unpaginated card wall
+
 - **File(s):** `app/admin/merchants/page.tsx:243-266` (`qrCodes.map` into a plain `grid gap-3`), `:268-303` (`QrRecord`); data cap `lib/admin/data.ts getAdminQrCodes().limit(100)`.
 - **Current UX/UI Problem:** unlike every other admin list, QR records do not use `DataTable`, have no pagination, no `ShowMoreList`, no search and no breakpoint switch — 100 `AdminRecordCard`s (about 200px each with their disclosure) at **all** widths, roughly 20,000px, appended below a 100-row merchant table.
 - **Why It Is a Problem:** the page is effectively infinite; the `#qr-records` cross-link from a merchant row (`:111`) jumps about 8,000px with no return path; finding one venue's QR is a manual scroll.
@@ -4125,6 +4343,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** Critical
 
 ### 19. Destructive styling is inverted between the two QR controls
+
 - **File(s):** `app/admin/merchants/page.tsx:305-335` (`QrStateForm`: `variant={nextActive ? "secondary" : "destructive"}`, **no** `AdminConfirmCheck`) vs `:337-354` (`RegenerateQrForm`: `variant="secondary"` **with** `AdminConfirmCheck`).
 - **Current UX/UI Problem:** "Disable QR" — reversible, and the helper itself says "the QR can be re-enabled later" — gets the destructive silhouette and no confirmation. "Regenerate QR" — which permanently invalidates every printed poster in the venue — gets the neutral secondary silhouette, with the confirm checkbox carrying the entire warning load.
 - **Why It Is a Problem:** the colour system tells the operator the opposite of the truth. `DESIGN.md` makes the destructive silhouette semantic ("the different silhouette says danger before the copy does"); here it says danger on the safe action.
@@ -4132,6 +4351,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** Critical
 
 ### 20. Cross-links are four 12px underlined words with no tap target
+
 - **File(s):** `app/admin/merchants/page.tsx:83-116` (`text-xs`, `focus-ring rounded-sm`, `gap-x-3 gap-y-1`), duplicated near-verbatim at `app/admin/billing/page.tsx:23-44`.
 - **Current UX/UI Problem:** Members / Billing / Privacy / QR records render as `text-xs` primary-coloured underlined links inside the first table cell, with no `min-h`, no icon and no `[@media(pointer:coarse)]:min-h-11` — unlike every other compact control in the system.
 - **Why It Is a Problem:** four adjacent ~16px-tall targets fail the 44px coarse-pointer floor the contract sets, and four stacked links under the business name make the merchant column the visual centre of gravity of the table.
@@ -4139,8 +4359,9 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** High
 
 ### 21. Merchants page has no lookup, no pagination and no total
+
 - **File(s):** `app/admin/merchants/page.tsx:55-75`; `lib/admin/data.ts getAdminMerchants().limit(100)`.
-- **Current UX/UI Problem:** the merchant list is the console's spine and is the only major list with no `AdminLookupControls`, no `AdminLookupPagination` and no row count — while `/admin/customers` and `/admin/privacy` both search *by merchant name*.
+- **Current UX/UI Problem:** the merchant list is the console's spine and is the only major list with no `AdminLookupControls`, no `AdminLookupPagination` and no row count — while `/admin/customers` and `/admin/privacy` both search _by merchant name_.
 - **Why It Is a Problem:** an operator cannot answer "is this venue on the platform?" without scrolling; past 100 merchants the answer becomes silently wrong.
 - **Recommended Redesign:** reuse `AdminLookupControls basePath="/admin/merchants"` with a `venue` param plus `AdminLookupPagination` (both already generic), and surface `meta.total` in the panel header as a `MonoTag`.
 - **Priority:** High
@@ -4150,6 +4371,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 ## F. `/admin/billing`
 
 ### 22. The mobile billing card is an 11-field wall
+
 - **File(s):** `app/admin/billing/page.tsx:192-259` (11 `fields` entries), rendered by `components/admin/record-card.tsx:57-74` (`dl grid gap-2.5`, label above value).
 - **Current UX/UI Problem:** every field is a two-line `dt`/`dd` stack, so one card is about 22 lines / 800px before its `BillingFulfilmentActions` disclosure. With 100 rows and **no `mobilePageSize`**, the phone view is tens of thousands of pixels.
 - **Why It Is a Problem:** no operator reads 11 labelled fields per merchant; the decision-relevant ones (status, fulfilment, period end) are buried among Stripe refs.
@@ -4157,6 +4379,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** High
 
 ### 23. The desktop "Launch fulfilment" cell stacks four `text-xs` lines
+
 - **File(s):** `app/admin/billing/page.tsx:140-167` (`grid min-w-48 gap-2` with a `StatusPill` plus three `text-xs` lines).
 - **Current UX/UI Problem:** each row prints Delivery / Pilot end / Stripe sync as three 12px muted lines; with the `Stripe refs` column (`:168-179`, two more mono lines) and the `Controls` disclosure, the table has three multi-line columns and a comfortable minimum width well past the ~960px it gets (finding 1).
 - **Why It Is a Problem:** 12px muted text is the wrong register for dates an operator must verify, and the horizontal pressure forces the nowrap scroll.
@@ -4164,6 +4387,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** Medium
 
 ### 24. Stripe references are plain text, not copyable chips
+
 - **File(s):** `app/admin/billing/page.tsx:171-178` (`font-mono text-xs` spans), mobile equivalents `:239-248` (`mono: true`).
 - **Current UX/UI Problem:** the two identifiers an operator most often pastes into the Stripe dashboard are the only ids in the console rendered as plain mono, while audit and privacy ids get `AdminIdChip` with click-to-copy.
 - **Why It Is a Problem:** inconsistent identifier affordance; the operator hand-selects an id inside a horizontally scrolling cell.
@@ -4171,6 +4395,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** Medium
 
 ### 25. Billing panel header is a lone source pill with no title
+
 - **File(s):** `app/admin/billing/page.tsx:78-83` (`<div className="border-b p-5"><SourceLabel>...</SourceLabel></div>`).
 - **Current UX/UI Problem:** unlike every sibling panel there is no `SectionHeader` — just a 1px-bordered strip containing a provenance pill, so the header block is about 60px of nothing.
 - **Why It Is a Problem:** breaks the panel anatomy (eyebrow/title/description/actions) the rest of the console teaches, and wastes a header row.
@@ -4182,6 +4407,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 ## G. `/admin/audit`
 
 ### 26. 100 log rows, no filter, no pagination, no sticky header
+
 - **File(s):** `app/admin/audit/page.tsx:22-138`; `lib/admin/data.ts getAdminAuditLogs(limit = 100)`.
 - **Current UX/UI Problem:** the audit table renders 100 rows (`mobilePageSize={10}` covers phones only) with no filter on action, actor, merchant or date, and `TableHeader` does not stick, so column meaning is gone after about 8 rows of scroll.
 - **Why It Is a Problem:** an audit log is a search surface by definition ("what did operator X do to merchant Y last Tuesday?"). Without filters or a date range it only answers "what happened most recently".
@@ -4189,6 +4415,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** High
 
 ### 27. Action names ship raw and snake_cased
+
 - **File(s):** `app/admin/audit/page.tsx:96` (`<span className="font-bold">{log.action}</span>`), mobile card title `:60`.
 - **Current UX/UI Problem:** `data_request_logged`, `customer_pii_erased` print as-is in bold Bricolage, while the fraud panel humanises the same class of value (`fraud-flags-panel.tsx:73` `flag.signal.replaceAll("_", " ")`) and privacy does too (`logged-requests-panel.tsx:96`).
 - **Why It Is a Problem:** snake_case in the display face is a register violation (mono is the printed voice, Bricolage the spoken one), and the same data reads three ways on three pages.
@@ -4200,6 +4427,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 ## H. `/admin/fraud`
 
 ### 28. Every flag row carries two complete write forms — about 250px per row, 100 rows
+
 - **File(s):** `app/admin/fraud/fraud-flags-panel.tsx:121-125` (`Review` column), `:189-247` (`FraudFlagActions` -> two `FraudFlagResolutionForm`s, each an `AdminField` + required `Input` + `SubmitButton`).
 - **Current UX/UI Problem:** the desktop table renders "Review reason" + input + `Mark reviewed` (filled vermillion primary) **and** "Dismissal reason" + input + `Dismiss` for every row, in a `min-w-56` cell. The mobile card folds the pair behind a disclosure (`:151-155`), so again only one mode is disclosed.
 - **Why It Is a Problem:** roughly 26,000px of page; 200 focusable inputs; 100 filled-primary buttons marching down the page, destroying the "one filled red equals the action" rule in `DESIGN.md`; and severity cannot be scanned because rows are 250px apart.
@@ -4207,6 +4435,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** Critical
 
 ### 29. Warning and danger tones are visually indistinguishable
+
 - **File(s):** `components/admin/support.tsx:122-130` (`warning` -> `bg-primary/15`, `danger` -> `bg-destructive/15`), consumed at `fraud-flags-panel.tsx:37-45` (`medium` -> warning, `high` -> danger) and `merchants/page.tsx:40-49`.
 - **Current UX/UI Problem:** the warning wash is a 15% tint of vermillion `#cf330a` and the danger wash a 15% tint of `#c0301c` — colours `DESIGN.md` itself records as sitting **~1.1:1 apart**. At 15% over card they are effectively one swatch; only the `STATUS_PILL_ICON` glyph differs.
 - **Why It Is a Problem:** severity triage by scan — the entire point of the fraud page — does not work. The same collision hits merchant account status (paused vs cancelled) and billing tones.
@@ -4214,6 +4443,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** High
 
 ### 30. Status pills and provenance labels are the same object
+
 - **File(s):** `components/admin/support.tsx:94-109` (`SourceLabel`: `border-ink bg-secondary text-muted-foreground`) vs `:111-135` (`StatusPill` neutral: `border-ink bg-secondary text-secondary-foreground`).
 - **Current UX/UI Problem:** a neutral status pill and a "Source: audit_logs" provenance pill share mono face, border and background, differing only in text colour. On `consent-log-panel.tsx` and `pilot/page.tsx` both appear in the same row.
 - **Why It Is a Problem:** state and metadata must not share a silhouette; the operator cannot pre-attentively separate "this record is pending" from "this data came from a table".
@@ -4221,6 +4451,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** Medium
 
 ### 31. No filters on a triage surface; resolved and open flags interleave
+
 - **File(s):** `app/admin/fraud/page.tsx:10-26`, `fraud-flags-panel.tsx:105-108` (status is a display-only column).
 - **Current UX/UI Problem:** flags arrive newest-first regardless of status or severity; there is no default "open only" view and no severity filter, though `FilterPills` exists in the brand layer and is used nowhere in admin.
 - **Why It Is a Problem:** the operator scrolls past resolved flags to find work, and high-severity items have no priority position.
@@ -4228,6 +4459,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** High
 
 ### 32. Redemption-failures panel is three columns of almost nothing
+
 - **File(s):** `app/admin/fraud/redemption-failures-panel.tsx:30-94`.
 - **Current UX/UI Problem:** a full `AdminPanel` + `SectionHeader` + `DataTable` (with `xl` card mode and a mobile card renderer) to display Event / Merchant / When — three short values.
 - **Why It Is a Problem:** about 350px of chrome for a list that is structurally an activity feed, and it is the second stacked panel making the fraud page taller.
@@ -4239,6 +4471,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 ## I. `/admin/referrals`
 
 ### 33. Referral rows print unmasked customer emails, breaking the console-wide masking rule
+
 - **File(s):** `app/admin/referrals/referral-ops-panel.tsx:65-69` (`row.referrerEmail`, `row.referredEmail`) and `:127-128`; contrast `maskAdminCustomer` used on customers, privacy, audit, fraud and the overview.
 - **Current UX/UI Problem:** every other admin surface renders customer contact through `maskAdminCustomer()` (`components/admin/support.tsx:189-196`) producing `jo***@domain`; the referral panel prints both parties' full addresses at `text-xs`.
 - **Why It Is a Problem:** an inconsistency in a privacy control is a privacy incident waiting to happen, and it teaches operators that masking is decorative. It is also the only place raw PII sits at 12px.
@@ -4246,6 +4479,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** Critical
 
 ### 34. Referral state tones never signal success, and the whole table is 12px
+
 - **File(s):** `referral-ops-panel.tsx:19-25` (`statusTone` returns only `neutral | warning | danger`), `:64`, `:90`, `:114` (`text-xs leading-5`).
 - **Current UX/UI Problem:** an awarded or qualified referral renders as a neutral grey pill — there is no `good` branch — while merchants and privacy both use `tone="good"`. Four of five columns render at `text-xs`, including the identity column.
 - **Why It Is a Problem:** the happy path is invisible, so the operator cannot see at a glance whether settlement is working. 12px is below the 13.5px `small` size the type contract sets for anything that is not mono metadata.
@@ -4257,13 +4491,15 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 ## J. `/admin/pilot` and `/admin/evidence`
 
 ### 35. The evidence capture form is a 13-field wall above the ledger it produces
+
 - **File(s):** `app/admin/evidence/page.tsx:51-154` — four field groups (`md:grid-cols-2 xl:grid-cols-4`, `lg:grid-cols-2` with four `Textarea`s, `md:grid-cols-3`, then a `sm:grid-cols-[minmax(0,1fr)_220px_auto]` footer).
-- **Current UX/UI Problem:** one always-expanded form with 13 controls including four textareas, roughly 900-1,100px, rendered *above* the "Evidence ledger" the operator usually came to read. There is no step structure, no draft indication, and the merchant-approval checkbox — the legal gate — is a 16px native checkbox in the footer row (`:136-143`).
+- **Current UX/UI Problem:** one always-expanded form with 13 controls including four textareas, roughly 900-1,100px, rendered _above_ the "Evidence ledger" the operator usually came to read. There is no step structure, no draft indication, and the merchant-approval checkbox — the legal gate — is a 16px native checkbox in the footer row (`:136-143`).
 - **Why It Is a Problem:** capture is occasional and reading is frequent, yet the frequent task sits below a screen of form. The approval gate carries the least visual weight on the page despite being the highest-consequence control.
 - **Recommended Redesign:** put capture behind a "Capture an evidence case" button opening a `Sheet`, or split into `Ledger | Capture` tabs with Ledger default. Inside, use three steps (Subject & window -> Narrative -> Sources & approval) with `Eyebrow` step headers and `.w-rule` separators, and promote the approval gate into a bordered `StatusBanner tone="warning"` with a proper `Checkbox`.
 - **Priority:** High
 
 ### 36. Evidence ledger cards bury a long narrative inside a stacked `dl`
+
 - **File(s):** `app/admin/evidence/page.tsx:163-207` (`lg:grid-cols-2` of `AdminRecordCard`, an `After` field carrying up to 1,200 characters, plus a `Reproducibility` field concatenating version + truncated hash + date).
 - **Current UX/UI Problem:** `AdminRecordCard` renders every `dd` at `text-muted-foreground` (`record-card.tsx:66`), so a 1,200-character narrative prints as muted body text in a label/value list, and `metric_snapshot_hash.slice(0, 12)...` is plain text rather than an `AdminIdChip`, so it cannot be copied.
 - **Why It Is a Problem:** the card format is designed for short values; a paragraph in a `dd` produces wildly uneven heights in a 2-col grid and unreadable hierarchy, and the reproducibility handle is unusable.
@@ -4271,6 +4507,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** Medium
 
 ### 37. The pilot note form is a fixed 4-track grid inside a nested card
+
 - **File(s):** `components/admin/pilot-note-fields.tsx:37-84` (`sm:grid-cols-2 xl:grid-cols-[220px_160px_minmax(0,1fr)_auto]`), mounted at `app/admin/pilot/page.tsx:178-188` inside `AdminRecordActions` inside `AdminRecordCard` inside `ShowMoreList` inside `AdminPanel`.
 - **Current UX/UI Problem:** `xl:` is a viewport query but the element sits four containers deep: at a 1280px viewport the available width is roughly 900px minus panel `p-5`, card `p-4` and disclosure `px-3`, about **820px**, into which the rule asks for `220 + 160 + 1fr + auto`. A `Textarea rows={2}` then sits beside a `min-h-11` select and a number input, so baselines do not align.
 - **Why It Is a Problem:** the layout switches to its widest form exactly when it least fits, and the submit lands `xl:self-end` against a two-row textarea. Same root cause as finding 1.
@@ -4278,6 +4515,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** Medium
 
 ### 38. Pilot page mixes three list idioms on one screen
+
 - **File(s):** `app/admin/pilot/page.tsx:43-57` (`MetricTile` grid), `:73-134` (`DataTable`), `:145-195` (`ShowMoreList` of `AdminRecordCard`s).
 - **Current UX/UI Problem:** four KPI tiles, then a 4-column metrics table whose `Source` column is a pill per row (finding 17 again), then a card list with an embedded note form — three renderings of "a list of labelled values" inside about 2,500px.
 - **Why It Is a Problem:** the operator re-learns the reading pattern three times, and the metrics table and KPI tiles show overlapping data in different shapes.
@@ -4289,6 +4527,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 ## K. Security, MFA enrolment and step-up
 
 ### 39. The authenticator QR breaks the QR contract
+
 - **File(s):** `components/admin/mfa-panel.tsx:105-110` (`className="h-44 w-44 rounded-xl bg-white p-2"`).
 - **Current UX/UI Problem:** `rounded-xl` is `--radius + 4px` = 14px, there is no ink border, and `QrFrame` (`components/loyalty`) — the system's one QR treatment ("QR ink modules on a pure white, ink-bordered frame, in both themes") — is used nowhere in admin.
 - **Why It Is a Problem:** a direct violation of a documented rule; in the dormant dark theme this QR has no frame separating white module ground from dark paper; and 14px is a third radius in a system that sanctions 10px and 18px.
@@ -4296,6 +4535,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** High
 
 ### 40. The TOTP secret cannot be copied
+
 - **File(s):** `components/admin/mfa-panel.tsx:111-113` (`<p className="font-mono text-xs break-all">Key: {enrollment.secret}</p>`).
 - **Current UX/UI Problem:** a 32-character base32 secret printed as break-all mono text with no copy control, while every UUID in the console has one (`AdminIdChip`).
 - **Why It Is a Problem:** manual transcription of a 32-character secret is the highest-error step of enrolment, and `break-all` mid-token wrapping makes it worse.
@@ -4303,13 +4543,15 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** High
 
 ### 41. Turning **off** two-factor is an outline button with no confirmation
+
 - **File(s):** `components/admin/mfa-panel.tsx:47-58` (`<SubmitButton variant="outline" pendingLabel="Removing...">Turn off two-factor`).
-- **Current UX/UI Problem:** the most security-weakening action in the console uses the neutral `outline` variant with no `AdminConfirmCheck`, no reason field and no confirm dialog — while cancelling a single customer reward requires a reason *and* a ticked consequence statement.
+- **Current UX/UI Problem:** the most security-weakening action in the console uses the neutral `outline` variant with no `AdminConfirmCheck`, no reason field and no confirm dialog — while cancelling a single customer reward requires a reason _and_ a ticked consequence statement.
 - **Why It Is a Problem:** consequence and friction are inverted across the console; one mis-click removes AAL2 from an admin account.
 - **Recommended Redesign:** `variant="destructive"` plus `AdminConfirmCheck label="I understand admin sign-in will no longer require a code."` and a required reason written to the audit log, ideally inside an `AlertDialog`.
 - **Priority:** Critical
 
 ### 42. Enrolment is a two-step machine with no step indicator, no back and no cancel
+
 - **File(s):** `components/admin/mfa-panel.tsx:63-134` (`EnrollPanel` swaps its whole body when `enrollment.ok`).
 - **Current UX/UI Problem:** pressing "Set up two-factor" replaces the card with "Scan and confirm". There is no "Step 1 of 2", no way back, no way to abandon a started enrolment, and the pending state is a hand-rolled `{starting ? "Starting..." : ...}` on a plain `Button` (`:91-93`) rather than the system `SubmitButton` recipe with its `Spinner`/`aria-busy`.
 - **Why It Is a Problem:** an operator who cannot scan is trapped in the second state, and two pending idioms in one file mean one of them lacks the busy announcement.
@@ -4317,6 +4559,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** Medium
 
 ### 43. The step-up wall has no escape hatch
+
 - **File(s):** `components/admin/mfa-step-up.tsx:20-56`; gate at `app/admin/layout.tsx:40-42`.
 - **Current UX/UI Problem:** when step-up is required this card is the only admin surface rendered. It offers a 6-digit field and "Verify" — no recovery-code path, no sign-out, no support or escalation link, and no indication of what happens after repeated failures.
 - **Why It Is a Problem:** an operator with a lost or drifted authenticator has literally no next action inside the product, and cannot even end the session.
@@ -4324,6 +4567,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** High
 
 ### 44. The security page opts out of the console's page anatomy
+
 - **File(s):** `app/admin/security/page.tsx:29-39` (`space-y-6`, hand-rolled `<header>` with `Eyebrow` "Security" and `h1 text-3xl`), `metadata = PRIVATE_ROUTE_METADATA` (`:10`); contrast every other admin route: `grid gap-6` + `<PageTitle eyebrow="Internal admin" ...>` + `metadata = { title: "Admin — ..." }`.
 - **Current UX/UI Problem:** different spacing utility (`space-y` vs `grid gap`), different heading scale (`text-3xl` with no `sm:text-4xl`), a different eyebrow taxonomy, no description, and a generic tab title. `AdminMfaPanel` then uses `surface-card space-y-4 p-6` where `AdminPanel` is `surface-card grid gap-4 p-5`, with a `text-xl` heading where `SectionHeader` is `text-lg`.
 - **Why It Is a Problem:** four small drifts compound into a page that visibly does not belong to the console, and the tab title makes it unfindable among several admin tabs.
@@ -4331,6 +4575,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** Medium
 
 ### 45. The access-denied screen is a dead end
+
 - **File(s):** `app/admin/layout.tsx:21-35`.
 - **Current UX/UI Problem:** a `max-w-sm` card with "Access denied" and the raw `access.reason`, and no actions at all — no sign-in link, no sign-out, no route home, no support contact.
 - **Why It Is a Problem:** the user is stranded and the reason string is developer-facing.
@@ -4342,6 +4587,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 ## L. Shared admin components
 
 ### 46. Admin invents a second input story for `<select>`
+
 - **File(s):** `components/admin/support.tsx:28-29` (`adminSelectClasses`), used at `privacy/data-request-workflow-panel.tsx:142,163,172`, `evidence/page.tsx:57,67,145`, `pilot-note-fields.tsx:44`; contrast `components/forms/select-field.tsx` (`data-slot="input"`, `h-12`, `appearance-none` plus the house chevron).
 - **Current UX/UI Problem:** `adminSelectClasses` is a hand-rolled string (`min-h-11 rounded-lg border-2 border-ink bg-card px-3 text-sm`) with **no `data-slot="input"`**, **no `appearance-none`**, **no chevron**, **no `w-full`** and a different height (44 vs 48px) from `SelectField`. `DESIGN.md` states plainly: "Native selects compose through `SelectField`... do not hand-roll".
 - **Why It Is a Problem:** admin selects show the OS chevron beside Wet Ink inputs that show the house one; they are 4px shorter than sibling `Input`s so rows do not baseline-align; without `w-full` a `<select>` sizes to its longest option, so the `grid-cols-2` pairs in the privacy form come out unequal; and the focus/`aria-invalid` rules keyed on `[data-slot=input]` never apply.
@@ -4349,13 +4595,15 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** High
 
 ### 47. `AdminField` is a second label system, and it folds helper text into the accessible name
+
 - **File(s):** `components/admin/support.tsx:48-73` (`<label>` wrapping `<Eyebrow>` + control + helper `<span>`); contrast `components/forms/form-field.tsx` (`FieldLabel htmlFor`, `aria-describedby`, `aria-invalid` wiring).
-- **Current UX/UI Problem:** admin action forms label with an 11.5px uppercase mono `Eyebrow` inside an implicit `<label>`, while `mfa-panel`/`mfa-step-up` on the same console use `FormField` with the normal `FieldLabel`. Because the helper `<span>` is *inside* the `<label>`, a screen reader announces "DELTA POSITIVE ADDS STAMPS, NEGATIVE REMOVES THEM" as the field name, and the helper is never exposed as a description.
+- **Current UX/UI Problem:** admin action forms label with an 11.5px uppercase mono `Eyebrow` inside an implicit `<label>`, while `mfa-panel`/`mfa-step-up` on the same console use `FormField` with the normal `FieldLabel`. Because the helper `<span>` is _inside_ the `<label>`, a screen reader announces "DELTA POSITIVE ADDS STAMPS, NEGATIVE REMOVES THEM" as the field name, and the helper is never exposed as a description.
 - **Why It Is a Problem:** two label registers in one console; uppercase mono at 11.5px is the hardest legible form for dense data entry; and the a11y contract `FormField` exists to guarantee (`aria-describedby`, `aria-invalid` -> destructive border) is silently absent from every admin write form.
 - **Recommended Redesign:** re-implement `AdminField` as a thin wrapper over `FormField` (passing `description` for the helper), keeping the compact visual if wanted but restoring `htmlFor`/`aria-describedby`/`aria-invalid`. At minimum move the helper out of the `<label>` and wire `aria-describedby` by hand.
 - **Priority:** High
 
 ### 48. `AdminConfirmCheck` — the irreversibility gate — is a 16px native checkbox
+
 - **File(s):** `components/admin/support.tsx:81-92` (`<input type="checkbox" className="focus-ring mt-0.5 size-4 shrink-0 accent-primary">`); same pattern at `evidence/page.tsx:136-143` for the merchant-approval gate.
 - **Current UX/UI Problem:** the required consent control for QR regeneration and reward cancellation is a 16x16 native box styled only with `accent-primary`, with no `[@media(pointer:coarse)]` growth and no Wet Ink treatment (no ink border, no offset shadow).
 - **Why It Is a Problem:** 16px fails the 44px tap floor on a control that gates irreversible actions; browser-default checkbox rendering is the one place the console falls back to an unstyled default; and a `required` checkbox with no client validation messaging fails quietly on submit in some browsers.
@@ -4363,6 +4611,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** High
 
 ### 49. `AdminActionForm` hand-rolls success/error notices instead of using the system banner
+
 - **File(s):** `components/admin/action-form.tsx:47-74`; contrast `components/loyalty/status-banner.tsx` (`bg-reward/12` / `bg-destructive/10`, 2px ink, semantic `Icon`).
 - **Current UX/UI Problem:** the success `<p>` reproduces `StatusBanner`'s success classes by hand with no icon; the error `<p>` reproduces the error tone with no icon; and the download link is a third bespoke bordered treatment (`:56-66`).
 - **Why It Is a Problem:** state now reads by colour alone (`DESIGN.md`: "state reads as icon + colour + copy, never colour alone"); the success wash is identical to the always-on MFA banner (finding 3); and three near-copies of one recipe will drift.
@@ -4370,20 +4619,23 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** High
 
 ### 50. Action results can be invisible after a revalidation
+
 - **File(s):** `components/admin/action-form.tsx:38-42` (resets on success), rendered inside `components/admin/record-actions.tsx:24` (`Disclosure name={group}` — a native exclusive accordion).
-- **Current UX/UI Problem:** the outcome message renders *inside* the collapsed disclosure of a record potentially thousands of pixels down the page; opening another record's panel closes this one (that is the point of the shared `name`), taking the confirmation with it. There is no page-level status region.
+- **Current UX/UI Problem:** the outcome message renders _inside_ the collapsed disclosure of a record potentially thousands of pixels down the page; opening another record's panel closes this one (that is the point of the shared `name`), taking the confirmation with it. There is no page-level status region.
 - **Why It Is a Problem:** the operator can perform an audited mutation and receive no perceivable confirmation, which for a support console is a correctness problem, not polish.
 - **Recommended Redesign:** add the toast (finding 49) alongside the inline banner; scroll the disclosure summary into view on completion and stamp the record card with a transient `StatusPill tone="good">updated`.
 - **Priority:** High
 
 ### 51. `AdminIdChip` truncation is unusable as an identifier, and copy feedback shifts layout
+
 - **File(s):** `components/admin/id-chip.tsx:45-66`.
-- **Current UX/UI Problem:** the chip shows `prefix:` + `value.slice(0, 8)` — 8 hex characters of a UUID — styled `underline decoration-dotted` (link-like) with no copy glyph. On success it *inserts* `<span>copied</span>` into the flex row, widening the control inside a `whitespace-nowrap` table cell. Sizing is `text-xs` mono, a third mono register beside `.mono-meta` and `.mono-id`.
+- **Current UX/UI Problem:** the chip shows `prefix:` + `value.slice(0, 8)` — 8 hex characters of a UUID — styled `underline decoration-dotted` (link-like) with no copy glyph. On success it _inserts_ `<span>copied</span>` into the flex row, widening the control inside a `whitespace-nowrap` table cell. Sizing is `text-xs` mono, a third mono register beside `.mono-meta` and `.mono-id`.
 - **Why It Is a Problem:** 8 hex characters is not collision-safe to quote in a GDPR or audit record; the dotted underline promises navigation and delivers a clipboard write; and the width change nudges neighbouring content on copy.
-- **Recommended Redesign:** render `first8...last4` (`3fa9c1b2...7d0e`), add a leading 16px copy `Icon` so the affordance is explicit and drop the underline, and swap "copied" for a *fixed-width* icon change (copy -> check) so the box never resizes. Standardise on `.mono-meta` and make this the console's single id renderer (findings 24, 36).
+- **Recommended Redesign:** render `first8...last4` (`3fa9c1b2...7d0e`), add a leading 16px copy `Icon` so the affordance is explicit and drop the underline, and swap "copied" for a _fixed-width_ icon change (copy -> check) so the box never resizes. Standardise on `.mono-meta` and make this the console's single id renderer (findings 24, 36).
 - **Priority:** Medium
 
 ### 52. `AdminRecordCard` renders all values as muted, stacked and single-column
+
 - **File(s):** `components/admin/record-card.tsx:57-74` (`dl grid gap-2.5`; `dd` always `text-muted-foreground`; `mono` fields `font-mono text-xs`).
 - **Current UX/UI Problem:** every field is a two-line `dt`/`dd` stack, and every value — merchant names, emails, stamp counts, narratives — takes `--muted-foreground`. Only the title escapes. There is no emphasis mechanism, no inline layout for short values and no slot for prose.
 - **Why It Is a Problem:** with 5-11 fields (privacy, billing, evidence) the card is a wall of uniform grey with flattened hierarchy, and each field costs about 44px — which is why billing cards reach 800px (finding 22).
@@ -4391,6 +4643,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** High
 
 ### 53. `AdminRecordActions` disclosure uses an off-contract dashed tone
+
 - **File(s):** `components/admin/record-actions.tsx:24` -> `components/merchant/launch/disclosure.tsx:38-42` (`border-2 border-dashed border-ink/25 bg-secondary/40`).
 - **Current UX/UI Problem:** a 2px dashed rule at 25% ink. The contract sanctions exactly two dashed tones: `--w-line` (18%) and `--w-line-strong` (50%).
 - **Why It Is a Problem:** a third dashed tone in the most-repeated admin chrome (it wraps every per-record action on six routes), so the drift is systemic rather than local.
@@ -4398,6 +4651,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** Low
 
 ### 54. Panel headers carry instructional paragraphs that never collapse
+
 - **File(s):** `privacy/data-request-workflow-panel.tsx:50` (about 250 characters), `customer-memberships-panel.tsx:45`, `merchants/page.tsx:128`, `evidence/page.tsx:46`, `pilot/page.tsx:63`.
 - **Current UX/UI Problem:** every panel prints a two-to-three-line procedural description (`max-w-2xl text-sm leading-6`) on every load, forever, to operators who have read it a hundred times. On the privacy page alone that is about 200px of instruction.
 - **Why It Is a Problem:** onboarding copy permanently taxing expert users; it pushes the actual controls below the fold and makes `SectionHeader`'s `sm:items-end` alignment put the source pill at an awkward baseline.
@@ -4405,6 +4659,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** Medium
 
 ### 55. Lookup controls have no pending state and shift layout on clear
+
 - **File(s):** `components/admin/lookup-controls.tsx:32-68`.
 - **Current UX/UI Problem:** the `next/form` submit triggers a navigation with no pending affordance (no `useFormStatus`, no `SubmitButton`); the `Clear` ghost button appears only when a filter is active (`:62-66`), so the button row width changes as the operator searches; and there is no "N results for ..." summary near the controls (the count lives in `AdminLookupPagination` far below).
 - **Why It Is a Problem:** on a service-role readback that can take a second the operator gets no feedback and will re-submit, and the appearing/disappearing button is a small constant instability.
@@ -4412,6 +4667,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** Medium
 
 ### 56. Pagination is Previous/Next only, with no page jump and no page-size control
+
 - **File(s):** `components/admin/lookup-controls.tsx:77-147`; `ADMIN_LOOKUP_PAGE_SIZE = 25`, `ADMIN_LOOKUP_MAX_PAGE = 999` in `lib/admin/lookup-query.ts`.
 - **Current UX/UI Problem:** with 25 rows per page and up to 999 pages, navigation is one step at a time; the disabled ends render as greyed `size="sm"` buttons; and `justify-between` splits the count line and the buttons to opposite ends of a panel that can be 900px wide.
 - **Why It Is a Problem:** reaching page 40 takes 39 round trips, and the split layout forces the eye across the panel to confirm the current page after every press.
@@ -4419,6 +4675,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** Medium
 
 ### 57. The `p-0` panel override and the "de-styled EmptyState" are copied incantations
+
 - **File(s):** `AdminPanel className="p-0"` + inner `border-b p-5` at `customer-memberships-panel.tsx:41-42`, `customer-rewards-panel.tsx:37-38`, `consent-log-panel.tsx:30-31`, `merchants/page.tsx:124-125`, `audit/page.tsx:35-36`, `billing/page.tsx:78-79`, `pilot/page.tsx:59-60`. `EmptyState className="rounded-none border-0 p-0 shadow-none"` (or the `p-0`-less variant) at `page.tsx:121`, `data-request-workflow-panel.tsx:78,86`, `unaffiliated-customers-panel.tsx:65,73`, `logged-requests-panel.tsx:50`, `merchants/page.tsx:261`, `fraud-flags-panel.tsx:65`, `redemption-failures-panel.tsx:41`, `pilot/page.tsx:200`, `customer-memberships-panel.tsx:71,78`, `customer-rewards-panel.tsx:60`.
 - **Current UX/UI Problem:** two de-styling strings copied 7 and 11+ times with inconsistent membership — `p-0` is present in some and absent in others, so the flush/padded empty state differs between panels.
 - **Why It Is a Problem:** any change to the panel or empty-state recipe must be made in eighteen places, and the inconsistency is already visible (some empty states are inset by `p-6`, some are flush).
@@ -4426,6 +4683,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** Medium
 
 ### 58. Action-column naming differs on every table
+
 - **File(s):** `customer-memberships-panel.tsx:182` ("Audited action"), `customer-rewards-panel.tsx:156` ("Audited action"), `fraud-flags-panel.tsx:123` ("Review"), `billing/page.tsx:182` ("Controls"), `merchants/page.tsx:294` ("QR controls" as a disclosure label).
 - **Current UX/UI Problem:** four labels for one column concept, and the disclosure labels differ again ("Adjust stamps", "Cancel reward", "Privacy actions", "Fulfilment controls", "Review actions", "QR controls").
 - **Why It Is a Problem:** the operator cannot build one mental model of where actions live, and the column header is the only per-table hint that a row is actionable.
@@ -4437,13 +4695,15 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 ## M. `components/data` — shared data display
 
 ### 59. Table cells inherit `whitespace-nowrap`, so no admin table can wrap
+
 - **File(s):** `components/ui/table.tsx` `TableCell` (`"p-2 align-middle whitespace-nowrap"`); `components/data/data-table.tsx:149-157` overrides padding (`px-4 py-3 align-top text-sm`) but **not** the nowrap.
 - **Current UX/UI Problem:** every cell in every admin table is nowrap. Long merchant names, emails, evidence sentences and the multi-line fulfilment cells widen the table until `overflow-x-auto` engages. The workaround already exists in the codebase: `components/admin/support.tsx:67` adds `whitespace-normal` to `AdminField`'s helper with a comment describing this exact bug ("inside a table cell the helper would inherit the cell's nowrap").
 - **Why It Is a Problem:** this is the mechanical cause of horizontal scrolling across the console; with finding 1 the operator scrolls sideways at exactly the widths where table mode was chosen. A commented workaround at one call site proves the default is wrong.
-- **Recommended Redesign:** set `whitespace-normal` in `DataTableCore`'s `TableCell` classes and opt *into* `whitespace-nowrap` per column via `column.className` (dates, ids, pills). Add `break-words` / `[overflow-wrap:anywhere]` for email and id columns.
+- **Recommended Redesign:** set `whitespace-normal` in `DataTableCore`'s `TableCell` classes and opt _into_ `whitespace-nowrap` per column via `column.className` (dates, ids, pills). Add `break-words` / `[overflow-wrap:anywhere]` for email and id columns.
 - **Priority:** Critical
 
 ### 60. `DataTable` has no sorting, no `aria-sort`, no column control, no sticky header
+
 - **File(s):** `components/data/data-table.tsx:15-20` (`DataTableColumn` has only `key`/`header`/`cell`/`className`), `:121-135` (header markup).
 - **Current UX/UI Problem:** headers are inert text; nothing can be sorted by severity, date, status or amount on any admin table; there is no column-visibility control for the 7-column tables; and `TableHeader` does not stick inside the `overflow-x-auto` container, so on a 100-row audit table column meaning disappears after one screen.
 - **Why It Is a Problem:** sorting is the second most basic table affordance after filtering; without it triage depends on the server having chosen the right order for every task, which it cannot.
@@ -4451,6 +4711,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** High
 
 ### 61. The table header applies two competing type recipes
+
 - **File(s):** `components/data/data-table.tsx:124-132` — `TableHead` gets `text-xs font-extrabold whitespace-nowrap text-muted-foreground uppercase` **and** wraps its content in `<Eyebrow>` (`.eyebrow` = 11.5px Space Mono 700 uppercase muted, as a `<p>`).
 - **Current UX/UI Problem:** the `th` sets a 12px Bricolage uppercase style that the nested `<p class="eyebrow">` then overrides to 11.5px mono; a block `<p>` inside a `<th>` also defeats the `h-10` vertical centring.
 - **Why It Is a Problem:** dead, contradictory styles that will mislead the next editor, plus one extra element per header cell.
@@ -4458,6 +4719,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** Low
 
 ### 62. The horizontal scroll region is unlabelled and unsignposted
+
 - **File(s):** `components/ui/table.tsx` (`<div data-slot="table-container" className="relative w-full overflow-x-auto" tabIndex={0}>`), consumed at `data-table.tsx:118`.
 - **Current UX/UI Problem:** the scroll container is focusable (good) but has no `role="region"`/`aria-label`, and there is no visual signal that content continues to the right — no edge fade, no shadow, no hint.
 - **Why It Is a Problem:** screen-reader users land on an unnamed focusable div; sighted users may never discover the hidden columns, which on the billing and fraud tables include the action controls.
@@ -4465,6 +4727,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** Medium
 
 ### 63. `mobilePageSize` is applied on 2 of 8 admin tables
+
 - **File(s):** set at `consent-log-panel.tsx:47` and `audit/page.tsx:44`; **absent** on `customer-memberships-panel`, `customer-rewards-panel`, `merchants`, `billing`, `fraud-flags-panel`, `redemption-failures-panel`, `referral-ops-panel`. The prop is documented at `data-table.tsx:67-74` explicitly to prevent "a ~9,000px page at 375px".
 - **Current UX/UI Problem:** the mitigation exists and is inconsistently applied — billing (100 rows x about 800px cards) and merchants (100 rows) are the worst offenders and have none.
 - **Why It Is a Problem:** the phone experience of the console varies by an order of magnitude between routes for no reason.
@@ -4472,13 +4735,15 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** High
 
 ### 64. `ShowMoreList` reveals but never collapses
+
 - **File(s):** `components/data/show-more-list.tsx:38-67`.
-- **Current UX/UI Problem:** `visibleCount` only increases — there is no "Show fewer" — so an operator who expands 100 pilot merchants must reload to recover their scroll position. The `role="status"` count sits *below* the button, and the button is `w-full sm:w-auto` centred, so on desktop it floats mid-panel.
+- **Current UX/UI Problem:** `visibleCount` only increases — there is no "Show fewer" — so an operator who expands 100 pilot merchants must reload to recover their scroll position. The `role="status"` count sits _below_ the button, and the button is `w-full sm:w-auto` centred, so on desktop it floats mid-panel.
 - **Why It Is a Problem:** one-way progressive disclosure turns a bounded page into an unbounded one with no undo.
 - **Recommended Redesign:** add a `Show fewer` secondary control once `visibleCount > initialCount`, move the "Showing X of Y" count inline to the left of the button (`flex items-center justify-between`), and prefer real pagination on the admin routes since the server already supports it.
 - **Priority:** Medium
 
 ### 65. `ActivityFeed` rows have no action slot, and the SLA feed cannot be acted on
+
 - **File(s):** `components/data/activity-feed.tsx:61-105` (`grid gap-2 p-4 sm:grid-cols-[1fr_auto]`); consumer `app/admin/privacy/logged-requests-panel.tsx:40-52`.
 - **Current UX/UI Problem:** below `sm` the timestamp drops beneath the content instead of staying right-aligned; each row is `p-4` with no compact mode; and there is no row-level link or action slot, so the privacy panel can show an **overdue** GDPR request with no way to act on it.
 - **Why It Is a Problem:** an SLA-tracking surface whose overdue item is not clickable forces the operator to scroll back to the workflow panel and re-find the subject by hand.
@@ -4486,6 +4751,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** Medium
 
 ### 66. `FunnelChart` bars carry no proportion label and clamp silently
+
 - **File(s):** `components/data/funnel-chart.tsx:26-49` (`Math.max((item.value / max) * 100, 4)`).
 - **Current UX/UI Problem:** every bar is normalised to the largest step and clamped to a 4% minimum, but only the absolute count is printed — no percentage of previous step, no drop-off. A step of 1 out of 400 renders identically to a step of 16.
 - **Why It Is a Problem:** on the admin overview this is the primary activation-analysis instrument and it cannot answer "where do merchants fall out?".
@@ -4493,6 +4759,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** Medium
 
 ### 67. `StatStrip` is unused by admin despite being the densest KPI option
+
 - **File(s):** `components/data/stat-strip.tsx:36-76`; admin uses `MetricTile` at `page.tsx:59-75` and `pilot/page.tsx:43-57`.
 - **Current UX/UI Problem:** `StatStrip` packs four values into a single ruled card about 90px tall; a `MetricTile` grid costs about 130px per row plus gaps, and considerably more on the pilot page where each tile carries `helper` content.
 - **Why It Is a Problem:** the console pays a large height premium for its summary rows while a denser, already-designed, already-themed alternative sits in the same folder.
@@ -4504,6 +4771,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 ## N. Developer-facing surfaces
 
 ### 68. `/dev/design-system` is a 992-line single scroll with no table of contents
+
 - **File(s):** `app/dev/design-system/page.tsx:183-190` (`mx-auto grid w-full max-w-6xl gap-12 px-6 py-10`), nine `<Section id=...>` blocks (`tokens`, `typography`, `surfaces`, `forms-feedback`, `iconography`, `motion`, `loyalty`, `console-viz`, `console-data`).
 - **Current UX/UI Problem:** every section already carries an `id` and `scroll-mt-6`, but **nothing on the page links to them** (count of `href="#...">` on the page: 0). The catalogue is roughly 15,000px with `gap-12` between sections, no sticky nav, no section index, no search and no back-to-top.
 - **Why It Is a Problem:** the file describes itself as "the acceptance gate for the foundation layer", yet finding the button sizes or the loyalty states means scroll-hunting. The anchors exist purely for external deep links.
@@ -4511,12 +4779,14 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** High
 
 ### 69. The catalogue's console section demonstrates the wrong breakpoint
+
 - **File(s):** `app/dev/design-system/page.tsx:889-960` — the section description says "Admin consoles use **xl**...", the eyebrow at `:896` says "Responsive DataTable . admin **xl** cards", but the `DataTable` at `:897-960` passes **no `cardBreakpoint`**, so it renders the `sm` default.
 - **Why It Is a Problem:** the one live reference for the admin table pattern demonstrates behaviour contradicting its own caption and the `DESIGN.md` contract; a developer copying from the catalogue ships the wrong breakpoint.
 - **Recommended Redesign:** pass `cardBreakpoint="xl"` and `mobilePageSize={10}`, and show both switches side by side with labels ("sm — compact tables" / "xl — admin consoles").
 - **Priority:** High
 
 ### 70. The catalogue does not document the admin vocabulary it is supposed to gate
+
 - **File(s):** `app/dev/design-system/page.tsx` imports only `AdminRecordCard` (`:22`) and `StatusPill` (`:23`) from the admin layer.
 - **Current UX/UI Problem:** `AdminPanel`, `AdminField`, `adminSelectClasses`, `AdminIdChip`, `AdminRecordActions`, `AdminConfirmCheck`, `AdminLookupControls`, `AdminLookupPagination`, `AdminLookupErrorState`, `SourceLabel`, the four `StatusPill` tones, `AdminActionForm`'s success/error/download states and the admin loading/error states appear nowhere in the catalogue.
 - **Why It Is a Problem:** every drift in this report — two select stories, two label systems, four rule tones, three mono registers, inverted destructive semantics — is a direct consequence of the console's own vocabulary having no reference surface, while the catalogue calls itself the acceptance gate.
@@ -4524,6 +4794,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** High
 
 ### 71. The app harness has no index and its navigation leaves the harness
+
 - **File(s):** `app/dev/app-harness/layout.tsx:93-102` mounts the real `MerchantAppShell`; `components/layout/console-nav.ts merchantNavItems` point at `/app`, `/app/customers`, ... There is no `app/dev/app-harness/page.tsx` and no `app/dev/page.tsx`.
 - **Current UX/UI Problem:** `/dev` and `/dev/app-harness` both 404, so the developer must already know the 19 lane URLs. Once inside a lane, every sidebar item links to the **real** authenticated `/app` route, so one click ejects the developer out of the harness and into a login redirect.
 - **Why It Is a Problem:** the harness exists to make surfaces screenshot-provable, and its own navigation actively breaks that workflow; discovering which lanes exist requires reading the file tree.
@@ -4531,6 +4802,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** High
 
 ### 72. Harness pages have no in-page index either
+
 - **File(s):** `app/dev/app-harness/skeletons/page.tsx:106-127` (12 sections, `grid gap-12`, `h2` at `font-mono text-sm break-all`), `app/dev/app-harness/states/page.tsx:152-167` (4 sections).
 - **Current UX/UI Problem:** both pages use ids plus `scroll-mt-6` with nothing linking to them, and the skeletons page presents 12 entries with no filter or jump.
 - **Why It Is a Problem:** the same class of problem as finding 68 at smaller scale; screenshotting one skeleton means scrolling past eleven.
@@ -4538,6 +4810,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** Medium
 
 ### 73. `/dev/app-harness/trial/admin` renders an admin surface with a fourth divider tone
+
 - **File(s):** `app/dev/app-harness/trial/admin/page.tsx:29` (`border-y border-dashed border-ink/30 py-4 sm:grid-cols-3`), `:22` (`font-heading text-xl font-extrabold` heading instead of `SectionHeader`).
 - **Current UX/UI Problem:** the harness mock of the billing/fulfilment panel introduces a fourth dashed tone (`ink/30`) and a bespoke `text-xl` heading, so the fixture does not match the surface it stands in for (`billing/page.tsx` uses `SectionHeader` and `border-b`).
 - **Why It Is a Problem:** a harness whose fixture diverges from production yields false screenshot proof.
@@ -4545,6 +4818,7 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 - **Priority:** Low
 
 ### 74. Admin has no per-panel loading skeletons; the whole page waits on the slowest readback
+
 - **File(s):** `app/admin/loading.tsx:9-28` (page title placeholder + **one** panel block), `app/admin/privacy/page.tsx:42-63` (`Promise.all` of four readbacks), `app/admin/customers/page.tsx:36-45` (two); contrast `components/merchant/loading-skeletons.tsx` which exports nine surface-shaped skeletons and is exercised at `app/dev/app-harness/skeletons`.
 - **Current UX/UI Problem:** every `/admin/*` segment shares one fallback showing a single panel, while privacy shows four and customers two — so the paint-in shifts layout substantially. There are no `<Suspense>` boundaries per panel, so a slow consent readback blocks the membership lookup the operator actually wanted.
 - **Why It Is a Problem:** perceived performance on the console is governed by its slowest query, and the layout jump on resolve is large.
@@ -4576,8 +4850,6 @@ per-record write form rendered inline and expanded.** Every fix below is a varia
 4. **Give every list a filter, a total and pagination — and add a global lookup (findings 6, 21, 26, 31, 63).** Five routes currently offer no way to find a record and silently truncate at 100. This is the single largest functional gap for day-to-day support work.
 5. **Repair destructive-action and feedback semantics (findings 19, 29, 41, 48, 49, 50).** Invert the QR variants, move `warning` off vermillion, make "Turn off two-factor" destructive-and-confirmed, replace the 16px native checkbox, and route every action outcome through `StatusBanner` plus a `toast`. Today the console can perform an irreversible action and show no perceivable confirmation, and its colour system points the wrong way on severity.
 
-
-
 # E. Design System, Primitives, Shells & Accessibility
 
 # Nabaperks UX/UI Redesign Audit — 05: Design System, Primitives, Shells & Cross-cutting A11y
@@ -4595,53 +4867,54 @@ class-string frequency analysis and computed WCAG contrast ratios for every decl
 
 These counts are from a full grep over `app/**/*.tsx` + `components/**/*.tsx`:
 
-| Signal | Count | Contract in DESIGN.md |
-| --- | --- | --- |
-| Distinct `rounded-*` values in use | 10 (`none, sm, md, lg, xl, 2xl, 3xl, full, t-[18px], [10px]`) | 3 (`10px`, `18px` sheets, `full` stamps) |
-| `rounded-lg` / `rounded-md` / `rounded-xl` / `rounded-2xl` | 192 / 31 / 22 / 11 | one radius |
-| Distinct radius+shadow combos on a hand-rolled `border-2` surface | **22** | one (`.surface-card`) |
-| `.surface-card` uses vs hand-rolled `border-2 border-ink` | 57 vs **153** | `.surface-card` is the recipe |
-| Distinct `py-*` section values | **26** | 22px section gap, 14px card gap |
-| Distinct `gap-*` values | 16 | 4px base unit |
-| `<h1>` rendered at N distinct type scales | **6** | one `page-title` (30/36) |
-| `<h2>` rendered at N distinct type scales | **11** | one |
-| Hand-rolled `text-[…]` font sizes | 21 sites | two sanctioned sub-`text-xs` utilities only |
-| Distinct `tracking-[…]` values | **11** | two (`0.06em`, `0.08em`) |
-| Arbitrary Tailwind values (`x-[…]`) total | **606** | — |
-| `Button` sizes declared / actually used | 9 / **6** | — |
-| `Button` variants declared / actually used | 8 / 7 | — |
-| `Badge` variants declared / actually used | 7 / **1** | — |
-| `--*` custom properties declared in globals.css | **141** | — |
-| `dark:` variants across the whole product | **4** | full dark block ships |
-| Skip-links in the product | **1** (marketing only) | 4 shells exist |
+| Signal                                                            | Count                                                         | Contract in DESIGN.md                       |
+| ----------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------- |
+| Distinct `rounded-*` values in use                                | 10 (`none, sm, md, lg, xl, 2xl, 3xl, full, t-[18px], [10px]`) | 3 (`10px`, `18px` sheets, `full` stamps)    |
+| `rounded-lg` / `rounded-md` / `rounded-xl` / `rounded-2xl`        | 192 / 31 / 22 / 11                                            | one radius                                  |
+| Distinct radius+shadow combos on a hand-rolled `border-2` surface | **22**                                                        | one (`.surface-card`)                       |
+| `.surface-card` uses vs hand-rolled `border-2 border-ink`         | 57 vs **153**                                                 | `.surface-card` is the recipe               |
+| Distinct `py-*` section values                                    | **26**                                                        | 22px section gap, 14px card gap             |
+| Distinct `gap-*` values                                           | 16                                                            | 4px base unit                               |
+| `<h1>` rendered at N distinct type scales                         | **6**                                                         | one `page-title` (30/36)                    |
+| `<h2>` rendered at N distinct type scales                         | **11**                                                        | one                                         |
+| Hand-rolled `text-[…]` font sizes                                 | 21 sites                                                      | two sanctioned sub-`text-xs` utilities only |
+| Distinct `tracking-[…]` values                                    | **11**                                                        | two (`0.06em`, `0.08em`)                    |
+| Arbitrary Tailwind values (`x-[…]`) total                         | **606**                                                       | —                                           |
+| `Button` sizes declared / actually used                           | 9 / **6**                                                     | —                                           |
+| `Button` variants declared / actually used                        | 8 / 7                                                         | —                                           |
+| `Badge` variants declared / actually used                         | 7 / **1**                                                     | —                                           |
+| `--*` custom properties declared in globals.css                   | **141**                                                       | —                                           |
+| `dark:` variants across the whole product                         | **4**                                                         | full dark block ships                       |
+| Skip-links in the product                                         | **1** (marketing only)                                        | 4 shells exist                              |
 
 Computed contrast (sRGB, light theme):
 
-| Pair | Ratio | Verdict |
-| --- | --- | --- |
-| `--w-ink` on `--w-paper` | 15.01 | pass |
-| `--w-ink-soft` (muted-foreground) on paper / card | 8.10 / 8.60 | pass |
-| `--primary` #cf330a on paper | **4.51** | AA by 0.01 |
-| `--primary` on `--secondary` (`#ece5d4`) | **4.05** | **fails AA** |
-| `--border`/`--input` (`--w-line`, 18% ink) on paper | **1.43** | **fails 1.4.11 (needs 3:1)** |
-| `--w-line-strong` (50%) on paper | 3.20 | pass, barely |
-| focus ring (85% vermillion) on paper / card | 3.72 / 3.90 | pass |
-| `.eyebrow` colour on `ContrastBand` ink ground | **1.85** | **illegible** |
-| `--seal` (sun) as text on paper | **1.80** | **illegible as text** |
-| disabled state (50% opacity ink-soft on paper) | ~2.25 | informational-disabled fails |
+| Pair                                                | Ratio       | Verdict                      |
+| --------------------------------------------------- | ----------- | ---------------------------- |
+| `--w-ink` on `--w-paper`                            | 15.01       | pass                         |
+| `--w-ink-soft` (muted-foreground) on paper / card   | 8.10 / 8.60 | pass                         |
+| `--primary` #cf330a on paper                        | **4.51**    | AA by 0.01                   |
+| `--primary` on `--secondary` (`#ece5d4`)            | **4.05**    | **fails AA**                 |
+| `--border`/`--input` (`--w-line`, 18% ink) on paper | **1.43**    | **fails 1.4.11 (needs 3:1)** |
+| `--w-line-strong` (50%) on paper                    | 3.20        | pass, barely                 |
+| focus ring (85% vermillion) on paper / card         | 3.72 / 3.90 | pass                         |
+| `.eyebrow` colour on `ContrastBand` ink ground      | **1.85**    | **illegible**                |
+| `--seal` (sun) as text on paper                     | **1.80**    | **illegible as text**        |
+| disabled state (50% opacity ink-soft on paper)      | ~2.25       | informational-disabled fails |
 
 ---
 
 ## A. Design tokens, scales, and the `globals.css` ↔ `DESIGN.md` contract
 
 ### 1. The radius scale is declared four sizes wider than the contract and is being used
+
 - **File(s):** `app/globals.css:67-73`, consumers across `components/**`
 - **Current UX/UI Problem:** `@theme inline` mints seven radii — `--radius-sm:4px`, `md:6px`,
   `lg:10px`, `xl:14px`, `2xl:18px`, `3xl:22px`, `4xl:26px`. DESIGN.md sanctions **three** shapes
   (10px, 18px sheets, full circles for the stamp family). The extra rungs are used: `rounded-xl`
   (14px) 22×, `rounded-2xl` (18px) 11×, `rounded-3xl` 1×, `rounded-md` (6px) 31×. Concretely,
   `app/app/rewards/scan/[scanToken]/page.tsx:110` renders a summary `<dl>` at `rounded-xl border-2
-  border-ink`, three lines from a `ReceiptCard` at 10px; `app/global-error.tsx` uses `rounded-lg`
+border-ink`, three lines from a `ReceiptCard` at 10px; `app/global-error.tsx` uses `rounded-lg`
   for the panel but `rounded-md` for its own button.
 - **Why It Is a Problem:** 14px and 6px corners sit close enough to 10px to read as a rendering
   bug rather than a deliberate contrast. On a print-derived aesthetic where sharpness is the whole
@@ -4655,6 +4928,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 2. Twenty-two different ways to draw "the Wet Ink card"
+
 - **File(s):** `app/globals.css:313-319` (`.surface-card`), 153 hand-rolled sites incl.
   `components/merchant/loading-skeletons.tsx:537,648`, `components/customer/push-notification-settings.tsx:238`,
   `app/app/offers/[campaignId]/qr/page.tsx:96`, `components/merchant/present-qr.tsx:67`
@@ -4662,7 +4936,7 @@ Computed contrast (sRGB, light theme):
   10px, `shadow-md`). It is used 57 times. The same surface is hand-rolled 153 times, producing 22
   distinct radius/shadow pairings — `rounded-lg` + nothing (82×), `rounded-md` + nothing (14×),
   `rounded-lg shadow-sm` (13×), `rounded-xl` + nothing (9×), `rounded-2xl
-  shadow-[8px_8px_0_var(--w-shadow-color)]` (2×), `rounded-[10px] shadow-[3px_3px_0_var(--w-ink)]`,
+shadow-[8px_8px_0_var(--w-shadow-color)]` (2×), `rounded-[10px] shadow-[3px_3px_0_var(--w-ink)]`,
   `shadow-hard`, `shadow-[var(--shadow-hard)]`, `shadow-[4px_4px_0_var(--w-shadow-color)]`…
 - **Why It Is a Problem:** Elevation is supposed to be semantic in this system (4px = card,
   3px = button, 2px = dense tile, 1px = pressed). With five spellings of "4px" and eight offsets in
@@ -4676,6 +4950,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Critical
 
 ### 3. `--radius-sheet` never becomes a utility, so sheets are hand-numbered
+
 - **File(s):** `app/globals.css:182` (`:root`), `components/customer/*` (`rounded-t-[18px]`,
   `rounded-[var(--radius-sheet)]`)
 - **Current UX/UI Problem:** `--radius-sheet: 18px` is declared in `:root`, not in `@theme inline`,
@@ -4689,24 +4964,26 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Medium
 
 ### 4. `--border` / `--input` at 18% ink fails WCAG 1.4.11 for every 1px boundary
+
 - **File(s):** `app/globals.css:147-148`; consumers `components/ui/table.tsx:31,64` (`border-b`),
   `components/ui/separator.tsx:22` (`bg-border`), `components/ui/badge.tsx:9` (`border-border`),
   40 further `border border-*` sites
 - **Current UX/UI Problem:** `--border: var(--w-line)` = `rgba(33,28,22,0.18)`, computed **1.43:1**
   against paper and **1.45:1** against card. Every 1px separator that uses it — table row rules,
   `Separator`, plain `MonoTag`, the `outline` badge, the marketing footer's `border-t-2
-  border-dashed border-border` — is effectively invisible at typical brightness.
+border-dashed border-border` — is effectively invisible at typical brightness.
 - **Why It Is a Problem:** WCAG 2.2 SC 1.4.11 requires 3:1 for boundaries that are the only way to
   perceive a component. Table rows in the admin console are dense records with no zebra striping;
   if the rule is invisible the row grouping collapses. On a bright pub floor (the actual usage
   environment) this is worse, not better.
-- **Recommended Redesign:** Keep `--w-line` at 18% for *decorative* dashed receipt rules only, and
+- **Recommended Redesign:** Keep `--w-line` at 18% for _decorative_ dashed receipt rules only, and
   point the semantic `--border`/`--input` aliases at `--w-line-strong` (50%, 3.2:1) or at a new
   `--w-line-ui` at ~38% ink. Then move `Table`'s row rules to `border-b-2 border-dashed
-  border-line` so they read as receipt perforations (on-brand) rather than as failed hairlines.
+border-line` so they read as receipt perforations (on-brand) rather than as failed hairlines.
 - **Priority:** High
 
 ### 5. Sun (`--seal`) is unusable as a foreground yet is exposed as `text-sun`
+
 - **File(s):** `app/globals.css:46,118,156`; `components/data/stat-strip.tsx:27`
 - **Current UX/UI Problem:** `--color-sun` is minted as a text colour utility, but `#f5a623` on
   paper is **1.80:1**. `stat-strip.tsx` already works around this with
@@ -4715,12 +4992,13 @@ Computed contrast (sRGB, light theme):
 - **Why It Is a Problem:** The token invites a failure. One component has paid the cost of
   discovering it; the next will not.
 - **Recommended Redesign:** Add `--w-sun-ink: color-mix(in oklch, var(--w-sun) 55%, var(--w-ink))`
-  to `:root`, mint it as `--color-sun-ink`, and document sun as a *fill-only* ink (seal disc,
+  to `:root`, mint it as `--color-sun-ink`, and document sun as a _fill-only_ ink (seal disc,
   `MonoTag tone="sun"`) with `sun-ink` as its text partner. Delete the arbitrary mix in
   `stat-strip.tsx`.
 - **Priority:** High
 
 ### 6. `.eyebrow` bakes in a colour, so it cannot be used on the inverted band
+
 - **File(s):** `app/globals.css:337-339`, `components/layout/contrast-band.tsx:52`,
   `components/marketing/landing/scarcity-band.tsx:16,31`
 - **Current UX/UI Problem:** `.eyebrow` = `.mono-meta` + `color: var(--muted-foreground)`. On
@@ -4730,11 +5008,12 @@ Computed contrast (sRGB, light theme):
 - **Why It Is a Problem:** DESIGN.md explicitly says "do not hand-roll `font-mono text-[0.x rem]`
   strings — reach for one of these utilities". The utility itself is what forces the fork.
 - **Recommended Redesign:** Add `.eyebrow-inverse { color: color-mix(in oklch, var(--w-paper) 72%,
-  transparent) }` (7.9:1 on ink), or better, give `Eyebrow` a `tone?: "muted" | "inverse"` prop and
+transparent) }` (7.9:1 on ink), or better, give `Eyebrow` a `tone?: "muted" | "inverse"` prop and
   make `ContrastBand` set `[--eyebrow-color]` so `.eyebrow` reads from a variable.
 - **Priority:** Medium
 
 ### 7. 141 declared custom properties; ~74 have zero `var()` consumers
+
 - **File(s):** `app/globals.css:9-195`
 - **Current UX/UI Problem:** `--stamp-empty` (defined at :148, never referenced),
   `--shadow-2xs`, `--shadow-lg`, `--shadow-xl`, `--shadow-2xl`, `--shadow-hard-sm`,
@@ -4753,6 +5032,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Medium
 
 ### 8. QR tokens exist but every QR surface hard-codes `bg-white`
+
 - **File(s):** `app/globals.css:162-163,37-38`; `components/loyalty/qr-frame.tsx:18,22`,
   `components/merchant/present-qr.tsx:67,74`, `app/app/offers/[campaignId]/qr/page.tsx:96,103`,
   `components/admin/mfa-panel.tsx:109`
@@ -4774,13 +5054,14 @@ Computed contrast (sRGB, light theme):
 ## B. Typography and the micro-type scale
 
 ### 9. `<h1>` renders at six different sizes; `<h2>` at eleven
+
 - **File(s):** `components/brand/typography.tsx:69` (`PageTitle`), `app/(auth)/login/page.tsx:80,105`,
   `app/(auth)/signup/page.tsx:81`, plus ~60 further heading sites
 - **Current UX/UI Problem:** DESIGN.md declares exactly one `page-title` (30px→36px) and one
   `card-title` (16px). In practice `<h1>` ships at `text-2xl` (11×), `text-3xl` (4×), `text-xl`
   (3×), `text-4xl sm:text-6xl` (2×), `text-3xl sm:text-5xl`, `text-3xl sm:text-4xl`, and
   `text-base sm:text-lg`. `<h2>` ships at eleven distinct scales including `text-sm` (2×) — an h2
-  *smaller than body copy*. `PageTitle` itself mints `text-3xl sm:text-4xl` but is then overridden
+  _smaller than body copy_. `PageTitle` itself mints `text-3xl sm:text-4xl` but is then overridden
   at seven call sites with `titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"` and at four with
   `text-[clamp(1.75rem,4vw,2.25rem)]`.
 - **Why It Is a Problem:** Heading rank is the primary scanning device on long merchant/admin
@@ -4794,6 +5075,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 10. Fonts are loaded at 400/700 only, but the system specifies 500 and 800
+
 - **File(s):** `app/layout.tsx:19-50`, `assets/fonts/`, `app/globals.css:256-265`
 - **Current UX/UI Problem:** `localFont` registers exactly two Bricolage weights (400 Regular,
   700 Bold) and two Space Mono weights (400, 700). `globals.css` then sets `font-weight: 800` on
@@ -4808,12 +5090,13 @@ Computed contrast (sRGB, light theme):
   what ships.
 - **Recommended Redesign:** Ship the Bricolage Grotesque **variable** font (it is a variable family
   with a 200–800 wght axis) via a single `localFont` entry with `declarations: [{prop:
-  "font-variation-settings"}]`, or add the static 500/800 instances. Then set
+"font-variation-settings"}]`, or add the static 500/800 instances. Then set
   `font-synthesis-weight: none` in `@layer base` so a missing weight fails loudly instead of
   silently. Correct the `next/font/google` claim in DESIGN.md.
 - **Priority:** High
 
 ### 11. Twenty-one hand-rolled `text-[…]` sizes below or around the sanctioned micro scale
+
 - **File(s):** `components/layout/customer-tab-bar.tsx:66` (`text-[0.6875rem]`),
   `components/brand/filter-pills.tsx:70` (`text-[0.625rem]`),
   `components/loyalty/reward-seal.tsx:40` (`text-[0.625rem]`),
@@ -4826,18 +5109,19 @@ Computed contrast (sRGB, light theme):
 - **Current UX/UI Problem:** DESIGN.md: "Below `text-xs` there are exactly two sanctioned sizes…
   Do not hand-roll `font-mono text-[0.x rem] tracking-[…] uppercase` strings". Reality: 10px,
   10.5px, 11px, 11.04px, 11px, 12.96px, 15.36px, 26.4px, 28px, 33.6px are all minted ad hoc, and
-  `present-qr.tsx:83` is *literally* the banned string (`font-mono text-[11px] tracking-[0.06em]`).
+  `present-qr.tsx:83` is _literally_ the banned string (`font-mono text-[11px] tracking-[0.06em]`).
 - **Why It Is a Problem:** 0.66rem vs 0.6875rem vs 0.625rem are indistinguishable individually and
   cumulatively make the mono register look mis-set. The customer tab bar in particular sets its
   five labels at an unnamed 11px that matches nothing else in the system.
 - **Recommended Redesign:** Route every sub-`text-xs` string through `.mono-id` / `.mono-meta`.
-  Add a third *spoken* micro utility `.text-micro` (11.5px Bricolage 500) for the tab bar and
+  Add a third _spoken_ micro utility `.text-micro` (11.5px Bricolage 500) for the tab bar and
   filter-pill counts, since the two existing utilities are mono-only and the tab bar labels are
   correctly Bricolage. Extend `tokens:check` from "fails below 10px" to "fails on any
   `text-[…]` that is not one of N approved values".
 - **Priority:** Medium
 
 ### 12. Eleven distinct `tracking-[…]` values against a two-value contract
+
 - **File(s):** 29× `tracking-[0.08em]`, 6× `[0.04em]`, 4× `[0.16em]`, 3× `[0.18em]`, 3× `[0.02em]`,
   3× `[0.12em]`, 3× `[0.1em]`, 3× `[-0.01em]`, 2× `[0.2em]`, 1× `[0.09em]`, 1× `[0.06em]`
 - **Current UX/UI Problem:** DESIGN.md sanctions 0.06em (mono-meta/mono-id) and 0.08em (badge/tag).
@@ -4856,11 +5140,12 @@ Computed contrast (sRGB, light theme):
 ## C. Buttons
 
 ### 13. Nine declared sizes, six used, and no page-level consistency
+
 - **File(s):** `components/ui/button.tsx:38-52`; 300 call sites
 - **Current UX/UI Problem:** The `size` variant declares `xs, sm, default, lg, xl, icon, icon-xs,
-  icon-sm, icon-lg`. Actual usage across 300 `<Button>`/`<SubmitButton>` call sites:
+icon-sm, icon-lg`. Actual usage across 300 `<Button>`/`<SubmitButton>` call sites:
   `default` 170, `lg` 70, `sm` 51, `icon` 4, `icon-sm` 4, `xs` 1. `xl`, `icon-xs` and `icon-lg`
-  are never used. Worse, `lg` (h-12) and `default` (h-11) are mixed on the *same* surfaces —
+  are never used. Worse, `lg` (h-12) and `default` (h-11) are mixed on the _same_ surfaces —
   `app/how-it-works/page.tsx:102,105` uses `size="lg"` for a CTA pair while
   `components/layout/merchant-app-shell.tsx:72` uses `size="sm"` for the shell's own pair and
   `components/layout/customer-app-shell.tsx:23` uses the default. There is no rule mapping a size
@@ -4875,12 +5160,13 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 14. The `stamp` and `reward` variants are visually identical to `default` / `Badge reward`
+
 - **File(s):** `components/ui/button.tsx:24-29`, `app/globals.css:152,159`
 - **Current UX/UI Problem:** `variant="stamp"` renders `bg-stamp text-stamp-foreground`, and
   `--stamp: var(--w-accent)`, `--stamp-foreground: var(--w-accent-ink)` — i.e. byte-identical to
   `variant="default"`'s `bg-primary text-primary-foreground`. Two variants, one pixel output.
   `variant="reward"` (19 uses) is the only non-primary filled button in the system and is leaf
-  green — a *filled* colour silhouette that DESIGN.md's destructive rationale explicitly argues
+  green — a _filled_ colour silhouette that DESIGN.md's destructive rationale explicitly argues
   against ("primary stays the only filled red on any surface"; there is no equivalent ruling for
   leaf).
 - **Why It Is a Problem:** A variant that produces no visual difference is a trap: a contributor
@@ -4893,6 +5179,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Medium
 
 ### 15. `link` variant's `rounded-none` is silently overridden to 10px by the unlayered layer
+
 - **File(s):** `components/ui/button.tsx:31-32`, `app/globals.css:467-470`
 - **Current UX/UI Problem:** The cva sets `link: "h-auto rounded-none p-0 …"` but
   `[data-slot="button"][data-variant="link"] { border-radius: var(--radius-lg) }` is unlayered and
@@ -4909,9 +5196,10 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Low
 
 ### 16. Ghost/link press travels 2px down, not the documented 1px settle
+
 - **File(s):** `components/ui/button.tsx:16` (`active:translate-y-px`), `app/globals.css:301-303`
   (`.pressable:active { transform: translate(1px, 1px) }`)
-- **Current UX/UI Problem:** Every button carries `.pressable` (transform translate 1,1) *and*
+- **Current UX/UI Problem:** Every button carries `.pressable` (transform translate 1,1) _and_
   `active:translate-y-px` (translate 0,1). For bordered variants the unlayered rule cancels the
   transform (`transform: none`) and sets `translate: 2px 2px` — correct. For **ghost and link**
   nothing cancels either, so they compose: 1px right + 2px down.
@@ -4921,10 +5209,11 @@ Computed contrast (sRGB, light theme):
 - **Recommended Redesign:** Remove `active:translate-y-px` from the cva base string entirely and
   let `.pressable` own the settle; add an explicit
   `[data-slot="button"][data-variant="ghost"]:active, [data-variant="link"]:active { transform:
-  translate(0,1px) }` rule so the documented behaviour is stated once.
+translate(0,1px) }` rule so the documented behaviour is stated once.
 - **Priority:** Medium
 
 ### 17. `outline` variant declares a 1px `border-input` that can never render
+
 - **File(s):** `components/ui/button.tsx:28`, `app/globals.css:448-456`
 - **Current UX/UI Problem:** `outline: "border border-input bg-background shadow-xs …"`. The
   unlayered block forces `border: 2px solid var(--w-ink)` on every non-ghost/link/destructive
@@ -4945,11 +5234,12 @@ Computed contrast (sRGB, light theme):
 ## D. Cards and surfaces
 
 ### 18. `Card`'s stock 24px radius survives on nested images and its `ring-1` survives everywhere
+
 - **File(s):** `components/ui/card.tsx:14` and `:31,:88`
 - **Current UX/UI Problem:** The Card base string is
   `rounded-[min(var(--radius-4xl),24px)] … shadow-sm ring-1 ring-foreground/5 …
-  *:[img:first-child]:rounded-t-[min(var(--radius-4xl),24px)]
-  *:[img:last-child]:rounded-b-[min(var(--radius-4xl),24px)]`. The unlayered layer fixes the card's
+*:[img:first-child]:rounded-t-[min(var(--radius-4xl),24px)]
+*:[img:last-child]:rounded-b-[min(var(--radius-4xl),24px)]`. The unlayered layer fixes the card's
   own radius to 10px and the shadow to 4px — but **not** the `ring-1 ring-foreground/5` (a stray
   hairline ring sitting outside the 2px ink border) and **not** the image corner rules (24px image
   corners inside a 10px card). `CardHeader:31` and `CardFooter:88` also keep 24px `rounded-t/b`.
@@ -4963,13 +5253,14 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 19. `Card`'s `overflow-hidden` clips the rotated stamp family
+
 - **File(s):** `components/ui/card.tsx:14`; consumers `components/brand/receipt-card.tsx`,
   `components/loyalty/stamp-grid.tsx`
 - **Current UX/UI Problem:** `Card` sets `overflow-hidden` on the root. Every stamp/seal/venue mark
   in the system is `rotate(-6deg)` and `WetInkSlam` scales it to **2.6×** on the way in. A slam that
   starts at 2.6× inside a card with `overflow-hidden` is clipped to the card box for the first
   ~60% of the 380ms animation.
-- **Why It Is a Problem:** The stamp slam is *the* signature moment of the product. Clipping its
+- **Why It Is a Problem:** The stamp slam is _the_ signature moment of the product. Clipping its
   overshoot turns a "slammed onto paper" beat into a "grew inside a box" beat.
 - **Recommended Redesign:** Change the Card root to `overflow-clip` only where an image is present
   (`has-[>img]:overflow-hidden`), or give `ReceiptCard` a `overflow-visible` override plus explicit
@@ -4978,6 +5269,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 20. `CardTitle` renders at `text-base font-medium` and relies on CSS to fix the weight
+
 - **File(s):** `components/ui/card.tsx:40-46`, `app/globals.css:525-527`
 - **Current UX/UI Problem:** `CardTitle` = `font-heading text-base font-medium`; the layer sets
   `font-weight: 800`. So `font-medium` is dead, and a reader of the component sees a 500 title.
@@ -4988,11 +5280,12 @@ Computed contrast (sRGB, light theme):
   `font-medium` misleads every future contributor.
 - **Recommended Redesign:** Delete `font-medium` from `CardTitle`. Merge `KpiTile` and `MetricTile`
   into one component with a `sparkline?` and `helper?` prop — they already share `Card size="sm"
-  data-elevation="flat"`, the `.eyebrow` label, the `.numeric-tabular` value and the `mono-id`
+data-elevation="flat"`, the `.eyebrow` label, the `.numeric-tabular` value and the `mono-id`
   trend line. One KPI value scale (`text-2xl`), one label min-height.
 - **Priority:** Medium
 
 ### 21. `ReceiptCard`'s four padding presets fork the 14/22px spacing contract
+
 - **File(s):** `components/brand/receipt-card.tsx:7-12`
 - **Current UX/UI Problem:** `PADDING` maps `none/sm/md/lg` to `0 / 16px / 24px / 32px` via
   `--card-spacing`, while `Card` itself defaults to `--spacing(5)` = 20px and `size="sm"` to 16px.
@@ -5011,6 +5304,7 @@ Computed contrast (sRGB, light theme):
 ## E. Inputs, fields and forms
 
 ### 22. Three input heights (44/48/48) and a hand-rolled fourth well
+
 - **File(s):** `components/ui/input.tsx:14` (`h-11`), `components/auth/auth-field.tsx:33`
   (`h-12 text-sm`), `components/forms/select-field.tsx:17` (`h-12`),
   `components/merchant/account/cancellation-interview-form.tsx:15`
@@ -5018,7 +5312,7 @@ Computed contrast (sRGB, light theme):
   `h-12 text-sm` (48px). `SelectField` is `h-12 text-sm`. And
   `cancellation-interview-form.tsx:15` hand-rolls
   `"focus-ring min-h-11 w-full rounded-2xl border border-input bg-secondary/60 px-4 text-sm
-  outline-none"` — a verbatim copy of the *stock shadcn* input string that DESIGN.md names as the
+outline-none"` — a verbatim copy of the _stock shadcn_ input string that DESIGN.md names as the
   banned anti-pattern ("do not hand-roll `rounded-xl bg-secondary/60` class strings or private
   `Field` clones"), and which will render an 18px radius + 1px hairline because it has no
   `data-slot`.
@@ -5032,21 +5326,23 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 23. Form labels are 11.5px uppercase mono
+
 - **File(s):** `components/auth/auth-field.tsx:24` (`label={<Eyebrow>{label}</Eyebrow>}`)
 - **Current UX/UI Problem:** Every auth field label ("Email", "Password", "Confirm password",
   "Email code") renders through `Eyebrow` → `.eyebrow` → 11.5px Space Mono 700 uppercase with
   0.06em tracking.
-- **Why It Is a Problem:** DESIGN.md is explicit that mono/uppercase is the *printed* register
+- **Why It Is a Problem:** DESIGN.md is explicit that mono/uppercase is the _printed_ register
   for "IDs, codes, dates, eyebrows, feeds, metadata" and Bricolage is for "everything human". A
   field label is the most human thing on the form. Uppercase mono at 11.5px is also measurably
   slower to read and is the classic accessibility complaint for form labels (all-caps defeats word
   shape recognition, and 11.5px is below the 12px practical floor for dyslexic readers).
 - **Recommended Redesign:** Move labels to `text-sm font-bold` Bricolage (the `Label` primitive's
-  own register) and keep `.eyebrow` for the *section* kicker above a field group. Reserve mono for
+  own register) and keep `.eyebrow` for the _section_ kicker above a field group. Reserve mono for
   the OTP field's value, not its label.
 - **Priority:** High
 
 ### 24. No password visibility toggle, but a "Confirm password" field on two flows
+
 - **File(s):** `components/auth/signup-details-form.tsx:129,161`,
   `components/auth/reset-password-form.tsx:241,274`
 - **Current UX/UI Problem:** Both flows render `type="password"` with no reveal control, then add a
@@ -5062,6 +5358,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 25. `PasswordRequirements` announces a count on every keystroke
+
 - **File(s):** `components/auth/password-requirements.tsx:50-62`
 - **Current UX/UI Problem:** A `role="status" aria-live="polite" aria-atomic="true"` paragraph
   recomputes "Password meets 1 of 3 rules" / "2 of 3" / "all 3" on every input change. The three
@@ -5078,9 +5375,10 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Medium
 
 ### 26. `focus-ring` on `tabIndex={-1}` recovery containers never renders
+
 - **File(s):** `components/auth/auth-form.tsx:152`, `components/auth/reset-password-form.tsx:156,311`
 - **Current UX/UI Problem:** Three error-recovery blocks are `<div|form tabIndex={-1}
-  className="focus-ring grid gap-3 rounded-xl">` and are focused programmatically. `.focus-ring`
+className="focus-ring grid gap-3 rounded-xl">` and are focused programmatically. `.focus-ring`
   keys off `:focus-visible`, which browsers do **not** apply to programmatic focus on a
   non-interactive `tabindex="-1"` element.
 - **Why It Is a Problem:** The whole point of these blocks is "an OTP failed, look here". The focus
@@ -5093,6 +5391,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 27. `field.tsx` ships 240 lines of which six exports have zero consumers
+
 - **File(s):** `components/ui/field.tsx`
 - **Current UX/UI Problem:** `FieldSet`, `FieldLegend`, `FieldGroup`, `FieldTitle`, `FieldContent`
   and `FieldSeparator` have **0** consumers outside `components/ui`. `FieldSeparator` is the sole
@@ -5105,12 +5404,13 @@ Computed contrast (sRGB, light theme):
   reset form's four, and the merchant onboarding form's many all render as flat field lists with
   no programmatic grouping).
 - **Recommended Redesign:** Either delete the dead exports plus `separator.tsx`, or — better —
-  *adopt* `FieldSet`/`FieldLegend` to group the auth forms ("Your details" / "Your password") and
+  _adopt_ `FieldSet`/`FieldLegend` to group the auth forms ("Your details" / "Your password") and
   the merchant onboarding form. Grouping is also the cheapest height fix available: a fieldset can
   collapse to a summary row once complete (see §I.34).
 - **Priority:** Medium
 
 ### 28. Two competing inline-notice systems: `Alert` (13 uses) and `StatusBanner` (113)
+
 - **File(s):** `components/ui/alert.tsx`, `components/loyalty/status-banner.tsx`, consumers across
   auth + merchant
 - **Current UX/UI Problem:** `Alert` has exactly two variants (`default`, `destructive`) and no
@@ -5120,7 +5420,7 @@ Computed contrast (sRGB, light theme):
   `AlertDescription className="text-accent-foreground"` — i.e. a manually reconstructed success
   tone with no icon.
 - **Why It Is a Problem:** The auth funnel — the highest-anxiety surface in the product — is the
-  one place with the *weakest* feedback treatment: an unadorned box whose success and error states
+  one place with the _weakest_ feedback treatment: an unadorned box whose success and error states
   differ only by border colour, with no icon to carry the semantic for colour-blind users.
 - **Recommended Redesign:** Give `Alert` the same four tones as `StatusBanner` in the unlayered
   layer (`[data-slot="alert"][data-variant="success"|"warning"|"info"]` washes mirroring the
@@ -5134,12 +5434,13 @@ Computed contrast (sRGB, light theme):
 ## F. Feedback primitives: Badge, Empty, Skeleton, Progress, Toast
 
 ### 29. `Badge` ships 7 variants; exactly one is reachable, and its 1.5px border is defeated
+
 - **File(s):** `components/ui/badge.tsx:9-30`, `components/brand/mono-tag.tsx:42-44`,
   `app/globals.css:362-378` (`.w-tag`)
 - **Current UX/UI Problem:** `<Badge>` is used in exactly one place — inside `MonoTag`, always with
   `variant="outline"`. `default`, `secondary`, `reward`, `destructive`, `ghost` and `link` are
   dead. Separately, `.w-tag` declares `border: 1.5px solid var(--w-line)` in `@layer components`
-  while the badge cva emits the `border` + `border-border` *utilities*; under Tailwind v4 utilities
+  while the badge cva emits the `border` + `border-border` _utilities_; under Tailwind v4 utilities
   beat components, so **every `MonoTag` renders a 1px border, not the documented 1.5px**, and the
   `plain` tone's colour comes from `--border` (1.43:1 — invisible, see §4). `h-5` (20px) is also a
   fixed height fighting `.w-tag`'s `padding: 4px 11px`.
@@ -5148,12 +5449,13 @@ Computed contrast (sRGB, light theme):
   `account` activity category and every admin sidebar status tag) has no perceivable boundary.
 - **Recommended Redesign:** Move the border declaration into the unlayered `[data-slot="badge"]`
   block (which already owns the font metrics) so it cannot be defeated: `border: 1.5px solid
-  var(--w-line-strong)`. Remove `h-5` in favour of `min-h-5` so tall tones don't clip. Delete the
+var(--w-line-strong)`. Remove `h-5` in favour of `min-h-5` so tall tones don't clip. Delete the
   six dead variants, or wire `reward`/`destructive` into `CategoryBadge`/`StatusPill` so they earn
   their place.
 - **Priority:** High
 
 ### 30. `Empty` primitive renders no border and 48px padding; `EmptyState` overrides both
+
 - **File(s):** `components/ui/empty.tsx:10`, `components/brand/typography.tsx:197`
 - **Current UX/UI Problem:** `Empty` base = `… gap-4 rounded-3xl border-dashed p-12 …`. Tailwind's
   preflight sets `border-width: 0`, so `border-dashed` **alone draws nothing** — the primitive's
@@ -5165,11 +5467,12 @@ Computed contrast (sRGB, light theme):
 - **Why It Is a Problem:** Two-thirds of a shipped primitive is unreachable, and the one reachable
   path duplicates `IconRoundel size="lg" tone="secondary"` character-for-character.
 - **Recommended Redesign:** Fix `Empty`'s base to `border-2 border-dashed border-line-strong
-  rounded-lg p-6` and delete the `EmptyState` overrides. Replace the hand-rolled roundel with
+rounded-lg p-6` and delete the `EmptyState` overrides. Replace the hand-rolled roundel with
   `<IconRoundel icon={icon} size="lg" />`. Delete `EmptyMedia`.
 - **Priority:** Medium
 
 ### 31. `EmptyState` renders its title as a `<div role="heading">`
+
 - **File(s):** `components/ui/empty.tsx:64-76`, `components/brand/typography.tsx:204`
 - **Current UX/UI Problem:** `EmptyTitle` is a `<div data-slot="empty-title">` and `EmptyState`
   passes `role="heading" aria-level={headingLevel}`. It is used as the `<h1>` on
@@ -5177,26 +5480,27 @@ Computed contrast (sRGB, light theme):
   i.e. four routes whose entire page heading is a synthetic ARIA heading.
 - **Why It Is a Problem:** `role="heading"` on a div is valid but strictly weaker than a native
   element: it is excluded from some heading-navigation implementations, from `document.title`
-  heuristics, and from reader-mode extraction. For a 404/500 page — where the heading *is* the
+  heuristics, and from reader-mode extraction. For a 404/500 page — where the heading _is_ the
   content — this is a real loss.
 - **Recommended Redesign:** Make `EmptyTitle` render a real element via an `as` prop
   (`as={`h${headingLevel}`}`), defaulting to `h2`. Remove the `role`/`aria-level` pair.
 - **Priority:** Medium
 
 ### 32. `Skeleton` fill is 1.3:1 and route skeletons don't mirror their surfaces
+
 - **File(s):** `app/globals.css:600-602`, `app/admin/loading.tsx`, `app/app/loading.tsx`,
   `components/merchant/loading-skeletons.tsx`
 - **Current UX/UI Problem:** `[data-slot="skeleton"]` is `color-mix(… var(--w-ink) 13%,
-  transparent)` = **1.30:1** on paper — at the very edge of perceptibility on a warm ground, and
+transparent)` = **1.30:1** on paper — at the very edge of perceptibility on a warm ground, and
   the only motion cue is `animate-pulse`, which is `motion-reduce:animate-none`, so reduced-motion
-  users see a near-invisible static block. `app/app/loading.tsx` renders a *single* page-title
+  users see a near-invisible static block. `app/app/loading.tsx` renders a _single_ page-title
   skeleton for every `/app/*` route, so the merchant console shows one grey bar then pops an
   entire dashboard.
 - **Why It Is a Problem:** A loading state that cannot be seen is a blank page; a loading state
   that does not mirror the incoming layout guarantees a full-page layout shift (CLS) on arrival.
   `app/app/scan/loading.tsx` gets this exactly right (real header, real card frame) and is the
   model — but it is the only route that does.
-- **Recommended Redesign:** Raise the skeleton fill to ~20% ink (≈1.6:1) *and* add a static
+- **Recommended Redesign:** Raise the skeleton fill to ~20% ink (≈1.6:1) _and_ add a static
   `border-2 border-dashed border-line` under `motion-reduce` so the placeholder is perceivable
   without animation. Then give the four highest-traffic `/app/*` routes their own `loading.tsx`
   built from `components/merchant/loading-skeletons.tsx` (which already contains the right
@@ -5204,11 +5508,12 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 33. `Progress` is 8px tall with no accessible label and no indeterminate state
+
 - **File(s):** `components/ui/progress.tsx:14-27`, `app/globals.css:576-584`
 - **Current UX/UI Problem:** `h-2` (8px) default, `bg-muted`/`bg-primary` classes both dead
   (overridden to paper-2/leaf by the layer), no `aria-label`, and the indicator uses
   `translateX(-{100-value}%)` with `value || 0` — so `value={undefined}` (Radix's indeterminate
-  contract) renders as a *completely empty determinate* bar rather than an indeterminate one.
+  contract) renders as a _completely empty determinate_ bar rather than an indeterminate one.
 - **Why It Is a Problem:** An 8px leaf bar against `--w-paper-2` on paper carries very little
   signal at a glance, and the loyalty context (progress toward a reward) is the one place where the
   bar must read instantly. The missing indeterminate state means any "we don't know yet" case
@@ -5224,6 +5529,7 @@ Computed contrast (sRGB, light theme):
 ## G. Sheets, sidebar and table
 
 ### 34. Bottom sheets have no max-height and no internal scroll
+
 - **File(s):** `components/ui/sheet.tsx:20` (`data-[side=bottom]:h-auto`)
 - **Current UX/UI Problem:** The bottom sheet is `inset-x-0 bottom-0 h-auto` with no `max-h` and no
   `overflow-y-auto`. Only one consumer works around it (`max-h-[min(85vh,640px)]` found in the
@@ -5233,13 +5539,14 @@ Computed contrast (sRGB, light theme):
   overflows the viewport with the title above the fold is unrecoverable.
 - **Recommended Redesign:** Add to the base:
   `data-[side=bottom]:max-h-[min(85dvh,40rem)] data-[side=bottom]:overflow-y-auto
-  data-[side=bottom]:overscroll-contain` and
+data-[side=bottom]:overscroll-contain` and
   `data-[side=bottom]:pb-[max(1.5rem,env(safe-area-inset-bottom))]`. Also cap the sheet width
   (`data-[side=bottom]:mx-auto data-[side=bottom]:max-w-customer`) — today a bottom sheet spans the
   full 1920px on desktop.
 - **Priority:** Critical
 
 ### 35. Sheet overlay fades in 150ms while the sheet slides 320ms; and its `shadow-xl` is meaningless
+
 - **File(s):** `components/ui/sheet.tsx:17-20`
 - **Current UX/UI Problem:** `sheetOverlayClass` uses `duration-[var(--w-dur-fast)]` (150ms);
   `sheetContentClass` uses `duration-[var(--w-dur-move)]` (320ms). DESIGN.md: "sheets/moves 320ms".
@@ -5255,6 +5562,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Medium
 
 ### 36. `SidebarMenuButton`'s `size` prop has no effect
+
 - **File(s):** `components/ui/sidebar.tsx:289-317` (`min-h-10` / `min-h-12`),
   `app/globals.css:731-737` (`min-height: 2.75rem`), `components/layout/console-sidebar-nav.tsx:109`
 - **Current UX/UI Problem:** The component offers `size: "default" | "lg"` mapping to `min-h-10`
@@ -5262,7 +5570,7 @@ Computed contrast (sRGB, light theme):
   `[data-slot="sidebar-menu-button"]`. Both values are defeated. `console-sidebar-nav.tsx:109`
   passes `size="lg"` believing it gets 48px.
 - **Why It Is a Problem:** Beyond the dead API, `min-h-10` (40px) is below the documented 44px tap
-  floor — the only thing saving it is the layer, which means the *component in isolation* is
+  floor — the only thing saving it is the layer, which means the _component in isolation_ is
   off-contract and any future non-layer consumer inherits the bug.
 - **Recommended Redesign:** Delete the `size` prop and its classes; document that the layer owns
   nav-item height. If two heights are genuinely wanted, express them as
@@ -5270,11 +5578,12 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Medium
 
 ### 37. The mobile nav drawer hides its close button and offers no visible dismissal
+
 - **File(s):** `components/ui/sidebar.tsx:147-156` (`[&>button]:hidden`)
 - **Current UX/UI Problem:** The mobile sidebar is a `SheetContent` with `[&>button]:hidden`,
   which suppresses the sheet's own close affordance. There is no replacement inside
   `SidebarHeader` for either shell — `MerchantAppShell` puts its `SidebarTrigger` in a
-  `md:hidden` header *behind* the open drawer, and `AdminShell` does the same. Dismissal is
+  `md:hidden` header _behind_ the open drawer, and `AdminShell` does the same. Dismissal is
   overlay-tap or Escape only.
 - **Why It Is a Problem:** No visible affordance to close a full-height modal drawer is a
   discoverability failure and, for switch/voice-control users who cannot reliably target the
@@ -5285,11 +5594,12 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 38. `Table`'s horizontal-scroll container is a focus stop with no accessible name
+
 - **File(s):** `components/ui/table.tsx:8-15`
 - **Current UX/UI Problem:** `<div data-slot="table-container" className="relative w-full
-  overflow-x-auto" tabIndex={0}>` — focusable (correct, for keyboard scrolling) but with no
+overflow-x-auto" tabIndex={0}>` — focusable (correct, for keyboard scrolling) but with no
   `role="region"` and no `aria-label`, so a keyboard user lands on an unnamed, unannounced stop.
-  Every cell also carries `whitespace-nowrap`, so wide admin tables *always* scroll horizontally
+  Every cell also carries `whitespace-nowrap`, so wide admin tables _always_ scroll horizontally
   rather than ever wrapping.
 - **Why It Is a Problem:** WCAG 2.2 §4.1.2 / the standard scrollable-region pattern requires
   `role="region"` + a name when a container is made focusable. `whitespace-nowrap` on every cell
@@ -5305,6 +5615,7 @@ Computed contrast (sRGB, light theme):
 ## H. Shells and layouts
 
 ### 39. Only one of four shells has a skip link
+
 - **File(s):** `components/layout/marketing-layout.tsx:74-79` (has one);
   `components/layout/merchant-app-shell.tsx`, `components/layout/customer-app-shell.tsx`,
   `components/layout/admin-shell.tsx` (none)
@@ -5323,6 +5634,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Critical
 
 ### 40. `CustomerShell` uses `overflow-x-hidden`, which the codebase's own comment forbids
+
 - **File(s):** `components/layout/customer-shell.tsx:13`, `app/globals.css:238-249`
 - **Current UX/UI Problem:** `globals.css` carries a five-line comment explaining that `clip` is
   used instead of `hidden` "because `hidden` makes the element a scroll container, which silently
@@ -5337,6 +5649,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 41. Four different full-height conventions across shells and boundaries
+
 - **File(s):** `min-h-svh` (13 uses: `app/error.tsx`, `app/not-found.tsx`, `admin/layout.tsx`,
   `customer-app-shell.tsx:15`, `merchant-app-shell.tsx:62`, `sidebar.tsx:123`),
   `min-h-[100dvh]` (5: `marketing-layout.tsx:71`, `customer-shell.tsx:13`),
@@ -5354,10 +5667,11 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Medium
 
 ### 42. `AdminShell` is 80rem wide while `MerchantAppShell` is 72rem
+
 - **File(s):** `components/layout/admin-shell.tsx:103` (`max-w-7xl`),
   `components/layout/merchant-app-shell.tsx:104,183` (`max-w-merchant`)
 - **Current UX/UI Problem:** DESIGN.md declares one console measure — "merchant 1152px
-  (`max-w-merchant`)". Admin uses `max-w-7xl` (1280px), which is the *marketing chrome* width. The
+  (`max-w-merchant`)". Admin uses `max-w-7xl` (1280px), which is the _marketing chrome_ width. The
   two consoles share a sidebar, a nav component, a record-card system and seven table patterns, but
   not a content measure.
 - **Why It Is a Problem:** Admin tables get 128px more line length than merchant tables for the same
@@ -5369,6 +5683,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Medium
 
 ### 43. `AdminShell` has no desktop sidebar control and no `hideMobileChrome` parity
+
 - **File(s):** `components/layout/admin-shell.tsx:40,83-90` vs
   `components/layout/merchant-app-shell.tsx:118,127-131`
 - **Current UX/UI Problem:** Admin uses `collapsible="offcanvas"` and places its only
@@ -5376,7 +5691,7 @@ Computed contrast (sRGB, light theme):
   collapsed — on a 1280px laptop that is 21% of the width permanently spent on nav for tables that
   scroll horizontally (§38). Merchant uses `collapsible="icon"` with a `hidden md:flex` trigger and
   a cookie-persisted state.
-- **Why It Is a Problem:** Admin is the *denser* of the two consoles, so it is the one that needs
+- **Why It Is a Problem:** Admin is the _denser_ of the two consoles, so it is the one that needs
   the reclaimable width more.
 - **Recommended Redesign:** Switch admin to `collapsible="icon"`, mirror the merchant header-row
   trigger and the `sidebar_state` cookie seed, and reuse the same
@@ -5384,6 +5699,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Medium
 
 ### 44. `AdminShell` sidebar footer stacks four `MonoTag` chips of pure decoration
+
 - **File(s):** `components/layout/admin-shell.tsx:54-80`
 - **Current UX/UI Problem:** The footer stacks `Operator: …` plus three static strings
   ("Service-role readbacks", "Audited support actions", "MFA-aware access") plus a verified tag —
@@ -5398,9 +5714,10 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Medium
 
 ### 45. `PageTitle` fakes baseline alignment with `md:pt-8`
+
 - **File(s):** `components/brand/typography.tsx:87`
 - **Current UX/UI Problem:** The `actions` slot is `flex flex-wrap gap-2 md:justify-self-end
-  md:pt-8` — a hard-coded 32px top pad chosen to bottom-align the buttons against a title that has
+md:pt-8` — a hard-coded 32px top pad chosen to bottom-align the buttons against a title that has
   an eyebrow. When `eyebrow` is omitted (which the API allows and several routes do), the actions
   float 32px below the title's baseline for no reason.
 - **Why It Is a Problem:** Conditional-by-coincidence alignment; every page without an eyebrow has a
@@ -5410,11 +5727,12 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Low
 
 ### 46. `CustomerAppShell` reserves 128px of bottom padding for a 56px tab bar
+
 - **File(s):** `components/layout/customer-app-shell.tsx:30` (`pb-32`),
   `components/layout/customer-tab-bar.tsx:52` (`min-h-14` + `pb-[env(safe-area-inset-bottom)]`)
 - **Current UX/UI Problem:** The tab bar is 56px plus safe area (≤34px on iPhone) = ~90px worst
   case. `main` reserves `pb-32` = 128px, and the tab bar has no shadow or overhang. On a 667px
-  iPhone SE viewport that is ~40px of dead space at the bottom of *every* customer screen.
+  iPhone SE viewport that is ~40px of dead space at the bottom of _every_ customer screen.
 - **Why It Is a Problem:** The customer column is the tightest real estate in the product (410px ×
   a phone viewport) and the loyalty card is meant to fill it.
 - **Recommended Redesign:** `pb-[calc(3.5rem+env(safe-area-inset-bottom)+1rem)]`, or set a
@@ -5423,6 +5741,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Medium
 
 ### 47. The marketing footer is a 4-column, 13-link, 44px-per-row block on every page
+
 - **File(s):** `components/layout/marketing-layout.tsx:101-131`
 - **Current UX/UI Problem:** The non-focused footer renders a `grid-cols-2 lg:grid-cols-4` nav with
   13 links, each `min-h-11` (44px), plus a 5-link legal row (also `min-h-11` each, wrapping to 2–3
@@ -5444,6 +5763,7 @@ Computed contrast (sRGB, light theme):
 ## I. Loading, error and not-found states
 
 ### 48. No error boundary moves focus or announces itself
+
 - **File(s):** `app/error.tsx`, `app/global-error.tsx`, `app/admin/error.tsx`, `app/app/error.tsx`,
   `app/home/(authed)/error.tsx`, `app/home/login/error.tsx`, `app/scan/error.tsx`,
   `app/m/[merchantSlug]/error.tsx`, `app/q/[qrId]/error.tsx`, `app/reward/[rewardId]/error.tsx`,
@@ -5462,10 +5782,11 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 49. `global-error.tsx` speaks a different design system
+
 - **File(s):** `app/global-error.tsx:20-38`
 - **Current UX/UI Problem:** The panel is `rounded-lg border-2 border-ink bg-card p-6 shadow-xs`
   (2px offset, not the card's 4px) and the button is `rounded-md` (6px), `h-11`, `border-2
-  border-ink bg-primary` with **no** shadow and no press behaviour. So the last-resort page shows a
+border-ink bg-primary` with **no** shadow and no press behaviour. So the last-resort page shows a
   6px-radius, shadowless button next to a 2px-elevation card — three deviations from the contract
   in ten lines.
 - **Why It Is a Problem:** The comment says it "stays deliberately minimal… while still speaking
@@ -5473,17 +5794,18 @@ Computed contrast (sRGB, light theme):
   also the one page a user might screenshot and send to support.
 - **Recommended Redesign:** Use `surface-card p-6` and give the button the exact `.pressable`
   recipe: `pressable inline-flex h-11 w-full items-center justify-center rounded-lg border-2
-  border-ink bg-primary px-4 font-bold text-primary-foreground shadow-sm`. These are all plain
+border-ink bg-primary px-4 font-bold text-primary-foreground shadow-sm`. These are all plain
   utilities/`@layer components` classes with no component imports, so the "no brand imports"
   constraint is preserved.
 - **Priority:** Medium
 
 ### 50. Loading fallbacks use `role="status"` on a container with no `aria-live` guarantee and no `aria-busy`
+
 - **File(s):** `app/admin/loading.tsx:12-16`, `app/app/loading.tsx:11-15`,
   `app/app/scan/loading.tsx:14-19`
 - **Current UX/UI Problem:** All three set `role="status" aria-label="Loading …"`. `role="status"`
   is an implicit `aria-live="polite"` region, but the label is set at mount time on a region that is
-  *replaced wholesale* when content arrives — so nothing is ever announced (the live region is
+  _replaced wholesale_ when content arrives — so nothing is ever announced (the live region is
   removed, not updated). There is no `aria-busy` on the surrounding region either.
 - **Why It Is a Problem:** Screen-reader users get silence during the load and silence on arrival.
 - **Recommended Redesign:** Keep the visual skeleton but move the announcement to a persistent
@@ -5494,6 +5816,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Medium
 
 ### 51. Four route-level `not-found` variants with three different container recipes
+
 - **File(s):** `app/not-found.tsx:12` (`grid min-h-svh place-items-center px-6 py-10` +
   `max-w-sm`), `app/app/not-found.tsx:15` (`mx-auto grid max-w-xl gap-6 px-6 py-10 sm:px-0 sm:py-0`),
   `app/app/qr/poster/[template]/not-found.tsx`, plus 4 more scoped ones
@@ -5505,7 +5828,7 @@ Computed contrast (sRGB, light theme):
   the shell padding does not compensate.
 - **Recommended Redesign:** One `NotFoundPanel` composition with a `variant: "page" | "in-shell"`
   prop — `page` = `grid min-h-svh place-items-center px-6 py-10`, `in-shell` = `grid place-items-center
-  py-12` (the shell already pads). Delete the `sm:px-0 sm:py-0`.
+py-12` (the shell already pads). Delete the `sm:px-0 sm:py-0`.
 - **Priority:** Low
 
 ---
@@ -5513,6 +5836,7 @@ Computed contrast (sRGB, light theme):
 ## J. Auth flows — length, grouping and affordance
 
 ### 52. The reset-password confirm step is ~840px tall on a phone
+
 - **File(s):** `components/auth/reset-password-form.tsx:167-348`
 - **Current UX/UI Problem:** Counting the rendered stack at 390px: read-only "Venue email" field
   (~92px) + "Reset code" field (~92px) + "New password" field (~92px) + `PasswordRequirements`
@@ -5527,7 +5851,7 @@ Computed contrast (sRGB, light theme):
   they cannot change and a validator they have not yet triggered.
 - **Recommended Redesign:** (a) Replace the read-only email `AuthField` with a compact summary row —
   `<div class="flex items-center justify-between gap-2 py-2"><span class="eyebrow">Venue
-  email</span><span class="text-sm font-bold truncate">…</span></div>` — saves ~60px; (b) delete
+email</span><span class="text-sm font-bold truncate">…</span></div>` — saves ~60px; (b) delete
   "Confirm password" in favour of a reveal toggle (§24) — saves ~92px; (c) collapse
   `PasswordRequirements` to the single summary line, expanding only on focus/error — saves ~28px;
   (d) merge the three trailing escape hatches into one row of two inline links — saves ~90px;
@@ -5536,11 +5860,12 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 53. `SignupVerifyForm` renders three escape-hatch paragraphs containing four 44px links
+
 - **File(s):** `components/auth/signup-verify-form.tsx:235-255`
 - **Current UX/UI Problem:** After the OTP field and verify button the page renders: an email-echo
   panel above (~64px), a resend form with a ghost button + two-line help (~90px), then
-  "Wrong email? *Back to sign up*", then "Used this email before? *Log in* or *reset your
-  password*". Each inline link is `inline-flex min-h-11 px-3 py-2` — so the last sentence is three
+  "Wrong email? _Back to sign up_", then "Used this email before? _Log in_ or _reset your
+  password_". Each inline link is `inline-flex min-h-11 px-3 py-2` — so the last sentence is three
   44px pill-shaped links inside a flowing paragraph, which on a 390px viewport wraps to **three
   lines of 44px each** ≈ 132px for one sentence.
 - **Why It Is a Problem:** 44px-tall inline links inside running prose break the line rhythm badly
@@ -5549,17 +5874,18 @@ Computed contrast (sRGB, light theme):
 - **Recommended Redesign:** Keep exactly one inline recovery link ("Wrong email?") and move the
   other two into a single `<details class="w-rule">` "Having trouble?" disclosure. For inline links
   inside prose, drop the `min-h-11` pill and use `underline underline-offset-4 focus-ring
-  rounded-sm` — WCAG 2.5.8 explicitly exempts inline links in a sentence from the target-size
+rounded-sm` — WCAG 2.5.8 explicitly exempts inline links in a sentence from the target-size
   minimum. Saves ~110px and restores the paragraph baseline.
 - **Priority:** High
 
 ### 54. `AuthPromptLink` is duplicated verbatim in three files
+
 - **File(s):** `components/auth/auth-form.tsx:208-228` (`SwitchPromptLink`),
   `components/auth/signup-details-form.tsx:208-228`, `components/auth/signup-verify-form.tsx:284-304`,
   plus two more inline copies in `components/auth/reset-password-form.tsx:342,358`
 - **Current UX/UI Problem:** The same 5-line component with the identical class string
   `"focus-ring inline-flex min-h-11 items-center rounded-full px-3 py-2 font-bold text-primary
-  underline-offset-4 hover:bg-accent hover:text-accent-foreground hover:underline"` exists five
+underline-offset-4 hover:bg-accent hover:text-accent-foreground hover:underline"` exists five
   times. `auth-form.tsx:128` has a sixth near-copy that drops `py-2` and the hover background.
 - **Why It Is a Problem:** Six copies means six places to fix, and the sixth has already diverged
   (no hover ground), so the "Forgot password?" link behaves differently from every other auth link.
@@ -5569,6 +5895,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Medium
 
 ### 55. OTP resend is a borderless ghost button whose label reflows every second
+
 - **File(s):** `components/auth/otp-resend-control.tsx:32,41-50`
 - **Current UX/UI Problem:** The default `variant="ghost"` gives the resend control no border, no
   ground and no shadow — the weakest affordance in the button inventory — for the action a stuck
@@ -5585,6 +5912,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 56. Both auth flows use banned "create an account" copy
+
 - **File(s):** `components/auth/signup-details-form.tsx:190,194`
 - **Current UX/UI Problem:** The submit is "Create account" and the switch prompt is "Already have
   an account? Log in". DESIGN.md § Brand & Style: "signup language is banned… Never 'register',
@@ -5603,21 +5931,23 @@ Computed contrast (sRGB, light theme):
 ## K. Motion layer
 
 ### 57. `WetInkMarquee` pauses on hover only — no operable pause control
+
 - **File(s):** `components/motion/wet-ink.tsx:470-502`, `lib/motion/tokens.ts` (`marquee.duration: 26`)
 - **Current UX/UI Problem:** DESIGN.md claims the marquee "pauses on an explicit operable control
   where it runs beyond five seconds". The implementation pauses on `onPointerEnter` /
   `onPointerLeave` only. There is no button, no keyboard path, and no `prefers-reduced-motion`
-  *pause* (reduced motion stops it entirely, which is correct, but that is a different user).
-- **Why It Is a Problem:** WCAG 2.2.2 (Pause, Stop, Hide) requires a *mechanism* for content that
+  _pause_ (reduced motion stops it entirely, which is correct, but that is a different user).
+- **Why It Is a Problem:** WCAG 2.2.2 (Pause, Stop, Hide) requires a _mechanism_ for content that
   moves automatically for more than 5 seconds. A 26-second loop with hover-only pause fails for
   keyboard and touch users, and the DESIGN.md claim states the opposite of what ships.
 - **Recommended Redesign:** Render a real `<Button size="icon-sm" variant="secondary"
-  aria-pressed={paused} aria-label="Pause the ticker">` adjacent to the strip, wired to the same
+aria-pressed={paused} aria-label="Pause the ticker">` adjacent to the strip, wired to the same
   `pausedRef`, and hoist `paused` to state so the button can reflect it. Keep hover pause as an
   extra.
 - **Priority:** High
 
 ### 58. `WetInkRipple` returns `null`, breaking the documented host-invariance rule
+
 - **File(s):** `components/motion/wet-ink.tsx:433-458`
 - **Current UX/UI Problem:** `if (!shouldAnimate || !active) return null`. DESIGN.md § Motion:
   "Every primitive renders static children under `prefers-reduced-motion`… The primitive host
@@ -5632,6 +5962,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Low
 
 ### 59. `WetInkWiggle` / `WetInkBreathe` are documented as one-shot but read as loops in the token file
+
 - **File(s):** `lib/motion/tokens.ts` (wiggle 2.6s, breathe 3.2s), `components/motion/wet-ink.tsx:358-427`
 - **Current UX/UI Problem:** Neither primitive sets `repeat`, so both are genuinely one-shot —
   which matches DESIGN.md ("bounded one-shot invites"). But `wiggle`'s token block carries no
@@ -5647,15 +5978,16 @@ Computed contrast (sRGB, light theme):
   `wetInkTransition` entry contains `repeat`.
 - **Priority:** Low
 
-### 60. The global reduced-motion rule nukes `transition-duration` on *everything*, including press feedback
+### 60. The global reduced-motion rule nukes `transition-duration` on _everything_, including press feedback
+
 - **File(s):** `app/globals.css:903-919`
 - **Current UX/UI Problem:** `*, *::before, *::after { transition-duration: 0.01ms !important }`.
   This kills every colour/border transition in the product — including hover feedback on nav items,
   focus-border swaps on inputs, and the deliberate 90ms press release that DESIGN.md calls "the
-  system-wide signature". The block then re-adds a *transform* for `.pressable:active` but not the
+  system-wide signature". The block then re-adds a _transform_ for `.pressable:active` but not the
   timing.
 - **Why It Is a Problem:** `prefers-reduced-motion` targets vestibular triggers — large-area
-  movement, parallax, zoom. Colour and border-colour transitions are explicitly *not* in scope, and
+  movement, parallax, zoom. Colour and border-colour transitions are explicitly _not_ in scope, and
   removing them makes the UI feel jumpy and cheap for the users who opted in. It also defeats the
   carefully-tuned `--w-dur-press` release that the design system treats as its identity.
 - **Recommended Redesign:** Narrow the rule to the properties that actually move things:
@@ -5669,9 +6001,10 @@ Computed contrast (sRGB, light theme):
 ## L. Cross-cutting accessibility, responsiveness and theming
 
 ### 61. `enableSystem` is on while dark mode is an untested dormant capability
+
 - **File(s):** `components/theme-provider.tsx:53-58`, `app/layout.tsx:93-97`, `app/globals.css:197-232`
 - **Current UX/UI Problem:** `NextThemesProvider attribute="class" defaultTheme="light"
-  enableSystem`. DESIGN.md: "Dark mode is a dormant capability, deliberately… no user-facing toggle
+enableSystem`. DESIGN.md: "Dark mode is a dormant capability, deliberately… no user-facing toggle
   exists and none is planned." Only **4** `dark:` variants exist in the entire product
   (`badge.tsx` ×2, `card.tsx` ×1, `stat-strip.tsx` ×1), so no component has been designed against
   the dark palette. The `viewport.themeColor` already ships a dark entry, and `.dark` overrides
@@ -5689,6 +6022,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 62. `focus-visible` recipe is sound, but seven interactive surfaces opt out of it
+
 - **File(s):** `app/globals.css:438-443` (the recipe — good);
   `components/merchant/customer-readback-table.tsx:213` (`outline-none`, no `.focus-ring`),
   `components/merchant/dashboard-next-actions.tsx:72` (`border-transparent`, no `.focus-ring`),
@@ -5708,12 +6042,13 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 63. Compact sizes honour 44px on coarse pointers — except the four that don't
+
 - **File(s):** `components/ui/button.tsx:39-51` (correct: `[@media(pointer:coarse)]:min-h-11`),
   `components/brand/filter-pills.tsx:56` (correct);
   **not** honoured: `components/ui/badge.tsx:9` (`h-5`, and `[a]:hover` variants make it a link),
   `components/ui/sidebar.tsx:311` (`min-h-10`), `components/ui/table.tsx:88` (`h-10` head cells with
   interactive sort/action content), `components/layout/marketing-layout.tsx:13` (footer links are
-  44px but the legal row wraps them to 2px gaps, violating the *spacing* half of 2.5.8)
+  44px but the legal row wraps them to 2px gaps, violating the _spacing_ half of 2.5.8)
 - **Current UX/UI Problem:** The `[@media(pointer:coarse)]:min-h-11` pattern is a genuinely good
   idea, applied in exactly two places. `Badge` is 20px tall and supports `asChild` + `[a]:hover`
   styling, i.e. it is designed to be a link — at 20px.
@@ -5724,6 +6059,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 64. `Icon` sizes are passed as numbers, producing 9 distinct glyph sizes with no scale
+
 - **File(s):** `components/brand/icon.tsx:18` (`size = 20`), call sites passing 10, 13, 14, 16, 18,
   20, 22, and `Math.round(size*0.5)` in `venue-mark.tsx:64`
 - **Current UX/UI Problem:** `Icon` takes a numeric `size`. Across the product that number is 10,
@@ -5740,14 +6076,15 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Medium
 
 ### 65. `Section` and `ContrastBand` own marketing rhythm, but nothing owns console/customer rhythm
+
 - **File(s):** `components/layout/section.tsx:21-28` (5 sizes: `py-7 sm:py-10`, `py-4 sm:py-10`,
   `py-4 sm:py-5`, `py-3 sm:py-4`, `py-0`), `components/layout/contrast-band.tsx:21-26` (3 more),
   vs the 26 distinct `py-*` values elsewhere
 - **Current UX/UI Problem:** Marketing has a real, well-documented rhythm owner ("was a per-file
   `py-12 sm:py-16` scattered across ~16 components"). The merchant console, admin console and
   customer app have none: `merchant-app-shell.tsx:176` hard-codes `px-4 py-8 pb-16 sm:px-6
-  md:pb-10`, `admin-shell.tsx:102` `px-4 py-8 sm:px-6`, `customer-app-shell.tsx:30` `px-4 pt-6
-  pb-32 sm:px-6`, and every page then adds its own `grid gap-6` / `gap-8` / `space-y-4`.
+md:pb-10`, `admin-shell.tsx:102` `px-4 py-8 sm:px-6`, `customer-app-shell.tsx:30` `px-4 pt-6
+pb-32 sm:px-6`, and every page then adds its own `grid gap-6` / `gap-8` / `space-y-4`.
 - **Why It Is a Problem:** The consoles are the long, tall surfaces — the ones where a rhythm owner
   pays off most. Eight different vertical gaps between panels on one dashboard reads as drift.
 - **Recommended Redesign:** Mint `<ConsoleSection size="default"|"dense">` mirroring
@@ -5758,6 +6095,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Medium
 
 ### 66. `Section size="default"` is `py-7 sm:py-10` while `ContrastBand` is `py-9 sm:py-12`
+
 - **File(s):** `components/layout/section.tsx:22`, `components/layout/contrast-band.tsx:22`
 - **Current UX/UI Problem:** Two sibling rhythm owners on the same marketing page use 28/40px and
   36/48px respectively. `ContrastBand`'s own docstring explains it carries no margin so its border
@@ -5770,6 +6108,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Low
 
 ### 67. `numeric-tabular` exists and is used 42 times, but the countdowns don't use it
+
 - **File(s):** `app/globals.css:352-354`; `components/auth/otp-resend-control.tsx:48`,
   `components/auth/signup-verify-form.tsx:181`;
   vs `components/auth/reset-password-form.tsx:316` (uses raw `tabular-nums`)
@@ -5794,7 +6133,7 @@ Computed contrast (sRGB, light theme):
    through ~14 chrome controls before reaching content on every single navigation.
 
 2. **Cap and scroll the bottom sheet (§34).** `data-[side=bottom]:max-h-[min(85dvh,40rem)]
-   overflow-y-auto overscroll-contain max-w-customer mx-auto`. The counter moment — a PIN pad on a
+overflow-y-auto overscroll-contain max-w-customer mx-auto`. The counter moment — a PIN pad on a
    customer's phone — can currently grow off the top of the viewport with no recovery. One line in
    `sheet.tsx`.
 
@@ -5825,7 +6164,7 @@ Computed contrast (sRGB, light theme):
 `border border-input`, `shadow-xs`; `Input`/`Textarea`'s `rounded-2xl border-input bg-secondary/60`;
 `Card`'s `rounded-[…24px]` and `shadow-sm`; `CardTitle`'s `font-medium`; `Progress`'s `bg-muted` and
 `bg-primary`; `Sheet`'s `bg-black/30`; `SidebarMenuButton`'s `min-h-10/12`; `Empty`'s
-`rounded-3xl`; `SheetTitle`'s `font-medium`. Two of them are *not* actually overridden and ship
+`rounded-3xl`; `SheetTitle`'s `font-medium`. Two of them are _not_ actually overridden and ship
 visibly wrong (Card's `ring-1` and its 24px image corners, §18). The layer is the right
 architecture; the primitives should be pruned to match it so a reader can trust the file.
 
@@ -5835,7 +6174,7 @@ architecture; the primitives should be pruned to match it so a reader can trust 
 `.numeric-tabular` (bypassed by the 3 countdowns that need it most), `shadow-hard` (bypassed by 4
 spellings of the same offset), `SelectField` (bypassed by
 `cancellation-interview-form.tsx:15`'s stock-shadcn clone). In almost every case the bypass is
-*worse* than the abstraction — this is a discoverability problem, not a capability gap. A short
+_worse_ than the abstraction — this is a discoverability problem, not a capability gap. A short
 "reach for this, not that" table at the top of DESIGN.md plus `tokens:check` assertions would close
 most of it.
 

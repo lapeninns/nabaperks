@@ -15,11 +15,20 @@ branch is green after every merge.
 | Report           | Tracked |    Done | Partial |  Stale |   Open |
 | ---------------- | ------: | ------: | ------: | -----: | -----: |
 | 01 marketing     |      69 |      49 |      11 |      3 |      6 |
+| <<<<<<< HEAD     |
 | 02 customer      |      70 |      59 |       7 |      2 |      2 |
 | 03 merchant      |      67 |      51 |      10 |      4 |      2 |
 | 04 admin         |      74 |      60 |       3 |      9 |      2 |
 | 05 design system |      67 |      64 |       2 |      0 |      1 |
 | **Total**        | **347** | **283** |  **33** | **18** | **13** |
+| =======          |
+| 02 customer      |      70 |      54 |      12 |      2 |      2 |
+| 03 merchant      |      67 |      53 |       8 |      4 |      2 |
+| 04 admin         |      74 |      60 |       3 |      9 |      2 |
+| 05 design system |      67 |      63 |       3 |      0 |      1 |
+| **Total**        | **347** | **279** |  **37** | **18** | **13** |
+
+> > > > > > > lane/merchant
 
 ## "Stale" is a real category (18 findings)
 
@@ -702,6 +711,8 @@ One of three, not an epidemic. Worth checking each time anyway: a pointer to an
 existing pattern is the most persuasive line in a finding, and the one least
 likely to be re-derived by whoever implements it.
 
+<<<<<<< HEAD
+
 ### A grep that searched for the wrong noun (02#20)
 
 NEEDS-SIGNOFF 11 corrected the customer lane by proving that **no test in
@@ -733,6 +744,61 @@ already dropped, under a comment claiming the two surfaces match.
 Two lessons, both cheap: scan the surface, not the file list a finding happens
 to cite; and strip comments before asserting a class is absent, because the
 comment explaining why a class was removed contains the class.
+=======
+
+### The merchant lane's blocker sweep (03#1, 12, 37, 47, 55, 64)
+
+Six recorded blockers re-tested against a running browser. Two did not survive,
+two survived with the wrong reason attached, two were exactly right.
+
+| finding | recorded blocker                                | verdict                                                                                          |
+| ------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| 03#55   | "`maxLength` is pinned, so the half stays open" | **wrong scope** — the pin covers the limit, not the silence. Closed.                             |
+| 03#12   | "side-by-side at md+ is a page restructure"     | **wrong breakpoint** — at md it is impossible, not merely large. Shipped at xl.                  |
+| 03#64   | "no device to enumerate against here"           | **wrong reason** — the repo already stubs `enumerateDevices`. Decision stands for other reasons. |
+| 03#1    | "still an unconditional stacked card"           | **wrong word** — it is conditional on route and on `!launchReady`. Open on the merits.           |
+| 03#47   | "RA-11 pins `fixed … sm:static` and the spacer" | **correct**, lines 109-111.                                                                      |
+| 03#37   | "poster URL shape is contract-pinned"           | **correct**, line 31 — and a second pin the note missed.                                         |
+
+Three numbers worth keeping.
+
+**03#12 — `md` was never available.** The console sidebar is 272px, so the
+audit's `md:grid-cols-[18rem_minmax(0,1fr)]` at a 768px viewport divides a
+448px column into an 18rem sidecar and 136px for four KPI tiles: 34px each. At
+lg it is 94px. Only at xl (944px of column, 148px tiles) does the finding's own
+layout fit. Shipped there: 1,676px → 1,448px at 1280, unchanged below xl.
+
+A finding that names a breakpoint has usually been written against the viewport,
+not against the column the component actually gets. In a console with a fixed
+sidebar those are 320px apart.
+
+**03#47 — a spacer stopped being a guess.** The finding calls `pb-[8.75rem]`
+"guesswork ... two lines of copy + a two-button row wraps differently at 320px".
+Measured across selection counts 1–7 at 320, 360 and 390: the tray is 140px
+every single time, which is `8.75rem` exactly. Earlier work in this campaign had
+already made the claim stale by shortening the copy and fixing the button row's
+grid. Its sibling recommendation — one line with both buttons inline — is
+arithmetically impossible on a phone: 272px of inner width at 320px against a
+202px count line and 76px + 184px buttons.
+
+**03#64 — the impossible half and the possible half are different questions.**
+Manual code entry really is blocked: the payload is a uuid minted server-side
+with a 10-minute TTL and rendered only as a PNG, so there is no code to type.
+The camera picker is not blocked by anything the note named — the repo's own
+scanner spec already stubs `navigator.mediaDevices.enumerateDevices`. It is
+still declined, because a stub proves the control renders and not that a real
+second camera decodes, and because it would give the merchant scanner a control
+its customer twin does not have. A wrong reason that guards a right decision is
+worth correcting anyway: the next agent reads the reason, not the decision.
+
+**A grep that returns nothing is making a claim.** Checking 03#37 I first
+concluded neither contract mentioned the poster path, because
+`grep 'app/qr/poster'` finds nothing in `qr-a4-poster-templates.test.mjs`. The
+assertion is there; it is regex-escaped as `app\/qr\/poster`. That is the third
+time in this campaign an escaped literal has produced a false negative, and the
+second time it nearly reversed a verdict.
+
+> > > > > > > lane/merchant
 
 ### Contract allowlists are a list of known defects
 

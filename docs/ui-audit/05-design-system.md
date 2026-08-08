@@ -13,53 +13,54 @@ class-string frequency analysis and computed WCAG contrast ratios for every decl
 
 These counts are from a full grep over `app/**/*.tsx` + `components/**/*.tsx`:
 
-| Signal | Count | Contract in DESIGN.md |
-| --- | --- | --- |
-| Distinct `rounded-*` values in use | 10 (`none, sm, md, lg, xl, 2xl, 3xl, full, t-[18px], [10px]`) | 3 (`10px`, `18px` sheets, `full` stamps) |
-| `rounded-lg` / `rounded-md` / `rounded-xl` / `rounded-2xl` | 192 / 31 / 22 / 11 | one radius |
-| Distinct radius+shadow combos on a hand-rolled `border-2` surface | **22** | one (`.surface-card`) |
-| `.surface-card` uses vs hand-rolled `border-2 border-ink` | 57 vs **153** | `.surface-card` is the recipe |
-| Distinct `py-*` section values | **26** | 22px section gap, 14px card gap |
-| Distinct `gap-*` values | 16 | 4px base unit |
-| `<h1>` rendered at N distinct type scales | **6** | one `page-title` (30/36) |
-| `<h2>` rendered at N distinct type scales | **11** | one |
-| Hand-rolled `text-[…]` font sizes | 21 sites | two sanctioned sub-`text-xs` utilities only |
-| Distinct `tracking-[…]` values | **11** | two (`0.06em`, `0.08em`) |
-| Arbitrary Tailwind values (`x-[…]`) total | **606** | — |
-| `Button` sizes declared / actually used | 9 / **6** | — |
-| `Button` variants declared / actually used | 8 / 7 | — |
-| `Badge` variants declared / actually used | 7 / **1** | — |
-| `--*` custom properties declared in globals.css | **141** | — |
-| `dark:` variants across the whole product | **4** | full dark block ships |
-| Skip-links in the product | **1** (marketing only) | 4 shells exist |
+| Signal                                                            | Count                                                         | Contract in DESIGN.md                       |
+| ----------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------- |
+| Distinct `rounded-*` values in use                                | 10 (`none, sm, md, lg, xl, 2xl, 3xl, full, t-[18px], [10px]`) | 3 (`10px`, `18px` sheets, `full` stamps)    |
+| `rounded-lg` / `rounded-md` / `rounded-xl` / `rounded-2xl`        | 192 / 31 / 22 / 11                                            | one radius                                  |
+| Distinct radius+shadow combos on a hand-rolled `border-2` surface | **22**                                                        | one (`.surface-card`)                       |
+| `.surface-card` uses vs hand-rolled `border-2 border-ink`         | 57 vs **153**                                                 | `.surface-card` is the recipe               |
+| Distinct `py-*` section values                                    | **26**                                                        | 22px section gap, 14px card gap             |
+| Distinct `gap-*` values                                           | 16                                                            | 4px base unit                               |
+| `<h1>` rendered at N distinct type scales                         | **6**                                                         | one `page-title` (30/36)                    |
+| `<h2>` rendered at N distinct type scales                         | **11**                                                        | one                                         |
+| Hand-rolled `text-[…]` font sizes                                 | 21 sites                                                      | two sanctioned sub-`text-xs` utilities only |
+| Distinct `tracking-[…]` values                                    | **11**                                                        | two (`0.06em`, `0.08em`)                    |
+| Arbitrary Tailwind values (`x-[…]`) total                         | **606**                                                       | —                                           |
+| `Button` sizes declared / actually used                           | 9 / **6**                                                     | —                                           |
+| `Button` variants declared / actually used                        | 8 / 7                                                         | —                                           |
+| `Badge` variants declared / actually used                         | 7 / **1**                                                     | —                                           |
+| `--*` custom properties declared in globals.css                   | **141**                                                       | —                                           |
+| `dark:` variants across the whole product                         | **4**                                                         | full dark block ships                       |
+| Skip-links in the product                                         | **1** (marketing only)                                        | 4 shells exist                              |
 
 Computed contrast (sRGB, light theme):
 
-| Pair | Ratio | Verdict |
-| --- | --- | --- |
-| `--w-ink` on `--w-paper` | 15.01 | pass |
-| `--w-ink-soft` (muted-foreground) on paper / card | 8.10 / 8.60 | pass |
-| `--primary` #cf330a on paper | **4.51** | AA by 0.01 |
-| `--primary` on `--secondary` (`#ece5d4`) | **4.05** | **fails AA** |
-| `--border`/`--input` (`--w-line`, 18% ink) on paper | **1.43** | **fails 1.4.11 (needs 3:1)** |
-| `--w-line-strong` (50%) on paper | 3.20 | pass, barely |
-| focus ring (85% vermillion) on paper / card | 3.72 / 3.90 | pass |
-| `.eyebrow` colour on `ContrastBand` ink ground | **1.85** | **illegible** |
-| `--seal` (sun) as text on paper | **1.80** | **illegible as text** |
-| disabled state (50% opacity ink-soft on paper) | ~2.25 | informational-disabled fails |
+| Pair                                                | Ratio       | Verdict                      |
+| --------------------------------------------------- | ----------- | ---------------------------- |
+| `--w-ink` on `--w-paper`                            | 15.01       | pass                         |
+| `--w-ink-soft` (muted-foreground) on paper / card   | 8.10 / 8.60 | pass                         |
+| `--primary` #cf330a on paper                        | **4.51**    | AA by 0.01                   |
+| `--primary` on `--secondary` (`#ece5d4`)            | **4.05**    | **fails AA**                 |
+| `--border`/`--input` (`--w-line`, 18% ink) on paper | **1.43**    | **fails 1.4.11 (needs 3:1)** |
+| `--w-line-strong` (50%) on paper                    | 3.20        | pass, barely                 |
+| focus ring (85% vermillion) on paper / card         | 3.72 / 3.90 | pass                         |
+| `.eyebrow` colour on `ContrastBand` ink ground      | **1.85**    | **illegible**                |
+| `--seal` (sun) as text on paper                     | **1.80**    | **illegible as text**        |
+| disabled state (50% opacity ink-soft on paper)      | ~2.25       | informational-disabled fails |
 
 ---
 
 ## A. Design tokens, scales, and the `globals.css` ↔ `DESIGN.md` contract
 
 ### 1. The radius scale is declared four sizes wider than the contract and is being used
+
 - **File(s):** `app/globals.css:67-73`, consumers across `components/**`
 - **Current UX/UI Problem:** `@theme inline` mints seven radii — `--radius-sm:4px`, `md:6px`,
   `lg:10px`, `xl:14px`, `2xl:18px`, `3xl:22px`, `4xl:26px`. DESIGN.md sanctions **three** shapes
   (10px, 18px sheets, full circles for the stamp family). The extra rungs are used: `rounded-xl`
   (14px) 22×, `rounded-2xl` (18px) 11×, `rounded-3xl` 1×, `rounded-md` (6px) 31×. Concretely,
   `app/app/rewards/scan/[scanToken]/page.tsx:110` renders a summary `<dl>` at `rounded-xl border-2
-  border-ink`, three lines from a `ReceiptCard` at 10px; `app/global-error.tsx` uses `rounded-lg`
+border-ink`, three lines from a `ReceiptCard` at 10px; `app/global-error.tsx` uses `rounded-lg`
   for the panel but `rounded-md` for its own button.
 - **Why It Is a Problem:** 14px and 6px corners sit close enough to 10px to read as a rendering
   bug rather than a deliberate contrast. On a print-derived aesthetic where sharpness is the whole
@@ -73,6 +74,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 2. Twenty-two different ways to draw "the Wet Ink card"
+
 - **File(s):** `app/globals.css:313-319` (`.surface-card`), 153 hand-rolled sites incl.
   `components/merchant/loading-skeletons.tsx:537,648`, `components/customer/push-notification-settings.tsx:238`,
   `app/app/offers/[campaignId]/qr/page.tsx:96`, `components/merchant/present-qr.tsx:67`
@@ -80,7 +82,7 @@ Computed contrast (sRGB, light theme):
   10px, `shadow-md`). It is used 57 times. The same surface is hand-rolled 153 times, producing 22
   distinct radius/shadow pairings — `rounded-lg` + nothing (82×), `rounded-md` + nothing (14×),
   `rounded-lg shadow-sm` (13×), `rounded-xl` + nothing (9×), `rounded-2xl
-  shadow-[8px_8px_0_var(--w-shadow-color)]` (2×), `rounded-[10px] shadow-[3px_3px_0_var(--w-ink)]`,
+shadow-[8px_8px_0_var(--w-shadow-color)]` (2×), `rounded-[10px] shadow-[3px_3px_0_var(--w-ink)]`,
   `shadow-hard`, `shadow-[var(--shadow-hard)]`, `shadow-[4px_4px_0_var(--w-shadow-color)]`…
 - **Why It Is a Problem:** Elevation is supposed to be semantic in this system (4px = card,
   3px = button, 2px = dense tile, 1px = pressed). With five spellings of "4px" and eight offsets in
@@ -94,6 +96,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Critical
 
 ### 3. `--radius-sheet` never becomes a utility, so sheets are hand-numbered
+
 - **File(s):** `app/globals.css:182` (`:root`), `components/customer/*` (`rounded-t-[18px]`,
   `rounded-[var(--radius-sheet)]`)
 - **Current UX/UI Problem:** `--radius-sheet: 18px` is declared in `:root`, not in `@theme inline`,
@@ -107,24 +110,26 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Medium
 
 ### 4. `--border` / `--input` at 18% ink fails WCAG 1.4.11 for every 1px boundary
+
 - **File(s):** `app/globals.css:147-148`; consumers `components/ui/table.tsx:31,64` (`border-b`),
   `components/ui/separator.tsx:22` (`bg-border`), `components/ui/badge.tsx:9` (`border-border`),
   40 further `border border-*` sites
 - **Current UX/UI Problem:** `--border: var(--w-line)` = `rgba(33,28,22,0.18)`, computed **1.43:1**
   against paper and **1.45:1** against card. Every 1px separator that uses it — table row rules,
   `Separator`, plain `MonoTag`, the `outline` badge, the marketing footer's `border-t-2
-  border-dashed border-border` — is effectively invisible at typical brightness.
+border-dashed border-border` — is effectively invisible at typical brightness.
 - **Why It Is a Problem:** WCAG 2.2 SC 1.4.11 requires 3:1 for boundaries that are the only way to
   perceive a component. Table rows in the admin console are dense records with no zebra striping;
   if the rule is invisible the row grouping collapses. On a bright pub floor (the actual usage
   environment) this is worse, not better.
-- **Recommended Redesign:** Keep `--w-line` at 18% for *decorative* dashed receipt rules only, and
+- **Recommended Redesign:** Keep `--w-line` at 18% for _decorative_ dashed receipt rules only, and
   point the semantic `--border`/`--input` aliases at `--w-line-strong` (50%, 3.2:1) or at a new
   `--w-line-ui` at ~38% ink. Then move `Table`'s row rules to `border-b-2 border-dashed
-  border-line` so they read as receipt perforations (on-brand) rather than as failed hairlines.
+border-line` so they read as receipt perforations (on-brand) rather than as failed hairlines.
 - **Priority:** High
 
 ### 5. Sun (`--seal`) is unusable as a foreground yet is exposed as `text-sun`
+
 - **File(s):** `app/globals.css:46,118,156`; `components/data/stat-strip.tsx:27`
 - **Current UX/UI Problem:** `--color-sun` is minted as a text colour utility, but `#f5a623` on
   paper is **1.80:1**. `stat-strip.tsx` already works around this with
@@ -133,12 +138,13 @@ Computed contrast (sRGB, light theme):
 - **Why It Is a Problem:** The token invites a failure. One component has paid the cost of
   discovering it; the next will not.
 - **Recommended Redesign:** Add `--w-sun-ink: color-mix(in oklch, var(--w-sun) 55%, var(--w-ink))`
-  to `:root`, mint it as `--color-sun-ink`, and document sun as a *fill-only* ink (seal disc,
+  to `:root`, mint it as `--color-sun-ink`, and document sun as a _fill-only_ ink (seal disc,
   `MonoTag tone="sun"`) with `sun-ink` as its text partner. Delete the arbitrary mix in
   `stat-strip.tsx`.
 - **Priority:** High
 
 ### 6. `.eyebrow` bakes in a colour, so it cannot be used on the inverted band
+
 - **File(s):** `app/globals.css:337-339`, `components/layout/contrast-band.tsx:52`,
   `components/marketing/landing/scarcity-band.tsx:16,31`
 - **Current UX/UI Problem:** `.eyebrow` = `.mono-meta` + `color: var(--muted-foreground)`. On
@@ -148,11 +154,12 @@ Computed contrast (sRGB, light theme):
 - **Why It Is a Problem:** DESIGN.md explicitly says "do not hand-roll `font-mono text-[0.x rem]`
   strings — reach for one of these utilities". The utility itself is what forces the fork.
 - **Recommended Redesign:** Add `.eyebrow-inverse { color: color-mix(in oklch, var(--w-paper) 72%,
-  transparent) }` (7.9:1 on ink), or better, give `Eyebrow` a `tone?: "muted" | "inverse"` prop and
+transparent) }` (7.9:1 on ink), or better, give `Eyebrow` a `tone?: "muted" | "inverse"` prop and
   make `ContrastBand` set `[--eyebrow-color]` so `.eyebrow` reads from a variable.
 - **Priority:** Medium
 
 ### 7. 141 declared custom properties; ~74 have zero `var()` consumers
+
 - **File(s):** `app/globals.css:9-195`
 - **Current UX/UI Problem:** `--stamp-empty` (defined at :148, never referenced),
   `--shadow-2xs`, `--shadow-lg`, `--shadow-xl`, `--shadow-2xl`, `--shadow-hard-sm`,
@@ -171,6 +178,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Medium
 
 ### 8. QR tokens exist but every QR surface hard-codes `bg-white`
+
 - **File(s):** `app/globals.css:162-163,37-38`; `components/loyalty/qr-frame.tsx:18,22`,
   `components/merchant/present-qr.tsx:67,74`, `app/app/offers/[campaignId]/qr/page.tsx:96,103`,
   `components/admin/mfa-panel.tsx:109`
@@ -192,13 +200,14 @@ Computed contrast (sRGB, light theme):
 ## B. Typography and the micro-type scale
 
 ### 9. `<h1>` renders at six different sizes; `<h2>` at eleven
+
 - **File(s):** `components/brand/typography.tsx:69` (`PageTitle`), `app/(auth)/login/page.tsx:80,105`,
   `app/(auth)/signup/page.tsx:81`, plus ~60 further heading sites
 - **Current UX/UI Problem:** DESIGN.md declares exactly one `page-title` (30px→36px) and one
   `card-title` (16px). In practice `<h1>` ships at `text-2xl` (11×), `text-3xl` (4×), `text-xl`
   (3×), `text-4xl sm:text-6xl` (2×), `text-3xl sm:text-5xl`, `text-3xl sm:text-4xl`, and
   `text-base sm:text-lg`. `<h2>` ships at eleven distinct scales including `text-sm` (2×) — an h2
-  *smaller than body copy*. `PageTitle` itself mints `text-3xl sm:text-4xl` but is then overridden
+  _smaller than body copy_. `PageTitle` itself mints `text-3xl sm:text-4xl` but is then overridden
   at seven call sites with `titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"` and at four with
   `text-[clamp(1.75rem,4vw,2.25rem)]`.
 - **Why It Is a Problem:** Heading rank is the primary scanning device on long merchant/admin
@@ -212,6 +221,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 10. Fonts are loaded at 400/700 only, but the system specifies 500 and 800
+
 - **File(s):** `app/layout.tsx:19-50`, `assets/fonts/`, `app/globals.css:256-265`
 - **Current UX/UI Problem:** `localFont` registers exactly two Bricolage weights (400 Regular,
   700 Bold) and two Space Mono weights (400, 700). `globals.css` then sets `font-weight: 800` on
@@ -226,12 +236,13 @@ Computed contrast (sRGB, light theme):
   what ships.
 - **Recommended Redesign:** Ship the Bricolage Grotesque **variable** font (it is a variable family
   with a 200–800 wght axis) via a single `localFont` entry with `declarations: [{prop:
-  "font-variation-settings"}]`, or add the static 500/800 instances. Then set
+"font-variation-settings"}]`, or add the static 500/800 instances. Then set
   `font-synthesis-weight: none` in `@layer base` so a missing weight fails loudly instead of
   silently. Correct the `next/font/google` claim in DESIGN.md.
 - **Priority:** High
 
 ### 11. Twenty-one hand-rolled `text-[…]` sizes below or around the sanctioned micro scale
+
 - **File(s):** `components/layout/customer-tab-bar.tsx:66` (`text-[0.6875rem]`),
   `components/brand/filter-pills.tsx:70` (`text-[0.625rem]`),
   `components/loyalty/reward-seal.tsx:40` (`text-[0.625rem]`),
@@ -244,18 +255,19 @@ Computed contrast (sRGB, light theme):
 - **Current UX/UI Problem:** DESIGN.md: "Below `text-xs` there are exactly two sanctioned sizes…
   Do not hand-roll `font-mono text-[0.x rem] tracking-[…] uppercase` strings". Reality: 10px,
   10.5px, 11px, 11.04px, 11px, 12.96px, 15.36px, 26.4px, 28px, 33.6px are all minted ad hoc, and
-  `present-qr.tsx:83` is *literally* the banned string (`font-mono text-[11px] tracking-[0.06em]`).
+  `present-qr.tsx:83` is _literally_ the banned string (`font-mono text-[11px] tracking-[0.06em]`).
 - **Why It Is a Problem:** 0.66rem vs 0.6875rem vs 0.625rem are indistinguishable individually and
   cumulatively make the mono register look mis-set. The customer tab bar in particular sets its
   five labels at an unnamed 11px that matches nothing else in the system.
 - **Recommended Redesign:** Route every sub-`text-xs` string through `.mono-id` / `.mono-meta`.
-  Add a third *spoken* micro utility `.text-micro` (11.5px Bricolage 500) for the tab bar and
+  Add a third _spoken_ micro utility `.text-micro` (11.5px Bricolage 500) for the tab bar and
   filter-pill counts, since the two existing utilities are mono-only and the tab bar labels are
   correctly Bricolage. Extend `tokens:check` from "fails below 10px" to "fails on any
   `text-[…]` that is not one of N approved values".
 - **Priority:** Medium
 
 ### 12. Eleven distinct `tracking-[…]` values against a two-value contract
+
 - **File(s):** 29× `tracking-[0.08em]`, 6× `[0.04em]`, 4× `[0.16em]`, 3× `[0.18em]`, 3× `[0.02em]`,
   3× `[0.12em]`, 3× `[0.1em]`, 3× `[-0.01em]`, 2× `[0.2em]`, 1× `[0.09em]`, 1× `[0.06em]`
 - **Current UX/UI Problem:** DESIGN.md sanctions 0.06em (mono-meta/mono-id) and 0.08em (badge/tag).
@@ -274,11 +286,12 @@ Computed contrast (sRGB, light theme):
 ## C. Buttons
 
 ### 13. Nine declared sizes, six used, and no page-level consistency
+
 - **File(s):** `components/ui/button.tsx:38-52`; 300 call sites
 - **Current UX/UI Problem:** The `size` variant declares `xs, sm, default, lg, xl, icon, icon-xs,
-  icon-sm, icon-lg`. Actual usage across 300 `<Button>`/`<SubmitButton>` call sites:
+icon-sm, icon-lg`. Actual usage across 300 `<Button>`/`<SubmitButton>` call sites:
   `default` 170, `lg` 70, `sm` 51, `icon` 4, `icon-sm` 4, `xs` 1. `xl`, `icon-xs` and `icon-lg`
-  are never used. Worse, `lg` (h-12) and `default` (h-11) are mixed on the *same* surfaces —
+  are never used. Worse, `lg` (h-12) and `default` (h-11) are mixed on the _same_ surfaces —
   `app/how-it-works/page.tsx:102,105` uses `size="lg"` for a CTA pair while
   `components/layout/merchant-app-shell.tsx:72` uses `size="sm"` for the shell's own pair and
   `components/layout/customer-app-shell.tsx:23` uses the default. There is no rule mapping a size
@@ -293,12 +306,13 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 14. The `stamp` and `reward` variants are visually identical to `default` / `Badge reward`
+
 - **File(s):** `components/ui/button.tsx:24-29`, `app/globals.css:152,159`
 - **Current UX/UI Problem:** `variant="stamp"` renders `bg-stamp text-stamp-foreground`, and
   `--stamp: var(--w-accent)`, `--stamp-foreground: var(--w-accent-ink)` — i.e. byte-identical to
   `variant="default"`'s `bg-primary text-primary-foreground`. Two variants, one pixel output.
   `variant="reward"` (19 uses) is the only non-primary filled button in the system and is leaf
-  green — a *filled* colour silhouette that DESIGN.md's destructive rationale explicitly argues
+  green — a _filled_ colour silhouette that DESIGN.md's destructive rationale explicitly argues
   against ("primary stays the only filled red on any surface"; there is no equivalent ruling for
   leaf).
 - **Why It Is a Problem:** A variant that produces no visual difference is a trap: a contributor
@@ -311,6 +325,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Medium
 
 ### 15. `link` variant's `rounded-none` is silently overridden to 10px by the unlayered layer
+
 - **File(s):** `components/ui/button.tsx:31-32`, `app/globals.css:467-470`
 - **Current UX/UI Problem:** The cva sets `link: "h-auto rounded-none p-0 …"` but
   `[data-slot="button"][data-variant="link"] { border-radius: var(--radius-lg) }` is unlayered and
@@ -327,9 +342,10 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Low
 
 ### 16. Ghost/link press travels 2px down, not the documented 1px settle
+
 - **File(s):** `components/ui/button.tsx:16` (`active:translate-y-px`), `app/globals.css:301-303`
   (`.pressable:active { transform: translate(1px, 1px) }`)
-- **Current UX/UI Problem:** Every button carries `.pressable` (transform translate 1,1) *and*
+- **Current UX/UI Problem:** Every button carries `.pressable` (transform translate 1,1) _and_
   `active:translate-y-px` (translate 0,1). For bordered variants the unlayered rule cancels the
   transform (`transform: none`) and sets `translate: 2px 2px` — correct. For **ghost and link**
   nothing cancels either, so they compose: 1px right + 2px down.
@@ -339,10 +355,11 @@ Computed contrast (sRGB, light theme):
 - **Recommended Redesign:** Remove `active:translate-y-px` from the cva base string entirely and
   let `.pressable` own the settle; add an explicit
   `[data-slot="button"][data-variant="ghost"]:active, [data-variant="link"]:active { transform:
-  translate(0,1px) }` rule so the documented behaviour is stated once.
+translate(0,1px) }` rule so the documented behaviour is stated once.
 - **Priority:** Medium
 
 ### 17. `outline` variant declares a 1px `border-input` that can never render
+
 - **File(s):** `components/ui/button.tsx:28`, `app/globals.css:448-456`
 - **Current UX/UI Problem:** `outline: "border border-input bg-background shadow-xs …"`. The
   unlayered block forces `border: 2px solid var(--w-ink)` on every non-ghost/link/destructive
@@ -363,11 +380,12 @@ Computed contrast (sRGB, light theme):
 ## D. Cards and surfaces
 
 ### 18. `Card`'s stock 24px radius survives on nested images and its `ring-1` survives everywhere
+
 - **File(s):** `components/ui/card.tsx:14` and `:31,:88`
 - **Current UX/UI Problem:** The Card base string is
   `rounded-[min(var(--radius-4xl),24px)] … shadow-sm ring-1 ring-foreground/5 …
-  *:[img:first-child]:rounded-t-[min(var(--radius-4xl),24px)]
-  *:[img:last-child]:rounded-b-[min(var(--radius-4xl),24px)]`. The unlayered layer fixes the card's
+*:[img:first-child]:rounded-t-[min(var(--radius-4xl),24px)]
+*:[img:last-child]:rounded-b-[min(var(--radius-4xl),24px)]`. The unlayered layer fixes the card's
   own radius to 10px and the shadow to 4px — but **not** the `ring-1 ring-foreground/5` (a stray
   hairline ring sitting outside the 2px ink border) and **not** the image corner rules (24px image
   corners inside a 10px card). `CardHeader:31` and `CardFooter:88` also keep 24px `rounded-t/b`.
@@ -381,13 +399,14 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 19. `Card`'s `overflow-hidden` clips the rotated stamp family
+
 - **File(s):** `components/ui/card.tsx:14`; consumers `components/brand/receipt-card.tsx`,
   `components/loyalty/stamp-grid.tsx`
 - **Current UX/UI Problem:** `Card` sets `overflow-hidden` on the root. Every stamp/seal/venue mark
   in the system is `rotate(-6deg)` and `WetInkSlam` scales it to **2.6×** on the way in. A slam that
   starts at 2.6× inside a card with `overflow-hidden` is clipped to the card box for the first
   ~60% of the 380ms animation.
-- **Why It Is a Problem:** The stamp slam is *the* signature moment of the product. Clipping its
+- **Why It Is a Problem:** The stamp slam is _the_ signature moment of the product. Clipping its
   overshoot turns a "slammed onto paper" beat into a "grew inside a box" beat.
 - **Recommended Redesign:** Change the Card root to `overflow-clip` only where an image is present
   (`has-[>img]:overflow-hidden`), or give `ReceiptCard` a `overflow-visible` override plus explicit
@@ -396,6 +415,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 20. `CardTitle` renders at `text-base font-medium` and relies on CSS to fix the weight
+
 - **File(s):** `components/ui/card.tsx:40-46`, `app/globals.css:525-527`
 - **Current UX/UI Problem:** `CardTitle` = `font-heading text-base font-medium`; the layer sets
   `font-weight: 800`. So `font-medium` is dead, and a reader of the component sees a 500 title.
@@ -406,11 +426,12 @@ Computed contrast (sRGB, light theme):
   `font-medium` misleads every future contributor.
 - **Recommended Redesign:** Delete `font-medium` from `CardTitle`. Merge `KpiTile` and `MetricTile`
   into one component with a `sparkline?` and `helper?` prop — they already share `Card size="sm"
-  data-elevation="flat"`, the `.eyebrow` label, the `.numeric-tabular` value and the `mono-id`
+data-elevation="flat"`, the `.eyebrow` label, the `.numeric-tabular` value and the `mono-id`
   trend line. One KPI value scale (`text-2xl`), one label min-height.
 - **Priority:** Medium
 
 ### 21. `ReceiptCard`'s four padding presets fork the 14/22px spacing contract
+
 - **File(s):** `components/brand/receipt-card.tsx:7-12`
 - **Current UX/UI Problem:** `PADDING` maps `none/sm/md/lg` to `0 / 16px / 24px / 32px` via
   `--card-spacing`, while `Card` itself defaults to `--spacing(5)` = 20px and `size="sm"` to 16px.
@@ -429,6 +450,7 @@ Computed contrast (sRGB, light theme):
 ## E. Inputs, fields and forms
 
 ### 22. Three input heights (44/48/48) and a hand-rolled fourth well
+
 - **File(s):** `components/ui/input.tsx:14` (`h-11`), `components/auth/auth-field.tsx:33`
   (`h-12 text-sm`), `components/forms/select-field.tsx:17` (`h-12`),
   `components/merchant/account/cancellation-interview-form.tsx:15`
@@ -436,7 +458,7 @@ Computed contrast (sRGB, light theme):
   `h-12 text-sm` (48px). `SelectField` is `h-12 text-sm`. And
   `cancellation-interview-form.tsx:15` hand-rolls
   `"focus-ring min-h-11 w-full rounded-2xl border border-input bg-secondary/60 px-4 text-sm
-  outline-none"` — a verbatim copy of the *stock shadcn* input string that DESIGN.md names as the
+outline-none"` — a verbatim copy of the _stock shadcn_ input string that DESIGN.md names as the
   banned anti-pattern ("do not hand-roll `rounded-xl bg-secondary/60` class strings or private
   `Field` clones"), and which will render an 18px radius + 1px hairline because it has no
   `data-slot`.
@@ -450,21 +472,23 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 23. Form labels are 11.5px uppercase mono
+
 - **File(s):** `components/auth/auth-field.tsx:24` (`label={<Eyebrow>{label}</Eyebrow>}`)
 - **Current UX/UI Problem:** Every auth field label ("Email", "Password", "Confirm password",
   "Email code") renders through `Eyebrow` → `.eyebrow` → 11.5px Space Mono 700 uppercase with
   0.06em tracking.
-- **Why It Is a Problem:** DESIGN.md is explicit that mono/uppercase is the *printed* register
+- **Why It Is a Problem:** DESIGN.md is explicit that mono/uppercase is the _printed_ register
   for "IDs, codes, dates, eyebrows, feeds, metadata" and Bricolage is for "everything human". A
   field label is the most human thing on the form. Uppercase mono at 11.5px is also measurably
   slower to read and is the classic accessibility complaint for form labels (all-caps defeats word
   shape recognition, and 11.5px is below the 12px practical floor for dyslexic readers).
 - **Recommended Redesign:** Move labels to `text-sm font-bold` Bricolage (the `Label` primitive's
-  own register) and keep `.eyebrow` for the *section* kicker above a field group. Reserve mono for
+  own register) and keep `.eyebrow` for the _section_ kicker above a field group. Reserve mono for
   the OTP field's value, not its label.
 - **Priority:** High
 
 ### 24. No password visibility toggle, but a "Confirm password" field on two flows
+
 - **File(s):** `components/auth/signup-details-form.tsx:129,161`,
   `components/auth/reset-password-form.tsx:241,274`
 - **Current UX/UI Problem:** Both flows render `type="password"` with no reveal control, then add a
@@ -480,6 +504,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 25. `PasswordRequirements` announces a count on every keystroke
+
 - **File(s):** `components/auth/password-requirements.tsx:50-62`
 - **Current UX/UI Problem:** A `role="status" aria-live="polite" aria-atomic="true"` paragraph
   recomputes "Password meets 1 of 3 rules" / "2 of 3" / "all 3" on every input change. The three
@@ -496,9 +521,10 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Medium
 
 ### 26. `focus-ring` on `tabIndex={-1}` recovery containers never renders
+
 - **File(s):** `components/auth/auth-form.tsx:152`, `components/auth/reset-password-form.tsx:156,311`
 - **Current UX/UI Problem:** Three error-recovery blocks are `<div|form tabIndex={-1}
-  className="focus-ring grid gap-3 rounded-xl">` and are focused programmatically. `.focus-ring`
+className="focus-ring grid gap-3 rounded-xl">` and are focused programmatically. `.focus-ring`
   keys off `:focus-visible`, which browsers do **not** apply to programmatic focus on a
   non-interactive `tabindex="-1"` element.
 - **Why It Is a Problem:** The whole point of these blocks is "an OTP failed, look here". The focus
@@ -511,6 +537,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 27. `field.tsx` ships 240 lines of which six exports have zero consumers
+
 - **File(s):** `components/ui/field.tsx`
 - **Current UX/UI Problem:** `FieldSet`, `FieldLegend`, `FieldGroup`, `FieldTitle`, `FieldContent`
   and `FieldSeparator` have **0** consumers outside `components/ui`. `FieldSeparator` is the sole
@@ -523,12 +550,13 @@ Computed contrast (sRGB, light theme):
   reset form's four, and the merchant onboarding form's many all render as flat field lists with
   no programmatic grouping).
 - **Recommended Redesign:** Either delete the dead exports plus `separator.tsx`, or — better —
-  *adopt* `FieldSet`/`FieldLegend` to group the auth forms ("Your details" / "Your password") and
+  _adopt_ `FieldSet`/`FieldLegend` to group the auth forms ("Your details" / "Your password") and
   the merchant onboarding form. Grouping is also the cheapest height fix available: a fieldset can
   collapse to a summary row once complete (see §I.34).
 - **Priority:** Medium
 
 ### 28. Two competing inline-notice systems: `Alert` (13 uses) and `StatusBanner` (113)
+
 - **File(s):** `components/ui/alert.tsx`, `components/loyalty/status-banner.tsx`, consumers across
   auth + merchant
 - **Current UX/UI Problem:** `Alert` has exactly two variants (`default`, `destructive`) and no
@@ -538,7 +566,7 @@ Computed contrast (sRGB, light theme):
   `AlertDescription className="text-accent-foreground"` — i.e. a manually reconstructed success
   tone with no icon.
 - **Why It Is a Problem:** The auth funnel — the highest-anxiety surface in the product — is the
-  one place with the *weakest* feedback treatment: an unadorned box whose success and error states
+  one place with the _weakest_ feedback treatment: an unadorned box whose success and error states
   differ only by border colour, with no icon to carry the semantic for colour-blind users.
 - **Recommended Redesign:** Give `Alert` the same four tones as `StatusBanner` in the unlayered
   layer (`[data-slot="alert"][data-variant="success"|"warning"|"info"]` washes mirroring the
@@ -552,12 +580,13 @@ Computed contrast (sRGB, light theme):
 ## F. Feedback primitives: Badge, Empty, Skeleton, Progress, Toast
 
 ### 29. `Badge` ships 7 variants; exactly one is reachable, and its 1.5px border is defeated
+
 - **File(s):** `components/ui/badge.tsx:9-30`, `components/brand/mono-tag.tsx:42-44`,
   `app/globals.css:362-378` (`.w-tag`)
 - **Current UX/UI Problem:** `<Badge>` is used in exactly one place — inside `MonoTag`, always with
   `variant="outline"`. `default`, `secondary`, `reward`, `destructive`, `ghost` and `link` are
   dead. Separately, `.w-tag` declares `border: 1.5px solid var(--w-line)` in `@layer components`
-  while the badge cva emits the `border` + `border-border` *utilities*; under Tailwind v4 utilities
+  while the badge cva emits the `border` + `border-border` _utilities_; under Tailwind v4 utilities
   beat components, so **every `MonoTag` renders a 1px border, not the documented 1.5px**, and the
   `plain` tone's colour comes from `--border` (1.43:1 — invisible, see §4). `h-5` (20px) is also a
   fixed height fighting `.w-tag`'s `padding: 4px 11px`.
@@ -566,12 +595,13 @@ Computed contrast (sRGB, light theme):
   `account` activity category and every admin sidebar status tag) has no perceivable boundary.
 - **Recommended Redesign:** Move the border declaration into the unlayered `[data-slot="badge"]`
   block (which already owns the font metrics) so it cannot be defeated: `border: 1.5px solid
-  var(--w-line-strong)`. Remove `h-5` in favour of `min-h-5` so tall tones don't clip. Delete the
+var(--w-line-strong)`. Remove `h-5` in favour of `min-h-5` so tall tones don't clip. Delete the
   six dead variants, or wire `reward`/`destructive` into `CategoryBadge`/`StatusPill` so they earn
   their place.
 - **Priority:** High
 
 ### 30. `Empty` primitive renders no border and 48px padding; `EmptyState` overrides both
+
 - **File(s):** `components/ui/empty.tsx:10`, `components/brand/typography.tsx:197`
 - **Current UX/UI Problem:** `Empty` base = `… gap-4 rounded-3xl border-dashed p-12 …`. Tailwind's
   preflight sets `border-width: 0`, so `border-dashed` **alone draws nothing** — the primitive's
@@ -583,11 +613,12 @@ Computed contrast (sRGB, light theme):
 - **Why It Is a Problem:** Two-thirds of a shipped primitive is unreachable, and the one reachable
   path duplicates `IconRoundel size="lg" tone="secondary"` character-for-character.
 - **Recommended Redesign:** Fix `Empty`'s base to `border-2 border-dashed border-line-strong
-  rounded-lg p-6` and delete the `EmptyState` overrides. Replace the hand-rolled roundel with
+rounded-lg p-6` and delete the `EmptyState` overrides. Replace the hand-rolled roundel with
   `<IconRoundel icon={icon} size="lg" />`. Delete `EmptyMedia`.
 - **Priority:** Medium
 
 ### 31. `EmptyState` renders its title as a `<div role="heading">`
+
 - **File(s):** `components/ui/empty.tsx:64-76`, `components/brand/typography.tsx:204`
 - **Current UX/UI Problem:** `EmptyTitle` is a `<div data-slot="empty-title">` and `EmptyState`
   passes `role="heading" aria-level={headingLevel}`. It is used as the `<h1>` on
@@ -595,26 +626,27 @@ Computed contrast (sRGB, light theme):
   i.e. four routes whose entire page heading is a synthetic ARIA heading.
 - **Why It Is a Problem:** `role="heading"` on a div is valid but strictly weaker than a native
   element: it is excluded from some heading-navigation implementations, from `document.title`
-  heuristics, and from reader-mode extraction. For a 404/500 page — where the heading *is* the
+  heuristics, and from reader-mode extraction. For a 404/500 page — where the heading _is_ the
   content — this is a real loss.
 - **Recommended Redesign:** Make `EmptyTitle` render a real element via an `as` prop
   (`as={`h${headingLevel}`}`), defaulting to `h2`. Remove the `role`/`aria-level` pair.
 - **Priority:** Medium
 
 ### 32. `Skeleton` fill is 1.3:1 and route skeletons don't mirror their surfaces
+
 - **File(s):** `app/globals.css:600-602`, `app/admin/loading.tsx`, `app/app/loading.tsx`,
   `components/merchant/loading-skeletons.tsx`
 - **Current UX/UI Problem:** `[data-slot="skeleton"]` is `color-mix(… var(--w-ink) 13%,
-  transparent)` = **1.30:1** on paper — at the very edge of perceptibility on a warm ground, and
+transparent)` = **1.30:1** on paper — at the very edge of perceptibility on a warm ground, and
   the only motion cue is `animate-pulse`, which is `motion-reduce:animate-none`, so reduced-motion
-  users see a near-invisible static block. `app/app/loading.tsx` renders a *single* page-title
+  users see a near-invisible static block. `app/app/loading.tsx` renders a _single_ page-title
   skeleton for every `/app/*` route, so the merchant console shows one grey bar then pops an
   entire dashboard.
 - **Why It Is a Problem:** A loading state that cannot be seen is a blank page; a loading state
   that does not mirror the incoming layout guarantees a full-page layout shift (CLS) on arrival.
   `app/app/scan/loading.tsx` gets this exactly right (real header, real card frame) and is the
   model — but it is the only route that does.
-- **Recommended Redesign:** Raise the skeleton fill to ~20% ink (≈1.6:1) *and* add a static
+- **Recommended Redesign:** Raise the skeleton fill to ~20% ink (≈1.6:1) _and_ add a static
   `border-2 border-dashed border-line` under `motion-reduce` so the placeholder is perceivable
   without animation. Then give the four highest-traffic `/app/*` routes their own `loading.tsx`
   built from `components/merchant/loading-skeletons.tsx` (which already contains the right
@@ -622,11 +654,12 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 33. `Progress` is 8px tall with no accessible label and no indeterminate state
+
 - **File(s):** `components/ui/progress.tsx:14-27`, `app/globals.css:576-584`
 - **Current UX/UI Problem:** `h-2` (8px) default, `bg-muted`/`bg-primary` classes both dead
   (overridden to paper-2/leaf by the layer), no `aria-label`, and the indicator uses
   `translateX(-{100-value}%)` with `value || 0` — so `value={undefined}` (Radix's indeterminate
-  contract) renders as a *completely empty determinate* bar rather than an indeterminate one.
+  contract) renders as a _completely empty determinate_ bar rather than an indeterminate one.
 - **Why It Is a Problem:** An 8px leaf bar against `--w-paper-2` on paper carries very little
   signal at a glance, and the loyalty context (progress toward a reward) is the one place where the
   bar must read instantly. The missing indeterminate state means any "we don't know yet" case
@@ -642,6 +675,7 @@ Computed contrast (sRGB, light theme):
 ## G. Sheets, sidebar and table
 
 ### 34. Bottom sheets have no max-height and no internal scroll
+
 - **File(s):** `components/ui/sheet.tsx:20` (`data-[side=bottom]:h-auto`)
 - **Current UX/UI Problem:** The bottom sheet is `inset-x-0 bottom-0 h-auto` with no `max-h` and no
   `overflow-y-auto`. Only one consumer works around it (`max-h-[min(85vh,640px)]` found in the
@@ -651,13 +685,14 @@ Computed contrast (sRGB, light theme):
   overflows the viewport with the title above the fold is unrecoverable.
 - **Recommended Redesign:** Add to the base:
   `data-[side=bottom]:max-h-[min(85dvh,40rem)] data-[side=bottom]:overflow-y-auto
-  data-[side=bottom]:overscroll-contain` and
+data-[side=bottom]:overscroll-contain` and
   `data-[side=bottom]:pb-[max(1.5rem,env(safe-area-inset-bottom))]`. Also cap the sheet width
   (`data-[side=bottom]:mx-auto data-[side=bottom]:max-w-customer`) — today a bottom sheet spans the
   full 1920px on desktop.
 - **Priority:** Critical
 
 ### 35. Sheet overlay fades in 150ms while the sheet slides 320ms; and its `shadow-xl` is meaningless
+
 - **File(s):** `components/ui/sheet.tsx:17-20`
 - **Current UX/UI Problem:** `sheetOverlayClass` uses `duration-[var(--w-dur-fast)]` (150ms);
   `sheetContentClass` uses `duration-[var(--w-dur-move)]` (320ms). DESIGN.md: "sheets/moves 320ms".
@@ -673,6 +708,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Medium
 
 ### 36. `SidebarMenuButton`'s `size` prop has no effect
+
 - **File(s):** `components/ui/sidebar.tsx:289-317` (`min-h-10` / `min-h-12`),
   `app/globals.css:731-737` (`min-height: 2.75rem`), `components/layout/console-sidebar-nav.tsx:109`
 - **Current UX/UI Problem:** The component offers `size: "default" | "lg"` mapping to `min-h-10`
@@ -680,7 +716,7 @@ Computed contrast (sRGB, light theme):
   `[data-slot="sidebar-menu-button"]`. Both values are defeated. `console-sidebar-nav.tsx:109`
   passes `size="lg"` believing it gets 48px.
 - **Why It Is a Problem:** Beyond the dead API, `min-h-10` (40px) is below the documented 44px tap
-  floor — the only thing saving it is the layer, which means the *component in isolation* is
+  floor — the only thing saving it is the layer, which means the _component in isolation_ is
   off-contract and any future non-layer consumer inherits the bug.
 - **Recommended Redesign:** Delete the `size` prop and its classes; document that the layer owns
   nav-item height. If two heights are genuinely wanted, express them as
@@ -688,11 +724,12 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Medium
 
 ### 37. The mobile nav drawer hides its close button and offers no visible dismissal
+
 - **File(s):** `components/ui/sidebar.tsx:147-156` (`[&>button]:hidden`)
 - **Current UX/UI Problem:** The mobile sidebar is a `SheetContent` with `[&>button]:hidden`,
   which suppresses the sheet's own close affordance. There is no replacement inside
   `SidebarHeader` for either shell — `MerchantAppShell` puts its `SidebarTrigger` in a
-  `md:hidden` header *behind* the open drawer, and `AdminShell` does the same. Dismissal is
+  `md:hidden` header _behind_ the open drawer, and `AdminShell` does the same. Dismissal is
   overlay-tap or Escape only.
 - **Why It Is a Problem:** No visible affordance to close a full-height modal drawer is a
   discoverability failure and, for switch/voice-control users who cannot reliably target the
@@ -703,11 +740,12 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 38. `Table`'s horizontal-scroll container is a focus stop with no accessible name
+
 - **File(s):** `components/ui/table.tsx:8-15`
 - **Current UX/UI Problem:** `<div data-slot="table-container" className="relative w-full
-  overflow-x-auto" tabIndex={0}>` — focusable (correct, for keyboard scrolling) but with no
+overflow-x-auto" tabIndex={0}>` — focusable (correct, for keyboard scrolling) but with no
   `role="region"` and no `aria-label`, so a keyboard user lands on an unnamed, unannounced stop.
-  Every cell also carries `whitespace-nowrap`, so wide admin tables *always* scroll horizontally
+  Every cell also carries `whitespace-nowrap`, so wide admin tables _always_ scroll horizontally
   rather than ever wrapping.
 - **Why It Is a Problem:** WCAG 2.2 §4.1.2 / the standard scrollable-region pattern requires
   `role="region"` + a name when a container is made focusable. `whitespace-nowrap` on every cell
@@ -723,6 +761,7 @@ Computed contrast (sRGB, light theme):
 ## H. Shells and layouts
 
 ### 39. Only one of four shells has a skip link
+
 - **File(s):** `components/layout/marketing-layout.tsx:74-79` (has one);
   `components/layout/merchant-app-shell.tsx`, `components/layout/customer-app-shell.tsx`,
   `components/layout/admin-shell.tsx` (none)
@@ -741,6 +780,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Critical
 
 ### 40. `CustomerShell` uses `overflow-x-hidden`, which the codebase's own comment forbids
+
 - **File(s):** `components/layout/customer-shell.tsx:13`, `app/globals.css:238-249`
 - **Current UX/UI Problem:** `globals.css` carries a five-line comment explaining that `clip` is
   used instead of `hidden` "because `hidden` makes the element a scroll container, which silently
@@ -755,6 +795,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 41. Four different full-height conventions across shells and boundaries
+
 - **File(s):** `min-h-svh` (13 uses: `app/error.tsx`, `app/not-found.tsx`, `admin/layout.tsx`,
   `customer-app-shell.tsx:15`, `merchant-app-shell.tsx:62`, `sidebar.tsx:123`),
   `min-h-[100dvh]` (5: `marketing-layout.tsx:71`, `customer-shell.tsx:13`),
@@ -772,10 +813,11 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Medium
 
 ### 42. `AdminShell` is 80rem wide while `MerchantAppShell` is 72rem
+
 - **File(s):** `components/layout/admin-shell.tsx:103` (`max-w-7xl`),
   `components/layout/merchant-app-shell.tsx:104,183` (`max-w-merchant`)
 - **Current UX/UI Problem:** DESIGN.md declares one console measure — "merchant 1152px
-  (`max-w-merchant`)". Admin uses `max-w-7xl` (1280px), which is the *marketing chrome* width. The
+  (`max-w-merchant`)". Admin uses `max-w-7xl` (1280px), which is the _marketing chrome_ width. The
   two consoles share a sidebar, a nav component, a record-card system and seven table patterns, but
   not a content measure.
 - **Why It Is a Problem:** Admin tables get 128px more line length than merchant tables for the same
@@ -787,6 +829,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Medium
 
 ### 43. `AdminShell` has no desktop sidebar control and no `hideMobileChrome` parity
+
 - **File(s):** `components/layout/admin-shell.tsx:40,83-90` vs
   `components/layout/merchant-app-shell.tsx:118,127-131`
 - **Current UX/UI Problem:** Admin uses `collapsible="offcanvas"` and places its only
@@ -794,7 +837,7 @@ Computed contrast (sRGB, light theme):
   collapsed — on a 1280px laptop that is 21% of the width permanently spent on nav for tables that
   scroll horizontally (§38). Merchant uses `collapsible="icon"` with a `hidden md:flex` trigger and
   a cookie-persisted state.
-- **Why It Is a Problem:** Admin is the *denser* of the two consoles, so it is the one that needs
+- **Why It Is a Problem:** Admin is the _denser_ of the two consoles, so it is the one that needs
   the reclaimable width more.
 - **Recommended Redesign:** Switch admin to `collapsible="icon"`, mirror the merchant header-row
   trigger and the `sidebar_state` cookie seed, and reuse the same
@@ -802,6 +845,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Medium
 
 ### 44. `AdminShell` sidebar footer stacks four `MonoTag` chips of pure decoration
+
 - **File(s):** `components/layout/admin-shell.tsx:54-80`
 - **Current UX/UI Problem:** The footer stacks `Operator: …` plus three static strings
   ("Service-role readbacks", "Audited support actions", "MFA-aware access") plus a verified tag —
@@ -816,9 +860,10 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Medium
 
 ### 45. `PageTitle` fakes baseline alignment with `md:pt-8`
+
 - **File(s):** `components/brand/typography.tsx:87`
 - **Current UX/UI Problem:** The `actions` slot is `flex flex-wrap gap-2 md:justify-self-end
-  md:pt-8` — a hard-coded 32px top pad chosen to bottom-align the buttons against a title that has
+md:pt-8` — a hard-coded 32px top pad chosen to bottom-align the buttons against a title that has
   an eyebrow. When `eyebrow` is omitted (which the API allows and several routes do), the actions
   float 32px below the title's baseline for no reason.
 - **Why It Is a Problem:** Conditional-by-coincidence alignment; every page without an eyebrow has a
@@ -828,11 +873,12 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Low
 
 ### 46. `CustomerAppShell` reserves 128px of bottom padding for a 56px tab bar
+
 - **File(s):** `components/layout/customer-app-shell.tsx:30` (`pb-32`),
   `components/layout/customer-tab-bar.tsx:52` (`min-h-14` + `pb-[env(safe-area-inset-bottom)]`)
 - **Current UX/UI Problem:** The tab bar is 56px plus safe area (≤34px on iPhone) = ~90px worst
   case. `main` reserves `pb-32` = 128px, and the tab bar has no shadow or overhang. On a 667px
-  iPhone SE viewport that is ~40px of dead space at the bottom of *every* customer screen.
+  iPhone SE viewport that is ~40px of dead space at the bottom of _every_ customer screen.
 - **Why It Is a Problem:** The customer column is the tightest real estate in the product (410px ×
   a phone viewport) and the loyalty card is meant to fill it.
 - **Recommended Redesign:** `pb-[calc(3.5rem+env(safe-area-inset-bottom)+1rem)]`, or set a
@@ -841,6 +887,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Medium
 
 ### 47. The marketing footer is a 4-column, 13-link, 44px-per-row block on every page
+
 - **File(s):** `components/layout/marketing-layout.tsx:101-131`
 - **Current UX/UI Problem:** The non-focused footer renders a `grid-cols-2 lg:grid-cols-4` nav with
   13 links, each `min-h-11` (44px), plus a 5-link legal row (also `min-h-11` each, wrapping to 2–3
@@ -862,6 +909,7 @@ Computed contrast (sRGB, light theme):
 ## I. Loading, error and not-found states
 
 ### 48. No error boundary moves focus or announces itself
+
 - **File(s):** `app/error.tsx`, `app/global-error.tsx`, `app/admin/error.tsx`, `app/app/error.tsx`,
   `app/home/(authed)/error.tsx`, `app/home/login/error.tsx`, `app/scan/error.tsx`,
   `app/m/[merchantSlug]/error.tsx`, `app/q/[qrId]/error.tsx`, `app/reward/[rewardId]/error.tsx`,
@@ -880,10 +928,11 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 49. `global-error.tsx` speaks a different design system
+
 - **File(s):** `app/global-error.tsx:20-38`
 - **Current UX/UI Problem:** The panel is `rounded-lg border-2 border-ink bg-card p-6 shadow-xs`
   (2px offset, not the card's 4px) and the button is `rounded-md` (6px), `h-11`, `border-2
-  border-ink bg-primary` with **no** shadow and no press behaviour. So the last-resort page shows a
+border-ink bg-primary` with **no** shadow and no press behaviour. So the last-resort page shows a
   6px-radius, shadowless button next to a 2px-elevation card — three deviations from the contract
   in ten lines.
 - **Why It Is a Problem:** The comment says it "stays deliberately minimal… while still speaking
@@ -891,17 +940,18 @@ Computed contrast (sRGB, light theme):
   also the one page a user might screenshot and send to support.
 - **Recommended Redesign:** Use `surface-card p-6` and give the button the exact `.pressable`
   recipe: `pressable inline-flex h-11 w-full items-center justify-center rounded-lg border-2
-  border-ink bg-primary px-4 font-bold text-primary-foreground shadow-sm`. These are all plain
+border-ink bg-primary px-4 font-bold text-primary-foreground shadow-sm`. These are all plain
   utilities/`@layer components` classes with no component imports, so the "no brand imports"
   constraint is preserved.
 - **Priority:** Medium
 
 ### 50. Loading fallbacks use `role="status"` on a container with no `aria-live` guarantee and no `aria-busy`
+
 - **File(s):** `app/admin/loading.tsx:12-16`, `app/app/loading.tsx:11-15`,
   `app/app/scan/loading.tsx:14-19`
 - **Current UX/UI Problem:** All three set `role="status" aria-label="Loading …"`. `role="status"`
   is an implicit `aria-live="polite"` region, but the label is set at mount time on a region that is
-  *replaced wholesale* when content arrives — so nothing is ever announced (the live region is
+  _replaced wholesale_ when content arrives — so nothing is ever announced (the live region is
   removed, not updated). There is no `aria-busy` on the surrounding region either.
 - **Why It Is a Problem:** Screen-reader users get silence during the load and silence on arrival.
 - **Recommended Redesign:** Keep the visual skeleton but move the announcement to a persistent
@@ -912,6 +962,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Medium
 
 ### 51. Four route-level `not-found` variants with three different container recipes
+
 - **File(s):** `app/not-found.tsx:12` (`grid min-h-svh place-items-center px-6 py-10` +
   `max-w-sm`), `app/app/not-found.tsx:15` (`mx-auto grid max-w-xl gap-6 px-6 py-10 sm:px-0 sm:py-0`),
   `app/app/qr/poster/[template]/not-found.tsx`, plus 4 more scoped ones
@@ -923,7 +974,7 @@ Computed contrast (sRGB, light theme):
   the shell padding does not compensate.
 - **Recommended Redesign:** One `NotFoundPanel` composition with a `variant: "page" | "in-shell"`
   prop — `page` = `grid min-h-svh place-items-center px-6 py-10`, `in-shell` = `grid place-items-center
-  py-12` (the shell already pads). Delete the `sm:px-0 sm:py-0`.
+py-12` (the shell already pads). Delete the `sm:px-0 sm:py-0`.
 - **Priority:** Low
 
 ---
@@ -931,6 +982,7 @@ Computed contrast (sRGB, light theme):
 ## J. Auth flows — length, grouping and affordance
 
 ### 52. The reset-password confirm step is ~840px tall on a phone
+
 - **File(s):** `components/auth/reset-password-form.tsx:167-348`
 - **Current UX/UI Problem:** Counting the rendered stack at 390px: read-only "Venue email" field
   (~92px) + "Reset code" field (~92px) + "New password" field (~92px) + `PasswordRequirements`
@@ -945,7 +997,7 @@ Computed contrast (sRGB, light theme):
   they cannot change and a validator they have not yet triggered.
 - **Recommended Redesign:** (a) Replace the read-only email `AuthField` with a compact summary row —
   `<div class="flex items-center justify-between gap-2 py-2"><span class="eyebrow">Venue
-  email</span><span class="text-sm font-bold truncate">…</span></div>` — saves ~60px; (b) delete
+email</span><span class="text-sm font-bold truncate">…</span></div>` — saves ~60px; (b) delete
   "Confirm password" in favour of a reveal toggle (§24) — saves ~92px; (c) collapse
   `PasswordRequirements` to the single summary line, expanding only on focus/error — saves ~28px;
   (d) merge the three trailing escape hatches into one row of two inline links — saves ~90px;
@@ -954,11 +1006,12 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 53. `SignupVerifyForm` renders three escape-hatch paragraphs containing four 44px links
+
 - **File(s):** `components/auth/signup-verify-form.tsx:235-255`
 - **Current UX/UI Problem:** After the OTP field and verify button the page renders: an email-echo
   panel above (~64px), a resend form with a ghost button + two-line help (~90px), then
-  "Wrong email? *Back to sign up*", then "Used this email before? *Log in* or *reset your
-  password*". Each inline link is `inline-flex min-h-11 px-3 py-2` — so the last sentence is three
+  "Wrong email? _Back to sign up_", then "Used this email before? _Log in_ or _reset your
+  password_". Each inline link is `inline-flex min-h-11 px-3 py-2` — so the last sentence is three
   44px pill-shaped links inside a flowing paragraph, which on a 390px viewport wraps to **three
   lines of 44px each** ≈ 132px for one sentence.
 - **Why It Is a Problem:** 44px-tall inline links inside running prose break the line rhythm badly
@@ -967,17 +1020,18 @@ Computed contrast (sRGB, light theme):
 - **Recommended Redesign:** Keep exactly one inline recovery link ("Wrong email?") and move the
   other two into a single `<details class="w-rule">` "Having trouble?" disclosure. For inline links
   inside prose, drop the `min-h-11` pill and use `underline underline-offset-4 focus-ring
-  rounded-sm` — WCAG 2.5.8 explicitly exempts inline links in a sentence from the target-size
+rounded-sm` — WCAG 2.5.8 explicitly exempts inline links in a sentence from the target-size
   minimum. Saves ~110px and restores the paragraph baseline.
 - **Priority:** High
 
 ### 54. `AuthPromptLink` is duplicated verbatim in three files
+
 - **File(s):** `components/auth/auth-form.tsx:208-228` (`SwitchPromptLink`),
   `components/auth/signup-details-form.tsx:208-228`, `components/auth/signup-verify-form.tsx:284-304`,
   plus two more inline copies in `components/auth/reset-password-form.tsx:342,358`
 - **Current UX/UI Problem:** The same 5-line component with the identical class string
   `"focus-ring inline-flex min-h-11 items-center rounded-full px-3 py-2 font-bold text-primary
-  underline-offset-4 hover:bg-accent hover:text-accent-foreground hover:underline"` exists five
+underline-offset-4 hover:bg-accent hover:text-accent-foreground hover:underline"` exists five
   times. `auth-form.tsx:128` has a sixth near-copy that drops `py-2` and the hover background.
 - **Why It Is a Problem:** Six copies means six places to fix, and the sixth has already diverged
   (no hover ground), so the "Forgot password?" link behaves differently from every other auth link.
@@ -987,6 +1041,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Medium
 
 ### 55. OTP resend is a borderless ghost button whose label reflows every second
+
 - **File(s):** `components/auth/otp-resend-control.tsx:32,41-50`
 - **Current UX/UI Problem:** The default `variant="ghost"` gives the resend control no border, no
   ground and no shadow — the weakest affordance in the button inventory — for the action a stuck
@@ -1003,6 +1058,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 56. Both auth flows use banned "create an account" copy
+
 - **File(s):** `components/auth/signup-details-form.tsx:190,194`
 - **Current UX/UI Problem:** The submit is "Create account" and the switch prompt is "Already have
   an account? Log in". DESIGN.md § Brand & Style: "signup language is banned… Never 'register',
@@ -1021,21 +1077,23 @@ Computed contrast (sRGB, light theme):
 ## K. Motion layer
 
 ### 57. `WetInkMarquee` pauses on hover only — no operable pause control
+
 - **File(s):** `components/motion/wet-ink.tsx:470-502`, `lib/motion/tokens.ts` (`marquee.duration: 26`)
 - **Current UX/UI Problem:** DESIGN.md claims the marquee "pauses on an explicit operable control
   where it runs beyond five seconds". The implementation pauses on `onPointerEnter` /
   `onPointerLeave` only. There is no button, no keyboard path, and no `prefers-reduced-motion`
-  *pause* (reduced motion stops it entirely, which is correct, but that is a different user).
-- **Why It Is a Problem:** WCAG 2.2.2 (Pause, Stop, Hide) requires a *mechanism* for content that
+  _pause_ (reduced motion stops it entirely, which is correct, but that is a different user).
+- **Why It Is a Problem:** WCAG 2.2.2 (Pause, Stop, Hide) requires a _mechanism_ for content that
   moves automatically for more than 5 seconds. A 26-second loop with hover-only pause fails for
   keyboard and touch users, and the DESIGN.md claim states the opposite of what ships.
 - **Recommended Redesign:** Render a real `<Button size="icon-sm" variant="secondary"
-  aria-pressed={paused} aria-label="Pause the ticker">` adjacent to the strip, wired to the same
+aria-pressed={paused} aria-label="Pause the ticker">` adjacent to the strip, wired to the same
   `pausedRef`, and hoist `paused` to state so the button can reflect it. Keep hover pause as an
   extra.
 - **Priority:** High
 
 ### 58. `WetInkRipple` returns `null`, breaking the documented host-invariance rule
+
 - **File(s):** `components/motion/wet-ink.tsx:433-458`
 - **Current UX/UI Problem:** `if (!shouldAnimate || !active) return null`. DESIGN.md § Motion:
   "Every primitive renders static children under `prefers-reduced-motion`… The primitive host
@@ -1050,6 +1108,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Low
 
 ### 59. `WetInkWiggle` / `WetInkBreathe` are documented as one-shot but read as loops in the token file
+
 - **File(s):** `lib/motion/tokens.ts` (wiggle 2.6s, breathe 3.2s), `components/motion/wet-ink.tsx:358-427`
 - **Current UX/UI Problem:** Neither primitive sets `repeat`, so both are genuinely one-shot —
   which matches DESIGN.md ("bounded one-shot invites"). But `wiggle`'s token block carries no
@@ -1065,15 +1124,16 @@ Computed contrast (sRGB, light theme):
   `wetInkTransition` entry contains `repeat`.
 - **Priority:** Low
 
-### 60. The global reduced-motion rule nukes `transition-duration` on *everything*, including press feedback
+### 60. The global reduced-motion rule nukes `transition-duration` on _everything_, including press feedback
+
 - **File(s):** `app/globals.css:903-919`
 - **Current UX/UI Problem:** `*, *::before, *::after { transition-duration: 0.01ms !important }`.
   This kills every colour/border transition in the product — including hover feedback on nav items,
   focus-border swaps on inputs, and the deliberate 90ms press release that DESIGN.md calls "the
-  system-wide signature". The block then re-adds a *transform* for `.pressable:active` but not the
+  system-wide signature". The block then re-adds a _transform_ for `.pressable:active` but not the
   timing.
 - **Why It Is a Problem:** `prefers-reduced-motion` targets vestibular triggers — large-area
-  movement, parallax, zoom. Colour and border-colour transitions are explicitly *not* in scope, and
+  movement, parallax, zoom. Colour and border-colour transitions are explicitly _not_ in scope, and
   removing them makes the UI feel jumpy and cheap for the users who opted in. It also defeats the
   carefully-tuned `--w-dur-press` release that the design system treats as its identity.
 - **Recommended Redesign:** Narrow the rule to the properties that actually move things:
@@ -1087,9 +1147,10 @@ Computed contrast (sRGB, light theme):
 ## L. Cross-cutting accessibility, responsiveness and theming
 
 ### 61. `enableSystem` is on while dark mode is an untested dormant capability
+
 - **File(s):** `components/theme-provider.tsx:53-58`, `app/layout.tsx:93-97`, `app/globals.css:197-232`
 - **Current UX/UI Problem:** `NextThemesProvider attribute="class" defaultTheme="light"
-  enableSystem`. DESIGN.md: "Dark mode is a dormant capability, deliberately… no user-facing toggle
+enableSystem`. DESIGN.md: "Dark mode is a dormant capability, deliberately… no user-facing toggle
   exists and none is planned." Only **4** `dark:` variants exist in the entire product
   (`badge.tsx` ×2, `card.tsx` ×1, `stat-strip.tsx` ×1), so no component has been designed against
   the dark palette. The `viewport.themeColor` already ships a dark entry, and `.dark` overrides
@@ -1107,6 +1168,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 62. `focus-visible` recipe is sound, but seven interactive surfaces opt out of it
+
 - **File(s):** `app/globals.css:438-443` (the recipe — good);
   `components/merchant/customer-readback-table.tsx:213` (`outline-none`, no `.focus-ring`),
   `components/merchant/dashboard-next-actions.tsx:72` (`border-transparent`, no `.focus-ring`),
@@ -1126,12 +1188,13 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 63. Compact sizes honour 44px on coarse pointers — except the four that don't
+
 - **File(s):** `components/ui/button.tsx:39-51` (correct: `[@media(pointer:coarse)]:min-h-11`),
   `components/brand/filter-pills.tsx:56` (correct);
   **not** honoured: `components/ui/badge.tsx:9` (`h-5`, and `[a]:hover` variants make it a link),
   `components/ui/sidebar.tsx:311` (`min-h-10`), `components/ui/table.tsx:88` (`h-10` head cells with
   interactive sort/action content), `components/layout/marketing-layout.tsx:13` (footer links are
-  44px but the legal row wraps them to 2px gaps, violating the *spacing* half of 2.5.8)
+  44px but the legal row wraps them to 2px gaps, violating the _spacing_ half of 2.5.8)
 - **Current UX/UI Problem:** The `[@media(pointer:coarse)]:min-h-11` pattern is a genuinely good
   idea, applied in exactly two places. `Badge` is 20px tall and supports `asChild` + `[a]:hover`
   styling, i.e. it is designed to be a link — at 20px.
@@ -1142,6 +1205,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** High
 
 ### 64. `Icon` sizes are passed as numbers, producing 9 distinct glyph sizes with no scale
+
 - **File(s):** `components/brand/icon.tsx:18` (`size = 20`), call sites passing 10, 13, 14, 16, 18,
   20, 22, and `Math.round(size*0.5)` in `venue-mark.tsx:64`
 - **Current UX/UI Problem:** `Icon` takes a numeric `size`. Across the product that number is 10,
@@ -1158,14 +1222,15 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Medium
 
 ### 65. `Section` and `ContrastBand` own marketing rhythm, but nothing owns console/customer rhythm
+
 - **File(s):** `components/layout/section.tsx:21-28` (5 sizes: `py-7 sm:py-10`, `py-4 sm:py-10`,
   `py-4 sm:py-5`, `py-3 sm:py-4`, `py-0`), `components/layout/contrast-band.tsx:21-26` (3 more),
   vs the 26 distinct `py-*` values elsewhere
 - **Current UX/UI Problem:** Marketing has a real, well-documented rhythm owner ("was a per-file
   `py-12 sm:py-16` scattered across ~16 components"). The merchant console, admin console and
   customer app have none: `merchant-app-shell.tsx:176` hard-codes `px-4 py-8 pb-16 sm:px-6
-  md:pb-10`, `admin-shell.tsx:102` `px-4 py-8 sm:px-6`, `customer-app-shell.tsx:30` `px-4 pt-6
-  pb-32 sm:px-6`, and every page then adds its own `grid gap-6` / `gap-8` / `space-y-4`.
+md:pb-10`, `admin-shell.tsx:102` `px-4 py-8 sm:px-6`, `customer-app-shell.tsx:30` `px-4 pt-6
+pb-32 sm:px-6`, and every page then adds its own `grid gap-6` / `gap-8` / `space-y-4`.
 - **Why It Is a Problem:** The consoles are the long, tall surfaces — the ones where a rhythm owner
   pays off most. Eight different vertical gaps between panels on one dashboard reads as drift.
 - **Recommended Redesign:** Mint `<ConsoleSection size="default"|"dense">` mirroring
@@ -1176,6 +1241,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Medium
 
 ### 66. `Section size="default"` is `py-7 sm:py-10` while `ContrastBand` is `py-9 sm:py-12`
+
 - **File(s):** `components/layout/section.tsx:22`, `components/layout/contrast-band.tsx:22`
 - **Current UX/UI Problem:** Two sibling rhythm owners on the same marketing page use 28/40px and
   36/48px respectively. `ContrastBand`'s own docstring explains it carries no margin so its border
@@ -1188,6 +1254,7 @@ Computed contrast (sRGB, light theme):
 - **Priority:** Low
 
 ### 67. `numeric-tabular` exists and is used 42 times, but the countdowns don't use it
+
 - **File(s):** `app/globals.css:352-354`; `components/auth/otp-resend-control.tsx:48`,
   `components/auth/signup-verify-form.tsx:181`;
   vs `components/auth/reset-password-form.tsx:316` (uses raw `tabular-nums`)
@@ -1212,7 +1279,7 @@ Computed contrast (sRGB, light theme):
    through ~14 chrome controls before reaching content on every single navigation.
 
 2. **Cap and scroll the bottom sheet (§34).** `data-[side=bottom]:max-h-[min(85dvh,40rem)]
-   overflow-y-auto overscroll-contain max-w-customer mx-auto`. The counter moment — a PIN pad on a
+overflow-y-auto overscroll-contain max-w-customer mx-auto`. The counter moment — a PIN pad on a
    customer's phone — can currently grow off the top of the viewport with no recovery. One line in
    `sheet.tsx`.
 
@@ -1243,7 +1310,7 @@ Computed contrast (sRGB, light theme):
 `border border-input`, `shadow-xs`; `Input`/`Textarea`'s `rounded-2xl border-input bg-secondary/60`;
 `Card`'s `rounded-[…24px]` and `shadow-sm`; `CardTitle`'s `font-medium`; `Progress`'s `bg-muted` and
 `bg-primary`; `Sheet`'s `bg-black/30`; `SidebarMenuButton`'s `min-h-10/12`; `Empty`'s
-`rounded-3xl`; `SheetTitle`'s `font-medium`. Two of them are *not* actually overridden and ship
+`rounded-3xl`; `SheetTitle`'s `font-medium`. Two of them are _not_ actually overridden and ship
 visibly wrong (Card's `ring-1` and its 24px image corners, §18). The layer is the right
 architecture; the primitives should be pruned to match it so a reader can trust the file.
 
@@ -1253,7 +1320,7 @@ architecture; the primitives should be pruned to match it so a reader can trust 
 `.numeric-tabular` (bypassed by the 3 countdowns that need it most), `shadow-hard` (bypassed by 4
 spellings of the same offset), `SelectField` (bypassed by
 `cancellation-interview-form.tsx:15`'s stock-shadcn clone). In almost every case the bypass is
-*worse* than the abstraction — this is a discoverability problem, not a capability gap. A short
+_worse_ than the abstraction — this is a discoverability problem, not a capability gap. A short
 "reach for this, not that" table at the top of DESIGN.md plus `tokens:check` assertions would close
 most of it.
 

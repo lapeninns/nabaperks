@@ -5,14 +5,20 @@ Read `COVERAGE.md` for the evidence behind every number here.
 
 ## Where it landed
 
-|                                      |        count |
-| ------------------------------------ | -----------: |
-| Findings tracked (each exactly once) |          347 |
-| Done                                 |          283 |
-| Partial                              |           33 |
-| Stale — not reproducible in the tree |           18 |
-| Open                                 |           13 |
-| **Criticals closed**                 | **30 of 33** |
+|                                      | count |
+| ------------------------------------ | ----: |
+| Findings tracked (each exactly once) |   347 |
+| <<<<<<< HEAD                         |
+| Done                                 |   283 |
+| Partial                              |    33 |
+| =======                              |
+| Done                                 |   279 |
+| Partial                              |    37 |
+
+> > > > > > > lane/merchant
+> > > > > > > | Stale — not reproducible in the tree | 18 |
+> > > > > > > | Open | 13 |
+> > > > > > > | **Criticals closed** | **30 of 33** |
 
 ## Gates
 
