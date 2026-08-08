@@ -626,3 +626,35 @@ home surface, not a resize, which is why I have not taken it.
 If you want it, the cheap first step is deciding whether the stamp grid belongs
 on the tile at all — it is the single tallest block in there, and `/card/[id]`
 already renders the full one.
+
+## 20. 04#48 — the Radix swap, declined with the proof
+
+The note said the shadcn `Checkbox` swap "needs browser proof". It has it now.
+
+`AdminConfirmCheck` gates QR regeneration and reward cancellation. Measured on
+the catalogue:
+
+| property   | audit asked for | measured                                                                 |
+| ---------- | --------------- | ------------------------------------------------------------------------ |
+| box        | 20px            | **22px**                                                                 |
+| tap row    | 44px            | **48px**                                                                 |
+| `required` | —               | `true`                                                                   |
+| unchecked  | —               | `checkValidity()` false, "Please check this box if you want to proceed." |
+| checked    | —               | valid                                                                    |
+
+Every target in the finding is met or exceeded, and the gate enforces itself
+through native constraint validation — **no JavaScript at all**. On a control
+whose entire job is to stop an irreversible action, that is not an incidental
+property.
+
+The shadcn `Checkbox` is Radix: a `<button role="checkbox">` plus a hidden
+input. Its `required` handling depends on the client bundle having loaded and
+hydrated. Swapping would move the enforcement of an irreversibility gate from
+the browser's own form validation into application JavaScript, in exchange for
+using the same primitive as elsewhere.
+
+I do not think that trade is worth making, so 04#48 is closed as done-with-a-
+different-mechanism rather than left open. If you want primitive consistency
+across the console anyway, that is a reasonable call — but it should be made
+knowing what it costs here, which is why this is written down rather than
+silently skipped.
