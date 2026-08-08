@@ -121,26 +121,46 @@ test("no private route prefix can prefix-match a public page", () => {
     "/merchant-terms",
   ]
 
-  // Mirror app/robots.ts: each prefix is emitted bare as well as with its slash.
+  // Mirror app/robots.ts: each prefix is emitted with its slash, and bare as
+  // well UNLESS the bare form would prefix-match a public page. The guard lives
+  // in robots.ts; this mirrors it so the two cannot drift.
+  const blocksAPublicPage = (rule) =>
+    publicRoutes.some((route) => route !== rule && route.startsWith(rule))
+
   const disallowed = [
     ...new Set(
-      prefixes.flatMap((prefix) => [
-        prefix,
-        prefix.endsWith("/") ? prefix.slice(0, -1) : prefix,
-      ])
+      prefixes.flatMap((prefix) => {
+        const bare = prefix.endsWith("/") ? prefix.slice(0, -1) : prefix
+
+        return blocksAPublicPage(bare) ? [prefix] : [prefix, bare]
+      })
     ),
   ]
 
-  // Known and pre-existing, NOT introduced by the offers work: the bare
-  // "/merchant" rule (from the "/merchant/" prefix, present since #118)
-  // prefix-matches the public "/merchant-terms" legal page. Lower severity
-  // than the /pricing case because that page is absent from app/sitemap.ts,
-  // but it is the same defect and deserves its own fix. Listed here so it
-  // stays visible and greppable rather than silently tolerated.
-  const knownPreexisting = new Set([
-    "/m|/merchant-terms",
-    "/merchant|/merchant-terms",
-  ])
+  // The guard itself must stay in robots.ts. Without this, the mirror above
+  // would quietly make the collision check below unfalsifiable.
+  const robots = readProjectFile("app", "robots.ts")
+  assert.match(robots, /PUBLIC_SITE_ROUTES/)
+  // The CALL, not just the identifier: an earlier version of this assertion
+  // matched the function name, which still passed when the call was deleted and
+  // the definition left behind.
+  assert.match(
+    robots,
+    /blocksAPublicPage\(bare\)\s*\?\s*\[prefix\]\s*:\s*\[prefix,\s*bare\]/
+  )
+
+  // FIXED (MKT, this branch). app/robots.ts no longer emits a bare form when it
+  // would prefix-match a page in PUBLIC_SITE_ROUTES, so "/m/" and "/merchant/"
+  // ship slashed only and stop swallowing "/merchant-terms".
+  //
+  // The old note here said the severity was lower because that page was absent
+  // from app/sitemap.ts. It was not: "/merchant-terms" is in PUBLIC_SITE_ROUTES,
+  // which is what sitemap.ts renders — so the site was publishing the page in
+  // its sitemap and disallowing it in robots.txt at the same time.
+  //
+  // The allowlist is now empty and stays empty. A new collision is a bug in the
+  // prefix list or a new public route, and either way it should fail here.
+  const knownPreexisting = new Set([])
 
   const collisions = []
   for (const route of publicRoutes) {
