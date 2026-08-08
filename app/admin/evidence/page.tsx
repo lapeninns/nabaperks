@@ -88,7 +88,19 @@ export default async function AdminEvidencePage({
             className="grid gap-4"
           >
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <AdminField label="Merchant">
+              <AdminField
+                label="Merchant"
+                // The picker is alphabetical and hard-capped, so past the cap a
+                // venue late in the alphabet was simply absent with nothing on
+                // screen to say so — an operator would read "not on the
+                // platform" (ADM 04#6). Only rendered when it actually
+                // truncates.
+                helper={
+                  workspace.merchantTotal > workspace.merchants.length
+                    ? `First ${workspace.merchants.length} of ${workspace.merchantTotal} venues, alphabetically. Later names are not listed yet.`
+                    : undefined
+                }
+              >
                 <SelectField name="merchantId" required>
                   <option value="">Select a merchant</option>
                   {workspace.merchants.map((merchant) => (
@@ -205,6 +217,14 @@ export default async function AdminEvidencePage({
               <SourceLabel>Source: commercial_evidence_cases</SourceLabel>
             }
           />
+          {workspace.caseTotal > workspace.cases.length ? (
+            <p role="status" className="text-sm text-muted-foreground">
+              Showing the newest{" "}
+              <span className="numeric-tabular">{workspace.cases.length}</span>{" "}
+              of <span className="numeric-tabular">{workspace.caseTotal}</span>{" "}
+              evidence cases.
+            </p>
+          ) : null}
           {workspace.cases.length ? (
             <div className="grid gap-4 lg:grid-cols-2">
               {workspace.cases.map((caseStudy) => {
