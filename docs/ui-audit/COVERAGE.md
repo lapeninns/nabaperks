@@ -15,11 +15,11 @@ branch is green after every merge.
 | Report           | Tracked |    Done | Partial |  Stale |   Open |
 | ---------------- | ------: | ------: | ------: | -----: | -----: |
 | 01 marketing     |      69 |      49 |      11 |      3 |      6 |
-| 02 customer      |      70 |      54 |      12 |      2 |      2 |
+| 02 customer      |      70 |      59 |       7 |      2 |      2 |
 | 03 merchant      |      67 |      51 |      10 |      4 |      2 |
 | 04 admin         |      74 |      60 |       3 |      9 |      2 |
 | 05 design system |      67 |      63 |       3 |      0 |      1 |
-| **Total**        | **347** | **277** |  **39** | **18** | **13** |
+| **Total**        | **347** | **282** |  **34** | **18** | **13** |
 
 ## "Stale" is a real category (18 findings)
 
@@ -701,6 +701,38 @@ are three:
 One of three, not an epidemic. Worth checking each time anyway: a pointer to an
 existing pattern is the most persuasive line in a finding, and the one least
 likely to be re-derived by whoever implements it.
+
+### A grep that searched for the wrong noun (02#20)
+
+NEEDS-SIGNOFF 11 corrected the customer lane by proving that **no test in
+`tests/` references any of the five card rails** — it grepped the component
+names. `ReferralSharePanel` is indeed absent from `tests/`. The panel is not:
+
+    tests/e2e/customer-referral-bonus-stamp.spec.ts:102
+      const share = page.getByTestId("referral-share-panel")
+      await expect(share).toBeVisible()
+
+A React component and its rendered `data-testid` are two different strings, and
+a browser test only ever knows the second one. Measured on the referral-bank
+harness at 390px, wrapping that panel in a closed `<details>` takes the card
+page from 1646px to 1365px (−281px) and makes `isVisible()` false — so the
+audit's "closed by default" fails a live assertion nobody had found.
+
+When checking whether a component is under test, grep for **all three** of its
+names: the export, its `data-testid`, and the copy it renders.
+
+### The same correction, applied to itself (02#6)
+
+The lane recorded "only 12 `sm:` variants remain across the four named files and
+ZERO elsewhere in `components/customer`". Both halves were produced by reading
+the files the AUDIT named. A comment-stripped scan of the whole customer column
+found three more, in three files the audit never listed — including a
+`sm:grid-cols-2` in `customer-qr-scanner-loader.tsx` that the loaded scanner had
+already dropped, under a comment claiming the two surfaces match.
+
+Two lessons, both cheap: scan the surface, not the file list a finding happens
+to cite; and strip comments before asserting a class is absent, because the
+comment explaining why a class was removed contains the class.
 
 ### Contract allowlists are a list of known defects
 

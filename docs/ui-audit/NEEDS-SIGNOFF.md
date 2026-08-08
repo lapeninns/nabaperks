@@ -360,28 +360,54 @@ Nothing is weakened; the branch ships .ttf and the red Lighthouse check.
 3. **Raise the LCP budget.** Not recommended without a reason beyond "our fonts
    got bigger".
 
-## 11. 02#20 — collapsing the card rails, with the blocker corrected
+## 11. 02#20 — collapsing the card rails, corrected twice
 
-The lane recorded this as "contract-pinned plus a product call". The first half
-is wrong and I have corrected it in STATUS: **no test anywhere in `tests/`
-references any of the five rail components**, and the contracts that do read
-`customer-card-experience.tsx` pin only the pass rail's prop shape, its
-`/pass/{id}` href, and that it sits outside the tile's own link. An accordion
-around the rails breaks none of that.
+**Superseded in two places. Read this, not the version below.**
 
-So the accordion is buildable. What stops me is the product call, and it is
-sharper than "closed by default":
+The first correction (kept for the record) was that no test pins the rails. The
+grep that produced it searched for the five **component names**, and a browser
+test never sees a component name. It sees a `data-testid`:
 
-- **`ReferralBonusBankNotice`, `ReferralSharePanel`, `GoogleReviewButton`** are
-  evergreen promotion. Collapsing them costs a member nothing.
-- **`CardOfferPassChip` and `CardGiftChip` are time-sensitive and actionable.**
-  A pass has an expiry. Hiding one behind a closed disclosure by default is a
-  real risk of a member missing something they own.
+    tests/e2e/customer-referral-bonus-stamp.spec.ts:102
+      const share = page.getByTestId("referral-share-panel")
+      await expect(share).toBeVisible()
 
-The audit asks for three rows closed by default, which would collapse all five.
-A split — actionable rails stay visible, promotional rails collapse — reads
-better to me, but that is a product judgement about what the card screen is
-_for_, and it is not mine to make quietly. Both options are one small change.
+Measured in Chromium on `/dev/home-harness/referral-bank` at 390px: wrapping
+`ReferralSharePanel` in a closed `<details>` — exactly what "collapsed by
+default" renders — takes the card page from **1646px to 1365px (−281px, 17%)**
+and makes `isVisible()` return **false**. So the audit's headline saving is real
+and the mechanism fails a live assertion. That assertion is not weakenable: it
+is the proof that the card surfaces a referral link carrying the opaque
+`referral_code` and never the membership UUID.
+
+The second correction is to the split this section proposed. It sorted
+`ReferralBonusBankNotice` into "evergreen promotion". It is not:
+
+    hasVisibleReferralBonusBank(bank) => bank.banked > 0 || bank.awardedToday > 0
+
+It renders only when the member **owns** banked bonus stamps, and its copy
+reports them against `REFERRAL_BONUS_DAILY_CAP` — how many can land today and
+how many stay banked. That is conditional, owned and time-bounded: the same
+argument that keeps `CardOfferPassChip` visible keeps this visible.
+
+What is left, after both corrections:
+
+| rail                      | unconditional? | under test?               | height |
+| ------------------------- | -------------- | ------------------------- | ------ |
+| `CardGiftChip`            | no             | no                        | ~110px |
+| `CardOfferPassChip`       | no             | contract-pinned props     | ~130px |
+| `ReferralBonusBankNotice` | no             | `referral-bonus-stamp`    | 324px  |
+| `ReferralSharePanel`      | **yes**        | **e2e visibility, above** | 305px  |
+| `GoogleReviewButton`      | **yes**        | no                        | 44px   |
+
+The duplicated primary the finding also asks about is **already fixed**: one
+`size="lg"` "Share your link" with copy demoted to `variant="link" size="sm"`.
+
+So the only rail that is both unconditional promotion and free to collapse is
+the Google review button, at **44px of 1646px (2.7%)** — a disclosure costs more
+than it saves. Collapsing the share panel needs a decision about the referral
+loop AND a rewrite of the e2e proof; collapsing the bank or the pass hides value
+the member already owns. None of those is a quiet change.
 
 ## 12. 04#26 — sticky table headers need a nested scroll region
 
@@ -788,3 +814,47 @@ guarantee appearing without its conditions.
 The fix is small — render `CLAIMS_BOUNDARY` beside the guarantee in the guides'
 closing CTA, then delete those two entries from the contract's allowlist, which
 will then enforce it forever.
+
+## 25. Two customer findings closed by measurement, recorded so they stay closed
+
+Neither needs a decision. Both were held open by a claim that measurement
+disproved, and both are the kind of claim that comes back.
+
+**02#2 — the header cannot get any shorter.** Measured at 390px in Chromium on
+`/dev/home-harness/home`: the authed header is **62px** (`py-2` + a 2px rule).
+The `Logo` carries its own `min-h-11`, so 44px of that 62px is the wordmark.
+Deleting the entire `<form>` around "Log out" from the DOM leaves the header at
+**62px**. Relocating the action to the Profile tab saves nothing; the audit's
+"≈24px" was banked when `py-3` became `py-2`.
+
+The blocker recorded against it — "icon-sm refused (CUS-P2-14)" — was wrong.
+CUS-P2-14 asserts exactly one thing:
+
+    assert.doesNotMatch(shell, /size="sm"/)
+
+`size="icon-sm"` does not match that pattern (checked in node), and `icon-sm`
+carries `[@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11`,
+so on the phones this finding is about it _is_ a 44px target. The contract
+permits it. It stays refused because it trades a labelled destructive action for
+an icon and saves zero pixels.
+
+**02#6 — `@container` would convert the wrong 15 declarations.** After fixing
+the three live defects the earlier sweep missed, every remaining viewport
+variant in the customer column is a page gutter or page top/bottom padding on
+one of four shell files:
+
+| file                       | live variants                               |
+| -------------------------- | ------------------------------------------- |
+| `customer-shell.tsx`       | `sm:px-6 sm:pt-10 sm:pb-10`                 |
+| `customer-app-shell.tsx`   | `sm:px-6` ×2                                |
+| `customer-flow-system.tsx` | `sm:px-6`, `sm:pt-6/8`, `sm:pb-[max(…)]` ×2 |
+| `loading-skeletons.tsx`    | the same five, mirroring the flow shell     |
+
+Those measure the gap between the column and the **screen edge**. A container
+query on `max-w-customer` cannot express them, because that container is a
+constant 410px — converting them would freeze the page gutter at its phone
+value on every desktop. The audit also names `components/brand/typography.tsx`,
+which is not a customer file: `PageTitle`/`SectionHeader` have call sites in 9
+merchant directories, 9 marketing ones and 8 admin ones, so converting its `md:`
+action rail would relayout every console and marketing page to fix a customer
+finding.
