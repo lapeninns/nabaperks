@@ -25,20 +25,27 @@ across all four.
 
 ## What still needs YOU, not more engineering
 
-Three decisions unblock most of the remainder.
+Four decisions unblock most of the remainder. Each now carries measured
+evidence in `NEEDS-SIGNOFF.md` rather than a description.
 
-1. **Conversion copy** — 02#50, 02#64, 01#23, 01#55. Two of these are Criticals.
-   They ask for copy to be cut from the acquisition funnel (the join terms
-   preview, the offer landing's four restatements, eight objections down to
-   five, the persona spokes). Cutting conversion copy is a product call.
+1. **Conversion copy** — 02#50, 02#64, 01#23, 01#55. Two are Criticals.
+   Measured: the offer landing's "Claim this offer" CTA sits at **y=904px on an
+   844px viewport** — below the fold — after four restatements of the benefit.
+   The three persona spokes are **98.1% identical source**, ~360 words each,
+   rendering the same page three times with the noun swapped. (§8)
 2. **Legal migration** — 01#67. Folding /terms and /privacy onto
    `LegalDocumentPage`. Their READABILITY is already fixed (01#64/66); this is
    the structural merge, and a clause silently dropped in migration is a
-   compliance problem, not a UI bug.
+   compliance problem, not a UI bug. (§4)
 3. **The 121 stale visual baselines.** Net **-56,880px** across 231 measured
    size deltas (135 shrank, 96 grew; largest single shrink -5,365px), so the
    compaction the audit asked for is real. Regenerating them from this branch
    would rubber-stamp whatever they now contain. That approval is not mine.
+4. **One contract renegotiation** — 01#49. `marketing-offer-source` pins the
+   exact expression that causes a measured **CLS of 0.1924** (Google's "good"
+   threshold is 0.1) on the SEO hub: the section list is 302px at first paint
+   and 0px after hydration. The assertion's intent is sound; the literal it
+   pins is the bug. (§7)
 
 ## Open findings, all 13
 
