@@ -645,3 +645,19 @@ alone and failing only under a saturated worker pool. None of them touches
 anything this branch changed — worth knowing before someone reads a red matrix
 as a regression, and worth quarantining or serialising if it keeps costing CI
 runs.
+
+### One unverified unit-test failure, recorded rather than buried
+
+A single `quality:check` run in the final verification of this turn reported
+954/955 with one failure, and the failing test name did not survive the grep I
+had piped it through. Eight subsequent runs — six of `test:unit`, three of the
+full `quality:check` — are clean at 955/955.
+
+I could not reproduce it and I could not name it, so this is not a diagnosis; it
+is a note that it happened once, on a branch whose whole claim is that its gates
+are green. If a unit test starts failing intermittently in CI, this is the first
+evidence of it and the likely candidates are the time-sensitive suites
+(`tests/unit` files touching `Date.now`, `setTimeout` or `new Date()`).
+
+Saying "it passed on re-run" and moving on is exactly the habit this campaign
+has spent thirty turns arguing against.
