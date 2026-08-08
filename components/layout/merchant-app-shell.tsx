@@ -33,6 +33,7 @@ export function MerchantAppShell({
   variant: variantProp,
   defaultSidebarOpen = true,
   hideMobileChrome: hideMobileChromeProp,
+  navHrefOverrides,
 }: {
   children: ReactNode
   signOutAction: ComponentProps<"form">["action"]
@@ -46,6 +47,9 @@ export function MerchantAppShell({
    *  like the poster print preview, which carry their own focused chrome.
    *  Defaults to deriving it from the live pathname. */
   hideMobileChrome?: boolean
+  /** Rewrites sidebar destinations. Used only by the /dev app harness, whose
+   *  nav otherwise linked out to the real auth-gated routes (ADM 04#71). */
+  navHrefOverrides?: Readonly<Record<string, string>>
 }) {
   // Derive the chrome from the LIVE route, not a server prop. This shell lives
   // in a shared layout that the App Router preserves across soft navigations,
@@ -141,6 +145,7 @@ export function MerchantAppShell({
         </SidebarHeader>
         <SidebarContent className="flex flex-1 flex-col px-2 py-3">
           <ConsoleSidebarNav
+            hrefOverrides={navHrefOverrides}
             ariaLabel="Merchant navigation"
             items={merchantNavItems}
             secondaryItems={merchantAccountItems}

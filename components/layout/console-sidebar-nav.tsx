@@ -32,6 +32,21 @@ type ConsoleSidebarNavProps = {
   secondaryLabel?: string
   activePath?: string
   ariaLabel: string
+  /**
+   * Rewrites nav destinations, keyed by the item's real href. Supplied by the
+   * /dev app harness, whose sidebar otherwise linked straight out to the
+   * auth-gated /app routes — one tap and you were no longer in the harness
+   * (ADM 04#71).
+   *
+   * A plain object rather than a mapper function: this is a client component
+   * rendered from a server layout, and functions are not serialisable across
+   * that boundary.
+   *
+   * When the map is present, an item with no entry has no harness equivalent
+   * and renders inert rather than as a working escape hatch — the nav shape
+   * stays honest, and the operator stays where they are.
+   */
+  hrefOverrides?: Readonly<Record<string, string>>
 } & (
   | { items: readonly ShellNavItem[]; groups?: never }
   /** Labelled groups instead of one flat list (the admin console). */
@@ -45,6 +60,7 @@ export function ConsoleSidebarNav({
   secondaryLabel = "Account",
   activePath,
   ariaLabel,
+  hrefOverrides,
 }: ConsoleSidebarNavProps) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -67,6 +83,7 @@ export function ConsoleSidebarNav({
           label={group.label || undefined}
           currentPath={currentPath}
           currentTab={currentTab}
+          hrefOverrides={hrefOverrides}
         />
       ))}
       {secondaryNavItems.length > 0 ? (
@@ -76,6 +93,7 @@ export function ConsoleSidebarNav({
             currentPath={currentPath}
             currentTab={currentTab}
             label={secondaryLabel}
+            hrefOverrides={hrefOverrides}
           />
         </div>
       ) : null}
@@ -114,11 +132,13 @@ function ConsoleSidebarGroup({
   currentPath,
   currentTab,
   label,
+  hrefOverrides,
 }: {
   items: readonly ShellNavItem[]
   currentPath: string
   currentTab: string | null
   label?: string
+  hrefOverrides?: Readonly<Record<string, string>>
 }) {
   const { isMobile, setOpenMobile } = useSidebar()
 
@@ -150,12 +170,33 @@ function ConsoleSidebarGroup({
             const active = isActiveNavItem(currentPath, currentTab, item.href)
             const prefetchProps =
               item.prefetch === "auto" ? {} : { prefetch: false }
+            const href = hrefOverrides ? hrefOverrides[item.href] : item.href
+
+            if (!href) {
+              // Mapped nav with no harness page for this item. Rendered as a
+              // real disabled control rather than a dead link, so it is skipped
+              // by keyboard and announced as unavailable instead of promising a
+              // destination that would drop you out of the harness.
+              return (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton
+                    disabled
+                    size="lg"
+                    className="gap-3"
+                    title="No harness page for this section"
+                  >
+                    <NavItemGlyph icon={item.icon} />
+                    <span data-collapse-label>{item.label}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )
+            }
 
             return (
               <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton asChild isActive={active} size="lg">
                   <Link
-                    href={item.href}
+                    href={href}
                     {...prefetchProps}
                     aria-current={active ? "page" : undefined}
                     data-active={active}
