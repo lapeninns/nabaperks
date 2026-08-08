@@ -2,7 +2,9 @@ import type { ReactNode } from "react"
 
 import Link from "next/link"
 
-import { Eyebrow, MonoTag } from "@/components/brand"
+import { CheckmarkCircle02Icon } from "@hugeicons/core-free-icons"
+
+import { Eyebrow, Icon, MonoTag } from "@/components/brand"
 import { OfferPass, StampGrid, formatOfferPassDate } from "@/components/loyalty"
 
 /**
@@ -92,7 +94,7 @@ export function OfferClaimLanding({
 
       <div className="grid gap-1">
         {campaign ? <Eyebrow>{campaign}</Eyebrow> : null}
-        <Heading className="text-xl leading-tight font-extrabold">
+        <Heading className="text-xl leading-tight font-extrabold text-balance">
           {offerClaimHeadline(stamps, percent)}
         </Heading>
       </div>
@@ -105,35 +107,48 @@ export function OfferClaimLanding({
       ) : null}
 
       {lines.length > 0 ? (
-        <ul className="grid gap-2 text-sm leading-6 text-muted-foreground">
+        <ul className="grid gap-1.5 text-sm leading-6 text-muted-foreground">
           {lines.map((line) => (
-            <li key={line}>{line}</li>
+            <li key={line} className="flex items-start gap-1.5">
+              <Icon
+                icon={CheckmarkCircle02Icon}
+                size={16}
+                className="mt-1 shrink-0 text-reward"
+              />
+              <span className="min-w-0">{line}</span>
+            </li>
           ))}
         </ul>
       ) : null}
 
       {stamps && stampsRequired > 0 ? (
-        <CardProgress
-          bonusStampCount={stamps}
-          stampsRequired={stampsRequired}
-          rewardName={rewardName}
-          venueName={venue}
-        />
+        <>
+          <hr className="w-rule my-0" />
+          <CardProgress
+            bonusStampCount={stamps}
+            stampsRequired={stampsRequired}
+            rewardName={rewardName}
+            venueName={venue}
+          />
+        </>
       ) : null}
 
       {percent ? (
-        <section className="grid gap-2">
-          <Eyebrow>The pass you will keep</Eyebrow>
-          <OfferPass
-            venueName={venue ?? "the venue"}
-            discountPercent={percent}
-            validFrom={startsOn ?? ""}
-            validTo={endsOn ?? ""}
-            requiresIdCheck={requiresIdCheck}
-            extraTerms={extraTerms}
-            headingLevel={passHeading}
-          />
-        </section>
+        <>
+          <hr className="w-rule my-0" />
+          <section className="grid gap-2">
+            <Eyebrow>The pass you will keep</Eyebrow>
+            <OfferPass
+              venueName={venue ?? "the venue"}
+              discountPercent={percent}
+              validFrom={startsOn ?? ""}
+              validTo={endsOn ?? ""}
+              requiresIdCheck={requiresIdCheck}
+              extraTerms={extraTerms}
+              headingLevel={passHeading}
+            />
+          </section>
+        </>
       ) : null}
 
       {claimAction}

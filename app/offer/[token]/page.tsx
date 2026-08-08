@@ -4,7 +4,7 @@ import Link from "next/link"
 import { headers } from "next/headers"
 import { after } from "next/server"
 
-import { MonoTag, ReceiptCard } from "@/components/brand"
+import { Logo, MonoTag, ReceiptCard } from "@/components/brand"
 import { CustomerFlowShell } from "@/components/customer/customer-flow-system"
 import { OfferClaimLanding } from "@/components/customer/offer-claim-landing"
 import { UnavailableRecoveryActions } from "@/components/customer/unavailable-recovery"
@@ -246,6 +246,9 @@ function OfferShell({
 
   return (
     <CustomerFlowShell dense screenLabel="Customer offer claim" eyebrow="Offer">
+      {/* The shared shell carries no wordmark, so consolidating onto it would
+          have dropped the only way back to /home from a cold scan. */}
+      <Logo href="/home" />
       <ReceiptCard className="grid gap-4">
         {name ? <MonoTag tone="leaf">{name}</MonoTag> : null}
         {title ? (

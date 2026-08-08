@@ -217,12 +217,35 @@ test("Given the catalog acceptance gate When rendered Then forms/feedback and co
   const catalog = readProjectFile("app", "dev", "design-system", "page.tsx")
   assert.match(catalog, /forms-feedback|Forms & feedback/i)
   assert.match(catalog, /console-viz|Console viz/i)
-  // The unconsumed primitives were themed-or-removed: Tabs and InputGroup are
-  // deleted until a themed adoption exists; Spinner is adopted by SubmitButton.
-  assert.equal(
-    existsInRepo("components/ui/tabs.tsx"),
-    false,
-    "unconsumed components/ui/tabs.tsx must be removed"
+  // The unconsumed primitives were themed-or-removed: InputGroup is deleted
+  // until a themed adoption exists; Spinner is adopted by SubmitButton. Tabs
+  // has since been adopted by the offer campaign panel, so the gate flips
+  // from "removed" to "themed and consumed" for that primitive only.
+  const tabs = readProjectFile("components", "ui", "tabs.tsx")
+  assert.match(
+    tabs,
+    /pressable/,
+    "adopted components/ui/tabs.tsx must style triggers with .pressable"
+  )
+  assert.match(
+    tabs,
+    /focus-ring/,
+    "adopted components/ui/tabs.tsx must use the shared .focus-ring recipe"
+  )
+  assert.doesNotMatch(
+    tabs,
+    /focus-visible:ring/,
+    "tabs.tsx must not reintroduce focus-visible:ring utilities"
+  )
+  const panel = readProjectFile(
+    "components",
+    "merchant",
+    "offer-campaign-panel.tsx"
+  )
+  assert.match(
+    panel,
+    /@\/components\/ui\/tabs/,
+    "offer-campaign-panel.tsx must consume the tabs primitive"
   )
   assert.equal(
     existsInRepo("components/ui/input-group.tsx"),

@@ -12,6 +12,7 @@ import {
 import { Eyebrow, Icon, SectionHeader } from "@/components/brand"
 import { FormMessage, SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty/status-banner"
+import { Disclosure } from "@/components/merchant/launch/disclosure"
 import {
   Field,
   TextareaField,
@@ -25,7 +26,6 @@ import {
   formatOfferDate,
 } from "@/components/merchant/offers/offer-rules-summary"
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
 import { addUkCalendarDays } from "@/lib/customer/uk-calendar"
 import { OFFERS_HOME_PATH, OFFERS_NEW_PATH } from "@/lib/merchant/offer-nav"
 import { OFFER_NO_STACKING_TERM } from "@/lib/merchant/offer-campaign-fields"
@@ -231,7 +231,11 @@ function BenefitStep({
         description="Pick one. You can end the offer at any time, but the benefit is fixed once you publish."
       />
 
-      <div className="grid gap-2" role="radiogroup" aria-label="Offer benefit">
+      <div
+        className="grid gap-2 sm:grid-cols-3"
+        role="radiogroup"
+        aria-label="Offer benefit"
+      >
         {OFFER_BENEFIT_PRESETS.map((preset) => {
           const needsStamps = preset.kind !== "discount"
           const unavailable = needsStamps && stampCeiling < 1
@@ -240,22 +244,27 @@ function BenefitStep({
             <label
               key={preset.kind}
               className={cn(
-                "focus-ring-within flex cursor-pointer items-start gap-3 rounded-lg border-2 border-border bg-card p-3 transition-[border-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] has-checked:border-ink motion-reduce:transition-none",
+                "focus-ring-within flex h-full cursor-pointer gap-3 rounded-lg border-[1.5px] border-border bg-card p-3 transition-[border-color,background-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] has-checked:border-ink has-checked:bg-secondary/50 motion-reduce:transition-none",
                 unavailable && "cursor-not-allowed opacity-60"
               )}
             >
-              <input
-                type="radio"
-                name="benefitKind"
-                value={preset.kind}
-                checked={benefitKind === preset.kind}
-                disabled={unavailable}
-                onChange={() => onChange(preset.kind)}
-                className="mt-0.5 size-4 shrink-0 accent-[var(--w-ink)]"
-              />
-              <span className="grid min-w-0 gap-0.5">
-                <span className="text-sm font-semibold text-foreground">
-                  {preset.title}
+              <span className="grid size-9 shrink-0 place-items-center rounded-full border-[1.5px] border-ink bg-secondary text-foreground">
+                <Icon icon={preset.icon} size={16} />
+              </span>
+              <span className="grid min-w-0 flex-1 gap-0.5">
+                <span className="flex items-start justify-between gap-2">
+                  <span className="text-sm font-semibold text-foreground">
+                    {preset.title}
+                  </span>
+                  <input
+                    type="radio"
+                    name="benefitKind"
+                    value={preset.kind}
+                    checked={benefitKind === preset.kind}
+                    disabled={unavailable}
+                    onChange={() => onChange(preset.kind)}
+                    className="mt-0.5 size-4 shrink-0 accent-[var(--w-ink)]"
+                  />
                 </span>
                 <span className="text-xs leading-5 text-muted-foreground">
                   {unavailable
@@ -456,6 +465,22 @@ function ReviewStep({
   const customerDescription = fields?.customerDescription?.trim() || null
   const startsLater = Boolean(startsOn && startsOn > today)
 
+  const preview = (
+    <OfferBenefitPreview
+      venueName={merchantName}
+      campaignName={name}
+      customerDescription={customerDescription}
+      bonusStampCount={bonusStampCount}
+      discountPercent={discountPercent}
+      requiresIdCheck={requiresIdCheck}
+      extraTerms={extraTerms}
+      startsOn={startsOn}
+      endsOn={endsOn}
+      stampsRequired={stampsRequired}
+      rewardName={rewardName}
+    />
+  )
+
   return (
     <div className="grid min-w-0 gap-5">
       {state.message ? (
@@ -565,24 +590,16 @@ function ReviewStep({
           </form>
         </div>
 
-        {/* Not sticky: the preview is now the customer's whole landing page —
-            promise, stamp row and discount pass — so pinning it to the top of
-            the viewport would put its lower half out of reach on a laptop. */}
-        <div className="min-w-0">
-          <OfferBenefitPreview
-            venueName={merchantName}
-            campaignName={name}
-            customerDescription={customerDescription}
-            bonusStampCount={bonusStampCount}
-            discountPercent={discountPercent}
-            requiresIdCheck={requiresIdCheck}
-            extraTerms={extraTerms}
-            startsOn={startsOn}
-            endsOn={endsOn}
-            stampsRequired={stampsRequired}
-            rewardName={rewardName}
-          />
+        {/* Below lg the preview folds away on demand, so the phone shows the
+            rules and the publish form first and the three-screen scroll is
+            gone. From lg it takes its own column. Not sticky: the preview is
+            now the customer's whole landing page — promise, stamp row and
+            discount pass — so pinning it to the top of the viewport would put
+            its lower half out of reach on a laptop. */}
+        <div className="min-w-0 lg:hidden">
+          <Disclosure label="See what customers see">{preview}</Disclosure>
         </div>
+        <div className="hidden min-w-0 lg:block">{preview}</div>
       </div>
     </div>
   )
@@ -592,38 +609,17 @@ function ReviewStep({
 
 function StepTrack({ current }: { current: OfferCreatorStep }) {
   const currentIndex = STEP_LABELS.findIndex((entry) => entry.step === current)
-  const currentLabel = STEP_LABELS[currentIndex]?.label ?? STEP_LABELS[0].label
 
+  // One non-wrapping pill strip that scrolls on narrow phones instead of
+  // reflowing — the active step is always one flick away, never pushed down.
   return (
-    <>
-      {/* Phones get a readback plus a bar. The pill row is `flex flex-wrap`, so
-          below `sm` it wrapped to three lines with the `›` separators orphaned on
-          their own — ~70px of chrome above every step of a three-step form. */}
-      <div className="grid gap-1.5 sm:hidden">
-        <p className="mono-meta text-muted-foreground">
-          Step {currentIndex + 1} of {STEP_LABELS.length} ·{" "}
-          <span className="text-foreground">{currentLabel}</span>
-        </p>
-        <Progress
-          aria-label={`Offer setup progress: step ${currentIndex + 1} of ${STEP_LABELS.length}`}
-          value={((currentIndex + 1) / STEP_LABELS.length) * 100}
-        />
-      </div>
-
-      <StepPills currentIndex={currentIndex} />
-    </>
-  )
-}
-
-function StepPills({ currentIndex }: { currentIndex: number }) {
-  return (
-    <ol className="hidden flex-wrap items-center gap-x-2 gap-y-1 sm:flex">
+    <ol className="flex [scrollbar-width:none] flex-nowrap items-center gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
       {STEP_LABELS.map((entry, index) => (
-        <li key={entry.step} className="flex items-center gap-2">
+        <li key={entry.step} className="flex shrink-0 items-center gap-2">
           <span
             aria-current={index === currentIndex ? "step" : undefined}
             className={cn(
-              "mono-meta rounded-full border-2 px-2.5 py-1",
+              "mono-meta rounded-full border-[1.5px] px-2.5 py-1 whitespace-nowrap",
               index === currentIndex
                 ? "border-ink bg-ink text-paper"
                 : index < currentIndex

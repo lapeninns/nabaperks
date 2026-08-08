@@ -75,11 +75,8 @@ test("global request-error capture omits raw request and exception detail", () =
   assert.match(instrumentation, /Instrumentation\.onRequestError/)
   assert.match(instrumentation, /context\.routePath/)
   assert.match(instrumentation, /request\.method/)
+  assert.match(instrumentation, /request\.headers\?\.\[REQUEST_ID_HEADER\]/)
   assert.match(instrumentation, /sanitizeTelemetryUrl\(context\.routePath\)/)
-  assert.match(
-    instrumentation,
-    /headers: requestId \? \{ \[REQUEST_ID_HEADER\]: requestId \} : \{\}/
-  )
   assert.doesNotMatch(instrumentation, /request\.path/)
   assert.doesNotMatch(instrumentation, /err\.message|error\.message|stack/)
 })

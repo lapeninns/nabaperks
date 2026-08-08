@@ -13,8 +13,8 @@ const SENSITIVE_ROUTE_PATTERNS: ReadonlyArray<
   // /pass/<entitlementId> has a child — /pass/<entitlementId>/qr.png, which the
   // pass screen refetches on a timer — and an anchored single-segment rule
   // never sees it, so every image request, resource breadcrumb and error URL
-  // carried the raw entitlement id to Sentry while this block claimed to be
-  // masking it. The three token namespaces therefore end in a rule that matches
+  // could carry the raw entitlement id while this block claimed to be masking
+  // it. The three token namespaces therefore end in a rule that matches
   // the parameter followed by ANY remaining path, so a child route added later
   // is masked from the day it exists rather than from the day someone notices.
   // Named children are listed first, so telemetry keeps the route detail it can

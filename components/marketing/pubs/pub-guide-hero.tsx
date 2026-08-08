@@ -57,7 +57,10 @@ export function PubGuideHero({
             <Link href="#options">Compare the four options</Link>
           </Button>
           <MarketingSignupLink
-            className={cn(MARKETING_TEXT_LINK, "text-foreground")}
+            className={cn(
+              MARKETING_TEXT_LINK,
+              "whitespace-nowrap text-foreground"
+            )}
           >
             Or start your launch
           </MarketingSignupLink>

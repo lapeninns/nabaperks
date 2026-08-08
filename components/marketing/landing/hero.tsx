@@ -41,7 +41,10 @@ export function LandingHero({ demoQr }: { demoQr: QrMatrix }) {
             <MarketingSignupLink>Start your launch</MarketingSignupLink>
           </Button>
           <Link
-            className={cn(MARKETING_TEXT_LINK, "text-foreground")}
+            className={cn(
+              MARKETING_TEXT_LINK,
+              "whitespace-nowrap text-foreground"
+            )}
             href={ROUTES.demo}
           >
             {LANDING.hero.demoLink}

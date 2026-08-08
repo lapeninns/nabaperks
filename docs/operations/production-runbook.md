@@ -304,10 +304,6 @@ ruleset, environment, secret-name and variable metadata; it never reads secret
 values. Retain the output with the release evidence and resolve every `FAIL`
 before declaring provider readiness.
 
-Sentry is not used by the current production service and is not a release gate.
-Its dormant integration and `pnpm ops:sentry:check` command are retained only
-for a future, explicitly approved observability change.
-
 ## Operational readiness signals
 
 `/api/readiness` reads only aggregate values from

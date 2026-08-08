@@ -3,7 +3,13 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { DiscountTag01Icon } from "@hugeicons/core-free-icons"
 
-import { EmptyState, MonoTag, PageTitle } from "@/components/brand"
+import {
+  EmptyState,
+  Eyebrow,
+  Icon,
+  MonoTag,
+  PageTitle,
+} from "@/components/brand"
 import { Disclosure } from "@/components/merchant/launch/disclosure"
 import { OfferCampaignPanelSkeleton } from "@/components/merchant/loading-skeletons"
 import {
@@ -119,7 +125,7 @@ async function OffersDesk({
           stampsRequired={stampsRequired}
         />
       ) : (
-        <OffersEmptyState firstRun={history.length === 0} />
+        <OffersEmptyState />
       )}
 
       {history.length > 0 ? <OfferHistory campaigns={history} /> : null}
@@ -130,12 +136,13 @@ async function OffersDesk({
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
 /**
- * A venue that has already run offers lands back here every time one ends, so
- * the three-card preset explainer becomes permanent noise about 300px above the
- * CTA. It stays open on a genuine first run and folds into a disclosure once
- * there is history to prove the merchant has read it. No copy was removed.
+ * The preset explainer is `main`'s snap-scroll rail, kept over this branch's
+ * disclosure treatment (03#47-adjacent): the rail is newer, deliberate and
+ * already visually baselined, and it solves the same "permanent noise above the
+ * CTA" problem by making the row compact rather than collapsible. The
+ * `firstRun` distinction that fed the disclosure is therefore gone.
  */
-function OffersEmptyState({ firstRun }: { firstRun: boolean }) {
+function OffersEmptyState() {
   return (
     <div className="grid gap-5">
       <EmptyState
@@ -149,15 +156,21 @@ function OffersEmptyState({ firstRun }: { firstRun: boolean }) {
         }
       />
 
-      <Disclosure label="What an offer can give" defaultOpen={firstRun}>
-        <ul className="grid gap-2 sm:grid-cols-3">
+      <section className="grid gap-3" aria-label="What an offer can give">
+        <Eyebrow>What an offer can give</Eyebrow>
+        {/* Snap-scroll rail of compact icon rows on the phone; three-up grid
+            from sm. Mirrored by the offers harness lane. */}
+        <ul className="flex snap-x [scrollbar-width:none] gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0 [&::-webkit-scrollbar]:hidden">
           {OFFER_BENEFIT_PRESETS.map((preset) => (
             <li
               key={preset.kind}
-              className="grid content-start gap-1.5 rounded-lg border-2 border-border bg-card p-4"
+              className="grid w-60 shrink-0 snap-start content-start gap-1.5 rounded-lg border-[1.5px] border-border bg-card p-3 sm:w-auto sm:min-w-0 sm:p-4"
             >
-              <span className="text-sm font-semibold text-foreground">
-                {preset.title}
+              <span className="flex items-center gap-2">
+                <Icon icon={preset.icon} size={16} />
+                <span className="text-sm font-semibold text-foreground">
+                  {preset.title}
+                </span>
               </span>
               <span className="text-xs leading-5 text-muted-foreground">
                 {preset.description}
@@ -169,7 +182,7 @@ function OffersEmptyState({ firstRun }: { firstRun: boolean }) {
           Offers are for people who are not yet members. Customers who already
           hold your loyalty card cannot claim one.
         </p>
-      </Disclosure>
+      </section>
     </div>
   )
 }

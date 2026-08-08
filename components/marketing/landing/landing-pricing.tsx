@@ -54,9 +54,12 @@ export function LandingPricing() {
                 {PRODUCT.pilotCardNote} before recurring billing starts.
               </p>
               <div className="mt-2 grid gap-1 border-t-2 border-dashed border-border pt-3">
-                <p className="text-lg leading-6 font-extrabold text-foreground">
-                  Or {PRODUCT.annualPrice}
-                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-lg leading-6 font-extrabold text-foreground">
+                    Or {PRODUCT.annualPrice}
+                  </p>
+                  <MonoTag tone="sun">Best value</MonoTag>
+                </div>
                 <p className="text-sm leading-6 text-muted-foreground">
                   {PRODUCT.annualBillingDisclosure} {PRODUCT.annualSaving}
                 </p>

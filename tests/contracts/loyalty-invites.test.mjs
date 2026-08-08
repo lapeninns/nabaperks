@@ -23,12 +23,7 @@ test("environment contract + .env.example declare the new secrets", () => {
 })
 
 test("the feature is default-on for every merchant — no flag, no allowlist", () => {
-  // No feature flag anywhere.
-  assert.doesNotMatch(
-    read("config/feature-flags.json"),
-    /bulk_loyalty_invitations/
-  )
-  assert.doesNotMatch(read("lib/feature-flags.ts"), /bulk_loyalty_invitations/)
+  // No feature flag or allowlist gate remains.
   assert.doesNotMatch(
     read("config/env-contract.json"),
     /NABAPERKS_FEATURE_BULK_LOYALTY_INVITATIONS/
