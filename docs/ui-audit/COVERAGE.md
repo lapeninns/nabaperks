@@ -487,3 +487,26 @@ So the tells now number four. A blocker is worth re-testing when it:
 2. is true of one HALF of the finding and applied to the whole;
 3. asserts a fact about the tree that a merge or later work has changed;
 4. says something must be BUILT — check whether it already exists first.
+
+### Where the unsignposted-cap defect does NOT apply
+
+Having fixed five of them in `lib/admin/*`, I checked whether the same class
+exists in the merchant and customer loaders. It largely does not, and the
+exceptions are instructive:
+
+- `lib/customer/offer-pass.ts` caps at 20 passes, ordered soonest-to-close, with
+  a docblock explaining it as a pathological-account guard. A member holding
+  more than twenty live passes is not a real case, and the ordering means
+  anything dropped is the least urgent. A "showing 20 of N" line on a member
+  screen would be chrome for a case that does not occur. **Left alone.**
+- `lib/merchant/activity.ts` uses `.limit(limit + 1)` — the standard
+  "is there another page" probe — and 03#52 already made the footer name the
+  ceiling.
+- Everything else is `.limit(1)`, a single-row lookup.
+
+The admin caps were different in kind: 100 merchants is an ordinary platform
+size, and the evidence picker was ALPHABETICAL, so what got dropped was
+arbitrary rather than least-important. That is what made silence there a wrong
+answer rather than a small omission.
+
+Applying a pattern is not the same as applying it everywhere.
