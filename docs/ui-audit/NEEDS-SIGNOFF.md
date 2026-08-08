@@ -200,3 +200,26 @@ Both are copy edits whose cost is the copy itself, not layout: 01#23 cuts eight
 objections to five, 04#54 shortens five admin panel descriptions. Neither has a
 measurable geometry argument — they turn on whether the words are load-bearing,
 which only the product owner can say.
+
+## 9. 02#30 — clamping reward terms is a product call, with numbers
+
+The stub half of 02#30 is done (measured floor 70px, shipped at 72px). The
+terms half is deliberately left to you.
+
+Measured at a 260px ticket face, `text-sm leading-6`:
+
+| merchant terms | lines | ticket height |
+| -------------: | ----: | ------------: |
+|       55 chars |     2 |         121px |
+|       90 chars |     3 |         145px |
+|      120 chars |     4 |         169px |
+|      160 chars |     5 |         193px |
+
+`line-clamp-2` plus a "Full terms" disclosure would cap the ticket at 121px —
+about 48px back on a 120-character reward, on the customer's tallest surface.
+
+The reason it is not done: these are the merchant's reward terms, the thing the
+member is actually entitled to. Collapsing them behind a tap by default is a
+product and arguably a consumer-terms decision, not a layout one. The legal
+sheet infrastructure (`components/customer/legal-sheet.tsx`) already exists if
+you want it.
