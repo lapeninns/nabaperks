@@ -45,14 +45,19 @@ export function OutcomeTransformation() {
               ))}
             </ul>
           </SnapRailItem>
-          {/* `role="presentation"` rather than a bare `aria-hidden` <li>: an
-              aria-hidden item still holds a position in the list for some AT,
-              so the labelled two-item comparison announced as three. It is
-              also no longer `hidden` below `sm:` — the arrow IS the
-              transformation, and hiding it left the swipe with no directional
-              cue at all. */}
+          {/* aria-hidden, NOT role="presentation". Overriding the role on a
+              direct child of a <ul> makes it an element the list may not
+              contain, which axe flags as a serious WCAG "list" violation —
+              caught by the @a11y sweep on /how-it-works across all four
+              browsers. aria-hidden removes the arrow from the accessibility
+              tree entirely, so the labelled comparison still announces as two
+              items, and the list structure stays valid.
+
+              It is deliberately no longer `hidden` below `sm:` — the arrow IS
+              the transformation, and hiding it left the swipe with no
+              directional cue. */}
           <li
-            role="presentation"
+            aria-hidden="true"
             className="grid shrink-0 place-items-center px-1 sm:px-0"
           >
             <IconRoundel

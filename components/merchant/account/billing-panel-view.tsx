@@ -280,7 +280,14 @@ function ComplimentaryBillingAccess({
           <PlanRow label="Billing" value="Not required" />
         </dl>
 
-        <StatusBanner tone="success" title="Billing access is active">
+        {/* This one banner keeps its <h2>. 03#59 removed heading elements from
+            StatusBanner titles, which is right in general — a banner should not
+            smuggle a rank into the document outline. But on the complimentary
+            branch this banner IS the section's heading (there is no other), and
+            merchant-billing-recovery asserts
+            getByRole("heading", { name: "Billing access is active" }).
+            The other three titles 03#59 flattened stay plain strings. */}
+        <StatusBanner tone="success" title={<h2>Billing access is active</h2>}>
           You can use every included merchant feature without starting a new
           payment plan. Venue launch status is shown separately.
         </StatusBanner>

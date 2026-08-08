@@ -79,16 +79,31 @@ export function QrWorkspace({
 
   return (
     <article className="grid min-w-0 gap-4 sm:gap-5">
-      {/* A status strip, not a second hero: the page title above already says
-          "Venue QR" and the dashboard already shows this code at size. The job
-          here is to confirm the code is live and hand over to the picker. */}
+      {/* A status strip, not a second hero: the dashboard already shows this
+          code at size, so the job here is to confirm it is live and hand over
+          to the picker (03#40).
+
+          The heading stays, though. 03#40 called it a duplicated h2 and it was
+          removed — but four assertions across
+          tests/e2e/merchant-launch-follow-through-flow.ts and
+          production-qa.desktop.spec.ts treat "Launch your counter QR" as the
+          identifying heading for /app/qr and /app/launch?tab=qr, and the @a11y
+          run failed on all four browsers without it. The tests are
+          authoritative; it is now the strip's own heading rather than a
+          full-bleed hero, which keeps the height saving. */}
+      <h2 className="text-xl leading-tight font-extrabold text-balance sm:text-2xl">
+        Launch your counter QR
+      </h2>
       <section className="surface-card grid min-w-0 gap-3 p-4 sm:p-5">
         <div className="grid min-w-0 gap-3 sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-4">
           <div className="w-24 shrink-0 rounded-lg border-2 border-ink bg-qr-foreground p-2 shadow-sm sm:w-28">
             {/* eslint-disable-next-line @next/next/no-img-element -- protected merchant QR may come from an authenticated route */}
             <img
               src={qrImageSrc}
-              alt={`Permanent venue QR code for ${activeCardName}`}
+              // `QR code for …`, not `Permanent venue QR code for …`: the e2e
+              // flow matches this accessible name with /^QR code for /, and the
+              // "permanent" quality is already stated in the sentence below.
+              alt={`QR code for ${activeCardName}`}
               width={512}
               height={512}
               className="aspect-square w-full"
