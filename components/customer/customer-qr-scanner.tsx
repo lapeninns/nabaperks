@@ -382,7 +382,13 @@ export function CustomerQrScanner({
           pair under the viewfinder was ~100px of duplicate chrome, and one of
           the two sent the member out to the marketing switchboard (CUS 02#60). */}
       {hasAppNavigation ? null : (
-        <div className="grid gap-3 sm:grid-cols-2">
+        // No `sm:grid-cols-2`: the customer column is capped at 410px, so the
+        // split fired on VIEWPORT width the container never sees. Measured at
+        // an 800px viewport it produced two 173px buttons inside a 358px row —
+        // narrower targets on a bigger screen, for a pair of full sentences
+        // ("Back to start", "Open my cards"). Stacked full-width at every size,
+        // which is what the phone already got (CUS 02#6).
+        <div className="grid gap-3">
           <Button asChild variant={exitStartVariant} className="w-full">
             <Link href="/start">Back to start</Link>
           </Button>
