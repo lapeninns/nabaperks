@@ -47,8 +47,12 @@ export const OFFER_BONUS_STAMP_MIN = 1
 export const OFFER_BONUS_STAMP_MAX = 98
 
 /**
- * Longest campaign window, counted inclusively. SQL expresses the same rule as
- * `ends_on <= starts_on + 365`, which spans 366 days including both ends.
+ * Longest campaign window a venue may give itself, counted inclusively. SQL
+ * holds the same number as the DEFAULT half of `offer_campaigns_window_valid`,
+ * `ends_on <= starts_on + coalesce(max_window_days, 366) - 1` (20260808120000),
+ * which spans 366 days including both ends when no longer window has been
+ * approved. An administratively approved campaign raises `max_window_days` on
+ * that row alone and is never self-served, so this stays the merchant rule.
  */
 export const OFFER_CAMPAIGN_MAX_DURATION_DAYS = 366
 

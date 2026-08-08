@@ -14,9 +14,10 @@ import {
  * bounded. No `server-only` and no Supabase, so the merchant form, the server
  * action and the unit tests all share one implementation.
  *
- * The database CHECK constraints in 20260803100000 remain the last word; these
- * rules exist so a merchant sees a sentence rather than a constraint violation,
- * and they must move in step with that migration.
+ * The database CHECK constraints remain the last word; these rules exist so a
+ * merchant sees a sentence rather than a constraint violation, and they must
+ * move in step with those migrations — 20260803100000 for the column shapes,
+ * 20260808120000 for the window ceiling.
  */
 
 /** Longest terms a merchant may add, mirroring the extra_terms CHECK. */
@@ -59,8 +60,9 @@ export function offerBenefitRequires(kind: OfferBenefitKind): {
 
 /**
  * Inclusive length of a campaign window in days: a single-day campaign is 1,
- * and the SQL rule `ends_on <= starts_on + 365` is the same as 366 here.
- * Returns null when either date is not a real calendar date.
+ * and the SQL rule `ends_on <= starts_on + coalesce(max_window_days, 366) - 1`
+ * is the same as `max_window_days` here, so the 366 default matches this
+ * module's ceiling. Returns null when either date is not a real calendar date.
  */
 export function campaignWindowDays(
   startsOn: string,
