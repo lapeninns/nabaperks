@@ -9,6 +9,7 @@ import {
   type ProfileGateActionState,
 } from "@/app/reward/[rewardId]/actions"
 import { profileInputClass } from "@/components/customer/profile-form-parts"
+import { CustomerActionNote } from "@/components/customer/customer-flow-system"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import { SubmitButton } from "@/components/forms"
@@ -48,15 +49,12 @@ function ProfileDetailsStep({
     <form action={action} className="grid gap-4">
       <input type="hidden" name="rewardId" value={rewardId} />
 
-      <StatusBanner
-        title="A few details before this one's yours"
-        tone="neutral"
-      >
+      <CustomerActionNote title="A few details before this one's yours">
         Add your name, date of birth, and email before collection.
         {gate.emailLocked
           ? null
           : " We'll send a one-time code to verify a new email."}
-      </StatusBanner>
+      </CustomerActionNote>
 
       <Field
         label="Full name"
@@ -76,9 +74,9 @@ function ProfileDetailsStep({
       />
       {gate.emailLocked && gate.email ? (
         <>
-          <StatusBanner title="Verified email" tone="neutral">
+          <CustomerActionNote title="Verified email">
             {gate.email} is verified and locked for account security.
-          </StatusBanner>
+          </CustomerActionNote>
           {state.errors?.email ? (
             <StatusBanner title="Code not sent" tone="warning">
               {state.errors.email}
@@ -141,10 +139,10 @@ function ProfileEmailStep({
 
   return (
     <div className="grid gap-4">
-      <StatusBanner title="Confirm your email" tone="neutral">
+      <CustomerActionNote title="Confirm your email">
         Enter the code we sent{email ? ` to ${email}` : ""} to verify your email
         before collection.
-      </StatusBanner>
+      </CustomerActionNote>
 
       <form action={action} className="grid gap-4">
         <input type="hidden" name="rewardId" value={rewardId} />

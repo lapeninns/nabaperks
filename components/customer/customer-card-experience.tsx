@@ -315,13 +315,16 @@ function CardProgressPanel({
           </StatusBanner>
         ) : (
           <div className="grid gap-3">
-            <StatusBanner
-              title="Scan the venue code to add your stamp."
-              tone="neutral"
-            >
+            {/* An instruction, not an outcome (02#32). StatusBanner carries a
+                live-region role — assertive for errors, polite for the rest —
+                which is right for "Stamp secured." and wrong for standing
+                guidance that was already on screen when the page loaded.
+                CustomerActionNote is the instruction register: same weight, no
+                announcement, and visibly not a result. */}
+            <CustomerActionNote title="Scan the venue code to add your stamp.">
               Use the printed QR in the venue. One stamp is available per UK
               business day.
-            </StatusBanner>
+            </CustomerActionNote>
             <Button asChild size="lg" variant="secondary" className="w-full">
               <Link href="/scan">Scan to stamp</Link>
             </Button>
