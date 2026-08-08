@@ -819,3 +819,31 @@ nulls) each fail it, and all three restore clean.
 `--w-line-strong:` appears in it. Parsed the braces: the token really is inside
 `.dark` (line 239), so the assertion is honest today. Left alone; recorded so a
 future reader does not mistake it for proof of scoping.
+
+### A "regression" that was the machine, caught by running the control
+
+After the `enableSystem` change, `pnpm test:a11y` failed 187 of 270, and a
+chromium-only re-run failed 18 of 67. Every single failure was
+`net::ERR_CONNECTION_REFUSED` / `ERR_EMPTY_RESPONSE` — the dev server dying
+mid-run — and **zero** were axe violations. The tempting call was "flake, other
+lanes are running, load average is 10".
+
+Checked instead of assumed: `git checkout 62f95803` (the branch base), same
+slice, same machine — **57 passed, 0 net errors**. That reads as a regression,
+and I nearly wrote it up as one.
+
+Then ran the branch again, immediately after, on a quieter machine — **57
+passed, 0 net errors, 6.7m**, matching the base's 6.8m exactly. So it was load
+after all, and a single control run is not a control.
+
+Two lessons, in tension and both real: a red matrix is worth a control run
+before it is called a flake, and a control run is worth repeating before it is
+called a regression. The cheap tiebreaker was the timing — 2.0m to death versus
+6.7-6.8m to completion on both branches.
+
+The direct check on what actually changed is stronger than either:
+`/`, `/login`, `/signup`, `/reset-password`, `/pricing`, `/start`, `/scan` and
+`/faq` were loaded in Chromium against `next start` AND `next dev`, listening for
+console CSP reports. **Zero CSP violations on both servers, and every page
+carries `class="light"`** — so the re-pinned hashes really do admit the script
+each bundler emits, which is the only thing this change could have broken.
