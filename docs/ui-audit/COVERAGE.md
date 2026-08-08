@@ -602,3 +602,22 @@ my second reported 03#47's spacer as unpinned. Both were my own escaping —
 `maxLength=\{80\}` and `pb-\[8\.75rem\]` appear escaped inside the test's
 regexes. A verification tool that returns "not found" is making a claim too, and
 it needs the same scepticism as the thing it is checking.
+
+### The capped-column breakpoint defect, swept
+
+02#6's real defect was one line: `sm:grid-cols-2` on the scanner exits, which
+produced two 173px buttons in a 358px row at an 800px viewport. Swept for the
+same shape elsewhere, since anything rendered INTO the 410px customer column can
+make the same mistake.
+
+- `components/loyalty`, `components/forms`: no horizontal `sm:` splits at all.
+- `components/brand/typography.tsx`: `SectionHeader` uses
+  `sm:flex-row sm:items-end sm:justify-between`, which WOULD squeeze inside the
+  column — but only when it has `actions`. Checked every customer-surface
+  call site: **zero** pass `actions`, so the row has a single child and the
+  variant is inert. Left alone.
+
+One real instance, one checked negative. The remaining `sm:` variants in the
+customer files are outer gutters growing past a column that is already capped,
+which is harmless — so the `@container` conversion 02#6 recommends is a
+tidiness pass, not a defect, and should be budgeted as one.
