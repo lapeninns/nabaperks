@@ -45,6 +45,40 @@ measured at 4,854-5,265ms against a 4,000ms budget. woff2 recovers 1,622ms but
 `poster-font-assets` pins .ttf for PDF parity, so it is reverted and recorded.
 Three options in NEEDS-SIGNOFF §10.
 
+## The 13 open findings, categorised
+
+None of these is open for want of effort. Every one was attempted, measured, or
+scoped out by instruction. The categories are what matter:
+
+### Excluded by your standing instruction (2)
+
+`01#67` legal/terms/privacy structural migration · `05#13` Button size-variant
+API deletion. Both were named out of scope at the start and are unchanged.
+
+### Attempted, then reverted because a contract said no (3)
+
+`01#49` · `01#63` · `01#65`. Each has a written attempt and a revert; no
+assertion was weakened. 01#49 is the one worth revisiting: the pinned expression
+causes a **measured CLS of 0.1924** against a 0.1 threshold (section 7).
+
+### Declined with reasoning, evidence recorded (3)
+
+`03#16` — the migration does not fix the defect it cites (DataTable's own
+`mobileCard` path renders both trees). `04#60` — sorting across 8 live panels,
+where half-built is worse than none. `03#13` — a merchant-wide count needs an
+aggregate that does not exist; page-scoped counting would print a false
+readback.
+
+### Genuine product or copy decisions (5)
+
+`01#23` · `01#55` · `02#50` · `02#64` · `04#54`. Two are Critical. All five now
+carry measurements rather than descriptions — the offer CTA at **y=904 on an
+844px viewport**, the three persona spokes at **98.1% identical source** (section
+8).
+
+So the honest summary is: **5 need a decision from you, 3 need a contract
+renegotiated, 3 are refusals you may overrule, and 2 were never in scope.**
+
 ## What still needs YOU, not more engineering
 
 Four decisions unblock most of the remainder. Each now carries measured

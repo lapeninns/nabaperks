@@ -56,7 +56,10 @@ Unchanged, as scoped: no legal/terms/privacy migration, no `confirmPassword`
 removal, no marketing copy cuts, no `Button` size API deletions. See
 `docs/ui-audit/README.md` for the full triage.
 
-## 5. One audit recommendation that contradicts a contract test
+## 5. One audit recommendation that contradicts a contract test — DISPOSITION
+
+**Recommendation: close audit pattern P1 as won't-fix, except the part already
+done.** Reasoning below; overrule it by renegotiating the contract deliberately.
 
 Audit pattern P1 asks for the dead stock classes in `components/ui/*` to be
 pruned so the files read as what they render.
@@ -65,6 +68,26 @@ pruned so the files read as what they render.
 and the unlayered layer already supplies their treatment. The test is
 authoritative; the audit finding should be closed as won't-fix or the contract
 renegotiated deliberately.
+
+### What P1 actually contained
+
+P1 lists fourteen dead declarations in `components/ui/*`. Two of them it flags as
+**not** overridden and shipping visibly wrong: `Card`'s stray `ring-1` hairline
+outside the 2px ink border, and its 24px image corners bulging past a 10px card.
+Those are a real defect, not a readability complaint, and they are **already
+fixed** — 05#18 is closed, `card.tsx` carries no `ring-1`, and nested images now
+take `rounded-t-lg`/`rounded-b-lg`.
+
+The other twelve are genuinely overridden. Verified rather than assumed: with
+`rounded-2xl` still in the source of six primitives, the computed radii are 10px
+on input/textarea/alert, 999px on badge and 4px on progress. The layer wins.
+
+So what remains of P1 is "prune declarations that have no visual effect so the
+file reads honestly" — worth something, but it is precisely what
+`ux-production-polish` forbids for the slots it covers, on the grounds that a
+pre-themed latent state must not be strippable. Trading a contract's safety
+property for source tidiness is a bad trade at this scale, and the two
+declarations that mattered are already gone.
 
 ## 6. The CSP theme-hash test cannot detect provider drift (found during 05#61)
 
