@@ -482,3 +482,25 @@ the visual baselines — which is the API sprawl 05#7 criticises, arriving as a
 fix. If you want the abstraction anyway, as a named place to change console
 rhythm later, that is a reasonable call and it is one commit; I am not making it
 on the strength of a premise that measurement does not support.
+
+## 16. 01#54 — the hero half of the type scale
+
+The page-title half is done: seven `titleClassName` clamp overrides deleted, so
+legal, auth and every marketing page now share `type-page-title` (30px / 36px).
+Measured: /pricing, /terms, /signup and /faq are identical at both widths, and
+the legal H1 is no longer larger than the pricing H1.
+
+What is left is the finding's `hero-title` proposal —
+`text-[clamp(2.25rem,6vw,3.5rem)]` for the landing, how-it-works and pub-guide
+heroes.
+
+I have not done it because it would undo work from this same campaign. 01#15
+added the missing middle step to those ramps (`text-4xl sm:text-5xl
+lg:text-6xl`) precisely so the 36px-to-60px jump stopped being a two-step snap.
+A single `clamp()` replaces that ramp with continuous scaling — a different
+typographic decision, not a consolidation of the existing one — and it would
+also move the pub guide's H1 up a step, since it currently runs one rung below
+the other two on purpose.
+
+Both are defensible. Picking between them is a design call, and it wants the
+visual baselines regenerated either way.
