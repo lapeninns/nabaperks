@@ -685,3 +685,19 @@ per-render count query the console does not run.
 
 Worth remembering that a wrong reason can still guard a right decision, and that
 checking it is what tells you which one you have.
+
+### The "copy the existing pattern" claims, swept
+
+03#18 pointed at a server-side search pattern in `activity-detail-feed` that
+only half exists, so I checked every finding making that kind of claim. There
+are three:
+
+| finding | claim                                                                       | verdict                                                                                                               |
+| ------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| 01#17   | "the pattern already exists" (`guide-spine`'s IntersectionObserver)         | **true** — and closed with a simpler `scrollLeft` read                                                                |
+| 03#39   | "the `workspaceHref(base, channel, template)` query pattern already in use" | **true** — `workspaceHref` exists, used in five places, and the tabs shipped on it                                    |
+| 03#18   | "matching the pattern activity-detail-feed already uses"                    | **half false** — `filter` is a column predicate there and derived state here; `q` is deliberately client-side in both |
+
+One of three, not an epidemic. Worth checking each time anyway: a pointer to an
+existing pattern is the most persuasive line in a finding, and the one least
+likely to be re-derived by whoever implements it.
