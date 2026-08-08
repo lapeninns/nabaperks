@@ -49,7 +49,7 @@ export async function getAdminOverview() {
 export async function getAdminMerchants(lookup: AdminLookupQuery = {}) {
   const supabase = await createAdminServiceRoleClient()
   const page = lookup.page ?? 1
-  const window = lookupRange(page)
+  const window = lookupRange(page, lookup.size)
 
   let query = supabase
     .from("merchants")
@@ -70,7 +70,7 @@ export async function getAdminMerchants(lookup: AdminLookupQuery = {}) {
     throw new Error(`Unable to load merchants: ${error.message}`)
   }
 
-  return { rows: data ?? [], meta: pageMeta(count ?? 0, page) }
+  return { rows: data ?? [], meta: pageMeta(count ?? 0, page, lookup.size) }
 }
 
 /**
@@ -81,7 +81,7 @@ export async function getAdminMerchants(lookup: AdminLookupQuery = {}) {
 export async function getAdminQrCodes(lookup: AdminLookupQuery = {}) {
   const supabase = await createAdminServiceRoleClient()
   const page = lookup.page ?? 1
-  const window = lookupRange(page)
+  const window = lookupRange(page, lookup.size)
 
   let query = supabase
     .from("qr_codes")
@@ -105,13 +105,13 @@ export async function getAdminQrCodes(lookup: AdminLookupQuery = {}) {
     throw new Error(`Unable to load QR codes: ${error.message}`)
   }
 
-  return { rows: data ?? [], meta: pageMeta(count ?? 0, page) }
+  return { rows: data ?? [], meta: pageMeta(count ?? 0, page, lookup.size) }
 }
 
 export async function getAdminCustomers(lookup: AdminLookupQuery = {}) {
   const supabase = await createAdminServiceRoleClient()
   const page = lookup.page ?? 1
-  const window = lookupRange(page)
+  const window = lookupRange(page, lookup.size)
 
   // `!inner` joins keep the embedded filters (contact/venue) applied to the
   // parent rows; membership FKs are non-null so the join never drops rows.
@@ -142,7 +142,7 @@ export async function getAdminCustomers(lookup: AdminLookupQuery = {}) {
     throw new Error(`Unable to load customer memberships: ${error.message}`)
   }
 
-  return { rows: data ?? [], meta: pageMeta(count ?? 0, page) }
+  return { rows: data ?? [], meta: pageMeta(count ?? 0, page, lookup.size) }
 }
 
 export async function getAdminPrivacySupportRows(
@@ -150,7 +150,7 @@ export async function getAdminPrivacySupportRows(
 ) {
   const supabase = await createAdminServiceRoleClient()
   const page = lookup.page ?? 1
-  const window = lookupRange(page)
+  const window = lookupRange(page, lookup.size)
 
   let query = supabase
     .from("customer_memberships")
@@ -179,7 +179,7 @@ export async function getAdminPrivacySupportRows(
     throw new Error(`Unable to load privacy support rows: ${error.message}`)
   }
 
-  return { rows: data ?? [], meta: pageMeta(count ?? 0, page) }
+  return { rows: data ?? [], meta: pageMeta(count ?? 0, page, lookup.size) }
 }
 
 export type AdminUnaffiliatedCustomerRow = {
@@ -203,7 +203,7 @@ export async function getAdminUnaffiliatedCustomers(
 ): Promise<AdminPagedRows<AdminUnaffiliatedCustomerRow>> {
   const supabase = await createAdminServiceRoleClient()
   const page = lookup.page ?? 1
-  const window = lookupRange(page)
+  const window = lookupRange(page, lookup.size)
 
   let query = supabase
     .from("customers_unaffiliated")
@@ -224,12 +224,12 @@ export async function getAdminUnaffiliatedCustomers(
     throw new Error(`Unable to load unaffiliated customers: ${error.message}`)
   }
 
-  return { rows: data ?? [], meta: pageMeta(count ?? 0, page) }
+  return { rows: data ?? [], meta: pageMeta(count ?? 0, page, lookup.size) }
 }
 
-export async function getAdminConsentRecords(page = 1) {
+export async function getAdminConsentRecords(page = 1, size?: number) {
   const supabase = await createAdminServiceRoleClient()
-  const window = lookupRange(page)
+  const window = lookupRange(page, size)
   const { data, error, count } = await supabase
     .from("consent_records")
     .select(
@@ -243,12 +243,12 @@ export async function getAdminConsentRecords(page = 1) {
     throw new Error(`Unable to load consent records: ${error.message}`)
   }
 
-  return { rows: data ?? [], meta: pageMeta(count ?? 0, page) }
+  return { rows: data ?? [], meta: pageMeta(count ?? 0, page, size) }
 }
 
-export async function getAdminRewards(page = 1) {
+export async function getAdminRewards(page = 1, size?: number) {
   const supabase = await createAdminServiceRoleClient()
-  const window = lookupRange(page)
+  const window = lookupRange(page, size)
   const { data, error, count } = await supabase
     .from("reward_events")
     .select(
@@ -262,7 +262,7 @@ export async function getAdminRewards(page = 1) {
     throw new Error(`Unable to load rewards: ${error.message}`)
   }
 
-  return { rows: data ?? [], meta: pageMeta(count ?? 0, page) }
+  return { rows: data ?? [], meta: pageMeta(count ?? 0, page, size) }
 }
 
 /** fraud_flags.status check constraint: open / reviewed / dismissed. */
@@ -440,7 +440,7 @@ export async function getAdminReferralOps(
 ): Promise<AdminReferralOpsPage> {
   const supabase = await createAdminServiceRoleClient()
   const page = lookup.page ?? 1
-  const window = lookupRange(page)
+  const window = lookupRange(page, lookup.size)
 
   const matches = lookup.venue
     ? await findReferralVenues(supabase, lookup.venue)
@@ -449,7 +449,11 @@ export async function getAdminReferralOps(
   if (decision.kind === "none" || decision.kind === "ambiguous") {
     // Not "fall back to unfiltered": a fragment that resolves to no single
     // venue must not be answered with every referral on the platform.
-    return { rows: [], meta: pageMeta(0, page), venueMatches: matches }
+    return {
+      rows: [],
+      meta: pageMeta(0, page, lookup.size),
+      venueMatches: matches,
+    }
   }
   const venueId = decision.kind === "single" ? decision.venueId : null
 
@@ -473,12 +477,16 @@ export async function getAdminReferralOps(
 
   const rows: unknown = data
   if (!Array.isArray(rows)) {
-    return { rows: [], meta: pageMeta(count ?? 0, page), venueMatches: [] }
+    return {
+      rows: [],
+      meta: pageMeta(count ?? 0, page, lookup.size),
+      venueMatches: [],
+    }
   }
 
   return {
     rows: rows.map(toAdminReferralOpsRow),
-    meta: pageMeta(count ?? 0, page),
+    meta: pageMeta(count ?? 0, page, lookup.size),
     venueMatches: [],
   }
 }
@@ -574,7 +582,7 @@ function redactDataRequestActivity(row: unknown): AdminDataRequestActivityRow {
 export async function getAdminAuditPage(lookup: AdminLookupQuery = {}) {
   const supabase = await createAdminServiceRoleClient()
   const page = lookup.page ?? 1
-  const window = lookupRange(page)
+  const window = lookupRange(page, lookup.size)
   const merchantEmbed = lookup.venue
     ? "merchants!inner(business_name)"
     : "merchants(business_name)"
@@ -601,7 +609,7 @@ export async function getAdminAuditPage(lookup: AdminLookupQuery = {}) {
     throw new Error(`Unable to load audit logs: ${error.message}`)
   }
 
-  return { rows: data ?? [], meta: pageMeta(count ?? 0, page) }
+  return { rows: data ?? [], meta: pageMeta(count ?? 0, page, lookup.size) }
 }
 
 export async function getAdminAuditLogs(limit = 100) {

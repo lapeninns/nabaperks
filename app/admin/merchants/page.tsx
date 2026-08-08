@@ -121,6 +121,7 @@ async function MerchantAccountsView({
           venue: lookup.venue,
           page,
           qrPage,
+          size: lookup.size,
         })
       }
     />
@@ -134,7 +135,11 @@ async function QrRecordsView({
   readonly lookup: AdminLookupState
   readonly qrPage: number
 }) {
-  const qrCodes = await getAdminQrCodes({ venue: lookup.venue, page: qrPage })
+  const qrCodes = await getAdminQrCodes({
+    venue: lookup.venue,
+    page: qrPage,
+    size: lookup.size,
+  })
 
   return (
     <QrRecordsPanel
@@ -145,6 +150,7 @@ async function QrRecordsView({
           venue: lookup.venue,
           page: lookup.page,
           qrPage: page,
+          size: lookup.size,
         })}#qr-records`
       }
     />

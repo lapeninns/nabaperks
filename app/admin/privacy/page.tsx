@@ -75,6 +75,7 @@ export default async function AdminPrivacyPage({
       panel: panel === "requests" ? undefined : panel,
       venue: lookup.venue,
       contact: lookup.contact,
+      size: lookup.size,
     })
 
   return (
@@ -175,6 +176,7 @@ async function RequestsView({
           page,
           consentPage,
           unaffiliatedPage,
+          size: lookup.size,
         })
       }
     />
@@ -191,6 +193,7 @@ async function UnaffiliatedView({
   const unaffiliated = await getAdminUnaffiliatedCustomers({
     contact: lookup.contact,
     page: unaffiliatedPage,
+    size: lookup.size,
   }).catch((error: unknown) => {
     console.error("Admin unaffiliated lookup failed", error)
     return null
@@ -206,6 +209,7 @@ async function UnaffiliatedView({
           venue: lookup.venue,
           contact: lookup.contact,
           unaffiliatedPage: page,
+          size: lookup.size,
         })
       }
     />
@@ -230,12 +234,13 @@ async function ConsentView({
   readonly lookup: ReturnType<typeof parseAdminLookupParams>
   readonly consentPage: number
 }) {
-  const consentRecords = await getAdminConsentRecords(consentPage).catch(
-    (error: unknown) => {
-      console.error("Admin consent readback failed", error)
-      return null
-    }
-  )
+  const consentRecords = await getAdminConsentRecords(
+    consentPage,
+    lookup.size
+  ).catch((error: unknown) => {
+    console.error("Admin consent readback failed", error)
+    return null
+  })
 
   return (
     <ConsentLogPanel
@@ -246,6 +251,7 @@ async function ConsentView({
           venue: lookup.venue,
           contact: lookup.contact,
           consentPage: page,
+          size: lookup.size,
         })
       }
     />

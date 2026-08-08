@@ -3,6 +3,7 @@ import { test } from "node:test"
 
 import {
   ADMIN_LOOKUP_PAGE_SIZE,
+  ADMIN_LOOKUP_PAGE_SIZES,
   buildLookupHref,
   contactOrIlikeFilter,
   containsPattern,
@@ -14,6 +15,7 @@ import {
   pageMeta,
   parseAdminLookupParams,
   parsePageParam,
+  parseSizeParam,
   previousPage,
 } from "@/lib/admin/lookup-query"
 
@@ -51,16 +53,49 @@ test("parsePageParam parses positive integers and clamps the upper bound", () =>
   assert.equal(parsePageParam("999999"), 999)
 })
 
-test("parseAdminLookupParams maps venue, contact, and page from search params", () => {
+test("parseAdminLookupParams maps venue, contact, page, and rows-per-page from search params", () => {
   assert.deepEqual(
-    parseAdminLookupParams({ venue: " The  Crown ", contact: "jo", page: "3" }),
-    { venue: "The Crown", contact: "jo", page: 3 }
+    parseAdminLookupParams({
+      venue: " The  Crown ",
+      contact: "jo",
+      page: "3",
+      size: "50",
+    }),
+    { venue: "The Crown", contact: "jo", page: 3, size: 50 }
   )
   assert.deepEqual(parseAdminLookupParams(undefined), {
     venue: undefined,
     contact: undefined,
     page: 1,
+    size: ADMIN_LOOKUP_PAGE_SIZE,
   })
+})
+
+test("parseSizeParam accepts only the offered page sizes", () => {
+  for (const size of ADMIN_LOOKUP_PAGE_SIZES) {
+    assert.equal(parseSizeParam(String(size)), size)
+  }
+  assert.equal(parseSizeParam(["100", "25"]), 100)
+})
+
+test("parseSizeParam falls back to the default instead of clamping an off-list size", () => {
+  // `size` becomes a .range() window on a service-role read, so an
+  // operator-typed 5000 must not be honoured — and must not be clamped to the
+  // largest offered size either, which would still be a URL-chosen budget.
+  for (const junk of [
+    undefined,
+    "",
+    "abc",
+    "-1",
+    "0",
+    "26",
+    "99",
+    "1000",
+    "5000",
+    "50.5",
+  ]) {
+    assert.equal(parseSizeParam(junk), ADMIN_LOOKUP_PAGE_SIZE, `size=${junk}`)
+  }
 })
 
 test("escapeLikePattern escapes LIKE wildcards and backslashes", () => {
@@ -136,6 +171,20 @@ test("decideVenueFilter treats a fragment that matches no venue as an empty resu
   // platform as that venue's.
   assert.deepEqual(decideVenueFilter("zzz", []), { kind: "none" })
   assert.notEqual(decideVenueFilter("zzz", []).kind, "unfiltered")
+})
+
+test("buildLookupHref keeps the default rows-per-page implicit and carries any other", () => {
+  assert.equal(
+    buildLookupHref("/admin/merchants", {
+      page: 1,
+      size: ADMIN_LOOKUP_PAGE_SIZE,
+    }),
+    "/admin/merchants"
+  )
+  assert.equal(
+    buildLookupHref("/admin/merchants", { page: 2, size: 100 }),
+    "/admin/merchants?page=2&size=100"
+  )
 })
 
 test("buildLookupHref serialises only meaningful params and keeps page 1 implicit", () => {

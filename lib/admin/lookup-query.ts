@@ -16,10 +16,19 @@ export const ADMIN_LOOKUP_PAGE_SIZE = 25
 export const ADMIN_LOOKUP_TERM_MAX_LENGTH = 64
 const ADMIN_LOOKUP_MAX_PAGE = 999
 
+/**
+ * The rows-per-page choices (04#56). A closed allowlist, not a clamped range:
+ * `size` reaches PostgREST as a `.range()` window, so an arbitrary integer is
+ * an operator-controlled row budget on a service-role read.
+ */
+export const ADMIN_LOOKUP_PAGE_SIZES = [25, 50, 100] as const
+
 export type AdminLookupState = {
   readonly venue?: string
   readonly contact?: string
   readonly page: number
+  /** Rows per page; always one of ADMIN_LOOKUP_PAGE_SIZES. */
+  readonly size: number
 }
 
 export type AdminPageMeta = {
@@ -66,7 +75,26 @@ export function parsePageParam(value: AdminSearchParamValue): number {
   return Math.min(page, ADMIN_LOOKUP_MAX_PAGE)
 }
 
-/** Read the canonical lookup state (venue, contact, page) from searchParams. */
+/**
+ * Parse the rows-per-page param. Anything not on the allowlist — junk, a
+ * clamped-looking 1000, a negative — falls back to the default page size
+ * rather than being coerced to the nearest legal value, so a hand-edited URL
+ * cannot widen the window a service-role query reads.
+ */
+export function parseSizeParam(value: AdminSearchParamValue): number {
+  const raw = firstParam(value)?.trim()
+  if (!raw || !/^\d+$/.test(raw)) return ADMIN_LOOKUP_PAGE_SIZE
+
+  const size = Number.parseInt(raw, 10)
+  return (ADMIN_LOOKUP_PAGE_SIZES as readonly number[]).includes(size)
+    ? size
+    : ADMIN_LOOKUP_PAGE_SIZE
+}
+
+/**
+ * Read the canonical lookup state (venue, contact, page, rows per page) from
+ * searchParams.
+ */
 export function parseAdminLookupParams(
   params: AdminSearchParams | undefined
 ): AdminLookupState {
@@ -74,6 +102,7 @@ export function parseAdminLookupParams(
     venue: normaliseLookupTerm(params?.venue),
     contact: normaliseLookupTerm(params?.contact),
     page: parsePageParam(params?.page),
+    size: parseSizeParam(params?.size),
   }
 }
 
@@ -189,6 +218,10 @@ export function buildLookupHref(
   for (const [key, value] of Object.entries(params)) {
     if (value === undefined || value === "") continue
     if (typeof value === "number" && /page$/i.test(key) && value <= 1) continue
+    // The default rows-per-page stays implicit for the same reason page 1
+    // does: otherwise every admin link in the console grows a `size=25` that
+    // means nothing.
+    if (key === "size" && Number(value) === ADMIN_LOOKUP_PAGE_SIZE) continue
     search.set(key, String(value))
   }
 

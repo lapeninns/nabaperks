@@ -76,6 +76,7 @@ export default async function AdminCustomersPage({
             href: buildLookupHref("/admin/customers", {
               venue: lookup.venue,
               contact: lookup.contact,
+              size: lookup.size,
             }),
           },
           {
@@ -85,6 +86,7 @@ export default async function AdminCustomersPage({
               view: "rewards",
               venue: lookup.venue,
               contact: lookup.contact,
+              size: lookup.size,
             }),
           },
         ]}
@@ -96,7 +98,7 @@ export default async function AdminCustomersPage({
         {view === "memberships" ? (
           <MembershipsView lookup={lookup} />
         ) : (
-          <RewardsView rewardsPage={rewardsPage} />
+          <RewardsView rewardsPage={rewardsPage} size={lookup.size} />
         )}
       </Suspense>
     </div>
@@ -124,17 +126,26 @@ async function MembershipsView({
           venue: lookup.venue,
           contact: lookup.contact,
           page,
+          size: lookup.size,
         })
       }
     />
   )
 }
 
-async function RewardsView({ rewardsPage }: { readonly rewardsPage: number }) {
-  const rewards = await getAdminRewards(rewardsPage).catch((error: unknown) => {
-    console.error("Admin rewards readback failed", error)
-    return null
-  })
+async function RewardsView({
+  rewardsPage,
+  size,
+}: {
+  readonly rewardsPage: number
+  readonly size: number
+}) {
+  const rewards = await getAdminRewards(rewardsPage, size).catch(
+    (error: unknown) => {
+      console.error("Admin rewards readback failed", error)
+      return null
+    }
+  )
 
   return (
     <CustomerRewardsPanel
@@ -143,6 +154,7 @@ async function RewardsView({ rewardsPage }: { readonly rewardsPage: number }) {
         buildLookupHref("/admin/customers", {
           view: "rewards",
           rewardsPage: page,
+          size,
         })
       }
     />

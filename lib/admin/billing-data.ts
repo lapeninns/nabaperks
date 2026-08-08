@@ -120,7 +120,7 @@ export async function getAdminBillingRecords(
   lookup: AdminBillingLookup = {}
 ): Promise<AdminBillingRecord[]> {
   const supabase = await createAdminServiceRoleClient()
-  const window = lookupRange(lookup.page ?? 1)
+  const window = lookupRange(lookup.page ?? 1, lookup.size)
   const merchantEmbed = lookup.venue
     ? "merchants!inner(business_name, email)"
     : "merchants(business_name, email)"

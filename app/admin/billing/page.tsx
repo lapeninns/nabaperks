@@ -101,7 +101,11 @@ export default async function AdminBillingPage({
   ])
   const meta = pageMeta(billingTotal, lookup.page)
   const hrefForPage = (page: number) =>
-    buildLookupHref("/admin/billing", { venue: lookup.venue, page })
+    buildLookupHref("/admin/billing", {
+      venue: lookup.venue,
+      page,
+      size: lookup.size,
+    })
 
   return (
     <div className="grid gap-6">

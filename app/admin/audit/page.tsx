@@ -194,7 +194,11 @@ export default async function AdminAuditPage({
               unit="audited actions"
               meta={logs.meta}
               hrefForPage={(page) =>
-                buildLookupHref("/admin/audit", { venue: lookup.venue, page })
+                buildLookupHref("/admin/audit", {
+                  venue: lookup.venue,
+                  page,
+                  size: lookup.size,
+                })
               }
             />
           </AdminPanelFooter>

@@ -36,7 +36,11 @@ export default async function AdminReferralsPage({
         referrals={referrals}
         lookup={lookup}
         hrefForPage={(page) =>
-          buildLookupHref("/admin/referrals", { venue: lookup.venue, page })
+          buildLookupHref("/admin/referrals", {
+            venue: lookup.venue,
+            page,
+            size: lookup.size,
+          })
         }
       />
     </div>

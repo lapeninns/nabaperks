@@ -10,14 +10,20 @@ import { SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { SelectField } from "@/components/forms"
 import type { AdminLookupState, AdminPageMeta } from "@/lib/admin/lookup-query"
 import {
+  ADMIN_LOOKUP_PAGE_SIZE,
+  ADMIN_LOOKUP_PAGE_SIZES,
   buildLookupHref,
   nextPage,
   previousPage,
 } from "@/lib/admin/lookup-query"
 
 const numberFormat = new Intl.NumberFormat("en-GB")
+
+/** The first rows-per-page choice, i.e. the smallest window on offer. */
+const SMALLEST_PAGE_SIZE = ADMIN_LOOKUP_PAGE_SIZES[0]
 
 /**
  * Member lookup form (admin member lookup): venue and contact fragments as
@@ -68,6 +74,12 @@ export function AdminLookupControls({
           <input key={name} type="hidden" name={name} value={value} />
         ) : null
       )}
+      {/* A next/form submit rebuilds the query string from this form's own
+          fields, so a non-default rows-per-page would be silently reset by
+          every search. The default stays out of the URL. */}
+      {lookup.size !== ADMIN_LOOKUP_PAGE_SIZE ? (
+        <input type="hidden" name="size" value={String(lookup.size)} />
+      ) : null}
       {withVenue ? (
         <AdminField label="Venue">
           <Input
@@ -102,7 +114,12 @@ export function AdminLookupControls({
             searched. */}
         {active ? (
           <Button asChild variant="ghost">
-            <Link href={buildLookupHref(basePath, hiddenParams ?? {})}>
+            <Link
+              href={buildLookupHref(basePath, {
+                ...hiddenParams,
+                size: lookup.size,
+              })}
+            >
               Clear
             </Link>
           </Button>
@@ -188,7 +205,16 @@ export function AdminLookupPagination({
 
   const previous = previousPage(meta)
   const next = nextPage(meta)
-  if (previous === null && next === null && meta.pageCount <= 1) {
+  // The rows-per-page control has to stay reachable at 50 or 100 rows on a
+  // list that now fits one page — otherwise the operator cannot get back to
+  // 25. So the plain-count branch is only taken when the smallest page size
+  // would also be one page.
+  if (
+    previous === null &&
+    next === null &&
+    meta.pageCount <= 1 &&
+    meta.total <= SMALLEST_PAGE_SIZE
+  ) {
     return (
       <p className="text-sm text-muted-foreground">
         <span className="numeric-tabular">
@@ -296,8 +322,64 @@ export function AdminLookupPagination({
             </Button>
           </Form>
         ) : null}
+        <RowsPerPage meta={meta} hrefForPage={hrefForPage} />
       </div>
     </nav>
+  )
+}
+
+/**
+ * Rows per page (04#56), as a `size` query param on the same GET/link model
+ * as the rest of this paginator: a plain `next/form` that works with JS off,
+ * with a no-JS submit button rather than an onChange handler.
+ *
+ * It resets EVERY page param, not just this list's. A page can carry several
+ * independent paginators (merchants: `page` + `qrPage`; privacy: `page` +
+ * `consentPage` + `unaffiliatedPage`), and page 7 of the other list is not
+ * page 7 once the window changes size.
+ */
+function RowsPerPage({
+  meta,
+  hrefForPage,
+}: {
+  readonly meta: AdminPageMeta
+  readonly hrefForPage: (page: number) => string
+}) {
+  const selectId = `admin-rows-per-page-${pageFormAction(hrefForPage).replaceAll("/", "-")}`
+
+  return (
+    <Form
+      action={pageFormAction(hrefForPage)}
+      className="flex items-center gap-2"
+    >
+      {pageFormHiddenParams(hrefForPage)
+        .filter(([name]) => !/page$/i.test(name) && name !== "size")
+        .map(([name, value]) => (
+          <input key={name} type="hidden" name={name} value={value} />
+        ))}
+      <label
+        htmlFor={selectId}
+        className="mono-meta whitespace-nowrap text-muted-foreground"
+      >
+        Rows
+      </label>
+      <SelectField
+        id={selectId}
+        name="size"
+        defaultValue={String(meta.pageSize)}
+        aria-label="Rows per page"
+        className="numeric-tabular h-9 w-24 pr-9 pl-3"
+      >
+        {ADMIN_LOOKUP_PAGE_SIZES.map((size) => (
+          <option key={size} value={size}>
+            {size}
+          </option>
+        ))}
+      </SelectField>
+      <Button type="submit" size="sm" variant="secondary">
+        Apply
+      </Button>
+    </Form>
   )
 }
 
