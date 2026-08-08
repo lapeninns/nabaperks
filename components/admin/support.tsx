@@ -5,7 +5,6 @@ import { Database01Icon } from "@hugeicons/core-free-icons"
 
 import {
   EmptyState,
-  Eyebrow,
   Icon,
   MonoTag,
   STATUS_ICON,
@@ -99,40 +98,6 @@ export function AdminEmptyState({
         className
       )}
     />
-  )
-}
-
-export function AdminField({
-  label,
-  children,
-  helper,
-  className,
-}: {
-  label: ReactNode
-  children: ReactNode
-  helper?: ReactNode
-  className?: string
-}) {
-  return (
-    // The helper sits OUTSIDE the <label>. Inside it, it was concatenated into
-    // the field's accessible name — a screen reader announced "DELTA POSITIVE
-    // ADDS STAMPS, NEGATIVE REMOVES THEM" as the name of the number input, and
-    // the helper was never exposed as a description. It is now sibling
-    // guidance, so the name is just the label.
-    <div className={cn("grid min-w-0 gap-1.5", className)}>
-      <label className="grid min-w-0 gap-1.5 text-sm font-bold">
-        <Eyebrow>{label}</Eyebrow>
-        {children}
-      </label>
-      {helper ? (
-        // whitespace-normal: inside a table cell the helper would inherit the
-        // cell's nowrap, and its single-line min-content inflates the field's
-        // implicit track (the Delta/Reason overlap class of bug).
-        <span className="text-xs leading-5 font-normal whitespace-normal text-muted-foreground">
-          {helper}
-        </span>
-      ) : null}
-    </div>
   )
 }
 
@@ -295,3 +260,7 @@ export function maskAdminCustomer(
   if (customer?.phone_last4) return `Phone ending ${customer.phone_last4}`
   return "Customer"
 }
+
+// AdminField lives in its own client module so it can call useId; re-exported
+// here so the console keeps one import surface (ADM 04#47).
+export { AdminField } from "@/components/admin/admin-field"
