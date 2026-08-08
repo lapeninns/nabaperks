@@ -414,3 +414,20 @@ actually govern.
 
 Worth building into any future merge: re-run the greps that justified each
 closure. A closed finding is a claim about a tree, and the tree moves.
+
+### Blockers that are really lane boundaries
+
+Four findings so far were recorded blocked for reasons that were true of the
+sub-agent that wrote them and never true of the root: 03#53, 03#65 and 03#66
+("outside this lane's file scope"), then 01#32 and 02#35 ("needs app/globals.css",
+"needs a merchant-lane import change"). All five are now closed.
+
+The tell is a note that names a FILE or an OWNER rather than a behaviour. Worth
+grepping for after any parallel campaign:
+
+    outside (this|the) lane · file scope · owned by another lane · out of scope
+
+A second tell, seen in 04#56 and 02#33: a blocker that is true of one half of a
+finding and quietly applied to the whole. "'Go to page' and rows-per-page need a
+`size` param" was true only of rows-per-page; the page jump needed no new param
+at all.
