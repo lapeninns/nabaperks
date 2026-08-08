@@ -63,7 +63,6 @@ export default function PrivacyPage() {
             eyebrow={PRIVACY_META.eyebrow}
             title={PRIVACY_META.title}
             description={PRIVACY_META.description}
-            titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"
             className="md:grid-cols-1"
           />
 

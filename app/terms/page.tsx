@@ -61,7 +61,6 @@ export default function TermsPage() {
             eyebrow={PLATFORM_TERMS_META.eyebrow}
             title={PLATFORM_TERMS_META.title}
             description={PLATFORM_TERMS_META.description}
-            titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"
             className="md:grid-cols-1"
           />
 
