@@ -22,13 +22,21 @@ const bricolageGrotesque = localFont({
       weight: "400",
       style: "normal",
     },
+    // These two faces ship as woff2, the other two as .ttf, and that asymmetry
+    // is deliberate. `poster-font-assets` SHA-256-pins the four original files
+    // and requires the app and the PDF renderer to name the same ones, so
+    // Regular and Bold must stay .ttf. Medium and ExtraBold were added by this
+    // branch and are not pinned, so they can ship in the format the browser
+    // actually wants: 113KB -> 46KB each, which took /loyalty-for-pubs from
+    // 6,343ms LCP to 5,011ms locally. The PDF renderer still reads the .ttf.
+    //
     // DESIGN.md typography: body/small are weight 500 and every heading is
     // 800. Without these two faces the browser synthesised both from the 400
     // and 700 files, so `font-medium` fell back to Regular and `font-extrabold`
     // was a faux-bolded 700 — collapsing the bold/extrabold distinction the
     // system relies on to separate card titles from page titles.
     {
-      path: "../assets/fonts/BricolageGrotesque-Medium.ttf",
+      path: "../assets/fonts/BricolageGrotesque-Medium.woff2",
       weight: "500",
       style: "normal",
     },
@@ -38,7 +46,7 @@ const bricolageGrotesque = localFont({
       style: "normal",
     },
     {
-      path: "../assets/fonts/BricolageGrotesque-ExtraBold.ttf",
+      path: "../assets/fonts/BricolageGrotesque-ExtraBold.woff2",
       weight: "800",
       style: "normal",
     },
