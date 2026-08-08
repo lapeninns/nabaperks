@@ -1013,3 +1013,34 @@ The direct check on what actually changed is stronger than either:
 console CSP reports. **Zero CSP violations on both servers, and every page
 carries `class="light"`** — so the re-pinned hashes really do admit the script
 each bundler emits, which is the only thing this change could have broken.
+
+### The blocker I dismissed by reading the wrong file
+
+03#46's blocker read: "merchant-onboarding-continuity requires the first invalid
+field to be focused after a failed submit; the blur-validation restructure breaks
+it." I opened `tests/contracts/merchant-onboarding-continuity.test.mjs`, found no
+focus assertion, called the blocker a misread, and shipped blur validation.
+
+The focus assertion lives in
+`tests/e2e/merchant-onboarding-continuity-flow.ts` — **same name, different
+file**. The blocker was right.
+
+What it cost: `blur` fires on mousedown, so writing state there re-renders
+between mousedown and mouseup and the click never becomes a submit. Instrumented
+with a capture-phase listener: zero submit events across two clicks. A merchant
+with an empty required field focused pressed "Finish setup" and nothing happened.
+That shipped for roughly thirty turns behind a green `quality:check`, because
+contract tests are static-source reads and this is a runtime interaction.
+
+Three things generalise:
+
+1. **A test name is not a file.** This repo pairs `tests/contracts/<name>` with
+   `tests/e2e/<name>-flow.ts` in several places. Checking one and concluding
+   about "the contract" is a category error.
+2. **A green gate bounded by what it can see.** `quality:check` never runs a
+   browser. Everything this campaign learned about targeted browser probes
+   applies most to changes in EVENT ORDERING, which no static assertion reaches.
+3. **The lane reported it as "pre-existing, not a regression" and was right about
+   its base and wrong about the cause.** Pre-existing relative to a branch point
+   only means someone earlier introduced it. Here that was me, four days of
+   commits back.
