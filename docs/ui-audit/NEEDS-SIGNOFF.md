@@ -658,3 +658,31 @@ different-mechanism rather than left open. If you want primitive consistency
 across the console anyway, that is a reasonable call — but it should be made
 knowing what it costs here, which is why this is written down rather than
 silently skipped.
+
+## 21. 03#52 — what cursor paging on the activity feed would cost
+
+The dead "Load more" is fixed (at `limit=250` the href asked for 300 against a
+250 clamp, so the press re-rendered the same rows). The audit also wants
+`?before=<cursor>` or date-window paging with a ~50-row window. That part is
+open, and "it changes the read model" undersells it. Two specific things break:
+
+**1. Search would silently narrow to one page.** `getEnrichedMerchantActivity`
+deliberately does NOT push `q` into the query — the only first-class text column
+is `event_name`, and narrowing on it would hide rows whose match lives in the
+customer label, reward name or metadata, and those joins carry PII that must not
+reach a search predicate. So `q` is a client-side refinement over the loaded
+window. Today that window is everything up to the ceiling; under cursor paging
+it becomes the current page, and "search your activity" would quietly mean
+"search these fifty rows".
+
+**2. Stamp pairs straddle every boundary.** The loader over-fetches by one row
+so a request/collect pair split across the window edge can borrow the spare and
+thread into a single card instead of rendering as two orphans.
+`threadActivityRows` takes the full `limit + 1` window and emits `limit` rows.
+Every additional cursor boundary is another place a pair can split, and the
+one-row spare only covers one such case per page.
+
+Neither is unsolvable — server-side search over a materialised label column
+would fix (1), and threading could look back a row across the cursor for (2).
+Both are data-layer work with a privacy review attached, which is a different
+kind of change from the rest of this campaign.
