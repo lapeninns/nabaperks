@@ -6,6 +6,8 @@ import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { ThemeProvider } from "next-themes"
 
+import { NEXT_THEMES_OPTIONS } from "@/lib/theme/next-themes-options"
+
 import {
   dynamicContentSecurityPolicy,
   NEXT_THEMES_APP_RENDER_SCRIPT_SHA256,
@@ -18,13 +20,11 @@ function nextThemesScript() {
   const markup = renderToStaticMarkup(
     createElement(
       ThemeProvider,
-      {
-        attribute: "class",
-        defaultTheme: "light",
-        enableSystem: true,
-        disableTransitionOnChange: true,
-        storageKey: "nabaperks-theme",
-      },
+      // The REAL options object the app ships, not a copy of it. Hashing a
+      // hand-rebuilt literal meant a prop change in theme-provider.tsx would
+      // stale the CSP pin and break the theme bootstrap in production while
+      // this test stayed green.
+      NEXT_THEMES_OPTIONS,
       createElement("span", null, "x")
     )
   )
