@@ -1,11 +1,10 @@
-import { notFound } from "next/navigation"
-
 import { A4NfcSquare } from "@/components/merchant/qr-poster/nfc-square/a4-nfc-square"
 import { PrintAssetError } from "@/components/merchant/qr-poster/print-asset-error"
 import { getServerEnv } from "@/lib/env/server"
-import { getOwnedQrImageContext } from "@/lib/merchant/qr-code"
-import { resolveQrReturnBase } from "@/lib/merchant/qr-nav"
-import { renderPosterQrCodePng } from "@/lib/qr/assets"
+import {
+  renderPrintAssetQr,
+  resolvePrintAssetRequest,
+} from "@/lib/merchant/print-asset-route"
 import { appendQrShareChannel } from "@/lib/qr/nfc-card-share-url"
 import { resolveNfcDestination } from "@/lib/qr/nfc-destination"
 import { getNfcSquareDesign } from "@/lib/qr/nfc-square-templates"
@@ -25,23 +24,13 @@ export default async function QrNfcSquarePage({
   params,
   searchParams,
 }: QrNfcSquarePageProps) {
-  const [{ design: designId }, query] = await Promise.all([
-    params,
-    searchParams,
-  ])
-  const design = getNfcSquareDesign(designId)
-  const qrCodeId = firstSearchValue(query.qr)
-  const backHref = resolveQrReturnBase(firstSearchValue(query.from))
-
-  if (!design || !qrCodeId) {
-    notFound()
-  }
-
-  const qrContext = await getOwnedQrImageContext(qrCodeId)
-
-  if (!qrContext) {
-    notFound()
-  }
+  const { design, qrCodeId, backHref, qrContext } =
+    await resolvePrintAssetRequest({
+      params,
+      searchParams,
+      paramKey: "design",
+      getDesign: getNfcSquareDesign,
+    })
 
   const env = getServerEnv()
   const joinUrl = appendQrShareChannel(
@@ -64,11 +53,9 @@ export default async function QrNfcSquarePage({
     )
   }
 
-  let qrDataUrl: string
-  try {
-    const png = await renderPosterQrCodePng(destinationUrl, 900)
-    qrDataUrl = `data:image/png;base64,${png.toString("base64")}`
-  } catch {
+  const rendered = await renderPrintAssetQr(destinationUrl)
+
+  if (!rendered.ok) {
     return (
       <PrintAssetError kind="nfc-square" reason="render" backHref={backHref} />
     )
@@ -77,7 +64,7 @@ export default async function QrNfcSquarePage({
   return (
     <A4NfcSquare
       design={design.id}
-      qrDataUrl={qrDataUrl}
+      qrDataUrl={rendered.qrDataUrl}
       merchantName={qrContext.merchant.business_name}
       locality={qrContext.merchant.locals}
       stampsRequired={qrContext.activeCard.stamps_required}
@@ -85,11 +72,4 @@ export default async function QrNfcSquarePage({
       backHref={backHref}
     />
   )
-}
-
-function firstSearchValue(value: string | readonly string[] | undefined) {
-  if (Array.isArray(value)) {
-    return value[0] ?? null
-  }
-  return value ?? null
 }
