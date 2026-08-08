@@ -431,3 +431,25 @@ A second tell, seen in 04#56 and 02#33: a blocker that is true of one half of a
 finding and quietly applied to the whole. "'Go to page' and rows-per-page need a
 `size` param" was true only of rows-per-page; the page jump needed no new param
 at all.
+
+### Full re-verification after the second wave of changes
+
+The merge and everything since (data-on-ink, the page-title sweep, the header
+custom property, the ProgressTrack barrel change, six deleted field.tsx exports,
+`?only=`, the harness nav, the admin page jump) is a lot of surface. Re-ran the
+two highest-value browser tiers rather than trusting the unit gates:
+
+| tier                   | result                               |
+| ---------------------- | ------------------------------------ |
+| chromium journeys      | **202 passed**, 49 skipped, 2 failed |
+| mobile-safari journeys | **232 passed**, 66 skipped, 3 failed |
+
+All five failures re-ran clean in isolation (`analytics-funnel-privacy`,
+`merchant-qr-image-route`, `cron-route-auth` x2 — 25 passed on the retry). They
+are parallel-load flakes on session/cron routes, and none of them touches
+anything changed here.
+
+Also verified while sweeping for undercounted call sites that the `rounded-2xl`
+still present in six shadcn primitives is dead source, not a live defect: the
+unlayered theme wins, and the computed radii are 10px on input/textarea/alert,
+999px on badge, 4px on progress. 02#34's [stale] marking was right.
