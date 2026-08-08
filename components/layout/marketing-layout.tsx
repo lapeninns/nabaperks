@@ -121,54 +121,61 @@ export function MarketingLayout({
           <div
             className={`mx-auto w-full max-w-marketing-chrome py-6 text-sm text-muted-foreground sm:py-8 ${MARKETING_GUTTER}`}
           >
-            {/* Four across from `sm:` — the old `lg:` threshold left tablets
-                rendering the phone's two-row stack for no reason. */}
-            {/* Below sm each column is a <details>: the heading becomes a 44px
-                summary row and only "Product" opens by default, so the footer
-                costs four rows instead of four full lists. `open` is forced
-                from sm up via `sm:[&]:block`-style CSS on the content, because
-                <details> cannot be re-opened by media query — the content is
-                shown with `sm:block` regardless of the open state. (05#47) */}
-            <nav
-              aria-label="Site links"
-              className="grid grid-cols-2 gap-x-3 gap-y-1 pb-6 sm:grid-cols-4 sm:gap-6 sm:gap-y-2"
-            >
-              {FOOTER_COLUMNS.map((column, index) => (
-                // NOT `display: grid` on the <details> itself — that makes every
-                // child a grid item and the UA stops collapsing the closed
-                // content, which silently defeats the whole disclosure.
-                <details
-                  key={column.heading}
-                  open={index === 0}
-                  className="group block content-start"
-                >
-                  <summary className="focus-ring eyebrow flex min-h-11 cursor-pointer list-none items-center justify-between rounded-full px-3 sm:pointer-events-none sm:min-h-0 sm:pb-1">
-                    {column.heading}
-                    <span
-                      aria-hidden="true"
-                      className="text-muted-foreground group-open:rotate-180 sm:hidden"
-                    >
-                      ▾
-                    </span>
-                  </summary>
-                  <ul className="grid justify-items-start gap-0.5">
-                    {column.links.map((link) => (
-                      <li key={link.href}>
-                        {link.href.startsWith("mailto:") ? (
-                          <a className={footerLinkClass} href={link.href}>
-                            {link.label}
-                          </a>
-                        ) : (
-                          <Link className={footerLinkClass} href={link.href}>
-                            {link.label}
-                          </Link>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-              ))}
+            {/* Two DOM branches, one of them always `display: none`.
+                Measured, chromium+firefox+webkit: there is no cross-browser
+                CSS-only way to force a <details> open above a breakpoint.
+                `details:not([open]) > * { display: block }` and
+                `details { display: contents }` reveal nothing in any of the
+                three engines; `details::details-content { content-visibility:
+                visible }` works in Firefox only. So the single-tree version
+                shipped by 05#47 left columns 2-4 CLOSED at every width, with
+                `sm:pointer-events-none` on the summary making them
+                unopenable by pointer: 8 of 13 site links invisible and
+                unreachable on desktop. Measured cost of that hiding: zero.
+                The desktop footer is 390.94px tall whether the three columns
+                are open or closed, because the tallest column sets the row.
+                Rendering the disclosure below `sm:` and the plain four-across
+                list from `sm:` keeps the 144px the accordion actually saves on
+                a phone (680px -> 536px) and gives the links back. Only one
+                branch is ever in the accessibility tree, so there is no
+                duplicate-link cost. (01#2, corrects 05#47) */}
+            <nav aria-label="Site links" className="pb-6">
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1 sm:hidden">
+                {FOOTER_COLUMNS.map((column, index) => (
+                  // NOT `display: grid` on the <details> itself — that makes
+                  // every child a grid item and the UA stops collapsing the
+                  // closed content, which silently defeats the disclosure.
+                  <details
+                    key={column.heading}
+                    open={index === 0}
+                    className="group block content-start"
+                  >
+                    <summary className="focus-ring eyebrow flex min-h-11 cursor-pointer list-none items-center justify-between rounded-full px-3">
+                      {column.heading}
+                      <span
+                        aria-hidden="true"
+                        className="text-muted-foreground group-open:rotate-180"
+                      >
+                        ▾
+                      </span>
+                    </summary>
+                    <FooterLinkList column={column} />
+                  </details>
+                ))}
+              </div>
+              <div className="hidden gap-6 gap-y-2 sm:grid sm:grid-cols-4">
+                {FOOTER_COLUMNS.map((column) => (
+                  <div
+                    key={column.heading}
+                    className="grid content-start gap-1"
+                  >
+                    <p className="eyebrow px-3 pb-1">{column.heading}</p>
+                    <FooterLinkList column={column} />
+                  </div>
+                ))}
+              </div>
             </nav>
+
             <div className="flex flex-col items-center gap-3 border-t-2 border-dashed border-border pt-6 sm:flex-row sm:justify-between">
               <FooterIdentity withMotto />
               <FooterLegalNav />
@@ -177,6 +184,26 @@ export function MarketingLayout({
         )}
       </footer>
     </div>
+  )
+}
+
+function FooterLinkList({ column }: { column: FooterColumn }) {
+  return (
+    <ul className="grid justify-items-start gap-0.5">
+      {column.links.map((link) => (
+        <li key={link.href}>
+          {link.href.startsWith("mailto:") ? (
+            <a className={footerLinkClass} href={link.href}>
+              {link.label}
+            </a>
+          ) : (
+            <Link className={footerLinkClass} href={link.href}>
+              {link.label}
+            </Link>
+          )}
+        </li>
+      ))}
+    </ul>
   )
 }
 
