@@ -256,3 +256,16 @@ what a 390px phone already renders it at after gutters — and the card track is
 375px, wider than the phone rendering it replaces.
 
 Nothing in this campaign is now deferred for lack of a browser.
+
+### A third stale blocker (02#33)
+
+The customer lane recorded 02#33's counter-mode half as blocked because "there is
+no web brightness API". True — and the finding itself asks for brightness "or at
+minimum a presentation mode". The impossible half was allowed to block the
+possible one, and the merchant console had shipped the equivalent
+(`present-qr.tsx`) since launch while the member holding the code had nothing.
+
+That is now three findings closed by re-testing a recorded blocker rather than
+writing new analysis: 03#49 (a measurement that was half wrong), 01#12 (a
+constraint that had dissolved), 02#33 (one impossible half blocking a possible
+one). It is worth treating "blocked" notes as claims with a shelf life.
