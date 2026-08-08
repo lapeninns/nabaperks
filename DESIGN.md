@@ -104,8 +104,16 @@ not required at runtime and is no longer mirrored in the repo; use this guide,
 implementation references.
 
 - **Value before friction, in copy too.** "Your first stamp is waiting."
-  leads; signup language is banned — it's "Keep your card", "Save my card",
-  "one text, no password". Never "register", "create an account".
+  leads; **in the customer lane** signup language is banned — it's "Keep your
+  card", "Save my card", "one text, no password". Never "register", "create an
+  account". `customer-join-frictionless-ux` pins that wording on the join form.
+
+  The ban is scoped to the customer lane on purpose (DS 05#56). A merchant is
+  opening a business account with an email and a password; "Save my card" would
+  be untrue there, and "Create account" is the plain description of what the
+  button does. Applying the customer rule to the merchant lane would trade an
+  honest label for a friendlier one, which is the opposite of the intent.
+
 - **Celebrate in few words.** "That's one." · "Enjoy." Short declaratives at
   emotional peaks; **no exclamation marks, no emoji**.
 - **Receipt voice** (Space Mono, uppercase) for facts: "CARD Nº OC-0248",

@@ -244,11 +244,11 @@ function BenefitStep({
             <label
               key={preset.kind}
               className={cn(
-                "focus-ring-within flex h-full cursor-pointer gap-3 rounded-lg border-[1.5px] border-border bg-card p-3 transition-[border-color,background-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] has-checked:border-ink has-checked:bg-secondary/50 motion-reduce:transition-none",
+                "focus-ring-within flex h-full cursor-pointer gap-3 rounded-lg border-2 border-border bg-card p-3 transition-[border-color,background-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] has-checked:border-ink has-checked:bg-secondary/50 motion-reduce:transition-none",
                 unavailable && "cursor-not-allowed opacity-60"
               )}
             >
-              <span className="grid size-9 shrink-0 place-items-center rounded-full border-[1.5px] border-ink bg-secondary text-foreground">
+              <span className="grid size-9 shrink-0 place-items-center rounded-full border-2 border-ink bg-secondary text-foreground">
                 <Icon icon={preset.icon} size={16} />
               </span>
               <span className="grid min-w-0 flex-1 gap-0.5">
@@ -623,7 +623,7 @@ function StepTrack({ current }: { current: OfferCreatorStep }) {
           <span
             aria-current={index === currentIndex ? "step" : undefined}
             className={cn(
-              "mono-meta rounded-full border-[1.5px] px-2.5 py-1 whitespace-nowrap",
+              "mono-meta rounded-full border-2 px-2.5 py-1 whitespace-nowrap",
               index === currentIndex
                 ? "border-ink bg-ink text-paper"
                 : index < currentIndex

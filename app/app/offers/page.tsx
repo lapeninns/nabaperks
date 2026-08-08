@@ -168,7 +168,7 @@ function OffersEmptyState() {
           {OFFER_BENEFIT_PRESETS.map((preset) => (
             <li
               key={preset.kind}
-              className="grid w-60 shrink-0 snap-start content-start gap-1.5 rounded-lg border-[1.5px] border-border bg-card p-3 sm:w-auto sm:min-w-0 sm:p-4"
+              className="grid w-60 shrink-0 snap-start content-start gap-1.5 rounded-lg border-2 border-border bg-card p-3 sm:w-auto sm:min-w-0 sm:p-4"
             >
               <span className="flex items-center gap-2">
                 <Icon icon={preset.icon} size={16} />

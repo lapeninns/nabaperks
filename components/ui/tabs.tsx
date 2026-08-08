@@ -49,7 +49,7 @@ function TabsTrigger({
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
       className={cn(
-        "pressable focus-ring mono-meta inline-flex shrink-0 items-center justify-center rounded-full border-[1.5px] border-ink bg-card px-3.5 py-1.5 whitespace-nowrap text-ink-soft outline-none",
+        "pressable focus-ring mono-meta inline-flex shrink-0 items-center justify-center rounded-full border-2 border-ink bg-card px-3.5 py-1.5 whitespace-nowrap text-ink-soft outline-none",
         // Compact 36px pill on fine pointers; the .pressable 44px tap floor is
         // restored on coarse pointers, mirroring FilterPills.
         "min-h-9 [@media(pointer:coarse)]:min-h-11",
