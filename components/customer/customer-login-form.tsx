@@ -67,22 +67,17 @@ export function CustomerLoginForm({ next }: CustomerLoginFormProps) {
           <StatusBanner tone="error" title={formError} />
         ) : null}
         {state.message ? (
-          // The Wet Ink success face (2px ink, reward wash) rather than a 1px
-          // border-reward/30 box — a 1px border in a 2px system, in a colour
-          // that appears nowhere else, reading as ghosted rather than
-          // confirmed (CUS 02#40). This is not StatusBanner because that face
-          // carries role="alert"; "we sent your code" is a polite status, not
-          // an interruption, so the live region stays as it was.
-          <div
-            role="status"
-            aria-live="polite"
-            className="grid gap-1 rounded-lg border-2 border-ink bg-reward/12 px-3 py-2 text-sm text-foreground"
-          >
-            <p>{state.message}</p>
-            <p className="text-xs leading-5">
-              If it does not arrive, check the number and resend the code.
-            </p>
-          </div>
+          // The shared success face, not a hand-rolled box (CUS 02#40). The
+          // earlier note here refused StatusBanner because "that face carries
+          // role=alert" — that has not been true since 05#28: StatusBanner maps
+          // tone -> role, and `success` resolves to role="status" with
+          // aria-live="polite" (components/loyalty/status-banner.tsx toneRole).
+          // So "we sent your code" still queues politely, and it now carries the
+          // 2px ink border, the reward wash and the success glyph every other
+          // confirmation in the product uses.
+          <StatusBanner tone="success" title={state.message}>
+            If it does not arrive, check the number and resend the code.
+          </StatusBanner>
         ) : null}
         {/* The field stays mounted (hidden) rather than unmounted, so the
             resend submits the same number without the member retyping it. */}

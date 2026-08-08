@@ -71,7 +71,12 @@ function CustomerQrScannerLoading({
           and the loader must not flash a pair of exits that the loaded state
           will not render (CUS 02#60). */}
       {hasAppNavigation ? null : (
-        <div className="grid gap-3 sm:grid-cols-2">
+        // And matching means matching the GRID too. The loaded scanner dropped
+        // `sm:grid-cols-2` when it was measured producing two 173px buttons in
+        // a 358px row at an 800px viewport; this copy kept it, so above 640px
+        // the loader drew a two-up row that the loaded state then re-stacked —
+        // the first-paint jump the comment above exists to prevent (CUS 02#6).
+        <div className="grid gap-3">
           <Button asChild variant="secondary" className="w-full">
             <Link href="/start">Back to start</Link>
           </Button>

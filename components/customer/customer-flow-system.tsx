@@ -210,7 +210,11 @@ export function CustomerReceipt({
       className={cn("grid gap-4", className)}
       data-edge-class="receipt-edge"
     >
-      <div className="flex min-w-0 items-start justify-between gap-3 sm:gap-4">
+      {/* One gap, not a viewport-scoped one. `sm:gap-4` widened this row by 4px
+          at a 640px VIEWPORT while the customer column stayed 410px wide — the
+          wrong axis, and the last inner viewport variant left inside the capped
+          column (CUS 02#6). */}
+      <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="grid min-w-0 gap-1 text-left">
           {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
           {title ? (

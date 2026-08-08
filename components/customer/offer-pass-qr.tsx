@@ -78,10 +78,16 @@ export function OfferPassQr({
     <div className="grid gap-3">
       {/* Capped so the helper banner and the fresh-code button stay above the
           fold at the counter; the code inside scales up crisply because the
-          route renders it at full resolution. */}
+          route renders it at full resolution.
+
+          One cap, not a viewport-scoped pair. `sm:max-w-[18rem]` grew the code
+          to 288px at a 640px VIEWPORT while the customer column stayed 410px —
+          so the phone at the counter, the only device that ever shows this,
+          got the 256px code and a desktop browser simulating a phone got the
+          big one (CUS 02#6). The phone value is the real one. */}
       <QrFrame
         label={`Staff-scan QR for your ${discountPercent}% pass`}
-        className="mx-auto w-full max-w-[16rem] sm:max-w-[18rem]"
+        className="mx-auto w-full max-w-[16rem]"
       >
         <div className="relative aspect-square w-full">
           {loaded ? null : (
