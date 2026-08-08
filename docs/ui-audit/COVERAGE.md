@@ -664,3 +664,24 @@ evidence of it and the likely candidates are the time-sensitive suites
 
 Saying "it passed on re-run" and moving on is exactly the habit this campaign
 has spent thirty turns arguing against.
+
+### A blocker that was wrong AND right
+
+03#3's note said the readiness chip and Members count "need server state the
+shell deliberately does not take". Half of that is false: `app/app/layout.tsx`
+already renders `MerchantSetupReminder` inside `<Suspense>`, an async server
+component that calls `getMerchantLaunchReadiness()`. The data is in the shell's
+subtree today; a chip would need a slot prop, not an architecture change.
+
+But the conclusion still holds, for a better reason. That reminder panel already
+shows readiness on every console route while launch is incomplete. Adding a
+sidebar chip would make three representations of one fact — panel, chip, and the
+Setup nav group — which is precisely what 03#43 spent its effort removing from
+the readiness panel.
+
+So the right note is not "we cannot" but "we should not, and here is what would
+happen if we did". The Members count remains genuinely blocked: it needs a
+per-render count query the console does not run.
+
+Worth remembering that a wrong reason can still guard a right decision, and that
+checking it is what tells you which one you have.
