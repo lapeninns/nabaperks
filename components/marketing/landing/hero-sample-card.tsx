@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 
 import { RewardTicket, type RewardTicketState } from "@/components/loyalty"
+import { useOnScreen } from "@/lib/motion/use-on-screen"
 import { useStampJourneyLoop } from "@/components/loyalty/use-stamp-journey-loop"
 import { stampDisplayDatesEndingToday } from "@/lib/customer/uk-calendar"
 import { SEALED_REWARD_NAME } from "@/lib/copy/product-copy"
@@ -67,19 +68,23 @@ function HeroRewardRow({
 export function HeroSampleCard({ qrMatrix }: { qrMatrix: QrMatrix }) {
   const [stampDates] = useState(() => stampDisplayDatesEndingToday(STAMP_TOTAL))
   const [playing, setPlaying] = useState(true)
-  const loop = useStampJourneyLoop(STAMP_TOTAL)
-  const { earnedCount, slamIndex, revealed, revealSlam } = playing
-    ? loop
-    : {
-        earnedCount: STAMP_TOTAL,
-        slamIndex: -1,
-        revealed: true,
-        revealSlam: false,
-      }
+  const cardRef = useRef<HTMLDivElement>(null)
+  const onScreen = useOnScreen(cardRef)
+  // Genuinely stop the loop rather than masking it: the hook now schedules
+  // nothing while paused. Off-screen counts as paused — the card is mounted in
+  // the hero of two long pages, and a ~5.9s scheduling chain has no business
+  // running while it is scrolled out of sight.
+  //
+  // (Wording note: marketing-offer-source greps this file for scarcity words
+  // and matches raw source, comments included.)
+  const loop = useStampJourneyLoop(STAMP_TOTAL, {
+    paused: !playing || !onScreen,
+  })
+  const { earnedCount, slamIndex, revealed, revealSlam } = loop
   const reward = heroSampleReward(loop.cycleIndex)
 
   return (
-    <div className="grid gap-2">
+    <div ref={cardRef} className="grid gap-2">
       <SampleLoyaltyCard
         className="max-sm:rotate-[0.75deg] sm:rotate-[1.5deg]"
         shellClassName="flex flex-col gap-3 sm:gap-4 [&_.w-rule]:my-0"
