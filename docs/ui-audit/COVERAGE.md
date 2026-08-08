@@ -14,14 +14,14 @@ branch is green after every merge.
 
 | Report           | Tracked |    Done | Partial |  Stale |   Open |
 | ---------------- | ------: | ------: | ------: | -----: | -----: |
-| 01 marketing     |      69 |      42 |      18 |      3 |      6 |
-| 02 customer      |      70 |      52 |      14 |      2 |      2 |
-| 03 merchant      |      67 |      44 |      16 |      5 |      2 |
-| 04 admin         |      74 |      54 |       9 |      9 |      2 |
-| 05 design system |      67 |      61 |       3 |      1 |      2 |
-| **Total**        | **347** | **253** |  **60** | **20** | **14** |
+| 01 marketing     |      69 |      48 |      12 |      3 |      6 |
+| 02 customer      |      70 |      54 |      12 |      2 |      2 |
+| 03 merchant      |      67 |      49 |      12 |      4 |      2 |
+| 04 admin         |      74 |      59 |       4 |      9 |      2 |
+| 05 design system |      67 |      63 |       3 |      0 |      1 |
+| **Total**        | **347** | **273** |  **43** | **18** | **13** |
 
-## "Stale" is a real category (20 findings)
+## "Stale" is a real category (18 findings)
 
 Not reproducible against the current tree, and recorded rather than invented
 into a change. Examples: `border-[1.5px]` no longer exists (03#25); both
