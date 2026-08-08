@@ -3,7 +3,7 @@
 import { useEffect, useRef, useTransition, type ReactNode } from "react"
 import Link from "next/link"
 
-import { VenueMark } from "@/components/brand"
+import { Logo } from "@/components/brand"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import { retryButtonState } from "@/lib/customer/experience/retry-button"
@@ -47,7 +47,15 @@ export function CustomerErrorState({
       role="alert"
       className="focus-target grid justify-items-center gap-5 rounded-lg text-center"
     >
-      <VenueMark size={56} name="Nabaperks" caption="Nabaperks" />
+      {/* The product wordmark, not a VenueMark. This surface fronts card, scan
+          and login failures, and a 56px venue roundel captioned "Nabaperks"
+          read as though Nabaperks were the venue whose card had just failed —
+          on /card/[membershipId] the member's venue is someone else entirely
+          (CUS 02#68). An error boundary is handed only `error` and `reset`, so
+          the real venue name is not available to it without a fetch on a path
+          that has already failed. Naming no venue is honest; naming the wrong
+          one is not. */}
+      <Logo href="/home" linked={false} />
       <StatusBanner title={title} tone="error" className="w-full text-center">
         {description}
       </StatusBanner>
