@@ -253,8 +253,71 @@ export function AdminLookupPagination({
         >
           Last
         </PageLink>
+        {/* Jump straight to a page. First/Last cut the worst case, but with 25
+            rows against a 999-page ceiling the middle of a long list was still
+            a walk (04#56).
+
+            A plain GET `next/form` rather than a client control: this is a
+            server component, the destination is the same link these buttons
+            already produce, and the page number belongs in the URL. It works
+            with JS off, like AdminConfirmCheck.
+
+            The other params ride as hidden fields because a next/form submit
+            rebuilds the query string from the form's own inputs — the same
+            reason AdminLookupForm takes `hiddenParams`. They are derived from
+            the href the pagination is already given, so there is no new prop
+            and nothing for a caller to forget. */}
+        {meta.pageCount > 2 ? (
+          <Form
+            action={pageFormAction(hrefForPage)}
+            className="flex items-center gap-2"
+          >
+            {pageFormHiddenParams(hrefForPage).map(([name, value]) => (
+              <input key={name} type="hidden" name={name} value={value} />
+            ))}
+            <label
+              htmlFor="admin-page-jump"
+              className="mono-meta whitespace-nowrap text-muted-foreground"
+            >
+              Go to
+            </label>
+            <Input
+              id="admin-page-jump"
+              type="number"
+              name="page"
+              min={1}
+              max={meta.pageCount}
+              defaultValue={meta.page}
+              aria-label={`Go to page, 1 to ${meta.pageCount}`}
+              className="numeric-tabular h-9 w-20"
+            />
+            <Button type="submit" size="sm" variant="secondary">
+              Go
+            </Button>
+          </Form>
+        ) : null}
       </div>
     </nav>
+  )
+}
+
+/**
+ * The path a page link points at, without its query string — the action for the
+ * page-jump form. Derived from `hrefForPage` so the pagination needs no extra
+ * prop and cannot be pointed at the wrong route by a caller.
+ */
+function pageFormAction(hrefForPage: (page: number) => string): string {
+  return hrefForPage(1).split("?")[0] ?? ""
+}
+
+/** Every query param except `page`, to re-submit as hidden fields. */
+function pageFormHiddenParams(
+  hrefForPage: (page: number) => string
+): ReadonlyArray<readonly [string, string]> {
+  const query = hrefForPage(1).split("?")[1] ?? ""
+
+  return Array.from(new URLSearchParams(query).entries()).filter(
+    ([name]) => name !== "page"
   )
 }
 
