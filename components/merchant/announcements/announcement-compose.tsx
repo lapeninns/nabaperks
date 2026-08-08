@@ -25,6 +25,30 @@ import type { AnnouncementTemplate } from "@/lib/notifications/announcement-temp
 const TITLE_LIMIT = 80
 const BODY_LIMIT = 180
 
+/**
+ * How many characters a paste would lose to the field's `maxLength`.
+ *
+ * `maxLength` truncates a paste in the browser with no event, no message and no
+ * visible difference from a paste that fitted — the exact defect 03#55 reports
+ * ("a merchant pasting a longer message loses the tail without being told").
+ * Removing `maxLength` is not available: it is pinned by
+ * `tests/contracts/merchant-venue-announcements-ui`. So the limit stays hard
+ * and the silence goes: this measures the loss at paste time from the value,
+ * the selection the paste replaces, and the clipboard text.
+ */
+function charactersLostToPaste(
+  target: HTMLInputElement | HTMLTextAreaElement,
+  pasted: string,
+  limit: number
+): number {
+  const selectionStart = target.selectionStart ?? target.value.length
+  const selectionEnd = target.selectionEnd ?? target.value.length
+  const replaced = Math.max(0, selectionEnd - selectionStart)
+  const room = limit - (target.value.length - replaced)
+
+  return Math.max(0, pasted.length - Math.max(0, room))
+}
+
 function subscribeToHydration(callback: () => void) {
   const frameId = window.requestAnimationFrame(callback)
 
@@ -93,6 +117,8 @@ export function AnnouncementCompose({
   const [pending, setPending] = useState(false)
   const [result, setResult] = useState<AnnouncementSubmitResult | null>(null)
   const [sentToday, setSentToday] = useState(dailyUsage.used)
+  const [titleTrimmed, setTitleTrimmed] = useState(0)
+  const [bodyTrimmed, setBodyTrimmed] = useState(0)
   const quickFillReady = useHydrated()
 
   const trimmedTitle = title.trim()
@@ -143,6 +169,8 @@ export function AnnouncementCompose({
         // "skipped").
         setTitle("")
         setBody("")
+        setTitleTrimmed(0)
+        setBodyTrimmed(0)
       } else if (nextResult.error === "rate_limited") {
         setSentToday(dailyUsage.limit)
       }
@@ -239,9 +267,27 @@ export function AnnouncementCompose({
           value={title}
           maxLength={80}
           required
-          aria-describedby={`${fieldId}-title-count`}
+          aria-describedby={cn(
+            `${fieldId}-title-count`,
+            titleTrimmed > 0 && `${fieldId}-title-trimmed`
+          )}
           placeholder="Kitchen open from noon"
+          onPaste={(event) =>
+            setTitleTrimmed(
+              charactersLostToPaste(
+                event.currentTarget,
+                event.clipboardData.getData("text"),
+                TITLE_LIMIT
+              )
+            )
+          }
           onChange={(event) => setTitle(event.currentTarget.value)}
+        />
+        <PasteTrimNotice
+          id={`${fieldId}-title-trimmed`}
+          trimmed={titleTrimmed}
+          length={title.length}
+          limit={TITLE_LIMIT}
         />
       </div>
 
@@ -261,9 +307,27 @@ export function AnnouncementCompose({
           value={body}
           maxLength={180}
           required
-          aria-describedby={`${fieldId}-body-count`}
+          aria-describedby={cn(
+            `${fieldId}-body-count`,
+            bodyTrimmed > 0 && `${fieldId}-body-trimmed`
+          )}
           placeholder="Fresh pies, cask ale, and a few tables free for lunch."
+          onPaste={(event) =>
+            setBodyTrimmed(
+              charactersLostToPaste(
+                event.currentTarget,
+                event.clipboardData.getData("text"),
+                BODY_LIMIT
+              )
+            )
+          }
           onChange={(event) => setBody(event.currentTarget.value)}
+        />
+        <PasteTrimNotice
+          id={`${fieldId}-body-trimmed`}
+          trimmed={bodyTrimmed}
+          length={body.length}
+          limit={BODY_LIMIT}
         />
       </div>
 
@@ -313,6 +377,48 @@ export function AnnouncementCompose({
         </Button>
       </FormActionBar>
     </form>
+  )
+}
+
+/**
+ * The paste-was-trimmed line (03#55, remaining half).
+ *
+ * Rendered only while the paste's loss is still on screen: `trimmed > 0` says a
+ * paste overflowed, and `length >= limit` says the merchant has not yet edited
+ * the field back under the ceiling. Deleting a character clears it without any
+ * extra bookkeeping, so a stale "70 characters were removed" cannot outlive the
+ * text it describes.
+ *
+ * `role="status"` rather than `role="alert"`: the merchant has just pasted and
+ * is looking at the field, and this file's counter deliberately avoids
+ * interrupting the composer mid-thought.
+ */
+function PasteTrimNotice({
+  id,
+  trimmed,
+  length,
+  limit,
+}: {
+  readonly id: string
+  readonly trimmed: number
+  readonly length: number
+  readonly limit: number
+}) {
+  if (trimmed <= 0 || length < limit) {
+    return null
+  }
+
+  return (
+    <p
+      id={id}
+      role="status"
+      className="text-xs leading-5 font-semibold text-destructive"
+    >
+      {trimmed === 1
+        ? "1 character was removed"
+        : `${trimmed} characters were removed`}{" "}
+      to fit the {limit}-character limit. Edit the text to keep what matters.
+    </p>
   )
 }
 
