@@ -18,8 +18,8 @@ branch is green after every merge.
 | 02 customer      |      70 |      54 |      12 |      2 |      2 |
 | 03 merchant      |      67 |      51 |      10 |      4 |      2 |
 | 04 admin         |      74 |      60 |       3 |      9 |      2 |
-| 05 design system |      67 |      63 |       3 |      0 |      1 |
-| **Total**        | **347** | **277** |  **39** | **18** | **13** |
+| 05 design system |      67 |      64 |       2 |      0 |      1 |
+| **Total**        | **347** | **278** |  **38** | **18** | **13** |
 
 ## "Stale" is a real category (18 findings)
 

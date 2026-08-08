@@ -1,9 +1,33 @@
+/**
+ * The next-themes bootstrap script is inlined WITHOUT a nonce (next-themes only
+ * emits one when the `nonce` prop is passed, and it is not), so `script-src-elem`
+ * has to allow it by hash. The script body is
+ * `(${themeScriptFn.toString()})(${argsFromNEXT_THEMES_OPTIONS})`, which means
+ * it differs per BUNDLER as well as per option — three render paths, three pins:
+ *
+ * | constant                              | render path                                    |
+ * | ------------------------------------- | ---------------------------------------------- |
+ * | `NEXT_THEMES_SCRIPT_SHA256`           | `pnpm build` — webpack, minified                |
+ * | `NEXT_THEMES_SERVER_RENDER_SCRIPT_..` | `react-dom/server` against `dist/index.mjs`     |
+ * | `NEXT_THEMES_APP_RENDER_SCRIPT_..`    | `pnpm dev` — Turbopack, pretty-printed          |
+ *
+ * All three are reproducible, and `tests/unit/csp-theme-hash.test.mjs` proves it:
+ * it recomputes the server-render hash from the REAL `NEXT_THEMES_OPTIONS`, and
+ * checks the other two against stored script bodies whose argument tail must
+ * equal the one that render produces. Change an option and all three fail
+ * together, which is the point — a stale pin means CSP silently blocks the theme
+ * bootstrap in production.
+ *
+ * Re-pinned for `enableSystem: false` (UI audit 05#61) by reading each path back:
+ * the webpack hash from `.next/server/app/index.html`, the Turbopack hash from a
+ * page served by `next dev`, the server-render hash from the unit test.
+ */
 export const NEXT_THEMES_SCRIPT_SHA256 =
-  "sha256-G04KaBzNliDSI5Rx3yKGSBrkZtxusQxAU2jyz3KK2Vc="
+  "sha256-fmWL2jTM+6Ab6Cg2xBGZEexjPaIbQaL1iq1lIRptVjQ="
 export const NEXT_THEMES_SERVER_RENDER_SCRIPT_SHA256 =
-  "sha256-J1wQB5qnh90IAwdc5uHGmBFTTupFNURrdioqoKFQF0w="
+  "sha256-UB8ZQDPPx/Vb2cqBe4pW3j8hm5RWjlg5zlcRw0uxtiE="
 export const NEXT_THEMES_APP_RENDER_SCRIPT_SHA256 =
-  "sha256-BgBkXHgyVZ0ON/UalzXrbnvY5QVt+gqIrRnCdrvAxmk="
+  "sha256-Gu0tYVCPSmBXLHFn2zKK5xeY4pDsVm8NV02PSiKFnj4="
 
 const NEXT_THEMES_SCRIPT_HASHES: readonly string[] = [
   NEXT_THEMES_SCRIPT_SHA256,

@@ -16,7 +16,7 @@
 export const NEXT_THEMES_OPTIONS = {
   attribute: "class",
   defaultTheme: "light",
-  enableSystem: true,
+  enableSystem: false,
   disableTransitionOnChange: true,
   storageKey: "nabaperks-theme",
 } as const

@@ -89,57 +89,80 @@ pre-themed latent state must not be strippable. Trading a contract's safety
 property for source tidiness is a bad trade at this scale, and the two
 declarations that mattered are already gone.
 
-## 6. The CSP theme-hash test cannot detect provider drift (found during 05#61)
+## 6. ~~The CSP theme-hash test cannot detect provider drift~~ — RESOLVED (05#61)
 
 `lib/security/csp.ts` pins three SHA-256 hashes for the next-themes bootstrap
-script. `tests/unit/csp-theme-hash.test.mjs` verifies the pin — but it builds
-its **own** config literal:
+script. This section recorded two prerequisites before 05#61 could be actioned.
+Both are now done, and both of the things that made step 2 look impossible were
+wrong.
 
-```js
-{ attribute: "class", defaultTheme: "light", enableSystem: true, ... }
-```
+### The three hashes are three BUNDLERS, not three unreachable render paths
 
-rather than reading `components/theme-provider.tsx`. So if the real provider's
-props change, the injected script changes, the pinned hash goes stale, CSP
-blocks the theme script in production — **and the suite stays green**.
+The body next-themes inlines is `(${themeScriptFn.toString()})(${args})`, and
+`toString()` returns whatever the active bundler emitted. So the hash differs
+per bundler as well as per option:
 
-Measured while attempting 05#61:
+| constant                                  | render path                                 |
+| ----------------------------------------- | ------------------------------------------- |
+| `NEXT_THEMES_SCRIPT_SHA256`               | `pnpm build` — webpack, minified            |
+| `NEXT_THEMES_SERVER_RENDER_SCRIPT_SHA256` | `react-dom/server` against `dist/index.mjs` |
+| `NEXT_THEMES_APP_RENDER_SCRIPT_SHA256`    | `pnpm dev` — SWC, pretty-printed            |
 
-| provider config                                | script SHA-256                                        |
-| ---------------------------------------------- | ----------------------------------------------------- |
-| `enableSystem: true` (current, pinned)         | `sha256-J1wQB5qnh90IAwdc5uHGmBFTTupFNURrdioqoKFQF0w=` |
-| `enableSystem: false` (audit's recommendation) | `sha256-UB8ZQDPPx/Vb2cqBe4pW3j8hm5RWjlg5zlcRw0uxtiE=` |
+The earlier note said `SERVER_RENDER` and `APP_RENDER` "come from render paths
+needing live credentials". They do not need credentials or authentication at
+all: `APP_RENDER` is what `next dev` serves on **any** page, including `/login`.
+Both dev modes agree — `next dev` (Turbopack) and `next dev --webpack`, which is
+what `playwright.config.ts` boots, emit byte-identical bodies.
 
-### Update: prerequisite 1 is now done
+Confirming that took one wrong turn worth recording. Enumerating every next-themes
+bootstrap function text in the whole build output (server chunks, client chunks,
+`dist/index.mjs`, `dist/index.js`) and hashing each with the real options produced
+five candidates, two of which matched pins — so `APP_RENDER` looked like a **stale
+pin for a build artefact that no longer exists**, and the tempting conclusion was
+that it could be dropped. It could not: it is the dev-server hash, and dropping it
+would have broken the theme bootstrap in every local run and every Playwright run.
+An exhaustive search over the artefacts you thought of is not an exhaustive search.
 
-`NEXT_THEMES_OPTIONS` lives in `lib/theme/next-themes-options.ts` and is
-imported by both the provider and the test, so the config and the pin cannot
-drift apart. Verified by flipping `enableSystem` to false — the exact 05#61
-change — which now FAILS the hash assertion instead of passing silently.
+### Both prerequisites are done
 
-Remaining before 05#61 can be actioned:
+1. ~~Make the test import the real provider config.~~ Done earlier —
+   `NEXT_THEMES_OPTIONS` lives in `lib/theme/next-themes-options.ts`.
+2. ~~Re-pin all three hashes together.~~ Done, each by reading its own path back:
+   the webpack hash from `.next/server/app/index.html`, the dev hash from a page
+   served by `next dev`, the server-render hash from the unit test. Then verified
+   end-to-end in both servers: the script each one actually serves hashes to its
+   pin **and** appears in that same response's `script-src-elem`.
 
-1. ~~Make the test import the real provider config.~~ Done.
-2. Re-pin all three hashes together — `NEXT_THEMES_SCRIPT_SHA256`,
-   `..._SERVER_RENDER_...` and `..._APP_RENDER_...` cover different render
-   paths, and only the server-render one is trivially reproducible.
+`tests/unit/csp-theme-hash.test.mjs` now stores the two bundler bodies and asserts
+each one's argument tail equals the tail the real library produces from the live
+`NEXT_THEMES_OPTIONS`. Change an option and all three fail together, which is the
+behaviour this section asked for. Sabotage-checked four ways: flipping
+`enableSystem`, changing `storageKey`, corrupting one byte of a stored body, and
+duplicating two pins each fail it; all four restore clean.
 
-This is security configuration, so it wants a deliberate change with a staging
-readback, not a drive-by edit.
+### A correction: this section overstated the defect
 
-I attempted step 2 independently and stopped: serving a production build and
-hashing its inline scripts reproduced `NEXT_THEMES_SCRIPT_SHA256` exactly, which
-proves the method, but `SERVER_RENDER` and `APP_RENDER` come from render paths
-needing live credentials. Two of three unverifiable is not a margin worth taking
-on a security header. The table above already carries the measured
-`enableSystem: false` server-render hash.
+The previous text said "the defect is real and High. `enableSystem` is on, so an
+OS-dark user gets `.dark` applied". **That is false**, measured in Chromium at
+`colorScheme: dark` against a production build with `enableSystem: true`:
+`documentElement.className` is `light` and the body ground stays
+`rgb(246, 241, 230)`. The bootstrap only consults `prefers-color-scheme` when the
+stored or default theme is the literal string `"system"`, and `defaultTheme` is
+`"light"`; nothing in the product ever calls `setTheme("system")`.
 
-Worth noting for the record: the defect is real and High. `enableSystem` is on,
-so an OS-dark user gets `.dark` applied against a palette with exactly three
-`dark:` variants in the product, and DESIGN.md calls dark "a dormant capability…
-no user-facing toggle exists and none is planned". The dark-preview hotkey is
-already unreachable (nothing passes `enableHotkey`), so forcing light costs the
-catalogue nothing.
+So 05#61 shipped as **defence-in-depth, not a live-bug fix** — it removes one of
+the two conditions rather than a reachable dark render. The finding's own wording
+was the accurate one ("one config flag away"); this section's paraphrase of it was
+not. The `/dev/design-system` toggle still reaches `.dark` explicitly, verified
+after the change.
+
+### Rejected: pass a nonce instead of pinning hashes
+
+next-themes accepts a `nonce` prop, which would let CSP drop all three hashes.
+Rejected: the nonce lives in a request header, so `app/layout.tsx` would have to
+call `headers()`, which makes the root layout dynamic and de-optimises every
+prerendered marketing page — a much larger regression than the problem, and it
+collides with the LCP work in section 10.
 
 ## 7. 01#49 — a measured CLS 0.19 on the SEO hub, held open by one assertion
 
@@ -478,6 +501,31 @@ the visual baselines — which is the API sprawl 05#7 criticises, arriving as a
 fix. If you want the abstraction anyway, as a named place to change console
 rhythm later, that is a reasonable call and it is one commit; I am not making it
 on the strength of a premise that measurement does not support.
+
+### Re-measured independently, and two wordings corrected
+
+The gap table and the console `py-*` spread above both reproduce exactly. Two
+things in the prose do not, and neither changes the decision:
+
+- **"41 of 47 page-level grids" is loose.** 47 is 41 `gap-6` + 6 `gap-5`, and it
+  reads as though six page-level grids deviate. Only one does — the other five
+  `gap-5` sites are an inverted QR panel, two responsive step-ups from `gap-3`
+  inside `launch`, and two `ReceiptCard`s. The honest figure is **41 of 42**,
+  which is a stronger argument for declining, not a weaker one.
+- **"26 distinct `py-*`" is now 18 tree-wide.** Measured across `app` and
+  `components` with a class-boundary-anchored pattern. A naive `py-` grep returns
+  23 and five of those are false positives from `copy-to-clipboard`,
+  `copy-url-button`, `copy-field`, `copy-drift` and a stray `py-10)`.
+
+Two additions to the evidence:
+
+- `gap-8` and `space-y-*` appear **zero** times in `app/app` and `app/admin`, so
+  the finding's "every page then adds its own `grid gap-6` / `gap-8` /
+  `space-y-4`" describes drift that is not there.
+- The finding names **three** shells and 03#1 unified two. `customer-app-shell`
+  is still `px-4 pt-6 sm:px-6` plus the tab-bar clearance, which is correct for a
+  410px capped column with a fixed bottom bar and is not console rhythm. Worth
+  stating so the shell half is not read as covering all three.
 
 ## 15. 01#54 — the hero half of the type scale
 
