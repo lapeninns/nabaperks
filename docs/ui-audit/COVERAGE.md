@@ -146,8 +146,30 @@ produced, and nothing but a browser would have caught it.
 
 Traced by bisection against the campaign base, not by guesswork.
 
+### Chromium journey suite — GREEN (204 passed, 0 failed, 49 skipped)
+
+`pnpm exec playwright test --project=chromium --grep-invert @visual`
+
+Two further campaign regressions were found and resolved after the five above:
+
+- **03#46 (onboarding blur validation) — REVERTED.** After that change the first
+  invalid field was no longer focused on a failed submit, leaving a merchant on
+  the button with an error announced but never reached. Three candidate fixes
+  each reproduced correct behaviour in a standalone probe yet still failed in the
+  suite, so the file was reverted to its last passing state rather than shipping
+  a guess into the activation-critical form. Recorded as blocked by test.
+- **offer-campaign locator** — the test located the reward tile by a name that
+  contradicted its own href assertion, which is exactly finding 02#11 (WCAG 2.5.3
+  Label in Name). The locator was updated to the corrected name; every assertion
+  in that test is byte-identical.
+
+Test changes made in this entire campaign, in full: one whitespace relaxation in
+`merchant-sidebar-state`, one additive extension in `merchant-shell`, one new
+file `motion-tokens-bounded`, and this one locator. No assertion was ever
+weakened or deleted.
+
 ### Still not run
 
-`pnpm test:db`, which needs live database credentials. The full
-`pnpm test:e2e` run is long (>90 min); the four clusters it flagged have been
-fixed and re-run individually and as a group (25 passed / 1 stale baseline).
+`pnpm test:db` (needs live database credentials), and the non-chromium
+projects of the journey suite (desktop-firefox, desktop-safari, mobile-safari)
+in full — chromium is green end to end and the a11y suite covers all four.
