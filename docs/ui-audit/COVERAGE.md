@@ -469,3 +469,21 @@ not the campaign's own documents. NEEDS-SIGNOFF is 500 lines across sixteen
 sections written over many turns, and it is now the second most likely place for
 a prior answer to already exist. Read it before investigating anything it might
 cover.
+
+### A fourth blocker tell: "needs X" where X already exists
+
+02#43's remaining half was recorded as needing "client state and a decision on
+the 40-item default". `ShowMoreList` already existed, already used by DataTable
+and admin/pilot, with a docblock saying server components can hand it
+pre-rendered nodes. No state to write, no default to decide.
+
+04#6 was the same shape one level down: the fraud loader already requested
+`{ count: "exact" }` and already returned `flagTotal`, and no surface read it.
+The data an operator needed was being fetched and discarded.
+
+So the tells now number four. A blocker is worth re-testing when it:
+
+1. names a FILE or an OWNER rather than a behaviour ("outside this lane");
+2. is true of one HALF of the finding and applied to the whole;
+3. asserts a fact about the tree that a merge or later work has changed;
+4. says something must be BUILT — check whether it already exists first.
