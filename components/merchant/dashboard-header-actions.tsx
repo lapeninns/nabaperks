@@ -35,27 +35,31 @@ export function MerchantDashboardHeaderActions({
     )
   }
 
-  // Phones get nothing here: three stacked full-width buttons cost 148px above
-  // the first number, and all three destinations are one tap away in the
-  // console chrome — Scan sits in the bottom tab bar, Offers and Announce in
-  // the drawer. From `sm` up the row is horizontal and costs one line, so the
-  // shortcuts stay. Scan is the counter action, so it keeps the primary ink and
-  // the rightmost (nearest-thumb) slot.
+  // 03#8 removed these on phones entirely (three stacked full-width buttons
+  // cost 148px above the first number) on the grounds that the bottom tab bar
+  // carries Scan. But merchant-launch-follow-through asserts the counter
+  // actions stay inside <main> on the dashboard, and the tab bar is a sibling
+  // of main, not part of it — so on mobile-safari the dashboard had no counter
+  // action in its own content at all.
+  //
+  // They are back on phones as ONE wrapping row of compact buttons rather than
+  // three stacked full-width ones, which keeps the height saving 03#8 was
+  // after. Scan keeps the primary ink and the rightmost (nearest-thumb) slot.
   return (
-    <div className="hidden gap-2 sm:flex sm:w-auto">
-      <Button asChild variant="ghost">
+    <div className="flex flex-wrap gap-2 sm:w-auto">
+      <Button asChild variant="ghost" size="sm" className="sm:h-11 sm:px-5">
         <Link href="/app/offers" prefetch={false}>
           <Icon icon={DiscountTag01Icon} size={16} />
           Offers
         </Link>
       </Button>
-      <Button asChild variant="secondary">
+      <Button asChild variant="secondary" size="sm" className="sm:h-11 sm:px-5">
         <Link href="/app/announcements" prefetch={false}>
           <Icon icon={Megaphone01Icon} size={16} />
           Announce
         </Link>
       </Button>
-      <Button asChild>
+      <Button asChild size="sm" className="sm:h-11 sm:px-5">
         <Link href="/app/scan" prefetch={false}>
           <Icon icon={Camera01Icon} size={16} />
           Scan code

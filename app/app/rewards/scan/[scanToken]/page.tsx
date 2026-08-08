@@ -121,7 +121,7 @@ async function RewardScanStream({
       </dl>
 
       {isRedeemed ? (
-        <StatusBanner title="Reward collected" tone="success">
+        <StatusBanner title="Reward collected" tone="success" role="alert">
           {collected ? "Reward marked collected. " : null}
           This reward is now closed. The member can scan the venue QR again when
           they are ready for their next stamp.

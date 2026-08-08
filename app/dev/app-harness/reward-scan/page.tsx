@@ -72,7 +72,7 @@ export default async function RewardScanHarnessPage({
         </dl>
 
         {collected ? (
-          <StatusBanner title="Reward collected" tone="success">
+          <StatusBanner title="Reward collected" tone="success" role="alert">
             Reward marked collected. This reward is now closed. The member can
             scan the venue QR again when they are ready for their next stamp.
           </StatusBanner>

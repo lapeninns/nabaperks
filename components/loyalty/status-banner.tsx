@@ -45,13 +45,21 @@ export function StatusBanner({
   children,
   tone = "neutral",
   className,
+  role: roleOverride,
 }: {
   title: ReactNode
   children?: ReactNode
   tone?: StatusBannerTone
   className?: string
+  /**
+   * Override the tone-derived announcement. Some success states DO warrant
+   * interrupting — a reward marked collected at the counter is the merchant's
+   * confirmation that the transaction closed, and staff act on it immediately.
+   * Use sparingly; the tone default is right for save confirmations.
+   */
+  role?: "alert" | "status"
 }) {
-  const role = toneRole[tone]
+  const role = roleOverride ?? toneRole[tone]
 
   return (
     <Alert
