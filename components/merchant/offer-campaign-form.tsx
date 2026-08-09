@@ -623,7 +623,13 @@ function StepTrack({ current }: { current: OfferCreatorStep }) {
           <span
             aria-current={index === currentIndex ? "step" : undefined}
             className={cn(
-              "mono-meta rounded-full border-2 px-2.5 py-1 whitespace-nowrap",
+              // `rounded-lg` (10px, `--radius`), not `rounded-full`. DESIGN.md
+              // reserves full circles for the stamp family and names `.w-tag`
+              // as the only generic pill outside it — so a hand-rolled
+              // stadium-shaped step chip reads as a STATUS pill, which is what
+              // 03#31 objects to. The mono-meta metrics stay; only the radius
+              // changes, which is exactly the finding's ask.
+              "mono-meta rounded-lg border-2 px-2.5 py-1 whitespace-nowrap",
               index === currentIndex
                 ? "border-ink bg-ink text-paper"
                 : index < currentIndex
