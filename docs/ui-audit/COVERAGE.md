@@ -1162,3 +1162,26 @@ why it was ignored for 290 commits — but the 2% contained a defect no audit
 finding, lint rule or contract test had caught. The fix is not "read every
 warning", it is `tests/e2e/console-hygiene.desktop.spec.ts`: filter the known
 noise once, then fail on anything else.
+
+### The link graph sees what per-page review cannot
+
+Crawled every internal `<a href>` on every public route, then requested each
+target. Result: 25 distinct links, zero broken, one correct 307. By status code,
+a clean bill of health.
+
+The graph said otherwise. `/loyalty-for-cafes`, `/loyalty-for-bars` and
+`/loyalty-for-takeaways` had **zero inbound links** from anywhere on the site.
+Three complete, indexed, well-written pages that nothing pointed at. Each carried
+a `navLabel` no component rendered — a nav specified and never built.
+
+No finding in 347 mentions it, and none could: every one of those pages reviews
+fine in isolation. The defect exists only in the edges between pages, and nobody
+audits edges.
+
+The second lesson came from fixing it wrong. I first linked the three spokes to
+each other, re-crawled, and found a **closed loop** — all three now had inbound
+links, all three were still unreachable from the site. "Has an inbound link" is
+not "is reachable". The fix needed an edge from `/loyalty-for-pubs`, the page
+that is itself linked from `/`.
+
+Both facts came from re-running the same crawl. Cheap sweep, kept, run twice.
