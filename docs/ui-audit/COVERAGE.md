@@ -1552,3 +1552,33 @@ So the campaign's numbers split cleanly:
 Recorded as NEEDS-SIGNOFF 32 so nobody later cites a dev measurement as if it
 were production-grade. I have done that once already this session and it cost
 two reverts.
+
+### Re-testing my own deferrals, after one of them turned out to be wrong
+
+The Cmd-K palette (04#6) was deferred as "higher risk than value — no command
+primitive exists and it can only be verified in a dev harness". Both halves were
+true and the conclusion was still wrong: the routes already existed as data
+(`adminNavItems`), radix Dialog was already a dependency, and a harness is
+exactly how the rest of that surface was verified. It took one session to build
+and is sabotage-checked.
+
+So I re-tested the other deferrals in the same shape — "the thing needed does
+not exist".
+
+**03#64 manual code entry — blocker HOLDS.** The reward scan payload is a uuid
+minted with a 10-minute TTL and rendered only as `/reward/{id}/qr.png`. There is
+no human-typeable code, and minting a short one is a data-model and security
+change, not a UI one. Different in kind from "no primitive exists".
+
+**03#64 camera picker — reason REPLACED, still declined.** The recorded reason
+was that a mocked enumeration proves the control renders, not that switching
+works. That is a verification-quality objection, which after the palette I no
+longer accept as sufficient. The real reason is better: both scanners already
+start with `{ facingMode: "environment" }`, so a phone — the only device that
+scans in a venue — gets the rear camera without a picker. A picker would serve
+multi-lens phones and multi-webcam desktops, neither of which is the scanning
+device.
+
+**The distinction worth keeping.** "I cannot fully verify it" is not a reason to
+decline; the palette proved that. "The device this ships to already does the
+right thing" is. One is about my tooling, the other is about the user.
