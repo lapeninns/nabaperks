@@ -1177,6 +1177,16 @@ is listed as an `entry` in `knip.json`, and `launch-billing-local-stripe` assert
 the symbol exists. Deleting it means deleting a contract assertion, so it is
 escalated rather than done.
 
+### CLOSED — resolved with a ratchet, not a decision
+
+`pnpm deadexports:check` (in `quality:check`) now reports unused exports. The 233
+pre-existing ones are baselined in `config/dead-exports-baseline.json` and
+tolerated; a NEW one fails, and so does deleting a baselined one without pruning,
+so the count can only fall.
+
+No sign-off needed. The debt is unchanged but bounded, and the gate is no longer
+blind to the most common form of dead code in the repo.
+
 ## 30. The fraud queue cannot be paged without a rank column (04#6)
 
 Five of the eleven admin lists now have venue lookup and a paginator. The fraud
