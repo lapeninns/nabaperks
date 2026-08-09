@@ -18,13 +18,14 @@ export type AdminEvidenceLookup = Partial<AdminLookupState>
  * The evidence ledger, searchable and paged like the merchants, audit, billing
  * and referral lists (ADM 04#6).
  *
- * It could follow that pattern because it is a plain `created_at desc` read. The
- * fraud queue next door cannot: `getAdminFraudSignals` sorts by severity IN
- * MEMORY after fetching, because `severity` is a text column whose alphabetical
- * order (high/low/medium) is not its severity order. Paging that server-side
- * would sort each page independently, so a high-severity flag on page 3 would
- * sit below a low-severity one on page 1 — a triage queue that lies. Recorded
- * rather than shipped.
+ * It could follow that pattern immediately because it is a plain
+ * `created_at desc` read. The fraud queue next door could not: it ranked
+ * severity IN MEMORY after fetching, because `severity` is a text column whose
+ * alphabetical order (high/low/medium) is not its severity order, and paging
+ * that server-side would rank each page independently — a high-severity flag on
+ * page 3 sitting below a low-severity one on page 1. That is now fixed at the
+ * source: `20260809100000_fraud_flag_severity_rank.sql` adds a generated
+ * `severity_rank` column and `getAdminFraudFlags` orders by it in SQL.
  */
 export async function getAdminEvidenceWorkspace(
   lookup: AdminEvidenceLookup = {}

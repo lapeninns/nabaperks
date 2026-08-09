@@ -268,82 +268,134 @@ export async function getAdminRewards(page = 1, size?: number) {
 /** fraud_flags.status check constraint: open / reviewed / dismissed. */
 export type AdminFraudQueue = "open" | "high" | "all"
 
-/** Severity rank for triage ordering; fraud_flags.severity is low/medium/high. */
-const FRAUD_SEVERITY_RANK: Record<string, number> = {
-  high: 0,
-  medium: 1,
-  low: 2,
-}
-
 /**
- * Triage-shaped fraud readback. Flags used to arrive newest-first regardless of
- * status or severity, so an operator scrolled past resolved work to find open
- * work and a high-severity flag had no priority position. `queue` filters
- * server-side (default: open only) and the returned page is ordered by severity
- * then recency — the sort happens in memory over the fetched window because
- * `severity` is a text column whose alphabetical order (high/low/medium) is not
- * its severity order.
+ * Triage-shaped fraud readback, searchable and paged like every other admin
+ * list. `queue` filters server-side (default: open work only).
+ *
+ * THE ORDERING IS THE POINT. Rows are ordered by `severity_rank` — the stored
+ * generated column added in `20260809100000_fraud_flag_severity_rank.sql` —
+ * then by recency, IN SQL. This reader used to fetch a fixed newest-100 window
+ * and sort it in memory, because `severity` is a text column whose
+ * alphabetical order (high, low, medium) is not its severity order. That is
+ * correct for exactly one window and wrong for every paged one: each page would
+ * be ranked independently and a high-severity flag on page 3 would sit below a
+ * low-severity one on page 1. Ranked in SQL, page 2 continues page 1 (04#6).
  */
-export async function getAdminFraudSignals(queue: AdminFraudQueue = "open") {
+export async function getAdminFraudFlags(
+  queue: AdminFraudQueue = "open",
+  lookup: AdminLookupQuery = {}
+): Promise<AdminPagedRows<AdminFraudFlag>> {
   const supabase = await createAdminServiceRoleClient()
-  let flagQuery = supabase
+  const page = lookup.page ?? 1
+  const window = lookupRange(page, lookup.size)
+  // `fraud_flags.merchant_id` is NOT NULL so `!inner` drops no rows; it is only
+  // asked for when a venue fragment exists, to filter the parent by the embed.
+  const merchantEmbed = lookup.venue
+    ? "merchants!inner(business_name)"
+    : "merchants(business_name)"
+
+  let query = supabase
     .from("fraud_flags")
     .select(
-      "id, signal, severity, status, metadata, created_at, merchants(business_name), customers(email, phone_last4)",
+      `id, signal, severity, status, metadata, created_at, ${merchantEmbed}, customers(email, phone_last4)`,
       { count: "exact" }
     )
 
   if (queue === "open") {
-    flagQuery = flagQuery.eq("status", "open")
+    query = query.eq("status", "open")
   }
   if (queue === "high") {
-    flagQuery = flagQuery.eq("severity", "high")
+    query = query.eq("severity", "high")
+  }
+  if (lookup.venue) {
+    query = query.ilike(
+      "merchants.business_name",
+      containsPattern(lookup.venue)
+    )
   }
 
-  const [
-    { data: fraudFlags, error: flagsError, count: flagCount },
-    { data: failures, error: failureError, count: failureCount },
-  ] = await Promise.all([
-    flagQuery.order("created_at", { ascending: false }).limit(100),
-    supabase
-      .from("product_events")
-      .select("id, event_name, created_at, merchants(business_name)", {
-        count: "exact",
-      })
-      .eq("event_name", "reward_redemption_failed")
-      .order("created_at", { ascending: false })
-      .limit(100),
-  ])
+  const { data, error, count } = await query
+    .order("severity_rank", { ascending: true })
+    .order("created_at", { ascending: false })
+    .range(window.from, window.to)
 
-  if (flagsError) {
-    throw new Error(`Unable to load fraud flags: ${flagsError.message}`)
+  if (error) {
+    throw new Error(`Unable to load fraud flags: ${error.message}`)
   }
 
-  if (failureError) {
-    throw new Error(`Unable to load fraud events: ${failureError.message}`)
+  const rows = Array.isArray(data) ? data.map(redactFraudFlag) : []
+  return { rows, meta: pageMeta(count ?? 0, page, lookup.size) }
+}
+
+export type AdminRedemptionFailure = {
+  readonly id: string
+  readonly event_name: string
+  readonly created_at: string
+  readonly merchant: string
+}
+
+/**
+ * Redemption-failure product events: the fourth fraud view, paged on the same
+ * `?page=`/`?size=` params as the flags queue because only one view renders at
+ * a time. It was the second half of the fraud page's hard `.limit(100)`, and
+ * unlike the flags it has no ranking problem — `created_at desc` is the order
+ * the page displays.
+ */
+export async function getAdminRedemptionFailures(
+  lookup: AdminLookupQuery = {}
+): Promise<AdminPagedRows<AdminRedemptionFailure>> {
+  const supabase = await createAdminServiceRoleClient()
+  const page = lookup.page ?? 1
+  const window = lookupRange(page, lookup.size)
+  // `product_events.merchant_id` IS nullable (on delete set null), so the inner
+  // join is only asked for when a venue fragment is filtering by it — otherwise
+  // it would silently drop every merchant-less failure event.
+  const merchantEmbed = lookup.venue
+    ? "merchants!inner(business_name)"
+    : "merchants(business_name)"
+
+  let query = supabase
+    .from("product_events")
+    .select(`id, event_name, created_at, ${merchantEmbed}`, {
+      count: "exact",
+    })
+    .eq("event_name", "reward_redemption_failed")
+
+  if (lookup.venue) {
+    query = query.ilike(
+      "merchants.business_name",
+      containsPattern(lookup.venue)
+    )
   }
 
-  const flags = Array.isArray(fraudFlags) ? fraudFlags.map(redactFraudFlag) : []
-  flags.sort((left, right) => {
-    const rank =
-      (FRAUD_SEVERITY_RANK[left.severity.toLowerCase()] ?? 1) -
-      (FRAUD_SEVERITY_RANK[right.severity.toLowerCase()] ?? 1)
-    if (rank !== 0) return rank
-    return right.created_at.localeCompare(left.created_at)
+  const { data, error, count } = await query
+    .order("created_at", { ascending: false })
+    .range(window.from, window.to)
+
+  if (error) {
+    throw new Error(`Unable to load fraud events: ${error.message}`)
+  }
+
+  const rows = (Array.isArray(data) ? data : []).map((row: unknown) => {
+    const record: Record<string, unknown> = isRecord(row) ? row : {}
+    return {
+      id: fallbackString(record.id, "product-event"),
+      event_name: fallbackString(record.event_name, "reward_redemption_failed"),
+      created_at: fallbackString(record.created_at, ""),
+      merchant: fallbackString(
+        firstRecord(record.merchants)?.business_name,
+        "Merchant"
+      ),
+    }
   })
 
-  return {
-    fraudFlags: flags,
-    flagTotal: flagCount ?? flags.length,
-    failures: failures ?? [],
-    failureTotal: failureCount ?? failures?.length ?? 0,
-  }
+  return { rows, meta: pageMeta(count ?? 0, page, lookup.size) }
 }
 
 /** Bucket counts for the fraud queue tabs (head-only, no rows transferred). */
 export async function getAdminFraudQueueCounts() {
   const supabase = await createAdminServiceRoleClient()
-  const [open, high, all] = await Promise.all([
+  const [open, high, all, failures] = await Promise.all([
     supabase
       .from("fraud_flags")
       .select("*", { count: "exact", head: true })
@@ -353,14 +405,22 @@ export async function getAdminFraudQueueCounts() {
       .select("*", { count: "exact", head: true })
       .eq("severity", "high"),
     supabase.from("fraud_flags").select("*", { count: "exact", head: true }),
+    // The failures tab used to print the LENGTH OF THE LOADED WINDOW as its
+    // count, so it read "100" for any number of failures from 100 upward.
+    supabase
+      .from("product_events")
+      .select("*", { count: "exact", head: true })
+      .eq("event_name", "reward_redemption_failed"),
   ])
 
   return {
     open: open.count ?? 0,
     high: high.count ?? 0,
     all: all.count ?? 0,
+    failures: failures.count ?? 0,
   }
 }
+
 
 export type AdminReferralOpsRow = {
   readonly referralId: string
