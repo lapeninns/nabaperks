@@ -1,5 +1,9 @@
 # UI audit — handoff
 
+> **Picking this up fresh?** Read
+> `docs/ui-audit/HANDOFF-NEXT-AGENT.md` first — worktree, gates, the verification
+> boundary, and the traps that cost this campaign real time.
+
 Branch `feat/ui-redesign-audit-fixes`, 138 commits.
 Read `COVERAGE.md` for the evidence behind every number here.
 
