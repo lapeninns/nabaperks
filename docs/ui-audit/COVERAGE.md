@@ -1461,3 +1461,31 @@ bytes against a 950,000 budget. That would have looked like a near-breach caused
 by this branch, when nothing about the bundle changed — only the ruler. **When
 you repair a broken measurement, keep the working part of it defined exactly as
 it was.**
+
+### The vacuity audit, in full
+
+After `bundle:check`, I instrumented every gate that could plausibly be
+measuring nothing:
+
+| gate                    | what it actually covers                       |
+| ----------------------- | --------------------------------------------- |
+| `tokens:check` contrast | 18 pairs evaluated, 0 skipped (9 x 2 themes)  |
+| `claims:check`          | 91 marketing files, 931 rendered-source files |
+| `duplicates:check`      | 803 files, 46 clones at 0.81%                 |
+| `debt:check`            | 1,757 source files                            |
+| `deadexports:check`     | 233 baselined, sabotage-verified              |
+| `ui-audit:check`        | 347 findings, sabotage-verified               |
+| `bundle:check`          | **0 of 150 routes** — the one liar, now fixed |
+
+One near-miss worth the effort: the contrast check `continue`s past any token
+that does not resolve to a hex. Correct today. But if the palette ever moved to
+`oklch()`, every pair would skip and it would still print "✓ contrast floors
+held" — the exact shape of the bundle bug. It now counts evaluations and fails
+at zero, naming the cause.
+
+**The generalisable form: any check that filters its input needs to assert the
+filter did not eat everything.** `bundle:check` filtered on a manifest key that
+no longer existed. The contrast check filters on hex-resolvability. A tap-target
+sweep filters on `pointer: coarse`. A layout probe filters on stylesheets being
+loaded. Each one passes loudly and vacuously when its filter matches nothing,
+and only the assertion tells you.
