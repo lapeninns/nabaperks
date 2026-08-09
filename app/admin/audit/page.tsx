@@ -50,13 +50,15 @@ export default async function AdminAuditPage({
   const lookup = parseAdminLookupParams(params)
   const sort = parseAdminSortParams(params, Object.keys(ADMIN_AUDIT_SORT_COLUMNS))
   const logs = await getAdminAuditPage(lookup, sort)
-  const searching = Boolean(lookup.venue)
+  const searching = Boolean(lookup.venue || lookup.from || lookup.to)
 
   // Sorting starts at page 1: a new order makes the current page number
   // meaningless, the same reason submitting the search resets it.
   const hrefForSort = (key: string, direction: "asc" | "desc") =>
     buildLookupHref("/admin/audit", {
       venue: lookup.venue,
+      from: lookup.from,
+      to: lookup.to,
       sort: key,
       dir: direction,
       size: lookup.size,
@@ -77,7 +79,7 @@ export default async function AdminAuditPage({
         <AdminPanelHeader>
           <SectionHeader
             title="Audit trail"
-            description="Search by venue to answer questions about one merchant, and page through the whole trail rather than the newest hundred rows."
+            description="Search by venue and date to answer questions about one merchant on one day, and page through the whole trail rather than the newest hundred rows."
             actions={<SourceLabel>Source: audit_logs</SourceLabel>}
           />
         </AdminPanelHeader>
@@ -88,6 +90,7 @@ export default async function AdminAuditPage({
           lookup={lookup}
           label="Audit log lookup"
           fields="venue"
+          withDateRange
         />
         <AdminAppliedFilters basePath="/admin/audit" lookup={lookup} />
         <DataTable
@@ -107,7 +110,7 @@ export default async function AdminAuditPage({
               }
               description={
                 searching
-                  ? "No audited action is recorded against that venue. Clear the search to see the whole trail."
+                  ? "No audited action matches that venue or date range. Clear the search to see the whole trail."
                   : "Audited support and security-sensitive actions will appear here."
               }
             />
@@ -216,6 +219,8 @@ export default async function AdminAuditPage({
               hrefForPage={(page) =>
                 buildLookupHref("/admin/audit", {
                   venue: lookup.venue,
+                  from: lookup.from,
+                  to: lookup.to,
                   sort: sort.key ?? undefined,
                   dir: sort.key ? sort.direction : undefined,
                   page,

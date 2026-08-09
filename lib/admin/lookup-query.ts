@@ -37,6 +37,10 @@ export type AdminSortState = {
 export type AdminLookupState = {
   readonly venue?: string
   readonly contact?: string
+  /** Inclusive `yyyy-mm-dd` lower bound on the record date, if any. */
+  readonly from?: string
+  /** Inclusive `yyyy-mm-dd` upper bound on the record date, if any. */
+  readonly to?: string
   readonly page: number
   /** Rows per page; always one of ADMIN_LOOKUP_PAGE_SIZES. */
   readonly size: number
@@ -168,12 +172,64 @@ export function resolveAdminSort(
 export function parseAdminLookupParams(
   params: AdminSearchParams | undefined
 ): AdminLookupState {
+  const range = orderedDateRange(
+    parseDateParam(params?.from),
+    parseDateParam(params?.to)
+  )
+
   return {
     venue: normaliseLookupTerm(params?.venue),
     contact: normaliseLookupTerm(params?.contact),
+    from: range.from,
+    to: range.to,
     page: parsePageParam(params?.page),
     size: parseSizeParam(params?.size),
   }
+}
+
+/**
+ * A calendar date (`yyyy-mm-dd`) or nothing. Shape-checked AND
+ * calendar-checked: `2026-02-31` matches the pattern, and a value that reaches
+ * PostgREST as a timestamp bound has to be a date the database will accept, or
+ * the whole readback fails rather than the filter being ignored.
+ */
+export function parseDateParam(
+  value: AdminSearchParamValue
+): string | undefined {
+  const raw = firstParam(value)?.trim()
+  if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return undefined
+
+  const parsed = new Date(`${raw}T00:00:00Z`)
+  if (Number.isNaN(parsed.getTime())) return undefined
+  // `new Date("2026-02-31")` rolls forward to 3 March rather than failing, so
+  // the round trip is the only real check.
+  return parsed.toISOString().slice(0, 10) === raw ? raw : undefined
+}
+
+/**
+ * A backwards range (`from` after `to`) is an operator slip, not an empty
+ * result: silently returning nothing would read as "nothing happened that
+ * week". The two bounds are swapped so the search answers the question that
+ * was obviously meant.
+ */
+export function orderedDateRange(
+  from: string | undefined,
+  to: string | undefined
+): { readonly from?: string; readonly to?: string } {
+  if (from && to && from > to) return { from: to, to: from }
+  return { from, to }
+}
+
+/**
+ * The exclusive upper bound for an INCLUSIVE `to` date: `created_at` is a
+ * timestamp, so `.lte("created_at", "2026-08-09")` would compare against
+ * midnight and drop everything that happened during the day the operator
+ * asked for.
+ */
+export function exclusiveDayAfter(date: string): string {
+  const next = new Date(`${date}T00:00:00Z`)
+  next.setUTCDate(next.getUTCDate() + 1)
+  return next.toISOString().slice(0, 10)
 }
 
 /** Escape `%`, `_`, and `\` so operator input matches literally in ILIKE. */

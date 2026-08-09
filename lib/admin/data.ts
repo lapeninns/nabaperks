@@ -5,6 +5,7 @@ import {
   contactOrIlikeFilter,
   containsPattern,
   decideVenueFilter,
+  exclusiveDayAfter,
   lookupRange,
   pageMeta,
   resolveAdminSort,
@@ -713,6 +714,16 @@ export async function getAdminAuditPage(
       "merchants.business_name",
       containsPattern(lookup.venue)
     )
+  }
+  // The audit log's second question is "when": a trail with no date bound only
+  // answers "what happened most recently" (04#26). `to` is INCLUSIVE, so it
+  // compares against the start of the following day — `created_at` is a
+  // timestamp and a plain `lte` would drop the day that was asked for.
+  if (lookup.from) {
+    query = query.gte("created_at", lookup.from)
+  }
+  if (lookup.to) {
+    query = query.lt("created_at", exclusiveDayAfter(lookup.to))
   }
   if (order) {
     query = query.order(order.column, { ascending: order.ascending })
