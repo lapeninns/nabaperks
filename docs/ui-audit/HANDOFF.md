@@ -75,7 +75,7 @@ measured at 4,854-5,265ms against a 4,000ms budget. woff2 recovers 1,622ms but
 `poster-font-assets` pins .ttf for PDF parity, so it is reverted and recorded.
 Three options in NEEDS-SIGNOFF §10.
 
-## The 13 open findings, categorised
+## The 12 open findings, categorised
 
 None of these is open for want of effort. Every one was attempted, measured, or
 scoped out by instruction. The categories are what matter:
@@ -85,11 +85,17 @@ scoped out by instruction. The categories are what matter:
 `01#67` legal/terms/privacy structural migration · `05#13` Button size-variant
 API deletion. Both were named out of scope at the start and are unchanged.
 
-### Attempted, then reverted because a contract said no (3)
+### Attempted, then reverted because a contract said no (2)
 
-`01#49` · `01#63` · `01#65`. Each has a written attempt and a revert; no
-assertion was weakened. 01#49 is the one worth revisiting: the pinned expression
-causes a **measured CLS of 0.1924** against a 0.1 threshold (section 7).
+`01#63` · `01#65`. Each has a written attempt and a revert; no assertion was
+weakened.
+
+**01#49 has left this group.** It was here on the strength of a "measured CLS of
+0.1924"; that number came from a dev server. The identical probe on a production
+build gives **0.0000**, and Lighthouse on the built artefact gives 0.0000 across
+three runs against a 0.100 threshold. The defect does not exist in what ships, so
+there is nothing to renegotiate and the finding is now `[stale]` with its premise
+disproved rather than its fix shipped. See NEEDS-SIGNOFF 7.
 
 ### Declined with reasoning, evidence recorded (3)
 
@@ -127,15 +133,17 @@ evidence in `NEEDS-SIGNOFF.md` rather than a description.
    size deltas (135 shrank, 96 grew; largest single shrink -5,365px), so the
    compaction the audit asked for is real. Regenerating them from this branch
    would rubber-stamp whatever they now contain. That approval is not mine.
-4. **One contract renegotiation** — 01#49. `marketing-offer-source` pins the
-   exact expression that causes a measured **CLS of 0.1924** (Google's "good"
-   threshold is 0.1) on the SEO hub: the section list is 302px at first paint
-   and 0px after hydration. The assertion's intent is sound; the literal it
-   pins is the bug. (§7)
+4. ~~**One contract renegotiation** — 01#49.~~ **WITHDRAWN.** This asked you to
+   renegotiate `marketing-offer-source` on the strength of a measured CLS of
+   0.1924. That number came from a dev server. The identical probe on a
+   production build gives **0.0000**, and Lighthouse on the built artefact gives
+   0.0000 across three runs against a 0.100 threshold. The collapsing list also
+   sits at top 1295px on a 390x844 viewport — below the fold — so it moves no
+   visible content. Nothing to renegotiate; no assertion needs touching. (§7)
 
-## Open findings, all 13
+## Open findings, all 12
 
-01#23, 01#49, 01#55, 01#63, 01#65, 01#67, 02#50, 02#64, 03#13, 03#16, 04#54, 04#60, 05#13
+01#23, 01#55, 01#63, 01#65, 01#67, 02#50, 02#64, 03#13, 03#16, 04#54, 04#60, 05#13
 
 - **Blocked by a test** (attempted, reverted, no assertion weakened): 01#49,
   01#63, 01#65, plus 03#46 in STATUS-m-launch.

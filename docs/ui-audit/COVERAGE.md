@@ -62,7 +62,7 @@ relaxed for whitespace only after Prettier re-wrapped a ternary
 `isPosterPrintPath` (`merchant-shell`). One test was added
 (`motion-tokens-bounded`).
 
-## Remaining 13 open, by reason
+## Remaining 12 open, by reason
 
 Exactly: 01#23, 01#49, 01#55, 01#63, 01#65, 01#67, 02#50, 02#64, 03#13, 03#16, 04#54, 04#60, 05#13.
 
@@ -226,13 +226,14 @@ including my own.
 Applying the same discipline to the remainder rather than repeating their
 recorded blockers.
 
-**01#49 — CLS 0.1924 on the SEO hub.** Measured on /loyalty-for-pubs at
-390x844: the section list is 302px at first paint and 0px after hydration; the
-document goes 11,747px -> 11,472px. Google's "good" threshold is 0.1. The
-finding is held open by one pinned literal in `marketing-offer-source`, and the
-expression it pins is precisely the one that causes the shift — so the assertion
-and the fix are genuinely incompatible, not a formatting technicality. Full
-numbers and two options in NEEDS-SIGNOFF §7.
+**01#49 — CLS 0.1924 on the SEO hub. SUPERSEDED — see the correction below.**
+This was measured against a dev server. The identical probe on a production
+build gives 0.0000, Lighthouse on the built artefact gives 0.0000 across three
+runs, and the collapsing list sits below the fold at top 1295px so it moves no
+visible content. The paragraph is kept because the reasoning that followed from
+it — that the assertion and the fix were incompatible — shaped several later
+decisions, and it was wrong at the root. NEEDS-SIGNOFF §7 carries the
+correction.
 
 **05#13 — the audit's usage figures are stale.** It reports "xl, icon-xs and
 icon-lg are never used" and "xs 1". Re-measured across 310 Button/SubmitButton
@@ -556,7 +557,7 @@ change what a reader should do next.
 **01#60 is gated on 01#49, not on refactor size.** Its note said reusing
 `GuideSpine` meant "a larger refactor of a contract-pinned client component".
 `marketing-offer-source` pins exactly one line in that file, not the component's
-shape — and that line is 01#49's measured CLS 0.1924. Reusing the spine would
+shape — and that line was believed to be 01#49's measured CLS 0.1924, a dev-server number since disproved (production: 0.0000). Reusing the spine would
 take a layout-shift defect that currently affects one page and put it on every
 guide. Doing 01#60 "properly" first would make the site more consistent and
 measurably worse.

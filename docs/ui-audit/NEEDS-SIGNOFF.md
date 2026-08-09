@@ -175,12 +175,12 @@ measured what that costs, so the renegotiation can be decided on numbers.
 
 Measured on /loyalty-for-pubs at 390x844 (chromium):
 
-|                                    | value                |
-| ---------------------------------- | -------------------- |
-| section list height at first paint | **302px**            |
-| after hydration                    | **0px**              |
-| document height                    | 11,747px -> 11,472px |
-| **Cumulative Layout Shift**        | **0.1924**           |
+|                                    | value                                                       |
+| ---------------------------------- | ----------------------------------------------------------- |
+| section list height at first paint | **302px**                                                   |
+| after hydration                    | **0px**                                                     |
+| document height                    | 11,747px -> 11,472px                                        |
+| **Cumulative Layout Shift** (dev)  | **0.1924** — see the correction below; production is 0.0000 |
 
 Google's "good" threshold is 0.1. This is the site's longest page and its SEO
 hub (an `Article` with `dateModified`), so the shift is both a Core Web Vital
@@ -809,11 +809,12 @@ component". That reason is wrong in a way worth correcting:
 
 — not the component's shape. A generic spine could keep it.
 
-The real reason is that this line is 01#49: the section list is 302px at first
-paint and 0px after hydration, which measures **CLS 0.1924** against Google's
-0.1 "good" threshold (section 7). Reusing the spine as it stands would take a
-measured layout-shift defect that currently affects one page and put it on every
-guide.
+The reason recorded here was that this line is 01#49: a section list measuring
+**CLS 0.1924** against Google's 0.1 threshold, which reusing the spine would
+spread to every guide. **That reason is void** — the 0.1924 was a dev-server
+number and production measures 0.0000 (section 7). There is no layout-shift
+defect to propagate. See the UNBLOCKED note at the end of this section for what
+actually remains.
 
 So the order is fixed: resolve 01#49 — which means renegotiating that assertion,
 since the fix was written and reverted — and 01#60's preferred form becomes
@@ -969,10 +970,12 @@ micro-type entirely (`text-base sm:text-lg font-extrabold`, because an 11.5px
 heading over 14px body is inverted hierarchy). Both positions are coherent. The
 contract encodes one; the audit argues the other. Someone has to choose.
 
-**01#49 — the measured one.** Covered in section 7: the pinned expression causes
-CLS 0.1924 against a 0.1 threshold. This is the only one of the three where the
-contract's own goal (no pre-hydration flash) and the measured outcome (a large
-layout shift) are in tension with each other, rather than with the audit.
+**01#49 — WITHDRAWN from this list.** It was here because the pinned expression
+was thought to cause CLS 0.1924 against a 0.1 threshold. That measurement came
+from a dev server; production measures 0.0000 across three Lighthouse runs and a
+direct probe (section 7). There is no tension between the contract's goal and the
+measured outcome, because there is no measured defect. Two contract-blocked
+findings remain, not three.
 
 Ranked by what I would revisit: 01#49 (a measured defect), then 01#63 (a
 mechanism swap that keeps the goal), then 01#65 (a taste decision that wants an
