@@ -1145,3 +1145,20 @@ Worth noting as a method point: **the server log during a test run is free
 evidence, and I had been discarding it for 290 commits.** Every `tail -3` on a
 Playwright run threw away the lines above it. The one time I read them, there was
 a real defect sitting in plain sight.
+
+### The whole-surface console sweep, and its yield
+
+Swept every reachable route (55: all public marketing, auth, legal, guides, and
+every `/dev` harness), capturing console errors, page errors and HTTP status.
+
+Yield: **one real defect** — the duplicate radius key — plus a useful negative.
+Forty-three routes reported "noise" that was entirely dev-mode font-preload
+warnings, and seven reported navigation timeouts that were entirely first-visit
+compilation. Re-tested with `domcontentloaded`, all seven returned HTTP 200 with
+the right `h1` and a clean console.
+
+That ratio is the point. Raw console output is 98% noise, which is presumably
+why it was ignored for 290 commits — but the 2% contained a defect no audit
+finding, lint rule or contract test had caught. The fix is not "read every
+warning", it is `tests/e2e/console-hygiene.desktop.spec.ts`: filter the known
+noise once, then fail on anything else.
