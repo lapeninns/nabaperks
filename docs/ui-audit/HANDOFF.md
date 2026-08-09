@@ -79,7 +79,7 @@ measured at 4,854-5,265ms against a 4,000ms budget. woff2 recovers 1,622ms but
 `poster-font-assets` pins .ttf for PDF parity, so it is reverted and recorded.
 Three options in NEEDS-SIGNOFF §10.
 
-## The 12 open findings, categorised
+## The 11 open findings, categorised
 
 None of these is open for want of effort. Every one was attempted, measured, or
 scoped out by instruction. The categories are what matter:
@@ -101,13 +101,20 @@ three runs against a 0.100 threshold. The defect does not exist in what ships, s
 there is nothing to renegotiate and the finding is now `[stale]` with its premise
 disproved rather than its fix shipped. See NEEDS-SIGNOFF 7.
 
-### Declined with reasoning, evidence recorded (3)
+### Declined with reasoning, evidence recorded (2)
 
 `03#16` — the migration does not fix the defect it cites (DataTable's own
-`mobileCard` path renders both trees). `04#60` — sorting across 8 live panels,
-where half-built is worse than none. `03#13` — a merchant-wide count needs an
+`mobileCard` path renders both trees). `03#13` — a merchant-wide count needs an
 aggregate that does not exist; page-scoped counting would print a false
 readback.
+
+**04#60 has left this group.** "Sorting across 8 live panels, where half-built
+is worse than none" was the sticky header's blocker applied to the whole
+finding. Sorting is opt-in per column (`sortKey`), so the panels that do not
+use it are byte-identical and nothing was migrated; it is URL-driven so the
+ORDER BY lands in PostgreSQL, and it is browser-proved on the real component.
+The finding is now `[~]` with only the sticky header (NEEDS-SIGNOFF 12) and the
+optional column-visibility toggle outstanding.
 
 ### Genuine product or copy decisions (5)
 
@@ -145,9 +152,9 @@ evidence in `NEEDS-SIGNOFF.md` rather than a description.
    sits at top 1295px on a 390x844 viewport — below the fold — so it moves no
    visible content. Nothing to renegotiate; no assertion needs touching. (§7)
 
-## Open findings, all 12
+## Open findings, all 11
 
-01#23, 01#55, 01#63, 01#65, 01#67, 02#50, 02#64, 03#13, 03#16, 04#54, 04#60, 05#13
+01#23, 01#55, 01#63, 01#65, 01#67, 02#50, 02#64, 03#13, 03#16, 04#54, 05#13
 
 - **Blocked by a test** (attempted, reverted, no assertion weakened): 01#63,
   01#65, plus 03#46 in STATUS-m-launch. 01#49 was here until its premise was
@@ -158,8 +165,9 @@ evidence in `NEEDS-SIGNOFF.md` rather than a description.
   badge logic in SQL or loading every member; counting the loaded page would
   print a false readback), 03#16 (see below).
 - **Out of scope by instruction**: 01#67, 05#13.
-- **Large API addition**: 04#60 sorting across 8 live panels; its sticky-header
-  half is blocked by the `overflow-x-auto` scroll container.
+- **Large API addition**: none left. 04#60 was here; the API turned out to be
+  one optional field on a column, and only its sticky-header half is blocked by
+  the `overflow-x-auto` scroll container.
 
 ### 03#16 is declined, not missed
 

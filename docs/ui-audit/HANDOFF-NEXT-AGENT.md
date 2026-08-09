@@ -14,11 +14,12 @@ is the user's own worktree. Commits here use
 
 ## State
 
-**292 done / 24 partial / 19 stale / 12 open of 347.** 30 of 33 Criticals.
+**295 done / 24 partial / 17 stale / 11 open of 347.** 30 of 33 Criticals.
 `pnpm ui-audit:check` enforces those numbers, that every source path cited in the
 evidence docs exists, and that HANDOFF's open list matches the parsed state.
 
-Open: `01#23 01#55 01#63 01#65 01#67 02#50 02#64 03#13 03#16 04#54 04#60 05#13`.
+Open: `01#23 01#55 01#63 01#65 01#67 02#50 02#64 03#13 03#16 04#54 05#13`.
+04#60 left the list: sorting shipped, only its sticky-header half is blocked.
 
 Read in this order: `HANDOFF.md`, `NEEDS-SIGNOFF.md` (32 sections, 22 live),
 `COVERAGE.md` (method log, including every mistake and what it cost),
@@ -125,10 +126,9 @@ already request `facingMode: environment`).
 
 ## Remaining engineering, value order
 
-1. **Fraud queue lookup + paging** (04#6, §30) — needs a `severity_rank` column
-   or SQL CASE ordering, because severity is a text column sorted in memory.
-   Paging it as-is would rank a high-severity flag on page 3 below a low one on
-   page 1.
+1. ~~**Fraud queue lookup + paging** (04#6, §30)~~ — DONE. `severity_rank` is a
+   stored generated column (20260809100000); the queue orders in SQL and pages
+   like the other ten. Eleven of eleven admin lists now have lookup + paging.
 2. **Generic TOC** (01#60, §18) — blocked only because the pinned literal lives
    inside `guide-spine.tsx` and `marketing-offer-source` reads that file by name.
    Moving it is a contract change; ask first.

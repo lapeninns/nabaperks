@@ -17,22 +17,20 @@ branch is green after every merge.
 | 01 marketing     |      69 |      54 |       6 |      4 |      5 |
 | 02 customer      |      70 |      60 |       6 |      2 |      2 |
 | 03 merchant      |      67 |      53 |       8 |      4 |      2 |
-| 04 admin         |      74 |      61 |       2 |      9 |      2 |
+| 04 admin         |      74 |      64 |       2 |      7 |      1 |
 | 05 design system |      67 |      64 |       2 |      0 |      1 |
-| **Total**        | **347** | **292** |  **24** | **19** | **12** |
+| **Total**        | **347** | **295** |  **24** | **17** | **11** |
 
-> > > > > > > lane/merchant
-
-## "Stale" is a real category (19 findings)
+## "Stale" is a real category (17 findings)
 
 Not reproducible against the current tree, and recorded rather than invented
 into a change. Examples: `border-[1.5px]` no longer exists (03#25); both
 remaining `<select>`s already compose SelectField (03#29); the `rounded-xl`
 sites named in 03#60 are already `rounded-lg`; `ProgressTrack` is not dead code
 (02#35); `CustomerShell`/`CustomerAppShell` already share one column (02#5);
-DESIGN.md defines no `marketing-hero` token (01#15); QR destructive styling,
-referral masking and 2FA gating were already correct by the time the admin lane
-reached them (04#19, 04#33, 04#41).
+DESIGN.md defines no `marketing-hero` token (01#15); referral masking and 2FA
+gating were already correct by the time the admin lane reached them (04#33,
+04#41) — though 04#19 has since come OFF this list, see below.
 
 Two findings were also proved wrong on the merits rather than merely stale:
 
@@ -1611,3 +1609,115 @@ ships deliberately — rather than on words the copy happens to contain. Same
 lesson as `#pricing` for the landing band, and the same lesson as every other
 measurement failure recorded above: **anchor on what the code guarantees, not on
 what the page says.**
+
+### The admin lane, re-tested against its own notes
+
+Thirteen findings were handed to this lane with the same instruction the branch
+has learned the hard way: **test the note, do not trust it.** Nine were recorded
+`[stale]`, two `[~]`, two open. Four of the thirteen notes were wrong, and each
+was wrong in one of the four ways already catalogued above.
+
+**04#39 asserted a fact about the tree.** "QrFrame takes a matrix, not an
+`<img>`, so it does not apply." `components/loyalty/qr-frame.tsx:5-13` takes
+`children: ReactNode`; `components/marketing/landing/venue-qr.tsx:45` composes
+an `<svg>` in it. The radius half of the finding HAD been fixed — by restating
+the frame's class string on the image, which is a hand-rolled copy of the
+system's one QR treatment and therefore the exact drift the finding is about.
+
+**04#19 was true of one half and applied to the whole.** Regenerate really was
+destructive-with-a-gate. Disable was a third silhouette with no gate at all,
+while stopping every scan in a venue is the action a customer at the counter
+feels immediately.
+
+**04#60 carried another finding's blocker.** "Sorting and the sticky header" was
+declined as one job because the sticky header is blocked (NEEDS-SIGNOFF 12).
+Sorting is not blocked by anything; it shipped as an opt-in column flag, so the
+five panels that do not use it are byte-identical and the "large API addition
+consumed by 8 live panels" never happened.
+
+**04#26 stopped at its blocker and left the rest.** The finding names four
+missing filters; the note recorded the sticky blocker and the merchant filter,
+and the date range — the half that makes an audit log answer anything other
+than "what happened most recently" — was simply not built.
+
+The five notes that held were re-verified at the MECHANISM rather than the
+symptom, and then pinned, because none of them was pinned by anything: 04#29,
+04#33, 04#41 and 04#39 are now asserted in
+`tests/contracts/admin-consequence-affordances.test.mjs`, each sabotage-checked
+individually. A fix nothing asserts is a fix waiting to be undone.
+
+### The fraud queue: fix the ORDER before adding the page
+
+The last capped admin list, and the one that could not copy the pattern the
+other ten use. `getAdminFraudSignals` fetched a fixed newest-100 window and
+ranked it in memory, because `fraud_flags.severity` is text whose alphabetical
+order — high, low, medium — is not its severity order. Paging that as-is would
+have ranked each page independently: a high-severity flag on page 3 below a low
+one on page 1.
+
+The order was fixed first, in the database, and then the paging was added. It
+is a STORED GENERATED column, not a written one:
+
+    alter table public.fraud_flags
+      add column if not exists severity_rank smallint not null
+        generated always as (case lower(severity) when 'high' then 1 … end) stored;
+
+A rank column a trigger or a forgetful INSERT keeps in sync can drift from the
+text it ranks; a generated one cannot, and PostgreSQL refuses to write it.
+
+**The proof was run against real PostgreSQL 17, in a rolled-back session, not
+asserted.** Six flags whose severity and recency deliberately disagree:
+
+    order by severity_rank asc, created_at desc   page 1: high, high
+                                                  page 2: medium, medium
+                                                  page 3: low, low
+    order by severity asc, created_at desc        page 1: high, high, LOW, LOW
+                                                  (every medium pushed off it)
+    update … set severity='high'                  severity_rank 3 -> 1
+    update … set severity_rank = 1                ERROR: cannot insert a
+                                                  non-DEFAULT value into column
+                                                  "severity_rank"
+
+`tests/db/admin-fraud-queue-order.test.mjs` is that proof in the live-DB tier,
+including the counterfactual, so the rank column cannot be deleted as
+"redundant" without a test failing. It skips cleanly without `SUPABASE_DB_URL`,
+which is how it behaves in this worktree.
+
+### Sorting, and the trap one level up
+
+Adding sort to a paged list is the same trap as the fraud queue wearing a
+different hat: sorting the loaded page is correct only while the page is the
+whole list. So `DataTable`'s sort is URL-driven and the ORDER BY happens in
+PostgreSQL, and `parseAdminSortParams` takes a CLOSED allowlist for exactly the
+reason `parseSizeParam` does — the token reaches PostgREST as an `.order()`
+column on a service-role read, so an arbitrary string is an operator-controlled
+ORDER BY.
+
+The detail that would have shipped a silently wrong answer: `severity_rank` 1
+is `high`, so "most severe first" is ASCENDING rank. `resolveAdminSort` inverts
+it, and the unit test asserts the inversion rather than the mapping, because
+the mapping is the part that looks right.
+
+The header control is browser-proved rather than source-proved, through a
+harness that mounts the REAL `DataTable` with the REAL allowlist. It
+deliberately does NOT re-sort its own rows: a harness that re-implements the
+thing it tests is the drift that already cost this campaign two wrong
+conclusions.
+
+### Two more measurements, and one gate that cannot run here
+
+04#54 was "a copy decision" with no number attached. Measured in chromium at
+1440x900 against the real `SectionHeader` at the real admin container width,
+with `document.styleSheets.length > 0` asserted first: nine panel descriptions
+cost **408px**, the privacy workflow header (220 chars) being the only
+three-line one at 72px. Every description at or under the audit's 90-character
+budget measured exactly one line, so the whole change is worth 408px -> 216px.
+That is 192px across nine panels — real, and small enough that it is worth
+saying out loud before anyone rewrites legal-adjacent operator instructions.
+
+`pnpm test:db` cannot run in this worktree: there is no `.env.local`, so
+`SUPABASE_DB_URL` is unset. 421 of its tests skip cleanly and 16 in five files
+FAIL with "SUPABASE_DB_URL is not set" rather than skipping — a gate-shaped gap
+of the same family as the ones audited above, since a suite that fails when it
+cannot run teaches everyone to ignore its result. Not this lane's file to fix;
+recorded so the next reader does not mistake those 16 for a regression.

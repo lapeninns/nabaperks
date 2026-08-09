@@ -616,6 +616,17 @@ why it is worth writing down — it is the obvious cheap fix and it does not wor
 The options remain the three already listed, and option 3 (bound the height only
 when `size > 25`) is still the cheapest.
 
+### Update — 04#60's other half shipped without this one
+
+04#60 ("no sorting, no aria-sort, no column control, no sticky header") had been
+declined as one job on the strength of THIS entry. Sorting is now shipped and
+URL-driven (`?sort=`/`?dir=`, allowlisted, ordered in PostgreSQL), with
+`aria-sort` on the `<th>` and a browser proof; the sticky header is untouched
+and still waiting here. Worth noting because it is the second time a finding on
+this branch was blocked by a blocker belonging to only part of it — and because
+sortable headers make the sticky question slightly sharper: a column header you
+can now PRESS is a control that scrolls out of reach after about eight rows.
+
 ## 13. ~~One manual look: the hero card loop~~ CLOSED — now covered by a test
 
 The gap is gone. `tests/e2e/hero-motion.motion.spec.ts` runs under a new
@@ -732,7 +743,7 @@ the other two on purpose.
 Both are defensible. Picking between them is a design call, and it wants the
 visual baselines regenerated either way.
 
-## 16. Hard caps in the admin console (04#6) — RESOLVED except fraud
+## 16. ~~Hard caps in the admin console~~ — RESOLVED, fraud included (04#6)
 
 Billing and referrals no longer truncate: both take a venue lookup and a
 paginator (25/50/100 rows). What is left is two surfaces where a notice is
@@ -787,6 +798,19 @@ stopped being a dead end: the same `?venue=` term narrows it, so a venue past th
 alphabetical cap is reachable in one search rather than unselectable. Seven of
 eleven admin lists now page, and all five that have a lookup keep it on screen
 while the list scrolls.
+
+### Update — the last cap is gone; the entry is closed
+
+The fraud queue and the redemption-failure list were the two surfaces still
+answering with a notice. Both now page, on the shared `?page=`/`?size=` params
+(they are never co-visible, so they share one), with the same venue lookup as
+the other nine lists — after the ordering was fixed at the source, §30. The
+failures tab count is a head-only count too; it used to print the length of the
+loaded window, so it read "100" for any number of failures from 100 upward.
+
+**Eleven of eleven admin lists now have lookup and paging**, and no admin
+readback carries a hard `.limit(100)`. Nothing on this entry is waiting on a
+person any more.
 
 What remains is the fraud queue, and it is not a truncation problem — it is an
 ordering one. Section 30 has the detail: `getAdminFraudSignals` sorts by severity
@@ -1356,38 +1380,39 @@ so the count can only fall.
 No sign-off needed. The debt is unchanged but bounded, and the gate is no longer
 blind to the most common form of dead code in the repo.
 
-## 30. The fraud queue cannot be paged without a rank column (04#6)
+## 30. ~~The fraud queue cannot be paged without a rank column~~ — RESOLVED (04#6)
 
-Five of the eleven admin lists now have venue lookup and a paginator. The fraud
-queue is the one that stopped, and not for want of trying.
+The rank column was built. `20260809100000_fraud_flag_severity_rank.sql` adds
+`severity_rank` to `fraud_flags` as a **stored generated** smallint (1 = high,
+4 = an unrecognised severity, so a widened check constraint sorts last rather
+than silently ranking as high), and `getAdminFraudFlags` orders by it in SQL
+before paging a `.range()` window.
 
-`getAdminFraudSignals` fetches a window and then sorts it **in memory**:
+Option 1 of the two recorded here, with the objection to it removed: the note
+said a rank column "can drift from the text one". A **generated** column
+cannot — PostgreSQL recomputes it on every insert and update and refuses a
+direct write. That was checked rather than assumed, against real PostgreSQL 17
+in a rolled-back session:
 
-```js
-flags.sort((left, right) => FRAUD_SEVERITY_RANK[left.severity] - …)
-```
+    update … set severity = 'high'    severity_rank 3 -> 1
+    update … set severity_rank = 1    ERROR: cannot insert a non-DEFAULT value
+                                      into column "severity_rank"
 
-because `severity` is a text column whose alphabetical order — high, low,
-medium — is not its severity order. That is fine for one window. Page it
-server-side and each page gets sorted independently, so a **high**-severity flag
-on page 3 sits below a **low**-severity one on page 1. A triage queue that
-reorders by accident is worse than a long one.
+And the ordering itself, six flags whose severity and recency disagree, paged
+two at a time:
 
-Two honest fixes, both data-layer:
+    by severity_rank asc, created_at desc   high,high | medium,medium | low,low
+    by severity      asc, created_at desc   high,high,LOW,LOW  (every medium
+                                            pushed off the first page)
 
-1. **A `severity_rank` smallint** on `fraud_flags`, written alongside
-   `severity`, ordered in SQL. Fast, and adds a column that can drift from the
-   text one.
-2. **Order by a CASE expression** in a view or RPC. No new column, but PostgREST
-   cannot express it through the query builder, so it needs a database object.
+`tests/db/admin-fraud-queue-order.test.mjs` carries both, including the
+counterfactual, so the column cannot be dropped as redundant without a failing
+test. No sign-off is needed; nothing here was a product decision.
 
-Until then the queue keeps its 100-row window and its truncation notice, which
-tells the truth.
-
-This is the same shape as 03#18, and worth stating as a rule: **the audit's
-"page it like the others" transfers only where the underlying read is already
-ordered the way the page displays it.** Merchants, audit, billing, referrals and
-the evidence ledger all are. Fraud and the members table are not.
+The rule the entry stated is worth keeping, and now has its second half:
+**"page it like the others" transfers only where the underlying read is already
+ordered the way the page displays it — and where it is not, fix the ORDER
+first.** Doing it the other way round ships a queue that lies.
 
 ## 31. Three venue spokes are unreachable and unindexed, awaiting a decision the code calls pending
 
@@ -1467,3 +1492,71 @@ were.
 
 The cheapest way to close this gap is a staging deploy with seeded data, which
 is a decision about environments rather than about UI.
+
+## 33. 04#54 — the panel-description budget, measured
+
+Recorded as "a copy decision across 5 surfaces" with no number, which makes it
+a question rather than a decision. Measured in chromium at 1440x900 against the
+REAL `SectionHeader` at the REAL admin container width, with
+`document.styleSheets.length > 0` asserted first (computed: 14px / 24px line
+height / 672px max-width, i.e. `max-w-2xl text-sm leading-6` as shipped):
+
+| Panel description                           | chars | height |
+| ------------------------------------------- | ----: | -----: |
+| privacy/data-request-workflow-panel.tsx:51  |   220 |   72px |
+| customers/customer-memberships-panel.tsx:48 |   153 |   48px |
+| merchants/page.tsx:246                      |    64 |   24px |
+| merchants/page.tsx:412                      |   122 |   48px |
+| evidence/page.tsx:78                        |   127 |   48px |
+| evidence/page.tsx:98                        |   144 |   48px |
+| pilot/page.tsx:55                           |    69 |   24px |
+| pilot/page.tsx:93                           |   122 |   48px |
+| pilot/page.tsx:174                          |   121 |   48px |
+| **total**                                   |       |  408px |
+
+Every description at or under the audit's 90-character budget measured exactly
+one line (64 chars = 416px wide, 69 chars = 463px, against a 672px measure), so
+the budget change is worth **408px -> 216px: 192px across nine panels**, and
+48px on the privacy page rather than the ~200px the audit estimated for it.
+
+What the number does not decide is the part that needs a person:
+
+- the privacy description is the procedural one ("Verify the requester outside
+  this console … until self-service exists"). Moving it into a
+  `Disclosure label="How this works"` hides an operator instruction in a
+  legally sensitive flow by default. That is a copy/legal call, not a layout
+  one;
+- the other eight are ordinary product copy and could take a 90-character
+  budget with no loss of instruction.
+
+**Cheapest split, if it helps:** apply the budget to the eight, leave the
+privacy header at three lines. That is 336px -> 192px for 144px, and no
+operator instruction disappears.
+
+## 34. 04#67 — `StatStrip` on the admin overview would need a per-item link
+
+Recorded as WON'T FIX because adopting `StatStrip` would regress 04#8 (the KPI
+tiles are links into the lists they count). Re-checked at the source rather
+than the assertion, and it holds: `components/data/stat-strip.tsx:8-14` defines
+`StatStripItem` as `{ label, value, tone?, icon? }` — no `href` — and the strip
+is ONE card of four cells, so a single wrapping link would give three distinct
+destinations (`/admin/merchants`, `/admin/customers`, `/admin/billing`, per
+`app/admin/page.tsx:59-80`) one address. The audit's own recommendation also
+reserves `MetricTile` for tiles carrying helper content, which is exactly the
+pilot page, so only the three overview counters were ever in scope.
+
+There is a version that satisfies both findings: an optional per-item `href` on
+`StatStrip`. It is a design-system change to a component the `/dev/design-system`
+page and the `.design-sync` previews also consume, for a **Low** finding, and it
+changes the admin overview visually. Not taken unilaterally. Decide if the
+density is wanted; the code change is small, the review surface is not.
+
+## 35. The audit lookup bar is now four controls wide (04#26)
+
+`/admin/audit` gains an inclusive `from`/`to` date pair, so its sticky lookup
+bar carries venue + two dates + Search/Clear. The row wraps rather than
+squeezing (`flex flex-wrap items-end`), and the other five lookup surfaces are
+untouched because the pair is opt-in — but the audit console is auth-gated, so
+**no human has seen the wrapped bar at 768px or 1024px**. The behaviour is
+tested; the appearance at intermediate widths is not, and cannot be from here.
+One look at `/admin/audit` on a tablet width would close it.
