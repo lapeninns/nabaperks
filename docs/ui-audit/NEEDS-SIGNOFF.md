@@ -2399,3 +2399,25 @@ which is the single most contended file across the four concurrent lanes; a
 two-line change there against a 6.4% asset win is not worth the merge risk to
 take unilaterally. The measurement is recorded so the integrator can apply it
 once, at the end, in one place.
+
+## 54. Correction — the de-glassing was FIVE surfaces, not three, and my commit message said three
+
+The `ds-merchant` lane removed the banned `bg-*/95 + backdrop-blur-sm` texture
+from five merchant chrome surfaces: the poster header, the poster **sidecar**,
+the poster action bar, the launch save bar and the reward tray. I committed that
+work on its behalf while it was frozen mid-run and wrote "three surfaces" in the
+commit message, having counted the files in the diff I happened to read rather
+than the surfaces the change touched. `wet-ink-opaque-chrome.test.mjs` pins all
+five; the commit message is wrong and this is the correction of record.
+
+Two exclusions in that work are deliberate and worth keeping:
+
+- `present-qr.tsx`'s Dialog overlay keeps its backdrop filter at `bg-ink/90`.
+  DESIGN.md's clause is "transparency is for scrims only … no glassmorphism",
+  and that IS the scrim. Applying the rule rather than pattern-matching the
+  class name is the distinction.
+- `reward-pool-form.tsx:385` keeps its ground wash, where an opaque ground would
+  erase the tile's own sanctioned tone.
+
+**Visual baselines: the five de-glassed surfaces will diff, and those diffs are
+intended.** They are on top of the 121 already awaiting approval.

@@ -3,6 +3,14 @@
 @import "shadcn/tailwind.css";
 @source "../app/**/*.tsx";
 @source "../components/**/*.tsx";
+/* Tailwind v4 auto-scans every non-gitignored file in the project, so prose is
+   a source. docs/ui-audit/*.md quotes class names constantly — "this shipped as
+   bg-card/95 + backdrop-blur-sm" — and every quoted utility was being compiled
+   into the production stylesheet for components that no longer use it. Proof:
+   `bg-card/95` appears in zero .tsx files and was still in the bundle.
+   Measured at 16,151 bytes, 6.4% of the CSS. Documentation must not be able to
+   change what ships. */
+@source not "../docs/**";
 
 @custom-variant dark (&:is(.dark *));
 
