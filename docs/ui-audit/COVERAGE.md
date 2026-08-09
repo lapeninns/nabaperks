@@ -1431,3 +1431,33 @@ The other five remain, and they bound what harness-based verification proves:
     app-harness/offers      <- components/marketing/pubs/guide-section.tsx
     app-harness/onboarding  <- app/app/onboarding/page.tsx
     app-harness/reward-scan <- app/app/rewards/scan/[scanToken]/page.tsx
+
+### Auditing the gates themselves
+
+Having found that I was CHECKING gates wrong, I ran every gate the repo owns
+that `quality:check` does not — `tokens:check`, `claims:check`, `jsonld:check`,
+`bundle:check`, `env:check` — with explicit exit codes.
+
+All five passed. One was lying.
+
+`bundle:check` printed "Bundle budget passed: root first-load JS 540731 bytes,
+**0 app entries checked**". Zero. It looked for an `"entryJSFiles"` object that
+Next no longer emits, found null in all 150 route manifests, and iterated the
+per-route budget over an empty map. `maxRouteFirstLoadJsBytes` had never been
+enforced on this Next version — in CI, and recorded as PASS in the QA
+certification matrix.
+
+The per-route data was one level down, in `clientModules[].chunks`. 113 routes
+now check, largest ~532KB against a 900KB budget.
+
+The more useful fix is `assertRoutesParsed`: manifests present but nothing
+parsed is now a hard failure. **The defect was never the stale key — it was that
+a budget could measure nothing and still print PASS.** Every guard this campaign
+has added now has that property; this one was missing it.
+
+One trap avoided on the way out. My first fix folded the "/" route's chunks into
+"root first-load JS", which moved a tracked metric from 540,731 to 900,075
+bytes against a 950,000 budget. That would have looked like a near-breach caused
+by this branch, when nothing about the bundle changed — only the ruler. **When
+you repair a broken measurement, keep the working part of it defined exactly as
+it was.**
