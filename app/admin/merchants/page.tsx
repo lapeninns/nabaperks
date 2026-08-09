@@ -31,18 +31,24 @@ import {
 import { AdminRecordActions } from "@/components/admin/record-actions"
 import { AdminRecordCard } from "@/components/admin/record-card"
 import { Icon, PageTitle, SectionHeader } from "@/components/brand"
-import { DataTable } from "@/components/data/data-table"
+import { DataTable, type DataTableSort } from "@/components/data/data-table"
 import { SubmitButton } from "@/components/forms"
 import { Input } from "@/components/ui/input"
 import { canRenderAdminPage } from "@/lib/admin/auth"
-import { getAdminMerchants, getAdminQrCodes } from "@/lib/admin/data"
+import {
+  ADMIN_MERCHANT_SORT_COLUMNS,
+  getAdminMerchants,
+  getAdminQrCodes,
+} from "@/lib/admin/data"
 import { formatAdminBillingStatus } from "@/lib/admin/billing-redaction"
 import {
   buildLookupHref,
   parseAdminLookupParams,
+  parseAdminSortParams,
   parsePageParam,
   type AdminLookupState,
   type AdminSearchParams,
+  type AdminSortState,
 } from "@/lib/admin/lookup-query"
 
 export const metadata = { title: "Admin — Merchants" }
@@ -79,6 +85,10 @@ export default async function AdminMerchantsPage({
 
   const params = searchParams ? await searchParams : {}
   const lookup = parseAdminLookupParams(params)
+  const sort = parseAdminSortParams(
+    params,
+    Object.keys(ADMIN_MERCHANT_SORT_COLUMNS)
+  )
   const qrPage = parsePageParam(params.qrPage)
 
   return (
@@ -93,7 +103,7 @@ export default async function AdminMerchantsPage({
           holds up the merchant table (and vice versa), and the page title and
           search paint first. */}
       <Suspense fallback={<AdminTableSkeleton />}>
-        <MerchantAccountsView lookup={lookup} qrPage={qrPage} />
+        <MerchantAccountsView lookup={lookup} qrPage={qrPage} sort={sort} />
       </Suspense>
 
       <Suspense fallback={<AdminTableSkeleton />}>
@@ -106,11 +116,13 @@ export default async function AdminMerchantsPage({
 async function MerchantAccountsView({
   lookup,
   qrPage,
+  sort,
 }: {
   readonly lookup: AdminLookupState
   readonly qrPage: number
+  readonly sort: AdminSortState
 }) {
-  const merchants = await getAdminMerchants(lookup)
+  const merchants = await getAdminMerchants(lookup, sort)
 
   return (
     <MerchantAccountsPanel
@@ -119,11 +131,26 @@ async function MerchantAccountsView({
       hrefForPage={(page) =>
         buildLookupHref("/admin/merchants", {
           venue: lookup.venue,
+          sort: sort.key ?? undefined,
+          dir: sort.key ? sort.direction : undefined,
           page,
           qrPage,
           size: lookup.size,
         })
       }
+      sort={{
+        ...sort,
+        // Sorting starts the list at page 1; it leaves the QR list's own page
+        // alone, because the two paginators on this route are independent.
+        hrefFor: (key, direction) =>
+          buildLookupHref("/admin/merchants", {
+            venue: lookup.venue,
+            sort: key,
+            dir: direction,
+            qrPage,
+            size: lookup.size,
+          }),
+      }}
     />
   )
 }
@@ -202,10 +229,12 @@ function MerchantAccountsPanel({
   merchants,
   lookup,
   hrefForPage,
+  sort,
 }: {
   readonly merchants: AdminMerchantsResult
   readonly lookup: AdminLookupState
   readonly hrefForPage: (page: number) => string
+  readonly sort?: DataTableSort
 }) {
   const searching = Boolean(lookup.venue)
 
@@ -234,6 +263,7 @@ function MerchantAccountsPanel({
         mobileClassName="p-5"
         mobilePageSize={10}
         rows={merchants.rows}
+        sort={sort}
         getRowKey={(merchant) => merchant.id}
         emptyState={
           searching ? (
@@ -254,6 +284,7 @@ function MerchantAccountsPanel({
           {
             key: "merchant",
             header: "Merchant",
+            sortKey: "venue",
             cell: (merchant) => (
               <div className="grid gap-1">
                 <span className="font-bold">{merchant.business_name}</span>
@@ -274,6 +305,7 @@ function MerchantAccountsPanel({
           {
             key: "account",
             header: "Account",
+            sortKey: "status",
             cell: (merchant) => (
               <StatusPill tone={accountStatusTone(merchant.status)}>
                 {merchant.status}
@@ -295,6 +327,7 @@ function MerchantAccountsPanel({
           {
             key: "created",
             header: "Created",
+            sortKey: "created",
             cell: (merchant) => (
               <time
                 className="text-muted-foreground"

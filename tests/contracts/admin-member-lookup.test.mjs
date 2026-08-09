@@ -492,3 +492,49 @@ test("Given the fraud page When source is inspected Then query params drive look
     "a queue tab count must not be the length of a loaded page"
   )
 })
+
+// contract-admin-member-lookup, 04#26: an audit trail without a date bound only
+// answers "what happened most recently". The bound is inclusive at BOTH ends —
+// `created_at` is a timestamp, so an `lte` against the `to` date would compare
+// with midnight and silently drop the day the operator asked for.
+test("Given an audit date range When the trail is read Then both bounds are applied and the upper one stays inclusive", () => {
+  const data = readProjectFile("lib", "admin", "data.ts")
+  const lookupQuery = readProjectFile("lib", "admin", "lookup-query.ts")
+  const page = readProjectFile("app", "admin", "audit", "page.tsx")
+  const controls = readProjectFile("components", "admin", "lookup-controls.tsx")
+
+  const reader = data.slice(
+    data.indexOf("export async function getAdminAuditPage"),
+    data.indexOf("export async function getAdminAuditLogs")
+  )
+  assert.notEqual(reader.length, 0, "the audit reader exists")
+  assert.match(reader, /\.gte\("created_at", lookup\.from\)/)
+  assert.match(reader, /\.lt\("created_at", exclusiveDayAfter\(lookup\.to\)\)/)
+  assert.doesNotMatch(
+    reader,
+    /\.lte\("created_at"/,
+    "an inclusive `to` date compared with lte drops the day it names"
+  )
+
+  // The bound reaches PostgREST as a timestamp filter, so it is validated as a
+  // real calendar date rather than merely shaped like one.
+  assert.match(lookupQuery, /export function parseDateParam/)
+  assert.match(lookupQuery, /toISOString\(\)\.slice\(0, 10\) === raw/)
+  assert.match(lookupQuery, /export function orderedDateRange/)
+
+  assert.match(controls, /readonly withDateRange\?: boolean/)
+  assert.match(controls, /type="date"\s*\n\s*name="from"/)
+  assert.match(controls, /type="date"\s*\n\s*name="to"/)
+  assert.match(page, /withDateRange/)
+
+  // The range has to survive paging and sorting, or the operator loses the
+  // week they were looking at on the first Next press.
+  const pagingHrefs = [
+    ...page.matchAll(/buildLookupHref\([^)]*?\bpage[^)]*?\)/gs),
+  ]
+  assert.ok(pagingHrefs.length > 0, "the audit page builds a paging href")
+  for (const href of pagingHrefs) {
+    assert.match(href[0], /\bfrom\b/, "a paging href drops the date range")
+    assert.match(href[0], /\bto\b/, "a paging href drops the date range")
+  }
+})

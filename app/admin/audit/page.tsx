@@ -21,10 +21,14 @@ import { AdminRecordCard } from "@/components/admin/record-card"
 import { PageTitle, SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { canRenderAdminPage } from "@/lib/admin/auth"
-import { getAdminAuditPage } from "@/lib/admin/data"
+import {
+  ADMIN_AUDIT_SORT_COLUMNS,
+  getAdminAuditPage,
+} from "@/lib/admin/data"
 import {
   buildLookupHref,
   parseAdminLookupParams,
+  parseAdminSortParams,
   type AdminSearchParams,
 } from "@/lib/admin/lookup-query"
 
@@ -44,8 +48,21 @@ export default async function AdminAuditPage({
 
   const params = searchParams ? await searchParams : {}
   const lookup = parseAdminLookupParams(params)
-  const logs = await getAdminAuditPage(lookup)
-  const searching = Boolean(lookup.venue)
+  const sort = parseAdminSortParams(params, Object.keys(ADMIN_AUDIT_SORT_COLUMNS))
+  const logs = await getAdminAuditPage(lookup, sort)
+  const searching = Boolean(lookup.venue || lookup.from || lookup.to)
+
+  // Sorting starts at page 1: a new order makes the current page number
+  // meaningless, the same reason submitting the search resets it.
+  const hrefForSort = (key: string, direction: "asc" | "desc") =>
+    buildLookupHref("/admin/audit", {
+      venue: lookup.venue,
+      from: lookup.from,
+      to: lookup.to,
+      sort: key,
+      dir: direction,
+      size: lookup.size,
+    })
 
   return (
     <div className="grid gap-6">
@@ -62,7 +79,7 @@ export default async function AdminAuditPage({
         <AdminPanelHeader>
           <SectionHeader
             title="Audit trail"
-            description="Search by venue to answer questions about one merchant, and page through the whole trail rather than the newest hundred rows."
+            description="Search by venue and date to answer questions about one merchant on one day, and page through the whole trail rather than the newest hundred rows."
             actions={<SourceLabel>Source: audit_logs</SourceLabel>}
           />
         </AdminPanelHeader>
@@ -73,6 +90,7 @@ export default async function AdminAuditPage({
           lookup={lookup}
           label="Audit log lookup"
           fields="venue"
+          withDateRange
         />
         <AdminAppliedFilters basePath="/admin/audit" lookup={lookup} />
         <DataTable
@@ -82,6 +100,7 @@ export default async function AdminAuditPage({
           mobileClassName="p-5"
           mobilePageSize={10}
           rows={logs.rows}
+          sort={{ ...sort, hrefFor: hrefForSort }}
           getRowKey={(log) => log.id}
           emptyState={
             <AdminEmptyState
@@ -91,7 +110,7 @@ export default async function AdminAuditPage({
               }
               description={
                 searching
-                  ? "No audited action is recorded against that venue. Clear the search to see the whole trail."
+                  ? "No audited action matches that venue or date range. Clear the search to see the whole trail."
                   : "Audited support and security-sensitive actions will appear here."
               }
             />
@@ -138,6 +157,7 @@ export default async function AdminAuditPage({
             {
               key: "action",
               header: "Action",
+              sortKey: "action",
               // Spoken name in the display face, exact key in mono beneath —
               // operators still need the raw token to grep for.
               cell: (log) => (
@@ -178,6 +198,7 @@ export default async function AdminAuditPage({
             {
               key: "when",
               header: "When",
+              sortKey: "when",
               cell: (log) => (
                 <time
                   className="text-muted-foreground"
@@ -198,6 +219,10 @@ export default async function AdminAuditPage({
               hrefForPage={(page) =>
                 buildLookupHref("/admin/audit", {
                   venue: lookup.venue,
+                  from: lookup.from,
+                  to: lookup.to,
+                  sort: sort.key ?? undefined,
+                  dir: sort.key ? sort.direction : undefined,
                   page,
                   size: lookup.size,
                 })

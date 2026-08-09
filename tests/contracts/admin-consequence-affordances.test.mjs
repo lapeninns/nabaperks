@@ -142,3 +142,24 @@ test("Given the referral ops panel When contact renders Then both parties are ma
     }
   }
 })
+
+// 04#39: the console's authenticator QR is the system's one QR treatment, not
+// a look-alike. `QrFrame` takes `children: ReactNode`, so an <img> composes in
+// it exactly as the marketing venue QR's <svg> does — the recorded reason for
+// leaving it hand-rolled ("the frame API takes a matrix") was not true of the
+// component.
+test("Given the admin authenticator QR When it renders Then it composes through QrFrame rather than restating its classes", () => {
+  const panel = readProjectFile("components", "admin", "mfa-panel.tsx")
+  const frame = readProjectFile("components", "loyalty", "qr-frame.tsx")
+
+  assert.match(frame, /children: ReactNode/, "QrFrame takes children, not a matrix")
+  assert.match(panel, /<QrFrame label="Authenticator setup QR code"/)
+  // The hand-rolled frame must not come back beside the real one.
+  const image = panel.slice(panel.indexOf("<QrFrame"), panel.indexOf("</QrFrame>"))
+  assert.doesNotMatch(
+    image,
+    /border-2 border-ink/,
+    "the QR treatment is restated on the image instead of coming from QrFrame"
+  )
+  assert.match(image, /className="h-44 w-44"/, "the QR stays at least 176px")
+})

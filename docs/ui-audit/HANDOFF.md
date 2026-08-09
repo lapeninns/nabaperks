@@ -12,15 +12,15 @@ Read `COVERAGE.md` for the evidence behind every number here.
 |                                      |        count |
 | ------------------------------------ | -----------: |
 | Findings tracked (each exactly once) |          347 |
-| Done                                 |          298 |
+| Done                                 |          301 |
 | Partial                              |           22 |
-| Stale — not reproducible in the tree |           16 |
-| Open                                 |           11 |
-| **Criticals resolved**               | **25 of 33** |
+| Stale — not reproducible in the tree |           14 |
+| Open                                 |           10 |
+| **Criticals resolved**               | **26 of 33** |
 
 "Criticals resolved" means `[x]` or `[stale]` — shipped, or the premise
-disproved. The 8 that are neither are named, so the number cannot drift into
-a claim: 01#22, 02#10, 02#20, 02#50, 02#64, 03#16, 03#37, 04#6.
+disproved. The 7 that are neither are named, so the number cannot drift into
+a claim: 01#22, 02#10, 02#20, 02#50, 02#64, 03#16, 03#37.
 
 ## Gates
 
@@ -77,7 +77,7 @@ measured at 4,854-5,265ms against a 4,000ms budget. woff2 recovers 1,622ms but
 `poster-font-assets` pins .ttf for PDF parity, so it is reverted and recorded.
 Three options in NEEDS-SIGNOFF §10.
 
-## The 12 open findings, categorised
+## The 10 open findings, categorised
 
 None of these is open for want of effort. Every one was attempted, measured, or
 scoped out by instruction. The categories are what matter:
@@ -99,13 +99,24 @@ three runs against a 0.100 threshold. The defect does not exist in what ships, s
 there is nothing to renegotiate and the finding is now `[stale]` with its premise
 disproved rather than its fix shipped. See NEEDS-SIGNOFF 7.
 
-### Declined with reasoning, evidence recorded (2)
+### Declined with reasoning, evidence recorded (1)
 
 `03#16` — the migration does not fix the defect it cites (DataTable's own
-`mobileCard` path renders both trees). `04#60` — sorting across 8 live panels,
-where half-built is worse than none. `03#13` was the third and is no longer
-declined: the aggregate it said "does not exist" turned out to be two ordinary
-merchant-scoped COUNTs, once the count stopped trying to mirror the badge.
+`mobileCard` path renders both trees).
+
+**`03#13` has also left this group.** "A merchant-wide count needs an aggregate
+that does not exist" was wrong about the schema, not about the risk: `ready` is
+first in the first-match-wins chain, so a SQL predicate and the badge agree by
+construction, and the count is now one deduplicated id read plus one
+`head: true` COUNT. It is `[x]`.
+
+**04#60 has left this group.** "Sorting across 8 live panels, where half-built
+is worse than none" was the sticky header's blocker applied to the whole
+finding. Sorting is opt-in per column (`sortKey`), so the panels that do not
+use it are byte-identical and nothing was migrated; it is URL-driven so the
+ORDER BY lands in PostgreSQL, and it is browser-proved on the real component.
+The finding is now `[~]` with only the sticky header (NEEDS-SIGNOFF 12) and the
+optional column-visibility toggle outstanding.
 
 ### Genuine product or copy decisions (5)
 
@@ -143,25 +154,22 @@ evidence in `NEEDS-SIGNOFF.md` rather than a description.
    sits at top 1295px on a 390x844 viewport — below the fold — so it moves no
    visible content. Nothing to renegotiate; no assertion needs touching. (§7)
 
-## Open findings, all 11
+## Open findings, all 10
 
-01#23, 01#55, 01#63, 01#65, 01#67, 02#50, 02#64, 03#16, 04#54, 04#60, 05#13
+01#23, 01#55, 01#63, 01#65, 01#67, 02#50, 02#64, 03#16, 04#54, 05#13
 
 - **Blocked by a test** (attempted, reverted, no assertion weakened): 01#63,
   01#65, plus 03#46 in STATUS-m-launch. 01#49 was here until its premise was
   disproved — the CLS it cited is a dev-server artefact and production measures
   0.0000, so it is `[stale]` and needs no contract change.
 - **Copy / product**: 01#23, 01#55, 02#50, 02#64, 04#54.
-- **Data-layer**: 03#16 (see below). 03#13 was listed here and is now DONE — the
-  count never had to mirror the badge. `ready` is FIRST in the badge's
-  first-match-wins chain, so the SQL predicate (`reward_events.status='unlocked'`
-  with `redeemable_from` on or before today) and the badge agree by
-  construction; `quiet` is a plain `last_visit_at` predicate. Both are
-  merchant-scoped `head: true` COUNTs in `lib/merchant/customers-view.ts`,
-  shared with the members filter so the two screens cannot disagree.
+- **Data-layer**: 03#13 (a merchant-wide "rewards ready" count means duplicating
+  badge logic in SQL or loading every member; counting the loaded page would
+  print a false readback), 03#16 (see below).
 - **Out of scope by instruction**: 01#67, 05#13.
-- **Large API addition**: 04#60 sorting across 8 live panels; its sticky-header
-  half is blocked by the `overflow-x-auto` scroll container.
+- **Large API addition**: none left. 04#60 was here; the API turned out to be
+  one optional field on a column, and only its sticky-header half is blocked by
+  the `overflow-x-auto` scroll container.
 
 ### 03#16 is declined, not missed
 

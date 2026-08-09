@@ -267,6 +267,36 @@ for (const file of ["COVERAGE.md", "HANDOFF.md"]) {
 }
 
 /**
+ * HANDOFF-NEXT-AGENT.md leads with a state line. Two lanes each wrote their own
+ * during one fan-out and both were stale within an hour, because nothing read
+ * it. It is the first thing the next agent trusts, so it is checked here too.
+ */
+{
+  const file = "HANDOFF-NEXT-AGENT.md"
+  const text = readFileSync(path.join(DIR, file), "utf8")
+  const line = text.match(
+    /\*\*(\d+) done \/ (\d+) partial \/ (\d+) stale \/ (\d+) open of (\d+)\.\*\*/
+  )
+  if (!line) {
+    problems.push(
+      `${file} has no "N done / N partial / N stale / N open" state line`
+    )
+  } else {
+    const got = line.slice(1, 6).map(Number)
+    const want = [tally["[x]"], tally["[~]"], tally["[stale]"], tally.open, 347]
+    if (want.some((n, i) => n !== got[i])) {
+      problems.push(`${file} state line reads ${got}, parse says ${want}`)
+    }
+  }
+  const states = text.match(/\*\*\d+ done \/ \d+ partial \//g) ?? []
+  if (states.length > 1) {
+    problems.push(
+      `${file} carries ${states.length} state lines; there must be exactly one`
+    )
+  }
+}
+
+/**
  * HANDOFF enumerates the open findings by id. That list is what a reviewer
  * reads first, and it drifts silently: it said "all 13" and named 01#49 as
  * contract-blocked for several commits after 01#49 moved to `[stale]`, which

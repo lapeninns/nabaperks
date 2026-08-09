@@ -14,22 +14,18 @@ is the user's own worktree. Commits here use
 
 ## State
 
-**294 done / 23 partial / 19 stale / 11 open of 347.** 31 of 33 Criticals.
+**301 done / 22 partial / 14 stale / 10 open of 347.** 26 of 33 Criticals.
 `pnpm ui-audit:check` enforces those numbers, that every source path cited in the
 evidence docs exists, and that HANDOFF's open list matches the parsed state.
 
-Open: `01#23 01#55 01#63 01#65 01#67 02#50 02#64 03#16 04#54 04#60 05#13`.
-
-> These counts are as of the `lane/merchant` fan-out and do not include the
-> other lanes still in flight. Recompute them from the STATUS files at fan-in
-> rather than picking a side on a conflict — `pnpm ui-audit:check` will refuse
-> any table that disagrees with the parse.
+Open: `01#23 01#55 01#63 01#65 01#67 02#50 02#64 03#16 04#54 05#13`.
 
 The two Criticals that remain are `03#16` (declined on the merits — the
 migration does not remove the double mount it cites) and `03#37`'s single-route
 collapse (pinned by `qr-a4-poster-templates` and `merchant-shell`; a contract
 change to ask for, not to take). `03#18` closed in `lane/merchant`: both of its
 recorded blockers were disproved — see NEEDS-SIGNOFF 23.
+04#60 left the list: sorting shipped, only its sticky-header half is blocked.
 
 Read in this order: `HANDOFF.md`, `NEEDS-SIGNOFF.md` (32 sections, 22 live),
 `COVERAGE.md` (method log, including every mistake and what it cost),
@@ -141,10 +137,9 @@ already request `facingMode: environment`).
 
 ## Remaining engineering, value order
 
-1. **Fraud queue lookup + paging** (04#6, §30) — needs a `severity_rank` column
-   or SQL CASE ordering, because severity is a text column sorted in memory.
-   Paging it as-is would rank a high-severity flag on page 3 below a low one on
-   page 1.
+1. ~~**Fraud queue lookup + paging** (04#6, §30)~~ — DONE. `severity_rank` is a
+   stored generated column (20260809100000); the queue orders in SQL and pages
+   like the other ten. Eleven of eleven admin lists now have lookup + paging.
 2. **Generic TOC** (01#60, §18) — blocked only because the pinned literal lives
    inside `guide-spine.tsx` and `marketing-offer-source` reads that file by name.
    Moving it is a contract change; ask first.

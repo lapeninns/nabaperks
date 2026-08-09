@@ -39,6 +39,7 @@ export function AdminLookupControls({
   fields = "venue-and-contact",
   hiddenParams,
   sticky,
+  withDateRange = false,
 }: {
   readonly basePath: string
   readonly lookup: AdminLookupState
@@ -66,11 +67,21 @@ export function AdminLookupControls({
    * nothing.
    */
   readonly sticky?: "flush" | "padded"
+  /**
+   * Add an inclusive `from`/`to` date pair (04#26). Off by default, so the
+   * five lists that do not ask a date question render exactly the form they
+   * rendered before. An audit trail is the one that cannot do without it:
+   * "what did operator X do to venue Y last Tuesday" is unanswerable with a
+   * name fragment alone.
+   */
+  readonly withDateRange?: boolean
 }) {
   const withVenue = fields !== "contact"
   const withContact = fields !== "venue"
   const active = Boolean(
-    (withVenue && lookup.venue) || (withContact && lookup.contact)
+    (withVenue && lookup.venue) ||
+      (withContact && lookup.contact) ||
+      (withDateRange && (lookup.from || lookup.to))
   )
 
   return (
@@ -79,9 +90,14 @@ export function AdminLookupControls({
       role="search"
       aria-label={label}
       className={cn(
-        withVenue && withContact
-          ? "grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end"
-          : "grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end",
+        // The date pair makes the row four controls wide, which does not fit
+        // the fixed two/three-column template; it wraps on its own axis
+        // instead of squeezing the search fields to nothing.
+        withDateRange
+          ? "flex flex-wrap items-end gap-3"
+          : withVenue && withContact
+            ? "grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end"
+            : "grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end",
         // Must be a DIRECT child of the AdminPanel: sticky is bound by its
         // containing block, so inside the ~174px AdminPanelHeader the bar
         // unsticks almost immediately (measured at -1225px).
@@ -126,6 +142,33 @@ export function AdminLookupControls({
             autoComplete="off"
           />
         </AdminField>
+      ) : null}
+      {withDateRange ? (
+        <>
+          {/* Native date inputs: this form is a plain GET that works with no
+              JavaScript, and the browser's own picker is the one control an
+              operator already knows. `max`/`min` cross-bind the pair so the
+              picker itself refuses a backwards range; the server swaps one
+              anyway, because a typed URL is not bound by the widget. */}
+          <AdminField label="From">
+            <Input
+              type="date"
+              name="from"
+              defaultValue={lookup.from ?? ""}
+              max={lookup.to ?? undefined}
+              className="w-44"
+            />
+          </AdminField>
+          <AdminField label="To">
+            <Input
+              type="date"
+              name="to"
+              defaultValue={lookup.to ?? ""}
+              min={lookup.from ?? undefined}
+              className="w-44"
+            />
+          </AdminField>
+        </>
       ) : null}
       <div className="flex flex-wrap gap-2">
         {/* A service-role readback can take a second; without a pending
@@ -177,6 +220,8 @@ export function AdminAppliedFilters({
   const terms = [
     { key: "venue" as const, label: "Venue", value: lookup.venue },
     { key: "contact" as const, label: "Contact", value: lookup.contact },
+    { key: "from" as const, label: "From", value: lookup.from },
+    { key: "to" as const, label: "To", value: lookup.to },
   ].filter((term) => Boolean(term.value))
 
   if (terms.length === 0) return null
@@ -197,6 +242,8 @@ export function AdminAppliedFilters({
               ...extraParams,
               venue: term.key === "venue" ? undefined : lookup.venue,
               contact: term.key === "contact" ? undefined : lookup.contact,
+              from: term.key === "from" ? undefined : lookup.from,
+              to: term.key === "to" ? undefined : lookup.to,
             })}
           >
             <span className="min-w-0 truncate">

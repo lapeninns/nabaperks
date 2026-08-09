@@ -9,14 +9,19 @@ import {
   containsPattern,
   decideVenueFilter,
   escapeLikePattern,
+  exclusiveDayAfter,
   lookupRange,
   nextPage,
   normaliseLookupTerm,
   pageMeta,
   parseAdminLookupParams,
+  parseAdminSortParams,
+  parseDateParam,
   parsePageParam,
   parseSizeParam,
+  orderedDateRange,
   previousPage,
+  resolveAdminSort,
 } from "@/lib/admin/lookup-query"
 
 test("normaliseLookupTerm trims, collapses whitespace, and strips control characters", () => {
@@ -61,11 +66,20 @@ test("parseAdminLookupParams maps venue, contact, page, and rows-per-page from s
       page: "3",
       size: "50",
     }),
-    { venue: "The Crown", contact: "jo", page: 3, size: 50 }
+    {
+      venue: "The Crown",
+      contact: "jo",
+      from: undefined,
+      to: undefined,
+      page: 3,
+      size: 50,
+    }
   )
   assert.deepEqual(parseAdminLookupParams(undefined), {
     venue: undefined,
     contact: undefined,
+    from: undefined,
+    to: undefined,
     page: 1,
     size: ADMIN_LOOKUP_PAGE_SIZE,
   })
@@ -215,5 +229,143 @@ test("buildLookupHref serialises only meaningful params and keeps page 1 implici
       rewardsPage: 1,
     }),
     "/admin/customers?venue=a%26b%3Dc&page=3"
+  )
+})
+
+test("parseAdminSortParams accepts only allowlisted sort tokens", () => {
+  const allowed = ["severity", "when"]
+
+  assert.deepEqual(parseAdminSortParams({ sort: "severity" }, allowed), {
+    key: "severity",
+    direction: "desc",
+  })
+  assert.deepEqual(
+    parseAdminSortParams({ sort: "when", dir: "asc" }, allowed),
+    { key: "when", direction: "asc" }
+  )
+  // A column name that is real in the database but not on the allowlist is
+  // still an operator-controlled ORDER BY on a service-role read.
+  for (const junk of [
+    "created_at",
+    "metadata",
+    "id",
+    "severity;drop",
+    "",
+    undefined,
+  ]) {
+    assert.deepEqual(
+      parseAdminSortParams({ sort: junk }, allowed),
+      { key: null, direction: "desc" },
+      `sort=${String(junk)} must fall back to the default order`
+    )
+  }
+})
+
+test("parseAdminSortParams reports no direction without a column", () => {
+  // `?dir=asc` alone is not a sort; reporting it would let a caller build
+  // links that look like they change the order and do not.
+  assert.deepEqual(parseAdminSortParams({ dir: "asc" }, ["when"]), {
+    key: null,
+    direction: "desc",
+  })
+})
+
+test("resolveAdminSort maps a token to a column and inverts a ranked one", () => {
+  const columns = {
+    when: { column: "created_at" },
+    severity: { column: "severity_rank", inverted: true },
+  }
+
+  assert.equal(resolveAdminSort(undefined, columns), null)
+  assert.equal(resolveAdminSort({ key: null, direction: "desc" }, columns), null)
+  assert.equal(
+    resolveAdminSort({ key: "unknown", direction: "desc" }, columns),
+    null
+  )
+
+  assert.deepEqual(resolveAdminSort({ key: "when", direction: "desc" }, columns), {
+    column: "created_at",
+    ascending: false,
+  })
+  assert.deepEqual(resolveAdminSort({ key: "when", direction: "asc" }, columns), {
+    column: "created_at",
+    ascending: true,
+  })
+
+  // The inversion that matters: severity_rank 1 is `high`, so "most severe
+  // first" (desc) is ascending rank. Without it, an operator asking for the
+  // worst flags first would be shown the mildest.
+  assert.deepEqual(
+    resolveAdminSort({ key: "severity", direction: "desc" }, columns),
+    { column: "severity_rank", ascending: true }
+  )
+  assert.deepEqual(
+    resolveAdminSort({ key: "severity", direction: "asc" }, columns),
+    { column: "severity_rank", ascending: false }
+  )
+})
+
+test("parseDateParam accepts only real calendar dates", () => {
+  assert.equal(parseDateParam("2026-08-09"), "2026-08-09")
+  assert.equal(parseDateParam(["2026-08-09", "2026-01-01"]), "2026-08-09")
+
+  // `new Date("2026-02-31")` rolls forward to 3 March rather than failing, so
+  // a shape check alone would let a date the operator never chose reach the
+  // query as a bound.
+  assert.equal(parseDateParam("2026-02-31"), undefined)
+  for (const junk of [
+    "2026-13-01",
+    "09-08-2026",
+    "2026-8-9",
+    "yesterday",
+    "",
+    undefined,
+  ]) {
+    assert.equal(parseDateParam(junk), undefined, `from=${String(junk)}`)
+  }
+})
+
+test("orderedDateRange swaps a backwards range instead of returning nothing", () => {
+  // A backwards range is an operator slip; an empty result would read as
+  // "nothing happened that week".
+  assert.deepEqual(orderedDateRange("2026-08-09", "2026-08-01"), {
+    from: "2026-08-01",
+    to: "2026-08-09",
+  })
+  assert.deepEqual(orderedDateRange("2026-08-01", "2026-08-09"), {
+    from: "2026-08-01",
+    to: "2026-08-09",
+  })
+  assert.deepEqual(orderedDateRange("2026-08-01", undefined), {
+    from: "2026-08-01",
+    to: undefined,
+  })
+  assert.deepEqual(orderedDateRange(undefined, undefined), {
+    from: undefined,
+    to: undefined,
+  })
+})
+
+test("exclusiveDayAfter keeps an inclusive `to` inclusive", () => {
+  // created_at is a timestamp: `lte(created_at, "2026-08-09")` compares
+  // against midnight and drops the entire day the operator asked for.
+  assert.equal(exclusiveDayAfter("2026-08-09"), "2026-08-10")
+  assert.equal(exclusiveDayAfter("2026-08-31"), "2026-09-01")
+  assert.equal(exclusiveDayAfter("2026-12-31"), "2027-01-01")
+  // A leap year the naive +1 would get wrong.
+  assert.equal(exclusiveDayAfter("2028-02-28"), "2028-02-29")
+})
+
+test("parseAdminLookupParams carries an ordered date range", () => {
+  assert.deepEqual(
+    parseAdminLookupParams({ from: "2026-08-09", to: "2026-08-01" }),
+    {
+      venue: undefined,
+      contact: undefined,
+      from: "2026-08-01",
+      to: "2026-08-09",
+      page: 1,
+      size: ADMIN_LOOKUP_PAGE_SIZE,
+    }
   )
 })

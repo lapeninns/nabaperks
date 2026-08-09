@@ -1,5 +1,9 @@
 import type { KeyboardEventHandler, ReactNode } from "react"
 
+import Link from "next/link"
+import { ArrowDown01Icon, ArrowUp01Icon } from "@hugeicons/core-free-icons"
+
+import { Icon } from "@/components/brand"
 import { ShowMoreList } from "@/components/data/show-more-list"
 import { cn } from "@/lib/utils"
 import {
@@ -16,6 +20,31 @@ export type DataTableColumn<T> = {
   header: ReactNode
   cell: (row: T) => ReactNode
   className?: string
+  /**
+   * Makes this header a sort control. The value is the token that reaches the
+   * URL as `?sort=`, and it is deliberately NOT `key`: the sort token is an
+   * allowlisted server-side column name, while `key` is a React list key a
+   * caller may rename freely. A column without a `sortKey`, or a table without
+   * a `sort` prop, renders exactly the inert header it always did.
+   */
+  sortKey?: string
+}
+
+type DataTableSortDirection = "asc" | "desc"
+
+/**
+ * URL-driven sorting for the console tables (ADM 04#60). Links, not client
+ * state: the admin lists are server components whose filter and pagination are
+ * already query params, so a sorted view stays linkable, back-button safe and
+ * works with no JavaScript — and the ORDER BY happens in the database rather
+ * than over whichever page happens to be loaded, which would rank each page
+ * independently (the trap the fraud queue was left capped for, 04#6).
+ */
+export type DataTableSort = {
+  /** The active sort token, or null when the list is in its default order. */
+  readonly key: string | null
+  readonly direction: DataTableSortDirection
+  readonly hrefFor: (key: string, direction: DataTableSortDirection) => string
 }
 
 /**
@@ -82,6 +111,11 @@ export type DataTableProps<T> = {
    * is the admin console norm, keeping card records through tablet widths.
    */
   cardBreakpoint?: "sm" | "xl"
+  /**
+   * Sorting state + link builder. Omitted (the default) leaves every header
+   * inert and the markup byte-identical to the unsorted table.
+   */
+  sort?: DataTableSort
 }
 
 /**
@@ -106,6 +140,7 @@ function DataTableCore<T>({
   rowClassName,
   onRowClick,
   getRowProps,
+  sort,
 }: Pick<
   DataTableProps<T>,
   | "caption"
@@ -116,6 +151,7 @@ function DataTableCore<T>({
   | "rowClassName"
   | "onRowClick"
   | "getRowProps"
+  | "sort"
 >) {
   return (
     // The inner ui Table provides the one focusable scroll container; the
@@ -133,12 +169,13 @@ function DataTableCore<T>({
               // .eyebrow lives on the cell now; the wrapper element is gone.
               <TableHead
                 key={column.key}
+                aria-sort={ariaSort(column, sort)}
                 className={cn(
                   "eyebrow h-10 px-4 whitespace-nowrap",
                   column.className
                 )}
               >
-                {column.header}
+                <SortableHeader column={column} sort={sort} />
               </TableHead>
             ))}
           </TableRow>
@@ -172,6 +209,72 @@ function DataTableCore<T>({
       </Table>
     </div>
   )
+}
+
+/**
+ * `aria-sort` belongs on the header CELL, not on the control inside it
+ * (WAI-ARIA 1.2), and only one column may claim a direction at a time. A
+ * sortable column that is not the active one reports "none"; a column that
+ * cannot be sorted reports nothing at all, because `aria-sort="none"` on an
+ * inert header tells a screen-reader user the table sorts when it does not.
+ */
+function ariaSort<T>(
+  column: DataTableColumn<T>,
+  sort?: DataTableSort
+): "ascending" | "descending" | "none" | undefined {
+  if (!sort || !column.sortKey) return undefined
+  if (sort.key !== column.sortKey) return "none"
+  return sort.direction === "asc" ? "ascending" : "descending"
+}
+
+/**
+ * A sortable header is a real link — the console's whole lookup model is query
+ * params — so it is middle-clickable, copyable and needs no JavaScript.
+ * Pressing the active column toggles its direction; pressing a new one starts
+ * at descending, which is the direction an operator triaging by severity or
+ * recency wants first.
+ */
+function SortableHeader<T>({
+  column,
+  sort,
+}: {
+  readonly column: DataTableColumn<T>
+  readonly sort?: DataTableSort
+}) {
+  if (!sort || !column.sortKey) return <>{column.header}</>
+
+  const active = sort.key === column.sortKey
+  const next: DataTableSortDirection =
+    active && sort.direction === "desc" ? "asc" : "desc"
+
+  return (
+    <Link
+      href={sort.hrefFor(column.sortKey, next)}
+      // "Sort by When" does not say what pressing it will do, and an admin
+      // table can carry four of these.
+      aria-label={`Sort by ${headerLabel(column)}, ${
+        next === "asc" ? "ascending" : "descending"
+      }`}
+      className="focus-ring -mx-1 inline-flex items-center gap-1 rounded-sm px-1 outline-none hover:text-foreground"
+    >
+      {column.header}
+      <Icon
+        icon={
+          active && sort.direction === "asc" ? ArrowUp01Icon : ArrowDown01Icon
+        }
+        size={12}
+        className={cn(!active && "opacity-35")}
+        aria-hidden="true"
+      />
+    </Link>
+  )
+}
+
+/** A readable name for the sort link, falling back to the sort token. */
+function headerLabel<T>(column: DataTableColumn<T>): string {
+  return typeof column.header === "string"
+    ? column.header
+    : (column.sortKey ?? column.key)
 }
 
 /**

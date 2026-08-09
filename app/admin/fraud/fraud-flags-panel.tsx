@@ -23,7 +23,7 @@ import {
   AdminLookupPagination,
 } from "@/components/admin/lookup-controls"
 import { Icon, SectionHeader, type IconGlyph } from "@/components/brand"
-import { DataTable } from "@/components/data/data-table"
+import { DataTable, type DataTableSort } from "@/components/data/data-table"
 import { SubmitButton } from "@/components/forms"
 import { Input } from "@/components/ui/input"
 import type { getAdminFraudFlags } from "@/lib/admin/data"
@@ -62,12 +62,14 @@ export function FraudFlagsPanel({
   lookup,
   queue = "open",
   hrefForPage,
+  sort,
 }: {
   readonly flags: FraudFlags
   readonly meta: AdminPageMeta
   readonly lookup: AdminLookupState
   readonly queue?: string
   readonly hrefForPage: (page: number) => string
+  readonly sort?: DataTableSort
 }) {
   const searching = Boolean(lookup.venue)
 
@@ -102,6 +104,7 @@ export function FraudFlagsPanel({
         cardBreakpoint="xl"
         className="rounded-lg shadow-none"
         rows={flags}
+        sort={sort}
         getRowKey={(flag) => flag.id}
         emptyState={
           <AdminEmptyState
@@ -153,6 +156,9 @@ export function FraudFlagsPanel({
           {
             key: "severity",
             header: "Severity",
+            // Sortable because `severity_rank` exists (04#6): before it, a
+            // severity sort could only have been an in-memory sort of one page.
+            sortKey: "severity",
             cell: (flag) => (
               <StatusPill tone={severityTone(flag.severity)}>
                 {flag.severity}
@@ -167,6 +173,7 @@ export function FraudFlagsPanel({
           {
             key: "when",
             header: "When",
+            sortKey: "when",
             cell: (flag) => (
               <time
                 className="text-muted-foreground"
