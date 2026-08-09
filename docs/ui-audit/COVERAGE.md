@@ -20,6 +20,12 @@ branch is green after every merge.
 | 04 admin         |      74 |      61 |       2 |      9 |      2 |
 | 05 design system |      67 |      64 |       2 |      0 |      1 |
 | **Total**        | **347** | **293** |  **24** | **18** | **12** |
+| 01 marketing     |      69 |      54 |       6 |      4 |      5 |
+| 02 customer      |      70 |      63 |       5 |      0 |      2 |
+| 03 merchant      |      67 |      53 |       8 |      4 |      2 |
+| 04 admin         |      74 |      61 |       2 |      9 |      2 |
+| 05 design system |      67 |      64 |       2 |      0 |      1 |
+| **Total**        | **347** | **295** |  **23** | **17** | **12** |
 
 ## "Stale" is a real category (18 findings)
 
@@ -27,8 +33,7 @@ Not reproducible against the current tree, and recorded rather than invented
 into a change. Examples: `border-[1.5px]` no longer exists (03#25); both
 remaining `<select>`s already compose SelectField (03#29); the `rounded-xl`
 sites named in 03#60 are already `rounded-lg`; `ProgressTrack` is not dead code
-(02#35); `CustomerShell`/`CustomerAppShell` already share one column (02#5);
-DESIGN.md defines no `marketing-hero` token (01#15); QR destructive styling,
+(02#35); DESIGN.md defines no `marketing-hero` token (01#15); QR destructive styling,
 referral masking and 2FA gating were already correct by the time the admin lane
 reached them (04#19, 04#33, 04#41).
 
@@ -1676,3 +1681,58 @@ decide against. 01#20's reproduced in direction and magnitude but not to the
 pixel (+234px at 375 this pass against +262px last, +30px at 1280 against +48px),
 because the band wraps a date-bound campaign. Worth saying out loud: a number
 from a `revalidate = 300` surface is a measurement with a shelf life.
+
+## The customer lane's re-test of its own blockers (`lane/customer`)
+
+Ten customer findings were handed back as partial, stale or open with a recorded
+reason. Three of those reasons were wrong, all three in the same way: a real
+assertion cited for a change it does not reach.
+
+- **02#5** was `[stale]` because "both shells already use `max-w-customer`".
+  True — of the width. `CUS-P2-12/16` asserts exactly two things per file: that
+  `max-w-customer` appears, and that `max-w-[410px]` does not. The finding is
+  about the vertical rhythm and the height unit, neither of which it touches. At
+  HEAD the three cited lines carried three different top paddings and two
+  different height units.
+- **02#62** was `[stale]` because `CUS-P2-11` "pins the copy" to
+  `components/customer/customer-qr-scanner.tsx`. It does — the copy. It says
+  nothing about the exit pair, which is the half the finding is about and the
+  half that had already drifted twice.
+- **02#43**'s last clause was declined as an open product question ("what to
+  filter by"). `lib/customer/activity-core.ts` has classified every event into
+  `join | stamp | reward` since it was written.
+
+The five that held — 02#10 02#20 02#30 02#53 02#60 — held for reasons worth
+recording, because two of them nearly did not:
+
+- **02#20**'s blocker had only ever been checked against the ONE panel a test
+  names. Re-grepping `tests/e2e` for the other four rails found none of them
+  asserted anywhere, so what keeps them expanded is a product classification,
+  not a test. That is a weaker blocker than the note implied, and it is now
+  written down as one.
+- **02#30**'s recorded stub floor cited `"REDEEMED"` as the longest stub word.
+  `STUB_WORD.redeemed` is `"Done"`. The number was re-taken against the words
+  that actually render: `"Unlocked"` measures 53.77px inside a 56px content box,
+  so the conclusion survived a citation that did not.
+- **02#53**'s six-cell half is genuinely contract-banned, but the finding's
+  sharper complaint — auto-submit on the final digit — is not, and had never
+  been tested. It fails for a different reason: the server accepts
+  `/^\d{4,8}$/`, no call site passes a configured length, and there is a
+  four-digit local bypass beside Twilio's six, so there is no length to submit
+  on. A decline that names the right obstacle is worth more than one that
+  inherits the wrong one.
+
+Two measurement notes from this lane:
+
+- **`document.styleSheets.length > 0` is not enough.** A production build served
+  `/home/login` as `app/error.tsx` — a fully styled error page with three
+  stylesheets — after a transient Supabase failure. What caught it was anchoring
+  on `main#main`, which that page does not render. The anchor has to be
+  something the surface under test guarantees; a "the page loaded" check will
+  agree with a page that did not.
+- **`/dev` harnesses cannot be measured in a production build** (the layout
+  returns `notFound`), so harness numbers here are dev-server numbers, taken
+  with `next dev --webpack` — Turbopack refuses this worktree because
+  `node_modules` is a symlink out of the project root. Shell padding and the
+  `/scan` numbers, which are geometry claims, were taken against
+  `pnpm build && PORT=3202 pnpm start`.

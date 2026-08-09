@@ -9,6 +9,14 @@ import {
   type RewardSlotState,
   type RewardTicketState,
 } from "@/components/loyalty"
+import {
+  CUSTOMER_COLUMN_BOTTOM,
+  CUSTOMER_COLUMN_BOTTOM_DENSE,
+  CUSTOMER_COLUMN_INSET,
+  CUSTOMER_COLUMN_MIN_H,
+  CUSTOMER_COLUMN_TOP,
+  CUSTOMER_COLUMN_TOP_DENSE,
+} from "@/components/layout/customer-column"
 import { cn } from "@/lib/utils"
 
 type FlowTone = "accent" | "ink" | "leaf" | "sun" | "plain"
@@ -57,13 +65,16 @@ export function CustomerFlowShell({
   return (
     <main
       className={cn(
-        "min-h-[100dvh] overflow-x-hidden bg-background px-4 text-foreground sm:px-6",
-        // Bottom padding respects the home-indicator safe area so the last
-        // CTA or link never sits clipped against the screen edge
-        // (VCU-P3-06/08).
-        dense
-          ? "pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pt-6 sm:pb-[max(1.5rem,env(safe-area-inset-bottom))]"
-          : "pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pt-8 sm:pb-[max(2rem,env(safe-area-inset-bottom))]"
+        "bg-background text-foreground",
+        // One customer rhythm (CUS 02#5): the height, the gutters and the
+        // safe-area bottom are the shells' shared module, so this screen no
+        // longer resolves `min-h-[100dvh]` against its siblings' `min-h-svh`,
+        // and no longer grows its top padding at a breakpoint the 410px column
+        // never crosses.
+        CUSTOMER_COLUMN_MIN_H,
+        CUSTOMER_COLUMN_INSET,
+        dense ? CUSTOMER_COLUMN_TOP_DENSE : CUSTOMER_COLUMN_TOP,
+        dense ? CUSTOMER_COLUMN_BOTTOM_DENSE : CUSTOMER_COLUMN_BOTTOM
       )}
     >
       <div

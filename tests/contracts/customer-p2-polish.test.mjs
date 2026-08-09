@@ -183,6 +183,9 @@ test("CUS 02#6: nothing inside the 410px customer column responds to viewport wi
   const contentFiles = [
     ["components", "customer", "customer-qr-scanner.tsx"],
     ["components", "customer", "customer-qr-scanner-loader.tsx"],
+    // ADDITIVE (CUS 02#62): the shared scanner chrome is now where the exit
+    // row's classes live, so it inherits the same no-viewport-variant rule.
+    ["components", "customer", "scanner-chrome.tsx"],
     ["components", "customer", "offer-pass-qr.tsx"],
     ["components", "customer", "customer-card-experience.tsx"],
     ["components", "customer", "reward-collection-qr.tsx"],
@@ -207,6 +210,8 @@ test("CUS 02#6: nothing inside the 410px customer column responds to viewport wi
   for (const file of [
     "customer-qr-scanner.tsx",
     "customer-qr-scanner-loader.tsx",
+    // ADDITIVE (CUS 02#62): and now the one file that actually draws the row.
+    "scanner-chrome.tsx",
   ]) {
     assert.doesNotMatch(
       withoutComments(readProjectFile("components", "customer", file)),
@@ -294,6 +299,33 @@ test("CUS-P2-11: the scanner intro speaks barista, not system", () => {
   assert.doesNotMatch(scanner, /OTP checks/)
   // \s+ tolerates the JSX line wrap; the rendered sentence is one line.
   assert.match(scanner, /No\s+app, no plastic\./)
+
+  // ADDITIVE (CUS 02#62). The loader draws the same header component but
+  // cannot import the sentence: this assertion pins it to the scanner by name,
+  // and the loader importing a constant from the scanner would drag the
+  // deferred html5-qrcode chunk into the fallback. So the string is stated
+  // twice — and the two statements must be the same string, or the fallback
+  // says something the loaded state does not.
+  const loader = readProjectFile(
+    "components",
+    "customer",
+    "customer-qr-scanner-loader.tsx"
+  )
+  // Anchored on the whole sentence: the scanner also carries "Point your
+  // camera at the venue QR to collect a stamp." as the invalid-code status
+  // line, and a lazy `[\s\S]*?` from the first "Point your camera" swallows
+  // the file between the two.
+  const INTRO_LINE =
+    /Point your camera at a Nabaperks venue QR to collect your stamp\.\s*No\s+app, no plastic\./
+  const introLine = (source) =>
+    source.match(INTRO_LINE)?.[0].replace(/\s+/g, " ")
+
+  assert.ok(introLine(scanner), "the scanner must carry the intro sentence")
+  assert.equal(
+    introLine(loader),
+    introLine(scanner),
+    "the loader fallback and the loaded scanner must state the same intro line"
+  )
 })
 
 test("CUS-P2-12/16: one customer journey, one column width (max-w-customer)", () => {
