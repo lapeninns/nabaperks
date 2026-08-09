@@ -27,6 +27,10 @@ import { closeDb, db, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 const CAMPAIGN_ID = "c1dfbf7d-8166-40d6-884c-1c659826d996"
 const MERCHANT_ID = "cccd7192-bc88-4d65-b69d-4922e39fd906"
 const CAMPAIGN_NAME = "Student & Staff Welcome Pass"
+const RESTORED_REASON =
+  "approved three-year window; start restored to the date the first pass was claimed"
+const CEILING_ONLY_REASON =
+  "approved three-year window ceiling recorded; start left unchanged because campaign no longer matched the correction snapshot"
 
 const EXTEND_MIGRATION = join(
   process.cwd(),
@@ -336,6 +340,36 @@ test(
 )
 
 test(
+  "replaying the superseded correction preserves approved campaign ceilings",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const merchantId = await seedMerchant(tx)
+      await insertCampaignWindow(
+        tx,
+        merchantId,
+        "2026-08-04",
+        "2029-08-07",
+        1100
+      )
+
+      await tx.unsafe(migrationSql(EXTEND_MIGRATION))
+
+      const [constraint] = await tx`
+        select pg_get_constraintdef(oid) as definition
+        from pg_constraint
+        where conrelid = 'public.offer_campaigns'::regclass
+          and conname = 'offer_campaigns_window_valid'`
+      assert.match(
+        constraint.definition,
+        /max_window_days/,
+        "the replay must retain the data-driven window rule"
+      )
+    })
+  }
+)
+
+test(
   "the correction extends EVERY active pass, not only the first one",
   { skip },
   async () => {
@@ -381,6 +415,11 @@ test(
         select metadata from public.product_events
         where event_name = 'offer_campaign_window_extended'`
       assert.equal(event.metadata.active_passes_extended, 2)
+      assert.deepEqual(
+        [...event.metadata.active_pass_ids].sort(),
+        [first, second].sort(),
+        "the event must identify every entitlement it extended"
+      )
 
       // Replay over the SAME seeded campaign: nothing moves, nothing doubles.
       await tx.unsafe(extend)
@@ -390,6 +429,25 @@ test(
         select count(*)::int as n from public.product_events
         where event_name = 'offer_campaign_window_extended'`
       assert.equal(eventCount, 1)
+
+      // A restored snapshot can reveal another stale active pass after the
+      // first event already exists. Its extension needs its own durable,
+      // entitlement-level evidence instead of being hidden by a campaign-only
+      // deduplication guard.
+      const late = await issuePass(tx)
+      await tx.unsafe(extend)
+      const replayEvents = await tx`
+        select metadata from public.product_events
+        where event_name = 'offer_campaign_window_extended'`
+      assert.equal(replayEvents.length, 2)
+      assert.ok(
+        replayEvents.some(
+          ({ metadata }) =>
+            metadata.active_passes_extended === 1 &&
+            metadata.active_pass_ids?.includes(late)
+        ),
+        "the replay event must identify the newly discovered stale pass"
+      )
 
       const [{ n: moved }] = await tx`
         select count(*)::int as n from public.offer_discount_entitlements
@@ -504,6 +562,11 @@ test(
           false,
           `${drift.label}: the audit must not claim a restore that did not happen`
         )
+        assert.equal(
+          audit.metadata.reason,
+          CEILING_ONLY_REASON,
+          `${drift.label}: the audit reason must describe the ceiling-only write`
+        )
       })
     }
   }
@@ -583,6 +646,7 @@ test(
           and target_id = ${CAMPAIGN_ID}::uuid`
       assert.equal(audits.length, 1)
       assert.equal(audits[0].metadata.max_window_days, 1100)
+      assert.equal(audits[0].metadata.reason, RESTORED_REASON)
 
       // A forced re-apply (a restored snapshot, a branch database provisioned
       // with an empty ledger) replays BOTH files in order over data the second

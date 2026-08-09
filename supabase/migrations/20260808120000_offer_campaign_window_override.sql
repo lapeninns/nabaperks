@@ -78,6 +78,7 @@ comment on constraint offer_campaigns_window_valid on public.offer_campaigns is
 do $block$
 declare
   v_campaign public.offer_campaigns%rowtype;
+  v_needs_audit boolean;
   v_needs_ceiling boolean;
   v_restore boolean;
   v_campaign_rows integer;
@@ -123,36 +124,48 @@ begin
     and v_campaign.starts_on = date '2026-08-07'
     and v_campaign.ends_on = date '2029-08-07';
 
-  if not v_needs_ceiling and not v_restore then
+  v_needs_audit :=
+    v_campaign.ends_on > v_campaign.starts_on + 365
+    and v_campaign.max_window_days = 1100
+    and not exists (
+      select 1
+      from public.audit_logs a
+      where a.action = 'offer_campaign_window_extended'
+        and a.target_id = v_campaign.id
+    );
+
+  if not v_needs_ceiling and not v_restore and not v_needs_audit then
     return;
   end if;
 
-  -- The bypass, open across exactly one statement. It takes only SHARE ROW
-  -- EXCLUSIVE, and the constraint swap above has held ACCESS EXCLUSIVE on the
-  -- table since the first statement of the file. Covering the ceiling write too
-  -- is what keeps this file independent of whether section 5 has already frozen
-  -- that column — on a replay, it has.
-  execute
-    'alter table public.offer_campaigns disable trigger offer_campaigns_terms_locked';
+  if v_needs_ceiling or v_restore then
+    -- The bypass, open across exactly one statement. It takes only SHARE ROW
+    -- EXCLUSIVE, and the constraint swap above has held ACCESS EXCLUSIVE on the
+    -- table since the first statement of the file. Covering the ceiling write too
+    -- is what keeps this file independent of whether section 5 has already frozen
+    -- that column — on a replay, it has.
+    execute
+      'alter table public.offer_campaigns disable trigger offer_campaigns_terms_locked';
 
-  update public.offer_campaigns
-  set max_window_days =
-        case when v_needs_ceiling then 1100 else max_window_days end,
-      starts_on =
-        case when v_restore then date '2026-08-04' else starts_on end
-  where id = v_campaign.id
-    and starts_on = v_campaign.starts_on
-    and ends_on = v_campaign.ends_on
-    and max_window_days is not distinct from v_campaign.max_window_days;
-  get diagnostics v_campaign_rows = row_count;
+    update public.offer_campaigns
+    set max_window_days =
+          case when v_needs_ceiling then 1100 else max_window_days end,
+        starts_on =
+          case when v_restore then date '2026-08-04' else starts_on end
+    where id = v_campaign.id
+      and starts_on = v_campaign.starts_on
+      and ends_on = v_campaign.ends_on
+      and max_window_days is not distinct from v_campaign.max_window_days;
+    get diagnostics v_campaign_rows = row_count;
 
-  execute
-    'alter table public.offer_campaigns enable trigger offer_campaigns_terms_locked';
+    execute
+      'alter table public.offer_campaigns enable trigger offer_campaigns_terms_locked';
 
-  if v_campaign_rows = 0 then
-    raise notice
-      'Old Crown campaign changed while this migration ran; leaving it unchanged';
-    return;
+    if v_campaign_rows = 0 then
+      raise notice
+        'Old Crown campaign changed while this migration ran; leaving it unchanged';
+      return;
+    end if;
   end if;
 
   if not v_restore then
@@ -185,7 +198,12 @@ begin
       'campaign_status', v_campaign.status,
       'token_generation', v_campaign.token_generation,
       'claim_token_present', v_campaign.claim_token_hash is not null,
-      'reason', 'approved three-year window; start restored to the date the first pass was claimed'
+      'reason', case
+        when v_restore then
+          'approved three-year window; start restored to the date the first pass was claimed'
+        else
+          'approved three-year window ceiling recorded; start left unchanged because campaign no longer matched the correction snapshot'
+      end
     )
   where not exists (
     select 1

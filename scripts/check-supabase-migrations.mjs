@@ -35,9 +35,11 @@ const APPEND_ONLY_BASELINE_REF = "origin/main"
 // no lock_timeout, so a busy table queued every reader behind the migration
 // instead of failing it fast. The edit makes every guard report and return
 // instead of raising, extends all active passes rather than exactly one, and
-// bounds the lock wait. The only DDL change widens the carve-out to also accept
-// the 4 August start that 20260808120000 restores, so that file can be replayed
-// over this one; the end state is identical and an environment that already
+// bounds the lock wait. The DDL accepts the restored 4 August start before the
+// forward migration exists, and preserves the newer data-driven constraint
+// afterwards. In that newer schema it records the already-approved 1100-day
+// ceiling in the same write, and every entitlement extension event now carries
+// the affected IDs. The committed end state of an environment that already
 // applied this migration successfully is unaffected.
 const SANCTIONED_MIGRATION_EDITS = [
   {
@@ -48,7 +50,7 @@ const SANCTIONED_MIGRATION_EDITS = [
   {
     version: "20260808000000",
     baselineSha: "551e59a99ebcc7a11361284c9e1327940fe116cb",
-    currentSha: "e7926cdb8f186f46492d0880ba2cb94bf0944f37",
+    currentSha: "3961aef5f4dccddec70d78df0b5c351cfd013be4",
   },
 ]
 
