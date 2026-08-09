@@ -1,7 +1,7 @@
 # Handoff for the next agent
 
-Written at HEAD `259e289a`, 337 commits ahead of `origin/main`, worktree clean,
-everything pushed. PR #215 is open and `MERGEABLE`.
+HEAD `a2a105be`, 346 commits ahead of `origin/main`, worktree clean, everything
+pushed. PR #215 is open and `MERGEABLE`.
 
 ## Where to work
 
@@ -15,75 +15,36 @@ is the user's own worktree. Commits here use
 ## State
 
 **292 done / 24 partial / 19 stale / 12 open of 347.** 30 of 33 Criticals.
-`pnpm ui-audit:check` enforces every number in this paragraph.
+`pnpm ui-audit:check` enforces those numbers, that every source path cited in the
+evidence docs exists, and that HANDOFF's open list matches the parsed state.
 
 Open: `01#23 01#55 01#63 01#65 01#67 02#50 02#64 03#13 03#16 04#54 04#60 05#13`.
 
-Read in this order:
+Read in this order: `HANDOFF.md`, `NEEDS-SIGNOFF.md` (32 sections, 22 live),
+`COVERAGE.md` (method log, including every mistake and what it cost),
+`STATUS-*.md` (per-finding notes).
 
-1. `docs/ui-audit/HANDOFF.md` — the open findings, categorised, and the four
-   things that block merge.
-2. `docs/ui-audit/NEEDS-SIGNOFF.md` — 32 sections, 22 still live. This is the
-   decision queue.
-3. `docs/ui-audit/COVERAGE.md` — the method log, including every mistake and
-   what it cost. Read this before trusting any measurement in the other two.
-4. `docs/ui-audit/STATUS-*.md` — per-finding notes, one file per report.
+## Sub-agent fan-out
 
-## Why this is stalled, honestly
+Same branch, separate worktrees, merged back one at a time:
 
-Not for want of work. Everything remaining routes through a decision the agent
-cannot make:
+    git worktree add ../nb-lane-marketing    feat/ui-redesign-audit-fixes
+    git worktree add ../nb-lane-customer     feat/ui-redesign-audit-fixes
+    git worktree add ../nb-lane-merchant     feat/ui-redesign-audit-fixes
+    git worktree add ../nb-lane-admin        feat/ui-redesign-audit-fixes
+    git worktree add ../nb-lane-designsystem feat/ui-redesign-audit-fixes
 
-- **§24** three indexed `/guides/*` pages name a commercial guarantee with no
-  `CLAIMS_BOUNDARY`. Copy/legal call.
-- **§31** three venue spokes are unlinked and `index: false` on purpose. Retain,
-  consolidate, or hold — a marketing/SEO call.
-- **§32** the verification boundary (below).
-- **121 stale visual baselines** (net −56,880px) need a human to approve the
-  diffs. Regenerating them from this branch would rubber-stamp whatever they
-  contain.
-- Five copy/product decisions: `01#23 01#55 02#50 02#64 04#54`.
-- Two excluded by the user's standing instruction: `01#67`, `05#13`.
+Each lane owns one report (01–05) and must:
 
-## The verification boundary — read this before measuring anything
+- export `PLAYWRIGHT_BASE_URL=http://127.0.0.1:<unique port>`. The config
+  defaults to 3146 and concurrent lanes silently attach to each other's dev
+  server — this produced a false "regression" last time;
+- never `pkill` by pattern; a lane killed its siblings' servers;
+- report each closure with the evidence, not the claim.
 
-`app/dev/layout.tsx` returns `notFound()` in production, so **every `/dev`
-harness 404s in a production build**, and the real app routes are auth-gated.
-
-    marketing / auth / legal / guides    production-verifiable
-    customer / merchant / admin          dev server only
-    anything needing real data           `pnpm test:db`, never run here
-
-Dev and production agree on **static layout heights** (verified: `/how-it-works`
-is 6,211px in both). They disagree on **hydration timing** and **CSS cascade**.
-Two findings were mis-decided on that difference before it was understood.
-
-## Traps that cost real time
-
-- **`rc` from a piped shell command is `tail`'s exit code.** Always
-  `pnpm <gate> >/tmp/g.log 2>&1; echo EXIT=$?`. A TypeScript error shipped for
-  two commits because a narrow grep could not see it.
-- **Grepping a gate's output for expected failures cannot see unexpected ones.**
-- **`page.goto` returns null on same-document navigation**, so
-  `expect(response?.status())` throws under a saturated worker pool. Six specs
-  still have this shape; measured stable, left alone deliberately.
-- **Playwright reports `pointer: fine` at any viewport width.** Tap-target
-  probes need a device profile, or every `[@media(pointer:coarse)]` floor is
-  invisible.
-- **Scroll-reveal sections rest at `scale(0.98)`**, so geometry probes
-  under-measure by 2% unless reduced motion is on. The config forces it via
-  `contextOptions`; a file-level `test.use({ reducedMotion })` is a silent no-op
-  and `playwright.config.ts` says so in a comment.
-- **An unstyled page cannot overflow.** Assert
-  `document.styleSheets.length > 0` before measuring layout, or a broken control
-  will agree with you.
-- **A test name is not a file.** Eight names exist as both a contract and an
-  e2e spec — for example `tests/contracts/merchant-onboarding-continuity.test.mjs`
-  and `tests/e2e/merchant-onboarding-continuity-flow.ts`. Dismissing a blocker
-  against the wrong one shipped a dead submit button for thirty turns.
-- **Five `/dev` harnesses duplicate production markup** rather than importing it,
-  so a fix can need applying twice. `components/merchant/account/profile-panel-view.tsx`
-  shows the pattern that fixes it.
+Fan-in: merge lanes one at a time, re-run `pnpm ui-audit:check`, and **recompute
+the tally tables from the STATUS files** rather than picking a side on a
+conflict. Lanes append to the same docs, so conflicts are usually "take both".
 
 ## Gates
 
@@ -91,54 +52,94 @@ Two findings were mis-decided on that difference before it was understood.
     pnpm build         pnpm bundle:check     pnpm tokens:check
     pnpm claims:check  pnpm jsonld:check     pnpm env:check
 
-`quality:check` = lint + typecheck + 614 contract + 961 unit + deadcode +
-deadexports + duplicates + debt + docs + agents + ui-audit.
+Always `pnpm <gate> >/tmp/g.log 2>&1; echo EXIT=$?`. `rc` from a piped command is
+`tail`'s exit code, and grepping a gate's output for the failures you expect
+cannot see the ones you do not — both shipped bugs here.
 
 Browser suites, each sabotage-verified:
 
-    pnpm exec playwright test --project=chromium --grep '@a11y'    67 pass
-    pnpm exec playwright test --project=motion                      3 pass
-    pnpm exec playwright test console-hygiene touch-targets         2 pass
-    node scripts/check-small-screen.mjs      (needs pnpm build && pnpm start)
+    playwright --project=chromium --grep '@a11y'        67 pass
+    playwright --project=motion                          3 pass
+    playwright console-hygiene touch-targets             2 pass
+    playwright admin-command-palette                     1 pass
+    node scripts/check-small-screen.mjs   (needs pnpm build && pnpm start)
 
-Always pass `PLAYWRIGHT_BASE_URL=http://127.0.0.1:<unused port>`; the config
-defaults to 3146 and concurrent runs silently attach to each other's server.
+## Harnesses — the way past the verification wall
 
-## Guards this branch added, and why
+`/dev` routes 404 in production and the app is auth-gated, so customer, merchant
+and admin surfaces can only be measured through a harness. Three were added
+precisely to unblock findings, each mounting the REAL component:
 
-Each exists because something got through, and each has been made to fail on the
-thing it was written for:
+    /dev/home-harness/present-code          02#33 counter overlay
+    /dev/app-harness/trial/admin-command    04#6  Cmd-K palette
+    /dev/home-harness/offer-claim           02#64 claim landing
 
-    scripts/check-ui-audit-tally.mjs     tally, cited file paths, HANDOFF's open list
-    scripts/check-dead-exports.mjs       233 baselined; new ones fail
-    scripts/check-small-screen.mjs       320px containment, production only
-    tests/e2e/console-hygiene.desktop.spec.ts
-    tests/e2e/touch-targets.desktop.spec.ts
+If a finding is stuck on "cannot be verified", build the harness. Register it in
+`tests/contracts/dev-route-production-guard.test.mjs` — that contract will refuse
+the page until you do. Do NOT copy production markup into a harness; five
+existing ones do, and that drift cost two wrong conclusions. Split a view
+component instead, as `components/merchant/account/profile-panel-view.tsx` does.
 
-`scripts/check-bundle-size.mjs` was enforcing its route budget on **zero** routes
-and reporting PASS; it now checks 113 and fails loudly if the manifest format
-moves again. Expect more of this: **any check that filters its input must assert
-the filter did not eat everything.**
+## Traps that cost real time
 
-## If you want to keep shipping code
+- **Anchor on what the code guarantees, not what the page says.** Three wrong
+  numbers came from text heuristics matching an ancestor: "innermost element
+  containing 'Growth Plan'" gave 332px for a 1,653px sheet. `#pricing` and
+  `data-takeover-enquiry` gave the right ones.
+- **`page.goto` returns null on same-document navigation**, so
+  `expect(response?.status())` throws under a saturated worker pool.
+- **Playwright reports `pointer: fine` at any viewport width** — tap probes need
+  a device profile.
+- **Scroll-reveal sections rest at `scale(0.98)`**; geometry needs reduced
+  motion, which the ROOT config sets via `contextOptions`. A file-level
+  `test.use({ reducedMotion })` is a silent no-op and the config says so.
+- **Assert `document.styleSheets.length > 0` before measuring layout.** An
+  unstyled page cannot overflow, and a broken control will agree with you.
+- **Sticky is bounded by its containing block**, not the scrollport.
+- **A test name is not a file.** Eight names exist as both a contract and an e2e
+  spec, e.g. `tests/contracts/merchant-onboarding-continuity.test.mjs` and
+  `tests/e2e/merchant-onboarding-continuity-flow.ts`.
+- **Contracts read source text, not build output.** A contract can pass on a file
+  that no longer compiles; that is not evidence.
+- **Any check that filters its input must assert the filter did not eat
+  everything.** `bundle:check` enforced its budget on 0 of 150 routes.
 
-The honest list of remaining engineering, in value order:
+## Testing a blocker before believing it
 
-1. **Cmd-K palette for admin** (`04#6`, the last implementable clause). No
-   command primitive exists; it needs `cmdk` or a hand-rolled radix combobox,
-   and it can only be verified in a dev harness. Deferred deliberately, not
-   forgotten.
-2. **Fraud queue paging** (`04#6`, §30) — needs a `severity_rank` column or SQL
-   CASE ordering. Data-layer, not UI.
-3. **Generic TOC** (`01#60`, §18) — blocked only by the pinned literal living
-   inside `guide-spine.tsx`, which `marketing-offer-source` reads by name. A
-   contract move for deduplication; ask first.
+Roughly ten recorded blockers were disproved by re-testing. The tells:
 
-## Ground rules that were followed
+1. names a file or an owner rather than a behaviour;
+2. true of one half, applied to the whole;
+3. asserts a tree fact that a merge has since changed;
+4. says something must be BUILT — check it does not already exist.
 
-- `tests/contracts/*` outrank audit opinion. No assertion was weakened or
-  deleted. Adding a non-emptiness assertion is allowed — it only makes a test
-  harder to pass.
-- Small verified batches; `pnpm build` before each commit.
-- Findings needing a browser, an asset, or a product/copy call were flagged, not
-  guessed.
+And the one that keeps catching contract citations: **does the assertion's SCOPE
+actually cover the change the audit asks for?** 02#50 and 02#64 both cited real
+assertions that constrain nothing relevant — the first stops at a component name,
+the second is an anti-duplication guard indifferent to layout. Both were recorded
+as contract-blocked for weeks; neither was.
+
+Not a valid reason to decline: "I cannot fully verify it". Valid: "the device
+this ships to already does the right thing" (03#64's picker — both scanners
+already request `facingMode: environment`).
+
+## Remaining engineering, value order
+
+1. **Fraud queue lookup + paging** (04#6, §30) — needs a `severity_rank` column
+   or SQL CASE ordering, because severity is a text column sorted in memory.
+   Paging it as-is would rank a high-severity flag on page 3 below a low one on
+   page 1.
+2. **Generic TOC** (01#60, §18) — blocked only because the pinned literal lives
+   inside `guide-spine.tsx` and `marketing-offer-source` reads that file by name.
+   Moving it is a contract change; ask first.
+3. **Re-test the remaining partials** with the tells above.
+
+## Blocked on the user — do not guess
+
+§24 claims gap on three indexed `/guides/*` pages (copy/legal)
+§31 three venue spokes: retain / consolidate / hold (marketing SEO)
+§32 the verification boundary
+121 stale visual baselines need human diff approval
+Copy/conversion: 01#23 01#55 02#50 02#64 04#54 — 02#64 and 01#20 are now
+costed, so those two can be decided against real numbers
+Excluded by standing instruction: 01#67, 05#13
