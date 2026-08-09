@@ -7,8 +7,11 @@ import {
   decideVenueFilter,
   lookupRange,
   pageMeta,
+  resolveAdminSort,
   type AdminLookupState,
   type AdminPageMeta,
+  type AdminSortColumn,
+  type AdminSortState,
 } from "./lookup-query"
 
 export { getAdminBillingRecords, type AdminBillingRecord } from "./billing-data"
@@ -21,6 +24,36 @@ export { getAdminPilotMerchants, getAdminPilotReport } from "./pilot-report"
  * PostgREST-quoted here before interpolation.
  */
 export type AdminLookupQuery = Partial<AdminLookupState>
+
+/**
+ * The sortable columns of each admin list (ADM 04#60), as a CLOSED map from
+ * URL token to database column. Nothing outside these maps can reach
+ * `.order()`: the token is parsed against the same map that builds the header
+ * links, so a header that is not offered cannot be sorted by a hand-edited
+ * URL either.
+ */
+export const ADMIN_FRAUD_SORT_COLUMNS: Readonly<
+  Record<string, AdminSortColumn>
+> = {
+  // 1 is `high`, so "most severe first" is ascending rank. See resolveAdminSort.
+  severity: { column: "severity_rank", inverted: true },
+  when: { column: "created_at" },
+}
+
+export const ADMIN_AUDIT_SORT_COLUMNS: Readonly<
+  Record<string, AdminSortColumn>
+> = {
+  action: { column: "action" },
+  when: { column: "created_at" },
+}
+
+export const ADMIN_MERCHANT_SORT_COLUMNS: Readonly<
+  Record<string, AdminSortColumn>
+> = {
+  venue: { column: "business_name" },
+  status: { column: "status" },
+  created: { column: "created_at" },
+}
 
 export type AdminPagedRows<T> = {
   rows: T[]
@@ -46,10 +79,14 @@ export async function getAdminOverview() {
  * total and no signpost, so past 100 merchants "is this venue on the
  * platform?" was silently answered wrong.
  */
-export async function getAdminMerchants(lookup: AdminLookupQuery = {}) {
+export async function getAdminMerchants(
+  lookup: AdminLookupQuery = {},
+  sort?: AdminSortState
+) {
   const supabase = await createAdminServiceRoleClient()
   const page = lookup.page ?? 1
   const window = lookupRange(page, lookup.size)
+  const order = resolveAdminSort(sort, ADMIN_MERCHANT_SORT_COLUMNS)
 
   let query = supabase
     .from("merchants")
@@ -60,6 +97,9 @@ export async function getAdminMerchants(lookup: AdminLookupQuery = {}) {
 
   if (lookup.venue) {
     query = query.ilike("business_name", containsPattern(lookup.venue))
+  }
+  if (order) {
+    query = query.order(order.column, { ascending: order.ascending })
   }
 
   const { data, error, count } = await query
@@ -283,11 +323,13 @@ export type AdminFraudQueue = "open" | "high" | "all"
  */
 export async function getAdminFraudFlags(
   queue: AdminFraudQueue = "open",
-  lookup: AdminLookupQuery = {}
+  lookup: AdminLookupQuery = {},
+  sort?: AdminSortState
 ): Promise<AdminPagedRows<AdminFraudFlag>> {
   const supabase = await createAdminServiceRoleClient()
   const page = lookup.page ?? 1
   const window = lookupRange(page, lookup.size)
+  const order = resolveAdminSort(sort, ADMIN_FRAUD_SORT_COLUMNS)
   // `fraud_flags.merchant_id` is NOT NULL so `!inner` drops no rows; it is only
   // asked for when a venue fragment exists, to filter the parent by the embed.
   const merchantEmbed = lookup.venue
@@ -314,7 +356,15 @@ export async function getAdminFraudFlags(
     )
   }
 
-  const { data, error, count } = await query
+  // An explicit sort leads; the default triage order (worst first, then
+  // newest) follows as the tiebreak, so choosing "When" does not silently
+  // discard severity ranking within a timestamp and the default view is
+  // byte-identical to the unsorted one.
+  const ordered = order
+    ? query.order(order.column, { ascending: order.ascending })
+    : query
+
+  const { data, error, count } = await ordered
     .order("severity_rank", { ascending: true })
     .order("created_at", { ascending: false })
     .range(window.from, window.to)
@@ -639,10 +689,14 @@ function redactDataRequestActivity(row: unknown): AdminDataRequestActivityRow {
  * plenty of audit rows have no merchant, and an unconditional inner join
  * would silently drop them.
  */
-export async function getAdminAuditPage(lookup: AdminLookupQuery = {}) {
+export async function getAdminAuditPage(
+  lookup: AdminLookupQuery = {},
+  sort?: AdminSortState
+) {
   const supabase = await createAdminServiceRoleClient()
   const page = lookup.page ?? 1
   const window = lookupRange(page, lookup.size)
+  const order = resolveAdminSort(sort, ADMIN_AUDIT_SORT_COLUMNS)
   const merchantEmbed = lookup.venue
     ? "merchants!inner(business_name)"
     : "merchants(business_name)"
@@ -660,7 +714,13 @@ export async function getAdminAuditPage(lookup: AdminLookupQuery = {}) {
       containsPattern(lookup.venue)
     )
   }
+  if (order) {
+    query = query.order(order.column, { ascending: order.ascending })
+  }
 
+  // `created_at desc` stays as the last key whatever the operator chose, so a
+  // sort on a low-cardinality column (a dozen action names) still returns a
+  // stable, meaningful order inside each group rather than an arbitrary one.
   const { data, error, count } = await query
     .order("created_at", { ascending: false })
     .range(window.from, window.to)

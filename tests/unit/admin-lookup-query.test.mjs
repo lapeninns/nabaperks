@@ -14,9 +14,11 @@ import {
   normaliseLookupTerm,
   pageMeta,
   parseAdminLookupParams,
+  parseAdminSortParams,
   parsePageParam,
   parseSizeParam,
   previousPage,
+  resolveAdminSort,
 } from "@/lib/admin/lookup-query"
 
 test("normaliseLookupTerm trims, collapses whitespace, and strips control characters", () => {
@@ -215,5 +217,78 @@ test("buildLookupHref serialises only meaningful params and keeps page 1 implici
       rewardsPage: 1,
     }),
     "/admin/customers?venue=a%26b%3Dc&page=3"
+  )
+})
+
+test("parseAdminSortParams accepts only allowlisted sort tokens", () => {
+  const allowed = ["severity", "when"]
+
+  assert.deepEqual(parseAdminSortParams({ sort: "severity" }, allowed), {
+    key: "severity",
+    direction: "desc",
+  })
+  assert.deepEqual(
+    parseAdminSortParams({ sort: "when", dir: "asc" }, allowed),
+    { key: "when", direction: "asc" }
+  )
+  // A column name that is real in the database but not on the allowlist is
+  // still an operator-controlled ORDER BY on a service-role read.
+  for (const junk of [
+    "created_at",
+    "metadata",
+    "id",
+    "severity;drop",
+    "",
+    undefined,
+  ]) {
+    assert.deepEqual(
+      parseAdminSortParams({ sort: junk }, allowed),
+      { key: null, direction: "desc" },
+      `sort=${String(junk)} must fall back to the default order`
+    )
+  }
+})
+
+test("parseAdminSortParams reports no direction without a column", () => {
+  // `?dir=asc` alone is not a sort; reporting it would let a caller build
+  // links that look like they change the order and do not.
+  assert.deepEqual(parseAdminSortParams({ dir: "asc" }, ["when"]), {
+    key: null,
+    direction: "desc",
+  })
+})
+
+test("resolveAdminSort maps a token to a column and inverts a ranked one", () => {
+  const columns = {
+    when: { column: "created_at" },
+    severity: { column: "severity_rank", inverted: true },
+  }
+
+  assert.equal(resolveAdminSort(undefined, columns), null)
+  assert.equal(resolveAdminSort({ key: null, direction: "desc" }, columns), null)
+  assert.equal(
+    resolveAdminSort({ key: "unknown", direction: "desc" }, columns),
+    null
+  )
+
+  assert.deepEqual(resolveAdminSort({ key: "when", direction: "desc" }, columns), {
+    column: "created_at",
+    ascending: false,
+  })
+  assert.deepEqual(resolveAdminSort({ key: "when", direction: "asc" }, columns), {
+    column: "created_at",
+    ascending: true,
+  })
+
+  // The inversion that matters: severity_rank 1 is `high`, so "most severe
+  // first" (desc) is ascending rank. Without it, an operator asking for the
+  // worst flags first would be shown the mildest.
+  assert.deepEqual(
+    resolveAdminSort({ key: "severity", direction: "desc" }, columns),
+    { column: "severity_rank", ascending: true }
+  )
+  assert.deepEqual(
+    resolveAdminSort({ key: "severity", direction: "asc" }, columns),
+    { column: "severity_rank", ascending: false }
   )
 })

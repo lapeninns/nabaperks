@@ -21,10 +21,14 @@ import { AdminRecordCard } from "@/components/admin/record-card"
 import { PageTitle, SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { canRenderAdminPage } from "@/lib/admin/auth"
-import { getAdminAuditPage } from "@/lib/admin/data"
+import {
+  ADMIN_AUDIT_SORT_COLUMNS,
+  getAdminAuditPage,
+} from "@/lib/admin/data"
 import {
   buildLookupHref,
   parseAdminLookupParams,
+  parseAdminSortParams,
   type AdminSearchParams,
 } from "@/lib/admin/lookup-query"
 
@@ -44,8 +48,19 @@ export default async function AdminAuditPage({
 
   const params = searchParams ? await searchParams : {}
   const lookup = parseAdminLookupParams(params)
-  const logs = await getAdminAuditPage(lookup)
+  const sort = parseAdminSortParams(params, Object.keys(ADMIN_AUDIT_SORT_COLUMNS))
+  const logs = await getAdminAuditPage(lookup, sort)
   const searching = Boolean(lookup.venue)
+
+  // Sorting starts at page 1: a new order makes the current page number
+  // meaningless, the same reason submitting the search resets it.
+  const hrefForSort = (key: string, direction: "asc" | "desc") =>
+    buildLookupHref("/admin/audit", {
+      venue: lookup.venue,
+      sort: key,
+      dir: direction,
+      size: lookup.size,
+    })
 
   return (
     <div className="grid gap-6">
@@ -82,6 +97,7 @@ export default async function AdminAuditPage({
           mobileClassName="p-5"
           mobilePageSize={10}
           rows={logs.rows}
+          sort={{ ...sort, hrefFor: hrefForSort }}
           getRowKey={(log) => log.id}
           emptyState={
             <AdminEmptyState
@@ -138,6 +154,7 @@ export default async function AdminAuditPage({
             {
               key: "action",
               header: "Action",
+              sortKey: "action",
               // Spoken name in the display face, exact key in mono beneath —
               // operators still need the raw token to grep for.
               cell: (log) => (
@@ -178,6 +195,7 @@ export default async function AdminAuditPage({
             {
               key: "when",
               header: "When",
+              sortKey: "when",
               cell: (log) => (
                 <time
                   className="text-muted-foreground"
@@ -198,6 +216,8 @@ export default async function AdminAuditPage({
               hrefForPage={(page) =>
                 buildLookupHref("/admin/audit", {
                   venue: lookup.venue,
+                  sort: sort.key ?? undefined,
+                  dir: sort.key ? sort.direction : undefined,
                   page,
                   size: lookup.size,
                 })

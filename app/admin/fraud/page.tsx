@@ -2,6 +2,7 @@ import { AdminViewTabs } from "@/components/admin/view-tabs"
 import { PageTitle } from "@/components/brand"
 import { canRenderAdminPage } from "@/lib/admin/auth"
 import {
+  ADMIN_FRAUD_SORT_COLUMNS,
   getAdminFraudFlags,
   getAdminFraudQueueCounts,
   getAdminRedemptionFailures,
@@ -10,6 +11,7 @@ import {
 import {
   buildLookupHref,
   parseAdminLookupParams,
+  parseAdminSortParams,
   type AdminSearchParamValue,
   type AdminSearchParams,
 } from "@/lib/admin/lookup-query"
@@ -52,6 +54,7 @@ export default async function AdminFraudPage({
   const params = searchParams ? await searchParams : {}
   const view = parseFraudView(params.queue)
   const lookup = parseAdminLookupParams(params)
+  const sort = parseAdminSortParams(params, Object.keys(ADMIN_FRAUD_SORT_COLUMNS))
   const queue: AdminFraudQueue = view === "failures" ? "all" : view
 
   // Counts first so the loader the service-role guard contract inspects is the
@@ -59,7 +62,7 @@ export default async function AdminFraudPage({
   // count rather than the length of whichever window happens to be loaded.
   const [counts, flags, failures] = await Promise.all([
     getAdminFraudQueueCounts(),
-    view === "failures" ? null : getAdminFraudFlags(queue, lookup),
+    view === "failures" ? null : getAdminFraudFlags(queue, lookup, sort),
     view === "failures" ? getAdminRedemptionFailures(lookup) : null,
   ])
 
@@ -77,7 +80,20 @@ export default async function AdminFraudPage({
     buildLookupHref("/admin/fraud", {
       queue: view === "open" ? undefined : view,
       venue: lookup.venue,
+      sort: sort.key ?? undefined,
+      dir: sort.key ? sort.direction : undefined,
       page,
+      size: lookup.size,
+    })
+
+  // A new order makes the current page number meaningless, so sorting starts
+  // at page 1 — the same reason submitting the search does.
+  const hrefForSort = (key: string, direction: "asc" | "desc") =>
+    buildLookupHref("/admin/fraud", {
+      queue: view === "open" ? undefined : view,
+      venue: lookup.venue,
+      sort: key,
+      dir: direction,
       size: lookup.size,
     })
 
@@ -136,6 +152,7 @@ export default async function AdminFraudPage({
           lookup={lookup}
           queue={view}
           hrefForPage={hrefForPage}
+          sort={{ ...sort, hrefFor: hrefForSort }}
         />
       ) : null}
     </div>

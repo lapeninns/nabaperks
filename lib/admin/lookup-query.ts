@@ -23,6 +23,17 @@ const ADMIN_LOOKUP_MAX_PAGE = 999
  */
 export const ADMIN_LOOKUP_PAGE_SIZES = [25, 50, 100] as const
 
+export type AdminSortDirection = "asc" | "desc"
+
+/**
+ * A parsed, ALLOWLISTED sort. `key` is null when the list is in its default
+ * order, which is the only state a caller may treat as "no ORDER BY of mine".
+ */
+export type AdminSortState = {
+  readonly key: string | null
+  readonly direction: AdminSortDirection
+}
+
 export type AdminLookupState = {
   readonly venue?: string
   readonly contact?: string
@@ -89,6 +100,65 @@ export function parseSizeParam(value: AdminSearchParamValue): number {
   return (ADMIN_LOOKUP_PAGE_SIZES as readonly number[]).includes(size)
     ? size
     : ADMIN_LOOKUP_PAGE_SIZE
+}
+
+/**
+ * Parse `?sort=`/`?dir=` against a CLOSED allowlist of sort tokens, exactly as
+ * `parseSizeParam` treats rows-per-page and for the same reason: the token
+ * reaches PostgREST as a `.order()` column on a service-role read, so an
+ * arbitrary string is an operator-controlled ORDER BY. Anything off the
+ * allowlist falls back to the list's default order rather than being coerced
+ * to the nearest legal value, so a hand-edited URL cannot name a column.
+ *
+ * Descending is the default direction because every sortable admin column is
+ * one an operator triages by worst-or-newest first.
+ */
+export function parseAdminSortParams(
+  params: AdminSearchParams | undefined,
+  allowed: readonly string[]
+): AdminSortState {
+  const raw = firstParam(params?.sort)?.trim()
+  const key = raw && allowed.includes(raw) ? raw : null
+  const direction = firstParam(params?.dir)?.trim() === "asc" ? "asc" : "desc"
+
+  // A direction with no column is not a sort; reporting it would let a caller
+  // build `?dir=asc` links that silently do nothing.
+  return key ? { key, direction } : { key: null, direction: "desc" }
+}
+
+/**
+ * How one allowlisted sort token maps onto a database column.
+ */
+export type AdminSortColumn = {
+  readonly column: string
+  /**
+   * `true` when the column's ASCENDING order is the descending DISPLAY order.
+   * `fraud_flags.severity_rank` is the case that needs it: 1 is `high`, so
+   * "most severe first" is `ascending: true`, and without this an operator
+   * asking for the worst flags first would get the mildest.
+   */
+  readonly inverted?: boolean
+}
+
+/**
+ * Resolve a parsed sort against a surface's token → column map. Returns null
+ * for the default order, which is the only value a reader may treat as "apply
+ * my own ORDER BY". Pure, so the direction inversion is unit-testable without
+ * a database.
+ */
+export function resolveAdminSort(
+  sort: AdminSortState | undefined,
+  columns: Readonly<Record<string, AdminSortColumn>>
+): { readonly column: string; readonly ascending: boolean } | null {
+  if (!sort?.key) return null
+  const entry = columns[sort.key]
+  if (!entry) return null
+
+  const ascending = entry.inverted
+    ? sort.direction === "desc"
+    : sort.direction === "asc"
+
+  return { column: entry.column, ascending }
 }
 
 /**
