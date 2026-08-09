@@ -15,6 +15,7 @@ import {
 } from "@/components/brand"
 import { TrendChart } from "@/components/data"
 import { ActivityCompactFeed } from "@/components/merchant/activity-compact-feed"
+import { MerchantNextActions } from "@/components/merchant/dashboard-next-actions"
 import { WetInkRise } from "@/components/motion"
 import { Button } from "@/components/ui/button"
 import { getEnrichedMerchantActivity } from "@/lib/merchant/activity"
@@ -23,6 +24,7 @@ import {
   getMerchantDashboardSeries,
   type MerchantDashboardMerchant,
 } from "@/lib/merchant/dashboard"
+import { getMerchantNextActionCounts } from "@/lib/merchant/customers-view"
 import { timeServerLoader } from "@/lib/perf/server-timing"
 
 export async function MerchantDashboardStream({
@@ -30,12 +32,15 @@ export async function MerchantDashboardStream({
 }: {
   readonly merchant: MerchantDashboardMerchant
 }) {
-  const [dashboard, series] = await Promise.all([
+  const [dashboard, series, nextActions] = await Promise.all([
     timeServerLoader("/app", "getMerchantDashboardData", () =>
       getMerchantDashboardData(merchant)
     ),
     timeServerLoader("/app", "getMerchantDashboardSeries", () =>
       getMerchantDashboardSeries(merchant.id)
+    ),
+    timeServerLoader("/app", "getMerchantNextActionCounts", () =>
+      getMerchantNextActionCounts(merchant.id)
     ),
   ])
   const metrics = dashboard.metrics
@@ -81,6 +86,22 @@ export async function MerchantDashboardStream({
         <DashboardMembersEmptyState />
       ) : (
         <section className="grid gap-3.5">
+          {/* 03#13: the dashboard was a reporting surface for an operator who
+              needs a task surface. MerchantNextActions shipped months ago and
+              was mounted only in the dev harness; both of its counts are
+              merchant-wide server COUNTs sharing the members list's own
+              predicates, so each row deep-links into a filter that shows
+              exactly the members it just named. It leads the stream, above the
+              KPI grid — the numbers are the context for the task, not the
+              other way round. Suppressed for a venue with no members at all:
+              the empty state below already carries the only useful action. */}
+          <MerchantNextActions
+            readyCount={nextActions.readyCount}
+            quietCount={nextActions.quietCount}
+            repeatCustomers={metrics.repeatCustomers}
+            members={metrics.members}
+          />
+
           <SectionHeader
             eyebrow="Last 14 days"
             title="How the week is going"

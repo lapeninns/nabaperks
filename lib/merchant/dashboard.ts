@@ -70,7 +70,7 @@ export type MerchantCustomerRow = {
   last_redeemed_at: string | null
 }
 
-type MerchantMembershipRow = {
+export type MerchantMembershipRow = {
   id: string
   customer_id: string | null
   current_stamp_count: number
@@ -120,9 +120,7 @@ export async function getMerchantCustomers(
   const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from("customer_memberships")
-    .select(
-      "id, customer_id, current_stamp_count, total_stamps_earned, total_rewards_redeemed, last_visit_at, created_at"
-    )
+    .select(MERCHANT_MEMBERSHIP_COLUMNS)
     .eq("merchant_id", merchantId)
     .order("created_at", { ascending: false })
     .order("id", { ascending: false })
@@ -132,7 +130,31 @@ export async function getMerchantCustomers(
     throw new Error(`Unable to load customers: ${error.message}`)
   }
 
-  const memberships = (data ?? []) as MerchantMembershipRow[]
+  return enrichMerchantMemberships(
+    supabase,
+    merchantId,
+    (data ?? []) as MerchantMembershipRow[],
+    now
+  )
+}
+
+/** The membership columns every merchant readback row is built from. */
+export const MERCHANT_MEMBERSHIP_COLUMNS =
+  "id, customer_id, current_stamp_count, total_stamps_earned, total_rewards_redeemed, last_visit_at, created_at"
+
+/**
+ * Turn a window of membership rows into masked-safe readback rows: masked
+ * identity, the active card's stamp target, the unlocked reward (if any) and
+ * the most recent redemption inside the badge window. Shared by the paged list
+ * and by the filtered/searched list in `lib/merchant/customers-view.ts`, so the
+ * badge derivation has exactly one implementation.
+ */
+export async function enrichMerchantMemberships(
+  supabase: SupabaseClient,
+  merchantId: string,
+  memberships: MerchantMembershipRow[],
+  now: Date = new Date()
+): Promise<MerchantCustomerReadbackRow[]> {
   if (!memberships.length) return []
 
   const membershipIds = memberships.map((row) => row.id)

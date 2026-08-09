@@ -8,15 +8,15 @@ import { CustomerReadbackTable } from "@/components/merchant/customer-readback-t
 import { MerchantCustomersTableSkeleton } from "@/components/merchant/loading-skeletons"
 import { Button } from "@/components/ui/button"
 import { getCurrentMerchant } from "@/lib/auth/session"
+import { getMerchantCustomerPage } from "@/lib/merchant/dashboard"
 import {
-  getMerchantCustomers,
-  getMerchantCustomerCount,
-  getMerchantCustomerPage,
-} from "@/lib/merchant/dashboard"
-import {
-  CUSTOMERS_PAGE_SIZE,
-  resolveCustomersPageRequest,
-} from "@/lib/merchant/customers-paging"
+  buildCustomersHref,
+  parseCustomerFilterParam,
+  parseCustomerSearchParam,
+  type CustomerFilter,
+} from "@/lib/merchant/customers-filter"
+import { loadMerchantCustomersView } from "@/lib/merchant/customers-view"
+import { resolveCustomersPageRequest } from "@/lib/merchant/customers-paging"
 
 export const dynamic = "force-dynamic"
 
@@ -24,6 +24,8 @@ type CustomersPageProps = {
   searchParams?: Promise<{
     highlight?: string | string[]
     page?: string | string[]
+    filter?: string | string[]
+    q?: string | string[]
   }>
 }
 
@@ -47,16 +49,22 @@ export default async function MerchantCustomersPage({
   const highlightedMembershipId = firstParam(params.highlight)
   const requestedPage = firstParam(params.page)
   const pageRequest = resolveCustomersPageRequest(requestedPage)
+  const filter = parseCustomerFilterParam(params.filter)
+  const search = parseCustomerSearchParam(params.q)
 
+  // Deep-link arrival only. `getMerchantCustomerPage` ranks the member inside
+  // the UNFILTERED newest-first list, so it can only resolve a page while no
+  // narrowing is active — with a filter or a search on, that rank names a row
+  // in a different result set, so the redirect is skipped rather than sent to
+  // the wrong page.
   if (!requestedPage && highlightedMembershipId) {
-    const highlightedPage = await getMerchantCustomerPage(
-      merchant.id,
-      highlightedMembershipId
-    )
+    const highlightedPage =
+      filter === "all" && !search
+        ? await getMerchantCustomerPage(merchant.id, highlightedMembershipId)
+        : null
+
     if (highlightedPage && highlightedPage !== pageRequest.page) {
-      redirect(
-        customersHighlightHref(highlightedMembershipId, highlightedPage)
-      )
+      redirect(customersHighlightHref(highlightedMembershipId, highlightedPage))
     }
   }
 
@@ -82,13 +90,19 @@ export default async function MerchantCustomersPage({
       />
 
       <Suspense
+        // Keyed on the page only. A filter or search change re-renders this
+        // boundary in place, which keeps the search field's focus and the
+        // current rows on screen while the new ones load; keying it on the
+        // narrowing too would remount the table on every debounced keystroke
+        // and throw the caret out of the input.
         key={pageRequest.page}
         fallback={<MerchantCustomersTableSkeleton />}
       >
         <CustomersTableStream
           merchantId={merchant.id}
           page={pageRequest.page}
-          offset={pageRequest.offset}
+          filter={filter}
+          search={search}
           highlightedMembershipId={highlightedMembershipId}
         />
       </Suspense>
@@ -99,33 +113,37 @@ export default async function MerchantCustomersPage({
 async function CustomersTableStream({
   merchantId,
   page,
-  offset,
+  filter,
+  search,
   highlightedMembershipId,
 }: {
   merchantId: string
   page: number
-  offset: number
+  filter: CustomerFilter
+  search?: string
   highlightedMembershipId?: string
 }) {
-  // getMerchantCustomers masks every row inside lib/merchant/* and returns the
-  // pre-masked view models directly, so raw email/phone never reach this server
-  // component or the client bundle. The client table owns its own summary /
-  // search / filter UI over these masked rows.
-  // Pages window the newest-first list (CUSTOMERS_PAGE_SIZE rows each); the
-  // true member count loads in parallel (PII-free, head:true) so the "Members"
-  // stat and the pagination stay honest beyond the first page.
-  const [customers, totalMembers] = await Promise.all([
-    getMerchantCustomers(merchantId, new Date(), {
-      limit: CUSTOMERS_PAGE_SIZE,
-      offset,
-    }),
-    getMerchantCustomerCount(merchantId),
-  ])
+  // `loadMerchantCustomersView` masks every row inside lib/merchant/* and
+  // returns the pre-masked view models, so raw email/phone never reach this
+  // server component or the client bundle. Search and the status pills are
+  // resolved there too (03#18) — they used to run in the browser over one
+  // 15-row page, which made both silently wrong for any venue past page one.
+  const view = await loadMerchantCustomersView({
+    merchantId,
+    page,
+    filter,
+    search,
+  })
 
   return (
     <CustomerReadbackTable
-      customers={customers}
-      totalMembers={totalMembers}
+      customers={view.rows}
+      totalMembers={view.totalMembers}
+      matchedMembers={view.matchedMembers}
+      counts={view.counts}
+      filter={filter}
+      query={search ?? ""}
+      capped={view.capped}
       page={page}
       highlightedMembershipId={highlightedMembershipId}
       emptyState={
@@ -152,9 +170,5 @@ function firstParam(value: string | string[] | undefined) {
 }
 
 function customersHighlightHref(membershipId: string, page: number) {
-  const params = new URLSearchParams({
-    page: String(page),
-    highlight: membershipId,
-  })
-  return `/app/customers?${params.toString()}`
+  return buildCustomersHref({ page, highlight: membershipId })
 }
