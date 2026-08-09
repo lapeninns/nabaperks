@@ -1334,3 +1334,30 @@ Also worth recording: I guessed the cause twice (min-w-0 on the list, then on
 the flex title) and rebuilt each time, ~2 minutes a go. Walking the ancestor
 chain took one probe and showed the answer on one line — parent 272px, list
 305px. **Measure the chain before editing the leaf.**
+
+### Sabotage found that half my fix was decoration
+
+After shipping `min-w-0` in two components for the 320px overflow, I sabotaged
+each half separately against production builds.
+
+Removing it from `GuideSection` changed nothing — still passing. All the guide
+bands share **one grid column track**, so the single overflowing item (the
+HubHandoff guide list) was widening that track and dragging all eight sibling
+sections to 305px. Fix the one item, and all 65 elements come back inside the
+viewport.
+
+I had "fixed" the symptom on eight bands when the cause was in one, and only
+found out because I tried to break each half on purpose. Reverted.
+
+The same pass killed the guard I wrote for it. Sabotage the fix, run the e2e
+spec against a freshly started dev server: **passes**. Twice. `next dev
+--webpack` — what the Playwright harness runs — does not reproduce this defect,
+so an e2e guard here can never fail. It moved to
+`scripts/check-small-screen.mjs`, which runs against a built artefact and is
+verified in both directions (exit 0 with the fix, exit 1 naming 65 elements
+without it).
+
+**Three lessons converge here.** Sabotage each half of a fix separately, not the
+fix as a whole. A guard has to run in the environment where the defect exists.
+And when a defect is invisible in dev, every dev-based check you own is already
+lying to you about it.
