@@ -276,6 +276,14 @@ before they can claim. The audit estimated y760; the measured figure is worse.
 The decision is whether the four restatements of the benefit above it earn
 those 904px.
 
+**Correction — not contract-blocked either.** Like 02#50, the contract
+citation here was true but did not bear on the change. `offer-campaign-ui`
+requires `<StampGrid` and `<OfferPass` to be present in
+`offer-claim-landing.tsx` and absent elsewhere — anti-duplication, not layout.
+Relocating the pass face into a disclosure inside that same file keeps all
+three assertions matching (verified against the source string). Only deleting
+a component outright would break them. This is a conversion decision alone.
+
 ### 01#55 — the three persona spokes
 
 | route                  |   height | words |
