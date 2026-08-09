@@ -1228,3 +1228,35 @@ One near-miss worth keeping: `TableHead` still hard-codes `whitespace-nowrap`
 while `TableCell` is opt-in. That looks like the "true of one half" pattern, but
 04#59 names `TableCell` and DataTable's cell override specifically, and short
 column labels are meant to stay on one line. Correctly closed.
+
+### Dev-server metrics are not evidence
+
+Section 7 of NEEDS-SIGNOFF asked the owner to renegotiate a contract assertion,
+on the strength of a measured CLS 0.1924. I had measured it with Playwright
+against `pnpm dev`.
+
+The identical probe against a production build: **0.0000**. Lighthouse on the
+built artefact: 0.0517 / 0.0517 / 0.0000, then 0.0000 x3 after the font
+subsetting. Threshold is 0.100.
+
+In dev, CSS and fonts inject asynchronously and hydration is much slower, so the
+collapse lands after paint. In the shipped artefact it does not. Every
+performance number in this campaign that came from a dev server should be read
+with that in mind — LCP numbers were taken from production builds throughout,
+but this CLS was not, and it was the one that nearly cost a contract.
+
+The confirming detail is the better story. The contract pins the _expression_
+`hydrated && !open ? "hidden lg:block" : "grid"`, not the initial value of
+`open`. Setting `useState(true)` makes that expression evaluate to "grid" both
+before and after hydration — pinned literal untouched, stated intent better
+served. A clean way through a blocker that had stood for the whole campaign.
+
+It changed CLS by **zero, to sixteen decimal places**. Same number, twice.
+
+Because the collapsing list sits at top 1295px on a 390x844 viewport, below the
+fold, moving no visible content. The clever fix fixed nothing, and the only
+reason I know that is that I measured after shipping it instead of reasoning
+that it must have worked. Reverted.
+
+**Two rules.** Measure the artefact you ship, not the one you develop against.
+And when a fix is elegant, that is exactly when to check it changed the number.
