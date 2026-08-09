@@ -31,12 +31,7 @@ export function GuideSection({
         // 48-64px gap between bands, which is the largest gap token on the
         // marketing surface applied to the tallest page in the product. The
         // first band sits under the hero and needs no rule.
-        // `min-w-0`: these sections are grid items, so they default to
-        // `min-width: auto` and will not shrink below their min-content width.
-        // At 320px that pinned each band at 305px starting from a 24px gutter,
-        // so the column ran to 329px — 9px past the viewport, silently cut by
-        // the shell's `overflow-x-clip` rather than scrolled.
-        "grid min-w-0 gap-4 border-t-2 border-dashed border-border pt-8 first:border-t-0 first:pt-0",
+        "grid gap-4 border-t-2 border-dashed border-border pt-8 first:border-t-0 first:pt-0",
         MARKETING_ANCHOR_OFFSET
       )}
     >
