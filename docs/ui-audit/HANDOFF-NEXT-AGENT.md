@@ -20,6 +20,12 @@ evidence docs exists, and that HANDOFF's open list matches the parsed state.
 
 Open: `01#23 01#55 01#63 01#65 01#67 02#50 02#64 04#54 05#13`.
 
+**Every one of those nine now needs the owner, not an engineer.** Five are
+copy or conversion calls (`01#23 01#55 02#50 02#64 04#54`), two are excluded
+by standing instruction (`01#67 05#13`), and two are contract-versus-design-
+system rulings written up for approval (`01#63 01#65`). None is open for want
+of effort or evidence — each carries a measurement or a cited clause.
+
 The one Critical that remains open is `03#37`'s single-route
 collapse (pinned by `qr-a4-poster-templates` and `merchant-shell`; a contract
 change to ask for, not to take). `03#18` closed in `lane/merchant`: both of its
