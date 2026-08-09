@@ -1518,3 +1518,36 @@ harder to pass, so it is safe under that rule.
 **Four of five already guarded means this trap is known here.** The contracts
 were largely written by someone who had met it. My contribution was one missing
 case, not a systemic finding — which is the honest size of it.
+
+### Re-checking the declines, and finding the verification boundary
+
+Several findings were declined on measurements (01#22, 01#30, 02#10, 02#30,
+05#65). After proving three separate measurement methods wrong this session, the
+declines deserved re-checking against a production build.
+
+**01#22 reproduces exactly.** `/how-it-works` measures 6,211px in production
+against the 6,211px recorded, and the `#launch` list within 2% (1,079 vs 1,101).
+The decline's arithmetic — collapsing steps 2-5 saves 11.7% of the page — holds.
+
+That is a useful negative: dev and production agree on **static layout heights**.
+Where they disagreed was hydration timing (01#49's CLS: 0.207 dev, 0.000 prod)
+and CSS containment (the 320px overflow: 65 elements prod, invisible in dev).
+The lesson is narrower than "dev lies" — it is that dev lies about _timing_ and
+_cascade_, not about how tall a box is.
+
+**02#10 could not be re-checked at all**, and that is the more important finding.
+`/dev/home-harness/home` returns **HTTP 404** in a production build:
+`app/dev/layout.tsx` calls `notFound()` when `NODE_ENV === "production"`, and 35
+harness files repeat the guard. Correct behaviour — harnesses must not be public
+— but it means the customer, merchant and admin surfaces are _unmeasurable_ in a
+built artefact without live credentials.
+
+So the campaign's numbers split cleanly:
+
+    marketing / auth / legal / guides   production-verified
+    customer / merchant / admin         dev-server only, forever, without a
+                                        seeded staging deploy
+
+Recorded as NEEDS-SIGNOFF 32 so nobody later cites a dev measurement as if it
+were production-grade. I have done that once already this session and it cost
+two reverts.

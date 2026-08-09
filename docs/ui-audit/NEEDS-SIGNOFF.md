@@ -1370,3 +1370,41 @@ the traffic/backlink evidence arrived, and retaining is the only option that
 changes public SEO posture.
 
 This needs a marketing/SEO owner, not an engineer.
+
+## 32. What can and cannot be verified in a production build
+
+This bounds every measurement in the campaign, so it belongs in the sign-off
+rather than buried in the method log.
+
+`app/dev/layout.tsx` returns `notFound()` when `NODE_ENV === "production"`, and
+35 harness files repeat the guard individually. That is correct — dev harnesses
+must not be public. It also means:
+
+| surface                              | how it can be measured                                  |
+| ------------------------------------ | ------------------------------------------------------- |
+| marketing, auth, legal, guides       | **production build** — fully verifiable                 |
+| customer, merchant, admin            | **dev server only**, via `/dev` harnesses               |
+| customer/merchant/admin, real routes | needs live credentials (`pnpm test:db`, never run here) |
+
+So every number in this campaign for a customer, merchant or admin surface is a
+**dev-server measurement**, and this session proved dev and production disagree
+in at least two ways:
+
+- **hydration timing** — 01#49's CLS measured 0.207 in dev and 0.000 in
+  production, because dev hydrates far later than paint;
+- **CSS cascade / containment** — the 320px overflow on the pub hub was 65
+  elements in production and effectively invisible in dev.
+
+Static layout heights appear to agree: 01#22's `/how-it-works` page measured
+6,211px in dev and **6,211px** in production, an exact match, and the `#launch`
+list within 2%.
+
+**What this means for the open items.** 02#10 (the wallet tile at ~294px), 02#30
+(the stub floor at 70px) and the other customer-surface numbers cannot currently
+be re-checked against a built artefact by anyone without credentials. They are
+sound as dev measurements of static geometry — the category that agreed — but
+they are not production-verified, and no one should later cite them as if they
+were.
+
+The cheapest way to close this gap is a staging deploy with seeded data, which
+is a decision about environments rather than about UI.

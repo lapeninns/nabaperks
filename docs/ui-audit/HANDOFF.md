@@ -180,3 +180,11 @@ ternary), one additive extension (`merchant-shell`), one new file
 (`motion-tokens-bounded`), and one stale locator (`offer-campaign-flow`, where
 the old locator contradicted the test's own href assertion). **No assertion was
 weakened or deleted.**
+
+## Verification boundary (NEEDS-SIGNOFF 32)
+
+Customer, merchant and admin numbers in this campaign are dev-server
+measurements. `/dev` harnesses 404 in a production build by design, and the real
+routes are auth-gated, so no one can re-check them against a built artefact
+without credentials or a seeded staging deploy. Marketing, auth, legal and guide
+numbers are production-verified.
