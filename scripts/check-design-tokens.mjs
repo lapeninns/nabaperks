@@ -465,6 +465,15 @@ function resolveHex(prop, props) {
 
 function checkContrast(themeName, props, ringAlpha) {
   const problems = []
+  /**
+   * Pairs actually evaluated. The loop below `continue`s past any token that
+   * does not resolve to a hex, which is correct — a wash or a missing token is
+   * another check's business — but it means a token-format change (say to
+   * `oklch()`) could skip EVERY pair and still print a pass. `bundle:check`
+   * shipped exactly that bug: it reported PASS while checking 0 of 150 routes.
+   * Counted and asserted below so this one cannot go quiet the same way.
+   */
+  let evaluated = 0
   // [foreground token, background token, floor, note]
   const pairs = [
     ["--foreground", "--background", 4.5, "body text"],
@@ -487,12 +496,20 @@ function checkContrast(themeName, props, ringAlpha) {
     const fg = resolveHex(fgProp, props)
     const bg = resolveHex(bgProp, props)
     if (!fg || !bg) continue // non-hex (rgba wash) or missing — other checks own those
+    evaluated += 1
     const ratio = contrastRatio(fg, bg)
     if (ratio < floor) {
       problems.push(
         `${themeName}: ${fgProp} on ${bgProp} = ${ratio.toFixed(2)}:1 (needs ${floor}:1 — ${note})`
       )
     }
+  }
+
+  if (evaluated === 0) {
+    problems.push(
+      `${themeName}: 0 of ${pairs.length} contrast pairs resolved to hex — the ` +
+        "token format has changed and this check is measuring nothing"
+    )
   }
 
   // Focus ring: the recipe's color-mix alpha composited over the page must
