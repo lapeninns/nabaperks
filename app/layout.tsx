@@ -22,13 +22,27 @@ const bricolageGrotesque = localFont({
       weight: "400",
       style: "normal",
     },
-    // These two faces ship as woff2, the other two as .ttf, and that asymmetry
-    // is deliberate. `poster-font-assets` SHA-256-pins the four original files
-    // and requires the app and the PDF renderer to name the same ones, so
-    // Regular and Bold must stay .ttf. Medium and ExtraBold were added by this
-    // branch and are not pinned, so they can ship in the format the browser
-    // actually wants: 113KB -> 46KB each, which took /loyalty-for-pubs from
-    // 6,343ms LCP to 5,011ms locally. The PDF renderer still reads the .ttf.
+    // These two faces ship as SUBSET woff2, the other two as .ttf, and that
+    // asymmetry is deliberate. `poster-font-assets` SHA-256-pins the four
+    // original files and requires the app and the PDF renderer to name the same
+    // ones, so Regular and Bold must stay .ttf. Medium and ExtraBold were added
+    // by this branch and are NOT pinned, so they ship in the format and the
+    // coverage the browser actually wants: 113KB .ttf -> 47KB woff2 -> 39KB
+    // subset woff2. The PDF renderer still reads the .ttf.
+    //
+    // Subset to Latin + Latin-1 + Latin Extended-A/B + combining marks +
+    // punctuation/currency/arrows (U+0000-036F and friends), which drops 124 of
+    // 527 glyphs — mostly Latin Extended Additional, i.e. Vietnamese. Combining
+    // marks (U+0300-036F) and the `mark`/`mkmk` GPOS features are kept
+    // deliberately, at a cost of 4.4KB, because venue names are user-generated
+    // and may arrive decomposed rather than precomposed. `tnum` is kept because
+    // `.numeric-tabular` in globals.css needs it, and `kern` because everything
+    // does.
+    //
+    // Measured on /loyalty-for-pubs, 3 runs each, same machine and build:
+    // LCP 5,022/5,009/5,025ms -> 3,770/3,761/3,774ms, FCP 1,658 -> 1,204ms.
+    // / and /pricing land at 3,769 and 3,773ms. The Lighthouse budgets are
+    // 4,000ms LCP and 2,500ms FCP, so all three routes now pass locally.
     //
     // DESIGN.md typography: body/small are weight 500 and every heading is
     // 800. Without these two faces the browser synthesised both from the 400
