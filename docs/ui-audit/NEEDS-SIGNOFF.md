@@ -298,6 +298,13 @@ NOT measurable here: the join flow needs live Supabase credentials
 number on the CTA position. The audit's own arithmetic puts it at ~y780 on a
 667px viewport. Worth measuring against a live DB before deciding.
 
+**Correction — this is not contract-blocked.** The note cited
+`customer-join-frictionless-ux` as pinning the preview. It pins the preview's
+PRESENCE on the QR path and nothing inside it: the assertion's lazy match ends
+at `<TermsFirstStampPreview`. Verified by re-running that regex with the whole
+component body replaced by `return null` (still matches), and by grepping every
+contract file for `RewardTicket` (zero). A content decision, not a contract one.
+
 ### 01#23 and 04#54
 
 Both are copy edits whose cost is the copy itself, not layout: 01#23 cuts eight
