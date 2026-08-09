@@ -198,6 +198,46 @@ for (const file of ["COVERAGE.md", "HANDOFF.md"]) {
   }
 }
 
+/**
+ * HANDOFF enumerates the open findings by id. That list is what a reviewer
+ * reads first, and it drifts silently: it said "all 13" and named 01#49 as
+ * contract-blocked for several commits after 01#49 moved to `[stale]`, which
+ * would have sent someone to renegotiate a contract over a defect that does not
+ * exist in production.
+ */
+{
+  const handoff = readFileSync(path.join(DIR, "HANDOFF.md"), "utf8")
+  const heading = handoff.match(/^##\s*Open findings, all (\d+)\s*$/m)
+
+  if (!heading) {
+    problems.push("HANDOFF.md is missing its 'Open findings, all N' heading")
+  } else {
+    // The id list is the first non-empty block after the heading, and only
+    // that block — the bullets below it categorise and legitimately mention
+    // ids that are no longer open (03#46 lives in another status file).
+    const after = handoff.slice(heading.index + heading[0].length)
+    const firstBlock = after.split(/\n\s*\n/).find((block) => block.trim())
+    const listed = (firstBlock ?? "").match(/\d\d#\d+/g) ?? []
+    const actual = [...state.entries()]
+      .filter(([, mark]) => mark === "[ ]" || mark === "[defer]")
+      .map(([id]) => id)
+      .sort()
+    const unique = [...new Set(listed)].sort()
+
+    if (Number(heading[1]) !== actual.length) {
+      problems.push(
+        `HANDOFF.md says "all ${heading[1]}" open, parse says ${actual.length}`
+      )
+    }
+    if (unique.join(",") !== actual.join(",")) {
+      problems.push(
+        `HANDOFF.md open list is ${unique.join(", ") || "(empty)"}, ` +
+          `parse says ${actual.join(", ")}`
+      )
+    }
+  }
+}
+
 if (problems.length > 0) {
   console.error("✗ UI-audit tally is out of sync:\n")
   for (const problem of problems) console.error(`  ${problem}`)

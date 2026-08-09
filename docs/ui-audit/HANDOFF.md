@@ -145,8 +145,10 @@ evidence in `NEEDS-SIGNOFF.md` rather than a description.
 
 01#23, 01#55, 01#63, 01#65, 01#67, 02#50, 02#64, 03#13, 03#16, 04#54, 04#60, 05#13
 
-- **Blocked by a test** (attempted, reverted, no assertion weakened): 01#49,
-  01#63, 01#65, plus 03#46 in STATUS-m-launch.
+- **Blocked by a test** (attempted, reverted, no assertion weakened): 01#63,
+  01#65, plus 03#46 in STATUS-m-launch. 01#49 was here until its premise was
+  disproved — the CLS it cited is a dev-server artefact and production measures
+  0.0000, so it is `[stale]` and needs no contract change.
 - **Copy / product**: 01#23, 01#55, 02#50, 02#64, 04#54.
 - **Data-layer**: 03#13 (a merchant-wide "rewards ready" count means duplicating
   badge logic in SQL or loading every member; counting the loaded page would

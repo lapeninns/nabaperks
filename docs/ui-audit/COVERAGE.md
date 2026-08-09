@@ -23,7 +23,7 @@ branch is green after every merge.
 
 > > > > > > > lane/merchant
 
-## "Stale" is a real category (18 findings)
+## "Stale" is a real category (19 findings)
 
 Not reproducible against the current tree, and recorded rather than invented
 into a change. Examples: `border-[1.5px]` no longer exists (03#25); both
