@@ -705,7 +705,7 @@ the other two on purpose.
 Both are defensible. Picking between them is a design call, and it wants the
 visual baselines regenerated either way.
 
-## 16. Hard caps in the admin console (04#6) — two closed, two left
+## 16. Hard caps in the admin console (04#6) — RESOLVED except fraud
 
 Billing and referrals no longer truncate: both take a venue lookup and a
 paginator (25/50/100 rows). What is left is two surfaces where a notice is
@@ -752,6 +752,22 @@ without the chooser, that is the work.
 
 Still open, and still the least valuable third of the finding: both are
 navigation over query params that now exist on six of eleven routes.
+
+### Update — the two remaining caps are now one, and it is not a cap
+
+The evidence ledger took a venue lookup and a paginator, and the merchant picker
+stopped being a dead end: the same `?venue=` term narrows it, so a venue past the
+alphabetical cap is reachable in one search rather than unselectable. Seven of
+eleven admin lists now page, and all five that have a lookup keep it on screen
+while the list scrolls.
+
+What remains is the fraud queue, and it is not a truncation problem — it is an
+ordering one. Section 30 has the detail: `getAdminFraudSignals` sorts by severity
+in memory because `severity` is a text column whose alphabetical order is not its
+severity order, so paging it server-side would sort each page independently and
+rank a high-severity flag on page 3 below a low one on page 1. That needs a rank
+column or SQL CASE ordering, which is a data-layer change rather than the UI one
+this finding describes.
 
 ## 17. The last 1.5px is `.w-tag` itself (03#25)
 
@@ -948,7 +964,7 @@ would fix (1), and threading could look back a row across the cursor for (2).
 Both are data-layer work with a privacy review attached, which is a different
 kind of change from the rest of this campaign.
 
-## 22. The three contract-blocked findings, read closely
+## 22. The contract-blocked findings, read closely — now two, not three
 
 03#46 turned out to be blocked by a misreading — the contract forbade a `??`
 error merge, not the blur validation the note blamed. So I read the other three
@@ -1259,7 +1275,7 @@ seasonal terms are published on both surfaces. What is left is presentation:
 | timeline     | 3-row `ol` (174px at 1280)                      | absent                            |
 | CTAs         | 1                                               | 2                                 |
 
-## 29. `deadcode:check` structurally cannot report an unused export
+## 29. CLOSED — `deadcode:check` could not report an unused export; now ratcheted
 
 Found by the design-system lane while sweeping contract allowlists, verified
 here.
