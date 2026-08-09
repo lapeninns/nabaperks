@@ -1582,3 +1582,32 @@ device.
 **The distinction worth keeping.** "I cannot fully verify it" is not a reason to
 decline; the palette proved that. "The device this ships to already does the
 right thing" is. One is about my tooling, the other is about the user.
+
+### Costing the decisions instead of just naming them
+
+The remaining findings are mostly decisions, and a decision without a number is
+just a question. Three were left that way, and each is now costed:
+
+    02#64  claim CTA sits at 1,077px — 1.62 screens — on an iPhone SE.
+           The audit said ~760px. It understated the problem by 42%.
+    01#20  adopting the canonical pricing sheet on `/` costs +262px at 375px
+           and +48px at 1280px, takeover isolated so it is like-for-like.
+    02#50  needs no contract change at all — the assertion stops at the
+           component name and constrains nothing inside it.
+
+Two of those needed a harness that did not exist, because the surface is
+auth-gated or token-gated. Building one is not a workaround; it is the only way
+the number can ever be checked again after the decision is made.
+
+**The measurement failures are the part worth keeping.** Costing 01#20 took four
+attempts, and the first three were all the same error: a text heuristic that
+matched an ancestor. "Innermost element containing 'Growth Plan'" reported 332px
+for a sheet that is 1,653px. "Section containing 'takeover'" reported 2,206px for
+a 257px aside. Both looked plausible standing alone, and both would have gone
+into a decision document as fact.
+
+What fixed it was anchoring on `data-takeover-enquiry` — a marker the component
+ships deliberately — rather than on words the copy happens to contain. Same
+lesson as `#pricing` for the landing band, and the same lesson as every other
+measurement failure recorded above: **anchor on what the code guarantees, not on
+what the page says.**
