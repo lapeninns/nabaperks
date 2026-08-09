@@ -490,6 +490,33 @@ adds a cheaper option to the two already recorded:
 The second is a much smaller decision than the first, and it is the one I would
 put in front of a human. It is still a UX change, so it is still here.
 
+### Third re-measurement, and the one detail that changed (this pass)
+
+Re-probed both ancestors in isolation rather than trusting the earlier note,
+because I had just caught myself recording a convenient negative from too narrow
+a window. The blocker survives:
+
+| wrapper                            | computed              | thead after scroll | stuck |
+| ---------------------------------- | --------------------- | ------------------ | ----- |
+| `overflow-x:auto; overflow-y:auto` | `auto` / `auto`       | -500px             | no    |
+| `overflow-x:auto; overflow-y:clip` | **`hidden`** / `auto` | -500px             | no    |
+
+So `overflow-y: clip` really is coerced to `hidden` beside `overflow-x: auto` in
+this Chrome, and the escape hatch stays shut.
+
+What IS new: there are **two** blocking ancestors, not one, and the outer one is
+dead weight on admin. `DataTable`'s card is `surface-card overflow-hidden`,
+where the `overflow-hidden` exists to clip content to the rounded corners — but
+every admin table passes `className="rounded-none border-0 shadow-none"`. There
+are no corners to clip. That wrapper could be dropped on admin for free.
+
+It would not help on its own: the table above with `overflow-x:auto` alone still
+did not stick. Removing one of two blockers changes nothing, which is exactly
+why it is worth writing down — it is the obvious cheap fix and it does not work.
+
+The options remain the three already listed, and option 3 (bound the height only
+when `size > 25`) is still the cheapest.
+
 ## 13. ~~One manual look: the hero card loop~~ CLOSED — now covered by a test
 
 The gap is gone. `tests/e2e/hero-motion.motion.spec.ts` runs under a new
