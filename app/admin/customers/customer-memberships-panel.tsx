@@ -52,7 +52,7 @@ export function CustomerMembershipsPanel({
         />
       </AdminPanelHeader>
       <AdminLookupControls
-        sticky
+        sticky="flush"
         basePath="/admin/customers"
         lookup={lookup}
         label="Membership lookup"

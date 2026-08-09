@@ -221,7 +221,7 @@ function MerchantAccountsPanel({
         />
       </AdminPanelHeader>
       <AdminLookupControls
-        sticky
+        sticky="flush"
         basePath="/admin/merchants"
         lookup={lookup}
         label="Merchant lookup"

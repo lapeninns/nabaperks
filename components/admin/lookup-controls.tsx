@@ -38,7 +38,7 @@ export function AdminLookupControls({
   label = "Member lookup",
   fields = "venue-and-contact",
   hiddenParams,
-  sticky = false,
+  sticky,
 }: {
   readonly basePath: string
   readonly lookup: AdminLookupState
@@ -65,7 +65,7 @@ export function AdminLookupControls({
    * reminder that sticky inside an `overflow-hidden` ancestor silently does
    * nothing.
    */
-  readonly sticky?: boolean
+  readonly sticky?: "flush" | "padded"
 }) {
   const withVenue = fields !== "contact"
   const withContact = fields !== "venue"
@@ -82,12 +82,16 @@ export function AdminLookupControls({
         withVenue && withContact
           ? "grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end"
           : "grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end",
-        // Designed to be a DIRECT child of a flush AdminPanel, which is why it
-        // carries its own px-5/py-4 and bottom border rather than negative
-        // margins. Inside AdminPanelHeader it would be useless: sticky is bound
-        // by its containing block, and that header is ~174px tall, so the bar
-        // would unstick almost immediately (measured).
-        sticky && "sticky top-0 z-20 border-b-2 border-ink bg-card px-5 py-4"
+        // Must be a DIRECT child of the AdminPanel: sticky is bound by its
+        // containing block, so inside the ~174px AdminPanelHeader the bar
+        // unsticks almost immediately (measured at -1225px).
+        //
+        // `flush` panels have no padding, so the bar supplies its own.
+        // `padded` panels already have p-5, so the bar cancels the horizontal
+        // padding to stay full-bleed rather than sitting in a 40px inset.
+        sticky && "sticky top-0 z-20 border-b-2 border-ink bg-card py-4",
+        sticky === "flush" && "px-5",
+        sticky === "padded" && "-mx-5 px-5"
       )}
     >
       {Object.entries(hiddenParams ?? {}).map(([name, value]) =>

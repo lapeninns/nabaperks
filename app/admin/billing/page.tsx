@@ -132,14 +132,16 @@ export default async function AdminBillingPage({
               truncation notice under it (ADM 04#6). A notice tells an operator
               the venue they cannot see might exist; a lookup lets them reach
               it. Venue only — a billing row has no customer dimension. */}
-          <AdminLookupControls
-            basePath="/admin/billing"
-            lookup={lookup}
-            label="Billing lookup"
-            fields="venue"
-          />
-          <AdminAppliedFilters basePath="/admin/billing" lookup={lookup} />
         </AdminPanelHeader>
+
+        <AdminLookupControls
+          sticky="flush"
+          basePath="/admin/billing"
+          lookup={lookup}
+          label="Billing lookup"
+          fields="venue"
+        />
+        <AdminAppliedFilters basePath="/admin/billing" lookup={lookup} />
         <DataTable
           caption="Admin billing subscription readback"
           cardBreakpoint="xl"

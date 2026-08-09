@@ -68,6 +68,7 @@ export function ReferralOpsPanel({
           and no signpost (04#6). Venue only: the RPC exposes no searchable
           member contact, and the emails it does return are masked here. */}
       <AdminLookupControls
+        sticky="padded"
         basePath="/admin/referrals"
         lookup={lookup}
         label="Referral lookup"

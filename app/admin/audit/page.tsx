@@ -68,7 +68,7 @@ export default async function AdminAuditPage({
         </AdminPanelHeader>
 
         <AdminLookupControls
-          sticky
+          sticky="flush"
           basePath="/admin/audit"
           lookup={lookup}
           label="Audit log lookup"
