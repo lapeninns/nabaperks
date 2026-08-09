@@ -2,11 +2,10 @@
 
 import { Camera01Icon } from "@hugeicons/core-free-icons"
 import dynamic from "next/dynamic"
-import Link from "next/link"
 
-import { Eyebrow, Icon, IconRoundel, ReceiptCard } from "@/components/brand"
-import { Button } from "@/components/ui/button"
-import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
+import { Icon, ReceiptCard } from "@/components/brand"
+
+import { ScannerExits, ScannerIntro } from "./scanner-chrome"
 
 const loadScanner = () =>
   import("./customer-qr-scanner").then((module) => module.CustomerQrScanner)
@@ -35,21 +34,13 @@ function CustomerQrScannerLoading({
 }) {
   return (
     <ReceiptCard edge className="grid gap-5 p-6">
-      <div className="grid gap-3">
-        <IconRoundel icon={Camera01Icon} iconSize={22} tone="accent" />
-        <div className="grid gap-1.5">
-          <Eyebrow>Customer scanner</Eyebrow>
-          {/* Same headline as the loaded scanner (CUS-P3-11) — no string flip
-              when the chunk lands. */}
-          <h1 className="text-2xl leading-tight font-extrabold tracking-[-0.01em]">
-            Scan venue QR
-          </h1>
-          <p className="text-sm leading-6 text-muted-foreground">
-            Point your camera at a Nabaperks venue QR to collect your stamp. No
-            app, no plastic.
-          </p>
-        </div>
-      </div>
+      {/* Same header component AND the same sentence as the loaded scanner
+          (CUS-P3-11, CUS 02#62) — no markup flip and no string flip when the
+          chunk lands. The sentence is restated rather than imported because
+          CUS-P2-11 pins it inside customer-qr-scanner.tsx and importing it from
+          there would drag the deferred chunk into this fallback; CUS-P2-11 now
+          also asserts the two statements are identical. */}
+      <ScannerIntro description="Point your camera at a Nabaperks venue QR to collect your stamp. No app, no plastic." />
 
       <div className="grid aspect-square place-items-center overflow-hidden rounded-[var(--radius)] border-2 border-dashed border-border bg-card">
         <span className="grid justify-items-center gap-2 text-center">
@@ -69,22 +60,10 @@ function CustomerQrScannerLoading({
 
       {/* Matches the loaded scanner: signed in, the tab bar is the navigation
           and the loader must not flash a pair of exits that the loaded state
-          will not render (CUS 02#60). */}
-      {hasAppNavigation ? null : (
-        // And matching means matching the GRID too. The loaded scanner dropped
-        // `sm:grid-cols-2` when it was measured producing two 173px buttons in
-        // a 358px row at an 800px viewport; this copy kept it, so above 640px
-        // the loader drew a two-up row that the loaded state then re-stacked —
-        // the first-paint jump the comment above exists to prevent (CUS 02#6).
-        <div className="grid gap-3">
-          <Button asChild variant="secondary" className="w-full">
-            <Link href="/start">Back to start</Link>
-          </Button>
-          <Button asChild className="w-full">
-            <Link href="/home">{OPEN_MY_CARDS_LABEL}</Link>
-          </Button>
-        </div>
-      )}
+          will not render (CUS 02#60). "Matches" is now structural — one
+          component draws both — rather than two hand-kept copies, which is how
+          the grid drifted last time (CUS 02#62). */}
+      {hasAppNavigation ? null : <ScannerExits />}
     </ReceiptCard>
   )
 }

@@ -1,25 +1,21 @@
 "use client"
 
-import {
-  Camera01Icon,
-  FlashlightIcon,
-  FlashlightOffIcon,
-} from "@hugeicons/core-free-icons"
+import { FlashlightIcon, FlashlightOffIcon } from "@hugeicons/core-free-icons"
 import {
   Html5Qrcode,
   Html5QrcodeScannerState,
   Html5QrcodeSupportedFormats,
 } from "html5-qrcode"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { Eyebrow, Icon, IconRoundel, ReceiptCard } from "@/components/brand"
-import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
+import { Icon, ReceiptCard } from "@/components/brand"
 import { normalizeScannedQrDestination } from "@/lib/customer/qr-scanner"
 import { scannerGuidance } from "@/lib/customer/scanner-guidance"
 import { cn } from "@/lib/utils"
+
+import { ScannerExits, ScannerIntro } from "./scanner-chrome"
 
 type ScannerStatus =
   | { readonly kind: "idle" }
@@ -307,21 +303,10 @@ export function CustomerQrScanner({
 
   return (
     <ReceiptCard edge className="grid gap-5 p-6">
-      <div className="grid gap-3">
-        <IconRoundel icon={Camera01Icon} iconSize={22} tone="accent" />
-        <div className="grid gap-1.5">
-          <Eyebrow>Customer scanner</Eyebrow>
-          <h1 className="text-2xl leading-tight font-extrabold tracking-[-0.01em]">
-            Scan venue QR
-          </h1>
-          {/* Same barista line as the loader fallback — no system vocabulary
-              (CUS-P2-11). */}
-          <p className="text-sm leading-6 text-muted-foreground">
-            Point your camera at a Nabaperks venue QR to collect your stamp. No
-            app, no plastic.
-          </p>
-        </div>
-      </div>
+      {/* Same header component and the same barista line as the loader
+          fallback — no system vocabulary (CUS-P2-11), and no markup jump when
+          the chunk lands (CUS 02#62). */}
+      <ScannerIntro description="Point your camera at a Nabaperks venue QR to collect your stamp. No app, no plastic." />
 
       {/* The dead viewfinder collapses once the camera errors so the recovery
           actions sit high on small phones (VCU-P3-03). The element stays in
@@ -380,22 +365,15 @@ export function CustomerQrScanner({
 
       {/* Signed in, the fixed tab bar is already the navigation: a second exit
           pair under the viewfinder was ~100px of duplicate chrome, and one of
-          the two sent the member out to the marketing switchboard (CUS 02#60). */}
+          the two sent the member out to the marketing switchboard (CUS 02#60).
+          The row itself is drawn by the shared chrome so the loader cannot draw
+          a different one; only the two variants are decided here, because the
+          camera-error demotion is pinned to THIS file (CUS 02#62). */}
       {hasAppNavigation ? null : (
-        // No `sm:grid-cols-2`: the customer column is capped at 410px, so the
-        // split fired on VIEWPORT width the container never sees. Measured at
-        // an 800px viewport it produced two 173px buttons inside a 358px row —
-        // narrower targets on a bigger screen, for a pair of full sentences
-        // ("Back to start", "Open my cards"). Stacked full-width at every size,
-        // which is what the phone already got (CUS 02#6).
-        <div className="grid gap-3">
-          <Button asChild variant={exitStartVariant} className="w-full">
-            <Link href="/start">Back to start</Link>
-          </Button>
-          <Button asChild variant={exitCardsVariant} className="w-full">
-            <Link href="/home">{OPEN_MY_CARDS_LABEL}</Link>
-          </Button>
-        </div>
+        <ScannerExits
+          startVariant={exitStartVariant}
+          cardsVariant={exitCardsVariant}
+        />
       )}
     </ReceiptCard>
   )
