@@ -70,3 +70,68 @@ test("the one surviving 1.5px border is .w-tag, and it is escalated", () => {
   )
   assert.match(preamble, /NEEDS-SIGNOFF/)
 })
+
+/**
+ * 03#25, decided against DESIGN.md — the second half of the deviation, which
+ * the original entry did not record.
+ *
+ * DESIGN.md "Shapes" grants `.w-tag` exactly one exemption, and it is a SHAPE
+ * one: "The mono pill `.w-tag` is the only generic pill shape outside the stamp
+ * family." The same paragraph says "Borders are 2px solid ink everywhere". No
+ * weight exemption is granted anywhere in the document.
+ *
+ * DESIGN.md "Elevation & Depth" then scopes the token itself: "Dashed lines
+ * come in two tones only: `--w-line` (18%, receipt rules, empty stamp slots)
+ * and `--w-line-strong` (50%, empty reward slots and ticket perforations)."
+ * `--w-line` is a DASHED tone. `.w-tag` draws it SOLID, and it is the only rule
+ * in the stylesheet that does — every other solid border here is 2px of ink or
+ * of a spot ink.
+ *
+ * So the deviation is not "1.5px instead of 2px". It is a third stroke weight
+ * AND a stroke colour the system reserves for dashes, on the one utility that
+ * renders in ~52 files. Whoever raises the weight must also decide the colour;
+ * this pins both so the second half cannot be missed twice.
+ *
+ * DESIGN.md "Badges & Tags" closes the loop: "The metric source of truth is the
+ * unlayered `[data-slot="badge"]` rule; `.w-tag` is its documented alias." That
+ * rule sets no border at all, so the source of truth gives 1.5px no cover
+ * either.
+ */
+test("`.w-tag` is the only solid border drawn in the dashed-only --w-line tone", () => {
+  const globals = read("app", "globals.css")
+
+  const solidBorders = [
+    ...globals.matchAll(/border(?:-[a-z-]+)?:\s*[\d.]+px\s+solid\s[^;]+;/g),
+    // Whitespace-normalised: two of these declarations wrap over a line, and a
+    // literal comparison against the wrapped form breaks the next time
+    // prettier reflows the stylesheet.
+  ].map(([match]) => match.replace(/\s+/g, " "))
+
+  // A regex that matched nothing would pass the filter below on an empty list.
+  assert.ok(
+    solidBorders.length > 15,
+    `expected the real stylesheet, got ${solidBorders.length} solid borders`
+  )
+
+  const drawnInLineTone = solidBorders.filter((declaration) =>
+    /var\(--w-line\)/.test(declaration)
+  )
+
+  assert.deepEqual(drawnInLineTone, ["border: 1.5px solid var(--w-line);"])
+
+  // And it is the only sub-2px border box in the file. The 2.5px pair at
+  // `.ink-check::after` is a tick GLYPH built from two edges, not a box, so it
+  // is matched and excluded by name rather than by a width threshold that
+  // would quietly admit the next 1px hairline.
+  const inkCheckGlyph = /border-(?:left|bottom): 2\.5px solid var\(--primary-foreground\);/
+  const subTwoPixel = solidBorders.filter(
+    (declaration) =>
+      !inkCheckGlyph.test(declaration) &&
+      Number(declaration.match(/([\d.]+)px/)[1]) < 2
+  )
+
+  assert.deepEqual(subTwoPixel, [
+    "border: 1.5px solid var(--w-line);",
+    "border: 1px solid color-mix(in oklch, var(--stamp-foreground) 50%, transparent);",
+  ])
+})

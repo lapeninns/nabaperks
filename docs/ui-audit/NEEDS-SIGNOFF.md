@@ -2152,3 +2152,250 @@ than removed and `tracking-tag` computes to the same 0.92px, so "stop overriding
 the 0.06em" is a separate token question and is NOT settled here. The `§NN`
 self-linking clause anchors are likewise contract-free but change a published
 legal document's citation surface, and remain a legal-review call.
+
+## 50. 03#25 — DECIDED against DESIGN.md: the token is wrong, and the deviation has a second half nobody had recorded
+
+**Verdict: DESIGN.md is right and `.w-tag` is wrong.** Sections 17 and 40 left
+this as a coin-toss between "raise the token" and "document the exception".
+Read against the document as written, it is not a coin-toss, on three
+independent grounds.
+
+**1. DESIGN.md names the `.w-tag` exemption, and it is a SHAPE exemption.**
+"Shapes" (`DESIGN.md:194-197`): "Borders are **2px solid ink** everywhere; **2px
+dashed** (`.w-rule`) for empty slots, receipt rules, and pick-one suggestion
+tiles… The mono pill `.w-tag` is the only generic pill **shape** outside the
+stamp family." The document goes out of its way to enumerate `.w-tag`'s licence
+and the licence it grants is to be a pill. It grants no weight licence, in that
+paragraph or anywhere else. Option 2 in section 17 ("document 1.5px as a
+sanctioned exception") is therefore not a reading of DESIGN.md; it is an
+amendment to it.
+
+**2. The deviation is not only a weight. It is also a colour, and that half was
+never written down.** "Elevation & Depth" (`DESIGN.md:225-227`): "Dashed lines
+come in two tones only: `--w-line` (18%, receipt rules, empty stamp slots) and
+`--w-line-strong` (50%, empty reward slots and ticket perforations)." `--w-line`
+is scoped by that sentence to **dashed** lines. `.w-tag` draws it **solid**:
+
+    .w-tag { … border: 1.5px solid var(--w-line); … }   app/globals.css:481
+
+and it is the only rule in the stylesheet that does. Every other solid border
+declaration in `app/globals.css` is `2px solid var(--w-ink)` or a spot ink
+(`--destructive`, `--reward`). So the pill is not "a 1.5px version of the 2px
+ink border" — it is a different weight in a different tone, i.e. an entirely
+separate stroke that happens to sit next to the system's one stroke.
+
+That matters for the decision: **raising `.w-tag` to 2px without also deciding
+the colour produces a 2px 18%-ink pill, which satisfies no clause in DESIGN.md
+either.** Section 17's option 1 ("a one-character change") is therefore
+under-specified. The real options are `2px solid var(--w-ink)` (fully on-spec,
+and the heaviest visual change) or `2px solid var(--w-line-strong)` (the 50%
+tone, which is what `--border`/`--input` already resolve to at
+`app/globals.css:189-190`, so the pill would match the input wells rather than
+the cards).
+
+**3. The document's own source of truth gives 1.5px no cover.** "Badges & Tags"
+(`DESIGN.md:497-499`): "The metric source of truth is the unlayered
+`[data-slot="badge"]` rule; `.w-tag` is its documented alias for plain
+(non-Badge) elements." That rule (`app/globals.css:845-853`) sets radius, face,
+size, weight, case and tracking — and **no border at all**. The alias invented a
+border the thing it aliases does not have.
+
+### Why this is still not implemented: a contract pins the current value
+
+`tests/contracts/ink-border-weight.test.mjs:57`:
+
+    assert.deepEqual(declarations, ["border: 1.5px solid var(--w-line);"])
+
+The code currently obeys **the contract**, not DESIGN.md. Changing the token
+fails that assertion, and this campaign's standing rule is that a contract
+assertion may be added but never weakened, deleted or reworded — so the token
+cannot move until someone with authority over the contract moves it. That is the
+right outcome: the assertion was written precisely to hold the line until this
+decision was taken, and it did its job.
+
+**Recommendation: change the contract, then the token, in that order** — the
+contract's own comment says "Raising it to 2px changes every MonoTag in the
+product, so it is a visual decision: NEEDS-SIGNOFF.md section 17", which is an
+invitation to come back once the decision exists. It now does.
+
+**What was done instead this round:** a third `test()` was ADDED to the same
+file pinning the second half of the deviation, so whoever raises the weight
+cannot miss the colour the way three previous passes did. It asserts that
+`.w-tag` is the only solid border in the stylesheet drawn in `--w-line`, and
+that it is one of exactly two sub-2px border boxes in the file. Sabotage-checked
+both ways: swapping the tone to `--w-ink` fails it, and adding a new
+`1px solid var(--w-line)` elsewhere fails it.
+
+## 51. 03#16 — the decline is UPHELD, and the recommended migration is now provably neutral on the defect it was meant to fix
+
+03#16 was the last open Critical on report 03. It is re-verified against source
+(all line numbers in the previous STATUS note had gone stale) and it holds, but
+the reasoning is stronger than "both trees render", and one of the audit's three
+defects has quietly become false.
+
+**Defect (a) — "both DOM trees mount for every row" — the migration does not fix
+it, and now provably does not.** `DataTable`'s responsive path renders the card
+stack and the semantic table as unconditional siblings and hides one with CSS
+(`components/data/data-table.tsx:129-132`, `:341`, `:380`). That was already
+known. What was not: `DataTable` has exactly one mitigation for the cost — the
+`mobilePageSize` progressive reveal, which mounts 10 cards instead of all of
+them — and it is **switched off for any caller that supplies row interaction**:
+
+    components/data/data-table.tsx:345-347
+        rows.length > mobilePageSize && !onRowClick && !getRowProps
+
+This table supplies both (`customer-readback-table.tsx:646`, `:653`), because
+its rows are keyboard-operable selection controls (WCAG 2.1.1 / 4.1.2). So a
+migrated members table would render 50 cards **plus** 50 table rows — exactly the
+100 records per 50-row page the audit counted, with no reduction whatsoever.
+The migration is not merely unhelpful for defect (a); it is arithmetically
+identical, and the `offsetParent !== null` workaround at `:442` would still be
+required for the duplicated `data-customer-highlight` marker.
+
+**Defect (b) — "the two renderers have already drifted" — is now STALE, and has
+been ratcheted so it stays that way.** The audit's example was that the card
+exposed Scan/Send only when selected while "the desktop row always shows
+Scan/Send". 03#17 removed the per-row controls: the Reward cell is the `MonoTag`
+alone (`customer-readback-table.tsx:299-312`) and both renderers now gate both
+actions on selection. Nothing enforced that, and drift is the entire reason a
+second renderer is a defect rather than a preference, so this round added
+`tests/contracts/merchant-members-renderer-parity.test.mjs` (4 tests): the
+desktop column builder contains no `<Link>`, no `<Button>` and neither action
+href; both renderers gate Scan and Send on selection; the bespoke split still
+carries its stated reason; and the two `DataTable` facts the decline rests on
+are asserted against the shared component rather than trusted. Sabotage-checked
+by reinstating a per-row Send link in the Reward cell — 1 of 4 fails.
+
+**Defect (c) — two member-row vocabularies — is real, and DESIGN.md's named
+remedy cannot express this row.** "Console data tables & record cards"
+(`DESIGN.md:420-426`) makes `AdminRecordCard` "the shared renderer returned from
+`mobileCard`", with API `{ title, eyebrow?, status?, fields, action? }` on an
+`<article>` (`components/admin/record-card.tsx:19-44`). The member card is a
+whole-card `aria-pressed` toggle led by a `MemberMark` avatar. `AdminRecordCard`
+has no avatar slot and its root is not pressable, so adopting it means changing
+`AdminRecordCard`'s contract for one consumer — which is the same trade the
+decline rejected, moved one component to the left.
+
+### The DESIGN.md conflict, stated plainly
+
+`DESIGN.md:407-411`: "`cardBreakpoint` has two sanctioned switches: `sm` for
+compact, short-row tables and `xl` for admin consoles… **The old `lg` escape
+hatch is pruned.**" The members table ships a bespoke `lg` split
+(`customer-readback-table.tsx:629`, `:639`) — the pruned escape hatch,
+re-implemented outside the shared component. On the document's face, the code is
+wrong.
+
+**I do not think the code is wrong here, and this is the decision I am asking
+for.** The `lg` boundary is load-bearing and measured: with the 272px sidebar,
+`md` (768px) leaves ~510px of content, which the five-column table cannot hold
+without page-level horizontal overflow. The two sanctioned alternatives both
+lose:
+
+- `sm` (640px) reinstates exactly that overflow.
+- `xl` (1280px) is sanctioned and would let ~150 lines be deleted, but it puts
+  stacked cards on **every laptop** between 1024 and 1280px. DESIGN.md's own
+  rationale for `xl` is that "dense support **records** stay as stacked
+  `AdminRecordCard` rows through tablet widths" — a support-queue argument about
+  admin consoles, not a claim about a merchant's daily five-column member list.
+
+So the honest reading is that **DESIGN.md's breakpoint menu is one case short**,
+not that the members table is delinquent. Two ways to close it:
+
+1. **Amend `DESIGN.md`** to sanction `lg` for console tables whose desktop
+   renderer is width-bound by the sidebar, and add `lg` back to
+   `CARD_BREAKPOINT_CLASSES`. Cheap, and it lets the ~150 lines go. It also
+   re-opens the escape hatch someone deliberately closed, so it needs the person
+   who closed it.
+2. **Replace the responsive pair with one tree** restyled by a container query,
+   as the previous note recommended. This is the only option that fixes defect
+   (a) for all 7+ `mobileCard` consumers at once, and it makes the breakpoint
+   question disappear rather than answering it. It is also much the larger job
+   and touches every admin table.
+
+Until one is chosen, 03#16 moves from open to partial: the decline is evidenced,
+defect (b) is closed and locked, and what remains is a design-system amendment
+rather than merchant work.
+
+## 52. Glassmorphism had shipped on five merchant chrome surfaces — DESIGN.md decides it outright, so this one was fixed rather than escalated
+
+Not a request for sign-off; a record, plus one hand-off. DESIGN.md "Elevation &
+Depth" (`DESIGN.md:223-225`) is unambiguous and needs no interpretation:
+
+> "Transparency is for scrims only (`rgba(33,28,22,0.5)` under sheets). **No
+> glassmorphism**, no photography; the optional paper grain
+> (`<body data-grain="true">`) is the only texture."
+
+Five surfaces shipped a translucent paper/card ground under a `backdrop-filter`
+blur — the textbook definition of the banned effect:
+
+| Surface                                                                 | Was              |
+| ----------------------------------------------------------------------- | ---------------- |
+| `merchant/qr-poster/poster-preview-chrome.tsx:64` (sticky print header) | 95% paper + blur |
+| `merchant/qr-poster/poster-preview-chrome.tsx:164` (desktop sidecar)    | 95% paper        |
+| `merchant/qr-poster/poster-preview-chrome.tsx:202` (sticky action bar)  | 95% paper + blur |
+| `merchant/launch/form-action-bar.tsx:41` (sticky save bar)              | 95% card + blur  |
+| `merchant/reward-pool-form.tsx:411` (the 03#47 selection tray)          | 95% card + blur  |
+
+All five are now the opaque ground. On the reward tray it was also a legibility
+bug, not only a doctrine one: the tray is `fixed` over the reward list it is
+counting, so the bleed-through put reward names behind its own count line.
+Separation on an ink system is the 2px border and the hard offset shadow.
+
+Ratcheted by `tests/contracts/wet-ink-opaque-chrome.test.mjs` (2 tests): no
+`backdrop-blur`/`backdrop-filter` outside a full-bleed `fixed inset-0` scrim
+(the sanctioned case, used by the present-QR dialog overlay), and no `fixed`/
+`sticky` element washes the `bg-card`/`bg-paper` ground. Both assert they read
+more than 500 source files first, and both are sabotage-checked. The test strips
+comments before scanning, because the comments have to be free to name what they
+ban.
+
+**Hand-off — three ground washes remain, all outside the merchant lane** and
+left untouched deliberately rather than reached across a lane boundary:
+
+- `app/how-it-works/page.tsx:70`, `:76` — `bg-paper/10` (marketing)
+- `components/customer/referral-bonus-bank-panels.tsx:41` — `bg-card/80` (customer)
+- `components/merchant/reward-pool-form.tsx:385` — `bg-card/45`, merchant, and
+  **deliberately kept**: this split-button segment sits on a preset tile whose
+  state tint is a sanctioned tone wash (`bg-reward/5` / `bg-seal/10`), so an
+  opaque ground would erase the tile's own state colour behind the control. It
+  is a real letter-violation with a real cost to fixing, and it is not what
+  03#47 is about. The contract above is scoped to chrome precisely so it does
+  not force this one.
+
+## 53. The audit documents are compiled into the production CSS bundle — 16,151 bytes of it (6.4%)
+
+Found while trying to prove the glassmorphism sweep at the compiled-CSS level.
+`app/globals.css:4-5` adds `@source "../app/**/*.tsx"` and
+`"../components/**/*.tsx"`, but those are **additional** sources: Tailwind v4
+also auto-scans every non-gitignored file in the project, whatever its
+extension. `docs/ui-audit/*.md` quotes class strings constantly — the audit's
+job is to quote class strings — so utilities that no component uses are emitted
+into the shipped stylesheet.
+
+Demonstrated: after the sweep above, `bg-card/95` appears in **no** `.tsx` file
+in the repository, and `.bg-card\/95` is still in the production CSS. Its only
+remaining sources are `docs/ui-audit/03-merchant.md:553`, `:818` and
+`00-master-redesign-audit.md`.
+
+Measured, on a clean `pnpm build` each time:
+
+|                                                               | total CSS bytes   |
+| ------------------------------------------------------------- | ----------------- |
+| as shipped                                                    | 250,829           |
+| with `@source not "../docs/**"; @source not "../reports/**";` | 234,678           |
+| **difference**                                                | **16,151 (6.4%)** |
+
+Two consequences, and the second is the one that will bite someone:
+
+1. 6.4% of the CSS a real merchant downloads is quotations from our own audit.
+2. **"It is not in the compiled CSS" is not valid evidence in this repository,
+   and neither is its converse.** A class can be absent from every component and
+   present in the bundle. Any future lane proving a sweep by grepping
+   `.next/static/css` will reach a wrong conclusion, in the same family as the
+   `rc`-off-a-pipe and the fully-styled-error-page mistakes already recorded.
+
+**Not implemented, on purpose.** The fix is two lines in `app/globals.css`,
+which is the single most contended file across the four concurrent lanes; a
+two-line change there against a 6.4% asset win is not worth the merge risk to
+take unilaterally. The measurement is recorded so the integrator can apply it
+once, at the end, in one place.
