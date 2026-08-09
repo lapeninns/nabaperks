@@ -38,7 +38,14 @@ export function FormActionBar({
   return (
     <div
       className={cn(
-        "sticky z-10 grid gap-2 border-t-2 border-ink bg-card/95 py-3 backdrop-blur-sm sm:static sm:mx-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-3 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none",
+        // Opaque, not frosted. DESIGN.md "Elevation & Depth": "Transparency is
+        // for scrims only (rgba(33,28,22,0.5) under sheets). No glassmorphism".
+        // This shipped as a 95% card wash under a small backdrop blur — a
+        // translucent, backdrop-filtered chrome bar, which is the one texture
+        // the system bans. The 2px ink edge carries the separation instead.
+        // (The class names are deliberately not spelled out: Tailwind v4 scans
+        // this file, so naming them here would keep emitting the dead utility.)
+        "sticky z-10 grid gap-2 border-t-2 border-ink bg-card py-3 sm:static sm:mx-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-3 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0",
         STICKY_OFFSET[offset],
         className
       )}

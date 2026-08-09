@@ -13,9 +13,9 @@ Read `COVERAGE.md` for the evidence behind every number here.
 | ------------------------------------ | -----------: |
 | Findings tracked (each exactly once) |          347 |
 | Done                                 |          301 |
-| Partial                              |           22 |
+| Partial                              |           23 |
 | Stale — not reproducible in the tree |           14 |
-| Open                                 |           10 |
+| Open                                 |            9 |
 | **Criticals resolved**               | **26 of 33** |
 
 "Criticals resolved" means `[x]` or `[stale]` — shipped, or the premise
@@ -154,9 +154,9 @@ evidence in `NEEDS-SIGNOFF.md` rather than a description.
    sits at top 1295px on a 390x844 viewport — below the fold — so it moves no
    visible content. Nothing to renegotiate; no assertion needs touching. (§7)
 
-## Open findings, all 10
+## Open findings, all 9
 
-01#23, 01#55, 01#63, 01#65, 01#67, 02#50, 02#64, 03#16, 04#54, 05#13
+01#23, 01#55, 01#63, 01#65, 01#67, 02#50, 02#64, 04#54, 05#13
 
 - **Blocked by a test** (attempted, reverted, no assertion weakened): 01#63,
   01#65, plus 03#46 in STATUS-m-launch. 01#49 was here until its premise was
@@ -165,20 +165,31 @@ evidence in `NEEDS-SIGNOFF.md` rather than a description.
 - **Copy / product**: 01#23, 01#55, 02#50, 02#64, 04#54.
 - **Data-layer**: 03#13 (a merchant-wide "rewards ready" count means duplicating
   badge logic in SQL or loading every member; counting the loaded page would
-  print a false readback), 03#16 (see below).
+  print a false readback). 03#16 left this list — it is now partial, not open;
+  see below.
 - **Out of scope by instruction**: 01#67, 05#13.
 - **Large API addition**: none left. 04#60 was here; the API turned out to be
   one optional field on a column, and only its sticky-header half is blocked by
   the `overflow-x-auto` scroll container.
 
-### 03#16 is declined, not missed
+### 03#16 is declined, not missed — and now evidenced rather than asserted
 
 It argues the members table should adopt `DataTable` to stop rendering every row
 twice. `DataTable`'s own `mobileCard` path renders the card list AND the table
-and hides one with CSS — the migration would not remove the double mount. It
-also needs an `lg` cardBreakpoint and per-renderer row props, API nothing else
-consumes. The real fix is a DOM-preserving responsive table (one tree, restyled
-by container query), which would fix all 10 `mobileCard` consumers at once.
+and hides one with CSS, so the migration does not remove the double mount. The
+`lane/merchant` re-verification added the fact that settles it: `DataTable`'s
+one mitigation for the double mount — the `mobilePageSize` reveal — is skipped
+for any caller that supplies `onRowClick`/`getRowProps`
+(`components/data/data-table.tsx:345-347`), and this table supplies both so its
+rows stay keyboard-operable. A migrated 50-row page would therefore mount 50
+cards plus 50 rows: identical to today, not merely no better.
+
+The audit's second defect (the two renderers had drifted) is now stale and
+locked by `tests/contracts/merchant-members-renderer-parity.test.mjs`. What is
+left is a DESIGN.md amendment, not merchant work: the doc prunes the `lg`
+breakpoint the table measurably needs. Options in NEEDS-SIGNOFF 46. The real
+fix remains a DOM-preserving responsive table (one tree, restyled by container
+query), which would fix all 10 `mobileCard` consumers at once.
 
 ## Before you merge
 

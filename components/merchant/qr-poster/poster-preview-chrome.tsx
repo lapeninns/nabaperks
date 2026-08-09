@@ -61,7 +61,9 @@ export function PosterPreviewChrome({
   return (
     <header
       ref={ref}
-      className="qr-poster-chrome sticky top-0 z-20 border-b-2 border-ink bg-paper/95 backdrop-blur-sm"
+      // Opaque paper, not frosted glass — DESIGN.md "Elevation & Depth":
+      // "Transparency is for scrims only … No glassmorphism, no photography".
+      className="qr-poster-chrome sticky top-0 z-20 border-b-2 border-ink bg-paper"
     >
       <div className="mx-auto flex w-full max-w-[var(--poster-frame-max)] items-center gap-3 px-4 py-2.5 sm:px-6 sm:py-3 lg:max-w-none">
         {showSidebarTrigger ? (
@@ -159,7 +161,9 @@ export function PosterDesktopSidecar({
   if (!qrCodeId) return null
 
   return (
-    <aside className="qr-poster-sidecar hidden min-h-0 min-w-0 flex-col gap-4 border-l-2 border-ink bg-paper/95 p-4 lg:flex lg:overflow-y-auto">
+    // Opaque paper. The 95% wash was the third translucent surface on this
+    // one route; DESIGN.md reserves transparency for scrims under sheets.
+    <aside className="qr-poster-sidecar hidden min-h-0 min-w-0 flex-col gap-4 border-l-2 border-ink bg-paper p-4 lg:flex lg:overflow-y-auto">
       <div className="grid gap-2">
         <p className="mono-id tracking-tag text-muted-foreground">
           Poster collection
@@ -199,7 +203,8 @@ export function PosterActionBar({ ref, template }: PosterActionBarProps) {
   return (
     <footer
       ref={ref}
-      className="qr-poster-action-bar border-t-2 border-ink bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-sm lg:hidden"
+      // Opaque paper — see the header above; DESIGN.md bans glassmorphism.
+      className="qr-poster-action-bar border-t-2 border-ink bg-paper pb-[env(safe-area-inset-bottom)] lg:hidden"
     >
       <div className="mx-auto grid w-full max-w-[var(--poster-frame-max)] gap-2 px-4 py-2.5 sm:grid-cols-[1fr_auto] sm:items-center sm:gap-4 sm:px-6 sm:py-3">
         <p className="mono-id tracking-tag text-muted-foreground">

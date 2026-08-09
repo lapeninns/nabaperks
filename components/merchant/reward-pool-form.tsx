@@ -408,7 +408,15 @@ export function RewardPoolForm({
         // persistent Add action that never needs scrolling to reach.
         <form
           action={batchAction}
-          className="fixed inset-x-3 bottom-[calc(3.5rem+max(0.75rem,env(safe-area-inset-bottom)))] z-30 mx-auto grid max-w-[calc(100vw-1.5rem)] gap-2 rounded-lg border-2 border-ink bg-card/95 p-3 shadow-hard backdrop-blur-sm sm:static sm:inset-auto sm:z-auto sm:max-w-none sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-3 sm:bg-card sm:p-4 sm:backdrop-blur-none"
+          // 03#47, second half: the tray is opaque, not frosted. DESIGN.md
+          // "Elevation & Depth" — "Transparency is for scrims only
+          // (rgba(33,28,22,0.5) under sheets). No glassmorphism, no
+          // photography; the optional paper grain … is the only texture."
+          // A 95% card wash under a backdrop blur was both. It also mattered
+          // for legibility: this tray floats over the reward list it is
+          // counting, so the bleed-through put reward names behind the count
+          // line.
+          className="fixed inset-x-3 bottom-[calc(3.5rem+max(0.75rem,env(safe-area-inset-bottom)))] z-30 mx-auto grid max-w-[calc(100vw-1.5rem)] gap-2 rounded-lg border-2 border-ink bg-card p-3 shadow-hard sm:static sm:inset-auto sm:z-auto sm:max-w-none sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-3 sm:p-4"
         >
           <input type="hidden" name="loyaltyCardId" value={loyaltyCardId} />
           {selectedPresetIds.map((presetId) => (

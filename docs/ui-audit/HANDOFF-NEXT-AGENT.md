@@ -14,20 +14,19 @@ is the user's own worktree. Commits here use
 
 ## State
 
-**301 done / 22 partial / 14 stale / 10 open of 347.** 26 of 33 Criticals.
+**301 done / 23 partial / 14 stale / 9 open of 347.** 26 of 33 Criticals.
 `pnpm ui-audit:check` enforces those numbers, that every source path cited in the
 evidence docs exists, and that HANDOFF's open list matches the parsed state.
 
-Open: `01#23 01#55 01#63 01#65 01#67 02#50 02#64 03#16 04#54 05#13`.
+Open: `01#23 01#55 01#63 01#65 01#67 02#50 02#64 04#54 05#13`.
 
-The two Criticals that remain are `03#16` (declined on the merits — the
-migration does not remove the double mount it cites) and `03#37`'s single-route
+The one Critical that remains open is `03#37`'s single-route
 collapse (pinned by `qr-a4-poster-templates` and `merchant-shell`; a contract
 change to ask for, not to take). `03#18` closed in `lane/merchant`: both of its
 recorded blockers were disproved — see NEEDS-SIGNOFF 23.
 04#60 left the list: sorting shipped, only its sticky-header half is blocked.
 
-Read in this order: `HANDOFF.md`, `NEEDS-SIGNOFF.md` (32 sections, 22 live),
+Read in this order: `HANDOFF.md`, `NEEDS-SIGNOFF.md` (48 sections, 26 live),
 `COVERAGE.md` (method log, including every mistake and what it cost),
 `STATUS-*.md` (per-finding notes).
 
