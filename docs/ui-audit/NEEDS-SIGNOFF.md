@@ -1467,3 +1467,102 @@ were.
 
 The cheapest way to close this gap is a staging deploy with seeded data, which
 is a decision about environments rather than about UI.
+
+
+## 33. 02#30 — the reward-ticket terms, and the stub's second alternative
+
+The customer lane re-measured 02#30's stub half and it is done: the stub is 72px
+(`w-18`) with 8px of padding each side, so 56px of content box, and the longest
+stub word that actually renders — `"Unlocked"`, not the `"REDEEMED"` the old
+note cited — measures **53.77px**. The audit's `w-14` (56px, a 40px box) does
+not fit it and neither does `w-16`. The face is 268px of a 346px ticket.
+Measured on `/dev/design-system` at 375px, `document.styleSheets.length = 3`,
+anchored on `[data-ticket-state]` and its last element child.
+
+Two things are left, and both are decisions rather than engineering.
+
+**(a) Clamping the terms.** The audit asks for `line-clamp-2` on the reward
+description with a "Full terms" disclosure, worth roughly 48px. The description
+carries **merchant reward terms**. Putting them behind a tap is a consumer-facing
+change to how conditions on a promotion are presented, and the person who should
+decide it is whoever owns that risk, not this lane. `components/customer/legal-sheet.tsx`
+already exists, so the mechanism is not the obstacle.
+
+**(b) The alternative the audit offered and nobody evaluated.** The
+recommendation is "reduce the stub to `w-14` **or** move the seal to a
+`-top-2 -right-2 absolute` corner mark and give the face the full width". Only
+the first was ever tested, and the conclusion ("the audit's `w-14` is not
+viable") was then applied to the whole finding. The second recovers the entire
+**72px** of stub — more than twice what the first would have — but it deletes
+the perforated chit silhouette, which is a signature Wet Ink form in
+`DESIGN.md`. That is a visual decision needing human approval, not a resize.
+
+Recommended: decide (a) as a copy/compliance question, and treat (b) as a design
+review item. Neither is blocked on code.
+
+## 34. 02#53 — auto-submitting the OTP needs a code length the client does not have
+
+02#53's six-cell field is genuinely contract-banned (`ux-production-polish`
+asserts DESIGN.md's "single native input … one-time-code", that the shadcn
+`input-otp` primitive file is absent from `components/ui`, and that
+`package.json` does not mention `input-otp`). That much was already recorded
+correctly.
+
+What was NOT tested is the finding's sharper complaint: *"the member must find
+and press a separate 48px 'Check code' button while holding a phone that just
+buzzed."* No contract blocks auto-submit. It fails on a fact instead:
+
+- the server accepts `/^\d{4,8}$/` (`app/m/[merchantSlug]/join/actions.ts`,
+  `app/home/actions.ts`);
+- `lib/customer/experience/otp-field.ts` exists precisely because the accepted
+  length varies, and `otpFieldMaxLength()` returns the **maximum**, 8;
+- **no call site passes `configuredLength`**, so every OTP input on the customer
+  side is capped at 8 regardless of what was actually sent;
+- `lib/customer/verification.ts` carries a four-digit local bypass mode beside
+  Twilio Verify's six.
+
+So there is no length to fire on. Auto-submitting at a guessed six would spend a
+rate-limited verification attempt on a partial code for any service configured
+to anything else, and the failure is silent to us and loud to the member.
+
+This is fixable, but the fix is a **server change on the identity path**: emit
+the code length alongside the send, thread it to the field, and auto-submit only
+on an exact match. That is worth doing — `inputMode="numeric"` gives iOS a keypad
+with no return key, so implicit form submission is unavailable and the button
+really is the only way out — but it is not a UI edit and it should be scoped
+deliberately rather than guessed at inside a UI audit.
+
+Flagged, not attempted.
+
+## 35. 02#60 — dropping "Back to start" for signed-out members buys 56px and needs a contract change
+
+Recorded so the trade is visible rather than re-litigated.
+
+The authed half of 02#60 — the whole of its stated problem, "the scanner's
+primary exit sends **authed** members out of the app" — is done in both the
+loader and the loaded scanner. The signed-out clause is blocked by
+`customer-error-boundaries`, which asserts the source expression
+`guidance.showRetry ? "ghost" : "secondary"` under the message *"Back to start
+must demote to ghost in the camera-error state"*. Deleting the button deletes
+the expression. Re-verified by sabotage in this lane:
+`not ok 5 … error: 'Back to start must demote to ghost in the camera-error state'`.
+
+What it would buy, measured on `/scan` at 375x667 with a fake camera device, at
+rest, `document.styleSheets.length = 3`, anchored on
+`a[href="/start"]`.parentElement:
+
+| element              | height |
+| -------------------- | -----: |
+| exit row (2x44 + 12) |  100px |
+| viewfinder           |  291px |
+| receipt card         |  688px |
+| **document**         |  739px |
+
+Dropping one exit saves **56px** and leaves the document at 683px against a
+667px viewport — so it does not even buy the fold. The signed-out visitor also
+has a defensible reason to reach `/start`: with no session it is the switchboard
+where they choose customer or venue, which is the opposite of the "sends them
+out of the journey" complaint that motivated the finding.
+
+Recommended: leave it. If someone still wants it, the contract has to be
+renegotiated first, and nobody has asked.
