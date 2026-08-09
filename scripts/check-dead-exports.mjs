@@ -29,7 +29,7 @@ function currentFindings() {
       "exec",
       "knip",
       "--include",
-      "exports",
+      "exports,types",
       "--no-progress",
       "--reporter",
       "json",
@@ -39,10 +39,22 @@ function currentFindings() {
   const parsed = JSON.parse(raw)
   const found = new Set()
   for (const issue of parsed.issues ?? []) {
-    for (const entry of issue.exports ?? []) {
+    // knip reports an unused exported TYPE under `types`, not `exports`.
+    // Reading only `exports` made this ratchet blind to 149 dead type exports —
+    // the same shape of bug as bundle:check enforcing its budget on zero
+    // routes. A check that filters its input must be able to say what the
+    // filter kept.
+    for (const entry of [...(issue.exports ?? []), ...(issue.types ?? [])]) {
       const key = `${issue.file}#${entry.name}`
       if (!ALLOWED.has(key)) found.add(key)
     }
+  }
+  if (found.size === 0) {
+    throw new Error(
+      "knip reported zero unused exports across the whole repo. That is not " +
+        "credible here and means the query or its output shape changed: a " +
+        "ratchet that cannot see anything can never fail."
+    )
   }
   return found
 }

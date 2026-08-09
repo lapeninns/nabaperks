@@ -15,17 +15,11 @@ branch is green after every merge.
 | Report           | Tracked |    Done | Partial |  Stale |   Open |
 | ---------------- | ------: | ------: | ------: | -----: | -----: |
 | 01 marketing     |      69 |      55 |       6 |      3 |      5 |
-| 02 customer      |      70 |      60 |       6 |      2 |      2 |
-| 03 merchant      |      67 |      53 |       8 |      4 |      2 |
-| 04 admin         |      74 |      61 |       2 |      9 |      2 |
-| 05 design system |      67 |      64 |       2 |      0 |      1 |
-| **Total**        | **347** | **293** |  **24** | **18** | **12** |
-| 01 marketing     |      69 |      54 |       6 |      4 |      5 |
 | 02 customer      |      70 |      63 |       5 |      0 |      2 |
 | 03 merchant      |      67 |      53 |       8 |      4 |      2 |
 | 04 admin         |      74 |      61 |       2 |      9 |      2 |
 | 05 design system |      67 |      64 |       2 |      0 |      1 |
-| **Total**        | **347** | **295** |  **23** | **17** | **12** |
+| **Total**        | **347** | **296** |  **23** | **16** | **12** |
 
 ## "Stale" is a real category (18 findings)
 
