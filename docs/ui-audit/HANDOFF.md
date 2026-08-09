@@ -9,20 +9,18 @@ Read `COVERAGE.md` for the evidence behind every number here.
 
 ## Where it landed
 
-|                                      | count |
-| ------------------------------------ | ----: |
-| Findings tracked (each exactly once) |   347 |
-| <<<<<<< HEAD                         |
-| Done                                 |   291 |
-| Partial                              |    25 |
-| =======                              |
-| Done                                 |   291 |
-| Partial                              |    25 |
+|                                      |        count |
+| ------------------------------------ | -----------: |
+| Findings tracked (each exactly once) |          347 |
+| Done                                 |          298 |
+| Partial                              |           22 |
+| Stale — not reproducible in the tree |           16 |
+| Open                                 |           11 |
+| **Criticals resolved**               | **25 of 33** |
 
-> > > > > > > lane/merchant
-> > > > > > > | Stale — not reproducible in the tree | 18 |
-> > > > > > > | Open | 13 |
-> > > > > > > | **Criticals closed** | **30 of 33** |
+"Criticals resolved" means `[x]` or `[stale]` — shipped, or the premise
+disproved. The 8 that are neither are named, so the number cannot drift into
+a claim: 01#22, 02#10, 02#20, 02#50, 02#64, 03#16, 03#37, 04#6.
 
 ## Gates
 

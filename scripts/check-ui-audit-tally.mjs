@@ -199,6 +199,74 @@ for (const file of ["COVERAGE.md", "HANDOFF.md"]) {
 }
 
 /**
+ * The docs must not carry a merge conflict marker.
+ *
+ * A `> > > > > > > lane/merchant` sat inside HANDOFF's summary table for about
+ * fifty commits. It survived because prettier reflows `>>>>>>>` into a
+ * blockquote, so it stops looking like a conflict and starts looking like
+ * prose — and because the table it corrupted was the one table this script
+ * did not check. Both halves are closed here.
+ */
+{
+  const MARKERS = [
+    /^<{7}\s/m,
+    /^={7}$/m,
+    /^>{7}\s/m,
+    /^(?:>\s){7}/m, // prettier-reflowed >>>>>>>
+    /^(?:<\s){7}/m,
+  ]
+  for (const file of [
+    "COVERAGE.md",
+    "HANDOFF.md",
+    "NEEDS-SIGNOFF.md",
+    ...LANES,
+  ]) {
+    const text = readFileSync(path.join(DIR, file), "utf8")
+    for (const marker of MARKERS) {
+      const hit = text.match(marker)
+      if (hit) {
+        problems.push(
+          `${file} contains an unresolved merge conflict marker: ${JSON.stringify(hit[0].slice(0, 40))}`
+        )
+        break
+      }
+    }
+  }
+}
+
+/**
+ * HANDOFF's "Where it landed" table is the first thing a reviewer reads, and
+ * until now nothing checked it: the per-report loop above keys on report names
+ * ("01 marketing"), and this table's rows are labelled Done/Partial/Stale/Open.
+ * It was carrying counts fifty commits stale.
+ */
+{
+  const text = readFileSync(path.join(DIR, "HANDOFF.md"), "utf8")
+  const want = {
+    "Findings tracked": 347,
+    Done: tally["[x]"],
+    Partial: tally["[~]"],
+    Stale: tally["[stale]"],
+    Open: tally.open,
+  }
+  for (const [label, expected] of Object.entries(want)) {
+    const row = text.match(
+      new RegExp(`^\\|\\s*${label}[^|]*\\|([^|]*)\\|`, "m")
+    )
+    if (!row) {
+      problems.push(`HANDOFF.md "Where it landed" has no "${label}" row`)
+      continue
+    }
+    const got = Number(row[1].replace(/[^\d]/g, ""))
+    if (got !== expected) {
+      problems.push(
+        `HANDOFF.md "Where it landed" ${label} reads ${got}, parse says ${expected}`
+      )
+    }
+  }
+}
+
+/**
  * HANDOFF enumerates the open findings by id. That list is what a reviewer
  * reads first, and it drifts silently: it said "all 13" and named 01#49 as
  * contract-blocked for several commits after 01#49 moved to `[stale]`, which
