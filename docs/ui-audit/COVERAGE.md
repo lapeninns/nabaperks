@@ -1200,3 +1200,31 @@ answer.
 
 Recorded as NEEDS-SIGNOFF 31. A link crawl can prove a page is unreachable. It
 cannot tell you whether that was on purpose.
+
+### Re-verifying the 18 "stale" findings after the merges
+
+"Stale" means the audit describes code that no longer exists. That is a claim
+with a shelf life, and this branch has since merged `origin/main` plus five
+lanes — so I re-ran every mechanical check rather than trusting the notes.
+
+All four swept patterns still hold: `border-[1.5px]`, `max-w-7xl` and
+`adminSelectClasses` have zero matches, and the only `rounded-xl` in the tree is
+inside the globals.css comment explaining why the token was removed.
+
+Behavioural claims re-checked in source: `StatusPill` tones, `maskAdminContact`
+on both referral parties, `data-[nowrap=true]` on `TableCell`, `!tabMode` gating,
+`ProductMoment`'s `sm:grid-cols-2 md:grid-cols-3`, and both destructive-action
+gates (Regenerate QR and Turn-off-two-factor each have `variant="destructive"`
+plus an `AdminConfirmCheck`).
+
+Two of my own greps returned false negatives on the way, both from over-narrow
+patterns — requiring "two-factor" and "destructive" on the SAME line, and
+`awk`-slicing a function body that ran past my line window. Neither was a code
+defect. That is now three turns running where the measurement was wrong and the
+code was fine, which is its own signal: **when a check disagrees with a recorded
+note, suspect the check first.**
+
+One near-miss worth keeping: `TableHead` still hard-codes `whitespace-nowrap`
+while `TableCell` is opt-in. That looks like the "true of one half" pattern, but
+04#59 names `TableCell` and DataTable's cell override specifically, and short
+column labels are meant to stay on one line. Correctly closed.
