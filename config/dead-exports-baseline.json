@@ -15,7 +15,6 @@
   "components/customer/loading-skeletons.tsx#CustomerPageTitleSkeleton",
   "components/customer/self-service-forms.tsx#SOFT_GPS_CAPTURE_TIMEOUT_MS",
   "components/layout/admin-shell.tsx#adminNavItems",
-  "components/layout/console-nav.ts#adminNavItems",
   "components/layout/console-nav.ts#parseNavHref",
   "components/layout/index.ts#ConsoleSidebarNav",
   "components/layout/index.ts#MARKETING_GUTTER",

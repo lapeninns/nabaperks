@@ -7,6 +7,7 @@ import {
   SquareLockPasswordIcon,
 } from "@hugeicons/core-free-icons"
 
+import { AdminCommandPalette } from "@/components/admin/command-palette"
 import { Icon, Logo, MonoTag } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 import {
@@ -126,6 +127,9 @@ export function AdminShell({
           ) : null}
         </SidebarFooter>
       </Sidebar>
+      {/* Cmd-K over the console (ADM 04#6). Mounted once at the shell so every
+          /admin route has it, and rendered as a portal so it costs no layout. */}
+      <AdminCommandPalette />
       <SidebarInset id="main" tabIndex={-1} className="min-w-0">
         <header className="sticky top-0 z-30 flex min-h-14 items-center gap-3 border-b-2 border-ink bg-card px-4 py-2 md:hidden">
           <SidebarTrigger className="size-11 shrink-0" />
