@@ -23,7 +23,14 @@ export function ProductMoment({ demoQr }: { demoQr: QrMatrix }) {
       <h2 className="max-w-2xl text-2xl leading-tight font-extrabold text-balance text-foreground sm:text-3xl">
         {LANDING.moment.title}
       </h2>
-      <div className="grid gap-8 pt-8 sm:grid-cols-2 sm:pt-10 md:grid-cols-3 lg:gap-10">
+      {/* 01#11: three-across from `sm:`, not `md:`. The audit asked for
+          `grid-cols-3` at the BASE breakpoint; measured on a production build
+          that shrinks the venue QR from 148px to 60px at 375/390px, which
+          destroys the object the beat exists to show, so the base breakpoint
+          keeps one column. From `sm:` the QR stays at its full 148px and the
+          band drops 109px at 640, 195px at 700 and 219px at 767 (764px -> 655
+          / 569 / 545), with zero elements past the viewport. */}
+      <div className="grid gap-8 pt-8 sm:grid-cols-3 sm:pt-10 lg:gap-10">
         <Beat caption={scan.caption} detail={scan.detail} delay={0}>
           <div className="w-full max-w-[11rem]">
             <VenueQr matrix={demoQr} label="Example venue QR code" />
