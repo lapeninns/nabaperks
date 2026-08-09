@@ -3,6 +3,11 @@ import type { ReactNode } from "react"
 import { Logo } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import {
+  CUSTOMER_COLUMN_INSET,
+  CUSTOMER_COLUMN_MIN_H,
+  CUSTOMER_COLUMN_TOP,
+} from "./customer-column"
 import { CustomerTabBar, TAB_BAR_CLEARANCE } from "./customer-tab-bar"
 import { SkipLink } from "./skip-link"
 
@@ -14,7 +19,7 @@ export function CustomerAppShell({
   signOutAction: React.ComponentProps<"form">["action"]
 }) {
   return (
-    <div className="min-h-svh bg-background">
+    <div className={cn(CUSTOMER_COLUMN_MIN_H, "bg-background")}>
       <SkipLink />
       <header className="sticky top-0 z-40 border-b-2 border-ink bg-card">
         {/* One customer column: the shared 410px token (CUS-P2-12/16). */}
@@ -38,7 +43,12 @@ export function CustomerAppShell({
       <main
         id="main"
         className={cn(
-          "mx-auto w-full max-w-customer px-4 pt-6 sm:px-6",
+          "mx-auto w-full max-w-customer",
+          // Gutters and top padding come from the shared customer rhythm so the
+          // authed tabs, the flow steps and /q no longer start at three
+          // different heights (CUS 02#5).
+          CUSTOMER_COLUMN_INSET,
+          CUSTOMER_COLUMN_TOP,
           TAB_BAR_CLEARANCE
         )}
       >
