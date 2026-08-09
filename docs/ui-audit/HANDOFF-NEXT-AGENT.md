@@ -28,11 +28,16 @@ Read in this order: `HANDOFF.md`, `NEEDS-SIGNOFF.md` (32 sections, 22 live),
 
 Same branch, separate worktrees, merged back one at a time:
 
-    git worktree add ../nb-lane-marketing    feat/ui-redesign-audit-fixes
-    git worktree add ../nb-lane-customer     feat/ui-redesign-audit-fixes
-    git worktree add ../nb-lane-merchant     feat/ui-redesign-audit-fixes
-    git worktree add ../nb-lane-admin        feat/ui-redesign-audit-fixes
-    git worktree add ../nb-lane-designsystem feat/ui-redesign-audit-fixes
+    git worktree add -b lane/marketing    ../nb-lane-marketing    feat/ui-redesign-audit-fixes
+    git worktree add -b lane/customer     ../nb-lane-customer     feat/ui-redesign-audit-fixes
+    git worktree add -b lane/merchant     ../nb-lane-merchant     feat/ui-redesign-audit-fixes
+    git worktree add -b lane/admin        ../nb-lane-admin        feat/ui-redesign-audit-fixes
+    git worktree add -b lane/designsystem ../nb-lane-designsystem feat/ui-redesign-audit-fixes
+
+The `-b` is not optional. Git refuses to check the same branch out twice, so
+`git worktree add <path> feat/ui-redesign-audit-fixes` fails with "already used
+by worktree at ..." — each lane needs its OWN branch off the shared one, and the
+fan-in is `git merge lane/<name>` back into `feat/ui-redesign-audit-fixes`.
 
 Each lane owns one report (01–05) and must:
 
