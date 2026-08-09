@@ -9,7 +9,7 @@
  *
  * Run: node scripts/check-ui-audit-tally.mjs
  */
-import { readFileSync, readdirSync } from "node:fs"
+import { existsSync, readFileSync, readdirSync } from "node:fs"
 import path from "node:path"
 
 const DIR = path.join(process.cwd(), "docs/ui-audit")
@@ -139,6 +139,60 @@ for (const file of ["COVERAGE.md", "HANDOFF.md"]) {
       problems.push(
         `STATUS.md 05 heading reads ${nums}, parse says ` +
           `${counts["[x]"]} done / ${counts["[~]"]} partial / ${counts.open} open (of 67)`
+      )
+    }
+  }
+}
+
+/**
+ * Every source path the audit docs cite must still exist.
+ *
+ * These documents are read as evidence — "pinned by
+ * `tests/contracts/x.test.mjs`", "fixed in `components/y.tsx`" — so a cited
+ * path that has been renamed, or never existed, turns the record into a claim
+ * nobody can check. Two were found by hand: a note citing
+ * `tests/contracts/marketing-type-scale.test.mjs`, where the assertions were
+ * real but lived in `marketing-chrome-tokens.test.mjs`, and two notes writing a
+ * ROUTE (`/app/customers/loading.tsx`) where the file is
+ * `app/app/customers/loading.tsx`.
+ *
+ * That is the "a test name is not a file" trap, which already cost this
+ * campaign a dead submit button when a blocker was dismissed against the wrong
+ * file.
+ */
+{
+  const FILE_REF =
+    /`((?:app|components|lib|tests|scripts|config|hooks)\/[A-Za-z0-9_\-./[\]]+\.(?:tsx?|mjs|json|css))`/g
+  const cited = new Map()
+
+  // Only the WORKING documents. The five audit reports and the master describe
+  // the codebase as it was and propose files that do not exist yet — 04#74
+  // recommends creating `components/admin/loading-skeletons.tsx` — so a missing
+  // path there is the point, not a defect. STATUS/COVERAGE/HANDOFF/NEEDS-SIGNOFF
+  // cite files as EVIDENCE, and that is what has to stay true.
+  const evidenceDocs = readdirSync(DIR).filter(
+    (name) => name.endsWith(".md") && !/^(00-master|0[1-5]-)/.test(name)
+  )
+
+  for (const file of evidenceDocs) {
+    const text = readFileSync(path.join(DIR, file), "utf8")
+    for (const match of text.matchAll(FILE_REF)) {
+      if (!cited.has(match[1])) cited.set(match[1], new Set())
+      cited.get(match[1]).add(file)
+    }
+  }
+
+  if (cited.size < 20) {
+    problems.push(
+      `only ${cited.size} source paths cited across the audit docs — the ` +
+        "reference check is probably matching nothing"
+    )
+  }
+
+  for (const [target, files] of cited) {
+    if (!existsSync(path.join(process.cwd(), target))) {
+      problems.push(
+        `${[...files].sort().join(", ")} cite ${target}, which does not exist`
       )
     }
   }
