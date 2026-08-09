@@ -1024,6 +1024,56 @@ Ranked by what I would revisit: 01#49 (a measured defect), then 01#63 (a
 mechanism swap that keeps the goal), then 01#65 (a taste decision that wants an
 owner).
 
+### Both re-tested in the marketing-lane pass, with numbers. Both blocks hold.
+
+**01#63 — the cost is real, the goal is met, and the mitigation in the code did
+not exist.** Measured at 390x844 on a production build (`pnpm build && PORT=3201
+pnpm start`), `document.styleSheets.length > 0` asserted, the aside anchored by
+`[data-legal-document] aside` rather than by any text:
+
+| route            | page height | TOC block | TOC starts at |
+| ---------------- | ----------: | --------: | ------------: |
+| /privacy         |     8,087px |     647px |       6,880px |
+| /merchant-terms  |     7,459px |     664px |       6,235px |
+| /data-processing |     5,942px |     568px |       4,814px |
+| /terms           |     4,845px |     539px |       3,746px |
+| /cookies         |     4,528px |     580px |       3,388px |
+
+So the audit's "~600px of dead weight at the bottom" is accurate on all five
+legal pages, 8-12% of each. The assertion's own goal is simultaneously met: the
+`<h1>` sits at top 171-186px everywhere, well above an 844px fold.
+
+The correction: `legal-document-page.tsx` carried a comment saying the
+collapsible summary "costs a row instead of a block wherever it sits". It ships
+`open`, so `/cookies`, `/merchant-terms` and `/data-processing` measure the same
+block as `/terms` and `/privacy`, which have no disclosure at all. That comment
+is now fixed in place.
+
+**What a decision would have to choose between**, because there is no free move:
+
+1. renegotiate `legal-p3-polish:28` and put a collapsed `<details>` above the
+   article (the audit's proposal — same goal, different mechanism);
+2. keep the order and collapse the aside below `lg` with a client component —
+   which reintroduces the hydration branch 01#49 complained about, though at
+   3,388-6,880px it is far below the fold and would measure zero CLS;
+3. keep the order and drop the aside entirely below `lg` — the audit's own
+   argument is that a TOC reached after the whole document "delivers nothing",
+   and this is the only option that needs no contract change. It is a visible
+   removal on five legal pages, so it wants human approval.
+
+CSS alone cannot do it: a closed `<details>` cannot be force-opened by a media
+query without `::details-content`, which is not universally supported, and
+duplicating the nav for two breakpoints puts 10-12 links in the DOM twice.
+
+**01#65 — the disagreement is real and the gap is bigger than the audit
+priced.** Computed styles on the first clause of each legal page, production
+build: the clause `<h2>` is **11.5px / 700 / uppercase / 0.92px tracking / Space
+Mono**; the clause body `<p>` is **16px / 400 / Bricolage Grotesque**. The audit
+argued the inversion at 2.5px against a 14px body. Since 01#64 raised legal body
+copy to 16px it is **4.5px** — a 0.72x heading-to-body ratio — repeated over 12
+clauses on /privacy and 10 on /terms and /cookies. Nothing about that changes
+who gets to decide it; it changes what they are deciding about.
+
 ## 23. 03#18 — the pattern the audit says to copy only half exists
 
 The finding tells the customers table to move `q` and `filter` into the URL and
@@ -1467,3 +1517,48 @@ were.
 
 The cheapest way to close this gap is a staging deploy with seeded data, which
 is a decision about environments rather than about UI.
+
+## 33. 01#10 — the closing headline still paraphrases the hero, and only copy can fix it
+
+The rest of 01#10 is settled: `<FinalCta` is pinned into the landing's
+seven-band order by `tests/contracts/marketing-offer-source.test.mjs:238`, so
+the band cannot be deleted; and the body duplication the finding actually cited
+is already gone — `components/marketing/landing/final-cta.tsx` renders neither
+`PLAN_LINE` nor `OFFER.riskFraming`, and `GuaranteeStack` (whose description the
+audit says `riskFraming` duplicated) is on the landing's docs-mode DENY list at
+lines 250-262 of the same contract.
+
+What survives is one sentence:
+
+| where                   | text                                                         |
+| ----------------------- | ------------------------------------------------------------ |
+| `LANDING.hero.headline` | "Give your weekend crowd a reason to come back on a Tuesday" |
+| `FinalCta` `<h2>`       | "Give your weekend customers a reason to come back midweek"  |
+
+The page opens and closes on the same sentence with two nouns swapped. The band
+is 789px at 375/390 in a production build, 678px at 640-1024, 665px at 1280.
+
+This is a marketing copy cut, which the standing instruction excludes, and the
+hero half is doubly constrained: `marketing-offer-source` asserts the hero
+headline literal directly ("the hero headline must use the safe 'a reason to
+come back' framing"). Only the `FinalCta` line is free to change, and only a
+copy owner can change it.
+
+## 34. 01#65's second ask — visible `§NN` clause anchors on the legal pages
+
+Separated out of section 22 because it is a different kind of decision and is
+**not** blocked by `legal-heading-structure`. That assertion pins the h2's
+className prefix (`<h2 className="mono-meta`) and forbids `<p className="mono-`;
+a sibling `<a className="mono-id" href="#clause-id">§04</a>` beside the heading
+matches neither and would ship green.
+
+The upside is the audit's: clauses become countable and copy-linkable, which is
+what a reader wants from a 12-clause privacy notice. Every clause already has a
+stable `id` and a TOC link, so the deep link exists — what is missing is a
+visible handle for it.
+
+It is flagged rather than shipped because printing clause numbers into published
+legal documents changes their citation surface: a customer or a regulator can
+then cite "clause §4 of your terms", and the numbering has to stay stable across
+every future edit or the citation silently retargets. That is a legal-review
+call, not an engineering one.

@@ -14,16 +14,14 @@ branch is green after every merge.
 
 | Report           | Tracked |    Done | Partial |  Stale |   Open |
 | ---------------- | ------: | ------: | ------: | -----: | -----: |
-| 01 marketing     |      69 |      54 |       6 |      4 |      5 |
+| 01 marketing     |      69 |      55 |       6 |      3 |      5 |
 | 02 customer      |      70 |      60 |       6 |      2 |      2 |
 | 03 merchant      |      67 |      53 |       8 |      4 |      2 |
 | 04 admin         |      74 |      61 |       2 |      9 |      2 |
 | 05 design system |      67 |      64 |       2 |      0 |      1 |
-| **Total**        | **347** | **292** |  **24** | **19** | **12** |
+| **Total**        | **347** | **293** |  **24** | **18** | **12** |
 
-> > > > > > > lane/merchant
-
-## "Stale" is a real category (19 findings)
+## "Stale" is a real category (18 findings)
 
 Not reproducible against the current tree, and recorded rather than invented
 into a change. Examples: `border-[1.5px]` no longer exists (03#25); both
@@ -788,8 +786,6 @@ concluded neither contract mentioned the poster path, because
 assertion is there; it is regex-escaped as `app\/qr\/poster`. That is the third
 time in this campaign an escaped literal has produced a false negative, and the
 second time it nearly reversed a verdict.
-
-> > > > > > > lane/merchant
 
 ### Contract allowlists are a list of known defects
 
@@ -1611,3 +1607,72 @@ ships deliberately — rather than on words the copy happens to contain. Same
 lesson as `#pricing` for the landing band, and the same lesson as every other
 measurement failure recorded above: **anchor on what the code guarantees, not on
 what the page says.**
+
+## Marketing-lane re-test pass (report 01, 14 findings)
+
+Fourteen findings recorded as partial, stale or open were re-tested against a
+production build rather than against their notes: `pnpm build && PORT=3201 pnpm
+start`, `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3201` so no sibling lane's server
+could answer, every probe asserting `document.styleSheets.length > 0` before
+measuring and anchoring on ids and `data-` hooks (`#how`, `#proof`, `#start`,
+`#pricing`, `#launch`, `#problem`, `#capacity`, `[data-growth-plan-pricing]`,
+`[data-takeover-enquiry]`, `[data-legal-document] aside`) rather than on text.
+
+### Three recorded blockers were wrong, in three different ways
+
+**01#11 — "already `sm:grid-cols-2 md:grid-cols-3`, the audit describes an older
+revision."** True of one half, applied to the whole. The audit's complaint
+("single column until 1024px") really was stale, so the note stopped there and
+never looked at 640-767px, where the band was still two columns. `sm:grid-cols-3`
+takes it from 764px to 655/569/545px at 640/700/767. The rest of the
+recommendation — three across at the BASE breakpoint — is genuinely wrong, and
+now for a checkable reason: it shrinks the venue QR from 148px to **60px** at 375. A finding can be simultaneously stale, correct and under-actioned.
+
+**01#38 — "the claims-boundary contract requires guarantee-stack.tsx to render
+CLAIMS_BOUNDARY, and the catch box is how it does."** Names a file. The behaviour
+is a better answer and it disproves the finding outright: the finding claims the
+catch box and the `ScarcityBand` H2 are "the same sentence twice in one scroll".
+They are different sentences from different constants — `CLAIMS_BOUNDARY.never`
+and `SCARCITY.capLine` — and `guarantee-stack.tsx` does not import `SCARCITY` at
+all. Counted in rendered text at 390x844: each string appears **exactly once**
+on `/`, `/pricing`, `/how-it-works` and `/about`, and the cap line zero times on
+`/loyalty-for-pubs`. Then the contract holds too, and for a stronger reason than
+the note gave: `marketing-offer-source` enforces a RULE with an exact-equality
+offender list, so deleting the box adds a third offender and fails a `deepEqual`,
+not just a `match`.
+
+**01#10 — "the same contract test requires `<FinalCta` on the landing."** True,
+and still true. But the finding's own evidence had rotted underneath it:
+`final-cta.tsx` renders neither `PLAN_LINE` nor `OFFER.riskFraming` any more, and
+`GuaranteeStack` — the component the audit says `riskFraming` duplicated — is on
+the landing's deny list in that same contract. A blocker can be correct and still
+be the wrong reason to stop reading.
+
+### A comment that measured false
+
+`legal-document-page.tsx` explained 01#63's non-fix by saying the collapsible TOC
+summary "costs a row instead of a block wherever it sits". It ships `open`. The
+three routes that use that component measure 568/580/664px of aside at 390px —
+the same block as `/terms` (539px) and `/privacy` (647px), which have no
+disclosure at all. The mitigation described in the source did not exist in the
+artefact. Contracts read source text; so do humans, and a comment is not a
+measurement either.
+
+### Where the audit was right, and where measuring said no
+
+`grid` proposals in this report were priced in pixels and never in measure. Both
+of 01#9's grids save height by destroying line length: two columns at 375px takes
+the ProofLine fact from a 327px column at 24-37 characters per line to a 156px
+column at **12-19**; four columns at 640px gives **11-16**. Zero elements went
+past the viewport in any variant, so an overflow check would have passed all of
+them. **A layout probe that only asks "does it fit" cannot see the cost of
+making it fit.**
+
+### Reproduced rather than re-derived
+
+01#22's numbers came back identical on a fresh build — `/how-it-works` 6,211px,
+`#launch` 1,372px, the `<ol>` 1,101px — which is what makes them trustworthy to
+decide against. 01#20's reproduced in direction and magnitude but not to the
+pixel (+234px at 375 this pass against +262px last, +30px at 1280 against +48px),
+because the band wraps a date-bound campaign. Worth saying out loud: a number
+from a `revalidate = 300` surface is a measurement with a shelf life.

@@ -38,12 +38,22 @@ export function LegalDocumentPage({
         className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start"
       >
         {/* 01#63 asks for the TOC above the prose on mobile. NOT applied:
-            tests/contracts/legal-p3-polish (MKT-P3-14/15, VCU-P3-14) requires
-            the /terms and /privacy TOC to sit AFTER the article below lg so the
-            h1 stays above the fold, and shipping two different orders across
-            five interlinked legal pages is worse than one debatable order.
-            The collapsible summary below is kept — it costs a row instead of a
-            block wherever it sits. */}
+            tests/contracts/legal-p3-polish:28 requires the /terms and /privacy
+            TOC to sit AFTER the article below lg so the h1 stays above the
+            fold, and shipping two different orders across five interlinked
+            legal pages is worse than one debatable order. The assertion's goal
+            is met — measured at 390x844 on a production build, the h1 sits at
+            top 171-186px on all five legal routes.
+
+            CORRECTION: this comment used to claim the disclosure below "costs
+            a row instead of a block wherever it sits". It does not. It ships
+            `open`, so the aside measures 568px (/data-processing), 580px
+            (/cookies) and 664px (/merchant-terms) at 390px — the same block as
+            /terms (539px) and /privacy (647px), which carry no disclosure at
+            all. On /privacy that block begins at top 6,880px of an 8,087px
+            page. Collapsing it below lg while keeping the desktop rail open
+            needs either JS or the reorder this contract forbids, so it is
+            recorded in NEEDS-SIGNOFF 22 rather than guessed at here. */}
         <aside className="surface-card order-last p-4 lg:sticky lg:top-[calc(var(--marketing-header-h)+0.75rem)] lg:order-none">
           <details open className="group">
             <summary className="focus-ring mb-3 flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 rounded-full lg:pointer-events-none">

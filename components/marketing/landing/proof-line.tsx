@@ -11,6 +11,14 @@ import { BRAND, PRODUCT, SCARCITY } from "@/lib/marketing/facts"
  * any phone, and a layout that only worked past 1024px where all four fit on
  * one line. They are now a printed ledger: a mono index per fact, dashed rules
  * between them on a phone, two-up from `sm:` and four-up from `lg:`.
+ *
+ * 01#11's sibling finding (01#9) asks for `grid-cols-2 … sm:grid-cols-4`
+ * instead. Measured on a production build and DECLINED: forcing two columns at
+ * 375px takes the fact column from 327px to 156px and the measure from 24-37
+ * characters per line to 12-19, for 108px; four columns at 640px gives a 124px
+ * column at 11-16 characters per line for 9px. The ramp below is what a full
+ * clause needs — the height these grids save is bought entirely out of the
+ * measure.
  */
 export function ProofLine() {
   const facts = [
