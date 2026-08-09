@@ -16,18 +16,20 @@ branch is green after every merge.
 | ---------------- | ------: | ------: | ------: | -----: | -----: |
 | 01 marketing     |      69 |      55 |       6 |      3 |      5 |
 | 02 customer      |      70 |      63 |       5 |      0 |      2 |
-| 03 merchant      |      67 |      53 |       8 |      4 |      2 |
+| 03 merchant      |      67 |      55 |       7 |      4 |      1 |
 | 04 admin         |      74 |      61 |       2 |      9 |      2 |
 | 05 design system |      67 |      64 |       2 |      0 |      1 |
-| **Total**        | **347** | **296** |  **23** | **16** | **12** |
+| **Total**        | **347** | **298** |  **22** | **16** | **11** |
 
-## "Stale" is a real category (18 findings)
+## "Stale" is a real category (19 findings)
 
 Not reproducible against the current tree, and recorded rather than invented
-into a change. Examples: `border-[1.5px]` no longer exists (03#25); both
-remaining `<select>`s already compose SelectField (03#29); the `rounded-xl`
-sites named in 03#60 are already `rounded-lg`; `ProgressTrack` is not dead code
-(02#35); DESIGN.md defines no `marketing-hero` token (01#15); QR destructive styling,
+into a change. Examples: `border-[1.5px]` no longer exists in `app/**` or
+`components/**` (03#25, now pinned by `tests/contracts/ink-border-weight.test.mjs`);
+exactly one `<select>` exists product-wide and it is `SelectField`'s own
+(03#29); the `rounded-xl` sites named in 03#60 are already `rounded-lg`; `ProgressTrack` is not dead code
+(02#35); `CustomerShell`/`CustomerAppShell` already share one column (02#5);
+DESIGN.md defines no `marketing-hero` token (01#15); QR destructive styling,
 referral masking and 2FA gating were already correct by the time the admin lane
 reached them (04#19, 04#33, 04#41).
 
@@ -70,14 +72,22 @@ and either fixed or closed with evidence.
 - **Blocked by a contract or e2e test** (each attempted, reverted, nothing
   weakened) — 01#49, 01#63, 01#65, 03#46 (recorded in STATUS-m-launch).
 - **Copy / product decision** — 01#23, 01#55, 02#50, 02#64, 04#54.
-- **Needs a data-layer change** — 03#13 and 03#16.
-  03#13's blocker is specific: `deriveMerchantCustomerRewardBadge` runs
-  per-member over `activeReward`, `lastVisitAt`, stamp count and redemption
-  history, so a merchant-wide "rewards ready / gone quiet" count means either
-  duplicating that logic in SQL (drift risk on audited data) or loading every
-  member. Counting the loaded page instead would print "3 rewards ready" when
-  there are 12 — a false readback on a console whose whole premise is truthful
-  readbacks, and worse than having no task layer.
+- **Needs a data-layer change** — 03#16 only. 03#13 was here and is now done;
+  the paragraph that kept it here is preserved below because the way it was
+  wrong is the reusable part.
+  03#13's blocker read: `deriveMerchantCustomerRewardBadge` runs per-member over
+  `activeReward`, `lastVisitAt`, stamp count and redemption history, so a
+  merchant-wide count means duplicating that logic in SQL or loading every
+  member. The premise was that the count must mirror the BADGE. It does not
+  have to. "Rewards ready to redeem" is `reward_events.status='unlocked'` with
+  `redeemable_from` on or before today, and `ready` is FIRST in the badge's
+  first-match-wins chain, so nothing can outrank it — the SQL predicate and the
+  badge agree by construction, with no derivation duplicated. "Gone quiet" is a
+  plain `last_visit_at` predicate, and making it plain FIXED a defect: the old
+  badge-tone filter hid a member 40 days absent who also had a reward waiting.
+  Both are `head: true` COUNTs in `lib/merchant/customers-view.ts`, and the
+  dashboard row and the members filter read the same one, so neither can print
+  a number the other contradicts.
   03#16 needs an `lg` cardBreakpoint AND per-renderer row props on DataTable;
   note the merchant lane proved the finding's premise wrong (DataTable's own
   mobileCard path also double-mounts), so the migration would not remove the

@@ -14,11 +14,22 @@ is the user's own worktree. Commits here use
 
 ## State
 
-**292 done / 24 partial / 19 stale / 12 open of 347.** 30 of 33 Criticals.
+**294 done / 23 partial / 19 stale / 11 open of 347.** 31 of 33 Criticals.
 `pnpm ui-audit:check` enforces those numbers, that every source path cited in the
 evidence docs exists, and that HANDOFF's open list matches the parsed state.
 
-Open: `01#23 01#55 01#63 01#65 01#67 02#50 02#64 03#13 03#16 04#54 04#60 05#13`.
+Open: `01#23 01#55 01#63 01#65 01#67 02#50 02#64 03#16 04#54 04#60 05#13`.
+
+> These counts are as of the `lane/merchant` fan-out and do not include the
+> other lanes still in flight. Recompute them from the STATUS files at fan-in
+> rather than picking a side on a conflict — `pnpm ui-audit:check` will refuse
+> any table that disagrees with the parse.
+
+The two Criticals that remain are `03#16` (declined on the merits — the
+migration does not remove the double mount it cites) and `03#37`'s single-route
+collapse (pinned by `qr-a4-poster-templates` and `merchant-shell`; a contract
+change to ask for, not to take). `03#18` closed in `lane/merchant`: both of its
+recorded blockers were disproved — see NEEDS-SIGNOFF 23.
 
 Read in this order: `HANDOFF.md`, `NEEDS-SIGNOFF.md` (32 sections, 22 live),
 `COVERAGE.md` (method log, including every mistake and what it cost),

@@ -101,13 +101,13 @@ three runs against a 0.100 threshold. The defect does not exist in what ships, s
 there is nothing to renegotiate and the finding is now `[stale]` with its premise
 disproved rather than its fix shipped. See NEEDS-SIGNOFF 7.
 
-### Declined with reasoning, evidence recorded (3)
+### Declined with reasoning, evidence recorded (2)
 
 `03#16` — the migration does not fix the defect it cites (DataTable's own
 `mobileCard` path renders both trees). `04#60` — sorting across 8 live panels,
-where half-built is worse than none. `03#13` — a merchant-wide count needs an
-aggregate that does not exist; page-scoped counting would print a false
-readback.
+where half-built is worse than none. `03#13` was the third and is no longer
+declined: the aggregate it said "does not exist" turned out to be two ordinary
+merchant-scoped COUNTs, once the count stopped trying to mirror the badge.
 
 ### Genuine product or copy decisions (5)
 
@@ -145,18 +145,22 @@ evidence in `NEEDS-SIGNOFF.md` rather than a description.
    sits at top 1295px on a 390x844 viewport — below the fold — so it moves no
    visible content. Nothing to renegotiate; no assertion needs touching. (§7)
 
-## Open findings, all 12
+## Open findings, all 11
 
-01#23, 01#55, 01#63, 01#65, 01#67, 02#50, 02#64, 03#13, 03#16, 04#54, 04#60, 05#13
+01#23, 01#55, 01#63, 01#65, 01#67, 02#50, 02#64, 03#16, 04#54, 04#60, 05#13
 
 - **Blocked by a test** (attempted, reverted, no assertion weakened): 01#63,
   01#65, plus 03#46 in STATUS-m-launch. 01#49 was here until its premise was
   disproved — the CLS it cited is a dev-server artefact and production measures
   0.0000, so it is `[stale]` and needs no contract change.
 - **Copy / product**: 01#23, 01#55, 02#50, 02#64, 04#54.
-- **Data-layer**: 03#13 (a merchant-wide "rewards ready" count means duplicating
-  badge logic in SQL or loading every member; counting the loaded page would
-  print a false readback), 03#16 (see below).
+- **Data-layer**: 03#16 (see below). 03#13 was listed here and is now DONE — the
+  count never had to mirror the badge. `ready` is FIRST in the badge's
+  first-match-wins chain, so the SQL predicate (`reward_events.status='unlocked'`
+  with `redeemable_from` on or before today) and the badge agree by
+  construction; `quiet` is a plain `last_visit_at` predicate. Both are
+  merchant-scoped `head: true` COUNTs in `lib/merchant/customers-view.ts`,
+  shared with the members filter so the two screens cannot disagree.
 - **Out of scope by instruction**: 01#67, 05#13.
 - **Large API addition**: 04#60 sorting across 8 live panels; its sticky-header
   half is blocked by the `overflow-x-auto` scroll container.

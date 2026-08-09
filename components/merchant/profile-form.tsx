@@ -12,6 +12,7 @@ import {
   type MerchantProfileState,
 } from "@/app/app/profile/actions"
 import { FormField, SelectField, SubmitButton } from "@/components/forms"
+import { StatusBanner } from "@/components/loyalty/status-banner"
 import { Input } from "@/components/ui/input"
 
 const businessTypeOptions = [
@@ -120,26 +121,21 @@ export function MerchantProfileForm({
         defaultValue={fields?.phone}
         error={state.errors?.phone}
       />
-      {/* The 2px ink contract, same as StatusBanner's tones. These stay plain
-          paragraphs rather than becoming StatusBanner: `Alert` bakes in
-          `role="alert"`, and a saved-successfully message must stay a polite
-          `role="status"` rather than interrupting (03#60). */}
+      {/* 03#60 asked for StatusBanner here and was declined on the grounds that
+          `Alert` hardcodes `role="alert"`, so a save confirmation would
+          interrupt a screen reader. That is true of `Alert` and false of
+          `StatusBanner`, which maps tone to announcement — success and info
+          render `role="status"` with `aria-live="polite"`, error and warning
+          stay assertive (components/loyalty/status-banner.tsx:33-40). The
+          admin action form has used it for exactly this pair of states since
+          it shipped (components/admin/action-form.tsx:114,132). Both
+          paragraphs keep the announcement they had; they gain the shared 2px
+          ink recipe and the tone glyph, so state never reads as colour alone. */}
       {state.errors?.form ? (
-        <p
-          role="alert"
-          className="rounded-lg border-2 border-ink bg-destructive/10 px-3 py-2 text-sm font-semibold text-destructive-strong"
-        >
-          {state.errors.form}
-        </p>
+        <StatusBanner tone="error" title={state.errors.form} />
       ) : null}
       {state.message ? (
-        <p
-          role="status"
-          aria-live="polite"
-          className="rounded-lg border-2 border-ink bg-reward/12 px-3 py-2 text-sm font-semibold text-foreground"
-        >
-          {state.message}
-        </p>
+        <StatusBanner tone="success" title={state.message} />
       ) : null}
       <SubmitButton pendingLabel="Saving…">Save changes</SubmitButton>
     </form>

@@ -459,7 +459,14 @@ body[data-grain="true"]::after {
      (same mono face, 0.6875rem, 700, 0.08em); .w-tag is the documented alias
      for plain (non-Badge) elements. Long copy story: the pill caps at its
      container width — compose MonoTag (which truncates its content) or wrap
-     the text in a `truncate` span rather than letting the row overflow. */
+     the text in a `truncate` span rather than letting the row overflow.
+
+     KNOWN DEVIATION (03#25): the 1.5px border below is the last 1.5px stroke
+     in the product and it contradicts DESIGN.md's "borders are 2px solid ink
+     everywhere". It is not swept with the others because MonoTag applies this
+     class across ~52 files, so raising it to 2px is a product-wide visual
+     change needing human approval — NEEDS-SIGNOFF.md section 17. Pinned as the
+     only survivor by tests/contracts/ink-border-weight.test.mjs. */
   .w-tag {
     display: inline-flex;
     align-items: center;
