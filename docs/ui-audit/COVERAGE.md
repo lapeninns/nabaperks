@@ -1260,3 +1260,27 @@ that it must have worked. Reverted.
 
 **Two rules.** Measure the artefact you ship, not the one you develop against.
 And when a fix is elegant, that is exactly when to check it changed the number.
+
+### A tap-target sweep that measures the wrong pointer finds nothing
+
+Playwright's default chromium context reports `pointer: fine` even when you set
+a 390x844 viewport. This codebase puts its touch floors behind
+`[@media(pointer:coarse)]:min-h-11`, so a naive mobile-width sweep reports every
+`Button size="sm"` in the product as 36px and every one of those reports is
+false. My first sweep "found" the header CTA at 36px; under
+`devices["Pixel 5"]` it measures 44px.
+
+**Viewport width is not touch.** Use a device profile, and assert
+`matchMedia("(pointer: coarse)").matches` inside the probe so the sweep fails
+loudly rather than quietly measuring the wrong thing.
+
+With that fixed, 55 routes yielded three candidates and only two defects: the pub
+spine's phone-only toggle (39px) and the password reveal (`size-10`). The third
+— 36px footer links — is a documented decision with the reasoning in the file
+(05#47: WCAG 2.5.8's floor is 24px; 13 links at 44px costs ~572px of footer on
+every page).
+
+That is now the second time this session a "defect" turned out to be a decision
+recorded in a comment near the code (the other: `robots: index:false` on the
+venue spokes). Both times the comment was one scroll away from where I was
+already reading. **Read the file, not just the line.**
