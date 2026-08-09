@@ -14,6 +14,7 @@ import { Copy01Icon, Tick02Icon } from "@hugeicons/core-free-icons"
 import { AdminConfirmCheck, AdminPanel } from "@/components/admin/support"
 import { Eyebrow, Icon, SectionHeader } from "@/components/brand"
 import { FormField, SubmitButton } from "@/components/forms"
+import { QrFrame } from "@/components/loyalty"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -132,12 +133,23 @@ function EnrollPanel() {
         title="Scan and confirm"
         description="Scan this with your authenticator app, or copy the key by hand, then confirm the current code."
       />
-      {/* eslint-disable-next-line @next/next/no-img-element -- data: SVG QR minted server-side by Supabase enrol */}
-      <img
-        src={enrollment.qrCodeSvg}
-        alt="Authenticator setup QR code"
-        className="h-44 w-44 rounded-lg border-2 border-ink bg-qr-foreground p-2"
-      />
+      {/* The system's ONE QR treatment, not a hand-rolled copy of its class
+          string (04#39). `QrFrame` takes `children: ReactNode`, so an <img>
+          composes exactly as the marketing venue QR's <svg> does — the reason
+          this was left as a look-alike ("the frame API takes a matrix") is not
+          true of the component. Composing it means this QR also inherits the
+          frame's `text-qr` ground, its offset shadow and its `figure`
+          semantics, and cannot drift from the other three QR surfaces.
+          w-fit: the frame is a block figure and would otherwise stretch to the
+          panel's full width around a 176px image. */}
+      <QrFrame label="Authenticator setup QR code" className="w-fit">
+        {/* eslint-disable-next-line @next/next/no-img-element -- data: SVG QR minted server-side by Supabase enrol */}
+        <img
+          src={enrollment.qrCodeSvg}
+          alt="Authenticator setup QR code"
+          className="h-44 w-44"
+        />
+      </QrFrame>
       {/* Transcribing a 32-character base32 secret is the highest-error step
           of enrolment, and it used to be break-all mono text with no copy
           control — the only identifier in the console without one. Grouped in
