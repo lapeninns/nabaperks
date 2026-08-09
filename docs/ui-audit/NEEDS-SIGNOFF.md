@@ -835,6 +835,31 @@ guides and legal families. It is real work and it touches a contract-pinned
 component, so it wants its own careful pass rather than being tacked onto this
 one — but it is no longer waiting on a decision from anyone.
 
+### What was actually done, and the one real reason not to go further
+
+Comparing the two TOCs side by side (which is what "pick one pattern" requires)
+turned up a defect neither finding mentions: the hub's phone disclosure links
+measured **36px** against the guides' **44px**. Fixed — `min-h-11` below `lg`,
+`lg:min-h-0` above, since the desktop rail is a dense pointer target where 36px
+is right. Re-measured at 44/36.
+
+The large half stays undone for a specific, checkable reason rather than a
+vague one. The pinned literal
+
+```js
+;/hydrated && !open \? "hidden lg:block" : "grid"/
+```
+
+sits on the `<ol>`'s `className` **inside `guide-spine.tsx`**. Extracting the
+list into a shared component moves that expression to a different file, and
+`marketing-offer-source` reads `guide-spine.tsx` specifically — so the assertion
+fails on a pure refactor that changes no behaviour.
+
+That is a contract renegotiation in exchange for deduplication, not for a defect
+fix, and the finding's own "at minimum" alternative is shipped and verified. If
+the owner wants the unified spine, the assertion needs to move with the code —
+which is a fine thing to do deliberately and a bad thing to do as a side effect.
+
 ## 19. 02#10 — the wallet tile, measured and de-risked
 
 The audit wants `HomeCardTile` to become a fixed ~120px summary row. Measured on
