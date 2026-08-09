@@ -1304,3 +1304,33 @@ The three survivors were each checked rather than counted: a 20x20 checkbox whos
 catalogue's own specimens of small controls. **A sweep is only as good as its
 false-positive triage** — the first version of this one reported 23 routes of
 defects and every single one was wrong.
+
+### A control that cannot fail is not a control
+
+The 320px overflow on the pub hub is the sharpest example in this campaign of a
+measurement lying in both directions.
+
+1. Dev server said the page clipped content at 320px. I had a screenshot of text
+   cut mid-word.
+2. I fixed it, then ran a production "control" with the fix stashed. It reported
+   **zero** elements past the viewport. So I reverted the fix as unnecessary.
+3. Then I looked at the control screenshot. **The page had rendered with no CSS
+   at all** — default serif, blue links, no layout. An unstyled page cannot
+   overflow. The control was measuring nothing.
+4. Re-run with `document.styleSheets.length > 0` asserted before counting: 65
+   elements past the viewport, in production, with the fix reverted. The defect
+   was real the whole time.
+
+I nearly discarded a real fix because a broken control agreed with the
+conclusion I had just reached for a different reason (the CLS finding, where dev
+genuinely did overstate the problem). **Two measurements disagreeing is a reason
+to distrust both, not to pick the one that matches the last lesson learned.**
+
+Every probe in this campaign now asserts its own preconditions — stylesheets
+loaded for layout, `pointer: coarse` for tap targets, a production build for
+Core Web Vitals. The precondition is the part that fails silently.
+
+Also worth recording: I guessed the cause twice (min-w-0 on the list, then on
+the flex title) and rebuilt each time, ~2 minutes a go. Walking the ancestor
+chain took one probe and showed the answer on one line — parent 272px, list
+305px. **Measure the chain before editing the leaf.**
