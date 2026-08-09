@@ -1389,3 +1389,45 @@ passing, which briefly looked like the guard was broken. It was not —
 `app/dev/app-harness/account/page.tsx` **duplicates** that markup rather than
 importing the component, so the harness renders its own copy. A harness-based
 guard proves things about the harness, and harnesses drift.
+
+### Two ways I was checking gates wrong
+
+Both surfaced in one turn, and both had already let a defect through.
+
+**`rc` from a piped shell command is the last command's exit code.** I had been
+reading `rc` from things like `pnpm quality:check 2>&1 | tail -25` and seeing
+`rc: 0` — that is `tail` succeeding. The gate underneath had failed. Now every
+gate check ends with an explicit `echo EXIT=$?` on the command itself.
+
+**Grepping a gate's output for the failures you expect cannot see the ones you
+do not.** I filtered `quality:check` for `^# fail` and `tally in sync`, which
+matches the test summary and the tally script — and is structurally blind to a
+lint or typecheck failure, because those print neither. That is how I shipped a
+TypeScript error in `tests/e2e/touch-targets.desktop.spec.ts` and did not notice
+for two commits.
+
+The error itself is worth keeping too: I added
+`test.use({ reducedMotion: "reduce" })` and wrote a commit message about pinning
+the precondition. `playwright.config.ts` documents in a comment that
+`contextOptions.reducedMotion` wins over the test option, so it was a **silent
+no-op** as well as a type error. The repo had already written down the trap I
+walked into.
+
+### Harnesses that copy instead of import
+
+Six `/dev` harnesses duplicate markup from production components, because those
+components are async server components the harness cannot render. The account
+one had already cost two wrong conclusions.
+
+Fixed the way the repo already fixes it elsewhere (`billing-panel-view.tsx`):
+extract a pure `ProfilePanelView` that both the route and the harness render.
+Sabotaging the single source now fails the guard, where the same edit used to
+pass because the harness kept its own copy.
+
+The other five remain, and they bound what harness-based verification proves:
+
+    app-harness/dashboard   <- app/app/page.tsx
+    app-harness/launch      <- components/marketing/landing/final-cta.tsx
+    app-harness/offers      <- components/marketing/pubs/guide-section.tsx
+    app-harness/onboarding  <- app/app/onboarding/page.tsx
+    app-harness/reward-scan <- app/app/rewards/scan/[scanToken]/page.tsx
