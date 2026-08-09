@@ -1024,7 +1024,47 @@ Ranked by what I would revisit: 01#49 (a measured defect), then 01#63 (a
 mechanism swap that keeps the goal), then 01#65 (a taste decision that wants an
 owner).
 
-## 23. 03#18 — the pattern the audit says to copy only half exists
+## 23. CLOSED — 03#18: the pattern the audit named was the wrong pattern, but the change was still possible
+
+**Resolved. Nothing to sign off.** Kept in full because the reasoning below was
+confidently wrong in two specific ways, and both are reusable mistakes.
+
+The section argued that `q` could not go server-side because "there is no
+plaintext column to match against at all", and that `filter` could not because
+the pills mirror a derived badge tone.
+
+**The `q` argument was factually wrong about the schema.** The merchant session
+does not read `customers`; it reads `public.customers_masked`, and that view
+performs the masking IN THE DATABASE:
+`lower(left(email,1)) || '***@' || lower(split_part(email,'@',2))` and
+`'Phone ending ' || phone_last4`
+(`supabase/migrations/20260707095000_phone_plaintext_retirement.sql:811-829`).
+So there IS a column holding exactly the string the merchant sees — an ILIKE
+over it searches the rendered identifier and touches no raw contact data. The
+admin console has run the same two-column masked lookup for months
+(`lib/admin/lookup-query.ts` `contactOrIlikeFilter`). The mistake was reasoning
+about the privacy posture from the application layer without reading the view.
+
+**The `filter` argument was right about the mechanism and wrong about the
+requirement.** Reimplementing first-match-wins badge precedence in SQL would
+indeed be duplication. But the pills never had to mirror the badge, and mirroring
+it was itself a defect: a member 40 days absent who ALSO had a reward waiting was
+missing from Quiet, because the badge showed "Reward waiting". The pills now ask
+the plain membership question. Badge derivation still has exactly one
+implementation, in TypeScript, and the filter and the badge share their London
+day boundaries through `resolveCustomerFilterBoundaries`.
+
+**The one thing this section got right** — "deleting that disclaimer without
+fixing the search underneath it would be the one genuinely bad outcome" — is why
+the disclaimer was removed only in the same commit that made it untrue.
+
+Shipped: `lib/merchant/customers-filter.ts`, `lib/merchant/customers-view.ts`,
+pinned by `tests/contracts/merchant-members-server-search.test.mjs`.
+
+<details>
+<summary>The original section, unedited</summary>
+
+### 03#18 — the pattern the audit says to copy only half exists
 
 The finding tells the customers table to move `q` and `filter` into the URL and
 the server loader, "matching the pattern `activity-detail-feed.tsx:235-267`
@@ -1054,6 +1094,8 @@ audit wants deleted.
 
 Deleting that disclaimer without fixing the search underneath it would be the
 one genuinely bad outcome available here.
+
+</details>
 
 ## 24. A claims gap the audit missed, and the contract already knew about
 
@@ -1467,3 +1509,58 @@ were.
 
 The cheapest way to close this gap is a staging deploy with seeded data, which
 is a decision about environments rather than about UI.
+
+## 33. 03#25 — the last 1.5px stroke in the product is `.w-tag`, and it is 52 files wide
+
+**Decision needed: leave `.w-tag` at 1.5px, or raise it to 2px.**
+
+DESIGN.md is unambiguous — "Borders are **2px solid ink** everywhere; **2px
+dashed** (`.w-rule`) for empty slots" (`DESIGN.md:196`). The eleven Tailwind
+`border-[1.5px]` call sites 03#25 named are gone. What survives is the utility
+itself, in `app/globals.css`:
+
+    .w-tag { … border: 1.5px solid var(--w-line); border-radius: 999px; … }
+
+`MonoTag` applies it, and MonoTag is used across roughly 52 files in every
+console, the customer app and the marketing pages. Raising it to 2px is a
+one-character change with a product-wide visual result: every status pill gains
+weight, and the pills sit beside 2px cards where the current contrast between
+"pill" and "card" is partly carried by that thinner stroke.
+
+**What has been done instead:** the deviation is now documented at the site
+(a comment above the rule pointing here) and pinned by
+`tests/contracts/ink-border-weight.test.mjs`, which asserts (a) no
+`border-[1.5px]` survives anywhere under `app/` or `components/` — after
+asserting it read more than 500 files, so an empty file list cannot pass it —
+and (b) `globals.css` contains exactly ONE 1.5px border declaration.
+
+**Why the guard matters more than the decision.** The sweep has already leaked
+once. The note at the `details[data-just-updated]` rule in `globals.css` records
+a 1.5px border added days AFTER 03#25 cleared the tree, by the same agent that
+cleared it. Whichever way this is decided, the tree now cannot drift back
+silently.
+
+## 34. 03#3 — the sidebar "N ready" chip is affordable now, and still not worth it
+
+**No decision needed unless you disagree.** Recording it because the reason
+changed.
+
+03#3 asked for a right-aligned count on the Members nav item. It was recorded as
+blocked because "it needs a per-render count query the console does not run
+today". That reason is retired: `getMerchantNextActionCounts`
+(`lib/merchant/customers-view.ts`) is a merchant-scoped, PII-free
+`head: true` COUNT plus one bounded id read, shipped with 03#13.
+
+It is still declined, on two grounds that are about where the read lands rather
+than whether it exists:
+
+1. **It would sit on the counter's hot path.** `app/app/layout.tsx` wraps every
+   `/app` route — including `/app/scan` and the four print previews — so the
+   chip adds a members read to screens that have nothing to do with members.
+2. **It is invisible on the device that needs it.** The rail is desktop chrome:
+   `components/layout/merchant-tab-bar.tsx:25` is `md:hidden` and is the phone's
+   nav, and the sidebar trigger in `merchant-app-shell.tsx:172` only appears
+   below `md`. A merchant at the till is not looking at the sidebar.
+
+The same number now leads the dashboard's "Do next" card, one tap away, where
+the read is already paid for and the row deep-links into the filtered list.
