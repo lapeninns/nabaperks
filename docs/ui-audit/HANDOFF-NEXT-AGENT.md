@@ -5,12 +5,32 @@ pushed. PR #215 is open and `MERGEABLE`.
 
 ## Where to work
 
-    worktree  /Users/amankumarshrestha/LapenInns Project/Nabaperks-ui-redesign
-    branch    feat/ui-redesign-audit-fixes
+    repo    /Users/amankumarshrestha/LapenInns Project/Nabaperks
+    branch  feat/ui-redesign-audit-fixes   (checked out there, HEAD d6456cc6)
 
-**Never commit to `/Users/amankumarshrestha/LapenInns Project/Nabaperks`** — that
-is the user's own worktree. Commits here use
+**This instruction inverted on 2026-08-09 and earlier copies of this file say
+the opposite.** The branch used to live in an isolated worktree at
+`…/Nabaperks-ui-redesign`, and every prompt from that era said _never commit to
+`…/Nabaperks`_ because it held `main`. That worktree has been removed and the
+branch is now checked out in the main repo, so `…/Nabaperks` is exactly where
+you SHOULD commit. If you were handed an older prompt carrying the old rule, it
+is wrong and will stop you dead.
+
+`main` is still at `f9be041a`; `git checkout main` returns there. A safety tag
+`backup/ui-redesign-audit-d6456cc6` marks this HEAD.
+
+Commits use
 `git -c user.name="Claude Code" -c user.email="noreply@anthropic.com"`.
+
+If you fan out to sub-agents, lane worktrees still work, but `-b` is NOT
+optional — git refuses to check the same branch out twice, and the main repo now
+holds it:
+
+    git worktree add -b lane/<name> ../nb-lane-<name> feat/ui-redesign-audit-fixes
+
+Two of four lane agents froze permanently last round and produced nothing, and a
+third stalled mid-commit and had to have its work committed for it. Have lanes
+commit in small verified batches rather than at the end, and poll them.
 
 ## State
 
