@@ -14,12 +14,17 @@ import { expect, test, devices } from "@playwright/test"
  * 36px defect and none of them are. The first version of this sweep reported 23
  * routes of failures and every one was wrong.
  */
-// `reducedMotion` explicitly, not just inherited from the config: the landing
-// page's scroll-reveal sections rest at `transform: scale(0.98)` until they are
-// revealed, which renders every 44px target inside them at 43.12px. Measured
-// that exact false positive with an ad-hoc script that omitted this. With
-// motion reduced the reveals are instant and geometry is honest.
-test.use({ ...devices["Pixel 5"], reducedMotion: "reduce" })
+// Geometry here depends on reduced motion, which the ROOT config guarantees via
+// `use.contextOptions.reducedMotion: "reduce"`. Do not try to restate it here:
+// playwright.config.ts documents that `contextOptions` wins over the
+// `reducedMotion` test option, so a file-level `test.use({ reducedMotion })` is
+// a silent no-op — I wrote one, and it was also a type error.
+//
+// It matters because the landing page's scroll-reveal sections rest at
+// `transform: scale(0.98)` until revealed, which renders every 44px target
+// inside them at 43.12px. An ad-hoc script without reduced motion reported
+// exactly that false positive.
+test.use({ ...devices["Pixel 5"] })
 
 const ROUTES = [
   "/",

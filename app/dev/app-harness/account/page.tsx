@@ -1,8 +1,6 @@
-import Link from "next/link"
 import { notFound } from "next/navigation"
-import { ArrowRight01Icon } from "@hugeicons/core-free-icons"
 
-import { Icon, PageTitle } from "@/components/brand"
+import { PageTitle } from "@/components/brand"
 import { AccountTabBar } from "@/components/merchant/account/account-tab-bar"
 import {
   firstAccountSearchParamValue,
@@ -10,7 +8,7 @@ import {
   type AccountSearchParams,
 } from "@/components/merchant/account/account-tabs"
 import type { BillingPanelOutcome } from "@/components/merchant/account/billing-panel-view"
-import { MerchantProfileForm } from "@/components/merchant/profile-form"
+import { ProfilePanelView } from "@/components/merchant/account/profile-panel-view"
 import { classifyCheckoutReturnSession } from "@/lib/merchant/billing-checkout-core"
 import type { BillingPresentationSource } from "@/lib/merchant/billing-presentation"
 
@@ -83,38 +81,13 @@ export default async function AccountHarnessPage({
           requiresBilling={requiresBilling}
         />
       ) : (
-        <section className="grid min-w-0 gap-5">
-          <section className="surface-card grid min-w-0 gap-3 p-5">
-            <p className="eyebrow">What customers see</p>
-            <p className="text-2xl leading-tight font-extrabold break-words">
-              {HARNESS_MERCHANT.business_name}
-            </p>
-            <p className="text-sm leading-6 text-muted-foreground">
-              12 High Street, Girton, Cambridge, CB3 0QH
-            </p>
-            <Link
-              href="/app/launch?tab=venue"
-              className="mt-1 inline-flex min-h-11 w-fit items-center gap-1.5 text-sm font-bold text-ink underline decoration-2 underline-offset-4 transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:text-primary motion-reduce:transition-none"
-            >
-              Edit venue details
-              <Icon icon={ArrowRight01Icon} size={16} />
-            </Link>
-          </section>
-
-          <div className="grid gap-3">
-            <MerchantProfileForm
-              businessName={HARNESS_MERCHANT.business_name}
-              businessType="pub"
-              email="owner@oldcrowngirton.co.uk"
-              phone="07700900421"
-            />
-            <p className="text-sm leading-6 text-muted-foreground">
-              Address and GPS checks are managed in Setup. Business contact
-              details saved here feed customer terms, billing setup, merchant
-              notifications, and support; sign-in credentials stay separate.
-            </p>
-          </div>
-        </section>
+        <ProfilePanelView
+          businessName={HARNESS_MERCHANT.business_name}
+          businessType="pub"
+          email="owner@oldcrowngirton.co.uk"
+          phone="07700900421"
+          venueAddressDisplay="12 High Street, Girton, Cambridge, CB3 0QH"
+        />
       )}
     </div>
   )
