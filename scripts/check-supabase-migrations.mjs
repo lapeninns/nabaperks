@@ -25,11 +25,32 @@ const APPEND_ONLY_BASELINE_REF = "origin/main"
 // guard the same file's trigger already uses; rows with a non-null status are
 // computed exactly as before, so an environment that already applied this
 // migration successfully is unaffected.
+// 20260808000000: the Old Crown window correction aborted with `raise
+// exception` on states a venue reaches from its own desk — a paused or ended
+// campaign, a rotated link — and on finding more than one active pass, which a
+// second claim on a live printed QR produces at any time. On a database seeded
+// from a production snapshot (a branch environment, a restored-backup check, a
+// retried apply) any of those turned a routine deploy into a failed migration.
+// It also held ACCESS EXCLUSIVE on a live table from its first statement with
+// no lock_timeout, so a busy table queued every reader behind the migration
+// instead of failing it fast. The edit makes every guard report and return
+// instead of raising, extends all active passes rather than exactly one, and
+// bounds the lock wait. The DDL accepts the restored 4 August start before the
+// forward migration exists, and preserves the newer data-driven constraint
+// afterwards. In that newer schema it records the already-approved 1100-day
+// ceiling in the same write, and every entitlement extension event now carries
+// the affected IDs. The committed end state of an environment that already
+// applied this migration successfully is unaffected.
 const SANCTIONED_MIGRATION_EDITS = [
   {
     version: "20260802130000",
     baselineSha: "f2ac78380cf419137556837740d2f95916609303",
     currentSha: "6c9f8da5a9ae33dd82ef3e8a2092d0af3dff9d8c",
+  },
+  {
+    version: "20260808000000",
+    baselineSha: "551e59a99ebcc7a11361284c9e1327940fe116cb",
+    currentSha: "3961aef5f4dccddec70d78df0b5c351cfd013be4",
   },
 ]
 
