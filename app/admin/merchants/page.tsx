@@ -530,11 +530,23 @@ function QrStateForm({
         <Input name="reason" required minLength={4} />
       </AdminField>
       {/* Disabling is reversible (the helper says so), so it takes the
-          reversible weight. The irreversible control on this record is
-          Regenerate, which owns `destructive` below. */}
+          reversible weight — the same `secondary` silhouette as Enable, not a
+          third one. The irreversible control on this record is Regenerate,
+          which owns `destructive` below.
+
+          Reversible is not consequence-free, though: the moment this submits,
+          every customer standing at the counter with a phone gets nothing.
+          Cancelling ONE customer's reward needs a reason and a ticked
+          consequence; stopping every scan in the venue needed only a reason,
+          which had the console's friction the wrong way round (04#19). The
+          checkbox carries no `name`, so this is a client-side gate only and
+          the server action's contract is unchanged. */}
+      {nextActive ? null : (
+        <AdminConfirmCheck label="I understand scans stop immediately at this venue." />
+      )}
       <SubmitButton
         pendingLabel={nextActive ? "Enabling…" : "Disabling…"}
-        variant={nextActive ? "secondary" : "outline"}
+        variant="secondary"
       >
         <Icon icon={nextActive ? ToggleOnIcon : Cancel01Icon} size={16} />
         {nextActive ? "Enable QR" : "Disable QR"}
