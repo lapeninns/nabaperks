@@ -44,7 +44,7 @@ export function AuthField({
             aria-pressed={revealed}
             aria-controls={id}
             aria-label={revealed ? "Hide password" : "Show password"}
-            className="focus-ring absolute top-1/2 right-1 grid size-10 -translate-y-1/2 place-items-center rounded-lg text-muted-foreground hover:text-foreground"
+            className="focus-ring absolute top-1/2 right-0.5 grid size-11 -translate-y-1/2 place-items-center rounded-lg text-muted-foreground hover:text-foreground"
           >
             <Icon
               icon={revealed ? ViewOffSlashIcon : ViewIcon}

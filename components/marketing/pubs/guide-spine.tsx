@@ -90,7 +90,10 @@ export function GuideSpine() {
         aria-controls="pub-guide-spine-list"
         onClick={() => setOpen((wasOpen) => !wasOpen)}
         className={cn(
-          "focus-ring w-full items-center justify-between gap-3 rounded-sm border-2 border-dashed border-line-strong px-3 py-2.5 text-left lg:hidden",
+          // min-h-11: this control only exists below `lg`, so it is only ever
+          // a touch target. It measured 39px against the product's 44px floor
+          // — and against the list it opens, whose items are 44px.
+          "focus-ring min-h-11 w-full items-center justify-between gap-3 rounded-sm border-2 border-dashed border-line-strong px-3 py-2.5 text-left lg:hidden",
           hydrated ? "flex" : "hidden"
         )}
       >
