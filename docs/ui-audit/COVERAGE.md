@@ -1106,3 +1106,27 @@ contract really was the only relevant file there.
 
 One defect, not a pattern — but the sweep was worth the ten minutes, because the
 cost of the one was a form button that silently did nothing.
+
+### Sticky is bound by its containing block, not the scrollport
+
+I nearly shipped a sticky filter bar that did nothing.
+
+Probe one: add `position:sticky` to a direct child of `section.surface-card`,
+scroll, watch `top` go 179 -> 0. Stuck. Ship it.
+
+Except production nests the lookup controls inside `AdminPanelHeader`, and a
+sticky element is bound by its **containing block**. That header is 174px tall.
+Re-running the same probe against the real shape — short header, long list as a
+sibling — the bar scrolled to **-1225px**.
+
+The probe was right about the mechanism and wrong about the page, because I had
+tested a DOM I invented rather than the DOM that ships. It would have passed
+review: a `sticky top-0 z-20` in the diff reads as working.
+
+The fix was to hoist the controls out of the header to be a direct child of the
+panel — the element that is actually tall — then re-probe in that exact shape
+(297 -> 0 at scrollY 1500, still 0 at 2800).
+
+Adds a fifth entry to the sabotage list: **a probe that models the wrong DOM
+position is as useless as a test that cannot fail.** Model the shipped tree, or
+measure on the shipped page.
