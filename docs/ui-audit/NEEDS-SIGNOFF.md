@@ -284,6 +284,18 @@ Relocating the pass face into a disclosure inside that same file keeps all
 three assertions matching (verified against the source string). Only deleting
 a component outright would break them. This is a conversion decision alone.
 
+**Now measurable, and worse than recorded.** `/offer/[token]` needs a live
+campaign token, so 02#64's central number had never been checked.
+`/dev/home-harness/offer-claim` mounts the real component with the fullest
+plausible campaign. On an iPhone SE the claim control sits at **1,077px**,
+**1.62 viewport heights** down a 1,213px page. The audit said ~760px.
+
+The sticky half is not separable: `claimAction` is the last child of the
+landing grid and sticky is bounded by its containing block (section 12), so
+it would have almost no travel where it sits. Hoisting and sticking are one
+change, and it is a conversion decision — but it can now be made against a
+measurement, and any restructure can be re-measured the same way.
+
 ### 01#55 — the three persona spokes
 
 | route                  |   height | words |
