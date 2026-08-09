@@ -209,7 +209,7 @@ function CardProgressPanel({
       ) : null}
       <Link
         href="/home"
-        className="inline-flex w-fit items-center gap-1.5 text-sm font-bold text-ink-soft underline-offset-4 transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:text-foreground hover:underline motion-reduce:transition-none"
+        className="inline-flex min-h-11 w-fit items-center gap-1.5 text-sm font-bold text-ink-soft underline-offset-4 transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:text-foreground hover:underline motion-reduce:transition-none"
       >
         <Icon icon={ArrowLeft01Icon} size={16} />
         Your cards

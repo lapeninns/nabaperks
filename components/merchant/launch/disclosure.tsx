@@ -42,7 +42,10 @@ export function Disclosure({
     >
       <summary
         className={cn(
-          "focus-ring flex cursor-pointer list-none items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-sm font-extrabold text-foreground sm:px-4 sm:py-3 [&::-webkit-details-marker]:hidden",
+          // min-h-11: this summary measured 40px on a touch device, 4px under the
+          // floor, while its marketing sibling (MarketingDisclosure) already
+          // holds 44px. Same control, same product, two answers.
+          "focus-ring flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-sm font-extrabold text-foreground sm:px-4 sm:py-3 [&::-webkit-details-marker]:hidden",
           summaryClassName
         )}
       >
