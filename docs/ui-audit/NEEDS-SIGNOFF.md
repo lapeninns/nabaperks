@@ -1854,3 +1854,240 @@ untouched because the pair is opt-in — but the audit console is auth-gated, so
 **no human has seen the wrapped bar at 768px or 1024px**. The behaviour is
 tested; the appearance at intermediate widths is not, and cannot be from here.
 One look at `/admin/audit` on a tablet width would close it.
+
+## 45. 04#26 — the audit action taxonomy, derived from the data, and why it is NOT unambiguous
+
+The remaining half of 04#26 is an "action-category filter" on `/admin/audit`. The
+blocker was recorded as "needs a product taxonomy" and left there. This round the
+taxonomy was derived **from the data** instead of proposed from product language,
+and the derivation is the finding: it does not close.
+
+### Method
+
+Every `insert into public.audit_logs` in `supabase/migrations/*.sql` was parsed —
+**110 sites across 161 migrations, all 110 parsed, none skipped**. The `action`
+value was recovered *positionally* against each insert's own column list (the
+column order is not uniform), which matters because **27** of the 110 write a
+variable or a `case` rather than a literal; each of those was resolved at its
+assignment (`saved_action :=`, `v_action :=`, `action_name :=`, `audit_action :=`,
+`v_saved_action :=`, and five inline `case` expressions). The 2 TypeScript-side
+inserts in `app/admin/security/actions.ts:163,189` were added by hand.
+
+Result: **62 distinct actions**, over **21 distinct `target_table`s**.
+
+### The test: DESIGN.md's only shipped taxonomy
+
+DESIGN.md does contain a category vocabulary, in **Badges & Tags**:
+
+> "Merchant activity categories map to the same spot-ink story everywhere:
+> customer joins are cobalt, stamps are vermillion, rewards are leaf, QR events
+> are sun, and account events stay quiet secondary/plain."
+
+Those five are real and implemented (`ActivityCategory` and `eventsByCategory` in
+`lib/merchant/activity-display.ts`, toned by `components/brand/category-badge.tsx`).
+If they covered `audit_logs.action`, this finding would close today. They do not.
+
+| group | actions |
+| --- | --- |
+| stamp — MAPS (2) | `stamp_issued`, `stamp_adjusted` |
+| qr — MAPS (4) | `qr_created`, `qr_regenerated`, `qr_enabled`, `qr_disabled` |
+| reward — MAPS (7) | `birthday_reward_saved`, `direct_reward_issued`, `reward_cancelled`, `reward_expired_cycle_released`, `reward_invite_created`, `reward_redeemed`, `reward_redemption_failed` |
+| offers — HOMELESS (10) | `offer_campaign_claimed`, `offer_campaign_drafted`, `offer_campaign_ended`, `offer_campaign_paused`, `offer_campaign_published`, `offer_campaign_resumed`, `offer_campaign_token_installed`, `offer_campaign_token_rotated`, `offer_campaigns_allowlist_set`, `offer_pass_redeemed` |
+| launch / pilot ops — HOMELESS (7) | `launch_fee_satisfied`, `launch_self_service_checked`, `merchant_launch_delivered`, `merchant_launch_dispatched`, `merchant_launch_pilot_extended`, `pilot_note_logged`, `staff_training_timed` |
+| reward-pool config — HOMELESS (7) | `reward_pool_item_activated`, `reward_pool_item_archived`, `reward_pool_item_created`, `reward_pool_item_deactivated`, `reward_pool_item_deleted`, `reward_pool_item_existing`, `reward_pool_item_updated` |
+| invites — HOMELESS (5) | `loyalty_invite_campaign_cancelled`, `loyalty_invite_campaign_confirmed`, `loyalty_invite_campaign_drafted`, `loyalty_invite_claimed`, `loyalty_invites_allowlist_set` |
+| security — HOMELESS (5) | `admin_mfa_factor_unenrolled`, `admin_mfa_unenrollment_authorised`, `staff_pin_changed`, `staff_pin_rotated`, `staff_pin_set` |
+| privacy / consent — HOMELESS (4) | `consent_opt_out_recorded`, `customer_data_exported`, `customer_pii_erased`, `data_request_logged` |
+| merchant lifecycle — HOMELESS (3) | `merchant_cancel_reason_recorded`, `merchant_cancellation_interview_recorded`, `merchant_onboarded` |
+| fraud — HOMELESS (2) | `fraud_flag_created`, `fraud_flag_resolved` |
+| referrals — HOMELESS (2) | `referral_code_disabled`, `referral_reviewed` |
+| commercial evidence — HOMELESS (2) | `commercial_evidence_drafted`, `commercial_evidence_published` |
+| card config — HOMELESS (2) | `loyalty_card_created`, `loyalty_card_updated` |
+
+**13 of 62 map. 49 of 62 (79%) do not.**
+
+### Why they do not — and it is not a gap in the doc
+
+The clause is scoped, in its own first word, to **merchant activity**. That
+vocabulary describes `product_events` — what a venue and its customers *did*.
+`audit_logs` is the internal-admin trail: who *exercised authority* over a record,
+including authority no merchant has. Offers, launch/pilot operations, reward-pool
+configuration, MFA unenrolment, PII erasure and fraud adjudication are not
+"merchant activity" in any sense the five categories were written for.
+
+The failure mode is not cosmetic. Forcing the homeless 49 into the nearest of five
+would print `customer_pii_erased` under a cobalt **Customer** chip beside
+`loyalty_invite_claimed` — an irreversible erasure badged as a join, on the one
+surface an operator reads to answer a compliance question. A wrong filter here is
+worse than no filter, which is why nothing was shipped.
+
+### Two implementable options, both unambiguous, for whoever signs this off
+
+**Option A — filter on `target_table` (recommended).** It is a column co-written
+on all 110 inserts, so it needs no naming judgement at all, and `/admin/audit`
+*already prints it* in the Target column (`AuditTarget`, `page.tsx`). The operator
+question it answers — "what did this touch" — is the one the trail is usually read
+for. 21 values, so a `<select>`, not a chip row:
+
+| `target_table` | insert sites |
+| --- | ---: |
+| `billing_customers` | 1 |
+| `commercial_evidence_cases` | 1 |
+| `consent_records` | 1 |
+| `customer_memberships` | 16 |
+| `customers` | 9 |
+| `fraud_flags` | 2 |
+| `loyalty_cards` | 7 |
+| `loyalty_invite_campaigns` | 4 |
+| `loyalty_invite_recipients` | 2 |
+| `merchant_cancellation_interviews` | 1 |
+| `merchant_launch_fulfilments` | 3 |
+| `merchants` | 8 |
+| `offer_campaign_claims` | 2 |
+| `offer_campaigns` | 8 |
+| `offer_redemptions` | 1 |
+| `pending_reward_invites` | 2 |
+| `qr_codes` | 11 |
+| `referrals` | 2 |
+| `reward_events` | 16 |
+| `reward_pool_items` | 9 |
+| `staff_users` | 4 |
+
+**Option B — filter on the exact action.** Also zero-invention, and the audit page
+already prints the raw token in `.mono-id` beneath the spoken name with the
+comment "operators still need the raw token to grep for" — a filter is that
+comment's logical end. Costs a discoverable list of 62.
+
+**Security note for either.** Unlike `?sort=`, this token becomes a *value* in
+`.eq("action", …)`, not a column in `.order(…)`. PostgREST parameterises the
+value, so a shape check (`^[a-z][a-z0-9_]{2,63}$`) is sufficient and a closed
+62-entry allowlist is not required — and an allowlist would silently hide any
+action written before it drifted. Both options follow the existing opt-in
+precedent (`withDateRange` on `AdminLookupControls`), so the other five lookup
+surfaces stay byte-identical.
+
+Neither was implemented, because *which* of the two is the product's answer is
+exactly the judgement this entry exists to escalate.
+
+## 46. CONFLICT — DESIGN.md's 14px/22px rhythm is unreachable, and the console ships 24px (05#65)
+
+Checking 05#65's ConsoleSection decline against DESIGN.md, as asked, turned up a
+conflict between the document and the tree that no lane should resolve alone.
+
+**Layout & Spacing** states:
+
+> "4px base unit. 14px gaps between cards, 22px between sections."
+
+The console ships neither. Counted independently this round across `app/app` +
+`app/admin`:
+
+| utility | px | occurrences |
+| --- | ---: | ---: |
+| `gap-6` | 24 | 42 |
+| `gap-2` | 8 | 29 |
+| `gap-4` | 16 | 17 |
+| `gap-3` | 12 | 15 |
+| `gap-1` | 4 | 13 |
+| `gap-5` | 20 | 6 |
+| `gap-2.5` / `gap-1.5` / `gap-0.5` | 10 / 6 / 2 | 1 each |
+| `gap-8`, `space-y-*` | — | **0** |
+
+Three things follow, and the third is the conflict:
+
+1. The dominant console gap is **24px**, 2px above the published section figure.
+2. The published **14px card gap is used zero times**, although Tailwind ships it
+   as `gap-3.5`. It is reachable and unused.
+3. **22px is not reachable at all.** There is no `gap-5.5` in the default scale,
+   and *neither 14 nor 22 is a multiple of the 4px base unit the same sentence
+   declares*. DESIGN.md's two spacing numbers are mutually inconsistent with its
+   own base unit and cannot be expressed through the utility scale without
+   minting tokens.
+
+**Which the code currently obeys:** the code obeys neither — it obeys Tailwind's
+4px-multiple scale, which is what the "4px base unit" half of the clause says, and
+ignores the "14px / 22px" half.
+
+**Recommendation: change DESIGN.md, not the 42 grids.** 14 and 22 read like
+measurements taken off an early comp and written down as law; they contradict the
+base unit in the same breath, and honouring them means minting two tokens and
+touching every console grid to move a card gap by 10px and a section gap by 2px —
+a change nobody can see and every reviewer must check. Recording 16px/24px (or
+whatever the design owner intends) would make the document describe the system
+that exists and is internally consistent. If instead the 14/22 figures are
+deliberate, they need `--gap-card` / `--gap-section` tokens plus a `tokens:check`
+rule, and *that* is the ConsoleSection-scale job 05#65 was declined for.
+
+**The 05#65 decline itself stands** on its original reasoning — 42 grids is
+cross-cutting and `ConsoleSection` is still nobody's component. What changed is
+the reason: this is a doc-vs-code conflict in which the doc is the likelier thing
+to be wrong, and picking a winner silently is how a 2px drift becomes a migration.
+
+## 47. 04#54 — the panel-description budget, priced in DESIGN.md's own units
+
+Costed already: nine panel descriptions across five admin surfaces measure 408px;
+at the audit's 90-character budget they measure 216px. The open question was never
+the number, it was *what procedure may be hidden*. DESIGN.md sharpens both halves.
+
+**Layout & Spacing** — "14px gaps between cards, 22px between sections" — converts
+the saving into console rhythm: 192px is **~8.7 section gaps** of admin pushed
+below the fold, on surfaces whose purpose is a dense table the operator came to
+read. That is a real cost to leaving it.
+
+**Typography** supplies the register the audit never named. A panel description is
+not spoken body copy; it is printed metadata — "Space Mono for everything printed
+— IDs, codes, dates, eyebrows, feeds, metadata" — for which the sanctioned size is
+`.mono-meta` at 11.5px, with `.mono-id` at 10px as the floor ("10px is the system
+floor: nothing renders text below it"). Shortening these is moving them toward the
+register they already belong to, not truncating prose.
+
+**Recommendation: cut the eight operational descriptions to the 90-character
+budget (~144px, ~6.5 section gaps) and leave the privacy workflow description at
+220 chars (48px).** It is the legal-adjacent one — procedure a human is
+accountable for — and 48px is a cheap price for not hiding it. Seven of nine
+already exceed the budget and every description at or under it measured one line,
+so the change is bounded and predictable.
+
+**Not implemented.** Cutting product copy is excluded by standing instruction this
+round. This is the recommendation only.
+
+## 48. 05#13 — cut two rungs, not five (Button size API)
+
+Excluded from implementation by standing instruction; this is the recommendation.
+
+`components/ui/button.tsx:38-50` declares nine size rungs. Counted this round by a
+deliberately loose method — every `size="…"` attribute under `app/` + `components/`,
+an **upper** bound because it also catches non-Button consumers:
+
+| rung | uses | DESIGN.md names it? |
+| --- | ---: | --- |
+| `lg` | 81 | no |
+| `sm` | 77 | **yes** |
+| `xs` | 8 | **yes** |
+| `icon-sm` | 6 | **yes** |
+| `default` | 6 | no |
+| `icon` | 4 | no |
+| `icon-lg` | 2 | no |
+| `xl` | **0** | no |
+| `icon-xs` | **0** | no |
+
+An upper bound of zero is a true zero, so `xl` and `icon-xs` are provably dead
+however call sites are counted.
+
+DESIGN.md blocks the audit's proposed shape of cut. **Layout & Spacing**:
+
+> "Compact button sizes (`xs`/`sm`/`icon-sm`) are honest: they render at their
+> declared height on fine pointers and grow to the 44px floor on coarse (touch)
+> pointers, the FilterPills pattern."
+
+Those three are named individually, are all in live use, and the coarse-pointer
+promise is implemented literally (`[@media(pointer:coarse)]:min-h-11` on lines
+39-48). A cut to four rungs cannot take them without editing DESIGN.md first.
+**Buttons** specifies only the silhouette ("2px ink border, 10px radius, weight
+700, hard 3px offset shadow") and never the ladder, so nothing else in the doc
+defends the remaining rungs either.
+
+**Recommendation: delete `xl` and `icon-xs` only — a 9→7 cut with zero call-site
+churn and zero DESIGN.md edits** — and keep `xs`/`sm`/`icon-sm` (doc-named) and
+`icon-lg` (2 live uses). Against the audit's 9→4 cut, which the earlier row
+measured at ~90 live call sites. Even this no-op version is still the Button
+size-variant API removal the standing instruction excludes, so it was not done.
