@@ -1284,3 +1284,23 @@ That is now the second time this session a "defect" turned out to be a decision
 recorded in a comment near the code (the other: `robots: index:false` on the
 venue spokes). Both times the comment was one scroll away from where I was
 already reading. **Read the file, not just the line.**
+
+### What the corrected sweep actually found
+
+Public routes: two defects (pub spine toggle 39px, password reveal 40x40), one
+documented decision left alone (36px footer links).
+
+`/dev` harnesses — the only view of the auth-gated app, merchant and customer
+surfaces — four more, all in shared components: two standalone navigation links
+at **20px** (merchant "Edit venue details", the customer's back-to-cards link),
+`NextActionRow` on the console home at 40px, and the merchant `Disclosure`
+summary at 40px.
+
+Six real defects across 85 routes, none of them in the 347 findings, all found by
+one probe that took an afternoon and two attempts to write correctly.
+
+The three survivors were each checked rather than counted: a 20x20 checkbox whose
+`<label>` is a clickable 66x333, the brand logo mark, and the design-system
+catalogue's own specimens of small controls. **A sweep is only as good as its
+false-positive triage** — the first version of this one reported 23 routes of
+defects and every single one was wrong.
