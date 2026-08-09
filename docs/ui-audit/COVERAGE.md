@@ -1130,3 +1130,18 @@ panel — the element that is actually tall — then re-probe in that exact shap
 Adds a fifth entry to the sabotage list: **a probe that models the wrong DOM
 position is as useless as a test that cannot fail.** Model the shipped tree, or
 measure on the shipped page.
+
+### One defect the audit never found, and where it came from
+
+`/dev/design-system` listed `rounded-lg` twice and omitted `rounded-sm`, so the
+page whose job is to document the radius scale was hiding a step of it, and
+React logged a duplicate-key warning on every render (the class name is the key).
+
+No finding in any of the five sub-audits mentions it. I did not find it by
+looking either — it was in the dev server output of an admin e2e run I was doing
+for an unrelated reason.
+
+Worth noting as a method point: **the server log during a test run is free
+evidence, and I had been discarding it for 290 commits.** Every `tail -3` on a
+Playwright run threw away the lines above it. The one time I read them, there was
+a real defect sitting in plain sight.
