@@ -50,7 +50,22 @@ test("no console errors or warnings on core routes", async ({ page }) => {
       waitUntil: "domcontentloaded",
       timeout: 120000,
     })
-    expect(response?.status(), `${route} should render`).toBeLessThan(400)
+    // `page.goto` resolves to null for a same-document navigation, and under a
+    // saturated worker pool that happens often enough to matter. Asserting on
+    // `response?.status()` then throws "received value must be a number" — my
+    // own guard failing for a reason that has nothing to do with what it
+    // guards. Check the status when there is one, and otherwise check the
+    // thing actually cared about: that a document rendered.
+    if (response) {
+      expect(response.status(), `${route} should render`).toBeLessThan(400)
+    } else {
+      const rendered = await page.evaluate(
+        () =>
+          document.readyState !== "loading" &&
+          document.body.childElementCount > 0
+      )
+      expect(rendered, `${route} should render (no response object)`).toBe(true)
+    }
     await page.waitForTimeout(1500)
   }
 
