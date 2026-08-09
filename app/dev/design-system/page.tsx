@@ -104,7 +104,21 @@ const COLOR_TOKENS: { name: string; className: string; ink?: boolean }[] = [
   { name: "destructive", className: "bg-destructive" },
 ]
 
-const RADIUS_TOKENS = ["rounded-md", "rounded-lg", "rounded-lg", "rounded-full"]
+// The real scale from globals.css, one swatch each. This read
+// `["rounded-md", "rounded-lg", "rounded-lg", "rounded-full"]` — `rounded-lg`
+// twice and `rounded-sm` missing — so the catalogue silently under-documented
+// the scale AND React logged a duplicate-key warning on every render, because
+// the class name is the key.
+//
+// `--radius-sheet` is included because globals.css names it a token
+// deliberately, to stop sheets reaching for a raw `rounded-t-[18px]`.
+const RADIUS_TOKENS = [
+  "rounded-sm",
+  "rounded-md",
+  "rounded-lg",
+  "rounded-(--radius-sheet)",
+  "rounded-full",
+]
 
 const SHADOW_TOKENS = [
   { name: "shadow-xs", className: "shadow-xs" },
