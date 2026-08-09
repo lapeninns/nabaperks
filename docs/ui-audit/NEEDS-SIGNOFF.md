@@ -164,7 +164,7 @@ call `headers()`, which makes the root layout dynamic and de-optimises every
 prerendered marketing page — a much larger regression than the problem, and it
 collides with the LCP work in section 10.
 
-## 7. 01#49 — a measured CLS 0.19 on the SEO hub, held open by one assertion
+## 7. CORRECTED — 01#49's CLS 0.19 was a dev-server artefact; production is 0.00
 
 The marketing lane wrote the fix, hit the contract, and reverted. I have now
 measured what that costs, so the renegotiation can be decided on numbers.
@@ -217,6 +217,44 @@ formatting technicality and I have not touched it.
 
 Either way the assertion needs rewriting to express the intent rather than the
 implementation. Recommend option 2 and an assertion on the rendered guarantee.
+
+### CORRECTED — the 0.19 is a dev-server artefact; production CLS is 0.00
+
+I re-measured before proposing the renegotiation, and the premise does not
+survive.
+
+The 0.1924 (and my re-run's 0.2070) came from Playwright against `pnpm dev`.
+Running the **identical probe** against a production build (`pnpm start`):
+
+| build          | CLS on /loyalty-for-pubs |
+| -------------- | ------------------------ |
+| dev server     | 0.2070                   |
+| **production** | **0.0000**               |
+
+Lighthouse agrees, on the production build, mobile emulation, 3 runs each:
+**0.0517 / 0.0517 / 0.0000** before the font subsetting and **0.0000 / 0.0000 /
+0.0000** after. Google's "good" threshold is 0.100.
+
+Why the difference: in dev, CSS and fonts are injected asynchronously and the
+hydration pass is far slower, so the collapse lands after paint. In the built
+artefact it does not.
+
+Two supporting facts from the same investigation:
+
+- The collapsing section list sits at **top 1295px** on a 390x844 viewport. It
+  is below the fold, so even when it does collapse it moves no visible content —
+  which is why forcing it open (`useState(true)`) changed CLS by **zero**, to
+  sixteen decimal places. I tried exactly that, saw the identical number, and
+  reverted it as an unforced UX change.
+- The real shift the dev observer attributes the 0.207 to is text moving 32px at
+  the top of the page, not the spine at all.
+
+**So there is nothing to renegotiate.** The contract assertion stands unmodified,
+01#49's stated defect does not exist in the shipped artefact, and section 18's
+dependency dissolves with it.
+
+Standing lesson: **Core Web Vitals measured against a dev server are not
+evidence.** This one nearly bought a contract renegotiation.
 
 ## 8. The copy/product decisions, measured
 
@@ -752,7 +790,7 @@ Three ways to resolve it, in the order I would consider them:
 03#25 is back to `[~]` until one of those is chosen. I would rather correct a
 closure than carry a green mark that a reader would find wrong in one grep.
 
-## 18. 01#60 waits on 01#49 — one decision, not two
+## 18. UNBLOCKED — 01#60 no longer waits on 01#49
 
 These read as separate blocked findings and are the same one.
 
@@ -783,6 +821,19 @@ available. Until then the guides keep the disclosure, which has no shift at all.
 
 Doing 01#60 "properly" first would make the site more consistent and measurably
 worse.
+
+### UNBLOCKED — 01#49 dissolved, so the ordering constraint is gone
+
+Section 7 now shows the CLS defect does not exist in a production build
+(0.0000, three Lighthouse runs plus a direct probe). The reason for not reusing
+`GuideSpine` was "it would spread a measured layout-shift defect to every
+guide". There is no such defect to spread.
+
+What remains of 01#60 is therefore an ordinary refactor with no blocker: extract
+a generic TOC from `GuideSpine`, keeping the one pinned line, and use it for the
+guides and legal families. It is real work and it touches a contract-pinned
+component, so it wants its own careful pass rather than being tacked onto this
+one — but it is no longer waiting on a decision from anyone.
 
 ## 19. 02#10 — the wallet tile, measured and de-risked
 
