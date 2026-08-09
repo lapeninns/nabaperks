@@ -2,12 +2,14 @@ import { AdminViewTabs } from "@/components/admin/view-tabs"
 import { PageTitle } from "@/components/brand"
 import { canRenderAdminPage } from "@/lib/admin/auth"
 import {
+  getAdminFraudFlags,
   getAdminFraudQueueCounts,
-  getAdminFraudSignals,
+  getAdminRedemptionFailures,
   type AdminFraudQueue,
 } from "@/lib/admin/data"
 import {
   buildLookupHref,
+  parseAdminLookupParams,
   type AdminSearchParamValue,
   type AdminSearchParams,
 } from "@/lib/admin/lookup-query"
@@ -36,6 +38,11 @@ type AdminFraudPageProps = {
  * redemption failures. The queue now defaults to open work, exposes Open /
  * High / All with live counts, and the failures list is a fourth view rather
  * than a permanently co-visible panel.
+ *
+ * Both views take the shared venue lookup and paginator (04#6). Only the active
+ * view is read: the two lists share one `?page=` because they are never
+ * co-visible, and the tab counts come from head-only counts rather than from
+ * the length of a loaded window.
  */
 export default async function AdminFraudPage({
   searchParams,
@@ -44,16 +51,34 @@ export default async function AdminFraudPage({
 
   const params = searchParams ? await searchParams : {}
   const view = parseFraudView(params.queue)
+  const lookup = parseAdminLookupParams(params)
   const queue: AdminFraudQueue = view === "failures" ? "all" : view
 
-  const [fraud, counts] = await Promise.all([
-    getAdminFraudSignals(queue),
+  // Counts first so the loader the service-role guard contract inspects is the
+  // first thing awaited after the gate, and so the tab counts are a head-only
+  // count rather than the length of whichever window happens to be loaded.
+  const [counts, flags, failures] = await Promise.all([
     getAdminFraudQueueCounts(),
+    view === "failures" ? null : getAdminFraudFlags(queue, lookup),
+    view === "failures" ? getAdminRedemptionFailures(lookup) : null,
   ])
 
   const hrefForView = (next: FraudView) =>
     buildLookupHref("/admin/fraud", {
       queue: next === "open" ? undefined : next,
+      // A view switch keeps the venue the operator is investigating but starts
+      // that view at its own first page — page 7 of the flags queue is not
+      // page 7 of the failures list.
+      venue: lookup.venue,
+      size: lookup.size,
+    })
+
+  const hrefForPage = (page: number) =>
+    buildLookupHref("/admin/fraud", {
+      queue: view === "open" ? undefined : view,
+      venue: lookup.venue,
+      page,
+      size: lookup.size,
     })
 
   return (
@@ -90,23 +115,29 @@ export default async function AdminFraudPage({
             id: "failures",
             label: "Redemption failures",
             href: hrefForView("failures"),
-            count: fraud.failures.length,
+            count: counts.failures,
           },
         ]}
       />
 
-      {view === "failures" ? (
+      {failures ? (
         <RedemptionFailuresPanel
-          failures={fraud.failures}
-          total={fraud.failureTotal}
+          failures={failures.rows}
+          meta={failures.meta}
+          lookup={lookup}
+          view={view}
+          hrefForPage={hrefForPage}
         />
-      ) : (
+      ) : null}
+      {flags ? (
         <FraudFlagsPanel
-          flags={fraud.fraudFlags}
-          total={fraud.flagTotal}
+          flags={flags.rows}
+          meta={flags.meta}
+          lookup={lookup}
           queue={view}
+          hrefForPage={hrefForPage}
         />
-      )}
+      ) : null}
     </div>
   )
 }

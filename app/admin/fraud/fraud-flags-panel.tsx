@@ -17,13 +17,22 @@ import {
   formatAdminAction,
   formatAdminAuditDate,
 } from "@/components/admin/support"
+import {
+  AdminAppliedFilters,
+  AdminLookupControls,
+  AdminLookupPagination,
+} from "@/components/admin/lookup-controls"
 import { Icon, SectionHeader, type IconGlyph } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { SubmitButton } from "@/components/forms"
 import { Input } from "@/components/ui/input"
-import type { getAdminFraudSignals } from "@/lib/admin/data"
+import type { getAdminFraudFlags } from "@/lib/admin/data"
+import type {
+  AdminLookupState,
+  AdminPageMeta,
+} from "@/lib/admin/lookup-query"
 
-type FraudFlags = Awaited<ReturnType<typeof getAdminFraudSignals>>["fraudFlags"]
+type FraudFlags = Awaited<ReturnType<typeof getAdminFraudFlags>>["rows"]
 type FraudFlag = FraudFlags[number]
 
 /**
@@ -49,20 +58,18 @@ const QUEUE_DESCRIPTION: Record<string, string> = {
 
 export function FraudFlagsPanel({
   flags,
-  total,
+  meta,
+  lookup,
   queue = "open",
+  hrefForPage,
 }: {
   readonly flags: FraudFlags
-  /** Server-side count for the active queue, before the 100-row window. */
-  readonly total?: number
+  readonly meta: AdminPageMeta
+  readonly lookup: AdminLookupState
   readonly queue?: string
+  readonly hrefForPage: (page: number) => string
 }) {
-  // The loader already asks PostgREST for an exact count and the page is capped
-  // at 100 rows, but the count was discarded — so past 100 flags the table
-  // looked like the whole queue and an operator could reasonably conclude
-  // there was nothing else to triage (ADM 04#6). Only shown when the window
-  // actually truncates, so the ordinary case gains no chrome.
-  const truncated = typeof total === "number" && total > flags.length
+  const searching = Boolean(lookup.venue)
 
   return (
     <AdminPanel>
@@ -71,13 +78,25 @@ export function FraudFlagsPanel({
         description={QUEUE_DESCRIPTION[queue] ?? QUEUE_DESCRIPTION.all}
         actions={<SourceLabel>Source: service-role admin readback</SourceLabel>}
       />
-      {truncated ? (
-        <p role="status" className="text-sm text-muted-foreground">
-          Showing the newest{" "}
-          <span className="numeric-tabular">{flags.length}</span> of{" "}
-          <span className="numeric-tabular">{total}</span> flags in this queue.
-        </p>
-      ) : null}
+      {/* The queue was the newest 100 flags with no filter and a truncation
+          notice, because severity could only be ordered in memory (04#6). The
+          rank is a generated column now, so this list pages like its siblings.
+          Venue only: `fraud_flags.customer_id` is nullable, so a contact
+          fragment would need an inner join that silently drops customer-less
+          flags — exactly the anomaly rows this queue exists for. */}
+      <AdminLookupControls
+        sticky="padded"
+        basePath="/admin/fraud"
+        lookup={lookup}
+        label="Fraud flag lookup"
+        fields="venue"
+        hiddenParams={{ queue: queue === "open" ? undefined : queue }}
+      />
+      <AdminAppliedFilters
+        basePath="/admin/fraud"
+        lookup={lookup}
+        extraParams={{ queue: queue === "open" ? undefined : queue }}
+      />
       <DataTable
         caption="Admin fraud flag readback"
         cardBreakpoint="xl"
@@ -88,12 +107,18 @@ export function FraudFlagsPanel({
           <AdminEmptyState
             icon={AlertDiamondIcon}
             title={
-              queue === "open" ? "No open fraud flags" : "No fraud flags yet"
+              searching
+                ? "No matching fraud flags"
+                : queue === "open"
+                  ? "No open fraud flags"
+                  : "No fraud flags yet"
             }
             description={
-              queue === "open"
-                ? "Nothing is waiting for review. Switch to All flags to read resolved ones."
-                : undefined
+              searching
+                ? "No flag in this queue belongs to a venue whose name contains that fragment. Clear the search, or switch queue."
+                : queue === "open"
+                  ? "Nothing is waiting for review. Switch to All flags to read resolved ones."
+                  : undefined
             }
             padded={false}
           />
@@ -200,6 +225,14 @@ export function FraudFlagsPanel({
           />
         )}
       />
+      {meta.total > 0 ? (
+        <AdminLookupPagination
+          label="Fraud flag pages"
+          unit="flags in this queue"
+          meta={meta}
+          hrefForPage={hrefForPage}
+        />
+      ) : null}
     </AdminPanel>
   )
 }

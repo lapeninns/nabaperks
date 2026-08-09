@@ -356,3 +356,139 @@ test("Given the auth-gate regression spec When source is inspected Then it cover
   assert.match(spec, /page=/)
   assert.match(spec, /\/login/)
 })
+
+
+// contract-admin-member-lookup R1/R2, extended to the fraud queue (ADM 04#6) —
+// the last capped admin list, and the one that could not simply copy the
+// pattern. It stayed a hard newest-100 because `severity` is a text column
+// whose alphabetical order (high, low, medium) is not its severity order, so
+// the reader ranked its single window IN MEMORY. Paging that would rank each
+// page independently: a high-severity flag on page 3 below a low one on page 1.
+test("Given the fraud queue When source is inspected Then it ranks severity in SQL, pages a window, and keeps no fixed cap", () => {
+  const data = readProjectFile("lib", "admin", "data.ts")
+
+  const reader = data.slice(
+    data.indexOf("export async function getAdminFraudFlags"),
+    data.indexOf("export type AdminRedemptionFailure")
+  )
+  assert.notEqual(reader.length, 0, "the fraud flag reader exists")
+
+  // Ordered by the generated rank column FIRST, recency second, in SQL.
+  const rankOrder = reader.indexOf('.order("severity_rank"')
+  const recencyOrder = reader.indexOf('.order("created_at"')
+  assert.notEqual(rankOrder, -1, "the fraud queue orders by severity_rank")
+  assert.ok(
+    rankOrder < recencyOrder,
+    "severity_rank is the primary sort key, recency the tiebreak"
+  )
+  assert.match(reader, /\.range\(window\.from, window\.to\)/)
+  assert.match(reader, /count: "exact"/)
+  assert.doesNotMatch(reader, /\.limit\(/)
+  // The in-memory rank is what a paged read may not do.
+  assert.doesNotMatch(
+    reader,
+    /\.sort\(/,
+    "a paged fraud queue must not re-rank its own page in memory"
+  )
+  assert.doesNotMatch(
+    data,
+    /FRAUD_SEVERITY_RANK/,
+    "the severity rank has one home, the database column"
+  )
+
+  const failures = data.slice(
+    data.indexOf("export async function getAdminRedemptionFailures"),
+    data.indexOf("/** Bucket counts for the fraud queue tabs")
+  )
+  assert.notEqual(failures.length, 0, "the redemption failure reader exists")
+  assert.match(failures, /\.range\(window\.from, window\.to\)/)
+  assert.doesNotMatch(failures, /\.limit\(/)
+})
+
+// contract-admin-member-lookup: `severity_rank` is a GENERATED column, not a
+// written one, and its arms are in severity order. A plain rank column that a
+// writer keeps in sync would silently drift; the ordering the queue depends on
+// has to be a property of the row, not of the code that inserted it.
+test("Given the severity rank migration When the SQL is read Then the column is generated and ranks high above medium above low", () => {
+  const migration = readProjectFile(
+    "supabase",
+    "migrations",
+    "20260809100000_fraud_flag_severity_rank.sql"
+  )
+
+  assert.match(migration, /add column if not exists severity_rank smallint/)
+  assert.match(migration, /generated always as \(/)
+  assert.match(migration, /\)\s*stored;/)
+
+  const arms = [...migration.matchAll(/when '(high|medium|low)' then (\d+)/g)]
+  assert.equal(arms.length, 3, "every checked severity is ranked")
+  const ranks = Object.fromEntries(
+    arms.map((arm) => [arm[1], Number(arm[2])])
+  )
+  assert.ok(
+    ranks.high < ranks.medium && ranks.medium < ranks.low,
+    `rank arms are not in severity order: ${JSON.stringify(ranks)}`
+  )
+  // An unrecognised severity must sort last, not silently rank as high — the
+  // check constraint can be widened later.
+  assert.match(migration, /else (\d+)\s*\n?\s*end/)
+  const fallback = Number(/else (\d+)/.exec(migration)?.[1])
+  assert.ok(
+    fallback > ranks.low,
+    "an unrecognised severity must sort after every known one"
+  )
+  // Ordering that has no index is a sequential scan on a triage queue.
+  assert.match(migration, /create index if not exists\s+fraud_flags_severity_rank_created_at_idx/)
+})
+
+// contract-admin-member-lookup: the fraud surface takes the same query-param
+// lookup contract as the other admin lists, on both of its list views.
+test("Given the fraud page When source is inspected Then query params drive lookup and pagination on both views", () => {
+  const page = readProjectFile("app", "admin", "fraud", "page.tsx")
+  const flagsPanel = readProjectFile(
+    "app",
+    "admin",
+    "fraud",
+    "fraud-flags-panel.tsx"
+  )
+  const failuresPanel = readProjectFile(
+    "app",
+    "admin",
+    "fraud",
+    "redemption-failures-panel.tsx"
+  )
+
+  assert.match(page, /parseAdminLookupParams\(/)
+  assert.match(page, /buildLookupHref\(/)
+  // The paging href has to carry the active view, or paging the failures list
+  // silently returns the operator to the open-flag queue.
+  const pagingHrefs = [
+    ...page.matchAll(/buildLookupHref\([^)]*?\bpage[^)]*?\)/gs),
+  ]
+  assert.ok(pagingHrefs.length > 0, "the fraud page builds a paging href")
+  for (const href of pagingHrefs) {
+    assert.match(href[0], /\bqueue\b/, "a fraud paging href drops the view")
+    assert.match(href[0], /\bsize\b/, "a fraud paging href drops rows-per-page")
+    assert.match(href[0], /\bvenue\b/, "a fraud paging href drops the search")
+  }
+
+  for (const [name, source] of [
+    ["fraud flags", flagsPanel],
+    ["redemption failures", failuresPanel],
+  ]) {
+    assert.match(
+      source,
+      /AdminLookupControls/,
+      `${name} renders the lookup controls`
+    )
+    assert.match(source, /AdminLookupPagination/, `${name} renders pagination`)
+  }
+
+  // The tab count must be a server-side count, not the length of the window
+  // that happens to be loaded.
+  assert.doesNotMatch(
+    page,
+    /count: \w+\.(rows|failures)\.length/,
+    "a queue tab count must not be the length of a loaded page"
+  )
+})

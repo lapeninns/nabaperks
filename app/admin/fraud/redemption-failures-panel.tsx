@@ -5,30 +5,36 @@ import {
   AdminEmptyState,
   AdminPanel,
   SourceLabel,
-  first,
   formatAdminDate,
 } from "@/components/admin/support"
+import {
+  AdminAppliedFilters,
+  AdminLookupControls,
+  AdminLookupPagination,
+} from "@/components/admin/lookup-controls"
 import { SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
-import type { getAdminFraudSignals } from "@/lib/admin/data"
-
-type RedemptionFailures = Awaited<
-  ReturnType<typeof getAdminFraudSignals>
->["failures"]
+import type { AdminRedemptionFailure } from "@/lib/admin/data"
+import type {
+  AdminLookupState,
+  AdminPageMeta,
+} from "@/lib/admin/lookup-query"
 
 export function RedemptionFailuresPanel({
   failures,
-  total,
+  meta,
+  lookup,
+  view,
+  hrefForPage,
 }: {
-  readonly failures: RedemptionFailures
-  /** Server-side count, before the 100-row window. */
-  readonly total?: number
+  readonly failures: readonly AdminRedemptionFailure[]
+  readonly meta: AdminPageMeta
+  readonly lookup: AdminLookupState
+  /** The active fraud view, carried through the search and filter links. */
+  readonly view: string
+  readonly hrefForPage: (page: number) => string
 }) {
-  // Same 100-row window as the flags table, and until now the loader did not
-  // even ask for a count — so a support question like "how often is this
-  // failing?" was answered by a number that silently stopped at 100
-  // (ADM 04#6).
-  const truncated = typeof total === "number" && total > failures.length
+  const searching = Boolean(lookup.venue)
 
   return (
     <AdminPanel>
@@ -37,23 +43,41 @@ export function RedemptionFailuresPanel({
         description="Product-event failures retained for support analysis without exposing raw RPC payloads."
         actions={<SourceLabel>Source: product_events</SourceLabel>}
       />
-      {truncated ? (
-        <p role="status" className="text-sm text-muted-foreground">
-          Showing the newest{" "}
-          <span className="numeric-tabular">{failures.length}</span> of{" "}
-          <span className="numeric-tabular">{total}</span> recorded failures.
-        </p>
-      ) : null}
+      {/* Was the same hard newest-100 as the flags queue, with a truncation
+          notice and a tab count that was the length of the loaded window — so
+          "how often is this failing?" stopped counting at 100 (04#6). */}
+      <AdminLookupControls
+        sticky="padded"
+        basePath="/admin/fraud"
+        lookup={lookup}
+        label="Redemption failure lookup"
+        fields="venue"
+        hiddenParams={{ queue: view }}
+      />
+      <AdminAppliedFilters
+        basePath="/admin/fraud"
+        lookup={lookup}
+        extraParams={{ queue: view }}
+      />
       <DataTable
         caption="Admin redemption failure event readback"
         cardBreakpoint="xl"
         className="rounded-lg shadow-none"
-        rows={failures}
+        rows={[...failures]}
         getRowKey={(event) => event.id}
         emptyState={
           <AdminEmptyState
             icon={Cancel01Icon}
-            title="No redemption failures yet"
+            title={
+              searching
+                ? "No matching redemption failures"
+                : "No redemption failures yet"
+            }
+            description={
+              searching
+                ? "No recorded failure belongs to a venue whose name contains that fragment."
+                : undefined
+            }
             padded={false}
           />
         }
@@ -68,10 +92,7 @@ export function RedemptionFailuresPanel({
           {
             key: "merchant",
             header: "Merchant",
-            cell: (event) => {
-              const merchant = first(event.merchants)
-              return merchant?.business_name ?? "Merchant"
-            },
+            cell: (event) => event.merchant,
           },
           {
             key: "when",
@@ -86,29 +107,31 @@ export function RedemptionFailuresPanel({
             ),
           },
         ]}
-        mobileCard={(event) => {
-          const merchant = first(event.merchants)
-          return (
-            <AdminRecordCard
-              title={event.event_name}
-              fields={[
-                {
-                  label: "Merchant",
-                  value: merchant?.business_name ?? "Merchant",
-                },
-                {
-                  label: "When",
-                  value: (
-                    <time dateTime={event.created_at}>
-                      {formatAdminDate(event.created_at)}
-                    </time>
-                  ),
-                },
-              ]}
-            />
-          )
-        }}
+        mobileCard={(event) => (
+          <AdminRecordCard
+            title={event.event_name}
+            fields={[
+              { label: "Merchant", value: event.merchant },
+              {
+                label: "When",
+                value: (
+                  <time dateTime={event.created_at}>
+                    {formatAdminDate(event.created_at)}
+                  </time>
+                ),
+              },
+            ]}
+          />
+        )}
       />
+      {meta.total > 0 ? (
+        <AdminLookupPagination
+          label="Redemption failure pages"
+          unit="recorded failures"
+          meta={meta}
+          hrefForPage={hrefForPage}
+        />
+      ) : null}
     </AdminPanel>
   )
 }
