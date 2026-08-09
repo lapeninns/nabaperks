@@ -1489,3 +1489,32 @@ no longer existed. The contrast check filters on hex-resolvability. A tap-target
 sweep filters on `pointer: coarse`. A layout probe filters on stylesheets being
 loaded. Each one passes loudly and vacuously when its filter matches nothing,
 and only the assertion tells you.
+
+### Turning the vacuity lens on the contracts themselves
+
+The contract suite is the authority this campaign defers to — `tests/contracts/*`
+outrank audit opinion, and I have declined or blocked findings citing them
+(01#9, 03#47, 02#53). So it matters whether those assertions can fail.
+
+Scanned all 116 contract files for the `bundle:check` shape: a loop asserting
+over a collection that could be empty. Five candidates. **The repo had already
+guarded four of them:**
+
+    admin-member-lookup    assert.ok(windows.length >= 8), metas >= 8
+    print-brand-lockup     assert.equal(catalogues.length, 4)
+    offer-pass-redemption  asserts banner content before splitting it
+
+The fifth, `offer-campaign-ui`, filtered `OFFER_SURFACE_FILES` down to
+`components/` paths and looped with no length check. If that surface ever moved,
+five `@/lib/supabase/server` assertions would stop running silently. Guarded, and
+sabotage-verified — `startsWith("zzz/")` now yields "found 0" and a failure.
+
+Two things worth keeping from this:
+
+**Adding a non-emptiness assertion is not weakening a contract.** The standing
+rule is never to weaken or delete an assertion; this only ever makes the test
+harder to pass, so it is safe under that rule.
+
+**Four of five already guarded means this trap is known here.** The contracts
+were largely written by someone who had met it. My contribution was one missing
+case, not a systemic finding — which is the honest size of it.
