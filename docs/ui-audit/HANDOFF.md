@@ -69,7 +69,7 @@ claims question, not mine to make.
 
 ## BLOCKING before merge
 
-**Lighthouse LCP is red on three marketing routes** and green on main. Caused by
+**Lighthouse LCP (RESOLVED — see NEEDS-SIGNOFF 10) is red on three marketing routes** and green on main. Caused by
 this branch's two added font faces: 4 preloaded ~113KB .ttf on the critical path,
 measured at 4,854-5,265ms against a 4,000ms budget. woff2 recovers 1,622ms but
 `poster-font-assets` pins .ttf for PDF parity, so it is reverted and recorded.

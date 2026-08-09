@@ -290,7 +290,7 @@ product and arguably a consumer-terms decision, not a layout one. The legal
 sheet infrastructure (`components/customer/legal-sheet.tsx`) already exists if
 you want it.
 
-## 10. BLOCKING: this branch regresses Lighthouse LCP, and the obvious fix hits a contract
+## 10. RESOLVED — subsetting the two unpinned faces fixed the LCP regression
 
 CI is red on `Lighthouse (home)`, `(pricing)` and `(loyalty-for-pubs)`. All
 three pass on `main`. This is a real regression introduced by this branch and it
@@ -382,6 +382,40 @@ Nothing is weakened; the branch ships .ttf and the red Lighthouse check.
    -system raised.
 3. **Raise the LCP budget.** Not recommended without a reason beyond "our fonts
    got bigger".
+
+### RESOLVED — the "impossible" lever was possible for the half that mattered
+
+I closed this section saying the engineering levers were exhausted. They were
+not. The line "subsetting (impossible — the originals are hash-pinned)" is true
+of the originals and false of the two faces that actually cause the regression —
+which the same section had already established are unpinned. My own blocker tell
+number two, in my own document: _true of one half, applied to the whole._
+
+Bricolage carries 527 glyphs for an en-GB site. Subsetting to Latin, Latin-1,
+Latin Extended-A/B, combining marks and the punctuation/currency/arrow ranges
+drops 124 of them, mostly Vietnamese, taking each face 47KB -> 39KB.
+
+Measured on /loyalty-for-pubs, 3 runs per arm, same machine and build:
+
+| build  |               LCP |     FCP |
+| ------ | ----------------: | ------: |
+| before | 5,022/5,009/5,025 | 1,658ms |
+| subset | 3,625/3,771/3,627 | 1,205ms |
+
+`/` and `/pricing` land at 3,769ms and 3,773ms against a 4,000ms budget. All
+three previously failing routes pass locally, and the branch is now faster than
+`main` measured on the same machine (4,213ms).
+
+Kept against smaller files: combining marks and `mark`/`mkmk` (+4.4KB, because
+venue names are user-generated and may be decomposed), `tnum` (for
+`.numeric-tabular`), `kern`, and hinting (another 11KB per face was available,
+declined — not worth risking small-text rendering on a typography branch).
+
+`scripts/build-subset-fonts.sh` regenerates both faces from the .ttf sources.
+
+**No design decision is needed. This section no longer blocks the merge.** CI
+should be re-run to confirm the local result holds on the runner, whose variance
+was previously larger than the fix.
 
 ## 11. 02#20 — collapsing the card rails, corrected twice
 
