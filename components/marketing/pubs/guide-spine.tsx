@@ -123,7 +123,14 @@ export function GuideSpine() {
                 aria-current={active ? "true" : undefined}
                 onClick={() => setOpen(false)}
                 className={cn(
-                  "focus-ring flex items-baseline gap-2.5 rounded-sm border-l-2 py-1.5 pl-3 transition-colors",
+                  // `min-h-11` only below `lg`. Measured: these links are 36px
+                  // tall, and below `lg` this same list IS the phone
+                  // disclosure — a touch target 8px under the 44px floor the
+                  // rest of the product holds, including the guides' own
+                  // "On this page" list next door, which measures 44px.
+                  // The desktop rail stays dense, where it is a pointer target
+                  // in a sticky column and 36px is right.
+                  "focus-ring flex min-h-11 items-center gap-2.5 rounded-sm border-l-2 py-1.5 pl-3 transition-colors lg:min-h-0 lg:items-baseline",
                   active
                     ? "border-primary text-foreground"
                     : "border-border text-muted-foreground hover:border-line-strong hover:text-foreground"
