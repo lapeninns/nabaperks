@@ -1361,3 +1361,31 @@ without it).
 fix as a whole. A guard has to run in the environment where the defect exists.
 And when a defect is invisible in dev, every dev-based check you own is already
 lying to you about it.
+
+### Testing whether "dev hides defects" generalises — it does not
+
+The 320px overflow was invisible in dev, which raised a worrying question: the
+console-hygiene and touch-target guards both run against `next dev`, so what
+else were they missing?
+
+Re-ran both against a production build. **Console: clean. Touch targets: clean.**
+The gap is specific to that one layout defect, not a systematic blindness.
+
+The production tap run did flag two links at 43.12px, and the chase was
+instructive. `MARKETING_TEXT_LINK` already has `min-h-11`; root font-size was
+16px; `visualViewport.scale` was 1. The cause was an ancestor resting at
+`transform: matrix(0.98, 0, 0, 0.98, 0, 12)` — a scroll-reveal that had not
+fired because the element sat below the fold. Scrolled into view: exactly 44px.
+
+**A geometry probe that ignores reveal animations under-measures every target in
+an unrevealed section by 2%** — enough to turn 44 into 43 and manufacture a
+defect. The shipped guard was already safe because the config forces
+`reducedMotion: reduce`; the ad-hoc script I wrote to double-check it was not.
+That is the third distinct precondition this campaign has had to pin: stylesheets
+for layout, coarse pointer for tap targets, reduced motion for geometry.
+
+One more thing surfaced: sabotaging `profile-panel.tsx` alone left the guard
+passing, which briefly looked like the guard was broken. It was not —
+`app/dev/app-harness/account/page.tsx` **duplicates** that markup rather than
+importing the component, so the harness renders its own copy. A harness-based
+guard proves things about the harness, and harnesses drift.
