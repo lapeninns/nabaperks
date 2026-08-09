@@ -1209,3 +1209,44 @@ This is the same shape as 03#18, and worth stating as a rule: **the audit's
 "page it like the others" transfers only where the underlying read is already
 ordered the way the page displays it.** Merchants, audit, billing, referrals and
 the evidence ledger all are. Fraud and the members table are not.
+
+## 31. Three venue spokes are unreachable and unindexed, awaiting a decision the code calls pending
+
+`/loyalty-for-cafes`, `/loyalty-for-bars` and `/loyalty-for-takeaways` are
+complete, well-written pages that:
+
+- have **no inbound link** from anywhere on the site (crawled every internal
+  `<a href>` on every public route);
+- are **not in `PUBLIC_SITE_ROUTES`**, so they are not in the sitemap;
+- carry `robots: { index: false, follow: true }`, set deliberately by
+  `personaPageMetadata` for every non-primary persona;
+- each carry a `navLabel` ("Cafés", "Bars", "Takeaways") that **no component
+  renders**.
+
+The code states the intent: _"Keep discovery flowing to the supported pub-first
+offer while these unsupported vertical spokes await traffic/backlink evidence for
+a safe 301, consolidation, or retention decision."_
+
+So this is not a bug, and I reverted my own fix for it. The sitemap omission is
+correct for noindex pages, and adding hub links promotes pages that were
+deliberately de-emphasised.
+
+**But the pending decision is now several months old and has a cost.** The three
+pages are maintained — they are covered by `marketing-offer-source`, they render
+the same offer engine, they will keep appearing in every refactor — while being
+reachable only by typing the URL. The unrendered `navLabel` is the tell that a
+navigation was specified and then dropped.
+
+The three options the comment names, with what each implies:
+
+| option          | implies                                                                                                   |
+| --------------- | --------------------------------------------------------------------------------------------------------- |
+| **Retain**      | link them from `HubHandoff`, drop `index: false`, add to `PUBLIC_SITE_ROUTES`. Treats them as real pages. |
+| **Consolidate** | 301 each to `/loyalty-for-pubs`, delete the routes, keep `PERSONAS` for copy. Stops paying maintenance.   |
+| **Hold**        | status quo — but then `navLabel` should be deleted, because it advertises a nav that is not coming.       |
+
+Recommendation: **hold or consolidate**, not retain. Nothing in the repo suggests
+the traffic/backlink evidence arrived, and retaining is the only option that
+changes public SEO posture.
+
+This needs a marketing/SEO owner, not an engineer.

@@ -1185,3 +1185,18 @@ not "is reachable". The fix needed an edge from `/loyalty-for-pubs`, the page
 that is itself linked from `/`.
 
 Both facts came from re-running the same crawl. Cheap sweep, kept, run twice.
+
+**Then I reverted the whole fix.** The pages carry `robots: { index: false }`,
+set deliberately, with the reason in a comment: they are unsupported spokes
+awaiting a 301/consolidate/retain decision. Absent from the sitemap is CORRECT
+for a noindex page, and linking them from the hub promoted pages someone had
+chosen to de-emphasise. The finding was real; the diagnosis was wrong.
+
+What exposed it: sabotage-testing the reachability guard I was building. The
+sabotage **failed to fail**, and chasing why led to the sitemap having 14 entries
+that never included these three, which led to the `index: false`. A guard that
+cannot fail is not just useless — here, the reason it could not fail WAS the
+answer.
+
+Recorded as NEEDS-SIGNOFF 31. A link crawl can prove a page is unreachable. It
+cannot tell you whether that was on purpose.
