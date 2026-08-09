@@ -1333,6 +1333,19 @@ is listed as an `entry` in `knip.json`, and `launch-billing-local-stripe` assert
 the symbol exists. Deleting it means deleting a contract assertion, so it is
 escalated rather than done.
 
+**Costed, in a production build.** Both routes are public, so these are not
+dev-only numbers. Isolating the takeover aside by its `data-takeover-enquiry`
+hook to keep the comparison like-for-like:
+
+| viewport | landing sheet-part | canonical sheet |      delta |
+| -------- | -----------------: | --------------: | ---------: |
+| 375px    |           ~1,391px |         1,653px | **+262px** |
+| 1280px   |             ~929px |           977px |  **+48px** |
+
+So adopting the canonical sheet on `/` costs about a quarter-screen on a
+phone. That is the trade the decision turns on: one consistent commercial
+presentation across both routes, bought with ~262px of landing scroll.
+
 ### CLOSED — resolved with a ratchet, not a decision
 
 `pnpm deadexports:check` (in `quality:check`) now reports unused exports. The 233
