@@ -65,14 +65,16 @@ export default async function AdminAuditPage({
             description="Search by venue to answer questions about one merchant, and page through the whole trail rather than the newest hundred rows."
             actions={<SourceLabel>Source: audit_logs</SourceLabel>}
           />
-          <AdminLookupControls
-            basePath="/admin/audit"
-            lookup={lookup}
-            label="Audit log lookup"
-            fields="venue"
-          />
-          <AdminAppliedFilters basePath="/admin/audit" lookup={lookup} />
         </AdminPanelHeader>
+
+        <AdminLookupControls
+          sticky
+          basePath="/admin/audit"
+          lookup={lookup}
+          label="Audit log lookup"
+          fields="venue"
+        />
+        <AdminAppliedFilters basePath="/admin/audit" lookup={lookup} />
         <DataTable
           caption="Admin audit log readback"
           cardBreakpoint="xl"

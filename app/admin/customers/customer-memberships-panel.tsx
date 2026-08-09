@@ -50,12 +50,13 @@ export function CustomerMembershipsPanel({
             <SourceLabel>Source: service-role admin readback</SourceLabel>
           }
         />
-        <AdminLookupControls
-          basePath="/admin/customers"
-          lookup={lookup}
-          label="Membership lookup"
-        />
       </AdminPanelHeader>
+      <AdminLookupControls
+        sticky
+        basePath="/admin/customers"
+        lookup={lookup}
+        label="Membership lookup"
+      />
       {result ? (
         <>
           <DataTable

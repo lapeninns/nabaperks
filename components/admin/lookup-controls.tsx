@@ -10,6 +10,7 @@ import { SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { cn } from "@/lib/utils"
 import { SelectField } from "@/components/forms"
 import type { AdminLookupState, AdminPageMeta } from "@/lib/admin/lookup-query"
 import {
@@ -37,6 +38,7 @@ export function AdminLookupControls({
   label = "Member lookup",
   fields = "venue-and-contact",
   hiddenParams,
+  sticky = false,
 }: {
   readonly basePath: string
   readonly lookup: AdminLookupState
@@ -51,6 +53,19 @@ export function AdminLookupControls({
    * `next/form` submit rebuilds the query string from the form's own fields.
    */
   readonly hiddenParams?: Readonly<Record<string, string | undefined>>
+  /**
+   * Keep the search reachable while a long list scrolls (ADM 04#6). At 100 rows
+   * the shared DataTable is roughly 6,900px — about 7.7 viewport heights — so a
+   * search that only exists at the top of the page is a search an operator has
+   * to scroll back to.
+   *
+   * Sticky, not a shell-level bar: the admin shell's SidebarInset declares no
+   * overflow, so the nearest scrollport is the viewport and this sticks against
+   * it. Verified in a browser before shipping, because 04#26 is a standing
+   * reminder that sticky inside an `overflow-hidden` ancestor silently does
+   * nothing.
+   */
+  readonly sticky?: boolean
 }) {
   const withVenue = fields !== "contact"
   const withContact = fields !== "venue"
@@ -63,11 +78,17 @@ export function AdminLookupControls({
       action={basePath}
       role="search"
       aria-label={label}
-      className={
+      className={cn(
         withVenue && withContact
           ? "grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end"
-          : "grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
-      }
+          : "grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end",
+        // Designed to be a DIRECT child of a flush AdminPanel, which is why it
+        // carries its own px-5/py-4 and bottom border rather than negative
+        // margins. Inside AdminPanelHeader it would be useless: sticky is bound
+        // by its containing block, and that header is ~174px tall, so the bar
+        // would unstick almost immediately (measured).
+        sticky && "sticky top-0 z-20 border-b-2 border-ink bg-card px-5 py-4"
+      )}
     >
       {Object.entries(hiddenParams ?? {}).map(([name, value]) =>
         value ? (

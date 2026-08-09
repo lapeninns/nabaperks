@@ -219,13 +219,14 @@ function MerchantAccountsPanel({
             <SourceLabel>Source: service-role admin readback</SourceLabel>
           }
         />
-        <AdminLookupControls
-          basePath="/admin/merchants"
-          lookup={lookup}
-          label="Merchant lookup"
-          fields="venue"
-        />
       </AdminPanelHeader>
+      <AdminLookupControls
+        sticky
+        basePath="/admin/merchants"
+        lookup={lookup}
+        label="Merchant lookup"
+        fields="venue"
+      />
       <DataTable
         caption="Admin merchant account readback"
         cardBreakpoint="xl"
