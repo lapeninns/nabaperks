@@ -6,13 +6,7 @@ import { Icon, MonoTag } from "@/components/brand"
 import { FinePrint } from "@/components/marketing/fine-print"
 import { GUIDES } from "@/components/marketing/guides/guides-data"
 import { Button } from "@/components/ui/button"
-import {
-  OFFER,
-  PERSONAS,
-  PLAN_LINE,
-  PRODUCT,
-  ROUTES,
-} from "@/lib/marketing/facts"
+import { OFFER, PLAN_LINE, PRODUCT, ROUTES } from "@/lib/marketing/facts"
 
 /**
  * The hub's outbound end: the three guides, then the offer in three lines.
@@ -49,31 +43,6 @@ export function HubHandoff() {
           </li>
         ))}
       </ul>
-
-      {/* Hub -> sibling spokes. The three non-pub venue pages were orphans: a
-          crawl of every internal link on every public page found nothing
-          pointing at them. Linking them only to each other (the first attempt)
-          just built a closed loop still unreachable from the site, which the
-          re-crawl caught — so the edge has to come from here, the page that IS
-          linked from `/`, `/about` and the footer. Plain anchors, like the
-          guide links above, for the same crawlability reason. */}
-      <nav aria-label="Other venue types" className="grid gap-2">
-        <p className="text-sm leading-6 text-muted-foreground">Not a pub?</p>
-        <ul className="flex flex-wrap gap-x-4 gap-y-2">
-          {PERSONAS.filter((persona) => persona.slug !== "pubs").map(
-            (persona) => (
-              <li key={persona.slug}>
-                <Link
-                  href={persona.path}
-                  className="focus-ring rounded-sm text-sm leading-6 font-bold underline underline-offset-4"
-                >
-                  {persona.title}
-                </Link>
-              </li>
-            )
-          )}
-        </ul>
-      </nav>
 
       <div className="grid gap-4 rounded-lg border-2 border-ink bg-card p-5 shadow-sm sm:p-6">
         <MonoTag tone="accent" className="justify-self-start">

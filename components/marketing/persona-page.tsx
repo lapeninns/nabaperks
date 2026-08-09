@@ -20,7 +20,6 @@ import {
   GUARANTEE_ROI,
   MARKET,
   OFFER,
-  PERSONAS,
   PLAN_LINE,
   PRODUCT,
   ROUTES,
@@ -236,34 +235,6 @@ export function PersonaSpokePage({
             </Button>
           </div>
           <FinePrint>{PRODUCT.cancelLine}</FinePrint>
-          {/* Sibling spokes. Before this, /loyalty-for-cafes, -bars and
-              -takeaways were ORPHANS: a crawl of every internal link on every
-              public page found not one pointing at them. They were reachable
-              only from the sitemap or a direct URL, while each carried a
-              `navLabel` ("Cafés", "Bars", "Takeaways") that nothing rendered —
-              a nav that was specified and never built.
-
-              Labels come from PERSONAS, so this invents no copy and cannot
-              drift from the page titles. */}
-          <nav aria-label="Other venue types" className="grid gap-2 pt-2">
-            <p className="text-sm leading-6 text-muted-foreground">
-              Not a {persona.noun}?
-            </p>
-            <ul className="flex flex-wrap gap-x-4 gap-y-2">
-              {PERSONAS.filter((sibling) => sibling.slug !== persona.slug).map(
-                (sibling) => (
-                  <li key={sibling.slug}>
-                    <Link
-                      href={sibling.path}
-                      className="text-sm leading-6 font-bold underline underline-offset-4"
-                    >
-                      {sibling.title}
-                    </Link>
-                  </li>
-                )
-              )}
-            </ul>
-          </nav>
         </div>
       </Section>
       <JsonLd
