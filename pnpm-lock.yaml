@@ -198,8 +198,8 @@ importers:
         specifier: ^6
         version: 6.0.3
       vercel:
-        specifier: 56.5.0
-        version: 56.5.0
+        specifier: 57.0.0
+        version: 57.0.0
 
 packages:
 
@@ -2498,14 +2498,14 @@ packages:
     resolution: {integrity: sha512-ncQ8CRb6XoEAYJwjOTRGpACRT6h/AeY+/33gLyeVxG5BIes27OPm1jmqreF+JHjcTmGhClTP+kBpmyLfbV0xew==}
     engines: {node: '>=20.0.0'}
 
-  '@vercel/build-utils@13.34.0':
-    resolution: {integrity: sha512-DhbYXymwjO6N3prqBf7UzQFNpQIcHabe1qbiXxqqfjDJ5Tca9+MMYnU/+uObHrPBfR9FAXMxAwmkIUw59zJ7cw==}
+  '@vercel/build-utils@13.35.0':
+    resolution: {integrity: sha512-UQmy2Ht1S3Evz7V9IfA1MyK452gjfPwZRnjGVRV/iVrB9MSCg4tMKmXTVYIarRMuUPbBmnJpoJ1mXPI/pHkJvg==}
 
-  '@vercel/cli-auth@0.3.0':
-    resolution: {integrity: sha512-9nsdxUpV/L+9CBVGeRw/Qby2azhi2lk01jp0aTH+Hxx2U61+mAmbi5qChHnrbEmQdx2Ih7dp4LxO3nj1Q7f/5Q==}
+  '@vercel/cli-auth@0.3.1':
+    resolution: {integrity: sha512-TaMXMiPrwcLoLxu6ExcJ8yEw8b8Qss6UZkNYF4xIq+/VdvAk0l8JCpeAwzuHgKuJqmIDrOvtfjHO2+T/MBR3dg==}
 
-  '@vercel/cli-config@0.2.0':
-    resolution: {integrity: sha512-fJRRRB7734BDuXZ89yBEaA2ncYhH7bWX30mk04W80J6VAfQc+4iB8lyzAdaGpFV3/vNlkt9VZt+/uoQoWX6UsQ==}
+  '@vercel/cli-config@0.2.1':
+    resolution: {integrity: sha512-RhfyXmRLHdbnry8RJqHDc+5rGxMZ0bu+fpysZjtv3bE+BubpuwxTancHOKiH5zKQREsdwFVr3mOI2kOvxlOyxA==}
 
   '@vercel/detect-agent@1.2.3':
     resolution: {integrity: sha512-VYNCgUc0nOmC4WJmWw9GkrKdfr8Zl4/rxhC5SvgacBgxiW9W/9NRttUoHHXV8xdII3MaRgkZZVX8Ikzc/Jmjag==}
@@ -4103,6 +4103,9 @@ packages:
 
   jose@6.2.3:
     resolution: {integrity: sha512-YYVDInQKFJfR/xa3ojUTl8c2KoTwiL1R5Wg9YCydwH0x0B9grbzlg5HC7mMjCtUJjbQ/YnGEZIhI5tCgfTb4Hw==}
+
+  jose@6.2.8:
+    resolution: {integrity: sha512-Bsdjwm3Qsd/P0jR+BHDe3LytDfY7WBq2HmCCLIwuVRHMuEC9ae7/R474GIUdF1NgCyZjzVo/A9DOiOBtXq8ZoQ==}
 
   jpeg-js@0.4.4:
     resolution: {integrity: sha512-WZzeDOEtTOBK4Mdsar0IqEU5sMr3vSV2RqkAIzUEV2BHnUfKGyswWFPFwK5EeDo93K3FohSHbLAjj0s1Wzd+dg==}
@@ -5791,30 +5794,30 @@ packages:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
     engines: {node: '>= 0.8'}
 
-  vercel@56.5.0:
-    resolution: {integrity: sha512-wAKpT8DFSbnwlgbS711fbvxGjOfQeb1n+NcaBaSC4onq9eJAjbPfERrjrKE4GDsV8dkoBo0627lp0QxbLCGFiw==}
+  vercel@57.0.0:
+    resolution: {integrity: sha512-usxKPD1Lgewjq713pc1yE0MF2R5lLmWf1ws/WHyY5EQST/WZnkPPx6JkUirzMd1uxyO9PIjUR1c73AQsP6p7Xg==}
     engines: {node: '>= 18'}
     hasBin: true
     peerDependencies:
-      '@vercel/backends': 0.8.25
-      '@vercel/container': 0.0.5
-      '@vercel/elysia': 0.1.102
-      '@vercel/express': 0.1.116
-      '@vercel/fastify': 0.1.105
+      '@vercel/backends': 0.8.26
+      '@vercel/container': 0.1.0
+      '@vercel/elysia': 0.1.103
+      '@vercel/express': 0.1.117
+      '@vercel/fastify': 0.1.106
       '@vercel/go': 3.10.2
-      '@vercel/h3': 0.1.111
-      '@vercel/hono': 0.2.105
+      '@vercel/h3': 0.1.112
+      '@vercel/hono': 0.2.106
       '@vercel/hydrogen': 1.4.0
-      '@vercel/koa': 0.1.85
-      '@vercel/nestjs': 0.2.106
+      '@vercel/koa': 0.1.86
+      '@vercel/nestjs': 0.2.107
       '@vercel/next': 4.20.4
-      '@vercel/node': 5.8.26
-      '@vercel/python': 6.51.1
+      '@vercel/node': 5.8.27
+      '@vercel/python': 6.52.0
       '@vercel/redwood': 2.5.0
       '@vercel/remix-builder': 5.9.1
       '@vercel/ruby': 2.5.1
       '@vercel/rust': 1.4.0
-      '@vercel/static-build': 2.11.8
+      '@vercel/static-build': 2.11.9
     peerDependenciesMeta:
       '@vercel/backends':
         optional: true
@@ -5955,20 +5958,8 @@ packages:
       utf-8-validate:
         optional: true
 
-  ws@8.21.0:
-    resolution: {integrity: sha512-Vsp28b7DRcimFQvrqu2Wek3z1iYxDCWqHYB8Qsnk/S4RfaCQzPGPyBNuVjJV3cd6UiKtUtp6sNM77gWvzcCH+g==}
-    engines: {node: '>=10.0.0'}
-    peerDependencies:
-      bufferutil: ^4.0.1
-      utf-8-validate: '>=5.0.2'
-    peerDependenciesMeta:
-      bufferutil:
-        optional: true
-      utf-8-validate:
-        optional: true
-
-  ws@8.21.1:
-    resolution: {integrity: sha512-+0NTnW77fFN/DjQi6k/Sq/Yvk4Sgajw7urW8V+asjXnRgDs9gyGkdb7EzgfhA4goXsRIZKE28fzIXBHEzhuiWw==}
+  ws@8.21.3:
+    resolution: {integrity: sha512-201TZ/kPWxoPr/OKWjquZR1SWKXcvxdH+e1xrx89b3YbmzLMFCLfnaG1HFIgWzJOEWZ7MvpK++odZufgYR50Rw==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1
@@ -6883,7 +6874,7 @@ snapshots:
       express: 5.2.1
       express-rate-limit: 8.5.2(express@5.2.1)
       hono: 4.12.34
-      jose: 6.2.3
+      jose: 6.2.8
       json-schema-typed: 8.0.2
       pkce-challenge: 5.0.1
       raw-body: 3.0.2
@@ -8366,21 +8357,21 @@ snapshots:
       throttleit: 2.1.0
       undici: 6.28.0
 
-  '@vercel/build-utils@13.34.0':
+  '@vercel/build-utils@13.35.0':
     dependencies:
       '@vercel/python-analysis': 0.11.1
       cjs-module-lexer: 1.2.3
       es-module-lexer: 1.5.0
 
-  '@vercel/cli-auth@0.3.0':
+  '@vercel/cli-auth@0.3.1':
     dependencies:
       '@napi-rs/keyring': 1.2.0
-      '@vercel/cli-config': 0.2.0
+      '@vercel/cli-config': 0.2.1
       async-listen: 3.0.0
       open: 8.4.0
       zod: 4.1.11
 
-  '@vercel/cli-config@0.2.0':
+  '@vercel/cli-config@0.2.1':
     dependencies:
       xdg-app-paths: 5.5.1
       zod: 4.1.11
@@ -8437,7 +8428,7 @@ snapshots:
       tar-stream: 3.1.7
       undici: 7.29.0
       xdg-app-paths: 5.1.0
-      zod: 4.1.11
+      zod: 4.4.3
     transitivePeerDependencies:
       - bare-abort-controller
       - react-native-b4a
@@ -10223,6 +10214,8 @@ snapshots:
 
   jose@6.2.3: {}
 
+  jose@6.2.8: {}
+
   jpeg-js@0.4.4: {}
 
   js-library-detector@6.7.0: {}
@@ -11081,7 +11074,7 @@ snapshots:
       devtools-protocol: 0.0.1608973
       typed-query-selector: 2.12.2
       webdriver-bidi-protocol: 0.4.1
-      ws: 8.21.1
+      ws: 8.21.3
     transitivePeerDependencies:
       - bare-abort-controller
       - bare-buffer
@@ -11349,8 +11342,8 @@ snapshots:
       '@vercel/sandbox': 2.4.0
       async-retry: 1.3.3
       debug: 4.4.3
-      ws: 8.21.0
-      zod: 4.1.11
+      ws: 8.21.3
+      zod: 4.4.3
     transitivePeerDependencies:
       - bare-abort-controller
       - bufferutil
@@ -12073,12 +12066,12 @@ snapshots:
 
   vary@1.1.2: {}
 
-  vercel@56.5.0:
+  vercel@57.0.0:
     dependencies:
       '@vercel/blob': 2.4.0
-      '@vercel/build-utils': 13.34.0
-      '@vercel/cli-auth': 0.3.0
-      '@vercel/cli-config': 0.2.0
+      '@vercel/build-utils': 13.35.0
+      '@vercel/cli-auth': 0.3.1
+      '@vercel/cli-config': 0.2.1
       '@vercel/detect-agent': 1.2.3
       '@vercel/fun': 1.3.0
       '@vercel/prepare-flags-definitions': 0.3.0
@@ -12221,9 +12214,7 @@ snapshots:
 
   ws@7.5.13: {}
 
-  ws@8.21.0: {}
-
-  ws@8.21.1: {}
+  ws@8.21.3: {}
 
   wsl-utils@0.3.1:
     dependencies:
