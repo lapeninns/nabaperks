@@ -10,10 +10,7 @@ import {
   type AdminPageMeta,
 } from "./lookup-query"
 
-export {
-  getAdminBillingRecords,
-  type AdminBillingRecord,
-} from "./billing-data"
+export { getAdminBillingRecords, type AdminBillingRecord } from "./billing-data"
 export { getAdminPilotMerchants, getAdminPilotReport } from "./pilot-report"
 
 /**
@@ -27,6 +24,16 @@ export type AdminLookupQuery = Partial<AdminLookupState>
 export type AdminPagedRows<T> = {
   rows: T[]
   meta: AdminPageMeta
+}
+
+export class AdminPrivacyReadError extends Error {
+  readonly status = "failed"
+  readonly code = "database_rejected"
+
+  constructor() {
+    super("Admin privacy readback failed.")
+    this.name = "AdminPrivacyReadError"
+  }
 }
 
 export async function getAdminOverview() {
@@ -144,7 +151,7 @@ export async function getAdminPrivacySupportRows(
     .range(window.from, window.to)
 
   if (error) {
-    throw new Error(`Unable to load privacy support rows: ${error.message}`)
+    throw new AdminPrivacyReadError()
   }
 
   return { rows: data ?? [], meta: pageMeta(count ?? 0, page) }
@@ -189,7 +196,7 @@ export async function getAdminUnaffiliatedCustomers(
     .range(window.from, window.to)
 
   if (error) {
-    throw new Error(`Unable to load unaffiliated customers: ${error.message}`)
+    throw new AdminPrivacyReadError()
   }
 
   return { rows: data ?? [], meta: pageMeta(count ?? 0, page) }
@@ -208,7 +215,7 @@ export async function getAdminConsentRecords(page = 1) {
     .range(window.from, window.to)
 
   if (error) {
-    throw new Error(`Unable to load consent records: ${error.message}`)
+    throw new AdminPrivacyReadError()
   }
 
   return { rows: data ?? [], meta: pageMeta(count ?? 0, page) }
@@ -313,9 +320,12 @@ export async function getAdminReferralOps(): Promise<AdminReferralOpsRow[]> {
       venueName: typeof r.venue_name === "string" ? r.venue_name : null,
       status: String(r.status ?? ""),
       holdReason: typeof r.hold_reason === "string" ? r.hold_reason : null,
-      referrerEmail: typeof r.referrer_email === "string" ? r.referrer_email : null,
-      referredEmail: typeof r.referred_email === "string" ? r.referred_email : null,
-      attributedAt: typeof r.attributed_at === "string" ? r.attributed_at : null,
+      referrerEmail:
+        typeof r.referrer_email === "string" ? r.referrer_email : null,
+      referredEmail:
+        typeof r.referred_email === "string" ? r.referred_email : null,
+      attributedAt:
+        typeof r.attributed_at === "string" ? r.attributed_at : null,
       qualifiedAt: typeof r.qualified_at === "string" ? r.qualified_at : null,
       bonusAwardedAt:
         typeof r.bonus_awarded_at === "string" ? r.bonus_awarded_at : null,
@@ -362,7 +372,7 @@ export async function getAdminDataRequestActivity(
     .limit(limit)
 
   if (error) {
-    throw new Error(`Unable to load data request activity: ${error.message}`)
+    throw new AdminPrivacyReadError()
   }
 
   return (Array.isArray(data) ? data : []).map(redactDataRequestActivity)

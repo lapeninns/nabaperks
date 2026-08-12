@@ -1,6 +1,7 @@
 import { PageTitle } from "@/components/brand"
 import { canRenderAdminPage } from "@/lib/admin/auth"
 import {
+  AdminPrivacyReadError,
   getAdminConsentRecords,
   getAdminDataRequestActivity,
   getAdminPrivacySupportRows,
@@ -12,6 +13,7 @@ import {
   parsePageParam,
   type AdminSearchParams,
 } from "@/lib/admin/lookup-query"
+import { logger } from "@/lib/observability/logger"
 
 import { ConsentLogPanel } from "./consent-log-panel"
 import { DataRequestWorkflowPanel } from "./data-request-workflow-panel"
@@ -22,6 +24,16 @@ export const metadata = { title: "Admin — Privacy support" }
 
 type AdminPrivacyPageProps = {
   searchParams?: Promise<AdminSearchParams>
+}
+
+function logPrivacyReadFailure(event: string, error: unknown): void {
+  logger.warn(event, {
+    status: "failed",
+    code:
+      error instanceof AdminPrivacyReadError
+        ? error.code
+        : "unexpected_failure",
+  })
 }
 
 /**
@@ -42,22 +54,22 @@ export default async function AdminPrivacyPage({
   const [supportRows, consentRecords, dataRequests, unaffiliated] =
     await Promise.all([
       getAdminPrivacySupportRows(lookup).catch((error: unknown) => {
-        console.error("Admin privacy lookup failed", error)
+        logPrivacyReadFailure("admin_privacy_lookup_failed", error)
         return null
       }),
       getAdminConsentRecords(consentPage).catch((error: unknown) => {
-        console.error("Admin consent readback failed", error)
+        logPrivacyReadFailure("admin_consent_readback_failed", error)
         return null
       }),
       getAdminDataRequestActivity().catch((error: unknown) => {
-        console.error("Admin data request readback failed", error)
+        logPrivacyReadFailure("admin_data_request_readback_failed", error)
         return null
       }),
       getAdminUnaffiliatedCustomers({
         contact: lookup.contact,
         page: unaffiliatedPage,
       }).catch((error: unknown) => {
-        console.error("Admin unaffiliated lookup failed", error)
+        logPrivacyReadFailure("admin_unaffiliated_lookup_failed", error)
         return null
       }),
     ])

@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto"
+import { createHash, randomUUID } from "node:crypto"
 
 import { expect, test } from "@playwright/test"
 
@@ -15,8 +15,8 @@ import { dismissPwaInstall } from "./helpers/harness"
  * db privacy lifecycle — the admin subject-access export journey.
  *
  * A GDPR Article 15 export must actually hand the admin the customer's data.
- * A seeded AAL2 admin submits an `export` data request and the console renders
- * a download control for the customer-data export JSON. Gated behind
+ * A seeded AAL2 admin submits an `export` data request and receives the direct
+ * protected POST response without placing the disclosure in page state. Gated behind
  * ADMIN_LIVE_DB_E2E=1 with local Supabase, like the other @admin-live-db proofs.
  */
 
@@ -29,7 +29,7 @@ test.describe("@admin-live-db admin subject-access export", () => {
     await dismissPwaInstall(page)
   })
 
-  test("export request renders a downloadable customer-data export", async ({
+  test("export request streams a no-store neutral customer-data download", async ({
     page,
   }) => {
     const sql = connectLocalDb()
@@ -74,21 +74,51 @@ test.describe("@admin-live-db admin subject-access export", () => {
         await dataRequestForm.getByLabel("Request type").selectOption("export")
         await dataRequestForm.getByLabel("Channel").selectOption("email")
         await dataRequestForm.getByLabel("Notes").fill(notes)
-        await dataRequestForm
-          .getByRole("button", { name: "Log request" })
-          .click()
+        const [response, download] = await Promise.all([
+          page.waitForResponse(
+            (candidate) =>
+              candidate.url().endsWith("/admin/privacy/export") &&
+              candidate.request().method() === "POST"
+          ),
+          page.waitForEvent("download"),
+          dataRequestForm
+            .getByRole("button", { name: "Download export" })
+            .click(),
+        ])
 
-        const download = page.getByRole("link", {
-          name: "Download customer data export",
-        })
-        await expect(download).toBeVisible({ timeout: 30_000 })
-        await expect(download).toHaveAttribute(
-          "download",
-          /customer-data-export-.*\.json/
+        expect(response.status()).toBe(200)
+        expect(response.headers()["cache-control"]).toContain("no-store")
+        expect(response.headers()["content-disposition"]).toMatch(
+          /^attachment; filename="customer-data-export-\d{4}-\d{2}-\d{2}\.json"$/
         )
-        await expect(download).toHaveAttribute(
-          "href",
-          /^data:application\/json/
+        expect(download.suggestedFilename()).toMatch(
+          /^customer-data-export-\d{4}-\d{2}-\d{2}\.json$/
+        )
+        expect(download.suggestedFilename()).not.toContain(
+          membership.customer_id
+        )
+
+        const stream = await download.createReadStream()
+        const chunks = []
+        for await (const chunk of stream) chunks.push(chunk)
+        const bytes = Buffer.concat(chunks)
+        expect(bytes.byteLength).toBeGreaterThan(0)
+        expect(JSON.parse(bytes.toString("utf8"))).toBeTruthy()
+        expect(createHash("sha256").update(bytes).digest("hex")).toMatch(
+          /^[0-9a-f]{64}$/
+        )
+
+        await expect(page.locator('a[href^="data:"]')).toHaveCount(0)
+        expect(page.url()).not.toContain(membership.customer_id)
+        const storage = await page.evaluate(() => ({
+          local: Object.values(localStorage),
+          session: Object.values(sessionStorage),
+        }))
+        expect(JSON.stringify(storage)).not.toContain(membership.customer_id)
+
+        await page.reload({ waitUntil: "domcontentloaded" })
+        await expect(page.getByRole("link", { name: /download/i })).toHaveCount(
+          0
         )
       } finally {
         await cleanupAdminMfa()

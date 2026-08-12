@@ -6,6 +6,8 @@ import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export type MarketingChannel = "email" | "sms" | "whatsapp" | "push"
 
+export const ADMIN_CONSENT_SOURCE = "support_request" as const
+
 const MARKETING_CHANNELS: readonly MarketingChannel[] = [
   "email",
   "sms",
@@ -18,6 +20,45 @@ const MARKETING_CHANNELS: readonly MarketingChannel[] = [
  * and the optional marketing row, so profile changes keep that version aligned.
  */
 export const MARKETING_POLICY_VERSION = CUSTOMER_LEGAL_VERSION
+
+export type AdminConsentLabels = {
+  readonly source: typeof ADMIN_CONSENT_SOURCE
+  readonly policyVersion: typeof MARKETING_POLICY_VERSION
+}
+
+export type AdminConsentLabelsResult =
+  | { readonly ok: true; readonly labels: AdminConsentLabels }
+  | { readonly ok: false }
+
+export class MarketingConsentUpdateError extends Error {
+  readonly status = "failed"
+  readonly code = "database_rejected"
+
+  constructor() {
+    super("Unable to update marketing consent.")
+    this.name = "MarketingConsentUpdateError"
+  }
+}
+
+export function parseAdminConsentLabels(
+  source: string,
+  policyVersion: string
+): AdminConsentLabelsResult {
+  if (
+    source !== ADMIN_CONSENT_SOURCE ||
+    policyVersion !== MARKETING_POLICY_VERSION
+  ) {
+    return { ok: false }
+  }
+
+  return {
+    ok: true,
+    labels: {
+      source: ADMIN_CONSENT_SOURCE,
+      policyVersion: MARKETING_POLICY_VERSION,
+    },
+  }
+}
 
 export function isMarketingChannel(value: string): value is MarketingChannel {
   return (MARKETING_CHANNELS as readonly string[]).includes(value)
@@ -48,6 +89,6 @@ export async function updateCustomerMarketingConsent({
   })
 
   if (error) {
-    throw new Error(`Unable to update marketing consent: ${error.message}`)
+    throw new MarketingConsentUpdateError()
   }
 }

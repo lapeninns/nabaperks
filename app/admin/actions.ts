@@ -9,8 +9,7 @@ import {
   type AdminActionState,
 } from "@/lib/admin/action-state"
 import { qrImageContextCacheTag, revalidateCacheTag } from "@/lib/cache/tags"
-import { buildExportDownload } from "@/lib/admin/data-export"
-import { MARKETING_POLICY_VERSION } from "@/lib/customer/consent"
+import { parseAdminConsentLabels } from "@/lib/customer/consent"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 /**
@@ -221,9 +220,8 @@ export async function recordConsentOptOutAction(
   const customerId = value(formData, "customerId")
   const merchantId = value(formData, "merchantId")
   const channel = value(formData, "channel")
-  const source = value(formData, "source") || "support_request"
-  const policyVersion =
-    value(formData, "policyVersion") || MARKETING_POLICY_VERSION
+  const source = value(formData, "source")
+  const policyVersion = value(formData, "policyVersion")
   const reason = value(formData, "reason")
 
   if (!customerId || !merchantId) {
@@ -232,14 +230,18 @@ export async function recordConsentOptOutAction(
   if (!reason) {
     return adminActionError("Operator reason is required.")
   }
+  const consentLabels = parseAdminConsentLabels(source, policyVersion)
+  if (!consentLabels.ok) {
+    return adminActionError("Consent source or policy version is invalid.")
+  }
 
   const supabase = await createSupabaseServerClient()
   const { error } = await supabase.rpc("admin_record_consent_opt_out", {
     p_customer_id: customerId,
     p_merchant_id: merchantId,
     p_channel: channel,
-    p_source: source,
-    p_policy_version: policyVersion,
+    p_source: consentLabels.labels.source,
+    p_policy_version: consentLabels.labels.policyVersion,
     p_reason: reason,
   })
 
@@ -276,6 +278,11 @@ export async function logDataRequestAction(
   }
   if (!notes) {
     return adminActionError("Support notes are required.")
+  }
+  if (requestType === "export") {
+    return adminActionError(
+      "Use the protected export download control for subject-access exports."
+    )
   }
 
   const supabase = await createSupabaseServerClient()
@@ -319,7 +326,7 @@ export async function logDataRequestAction(
     if (offerEraseFailure) return offerEraseFailure
   }
 
-  const { data, error } = await supabase.rpc("admin_log_data_request", {
+  const { error } = await supabase.rpc("admin_log_data_request", {
     p_customer_id: customerId,
     p_merchant_id: merchantId,
     p_request_type: requestType,
@@ -335,54 +342,6 @@ export async function logDataRequestAction(
 
   revalidatePath("/admin/privacy")
   revalidatePath("/admin/audit")
-
-  // Extend the subject-access export to cover bulk two-stamp loyalty invitation
-  // data, which the monolithic customer export RPC does not touch. (The deletion
-  // companion runs above, before the HMAC is erased.)
-  // Offer claims, discount passes and redemptions are outside that RPC too, so
-  // they are merged in alongside as their own object.
-  //
-  // A failing companion is a failed export, not an empty one: `?? []` and
-  // `?? {}` cannot tell "this customer has none" apart from "this read did not
-  // happen", and shipping the second as the first hands the subject an
-  // incomplete disclosure with nothing to say so. The request stays logged —
-  // it was genuinely made — but the download is withheld and the operator is
-  // told to retry.
-  let exportPayload: unknown = data
-  if (requestType === "export" && data && typeof data === "object") {
-    const { data: invitations, error: invitationsError } = await supabase.rpc(
-      "loyalty_invitations_export_for_customer",
-      { p_customer_id: customerId }
-    )
-    const { data: offerClaims, error: offerClaimsError } = await supabase.rpc(
-      "offer_claims_export_for_customer",
-      { p_customer_id: customerId }
-    )
-
-    const exportFailure = rpcFailure(
-      invitationsError ?? offerClaimsError,
-      "The export is incomplete, so it has not been produced. The request is logged; try again or review audit logs."
-    )
-    if (exportFailure) return exportFailure
-
-    exportPayload = {
-      ...(data as Record<string, unknown>),
-      loyalty_invitations: invitations ?? [],
-      offer_campaigns: offerClaims ?? {},
-    }
-  }
-
-  // An `export` request returns the customer's data export payload; deliver it
-  // to the admin as a download instead of discarding it, so a GDPR subject-
-  // access request actually produces the data (db privacy lifecycle).
-  const download =
-    requestType === "export" ? buildExportDownload(exportPayload) : null
-  if (download) {
-    return adminActionSuccess(
-      "Subject-access export ready. Download the customer's data below.",
-      download
-    )
-  }
 
   return adminActionSuccess("Data request logged to the audit trail.")
 }

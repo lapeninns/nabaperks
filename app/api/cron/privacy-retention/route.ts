@@ -13,6 +13,60 @@ const STALE_CUSTOMER_PII_RETENTION_DAYS = 365
 const ABANDONED_IDENTITY_RETENTION_DAYS = 7
 const WEB_VITAL_RETENTION_DAYS = 90
 const DAY_MS = 24 * 60 * 60 * 1000
+const RETENTION_TIMEOUT_MS = 20_000
+
+class RetentionDatabaseTimeoutError extends Error {
+  readonly code = "database_timeout"
+
+  constructor() {
+    super("Retention database operation timed out.")
+    this.name = "RetentionDatabaseTimeoutError"
+  }
+}
+
+async function runRetentionWithDeadline<T>(
+  operation: (signal: AbortSignal) => PromiseLike<T>
+): Promise<T> {
+  const controller = new AbortController()
+  let deadline: ReturnType<typeof setTimeout> | undefined
+  try {
+    return await Promise.race([
+      Promise.resolve(operation(controller.signal)),
+      new Promise<never>((_resolve, reject) => {
+        deadline = setTimeout(() => {
+          controller.abort()
+          reject(new RetentionDatabaseTimeoutError())
+        }, RETENTION_TIMEOUT_MS)
+      }),
+    ])
+  } finally {
+    if (deadline !== undefined) clearTimeout(deadline)
+  }
+}
+
+async function runRetentionRpc(
+  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
+  name: string,
+  args?: Record<string, unknown>
+) {
+  try {
+    return await runRetentionWithDeadline((signal) =>
+      supabase.rpc(name, args).abortSignal(signal)
+    )
+  } catch (error) {
+    if (error instanceof RetentionDatabaseTimeoutError) {
+      return { data: null, error: { code: error.code } }
+    }
+    throw error
+  }
+}
+
+function retentionFailureContext(error: { readonly code?: string | null }) {
+  return {
+    status: "failed",
+    code: error.code === "database_timeout" ? error.code : "database_rejected",
+  } as const
+}
 
 export async function GET(request: NextRequest) {
   if (!isAuthorizedCronRequest(request)) {
@@ -39,95 +93,113 @@ async function runPrivacyRetention() {
   const abandonedCutoff = new Date(
     Date.now() - ABANDONED_IDENTITY_RETENTION_DAYS * DAY_MS
   ).toISOString()
-  const { data: abandonedData, error: abandonedError } = await supabase.rpc(
+  const { data: abandonedData, error: abandonedError } = await runRetentionRpc(
+    supabase,
     "admin_purge_abandoned_customer_identities",
     { p_cutoff: abandonedCutoff }
   )
   if (abandonedError) {
-    logger.warn("privacy_abandoned_identity_purge_failed", {
-      reason: "database_rejected",
-    })
+    logger.warn(
+      "privacy_abandoned_identity_purge_failed",
+      retentionFailureContext(abandonedError)
+    )
     return {
       errorCode: "abandoned_identity_purge_failed",
       result: null,
     }
   }
-  const { data, error } = await supabase.rpc("admin_purge_stale_customer_pii", {
-    p_cutoff: cutoff,
-  })
+  const { data, error } = await runRetentionRpc(
+    supabase,
+    "admin_purge_stale_customer_pii",
+    { p_cutoff: cutoff }
+  )
 
   if (error) {
-    logger.warn("privacy_retention_purge_failed", { reason: error.message })
+    logger.warn(
+      "privacy_retention_purge_failed",
+      retentionFailureContext(error)
+    )
     return { errorCode: "purge_failed", result: null }
   }
 
   // Expire + scrub lapsed reward invites, and hard-delete old terminal ones. A
   // failure here is logged but does not fail the customer-PII purge above.
-  const { data: expiredInvites, error: inviteError } = await supabase.rpc(
+  const { data: expiredInvites, error: inviteError } = await runRetentionRpc(
+    supabase,
     "expire_and_purge_reward_invites"
   )
   if (inviteError) {
-    logger.warn("privacy_retention_invite_purge_failed", {
-      reason: inviteError.message,
-    })
+    logger.warn(
+      "privacy_retention_invite_purge_failed",
+      retentionFailureContext(inviteError)
+    )
   }
 
   // Expire lapsed loyalty invitations, scrub their contact, purge abandoned
   // drafts (24h) and hard-delete contact-free terminal recipients (365d).
   const { data: expiredLoyaltyInvites, error: loyaltyInviteError } =
-    await supabase.rpc("expire_and_purge_loyalty_invites")
+    await runRetentionRpc(supabase, "expire_and_purge_loyalty_invites")
   if (loyaltyInviteError) {
-    logger.warn("privacy_retention_loyalty_invite_purge_failed", {
-      reason: loyaltyInviteError.message,
-    })
+    logger.warn(
+      "privacy_retention_loyalty_invite_purge_failed",
+      retentionFailureContext(loyaltyInviteError)
+    )
   }
 
   // Activate offer campaigns whose start date has arrived, retire campaigns
   // past their end date, expire discount passes past their own valid_to, and
   // purge dead pass scan tokens. Ending a campaign never cancels a pass already
   // issued. A failure here is logged and folded into the partial-failure code.
-  const { data: sweptOffers, error: offerError } = await supabase.rpc(
+  const { data: sweptOffers, error: offerError } = await runRetentionRpc(
+    supabase,
     "expire_and_purge_offer_campaigns"
   )
   if (offerError) {
-    logger.warn("privacy_retention_offer_campaign_purge_failed", {
-      reason: offerError.message,
-    })
+    logger.warn(
+      "privacy_retention_offer_campaign_purge_failed",
+      retentionFailureContext(offerError)
+    )
   }
 
   // Drop rate-limit buckets whose window ended over 24h ago — per-IP/email
   // keys otherwise accumulate forever (db integrity hardening).
-  const { data: purgedBuckets, error: bucketError } = await supabase.rpc(
+  const { data: purgedBuckets, error: bucketError } = await runRetentionRpc(
+    supabase,
     "purge_stale_rate_limit_buckets"
   )
   if (bucketError) {
-    logger.warn("privacy_retention_bucket_purge_failed", {
-      reason: bucketError.message,
-    })
+    logger.warn(
+      "privacy_retention_bucket_purge_failed",
+      retentionFailureContext(bucketError)
+    )
   }
 
   const webVitalCutoff = new Date(
     Date.now() - WEB_VITAL_RETENTION_DAYS * DAY_MS
   ).toISOString()
-  const { data: purgedWebVitals, error: webVitalError } = await supabase.rpc(
+  const { data: purgedWebVitals, error: webVitalError } = await runRetentionRpc(
+    supabase,
     "purge_web_vital_samples",
     { p_cutoff: webVitalCutoff }
   )
   if (webVitalError) {
-    logger.warn("privacy_retention_web_vital_purge_failed", {
-      reason: webVitalError.message,
-    })
+    logger.warn(
+      "privacy_retention_web_vital_purge_failed",
+      retentionFailureContext(webVitalError)
+    )
   }
 
   // Replay-consumption evidence for the auth hooks. The signature window is
   // ±300s, so a day is generous; leaving these forever would grow unbounded.
-  const { data: purgedAuthHooks, error: authHookError } = await supabase.rpc(
+  const { data: purgedAuthHooks, error: authHookError } = await runRetentionRpc(
+    supabase,
     "purge_auth_hook_deliveries"
   )
   if (authHookError) {
-    logger.warn("privacy_retention_auth_hook_purge_failed", {
-      reason: authHookError.message,
-    })
+    logger.warn(
+      "privacy_retention_auth_hook_purge_failed",
+      retentionFailureContext(authHookError)
+    )
   }
 
   const partialFailure =
