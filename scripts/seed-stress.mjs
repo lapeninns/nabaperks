@@ -14,6 +14,9 @@ const DEFAULT_LOCATION_ID = "11000000-0000-0000-0000-000000000001"
 const DEFAULT_LOYALTY_CARD_ID = "13000000-0000-0000-0000-000000000001"
 const STRESS_EMAIL_DOMAIN = "example.test"
 const STRESS_SOURCE = "stress_seed"
+const APPROVED_LOCAL_DATABASE_NAMES = new Set(["postgres", "nabaperks_task11"])
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const isMain =
   process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]
 const args = isMain ? parseArgs(process.argv.slice(2)) : null
@@ -54,7 +57,8 @@ async function runCli(env, args) {
     await verifyDatabaseConnection(sql, dbUrl)
 
     if (args.clean) {
-      await cleanStressData(sql)
+      assertCleanupDatabaseNamespace(dbUrl)
+      await cleanStressData(sql, args.merchantId)
       if (!args.count) {
         console.log("Stress seed cleanup completed.")
         process.exit(0)
@@ -82,6 +86,7 @@ async function runCli(env, args) {
 }
 
 export function parseArgs(argv) {
+  let hasExplicitMerchantId = false
   const parsed = {
     count: 10_000,
     batch: 1_000,
@@ -117,6 +122,16 @@ export function parseArgs(argv) {
       continue
     }
 
+    if (token === "--") {
+      continue
+    }
+
+    if (token.startsWith("--merchant-id=")) {
+      parsed.merchantId = parseMerchantId(token.slice("--merchant-id=".length))
+      hasExplicitMerchantId = true
+      continue
+    }
+
     const value = argv[index + 1]
     if (value === undefined) {
       throw new Error(`Missing value for ${token}`)
@@ -132,7 +147,8 @@ export function parseArgs(argv) {
         index += 1
         break
       case "--merchant-id":
-        parsed.merchantId = value
+        parsed.merchantId = parseMerchantId(value)
+        hasExplicitMerchantId = true
         index += 1
         break
       case "--location-id":
@@ -152,6 +168,10 @@ export function parseArgs(argv) {
     }
   }
 
+  if (parsed.clean && !hasExplicitMerchantId) {
+    throw new Error("--merchant-id is required with --clean")
+  }
+
   if (parsed.clean && argv.includes("--count")) {
     // Explicit --count with --clean means clean then seed.
   } else if (parsed.clean && !argv.some((token) => token === "--count")) {
@@ -159,6 +179,13 @@ export function parseArgs(argv) {
   }
 
   return parsed
+}
+
+function parseMerchantId(value) {
+  if (!UUID_PATTERN.test(value)) {
+    throw new Error("--merchant-id must be a UUID")
+  }
+  return value.toLowerCase()
 }
 
 function parsePositiveInt(value, flag) {
@@ -428,46 +455,110 @@ async function seedStressData(sql, count, config) {
   )
 }
 
-async function cleanStressData(sql) {
+async function cleanStressData(sql, merchantId) {
   const startedAt = Date.now()
 
   await sql.begin(async (transaction) => {
+    const [merchant] = await transaction`
+      select id
+      from public.merchants
+      where id = ${merchantId}
+      limit 1
+    `
+    if (!merchant) {
+      throw new Error("The selected merchant was not found in this database.")
+    }
+
+    await transaction`
+      create temporary table stress_cleanup_ownership
+      on commit drop
+      as
+      select memberships.merchant_id,
+             memberships.customer_id,
+             memberships.id as membership_id
+      from public.customer_memberships memberships
+      join public.customers customers on customers.id = memberships.customer_id
+      where memberships.merchant_id = ${merchantId}
+        and customers.email like ${`stress+%@${STRESS_EMAIL_DOMAIN}`}
+    `
+    const [ownership] = await transaction`
+      select (
+        (select count(*) from stress_cleanup_ownership
+         where merchant_id = ${merchantId})
+        + (select count(*) from public.product_events
+           where merchant_id = ${merchantId}
+             and metadata ->> 'source' = ${STRESS_SOURCE})
+        + (select count(*) from public.stamp_events
+           where merchant_id = ${merchantId}
+             and metadata ->> 'source' = ${STRESS_SOURCE})
+        + (select count(*) from public.reward_events
+           where merchant_id = ${merchantId}
+             and metadata ->> 'source' = ${STRESS_SOURCE})
+      )::int as owned_count
+    `
+    if (ownership.ownedCount === 0) {
+      throw new Error(
+        "The selected merchant has no stress seed rows to remove."
+      )
+    }
+
     await transaction`
       delete from public.product_events
-      where metadata ->> 'source' = ${STRESS_SOURCE}
-         or customer_id in (
-           select id from public.customers where email like ${`stress+%@${STRESS_EMAIL_DOMAIN}`}
-         )
+      where merchant_id = ${merchantId}
+        and (
+          metadata ->> 'source' = ${STRESS_SOURCE}
+          or customer_id in (
+            select customer_id
+            from stress_cleanup_ownership
+            where merchant_id = ${merchantId}
+          )
+        )
     `
     await transaction`
       delete from public.stamp_events
-      where metadata ->> 'source' = ${STRESS_SOURCE}
-         or membership_id in (
-           select id from public.customer_memberships
-           where customer_id in (
-             select id from public.customers where email like ${`stress+%@${STRESS_EMAIL_DOMAIN}`}
-           )
-         )
+      where merchant_id = ${merchantId}
+        and (
+          metadata ->> 'source' = ${STRESS_SOURCE}
+          or membership_id in (
+            select membership_id
+            from stress_cleanup_ownership
+            where merchant_id = ${merchantId}
+          )
+        )
     `
     await transaction`
       delete from public.reward_events
-      where metadata ->> 'source' = ${STRESS_SOURCE}
-         or membership_id in (
-           select id from public.customer_memberships
-           where customer_id in (
-             select id from public.customers where email like ${`stress+%@${STRESS_EMAIL_DOMAIN}`}
-           )
-         )
+      where merchant_id = ${merchantId}
+        and (
+          metadata ->> 'source' = ${STRESS_SOURCE}
+          or membership_id in (
+            select membership_id
+            from stress_cleanup_ownership
+            where merchant_id = ${merchantId}
+          )
+        )
     `
     await transaction`
       delete from public.customer_memberships
-      where customer_id in (
-        select id from public.customers where email like ${`stress+%@${STRESS_EMAIL_DOMAIN}`}
-      )
+      where merchant_id = ${merchantId}
+        and id in (
+          select membership_id
+          from stress_cleanup_ownership
+          where merchant_id = ${merchantId}
+        )
     `
     await transaction`
       delete from public.customers
-      where email like ${`stress+%@${STRESS_EMAIL_DOMAIN}`}
+      where id in (
+        select customer_id
+        from stress_cleanup_ownership
+        where merchant_id = ${merchantId}
+      )
+        and not exists (
+          select 1
+          from public.customer_memberships memberships
+          where memberships.customer_id = customers.id
+        )
     `
   })
 
@@ -591,15 +682,42 @@ function safeDbTarget(dbUrl) {
 }
 
 function assertWriteTargetIsSafe(dbUrl) {
-  if (isLocalDbHost(dbUrl)) return
+  if (!isLocalDbHost(dbUrl)) {
+    console.error(
+      `Refusing to run stress seed against non-local host "${dbHostLabel(dbUrl)}".`
+    )
+    console.error(
+      "Point SUPABASE_DB_URL at a local disposable database before running this command."
+    )
+    process.exit(1)
+  }
+
+  assertCleanupDatabaseNamespace(dbUrl)
+}
+
+function assertCleanupDatabaseNamespace(dbUrl) {
+  const databaseName = localDatabaseName(dbUrl)
+  if (APPROVED_LOCAL_DATABASE_NAMES.has(databaseName)) return
 
   console.error(
-    `Refusing to run stress seed against non-local host "${dbHostLabel(dbUrl)}".`
+    "Refusing to run stress seed outside an approved local Supabase database namespace."
   )
   console.error(
-    "Point SUPABASE_DB_URL at a local disposable database before running this command."
+    "Use the local Supabase postgres database or the guarded nabaperks_task11 database."
   )
   process.exit(1)
+}
+
+function localDatabaseName(dbUrl) {
+  try {
+    const url = new URL(dbUrl)
+    if (url.protocol !== "postgres:" && url.protocol !== "postgresql:")
+      return ""
+    if (!url.pathname.startsWith("/")) return ""
+    return url.pathname.slice(1)
+  } catch {
+    return ""
+  }
 }
 
 function isLocalDbHost(dbUrl) {

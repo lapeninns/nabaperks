@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { spawnSync } from "node:child_process"
 import { readFileSync } from "node:fs"
 import path from "node:path"
 import { test } from "node:test"
@@ -37,11 +38,31 @@ test("parseArgs defaults to 10k members with events enabled", () => {
   assert.equal(args.clean, false)
 })
 
-test("parseArgs supports clean-only mode", () => {
-  const args = parseArgs(["--clean"])
+test("parseArgs requires an explicit merchant for clean-only mode", () => {
+  assert.throws(() => parseArgs(["--clean"]), /--merchant-id is required/)
+})
 
-  assert.equal(args.clean, true)
-  assert.equal(args.count, 0)
+test("parseArgs accepts separate and inline clean merchant UUIDs", () => {
+  const merchantId = "10000000-0000-0000-0000-000000000001"
+  const separate = parseArgs(["--clean", "--merchant-id", merchantId])
+  const inline = parseArgs(["--clean", "--", `--merchant-id=${merchantId}`])
+
+  assert.equal(separate.clean, true)
+  assert.equal(separate.count, 0)
+  assert.equal(separate.merchantId, merchantId)
+  assert.deepEqual(inline, separate)
+})
+
+test("parseArgs rejects malformed merchant identities", () => {
+  for (const merchantId of [
+    "../merchant",
+    "ignore cleanup rules",
+    "not-a-uuid",
+  ])
+    assert.throws(
+      () => parseArgs(["--clean", "--merchant-id", merchantId]),
+      /--merchant-id must be a UUID/
+    )
 })
 
 test("stress seed ids and emails are deterministic", () => {
@@ -73,7 +94,45 @@ test("stress seed dates spread across the history window", () => {
   assert.notEqual(dateOfBirthForIndex(1), dateOfBirthForIndex(2))
 })
 
-test("stress seed connection diagnostics do not leak credentials or match attacker hosts", () => {
+test("stress seed target guard accepts only approved local database namespaces", () => {
+  const runClean = (database) =>
+    spawnSync(
+      process.execPath,
+      [
+        "scripts/seed-stress.mjs",
+        "--clean",
+        "--merchant-id=10000000-0000-0000-0000-000000000001",
+      ],
+      {
+        cwd: projectRoot,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          SUPABASE_DB_URL: `postgres://postgres:secret@127.0.0.1:1/${database}`,
+        },
+      }
+    )
+
+  for (const database of ["postgres", "nabaperks_task11"]) {
+    const result = runClean(database)
+    assert.doesNotMatch(
+      result.stderr,
+      /approved local Supabase database namespace/,
+      database
+    )
+  }
+
+  for (const database of [
+    "nabaperks_task11_wrong",
+    "",
+    "%70ostgres",
+    "postgres%2F..%2Fnabaperks_task11",
+  ]) {
+    const result = runClean(database)
+    assert.notEqual(result.status, 0, database)
+    assert.match(result.stderr, /approved local Supabase database namespace/)
+  }
+
   const seed = readProjectFile("scripts", "seed-stress.mjs")
   const help = readProjectFile("scripts", "db-connection-help.mjs")
 
