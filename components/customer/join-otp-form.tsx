@@ -20,11 +20,18 @@ import { buildCustomerJoinHref } from "@/lib/navigation/customer-join-intent"
 
 const identityInitialState: CustomerIdentityState = {}
 
+export type CustomerOtpAction = (
+  state: CustomerIdentityState,
+  formData: FormData
+) => Promise<CustomerIdentityState>
+
 export type CustomerOtpFormProps = {
   merchantSlug: string
   qrId?: string
   referralCode?: string
   contactLast4: string
+  verifyOtpAction?: CustomerOtpAction
+  requestIdentityAction?: CustomerOtpAction
 }
 
 export function CustomerOtpForm({
@@ -32,13 +39,15 @@ export function CustomerOtpForm({
   qrId,
   referralCode,
   contactLast4,
+  verifyOtpAction = verifyCustomerOtpAction,
+  requestIdentityAction = requestCustomerIdentityAction,
 }: CustomerOtpFormProps) {
   const [verifyState, verifyAction] = useActionState(
-    verifyCustomerOtpAction,
+    verifyOtpAction,
     identityInitialState
   )
   const [requestState, requestAction, requestPending] = useActionState(
-    requestCustomerIdentityAction,
+    requestIdentityAction,
     identityInitialState
   )
   const state = verifyState
@@ -164,7 +173,7 @@ export function CustomerOtpForm({
               ) : null}
               <Link
                 href={phoneStepHref}
-                className="w-fit text-xs font-bold underline underline-offset-4"
+                className="inline-flex min-h-11 min-w-11 items-center justify-center text-xs font-bold underline underline-offset-4"
               >
                 Wrong number? Use a different one
               </Link>

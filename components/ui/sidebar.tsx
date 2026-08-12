@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 365
+const SIDEBAR_MOBILE_CONTENT_ID = "sidebar-mobile-content"
 
 type SidebarState = "expanded" | "collapsed"
 
@@ -52,7 +53,9 @@ function useSidebar() {
 function SidebarProvider(props: SidebarProviderProps) {
   const { defaultOpen = true, open: openProp } = props
   const resetKey =
-    openProp === undefined ? `uncontrolled-${String(defaultOpen)}` : "controlled"
+    openProp === undefined
+      ? `uncontrolled-${String(defaultOpen)}`
+      : "controlled"
 
   return <SidebarProviderState key={resetKey} {...props} />
 }
@@ -145,11 +148,12 @@ function Sidebar({
     return (
       <Sheet open={openMobile} onOpenChange={setOpenMobile}>
         <SheetContent
+          id={SIDEBAR_MOBILE_CONTENT_ID}
           data-slot="sidebar"
           data-mobile="true"
           side={side}
           className={cn(
-            "w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden",
+            "w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground data-[state=open]:!translate-x-0 [&>button]:hidden",
             className
           )}
           {...props}
@@ -198,7 +202,7 @@ function SidebarTrigger({
   onClick,
   ...props
 }: React.ComponentProps<typeof Button>) {
-  const { toggleSidebar } = useSidebar()
+  const { isMobile, open, openMobile, toggleSidebar } = useSidebar()
 
   return (
     <Button
@@ -207,13 +211,19 @@ function SidebarTrigger({
       variant="ghost"
       size="icon-sm"
       className={className}
+      aria-expanded={isMobile ? openMobile : open}
+      aria-controls={isMobile ? SIDEBAR_MOBILE_CONTENT_ID : undefined}
       onClick={(event) => {
         onClick?.(event)
         toggleSidebar()
       }}
       {...props}
     >
-      <HugeiconsIcon icon={SidebarLeftIcon} strokeWidth={2} aria-hidden="true" />
+      <HugeiconsIcon
+        icon={SidebarLeftIcon}
+        strokeWidth={2}
+        aria-hidden="true"
+      />
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   )
@@ -307,7 +317,7 @@ function SidebarMenuButton({
       className={cn(
         // Focus indication comes from the shared .focus-ring recipe plus the
         // unlayered border/background swap in globals.css — no private ring.
-        "focus-ring flex w-full min-w-0 items-center gap-2 rounded-md px-3 text-left text-sm font-bold transition-[color,background-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none disabled:pointer-events-none disabled:opacity-50",
+        "focus-ring flex w-full min-w-0 items-center gap-2 rounded-md px-3 text-left text-sm font-bold transition-[color,background-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none disabled:pointer-events-none disabled:opacity-50 motion-reduce:transition-none",
         size === "lg" ? "min-h-12" : "min-h-10",
         className
       )}

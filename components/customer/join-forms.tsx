@@ -28,21 +28,40 @@ import {
 const identityInitialState: CustomerIdentityState = {}
 const joinInitialState: CustomerJoinState = {}
 
+export type CustomerIdentityAction = (
+  state: CustomerIdentityState,
+  formData: FormData
+) => Promise<CustomerIdentityState>
+
+export type CustomerJoinAction = (
+  state: CustomerJoinState,
+  formData: FormData
+) => Promise<CustomerJoinState>
+
 export type CustomerIdentityFormProps = {
   merchantSlug: string
   qrId?: string
   referralCode?: string
+  requestIdentityAction?: CustomerIdentityAction
 }
 
 export function CustomerIdentityForm({
   merchantSlug,
   qrId,
   referralCode,
+  requestIdentityAction = requestCustomerIdentityAction,
 }: CustomerIdentityFormProps) {
   const [state, requestAction, requestPending] = useActionState(
-    requestCustomerIdentityAction,
+    requestIdentityAction,
     identityInitialState
   )
+  const contactErrorRef = useRef<HTMLParagraphElement>(null)
+
+  useEffect(() => {
+    if (!state.errors?.contact) return
+    contactErrorRef.current?.focus({ preventScroll: true })
+    contactErrorRef.current?.scrollIntoView({ block: "center" })
+  }, [state])
 
   return (
     <div className="grid gap-4">
@@ -73,7 +92,14 @@ export function CustomerIdentityForm({
             }
           />
           {state.errors?.contact ? (
-            <p id="contact-error" className="text-sm text-destructive">
+            <p
+              id="contact-error"
+              ref={contactErrorRef}
+              role="alert"
+              aria-live="assertive"
+              tabIndex={-1}
+              className="text-sm text-destructive"
+            >
               {state.errors.contact}
             </p>
           ) : (
@@ -116,7 +142,7 @@ export function CustomerIdentityForm({
               })
             : buildCustomerMerchantHref(merchantSlug, referralCode)
         }
-        className="text-center text-xs font-bold underline underline-offset-4"
+        className="inline-flex min-h-11 min-w-11 items-center justify-center self-center text-center text-xs font-bold underline underline-offset-4"
       >
         {JOIN_PHONE_BACK_LABEL}
       </Link>
@@ -131,6 +157,7 @@ export type CustomerJoinFormProps = {
   merchantName: string
   card: JoinCard
   requireGeofence: boolean
+  joinAction?: CustomerJoinAction
 }
 
 export function CustomerJoinForm({
@@ -140,11 +167,9 @@ export function CustomerJoinForm({
   merchantName,
   card,
   requireGeofence,
+  joinAction = joinRewardsAction,
 }: CustomerJoinFormProps) {
-  const [state, action, pending] = useActionState(
-    joinRewardsAction,
-    joinInitialState
-  )
+  const [state, action, pending] = useActionState(joinAction, joinInitialState)
   const loyaltyTermsRef = useRef<HTMLInputElement>(null)
   const [loyaltyTermsAccepted, setLoyaltyTermsAccepted] = useState(false)
   const loyaltyTermsError = loyaltyTermsAccepted
