@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 
 import { resolveOfferClaimContext } from "@/lib/offers/claim-context"
 import { setOfferCookie } from "@/lib/offers/offer-cookie"
+import { parsePublicClaimToken } from "@/lib/security/public-claim-token"
 
 /**
  * Hand a validated campaign link to the existing merchant join flow.
@@ -16,12 +17,13 @@ import { setOfferCookie } from "@/lib/offers/offer-cookie"
 export async function startOfferClaimAction(formData: FormData): Promise<void> {
   const submitted = formData.get("token")
   const token = typeof submitted === "string" ? submitted.trim() : ""
-  if (!token) redirect("/")
+  const parsed = parsePublicClaimToken(token)
+  if (parsed.status === "invalid") redirect("/")
 
-  const context = await resolveOfferClaimContext(token)
+  const context = await resolveOfferClaimContext(parsed.value)
   if (context.status !== "available" || !context.merchantSlug) {
     // Back to the landing page, which renders the honest reason.
-    redirect(`/offer/${encodeURIComponent(token)}`)
+    redirect(`/offer/${encodeURIComponent(parsed.value)}`)
   }
 
   await setOfferCookie({

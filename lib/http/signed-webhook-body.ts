@@ -1,3 +1,13 @@
+import {
+  DEFAULT_REQUEST_BODY_TIMEOUT_MS,
+  readBoundedBody,
+} from "@/lib/http/bounded-body-reader"
+
+export {
+  RequestBodyTimeoutError,
+  RequestBodyTransportError,
+} from "@/lib/http/bounded-body-reader"
+
 /**
  * Static ceiling on pre-authentication body buffering for signed webhooks.
  *
@@ -13,13 +23,11 @@ export const MAX_SIGNED_WEBHOOK_BODY_BYTES = 1_048_576
  *
  * Returns the exact UTF-8 text (byte-identical to `request.text()`, so the HMAC
  * still matches), or `null` for a genuine overflow — and only for a genuine
- * overflow. This deliberately does NOT reuse `readBoundedRequestBody`: that
- * helper wraps its read loop in a blanket `catch { return null }`, which would
- * turn a client abort or a connection reset into a 413. A 413 tells Svix the
+ * overflow. The shared bounded reader converts a client abort or connection
+ * reset into a typed transport error instead of a 413. A 413 tells Svix the
  * payload is permanently wrong (it counts toward the auto-disable budget) and
- * tells GoTrue the auth operation failed, when the truth is a transient
- * transport error that should surface as a retryable 500. So a read error
- * propagates here rather than being relabelled.
+ * tells GoTrue the auth operation failed, when the truth is a transient error
+ * that should surface as a retryable 500.
  *
  * The declared Content-Length is only a fast path: a malformed or duplicated
  * header (`Headers.get()` collapses duplicates to "123, 123") falls through to
@@ -27,7 +35,8 @@ export const MAX_SIGNED_WEBHOOK_BODY_BYTES = 1_048_576
  * would fail a legitimate delivery for no security gain.
  */
 export async function readSignedWebhookBody(
-  request: Request
+  request: Request,
+  timeoutMs = DEFAULT_REQUEST_BODY_TIMEOUT_MS
 ): Promise<string | null> {
   const contentLength = request.headers.get("content-length")
   if (
@@ -38,30 +47,12 @@ export async function readSignedWebhookBody(
     return null
   }
 
-  if (!request.body) return ""
-
-  const reader = request.body.getReader()
-  const chunks: Uint8Array[] = []
-  let byteLength = 0
-
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-
-    byteLength += value.byteLength
-    if (byteLength > MAX_SIGNED_WEBHOOK_BODY_BYTES) {
-      await reader.cancel()
-      return null
-    }
-    chunks.push(value)
-  }
-
-  const body = new Uint8Array(byteLength)
-  let offset = 0
-  for (const chunk of chunks) {
-    body.set(chunk, offset)
-    offset += chunk.byteLength
-  }
+  const body = await readBoundedBody(
+    request,
+    MAX_SIGNED_WEBHOOK_BODY_BYTES,
+    timeoutMs
+  )
+  if (body === null) return null
 
   return new TextDecoder().decode(body)
 }

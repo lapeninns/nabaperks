@@ -4,6 +4,10 @@ import type Stripe from "stripe"
 
 import type { ProductEventInput } from "@/lib/analytics/events"
 import {
+  DEFAULT_REQUEST_BODY_TIMEOUT_MS,
+  readBoundedBody,
+} from "@/lib/http/bounded-body-reader"
+import {
   applyStripeSubscriptionEvent,
   mapStripeSubscriptionSnapshot,
   mapStripeSubscriptionStatus,
@@ -14,6 +18,11 @@ import {
   type StripeSubscriptionResolutionInput,
   type SubscriptionApplyResult,
 } from "@/lib/stripe/billing"
+
+export {
+  RequestBodyTimeoutError,
+  RequestBodyTransportError,
+} from "@/lib/http/bounded-body-reader"
 
 export type StripeWebhookEventRecord = Pick<
   Stripe.Event,
@@ -109,7 +118,7 @@ export async function handleStripeWebhookRequest(
     return Response.json({ error: "Missing Stripe signature" }, { status: 400 })
   }
 
-  const body = await readBoundedWebhookBody(request)
+  const body = await readStripeWebhookBody(request)
   if (body === null) {
     return Response.json(
       { error: "Stripe webhook body is too large" },
@@ -187,8 +196,9 @@ export async function handleStripeWebhookRequest(
   })
 }
 
-async function readBoundedWebhookBody(
-  request: Request
+export async function readStripeWebhookBody(
+  request: Request,
+  timeoutMs = DEFAULT_REQUEST_BODY_TIMEOUT_MS
 ): Promise<string | null> {
   const contentLength = request.headers.get("content-length")
   if (
@@ -199,30 +209,12 @@ async function readBoundedWebhookBody(
     return null
   }
 
-  if (!request.body) return ""
-
-  const reader = request.body.getReader()
-  const chunks: Uint8Array[] = []
-  let byteLength = 0
-
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-
-    byteLength += value.byteLength
-    if (byteLength > MAX_STRIPE_WEBHOOK_BODY_BYTES) {
-      await reader.cancel()
-      return null
-    }
-    chunks.push(value)
-  }
-
-  const body = new Uint8Array(byteLength)
-  let offset = 0
-  for (const chunk of chunks) {
-    body.set(chunk, offset)
-    offset += chunk.byteLength
-  }
+  const body = await readBoundedBody(
+    request,
+    MAX_STRIPE_WEBHOOK_BODY_BYTES,
+    timeoutMs
+  )
+  if (body === null) return null
 
   return new TextDecoder().decode(body)
 }

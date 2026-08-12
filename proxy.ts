@@ -29,6 +29,8 @@ import { refreshSupabaseSession } from "@/lib/supabase/update-session"
 
 const CUSTOMER_DEVICE_COOKIE = "nabaperks_device"
 const CUSTOMER_DEVICE_TTL_SECONDS = 365 * 24 * 60 * 60
+const FORWARDED_HOST_PATTERN = /^(?:\[[0-9a-f:]+\]|[a-z0-9.-]+)(?::\d+)?$/i
+const FORWARDED_PROTOCOL_PATTERN = /^(?:http|https)$/
 
 // Next.js 16 Proxy (formerly middleware). Refreshes Supabase auth cookies on
 // stateful application requests, then attaches observability and security
@@ -39,12 +41,14 @@ const CUSTOMER_DEVICE_TTL_SECONDS = 365 * 24 * 60 * 60
 // echoes it on the response so clients and logs can be correlated end to end.
 export async function proxy(request: NextRequest) {
   const operationalProbe = isOperationalProbePath(request.nextUrl.pathname)
+  const publicNonceRoute = request.nextUrl.pathname === "/"
+  const bypassSessionRefresh = operationalProbe || publicNonceRoute
   const requestId = resolveRequestId(request.headers)
   const requestPath = `${request.nextUrl.pathname}${request.nextUrl.search}`
   const nonce = btoa(crypto.randomUUID())
   const csp = dynamicContentSecurityPolicy(nonce)
-  const joinJourney = operationalProbe ? null : resolveJoinJourney(request)
-  const customerDevice = operationalProbe
+  const joinJourney = bypassSessionRefresh ? null : resolveJoinJourney(request)
+  const customerDevice = bypassSessionRefresh
     ? null
     : resolveCustomerDevice(request)
 
@@ -69,7 +73,7 @@ export async function proxy(request: NextRequest) {
     return nextResponse
   }
 
-  const response = operationalProbe
+  const response = bypassSessionRefresh
     ? createResponse()
     : await refreshSupabaseSession(request, createResponse)
 
@@ -110,6 +114,7 @@ function forwardedRequestHeaders(
   customerDeviceId: string | undefined
 ) {
   const requestHeaders = new Headers(request.headers)
+  applyTrustedProxyOriginHeaders(requestHeaders)
   requestHeaders.set(REQUEST_ID_HEADER, requestId)
   requestHeaders.set(REQUEST_PATH_HEADER, requestPath)
   requestHeaders.delete(CUSTOMER_DEVICE_HEADER)
@@ -131,6 +136,29 @@ function forwardedRequestHeaders(
   }
 
   return requestHeaders
+}
+
+function applyTrustedProxyOriginHeaders(requestHeaders: Headers): void {
+  const forwardedHost = requestHeaders.get("x-forwarded-host")
+  const forwardedProtocol = requestHeaders.get("x-forwarded-proto")
+
+  requestHeaders.delete("x-forwarded-host")
+  requestHeaders.delete("x-forwarded-proto")
+
+  // Vercel sets this server-side runtime variable. Outside that declared
+  // boundary, forwarded origin headers remain untrusted client input.
+  if (process.env.VERCEL !== "1") return
+  if (
+    !forwardedHost ||
+    !forwardedProtocol ||
+    !FORWARDED_HOST_PATTERN.test(forwardedHost) ||
+    !FORWARDED_PROTOCOL_PATTERN.test(forwardedProtocol)
+  ) {
+    return
+  }
+
+  requestHeaders.set("x-forwarded-host", forwardedHost)
+  requestHeaders.set("x-forwarded-proto", forwardedProtocol)
 }
 
 function isOperationalProbePath(pathname: string): boolean {
@@ -182,10 +210,11 @@ function resolveJoinJourney(
 }
 
 export const config = {
-  // Run only on stateful surfaces. Public brochure pages stay outside Proxy so
-  // they can be served from the framework/CDN cache without an auth refresh,
-  // request nonce, or device cookie making the response private.
+  // Run on stateful surfaces plus the exact public root. The root receives a
+  // request nonce without auth refresh/device state; all other brochure pages
+  // stay outside Proxy and retain framework/CDN caching.
   matcher: [
+    "/",
     "/api/:path*",
     "/app/:path*",
     "/admin/:path*",

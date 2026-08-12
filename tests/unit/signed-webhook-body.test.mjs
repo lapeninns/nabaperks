@@ -5,6 +5,8 @@ import { test } from "node:test"
 import {
   MAX_SIGNED_WEBHOOK_BODY_BYTES,
   readSignedWebhookBody,
+  RequestBodyTimeoutError,
+  RequestBodyTransportError,
 } from "@/lib/http/signed-webhook-body"
 import { verifyStandardWebhook } from "@/lib/notifications/standard-webhook"
 
@@ -139,7 +141,52 @@ test("a transport failure propagates instead of masquerading as 413", async () =
     duplex: "half",
   })
 
-  await assert.rejects(() => readSignedWebhookBody(request))
+  await assert.rejects(
+    () => readSignedWebhookBody(request),
+    RequestBodyTransportError
+  )
+})
+
+test("a never-ending signed body is cancelled with a typed timeout error", async () => {
+  // Given
+  let sourceController
+  let cancelledWith
+  const stream = new ReadableStream({
+    start(controller) {
+      sourceController = controller
+    },
+    cancel(reason) {
+      cancelledWith = reason
+    },
+  })
+  const request = new Request("http://localhost/api/resend/webhook", {
+    method: "POST",
+    body: stream,
+    duplex: "half",
+  })
+  const startedAt = performance.now()
+  let watchdog
+
+  // When / Then
+  try {
+    await assert.rejects(
+      Promise.race([
+        readSignedWebhookBody(request, 20),
+        new Promise((_, reject) => {
+          watchdog = setTimeout(
+            () => reject(new Error("reader exceeded the independent bound")),
+            200
+          )
+        }),
+      ]),
+      RequestBodyTimeoutError
+    )
+    assert.ok(performance.now() - startedAt < 200)
+    assert.ok(cancelledWith instanceof RequestBodyTimeoutError)
+  } finally {
+    clearTimeout(watchdog)
+    sourceController.error(new Error("test cleanup"))
+  }
 })
 
 test("an absent body reads as empty rather than refused", async () => {

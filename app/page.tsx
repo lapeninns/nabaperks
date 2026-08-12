@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { connection } from "next/server"
 
 import { MarketingLayout } from "@/components/layout"
 import { Marquee } from "@/components/marketing"
@@ -45,10 +46,10 @@ export const metadata: Metadata = {
   },
 }
 
-// Refresh the date-bound campaign wrapper without freezing it at build time.
-export const revalidate = 300
-
-export default function LandingPage() {
+export default async function LandingPage() {
+  // The exact root is request-rendered so Proxy can bind Next's inline
+  // hydration scripts to the response-specific CSP nonce.
+  await connection()
   const demoQr = buildQrMatrix(absoluteUrl(ROUTES.demo))
 
   return (

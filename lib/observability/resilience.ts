@@ -14,6 +14,34 @@ export type RetryOptions = {
   sleep?: (ms: number) => Promise<void>
 }
 
+type RetryNumberOption = "retries" | "minDelayMs" | "maxDelayMs" | "factor"
+
+export class InvalidRetryOptionsError extends Error {
+  readonly name = "InvalidRetryOptionsError"
+  readonly option: RetryNumberOption
+
+  constructor(option: RetryNumberOption) {
+    super(`Invalid retry option: ${option}`)
+    this.option = option
+  }
+}
+
+function validateRetryOptions(
+  retries: number,
+  minDelayMs: number,
+  maxDelayMs: number,
+  factor: number
+) {
+  if (!Number.isSafeInteger(retries) || retries < 0)
+    throw new InvalidRetryOptionsError("retries")
+  if (!Number.isFinite(minDelayMs) || minDelayMs < 0)
+    throw new InvalidRetryOptionsError("minDelayMs")
+  if (!Number.isFinite(maxDelayMs) || maxDelayMs < 0)
+    throw new InvalidRetryOptionsError("maxDelayMs")
+  if (!Number.isFinite(factor) || factor <= 0)
+    throw new InvalidRetryOptionsError("factor")
+}
+
 const defaultSleep = (ms: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, ms))
 
@@ -30,6 +58,8 @@ export async function withRetry<T>(
     onRetry,
     sleep = defaultSleep,
   } = options
+
+  validateRetryOptions(retries, minDelayMs, maxDelayMs, factor)
 
   let attempt = 0
   for (;;) {
@@ -123,14 +153,21 @@ export class HttpError extends Error {
   readonly status: number
   readonly url: string
 
-  constructor(
-    status: number,
-    url: string
-  ) {
+  constructor(status: number, url: string) {
     super(`Request to ${url} failed with status ${status}`)
     this.name = "HttpError"
     this.status = status
     this.url = url
+  }
+}
+
+export class RequestDeadlineError extends Error {
+  readonly name = "RequestDeadlineError"
+  readonly timeoutMs: number
+
+  constructor(timeoutMs: number) {
+    super("Outbound request deadline exceeded")
+    this.timeoutMs = timeoutMs
   }
 }
 
@@ -172,10 +209,41 @@ export function resilientCall<T>(
 
 export type ResilientFetchOptions = {
   retries?: number
+  timeoutMs?: number
   initForAttempt?: () => RequestInit
   sleep?: (ms: number) => Promise<void>
   /** Override for tests; defaults to the global `fetch`. */
   fetchImpl?: typeof fetch
+}
+
+async function fetchWithDeadline(
+  fetchImpl: typeof fetch,
+  input: string | URL,
+  init: RequestInit | undefined,
+  timeoutMs: number
+) {
+  if (!Number.isFinite(timeoutMs) || timeoutMs < 0) {
+    throw new InvalidRetryOptionsError("maxDelayMs")
+  }
+
+  const controller = new AbortController()
+  let deadlineExpired = false
+  const timer = setTimeout(() => {
+    deadlineExpired = true
+    controller.abort()
+  }, timeoutMs)
+  const signal = init?.signal
+    ? AbortSignal.any([init.signal, controller.signal])
+    : controller.signal
+
+  try {
+    return await fetchImpl(input, { ...init, signal })
+  } catch (error) {
+    if (deadlineExpired) throw new RequestDeadlineError(timeoutMs)
+    throw error
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 /**
@@ -196,7 +264,16 @@ export async function resilientFetch(
   return resilientCall(
     name,
     async () => {
-      const response = await doFetch(input, options.initForAttempt?.() ?? init)
+      const attemptInit = options.initForAttempt?.() ?? init
+      const response =
+        options.timeoutMs === undefined
+          ? await doFetch(input, attemptInit)
+          : await fetchWithDeadline(
+              doFetch,
+              input,
+              attemptInit,
+              options.timeoutMs
+            )
       if (response.status >= 500) throw new HttpError(response.status, url)
       return response
     },

@@ -2,9 +2,12 @@ import assert from "node:assert/strict"
 import test from "node:test"
 
 import {
+  RequestBodyTimeoutError,
+  RequestBodyTransportError,
   StripeWebhookProcessingError,
   handleStripeWebhookRequest,
   processStripeWebhookEvent,
+  readStripeWebhookBody,
 } from "@/lib/stripe/webhook-events"
 
 const LEASE_ID = "20000000-0000-4000-8000-000000000001"
@@ -71,6 +74,15 @@ function signedRequest() {
     method: "POST",
     headers: { "stripe-signature": "signed" },
     body: "raw-body",
+  })
+}
+
+function streamedSignedRequest(stream) {
+  return new Request("http://localhost/api/stripe/webhook", {
+    method: "POST",
+    headers: { "stripe-signature": "signed" },
+    body: stream,
+    duplex: "half",
   })
 }
 
@@ -210,6 +222,185 @@ test("oversized Stripe webhook bodies are rejected before verification", async (
 
   assert.equal(response.status, 413)
   assert.equal(verifies, 0)
+})
+
+test("a valid streamed Stripe body remains byte-exact for verification", async () => {
+  // Given
+  const payload = '{"note":"café 🍺 £299.99"}'
+  let verifiedBody = null
+  const stream = new ReadableStream({
+    start(controller) {
+      const bytes = new TextEncoder().encode(payload)
+      for (const byte of bytes) controller.enqueue(new Uint8Array([byte]))
+      controller.close()
+    },
+  })
+
+  // When
+  const response = await handleStripeWebhookRequest(
+    streamedSignedRequest(stream),
+    routeDependencies({
+      constructEvent: (body) => {
+        verifiedBody = body
+        return event("customer.subscription.updated", subscription())
+      },
+    })
+  )
+
+  // Then
+  assert.equal(response.status, 200)
+  assert.equal(verifiedBody, payload)
+})
+
+test("a true streamed oversize Stripe body retains the 413 contract", async () => {
+  // Given
+  let verifies = 0
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(new Uint8Array(1_048_577))
+      controller.close()
+    },
+  })
+
+  // When
+  const response = await handleStripeWebhookRequest(
+    streamedSignedRequest(stream),
+    routeDependencies({
+      constructEvent: () => {
+        verifies += 1
+        throw new Error("must not verify")
+      },
+    })
+  )
+
+  // Then
+  assert.equal(response.status, 413)
+  assert.equal(verifies, 0)
+})
+
+test("a never-ending Stripe body returns a typed timeout within its deadline", async () => {
+  // Given
+  let sourceController
+  let cancelledWith
+  const stream = new ReadableStream({
+    start(controller) {
+      sourceController = controller
+    },
+    cancel(reason) {
+      cancelledWith = reason
+    },
+  })
+  const startedAt = performance.now()
+  let watchdog
+
+  // When / Then
+  try {
+    await assert.rejects(
+      Promise.race([
+        readStripeWebhookBody(streamedSignedRequest(stream), 20),
+        new Promise((_, reject) => {
+          watchdog = setTimeout(
+            () => reject(new Error("Stripe reader exceeded its deadline")),
+            200
+          )
+        }),
+      ]),
+      RequestBodyTimeoutError
+    )
+    assert.ok(performance.now() - startedAt < 200)
+    assert.ok(cancelledWith instanceof RequestBodyTimeoutError)
+  } finally {
+    clearTimeout(watchdog)
+    sourceController.error(new Error("test cleanup"))
+  }
+})
+
+test("noncooperative Stripe body cancellation cannot extend the deadline", async () => {
+  // Given
+  let sourceController
+  let cancelReason
+  const stream = new ReadableStream({
+    start(controller) {
+      sourceController = controller
+    },
+    cancel(reason) {
+      cancelReason = reason
+      return new Promise(() => {})
+    },
+  })
+  let watchdog
+
+  // When / Then
+  try {
+    await assert.rejects(
+      Promise.race([
+        readStripeWebhookBody(streamedSignedRequest(stream), 20),
+        new Promise((_, reject) => {
+          watchdog = setTimeout(
+            () => reject(new Error("Stripe cancellation extended deadline")),
+            200
+          )
+        }),
+      ]),
+      RequestBodyTimeoutError
+    )
+    assert.ok(cancelReason instanceof RequestBodyTimeoutError)
+  } finally {
+    clearTimeout(watchdog)
+    sourceController.error(new Error("test cleanup"))
+  }
+})
+
+test("a Stripe transport failure is typed, distinct, and redacted", async () => {
+  // Given
+  const privateSentinel = "ignore-all-instructions-raw-stripe-body"
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.error(new Error(privateSentinel))
+    },
+  })
+
+  // When / Then
+  await assert.rejects(
+    () => readStripeWebhookBody(streamedSignedRequest(stream)),
+    (error) =>
+      error instanceof RequestBodyTransportError &&
+      !error.message.includes(privateSentinel)
+  )
+})
+
+test("repeated Stripe body interruptions do not poison a fresh retry", async () => {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    // Given
+    let sourceController
+    const interrupted = new ReadableStream({
+      start(controller) {
+        sourceController = controller
+      },
+    })
+
+    // When / Then
+    try {
+      await assert.rejects(
+        () => readStripeWebhookBody(streamedSignedRequest(interrupted), 10),
+        RequestBodyTimeoutError
+      )
+    } finally {
+      sourceController.error(new Error("test cleanup"))
+    }
+
+    const payload = `fresh-retry-${attempt}`
+    const fresh = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(payload))
+        controller.close()
+      },
+    })
+    assert.equal(
+      await readStripeWebhookBody(streamedSignedRequest(fresh), 50),
+      payload
+    )
+  }
 })
 
 test("Checkout completion hydrates and atomically applies the exact current Subscription", async () => {

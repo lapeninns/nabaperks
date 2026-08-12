@@ -100,6 +100,7 @@ export async function loadCustomerOfferPass(
     .from("offer_discount_entitlements")
     .select(ENTITLEMENT_COLUMNS)
     .eq("id", entitlementId)
+    .eq("customer_id", customer.id)
     .maybeSingle()
 
   if (error) {
@@ -112,7 +113,6 @@ export async function loadCustomerOfferPass(
   if (!data) return { status: "not_found" }
 
   const row = data as EntitlementRow
-  if (row.customer_id !== customer.id) return { status: "unauthorized" }
 
   return {
     status: "ready",

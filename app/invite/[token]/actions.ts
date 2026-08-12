@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 
 import { resolveInviteClaimContext } from "@/lib/loyalty-invites/claim-context"
 import { setInviteCookie } from "@/lib/loyalty-invites/invite-cookie"
+import { parsePublicClaimToken } from "@/lib/security/public-claim-token"
 
 /**
  * Transfer a validated invitation's context into an encrypted HttpOnly cookie,
@@ -17,9 +18,10 @@ export async function startInviteClaimAction(
     typeof formData.get("token") === "string"
       ? (formData.get("token") as string).trim()
       : ""
-  if (!token) redirect("/")
+  const parsed = parsePublicClaimToken(token)
+  if (parsed.status === "invalid") redirect("/")
 
-  const context = await resolveInviteClaimContext(token)
+  const context = await resolveInviteClaimContext(parsed.value)
   if (context.status !== "available" || !context.merchantSlug) {
     redirect(`/invite/${encodeURIComponent(token)}`)
   }

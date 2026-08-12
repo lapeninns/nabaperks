@@ -13,6 +13,7 @@ import {
   enforceRateLimit,
   rateLimitIdentityFromHeaders,
 } from "@/lib/security/rate-limit"
+import { parsePublicClaimToken } from "@/lib/security/public-claim-token"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export const runtime = "nodejs"
@@ -36,7 +37,9 @@ export default async function ClaimRewardPage({
   params: Promise<{ token: string }>
 }) {
   const { token } = await params
-  const claimTokenHash = createHash("sha256").update(token).digest("hex")
+  const parsed = parsePublicClaimToken(token)
+  if (parsed.status === "invalid") return <UnavailableClaimLink />
+  const claimTokenHash = createHash("sha256").update(parsed.value).digest("hex")
 
   // Public route: cap by IP so a leaked link can't be brute-forced.
   try {
@@ -65,14 +68,7 @@ export default async function ClaimRewardPage({
   const context = (data?.[0] ?? null) as ClaimContext | null
 
   if (!context || context.claim_status !== "available") {
-    return (
-      <ClaimShell title="This reward link isn't available">
-        <p className="text-sm leading-6 text-muted-foreground">
-          It may have already been claimed or expired. If a venue told you to
-          expect a reward, ask them to send it again.
-        </p>
-      </ClaimShell>
-    )
+    return <UnavailableClaimLink />
   }
 
   // A signed-in member claims immediately; the attach is idempotent.
@@ -101,6 +97,17 @@ export default async function ClaimRewardPage({
       <Button asChild size="lg" className="w-full">
         <Link href="/home">Sign in or join to claim</Link>
       </Button>
+    </ClaimShell>
+  )
+}
+
+function UnavailableClaimLink() {
+  return (
+    <ClaimShell title="This reward link isn't available">
+      <p className="text-sm leading-6 text-muted-foreground">
+        It may have already been claimed or expired. If a venue told you to
+        expect a reward, ask them to send it again.
+      </p>
     </ClaimShell>
   )
 }

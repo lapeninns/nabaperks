@@ -1,6 +1,7 @@
 import "server-only"
 
 import { hashInviteToken } from "@/lib/loyalty-invites/tokens"
+import { parsePublicClaimToken } from "@/lib/security/public-claim-token"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 /**
@@ -21,19 +22,22 @@ export type InviteClaimContext = {
 export async function resolveInviteClaimContext(
   token: string
 ): Promise<InviteClaimContext> {
-  const claimTokenHash = hashInviteToken(token)
-  const supabase = createSupabaseServiceRoleClient()
-  const { data, error } = await supabase.rpc(
-    "get_loyalty_invite_claim_context",
-    { p_claim_token_hash: claimTokenHash }
-  )
-
+  const parsed = parsePublicClaimToken(token)
+  const claimTokenHash =
+    parsed.status === "valid" ? hashInviteToken(parsed.value) : ""
   const unavailable: InviteClaimContext = {
     status: "unavailable",
     claimTokenHash,
     businessName: null,
     merchantSlug: null,
   }
+  if (parsed.status === "invalid") return unavailable
+
+  const supabase = createSupabaseServiceRoleClient()
+  const { data, error } = await supabase.rpc(
+    "get_loyalty_invite_claim_context",
+    { p_claim_token_hash: claimTokenHash }
+  )
   if (error || !data) return unavailable
 
   const row = Array.isArray(data) ? data[0] : data

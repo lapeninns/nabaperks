@@ -4,9 +4,14 @@ import {
   buildTransactionalEmailPayload,
   type TransactionalEmailInput,
 } from "@/lib/notifications/transactional-email-payload"
-import { resilientFetch } from "@/lib/observability/resilience"
+import {
+  HttpError,
+  RequestDeadlineError,
+  resilientFetch,
+} from "@/lib/observability/resilience"
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails"
+const RESEND_TIMEOUT_MS = 8_000
 
 type EmailOtpAudience = "customer" | "merchant-verify" | "merchant-reset"
 
@@ -54,15 +59,24 @@ const emailOtpCopy = {
   },
 } satisfies Record<EmailOtpAudience, EmailOtpCopy>
 
-async function safeDetail(res: Response) {
-  try {
-    return (await res.text()).slice(0, 500)
-  } catch (error) {
-    if (!(error instanceof Error)) {
-      throw error
-    }
+type ProviderRequestOptions = {
+  readonly timeoutMs?: number
+}
 
-    return "<no body>"
+type ProviderErrorCode = "deadline_exceeded" | "http_error" | "network_error"
+
+export class ProviderRequestError extends Error {
+  readonly name = "ProviderRequestError"
+  readonly provider = "resend"
+  readonly status: number | null
+  readonly code: ProviderErrorCode
+
+  constructor(status: number | null, code: ProviderErrorCode) {
+    super(
+      `resend request failed (${code}${status === null ? "" : `, status ${status}`})`
+    )
+    this.status = status
+    this.code = code
   }
 }
 
@@ -105,38 +119,55 @@ export async function sendEmailOtp({
   })
 }
 
-export async function sendTransactionalEmail({
-  to,
-  subject,
-  text,
-  html,
-  attachments,
-  idempotencyKey,
-}: TransactionalEmailInput) {
+export async function sendTransactionalEmail(
+  {
+    to,
+    subject,
+    text,
+    html,
+    attachments,
+    idempotencyKey,
+  }: TransactionalEmailInput,
+  options: ProviderRequestOptions = {}
+) {
   const { apiKey, from } = readEmailOtpConfig()
 
-  const res = await resilientFetch("resend", RESEND_ENDPOINT, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-      ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
-    },
-    body: JSON.stringify(
-      buildTransactionalEmailPayload(from, {
-        to,
-        subject,
-        text,
-        html,
-        ...(attachments ? { attachments } : {}),
-      })
-    ),
-  })
+  let res: Response
+  try {
+    res = await resilientFetch(
+      "resend",
+      RESEND_ENDPOINT,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+        },
+        body: JSON.stringify(
+          buildTransactionalEmailPayload(from, {
+            to,
+            subject,
+            text,
+            html,
+            ...(attachments ? { attachments } : {}),
+          })
+        ),
+      },
+      { timeoutMs: options.timeoutMs ?? RESEND_TIMEOUT_MS }
+    )
+  } catch (error) {
+    if (error instanceof RequestDeadlineError) {
+      throw new ProviderRequestError(null, "deadline_exceeded")
+    }
+    if (error instanceof HttpError) {
+      throw new ProviderRequestError(error.status, "http_error")
+    }
+    throw new ProviderRequestError(null, "network_error")
+  }
 
   if (!res.ok) {
-    throw new Error(
-      `Resend send failed (${res.status}): ${await safeDetail(res)}`
-    )
+    throw new ProviderRequestError(res.status, "http_error")
   }
 }
 

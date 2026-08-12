@@ -1,5 +1,15 @@
 import type { NextRequest } from "next/server"
 
+import {
+  DEFAULT_REQUEST_BODY_TIMEOUT_MS,
+  readBoundedBody,
+} from "@/lib/http/bounded-body-reader"
+
+export {
+  RequestBodyTimeoutError,
+  RequestBodyTransportError,
+} from "@/lib/http/bounded-body-reader"
+
 export function isSameOriginRequest(request: NextRequest): boolean {
   const requestOrigin = request.headers.get("origin")
   if (!requestOrigin) return false
@@ -47,35 +57,17 @@ export function isJsonRequest(request: NextRequest): boolean {
 
 export async function readBoundedRequestBody(
   request: NextRequest,
-  maxBytes: number
+  maxBytes: number,
+  timeoutMs = DEFAULT_REQUEST_BODY_TIMEOUT_MS
 ): Promise<string | null> {
-  if (!request.body) return ""
+  const body = await readBoundedBody(request, maxBytes, timeoutMs)
+  if (body === null) return null
 
-  const reader = request.body.getReader()
   const decoder = new TextDecoder("utf-8", { fatal: true })
-  const decoded: string[] = []
-  let bytesRead = 0
-
   try {
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-
-      bytesRead += value.byteLength
-      if (bytesRead > maxBytes) {
-        await reader.cancel()
-        return null
-      }
-
-      decoded.push(decoder.decode(value, { stream: true }))
-    }
-
-    decoded.push(decoder.decode())
-    return decoded.join("")
+    return decoder.decode(body)
   } catch {
     return null
-  } finally {
-    reader.releaseLock()
   }
 }
 

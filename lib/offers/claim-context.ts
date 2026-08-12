@@ -6,6 +6,7 @@ import {
   rpcStringField,
 } from "@/lib/offers/rpc-rows"
 import { hashOfferToken } from "@/lib/offers/tokens"
+import { parsePublicClaimToken } from "@/lib/security/public-claim-token"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 /**
@@ -53,7 +54,9 @@ const CLAIM_STATUSES: readonly OfferClaimStatus[] = [
 export async function resolveOfferClaimContext(
   token: string
 ): Promise<OfferClaimContext> {
-  const claimTokenHash = hashOfferToken(token)
+  const parsed = parsePublicClaimToken(token)
+  const claimTokenHash =
+    parsed.status === "valid" ? hashOfferToken(parsed.value) : ""
   const unavailable: OfferClaimContext = {
     status: "unavailable",
     claimTokenHash,
@@ -68,6 +71,7 @@ export async function resolveOfferClaimContext(
     startsOn: null,
     endsOn: null,
   }
+  if (parsed.status === "invalid") return unavailable
 
   const supabase = createSupabaseServiceRoleClient()
   const { data, error } = await supabase.rpc("get_offer_claim_context", {

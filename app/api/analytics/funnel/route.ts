@@ -10,6 +10,8 @@ import {
   isSameOriginRequest,
   parseJson,
   readBoundedRequestBody,
+  RequestBodyTimeoutError,
+  RequestBodyTransportError,
 } from "@/lib/http/bounded-json-request"
 import {
   beaconErrorResponse as errorResponse,
@@ -52,7 +54,18 @@ export async function POST(request: NextRequest) {
       : errorResponse(503)
   }
 
-  const text = await readBoundedRequestBody(request, MAX_FUNNEL_BODY_BYTES)
+  let text: string | null
+  try {
+    text = await readBoundedRequestBody(request, MAX_FUNNEL_BODY_BYTES)
+  } catch (error) {
+    if (
+      error instanceof RequestBodyTimeoutError ||
+      error instanceof RequestBodyTransportError
+    ) {
+      return errorResponse(400)
+    }
+    throw error
+  }
   if (text === null) return errorResponse(413)
 
   const body = parseFunnelCaptureRequest(parseJson(text))

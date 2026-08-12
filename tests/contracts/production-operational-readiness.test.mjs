@@ -66,7 +66,11 @@ test("production exposes separate versioned liveness and dependency readiness", 
   assert.match(readiness, /signals: operational\.signals/)
   assert.match(proxy, /isOperationalProbePath\(request\.nextUrl\.pathname\)/)
   assert.match(proxy, /customerDevice\?\.isNew/)
-  assert.match(proxy, /operationalProbe\s*\?\s*createResponse\(\)/)
+  assert.match(
+    proxy,
+    /bypassSessionRefresh = operationalProbe \|\| publicNonceRoute/
+  )
+  assert.match(proxy, /bypassSessionRefresh\s*\?\s*createResponse\(\)/)
 })
 
 test("global request-error capture omits raw request and exception detail", () => {

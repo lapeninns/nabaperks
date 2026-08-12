@@ -206,11 +206,14 @@ test("Given the finalised offer pack When marketing facts are loaded Then the pu
   assert.ok(TRANSFORMATION.after.length > 0)
 })
 
-test("Given date-bound campaign wrappers When public marketing routes render Then they revalidate", () => {
-  for (const route of ["app/page.tsx", "app/pricing/page.tsx"]) {
-    const source = readProjectFile(...route.split("/"))
-    assert.match(source, /export const revalidate = 300/)
-  }
+test("Given date-bound campaign wrappers When public marketing routes render Then only the nonce-bound root is request rendered", () => {
+  const landing = readProjectFile("app", "page.tsx")
+  const pricing = readProjectFile("app", "pricing", "page.tsx")
+
+  assert.match(landing, /import \{ connection \} from "next\/server"/)
+  assert.match(landing, /await connection\(\)/)
+  assert.doesNotMatch(landing, /export const revalidate = 300/)
+  assert.match(pricing, /export const revalidate = 300/)
 })
 
 test("Given the conversion re-role When the landing composes sections Then it renders seven bands and no docs-mode depth", () => {

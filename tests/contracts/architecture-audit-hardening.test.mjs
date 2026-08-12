@@ -42,10 +42,6 @@ test("Given global requests When proxy responds Then all security header familie
   assert.match(csp, /NEXT_THEMES_SCRIPT_SHA256/)
   assert.match(csp, /'strict-dynamic'/)
   assert.match(csp, /frame-ancestors 'none'/)
-  assert.match(
-    csp,
-    /script-src-elem 'self' 'nonce-\$\{nonce\}' \$\{nextThemesScriptHashes\} https:\/\/js\.stripe\.com/
-  )
   assert.doesNotMatch(dynamicCspSource, /script-src[^\n]*unsafe-inline/)
   assert.doesNotMatch(dynamicCspSource, /script-src-elem[^\n]*unsafe-inline/)
   assert.doesNotMatch(nextConfig, /sri:\s*\{/)

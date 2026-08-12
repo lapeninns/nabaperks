@@ -1,12 +1,31 @@
 import "server-only"
 
-import { resilientFetch } from "@/lib/observability/resilience"
+import {
+  HttpError,
+  RequestDeadlineError,
+  resilientFetch,
+} from "@/lib/observability/resilience"
 
-async function safeDetail(res: Response) {
-  try {
-    return (await res.text()).slice(0, 500)
-  } catch {
-    return "<no body>"
+const TWILIO_TIMEOUT_MS = 8_000
+
+type ProviderRequestOptions = {
+  readonly timeoutMs?: number
+}
+
+type ProviderErrorCode = "deadline_exceeded" | "http_error" | "network_error"
+
+export class ProviderRequestError extends Error {
+  readonly name = "ProviderRequestError"
+  readonly provider = "twilio"
+  readonly status: number | null
+  readonly code: ProviderErrorCode
+
+  constructor(status: number | null, code: ProviderErrorCode) {
+    super(
+      `twilio request failed (${code}${status === null ? "" : `, status ${status}`})`
+    )
+    this.status = status
+    this.code = code
   }
 }
 
@@ -16,7 +35,10 @@ async function safeDetail(res: Response) {
  * account's Messaging Service. Throws if Twilio is not configured or the API
  * rejects the send.
  */
-export async function sendSmsOtp({ to, code }: { to: string; code: string }) {
+export async function sendSmsOtp(
+  { to, code }: { to: string; code: string },
+  options: ProviderRequestOptions = {}
+) {
   const accountSid = process.env.TWILIO_ACCOUNT_SID?.trim()
   const apiKeySid = process.env.TWILIO_API_KEY_SID?.trim()
   const apiKeySecret = process.env.TWILIO_API_KEY_SECRET?.trim()
@@ -36,18 +58,32 @@ export async function sendSmsOtp({ to, code }: { to: string; code: string }) {
     Body: `Your Nabaperks verification code is ${code}`,
   })
 
-  const res = await resilientFetch("twilio", endpoint, {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${auth}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: params.toString(),
-  })
+  let res: Response
+  try {
+    res = await resilientFetch(
+      "twilio",
+      endpoint,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${auth}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: params.toString(),
+      },
+      { timeoutMs: options.timeoutMs ?? TWILIO_TIMEOUT_MS }
+    )
+  } catch (error) {
+    if (error instanceof RequestDeadlineError) {
+      throw new ProviderRequestError(null, "deadline_exceeded")
+    }
+    if (error instanceof HttpError) {
+      throw new ProviderRequestError(error.status, "http_error")
+    }
+    throw new ProviderRequestError(null, "network_error")
+  }
 
   if (!res.ok) {
-    throw new Error(
-      `Twilio send failed (${res.status}): ${await safeDetail(res)}`
-    )
+    throw new ProviderRequestError(res.status, "http_error")
   }
 }
