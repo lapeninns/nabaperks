@@ -48,7 +48,7 @@ test("Given a claimed notification lands in quiet hours When it is deferred Then
   )
   assert.match(
     worker,
-    /\.update\(\{ status: "queued", due_at: nextDueAt\.toISOString\(\) \}\)/
+    /settleNotificationEvent\(supabase, event, "queued", nextDueAt\)/
   )
 })
 
@@ -67,7 +67,7 @@ test("Given push delivery fails temporarily When no subscription succeeds Then t
   )
   assert.match(
     worker,
-    /deferEvent\(supabase, event\.id, nextRetryDueAt\(now, attemptNumber\)\)/
+    /deferEvent\(supabase, event, nextRetryDueAt\(now, attemptNumber\)\)/
   )
   assert.match(worker, /p_attempt_number: attemptNumber/)
   assert.doesNotMatch(worker, /p_attempt_number: 1,\s*\n\s*p_response_status/)
@@ -79,8 +79,9 @@ test("Given notification ledger writes fail When worker helpers update Supabase 
   assert.match(worker, /Unable to record notification delivery/)
   assert.match(worker, /p_notification_event_id: event\.id/)
   assert.doesNotMatch(worker, /p_event_id: event\.id/)
-  assert.match(worker, /Unable to mark notification event/)
-  assert.match(worker, /Unable to defer notification event/)
+  assert.match(worker, /Unable to settle notification event/)
+  assert.match(worker, /p_lease_token: event\.lease_token/)
+  assert.match(worker, /data !== true/)
   assert.match(worker, /push_subscription_disable_failed/)
 })
 

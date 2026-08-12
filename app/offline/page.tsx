@@ -7,8 +7,6 @@ import { Button } from "@/components/ui/button"
 import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
 import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 
-import { OfflineAutoReload } from "./auto-reload"
-
 // A service-worker fallback surface: keep it out of search indexes, and let
 // the root template brand the tab ("Offline | Nabaperks").
 export const metadata: Metadata = {
@@ -25,7 +23,7 @@ export default function OfflinePage() {
         <EmptyState
           icon={NoInternetIcon}
           title="You're offline"
-          description="Your cards and stamps live safely with us. Reconnect and they will be right here."
+          description="Your cards and stamps live safely with us. Reconnect, then try again."
           headingLevel={1}
           actions={
             <div className="flex w-full flex-wrap justify-center gap-3">
@@ -42,7 +40,6 @@ export default function OfflinePage() {
           }
         />
       </section>
-      <OfflineAutoReload />
     </main>
   )
 }

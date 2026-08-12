@@ -42,7 +42,7 @@ test.describe("PWA offline fallback", () => {
         page.getByRole("link", { name: "Open my cards" })
       ).toHaveAttribute("href", "/home")
       await expect(page.locator("body")).toContainText(
-        "Your cards and stamps live safely with us."
+        "Reconnect, then try again."
       )
 
       const offlineLayout = await page.locator("main").evaluate((node) => {
@@ -72,7 +72,7 @@ test.describe("PWA offline fallback", () => {
     )
 
     const result = await page.evaluate(async () => {
-      const cache = await caches.open("nabaperks-pwa-v3")
+      const cache = await caches.open("nabaperks-pwa-v4")
       const staleUrl =
         "/_next/static/chunks/nabaperks-stale-cache-proof.js?v=old"
       const freshUrl =
@@ -99,6 +99,42 @@ test.describe("PWA offline fallback", () => {
 
     expect(result.status).toBe(404)
     expect(result.body).not.toContain("stale-client-bundle")
+  })
+
+  test("Given the offline shell When connectivity returns Then it stays put and exposes a native retry link", async ({
+    page,
+  }) => {
+    await page.goto("/offline")
+    await page.waitForLoadState("networkidle")
+
+    const navigation = page.waitForEvent("framenavigated", {
+      predicate: (frame) => frame === page.mainFrame(),
+      timeout: 750,
+    })
+    const recovery = navigation.then(
+      async (frame) =>
+        frame.evaluate(() => {
+          const [entry] = performance.getEntriesByType("navigation")
+          return entry instanceof PerformanceNavigationTiming &&
+            entry.type === "reload"
+            ? "reloaded"
+            : "stable"
+        }),
+      (error: unknown) => {
+        if (error instanceof Error && error.message.includes("Timeout")) {
+          return "stable"
+        }
+        throw error
+      }
+    )
+    await page.evaluate(() => window.dispatchEvent(new Event("online")))
+
+    await expect(page.getByRole("link", { name: "Try again" })).toBeVisible()
+    await expect(page.getByRole("link", { name: "Try again" })).toHaveAttribute(
+      "href",
+      ""
+    )
+    await expect(recovery).resolves.toBe("stable")
   })
 })
 

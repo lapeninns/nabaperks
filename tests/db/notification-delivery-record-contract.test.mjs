@@ -86,14 +86,24 @@ test(
         insert into public.customers (email, email_verified_at, created_at, updated_at)
         values (${`rec-${randomUUID()}@test.local`}, now(), now(), now())
         returning id`
+      await tx`update public.notification_events
+               set due_at = now() + interval '1 day'
+               where status = 'queued'`
+      await tx`update public.notification_events
+               set lease_expires_at = now() + interval '1 day'
+               where status = 'delivering'`
       const [event] = await tx`
         insert into public.notification_events
           (event_type, category, customer_id, status, due_at, dedupe_key,
            payload, metadata, created_at, updated_at)
-        values ('reward_ready', 'transactional', ${customer.id}, 'delivering',
+        values ('reward_ready', 'transactional', ${customer.id}, 'queued',
                 now(), ${`rec-${randomUUID()}`}, '{}'::jsonb, '{}'::jsonb,
                 now(), now())
         returning id`
+      const claimed = await tx`
+        select id, lease_token from public.claim_due_notification_events(now(), 1)`
+      const claim = claimed.find((row) => row.id === event.id)
+      assert.ok(claim, "the fixture event has a current delivery lease")
 
       // Values keyed by the worker's argument names, so the call is exactly
       // what the delivery worker sends. An unknown name here raises, matching
@@ -102,6 +112,7 @@ test(
         p_notification_event_id: event.id,
         p_push_subscription_id: null,
         p_customer_id: customer.id,
+        p_lease_token: claim.lease_token,
         p_status: "sent",
         p_attempt_number: 1,
         p_response_status: 201,

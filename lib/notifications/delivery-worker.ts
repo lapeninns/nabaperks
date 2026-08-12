@@ -48,6 +48,7 @@ export type PushDeliveryWorkerResult = {
 
 type NotificationEventRow = {
   id: string
+  lease_token: string
   event_type: string
   category: string
   customer_id: string
@@ -71,6 +72,13 @@ type SubscriptionDeliveryResult = {
   sent: number
   retryableFailed: number
   permanentFailed: number
+}
+
+class NotificationLeaseLostError extends Error {
+  constructor(readonly eventId: string) {
+    super(`Notification delivery lease lost for event ${eventId}`)
+    this.name = "NotificationLeaseLostError"
+  }
 }
 
 export { scheduledNotificationProducerEventTypes }
@@ -174,19 +182,8 @@ async function releaseClaimedNotificationEvents(
 ) {
   if (events.length === 0) return
 
-  const { error } = await supabase
-    .from("notification_events")
-    .update({ status: "queued", claimed_at: null, lease_expires_at: null })
-    .in(
-      "id",
-      events.map((event) => event.id)
-    )
-    .eq("status", "delivering")
-
-  if (error) {
-    throw new Error(
-      `Unable to release claimed notification events: ${error.message}`
-    )
+  for (const event of events) {
+    await settleNotificationEvent(supabase, event, "queued", null)
   }
 }
 
@@ -201,7 +198,7 @@ async function deliverNotificationEvent(
 ) {
   const result = { sent: 0, skipped: 0, failed: 0 }
   if (!isNotificationEventType(event.event_type)) {
-    await markEvent(supabase, event.id, "failed")
+    await markEvent(supabase, event, "failed")
     result.failed += 1
     return result
   }
@@ -219,7 +216,7 @@ async function deliverNotificationEvent(
   ) {
     await deferEvent(
       supabase,
-      event.id,
+      event,
       nextQuietHoursEnd(now, preferences.quietHoursEnd ?? undefined)
     )
     result.skipped += 1
@@ -233,7 +230,6 @@ async function deliverNotificationEvent(
       now,
     }))
   ) {
-    await deferEvent(supabase, event.id, nextNotificationFrequencyWindow(now))
     await recordDelivery(
       supabase,
       event,
@@ -243,14 +239,15 @@ async function deliverNotificationEvent(
       0,
       "notification_frequency_cap"
     )
+    await deferEvent(supabase, event, nextNotificationFrequencyWindow(now))
     result.skipped += 1
     return result
   }
 
   const allowed = await isDeliveryAllowed(supabase, event, preferences)
   if (!allowed) {
-    await markEvent(supabase, event.id, "cancelled")
     await recordDelivery(supabase, event, null, "skipped", 1, 0, "not_eligible")
+    await markEvent(supabase, event, "cancelled")
     result.skipped += 1
     return result
   }
@@ -270,11 +267,6 @@ async function deliverNotificationEvent(
   )
 
   if (subscriptions.length === 0) {
-    await markEvent(
-      supabase,
-      event.id,
-      enabledSubscriptions.length === 0 ? "cancelled" : "sent"
-    )
     if (enabledSubscriptions.length === 0) {
       await recordDelivery(
         supabase,
@@ -286,6 +278,11 @@ async function deliverNotificationEvent(
         "no_subscription"
       )
     }
+    await markEvent(
+      supabase,
+      event,
+      enabledSubscriptions.length === 0 ? "cancelled" : "sent"
+    )
     result.skipped += 1
     return result
   }
@@ -308,11 +305,11 @@ async function deliverNotificationEvent(
   const totalSentForEvent = previouslySentCount + result.sent
 
   if (retryableFailures > 0 && attemptNumber < MAX_PUSH_DELIVERY_ATTEMPTS) {
-    await deferEvent(supabase, event.id, nextRetryDueAt(now, attemptNumber))
+    await deferEvent(supabase, event, nextRetryDueAt(now, attemptNumber))
   } else if (totalSentForEvent > 0) {
-    await markEvent(supabase, event.id, "sent")
+    await markEvent(supabase, event, "sent")
   } else {
-    await markEvent(supabase, event.id, "failed")
+    await markEvent(supabase, event, "failed")
   }
 
   return result
@@ -340,6 +337,7 @@ async function deliverPushSubscription(
     )
     return { sent: 1, retryableFailed: 0, permanentFailed: 0 }
   } catch (error) {
+    if (error instanceof NotificationLeaseLostError) throw error
     const deliveryError =
       error instanceof Error ? error : new Error(String(error))
     const permanent = isPermanentWebPushFailure(deliveryError)
@@ -520,10 +518,11 @@ async function recordDelivery(
   responseStatus: number,
   failureReason: string | null
 ) {
-  const { error } = await supabase.rpc("record_notification_delivery", {
+  const { data, error } = await supabase.rpc("record_notification_delivery", {
     p_notification_event_id: event.id,
     p_push_subscription_id: subscriptionId,
     p_customer_id: event.customer_id,
+    p_lease_token: event.lease_token,
     p_status: status,
     p_attempt_number: attemptNumber,
     p_response_status: responseStatus || null,
@@ -533,6 +532,7 @@ async function recordDelivery(
   if (error) {
     throw new Error(`Unable to record notification delivery: ${error.message}`)
   }
+  if (typeof data !== "string") throw new NotificationLeaseLostError(event.id)
 
   void recordDeliveryProductEvent(event, status, responseStatus, failureReason)
 }
@@ -604,38 +604,37 @@ async function recordDeliveryProductEvent(
 
 async function markEvent(
   supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
-  eventId: string,
-  status: "delivering" | "sent" | "failed" | "cancelled"
+  event: NotificationEventRow,
+  status: "sent" | "failed" | "cancelled"
 ) {
-  const { error } = await supabase
-    .from("notification_events")
-    .update({
-      status,
-      sent_at: status === "sent" ? new Date().toISOString() : null,
-      cancelled_at: status === "cancelled" ? new Date().toISOString() : null,
-    })
-    .eq("id", eventId)
-
-  if (error) {
-    throw new Error(
-      `Unable to mark notification event ${status}: ${error.message}`
-    )
-  }
+  await settleNotificationEvent(supabase, event, status, null)
 }
 
 async function deferEvent(
   supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
-  eventId: string,
+  event: NotificationEventRow,
   nextDueAt: Date
 ) {
-  const { error } = await supabase
-    .from("notification_events")
-    .update({ status: "queued", due_at: nextDueAt.toISOString() })
-    .eq("id", eventId)
+  await settleNotificationEvent(supabase, event, "queued", nextDueAt)
+}
+
+async function settleNotificationEvent(
+  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
+  event: NotificationEventRow,
+  status: "queued" | "sent" | "failed" | "cancelled",
+  nextDueAt: Date | null
+) {
+  const { data, error } = await supabase.rpc("settle_notification_event", {
+    p_notification_event_id: event.id,
+    p_lease_token: event.lease_token,
+    p_status: status,
+    p_due_at: nextDueAt?.toISOString() ?? null,
+  })
 
   if (error) {
-    throw new Error(`Unable to defer notification event: ${error.message}`)
+    throw new Error(`Unable to settle notification event: ${error.message}`)
   }
+  if (data !== true) throw new NotificationLeaseLostError(event.id)
 }
 
 function isPushSubscriptionRow(value: unknown): value is PushSubscriptionRow {

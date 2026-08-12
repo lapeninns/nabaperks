@@ -8,9 +8,11 @@ import {
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useRef, useState } from "react"
+import type { FormEvent } from "react"
 
 import { Eyebrow, ReceiptCard } from "@/components/brand"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { normalizeScannedRewardDestination } from "@/lib/merchant/reward-scanner"
 
 // Single source for the scan-card header. The live scanner, the dynamic-import
@@ -148,6 +150,8 @@ export function MerchantRewardScanner() {
   const hasDecodedRef = useRef(false)
   const [status, setStatus] = useState<ScannerStatus>({ kind: "idle" })
   const [retryCount, setRetryCount] = useState(0)
+  const [manualCode, setManualCode] = useState("")
+  const [manualCodeError, setManualCodeError] = useState(false)
 
   useEffect(() => {
     let disposed = false
@@ -256,6 +260,28 @@ export function MerchantRewardScanner() {
     setRetryCount((count) => count + 1)
   }, [])
 
+  const submitManualCode = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault()
+      const submittedCode = new FormData(event.currentTarget).get(
+        "customerCode"
+      )
+
+      const result = normalizeScannedRewardDestination(
+        typeof submittedCode === "string" ? submittedCode : "",
+        window.location.origin
+      )
+
+      if (result.kind === "invalid") {
+        setManualCodeError(true)
+        return
+      }
+
+      router.push(result.href)
+    },
+    [router]
+  )
+
   const statusText =
     status.kind === "idle"
       ? "Starting camera…"
@@ -266,6 +292,7 @@ export function MerchantRewardScanner() {
           : status.kind === "invalid"
             ? "That is not a reward or discount pass code from a customer"
             : CAMERA_ERROR_STATUS[status.reason]
+  const canEnterCustomerCode = status.kind !== "decoded"
 
   return (
     <ReceiptCard edge className="grid gap-5 p-6">
@@ -289,6 +316,49 @@ export function MerchantRewardScanner() {
           </p>
         ) : null}
       </div>
+
+      {canEnterCustomerCode ? (
+        <form className="grid gap-3" onSubmit={submitManualCode}>
+          <div className="grid gap-1.5">
+            <label className="text-sm font-bold" htmlFor="customer-code">
+              Customer code
+            </label>
+            <Input
+              id="customer-code"
+              name="customerCode"
+              value={manualCode}
+              onChange={(event) => {
+                setManualCode(event.target.value)
+                setManualCodeError(false)
+              }}
+              aria-describedby={
+                manualCodeError ? "customer-code-error" : "customer-code-help"
+              }
+              aria-invalid={manualCodeError}
+              autoComplete="off"
+              inputMode="url"
+            />
+            <p
+              id="customer-code-help"
+              className="text-sm leading-6 text-muted-foreground"
+            >
+              Paste the link from the customer&apos;s code to open it instead.
+            </p>
+            {manualCodeError ? (
+              <p id="customer-code-error" className="text-sm font-bold">
+                Enter a customer reward or discount pass link.
+              </p>
+            ) : null}
+          </div>
+          <Button
+            type="submit"
+            variant="secondary"
+            className="w-full sm:w-auto"
+          >
+            Open customer code
+          </Button>
+        </form>
+      ) : null}
 
       {status.kind === "camera-error" ? (
         <Button

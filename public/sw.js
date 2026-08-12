@@ -1,5 +1,5 @@
 // Bump on offline-shell changes so existing installs re-capture the shell.
-const CACHE_NAME = "nabaperks-pwa-v3"
+const CACHE_NAME = "nabaperks-pwa-v4"
 const OFFLINE_URL = "/offline"
 const NEXT_STATIC_PREFIX = "/_next/static/"
 const STATIC_ASSET_PATHS = [
@@ -242,7 +242,10 @@ function parsePushPayload(event) {
   } catch {
     return {
       title: DEFAULT_NOTIFICATION_TITLE,
-      body: event.data.text() || "Your Nabaperks account has an update.",
+      body: cleanNotificationText(
+        event.data.text(),
+        "Your Nabaperks account has an update."
+      ),
       url: DEFAULT_NOTIFICATION_URL,
     }
   }
@@ -310,6 +313,7 @@ async function refreshPushSubscription(oldSubscription) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         oldEndpoint: oldSubscription?.endpoint ?? null,
+        permissionState: "granted",
         subscription: currentSubscription.toJSON(),
       }),
     })
