@@ -9,20 +9,17 @@ import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
  * Standard-Webhooks check is a ±300s freshness window, so a captured envelope
  * can be replayed inside it to drive another SMS or another email.
  *
- * These hooks are synchronous and sit inside an auth flow, where a duplicate
- * OTP is an annoyance but a MISSING OTP is a lockout. So the contract is
- * asymmetric on purpose — fail closed on replay, fail open on everything else,
- * and never surface a new HTTP status to GoTrue.
+ * Only the request that inserts the claim may call a provider. Replays,
+ * concurrent requests, unusable claims, and database errors all fail closed.
  */
 
 export type AuthHookChannel = "email" | "sms"
 
-export type AuthHookClaim = "claimed" | "replay" | "concurrent"
+export type AuthHookClaim = "claimed" | "replay" | "unavailable"
 
 /**
- * Returns "replay" only for an already-completed delivery. Any doubt —
- * a concurrent attempt, an unusable id, or a database problem — resolves to
- * "concurrent", which means "send anyway".
+ * Returns "claimed" only when this request uniquely inserted the claim.
+ * Every other outcome lacks provider authority.
  */
 export async function claimAuthHookDelivery(
   channel: AuthHookChannel,
@@ -34,8 +31,8 @@ export async function claimAuthHookDelivery(
     p_webhook_id: webhookId,
   })
 
-  if (error) return "concurrent"
-  return data === "replay" || data === "claimed" ? data : "concurrent"
+  if (error) return "unavailable"
+  return data === "replay" || data === "claimed" ? data : "unavailable"
 }
 
 /** Record a provider acceptance so a later replay is recognised. */

@@ -70,6 +70,9 @@ export async function POST(request: NextRequest) {
     if (claim === "replay") {
       return NextResponse.json({})
     }
+    if (claim !== "claimed") {
+      return hookError(503, "Email delivery is temporarily unavailable.")
+    }
 
     await runMerchantOtpDelivery({
       createAlias: () =>

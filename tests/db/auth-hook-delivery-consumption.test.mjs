@@ -1,15 +1,20 @@
 import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 import { after, test } from "node:test"
+import postgres from "postgres"
 
-import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
+import {
+  closeDb,
+  dbUrl,
+  inRolledBackTxn,
+  isLiveDbReady,
+} from "./helpers/db.mjs"
 
 /**
  * Auth-hook replay consumption.
  *
- * The contract is deliberately asymmetric, because these hooks are synchronous
- * and sit inside an auth flow: fail CLOSED on replay, fail OPEN on anything
- * else. A duplicate OTP is an annoyance; a missing OTP is a lockout.
+ * Only the request that inserts the claim may call a provider. Every existing
+ * processing, completed, or failed row lacks provider authority.
  */
 
 const ready = await isLiveDbReady()
@@ -58,7 +63,7 @@ test(
 )
 
 test(
-  "a concurrent attempt still sends rather than risking a lockout",
+  "a concurrent attempt is not eligible for the provider effect",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
@@ -67,63 +72,101 @@ test(
 
       assert.equal(
         await claim(tx, "sms", webhookId),
-        "concurrent",
-        "an in-flight delivery is not proof of delivery — fail open"
+        "unavailable",
+        "only the unique row inserter may become provider-eligible"
       )
     })
   }
 )
 
-test("a failed delivery may be retried by the provider", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
+test(
+  "two simultaneous claims produce exactly one provider-eligible claimant",
+  { skip },
+  async () => {
+    const url = dbUrl()
+    assert.ok(url)
+    const sql = postgres(url, { max: 2 })
     const webhookId = id()
-    await claim(tx, "sms", webhookId)
-    await fail(tx, "sms", webhookId)
+    let arrivals = 0
+    let releaseClaims = () => {}
+    const claimsReady = new Promise((resolve) => {
+      releaseClaims = resolve
+    })
+    const simultaneousClaim = () =>
+      sql.begin(async (tx) => {
+        await tx`select set_config('request.jwt.claim.role', 'service_role', true)`
+        arrivals += 1
+        if (arrivals === 2) releaseClaims()
+        await claimsReady
+        return claim(tx, "sms", webhookId)
+      })
 
-    assert.equal(
-      await claim(tx, "sms", webhookId),
-      "claimed",
-      "a wholly failed delivery must be re-sendable"
-    )
-  })
-})
+    try {
+      const outcomes = await Promise.all([
+        simultaneousClaim(),
+        simultaneousClaim(),
+      ])
+      assert.deepEqual(
+        outcomes.sort(),
+        ["claimed", "unavailable"],
+        "two database sessions must expose exactly one unique claimant"
+      )
+    } finally {
+      await sql`
+        delete from public.auth_hook_deliveries
+        where channel = 'sms' and webhook_id = ${webhookId}`
+      await sql.end({ timeout: 5 })
+    }
+  }
+)
 
 test(
-  "a concurrent success is recorded over the owner's failure",
+  "a failed delivery cannot create a second provider claimant",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
       const webhookId = id()
-
-      // A claims; B fails open and also sends; A's own send then fails.
-      assert.equal(await claim(tx, "sms", webhookId), "claimed")
-      assert.equal(await claim(tx, "sms", webhookId), "concurrent")
+      await claim(tx, "sms", webhookId)
       await fail(tx, "sms", webhookId)
 
-      // B succeeded. If completion required 'processing' it would match
-      // nothing here, leaving NO record of a message that was provably
-      // delivered — and reopening replay for the rest of the window.
-      assert.equal(await complete(tx, "sms", webhookId), true)
-
       assert.equal(
         await claim(tx, "sms", webhookId),
-        "replay",
-        "the proven delivery must be remembered"
+        "unavailable",
+        "a stale failed claim must not reopen provider authority"
       )
     })
   }
 )
 
 test(
-  "an unusable webhook id sends rather than stranding the customer",
+  "completion only settles the unique processing claimant",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
-      assert.equal(await claim(tx, "sms", "   "), "concurrent")
-      assert.equal(await claim(tx, "sms", null), "concurrent")
+      const webhookId = id()
+
+      // A claims; B cannot send; A's own send then fails.
+      assert.equal(await claim(tx, "sms", webhookId), "claimed")
+      assert.equal(await claim(tx, "sms", webhookId), "unavailable")
+      await fail(tx, "sms", webhookId)
+
+      assert.equal(await complete(tx, "sms", webhookId), false)
+
+      assert.equal(
+        await claim(tx, "sms", webhookId),
+        "unavailable",
+        "a failed claim remains closed to subsequent provider attempts"
+      )
     })
   }
 )
+
+test("an unusable webhook id fails closed", { skip }, async () => {
+  await inRolledBackTxn(async (tx) => {
+    assert.equal(await claim(tx, "sms", "   "), "unavailable")
+    assert.equal(await claim(tx, "sms", null), "unavailable")
+  })
+})
 
 test(
   "an arbitrary opaque id is accepted, not rejected by a pattern",

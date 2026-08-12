@@ -47,12 +47,15 @@ export async function POST(request: NextRequest) {
   }
 
   // Consume the authenticated webhook id BEFORE the provider call. A replay of
-  // an already-completed delivery answers with the ordinary success body, so
-  // GoTrue's retry contract is untouched; anything else sends, because a
-  // missing OTP is far worse than a duplicate one.
+  // an already-completed delivery answers with the ordinary success body. Only
+  // the unique claimant may call Twilio; concurrency and claim errors fail
+  // closed with a retryable response.
   const claim = await claimAuthHookDelivery("sms", envelope.webhookId)
   if (claim === "replay") {
     return NextResponse.json({})
+  }
+  if (claim !== "claimed") {
+    return hookError(503, "SMS delivery is temporarily unavailable.")
   }
 
   try {
