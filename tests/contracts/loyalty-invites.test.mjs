@@ -155,8 +155,7 @@ test("retention, export and erasure cover the new data", () => {
   const cron = read("app/api/cron/privacy-retention/route.ts")
   assert.match(cron, /expire_and_purge_loyalty_invites/)
   const adminAction = read("app/admin/actions.ts")
-  assert.match(adminAction, /loyalty_invitations_export_for_customer/)
-  assert.match(adminAction, /admin_erase_loyalty_invitations_for_customer/)
+  assert.match(adminAction, /admin_erase_customer_pii/)
 })
 
 test("the OpenAPI contract documents the Resend webhook", () => {
@@ -172,7 +171,7 @@ test("legal documentation discloses the invitation data flow", () => {
   assert.match(legal, /encrypted/)
 })
 
-test("review hardening: Svix headers, actor audit, revocable completed, erase order", () => {
+test("review hardening: Svix headers, actor audit, revocable completed, atomic erasure", () => {
   const route = read("app/api/resend/webhook/route.ts")
   assert.match(route, /svix-id/)
   assert.match(route, /svix-signature/)
@@ -196,14 +195,10 @@ test("review hardening: Svix headers, actor audit, revocable completed, erase or
   assert.match(inviteActions, /p_actor_user_id: gate\.actorUserId/)
   assert.match(inviteActions, /p_created_by: gate\.actorUserId/)
 
-  // The invitation scrub must precede the customer-PII erasure that nulls the HMAC.
   const adminAction = read("app/admin/actions.ts")
-  const scrubIdx = adminAction.indexOf(
-    "admin_erase_loyalty_invitations_for_customer"
-  )
-  const logIdx = adminAction.indexOf("admin_log_data_request")
-  assert.ok(
-    scrubIdx > 0 && scrubIdx < logIdx,
-    "invitation scrub runs before admin_log_data_request"
+  assert.match(adminAction, /admin_erase_customer_pii/)
+  assert.doesNotMatch(
+    adminAction,
+    /admin_erase_loyalty_invitations_for_customer/
   )
 })

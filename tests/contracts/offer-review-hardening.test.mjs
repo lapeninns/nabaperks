@@ -106,54 +106,17 @@ describe("merchant desk totals are counted by the database", () => {
 describe("an admin data request never reports work it did not do", () => {
   const actions = flatten(readProjectFile("app", "admin", "actions.ts"))
 
-  const COMPANIONS = [
-    "admin_erase_loyalty_invitations_for_customer",
-    "admin_erase_offer_claims_for_customer",
-    "loyalty_invitations_export_for_customer",
-    "offer_claims_export_for_customer",
-  ]
-
-  it("destructures an error from every companion RPC", () => {
-    for (const rpc of COMPANIONS) {
-      assert.match(
-        actions,
-        new RegExp(`error: \\w+ \\} = await supabase\\.rpc\\( "${rpc}"`),
-        `${rpc} must surface its own error`
-      )
-    }
-  })
-
-  it("aborts a deletion before it is logged as handled", () => {
-    // Both erasures run in their own transaction, separate from
-    // admin_log_data_request. If one fails and the log still runs, the console
-    // says the subject's data is gone while their pass scan tokens and
-    // redeemable discount passes are still there.
-    const eraseIndex = actions.indexOf("admin_erase_offer_claims_for_customer")
-    const guardIndex = actions.indexOf("if (offerEraseFailure) return")
-    const logIndex = actions.indexOf('"admin_log_data_request"')
-
-    assert.ok(eraseIndex > 0 && guardIndex > eraseIndex)
-    assert.ok(
-      guardIndex < logIndex,
-      "the erasure guard must return before the request is logged"
-    )
-    assert.match(actions, /if \(inviteEraseFailure\) return inviteEraseFailure/)
-  })
-
-  it("withholds an incomplete subject-access export", () => {
+  it("uses the atomic erasure RPC instead of companion or audit RPCs", () => {
     assert.match(
       actions,
-      /rpcFailure\( invitationsError \?\? offerClaimsError,/
+      /if \(requestType === "deletion"\) \{ const \{ error \} = await supabase\.rpc\("admin_erase_customer_pii", \{ p_customer_id: customerId, p_merchant_id: merchantId, p_channel: channel, p_notes: notes, \}\)/
     )
-    assert.match(actions, /if \(exportFailure\) return exportFailure/)
-
-    // The failure must be checked BEFORE the payload is assembled, or an
-    // absent read still ships as an empty object.
-    const guardIndex = actions.indexOf(
-      "if (exportFailure) return exportFailure"
+    assert.doesNotMatch(actions, /admin_erase_loyalty_invitations_for_customer/)
+    assert.doesNotMatch(actions, /admin_erase_offer_claims_for_customer/)
+    assert.doesNotMatch(
+      actions,
+      /admin_log_data_request[\s\S]*p_request_type: requestType[\s\S]*if \(requestType === "deletion"\)/
     )
-    const payloadIndex = actions.indexOf("offer_campaigns: offerClaims")
-    assert.ok(guardIndex > 0 && guardIndex < payloadIndex)
   })
 })
 

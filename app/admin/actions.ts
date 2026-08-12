@@ -286,59 +286,32 @@ export async function logDataRequestAction(
   }
 
   const supabase = await createSupabaseServerClient()
-
-  // For a deletion, scrub bulk loyalty invitation data BEFORE the erasure below
-  // nulls the customer's email HMAC — the companion RPC matches unclaimed
-  // invitations (which still hold ciphertext, tokens and queue state) by that
-  // HMAC, so it must run while the HMAC is still present.
-  //
-  // Each companion's own error is checked and aborts the whole action. These
-  // are separate transactions from the request log below, so ignoring one
-  // would leave the erasure request recorded as handled while the data it was
-  // supposed to remove — unclaimed invitations, or a subject's live pass scan
-  // tokens and redeemable discount passes — was still there. An erasure that
-  // reports success it did not achieve is the one failure mode this action must
-  // never have.
   if (requestType === "deletion") {
-    const { error: inviteEraseError } = await supabase.rpc(
-      "admin_erase_loyalty_invitations_for_customer",
-      { p_customer_id: customerId }
+    const { error } = await supabase.rpc("admin_erase_customer_pii", {
+      p_customer_id: customerId,
+      p_merchant_id: merchantId,
+      p_channel: channel,
+      p_notes: notes,
+    })
+    const failure = rpcFailure(
+      error,
+      "Data request log failed. Try again or review audit logs."
     )
-    const inviteEraseFailure = rpcFailure(
-      inviteEraseError,
-      "Loyalty invitation erasure failed, so nothing was recorded. Try again or review audit logs."
+    if (failure) return failure
+  } else {
+    const { error } = await supabase.rpc("admin_log_data_request", {
+      p_customer_id: customerId,
+      p_merchant_id: merchantId,
+      p_request_type: requestType,
+      p_channel: channel,
+      p_notes: notes,
+    })
+    const failure = rpcFailure(
+      error,
+      "Data request log failed. Try again or review audit logs."
     )
-    if (inviteEraseFailure) return inviteEraseFailure
-
-    // Offer campaigns hold no contact detail, so there is nothing to scrub;
-    // what erasure removes is the subject's outstanding pass scan tokens, the
-    // redeemable state of any pass they still hold, and the claim linkage
-    // wherever no redemption sits beneath it. The append-only redemption ledger
-    // is left intact and is de-identified by the customer-row anonymisation.
-    const { error: offerEraseError } = await supabase.rpc(
-      "admin_erase_offer_claims_for_customer",
-      { p_customer_id: customerId }
-    )
-    const offerEraseFailure = rpcFailure(
-      offerEraseError,
-      "Offer claim erasure failed, so nothing was recorded. Loyalty invitation data was already scrubbed; try again or review audit logs."
-    )
-    if (offerEraseFailure) return offerEraseFailure
+    if (failure) return failure
   }
-
-  const { error } = await supabase.rpc("admin_log_data_request", {
-    p_customer_id: customerId,
-    p_merchant_id: merchantId,
-    p_request_type: requestType,
-    p_channel: channel,
-    p_notes: notes,
-  })
-
-  const failure = rpcFailure(
-    error,
-    "Data request log failed. Try again or review audit logs."
-  )
-  if (failure) return failure
 
   revalidatePath("/admin/privacy")
   revalidatePath("/admin/audit")
