@@ -16,6 +16,7 @@ import {
   rewardCounts,
   seedDeliveryFixture,
   writeJourneyEvidence,
+  writeJourneyScreenshot,
 } from "./helpers/journey-race-live-db"
 import {
   assertMerchantRewardPresetBrowserSession,
@@ -57,6 +58,7 @@ test.describe("Task15 governed journey and race receipts", () => {
         ownerCounts,
         otherCounts,
       })
+      await writeJourneyScreenshot(otherPage, "tenant-noninterference")
     } finally {
       await cleanupMerchantRewardPresetLiveDbFixture(sql, ownerFixture)
       await cleanupMerchantRewardPresetLiveDbFixture(sql, otherFixture)
@@ -94,6 +96,7 @@ test.describe("Task15 governed journey and race receipts", () => {
         membershipId: fixture.waitingMembershipId,
         rewardUrl: new URL(page.url()).pathname,
       })
+      await writeJourneyScreenshot(page, "cookie-auth-surfaces")
     } finally {
       await cleanupCustomerReadbackFixture(sql, fixture)
       await sql.end()
@@ -122,6 +125,7 @@ test.describe("Task15 governed journey and race receipts", () => {
         counts,
         visibleReward: "Receipt reward",
       })
+      await writeJourneyScreenshot(page, "reward-add-readback")
     } finally {
       await cleanupMerchantRewardPresetLiveDbFixture(sql, fixture)
       await sql.end()
@@ -166,6 +170,7 @@ test.describe("Task15 governed journey and race receipts", () => {
         first,
         replay,
       })
+      await writeJourneyScreenshot(page, "resend-terminal-replay")
     } finally {
       await removeDeliveryFixture(sql, delivery)
       await cleanupMerchantRewardPresetLiveDbFixture(sql, merchant)
@@ -219,6 +224,8 @@ test.describe("Task15 governed journey and race receipts", () => {
         counts,
         messages,
       })
+      await writeJourneyScreenshot(firstPage, "reward-race-success")
+      await writeJourneyScreenshot(secondPage, "reward-race-blocked")
     } finally {
       await cleanupMerchantRewardPresetLiveDbFixture(sql, fixture)
       await firstContext.close()

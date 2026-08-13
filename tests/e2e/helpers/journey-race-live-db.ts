@@ -2,7 +2,7 @@ import { createHmac, randomUUID } from "node:crypto"
 import { mkdir, writeFile } from "node:fs/promises"
 import { resolve } from "node:path"
 
-import type { APIRequestContext, BrowserContext } from "@playwright/test"
+import type { APIRequestContext, BrowserContext, Page } from "@playwright/test"
 
 import type { Sql } from "./admin-live-db"
 import type { BrowserCustomerSession } from "./customer-readback-live-db"
@@ -197,6 +197,14 @@ export async function writeJourneyEvidence(
     `${JSON.stringify(value, null, 2)}\n`,
     "utf8"
   )
+}
+
+export async function writeJourneyScreenshot(
+  page: Page,
+  name: string
+): Promise<void> {
+  await mkdir(EVIDENCE_ROOT, { recursive: true })
+  await page.screenshot({ path: resolve(EVIDENCE_ROOT, `${name}.png`) })
 }
 
 function requiredEnv(name: string): string {
