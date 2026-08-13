@@ -2754,3 +2754,27 @@ type="radio">` with `accent-[var(--w-ink)]` — the exact treatment that
    They are all hard offsets, so none of them violates "never blurred" — the
    only rule DESIGN.md actually states. Reported rather than swept: the
    document does not forbid them, and this lane does not invent rules.
+
+## 63. Nothing checks formatting, and the count in §60 is low
+
+`package.json` ships `pnpm format` (`prettier --write "**/*.{ts,tsx}"`) but no
+gate ever runs `prettier --check`. `lint-staged` formats only the files a commit
+touches, so anything not touched drifts and nothing notices.
+
+Measured at HEAD across `app/`, `components/` and `lib/`:
+
+    prettier --check  ->  68 files with style issues
+
+The dsweep lane recorded "20 files not Prettier-clean" in §60; that figure came
+from a narrower glob. The number is **68**.
+
+This is not cosmetic. A whitespace-only difference is enough to abort
+`git merge` with "local changes would be overwritten" — it did exactly that,
+twice, during the `lane/dsweep` fan-in, and cost a rebuild of the merge. An
+unformatted tree is a merge hazard, not a tidiness preference.
+
+**Recommendation:** add `"format:check": "prettier --check ..."` to the
+`quality:check` chain, then land the 68-file sweep as ONE commit of its own so
+it never mixes with a behavioural change. Not done here because a formatting
+sweep across 68 files while lanes are in flight would collide with everything
+they touch — this is the last thing to do, after the final fan-in.
