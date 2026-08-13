@@ -11,6 +11,7 @@ import {
   encryptOtpAliasToken,
 } from "../../../lib/security/otp-alias-token-core"
 import { connectLocalDb, type Sql } from "./admin-live-db"
+import { runCleanupSteps } from "./cleanup-lifecycle"
 
 const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost"])
 const DEFAULT_BROWSER_URL = "http://127.0.0.1:3146"
@@ -25,12 +26,7 @@ const REPLACEMENT_PASSWORD = "venue456"
 
 export type MerchantAuthLivePurpose = "recovery" | "signup"
 export type MerchantAuthAliasTestOutcome =
-  | "busy"
-  | "expired"
-  | "rejected"
-  | "superseded"
-  | "throttled"
-  | "used"
+  "busy" | "expired" | "rejected" | "superseded" | "throttled" | "used"
 
 export type MerchantAuthLiveDbFixture = Readonly<{
   aliasCode: string
@@ -72,6 +68,15 @@ type CleanupCountRow = Readonly<{
   attempts: number
   sessions: number
   users: number
+}>
+
+type FaultRestorationRow = Readonly<{
+  passwordFaultFunction: string | null
+  passwordFaultTable: string | null
+  passwordFaultTriggerCount: number
+  rateLimitExecute: boolean
+  rateLimitRead: boolean
+  reservationExecute: boolean
 }>
 
 export function merchantAuthRecoveryLiveDbSkipReason(): string | undefined {
@@ -654,37 +659,75 @@ export async function setMerchantAuthRateLimitReadAvailable(
 export async function restoreMerchantAuthLiveDbFaults(sql: Sql): Promise<void> {
   assertLiveDbOptIn()
 
-  const cleanupErrors: Error[] = []
-  for (const [label, cleanup] of [
+  await runCleanupSteps(
     [
-      "merchant auth reservation permission repair",
-      () => setMerchantAuthReservationRpcAvailable(sql, true),
+      {
+        label: "merchant auth reservation permission repair",
+        run: () => setMerchantAuthReservationRpcAvailable(sql, true),
+      },
+      {
+        label: "merchant auth rate-limit permission repair",
+        run: () => setMerchantAuthRateLimitRpcAvailable(sql, true),
+      },
+      {
+        label: "merchant auth rate-limit read permission repair",
+        run: () => setMerchantAuthRateLimitReadAvailable(sql, true),
+      },
+      {
+        label: "merchant auth password fault cleanup",
+        run: () => removeMerchantPasswordUpdateFault(sql),
+      },
+      {
+        label: "merchant auth fault restoration readback",
+        run: () => assertMerchantAuthLiveDbFaultsRestored(sql),
+      },
     ],
-    [
-      "merchant auth rate-limit permission repair",
-      () => setMerchantAuthRateLimitRpcAvailable(sql, true),
-    ],
-    [
-      "merchant auth rate-limit read permission repair",
-      () => setMerchantAuthRateLimitReadAvailable(sql, true),
-    ],
-    [
-      "merchant auth password fault cleanup",
-      () => removeMerchantPasswordUpdateFault(sql),
-    ],
-  ] as const) {
-    try {
-      await cleanup()
-    } catch (error) {
-      cleanupErrors.push(asError(label, error))
-    }
-  }
+    "Unable to restore the merchant auth local proof database."
+  )
+}
 
-  if (cleanupErrors.length > 0) {
-    throw new AggregateError(
-      cleanupErrors,
-      "Unable to restore the merchant auth local proof database."
-    )
+export async function assertMerchantAuthLiveDbFaultsRestored(
+  sql: Sql
+): Promise<void> {
+  const rows = await sql<readonly FaultRestorationRow[]>`
+    select
+      has_function_privilege(
+        'service_role',
+        'public.reserve_merchant_email_otp_alias(text,text,text)',
+        'EXECUTE'
+      ) as "reservationExecute",
+      has_function_privilege(
+        'service_role',
+        'public.enforce_rate_limit(text,integer,integer)',
+        'EXECUTE'
+      ) as "rateLimitExecute",
+      has_table_privilege(
+        'service_role',
+        'public.rate_limit_buckets',
+        'SELECT'
+      ) as "rateLimitRead",
+      to_regprocedure(
+        'public.block_merchant_auth_e2e_password_update()'
+      )::text as "passwordFaultFunction",
+      to_regclass(
+        'public.merchant_auth_e2e_password_faults'
+      )::text as "passwordFaultTable",
+      (select count(*)::int
+       from pg_trigger
+       where tgname = 'block_merchant_auth_e2e_password_update'
+         and tgrelid = 'auth.users'::regclass) as "passwordFaultTriggerCount"`
+  const state = rows.at(0)
+
+  if (
+    !state ||
+    !state.reservationExecute ||
+    !state.rateLimitExecute ||
+    !state.rateLimitRead ||
+    state.passwordFaultFunction !== null ||
+    state.passwordFaultTable !== null ||
+    state.passwordFaultTriggerCount !== 0
+  ) {
+    throw new Error("Merchant auth fault restoration readback failed.")
   }
 }
 
@@ -695,49 +738,42 @@ export async function cleanupMerchantAuthLiveDbFixture(
 ): Promise<void> {
   if (!fixture) return
 
-  const cleanupErrors: Error[] = []
-
-  try {
-    await cleanupMerchantAuthAliasRows(sql, fixture.email)
-  } catch (error) {
-    cleanupErrors.push(asError("merchant auth alias cleanup", error))
-  }
-
-  if (requestIdentity) {
-    try {
-      await cleanupMerchantAuthRateLimitBuckets(
-        sql,
-        fixture.email,
-        requestIdentity
-      )
-    } catch (error) {
-      cleanupErrors.push(asError("merchant auth rate-limit cleanup", error))
-    }
-  }
-
-  try {
-    const { error } = await serviceRoleClient().auth.admin.deleteUser(
-      fixture.userId
-    )
-    if (error) throw error
-  } catch (error) {
-    cleanupErrors.push(asError("merchant auth user cleanup", error))
-  }
-
-  if (cleanupErrors.length === 0) {
-    try {
-      await assertMerchantAuthFixtureRemoved(sql, fixture, requestIdentity)
-    } catch (error) {
-      cleanupErrors.push(asError("merchant auth cleanup readback", error))
-    }
-  }
-
-  if (cleanupErrors.length > 0) {
-    throw new AggregateError(
-      cleanupErrors,
-      `Unable to fully clean merchant auth fixture ${fixture.userId}.`
-    )
-  }
+  await runCleanupSteps(
+    [
+      {
+        label: "merchant auth alias cleanup",
+        run: () => cleanupMerchantAuthAliasRows(sql, fixture.email),
+      },
+      ...(requestIdentity
+        ? [
+            {
+              label: "merchant auth rate-limit cleanup",
+              run: () =>
+                cleanupMerchantAuthRateLimitBuckets(
+                  sql,
+                  fixture.email,
+                  requestIdentity
+                ),
+            },
+          ]
+        : []),
+      {
+        label: "merchant auth user cleanup",
+        run: async () => {
+          const { error } = await serviceRoleClient().auth.admin.deleteUser(
+            fixture.userId
+          )
+          if (error) throw error
+        },
+      },
+      {
+        label: "merchant auth cleanup readback",
+        run: () =>
+          assertMerchantAuthFixtureRemoved(sql, fixture, requestIdentity),
+      },
+    ],
+    `Unable to fully clean merchant auth fixture ${fixture.userId}.`
+  )
 }
 
 export async function cleanupMerchantAuthAliasRows(
