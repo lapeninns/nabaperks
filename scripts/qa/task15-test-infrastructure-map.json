@@ -22,8 +22,32 @@
       "stableId": "T37-DEF-0e4ed84fb3b38f46ecb11775",
       "title": "Breakpoint edge transitions are not enumerated",
       "sourceRowSha256": "f73606075717bda2a2d9551c655085ff97dab31a9eee26d704122da805942640",
-      "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "status": "fixed",
+      "reason": "The clean commit-pinned visual-layout suite passed all seven behavioural scenarios on its first Chromium attempt; historical RED proof is retained beside the exact validator sidecars.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-layout-receipts-v6/receipts/t37-def-0e4ed84fb3b38f46ecb11775-direct-receipt.json",
+          "sha256": "9333d41f17a70a5aad01b81f277e230fbdb7c181d80af13a6e046c1989e16fa1"
+        },
+        "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/visual-layout-invariants/visual.spec.ts --project=chromium --reporter=line",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-layout-receipts-v6/candidate-source",
+          "head": "9635ab716fce0fac4fcf1cf46ac886052d906ae0",
+          "tree": "2a0e23adf28ca2055aa2b5aaeb2e2cc28f184448",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 7,
+          "passed": 7,
+          "failed": 0,
+          "skipped": 0
+        },
+        "assertions": 7
+      }
     },
     {
       "stableId": "T37-DEF-0ebe7a54bdea10abd1619e56",
@@ -62,8 +86,32 @@
       "stableId": "T37-DEF-1175c50646580e74200a11f5",
       "title": "No adversarial long-copy fixture is exercised",
       "sourceRowSha256": "8eb7dd0c4b704faa0cde32c6699144c62396cf80c4d2fa272c84d2c53b8bebf7",
-      "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "status": "fixed",
+      "reason": "The clean commit-pinned visual-layout suite passed all seven behavioural scenarios on its first Chromium attempt; historical RED proof is retained beside the exact validator sidecars.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-layout-receipts-v6/receipts/t37-def-1175c50646580e74200a11f5-direct-receipt.json",
+          "sha256": "e3aa79ca086f0a4f7f94abff81b0d34cdf3b9b46e7c261e059ba953cd24a780a"
+        },
+        "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/visual-layout-invariants/visual.spec.ts --project=chromium --reporter=line",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-layout-receipts-v6/candidate-source",
+          "head": "9635ab716fce0fac4fcf1cf46ac886052d906ae0",
+          "tree": "2a0e23adf28ca2055aa2b5aaeb2e2cc28f184448",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 7,
+          "passed": 7,
+          "failed": 0,
+          "skipped": 0
+        },
+        "assertions": 7
+      }
     },
     {
       "stableId": "T37-DEF-145092ea5e962d614cee4f1b",
@@ -187,8 +235,32 @@
       "stableId": "T37-DEF-3bf48c9396a2b9cc36dd1fd5",
       "title": "Dark theme is source-supported but absent from visual regression routes",
       "sourceRowSha256": "a8232ade6a307b354c41279a6ea3748c8478e39577a7ef5b3156e9db17fdd868",
-      "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "status": "fixed",
+      "reason": "The clean commit-pinned visual-layout suite passed all seven behavioural scenarios on its first Chromium attempt; historical RED proof is retained beside the exact validator sidecars.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-layout-receipts-v6/receipts/t37-def-3bf48c9396a2b9cc36dd1fd5-direct-receipt.json",
+          "sha256": "c0f55fbad3c3e0a4e94af57d6110683fa8fc16c8eaf0a8efac9fe0d5966c0457"
+        },
+        "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/visual-layout-invariants/visual.spec.ts --project=chromium --reporter=line",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-layout-receipts-v6/candidate-source",
+          "head": "9635ab716fce0fac4fcf1cf46ac886052d906ae0",
+          "tree": "2a0e23adf28ca2055aa2b5aaeb2e2cc28f184448",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 7,
+          "passed": 7,
+          "failed": 0,
+          "skipped": 0
+        },
+        "assertions": 7
+      }
     },
     {
       "stableId": "T37-DEF-3cdacf030abc0a7ec1566492",
@@ -225,8 +297,32 @@
       "stableId": "T37-DEF-3e53336bd49580d59df400c0",
       "title": "Dedicated loading and error harnesses are not included in visual.spec.ts",
       "sourceRowSha256": "7353e6bab84ac6ebde8014508c54193299a7fe73b85117d448eefb7a696df8b7",
-      "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "status": "fixed",
+      "reason": "The clean commit-pinned visual-layout suite passed all seven behavioural scenarios on its first Chromium attempt; historical RED proof is retained beside the exact validator sidecars.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-layout-receipts-v6/receipts/t37-def-3e53336bd49580d59df400c0-direct-receipt.json",
+          "sha256": "ee07dd3053de26237d27ba97409567560800f9daf38ccd7fdccdc7950b07aba8"
+        },
+        "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/visual-layout-invariants/visual.spec.ts --project=chromium --reporter=line",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-layout-receipts-v6/candidate-source",
+          "head": "9635ab716fce0fac4fcf1cf46ac886052d906ae0",
+          "tree": "2a0e23adf28ca2055aa2b5aaeb2e2cc28f184448",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 7,
+          "passed": 7,
+          "failed": 0,
+          "skipped": 0
+        },
+        "assertions": 7
+      }
     },
     {
       "stableId": "T37-DEF-43d088fb806b4fe40b9892fb",
@@ -384,8 +480,32 @@
       "stableId": "T37-DEF-60e363164a12ea669a53a1fa",
       "title": "Tablet and landscape coverage are absent from the visual project matrix",
       "sourceRowSha256": "5ef05264f1f7fc824eb4f8f13a24eb1a7809dc49eeb1e447fdaa419fcd20951a",
-      "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "status": "fixed",
+      "reason": "The clean commit-pinned visual-layout suite passed all seven behavioural scenarios on its first Chromium attempt; historical RED proof is retained beside the exact validator sidecars.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-layout-receipts-v6/receipts/t37-def-60e363164a12ea669a53a1fa-direct-receipt.json",
+          "sha256": "2a96894dcf60388e0e9cfbebd12c12805bad7f7fd12d421a68e25567bc62eb2b"
+        },
+        "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/visual-layout-invariants/visual.spec.ts --project=chromium --reporter=line",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-layout-receipts-v6/candidate-source",
+          "head": "9635ab716fce0fac4fcf1cf46ac886052d906ae0",
+          "tree": "2a0e23adf28ca2055aa2b5aaeb2e2cc28f184448",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 7,
+          "passed": 7,
+          "failed": 0,
+          "skipped": 0
+        },
+        "assertions": 7
+      }
     },
     {
       "stableId": "T37-DEF-63c612fa43439b27982d3426",
@@ -805,8 +925,32 @@
       "stableId": "T37-DEF-da6db9c2495b60b1fff5da0e",
       "title": "Full-page screenshots have no explicit layout invariants",
       "sourceRowSha256": "6b209446cbe78a7b2be2d34b14375793f2c670e4c2309e3572e6abbdba03c238",
-      "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "status": "fixed",
+      "reason": "The clean commit-pinned visual-layout suite passed all seven behavioural scenarios on its first Chromium attempt; historical RED proof is retained beside the exact validator sidecars.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-layout-receipts-v6/receipts/t37-def-da6db9c2495b60b1fff5da0e-direct-receipt.json",
+          "sha256": "270720858da3e419e347942d3c3ed7165b2bb3881fcb086adbab7c154e16e75a"
+        },
+        "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/visual-layout-invariants/visual.spec.ts --project=chromium --reporter=line",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-layout-receipts-v6/candidate-source",
+          "head": "9635ab716fce0fac4fcf1cf46ac886052d906ae0",
+          "tree": "2a0e23adf28ca2055aa2b5aaeb2e2cc28f184448",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 7,
+          "passed": 7,
+          "failed": 0,
+          "skipped": 0
+        },
+        "assertions": 7
+      }
     },
     {
       "stableId": "T37-DEF-e21c5ceb3269668c2a334edd",
@@ -847,8 +991,32 @@
       "stableId": "T37-DEF-ee55f0744ca8baec4a95cd65",
       "title": "No 200% or 400% journey evidence; overflow clipping can conceal failures",
       "sourceRowSha256": "c55e9bf4b805c826a68f358f1e62dffa345d744551d2da23aa8d48fa0c438304",
-      "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "status": "fixed",
+      "reason": "The clean commit-pinned visual-layout suite passed all seven behavioural scenarios on its first Chromium attempt; historical RED proof is retained beside the exact validator sidecars.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-layout-receipts-v6/receipts/t37-def-ee55f0744ca8baec4a95cd65-direct-receipt.json",
+          "sha256": "978083277b09857d01a796b2cb309a5defb4217fb6b9f47920e0f39ba84c9e31"
+        },
+        "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/visual-layout-invariants/visual.spec.ts --project=chromium --reporter=line",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-layout-receipts-v6/candidate-source",
+          "head": "9635ab716fce0fac4fcf1cf46ac886052d906ae0",
+          "tree": "2a0e23adf28ca2055aa2b5aaeb2e2cc28f184448",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 7,
+          "passed": 7,
+          "failed": 0,
+          "skipped": 0
+        },
+        "assertions": 7
+      }
     },
     {
       "stableId": "T37-DEF-f1689e1857473d715666b121",
