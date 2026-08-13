@@ -50,6 +50,13 @@ test("staging release config accepts a fixed ephemeral loopback target", () => {
   assert.equal(config.projectRef, "local-ephemeral")
 })
 
+test("staging release config rejects a non-unique run identifier", () => {
+  assert.throws(
+    () => resolveConfig(validEnv({ STAGING_RUN_ID: "shared-run" })),
+    /GitHub run identifier and positive attempt/
+  )
+})
+
 test("staging release config rejects local or mismatched databases", () => {
   assert.throws(
     () =>

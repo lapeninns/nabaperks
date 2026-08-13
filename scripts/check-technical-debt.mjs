@@ -13,10 +13,18 @@ const result = spawnSync(
     "*.ts",
     "*.tsx",
     "*.mts",
+    "*.cts",
+    "*.js",
+    "*.jsx",
     "*.mjs",
+    "*.cjs",
     "*.sql",
     "*.yml",
     "*.yaml",
+    "*.md",
+    "*.css",
+    "*.scss",
+    "*.json",
   ],
   { encoding: "utf8" }
 )
@@ -33,7 +41,7 @@ const files = result.stdout
   .filter((path) => path !== "scripts/check-technical-debt.mjs")
 const untracked = []
 const marker =
-  /(?:\/\/|\/\*|^\s*\*|^\s*#|^\s*--)\s*\b(TODO|FIXME)\b(?!\((?:#\d+|[A-Z][A-Z0-9]+-\d+)\))/g
+  /(?:\/\/|\/\*|^\s*\*|^\s*#|^\s*--)\s*\b(TODO|FIXME)\b(?!\((?:#\d+|[A-Z][A-Z0-9]+-\d+)\)(?:$|[\s:;,.!?*)\]}\-–—]))/g
 
 for (const path of files) {
   const lines = readFileSync(path, "utf8").split("\n")

@@ -128,6 +128,13 @@ export function resolveConfig(env) {
     "invalid staging Resend webhook secret"
   )
 
+  const runId = required(env, "STAGING_RUN_ID")
+  assert.match(
+    runId,
+    /^\d+-[1-9]\d*$/,
+    "STAGING_RUN_ID must be a GitHub run identifier and positive attempt"
+  )
+
   return {
     appUrl,
     bypassSecret,
@@ -137,7 +144,7 @@ export function resolveConfig(env) {
     projectRef,
     resendWebhookSecret,
     revision,
-    runId: required(env, "STAGING_RUN_ID"),
+    runId,
     stripeWebhookSecret,
   }
 }
