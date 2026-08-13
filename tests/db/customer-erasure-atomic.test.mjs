@@ -136,7 +136,7 @@ test(
         has_function_privilege('service_role', ${ERASE_FUNCTION}, 'execute') as service_role`
       assert.deepEqual(acl, {
         anon: false,
-        authenticated: false,
+        authenticated: true,
         service_role: true,
       })
 

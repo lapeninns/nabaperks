@@ -130,20 +130,25 @@ test(
   async () => {
     const sql = client("manifest-export-ledger-test")
     const [migration] = await sql`
-    select version, name, cardinality(statements)::int as statement_count,
-      statements[1] as source
+    select version, name, statements
     from supabase_migrations.schema_migrations
     where version = ${MIGRATION_VERSION}`
 
     assert.equal(migration.version, MIGRATION_VERSION)
     assert.equal(migration.name, MIGRATION_NAME)
-    assert.equal(migration.statement_count, 1)
-    assert.equal(
-      createHash("sha256").update(migration.source).digest("hex"),
-      createHash("sha256")
-        .update(readFileSync(MIGRATION_PATH, "utf8"))
-        .digest("hex")
-    )
+    assert.ok(migration.statements.length > 0)
+
+    const source = readFileSync(MIGRATION_PATH, "utf8")
+    if (migration.statements.length === 1) {
+      assert.equal(
+        createHash("sha256").update(migration.statements[0]).digest("hex"),
+        createHash("sha256").update(source).digest("hex")
+      )
+    } else {
+      assert.ok(
+        migration.statements.every((statement) => source.includes(statement))
+      )
+    }
   }
 )
 

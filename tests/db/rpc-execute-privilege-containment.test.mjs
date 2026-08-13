@@ -34,7 +34,9 @@ const AUTHENTICATED_DIRECT_RPCS = [
   "admin_set_merchant_launch_pilot_extension",
   "admin_regenerate_qr_code",
   "admin_record_consent_opt_out",
+  "admin_export_customer_data",
   "admin_log_data_request",
+  "admin_erase_customer_pii",
   "admin_erase_loyalty_invitations_for_customer",
   "loyalty_invitations_export_for_customer",
   "admin_erase_offer_claims_for_customer",
@@ -88,6 +90,11 @@ const AUTHENTICATED_ALLOWLIST = new Set([
   ...AUTHENTICATED_DIRECT_RPCS,
   ...AUTHENTICATED_CALLER_CONTEXT,
   ...SPEC_PINNED_SELF_SERVICE,
+])
+
+const SERVICE_ROLE_EXECUTE_EXCEPTIONS = new Set([
+  // Export requires the signed-in human admin's auth.uid()/AAL claims.
+  "admin_export_customer_data",
 ])
 
 // A representative dangerous subset that MUST NOT be authenticated-executable.
@@ -168,7 +175,7 @@ test("authenticated can execute only the allowlist", async (t) => {
   )
 })
 
-test("service_role can execute every public function", async (t) => {
+test("service_role can execute every public function except request-bound exports", async (t) => {
   if (!(await isLiveDbReady())) return t.skip("no live DB")
 
   const fns = await publicFunctions()
@@ -176,7 +183,9 @@ test("service_role can execute every public function", async (t) => {
   for (const fn of fns) {
     const [{ can }] = await db()`
       select has_function_privilege('service_role', ${fn.oid}::oid, 'EXECUTE') as can`
-    if (!can) missing.push(fn.proname)
+    if (!can && !SERVICE_ROLE_EXECUTE_EXCEPTIONS.has(fn.proname)) {
+      missing.push(fn.proname)
+    }
   }
 
   assert.deepEqual(
