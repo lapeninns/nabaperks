@@ -124,8 +124,32 @@
       "stableId": "T37-DEF-16e58676dd12ace1acf79f4d",
       "title": "Admin Auth API target is not local-guarded",
       "sourceRowSha256": "5c871d6d189f56080904a6bf1300dfea9c103272d0a5c50b58d9bb101beed08f",
-      "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "status": "fixed",
+      "reason": "The admin MFA helper parses NEXT_PUBLIC_SUPABASE_URL as an exact credential-free IPv4 loopback origin before createServerClient, with an external Supabase origin rejected in focused RED/GREEN execution.",
+      "receipt": {
+        "assertions": 21,
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/local-provider-safety-v7/receipts/admin-auth-local-guard-direct-receipt.json",
+          "sha256": "54373fc36e898ad3a9f5aed3f1da33c961bdc2f3b0b7bebf9dee2532eeb20c97"
+        },
+        "attempt": 1,
+        "command": "node --test tests/unit/task15-local-provider-safety.test.mjs",
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/local-provider-safety-v7/candidate-source",
+          "head": "88ae2101159fdc81796a8fd665562ae6a1de1205",
+          "tree": "80a853948cab0d4995ef523a6b35506de7c9bec3",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 7,
+          "passed": 7,
+          "failed": 0,
+          "skipped": 0
+        }
+      }
     },
     {
       "stableId": "T37-DEF-19c26f99787797b3da185dc6",
@@ -214,8 +238,32 @@
       "stableId": "T37-DEF-306d215e6223f649ad78b594",
       "title": "Nightly race job has no authenticated local-target preflight",
       "sourceRowSha256": "ccc643f1b297ab0858bb2b0c4ce12492658dbf3903fa46da2c33b714c0db54bb",
-      "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "status": "fixed",
+      "reason": "Nightly now runs a bounded authenticated loopback HEAD preflight before k6, while the k6 script independently requires loopback URLs, a token, and non-empty JSON bodies; remote, malformed, empty, and credential-injected inputs fail closed.",
+      "receipt": {
+        "assertions": 21,
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/local-provider-safety-v7/receipts/nightly-race-local-preflight-direct-receipt.json",
+          "sha256": "774ef49122e881488268f538b172a4ce504408c031e03672c4803b8087268012"
+        },
+        "attempt": 1,
+        "command": "node --test tests/unit/task15-local-provider-safety.test.mjs",
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/local-provider-safety-v7/candidate-source",
+          "head": "88ae2101159fdc81796a8fd665562ae6a1de1205",
+          "tree": "80a853948cab0d4995ef523a6b35506de7c9bec3",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 7,
+          "passed": 7,
+          "failed": 0,
+          "skipped": 0
+        }
+      }
     },
     {
       "stableId": "T37-DEF-30fab75cc448d2f827407fd1",
@@ -514,8 +562,32 @@
       "stableId": "T37-DEF-5dc6ad969b6121a05a5527e1",
       "title": "Disposable stop does not request no-backup semantics",
       "sourceRowSha256": "5931c05bd6f6c332e3f02c571638953a6d324f5a9354329f5a04730391ef8409",
-      "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "status": "fixed",
+      "reason": "The local Supabase wrapper appends --no-backup exactly once for stop; a task-owned fake CLI recorded argv as stop then --no-backup without touching local Supabase state.",
+      "receipt": {
+        "assertions": 21,
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/local-provider-safety-v7/receipts/disposable-stop-no-backup-direct-receipt.json",
+          "sha256": "ae786ccc72d9ce567ce436699356c4c59f8663127a6c07c56445d9a185ed30d6"
+        },
+        "attempt": 1,
+        "command": "node --test tests/unit/task15-local-provider-safety.test.mjs",
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/local-provider-safety-v7/candidate-source",
+          "head": "88ae2101159fdc81796a8fd665562ae6a1de1205",
+          "tree": "80a853948cab0d4995ef523a6b35506de7c9bec3",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 7,
+          "passed": 7,
+          "failed": 0,
+          "skipped": 0
+        }
+      }
     },
     {
       "stableId": "T37-DEF-606adcf86eb3f4d4a921b4a8",
@@ -584,7 +656,7 @@
       "title": "Offline provider inventory suffered a controller interruption",
       "sourceRowSha256": "ceb04f708f53060a2051189b9e324a3444a0ba7db417cd495da9c1c6a18fe472",
       "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "reason": "A fresh bounded offline run terminated normally in under the 20-second controller bound (exit 1) and emitted 22 itemised rows, so the historical interruption is no longer a generic placeholder. Provider readiness remains externally blocked by named missing configuration."
     },
     {
       "stableId": "T37-DEF-6922c9a0c230507989acde95",
@@ -1010,8 +1082,32 @@
       "stableId": "T37-DEF-b681fd1478c0b350709b082e",
       "title": "Probe revision proof is prefix-only",
       "sourceRowSha256": "1d695e24910d24a6d6917107cc317c27036aa6f7393a828ea317e1a47f3b2d76",
-      "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "status": "fixed",
+      "reason": "Staging liveness and readiness now compare the complete configured 40-character revision; same-prefix/different-suffix responses fail while exact full revisions pass.",
+      "receipt": {
+        "assertions": 21,
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/local-provider-safety-v7/receipts/probe-full-revision-direct-receipt.json",
+          "sha256": "58cbf6fb670c6440667449a0569602f50fb0296d3288c925c81eb2d2539380af"
+        },
+        "attempt": 1,
+        "command": "node --test tests/unit/task15-local-provider-safety.test.mjs",
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/local-provider-safety-v7/candidate-source",
+          "head": "88ae2101159fdc81796a8fd665562ae6a1de1205",
+          "tree": "80a853948cab0d4995ef523a6b35506de7c9bec3",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 7,
+          "passed": 7,
+          "failed": 0,
+          "skipped": 0
+        }
+      }
     },
     {
       "stableId": "T37-DEF-ce395f5fc29d9d85a1180b44",
@@ -1200,7 +1296,7 @@
       "title": "Offline provider inventory timed out twice with zero item accounting",
       "sourceRowSha256": "1a4a37c74460ec3f577b9282ca8f7106c0041124cc6a301f32397f7f0d0d02e0",
       "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "reason": "A fresh bounded offline run emitted 22 itemised PASS/FAIL/BLOCKED rows and exit 1, replacing zero accounting with exact terminal accounting. Four configuration gates fail and 17 external/live-effect gates remain blocked; provider/user input is required."
     },
     {
       "stableId": "T37-DEF-faff7b951bcb4441ce90ce7e",
