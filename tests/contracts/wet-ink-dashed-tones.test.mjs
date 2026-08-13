@@ -83,7 +83,9 @@ test("every dashed rule names one of DESIGN.md's two tones", () => {
 
   for (const file of files) {
     const source = stripComments(read(file))
-    for (const [literal] of source.matchAll(/"[^"\n]*\bborder-dashed\b[^"\n]*"/g)) {
+    for (const [literal] of source.matchAll(
+      /"[^"\n]*\bborder-dashed\b[^"\n]*"/g
+    )) {
       dashedSeen += 1
       // An alpha-numbered ink or spot-ink stroke on a dashed line is a third
       // (fourth, fifth, sixth) tone by definition.

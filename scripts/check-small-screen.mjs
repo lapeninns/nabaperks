@@ -42,6 +42,7 @@ const page = await browser.newPage()
 await page.setViewportSize({ width: WIDTH, height: 812 })
 
 const failures = []
+let measured = 0
 
 for (const [route, budget] of ROUTES) {
   const response = await page.goto(BASE + route, { waitUntil: "load" })
@@ -66,7 +67,16 @@ for (const [route, budget] of ROUTES) {
 
   const past = await page.evaluate((viewportWidth) => {
     const out = []
-    for (const el of document.querySelectorAll("h1,h2,h3,p,a,button,li")) {
+    const candidates = document.querySelectorAll("h1,h2,h3,p,a,button,li")
+    // Non-vacuity: this scan is a filter, and "no element past the viewport"
+    // is exactly what an EMPTY candidate list reports. A selector that stops
+    // matching — or a route that renders an empty shell — would pass silently,
+    // which is how bundle:check enforced its budget on 0 of 150 routes. Every
+    // route here renders dozens.
+    if (candidates.length < 10) {
+      return { insufficient: candidates.length }
+    }
+    for (const el of candidates) {
       const box = el.getBoundingClientRect()
       if (box.width === 0 || box.right <= viewportWidth + 1) continue
       let parent = el.parentElement
@@ -87,12 +97,31 @@ for (const [route, budget] of ROUTES) {
     return out
   }, WIDTH)
 
+  if (!Array.isArray(past)) {
+    failures.push(
+      `${route}: only ${past.insufficient} measurable element(s) — the page did ` +
+        "not render its content, so a clean result here proves nothing"
+    )
+    continue
+  }
+
+  measured += 1
+
   if (past.length > budget) {
     failures.push(
       `${route}: ${past.length} elements past ${WIDTH}px (budget ${budget})\n    ` +
         past.slice(0, 6).join("\n    ")
     )
   }
+}
+
+// Every route must have been measured, not merely visited: a skipped route
+// contributes no failure and would otherwise be indistinguishable from a
+// clean one.
+if (measured !== ROUTES.length) {
+  failures.push(
+    `only ${measured} of ${ROUTES.length} routes were actually measured`
+  )
 }
 
 await browser.close()
@@ -104,5 +133,5 @@ if (failures.length) {
 }
 
 console.log(
-  `✓ No content past the viewport at ${WIDTH}px (${ROUTES.length} routes)`
+  `✓ No content past the viewport at ${WIDTH}px (${measured} of ${ROUTES.length} routes measured)`
 )

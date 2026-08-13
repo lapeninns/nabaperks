@@ -150,7 +150,8 @@ test("no functional glyph ships as raw text instead of the Icon wrapper", () => 
 
   // Carets, arrows and ticks — the glyphs a Hugeicons icon exists for. The ✱
   // brand signature is absent by design.
-  const RAW_GLYPHS = /[\u25B2\u25B4\u25B8\u25BC\u25BE\u25C2\u2190-\u2193\u2713\u2714\u2715\u2716]/
+  const RAW_GLYPHS =
+    /[\u25B2\u25B4\u25B8\u25BC\u25BE\u25C2\u2190-\u2193\u2713\u2714\u2715\u2716]/
 
   const offenders = []
 

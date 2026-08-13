@@ -2044,3 +2044,156 @@ genuine gap in DESIGN.md (no on-ink dashed tone exists) that is now carved out
 Prettier-clean at HEAD and no gate checks formatting, so a tidy-up pass produced
 a 20-file diff unrelated to the change and had to be reverted file by file. Use
 `--check` to find out, and `--write` only on the paths you touched.
+
+## The gates themselves, audited by testing the CHECKER (lane/polish)
+
+Three checks in this repo were VACUOUS and passed while measuring nothing:
+`bundle:check` enforced its route budget on 0 of 150 routes, `tokens:check`
+counted 0 contrast pairs, and the dead-export ratchet was blind to 149 TYPE
+exports. All three were found by testing the checker rather than the code, so
+the rest of `scripts/*.mjs` was audited the same way. For each gate: how many
+items does it evaluate on this tree, what happens when its filter matches
+NOTHING, and can the thing it guards be broken to make it fail.
+
+Every "empty filter" and "sabotage" cell below was RUN, and every sabotage was
+restored and re-run to EXIT=0. Exit codes were read with
+`pnpm <gate> >/tmp/g.log 2>&1; echo EXIT=$?`, never off a pipe.
+
+| gate                          | items evaluated on this tree                       | filter matched nothing (before)                                                                               | sabotage of the guarded thing                                                                                    |
+| ----------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `bundle:check`                | 118 route entries, 261 chunk files, 1 root payload | already guarded (`assertRoutesParsed`) — but 28 chunk refs resolved to no file and were skipped in silence    | oversized chunk EXIT=1; inflated root chunk EXIT=1; deleted a referenced chunk EXIT=1                            |
+| `tokens:check` CHECK 1        | 22 of 22 mapped colour tokens                      | **PASSED at 0**: renaming DESIGN.md's `colors:` to `palette:` printed "0 colour token(s) match", EXIT=0       | changed `cobalt` by one digit EXIT=1                                                                             |
+| `tokens:check` CHECK 2        | 119 `var(--…)` names over 965 files                | **PASSED at 0** when the source walk was emptied                                                              | `var(--w-does-not-exist)` EXIT=1                                                                                 |
+| `tokens:check` CHECK 3        | 475 `.tsx` files                                   | **PASSED at 0** when the source walk was emptied                                                              | `text-[0.5rem]` EXIT=1                                                                                           |
+| `tokens:check` CHECK 4        | 9 contrast pairs x 2 themes                        | already guarded (`evaluated === 0`)                                                                           | `--w-ink-soft` -> `#b0a89c` EXIT=1 (2.09:1)                                                                      |
+| `claims:check`                | 91 marketing files + 942 rendered-source files     | **PASSED shrinking**: 3 renamed scan roots dropped 91 -> 34 and still EXIT=0; all roots renamed scans nothing | "fully compliant … bubble tea" in `app/faq/page.tsx` EXIT=1                                                      |
+| `debt:check`                  | 1,781 tracked source files                         | **PASSED at 0**: pathspec extensions replaced printed "across 0 source files", EXIT=0                         | unlinked `// TODO:` EXIT=1                                                                                       |
+| `env:check`                   | 41 contract entries                                | **PASSED at 0**: `config/env-contract.json` = `[]` printed "configuration is valid"                           | blanked `NEXT_PUBLIC_APP_URL` EXIT=1                                                                             |
+| `duplicates:check`            | 808 sources / 108,568 lines / 45 clones            | **PASSED at 0**: jscpd on absent directories printed "Found 0 clones", EXIT=0                                 | 40 copies of `lib/admin/lookup-query.ts` EXIT=1 (85 clones)                                                      |
+| `docs:check`                  | 3 API operations                                   | **PASSED at 0**: an empty `paths` emitted a table with no rows                                                | (now throws on 0 operations, EXIT=1)                                                                             |
+| `deadexports:check`           | 375 baselined findings                             | already guarded (throws on zero findings) — verified by narrowing knip's `--include` to `files`, EXIT=1       | new unused `export function` EXIT=1                                                                              |
+| `agents:check`                | 14 documented commands                             | non-vacuous by construction: `quality:fast`/`quality:check`/`build` must appear, so an empty regex EXIT=1     | renamed `docs/api/openapi.json` reference EXIT=1                                                                 |
+| `ui-audit:check`              | 347 findings, 1,000+ cited paths                   | non-vacuous by construction (`state.size !== 347`, `cited.size < 20`); an emptied lane glob EXIT=1            | `301 done` -> `302 done` EXIT=1; one finding flipped `[x]` -> `[ ]` across every status file EXIT=1 (5 problems) |
+| `jsonld:check`                | 5 routes, 8 graph assertions                       | route-scoped and explicit; a missing node fails                                                               | `priceAmount` 69.99 -> 59.99, rebuilt, EXIT=1                                                                    |
+| `check-small-screen.mjs`      | 6 routes x ~500 elements, production build         | **PASSED at 0**: the element selector matching nothing reported no overflow                                   | `/loyalty-for-pubs` budget 6 -> 0 EXIT=1, and it still names the same six residual elements                      |
+| `lint` / `typecheck` / `test` | 3,600 eslint files / 1,571 tests                   | tool-owned                                                                                                    | —                                                                                                                |
+
+`deadcode:check` (knip `files,dependencies,unresolved`) shares its project
+globs with `deadexports:check`, whose zero-findings guard is what proves those
+globs still select this repo.
+
+### The fixes, all of which ADD an assertion
+
+No assertion anywhere was weakened, reworded or removed. Each gate above that
+could pass on an empty filter now states a floor against the number it really
+measures today, so losing coverage is a deliberate edit rather than a silent
+one: 22 colour tokens, 965 source files (475 `.tsx`), 91 + 942 scanned files,
+five populated extension groups, 41 contract entries with four named anchors,
+808 jscpd sources, 3 API operations, and 6 of 6 small-screen routes actually
+measured. `duplicates:check` became `scripts/check-duplicates.mjs`, a wrapper
+that keeps jscpd's 4% verdict and refuses to believe a pass that analysed
+nothing.
+
+### `bundle:check` was also under-measuring, quietly
+
+The per-route budget had a second hole below the one already fixed. A dynamic
+segment is PERCENT-ENCODED inside the route manifest
+(`static/chunks/app/card/%5BmembershipId%5D/page-*.js`) while the file on disk
+is `[membershipId]`, and `totalUniqueBytes` skipped anything `existsSync` could
+not find. 28 chunk references — every dynamic route's own page chunk — were
+excluded from the budget meant to measure them: **95,141 bytes across 20
+routes**, `/m/[merchantSlug]/join` alone by 19,557. Paths are decoded now, and
+a reference that still resolves to nothing fails the run instead of shrinking a
+payload. The largest route is `/app/launch` at 535,806 bytes against a 900,000
+budget.
+
+### The console at 768-1024px, seen for the first time
+
+`/admin/*` redirects to `/login`, so the admin console's appearance had never
+been measured at any width (NEEDS-SIGNOFF 44). It is now measurable through
+`app/dev/admin-harness/`, which mounts the REAL `AdminShell` — the width chain
+matters, since the shell's sidebar, `SidebarInset`, padding ramp and
+`max-w-merchant` column leave a 448px content column at a 768px viewport, so an
+admin panel measured under the merchant app-harness shell is a different
+component. The page mounts the REAL `AdminLookupControls` with the REAL
+`withDateRange` + `sticky="flush"` props `/admin/audit` passes it.
+
+`app/admin/audit/page.tsx` was deliberately NOT refactored into a shared view
+component: `tests/contracts/admin-member-lookup.test.mjs` reads that file for
+`withDateRange` and for its paging hrefs, and a harness is not a reason to
+weaken an assertion.
+
+What the look found was not a wrap problem. Below `md` the shell renders a
+`sticky top-0 z-30` header while the lookup bar is `sticky top-0 z-20`, so the
+bar slid UNDER the header: `document.elementFromPoint` at the centre of the
+venue input returned the HEADER at both 767px and 390px. The one control the
+sticky bar exists to keep reachable was neither visible nor hittable once the
+list scrolled. `AdminShell` now publishes `--console-sticky-top`, and this
+affects all six sticky lookup surfaces, not only the audit trail.
+
+The wrap itself is sound and was left alone: 1024px puts venue + from + to on
+one row with Search/Clear beneath; 768px wraps to `[venue, from]` /
+`[to, Search, Clear]`; nothing leaves its panel at 390, 767, 768, 1024 or 1280.
+That the date PAIR splits across rows at 768px is a grouping judgement, so it
+is written up in NEEDS-SIGNOFF rather than guessed at.
+
+### The touch sweep, re-run on a coarse pointer that is not a phone
+
+Viewport width is not touch — Playwright reports `pointer: fine` at any width —
+so the sweep already ran under Pixel 5. What it had never covered was the
+console, because the console is auth-gated. Swept through the harnesses on
+Pixel 5, Galaxy Tab S4 and iPad (gen 7), three controls sat under DESIGN.md's
+floor ("Primary tap targets >= 44px", and compact sizes "grow to the 44px floor
+on coarse (touch) pointers"):
+
+| control                            | fine | coarse, before | coarse, after |
+| ---------------------------------- | ---- | -------------- | ------------- |
+| admin page-jump input (`h-9 w-20`) | 36px | 36px           | 44px          |
+| rows-per-page select (`h-9 w-24`)  | 36px | 36px           | 44px          |
+| `DataTable` sortable header link   | 15px | 15px           | 44px          |
+
+Each takes `.tap-floor`, the utility `app/globals.css` already mints for
+"anything interactive that is NOT a Button". The fine-pointer geometry is
+unchanged, which is what DESIGN.md asks for. The sort header at 15px was also
+under WCAG 2.5.8's 24px minimum, with no exemption available to a table header.
+
+Two of the three `ALLOWED` entries in `tests/e2e/touch-targets.desktop.spec.ts`
+are inert and were left alone rather than "tidied": the sweep matches them
+against a description built from tag + text + className, so
+`"input[type=checkbox]"` and `"/dev/design-system"` can never match it. The
+checkbox is already skipped in-page and `/dev/design-system` is not in ROUTES,
+so nothing is being let through — but a future reader should not trust those
+two lines to exempt anything.
+
+### The gates that cannot run here, read rather than run
+
+`ops:github:check`, `ops:vercel:check`, `ops:supabase:check`,
+`smoke:providers`, `smoke:staging`, `smoke:supabase:migrations`,
+`ops:slo:check`, `ops:restore:verify` and `check-production-probe-latency.mjs`
+all read a live provider, and AGENTS.md says the first three are expected to
+FAIL until real credentials exist. They were audited the only way available:
+their pure evaluators (`scripts/*-governance/checks.mjs`) were called directly
+with the shipped contract and then with every collection in that contract
+emptied.
+
+| evaluator                    | controls, as shipped | controls, contract emptied |
+| ---------------------------- | -------------------- | -------------------------- |
+| `evaluateGitHubGovernance`   | 12 (11 FAIL)         | throws — fails loudly      |
+| `evaluateSupabaseGovernance` | 10 (9 FAIL)          | throws — fails loudly      |
+| `evaluateVercelGovernance`   | 22 (15 FAIL)         | **7 (2 FAIL)**             |
+
+Two of the three cannot go quiet. The Vercel evaluator can lose 15 of its 22
+controls to an emptied contract and still return a verdict — it happens to
+FAIL today for other reasons, so this is a coverage risk rather than a
+demonstrated false pass, and proving which it is needs live evidence this
+worktree does not have. **Recommended, not taken:** assert a control-count
+floor in `scripts/check-vercel-governance.mjs` the way `check-dead-exports.mjs`
+asserts a findings floor. Not done here, because a change to a provider gate
+that cannot be run is a change nobody can verify — the same reason 03#64's
+picker was left alone.
+
+`pnpm test:db` still cannot run in this worktree without `SUPABASE_DB_URL`, and
+the full Playwright matrix (mobile-safari, desktop-firefox, desktop-safari) was
+not run; the two specs this lane added or changed were run on chromium against
+a dev server on port 3303, and `check-small-screen.mjs` against a production
+build on the same port.

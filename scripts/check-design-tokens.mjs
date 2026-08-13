@@ -248,6 +248,31 @@ for (const [designKey, cssProp] of Object.entries(MAPPING)) {
 
 let failed = false
 
+/**
+ * Non-vacuity floor for CHECK 1.
+ *
+ * Every key in MAPPING is skipped when DESIGN.md's frontmatter no longer
+ * exposes it, so a renamed `colors:` block (or a reshaped frontmatter) makes
+ * this check compare NOTHING and print "0 colour token(s) match" with exit 0.
+ * Verified: renaming `colors:` to `palette:` passed. That is the bundle:check
+ * bug — a check that filters its input must be able to say what the filter
+ * kept — and CHECK 4 below already guards itself this way.
+ *
+ * 22 of the 22 mapped keys resolve today; the floor sits just under that so
+ * dropping a documented token is a deliberate edit here, not a silent loss of
+ * coverage.
+ */
+const MIN_MAPPED_TOKENS = 20
+
+if (checked < MIN_MAPPED_TOKENS) {
+  console.error(
+    `✗ CHECK 1 compared only ${checked} of ${Object.keys(MAPPING).length} mapped colour tokens ` +
+      `(floor ${MIN_MAPPED_TOKENS}). DESIGN.md's frontmatter no longer exposes the ` +
+      "rest under `colors:`, so this check is measuring little or nothing.\n"
+  )
+  failed = true
+}
+
 if (failures.length) {
   const headers = [
     "key",
@@ -270,7 +295,7 @@ if (failures.length) {
   for (const r of rows) console.error(`  ${fmt(r)}`)
   console.error("")
   failed = true
-} else {
+} else if (checked >= MIN_MAPPED_TOKENS) {
   console.log(
     `✓ design tokens in sync: ${checked} colour token(s) match between DESIGN.md and app/globals.css`
   )
@@ -347,6 +372,30 @@ function checkUndefinedVars(files) {
 }
 
 const sourceFiles = listSourceFiles()
+
+/**
+ * Non-vacuity floor for CHECKS 2 and 3. Both walk the same file list and both
+ * report a pass when that list is empty: no references means no undefined
+ * references, and no .tsx files means no sub-floor text sizes. 965 files walk
+ * today (475 .tsx, 467 .ts, 23 .css); the floors sit well under that so a
+ * changed extension filter or a moved source root fails loudly instead of
+ * quietly scanning nothing.
+ */
+const MIN_SOURCE_FILES = 700
+const MIN_TSX_FILES = 300
+const tsxFileCount = sourceFiles.filter((file) => file.endsWith(".tsx")).length
+const scanIsRepresentative =
+  sourceFiles.length >= MIN_SOURCE_FILES && tsxFileCount >= MIN_TSX_FILES
+
+if (!scanIsRepresentative) {
+  console.error(
+    `✗ CHECKS 2/3 walked ${sourceFiles.length} source file(s) (${tsxFileCount} .tsx), ` +
+      `floors ${MIN_SOURCE_FILES}/${MIN_TSX_FILES}. The scan roots or the extension ` +
+      "filter have moved and these checks are measuring little or nothing.\n"
+  )
+  failed = true
+}
+
 const { undefinedVars, referenced } = checkUndefinedVars(sourceFiles)
 
 if (undefinedVars.length) {
@@ -361,9 +410,9 @@ if (undefinedVars.length) {
     "\n  Define the token in app/globals.css (or the owning style object), or migrate the consumers.\n"
   )
   failed = true
-} else {
+} else if (scanIsRepresentative) {
   console.log(
-    `✓ custom properties resolvable: ${referenced} var(--…) name(s) referenced, all defined`
+    `✓ custom properties resolvable: ${referenced} var(--…) name(s) referenced, all defined across ${sourceFiles.length} file(s)`
   )
 }
 
@@ -575,9 +624,9 @@ if (subFloor.length) {
     "\n  Use .mono-id (10px) / .mono-meta (11.5px) from app/globals.css instead of sub-floor arbitrary sizes.\n"
   )
   failed = true
-} else {
+} else if (scanIsRepresentative) {
   console.log(
-    `✓ micro-type floor held: no arbitrary text size below ${MIN_TEXT_PX}px outside the lane exception list (${SUBFLOOR_EXCEPTIONS.size} legacy files)`
+    `✓ micro-type floor held: no arbitrary text size below ${MIN_TEXT_PX}px across ${tsxFileCount} .tsx file(s), outside the lane exception list (${SUBFLOOR_EXCEPTIONS.size} legacy files)`
   )
 }
 

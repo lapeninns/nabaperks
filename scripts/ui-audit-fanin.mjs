@@ -143,7 +143,12 @@ if (WRITE && rewritten.length) {
   try {
     execFileSync(
       "pnpm",
-      ["exec", "prettier", "--write", ...rewritten.map((f) => path.join("docs/ui-audit", f))],
+      [
+        "exec",
+        "prettier",
+        "--write",
+        ...rewritten.map((f) => path.join("docs/ui-audit", f)),
+      ],
       { stdio: "ignore" }
     )
     notes.push(`formatted ${rewritten.length} rewritten file(s) with prettier`)

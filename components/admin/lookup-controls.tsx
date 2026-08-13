@@ -105,7 +105,13 @@ export function AdminLookupControls({
         // `flush` panels have no padding, so the bar supplies its own.
         // `padded` panels already have p-5, so the bar cancels the horizontal
         // padding to stay full-bleed rather than sitting in a 40px inset.
-        sticky && "sticky top-0 z-20 border-b-2 border-ink bg-card py-4",
+        // `top` clears the console shell's own sticky header, which is shown
+        // below `md` at z-30 while this bar is z-20: at top-0 the bar slid
+        // under it and the venue input was not the element painted at its own
+        // centre (390px and 767px, measured). The fallback keeps the bar
+        // sticky if it is ever mounted outside AdminShell.
+        sticky &&
+          "sticky top-[var(--console-sticky-top,0px)] z-20 border-b-2 border-ink bg-card py-4",
         sticky === "flush" && "px-5",
         sticky === "padded" && "-mx-5 px-5"
       )}
@@ -387,7 +393,13 @@ export function AdminLookupPagination({
               max={meta.pageCount}
               defaultValue={meta.page}
               aria-label={`Go to page, 1 to ${meta.pageCount}`}
-              className="numeric-tabular h-9 w-20"
+              // `.tap-floor`: the explicit h-9 makes this a 36px target, and
+              // an Input carries none of Button's coarse-pointer floors, so on
+              // a touch device the page-jump field was under DESIGN.md's 44px
+              // tap floor while the Go button beside it was not (measured on
+              // Pixel 5 and Galaxy Tab S4 through the admin harness). A fine
+              // pointer still gets the compact 36px row.
+              className="numeric-tabular tap-floor h-9 w-20"
             />
             <Button type="submit" size="sm" variant="secondary">
               Go
@@ -440,7 +452,8 @@ function RowsPerPage({
         name="size"
         defaultValue={String(meta.pageSize)}
         aria-label="Rows per page"
-        className="numeric-tabular h-9 w-24 pr-9 pl-3"
+        // Same coarse-pointer floor as the page-jump input above.
+        className="numeric-tabular tap-floor h-9 w-24 pr-9 pl-3"
       >
         {ADMIN_LOOKUP_PAGE_SIZES.map((size) => (
           <option key={size} value={size}>

@@ -13,6 +13,7 @@ const projectRoot = path.resolve(
 // layout's production notFound + noindex robots) are what protect these pages.
 // Adding a page means adding it here so the inventory stays exact.
 const expectedDevPages = [
+  "app/dev/admin-harness/audit-lookup/page.tsx",
   "app/dev/app-harness/account/page.tsx",
   "app/dev/app-harness/activity/page.tsx",
   "app/dev/app-harness/announcements/page.tsx",

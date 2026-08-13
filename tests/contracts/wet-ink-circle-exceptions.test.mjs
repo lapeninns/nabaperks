@@ -118,10 +118,7 @@ test("every framing circle in the tree is on DESIGN.md's named exception list", 
 test("DESIGN.md still carries the clause this list enforces", () => {
   const design = read("DESIGN.md")
   assert.match(design, /Full circles are reserved for the stamp family/)
-  assert.match(
-    design,
-    /the list does not grow without updating this contract/
-  )
+  assert.match(design, /the list does not grow without updating this contract/)
   assert.match(
     design,
     /framing circles reach for `IconRoundel` rather than hand-rolling\s+`rounded-full`/

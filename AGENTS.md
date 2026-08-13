@@ -21,9 +21,15 @@ Use the smallest relevant check while iterating, then run the repository gate:
 
 ```bash
 pnpm quality:fast   # lint, typecheck, contract tests, and unit tests
-pnpm quality:check  # plus dead code, duplication, debt, and docs
+pnpm quality:check  # plus formatting, dead code, duplication, debt, and docs
 pnpm build          # production Next.js build
 ```
+
+`pnpm format:check` is a ratchet, not a gate: the files that already fail
+`prettier --check` are recorded in `config/format-baseline.json` and tolerated,
+anything newly unformatted fails, and a baselined file that has since been
+formatted must be pruned with `pnpm format:baseline`. Run `pnpm format` on the
+files you are already touching rather than sweeping the tree.
 
 Database and browser proof are separate because they require real services:
 

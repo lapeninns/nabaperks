@@ -36,6 +36,13 @@ const ROUTES = [
   "/dev/app-harness/launch",
   "/dev/app-harness/offers",
   "/dev/home-harness/home",
+  // The admin console, which nothing had ever swept: /admin/* redirects to
+  // /login, so its controls were measured for the first time through these
+  // harnesses. Both routes carried real offences — a 36px page-jump input and
+  // a 36px rows-per-page select in the shared paginator, and a 15px sortable
+  // table header — on Pixel 5 AND on two tablet profiles.
+  "/dev/admin-harness/audit-lookup",
+  "/dev/app-harness/trial/admin-table-sort",
 ]
 
 /**
@@ -55,6 +62,35 @@ const ALLOWED = [
 ]
 
 test("no touch target below 44px on core routes", async ({ page }) => {
+  await sweep(page)
+})
+
+/**
+ * The same sweep on a TABLET-sized coarse pointer.
+ *
+ * A phone profile is not the only touch device the console meets: the admin
+ * shell keeps its sidebar expanded at tablet widths, so its content column is
+ * ~448px at 768px and ~664px at 712px, and the controls that wrap there are
+ * not the ones that wrap on a 393px phone. Playwright reports `pointer: fine`
+ * at any viewport width, so this needs a device profile too — a wide viewport
+ * alone would silently measure the fine-pointer geometry and pass.
+ */
+test.describe("on a tablet-sized coarse pointer", () => {
+  // The device descriptor minus `defaultBrowserType`: Playwright refuses a
+  // `use({ defaultBrowserType })` inside a describe because it would force a
+  // new worker, and the browser is the project's business anyway. Everything
+  // that decides the measurement — viewport, `hasTouch`, `isMobile`, scale —
+  // is kept.
+  const tablet = { ...devices["Galaxy Tab S4"] }
+  delete (tablet as { defaultBrowserType?: string }).defaultBrowserType
+  test.use(tablet)
+
+  test("no touch target below 44px on core routes", async ({ page }) => {
+    await sweep(page)
+  })
+})
+
+async function sweep(page: import("@playwright/test").Page) {
   const offences: string[] = []
 
   for (const route of ROUTES) {
@@ -125,4 +161,4 @@ test("no touch target below 44px on core routes", async ({ page }) => {
   }
 
   expect(offences, offences.join("\n")).toEqual([])
-})
+}
