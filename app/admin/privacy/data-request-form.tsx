@@ -1,12 +1,14 @@
 "use client"
 
-import { useState, type ChangeEvent, type ReactNode } from "react"
+import { useCallback, useState, type ChangeEvent, type ReactNode } from "react"
 
 import { logDataRequestAction } from "@/app/admin/actions"
 import { AdminActionForm } from "@/components/admin/action-form"
 import { AdminField, adminSelectClasses } from "@/components/admin/support"
 import { SubmitButton } from "@/components/forms"
 import { Input } from "@/components/ui/input"
+import { clearErasedMerchantOnboardingDraft } from "@/lib/merchant/onboarding-draft-storage"
+import type { AdminActionState } from "@/lib/admin/action-state"
 
 type DataRequestRow = {
   readonly customer_id: string
@@ -60,6 +62,23 @@ function DataRequestFields({
 
 export function DataRequestForm({ row }: { readonly row: DataRequestRow }) {
   const [requestType, setRequestType] = useState("access")
+  const dataRequestAction = useCallback(
+    async (state: AdminActionState, formData: FormData) => {
+      const result = await logDataRequestAction(state, formData)
+      if (
+        result.status === "success" &&
+        formData.get("requestType") === "deletion"
+      ) {
+        clearErasedMerchantOnboardingDraft(
+          window.localStorage,
+          window.sessionStorage,
+          row.customer_id
+        )
+      }
+      return result
+    },
+    [row.customer_id]
+  )
   const fields = (
     <DataRequestFields
       row={row}
@@ -88,7 +107,7 @@ export function DataRequestForm({ row }: { readonly row: DataRequestRow }) {
   }
 
   return (
-    <AdminActionForm action={logDataRequestAction}>
+    <AdminActionForm action={dataRequestAction}>
       {fields}
       <SubmitButton pendingLabel="Logging…" variant="secondary">
         Log request

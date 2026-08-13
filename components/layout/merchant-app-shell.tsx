@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import type { ComponentProps, ReactNode } from "react"
+import { useEffect, type ComponentProps, type ReactNode } from "react"
 import { Building02Icon, Logout01Icon } from "@hugeicons/core-free-icons"
 
 import {
@@ -23,6 +23,10 @@ import {
 } from "@/components/ui/sidebar"
 import { CONSOLE_SIDEBAR_STYLE, ConsoleSidebarNav } from "./console-sidebar-nav"
 import { merchantAccountItems, merchantNavItems } from "./console-nav"
+import {
+  clearActiveMerchantOnboardingDraft,
+  clearCompletedMerchantOnboardingDraft,
+} from "@/lib/merchant/onboarding-draft-storage"
 
 export function MerchantAppShell({
   children,
@@ -57,6 +61,22 @@ export function MerchantAppShell({
     variantProp ?? (isMerchantSetupPath(pathname) ? "setup" : "full")
   const hideMobileChrome = hideMobileChromeProp ?? isPosterPrintPath(pathname)
 
+  useEffect(() => {
+    if (pathname.endsWith("/launch")) {
+      clearCompletedMerchantOnboardingDraft(
+        window.localStorage,
+        window.sessionStorage
+      )
+    }
+  }, [pathname])
+
+  const handleSignOut = () => {
+    clearActiveMerchantOnboardingDraft(
+      window.localStorage,
+      window.sessionStorage
+    )
+  }
+
   if (variant === "setup") {
     return (
       <div className="min-h-svh bg-background [--setup-header-h:3.5rem] sm:[--setup-header-h:4rem]">
@@ -85,7 +105,7 @@ export function MerchantAppShell({
                   <Icon icon={Building02Icon} size={16} />
                 </Link>
               </Button>
-              <form action={signOutAction}>
+              <form action={signOutAction} onSubmit={handleSignOut}>
                 <Button
                   type="submit"
                   variant="outline"
@@ -141,7 +161,7 @@ export function MerchantAppShell({
           />
         </SidebarContent>
         <SidebarFooter className="border-t-2 border-ink p-4">
-          <form action={signOutAction}>
+          <form action={signOutAction} onSubmit={handleSignOut}>
             <Button
               type="submit"
               variant="secondary"

@@ -20,6 +20,8 @@ import {
 } from "./helpers/merchant-onboarding-live-db"
 
 const DRAFT_KEY = "nabaperks:onboarding-draft:usr_harness_onboarding"
+const PREFERENCE_KEY = "nabaperks:preference:theme"
+const PREFERENCE_VALUE = "paper"
 
 export function defineMerchantOnboardingContinuityTests() {
   test.beforeEach(async ({ page }) => {
@@ -90,6 +92,114 @@ export function defineMerchantOnboardingContinuityTests() {
     await expect(page.locator('input[name="addressPostcode"]')).toHaveValue(
       "CB2 3PA"
     )
+  })
+
+  test("corrupt local draft is removed while preferences remain unchanged", async ({
+    page,
+  }) => {
+    await page.addInitScript(
+      ({ draftKey, preferenceKey, preferenceValue }) => {
+        window.localStorage.setItem(preferenceKey, preferenceValue)
+        window.localStorage.setItem(draftKey, "not-json")
+      },
+      {
+        draftKey: DRAFT_KEY,
+        preferenceKey: PREFERENCE_KEY,
+        preferenceValue: PREFERENCE_VALUE,
+      }
+    )
+
+    await gotoHydratedPage(page, HARNESS_ROUTES.onboarding)
+
+    await expect(page.locator('input[name="addressCity"]')).toHaveValue("")
+    await expect
+      .poll(() =>
+        page.evaluate(
+          ({ draftKey, preferenceKey }) => ({
+            draftPresent: window.localStorage.getItem(draftKey) !== null,
+            preference: window.localStorage.getItem(preferenceKey),
+          }),
+          { draftKey: DRAFT_KEY, preferenceKey: PREFERENCE_KEY }
+        )
+      )
+      .toEqual({ draftPresent: false, preference: PREFERENCE_VALUE })
+  })
+
+  test("expired and wrong-account envelopes are removed without rendering their fields", async ({
+    page,
+  }) => {
+    await page.addInitScript(
+      ({ draftKey, preferenceKey, preferenceValue }) => {
+        window.localStorage.setItem(preferenceKey, preferenceValue)
+        window.localStorage.setItem(
+          draftKey,
+          JSON.stringify({
+            accountId: "usr_harness_other",
+            fields: { addressCity: "Other account city" },
+            savedAt: Date.now() - 86_400_001,
+            version: 1,
+          })
+        )
+      },
+      {
+        draftKey: DRAFT_KEY,
+        preferenceKey: PREFERENCE_KEY,
+        preferenceValue: PREFERENCE_VALUE,
+      }
+    )
+
+    await gotoHydratedPage(page, HARNESS_ROUTES.onboarding)
+
+    await expect(page.locator('input[name="addressCity"]')).toHaveValue("")
+    await expect
+      .poll(() =>
+        page.evaluate(
+          ({ draftKey, preferenceKey }) => ({
+            draftPresent: window.localStorage.getItem(draftKey) !== null,
+            preference: window.localStorage.getItem(preferenceKey),
+          }),
+          { draftKey: DRAFT_KEY, preferenceKey: PREFERENCE_KEY }
+        )
+      )
+      .toEqual({ draftPresent: false, preference: PREFERENCE_VALUE })
+  })
+
+  test("logging out clears the active account draft without changing an unrelated preference", async ({
+    page,
+  }) => {
+    await page.addInitScript(
+      ({ draftKey, preferenceKey, preferenceValue }) => {
+        window.localStorage.setItem(preferenceKey, preferenceValue)
+        window.localStorage.setItem(
+          draftKey,
+          JSON.stringify({ addressCity: "Synthetic city" })
+        )
+      },
+      {
+        draftKey: DRAFT_KEY,
+        preferenceKey: PREFERENCE_KEY,
+        preferenceValue: PREFERENCE_VALUE,
+      }
+    )
+
+    await gotoHydratedPage(page, HARNESS_ROUTES.onboarding)
+    const actionRequest = page.waitForRequest(
+      (request) => request.method() === "POST"
+    )
+    await page.getByRole("button", { name: "Log out" }).click()
+    await actionRequest
+    await expect(page).toHaveURL(/\/dev\/app-harness\/onboarding$/)
+    await expect
+      .poll(() =>
+        page.evaluate(
+          ({ draftKey, preferenceKey }) => ({
+            draftPresent: window.localStorage.getItem(draftKey) !== null,
+            preference: window.localStorage.getItem(preferenceKey),
+          }),
+          { draftKey: DRAFT_KEY, preferenceKey: PREFERENCE_KEY }
+        )
+      )
+      .toEqual({ draftPresent: false, preference: PREFERENCE_VALUE })
   })
 
   test("required-field failures stay client-side, announce, and refocus on every attempt", async ({
@@ -166,6 +276,13 @@ export function defineMerchantOnboardingContinuityTests() {
         fixture = await createMerchantOnboardingLiveDbFixture(sql, context)
         await installMerchantOnboardingAuditFailure(sql, fixture)
         await gotoHydratedPage(page, "/app/onboarding")
+        const liveDraftKey = `nabaperks:onboarding-draft:${fixture.userId}`
+        await page.evaluate(
+          ({ preferenceKey, preferenceValue }) => {
+            window.localStorage.setItem(preferenceKey, preferenceValue)
+          },
+          { preferenceKey: PREFERENCE_KEY, preferenceValue: PREFERENCE_VALUE }
+        )
 
         await page
           .locator('input[name="businessName"]')
@@ -212,6 +329,17 @@ export function defineMerchantOnboardingContinuityTests() {
         )
         await assertMerchantOnboardingBrowserSession(page, fixture)
         await assertMerchantOnboardingRolledBack(sql, fixture)
+        await expect
+          .poll(() =>
+            page.evaluate(
+              ({ draftKey, preferenceKey }) => ({
+                draftPresent: window.localStorage.getItem(draftKey) !== null,
+                preference: window.localStorage.getItem(preferenceKey),
+              }),
+              { draftKey: liveDraftKey, preferenceKey: PREFERENCE_KEY }
+            )
+          )
+          .toEqual({ draftPresent: true, preference: PREFERENCE_VALUE })
 
         await removeMerchantOnboardingAuditFailure(sql)
         await setProviderVenueProvenance(page, fixture)
@@ -226,6 +354,17 @@ export function defineMerchantOnboardingContinuityTests() {
           "/app/launch?tab=card"
         )
         await assertMerchantOnboardingDbState(sql, fixture)
+        await expect
+          .poll(() =>
+            page.evaluate(
+              ({ draftKey, preferenceKey }) => ({
+                draftPresent: window.localStorage.getItem(draftKey) !== null,
+                preference: window.localStorage.getItem(preferenceKey),
+              }),
+              { draftKey: liveDraftKey, preferenceKey: PREFERENCE_KEY }
+            )
+          )
+          .toEqual({ draftPresent: false, preference: PREFERENCE_VALUE })
       } catch (error) {
         proofError = error
       }

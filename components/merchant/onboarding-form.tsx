@@ -27,6 +27,14 @@ import {
 } from "@/components/merchant/venue-provider-provenance-fields"
 import { Button } from "@/components/ui/button"
 import type { VenueAddressFormFields } from "@/lib/merchant/venue-address"
+import {
+  clearMerchantOnboardingCompletionPending,
+  markMerchantOnboardingCompletionPending,
+  readMerchantOnboardingDraft,
+  rememberActiveMerchantOnboardingDraftAccount,
+  removeLegacyMerchantOnboardingDraft,
+  writeMerchantOnboardingDraft,
+} from "@/lib/merchant/onboarding-draft-storage"
 import { cn } from "@/lib/utils"
 
 const VenuePlaceAutocomplete = dynamic<VenuePlaceAutocompleteProps>(
@@ -38,7 +46,6 @@ const VenuePlaceAutocomplete = dynamic<VenuePlaceAutocompleteProps>(
 )
 
 const initialState: OnboardingActionState = {}
-const legacyDraftStorageKey = "nabaperks:onboarding-draft"
 const businessTypeOptions = [
   { value: "cafe", label: "Cafe" },
   { value: "dessert", label: "Dessert shop" },
@@ -49,10 +56,6 @@ const businessTypeOptions = [
   { value: "salon", label: "Salon" },
   { value: "other", label: "Other local business" },
 ] satisfies readonly BusinessTypeOption[]
-
-function onboardingDraftStorageKey(userId: string) {
-  return `${legacyDraftStorageKey}:${userId}`
-}
 
 type OnboardingDraft = NonNullable<OnboardingActionState["fields"]>
 type ClientErrors = NonNullable<OnboardingActionState["errors"]>
@@ -88,7 +91,6 @@ export function OnboardingForm({
   /** Dev-preview key injection; production uses the server-passed public key. */
   googleMapsApiKey?: string
 }) {
-  const draftStorageKey = onboardingDraftStorageKey(draftUserId)
   const hasInitialFields = Object.values(initialFields).some(Boolean)
   const [state, action, pending] = useActionState(
     completeOnboardingAction,
@@ -122,6 +124,8 @@ export function OnboardingForm({
   useEffect(() => {
     if (!state.errors) return
 
+    clearMerchantOnboardingCompletionPending(window.sessionStorage)
+
     const timeoutId = window.setTimeout(() => {
       // Move focus to the first invalid field after a failed submit so SR and
       // keyboard users land on the error instead of staying on the button.
@@ -138,20 +142,12 @@ export function OnboardingForm({
   }, [state.errors])
 
   useEffect(() => {
-    window.localStorage.removeItem(legacyDraftStorageKey)
-  }, [])
-
-  useEffect(() => {
-    let draft: Partial<OnboardingDraft> = {}
-
-    try {
-      const savedDraft = window.localStorage.getItem(draftStorageKey)
-      draft = savedDraft
-        ? (JSON.parse(savedDraft) as Partial<OnboardingDraft>)
-        : {}
-    } catch {
-      window.localStorage.removeItem(draftStorageKey)
-    }
+    removeLegacyMerchantOnboardingDraft(window.localStorage)
+    rememberActiveMerchantOnboardingDraftAccount(
+      window.sessionStorage,
+      draftUserId
+    )
+    const draft = readMerchantOnboardingDraft(window.localStorage, draftUserId)
 
     const form = formRef.current
     if (!form) return
@@ -166,22 +162,17 @@ export function OnboardingForm({
       addressCity: merged.addressCity ?? "",
       addressPostcode: merged.addressPostcode ?? "",
     })
-  }, [draftStorageKey, initialFields, state.fields])
+  }, [draftUserId, initialFields, state.fields])
 
   function updateDraft(partial: Partial<OnboardingDraft>) {
-    try {
-      const currentDraft = JSON.parse(
-        window.localStorage.getItem(draftStorageKey) ?? "{}"
-      ) as OnboardingDraft
-      const nextDraft: OnboardingDraft = {
-        ...initialFields,
-        ...currentDraft,
-        ...partial,
-      }
-      window.localStorage.setItem(draftStorageKey, JSON.stringify(nextDraft))
-    } catch {
-      window.localStorage.removeItem(draftStorageKey)
-    }
+    const currentDraft = readMerchantOnboardingDraft(
+      window.localStorage,
+      draftUserId
+    )
+    writeMerchantOnboardingDraft(window.localStorage, draftUserId, {
+      ...currentDraft,
+      ...partial,
+    })
   }
 
   function handleAddressEdit() {
@@ -249,6 +240,10 @@ export function OnboardingForm({
           return
         }
         setClientErrors({})
+        markMerchantOnboardingCompletionPending(
+          window.sessionStorage,
+          draftUserId
+        )
       }}
       className={cn("surface-card grid gap-4 p-6", className)}
     >
