@@ -69,8 +69,11 @@ jobs:
           echo "state=$state" >> "$GITHUB_OUTPUT"
       - name: Mark evidence as observational
         if: ${{ always() }}
+        env:
+          OBSERVATION_STATE: ${{ steps.classification.outputs.state }}
         run: |
-          jq '. + {certification: "observation-only", mutationEffects: []}' \
+          jq --arg repository "$GITHUB_REPOSITORY" --arg runId "$GITHUB_RUN_ID" --arg sourceSha "$GITHUB_SHA" --arg state "$OBSERVATION_STATE" \
+            '. + {schema: "nabaperks.production-slo-observation.v1", certification: "observation-only", identity: {repository: $repository, workflowPath: ".github/workflows/slo-report.yml", sourceSha: $sourceSha, runId: $runId, state: $state}, mutationEffects: []}' \
             "$RUNNER_TEMP/production-slo-report.json" > "$RUNNER_TEMP/production-slo-observation.json"
           mv "$RUNNER_TEMP/production-slo-observation.json" "$RUNNER_TEMP/production-slo-report.json"
       - name: Publish the evidence artifact
@@ -98,7 +101,6 @@ jobs:
   authorise-effect:
     name: Authorise one ordered, non-replayed mutation
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.effect != 'observe' }}
-    needs: observation
     runs-on: ubuntu-latest
     timeout-minutes: 3
     environment: Monitoring Effects
@@ -106,30 +108,60 @@ jobs:
       actions: read
       contents: read
       issues: read
+    outputs:
+      state: ${{ steps.receipt.outputs.state }}
     steps:
       - name: Validate effect receipt and evidence order
         env:
           AUTHORISATION_RECEIPT: ${{ inputs.authorisation_receipt_sha256 }}
           EFFECT: ${{ inputs.effect }}
           EVIDENCE_RUN_ID: ${{ inputs.evidence_run_id }}
-          OBSERVED_STATE: ${{ needs.observation.outputs.state }}
         run: |
           test "$GITHUB_RUN_ATTEMPT" = "1"
           [[ "$AUTHORISATION_RECEIPT" =~ ^[a-f0-9]{64}$ ]]
           [[ "$EVIDENCE_RUN_ID" =~ ^[0-9]+$ ]]
           test "$EVIDENCE_RUN_ID" -lt "$GITHUB_RUN_ID"
-          case "$EFFECT:$OBSERVED_STATE" in
+      - name: Verify the exact successful observation receipt
+        id: receipt
+        env:
+          EFFECT: ${{ inputs.effect }}
+          EVIDENCE_MAX_AGE_SECONDS: 86400
+          GH_TOKEN: ${{ github.token }}
+          EVIDENCE_RUN_ID: ${{ inputs.evidence_run_id }}
+        run: |
+          run="$(gh api "/repos/$GITHUB_REPOSITORY/actions/runs/$EVIDENCE_RUN_ID")"
+          workflow_id="$(gh api "/repos/$GITHUB_REPOSITORY/actions/workflows/slo-report.yml" --jq '.id')"
+          jq -e --argjson workflowId "$workflow_id" '
+            .status == "completed" and .conclusion == "success" and .workflow_id == $workflowId and .head_repository.full_name == env.GITHUB_REPOSITORY and .head_branch == "main"
+          ' <<<"$run" >/dev/null
+          artifact="$(gh api "/repos/$GITHUB_REPOSITORY/actions/runs/$EVIDENCE_RUN_ID/artifacts" --jq "[.artifacts[] | select(.name == \"production-slo-$EVIDENCE_RUN_ID\" and .expired == false)]")"
+          artifact_id="$(jq -er 'if length == 1 then .[0].id else error("observation evidence receipt is missing or ambiguous") end' <<<"$artifact")"
+          gh api "/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" > "$RUNNER_TEMP/production-slo-observation.zip"
+          unzip -Z1 "$RUNNER_TEMP/production-slo-observation.zip" | grep -Fx 'production-slo-report.json'
+          unzip -p "$RUNNER_TEMP/production-slo-observation.zip" production-slo-report.json > "$RUNNER_TEMP/production-slo-report.json"
+          jq -e --arg expectedRunId "$EVIDENCE_RUN_ID" --argjson now "$(date +%s)" --argjson maxAge "$EVIDENCE_MAX_AGE_SECONDS" --argjson run "$run" '
+            .schema == "nabaperks.production-slo-observation.v1" and
+            .certification == "observation-only" and
+            (.mutationEffects == []) and
+            .identity.repository == env.GITHUB_REPOSITORY and
+            .identity.workflowPath == ".github/workflows/slo-report.yml" and
+            .identity.sourceSha == $run.head_sha and
+            .identity.runId == $expectedRunId and
+            .identity.state == .state and
+            ((.state == "warming") or (.state == "breached") or (.state == "compliant") or (.state == "error")) and
+            (($now - (.generatedAt | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601)) >= 0 and ($now - (.generatedAt | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601)) <= $maxAge)
+          ' "$RUNNER_TEMP/production-slo-report.json" >/dev/null
+          state="$(jq -er '.state' "$RUNNER_TEMP/production-slo-report.json")"
+          case "$EFFECT:$state" in
             page-breach:breached|page-breach:error|resolve-recovery:compliant) ;;
-            *) echo "effect does not match observed state" >&2; exit 1 ;;
+            *) echo "effect does not match referenced observation state" >&2; exit 1 ;;
           esac
+          echo "state=$state" >> "$GITHUB_OUTPUT"
       - name: Reject a duplicate authorisation receipt
         env:
           GH_TOKEN: ${{ github.token }}
           AUTHORISATION_RECEIPT: ${{ inputs.authorisation_receipt_sha256 }}
-          EVIDENCE_RUN_ID: ${{ inputs.evidence_run_id }}
         run: |
-          evidence_count="$(gh api "/repos/$GITHUB_REPOSITORY/actions/runs/$EVIDENCE_RUN_ID/artifacts" --jq "[.artifacts[] | select(.name == \"production-slo-$EVIDENCE_RUN_ID\")] | length")"
-          test "$evidence_count" -eq 1 || { echo "observation evidence receipt is missing or ambiguous" >&2; exit 1; }
           count="$(gh api --paginate "/repos/$GITHUB_REPOSITORY/actions/artifacts?per_page=100" --jq "[.artifacts[] | select(.name == \"slo-effect-authorisation-$AUTHORISATION_RECEIPT\")] | length" | awk '{total += $1} END {print total + 0}')"
           test "$count" -eq 0 || { echo "duplicate authorisation receipt" >&2; exit 1; }
       - name: Reserve the authorisation receipt
@@ -150,7 +182,7 @@ jobs:
 
   apply-effect:
     name: Apply the separately authorised paging effect
-    needs: [observation, authorise-effect]
+    needs: authorise-effect
     runs-on: ubuntu-latest
     timeout-minutes: 5
     environment: Monitoring Effects
@@ -163,13 +195,13 @@ jobs:
         with:
           persist-credentials: false
       - name: Page the SLO breach
-        if: ${{ inputs.effect == 'page-breach' && (needs.observation.outputs.state == 'breached' || needs.observation.outputs.state == 'error') }}
+        if: ${{ inputs.effect == 'page-breach' && (needs.authorise-effect.outputs.state == 'breached' || needs.authorise-effect.outputs.state == 'error') }}
         env:
           PRODUCTION_ALERT_WEBHOOK_URL: ${{ secrets.PRODUCTION_ALERT_WEBHOOK_URL }}
           PRODUCTION_ALERT_WEBHOOK_SECRET: ${{ secrets.PRODUCTION_ALERT_WEBHOOK_SECRET }}
         run: node scripts/notify-production-alert.mjs trigger availability-slo
       - name: Resolve the external SLO incident
-        if: ${{ inputs.effect == 'resolve-recovery' && needs.observation.outputs.state == 'compliant' }}
+        if: ${{ inputs.effect == 'resolve-recovery' && needs.authorise-effect.outputs.state == 'compliant' }}
         env:
           PRODUCTION_ALERT_WEBHOOK_URL: ${{ secrets.PRODUCTION_ALERT_WEBHOOK_URL }}
           PRODUCTION_ALERT_WEBHOOK_SECRET: ${{ secrets.PRODUCTION_ALERT_WEBHOOK_SECRET }}

@@ -281,11 +281,13 @@ incident is created.
 
 Paging and resolution are separate protected-environment jobs. Dispatch one
 explicit effect only after retaining an earlier observation run ID and an
-independent SHA-256 authorisation receipt. The workflow rejects reruns, receipts
-already reserved as artifacts, evidence run IDs that are not older than the
-effect run, and effects that do not match the current observed state. The
-reservation is written before paging, so an interrupted effect cannot be
-replayed by treating a successful workflow label or log line as a receipt.
+independent SHA-256 authorisation receipt. The authorisation job downloads that
+exact artifact and verifies its repository, workflow, source SHA, run ID,
+successful conclusion, freshness, and recorded state before accepting its
+state. It rejects reruns, receipts already reserved as artifacts, and evidence
+run IDs that are not older than the effect run. The reservation is written
+before paging, so an interrupted effect cannot be replayed by treating a
+successful workflow label or log line as a receipt.
 
 The recovery-drill workflow performs read-only verification only; restore and
 deletion remain independently authorised provider actions outside that
@@ -294,6 +296,9 @@ receipts. Cleanup is a later sequence with its own distinct receipts, the prior
 restore run ID, and a provider readback proving the disposable project absent.
 Duplicate receipt artifacts, reruns, stale or out-of-order sequences, and
 cancelled or failed jobs are incomplete evidence and cannot certify recovery.
+The repository-wide recovery receipt reservation is serialised before its
+duplicate check and artifact write, including when different disposable project
+references are presented concurrently.
 
 Treat an error-budget breach as an incident signal, then classify current
 customer impact using the P0/P1/P2 definitions. Freeze discretionary releases

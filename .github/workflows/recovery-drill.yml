@@ -57,6 +57,9 @@ jobs:
   preflight:
     name: Prove ordered, non-replayed evidence inputs
     if: ${{ github.event_name == 'workflow_dispatch' }}
+    concurrency:
+      group: recovery-receipt-reservation
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 3
     environment: ${{ inputs.phase == 'restore-verification' && 'Recovery Drill Restore Evidence' || 'Recovery Drill Cleanup Evidence' }}

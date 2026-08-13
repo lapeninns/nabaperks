@@ -8,6 +8,18 @@ const read = (path) =>
 const actionInventory = (workflow) =>
   [...workflow.matchAll(/^\s+- name: (.+)$/gm)].map((match) => match[1])
 
+const jobBlock = (workflow, name) => {
+  const match = workflow.match(
+    new RegExp(
+      `^  ${name}:\\n([\\s\\S]*?)(?=^  [a-z][\\w-]+:|(?![\\s\\S]))`,
+      "m"
+    )
+  )
+
+  assert.ok(match, `expected ${name} job to exist`)
+  return match[0]
+}
+
 test("Given the current SLO workflow When actions are inventoried Then the legitimate read-only reporting path remains explicit", () => {
   const workflow = read(".github/workflows/slo-report.yml")
 
@@ -98,6 +110,38 @@ test("Given paging is a mutation When paging or resolution is requested Then exp
   assert.match(workflow, /actions\/runs\/\$EVIDENCE_RUN_ID\/artifacts/)
 })
 
+test("Given an effect references an observation When its receipt is stale, wrong-revision, unsuccessful, or state-mismatched Then authorisation rejects it and uses only the referenced state", () => {
+  const workflow = read(".github/workflows/slo-report.yml")
+  const authorisation = jobBlock(workflow, "authorise-effect")
+  const effect = jobBlock(workflow, "apply-effect")
+
+  assert.doesNotMatch(authorisation, /needs: observation/)
+  assert.doesNotMatch(
+    authorisation,
+    /OBSERVED_STATE|needs\.observation\.outputs\.state/
+  )
+  assert.match(authorisation, /EVIDENCE_MAX_AGE_SECONDS: 86400/)
+  assert.match(authorisation, /actions\/runs\/\$EVIDENCE_RUN_ID/)
+  assert.match(authorisation, /actions\/workflows\/slo-report\.yml/)
+  assert.match(authorisation, /actions\/artifacts\/\$artifact_id\/zip/)
+  assert.match(authorisation, /production-slo-report\.json/)
+  assert.match(authorisation, /nabaperks\.production-slo-observation\.v1/)
+  assert.match(authorisation, /identity\.repository/)
+  assert.match(authorisation, /identity\.workflowPath/)
+  assert.match(authorisation, /identity\.sourceSha == \$run\.head_sha/)
+  assert.match(authorisation, /identity\.runId == \$expectedRunId/)
+  assert.match(authorisation, /identity\.state == \.state/)
+  assert.match(authorisation, /\.status == "completed"/)
+  assert.match(authorisation, /\.conclusion == "success"/)
+  assert.match(authorisation, /fromdateiso8601/)
+  assert.match(
+    authorisation,
+    /state: \$\{\{ steps\.receipt\.outputs\.state \}\}/
+  )
+  assert.match(effect, /needs\.authorise-effect\.outputs\.state/)
+  assert.doesNotMatch(effect, /needs\.observation\.outputs\.state/)
+})
+
 test("Given a recovery drill When evidence is submitted Then restore and cleanup have independent receipt schemas and jobs", () => {
   const workflow = read(".github/workflows/recovery-drill.yml")
 
@@ -125,4 +169,20 @@ test("Given duplicate, stale, or interrupted recovery evidence When certificatio
   assert.match(workflow, /duplicate receipt/)
   assert.match(workflow, /cancelled\(\)|failure\(\)/)
   assert.match(workflow, /certification-status: incomplete/)
+})
+
+test("Given simultaneous recovery reservations for different projects When they present one provider receipt Then a global preflight mutex serialises the repository-wide check and reserve", () => {
+  const workflow = read(".github/workflows/recovery-drill.yml")
+  const preflight = jobBlock(workflow, "preflight")
+
+  assert.match(
+    preflight,
+    /concurrency:\n\s+group: recovery-receipt-reservation\n\s+cancel-in-progress: false/
+  )
+  assert.doesNotMatch(
+    preflight,
+    /group:\s*recovery-receipt-reservation.*restore_project_ref/
+  )
+  assert.match(preflight, /Reject a duplicate receipt artifact/)
+  assert.match(preflight, /Reserve the provider receipt/)
 })
