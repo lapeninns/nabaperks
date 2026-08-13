@@ -9,6 +9,17 @@ const RECEIPT_SCHEMA = "nabaperks.task15.direct-receipt.v1"
 const STATUS = new Set(["fixed", "failed", "blocked"])
 const SHA256 = /^[a-f0-9]{64}$/
 const GIT_OBJECT_ID = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/
+const PNPM_SCRIPT_COMMANDS = new Map([
+  [
+    "pnpm deadcode:check",
+    ["deadcode:check", "knip --include files,dependencies,unresolved"],
+  ],
+  [
+    "pnpm duplicates:check",
+    ["duplicates:check", "jscpd app components lib --config jscpd.json"],
+  ],
+  ["pnpm lint", ["lint", "eslint --max-warnings=0"]],
+])
 
 class ValidationError extends Error {
   constructor(code) {
@@ -176,7 +187,24 @@ function commandTarget(command) {
     /^PLAYWRIGHT_WORKERS=[1-9]\d* PLAYWRIGHT_RETRIES=0 pnpm exec playwright test (tests\/e2e\/[a-z0-9][a-z0-9._/-]*\.spec\.ts) --project=chromium --reporter=line$/
   )
   if (playwright !== null) return playwright[1]
+  if (PNPM_SCRIPT_COMMANDS.has(command)) return "package.json"
   reject("UNTRUSTED_EXECUTION_EVIDENCE")
+}
+
+function trustedPnpmScript(command, packageBytes) {
+  const script = PNPM_SCRIPT_COMMANDS.get(command)
+  if (script === undefined) return
+  try {
+    const manifest = JSON.parse(packageBytes)
+    if (
+      !isRecord(manifest.scripts) ||
+      manifest.scripts[script[0]] !== script[1]
+    ) {
+      reject("UNTRUSTED_EXECUTION_EVIDENCE")
+    }
+  } catch {
+    reject("UNTRUSTED_EXECUTION_EVIDENCE")
+  }
 }
 
 function validateExecutionEvidence(receipt, artifact, governedRoot) {
@@ -193,8 +221,9 @@ function validateExecutionEvidence(receipt, artifact, governedRoot) {
     "UNTRUSTED_EXECUTION_EVIDENCE"
   )
   const ownedPath = commandTarget(artifact.command)
+  let committed
   try {
-    const committed = execFileSync(
+    committed = execFileSync(
       "git",
       ["-C", sourcePath, "show", `HEAD:${ownedPath}`],
       {
@@ -217,6 +246,7 @@ function validateExecutionEvidence(receipt, artifact, governedRoot) {
   } catch {
     reject("STALE_OWNED_INVENTORY")
   }
+  trustedPnpmScript(artifact.command, committed)
   const receiptDirectory = dirname(artifactPath)
   const stem = evidenceStem(artifactPath)
   const green = tapTotals(

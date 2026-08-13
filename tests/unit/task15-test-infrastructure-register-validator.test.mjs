@@ -171,9 +171,20 @@ function trustedFixedMap(temp, objectFormat = "sha1") {
   ])
   execFileSync("git", ["-C", sourcePath, "config", "user.name", "Task 15"])
   const testPath = "tests/unit/example.test.mjs"
+  const packagePath = join(sourcePath, "package.json")
   mkdirSync(join(sourcePath, "tests/unit"), { recursive: true })
   writeFileSync(join(sourcePath, testPath), "export const example = true\n")
-  execFileSync("git", ["-C", sourcePath, "add", testPath])
+  writeFileSync(
+    packagePath,
+    JSON.stringify({
+      scripts: {
+        lint: "eslint --max-warnings=0",
+        "deadcode:check": "knip --include files,dependencies,unresolved",
+        "duplicates:check": "jscpd app components lib --config jscpd.json",
+      },
+    }) + "\n"
+  )
+  execFileSync("git", ["-C", sourcePath, "add", testPath, packagePath])
   execFileSync("git", ["-C", sourcePath, "commit", "-qm", "source"])
   const source = {
     path: sourcePath,
@@ -471,11 +482,14 @@ test("Given missing RED evidence, a stale source, or a symlinked governed source
   }
 })
 
-test("Given typed node and Playwright command families When evidence is otherwise governed Then both parse without executing receipt text", () => {
+test("Given typed Node, Playwright, and exact package-script command families When evidence is otherwise governed Then they parse without executing receipt text", () => {
   const commands = [
     "node --test --test-concurrency=1 tests/unit/example.test.mjs",
     "node --import ./tests/support/register-alias.mjs --test tests/unit/example.test.mjs",
     "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/example.spec.ts --project=chromium --reporter=line",
+    "pnpm deadcode:check",
+    "pnpm duplicates:check",
+    "pnpm lint",
   ]
   for (const command of commands) {
     withTemp((temp) => {
@@ -518,6 +532,64 @@ test("Given typed node and Playwright command families When evidence is otherwis
       assert.equal(run(map, temp).status, 0)
     })
   }
+})
+
+test("Given an allowlisted package-script receipt command with flags, prefixes, chaining, or an unknown script When validated Then the execution evidence is untrusted", () => {
+  const commands = [
+    "pnpm lint --fix",
+    "FOO=bar pnpm lint",
+    "pnpm lint && echo pwned",
+    "pnpm test",
+    "/bin/pnpm lint",
+  ]
+  for (const command of commands) {
+    withTemp((temp) => {
+      const map = trustedFixedMap(temp)
+      const receipt = map.rows[0].receipt
+      const artifact = JSON.parse(readFileSync(receipt.artifact.path, "utf8"))
+      artifact.command = command
+      receipt.command = command
+      writeFileSync(receipt.artifact.path, JSON.stringify(artifact) + "\n")
+      receipt.artifact.sha256 = sha256(receipt.artifact.path)
+      expectCode(run(map, temp), "UNTRUSTED_EXECUTION_EVIDENCE")
+    })
+  }
+})
+
+test("Given an exact package-script command whose committed manifest maps it to another script When validated Then the execution evidence is untrusted", () => {
+  withTemp((temp) => {
+    const map = trustedFixedMap(temp)
+    const receipt = map.rows[0].receipt
+    const artifact = JSON.parse(readFileSync(receipt.artifact.path, "utf8"))
+    const packagePath = join(receipt.source.path, "package.json")
+    const manifest = JSON.parse(readFileSync(packagePath, "utf8"))
+    manifest.scripts["deadcode:check"] = "echo pwned"
+    writeFileSync(packagePath, JSON.stringify(manifest) + "\n")
+    execFileSync("git", ["-C", receipt.source.path, "add", packagePath])
+    execFileSync("git", [
+      "-C",
+      receipt.source.path,
+      "commit",
+      "-qm",
+      "wrong script",
+    ])
+    receipt.source.head = execFileSync(
+      "git",
+      ["-C", receipt.source.path, "rev-parse", "HEAD"],
+      { encoding: "utf8" }
+    ).trim()
+    receipt.source.tree = execFileSync(
+      "git",
+      ["-C", receipt.source.path, "rev-parse", "HEAD^{tree}"],
+      { encoding: "utf8" }
+    ).trim()
+    artifact.command = "pnpm deadcode:check"
+    artifact.source = receipt.source
+    receipt.command = artifact.command
+    writeFileSync(receipt.artifact.path, JSON.stringify(artifact) + "\n")
+    receipt.artifact.sha256 = sha256(receipt.artifact.path)
+    expectCode(run(map, temp), "UNTRUSTED_EXECUTION_EVIDENCE")
+  })
 })
 
 test("Given self-reported assertion metadata When it differs between a receipt and artifact Then it is not treated as execution authority", () => {
@@ -586,33 +658,11 @@ test("Given a non-integer assertion count in the receipt artifact When validated
 
 test("Given the governed SHA-1 source is dirty When validated Then it reaches the dirty-source guard", () => {
   withTemp((temp) => {
-    const map = fixedMap(temp)
-    const source = {
-      path: ROOT,
-      head: execFileSync("git", ["rev-parse", "HEAD"], {
-        cwd: ROOT,
-        encoding: "utf8",
-      }).trim(),
-      tree: execFileSync("git", ["rev-parse", "HEAD^{tree}"], {
-        cwd: ROOT,
-        encoding: "utf8",
-      }).trim(),
-      statusSha256: createHash("sha256")
-        .update(
-          execFileSync(
-            "git",
-            ["status", "--porcelain=v1", "--untracked-files=all"],
-            { cwd: ROOT, encoding: "utf8" }
-          )
-        )
-        .digest("hex"),
-    }
-    const artifact = map.rows[0].receipt.artifact.path
-    const contents = JSON.parse(readFileSync(artifact, "utf8"))
-    contents.source = source
-    writeFileSync(artifact, JSON.stringify(contents) + "\n")
-    map.rows[0].receipt.source = source
-    map.rows[0].receipt.artifact.sha256 = sha256(artifact)
+    const map = trustedFixedMap(temp)
+    writeFileSync(
+      join(map.rows[0].receipt.source.path, "uncommitted.txt"),
+      "dirty\n"
+    )
     expectCode(run(map, temp), "DIRTY_SOURCE")
   })
 })
