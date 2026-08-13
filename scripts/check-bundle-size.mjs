@@ -29,6 +29,10 @@ if (rootFirstLoadBytes > budget.maxRootFirstLoadJsBytes) {
   )
 }
 
+if (appEntryChunks.size === 0) {
+  fail("Bundle check found no application route entries to evaluate.")
+}
+
 for (const [entry, files] of appEntryChunks) {
   const total = totalUniqueBytes(files)
   if (total > budget.maxRouteFirstLoadJsBytes) {

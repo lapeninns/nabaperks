@@ -1,5 +1,5 @@
 import { createECDH, timingSafeEqual } from "node:crypto"
-import { existsSync, readFileSync } from "node:fs"
+import { existsSync, readFileSync, statSync } from "node:fs"
 import { join } from "node:path"
 
 import { parseEnvText } from "./env-file.mjs"
@@ -56,6 +56,13 @@ const envFiles = [
 ].filter(Boolean)
 
 function parseEnvFile(path) {
+  if (!statSync(path).isFile()) {
+    console.error(
+      `Environment file ${path.split("/").at(-1)} must be a regular file.`
+    )
+    process.exit(1)
+  }
+
   return parseEnvText(readFileSync(path, "utf8"))
 }
 
@@ -487,14 +494,23 @@ function parseCheckProfile(args, vercelEnvironment) {
     }
 
     if (arg === "--profile") {
-      profile = args[index + 1] || ""
+      const suppliedProfile = args[index + 1]
+
+      if (!suppliedProfile || suppliedProfile.startsWith("--")) {
+        rejectUnknownArgument(arg)
+      }
+
+      profile = suppliedProfile
       index += 1
       continue
     }
 
     if (arg.startsWith("--profile=")) {
       profile = arg.slice("--profile=".length)
+      continue
     }
+
+    rejectUnknownArgument(arg)
   }
 
   if (profile === "local" || profile === "development") return "default"
@@ -503,5 +519,10 @@ function parseCheckProfile(args, vercelEnvironment) {
   console.error(
     "Unknown env check profile. Use --profile=production or omit the flag."
   )
+  process.exit(1)
+}
+
+function rejectUnknownArgument(argument) {
+  console.error(`Unknown env check argument: ${argument}`)
   process.exit(1)
 }
