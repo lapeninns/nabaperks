@@ -1972,3 +1972,36 @@ against a description built from tag + text + className, so
 checkbox is already skipped in-page and `/dev/design-system` is not in ROUTES,
 so nothing is being let through — but a future reader should not trust those
 two lines to exempt anything.
+
+### The gates that cannot run here, read rather than run
+
+`ops:github:check`, `ops:vercel:check`, `ops:supabase:check`,
+`smoke:providers`, `smoke:staging`, `smoke:supabase:migrations`,
+`ops:slo:check`, `ops:restore:verify` and `check-production-probe-latency.mjs`
+all read a live provider, and AGENTS.md says the first three are expected to
+FAIL until real credentials exist. They were audited the only way available:
+their pure evaluators (`scripts/*-governance/checks.mjs`) were called directly
+with the shipped contract and then with every collection in that contract
+emptied.
+
+| evaluator                    | controls, as shipped | controls, contract emptied |
+| ---------------------------- | -------------------- | -------------------------- |
+| `evaluateGitHubGovernance`   | 12 (11 FAIL)         | throws — fails loudly      |
+| `evaluateSupabaseGovernance` | 10 (9 FAIL)          | throws — fails loudly      |
+| `evaluateVercelGovernance`   | 22 (15 FAIL)         | **7 (2 FAIL)**             |
+
+Two of the three cannot go quiet. The Vercel evaluator can lose 15 of its 22
+controls to an emptied contract and still return a verdict — it happens to
+FAIL today for other reasons, so this is a coverage risk rather than a
+demonstrated false pass, and proving which it is needs live evidence this
+worktree does not have. **Recommended, not taken:** assert a control-count
+floor in `scripts/check-vercel-governance.mjs` the way `check-dead-exports.mjs`
+asserts a findings floor. Not done here, because a change to a provider gate
+that cannot be run is a change nobody can verify — the same reason 03#64's
+picker was left alone.
+
+`pnpm test:db` still cannot run in this worktree without `SUPABASE_DB_URL`, and
+the full Playwright matrix (mobile-safari, desktop-firefox, desktop-safari) was
+not run; the two specs this lane added or changed were run on chromium against
+a dev server on port 3303, and `check-small-screen.mjs` against a production
+build on the same port.
