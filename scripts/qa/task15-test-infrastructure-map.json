@@ -1,0 +1,788 @@
+{
+  "schema": "nabaperks.task15.test-infrastructure-map.v1",
+  "authority": {
+    "task5Map": {
+      "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/successor-remediation-certification-bootstrap/20260811T180204Z/task-5/final/v1/register-map.json",
+      "sha256": "706d310b13d60affe7c2ee06842beec442c54dd51ab3fb6fb097abb4fdd5975a"
+    },
+    "task37Defects": {
+      "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/whole-repo-qa/f9be041a9185f7cf3f2ee4518f397f876f090d96-20260809T151939Z/task-37/final/v1/defects.json",
+      "sha256": "7403b8cbc76c73b90de3f16726a89709e1eba35969c9bcc241acef932dba727a"
+    }
+  },
+  "rows": [
+    {
+      "stableId": "T37-DEF-07c0ba3c041a4a2885c31afe",
+      "title": "Public thresholds are aggregate rather than per route",
+      "sourceRowSha256": "45591bfbcf12f233db06c98cf70b17a4a8e92e80a0b3a724669c73ba13e96376",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-0e4ed84fb3b38f46ecb11775",
+      "title": "Breakpoint edge transitions are not enumerated",
+      "sourceRowSha256": "f73606075717bda2a2d9551c655085ff97dab31a9eee26d704122da805942640",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-0ebe7a54bdea10abd1619e56",
+      "title": "Static inventory records HTML reporting but no configured JSON reporter and several runtime-bounds omissions.",
+      "sourceRowSha256": "20207926536773073c3461879c38f9809574203024724b29ef0e3f02df5d33ad",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-0f29577b74fd87de001b3def",
+      "title": "Missing Playwright executable is a successful skip",
+      "sourceRowSha256": "3ae666382dd6e14ca8d093d3f811989d1bd628ec69edae0d8c0a4049d0d374e0",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-1175c50646580e74200a11f5",
+      "title": "No adversarial long-copy fixture is exercised",
+      "sourceRowSha256": "8eb7dd0c4b704faa0cde32c6699144c62396cf80c4d2fa272c84d2c53b8bebf7",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-145092ea5e962d614cee4f1b",
+      "title": "Horizontal overflow can be hidden without being detected",
+      "sourceRowSha256": "5e68e881b353cd1103beca68e77d61abd5ad320b3dd65738aaf3de2de5ed4be9",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-16e58676dd12ace1acf79f4d",
+      "title": "Admin Auth API target is not local-guarded",
+      "sourceRowSha256": "5c871d6d189f56080904a6bf1300dfea9c103272d0a5c50b58d9bb101beed08f",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-19c26f99787797b3da185dc6",
+      "title": "docs:check compares only generated docs/api/README.md and cannot detect OpenAPI changes that do not affect rendered fields.",
+      "sourceRowSha256": "4df31344b807329194440703f966de514cb568a9546091888d7009b30eaf98c2",
+      "status": "fixed",
+      "reason": "A clean fresh candidate checkout passes the direct first attempt; its source-only OpenAPI drift test fails before the package guard and passes after it.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/openapi-docs-drift-v1/repair-v2/receipts/openapi-docs-v2-direct-receipt.json",
+          "sha256": "1f4c64c54772204bc56d98c84377952fbf209b944e5a165a8e52e07ed3a812b5"
+        },
+        "command": "node --test tests/unit/openapi-docs-drift.test.mjs",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/openapi-docs-drift-v1/repair-v2/candidate-source-first-attempt",
+          "head": "7a206051ebdaab8c59e558db87176291121b95b5",
+          "tree": "ee0cc8961d1b8c610366350624a026f72f973936",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 1,
+          "passed": 1,
+          "failed": 0,
+          "skipped": 0
+        },
+        "assertions": 3
+      }
+    },
+    {
+      "stableId": "T37-DEF-20c1a5814de90d6e802c8a95",
+      "title": "Complete migration parity and synthetic-secret provenance are workflow-context assumptions",
+      "sourceRowSha256": "7a1f730f6b809beb69583fb421fb0f1d46b94f6d65b2844181666542559fa3fb",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-21c318aa11235c6dde6a5cdc",
+      "title": "No journey group carries an independent tenant noninterference sentinel",
+      "sourceRowSha256": "699afe7495dd932aa5f820a526aae0234a5f9967c6597680975f03ba223f25d6",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-267d258e0736b629d1d8b607",
+      "title": "Dead-code gate first attempt failed at Corepack bootstrap",
+      "sourceRowSha256": "02295300e3a6e96b358a5a53dc98da5ae46fc78c728813389700682321cb83c2",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-2e0e4cfdd3288bbdb9fef841",
+      "title": "Google review plate PDF unit test could not launch Chromium",
+      "sourceRowSha256": "5138dfd6fe599b6680340a57c1702e3d367d7d0be35f1982d305716928e56e86",
+      "status": "fixed",
+      "reason": "Retained Chromium-backed aggregate run passed the single 100×100 mm plate predicate; receipt is independently bound to this candidate row and parsed sidecars.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/print-kit-failure-visibility-v1/repair-v2/receipts/google-review-plate-direct-receipt.json",
+          "sha256": "8409b5a24c82a64e858a5ab8b851112aa891c4df6883781b202e4c71ae476c74"
+        },
+        "command": "node --import ./tests/support/register-alias.mjs --test tests/unit/google-review-pdf.test.mjs",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/pdf-chromium-v1/receipt-repair-v2/candidate-source",
+          "head": "d3a787e12aa35e9852071e7db6e643caf7725a87",
+          "tree": "d25bf70617a81b73aca4fcb9e2bb6d51b316df86",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 5,
+          "passed": 5,
+          "failed": 0,
+          "skipped": 0
+        },
+        "assertions": 18
+      }
+    },
+    {
+      "stableId": "T37-DEF-306d215e6223f649ad78b594",
+      "title": "Nightly race job has no authenticated local-target preflight",
+      "sourceRowSha256": "ccc643f1b297ab0858bb2b0c4ce12492658dbf3903fa46da2c33b714c0db54bb",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-30fab75cc448d2f827407fd1",
+      "title": "Customer/public-QR cleanup is fail-fast and can strand later resources",
+      "sourceRowSha256": "e17b857e4a770c414427562243537e687f0f42ce260e0b6aec143ddfe239778c",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-3178c6f1e84070a596aaf50c",
+      "title": "Unique run identifier is not enforced by the checker",
+      "sourceRowSha256": "30d5d461df7b07a97bb82930dc3f8e5e5ce78a9587d44c12a66b27951dcbe70e",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-3bf48c9396a2b9cc36dd1fd5",
+      "title": "Dark theme is source-supported but absent from visual regression routes",
+      "sourceRowSha256": "a8232ade6a307b354c41279a6ea3748c8478e39577a7ef5b3156e9db17fdd868",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-3cdacf030abc0a7ec1566492",
+      "title": "Local Supabase wrapper has no command or target allowlist",
+      "sourceRowSha256": "7d8c6d84308d0492d5063051e9e49d2d112d0dd5168db2b9640fc953c738be5f",
+      "status": "fixed",
+      "reason": "A direct first-attempt guard receipt covers the documented local Supabase command.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/supabase-local-guard-v1/receipts/supabase-local-guard-direct-receipt.json",
+          "sha256": "826f160463a24a2278bd7b71957a5b70c6997393bcbf11301518fdca08f4f26d"
+        },
+        "command": "node --test tests/unit/supabase-local-guard.test.mjs",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/supabase-local-guard-v1/candidate-source",
+          "head": "d236d623c55b00c8237e21f29eaef5efffb66218",
+          "tree": "5c9bb1dc5b168e4ce917c5b51bd9114914a43ce3",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 4,
+          "passed": 4,
+          "failed": 0,
+          "skipped": 0
+        },
+        "assertions": 22
+      }
+    },
+    {
+      "stableId": "T37-DEF-3e53336bd49580d59df400c0",
+      "title": "Dedicated loading and error harnesses are not included in visual.spec.ts",
+      "sourceRowSha256": "7353e6bab84ac6ebde8014508c54193299a7fe73b85117d448eefb7a696df8b7",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-43d088fb806b4fe40b9892fb",
+      "title": "Lint attempt failed before ESLint because pnpm signature verification failed",
+      "sourceRowSha256": "353af24c0e7e9daebe07a4e2dcbb3b03e721559012c42f456bc42ab14e981812",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-4acf9fcf259e5b203f5eb611",
+      "title": "Google review card PDF unit test could not launch Chromium",
+      "sourceRowSha256": "d47da951cc20165d39ccaeb365aba152f51960ac31b73ad85d52f98619152886",
+      "status": "fixed",
+      "reason": "Retained Chromium-backed aggregate run passed the two-page CR80 card predicate; receipt is independently bound to this candidate row and parsed sidecars.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/print-kit-failure-visibility-v1/repair-v2/receipts/google-review-card-direct-receipt.json",
+          "sha256": "b75194ca0fdcfa77363e9dfb07479099687493844ba1892f6d3518fca2dcfb19"
+        },
+        "command": "node --import ./tests/support/register-alias.mjs --test tests/unit/google-review-pdf.test.mjs",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/pdf-chromium-v1/receipt-repair-v2/candidate-source",
+          "head": "d3a787e12aa35e9852071e7db6e643caf7725a87",
+          "tree": "d25bf70617a81b73aca4fcb9e2bb6d51b316df86",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 5,
+          "passed": 5,
+          "failed": 0,
+          "skipped": 0
+        },
+        "assertions": 18
+      }
+    },
+    {
+      "stableId": "T37-DEF-4d08e83fb350eea9faf5eb9a",
+      "title": "Named T22 specs omit required install, rotation, slow-network, storage, and granted-permission proof",
+      "sourceRowSha256": "b6278e389ba4a14bd132ea505371e25b512fd8ae77698de8919f092a714dafd0",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-570a975b6694d0170e0b90ba",
+      "title": "Normal environment check hung without output and was terminated",
+      "sourceRowSha256": "3b5d40554258ad1b6a2d2c73e7822a5c2365dd1d2b52a91e70d8b1c1ee300a79",
+      "status": "fixed",
+      "reason": "Bounded CLI subprocess proof passed on the first attempt with zero skips.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/env-check-cli-v1/receipts/t37-def-570a975b6694d0170e0b90ba-direct-receipt.json",
+          "sha256": "9651802ae1262714a06c9e4b12dae69ca08df2f4ab2b6734360ccf7506bd188a"
+        },
+        "command": "node --test --test-concurrency=1 tests/unit/task15-env-check-cli.test.mjs",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/env-check-cli-v1/candidate-source",
+          "head": "52ac1342b9cd426ba7c42629e41f549a4457b4b1",
+          "tree": "fe43fb20456f87a8df63031d75e78bdf496479d1",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 4,
+          "passed": 4,
+          "failed": 0,
+          "skipped": 0
+        },
+        "assertions": 4
+      }
+    },
+    {
+      "stableId": "T37-DEF-5ae4122fc7bf0aea3d3d77f0",
+      "title": "Production environment contract command timed out with no output",
+      "sourceRowSha256": "935af66545743dc62af3d41e53646293b7f3d55511da9c7010703a98d9778d2e",
+      "status": "fixed",
+      "reason": "Bounded CLI subprocess proof passed on the first attempt with zero skips.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/env-check-cli-v1/receipts/t37-def-5ae4122fc7bf0aea3d3d77f0-direct-receipt.json",
+          "sha256": "df523e137528df332a6718e4a06113f5a5806c0d9a79a4571b3dde3f6433a952"
+        },
+        "command": "node --test --test-concurrency=1 tests/unit/task15-env-check-cli.test.mjs",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/env-check-cli-v1/candidate-source",
+          "head": "52ac1342b9cd426ba7c42629e41f549a4457b4b1",
+          "tree": "fe43fb20456f87a8df63031d75e78bdf496479d1",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 4,
+          "passed": 4,
+          "failed": 0,
+          "skipped": 0
+        },
+        "assertions": 4
+      }
+    },
+    {
+      "stableId": "T37-DEF-5bb499bf6c80ff38c6c62f58",
+      "title": "Admin MFA setup can leak a factor before cleanup closure exists",
+      "sourceRowSha256": "577ee50b92dfddebb7a7ad179853939723c9c742a7d0b596f390c949eb5d434a",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-5dc6ad969b6121a05a5527e1",
+      "title": "Disposable stop does not request no-backup semantics",
+      "sourceRowSha256": "5931c05bd6f6c332e3f02c571638953a6d324f5a9354329f5a04730391ef8409",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-606adcf86eb3f4d4a921b4a8",
+      "title": "Google review PDF attachments unit test could not launch Chromium",
+      "sourceRowSha256": "551d396e13e0142ae5f790bde68069be3a4624d4dfed2d7f3e457123a0132085",
+      "status": "fixed",
+      "reason": "Retained Chromium-backed aggregate run passed the valid review bundle attachment predicate; receipt is independently bound to this candidate row and parsed sidecars.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/print-kit-failure-visibility-v1/repair-v2/receipts/google-review-bundle-direct-receipt.json",
+          "sha256": "75e5c53c93020bb5fd7e5a046645e31616c21ff981a3ea3109b8b4e699e6d323"
+        },
+        "command": "node --import ./tests/support/register-alias.mjs --test tests/unit/google-review-pdf.test.mjs",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/pdf-chromium-v1/receipt-repair-v2/candidate-source",
+          "head": "d3a787e12aa35e9852071e7db6e643caf7725a87",
+          "tree": "d25bf70617a81b73aca4fcb9e2bb6d51b316df86",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 5,
+          "passed": 5,
+          "failed": 0,
+          "skipped": 0
+        },
+        "assertions": 18
+      }
+    },
+    {
+      "stableId": "T37-DEF-60e363164a12ea669a53a1fa",
+      "title": "Tablet and landscape coverage are absent from the visual project matrix",
+      "sourceRowSha256": "5ef05264f1f7fc824eb4f8f13a24eb1a7809dc49eeb1e447fdaa419fcd20951a",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-63c612fa43439b27982d3426",
+      "title": "Offline provider inventory suffered a controller interruption",
+      "sourceRowSha256": "ceb04f708f53060a2051189b9e324a3444a0ba7db417cd495da9c1c6a18fe472",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-6922c9a0c230507989acde95",
+      "title": "Initial typecheck attempt was interrupted",
+      "sourceRowSha256": "7444a820c478d372884b19b7d2614da9eaea7ec2c0698a3a97b9ddf678ad91ac",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-6e61af3b47d3138fcc3590e4",
+      "title": "Authoritative environment validation failed for missing required keys",
+      "sourceRowSha256": "2f11ea6590cbf00b6e3e1b1c841a94354bc3d294cc098b5c72a2d631e10b0bc6",
+      "status": "fixed",
+      "reason": "Bounded CLI subprocess proof passed on the first attempt with zero skips.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/env-check-cli-v1/receipts/t37-def-6e61af3b47d3138fcc3590e4-direct-receipt.json",
+          "sha256": "85730d071876381ccc63b9f19c8262114b70a7c7214e0172c493787f75cea76b"
+        },
+        "command": "node --test --test-concurrency=1 tests/unit/task15-env-check-cli.test.mjs",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/env-check-cli-v1/candidate-source",
+          "head": "52ac1342b9cd426ba7c42629e41f549a4457b4b1",
+          "tree": "fe43fb20456f87a8df63031d75e78bdf496479d1",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 4,
+          "passed": 4,
+          "failed": 0,
+          "skipped": 0
+        },
+        "assertions": 4
+      }
+    },
+    {
+      "stableId": "T37-DEF-6e7664ed12d093cac78e67bb",
+      "title": "JSON-LD check produced no output for 60 seconds and was interrupted",
+      "sourceRowSha256": "01d114a4c7e335ca2c71e515f29225871648059186d3a7ebdcd2d01341c8eed5",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-701d3eed1729423878294f30",
+      "title": "Command matching is narrow, path checks are substring-based, and script target integrity/undocumented scripts are outside scope.",
+      "sourceRowSha256": "1727ef410f93c0af29961f349f81dd169c0cef8b44a61bdbbc63a07b6c5a3238",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-7b7e27b45d9a7be3fbc0e437",
+      "title": "Root-route accessibility test failed after server environment validation",
+      "sourceRowSha256": "63c9302900449807fedf112326bcfec0a9a091ed03f5e65d0673a350702bbc12",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-7cd45ecfcf0c571f09ba80e3",
+      "title": "Dependency audit sandbox attempts were interrupted before a terminal audit",
+      "sourceRowSha256": "20396a37da436fa77dad6d57dda605d00eacb7646067ad90075774f8df77c656",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-80033137a9b82b5da1cd77de",
+      "title": "Generic bearer auth is not mapped to the real stamp and redemption surfaces",
+      "sourceRowSha256": "83db0c9ff8294c9926dbc4463282a1b34e55d4c604def39e154eb5a83d690861",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-8448002219397b81383182f9",
+      "title": "Browser matrix attempt failed before tests at pnpm signature verification",
+      "sourceRowSha256": "ade186e72442115b3c98f330b8e87c75358748d270b182fc9cd9c0affff9126b",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-8572e783b363213e0f45e226",
+      "title": "Required SEO crawl command forwarded a literal double-dash and emitted invalid output",
+      "sourceRowSha256": "ded6e0f0bd466128347f75f73a9a4a0a578385b59a4fbf35f1cf917ce2247d3a",
+      "status": "fixed",
+      "reason": "The exact documented pnpm wrapper is covered by a first-attempt direct CLI regression receipt.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/successor-remediation-certification/20260811T221856Z/task-15/lanes/static-gate-cluster-v1/receipts/crawl-direct-receipt.json",
+          "sha256": "d3edbde4f71a58011c25dea8a8ae5eb3185ef2a85aeaa0636741f7ab3c8974f4"
+        },
+        "command": "node --test tests/unit/seo-crawl-cli-wrapper.test.mjs",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/successor-remediation-certification/20260811T221856Z/task-15/lanes/static-gate-cluster-v1/candidate-source",
+          "head": "001f11b64f77f3c161cd9ed9d8e35c8e01688fce",
+          "tree": "7878024868a8f83cca8c61c96fdb6928d1d93b96",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 1,
+          "passed": 1,
+          "failed": 0,
+          "skipped": 0
+        },
+        "assertions": 4
+      }
+    },
+    {
+      "stableId": "T37-DEF-898592e3b1b389a242bcc9fc",
+      "title": "Configured scope excludes tests/load/*.js, public/sw.js, Supabase SQL and config JSON; broad entry globs suppress unused-file detection in components/ui, scripts and tests.",
+      "sourceRowSha256": "f6ee8fdb3bcba224750ea81b1d788c994dd5091c80faee1324bf34d0dd931c4e",
+      "status": "fixed",
+      "reason": "Knip now removes broad entry suppression, inventories the previously hidden JavaScript classes, and accepts explicit Supabase SQL/JSON project patterns on its real files surface (invalid SQL/JSON fixture yields no parser error; no unsupported SQL/JSON file-finding claim is made).",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/knip-scope-v1/receipts/knip-scope-direct-receipt.json",
+          "sha256": "9c463d543f24a848bb897f09e3759c96db54e2feddb8942f871819ad2a1f3582"
+        },
+        "command": "node --test tests/unit/task15-knip-scope.test.mjs",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/knip-scope-v1/candidate-source-v3",
+          "head": "c04948a62a5fd1a7ed3bb090f133e6f13ca78a13",
+          "tree": "4da8898cd87d443b9052c69e8fce5bf9a4028cd4",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 5,
+          "passed": 5,
+          "failed": 0,
+          "skipped": 0
+        },
+        "assertions": 5
+      }
+    },
+    {
+      "stableId": "T37-DEF-8e9a5e915a515af8e180e9f4",
+      "title": "Unsupported-glyph PDF unit test could not launch Chromium",
+      "sourceRowSha256": "faa54c42b1ac56f55c31d8fc4044c99163c21e80d9826aeae2ff26b488c651ba",
+      "status": "fixed",
+      "reason": "Retained Chromium-backed aggregate run passed the unsupported-glyph venue-name predicate; receipt is independently bound to this candidate row and parsed sidecars.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/print-kit-failure-visibility-v1/repair-v2/receipts/google-review-glyphs-direct-receipt.json",
+          "sha256": "ea1ac92e12cf8502d65eb90532a198811fa022b8611de739aa026bb29a3c8624"
+        },
+        "command": "node --import ./tests/support/register-alias.mjs --test tests/unit/google-review-pdf.test.mjs",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/pdf-chromium-v1/receipt-repair-v2/candidate-source",
+          "head": "d3a787e12aa35e9852071e7db6e643caf7725a87",
+          "tree": "d25bf70617a81b73aca4fcb9e2bb6d51b316df86",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 5,
+          "passed": 5,
+          "failed": 0,
+          "skipped": 0
+        },
+        "assertions": 18
+      }
+    },
+    {
+      "stableId": "T37-DEF-90d7e4b65b1673362b6f2806",
+      "title": "Customer/public-QR cleanup has no zero-residue readback",
+      "sourceRowSha256": "8086aab7335fec18427bc46f2547a392ea382fc5fb43b10b97111fb46e8e7f90",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-90e89475676e652c221e62e2",
+      "title": "Safe-area handling is partial and untested",
+      "sourceRowSha256": "074ab9b92b9ed5096cd5667397950b19ffc235634e3f76ab3bd4f6d30d92f85c",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-92d693534f240d5c21022e43",
+      "title": "Cleanup safety behavior lacks direct contract coverage",
+      "sourceRowSha256": "b2f1b52737c9e93edc91d694bc08eea10069c2973e827031af459b9b00d17155",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-955c1b92684fcf410c9850ef",
+      "title": "HTTP label overstates the measurement surface",
+      "sourceRowSha256": "1f632a3b02c33a3ca114ae08d60482be6fdbecdb318582819453f98c9fc8e35e",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-9a33cc57321447dbfd068e8e",
+      "title": "Browser matrix web server failed to bind loopback due to EPERM",
+      "sourceRowSha256": "9525cb6134c3108a11dccb6cea6241f6299d3881a14216b695eb8d396537d865",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-9f7b16a7243361f2db6d77cd",
+      "title": "No resource-level measurements exist",
+      "sourceRowSha256": "46663c3aae439cf3b55724b52dd9f61aad5c0e4393136d0caa043f7f9f33a72f",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-a0301cb60438ea3743032208",
+      "title": "SEO content pnpm wrapper forwarded a literal double-dash as the input path",
+      "sourceRowSha256": "cbd30072c6f853806aac9725a96d28a25477fb9c9010bec2305b39c2854d9117",
+      "status": "fixed",
+      "reason": "The exact documented pnpm wrapper is covered by a first-attempt direct CLI regression receipt.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/successor-remediation-certification/20260811T221856Z/task-15/lanes/static-gate-cluster-v1/receipts/content-direct-receipt.json",
+          "sha256": "b606b1b869143749e19871ac0d359e59917139b106397d577a366ae7dc76078e"
+        },
+        "command": "node --test tests/unit/seo-content-cli-wrapper.test.mjs",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/successor-remediation-certification/20260811T221856Z/task-15/lanes/static-gate-cluster-v1/candidate-source",
+          "head": "001f11b64f77f3c161cd9ed9d8e35c8e01688fce",
+          "tree": "7878024868a8f83cca8c61c96fdb6928d1d93b96",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 1,
+          "passed": 1,
+          "failed": 0,
+          "skipped": 0
+        },
+        "assertions": 4
+      }
+    },
+    {
+      "stableId": "T37-DEF-a7380c485f3a5e9efc996840",
+      "title": "No numerical performance budget is enforceable by perf:stress",
+      "sourceRowSha256": "7a1ecfa602163da4867ed433f5cf00f67c167977876faed50b89c499bf54944c",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-ad3090774e1da2e5b7498642",
+      "title": "Production poster verification failed because the loopback server was unreachable",
+      "sourceRowSha256": "c0abfe7daa4ee3cb89c7f9293dea3ca4f01e80b6d4c76367f6d0a589e9a499b5",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-b17d233b3d1b086efa80d6be",
+      "title": "Bundle check exited zero while evaluating zero application route entries",
+      "sourceRowSha256": "a083db3f8cefb2380a8f6069fcc5887e2cc15d78b3697ccf5b2524a02ee57a7a",
+      "status": "fixed",
+      "reason": "First-attempt typed Node TAP execution proves valid route accounting and fail-closed zero-route rejection.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/bundle-zero-route-v1/receipt-repair-v2/receipts/bundle-zero-route-direct-receipt.json",
+          "sha256": "319413bf4df1747bad1581941e0d509eb290d402015e6b8b17b70ba38cea59af"
+        },
+        "command": "node --test --test-concurrency=1 tests/unit/task15-bundle-size-zero-route.test.mjs",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/bundle-zero-route-v1/receipt-repair-v2/candidate-source",
+          "head": "4526c458494a04115995284ee79589dd56c18e67",
+          "tree": "2bcfcef49b64d986ac03fe798fb420974f98444d",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 2,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0
+        },
+        "assertions": 5
+      }
+    },
+    {
+      "stableId": "T37-DEF-b681fd1478c0b350709b082e",
+      "title": "Probe revision proof is prefix-only",
+      "sourceRowSha256": "1d695e24910d24a6d6917107cc317c27036aa6f7393a828ea317e1a47f3b2d76",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-ce395f5fc29d9d85a1180b44",
+      "title": "Manual reward-add scenario has partial mutation readback",
+      "sourceRowSha256": "c4e166c996980011e3f0f41cec39ba53799a73a95c6fdeebc3728b084d2629b6",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-d13794f14ba6fe71375090e9",
+      "title": "Production build failed during prerender because required build-time environment was absent",
+      "sourceRowSha256": "c5c93b23dcb0c280624239a9518e09446f3b6fb0f111c51022ffc9622dd4080b",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-d350d8d8f3bd51d381af6570",
+      "title": "The scanner omits several extensions/ignored paths and accepts valid issue-ID prefixes with trailing junk.",
+      "sourceRowSha256": "f90b993d6bf372c6163f7167ae4fd754a1d62115a4c41b73d7d82010e683e53e",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-d8c88ace7c830c7de94e9af1",
+      "title": "Neither load job retains a machine-readable k6 summary",
+      "sourceRowSha256": "60776e5d60c362bdc17e05dada459f7ccaffa60521dc582f3e667bd68223474c",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-da6db9c2495b60b1fff5da0e",
+      "title": "Full-page screenshots have no explicit layout invariants",
+      "sourceRowSha256": "6b209446cbe78a7b2be2d34b14375793f2c670e4c2309e3572e6abbdba03c238",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-e21c5ceb3269668c2a334edd",
+      "title": "Admin cleanup lacks residue readback",
+      "sourceRowSha256": "99701e3e9fb48164da5ebf732cf89823af9dc491d15a05e92207698faf6ba044",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-e2743a5687147115017db053",
+      "title": "Resend replay lacks terminal-effect readback",
+      "sourceRowSha256": "e70d07d7a2d50595f4584e4d1e9c9e11763a6ef733a0c4ceb004a71638c781d6",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-e75e1dd044eb6d767a6a590f",
+      "title": "Duplication gate first attempt failed at Corepack bootstrap",
+      "sourceRowSha256": "8f217fe0ad052ecfa8cfff76c4ca947c5c0b6a55d6e6ae2e4694cef6b0c5b66e",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-eaba62054e63cf27ce4b89c8",
+      "title": "Race predicate does not require an intended successful mutation or DB convergence",
+      "sourceRowSha256": "f5bf2a567f6b84f16cff669f69b19f9298b88f93e2cc72132166a9da979d214e",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-ee396e2bbe8f308f772924f1",
+      "title": "No global forced-colours treatment or exact journey test exists",
+      "sourceRowSha256": "4efcdb9b65b06428d2d1830f9e7d9481c517cd891fd6d0226bfd9cb37b015a12",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-ee55f0744ca8baec4a95cd65",
+      "title": "No 200% or 400% journey evidence; overflow clipping can conceal failures",
+      "sourceRowSha256": "c55e9bf4b805c826a68f358f1e62dffa345d744551d2da23aa8d48fa0c438304",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-f1689e1857473d715666b121",
+      "title": "Unreachable app omits all browser/page measurements without failing the command",
+      "sourceRowSha256": "0cebd91320fa6c77c1177e96749e16956dbb62de0876ba505533a598b7057968",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-f36a8b3b1a0c0aa324df5bc3",
+      "title": "Production poster export failed because hosted Supabase prerequisites were absent",
+      "sourceRowSha256": "b56610b2f24310872a44286e1d41f180b26aea365722572b0378447d1ec3e2b3",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-f82b1fa4587695f7828e00cb",
+      "title": "Offline provider inventory timed out twice with zero item accounting",
+      "sourceRowSha256": "1a4a37c74460ec3f577b9282ca8f7106c0041124cc6a301f32397f7f0d0d02e0",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    },
+    {
+      "stableId": "T37-DEF-faff7b951bcb4441ce90ce7e",
+      "title": "Fault restoration and failed cleanup have incomplete readback",
+      "sourceRowSha256": "d902fe9f4ce715286956c35e1c2a1827a297f65c5f5298a35e51eb0c17373c03",
+      "status": "blocked",
+      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+    }
+  ],
+  "summary": {
+    "owned": 65,
+    "terminal": 65,
+    "duplicates": 0,
+    "orphans": 0
+  }
+}
