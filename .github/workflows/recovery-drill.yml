@@ -1,15 +1,44 @@
-name: Recovery drill
+name: Recovery drill evidence
 
 on:
   workflow_dispatch:
     inputs:
+      phase:
+        description: Evidence phase; this workflow never restores or deletes projects
+        required: true
+        type: choice
+        options: [restore-verification, cleanup-verification]
       backup_id:
-        description: Completed physical production backup ID restored into the disposable project
+        description: Completed physical production backup ID
         required: true
         type: string
       restore_project_ref:
         description: Disposable Supabase restore-to-new-project ref
         required: true
+        type: string
+      evidence_sequence:
+        description: Restore is 1; cleanup is 2
+        required: true
+        type: string
+      previous_evidence_run_id:
+        description: Zero for restore; successful restore-verification run ID for cleanup
+        required: true
+        type: string
+      restore_authorisation_receipt_sha256:
+        description: Independent authorisation receipt for the provider restore
+        required: true
+        type: string
+      restore_provider_receipt_sha256:
+        description: Independent provider receipt proving restore completion
+        required: true
+        type: string
+      cleanup_authorisation_receipt_sha256:
+        description: Independent authorisation receipt for project deletion; cleanup only
+        required: false
+        type: string
+      cleanup_provider_receipt_sha256:
+        description: Independent provider receipt proving deletion; cleanup only
+        required: false
         type: string
       confirmation:
         description: Type VERIFY_NON_PRODUCTION_RESTORE
@@ -17,31 +46,85 @@ on:
         type: string
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
-  group: recovery-drill
+  group: recovery-drill-${{ inputs.restore_project_ref }}
   cancel-in-progress: false
 
 jobs:
   preflight:
-    name: Prove safe recovery target
+    name: Prove ordered, non-replayed evidence inputs
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     timeout-minutes: 3
+    environment: ${{ inputs.phase == 'restore-verification' && 'Recovery Drill Restore Evidence' || 'Recovery Drill Cleanup Evidence' }}
     steps:
-      - name: Require main and explicit confirmation
+      - name: Require main, explicit confirmation, and receipt syntax
         env:
+          CLEANUP_AUTHORISATION_RECEIPT: ${{ inputs.cleanup_authorisation_receipt_sha256 }}
+          CLEANUP_PROVIDER_RECEIPT: ${{ inputs.cleanup_provider_receipt_sha256 }}
           CONFIRMATION: ${{ inputs.confirmation }}
+          EVIDENCE_SEQUENCE: ${{ inputs.evidence_sequence }}
+          PHASE: ${{ inputs.phase }}
+          PREVIOUS_EVIDENCE_RUN_ID: ${{ inputs.previous_evidence_run_id }}
+          RESTORE_AUTHORISATION_RECEIPT: ${{ inputs.restore_authorisation_receipt_sha256 }}
           RESTORE_PROJECT_REF: ${{ inputs.restore_project_ref }}
+          RESTORE_PROVIDER_RECEIPT: ${{ inputs.restore_provider_receipt_sha256 }}
         run: |
+          test "$GITHUB_RUN_ATTEMPT" = "1"
           test "$GITHUB_REF" = "refs/heads/main"
           test "$CONFIRMATION" = "VERIFY_NON_PRODUCTION_RESTORE"
           [[ "$RESTORE_PROJECT_REF" =~ ^[a-z0-9]{20}$ ]]
           test "$RESTORE_PROJECT_REF" != "skonlhwstejberyzobep"
           [[ "${{ inputs.backup_id }}" =~ ^[0-9]+$ ]]
+          [[ "$RESTORE_AUTHORISATION_RECEIPT" =~ ^[a-f0-9]{64}$ ]]
+          [[ "$RESTORE_PROVIDER_RECEIPT" =~ ^[a-f0-9]{64}$ ]]
+          case "$PHASE:$EVIDENCE_SEQUENCE:$PREVIOUS_EVIDENCE_RUN_ID" in
+            restore-verification:1:0)
+              test -z "$CLEANUP_AUTHORISATION_RECEIPT"
+              test -z "$CLEANUP_PROVIDER_RECEIPT"
+              ;;
+            cleanup-verification:2:*)
+              [[ "$PREVIOUS_EVIDENCE_RUN_ID" =~ ^[0-9]+$ ]]
+              test "$PREVIOUS_EVIDENCE_RUN_ID" -lt "$GITHUB_RUN_ID"
+              [[ "$CLEANUP_AUTHORISATION_RECEIPT" =~ ^[a-f0-9]{64}$ ]]
+              [[ "$CLEANUP_PROVIDER_RECEIPT" =~ ^[a-f0-9]{64}$ ]]
+              test "$CLEANUP_AUTHORISATION_RECEIPT" != "$RESTORE_AUTHORISATION_RECEIPT"
+              test "$CLEANUP_PROVIDER_RECEIPT" != "$RESTORE_PROVIDER_RECEIPT"
+              ;;
+            *) echo "stale or out-of-order recovery evidence" >&2; exit 1 ;;
+          esac
+      - name: Reject a duplicate receipt artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PHASE: ${{ inputs.phase }}
+          PREVIOUS_EVIDENCE_RUN_ID: ${{ inputs.previous_evidence_run_id }}
+          RESTORE_PROVIDER_RECEIPT: ${{ inputs.restore_provider_receipt_sha256 }}
+          CLEANUP_PROVIDER_RECEIPT: ${{ inputs.cleanup_provider_receipt_sha256 }}
+        run: |
+          receipt="$RESTORE_PROVIDER_RECEIPT"
+          if [[ "$PHASE" = "cleanup-verification" ]]; then
+            receipt="$CLEANUP_PROVIDER_RECEIPT"
+            restore_count="$(gh api "/repos/$GITHUB_REPOSITORY/actions/runs/$PREVIOUS_EVIDENCE_RUN_ID/artifacts" --jq "[.artifacts[] | select(.name == \"recovery-evidence-restore-verification-$RESTORE_PROVIDER_RECEIPT\")] | length")"
+            test "$restore_count" -eq 1 || { echo "independent restore receipt is missing or ambiguous" >&2; exit 1; }
+          fi
+          count="$(gh api --paginate "/repos/$GITHUB_REPOSITORY/actions/artifacts?per_page=100" --jq "[.artifacts[] | select(.name == \"recovery-$PHASE-$receipt\")] | length" | awk '{total += $1} END {print total + 0}')"
+          test "$count" -eq 0 || { echo "duplicate receipt" >&2; exit 1; }
+          jq -n --arg phase "$PHASE" --arg receipt "$receipt" \
+            '{schema: "nabaperks.recovery-receipt-reservation.v1", phase: $phase, providerReceiptSha256: $receipt}' > "$RUNNER_TEMP/receipt-reservation.json"
+      - name: Reserve the provider receipt
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.2
+        with:
+          name: recovery-${{ inputs.phase }}-${{ inputs.phase == 'restore-verification' && inputs.restore_provider_receipt_sha256 || inputs.cleanup_provider_receipt_sha256 }}
+          path: ${{ runner.temp }}/receipt-reservation.json
+          if-no-files-found: error
+          retention-days: 365
 
-  verify:
-    name: Verify restored backup
+  verify-restore:
+    name: Verify the independently completed restore
+    if: ${{ inputs.phase == 'restore-verification' }}
     needs: preflight
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -79,10 +162,68 @@ jobs:
           RESTORE_DRILL_DB_URL: ${{ secrets.RESTORE_DRILL_DB_URL }}
           RESTORE_DRILL_PROJECTS_FILE: ${{ runner.temp }}/projects.json
         run: node scripts/check-restored-backup.mjs > "$RUNNER_TEMP/recovery-drill-evidence.json"
-      - name: Publish recovery evidence
+      - name: Attach independent restore receipts
+        env:
+          AUTHORISATION: ${{ inputs.restore_authorisation_receipt_sha256 }}
+          PROVIDER: ${{ inputs.restore_provider_receipt_sha256 }}
+        run: |
+          jq --arg authorisation "$AUTHORISATION" --arg provider "$PROVIDER" \
+            '. + {certification: "restore-verified", restoreReceipts: {authorisationSha256: $authorisation, providerSha256: $provider}, cleanupReceipts: null}' \
+            "$RUNNER_TEMP/recovery-drill-evidence.json" > "$RUNNER_TEMP/recovery-evidence.json"
+      - name: Publish restore evidence
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.2
         with:
-          name: recovery-drill-${{ inputs.backup_id }}
-          path: ${{ runner.temp }}/recovery-drill-evidence.json
+          name: recovery-evidence-restore-verification-${{ inputs.restore_provider_receipt_sha256 }}
+          path: ${{ runner.temp }}/recovery-evidence.json
           if-no-files-found: error
           retention-days: 365
+
+  verify-cleanup:
+    name: Verify independently completed cleanup
+    if: ${{ inputs.phase == 'cleanup-verification' }}
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: Recovery Drill Cleanup Evidence
+    steps:
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v1.6.0
+        with:
+          version: 2.75.0
+      - name: Verify the disposable project is absent
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_BACKUP_READ_TOKEN }}
+          RESTORE_PROJECT_REF: ${{ inputs.restore_project_ref }}
+        run: |
+          supabase projects list --output json > "$RUNNER_TEMP/projects.json"
+          jq -e --arg ref "$RESTORE_PROJECT_REF" 'all(.[]; .ref != $ref)' "$RUNNER_TEMP/projects.json"
+      - name: Write independent cleanup receipt
+        env:
+          CLEANUP_AUTHORISATION: ${{ inputs.cleanup_authorisation_receipt_sha256 }}
+          CLEANUP_PROVIDER: ${{ inputs.cleanup_provider_receipt_sha256 }}
+          RESTORE_PROVIDER: ${{ inputs.restore_provider_receipt_sha256 }}
+        run: |
+          jq -n --arg cleanupAuthorisation "$CLEANUP_AUTHORISATION" --arg cleanupProvider "$CLEANUP_PROVIDER" --arg restoreProvider "$RESTORE_PROVIDER" --arg previousRun "${{ inputs.previous_evidence_run_id }}" \
+            '{schema: "nabaperks.recovery-cleanup-receipt.v1", certification: "cleanup-verified", project_absent: true, previousRestoreRunId: $previousRun, restoreProviderReceiptSha256: $restoreProvider, cleanupReceipts: {authorisationSha256: $cleanupAuthorisation, providerSha256: $cleanupProvider}}' \
+            > "$RUNNER_TEMP/recovery-cleanup-evidence.json"
+      - name: Publish cleanup evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.2
+        with:
+          name: recovery-evidence-cleanup-verification-${{ inputs.cleanup_provider_receipt_sha256 }}
+          path: ${{ runner.temp }}/recovery-cleanup-evidence.json
+          if-no-files-found: error
+          retention-days: 365
+
+  incomplete:
+    name: Refuse incomplete certification
+    if: ${{ always() && (cancelled() || failure()) }}
+    needs: [preflight, verify-restore, verify-cleanup]
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    permissions:
+      contents: read
+    steps:
+      - name: Mark the run incomplete
+        run: |
+          echo "certification-status: incomplete" >> "$GITHUB_STEP_SUMMARY"
+          exit 1

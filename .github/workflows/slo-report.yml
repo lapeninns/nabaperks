@@ -4,22 +4,44 @@ on:
   schedule:
     - cron: "13 7 * * *"
   workflow_dispatch:
+    inputs:
+      effect:
+        description: Explicit mutation effect; observe performs no mutation
+        required: true
+        default: observe
+        type: choice
+        options:
+          - observe
+          - page-breach
+          - resolve-recovery
+      evidence_run_id:
+        description: Earlier successful observation run authorising the effect
+        required: false
+        type: string
+      authorisation_receipt_sha256:
+        description: Independent approval receipt SHA-256 for this one effect
+        required: false
+        type: string
 
 permissions:
   actions: read
   contents: read
-  issues: write
 
 concurrency:
   group: production-slo-report
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
-  availability:
-    name: 30-day availability and error budget
+  observation:
+    name: 30-day availability and error budget (observation only)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: Monitoring
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      state: ${{ steps.classification.outputs.state }}
     steps:
       - name: Check out SLO contract
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
@@ -45,6 +67,12 @@ jobs:
             esac
           fi
           echo "state=$state" >> "$GITHUB_OUTPUT"
+      - name: Mark evidence as observational
+        if: ${{ always() }}
+        run: |
+          jq '. + {certification: "observation-only", mutationEffects: []}' \
+            "$RUNNER_TEMP/production-slo-report.json" > "$RUNNER_TEMP/production-slo-observation.json"
+          mv "$RUNNER_TEMP/production-slo-observation.json" "$RUNNER_TEMP/production-slo-report.json"
       - name: Publish the evidence artifact
         if: ${{ always() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.2
@@ -56,85 +84,118 @@ jobs:
       - name: Add the report to the workflow summary
         if: ${{ always() }}
         run: |
-          if [[ -f "$RUNNER_TEMP/production-slo-report.json" ]]; then
-            if jq -e . "$RUNNER_TEMP/production-slo-report.json" >/dev/null; then
-              jq -r '"## Production SLO\n\n- State: \(.state)\n- Availability: \(.availabilityRatio * 100)%\n- Error rate: \(.errorRate * 100)%\n- Objective: \(.objective * 100)%\n- Coverage: \(.coverageRatio * 100)%\n- Observation: \(.observationDays) days (minimum \(.minimumObservationDays))\n- Successful probes: \(.successfulSamples)/\(.expectedSamples)\n- Error-budget slots remaining: \(.remainingUnavailableSamples)\n- Compliant: \(.compliant)"' "$RUNNER_TEMP/production-slo-report.json" >> "$GITHUB_STEP_SUMMARY"
-            else
-              echo "## Production SLO\n\nReport generation failed before valid evidence was written." >> "$GITHUB_STEP_SUMMARY"
-            fi
+          if jq -e . "$RUNNER_TEMP/production-slo-report.json" >/dev/null 2>&1; then
+            jq -r '"## Production SLO\n\n- Certification: observation only\n- State: \(.state)\n- Availability: \(.availabilityRatio * 100)%\n- Error rate: \(.errorRate * 100)%\n- Objective: \(.objective * 100)%\n- Coverage: \(.coverageRatio * 100)%\n- Observation: \(.observationDays) days (minimum \(.minimumObservationDays))\n- Successful probes: \(.successfulSamples)/\(.expectedSamples)\n- Error-budget slots remaining: \(.remainingUnavailableSamples)\n- Compliant: \(.compliant)"' "$RUNNER_TEMP/production-slo-report.json" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "## Production SLO\n\nReport generation failed before evidence was written." >> "$GITHUB_STEP_SUMMARY"
+            echo "## Production SLO\n\nReport generation failed before valid evidence was written." >> "$GITHUB_STEP_SUMMARY"
           fi
-      - name: Create or update the SLO incident
-        if: ${{ always() && (steps.classification.outputs.state == 'breached' || steps.classification.outputs.state == 'error') }}
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
-        with:
-          script: |
-            const title = "[Production alert] Nabaperks 30-day SLO breach";
-            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            const issues = await github.paginate(github.rest.issues.listForRepo, {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: "open",
-              labels: "area: platform,priority: p1-high",
-              per_page: 100,
-            });
-            const existing = issues.find((issue) => !issue.pull_request && issue.title === title);
-            const body = `The rolling production availability objective or monitor-coverage floor is breached. Triage current customer and data impact before changing severity.\n\nEvidence: ${runUrl}\n\nFollow docs/operations/incident-response.md.`;
-            if (existing) {
-              await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, body });
-            } else {
-              await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body, labels: ["bug", "area: platform", "priority: p1-high"] });
-            }
-      - name: Page the SLO breach
-        if: ${{ always() && (steps.classification.outputs.state == 'breached' || steps.classification.outputs.state == 'error') }}
-        env:
-          PRODUCTION_ALERT_WEBHOOK_URL: ${{ secrets.PRODUCTION_ALERT_WEBHOOK_URL }}
-          PRODUCTION_ALERT_WEBHOOK_SECRET: ${{ secrets.PRODUCTION_ALERT_WEBHOOK_SECRET }}
-        run: node scripts/notify-production-alert.mjs trigger availability-slo
-      - name: Find an open SLO incident
-        if: ${{ steps.classification.outputs.state == 'compliant' }}
-        id: incident
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
-        with:
-          script: |
-            const title = "[Production alert] Nabaperks 30-day SLO breach";
-            const issues = await github.paginate(github.rest.issues.listForRepo, {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: "open",
-              labels: "area: platform,priority: p1-high",
-              per_page: 100,
-            });
-            const existing = issues.find((issue) => !issue.pull_request && issue.title === title);
-            core.setOutput("number", existing?.number ?? "");
-      - name: Resolve the external SLO incident
-        if: ${{ steps.incident.outputs.number != '' }}
-        env:
-          PRODUCTION_ALERT_WEBHOOK_URL: ${{ secrets.PRODUCTION_ALERT_WEBHOOK_URL }}
-          PRODUCTION_ALERT_WEBHOOK_SECRET: ${{ secrets.PRODUCTION_ALERT_WEBHOOK_SECRET }}
-        run: node scripts/notify-production-alert.mjs resolve availability-slo
-      - name: Close the recovered SLO incident
-        if: ${{ steps.incident.outputs.number != '' }}
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
-        env:
-          INCIDENT_NUMBER: ${{ steps.incident.outputs.number }}
-        with:
-          script: |
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: Number(process.env.INCIDENT_NUMBER),
-              body: `The rolling SLO recovered in ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}.`,
-            });
-            await github.rest.issues.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: Number(process.env.INCIDENT_NUMBER),
-              state: "closed",
-            });
       - name: Enforce the SLO gate
         if: ${{ always() }}
         env:
           SLO_OUTCOME: ${{ steps.slo.outcome }}
         run: test "$SLO_OUTCOME" = "success"
+
+  authorise-effect:
+    name: Authorise one ordered, non-replayed mutation
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.effect != 'observe' }}
+    needs: observation
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    environment: Monitoring Effects
+    permissions:
+      actions: read
+      contents: read
+      issues: read
+    steps:
+      - name: Validate effect receipt and evidence order
+        env:
+          AUTHORISATION_RECEIPT: ${{ inputs.authorisation_receipt_sha256 }}
+          EFFECT: ${{ inputs.effect }}
+          EVIDENCE_RUN_ID: ${{ inputs.evidence_run_id }}
+          OBSERVED_STATE: ${{ needs.observation.outputs.state }}
+        run: |
+          test "$GITHUB_RUN_ATTEMPT" = "1"
+          [[ "$AUTHORISATION_RECEIPT" =~ ^[a-f0-9]{64}$ ]]
+          [[ "$EVIDENCE_RUN_ID" =~ ^[0-9]+$ ]]
+          test "$EVIDENCE_RUN_ID" -lt "$GITHUB_RUN_ID"
+          case "$EFFECT:$OBSERVED_STATE" in
+            page-breach:breached|page-breach:error|resolve-recovery:compliant) ;;
+            *) echo "effect does not match observed state" >&2; exit 1 ;;
+          esac
+      - name: Reject a duplicate authorisation receipt
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AUTHORISATION_RECEIPT: ${{ inputs.authorisation_receipt_sha256 }}
+          EVIDENCE_RUN_ID: ${{ inputs.evidence_run_id }}
+        run: |
+          evidence_count="$(gh api "/repos/$GITHUB_REPOSITORY/actions/runs/$EVIDENCE_RUN_ID/artifacts" --jq "[.artifacts[] | select(.name == \"production-slo-$EVIDENCE_RUN_ID\")] | length")"
+          test "$evidence_count" -eq 1 || { echo "observation evidence receipt is missing or ambiguous" >&2; exit 1; }
+          count="$(gh api --paginate "/repos/$GITHUB_REPOSITORY/actions/artifacts?per_page=100" --jq "[.artifacts[] | select(.name == \"slo-effect-authorisation-$AUTHORISATION_RECEIPT\")] | length" | awk '{total += $1} END {print total + 0}')"
+          test "$count" -eq 0 || { echo "duplicate authorisation receipt" >&2; exit 1; }
+      - name: Reserve the authorisation receipt
+        env:
+          AUTHORISATION_RECEIPT: ${{ inputs.authorisation_receipt_sha256 }}
+          EVIDENCE_RUN_ID: ${{ inputs.evidence_run_id }}
+          EFFECT: ${{ inputs.effect }}
+        run: |
+          jq -n --arg receipt "$AUTHORISATION_RECEIPT" --arg evidenceRun "$EVIDENCE_RUN_ID" --arg effect "$EFFECT" \
+            '{schema: "nabaperks.slo-effect-authorisation.v1", authorisationReceiptSha256: $receipt, evidenceRunId: $evidenceRun, effect: $effect}' > "$RUNNER_TEMP/slo-effect-authorisation.json"
+      - name: Publish the authorisation reservation
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.2
+        with:
+          name: slo-effect-authorisation-${{ inputs.authorisation_receipt_sha256 }}
+          path: ${{ runner.temp }}/slo-effect-authorisation.json
+          if-no-files-found: error
+          retention-days: 365
+
+  apply-effect:
+    name: Apply the separately authorised paging effect
+    needs: [observation, authorise-effect]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: Monitoring Effects
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Check out alert dispatcher
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Page the SLO breach
+        if: ${{ inputs.effect == 'page-breach' && (needs.observation.outputs.state == 'breached' || needs.observation.outputs.state == 'error') }}
+        env:
+          PRODUCTION_ALERT_WEBHOOK_URL: ${{ secrets.PRODUCTION_ALERT_WEBHOOK_URL }}
+          PRODUCTION_ALERT_WEBHOOK_SECRET: ${{ secrets.PRODUCTION_ALERT_WEBHOOK_SECRET }}
+        run: node scripts/notify-production-alert.mjs trigger availability-slo
+      - name: Resolve the external SLO incident
+        if: ${{ inputs.effect == 'resolve-recovery' && needs.observation.outputs.state == 'compliant' }}
+        env:
+          PRODUCTION_ALERT_WEBHOOK_URL: ${{ secrets.PRODUCTION_ALERT_WEBHOOK_URL }}
+          PRODUCTION_ALERT_WEBHOOK_SECRET: ${{ secrets.PRODUCTION_ALERT_WEBHOOK_SECRET }}
+        run: node scripts/notify-production-alert.mjs resolve availability-slo
+      - name: Record the authorised effect on the durable incident
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        env:
+          AUTHORISATION_RECEIPT: ${{ inputs.authorisation_receipt_sha256 }}
+          EFFECT: ${{ inputs.effect }}
+          EVIDENCE_RUN_ID: ${{ inputs.evidence_run_id }}
+        with:
+          script: |
+            const title = "[Production alert] Nabaperks 30-day SLO breach";
+            const marker = `authorisation-receipt:${process.env.AUTHORISATION_RECEIPT}`;
+            const body = `${marker}\neffect:${process.env.EFFECT}\nevidence-run:${process.env.EVIDENCE_RUN_ID}`;
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner, repo: context.repo.repo, state: "all", per_page: 100,
+            });
+            const existing = issues.find((issue) => !issue.pull_request && issue.title === title);
+            if (process.env.EFFECT === "page-breach") {
+              if (existing) await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, body });
+              else await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body, labels: ["bug", "area: platform", "priority: p1-high"] });
+            } else {
+              if (!existing || existing.state !== "open") core.setFailed("no open incident to resolve");
+              else {
+                await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, body });
+                await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, state: "closed" });
+              }
+            }

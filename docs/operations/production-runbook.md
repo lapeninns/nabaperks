@@ -273,12 +273,27 @@ probe that may still be running.
 
 `Production SLO report` evaluates the window daily, retains its JSON evidence
 for one year and starts measurement from its own first workflow run, so older
-probe history from a different monitoring contract is excluded. The first
-seven observed days are `warming`: the gate is red, but no page or incident is
-created. After that minimum, an availability or coverage miss is `breached` and
-must create or update the durable GitHub incident and trigger the external
-`availability-slo` page. A later `compliant` result resolves the external alert
-before closing the issue.
+probe history from a different monitoring contract is excluded. Scheduled and
+default dispatch runs are observation-only: their artifact records an empty
+mutation-effect inventory and cannot certify paging, recovery, or resolution.
+The first seven observed days are `warming`: the gate is red, but no page or
+incident is created.
+
+Paging and resolution are separate protected-environment jobs. Dispatch one
+explicit effect only after retaining an earlier observation run ID and an
+independent SHA-256 authorisation receipt. The workflow rejects reruns, receipts
+already reserved as artifacts, evidence run IDs that are not older than the
+effect run, and effects that do not match the current observed state. The
+reservation is written before paging, so an interrupted effect cannot be
+replayed by treating a successful workflow label or log line as a receipt.
+
+The recovery-drill workflow performs read-only verification only; restore and
+deletion remain independently authorised provider actions outside that
+workflow. Restore verification requires distinct authorisation and provider
+receipts. Cleanup is a later sequence with its own distinct receipts, the prior
+restore run ID, and a provider readback proving the disposable project absent.
+Duplicate receipt artifacts, reruns, stale or out-of-order sequences, and
+cancelled or failed jobs are incomplete evidence and cannot certify recovery.
 
 Treat an error-budget breach as an incident signal, then classify current
 customer impact using the P0/P1/P2 definitions. Freeze discretionary releases
