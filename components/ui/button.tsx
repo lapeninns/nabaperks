@@ -11,9 +11,20 @@ import { cn } from "@/lib/utils"
  * honest: compact sizes render as declared on fine pointers and grow to the
  * 44px tap floor on coarse pointers (the FilterPills pattern), including
  * width for icon sizes.
+ *
+ * Radius: `rounded-lg` (10px, `--radius`), matching the unlayered
+ * `[data-slot="button"]` rule. The base string carried `rounded-full` — a v1
+ * "Honey & Ink" pill that DESIGN.md · Brand & Style records as "fully
+ * superseded" — and it read as dead code because the ink layer beats every
+ * layered utility. It was only dead on a real `<Button>`. `buttonVariants` is
+ * also exported and applied to plain elements that carry no `data-slot`, and
+ * there the layer never matches: measured on a production build, the same
+ * class string rendered `border-radius: 3.3554e+07px` with `border-width: 0px`
+ * on a plain element and `10px` / `2px` once `data-slot="button"` was present.
+ * The two must agree, so the base declares the same 10px the layer does.
  */
 const buttonVariants = cva(
-  "pressable inline-flex shrink-0 items-center justify-center gap-2 rounded-full text-sm font-bold whitespace-nowrap transition-[color,background-color,border-color,box-shadow,transform] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none disabled:pointer-events-none disabled:opacity-50 motion-reduce:transition-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*=size-])]:size-4",
+  "pressable inline-flex shrink-0 items-center justify-center gap-2 rounded-lg text-sm font-bold whitespace-nowrap transition-[color,background-color,border-color,box-shadow,transform] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none disabled:pointer-events-none disabled:opacity-50 motion-reduce:transition-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*=size-])]:size-4",
   {
     variants: {
       variant: {

@@ -309,7 +309,7 @@ function LifecycleControls({
     confirming === "end"
 
   return (
-    <div className="grid gap-4 border-t-2 border-dashed border-ink/20 pt-5">
+    <div className="grid gap-4 border-t-2 border-dashed border-line pt-5">
       <Eyebrow>Manage</Eyebrow>
 
       {/* One stable stack: trigger row -> warning -> confirm row. The confirm

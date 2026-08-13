@@ -23,7 +23,7 @@ export function ActivityCompactFeed({
   return (
     <ol
       className={cn(
-        "overflow-hidden p-0 [&>li+li]:border-t-2 [&>li+li]:border-dashed [&>li+li]:border-ink/15",
+        "overflow-hidden p-0 [&>li+li]:border-t-2 [&>li+li]:border-dashed [&>li+li]:border-line",
         inset ? "rounded-lg bg-background/60" : "surface-card"
       )}
     >

@@ -48,7 +48,7 @@ export default function TermsPage() {
               <a
                 key={section.id}
                 href={`#${section.id}`}
-                className="focus-ring inline-flex min-h-11 items-center rounded-full px-3 py-2 text-sm text-muted-foreground underline-offset-4 hover:bg-accent hover:text-accent-foreground"
+                className="focus-ring inline-flex min-h-11 items-center rounded-(--radius-md) px-3 py-2 text-sm text-muted-foreground underline-offset-4 hover:bg-accent hover:text-accent-foreground"
               >
                 {section.title}
               </a>

@@ -138,7 +138,7 @@ export function MerchantCompactActivitySkeleton() {
         <Skeleton className="h-9 w-20" />
       </div>
 
-      <ol className="overflow-hidden rounded-lg bg-background/60 p-0 [&>li+li]:border-t-2 [&>li+li]:border-dashed [&>li+li]:border-ink/15">
+      <ol className="overflow-hidden rounded-lg bg-background/60 p-0 [&>li+li]:border-t-2 [&>li+li]:border-dashed [&>li+li]:border-line">
         {[0, 1, 2, 3].map((row) => (
           <li
             key={row}
@@ -179,7 +179,7 @@ export function AnnouncementComposeSkeleton() {
         <Skeleton className="h-4 w-full max-w-md" />
       </div>
 
-      <div className="grid gap-2 rounded-lg border-2 border-dashed border-ink/30 bg-secondary/45 px-4 py-3">
+      <div className="grid gap-2 rounded-lg border-2 border-dashed border-line bg-secondary/45 px-4 py-3">
         <Skeleton className="h-4 w-3/5" />
         <Skeleton className="h-3 w-4/5" />
       </div>
@@ -336,7 +336,7 @@ export function MerchantCustomersTableSkeleton() {
         {rows.map((row) => (
           <div
             key={row}
-            className="flex items-start gap-4 border-b border-dashed border-ink/15 px-4 py-3 last:border-b-0"
+            className="flex items-start gap-4 border-b border-dashed border-line px-4 py-3 last:border-b-0"
           >
             <span className="flex flex-1 items-center gap-2.5">
               <Skeleton className="size-8 rounded-full" />
@@ -433,7 +433,7 @@ export function LaunchPanelSkeleton({
             ))}
           </div>
           {/* Dashed "Add a reward" button. */}
-          <Skeleton className="h-12 w-full rounded-lg border-2 border-dashed border-ink/25 bg-transparent" />
+          <Skeleton className="h-12 w-full rounded-lg border-2 border-dashed border-line bg-transparent" />
         </section>
       </div>
     )
@@ -530,7 +530,7 @@ export function AccountBillingPanelSkeleton() {
           {[0, 1, 2].map((line) => (
             <div
               key={line}
-              className="flex items-center justify-between gap-4 border-b border-dashed border-ink/15 py-2.5 last:border-b-0"
+              className="flex items-center justify-between gap-4 border-b border-dashed border-line py-2.5 last:border-b-0"
             >
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-4 w-20" />
@@ -540,7 +540,7 @@ export function AccountBillingPanelSkeleton() {
 
         <Skeleton className="h-4 w-full max-w-sm" />
 
-        <div className="grid gap-4 border-t-2 border-dashed border-ink/20 pt-5">
+        <div className="grid gap-4 border-t-2 border-dashed border-line pt-5">
           {/* Active/trialing steady state shows a single Stripe action. */}
           <div className="flex flex-wrap gap-2">
             <Skeleton className="h-11 w-40" />
@@ -567,9 +567,13 @@ export function RewardScanContentSkeleton() {
           <Skeleton className="h-5 w-40 max-w-full" />
           <Skeleton className="h-4 w-full max-w-xs" />
         </div>
+        {/* border-line-strong, not border-ink/50: identical pixels (both are
+            50% ink) but the named token. DESIGN.md · Elevation & Depth allows
+            exactly two dashed tones and this is the ticket perforation that
+            mirrors the RewardTicket beside it. */}
         <span
           aria-hidden="true"
-          className="border-l-2 border-dashed border-ink/50"
+          className="border-l-2 border-dashed border-line-strong"
         />
         <div className="grid w-[88px] content-center justify-items-center gap-2 p-3">
           <Skeleton className="size-10 rounded-full" />

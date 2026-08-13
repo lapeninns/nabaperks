@@ -53,7 +53,10 @@ export default async function StartPage() {
         {/* Running a venue is a different audience, not a lesser version of
             this one — so it gets its own labelled lane below the rule rather
             than a 36px ghost link buried under the customer keys. */}
-        <div className="grid justify-items-center gap-2 border-t-2 border-dashed border-foreground/25 pt-4">
+        {/* border-line, not border-foreground/25. DESIGN.md · Elevation & Depth:
+            "Dashed lines come in two tones only" — and a receipt rule inside a
+            ReceiptCard is --w-line's first named use. */}
+        <div className="grid justify-items-center gap-2 border-t-2 border-dashed border-line pt-4">
           <p className="mono-meta text-muted-foreground">Running a venue?</p>
           <Button asChild variant="ghost" size="sm">
             <Link href="/login">Merchant sign-in</Link>

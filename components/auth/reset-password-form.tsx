@@ -1,10 +1,10 @@
 "use client"
 
-import Link from "next/link"
 import { useActionState, useCallback, useEffect, useRef, useState } from "react"
 
 import { passwordResetAction } from "@/app/(auth)/actions"
 import { AuthField } from "@/components/auth/auth-field"
+import { AuthPromptLink } from "@/components/auth/auth-prompt-link"
 import {
   OtpResendControl,
   useOtpRetryCountdown,
@@ -340,31 +340,35 @@ export function ResetPasswordForm({
             </form>
             <p className="text-center text-sm text-muted-foreground">
               Wrong email?{" "}
-              <Link
+              <AuthPromptLink
                 href={merchantPasswordResetHref({
                   email: currentEmail,
                   next: state.context.next,
                 })}
-                className="focus-ring inline-flex min-h-11 items-center rounded-full px-3 py-2 font-bold text-primary underline-offset-4 hover:bg-accent hover:text-accent-foreground hover:underline"
               >
                 Use a different email
-              </Link>
+              </AuthPromptLink>
             </p>
           </div>
         </>
       )}
 
+      {/* AuthPromptLink, not two more verbatim copies of its class string.
+          The component exists because this control "was defined verbatim three
+          times … so the funnel's most-repeated control had three independent
+          definitions that could drift" — and these two were the fourth and
+          fifth, still carrying the pre-sweep `rounded-full` halo after the
+          component had moved off it. */}
       <p className="text-center text-sm text-muted-foreground">
         Remembered it?{" "}
-        <Link
+        <AuthPromptLink
           href={merchantLoginHref({
             email: currentEmail,
             next: state.context.next,
           })}
-          className="focus-ring inline-flex min-h-11 items-center rounded-full px-3 py-2 font-bold text-primary underline-offset-4 hover:bg-accent hover:text-accent-foreground hover:underline"
         >
           Back to log in
-        </Link>
+        </AuthPromptLink>
       </p>
     </div>
   )

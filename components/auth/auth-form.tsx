@@ -124,7 +124,12 @@ function SignInForm({
               email: normalizedEmail || undefined,
               next,
             })}
-            className="focus-ring inline-flex min-h-11 items-center rounded-full px-3 text-sm font-bold text-primary underline-offset-4 hover:underline"
+            // rounded-(--radius-md), not rounded-full: the house halo shape
+            // for a min-h-11 inline text link. DESIGN.md · Shapes names the
+            // "legal-link halo family" as its exception and this is auth
+            // navigation, exactly as marketing-chrome-tokens argues for the
+            // footer's site links.
+            className="focus-ring inline-flex min-h-11 items-center rounded-(--radius-md) px-3 text-sm font-bold text-primary underline-offset-4 hover:underline"
           >
             Forgot password?
           </Link>

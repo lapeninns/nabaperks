@@ -37,7 +37,7 @@ export function LaunchFulfilmentStatus({
 
   return (
     <ReceiptCard edge padding="none">
-      <CardHeader className="border-b border-dashed border-ink/30 p-5">
+      <CardHeader className="border-b border-dashed border-line p-5">
         <CardTitle className="font-heading text-xl font-extrabold">
           Posters and platform pilot
         </CardTitle>

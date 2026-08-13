@@ -63,7 +63,7 @@ export function BillingActivationAssetPreview({
           </div>
         </div>
 
-        <p className="border-t-2 border-dashed border-ink/20 pt-3 text-sm leading-6 text-muted-foreground">
+        <p className="border-t-2 border-dashed border-line pt-3 text-sm leading-6 text-muted-foreground">
           Your card is built. Add billing to switch on customer scans.
         </p>
       </ReceiptCard>

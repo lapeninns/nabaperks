@@ -36,7 +36,7 @@ export function Disclosure({
       open={defaultOpen}
       name={name}
       className={cn(
-        "group min-w-0 overflow-hidden rounded-lg border-2 border-dashed border-ink/25 bg-secondary/40",
+        "group min-w-0 overflow-hidden rounded-lg border-2 border-dashed border-line bg-secondary/40",
         className
       )}
     >

@@ -25,7 +25,7 @@ function MerchantRewardScannerLoading() {
       <div
         role="status"
         aria-label="Starting camera"
-        className="mx-auto grid aspect-square w-full max-w-sm place-items-center rounded-[var(--radius-lg)] border-2 border-dashed border-ink/35 bg-card"
+        className="mx-auto grid aspect-square w-full max-w-sm place-items-center rounded-[var(--radius-lg)] border-2 border-dashed border-line bg-card"
       >
         <span className="mono-id tracking-tag text-muted-foreground">
           Starting camera

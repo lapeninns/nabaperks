@@ -25,6 +25,7 @@
  *   node scripts/ui-audit-fanin.mjs           # report only
  *   node scripts/ui-audit-fanin.mjs --write   # apply
  */
+import { execFileSync } from "node:child_process"
 import { readFileSync, writeFileSync, readdirSync } from "node:fs"
 import path from "node:path"
 
@@ -42,6 +43,7 @@ const MARKERS = [/^<{7}\s.*$/gm, /^={7}$/gm, /^>{7}\s.*$/gm, /^(?:>\s){7}.*$/gm]
 
 const docs = readdirSync(DIR).filter((f) => f.endsWith(".md"))
 const notes = []
+const rewritten = []
 
 /** Per-finding state, highest-ranked mark wins — the checker's own rule. */
 function parseState() {
@@ -126,7 +128,28 @@ for (const file of docs) {
     )
   }
 
-  if (text !== original && WRITE) writeFileSync(path.join(DIR, file), text)
+  if (text !== original && WRITE) {
+    writeFileSync(path.join(DIR, file), text)
+    rewritten.push(file)
+  }
+}
+
+// Hand the rewritten files to prettier. Without this the rebuilt tally table is
+// padded by this script and re-padded by prettier, so the two disagree forever:
+// every run leaves a whitespace-only diff, and a whitespace-only diff is still
+// enough to abort `git merge` with "local changes would be overwritten". The
+// formatter owns formatting; this script owns the numbers.
+if (WRITE && rewritten.length) {
+  try {
+    execFileSync(
+      "pnpm",
+      ["exec", "prettier", "--write", ...rewritten.map((f) => path.join("docs/ui-audit", f))],
+      { stdio: "ignore" }
+    )
+    notes.push(`formatted ${rewritten.length} rewritten file(s) with prettier`)
+  } catch {
+    notes.push("WARNING: prettier failed; expect a whitespace-only diff")
+  }
 }
 
 const stillConflicted = docs.filter((f) =>

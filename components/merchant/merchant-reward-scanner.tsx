@@ -291,7 +291,7 @@ export function MerchantRewardScanner() {
       <div
         role="group"
         aria-label="Camera viewfinder"
-        className="relative mx-auto aspect-square w-full max-w-sm overflow-hidden rounded-[var(--radius-lg)] border-2 border-dashed border-ink/35 bg-card"
+        className="relative mx-auto aspect-square w-full max-w-sm overflow-hidden rounded-[var(--radius-lg)] border-2 border-dashed border-line bg-card"
       >
         <div
           id={SCANNER_ELEMENT_ID}

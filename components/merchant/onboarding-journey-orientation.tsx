@@ -13,7 +13,7 @@ export function OnboardingJourneyOrientation(
     return (
       <div
         data-onboarding-orientation="summary"
-        className="rounded-lg border-2 border-dashed border-ink/20 bg-paper-deep/45 px-3 py-2.5 lg:hidden"
+        className="rounded-lg border-2 border-dashed border-line bg-paper-deep/45 px-3 py-2.5 lg:hidden"
       >
         <p className="text-sm leading-6 font-bold text-pretty">
           Share this venue, then approve the pre-filled card and rewards before

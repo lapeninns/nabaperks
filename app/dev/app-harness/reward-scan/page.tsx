@@ -65,9 +65,11 @@ export default async function RewardScanHarnessPage({
           </div>
           <div className="flex justify-between gap-4">
             <dt className="font-bold text-muted-foreground">Card</dt>
-            <dd className="text-right font-mono text-xs font-bold uppercase">
-              mbr_0f3a
-            </dd>
+            {/* `.mono-meta`, not `font-mono text-xs font-bold uppercase` — the
+              hand-rolled string DESIGN.md · Typography names in full and tells
+              you to replace with one of the two micro-type utilities. Same
+              register the admin IdChip and AdminRecordCard already settled on. */}
+            <dd className="mono-meta text-right">mbr_0f3a</dd>
           </div>
         </dl>
 

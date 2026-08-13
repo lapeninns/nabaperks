@@ -1241,12 +1241,12 @@ the three live defects the earlier sweep missed, every remaining viewport
 variant in the customer column is a page gutter or page top/bottom padding on
 one of four shell files:
 
-| file                       | live variants                               |
-| -------------------------- | ------------------------------------------- |
-| `customer-shell.tsx`       | `sm:px-6 sm:pt-10 sm:pb-10`                 |
-| `customer-app-shell.tsx`   | `sm:px-6` ×2                                |
-| `customer-flow-system.tsx` | `sm:px-6`, `sm:pt-6/8`, `sm:pb-[max(…)]` ×2 |
-| `components/customer/loading-skeletons.tsx` | the same five, mirroring the flow shell |
+| file                                        | live variants                               |
+| ------------------------------------------- | ------------------------------------------- |
+| `customer-shell.tsx`                        | `sm:px-6 sm:pt-10 sm:pb-10`                 |
+| `customer-app-shell.tsx`                    | `sm:px-6` ×2                                |
+| `customer-flow-system.tsx`                  | `sm:px-6`, `sm:pt-6/8`, `sm:pb-[max(…)]` ×2 |
+| `components/customer/loading-skeletons.tsx` | the same five, mirroring the flow shell     |
 
 Those measure the gap between the column and the **screen edge**. A container
 query on `max-w-customer` cannot express them, because that container is a
@@ -2487,10 +2487,10 @@ That is true of one arrangement and was applied to the whole mechanism. Measured
 in real chromium through Playwright rather than argued, on a minimal document
 with both arrangements side by side:
 
-| arrangement                                   | `isVisible()` on the panel testid |
-| --------------------------------------------- | --------------------------------- |
-| panel **inside** a closed `<details>`          | `false`                           |
-| `<details>` **inside** the panel               | `true`                            |
+| arrangement                           | `isVisible()` on the panel testid |
+| ------------------------------------- | --------------------------------- |
+| panel **inside** a closed `<details>` | `false`                           |
+| `<details>` **inside** the panel      | `true`                            |
 
 `getAttribute("data-url")` returned the link from **both** positions, including
 from inside a closed `<details>` — so the assertion that spec is actually named
@@ -2522,3 +2522,235 @@ is now known to be free of contract cost, and the same shape applies to
 Not done and why: the panel's height was not re-measured in this lane — `/card/`
 is auth-gated and no harness mounts `ReferralSharePanel`, so the ~290px is the
 audit's figure, not a fresh one. The constraint is what was measured.
+
+## 57. The button's radius was dead code on `<Button>` and live on the one call site that does not use `<Button>` — and that call site still ships without a border
+
+Fixed, with one half handed to the owner.
+
+`components/ui/button.tsx`'s `cva` base carried `rounded-full` — a v1 "Honey &
+Ink" pill, which `DESIGN.md` "Brand & Style" records as "fully superseded",
+against a "Shapes" clause that says "**10px radius** (`--radius`) on buttons".
+
+It reads as dead code, and on a real `<Button>` it is: the unlayered
+`[data-slot="button"]` rules sit outside every `@layer`, so they beat the
+layered utility exactly as "Components · Layer precedence" says. That is
+precisely why nobody removed it — a no-op is cheap to leave.
+
+It is not a no-op where `buttonVariants` is exported and applied to an element
+that carries no `data-slot`. `app/m/[merchantSlug]/page.tsx:134-137` does that
+for the public venue landing's "View reward terms" sheet trigger, which
+`components/customer/legal-sheet.tsx:50-56` renders as a plain `<button>`.
+
+**Measured**, not reasoned: `pnpm build && PORT=3301 pnpm start`, chromium,
+`document.styleSheets.length > 0` and `main#main` asserted before measuring,
+the real shipped class string appended to the live document and read back with
+`getComputedStyle`:
+
+| element                   | `border-radius`  | `border-width` | `box-shadow` |
+| ------------------------- | ---------------- | -------------- | ------------ |
+| plain (as it ships)       | **33,554,432px** | **0px**        | 2px 2px 0    |
+| same string + `data-slot` | 10px             | 2px            | 3px 3px 0    |
+
+The radius half is fixed: the base now says `rounded-lg`, which resolves to the
+same `var(--radius-lg)` = `--radius` = 10px the layer sets, so the two can no
+longer disagree. Re-measured after the fix: plain and slotted both 10px. No
+real `<Button>` moved a pixel. Pinned by
+`tests/contracts/wet-ink-button-radius.test.mjs`.
+
+**The half that needs a decision.** DESIGN.md "Buttons" says "2px ink border,
+10px radius, weight 700, hard 3px offset shadow". That trigger still renders
+`border-width: 0px` and a 2px shadow, because the border and the elevation live
+_only_ in the `data-slot` layer and a plain element cannot reach them. Three of
+the four button properties are wrong on a live customer-facing control.
+
+There is no codemod for it, which is why it is here:
+
+- Attaching `data-slot="button"` inside `CustomerLegalSheet` unconditionally is
+  wrong — `components/customer/join-welcome-step.tsx:73` passes a plain inline
+  text-link class to the same component and would gain an ink border and a
+  shadow.
+- Rendering the trigger as `<Button asChild>` changes the component's API for
+  its other three call-site families.
+- The narrow fix is an opt-in prop (`triggerVariant`), which is a new public
+  API on a shared component.
+
+Recommendation: the opt-in prop, so the one call site that wants a button gets
+a real one and the inline-link call sites are untouched. Not taken here because
+adding public API to a shared customer component is a design decision, and
+because `buttonVariants` being usable at all on a non-`<Button>` element is the
+underlying shape of the bug.
+
+## 58. DESIGN.md's named circle-exception list is stale in **both** directions
+
+`DESIGN.md` "Shapes" lists the exceptions to "full circles are reserved for the
+stamp family" and closes with "the list does not grow without updating this
+contract". Nothing enforced that sentence — before this lane, the only test in
+the repo that looked at `rounded-full` at all was
+`marketing-chrome-tokens.test.mjs`, and it looks at one file.
+
+`tests/contracts/wet-ink-circle-exceptions.test.mjs` now enumerates every
+framing circle in `app/` and `components/`. Two entries do not reconcile with
+the document, and only the owner can edit the design authority:
+
+1. **The list grew.** DESIGN.md grants the exception to "the customer tab-bar
+   chips". `components/layout/merchant-tab-bar.tsx:47` renders the same
+   `size-9` ink-bordered disc for the merchant tab bar and is not named. Either
+   the clause should read "the tab-bar chips" (both lanes, one pattern — the
+   likely intent), or the merchant bar should stop being a circle. It is
+   listed in the contract's allowlist as an unnamed survivor rather than
+   silently blessed or silently deleted.
+
+2. **The list is stale.** DESIGN.md names "join stepper discs".
+   `components/customer/customer-flow-system.tsx:167-175` renders the customer
+   join stepper as `h-1.5` **bars**, not discs, and has done since
+   `3f2a9f61c`. The exception names a shape that no longer ships. (See §58 —
+   those bars have their own problem.)
+
+Fixed in the same pass, and not needing sign-off because the reasoning is
+already a shipped contract's: six pill halos on text links.
+`marketing-chrome-tokens.test.mjs` already rules that navigation links "are
+navigation, not legal links, and were never on the list" and that a disclosure
+summary "is a heading row, not a stamp" — but only inside
+`marketing-layout.tsx`. The auth funnel (`auth-prompt-link.tsx`,
+`auth-form.tsx:127`, and two verbatim copies of AuthPromptLink's class string
+in `reset-password-form.tsx`) and the three legal routes' table-of-contents
+anchors and TOC summary carried the same pill. All now use
+`rounded-(--radius-md)`, which seven other `min-h-11` inline text links in the
+tree already use. `legalLinkClass` — the actual named exception — is untouched.
+
+## 59. There is no on-ink dashed tone in DESIGN.md, and one surface invented one
+
+`DESIGN.md` "Elevation & Depth": "Dashed lines come in two tones only:
+`--w-line` (18%, receipt rules, empty stamp slots) and `--w-line-strong` (50%,
+empty reward slots and ticket perforations)."
+
+Both tones are **ink on paper**. `components/marketing/landing/scarcity-band.tsx:35`
+draws a dashed box on an ink GROUND (`ContrastBand … data-on-ink`), where 18%
+ink on ink is invisible, so it uses `border-paper/40` — the inverse. That is
+correct behaviour against a rule the document does not contain.
+
+The document does have an on-ink story for the other two ink properties:
+`[data-on-ink]` in `app/globals.css:725-729` flips the shadow colour to paper
+and the button border to paper. Dashed rules were simply never extended.
+
+`tests/contracts/wet-ink-dashed-tones.test.mjs` excludes this one site **by
+exact filename**, not by pattern, so a second on-ink dash still fails the
+contract and forces the decision rather than quietly joining an exception.
+
+Recommendation: mint `--w-line-on-ink` (and a `border-line-on-ink` colour) beside
+the existing pair and add one sentence to "Elevation & Depth". A token is the
+same shape of answer the shadow and border already got.
+
+## 60. The customer join stepper's bars contradict the Progress clause on four axes at once
+
+Not fixed. `components/customer/customer-flow-system.tsx:167-175`:
+
+```
+<span className="h-1.5 flex-1 overflow-hidden rounded-full border border-ink bg-secondary">
+  <span className="block h-full rounded-full bg-primary …" />
+</span>
+```
+
+`DESIGN.md` "Progress": "Track is deeper paper; fill is leaf (`--reward`);
+radius is the squared `--radius-sm` print corner. This is encoded in the
+unlayered `[data-slot=progress]` rules, so a bare `<Progress>` is on-spec with
+no call-site colour overrides, and `FunnelChart` renders the same primitive —
+**one bar anatomy for the whole system**."
+
+| axis   | DESIGN.md                    | shipped               |
+| ------ | ---------------------------- | --------------------- |
+| radius | `--radius-sm` (4px, squared) | `rounded-full` (pill) |
+| track  | deeper paper (`--w-paper-2`) | `bg-secondary`        |
+| fill   | leaf (`--reward`)            | `bg-primary`          |
+| border | 2px solid ink                | **1px** `border-ink`  |
+
+Left alone deliberately, and the reason matters: three of the four are visual
+decisions with a plausible defence, and the fourth is a trap.
+
+- The **fill** is vermillion because this stepper measures a JOIN, and DESIGN.md's
+  own colour story makes leaf mean "ready to redeem" — recolouring it to leaf on
+  the join funnel would say the wrong thing. That is a product call, not a
+  conformance one.
+- The **border** is 1px on a **6px-tall** bar. Raising it to the contract's 2px
+  leaves 2px of interior for the fill. "Fix the violation" here makes the
+  control worse, which is exactly the failure mode COVERAGE.md records for
+  layout probes that only ask "does it fit".
+
+So the honest question for the owner is not "which of these four" but "should
+this be a `<Progress>` at all, or is a segmented step indicator a different
+component the Progress clause was never written about?" DESIGN.md is silent on
+segmented steppers, and inventing the rule is not this lane's job.
+
+## 61. `StampDot`'s earned initials are a third size in a two-size register, and every gate agrees with it
+
+Not fixed — the stamp face is the product's signature mark.
+
+`DESIGN.md` "Typography": "Below `text-xs` there are exactly two sanctioned
+sizes … `.mono-meta` [11.5px] … `.mono-id` [10px]. **10px is the system floor:
+nothing renders text below it.** The floor is enforced by `pnpm tokens:check`."
+
+The floor is enforced. "Exactly two" is not.
+`components/loyalty/stamp-dot.tsx:112-115` sets the earned initials at
+`text-[0.69rem]` — **11.04px**, between the two sanctioned sizes, above the
+floor, and therefore invisible to `tokens:check`, `lint`, `typecheck` and every
+contract in the repo. Its sibling at `text-[0.81rem]` (12.96px) is above
+`text-xs` and outside this clause's reach, but is an arbitrary in the same
+class string.
+
+Moving 11.04px to `.mono-meta`'s 11.5px changes two glyphs inside a 36px
+compact disc, on the mark the whole visual language is named after, with 121
+visual baselines already awaiting human diff approval.
+`tests/contracts/wet-ink-type-and-icon-register.test.mjs` pins the exact value
+instead, so it cannot spread to a second site and cannot be quietly "tidied" —
+either direction fails the test and lands in front of a human.
+
+## 62. Sweep residue — five things measured, none of them this lane's to decide
+
+Recorded so the next reader does not re-derive them.
+
+1. **Solid `border-ink/NN` is a 9-value zoo, and the audit is on both sides.**
+   25 solid sites remain at `/10 /15 /20 /25 /30 /35 /40 /50 /60`. DESIGN.md
+   says "Borders are **2px solid ink** everywhere", which would ban all of
+   them — but the audit's own `03#26` _recommends_ `border-ink/25` as the
+   unselected-tile state, and `reward-pool-form.tsx:322` is cited as the
+   pattern to copy. That is a DESIGN.md-vs-audit conflict, so the dashed sweep
+   was scoped to dashed lines (where DESIGN.md's sentence is explicit) and the
+   solids were left. Deciding it means either amending "everywhere" to admit an
+   unselected state, or retiring the low-alpha selection pattern product-wide.
+
+2. **`buttonVariants`' `link` variant declares `rounded-none`.** Same class of
+   dead code as §55's `rounded-full`:
+   `[data-slot="button"][data-variant="link"]` sets `var(--radius-lg)` and
+   wins. Left alone because a link variant has no border and no ground, so its
+   radius is unobservable — it is dead, not wrong. Worth removing the next time
+   that file is open.
+
+3. **The consent checkbox got the Wet Ink treatment; the radio did not.**
+   `app/globals.css` mints `.ink-check` and its comment explains that native
+   checkboxes "shipped as bare `accent-primary` browser defaults: a ~16-20px UA
+   widget with a hairline that carries none of the 2px-ink vocabulary".
+   `components/merchant/offer-campaign-form.tsx:266` is a native `<input
+type="radio">` with `accent-[var(--w-ink)]` — the exact treatment that
+   comment describes as the problem, on the control that picks the offer type.
+   DESIGN.md says nothing about radios, so this is a gap to fill, not a rule to
+   apply.
+
+4. **Twenty source files are not Prettier-clean at HEAD.** `pnpm lint` does not
+   run Prettier and no gate does, so `prettier --write` over the tree produces
+   a 20-file diff that has nothing to do with the change being made. This bit
+   this lane once (a formatting pass had to be reverted file by file). Not
+   fixed here because a 20-file formatting commit inside a design sweep would
+   bury the design change, and because it is a repository-hygiene decision:
+   either add `prettier --check` to `quality:fast` and reformat once, or accept
+   that the tree is not format-gated and stop reaching for `--write`.
+
+5. **The shadow scale has three rungs DESIGN.md never names.** `@theme` mints
+   `--shadow-lg` (5px), `--shadow-xl` (6px) and `--shadow-2xl` (8px) as hard
+   offsets; DESIGN.md "Elevation & Depth" names only `shadow-md` (4px, cards),
+   `shadow-sm` (3px, buttons) and the 1px pressed state. Four call sites use
+   the unnamed rungs (`app/app/offers/[campaignId]/qr/page.tsx:97`,
+   `components/merchant/present-qr.tsx:67`,
+   `components/admin/command-palette.tsx:91`, `components/ui/sheet.tsx:23`).
+   They are all hard offsets, so none of them violates "never blurred" — the
+   only rule DESIGN.md actually states. Reported rather than swept: the
+   document does not forbid them, and this lane does not invent rules.
