@@ -62,6 +62,13 @@ const ALLOWED = [
 ]
 
 test("no touch target below 44px on core routes", async ({ page }) => {
+  // Eleven routes, two sweeps, against a webpack dev server that may be cold.
+  // A cold compile of /login alone spent 120s in `page.goto` and the sweep died
+  // on the 180s default — a TIMEOUT, not a violation. `test.slow()` triples the
+  // budget rather than trimming routes: a sweep that does not finish proves
+  // nothing, and dropping a route to fit the clock would be measuring less
+  // while appearing to pass. Warm: 18.5s and 22.5s. Cold: 2.2m and 2.3m.
+  test.slow()
   await sweep(page)
 })
 
@@ -86,6 +93,13 @@ test.describe("on a tablet-sized coarse pointer", () => {
   test.use(tablet)
 
   test("no touch target below 44px on core routes", async ({ page }) => {
+    // Eleven routes, two sweeps, against a webpack dev server that may be cold.
+    // A cold compile of /login alone spent 120s in `page.goto` and the sweep died
+    // on the 180s default — a TIMEOUT, not a violation. `test.slow()` triples the
+    // budget rather than trimming routes: a sweep that does not finish proves
+    // nothing, and dropping a route to fit the clock would be measuring less
+    // while appearing to pass. Warm: 18.5s and 22.5s. Cold: 2.2m and 2.3m.
+    test.slow()
     await sweep(page)
   })
 })
