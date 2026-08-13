@@ -2421,3 +2421,57 @@ Two exclusions in that work are deliberate and worth keeping:
 
 **Visual baselines: the five de-glassed surfaces will diff, and those diffs are
 intended.** They are on top of the 121 already awaiting approval.
+
+## 55. 01#60 — the "contract-blocked" TOC was blocked by a mechanism the finding never asked for
+
+Re-tested in the blockers lane by running it, not by reading section 18.
+
+Section 18 says two opposite things about the same assertion. Its opening reads
+"`marketing-offer-source` pins exactly **one line** in `guide-spine.tsx` … not
+the component's shape. **A generic spine could keep it.**" Its closing reads
+"extracting the list into a shared component moves that expression to a
+different file … so the assertion fails on a pure refactor". Both are true, of
+two different refactors — and the STATUS row propagated the pessimistic one,
+which is how 01#60 reached HANDOFF-NEXT-AGENT as remaining engineering item 2,
+"blocked only because the pinned literal lives inside `guide-spine.tsx`".
+
+The finding asks for the first refactor, in its own words: "reuse `GuideSpine`
+(**make it generic over a section list**)". That is a prop on the existing file,
+not an extraction out of it.
+
+**Run, not reasoned.** `GuideSpine` was given `sections` / `label` props
+defaulting to `PUB_GUIDE_SECTIONS` and `PUB_GUIDE_HERO.jumpLabel`, with the
+three literal reads swapped for the props, and the pinned `<ol>` className left
+where it is:
+
+    node --test tests/contracts/marketing-offer-source.test.mjs
+    # tests 18 / # pass 18 / # fail 0      EXIT=0
+
+Sabotage, so the pass is not vacuous — change the pinned expression to
+`hidden ? "hidden lg:block" : "grid"` and the same file answers:
+
+    not ok 17 - Given the pub hub When it composes sections Then it renders no
+                band another route owns and routes into the guide cluster
+    EXIT=1
+
+The assertion is live and the parameterisation does not touch it. The experiment
+was reverted; no unused prop was shipped.
+
+**So the recorded blocker is void, and the real one is smaller and different in
+kind.** `GuideSpine`'s root is
+`lg:sticky lg:top-[calc(var(--marketing-header-h)+0.75rem)] lg:self-start`; it
+is a rail for a two-column reading grid, which is what
+`components/marketing/pubs/pubs-page.tsx:88-94` gives it
+(`lg:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] lg:items-start`). `GuidePage` renders a
+single `Section width="narrow"` column, so adopting the spine means giving three
+indexed `/guides/*` routes a two-column desktop layout. That is a visual
+redesign of live SEO pages on top of 121 baselines already awaiting approval —
+an owner's call, and a different question from a contract renegotiation.
+
+The finding's "at minimum" alternative is shipped and verified on all three
+guides, so nothing is broken while that decision waits.
+
+**Recommendation:** decide the layout question, not the contract question. If the
+answer is yes, the parameterised spine costs one prop and no assertion moves. If
+the answer is no, 01#60's remaining half should be closed as declined rather than
+carried as blocked, because there is no blocker left to lift.
