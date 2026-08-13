@@ -55,7 +55,12 @@ of effort or evidence — each carries a measurement or a cited clause.
 
 The one Critical that remains open is `03#37`'s single-route
 collapse (pinned by `qr-a4-poster-templates` and `merchant-shell`; a contract
-change to ask for, not to take). `03#18` closed in `lane/merchant`: both of its
+change to ask for, not to take). Its scope is now exact, because the blockers
+lane made the change and ran the suite:
+`tests/contracts/qr-a4-poster-templates.test.mjs:67-68` assert the literals
+`getOwnedQrImageContext` and `renderPosterQrCodePng` inside
+`app/app/qr/poster/[template]/page.tsx` (`not ok 506`), so the ask is those two
+identifiers, not the route family. Everything outside them has now shipped. `03#18` closed in `lane/merchant`: both of its
 recorded blockers were disproved — see NEEDS-SIGNOFF 23.
 04#60 left the list: sorting shipped, only its sticky-header half is blocked.
 
@@ -172,9 +177,18 @@ already request `facingMode: environment`).
 1. ~~**Fraud queue lookup + paging** (04#6, §30)~~ — DONE. `severity_rank` is a
    stored generated column (20260809100000); the queue orders in SQL and pages
    like the other ten. Eleven of eleven admin lists now have lookup + paging.
-2. **Generic TOC** (01#60, §18) — blocked only because the pinned literal lives
-   inside `guide-spine.tsx` and `marketing-offer-source` reads that file by name.
-   Moving it is a contract change; ask first.
+2. ~~**Generic TOC** (01#60, §18) — blocked only because the pinned literal
+   lives inside `guide-spine.tsx`~~ — **that blocker is void.** The blockers lane
+   parameterised `GuideSpine` over its section list in place, which is what the
+   finding asks for ("make it generic over a section list"), left the pinned
+   `<ol>` className where it is, and `marketing-offer-source` passed 18/18
+   (sabotage-checked: mutate the literal and it fails). §18 already said "a
+   generic spine could keep it" in its opening paragraph and the opposite in its
+   closing one. What remains is a LAYOUT call for the owner, not a contract one:
+   the spine is `lg:sticky lg:self-start` for the two-column grid
+   `components/marketing/pubs/pubs-page.tsx:88-94` gives it, and `GuidePage` is a
+   single narrow column, so adoption means a two-column desktop layout on three
+   indexed `/guides/*` routes. §55.
 3. **Re-test the remaining partials** with the tells above.
 
 ## Blocked on the user — do not guess

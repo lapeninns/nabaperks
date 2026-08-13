@@ -1852,3 +1852,77 @@ FAIL with "SUPABASE_DB_URL is not set" rather than skipping — a gate-shaped ga
 of the same family as the ones audited above, since a suite that fails when it
 cannot run teaches everyone to ignore its result. Not this lane's file to fix;
 recorded so the next reader does not mistake those 16 for a regression.
+
+## The blockers lane: re-testing 37 recorded refusals
+
+Every `[~]` and `[stale]` row carries a NOTE saying why it stopped, and roughly
+ten of those have been disproved by re-testing across this campaign. This lane
+took all 23 partials and all 14 stale rows and required each verdict to come
+from a command, not from the note.
+
+**Method.** Three sweeps, all of them run:
+
+1. Every `path:NN` citation in the working documents was resolved
+   programmatically — 76 of them, and all 76 are in range. The trap that made
+   this worth doing is real but different from the one advertised: the
+   line-number citations have held, while the *path* citations rot. Two notes
+   send a reader to components/merchant/**account**/profile-form.tsx and to
+   components/marketing/final-cta.tsx (quoted unbacked deliberately: neither
+   exists, and backticking them here would fail the very checker described
+   below). The files are `components/merchant/profile-form.tsx` and
+   `components/marketing/landing/final-cta.tsx`. `check-ui-audit-tally.mjs`
+   cannot catch these because its `FILE_REF` regex only matches a path that
+   starts at a top-level directory, and a note that writes a bare
+   `profile-form.tsx` is invisible to it.
+2. Every claim of the form "X does not appear in the tree" was re-grepped with
+   a count rather than trusted. One had drifted (03#60's `rounded-xl`) and the
+   drift made the claim *stronger*, not weaker.
+3. Every contract citation was scope-tested by making the change and running
+   the suite, rather than by reading the assertion.
+
+**What that produced.**
+
+- **03#37**: the residual was recorded as duplication "in the four route
+  files". It was in one. Three of the four already route through
+  `lib/merchant/print-asset-route.ts`, whose docblock takes `paramKey` as
+  "`design`, or `template` on posters" — a helper written for a caller that
+  never arrived. Migrating the poster onto it fully fails
+  `qr-a4-poster-templates` (`not ok 506`, `/getOwnedQrImageContext/`), so the
+  route collapse stays blocked with its scope now known exactly: **two
+  identifiers in one file**. Everything outside those two shipped — including a
+  seventh copy of the print-asset error surface that 03#41 was recorded as
+  having collapsed to one.
+- **01#60**: NEEDS-SIGNOFF 18 states both "a generic spine could keep it" and
+  "extraction fails the assertion" in the same section. Both are true, of two
+  different refactors, and the STATUS row propagated the pessimistic one all the
+  way into HANDOFF-NEXT-AGENT's remaining-engineering list. The finding asks for
+  the other one. Parameterising `GuideSpine` in place passes
+  `marketing-offer-source` 18/18, sabotage-checked. The blocker is void; the
+  real obstacle is a two-column layout on three indexed pages, which is a
+  different kind of question and belongs to the owner.
+- **02#20**: the e2e blocker is a fact about one *arrangement*. Probed in
+  chromium: panel inside a closed `<details>` is not visible (so the audit's own
+  accordion does fail), `<details>` inside the panel is visible (so a per-panel
+  collapse passes untouched), and `getAttribute` reads the share URL from both —
+  meaning the privacy assertion that spec is named for never depended on the
+  disclosure at all.
+
+**The tell that earned its keep.** Not "it names a file", and not "a merge moved
+it". It was **"true of one half, applied to the whole"** — three for three. Each
+time the recorded sentence was an accurate statement about a narrower thing than
+the sentence it was written into: one file mistaken for four, one refactor
+mistaken for the refactor, one DOM arrangement mistaken for the mechanism.
+
+**The tell that did not.** "Says something must be BUILT — check it does not
+already exist" fired only once (03#37's helper), and no re-test overturned a
+measurement. Every finding that had been declined *with a number* — 01#9,
+01#22, 01#30, 02#30, 02#60, 04#26 — survived re-testing unchanged. A refusal
+backed by a measurement has held every time on this branch; a refusal backed by
+a citation has not.
+
+**What was strengthened rather than overturned.** 03#64's first recorded reason
+was "the mock would prove the control renders, not that a real second camera
+decodes" — a can't-fully-verify, which is not grounds to decline. It was struck
+and replaced with the mechanism that actually decides it: both scanners start
+the decoder on `{ facingMode: "environment" }`, so the device already does the
+right thing. Same verdict, different standard of proof.
