@@ -54,17 +54,40 @@ type AssuranceLevel = {
   readonly currentLevel: string | null
 }
 
+type MfaFactors = {
+  readonly all: readonly { readonly id: string }[]
+}
+
+export type AdminMfaLifecycleOptions = {
+  readonly afterEnrollment?: () => Promise<void>
+}
+
 export type AdminMfaCleanup = () => Promise<void>
 
 export async function installSeededAdminAal2Session(
-  context: BrowserContext
+  context: BrowserContext,
+  options: AdminMfaLifecycleOptions = {}
 ): Promise<AdminMfaCleanup> {
-  const session = await createSeededAdminAal2Session()
-  await context.addCookies(session.cookies)
-  return session.cleanup
+  const session = await createSeededAdminAal2Session(options)
+  try {
+    await context.addCookies(session.cookies)
+    return session.cleanup
+  } catch (cookieError) {
+    try {
+      await session.cleanup()
+    } catch (cleanupError) {
+      throw new AggregateError(
+        [cookieError, cleanupError],
+        "Admin browser session setup failed and factor cleanup was incomplete."
+      )
+    }
+    throw cookieError
+  }
 }
 
-async function createSeededAdminAal2Session(): Promise<{
+async function createSeededAdminAal2Session(
+  options: AdminMfaLifecycleOptions
+): Promise<{
   readonly cookies: readonly BrowserCookie[]
   readonly cleanup: AdminMfaCleanup
 }> {
@@ -110,40 +133,62 @@ async function createSeededAdminAal2Session(): Promise<{
     "seeded admin TOTP enroll",
     await supabase.auth.mfa.enroll({ factorType: "totp" })
   )
-  const challenge = requireData<MfaChallenge>(
-    "seeded admin TOTP challenge",
-    await supabase.auth.mfa.challenge({ factorId: enrollment.id })
-  )
-
-  requireData(
-    "seeded admin TOTP verify",
-    await supabase.auth.mfa.verify({
-      factorId: enrollment.id,
-      challengeId: challenge.id,
-      code: totpCode(totpSecret(enrollment)),
-    })
-  )
-
-  const assurance = requireData<AssuranceLevel>(
-    "seeded admin MFA assurance",
-    await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
-  )
-  if (assurance.currentLevel !== "aal2") {
-    throw new Error(
-      `Seeded admin MFA verification did not produce aal2; got ${assurance.currentLevel}.`
+  const cleanup = async (): Promise<void> => {
+    requireData(
+      "seeded admin TOTP cleanup",
+      await supabase.auth.mfa.unenroll({ factorId: enrollment.id })
     )
+    const factors = requireData<MfaFactors>(
+      "seeded admin TOTP cleanup readback",
+      await supabase.auth.mfa.listFactors()
+    )
+    if (factors.all.some((factor) => factor.id === enrollment.id)) {
+      throw new Error("Seeded admin TOTP cleanup left the enrolled factor.")
+    }
   }
 
-  return {
-    cookies: Array.from(cookieJar, ([name, cookie]) =>
-      browserCookie(name, cookie)
-    ),
-    cleanup: async () => {
-      requireData(
-        "seeded admin TOTP cleanup",
-        await supabase.auth.mfa.unenroll({ factorId: enrollment.id })
+  try {
+    await options.afterEnrollment?.()
+    const challenge = requireData<MfaChallenge>(
+      "seeded admin TOTP challenge",
+      await supabase.auth.mfa.challenge({ factorId: enrollment.id })
+    )
+
+    requireData(
+      "seeded admin TOTP verify",
+      await supabase.auth.mfa.verify({
+        factorId: enrollment.id,
+        challengeId: challenge.id,
+        code: totpCode(totpSecret(enrollment)),
+      })
+    )
+
+    const assurance = requireData<AssuranceLevel>(
+      "seeded admin MFA assurance",
+      await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+    )
+    if (assurance.currentLevel !== "aal2") {
+      throw new Error(
+        `Seeded admin MFA verification did not produce aal2; got ${assurance.currentLevel}.`
       )
-    },
+    }
+
+    return {
+      cookies: Array.from(cookieJar, ([name, cookie]) =>
+        browserCookie(name, cookie)
+      ),
+      cleanup,
+    }
+  } catch (setupError) {
+    try {
+      await cleanup()
+    } catch (cleanupError) {
+      throw new AggregateError(
+        [setupError, cleanupError],
+        "Seeded admin MFA setup failed and factor cleanup was incomplete."
+      )
+    }
+    throw setupError
   }
 }
 
