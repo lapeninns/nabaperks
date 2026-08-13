@@ -31,13 +31,6 @@ function copiedMap() {
   return JSON.parse(readFileSync(MAP, "utf8"))
 }
 
-function summaryFor(rows) {
-  const fixed = rows.filter((row) => row.status === "fixed").length
-  const failed = rows.filter((row) => row.status === "failed").length
-  const blocked = rows.filter((row) => row.status === "blocked").length
-  return { fixed, failed, blocked, open: failed + blocked }
-}
-
 function run(map, temp) {
   const mapPath = join(temp, "map.json")
   writeFileSync(mapPath, JSON.stringify(map) + "\n")
@@ -248,6 +241,34 @@ function trustedFixedMap(temp, objectFormat = "sha1") {
   return map
 }
 
+function playwrightReceipt(map, command) {
+  const receipt = map.rows[0].receipt
+  const artifact = JSON.parse(readFileSync(receipt.artifact.path, "utf8"))
+  const path = "tests/e2e/example.spec.ts"
+  mkdirSync(join(receipt.source.path, path, ".."), { recursive: true })
+  writeFileSync(
+    join(receipt.source.path, path),
+    "export const example = true\n"
+  )
+  execFileSync("git", ["-C", receipt.source.path, "add", path])
+  execFileSync("git", ["-C", receipt.source.path, "commit", "-qm", "source"])
+  receipt.source.head = execFileSync(
+    "git",
+    ["-C", receipt.source.path, "rev-parse", "HEAD"],
+    { encoding: "utf8" }
+  ).trim()
+  receipt.source.tree = execFileSync(
+    "git",
+    ["-C", receipt.source.path, "rev-parse", "HEAD^{tree}"],
+    { encoding: "utf8" }
+  ).trim()
+  artifact.command = command
+  artifact.source = receipt.source
+  receipt.command = command
+  writeFileSync(receipt.artifact.path, JSON.stringify(artifact) + "\n")
+  receipt.artifact.sha256 = sha256(receipt.artifact.path)
+}
+
 function withTemp(callback) {
   const temp = mkdtempSync(join(tmpdir(), "nabaperks-task15-"))
   try {
@@ -306,20 +327,9 @@ test("Given the canonical map When validated Then its terminal counts are report
     const map = copiedMap()
     const result = run(map, temp)
     assert.equal(result.status, 0)
-    const summary = summaryFor(map.rows)
     assert.match(
       result.stdout,
-      new RegExp(
-        "^owned=65 terminal=65 duplicateIds=0 orphanIds=0 fixed=" +
-          summary.fixed +
-          " failed=" +
-          summary.failed +
-          " blocked=" +
-          summary.blocked +
-          " open=" +
-          summary.open +
-          "\\n$"
-      )
+      /^owned=65 terminal=65 duplicateIds=0 orphanIds=0 fixed=37 failed=0 blocked=28 open=28\n$/
     )
   })
 })
@@ -335,22 +345,7 @@ test("Given canonical direct SHA-1 source receipts When validated Then fixed row
     for (const row of fixed) {
       assert.match(row.receipt.source.head, /^[a-f0-9]{40}$/)
     }
-    const result = run(map, temp)
-    assert.equal(result.status, 0)
-    const summary = summaryFor(map.rows)
-    assert.match(
-      result.stdout,
-      new RegExp(
-        "fixed=" +
-          summary.fixed +
-          " failed=" +
-          summary.failed +
-          " blocked=" +
-          summary.blocked +
-          " open=" +
-          summary.open
-      )
-    )
+    assert.equal(run(map, temp).status, 0)
   })
 })
 
@@ -480,7 +475,8 @@ test("Given typed Node, Playwright, and exact package-script command families Wh
   const commands = [
     "node --test --test-concurrency=1 tests/unit/example.test.mjs",
     "node --import ./tests/support/register-alias.mjs --test tests/unit/example.test.mjs",
-    "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/example.spec.ts --project=chromium --reporter=tap",
+    "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/example.spec.ts --project=chromium --reporter=tests/support/playwright-tap-reporter.mjs",
+    "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/example.spec.ts --project=chromium --reporter=line",
     "pnpm deadcode:check",
     "pnpm duplicates:check",
     "pnpm lint",
@@ -490,39 +486,15 @@ test("Given typed Node, Playwright, and exact package-script command families Wh
       const map = trustedFixedMap(temp)
       const receipt = map.rows[0].receipt
       const artifact = JSON.parse(readFileSync(receipt.artifact.path, "utf8"))
-      const path = command.includes("playwright")
-        ? "tests/e2e/example.spec.ts"
-        : "tests/unit/example.test.mjs"
       if (command.includes("playwright")) {
-        mkdirSync(join(receipt.source.path, path, ".."), { recursive: true })
-        writeFileSync(
-          join(receipt.source.path, path),
-          "export const example = true\n"
-        )
-        execFileSync("git", ["-C", receipt.source.path, "add", path])
-        execFileSync("git", [
-          "-C",
-          receipt.source.path,
-          "commit",
-          "-qm",
-          "typed command",
-        ])
-        receipt.source.head = execFileSync(
-          "git",
-          ["-C", receipt.source.path, "rev-parse", "HEAD"],
-          { encoding: "utf8" }
-        ).trim()
-        receipt.source.tree = execFileSync(
-          "git",
-          ["-C", receipt.source.path, "rev-parse", "HEAD^{tree}"],
-          { encoding: "utf8" }
-        ).trim()
+        playwrightReceipt(map, command)
+      } else {
+        artifact.command = command
+        artifact.source = receipt.source
+        receipt.command = command
+        writeFileSync(receipt.artifact.path, JSON.stringify(artifact) + "\n")
+        receipt.artifact.sha256 = sha256(receipt.artifact.path)
       }
-      artifact.command = command
-      artifact.source = receipt.source
-      receipt.command = command
-      writeFileSync(receipt.artifact.path, JSON.stringify(artifact) + "\n")
-      receipt.artifact.sha256 = sha256(receipt.artifact.path)
       assert.equal(run(map, temp).status, 0)
     })
   }
@@ -532,43 +504,37 @@ test("Given a constrained Playwright line-reporter receipt with non-TAP evidence
   withTemp((temp) => {
     const map = trustedFixedMap(temp)
     const receipt = map.rows[0].receipt
-    const artifact = JSON.parse(readFileSync(receipt.artifact.path, "utf8"))
-    const path = "tests/e2e/example.spec.ts"
-    mkdirSync(join(receipt.source.path, path, ".."), { recursive: true })
-    writeFileSync(
-      join(receipt.source.path, path),
-      "export const example = true\n"
-    )
-    execFileSync("git", ["-C", receipt.source.path, "add", path])
-    execFileSync("git", [
-      "-C",
-      receipt.source.path,
-      "commit",
-      "-qm",
-      "line command",
-    ])
-    receipt.source.head = execFileSync(
-      "git",
-      ["-C", receipt.source.path, "rev-parse", "HEAD"],
-      { encoding: "utf8" }
-    ).trim()
-    receipt.source.tree = execFileSync(
-      "git",
-      ["-C", receipt.source.path, "rev-parse", "HEAD^{tree}"],
-      { encoding: "utf8" }
-    ).trim()
-    artifact.command =
+    playwrightReceipt(
+      map,
       "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/example.spec.ts --project=chromium --reporter=line"
-    artifact.source = receipt.source
-    receipt.command = artifact.command
-    writeFileSync(receipt.artifact.path, JSON.stringify(artifact) + "\n")
-    receipt.artifact.sha256 = sha256(receipt.artifact.path)
+    )
     writeFileSync(
       join(dirname(receipt.artifact.path), "example-direct.tap"),
       "line reporter output\n"
     )
     expectCode(run(map, temp), "UNTRUSTED_EXECUTION_EVIDENCE")
   })
+})
+
+test("Given Playwright receipt commands outside the exact grammar When validated Then they are untrusted", () => {
+  const commands = [
+    "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/example.spec.ts --project=chromium --reporter=tap",
+    "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/example.spec.ts --project=chromium --reporter=../tests/support/playwright-tap-reporter.mjs",
+    "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/example.spec.ts --project=chromium --reporter=/tmp/playwright-tap-reporter.mjs",
+    "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/example.spec.ts --project=chromium --reporter=tests/support/another-reporter.mjs",
+    "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/example.spec.ts tests/e2e/other.spec.ts --project=chromium --reporter=tests/support/playwright-tap-reporter.mjs",
+    "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/example.spec.ts --project=chromium --grep=journey --reporter=tests/support/playwright-tap-reporter.mjs",
+    "OTHER=1 PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/example.spec.ts --project=chromium --reporter=tests/support/playwright-tap-reporter.mjs",
+    "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=1 pnpm exec playwright test tests/e2e/example.spec.ts --project=chromium --reporter=tests/support/playwright-tap-reporter.mjs",
+    "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/example.spec.ts --project=chromium --reporter=tests/support/playwright-tap-reporter.mjs --quiet",
+  ]
+  for (const command of commands) {
+    withTemp((temp) => {
+      const map = trustedFixedMap(temp)
+      playwrightReceipt(map, command)
+      expectCode(run(map, temp), "UNTRUSTED_EXECUTION_EVIDENCE")
+    })
+  }
 })
 
 test("Given an allowlisted package-script receipt command with flags, prefixes, chaining, or an unknown script When validated Then the execution evidence is untrusted", () => {
