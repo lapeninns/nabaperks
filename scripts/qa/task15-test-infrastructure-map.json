@@ -232,32 +232,8 @@
       "stableId": "T37-DEF-43d088fb806b4fe40b9892fb",
       "title": "Lint attempt failed before ESLint because pnpm signature verification failed",
       "sourceRowSha256": "353af24c0e7e9daebe07a4e2dcbb3b03e721559012c42f456bc42ab14e981812",
-      "status": "fixed",
-      "reason": "The exact allowlisted pnpm command executed once and exited zero from a clean committed candidate.",
-      "receipt": {
-        "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/bootstrap-recovery-v6-final2/proposal/receipts/lint-direct-receipt.json",
-          "sha256": "ea3a6e0b415784c68fbe05644298b5c7dc9bd527c1984277d93901f37a5128e3"
-        },
-        "command": "pnpm lint",
-        "attempt": 1,
-        "exitCode": 0,
-        "outcome": "passed",
-        "retryCount": 0,
-        "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/bootstrap-recovery-v6-final2/candidate-source",
-          "head": "a96e12ad856c6926df61d24bc6b9b16caf15fcbb",
-          "tree": "dcdb1e05ef0f3efc04a75c46f528a376c3a903ba",
-          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "totals": {
-          "tests": 9,
-          "passed": 9,
-          "failed": 0,
-          "skipped": 0
-        },
-        "assertions": 9
-      }
+      "status": "blocked",
+      "reason": "The proposed bootstrap receipts are externally mutable and an independent post-commit verifier observed STALE_RECEIPT; no durable receipt reissue is available within this map-only integration."
     },
     {
       "stableId": "T37-DEF-4acf9fcf259e5b203f5eb611",
@@ -850,32 +826,8 @@
       "stableId": "T37-DEF-e75e1dd044eb6d767a6a590f",
       "title": "Duplication gate first attempt failed at Corepack bootstrap",
       "sourceRowSha256": "8f217fe0ad052ecfa8cfff76c4ca947c5c0b6a55d6e6ae2e4694cef6b0c5b66e",
-      "status": "fixed",
-      "reason": "The exact allowlisted pnpm command executed once and exited zero from a clean committed candidate.",
-      "receipt": {
-        "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/bootstrap-recovery-v6-final2/proposal/receipts/duplicates-direct-receipt.json",
-          "sha256": "e847ea1cdc7ab7062c0308a05a4889ccc04f5ad6bf4ce09d04953f4f5d629fb7"
-        },
-        "command": "pnpm duplicates:check",
-        "attempt": 1,
-        "exitCode": 0,
-        "outcome": "passed",
-        "retryCount": 0,
-        "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/bootstrap-recovery-v6-final2/candidate-source",
-          "head": "a96e12ad856c6926df61d24bc6b9b16caf15fcbb",
-          "tree": "dcdb1e05ef0f3efc04a75c46f528a376c3a903ba",
-          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "totals": {
-          "tests": 9,
-          "passed": 9,
-          "failed": 0,
-          "skipped": 0
-        },
-        "assertions": 9
-      }
+      "status": "blocked",
+      "reason": "The proposed bootstrap receipts are externally mutable and an independent post-commit verifier observed STALE_RECEIPT; no durable receipt reissue is available within this map-only integration."
     },
     {
       "stableId": "T37-DEF-eaba62054e63cf27ce4b89c8",
