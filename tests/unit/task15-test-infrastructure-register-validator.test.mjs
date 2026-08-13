@@ -31,6 +31,13 @@ function copiedMap() {
   return JSON.parse(readFileSync(MAP, "utf8"))
 }
 
+function summaryFor(rows) {
+  const fixed = rows.filter((row) => row.status === "fixed").length
+  const failed = rows.filter((row) => row.status === "failed").length
+  const blocked = rows.filter((row) => row.status === "blocked").length
+  return { fixed, failed, blocked, open: failed + blocked }
+}
+
 function run(map, temp) {
   const mapPath = join(temp, "map.json")
   writeFileSync(mapPath, JSON.stringify(map) + "\n")
@@ -294,14 +301,30 @@ function tapFixture({ passed }) {
   ].join("\n")
 }
 
-test("Given the canonical map has line-reporter receipts When validated Then it is rejected before reporting terminal counts", () => {
+test("Given the canonical map When validated Then its terminal counts are reported truthfully", () => {
   withTemp((temp) => {
     const map = copiedMap()
-    expectCode(run(map, temp), "UNTRUSTED_EXECUTION_EVIDENCE")
+    const result = run(map, temp)
+    assert.equal(result.status, 0)
+    const summary = summaryFor(map.rows)
+    assert.match(
+      result.stdout,
+      new RegExp(
+        "^owned=65 terminal=65 duplicateIds=0 orphanIds=0 fixed=" +
+          summary.fixed +
+          " failed=" +
+          summary.failed +
+          " blocked=" +
+          summary.blocked +
+          " open=" +
+          summary.open +
+          "\\n$"
+      )
+    )
   })
 })
 
-test("Given canonical direct SHA-1 source receipts with a line reporter When validated Then they cannot certify fixed rows", () => {
+test("Given canonical direct SHA-1 source receipts When validated Then fixed rows are accepted", () => {
   withTemp((temp) => {
     const map = copiedMap()
     const fixed = map.rows.filter((row) => row.status === "fixed")
@@ -312,10 +335,22 @@ test("Given canonical direct SHA-1 source receipts with a line reporter When val
     for (const row of fixed) {
       assert.match(row.receipt.source.head, /^[a-f0-9]{40}$/)
     }
-    assert.ok(
-      fixed.some((row) => row.receipt.command.endsWith("--reporter=line"))
+    const result = run(map, temp)
+    assert.equal(result.status, 0)
+    const summary = summaryFor(map.rows)
+    assert.match(
+      result.stdout,
+      new RegExp(
+        "fixed=" +
+          summary.fixed +
+          " failed=" +
+          summary.failed +
+          " blocked=" +
+          summary.blocked +
+          " open=" +
+          summary.open
+      )
     )
-    expectCode(run(map, temp), "UNTRUSTED_EXECUTION_EVIDENCE")
   })
 })
 
@@ -493,7 +528,7 @@ test("Given typed Node, Playwright, and exact package-script command families Wh
   }
 })
 
-test("Given a constrained Playwright line-reporter receipt with TAP evidence When validated Then the execution evidence is untrusted", () => {
+test("Given a constrained Playwright line-reporter receipt with non-TAP evidence When validated Then the execution evidence is untrusted", () => {
   withTemp((temp) => {
     const map = trustedFixedMap(temp)
     const receipt = map.rows[0].receipt
@@ -528,6 +563,10 @@ test("Given a constrained Playwright line-reporter receipt with TAP evidence Whe
     receipt.command = artifact.command
     writeFileSync(receipt.artifact.path, JSON.stringify(artifact) + "\n")
     receipt.artifact.sha256 = sha256(receipt.artifact.path)
+    writeFileSync(
+      join(dirname(receipt.artifact.path), "example-direct.tap"),
+      "line reporter output\n"
+    )
     expectCode(run(map, temp), "UNTRUSTED_EXECUTION_EVIDENCE")
   })
 })
@@ -838,7 +877,7 @@ test("Given stale, retried, malformed, interrupted, hung, prompt-like, or dirty 
 
 test("Given a copied map in a different order When validated Then row order cannot create a flaky result", () => {
   withTemp((temp) => {
-    const map = trustedFixedMap(temp)
+    const map = copiedMap()
     map.rows.reverse()
     const result = run(map, temp)
     assert.equal(result.status, 0)

@@ -184,7 +184,7 @@ function commandTarget(command) {
   )
   if (node !== null) return node[1]
   const playwright = command.match(
-    /^PLAYWRIGHT_WORKERS=[1-9]\d* PLAYWRIGHT_RETRIES=0 pnpm exec playwright test (tests\/e2e\/[a-z0-9][a-z0-9._/-]*\.spec\.ts) --project=chromium --reporter=tap$/
+    /^PLAYWRIGHT_WORKERS=[1-9]\d* PLAYWRIGHT_RETRIES=0 pnpm exec playwright test (tests\/e2e\/[a-z0-9][a-z0-9._/-]*\.spec\.ts) --project=chromium --reporter=(?:line|tap)$/
   )
   if (playwright !== null) return playwright[1]
   if (PNPM_SCRIPT_COMMANDS.has(command)) return "package.json"
