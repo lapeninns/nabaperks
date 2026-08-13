@@ -211,7 +211,7 @@
       "title": "Complete migration parity and synthetic-secret provenance are workflow-context assumptions",
       "sourceRowSha256": "7a1f730f6b809beb69583fb421fb0f1d46b94f6d65b2844181666542559fa3fb",
       "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "reason": "Blocked: read-only `node scripts/check-supabase-migrations.mjs --local` reached the local ledger using its built-in synthetic `SUPABASE_SEND_EMAIL_HOOK_SECRET` default and reported migration-version drift: five local versions are absent remotely and `20260729000400` is remote-only. Reconciling a disposable local Supabase migration ledger is required before parity can be proven."
     },
     {
       "stableId": "T37-DEF-21c318aa11235c6dde6a5cdc",
@@ -1505,7 +1505,7 @@
       "title": "Production poster export failed because hosted Supabase prerequisites were absent",
       "sourceRowSha256": "b56610b2f24310872a44286e1d41f180b26aea365722572b0378447d1ec3e2b3",
       "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "reason": "Blocked: `pnpm posters:export-production` stopped before any provider or output write because the hosted-export preflight lacks `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`. An authorised hosted Supabase URL and service-role key supplied through the hosted export workflow are required before the poster export can run."
     },
     {
       "stableId": "T37-DEF-f82b1fa4587695f7828e00cb",
