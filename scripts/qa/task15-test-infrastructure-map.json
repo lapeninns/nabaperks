@@ -117,8 +117,32 @@
       "stableId": "T37-DEF-145092ea5e962d614cee4f1b",
       "title": "Horizontal overflow can be hidden without being detected",
       "sourceRowSha256": "5e68e881b353cd1103beca68e77d61abd5ad320b3dd65738aaf3de2de5ed4be9",
-      "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "status": "fixed",
+      "reason": "A real pre-fix source-seam RED and the clean commit-pinned eight-test Chromium TAP run prove clipped text descendants are now detected.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-residual-receipts-v9/receipts/t37-def-145092ea5e962d614cee4f1b-direct-receipt.json",
+          "sha256": "63f01d7a51f1543b606e4c0d66ce9fe7144643390b40c892551f86b2f82ef67e"
+        },
+        "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/visual-layout-invariants/visual.spec.ts --project=chromium --reporter=tests/support/playwright-tap-reporter.mjs",
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-residual-receipts-v9/candidate-source",
+          "head": "299841b8c9b4769a3f3fec7861cb83ae3e25b891",
+          "tree": "8494241721ee3480bee34db29e0dea98b00db031",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "totals": {
+          "tests": 8,
+          "passed": 8,
+          "failed": 0,
+          "skipped": 0
+        },
+        "assertions": 8
+      }
     },
     {
       "stableId": "T37-DEF-16e58676dd12ace1acf79f4d",
@@ -890,8 +914,32 @@
       "stableId": "T37-DEF-90e89475676e652c221e62e2",
       "title": "Safe-area handling is partial and untested",
       "sourceRowSha256": "074ab9b92b9ed5096cd5667397950b19ffc235634e3f76ab3bd4f6d30d92f85c",
-      "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "status": "fixed",
+      "reason": "A real pre-fix source-seam RED and the clean commit-pinned eight-test Chromium TAP run prove computed safe-area geometry is now exercised through CDP emulation.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-residual-receipts-v9/receipts/t37-def-90e89475676e652c221e62e2-direct-receipt.json",
+          "sha256": "2f256e694add8c4c8abfd01013106bffff4e6a603ae9cb762787f334f3dada95"
+        },
+        "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/visual-layout-invariants/visual.spec.ts --project=chromium --reporter=tests/support/playwright-tap-reporter.mjs",
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-residual-receipts-v9/candidate-source",
+          "head": "299841b8c9b4769a3f3fec7861cb83ae3e25b891",
+          "tree": "8494241721ee3480bee34db29e0dea98b00db031",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "totals": {
+          "tests": 8,
+          "passed": 8,
+          "failed": 0,
+          "skipped": 0
+        },
+        "assertions": 8
+      }
     },
     {
       "stableId": "T37-DEF-92d693534f240d5c21022e43",
@@ -1225,7 +1273,7 @@
       "title": "No global forced-colours treatment or exact journey test exists",
       "sourceRowSha256": "4efcdb9b65b06428d2d1830f9e7d9481c517cd891fd6d0226bfd9cb37b015a12",
       "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "reason": "Fresh forced-colours Chromium and axe evidence reports a serious 1.12:1 contrast violation at .bg-cobalt > .truncate.min-w-0 versus the required 4.5:1; product UI remediation is outside this receipt lane."
     },
     {
       "stableId": "T37-DEF-ee55f0744ca8baec4a95cd65",
