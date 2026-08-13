@@ -36,8 +36,27 @@
       "stableId": "T37-DEF-0f29577b74fd87de001b3def",
       "title": "Missing Playwright executable is a successful skip",
       "sourceRowSha256": "3ae666382dd6e14ca8d093d3f811989d1bd628ec69edae0d8c0a4049d0d374e0",
-      "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "status": "fixed",
+      "reason": "A fresh governed direct receipt proves missing Playwright fails closed before any success report.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/perf-supabase-boundary-v6/perf/receipts/perf-missing-browser-direct-receipt.json",
+          "sha256": "7a2efd62237dddb9208eb60a448219811857e499999f69598729240d06c36018"
+        },
+        "command": "node --test tests/unit/perf-stress-cli.test.mjs",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/perf-supabase-boundary-v6/perf/candidate-source",
+          "head": "444d41964401298055d6c02c1c4be38ec1d41cd9",
+          "tree": "b688ffd03a405247602f1071423f5888163f1c70",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": { "tests": 7, "passed": 7, "failed": 0, "skipped": 0 },
+        "assertions": 23
+      }
     },
     {
       "stableId": "T37-DEF-1175c50646580e74200a11f5",
@@ -424,8 +443,32 @@
       "stableId": "T37-DEF-701d3eed1729423878294f30",
       "title": "Command matching is narrow, path checks are substring-based, and script target integrity/undocumented scripts are outside scope.",
       "sourceRowSha256": "1727ef410f93c0af29961f349f81dd169c0cef8b44a61bdbbc63a07b6c5a3238",
-      "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "status": "fixed",
+      "reason": "Clean first-attempt CLI receipt confirms exact path references, fenced command parsing, recursive script-target resolution, and fail-closed package parsing.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/static-cli-boundary-v6/receipts/agent-docs-integrity-direct-receipt.json",
+          "sha256": "b5c02ec1bedf4fe6034e7b7844c8119ab02f76683a506eac2dfeded1f8dacaa7"
+        },
+        "command": "node --test --test-concurrency=1 tests/unit/check-agent-docs-integrity.test.mjs",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/static-cli-boundary-v6/candidate-source",
+          "head": "30aacb378d065f88dc516b37b6253b2bbf6c1dbf",
+          "tree": "4c1889714cfe1461bf7cac6d3ea8cb9e00ae8387",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 1,
+          "passed": 1,
+          "failed": 0,
+          "skipped": 0
+        },
+        "assertions": 6
+      }
     },
     {
       "stableId": "T37-DEF-7b7e27b45d9a7be3fbc0e437",
@@ -573,8 +616,27 @@
       "stableId": "T37-DEF-955c1b92684fcf410c9850ef",
       "title": "HTTP label overstates the measurement surface",
       "sourceRowSha256": "1f632a3b02c33a3ca114ae08d60482be6fdbecdb318582819453f98c9fc8e35e",
-      "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "status": "fixed",
+      "reason": "A fresh governed direct receipt proves readiness and browser journeys are labelled separately.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/perf-supabase-boundary-v6/perf/receipts/perf-label-direct-receipt.json",
+          "sha256": "28a93c654157cf30ca0dd42127f3daddcb4b6080d6cf1e31004317afe326cc54"
+        },
+        "command": "node --test tests/unit/perf-stress-cli.test.mjs",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/perf-supabase-boundary-v6/perf/candidate-source",
+          "head": "444d41964401298055d6c02c1c4be38ec1d41cd9",
+          "tree": "b688ffd03a405247602f1071423f5888163f1c70",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": { "tests": 7, "passed": 7, "failed": 0, "skipped": 0 },
+        "assertions": 23
+      }
     },
     {
       "stableId": "T37-DEF-9a33cc57321447dbfd068e8e",
@@ -587,8 +649,27 @@
       "stableId": "T37-DEF-9f7b16a7243361f2db6d77cd",
       "title": "No resource-level measurements exist",
       "sourceRowSha256": "46663c3aae439cf3b55724b52dd9f61aad5c0e4393136d0caa043f7f9f33a72f",
-      "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "status": "fixed",
+      "reason": "A fresh governed direct receipt proves browser journey resource requests and transfers are reported.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/perf-supabase-boundary-v6/perf/receipts/perf-resource-direct-receipt.json",
+          "sha256": "ae30cd3960037bb644f91503cb147b4060a9b648a0ff67726ccfa951a5686397"
+        },
+        "command": "node --test tests/unit/perf-stress-cli.test.mjs",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/perf-supabase-boundary-v6/perf/candidate-source",
+          "head": "444d41964401298055d6c02c1c4be38ec1d41cd9",
+          "tree": "b688ffd03a405247602f1071423f5888163f1c70",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": { "tests": 7, "passed": 7, "failed": 0, "skipped": 0 },
+        "assertions": 23
+      }
     },
     {
       "stableId": "T37-DEF-a0301cb60438ea3743032208",
@@ -625,8 +706,27 @@
       "stableId": "T37-DEF-a7380c485f3a5e9efc996840",
       "title": "No numerical performance budget is enforceable by perf:stress",
       "sourceRowSha256": "7a1ecfa602163da4867ed433f5cf00f67c167977876faed50b89c499bf54944c",
-      "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "status": "fixed",
+      "reason": "A fresh governed direct receipt proves numerical timing and resource budgets fail closed.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/perf-supabase-boundary-v6/perf/receipts/perf-budget-direct-receipt.json",
+          "sha256": "b8687537694cec1fc99de6aa57971ba4325e111558e13b73aa7797d191df275b"
+        },
+        "command": "node --test tests/unit/perf-stress-cli.test.mjs",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/perf-supabase-boundary-v6/perf/candidate-source",
+          "head": "444d41964401298055d6c02c1c4be38ec1d41cd9",
+          "tree": "b688ffd03a405247602f1071423f5888163f1c70",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": { "tests": 7, "passed": 7, "failed": 0, "skipped": 0 },
+        "assertions": 23
+      }
     },
     {
       "stableId": "T37-DEF-ad3090774e1da2e5b7498642",
@@ -754,8 +854,27 @@
       "stableId": "T37-DEF-f1689e1857473d715666b121",
       "title": "Unreachable app omits all browser/page measurements without failing the command",
       "sourceRowSha256": "0cebd91320fa6c77c1177e96749e16956dbb62de0876ba505533a598b7057968",
-      "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "status": "fixed",
+      "reason": "A fresh governed direct receipt proves an unreachable app fails before browser metrics or success output.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/perf-supabase-boundary-v6/perf/receipts/perf-unreachable-direct-receipt.json",
+          "sha256": "71893f1a46b9039afd9acff475e11acb6ad1c2e26d7b8800ad0a367e7a959c5c"
+        },
+        "command": "node --test tests/unit/perf-stress-cli.test.mjs",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/perf-supabase-boundary-v6/perf/candidate-source",
+          "head": "444d41964401298055d6c02c1c4be38ec1d41cd9",
+          "tree": "b688ffd03a405247602f1071423f5888163f1c70",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": { "tests": 7, "passed": 7, "failed": 0, "skipped": 0 },
+        "assertions": 23
+      }
     },
     {
       "stableId": "T37-DEF-f36a8b3b1a0c0aa324df5bc3",
