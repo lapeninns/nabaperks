@@ -130,7 +130,23 @@ export function AdminShell({
       {/* Cmd-K over the console (ADM 04#6). Mounted once at the shell so every
           /admin route has it, and rendered as a portal so it costs no layout. */}
       <AdminCommandPalette />
-      <SidebarInset id="main" tabIndex={-1} className="min-w-0">
+      {/* `--console-sticky-top` is the offset a sticky element inside the
+          console must take to clear the mobile header below. The header is
+          `sticky top-0 z-30`; the audit trail's lookup bar is `sticky top-0
+          z-20`, so under 768px the bar slid UNDER the header and the venue
+          field it exists to keep reachable was unhittable —
+          `document.elementFromPoint` at the centre of that input returned the
+          HEADER at both 390px and 767px. 3.875rem is the header's rendered
+          62px (min-h-14 content plus py-2 plus the 2px ink rule); at `md` the
+          header is `hidden` and the offset returns to 0. Pinned by
+          tests/e2e/admin-lookup-bar.desktop.spec.ts, which asserts the input
+          is the element painted at its own centre — so if the header's height
+          changes, the proof fails rather than the console. */}
+      <SidebarInset
+        id="main"
+        tabIndex={-1}
+        className="min-w-0 [--console-sticky-top:3.875rem] md:[--console-sticky-top:0px]"
+      >
         <header className="sticky top-0 z-30 flex min-h-14 items-center gap-3 border-b-2 border-ink bg-card px-4 py-2 md:hidden">
           <SidebarTrigger className="size-11 shrink-0" />
           <Logo

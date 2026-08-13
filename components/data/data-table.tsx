@@ -255,7 +255,14 @@ function SortableHeader<T>({
       aria-label={`Sort by ${headerLabel(column)}, ${
         next === "asc" ? "ascending" : "descending"
       }`}
-      className="focus-ring -mx-1 inline-flex items-center gap-1 rounded-sm px-1 outline-none hover:text-foreground"
+      // `.tap-floor`, because this is an interactive control that is not a
+      // Button and so carries none of Button's coarse-pointer floors. Measured
+      // on a coarse device profile it was a 15px-tall target — under DESIGN.md
+      // (Layout & Spacing: "Primary tap targets >= 44px") and under WCAG
+      // 2.5.8's 24px minimum, with no exemption available to a table header.
+      // A fine pointer is unaffected: the utility only adds `touch-action` off
+      // a coarse pointer.
+      className="focus-ring tap-floor -mx-1 inline-flex items-center gap-1 rounded-sm px-1 outline-none hover:text-foreground"
     >
       {column.header}
       <Icon
