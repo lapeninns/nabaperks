@@ -2856,3 +2856,38 @@ formatted must be pruned. **No file was reformatted.** The tree-wide sweep is
 248 files of churn across four concurrent lanes and belongs to the integrator,
 in one place, at the end — the same reasoning as section 53's two-line
 `globals.css` change.
+
+## 67. CORRECTION — 02#64's 1,077px was measured inside chrome the route does not ship
+
+The figure this branch has repeated for 02#64 — "the claim control sits at
+1,077px, 1.62 viewport heights down" — was taken on
+`/dev/home-harness/offer-claim`. That harness sits under
+`app/dev/home-harness/layout.tsx`, which mounts **`CustomerAppShell`**: a header
+and a **fixed bottom tab bar**. The real route, `app/offer/[token]/page.tsx`,
+renders **`CustomerFlowShell` + `Logo` + `ReceiptCard`** and has **no tab bar at
+all**.
+
+Re-probed on an iPhone SE profile, reduced motion, `styleSheets.length`
+asserted, anchored on `[data-harness-claim]`:
+
+    claim control top        1,073px
+    harness header           62px      <- not on the real route
+    harness nav              58px, position: fixed   <- not on the real route
+    topmost element at the
+    centre of the CTA        A.group focus-ring … min-h-14   <- a TAB BAR LINK
+
+So two things are wrong at once. The distance was inflated by chrome the screen
+never renders, and the "the CTA is occluded" observation was an artefact of a
+fixed tab bar that does not exist on `/offer/[token]`.
+
+**The number must be retaken before 02#64 is decided.** Direction of the error
+is known — overstated — but the magnitude is not a simple subtraction, because
+`CustomerFlowShell` brings its own header lockup and safe-area handling.
+
+Found by the ds-gates lane, verified here independently from the two layout
+files and the probe above. It is the harness-drift trap this branch has warned
+every lane about, in the one harness I built myself: **a harness that mounts
+different chrome measures a different screen.** `docs/ui-audit/COVERAGE.md`
+already records five harnesses that duplicate production markup; this is the
+sixth failure of the same kind, and the first where the drift was in the
+_layout_ rather than the markup.
