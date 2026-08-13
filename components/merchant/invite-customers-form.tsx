@@ -12,7 +12,13 @@ import {
   loyaltyInviteFormAction,
   type LoyaltyInviteState,
 } from "@/app/app/customers/invite/actions"
-import { Eyebrow, Icon, MonoTag, SectionHeader } from "@/components/brand"
+import {
+  Eyebrow,
+  Icon,
+  IconRoundel,
+  MonoTag,
+  SectionHeader,
+} from "@/components/brand"
 import { FormMessage, SubmitButton } from "@/components/forms"
 import { ProgressTrack } from "@/components/loyalty/progress-track"
 import { Button } from "@/components/ui/button"
@@ -521,9 +527,17 @@ function CampaignStat({
 function SentConfirmation({ message }: { message: string }) {
   return (
     <div className="mx-auto grid max-w-xl justify-items-center gap-5 rounded-lg border-2 border-ink bg-card p-6 text-center shadow-[var(--shadow-hard)] sm:p-8">
-      <span className="grid size-12 place-items-center rounded-full border-2 border-ink bg-reward/15 text-reward">
-        <Icon icon={CheckmarkCircle02Icon} size={26} strokeWidth={2.25} />
-      </span>
+      {/* DESIGN.md · Shapes: framing circles reach for IconRoundel rather than
+          hand-rolling `rounded-full`. Size and the leaf tone wash stay at the
+          call site (48px is off the sm/md/lg rungs, and `reward` is not a
+          roundel tone); the circle, the 2px ink stroke and the decorative
+          `aria-hidden` come from the component. */}
+      <IconRoundel
+        icon={CheckmarkCircle02Icon}
+        iconSize={26}
+        iconStrokeWidth={2.25}
+        className="size-12 bg-reward/15 text-reward"
+      />
       <div className="grid gap-2">
         <Eyebrow>Invitations queued</Eyebrow>
         <h2 className="text-2xl font-extrabold text-foreground">Done.</h2>

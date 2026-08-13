@@ -54,9 +54,17 @@ export function LegalDocumentPage({
             page. Collapsing it below lg while keeping the desktop rail open
             needs either JS or the reorder this contract forbids, so it is
             recorded in NEEDS-SIGNOFF 22 rather than guessed at here. */}
+        {/* The TOC halos and this disclosure summary carry
+            `rounded-(--radius-md)`, the house halo shape for a min-h-11 inline
+            text link, not `rounded-full`. DESIGN.md · Shapes reserves full
+            circles for the stamp family and names "the legal-link halo family"
+            as an exception — that is the /terms /privacy /cookies row in the
+            footer, and marketing-chrome-tokens already rules that navigation
+            "was never on the list" and that a disclosure summary "is a heading
+            row, not a stamp". In-document section anchors are navigation. */}
         <aside className="surface-card order-last p-4 lg:sticky lg:top-[calc(var(--marketing-header-h)+0.75rem)] lg:order-none">
           <details open className="group">
-            <summary className="focus-ring mb-3 flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 rounded-full lg:pointer-events-none">
+            <summary className="focus-ring mb-3 flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 rounded-(--radius-md) lg:pointer-events-none">
               <Eyebrow>On this page</Eyebrow>
               <span
                 aria-hidden="true"
@@ -73,7 +81,7 @@ export function LegalDocumentPage({
                 <a
                   key={section.id}
                   href={`#${section.id}`}
-                  className="focus-ring inline-flex min-h-11 items-center rounded-full px-3 py-2 text-sm text-muted-foreground underline-offset-4 hover:bg-accent hover:text-accent-foreground"
+                  className="focus-ring inline-flex min-h-11 items-center rounded-(--radius-md) px-3 py-2 text-sm text-muted-foreground underline-offset-4 hover:bg-accent hover:text-accent-foreground"
                 >
                   {section.title}
                 </a>

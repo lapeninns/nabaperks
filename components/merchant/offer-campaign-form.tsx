@@ -9,7 +9,7 @@ import {
   type OfferCampaignState,
   type OfferCreatorStep,
 } from "@/app/app/offers/actions"
-import { Eyebrow, Icon, SectionHeader } from "@/components/brand"
+import { Eyebrow, Icon, IconRoundel, SectionHeader } from "@/components/brand"
 import { FormMessage, SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { Disclosure } from "@/components/merchant/launch/disclosure"
@@ -248,9 +248,17 @@ function BenefitStep({
                 unavailable && "cursor-not-allowed opacity-60"
               )}
             >
-              <span className="grid size-9 shrink-0 place-items-center rounded-full border-2 border-ink bg-secondary text-foreground">
-                <Icon icon={preset.icon} size={16} />
-              </span>
+              {/* DESIGN.md · Shapes: new framing circles reach for IconRoundel
+                  rather than hand-rolling `rounded-full`, and the list of named
+                  circle exceptions "does not grow without updating this
+                  contract". The 36px disc is off IconRoundel's sm/md/lg rungs,
+                  so the size stays at the call site and the shape, stroke and
+                  tone come from the component — same pixels, one owner. */}
+              <IconRoundel
+                icon={preset.icon}
+                iconSize={16}
+                className="size-9"
+              />
               <span className="grid min-w-0 flex-1 gap-0.5">
                 <span className="flex items-start justify-between gap-2">
                   <span className="text-sm font-semibold text-foreground">
