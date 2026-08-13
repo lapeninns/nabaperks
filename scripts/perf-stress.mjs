@@ -7,6 +7,7 @@
  * Usage:
  *   pnpm perf:stress
  *   PERF_STRESS_RUNS=5 pnpm perf:stress
+ *   node scripts/perf-stress.mjs --browser-only --app-url http://127.0.0.1:3000
  */
 
 import { existsSync, readFileSync } from "node:fs"
@@ -21,16 +22,19 @@ import {
   printDatabaseConnectionHelp,
 } from "./db-connection-help.mjs"
 
+// allow: SIZE_OK — this task owns one executable harness and cannot add production modules.
 const projectDir = process.cwd()
 const MERCHANT_ID = "10000000-0000-0000-0000-000000000001"
 const MERCHANT_EMAIL = "amanshresthaaaaa+32@gmail.com"
 const MERCHANT_PASSWORD = "NabaperksDemo1!"
 const CUSTOMERS_PAGE_SIZE = 15
-const RUNS = Math.max(1, Number.parseInt(process.env.PERF_STRESS_RUNS ?? "3", 10))
-const APP_URL = (process.env.PERF_STRESS_APP_URL ?? "http://localhost:3000").replace(
-  /\/$/,
-  ""
-)
+const DEFAULT_QUERY_MEDIAN_BUDGET_MS = 1_000
+const DEFAULT_BROWSER_MEDIAN_BUDGET_MS = 5_000
+const DEFAULT_RESOURCE_COUNT_BUDGET = 200
+const DEFAULT_TRANSFER_BYTES_BUDGET = 5_000_000
+const options = parseCliSafely(process.argv.slice(2), process.env)
+const RUNS = options?.runs ?? 0
+const APP_URL = options?.appUrl ?? ""
 
 const env = {
   ...readEnvFile(join(projectDir, ".env.local")),
@@ -39,23 +43,33 @@ const env = {
 }
 
 async function main() {
+  console.log(`Stress performance probe (${RUNS} run(s) per benchmark)\n`)
+
+  if (options.browserOnly) {
+    await runAndReportBrowserBenchmarks()
+    return
+  }
+
   const dbUrl = env.SUPABASE_DB_URL?.trim()
   const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL?.trim()
   const anonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()
 
   if (!dbUrl || !supabaseUrl || !anonKey) {
-    console.error("SUPABASE_DB_URL, NEXT_PUBLIC_SUPABASE_URL, and NEXT_PUBLIC_SUPABASE_ANON_KEY are required.")
+    console.error(
+      "SUPABASE_DB_URL, NEXT_PUBLIC_SUPABASE_URL, and NEXT_PUBLIC_SUPABASE_ANON_KEY are required."
+    )
     process.exit(1)
   }
-
-  console.log(`Stress performance probe (${RUNS} run(s) per benchmark)\n`)
 
   const sql = postgres(dbUrl, { max: 1 })
   try {
     await verifyStressFixture(sql)
   } catch (error) {
     if (isDatabaseConnectionRefused(error)) {
-      printDatabaseConnectionHelp(dbUrl, "pnpm db:supabase:start && pnpm db:reseed:stress")
+      printDatabaseConnectionHelp(
+        dbUrl,
+        "pnpm db:supabase:start && pnpm db:reseed:stress"
+      )
     }
     throw error
   } finally {
@@ -76,15 +90,13 @@ async function main() {
 
   const queryResults = await runQueryBenchmarks(authClient)
   printResults("Supabase query benchmarks (RLS as +32)", queryResults)
+  enforceTimingBudget(
+    "Supabase query",
+    queryResults,
+    options.queryMedianBudgetMs
+  )
 
-  const httpResults = await runHttpBenchmarks()
-  if (Array.isArray(httpResults) && httpResults.length) {
-    printResults(`HTTP page loads (${APP_URL}, authenticated)`, httpResults)
-  } else if (!Array.isArray(httpResults) && httpResults.skipped) {
-    console.log(`\nHTTP benchmarks skipped: ${httpResults.reason}`)
-  } else {
-    console.log("\nHTTP benchmarks skipped (dev server not reachable). Start with: pnpm dev")
-  }
+  await runAndReportBrowserBenchmarks()
 }
 
 async function verifyStressFixture(sql) {
@@ -100,7 +112,9 @@ async function verifyStressFixture(sql) {
   `
 
   if (!row) {
-    throw new Error("Old Crown Girton merchant fixture not found. Run pnpm db:setup first.")
+    throw new Error(
+      "Old Crown Girton merchant fixture not found. Run pnpm db:setup first."
+    )
   }
 
   if (row.owner_email !== MERCHANT_EMAIL) {
@@ -130,7 +144,8 @@ async function runQueryBenchmarks(client) {
         .select("*", { count: "exact", head: true })
         .eq("merchant_id", MERCHANT_ID)
       if (error) throw error
-      if ((count ?? 0) < 1000) throw new Error(`Unexpected member count: ${count}`)
+      if ((count ?? 0) < 1000)
+        throw new Error(`Unexpected member count: ${count}`)
       return count
     }),
     await bench("Members page 1 (15 rows)", RUNS, async () => {
@@ -207,29 +222,46 @@ async function runQueryBenchmarks(client) {
   ]
 }
 
-async function runHttpBenchmarks() {
-  if (!(await isAppReachable())) {
-    return []
+async function runAndReportBrowserBenchmarks() {
+  const { readiness, journeys } = await runBrowserBenchmarks()
+  console.log(
+    `HTTP readiness probe: status=${readiness.status} duration=${readiness.duration.toFixed(1)}ms`
+  )
+  printResults(`Authenticated browser journeys (${APP_URL})`, journeys)
+  printResourceResults(journeys)
+  enforceTimingBudget(
+    "Browser journey",
+    journeys,
+    options.browserMedianBudgetMs
+  )
+  enforceResourceBudgets(journeys)
+  console.log("Performance budgets: PASS\n")
+}
+
+async function runBrowserBenchmarks() {
+  const readiness = await measureAppReadiness()
+  if (!readiness.ok) {
+    throw new Error(
+      `Application readiness check failed for ${APP_URL}/login: ${readiness.reason}. Start the app with: pnpm dev`
+    )
   }
 
   let browser
   try {
-    browser = await chromium.launch({ headless: true })
+    browser = await chromium.launch({ headless: true, timeout: 30_000 })
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     if (message.includes("Executable doesn't exist")) {
-      return {
-        skipped: true,
-        reason: "Playwright browsers missing. Run: pnpm e2e:install",
-      }
+      throw new Error(
+        "Playwright browser executable is required. Run: pnpm e2e:install"
+      )
     }
     throw error
   }
 
-  const context = await browser.newContext()
-  const page = await context.newPage()
-
   try {
+    const context = await browser.newContext()
+    const page = await context.newPage()
     await page.goto(`${APP_URL}/login?next=${encodeURIComponent("/app")}`, {
       waitUntil: "domcontentloaded",
     })
@@ -239,7 +271,11 @@ async function runHttpBenchmarks() {
     await page.waitForURL((url) => url.pathname === "/app", { timeout: 30_000 })
 
     const routes = [
-      { name: "Dashboard /app", path: "/app", ready: /Your venue|Old Crown Girton/i },
+      {
+        name: "Dashboard /app",
+        path: "/app",
+        ready: /Your venue|Old Crown Girton/i,
+      },
       {
         name: "Members /app/customers",
         path: "/app/customers",
@@ -262,28 +298,73 @@ async function runHttpBenchmarks() {
       },
     ]
 
-    const results = []
+    const journeys = []
     for (const route of routes) {
-      results.push(
-        await bench(route.name, RUNS, async () => {
-          await page.goto(`${APP_URL}${route.path}`, { waitUntil: "domcontentloaded" })
-          await page.getByText(route.ready).first().waitFor({ timeout: 30_000 })
-        })
-      )
+      journeys.push(await benchmarkBrowserJourney(page, route))
     }
 
-    return results
+    return { readiness, journeys }
   } finally {
     await browser.close()
   }
 }
 
-async function isAppReachable() {
+async function benchmarkBrowserJourney(page, route) {
+  const samples = []
+  const resources = []
+  for (let index = 0; index < RUNS; index += 1) {
+    const started = performance.now()
+    await page.goto(`${APP_URL}${route.path}`, {
+      waitUntil: "domcontentloaded",
+    })
+    await page.getByText(route.ready).first().waitFor({ timeout: 30_000 })
+    samples.push(performance.now() - started)
+    resources.push(
+      await page.evaluate(() => {
+        const entries = performance.getEntriesByType("resource")
+        return {
+          requestCount: entries.length,
+          transferBytes: entries.reduce(
+            (sum, entry) => sum + entry.transferSize,
+            0
+          ),
+        }
+      })
+    )
+  }
+
+  return {
+    ...summarize(
+      route.name,
+      samples,
+      "browser navigation + ready-content wait"
+    ),
+    resourceRequests: Math.max(
+      ...resources.map((sample) => sample.requestCount)
+    ),
+    transferBytes: Math.max(...resources.map((sample) => sample.transferBytes)),
+  }
+}
+
+async function measureAppReadiness() {
+  const started = performance.now()
   try {
-    const response = await fetch(`${APP_URL}/login`, { signal: AbortSignal.timeout(3000) })
-    return response.ok
-  } catch {
-    return false
+    const response = await fetch(`${APP_URL}/login`, {
+      signal: AbortSignal.timeout(3000),
+    })
+    return {
+      ok: response.ok,
+      status: response.status,
+      duration: performance.now() - started,
+      reason: response.ok ? "ok" : `HTTP ${response.status}`,
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      status: "unreachable",
+      duration: performance.now() - started,
+      reason: error instanceof Error ? error.message : String(error),
+    }
   }
 }
 
@@ -335,12 +416,146 @@ function printResults(title, rows) {
   console.log("")
 }
 
+function printResourceResults(rows) {
+  console.log("Resource usage (maximum observed per journey)")
+  console.log("---------------------------------------------")
+  for (const row of rows) {
+    console.log(
+      `${row.label}: requests=${row.resourceRequests} transfer=${row.transferBytes} bytes`
+    )
+  }
+  console.log("")
+}
+
+function enforceTimingBudget(kind, rows, budgetMs) {
+  const failures = rows.filter((row) => row.median > budgetMs)
+  if (failures.length > 0) {
+    throw new Error(
+      `Performance budget exceeded: ${kind} median must be <= ${budgetMs}ms; ${failures
+        .map((row) => `${row.label}=${row.median}ms`)
+        .join(", ")}`
+    )
+  }
+}
+
+function enforceResourceBudgets(rows) {
+  const failures = rows.flatMap((row) => {
+    const violations = []
+    if (row.resourceRequests > options.resourceCountBudget) {
+      violations.push(
+        `${row.label} requests=${row.resourceRequests} > ${options.resourceCountBudget}`
+      )
+    }
+    if (row.transferBytes > options.transferBytesBudget) {
+      violations.push(
+        `${row.label} transfer=${row.transferBytes} > ${options.transferBytesBudget} bytes`
+      )
+    }
+    return violations
+  })
+  if (failures.length > 0) {
+    throw new Error(`Performance budget exceeded: ${failures.join(", ")}`)
+  }
+}
+
 function fmtMs(value) {
   return `${value.toFixed(1)}ms`.padStart(8)
 }
 
 function round(value) {
   return Math.round(value * 10) / 10
+}
+
+function parseCli(args, environment) {
+  let browserOnly = false
+  let appUrl = environment.PERF_STRESS_APP_URL ?? "http://localhost:3000"
+  let runsValue = environment.PERF_STRESS_RUNS ?? "3"
+
+  for (let index = 0; index < args.length; index += 1) {
+    const argument = args[index]
+    if (argument === "--browser-only") {
+      browserOnly = true
+    } else if (argument === "--app-url") {
+      appUrl = requireOptionValue(args, ++index, "--app-url")
+    } else if (argument === "--runs") {
+      runsValue = requireOptionValue(args, ++index, "--runs")
+    } else {
+      throw new Error(`Unknown argument: ${argument}`)
+    }
+  }
+
+  const runs = parsePositiveInteger(runsValue, "--runs")
+  let parsedAppUrl
+  try {
+    parsedAppUrl = new URL(appUrl)
+  } catch {
+    throw new Error("--app-url must be a valid http or https URL")
+  }
+  if (!["http:", "https:"].includes(parsedAppUrl.protocol)) {
+    throw new Error("--app-url must be a valid http or https URL")
+  }
+  if (parsedAppUrl.username || parsedAppUrl.password) {
+    throw new Error("--app-url must not contain credentials")
+  }
+
+  return {
+    browserOnly,
+    appUrl: parsedAppUrl.href.replace(/\/$/, ""),
+    runs,
+    queryMedianBudgetMs: parseNonNegativeNumber(
+      environment.PERF_STRESS_QUERY_MEDIAN_BUDGET_MS ??
+        DEFAULT_QUERY_MEDIAN_BUDGET_MS,
+      "PERF_STRESS_QUERY_MEDIAN_BUDGET_MS"
+    ),
+    browserMedianBudgetMs: parseNonNegativeNumber(
+      environment.PERF_STRESS_BROWSER_MEDIAN_BUDGET_MS ??
+        DEFAULT_BROWSER_MEDIAN_BUDGET_MS,
+      "PERF_STRESS_BROWSER_MEDIAN_BUDGET_MS"
+    ),
+    resourceCountBudget: parseNonNegativeNumber(
+      environment.PERF_STRESS_RESOURCE_COUNT_BUDGET ??
+        DEFAULT_RESOURCE_COUNT_BUDGET,
+      "PERF_STRESS_RESOURCE_COUNT_BUDGET"
+    ),
+    transferBytesBudget: parseNonNegativeNumber(
+      environment.PERF_STRESS_TRANSFER_BYTES_BUDGET ??
+        DEFAULT_TRANSFER_BYTES_BUDGET,
+      "PERF_STRESS_TRANSFER_BYTES_BUDGET"
+    ),
+  }
+}
+
+function parseCliSafely(args, environment) {
+  try {
+    return parseCli(args, environment)
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : error)
+    process.exitCode = 1
+    return null
+  }
+}
+
+function requireOptionValue(args, index, name) {
+  const value = args[index]
+  if (!value || value.startsWith("--")) {
+    throw new Error(`${name} requires a value`)
+  }
+  return value
+}
+
+function parsePositiveInteger(value, name) {
+  if (!/^\d+$/.test(String(value)) || Number(value) < 1) {
+    throw new Error(`${name} must be a positive integer`)
+  }
+  return Number(value)
+}
+
+function parseNonNegativeNumber(value, name) {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    throw new Error(`${name} must be a non-negative number`)
+  }
+  return parsed
 }
 
 function readEnvFile(path) {
@@ -365,7 +580,9 @@ function readEnvFile(path) {
   return parsed
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error)
-  process.exitCode = 1
-})
+if (options) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : error)
+    process.exitCode = 1
+  })
+}
