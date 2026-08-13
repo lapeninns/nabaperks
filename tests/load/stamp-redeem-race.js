@@ -7,8 +7,35 @@ const AUTH_TOKEN = __ENV.STAMP_RACE_AUTH_TOKEN
 const STAMP_BODY = __ENV.STAMP_RACE_BODY || "{}"
 const REDEEM_BODY = __ENV.REDEEM_RACE_BODY || "{}"
 
-if (!STAMP_URL || !REDEEM_URL) {
-  throw new Error("STAMP_RACE_URL and REDEEM_RACE_URL are required")
+if (!STAMP_URL || !REDEEM_URL || !AUTH_TOKEN) {
+  throw new Error(
+    "STAMP_RACE_URL, REDEEM_RACE_URL, and STAMP_RACE_AUTH_TOKEN are required"
+  )
+}
+
+for (const [name, rawUrl] of [
+  ["STAMP_RACE_URL", STAMP_URL],
+  ["REDEEM_RACE_URL", REDEEM_URL],
+]) {
+  const url = new URL(rawUrl)
+  if (url.protocol !== "http:" || url.hostname !== "127.0.0.1") {
+    throw new Error(`${name} must use an IPv4 loopback origin`)
+  }
+}
+
+for (const [name, rawBody] of [
+  ["STAMP_RACE_BODY", STAMP_BODY],
+  ["REDEEM_RACE_BODY", REDEEM_BODY],
+]) {
+  const body = JSON.parse(rawBody)
+  if (
+    body === null ||
+    typeof body !== "object" ||
+    Array.isArray(body) ||
+    Object.keys(body).length === 0
+  ) {
+    throw new Error(`${name} must be a non-empty JSON object`)
+  }
 }
 
 export const options = {
@@ -26,9 +53,9 @@ export const options = {
 }
 
 export default function stampRedeemRaceScenario() {
-  const headers = { "content-type": "application/json" }
-  if (AUTH_TOKEN) {
-    headers.authorization = `Bearer ${AUTH_TOKEN}`
+  const headers = {
+    authorization: `Bearer ${AUTH_TOKEN}`,
+    "content-type": "application/json",
   }
 
   const stamp = http.post(STAMP_URL, STAMP_BODY, { headers })

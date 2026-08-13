@@ -141,6 +141,14 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: grafana/setup-k6-action@db07bd9765aac508ef18982e52ab937fe633a065 # v1
+      - name: Require authenticated loopback race targets
+        run: node scripts/check-local-race-target.mjs
+        env:
+          STAMP_RACE_URL: ${{ vars.STAMP_RACE_URL }}
+          REDEEM_RACE_URL: ${{ vars.REDEEM_RACE_URL }}
+          STAMP_RACE_AUTH_TOKEN: ${{ secrets.STAMP_RACE_AUTH_TOKEN }}
+          STAMP_RACE_BODY: ${{ vars.STAMP_RACE_BODY }}
+          REDEEM_RACE_BODY: ${{ vars.REDEEM_RACE_BODY }}
       - name: Run authenticated race check
         run: k6 run tests/load/stamp-redeem-race.js
         env:

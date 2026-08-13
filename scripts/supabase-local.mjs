@@ -4,8 +4,7 @@ import { spawnSync } from "node:child_process"
  * Runs local Supabase CLI commands with the auth hook defaults the CLI needs
  * when parsing supabase/config.toml. Explicit caller values stay authoritative.
  */
-const hookSecretPlaceholder =
-  `v1,${"whsec"}_${"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa="}`
+const hookSecretPlaceholder = `v1,${"whsec"}_${"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa="}`
 const localHookUri =
   "http://host.docker.internal:3000/api/auth/hooks/send-email"
 
@@ -19,7 +18,12 @@ if (!args.length) {
   process.exit(1)
 }
 
-const result = spawnSync("supabase", args, {
+const cliArgs =
+  args[0] === "stop" && !args.includes("--no-backup")
+    ? [...args, "--no-backup"]
+    : args
+
+const result = spawnSync("supabase", cliArgs, {
   cwd: process.cwd(),
   stdio: "inherit",
   env: {

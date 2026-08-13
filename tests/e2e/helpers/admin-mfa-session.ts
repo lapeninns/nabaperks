@@ -11,8 +11,7 @@ const BROWSER_COOKIE_URL =
 type BrowserCookie = Parameters<BrowserContext["addCookies"]>[0][number]
 
 type RequiredEnvName =
-  | "NEXT_PUBLIC_SUPABASE_URL"
-  | "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+  "NEXT_PUBLIC_SUPABASE_URL" | "NEXT_PUBLIC_SUPABASE_ANON_KEY"
 
 type SupabaseCookieOptions = {
   readonly expires?: Date
@@ -71,7 +70,7 @@ async function createSeededAdminAal2Session(): Promise<{
 }> {
   const cookieJar = new Map<string, StoredCookie>()
   const supabase = createServerClient(
-    requiredEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    requireLocalSupabaseUrl(requiredEnv("NEXT_PUBLIC_SUPABASE_URL")),
     requiredEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
     {
       cookies: {
@@ -146,6 +145,24 @@ async function createSeededAdminAal2Session(): Promise<{
       )
     },
   }
+}
+
+export function requireLocalSupabaseUrl(rawUrl: string): string {
+  const url = new URL(rawUrl)
+  if (
+    url.protocol !== "http:" ||
+    url.hostname !== "127.0.0.1" ||
+    url.username !== "" ||
+    url.password !== "" ||
+    url.pathname !== "/" ||
+    url.search !== "" ||
+    url.hash !== ""
+  ) {
+    throw new Error(
+      "NEXT_PUBLIC_SUPABASE_URL must point at the local Supabase API."
+    )
+  }
+  return url.href
 }
 
 function requiredEnv(name: RequiredEnvName): string {
@@ -237,7 +254,9 @@ function totpCode(secret: string, now: number = Date.now()): string {
   message.writeUInt32BE(Math.floor(counter / 0x1_0000_0000), 0)
   message.writeUInt32BE(counter % 0x1_0000_0000, 4)
 
-  const digest = createHmac("sha1", decodeBase32(secret)).update(message).digest()
+  const digest = createHmac("sha1", decodeBase32(secret))
+    .update(message)
+    .digest()
   const offset = byteAt(digest, digest.length - 1) & 0xf
   const binary =
     ((byteAt(digest, offset) & 0x7f) << 24) |

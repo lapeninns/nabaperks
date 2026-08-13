@@ -164,8 +164,8 @@ async function proveDatabaseTarget(sql, config) {
   )
 }
 
-async function proveStagingProbes(config) {
-  const expectedRevision = config.revision.slice(0, 12)
+export async function proveStagingProbes(config) {
+  const expectedRevision = config.revision
   const bypassHeaders = protectionHeaders(config)
   const health = await getJson(
     new URL("/api/health", config.appUrl),
