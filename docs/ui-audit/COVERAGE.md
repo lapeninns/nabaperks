@@ -1926,3 +1926,30 @@ decodes" — a can't-fully-verify, which is not grounds to decline. It was struc
 and replaced with the mechanism that actually decides it: both scanners start
 the decoder on `{ facingMode: "environment" }`, so the device already does the
 right thing. Same verdict, different standard of proof.
+
+### The half of the reference check that was open
+
+`check-ui-audit-tally.mjs` has verified cited source paths since the campaign
+found two rotted ones by hand. Its `FILE_REF` only matches a citation that
+starts at a top-level directory, so a note writing a bare `profile-form.tsx`
+was invisible to it — and two notes were doing exactly that, one of them
+addressing a `components/merchant/account/` directory that has never held that
+file. A citation nobody can follow is not evidence, which is the reason the
+path check exists at all.
+
+Closed here with an ADDED check (nothing existing was touched): every bare
+filename in the evidence documents must resolve to exactly one real file. 81
+did. Two resolve to nothing on purpose — `separator.tsx` and
+`marketing-type-scale.test.mjs` are both named in order to record that they are
+gone or never existed — so they are allowed by name with the reason attached,
+rather than by deleting the correction to satisfy a checker. Two resolved to
+many and were rewritten as paths; a bare page.tsx (unbackticked here, or this
+paragraph would fail its own check) matches **116** files in an App Router repo,
+so citing it that way told a reader nothing.
+
+Sabotage-verified in all three directions, because a checker that filters its
+input is the exact shape of bug this file already carries three notes about:
+a bare name that matches nothing EXIT=1, an ambiguous one EXIT=1,
+and — the one that matters — narrowing the regex so it matches nothing at all
+trips the vacuity guard, `only 0 bare filenames resolved`, EXIT=1 rather than a
+green run on an empty set.

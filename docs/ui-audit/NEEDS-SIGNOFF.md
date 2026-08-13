@@ -1246,7 +1246,7 @@ one of four shell files:
 | `customer-shell.tsx`       | `sm:px-6 sm:pt-10 sm:pb-10`                 |
 | `customer-app-shell.tsx`   | `sm:px-6` ×2                                |
 | `customer-flow-system.tsx` | `sm:px-6`, `sm:pt-6/8`, `sm:pb-[max(…)]` ×2 |
-| `loading-skeletons.tsx`    | the same five, mirroring the flow shell     |
+| `components/customer/loading-skeletons.tsx` | the same five, mirroring the flow shell |
 
 Those measure the gap between the column and the **screen edge**. A container
 query on `max-w-customer` cannot express them, because that container is a
@@ -1925,7 +1925,7 @@ worse than no filter, which is why nothing was shipped.
 
 **Option A — filter on `target_table` (recommended).** It is a column co-written
 on all 110 inserts, so it needs no naming judgement at all, and `/admin/audit`
-_already prints it_ in the Target column (`AuditTarget`, `page.tsx`). The operator
+_already prints it_ in the Target column (`AuditTarget`, `app/admin/audit/page.tsx`). The operator
 question it answers — "what did this touch" — is the one the trail is usually read
 for. 21 values, so a `<select>`, not a chip row:
 
