@@ -60,7 +60,6 @@ test(
       mode: 0o600,
     })
     const scratchExisted = PLAYWRIGHT_SCRATCH.map((path) => existsSync(path))
-    mkdirSync(PLAYWRIGHT_SCRATCH[0])
     writeFileSync(
       ENV_LOCAL,
       [
@@ -114,6 +113,7 @@ test(
     }
 
     assert.equal(existsSync(ENV_LOCAL), false)
+    assert.equal(existsSync(PLAYWRIGHT_SCRATCH[0]), false)
     const testResultEntries = readdirSync(testResults)
     rmSync(sentinel, { force: true })
     rmSync(testResults, { recursive: true })

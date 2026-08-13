@@ -1,7 +1,15 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process"
 import { createHash } from "node:crypto"
-import { existsSync, mkdtempSync, renameSync, rmSync } from "node:fs"
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
@@ -13,12 +21,18 @@ function installPlaywrightOutputCleanup() {
   const isPlaywrightCli =
     process.env.TASK15_LITERAL_PLAYWRIGHT_CLEANUP === "1" &&
     process.argv[2] === "test" &&
-    /(?:^|[/\\])playwright(?:[/\\]cli\.js|(?:\.js)?)$/.test(
+    /(?:^|[/\\])@?playwright(?:[/\\]test)?[/\\]cli\.js$/.test(
       process.argv[1] ?? ""
     )
   if (!isPlaywrightCli) return
 
   const output = join(process.cwd(), "test-results")
+  const lastRunRoot = join(process.cwd(), ".next-e2e")
+  const lastRunFile = join(lastRunRoot, ".last-run.json")
+  const lastRunRootExisted = existsSync(lastRunRoot)
+  const previousLastRun = existsSync(lastRunFile)
+    ? readFileSync(lastRunFile)
+    : null
   const backupRoot = existsSync(output)
     ? mkdtempSync(join(tmpdir(), "task15-playwright-output-"))
     : null
@@ -31,6 +45,13 @@ function installPlaywrightOutputCleanup() {
     rmSync(output, { recursive: true, force: true })
     if (backup !== null) renameSync(backup, output)
     if (backupRoot !== null) rmSync(backupRoot, { recursive: true })
+    rmSync(lastRunFile, { force: true })
+    if (previousLastRun !== null) {
+      mkdirSync(lastRunRoot, { recursive: true })
+      writeFileSync(lastRunFile, previousLastRun)
+    } else if (!lastRunRootExisted) {
+      rmSync(lastRunRoot, { recursive: true, force: true })
+    }
   }
   process.once("exit", cleanup)
   for (const signal of ["SIGINT", "SIGTERM"]) {
