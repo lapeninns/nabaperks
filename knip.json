@@ -1,10 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
-    "components/ui/**/*.{ts,tsx}",
     "components/merchant/launch/launch-billing-cta.tsx",
-    "scripts/**/*.mjs",
-    "tests/**/*.{mjs,ts,tsx}",
     "app/**/{page,layout,route,error,loading,not-found,template,default}.{ts,tsx}"
   ],
   "project": [
@@ -14,6 +11,10 @@
     "lib/**/*.{ts,tsx}",
     "scripts/**/*.mjs",
     "tests/**/*.{mjs,ts,tsx}",
+    "tests/load/**/*.js",
+    "public/sw.js",
+    "supabase/**/*.sql",
+    "supabase/**/*.json",
     "*.{ts,mts,mjs}"
   ],
   "ignoreDependencies": ["shadcn", "tailwindcss", "tw-animate-css"],

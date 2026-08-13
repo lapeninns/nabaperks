@@ -35,7 +35,7 @@
     "duplicates:check": "jscpd app components lib --config jscpd.json",
     "debt:check": "node scripts/check-technical-debt.mjs",
     "docs:generate": "node scripts/generate-api-docs.mjs && prettier --write docs/api/README.md",
-    "docs:check": "pnpm docs:generate && git diff --exit-code -- docs/api/README.md",
+    "docs:check": "pnpm docs:generate && git diff --exit-code -- docs/api/openapi.json docs/api/README.md",
     "agents:check": "node scripts/check-agent-docs.mjs",
     "quality:fast": "pnpm lint && pnpm typecheck && pnpm test",
     "quality:check": "pnpm quality:fast && pnpm deadcode:check && pnpm duplicates:check && pnpm debt:check && pnpm docs:check && pnpm agents:check",
