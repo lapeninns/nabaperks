@@ -28,7 +28,7 @@ Every commit was gated with `pnpm typecheck`, `pnpm lint`, `pnpm quality:fast`
 | [x] | 03#34 | Medium   | done by ui-merchant (`e387cecd`) | Five metric tiles at `grid-cols-2 lg:grid-cols-5` with five helper sentences.                                                                                                                   |
 | [x] | 03#35 | High     | done by ui-merchant (`e387cecd`) | Campaign QR hero + a full second management panel. The `rounded-2xl` half was already STALE here: the QR frame was `rounded-lg`.                                                                |
 | [x] | 03#36 | Medium   | done by ui-merchant (`e387cecd`) | Offers hub taught the three benefit presets on every visit.                                                                                                                                     |
-| [~] | 03#37 | Critical | partial (`071422bb`)             | Chrome unified: one `PrintPreviewNav` (asset-kind row + design row) now serves poster, tent, NFC card and wall plate. The single `/app/qr/print/[kind]/[design]` route is NOT done — see below. |
+| [~] | 03#37 | Critical | partial (`071422bb`)             | Chrome unified: one `PrintPreviewNav` (asset-kind row + design row) now serves poster, tent, NFC card and wall plate. The single `/app/qr/print/[kind]/[design]` route is NOT done — see below. RE-TESTED BY RUNNING IT, and the note's residual was half stale. The note said the leftover duplication was "the ~35-line load / `notFound` / render-PNG / error skeleton in the four route files": it was in ONE. Tent, NFC and NFC-square already route through `lib/merchant/print-asset-route.ts`, whose own docblock takes `paramKey` as "`design`, or `template` on posters" — a helper built for a caller that never arrived. I migrated the poster onto it in full and RAN the suite: `not ok 506 - poster route uses protected QR context and the unified render hosts`, because `tests/contracts/qr-a4-poster-templates.test.mjs:67-68` assert the literals `getOwnedQrImageContext` and `renderPosterQrCodePng` INSIDE that file and the helper moves both calls out. Reverted. So the route-collapse half is genuinely contract-blocked — and the blocker's scope is now known to be exactly two identifiers in one file, not the file. SHIPPED what no assertion reaches: the poster route carried its own `PosterRenderError`, a **seventh** copy of the surface 03#41 collapsed to one, byte-identical to the `poster` entry already present in `print-asset-error.tsx` (compared string by string, including `min-h-dvh place-items-center bg-[var(--w-paper)] p-6`, `max-w-md gap-4 edge`, `titleClassName="sm:text-2xl"`, `variant="outline" className="w-fit"` and "Back to QR"), plus a private `firstSearchValue` duplicating the exported one. 114 → 86 lines, no merchant-visible change, and the two pinned identifiers stay put. `deadexports` baseline pruned 375 → 374 because `firstSearchValue` stopped being dead. lint/typecheck/test/build EXIT=0. |
 | [x] | 03#39 | Critical | done (`78304258`)                | Four stacked asset lanes (~2,400px at 390px) are now one lane at a time behind an asset-type row.                                                                                               |
 | [x] | 03#40 | High     | done (`78304258`)                | The QR workspace hero is now a status strip; the duplicated h2 "Launch your counter QR" is gone.                                                                                                |
 | [x] | 03#41 | Low      | done (`c74bfa6a`)                | Six copies of one render-error surface collapse to one `PrintAssetError`.                                                                                                                       |
@@ -63,9 +63,33 @@ block it, and the first is authoritative:
 
 What shipped instead is the merchant-visible half: the switcher is now one
 component, so changing asset kind or design is one tap from any of the four
-previews. What remains duplicated is the ~35-line
-load / `notFound` / render-PNG / error skeleton in the four route files, which
-no merchant can see.
+previews.
+
+**Re-tested (blockers lane).** The sentence that used to close this paragraph —
+"what remains duplicated is the ~35-line load / `notFound` / render-PNG / error
+skeleton in the four route files" — was stale. Three of the four already route
+through `lib/merchant/print-asset-route.ts`; only `app/app/qr/poster/[template]/page.tsx`
+did not, and that helper's docblock already reads `paramKey` as "`design`, or
+`template` on posters". It was built for a caller that never arrived.
+
+Migrating the poster onto it in full was tried, not reasoned about, and the
+suite answered:
+
+    not ok 506 - poster route uses protected QR context and the unified render hosts
+    The input did not match the regular expression /getOwnedQrImageContext/
+
+`tests/contracts/qr-a4-poster-templates.test.mjs:67-68` assert the literals
+`getOwnedQrImageContext` and `renderPosterQrCodePng` inside that file, and the
+helper moves both calls out — behaviour preserved, literal gone. That is a
+reword of an existing assertion, which is the one move this branch does not
+make. Reverted.
+
+So the blocker is real and its scope is now exact: **two identifiers in one
+file**, not the file and not the route. Everything the assertions do not reach
+was shared instead — the poster's private `PosterRenderError` (a seventh copy of
+the surface 03#41 collapsed to one, byte-identical to the `poster` entry already
+sitting in `print-asset-error.tsx`) and its private `firstSearchValue`. The
+route is 114 → 86 lines with no merchant-visible change.
 
 Also worth recording against 03#37: the claim that "the print CTA changes
 variant, size and position" is **partly stale**. All four already used
