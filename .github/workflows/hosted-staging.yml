@@ -1,0 +1,109 @@
+name: Hosted staging proof
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_revision:
+        description: Full immutable Git SHA at the tip of main
+        required: true
+        type: string
+      staging_app_url:
+        description: Immutable Vercel deployment origin for that SHA
+        required: true
+        type: string
+      confirmation:
+        description: Type PROVE_HOSTED_STAGING to continue
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hosted-staging-${{ inputs.expected_revision }}
+  cancel-in-progress: false
+
+jobs:
+  proof:
+    name: Isolated hosted staging evidence
+    environment: Staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      EXPECTED_REVISION: ${{ inputs.expected_revision }}
+      PRODUCTION_SUPABASE_PROJECT_REF: skonlhwstejberyzobep
+      STAGING_APP_URL: ${{ inputs.staging_app_url }}
+      STAGING_EVIDENCE_PATH: ${{ runner.temp }}/hosted-staging-evidence.json
+      STAGING_EXPECTED_REVISION: ${{ inputs.expected_revision }}
+      STAGING_MODE: hosted
+      STAGING_MONITOR_SECRET: ${{ secrets.STAGING_MONITOR_SECRET }}
+      STAGING_OWNER_NAMESPACE: staging-${{ github.run_id }}-${{ github.run_attempt }}
+      STAGING_RESEND_WEBHOOK_SECRET: ${{ secrets.STAGING_RESEND_WEBHOOK_SECRET }}
+      STAGING_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+      STAGING_STRIPE_WEBHOOK_SECRET: ${{ secrets.STAGING_STRIPE_WEBHOOK_SECRET }}
+      STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+      STAGING_SUPABASE_PROJECT_REF: ${{ vars.STAGING_SUPABASE_PROJECT_REF }}
+      STAGING_VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.STAGING_VERCEL_AUTOMATION_BYPASS_SECRET }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.STAGING_SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.STAGING_SUPABASE_DB_PASSWORD }}
+      SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+      DO_NOT_TRACK: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.expected_revision }}
+          fetch-depth: 0
+      - name: Require immutable main source and an isolated target
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$CONFIRMATION" = "PROVE_HOSTED_STAGING"
+          test "$EXPECTED_REVISION" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_REVISION"
+          test "$(git rev-parse origin/main)" = "$EXPECTED_REVISION"
+          test "$STAGING_SUPABASE_PROJECT_REF" != "$PRODUCTION_SUPABASE_PROJECT_REF"
+          test "$STAGING_OWNER_NAMESPACE" = "staging-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          test -n "$STAGING_EVIDENCE_PATH"
+      - uses: ./.github/actions/setup
+      - uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3
+        with:
+          version: 2.106.0
+      - name: Link the isolated staging project
+        run: supabase link --project-ref "$STAGING_SUPABASE_PROJECT_REF"
+      - name: Verify hosted migration parity
+        run: node scripts/check-supabase-migrations.mjs
+      - name: Mark migration parity for the receipt
+        run: echo "STAGING_MIGRATION_PARITY_VERIFIED=true" >> "$GITHUB_ENV"
+      - name: Prove durable replay and rollback-only journeys
+        run: pnpm smoke:staging
+      - name: Validate the complete hosted staging receipt
+        run: |
+          jq -e '
+            .schema == "nabaperks.hosted-staging-proof.v1" and
+            .revision == env.EXPECTED_REVISION and
+            .projectRef == env.STAGING_SUPABASE_PROJECT_REF and
+            .ownerNamespace == env.STAGING_OWNER_NAMESPACE and
+            .targetEnvironment == "staging" and
+            .migrationParityVerified == true and
+            .rollbackVerified == true and
+            .redactionVerified == true and
+            .resendReplayVerified == true and
+            .stripeReplayVerified == true
+          ' "$STAGING_EVIDENCE_PATH"
+      - name: Record the non-promotion boundary
+        run: |
+          {
+            echo "### Hosted staging source evidence"
+            echo
+            echo "Revision, target isolation, migration parity, durable replay, rollback and redaction receipts passed."
+            echo "This source gate performs no deployment or promotion; live proof and promotion remain Tasks 27 and 28."
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload hosted staging receipts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: hosted-staging-${{ inputs.expected_revision }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/hosted-staging-evidence.json
+          if-no-files-found: error
+          retention-days: 365

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict"
 import { createHmac, randomUUID } from "node:crypto"
+import { writeFile } from "node:fs/promises"
 import { pathToFileURL } from "node:url"
 
 import postgres from "postgres"
@@ -25,9 +26,15 @@ export async function runStagingReleaseProof(env) {
   try {
     await proveDatabaseTarget(sql, config)
     await proveStagingProbes(config)
-    await proveRolledBackLoyaltyJourney(sql, config)
-    await proveStripeWebhookReplay(sql, config)
-    await proveResendWebhookReplay(config)
+    const rollbackVerified = await proveRolledBackLoyaltyJourney(sql, config)
+    const stripeReplayVerified = await proveStripeWebhookReplay(sql, config)
+    const resendReplayVerified = await proveResendWebhookReplay(sql, config)
+    await writeEvidence(config, {
+      migrationParityVerified: config.migrationParityVerified,
+      resendReplayVerified,
+      rollbackVerified,
+      stripeReplayVerified,
+    })
     console.log("Staging release proof passed.")
   } finally {
     await sql.end({ timeout: 5 })
@@ -61,7 +68,17 @@ export function resolveConfig(env) {
     "staging DB URL must use PostgreSQL"
   )
 
+  const runId = required(env, "STAGING_RUN_ID")
+  assert.match(
+    runId,
+    /^\d+-[1-9]\d*$/,
+    "STAGING_RUN_ID must be a GitHub run identifier and positive attempt"
+  )
+
   let bypassSecret = ""
+  let evidencePath = ""
+  let migrationParityVerified = false
+  let ownerNamespace = `ephemeral-${runId}`
   let projectRef = "local-ephemeral"
   if (mode === HOSTED_MODE) {
     projectRef = required(env, "STAGING_SUPABASE_PROJECT_REF")
@@ -70,6 +87,29 @@ export function resolveConfig(env) {
       /^[a-z\d]{20}$/,
       "invalid staging Supabase project ref"
     )
+    assert.notEqual(
+      projectRef,
+      required(env, "PRODUCTION_SUPABASE_PROJECT_REF"),
+      "staging Supabase project ref must differ from production"
+    )
+    assert.equal(
+      revision,
+      required(env, "GITHUB_SHA"),
+      "expected revision must equal the checked-out Git SHA"
+    )
+    evidencePath = required(env, "STAGING_EVIDENCE_PATH")
+    ownerNamespace = required(env, "STAGING_OWNER_NAMESPACE")
+    assert.equal(
+      ownerNamespace,
+      `staging-${runId}`,
+      "staging owner namespace must be unique to this run attempt"
+    )
+    assert.equal(
+      required(env, "STAGING_MIGRATION_PARITY_VERIFIED"),
+      "true",
+      "hosted staging requires migration parity before proof"
+    )
+    migrationParityVerified = true
     assert.equal(appUrl.protocol, "https:", "staging app must use HTTPS")
     assert.match(
       appUrl.hostname,
@@ -128,19 +168,15 @@ export function resolveConfig(env) {
     "invalid staging Resend webhook secret"
   )
 
-  const runId = required(env, "STAGING_RUN_ID")
-  assert.match(
-    runId,
-    /^\d+-[1-9]\d*$/,
-    "STAGING_RUN_ID must be a GitHub run identifier and positive attempt"
-  )
-
   return {
     appUrl,
     bypassSecret,
     dbUrl,
+    evidencePath,
+    migrationParityVerified,
     mode,
     monitorSecret: required(env, "STAGING_MONITOR_SECRET"),
+    ownerNamespace,
     projectRef,
     resendWebhookSecret,
     revision,
@@ -445,6 +481,7 @@ export async function proveRolledBackLoyaltyJourney(sql, config) {
   console.log(
     `Rolled-back staging loyalty journey passed for ${config.revision.slice(0, 12)}.`
   )
+  return true
 }
 
 async function ageEarnedStamps(tx, membershipId) {
@@ -531,14 +568,19 @@ async function proveStripeWebhookReplay(sql, config) {
   } finally {
     await sql`delete from public.stripe_webhook_events where stripe_event_id = ${eventId}`
   }
+  return true
 }
 
-async function proveResendWebhookReplay(config) {
+async function proveResendWebhookReplay(sql, config) {
   const timestamp = String(Math.floor(Date.now() / 1000))
   const webhookId = `msg_staging_${randomUUID()}`
+  const ownerUserId = randomUUID()
+  const campaignId = randomUUID()
+  const recipientId = randomUUID()
+  const providerMessageId = `email_${config.ownerNamespace}_${randomUUID()}`
   const body = JSON.stringify({
-    data: { email_id: `email_staging_${config.revision.slice(0, 12)}` },
-    type: "email.sent",
+    data: { email_id: providerMessageId },
+    type: "email.delivered",
   })
   const signature = createHmac(
     "sha256",
@@ -554,18 +596,100 @@ async function proveResendWebhookReplay(config) {
     ...protectionHeaders(config),
   }
 
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    const response = await postJson(
-      new URL("/api/resend/webhook", config.appUrl),
-      body,
-      headers
-    )
+  try {
+    await sql`
+      insert into auth.users
+        (id, email, aud, role, email_confirmed_at, created_at, updated_at)
+      values
+        (${ownerUserId}::uuid, ${`${config.ownerNamespace}@example.invalid`},
+         'authenticated', 'authenticated', now(), now(), now())
+    `
+    const [merchant] = await sql`
+      insert into public.merchants
+        (owner_user_id, business_name, business_slug, business_type, email)
+      values
+        (${ownerUserId}::uuid, 'Hosted staging proof',
+         ${`${config.ownerNamespace}-${randomUUID()}`}, 'cafe',
+         ${`${config.ownerNamespace}@example.invalid`})
+      returning id
+    `
+    await sql`
+      insert into public.loyalty_invite_campaigns
+        (id, merchant_id, status, legal_basis, link_expires_at, confirmed_at)
+      values
+        (${campaignId}::uuid, ${merchant.id}::uuid, 'sending',
+         'venue_email_consent', now() + interval '1 day', now())
+    `
+    await sql`
+      insert into public.loyalty_invite_recipients
+        (id, campaign_id, merchant_id, email_hmac, email_ciphertext,
+         email_masked, claim_token_hash, unsubscribe_token_hash, status,
+         provider_message_id)
+      values
+        (${recipientId}::uuid, ${campaignId}::uuid, ${merchant.id}::uuid,
+         ${randomUUID().replaceAll("-", "")}, 'v1.redacted.fixture',
+         's***@example.invalid', ${randomUUID().replaceAll("-", "")},
+         ${randomUUID().replaceAll("-", "")}, 'sent', ${providerMessageId})
+    `
+
+    const observations = []
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const response = await postJson(
+        new URL("/api/resend/webhook", config.appUrl),
+        body,
+        headers
+      )
+      assert.deepEqual(response, { ok: true }, "staging Resend replay failed")
+      const [delivery] = await sql`
+        select status, delivered_at::text as delivered_at,
+          updated_at::text as updated_at
+        from public.loyalty_invite_recipients
+        where id = ${recipientId}::uuid
+      `
+      observations.push(delivery)
+    }
+    assert.equal(observations[0]?.status, "delivered")
+    assert.ok(observations[0]?.delivered_at)
     assert.deepEqual(
-      response,
-      { ignored: true, ok: true },
-      "staging Resend webhook replay failed"
+      observations[1],
+      observations[0],
+      "staging Resend replay changed durable delivery state"
+    )
+  } finally {
+    await sql`delete from public.merchants where owner_user_id = ${ownerUserId}::uuid`
+    await sql`delete from auth.users where id = ${ownerUserId}::uuid`
+  }
+  return true
+}
+
+async function writeEvidence(config, checks) {
+  if (!config.evidencePath) return
+  const receipt = {
+    schema: "nabaperks.hosted-staging-proof.v1",
+    revision: config.revision,
+    projectRef: config.projectRef,
+    ownerNamespace: config.ownerNamespace,
+    targetEnvironment: "staging",
+    ...checks,
+    redactionVerified: true,
+  }
+  const serialised = `${JSON.stringify(receipt, null, 2)}\n`
+  for (const secret of [
+    config.bypassSecret,
+    config.dbUrl,
+    config.monitorSecret,
+    config.resendWebhookSecret,
+    config.stripeWebhookSecret,
+  ]) {
+    assert.equal(
+      serialised.includes(secret),
+      false,
+      "staging evidence must redact credentials"
     )
   }
+  assert.equal(receipt.rollbackVerified, true)
+  assert.equal(receipt.redactionVerified, true)
+  await writeFile(config.evidencePath, serialised, { mode: 0o600 })
 }
 
 async function getJson(url, headers = {}) {

@@ -45,6 +45,9 @@ of implementation truth.
 - `pnpm smoke:staging` is intentionally fail-closed and proves only the
   configured isolated staging target; the workflow supplies its exact revision,
   immutable deployment URL and protected staging credentials.
+- `.github/workflows/hosted-staging.yml` is a manually approved source-evidence
+  gate only. It cannot deploy or promote; hosted live proof and promotion remain
+  Tasks 27 and 28 respectively.
 - `pnpm ops:restore:verify` proves a selected completed physical backup was
   restored into a fresh, protected, non-production Supabase target, then checks
   its as-of-backup migration ledger, forced RLS, RPCs, constraints, indexes and
@@ -59,6 +62,7 @@ of implementation truth.
   fail-closed coverage breach, requires seven observed days and 95% evidence
   coverage, and retains a daily report. Because both signals are GitHub-hosted,
   this is not proof of independent external monitoring.
+
 Factory evaluates repository state from GitHub. After these controls merge,
 refresh the report and inspect every binary criterion rather than inferring a
 score from the local checkout.

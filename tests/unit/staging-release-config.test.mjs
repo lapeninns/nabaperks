@@ -7,9 +7,14 @@ const PROJECT_REF = "abcdefghijklmnopqrst"
 
 function validEnv(overrides = {}) {
   return {
+    GITHUB_SHA: "a".repeat(40),
+    PRODUCTION_SUPABASE_PROJECT_REF: "skonlhwstejberyzobep",
     STAGING_APP_URL: "https://nabaperks-staging-proof.vercel.app",
+    STAGING_EVIDENCE_PATH: "/tmp/hosted-staging-evidence.json",
     STAGING_EXPECTED_REVISION: "a".repeat(40),
+    STAGING_MIGRATION_PARITY_VERIFIED: "true",
     STAGING_MONITOR_SECRET: "monitor-secret",
+    STAGING_OWNER_NAMESPACE: "staging-123-1",
     STAGING_RESEND_WEBHOOK_SECRET: `whsec_${Buffer.from("a".repeat(32)).toString("base64")}`,
     STAGING_RUN_ID: "123-1",
     STAGING_STRIPE_WEBHOOK_SECRET: "whsec_staging_123",
@@ -54,6 +59,29 @@ test("staging release config rejects a non-unique run identifier", () => {
   assert.throws(
     () => resolveConfig(validEnv({ STAGING_RUN_ID: "shared-run" })),
     /GitHub run identifier and positive attempt/
+  )
+})
+
+test("hosted staging rejects a revision other than the checked-out SHA", () => {
+  assert.throws(
+    () => resolveConfig(validEnv({ GITHUB_SHA: "b".repeat(40) })),
+    /checked-out Git SHA/
+  )
+})
+
+test("hosted staging rejects a production project or absent evidence receipt", () => {
+  assert.throws(
+    () =>
+      resolveConfig(
+        validEnv({
+          PRODUCTION_SUPABASE_PROJECT_REF: PROJECT_REF,
+        })
+      ),
+    /must differ from production/
+  )
+  assert.throws(
+    () => resolveConfig(validEnv({ STAGING_EVIDENCE_PATH: "" })),
+    /STAGING_EVIDENCE_PATH/
   )
 })
 
