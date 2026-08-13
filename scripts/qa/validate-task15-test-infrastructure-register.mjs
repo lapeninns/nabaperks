@@ -134,36 +134,72 @@ function trustedEvidenceRoot(path, code) {
  */
 function tapTotals(path, root, code) {
   const trusted = regularFile(path, root, code)
-  const text = readFileSync(trusted, "utf8")
-  const read = (label) => {
-    const matches = text.match(new RegExp("^# " + label + " (\\d+)$", "gm"))
-    // Exactly one: a second summary line is appended content, not output.
-    if (matches === null || matches.length !== 1) reject(code)
-    return Number(matches[0].slice(`# ${label} `.length))
-  }
-  const totals = {
-    tests: read("tests"),
-    passed: read("pass"),
-    failed: read("fail"),
-    skipped: read("skipped"),
-  }
-  const plans = text.match(/^1\.\.(\d+)$/gm)
-  if (plans === null || plans.length !== 1) reject(code)
-  const planned = Number(plans[0].slice(3))
-  if (planned !== totals.tests) reject(code)
-  const assertions = text.match(/^(?:ok|not ok) \d+/gm)
-  if ((assertions === null ? 0 : assertions.length) !== planned) reject(code)
-  // Polarity must agree with the summary: a transcript whose body records a
-  // failure cannot report a passing total, and vice versa. Counting assertions
-  // without this let a `not ok` body sit under `# fail 0`.
-  const failures = text.match(/^not ok \d+/gm)
-  if ((failures === null ? 0 : failures.length) !== totals.failed) reject(code)
-  const passes = text.match(/^ok \d+/gm)
-  if ((passes === null ? 0 : passes.length) !== totals.passed) reject(code)
-  const lines = text.split("\n")
+  const lines = readFileSync(trusted, "utf8").split("\n")
   while (lines.length > 0 && lines[lines.length - 1] === "") lines.pop()
-  if (!/^# duration_ms \d+(?:\.\d+)?$/.test(lines[lines.length - 1] ?? ""))
+  if (lines.shift() !== "TAP version 13") reject(code)
+
+  let assertions = 0
+  let failures = 0
+  let index = 0
+  while (index < lines.length && !/^1\.\.\d+$/.test(lines[index])) {
+    if (assertions === 0 && lines[index].startsWith("# node:")) {
+      do {
+        index += 1
+      } while (lines[index]?.startsWith("#") === true)
+    }
+    if (lines[index]?.startsWith("# Subtest: ")) index += 1
+    const assertion = lines[index]?.match(/^(ok|not ok) (\d+) - .+$/)
+    if (assertion === undefined || assertion === null) reject(code)
+    if (Number(assertion[2]) !== assertions + 1) reject(code)
+    assertions += 1
+    if (assertion[1] === "not ok") failures += 1
+    index += 1
+    if (lines[index] === "  ---") {
+      index += 1
+      while (index < lines.length && lines[index] !== "  ...") {
+        if (!/^  .*$/.test(lines[index])) reject(code)
+        index += 1
+      }
+      if (lines[index] !== "  ...") reject(code)
+      index += 1
+    }
+  }
+
+  const plan = lines[index]?.match(/^1\.\.(\d+)$/)
+  if (plan === undefined || plan === null || Number(plan[1]) !== assertions)
     reject(code)
+  index += 1
+  const labels =
+    lines[index + 1]?.startsWith("# suites ") === true
+      ? ["tests", "suites", "pass", "fail", "cancelled", "skipped", "todo"]
+      : ["tests", "pass", "fail", "skipped"]
+  const summary = labels.map((label) => {
+    const line = lines[index]
+    index += 1
+    return line?.match(new RegExp(`^# ${label} (\\d+)$`))
+  })
+  const duration = lines[index]
+  if (
+    summary.some((line) => line === undefined || line === null) ||
+    !/^# duration_ms \d+(?:\.\d+)?$/.test(duration ?? "") ||
+    index + 1 !== lines.length
+  ) {
+    reject(code)
+  }
+  const standard = labels.length === 7
+  const totals = {
+    tests: Number(summary[0][1]),
+    passed: Number(summary[standard ? 2 : 1][1]),
+    failed: Number(summary[standard ? 3 : 2][1]),
+    skipped: Number(summary[standard ? 5 : 3][1]),
+  }
+  if (
+    totals.tests !== assertions ||
+    totals.failed !== failures ||
+    totals.passed !== assertions - failures
+  ) {
+    reject(code)
+  }
   return totals
 }
 

@@ -890,6 +890,23 @@ test("Given a duplicated summary line appended to a TAP When validated Then the 
   })
 })
 
+test("Given unrecognised content inserted before a TAP duration When validated Then the register refuses it", () => {
+  for (const injection of ["forged output before duration", "# forged"]) {
+    withTemp((temp) => {
+      const map = trustedFixedMap(temp)
+      const green = fixtureTaps(map).green
+      writeFileSync(
+        green,
+        readFileSync(green, "utf8").replace(
+          "# duration_ms 2.345678",
+          `${injection}\n# duration_ms 2.345678`
+        )
+      )
+      expectCode(run(map, temp), "UNTRUSTED_EXECUTION_EVIDENCE")
+    })
+  }
+})
+
 test("Given a TAP whose body records a failure under a passing summary When validated Then the register refuses it", () => {
   withTemp((temp) => {
     const map = trustedFixedMap(temp)
