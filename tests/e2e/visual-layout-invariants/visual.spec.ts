@@ -99,13 +99,46 @@ test.describe("visual layout invariants @visual", () => {
       host.style.width = "100px"
       host.style.overflowX = "hidden"
       host.style.whiteSpace = "nowrap"
-      host.textContent = "Concealed overflow fixture that exceeds its host"
+      const child = document.createElement("div")
+      child.style.width = "300px"
+      const text = document.createElement("span")
+      text.textContent = "Concealed descendant overflow fixture"
+      child.append(text)
+      host.append(child)
       main.prepend(host)
     })
 
     await expect(assertVisualLayoutInvariants(page)).rejects.toThrow(
       /hidden horizontal overflow: \[data-visual-overflow-fixture="true"\]/i
     )
+  })
+
+  test("Given emulated safe-area insets When the mobile shell renders Then its header clears the inset at runtime", async ({
+    page,
+  }) => {
+    const session = await page.context().newCDPSession(page)
+    await session.send("Emulation.setSafeAreaInsetsOverride", {
+      insets: { bottom: 34, left: 0, right: 0, top: 24 },
+    })
+    await page.setViewportSize({ width: 375, height: 812 })
+    await page.goto(DASHBOARD_PATH)
+
+    const header = page.locator("header").first()
+    await expect(header).toBeVisible()
+    const geometry = await header.evaluate((element) => {
+      const bounds = element.getBoundingClientRect()
+      return {
+        bottom: bounds.bottom,
+        paddingTop: Number.parseFloat(getComputedStyle(element).paddingTop),
+        top: bounds.top,
+      }
+    })
+
+    expect(geometry.top).toBe(0)
+    expect(geometry.paddingTop).toBe(32)
+    expect(geometry.bottom).toBeGreaterThan(24)
+    await expect(page.getByRole("button", { name: "Open menu" })).toBeVisible()
+    await session.detach()
   })
 
   test("Given the required mobile, tablet, landscape and desktop viewports When the dashboard renders Then every physical layout is bounded", async ({

@@ -31,34 +31,46 @@ export async function assertVisualLayoutInvariants(
 
       const style = window.getComputedStyle(element)
       const bounds = element.getBoundingClientRect()
-      const concealsOverflow =
-        style.overflowX === "hidden" || style.overflowX === "clip"
-      const directTextIsConcealed =
+      const isTextLeaf =
         element.childElementCount === 0 &&
+        element.textContent?.trim() !== "" &&
         style.textOverflow !== "ellipsis" &&
-        style.webkitLineClamp === "none" &&
-        element.scrollWidth - element.clientWidth > layoutTolerancePx
-      if (
-        !concealsOverflow ||
-        bounds.width <= 0 ||
-        bounds.height <= 0 ||
-        !directTextIsConcealed
-      ) {
+        style.webkitLineClamp === "none"
+      if (!isTextLeaf || bounds.width <= 0 || bounds.height <= 0) {
         return []
       }
 
+      let clippingAncestor: HTMLElement | null = element
+      while (clippingAncestor && main.contains(clippingAncestor)) {
+        const ancestorStyle = window.getComputedStyle(clippingAncestor)
+        const ancestorBounds = clippingAncestor.getBoundingClientRect()
+        const concealsOverflow =
+          ancestorStyle.overflowX === "hidden" ||
+          ancestorStyle.overflowX === "clip"
+        const descendantEscapes =
+          bounds.left < ancestorBounds.left - layoutTolerancePx ||
+          bounds.right > ancestorBounds.right + layoutTolerancePx
+        const directTextEscapes =
+          clippingAncestor === element &&
+          element.scrollWidth - element.clientWidth > layoutTolerancePx
+
+        if (concealsOverflow && (descendantEscapes || directTextEscapes)) break
+        clippingAncestor = clippingAncestor.parentElement
+      }
+
+      if (!clippingAncestor || !main.contains(clippingAncestor)) return []
+
       const label = (() => {
-        if (element.dataset.visualOverflowFixture) {
-          return `[data-visual-overflow-fixture="${element.dataset.visualOverflowFixture}"]`
+        if (clippingAncestor.dataset.visualOverflowFixture) {
+          return `[data-visual-overflow-fixture="${clippingAncestor.dataset.visualOverflowFixture}"]`
         }
 
-        const style = window.getComputedStyle(element)
-        const classLabel = element.className
+        const classLabel = clippingAncestor.className
           .trim()
           .split(/\s+/)
           .slice(0, 3)
           .join(".")
-        return `${element.tagName.toLowerCase()}${classLabel ? `.${classLabel}` : ""}[text-overflow=${style.textOverflow};line-clamp=${style.webkitLineClamp}]`
+        return `${clippingAncestor.tagName.toLowerCase()}${classLabel ? `.${classLabel}` : ""}[text-overflow=${style.textOverflow};line-clamp=${style.webkitLineClamp}]`
       })()
 
       return [label]
