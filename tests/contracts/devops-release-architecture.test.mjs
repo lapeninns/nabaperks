@@ -6,26 +6,23 @@ function read(path) {
   return readFileSync(path, "utf8")
 }
 
-test("CI exposes one stable release gate over deterministic merge proof", () => {
+test("Given CI completes When the release gate runs Then every prerequisite conclusion is fail closed", () => {
   const ci = read(".github/workflows/ci.yml")
   const releaseGate = ci.slice(ci.indexOf("\n  release-gate:"))
 
   assert.match(ci, /\n  e2e:\n[\s\S]*?\n    needs: fast\n/)
   assert.match(releaseGate, /name: Release gate/)
-  for (const dependency of ["fast", "build"]) {
+  assert.match(releaseGate, /if: \$\{\{ always\(\) \}\}/)
+  const dependencies =
+    "fast quality build e2e-gate a11y-gate visual-gate lighthouse-gate zap-baseline db-gate"
+  for (const dependency of dependencies.split(" ")) {
     assert.match(releaseGate, new RegExp(`- ${dependency}`))
-    assert.match(releaseGate, new RegExp(`needs\\.${dependency}\\.result`))
+    const resultReference = dependency.includes("-")
+      ? `needs\\['${dependency}'\\]\\.result`
+      : `needs\\.${dependency}\\.result`
+    assert.match(releaseGate, new RegExp(resultReference))
   }
-  for (const nonBlockingDependency of [
-    "e2e-gate",
-    "a11y-gate",
-    "visual-gate",
-    "lighthouse-gate",
-    "zap-baseline",
-    "db",
-  ]) {
-    assert.doesNotMatch(releaseGate, new RegExp(`- ${nonBlockingDependency}`))
-  }
+  assert.match(releaseGate, /test "\$result" = "success"/)
 })
 
 test("successful application promotion verifies the exact production revision", () => {

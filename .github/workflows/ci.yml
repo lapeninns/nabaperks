@@ -40,9 +40,8 @@ env:
 # split so feedback fails fast: the fast lane gates every dev-server browser
 # tier, the quality lane carries the hygiene sweeps, and the production
 # bundle is built exactly once and shared with Lighthouse + ZAP as an
-# artifact. The required release gate covers the deterministic fast and build
-# lanes. Long browser, accessibility, visual, performance, security-proxy and
-# database suites continue to publish evidence without delaying routine merges.
+# artifact. The required release gate fails closed over every merge prerequisite
+# and records their conclusions against the exact workflow revision.
 jobs:
   fast:
     name: Fast lane (lint, typecheck, unit)
@@ -83,11 +82,11 @@ jobs:
       # The unit suite runs exactly once, with coverage thresholds enforced.
       - run: pnpm test:coverage
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        if: ${{ !cancelled() }}
+        if: ${{ always() }}
         with:
           name: coverage
           path: coverage/
-          retention-days: 7
+          retention-days: 30
 
   quality:
     name: Quality lane (hygiene sweeps)
@@ -217,13 +216,13 @@ jobs:
           project: ${{ matrix.project }}
       - run: pnpm test:e2e -- --project="${{ matrix.project }}" --grep-invert @visual --shard="${{ matrix.shard }}"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        if: ${{ !cancelled() && failure() }}
+        if: ${{ always() }}
         with:
           name: playwright-report-${{ matrix.project }}-${{ strategy.job-index }}
           path: |
             playwright-report/
             test-results/
-          retention-days: 7
+          retention-days: 30
 
   e2e-gate:
     name: E2E (DB-free harness tier)
@@ -260,13 +259,13 @@ jobs:
           project: ${{ matrix.project }}
       - run: pnpm test:a11y -- --project="${{ matrix.project }}" --shard="${{ matrix.shard }}"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        if: ${{ !cancelled() && failure() }}
+        if: ${{ always() }}
         with:
           name: a11y-playwright-report-${{ matrix.project }}-${{ strategy.job-index }}
           path: |
             playwright-report/
             test-results/
-          retention-days: 7
+          retention-days: 30
 
   a11y-gate:
     name: Accessibility sweep
@@ -304,13 +303,13 @@ jobs:
           project: ${{ matrix.project }}
       - run: pnpm test:visual -- --project="${{ matrix.project }}" --shard="${{ matrix.shard }}"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        if: ${{ !cancelled() && failure() }}
+        if: ${{ always() }}
         with:
           name: visual-playwright-report-${{ matrix.project }}-${{ strategy.job-index }}
           path: |
             playwright-report/
             test-results/
-          retention-days: 7
+          retention-days: 30
 
   visual-gate:
     name: Visual regression
@@ -353,11 +352,11 @@ jobs:
           path: .next
       - run: pnpm lighthouse -- --collect.url="${{ matrix.url }}"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        if: ${{ !cancelled() }}
+        if: ${{ always() }}
         with:
           name: lighthouse-report-${{ matrix.route }}
           path: reports/lighthouse/
-          retention-days: 7
+          retention-days: 30
 
   lighthouse-gate:
     name: Lighthouse CI
@@ -400,6 +399,18 @@ jobs:
           target: http://127.0.0.1:3000
           rules_file_name: .zap/rules.tsv
           allow_issue_writing: false
+      - name: Retain ZAP baseline reports and server log
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: zap-report-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            report_html.html
+            report_json.json
+            report_md.md
+            /tmp/nabaperks-zap.log
+          if-no-files-found: warn
+          retention-days: 30
 
   db:
     name: DB behavioral moat
@@ -445,15 +456,62 @@ jobs:
     name: Release gate
     needs:
       - fast
+      - quality
       - build
+      - e2e-gate
+      - a11y-gate
+      - visual-gate
+      - lighthouse-gate
+      - zap-baseline
+      - db-gate
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 1
     steps:
-      - name: Require deterministic merge proof
+      - name: Record exact-revision release receipt
+        env:
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          WORKFLOW: ${{ github.workflow }}
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+          JOB_ID: ${{ github.job }}
+          COMMIT_SHA: ${{ github.sha }}
+          ARTIFACT_NAME: ci-release-receipt-${{ github.run_id }}-${{ github.run_attempt }}
+          CONCLUSIONS: ${{ toJSON(needs) }}
+        run: |
+          jq -n \
+            --arg run_id "$RUN_ID" \
+            --arg run_attempt "$RUN_ATTEMPT" \
+            --arg workflow "$WORKFLOW" \
+            --arg workflow_ref "$WORKFLOW_REF" \
+            --arg job "$JOB_ID" \
+            --arg commit_sha "$COMMIT_SHA" \
+            --arg artifact "$ARTIFACT_NAME" \
+            --argjson conclusions "$CONCLUSIONS" \
+            '{run: $run_id, run_attempt: $run_attempt, workflow: $workflow, workflow_ref: $workflow_ref, job: $job, commit: $commit_sha, artifact: $artifact, conclusions: $conclusions}' \
+            > ci-release-receipt.json
+      - name: Require every release prerequisite
         env:
           FAST_RESULT: ${{ needs.fast.result }}
+          QUALITY_RESULT: ${{ needs.quality.result }}
           BUILD_RESULT: ${{ needs.build.result }}
+          E2E_RESULT: ${{ needs['e2e-gate'].result }}
+          A11Y_RESULT: ${{ needs['a11y-gate'].result }}
+          VISUAL_RESULT: ${{ needs['visual-gate'].result }}
+          LIGHTHOUSE_RESULT: ${{ needs['lighthouse-gate'].result }}
+          ZAP_RESULT: ${{ needs['zap-baseline'].result }}
+          DB_RESULT: ${{ needs['db-gate'].result }}
         run: |
-          test "$FAST_RESULT" = "success"
-          test "$BUILD_RESULT" = "success"
+          for result in \
+            "$FAST_RESULT" "$QUALITY_RESULT" "$BUILD_RESULT" \
+            "$E2E_RESULT" "$A11Y_RESULT" "$VISUAL_RESULT" \
+            "$LIGHTHOUSE_RESULT" "$ZAP_RESULT" "$DB_RESULT"; do
+            test "$result" = "success"
+          done
+      - name: Retain exact-revision release receipt
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ci-release-receipt-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ci-release-receipt.json
+          retention-days: 30

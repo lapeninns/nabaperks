@@ -59,13 +59,13 @@ jobs:
           project: ${{ matrix.project }}
       - run: pnpm test:e2e -- --project="${{ matrix.project }}" --grep-invert @visual --shard="${{ matrix.shard }}"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        if: ${{ !cancelled() && failure() }}
+        if: ${{ always() }}
         with:
           name: nightly-playwright-report-${{ matrix.project }}-${{ strategy.job-index }}
           path: |
             playwright-report/
             test-results/
-          retention-days: 7
+          retention-days: 30
 
   cross-browser-gate:
     name: Full cross-browser Playwright
@@ -104,11 +104,11 @@ jobs:
           project: chromium
       - run: pnpm mutation:check
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        if: ${{ !cancelled() }}
+        if: ${{ always() }}
         with:
           name: stryker-report
           path: reports/mutation/
-          retention-days: 7
+          retention-days: 30
 
   load:
     name: k6 load checks
@@ -133,20 +133,26 @@ jobs:
         env:
           BASE_URL: http://127.0.0.1:3000
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        if: ${{ !cancelled() }}
+        if: ${{ always() }}
         with:
           name: k6-public-routes-summary
           path: reports/k6-public-routes-summary.json
-          retention-days: 7
+          retention-days: 30
 
   load-race:
     name: Authenticated stamp and redeem race checks
-    if: ${{ vars.STAMP_RACE_URL != '' && vars.REDEEM_RACE_URL != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: grafana/setup-k6-action@db07bd9765aac508ef18982e52ab937fe633a065 # v1
+      - name: Require authenticated race targets
+        env:
+          STAMP_RACE_URL: ${{ vars.STAMP_RACE_URL }}
+          REDEEM_RACE_URL: ${{ vars.REDEEM_RACE_URL }}
+        run: |
+          test -n "$STAMP_RACE_URL"
+          test -n "$REDEEM_RACE_URL"
       - name: Run authenticated race check
         run: k6 run --summary-export=reports/k6-stamp-redeem-race-summary.json tests/load/stamp-redeem-race.js
         env:
@@ -156,11 +162,11 @@ jobs:
           STAMP_RACE_BODY: ${{ vars.STAMP_RACE_BODY }}
           REDEEM_RACE_BODY: ${{ vars.REDEEM_RACE_BODY }}
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        if: ${{ !cancelled() }}
+        if: ${{ always() }}
         with:
           name: k6-stamp-redeem-race-summary
           path: reports/k6-stamp-redeem-race-summary.json
-          retention-days: 7
+          retention-days: 30
 
   zap-full:
     name: ZAP full scan
@@ -185,3 +191,70 @@ jobs:
           target: http://127.0.0.1:3000
           rules_file_name: .zap/rules.tsv
           allow_issue_writing: false
+      - name: Retain ZAP full-scan reports and server log
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: zap-report-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            report_html.html
+            report_json.json
+            report_md.md
+            /tmp/nabaperks-zap-full.log
+          if-no-files-found: warn
+          retention-days: 30
+
+  nightly-gate:
+    name: Nightly QA gate
+    needs:
+      - cross-browser-gate
+      - mutation
+      - load
+      - load-race
+      - zap-full
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Record exact-revision nightly receipt
+        env:
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          WORKFLOW: ${{ github.workflow }}
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+          JOB_ID: ${{ github.job }}
+          COMMIT_SHA: ${{ github.sha }}
+          ARTIFACT_NAME: nightly-receipt-${{ github.run_id }}-${{ github.run_attempt }}
+          CONCLUSIONS: ${{ toJSON(needs) }}
+        run: |
+          jq -n \
+            --arg run_id "$RUN_ID" \
+            --arg run_attempt "$RUN_ATTEMPT" \
+            --arg workflow "$WORKFLOW" \
+            --arg workflow_ref "$WORKFLOW_REF" \
+            --arg job "$JOB_ID" \
+            --arg commit_sha "$COMMIT_SHA" \
+            --arg artifact "$ARTIFACT_NAME" \
+            --argjson conclusions "$CONCLUSIONS" \
+            '{run: $run_id, run_attempt: $run_attempt, workflow: $workflow, workflow_ref: $workflow_ref, job: $job, commit: $commit_sha, artifact: $artifact, conclusions: $conclusions}' \
+            > nightly-receipt.json
+      - name: Require every nightly prerequisite
+        env:
+          CROSS_BROWSER_RESULT: ${{ needs['cross-browser-gate'].result }}
+          MUTATION_RESULT: ${{ needs.mutation.result }}
+          LOAD_RESULT: ${{ needs.load.result }}
+          LOAD_RACE_RESULT: ${{ needs['load-race'].result }}
+          ZAP_RESULT: ${{ needs['zap-full'].result }}
+        run: |
+          for result in \
+            "$CROSS_BROWSER_RESULT" "$MUTATION_RESULT" "$LOAD_RESULT" \
+            "$LOAD_RACE_RESULT" "$ZAP_RESULT"; do
+            test "$result" = "success"
+          done
+      - name: Retain exact-revision nightly receipt
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: nightly-receipt-${{ github.run_id }}-${{ github.run_attempt }}
+          path: nightly-receipt.json
+          retention-days: 30

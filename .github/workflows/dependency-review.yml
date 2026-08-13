@@ -11,12 +11,37 @@ jobs:
   review:
     name: Review dependency changes
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Dependency review
+        id: dependency-review
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5
         with:
           fail-on-severity: high
           # Block GPL/AGPL/network-copyleft licences slipping into a proprietary app.
           deny-licenses: AGPL-1.0-or-later, AGPL-3.0-or-later, GPL-2.0-or-later, GPL-3.0-or-later
           comment-summary-in-pr: on-failure
+      - name: Record exact-revision dependency receipt
+        if: ${{ always() }}
+        env:
+          REVIEW_OUTCOME: ${{ steps.dependency-review.outcome }}
+        run: |
+          jq -n \
+            --arg run_id "${{ github.run_id }}" \
+            --arg run_attempt "${{ github.run_attempt }}" \
+            --arg workflow "${{ github.workflow }}" \
+            --arg workflow_ref "${{ github.workflow_ref }}" \
+            --arg job "${{ github.job }}" \
+            --arg commit_sha "${{ github.sha }}" \
+            --arg artifact "dependency-review-receipt-${{ github.run_id }}-${{ github.run_attempt }}" \
+            --arg conclusion "$REVIEW_OUTCOME" \
+            '{run: $run_id, run_attempt: $run_attempt, workflow: $workflow, workflow_ref: $workflow_ref, job: $job, commit: $commit_sha, artifact: $artifact, conclusion: $conclusion}' \
+            > dependency-review-receipt.json
+      - name: Retain exact-revision dependency receipt
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: dependency-review-receipt-${{ github.run_id }}-${{ github.run_attempt }}
+          path: dependency-review-receipt.json
+          retention-days: 30

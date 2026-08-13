@@ -16,6 +16,7 @@ jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       security-events: write
       contents: read
@@ -32,6 +33,30 @@ jobs:
           languages: ${{ matrix.language }}
           queries: security-extended
       - name: Perform CodeQL analysis
+        id: codeql-analysis
         uses: github/codeql-action/analyze@5595ccaf912efad79be6eef63a5619ff05969be3 # v4
         with:
           category: "/language:${{ matrix.language }}"
+      - name: Record exact-revision CodeQL receipt
+        if: ${{ always() }}
+        env:
+          ANALYSIS_OUTCOME: ${{ steps.codeql-analysis.outcome }}
+        run: |
+          jq -n \
+            --arg run_id "${{ github.run_id }}" \
+            --arg run_attempt "${{ github.run_attempt }}" \
+            --arg workflow "${{ github.workflow }}" \
+            --arg workflow_ref "${{ github.workflow_ref }}" \
+            --arg job "${{ github.job }}" \
+            --arg commit_sha "${{ github.sha }}" \
+            --arg artifact "codeql-receipt-${{ github.run_id }}-${{ github.run_attempt }}" \
+            --arg conclusion "$ANALYSIS_OUTCOME" \
+            '{run: $run_id, run_attempt: $run_attempt, workflow: $workflow, workflow_ref: $workflow_ref, job: $job, commit: $commit_sha, artifact: $artifact, conclusion: $conclusion}' \
+            > codeql-receipt.json
+      - name: Retain exact-revision CodeQL receipt
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: codeql-receipt-${{ github.run_id }}-${{ github.run_attempt }}
+          path: codeql-receipt.json
+          retention-days: 30
