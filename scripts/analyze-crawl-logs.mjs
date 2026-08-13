@@ -9,7 +9,7 @@ const UTILITY_PATH_PATTERN = /(?:^|\/)(?:search|tags?|filters?|cart)(?:\/|$)/i
 const PRIVATE_PATH_PATTERN =
   /^\/(?:admin|api|app|auth|card|claim|demo|dev|home|m|merchant|q|r|reward|scan|signup|start)(?:\/|$)/
 
-const inputPath = process.argv[2]
+const inputPath = process.argv.slice(2).find((argument) => argument !== "--")
 if (!inputPath || inputPath === "--template") {
   console.log([...REQUIRED_HEADERS, "host", "duration_ms"].join(","))
   process.exit(inputPath === "--template" ? 0 : 1)

@@ -13,7 +13,7 @@ const TEMPLATE_HEADERS = [
 ]
 const OUTPUT_HEADERS = [...TEMPLATE_HEADERS, "bucket", "destination", "reason"]
 
-const inputPath = process.argv[2]
+const inputPath = process.argv.slice(2).find((argument) => argument !== "--")
 
 if (!inputPath || inputPath === "--template") {
   console.log(toCsv([], TEMPLATE_HEADERS))
