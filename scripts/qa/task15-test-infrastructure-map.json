@@ -217,8 +217,32 @@
       "stableId": "T37-DEF-21c318aa11235c6dde6a5cdc",
       "title": "No journey group carries an independent tenant noninterference sentinel",
       "sourceRowSha256": "699afe7495dd932aa5f820a526aae0234a5f9967c6597680975f03ba223f25d6",
-      "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "status": "fixed",
+      "reason": "A dedicated browser journey writes a reward in one authenticated tenant, proves it absent from a second authenticated tenant UI, and reads exact owner=1/other=0 DB scopes.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/journey-race-v9/receipts/t37-def-21c318aa11235c6dde6a5cdc-direct-receipt.json",
+          "sha256": "259f20a9a971eef9ee63dbd89884eed2afcde40ade3cbf4dd2a750fd6ff760ad"
+        },
+        "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/task15-journey-race.desktop.spec.ts --project=chromium --reporter=tests/support/playwright-tap-reporter.mjs",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/journey-race-v9/candidate-source",
+          "head": "67137eb1749bab24d2725b8d668e5a4413b1e9e0",
+          "tree": "74bfe1a34a7dd67e54c5068b0888777e86fd8b52",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 5,
+          "passed": 5,
+          "failed": 0,
+          "skipped": 0
+        },
+        "assertions": 5
+      }
     },
     {
       "stableId": "T37-DEF-267d258e0736b629d1d8b607",
@@ -487,7 +511,7 @@
       "title": "Named T22 specs omit required install, rotation, slow-network, storage, and granted-permission proof",
       "sourceRowSha256": "b6278e389ba4a14bd132ea505371e25b512fd8ae77698de8919f092a714dafd0",
       "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "reason": "The local Chromium permission probe returns denied, so the required granted push-permission browser state cannot be established. Prerequisite: a browser context/environment in which notifications permission can be granted, followed by direct install, rotation, slow-network, storage, and granted-permission receipts."
     },
     {
       "stableId": "T37-DEF-570a975b6694d0170e0b90ba",
@@ -776,8 +800,32 @@
       "stableId": "T37-DEF-80033137a9b82b5da1cd77de",
       "title": "Generic bearer auth is not mapped to the real stamp and redemption surfaces",
       "sourceRowSha256": "83db0c9ff8294c9926dbc4463282a1b34e55d4c604def39e154eb5a83d690861",
-      "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "status": "fixed",
+      "reason": "A real signed customer cookie opens the stamp surface and reaches the reward surface through browser clicks without a bearer or token query parameter.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/journey-race-v9/receipts/t37-def-80033137a9b82b5da1cd77de-direct-receipt.json",
+          "sha256": "b7d4bba0ca72d193ce70f15d4d10412ff692787fc8a356388c11a9c5712e6f50"
+        },
+        "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/task15-journey-race.desktop.spec.ts --project=chromium --reporter=tests/support/playwright-tap-reporter.mjs",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/journey-race-v9/candidate-source",
+          "head": "67137eb1749bab24d2725b8d668e5a4413b1e9e0",
+          "tree": "74bfe1a34a7dd67e54c5068b0888777e86fd8b52",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 5,
+          "passed": 5,
+          "failed": 0,
+          "skipped": 0
+        },
+        "assertions": 5
+      }
     },
     {
       "stableId": "T37-DEF-8448002219397b81383182f9",
@@ -1209,8 +1257,32 @@
       "stableId": "T37-DEF-ce395f5fc29d9d85a1180b44",
       "title": "Manual reward-add scenario has partial mutation readback",
       "sourceRowSha256": "c4e166c996980011e3f0f41cec39ba53799a73a95c6fdeebc3728b084d2629b6",
-      "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "status": "fixed",
+      "reason": "The manual reward form click produces one visible reward and direct DB convergence of one reward, one audit, and one product event.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/journey-race-v9/receipts/t37-def-ce395f5fc29d9d85a1180b44-direct-receipt.json",
+          "sha256": "dc24d996c02d1d905ae0e2c69d58c7620aba2992288f9a3854dc82458be22af2"
+        },
+        "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/task15-journey-race.desktop.spec.ts --project=chromium --reporter=tests/support/playwright-tap-reporter.mjs",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/journey-race-v9/candidate-source",
+          "head": "67137eb1749bab24d2725b8d668e5a4413b1e9e0",
+          "tree": "74bfe1a34a7dd67e54c5068b0888777e86fd8b52",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 5,
+          "passed": 5,
+          "failed": 0,
+          "skipped": 0
+        },
+        "assertions": 5
+      }
     },
     {
       "stableId": "T37-DEF-d13794f14ba6fe71375090e9",
@@ -1299,8 +1371,32 @@
       "stableId": "T37-DEF-e2743a5687147115017db053",
       "title": "Resend replay lacks terminal-effect readback",
       "sourceRowSha256": "e70d07d7a2d50595f4584e4d1e9c9e11763a6ef733a0c4ceb004a71638c781d6",
-      "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "status": "fixed",
+      "reason": "Two authentic signed POSTs to the real Resend endpoint return 200 while direct DB readback remains delivered with identical delivered_at and updated_at timestamps.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/journey-race-v9/receipts/t37-def-e2743a5687147115017db053-direct-receipt.json",
+          "sha256": "e99543ad4ff40eacbf5f2e149634ca43f5d1b8bfd3fafc10f2fc77488f49caf0"
+        },
+        "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/task15-journey-race.desktop.spec.ts --project=chromium --reporter=tests/support/playwright-tap-reporter.mjs",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/journey-race-v9/candidate-source",
+          "head": "67137eb1749bab24d2725b8d668e5a4413b1e9e0",
+          "tree": "74bfe1a34a7dd67e54c5068b0888777e86fd8b52",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 5,
+          "passed": 5,
+          "failed": 0,
+          "skipped": 0
+        },
+        "assertions": 5
+      }
     },
     {
       "stableId": "T37-DEF-e75e1dd044eb6d767a6a590f",
@@ -1313,8 +1409,32 @@
       "stableId": "T37-DEF-eaba62054e63cf27ce4b89c8",
       "title": "Race predicate does not require an intended successful mutation or DB convergence",
       "sourceRowSha256": "f5bf2a567f6b84f16cff669f69b19f9298b88f93e2cc72132166a9da979d214e",
-      "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "status": "fixed",
+      "reason": "Two concurrent authenticated UI submissions converge to exactly one added-success, one duplicate-blocked outcome, one reward row, one audit, and one product event.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/journey-race-v9/receipts/t37-def-eaba62054e63cf27ce4b89c8-direct-receipt.json",
+          "sha256": "aa27a272589c722ef54195270011295f215cda4a50b04c072a0e274fb3466d2a"
+        },
+        "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/task15-journey-race.desktop.spec.ts --project=chromium --reporter=tests/support/playwright-tap-reporter.mjs",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/journey-race-v9/candidate-source",
+          "head": "67137eb1749bab24d2725b8d668e5a4413b1e9e0",
+          "tree": "74bfe1a34a7dd67e54c5068b0888777e86fd8b52",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 5,
+          "passed": 5,
+          "failed": 0,
+          "skipped": 0
+        },
+        "assertions": 5
+      }
     },
     {
       "stableId": "T37-DEF-ee396e2bbe8f308f772924f1",
