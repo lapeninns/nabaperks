@@ -2421,3 +2421,111 @@ Two exclusions in that work are deliberate and worth keeping:
 
 **Visual baselines: the five de-glassed surfaces will diff, and those diffs are
 intended.** They are on top of the 121 already awaiting approval.
+
+## 55. The admin console below 768px hid its own search field, and only a harness could see it
+
+`/admin/*` redirects to `/login`, so the console's appearance had never been
+measured at any width. Section 44 asked for one look at `/admin/audit` on a
+tablet. The look was taken — through `app/dev/admin-harness/audit-lookup`,
+which mounts the REAL `AdminShell` and the REAL `AdminLookupControls` with the
+REAL `withDateRange` + `sticky="flush"` props the audit page passes — and it
+found something other than a wrap problem.
+
+**Below `md` the lookup bar was underneath the console header.** The shell
+renders `header.sticky.top-0.z-30` under 768px; the bar is `sticky top-0 z-20`.
+Once the list scrolled, `document.elementFromPoint` at the centre of
+`input[name="venue"]` returned the HEADER, at 767px and at 390px both. The one
+control a sticky lookup bar exists to keep reachable was neither visible nor
+hittable. This was true of all six sticky lookup surfaces, not only the audit
+trail.
+
+Fixed rather than flagged, because it is a functional occlusion and not a
+matter of taste: `AdminShell` publishes `--console-sticky-top` (3.875rem below
+`md`, 0 at `md` and above) and `AdminLookupControls` sticks to it. Pinned by
+`tests/e2e/admin-lookup-bar.desktop.spec.ts`, which asserts the input is the
+element painted at its own centre — so if the header's height changes, the
+proof fails rather than the console.
+
+### What the wrap actually does, since that was the original question
+
+Measured on the harness with `document.styleSheets.length > 0` asserted first.
+The width that matters is not the viewport: the shell's sidebar, `SidebarInset`,
+padding ramp and `max-w-merchant` column leave a **448px** content column at a
+768px viewport and **684px** at 1024px.
+
+| viewport | bar height | rows                                           |
+| -------- | ---------- | ---------------------------------------------- |
+| 1280     | 159px      | `[venue] [from] [to]` / `[Search] [Clear]`     |
+| 1024     | 159px      | `[venue] [from] [to]` / `[Search] [Clear]`     |
+| 768      | 184px      | `[venue] [from]` / `[to] [Search] [Clear]`     |
+| 767      | 221px      | as above, now resting under the console header |
+
+Nothing overflows its panel at 390, 767, 768, 1024 or 1280, and no control is
+squeezed: venue holds 201px and each date 176px at every width.
+
+**The one judgement, left for the owner.** At 768px the inclusive date PAIR
+splits across two rows — `from` ends row one, `to` starts row two beside the
+Search button — so a labelled pair reads as two unrelated fields. The fix is
+one wrapper: put the two `AdminField`s in a `flex flex-wrap items-end gap-3`
+group so the pair wraps as a unit. The cost is measured, not guessed: at a
+448px column the group cannot share a row with venue, so the bar becomes three
+rows and grows **184px -> 240px**, and it is sticky, so that is 240px of a
+1024px-tall tablet viewport held permanently. Keeping the pair together and
+keeping the bar short are in direct conflict at this width; that is a design
+call, not an engineering one, so it is recorded rather than taken.
+
+## 56. Three admin controls were under the 44px touch floor, and nothing had ever swept the console
+
+DESIGN.md, Layout & Spacing: "Primary tap targets >= 44px", and compact sizes
+"render at their declared height on fine pointers and grow to the 44px floor on
+coarse (touch) pointers". The existing sweep
+(`tests/e2e/touch-targets.desktop.spec.ts`) already runs under a real device
+profile, correctly — but its nine routes were marketing, customer and merchant.
+The admin console is auth-gated, so it had never been swept at all, on any
+pointer.
+
+Swept through the harnesses on Pixel 5, Galaxy Tab S4 and iPad (gen 7):
+
+| control                            | fine | coarse before | coarse after |
+| ---------------------------------- | ---- | ------------- | ------------ |
+| admin page-jump input (`h-9 w-20`) | 36px | 36px          | 44px         |
+| rows-per-page select (`h-9 w-24`)  | 36px | 36px          | 44px         |
+| `DataTable` sortable header link   | 15px | 15px          | 44px         |
+
+The first two sit in `AdminLookupPagination`, immediately beside `Go` and
+`Apply` buttons that were already 44px on touch — `Button`'s size variants
+carry `[@media(pointer:coarse)]:min-h-11` and an `Input`/`SelectField` with an
+explicit `h-9` carries nothing. The third ships on every admin list.
+
+Each takes `.tap-floor`, which `app/globals.css` already mints for exactly this
+case ("anything interactive that is NOT a Button ... should use `.tap-floor`
+rather than re-deriving the media query"). Fine-pointer geometry is unchanged,
+which is what DESIGN.md asks for.
+
+The sort header at 15px was also below **WCAG 2.5.8**'s 24px minimum, with no
+exemption available to a table header — it is not inline in a sentence, it is
+not a user-agent control, and there is no equivalent control elsewhere on the
+page.
+
+Two of the three `ALLOWED` entries in that spec are inert and were left alone
+rather than tidied: the sweep matches them against a description built from tag
+
+- text + className, so `"input[type=checkbox]"` and `"/dev/design-system"` can
+  never match. Nothing is being let through today (checkboxes are skipped
+  in-page; `/dev/design-system` is not in ROUTES), but neither line exempts what
+  it appears to exempt.
+
+## 57. Nothing checked formatting, and 248 files had already drifted
+
+`pnpm format` exists; nothing ever read its result. 248 tracked files fail
+`prettier --check` — 114 under `tests/`, 47 under `lib/`, 23 in
+`.design-sync/`, seven in `scripts/`, and four inside `docs/ui-audit` that this
+campaign's own tooling parses.
+
+Added as a RATCHET (`pnpm format:check`, `config/format-baseline.json`) rather
+than a gate, on the model of the dead-export ratchet: the 248 are tolerated,
+anything newly unformatted fails, and a baselined file that has since been
+formatted must be pruned. **No file was reformatted.** The tree-wide sweep is
+248 files of churn across four concurrent lanes and belongs to the integrator,
+in one place, at the end — the same reasoning as section 53's two-line
+`globals.css` change.

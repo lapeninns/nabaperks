@@ -336,6 +336,35 @@ for (const file of ["COVERAGE.md", "HANDOFF.md"]) {
   }
 }
 
+/**
+ * HANDOFF-NEXT-AGENT's "NEEDS-SIGNOFF.md (N sections, …)" count.
+ *
+ * It read "48 sections" while the file carried 54, because sections are
+ * APPENDED by every lane and nothing read the number back. The count of `##`
+ * headings is exact and cheap to check; "N live" is a human judgement about
+ * which of them are struck through or resolved, so it is deliberately left
+ * alone rather than guessed at by a regex.
+ */
+{
+  const file = "HANDOFF-NEXT-AGENT.md"
+  const text = readFileSync(path.join(DIR, file), "utf8")
+  const sections = (
+    readFileSync(path.join(DIR, "NEEDS-SIGNOFF.md"), "utf8").match(/^## /gm) ??
+    []
+  ).length
+  const claim = text.match(/NEEDS-SIGNOFF\.md`?\s*\((\d+) sections/)
+
+  if (!claim) {
+    problems.push(
+      `${file} no longer states how many sections NEEDS-SIGNOFF.md has`
+    )
+  } else if (Number(claim[1]) !== sections) {
+    problems.push(
+      `${file} says NEEDS-SIGNOFF.md has ${claim[1]} sections, it has ${sections}`
+    )
+  }
+}
+
 if (problems.length > 0) {
   console.error("✗ UI-audit tally is out of sync:\n")
   for (const problem of problems) console.error(`  ${problem}`)

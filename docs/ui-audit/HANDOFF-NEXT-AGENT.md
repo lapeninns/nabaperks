@@ -59,7 +59,7 @@ change to ask for, not to take). `03#18` closed in `lane/merchant`: both of its
 recorded blockers were disproved — see NEEDS-SIGNOFF 23.
 04#60 left the list: sorting shipped, only its sticky-header half is blocked.
 
-Read in this order: `HANDOFF.md`, `NEEDS-SIGNOFF.md` (48 sections, 26 live),
+Read in this order: `HANDOFF.md`, `NEEDS-SIGNOFF.md` (57 sections),
 `COVERAGE.md` (method log, including every mistake and what it cost),
 `STATUS-*.md` (per-finding notes).
 
