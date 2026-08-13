@@ -16,7 +16,7 @@
       "title": "Public thresholds are aggregate rather than per route",
       "sourceRowSha256": "45591bfbcf12f233db06c98cf70b17a4a8e92e80a0b3a724669c73ba13e96376",
       "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "reason": "Repair committed in af95f8967 and clean k6 inspection records six per-route success and duration thresholds; blocked because the canonical validator command grammar has no k6 execution form. Validator-owner approval is required before a validator-consumable fixed receipt can bind this CLI surface."
     },
     {
       "stableId": "T37-DEF-0e4ed84fb3b38f46ecb11775",
@@ -54,7 +54,7 @@
       "title": "Static inventory records HTML reporting but no configured JSON reporter and several runtime-bounds omissions.",
       "sourceRowSha256": "20207926536773073c3461879c38f9809574203024724b29ef0e3f02df5d33ad",
       "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "reason": "af95f8967 adds the configured Playwright JSON reporter and the bounded `pnpm exec playwright test --list` inventory terminates 0, but this lane has no direct runtime proof for the Task 25 finding’s separate omitted runtime bounds. The retained authority row names no omitted bound; the Task 25 finding trace is not available in the governed evidence. The authority owner must provide that trace or specify the missing bounds before a fixed row is truthful."
     },
     {
       "stableId": "T37-DEF-0f29577b74fd87de001b3def",
@@ -228,8 +228,32 @@
       "stableId": "T37-DEF-3178c6f1e84070a596aaf50c",
       "title": "Unique run identifier is not enforced by the checker",
       "sourceRowSha256": "30d5d461df7b07a97bb82930dc3f8e5e5ce78a9587d44c12a66b27951dcbe70e",
-      "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "status": "fixed",
+      "reason": "The committed configuration guard rejects a non-GitHub run identifier before any staging proof starts.",
+      "receipt": {
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/reporting-static-cluster-v7/receipts/staging-release-config-direct-receipt.json",
+          "sha256": "ce52f6dc7f793b64c16b8e8cf69bb7ccf9e757edce838dda071a3ddde2cc0455"
+        },
+        "command": "node --test tests/unit/staging-release-config.test.mjs",
+        "attempt": 1,
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/reporting-static-cluster-v7/candidate-source",
+          "head": "60b868c3bf595e471afa81a978eda5dfd95e81f1",
+          "tree": "58ffc951418d5ffc4f06fd03eddb03c3bbad74bf",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 6,
+          "passed": 6,
+          "failed": 0,
+          "skipped": 0
+        },
+        "assertions": 6
+      }
     },
     {
       "stableId": "T37-DEF-3bf48c9396a2b9cc36dd1fd5",
@@ -519,7 +543,7 @@
       "title": "Initial typecheck attempt was interrupted",
       "sourceRowSha256": "7444a820c478d372884b19b7d2614da9eaea7ec2c0698a3a97b9ddf678ad91ac",
       "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "reason": "Bounded first-attempt pnpm typecheck terminated 0; blocked because the canonical validator allowlist does not accept pnpm typecheck receipts. Validator-owner allowlist approval is required to certify the terminal retry-proof command."
     },
     {
       "stableId": "T37-DEF-6e61af3b47d3138fcc3590e4",
@@ -557,7 +581,7 @@
       "title": "JSON-LD check produced no output for 60 seconds and was interrupted",
       "sourceRowSha256": "01d114a4c7e335ca2c71e515f29225871648059186d3a7ebdcd2d01341c8eed5",
       "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "reason": "Bounded CI-equivalent pnpm jsonld:check terminated 0 with the production JSON-LD success line; blocked because the canonical validator allowlist does not accept pnpm jsonld:check receipts. Validator-owner allowlist approval is required."
     },
     {
       "stableId": "T37-DEF-701d3eed1729423878294f30",
@@ -602,7 +626,7 @@
       "title": "Dependency audit sandbox attempts were interrupted before a terminal audit",
       "sourceRowSha256": "20396a37da436fa77dad6d57dda605d00eacb7646067ad90075774f8df77c656",
       "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "reason": "Bounded pnpm security:audit terminated 1 with two high advisories: extract-zip through the Lighthouse CI/Puppeteer dependency chain, and nanoid through the Tailwind/PostCSS dependency chain. Supplier dependency remediation or an explicitly accepted advisory exception is required; no local reporting change can produce a truthful green audit."
     },
     {
       "stableId": "T37-DEF-80033137a9b82b5da1cd77de",
@@ -912,14 +936,14 @@
       "title": "The scanner omits several extensions/ignored paths and accepts valid issue-ID prefixes with trailing junk.",
       "sourceRowSha256": "f90b993d6bf372c6163f7167ae4fd754a1d62115a4c41b73d7d82010e683e53e",
       "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "reason": "60b868c3b expands scanner extensions and rejects a trailing-junk issue reference, proven by the clean 1/1 CLI test, but no ignored-path fixture proves the Task 8 finding’s ignored-path clause. Whether ignored/generated paths belong in a debt gate is an inventory policy decision; the QA infrastructure owner must define the intended ignored-path set before this row can be certified fixed."
     },
     {
       "stableId": "T37-DEF-d8c88ace7c830c7de94e9af1",
       "title": "Neither load job retains a machine-readable k6 summary",
       "sourceRowSha256": "60776e5d60c362bdc17e05dada459f7ccaffa60521dc582f3e667bd68223474c",
       "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "reason": "Repair committed in af95f8967 and clean k6 inspection confirms summary-export paths for both jobs; blocked because the canonical validator command grammar has no k6 execution form. Validator-owner approval is required before a validator-consumable fixed receipt can bind this CLI surface."
     },
     {
       "stableId": "T37-DEF-da6db9c2495b60b1fff5da0e",
