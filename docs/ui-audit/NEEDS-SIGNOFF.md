@@ -2362,43 +2362,13 @@ left untouched deliberately rather than reached across a lane boundary:
   03#47 is about. The contract above is scoped to chrome precisely so it does
   not force this one.
 
-## 53. The audit documents are compiled into the production CSS bundle — 16,151 bytes of it (6.4%)
+## 53. ~~The audit documents are compiled into the production CSS bundle~~ — RESOLVED
 
-Found while trying to prove the glassmorphism sweep at the compiled-CSS level.
-`app/globals.css:4-5` adds `@source "../app/**/*.tsx"` and
-`"../components/**/*.tsx"`, but those are **additional** sources: Tailwind v4
-also auto-scans every non-gitignored file in the project, whatever its
-extension. `docs/ui-audit/*.md` quotes class strings constantly — the audit's
-job is to quote class strings — so utilities that no component uses are emitted
-into the shipped stylesheet.
+**Applied in `2562be4c`, before this section was last edited.** `app/globals.css:13` carries `@source not "../docs/**";` and the stylesheet went 251,481 -> 236,191 bytes (-15,290, 6.1%). Verified afterwards that nothing real was dropped: `mono-meta`, `mono-id`, `w-tag`, `w-rule`, `eyebrow`, `max-w-customer`, `rounded-sheet` and `bg-ink` are all still in the shipped CSS, and the 67-test a11y sweep passes against it.
 
-Demonstrated: after the sweep above, `bg-card/95` appears in **no** `.tsx` file
-in the repository, and `.bg-card\/95` is still in the production CSS. Its only
-remaining sources are `docs/ui-audit/03-merchant.md:553`, `:818` and
-`00-master-redesign-audit.md`.
+Left here rather than deleted because the ds-gates lane's decision list still described it as "two lines left for the integrator to apply once, at the end". It was already applied; a second `@source not` line would be harmless but the report should not send anyone looking for work that is done.
 
-Measured, on a clean `pnpm build` each time:
-
-|                                                               | total CSS bytes   |
-| ------------------------------------------------------------- | ----------------- |
-| as shipped                                                    | 250,829           |
-| with `@source not "../docs/**"; @source not "../reports/**";` | 234,678           |
-| **difference**                                                | **16,151 (6.4%)** |
-
-Two consequences, and the second is the one that will bite someone:
-
-1. 6.4% of the CSS a real merchant downloads is quotations from our own audit.
-2. **"It is not in the compiled CSS" is not valid evidence in this repository,
-   and neither is its converse.** A class can be absent from every component and
-   present in the bundle. Any future lane proving a sweep by grepping
-   `.next/static/css` will reach a wrong conclusion, in the same family as the
-   `rc`-off-a-pipe and the fully-styled-error-page mistakes already recorded.
-
-**Not implemented, on purpose.** The fix is two lines in `app/globals.css`,
-which is the single most contended file across the four concurrent lanes; a
-two-line change there against a 6.4% asset win is not worth the merge risk to
-take unilaterally. The measurement is recorded so the integrator can apply it
-once, at the end, in one place.
+The lesson is the durable part and is recorded in COVERAGE: **"it is not in the source" is not evidence that it is not in the artefact.** Tailwind v4 scans every non-gitignored file, so documentation could change what shipped.
 
 ## 54. Correction — the de-glassing was FIVE surfaces, not three, and my commit message said three
 
