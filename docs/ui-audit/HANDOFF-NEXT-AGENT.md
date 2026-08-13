@@ -39,6 +39,36 @@ third stalled mid-commit. Require small committed batches and poll them.
 New worktrees need `ln -s <main repo>/node_modules` and a copied `.env.local`,
 or `pnpm build` cannot prerender.
 
+## Fan-in protocol (this round)
+
+Lanes in flight off `feat/ui-redesign-audit-fixes` @ 27099dae:
+
+    lane/dsweep     port 3301   DESIGN.md conformance sweep for unrecorded defects
+    lane/blockers   port 3302   re-test the 23 partial + 14 stale recorded blockers
+    lane/gates      port 3303   gate vacuity audit + coarse-pointer / console geometry
+
+Merge back into `feat/ui-redesign-audit-fixes` IN THE WORKTREE, one lane at a
+time, never into the owner's repo:
+
+    cd "/Users/amankumarshrestha/LapenInns Project/nb-work"
+    git merge --no-edit lane/<name>
+    node scripts/ui-audit-fanin.mjs --write     # markers, renumbering, tallies
+    node scripts/check-ui-audit-tally.mjs       # must EXIT=0
+    pnpm lint && pnpm typecheck && pnpm build && pnpm quality:check
+    git push origin feat/ui-redesign-audit-fixes
+
+`ui-audit-fanin.mjs` exists because doc fan-in has drifted every single round:
+"take both" leaves two tables, lanes number NEEDS-SIGNOFF sections from their own
+base so two write "## 33.", and prettier reflows `>>>>>>>` into a blockquote so a
+conflict marker stops looking like one (one survived ~50 commits). It rebuilds
+the tallies from the STATUS rows rather than trusting either side, and refuses to
+resolve prose conflicts on purpose.
+
+Tear each lane down only after `git log feat/ui-redesign-audit-fixes..lane/<name>`
+is empty:
+
+    git worktree remove -f ../nb-lane-<name> && git branch -D lane/<name>
+
 ## State
 
 **301 done / 23 partial / 14 stale / 9 open of 347.** 26 of 33 Criticals.
