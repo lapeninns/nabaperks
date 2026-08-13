@@ -27,7 +27,7 @@ export async function runStagingReleaseProof(env) {
     await proveStagingProbes(config)
     await proveRolledBackLoyaltyJourney(sql, config)
     await proveStripeWebhookReplay(sql, config)
-    await proveResendWebhookReplay(config)
+    await proveResendWebhookReplay(sql, config)
     console.log("Staging release proof passed.")
   } finally {
     await sql.end({ timeout: 5 })
@@ -526,12 +526,14 @@ async function proveStripeWebhookReplay(sql, config) {
   }
 }
 
-async function proveResendWebhookReplay(config) {
+export async function proveResendWebhookReplay(sql, config) {
   const timestamp = String(Math.floor(Date.now() / 1000))
   const webhookId = `msg_staging_${randomUUID()}`
+  const providerMessageId = `email_staging_${randomUUID()}`
+  const fixture = await createResendWebhookFixture(sql, providerMessageId)
   const body = JSON.stringify({
-    data: { email_id: `email_staging_${config.revision.slice(0, 12)}` },
-    type: "email.sent",
+    data: { email_id: providerMessageId },
+    type: "email.delivered",
   })
   const signature = createHmac(
     "sha256",
@@ -547,18 +549,123 @@ async function proveResendWebhookReplay(config) {
     ...protectionHeaders(config),
   }
 
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    const response = await postJson(
+  try {
+    const first = await postJson(
       new URL("/api/resend/webhook", config.appUrl),
       body,
       headers
     )
-    assert.deepEqual(
-      response,
-      { ignored: true, ok: true },
-      "staging Resend webhook replay failed"
+    assert.deepEqual(first, { ok: true }, "staging Resend webhook failed")
+
+    const [terminal] = await sql`
+      select status, delivered_at
+      from public.loyalty_invite_recipients
+      where id = ${fixture.recipientId}::uuid
+    `
+    assert.equal(
+      terminal?.status,
+      "delivered",
+      "staging Resend webhook did not reach its terminal effect"
     )
+    assert.ok(
+      terminal?.delivered_at,
+      "staging Resend webhook did not record delivery time"
+    )
+
+    const replay = await postJson(
+      new URL("/api/resend/webhook", config.appUrl),
+      body,
+      headers
+    )
+    assert.deepEqual(replay, { ok: true }, "staging Resend replay failed")
+
+    const [converged] = await sql`
+      select status, delivered_at
+      from public.loyalty_invite_recipients
+      where id = ${fixture.recipientId}::uuid
+    `
+    assert.equal(converged?.status, "delivered")
+    assert.equal(
+      converged?.delivered_at?.toISOString(),
+      terminal.delivered_at.toISOString(),
+      "staging Resend replay changed the terminal delivery effect"
+    )
+  } finally {
+    await cleanupResendWebhookFixture(sql, fixture)
   }
+}
+
+async function createResendWebhookFixture(sql, providerMessageId) {
+  const ownerUserId = randomUUID()
+  const merchantId = randomUUID()
+  const campaignId = randomUUID()
+  const recipientId = randomUUID()
+  const suffix = randomUUID().replaceAll("-", "").slice(0, 12)
+
+  await sql.begin(async (tx) => {
+    await tx`
+      insert into auth.users (
+        id, email, aud, role, email_confirmed_at, created_at, updated_at
+      ) values (
+        ${ownerUserId}::uuid,
+        ${`resend-proof-${suffix}@example.invalid`},
+        'authenticated',
+        'authenticated',
+        now(),
+        now(),
+        now()
+      )
+    `
+    await tx`
+      insert into public.merchants (
+        id, owner_user_id, business_name, business_slug, business_type,
+        email, phone, status, requires_billing
+      ) values (
+        ${merchantId}::uuid,
+        ${ownerUserId}::uuid,
+        ${`Resend proof ${suffix}`},
+        ${`resend-proof-${suffix}`},
+        'cafe',
+        ${`resend-proof-${suffix}@example.invalid`},
+        '+447700900000',
+        'trial',
+        true
+      )
+    `
+    await tx`
+      insert into public.loyalty_invite_campaigns (
+        id, merchant_id, status, legal_basis, link_expires_at, confirmed_at
+      ) values (
+        ${campaignId}::uuid,
+        ${merchantId}::uuid,
+        'sending',
+        'venue_email_consent',
+        now() + interval '1 day',
+        now()
+      )
+    `
+    await tx`
+      insert into public.loyalty_invite_recipients (
+        id, campaign_id, merchant_id, email_hmac, status,
+        provider_message_id, sent_at
+      ) values (
+        ${recipientId}::uuid,
+        ${campaignId}::uuid,
+        ${merchantId}::uuid,
+        ${randomUUID().replaceAll("-", "") + randomUUID().replaceAll("-", "")},
+        'sent',
+        ${providerMessageId},
+        now()
+      )
+    `
+  })
+
+  return { merchantId, ownerUserId, recipientId }
+}
+
+async function cleanupResendWebhookFixture(sql, fixture) {
+  await sql`delete from public.merchants where id = ${fixture.merchantId}::uuid`
+  await sql`delete from auth.users where id = ${fixture.ownerUserId}::uuid`
 }
 
 async function getJson(url, headers = {}) {
