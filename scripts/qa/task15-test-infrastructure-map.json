@@ -783,8 +783,32 @@
       "stableId": "T37-DEF-8448002219397b81383182f9",
       "title": "Browser matrix attempt failed before tests at pnpm signature verification",
       "sourceRowSha256": "ade186e72442115b3c98f330b8e87c75358748d270b182fc9cd9c0affff9126b",
-      "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "status": "fixed",
+      "reason": "The current pinned pnpm reaches Playwright through the exact repository TAP reporter command and the real Chromium harness completes 1/1 with no retry or skip; package-manager signature bootstrap is not the failure mechanism.",
+      "receipt": {
+        "assertions": 0,
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/browser-build-execution-v8/receipts/browser-corepack-direct-receipt.json",
+          "sha256": "0bbd07ada51a0dae996a92addbec02f2162d0da3dfedfdc513e3f24f38971c4e"
+        },
+        "attempt": 1,
+        "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/production-qa.desktop.spec.ts --project=chromium --reporter=tests/support/playwright-tap-reporter.mjs",
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/browser-build-execution-v8/candidate-source",
+          "head": "299841b8c9b4769a3f3fec7861cb83ae3e25b891",
+          "tree": "8494241721ee3480bee34db29e0dea98b00db031",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 1,
+          "passed": 1,
+          "failed": 0,
+          "skipped": 0
+        }
+      }
     },
     {
       "stableId": "T37-DEF-8572e783b363213e0f45e226",
@@ -1002,8 +1026,32 @@
       "stableId": "T37-DEF-9a33cc57321447dbfd068e8e",
       "title": "Browser matrix web server failed to bind loopback due to EPERM",
       "sourceRowSha256": "9525cb6134c3108a11dccb6cea6241f6299d3881a14216b695eb8d396537d865",
-      "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "status": "fixed",
+      "reason": "Playwright starts the real Next web server on owned loopback port 3146 and the Chromium harness completes 1/1; the post-run listener readback is empty, so loopback EPERM is not present and cleanup completed.",
+      "receipt": {
+        "assertions": 0,
+        "artifact": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/browser-build-execution-v8/receipts/loopback-bind-direct-receipt.json",
+          "sha256": "3fb35ea770e2591df1b70c13ae001cbc1d9be5d7a6eae1051053897b41776ffb"
+        },
+        "attempt": 1,
+        "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/production-qa.desktop.spec.ts --project=chromium --reporter=tests/support/playwright-tap-reporter.mjs",
+        "exitCode": 0,
+        "outcome": "passed",
+        "retryCount": 0,
+        "source": {
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/browser-build-execution-v8/candidate-source",
+          "head": "299841b8c9b4769a3f3fec7861cb83ae3e25b891",
+          "tree": "8494241721ee3480bee34db29e0dea98b00db031",
+          "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "totals": {
+          "tests": 1,
+          "passed": 1,
+          "failed": 0,
+          "skipped": 0
+        }
+      }
     },
     {
       "stableId": "T37-DEF-9f7b16a7243361f2db6d77cd",
