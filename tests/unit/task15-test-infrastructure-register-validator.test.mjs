@@ -329,7 +329,7 @@ test("Given the canonical map When validated Then its terminal counts are report
     assert.equal(result.status, 0)
     assert.match(
       result.stdout,
-      /^owned=65 terminal=65 duplicateIds=0 orphanIds=0 fixed=41 failed=0 blocked=24 open=24\n$/
+      /^owned=65 terminal=65 duplicateIds=0 orphanIds=0 fixed=46 failed=0 blocked=19 open=19\n$/
     )
   })
 })
