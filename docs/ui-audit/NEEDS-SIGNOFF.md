@@ -2475,3 +2475,50 @@ guides, so nothing is broken while that decision waits.
 answer is yes, the parameterised spine costs one prop and no assertion moves. If
 the answer is no, 01#60's remaining half should be closed as declined rather than
 carried as blocked, because there is no blocker left to lift.
+
+## 56. 02#20 — the referral rail's "collapsed by default" is a product call, not a test failure
+
+02#20 was recorded as blocked because
+`tests/e2e/customer-referral-bonus-stamp.spec.ts:102-103` does
+`getByTestId("referral-share-panel")` then `toBeVisible()`, "and a closed
+`<details>` makes that false".
+
+That is true of one arrangement and was applied to the whole mechanism. Measured
+in real chromium through Playwright rather than argued, on a minimal document
+with both arrangements side by side:
+
+| arrangement                                   | `isVisible()` on the panel testid |
+| --------------------------------------------- | --------------------------------- |
+| panel **inside** a closed `<details>`          | `false`                           |
+| `<details>` **inside** the panel               | `true`                            |
+
+`getAttribute("data-url")` returned the link from **both** positions, including
+from inside a closed `<details>` — so the assertion that spec is actually named
+for (the share URL carries the opaque `referral_code` and never the membership
+UUID or customer id) is indifferent to the disclosure in either arrangement.
+
+Consequences, both directions:
+
+- The audit's literal recommendation — one "More from {venue}" accordion
+  wrapping the rails — **does** fail that assertion. The refusal was right about
+  the audit's own mechanism.
+- A panel that collapses **its own body**, keeping
+  `<section data-testid="referral-share-panel">` as the visible root, passes it
+  untouched. Nothing is weakened, deleted or reworded.
+
+And the earlier note's closing sentence understates the prize.
+`ReferralSharePanel` is rendered whenever `exp.referralShareUrl` exists
+(`components/customer/customer-card-experience.tsx:346-352`), which is every
+membership — so it is unconditional promotion, exactly like `GoogleReviewButton`,
+and at the audit's ~290px it is the largest single rail below the card. It was
+excluded from that sentence only because the test was read as covering it.
+
+**What is left is one decision, and it is not an engineering one.** Collapsing a
+venue's referral growth loop by default trades card-page length against referral
+starts. That is conversion, so it is flagged here rather than guessed. The path
+is now known to be free of contract cost, and the same shape applies to
+`GoogleReviewButton`.
+
+Not done and why: the panel's height was not re-measured in this lane — `/card/`
+is auth-gated and no harness mounts `ReferralSharePanel`, so the ~290px is the
+audit's figure, not a fresh one. The constraint is what was measured.
