@@ -448,7 +448,7 @@ function LaunchStepRail({
                   !isActive &&
                     !isNext &&
                     !step.ready &&
-                    "border-dashed border-ink/25 bg-secondary/30"
+                    "border-dashed border-line bg-secondary/30"
                 )}
               >
                 <LaunchStepStamp
@@ -513,7 +513,7 @@ function LaunchStepStamp({
           ? "border-ink bg-stamp text-stamp-foreground shadow-sm"
           : isNext
             ? "border-seal bg-card text-foreground shadow-xs"
-            : "border-dashed border-ink/35 bg-secondary/60 text-muted-foreground",
+            : "border-dashed border-line bg-secondary/60 text-muted-foreground",
         active &&
           (size === "xs"
             ? "ring-2 ring-ink ring-inset"

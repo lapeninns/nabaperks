@@ -128,7 +128,7 @@ export function QrWorkspace({
           </div>
         </div>
 
-        <div className="grid min-w-0 gap-2 rounded-lg border-2 border-dashed border-ink/25 bg-paper-deep/45 p-3 sm:flex sm:items-center sm:justify-between sm:gap-3">
+        <div className="grid min-w-0 gap-2 rounded-lg border-2 border-dashed border-line bg-paper-deep/45 p-3 sm:flex sm:items-center sm:justify-between sm:gap-3">
           <div className="min-w-0">
             <p className="eyebrow">Permanent venue link</p>
             <p className="mt-1 overflow-hidden font-mono text-xs text-ellipsis whitespace-nowrap sm:text-sm">
@@ -275,7 +275,7 @@ export function QrWorkspace({
                 the same join and stamp journey.
               </p>
             </div>
-            <div className="grid gap-3 rounded-lg border-2 border-dashed border-ink/25 bg-paper-deep/45 p-4 sm:flex sm:items-center sm:justify-between">
+            <div className="grid gap-3 rounded-lg border-2 border-dashed border-line bg-paper-deep/45 p-4 sm:flex sm:items-center sm:justify-between">
               <p className="min-w-0 overflow-hidden font-mono text-sm text-ellipsis whitespace-nowrap">
                 {shareUrl}
               </p>

@@ -152,7 +152,7 @@ export function BillingPanelView({
             </p>
           ) : null}
 
-          <div className="grid gap-3 border-t-2 border-dashed border-ink/20 pt-5">
+          <div className="grid gap-3 border-t-2 border-dashed border-line pt-5">
             {presentation.primaryAction.kind === "checkout" ? (
               <BillingCheckoutForm
                 checkoutAction={checkoutAction}
@@ -293,7 +293,7 @@ function ComplimentaryBillingAccess({
         </StatusBanner>
 
         {hasStripeCustomer && portalAction ? (
-          <div className="grid gap-2 border-t-2 border-dashed border-ink/20 pt-5">
+          <div className="grid gap-2 border-t-2 border-dashed border-line pt-5">
             <p className="text-sm leading-6 text-muted-foreground">
               An existing Stripe customer is still linked to this venue. You can
               manage its card, invoices, or subscription without starting a new

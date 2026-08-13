@@ -158,7 +158,7 @@ export function DashboardQrCardView({
         label={`Venue QR for ${venueName}`}
         className="w-[9.25rem] shadow-[5px_5px_0_var(--w-shadow-color)]"
       >
-        <div className="mono-id grid aspect-square size-24 place-items-center rounded-md border-2 border-dashed border-ink/25 bg-paper-deep/65 p-3 text-center leading-4 tracking-tag text-muted-foreground">
+        <div className="mono-id grid aspect-square size-24 place-items-center rounded-md border-2 border-dashed border-line bg-paper-deep/65 p-3 text-center leading-4 tracking-tag text-muted-foreground">
           {unavailableCopy.label}
         </div>
       </QrFrame>
@@ -214,7 +214,7 @@ export function DashboardQrCardView({
               </div>
             </>
           ) : (
-            <div className="grid gap-2 rounded-lg border-2 border-dashed border-ink/25 bg-paper-deep/45 p-3">
+            <div className="grid gap-2 rounded-lg border-2 border-dashed border-line bg-paper-deep/45 p-3">
               <p className="text-sm leading-5 font-extrabold">
                 {unavailableCopy.title}
               </p>

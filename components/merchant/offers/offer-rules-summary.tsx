@@ -106,7 +106,7 @@ export function OfferRulesSummary({
       {rows.map((row) => (
         <div
           key={row.label}
-          className="grid gap-1 border-b border-dashed border-ink/15 py-2.5 last:border-b-0 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-baseline sm:gap-4"
+          className="grid gap-1 border-b border-dashed border-line py-2.5 last:border-b-0 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-baseline sm:gap-4"
         >
           <dt className="eyebrow">{row.label}</dt>
           <dd className="text-sm leading-6 text-foreground">{row.value}</dd>

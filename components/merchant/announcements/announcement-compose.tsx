@@ -242,7 +242,7 @@ export function AnnouncementCompose({
                   setTitle(template.title)
                   setBody(template.body)
                 }}
-                className="focus-ring rounded-lg border-2 border-dashed border-ink/25 bg-transparent px-3 py-1.5 text-sm font-bold text-foreground transition-[background-color,border-color,opacity] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:border-ink hover:bg-card disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none [@media(pointer:coarse)]:min-h-11"
+                className="focus-ring rounded-lg border-2 border-dashed border-line bg-transparent px-3 py-1.5 text-sm font-bold text-foreground transition-[background-color,border-color,opacity] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:border-ink hover:bg-card disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none [@media(pointer:coarse)]:min-h-11"
               >
                 {template.label}
               </button>
@@ -482,7 +482,7 @@ function AudiencePreview({
   readonly dailyUsage: VenueAnnouncementDailyUsage
 }) {
   return (
-    <div className="rounded-lg border-2 border-dashed border-ink/30 bg-secondary/45 px-4 py-3">
+    <div className="rounded-lg border-2 border-dashed border-line bg-secondary/45 px-4 py-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <p className="text-sm font-extrabold text-foreground">
           About {formatNumber(audienceSummary.eligible)} of your{" "}

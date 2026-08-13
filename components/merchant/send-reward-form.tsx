@@ -85,7 +85,7 @@ export function SendRewardForm({
                   setRewardName(preset.rewardName)
                   setRewardTerms(preset.rewardTerms)
                 }}
-                className="focus-ring rounded-lg border-2 border-dashed border-ink/25 bg-transparent px-3 py-1.5 text-sm font-bold text-foreground transition-[background-color,border-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:border-ink hover:bg-card motion-reduce:transition-none [@media(pointer:coarse)]:min-h-11"
+                className="focus-ring rounded-lg border-2 border-dashed border-line bg-transparent px-3 py-1.5 text-sm font-bold text-foreground transition-[background-color,border-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:border-ink hover:bg-card motion-reduce:transition-none [@media(pointer:coarse)]:min-h-11"
               >
                 {preset.rewardName}
               </button>

@@ -154,7 +154,7 @@ export function PlanRow({
   return (
     // min-w-0 + wrapping on the value: long plan messages must wrap inside a
     // 320px viewport instead of inflating the receipt's intrinsic width.
-    <div className="flex items-baseline justify-between gap-4 border-b border-dashed border-ink/15 py-2 last:border-b-0 sm:py-2.5">
+    <div className="flex items-baseline justify-between gap-4 border-b border-dashed border-line py-2 last:border-b-0 sm:py-2.5">
       <dt className="shrink-0 text-muted-foreground">{label}</dt>
       <dd className="min-w-0 text-right font-bold break-words">{value}</dd>
     </div>

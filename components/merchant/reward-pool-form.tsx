@@ -542,7 +542,7 @@ export function RewardPoolForm({
           type="button"
           disabled={batchPending}
           onClick={openBlankReward}
-          className="focus-ring flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-ink/25 bg-transparent px-4 py-3 text-sm font-bold text-foreground transition-[border-color,background-color,opacity] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:border-ink hover:bg-secondary/60 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none"
+          className="focus-ring flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-line bg-transparent px-4 py-3 text-sm font-bold text-foreground transition-[border-color,background-color,opacity] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:border-ink hover:bg-secondary/60 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none"
         >
           <Icon icon={Add01Icon} size={16} strokeWidth={2.25} />
           Add a reward
