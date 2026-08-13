@@ -249,7 +249,7 @@
       "title": "Dead-code gate first attempt failed at Corepack bootstrap",
       "sourceRowSha256": "02295300e3a6e96b358a5a53dc98da5ae46fc78c728813389700682321cb83c2",
       "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "reason": "Current clean-candidate pnpm deadcode:check reached Knip and exited 1 with 12 unused committed files; exact direct gate is not green."
     },
     {
       "stableId": "T37-DEF-2e0e4cfdd3288bbdb9fef841",
@@ -473,7 +473,7 @@
       "title": "Lint attempt failed before ESLint because pnpm signature verification failed",
       "sourceRowSha256": "353af24c0e7e9daebe07a4e2dcbb3b03e721559012c42f456bc42ab14e981812",
       "status": "blocked",
-      "reason": "The proposed bootstrap receipts are externally mutable and an independent post-commit verifier observed STALE_RECEIPT; no durable receipt reissue is available within this map-only integration."
+      "reason": "Current clean-candidate pnpm lint reached ESLint and exited 0, but no trustworthy row-specific failing-first artifact satisfies the validator receipt contract; generic RED evidence is excluded."
     },
     {
       "stableId": "T37-DEF-4acf9fcf259e5b203f5eb611",
@@ -787,7 +787,7 @@
       "title": "Root-route accessibility test failed after server environment validation",
       "sourceRowSha256": "63c9302900449807fedf112326bcfec0a9a091ed03f5e65d0673a350702bbc12",
       "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "reason": "Exact Chromium TAP-reporter command exited 1 with a 120000ms Playwright webServer readiness timeout; this is retained as a real runtime blocker."
     },
     {
       "stableId": "T37-DEF-7cd45ecfcf0c571f09ba80e3",
@@ -1189,7 +1189,7 @@
       "title": "Production poster verification failed because the loopback server was unreachable",
       "sourceRowSha256": "c0abfe7daa4ee3cb89c7f9293dea3ca4f01e80b6d4c76367f6d0a589e9a499b5",
       "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "reason": "Validator grammar has no accepted command family for pnpm posters:verify-production-pdfs; direct loopback proof cannot truthfully encode."
     },
     {
       "stableId": "T37-DEF-b17d233b3d1b086efa80d6be",
@@ -1289,7 +1289,7 @@
       "title": "Production build failed during prerender because required build-time environment was absent",
       "sourceRowSha256": "c5c93b23dcb0c280624239a9518e09446f3b6fb0f111c51022ffc9622dd4080b",
       "status": "blocked",
-      "reason": "No Task15 command receipt is recorded; prerequisite or repair remains unresolved."
+      "reason": "Validator grammar has no accepted command family for pnpm build; fixture-backed build proof cannot truthfully encode."
     },
     {
       "stableId": "T37-DEF-d350d8d8f3bd51d381af6570",
@@ -1403,7 +1403,7 @@
       "title": "Duplication gate first attempt failed at Corepack bootstrap",
       "sourceRowSha256": "8f217fe0ad052ecfa8cfff76c4ca947c5c0b6a55d6e6ae2e4694cef6b0c5b66e",
       "status": "blocked",
-      "reason": "The proposed bootstrap receipts are externally mutable and an independent post-commit verifier observed STALE_RECEIPT; no durable receipt reissue is available within this map-only integration."
+      "reason": "Current clean-candidate pnpm duplicates:check reached jscpd and exited 0, but no trustworthy row-specific failing-first artifact satisfies the validator receipt contract; generic RED evidence is excluded."
     },
     {
       "stableId": "T37-DEF-eaba62054e63cf27ce4b89c8",
