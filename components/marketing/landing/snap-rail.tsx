@@ -1,7 +1,9 @@
 "use client"
 
 import { Children, useRef, useState, type ReactNode } from "react"
+import { ArrowRight01Icon } from "@hugeicons/core-free-icons"
 
+import { Icon } from "@/components/brand"
 import { cn } from "@/lib/utils"
 
 /**
@@ -54,7 +56,11 @@ export function SnapRail({
         aria-hidden="true"
         className="mono-meta flex items-center justify-end gap-1 text-muted-foreground sm:hidden"
       >
-        Swipe to see every card <span>→</span>
+        Swipe to see every card
+        {/* The brand Icon wrapper, not a raw "→" text glyph. DESIGN.md ·
+            Iconography: everything functional "uses `Icon`", pulled from
+            `@hugeicons/core-free-icons`, at the 2px house stroke. */}
+        <Icon icon={ArrowRight01Icon} size={14} />
       </p>
       {/* How many there are, and where you are — the finding's actual
           complaint was that the only cue eight cards existed was a 10px hint

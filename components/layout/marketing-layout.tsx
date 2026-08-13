@@ -1,10 +1,11 @@
 import type { ReactNode } from "react"
+import { ArrowDown01Icon } from "@hugeicons/core-free-icons"
 
 import { MarketingFunnelTracker } from "@/components/analytics/marketing-funnel-tracker"
 import { WebVitalsReporter } from "@/components/analytics/web-vitals-reporter"
 import Link from "next/link"
 
-import { Logo } from "@/components/brand"
+import { Icon, Logo } from "@/components/brand"
 import { BRAND, LEGAL_CONTACT, ROUTES } from "@/lib/marketing/facts"
 
 import { MarketingHeaderNav, MarketingHeaderRail } from "./marketing-header-nav"
@@ -159,12 +160,18 @@ export function MarketingLayout({
                   >
                     <summary className="focus-ring eyebrow flex min-h-11 cursor-pointer list-none items-center justify-between rounded-(--radius-md) px-3">
                       {column.heading}
-                      <span
-                        aria-hidden="true"
-                        className="text-muted-foreground group-open:rotate-180"
-                      >
-                        ▾
-                      </span>
+                      {/* The house chevron through the brand Icon wrapper, not
+                          a raw "▾" text glyph. DESIGN.md · Iconography: "Render
+                          every icon through the brand `Icon` wrapper"; the same
+                          ArrowDown01Icon already turns in Disclosure,
+                          MarketingDisclosure, SelectField and ProfileSection.
+                          A text arrow sets in Bricolage at whatever metrics the
+                          font gives it and cannot carry the 2px house stroke. */}
+                      <Icon
+                        icon={ArrowDown01Icon}
+                        size={16}
+                        className="shrink-0 text-muted-foreground transition-transform duration-[var(--w-dur-fast)] ease-[var(--w-ease)] group-open:rotate-180 motion-reduce:transition-none"
+                      />
                     </summary>
                     <FooterLinkList column={column} />
                   </details>

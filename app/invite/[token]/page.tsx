@@ -50,9 +50,14 @@ function InviteAvailable({
   const venue = businessName?.trim() || "A local venue"
   return (
     <>
-      <p className="font-mono text-xs tracking-wide text-ink-soft uppercase">
-        {venue}
-      </p>
+      {/* `.eyebrow`, not a hand-rolled `font-mono text-xs tracking-wide …
+          uppercase`. DESIGN.md · Typography: "Do not hand-roll `font-mono
+          text-[0.x rem] tracking-[…] uppercase` strings — reach for one of
+          these utilities". `.eyebrow` IS mono-meta plus the muted colour, and
+          --muted-foreground already resolves to --w-ink-soft, so the colour is
+          unchanged; the tracking moves from Tailwind's 0.025em `tracking-wide`
+          to the contract's 0.06em. */}
+      <p className="eyebrow">{venue}</p>
       <h1 className="mt-2 text-2xl font-extrabold">
         Two stamps to start your card
       </h1>

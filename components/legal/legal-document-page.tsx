@@ -1,4 +1,6 @@
-import { Eyebrow, PageTitle, ReceiptCard } from "@/components/brand"
+import { ArrowDown01Icon } from "@hugeicons/core-free-icons"
+
+import { Eyebrow, Icon, PageTitle, ReceiptCard } from "@/components/brand"
 import {
   MARKETING_ANCHOR_OFFSET,
   MarketingLayout,
@@ -66,12 +68,14 @@ export function LegalDocumentPage({
           <details open className="group">
             <summary className="focus-ring mb-3 flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 rounded-(--radius-md) lg:pointer-events-none">
               <Eyebrow>On this page</Eyebrow>
-              <span
-                aria-hidden="true"
-                className="text-muted-foreground group-open:rotate-180 lg:hidden"
-              >
-                ▾
-              </span>
+              {/* The house chevron through the brand Icon wrapper, not a raw
+                  "▾" text glyph — DESIGN.md · Iconography, and the same
+                  ArrowDown01Icon every other disclosure in the product turns. */}
+              <Icon
+                icon={ArrowDown01Icon}
+                size={16}
+                className="shrink-0 text-muted-foreground transition-transform duration-[var(--w-dur-fast)] ease-[var(--w-ease)] group-open:rotate-180 motion-reduce:transition-none lg:hidden"
+              />
             </summary>
             <nav
               aria-label={`${meta.cardTitle} sections`}

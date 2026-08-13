@@ -107,7 +107,11 @@ export default async function NfcCardPreviewPage({
     <div className="grid gap-16 bg-[var(--w-paper)] py-10">
       {cards.map(({ design, card }) => (
         <section key={design} className="grid gap-3">
-          <p className="text-center font-mono text-xs font-bold tracking-code text-[var(--w-ink-soft)] uppercase">
+          {/* `.mono-meta`, not a hand-rolled `font-mono text-xs … tracking-…
+            uppercase` string (DESIGN.md · Typography), and `text-ink-soft`
+            rather than an arbitrary `text-[var(--w-ink-soft)]` — the theme
+            already mints that colour as a utility. */}
+          <p className="mono-meta text-center text-ink-soft">
             {getNfcCardDesign(design)?.name ?? design} NFC card
           </p>
           {card}
