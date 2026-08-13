@@ -503,11 +503,11 @@
       "title": "Required SEO crawl command forwarded a literal double-dash and emitted invalid output",
       "sourceRowSha256": "ded6e0f0bd466128347f75f73a9a4a0a578385b59a4fbf35f1cf917ce2247d3a",
       "status": "fixed",
-      "reason": "The exact documented pnpm wrapper is covered by a first-attempt direct CLI regression receipt.",
+      "reason": "The documented pnpm wrapper now skips its delimiter and is covered by fresh first-attempt real CLI receipt evidence.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/successor-remediation-certification/20260811T221856Z/task-15/lanes/static-gate-cluster-v1/receipts/crawl-direct-receipt.json",
-          "sha256": "d3edbde4f71a58011c25dea8a8ae5eb3185ef2a85aeaa0636741f7ab3c8974f4"
+          "path": ".omo/evidence/task-15/lanes/seo-cli-boundary-v6/receipts/crawl-direct-receipt.json",
+          "sha256": "413fa2c110a78f01053e90115e401053b3b984911449a275673fe40d5809332c"
         },
         "command": "node --test tests/unit/seo-crawl-cli-wrapper.test.mjs",
         "attempt": 1,
@@ -515,18 +515,18 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/successor-remediation-certification/20260811T221856Z/task-15/lanes/static-gate-cluster-v1/candidate-source",
-          "head": "001f11b64f77f3c161cd9ed9d8e35c8e01688fce",
-          "tree": "7878024868a8f83cca8c61c96fdb6928d1d93b96",
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/seo-cli-boundary-v6/candidate-source",
+          "head": "91359149b17a6536435d8d1017fb1b886821e028",
+          "tree": "1cf69595d83ea88b53f3d5e83ec89e7ba47e8830",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "totals": {
-          "tests": 1,
-          "passed": 1,
+          "tests": 3,
+          "passed": 3,
           "failed": 0,
           "skipped": 0
         },
-        "assertions": 4
+        "assertions": 3
       }
     },
     {
@@ -676,11 +676,11 @@
       "title": "SEO content pnpm wrapper forwarded a literal double-dash as the input path",
       "sourceRowSha256": "cbd30072c6f853806aac9725a96d28a25477fb9c9010bec2305b39c2854d9117",
       "status": "fixed",
-      "reason": "The exact documented pnpm wrapper is covered by a first-attempt direct CLI regression receipt.",
+      "reason": "The documented pnpm wrapper now skips its delimiter and is covered by fresh first-attempt real CLI receipt evidence.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/successor-remediation-certification/20260811T221856Z/task-15/lanes/static-gate-cluster-v1/receipts/content-direct-receipt.json",
-          "sha256": "b606b1b869143749e19871ac0d359e59917139b106397d577a366ae7dc76078e"
+          "path": ".omo/evidence/task-15/lanes/seo-cli-boundary-v6/receipts/content-direct-receipt.json",
+          "sha256": "d162b0669b2a201faa4847932016850d5a6919e923b19e587e1f545c170807e7"
         },
         "command": "node --test tests/unit/seo-content-cli-wrapper.test.mjs",
         "attempt": 1,
@@ -688,18 +688,18 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/successor-remediation-certification/20260811T221856Z/task-15/lanes/static-gate-cluster-v1/candidate-source",
-          "head": "001f11b64f77f3c161cd9ed9d8e35c8e01688fce",
-          "tree": "7878024868a8f83cca8c61c96fdb6928d1d93b96",
+          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/seo-cli-boundary-v6/candidate-source",
+          "head": "91359149b17a6536435d8d1017fb1b886821e028",
+          "tree": "1cf69595d83ea88b53f3d5e83ec89e7ba47e8830",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "totals": {
-          "tests": 1,
-          "passed": 1,
+          "tests": 3,
+          "passed": 3,
           "failed": 0,
           "skipped": 0
         },
-        "assertions": 4
+        "assertions": 3
       }
     },
     {
