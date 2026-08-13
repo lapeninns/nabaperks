@@ -206,8 +206,19 @@ export function calculateAvailabilityReport(
       createdAt < windowEndMs
     )
   })
-  const uniqueRuns = new Map(eligible.map((run) => [String(run.id), run]))
-  const observed = [...uniqueRuns.values()]
+  const eligibleIds = eligible.map(({ id }) => {
+    const validId =
+      (typeof id === "number" && Number.isSafeInteger(id) && id > 0) ||
+      (typeof id === "string" && /^[1-9]\d*$/.test(id))
+    assert.ok(validId, "MALFORMED_RUN_ID")
+    return String(id)
+  })
+  assert.equal(
+    new Set(eligibleIds).size,
+    eligibleIds.length,
+    "DUPLICATE_RUN_ID"
+  )
+  const observed = eligible
   const earliestMeasurementMs = measurementRuns
     .filter(
       ({ event }) => event === "schedule" || event === "workflow_dispatch"

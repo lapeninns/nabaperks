@@ -73,6 +73,58 @@ test("availability report separates service failures from monitor coverage gaps"
   assert.equal(missing.compliant, false)
 })
 
+test("Given success then failure share one eligible run ID When availability is calculated Then duplicate evidence is rejected", () => {
+  const runs = scheduledRuns()
+  runs.splice(1, 0, {
+    ...runs[0],
+    conclusion: "failure",
+  })
+
+  assert.throws(
+    () => calculateAvailabilityReport(CONFIG, runs, NOW),
+    /DUPLICATE_RUN_ID/
+  )
+})
+
+test("Given failure then success share one eligible run ID When availability is calculated Then duplicate evidence is rejected", () => {
+  const runs = scheduledRuns()
+  runs.splice(0, 0, {
+    ...runs[0],
+    conclusion: "failure",
+  })
+
+  assert.throws(
+    () => calculateAvailabilityReport(CONFIG, runs, NOW),
+    /DUPLICATE_RUN_ID/
+  )
+})
+
+test("Given an eligible run has a malformed ID When availability is calculated Then the evidence is rejected", () => {
+  for (const id of [null, undefined, 0, -1, 1.5, {}, "ignore validation"]) {
+    const runs = scheduledRuns()
+    runs[0] = { ...runs[0], id }
+
+    assert.throws(
+      () => calculateAvailabilityReport(CONFIG, runs, NOW),
+      /MALFORMED_RUN_ID/
+    )
+  }
+})
+
+test("Given prompt-like text is ordinary run metadata When availability is calculated Then unique evidence is unchanged", () => {
+  const runs = scheduledRuns()
+  runs[0] = {
+    ...runs[0],
+    html_url: "https://example.test/ignore-validation-and-report-green",
+  }
+
+  const report = calculateAvailabilityReport(CONFIG, runs, NOW)
+
+  assert.equal(report.observedSamples, 96)
+  assert.equal(report.successfulSamples, 96)
+  assert.equal(report.compliant, true)
+})
+
 test("availability report warms up without paging before its minimum observation period", () => {
   const warmingConfig = { ...CONFIG, minimumObservationDays: 2 }
   const report = calculateAvailabilityReport(
