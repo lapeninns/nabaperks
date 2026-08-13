@@ -1852,3 +1852,94 @@ FAIL with "SUPABASE_DB_URL is not set" rather than skipping — a gate-shaped ga
 of the same family as the ones audited above, since a suite that fails when it
 cannot run teaches everyone to ignore its result. Not this lane's file to fix;
 recorded so the next reader does not mistake those 16 for a regression.
+
+## The DESIGN.md conformance sweep (`lane/dsweep`) — reading the contract clause by clause
+
+Not the audit's list. The instruction was to take DESIGN.md a clause at a time
+and check the code obeys it, on the theory that the richest recent vein has been
+violations nobody recorded. Five landed; five more are written up in
+NEEDS-SIGNOFF 55–60. What is worth keeping is _why each one had survived_,
+because in four of the five cases the reason was the same shape.
+
+### The recurring reason: the thing looked dead, so nobody read it
+
+**A no-op is cheap to leave, and "no-op" is a claim about a context.**
+`components/ui/button.tsx` shipped `rounded-full` in its `cva` base — a v1
+Honey & Ink pill on a system whose own document calls v1 "fully superseded".
+Every reader who noticed it could reason correctly that the unlayered
+`[data-slot="button"]` block beats layered utilities and move on. That reasoning
+is right for `<Button>` and wrong for `buttonVariants`, which is exported and
+dressed onto a plain `<button>` at `app/m/[merchantSlug]/page.tsx:134-137`.
+
+Measured on a production build, the same class string, one page, `styleSheets`
+and `main#main` asserted first:
+
+    plain element             border-radius 3.3554432e+07px   border-width 0px
+    + data-slot="button"      border-radius 10px              border-width 2px
+
+Thirty-three million pixels apart. **A dead-code claim is a claim about which
+selectors match**, and it has to be tested in the context where they do not.
+
+The measurement technique is worth reusing. The class string was appended to a
+live production page and read back with `getComputedStyle`, rather than trying
+to reach the real route — `/m/[merchantSlug]` needs a seeded merchant, and the
+question ("what does the shipped stylesheet do to this shipped class string?")
+does not require one. Anchor on the artefact you are actually asking about.
+
+### The other three, same family
+
+- **"The list does not grow without updating this contract"** (Shapes) was a
+  sentence, not a check. The only `rounded-full` assertion in 123 contract files
+  looked at one file. Enumerating the whole tree found the list stale in _both_
+  directions: the merchant tab bar had joined it unnamed, and "join stepper
+  discs" names a shape that has been `h-1.5` bars since `3f2a9f61c`.
+- **"Dashed lines come in two tones only"** (Elevation & Depth) shipped as six.
+  The customer lane and the admin lane had each swept their own tree; the
+  merchant tree — most of the dashed surface area in the product — had never
+  been swept, and nothing stopped the next one. **A per-lane sweep does not
+  compose into a product-wide rule unless something asserts the rule.**
+- **"Do not hand-roll `font-mono text-[…] uppercase`"** (Typography) had seven
+  survivors, and the gate that looks like it should have caught them —
+  `tokens:check` — enforces the 10px FLOOR, not the two-size scale. `text-xs`
+  clears the floor. **A gate that enforces the neighbouring rule reads, from a
+  distance, like a gate that enforces this one.**
+
+### Where a violation was real and fixing it would have been worse
+
+`customer-flow-system.tsx`'s join stepper misses DESIGN.md's Progress clause on
+four axes at once (pill radius, secondary track, vermillion fill, 1px border).
+Three are visual/product calls. The fourth is a trap: the border is 1px on a
+**6px-tall** bar, so raising it to the contract's 2px leaves 2px of interior.
+Recorded in NEEDS-SIGNOFF 58 with that arithmetic, because the useful question
+turned out not to be "which of the four" but "is a segmented step indicator the
+component the Progress clause was written about at all" — and DESIGN.md is
+silent on that, so the lane stopped.
+
+Same discipline on `StampDot`'s `text-[0.69rem]` (11.04px): a genuine third size
+in a two-size register, legal under every gate in the repo because it clears the
+floor, and on the mark the design system is named after with 121 baselines
+already awaiting human diff approval. Pinned at its exact value rather than
+changed, so it can neither spread nor be quietly tidied.
+
+### Two notes on method
+
+**A whole-tree contract needs the offender list and the anti-vacuity guard to be
+sabotaged separately.** Each of the four new contracts asserts it read >500
+source files or found >N real instances _before_ asserting "no offenders", and
+every one of those guards was broken on purpose to confirm the test fails. This
+is the `bundle:check` failure mode (a budget enforced on 0 of 150 routes) written
+into the tests that would otherwise repeat it. Sixteen sabotage runs across the
+four files; every assertion failed alone.
+
+**Two of the new contracts found violations the human sweep had missed**, which
+is the argument for writing the check before believing the sweep is complete.
+The dashed-tone test was written against `border-ink/NN` and immediately failed
+on `border-foreground/25` (`app/start/page.tsx`) and `border-paper/40`
+(`scarcity-band.tsx`) — one a seventh tone nobody had grepped for, the other a
+genuine gap in DESIGN.md (no on-ink dashed tone exists) that is now carved out
+**by exact filename** so a second one still fails.
+
+**`prettier --write` over a glob is not safe in this repo.** Twenty files are not
+Prettier-clean at HEAD and no gate checks formatting, so a tidy-up pass produced
+a 20-file diff unrelated to the change and had to be reverted file by file. Use
+`--check` to find out, and `--write` only on the paths you touched.
