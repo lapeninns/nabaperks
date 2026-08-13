@@ -336,7 +336,105 @@ for (const file of ["COVERAGE.md", "HANDOFF.md"]) {
   }
 }
 
+/**
+ * Every bare filename the evidence documents cite must resolve to exactly one
+ * real file.
+ *
+ * The path check above only sees a citation that starts at a top-level
+ * directory, because that is what its `FILE_REF` matches. A note that writes
+ * `profile-form.tsx` on its own is invisible to it — and two notes were
+ * doing exactly that, one of them sending a reader to a
+ * `components/merchant/account/` address that has never held that file. A
+ * citation nobody can follow is not evidence, which is the whole reason the
+ * path check exists; this closes the half of it that was open.
+ *
+ * Two failure modes, both real here:
+ *
+ *   - resolves to NOTHING. Legitimate twice, when a note deliberately names a
+ *     file that was deleted or never existed in order to correct the record,
+ *     so those two are allowed by name with the reason attached.
+ *   - resolves to MANY. `page.tsx` matches 116 files in an App Router repo, so
+ *     citing it bare tells a reader nothing. Write the path.
+ */
+{
+  const IGNORED_DIRS = new Set([
+    ".git",
+    ".next",
+    "node_modules",
+    "test-results",
+    "playwright-report",
+    "coverage",
+  ])
+
+  /**
+   * Bare filenames a note names ON PURPOSE because they are absent. Both are
+   * corrections of the record, and deleting the sentence to satisfy a checker
+   * would delete the correction.
+   */
+  const KNOWN_ABSENT = new Map([
+    ["separator.tsx", "05#27 records deleting it; naming it is the point"],
+    [
+      "marketing-type-scale.test.mjs",
+      "01#15 records that an earlier note cited this file, which never existed",
+    ],
+  ])
+
+  const basenames = new Map()
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name.startsWith(".") && entry.name !== ".design-sync") continue
+      if (IGNORED_DIRS.has(entry.name)) continue
+      const full = path.join(dir, entry.name)
+      if (entry.isDirectory()) {
+        walk(full)
+        continue
+      }
+      const seen = basenames.get(entry.name) ?? 0
+      basenames.set(entry.name, seen + 1)
+    }
+  }
+  walk(process.cwd())
+
+  const BARE_REF = /`([A-Za-z0-9_\-.[\]]+\.(?:tsx?|mjs|css|sql|json))`/g
+  const evidenceDocs = readdirSync(DIR).filter(
+    (name) => name.endsWith(".md") && !/^(00-master|0[1-5]-)/.test(name)
+  )
+
+  let resolved = 0
+  for (const file of evidenceDocs) {
+    const text = readFileSync(path.join(DIR, file), "utf8")
+    for (const match of text.matchAll(BARE_REF)) {
+      const name = match[1]
+      if (KNOWN_ABSENT.has(name)) continue
+      const count = basenames.get(name) ?? 0
+      if (count === 1) {
+        resolved += 1
+        continue
+      }
+      if (count === 0) {
+        problems.push(
+          `${file} cites ${name}, which matches no file in the tree. ` +
+            "Write the path it moved to, or add it to KNOWN_ABSENT with a reason."
+        )
+      } else {
+        problems.push(
+          `${file} cites ${name} bare, and ${count} files carry that name. ` +
+            "Write the path."
+        )
+      }
+    }
+  }
+
+  if (resolved < 20) {
+    problems.push(
+      `only ${resolved} bare filenames resolved across the audit docs — the ` +
+        "bare-reference check is probably matching nothing"
+    )
+  }
+}
+
 if (problems.length > 0) {
+
   console.error("✗ UI-audit tally is out of sync:\n")
   for (const problem of problems) console.error(`  ${problem}`)
   process.exit(1)

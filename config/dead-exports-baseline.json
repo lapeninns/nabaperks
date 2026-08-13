@@ -255,7 +255,6 @@
   "lib/merchant/offer-campaign-fields.ts#OFFER_CAMPAIGN_SCHEDULED_SUCCESS",
   "lib/merchant/onboarding.ts#MerchantForApp",
   "lib/merchant/onboarding.ts#MerchantOnboardingFields",
-  "lib/merchant/print-asset-route.ts#firstSearchValue",
   "lib/merchant/sent-rewards.ts#SentRewardTone",
   "lib/merchant/venue-address.ts#ManualVenueAddressPayload",
   "lib/merchant/venue-address.ts#isUkPostcode",

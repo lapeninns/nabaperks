@@ -1246,7 +1246,7 @@ one of four shell files:
 | `customer-shell.tsx`       | `sm:px-6 sm:pt-10 sm:pb-10`                 |
 | `customer-app-shell.tsx`   | `sm:px-6` ×2                                |
 | `customer-flow-system.tsx` | `sm:px-6`, `sm:pt-6/8`, `sm:pb-[max(…)]` ×2 |
-| `loading-skeletons.tsx`    | the same five, mirroring the flow shell     |
+| `components/customer/loading-skeletons.tsx` | the same five, mirroring the flow shell |
 
 Those measure the gap between the column and the **screen edge**. A container
 query on `max-w-customer` cannot express them, because that container is a
@@ -1925,7 +1925,7 @@ worse than no filter, which is why nothing was shipped.
 
 **Option A — filter on `target_table` (recommended).** It is a column co-written
 on all 110 inserts, so it needs no naming judgement at all, and `/admin/audit`
-_already prints it_ in the Target column (`AuditTarget`, `page.tsx`). The operator
+_already prints it_ in the Target column (`AuditTarget`, `app/admin/audit/page.tsx`). The operator
 question it answers — "what did this touch" — is the one the trail is usually read
 for. 21 values, so a `<select>`, not a chip row:
 
@@ -2421,3 +2421,104 @@ Two exclusions in that work are deliberate and worth keeping:
 
 **Visual baselines: the five de-glassed surfaces will diff, and those diffs are
 intended.** They are on top of the 121 already awaiting approval.
+
+## 55. 01#60 — the "contract-blocked" TOC was blocked by a mechanism the finding never asked for
+
+Re-tested in the blockers lane by running it, not by reading section 18.
+
+Section 18 says two opposite things about the same assertion. Its opening reads
+"`marketing-offer-source` pins exactly **one line** in `guide-spine.tsx` … not
+the component's shape. **A generic spine could keep it.**" Its closing reads
+"extracting the list into a shared component moves that expression to a
+different file … so the assertion fails on a pure refactor". Both are true, of
+two different refactors — and the STATUS row propagated the pessimistic one,
+which is how 01#60 reached HANDOFF-NEXT-AGENT as remaining engineering item 2,
+"blocked only because the pinned literal lives inside `guide-spine.tsx`".
+
+The finding asks for the first refactor, in its own words: "reuse `GuideSpine`
+(**make it generic over a section list**)". That is a prop on the existing file,
+not an extraction out of it.
+
+**Run, not reasoned.** `GuideSpine` was given `sections` / `label` props
+defaulting to `PUB_GUIDE_SECTIONS` and `PUB_GUIDE_HERO.jumpLabel`, with the
+three literal reads swapped for the props, and the pinned `<ol>` className left
+where it is:
+
+    node --test tests/contracts/marketing-offer-source.test.mjs
+    # tests 18 / # pass 18 / # fail 0      EXIT=0
+
+Sabotage, so the pass is not vacuous — change the pinned expression to
+`hidden ? "hidden lg:block" : "grid"` and the same file answers:
+
+    not ok 17 - Given the pub hub When it composes sections Then it renders no
+                band another route owns and routes into the guide cluster
+    EXIT=1
+
+The assertion is live and the parameterisation does not touch it. The experiment
+was reverted; no unused prop was shipped.
+
+**So the recorded blocker is void, and the real one is smaller and different in
+kind.** `GuideSpine`'s root is
+`lg:sticky lg:top-[calc(var(--marketing-header-h)+0.75rem)] lg:self-start`; it
+is a rail for a two-column reading grid, which is what
+`components/marketing/pubs/pubs-page.tsx:88-94` gives it
+(`lg:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] lg:items-start`). `GuidePage` renders a
+single `Section width="narrow"` column, so adopting the spine means giving three
+indexed `/guides/*` routes a two-column desktop layout. That is a visual
+redesign of live SEO pages on top of 121 baselines already awaiting approval —
+an owner's call, and a different question from a contract renegotiation.
+
+The finding's "at minimum" alternative is shipped and verified on all three
+guides, so nothing is broken while that decision waits.
+
+**Recommendation:** decide the layout question, not the contract question. If the
+answer is yes, the parameterised spine costs one prop and no assertion moves. If
+the answer is no, 01#60's remaining half should be closed as declined rather than
+carried as blocked, because there is no blocker left to lift.
+
+## 56. 02#20 — the referral rail's "collapsed by default" is a product call, not a test failure
+
+02#20 was recorded as blocked because
+`tests/e2e/customer-referral-bonus-stamp.spec.ts:102-103` does
+`getByTestId("referral-share-panel")` then `toBeVisible()`, "and a closed
+`<details>` makes that false".
+
+That is true of one arrangement and was applied to the whole mechanism. Measured
+in real chromium through Playwright rather than argued, on a minimal document
+with both arrangements side by side:
+
+| arrangement                                   | `isVisible()` on the panel testid |
+| --------------------------------------------- | --------------------------------- |
+| panel **inside** a closed `<details>`          | `false`                           |
+| `<details>` **inside** the panel               | `true`                            |
+
+`getAttribute("data-url")` returned the link from **both** positions, including
+from inside a closed `<details>` — so the assertion that spec is actually named
+for (the share URL carries the opaque `referral_code` and never the membership
+UUID or customer id) is indifferent to the disclosure in either arrangement.
+
+Consequences, both directions:
+
+- The audit's literal recommendation — one "More from {venue}" accordion
+  wrapping the rails — **does** fail that assertion. The refusal was right about
+  the audit's own mechanism.
+- A panel that collapses **its own body**, keeping
+  `<section data-testid="referral-share-panel">` as the visible root, passes it
+  untouched. Nothing is weakened, deleted or reworded.
+
+And the earlier note's closing sentence understates the prize.
+`ReferralSharePanel` is rendered whenever `exp.referralShareUrl` exists
+(`components/customer/customer-card-experience.tsx:346-352`), which is every
+membership — so it is unconditional promotion, exactly like `GoogleReviewButton`,
+and at the audit's ~290px it is the largest single rail below the card. It was
+excluded from that sentence only because the test was read as covering it.
+
+**What is left is one decision, and it is not an engineering one.** Collapsing a
+venue's referral growth loop by default trades card-page length against referral
+starts. That is conversion, so it is flagged here rather than guessed. The path
+is now known to be free of contract cost, and the same shape applies to
+`GoogleReviewButton`.
+
+Not done and why: the panel's height was not re-measured in this lane — `/card/`
+is auth-gated and no harness mounts `ReferralSharePanel`, so the ~290px is the
+audit's figure, not a fresh one. The constraint is what was measured.
