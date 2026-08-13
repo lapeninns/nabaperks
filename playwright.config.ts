@@ -62,6 +62,11 @@ const chromiumChannel =
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  reporter: [
+    ["list"],
+    ["html", { open: "never", outputFolder: "playwright-report" }],
+    ["json", { outputFile: "test-results/playwright-results.json" }],
+  ],
   timeout: 180_000,
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
