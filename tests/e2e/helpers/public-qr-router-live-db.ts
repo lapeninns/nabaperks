@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto"
 
 import type { Sql } from "./admin-live-db"
+import { runCleanupSteps } from "./cleanup-lifecycle"
 import {
   createBrowserCustomerSession,
   type BrowserCustomerSession,
@@ -25,6 +26,19 @@ type PublicQrRouterRows = {
 
 export type PublicQrRouterFixture = PublicQrRouterRows & {
   readonly session: BrowserCustomerSession
+}
+
+type PublicQrCleanupCounts = {
+  readonly billingCustomers: number
+  readonly customers: number
+  readonly loyaltyCards: number
+  readonly memberships: number
+  readonly merchantLocations: number
+  readonly merchants: number
+  readonly productEvents: number
+  readonly qrCodes: number
+  readonly rewardPoolItems: number
+  readonly sessions: number
 }
 
 export async function createPublicQrRouterFixture(
@@ -54,45 +68,132 @@ export async function cleanupPublicQrRouterFixture(
 ): Promise<void> {
   if (!fixture) return
 
-  await sql`
-    delete from public.product_events
-    where merchant_id = ${fixture.merchantId}::uuid
-       or customer_id = ${fixture.customerId}::uuid
-       or membership_id = ${fixture.membershipId}::uuid
-       or qr_code_id in (
-         ${fixture.activeQrCodeId}::uuid,
-         ${fixture.inactiveQrCodeId}::uuid
-       )`
-  await sql`
-    delete from public.customer_sessions
-    where customer_id = ${fixture.customerId}::uuid`
-  await sql`
-    delete from public.customer_memberships
-    where id = ${fixture.membershipId}::uuid`
-  await sql`
-    delete from public.customers
-    where id = ${fixture.customerId}::uuid`
-  await sql`
-    delete from public.qr_codes
-    where id in (
-      ${fixture.activeQrCodeId}::uuid,
-      ${fixture.inactiveQrCodeId}::uuid
-    )`
-  await sql`
-    delete from public.billing_customers
-    where merchant_id = ${fixture.merchantId}::uuid`
-  await sql`
-    delete from public.reward_pool_items
-    where merchant_id = ${fixture.merchantId}::uuid`
-  await sql`
-    delete from public.loyalty_cards
-    where id = ${fixture.loyaltyCardId}::uuid`
-  await sql`
-    delete from public.merchant_locations
-    where id = ${fixture.locationId}::uuid`
-  await sql`
-    delete from public.merchants
-    where id = ${fixture.merchantId}::uuid`
+  await runCleanupSteps(
+    [
+      {
+        label: "public QR product events",
+        run: async () => {
+          await sql`
+            delete from public.product_events
+            where merchant_id = ${fixture.merchantId}::uuid
+               or customer_id = ${fixture.customerId}::uuid
+               or membership_id = ${fixture.membershipId}::uuid
+               or qr_code_id in (
+                 ${fixture.activeQrCodeId}::uuid,
+                 ${fixture.inactiveQrCodeId}::uuid
+               )`
+        },
+      },
+      {
+        label: "public QR customer sessions",
+        run: async () => {
+          await sql`delete from public.customer_sessions
+                    where customer_id = ${fixture.customerId}::uuid`
+        },
+      },
+      {
+        label: "public QR membership",
+        run: async () => {
+          await sql`delete from public.customer_memberships
+                    where id = ${fixture.membershipId}::uuid`
+        },
+      },
+      {
+        label: "public QR customer",
+        run: async () => {
+          await sql`delete from public.customers
+                    where id = ${fixture.customerId}::uuid`
+        },
+      },
+      {
+        label: "public QR codes",
+        run: async () => {
+          await sql`delete from public.qr_codes
+                    where id in (
+                      ${fixture.activeQrCodeId}::uuid,
+                      ${fixture.inactiveQrCodeId}::uuid
+                    )`
+        },
+      },
+      {
+        label: "public QR billing customer",
+        run: async () => {
+          await sql`delete from public.billing_customers
+                    where merchant_id = ${fixture.merchantId}::uuid`
+        },
+      },
+      {
+        label: "public QR reward pool",
+        run: async () => {
+          await sql`delete from public.reward_pool_items
+                    where merchant_id = ${fixture.merchantId}::uuid`
+        },
+      },
+      {
+        label: "public QR loyalty card",
+        run: async () => {
+          await sql`delete from public.loyalty_cards
+                    where id = ${fixture.loyaltyCardId}::uuid`
+        },
+      },
+      {
+        label: "public QR merchant location",
+        run: async () => {
+          await sql`delete from public.merchant_locations
+                    where id = ${fixture.locationId}::uuid`
+        },
+      },
+      {
+        label: "public QR merchant",
+        run: async () => {
+          await sql`delete from public.merchants
+                    where id = ${fixture.merchantId}::uuid`
+        },
+      },
+      {
+        label: "public QR fixture zero-residue readback",
+        run: () => assertPublicQrRouterRowsRemoved(sql, fixture),
+      },
+    ],
+    "Public QR fixture cleanup failed."
+  )
+}
+
+async function assertPublicQrRouterRowsRemoved(
+  sql: Sql,
+  fixture: PublicQrRouterRows
+): Promise<void> {
+  const qrCodeIds = [fixture.activeQrCodeId, fixture.inactiveQrCodeId]
+  const rows = await sql<readonly PublicQrCleanupCounts[]>`
+    select
+      (select count(*)::int from public.product_events
+       where merchant_id = ${fixture.merchantId}::uuid
+          or customer_id = ${fixture.customerId}::uuid
+          or membership_id = ${fixture.membershipId}::uuid
+          or qr_code_id = any(${qrCodeIds}::uuid[])) as "productEvents",
+      (select count(*)::int from public.customer_sessions
+       where customer_id = ${fixture.customerId}::uuid) as sessions,
+      (select count(*)::int from public.customer_memberships
+       where id = ${fixture.membershipId}::uuid) as memberships,
+      (select count(*)::int from public.customers
+       where id = ${fixture.customerId}::uuid) as customers,
+      (select count(*)::int from public.qr_codes
+       where id = any(${qrCodeIds}::uuid[])) as "qrCodes",
+      (select count(*)::int from public.billing_customers
+       where merchant_id = ${fixture.merchantId}::uuid) as "billingCustomers",
+      (select count(*)::int from public.reward_pool_items
+       where merchant_id = ${fixture.merchantId}::uuid) as "rewardPoolItems",
+      (select count(*)::int from public.loyalty_cards
+       where id = ${fixture.loyaltyCardId}::uuid) as "loyaltyCards",
+      (select count(*)::int from public.merchant_locations
+       where id = ${fixture.locationId}::uuid) as "merchantLocations",
+      (select count(*)::int from public.merchants
+       where id = ${fixture.merchantId}::uuid) as merchants`
+  const counts = rows.at(0)
+
+  if (!counts || Object.values(counts).some((count) => count !== 0)) {
+    throw new Error("Public QR fixture cleanup left database rows.")
+  }
 }
 
 export function publicQrPath(qrId: string): string {
