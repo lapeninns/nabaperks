@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test"
+import { expect, test, type BrowserContext } from "@playwright/test"
 
 import { dismissPwaInstall } from "./helpers/harness"
 import {
@@ -227,7 +227,139 @@ export function defineMerchantRewardPresetAtomicAddTests() {
 
       await finishLiveProof(sql, fixture, proofError)
     })
+
+    test("Given a foreign tenant reward sentinel When this merchant adds a preset Then the foreign row is unchanged", async ({
+      browser,
+      context,
+      page,
+    }) => {
+      const sql = connectMerchantRewardPresetDb()
+      test.skip(!sql, "local Supabase DB is not configured")
+      if (!sql) return
+
+      const foreignContext = await browser.newContext()
+      const fixtures: MerchantRewardPresetLiveDbFixture[] = []
+      let proofError: unknown
+
+      try {
+        const fixture = await createMerchantRewardPresetLiveDbFixture(
+          sql,
+          context
+        )
+        fixtures.push(fixture)
+        const foreignFixture = await createMerchantRewardPresetLiveDbFixture(
+          sql,
+          foreignContext
+        )
+        fixtures.push(foreignFixture)
+
+        // Given: an independently owned row carries a value the target mutation must preserve.
+        const [sentinel] = await sql<readonly { id: string }[]>`
+          insert into public.reward_pool_items (
+            merchant_id, location_id, loyalty_card_id, reward_name,
+            reward_terms, weight, is_active, display_order
+          ) values (
+            ${foreignFixture.merchantId}::uuid,
+            ${foreignFixture.locationId}::uuid,
+            ${foreignFixture.cardId}::uuid,
+            'Foreign tenant sentinel',
+            'Must remain byte-for-byte unchanged.',
+            7,
+            true,
+            1
+          )
+          returning id::text as id
+        `
+        const before = await readRewardSentinel(sql, sentinel.id)
+
+        // When: the authenticated owner adds a preset through the real browser action.
+        await page.goto(REWARDS_PATH)
+        await assertMerchantRewardPresetBrowserSession(
+          page,
+          fixture,
+          REWARDS_PATH
+        )
+        await page
+          .getByRole("button", { name: "Select Regulars' pint" })
+          .click()
+        await page.getByRole("button", { name: "Add 1 reward" }).click()
+        await expect(
+          page.getByRole("status").filter({ hasText: "1 reward added" })
+        ).toBeVisible()
+
+        // Then: the target mutation exists and the foreign tenant sentinel is identical.
+        const targetRewards = await sql<readonly RewardNameRow[]>`
+          select reward_name
+          from public.reward_pool_items
+          where merchant_id = ${fixture.merchantId}::uuid
+        `
+        expect(targetRewards).toEqual([{ reward_name: "Regulars' pint" }])
+        expect(await readRewardSentinel(sql, sentinel.id)).toEqual(before)
+      } catch (error) {
+        proofError = error
+      }
+
+      await finishTenantProof(sql, fixtures, foreignContext, proofError)
+    })
   })
+}
+
+type RewardSentinelRow = Readonly<{
+  id: string
+  is_active: boolean
+  merchant_id: string
+  reward_name: string
+  reward_terms: string
+  weight: number
+}>
+
+async function readRewardSentinel(
+  sql: MerchantRewardPresetSql,
+  id: string
+): Promise<RewardSentinelRow | undefined> {
+  const rows = await sql<readonly RewardSentinelRow[]>`
+    select id::text, merchant_id::text, reward_name, reward_terms, weight,
+      is_active
+    from public.reward_pool_items
+    where id = ${id}::uuid
+  `
+  return rows.at(0)
+}
+
+async function finishTenantProof(
+  sql: MerchantRewardPresetSql,
+  fixtures: readonly MerchantRewardPresetLiveDbFixture[],
+  foreignContext: BrowserContext,
+  proofError: unknown
+): Promise<void> {
+  const cleanupErrors: Error[] = []
+  for (const fixture of fixtures) {
+    try {
+      await cleanupMerchantRewardPresetLiveDbFixture(sql, fixture)
+    } catch (error) {
+      cleanupErrors.push(asTestError("tenant fixture cleanup", error))
+    }
+  }
+  try {
+    await foreignContext.close()
+  } catch (error) {
+    cleanupErrors.push(asTestError("foreign browser context close", error))
+  }
+  try {
+    await sql.end({ timeout: 5 })
+  } catch (error) {
+    cleanupErrors.push(asTestError("database connection close", error))
+  }
+
+  if (proofError || cleanupErrors.length > 0) {
+    throw new AggregateError(
+      [
+        ...(proofError ? [asTestError("tenant proof", proofError)] : []),
+        ...cleanupErrors,
+      ],
+      "Tenant noninterference proof or cleanup failed."
+    )
+  }
 }
 
 async function finishLiveProof(
