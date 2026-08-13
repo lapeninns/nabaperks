@@ -12,6 +12,18 @@ if (!existsSync(nextDir)) {
   )
 }
 
+/**
+ * Chunk paths that no file on disk answers to. A missing file used to be
+ * skipped in silence, which under-counted 28 of the 118 route payloads: a
+ * dynamic segment is PERCENT-ENCODED inside the route manifest
+ * (`static/chunks/app/card/%5BmembershipId%5D/page-*.js`) while the file on
+ * disk is `[membershipId]`, so every dynamic route's own page chunk — 93,882
+ * bytes in total — was excluded from the budget it is supposed to be measured
+ * against. Decoding is tried first; anything still unresolved is recorded and
+ * fails the run below rather than quietly shrinking a payload.
+ */
+const unresolvedChunks = new Set()
+
 const budget = JSON.parse(readFileSync(budgetPath, "utf8"))
 const buildManifest = readJsonIfExists(join(nextDir, "build-manifest.json"))
 const { entries: appEntryChunks, manifestCount } = readAppEntryChunks(nextDir)
@@ -35,8 +47,11 @@ if (rootFirstLoadBytes > budget.maxRootFirstLoadJsBytes) {
   )
 }
 
+let largestEntry = { route: "(none)", bytes: 0 }
+
 for (const [entry, files] of appEntryChunks) {
   const total = totalUniqueBytes(files)
+  if (total > largestEntry.bytes) largestEntry = { route: entry, bytes: total }
   if (total > budget.maxRouteFirstLoadJsBytes) {
     fail(
       `${entry} first-load JS is ${total} bytes, budget is ${budget.maxRouteFirstLoadJsBytes}.`
@@ -54,8 +69,22 @@ for (const file of listFiles(join(nextDir, "static/chunks"))) {
   }
 }
 
+/**
+ * A reference the budget could not weigh is a hole in the budget, not a
+ * detail: see resolveChunkFile above for the 28 dynamic-route page chunks this
+ * caught. Fail rather than report a payload that is missing a part of itself.
+ */
+if (unresolvedChunks.size > 0) {
+  fail(
+    `${unresolvedChunks.size} chunk reference(s) in the build manifests match no file on disk, ` +
+      "so the payloads above are under-counted:\n  " +
+      [...unresolvedChunks].sort().slice(0, 10).join("\n  ")
+  )
+}
+
 console.log(
-  `Bundle budget passed: root first-load JS ${rootFirstLoadBytes} bytes, ${appEntryChunks.size} app entries checked.`
+  `Bundle budget passed: root first-load JS ${rootFirstLoadBytes} bytes, ${appEntryChunks.size} app entries checked, ` +
+    `largest route ${largestEntry.route} at ${largestEntry.bytes} bytes.`
 )
 
 function readJsonIfExists(file) {
@@ -123,15 +152,34 @@ function assertRoutesParsed(entries, manifestCount) {
   }
 }
 
+function resolveChunkFile(reference) {
+  const normalized = reference.replace(/^\/_next\//, "")
+  const candidates = [normalized]
+  try {
+    const decoded = decodeURIComponent(normalized)
+    if (decoded !== normalized) candidates.push(decoded)
+  } catch {
+    // A malformed escape sequence is itself an unresolvable reference.
+  }
+  for (const candidate of candidates) {
+    const absolute = join(nextDir, candidate)
+    if (existsSync(absolute)) return { key: candidate, absolute }
+  }
+  return null
+}
+
 function totalUniqueBytes(files) {
   const seen = new Set()
   let total = 0
   for (const file of files) {
-    const normalized = file.replace(/^\/_next\//, "")
-    if (seen.has(normalized)) continue
-    seen.add(normalized)
-    const absolute = join(nextDir, normalized)
-    if (existsSync(absolute)) total += statSync(absolute).size
+    const resolved = resolveChunkFile(file)
+    if (!resolved) {
+      unresolvedChunks.add(file)
+      continue
+    }
+    if (seen.has(resolved.key)) continue
+    seen.add(resolved.key)
+    total += statSync(resolved.absolute).size
   }
   return total
 }

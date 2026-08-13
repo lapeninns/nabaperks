@@ -34,7 +34,7 @@
     "deadcode:check": "knip --include files,dependencies,unresolved",
     "deadexports:check": "node scripts/check-dead-exports.mjs",
     "deadexports:baseline": "node scripts/check-dead-exports.mjs --write",
-    "duplicates:check": "jscpd app components lib --config jscpd.json",
+    "duplicates:check": "node scripts/check-duplicates.mjs",
     "debt:check": "node scripts/check-technical-debt.mjs",
     "docs:generate": "node scripts/generate-api-docs.mjs && prettier --write docs/api/README.md",
     "docs:check": "pnpm docs:generate && git diff --exit-code -- docs/api/README.md",
