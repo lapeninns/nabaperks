@@ -31,13 +31,6 @@ function copiedMap() {
   return JSON.parse(readFileSync(MAP, "utf8"))
 }
 
-function summaryFor(rows) {
-  const fixed = rows.filter((row) => row.status === "fixed").length
-  const failed = rows.filter((row) => row.status === "failed").length
-  const blocked = rows.filter((row) => row.status === "blocked").length
-  return { fixed, failed, blocked, open: failed + blocked }
-}
-
 function run(map, temp) {
   const mapPath = join(temp, "map.json")
   writeFileSync(mapPath, JSON.stringify(map) + "\n")
@@ -301,39 +294,17 @@ function tapFixture({ passed }) {
   ].join("\n")
 }
 
-test("Given the canonical map When validated Then its terminal counts are reported truthfully", () => {
+test("Given the canonical map has line-reporter receipts When validated Then it is rejected before reporting terminal counts", () => {
   withTemp((temp) => {
     const map = copiedMap()
-    const result = run(map, temp)
-    assert.equal(result.status, 0)
-    const summary = summaryFor(map.rows)
-    assert.match(
-      result.stdout,
-      new RegExp(
-        "^owned=65 terminal=65 duplicateIds=0 orphanIds=0 fixed=" +
-          summary.fixed +
-          " failed=" +
-          summary.failed +
-          " blocked=" +
-          summary.blocked +
-          " open=" +
-          summary.open +
-          "\\n$"
-      )
-    )
+    expectCode(run(map, temp), "UNTRUSTED_EXECUTION_EVIDENCE")
   })
 })
 
-test("Given canonical direct SHA-1 source receipts When validated Then fixed rows are accepted", () => {
+test("Given canonical direct SHA-1 source receipts with a line reporter When validated Then they cannot certify fixed rows", () => {
   withTemp((temp) => {
     const map = copiedMap()
     const fixed = map.rows.filter((row) => row.status === "fixed")
-    // Lower bound, not a snapshot: every remediated row is a fixed row, so
-    // pinning an exact count would force this test to be hand-edited on each
-    // remediation — which is updating a baseline to green the suite. The
-    // behaviour under test is that a canonical SHA-1 source receipt is
-    // accepted, which is asserted per row below and by the exit code and the
-    // dynamically computed summary.
     assert.ok(
       fixed.length >= 2,
       `expected at least the two historical fixed rows, got ${fixed.length}`
@@ -341,22 +312,10 @@ test("Given canonical direct SHA-1 source receipts When validated Then fixed row
     for (const row of fixed) {
       assert.match(row.receipt.source.head, /^[a-f0-9]{40}$/)
     }
-    const result = run(map, temp)
-    assert.equal(result.status, 0)
-    const summary = summaryFor(map.rows)
-    assert.match(
-      result.stdout,
-      new RegExp(
-        "fixed=" +
-          summary.fixed +
-          " failed=" +
-          summary.failed +
-          " blocked=" +
-          summary.blocked +
-          " open=" +
-          summary.open
-      )
+    assert.ok(
+      fixed.some((row) => row.receipt.command.endsWith("--reporter=line"))
     )
+    expectCode(run(map, temp), "UNTRUSTED_EXECUTION_EVIDENCE")
   })
 })
 
@@ -486,7 +445,7 @@ test("Given typed Node, Playwright, and exact package-script command families Wh
   const commands = [
     "node --test --test-concurrency=1 tests/unit/example.test.mjs",
     "node --import ./tests/support/register-alias.mjs --test tests/unit/example.test.mjs",
-    "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/example.spec.ts --project=chromium --reporter=line",
+    "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/example.spec.ts --project=chromium --reporter=tap",
     "pnpm deadcode:check",
     "pnpm duplicates:check",
     "pnpm lint",
@@ -532,6 +491,45 @@ test("Given typed Node, Playwright, and exact package-script command families Wh
       assert.equal(run(map, temp).status, 0)
     })
   }
+})
+
+test("Given a constrained Playwright line-reporter receipt with TAP evidence When validated Then the execution evidence is untrusted", () => {
+  withTemp((temp) => {
+    const map = trustedFixedMap(temp)
+    const receipt = map.rows[0].receipt
+    const artifact = JSON.parse(readFileSync(receipt.artifact.path, "utf8"))
+    const path = "tests/e2e/example.spec.ts"
+    mkdirSync(join(receipt.source.path, path, ".."), { recursive: true })
+    writeFileSync(
+      join(receipt.source.path, path),
+      "export const example = true\n"
+    )
+    execFileSync("git", ["-C", receipt.source.path, "add", path])
+    execFileSync("git", [
+      "-C",
+      receipt.source.path,
+      "commit",
+      "-qm",
+      "line command",
+    ])
+    receipt.source.head = execFileSync(
+      "git",
+      ["-C", receipt.source.path, "rev-parse", "HEAD"],
+      { encoding: "utf8" }
+    ).trim()
+    receipt.source.tree = execFileSync(
+      "git",
+      ["-C", receipt.source.path, "rev-parse", "HEAD^{tree}"],
+      { encoding: "utf8" }
+    ).trim()
+    artifact.command =
+      "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/example.spec.ts --project=chromium --reporter=line"
+    artifact.source = receipt.source
+    receipt.command = artifact.command
+    writeFileSync(receipt.artifact.path, JSON.stringify(artifact) + "\n")
+    receipt.artifact.sha256 = sha256(receipt.artifact.path)
+    expectCode(run(map, temp), "UNTRUSTED_EXECUTION_EVIDENCE")
+  })
 })
 
 test("Given an allowlisted package-script receipt command with flags, prefixes, chaining, or an unknown script When validated Then the execution evidence is untrusted", () => {
@@ -734,12 +732,13 @@ test("Given one bound receipt field is altered When validated Then every mismatc
 
 test("Given an executed open defect When validated Then certification fails", () => {
   withTemp((temp) => {
-    const map = copiedMap()
+    const map = trustedFixedMap(temp)
     map.rows[0] = {
       ...map.rows[0],
       status: "failed",
       reason: "Executed and failed.",
     }
+    delete map.rows[0].receipt
     expectCode(run(map, temp), "OPEN_EXECUTED_DEFECTS")
   })
 })
@@ -839,7 +838,7 @@ test("Given stale, retried, malformed, interrupted, hung, prompt-like, or dirty 
 
 test("Given a copied map in a different order When validated Then row order cannot create a flaky result", () => {
   withTemp((temp) => {
-    const map = copiedMap()
+    const map = trustedFixedMap(temp)
     map.rows.reverse()
     const result = run(map, temp)
     assert.equal(result.status, 0)
