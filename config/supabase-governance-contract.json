@@ -1,4 +1,12 @@
 {
+  "readbackAuthority": {
+    "schema": "nabaperks.provider-governance-readback.v1",
+    "provider": "supabase",
+    "sourceRepository": "lapeninns/nabaperks",
+    "receiptProducerTask": 27,
+    "maximumAgeMinutes": 60,
+    "allowedReadEffects": ["supabase.api", "supabase.migration-list"]
+  },
   "productionProject": {
     "ref": "skonlhwstejberyzobep",
     "name": "nabaperks",

@@ -2,6 +2,11 @@ import { spawnSync } from "node:child_process"
 import { readFileSync } from "node:fs"
 
 import { evaluateGitHubGovernance } from "./github-governance/checks.mjs"
+import {
+  ProviderReceiptError,
+  readProviderGovernanceReceipt,
+  validateProviderGovernanceReceipt,
+} from "./provider-governance-receipt.mjs"
 
 const CONTRACT_PATH = "config/github-governance-contract.json"
 const CODEOWNERS_PATH = ".github/CODEOWNERS"
@@ -71,9 +76,11 @@ export function printGovernanceFindings(findings) {
 
 const contract = JSON.parse(readFileSync(CONTRACT_PATH, "utf8"))
 const evidencePath = process.env.GITHUB_GOVERNANCE_EVIDENCE_FILE
-const evidence = evidencePath
-  ? JSON.parse(readFileSync(evidencePath, "utf8"))
-  : collectGitHubGovernanceEvidence(contract)
+if (!evidencePath) throw new ProviderReceiptError("MISSING_IMMUTABLE_RECEIPT")
+const evidence = validateProviderGovernanceReceipt(
+  contract.readbackAuthority,
+  readProviderGovernanceReceipt(evidencePath)
+)
 const findings = evaluateGitHubGovernance(contract, evidence)
 
 printGovernanceFindings(findings)

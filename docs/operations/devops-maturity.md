@@ -98,7 +98,7 @@ itself satisfy the isolated-staging, RPO or restore-drill requirements for a
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | GitHub repository rules             | Active ruleset `Main delivery policy` (`19613437`) protects the default branch with no bypass actors. It blocks deletion and force pushes, requires linear history, one fresh code-owner approval after the latest push, resolved conversations and strict `Release gate`, CodeQL analysis and dependency-review checks. Classic branch protection has been retired.                                                                                                                                                                                                                                                     | Add a second trusted collaborator and independent `CODEOWNERS` identity; `lapeninns` is currently the repository's only collaborator and routine PR author, so the approval requirement intentionally remains unsatisfied for self-authored work.                     |
 | GitHub `Staging` environment        | Protected-branch deployments and manual approval are required; self-review is prohibited. The verified Vercel organisation and project IDs plus a dedicated 90-day `STAGING_VERCEL_TOKEN` are configured. No isolated Supabase project or staging provider credentials exist, and the hosted staging project is explicitly cost-deferred.                                                                                                                                                                                                                                                                                | Add a second trusted reviewer. A dedicated hosted Supabase project and isolated provider credentials remain required before this environment can activate the protected promotion path; they are not treated as passing while cost-deferred.                          |
-| GitHub `Production` environment     | Protected-branch deployments and manual approval are required. Verified Vercel and Supabase identifiers, protected database credentials, a dedicated `VERCEL_TOKEN` and the rotated primary monitor token are configured. Error tracking remains source-owned and provider-independent.                                                                                                                                                                                                                                                                                                                                | Add a second trusted collaborator as the independent reviewer and retain an approved protected promotion.                                                                                                                                                             |
+| GitHub `Production` environment     | Protected-branch deployments and manual approval are required. Verified Vercel and Supabase identifiers, protected database credentials, a dedicated `VERCEL_TOKEN` and the rotated primary monitor token are configured. Error tracking remains source-owned and provider-independent.                                                                                                                                                                                                                                                                                                                                  | Add a second trusted collaborator as the independent reviewer and retain an approved protected promotion.                                                                                                                                                             |
 | GitHub `Monitoring` environment     | The unattended environment exists and permits protected branches only. The public smoke job is source-scoped to this environment, its rotated primary monitor token is configured, and the repository-scoped fallback has been removed. Run `30019813695` proved exact-revision liveness and authenticated dependency readiness on merged revision `5e6352602623`; it returned `503` for the known operational migration gap rather than `401`. Signed external paging secrets are not configured, and the source-owned SLO cannot detect a GitHub-wide monitoring failure independently.                                | Install the two alert webhook secrets, prove trigger/resolve acknowledgement reaches a human, add an independent uptime monitor, and retain two consecutive successful scheduled smoke runs after the operational migration recovery.                                 |
 | GitHub `Recovery Drill` environment | Protected-branch deployments and manual approval are required; self-review is prohibited and a 30-minute RTO variable is configured. No disposable restored project or restore credentials are configured.                                                                                                                                                                                                                                                                                                                                                                                                               | Add a second trusted reviewer, restore a physical backup to a new same-region project and retain the successful read-only workflow evidence.                                                                                                                          |
 | Vercel deployment checks            | Only Vercel `Lint` and `TypeCheck` are configured for Production, and both are non-blocking. The required GitHub check names are now discoverable on `main`.                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Add blocking GitHub `Release gate`, CodeQL and `Database promotion` checks only after dedicated protected release credentials and the isolated staging path are live; enabling them now would hold production aliases indefinitely.                                   |
@@ -110,23 +110,25 @@ itself satisfy the isolated-staging, RPO or restore-drill requirements for a
 This readback records visible settings, not secret values. Re-read the controls
 after every change rather than treating this table as permanent truth.
 
-Run `pnpm ops:github:check` from an authenticated operator shell to validate the
-ruleset, independent ownership, protected environments, required secret names,
-non-secret variables, staging isolation and repository-secret scope. It reads
-metadata only and intentionally exits non-zero until every target control has
-live evidence.
+Run `pnpm ops:github:check` only with `GITHUB_GOVERNANCE_EVIDENCE_FILE` pointing
+to a fresh immutable read-only receipt for the exact clean source revision. The
+receipt's nested evidence validates the ruleset, independent ownership,
+protected environments, required secret names, non-secret variables, staging
+isolation and repository-secret scope. Receipt collection remains a separate
+provider-authenticated operation; this command never calls GitHub itself.
 
-Run `pnpm ops:vercel:check` from an authenticated Vercel operator shell to
-validate the linked project, Git security, custom staging target, source/live
-cron parity, blocking Deployment Checks, and environment-variable names and
-protected storage without decrypting or printing values. It also intentionally
-exits non-zero until the provider-owned target state is live.
+Run `pnpm ops:vercel:check` only with `VERCEL_GOVERNANCE_EVIDENCE_FILE` pointing
+to the corresponding exact-revision receipt. It validates the linked project,
+Git security, custom staging target, source/live cron parity, blocking
+Deployment Checks, and environment-variable names and protected storage. It
+does not call Vercel or decrypt provider values.
 
-Run `pnpm ops:supabase:check` from an authenticated Supabase operator shell to
-validate the production project identity and health, exact source/remote
-migration-ledger parity, WAL-G, PITR, backup region, freshness, continuity and
-provider backup status. It selects only metadata and intentionally exits
-non-zero while the production ledger or recovery posture is behind the target.
+Run `pnpm ops:supabase:check` only with
+`SUPABASE_GOVERNANCE_EVIDENCE_FILE` pointing to the corresponding
+exact-revision receipt. It validates the production project identity and
+health, exact source/remote migration-ledger parity, WAL-G, PITR, backup region,
+freshness, continuity and provider backup status without making a provider
+call.
 
 ### GitHub
 

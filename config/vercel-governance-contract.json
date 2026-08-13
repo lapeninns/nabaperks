@@ -1,5 +1,13 @@
 {
   "scope": "lapen-inns-projects",
+  "readbackAuthority": {
+    "schema": "nabaperks.provider-governance-readback.v1",
+    "provider": "vercel",
+    "sourceRepository": "lapeninns/nabaperks",
+    "receiptProducerTask": 27,
+    "maximumAgeMinutes": 60,
+    "allowedReadEffects": ["vercel.api"]
+  },
   "project": {
     "id": "prj_Au5baPD1CUlACwN3ECminQZOITcQ",
     "name": "nabaperks",

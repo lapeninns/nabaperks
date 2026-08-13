@@ -313,11 +313,12 @@ cron-failure and provider-delivery aggregates, but those signals still need
 independent provider corroboration before claiming complete production
 observability.
 
-For the monthly GitHub control readback, authenticate `gh` as a repository
-administrator and run `pnpm ops:github:check`. The audit reads only collaborator,
-ruleset, environment, secret-name and variable metadata; it never reads secret
-values. Retain the output with the release evidence and resolve every `FAIL`
-before declaring provider readiness.
+For the monthly GitHub control readback, retain a provider-authenticated,
+read-only receipt bound to the exact clean source revision, then set
+`GITHUB_GOVERNANCE_EVIDENCE_FILE` and run `pnpm ops:github:check`. The validator
+does not contact GitHub. It rejects stale revisions, stale runs, unpinned
+collectors, incomplete effect accounting and every write effect. Resolve every
+`FAIL` before declaring provider readiness.
 
 ## Operational readiness signals
 

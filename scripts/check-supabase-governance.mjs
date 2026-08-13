@@ -12,6 +12,11 @@ import {
   selectSupabaseBackupsMetadata,
   selectSupabaseProjectsMetadata,
 } from "./supabase-governance/metadata.mjs"
+import {
+  ProviderReceiptError,
+  readProviderGovernanceReceipt,
+  validateProviderGovernanceReceipt,
+} from "./provider-governance-receipt.mjs"
 
 const CONTRACT_PATH = "config/supabase-governance-contract.json"
 
@@ -69,9 +74,11 @@ export function printSupabaseFindings(findings) {
 
 const contract = JSON.parse(readFileSync(CONTRACT_PATH, "utf8"))
 const evidencePath = process.env.SUPABASE_GOVERNANCE_EVIDENCE_FILE
-const evidence = evidencePath
-  ? JSON.parse(readFileSync(evidencePath, "utf8"))
-  : collectSupabaseGovernanceEvidence(contract)
+if (!evidencePath) throw new ProviderReceiptError("MISSING_IMMUTABLE_RECEIPT")
+const evidence = validateProviderGovernanceReceipt(
+  contract.readbackAuthority,
+  readProviderGovernanceReceipt(evidencePath)
+)
 const findings = evaluateSupabaseGovernance(contract, evidence)
 
 printSupabaseFindings(findings)

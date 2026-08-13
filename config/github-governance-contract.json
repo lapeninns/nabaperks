@@ -1,6 +1,14 @@
 {
   "repository": "lapeninns/nabaperks",
   "routineAuthor": "lapeninns",
+  "readbackAuthority": {
+    "schema": "nabaperks.provider-governance-readback.v1",
+    "provider": "github",
+    "sourceRepository": "lapeninns/nabaperks",
+    "receiptProducerTask": 27,
+    "maximumAgeMinutes": 60,
+    "allowedReadEffects": ["github.api"]
+  },
   "ruleset": {
     "name": "Main delivery policy",
     "requiredRuleTypes": [

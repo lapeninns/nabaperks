@@ -3,6 +3,11 @@ import { readFileSync } from "node:fs"
 
 import { evaluateVercelGovernance } from "./vercel-governance/checks.mjs"
 import { selectVercelProjectMetadata } from "./vercel-governance/project-metadata.mjs"
+import {
+  ProviderReceiptError,
+  readProviderGovernanceReceipt,
+  validateProviderGovernanceReceipt,
+} from "./provider-governance-receipt.mjs"
 
 const CONTRACT_PATH = "config/vercel-governance-contract.json"
 const VERCEL_CONFIG_PATH = "vercel.json"
@@ -75,9 +80,11 @@ const vercelConfig = JSON.parse(readFileSync(VERCEL_CONFIG_PATH, "utf8"))
 contract.sourceCrons = vercelConfig.crons ?? []
 
 const evidencePath = process.env.VERCEL_GOVERNANCE_EVIDENCE_FILE
-const evidence = evidencePath
-  ? JSON.parse(readFileSync(evidencePath, "utf8"))
-  : collectVercelGovernanceEvidence(contract)
+if (!evidencePath) throw new ProviderReceiptError("MISSING_IMMUTABLE_RECEIPT")
+const evidence = validateProviderGovernanceReceipt(
+  contract.readbackAuthority,
+  readProviderGovernanceReceipt(evidencePath)
+)
 const findings = evaluateVercelGovernance(contract, evidence)
 
 printVercelFindings(findings)
