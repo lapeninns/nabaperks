@@ -12,10 +12,14 @@ const repositoryRoot = dirname(dirname(dirname(fileURLToPath(import.meta.url))))
 const knipBinary = join(repositoryRoot, "node_modules/.bin/knip")
 const configPath =
   process.env.KNIP_SCOPE_CONFIG ?? join(repositoryRoot, "knip.json")
+const dynamicTask15SupportClis = [
+  "scripts/qa/validate-task15-test-infrastructure-register.mjs",
+  "tests/support/task15-mobile-safari-supervisor.mjs",
+]
 const runtimeEntries = [
   "scripts/capture-app-harness.mjs",
   "scripts/perf-mutation-stress.mjs",
-  "scripts/qa/validate-task15-test-infrastructure-register.mjs",
+  ...dynamicTask15SupportClis,
   "tests/load/public-routes.js",
   "tests/load/stamp-redeem-race.js",
   "tests/support/alias-hook.mjs",
