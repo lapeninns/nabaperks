@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test"
 
 import { dismissPwaInstall } from "./helpers/harness"
+import { assertVisualLayoutInvariants } from "./helpers/visual-layout"
 
 const routes = [
   { name: "marketing-landing", path: "/" },
@@ -139,6 +140,7 @@ test.describe("visual regression @visual", () => {
         route.name === "harness-dashboard-empty" ||
         (testInfo.project.name === "mobile-safari" &&
           route.name === "harness-qr")
+      await assertVisualLayoutInvariants(page)
       await expect(page).toHaveScreenshot(`${route.name}.png`, {
         fullPage: true,
         maxDiffPixelRatio: strictComparison ? 0.001 : 0.04,
