@@ -2,7 +2,18 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
     "components/merchant/launch/launch-billing-cta.tsx",
-    "app/**/{page,layout,route,error,loading,not-found,template,default}.{ts,tsx}"
+    "app/**/{page,layout,route,error,loading,not-found,template,default}.{ts,tsx}",
+    "scripts/capture-app-harness.mjs",
+    "scripts/perf-mutation-stress.mjs",
+    "scripts/qa/validate-task15-test-infrastructure-register.mjs",
+    "tests/load/public-routes.js",
+    "tests/load/stamp-redeem-race.js",
+    "tests/support/alias-hook.mjs",
+    "tests/support/server-only-stub.mjs",
+    "tests/unit/auth-hook-route-harness.fixture.mjs",
+    "tests/unit/auth-hook-route-register.mjs",
+    "tests/unit/claim-offer-boundary-harness.fixture.mjs",
+    "tests/unit/proxy-origin-loopback-fixture.mjs"
   ],
   "project": [
     "app/**/*.{ts,tsx}",
@@ -13,11 +24,9 @@
     "tests/**/*.{mjs,ts,tsx}",
     "tests/load/**/*.js",
     "public/sw.js",
-    "supabase/**/*.sql",
-    "supabase/**/*.json",
+    "app/**/*.css",
     "*.{ts,mts,mjs}"
   ],
-  "ignoreDependencies": ["shadcn", "tailwindcss", "tw-animate-css"],
   "rules": {
     "files": "error",
     "exports": "warn",

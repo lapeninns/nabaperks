@@ -12,6 +12,19 @@ const repositoryRoot = dirname(dirname(dirname(fileURLToPath(import.meta.url))))
 const knipBinary = join(repositoryRoot, "node_modules/.bin/knip")
 const configPath =
   process.env.KNIP_SCOPE_CONFIG ?? join(repositoryRoot, "knip.json")
+const runtimeEntries = [
+  "scripts/capture-app-harness.mjs",
+  "scripts/perf-mutation-stress.mjs",
+  "scripts/qa/validate-task15-test-infrastructure-register.mjs",
+  "tests/load/public-routes.js",
+  "tests/load/stamp-redeem-race.js",
+  "tests/support/alias-hook.mjs",
+  "tests/support/server-only-stub.mjs",
+  "tests/unit/auth-hook-route-harness.fixture.mjs",
+  "tests/unit/auth-hook-route-register.mjs",
+  "tests/unit/claim-offer-boundary-harness.fixture.mjs",
+  "tests/unit/proxy-origin-loopback-fixture.mjs",
+]
 
 const fixtureFiles = {
   "package.json": JSON.stringify({ name: "knip-scope-fixture", private: true }),
@@ -69,19 +82,29 @@ function issueFiles(stdout) {
   return parsed.issues.map((issue) => issue.file).sort()
 }
 
-test("Knip config is valid and inventories every formerly omitted scope", async () => {
+test("Knip config recognises only the real runtime entrypoints", async () => {
   const config = JSON.parse(await readFile(configPath, "utf8"))
   for (const pattern of [
     "tests/load/**/*.js",
     "public/sw.js",
-    "supabase/**/*.sql",
-    "supabase/**/*.json",
+    "app/**/*.css",
   ]) {
     assert.ok(
       config.project.includes(pattern),
       `missing project pattern: ${pattern}`
     )
   }
+  assert.equal(config.project.includes("supabase/**/*.sql"), false)
+  assert.equal(config.project.includes("supabase/**/*.json"), false)
+  assert.equal(config.ignoreDependencies, undefined)
+  for (const entry of runtimeEntries) {
+    assert.ok(config.entry.includes(entry), `missing runtime entry: ${entry}`)
+  }
+  assert.equal(
+    config.entry.includes("tests/unit/auth-hook-route-resolver.mjs"),
+    false
+  )
+  assert.equal(new Set(config.entry).size, config.entry.length)
   assert.ok(
     config.entry.includes("components/merchant/launch/launch-billing-cta.tsx")
   )
@@ -140,10 +163,11 @@ test("the repaired config reports unused JavaScript in each formerly hidden clas
   }
 })
 
-test("Knip accepts the SQL and JSON scope patterns on its real files surface", async () => {
+test("Knip excludes unsupported non-JavaScript compiler inputs", async () => {
   const config = JSON.parse(await readFile(configPath, "utf8"))
-  assert.ok(config.project.includes("supabase/**/*.sql"))
-  assert.ok(config.project.includes("supabase/**/*.json"))
+  assert.equal(config.project.includes("supabase/**/*.sql"), false)
+  assert.equal(config.project.includes("supabase/**/*.json"), false)
+  assert.ok(config.project.includes("app/**/*.css"))
   const root = await mkdtemp(join(tmpdir(), "nabaperks-knip-scope-"))
   try {
     await writeFixture(root, config)
