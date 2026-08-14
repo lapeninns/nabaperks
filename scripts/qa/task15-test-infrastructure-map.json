@@ -2,11 +2,11 @@
   "schema": "nabaperks.task15.test-infrastructure-map.v1",
   "authority": {
     "task5Map": {
-      "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/successor-remediation-certification-bootstrap/20260811T180204Z/task-5/final/v1/register-map.json",
+      "path": ".omo/evidence/task-15-portability-v1/successor-remediation-certification-bootstrap/20260811T180204Z/task-5/final/v1/register-map.json",
       "sha256": "706d310b13d60affe7c2ee06842beec442c54dd51ab3fb6fb097abb4fdd5975a"
     },
     "task37Defects": {
-      "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/whole-repo-qa/f9be041a9185f7cf3f2ee4518f397f876f090d96-20260809T151939Z/task-37/final/v1/defects.json",
+      "path": ".omo/evidence/task-15-portability-v1/whole-repo-qa/f9be041a9185f7cf3f2ee4518f397f876f090d96-20260809T151939Z/task-37/final/v1/defects.json",
       "sha256": "7403b8cbc76c73b90de3f16726a89709e1eba35969c9bcc241acef932dba727a"
     }
   },
@@ -26,8 +26,8 @@
       "reason": "The clean commit-pinned visual-layout suite passed all seven behavioural scenarios on its first Chromium attempt; historical RED proof is retained beside the exact validator sidecars.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-layout-receipts-v6/receipts/t37-def-0e4ed84fb3b38f46ecb11775-direct-receipt.json",
-          "sha256": "9333d41f17a70a5aad01b81f277e230fbdb7c181d80af13a6e046c1989e16fa1"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/visual-layout-receipts-v6/receipts/t37-def-0e4ed84fb3b38f46ecb11775-direct-receipt.json",
+          "sha256": "cdaa4d1ebc63cb874cba121333789c6e1c0863e898bc14696af2be29e7da83b3"
         },
         "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/visual-layout-invariants/visual.spec.ts --project=chromium --reporter=line",
         "attempt": 1,
@@ -35,7 +35,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-layout-receipts-v6/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/visual-layout-receipts-v6/candidate-source",
           "head": "9635ab716fce0fac4fcf1cf46ac886052d906ae0",
           "tree": "2a0e23adf28ca2055aa2b5aaeb2e2cc28f184448",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -64,8 +64,8 @@
       "reason": "A fresh governed direct receipt proves missing Playwright fails closed before any success report.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/perf-supabase-boundary-v6/perf/receipts/perf-missing-browser-direct-receipt.json",
-          "sha256": "7a2efd62237dddb9208eb60a448219811857e499999f69598729240d06c36018"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/perf-supabase-boundary-v6/perf/receipts/perf-missing-browser-direct-receipt.json",
+          "sha256": "7b78b05e88a663e2e731e14b93b3026d47ef126fbdf10c84f94376680dfd3412"
         },
         "command": "node --test tests/unit/perf-stress-cli.test.mjs",
         "attempt": 1,
@@ -73,12 +73,17 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/perf-supabase-boundary-v6/perf/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/perf-supabase-boundary-v6/perf/candidate-source",
           "head": "444d41964401298055d6c02c1c4be38ec1d41cd9",
           "tree": "b688ffd03a405247602f1071423f5888163f1c70",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
-        "totals": { "tests": 7, "passed": 7, "failed": 0, "skipped": 0 },
+        "totals": {
+          "tests": 7,
+          "passed": 7,
+          "failed": 0,
+          "skipped": 0
+        },
         "assertions": 23
       }
     },
@@ -90,8 +95,8 @@
       "reason": "The clean commit-pinned visual-layout suite passed all seven behavioural scenarios on its first Chromium attempt; historical RED proof is retained beside the exact validator sidecars.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-layout-receipts-v6/receipts/t37-def-1175c50646580e74200a11f5-direct-receipt.json",
-          "sha256": "e3aa79ca086f0a4f7f94abff81b0d34cdf3b9b46e7c261e059ba953cd24a780a"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/visual-layout-receipts-v6/receipts/t37-def-1175c50646580e74200a11f5-direct-receipt.json",
+          "sha256": "fcd986cba676b6dd31d0d212993f4c6bfdb9d696c9c6585bf8c5642bc7b2f369"
         },
         "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/visual-layout-invariants/visual.spec.ts --project=chromium --reporter=line",
         "attempt": 1,
@@ -99,7 +104,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-layout-receipts-v6/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/visual-layout-receipts-v6/candidate-source",
           "head": "9635ab716fce0fac4fcf1cf46ac886052d906ae0",
           "tree": "2a0e23adf28ca2055aa2b5aaeb2e2cc28f184448",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -121,12 +126,12 @@
       "reason": "A real pre-fix source-seam RED and the clean commit-pinned eight-test Chromium TAP run prove clipped text descendants are now detected.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-residual-receipts-v9/receipts/t37-def-145092ea5e962d614cee4f1b-direct-receipt.json",
-          "sha256": "63f01d7a51f1543b606e4c0d66ce9fe7144643390b40c892551f86b2f82ef67e"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/visual-residual-receipts-v9/receipts/t37-def-145092ea5e962d614cee4f1b-direct-receipt.json",
+          "sha256": "bb7bb2e524b859632b80a092fe3b5198bb6c2ea7ce981491e0cdd16f95e3b1a9"
         },
         "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/visual-layout-invariants/visual.spec.ts --project=chromium --reporter=tests/support/playwright-tap-reporter.mjs",
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-residual-receipts-v9/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/visual-residual-receipts-v9/candidate-source",
           "head": "299841b8c9b4769a3f3fec7861cb83ae3e25b891",
           "tree": "8494241721ee3480bee34db29e0dea98b00db031",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -153,8 +158,8 @@
       "receipt": {
         "assertions": 21,
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/local-provider-safety-v7/receipts/admin-auth-local-guard-direct-receipt.json",
-          "sha256": "54373fc36e898ad3a9f5aed3f1da33c961bdc2f3b0b7bebf9dee2532eeb20c97"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/local-provider-safety-v7/receipts/admin-auth-local-guard-direct-receipt.json",
+          "sha256": "4e4ac719ac9a6d95b2357cf9ac5b3a420a18970c0432bf28c3cb758a5456feef"
         },
         "attempt": 1,
         "command": "node --test tests/unit/task15-local-provider-safety.test.mjs",
@@ -162,7 +167,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/local-provider-safety-v7/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/local-provider-safety-v7/candidate-source",
           "head": "88ae2101159fdc81796a8fd665562ae6a1de1205",
           "tree": "80a853948cab0d4995ef523a6b35506de7c9bec3",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -183,8 +188,8 @@
       "reason": "A clean fresh candidate checkout passes the direct first attempt; its source-only OpenAPI drift test fails before the package guard and passes after it.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/openapi-docs-drift-v1/repair-v2/receipts/openapi-docs-v2-direct-receipt.json",
-          "sha256": "1f4c64c54772204bc56d98c84377952fbf209b944e5a165a8e52e07ed3a812b5"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/openapi-docs-drift-v1/repair-v2/receipts/openapi-docs-v2-direct-receipt.json",
+          "sha256": "a546e813c2e1f07119469e02fb16b0f63dcea90403d662648b9b5e3d87866ec1"
         },
         "command": "node --test tests/unit/openapi-docs-drift.test.mjs",
         "attempt": 1,
@@ -192,7 +197,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/openapi-docs-drift-v1/repair-v2/candidate-source-first-attempt",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/openapi-docs-drift-v1/repair-v2/candidate-source-first-attempt",
           "head": "7a206051ebdaab8c59e558db87176291121b95b5",
           "tree": "ee0cc8961d1b8c610366350624a026f72f973936",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -221,8 +226,8 @@
       "reason": "A dedicated browser journey writes a reward in one authenticated tenant, proves it absent from a second authenticated tenant UI, and reads exact owner=1/other=0 DB scopes.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/journey-race-v9/receipts/t37-def-21c318aa11235c6dde6a5cdc-direct-receipt.json",
-          "sha256": "259f20a9a971eef9ee63dbd89884eed2afcde40ade3cbf4dd2a750fd6ff760ad"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/journey-race-v9/receipts/t37-def-21c318aa11235c6dde6a5cdc-direct-receipt.json",
+          "sha256": "6b6d6b5b6fe85a0d3da678fc7ec9a2125110c705e4f1eac17c76b1599bd3fd9f"
         },
         "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/task15-journey-race.desktop.spec.ts --project=chromium --reporter=tests/support/playwright-tap-reporter.mjs",
         "attempt": 1,
@@ -230,7 +235,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/journey-race-v9/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/journey-race-v9/candidate-source",
           "head": "67137eb1749bab24d2725b8d668e5a4413b1e9e0",
           "tree": "74bfe1a34a7dd67e54c5068b0888777e86fd8b52",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -259,8 +264,8 @@
       "reason": "Retained Chromium-backed aggregate run passed the single 100×100 mm plate predicate; receipt is independently bound to this candidate row and parsed sidecars.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/print-kit-failure-visibility-v1/repair-v2/receipts/google-review-plate-direct-receipt.json",
-          "sha256": "8409b5a24c82a64e858a5ab8b851112aa891c4df6883781b202e4c71ae476c74"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/print-kit-failure-visibility-v1/repair-v2/receipts/google-review-plate-direct-receipt.json",
+          "sha256": "888ea9e626abb29a0a2df255033496426c419fcbeeeb5ef3d6a084d16c6f425b"
         },
         "command": "node --import ./tests/support/register-alias.mjs --test tests/unit/google-review-pdf.test.mjs",
         "attempt": 1,
@@ -268,7 +273,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/pdf-chromium-v1/receipt-repair-v2/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/pdf-chromium-v1/receipt-repair-v2/candidate-source",
           "head": "d3a787e12aa35e9852071e7db6e643caf7725a87",
           "tree": "d25bf70617a81b73aca4fcb9e2bb6d51b316df86",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -291,8 +296,8 @@
       "receipt": {
         "assertions": 21,
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/local-provider-safety-v7/receipts/nightly-race-local-preflight-direct-receipt.json",
-          "sha256": "774ef49122e881488268f538b172a4ce504408c031e03672c4803b8087268012"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/local-provider-safety-v7/receipts/nightly-race-local-preflight-direct-receipt.json",
+          "sha256": "1a50714733c9cf071b8275f83fb2356f91984d5b47fd7cb6ac8fa8e475007258"
         },
         "attempt": 1,
         "command": "node --test tests/unit/task15-local-provider-safety.test.mjs",
@@ -300,7 +305,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/local-provider-safety-v7/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/local-provider-safety-v7/candidate-source",
           "head": "88ae2101159fdc81796a8fd665562ae6a1de1205",
           "tree": "80a853948cab0d4995ef523a6b35506de7c9bec3",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -333,14 +338,14 @@
           "skipped": 0
         },
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/cleanup-lifecycle-v7/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/cleanup-lifecycle-v7/candidate-source",
           "head": "1be37927534e2fc626814be5ed01fb820e2f90b4",
           "tree": "659932f734f5510f9a167d56ee6e172dbef34cc3",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/cleanup-lifecycle-v7/receipts/customer-fail-safe-direct-receipt.json",
-          "sha256": "5b44d3c77b8f6055c8e751d10f15dc0c32e86f1f9c1f6e11ace8e939bb466210"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/cleanup-lifecycle-v7/receipts/customer-fail-safe-direct-receipt.json",
+          "sha256": "6b0939b971745a02229b87756a8b6782184f993c081cdcf5eb3bc539a1bd8621"
         }
       }
     },
@@ -352,8 +357,8 @@
       "reason": "The committed configuration guard rejects a non-GitHub run identifier before any staging proof starts.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/reporting-static-cluster-v7/receipts/staging-release-config-direct-receipt.json",
-          "sha256": "ce52f6dc7f793b64c16b8e8cf69bb7ccf9e757edce838dda071a3ddde2cc0455"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/reporting-static-cluster-v7/receipts/staging-release-config-direct-receipt.json",
+          "sha256": "4599397c23420a1cfbb9b4bde058fd9017de2885499c73f5b82e444fe873948b"
         },
         "command": "node --test tests/unit/staging-release-config.test.mjs",
         "attempt": 1,
@@ -361,7 +366,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/reporting-static-cluster-v7/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/reporting-static-cluster-v7/candidate-source",
           "head": "60b868c3bf595e471afa81a978eda5dfd95e81f1",
           "tree": "58ffc951418d5ffc4f06fd03eddb03c3bbad74bf",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -383,8 +388,8 @@
       "reason": "The clean commit-pinned visual-layout suite passed all seven behavioural scenarios on its first Chromium attempt; historical RED proof is retained beside the exact validator sidecars.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-layout-receipts-v6/receipts/t37-def-3bf48c9396a2b9cc36dd1fd5-direct-receipt.json",
-          "sha256": "c0f55fbad3c3e0a4e94af57d6110683fa8fc16c8eaf0a8efac9fe0d5966c0457"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/visual-layout-receipts-v6/receipts/t37-def-3bf48c9396a2b9cc36dd1fd5-direct-receipt.json",
+          "sha256": "00bf9e32d4dbeb651df928e583b71991ccb2627a1da702d612e2ce69aed691e3"
         },
         "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/visual-layout-invariants/visual.spec.ts --project=chromium --reporter=line",
         "attempt": 1,
@@ -392,7 +397,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-layout-receipts-v6/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/visual-layout-receipts-v6/candidate-source",
           "head": "9635ab716fce0fac4fcf1cf46ac886052d906ae0",
           "tree": "2a0e23adf28ca2055aa2b5aaeb2e2cc28f184448",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -414,8 +419,8 @@
       "reason": "A direct first-attempt guard receipt covers the documented local Supabase command.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/supabase-local-guard-v1/receipts/supabase-local-guard-direct-receipt.json",
-          "sha256": "826f160463a24a2278bd7b71957a5b70c6997393bcbf11301518fdca08f4f26d"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/supabase-local-guard-v1/receipts/supabase-local-guard-direct-receipt.json",
+          "sha256": "18e868e6d5ed955c68de3f5e7e1e8567546e0eea8a5065d7a52652c170b88439"
         },
         "command": "node --test tests/unit/supabase-local-guard.test.mjs",
         "attempt": 1,
@@ -423,7 +428,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/supabase-local-guard-v1/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/supabase-local-guard-v1/candidate-source",
           "head": "d236d623c55b00c8237e21f29eaef5efffb66218",
           "tree": "5c9bb1dc5b168e4ce917c5b51bd9114914a43ce3",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -445,8 +450,8 @@
       "reason": "The clean commit-pinned visual-layout suite passed all seven behavioural scenarios on its first Chromium attempt; historical RED proof is retained beside the exact validator sidecars.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-layout-receipts-v6/receipts/t37-def-3e53336bd49580d59df400c0-direct-receipt.json",
-          "sha256": "ee07dd3053de26237d27ba97409567560800f9daf38ccd7fdccdc7950b07aba8"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/visual-layout-receipts-v6/receipts/t37-def-3e53336bd49580d59df400c0-direct-receipt.json",
+          "sha256": "ec767d8f20df58d8e84d8e11a5460317371c1ad5f2505b93fb3800cbf3bfcf61"
         },
         "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/visual-layout-invariants/visual.spec.ts --project=chromium --reporter=line",
         "attempt": 1,
@@ -454,7 +459,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-layout-receipts-v6/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/visual-layout-receipts-v6/candidate-source",
           "head": "9635ab716fce0fac4fcf1cf46ac886052d906ae0",
           "tree": "2a0e23adf28ca2055aa2b5aaeb2e2cc28f184448",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -483,8 +488,8 @@
       "reason": "Retained Chromium-backed aggregate run passed the two-page CR80 card predicate; receipt is independently bound to this candidate row and parsed sidecars.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/print-kit-failure-visibility-v1/repair-v2/receipts/google-review-card-direct-receipt.json",
-          "sha256": "b75194ca0fdcfa77363e9dfb07479099687493844ba1892f6d3518fca2dcfb19"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/print-kit-failure-visibility-v1/repair-v2/receipts/google-review-card-direct-receipt.json",
+          "sha256": "ca44a9aa62acb3e7bf86651748c19a72abc3301d516a5416d8904351b72cb282"
         },
         "command": "node --import ./tests/support/register-alias.mjs --test tests/unit/google-review-pdf.test.mjs",
         "attempt": 1,
@@ -492,7 +497,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/pdf-chromium-v1/receipt-repair-v2/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/pdf-chromium-v1/receipt-repair-v2/candidate-source",
           "head": "d3a787e12aa35e9852071e7db6e643caf7725a87",
           "tree": "d25bf70617a81b73aca4fcb9e2bb6d51b316df86",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -521,8 +526,8 @@
       "reason": "Bounded CLI subprocess proof passed on the first attempt with zero skips.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/env-check-cli-v1/receipts/t37-def-570a975b6694d0170e0b90ba-direct-receipt.json",
-          "sha256": "9651802ae1262714a06c9e4b12dae69ca08df2f4ab2b6734360ccf7506bd188a"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/env-check-cli-v1/receipts/t37-def-570a975b6694d0170e0b90ba-direct-receipt.json",
+          "sha256": "cbacd56f1564bd463c280802ccd1631d5552d18fc37e107960d9f3af4e0f8e59"
         },
         "command": "node --test --test-concurrency=1 tests/unit/task15-env-check-cli.test.mjs",
         "attempt": 1,
@@ -530,7 +535,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/env-check-cli-v1/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/env-check-cli-v1/candidate-source",
           "head": "52ac1342b9cd426ba7c42629e41f549a4457b4b1",
           "tree": "fe43fb20456f87a8df63031d75e78bdf496479d1",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -552,8 +557,8 @@
       "reason": "Bounded CLI subprocess proof passed on the first attempt with zero skips.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/env-check-cli-v1/receipts/t37-def-5ae4122fc7bf0aea3d3d77f0-direct-receipt.json",
-          "sha256": "df523e137528df332a6718e4a06113f5a5806c0d9a79a4571b3dde3f6433a952"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/env-check-cli-v1/receipts/t37-def-5ae4122fc7bf0aea3d3d77f0-direct-receipt.json",
+          "sha256": "ea9f9373fbfe3e92463cc7d5485cee32cc979bcc8ccb4c765816abd5f914e174"
         },
         "command": "node --test --test-concurrency=1 tests/unit/task15-env-check-cli.test.mjs",
         "attempt": 1,
@@ -561,7 +566,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/env-check-cli-v1/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/env-check-cli-v1/candidate-source",
           "head": "52ac1342b9cd426ba7c42629e41f549a4457b4b1",
           "tree": "fe43fb20456f87a8df63031d75e78bdf496479d1",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -595,14 +600,14 @@
           "skipped": 0
         },
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/cleanup-lifecycle-v7/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/cleanup-lifecycle-v7/candidate-source",
           "head": "1be37927534e2fc626814be5ed01fb820e2f90b4",
           "tree": "659932f734f5510f9a167d56ee6e172dbef34cc3",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/cleanup-lifecycle-v7/receipts/admin-factor-closure-direct-receipt.json",
-          "sha256": "4a6957206764be159f21d65575101f98f40c135e65236f2c0ce24328aa8da845"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/cleanup-lifecycle-v7/receipts/admin-factor-closure-direct-receipt.json",
+          "sha256": "c534ac41d85c4a1614325c41015c74663c59f7c2927c67fb3698908ec25daf64"
         }
       }
     },
@@ -615,8 +620,8 @@
       "receipt": {
         "assertions": 21,
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/local-provider-safety-v7/receipts/disposable-stop-no-backup-direct-receipt.json",
-          "sha256": "ae786ccc72d9ce567ce436699356c4c59f8663127a6c07c56445d9a185ed30d6"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/local-provider-safety-v7/receipts/disposable-stop-no-backup-direct-receipt.json",
+          "sha256": "b4a3b5dcace73351601677576b6f2ea28387366b2d78c54c2f9d97bfe7e1c0f6"
         },
         "attempt": 1,
         "command": "node --test tests/unit/task15-local-provider-safety.test.mjs",
@@ -624,7 +629,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/local-provider-safety-v7/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/local-provider-safety-v7/candidate-source",
           "head": "88ae2101159fdc81796a8fd665562ae6a1de1205",
           "tree": "80a853948cab0d4995ef523a6b35506de7c9bec3",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -645,8 +650,8 @@
       "reason": "Retained Chromium-backed aggregate run passed the valid review bundle attachment predicate; receipt is independently bound to this candidate row and parsed sidecars.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/print-kit-failure-visibility-v1/repair-v2/receipts/google-review-bundle-direct-receipt.json",
-          "sha256": "75e5c53c93020bb5fd7e5a046645e31616c21ff981a3ea3109b8b4e699e6d323"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/print-kit-failure-visibility-v1/repair-v2/receipts/google-review-bundle-direct-receipt.json",
+          "sha256": "45196682fc1922a4ed9ae74fe70673e7cfcb0f4964efea27d3b9ddbf0c29c128"
         },
         "command": "node --import ./tests/support/register-alias.mjs --test tests/unit/google-review-pdf.test.mjs",
         "attempt": 1,
@@ -654,7 +659,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/pdf-chromium-v1/receipt-repair-v2/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/pdf-chromium-v1/receipt-repair-v2/candidate-source",
           "head": "d3a787e12aa35e9852071e7db6e643caf7725a87",
           "tree": "d25bf70617a81b73aca4fcb9e2bb6d51b316df86",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -676,8 +681,8 @@
       "reason": "The clean commit-pinned visual-layout suite passed all seven behavioural scenarios on its first Chromium attempt; historical RED proof is retained beside the exact validator sidecars.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-layout-receipts-v6/receipts/t37-def-60e363164a12ea669a53a1fa-direct-receipt.json",
-          "sha256": "2a96894dcf60388e0e9cfbebd12c12805bad7f7fd12d421a68e25567bc62eb2b"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/visual-layout-receipts-v6/receipts/t37-def-60e363164a12ea669a53a1fa-direct-receipt.json",
+          "sha256": "255248986c2c1298ef339c27c30a60945beaffc3925274ac1988a2b210c1186f"
         },
         "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/visual-layout-invariants/visual.spec.ts --project=chromium --reporter=line",
         "attempt": 1,
@@ -685,7 +690,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-layout-receipts-v6/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/visual-layout-receipts-v6/candidate-source",
           "head": "9635ab716fce0fac4fcf1cf46ac886052d906ae0",
           "tree": "2a0e23adf28ca2055aa2b5aaeb2e2cc28f184448",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -721,8 +726,8 @@
       "reason": "Bounded CLI subprocess proof passed on the first attempt with zero skips.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/env-check-cli-v1/receipts/t37-def-6e61af3b47d3138fcc3590e4-direct-receipt.json",
-          "sha256": "85730d071876381ccc63b9f19c8262114b70a7c7214e0172c493787f75cea76b"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/env-check-cli-v1/receipts/t37-def-6e61af3b47d3138fcc3590e4-direct-receipt.json",
+          "sha256": "d7f9e0719a7b11ff40ec3a4c45cfccaf188df1b6d89ff076cdcc1f07953f5d5b"
         },
         "command": "node --test --test-concurrency=1 tests/unit/task15-env-check-cli.test.mjs",
         "attempt": 1,
@@ -730,7 +735,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/env-check-cli-v1/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/env-check-cli-v1/candidate-source",
           "head": "52ac1342b9cd426ba7c42629e41f549a4457b4b1",
           "tree": "fe43fb20456f87a8df63031d75e78bdf496479d1",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -759,8 +764,8 @@
       "reason": "Clean first-attempt CLI receipt confirms exact path references, fenced command parsing, recursive script-target resolution, and fail-closed package parsing.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/static-cli-boundary-v6/receipts/agent-docs-integrity-direct-receipt.json",
-          "sha256": "b5c02ec1bedf4fe6034e7b7844c8119ab02f76683a506eac2dfeded1f8dacaa7"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/static-cli-boundary-v6/receipts/agent-docs-integrity-direct-receipt.json",
+          "sha256": "4c11cd3366160cfbe2cc500a723f80c72b5411a0c08412257e1adc158986567e"
         },
         "command": "node --test --test-concurrency=1 tests/unit/check-agent-docs-integrity.test.mjs",
         "attempt": 1,
@@ -768,7 +773,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/static-cli-boundary-v6/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/static-cli-boundary-v6/candidate-source",
           "head": "30aacb378d065f88dc516b37b6253b2bbf6c1dbf",
           "tree": "4c1889714cfe1461bf7cac6d3ea8cb9e00ae8387",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -804,8 +809,8 @@
       "reason": "A real signed customer cookie opens the stamp surface and reaches the reward surface through browser clicks without a bearer or token query parameter.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/journey-race-v9/receipts/t37-def-80033137a9b82b5da1cd77de-direct-receipt.json",
-          "sha256": "b7d4bba0ca72d193ce70f15d4d10412ff692787fc8a356388c11a9c5712e6f50"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/journey-race-v9/receipts/t37-def-80033137a9b82b5da1cd77de-direct-receipt.json",
+          "sha256": "50bcccfe40dff1dd8fa898def816cdd025d16ee68cbde85654484ee4799325ec"
         },
         "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/task15-journey-race.desktop.spec.ts --project=chromium --reporter=tests/support/playwright-tap-reporter.mjs",
         "attempt": 1,
@@ -813,7 +818,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/journey-race-v9/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/journey-race-v9/candidate-source",
           "head": "67137eb1749bab24d2725b8d668e5a4413b1e9e0",
           "tree": "74bfe1a34a7dd67e54c5068b0888777e86fd8b52",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -836,8 +841,8 @@
       "receipt": {
         "assertions": 0,
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/browser-build-execution-v8/receipts/browser-corepack-direct-receipt.json",
-          "sha256": "0bbd07ada51a0dae996a92addbec02f2162d0da3dfedfdc513e3f24f38971c4e"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/browser-build-execution-v8/receipts/browser-corepack-direct-receipt.json",
+          "sha256": "bc387e9da3da88b66759dca88c22bb179ef11af0c22108072cda19f3e36a5271"
         },
         "attempt": 1,
         "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/production-qa.desktop.spec.ts --project=chromium --reporter=tests/support/playwright-tap-reporter.mjs",
@@ -845,7 +850,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/browser-build-execution-v8/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/browser-build-execution-v8/candidate-source",
           "head": "299841b8c9b4769a3f3fec7861cb83ae3e25b891",
           "tree": "8494241721ee3480bee34db29e0dea98b00db031",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -866,8 +871,8 @@
       "reason": "The documented pnpm wrapper now skips its delimiter and is covered by fresh first-attempt real CLI receipt evidence.",
       "receipt": {
         "artifact": {
-          "path": ".omo/evidence/task-15/lanes/seo-cli-boundary-v6/receipts/crawl-direct-receipt.json",
-          "sha256": "413fa2c110a78f01053e90115e401053b3b984911449a275673fe40d5809332c"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/seo-cli-boundary-v6/receipts/crawl-direct-receipt.json",
+          "sha256": "ca2599eec11044307e54a6bbb3550445b4e87b040a3a01e901096e38aa99c780"
         },
         "command": "node --test tests/unit/seo-crawl-cli-wrapper.test.mjs",
         "attempt": 1,
@@ -875,7 +880,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/seo-cli-boundary-v6/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/seo-cli-boundary-v6/candidate-source",
           "head": "91359149b17a6536435d8d1017fb1b886821e028",
           "tree": "1cf69595d83ea88b53f3d5e83ec89e7ba47e8830",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -897,8 +902,8 @@
       "reason": "Knip now removes broad entry suppression, inventories the previously hidden JavaScript classes, and accepts explicit Supabase SQL/JSON project patterns on its real files surface (invalid SQL/JSON fixture yields no parser error; no unsupported SQL/JSON file-finding claim is made).",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/knip-scope-v1/receipts/knip-scope-direct-receipt.json",
-          "sha256": "9c463d543f24a848bb897f09e3759c96db54e2feddb8942f871819ad2a1f3582"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/knip-scope-v1/receipts/knip-scope-direct-receipt.json",
+          "sha256": "7ad5ff7b0ea21a68b4055bc540c3d44bba9ef5ffbff4c0991317fca09ba6acdd"
         },
         "command": "node --test tests/unit/task15-knip-scope.test.mjs",
         "attempt": 1,
@@ -906,7 +911,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/knip-scope-v1/candidate-source-v3",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/knip-scope-v1/candidate-source-v3",
           "head": "c04948a62a5fd1a7ed3bb090f133e6f13ca78a13",
           "tree": "4da8898cd87d443b9052c69e8fce5bf9a4028cd4",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -928,8 +933,8 @@
       "reason": "Retained Chromium-backed aggregate run passed the unsupported-glyph venue-name predicate; receipt is independently bound to this candidate row and parsed sidecars.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/print-kit-failure-visibility-v1/repair-v2/receipts/google-review-glyphs-direct-receipt.json",
-          "sha256": "ea1ac92e12cf8502d65eb90532a198811fa022b8611de739aa026bb29a3c8624"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/print-kit-failure-visibility-v1/repair-v2/receipts/google-review-glyphs-direct-receipt.json",
+          "sha256": "180f71089bbecb3cc55677b95c8e6df04fa797a746d1686e5e30a3dd62c45e49"
         },
         "command": "node --import ./tests/support/register-alias.mjs --test tests/unit/google-review-pdf.test.mjs",
         "attempt": 1,
@@ -937,7 +942,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/pdf-chromium-v1/receipt-repair-v2/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/pdf-chromium-v1/receipt-repair-v2/candidate-source",
           "head": "d3a787e12aa35e9852071e7db6e643caf7725a87",
           "tree": "d25bf70617a81b73aca4fcb9e2bb6d51b316df86",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -971,14 +976,14 @@
           "skipped": 0
         },
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/cleanup-lifecycle-v7/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/cleanup-lifecycle-v7/candidate-source",
           "head": "1be37927534e2fc626814be5ed01fb820e2f90b4",
           "tree": "659932f734f5510f9a167d56ee6e172dbef34cc3",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/cleanup-lifecycle-v7/receipts/customer-zero-readback-direct-receipt.json",
-          "sha256": "afe8d90282420b5e4a988e049b76df3dafaa305ce083904dc933c36bbfaf7efb"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/cleanup-lifecycle-v7/receipts/customer-zero-readback-direct-receipt.json",
+          "sha256": "8d710c1cb7546c1148084a43930c409109cbeb4c48c503581e27728f54b08393"
         }
       }
     },
@@ -990,12 +995,12 @@
       "reason": "A real pre-fix source-seam RED and the clean commit-pinned eight-test Chromium TAP run prove computed safe-area geometry is now exercised through CDP emulation.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-residual-receipts-v9/receipts/t37-def-90e89475676e652c221e62e2-direct-receipt.json",
-          "sha256": "2f256e694add8c4c8abfd01013106bffff4e6a603ae9cb762787f334f3dada95"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/visual-residual-receipts-v9/receipts/t37-def-90e89475676e652c221e62e2-direct-receipt.json",
+          "sha256": "74f2ced7d62c7bfe316a01ec41126d80e6e0f7cb99fa8e592351d2f13edbb4d6"
         },
         "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/visual-layout-invariants/visual.spec.ts --project=chromium --reporter=tests/support/playwright-tap-reporter.mjs",
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-residual-receipts-v9/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/visual-residual-receipts-v9/candidate-source",
           "head": "299841b8c9b4769a3f3fec7861cb83ae3e25b891",
           "tree": "8494241721ee3480bee34db29e0dea98b00db031",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1033,14 +1038,14 @@
           "skipped": 0
         },
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/cleanup-lifecycle-v7/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/cleanup-lifecycle-v7/candidate-source",
           "head": "1be37927534e2fc626814be5ed01fb820e2f90b4",
           "tree": "659932f734f5510f9a167d56ee6e172dbef34cc3",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/cleanup-lifecycle-v7/receipts/cleanup-contract-direct-receipt.json",
-          "sha256": "607149e30cf8d8a0ce868aea9d72fe67ac2d3ea60b7289464ccb929cb0fe6773"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/cleanup-lifecycle-v7/receipts/cleanup-contract-direct-receipt.json",
+          "sha256": "1440c7b6fe56047c1fd2edde7bc6ed7e3519402dd16b59dd5338ac99c5ab8241"
         }
       }
     },
@@ -1052,8 +1057,8 @@
       "reason": "A fresh governed direct receipt proves readiness and browser journeys are labelled separately.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/perf-supabase-boundary-v6/perf/receipts/perf-label-direct-receipt.json",
-          "sha256": "28a93c654157cf30ca0dd42127f3daddcb4b6080d6cf1e31004317afe326cc54"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/perf-supabase-boundary-v6/perf/receipts/perf-label-direct-receipt.json",
+          "sha256": "2b556aee3f9789586af5d2e95dcdb8ceb11a0cf737ccc195fd59a5378f81d4fd"
         },
         "command": "node --test tests/unit/perf-stress-cli.test.mjs",
         "attempt": 1,
@@ -1061,12 +1066,17 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/perf-supabase-boundary-v6/perf/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/perf-supabase-boundary-v6/perf/candidate-source",
           "head": "444d41964401298055d6c02c1c4be38ec1d41cd9",
           "tree": "b688ffd03a405247602f1071423f5888163f1c70",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
-        "totals": { "tests": 7, "passed": 7, "failed": 0, "skipped": 0 },
+        "totals": {
+          "tests": 7,
+          "passed": 7,
+          "failed": 0,
+          "skipped": 0
+        },
         "assertions": 23
       }
     },
@@ -1079,8 +1089,8 @@
       "receipt": {
         "assertions": 0,
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/browser-build-execution-v8/receipts/loopback-bind-direct-receipt.json",
-          "sha256": "3fb35ea770e2591df1b70c13ae001cbc1d9be5d7a6eae1051053897b41776ffb"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/browser-build-execution-v8/receipts/loopback-bind-direct-receipt.json",
+          "sha256": "c42d24cea32d52c913ad4b799be4aae0a0873c9c888b189c537fc116c7d601e1"
         },
         "attempt": 1,
         "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/production-qa.desktop.spec.ts --project=chromium --reporter=tests/support/playwright-tap-reporter.mjs",
@@ -1088,7 +1098,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/browser-build-execution-v8/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/browser-build-execution-v8/candidate-source",
           "head": "299841b8c9b4769a3f3fec7861cb83ae3e25b891",
           "tree": "8494241721ee3480bee34db29e0dea98b00db031",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1109,8 +1119,8 @@
       "reason": "A fresh governed direct receipt proves browser journey resource requests and transfers are reported.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/perf-supabase-boundary-v6/perf/receipts/perf-resource-direct-receipt.json",
-          "sha256": "ae30cd3960037bb644f91503cb147b4060a9b648a0ff67726ccfa951a5686397"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/perf-supabase-boundary-v6/perf/receipts/perf-resource-direct-receipt.json",
+          "sha256": "b5c68a97ba5235d582350c8f779ea76bb12b640ba0efa8bfb7beafc1e9f7c59f"
         },
         "command": "node --test tests/unit/perf-stress-cli.test.mjs",
         "attempt": 1,
@@ -1118,12 +1128,17 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/perf-supabase-boundary-v6/perf/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/perf-supabase-boundary-v6/perf/candidate-source",
           "head": "444d41964401298055d6c02c1c4be38ec1d41cd9",
           "tree": "b688ffd03a405247602f1071423f5888163f1c70",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
-        "totals": { "tests": 7, "passed": 7, "failed": 0, "skipped": 0 },
+        "totals": {
+          "tests": 7,
+          "passed": 7,
+          "failed": 0,
+          "skipped": 0
+        },
         "assertions": 23
       }
     },
@@ -1135,8 +1150,8 @@
       "reason": "The documented pnpm wrapper now skips its delimiter and is covered by fresh first-attempt real CLI receipt evidence.",
       "receipt": {
         "artifact": {
-          "path": ".omo/evidence/task-15/lanes/seo-cli-boundary-v6/receipts/content-direct-receipt.json",
-          "sha256": "d162b0669b2a201faa4847932016850d5a6919e923b19e587e1f545c170807e7"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/seo-cli-boundary-v6/receipts/content-direct-receipt.json",
+          "sha256": "bdfe9200caf09a51cc258411d8afd99d61865a413beb36cfc285aa214bd03a7f"
         },
         "command": "node --test tests/unit/seo-content-cli-wrapper.test.mjs",
         "attempt": 1,
@@ -1144,7 +1159,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/seo-cli-boundary-v6/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/seo-cli-boundary-v6/candidate-source",
           "head": "91359149b17a6536435d8d1017fb1b886821e028",
           "tree": "1cf69595d83ea88b53f3d5e83ec89e7ba47e8830",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1166,8 +1181,8 @@
       "reason": "A fresh governed direct receipt proves numerical timing and resource budgets fail closed.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/perf-supabase-boundary-v6/perf/receipts/perf-budget-direct-receipt.json",
-          "sha256": "b8687537694cec1fc99de6aa57971ba4325e111558e13b73aa7797d191df275b"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/perf-supabase-boundary-v6/perf/receipts/perf-budget-direct-receipt.json",
+          "sha256": "23f9da10f699482105c5ad722487e70bdda7259f77a7bd07a75ac161411dbb5d"
         },
         "command": "node --test tests/unit/perf-stress-cli.test.mjs",
         "attempt": 1,
@@ -1175,12 +1190,17 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/perf-supabase-boundary-v6/perf/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/perf-supabase-boundary-v6/perf/candidate-source",
           "head": "444d41964401298055d6c02c1c4be38ec1d41cd9",
           "tree": "b688ffd03a405247602f1071423f5888163f1c70",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
-        "totals": { "tests": 7, "passed": 7, "failed": 0, "skipped": 0 },
+        "totals": {
+          "tests": 7,
+          "passed": 7,
+          "failed": 0,
+          "skipped": 0
+        },
         "assertions": 23
       }
     },
@@ -1199,8 +1219,8 @@
       "reason": "First-attempt typed Node TAP execution proves valid route accounting and fail-closed zero-route rejection.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/bundle-zero-route-v1/receipt-repair-v2/receipts/bundle-zero-route-direct-receipt.json",
-          "sha256": "319413bf4df1747bad1581941e0d509eb290d402015e6b8b17b70ba38cea59af"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/bundle-zero-route-v1/receipt-repair-v2/receipts/bundle-zero-route-direct-receipt.json",
+          "sha256": "2248dd11265ea16c8b0849d5845ee43bba546663af265156cfce47c1c5a1a76a"
         },
         "command": "node --test --test-concurrency=1 tests/unit/task15-bundle-size-zero-route.test.mjs",
         "attempt": 1,
@@ -1208,7 +1228,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/bundle-zero-route-v1/receipt-repair-v2/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/bundle-zero-route-v1/receipt-repair-v2/candidate-source",
           "head": "4526c458494a04115995284ee79589dd56c18e67",
           "tree": "2bcfcef49b64d986ac03fe798fb420974f98444d",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1231,8 +1251,8 @@
       "receipt": {
         "assertions": 21,
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/local-provider-safety-v7/receipts/probe-full-revision-direct-receipt.json",
-          "sha256": "58cbf6fb670c6440667449a0569602f50fb0296d3288c925c81eb2d2539380af"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/local-provider-safety-v7/receipts/probe-full-revision-direct-receipt.json",
+          "sha256": "a0269b5e5fe9f0a932e889af8e959ca731c7c53a5fb25eff4d9061cf29cc9bd0"
         },
         "attempt": 1,
         "command": "node --test tests/unit/task15-local-provider-safety.test.mjs",
@@ -1240,7 +1260,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/local-provider-safety-v7/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/local-provider-safety-v7/candidate-source",
           "head": "88ae2101159fdc81796a8fd665562ae6a1de1205",
           "tree": "80a853948cab0d4995ef523a6b35506de7c9bec3",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1261,8 +1281,8 @@
       "reason": "The manual reward form click produces one visible reward and direct DB convergence of one reward, one audit, and one product event.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/journey-race-v9/receipts/t37-def-ce395f5fc29d9d85a1180b44-direct-receipt.json",
-          "sha256": "dc24d996c02d1d905ae0e2c69d58c7620aba2992288f9a3854dc82458be22af2"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/journey-race-v9/receipts/t37-def-ce395f5fc29d9d85a1180b44-direct-receipt.json",
+          "sha256": "180e3cbf4a13c3ec35babf41c20788a50700ab42e4628cea8b338dc35914709a"
         },
         "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/task15-journey-race.desktop.spec.ts --project=chromium --reporter=tests/support/playwright-tap-reporter.mjs",
         "attempt": 1,
@@ -1270,7 +1290,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/journey-race-v9/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/journey-race-v9/candidate-source",
           "head": "67137eb1749bab24d2725b8d668e5a4413b1e9e0",
           "tree": "74bfe1a34a7dd67e54c5068b0888777e86fd8b52",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1313,8 +1333,8 @@
       "reason": "The clean commit-pinned visual-layout suite passed all seven behavioural scenarios on its first Chromium attempt; historical RED proof is retained beside the exact validator sidecars.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-layout-receipts-v6/receipts/t37-def-da6db9c2495b60b1fff5da0e-direct-receipt.json",
-          "sha256": "270720858da3e419e347942d3c3ed7165b2bb3881fcb086adbab7c154e16e75a"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/visual-layout-receipts-v6/receipts/t37-def-da6db9c2495b60b1fff5da0e-direct-receipt.json",
+          "sha256": "1c4cb186d6a12e0ea92e22940693a5f48513dac1397cff8789f58c0b898b4214"
         },
         "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/visual-layout-invariants/visual.spec.ts --project=chromium --reporter=line",
         "attempt": 1,
@@ -1322,7 +1342,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-layout-receipts-v6/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/visual-layout-receipts-v6/candidate-source",
           "head": "9635ab716fce0fac4fcf1cf46ac886052d906ae0",
           "tree": "2a0e23adf28ca2055aa2b5aaeb2e2cc28f184448",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1356,14 +1376,14 @@
           "skipped": 0
         },
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/cleanup-lifecycle-v7/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/cleanup-lifecycle-v7/candidate-source",
           "head": "1be37927534e2fc626814be5ed01fb820e2f90b4",
           "tree": "659932f734f5510f9a167d56ee6e172dbef34cc3",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/cleanup-lifecycle-v7/receipts/admin-zero-readback-direct-receipt.json",
-          "sha256": "ebd49d253aadf1a92b3b1afda4b3b642c650e3afc805e2eb23cc97640b7f71cb"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/cleanup-lifecycle-v7/receipts/admin-zero-readback-direct-receipt.json",
+          "sha256": "534f1ce9c464277fc9d9085a011d75dc2a9c928a3e62b8ec7c29f4d736073324"
         }
       }
     },
@@ -1375,8 +1395,8 @@
       "reason": "Two authentic signed POSTs to the real Resend endpoint return 200 while direct DB readback remains delivered with identical delivered_at and updated_at timestamps.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/journey-race-v9/receipts/t37-def-e2743a5687147115017db053-direct-receipt.json",
-          "sha256": "e99543ad4ff40eacbf5f2e149634ca43f5d1b8bfd3fafc10f2fc77488f49caf0"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/journey-race-v9/receipts/t37-def-e2743a5687147115017db053-direct-receipt.json",
+          "sha256": "64e1122068f57726b1c94b85a692d4038bb26c76b6fd0240f7ce5a3ce9108769"
         },
         "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/task15-journey-race.desktop.spec.ts --project=chromium --reporter=tests/support/playwright-tap-reporter.mjs",
         "attempt": 1,
@@ -1384,7 +1404,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/journey-race-v9/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/journey-race-v9/candidate-source",
           "head": "67137eb1749bab24d2725b8d668e5a4413b1e9e0",
           "tree": "74bfe1a34a7dd67e54c5068b0888777e86fd8b52",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1413,8 +1433,8 @@
       "reason": "Two concurrent authenticated UI submissions converge to exactly one added-success, one duplicate-blocked outcome, one reward row, one audit, and one product event.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/journey-race-v9/receipts/t37-def-eaba62054e63cf27ce4b89c8-direct-receipt.json",
-          "sha256": "aa27a272589c722ef54195270011295f215cda4a50b04c072a0e274fb3466d2a"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/journey-race-v9/receipts/t37-def-eaba62054e63cf27ce4b89c8-direct-receipt.json",
+          "sha256": "313ac35e42fca0a753b8495211f11c682d37a44783c86fd3b47ea9278ae736c8"
         },
         "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/task15-journey-race.desktop.spec.ts --project=chromium --reporter=tests/support/playwright-tap-reporter.mjs",
         "attempt": 1,
@@ -1422,7 +1442,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/journey-race-v9/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/journey-race-v9/candidate-source",
           "head": "67137eb1749bab24d2725b8d668e5a4413b1e9e0",
           "tree": "74bfe1a34a7dd67e54c5068b0888777e86fd8b52",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1451,8 +1471,8 @@
       "reason": "The clean commit-pinned visual-layout suite passed all seven behavioural scenarios on its first Chromium attempt; historical RED proof is retained beside the exact validator sidecars.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-layout-receipts-v6/receipts/t37-def-ee55f0744ca8baec4a95cd65-direct-receipt.json",
-          "sha256": "978083277b09857d01a796b2cb309a5defb4217fb6b9f47920e0f39ba84c9e31"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/visual-layout-receipts-v6/receipts/t37-def-ee55f0744ca8baec4a95cd65-direct-receipt.json",
+          "sha256": "603cd4c06711a2b60b29a9830c74ace0959e0b398ff7b8673948accbf7f4af71"
         },
         "command": "PLAYWRIGHT_WORKERS=1 PLAYWRIGHT_RETRIES=0 pnpm exec playwright test tests/e2e/visual-layout-invariants/visual.spec.ts --project=chromium --reporter=line",
         "attempt": 1,
@@ -1460,7 +1480,7 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/visual-layout-receipts-v6/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/visual-layout-receipts-v6/candidate-source",
           "head": "9635ab716fce0fac4fcf1cf46ac886052d906ae0",
           "tree": "2a0e23adf28ca2055aa2b5aaeb2e2cc28f184448",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1482,8 +1502,8 @@
       "reason": "A fresh governed direct receipt proves an unreachable app fails before browser metrics or success output.",
       "receipt": {
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/perf-supabase-boundary-v6/perf/receipts/perf-unreachable-direct-receipt.json",
-          "sha256": "71893f1a46b9039afd9acff475e11acb6ad1c2e26d7b8800ad0a367e7a959c5c"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/perf-supabase-boundary-v6/perf/receipts/perf-unreachable-direct-receipt.json",
+          "sha256": "4db46ec047a4c535697973b73127eee8becef98ec3aa5a263253cb992180f82e"
         },
         "command": "node --test tests/unit/perf-stress-cli.test.mjs",
         "attempt": 1,
@@ -1491,12 +1511,17 @@
         "outcome": "passed",
         "retryCount": 0,
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/perf-supabase-boundary-v6/perf/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/perf-supabase-boundary-v6/perf/candidate-source",
           "head": "444d41964401298055d6c02c1c4be38ec1d41cd9",
           "tree": "b688ffd03a405247602f1071423f5888163f1c70",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
-        "totals": { "tests": 7, "passed": 7, "failed": 0, "skipped": 0 },
+        "totals": {
+          "tests": 7,
+          "passed": 7,
+          "failed": 0,
+          "skipped": 0
+        },
         "assertions": 23
       }
     },
@@ -1534,14 +1559,14 @@
           "skipped": 0
         },
         "source": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/cleanup-lifecycle-v7/candidate-source",
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/cleanup-lifecycle-v7/candidate-source",
           "head": "1be37927534e2fc626814be5ed01fb820e2f90b4",
           "tree": "659932f734f5510f9a167d56ee6e172dbef34cc3",
           "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "artifact": {
-          "path": "/private/tmp/nabaperks-successor-task4.XYIwyF67/Nabaperks/.omo/evidence/task-15/lanes/cleanup-lifecycle-v7/receipts/auth-restoration-direct-receipt.json",
-          "sha256": "bd88d7e908b3298791be944048bb850350ff6f772ff259d49f6cbb82a7b9c3da"
+          "path": ".omo/evidence/task-15-portability-v1/task-15/lanes/cleanup-lifecycle-v7/receipts/auth-restoration-direct-receipt.json",
+          "sha256": "5885e1d2052c610e327f9039595492abb302791a8699251609a5492fa05400cf"
         }
       }
     }

@@ -2,13 +2,16 @@
 import { execFileSync } from "node:child_process"
 import { createHash } from "node:crypto"
 import { lstatSync, readFileSync, realpathSync } from "node:fs"
-import { dirname, relative, resolve } from "node:path"
+import { fileURLToPath } from "node:url"
+import { dirname, isAbsolute, normalize, relative, resolve } from "node:path"
 
 const SCHEMA = "nabaperks.task15.test-infrastructure-map.v1"
 const RECEIPT_SCHEMA = "nabaperks.task15.direct-receipt.v1"
 const STATUS = new Set(["fixed", "failed", "blocked"])
 const SHA256 = /^[a-f0-9]{64}$/
 const GIT_OBJECT_ID = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/
+const GOVERNED_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..")
+const EVIDENCE_ROOT = `${GOVERNED_ROOT}/.omo/evidence`
 const PNPM_SCRIPT_COMMANDS = new Map([
   [
     "pnpm deadcode:check",
@@ -116,6 +119,21 @@ function trustedEvidenceRoot(path, code) {
   } catch {
     reject(code)
   }
+}
+
+function evidencePath(path, code) {
+  if (
+    typeof path !== "string" ||
+    isAbsolute(path) ||
+    normalize(path) !== path ||
+    !path.startsWith(".omo/evidence/") ||
+    !/^[A-Za-z0-9._/-]+$/.test(path)
+  ) {
+    reject(code)
+  }
+  const target = resolve(GOVERNED_ROOT, path)
+  if (trustedEvidenceRoot(target, code) !== EVIDENCE_ROOT) reject(code)
+  return target
 }
 
 /**
@@ -247,12 +265,12 @@ function validateExecutionEvidence(receipt, artifact, governedRoot) {
   const source = record(artifact.source, "MALFORMED_SOURCE_IDENTITY")
   const evidenceRoot = `${governedRoot}/.omo/evidence`
   const artifactPath = regularFile(
-    receipt.artifact.path,
+    evidencePath(receipt.artifact.path, "UNTRUSTED_EXECUTION_EVIDENCE"),
     evidenceRoot,
     "UNTRUSTED_EXECUTION_EVIDENCE"
   )
   const sourcePath = trustedPath(
-    source.path,
+    evidencePath(source.path, "UNTRUSTED_EXECUTION_EVIDENCE"),
     evidenceRoot,
     "UNTRUSTED_EXECUTION_EVIDENCE"
   )
@@ -361,12 +379,9 @@ function verifyAuthority(authority) {
     ) {
       reject("MALFORMED_AUTHORITY")
     }
-    const root = trustedEvidenceRoot(
-      authority[key].path,
-      "UNTRUSTED_AUTHORITY_INPUT"
-    )
+    const root = EVIDENCE_ROOT
     const path = regularFile(
-      authority[key].path,
+      evidencePath(authority[key].path, "UNTRUSTED_AUTHORITY_INPUT"),
       root,
       "UNTRUSTED_AUTHORITY_INPUT"
     )
@@ -439,19 +454,20 @@ function cleanGitSource(source) {
   ) {
     reject("MALFORMED_SOURCE_IDENTITY")
   }
+  const sourcePath = evidencePath(source.path, "UNTRUSTED_EXECUTION_EVIDENCE")
   try {
-    const head = execFileSync("git", ["-C", source.path, "rev-parse", "HEAD"], {
+    const head = execFileSync("git", ["-C", sourcePath, "rev-parse", "HEAD"], {
       encoding: "utf8",
       timeout: 5_000,
     }).trim()
     const status = execFileSync(
       "git",
-      ["-C", source.path, "status", "--porcelain=v1", "--untracked-files=all"],
+      ["-C", sourcePath, "status", "--porcelain=v1", "--untracked-files=all"],
       { encoding: "utf8", timeout: 5_000 }
     )
     const tree = execFileSync(
       "git",
-      ["-C", source.path, "rev-parse", "HEAD^{tree}"],
+      ["-C", sourcePath, "rev-parse", "HEAD^{tree}"],
       { encoding: "utf8", timeout: 5_000 }
     ).trim()
     if (
@@ -534,18 +550,25 @@ function fixedReceipt(row, governedRoot) {
     reject("MALFORMED_RECEIPT")
   }
   try {
-    const stat = lstatSync(resolve(receipt.artifact.path))
+    const artifactPath = evidencePath(
+      receipt.artifact.path,
+      "UNTRUSTED_EXECUTION_EVIDENCE"
+    )
+    const stat = lstatSync(artifactPath)
     if (
       !stat.isFile() ||
       stat.isSymbolicLink() ||
-      sha256(receipt.artifact.path) !== receipt.artifact.sha256
+      sha256(artifactPath) !== receipt.artifact.sha256
     ) {
       reject("STALE_RECEIPT")
     }
   } catch {
     reject("STALE_RECEIPT")
   }
-  const artifact = json(receipt.artifact.path, "OPAQUE_RECEIPT_ARTIFACT")
+  const artifact = json(
+    evidencePath(receipt.artifact.path, "UNTRUSTED_EXECUTION_EVIDENCE"),
+    "OPAQUE_RECEIPT_ARTIFACT"
+  )
   exactKeys(
     artifact,
     [

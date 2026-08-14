@@ -12,8 +12,7 @@ import {
   symlinkSync,
   writeFileSync,
 } from "node:fs"
-import { tmpdir } from "node:os"
-import { dirname, join } from "node:path"
+import { dirname, join, relative } from "node:path"
 import { test } from "node:test"
 
 const ROOT = process.cwd()
@@ -27,9 +26,48 @@ function sha256(path) {
   return createHash("sha256").update(readFileSync(path)).digest("hex")
 }
 
+function repositoryPath(path) {
+  return relative(ROOT, path)
+}
+
 function copiedMap() {
   return JSON.parse(readFileSync(MAP, "utf8"))
 }
+
+test("Given the canonical register When evidence bindings are inspected Then every path is portable", () => {
+  const map = copiedMap()
+  const paths = [
+    map.authority.task5Map.path,
+    map.authority.task37Defects.path,
+    ...map.rows
+      .filter((row) => row.status === "fixed")
+      .flatMap((row) => [row.receipt.artifact.path, row.receipt.source.path]),
+  ]
+
+  assert.equal(paths.length, 94)
+  assert.ok(
+    paths.every((path) =>
+      path.startsWith(".omo/evidence/task-15-portability-v1/")
+    )
+  )
+})
+
+test("Given absolute, traversal, non-normal, or prompt-like evidence paths When validated Then each path is rejected", () => {
+  const paths = [
+    "/tmp/alternate/.omo/evidence/authority.json",
+    ".omo/evidence/../authority.json",
+    ".omo/evidence//authority.json",
+    ".omo/evidence/authority.json; echo forged",
+  ]
+
+  withTemp((temp) => {
+    for (const path of paths) {
+      const map = copiedMap()
+      map.authority.task5Map.path = path
+      expectCode(run(map, temp), "UNTRUSTED_AUTHORITY_INPUT")
+    }
+  })
+})
 
 function run(map, temp) {
   const mapPath = join(temp, "map.json")
@@ -64,7 +102,7 @@ function cleanSource(temp, objectFormat = "sha1") {
     { encoding: "utf8" }
   )
   return {
-    path: repository,
+    path: repositoryPath(repository),
     head: execFileSync("git", ["-C", repository, "rev-parse", "HEAD"], {
       encoding: "utf8",
     }).trim(),
@@ -107,7 +145,7 @@ function fixedMap(temp, { objectFormat, opaqueArtifact } = {}) {
     status: "fixed",
     reason: "A direct first-attempt receipt is present.",
     receipt: {
-      artifact: { path: artifact, sha256: sha256(artifact) },
+      artifact: { path: repositoryPath(artifact), sha256: sha256(artifact) },
       command: directReceipt.command,
       attempt: 1,
       exitCode: 0,
@@ -145,7 +183,7 @@ function trustedFixedMap(temp, objectFormat = "sha1") {
     )
     mkdirSync(join(path, ".."), { recursive: true })
     writeFileSync(path, readFileSync(map.authority[key].path))
-    map.authority[key] = { path, sha256: sha256(path) }
+    map.authority[key] = { path: repositoryPath(path), sha256: sha256(path) }
   }
   const sourcePath = join(
     governed,
@@ -180,7 +218,7 @@ function trustedFixedMap(temp, objectFormat = "sha1") {
   execFileSync("git", ["-C", sourcePath, "add", testPath, packagePath])
   execFileSync("git", ["-C", sourcePath, "commit", "-qm", "source"])
   const source = {
-    path: sourcePath,
+    path: repositoryPath(sourcePath),
     head: execFileSync("git", ["-C", sourcePath, "rev-parse", "HEAD"], {
       encoding: "utf8",
     }).trim(),
@@ -227,7 +265,10 @@ function trustedFixedMap(temp, objectFormat = "sha1") {
     status: "fixed",
     reason: "A direct first-attempt receipt is present.",
     receipt: {
-      artifact: { path: receiptPath, sha256: sha256(receiptPath) },
+      artifact: {
+        path: repositoryPath(receiptPath),
+        sha256: sha256(receiptPath),
+      },
       command: directReceipt.command,
       attempt: 1,
       exitCode: 0,
@@ -270,7 +311,9 @@ function playwrightReceipt(map, command) {
 }
 
 function withTemp(callback) {
-  const temp = mkdtempSync(join(tmpdir(), "nabaperks-task15-"))
+  const fixtureRoot = join(ROOT, ".omo/evidence/task15-validator-fixtures")
+  mkdirSync(fixtureRoot, { recursive: true })
+  const temp = mkdtempSync(join(fixtureRoot, "nabaperks-task15-"))
   try {
     return callback(temp)
   } finally {
@@ -568,7 +611,7 @@ test("Given an exact package-script command whose committed manifest maps it to 
     const manifest = JSON.parse(readFileSync(packagePath, "utf8"))
     manifest.scripts["deadcode:check"] = "echo pwned"
     writeFileSync(packagePath, JSON.stringify(manifest) + "\n")
-    execFileSync("git", ["-C", receipt.source.path, "add", packagePath])
+    execFileSync("git", ["-C", receipt.source.path, "add", "package.json"])
     execFileSync("git", [
       "-C",
       receipt.source.path,
