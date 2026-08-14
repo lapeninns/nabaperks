@@ -22,14 +22,14 @@ const PLAYWRIGHT_SCRATCH = [".next-e2e", "playwright-report"].map((path) =>
 const TEST_RESULTS = fileURLToPath(
   new URL("../../test-results", import.meta.url)
 )
-const PUBLIC_FIXTURE = [
-  "NODE_OPTIONS=--import=./tests/support/task15-bootstrap-accounting.mjs",
-  "TASK15_LITERAL_PLAYWRIGHT_CLEANUP=1",
-  "PLAYWRIGHT_LAST_RUN_OUTPUT_FILE=.next-e2e/.last-run.json",
-  "NEXT_PUBLIC_SUPABASE_URL=https://example-project.supabase.co",
-  "NEXT_PUBLIC_SUPABASE_ANON_KEY=playwright-public-fixture",
-  "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_playwright_fixture",
-]
+const PUBLIC_FIXTURE = {
+  NODE_OPTIONS: "--import=./tests/support/task15-bootstrap-accounting.mjs",
+  TASK15_LITERAL_PLAYWRIGHT_CLEANUP: "1",
+  PLAYWRIGHT_LAST_RUN_OUTPUT_FILE: ".next-e2e/.last-run.json",
+  NEXT_PUBLIC_SUPABASE_URL: "https://example-project.supabase.co",
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: "playwright-public-fixture",
+  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_test_playwright_fixture",
+}
 
 async function availablePort() {
   const server = createServer()
@@ -64,16 +64,6 @@ test(
       mode: 0o600,
     })
     const scratchExisted = PLAYWRIGHT_SCRATCH.map((path) => existsSync(path))
-    writeFileSync(
-      ENV_LOCAL,
-      [
-        `NEXT_PUBLIC_APP_URL=${baseUrl}`,
-        `PLAYWRIGHT_BASE_URL=${baseUrl}`,
-        ...PUBLIC_FIXTURE,
-        "",
-      ].join("\n"),
-      { flag: "wx", mode: 0o600 }
-    )
     const command = [
       "pnpm",
       "test:e2e",
@@ -97,6 +87,10 @@ test(
     ]) {
       delete childEnv[name]
     }
+    Object.assign(childEnv, PUBLIC_FIXTURE, {
+      NEXT_PUBLIC_APP_URL: baseUrl,
+      PLAYWRIGHT_BASE_URL: baseUrl,
+    })
     let accounting
     try {
       accounting = await accountExecution(
@@ -110,7 +104,6 @@ test(
         }
       )
     } finally {
-      rmSync(ENV_LOCAL, { force: true })
       for (const [index, path] of PLAYWRIGHT_SCRATCH.entries()) {
         if (!scratchExisted[index])
           rmSync(path, { recursive: true, force: true })
