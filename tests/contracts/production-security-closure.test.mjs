@@ -69,6 +69,19 @@ test("build tooling transitive dependencies are pinned past active advisories", 
   )
 })
 
+test("dependency graph excludes the Task 18 vulnerable versions", () => {
+  // Given the committed resolver policy and lockfile,
+  const workspace = read("pnpm-workspace.yaml")
+  const lockfile = read("pnpm-lock.yaml")
+
+  // When pnpm resolves the build and audit toolchains, then neither vulnerable
+  // version may be selected or hidden behind an audit exception.
+  assert.doesNotMatch(lockfile, /^  extract-zip@2\.0\.1:/m)
+  assert.doesNotMatch(lockfile, /^  nanoid@3\.3\.17:/m)
+  assert.doesNotMatch(workspace, /^  extract-zip:/m)
+  assert.doesNotMatch(workspace, /(?:ignoreCves|ignoreGhsas|audit-level)/)
+})
+
 test("auth callback installs a session only from a browser-bound PKCE exchange", () => {
   const source = read("app", "auth", "confirm", "route.ts")
 
