@@ -55,7 +55,10 @@ async function postFunnelCapture(
     credentials: "same-origin",
     keepalive: true,
   })
-  if (!response.ok) return null
+  if (!response.ok) {
+    await response.body?.cancel()
+    return null
+  }
 
   return parseFunnelCaptureResponse(await response.json())
 }
