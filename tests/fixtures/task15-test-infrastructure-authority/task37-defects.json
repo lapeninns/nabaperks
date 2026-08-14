@@ -1,0 +1,330 @@
+{
+  "fixture": "nabaperks.task37.unit-authority-fixture.v1",
+  "rows": [
+    {
+      "stable_id": "T37-FIXTURE-01",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 01"
+    },
+    {
+      "stable_id": "T37-FIXTURE-02",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 02"
+    },
+    {
+      "stable_id": "T37-FIXTURE-03",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 03"
+    },
+    {
+      "stable_id": "T37-FIXTURE-04",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 04"
+    },
+    {
+      "stable_id": "T37-FIXTURE-05",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 05"
+    },
+    {
+      "stable_id": "T37-FIXTURE-06",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 06"
+    },
+    {
+      "stable_id": "T37-FIXTURE-07",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 07"
+    },
+    {
+      "stable_id": "T37-FIXTURE-08",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 08"
+    },
+    {
+      "stable_id": "T37-FIXTURE-09",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 09"
+    },
+    {
+      "stable_id": "T37-FIXTURE-10",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 10"
+    },
+    {
+      "stable_id": "T37-FIXTURE-11",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 11"
+    },
+    {
+      "stable_id": "T37-FIXTURE-12",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 12"
+    },
+    {
+      "stable_id": "T37-FIXTURE-13",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 13"
+    },
+    {
+      "stable_id": "T37-FIXTURE-14",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 14"
+    },
+    {
+      "stable_id": "T37-FIXTURE-15",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 15"
+    },
+    {
+      "stable_id": "T37-FIXTURE-16",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 16"
+    },
+    {
+      "stable_id": "T37-FIXTURE-17",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 17"
+    },
+    {
+      "stable_id": "T37-FIXTURE-18",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 18"
+    },
+    {
+      "stable_id": "T37-FIXTURE-19",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 19"
+    },
+    {
+      "stable_id": "T37-FIXTURE-20",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 20"
+    },
+    {
+      "stable_id": "T37-FIXTURE-21",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 21"
+    },
+    {
+      "stable_id": "T37-FIXTURE-22",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 22"
+    },
+    {
+      "stable_id": "T37-FIXTURE-23",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 23"
+    },
+    {
+      "stable_id": "T37-FIXTURE-24",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 24"
+    },
+    {
+      "stable_id": "T37-FIXTURE-25",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 25"
+    },
+    {
+      "stable_id": "T37-FIXTURE-26",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 26"
+    },
+    {
+      "stable_id": "T37-FIXTURE-27",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 27"
+    },
+    {
+      "stable_id": "T37-FIXTURE-28",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 28"
+    },
+    {
+      "stable_id": "T37-FIXTURE-29",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 29"
+    },
+    {
+      "stable_id": "T37-FIXTURE-30",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 30"
+    },
+    {
+      "stable_id": "T37-FIXTURE-31",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 31"
+    },
+    {
+      "stable_id": "T37-FIXTURE-32",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 32"
+    },
+    {
+      "stable_id": "T37-FIXTURE-33",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 33"
+    },
+    {
+      "stable_id": "T37-FIXTURE-34",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 34"
+    },
+    {
+      "stable_id": "T37-FIXTURE-35",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 35"
+    },
+    {
+      "stable_id": "T37-FIXTURE-36",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 36"
+    },
+    {
+      "stable_id": "T37-FIXTURE-37",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 37"
+    },
+    {
+      "stable_id": "T37-FIXTURE-38",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 38"
+    },
+    {
+      "stable_id": "T37-FIXTURE-39",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 39"
+    },
+    {
+      "stable_id": "T37-FIXTURE-40",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 40"
+    },
+    {
+      "stable_id": "T37-FIXTURE-41",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 41"
+    },
+    {
+      "stable_id": "T37-FIXTURE-42",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 42"
+    },
+    {
+      "stable_id": "T37-FIXTURE-43",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 43"
+    },
+    {
+      "stable_id": "T37-FIXTURE-44",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 44"
+    },
+    {
+      "stable_id": "T37-FIXTURE-45",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 45"
+    },
+    {
+      "stable_id": "T37-FIXTURE-46",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 46"
+    },
+    {
+      "stable_id": "T37-FIXTURE-47",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 47"
+    },
+    {
+      "stable_id": "T37-FIXTURE-48",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 48"
+    },
+    {
+      "stable_id": "T37-FIXTURE-49",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 49"
+    },
+    {
+      "stable_id": "T37-FIXTURE-50",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 50"
+    },
+    {
+      "stable_id": "T37-FIXTURE-51",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 51"
+    },
+    {
+      "stable_id": "T37-FIXTURE-52",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 52"
+    },
+    {
+      "stable_id": "T37-FIXTURE-53",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 53"
+    },
+    {
+      "stable_id": "T37-FIXTURE-54",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 54"
+    },
+    {
+      "stable_id": "T37-FIXTURE-55",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 55"
+    },
+    {
+      "stable_id": "T37-FIXTURE-56",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 56"
+    },
+    {
+      "stable_id": "T37-FIXTURE-57",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 57"
+    },
+    {
+      "stable_id": "T37-FIXTURE-58",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 58"
+    },
+    {
+      "stable_id": "T37-FIXTURE-59",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 59"
+    },
+    {
+      "stable_id": "T37-FIXTURE-60",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 60"
+    },
+    {
+      "stable_id": "T37-FIXTURE-61",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 61"
+    },
+    {
+      "stable_id": "T37-FIXTURE-62",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 62"
+    },
+    {
+      "stable_id": "T37-FIXTURE-63",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 63"
+    },
+    {
+      "stable_id": "T37-FIXTURE-64",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 64"
+    },
+    {
+      "stable_id": "T37-FIXTURE-65",
+      "category": "test-infrastructure",
+      "title": "Test-only authority fixture 65"
+    }
+  ]
+}

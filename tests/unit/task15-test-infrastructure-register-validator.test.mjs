@@ -21,6 +21,12 @@ const VALIDATOR = join(
   "scripts/qa/validate-task15-test-infrastructure-register.mjs"
 )
 const MAP = join(ROOT, "scripts/qa/task15-test-infrastructure-map.json")
+const FIXTURE_ROOT = join(
+  ROOT,
+  "tests/fixtures/task15-test-infrastructure-authority"
+)
+const TASK5_FIXTURE = join(FIXTURE_ROOT, "task5-register-map.json")
+const TASK37_FIXTURE = join(FIXTURE_ROOT, "task37-defects.json")
 
 function sha256(path) {
   return createHash("sha256").update(readFileSync(path)).digest("hex")
@@ -114,7 +120,7 @@ function cleanSource(temp, objectFormat = "sha1") {
 }
 
 function fixedMap(temp, { objectFormat, opaqueArtifact } = {}) {
-  const map = copiedMap()
+  const map = fixtureMap(temp)
   const artifact = join(temp, "direct-receipt.json")
   const source = cleanSource(temp, objectFormat)
   const candidate = map.rows[0]
@@ -160,31 +166,8 @@ function fixedMap(temp, { objectFormat, opaqueArtifact } = {}) {
 }
 
 function trustedFixedMap(temp, objectFormat = "sha1") {
-  const map = copiedMap()
-  map.rows = map.rows.map((row) =>
-    row.status === "fixed"
-      ? {
-          stableId: row.stableId,
-          title: row.title,
-          sourceRowSha256: row.sourceRowSha256,
-          status: "blocked",
-          reason:
-            "This isolated authority fixture owns only its direct receipt.",
-        }
-      : row
-  )
+  const map = fixtureMap(temp)
   const governed = join(realpathSync(temp), "governed")
-  for (const key of ["task5Map", "task37Defects"]) {
-    const path = join(
-      governed,
-      ".omo/evidence/authority",
-      key,
-      "authority.json"
-    )
-    mkdirSync(join(path, ".."), { recursive: true })
-    writeFileSync(path, readFileSync(map.authority[key].path))
-    map.authority[key] = { path: repositoryPath(path), sha256: sha256(path) }
-  }
   const sourcePath = join(
     governed,
     ".omo/evidence/task-15/lanes/unit/candidate-source"
@@ -282,6 +265,31 @@ function trustedFixedMap(temp, objectFormat = "sha1") {
   return map
 }
 
+function fixtureMap(temp) {
+  const map = copiedMap()
+  const task5 = JSON.parse(readFileSync(TASK5_FIXTURE, "utf8"))
+  const governed = join(realpathSync(temp), "governed")
+  const authorities = [
+    ["task5Map", TASK5_FIXTURE],
+    ["task37Defects", TASK37_FIXTURE],
+  ]
+
+  map.rows = task5.registers.defects.rows.map((row) => ({
+    stableId: row.stable_id,
+    title: row.title,
+    sourceRowSha256: row.source_row_sha256,
+    status: "blocked",
+    reason: "The test-only authority fixture has no executed receipt.",
+  }))
+  for (const [key, fixture] of authorities) {
+    const path = join(governed, ".omo/evidence/task15-unit", `${key}.json`)
+    mkdirSync(join(path, ".."), { recursive: true })
+    writeFileSync(path, readFileSync(fixture))
+    map.authority[key] = { path: repositoryPath(path), sha256: sha256(path) }
+  }
+  return map
+}
+
 function playwrightReceipt(map, command) {
   const receipt = map.rows[0].receipt
   const artifact = JSON.parse(readFileSync(receipt.artifact.path, "utf8"))
@@ -321,8 +329,8 @@ function withTemp(callback) {
   }
 }
 
-function expectCode(result, code) {
-  assert.equal(result.status, 2)
+function expectCode(result, code, context = "") {
+  assert.equal(result.status, 2, context)
   assert.match(result.stderr, new RegExp("^" + code + "\\n$"))
 }
 
@@ -365,25 +373,25 @@ function tapFixture({ passed }) {
   ].join("\n")
 }
 
-test("Given the canonical map When validated Then its terminal counts are reported truthfully", () => {
+test("Given the test-only authority fixture When validated Then its terminal counts are reported truthfully", () => {
   withTemp((temp) => {
-    const map = copiedMap()
+    const map = fixtureMap(temp)
     const result = run(map, temp)
     assert.equal(result.status, 0)
     assert.match(
       result.stdout,
-      /^owned=65 terminal=65 duplicateIds=0 orphanIds=0 fixed=46 failed=0 blocked=19 open=19\n$/
+      /^owned=65 terminal=65 duplicateIds=0 orphanIds=0 fixed=0 failed=0 blocked=65 open=65\n$/
     )
   })
 })
 
-test("Given canonical direct SHA-1 source receipts When validated Then fixed rows are accepted", () => {
+test("Given a test-only direct SHA-1 source receipt When validated Then the fixed row is accepted", () => {
   withTemp((temp) => {
-    const map = copiedMap()
+    const map = trustedFixedMap(temp)
     const fixed = map.rows.filter((row) => row.status === "fixed")
     assert.ok(
-      fixed.length >= 2,
-      `expected at least the two historical fixed rows, got ${fixed.length}`
+      fixed.length === 1,
+      `expected exactly one test-only fixed row, got ${fixed.length}`
     )
     for (const row of fixed) {
       assert.match(row.receipt.source.head, /^[a-f0-9]{40}$/)
@@ -475,6 +483,21 @@ test("Given swapped-root, missing, non-regular, or traversal authority inputs Wh
       const map = trustedFixedMap(temp)
       scenario.mutate(map, temp)
       expectCode(run(map, temp), "UNTRUSTED_AUTHORITY_INPUT")
+    })
+  }
+})
+
+test("Given a malformed copied authority fixture When its digest is recomputed Then parsing fails closed", () => {
+  for (const [key, code] of [
+    ["task5Map", "MALFORMED_TASK5"],
+    ["task37Defects", "MALFORMED_TASK37"],
+  ]) {
+    withTemp((temp) => {
+      const map = fixtureMap(temp)
+      const authority = map.authority[key]
+      writeFileSync(authority.path, "{\n")
+      authority.sha256 = sha256(authority.path)
+      expectCode(run(map, temp), code)
     })
   }
 })
@@ -725,55 +748,89 @@ test("Given an opaque artifact with a recomputed digest When validated Then it i
 
 test("Given one bound receipt field is altered When validated Then every mismatch is rejected", () => {
   const scenarios = [
-    (map) => {
-      rewriteArtifact(map, (artifact) => {
-        artifact.candidate.stableId = "T37-DEF-wrong-candidate"
-      })
+    {
+      code: "DIRECT_RECEIPT_MISMATCH",
+      mutate: (map) => {
+        rewriteArtifact(map, (artifact) => {
+          artifact.candidate.stableId = "T37-DEF-wrong-candidate"
+        })
+      },
     },
-    (map) => {
-      map.rows[0].receipt.source.head = "0".repeat(40)
+    {
+      code: "DIRECT_RECEIPT_MISMATCH",
+      mutate: (map) => {
+        map.rows[0].receipt.source.head = "0".repeat(40)
+      },
     },
-    (map) => {
-      map.rows[0].receipt.source.tree = "0".repeat(40)
+    {
+      code: "DIRECT_RECEIPT_MISMATCH",
+      mutate: (map) => {
+        map.rows[0].receipt.source.tree = "0".repeat(40)
+      },
     },
-    (map) => {
-      map.rows[0].receipt.source.statusSha256 = "0".repeat(64)
+    {
+      code: "DIRECT_RECEIPT_MISMATCH",
+      mutate: (map) => {
+        map.rows[0].receipt.source.statusSha256 = "0".repeat(64)
+      },
     },
-    (map) => {
-      map.rows[0].receipt.command = "node --test different.test.mjs"
+    {
+      code: "DIRECT_RECEIPT_MISMATCH",
+      mutate: (map) => {
+        map.rows[0].receipt.command = "node --test different.test.mjs"
+      },
     },
-    (map) => {
-      map.rows[0].receipt.exitCode = 1
+    {
+      code: "FIXED_RECEIPT_NOT_PASSED",
+      mutate: (map) => {
+        map.rows[0].receipt.exitCode = 1
+      },
     },
-    (map) => {
-      map.rows[0].receipt.totals = {
-        tests: 2,
-        passed: 2,
-        failed: 0,
-        skipped: 0,
-      }
+    {
+      code: "DIRECT_RECEIPT_MISMATCH",
+      mutate: (map) => {
+        map.rows[0].receipt.totals = {
+          tests: 2,
+          passed: 2,
+          failed: 0,
+          skipped: 0,
+        }
+      },
     },
-    (map) => {
-      map.rows[0].receipt.assertions = 2
+    {
+      code: "MISLEADING_SUCCESS_OUTPUT",
+      mutate: (map) => {
+        map.rows[0].receipt.totals.skipped = 1
+      },
     },
-    (map) => {
-      map.rows[0].receipt.totals.skipped = 1
+    {
+      code: "RETRY_ONLY_GREEN",
+      mutate: (map) => {
+        map.rows[0].receipt.retryCount = 1
+      },
     },
-    (map) => {
-      map.rows[0].receipt.retryCount = 1
+    {
+      code: "FIXED_RECEIPT_NOT_PASSED",
+      mutate: (map) => {
+        map.rows[0].receipt.outcome = "failed"
+      },
     },
-    (map) => {
-      map.rows[0].receipt.outcome = "failed"
-    },
-    (map) => {
-      map.rows[0].receipt.artifact.sha256 = "0".repeat(64)
+    {
+      code: "STALE_RECEIPT",
+      mutate: (map) => {
+        map.rows[0].receipt.artifact.sha256 = "0".repeat(64)
+      },
     },
   ]
-  for (const mutate of scenarios) {
+  for (const [index, scenario] of scenarios.entries()) {
     withTemp((temp) => {
-      const map = fixedMap(temp)
-      mutate(map)
-      assert.equal(run(map, temp).status, 2)
+      const map = trustedFixedMap(temp)
+      scenario.mutate(map)
+      expectCode(
+        run(map, temp),
+        scenario.code,
+        `bound receipt scenario ${index + 1}`
+      )
     })
   }
 })
@@ -810,10 +867,10 @@ test("Given zero-test or hidden-skip green receipts When validated Then misleadi
 
 test("Given duplicate or orphan identities When validated Then row accounting rejects them", () => {
   withTemp((temp) => {
-    const duplicate = copiedMap()
+    const duplicate = fixtureMap(temp)
     duplicate.rows[1].stableId = duplicate.rows[0].stableId
     expectCode(run(duplicate, temp), "DUPLICATE_STABLE_ID")
-    const orphan = copiedMap()
+    const orphan = fixtureMap(temp)
     orphan.rows[0].stableId = "T37-DEF-orphan"
     expectCode(run(orphan, temp), "ORPHAN_STABLE_ID")
   })
@@ -886,7 +943,7 @@ test("Given stale, retried, malformed, interrupted, hung, prompt-like, or dirty 
 
 test("Given a copied map in a different order When validated Then row order cannot create a flaky result", () => {
   withTemp((temp) => {
-    const map = copiedMap()
+    const map = fixtureMap(temp)
     map.rows.reverse()
     const result = run(map, temp)
     assert.equal(result.status, 0)

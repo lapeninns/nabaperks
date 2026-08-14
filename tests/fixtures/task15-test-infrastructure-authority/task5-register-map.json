@@ -1,0 +1,399 @@
+{
+  "fixture": "nabaperks.task15.unit-authority-fixture.v1",
+  "registers": {
+    "defects": {
+      "rows": [
+        {
+          "stable_id": "T37-FIXTURE-01",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 01",
+          "source_row_sha256": "8e638fc3ea298bfbd14dc933c31662021e9031b8ef1f2fff7128da5893f936c8"
+        },
+        {
+          "stable_id": "T37-FIXTURE-02",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 02",
+          "source_row_sha256": "e176a408c155acd5ac68984927039f024c7b08b463ca6ba38d93e84dd0d97c3a"
+        },
+        {
+          "stable_id": "T37-FIXTURE-03",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 03",
+          "source_row_sha256": "759671cd76254f57cb25d30374e6cd2b7d840cf28135f0e269b10662960ecf83"
+        },
+        {
+          "stable_id": "T37-FIXTURE-04",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 04",
+          "source_row_sha256": "6efbaf98dac09dc1fe0d6395b3291d265f1dae4892b4241d071dc9b11c20acfd"
+        },
+        {
+          "stable_id": "T37-FIXTURE-05",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 05",
+          "source_row_sha256": "5ce76614b7e9b6635dbfbaebfc60578fca7530d6d95b68a94335b55cc4fb8a3b"
+        },
+        {
+          "stable_id": "T37-FIXTURE-06",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 06",
+          "source_row_sha256": "1a4aa10de686cf5a82fe03943ad7312e3128879b14e64b164504c702cca0af8e"
+        },
+        {
+          "stable_id": "T37-FIXTURE-07",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 07",
+          "source_row_sha256": "e4df0ffb9df22bef37ab349faa81b8f228ae75a4e45b825c7d87d8373cc5d845"
+        },
+        {
+          "stable_id": "T37-FIXTURE-08",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 08",
+          "source_row_sha256": "1424a8980fc889435469f4f621d72b841cc0b29d9e35840c86f6c4fa58f1f56a"
+        },
+        {
+          "stable_id": "T37-FIXTURE-09",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 09",
+          "source_row_sha256": "41663057658b3097e23774ac2522703f8e675a61ad73f25996241d56e6a94bc2"
+        },
+        {
+          "stable_id": "T37-FIXTURE-10",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 10",
+          "source_row_sha256": "0a670e6c9ea4dfbf0d514c4e5dbc04ea4b2e072f3d6469e1d06b948ab7ea6c32"
+        },
+        {
+          "stable_id": "T37-FIXTURE-11",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 11",
+          "source_row_sha256": "35c09bfe5a7f1ba80bfe468eb77caf73c157c04cff9e2e6dcb66de0be113fae0"
+        },
+        {
+          "stable_id": "T37-FIXTURE-12",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 12",
+          "source_row_sha256": "fcc890797a43ab2d25872d715f6e83427615756857dcefbe4ddbc6997c12e99b"
+        },
+        {
+          "stable_id": "T37-FIXTURE-13",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 13",
+          "source_row_sha256": "c76e2ae20dc8ab3ff9e27741ab6eb734969d43857811f11e6a7b15fd5151f77b"
+        },
+        {
+          "stable_id": "T37-FIXTURE-14",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 14",
+          "source_row_sha256": "db5752d17137a0b53d8855d2a22002343e19a21eae33da18e8f17c2cb0e815ef"
+        },
+        {
+          "stable_id": "T37-FIXTURE-15",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 15",
+          "source_row_sha256": "53ddd4c1ea4a6e9edc0e63b52c50a1493688bf49014c158bead1b75db41539b4"
+        },
+        {
+          "stable_id": "T37-FIXTURE-16",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 16",
+          "source_row_sha256": "bf4164dc206eabbddf0d9749b22916dd5c4576a0188dc4c4dcbc88af7a1cec9e"
+        },
+        {
+          "stable_id": "T37-FIXTURE-17",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 17",
+          "source_row_sha256": "d0741733cb261ace6345545ab07336d854f62108d95aaabfbb2f0b71b0bad3a4"
+        },
+        {
+          "stable_id": "T37-FIXTURE-18",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 18",
+          "source_row_sha256": "fb546dda604182095c587757f59d49b0b942d5e10f394c308a9109716fb510ec"
+        },
+        {
+          "stable_id": "T37-FIXTURE-19",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 19",
+          "source_row_sha256": "4f4e0677295c6bbc3a05f97b0e2f5cd1bc02a43316066f56080c768310b4d82a"
+        },
+        {
+          "stable_id": "T37-FIXTURE-20",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 20",
+          "source_row_sha256": "4269ee3c1057acdbe019d537e072c8b5f6e6db6100c20def1a9cdbec72fdc233"
+        },
+        {
+          "stable_id": "T37-FIXTURE-21",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 21",
+          "source_row_sha256": "f8e07e6a1c44dfbc7d60f3c919ed519eef9ca08d02a732fcc1a23cab14a1dffe"
+        },
+        {
+          "stable_id": "T37-FIXTURE-22",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 22",
+          "source_row_sha256": "f126cc50903db790c4a8d1b6b84071f1c9c5a2371a92b27fbfbd9e20ef7e231f"
+        },
+        {
+          "stable_id": "T37-FIXTURE-23",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 23",
+          "source_row_sha256": "c4572305964860bb8e43b4d23edff225c7cbc4719fc50693ab5d5d30e30ee55e"
+        },
+        {
+          "stable_id": "T37-FIXTURE-24",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 24",
+          "source_row_sha256": "0e23744c3de7411fbd739a5d2f6423b55cf0866ffb872adc4fce5003c49d2ebb"
+        },
+        {
+          "stable_id": "T37-FIXTURE-25",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 25",
+          "source_row_sha256": "1e6e1fa5c679033ead2f41fd667a6c41e41b36b01fcc3aed440678033262cdef"
+        },
+        {
+          "stable_id": "T37-FIXTURE-26",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 26",
+          "source_row_sha256": "e677b2e655b0ccc53749d180fb95cba812f4592580b49a573f82ba177becd947"
+        },
+        {
+          "stable_id": "T37-FIXTURE-27",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 27",
+          "source_row_sha256": "82b16de5109e23ffc51a558311aa5741b1086bde85557b45ec748f88bf73b809"
+        },
+        {
+          "stable_id": "T37-FIXTURE-28",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 28",
+          "source_row_sha256": "3b0fab31c2e062936cd683288c29fe607d50581f451d80cb3a68e34a5a3bba14"
+        },
+        {
+          "stable_id": "T37-FIXTURE-29",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 29",
+          "source_row_sha256": "6afdc93882f2a4ea0ac335d1549a982fedda0c66351f4d37fc70fe4ff34714ba"
+        },
+        {
+          "stable_id": "T37-FIXTURE-30",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 30",
+          "source_row_sha256": "d701bdfd1dbf5f9b5919ecccff2afdf5fb3fccc5707606d561b78a7c54a49a60"
+        },
+        {
+          "stable_id": "T37-FIXTURE-31",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 31",
+          "source_row_sha256": "7ded09ec5ade878bc873acef13b822344044163ffb1b33b014262d0a1df38084"
+        },
+        {
+          "stable_id": "T37-FIXTURE-32",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 32",
+          "source_row_sha256": "a4965e64133458badffdd5687d7b313a774364907174759847e2d36f7ef418a6"
+        },
+        {
+          "stable_id": "T37-FIXTURE-33",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 33",
+          "source_row_sha256": "c37c6d3592f039bd018dbebfe9016e60cff80c1f9c8f66646ef017f21490d4e0"
+        },
+        {
+          "stable_id": "T37-FIXTURE-34",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 34",
+          "source_row_sha256": "aa7e83f260058ac84efdcf27ebf7531e4bc42c946c373c8a512f5c9665179195"
+        },
+        {
+          "stable_id": "T37-FIXTURE-35",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 35",
+          "source_row_sha256": "01556182574c65ef98fd77ec8ba631652be1742f7fa1843d88b153d905913a3f"
+        },
+        {
+          "stable_id": "T37-FIXTURE-36",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 36",
+          "source_row_sha256": "2cfc24448f1db1167f47df218d64cf235b3e4e324867028aee29db823c0db807"
+        },
+        {
+          "stable_id": "T37-FIXTURE-37",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 37",
+          "source_row_sha256": "668fb21eb6d32e0eae08380ec9556060dc35310f4f3ac9acd4d99016426e8181"
+        },
+        {
+          "stable_id": "T37-FIXTURE-38",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 38",
+          "source_row_sha256": "c286be4bc75614626db9af224d2446f701fe325ca7a4ccd33f8520f6f149d4a7"
+        },
+        {
+          "stable_id": "T37-FIXTURE-39",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 39",
+          "source_row_sha256": "10760b1639d0afd59065afd31ab48d35ad7bd61ae3f6bdb5deca9b6f1cc7b841"
+        },
+        {
+          "stable_id": "T37-FIXTURE-40",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 40",
+          "source_row_sha256": "4343b5de965300726feca296b56d156d2d034c8ec09bd78845ab8c2e4fa44c70"
+        },
+        {
+          "stable_id": "T37-FIXTURE-41",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 41",
+          "source_row_sha256": "8b2cc94e5a4136acc774ef9c284c2474eb41eac238ebaec2a46db87ece7b6692"
+        },
+        {
+          "stable_id": "T37-FIXTURE-42",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 42",
+          "source_row_sha256": "27cd598d9df295307c4f424f11d861ce1873aa463d1d1d6be2315a2281f5bcf0"
+        },
+        {
+          "stable_id": "T37-FIXTURE-43",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 43",
+          "source_row_sha256": "11af4406e553ed8f12e4a0bf66844a97acc9b24e2c7a520493dcb0e50572b7d4"
+        },
+        {
+          "stable_id": "T37-FIXTURE-44",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 44",
+          "source_row_sha256": "2a00f8c53a6a08e15f91a5c7d31757edca4a05f7630fdebf8c4754da1e6b9d16"
+        },
+        {
+          "stable_id": "T37-FIXTURE-45",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 45",
+          "source_row_sha256": "ae65804c54c6b4c43c1311b010ef85006e2de10eb31f166c6e4a49dbba06b1b0"
+        },
+        {
+          "stable_id": "T37-FIXTURE-46",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 46",
+          "source_row_sha256": "274d8db0ff88d658aef8183b90f47d58d0705b494bfeb21982d73b7ed46c4a55"
+        },
+        {
+          "stable_id": "T37-FIXTURE-47",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 47",
+          "source_row_sha256": "f5e251d3f477bc0f15ea28263b3d592f36008e1200854fa037aedef7358cba6b"
+        },
+        {
+          "stable_id": "T37-FIXTURE-48",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 48",
+          "source_row_sha256": "84eec08694b207ad8f5661cace3457babdb15908048b328999c5b0594c133a67"
+        },
+        {
+          "stable_id": "T37-FIXTURE-49",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 49",
+          "source_row_sha256": "6f839bb28b0ab2439cab147afb19300f15ca88d078b50774f54fe42d877e7384"
+        },
+        {
+          "stable_id": "T37-FIXTURE-50",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 50",
+          "source_row_sha256": "2e2b509c454a8f4178b014bf5aad5ba5aabe5b6765a039faad849c76a9f4c281"
+        },
+        {
+          "stable_id": "T37-FIXTURE-51",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 51",
+          "source_row_sha256": "fc828a989072d2dc681219a0729abe50ba980bb6d2d60ba6a476dd82e3118a26"
+        },
+        {
+          "stable_id": "T37-FIXTURE-52",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 52",
+          "source_row_sha256": "eb8fc504c341b10082cc5cfe16a49ab935fd491b8291da1b0f40e2cf48b18621"
+        },
+        {
+          "stable_id": "T37-FIXTURE-53",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 53",
+          "source_row_sha256": "96476b73799a0f4c41f45696d01158efd7add79eb325a52648cdae50ba67aa7f"
+        },
+        {
+          "stable_id": "T37-FIXTURE-54",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 54",
+          "source_row_sha256": "af8620001e5bccf6081f4f58bfd50c1584e4f847562039fd122fc5be2809560d"
+        },
+        {
+          "stable_id": "T37-FIXTURE-55",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 55",
+          "source_row_sha256": "ac0bb6fb7492c9fbd60f5f96aa48721f307b116f8c452c546a1c50fe16ff2847"
+        },
+        {
+          "stable_id": "T37-FIXTURE-56",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 56",
+          "source_row_sha256": "1961bff4071541b81b3ed735380bf7227442838e69a2bf2d2c50d377937d21cb"
+        },
+        {
+          "stable_id": "T37-FIXTURE-57",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 57",
+          "source_row_sha256": "6d6c0eeb599ddf47840943596e05d36ef303d2ef498c7c4c4f068d5a0c9c3ec2"
+        },
+        {
+          "stable_id": "T37-FIXTURE-58",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 58",
+          "source_row_sha256": "64c1ffec68301c8a4622e84e8b2c8efe0a3e819bd8e53d6fcbc78020c952a842"
+        },
+        {
+          "stable_id": "T37-FIXTURE-59",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 59",
+          "source_row_sha256": "998eb8eddf63441642003291fdc9aefe52147c7f1a0c05bc34894619a2348255"
+        },
+        {
+          "stable_id": "T37-FIXTURE-60",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 60",
+          "source_row_sha256": "ebe2cb0bae544f5c27e6b75aa7d252a39d092c833dffb9c2c9e9815d31254244"
+        },
+        {
+          "stable_id": "T37-FIXTURE-61",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 61",
+          "source_row_sha256": "ebb443a02c98f3ed8234fc03dcce0e5911fc8a9487912c26f8f1f115df1ffc39"
+        },
+        {
+          "stable_id": "T37-FIXTURE-62",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 62",
+          "source_row_sha256": "d81fe649188c2ec7b7032c43df0d9d273376968616b2e22c4dbffb5f7bf39258"
+        },
+        {
+          "stable_id": "T37-FIXTURE-63",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 63",
+          "source_row_sha256": "756ff966b358c912e08822f5fc8ecd2fd2122cab2c3c5e449dc391e7cfa7ac84"
+        },
+        {
+          "stable_id": "T37-FIXTURE-64",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 64",
+          "source_row_sha256": "ba8aba7df7394fec363cae3ff55d856877a002d3f22fd6559346a10207da9baa"
+        },
+        {
+          "stable_id": "T37-FIXTURE-65",
+          "category": "test-infrastructure",
+          "title": "Test-only authority fixture 65",
+          "source_row_sha256": "54416dcca210fb47440b60a5c316baf6eda7c157cf512db3bad6fee6e30f55d3"
+        }
+      ]
+    }
+  }
+}
