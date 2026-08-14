@@ -64,7 +64,7 @@ export function PubGuideHero({
         </p>
       </div>
 
-      <div className="relative mx-auto w-full max-w-[26rem] lg:mx-0 lg:justify-self-end">
+      <div className="relative mx-auto w-full max-w-[26rem] lg:mx-0 lg:justify-self-end [&_.mono-meta.font-normal]:!font-bold">
         <div
           aria-hidden="true"
           className="absolute -top-3 -right-3 bottom-3 left-3 rotate-2 rounded-[var(--radius-sheet)] border-2 border-ink bg-seal"
