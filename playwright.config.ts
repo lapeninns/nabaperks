@@ -59,9 +59,20 @@ const reuseExistingServer =
   !process.env.CI && process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER === "1"
 const chromiumChannel =
   process.env.PLAYWRIGHT_REGULAR_CHROMIUM === "1" ? "chromium" : undefined
+const task15OutputNamespace = process.env.TASK15_PLAYWRIGHT_OUTPUT_NAMESPACE
+if (
+  task15OutputNamespace !== undefined &&
+  !/^task15-mobile-safari-\d+$/.test(task15OutputNamespace)
+) {
+  throw new Error("Invalid Task 15 Playwright output namespace")
+}
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  outputDir:
+    task15OutputNamespace === undefined
+      ? undefined
+      : `test-results/${task15OutputNamespace}`,
   reporter: [
     ["list"],
     ["html", { open: "never", outputFolder: "playwright-report" }],

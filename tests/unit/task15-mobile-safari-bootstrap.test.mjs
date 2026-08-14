@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import {
   existsSync,
   mkdirSync,
+  readFileSync,
   readdirSync,
   rmSync,
   writeFileSync,
@@ -14,11 +15,12 @@ import { accountExecution } from "../support/task15-bootstrap-accounting.mjs"
 
 const PROJECT_ROOT = fileURLToPath(new URL("../../", import.meta.url))
 const ENV_LOCAL = fileURLToPath(new URL("../../.env.local", import.meta.url))
-const PLAYWRIGHT_SCRATCH = [
-  ".next-e2e",
-  "playwright-report",
-  "test-results",
-].map((path) => fileURLToPath(new URL(`../../${path}`, import.meta.url)))
+const PLAYWRIGHT_SCRATCH = [".next-e2e", "playwright-report"].map((path) =>
+  fileURLToPath(new URL(`../../${path}`, import.meta.url))
+)
+const TEST_RESULTS = fileURLToPath(
+  new URL("../../test-results", import.meta.url)
+)
 const PUBLIC_FIXTURE = [
   "NODE_OPTIONS=--import=./tests/support/task15-bootstrap-accounting.mjs",
   "TASK15_LITERAL_PLAYWRIGHT_CLEANUP=1",
@@ -50,11 +52,12 @@ test(
   async () => {
     const port = await availablePort()
     const baseUrl = `http://127.0.0.1:${port}`
-    const testResults = PLAYWRIGHT_SCRATCH[2]
-    const sentinel = `${testResults}/pre-existing-sentinel.txt`
+    const outputNamespace = `task15-mobile-safari-${process.pid}`
+    const taskOutput = `${TEST_RESULTS}/${outputNamespace}`
+    const sentinel = `${TEST_RESULTS}/${outputNamespace}-sentinel.txt`
     assert.equal(existsSync(ENV_LOCAL), false)
-    assert.equal(existsSync(testResults), false)
-    mkdirSync(testResults)
+    const testResultsExisted = existsSync(TEST_RESULTS)
+    mkdirSync(TEST_RESULTS, { recursive: true })
     writeFileSync(sentinel, "preserve unrelated test output\n", {
       flag: "wx",
       mode: 0o600,
@@ -81,6 +84,7 @@ test(
       "--retries=0",
     ]
     const childEnv = { ...process.env }
+    childEnv.TASK15_PLAYWRIGHT_OUTPUT_NAMESPACE = outputNamespace
     for (const name of [
       "NEXT_PUBLIC_APP_URL",
       "NEXT_PUBLIC_SUPABASE_URL",
@@ -110,18 +114,19 @@ test(
         if (!scratchExisted[index])
           rmSync(path, { recursive: true, force: true })
       }
+      rmSync(taskOutput, { recursive: true, force: true })
     }
 
     assert.equal(existsSync(ENV_LOCAL), false)
     assert.equal(existsSync(PLAYWRIGHT_SCRATCH[0]), false)
-    const testResultEntries = readdirSync(testResults)
-    rmSync(sentinel, { force: true })
-    rmSync(testResults, { recursive: true })
-    assert.deepEqual(testResultEntries, ["pre-existing-sentinel.txt"])
     assert.equal(
-      PLAYWRIGHT_SCRATCH.some((path) => existsSync(path)),
-      false
+      readFileSync(sentinel, "utf8"),
+      "preserve unrelated test output\n"
     )
+    rmSync(sentinel, { force: true })
+    if (!testResultsExisted && readdirSync(TEST_RESULTS).length === 0)
+      rmSync(TEST_RESULTS)
+    assert.equal(existsSync(taskOutput), false)
     assert.deepEqual(accounting.command, command)
     assert.equal(accounting.exitCode, 0)
     assert.equal(accounting.signal, null)
