@@ -4,6 +4,7 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  rmdirSync,
   rmSync,
   writeFileSync,
 } from "node:fs"
@@ -125,7 +126,7 @@ test(
     )
     rmSync(sentinel, { force: true })
     if (!testResultsExisted && readdirSync(TEST_RESULTS).length === 0)
-      rmSync(TEST_RESULTS)
+      rmdirSync(TEST_RESULTS)
     assert.equal(existsSync(taskOutput), false)
     assert.deepEqual(accounting.command, command)
     assert.equal(accounting.exitCode, 0)
