@@ -53,7 +53,10 @@ test(
   async () => {
     const port = await availablePort()
     const baseUrl = `http://127.0.0.1:${port}`
-    const outputNamespace = `task15-mobile-safari-${process.pid}`
+    const outputNamespace =
+      process.env.TASK15_MOBILE_OUTPUT_NAMESPACE ??
+      `task15-mobile-safari-${process.pid}`
+    assert.match(outputNamespace, /^task15-mobile-safari-\d+$/)
     const taskOutput = `${TEST_RESULTS}/${outputNamespace}`
     const sentinel = `${TEST_RESULTS}/${outputNamespace}-sentinel.txt`
     assert.equal(existsSync(ENV_LOCAL), false)
