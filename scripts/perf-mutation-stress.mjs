@@ -40,7 +40,7 @@ const LOCATION_ID = "11000000-0000-0000-0000-000000000001"
 const LOYALTY_CARD_ID = "13000000-0000-0000-0000-000000000001"
 const MERCHANT_SLUG = "old-crown-girton"
 const JOIN_QR_ID = "old-crown-girton"
-const OWNER_AUTH_USER_ID = "00000000-0000-0000-0000-000000000304"
+const OWNER_AUTH_USER_ID = "00000000-0000-0000-0000-000000000101"
 
 // Disjoint stress-seed indexes reserved per scenario (must exist in the seed).
 const IDX = {
@@ -398,7 +398,7 @@ async function setupFixtures() {
 function stampCall(index) {
   return () =>
     rpc(
-      "authenticated",
+      "service_role",
       fixtureAuthId(index),
       `select * from public.issue_self_service_stamp(
          '${stressMembershipId(index)}'::uuid, '${stressCustomerId(index)}'::uuid,
@@ -502,7 +502,7 @@ async function scenarioJoinIdempotent() {
       { length: 24 },
       () => () =>
         rpc(
-          "authenticated",
+          "service_role",
           JOIN_RACE_AUTH_ID,
           `select * from public.join_customer_membership(
            '${JOIN_RACE_CUSTOMER_ID}'::uuid, '${MERCHANT_SLUG}', '${JOIN_QR_ID}', false, 'stress-test'
