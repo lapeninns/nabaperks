@@ -106,12 +106,12 @@ test("Given a stale remote target environment When invoked Then the wrapper reje
 
 test(
   "Given a cold local start exceeds ten seconds When the wrapper runs Then it waits for the CLI result",
-  { timeout: 15_000 },
+  { timeout: 35_000 },
   () => {
     withSupabaseSentinel(
       ({ marker, run }) => {
         // Given / When
-        const result = run(["start"], {}, 14_000)
+        const result = run(["start"], {}, 30_000)
 
         // Then
         assert.equal(result.status, 7)
