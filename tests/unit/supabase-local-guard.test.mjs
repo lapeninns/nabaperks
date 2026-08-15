@@ -15,11 +15,13 @@ function withSupabaseSentinel(
   const directory = mkdtempSync(join(tmpdir(), "nabaperks-supabase-guard-"))
   const marker = join(directory, "invocation.txt")
   const executable = join(directory, "supabase")
+  const dockerExecutable = join(directory, "docker")
   writeFileSync(
     executable,
     `#!/bin/sh\nsleep ${delaySeconds}\nprintf '%s\\n' "$@" > "${marker}"\nexit ${exitCode}\n`
   )
-  spawnSync("chmod", ["+x", executable])
+  writeFileSync(dockerExecutable, "#!/bin/sh\nexit 1\n")
+  spawnSync("chmod", ["+x", executable, dockerExecutable])
 
   try {
     callback({
