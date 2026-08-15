@@ -3,6 +3,8 @@ import { createHmac } from "node:crypto"
 import { createServerClient } from "@supabase/ssr"
 import type { BrowserContext } from "@playwright/test"
 
+import { cleanupScope, runCleanupSteps } from "./cleanup-lifecycle.ts"
+
 const ADMIN_EMAIL = "admin@nabaperks.test"
 const ADMIN_PASSWORD = "NabaperksDemo1!"
 const BROWSER_COOKIE_URL =
@@ -11,8 +13,7 @@ const BROWSER_COOKIE_URL =
 type BrowserCookie = Parameters<BrowserContext["addCookies"]>[0][number]
 
 type RequiredEnvName =
-  | "NEXT_PUBLIC_SUPABASE_URL"
-  | "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+  "NEXT_PUBLIC_SUPABASE_URL" | "NEXT_PUBLIC_SUPABASE_ANON_KEY"
 
 type SupabaseCookieOptions = {
   readonly expires?: Date
@@ -55,23 +56,46 @@ type AssuranceLevel = {
   readonly currentLevel: string | null
 }
 
+type MfaFactors = {
+  readonly all: readonly { readonly id: string }[]
+}
+
+export type AdminMfaLifecycleOptions = {
+  readonly afterEnrollment?: () => Promise<void>
+}
+
 export type AdminMfaCleanup = () => Promise<void>
 
 export async function installSeededAdminAal2Session(
-  context: BrowserContext
+  context: BrowserContext,
+  options: AdminMfaLifecycleOptions = {}
 ): Promise<AdminMfaCleanup> {
-  const session = await createSeededAdminAal2Session()
-  await context.addCookies(session.cookies)
-  return session.cleanup
+  const session = await createSeededAdminAal2Session(options)
+  try {
+    await context.addCookies(session.cookies)
+    return session.cleanup
+  } catch (cookieError) {
+    try {
+      await session.cleanup()
+    } catch (cleanupError) {
+      throw new AggregateError(
+        [cookieError, cleanupError],
+        "Admin browser session setup failed and factor cleanup was incomplete."
+      )
+    }
+    throw cookieError
+  }
 }
 
-async function createSeededAdminAal2Session(): Promise<{
+async function createSeededAdminAal2Session(
+  options: AdminMfaLifecycleOptions
+): Promise<{
   readonly cookies: readonly BrowserCookie[]
   readonly cleanup: AdminMfaCleanup
 }> {
   const cookieJar = new Map<string, StoredCookie>()
   const supabase = createServerClient(
-    requiredEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    requireLocalSupabaseUrl(requiredEnv("NEXT_PUBLIC_SUPABASE_URL")),
     requiredEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
     {
       cookies: {
@@ -111,41 +135,105 @@ async function createSeededAdminAal2Session(): Promise<{
     "seeded admin TOTP enroll",
     await supabase.auth.mfa.enroll({ factorType: "totp" })
   )
-  const challenge = requireData<MfaChallenge>(
-    "seeded admin TOTP challenge",
-    await supabase.auth.mfa.challenge({ factorId: enrollment.id })
-  )
-
-  requireData(
-    "seeded admin TOTP verify",
-    await supabase.auth.mfa.verify({
-      factorId: enrollment.id,
-      challengeId: challenge.id,
-      code: totpCode(totpSecret(enrollment)),
-    })
-  )
-
-  const assurance = requireData<AssuranceLevel>(
-    "seeded admin MFA assurance",
-    await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
-  )
-  if (assurance.currentLevel !== "aal2") {
-    throw new Error(
-      `Seeded admin MFA verification did not produce aal2; got ${assurance.currentLevel}.`
+  const scope = cleanupScope(`admin-mfa-${enrollment.id}`)
+  const cleanup = async (): Promise<void> =>
+    runCleanupSteps(
+      scope,
+      [
+        {
+          label: "seeded admin TOTP cleanup readback",
+          run: async () => {
+            const factors = requireData<MfaFactors>(
+              "seeded admin TOTP cleanup readback",
+              await supabase.auth.mfa.listFactors()
+            )
+            if (factors.all.some((factor) => factor.id === enrollment.id)) {
+              throw new Error(
+                "Seeded admin TOTP cleanup left the enrolled factor."
+              )
+            }
+          },
+          scope,
+        },
+        {
+          label: "seeded admin TOTP cleanup",
+          run: async () => {
+            requireData(
+              "seeded admin TOTP cleanup",
+              await supabase.auth.mfa.unenroll({ factorId: enrollment.id })
+            )
+          },
+          scope,
+        },
+      ],
+      "Seeded admin TOTP cleanup failed."
     )
-  }
 
-  return {
-    cookies: Array.from(cookieJar, ([name, cookie]) =>
-      browserCookie(name, cookie)
-    ),
-    cleanup: async () => {
-      requireData(
-        "seeded admin TOTP cleanup",
-        await supabase.auth.mfa.unenroll({ factorId: enrollment.id })
+  try {
+    await options.afterEnrollment?.()
+    const challenge = requireData<MfaChallenge>(
+      "seeded admin TOTP challenge",
+      await supabase.auth.mfa.challenge({ factorId: enrollment.id })
+    )
+
+    requireData(
+      "seeded admin TOTP verify",
+      await supabase.auth.mfa.verify({
+        factorId: enrollment.id,
+        challengeId: challenge.id,
+        code: totpCode(totpSecret(enrollment)),
+      })
+    )
+
+    const assurance = requireData<AssuranceLevel>(
+      "seeded admin MFA assurance",
+      await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+    )
+    if (assurance.currentLevel !== "aal2") {
+      throw new Error(
+        `Seeded admin MFA verification did not produce aal2; got ${assurance.currentLevel}.`
       )
-    },
+    }
+
+    return {
+      cookies: Array.from(cookieJar, ([name, cookie]) =>
+        browserCookie(name, cookie)
+      ),
+      cleanup,
+    }
+  } catch (setupError) {
+    try {
+      await cleanup()
+    } catch (cleanupError) {
+      throw new AggregateError(
+        [setupError, cleanupError],
+        "Seeded admin MFA setup failed and factor cleanup was incomplete."
+      )
+    }
+    throw setupError
   }
+}
+
+export function requireLocalSupabaseUrl(rawUrl: string): string {
+  let url: URL
+  try {
+    url = new URL(rawUrl)
+  } catch {
+    throw new Error("NEXT_PUBLIC_SUPABASE_URL must point at local Supabase.")
+  }
+  if (
+    url.protocol !== "http:" ||
+    url.hostname !== "127.0.0.1" ||
+    url.port === "" ||
+    url.username !== "" ||
+    url.password !== "" ||
+    url.pathname !== "/" ||
+    url.search !== "" ||
+    url.hash !== ""
+  ) {
+    throw new Error("NEXT_PUBLIC_SUPABASE_URL must point at local Supabase.")
+  }
+  return url.href
 }
 
 function requiredEnv(name: RequiredEnvName): string {
@@ -237,7 +325,9 @@ function totpCode(secret: string, now: number = Date.now()): string {
   message.writeUInt32BE(Math.floor(counter / 0x1_0000_0000), 0)
   message.writeUInt32BE(counter % 0x1_0000_0000, 4)
 
-  const digest = createHmac("sha1", decodeBase32(secret)).update(message).digest()
+  const digest = createHmac("sha1", decodeBase32(secret))
+    .update(message)
+    .digest()
   const offset = byteAt(digest, digest.length - 1) & 0xf
   const binary =
     ((byteAt(digest, offset) & 0x7f) << 24) |

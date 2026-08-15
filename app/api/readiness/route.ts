@@ -39,6 +39,7 @@ export async function GET(request: Request): Promise<Response> {
   const environment =
     process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? "unknown"
   const targetEnvironment = process.env.VERCEL_TARGET_ENV ?? environment
+  const gitRevision = process.env.VERCEL_GIT_COMMIT_SHA
   const allowLoopback =
     targetEnvironment === "staging" && process.env.STAGING_MODE === "ephemeral"
   const readinessOptions = {
@@ -78,7 +79,9 @@ export async function GET(request: Request): Promise<Response> {
       service: SERVICE,
       version: packageJson.version,
       revision:
-        process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 12) ?? packageJson.version,
+        targetEnvironment === "staging"
+          ? (gitRevision ?? packageJson.version)
+          : (gitRevision?.slice(0, 12) ?? packageJson.version),
       environment,
       targetEnvironment,
       checks,

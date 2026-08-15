@@ -57,7 +57,12 @@ try {
   process.exit(3)
 }
 
-const result = spawnSync("supabase", args, {
+const providerArgs =
+  args[0] === "stop" && !args.includes("--no-backup")
+    ? [...args, "--no-backup"]
+    : args
+
+const result = spawnSync("supabase", providerArgs, {
   cwd: process.cwd(),
   shell: false,
   timeout: args[0] === "start" ? 180_000 : 30_000,

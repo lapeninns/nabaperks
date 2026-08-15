@@ -1,12 +1,15 @@
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { spawnSync } from "node:child_process"
+import { createHmac, randomBytes, timingSafeEqual } from "node:crypto"
 
 const PROJECT_ID_PATTERN = /^nabaperks-task20-[a-f0-9]{9}$/
 const LOOPBACK_HOST = "127.0.0.1"
 const DATABASE_NAME = "postgres"
 const DATABASE_USER = "postgres"
 const RECEIPT_FILE = "supabase/.temp/disposable-runtime.json"
+const RECEIPT_KEY_GIT_PATH = "nabaperks-disposable-runtime.key"
+const RECEIPT_SCHEMA_VERSION = 2
 const LINKED_ENV_KEYS = [
   "DATABASE_URL",
   "SUPABASE_ACCESS_TOKEN",
@@ -115,7 +118,15 @@ export function assertLocalStackInvocation(
   ) {
     throw new NonDisposableTargetError(["namespace-collision"])
   }
-  if (new Set(["status", "stop"]).has(command) && containerId) {
+  if (command === "stop") {
+    if (
+      !containerId ||
+      !runtimeMatches(receipt, projectDir, project, containerId)
+    ) {
+      throw new NonDisposableTargetError(["runtime-receipt-mismatch"])
+    }
+  }
+  if (command === "status" && containerId) {
     if (!runtimeMatches(receipt, projectDir, project, containerId)) {
       throw new NonDisposableTargetError(["runtime-receipt-mismatch"])
     }
@@ -127,16 +138,21 @@ export function recordRuntimeReceipt(projectDir, project) {
   const containerId = dockerContainerId(project.projectId)
   if (!containerId)
     throw new NonDisposableTargetError(["database-container-missing"])
-  const receipt = {
-    schemaVersion: 1,
+  const payload = {
+    schemaVersion: RECEIPT_SCHEMA_VERSION,
     projectId: project.projectId,
     dbPort: project.dbPort,
     sourceSha: git(projectDir, ["rev-parse", "HEAD"]),
     containerId,
   }
+  const receipt = {
+    ...payload,
+    signature: signRuntimeReceipt(payload, receiptKey(projectDir, true)),
+  }
   writeFileSync(
     join(projectDir, RECEIPT_FILE),
-    `${JSON.stringify(receipt, null, 2)}\n`
+    `${JSON.stringify(receipt, null, 2)}\n`,
+    { mode: 0o600 }
   )
 }
 
@@ -157,13 +173,72 @@ function assertRuntimeReceipt(projectDir, project) {
 }
 
 function runtimeMatches(receipt, projectDir, project, containerId) {
-  return Boolean(
-    receipt &&
-    receipt.projectId === project.projectId &&
-    receipt.dbPort === project.dbPort &&
-    receipt.sourceSha === git(projectDir, ["rev-parse", "HEAD"]) &&
-    receipt.containerId === containerId
+  if (
+    !receipt ||
+    receipt.schemaVersion !== RECEIPT_SCHEMA_VERSION ||
+    receipt.projectId !== project.projectId ||
+    receipt.dbPort !== project.dbPort ||
+    receipt.sourceSha !== git(projectDir, ["rev-parse", "HEAD"]) ||
+    receipt.containerId !== containerId ||
+    typeof receipt.signature !== "string" ||
+    !/^[a-f0-9]{64}$/.test(receipt.signature)
+  ) {
+    return false
+  }
+
+  const key = receiptKey(projectDir, false)
+  if (!key) return false
+  const expected = signRuntimeReceipt(
+    {
+      schemaVersion: receipt.schemaVersion,
+      projectId: receipt.projectId,
+      dbPort: receipt.dbPort,
+      sourceSha: receipt.sourceSha,
+      containerId: receipt.containerId,
+    },
+    key
   )
+  return timingSafeEqual(
+    Buffer.from(receipt.signature, "hex"),
+    Buffer.from(expected, "hex")
+  )
+}
+
+function signRuntimeReceipt(payload, key) {
+  return createHmac("sha256", key)
+    .update(
+      JSON.stringify([
+        payload.schemaVersion,
+        payload.projectId,
+        payload.dbPort,
+        payload.sourceSha,
+        payload.containerId,
+      ])
+    )
+    .digest("hex")
+}
+
+function receiptKey(projectDir, create) {
+  const rawPath = git(projectDir, [
+    "rev-parse",
+    "--git-path",
+    RECEIPT_KEY_GIT_PATH,
+  ])
+  const path = rawPath.startsWith("/") ? rawPath : join(projectDir, rawPath)
+
+  if (!existsSync(path)) {
+    if (!create) return ""
+    writeFileSync(path, `${randomBytes(32).toString("hex")}\n`, {
+      flag: "wx",
+      mode: 0o600,
+    })
+  }
+
+  const key = readFileSync(path, "utf8").trim()
+  if (!/^[a-f0-9]{64}$/.test(key)) {
+    throw new NonDisposableTargetError(["runtime-receipt-key-invalid"])
+  }
+  return key
 }
 
 function readRuntimeReceipt(projectDir) {

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto"
 
 import type { Sql } from "./admin-live-db"
+import { cleanupScope, runCleanupSteps } from "./cleanup-lifecycle.ts"
 import {
   insertCustomerReadbackActivity,
   insertCustomerReadbackRewards,
@@ -28,6 +29,15 @@ export type CustomerReadbackSeed = {
   readonly waitingRewardName: string
   readonly redeemedRewardName: string
   readonly expiredRewardName: string
+}
+
+type CustomerCleanupCounts = {
+  readonly customers: number
+  readonly memberships: number
+  readonly productEvents: number
+  readonly rewardEvents: number
+  readonly sessions: number
+  readonly stampEvents: number
 }
 
 export async function pickSeedCustomerSetup(
@@ -73,59 +83,141 @@ export async function cleanupCustomerReadbackRows(
 ): Promise<void> {
   if (!fixture) return
 
-  await sql`
-    delete from public.stamp_events
-    where customer_id in (
-      ${fixture.customerId}::uuid,
-      ${fixture.emptyCustomerId}::uuid,
-      ${fixture.waitingCustomerId}::uuid
-    )
-       or membership_id in (
-         ${fixture.membershipId}::uuid,
-         ${fixture.waitingMembershipId}::uuid
-       )`
-  await sql`
-    delete from public.product_events
-    where customer_id in (
-      ${fixture.customerId}::uuid,
-      ${fixture.emptyCustomerId}::uuid,
-      ${fixture.waitingCustomerId}::uuid
-    )
-       or membership_id in (
-         ${fixture.membershipId}::uuid,
-         ${fixture.waitingMembershipId}::uuid
-       )`
-  await sql`
-    delete from public.reward_events
-    where customer_id in (
-      ${fixture.customerId}::uuid,
-      ${fixture.emptyCustomerId}::uuid,
-      ${fixture.waitingCustomerId}::uuid
-    )
-       or membership_id in (
-         ${fixture.membershipId}::uuid,
-         ${fixture.waitingMembershipId}::uuid
-       )`
-  await sql`
-    delete from public.customer_sessions
-    where customer_id in (
-      ${fixture.customerId}::uuid,
-      ${fixture.emptyCustomerId}::uuid,
-      ${fixture.waitingCustomerId}::uuid
-    )`
-  await sql`
-    delete from public.customer_memberships
-    where id in (
-      ${fixture.membershipId}::uuid,
-      ${fixture.waitingMembershipId}::uuid
-    )`
-  await sql`
-    delete from public.customers
-    where id in (
-      ${fixture.customerId}::uuid,
-      ${fixture.emptyCustomerId}::uuid,
-      ${fixture.waitingCustomerId}::uuid
-    )`
+  const scope = cleanupScope(`customer-${fixture.customerId}`)
+  await runCleanupSteps(
+    scope,
+    [
+      {
+        label: "customer fixture zero-residue readback",
+        run: () => assertCustomerReadbackRowsRemoved(sql, fixture),
+        scope,
+      },
+      {
+        label: "customers",
+        run: async () => {
+          await sql`
+            delete from public.customers
+            where id in (
+              ${fixture.customerId}::uuid,
+              ${fixture.emptyCustomerId}::uuid,
+              ${fixture.waitingCustomerId}::uuid
+            )`
+        },
+        scope,
+      },
+      {
+        label: "customer memberships",
+        run: async () => {
+          await sql`
+            delete from public.customer_memberships
+            where id in (
+              ${fixture.membershipId}::uuid,
+              ${fixture.waitingMembershipId}::uuid
+            )`
+        },
+        scope,
+      },
+      {
+        label: "customer sessions",
+        run: async () => {
+          await sql`
+            delete from public.customer_sessions
+            where customer_id in (
+              ${fixture.customerId}::uuid,
+              ${fixture.emptyCustomerId}::uuid,
+              ${fixture.waitingCustomerId}::uuid
+            )`
+        },
+        scope,
+      },
+      {
+        label: "customer reward events",
+        run: async () => {
+          await sql`
+            delete from public.reward_events
+            where customer_id in (
+              ${fixture.customerId}::uuid,
+              ${fixture.emptyCustomerId}::uuid,
+              ${fixture.waitingCustomerId}::uuid
+            )
+               or membership_id in (
+                 ${fixture.membershipId}::uuid,
+                 ${fixture.waitingMembershipId}::uuid
+               )`
+        },
+        scope,
+      },
+      {
+        label: "customer product events",
+        run: async () => {
+          await sql`
+            delete from public.product_events
+            where customer_id in (
+              ${fixture.customerId}::uuid,
+              ${fixture.emptyCustomerId}::uuid,
+              ${fixture.waitingCustomerId}::uuid
+            )
+               or membership_id in (
+                 ${fixture.membershipId}::uuid,
+                 ${fixture.waitingMembershipId}::uuid
+               )`
+        },
+        scope,
+      },
+      {
+        label: "customer stamp events",
+        run: async () => {
+          await sql`
+            delete from public.stamp_events
+            where customer_id in (
+              ${fixture.customerId}::uuid,
+              ${fixture.emptyCustomerId}::uuid,
+              ${fixture.waitingCustomerId}::uuid
+            )
+               or membership_id in (
+                 ${fixture.membershipId}::uuid,
+                 ${fixture.waitingMembershipId}::uuid
+               )`
+        },
+        scope,
+      },
+    ],
+    "Customer readback fixture cleanup failed."
+  )
+}
+
+async function assertCustomerReadbackRowsRemoved(
+  sql: Sql,
+  fixture: CustomerReadbackSeed
+): Promise<void> {
+  const customerIds = [
+    fixture.customerId,
+    fixture.emptyCustomerId,
+    fixture.waitingCustomerId,
+  ]
+  const membershipIds = [fixture.membershipId, fixture.waitingMembershipId]
+  const rows = await sql<readonly CustomerCleanupCounts[]>`
+    select
+      (select count(*)::int from public.customers
+       where id = any(${customerIds}::uuid[])) as customers,
+      (select count(*)::int from public.customer_memberships
+       where id = any(${membershipIds}::uuid[])) as memberships,
+      (select count(*)::int from public.customer_sessions
+       where customer_id = any(${customerIds}::uuid[])) as sessions,
+      (select count(*)::int from public.stamp_events
+       where customer_id = any(${customerIds}::uuid[])
+          or membership_id = any(${membershipIds}::uuid[])) as "stampEvents",
+      (select count(*)::int from public.product_events
+       where customer_id = any(${customerIds}::uuid[])
+          or membership_id = any(${membershipIds}::uuid[])) as "productEvents",
+      (select count(*)::int from public.reward_events
+       where customer_id = any(${customerIds}::uuid[])
+          or membership_id = any(${membershipIds}::uuid[])) as "rewardEvents"`
+
+  const counts = rows.at(0)
+  if (!counts || Object.values(counts).some((count) => count !== 0)) {
+    throw new Error("Customer readback fixture cleanup left database rows.")
+  }
 }
 
 async function insertCustomers(
@@ -201,9 +293,10 @@ async function insertMembership(
       )`
 }
 
-export function createCustomerReadbackSeed(
-  setup: SeedCustomerSetupRow
-): { readonly seed: CustomerReadbackSeed; readonly runId: string } {
+export function createCustomerReadbackSeed(setup: SeedCustomerSetupRow): {
+  readonly seed: CustomerReadbackSeed
+  readonly runId: string
+} {
   const runId = randomUUID().replaceAll("-", "").slice(0, 12)
 
   return {

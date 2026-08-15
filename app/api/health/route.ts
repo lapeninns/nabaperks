@@ -11,6 +11,10 @@ const VERSION = packageJson.version
 
 export async function GET(request: Request): Promise<Response> {
   const requestId = resolveRequestId(request.headers)
+  const environment =
+    process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? "unknown"
+  const targetEnvironment = process.env.VERCEL_TARGET_ENV ?? environment
+  const gitRevision = process.env.VERCEL_GIT_COMMIT_SHA
 
   return Response.json(
     {
@@ -18,13 +22,12 @@ export async function GET(request: Request): Promise<Response> {
       scope: "liveness",
       service: SERVICE,
       version: VERSION,
-      revision: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 12) ?? VERSION,
-      environment: process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? "unknown",
-      targetEnvironment:
-        process.env.VERCEL_TARGET_ENV ??
-        process.env.VERCEL_ENV ??
-        process.env.NODE_ENV ??
-        "unknown",
+      revision:
+        targetEnvironment === "staging"
+          ? (gitRevision ?? VERSION)
+          : (gitRevision?.slice(0, 12) ?? VERSION),
+      environment,
+      targetEnvironment,
       uptime: Math.round(process.uptime()),
       time: new Date().toISOString(),
     },
