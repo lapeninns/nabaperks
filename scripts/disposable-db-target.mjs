@@ -3,7 +3,7 @@ import { join } from "node:path"
 import { spawnSync } from "node:child_process"
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto"
 
-const PROJECT_ID_PATTERN = /^nabaperks-task20-[a-f0-9]{9}$/
+const PROJECT_ID_PATTERN = /^nabaperks-task(?:15|20)-[a-f0-9]{9}$/
 const LOOPBACK_HOST = "127.0.0.1"
 const DATABASE_NAME = "postgres"
 const DATABASE_USER = "postgres"
