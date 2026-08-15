@@ -48,10 +48,16 @@ async function newCustomer(tx, label) {
 }
 
 /** Push every earned row back a week so the one-per-UK-day rule stays clear. */
-const ageStamps = (tx, membershipId) => tx`
-  update public.stamp_events
-  set earned_business_date = earned_business_date - 7
-  where membership_id = ${membershipId} and event_type = 'earned'`
+async function ageStamps(tx, membershipId) {
+  await tx`
+    update public.stamp_events
+    set earned_business_date = earned_business_date - 10000
+    where membership_id = ${membershipId} and event_type = 'earned'`
+  await tx`
+    update public.stamp_events
+    set earned_business_date = earned_business_date + 9993
+    where membership_id = ${membershipId} and event_type = 'earned'`
+}
 
 /**
  * Run `work` and return the SQLSTATE it raises, or null when it succeeds.
