@@ -4,6 +4,7 @@
     "components/merchant/launch/launch-billing-cta.tsx",
     "app/**/{page,layout,route,error,loading,not-found,template,default}.{ts,tsx}",
     "scripts/capture-app-harness.mjs",
+    "scripts/check-local-race-target.mjs",
     "scripts/perf-mutation-stress.mjs",
     "scripts/qa/validate-task15-test-infrastructure-register.mjs",
     "tests/load/public-routes.js",

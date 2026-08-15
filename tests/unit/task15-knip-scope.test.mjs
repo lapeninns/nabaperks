@@ -18,6 +18,7 @@ const dynamicTask15SupportClis = [
 ]
 const runtimeEntries = [
   "scripts/capture-app-harness.mjs",
+  "scripts/check-local-race-target.mjs",
   "scripts/perf-mutation-stress.mjs",
   ...dynamicTask15SupportClis,
   "tests/load/public-routes.js",
@@ -198,6 +199,41 @@ test("the clean fixture has no skipped or retried Knip execution", async () => {
     const result = await runKnip(root)
     assert.equal(result.stderr, "")
     assert.match(result.stdout, /\"issues\":\[/)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test("an omitted local race guard entry is reported by the real Knip binary", async () => {
+  // Given
+  const config = JSON.parse(await readFile(configPath, "utf8"))
+  const guardEntry = "scripts/check-local-race-target.mjs"
+  assert.ok(config.entry.includes(guardEntry))
+  const root = await mkdtemp(join(tmpdir(), "nabaperks-knip-race-guard-"))
+  const fixtureConfig = {
+    ...config,
+    entry: [],
+    project: ["scripts/**/*.mjs"],
+  }
+  await writeFixture(root, fixtureConfig)
+  await writeFile(
+    join(root, guardEntry),
+    'import "./disposable-db-target.mjs"\n',
+    "utf8"
+  )
+  await writeFile(
+    join(root, "scripts/disposable-db-target.mjs"),
+    "export const disposableTarget = true\n",
+    "utf8"
+  )
+
+  try {
+    // When
+    const omitted = await runKnip(root)
+
+    // Then
+    assert.equal(omitted.code, 1, omitted.stderr)
+    assert.ok(issueFiles(omitted.stdout).includes(guardEntry), omitted.stdout)
   } finally {
     await rm(root, { recursive: true, force: true })
   }
