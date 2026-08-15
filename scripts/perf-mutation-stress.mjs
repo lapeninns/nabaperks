@@ -28,6 +28,7 @@
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { performance } from "node:perf_hooks"
+import { fileURLToPath } from "node:url"
 import postgres from "postgres"
 
 import { createDisposableDbClient } from "./disposable-db-target.mjs"
@@ -41,6 +42,9 @@ const LOYALTY_CARD_ID = "13000000-0000-0000-0000-000000000001"
 const MERCHANT_SLUG = "old-crown-girton"
 const JOIN_QR_ID = "old-crown-girton"
 const OWNER_AUTH_USER_ID = "00000000-0000-0000-0000-000000000101"
+const BIRTHDAY_FIXTURE_DATE = Object.freeze({ month: 7, day: 7 })
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 // Disjoint stress-seed indexes reserved per scenario (must exist in the seed).
 const IDX = {
@@ -60,7 +64,94 @@ const IDX = {
 }
 
 function fixtureAuthId(index) {
+  assertFixtureIndex(index)
   return `f0000000-0000-4000-8000-${index.toString(16).padStart(12, "0")}`
+}
+
+function assertFixtureIndex(index) {
+  if (!Number.isSafeInteger(index) || index < 0) {
+    throw new TypeError("fixture index must be a non-negative integer")
+  }
+}
+
+function assertFixtureCustomerId(customerId) {
+  if (typeof customerId !== "string" || !UUID_PATTERN.test(customerId)) {
+    throw new TypeError("fixture customer id must be a UUID")
+  }
+}
+
+function birthdayIssueAt(referenceDate) {
+  if (
+    !(referenceDate instanceof Date) ||
+    Number.isNaN(referenceDate.valueOf())
+  ) {
+    throw new TypeError("fixture date must be a valid Date")
+  }
+  const { month, day } = BIRTHDAY_FIXTURE_DATE
+  return new Date(
+    Date.UTC(referenceDate.getUTCFullYear(), month - 1, day, 12)
+  ).toISOString()
+}
+
+function mutationCall(role, subject, operation, parameters, sql) {
+  return Object.freeze({
+    role,
+    subject,
+    operation,
+    parameters: Object.freeze(parameters),
+    sql,
+  })
+}
+
+export function createMutationStressPlan() {
+  return Object.freeze({
+    stampCall(index) {
+      assertFixtureIndex(index)
+      const membershipId = stressMembershipId(index)
+      const customerId = stressCustomerId(index)
+      return mutationCall(
+        "service_role",
+        fixtureAuthId(index),
+        "issue_self_service_stamp",
+        { membershipId, customerId },
+        `select * from public.issue_self_service_stamp(
+           '${membershipId}'::uuid, '${customerId}'::uuid,
+           '${JOIN_QR_ID}', null, null, null, null, null
+         )`
+      )
+    },
+    joinMembershipCall() {
+      return mutationCall(
+        "service_role",
+        JOIN_RACE_AUTH_ID,
+        "join_customer_membership",
+        { customerId: JOIN_RACE_CUSTOMER_ID },
+        `select * from public.join_customer_membership(
+           '${JOIN_RACE_CUSTOMER_ID}'::uuid, '${MERCHANT_SLUG}', '${JOIN_QR_ID}', false, 'stress-test'
+        )`
+      )
+    },
+    joinQrCall() {
+      return mutationCall(
+        "authenticated",
+        OWNER_AUTH_USER_ID,
+        "create_or_get_join_qr",
+        { merchantId: MERCHANT_ID, loyaltyCardId: LOYALTY_CARD_ID },
+        `select * from public.create_or_get_join_qr('${MERCHANT_ID}'::uuid, '${LOYALTY_CARD_ID}'::uuid)`
+      )
+    },
+    birthdayCall(customerId, referenceDate) {
+      assertFixtureCustomerId(customerId)
+      const issuedAt = birthdayIssueAt(referenceDate)
+      return mutationCall(
+        "service_role",
+        null,
+        "issue_birthday_rewards",
+        { customerId, issuedAt },
+        `select public.issue_birthday_rewards('${issuedAt}'::timestamptz, '${customerId}'::uuid)`
+      )
+    },
+  })
 }
 
 const JOIN_RACE_CUSTOMER_ID = "f2000000-0000-4000-8000-000000000001"
@@ -73,59 +164,73 @@ const EDGE_POOL_A_ID = "f4000000-0000-4000-8000-000000000003"
 const EDGE_POOL_B_ID = "f4000000-0000-4000-8000-000000000004"
 const UNLOCK_EXTRA_STAMP_ID = "f5000000-0000-4000-8000-000000000001"
 let birthdayWasEnabled = false
+let args
+let M
+let sql
+let runStartedAt
 
-const args = parseArgs(process.argv.slice(2))
-const M = args.contenders
+const mutationStressPlan = createMutationStressPlan()
+const isMain =
+  process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]
 
-const env = {
-  ...readEnvFile(join(projectDir, ".env.local")),
-  ...readEnvFile(join(projectDir, ".env")),
-  ...process.env,
+if (isMain) {
+  await runMutationStress()
 }
 
-const dbUrl = env.SUPABASE_DB_URL?.trim()
-if (!dbUrl) {
-  console.error("SUPABASE_DB_URL is required for mutation stress.")
-  process.exit(1)
-}
-assertWriteTargetIsSafe(dbUrl)
-const sql = createDisposableDbClient(dbUrl, (url) =>
-  postgres(url, { max: Math.max(48, M + 8) })
-)
+async function runMutationStress() {
+  args = parseArgs(process.argv.slice(2))
+  M = args.contenders
+  const env = {
+    ...readEnvFile(join(projectDir, ".env.local")),
+    ...readEnvFile(join(projectDir, ".env")),
+    ...process.env,
+  }
+  const dbUrl = env.SUPABASE_DB_URL?.trim()
+  if (!dbUrl) {
+    console.error("SUPABASE_DB_URL is required for mutation stress.")
+    process.exit(1)
+  }
+  assertWriteTargetIsSafe(dbUrl)
+  sql = createDisposableDbClient(dbUrl, (url) =>
+    postgres(url, { max: Math.max(48, M + 8) })
+  )
+  runStartedAt = new Date()
 
-const runStartedAt = new Date()
+  try {
+    await sql`select 1 as ok`
+    await assertFixture()
+    await setupFixtures()
+
+    await scenarioStampSingleWinner()
+    await scenarioStampUnlockRace()
+    await scenarioStampFanout()
+    await scenarioJoinIdempotent()
+    await scenarioJoinQrIdempotent()
+    await scenarioTokenMintRace()
+    await scenarioTokenCollectRace()
+    await scenarioTokenMintCollectDeadlockProbe()
+    await scenarioReferralAwardRace()
+    await scenarioReferralDrainAwardRace()
+    await scenarioReferralPoolGuard()
+    await scenarioBirthdayIdempotentRace()
+
+    if (!args.keep) await cleanupFixtures()
+
+    printSummary()
+    process.exitCode = violations.length ? 1 : 0
+  } catch (error) {
+    console.error("Mutation stress failed to complete.")
+    console.error(
+      error instanceof Error ? (error.stack ?? error.message) : error
+    )
+    process.exitCode = 1
+  } finally {
+    await sql.end({ timeout: 5 })
+  }
+}
+
 const violations = []
 const scenarios = []
-
-try {
-  await sql`select 1 as ok`
-  await assertFixture()
-  await setupFixtures()
-
-  await scenarioStampSingleWinner()
-  await scenarioStampUnlockRace()
-  await scenarioStampFanout()
-  await scenarioJoinIdempotent()
-  await scenarioJoinQrIdempotent()
-  await scenarioTokenMintRace()
-  await scenarioTokenCollectRace()
-  await scenarioTokenMintCollectDeadlockProbe()
-  await scenarioReferralAwardRace()
-  await scenarioReferralDrainAwardRace()
-  await scenarioReferralPoolGuard()
-  await scenarioBirthdayIdempotentRace()
-
-  if (!args.keep) await cleanupFixtures()
-
-  printSummary()
-  process.exitCode = violations.length ? 1 : 0
-} catch (error) {
-  console.error("Mutation stress failed to complete.")
-  console.error(error instanceof Error ? (error.stack ?? error.message) : error)
-  process.exitCode = 1
-} finally {
-  await sql.end({ timeout: 5 })
-}
 
 // ---------------------------------------------------------------------------
 // RPC plumbing: one transaction per call with PostgREST-equivalent GUCs.
@@ -153,6 +258,10 @@ async function rpc(role, sub, callSql) {
       ms: performance.now() - started,
     }
   }
+}
+
+function runPlannedCall(call) {
+  return rpc(call.role, call.subject, call.sql)
 }
 
 async function race(label, calls) {
@@ -396,15 +505,8 @@ async function setupFixtures() {
 // ---------------------------------------------------------------------------
 
 function stampCall(index) {
-  return () =>
-    rpc(
-      "service_role",
-      fixtureAuthId(index),
-      `select * from public.issue_self_service_stamp(
-         '${stressMembershipId(index)}'::uuid, '${stressCustomerId(index)}'::uuid,
-         '${JOIN_QR_ID}', null, null, null, null, null
-       )`
-    )
+  const call = mutationStressPlan.stampCall(index)
+  return () => runPlannedCall(call)
 }
 
 async function scenarioStampSingleWinner() {
@@ -496,19 +598,10 @@ async function scenarioStampFanout() {
 }
 
 async function scenarioJoinIdempotent() {
+  const call = mutationStressPlan.joinMembershipCall()
   const { successes } = await race(
     "join:idempotent",
-    Array.from(
-      { length: 24 },
-      () => () =>
-        rpc(
-          "service_role",
-          JOIN_RACE_AUTH_ID,
-          `select * from public.join_customer_membership(
-           '${JOIN_RACE_CUSTOMER_ID}'::uuid, '${MERCHANT_SLUG}', '${JOIN_QR_ID}', false, 'stress-test'
-         )`
-        )
-    )
+    Array.from({ length: 24 }, () => () => runPlannedCall(call))
   )
 
   await expectCount(
@@ -537,17 +630,10 @@ async function scenarioJoinIdempotent() {
 }
 
 async function scenarioJoinQrIdempotent() {
+  const call = mutationStressPlan.joinQrCall()
   const { successes } = await race(
     "join-qr:idempotent",
-    Array.from(
-      { length: 16 },
-      () => () =>
-        rpc(
-          "authenticated",
-          OWNER_AUTH_USER_ID,
-          `select * from public.create_or_get_join_qr('${MERCHANT_ID}'::uuid, '${LOYALTY_CARD_ID}'::uuid)`
-        )
-    )
+    Array.from({ length: 16 }, () => () => runPlannedCall(call))
   )
 
   await expectCount(
@@ -828,18 +914,11 @@ async function scenarioReferralPoolGuard() {
 
 async function scenarioBirthdayIdempotentRace() {
   const customerId = stressCustomerId(IDX.birthday)
+  const call = mutationStressPlan.birthdayCall(customerId, runStartedAt)
 
   await race(
     "birthday:idempotent-race",
-    Array.from(
-      { length: 8 },
-      () => () =>
-        rpc(
-          "service_role",
-          null,
-          `select public.issue_birthday_rewards(date_trunc('year', now()) + interval '6 months 6 days 12 hours', '${customerId}'::uuid)`
-        )
-    )
+    Array.from({ length: 8 }, () => () => runPlannedCall(call))
   )
 
   await expectCount(
