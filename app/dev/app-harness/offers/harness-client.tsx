@@ -343,7 +343,27 @@ function DeskSurface() {
             <Eyebrow>What an offer can give</Eyebrow>
             {/* Mirrors the hub's snap-scroll rail on the phone, three-up grid
                 from sm — the two surfaces map the same presets. */}
-            <ul className="flex snap-x [scrollbar-width:none] gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0 [&::-webkit-scrollbar]:hidden">
+            <ul
+              aria-label="Offer benefits"
+              className="focus-ring flex snap-x [scrollbar-width:none] gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0 [&::-webkit-scrollbar]:hidden"
+              tabIndex={0}
+              onKeyDown={(event) => {
+                const direction =
+                  event.key === "ArrowRight"
+                    ? 1
+                    : event.key === "ArrowLeft"
+                      ? -1
+                      : 0
+
+                if (direction === 0) return
+
+                event.preventDefault()
+                event.currentTarget.scrollBy({
+                  left: direction * event.currentTarget.clientWidth,
+                  behavior: "smooth",
+                })
+              }}
+            >
               {OFFER_BENEFIT_PRESETS.map((preset) => (
                 <li
                   key={preset.kind}
