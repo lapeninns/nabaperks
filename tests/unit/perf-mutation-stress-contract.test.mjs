@@ -11,4 +11,8 @@ test("mutation stress uses the reset seed owner and service-only RPC role", () =
   )
   assert.match(harness, /function stampCall[\s\S]*?rpc\(\s*"service_role"/)
   assert.match(harness, /scenarioJoinIdempotent[\s\S]*?rpc\(\s*"service_role"/)
+  assert.match(
+    harness,
+    /issue_birthday_rewards\(date_trunc\('year', now\(\)\) \+ interval '6 months 6 days 12 hours'/
+  )
 })

@@ -56,7 +56,7 @@ const IDX = {
   refPoolFriendA: 604,
   refPoolFriendB: 607,
   refPoolReferrer: 606,
-  birthday: 6, // DOB 1981-07-07: birthday in July (today) by day and month
+  birthday: 6, // DOB 1981-07-07; the scenario supplies July 7 in the current year.
 }
 
 function fixtureAuthId(index) {
@@ -837,7 +837,7 @@ async function scenarioBirthdayIdempotentRace() {
         rpc(
           "service_role",
           null,
-          `select public.issue_birthday_rewards(now(), '${customerId}'::uuid)`
+          `select public.issue_birthday_rewards(date_trunc('year', now()) + interval '6 months 6 days 12 hours', '${customerId}'::uuid)`
         )
     )
   )
