@@ -42,12 +42,15 @@ async function runCli(env, args) {
   }
 
   assertWriteTargetIsSafe(dbUrl)
-  const sql = createDisposableDbClient(dbUrl, (url) =>
-    postgres(url, {
-      max: 1,
-      ssl: shouldRequireSsl(url) ? "require" : undefined,
-      transform: postgres.camel,
-    })
+  const sql = createDisposableDbClient(
+    dbUrl,
+    (url) =>
+      postgres(url, {
+        max: 1,
+        ssl: shouldRequireSsl(url) ? "require" : undefined,
+        transform: postgres.camel,
+      }),
+    { allowedDatabases: [...APPROVED_LOCAL_DATABASE_NAMES] }
   )
 
   try {

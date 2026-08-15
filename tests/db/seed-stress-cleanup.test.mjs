@@ -4,6 +4,8 @@ import { test } from "node:test"
 
 import postgres from "postgres"
 
+import { createDisposableDbClient } from "../../scripts/disposable-db-target.mjs"
+
 const dbUrl = process.env.TASK11_DB_URL
 
 if (dbUrl) {
@@ -18,7 +20,11 @@ if (dbUrl) {
   }
 }
 
-const sql = dbUrl ? postgres(dbUrl, { max: 1 }) : null
+const sql = dbUrl
+  ? createDisposableDbClient(dbUrl, (url) => postgres(url, { max: 1 }), {
+      allowedDatabases: ["nabaperks_task11"],
+    })
+  : null
 const testWithDatabase = dbUrl ? test : test.skip
 const wrongDbUrl = dbUrl
   ? replaceDatabaseName(dbUrl, "nabaperks_task11_wrong")

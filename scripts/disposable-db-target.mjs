@@ -41,6 +41,7 @@ export function assertDisposableDbTarget(
   {
     projectDir = process.cwd(),
     env = process.env,
+    allowedDatabases = [DATABASE_NAME],
     requireClean = true,
     requireRuntime = true,
   } = {}
@@ -60,7 +61,9 @@ export function assertDisposableDbTarget(
   }
   if (url.hostname !== LOOPBACK_HOST) reasons.push("unexpected-host")
   if (url.port !== project.dbPort) reasons.push("unexpected-port")
-  if (url.pathname !== `/${DATABASE_NAME}`) reasons.push("unexpected-database")
+  if (!allowedDatabases.includes(url.pathname.slice(1))) {
+    reasons.push("unexpected-database")
+  }
   if (url.username !== DATABASE_USER) reasons.push("unexpected-user")
   if (!url.password) reasons.push("missing-password")
   if (url.search || url.hash) reasons.push("unexpected-url-suffix")
