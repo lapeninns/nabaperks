@@ -180,6 +180,43 @@ test("Given an explicit Task15 project When its configured loopback target is re
   )
 })
 
+test("Given Task21 configuration When preflight runs Then only its exact namespace and port are accepted", () => {
+  withProject(
+    (projectDir) => {
+      const accepted = createDisposableDbClient(
+        "postgresql://postgres:secret@127.0.0.1:63422/postgres",
+        () => "connected",
+        options(projectDir)
+      )
+      assert.equal(accepted, "connected")
+      assert.throws(() =>
+        assertDisposableDbTarget(
+          "postgresql://postgres:secret@127.0.0.1:63423/postgres",
+          options(projectDir)
+        )
+      )
+    },
+    { projectId: "nabaperks-task21-7732b0cd2", dbPort: 63422 }
+  )
+
+  for (const projectId of [
+    "nabaperks-task22-7732b0cd2",
+    "nabaperks-task21-ignoreprevious",
+  ]) {
+    withProject(
+      (projectDir) => {
+        assert.throws(() =>
+          assertDisposableDbTarget(
+            "postgresql://postgres:secret@127.0.0.1:63422/postgres",
+            options(projectDir)
+          )
+        )
+      },
+      { projectId, dbPort: 63422 }
+    )
+  }
+})
+
 test("Given an explicit Task15 runtime When its signed source and container identity match Then the guarded client connects", () => {
   withTask15Runtime((projectDir) => {
     const project = readDisposableProject(projectDir)
