@@ -173,10 +173,6 @@ const mutationStressPlan = createMutationStressPlan()
 const isMain =
   process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]
 
-if (isMain) {
-  await runMutationStress()
-}
-
 async function runMutationStress() {
   args = parseArgs(process.argv.slice(2))
   M = args.contenders
@@ -231,6 +227,10 @@ async function runMutationStress() {
 
 const violations = []
 const scenarios = []
+
+if (isMain) {
+  await runMutationStress()
+}
 
 // ---------------------------------------------------------------------------
 // RPC plumbing: one transaction per call with PostgREST-equivalent GUCs.
