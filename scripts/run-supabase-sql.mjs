@@ -7,6 +7,7 @@ import {
   isDatabaseConnectionRefused,
   printDatabaseConnectionHelp,
 } from "./db-connection-help.mjs"
+import { createDisposableDbClient } from "./disposable-db-target.mjs"
 
 const projectDir = process.cwd()
 
@@ -65,12 +66,13 @@ async function main() {
     shouldResetCustomers ||
     shouldResetTodayStamps
   assertWriteTargetIsSafe(dbUrl, destructive)
-
-  const sql = postgres(dbUrl, {
-    max: 1,
-    ssl: shouldRequireSsl(dbUrl) ? "require" : undefined,
-    transform: postgres.camel,
-  })
+  const sql = createDisposableDbClient(dbUrl, (url) =>
+    postgres(url, {
+      max: 1,
+      ssl: shouldRequireSsl(url) ? "require" : undefined,
+      transform: postgres.camel,
+    })
+  )
 
   try {
     const target = safeDbTarget(dbUrl)
@@ -95,8 +97,16 @@ async function main() {
 
     if (shouldSeed) {
       await runFile(sql, "supabase/seed.sql", "Seed fixtures")
-      await runFile(sql, "supabase/seed-activity-demo.sql", "Seed activity demo")
-      await runOptionalFile(sql, "supabase/seed-user-aman.sql", "Seed user Aman")
+      await runFile(
+        sql,
+        "supabase/seed-activity-demo.sql",
+        "Seed activity demo"
+      )
+      await runOptionalFile(
+        sql,
+        "supabase/seed-user-aman.sql",
+        "Seed user Aman"
+      )
       if (shouldSeedPerfOwner) {
         await runOptionalFile(
           sql,
@@ -275,7 +285,10 @@ export async function readAppliedVersions(executor) {
  * parses it, so the CLI's per-statement splitter is not re-implemented. The
  * insert is a no-op when the version is already recorded.
  */
-export async function recordAppliedMigration(executor, { version, name, source }) {
+export async function recordAppliedMigration(
+  executor,
+  { version, name, source }
+) {
   await executor`
     insert into supabase_migrations.schema_migrations (version, name, statements)
     values (${version}, ${name ?? null}, array[${source ?? ""}]::text[])
@@ -427,5 +440,8 @@ function dbHostLabel(dbUrl) {
 }
 
 function isMain() {
-  return Boolean(process.argv[1]) && fileURLToPath(import.meta.url) === process.argv[1]
+  return (
+    Boolean(process.argv[1]) &&
+    fileURLToPath(import.meta.url) === process.argv[1]
+  )
 }

@@ -6,8 +6,10 @@ import { after, test } from "node:test"
 
 import postgres from "postgres"
 
+import { createDisposableDbClient } from "../../scripts/disposable-db-target.mjs"
+
 const DEFAULT_LOCAL_DB_URL =
-  "postgres://postgres:postgres@127.0.0.1:54322/postgres"
+  "postgres://postgres:postgres@127.0.0.1:56422/postgres"
 const dbUrl = process.env.SUPABASE_DB_URL ?? DEFAULT_LOCAL_DB_URL
 const BILLING_SERIALIZATION_MIGRATION = join(
   process.cwd(),
@@ -529,11 +531,13 @@ function createSqlClient() {
   const isSupabaseHost =
     hostname === "supabase.com" || hostname.endsWith(".supabase.com")
 
-  return postgres(dbUrl, {
-    max: 1,
-    ssl: isSupabaseHost ? "require" : undefined,
-    transform: postgres.camel,
-  })
+  return createDisposableDbClient(dbUrl, (url) =>
+    postgres(url, {
+      max: 1,
+      ssl: isSupabaseHost ? "require" : undefined,
+      transform: postgres.camel,
+    })
+  )
 }
 
 async function setServiceRole(sql) {

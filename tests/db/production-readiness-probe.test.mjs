@@ -3,12 +3,14 @@ import { test } from "node:test"
 
 import postgres from "postgres"
 
+import { createDisposableDbClient } from "../../scripts/disposable-db-target.mjs"
+
 const dbUrl =
   process.env.SUPABASE_DB_URL ??
-  "postgres://postgres:postgres@127.0.0.1:54322/postgres"
+  "postgres://postgres:postgres@127.0.0.1:56422/postgres"
 
 test("Given the readiness RPC When roles are inspected Then only service role can execute the data-free probe", async () => {
-  const sql = postgres(dbUrl, { max: 1 })
+  const sql = createDisposableDbClient(dbUrl, (url) => postgres(url, { max: 1 }))
 
   try {
     const [
@@ -60,7 +62,7 @@ test("Given the readiness RPC When roles are inspected Then only service role ca
 })
 
 test("Given operational ledgers When cron outcomes are recorded Then only service role receives data-free health aggregates", async () => {
-  const sql = postgres(dbUrl, { max: 1 })
+  const sql = createDisposableDbClient(dbUrl, (url) => postgres(url, { max: 1 }))
   const startedAt = new Date()
   const firstFailureAt = new Date(startedAt.getTime() + 1)
   const secondFailureAt = new Date(startedAt.getTime() + 2)

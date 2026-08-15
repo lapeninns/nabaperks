@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url"
 
 import postgres from "postgres"
 
+import { createDisposableDbClient } from "../../../scripts/disposable-db-target.mjs"
+
 /**
  * Live-Supabase helper for the DB integration tier (`pnpm test:db`).
  *
@@ -36,11 +38,16 @@ export function db() {
   if (cached) return cached
   const url = dbUrl()
   if (!url) throw new Error("SUPABASE_DB_URL is not set")
-  cached = postgres(url, {
-    max: 1,
-    idle_timeout: 5,
-    ssl: url.includes("127.0.0.1") || url.includes("localhost") ? undefined : "require",
-  })
+  cached = createDisposableDbClient(
+    url,
+    (target) =>
+      postgres(target, {
+        max: 1,
+        idle_timeout: 5,
+        ssl: undefined,
+      }),
+    { projectDir: projectRoot }
+  )
   return cached
 }
 

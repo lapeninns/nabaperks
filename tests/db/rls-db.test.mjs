@@ -6,6 +6,8 @@ import { fileURLToPath } from "node:url"
 
 import postgres from "postgres"
 
+import { createDisposableDbClient } from "../../scripts/disposable-db-target.mjs"
+
 const projectRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../.."
@@ -42,10 +44,12 @@ test("Given a live Supabase database When the RLS proof runs Then core tables en
     "SUPABASE_DB_URL is required for pnpm test:db; this gate is live DB proof, not a static SQL check."
   )
 
-  const sql = postgres(dbUrl, {
-    max: 1,
-    ssl: shouldRequireSsl(dbUrl) ? "require" : undefined,
-  })
+  const sql = createDisposableDbClient(dbUrl, (url) =>
+    postgres(url, {
+      max: 1,
+      ssl: shouldRequireSsl(url) ? "require" : undefined,
+    })
+  )
 
   try {
     const tableRows = await sql`
@@ -98,10 +102,12 @@ test("all public application tables force RLS and deny API-role schema-managemen
     "SUPABASE_DB_URL is required for pnpm test:db; this gate is live DB proof, not a static SQL check."
   )
 
-  const sql = postgres(dbUrl, {
-    max: 1,
-    ssl: shouldRequireSsl(dbUrl) ? "require" : undefined,
-  })
+  const sql = createDisposableDbClient(dbUrl, (url) =>
+    postgres(url, {
+      max: 1,
+      ssl: shouldRequireSsl(url) ? "require" : undefined,
+    })
+  )
 
   try {
     const unforcedTables = await sql`

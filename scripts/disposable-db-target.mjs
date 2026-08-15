@@ -1,0 +1,195 @@
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs"
+import { join } from "node:path"
+import { spawnSync } from "node:child_process"
+
+const PROJECT_ID_PATTERN = /^nabaperks-task20-[a-f0-9]{9}$/
+const LOOPBACK_HOST = "127.0.0.1"
+const DATABASE_NAME = "postgres"
+const DATABASE_USER = "postgres"
+const RECEIPT_FILE = "supabase/.temp/disposable-runtime.json"
+const LINKED_ENV_KEYS = [
+  "DATABASE_URL",
+  "SUPABASE_ACCESS_TOKEN",
+  "SUPABASE_PROJECT_ID",
+  "SUPABASE_PROJECT_REF",
+  "SUPABASE_URL",
+]
+
+export class NonDisposableTargetError extends Error {
+  constructor(reasons) {
+    super(`NON_DISPOSABLE_TARGET: ${reasons.join(", ")}`)
+    this.name = "NonDisposableTargetError"
+    this.code = "NON_DISPOSABLE_TARGET"
+    this.reasons = reasons
+  }
+}
+
+export function readDisposableProject(projectDir = process.cwd()) {
+  const source = readFileSync(join(projectDir, "supabase/config.toml"), "utf8")
+  const projectId = source.match(/^project_id\s*=\s*"([^"]+)"/m)?.[1] ?? ""
+  const dbPort = source.match(/^\[db\]\s*[\s\S]*?^port\s*=\s*(\d+)/m)?.[1] ?? ""
+
+  if (!PROJECT_ID_PATTERN.test(projectId) || !dbPort) {
+    throw new NonDisposableTargetError(["unsealed-project-config"])
+  }
+
+  return { projectId, dbPort }
+}
+
+export function assertDisposableDbTarget(
+  rawUrl,
+  {
+    projectDir = process.cwd(),
+    env = process.env,
+    requireClean = true,
+    requireRuntime = true,
+  } = {}
+) {
+  const project = readDisposableProject(projectDir)
+  const reasons = []
+  let url
+
+  try {
+    url = new URL(rawUrl)
+  } catch {
+    throw new NonDisposableTargetError(["malformed-url"])
+  }
+
+  if (!new Set(["postgres:", "postgresql:"]).has(url.protocol)) {
+    reasons.push("unexpected-protocol")
+  }
+  if (url.hostname !== LOOPBACK_HOST) reasons.push("unexpected-host")
+  if (url.port !== project.dbPort) reasons.push("unexpected-port")
+  if (url.pathname !== `/${DATABASE_NAME}`) reasons.push("unexpected-database")
+  if (url.username !== DATABASE_USER) reasons.push("unexpected-user")
+  if (!url.password) reasons.push("missing-password")
+  if (url.search || url.hash) reasons.push("unexpected-url-suffix")
+
+  const linkedEnv = LINKED_ENV_KEYS.filter((key) => env[key]?.trim())
+  if (linkedEnv.length) reasons.push("linked-environment")
+  if (
+    existsSync(join(projectDir, "supabase/.temp/project-ref")) ||
+    existsSync(join(projectDir, "supabase/.temp/pooler-url"))
+  ) {
+    reasons.push("linked-state")
+  }
+  if (
+    requireClean &&
+    git(projectDir, ["status", "--porcelain", "--untracked-files=no"])
+  ) {
+    reasons.push("dirty-source")
+  }
+  if (reasons.length) throw new NonDisposableTargetError(reasons)
+  if (requireRuntime) assertRuntimeReceipt(projectDir, project)
+
+  return project
+}
+
+export function createDisposableDbClient(rawUrl, connectionFactory, options) {
+  assertDisposableDbTarget(rawUrl, options)
+  return connectionFactory(rawUrl)
+}
+
+export function assertLocalStackInvocation(
+  command,
+  { projectDir = process.cwd(), env = process.env } = {}
+) {
+  const project = readDisposableProject(projectDir)
+  const linkedEnv = LINKED_ENV_KEYS.filter((key) => env[key]?.trim())
+  if (env.SUPABASE_DB_URL?.trim() || linkedEnv.length) {
+    throw new NonDisposableTargetError(["unsafe-supabase-environment"])
+  }
+  if (git(projectDir, ["status", "--porcelain", "--untracked-files=no"])) {
+    throw new NonDisposableTargetError(["dirty-source"])
+  }
+
+  const containerId = dockerContainerId(project.projectId)
+  const receipt = readRuntimeReceipt(projectDir)
+  if (
+    command === "start" &&
+    containerId &&
+    !runtimeMatches(receipt, projectDir, project, containerId)
+  ) {
+    throw new NonDisposableTargetError(["namespace-collision"])
+  }
+  if (new Set(["status", "stop"]).has(command) && containerId) {
+    if (!runtimeMatches(receipt, projectDir, project, containerId)) {
+      throw new NonDisposableTargetError(["runtime-receipt-mismatch"])
+    }
+  }
+  return project
+}
+
+export function recordRuntimeReceipt(projectDir, project) {
+  const containerId = dockerContainerId(project.projectId)
+  if (!containerId)
+    throw new NonDisposableTargetError(["database-container-missing"])
+  const receipt = {
+    schemaVersion: 1,
+    projectId: project.projectId,
+    dbPort: project.dbPort,
+    sourceSha: git(projectDir, ["rev-parse", "HEAD"]),
+    containerId,
+  }
+  writeFileSync(
+    join(projectDir, RECEIPT_FILE),
+    `${JSON.stringify(receipt, null, 2)}\n`
+  )
+}
+
+export function removeRuntimeReceipt(projectDir = process.cwd()) {
+  const path = join(projectDir, RECEIPT_FILE)
+  if (existsSync(path)) unlinkSync(path)
+}
+
+function assertRuntimeReceipt(projectDir, project) {
+  const containerId = dockerContainerId(project.projectId)
+  const receipt = readRuntimeReceipt(projectDir)
+  if (
+    !containerId ||
+    !runtimeMatches(receipt, projectDir, project, containerId)
+  ) {
+    throw new NonDisposableTargetError(["runtime-receipt-mismatch"])
+  }
+}
+
+function runtimeMatches(receipt, projectDir, project, containerId) {
+  return Boolean(
+    receipt &&
+    receipt.projectId === project.projectId &&
+    receipt.dbPort === project.dbPort &&
+    receipt.sourceSha === git(projectDir, ["rev-parse", "HEAD"]) &&
+    receipt.containerId === containerId
+  )
+}
+
+function readRuntimeReceipt(projectDir) {
+  try {
+    return JSON.parse(readFileSync(join(projectDir, RECEIPT_FILE), "utf8"))
+  } catch {
+    return null
+  }
+}
+
+function dockerContainerId(projectId) {
+  const result = spawnSync(
+    "docker",
+    ["inspect", "--format", "{{.Id}}", `supabase_db_${projectId}`],
+    {
+      encoding: "utf8",
+      timeout: 5_000,
+    }
+  )
+  return result.status === 0 ? result.stdout.trim() : ""
+}
+
+function git(projectDir, args) {
+  const result = spawnSync("git", args, {
+    cwd: projectDir,
+    encoding: "utf8",
+    timeout: 5_000,
+  })
+  if (result.status !== 0)
+    throw new NonDisposableTargetError(["source-identity-unavailable"])
+  return result.stdout.trim()
+}

@@ -8,21 +8,27 @@ import { test } from "node:test"
 const ROOT = process.cwd()
 const WRAPPER = join(ROOT, "scripts/supabase-local.mjs")
 
-function withSupabaseSentinel(callback) {
+function withSupabaseSentinel(
+  callback,
+  { delaySeconds = 0, exitCode = 0 } = {}
+) {
   const directory = mkdtempSync(join(tmpdir(), "nabaperks-supabase-guard-"))
   const marker = join(directory, "invocation.txt")
   const executable = join(directory, "supabase")
-  writeFileSync(executable, `#!/bin/sh\nprintf '%s\\n' "$@" > "${marker}"\n`)
+  writeFileSync(
+    executable,
+    `#!/bin/sh\nsleep ${delaySeconds}\nprintf '%s\\n' "$@" > "${marker}"\nexit ${exitCode}\n`
+  )
   spawnSync("chmod", ["+x", executable])
 
   try {
     callback({
       marker,
-      run(args, env = {}) {
+      run(args, env = {}, timeout = 5_000) {
         return spawnSync(process.execPath, [WRAPPER, ...args], {
           cwd: ROOT,
           encoding: "utf8",
-          timeout: 5_000,
+          timeout,
           env: {
             ...process.env,
             ...env,
@@ -95,3 +101,22 @@ test("Given a stale remote target environment When invoked Then the wrapper reje
     assert.throws(() => readFileSync(marker, "utf8"), { code: "ENOENT" })
   })
 })
+
+test(
+  "Given a cold local start exceeds ten seconds When the wrapper runs Then it waits for the CLI result",
+  { timeout: 15_000 },
+  () => {
+    withSupabaseSentinel(
+      ({ marker, run }) => {
+        // Given / When
+        const result = run(["start"], {}, 14_000)
+
+        // Then
+        assert.equal(result.status, 7)
+        assert.equal(result.signal, null)
+        assert.equal(readFileSync(marker, "utf8"), "start\n")
+      },
+      { delaySeconds: 11, exitCode: 7 }
+    )
+  }
+)

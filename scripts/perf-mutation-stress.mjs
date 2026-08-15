@@ -30,6 +30,8 @@ import { join } from "node:path"
 import { performance } from "node:perf_hooks"
 import postgres from "postgres"
 
+import { createDisposableDbClient } from "./disposable-db-target.mjs"
+
 import { stressCustomerId, stressMembershipId } from "./seed-stress.mjs"
 
 const projectDir = process.cwd()
@@ -87,8 +89,9 @@ if (!dbUrl) {
   process.exit(1)
 }
 assertWriteTargetIsSafe(dbUrl)
-
-const sql = postgres(dbUrl, { max: Math.max(48, M + 8) })
+const sql = createDisposableDbClient(dbUrl, (url) =>
+  postgres(url, { max: Math.max(48, M + 8) })
+)
 
 const runStartedAt = new Date()
 const violations = []
@@ -118,7 +121,7 @@ try {
   process.exitCode = violations.length ? 1 : 0
 } catch (error) {
   console.error("Mutation stress failed to complete.")
-  console.error(error instanceof Error ? error.stack ?? error.message : error)
+  console.error(error instanceof Error ? (error.stack ?? error.message) : error)
   process.exitCode = 1
 } finally {
   await sql.end({ timeout: 5 })
@@ -164,7 +167,9 @@ async function race(label, calls) {
     byMessage[f.message] = (byMessage[f.message] ?? 0) + 1
   }
   const deadlocks = failures.filter((f) => f.code === "40P01").length
-  const serializationFailures = failures.filter((f) => f.code === "40001").length
+  const serializationFailures = failures.filter(
+    (f) => f.code === "40001"
+  ).length
   const latencies = results.map((r) => r.ms).sort((a, b) => a - b)
 
   const summary = {
@@ -186,7 +191,10 @@ async function race(label, calls) {
     violate(label, `${deadlocks} deadlock(s) (SQLSTATE 40P01) under contention`)
   }
   if (serializationFailures > 0) {
-    violate(label, `${serializationFailures} serialization failure(s) (SQLSTATE 40001)`)
+    violate(
+      label,
+      `${serializationFailures} serialization failure(s) (SQLSTATE 40001)`
+    )
   }
   return { results, successes, failures, summary }
 }
@@ -490,14 +498,16 @@ async function scenarioStampFanout() {
 async function scenarioJoinIdempotent() {
   const { successes } = await race(
     "join:idempotent",
-    Array.from({ length: 24 }, () => () =>
-      rpc(
-        "authenticated",
-        JOIN_RACE_AUTH_ID,
-        `select * from public.join_customer_membership(
+    Array.from(
+      { length: 24 },
+      () => () =>
+        rpc(
+          "authenticated",
+          JOIN_RACE_AUTH_ID,
+          `select * from public.join_customer_membership(
            '${JOIN_RACE_CUSTOMER_ID}'::uuid, '${MERCHANT_SLUG}', '${JOIN_QR_ID}', false, 'stress-test'
          )`
-      )
+        )
     )
   )
 
@@ -508,7 +518,9 @@ async function scenarioJoinIdempotent() {
     `select count(*)::int as n from public.customer_memberships
      where merchant_id = '${MERCHANT_ID}' and customer_id = '${JOIN_RACE_CUSTOMER_ID}'`
   )
-  const createdFlags = successes.filter((r) => r.rows?.[0]?.created_membership === true)
+  const createdFlags = successes.filter(
+    (r) => r.rows?.[0]?.created_membership === true
+  )
   if (createdFlags.length !== 1) {
     violate(
       "join:idempotent",
@@ -527,12 +539,14 @@ async function scenarioJoinIdempotent() {
 async function scenarioJoinQrIdempotent() {
   const { successes } = await race(
     "join-qr:idempotent",
-    Array.from({ length: 16 }, () => () =>
-      rpc(
-        "authenticated",
-        OWNER_AUTH_USER_ID,
-        `select * from public.create_or_get_join_qr('${MERCHANT_ID}'::uuid, '${LOYALTY_CARD_ID}'::uuid)`
-      )
+    Array.from(
+      { length: 16 },
+      () => () =>
+        rpc(
+          "authenticated",
+          OWNER_AUTH_USER_ID,
+          `select * from public.create_or_get_join_qr('${MERCHANT_ID}'::uuid, '${LOYALTY_CARD_ID}'::uuid)`
+        )
     )
   )
 
@@ -546,21 +560,26 @@ async function scenarioJoinQrIdempotent() {
   )
   const distinctQrs = new Set(successes.map((r) => r.rows?.[0]?.qr_code_uuid))
   if (distinctQrs.size > 1) {
-    violate("join-qr:idempotent", `calls returned ${distinctQrs.size} distinct QR ids`)
+    violate(
+      "join-qr:idempotent",
+      `calls returned ${distinctQrs.size} distinct QR ids`
+    )
   }
 }
 
 async function scenarioTokenMintRace() {
   const { successes } = await race(
     "reward-token:mint-race",
-    Array.from({ length: 16 }, () => () =>
-      rpc(
-        "service_role",
-        null,
-        `select * from public.create_reward_scan_token(
+    Array.from(
+      { length: 16 },
+      () => () =>
+        rpc(
+          "service_role",
+          null,
+          `select * from public.create_reward_scan_token(
            '${TOKEN_REWARD_ID}'::uuid, '${stressCustomerId(IDX.tokenCollect)}'::uuid
          )`
-      )
+        )
     )
   )
 
@@ -589,12 +608,14 @@ async function scenarioTokenCollectRace() {
 
   const { successes } = await race(
     "reward-token:collect-race",
-    Array.from({ length: 16 }, () => () =>
-      rpc(
-        "service_role",
-        null,
-        `select * from public.collect_reward_scan_token('${token}'::uuid, '${MERCHANT_ID}'::uuid)`
-      )
+    Array.from(
+      { length: 16 },
+      () => () =>
+        rpc(
+          "service_role",
+          null,
+          `select * from public.collect_reward_scan_token('${token}'::uuid, '${MERCHANT_ID}'::uuid)`
+        )
     )
   )
 
@@ -636,27 +657,34 @@ async function scenarioTokenMintCollectDeadlockProbe() {
      )`
   )
   if (!mint.ok) {
-    violate("reward-token:mint-collect-probe", `pre-mint failed: ${mint.message}`)
+    violate(
+      "reward-token:mint-collect-probe",
+      `pre-mint failed: ${mint.message}`
+    )
     return
   }
   const token = mint.rows[0].scan_token
 
   await race("reward-token:mint-collect-probe", [
-    ...Array.from({ length: 8 }, () => () =>
-      rpc(
-        "service_role",
-        null,
-        `select * from public.collect_reward_scan_token('${token}'::uuid, '${MERCHANT_ID}'::uuid)`
-      )
+    ...Array.from(
+      { length: 8 },
+      () => () =>
+        rpc(
+          "service_role",
+          null,
+          `select * from public.collect_reward_scan_token('${token}'::uuid, '${MERCHANT_ID}'::uuid)`
+        )
     ),
-    ...Array.from({ length: 8 }, () => () =>
-      rpc(
-        "service_role",
-        null,
-        `select * from public.create_reward_scan_token(
+    ...Array.from(
+      { length: 8 },
+      () => () =>
+        rpc(
+          "service_role",
+          null,
+          `select * from public.create_reward_scan_token(
            '${TOKEN_DEADLOCK_REWARD_ID}'::uuid, '${stressCustomerId(IDX.tokenDeadlock)}'::uuid
          )`
-      )
+        )
     ),
   ])
 
@@ -675,12 +703,14 @@ async function scenarioReferralAwardRace() {
 
   await race(
     "referral:award-race",
-    Array.from({ length: 16 }, () => () =>
-      rpc(
-        "service_role",
-        null,
-        `select public.award_referrer_bonus_stamp('${friendMembership}'::uuid, null)`
-      )
+    Array.from(
+      { length: 16 },
+      () => () =>
+        rpc(
+          "service_role",
+          null,
+          `select public.award_referrer_bonus_stamp('${friendMembership}'::uuid, null)`
+        )
     )
   )
 
@@ -713,15 +743,19 @@ async function scenarioReferralDrainAwardRace() {
   const referrerMembership = stressMembershipId(IDX.refDrainReferrer)
 
   await race("referral:drain-vs-award", [
-    ...Array.from({ length: 4 }, () => () =>
-      rpc("service_role", null, `select public.drain_due_referrer_bonuses()`)
+    ...Array.from(
+      { length: 4 },
+      () => () =>
+        rpc("service_role", null, `select public.drain_due_referrer_bonuses()`)
     ),
-    ...Array.from({ length: 8 }, () => () =>
-      rpc(
-        "service_role",
-        null,
-        `select public.award_referrer_bonus_stamp('${friendMembership}'::uuid, null)`
-      )
+    ...Array.from(
+      { length: 8 },
+      () => () =>
+        rpc(
+          "service_role",
+          null,
+          `select public.award_referrer_bonus_stamp('${friendMembership}'::uuid, null)`
+        )
     ),
   ])
 
@@ -748,12 +782,14 @@ async function scenarioReferralPoolGuard() {
   const friendB = stressMembershipId(IDX.refPoolFriendB)
 
   await race("referral:pool-guard", [
-    ...Array.from({ length: 6 }, (_, i) => () =>
-      rpc(
-        "service_role",
-        null,
-        `select public.award_referrer_bonus_stamp('${i % 2 === 0 ? friendA : friendB}'::uuid, null)`
-      )
+    ...Array.from(
+      { length: 6 },
+      (_, i) => () =>
+        rpc(
+          "service_role",
+          null,
+          `select public.award_referrer_bonus_stamp('${i % 2 === 0 ? friendA : friendB}'::uuid, null)`
+        )
     ),
   ])
 
@@ -795,12 +831,14 @@ async function scenarioBirthdayIdempotentRace() {
 
   await race(
     "birthday:idempotent-race",
-    Array.from({ length: 8 }, () => () =>
-      rpc(
-        "service_role",
-        null,
-        `select public.issue_birthday_rewards(now(), '${customerId}'::uuid)`
-      )
+    Array.from(
+      { length: 8 },
+      () => () =>
+        rpc(
+          "service_role",
+          null,
+          `select public.issue_birthday_rewards(now(), '${customerId}'::uuid)`
+        )
     )
   )
 
@@ -831,7 +869,10 @@ async function cleanupFixtures() {
   const indexes = allFixtureIndexes()
   const memberships = indexes.map((i) => `'${stressMembershipId(i)}'`).join(",")
   const customers = indexes.map((i) => `'${stressCustomerId(i)}'`).join(",")
-  const authIds = [...indexes.map((i) => `'${fixtureAuthId(i)}'`), `'${JOIN_RACE_AUTH_ID}'`].join(",")
+  const authIds = [
+    ...indexes.map((i) => `'${fixtureAuthId(i)}'`),
+    `'${JOIN_RACE_AUTH_ID}'`,
+  ].join(",")
 
   await sql.unsafe(`
     delete from public.notification_events
@@ -950,11 +991,15 @@ function assertWriteTargetIsSafe(dbUrl) {
   try {
     host = new URL(dbUrl).hostname.toLowerCase()
   } catch {
-    console.error("Refusing to run mutation stress: unparseable SUPABASE_DB_URL.")
+    console.error(
+      "Refusing to run mutation stress: unparseable SUPABASE_DB_URL."
+    )
     process.exit(1)
   }
   if (!["localhost", "127.0.0.1", "::1", "[::1]"].includes(host)) {
-    console.error(`Refusing to run mutation stress against non-local host "${host}".`)
+    console.error(
+      `Refusing to run mutation stress against non-local host "${host}".`
+    )
     console.error("Point SUPABASE_DB_URL at a local disposable database.")
     process.exit(1)
   }

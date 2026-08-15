@@ -3,6 +3,8 @@ import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import postgres from "postgres"
 
+import { createDisposableDbClient } from "./disposable-db-target.mjs"
+
 import {
   isDatabaseConnectionRefused,
   printDatabaseConnectionHelp,
@@ -40,12 +42,13 @@ async function runCli(env, args) {
   }
 
   assertWriteTargetIsSafe(dbUrl)
-
-  const sql = postgres(dbUrl, {
-    max: 1,
-    ssl: shouldRequireSsl(dbUrl) ? "require" : undefined,
-    transform: postgres.camel,
-  })
+  const sql = createDisposableDbClient(dbUrl, (url) =>
+    postgres(url, {
+      max: 1,
+      ssl: shouldRequireSsl(url) ? "require" : undefined,
+      transform: postgres.camel,
+    })
+  )
 
   try {
     const count = args.count ?? 10_000

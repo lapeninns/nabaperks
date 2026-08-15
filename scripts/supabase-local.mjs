@@ -1,5 +1,11 @@
 import { spawnSync } from "node:child_process"
 
+import {
+  assertLocalStackInvocation,
+  recordRuntimeReceipt,
+  removeRuntimeReceipt,
+} from "./disposable-db-target.mjs"
+
 /**
  * Runs local Supabase CLI commands with the auth hook defaults the CLI needs
  * when parsing supabase/config.toml. Explicit caller values stay authoritative.
@@ -41,10 +47,20 @@ if (remoteEnvironmentKeys.some((key) => process.env[key])) {
   process.exit(2)
 }
 
+let project
+try {
+  project = assertLocalStackInvocation(args[0])
+} catch (error) {
+  console.error(
+    error instanceof Error ? error.message : "NON_DISPOSABLE_TARGET"
+  )
+  process.exit(3)
+}
+
 const result = spawnSync("supabase", args, {
   cwd: process.cwd(),
   shell: false,
-  timeout: 10_000,
+  timeout: args[0] === "start" ? 180_000 : 30_000,
   stdio: "inherit",
   env: {
     ...process.env,
@@ -54,6 +70,13 @@ const result = spawnSync("supabase", args, {
       process.env.SUPABASE_SEND_EMAIL_HOOK_URI || localHookUri,
   },
 })
+
+if (result.status === 0 && args[0] === "start") {
+  recordRuntimeReceipt(process.cwd(), project)
+}
+if (result.status === 0 && args[0] === "stop") {
+  removeRuntimeReceipt(process.cwd())
+}
 
 process.exit(result.status ?? 1)
 
