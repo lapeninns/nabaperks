@@ -53,7 +53,7 @@ test("Given the canonical register When evidence bindings are inspected Then eve
   assert.equal(paths.length, 94)
   assert.ok(
     paths.every((path) =>
-      path.startsWith(".omo/evidence/task-15-portability-v1/")
+      path.startsWith(".omo/evidence/task-15-portability-v2/")
     )
   )
 })
