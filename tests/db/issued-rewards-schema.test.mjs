@@ -272,13 +272,14 @@ test("R-13: admin_export_customer_data includes source and birthday_year", { ski
         ${fixture.customerId}::uuid, ${fixture.merchantId}::uuid,
         'email', 'GDPR export test notes') as payload`
 
-    const rewards = payload.reward_events
+    // v2 nests every governed relation under `sections.<export_section>.rows`.
+    const rewards = payload.sections.reward_events.rows
     assert.ok(Array.isArray(rewards) && rewards.length > 0, "export carries reward events")
     const birthday = rewards.find((r) => r.source === "birthday_month")
     assert.ok(birthday, "the birthday reward is exported with its source")
     assert.equal(birthday.birthday_year, 2026, "birthday_year is exported")
 
-    const invites = payload.pending_reward_invites
+    const invites = payload.sections.pending_reward_invites.rows
     assert.ok(Array.isArray(invites), "export carries pending reward invites")
     const exportedInvite = invites.find((row) => row.id === invite.invite_id)
     assert.ok(exportedInvite, "the attached invite is exported")

@@ -1,0 +1,320 @@
+-- admin_erase_customer_pii deleted the subject's customer_sessions and
+-- push_subscriptions rows outright, while admin_purge_stale_customer_pii --
+-- defined a few hundred lines below it in the same migration -- revoked and
+-- retained the very same records. One erasure pathway therefore destroyed the
+-- evidence of when access was cut and the other preserved it, and
+-- tests/db/customer-erasure-related-records.test.mjs pinned the revoking shape
+-- for both. Revocation is now canonical.
+--
+-- customer_sessions holds only ids and timestamps, so revoking a row erases
+-- nothing less than deleting it did. push_subscriptions does hold device
+-- secrets (endpoint, p256dh, auth) and a user agent, so those are overwritten
+-- in the same statement: the audit trail survives, the secrets do not. The
+-- placeholder is derived from the row id, which keeps
+-- push_subscriptions_customer_endpoint_hash_idx unique for a subject holding
+-- more than one subscription, and is deliberately not endpoint-shaped so an
+-- erased row can never be mistaken for a live one.
+--
+-- A scrubbed endpoint cannot satisfy is_allowed_web_push_endpoint(), so that
+-- check now applies to live rows only. Every reader of this table already
+-- filters on revoked_at is null (lib/notifications/delivery-worker.ts:444,
+-- events.ts:323, venue-announcements.ts:179), so no delivery path can reach a
+-- scrubbed row.
+alter table public.push_subscriptions
+  drop constraint push_subscriptions_allowed_endpoint_check;
+alter table public.push_subscriptions
+  add constraint push_subscriptions_allowed_endpoint_check
+  check (revoked_at is not null or public.is_allowed_web_push_endpoint(endpoint));
+
+create or replace function public.admin_erase_customer_pii(
+  p_customer_id uuid,
+  p_merchant_id uuid,
+  p_channel text,
+  p_notes text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_admin_user_id uuid := (select auth.uid());
+  v_auth_user_id uuid;
+  v_email_hmac text;
+  v_phone_hmac text;
+  v_surrogate_email text;
+  v_auth_surrogate_email text;
+  v_erasure_id uuid;
+  v_bad_relation text;
+begin
+  if v_admin_user_id is null or not (select public.is_internal_admin()) then
+    raise insufficient_privilege using message = 'Internal admin access required';
+  end if;
+
+  if p_customer_id is null or p_merchant_id is null then
+    raise exception using message = 'Customer membership context not found';
+  end if;
+  if p_channel not in ('email', 'phone', 'in_person', 'other') then
+    raise exception using message = 'Unsupported request channel';
+  end if;
+  if pg_catalog.length(pg_catalog.btrim(coalesce(p_notes, ''))) < 4 then
+    raise exception using message = 'Data request notes are required';
+  end if;
+  if not exists (
+    select 1
+    from public.customer_memberships
+    where customer_memberships.customer_id = p_customer_id
+      and customer_memberships.merchant_id = p_merchant_id
+  ) then
+    raise exception using message = 'Customer membership context not found';
+  end if;
+
+  select manifest.relation_name
+  into v_bad_relation
+  from public.personal_data_relation_manifest as manifest
+  where manifest.relation_state = 'live'
+    and (
+      pg_catalog.to_regclass(manifest.relation_name) is null
+      or manifest.erase_action not in (
+        'anonymise_subject_row', 'delete_subject_rows', 'erase_by_prior_identifier',
+        'redact_subject_rows', 'retain_consent_ledger', 'retain_loyalty_ledger',
+        'retain_minimise_subject_rows', 'retain_provider_audit',
+        'retain_terms_ledger', 'scrub_subject_identity'
+      )
+    )
+  order by manifest.relation_name
+  limit 1;
+
+  if v_bad_relation is not null then
+    raise exception using message = 'Personal data erasure manifest is stale';
+  end if;
+
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended('customer-identity:' || p_customer_id::text, 0)
+  );
+
+  select customers.auth_user_id, customers.email_hmac, customers.phone_hmac
+  into v_auth_user_id, v_email_hmac, v_phone_hmac
+  from public.customers
+  where customers.id = p_customer_id
+  for update;
+
+  if not found then
+    raise exception using message = 'Customer not found';
+  end if;
+
+  v_surrogate_email :=
+    'erased+' || pg_catalog.replace(p_customer_id::text, '-', '') || '@privacy.invalid';
+
+  if v_auth_user_id is null
+     and (select customers.email from public.customers where customers.id = p_customer_id)
+       = v_surrogate_email then
+    select audit_logs.id
+    into v_erasure_id
+    from public.audit_logs
+    where audit_logs.customer_id = p_customer_id
+      and audit_logs.action = 'customer_pii_erased'
+    order by audit_logs.created_at, audit_logs.id
+    limit 1;
+
+    if v_erasure_id is not null then
+      return pg_catalog.jsonb_build_object(
+        'ok', true,
+        'request_type', 'deletion',
+        'customer_id', p_customer_id,
+        'surrogate', v_surrogate_email,
+        'ledger_retained', true,
+        'erasure_id', v_erasure_id
+      );
+    end if;
+  end if;
+
+  -- Companion operations run before identifier retirement so hashed-only
+  -- invitation records remain resolvable. Any failure aborts the whole call.
+  perform public.admin_erase_loyalty_invitations_for_customer(p_customer_id);
+  perform public.admin_erase_offer_claims_for_customer(p_customer_id);
+
+  update public.loyalty_invite_recipients
+  set email_hmac = 'erased:' || id::text,
+      email_ciphertext = null,
+      email_masked = null,
+      claim_token_hash = null,
+      unsubscribe_token_hash = null,
+      provider_message_id = null,
+      failure_reason = null,
+      lease_expires_at = null,
+      status = case
+        when status in ('queued', 'sending', 'sent', 'delivered', 'opened') then 'cancelled'
+        else status
+      end,
+      updated_at = pg_catalog.transaction_timestamp()
+  where claimed_customer_id = p_customer_id
+     or (v_email_hmac is not null and email_hmac = v_email_hmac);
+
+  update public.pending_reward_invites
+  set status = case when status in ('pending', 'matched') then 'cancelled' else status end,
+      email_hmac = null,
+      phone_hmac = null,
+      email_masked = null,
+      phone_last4 = null,
+      personal_message = null,
+      claim_token_hash = 'scrubbed:' || id::text,
+      updated_at = pg_catalog.transaction_timestamp()
+  where matched_customer_id = p_customer_id
+     or attached_customer_id = p_customer_id
+     or (v_phone_hmac is not null and phone_hmac = v_phone_hmac)
+     or (v_email_hmac is not null and email_hmac = v_email_hmac);
+
+  delete from public.loyalty_invite_email_suppressions
+  where v_email_hmac is not null and email_hmac = v_email_hmac;
+  delete from public.reward_invite_email_suppressions
+  where v_email_hmac is not null and email_hmac = v_email_hmac;
+
+  -- Sessions and push subscriptions are revoked in place rather than deleted,
+  -- matching public.admin_purge_stale_customer_pii and leaving a durable record
+  -- of when the subject's access was actually cut. customer_sessions carries no
+  -- personal data, so revoking it is already a complete erasure; the push row
+  -- does carry device secrets, so they are overwritten in the same statement.
+  update public.customer_sessions
+  set revoked_at = coalesce(revoked_at, now())
+  where customer_id = p_customer_id;
+
+  update public.push_subscriptions
+  set enabled = false,
+      revoked_at = coalesce(revoked_at, now()),
+      endpoint = 'erased:' || id::text,
+      p256dh = 'erased:' || id::text,
+      auth = 'erased:' || id::text,
+      user_agent = null,
+      failure_reason = null,
+      metadata = '{}'::jsonb,
+      updated_at = now()
+  where customer_id = p_customer_id;
+
+  delete from public.reward_scan_tokens where customer_id = p_customer_id;
+  delete from public.notification_preferences where customer_id = p_customer_id;
+  delete from public.customer_join_stamp_recoveries where customer_id = p_customer_id;
+
+  update public.notification_events
+  set status = case when status in ('queued', 'delivering') then 'cancelled' else status end,
+      cancelled_at = case
+        when status in ('queued', 'delivering') then pg_catalog.transaction_timestamp()
+        else cancelled_at
+      end,
+      dedupe_key = 'erased:' || id::text,
+      payload = '{}'::jsonb,
+      metadata = '{}'::jsonb,
+      lease_expires_at = null,
+      lease_token = null,
+      updated_at = pg_catalog.transaction_timestamp()
+  where customer_id = p_customer_id;
+
+  update public.fraud_flags
+  set metadata = '{}'::jsonb,
+      updated_at = pg_catalog.transaction_timestamp()
+  where customer_id = p_customer_id;
+
+  update public.product_events
+  set actor_id = case when actor_type = 'customer' then null else actor_id end,
+      metadata = '{}'::jsonb
+  where customer_id = p_customer_id;
+
+  update public.audit_logs
+  set actor_id = case when actor_type = 'admin' then actor_id else null end,
+      metadata = '{}'::jsonb
+  where customer_id = p_customer_id;
+
+  if v_auth_user_id is not null then
+    delete from auth.mfa_challenges
+    where factor_id in (select mfa_factors.id from auth.mfa_factors where user_id = v_auth_user_id);
+    delete from auth.mfa_amr_claims
+    where session_id in (select sessions.id from auth.sessions where user_id = v_auth_user_id);
+    delete from auth.refresh_tokens where user_id = v_auth_user_id::text;
+    delete from auth.one_time_tokens where user_id = v_auth_user_id;
+    delete from auth.flow_state
+    where user_id = v_auth_user_id or linking_target_id = v_auth_user_id;
+    delete from auth.oauth_authorizations where user_id = v_auth_user_id;
+    delete from auth.oauth_consents where user_id = v_auth_user_id;
+    delete from auth.webauthn_challenges where user_id = v_auth_user_id;
+    delete from auth.webauthn_credentials where user_id = v_auth_user_id;
+    delete from auth.identities where user_id = v_auth_user_id;
+    delete from auth.mfa_factors where user_id = v_auth_user_id;
+    delete from auth.sessions where user_id = v_auth_user_id;
+
+    v_auth_surrogate_email :=
+      'erased+' || pg_catalog.replace(v_auth_user_id::text, '-', '') || '@privacy.invalid';
+    update auth.users
+    set email = v_auth_surrogate_email,
+        encrypted_password = '',
+        email_confirmed_at = null,
+        invited_at = null,
+        confirmation_token = '',
+        confirmation_sent_at = null,
+        recovery_token = '',
+        recovery_sent_at = null,
+        email_change_token_new = '',
+        email_change = '',
+        email_change_sent_at = null,
+        last_sign_in_at = null,
+        raw_app_meta_data = '{}'::jsonb,
+        raw_user_meta_data = '{}'::jsonb,
+        phone = null,
+        phone_confirmed_at = null,
+        phone_change = '',
+        phone_change_token = '',
+        phone_change_sent_at = null,
+        email_change_token_current = '',
+        email_change_confirm_status = 0,
+        banned_until = 'infinity'::timestamptz,
+        reauthentication_token = '',
+        reauthentication_sent_at = null,
+        is_sso_user = false,
+        is_anonymous = true,
+        deleted_at = pg_catalog.transaction_timestamp(),
+        updated_at = pg_catalog.transaction_timestamp()
+    where id = v_auth_user_id;
+  end if;
+
+  perform pg_catalog.set_config('app.customer_erasure', 'true', true);
+  update public.customers
+  set auth_user_id = null,
+      email = v_surrogate_email,
+      email_hmac = null,
+      email_verified_at = null,
+      full_name = null,
+      date_of_birth = null,
+      phone_hmac = null,
+      phone_ciphertext = null,
+      phone_last4 = null,
+      phone_country = null,
+      phone_verified_at = null,
+      updated_at = pg_catalog.transaction_timestamp()
+  where id = p_customer_id;
+  perform pg_catalog.set_config('app.customer_erasure', '', true);
+
+  insert into public.audit_logs (
+    actor_type, actor_id, merchant_id, customer_id, target_table, target_id, action, metadata
+  )
+  values (
+    'admin', v_admin_user_id::text, p_merchant_id, p_customer_id,
+    'customers', p_customer_id, 'customer_pii_erased',
+    pg_catalog.jsonb_build_object(
+      'request_type', 'deletion',
+      'channel', p_channel,
+      'ledger_retained', true
+    )
+  )
+  returning id into v_erasure_id;
+
+  return pg_catalog.jsonb_build_object(
+    'ok', true,
+    'request_type', 'deletion',
+    'customer_id', p_customer_id,
+    'surrogate', v_surrogate_email,
+    'ledger_retained', true,
+    'erasure_id', v_erasure_id
+  );
+end;
+$function$;
+
+notify pgrst, 'reload schema';

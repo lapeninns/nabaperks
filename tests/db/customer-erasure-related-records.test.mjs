@@ -39,13 +39,27 @@ const PICK = /* sql */ `
   where m.business_slug = 'old-crown-girton' and m.status in ('trial', 'active')
   limit 1`
 
-/** Insert an active (non-revoked) session, an enabled push subscription, and
- * one notification per status we care about. Returns their ids. */
-async function seedRelatedRecords(tx, customerId, merchantId) {
+/** Insert a non-revoked session, an enabled push subscription, and one
+ * notification per status we care about. Returns their ids.
+ *
+ * `expiredSession` matters for the retention purge only: its staleness
+ * predicate excludes any customer holding a session that is both unrevoked and
+ * unexpired, so a subject that is stale by every other measure must not be
+ * handed a session minted moments ago. The session stays unrevoked either way,
+ * because revoking it is the behaviour under test. */
+async function seedRelatedRecords(
+  tx,
+  customerId,
+  merchantId,
+  { expiredSession = false } = {}
+) {
   const sessionId = randomUUID()
+  const expiresAt = expiredSession
+    ? tx`now() - interval '30 days'`
+    : tx`now() + interval '30 days'`
   await tx`
     insert into public.customer_sessions (id, customer_id, expires_at)
-    values (${sessionId}::uuid, ${customerId}::uuid, now() + interval '30 days')`
+    values (${sessionId}::uuid, ${customerId}::uuid, ${expiresAt})`
 
   const [push] = await tx`
     insert into public.push_subscriptions
@@ -161,7 +175,9 @@ test(
                 now() - interval '400 days', now() - interval '400 days')
         returning id`
 
-      const seeded = await seedRelatedRecords(tx, customer.id, v.merchant_id)
+      const seeded = await seedRelatedRecords(tx, customer.id, v.merchant_id, {
+        expiredSession: true,
+      })
 
       // inRolledBackTxn already sets request.jwt.claim.role = service_role, so
       // the self-guard passes; use the default cutoff.

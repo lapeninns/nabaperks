@@ -124,6 +124,15 @@ test(
       const exportNotes = `Export request ${randomUUID()}`
       const deletionNotes = `Deletion request ${randomUUID()}`
 
+      // The deletion leg scrubs audit metadata to '{}' for this customer
+      // (20260812051000: free-text notes are themselves personal data), so the
+      // audit assertion below cannot filter on the notes it wrote. Pin the
+      // pre-existing rows instead and assert on what these three calls add.
+      const auditBaseline = await tx`
+        select id from public.audit_logs
+        where customer_id = ${membership.customer_id}::uuid`
+      const auditBaselineIds = auditBaseline.map((row) => row.id)
+
       let refusedNonAdmin = false
       try {
         await tx.savepoint(async (sp) => {
@@ -167,15 +176,29 @@ test(
           ${exportNotes}
         ) as result`
 
-      assert.equal(exportResult.schema, "nabaperks.customer-data-export.v1")
-      assert.equal(exportResult.customer.id, membership.customer_id)
+      // The v2 export is manifest-driven: every governed relation appears under
+      // `sections` keyed by its manifest export_section, each entry carrying the
+      // export snapshot id and its rows, rather than one flat top-level key per
+      // relation. Section names are the manifest's, so `customers` and
+      // `customer_memberships` replace the old `customer`/`memberships` keys.
+      const { sections } = exportResult
+      assert.equal(exportResult.schema, "nabaperks.customer-data-export.v2")
+      assert.equal(sections.customers.rows[0].id, membership.customer_id)
       assert.ok(
-        Array.isArray(exportResult.memberships),
+        Array.isArray(sections.customer_memberships.rows),
         "export returns portable membership data"
       )
       assert.ok(
-        exportResult.stamp_events.every((stampEvent) => "event_type" in stampEvent),
+        sections.stamp_events.rows.every(
+          (stampEvent) => "event_type" in stampEvent
+        ),
         "export returns actual stamp ledger event types"
+      )
+      assert.ok(
+        Object.values(sections).every(
+          (section) => section.snapshot_id === exportResult.snapshot_id
+        ),
+        "every section is stamped with the one export snapshot id"
       )
 
       const [{ result: deletionResult }] = await tx`
@@ -204,12 +227,13 @@ test(
         from public.audit_logs
         where customer_id = ${membership.customer_id}::uuid
           and actor_id = ${ADMIN_UID}
-          and (
-            metadata ->> 'notes' = ${accessNotes}
-            or metadata ->> 'notes' = ${exportNotes}
-            or metadata ->> 'notes' = ${deletionNotes}
-          )
+          and not (id = any(${auditBaselineIds}::uuid[]))
         order by created_at`
+
+      assert.ok(
+        auditRows.every((row) => !("notes" in row.metadata)),
+        "erasure scrubbed the free-text notes out of the retained audit trail"
+      )
 
       const actions = auditRows.map((row) => row.action).sort()
       assert.deepEqual(actions, [

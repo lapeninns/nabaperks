@@ -14,7 +14,10 @@ begin
   into table_list
   from pg_tables
   where schemaname = 'public'
-    and tablename not in ('operational_cron_jobs');
+    and tablename not in (
+      'operational_cron_jobs',
+      'personal_data_relation_manifest'
+    );
 
   if table_list is not null then
     execute 'truncate table ' || table_list || ' restart identity cascade';

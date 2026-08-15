@@ -94,8 +94,19 @@ test(
       assert.equal(firstState.customer.auth_user_id, null)
       assert.equal(firstState.customer.full_name, null)
       assert.equal(firstState.customer.date_of_birth, null)
-      assert.equal(firstState.customerSessions, 0)
-      assert.equal(firstState.pushSubscriptions, 0)
+      // Sessions and push subscriptions are revoked in place, not deleted, so
+      // the record of when access was cut survives the erasure. What must not
+      // survive is anything identifying: the push row's device secrets, user
+      // agent, and metadata are overwritten in the same statement.
+      assert.equal(firstState.customerSessions, 1, "the session row is retained")
+      assert.equal(firstState.liveCustomerSessions, 0, "no session is still live")
+      assert.equal(firstState.pushSubscriptions, 1, "the push row is retained")
+      assert.equal(firstState.livePushSubscriptions, 0, "no push subscription is still live")
+      assert.equal(
+        firstState.pushWithResidualSecrets,
+        0,
+        "no endpoint, key, user agent, or metadata survives on the retained push row"
+      )
       assert.equal(firstState.authIdentities, 0)
       assert.equal(firstState.authSessions, 0)
       assert.equal(firstState.refreshTokens, 0)
@@ -324,7 +335,19 @@ async function erasedState(tx, fixture) {
   const [counts] = await tx`
     select
       (select count(*)::int from public.customer_sessions where customer_id = ${fixture.customerId}::uuid) as customer_sessions,
+      (select count(*)::int from public.customer_sessions
+        where customer_id = ${fixture.customerId}::uuid and revoked_at is null) as live_customer_sessions,
       (select count(*)::int from public.push_subscriptions where customer_id = ${fixture.customerId}::uuid) as push_subscriptions,
+      (select count(*)::int from public.push_subscriptions
+        where customer_id = ${fixture.customerId}::uuid
+          and (enabled or revoked_at is null)) as live_push_subscriptions,
+      (select count(*)::int from public.push_subscriptions
+        where customer_id = ${fixture.customerId}::uuid
+          and (endpoint not like 'erased:%'
+            or p256dh not like 'erased:%'
+            or auth not like 'erased:%'
+            or user_agent is not null
+            or metadata <> '{}'::jsonb)) as push_with_residual_secrets,
       (select count(*)::int from auth.identities where user_id = ${fixture.authUserId}::uuid) as auth_identities,
       (select count(*)::int from auth.sessions where user_id = ${fixture.authUserId}::uuid) as auth_sessions,
       (select count(*)::int from auth.refresh_tokens where user_id = ${fixture.authUserId}::text) as refresh_tokens,
@@ -340,7 +363,10 @@ async function erasedState(tx, fixture) {
     customer,
     authUser,
     customerSessions: counts.customer_sessions,
+    liveCustomerSessions: counts.live_customer_sessions,
     pushSubscriptions: counts.push_subscriptions,
+    livePushSubscriptions: counts.live_push_subscriptions,
+    pushWithResidualSecrets: counts.push_with_residual_secrets,
     authIdentities: counts.auth_identities,
     authSessions: counts.auth_sessions,
     refreshTokens: counts.refresh_tokens,
