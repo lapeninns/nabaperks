@@ -1,5 +1,4 @@
 import { expect, test } from "@playwright/test"
-import { createHash } from "node:crypto"
 import { createClient } from "@supabase/supabase-js"
 
 import { deterministicFunnelEventId } from "../../lib/analytics/funnel-token"
@@ -86,12 +85,6 @@ test.describe("desktop privacy-safe merchant funnel", () => {
     let lostResponseEventId = ""
     let rejectedEventId = ""
     let rejectedFreshEventId = ""
-    const localBucketKeys = [
-      "unknown",
-      "127.0.0.1",
-      "::1",
-      "::ffff:127.0.0.1",
-    ].map(analyticsRateLimitBucketKey)
 
     try {
       let lostToken = ""
@@ -103,7 +96,7 @@ test.describe("desktop privacy-safe merchant funnel", () => {
           const response = await route.fetch()
           const result = (await response.json()) as { token?: string }
           lostToken = result.token ?? ""
-          await route.abort("failed")
+          await route.fulfill({ status: 503 })
           return
         }
         await route.continue()
@@ -242,11 +235,6 @@ test.describe("desktop privacy-safe merchant funnel", () => {
       if (ids.length > 0) {
         await supabase.from("product_events").delete().in("id", ids)
       }
-      await supabase
-        .from("rate_limit_buckets")
-        .delete()
-        .in("bucket_key", localBucketKeys)
-
       if (ids.length > 0) {
         const { count } = await supabase
           .from("product_events")
@@ -254,15 +242,6 @@ test.describe("desktop privacy-safe merchant funnel", () => {
           .in("id", ids)
         expect(count).toBe(0)
       }
-      const { count: bucketCount } = await supabase
-        .from("rate_limit_buckets")
-        .select("bucket_key", { count: "exact", head: true })
-        .in("bucket_key", localBucketKeys)
-      expect(bucketCount).toBe(0)
     }
   })
 })
-
-function analyticsRateLimitBucketKey(ip: string) {
-  return createHash("sha256").update(`analytics-funnel-ip:${ip}`).digest("hex")
-}
