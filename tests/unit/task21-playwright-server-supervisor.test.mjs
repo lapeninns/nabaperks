@@ -70,7 +70,7 @@ test("Given a healthy exact-SHA child When supervised Then readiness opens only 
   assert.equal(receipt.status, "ready")
   assert.match(receipt.revision, /^[0-9a-f]{40}$/)
   assert.match(Buffer.concat(chunks).toString(), /TASK21_SERVER_READY/)
-  assert.match(Buffer.concat(chunks).toString(), /heapMb=12288/)
+  assert.match(Buffer.concat(chunks).toString(), /heapMb=32768/)
 
   process.kill(-child.pid, "SIGTERM")
   const [code, signal] = await once(child, "close")
