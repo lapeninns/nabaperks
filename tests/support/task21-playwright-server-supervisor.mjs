@@ -5,6 +5,10 @@ import { fileURLToPath } from "node:url"
 
 const PROJECT_ROOT = fileURLToPath(new URL("../../", import.meta.url))
 const MAX_OLD_SPACE_MB = 32_768
+const WARM_PATHS = [
+  "/app/rewards/scan/00000000-0000-4000-8000-000000000000",
+  "/app/offers/scan/00000000-0000-4000-8000-000000000000",
+]
 
 class SupervisorError extends Error {
   constructor(code, exitCode = 64) {
@@ -54,6 +58,7 @@ async function run() {
     )
   })
   let gate
+  let parentMonitor
   let stopping = false
   let stopRequested
   const requested = new Promise((resolveStop) => {
@@ -67,6 +72,7 @@ async function run() {
   }
   process.once("SIGINT", requestStop)
   process.once("SIGTERM", requestStop)
+  parentMonitor = monitorParent(process.ppid, requestStop)
 
   try {
     const identity = await waitForExactHealth({
@@ -75,6 +81,7 @@ async function run() {
       healthUrl: new URL("/api/health", appUrl),
       revision,
     })
+    await warmRoutes(appUrl, healthTimeoutMs)
     gate = await startGate(readyPort, identity)
     console.log(
       `TASK21_SERVER_READY revision=${revision} heapMb=${MAX_OLD_SPACE_MB} appPid=${child.pid}`
@@ -92,8 +99,32 @@ async function run() {
   } finally {
     if (gate) await closeServer(gate)
     await stopChild(child, childClosed)
+    clearInterval(parentMonitor)
     process.removeListener("SIGINT", requestStop)
     process.removeListener("SIGTERM", requestStop)
+  }
+}
+
+function monitorParent(parentPid, requestStop) {
+  return setInterval(() => {
+    try {
+      process.kill(parentPid, 0)
+    } catch (error) {
+      if (error?.code === "ESRCH") requestStop()
+      else throw error
+    }
+  }, 250)
+}
+
+async function warmRoutes(appUrl, timeoutMs) {
+  for (const path of WARM_PATHS) {
+    const response = await fetch(new URL(path, appUrl), {
+      redirect: "manual",
+      signal: AbortSignal.timeout(timeoutMs),
+    })
+    if (response.status >= 500)
+      throw new SupervisorError("TASK21_ROUTE_WARMUP_FAILED", 65)
+    await response.body?.cancel()
   }
 }
 

@@ -40,6 +40,20 @@ async function waitForResponse(url, timeoutMs = 5_000) {
   throw new Error(`timed out waiting for ${url}`)
 }
 
+async function waitForNoResponse(url, timeoutMs = 5_000) {
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    try {
+      await fetch(url)
+    } catch (error) {
+      if (error instanceof TypeError) return
+      throw error
+    }
+    await new Promise((resolve) => setTimeout(resolve, 20))
+  }
+  throw new Error(`timed out waiting for ${url} to close`)
+}
+
 function startSupervisor(fixture, appPort, readyPort) {
   return spawn(process.execPath, [SUPERVISOR], {
     cwd: PROJECT_ROOT,
@@ -112,4 +126,33 @@ test("Given malformed supervisor environment When started Then it fails closed b
 
   assert.equal(code, 64)
   assert.match(Buffer.concat(stderr).toString(), /TASK21_INVALID_BASE_URL/)
+})
+
+test("Given Playwright is interrupted When its parent exits Then the orphaned supervisor closes both ports", async () => {
+  const appPort = await availablePort()
+  const readyPort = await availablePort()
+  const launcher = spawn(
+    process.execPath,
+    [
+      "--eval",
+      `const {spawn}=require("node:child_process");spawn(process.execPath,[process.argv[1]],{detached:true,env:process.env,stdio:"ignore"});setTimeout(()=>process.exit(0),1000)`,
+      SUPERVISOR,
+    ],
+    {
+      cwd: PROJECT_ROOT,
+      env: {
+        ...process.env,
+        PLAYWRIGHT_BASE_URL: `http://127.0.0.1:${appPort}`,
+        TASK21_PLAYWRIGHT_READY_PORT: String(readyPort),
+        TASK21_SERVER_FIXTURE: "healthy",
+        TASK21_SERVER_HEALTH_TIMEOUT_MS: "3000",
+      },
+      stdio: "ignore",
+    }
+  )
+
+  await waitForResponse(`http://127.0.0.1:${readyPort}/task21-ready`)
+  await once(launcher, "close")
+  await waitForNoResponse(`http://127.0.0.1:${appPort}/api/health`)
+  await waitForNoResponse(`http://127.0.0.1:${readyPort}/task21-ready`)
 })
