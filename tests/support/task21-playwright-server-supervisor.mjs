@@ -150,7 +150,12 @@ function startChild({ appUrl, fixture, revision }) {
           appUrl.port
         ),
       ]
-    : ["node_modules/next/dist/bin/next", "dev", "--webpack"]
+    : [
+        "node_modules/next/dist/bin/next",
+        "dev",
+        "--webpack",
+        "--disable-source-maps",
+      ]
   return spawn(process.execPath, args, {
     cwd: PROJECT_ROOT,
     detached: true,
