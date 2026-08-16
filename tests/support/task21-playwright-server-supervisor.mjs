@@ -4,7 +4,7 @@ import { createServer } from "node:http"
 import { fileURLToPath } from "node:url"
 
 const PROJECT_ROOT = fileURLToPath(new URL("../../", import.meta.url))
-const MAX_OLD_SPACE_MB = 4096
+const MAX_OLD_SPACE_MB = 12_288
 
 class SupervisorError extends Error {
   constructor(code, exitCode = 64) {

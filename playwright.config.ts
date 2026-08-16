@@ -97,7 +97,8 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   failOnFlakyTests: Boolean(process.env.CI),
-  retries: task21Matrix ? 0 : process.env.CI ? 1 : 0,
+  retries: process.env.CI ? 1 : 0,
+  ...(task21Matrix ? { retries: 0 } : {}),
   workers: localWorkers,
   expect: {
     timeout: 15_000,
@@ -154,6 +155,9 @@ export default defineConfig({
     command: devServerCommand,
     url: devServerReadyUrl,
     reuseExistingServer,
+    ...(task21Matrix
+      ? { gracefulShutdown: { signal: "SIGTERM" as const, timeout: 5_000 } }
+      : {}),
     timeout: process.env.CI ? 180_000 : 120_000,
   },
 })

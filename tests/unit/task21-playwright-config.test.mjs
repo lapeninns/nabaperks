@@ -33,6 +33,10 @@ test("Given Task21 matrix mode When Playwright loads config Then exact-SHA super
   assert.equal(result.status, 0, result.stderr)
   const report = JSON.parse(result.stdout)
   assert.equal(report.config.projects[1].retries, 0)
+  assert.deepEqual(report.config.webServer?.gracefulShutdown, {
+    signal: "SIGTERM",
+    timeout: 5_000,
+  })
   assert.match(
     report.config.webServer.command,
     /task21-playwright-server-supervisor\.mjs/
