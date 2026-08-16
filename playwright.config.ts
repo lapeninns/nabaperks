@@ -26,9 +26,21 @@ const authHookSecret = `v1,${"whsec"}_${"dGVzdC1ob29rLXNlY3JldA=="}`
 const cronSecret = "pw-cron-secret-e2e-do-not-use-in-production"
 const productionMonitorSecret = "pw-monitor-secret-e2e-do-not-use-in-production"
 const devServerUrl = new URL(baseURL)
-const devServerReadyUrl = new URL("/signup", devServerUrl).toString()
 const devServerPort =
   devServerUrl.port || (devServerUrl.protocol === "https:" ? "443" : "80")
+const task21Matrix = process.env.TASK21_PLAYWRIGHT_MATRIX === "1"
+const task21ReadyPort = Number(devServerPort) + 10_000
+if (
+  task21Matrix &&
+  (!Number.isInteger(task21ReadyPort) ||
+    Number(devServerPort) < 1024 ||
+    task21ReadyPort > 65_535)
+) {
+  throw new Error("Invalid Task21 Playwright base port")
+}
+const devServerReadyUrl = task21Matrix
+  ? `http://127.0.0.1:${task21ReadyPort}/task21-ready`
+  : new URL("/signup", devServerUrl).toString()
 const devServerEnv = [
   `PORT=${devServerPort}`,
   `CUSTOMER_DEV_OTP_CODE=${devOtpCode}`,
@@ -42,6 +54,9 @@ const devServerEnv = [
   `CRON_SECRET=${cronSecret}`,
   `PRODUCTION_MONITOR_SECRET=${productionMonitorSecret}`,
 ].join(" ")
+const devServerCommand = task21Matrix
+  ? `${devServerEnv} TASK21_PLAYWRIGHT_READY_PORT=${task21ReadyPort} node tests/support/task21-playwright-server-supervisor.mjs`
+  : `${devServerEnv} pnpm exec next dev --webpack`
 const localWorkerOverride = process.env.PLAYWRIGHT_WORKERS
   ? Number.parseInt(process.env.PLAYWRIGHT_WORKERS, 10)
   : 1
@@ -82,7 +97,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   failOnFlakyTests: Boolean(process.env.CI),
-  retries: process.env.CI ? 1 : 0,
+  retries: task21Matrix ? 0 : process.env.CI ? 1 : 0,
   workers: localWorkers,
   expect: {
     timeout: 15_000,
@@ -136,7 +151,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `${devServerEnv} pnpm exec next dev --webpack`,
+    command: devServerCommand,
     url: devServerReadyUrl,
     reuseExistingServer,
     timeout: process.env.CI ? 180_000 : 120_000,
