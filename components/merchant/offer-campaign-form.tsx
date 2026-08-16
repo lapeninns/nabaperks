@@ -592,7 +592,23 @@ function StepTrack({ current }: { current: OfferCreatorStep }) {
   // One non-wrapping pill strip that scrolls on narrow phones instead of
   // reflowing — the active step is always one flick away, never pushed down.
   return (
-    <ol className="flex [scrollbar-width:none] flex-nowrap items-center gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
+    <ol
+      aria-label="Offer creation steps"
+      className="focus-ring flex [scrollbar-width:none] flex-nowrap items-center gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden"
+      tabIndex={0}
+      onKeyDown={(event) => {
+        const direction =
+          event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0
+
+        if (direction === 0) return
+
+        event.preventDefault()
+        event.currentTarget.scrollBy({
+          left: direction * event.currentTarget.clientWidth,
+          behavior: "smooth",
+        })
+      }}
+    >
       {STEP_LABELS.map((entry, index) => (
         <li key={entry.step} className="flex shrink-0 items-center gap-2">
           <span
