@@ -12,6 +12,7 @@
     "tests/support/alias-hook.mjs",
     "tests/support/server-only-stub.mjs",
     "tests/support/task15-mobile-safari-supervisor.mjs",
+    "tests/support/task21-playwright-server-supervisor.mjs",
     "tests/unit/auth-hook-route-harness.fixture.mjs",
     "tests/unit/auth-hook-route-register.mjs",
     "tests/unit/claim-offer-boundary-harness.fixture.mjs",

@@ -15,6 +15,7 @@ const configPath =
 const dynamicTask15SupportClis = [
   "scripts/qa/validate-task15-test-infrastructure-register.mjs",
   "tests/support/task15-mobile-safari-supervisor.mjs",
+  "tests/support/task21-playwright-server-supervisor.mjs",
 ]
 const runtimeEntries = [
   "scripts/capture-app-harness.mjs",
@@ -234,6 +235,43 @@ test("an omitted local race guard entry is reported by the real Knip binary", as
     // Then
     assert.equal(omitted.code, 1, omitted.stderr)
     assert.ok(issueFiles(omitted.stdout).includes(guardEntry), omitted.stdout)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test("an omitted Task21 supervisor entry is reported by the real Knip binary", async () => {
+  // Given
+  const config = JSON.parse(await readFile(configPath, "utf8"))
+  const supervisorEntry =
+    "tests/support/task21-playwright-server-supervisor.mjs"
+  assert.ok(config.entry.includes(supervisorEntry))
+  const root = await mkdtemp(
+    join(tmpdir(), "nabaperks-knip-task21-supervisor-")
+  )
+  const fixtureConfig = {
+    ...config,
+    entry: [],
+    project: ["tests/support/**/*.mjs"],
+  }
+  await writeFixture(root, fixtureConfig)
+  await mkdir(join(root, "tests/support"), { recursive: true })
+  await writeFile(
+    join(root, supervisorEntry),
+    "export const task21Supervisor = true\n",
+    "utf8"
+  )
+
+  try {
+    // When
+    const omitted = await runKnip(root)
+
+    // Then
+    assert.equal(omitted.code, 1, omitted.stderr)
+    assert.ok(
+      issueFiles(omitted.stdout).includes(supervisorEntry),
+      omitted.stdout
+    )
   } finally {
     await rm(root, { recursive: true, force: true })
   }
