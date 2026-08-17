@@ -46,7 +46,10 @@ export function Marquee({
         className
       )}
     >
-      <div className="relative w-full overflow-x-clip [contain:inline-size]">
+      <div
+        data-decorative-overflow="marquee"
+        className="relative w-full overflow-x-clip [contain:inline-size]"
+      >
         <WetInkMarquee className="flex w-max">
           {strip}
           {strip}

@@ -8,6 +8,7 @@ import {
 import { dismissPwaInstall } from "./helpers/harness"
 import {
   assertJourneyEnvironment,
+  journeyEnvironmentSkipReason,
   copyMerchantSession,
   installCustomerSession,
   postSignedDelivery,
@@ -28,6 +29,8 @@ import {
 const REWARDS_PATH = "/app/launch?tab=rewards"
 
 test.describe("Task15 governed journey and race receipts", () => {
+  const journeySkipReason = journeyEnvironmentSkipReason()
+  test.skip(journeySkipReason !== null, journeySkipReason ?? "")
   test.beforeAll(() => assertJourneyEnvironment())
   test.beforeEach(async ({ page }) => dismissPwaInstall(page))
 

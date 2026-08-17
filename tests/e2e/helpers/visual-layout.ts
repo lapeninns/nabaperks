@@ -27,7 +27,16 @@ export async function assertVisualLayoutInvariants(
     const hiddenHorizontalOverflow = Array.from(
       main.querySelectorAll<HTMLElement>("*")
     ).flatMap((element) => {
-      if (element.matches(".sr-only")) return []
+      // `closest`, not `matches`: sr-only wrappers hold their text in child
+      // elements, so matching only the leaf misses them.
+      if (element.closest(".sr-only")) return []
+      // Explicit opt-in marker for subtrees whose clipping is the mechanism
+      // rather than a fault — a marquee ticker overflows its window by
+      // construction. Deliberately NOT keyed on aria-hidden: that attribute
+      // hides content from assistive technology but not from sighted readers,
+      // so it is an invalid proxy for "nobody can see this" and would silence
+      // genuinely visible overflow elsewhere in the app.
+      if (element.closest("[data-decorative-overflow]")) return []
 
       const style = window.getComputedStyle(element)
       const bounds = element.getBoundingClientRect()

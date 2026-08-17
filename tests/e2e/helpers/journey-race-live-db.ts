@@ -24,6 +24,29 @@ export type DeliveryFixture = Readonly<{
   recipientId: string
 }>
 
+const JOURNEY_OPT_IN_FLAGS = [
+  "CUSTOMER_FLOW_E2E",
+  "MERCHANT_REWARD_PRESET_LIVE_DB_E2E",
+] as const
+
+/**
+ * Reports why this suite is not selected for the current run, or null when it
+ * is selected.
+ *
+ * Throwing from `beforeAll` marks a suite's remaining tests "skipped" without
+ * ever executing them, which no reporter summary can tell apart from a
+ * declared `test.skip()` — a hidden skip. Callers skip declaratively on a
+ * non-null reason instead. Opt-in flags are checked here, ahead of the
+ * connection variables `assertJourneyEnvironment` validates, so a DB-free run
+ * reports "not selected" rather than "misconfigured".
+ */
+export function journeyEnvironmentSkipReason(): string | null {
+  for (const name of JOURNEY_OPT_IN_FLAGS) {
+    if (process.env[name] !== "1") return `${name}=1 is not set`
+  }
+  return null
+}
+
 export function assertJourneyEnvironment(): void {
   const required = [
     "NEXT_PUBLIC_SUPABASE_URL",
