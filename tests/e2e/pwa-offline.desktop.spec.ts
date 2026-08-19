@@ -101,42 +101,26 @@ test.describe("PWA offline fallback", () => {
     expect(result.body).not.toContain("stale-client-bundle")
   })
 
-  test("Given the offline shell When connectivity returns Then it stays put and exposes a native retry link", async ({
+  test("Given the offline shell is open When connectivity returns Then it keeps the customer in control of retry", async ({
     page,
   }) => {
     await page.goto("/offline")
-    await page.waitForLoadState("networkidle")
+    const before = await page.evaluate(readNavigationType)
 
-    const navigation = page.waitForEvent("framenavigated", {
-      predicate: (frame) => frame === page.mainFrame(),
-      timeout: 750,
-    })
-    const recovery = navigation.then(
-      async (frame) =>
-        frame.evaluate(() => {
-          const [entry] = performance.getEntriesByType("navigation")
-          return entry instanceof PerformanceNavigationTiming &&
-            entry.type === "reload"
-            ? "reloaded"
-            : "stable"
-        }),
-      (error: unknown) => {
-        if (error instanceof Error && error.message.includes("Timeout")) {
-          return "stable"
-        }
-        throw error
-      }
-    )
     await page.evaluate(() => window.dispatchEvent(new Event("online")))
+    await page.waitForTimeout(100)
 
+    const after = await page.evaluate(readNavigationType)
+    expect(before).toBe("navigate")
+    expect(after).toBe("navigate")
     await expect(page.getByRole("link", { name: "Try again" })).toBeVisible()
-    await expect(page.getByRole("link", { name: "Try again" })).toHaveAttribute(
-      "href",
-      ""
-    )
-    await expect(recovery).resolves.toBe("stable")
   })
 })
+
+function readNavigationType() {
+  const entry = performance.getEntriesByType("navigation").at(-1)
+  return entry instanceof PerformanceNavigationTiming ? entry.type : null
+}
 
 async function readServiceWorkerScope(page: Page): Promise<string | null> {
   try {

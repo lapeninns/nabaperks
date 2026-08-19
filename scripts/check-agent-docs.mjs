@@ -19,8 +19,9 @@ function normalizeDocumentPath(value) {
     normalized === "." ||
     normalized.startsWith("../") ||
     normalized.startsWith("/")
-  )
+  ) {
     return null
+  }
   return normalized
 }
 
@@ -37,6 +38,7 @@ function documentedCommands(markdown) {
     /^```(?:bash|shell|sh|zsh)\s*\r?\n([\s\S]*?)^```/gim
   )
   const commands = new Set()
+
   for (const block of codeBlocks) {
     for (const line of block[1].split(/\r?\n/)) {
       const command = line.replace(/\s+#.*$/, "").trim()
@@ -46,6 +48,7 @@ function documentedCommands(markdown) {
       if (match) commands.add(match[1])
     }
   }
+
   return commands
 }
 
@@ -63,6 +66,7 @@ function validateScriptTarget(script, scripts, errors, ancestors = []) {
     errors.push(`AGENT_DOCS_SCRIPT_TARGET_INVALID: ${script}`)
     return
   }
+
   for (const target of nestedScriptTargets(command)) {
     if (!Object.hasOwn(scripts, target)) {
       errors.push(`AGENT_DOCS_SCRIPT_TARGET_MISSING: ${script} -> ${target}`)
@@ -81,11 +85,13 @@ function validateScriptTarget(script, scripts, errors, ancestors = []) {
 const errors = []
 let agents = ""
 let packageJson = null
+
 try {
   agents = readFileSync(AGENTS_PATH, "utf8")
 } catch {
   errors.push("AGENT_DOCS_GUIDE_UNREADABLE")
 }
+
 try {
   packageJson = JSON.parse(readFileSync("package.json", "utf8"))
 } catch {
@@ -95,6 +101,7 @@ try {
 const paths = documentedPaths(agents)
 const commands = documentedCommands(agents)
 const scripts = packageJson?.scripts
+
 if (!scripts || typeof scripts !== "object" || Array.isArray(scripts)) {
   errors.push("AGENT_DOCS_SCRIPTS_INVALID")
 } else {
@@ -105,6 +112,20 @@ if (!scripts || typeof scripts !== "object" || Array.isArray(scripts)) {
       continue
     }
     validateScriptTarget(command, scripts, errors)
+  }
+}
+
+for (const path of REQUIRED_PATHS) {
+  if (!paths.has(path))
+    errors.push(`AGENT_DOCS_PATH_REFERENCE_MISSING: ${path}`)
+  if (!existsSync(path) || !statSync(path).isFile()) {
+    errors.push(`AGENT_DOCS_PATH_TARGET_MISSING: ${path}`)
+  }
+}
+
+for (const command of REQUIRED_COMMANDS) {
+  if (!commands.has(command)) {
+    errors.push(`AGENT_DOCS_REQUIRED_COMMAND_MISSING: ${command}`)
   }
 }
 

@@ -315,6 +315,7 @@ async function refreshPushSubscription(oldSubscription) {
         oldEndpoint: oldSubscription?.endpoint ?? null,
         permissionState: "granted",
         subscription: currentSubscription.toJSON(),
+        permissionState: pushPermissionState(),
       }),
     })
   } catch {
@@ -327,6 +328,10 @@ async function refreshPushSubscription(oldSubscription) {
       }).catch(() => undefined)
     }
   }
+}
+
+function pushPermissionState() {
+  return self.Notification?.permission === "granted" ? "granted" : "unknown"
 }
 
 async function subscribeForPush() {

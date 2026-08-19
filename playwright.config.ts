@@ -135,6 +135,21 @@ export default defineConfig({
       },
     },
     {
+      name: "tablet",
+      testMatch: "**/visual-layout-invariants/visual.spec.ts",
+      use: {
+        ...devices["iPad (gen 7)"],
+      },
+    },
+    {
+      name: "mobile-landscape",
+      testMatch: "**/visual-layout-invariants/visual.spec.ts",
+      use: {
+        ...devices["iPhone 14"],
+        viewport: { width: 812, height: 375 },
+      },
+    },
+    {
       name: "desktop-firefox",
       snapshotPathTemplate: ciLinuxSnapshotPathTemplate,
       testMatch: ["**/*.desktop.spec.ts", "**/visual.spec.ts"],

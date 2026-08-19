@@ -8,6 +8,12 @@ import {
 } from "@hugeicons/core-free-icons"
 
 import { Icon, IconRoundel, SectionHeader } from "@/components/brand"
+import {
+  awaitPushOperation,
+  requestPushPermission,
+  savePushPreferences,
+  type PushPreferences,
+} from "@/components/customer/push-notification-settings-state"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -28,14 +34,7 @@ type BrowserPushState =
   | "subscribed"
   | "error"
 
-export type PushPreferences = {
-  transactionalEnabled: boolean
-  reminderEnabled: boolean
-  marketingEnabled: boolean
-  quietHoursStart: string | null
-  quietHoursEnd: string | null
-  activeSubscriptionCount: number
-}
+export type { PushPreferences } from "@/components/customer/push-notification-settings-state"
 
 const defaultPreferences: PushPreferences = {
   transactionalEnabled: true,
@@ -87,7 +86,13 @@ export function PushNotificationSettings({
     useState<PushPreferences>(initialPreferences)
   const [message, setMessage] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
-  const preferenceRequest = useRef(0)
+  const preferencesRef = useRef(initialPreferences)
+  const preferenceRequestId = useRef(0)
+
+  function setCurrentPreferences(next: PushPreferences) {
+    preferencesRef.current = next
+    setPreferences(next)
+  }
 
   useEffect(() => {
     let ignore = false
@@ -107,7 +112,7 @@ export function PushNotificationSettings({
       const body = (await response.json().catch(() => null)) as {
         preferences?: PushPreferences
       } | null
-      if (body?.preferences && !ignore) setPreferences(body.preferences)
+      if (body?.preferences && !ignore) setCurrentPreferences(body.preferences)
     }
 
     void init()
@@ -117,6 +122,40 @@ export function PushNotificationSettings({
       ignore = true
       window.removeEventListener("focus", refreshBrowserState)
       document.removeEventListener("visibilitychange", refreshBrowserState)
+    }
+  }, [])
+
+  useEffect(() => {
+    let permissionStatus: PermissionStatus | null = null
+    let cancelled = false
+
+    const refreshState = () => {
+      void resolveBrowserPushState().then((nextState) => {
+        if (!cancelled) setBrowserState(nextState)
+      })
+    }
+    const refreshOnVisible = () => {
+      if (document.visibilityState === "visible") refreshState()
+    }
+
+    window.addEventListener("focus", refreshState)
+    document.addEventListener("visibilitychange", refreshOnVisible)
+    if ("permissions" in navigator) {
+      void navigator.permissions
+        .query({ name: "notifications" })
+        .then((nextPermissionStatus) => {
+          if (cancelled) return
+          permissionStatus = nextPermissionStatus
+          permissionStatus.onchange = refreshState
+        })
+        .catch(() => undefined)
+    }
+
+    return () => {
+      cancelled = true
+      window.removeEventListener("focus", refreshState)
+      document.removeEventListener("visibilitychange", refreshOnVisible)
+      if (permissionStatus) permissionStatus.onchange = null
     }
   }, [])
 
@@ -143,10 +182,10 @@ export function PushNotificationSettings({
         method: "POST",
       }).catch(() => null)
 
-      const permission =
-        Notification.permission === "granted"
-          ? "granted"
-          : await requestPushPermission(() => Notification.requestPermission())
+      const permission = await requestPushPermission(
+        Notification.permission,
+        () => Notification.requestPermission()
+      )
 
       if (permission === "denied") {
         setBrowserState("denied")
@@ -157,16 +196,9 @@ export function PushNotificationSettings({
         return
       }
 
-      const registrationResult = await settlePushOperation(
-        navigator.serviceWorker.ready,
-        PUSH_OPERATION_TIMEOUT_MS
+      const registration = await awaitPushOperation(
+        navigator.serviceWorker.ready
       )
-      if (registrationResult.kind !== "fulfilled") {
-        setBrowserState("error")
-        setMessage("Push could not be enabled here. Try again.")
-        return
-      }
-      const registration = registrationResult.value
       const existing = await registration.pushManager.getSubscription()
       const subscription =
         existing ??
@@ -186,10 +218,13 @@ export function PushNotificationSettings({
       if (!response.ok) throw new Error("subscribe_failed")
 
       setBrowserState("subscribed")
-      setPreferences((current) => ({
-        ...current,
-        activeSubscriptionCount: Math.max(1, current.activeSubscriptionCount),
-      }))
+      setCurrentPreferences({
+        ...preferencesRef.current,
+        activeSubscriptionCount: Math.max(
+          1,
+          preferencesRef.current.activeSubscriptionCount
+        ),
+      })
       setMessage("Push is on for this browser.")
     } catch {
       setBrowserState("error")
@@ -203,7 +238,9 @@ export function PushNotificationSettings({
     setPending(true)
     setMessage(null)
     try {
-      const registration = await navigator.serviceWorker.ready
+      const registration = await awaitPushOperation(
+        navigator.serviceWorker.ready
+      )
       const subscription = await registration.pushManager.getSubscription()
       if (subscription) {
         const response = await fetch("/api/notifications/push/unsubscribe", {
@@ -221,10 +258,10 @@ export function PushNotificationSettings({
         await subscription.unsubscribe()
       }
       setBrowserState("granted")
-      setPreferences((current) => ({
-        ...current,
+      setCurrentPreferences({
+        ...preferencesRef.current,
         activeSubscriptionCount: 0,
-      }))
+      })
       setMessage("Push is off for this browser.")
     } catch {
       setBrowserState("error")
@@ -238,38 +275,32 @@ export function PushNotificationSettings({
     key: (typeof preferenceRows)[number]["key"],
     value: boolean
   ) {
-    const next = { ...preferences, [key]: value }
-    const request = preferenceRequest.current + 1
-    preferenceRequest.current = request
-    setPreferences(next)
+    const requestId = preferenceRequestId.current + 1
+    preferenceRequestId.current = requestId
+    const previous = preferencesRef.current
+    const next = { ...previous, [key]: value }
+    setCurrentPreferences(next)
     setMessage(null)
-    let persistedPreferences: PushPreferences | undefined
-    const result = await persistPushPreferences({
-      previous: preferences,
-      next,
-      persist: async () => {
-        const response = await fetch("/api/notifications/push/preferences", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(next),
-        })
-        if (!response.ok) return false
-        const body = (await response.json().catch(() => null)) as {
-          preferences?: PushPreferences
-        } | null
-        persistedPreferences = body?.preferences
-        return true
-      },
-    })
-    if (!isCurrentPushPreferenceRequest(preferenceRequest.current, request)) {
-      return
-    }
-    if (result.kind === "rejected") {
-      setPreferences(result.rollback)
+    try {
+      const result = await savePushPreferences(next)
+      if (result.kind === "failed") {
+        if (preferenceRequestId.current === requestId) {
+          setCurrentPreferences(previous)
+          setMessage("Preference was not saved.")
+        }
+        return
+      }
+      const body = (await result.response.json().catch(() => null)) as {
+        preferences?: PushPreferences
+      } | null
+      if (body?.preferences && preferenceRequestId.current === requestId) {
+        setCurrentPreferences(body.preferences)
+      }
+    } catch {
+      if (preferenceRequestId.current !== requestId) return
+      setCurrentPreferences(previous)
       setMessage("Preference was not saved.")
-      return
     }
-    if (persistedPreferences) setPreferences(persistedPreferences)
   }
 
   return (
@@ -366,12 +397,7 @@ async function resolveBrowserPushState(): Promise<BrowserPushState> {
   if (Notification.permission === "denied") return "denied"
 
   try {
-    const registrationResult = await settlePushOperation(
-      navigator.serviceWorker.ready,
-      PUSH_OPERATION_TIMEOUT_MS
-    )
-    if (registrationResult.kind !== "fulfilled") return "error"
-    const registration = registrationResult.value
+    const registration = await awaitPushOperation(navigator.serviceWorker.ready)
     const subscription = await registration.pushManager.getSubscription()
     if (subscription) return "subscribed"
   } catch {
@@ -429,9 +455,9 @@ function statusFor(state: BrowserPushState) {
 }
 
 async function loadPublicKey() {
-  const response = await fetch("/api/notifications/push/public-key", {
-    cache: "no-store",
-  })
+  const response = await awaitPushOperation(
+    fetch("/api/notifications/push/public-key", { cache: "no-store" })
+  )
   if (!response.ok) return null
   const body = (await response.json().catch(() => null)) as {
     enabled?: boolean

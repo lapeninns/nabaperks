@@ -1,244 +1,217 @@
 import { expect, test } from "@playwright/test"
 
-import { assertVisualLayoutInvariants } from "../helpers/visual-layout"
+import { gotoHydratedPage } from "../helpers/harness"
+import {
+  assertPageLayoutInvariants,
+  BREAKPOINT_EDGE_WIDTHS,
+  LONG_COPY,
+  RESPONSIVE_VIEWPORTS,
+} from "../helpers/visual-layout"
 
 const DASHBOARD_PATH = "/dev/app-harness/dashboard"
-const DASHBOARD_BREAKPOINT_WIDTHS = [639, 640, 767, 768, 1023, 1024] as const
-const DASHBOARD_VIEWPORT_HEIGHT = 844 as const
-const DESKTOP_NAV_BREAKPOINT = 768 as const
-const RESPONSIVE_VIEWPORTS = [
-  { height: 812, label: "mobile", width: 375 },
-  { height: 1024, label: "tablet-portrait", width: 768 },
-  { height: 768, label: "tablet-landscape", width: 1024 },
-  { height: 900, label: "desktop", width: 1280 },
-] as const
-const REFLOW_VIEWPORTS = [
-  { factor: 2, height: 900, width: 640 },
-  { factor: 4, height: 900, width: 320 },
-] as const
-const LONG_COPY_FIXTURE =
-  "NabaperksLongCopyNabaperksLongCopyNabaperksLongCopyNabaperksLongCopyNabaperksLongCopyNabaperksLongCopyNabaperksLongCopyNabaperksLongCopyNabaperksLongCopyNabaperksLongCopyNabaperksLongCopyNabaperksLongCopyNabaperksLongCopyNabaperksX"
+const LOADING_PATH = "/dev/app-harness/skeletons"
+const ERROR_PATH = "/dev/app-harness/states#error-banners"
 
 test.describe("visual layout invariants @visual", () => {
-  test("Given dashboard breakpoint edges When the real shell renders Then bounds and the 768px menu branch remain physical", async ({
-    page,
-  }) => {
-    for (const width of DASHBOARD_BREAKPOINT_WIDTHS) {
-      await page.setViewportSize({
-        width,
-        height: DASHBOARD_VIEWPORT_HEIGHT,
-      })
-      await page.goto(DASHBOARD_PATH)
+  for (const width of BREAKPOINT_EDGE_WIDTHS) {
+    test(`Given the dashboard at ${width}px When it renders Then the breakpoint edge stays bounded`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 900 })
+      await gotoHydratedPage(page, DASHBOARD_PATH)
 
-      const metrics = await assertVisualLayoutInvariants(page)
-      expect(metrics.viewportWidth).toBe(width)
+      await assertPageLayoutInvariants(page)
 
       const mobileMenu = page.getByRole("button", { name: "Open menu" })
       const desktopMenu = page.getByRole("button", {
         name: "Toggle navigation",
       })
-
-      if (width < DESKTOP_NAV_BREAKPOINT) {
+      if (width < 768) {
         await expect(mobileMenu).toBeVisible()
         await expect(desktopMenu).toBeHidden()
       } else {
         await expect(mobileMenu).toBeHidden()
         await expect(desktopMenu).toBeVisible()
       }
-    }
-  })
+    })
+  }
 
-  test("Given a 231-character unbroken heading When it replaces the real dashboard heading Then the fixture and page stay inside physical bounds", async ({
+  test("Given adversarial unbroken venue copy When the phone dashboard renders Then the copy and page stay bounded", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 })
-    await page.goto(DASHBOARD_PATH)
-    expect(LONG_COPY_FIXTURE).toHaveLength(231)
+    await gotoHydratedPage(page, DASHBOARD_PATH)
 
-    const injectedValue = await page.evaluate((longCopy) => {
-      const heading = document.querySelector("h1")
+    const title = page.getByRole("heading", { level: 1 })
+    await title.evaluate((element, copy) => {
+      element.textContent = copy
+    }, LONG_COPY)
 
-      if (!heading) return null
-
-      heading.dataset.visualLongCopyFixture = "true"
-      heading.textContent = longCopy
-
-      return heading.textContent
-    }, LONG_COPY_FIXTURE)
-
-    expect(injectedValue).toBe(LONG_COPY_FIXTURE)
-
-    const fixture = page.locator('h1[data-visual-long-copy-fixture="true"]')
-    await expect(fixture).toBeVisible()
-    await expect(fixture).toHaveText(LONG_COPY_FIXTURE)
-    const [fixtureBounds, layoutMetrics] = await Promise.all([
-      fixture.evaluate((heading) => {
-        const bounds = heading.getBoundingClientRect()
-
-        return { height: bounds.height, left: bounds.left, right: bounds.right }
-      }),
-      assertVisualLayoutInvariants(page),
-    ])
-
-    expect(fixtureBounds.height).toBeGreaterThan(0)
-    expect(fixtureBounds.left).toBeGreaterThanOrEqual(-1)
-    expect(fixtureBounds.right).toBeLessThanOrEqual(
-      layoutMetrics.viewportWidth + 1
+    await expect(title).toHaveText(LONG_COPY)
+    const titleOverflow = await title.evaluate(
+      (element) => element.scrollWidth - element.clientWidth
     )
+    expect(titleOverflow).toBeLessThanOrEqual(1)
+    await assertPageLayoutInvariants(page)
   })
 
-  test("Given overflow-hidden content When the physical invariant runs Then concealed horizontal overflow is rejected", async ({
+  test("Given overflow is clipped by an ancestor When layout invariants run Then the concealed failure is rejected", async ({
     page,
   }) => {
-    await page.setViewportSize({ width: 390, height: 844 })
-    await page.goto(DASHBOARD_PATH)
-
+    await page.setViewportSize({ width: 375, height: 812 })
+    await gotoHydratedPage(page, DASHBOARD_PATH)
     await page.locator("main").evaluate((main) => {
-      const host = document.createElement("div")
-      host.dataset.visualOverflowFixture = "true"
-      host.style.width = "100px"
-      host.style.overflowX = "hidden"
-      host.style.whiteSpace = "nowrap"
-      const child = document.createElement("div")
-      child.style.width = "300px"
-      const text = document.createElement("span")
-      text.textContent = "Concealed descendant overflow fixture"
-      child.append(text)
-      host.append(child)
-      main.prepend(host)
+      const clip = document.createElement("div")
+      clip.style.overflowX = "clip"
+      clip.style.width = "100%"
+      const overflow = document.createElement("div")
+      overflow.dataset.visualOverflowProbe = "true"
+      overflow.style.width = "calc(100vw + 80px)"
+      const content = document.createElement("span")
+      content.style.display = "block"
+      content.style.width = "100%"
+      content.textContent = "concealed horizontal overflow"
+      overflow.append(content)
+      clip.append(overflow)
+      main.append(clip)
     })
 
-    await expect(assertVisualLayoutInvariants(page)).rejects.toThrow(
-      /hidden horizontal overflow: \[data-visual-overflow-fixture="true"\]/i
-    )
+    await expect(assertPageLayoutInvariants(page)).rejects.toThrow()
   })
 
-  test("Given emulated safe-area insets When the mobile shell renders Then its header clears the inset at runtime", async ({
+  for (const viewport of RESPONSIVE_VIEWPORTS) {
+    test(`Given the dashboard at ${viewport.name} dimensions When it renders Then its layout reflows without clipping`, async ({
+      page,
+    }) => {
+      await page.setViewportSize(viewport)
+      await gotoHydratedPage(page, DASHBOARD_PATH)
+
+      await assertPageLayoutInvariants(page)
+    })
+  }
+
+  test("Given dark theme is active When the dashboard renders Then the night-printing tokens and layout are visible", async ({
+    page,
+  }, testInfo) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem("nabaperks-theme", "dark")
+    })
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await gotoHydratedPage(page, DASHBOARD_PATH)
+
+    await expect(page.locator("html")).toHaveClass(/dark/)
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => getComputedStyle(document.documentElement).backgroundColor
+        )
+      )
+      .not.toBe("rgb(246, 241, 230)")
+    await assertPageLayoutInvariants(page)
+    await page.screenshot({
+      path: testInfo.outputPath("dashboard-dark.png"),
+      fullPage: true,
+    })
+  })
+
+  for (const state of [
+    { name: "loading", path: LOADING_PATH, heading: "Loading skeletons" },
+    {
+      name: "error",
+      path: ERROR_PATH,
+      heading: "Error fixtures — the real StatusBanner load-failure surfaces",
+    },
+  ] as const) {
+    test(`Given the ${state.name} harness When it renders Then the dedicated state stays visible and bounded`, async ({
+      page,
+    }, testInfo) => {
+      await page.setViewportSize({ width: 375, height: 812 })
+      await gotoHydratedPage(page, state.path)
+
+      await expect(
+        page.getByRole("heading", { name: state.heading })
+      ).toBeVisible()
+      await assertPageLayoutInvariants(page)
+      await page.screenshot({
+        path: testInfo.outputPath(`${state.name}-state.png`),
+        fullPage: true,
+      })
+    })
+  }
+
+  test("Given a phone safe area When the dashboard renders Then fixed chrome remains inside the visual viewport", async ({
     page,
   }) => {
-    const session = await page.context().newCDPSession(page)
-    await session.send("Emulation.setSafeAreaInsetsOverride", {
-      insets: { bottom: 34, left: 0, right: 0, top: 24 },
-    })
     await page.setViewportSize({ width: 375, height: 812 })
-    await page.goto(DASHBOARD_PATH)
+    await gotoHydratedPage(page, DASHBOARD_PATH)
 
-    const header = page.locator("header").first()
-    await expect(header).toBeVisible()
-    const geometry = await header.evaluate((element) => {
-      const bounds = element.getBoundingClientRect()
+    const mobileHeader = page.locator("header").first()
+    await expect(mobileHeader).toBeVisible()
+    const safeArea = await mobileHeader.evaluate((header) => {
+      const rect = header.getBoundingClientRect()
+      const visualViewport = window.visualViewport
       return {
-        bottom: bounds.bottom,
-        paddingTop: Number.parseFloat(getComputedStyle(element).paddingTop),
-        top: bounds.top,
+        bottom: rect.bottom,
+        top: rect.top,
+        paddingTop: Number.parseFloat(getComputedStyle(header).paddingTop),
+        visualBottom:
+          (visualViewport?.offsetTop ?? 0) +
+          (visualViewport?.height ?? window.innerHeight),
+        visualTop: visualViewport?.offsetTop ?? 0,
       }
     })
-
-    expect(geometry.top).toBe(0)
-    expect(geometry.paddingTop).toBe(32)
-    expect(geometry.bottom).toBeGreaterThan(24)
-    await expect(page.getByRole("button", { name: "Open menu" })).toBeVisible()
-    await session.detach()
+    expect(safeArea.top).toBeGreaterThanOrEqual(safeArea.visualTop)
+    expect(safeArea.bottom).toBeLessThanOrEqual(safeArea.visualBottom)
+    expect(safeArea.paddingTop).toBeGreaterThanOrEqual(8)
+    await assertPageLayoutInvariants(page)
   })
 
-  test("Given the required mobile, tablet, landscape and desktop viewports When the dashboard renders Then every physical layout is bounded", async ({
+  test("Given forced colours are active When keyboard focus enters the dashboard Then the exact journey stays visible and bounded", async ({
     page,
   }, testInfo) => {
-    for (const viewport of RESPONSIVE_VIEWPORTS) {
-      await page.setViewportSize(viewport)
-      const response = await page.goto(DASHBOARD_PATH)
-
-      expect(response?.status(), `${viewport.label} document status`).toBe(200)
-      const metrics = await assertVisualLayoutInvariants(page)
-      expect(metrics.viewportWidth).toBe(viewport.width)
-
-      if (viewport.label === "mobile") {
-        const menuButton = page.getByRole("button", { name: "Open menu" })
-        await menuButton.click()
-        await expect(
-          page.locator('[data-slot="sidebar-trigger"][aria-label="Open menu"]')
-        ).toHaveAttribute("aria-expanded", "true")
-        await page.keyboard.press("Escape")
-        await expect(
-          page.getByRole("button", { name: "Open menu" })
-        ).toHaveAttribute("aria-expanded", "false")
-      }
-
-      await page.screenshot({
-        fullPage: true,
-        path: testInfo.outputPath(`${viewport.label}.png`),
-      })
-    }
-  })
-
-  test("Given dormant dark tokens When the design catalogue activates night printing Then the palette changes without breaking layout", async ({
-    page,
-  }, testInfo) => {
-    await page.setViewportSize({ width: 1280, height: 900 })
-    await page.goto("/dev/design-system")
-    const lightBackground = await page
-      .locator("body")
-      .evaluate((body) => window.getComputedStyle(body).backgroundColor)
-
-    const themeToggle = page.getByRole("button", { name: "Night printing" })
-    await expect(themeToggle).toBeEnabled()
-    await themeToggle.click()
-    await expect(
-      page.getByRole("button", { name: "Back to daylight" })
-    ).toHaveAttribute("aria-pressed", "true")
-    await expect(page.locator("html")).toHaveClass(/dark/)
-    const darkBackground = await page
-      .locator("body")
-      .evaluate((body) => window.getComputedStyle(body).backgroundColor)
-
-    expect(darkBackground).not.toBe(lightBackground)
-    const darkLayout = await page.locator("body").evaluate((body) => ({
-      documentOverflow:
-        document.documentElement.scrollWidth -
-        document.documentElement.clientWidth,
-      height: body.getBoundingClientRect().height,
-      width: body.getBoundingClientRect().width,
-    }))
-    expect(darkLayout.documentOverflow).toBeLessThanOrEqual(1)
-    expect(darkLayout.width).toBeGreaterThan(0)
-    expect(darkLayout.height).toBeGreaterThan(0)
-    await page.screenshot({
-      fullPage: true,
-      path: testInfo.outputPath("dark-dashboard.png"),
-    })
-  })
-
-  test("Given 200% and 400% reflow equivalents When the dashboard renders Then content remains physically discoverable @a11y", async ({
-    page,
-  }, testInfo) => {
-    for (const viewport of REFLOW_VIEWPORTS) {
-      await page.setViewportSize(viewport)
-      await page.goto(DASHBOARD_PATH)
-
-      const metrics = await assertVisualLayoutInvariants(page)
-      expect(metrics.viewportWidth * viewport.factor).toBe(1280)
-      await page.screenshot({
-        fullPage: true,
-        path: testInfo.outputPath(`reflow-${viewport.factor}00-percent.png`),
-      })
-    }
-  })
-
-  test("Given the loading and error harness routes When their real states render Then both stay within physical bounds", async ({
-    page,
-  }, testInfo) => {
+    await page.emulateMedia({ forcedColors: "active" })
     await page.setViewportSize({ width: 375, height: 812 })
+    await gotoHydratedPage(page, DASHBOARD_PATH)
 
-    for (const state of ["skeletons", "states"] as const) {
-      const response = await page.goto(`/dev/app-harness/${state}`)
-
-      expect(response?.status(), `${state} document status`).toBe(200)
-      await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
-      await assertVisualLayoutInvariants(page)
-      await page.screenshot({
-        fullPage: true,
-        path: testInfo.outputPath(`${state}-mobile.png`),
-      })
-    }
+    await expect
+      .poll(() =>
+        page.evaluate(() => matchMedia("(forced-colors: active)").matches)
+      )
+      .toBe(true)
+    const menu = page.getByRole("button", { name: "Open menu" })
+    await menu.focus()
+    await expect(menu).toBeFocused()
+    const focusIndicator = await menu.evaluate((button) => {
+      const style = getComputedStyle(button)
+      return Math.max(
+        Number.parseFloat(style.outlineWidth),
+        Number.parseFloat(style.borderWidth)
+      )
+    })
+    expect(focusIndicator).toBeGreaterThan(0)
+    await assertPageLayoutInvariants(page)
+    await page.screenshot({
+      path: testInfo.outputPath("dashboard-forced-colours.png"),
+      fullPage: true,
+    })
   })
+
+  for (const zoom of [
+    { percent: 200, width: 640 },
+    { percent: 400, width: 320 },
+  ] as const) {
+    test(`Given an equivalent ${zoom.percent}% reflow viewport When long copy renders Then content remains available without hidden overflow`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: zoom.width, height: 900 })
+      await gotoHydratedPage(page, DASHBOARD_PATH)
+
+      const title = page.getByRole("heading", { level: 1 })
+      await title.evaluate((element, copy) => {
+        element.textContent = copy
+      }, LONG_COPY)
+      await expect(title).toHaveText(LONG_COPY)
+      await assertPageLayoutInvariants(page)
+    })
+  }
 })

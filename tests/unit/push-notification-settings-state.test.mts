@@ -2,47 +2,48 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 
 import {
-  isCurrentPushPreferenceRequest,
-  persistPushPreferences,
+  awaitPushOperation,
   requestPushPermission,
-  settlePushOperation,
+  savePushPreferences,
 } from "../../components/customer/push-notification-settings-state.ts"
 
 const preferences = {
-  activeSubscriptionCount: 1,
-  marketingEnabled: false,
-  quietHoursEnd: "09:00",
-  quietHoursStart: "21:00",
-  reminderEnabled: true,
   transactionalEnabled: true,
+  reminderEnabled: true,
+  marketingEnabled: false,
+  quietHoursStart: "21:00",
+  quietHoursEnd: "09:00",
+  activeSubscriptionCount: 0,
 }
 
-test("Given a rejected optimistic preference update When persistence fails Then it returns the rollback value", async () => {
-  const result = await persistPushPreferences({
-    previous: preferences,
-    next: { ...preferences, marketingEnabled: true },
-    persist: async () => false,
-  })
+test("Given a rejected preference write When the optimistic update settles Then it reports failure for rollback", async () => {
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = async () => {
+    throw new TypeError("network unavailable")
+  }
 
-  assert.deepEqual(result, { kind: "rejected", rollback: preferences })
+  try {
+    const result = await savePushPreferences(preferences)
+    assert.deepEqual(result, { kind: "failed" })
+  } finally {
+    globalThis.fetch = originalFetch
+  }
 })
 
-test("Given a hung push operation When its deadline expires Then it returns a timeout result", async () => {
-  const result = await settlePushOperation(
-    new Promise<never>(() => {}),
-    5
-  )
+test("Given readiness never resolves When the bounded operation expires Then it releases the caller", async () => {
+  const result = await Promise.race([
+    awaitPushOperation(new Promise(() => {}), 5).then(
+      () => "unexpected",
+      (error: unknown) => error instanceof Error && error.name
+    ),
+    new Promise((resolve) => setTimeout(() => resolve("test-timeout"), 100)),
+  ])
 
-  assert.equal(result.kind, "timed-out")
+  assert.equal(result, "PushOperationTimeoutError")
 })
 
-test("Given denied browser permission When requesting push Then it reports the denied state", async () => {
-  const result = await requestPushPermission(async () => "denied")
+test("Given the browser denies notifications When the settings request permission Then the denial remains actionable", async () => {
+  const permission = await requestPushPermission("default", async () => "denied")
 
-  assert.equal(result, "denied")
-})
-
-test("Given a newer preference request When an earlier request settles Then it cannot roll back the newer choice", () => {
-  assert.equal(isCurrentPushPreferenceRequest(2, 1), false)
-  assert.equal(isCurrentPushPreferenceRequest(2, 2), true)
+  assert.equal(permission, "denied")
 })

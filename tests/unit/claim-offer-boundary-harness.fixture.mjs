@@ -1,7 +1,11 @@
 import { mock } from "node:test"
 
 const [kind, scenario] = process.argv.slice(2)
-const counters = { hash: 0, rpc: 0, materialized: 0 }
+const counters = {
+  hash: 0,
+  rpc: 0,
+  materialized: 0,
+}
 
 if (kind === "invite" || kind === "offer") {
   mock.module("@/lib/loyalty-invites/tokens", {
@@ -57,6 +61,7 @@ if (kind === "invite" || kind === "offer") {
       : await (
           await import("@/lib/offers/claim-context")
         ).resolveOfferClaimContext(token)
+
   process.stdout.write(
     JSON.stringify({
       status: result.status,
@@ -93,10 +98,6 @@ if (kind === "invite" || kind === "offer") {
       return query
     },
     maybeSingle: async () => {
-      if (scenario === "hung") {
-        setInterval(() => undefined, 1_000)
-        await new Promise(() => {})
-      }
       const matches = [...predicates].every(
         ([column, value]) => row[column] === value
       )
@@ -105,14 +106,20 @@ if (kind === "invite" || kind === "offer") {
       return { data: row, error: null }
     },
   }
+
   mock.module("@/lib/customer/identity", {
-    namedExports: { getCurrentCustomer: async () => ({ id: customerId }) },
+    namedExports: {
+      getCurrentCustomer: async () => ({ id: customerId }),
+    },
   })
   mock.module("@/lib/supabase/server", {
     namedExports: {
-      createSupabaseServiceRoleClient: () => ({ from: () => query }),
+      createSupabaseServiceRoleClient: () => ({
+        from: () => query,
+      }),
     },
   })
+
   const result = await (
     await import("@/lib/customer/offer-pass")
   ).loadCustomerOfferPass("entitlement-target")

@@ -40,7 +40,6 @@ supabase/.temp/
 # local agent/tooling output
 .deepsec/
 .superpowers/
-.omo/
 Goal/
 artifacts/
 *.evidence.md

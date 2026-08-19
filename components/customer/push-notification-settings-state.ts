@@ -1,71 +1,63 @@
-export const PUSH_OPERATION_TIMEOUT_MS = 8_000
-
-export type PushOperationResult<Value> =
-  | { readonly kind: "fulfilled"; readonly value: Value }
-  | { readonly kind: "rejected" }
-  | { readonly kind: "timed-out" }
-
-type PreferencePersistenceResult<Preferences> =
-  | { readonly kind: "saved" }
-  | { readonly kind: "rejected"; readonly rollback: Preferences }
-
-type PersistPushPreferencesInput<Preferences> = {
-  readonly next: Preferences
-  readonly persist: () => Promise<boolean>
-  readonly previous: Preferences
+export type PushPreferences = {
+  transactionalEnabled: boolean
+  reminderEnabled: boolean
+  marketingEnabled: boolean
+  quietHoursStart: string | null
+  quietHoursEnd: string | null
+  activeSubscriptionCount: number
 }
 
-type PushPermissionResult = "default" | "denied" | "granted" | "unavailable"
+export const PUSH_OPERATION_TIMEOUT_MS = 8_000
 
-export async function persistPushPreferences<Preferences>({
-  previous,
-  persist,
-}: PersistPushPreferencesInput<Preferences>): Promise<
-  PreferencePersistenceResult<Preferences>
-> {
+export class PushOperationTimeoutError extends Error {
+  override readonly name = "PushOperationTimeoutError"
+}
+
+export type PushPreferenceSaveResult =
+  | { readonly kind: "saved"; readonly response: Response }
+  | { readonly kind: "failed" }
+
+export type PushPermissionResult = "granted" | "denied" | "default"
+
+export async function awaitPushOperation<T>(
+  operation: Promise<T>,
+  timeoutMs = PUSH_OPERATION_TIMEOUT_MS
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(
+      () => reject(new PushOperationTimeoutError("Push operation timed out.")),
+      timeoutMs
+    )
+  })
+
   try {
-    return (await persist())
-      ? { kind: "saved" }
-      : { kind: "rejected", rollback: previous }
-  } catch {
-    return { kind: "rejected", rollback: previous }
+    return await Promise.race([operation, timeout])
+  } finally {
+    if (timer !== undefined) clearTimeout(timer)
   }
 }
 
-export async function requestPushPermission(
-  request: () => Promise<NotificationPermission>
+export async function savePushPreferences(
+  preferences: PushPreferences
+): Promise<PushPreferenceSaveResult> {
+  try {
+    const response = await fetch("/api/notifications/push/preferences", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(preferences),
+    })
+    return response.ok ? { kind: "saved", response } : { kind: "failed" }
+  } catch {
+    return { kind: "failed" }
+  }
+}
+
+export function requestPushPermission(
+  currentPermission: PushPermissionResult,
+  requestPermission: () => Promise<PushPermissionResult>
 ): Promise<PushPermissionResult> {
-  const result = await settlePushOperation(request(), PUSH_OPERATION_TIMEOUT_MS)
-
-  if (result.kind !== "fulfilled") return "unavailable"
-  return result.value
-}
-
-export function isCurrentPushPreferenceRequest(
-  currentRequest: number,
-  request: number
-): boolean {
-  return currentRequest === request
-}
-
-export function settlePushOperation<Value>(
-  operation: Promise<Value>,
-  timeoutMs: number
-): Promise<PushOperationResult<Value>> {
-  return new Promise((resolve) => {
-    const timeout = globalThis.setTimeout(
-      () => resolve({ kind: "timed-out" }),
-      timeoutMs
-    )
-    void operation.then(
-      (value) => {
-        globalThis.clearTimeout(timeout)
-        resolve({ kind: "fulfilled", value })
-      },
-      () => {
-        globalThis.clearTimeout(timeout)
-        resolve({ kind: "rejected" })
-      }
-    )
-  })
+  return currentPermission === "granted"
+    ? Promise.resolve("granted")
+    : awaitPushOperation(requestPermission())
 }

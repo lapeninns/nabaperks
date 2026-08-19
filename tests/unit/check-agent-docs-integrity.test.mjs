@@ -25,11 +25,13 @@ function writeFixture({ agents, packageContents, scripts }) {
     join(fixture, "package.json"),
     packageContents ?? JSON.stringify({ scripts })
   )
+
   for (const path of requiredPaths) {
     const destination = join(fixture, path)
     mkdirSync(join(destination, ".."), { recursive: true })
     writeFileSync(destination, "fixture")
   }
+
   return fixture
 }
 
@@ -64,6 +66,7 @@ function fixtureScripts(overrides = {}) {
 
 test("Given malformed agent documentation When the integrity checker runs Then only exact documented commands paths and targets pass", () => {
   const fixtures = []
+
   try {
     const validFixture = writeFixture({
       agents: documentedGuide({
@@ -73,6 +76,7 @@ test("Given malformed agent documentation When the integrity checker runs Then o
     })
     fixtures.push(validFixture)
     assert.equal(runFixture(validFixture).status, 0)
+
     const substringPathFixture = writeFixture({
       agents: documentedGuide({
         designPath: "DESIGN.md.backup",
@@ -85,6 +89,7 @@ test("Given malformed agent documentation When the integrity checker runs Then o
       runFixture(substringPathFixture),
       "AGENT_DOCS_PATH_REFERENCE_MISSING"
     )
+
     const whitespaceCommandFixture = writeFixture({
       agents: documentedGuide({
         commands: ["pnpm    quality:fast", "pnpm quality:check", "pnpm build"],
@@ -93,6 +98,7 @@ test("Given malformed agent documentation When the integrity checker runs Then o
     })
     fixtures.push(whitespaceCommandFixture)
     assert.equal(runFixture(whitespaceCommandFixture).status, 0)
+
     const targetDriftFixture = writeFixture({
       agents: documentedGuide({
         commands: requiredCommands.map((command) => `pnpm ${command}`),
@@ -104,8 +110,11 @@ test("Given malformed agent documentation When the integrity checker runs Then o
       runFixture(targetDriftFixture),
       "AGENT_DOCS_SCRIPT_TARGET_MISSING"
     )
+
     const proseCommandFixture = writeFixture({
-      agents: `${documentedGuide({ commands: ["pnpm quality:fast", "pnpm quality:check"] })}\nDo not execute \`pnpm build\` from prose.\n`,
+      agents: `${documentedGuide({
+        commands: ["pnpm quality:fast", "pnpm quality:check"],
+      })}\nDo not execute \`pnpm build\` from prose.\n`,
       scripts: fixtureScripts(),
     })
     fixtures.push(proseCommandFixture)
@@ -113,6 +122,7 @@ test("Given malformed agent documentation When the integrity checker runs Then o
       runFixture(proseCommandFixture),
       "AGENT_DOCS_REQUIRED_COMMAND_MISSING"
     )
+
     const malformedPackageFixture = writeFixture({
       agents: documentedGuide({
         commands: requiredCommands.map((command) => `pnpm ${command}`),

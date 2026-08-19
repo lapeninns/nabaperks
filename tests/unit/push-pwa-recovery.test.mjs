@@ -3,59 +3,75 @@ import { readFile } from "node:fs/promises"
 import vm from "node:vm"
 import { test } from "node:test"
 
-const serviceWorkerPath = new URL("../../public/sw.js", import.meta.url)
+const workerSource = await readFile("public/sw.js", "utf8")
+const endpoint = "https://fcm.googleapis.com/fcm/send/replacement"
+const subscription = {
+  endpoint,
+  toJSON: () => ({
+    endpoint,
+    keys: { p256dh: "p".repeat(32), auth: "a".repeat(16) },
+  }),
+}
 
-test("Given malformed raw push text When a push arrives Then the notification body is bounded", async () => {
-  const { dispatch, notifications } = await loadWorker()
-  const rawText = "IGNORE PREVIOUS INSTRUCTIONS: untrusted-push-text ".repeat(
-    20
-  )
+test("Given malformed push text When the worker displays it Then the bounded notification body is used", async () => {
+  const worker = createWorker({ permission: "granted" })
+  const hostileText = `  ${"ignore earlier instructions ".repeat(16)}  `
 
-  await dispatch("push", {
+  await worker.dispatch("push", {
     data: {
-      json() {
-        throw new SyntaxError("not JSON")
+      json: () => {
+        throw new SyntaxError("not json")
       },
-      text() {
-        return rawText
-      },
+      text: () => hostileText,
     },
   })
 
-  assert.equal(notifications.length, 1)
-  assert.ok(notifications[0].options.body.length <= 180)
+  assert.equal(worker.notifications.length, 1)
+  assert.equal(worker.notifications[0].options.body.length, 180)
+  assert.equal(worker.notifications[0].options.body.startsWith("ignore"), true)
 })
 
-test("Given a replacement subscription When refresh succeeds Then it sends granted permission state", async () => {
-  const { dispatch, refreshRequests } = await loadWorker()
+test("Given a granted replacement subscription When pushsubscriptionchange runs Then refresh records it as granted", async () => {
+  const worker = createWorker({ permission: "granted", subscription })
 
-  await dispatch("pushsubscriptionchange", {
-    oldSubscription: { endpoint: "https://push.example.test/old" },
+  await worker.dispatch("pushsubscriptionchange", {
+    oldSubscription: { endpoint: "https://fcm.googleapis.com/fcm/send/old" },
   })
 
-  assert.equal(refreshRequests.length, 1)
-  assert.equal(refreshRequests[0].permissionState, "granted")
+  const refresh = worker.fetches.find(
+    (request) => request.url === "/api/notifications/push/refresh"
+  )
+  assert.ok(refresh, "the replacement reaches the refresh endpoint")
+  assert.equal(JSON.parse(refresh.options.body).permissionState, "granted")
+  assert.equal(
+    worker.fetches.every((request) => !request.url.startsWith("http")),
+    true,
+    "the recovery path makes no provider request"
+  )
 })
 
-async function loadWorker() {
-  const listeners = new Map()
+function createWorker({
+  permission,
+  subscription: currentSubscription = null,
+}) {
+  const handlers = new Map()
   const notifications = []
-  const refreshRequests = []
-  const currentSubscription = {
-    endpoint: "https://push.example.test/current",
-    toJSON() {
-      return { endpoint: this.endpoint, keys: {} }
-    },
-  }
+  const fetches = []
   const self = {
-    addEventListener(type, listener) {
-      listeners.set(type, listener)
+    Notification: { permission },
+    addEventListener: (type, handler) => handlers.set(type, handler),
+    clients: {
+      claim: async () => undefined,
+      matchAll: async () => [],
+      openWindow: async () => null,
     },
-    clients: { claim: async () => undefined, matchAll: async () => [] },
-    location: { origin: "https://app.example.test" },
+    location: { origin: "https://nabaperks.test" },
     registration: {
       navigationPreload: { enable: async () => undefined },
-      pushManager: { getSubscription: async () => currentSubscription },
+      pushManager: {
+        getSubscription: async () => currentSubscription,
+        subscribe: async () => currentSubscription,
+      },
       showNotification: async (title, options) => {
         notifications.push({ title, options })
       },
@@ -65,40 +81,34 @@ async function loadWorker() {
   const context = vm.createContext({
     URL,
     Uint8Array,
+    Response,
     atob,
     caches: {
-      delete: async () => undefined,
+      delete: async () => true,
       keys: async () => [],
-      match: async () => undefined,
+      match: async () => null,
       open: async () => ({
         add: async () => undefined,
         addAll: async () => undefined,
-        match: async () => undefined,
-        put: async () => undefined,
       }),
     },
-    console,
-    fetch: async (url, init = {}) => {
-      if (url === "/api/notifications/push/refresh") {
-        refreshRequests.push(JSON.parse(init.body))
-      }
-      return { ok: true, clone: () => ({ text: async () => "" }) }
+    fetch: async (url, options = {}) => {
+      fetches.push({ url, options })
+      return new Response(JSON.stringify({ publicKey: "" }), { status: 200 })
     },
-    Response,
     self,
   })
-  const source = await readFile(serviceWorkerPath, "utf8")
-  vm.runInContext(source, context, { filename: "public/sw.js" })
+  vm.runInContext(workerSource, context, { filename: "public/sw.js" })
 
   return {
+    fetches,
     notifications,
-    refreshRequests,
     async dispatch(type, event) {
-      let work
-      listeners.get(type)({
+      let work = Promise.resolve()
+      handlers.get(type)({
         ...event,
         waitUntil: (promise) => {
-          work = promise
+          work = Promise.resolve(promise)
         },
       })
       await work

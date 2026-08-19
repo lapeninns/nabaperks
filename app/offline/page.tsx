@@ -23,7 +23,7 @@ export default function OfflinePage() {
         <EmptyState
           icon={NoInternetIcon}
           title="You're offline"
-          description="Your cards and stamps live safely with us. Reconnect, then try again."
+          description="Your cards and stamps live safely with us. Reconnect, then try again to continue."
           headingLevel={1}
           actions={
             <div className="flex w-full flex-wrap justify-center gap-3">

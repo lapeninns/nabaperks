@@ -261,14 +261,11 @@ export function MerchantRewardScanner() {
   }, [])
 
   const submitManualCode = useCallback(
-    (event: FormEvent<HTMLFormElement>) => {
+    (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault()
-      const submittedCode = new FormData(event.currentTarget).get(
-        "customerCode"
-      )
 
       const result = normalizeScannedRewardDestination(
-        typeof submittedCode === "string" ? submittedCode : "",
+        manualCode,
         window.location.origin
       )
 
@@ -279,7 +276,7 @@ export function MerchantRewardScanner() {
 
       router.push(result.href)
     },
-    [router]
+    [manualCode, router]
   )
 
   const statusText =
@@ -361,13 +358,54 @@ export function MerchantRewardScanner() {
       ) : null}
 
       {status.kind === "camera-error" ? (
-        <Button
-          type="button"
-          className="w-full sm:w-auto"
-          onClick={retryCamera}
-        >
-          Try again
-        </Button>
+        <>
+          <form className="grid gap-3" onSubmit={submitManualCode}>
+            <div className="grid gap-1.5">
+              <label className="text-sm font-bold" htmlFor="customer-code">
+                Customer code
+              </label>
+              <Input
+                id="customer-code"
+                value={manualCode}
+                onChange={(event) => {
+                  setManualCode(event.target.value)
+                  setManualCodeError(false)
+                }}
+                aria-describedby={
+                  manualCodeError ? "customer-code-error" : "customer-code-help"
+                }
+                aria-invalid={manualCodeError}
+                autoComplete="off"
+                inputMode="url"
+              />
+              <p
+                id="customer-code-help"
+                className="text-sm leading-6 text-muted-foreground"
+              >
+                Paste the link from the customer&apos;s code to open it instead.
+              </p>
+              {manualCodeError ? (
+                <p id="customer-code-error" className="text-sm font-bold">
+                  Enter a customer reward or discount pass link.
+                </p>
+              ) : null}
+            </div>
+            <Button
+              type="submit"
+              variant="secondary"
+              className="w-full sm:w-auto"
+            >
+              Open customer code
+            </Button>
+          </form>
+          <Button
+            type="button"
+            className="w-full sm:w-auto"
+            onClick={retryCamera}
+          >
+            Try again
+          </Button>
+        </>
       ) : null}
 
       <Button asChild variant="secondary" className="w-full sm:w-auto">

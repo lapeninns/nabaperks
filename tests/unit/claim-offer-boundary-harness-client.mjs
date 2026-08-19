@@ -3,11 +3,7 @@ import { promisify } from "node:util"
 
 const execFileAsync = promisify(execFile)
 
-export async function runClaimOfferBoundaryHarness(
-  kind,
-  scenario,
-  timeout = 5_000
-) {
+export async function runClaimOfferBoundaryHarness(kind, scenario) {
   const { stdout } = await execFileAsync(
     process.execPath,
     [
@@ -18,7 +14,8 @@ export async function runClaimOfferBoundaryHarness(
       kind,
       scenario,
     ],
-    { timeout }
+    { timeout: 5_000 }
   )
+
   return JSON.parse(stdout)
 }

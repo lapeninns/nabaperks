@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test"
 
 import { dismissPwaInstall } from "./helpers/harness"
-import { assertVisualLayoutInvariants } from "./helpers/visual-layout"
+import { assertPageLayoutInvariants } from "./helpers/visual-layout"
 
 const routes = [
   { name: "marketing-landing", path: "/" },
@@ -32,6 +32,13 @@ const routes = [
     path: "/dev/app-harness/launch?tab=billing&state=billing",
   },
   { name: "harness-onboarding", path: "/dev/app-harness/onboarding" },
+  { name: "harness-loading", path: "/dev/app-harness/skeletons" },
+  { name: "harness-error", path: "/dev/app-harness/states#error-banners" },
+  {
+    name: "harness-dashboard-dark",
+    path: "/dev/app-harness/dashboard",
+    theme: "dark",
+  },
   {
     name: "harness-dashboard-empty",
     path: "/dev/app-harness/dashboard?members=empty",
@@ -68,6 +75,11 @@ test.describe("visual regression @visual", () => {
     test(`Given ${route.name} When it renders Then the viewport matches the approved Wet Ink baseline${auditTag}`, async ({
       page,
     }, testInfo) => {
+      if ("theme" in route && route.theme === "dark") {
+        await page.addInitScript(() => {
+          window.localStorage.setItem("nabaperks-theme", "dark")
+        })
+      }
       const isAuthRoute = route.name.startsWith("auth-")
       if (isAuthRoute) await dismissPwaInstall(page)
       await page.goto(route.path)
@@ -140,7 +152,7 @@ test.describe("visual regression @visual", () => {
         route.name === "harness-dashboard-empty" ||
         (testInfo.project.name === "mobile-safari" &&
           route.name === "harness-qr")
-      await assertVisualLayoutInvariants(page)
+      await assertPageLayoutInvariants(page)
       await expect(page).toHaveScreenshot(`${route.name}.png`, {
         fullPage: true,
         maxDiffPixelRatio: strictComparison ? 0.001 : 0.04,

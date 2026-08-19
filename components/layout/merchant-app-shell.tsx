@@ -23,10 +23,7 @@ import {
 } from "@/components/ui/sidebar"
 import { CONSOLE_SIDEBAR_STYLE, ConsoleSidebarNav } from "./console-sidebar-nav"
 import { merchantAccountItems, merchantNavItems } from "./console-nav"
-import {
-  clearActiveMerchantOnboardingDraft,
-  clearCompletedMerchantOnboardingDraft,
-} from "@/lib/merchant/onboarding-draft-storage"
+import { MerchantSignOutForm } from "./merchant-sign-out-form"
 
 export function MerchantAppShell({
   children,
@@ -35,6 +32,7 @@ export function MerchantAppShell({
   variant: variantProp,
   defaultSidebarOpen = true,
   hideMobileChrome: hideMobileChromeProp,
+  draftUserId,
 }: {
   children: ReactNode
   signOutAction: ComponentProps<"form">["action"]
@@ -48,6 +46,7 @@ export function MerchantAppShell({
    *  like the poster print preview, which carry their own focused chrome.
    *  Defaults to deriving it from the live pathname. */
   hideMobileChrome?: boolean
+  draftUserId?: string
 }) {
   // Derive the chrome from the LIVE route, not a server prop. This shell lives
   // in a shared layout that the App Router preserves across soft navigations,
@@ -105,7 +104,10 @@ export function MerchantAppShell({
                   <Icon icon={Building02Icon} size={16} />
                 </Link>
               </Button>
-              <form action={signOutAction} onSubmit={handleSignOut}>
+              <MerchantSignOutForm
+                action={signOutAction}
+                draftUserId={draftUserId}
+              >
                 <Button
                   type="submit"
                   variant="outline"
@@ -116,7 +118,7 @@ export function MerchantAppShell({
                   <Icon icon={Logout01Icon} size={16} />
                   <span className="hidden sm:inline">Log out</span>
                 </Button>
-              </form>
+              </MerchantSignOutForm>
             </div>
           </div>
         </header>
@@ -161,7 +163,7 @@ export function MerchantAppShell({
           />
         </SidebarContent>
         <SidebarFooter className="border-t-2 border-ink p-4">
-          <form action={signOutAction} onSubmit={handleSignOut}>
+          <MerchantSignOutForm action={signOutAction} draftUserId={draftUserId}>
             <Button
               type="submit"
               variant="secondary"
@@ -171,7 +173,7 @@ export function MerchantAppShell({
               <Icon icon={Logout01Icon} size={16} />
               <span data-collapse-label>Log out</span>
             </Button>
-          </form>
+          </MerchantSignOutForm>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="min-w-0">

@@ -28,12 +28,10 @@ import {
 import { Button } from "@/components/ui/button"
 import type { VenueAddressFormFields } from "@/lib/merchant/venue-address"
 import {
-  clearMerchantOnboardingCompletionPending,
-  markMerchantOnboardingCompletionPending,
-  readMerchantOnboardingDraft,
-  rememberActiveMerchantOnboardingDraftAccount,
-  removeLegacyMerchantOnboardingDraft,
-  writeMerchantOnboardingDraft,
+  clearOnboardingDraft,
+  readOnboardingDraft,
+  saveOnboardingDraft,
+  type OnboardingDraftFields,
 } from "@/lib/merchant/onboarding-draft-storage"
 import { cn } from "@/lib/utils"
 
@@ -57,7 +55,7 @@ const businessTypeOptions = [
   { value: "other", label: "Other local business" },
 ] satisfies readonly BusinessTypeOption[]
 
-type OnboardingDraft = NonNullable<OnboardingActionState["fields"]>
+type OnboardingDraft = OnboardingDraftFields
 type ClientErrors = NonNullable<OnboardingActionState["errors"]>
 
 export function mergeOnboardingDraft(
@@ -93,7 +91,23 @@ export function OnboardingForm({
 }) {
   const hasInitialFields = Object.values(initialFields).some(Boolean)
   const [state, action, pending] = useActionState(
-    completeOnboardingAction,
+    async (previousState: OnboardingActionState, formData: FormData) => {
+      try {
+        const nextState = await completeOnboardingAction(
+          previousState,
+          formData
+        )
+        if (!nextState.errors) {
+          clearOnboardingDraft(window.localStorage, draftUserId)
+        }
+        return nextState
+      } catch (error) {
+        if (isNextRedirect(error)) {
+          clearOnboardingDraft(window.localStorage, draftUserId)
+        }
+        throw error
+      }
+    },
     hasInitialFields ? { ...initialState, fields: initialFields } : initialState
   )
   const formRef = useRef<HTMLFormElement>(null)
@@ -142,12 +156,18 @@ export function OnboardingForm({
   }, [state.errors])
 
   useEffect(() => {
-    removeLegacyMerchantOnboardingDraft(window.localStorage)
-    rememberActiveMerchantOnboardingDraftAccount(
-      window.sessionStorage,
-      draftUserId
-    )
-    const draft = readMerchantOnboardingDraft(window.localStorage, draftUserId)
+    window.localStorage.removeItem(legacyDraftStorageKey)
+  }, [])
+
+  useEffect(() => {
+    let draft: OnboardingDraft = {}
+
+    try {
+      draft = readOnboardingDraft(window.localStorage, draftUserId) ?? {}
+    } catch (error) {
+      if (error instanceof DOMException) return
+      throw error
+    }
 
     const form = formRef.current
     if (!form) return
@@ -165,14 +185,19 @@ export function OnboardingForm({
   }, [draftUserId, initialFields, state.fields])
 
   function updateDraft(partial: Partial<OnboardingDraft>) {
-    const currentDraft = readMerchantOnboardingDraft(
-      window.localStorage,
-      draftUserId
-    )
-    writeMerchantOnboardingDraft(window.localStorage, draftUserId, {
-      ...currentDraft,
-      ...partial,
-    })
+    try {
+      const currentDraft =
+        readOnboardingDraft(window.localStorage, draftUserId) ?? {}
+      const nextDraft: OnboardingDraft = {
+        ...initialFields,
+        ...currentDraft,
+        ...partial,
+      }
+      saveOnboardingDraft(window.localStorage, draftUserId, nextDraft)
+    } catch (error) {
+      if (error instanceof DOMException) return
+      throw error
+    }
   }
 
   function handleAddressEdit() {
@@ -358,4 +383,11 @@ function restoreField(
 
 function hasText(value: string | undefined) {
   return typeof value === "string" && value.trim().length > 0
+}
+
+function isNextRedirect(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) return false
+  if (!("digest" in error)) return false
+  const digest = error.digest
+  return typeof digest === "string" && digest.startsWith("NEXT_REDIRECT")
 }

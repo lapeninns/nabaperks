@@ -96,6 +96,7 @@ export default async function AppHarnessLayout({
       activePath={activePath}
       variant={variant}
       defaultSidebarOpen={!sidebarCollapsed}
+      draftUserId="usr_harness_onboarding"
     >
       {children}
     </MerchantAppShell>

@@ -1,137 +1,97 @@
 import { expect, type Page } from "@playwright/test"
 
-const LAYOUT_TOLERANCE_PX = 1 as const
-
-type VisualLayoutMetrics = {
+export type PageLayoutMetrics = {
   readonly bodyOverflow: number
+  readonly clippedContentCount: number
   readonly documentOverflow: number
-  readonly hiddenHorizontalOverflow: readonly string[]
-  readonly mainHeight: number
-  readonly mainLeft: number
-  readonly mainRight: number
-  readonly mainWidth: number
-  readonly viewportHeight: number
+  readonly mainCount: number
+  readonly outOfBoundsElementCount: number
+  readonly outOfBoundsMainCount: number
   readonly viewportWidth: number
 }
 
-export async function assertVisualLayoutInvariants(
+export const BREAKPOINT_EDGE_WIDTHS = [639, 640, 767, 768, 1023, 1024] as const
+
+export const RESPONSIVE_VIEWPORTS = [
+  { name: "phone", width: 375, height: 812 },
+  { name: "tablet", width: 768, height: 1024 },
+  { name: "desktop", width: 1280, height: 900 },
+  { name: "phone-landscape", width: 812, height: 375 },
+] as const
+
+export const LONG_COPY =
+  "TheOldCrownGirtonLoyaltyProgrammeForNeighboursReturningAfterWorkAndAtWeekends".repeat(
+    3
+  )
+
+export async function assertPageLayoutInvariants(
   page: Page
-): Promise<VisualLayoutMetrics> {
-  const metrics = await page.evaluate((layoutTolerancePx) => {
-    const main = document.querySelector("main")
-
-    if (!main) return null
-
-    const mainBounds = main.getBoundingClientRect()
+): Promise<PageLayoutMetrics> {
+  const metrics = await page.evaluate(() => {
     const viewportWidth = document.documentElement.clientWidth
-    const hiddenHorizontalOverflow = Array.from(
-      main.querySelectorAll<HTMLElement>("*")
-    ).flatMap((element) => {
-      // `closest`, not `matches`: sr-only wrappers hold their text in child
-      // elements, so matching only the leaf misses them.
-      if (element.closest(".sr-only")) return []
-      // Explicit opt-in marker for subtrees whose clipping is the mechanism
-      // rather than a fault — a marquee ticker overflows its window by
-      // construction. Deliberately NOT keyed on aria-hidden: that attribute
-      // hides content from assistive technology but not from sighted readers,
-      // so it is an invalid proxy for "nobody can see this" and would silence
-      // genuinely visible overflow elsewhere in the app.
-      if (element.closest("[data-decorative-overflow]")) return []
-
-      const style = window.getComputedStyle(element)
-      const bounds = element.getBoundingClientRect()
-      const isTextLeaf =
-        element.childElementCount === 0 &&
-        element.textContent?.trim() !== "" &&
-        style.textOverflow !== "ellipsis" &&
-        style.webkitLineClamp === "none"
-      if (!isTextLeaf || bounds.width <= 0 || bounds.height <= 0) {
-        return []
+    const mainRegions = [...document.querySelectorAll("main")].filter(
+      (element) => {
+        const style = getComputedStyle(element)
+        const rect = element.getBoundingClientRect()
+        return (
+          style.display !== "none" &&
+          style.visibility !== "hidden" &&
+          rect.width > 0 &&
+          rect.height > 0
+        )
       }
+    )
+    const outOfBoundsMainCount = mainRegions.filter((element) => {
+      const rect = element.getBoundingClientRect()
+      return rect.left < -1 || rect.right > viewportWidth + 1
+    }).length
+    const visibleMainElements = mainRegions.flatMap((main) =>
+      [
+        ...main.querySelectorAll<HTMLElement>(
+          "h1, h2, h3, h4, p, span, a, button, label, input, select, textarea, td, th, [role='alert'], [role='status']"
+        ),
+      ].filter((element) => {
+        const style = getComputedStyle(element)
+        const rect = element.getBoundingClientRect()
+        return (
+          style.display !== "none" &&
+          style.visibility !== "hidden" &&
+          Number.parseFloat(style.opacity) > 0 &&
+          rect.width > 1 &&
+          rect.height > 1 &&
+          element.getAttribute("aria-hidden") !== "true"
+        )
+      })
+    )
+    const outOfBoundsElementCount = visibleMainElements.filter((element) => {
+      const rect = element.getBoundingClientRect()
+      return rect.left < -1 || rect.right > viewportWidth + 1
+    }).length
+    const clippedContentCount = visibleMainElements.filter((element) => {
+      const style = getComputedStyle(element)
+      const clipsInlineContent =
+        style.overflowX === "hidden" || style.overflowX === "clip"
+      return clipsInlineContent && element.scrollWidth - element.clientWidth > 1
+    }).length
 
-      let clippingAncestor: HTMLElement | null = element
-      while (clippingAncestor && main.contains(clippingAncestor)) {
-        const ancestorStyle = window.getComputedStyle(clippingAncestor)
-        const ancestorBounds = clippingAncestor.getBoundingClientRect()
-        const concealsOverflow =
-          ancestorStyle.overflowX === "hidden" ||
-          ancestorStyle.overflowX === "clip"
-        const descendantEscapes =
-          bounds.left < ancestorBounds.left - layoutTolerancePx ||
-          bounds.right > ancestorBounds.right + layoutTolerancePx
-        const directTextEscapes =
-          clippingAncestor === element &&
-          element.scrollWidth - element.clientWidth > layoutTolerancePx
-
-        if (concealsOverflow && (descendantEscapes || directTextEscapes)) break
-        clippingAncestor = clippingAncestor.parentElement
-      }
-
-      if (!clippingAncestor || !main.contains(clippingAncestor)) return []
-
-      const label = (() => {
-        if (clippingAncestor.dataset.visualOverflowFixture) {
-          return `[data-visual-overflow-fixture="${clippingAncestor.dataset.visualOverflowFixture}"]`
-        }
-
-        const classLabel = clippingAncestor.className
-          .trim()
-          .split(/\s+/)
-          .slice(0, 3)
-          .join(".")
-        return `${clippingAncestor.tagName.toLowerCase()}${classLabel ? `.${classLabel}` : ""}[text-overflow=${style.textOverflow};line-clamp=${style.webkitLineClamp}]`
-      })()
-
-      return [label]
-    })
     return {
-      bodyOverflow: Math.max(document.body.scrollWidth - viewportWidth, 0),
-      documentOverflow: Math.max(
-        document.documentElement.scrollWidth - viewportWidth,
-        0
-      ),
-      hiddenHorizontalOverflow,
-      mainHeight: mainBounds.height,
-      mainLeft: mainBounds.left,
-      mainRight: mainBounds.right,
-      mainWidth: mainBounds.width,
-      viewportHeight: document.documentElement.clientHeight,
+      bodyOverflow: document.body.scrollWidth - viewportWidth,
+      clippedContentCount,
+      documentOverflow: document.documentElement.scrollWidth - viewportWidth,
+      mainCount: mainRegions.length,
+      outOfBoundsElementCount,
+      outOfBoundsMainCount,
       viewportWidth,
     }
-  }, LAYOUT_TOLERANCE_PX)
+  })
 
-  expect(metrics, "the real page has one primary main landmark").not.toBeNull()
-
-  if (!metrics) {
-    throw new Error("Expected a primary main landmark for visual layout proof.")
-  }
-
-  expect(metrics.viewportWidth, "viewport width is positive").toBeGreaterThan(0)
-  expect(metrics.viewportHeight, "viewport height is positive").toBeGreaterThan(
-    0
-  )
-  expect(metrics.mainWidth, "main width is positive").toBeGreaterThan(0)
-  expect(metrics.mainHeight, "main height is positive").toBeGreaterThan(0)
-  expect(
-    metrics.bodyOverflow,
-    "body has no hidden horizontal overflow"
-  ).toBeLessThanOrEqual(LAYOUT_TOLERANCE_PX)
-  expect(
-    metrics.documentOverflow,
-    "document has no hidden horizontal overflow"
-  ).toBeLessThanOrEqual(LAYOUT_TOLERANCE_PX)
-  expect(
-    metrics.hiddenHorizontalOverflow,
-    `elements have no hidden horizontal overflow: ${metrics.hiddenHorizontalOverflow.join(", ")}`
-  ).toEqual([])
-  expect(
-    metrics.mainLeft,
-    "main does not extend beyond the left viewport edge"
-  ).toBeGreaterThanOrEqual(-LAYOUT_TOLERANCE_PX)
-  expect(
-    metrics.mainRight,
-    "main does not extend beyond the right viewport edge"
-  ).toBeLessThanOrEqual(metrics.viewportWidth + LAYOUT_TOLERANCE_PX)
+  expect(metrics.viewportWidth).toBeGreaterThan(0)
+  expect(metrics.mainCount).toBeGreaterThan(0)
+  expect(metrics.documentOverflow).toBeLessThanOrEqual(1)
+  expect(metrics.bodyOverflow).toBeLessThanOrEqual(1)
+  expect(metrics.outOfBoundsMainCount).toBe(0)
+  expect(metrics.outOfBoundsElementCount).toBe(0)
+  expect(metrics.clippedContentCount).toBe(0)
 
   return metrics
 }

@@ -63,19 +63,24 @@ export function defineMerchantOnboardingContinuityTests() {
     page,
   }) => {
     await page.addInitScript(
-      ({ key }) => {
+      ({ key, accountId }) => {
         window.localStorage.setItem(
           key,
           JSON.stringify({
-            businessName: "Stale Draft Name",
-            addressLine1: "15 Market Street",
-            addressLine2: "",
-            addressCity: "Cambridge",
-            addressPostcode: "CB2 3PA",
+            version: 1,
+            accountId,
+            savedAt: Date.now(),
+            fields: {
+              businessName: "Stale Draft Name",
+              addressLine1: "15 Market Street",
+              addressLine2: "",
+              addressCity: "Cambridge",
+              addressPostcode: "CB2 3PA",
+            },
           })
         )
       },
-      { key: DRAFT_KEY }
+      { key: DRAFT_KEY, accountId: "usr_harness_onboarding" }
     )
 
     await gotoHydratedPage(page, HARNESS_ROUTES.onboarding)

@@ -38,6 +38,7 @@ export default async function MerchantAppLayout({
     <MerchantAppShell
       signOutAction={signOutAction}
       defaultSidebarOpen={sidebarCookieOpen}
+      draftUserId={user.id}
     >
       <Suspense fallback={null}>
         <MerchantSetupReminder />
