@@ -1,7 +1,7 @@
 import { test } from "@playwright/test"
 
 import { connectLocalDb, type Sql } from "./helpers/admin-live-db"
-import { runCleanupSteps } from "./helpers/cleanup-lifecycle"
+import { cleanupScope, runCleanupSteps } from "./helpers/cleanup-lifecycle"
 import {
   assertMerchantAuthLiveDbFaultsRestored,
   restoreMerchantAuthLiveDbFaults,
@@ -25,15 +25,19 @@ test("Given revoked local auth proof permissions When restoration runs Then ever
     // Then
     await assertMerchantAuthLiveDbFaultsRestored(sql)
   } finally {
+    const scope = cleanupScope("merchant-auth-restoration-proof")
     await runCleanupSteps(
+      scope,
       [
         {
           label: "merchant auth fault restoration",
           run: () => restoreMerchantAuthLiveDbFaults(sql),
+          scope,
         },
         {
           label: "local database connection close",
           run: () => sql.end({ timeout: 5 }),
+          scope,
         },
       ],
       "Merchant auth lifecycle proof cleanup failed."

@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test"
 
 import { connectLocalDb, type Sql } from "./helpers/admin-live-db"
-import { runCleanupSteps } from "./helpers/cleanup-lifecycle"
+import { cleanupScope, runCleanupSteps } from "./helpers/cleanup-lifecycle"
 import {
   cleanupCustomerReadbackFixture,
   createCustomerReadbackFixture,
@@ -20,19 +20,24 @@ test("Given customer and public QR fixtures When cleanup runs Then direct row re
   expect(publicQrFixture).toBeDefined()
 
   // When / Then
+  const scope = cleanupScope("customer-public-qr-proof")
   await runCleanupSteps(
+    scope,
     [
       {
         label: "customer fixture cleanup",
         run: () => cleanupCustomerReadbackFixture(sql, customerFixture),
+        scope,
       },
       {
         label: "public QR fixture cleanup",
         run: () => cleanupPublicQrRouterFixture(sql, publicQrFixture),
+        scope,
       },
       {
         label: "local database connection close",
         run: () => sql.end({ timeout: 5 }),
+        scope,
       },
     ],
     "Customer/public QR lifecycle proof cleanup failed."
