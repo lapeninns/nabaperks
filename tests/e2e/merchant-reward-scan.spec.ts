@@ -138,7 +138,9 @@ test.describe("merchant reward scan — collection surface", () => {
         await expect(page.getByText("Ready to collect")).toBeVisible()
         await expect(collectedBanner).toHaveCount(0)
 
-        await page.getByRole("button", { name: "Mark reward collected" }).click()
+        await page
+          .getByRole("button", { name: "Mark reward collected" })
+          .click()
 
         await expect(page).toHaveURL((url) => {
           return (
@@ -165,6 +167,121 @@ test.describe("merchant reward scan — collection surface", () => {
           "Reward marked collected."
         )
       } finally {
+        await cleanupRewardCollectionFixture(sql, fixture)
+        await sql.end()
+      }
+    })
+
+    test("Given two authenticated merchant sessions When collection races Then one succeeds and the database converges", async ({
+      browser,
+      page,
+    }, testInfo) => {
+      const sql = connectLocalDb()
+      test.skip(!sql, "local Supabase DB is not configured")
+      if (!sql) return
+
+      const secondContext = await browser.newContext()
+      const secondPage = await secondContext.newPage()
+      await dismissPwaInstall(secondPage)
+      let fixture: RewardCollectionFixture | undefined
+
+      try {
+        fixture = await createRewardCollectionFixture(sql)
+        test.skip(!fixture, "reward collection fixture is not available")
+        if (!fixture) return
+
+        const merchantEmail = await seedMerchantOwnerEmail(
+          sql,
+          SEED_MERCHANT_SLUG
+        )
+        test.skip(!merchantEmail, "seed merchant owner email is not available")
+        if (!merchantEmail) return
+
+        // Given: both pages hold the real cookie-backed merchant session and see one ready token.
+        await Promise.all([
+          signInAsSeededMerchant(
+            page,
+            `/r/${fixture.scanToken}`,
+            `${fixture.scanToken}a`,
+            merchantEmail
+          ),
+          signInAsSeededMerchant(
+            secondPage,
+            `/r/${fixture.scanToken}`,
+            `${fixture.scanToken}b`,
+            merchantEmail
+          ),
+        ])
+        await Promise.all([
+          expect(page.getByText("Ready to collect")).toBeVisible(),
+          expect(secondPage.getByText("Ready to collect")).toBeVisible(),
+        ])
+
+        // When: both authenticated pages submit the same Server Action concurrently.
+        await Promise.all([
+          page.getByRole("button", { name: "Mark reward collected" }).click(),
+          secondPage
+            .getByRole("button", { name: "Mark reward collected" })
+            .click(),
+        ])
+
+        // Then: exactly one page reports success, one reports the consumed token, and DB effects converge once.
+        await expect
+          .poll(async () => {
+            const pages = [page, secondPage]
+            const [successStates, blockedStates] = await Promise.all([
+              Promise.all(
+                pages.map((candidate) =>
+                  candidate
+                    .getByRole("alert")
+                    .filter({ hasText: "Reward marked collected." })
+                    .isVisible()
+                )
+              ),
+              Promise.all(
+                pages.map((candidate) =>
+                  candidate
+                    .getByRole("alert")
+                    .filter({ hasText: "already been collected" })
+                    .isVisible()
+                )
+              ),
+            ])
+            return {
+              blockedCount: blockedStates.filter(Boolean).length,
+              successCount: successStates.filter(Boolean).length,
+            }
+          })
+          .toEqual({ blockedCount: 1, successCount: 1 })
+
+        const state = await readRewardCollectionState(
+          sql,
+          fixture.rewardEventId
+        )
+        const [effect] = await sql<readonly { count: number }[]>`
+          select count(*)::int as count
+          from public.product_events
+          where membership_id = ${fixture.membershipId}::uuid
+            and event_name = 'reward_redeemed'
+        `
+        expect(state).toEqual({
+          reward_status: "redeemed",
+          consumed: true,
+          next_cycle_count: 0,
+        })
+        expect(effect?.count).toBe(1)
+        await testInfo.attach("reward-race-db-convergence", {
+          body: Buffer.from(
+            JSON.stringify(
+              { effectCount: effect?.count ?? null, state },
+              null,
+              2
+            )
+          ),
+          contentType: "application/json",
+        })
+      } finally {
+        await secondContext.close()
         await cleanupRewardCollectionFixture(sql, fixture)
         await sql.end()
       }
