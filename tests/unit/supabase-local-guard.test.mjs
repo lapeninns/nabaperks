@@ -1,5 +1,11 @@
 import assert from "node:assert/strict"
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs"
 import { tmpdir } from "node:os"
 import { delimiter, join } from "node:path"
 import { spawnSync } from "node:child_process"
@@ -16,23 +22,56 @@ function withSupabaseSentinel(
   const marker = join(directory, "invocation.txt")
   const executable = join(directory, "supabase")
   const dockerExecutable = join(directory, "docker")
+  const projectDirectory = join(directory, "project")
+  mkdirSync(join(projectDirectory, "supabase"), { recursive: true })
+  writeFileSync(
+    join(projectDirectory, "supabase/config.toml"),
+    'project_id = "nabaperks-task20-abcdef123"\n\n[db]\nport = 65432\n'
+  )
   writeFileSync(
     executable,
     `#!/bin/sh\nsleep ${delaySeconds}\nprintf '%s\\n' "$@" > "${marker}"\nexit ${exitCode}\n`
   )
   writeFileSync(dockerExecutable, "#!/bin/sh\nexit 1\n")
   spawnSync("chmod", ["+x", executable, dockerExecutable])
+  spawnSync("git", ["init", "-q"], { cwd: projectDirectory })
+  spawnSync("git", ["add", "supabase/config.toml"], { cwd: projectDirectory })
+  spawnSync(
+    "git",
+    [
+      "-c",
+      "user.name=Nabaperks Test",
+      "-c",
+      "user.email=test@example.invalid",
+      "commit",
+      "-qm",
+      "test fixture",
+    ],
+    { cwd: projectDirectory }
+  )
+
+  const safeEnvironment = { ...process.env }
+  for (const key of [
+    "DATABASE_URL",
+    "SUPABASE_ACCESS_TOKEN",
+    "SUPABASE_DB_URL",
+    "SUPABASE_PROJECT_ID",
+    "SUPABASE_PROJECT_REF",
+    "SUPABASE_URL",
+  ]) {
+    delete safeEnvironment[key]
+  }
 
   try {
     callback({
       marker,
       run(args, env = {}, timeout = 5_000) {
         return spawnSync(process.execPath, [WRAPPER, ...args], {
-          cwd: ROOT,
+          cwd: projectDirectory,
           encoding: "utf8",
           timeout,
           env: {
-            ...process.env,
+            ...safeEnvironment,
             ...env,
             PATH: `${directory}${delimiter}${process.env.PATH ?? ""}`,
           },

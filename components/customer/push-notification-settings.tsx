@@ -13,17 +13,9 @@ import {
   requestPushPermission,
   savePushPreferences,
   type PushPreferences,
-} from "@/components/customer/push-notification-settings-state"
+} from "./push-notification-settings-state"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-
-import {
-  isCurrentPushPreferenceRequest,
-  persistPushPreferences,
-  PUSH_OPERATION_TIMEOUT_MS,
-  requestPushPermission,
-  settlePushOperation,
-} from "./push-notification-settings-state"
 
 type BrowserPushState =
   | "checking"
@@ -167,16 +159,12 @@ export function PushNotificationSettings({
     setPending(true)
     setMessage(null)
     try {
-      const publicKeyResult = await settlePushOperation(
-        loadPublicKey(),
-        PUSH_OPERATION_TIMEOUT_MS
-      )
-      if (publicKeyResult.kind !== "fulfilled" || !publicKeyResult.value) {
+      const publicKey = await awaitPushOperation(loadPublicKey())
+      if (!publicKey) {
         setBrowserState("error")
         setMessage("Push could not be enabled here. Try again.")
         return
       }
-      const publicKey = publicKeyResult.value
 
       await fetch("/api/notifications/push/prompt-viewed", {
         method: "POST",
@@ -192,7 +180,7 @@ export function PushNotificationSettings({
         return
       }
       if (permission !== "granted") {
-        setBrowserState(permission === "unavailable" ? "error" : "granted")
+        setBrowserState("granted")
         return
       }
 

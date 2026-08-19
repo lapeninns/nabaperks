@@ -21,6 +21,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { clearCompletedMerchantOnboardingDraft } from "@/lib/merchant/onboarding-draft-storage"
 import { CONSOLE_SIDEBAR_STYLE, ConsoleSidebarNav } from "./console-sidebar-nav"
 import { merchantAccountItems, merchantNavItems } from "./console-nav"
 import { MerchantSignOutForm } from "./merchant-sign-out-form"
@@ -68,13 +69,6 @@ export function MerchantAppShell({
       )
     }
   }, [pathname])
-
-  const handleSignOut = () => {
-    clearActiveMerchantOnboardingDraft(
-      window.localStorage,
-      window.sessionStorage
-    )
-  }
 
   if (variant === "setup") {
     return (

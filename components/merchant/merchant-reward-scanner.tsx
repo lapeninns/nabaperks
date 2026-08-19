@@ -8,7 +8,6 @@ import {
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useRef, useState } from "react"
-import type { FormEvent } from "react"
 
 import { Eyebrow, ReceiptCard } from "@/components/brand"
 import { Button } from "@/components/ui/button"

@@ -28,8 +28,12 @@ import {
 import { Button } from "@/components/ui/button"
 import type { VenueAddressFormFields } from "@/lib/merchant/venue-address"
 import {
+  clearMerchantOnboardingCompletionPending,
   clearOnboardingDraft,
+  markMerchantOnboardingCompletionPending,
+  ONBOARDING_DRAFT_STORAGE_PREFIX,
   readOnboardingDraft,
+  rememberActiveMerchantOnboardingDraftAccount,
   saveOnboardingDraft,
   type OnboardingDraftFields,
 } from "@/lib/merchant/onboarding-draft-storage"
@@ -156,8 +160,12 @@ export function OnboardingForm({
   }, [state.errors])
 
   useEffect(() => {
-    window.localStorage.removeItem(legacyDraftStorageKey)
-  }, [])
+    window.localStorage.removeItem(ONBOARDING_DRAFT_STORAGE_PREFIX)
+    rememberActiveMerchantOnboardingDraftAccount(
+      window.sessionStorage,
+      draftUserId
+    )
+  }, [draftUserId])
 
   useEffect(() => {
     let draft: OnboardingDraft = {}
