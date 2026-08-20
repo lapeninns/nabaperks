@@ -6,7 +6,7 @@
   "scripts": {
     "prepare": "husky",
     "dev": "next dev",
-    "build": "next build --webpack",
+    "build": "NODE_ENV=production next build --webpack",
     "start": "next start",
     "clean": "rm -rf .next .next-e2e coverage test-results playwright-report reports/lighthouse reports/mutation",
     "typecheck": "tsc --noEmit",
