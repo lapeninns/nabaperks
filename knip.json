@@ -1,6 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
+    "public/sw.js",
     "components/merchant/launch/launch-billing-cta.tsx",
     "app/**/{page,layout,route,error,loading,not-found,template,default}.{ts,tsx}",
     "scripts/capture-app-harness.mjs",
@@ -26,10 +27,10 @@
     "scripts/**/*.mjs",
     "tests/**/*.{mjs,ts,tsx}",
     "tests/load/**/*.js",
-    "public/sw.js",
     "app/**/*.css",
     "*.{ts,mts,mjs}"
   ],
+  "ignore": ["classifier.mjs"],
   "rules": {
     "files": "error",
     "exports": "warn",

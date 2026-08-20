@@ -18,6 +18,7 @@ const dynamicTask15SupportClis = [
   "tests/support/task21-playwright-server-supervisor.mjs",
 ]
 const runtimeEntries = [
+  "public/sw.js",
   "scripts/capture-app-harness.mjs",
   "scripts/check-local-race-target.mjs",
   "scripts/perf-mutation-stress.mjs",
@@ -90,16 +91,13 @@ function issueFiles(stdout) {
 
 test("Knip config recognises only the real runtime entrypoints", async () => {
   const config = JSON.parse(await readFile(configPath, "utf8"))
-  for (const pattern of [
-    "tests/load/**/*.js",
-    "public/sw.js",
-    "app/**/*.css",
-  ]) {
+  for (const pattern of ["tests/load/**/*.js", "app/**/*.css"]) {
     assert.ok(
       config.project.includes(pattern),
       `missing project pattern: ${pattern}`
     )
   }
+  assert.equal(config.project.includes("public/sw.js"), false)
   assert.equal(config.project.includes("supabase/**/*.sql"), false)
   assert.equal(config.project.includes("supabase/**/*.json"), false)
   assert.equal(config.ignoreDependencies, undefined)
@@ -134,9 +132,7 @@ test("broad entry globs produce a real unused-file false negative", async () => 
     ],
     project: config.project.filter(
       (pattern) =>
-        !pattern.startsWith("tests/load/") &&
-        pattern !== "public/sw.js" &&
-        !pattern.startsWith("supabase/")
+        !pattern.startsWith("tests/load/") && !pattern.startsWith("supabase/")
     ),
   }
   const root = await mkdtemp(join(tmpdir(), "nabaperks-knip-scope-"))
@@ -150,7 +146,7 @@ test("broad entry globs produce a real unused-file false negative", async () => 
   }
 })
 
-test("the repaired config reports unused JavaScript in each formerly hidden class", async () => {
+test("the repaired config preserves declared runtime assets while reporting unused JavaScript", async () => {
   const config = JSON.parse(await readFile(configPath, "utf8"))
   const root = await mkdtemp(join(tmpdir(), "nabaperks-knip-scope-"))
   try {
@@ -159,7 +155,6 @@ test("the repaired config reports unused JavaScript in each formerly hidden clas
     assert.equal(result.code, 1, result.stderr)
     assert.deepEqual(issueFiles(result.stdout), [
       "components/ui/unused.ts",
-      "public/sw.js",
       "scripts/unused.mjs",
       "tests/load/unused.js",
       "tests/unused.mjs",
@@ -182,7 +177,6 @@ test("Knip excludes unsupported non-JavaScript compiler inputs", async () => {
     assert.equal(result.stderr, "")
     assert.deepEqual(issueFiles(result.stdout), [
       "components/ui/unused.ts",
-      "public/sw.js",
       "scripts/unused.mjs",
       "tests/load/unused.js",
       "tests/unused.mjs",
