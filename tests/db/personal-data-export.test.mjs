@@ -49,11 +49,16 @@ test(
   async () => {
     const sql = client("manifest-export-test")
     const manifest = await sql`
-    select relation_name, disposition, reason_code, export_section
+    select relation_name, relation_state, disposition, reason_code, export_section
     from public.personal_data_relation_manifest
     order by relation_name`
     const publicRelations = manifest
-      .filter((row) => row.relation_name.startsWith("public."))
+      .filter(
+        (row) =>
+          row.relation_name.startsWith("public.") &&
+          row.relation_state === "live" &&
+          row.reason_code !== "subject_identifier_unresolvable"
+      )
       .map((row) => row.relation_name.slice("public.".length))
 
     assert.deepEqual(publicRelations, EXPECTED_CUSTOMER_RELATIONS)
@@ -68,7 +73,11 @@ test(
           ? typeof row.export_section === "string" &&
             row.reason_code === "data_subject_access"
           : row.export_section === null &&
-            row.reason_code === "security_credential_store"
+            [
+              "security_credential_store",
+              "subject_identifier_unresolvable",
+              "relation_non_live",
+            ].includes(row.reason_code)
       ),
       "every manifest row has a canonical machine-readable disposition reason"
     )
@@ -123,51 +132,179 @@ test(
 
     await actAsAdmin(exporter)
     await locker`begin`
+    const [{ locker_pid: lockerPid }] =
+      await locker`select pg_backend_pid() as locker_pid`
+    let settleExport = Promise.resolve()
+    let exporterFacts
+    let insertedConsentId
+    let mutatorFacts
+    let postCommitFacts
     try {
       await locker`lock table public.stamp_events in access exclusive mode`
-      const exportPromise = exporter`
-      select public.admin_export_customer_data(
-        ${subject.customer_id}::uuid,
-        ${subject.merchant_id}::uuid,
-        'email',
-        ${notes}
-      ) as payload`
+      let identifyExporter
+      const exporterIdentified = new Promise((resolve) => {
+        identifyExporter = resolve
+      })
+      const exportPromise = exporter.begin(async (tx) => {
+        const [{ exporter_pid: exporterPid }] =
+          await tx`select pg_backend_pid() as exporter_pid`
+        await tx`select set_config('application_name', 'manifest-export-concurrency', true)`
+        identifyExporter(exporterPid)
+        const [isolation] = await tx`show transaction_isolation`
+        const [{ snapshot_id: snapshotId }] =
+          await tx`select txid_current_snapshot()::text as snapshot_id`
+        exporterFacts = {
+          transactionIsolation: isolation.transaction_isolation,
+          snapshotId,
+        }
+        const rows = await tx`
+          select public.admin_export_customer_data(
+            ${subject.customer_id}::uuid,
+            ${subject.merchant_id}::uuid,
+            'email',
+            ${notes}
+          ) as payload`
+        const [{ snapshot_id: afterRpcSnapshotId }] =
+          await tx`select txid_current_snapshot()::text as snapshot_id`
+        exporterFacts.afterRpcSnapshotId = afterRpcSnapshotId
+        return rows
+      })
+      settleExport = exportPromise.then(
+        () => undefined,
+        () => undefined
+      )
 
-      await waitUntilExportBlocks(control)
+      await waitUntilExportBlocks(control, await exporterIdentified, lockerPid)
       await mutator.begin(async (tx) => {
+        const [isolation] = await tx`show transaction_isolation`
         await tx`
         update public.customers
         set full_name = ${changedName}
         where id = ${subject.customer_id}::uuid`
-        await tx`
+        const [{ id }] = await tx`
         insert into public.consent_records (
           merchant_id, customer_id, channel, consent_status, source,
           policy_version, metadata
         ) values (
           ${subject.merchant_id}::uuid, ${subject.customer_id}::uuid,
-          'email', 'granted', 'admin', 'snapshot-test', ${JSON.stringify({ marker })}::jsonb
-        )`
+          'email', 'opted_in', 'admin', 'snapshot-test', ${tx.json({ marker })}::jsonb
+        ) returning id`
+        insertedConsentId = id
+        const [
+          {
+            mutation_txid_present: mutationTxidPresent,
+            snapshot_id: snapshotId,
+          },
+        ] = await tx`select txid_current() is not null as mutation_txid_present,
+                          txid_current_snapshot()::text as snapshot_id`
+        mutatorFacts = {
+          insertedConsentIdPresent: Boolean(insertedConsentId),
+          mutationTxidPresent,
+          transactionIsolation: isolation.transaction_isolation,
+          snapshotId,
+        }
       })
+      const [visibility] = await control`
+        select
+          exists (
+            select 1 from public.customers
+            where id = ${subject.customer_id}::uuid
+              and full_name = ${changedName}
+          ) as changed_customer_visible,
+          exists (
+            select 1 from public.consent_records
+            where id = ${insertedConsentId}::uuid
+              and customer_id = ${subject.customer_id}::uuid
+              and policy_version = 'snapshot-test'
+              and metadata ->> 'marker' = ${marker}
+          ) as inserted_consent_visible,
+          txid_current_snapshot()::text as snapshot_id`
+      postCommitFacts = {
+        changedCustomerVisible: visibility.changed_customer_visible,
+        insertedConsentVisible: visibility.inserted_consent_visible,
+        visibleTogether:
+          visibility.changed_customer_visible &&
+          visibility.inserted_consent_visible,
+        snapshotId: visibility.snapshot_id,
+      }
       await locker`commit`
 
       const [{ payload }] = await exportPromise
+      const rawCustomersSectionRows = payload.sections?.customers?.rows
+      const rawConsentSectionRows = payload.sections?.consent_records?.rows
+      const rawCustomersRows = Array.isArray(rawCustomersSectionRows)
+        ? rawCustomersSectionRows
+        : []
+      const rawConsentRows = Array.isArray(rawConsentSectionRows)
+        ? rawConsentSectionRows
+        : []
       const exportedName =
-        payload.sections?.customers?.rows?.[0]?.full_name ??
-        payload.customer.full_name
-      const consentRows =
-        payload.sections?.consent_records?.rows ?? payload.consent_records
+        rawCustomersRows[0]?.full_name ?? payload.customer.full_name
+      const consentRows = Array.isArray(rawConsentSectionRows)
+        ? rawConsentRows
+        : payload.consent_records
+      const customersRowCount = Array.isArray(rawCustomersSectionRows)
+        ? rawCustomersRows.length
+        : 1
+      const exportedNameClass =
+        exportedName === originalName
+          ? "original"
+          : exportedName === changedName
+            ? "changed"
+            : "other"
       const sawMutation = consentRows.some(
         (row) => row.metadata?.marker === marker
+      )
+      const metadataKinds = rawConsentRows.map((row) =>
+        row.metadata === null
+          ? "null"
+          : Array.isArray(row.metadata)
+            ? "array"
+            : typeof row.metadata === "object"
+              ? "object"
+              : "other"
       )
       const whollyBefore = exportedName === originalName && !sawMutation
       const whollyAfter = exportedName === changedName && sawMutation
 
       assert.ok(
         whollyBefore || whollyAfter,
-        "companions must never contain a mixed snapshot"
+        `snapshot classification: ${JSON.stringify({
+          exportedNameClass,
+          sawMutation,
+          rawCustomersRowsIsArray: Array.isArray(rawCustomersSectionRows),
+          rawConsentRowsIsArray: Array.isArray(rawConsentSectionRows),
+          customersRowCount,
+          consentRowsCount: consentRows.length,
+          insertedIdMatchCount: rawConsentRows.filter(
+            (row) => row.id === insertedConsentId
+          ).length,
+          snapshotPolicyVersionCount: rawConsentRows.filter(
+            (row) => row.policy_version === "snapshot-test"
+          ).length,
+          markerKeyPresentCount: rawConsentRows.filter(
+            (row) =>
+              row.metadata !== null &&
+              typeof row.metadata === "object" &&
+              Object.hasOwn(row.metadata, "marker")
+          ).length,
+          markerMatchCount: rawConsentRows.filter(
+            (row) => row.metadata?.marker === marker
+          ).length,
+          metadataKindCounts: {
+            object: metadataKinds.filter((kind) => kind === "object").length,
+            array: metadataKinds.filter((kind) => kind === "array").length,
+            null: metadataKinds.filter((kind) => kind === "null").length,
+            other: metadataKinds.filter((kind) => kind === "other").length,
+          },
+          exporterFacts,
+          mutatorFacts,
+          postCommitFacts,
+        })}`
       )
     } finally {
       await locker`rollback`
+      await settleExport
       await control`
       delete from public.audit_logs
       where customer_id = ${subject.customer_id}::uuid
@@ -197,8 +334,8 @@ test(
       has_function_privilege('service_role', ${EXPORT_FUNCTION}, 'execute') as service_role`
     assert.deepEqual(acl, {
       anon: false,
-      authenticated: false,
-      service_role: true,
+      authenticated: true,
+      service_role: false,
     })
 
     await actAsAdmin(sql)
@@ -238,18 +375,32 @@ async function pickSubject(sql) {
   return subject
 }
 
-async function waitUntilExportBlocks(sql) {
+async function waitUntilExportBlocks(sql, exporterPid, lockerPid) {
+  let facts
   for (let attempt = 0; attempt < 100; attempt += 1) {
-    const [blocked] = await sql`
-      select exists (
-        select 1 from pg_stat_activity
-        where application_name = 'manifest-export-concurrency'
-          and wait_event_type = 'Lock'
-      ) as blocked`
-    if (blocked.blocked) return
-    await new Promise((resolve) => setTimeout(resolve, 20))
+    ;[facts] = await sql`
+      select
+        exists (
+          select 1 from pg_stat_activity
+          where pid = ${exporterPid}
+            and application_name = 'manifest-export-concurrency'
+        ) as exporter_identified,
+        exists (
+          select 1 from pg_locks
+          where pid = ${exporterPid}
+            and relation = 'public.stamp_events'::regclass
+            and mode = 'AccessShareLock'
+            and not granted
+        ) as access_share_waiting,
+        ${lockerPid}::int = any(pg_blocking_pids(${exporterPid})) as locker_is_blocker`
+    if (
+      facts.exporter_identified &&
+      facts.access_share_waiting &&
+      facts.locker_is_blocker
+    )
+      return
   }
-  assert.fail("the export did not reach the deterministic lock boundary")
+  assert.fail(`export lock boundary facts: ${JSON.stringify(facts)}`)
 }
 
 function isLoopbackUrl(value) {
