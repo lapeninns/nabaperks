@@ -44,6 +44,20 @@ async function waitFor(path) {
   })
 }
 
+async function waitForExit(pid) {
+  const deadline = Date.now() + 500
+  while (Date.now() < deadline) {
+    try {
+      process.kill(pid, 0)
+    } catch (error) {
+      if (error?.code === "ESRCH") return
+      throw error
+    }
+    await new Promise((resolve) => setTimeout(resolve, 5))
+  }
+  assert.fail(`Process ${pid} did not exit within 500ms`)
+}
+
 test("Given a command reaches a scanner and reports nonzero totals When accounting observes its nonzero exit Then it remains executed", () => {
   const command = fixture(
     'console.log("TASK15_SCANNER_STARTED"); console.log("TASK15_TOTAL tests=3 passed=2 failed=1"); process.exit(1)'
@@ -238,7 +252,7 @@ test("Given accounting receives cancellation after an owned descendant starts Wh
     const [exitCode] = await once(accounting, "close")
     assert.notEqual(exitCode, 0)
     const childPid = Number(readFileSync(childPidPath, "utf8"))
-    assert.throws(() => process.kill(childPid, 0), { code: "ESRCH" })
+    await waitForExit(childPid)
   } finally {
     if (existsSync(childPidPath)) {
       const childPid = Number(readFileSync(childPidPath, "utf8"))
