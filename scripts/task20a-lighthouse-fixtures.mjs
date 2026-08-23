@@ -1,0 +1,18 @@
+export const TASK20A_AUDIT_ENV = Object.freeze({
+  CUSTOMER_PHONE_ENCRYPTION_KEY: "ci-encryption-key-placeholder-32b",
+  CUSTOMER_PHONE_HMAC_SECRET: "ci-hmac-secret-placeholder",
+  CUSTOMER_SESSION_SECRET: "ci-session-secret-placeholder",
+  NEXT_PUBLIC_APP_URL: "https://example.test",
+  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_test_ci",
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: "ci-anon-key",
+  NEXT_PUBLIC_SUPABASE_URL: "https://ci.supabase.co",
+  RESEND_API_KEY: "re_ci",
+  STRIPE_GROWTH_ANNUAL_PRICE_ID: "price_annual_ci",
+  STRIPE_GROWTH_PRICE_ID: "price_ci",
+  STRIPE_LAUNCH_PRICE_ID: "price_launch_ci",
+  STRIPE_SECRET_KEY: "sk_test_ci",
+  STRIPE_WEBHOOK_SECRET: "ci_test_webhook_secret",
+  SUPABASE_SERVICE_ROLE_KEY: "ci-service-role-key",
+  TWILIO_ACCOUNT_SID: "ACci",
+  TWILIO_VERIFY_SERVICE_SID: "VAci",
+})

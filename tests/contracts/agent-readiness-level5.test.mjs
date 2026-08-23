@@ -165,7 +165,6 @@ test("Given routine pull requests When CI runs Then deep browser proof is sharde
     assert.match(consumer, /name: next-build/)
   }
 
-  assert.match(ci, /--collect\.url=/)
   assert.match(release, /release-drafter/)
 })
 

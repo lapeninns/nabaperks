@@ -324,22 +324,10 @@ jobs:
         run: test "$VISUAL_RESULT" = "success"
 
   lighthouse:
-    name: Lighthouse (${{ matrix.route }})
+    name: Lighthouse (DevTools median)
     needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - route: home
-            url: http://127.0.0.1:3130/
-          - route: pricing
-            url: http://127.0.0.1:3130/pricing
-          - route: loyalty-for-pubs
-            url: http://127.0.0.1:3130/loyalty-for-pubs
-          - route: signup
-            url: http://127.0.0.1:3130/signup
+    timeout-minutes: 20
     env:
       CUSTOMER_DEV_OTP_CODE: "424242"
     steps:
@@ -350,12 +338,12 @@ jobs:
         with:
           name: next-build
           path: .next
-      - run: pnpm lighthouse -- --collect.url="${{ matrix.url }}"
+      - run: pnpm lighthouse
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: ${{ always() }}
         with:
-          name: lighthouse-report-${{ matrix.route }}
-          path: reports/lighthouse/
+          name: lighthouse-report-devtools-median
+          path: reports/task20a-lighthouse/
           retention-days: 30
 
   lighthouse-gate:

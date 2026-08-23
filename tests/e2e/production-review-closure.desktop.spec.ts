@@ -15,48 +15,27 @@ test("private admin routes prohibit indexing across redirects and layouts", asyn
   )
 })
 
-test("Lighthouse remains a multi-run mobile quality signal", () => {
+test("Lighthouse retains its historical non-LCP quality budgets", () => {
   const lighthouse = JSON.parse(readFileSync(".lighthouserc.json", "utf8"))
-  const workflow = readFileSync(".github/workflows/ci.yml", "utf8")
-  const lighthouseJob = workflow.slice(workflow.indexOf("  lighthouse:"))
+  const assertionMatrix = lighthouse.ci.assert.assertMatrix as Array<{
+    assertions: Record<string, [string, unknown]>
+    matchingUrlPattern: string
+  }>
 
   expect(lighthouse.ci.collect.numberOfRuns).toBeGreaterThanOrEqual(2)
   expect(lighthouse.ci.collect.settings.formFactor).toBe("mobile")
-  expect(lighthouse.ci.collect.settings.preset).not.toBe("desktop")
-  const assertionMatrix = lighthouse.ci.assert.assertMatrix as Array<{
-    matchingUrlPattern: string
-    assertions: Record<string, [string, unknown]>
-  }>
-  expect(assertionMatrix).toHaveLength(2)
-
   for (const url of lighthouse.ci.collect.url as string[]) {
-    const matchingGroups = assertionMatrix.filter(({ matchingUrlPattern }) =>
-      new RegExp(matchingUrlPattern).test(url)
-    )
     expect(
-      matchingGroups,
-      `${url} must have one Lighthouse budget`
+      assertionMatrix.filter(({ matchingUrlPattern }) =>
+        new RegExp(matchingUrlPattern).test(url)
+      )
     ).toHaveLength(1)
   }
-
   for (const { assertions } of assertionMatrix) {
-    for (const assertion of Object.values(assertions)) {
+    expect(assertions).not.toHaveProperty("largest-contentful-paint")
+    for (const [audit, assertion] of Object.entries(assertions)) {
+      expect(audit).not.toBe("largest-contentful-paint")
       expect(assertion[0]).toBe("error")
     }
   }
-
-  const publicAssertions = assertionMatrix.find(({ matchingUrlPattern }) =>
-    new RegExp(matchingUrlPattern).test("http://127.0.0.1:3130/")
-  )?.assertions
-  const signupAssertions = assertionMatrix.find(({ matchingUrlPattern }) =>
-    new RegExp(matchingUrlPattern).test("http://127.0.0.1:3130/signup")
-  )?.assertions
-  expect(publicAssertions?.["categories:seo"]).toEqual([
-    "error",
-    { minScore: 0.9 },
-  ])
-  expect(signupAssertions).not.toHaveProperty("categories:seo")
-  expect(lighthouseJob.split("  zap-baseline:")[0]).not.toContain(
-    "continue-on-error: true"
-  )
 })

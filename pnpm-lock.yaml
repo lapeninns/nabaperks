@@ -151,6 +151,9 @@ importers:
       '@types/web-push':
         specifier: ^3.6.4
         version: 3.6.4
+      chrome-launcher:
+        specifier: 1.2.1
+        version: 1.2.1
       dotenv:
         specifier: 17.4.2
         version: 17.4.2
@@ -175,6 +178,9 @@ importers:
       knip:
         specifier: ^6.31.0
         version: 6.32.0
+      lighthouse:
+        specifier: 13.4.1
+        version: 13.4.1(@opentelemetry/core@2.10.0(@opentelemetry/api@1.9.1))(yauzl@2.10.0)
       lint-staged:
         specifier: ^17.3.0
         version: 17.3.0
@@ -4707,15 +4713,6 @@ packages:
 
   node-fetch@2.6.7:
     resolution: {integrity: sha512-ZjMPFEfVx5j+y2yF35Kzx5sF7kDzxuDj6ziH4FFbOp87zKDZNx8yExJIb05OGF4Nlt9IHFIMBkRl41VdvcNdbQ==}
-    engines: {node: 4.x || >=6.0.0}
-    peerDependencies:
-      encoding: ^0.1.0
-    peerDependenciesMeta:
-      encoding:
-        optional: true
-
-  node-fetch@2.7.0:
-    resolution: {integrity: sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==}
     engines: {node: 4.x || >=6.0.0}
     peerDependencies:
       encoding: ^0.1.0
@@ -10380,7 +10377,7 @@ snapshots:
 
   isomorphic-fetch@3.0.0:
     dependencies:
-      node-fetch: 2.7.0
+      node-fetch: 2.6.7
       whatwg-fetch: 3.6.20
     transitivePeerDependencies:
       - encoding
@@ -10873,10 +10870,6 @@ snapshots:
       semver: 6.3.1
 
   node-fetch@2.6.7:
-    dependencies:
-      whatwg-url: 5.0.0
-
-  node-fetch@2.7.0:
     dependencies:
       whatwg-url: 5.0.0
 
