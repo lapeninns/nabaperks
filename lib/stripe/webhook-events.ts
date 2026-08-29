@@ -78,7 +78,11 @@ export type StripeWebhookProcessorDependencies = {
 }
 
 type StripeWebhookProcessingErrorCode =
-  "ownership_mismatch" | "lease_lost" | "processing_failed"
+  | "ownership_mismatch"
+  | "launch_fee_pending"
+  | "unprocessable"
+  | "lease_lost"
+  | "processing_failed"
 
 const MAX_STRIPE_WEBHOOK_BODY_BYTES = 1_048_576
 
@@ -167,10 +171,7 @@ export async function handleStripeWebhookRequest(
       // The 5-minute lease remains reclaimable even if recording failure fails.
     }
 
-    return Response.json(
-      { error: "Stripe webhook processing failed" },
-      { status: 500 }
-    )
+    return webhookProcessingFailureResponse(event, errorCode)
   }
 
   if (result.status === "applied") {
@@ -185,6 +186,27 @@ export async function handleStripeWebhookRequest(
     received: true,
     ...(result.status === "stale" ? { stale: true } : {}),
   })
+}
+
+function webhookProcessingFailureResponse(
+  event: Stripe.Event,
+  errorCode: string
+) {
+  console.warn("stripe_webhook_processing_failed", {
+    eventId: event.id,
+    eventType: event.type,
+    livemode: event.livemode,
+    errorCode,
+  })
+
+  if (isAcknowledgedWebhookFailure(errorCode)) {
+    return Response.json({ received: true, ignored: true })
+  }
+
+  return Response.json(
+    { error: "Stripe webhook processing failed" },
+    { status: 500 }
+  )
 }
 
 async function readBoundedWebhookBody(
@@ -343,20 +365,27 @@ export async function processStripeWebhookEvent(
     return { status: "completed", merchantId: null, productEvents: [] }
   }
 
-  const subscription = await dependencies.retrieveSubscription(
-    context.subscriptionId
-  )
+  const subscription = await retrieveWebhookSubscription({
+    event,
+    leaseId,
+    subscriptionId: context.subscriptionId,
+    dependencies,
+  })
+
+  if (subscription === "missing") {
+    return { status: "completed", merchantId: null, productEvents: [] }
+  }
+
   assertEventOwnership(subscription, context)
 
-  const ownership = await dependencies.resolveSubscriptionMerchant({
+  const ownership = await resolveWebhookOwnership({
     subscription,
-    expectedSubscriptionId: context.subscriptionId,
-    merchantIdHint: context.merchantIdHint,
-    customerIdHint: context.customerIdHint,
+    context,
+    dependencies,
   })
   assertResolvedOwnership(subscription, context, ownership)
 
-  const snapshot = mapStripeSubscriptionSnapshot(subscription)
+  const snapshot = snapshotWebhookSubscription(subscription)
   const entitlementStatus = mapStripeSubscriptionStatus(subscription.status)
   await satisfyWebhookLaunchFee({
     event,
@@ -459,6 +488,86 @@ export function createStripeWebhookProcessorDependencies(
  * merchant used their free days and cancelled, and must not get 28 more on
  * restart.
  */
+async function retrieveWebhookSubscription({
+  event,
+  leaseId,
+  subscriptionId,
+  dependencies,
+}: {
+  event: Stripe.Event
+  leaseId: string
+  subscriptionId: string
+  dependencies: StripeWebhookProcessorDependencies
+}): Promise<Stripe.Subscription | "missing"> {
+  try {
+    return await dependencies.retrieveSubscription(subscriptionId)
+  } catch (error) {
+    if (!isMissingStripeResource(error)) throw error
+
+    const completed = await dependencies.completeEvent({
+      eventId: event.id,
+      leaseId,
+    })
+
+    if (!completed) {
+      throw new StripeWebhookProcessingError("lease_lost")
+    }
+
+    return "missing"
+  }
+}
+
+function isMissingStripeResource(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "resource_missing"
+  )
+}
+
+function isAcknowledgedWebhookFailure(errorCode: string) {
+  return (
+    errorCode === "ownership_mismatch" ||
+    errorCode === "launch_fee_pending" ||
+    errorCode === "unprocessable"
+  )
+}
+
+function isInfrastructureWebhookError(error: unknown) {
+  return error instanceof Error && error.message.startsWith("Unable to")
+}
+
+async function resolveWebhookOwnership({
+  subscription,
+  context,
+  dependencies,
+}: {
+  subscription: Stripe.Subscription
+  context: SubscriptionEventContext
+  dependencies: StripeWebhookProcessorDependencies
+}) {
+  try {
+    return await dependencies.resolveSubscriptionMerchant({
+      subscription,
+      expectedSubscriptionId: context.subscriptionId,
+      merchantIdHint: context.merchantIdHint,
+      customerIdHint: context.customerIdHint,
+    })
+  } catch (error) {
+    if (isInfrastructureWebhookError(error)) throw error
+    throw new StripeWebhookProcessingError("ownership_mismatch")
+  }
+}
+
+function snapshotWebhookSubscription(subscription: Stripe.Subscription) {
+  try {
+    return mapStripeSubscriptionSnapshot(subscription)
+  } catch {
+    throw new StripeWebhookProcessingError("unprocessable")
+  }
+}
+
 async function recordIntroductoryTrialUse({
   subscription,
   merchantId,
@@ -502,7 +611,7 @@ async function satisfyWebhookLaunchFee({
     const alreadySatisfied =
       await dependencies.hasSatisfiedLaunchFee(merchantId)
     if (!alreadySatisfied) {
-      throw new StripeWebhookProcessingError("processing_failed")
+      throw new StripeWebhookProcessingError("launch_fee_pending")
     }
     return
   }
