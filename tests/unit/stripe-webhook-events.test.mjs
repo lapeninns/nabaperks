@@ -356,7 +356,7 @@ test("a monthly Subscription event cannot activate before launch payment proof",
     ),
     (error) =>
       error instanceof StripeWebhookProcessingError &&
-      error.code === "processing_failed"
+      error.code === "launch_fee_pending"
   )
 
   assert.equal(applies, 0)
@@ -543,7 +543,7 @@ test("processing failure releases only the claimed lease with a safe error code"
     signedRequest(),
     routeDependencies({
       processEvent: async () => {
-        throw new StripeWebhookProcessingError("ownership_mismatch")
+        throw new StripeWebhookProcessingError("lease_lost")
       },
       failEvent: async (value) => {
         failed = value
@@ -562,9 +562,139 @@ test("processing failure releases only the claimed lease with a safe error code"
   assert.deepEqual(failed, {
     eventId: "evt_owned",
     leaseId: LEASE_ID,
-    errorCode: "ownership_mismatch",
+    errorCode: "lease_lost",
   })
   assert.equal(sideEffects, 0)
+})
+
+test("business-rule webhook failures are acknowledged so Stripe does not disable the endpoint", async () => {
+  const ownership = await handleStripeWebhookRequest(
+    signedRequest(),
+    routeDependencies({
+      processEvent: async () => {
+        throw new StripeWebhookProcessingError("ownership_mismatch")
+      },
+    })
+  )
+  const launchFee = await handleStripeWebhookRequest(
+    signedRequest(),
+    routeDependencies({
+      processEvent: async () => {
+        throw new StripeWebhookProcessingError("launch_fee_pending")
+      },
+    })
+  )
+  const unprocessable = await handleStripeWebhookRequest(
+    signedRequest(),
+    routeDependencies({
+      processEvent: async () => {
+        throw new StripeWebhookProcessingError("unprocessable")
+      },
+    })
+  )
+
+  assert.equal(ownership.status, 200)
+  assert.deepEqual(await ownership.json(), {
+    received: true,
+    ignored: true,
+  })
+  assert.equal(launchFee.status, 200)
+  assert.deepEqual(await launchFee.json(), {
+    received: true,
+    ignored: true,
+  })
+  assert.equal(unprocessable.status, 200)
+  assert.deepEqual(await unprocessable.json(), {
+    received: true,
+    ignored: true,
+  })
+})
+
+test("a Dashboard or deleted Subscription is completed instead of retrying forever", async () => {
+  let completed = null
+  let applies = 0
+  const missing = Object.assign(new Error("No such subscription"), {
+    code: "resource_missing",
+  })
+
+  const result = await processStripeWebhookEvent(
+    {
+      event: event("customer.subscription.updated", subscription()),
+      leaseId: LEASE_ID,
+    },
+    processorDependencies({
+      retrieveSubscription: async () => {
+        throw missing
+      },
+      applySubscriptionEvent: async () => {
+        applies += 1
+        return "applied"
+      },
+      completeEvent: async (value) => {
+        completed = value
+        return true
+      },
+    })
+  )
+
+  assert.deepEqual(completed, { eventId: "evt_owned", leaseId: LEASE_ID })
+  assert.equal(applies, 0)
+  assert.deepEqual(result, {
+    status: "completed",
+    merchantId: null,
+    productEvents: [],
+  })
+})
+
+test("an unusable Subscription snapshot is not retried as a server error", async () => {
+  await assert.rejects(
+    processStripeWebhookEvent(
+      {
+        event: event("customer.subscription.updated", subscription()),
+        leaseId: LEASE_ID,
+      },
+      processorDependencies({
+        retrieveSubscription: async () =>
+          subscription({
+            items: {
+              data: [
+                {
+                  current_period_end: 1_786_363_200,
+                  price: {
+                    id: "price_week",
+                    recurring: { interval: "week" },
+                    unit_amount: 1_000,
+                    currency: "gbp",
+                  },
+                },
+              ],
+            },
+          }),
+      })
+    ),
+    (error) =>
+      error instanceof StripeWebhookProcessingError &&
+      error.code === "unprocessable"
+  )
+})
+
+test("durable ownership lookup failures stay retryable", async () => {
+  await assert.rejects(
+    processStripeWebhookEvent(
+      {
+        event: event("customer.subscription.updated", subscription()),
+        leaseId: LEASE_ID,
+      },
+      processorDependencies({
+        resolveSubscriptionMerchant: async () => {
+          throw new Error("Unable to resolve Stripe billing ownership: timeout")
+        },
+      })
+    ),
+    (error) =>
+      error instanceof Error &&
+      error.message.startsWith("Unable to resolve Stripe billing ownership")
+  )
 })
 
 test("raw provider failures are reduced to a non-sensitive ledger code", async () => {

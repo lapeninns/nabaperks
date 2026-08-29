@@ -49,6 +49,8 @@ test("Given a failed Stripe webhook event When Stripe retries Then the ledger cl
   assert.match(webhookEvents, /status: 503/)
   assert.match(webhookEvents, /"Retry-After": "5"/)
   assert.match(webhookEvents, /claim\.status === "processed"/)
+  assert.match(webhookEvents, /received: true, ignored: true/)
+  assert.match(webhookEvents, /launch_fee_pending/)
   assert.match(webhookRoute, /failEvent: failStripeWebhookEvent/)
 })
 
