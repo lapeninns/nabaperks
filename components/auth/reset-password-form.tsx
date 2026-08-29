@@ -1,10 +1,10 @@
 "use client"
 
-import Link from "next/link"
 import { useActionState, useCallback, useEffect, useRef, useState } from "react"
 
 import { passwordResetAction } from "@/app/(auth)/actions"
 import { AuthField } from "@/components/auth/auth-field"
+import { AuthPromptLink } from "@/components/auth/auth-prompt-link"
 import {
   OtpResendControl,
   useOtpRetryCountdown,
@@ -153,7 +153,7 @@ export function ResetPasswordForm({
             role="group"
             aria-label="Reset-code recovery options"
             tabIndex={-1}
-            className="focus-ring grid gap-3 rounded-xl"
+            className="focus-target grid gap-3 rounded-lg"
           >
             {errors.form ? <ErrorFeedback message={errors.form} /> : null}
             <OtpResendControl
@@ -190,16 +190,22 @@ export function ResetPasswordForm({
           >
             <input type="hidden" name="intent" value="confirm" />
             <input type="hidden" name="next" value={state.context.next} />
-            <AuthField
-              id="email"
-              label="Venue email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              value={currentEmail}
-              readOnly
-              error={errors.email}
-            />
+            {/* A read-only input is a ~92px field that cannot be edited. The
+                value still has to reach the action, so it submits hidden and
+                displays as a summary row — same information, ~60px less of the
+                tallest step in the funnel. */}
+            <input type="hidden" name="email" value={currentEmail} />
+            <div className="flex items-center justify-between gap-3 py-1">
+              <span className="eyebrow">Venue email</span>
+              <span className="min-w-0 truncate text-sm font-bold text-foreground">
+                {currentEmail}
+              </span>
+            </div>
+            {errors.email ? (
+              <p role="alert" className="text-sm text-destructive">
+                {errors.email}
+              </p>
+            ) : null}
             <AuthField
               id="otp"
               label="Reset code"
@@ -209,7 +215,7 @@ export function ResetPasswordForm({
               autoComplete="one-time-code"
               autoFocus={initialOtpSent}
               maxLength={otpLength}
-              className="font-mono tracking-[0.18em]"
+              className="font-mono tracking-code"
               value={otp}
               onChange={(event) => {
                 setOtp(
@@ -308,12 +314,12 @@ export function ResetPasswordForm({
             role="group"
             aria-label="Code recovery options"
             tabIndex={-1}
-            className="focus-ring grid gap-3 rounded-xl"
+            className="focus-target grid gap-3 rounded-lg"
           >
             {errors.form ? <ErrorFeedback message={errors.form} /> : null}
             {state.message ? <SuccessFeedback message={state.message} /> : null}
             {verificationWait.active && verificationWait.ready ? (
-              <p className="text-center text-xs leading-5 font-semibold text-muted-foreground tabular-nums">
+              <p className="numeric-tabular text-center text-xs leading-5 font-semibold text-muted-foreground">
                 Try this code again in {verificationWait.remainingSeconds}s.
               </p>
             ) : null}
@@ -334,31 +340,35 @@ export function ResetPasswordForm({
             </form>
             <p className="text-center text-sm text-muted-foreground">
               Wrong email?{" "}
-              <Link
+              <AuthPromptLink
                 href={merchantPasswordResetHref({
                   email: currentEmail,
                   next: state.context.next,
                 })}
-                className="focus-ring inline-flex min-h-11 items-center rounded-full px-3 py-2 font-bold text-primary underline-offset-4 hover:bg-accent hover:text-accent-foreground hover:underline"
               >
                 Use a different email
-              </Link>
+              </AuthPromptLink>
             </p>
           </div>
         </>
       )}
 
+      {/* AuthPromptLink, not two more verbatim copies of its class string.
+          The component exists because this control "was defined verbatim three
+          times … so the funnel's most-repeated control had three independent
+          definitions that could drift" — and these two were the fourth and
+          fifth, still carrying the pre-sweep `rounded-full` halo after the
+          component had moved off it. */}
       <p className="text-center text-sm text-muted-foreground">
         Remembered it?{" "}
-        <Link
+        <AuthPromptLink
           href={merchantLoginHref({
             email: currentEmail,
             next: state.context.next,
           })}
-          className="focus-ring inline-flex min-h-11 items-center rounded-full px-3 py-2 font-bold text-primary underline-offset-4 hover:bg-accent hover:text-accent-foreground hover:underline"
         >
           Back to log in
-        </Link>
+        </AuthPromptLink>
       </p>
     </div>
   )

@@ -35,6 +35,7 @@ export function FeaturesListicle() {
   return (
     <Section id="features" size="dense">
       <SectionHeader
+        size="band"
         eyebrow="What's included"
         title="Everything set up before you go live"
         description="Six parts of the launch, each tied to a practical objection it removes."
@@ -65,7 +66,7 @@ export function FeaturesListicle() {
                   <li key={item} className="flex items-start gap-2.5">
                     <Icon
                       icon={CheckmarkCircle02Icon}
-                      size={17}
+                      size={16}
                       className="mt-0.5 shrink-0 text-reward"
                     />
                     <span className="text-sm leading-6 text-muted-foreground">
@@ -74,9 +75,17 @@ export function FeaturesListicle() {
                   </li>
                 ))}
               </ul>
-              <p className="mono-id mt-auto border-t-2 border-dashed border-border pt-2.5 text-primary uppercase">
-                {feature.removes}
-              </p>
+              {/* `removes` is a sentence with a verb — spoken voice, so it
+                  is set in spoken type. It was 10px tracked uppercase mono in
+                  the accent colour, i.e. the least readable text on the page
+                  carrying the card's payload. The mono register stays on the
+                  label above it, which is what mono is for. */}
+              <div className="mt-auto grid gap-1 border-t-2 border-dashed border-border pt-2.5">
+                <p className="mono-id text-muted-foreground">Removes</p>
+                <p className="text-sm leading-6 font-bold text-foreground">
+                  {feature.removes}
+                </p>
+              </div>
             </SnapRailItem>
           ))}
         </SnapRail>

@@ -7,12 +7,10 @@ import {
   type CancellationInterviewActionState,
 } from "@/app/app/billing/actions"
 import { StatusBanner } from "@/components/loyalty/status-banner"
-import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { SelectField, SubmitButton } from "@/components/forms"
 
 const INITIAL_STATE: CancellationInterviewActionState = { status: "idle" }
-const SELECT_CLASSES =
-  "focus-ring min-h-11 w-full rounded-2xl border border-input bg-secondary/60 px-4 text-sm outline-none"
 
 export function CancellationInterviewForm() {
   const [state, action, pending] = useActionState(
@@ -33,7 +31,7 @@ export function CancellationInterviewForm() {
     <form action={action} aria-busy={pending} className="grid gap-4">
       <label className="grid gap-1.5 text-sm font-bold">
         Main reason for leaving
-        <select name="primaryReason" required className={SELECT_CLASSES}>
+        <SelectField name="primaryReason" required>
           <option value="price">The price no longer works</option>
           <option value="not_using">We are not using it enough</option>
           <option value="missing_feature">A feature is missing</option>
@@ -48,7 +46,7 @@ export function CancellationInterviewForm() {
           </option>
           <option value="closing">The venue is closing</option>
           <option value="other">Another reason</option>
-        </select>
+        </SelectField>
       </label>
 
       <label className="grid gap-1.5 text-sm font-bold">
@@ -68,7 +66,7 @@ export function CancellationInterviewForm() {
             name="requestedResolution"
             value="support_call"
             defaultChecked
-            className="focus-ring mt-0.5 size-4 accent-primary"
+            className="ink-check focus-ring mt-0.5"
           />
           <span>
             <strong className="block">Ask for a support call</strong>
@@ -83,7 +81,7 @@ export function CancellationInterviewForm() {
             type="radio"
             name="requestedResolution"
             value="continue_cancellation"
-            className="focus-ring mt-0.5 size-4 accent-primary"
+            className="ink-check focus-ring mt-0.5"
           />
           <span>
             <strong className="block">Continue to cancellation</strong>
@@ -101,9 +99,12 @@ export function CancellationInterviewForm() {
         </StatusBanner>
       ) : null}
 
-      <Button type="submit" disabled={pending} className="w-full sm:w-fit">
-        {pending ? "Saving your review…" : "Continue"}
-      </Button>
+      <SubmitButton
+        className="w-full sm:w-fit"
+        pendingLabel="Saving your review…"
+      >
+        Continue
+      </SubmitButton>
       <p className="text-xs leading-5 text-muted-foreground">
         Choosing a support call does not cancel your subscription. Choosing to
         continue opens Stripe, where you confirm the cancellation date.

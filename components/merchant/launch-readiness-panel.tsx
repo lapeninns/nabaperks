@@ -17,7 +17,6 @@ import {
   SectionHeader,
 } from "@/components/brand"
 import { Progress } from "@/components/ui/progress"
-import { ProgressTrack } from "@/components/loyalty/progress-track"
 import { RewardSeal } from "@/components/loyalty/reward-seal"
 import { Button } from "@/components/ui/button"
 import type {
@@ -180,14 +179,10 @@ export function LaunchReadinessPanel({
 
         {!tabMode ? (
           <div className="grid gap-2 sm:hidden">
-            <div className="flex items-center justify-between gap-3">
-              <span className="eyebrow">Setup progress</span>
-              <MonoTag tone="leaf" className="numeric-tabular">
-                {readiness.completed} / {readiness.total}
-              </MonoTag>
-            </div>
-            {/* Track/fill colours come from the unlayered [data-slot=progress]
-                rules — only the height stays per call site. */}
+            <span className="eyebrow">Setup progress</span>
+            {/* ONE progress readout per breakpoint. The "N / M" tag that used to
+                sit beside this bar repeated the header tag verbatim; the count
+                now lives in the bar's own accessible name. */}
             <Progress
               value={progressValue}
               aria-label={`Setup progress: ${readiness.completed} of ${readiness.total}`}
@@ -268,12 +263,9 @@ export function LaunchReadinessPanel({
           </ol>
         </nav>
 
-        <ProgressTrack
-          current={readiness.completed}
-          total={readiness.total}
-          label="Setup progress"
-          className="hidden sm:grid"
-        />
+        {/* No ProgressTrack here: the sm+ <ol> above already draws all five
+            steps with their state, so a second desktop "Setup progress" bar
+            was a third reading of the same five booleans. */}
 
         {!tabMode && !readiness.launchReady ? (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border-2 border-ink bg-ink px-4 py-3 text-paper">
@@ -285,7 +277,7 @@ export function LaunchReadinessPanel({
             <Button asChild variant="secondary">
               <Link href={nextStep?.href ?? "/app/launch"} prefetch={false}>
                 {nextStep?.actionLabel ?? "Open setup"}
-                <Icon icon={ArrowRight02Icon} size={15} />
+                <Icon icon={ArrowRight02Icon} size={16} />
               </Link>
             </Button>
           </div>
@@ -354,7 +346,7 @@ function LaunchReadinessCompact({
       <Button asChild className="w-full shrink-0 sm:w-auto">
         <Link href={nextStep?.href ?? "/app/launch"} prefetch={false}>
           {nextStep?.actionLabel ?? "Open setup"}
-          <Icon icon={ArrowRight02Icon} size={15} />
+          <Icon icon={ArrowRight02Icon} size={16} />
         </Link>
       </Button>
     </ReceiptCard>
@@ -378,19 +370,14 @@ function LaunchMobileTabNav({
   return (
     <div className="sticky top-(--setup-header-h) z-20 w-full min-w-0 overflow-x-clip border-b-2 border-ink/10 bg-background py-1.5 sm:hidden">
       {!readiness.launchReady ? (
-        <div className="mb-1.5 flex min-w-0 items-center gap-2">
-          <Progress
-            value={progressValue}
-            aria-label={`Setup progress: ${readiness.completed} of ${readiness.total}`}
-            className="h-1 min-w-0 flex-1"
-          />
-          <MonoTag
-            tone="leaf"
-            className="numeric-tabular shrink-0 px-1.5 py-0.5"
-          >
-            {readiness.completed}/{readiness.total}
-          </MonoTag>
-        </div>
+        // One 4px bar is the whole mobile progress story — the rail below
+        // already says which steps are done, and the bar's accessible name
+        // carries the count that used to be repeated in a MonoTag here.
+        <Progress
+          value={progressValue}
+          aria-label={`Setup progress: ${readiness.completed} of ${readiness.total}`}
+          className="mb-1.5 h-1 w-full min-w-0"
+        />
       ) : null}
       <LaunchStepRail
         checklist={checklist}
@@ -448,7 +435,7 @@ function LaunchStepRail({
                 }
                 aria-label={`${step.label}, ${stateLabel}`}
                 className={cn(
-                  "pressable focus-ring flex min-h-11 w-full min-w-0 flex-col items-center rounded-xl border-2 transition-[border-color,background-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none",
+                  "pressable focus-ring flex min-h-11 w-full min-w-0 flex-col items-center rounded-lg border-2 transition-[border-color,background-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none",
                   compact
                     ? "gap-0.5 px-0.5 py-1 min-[360px]:gap-1 min-[360px]:px-1 min-[360px]:py-1.5"
                     : "gap-1 px-1 py-1.5",
@@ -461,7 +448,7 @@ function LaunchStepRail({
                   !isActive &&
                     !isNext &&
                     !step.ready &&
-                    "border-dashed border-ink/25 bg-secondary/30"
+                    "border-dashed border-line bg-secondary/30"
                 )}
               >
                 <LaunchStepStamp
@@ -526,7 +513,7 @@ function LaunchStepStamp({
           ? "border-ink bg-stamp text-stamp-foreground shadow-sm"
           : isNext
             ? "border-seal bg-card text-foreground shadow-xs"
-            : "border-dashed border-ink/35 bg-secondary/60 text-muted-foreground",
+            : "border-dashed border-line bg-secondary/60 text-muted-foreground",
         active &&
           (size === "xs"
             ? "ring-2 ring-ink ring-inset"

@@ -88,6 +88,15 @@ export type OfferPassProps = {
    * it from a rail. Omitted for a pass that cannot be presented.
    */
   readonly children?: ReactNode
+  /**
+   * Slot directly under the discount lockup and date chip, above the lead
+   * sentence and the terms. The pass screen puts the scannable code here: it is
+   * the only reason that page exists, and behind the lead plus the four printed
+   * terms it started roughly 430px down, on a screen used standing at a till
+   * (CUS 02#41). Nothing is hidden to make room — the terms are what staff
+   * enforce and stay on the face, they simply stop coming first.
+   */
+  readonly code?: ReactNode
   readonly className?: string
   /**
    * Outline level for the discount lockup. `h1` is for the pass screen, where
@@ -105,6 +114,7 @@ export function OfferPass({
   extraTerms,
   state = "active",
   children,
+  code,
   className,
   headingLevel: Heading = "h3",
 }: OfferPassProps) {
@@ -159,28 +169,37 @@ export function OfferPass({
         {/* mono-meta, not mono-id: the window is the one fact a customer has to
             be able to read across a counter, so it stays above the 10px floor. */}
         <span className="mono-meta flex w-fit max-w-full items-center gap-1.5 rounded-md border-2 border-ink bg-seal/25 px-2 py-0.5 text-ink">
-          <Icon icon={Calendar03Icon} size={13} strokeWidth={2.25} />
+          <Icon icon={Calendar03Icon} size={14} strokeWidth={2.25} />
           <span className="min-w-0 truncate">
             {opens && closes ? `${opens} to ${closes}` : "Dates from the venue"}
           </span>
         </span>
       </div>
 
+      {code}
+
       <p className="text-sm leading-6 text-muted-foreground">
         {passLead(state, opens, closes)}
       </p>
 
-      <ul className="grid list-disc gap-1 pl-4 text-xs leading-5 text-muted-foreground">
+      {/* `list-disc` browser bullets were the one un-designed element on an
+          otherwise fully-inked face, and the only bulleted list in the whole
+          member journey. Each term is now a row with a 4px ink square marker,
+          in the stamp/seal-free vocabulary the rest of the card uses. The
+          no-stacking rule — the one staff actually enforce, and the one a
+          member is asked to read across a counter — moves up to text-sm; the
+          rest stay at text-xs. No term is removed or hidden (CUS 02#42). */}
+      <ul className="grid gap-2 text-muted-foreground">
         {/* Always printed, never editable by the venue: staff attest to this
             same rule on every redemption. */}
-        <li>{OFFER_NO_STACKING_TERM}</li>
+        <PassTerm emphasis>{OFFER_NO_STACKING_TERM}</PassTerm>
         {requiresIdCheck ? (
-          <li>
+          <PassTerm>
             Bring photo identification. The team will check it before the
             discount is applied.
-          </li>
+          </PassTerm>
         ) : null}
-        {extraTerms ? <li>{extraTerms}</li> : null}
+        {extraTerms ? <PassTerm>{extraTerms}</PassTerm> : null}
       </ul>
 
       {/* The QR slot sits behind a dashed rule, ticket-stub style: the face
@@ -192,6 +211,28 @@ export function OfferPass({
         </>
       ) : null}
     </section>
+  )
+}
+
+/**
+ * One printed term. The marker is a 4px ink square — flat and hard-edged, and
+ * deliberately not a circle, because circles belong to the stamp and reward
+ * family and a term is neither.
+ */
+function PassTerm({
+  children,
+  emphasis = false,
+}: {
+  children: ReactNode
+  emphasis?: boolean
+}) {
+  return (
+    <li className="grid grid-cols-[auto_1fr] items-start gap-2">
+      <span aria-hidden="true" className="mt-[0.45em] size-1 shrink-0 bg-ink" />
+      <span className={emphasis ? "text-sm leading-5" : "text-xs leading-5"}>
+        {children}
+      </span>
+    </li>
   )
 }
 

@@ -49,19 +49,38 @@ export function ShowMoreList({
           </li>
         ))}
       </ul>
-      {remaining > 0 ? (
-        <div className="grid justify-items-center gap-1">
-          <Button
-            type="button"
-            variant="secondary"
-            className="w-full sm:w-auto"
-            onClick={() => setVisibleCount((count) => count + nextStep)}
-          >
-            Show {nextStep} more
-          </Button>
+      {/* The count reads on the left of the controls rather than under a
+          centred button floating mid-panel, and reveal is now reversible:
+          without "Show fewer" an operator who expanded 100 records had to
+          reload the page to get their scroll position back. */}
+      {remaining > 0 || visibleCount > initialCount ? (
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <p role="status" className="text-xs text-muted-foreground">
-            Showing {visible.length} of {items.length}
+            Showing <span className="numeric-tabular">{visible.length}</span> of{" "}
+            <span className="numeric-tabular">{items.length}</span>
           </p>
+          <div className="flex flex-wrap gap-2">
+            {visibleCount > initialCount ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setVisibleCount(initialCount)}
+              >
+                Show fewer
+              </Button>
+            ) : null}
+            {remaining > 0 ? (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setVisibleCount((count) => count + nextStep)}
+              >
+                Show {nextStep} more
+              </Button>
+            ) : null}
+          </div>
         </div>
       ) : null}
     </div>

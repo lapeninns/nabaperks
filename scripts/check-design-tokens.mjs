@@ -38,8 +38,7 @@ const MIN_TEXT_PX = 10
  * lanes. Remove entries as those lanes sweep their files; new violations in
  * any other file fail immediately.
  */
-const SUBFLOOR_EXCEPTIONS = new Set([
-])
+const SUBFLOOR_EXCEPTIONS = new Set([])
 
 /**
  * Custom-property prefixes owned by frameworks/runtimes rather than the repo
@@ -71,7 +70,6 @@ const MAPPING = {
   primary: "--primary",
   "on-primary": "--primary-foreground",
   stamp: "--stamp",
-  "stamp-empty": "--stamp-empty",
   seal: "--seal",
   "reward-ready": "--reward",
   qr: "--qr",
@@ -111,11 +109,13 @@ function normalise(value) {
 function parseDesignColors(md) {
   const fenceRe = /^---\s*$/m
   const first = md.search(fenceRe)
-  if (first === -1) throw new Error("DESIGN.md: no opening --- frontmatter fence")
+  if (first === -1)
+    throw new Error("DESIGN.md: no opening --- frontmatter fence")
   const afterFirst = first + md.slice(first).match(fenceRe)[0].length
   const rest = md.slice(afterFirst)
   const secondRel = rest.search(fenceRe)
-  if (secondRel === -1) throw new Error("DESIGN.md: no closing --- frontmatter fence")
+  if (secondRel === -1)
+    throw new Error("DESIGN.md: no closing --- frontmatter fence")
   const frontmatter = rest.slice(0, secondRel)
 
   const lines = frontmatter.split("\n")
@@ -190,7 +190,9 @@ function parseRootBlock(css) {
  * mismatch surfaces rather than silently passing).
  */
 function resolveVar(value, props, seen = new Set()) {
-  const m = String(value).trim().match(/^var\(\s*(--[A-Za-z0-9_-]+)\s*(?:,[\s\S]*)?\)$/)
+  const m = String(value)
+    .trim()
+    .match(/^var\(\s*(--[A-Za-z0-9_-]+)\s*(?:,[\s\S]*)?\)$/)
   if (!m) return { value, from: null }
   const target = m[1]
   if (seen.has(target)) return { value, from: target } // cycle guard
@@ -228,9 +230,10 @@ for (const [designKey, cssProp] of Object.entries(MAPPING)) {
 
   const resolved = resolveVar(rootProps[cssProp], rootProps)
   const cssValRaw = resolved.value
-  const resolvedFrom = resolved.from && resolved.from !== cssProp
-    ? `${cssProp} -> ${resolved.from}`
-    : cssProp
+  const resolvedFrom =
+    resolved.from && resolved.from !== cssProp
+      ? `${cssProp} -> ${resolved.from}`
+      : cssProp
 
   checked++
   if (normalise(designValRaw) !== normalise(cssValRaw)) {
@@ -245,8 +248,38 @@ for (const [designKey, cssProp] of Object.entries(MAPPING)) {
 
 let failed = false
 
+/**
+ * Non-vacuity floor for CHECK 1.
+ *
+ * Every key in MAPPING is skipped when DESIGN.md's frontmatter no longer
+ * exposes it, so a renamed `colors:` block (or a reshaped frontmatter) makes
+ * this check compare NOTHING and print "0 colour token(s) match" with exit 0.
+ * Verified: renaming `colors:` to `palette:` passed. That is the bundle:check
+ * bug — a check that filters its input must be able to say what the filter
+ * kept — and CHECK 4 below already guards itself this way.
+ *
+ * 22 of the 22 mapped keys resolve today; the floor sits just under that so
+ * dropping a documented token is a deliberate edit here, not a silent loss of
+ * coverage.
+ */
+const MIN_MAPPED_TOKENS = 20
+
+if (checked < MIN_MAPPED_TOKENS) {
+  console.error(
+    `✗ CHECK 1 compared only ${checked} of ${Object.keys(MAPPING).length} mapped colour tokens ` +
+      `(floor ${MIN_MAPPED_TOKENS}). DESIGN.md's frontmatter no longer exposes the ` +
+      "rest under `colors:`, so this check is measuring little or nothing.\n"
+  )
+  failed = true
+}
+
 if (failures.length) {
-  const headers = ["key", "DESIGN.md value", "globals.css value", "resolved-from"]
+  const headers = [
+    "key",
+    "DESIGN.md value",
+    "globals.css value",
+    "resolved-from",
+  ]
   const rows = failures.map((f) => [f.key, f.design, f.css, f.from])
   const widths = headers.map((h, i) =>
     Math.max(h.length, ...rows.map((r) => String(r[i]).length))
@@ -254,14 +287,18 @@ if (failures.length) {
   const fmt = (cells) =>
     cells.map((c, i) => String(c).padEnd(widths[i])).join("  |  ")
 
-  console.error(`✗ ${failures.length} design-token drift(s) between DESIGN.md and app/globals.css:\n`)
+  console.error(
+    `✗ ${failures.length} design-token drift(s) between DESIGN.md and app/globals.css:\n`
+  )
   console.error(`  ${fmt(headers)}`)
   console.error(`  ${widths.map((w) => "-".repeat(w)).join("--+--")}`)
   for (const r of rows) console.error(`  ${fmt(r)}`)
   console.error("")
   failed = true
-} else {
-  console.log(`✓ design tokens in sync: ${checked} colour token(s) match between DESIGN.md and app/globals.css`)
+} else if (checked >= MIN_MAPPED_TOKENS) {
+  console.log(
+    `✓ design tokens in sync: ${checked} colour token(s) match between DESIGN.md and app/globals.css`
+  )
 }
 
 /* ------------------------------------------------------------------ */
@@ -335,6 +372,30 @@ function checkUndefinedVars(files) {
 }
 
 const sourceFiles = listSourceFiles()
+
+/**
+ * Non-vacuity floor for CHECKS 2 and 3. Both walk the same file list and both
+ * report a pass when that list is empty: no references means no undefined
+ * references, and no .tsx files means no sub-floor text sizes. 965 files walk
+ * today (475 .tsx, 467 .ts, 23 .css); the floors sit well under that so a
+ * changed extension filter or a moved source root fails loudly instead of
+ * quietly scanning nothing.
+ */
+const MIN_SOURCE_FILES = 700
+const MIN_TSX_FILES = 300
+const tsxFileCount = sourceFiles.filter((file) => file.endsWith(".tsx")).length
+const scanIsRepresentative =
+  sourceFiles.length >= MIN_SOURCE_FILES && tsxFileCount >= MIN_TSX_FILES
+
+if (!scanIsRepresentative) {
+  console.error(
+    `✗ CHECKS 2/3 walked ${sourceFiles.length} source file(s) (${tsxFileCount} .tsx), ` +
+      `floors ${MIN_SOURCE_FILES}/${MIN_TSX_FILES}. The scan roots or the extension ` +
+      "filter have moved and these checks are measuring little or nothing.\n"
+  )
+  failed = true
+}
+
 const { undefinedVars, referenced } = checkUndefinedVars(sourceFiles)
 
 if (undefinedVars.length) {
@@ -349,9 +410,9 @@ if (undefinedVars.length) {
     "\n  Define the token in app/globals.css (or the owning style object), or migrate the consumers.\n"
   )
   failed = true
-} else {
+} else if (scanIsRepresentative) {
   console.log(
-    `✓ custom properties resolvable: ${referenced} var(--…) name(s) referenced, all defined`
+    `✓ custom properties resolvable: ${referenced} var(--…) name(s) referenced, all defined across ${sourceFiles.length} file(s)`
   )
 }
 
@@ -414,7 +475,9 @@ function parseSelectorBlock(cssSource, selector) {
 }
 
 function hexToRgb(value) {
-  const m = String(value).trim().match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i)
+  const m = String(value)
+    .trim()
+    .match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i)
   if (!m) return null
   let h = m[1]
   if (h.length === 3) h = [...h].map((c) => c + c).join("")
@@ -451,6 +514,15 @@ function resolveHex(prop, props) {
 
 function checkContrast(themeName, props, ringAlpha) {
   const problems = []
+  /**
+   * Pairs actually evaluated. The loop below `continue`s past any token that
+   * does not resolve to a hex, which is correct — a wash or a missing token is
+   * another check's business — but it means a token-format change (say to
+   * `oklch()`) could skip EVERY pair and still print a pass. `bundle:check`
+   * shipped exactly that bug: it reported PASS while checking 0 of 150 routes.
+   * Counted and asserted below so this one cannot go quiet the same way.
+   */
+  let evaluated = 0
   // [foreground token, background token, floor, note]
   const pairs = [
     ["--foreground", "--background", 4.5, "body text"],
@@ -460,7 +532,12 @@ function checkContrast(themeName, props, ringAlpha) {
     ["--primary-foreground", "--primary", 4.5, "primary button text"],
     ["--seal-foreground", "--seal", 4.5, "seal glyph on sun"],
     ["--reward-foreground", "--reward", 4.5, "reward text on leaf"],
-    ["--destructive-foreground", "--destructive", 4.5, "filled destructive text"],
+    [
+      "--destructive-foreground",
+      "--destructive",
+      4.5,
+      "filled destructive text",
+    ],
     ["--destructive", "--card", 4.5, "outline-danger button text"],
   ]
 
@@ -468,12 +545,20 @@ function checkContrast(themeName, props, ringAlpha) {
     const fg = resolveHex(fgProp, props)
     const bg = resolveHex(bgProp, props)
     if (!fg || !bg) continue // non-hex (rgba wash) or missing — other checks own those
+    evaluated += 1
     const ratio = contrastRatio(fg, bg)
     if (ratio < floor) {
       problems.push(
         `${themeName}: ${fgProp} on ${bgProp} = ${ratio.toFixed(2)}:1 (needs ${floor}:1 — ${note})`
       )
     }
+  }
+
+  if (evaluated === 0) {
+    problems.push(
+      `${themeName}: 0 of ${pairs.length} contrast pairs resolved to hex — the ` +
+        "token format has changed and this check is measuring nothing"
+    )
   }
 
   // Focus ring: the recipe's color-mix alpha composited over the page must
@@ -512,7 +597,9 @@ if (!ringMixMatch) {
 }
 
 if (contrastProblems.length) {
-  console.error(`✗ ${contrastProblems.length} WCAG contrast floor violation(s):\n`)
+  console.error(
+    `✗ ${contrastProblems.length} WCAG contrast floor violation(s):\n`
+  )
   for (const p of contrastProblems) console.error(`  ${p}`)
   console.error(
     "\n  Adjust the token (or the ring mix %) until the pair clears its floor — DESIGN.md · Colors.\n"
@@ -537,9 +624,9 @@ if (subFloor.length) {
     "\n  Use .mono-id (10px) / .mono-meta (11.5px) from app/globals.css instead of sub-floor arbitrary sizes.\n"
   )
   failed = true
-} else {
+} else if (scanIsRepresentative) {
   console.log(
-    `✓ micro-type floor held: no arbitrary text size below ${MIN_TEXT_PX}px outside the lane exception list (${SUBFLOOR_EXCEPTIONS.size} legacy files)`
+    `✓ micro-type floor held: no arbitrary text size below ${MIN_TEXT_PX}px across ${tsxFileCount} .tsx file(s), outside the lane exception list (${SUBFLOOR_EXCEPTIONS.size} legacy files)`
   )
 }
 

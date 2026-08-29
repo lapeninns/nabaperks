@@ -2,12 +2,21 @@ import type { ReactNode } from "react"
 
 import { Eyebrow, MonoTag, ReceiptCard, VenueMark } from "@/components/brand"
 import {
+  balancedStampColumns,
   RewardSeal,
   RewardTicket,
   StampGrid,
   type RewardSlotState,
   type RewardTicketState,
 } from "@/components/loyalty"
+import {
+  CUSTOMER_COLUMN_BOTTOM,
+  CUSTOMER_COLUMN_BOTTOM_DENSE,
+  CUSTOMER_COLUMN_INSET,
+  CUSTOMER_COLUMN_MIN_H,
+  CUSTOMER_COLUMN_TOP,
+  CUSTOMER_COLUMN_TOP_DENSE,
+} from "@/components/layout/customer-column"
 import { cn } from "@/lib/utils"
 
 type FlowTone = "accent" | "ink" | "leaf" | "sun" | "plain"
@@ -17,6 +26,16 @@ export type FlowProgress = {
   step: number
   total: number
   label?: string
+  /**
+   * How far through the CURRENT step we are, 0-1, default 1 (finished).
+   *
+   * The join wizard maps two screens — phone and code — onto one "verify your
+   * number" step, so submitting the phone form successfully left the bar
+   * visually unchanged at exactly the point with the highest abandonment risk,
+   * which reads as "my submission failed" (CUS 02#51). A half-filled segment
+   * lets one step carry two screens honestly.
+   */
+  stepProgress?: number
 }
 
 export function CustomerFlowShell({
@@ -46,20 +65,23 @@ export function CustomerFlowShell({
   return (
     <main
       className={cn(
-        "min-h-[100dvh] overflow-x-hidden bg-background px-4 text-foreground sm:px-6",
-        // Bottom padding respects the home-indicator safe area so the last
-        // CTA or link never sits clipped against the screen edge
-        // (VCU-P3-06/08).
-        dense
-          ? "pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pt-6 sm:pb-[max(1.5rem,env(safe-area-inset-bottom))]"
-          : "pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pt-8 sm:pb-[max(2rem,env(safe-area-inset-bottom))]"
+        "bg-background text-foreground",
+        // One customer rhythm (CUS 02#5): the height, the gutters and the
+        // safe-area bottom are the shells' shared module, so this screen no
+        // longer resolves `min-h-[100dvh]` against its siblings' `min-h-svh`,
+        // and no longer grows its top padding at a breakpoint the 410px column
+        // never crosses.
+        CUSTOMER_COLUMN_MIN_H,
+        CUSTOMER_COLUMN_INSET,
+        dense ? CUSTOMER_COLUMN_TOP_DENSE : CUSTOMER_COLUMN_TOP,
+        dense ? CUSTOMER_COLUMN_BOTTOM_DENSE : CUSTOMER_COLUMN_BOTTOM
       )}
     >
       <div
         className={cn(
           // One customer column: the shared 410px token (CUS-P2-12/16), so
           // skeleton and content agree at every width.
-          "mx-auto grid w-full min-w-0 max-w-customer",
+          "mx-auto grid w-full max-w-customer min-w-0",
           dense ? "gap-4" : "gap-5",
           className
         )}
@@ -93,15 +115,22 @@ export function CustomerFlowShell({
             {title ? (
               <h1
                 className={cn(
+                  // Scale steps, not arbitraries. text-[2.1rem]/text-[1.65rem]
+                  // were 33.6px/26.4px — two headline sizes that exist in no
+                  // scale and in no contract, so /home titles (30px) and /card
+                  // titles never lined up. text-3xl matches PageTitle for the
+                  // same role; dense drops one step (CUS 02#22).
                   "leading-[1.04] font-extrabold tracking-tight text-balance",
-                  dense ? "text-[1.65rem]" : "text-[2.1rem]"
+                  dense ? "text-2xl" : "text-3xl"
                 )}
               >
                 {title}
               </h1>
             ) : null}
+            {/* text-sm, not text-[0.96rem]: the contract body size, and the
+                size every other customer description already uses. */}
             {description ? (
-              <p className="mx-auto max-w-[31ch] text-[0.96rem] leading-6 text-muted-foreground">
+              <p className="mx-auto max-w-[31ch] text-sm leading-6 text-muted-foreground">
                 {description}
               </p>
             ) : null}
@@ -117,27 +146,35 @@ export function CustomerFlowShell({
 function OnboardingProgress({ progress }: { progress: FlowProgress }) {
   const total = Math.max(progress.total, 1)
   const step = Math.min(Math.max(progress.step, 1), total)
+  const stepProgress = Math.min(Math.max(progress.stepProgress ?? 1, 0), 1)
 
   return (
     // The text row ("Step 2 of 3") is real content and stays readable to
     // screen readers; only the decorative bars hide (CUS-P3-03).
     <div className="grid gap-2">
-      <div className="flex items-center justify-between mono-id tracking-[0.08em] text-muted-foreground">
+      <div className="mono-id flex items-center justify-between tracking-tag text-muted-foreground">
         <span>{progress.label ?? "Setup"}</span>
         <span>
           Step {step} of {total}
         </span>
       </div>
       <div className="flex gap-1.5" aria-hidden="true">
-        {Array.from({ length: total }).map((_, index) => (
-          <span
-            key={index}
-            className={cn(
-              "h-1.5 flex-1 rounded-full border border-ink transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none",
-              index < step ? "bg-primary" : "bg-secondary"
-            )}
-          />
-        ))}
+        {Array.from({ length: total }).map((_, index) => {
+          const filled =
+            index < step - 1 ? 1 : index === step - 1 ? stepProgress : 0
+
+          return (
+            <span
+              key={index}
+              className="h-1.5 flex-1 overflow-hidden rounded-full border border-ink bg-secondary"
+            >
+              <span
+                className="block h-full rounded-full bg-primary transition-[width] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none"
+                style={{ width: `${filled * 100}%` }}
+              />
+            </span>
+          )
+        })}
       </div>
     </div>
   )
@@ -184,7 +221,11 @@ export function CustomerReceipt({
       className={cn("grid gap-4", className)}
       data-edge-class="receipt-edge"
     >
-      <div className="flex min-w-0 items-start justify-between gap-3 sm:gap-4">
+      {/* One gap, not a viewport-scoped one. `sm:gap-4` widened this row by 4px
+          at a 640px VIEWPORT while the customer column stayed 410px wide — the
+          wrong axis, and the last inner viewport variant left inside the capped
+          column (CUS 02#6). */}
+      <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="grid min-w-0 gap-1 text-left">
           {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
           {title ? (
@@ -208,7 +249,7 @@ export function CustomerReceipt({
       <hr className="w-rule" />
       {children}
       {metaLines ? (
-        <div className="grid gap-1 mono-id tracking-[0.08em] text-muted-foreground">
+        <div className="mono-id grid gap-1 tracking-tag text-muted-foreground">
           {metaLines}
         </div>
       ) : null}
@@ -222,10 +263,10 @@ export function CustomerReceipt({
           <footer className="grid gap-1 min-[420px]:flex min-[420px]:items-center min-[420px]:justify-between min-[420px]:gap-3">
             {/* Receipt voice is for real facts: no placeholder card number
                 when the caller has none to print (CUS-P2-01). */}
-            <span className="mono-id tracking-[0.08em] text-muted-foreground">
+            <span className="mono-id tracking-tag text-muted-foreground">
               {footerLeft}
             </span>
-            <span className="mono-id tracking-[0.08em] text-muted-foreground min-[420px]:text-right">
+            <span className="mono-id tracking-tag text-muted-foreground min-[420px]:text-right">
               {footerRight}
             </span>
           </footer>
@@ -246,9 +287,10 @@ export function CustomerStampCard({
   metaLines,
   hideFooter = false,
   hideHeaderText = false,
-  wrapStamps = false,
+  wrapStamps = true,
   compact = false,
   afterGrid,
+  primaryAction,
   children,
   rewardSlot,
   onSlamComplete,
@@ -277,12 +319,25 @@ export function CustomerStampCard({
    */
   hideHeaderText?: boolean
   /** Wrap stamp slots onto multiple rows in narrow surfaces such as launch preview. */
+  /**
+   * Balanced wrap (default). `false` restores the width-driven auto-fit row,
+   * which fills each row to the measure and leaves a ragged last row — a
+   * 6-stamp card plus its reward chip laid out 5 + 2, a 10-stamp card
+   * 5 + 5 + 1. (02#27)
+   */
   wrapStamps?: boolean
   /** Tighter stamp grid for narrow merchant preview surfaces. */
   compact?: boolean
   /** Slot rendered between the stamp grid and the reward ticket — used for
    * celebrations so the grid stays the receipt's first focal point. */
   afterGrid?: ReactNode
+  /**
+   * Slot between {@link afterGrid} and the reward ticket. The stamp route puts
+   * its press disc here: it used to be the receipt's LAST child, below the
+   * ticket, which put the product's primary verb at roughly y 900 on a 667px
+   * phone (CUS 02#18). The ticket is motivation and belongs after the act.
+   */
+  primaryAction?: ReactNode
   children?: ReactNode
   rewardSlot?: RewardSlotState
   onSlamComplete?: () => void
@@ -291,9 +346,17 @@ export function CustomerStampCard({
   // ProgressTrack underneath was a duplicate readout — one progress signal only.
   // The sealed mystery shows once: as the row's end chip *or*, once revealed,
   // only on the ticket below — never two seals competing in one view.
-  // Three stamps + reward still fit one row; four or more stamps wrap on a 3-col grid.
-  const wrapColumnCount =
-    total + (reward.state === "sealed" ? 1 : 0) <= 4 ? total + 1 : 3
+  // Column count comes from the slot total, not from available width, so the
+  // last row is never mostly empty (02#27). Measured before: a 6-stamp card
+  // plus its reward chip laid out 5 + 2, and a 10-stamp card 5 + 5 + 1.
+  const wrapColumnCount = balancedStampColumns(
+    total + (reward.state === "sealed" ? 1 : 0)
+  )
+
+  // True when the stamp row is the one showing the sealed mystery.
+  const showsLockedRowChip =
+    (rewardSlot ?? (reward.state === "sealed" ? "locked" : undefined)) ===
+    "locked"
 
   return (
     <CustomerReceipt
@@ -321,12 +384,18 @@ export function CustomerStampCard({
         onSlamComplete={onSlamComplete}
       />
       {afterGrid}
+      {primaryAction}
       <RewardTicket
         state={reward.state}
         name={reward.name}
         description={reward.description}
         readyDate={reward.readyDate}
         sealSlammed={reward.sealSlammed}
+        // Honour the invariant three lines above: while the mystery is sealed
+        // the stamp row already carries the seal as its terminal chip, so the
+        // ticket stub prints the stub word only. Once revealed the row chip is
+        // gone and the seal belongs here. (02#31)
+        hideStubSeal={showsLockedRowChip}
       />
       {children}
     </CustomerReceipt>
@@ -345,7 +414,7 @@ export function CustomerRewardSeal({
   return (
     <div className={cn("grid justify-items-center gap-3", className)}>
       <RewardSeal state={revealed ? "redeemed" : "sealed"} size="lg" />
-      <span className="mono-meta tracking-[0.08em] text-muted-foreground">
+      <span className="mono-meta tracking-tag text-muted-foreground">
         {caption}
       </span>
     </div>

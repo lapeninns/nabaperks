@@ -1,5 +1,6 @@
 import { MonoTag, ReceiptCard, SectionHeader } from "@/components/brand"
 import { Section } from "@/components/layout"
+import { MarketingDisclosure } from "@/components/marketing"
 import {
   CLAIMS_BOUNDARY,
   GUARANTEE,
@@ -33,11 +34,12 @@ export function GuaranteeStack() {
   return (
     <Section id="guarantees" size="dense">
       <SectionHeader
+        size="band"
         eyebrow="Our guarantees"
         title="Two guarantees behind your launch"
         description={OFFER.riskFraming}
       />
-      <div className="grid gap-4 pt-5 sm:gap-5 sm:pt-6 lg:grid-cols-2">
+      <div className="grid gap-4 pt-5 sm:gap-5 sm:pt-6 md:grid-cols-2">
         {guarantees.map((guarantee) => (
           <ReceiptCard
             key={guarantee.name}
@@ -51,23 +53,21 @@ export function GuaranteeStack() {
             <p className="text-lg leading-snug font-extrabold text-foreground">
               “{guarantee.line}”
             </p>
-            <details className="group border-t-2 border-dashed border-border">
-              <summary className="focus-ring mono-id flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-sm text-muted-foreground uppercase [&::-webkit-details-marker]:hidden">
-                How it works — and the conditions
-                <span aria-hidden="true" className="group-open:hidden">
-                  +
-                </span>
-                <span aria-hidden="true" className="hidden group-open:inline">
-                  −
-                </span>
-              </summary>
+            {/* Flush with the card's own padding, so only the tear line
+                separates the disclosure from the promise above it. */}
+            <MarketingDisclosure
+              className="border-t-2 border-dashed border-border"
+              summary="How it works — and the conditions"
+              summaryClassName="px-0"
+              bodyClassName="px-0 pb-0"
+            >
               <p className="text-sm leading-6 text-muted-foreground">
                 {guarantee.support}
               </p>
-              <p className="pt-2 pb-2 text-xs leading-5 text-muted-foreground">
+              <p className="text-xs leading-5 text-muted-foreground">
                 {guarantee.conditions}
               </p>
-            </details>
+            </MarketingDisclosure>
           </ReceiptCard>
         ))}
       </div>

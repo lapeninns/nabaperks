@@ -58,21 +58,23 @@ export default async function RewardScanHarnessPage({
         />
 
         <h2 className="sr-only">Member and card details</h2>
-        <dl className="grid gap-2 rounded-xl border-2 border-ink bg-card p-4 text-sm">
+        <dl className="grid gap-2 rounded-lg border-2 border-ink bg-card p-4 text-sm">
           <div className="flex justify-between gap-4">
             <dt className="font-bold text-muted-foreground">Member</dt>
             <dd className="text-right font-bold">Phone ending 421</dd>
           </div>
           <div className="flex justify-between gap-4">
             <dt className="font-bold text-muted-foreground">Card</dt>
-            <dd className="text-right font-mono text-xs font-bold uppercase">
-              mbr_0f3a
-            </dd>
+            {/* `.mono-meta`, not `font-mono text-xs font-bold uppercase` — the
+              hand-rolled string DESIGN.md · Typography names in full and tells
+              you to replace with one of the two micro-type utilities. Same
+              register the admin IdChip and AdminRecordCard already settled on. */}
+            <dd className="mono-meta text-right">mbr_0f3a</dd>
           </div>
         </dl>
 
         {collected ? (
-          <StatusBanner title="Reward collected" tone="success">
+          <StatusBanner title="Reward collected" tone="success" role="alert">
             Reward marked collected. This reward is now closed. The member can
             scan the venue QR again when they are ready for their next stamp.
           </StatusBanner>

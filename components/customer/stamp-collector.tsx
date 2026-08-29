@@ -71,15 +71,29 @@ function StampStatusBand({
     <section
       data-stamp-status-band
       data-phase={phase}
+      // The band's height is RESERVED, not grown (DESIGN.md's readback rule:
+      // growth must not move the grid). 02#19 replaced the original fixed
+      // `h-28` with `min-h-20` to reclaim the ~50px of slack the idle case
+      // carried — but a growable band changes the page height mid-press, which
+      // toggles the document scrollbar and shifts the centred press disc
+      // sideways. customer-stamp-choreography measures exactly that
+      // ("holds once without remounting", "target stable and prints once") and
+      // failed on it.
+      //
+      // So: fixed height, at the smaller 02#19 size rather than the original
+      // one. `overflow-y-auto` returns for the rare worst-case string, which is
+      // the trade the original made and the reason the height could be pinned.
       className={cn(
-        "grid h-28 grid-rows-[1.5rem_1fr] content-start gap-1 overflow-y-auto rounded-lg border-2 px-4 py-3 text-center",
+        "grid h-20 grid-rows-[auto_1fr] content-start gap-1 overflow-y-auto rounded-lg border-2 px-4 py-3 text-center",
         view.confirmed
           ? "border-reward bg-reward/10"
           : phase === "blocked"
             ? "border-destructive bg-destructive/10"
             : phase === "checking" || phase === "unknown"
               ? "border-stamp bg-stamp/8"
-              : "border-line bg-secondary/45"
+              : // border-ink, not border-line: an 18% hairline tone drawn at
+                // 2px is the only 2px border in the system that is not ink.
+                "border-ink bg-secondary/45"
       )}
     >
       <p className="font-extrabold text-balance">{view.statusTitle}</p>
@@ -251,35 +265,45 @@ export function StampCollector({
         hideFooter
         hideHeaderText
         afterGrid={<StampStatusBand view={view} phase={state.phase} />}
-      >
-        <div className="grid justify-items-center gap-3 pt-2">
-          <StampPressButton
-            onStamp={() => {
-              void issueStamp()
-            }}
-            venueName={venueName}
-            secured={view.secured}
-            confirmed={view.confirmed}
-            pending={view.pending}
-            label={view.buttonLabel}
-          />
-          <p
-            className="sr-only"
-            role="status"
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            {view.announcement}
-          </p>
-          {locationNotice ? (
-            <p className="rounded-lg bg-secondary px-3 py-2 text-center text-xs leading-5 text-muted-foreground">
-              This venue may try a soft location check within{" "}
-              {location.geofenceRadiusMeters}m. Your stamp still saves if your
-              phone cannot share location.
+        // Grid -> status band -> the disc -> the reward ticket. The disc used
+        // to be the receipt's last child, under the ticket, which put the only
+        // control on the screen at roughly y 900 on a 375x667 phone — a ~350px
+        // scroll to reach it, one-handed, at a counter (CUS 02#18).
+        primaryAction={
+          <div className="grid justify-items-center gap-2 pt-2">
+            <StampPressButton
+              onStamp={() => {
+                void issueStamp()
+              }}
+              venueName={venueName}
+              secured={view.secured}
+              confirmed={view.confirmed}
+              pending={view.pending}
+              label={view.buttonLabel}
+            />
+            <p
+              className="sr-only"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              {view.announcement}
             </p>
-          ) : null}
-        </div>
-      </CustomerStampCard>
+            {/* The geofence note used to be a `rounded-lg bg-secondary` block —
+                a fourth surface treatment matching nothing else in the system —
+                sitting in the space directly under the control where a RESULT
+                should land, on every qualifying visit before the member had
+                done anything. Same words, no bespoke surface (CUS 02#26). */}
+            {locationNotice ? (
+              <p className="max-w-[34ch] text-center text-xs leading-5 text-muted-foreground">
+                This venue may try a soft location check within{" "}
+                {location.geofenceRadiusMeters}m. Your stamp still saves if your
+                phone cannot share location.
+              </p>
+            ) : null}
+          </div>
+        }
+      />
     </div>
   )
 }

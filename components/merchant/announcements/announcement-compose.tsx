@@ -5,6 +5,7 @@ import { Megaphone01Icon } from "@hugeicons/core-free-icons"
 
 import { Eyebrow, EmptyState, Icon, SectionHeader } from "@/components/brand"
 import { StatusBanner } from "@/components/loyalty/status-banner"
+import { FormActionBar } from "@/components/merchant/launch/form-action-bar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -23,6 +24,30 @@ import type { AnnouncementTemplate } from "@/lib/notifications/announcement-temp
 
 const TITLE_LIMIT = 80
 const BODY_LIMIT = 180
+
+/**
+ * How many characters a paste would lose to the field's `maxLength`.
+ *
+ * `maxLength` truncates a paste in the browser with no event, no message and no
+ * visible difference from a paste that fitted — the exact defect 03#55 reports
+ * ("a merchant pasting a longer message loses the tail without being told").
+ * Removing `maxLength` is not available: it is pinned by
+ * `tests/contracts/merchant-venue-announcements-ui`. So the limit stays hard
+ * and the silence goes: this measures the loss at paste time from the value,
+ * the selection the paste replaces, and the clipboard text.
+ */
+function charactersLostToPaste(
+  target: HTMLInputElement | HTMLTextAreaElement,
+  pasted: string,
+  limit: number
+): number {
+  const selectionStart = target.selectionStart ?? target.value.length
+  const selectionEnd = target.selectionEnd ?? target.value.length
+  const replaced = Math.max(0, selectionEnd - selectionStart)
+  const room = limit - (target.value.length - replaced)
+
+  return Math.max(0, pasted.length - Math.max(0, room))
+}
 
 function subscribeToHydration(callback: () => void) {
   const frameId = window.requestAnimationFrame(callback)
@@ -64,8 +89,7 @@ export type AnnouncementSubmitFailure = {
 }
 
 export type AnnouncementSubmitResult =
-  | AnnouncementSubmitSuccess
-  | AnnouncementSubmitFailure
+  AnnouncementSubmitSuccess | AnnouncementSubmitFailure
 
 export type AnnouncementSubmit = (
   input: AnnouncementSubmitInput
@@ -93,6 +117,8 @@ export function AnnouncementCompose({
   const [pending, setPending] = useState(false)
   const [result, setResult] = useState<AnnouncementSubmitResult | null>(null)
   const [sentToday, setSentToday] = useState(dailyUsage.used)
+  const [titleTrimmed, setTitleTrimmed] = useState(0)
+  const [bodyTrimmed, setBodyTrimmed] = useState(0)
   const quickFillReady = useHydrated()
 
   const trimmedTitle = title.trim()
@@ -108,6 +134,19 @@ export function AnnouncementCompose({
     trimmedTitle.length > 0 &&
     trimmedBody.length > 0 &&
     !pending
+  // A disabled primary action with no stated cause is a dead end — two of the
+  // five blocking conditions already had banners, the other three were silent
+  // and a screen reader announced only "Send announcement, dimmed" (03#56).
+  const blockedReason = !hasEligibleAudience
+    ? "No members can receive announcements yet."
+    : dailyLimitReached
+      ? "You have sent today's announcements."
+      : trimmedTitle.length === 0
+        ? "Add a title to send this."
+        : trimmedBody.length === 0
+          ? "Add a message to send this."
+          : null
+  const blockedReasonId = `${fieldId}-send-blocked`
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -130,6 +169,8 @@ export function AnnouncementCompose({
         // "skipped").
         setTitle("")
         setBody("")
+        setTitleTrimmed(0)
+        setBodyTrimmed(0)
       } else if (nextResult.error === "rate_limited") {
         setSentToday(dailyUsage.limit)
       }
@@ -144,7 +185,11 @@ export function AnnouncementCompose({
     <form
       onSubmit={handleSubmit}
       className={cn(
-        "surface-card grid min-w-0 gap-5 rounded-lg border-2 border-ink bg-card p-4 shadow-xs sm:p-5",
+        // `.surface-card` already carries the 2px ink border, the 10px radius,
+        // the card ground and the 4px hard shadow. Restating three of them and
+        // overriding the elevation to `shadow-xs` put the composer at a
+        // different elevation from every other console card (03#54).
+        "surface-card grid min-w-0 gap-5 p-4 sm:p-5",
         className
       )}
     >
@@ -197,7 +242,7 @@ export function AnnouncementCompose({
                   setTitle(template.title)
                   setBody(template.body)
                 }}
-                className="focus-ring rounded-lg border-2 border-dashed border-ink/25 bg-transparent px-3 py-1.5 text-sm font-bold text-foreground transition-[background-color,border-color,opacity] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:border-ink hover:bg-card disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none [@media(pointer:coarse)]:min-h-11"
+                className="focus-ring rounded-lg border-2 border-dashed border-line bg-transparent px-3 py-1.5 text-sm font-bold text-foreground transition-[background-color,border-color,opacity] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:border-ink hover:bg-card disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none [@media(pointer:coarse)]:min-h-11"
               >
                 {template.label}
               </button>
@@ -209,12 +254,12 @@ export function AnnouncementCompose({
       <div className="grid gap-2">
         <div className="flex items-center justify-between gap-3">
           <Label htmlFor={`${fieldId}-title`}>Announcement title</Label>
-          <span
+          <CharacterCounter
             id={`${fieldId}-title-count`}
-            className="numeric-tabular text-xs font-semibold text-muted-foreground"
-          >
-            {title.length}/{TITLE_LIMIT}
-          </span>
+            noun="Title"
+            length={title.length}
+            limit={TITLE_LIMIT}
+          />
         </div>
         <Input
           id={`${fieldId}-title`}
@@ -222,21 +267,39 @@ export function AnnouncementCompose({
           value={title}
           maxLength={80}
           required
-          aria-describedby={`${fieldId}-title-count`}
+          aria-describedby={cn(
+            `${fieldId}-title-count`,
+            titleTrimmed > 0 && `${fieldId}-title-trimmed`
+          )}
           placeholder="Kitchen open from noon"
+          onPaste={(event) =>
+            setTitleTrimmed(
+              charactersLostToPaste(
+                event.currentTarget,
+                event.clipboardData.getData("text"),
+                TITLE_LIMIT
+              )
+            )
+          }
           onChange={(event) => setTitle(event.currentTarget.value)}
+        />
+        <PasteTrimNotice
+          id={`${fieldId}-title-trimmed`}
+          trimmed={titleTrimmed}
+          length={title.length}
+          limit={TITLE_LIMIT}
         />
       </div>
 
       <div className="grid gap-2">
         <div className="flex items-center justify-between gap-3">
           <Label htmlFor={`${fieldId}-body`}>Announcement body</Label>
-          <span
+          <CharacterCounter
             id={`${fieldId}-body-count`}
-            className="numeric-tabular text-xs font-semibold text-muted-foreground"
-          >
-            {body.length}/{BODY_LIMIT}
-          </span>
+            noun="Message"
+            length={body.length}
+            limit={BODY_LIMIT}
+          />
         </div>
         <Textarea
           id={`${fieldId}-body`}
@@ -244,16 +307,59 @@ export function AnnouncementCompose({
           value={body}
           maxLength={180}
           required
-          aria-describedby={`${fieldId}-body-count`}
+          aria-describedby={cn(
+            `${fieldId}-body-count`,
+            bodyTrimmed > 0 && `${fieldId}-body-trimmed`
+          )}
           placeholder="Fresh pies, cask ale, and a few tables free for lunch."
+          onPaste={(event) =>
+            setBodyTrimmed(
+              charactersLostToPaste(
+                event.currentTarget,
+                event.clipboardData.getData("text"),
+                BODY_LIMIT
+              )
+            )
+          }
           onChange={(event) => setBody(event.currentTarget.value)}
+        />
+        <PasteTrimNotice
+          id={`${fieldId}-body-trimmed`}
+          trimmed={bodyTrimmed}
+          length={body.length}
+          limit={BODY_LIMIT}
         />
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="max-w-md text-xs leading-5 text-muted-foreground">
-          Sent only to members with push updates enabled for this venue.
-        </p>
+      {/* 03#49: this form measures 883-948px on a 390x844 phone, so the send
+          control sat below the fold behind the keyboard. FormActionBar sticks
+          it to the bottom under `sm` and returns it to the flow from `sm` up.
+          `offset="tab-bar"` because /app/announcements is a full-shell route
+          and the md:hidden bottom tab bar would otherwise cover it. */}
+      <FormActionBar
+        offset="tab-bar"
+        className="-mx-6 px-6 sm:px-0"
+        // `hint` renders inside a <p>, so this slot must stay phrasing content —
+        // a <div> here is invalid HTML and produced a hydration mismatch.
+        hint={
+          <span className="grid max-w-md gap-1">
+            <span className="text-xs leading-5 text-muted-foreground">
+              Sent only to members with push updates enabled for this venue.
+            </span>
+            {/* The visible half of the disabled button's reason, named by
+              aria-describedby below so it is announced with the control
+              instead of only on focus (03#56). */}
+            {blockedReason && !pending ? (
+              <span
+                id={blockedReasonId}
+                className="text-xs leading-5 font-bold text-foreground"
+              >
+                {blockedReason}
+              </span>
+            ) : null}
+          </span>
+        }
+      >
         {/* Muted secondary while unsendable: a half-opacity vermillion reads
             as an off-palette pink button rather than a disabled state. Real
             ellipsis on the pending label (console-wide convention). */}
@@ -261,13 +367,110 @@ export function AnnouncementCompose({
           type="submit"
           variant={canSubmit || pending ? "default" : "secondary"}
           disabled={!canSubmit}
+          aria-describedby={
+            blockedReason && !pending ? blockedReasonId : undefined
+          }
           className="w-full sm:w-auto"
         >
           <Icon icon={Megaphone01Icon} size={16} />
           {pending ? "Sending…" : "Send announcement"}
         </Button>
-      </div>
+      </FormActionBar>
     </form>
+  )
+}
+
+/**
+ * The paste-was-trimmed line (03#55, remaining half).
+ *
+ * Rendered only while the paste's loss is still on screen: `trimmed > 0` says a
+ * paste overflowed, and `length >= limit` says the merchant has not yet edited
+ * the field back under the ceiling. Deleting a character clears it without any
+ * extra bookkeeping, so a stale "70 characters were removed" cannot outlive the
+ * text it describes.
+ *
+ * `role="status"` rather than `role="alert"`: the merchant has just pasted and
+ * is looking at the field, and this file's counter deliberately avoids
+ * interrupting the composer mid-thought.
+ */
+function PasteTrimNotice({
+  id,
+  trimmed,
+  length,
+  limit,
+}: {
+  readonly id: string
+  readonly trimmed: number
+  readonly length: number
+  readonly limit: number
+}) {
+  if (trimmed <= 0 || length < limit) {
+    return null
+  }
+
+  return (
+    <p
+      id={id}
+      role="status"
+      className="text-xs leading-5 font-semibold text-destructive"
+    >
+      {trimmed === 1
+        ? "1 character was removed"
+        : `${trimmed} characters were removed`}{" "}
+      to fit the {limit}-character limit. Edit the text to keep what matters.
+    </p>
+  )
+}
+
+/**
+ * The character counter for a limited field (03#55).
+ *
+ * Two deliberate choices. The visible count turns `text-destructive` inside the
+ * last 10% so the ceiling is seen before it is hit, rather than staying muted
+ * until typing silently stops. And the announcement is NOT on the count itself
+ * — a polite live region on a per-keystroke number is unusable — but on a
+ * separate sr-only line that only changes when the field crosses into the last
+ * 10% and again when it fills, so assistive tech hears the threshold, not the
+ * typing.
+ *
+ * `maxLength` stays on both controls: it is pinned by
+ * `tests/contracts/merchant-venue-announcements-ui`, which is authoritative
+ * over the audit's "replace the hard limit with soft validation".
+ */
+function CharacterCounter({
+  id,
+  noun,
+  length,
+  limit,
+}: {
+  readonly id: string
+  readonly noun: string
+  readonly length: number
+  readonly limit: number
+}) {
+  const remaining = limit - length
+  const isNearLimit = remaining <= Math.ceil(limit * 0.1)
+  const isFull = remaining <= 0
+
+  return (
+    <>
+      <span
+        id={id}
+        className={cn(
+          "numeric-tabular text-xs font-semibold",
+          isNearLimit ? "text-destructive" : "text-muted-foreground"
+        )}
+      >
+        {length}/{limit}
+      </span>
+      <span aria-live="polite" className="sr-only">
+        {isFull
+          ? `${noun} is full at ${limit} characters. Trim it to add more.`
+          : isNearLimit
+            ? `${remaining} characters left in the ${noun.toLowerCase()}.`
+            : ""}
+      </span>
+    </>
   )
 }
 
@@ -279,7 +482,7 @@ function AudiencePreview({
   readonly dailyUsage: VenueAnnouncementDailyUsage
 }) {
   return (
-    <div className="rounded-lg border-2 border-dashed border-ink/30 bg-secondary/45 px-4 py-3">
+    <div className="rounded-lg border-2 border-dashed border-line bg-secondary/45 px-4 py-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <p className="text-sm font-extrabold text-foreground">
           About {formatNumber(audienceSummary.eligible)} of your{" "}

@@ -57,9 +57,11 @@ export function CustomerLegalSheet({
       </SheetTrigger>
       <SheetContent
         side="bottom"
-        className="max-h-[min(85vh,640px)] gap-0 rounded-t-[18px] border-t-2 border-ink p-0"
+        className="max-h-[min(85vh,640px)] gap-0 rounded-t-sheet border-t-2 border-ink p-0"
       >
-        <SheetHeader className="shrink-0 border-b border-ink/10 px-6 pt-6 pb-4 text-left">
+        {/* border-line, not border-ink/10: --w-line (18%) and --w-line-strong
+            (50%) are the only two rule tones the contract carries. */}
+        <SheetHeader className="shrink-0 border-b-2 border-line px-6 pt-6 pb-4 text-left">
           <SheetTitle className="font-heading text-xl leading-tight">
             {title}
           </SheetTitle>
@@ -76,7 +78,7 @@ export function CustomerLegalSheet({
                 <div className="flex items-baseline justify-between gap-4">
                   <p className="text-xl font-extrabold">{cardTitle}</p>
                   {docNumber ? (
-                    <span className="mono-id tracking-[0.08em] text-muted-foreground">
+                    <span className="mono-id tracking-tag text-muted-foreground">
                       Nº {docNumber}
                     </span>
                   ) : null}
@@ -96,9 +98,7 @@ export function CustomerLegalSheet({
 function LegalSectionBlock({ section }: { section: LegalSection }) {
   return (
     <section className="w-rule grid scroll-mt-28 gap-2 pt-4 outline-none">
-      <p className="mono-meta tracking-[0.08em] text-foreground">
-        {section.title}
-      </p>
+      <p className="mono-meta tracking-tag text-foreground">{section.title}</p>
       <p className="text-sm leading-6 text-muted-foreground">{section.body}</p>
     </section>
   )

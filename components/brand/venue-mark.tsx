@@ -57,7 +57,7 @@ export function VenueMark({
         style={{ width: size, height: size, fontSize: Math.round(size * 0.32) }}
       >
         {text ? (
-          <span className="relative z-[1] tracking-[0.02em]">{text}</span>
+          <span className="relative z-[1]">{text}</span>
         ) : (
           <Icon
             icon={CheckmarkBadge04Icon}
@@ -67,7 +67,7 @@ export function VenueMark({
         )}
       </span>
       {caption ? (
-        <span className="mono-id tracking-[0.08em] text-muted-foreground">
+        <span className="mono-id tracking-tag text-muted-foreground">
           {caption}
         </span>
       ) : null}

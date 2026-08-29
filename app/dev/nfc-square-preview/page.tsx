@@ -107,7 +107,11 @@ export default async function NfcSquarePreviewPage({
     <div className="grid gap-16 bg-[var(--w-paper)] py-10">
       {squares.map(({ design, square }) => (
         <section key={design} className="grid gap-3">
-          <p className="text-center font-mono text-xs font-bold tracking-[0.16em] text-[var(--w-ink-soft)] uppercase">
+          {/* `.mono-meta`, not a hand-rolled `font-mono text-xs … tracking-…
+            uppercase` string (DESIGN.md · Typography), and `text-ink-soft`
+            rather than an arbitrary `text-[var(--w-ink-soft)]` — the theme
+            already mints that colour as a utility. */}
+          <p className="mono-meta text-center text-ink-soft">
             {getNfcSquareDesign(design)?.name ?? design} square NFC
           </p>
           {square}

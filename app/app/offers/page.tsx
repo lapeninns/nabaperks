@@ -135,6 +135,13 @@ async function OffersDesk({
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
+/**
+ * The preset explainer is `main`'s snap-scroll rail, kept over this branch's
+ * disclosure treatment (03#47-adjacent): the rail is newer, deliberate and
+ * already visually baselined, and it solves the same "permanent noise above the
+ * CTA" problem by making the row compact rather than collapsible. The
+ * `firstRun` distinction that fed the disclosure is therefore gone.
+ */
 function OffersEmptyState() {
   return (
     <div className="grid gap-5">
@@ -153,11 +160,15 @@ function OffersEmptyState() {
         <Eyebrow>What an offer can give</Eyebrow>
         {/* Snap-scroll rail of compact icon rows on the phone; three-up grid
             from sm. Mirrored by the offers harness lane. */}
-        <ul className="flex snap-x [scrollbar-width:none] gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0 [&::-webkit-scrollbar]:hidden">
+        <ul
+          aria-label="What an offer can give"
+          tabIndex={0}
+          className="focus-ring flex snap-x [scrollbar-width:none] gap-2 overflow-x-auto rounded-sm pb-1 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0 [&::-webkit-scrollbar]:hidden"
+        >
           {OFFER_BENEFIT_PRESETS.map((preset) => (
             <li
               key={preset.kind}
-              className="grid w-60 shrink-0 snap-start content-start gap-1.5 rounded-lg border-[1.5px] border-border bg-card p-3 sm:w-auto sm:min-w-0 sm:p-4"
+              className="grid w-60 shrink-0 snap-start content-start gap-1.5 rounded-lg border-2 border-border bg-card p-3 sm:w-auto sm:min-w-0 sm:p-4"
             >
               <span className="flex items-center gap-2">
                 <Icon icon={preset.icon} size={16} />
@@ -210,7 +221,7 @@ function OfferHistory({
         {campaigns.map((campaign) => (
           <li
             key={campaign.id}
-            className="grid gap-2 rounded-lg border-[1.5px] border-border bg-card p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+            className="grid gap-2 rounded-lg border-2 border-border bg-card p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
           >
             <div className="grid gap-1">
               <span className="text-sm font-semibold text-foreground">

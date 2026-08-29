@@ -6,11 +6,8 @@ import { MerchantPageTitleSkeleton } from "@/components/merchant/loading-skeleto
 // single predictable step instead of a dashboard-shaped flash.
 export default function MerchantAppLoading() {
   return (
-    <div
-      aria-label="Loading merchant workspace"
-      role="status"
-      className="grid gap-6"
-    >
+    <div aria-busy="true" className="grid gap-6">
+      <p className="sr-only">Loading merchant workspace…</p>
       <MerchantPageTitleSkeleton />
     </div>
   )

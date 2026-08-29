@@ -95,7 +95,7 @@ export function ReferralSharePanel({
           </span>
           <div className="grid min-w-0 gap-1">
             <Eyebrow>Referral</Eyebrow>
-            <h2 className="text-sm leading-tight font-black text-foreground">
+            <h2 className="text-base leading-tight font-extrabold text-foreground">
               Bring a regular
             </h2>
             <p className="text-sm leading-6 text-ink-soft">
@@ -117,17 +117,23 @@ export function ReferralSharePanel({
         {url}
       </span>
 
-      <div className="grid gap-2">
+      {/* One intent, one primary. Two full-width size="lg" buttons for
+          "give someone this link" was a duplicated primary action, and
+          `share()` already falls back to `copyLink()` when there is no share
+          sheet — so on every device that has one, the second button did
+          nothing the first would not (CUS 02#20). Copy is demoted to a link
+          under it, still reachable, still announcing "Copied". */}
+      <div className="grid justify-items-center gap-1">
         <Button type="button" size="lg" onClick={share} className="w-full">
           <Icon icon={LinkSquare02Icon} size={16} />
           Share your link
         </Button>
         <Button
           type="button"
-          size="lg"
-          variant="secondary"
+          size="sm"
+          variant="link"
           onClick={copyLink}
-          className="w-full"
+          className="text-ink-soft"
         >
           <Icon icon={copied ? Tick02Icon : LinkSquare02Icon} size={16} />
           {copied ? "Copied" : "Copy link"}

@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation"
 import type { CSSProperties, MouseEvent } from "react"
 
 import { Icon } from "@/components/brand"
+import { Spinner } from "@/components/ui/spinner"
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -14,7 +15,11 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { isActiveNavItem, type ShellNavItem } from "./console-nav"
+import {
+  isActiveNavItem,
+  type ShellNavGroup,
+  type ShellNavItem,
+} from "./console-nav"
 
 export const CONSOLE_SIDEBAR_STYLE: CSSProperties &
   Record<"--sidebar-width" | "--sidebar-width-icon", string> = {
@@ -22,32 +27,65 @@ export const CONSOLE_SIDEBAR_STYLE: CSSProperties &
   "--sidebar-width-icon": "4.5rem",
 }
 
-export function ConsoleSidebarNav({
-  items,
-  secondaryItems,
-  secondaryLabel = "Account",
-  activePath,
-  ariaLabel,
-}: {
-  items: readonly ShellNavItem[]
+type ConsoleSidebarNavProps = {
   secondaryItems?: readonly ShellNavItem[]
   secondaryLabel?: string
   activePath?: string
   ariaLabel: string
-}) {
+  /**
+   * Rewrites nav destinations, keyed by the item's real href. Supplied by the
+   * /dev app harness, whose sidebar otherwise linked straight out to the
+   * auth-gated /app routes — one tap and you were no longer in the harness
+   * (ADM 04#71).
+   *
+   * A plain object rather than a mapper function: this is a client component
+   * rendered from a server layout, and functions are not serialisable across
+   * that boundary.
+   *
+   * When the map is present, an item with no entry has no harness equivalent
+   * and renders inert rather than as a working escape hatch — the nav shape
+   * stays honest, and the operator stays where they are.
+   */
+  hrefOverrides?: Readonly<Record<string, string>>
+} & (
+  | { items: readonly ShellNavItem[]; groups?: never }
+  /** Labelled groups instead of one flat list (the admin console). */
+  | { groups: readonly ShellNavGroup[]; items?: never }
+)
+
+export function ConsoleSidebarNav({
+  items,
+  groups,
+  secondaryItems,
+  secondaryLabel = "Account",
+  activePath,
+  ariaLabel,
+  hrefOverrides,
+}: ConsoleSidebarNavProps) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const currentPath = activePath ?? pathname
   const currentTab = searchParams.get("tab")
   const secondaryNavItems = secondaryItems ?? []
+  // Two consoles arrived at grouping independently and both are kept:
+  // the admin shell passes explicit `groups`, while the merchant shell passes a
+  // flat `items` array whose entries carry an optional `group` field (its
+  // contract tests pin `items={merchantNavItems}`, so the array must stay flat).
+  // Explicit groups win; otherwise derive them from the items.
+  const navGroups = groups ?? groupNavItems(items ?? [])
 
   return (
     <nav aria-label={ariaLabel} className="flex min-h-0 flex-1 flex-col gap-2">
-      <ConsoleSidebarGroup
-        items={items}
-        currentPath={currentPath}
-        currentTab={currentTab}
-      />
+      {navGroups.map((group) => (
+        <ConsoleSidebarGroup
+          key={group.label || "__ungrouped"}
+          items={group.items}
+          label={group.label || undefined}
+          currentPath={currentPath}
+          currentTab={currentTab}
+          hrefOverrides={hrefOverrides}
+        />
+      ))}
       {secondaryNavItems.length > 0 ? (
         <div className="mt-auto">
           <ConsoleSidebarGroup
@@ -55,6 +93,7 @@ export function ConsoleSidebarNav({
             currentPath={currentPath}
             currentTab={currentTab}
             label={secondaryLabel}
+            hrefOverrides={hrefOverrides}
           />
         </div>
       ) : null}
@@ -62,16 +101,44 @@ export function ConsoleSidebarNav({
   )
 }
 
+/**
+ * Partition a flat nav list into its labelled `group`s, preserving
+ * first-appearance order. A list with no `group` anywhere collapses to a single
+ * unlabelled group, which is byte-identical to the previous render (the admin
+ * rail relies on that).
+ */
+function groupNavItems(items: readonly ShellNavItem[]): ReadonlyArray<{
+  label?: string
+  items: ShellNavItem[]
+}> {
+  const groups: { label?: string; items: ShellNavItem[] }[] = []
+
+  for (const item of items) {
+    const existing = groups.find((group) => group.label === item.group)
+
+    if (existing) {
+      existing.items.push(item)
+      continue
+    }
+
+    groups.push({ label: item.group, items: [item] })
+  }
+
+  return groups
+}
+
 function ConsoleSidebarGroup({
   items,
   currentPath,
   currentTab,
   label,
+  hrefOverrides,
 }: {
   items: readonly ShellNavItem[]
   currentPath: string
   currentTab: string | null
   label?: string
+  hrefOverrides?: Readonly<Record<string, string>>
 }) {
   const { isMobile, setOpenMobile } = useSidebar()
 
@@ -103,21 +170,41 @@ function ConsoleSidebarGroup({
             const active = isActiveNavItem(currentPath, currentTab, item.href)
             const prefetchProps =
               item.prefetch === "auto" ? {} : { prefetch: false }
+            const href = hrefOverrides ? hrefOverrides[item.href] : item.href
+
+            if (!href) {
+              // Mapped nav with no harness page for this item. Rendered as a
+              // real disabled control rather than a dead link, so it is skipped
+              // by keyboard and announced as unavailable instead of promising a
+              // destination that would drop you out of the harness.
+              return (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton
+                    disabled
+                    size="lg"
+                    className="gap-3"
+                    title="No harness page for this section"
+                  >
+                    <NavItemGlyph icon={item.icon} />
+                    <span data-collapse-label>{item.label}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )
+            }
 
             return (
               <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton asChild isActive={active} size="lg">
                   <Link
-                    href={item.href}
+                    href={href}
                     {...prefetchProps}
                     aria-current={active ? "page" : undefined}
                     data-active={active}
                     className="gap-3"
                     onClick={handleLinkClick}
                   >
-                    {item.icon ? <Icon icon={item.icon} size={16} /> : null}
+                    <NavItemGlyph icon={item.icon} />
                     <span data-collapse-label>{item.label}</span>
-                    <NavPendingIndicator />
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -129,15 +216,20 @@ function ConsoleSidebarGroup({
   )
 }
 
-function NavPendingIndicator() {
+/**
+ * Every merchant route is `force-dynamic`, so a nav tap can sit for a second or
+ * more on venue Wi-Fi. The previous signal was a 6px dot at 60% opacity in the
+ * trailing slot, which `data-collapse-hide` also removed from the collapsed
+ * icon rail — i.e. no signal at all on the surface with the least context.
+ * Swapping the leading glyph for the shared `Spinner` puts the feedback at full
+ * contrast in the one slot that renders in both rail states.
+ */
+function NavItemGlyph({ icon }: { icon?: ShellNavItem["icon"] }) {
   const { pending } = useLinkStatus()
 
-  return (
-    <span
-      aria-hidden="true"
-      data-pending={pending}
-      data-collapse-hide
-      className="ml-auto size-1.5 shrink-0 rounded-full bg-current opacity-0 transition-opacity delay-100 duration-[var(--w-dur-fast)] ease-[var(--w-ease)] data-[pending=true]:opacity-60 motion-reduce:transition-none"
-    />
-  )
+  if (pending) {
+    return <Spinner className="size-4 shrink-0" aria-label="Loading page" />
+  }
+
+  return icon ? <Icon icon={icon} size={16} /> : null
 }

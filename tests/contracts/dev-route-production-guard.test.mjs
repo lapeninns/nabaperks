@@ -9,7 +9,11 @@ const projectRoot = path.resolve(
   "../.."
 )
 
+// Inventory, not a permission list: the guard assertions below (the /dev
+// layout's production notFound + noindex robots) are what protect these pages.
+// Adding a page means adding it here so the inventory stays exact.
 const expectedDevPages = [
+  "app/dev/admin-harness/audit-lookup/page.tsx",
   "app/dev/app-harness/account/page.tsx",
   "app/dev/app-harness/activity/page.tsx",
   "app/dev/app-harness/announcements/page.tsx",
@@ -19,6 +23,7 @@ const expectedDevPages = [
   "app/dev/app-harness/launch/page.tsx",
   "app/dev/app-harness/offers/page.tsx",
   "app/dev/app-harness/onboarding/page.tsx",
+  "app/dev/app-harness/page.tsx",
   "app/dev/app-harness/pilot-note/page.tsx",
   "app/dev/app-harness/qr/page.tsx",
   "app/dev/app-harness/reward-scan/page.tsx",
@@ -26,17 +31,23 @@ const expectedDevPages = [
   "app/dev/app-harness/send-reward/page.tsx",
   "app/dev/app-harness/skeletons/page.tsx",
   "app/dev/app-harness/states/page.tsx",
+  "app/dev/app-harness/trial/admin-command/page.tsx",
+  "app/dev/app-harness/trial/admin-table-sort/page.tsx",
   "app/dev/app-harness/trial/admin/page.tsx",
   "app/dev/app-harness/trial/page.tsx",
   "app/dev/design-system/page.tsx",
+  "app/dev/home-harness/activity/page.tsx",
   "app/dev/home-harness/gift-chip/page.tsx",
   "app/dev/home-harness/home/page.tsx",
+  "app/dev/home-harness/offer-claim/page.tsx",
+  "app/dev/home-harness/present-code/page.tsx",
   "app/dev/home-harness/redemption-second-factor/page.tsx",
   "app/dev/home-harness/referral-bank/page.tsx",
   "app/dev/home-harness/rewards/page.tsx",
   "app/dev/home-harness/stamp/page.tsx",
   "app/dev/nfc-card-preview/page.tsx",
   "app/dev/nfc-square-preview/page.tsx",
+  "app/dev/page.tsx",
   "app/dev/poster-preview/page.tsx",
   "app/dev/tent-preview/page.tsx",
 ]

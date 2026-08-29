@@ -7,7 +7,7 @@ import {
   type SendRewardState,
 } from "@/app/app/customers/send-reward/actions"
 import { Eyebrow } from "@/components/brand"
-import { SubmitButton } from "@/components/forms"
+import { FormField, SubmitButton, SelectField } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { Field, TextareaField } from "@/components/merchant/loyalty-card-form"
 import {
@@ -85,7 +85,7 @@ export function SendRewardForm({
                   setRewardName(preset.rewardName)
                   setRewardTerms(preset.rewardTerms)
                 }}
-                className="focus-ring rounded-lg border-2 border-dashed border-ink/25 bg-transparent px-3 py-1.5 text-sm font-bold text-foreground transition-[background-color,border-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:border-ink hover:bg-card motion-reduce:transition-none [@media(pointer:coarse)]:min-h-11"
+                className="focus-ring rounded-lg border-2 border-dashed border-line bg-transparent px-3 py-1.5 text-sm font-bold text-foreground transition-[background-color,border-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:border-ink hover:bg-card motion-reduce:transition-none [@media(pointer:coarse)]:min-h-11"
               >
                 {preset.rewardName}
               </button>
@@ -115,31 +115,29 @@ export function SendRewardForm({
         error={state.errors?.rewardTerms}
       />
 
-      <div className="grid gap-1.5">
-        <label htmlFor="send-reward-expiry">
-          <Eyebrow>Expires in</Eyebrow>
-        </label>
-        <select
+      {/* FormField, not a hand-rolled <label> + error <p>: the select then gets
+          the same label binding, aria-describedby and aria-invalid wiring as
+          every Field/TextareaField beside it. */}
+      <FormField
+        id="send-reward-expiry"
+        label="Expires in"
+        error={state.errors?.expiresInDays}
+      >
+        <SelectField
           id="send-reward-expiry"
           name="expiresInDays"
           defaultValue={
             state.fields?.expiresInDays ??
             String(DEFAULT_SEND_REWARD_EXPIRY_DAYS)
           }
-          className="h-12 rounded-lg border-2 border-ink bg-card px-3 text-foreground"
         >
           {SEND_REWARD_EXPIRY_OPTIONS.map((days) => (
             <option key={days} value={days}>
               {days} days
             </option>
           ))}
-        </select>
-        {state.errors?.expiresInDays ? (
-          <p className="text-sm text-destructive">
-            {state.errors.expiresInDays}
-          </p>
-        ) : null}
-      </div>
+        </SelectField>
+      </FormField>
 
       <TextareaField
         id="send-reward-message"
@@ -153,9 +151,9 @@ export function SendRewardForm({
       />
 
       {state.errors?.form ? (
-        <p className="text-sm text-destructive" role="alert">
+        <StatusBanner tone="error" title="Reward not sent.">
           {state.errors.form}
-        </p>
+        </StatusBanner>
       ) : null}
 
       <SubmitButton className="w-fit" pendingLabel="Sending…">

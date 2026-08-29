@@ -9,7 +9,7 @@ import {
 import { CustomerVenueTermsSheet } from "@/components/customer/legal-sheet"
 import { UnavailableRecoveryActions } from "@/components/customer/unavailable-recovery"
 import {
-  RewardTeaser,
+  RewardTicket,
   StampJourneyPreview,
   StatusBanner,
 } from "@/components/loyalty"
@@ -89,10 +89,14 @@ export default async function MerchantRewardsPage({
           venueName={merchant.business_name}
           className="py-1"
         />
-        <RewardTeaser
-          locked
-          hideSeal
-          title={MYSTERY_REWARD_SEALED_LABEL}
+        {/* RewardTicket with an explicit state, not the deprecated RewardTeaser
+            shim that mapped `locked` onto it. This was the shim's last call
+            site, so the superseded vocabulary can no longer be reached for
+            (CUS 02#35). Identical output: locked -> state="sealed", and
+            `hideSeal` was accepted for back-compat and ignored. */}
+        <RewardTicket
+          state="sealed"
+          name={MYSTERY_REWARD_SEALED_LABEL}
           description={
             <>
               Collect {loyaltyCard.stamps_required} stamps to unseal a surprise

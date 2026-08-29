@@ -31,11 +31,18 @@ export default function OfflinePage() {
             <div className="flex w-full flex-wrap justify-center gap-3">
               {/* A plain same-URL anchor: retries the original navigation even
                   if hydration is unavailable, instead of looping via the
-                  service worker's offline fallback. */}
+                  service worker's offline fallback. It stays an empty href on
+                  purpose — this page is served for ANY offline URL, so a
+                  hard-coded "/offline" would retry the wrong document and a
+                  scripted reload would do nothing in the no-JS case the
+                  fallback exists for. `OfflineAutoReload` supplies the
+                  polite live-region feedback the press used to lack. */}
               <Button asChild>
                 <a href="">Try again</a>
               </Button>
-              <Button asChild variant="outline">
+              {/* `secondary`, not `outline`: every other secondary action on
+                  the public surface is `secondary`. */}
+              <Button asChild variant="secondary">
                 <Link href="/home">{OPEN_MY_CARDS_LABEL}</Link>
               </Button>
             </div>

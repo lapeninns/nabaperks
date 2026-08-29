@@ -1,23 +1,21 @@
 import { UserMultiple02Icon } from "@hugeicons/core-free-icons"
 
 import { Icon, MonoTag } from "@/components/brand"
+import { PromiseChip } from "@/components/customer/promise-chip"
 import {
   referralBonusBankCopy,
   type ReferralBonusBankCopy,
 } from "@/lib/customer/referral-bonus-bank-copy"
 import type { ReferralBonusBank } from "@/lib/customer/referral-bonus-bank"
 
-export function ReferralBonusBankNotice({
-  bank,
-}: {
-  bank: ReferralBonusBank
-}) {
+export function ReferralBonusBankNotice({ bank }: { bank: ReferralBonusBank }) {
   const copy = referralBonusBankCopy(bank)
 
   return (
-    <section
+    <PromiseChip
+      kind="bonus"
       data-testid="referral-bonus-bank"
-      className="grid gap-3 rounded-lg border-2 border-ink bg-seal/15 p-3 text-left"
+      className="gap-3 text-left"
     >
       <ReferralBonusBankHeader copy={copy} iconSize={16} />
       <p className="text-sm leading-tight font-extrabold break-words">
@@ -44,7 +42,7 @@ export function ReferralBonusBankNotice({
         <p className="mono-id text-ink">Stamp rule</p>
         <p className="text-sm leading-5 text-ink-soft">{copy.ruleSummary}</p>
       </div>
-    </section>
+    </PromiseChip>
   )
 }
 
@@ -52,10 +50,7 @@ export function ReferralBonusBankMini({ bank }: { bank: ReferralBonusBank }) {
   const copy = referralBonusBankCopy(bank)
 
   return (
-    <div
-      data-testid="home-referral-bonus-bank"
-      className="grid gap-1.5 rounded-lg border-2 border-ink bg-seal/15 p-3"
-    >
+    <PromiseChip kind="bonus" data-testid="home-referral-bonus-bank">
       <ReferralBonusBankHeader copy={copy} iconSize={14} compact />
       <p className="text-sm leading-tight font-extrabold break-words">
         {copy.headline}
@@ -64,7 +59,7 @@ export function ReferralBonusBankMini({ bank }: { bank: ReferralBonusBank }) {
         {copy.compactDetail}
       </p>
       <p className="mono-id text-ink-soft">{copy.badgeLabel} limit</p>
-    </div>
+    </PromiseChip>
   )
 }
 

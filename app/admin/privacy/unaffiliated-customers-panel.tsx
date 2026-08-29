@@ -1,18 +1,22 @@
 import {
+  AdminAppliedFilters,
+  AdminLookupControls,
   AdminLookupErrorState,
   AdminLookupPagination,
 } from "@/components/admin/lookup-controls"
 import { AdminIdChip } from "@/components/admin/id-chip"
 import { AdminRecordCard } from "@/components/admin/record-card"
 import {
+  AdminEmptyState,
   AdminPanel,
   SourceLabel,
   StatusPill,
   formatAdminDate,
   maskAdminCustomer,
 } from "@/components/admin/support"
-import { EmptyState, SectionHeader } from "@/components/brand"
+import { SectionHeader } from "@/components/brand"
 import type { getAdminUnaffiliatedCustomers } from "@/lib/admin/data"
+import type { AdminLookupState } from "@/lib/admin/lookup-query"
 import { Shield01Icon } from "@hugeicons/core-free-icons"
 
 type UnaffiliatedResult = Awaited<
@@ -28,19 +32,36 @@ type UnaffiliatedRow = UnaffiliatedResult["rows"][number]
  */
 export function UnaffiliatedCustomersPanel({
   result,
-  searching,
+  lookup,
   hrefForPage,
 }: {
   readonly result: UnaffiliatedResult | null
-  readonly searching: boolean
+  readonly lookup: AdminLookupState
   readonly hrefForPage: (page: number) => string
 }) {
+  const searching = Boolean(lookup.contact)
+
   return (
     <AdminPanel>
       <SectionHeader
         title="Verified customers without a membership"
-        description="Verified customers who signed up but never joined a venue — invisible to the membership lookups above. Filtered by the contact search at the top of the page."
+        description="Verified customers who signed up but never joined a venue — invisible to the membership lookups. Search by contact fragment."
         actions={<SourceLabel>Source: service-role admin readback</SourceLabel>}
+      />
+      {/* This list used to be governed by a control in another panel
+          thousands of pixels above it, signposted only by a sentence. It owns
+          its search now. */}
+      <AdminLookupControls
+        basePath="/admin/privacy"
+        lookup={lookup}
+        label="Unaffiliated customer lookup"
+        fields="contact"
+        hiddenParams={{ panel: "unaffiliated" }}
+      />
+      <AdminAppliedFilters
+        basePath="/admin/privacy"
+        lookup={{ ...lookup, venue: undefined }}
+        extraParams={{ panel: "unaffiliated" }}
       />
       {result ? (
         result.rows.length ? (
@@ -58,18 +79,18 @@ export function UnaffiliatedCustomersPanel({
             />
           </>
         ) : searching ? (
-          <EmptyState
+          <AdminEmptyState
             icon={Shield01Icon}
             title="No matching customers"
             description="No unaffiliated customer matches that contact fragment."
-            className="rounded-none border-0 p-0 shadow-none"
+            padded={false}
           />
         ) : (
-          <EmptyState
+          <AdminEmptyState
             icon={Shield01Icon}
             title="No unaffiliated customers"
             description="Every verified customer has joined at least one venue."
-            className="rounded-none border-0 p-0 shadow-none"
+            padded={false}
           />
         )
       ) : (

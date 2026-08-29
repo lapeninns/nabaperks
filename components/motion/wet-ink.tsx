@@ -437,20 +437,30 @@ export function WetInkRipple({
   active = false,
 }: Triggered) {
   const shouldAnimate = useWetInkAnimationEnabled()
+  const running = shouldAnimate && active
 
-  if (!shouldAnimate || !active) return null
-
+  // Host-invariance (DESIGN.md § Motion): a motion wrapper may change how its
+  // host animates, never WHETHER the host renders. This returned `null` when
+  // inactive or under reduced motion, so the element vanished from the tree
+  // instead of simply holding still — the one component in the family that
+  // broke the rule the others follow.
   return (
     <m.span
       aria-hidden="true"
       className={className}
       style={style}
       initial={{ scale: 0.4, opacity: 0.9 }}
-      animate={{ scale: 2.1, opacity: 0 }}
-      transition={{
-        duration: wetInkTransition.ripple.duration,
-        ease: "easeOut",
-      }}
+      animate={
+        running ? { scale: 2.1, opacity: 0 } : { scale: 0.4, opacity: 0 }
+      }
+      transition={
+        running
+          ? {
+              duration: wetInkTransition.ripple.duration,
+              ease: "easeOut",
+            }
+          : { duration: 0 }
+      }
     >
       {children}
     </m.span>
@@ -472,14 +482,18 @@ export function WetInkMarquee({
   className,
   style,
   durationSeconds = wetInkTransition.marquee.duration,
-}: MotionBox & { durationSeconds?: number }) {
+  paused = false,
+}: MotionBox & { durationSeconds?: number; paused?: boolean }) {
   const shouldAnimate = useWetInkAnimationEnabled()
   const pausedRef = useRef(false)
   const offsetRef = useRef(0)
   const x = useMotionValue("0%")
 
+  // `paused` is the caller-owned, operable stop (WCAG 2.2.2); pausedRef is the
+  // pointer-hover convenience. Either halts the strip. The prop is read inside
+  // the frame callback so toggling it still costs no re-render of the track.
   useAnimationFrame((_, delta) => {
-    if (!shouldAnimate || pausedRef.current) return
+    if (!shouldAnimate || paused || pausedRef.current) return
     offsetRef.current =
       (offsetRef.current + (delta / (durationSeconds * 1000)) * 50) % 50
     x.set(`-${offsetRef.current}%`)

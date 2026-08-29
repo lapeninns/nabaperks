@@ -142,60 +142,65 @@ export default async function DashboardHarnessPage({
         actions={<MerchantDashboardHeaderActions readiness={readiness} />}
       />
 
-      <DashboardQrCardView
-        qrCodeId="qr_harness"
-        venueName={HARNESS_MERCHANT.business_name}
-        shareUrl="https://nabaperks.com/q/old-crown-girton"
-        isActive={readiness.tabs.qr}
-        scansAvailable={readiness.launchReady}
-        actionHref={qrGated ? "/app/launch?tab=billing" : "/app/qr"}
-        actionLabel={qrGated ? "Finish launch setup" : "Review QR setup"}
-      />
+      {/* Mirrors app/app/page.tsx: the ticket and the metrics share one
+          `xl:grid-cols-[18rem_minmax(0,1fr)]` track so the harness proves the
+          same layout the console renders (03#12). */}
+      <div className="grid gap-6 xl:grid-cols-[18rem_minmax(0,1fr)] xl:items-start">
+        <DashboardQrCardView
+          qrCodeId="qr_harness"
+          venueName={HARNESS_MERCHANT.business_name}
+          shareUrl="https://nabaperks.com/q/old-crown-girton"
+          isActive={readiness.tabs.qr}
+          scansAvailable={readiness.launchReady}
+          actionHref={qrGated ? "/app/launch?tab=billing" : "/app/qr"}
+          actionLabel={qrGated ? "Finish launch setup" : "Review QR setup"}
+        />
 
-      {showEmptyMembers ? (
-        <DashboardMembersEmptyState />
-      ) : (
-        <section className="grid gap-3">
-          <SectionHeader
-            eyebrow="Last 14 days"
-            title="How the week is going"
-            description="Deltas compare this week with the seven days before; the lines trace the last fortnight."
-          />
-
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {HARNESS_KPIS.map((kpi, index) => (
-              <WetInkRise
-                key={kpi.label}
-                className="min-w-0"
-                delay={index * 0.045}
-                distance={12}
-              >
-                <KpiTile
-                  label={kpi.label}
-                  value={kpi.value.toLocaleString("en-GB")}
-                  icon={KPI_ICON[kpi.label]}
-                  series={[...kpi.series]}
-                  seriesColor={kpi.seriesColor}
-                  trend={kpi.trend}
-                />
-              </WetInkRise>
-            ))}
-          </div>
-
-          <ReceiptCard className="grid gap-3" padding="md">
-            <p className="eyebrow">Stamps vs joins</p>
-            <TrendChart
-              startLabel="2 weeks ago"
-              endLabel="Today"
-              aria-label="Daily stamps issued and new members over the last 14 days"
-              series={HARNESS_TREND_SERIES.map((s) => ({
-                ...s,
-                data: [...s.data],
-              }))}
+        {showEmptyMembers ? (
+          <DashboardMembersEmptyState />
+        ) : (
+          <section className="grid gap-3.5">
+            <SectionHeader
+              eyebrow="Last 14 days"
+              title="How the week is going"
+              description="Deltas compare this week with the seven days before; the lines trace the last fortnight."
             />
-          </ReceiptCard>
-        </section>
-      )}
+
+            <div className="grid grid-cols-2 gap-3.5 md:grid-cols-4">
+              {HARNESS_KPIS.map((kpi, index) => (
+                <WetInkRise
+                  key={kpi.label}
+                  className="min-w-0"
+                  delay={index * 0.045}
+                  distance={12}
+                >
+                  <KpiTile
+                    label={kpi.label}
+                    value={kpi.value.toLocaleString("en-GB")}
+                    icon={KPI_ICON[kpi.label]}
+                    series={[...kpi.series]}
+                    seriesColor={kpi.seriesColor}
+                    trend={kpi.trend}
+                  />
+                </WetInkRise>
+              ))}
+            </div>
+
+            <ReceiptCard className="grid gap-3" padding="md">
+              <p className="eyebrow">Stamps vs joins</p>
+              <TrendChart
+                startLabel="2 weeks ago"
+                endLabel="Today"
+                aria-label="Daily stamps issued and new members over the last 14 days"
+                series={HARNESS_TREND_SERIES.map((s) => ({
+                  ...s,
+                  data: [...s.data],
+                }))}
+              />
+            </ReceiptCard>
+          </section>
+        )}
+      </div>
 
       {showEmptyMembers ? null : (
         <MerchantNextActions

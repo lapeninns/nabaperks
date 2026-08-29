@@ -10,7 +10,7 @@ import {
   type CustomerJoinState,
 } from "@/app/m/[merchantSlug]/join/actions"
 import { Eyebrow, MonoTag } from "@/components/brand"
-import { customerInputClass } from "@/components/customer/input-class"
+import { PhoneField } from "@/components/customer/phone-field"
 import { CustomerLegalConsentLinks } from "@/components/customer/legal-sheet"
 import { StatusBanner } from "@/components/loyalty"
 import type { JoinCard } from "@/lib/customer/experience/types"
@@ -50,41 +50,16 @@ export function CustomerIdentityForm({
         <input type="hidden" name="merchantSlug" value={merchantSlug} />
         <input type="hidden" name="qrId" value={qrId ?? ""} />
         <input type="hidden" name="ref" value={referralCode ?? ""} />
-        <div className="grid gap-2">
-          <label htmlFor="contact" className="eyebrow">
-            UK phone number
-          </label>
-          <input
-            id="contact"
-            name="contact"
-            type="tel"
-            inputMode="tel"
-            autoComplete="tel"
-            autoFocus
-            placeholder="07400 123456"
-            defaultValue={state.fields?.contact}
-            className={customerInputClass}
-            aria-invalid={Boolean(state.errors?.contact)}
-            aria-describedby={
-              state.errors?.contact ? "contact-error" : "contact-hint"
-            }
-            onFocus={(event) =>
-              event.currentTarget.scrollIntoView({ block: "center" })
-            }
-          />
-          {state.errors?.contact ? (
-            <p id="contact-error" className="text-sm text-destructive">
-              {state.errors.contact}
-            </p>
-          ) : (
-            <p
-              id="contact-hint"
-              className="text-xs leading-5 text-muted-foreground"
-            >
-              {JOIN_PHONE_RETENTION_HINT}
-            </p>
-          )}
-        </div>
+        {/* label passed explicitly, not left to PhoneField's default:
+            customer-join-frictionless-ux asserts "UK phone number" appears in
+            THIS file, and the join step's wording is part of its retention
+            context. */}
+        <PhoneField
+          label="UK phone number"
+          hint={JOIN_PHONE_RETENTION_HINT}
+          error={state.errors?.contact}
+          defaultValue={state.fields?.contact}
+        />
         {state.errors?.form ? (
           // Wet Ink error treatment (CUS-P2-07): the shared banner instead of
           // a hand-rolled 1px box.
@@ -176,7 +151,7 @@ export function CustomerJoinForm({
             onChange={(event) =>
               setLoyaltyTermsAccepted(event.currentTarget.checked)
             }
-            className="mt-0.5 size-5 shrink-0 accent-primary"
+            className="ink-check focus-ring mt-0.5 shrink-0"
             aria-invalid={Boolean(loyaltyTermsError)}
             aria-describedby={
               loyaltyTermsError ? "loyalty-terms-error" : undefined
@@ -203,7 +178,7 @@ export function CustomerJoinForm({
           <input
             name="marketingOptIn"
             type="checkbox"
-            className="mt-0.5 size-5 shrink-0 accent-primary"
+            className="ink-check focus-ring mt-0.5 shrink-0"
           />
           <span className="grid gap-1">
             <Eyebrow>Marketing updates</Eyebrow>

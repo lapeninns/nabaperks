@@ -4,7 +4,21 @@ import { BRAND, PRODUCT, SCARCITY } from "@/lib/marketing/facts"
 /**
  * A bare fact row — deliberately headerless. Every band on the old landing
  * opened with an eyebrow + title + description; this one states four checkable
- * facts and gets out of the way. It is the page's first break in rhythm.
+ * facts and gets out of the way.
+ *
+ * The facts are full clauses, so the old wrapped `flex` row set them as four
+ * bold sentences 8px apart inside one ink box — a run-on paragraph in bold on
+ * any phone, and a layout that only worked past 1024px where all four fit on
+ * one line. They are now a printed ledger: a mono index per fact, dashed rules
+ * between them on a phone, two-up from `sm:` and four-up from `lg:`.
+ *
+ * 01#11's sibling finding (01#9) asks for `grid-cols-2 … sm:grid-cols-4`
+ * instead. Measured on a production build and DECLINED: forcing two columns at
+ * 375px takes the fact column from 327px to 156px and the measure from 24-37
+ * characters per line to 12-19, for 108px; four columns at 640px gives a 124px
+ * column at 11-16 characters per line for 9px. The ramp below is what a full
+ * clause needs — the height these grids save is bought entirely out of the
+ * measure.
  */
 export function ProofLine() {
   const facts = [
@@ -16,13 +30,18 @@ export function ProofLine() {
 
   return (
     <Section id="proof" size="compact">
-      <ul className="flex flex-wrap items-center gap-x-6 gap-y-2 border-y-2 border-ink py-3">
-        {facts.map((fact) => (
+      <ul className="grid gap-4 border-y-2 border-ink py-4 sm:grid-cols-2 sm:gap-x-8 lg:grid-cols-4">
+        {facts.map((fact, index) => (
           <li
             key={fact}
-            className="text-sm leading-6 font-bold text-foreground"
+            className="grid content-start gap-1 max-sm:border-t-2 max-sm:border-dashed max-sm:border-border max-sm:pt-4 max-sm:first:border-t-0 max-sm:first:pt-0"
           >
-            {fact}
+            <span aria-hidden="true" className="mono-id text-primary">
+              {String(index + 1).padStart(2, "0")}
+            </span>
+            <span className="text-sm leading-6 font-bold text-foreground">
+              {fact}
+            </span>
           </li>
         ))}
       </ul>

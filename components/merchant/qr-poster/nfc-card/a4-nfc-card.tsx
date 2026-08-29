@@ -5,6 +5,7 @@ import { ArrowLeft02Icon, PrinterIcon } from "@hugeicons/core-free-icons"
 
 import { recordNfcCardPrintAction } from "@/app/app/qr/nfc/actions"
 import { Icon } from "@/components/brand"
+import { PrintPreviewNav } from "@/components/merchant/qr-poster/print-preview-nav"
 import { Button } from "@/components/ui/button"
 import {
   getNfcCardDesign,
@@ -21,6 +22,8 @@ type A4NfcCardProps = {
   readonly locality?: string | null
   readonly stampsRequired: number
   readonly backHref?: string
+  /** The merchant's own QR — present only on their route, not in previews. */
+  readonly qrCodeId?: string
 }
 
 export function A4NfcCard({
@@ -30,6 +33,7 @@ export function A4NfcCard({
   locality,
   stampsRequired,
   backHref,
+  qrCodeId,
 }: A4NfcCardProps) {
   const meta = getNfcCardDesign(design)
 
@@ -39,32 +43,42 @@ export function A4NfcCard({
       data-sheet="cr80-nfc-card"
     >
       <header className={`${styles.chrome} qr-poster-chrome`}>
-        <div className="flex min-w-0 items-center gap-3">
-          {backHref ? (
-            <Button asChild variant="outline" className="min-h-11 sm:min-h-9">
-              <Link href={backHref}>
-                <Icon icon={ArrowLeft02Icon} size={16} />
-                Back
-              </Link>
-            </Button>
-          ) : null}
-          <div className={styles.chromeMeta}>
-            <h1 className={styles.chromeTitle}>{meta?.name ?? design}</h1>
-            <span className={styles.chromeVenue}>{merchantName}</span>
+        <div className={styles.chromeBar}>
+          <div className="flex min-w-0 items-center gap-3">
+            {backHref ? (
+              <Button asChild variant="outline" className="min-h-11 sm:min-h-9">
+                <Link href={backHref}>
+                  <Icon icon={ArrowLeft02Icon} size={16} />
+                  Back
+                </Link>
+              </Button>
+            ) : null}
+            <div className={styles.chromeMeta}>
+              <h1 className={styles.chromeTitle}>{meta?.name ?? design}</h1>
+              <span className={styles.chromeVenue}>{merchantName}</span>
+            </div>
           </div>
+          <Button
+            type="button"
+            variant="reward"
+            className="min-h-11 sm:min-h-9"
+            onClick={() => {
+              void recordNfcCardPrintAction(design)
+              window.print()
+            }}
+          >
+            <Icon icon={PrinterIcon} size={16} />
+            Print or save PDF
+          </Button>
         </div>
-        <Button
-          type="button"
-          variant="reward"
-          className="min-h-11 sm:min-h-9"
-          onClick={() => {
-            void recordNfcCardPrintAction(design)
-            window.print()
-          }}
-        >
-          <Icon icon={PrinterIcon} size={16} />
-          Print or save PDF
-        </Button>
+        {qrCodeId ? (
+          <PrintPreviewNav
+            kind="nfc"
+            activeDesignId={design}
+            qrCodeId={qrCodeId}
+            backHref={backHref}
+          />
+        ) : null}
       </header>
       <div className={styles.stage}>
         <div className={styles.sheetNative}>

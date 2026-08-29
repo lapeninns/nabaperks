@@ -235,7 +235,7 @@ export function PushNotificationSettings({
         <SectionHeader eyebrow="Push" title="Browser notifications" />
       ) : null}
 
-      <div className="flex items-start gap-3 rounded-xl border-2 border-ink bg-secondary/60 p-3">
+      <div className="flex items-start gap-3 rounded-lg border-2 border-ink bg-secondary/60 p-3">
         <IconRoundel
           icon={status.icon}
           iconSize={20}
@@ -297,7 +297,7 @@ export function PushNotificationSettings({
                 onChange={(event) =>
                   void updatePreference(row.key, event.currentTarget.checked)
                 }
-                className="size-5 shrink-0 accent-primary disabled:opacity-60"
+                className="ink-check focus-ring shrink-0 disabled:opacity-60"
               />
             </label>
           </li>

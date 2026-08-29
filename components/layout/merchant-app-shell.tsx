@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/sidebar"
 import { CONSOLE_SIDEBAR_STYLE, ConsoleSidebarNav } from "./console-sidebar-nav"
 import { merchantAccountItems, merchantNavItems } from "./console-nav"
+import { MerchantTabBar } from "./merchant-tab-bar"
+import { SkipLink } from "./skip-link"
 
 export function MerchantAppShell({
   children,
@@ -31,6 +33,7 @@ export function MerchantAppShell({
   variant: variantProp,
   defaultSidebarOpen = true,
   hideMobileChrome: hideMobileChromeProp,
+  navHrefOverrides,
 }: {
   children: ReactNode
   signOutAction: ComponentProps<"form">["action"]
@@ -40,10 +43,13 @@ export function MerchantAppShell({
   variant?: "full" | "setup"
   /** Seeds the desktop expanded/collapsed state from the persisted cookie. */
   defaultSidebarOpen?: boolean
-  /** Drops the mobile sticky header + bottom tab bar for full-bleed surfaces
+  /** Drops the mobile sticky header and the bottom tab bar for full-bleed surfaces
    *  like the poster print preview, which carry their own focused chrome.
    *  Defaults to deriving it from the live pathname. */
   hideMobileChrome?: boolean
+  /** Rewrites sidebar destinations. Used only by the /dev app harness, whose
+   *  nav otherwise linked out to the real auth-gated routes (ADM 04#71). */
+  navHrefOverrides?: Readonly<Record<string, string>>
 }) {
   // Derive the chrome from the LIVE route, not a server prop. This shell lives
   // in a shared layout that the App Router preserves across soft navigations,
@@ -60,6 +66,7 @@ export function MerchantAppShell({
   if (variant === "setup") {
     return (
       <div className="min-h-svh bg-background [--setup-header-h:3.5rem] sm:[--setup-header-h:4rem]">
+        <SkipLink />
         <header className="fixed inset-x-0 top-0 z-40 border-b-2 border-ink bg-card">
           <div className="mx-auto flex h-(--setup-header-h) w-full max-w-merchant min-w-0 items-center justify-between gap-x-3 overflow-x-clip px-4 sm:px-6">
             <Logo
@@ -100,7 +107,11 @@ export function MerchantAppShell({
             </div>
           </div>
         </header>
-        <main className="w-full min-w-0 overflow-x-clip px-4 pt-[calc(var(--setup-header-h)+0.75rem)] pb-16 sm:px-6 sm:pt-[calc(var(--setup-header-h)+2rem)] sm:pb-10">
+        <main
+          id="main"
+          tabIndex={-1}
+          className="w-full min-w-0 overflow-x-clip px-4 pt-[calc(var(--setup-header-h)+0.75rem)] pb-16 sm:px-6 sm:pt-[calc(var(--setup-header-h)+2rem)] sm:pb-10"
+        >
           <div className="mx-auto w-full max-w-merchant min-w-0">
             {children}
           </div>
@@ -115,6 +126,7 @@ export function MerchantAppShell({
       style={CONSOLE_SIDEBAR_STYLE}
       defaultOpen={defaultSidebarOpen}
     >
+      <SkipLink />
       <Sidebar collapsible="icon">
         <SidebarHeader className="border-b-2 border-ink p-4">
           <div
@@ -133,6 +145,7 @@ export function MerchantAppShell({
         </SidebarHeader>
         <SidebarContent className="flex flex-1 flex-col px-2 py-3">
           <ConsoleSidebarNav
+            hrefOverrides={navHrefOverrides}
             ariaLabel="Merchant navigation"
             items={merchantNavItems}
             secondaryItems={merchantAccountItems}
@@ -154,7 +167,7 @@ export function MerchantAppShell({
           </form>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset className="min-w-0">
+      <SidebarInset id="main" tabIndex={-1} className="min-w-0">
         {hideMobileChrome ? null : (
           <header className="sticky top-0 z-30 flex min-h-14 items-center gap-3 border-b-2 border-ink bg-card px-4 py-2 pt-[calc(0.5rem_+_env(safe-area-inset-top))] md:hidden">
             <SidebarTrigger
@@ -162,6 +175,33 @@ export function MerchantAppShell({
               aria-label="Open menu"
             />
             <Logo href="/app" prefetch={false} />
+            {/* Same right-hand cluster as the setup header: a shared tablet
+                behind the bar must be able to reach the account and sign out
+                without first discovering the drawer. */}
+            <div className="ml-auto flex shrink-0 items-center gap-1.5">
+              <Button
+                asChild
+                variant="secondary"
+                size="icon-sm"
+                aria-label="Account profile"
+                title="Account profile"
+              >
+                <Link href="/app/account?tab=profile" prefetch={false}>
+                  <Icon icon={Building02Icon} size={16} />
+                </Link>
+              </Button>
+              <form action={signOutAction}>
+                <Button
+                  type="submit"
+                  variant="outline"
+                  size="icon-sm"
+                  aria-label="Log out"
+                  title="Log out"
+                >
+                  <Icon icon={Logout01Icon} size={16} />
+                </Button>
+              </form>
+            </div>
           </header>
         )}
         {/* hideMobileChrome strips ALL content padding for the full-bleed
@@ -173,7 +213,7 @@ export function MerchantAppShell({
           className={
             hideMobileChrome
               ? "w-full min-w-0"
-              : "w-full px-4 py-8 pb-16 sm:px-6 md:pb-10"
+              : "w-full px-4 py-5 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-6 md:pb-8 lg:px-8 lg:py-8"
           }
         >
           <div
@@ -186,6 +226,7 @@ export function MerchantAppShell({
             {children}
           </div>
         </div>
+        {hideMobileChrome ? null : <MerchantTabBar />}
       </SidebarInset>
     </SidebarProvider>
   )

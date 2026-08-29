@@ -52,7 +52,7 @@ export default async function MerchantTermsPage({
     <CustomerShell className="grid content-center gap-6">
       <section className="grid gap-3 text-center">
         <Eyebrow>Reward terms</Eyebrow>
-        <h1 className="text-3xl leading-tight font-extrabold text-balance">
+        <h1 className="type-page-title text-balance">
           {merchant.business_name} loyalty terms
         </h1>
         <p className="text-sm leading-6 text-muted-foreground">

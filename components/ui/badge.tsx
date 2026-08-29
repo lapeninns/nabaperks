@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
   // Focus uses the shared .focus-ring recipe (globals.css) — no private ring.
-  "group/badge focus-ring inline-flex h-5 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-2xl border border-transparent px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-[color,background-color,border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&>svg]:pointer-events-none [&>svg]:size-3!",
+  "group/badge focus-ring inline-flex min-h-5 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-2xl border border-transparent px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-[color,background-color,border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 motion-reduce:transition-none [&>svg]:pointer-events-none [&>svg]:size-3!",
   {
     variants: {
       variant: {

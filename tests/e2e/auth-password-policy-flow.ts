@@ -56,6 +56,41 @@ export function defineAuthPasswordPolicyTests() {
     await expectNoAxeViolations(page, "signup password-policy guidance")
   })
 
+  test("the reveal toggle flips one field and never takes over its name", async ({
+    page,
+  }) => {
+    await gotoHydratedPage(page, "/signup")
+
+    const password = page.getByLabel("Password", { exact: true })
+    const confirm = page.getByLabel("Confirm password", { exact: true })
+    await expect(password).toHaveAttribute("type", "password")
+    await expect(confirm).toHaveAttribute("type", "password")
+
+    // One toggle per password field, and both start closed.
+    const reveal = page.getByRole("button", { name: "Show password" })
+    await expect(reveal).toHaveCount(2)
+
+    await reveal.first().click()
+
+    // The regression this guards is 05#24's first implementation: the toggle
+    // wrapped the Input in a positioning <span>, FormField cloned its single
+    // child, and the id/aria-describedby/aria-invalid wiring landed on the
+    // wrapper — leaving every password field with NO accessible name. So the
+    // getByLabel lookups below are the assertion, not just the locator.
+    await expect(password).toHaveAttribute("type", "text")
+    await expect(password).toHaveAttribute(
+      "aria-describedby",
+      /signup-password-requirements/
+    )
+
+    // Independent per field: revealing the password must not reveal the confirm.
+    await expect(confirm).toHaveAttribute("type", "password")
+    await expect(
+      page.getByRole("button", { name: "Hide password" })
+    ).toHaveCount(1)
+    await expect(reveal).toHaveCount(1)
+  })
+
   test("reset rules and focused footer keep the same accessible contract", async ({
     page,
   }) => {

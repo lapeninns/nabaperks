@@ -107,21 +107,25 @@ async function RewardScanStream({
       />
 
       <h2 className="sr-only">Member and card details</h2>
-      <dl className="grid gap-2 rounded-xl border-2 border-ink bg-card p-4 text-sm">
+      <dl className="grid gap-2 rounded-lg border-2 border-ink bg-card p-4 text-sm">
         <div className="flex justify-between gap-4">
           <dt className="font-bold text-muted-foreground">Member</dt>
           <dd className="text-right font-bold">{context.customerLabel}</dd>
         </div>
         <div className="flex justify-between gap-4">
           <dt className="font-bold text-muted-foreground">Card</dt>
-          <dd className="text-right font-mono text-xs font-bold uppercase">
+          {/* `.mono-meta`, not `font-mono text-xs font-bold uppercase` — the
+              hand-rolled string DESIGN.md · Typography names in full and tells
+              you to replace with one of the two micro-type utilities. Same
+              register the admin IdChip and AdminRecordCard already settled on. */}
+          <dd className="mono-meta text-right">
             {context.membershipId.slice(0, 8)}
           </dd>
         </div>
       </dl>
 
       {isRedeemed ? (
-        <StatusBanner title="Reward collected" tone="success">
+        <StatusBanner title="Reward collected" tone="success" role="alert">
           {collected ? "Reward marked collected. " : null}
           This reward is now closed. The member can scan the venue QR again when
           they are ready for their next stamp.
@@ -141,15 +145,20 @@ async function RewardScanStream({
       )}
 
       {/* Post-collection the natural next task at a busy counter is the NEXT
-          member — lead with "Scan another" once this reward is closed. */}
-      {isRedeemed ? (
-        <Button asChild>
-          <Link href="/app/scan">Scan another reward</Link>
+          member — lead with "Scan another" once this reward is closed. The row
+          is a flex wrap, not a grid child: as direct children of the shell's
+          `grid gap-4` section both buttons stretched full width and stacked,
+          reading as two equal-weight choices (03#65). */}
+      <div className="flex flex-wrap gap-2">
+        {isRedeemed ? (
+          <Button asChild>
+            <Link href="/app/scan">Scan another reward</Link>
+          </Button>
+        ) : null}
+        <Button asChild variant="secondary">
+          <Link href="/app">Back to dashboard</Link>
         </Button>
-      ) : null}
-      <Button asChild variant="secondary">
-        <Link href="/app">Back to dashboard</Link>
-      </Button>
+      </div>
     </>
   )
 }

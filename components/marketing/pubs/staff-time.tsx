@@ -16,7 +16,10 @@ const PHASES = [
 export function StaffTime() {
   return (
     <div className="grid gap-4">
-      <ul className="grid gap-3 sm:grid-cols-3">
+      {/* Three-up at `sm:` gave each card a ~24-character measure inside the
+          guide column. The break moves to `md:`, where the columns are wide
+          enough to set a sentence. */}
+      <ul className="grid gap-3 md:grid-cols-3">
         {PHASES.map((phase) => (
           <li
             key={phase.when}

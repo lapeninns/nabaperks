@@ -14,10 +14,13 @@ import { Cancel01Icon } from "@hugeicons/core-free-icons"
    `transitionend`), so a transition-based exit silently never plays — the
    sheet pops out. Keyframes give the slide-out its 320ms back. */
 const sheetOverlayClass =
-  "fixed inset-0 z-50 bg-black/30 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:animate-none"
+  // The scrim must travel with the sheet: it previously faded over
+  // --w-dur-fast while the panel slid over --w-dur-move, so the background
+  // finished dimming well before the sheet arrived.
+  "fixed inset-0 z-50 bg-black/30 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 duration-[var(--w-dur-move)] ease-[var(--w-ease)] motion-reduce:animate-none"
 
 const sheetContentClass =
-  "fixed z-50 flex flex-col bg-popover bg-clip-padding text-sm text-popover-foreground shadow-xl data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 duration-[var(--w-dur-move)] ease-[var(--w-ease)] motion-reduce:animate-none data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:border-t data-[side=bottom]:data-open:slide-in-from-bottom data-[side=bottom]:data-closed:slide-out-to-bottom data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:w-3/4 data-[side=left]:border-r data-[side=left]:data-open:slide-in-from-left data-[side=left]:data-closed:slide-out-to-left data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-3/4 data-[side=right]:border-l data-[side=right]:data-open:slide-in-from-right data-[side=right]:data-closed:slide-out-to-right data-[side=top]:inset-x-0 data-[side=top]:top-0 data-[side=top]:h-auto data-[side=top]:border-b data-[side=top]:data-open:slide-in-from-top data-[side=top]:data-closed:slide-out-to-top data-[side=left]:sm:max-w-sm data-[side=right]:sm:max-w-sm"
+  "fixed z-50 flex flex-col bg-popover bg-clip-padding text-sm text-popover-foreground shadow-xl data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 duration-[var(--w-dur-move)] ease-[var(--w-ease)] motion-reduce:animate-none data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:max-h-[min(85dvh,40rem)] data-[side=bottom]:overflow-y-auto data-[side=bottom]:overscroll-contain data-[side=bottom]:border-t data-[side=bottom]:data-open:slide-in-from-bottom data-[side=bottom]:data-closed:slide-out-to-bottom data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:w-3/4 data-[side=left]:border-r data-[side=left]:data-open:slide-in-from-left data-[side=left]:data-closed:slide-out-to-left data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-3/4 data-[side=right]:border-l data-[side=right]:data-open:slide-in-from-right data-[side=right]:data-closed:slide-out-to-right data-[side=top]:inset-x-0 data-[side=top]:top-0 data-[side=top]:h-auto data-[side=top]:max-h-[min(85dvh,40rem)] data-[side=top]:overflow-y-auto data-[side=top]:overscroll-contain data-[side=top]:border-b data-[side=top]:data-open:slide-in-from-top data-[side=top]:data-closed:slide-out-to-top data-[side=left]:sm:max-w-sm data-[side=right]:sm:max-w-sm"
 
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />
@@ -81,7 +84,11 @@ function SheetContent({
               className="absolute top-4 right-4 bg-secondary"
               size="icon-sm"
             >
-              <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} aria-hidden="true" />
+              <HugeiconsIcon
+                icon={Cancel01Icon}
+                strokeWidth={2}
+                aria-hidden="true"
+              />
               <span className="sr-only">Close</span>
             </Button>
           </SheetPrimitive.Close>

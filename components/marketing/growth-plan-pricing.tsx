@@ -56,12 +56,12 @@ export function GrowthPlanPricing({ className }: { className?: string }) {
         </div>
 
         <div className="grid gap-4">
-          <div
-            data-payment-option="28-day"
-            role="group"
-            aria-label="Pay as you go"
-            className="grid gap-2"
-          >
+          {/* Visible labels, not `role="group" aria-label`: the ARIA grouping
+              announced a selectable option set that does not exist (there is
+              deliberately no billing toggle) while sighted readers got NO
+              label on the hero numeral at all. One label, both audiences. */}
+          <div data-payment-option="28-day" className="grid gap-2">
+            <p className="mono-meta text-muted-foreground">Pay as you go</p>
             <PriceLockup
               size="hero"
               amount={PRODUCT.priceAmount}
@@ -77,11 +77,10 @@ export function GrowthPlanPricing({ className }: { className?: string }) {
 
           <div
             data-payment-option="annual"
-            role="group"
-            aria-label="Prepay a year"
             className="grid gap-2 sm:flex sm:flex-wrap sm:items-baseline sm:justify-between sm:gap-x-6"
           >
             <div className="grid gap-2">
+              <p className="mono-meta text-muted-foreground">Prepay a year</p>
               <PriceLockup
                 size="lead"
                 amount={PRODUCT.annualPriceAmount}
@@ -92,7 +91,6 @@ export function GrowthPlanPricing({ className }: { className?: string }) {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <MonoTag className="w-fit shrink-0">Prepay a year</MonoTag>
               <MonoTag tone="sun" className="w-fit shrink-0 rotate-1">
                 {PRODUCT.annualSavingShort}
               </MonoTag>
@@ -104,7 +102,7 @@ export function GrowthPlanPricing({ className }: { className?: string }) {
           aria-label="How buying the Growth Plan works"
           className="grid gap-0 border-y-2 border-dashed border-border text-muted-foreground"
         >
-          <li className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-dashed border-border py-2 last:border-b-0">
+          <li className="grid items-baseline gap-x-3 gap-y-1 border-b border-dashed border-border py-2 last:border-b-0 sm:grid-cols-[10.5rem_minmax(0,1fr)]">
             <span className="mono-meta text-foreground">Today</span>
             {/* The amount is its own node so it can carry emphasis and
                 tabular figures — and tests/e2e/growth-plan-pricing.spec.ts:42
@@ -118,7 +116,7 @@ export function GrowthPlanPricing({ className }: { className?: string }) {
               launch fee at checkout. {DFY_LAUNCH.covers}
             </span>
           </li>
-          <li className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-dashed border-border py-2 last:border-b-0">
+          <li className="grid items-baseline gap-x-3 gap-y-1 border-b border-dashed border-border py-2 last:border-b-0 sm:grid-cols-[10.5rem_minmax(0,1fr)]">
             <span className="mono-meta text-foreground">
               Print and delivery
             </span>
@@ -130,7 +128,7 @@ export function GrowthPlanPricing({ className }: { className?: string }) {
               it to your venue.
             </span>
           </li>
-          <li className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2">
+          <li className="grid items-baseline gap-x-3 gap-y-1 py-2 sm:grid-cols-[10.5rem_minmax(0,1fr)]">
             <span className="mono-meta text-foreground">
               From poster delivery
             </span>

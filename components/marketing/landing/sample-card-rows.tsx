@@ -21,7 +21,7 @@ export function CardInfoRow({
   return (
     <div className="flex min-h-[3.75rem] items-center gap-2.5 rounded-lg border-2 border-ink bg-background p-2.5 shadow-xs sm:min-h-[4.25rem] sm:gap-3 sm:p-3">
       {framed ? (
-        <span className="grid size-[2.75rem] shrink-0 place-items-center rounded-md border-2 border-ink bg-white p-1 sm:size-[3.25rem]">
+        <span className="grid size-[2.75rem] shrink-0 place-items-center rounded-md border-2 border-ink bg-qr-foreground p-1 sm:size-[3.25rem]">
           {icon}
         </span>
       ) : (

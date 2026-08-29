@@ -38,10 +38,10 @@ export function PresentQrRoot({
         {/* Keyframes (animate-in/out), not transitions: Radix Presence only
             awaits `animationend` on close, so a transition-based exit never
             plays. Full-screen surface fades in place — no slide. */}
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-ink/90 supports-backdrop-filter:backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:animate-none" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-ink/90 duration-[var(--w-dur-fast)] ease-[var(--w-ease)] supports-backdrop-filter:backdrop-blur-sm motion-reduce:animate-none data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
         <DialogPrimitive.Content
           aria-describedby={undefined}
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 overflow-y-auto p-5 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 duration-[var(--w-dur-move)] ease-[var(--w-ease)] focus:outline-none motion-reduce:animate-none sm:gap-6"
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 overflow-y-auto p-5 duration-[var(--w-dur-move)] ease-[var(--w-ease)] focus:outline-none motion-reduce:animate-none sm:gap-6 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0"
         >
           <DialogPrimitive.Close asChild>
             <Button
@@ -56,7 +56,7 @@ export function PresentQrRoot({
           </DialogPrimitive.Close>
 
           <div className="grid justify-items-center gap-2 text-center">
-            <p className="mono-meta tracking-[0.2em] text-paper/70">
+            <p className="mono-meta tracking-code text-paper/70">
               Scan to join
             </p>
             <DialogPrimitive.Title className="max-w-[16ch] text-2xl leading-tight font-extrabold text-balance text-paper sm:text-3xl">
@@ -64,14 +64,14 @@ export function PresentQrRoot({
             </DialogPrimitive.Title>
           </div>
 
-          <div className="rounded-2xl border-2 border-ink bg-white p-4 shadow-[8px_8px_0_var(--w-shadow-color)] sm:p-6">
+          <div className="rounded-lg border-2 border-ink bg-qr-foreground p-4 shadow-2xl sm:p-6">
             {/* eslint-disable-next-line @next/next/no-img-element -- protected QR image needs merchant cookies */}
             <img
               src={`/app/qr/image/${qrCodeId}`}
               alt={`QR code for ${venueName}`}
               width={720}
               height={720}
-              className="aspect-square h-auto w-[min(80vmin,32rem)] rounded-lg bg-white"
+              className="aspect-square h-auto w-[min(80vmin,32rem)] rounded-lg bg-qr-foreground"
             />
           </div>
 
@@ -80,7 +80,7 @@ export function PresentQrRoot({
               Customers scan to join and collect today&apos;s stamp — no app to
               download.
             </p>
-            <p className="font-mono text-[11px] tracking-[0.06em] break-all text-paper/55">
+            <p className="font-mono text-meta tracking-meta break-all text-paper/55">
               {shareLabel}
             </p>
           </div>

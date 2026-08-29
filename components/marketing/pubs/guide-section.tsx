@@ -1,6 +1,8 @@
 import type { ReactNode } from "react"
 
+import { MARKETING_ANCHOR_OFFSET } from "@/components/layout"
 import type { PubGuideSection } from "@/lib/marketing/facts"
+import { cn } from "@/lib/utils"
 
 /**
  * One numbered band of the pub buyer's guide — the hub's section primitive.
@@ -22,7 +24,17 @@ export function GuideSection({
   children?: ReactNode
 }) {
   return (
-    <section id={section.id} className="grid scroll-mt-28 gap-4">
+    <section
+      id={section.id}
+      className={cn(
+        // The dashed rule is the section separator: the page used to hold a
+        // 48-64px gap between bands, which is the largest gap token on the
+        // marketing surface applied to the tallest page in the product. The
+        // first band sits under the hero and needs no rule.
+        "grid gap-4 border-t-2 border-dashed border-border pt-8 first:border-t-0 first:pt-0",
+        MARKETING_ANCHOR_OFFSET
+      )}
+    >
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <p className="mono-meta text-primary">
           Nº{String(index + 1).padStart(2, "0")}

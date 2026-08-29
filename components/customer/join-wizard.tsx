@@ -202,10 +202,19 @@ function PhoneUnlockingReminder({
         <span className="eyebrow text-muted-foreground">
           You&apos;re unlocking
         </span>
-        {/* Two lines before clipping — long venue · card compounds stay
-            readable at 375 (VCU-P3-09). */}
-        <span className="line-clamp-2 text-sm leading-tight font-extrabold break-words">
-          {merchant.name} · {card.name}
+        {/* Two rows, not one clamped compound. The venue and card names used to
+            share a single `line-clamp-2` line in a 187px column (271 inner
+            minus the 40px mark, the 20px seal and two 12px gaps), so at text-sm
+            that is ~26 characters a line and "The Old Crown Girton · Coffee
+            Loyalty Card" clamped mid-phrase — on the member's motivation strip,
+            at the highest-friction step of the funnel (CUS 02#57). The venue
+            takes the eyebrow row and truncates cleanly; the card name keeps the
+            emphasis line and wraps. */}
+        <span className="mono-meta truncate text-ink-soft">
+          {merchant.name}
+        </span>
+        <span className="text-sm leading-tight font-extrabold break-words">
+          {card.name}
         </span>
         <p className="text-xs leading-snug text-muted-foreground">
           {joinUnlockingRewardHook(card.stampsRequired)}
@@ -411,7 +420,19 @@ function joinProgress(
     join_terms: hasQr ? "Collect your stamp" : "Keep your card",
   }[kind]
 
-  return { step, total: ONBOARDING_STEPS, label }
+  // Phone and code share step 2 on the QR path, so the bar did not move when a
+  // member successfully submitted their number — at the step with the highest
+  // abandonment risk, an indicator that does not advance reads as a failed
+  // submit (CUS 02#51). The shared step is now half-filled on the phone screen
+  // and full on the code screen, so every successful action moves it.
+  const sharesVerificationStep = hasQr && kind === "join_phone"
+
+  return {
+    step,
+    total: ONBOARDING_STEPS,
+    label,
+    stepProgress: sharesVerificationStep ? 0.5 : 1,
+  }
 }
 
 function UnavailableJoin() {

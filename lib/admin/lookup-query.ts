@@ -16,10 +16,34 @@ export const ADMIN_LOOKUP_PAGE_SIZE = 25
 export const ADMIN_LOOKUP_TERM_MAX_LENGTH = 64
 const ADMIN_LOOKUP_MAX_PAGE = 999
 
+/**
+ * The rows-per-page choices (04#56). A closed allowlist, not a clamped range:
+ * `size` reaches PostgREST as a `.range()` window, so an arbitrary integer is
+ * an operator-controlled row budget on a service-role read.
+ */
+export const ADMIN_LOOKUP_PAGE_SIZES = [25, 50, 100] as const
+
+type AdminSortDirection = "asc" | "desc"
+
+/**
+ * A parsed, ALLOWLISTED sort. `key` is null when the list is in its default
+ * order, which is the only state a caller may treat as "no ORDER BY of mine".
+ */
+export type AdminSortState = {
+  readonly key: string | null
+  readonly direction: AdminSortDirection
+}
+
 export type AdminLookupState = {
   readonly venue?: string
   readonly contact?: string
+  /** Inclusive `yyyy-mm-dd` lower bound on the record date, if any. */
+  readonly from?: string
+  /** Inclusive `yyyy-mm-dd` upper bound on the record date, if any. */
+  readonly to?: string
   readonly page: number
+  /** Rows per page; always one of ADMIN_LOOKUP_PAGE_SIZES. */
+  readonly size: number
 }
 
 export type AdminPageMeta = {
@@ -66,15 +90,146 @@ export function parsePageParam(value: AdminSearchParamValue): number {
   return Math.min(page, ADMIN_LOOKUP_MAX_PAGE)
 }
 
-/** Read the canonical lookup state (venue, contact, page) from searchParams. */
+/**
+ * Parse the rows-per-page param. Anything not on the allowlist — junk, a
+ * clamped-looking 1000, a negative — falls back to the default page size
+ * rather than being coerced to the nearest legal value, so a hand-edited URL
+ * cannot widen the window a service-role query reads.
+ */
+export function parseSizeParam(value: AdminSearchParamValue): number {
+  const raw = firstParam(value)?.trim()
+  if (!raw || !/^\d+$/.test(raw)) return ADMIN_LOOKUP_PAGE_SIZE
+
+  const size = Number.parseInt(raw, 10)
+  return (ADMIN_LOOKUP_PAGE_SIZES as readonly number[]).includes(size)
+    ? size
+    : ADMIN_LOOKUP_PAGE_SIZE
+}
+
+/**
+ * Parse `?sort=`/`?dir=` against a CLOSED allowlist of sort tokens, exactly as
+ * `parseSizeParam` treats rows-per-page and for the same reason: the token
+ * reaches PostgREST as a `.order()` column on a service-role read, so an
+ * arbitrary string is an operator-controlled ORDER BY. Anything off the
+ * allowlist falls back to the list's default order rather than being coerced
+ * to the nearest legal value, so a hand-edited URL cannot name a column.
+ *
+ * Descending is the default direction because every sortable admin column is
+ * one an operator triages by worst-or-newest first.
+ */
+export function parseAdminSortParams(
+  params: AdminSearchParams | undefined,
+  allowed: readonly string[]
+): AdminSortState {
+  const raw = firstParam(params?.sort)?.trim()
+  const key = raw && allowed.includes(raw) ? raw : null
+  const direction = firstParam(params?.dir)?.trim() === "asc" ? "asc" : "desc"
+
+  // A direction with no column is not a sort; reporting it would let a caller
+  // build `?dir=asc` links that silently do nothing.
+  return key ? { key, direction } : { key: null, direction: "desc" }
+}
+
+/**
+ * How one allowlisted sort token maps onto a database column.
+ */
+export type AdminSortColumn = {
+  readonly column: string
+  /**
+   * `true` when the column's ASCENDING order is the descending DISPLAY order.
+   * `fraud_flags.severity_rank` is the case that needs it: 1 is `high`, so
+   * "most severe first" is `ascending: true`, and without this an operator
+   * asking for the worst flags first would get the mildest.
+   */
+  readonly inverted?: boolean
+}
+
+/**
+ * Resolve a parsed sort against a surface's token → column map. Returns null
+ * for the default order, which is the only value a reader may treat as "apply
+ * my own ORDER BY". Pure, so the direction inversion is unit-testable without
+ * a database.
+ */
+export function resolveAdminSort(
+  sort: AdminSortState | undefined,
+  columns: Readonly<Record<string, AdminSortColumn>>
+): { readonly column: string; readonly ascending: boolean } | null {
+  if (!sort?.key) return null
+  const entry = columns[sort.key]
+  if (!entry) return null
+
+  const ascending = entry.inverted
+    ? sort.direction === "desc"
+    : sort.direction === "asc"
+
+  return { column: entry.column, ascending }
+}
+
+/**
+ * Read the canonical lookup state (venue, contact, page, rows per page) from
+ * searchParams.
+ */
 export function parseAdminLookupParams(
   params: AdminSearchParams | undefined
 ): AdminLookupState {
+  const range = orderedDateRange(
+    parseDateParam(params?.from),
+    parseDateParam(params?.to)
+  )
+
   return {
     venue: normaliseLookupTerm(params?.venue),
     contact: normaliseLookupTerm(params?.contact),
+    from: range.from,
+    to: range.to,
     page: parsePageParam(params?.page),
+    size: parseSizeParam(params?.size),
   }
+}
+
+/**
+ * A calendar date (`yyyy-mm-dd`) or nothing. Shape-checked AND
+ * calendar-checked: `2026-02-31` matches the pattern, and a value that reaches
+ * PostgREST as a timestamp bound has to be a date the database will accept, or
+ * the whole readback fails rather than the filter being ignored.
+ */
+export function parseDateParam(
+  value: AdminSearchParamValue
+): string | undefined {
+  const raw = firstParam(value)?.trim()
+  if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return undefined
+
+  const parsed = new Date(`${raw}T00:00:00Z`)
+  if (Number.isNaN(parsed.getTime())) return undefined
+  // `new Date("2026-02-31")` rolls forward to 3 March rather than failing, so
+  // the round trip is the only real check.
+  return parsed.toISOString().slice(0, 10) === raw ? raw : undefined
+}
+
+/**
+ * A backwards range (`from` after `to`) is an operator slip, not an empty
+ * result: silently returning nothing would read as "nothing happened that
+ * week". The two bounds are swapped so the search answers the question that
+ * was obviously meant.
+ */
+export function orderedDateRange(
+  from: string | undefined,
+  to: string | undefined
+): { readonly from?: string; readonly to?: string } {
+  if (from && to && from > to) return { from: to, to: from }
+  return { from, to }
+}
+
+/**
+ * The exclusive upper bound for an INCLUSIVE `to` date: `created_at` is a
+ * timestamp, so `.lte("created_at", "2026-08-09")` would compare against
+ * midnight and drop everything that happened during the day the operator
+ * asked for.
+ */
+export function exclusiveDayAfter(date: string): string {
+  const next = new Date(`${date}T00:00:00Z`)
+  next.setUTCDate(next.getUTCDate() + 1)
+  return next.toISOString().slice(0, 10)
 }
 
 /** Escape `%`, `_`, and `\` so operator input matches literally in ILIKE. */
@@ -108,6 +263,34 @@ function quotePostgrestValue(value: string): string {
 export function contactOrIlikeFilter(term: string): string {
   const quoted = quotePostgrestValue(containsPattern(term))
   return `email.ilike.${quoted},phone_last4.ilike.${quoted}`
+}
+
+/**
+ * How a venue *name fragment* resolves against the venues it matched, for the
+ * one admin list whose reader cannot take a fragment: `admin_referral_ops`
+ * filters by a single `p_merchant_id`.
+ *
+ * The `none` case is the one that matters. Falling back to "no venue id" when
+ * a fragment matches nothing would run the query unfiltered and answer a
+ * different question — every referral on the platform, presented as this
+ * venue's.
+ */
+export type AdminVenueFilterDecision =
+  | { readonly kind: "unfiltered" }
+  | { readonly kind: "single"; readonly venueId: string }
+  | { readonly kind: "none" }
+  | { readonly kind: "ambiguous" }
+
+export function decideVenueFilter(
+  venue: string | undefined,
+  matches: ReadonlyArray<{ readonly id: string }>
+): AdminVenueFilterDecision {
+  if (!venue) return { kind: "unfiltered" }
+  if (matches.length === 0) return { kind: "none" }
+  if (matches.length > 1) return { kind: "ambiguous" }
+
+  const venueId = matches[0]?.id
+  return venueId ? { kind: "single", venueId } : { kind: "none" }
 }
 
 /** Zero-based inclusive `.range()` window for a 1-based page. */
@@ -161,6 +344,10 @@ export function buildLookupHref(
   for (const [key, value] of Object.entries(params)) {
     if (value === undefined || value === "") continue
     if (typeof value === "number" && /page$/i.test(key) && value <= 1) continue
+    // The default rows-per-page stays implicit for the same reason page 1
+    // does: otherwise every admin link in the console grows a `size=25` that
+    // means nothing.
+    if (key === "size" && Number(value) === ADMIN_LOOKUP_PAGE_SIZE) continue
     search.set(key, String(value))
   }
 

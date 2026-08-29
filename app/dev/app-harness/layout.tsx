@@ -53,6 +53,29 @@ const LANE_ACTIVE_PATH: Record<string, string> = {
   onboarding: "/app/onboarding",
 }
 
+/**
+ * The inverse of LANE_ACTIVE_PATH: real /app href → the harness page that
+ * stands in for it. Derived from the same table so the two cannot drift, and
+ * first-wins so a lane that maps several harness pages onto one nav entry
+ * (reward-scan and send-reward both point at real sections) does not fight
+ * over the destination.
+ *
+ * The sidebar previously rendered the real hrefs, so one tap on "Customers"
+ * left the harness for an auth-gated route and the run was over (ADM 04#71).
+ * Anything absent here has no harness page and the nav renders it inert.
+ */
+const HARNESS_NAV_HREFS: Readonly<Record<string, string>> = Object.freeze(
+  Object.entries(LANE_ACTIVE_PATH).reduce<Record<string, string>>(
+    (map, [lane, appPath]) => {
+      if (!(appPath in map)) {
+        map[appPath] = `/dev/app-harness/${lane}`
+      }
+      return map
+    },
+    {}
+  )
+)
+
 function resolveLaneFromPath(pathname: string): string {
   // /dev/app-harness/<lane>(/...)? → <lane>
   const match = pathname.match(/\/dev\/app-harness\/([^/?#]+)/)
@@ -96,6 +119,7 @@ export default async function AppHarnessLayout({
       activePath={activePath}
       variant={variant}
       defaultSidebarOpen={!sidebarCollapsed}
+      navHrefOverrides={HARNESS_NAV_HREFS}
     >
       {children}
     </MerchantAppShell>

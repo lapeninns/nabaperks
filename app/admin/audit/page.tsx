@@ -1,28 +1,68 @@
+import { SecurityCheckIcon } from "@hugeicons/core-free-icons"
+
 import {
+  AdminEmptyState,
   AdminPanel,
+  AdminPanelFooter,
+  AdminPanelHeader,
   SourceLabel,
   first,
+  formatAdminAction,
   formatAdminAuditDate,
   maskAdminCustomer,
 } from "@/components/admin/support"
-import { SecurityCheckIcon } from "@hugeicons/core-free-icons"
-
 import { AdminIdChip } from "@/components/admin/id-chip"
+import {
+  AdminAppliedFilters,
+  AdminLookupControls,
+  AdminLookupPagination,
+} from "@/components/admin/lookup-controls"
 import { AdminRecordCard } from "@/components/admin/record-card"
-import { EmptyState, PageTitle } from "@/components/brand"
+import { PageTitle, SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { canRenderAdminPage } from "@/lib/admin/auth"
-import { getAdminAuditLogs } from "@/lib/admin/data"
+import {
+  ADMIN_AUDIT_SORT_COLUMNS,
+  getAdminAuditPage,
+} from "@/lib/admin/data"
+import {
+  buildLookupHref,
+  parseAdminLookupParams,
+  parseAdminSortParams,
+  type AdminSearchParams,
+} from "@/lib/admin/lookup-query"
 
-type AdminAuditLogs = Awaited<ReturnType<typeof getAdminAuditLogs>>
-type AdminAuditLog = AdminAuditLogs[number]
+type AdminAuditPage = Awaited<ReturnType<typeof getAdminAuditPage>>
+type AdminAuditLog = AdminAuditPage["rows"][number]
 
 export const metadata = { title: "Admin — Audit logs" }
 
-export default async function AdminAuditPage() {
+type AdminAuditPageProps = {
+  searchParams?: Promise<AdminSearchParams>
+}
+
+export default async function AdminAuditPage({
+  searchParams,
+}: AdminAuditPageProps) {
   if (!(await canRenderAdminPage())) return null
 
-  const logs = await getAdminAuditLogs()
+  const params = searchParams ? await searchParams : {}
+  const lookup = parseAdminLookupParams(params)
+  const sort = parseAdminSortParams(params, Object.keys(ADMIN_AUDIT_SORT_COLUMNS))
+  const logs = await getAdminAuditPage(lookup, sort)
+  const searching = Boolean(lookup.venue || lookup.from || lookup.to)
+
+  // Sorting starts at page 1: a new order makes the current page number
+  // meaningless, the same reason submitting the search resets it.
+  const hrefForSort = (key: string, direction: "asc" | "desc") =>
+    buildLookupHref("/admin/audit", {
+      venue: lookup.venue,
+      from: lookup.from,
+      to: lookup.to,
+      sort: key,
+      dir: direction,
+      size: lookup.size,
+    })
 
   return (
     <div className="grid gap-6">
@@ -32,24 +72,47 @@ export default async function AdminAuditPage() {
         description="Actor, action, context, timestamp, and non-sensitive metadata. Newest first, times in UK local time."
       />
 
-      <AdminPanel className="p-0">
-        <div className="border-b p-5">
-          <SourceLabel>Source: audit_logs</SourceLabel>
-        </div>
+      <AdminPanel variant="flush">
+        {/* Was a bare provenance pill in a 60px strip; the panel now carries
+            the same eyebrow/title/description anatomy as its siblings, and
+            the venue search + paginator the log always needed. */}
+        <AdminPanelHeader>
+          <SectionHeader
+            title="Audit trail"
+            description="Search by venue and date to answer questions about one merchant on one day, and page through the whole trail rather than the newest hundred rows."
+            actions={<SourceLabel>Source: audit_logs</SourceLabel>}
+          />
+        </AdminPanelHeader>
+
+        <AdminLookupControls
+          sticky="flush"
+          basePath="/admin/audit"
+          lookup={lookup}
+          label="Audit log lookup"
+          fields="venue"
+          withDateRange
+        />
+        <AdminAppliedFilters basePath="/admin/audit" lookup={lookup} />
         <DataTable
           caption="Admin audit log readback"
           cardBreakpoint="xl"
           className="rounded-none border-0 shadow-none"
           mobileClassName="p-5"
           mobilePageSize={10}
-          rows={logs}
+          rows={logs.rows}
+          sort={{ ...sort, hrefFor: hrefForSort }}
           getRowKey={(log) => log.id}
           emptyState={
-            <EmptyState
+            <AdminEmptyState
               icon={SecurityCheckIcon}
-              title="No audit logs yet"
-              description="Audited support and security-sensitive actions will appear here."
-              className="rounded-none border-0 shadow-none"
+              title={
+                searching ? "No matching audit entries" : "No audit logs yet"
+              }
+              description={
+                searching
+                  ? "No audited action matches that venue or date range. Clear the search to see the whole trail."
+                  : "Audited support and security-sensitive actions will appear here."
+              }
             />
           }
           mobileCard={(log) => {
@@ -57,7 +120,8 @@ export default async function AdminAuditPage() {
             const customer = first(log.customers)
             return (
               <AdminRecordCard
-                title={log.action}
+                title={formatAdminAction(log.action)}
+                eyebrow={log.action}
                 fields={[
                   {
                     label: "Actor",
@@ -93,7 +157,19 @@ export default async function AdminAuditPage() {
             {
               key: "action",
               header: "Action",
-              cell: (log) => <span className="font-bold">{log.action}</span>,
+              sortKey: "action",
+              // Spoken name in the display face, exact key in mono beneath —
+              // operators still need the raw token to grep for.
+              cell: (log) => (
+                <span className="grid gap-1">
+                  <span className="font-bold">
+                    {formatAdminAction(log.action)}
+                  </span>
+                  <span className="mono-id text-muted-foreground">
+                    {log.action}
+                  </span>
+                </span>
+              ),
             },
             {
               key: "actor",
@@ -122,6 +198,7 @@ export default async function AdminAuditPage() {
             {
               key: "when",
               header: "When",
+              sortKey: "when",
               cell: (log) => (
                 <time
                   className="text-muted-foreground"
@@ -133,6 +210,26 @@ export default async function AdminAuditPage() {
             },
           ]}
         />
+        {logs.meta.total > 0 ? (
+          <AdminPanelFooter className="pt-0">
+            <AdminLookupPagination
+              label="Audit log pages"
+              unit="audited actions"
+              meta={logs.meta}
+              hrefForPage={(page) =>
+                buildLookupHref("/admin/audit", {
+                  venue: lookup.venue,
+                  from: lookup.from,
+                  to: lookup.to,
+                  sort: sort.key ?? undefined,
+                  dir: sort.key ? sort.direction : undefined,
+                  page,
+                  size: lookup.size,
+                })
+              }
+            />
+          </AdminPanelFooter>
+        ) : null}
       </AdminPanel>
     </div>
   )

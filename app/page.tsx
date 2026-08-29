@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { Suspense } from "react"
 
 import { MarketingLayout } from "@/components/layout"
 import { Marquee } from "@/components/marketing"
@@ -56,7 +57,15 @@ export default function LandingPage() {
       <LandingHero demoQr={demoQr} />
       <Marquee />
       <ProofLine />
-      <CommercialEvidenceProof />
+      {/* The evidence band awaits a database read. Rendered bare it gated
+          time-to-first-byte for the WHOLE page, hero included, on a query that
+          only affects band four. Streaming it keeps the hero first-paint free
+          of it. The empty case still renders nothing: `/` claims nothing it
+          cannot evidence, and inventing a substitute band is a copy decision,
+          not a layout one. */}
+      <Suspense fallback={null}>
+        <CommercialEvidenceProof />
+      </Suspense>
       <ProductMoment demoQr={demoQr} />
       <FitNote />
       <LandingPricing />

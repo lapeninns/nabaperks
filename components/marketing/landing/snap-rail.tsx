@@ -1,5 +1,9 @@
-import type { ReactNode } from "react"
+"use client"
 
+import { Children, useRef, useState, type ReactNode } from "react"
+import { ArrowRight01Icon } from "@hugeicons/core-free-icons"
+
+import { Icon } from "@/components/brand"
 import { cn } from "@/lib/utils"
 
 /**
@@ -21,12 +25,59 @@ export function SnapRail({
   className?: string
   children: ReactNode
 }) {
+  const railRef = useRef<HTMLUListElement>(null)
+  const [active, setActive] = useState(0)
+  const total = Children.count(children)
+
+  // Read the position from the rail rather than tracking each card with an
+  // observer: the items are uniform snap points, so scrollLeft over item pitch
+  // IS the index, and there is nothing to observe that scroll does not already
+  // say. `onScroll` on a scroll container is passive in React.
+  function syncActive() {
+    const rail = railRef.current
+
+    if (!rail || total === 0) {
+      return
+    }
+
+    const pitch = rail.scrollWidth / total
+    const index = Math.round(rail.scrollLeft / pitch)
+
+    setActive(Math.min(Math.max(index, 0), total - 1))
+  }
+
   return (
     <div className="grid gap-2 sm:block">
-      <p className="mono-id flex items-center justify-end gap-1 text-primary uppercase sm:hidden">
-        Swipe to see every card <span aria-hidden="true">→</span>
+      {/* Decorative: the rail itself is a labelled, focusable scroll region,
+          so a screen reader already announces it and is not swiping. The hint
+          is for sighted touch users only — and at `.mono-id` in the accent
+          colour it was the smallest, lowest-contrast text on the page. */}
+      <p
+        aria-hidden="true"
+        className="mono-meta flex items-center justify-end gap-1 text-muted-foreground sm:hidden"
+      >
+        Swipe to see every card
+        {/* The brand Icon wrapper, not a raw "→" text glyph. DESIGN.md ·
+            Iconography: everything functional "uses `Icon`", pulled from
+            `@hugeicons/core-free-icons`, at the 2px house stroke. */}
+        <Icon icon={ArrowRight01Icon} size={14} />
       </p>
+      {/* How many there are, and where you are — the finding's actual
+          complaint was that the only cue eight cards existed was a 10px hint
+          (MKT 01#27). Decorative: the rail is a labelled scroll region, so a
+          screen reader gets the list length from the list itself and does not
+          need a second, worse copy of it. */}
+      {total > 1 ? (
+        <p
+          aria-hidden="true"
+          className="mono-meta numeric-tabular justify-self-end text-muted-foreground sm:hidden"
+        >
+          {active + 1} / {total}
+        </p>
+      ) : null}
       <ul
+        ref={railRef}
+        onScroll={syncActive}
         aria-label={label}
         tabIndex={0}
         className={cn(

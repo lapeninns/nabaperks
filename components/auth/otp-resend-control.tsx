@@ -29,7 +29,10 @@ export function OtpResendControl({
   pendingLabel = "Sending…",
   helpText,
   className,
-  variant = "ghost",
+  // secondary, not ghost: this is the control a stuck user most needs, and
+  // ghost gives it no border, ground or shadow — the weakest affordance in the
+  // inventory.
+  variant = "secondary",
 }: OtpResendControlProps) {
   const countdown = useOtpRetryCountdown(retryAt)
 
@@ -38,16 +41,23 @@ export function OtpResendControl({
       className={cn("grid gap-3", className)}
       data-cooldown-active={countdown.active ? "true" : "false"}
     >
+      {/* The label is FIXED. It used to carry the countdown, so the button's
+          text — and therefore its width — reflowed once a second. The remaining
+          time now lives on its own tabular line below. */}
       <SubmitButton
         pendingLabel={pendingLabel}
         variant={variant}
         className="w-full"
         disabled={disabled || countdown.active}
       >
-        {countdown.active && countdown.ready
-          ? `${buttonLabel} in ${countdown.remainingSeconds}s`
-          : buttonLabel}
+        {buttonLabel}
       </SubmitButton>
+
+      {countdown.active && countdown.ready ? (
+        <p className="numeric-tabular text-center text-xs leading-5 text-muted-foreground">
+          Available in {countdown.remainingSeconds}s
+        </p>
+      ) : null}
 
       {helpText ? (
         <p className="text-center text-xs leading-5 text-muted-foreground">
@@ -75,8 +85,7 @@ export function useOtpRetryCountdown(retryAt: string | undefined) {
   const hasParsableRetryAt = Boolean(retryAt) && Number.isFinite(retryAtMs)
   const clockMatchesRetry = clock.retryAt === retryAt
   const ready =
-    !hasParsableRetryAt ||
-    (clockMatchesRetry && typeof clock.now === "number")
+    !hasParsableRetryAt || (clockMatchesRetry && typeof clock.now === "number")
   const countdown = !ready
     ? {
         active: true,

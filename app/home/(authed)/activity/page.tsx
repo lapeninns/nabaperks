@@ -1,28 +1,33 @@
 import { Activity03Icon } from "@hugeicons/core-free-icons"
 
-import { EmptyState, MonoTag, PageTitle } from "@/components/brand"
+import { EmptyState, PageTitle } from "@/components/brand"
+import { ActivityRow } from "@/components/customer/activity-row"
 import {
-  getCustomerActivity,
-  type CustomerActivityCategory,
-  type CustomerActivityItem,
-} from "@/lib/customer/activity"
-import { formatRelativeTime } from "@/lib/customer/format"
+  CustomerActivityFeed,
+  type ActivityFeedEntry,
+} from "@/components/customer/activity-feed"
+import { getCustomerActivity } from "@/lib/customer/activity"
+import { formatDate } from "@/lib/customer/format"
+import { formatLondonIso } from "@/lib/customer/uk-calendar"
 
 export const metadata = {
   title: "Your activity · Nabaperks",
 }
 
-const toneByCategory: Record<
-  CustomerActivityCategory,
-  "accent" | "ink" | "leaf"
-> = {
-  join: "ink",
-  stamp: "accent",
-  reward: "leaf",
-}
-
 export default async function HomeActivityPage() {
   const items = await getCustomerActivity()
+
+  // Rows are rendered HERE, on the server, and handed to the client feed as
+  // nodes. `ActivityRow` prints a relative timestamp, so re-rendering it in the
+  // client would risk a hydration mismatch on every row; grouping and filtering
+  // only need the plain fields beside it (CUS 02#43).
+  const entries: ActivityFeedEntry[] = items.map((item) => ({
+    id: item.id,
+    category: item.category,
+    dayKey: formatLondonIso(new Date(item.createdAt)),
+    dayLabel: formatDate(item.createdAt),
+    row: <ActivityRow key={item.id} item={item} />,
+  }))
 
   return (
     <div className="grid gap-6">
@@ -32,41 +37,15 @@ export default async function HomeActivityPage() {
         description="Every stamp and reward across your cards, newest first."
       />
 
-      {items.length === 0 ? (
+      {entries.length === 0 ? (
         <EmptyState
           title="Nothing here yet"
           description="Your stamps and rewards will appear here once you start visiting venues."
           icon={Activity03Icon}
         />
       ) : (
-        <ol className="grid gap-3">
-          {items.map((item) => (
-            <ActivityRow key={item.id} item={item} />
-          ))}
-        </ol>
+        <CustomerActivityFeed entries={entries} />
       )}
     </div>
-  )
-}
-
-function ActivityRow({ item }: { item: CustomerActivityItem }) {
-  return (
-    <li className="surface-card grid gap-2 p-4">
-      <div className="flex items-center justify-between gap-3">
-        <MonoTag tone={toneByCategory[item.category]}>
-          {item.badgeLabel}
-        </MonoTag>
-        <time
-          dateTime={item.createdAt}
-          className="mono-id text-muted-foreground"
-        >
-          {formatRelativeTime(item.createdAt)}
-        </time>
-      </div>
-      <p className="text-sm leading-snug font-bold">{item.title}</p>
-      <p className="text-sm leading-6 text-muted-foreground">
-        {item.description}
-      </p>
-    </li>
   )
 }

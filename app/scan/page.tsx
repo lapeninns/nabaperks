@@ -20,7 +20,9 @@ export default async function ScanPage() {
   if (session) {
     return (
       <CustomerAppShell signOutAction={signOutCustomerAction}>
-        <CustomerQrScannerLoader />
+        {/* The shell already renders the fixed tab bar, so the scanner draws
+            no exits of its own (CUS 02#60). */}
+        <CustomerQrScannerLoader hasAppNavigation />
       </CustomerAppShell>
     )
   }

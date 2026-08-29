@@ -5,8 +5,11 @@ import { headers } from "next/headers"
 import { after } from "next/server"
 
 import { Logo, MonoTag, ReceiptCard } from "@/components/brand"
+import { CustomerFlowShell } from "@/components/customer/customer-flow-system"
 import { OfferClaimLanding } from "@/components/customer/offer-claim-landing"
+import { UnavailableRecoveryActions } from "@/components/customer/unavailable-recovery"
 import { SubmitButton } from "@/components/forms"
+import { StatusBanner, type StatusBannerTone } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import { getCurrentCustomer } from "@/lib/customer/identity"
 import {
@@ -122,10 +125,13 @@ export default async function OfferClaimPage({
   } catch (error) {
     if (error instanceof RateLimitError) {
       return (
-        <OfferShell title="Try again shortly">
-          <p className="text-sm leading-6 text-muted-foreground">
+        <OfferShell>
+          {/* The rate-limited branch used to render a bare paragraph and no
+              action whatsoever — the only dead end in the customer journey
+              (CUS 02#65). */}
+          <OfferRecovery tone="warning" title="Try again shortly">
             Too many attempts from here. Please try again in a few minutes.
-          </p>
+          </OfferRecovery>
         </OfferShell>
       )
     }
@@ -146,15 +152,10 @@ export default async function OfferClaimPage({
   if (context.status !== "available") {
     const recovery = recoveryCopy(context)
     return (
-      <OfferShell title={recovery.title} venue={context.businessName}>
-        <p className="text-sm leading-6 text-muted-foreground">
+      <OfferShell venue={context.businessName}>
+        <OfferRecovery tone={recovery.tone} title={recovery.title}>
           {recovery.body}
-        </p>
-        <p className="text-sm">
-          <Link href="/" className="underline">
-            Go to Nabaperks
-          </Link>
-        </p>
+        </OfferRecovery>
       </OfferShell>
     )
   }
@@ -223,6 +224,14 @@ export default async function OfferClaimPage({
  * Page chrome only. A recovery state is a title and a sentence, so it passes
  * one; the claimable screen brings its own heading, because that heading is the
  * offer itself and belongs with the rest of the customer's copy.
+ *
+ * This used to be a hand-rolled `<main className="min-h-svh … px-4 py-10">` with
+ * `gap-6`, a bare Logo and no `env(safe-area-inset-bottom)` at all — a fourth
+ * customer column, on the screen that is many members' FIRST EVER Nabaperks
+ * screen, whose claim button could sit under the iOS home indicator
+ * (CUS 02#63). It now renders through CustomerFlowShell, so the header lockup,
+ * the 410px column, the rhythm and the safe area are inherited rather than
+ * re-guessed.
  */
 function OfferShell({
   title,
@@ -234,21 +243,49 @@ function OfferShell({
   children: ReactNode
 }) {
   const name = venue?.trim()
+
   return (
-    <main className="min-h-svh bg-background px-4 py-6 sm:py-10">
-      <div className="mx-auto grid w-full max-w-customer gap-6">
-        <Logo href="/home" />
-        <ReceiptCard className="grid gap-4">
-          {name ? <MonoTag tone="leaf">{name}</MonoTag> : null}
-          {title ? (
-            <div className="grid gap-1">
-              <h1 className="text-xl leading-tight font-extrabold">{title}</h1>
-            </div>
-          ) : null}
-          {children}
-        </ReceiptCard>
-      </div>
-    </main>
+    <CustomerFlowShell dense screenLabel="Customer offer claim" eyebrow="Offer">
+      {/* The shared shell carries no wordmark, so consolidating onto it would
+          have dropped the only way back to /home from a cold scan. */}
+      <Logo href="/home" />
+      <ReceiptCard className="grid gap-4">
+        {name ? <MonoTag tone="leaf">{name}</MonoTag> : null}
+        {title ? (
+          <div className="grid gap-1">
+            <h1 className="text-xl leading-tight font-extrabold">{title}</h1>
+          </div>
+        ) : null}
+        {children}
+      </ReceiptCard>
+    </CustomerFlowShell>
+  )
+}
+
+/**
+ * A scan that cannot be claimed still gets a way onward. The expired, paused
+ * and not-started states used to end on a plain `<p>` with an underlined inline
+ * link, and the rate-limited state offered NO action at all — in a product
+ * whose stated rule is "never a dead end" (CUS 02#65). The message now carries
+ * the tone that matches the state, and every non-claimable branch ends on the
+ * same two recovery buttons the rest of the journey uses.
+ */
+function OfferRecovery({
+  tone,
+  title,
+  children,
+}: {
+  tone: StatusBannerTone
+  title: string
+  children: ReactNode
+}) {
+  return (
+    <>
+      <StatusBanner tone={tone} title={title}>
+        {children}
+      </StatusBanner>
+      <UnavailableRecoveryActions />
+    </>
   )
 }
 
@@ -261,6 +298,12 @@ function OfferShell({
 function recoveryCopy(context: OfferClaimContext): {
   title: string
   body: string
+  /**
+   * Tone follows the state, not the fact that something did not happen. A
+   * campaign that has not opened yet is good news with a date on it and reads
+   * as info; one that has finished is neutral, not a warning (CUS 02#65).
+   */
+  tone: StatusBannerTone
 } {
   const opens = formatOfferDate(context.startsOn)
   const closed = formatOfferDate(context.endsOn)
@@ -271,12 +314,14 @@ function recoveryCopy(context: OfferClaimContext): {
         ? `This offer opens on ${opens}`
         : "This offer has not opened yet",
       body: "Scan the code again once it opens and you can claim it then.",
+      tone: "info",
     }
   }
   if (context.status === "paused") {
     return {
       title: "This offer is paused just now",
       body: "The venue has paused it for the moment. Try again later, or ask the team when it is back.",
+      tone: "info",
     }
   }
   if (context.status === "expired") {
@@ -285,11 +330,13 @@ function recoveryCopy(context: OfferClaimContext): {
       body: closed
         ? `It ran until ${closed}. Ask the venue whether they have a new one.`
         : "Ask the venue whether they have a new one.",
+      tone: "neutral",
     }
   }
   return {
     title: "This offer link is not available",
     body: "It may have finished, or the venue may have replaced the code. Ask the team for the current one.",
+    tone: "neutral",
   }
 }
 

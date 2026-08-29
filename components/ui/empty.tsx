@@ -31,7 +31,7 @@ const emptyMediaVariants = cva(
     variants: {
       variant: {
         default: "bg-transparent",
-        icon: "flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground [&_svg:not([class*=size-])]:size-5",
+        icon: "flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground [&_svg:not([class*=size-])]:size-5",
       },
     },
     defaultVariants: {
@@ -55,14 +55,21 @@ function EmptyMedia({
   )
 }
 
-function EmptyTitle({ className, ...props }: React.ComponentProps<"div">) {
+/**
+ * Renders a real heading element. `as` defaults to `h2` so an empty state
+ * lands in the document outline; previously this was a `<div role="heading">`
+ * with `aria-level`, which is only an ARIA veneer over a generic element and
+ * is skipped by some heading-navigation implementations.
+ */
+function EmptyTitle({
+  className,
+  as: Tag = "h2",
+  ...props
+}: React.ComponentProps<"h2"> & { as?: "h1" | "h2" | "h3" }) {
   return (
-    <div
+    <Tag
       data-slot="empty-title"
-      className={cn(
-        "font-heading text-lg font-medium",
-        className
-      )}
+      className={cn("font-heading text-lg font-medium", className)}
       {...props}
     />
   )

@@ -1,5 +1,6 @@
 import Link from "next/link"
 
+import { IconRoundel } from "@/components/brand"
 import {
   CustomerFlowShell,
   CustomerReceipt,
@@ -114,15 +115,25 @@ function HowItWorksList() {
       <p className="eyebrow text-muted-foreground">
         {JOIN_WELCOME_HOW_IT_WORKS_LABEL}
       </p>
+      {/* IconRoundel is the sanctioned framing circle (DESIGN.md · Shapes), and
+          HomeEmptyState already numbers the identical how-it-works list with
+          it. The hand-rolled 20px disc was a fourth circle dialect at a fifth
+          unsanctioned micro size (text-meta), and its -rotate-6 borrowed
+          the stamp/reward tilt for a step number that cannot be earned
+          (CUS 02#56). */}
       <ol className="grid gap-2">
         {JOIN_WELCOME_HOW_IT_WORKS.map((step, index) => (
-          <li key={step} className="flex items-start gap-3">
-            <span
-              aria-hidden="true"
-              className="mt-0.5 grid size-5 shrink-0 -rotate-6 place-items-center rounded-full border-2 border-ink bg-primary text-[0.7rem] leading-none font-extrabold text-primary-foreground"
+          <li
+            key={step}
+            className="grid grid-cols-[2rem_1fr] items-start gap-3"
+          >
+            <IconRoundel
+              size="sm"
+              tone="primary"
+              className="font-mono text-xs font-extrabold"
             >
               {index + 1}
-            </span>
+            </IconRoundel>
             <span className="text-sm leading-snug font-medium">{step}</span>
           </li>
         ))}

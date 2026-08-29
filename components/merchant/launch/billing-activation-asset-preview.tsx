@@ -63,7 +63,7 @@ export function BillingActivationAssetPreview({
           </div>
         </div>
 
-        <p className="border-t-2 border-dashed border-ink/20 pt-3 text-sm leading-6 text-muted-foreground">
+        <p className="border-t-2 border-dashed border-line pt-3 text-sm leading-6 text-muted-foreground">
           Your card is built. Add billing to switch on customer scans.
         </p>
       </ReceiptCard>
@@ -85,7 +85,7 @@ function BillingStampCadence({ stampsRequired }: { stampsRequired: number }) {
           <span
             role="img"
             aria-label={`Stamp ${index + 1} empty`}
-            className="grid aspect-square min-h-9 w-full place-items-center rounded-full border-2 border-dashed border-border bg-background font-mono text-[10px] font-bold text-muted-foreground"
+            className="grid aspect-square min-h-9 w-full place-items-center rounded-full border-2 border-dashed border-border bg-background font-mono text-micro font-bold text-muted-foreground"
           >
             {index + 1}
           </span>

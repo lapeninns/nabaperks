@@ -11,28 +11,40 @@ import { cn } from "@/lib/utils"
  * honest: compact sizes render as declared on fine pointers and grow to the
  * 44px tap floor on coarse pointers (the FilterPills pattern), including
  * width for icon sizes.
+ *
+ * Radius: `rounded-lg` (10px, `--radius`), matching the unlayered
+ * `[data-slot="button"]` rule. The base string carried `rounded-full` — a v1
+ * "Honey & Ink" pill that DESIGN.md · Brand & Style records as "fully
+ * superseded" — and it read as dead code because the ink layer beats every
+ * layered utility. It was only dead on a real `<Button>`. `buttonVariants` is
+ * also exported and applied to plain elements that carry no `data-slot`, and
+ * there the layer never matches: measured on a production build, the same
+ * class string rendered `border-radius: 3.3554e+07px` with `border-width: 0px`
+ * on a plain element and `10px` / `2px` once `data-slot="button"` was present.
+ * The two must agree, so the base declares the same 10px the layer does.
  */
 const buttonVariants = cva(
-  "pressable inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-bold outline-none transition-[color,background-color,border-color,box-shadow,transform] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] active:translate-y-px motion-reduce:transition-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*=size-])]:size-4",
+  "pressable inline-flex shrink-0 items-center justify-center gap-2 rounded-lg text-sm font-bold whitespace-nowrap transition-[color,background-color,border-color,box-shadow,transform] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none disabled:pointer-events-none disabled:opacity-50 motion-reduce:transition-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*=size-])]:size-4",
   {
     variants: {
       variant: {
         default:
           "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
-        stamp:
-          "bg-stamp text-stamp-foreground shadow-xs hover:bg-stamp/90",
-        reward:
-          "bg-reward text-reward-foreground shadow-xs hover:bg-reward/90",
+        // `reward` is the one sanctioned second filled silhouette (leaf), for
+        // reward collection. A `stamp` variant used to sit beside it rendering
+        // bg-stamp/text-stamp-foreground — but --stamp resolves to --w-accent,
+        // exactly as --primary does, so it was a pixel-identical duplicate of
+        // `default`, and it had zero call sites. Removed.
+        reward: "bg-reward text-reward-foreground shadow-xs hover:bg-reward/90",
         secondary:
           "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",
-        outline:
-          "border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground",
-        ghost:
-          "hover:bg-accent hover:text-accent-foreground",
+        // Border/radius/shadow come from the unlayered [data-slot="button"]
+        // rule; declaring them here is dead weight that misreads as live.
+        outline: "bg-background hover:bg-accent hover:text-accent-foreground",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
         destructive:
           "bg-destructive text-destructive-foreground shadow-xs hover:bg-destructive/90",
-        link:
-          "h-auto rounded-none p-0 text-primary underline-offset-4 shadow-none hover:underline",
+        link: "h-auto rounded-none p-0 text-primary underline-offset-4 shadow-none hover:underline",
       },
       size: {
         xs: "h-8 min-h-8 px-3 text-xs [@media(pointer:coarse)]:min-h-11",

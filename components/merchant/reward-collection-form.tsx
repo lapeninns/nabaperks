@@ -7,7 +7,7 @@ import {
   type MerchantRewardCollectionActionState,
 } from "@/app/app/rewards/scan/[scanToken]/actions"
 import { StatusBanner } from "@/components/loyalty"
-import { Button } from "@/components/ui/button"
+import { SubmitButton } from "@/components/forms"
 
 const initialState: MerchantRewardCollectionActionState = {}
 
@@ -16,7 +16,7 @@ export function MerchantRewardCollectionForm({
 }: {
   scanToken: string
 }) {
-  const [state, action, pending] = useActionState(
+  const [state, action] = useActionState(
     confirmMerchantRewardCollectionAction,
     initialState
   )
@@ -29,9 +29,13 @@ export function MerchantRewardCollectionForm({
           {state.errors.form}
         </StatusBanner>
       ) : null}
-      <Button type="submit" size="lg" variant="reward" disabled={pending}>
-        {pending ? "Marking collected…" : "Mark reward collected"}
-      </Button>
+      <SubmitButton
+        size="lg"
+        variant="reward"
+        pendingLabel="Marking collected…"
+      >
+        Mark reward collected
+      </SubmitButton>
     </form>
   )
 }

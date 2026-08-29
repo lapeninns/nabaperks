@@ -56,11 +56,11 @@ export function KpiTile({
     <Card className={cn("h-full", className)} size="sm" data-elevation="flat">
       <CardHeader className="h-full gap-2">
         <p className="eyebrow flex min-h-5 items-center gap-1.5">
-          {icon ? <Icon icon={icon} size={13} strokeWidth={2.25} /> : null}
+          {icon ? <Icon icon={icon} size={14} strokeWidth={2.25} /> : null}
           {label}
         </p>
         <div className="flex items-end justify-between gap-3">
-          <span className="numeric-tabular min-w-0 text-2xl leading-none font-extrabold sm:text-[1.75rem]">
+          <span className="numeric-tabular min-w-0 text-2xl leading-none font-extrabold sm:text-3xl">
             {value}
           </span>
           {series && series.length > 1 ? (
@@ -76,11 +76,21 @@ export function KpiTile({
             />
           ) : null}
         </div>
-        {trend ? (
-          <p className={cn("mono-id", metricTrendClassName(trend.direction))}>
-            {trend.label}
-          </p>
-        ) : null}
+        {/* Reserved caption row. The Members tile is deliberately trend-less, so
+            a conditional row left tile 1 two lines tall against its three-line
+            neighbours and knocked the four values off a shared baseline — which
+            is the entire job of a KPI strip. The row always renders; a
+            trend-less tile spends it on an em dash. */}
+        <p
+          className={cn(
+            "mono-id min-h-4",
+            trend
+              ? metricTrendClassName(trend.direction)
+              : "text-muted-foreground"
+          )}
+        >
+          {trend ? trend.label : "—"}
+        </p>
       </CardHeader>
     </Card>
   )

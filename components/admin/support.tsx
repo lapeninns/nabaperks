@@ -1,8 +1,11 @@
-import type { ReactNode } from "react"
+import type { ComponentProps, ReactNode } from "react"
 
 import { cn } from "@/lib/utils"
+import { Database01Icon } from "@hugeicons/core-free-icons"
+
 import {
-  Eyebrow,
+  EmptyState,
+  Icon,
   MonoTag,
   STATUS_ICON,
   type IconGlyph,
@@ -18,57 +21,83 @@ const STATUS_PILL_ICON: Record<
   danger: STATUS_ICON.error,
 }
 
-/**
- * Native `<select>` styling on the one-input story: the same well as the
- * `[data-slot=input]` layer (2px ink border, 10px radius, card background,
- * focus-visible border swap + `.focus-ring` outline). Text inputs and
- * textareas do NOT use this — they compose the themed `Input`/`Textarea`
- * primitives, which the unlayered ink layer already themes.
- */
-export const adminSelectClasses =
-  "focus-ring min-h-11 rounded-lg border-2 border-ink bg-card px-3 text-sm outline-none transition-[border-color,outline-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none focus-visible:border-ring"
-
 export function AdminPanel({
   children,
   className,
   id,
+  variant = "padded",
 }: {
   children: ReactNode
   className?: string
   /** Optional anchor id so cross-links can target a panel on the same page. */
   id?: string
+  /**
+   * `flush` is the table/list panel: no padding, so a DataTable meets the
+   * card edge. Seven panels hand-wrote `className="p-0"` plus an inner
+   * `border-b p-5` header; the recipe lives here now.
+   */
+  variant?: "padded" | "flush"
 }) {
   return (
-    <section id={id} className={cn("surface-card grid gap-4 p-5", className)}>
+    <section
+      id={id}
+      className={cn(
+        "surface-card grid",
+        variant === "flush" ? "gap-0 p-0" : "gap-4 p-5",
+        className
+      )}
+    >
       {children}
     </section>
   )
 }
 
-export function AdminField({
-  label,
+/** Header block for a `flush` panel: the one bordered, padded header row. */
+export function AdminPanelHeader({
   children,
-  helper,
   className,
 }: {
-  label: ReactNode
   children: ReactNode
-  helper?: ReactNode
   className?: string
 }) {
   return (
-    <label className={cn("grid gap-1.5 text-sm font-bold", className)}>
-      <Eyebrow>{label}</Eyebrow>
-      {children}
-      {helper ? (
-        // whitespace-normal: inside a table cell the helper would inherit the
-        // cell's nowrap, and its single-line min-content inflates the field's
-        // implicit track (the Delta/Reason overlap class of bug).
-        <span className="text-xs leading-5 font-normal whitespace-normal text-muted-foreground">
-          {helper}
-        </span>
-      ) : null}
-    </label>
+    <div className={cn("grid gap-4 border-b p-5", className)}>{children}</div>
+  )
+}
+
+/** Footer block for a `flush` panel (paginators sit here). */
+export function AdminPanelFooter({
+  children,
+  className,
+}: {
+  children: ReactNode
+  className?: string
+}) {
+  return <div className={cn("p-5", className)}>{children}</div>
+}
+
+/**
+ * The de-styled EmptyState, once. Eleven-plus call sites copied
+ * `className="rounded-none border-0 p-0 shadow-none"` — inconsistently, so
+ * some inline empty states were inset by p-6 and some were flush.
+ */
+export function AdminEmptyState({
+  className,
+  padded = true,
+  ...props
+}: ComponentProps<typeof EmptyState> & {
+  /** Keep the EmptyState's own padding (inside a flush panel body). */
+  padded?: boolean
+}) {
+  return (
+    <EmptyState
+      {...props}
+      className={cn(
+        "rounded-none border-0 shadow-none",
+        padded ? undefined : "p-0",
+        className
+      )}
+    />
   )
 }
 
@@ -80,17 +109,28 @@ export function AdminField({
  */
 export function AdminConfirmCheck({ label }: { label: ReactNode }) {
   return (
-    <label className="flex items-start gap-2 text-sm font-normal">
+    // The irreversibility gate reads as a gate: a 2px-ink well, a 20px box on
+    // the 44px tap row, and foreground (not muted) consequence copy. A 16px
+    // native tick set in muted grey was the quietest element in a destructive
+    // form.
+    <label className="focus-ring-within flex min-h-11 items-start gap-3 rounded-lg border-2 border-ink bg-destructive/8 px-3 py-2.5 text-sm font-normal">
       <input
         type="checkbox"
         required
-        className="focus-ring mt-0.5 size-4 shrink-0 accent-primary"
+        className="ink-check focus-ring mt-0.5 shrink-0"
       />
-      <span className="leading-5 text-muted-foreground">{label}</span>
+      <span className="leading-5 font-semibold text-foreground">{label}</span>
     </label>
   )
 }
 
+/**
+ * Provenance, not state. It used to be a `MonoTag` sharing mono face, ink
+ * border and secondary fill with a neutral `StatusPill`, so "pending" and
+ * "Source: audit_logs" had the same silhouette in the same row. Metadata now
+ * reads as a quiet glyph + label with no pill outline, leaving the bordered
+ * pill to mean state and nothing else.
+ */
 export function SourceLabel({
   children,
   className,
@@ -99,12 +139,15 @@ export function SourceLabel({
   className?: string
 }) {
   return (
-    <MonoTag
-      tone="plain"
-      className={cn("border-ink bg-secondary text-muted-foreground", className)}
+    <span
+      className={cn(
+        "mono-meta inline-flex min-w-0 items-center gap-1.5 text-muted-foreground",
+        className
+      )}
     >
-      {children}
-    </MonoTag>
+      <Icon icon={Database01Icon} size={14} strokeWidth={2.25} />
+      <span className="min-w-0 truncate">{children}</span>
+    </span>
   )
 }
 
@@ -124,14 +167,35 @@ export function StatusPill({
         // rule forces uppercase and defeats any layered utility.
         "border-ink",
         tone === "good" && "bg-reward/15 text-foreground",
-        tone === "warning" && "bg-primary/15 text-foreground",
-        tone === "danger" && "bg-destructive/15 text-foreground",
+        // Warning takes the sun wash, not `primary`. `--primary` (#cf330a) and
+        // `--destructive` (#ea5f46) are both red-orange, so at a 15% wash a
+        // warning flag and a danger flag were separable only by their glyph —
+        // unusable for scanning a fraud queue by severity. Sun gives warning
+        // its own hue; danger keeps red and gains weight via a heavier wash.
+        tone === "warning" && "bg-seal/30 text-foreground",
+        tone === "danger" && "bg-destructive/25 text-foreground",
         tone === "neutral" && "bg-secondary text-secondary-foreground"
       )}
     >
       {children}
     </MonoTag>
   )
+}
+
+/**
+ * One humanising step for the snake_case keys the database stores
+ * (`data_request_logged`, `customer_pii_erased`, `qr_regenerated`). The audit
+ * page printed them raw in bold Bricolage while fraud and privacy each
+ * humanised the same class of value their own way — three readings of one
+ * datum, and snake_case in the display face is a register violation (mono is
+ * the printed voice). The raw token stays available wherever an operator
+ * needs to grep for it.
+ */
+export function formatAdminAction(value?: string | null) {
+  if (!value) return "-"
+  const spaced = value.replaceAll("_", " ").trim()
+  if (!spaced) return "-"
+  return `${spaced.charAt(0).toUpperCase()}${spaced.slice(1)}`
 }
 
 // Operators are UK-based: pin the console clock to Europe/London so audit and
@@ -186,11 +250,17 @@ export function maskAdminContact(value?: string | null) {
  * at rest (db phone plaintext retirement); phone-identity customers are
  * disambiguated by their stored last4.
  */
-export function maskAdminCustomer(customer?: {
-  email?: string | null
-  phone_last4?: string | null
-} | null) {
+export function maskAdminCustomer(
+  customer?: {
+    email?: string | null
+    phone_last4?: string | null
+  } | null
+) {
   if (customer?.email) return maskAdminContact(customer.email)
   if (customer?.phone_last4) return `Phone ending ${customer.phone_last4}`
   return "Customer"
 }
+
+// AdminField lives in its own client module so it can call useId; re-exported
+// here so the console keeps one import surface (ADM 04#47).
+export { AdminField } from "@/components/admin/admin-field"

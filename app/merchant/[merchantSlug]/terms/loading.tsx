@@ -10,11 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 export default function MerchantTermsLoading() {
   return (
     <CustomerShell className="grid content-center">
-      <div
-        role="status"
-        aria-label="Loading venue terms"
-        className="grid gap-6"
-      >
+      <div aria-busy="true" className="grid gap-6">
         <ReceiptCard className="grid gap-4">
           <Skeleton className="h-3 w-28" />
           <Skeleton className="h-6 w-48 max-w-full" />

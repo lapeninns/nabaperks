@@ -9,7 +9,8 @@ import {
   verifyHomeProfileEmailAction,
   type ProfileEditState,
 } from "@/app/home/(authed)/profile/actions"
-import { MonoTag, SectionHeader } from "@/components/brand"
+import { MonoTag } from "@/components/brand"
+import { ProfileSection } from "@/components/customer/profile-section"
 import {
   ProfileDetailRow as DetailRow,
   ProfileEmailDetailRow as EmailDetailRow,
@@ -18,6 +19,7 @@ import {
 } from "@/components/customer/profile-form-parts"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
+import { SubmitButton } from "@/components/forms"
 import { formatDateOfBirth } from "@/lib/customer/format"
 import { latestAdultBirthDate } from "@/lib/customer/profile-fields"
 
@@ -80,9 +82,12 @@ export function CustomerProfileAboutYou({
   }
 
   return (
-    <section className="surface-card grid gap-4 p-5">
-      <SectionHeader eyebrow="About you" title="Your contact details" />
-
+    <ProfileSection
+      title="Your contact details"
+      hint={aboutYouHint(profile)}
+      defaultOpen
+      className="grid gap-4"
+    >
       {mode === "view" ? (
         <AboutYouView profile={profile} onEdit={() => setMode("edit")} />
       ) : null}
@@ -98,7 +103,7 @@ export function CustomerProfileAboutYou({
       ) : null}
 
       {mode === "verify" ? <AboutYouEmailVerify email={profile.email} /> : null}
-    </section>
+    </ProfileSection>
   )
 }
 
@@ -200,9 +205,9 @@ function AboutYouEditForm({
       ) : null}
 
       <div className="grid gap-2">
-        <Button type="submit" size="lg" disabled={pending} className="w-full">
-          {pending ? "Saving…" : "Save changes"}
-        </Button>
+        <SubmitButton size="lg" className="w-full" pendingLabel="Saving…">
+          Save changes
+        </SubmitButton>
         <Button
           type="button"
           variant="ghost"
@@ -218,7 +223,7 @@ function AboutYouEditForm({
 }
 
 function AboutYouEmailVerify({ email }: { email: string | null }) {
-  const [state, action, pending] = useActionState(
+  const [state, action] = useActionState(
     verifyHomeProfileEmailAction,
     initialState
   )
@@ -260,9 +265,9 @@ function AboutYouEmailVerify({ email }: { email: string | null }) {
           </StatusBanner>
         ) : null}
 
-        <Button type="submit" size="lg" disabled={pending} className="w-full">
-          {pending ? "Confirming…" : "Confirm email"}
-        </Button>
+        <SubmitButton size="lg" className="w-full" pendingLabel="Confirming…">
+          Confirm email
+        </SubmitButton>
       </form>
 
       {/* size="sm" keeps these on the tap contract at the queuing moment —
@@ -281,4 +286,21 @@ function AboutYouEmailVerify({ email }: { email: string | null }) {
       </div>
     </div>
   )
+}
+
+/** Summary shown on the collapsed row so state is readable without opening. */
+function aboutYouHint(profile: {
+  fullName: string | null
+  dateOfBirth: string | null
+  email: string | null
+  emailVerified: boolean
+}) {
+  const missing = [
+    profile.fullName ? null : "name",
+    profile.dateOfBirth ? null : "date of birth",
+  ].filter(Boolean)
+
+  if (missing.length) return `Add your ${missing.join(" and ")}`
+  if (!profile.email) return "No email added"
+  return profile.emailVerified ? "Email verified" : "Email needs verifying"
 }

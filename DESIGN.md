@@ -19,7 +19,6 @@ colors:
   primary: "#cf330a"
   on-primary: "#ffffff"
   stamp: "#cf330a"
-  stamp-empty: "rgba(33, 28, 22, 0.18)"
   seal: "#f5a623"
   reward-ready: "#16733c"
   qr: "#111111"
@@ -105,8 +104,16 @@ not required at runtime and is no longer mirrored in the repo; use this guide,
 implementation references.
 
 - **Value before friction, in copy too.** "Your first stamp is waiting."
-  leads; signup language is banned — it's "Keep your card", "Save my card",
-  "one text, no password". Never "register", "create an account".
+  leads; **in the customer lane** signup language is banned — it's "Keep your
+  card", "Save my card", "one text, no password". Never "register", "create an
+  account". `customer-join-frictionless-ux` pins that wording on the join form.
+
+  The ban is scoped to the customer lane on purpose (DS 05#56). A merchant is
+  opening a business account with an email and a password; "Save my card" would
+  be untrue there, and "Create account" is the plain description of what the
+  button does. Applying the customer rule to the merchant lane would trade an
+  honest label for a friendlier one, which is the opposite of the intent.
+
 - **Celebrate in few words.** "That's one." · "Enjoy." Short declaratives at
   emotional peaks; **no exclamation marks, no emoji**.
 - **Receipt voice** (Space Mono, uppercase) for facts: "CARD Nº OC-0248",
@@ -126,7 +133,10 @@ Riso-print logic: one paper, one ink, a small set of hot spot inks.
   themeable), cobalt (#2b43c8 — info, joins), leaf (#16733c — success,
   ready-to-redeem), sun (#f5a623 — the mystery seal).
 - **QR codes always sit on pure white** inside an ink-bordered frame, even in
-  dark mode. No gradients except functional ones (zigzag edge, conic ring).
+  dark mode. No gradients except these functional ones, which is the whole list:
+  the receipt zigzag edge (`.receipt-edge`), the earned stamp's ink texture and
+  conic ring (`[data-stamp-earned]`), and the scrollable-region edge fade
+  (`.scroll-x-fade`).
 
 All shadcn semantic tokens (`--background`, `--primary`, `--muted`, …) alias
 the `--w-*` palette in `app/globals.css`. The superseded v1 Honey & Ink aliases

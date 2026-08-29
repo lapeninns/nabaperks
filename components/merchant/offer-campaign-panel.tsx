@@ -309,7 +309,75 @@ function LifecycleControls({
     confirming === "end"
 
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-4 border-t-2 border-dashed border-line pt-5">
+      <Eyebrow>Manage</Eyebrow>
+
+      {/* One stable stack: trigger row -> warning -> confirm row. The confirm
+          block used to render FIRST, so pressing "End this offer" injected a
+          "Yes, end this offer" button ABOVE the trigger and pushed the trigger
+          row down under the pointer, at the exact moment precision matters on
+          an irreversible action — and put the warning explaining the
+          consequence after the button that performs it in DOM order. */}
+      <div className="flex flex-wrap gap-2">
+        {isDraft ? (
+          <Button
+            type="button"
+            variant={publishing ? "ghost" : "reward"}
+            onClick={() =>
+              setConfirming(confirming === "publish" ? null : "publish")
+            }
+          >
+            {publishing ? "Not yet" : "Publish this offer"}
+          </Button>
+        ) : null}
+
+        {!isDraft ? (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() =>
+              setConfirming(confirming === "rotate" ? null : "rotate")
+            }
+          >
+            {confirming === "rotate" ? "Keep the link" : "Rotate the link"}
+          </Button>
+        ) : null}
+
+        {!isDraft ? (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setConfirming(confirming === "end" ? null : "end")}
+          >
+            {confirming === "end" ? "Keep it running" : "End this offer"}
+          </Button>
+        ) : null}
+      </div>
+
+      {publishing ? (
+        <StatusBanner tone="warning" title="Publishing cannot be undone">
+          The benefit, the dates, the ID rule and the terms are fixed from the
+          moment you publish, and nothing can edit them afterwards. You can
+          still pause new claims, rotate the link or end the offer.
+        </StatusBanner>
+      ) : null}
+
+      {confirming === "rotate" ? (
+        <StatusBanner tone="warning" title="The old link stops working at once">
+          Rotating issues a new link and invalidates the current one
+          immediately. Every poster, card and message carrying the old link
+          stops working, so reprint them before you rotate. Offers already
+          claimed are not affected.
+        </StatusBanner>
+      ) : null}
+
+      {confirming === "end" ? (
+        <StatusBanner tone="error" title="Ending an offer cannot be undone">
+          Ending stops all new claims and switches the link off for good. Passes
+          already issued keep their own terms and stay redeemable until their
+          end date — ending the offer does not cancel them.
+        </StatusBanner>
+      ) : null}
       {anySubmit ? (
         <form action={action} className="grid gap-3">
           <input type="hidden" name="campaignId" value={campaign.id} />
@@ -393,67 +461,6 @@ function LifecycleControls({
           </div>
         </form>
       ) : null}
-
-      <div className="flex flex-wrap gap-2">
-        {isDraft ? (
-          <Button
-            type="button"
-            variant={publishing ? "ghost" : "reward"}
-            onClick={() =>
-              setConfirming(confirming === "publish" ? null : "publish")
-            }
-          >
-            {publishing ? "Not yet" : "Publish this offer"}
-          </Button>
-        ) : null}
-
-        {!isDraft ? (
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() =>
-              setConfirming(confirming === "rotate" ? null : "rotate")
-            }
-          >
-            {confirming === "rotate" ? "Keep the link" : "Rotate the link"}
-          </Button>
-        ) : null}
-
-        {!isDraft ? (
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => setConfirming(confirming === "end" ? null : "end")}
-          >
-            {confirming === "end" ? "Keep it running" : "End this offer"}
-          </Button>
-        ) : null}
-      </div>
-
-      {publishing ? (
-        <StatusBanner tone="warning" title="Publishing cannot be undone">
-          The benefit, the dates, the ID rule and the terms are fixed from the
-          moment you publish, and nothing can edit them afterwards. You can
-          still pause new claims, rotate the link or end the offer.
-        </StatusBanner>
-      ) : null}
-
-      {confirming === "rotate" ? (
-        <StatusBanner tone="warning" title="The old link stops working at once">
-          Rotating issues a new link and invalidates the current one
-          immediately. Every poster, card and message carrying the old link
-          stops working, so reprint them before you rotate. Offers already
-          claimed are not affected.
-        </StatusBanner>
-      ) : null}
-
-      {confirming === "end" ? (
-        <StatusBanner tone="error" title="Ending an offer cannot be undone">
-          Ending stops all new claims and switches the link off for good. Passes
-          already issued keep their own terms and stay redeemable until their
-          end date — ending the offer does not cancel them.
-        </StatusBanner>
-      ) : null}
     </div>
   )
 }
@@ -468,36 +475,36 @@ function CampaignMetrics({ campaign }: { campaign: MerchantOfferCampaign }) {
       <Eyebrow>Results so far</Eyebrow>
       {/* Five tiles never squeeze into two phone columns: below lg they run as
           a snap-scroll rail at a steady 10rem, from lg they take the grid. */}
-      <div className="flex snap-x [scrollbar-width:none] gap-3 overflow-x-auto pb-1 lg:grid lg:grid-cols-5 lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden">
+      <div
+        role="group"
+        aria-label="Offer performance"
+        tabIndex={0}
+        className="focus-ring flex snap-x [scrollbar-width:none] gap-3 overflow-x-auto rounded-sm pb-1 lg:grid lg:grid-cols-5 lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden"
+      >
         <MetricTile
           className="min-w-[10rem] snap-start lg:min-w-0"
           label="Link opened"
           value={metrics.linkOpens.toLocaleString("en-GB")}
-          helper="Times the offer page loaded while it was open to claims."
         />
         <MetricTile
           className="min-w-[10rem] snap-start lg:min-w-0"
           label="Claimed"
           value={metrics.claims.toLocaleString("en-GB")}
-          helper="Customers who joined through this offer."
         />
         <MetricTile
           className="min-w-[10rem] snap-start lg:min-w-0"
           label="Welcome stamps"
           value={metrics.bonusStampsIssued.toLocaleString("en-GB")}
-          helper="Stamps granted across those claims."
         />
         <MetricTile
           className="min-w-[10rem] snap-start lg:min-w-0"
           label="Passes in date"
           value={metrics.activePasses.toLocaleString("en-GB")}
-          helper="Discount passes still inside their window."
         />
         <MetricTile
           className="min-w-[10rem] snap-start lg:min-w-0"
           label="Pass redemptions"
           value={metrics.passRedemptions.toLocaleString("en-GB")}
-          helper="Times staff have honoured a pass."
         />
       </div>
       {/* The caveat stays on screen: the tiles must never be read as people
@@ -507,6 +514,38 @@ function CampaignMetrics({ campaign }: { campaign: MerchantOfferCampaign }) {
         count page loads, not people.
       </p>
       <Disclosure label="How these are counted">
+        <dl className="grid gap-2">
+          <div className="grid gap-0.5">
+            <dt className="eyebrow">Link opened</dt>
+            <dd className="text-xs leading-5 text-muted-foreground">
+              Times the offer page loaded while it was open to claims.
+            </dd>
+          </div>
+          <div className="grid gap-0.5">
+            <dt className="eyebrow">Claimed</dt>
+            <dd className="text-xs leading-5 text-muted-foreground">
+              Customers who joined through this offer.
+            </dd>
+          </div>
+          <div className="grid gap-0.5">
+            <dt className="eyebrow">Welcome stamps</dt>
+            <dd className="text-xs leading-5 text-muted-foreground">
+              Stamps granted across those claims.
+            </dd>
+          </div>
+          <div className="grid gap-0.5">
+            <dt className="eyebrow">Passes in date</dt>
+            <dd className="text-xs leading-5 text-muted-foreground">
+              Discount passes still inside their window.
+            </dd>
+          </div>
+          <div className="grid gap-0.5">
+            <dt className="eyebrow">Pass redemptions</dt>
+            <dd className="text-xs leading-5 text-muted-foreground">
+              Times staff have honoured a pass.
+            </dd>
+          </div>
+        </dl>
         <p className="text-xs leading-5 text-muted-foreground">
           A refresh, a second device and an automated preview each add one to
           link opens, and we cannot tell them apart without tracking whoever

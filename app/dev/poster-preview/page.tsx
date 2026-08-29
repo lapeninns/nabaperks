@@ -85,7 +85,11 @@ export default async function PosterPreviewPage({
           {/* Eyebrows use the customer-facing display name (Night card,
               Receipt, …), matching the poster picker — internal template ids
               stay out of rendered copy. */}
-          <p className="text-center font-mono text-xs font-bold tracking-[0.16em] text-[var(--w-ink-soft)] uppercase">
+          {/* `.mono-meta`, not a hand-rolled `font-mono text-xs … tracking-…
+            uppercase` string (DESIGN.md · Typography), and `text-ink-soft`
+            rather than an arbitrary `text-[var(--w-ink-soft)]` — the theme
+            already mints that colour as a utility. */}
+          <p className="mono-meta text-center text-ink-soft">
             {getQrPosterTemplate(template)?.name ?? template} template
           </p>
           <A4Poster

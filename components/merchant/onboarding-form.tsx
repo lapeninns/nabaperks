@@ -25,7 +25,7 @@ import {
   VenueProviderProvenanceFields,
   type ProviderProvenance,
 } from "@/components/merchant/venue-provider-provenance-fields"
-import { Button } from "@/components/ui/button"
+import { SubmitButton } from "@/components/forms"
 import type { VenueAddressFormFields } from "@/lib/merchant/venue-address"
 import { cn } from "@/lib/utils"
 
@@ -38,6 +38,26 @@ const VenuePlaceAutocomplete = dynamic<VenuePlaceAutocompleteProps>(
 )
 
 const initialState: OnboardingActionState = {}
+
+/**
+ * The five required fields and what an empty one says.
+ *
+ * One map, read by both the blur handler and the submit sweep, so a field
+ * cannot validate one way on the way out and another way on submit (MER 03#46).
+ */
+const REQUIRED_FIELD_MESSAGES = {
+  businessName: "Enter the venue name.",
+  businessType: "Choose a business type.",
+  addressLine1: "Enter the first line of the address.",
+  addressCity: "Enter the town or city.",
+  addressPostcode: "Enter the postcode.",
+} as const
+
+type RequiredFieldName = keyof typeof REQUIRED_FIELD_MESSAGES
+
+function isRequiredField(name: string): name is RequiredFieldName {
+  return name in REQUIRED_FIELD_MESSAGES
+}
 const legacyDraftStorageKey = "nabaperks:onboarding-draft"
 const businessTypeOptions = [
   { value: "cafe", label: "Cafe" },
@@ -90,7 +110,7 @@ export function OnboardingForm({
 }) {
   const draftStorageKey = onboardingDraftStorageKey(draftUserId)
   const hasInitialFields = Object.values(initialFields).some(Boolean)
-  const [state, action, pending] = useActionState(
+  const [state, action] = useActionState(
     completeOnboardingAction,
     hasInitialFields ? { ...initialState, fields: initialFields } : initialState
   )
@@ -218,33 +238,100 @@ export function OnboardingForm({
       ref={formRef}
       action={action}
       noValidate
+      // Blur validation for the five required fields, with the submit sweep
+      // below kept as the backstop (MER 03#46). One handler on the form rather
+      // than a prop threaded into three field components: React's onBlur maps
+      // to focusout, which bubbles, so this also covers the address fields
+      // that live in their own component.
+      //
+      // It only ever writes clientErrors. The focus effect keys off
+      // `state.errors`, so leaving a field empty never yanks focus mid-form —
+      // it just marks the field you have already left.
+      onBlur={(event) => {
+        const field = event.target as unknown as HTMLInputElement
+        const name = field.name
+
+        if (!isRequiredField(name)) {
+          return
+        }
+
+        // Do not validate on the way OUT to a submit control. The blur fires on
+        // mousedown, so writing state here re-renders between mousedown and
+        // mouseup and the click never becomes a submit — the merchant presses
+        // "Finish setup" with an empty field focused and NOTHING happens. The
+        // submit sweep below validates every required field anyway, so this
+        // path loses no coverage. (Caught by
+        // merchant-onboarding-continuity's "refocus on every attempt", which is
+        // what the original 03#46 blocker was pointing at.)
+        const next = event.relatedTarget as HTMLElement | null
+
+        if (next?.closest("form") === event.currentTarget) {
+          const tag = next?.tagName.toLowerCase()
+          const type = (next as HTMLButtonElement | null)?.type
+
+          if (tag === "button" && (type === "submit" || type === undefined)) {
+            return
+          }
+        }
+
+        const message = field.value.trim()
+          ? undefined
+          : REQUIRED_FIELD_MESSAGES[name]
+
+        setClientErrors((previous) => {
+          if (previous[name] === message) {
+            return previous
+          }
+
+          const next: ClientErrors = { ...previous }
+
+          if (message) {
+            next[name] = message
+          } else {
+            delete next[name]
+          }
+
+          return next
+        })
+      }}
+      // Typing into a field the blur pass flagged clears it immediately, so a
+      // corrected field does not keep an error under it until the next blur.
+      onChange={(event) => {
+        const field = event.target as unknown as HTMLInputElement
+        const name = field.name
+
+        if (!isRequiredField(name) || !field.value.trim()) {
+          return
+        }
+
+        setClientErrors((previous) => {
+          if (!previous[name]) {
+            return previous
+          }
+
+          const next: ClientErrors = { ...previous }
+          delete next[name]
+          return next
+        })
+      }}
       onSubmit={(event) => {
         const formData = new FormData(event.currentTarget)
         const readField = (key: string) =>
           (formData.get(key)?.toString() ?? "").trim()
         const nextErrors: ClientErrors = {}
-        if (!readField("businessName"))
-          nextErrors.businessName = "Enter the venue name."
-        if (!readField("businessType"))
-          nextErrors.businessType = "Choose a business type."
-        if (!readField("addressLine1"))
-          nextErrors.addressLine1 = "Enter the first line of the address."
-        if (!readField("addressCity"))
-          nextErrors.addressCity = "Enter the town or city."
-        if (!readField("addressPostcode"))
-          nextErrors.addressPostcode = "Enter the postcode."
+        for (const [key, message] of Object.entries(REQUIRED_FIELD_MESSAGES)) {
+          if (!readField(key)) {
+            nextErrors[key as RequiredFieldName] = message
+          }
+        }
 
         if (Object.keys(nextErrors).length) {
           event.preventDefault()
           setClientErrors(nextErrors)
           setValidationAttempt((attempt) => attempt + 1)
-          const firstInvalid = [
-            "businessName",
-            "businessType",
-            "addressLine1",
-            "addressCity",
-            "addressPostcode",
-          ].find((key) => nextErrors[key as keyof ClientErrors])
+          const firstInvalid = Object.keys(REQUIRED_FIELD_MESSAGES).find(
+            (key) => nextErrors[key as RequiredFieldName]
+          )
           document.getElementById(firstInvalid ?? "businessName")?.focus()
           return
         }
@@ -333,14 +420,9 @@ export function OnboardingForm({
       {errors.form ? (
         <OnboardingFormError>{errors.form}</OnboardingFormError>
       ) : null}
-      <Button
-        type="submit"
-        disabled={pending}
-        aria-busy={pending}
-        className="w-full"
-      >
-        {pending ? "Saving…" : "Finish setup"}
-      </Button>
+      <SubmitButton className="w-full" pendingLabel="Saving…">
+        Finish setup
+      </SubmitButton>
     </form>
   )
 }

@@ -92,7 +92,11 @@ export function PubsPage({
         className="lg:grid lg:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] lg:items-start lg:gap-12 xl:gap-16"
       >
         <GuideSpine />
-        <div className="grid gap-12 pt-6 lg:gap-16 lg:pt-0">
+        {/* 48px/64px between sections was the largest gap token on the
+            marketing surface, applied to the tallest page in the product. The
+            Nº markers plus GuideSection's own dashed top rule separate the
+            bands for 2px instead. */}
+        <div className="grid gap-8 pt-6 sm:gap-10 lg:gap-12 lg:pt-0">
           {PUB_GUIDE_SECTIONS.map((section, index) => (
             <GuideSection key={section.id} section={section} index={index}>
               {sectionPayload(section.id, persona)}

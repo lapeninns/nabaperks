@@ -1,13 +1,13 @@
 import type { ReactNode } from "react"
 import Link from "next/link"
 import {
-  ArrowDown01Icon,
   ArrowLeft01Icon,
   DiscountTag01Icon,
   GiftIcon,
 } from "@hugeicons/core-free-icons"
 
 import { Icon } from "@/components/brand"
+import { PromiseChip } from "@/components/customer/promise-chip"
 import { CelebrationUrlCleanup } from "@/components/customer/celebration-url-cleanup"
 import { GoogleReviewButton } from "@/components/customer/google-review-button"
 import { JoinFirstStampRecoveryPanel } from "@/components/customer/join-first-stamp-recovery-panel"
@@ -18,7 +18,7 @@ import {
   CustomerStampCard,
 } from "@/components/customer/customer-flow-system"
 import { ReferralBonusBankNotice } from "@/components/customer/referral-bonus-bank-panels"
-import { CustomerTabBar } from "@/components/layout"
+import { CustomerTabBar, TAB_BAR_CLEARANCE } from "@/components/layout"
 import { ReferralSharePanel } from "@/components/customer/referral-share-panel"
 import { StampCollector } from "@/components/customer/stamp-collector"
 import {
@@ -84,7 +84,7 @@ export function CustomerCardExperience({
         eyebrow={vm.eyebrow}
         title={vm.headline}
         description={vm.supportLine}
-        className="pb-28"
+        className={TAB_BAR_CLEARANCE}
         screenLabel={screenLabelFor(experience.kind)}
       >
         <ExperiencePanel
@@ -209,7 +209,7 @@ function CardProgressPanel({
       ) : null}
       <Link
         href="/home"
-        className="inline-flex w-fit items-center gap-1.5 text-sm font-bold text-ink-soft underline-offset-4 transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:text-foreground hover:underline motion-reduce:transition-none"
+        className="inline-flex min-h-11 w-fit items-center gap-1.5 text-sm font-bold text-ink-soft underline-offset-4 transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:text-foreground hover:underline motion-reduce:transition-none"
       >
         <Icon icon={ArrowLeft01Icon} size={16} />
         Your cards
@@ -254,14 +254,19 @@ function CardProgressPanel({
               />
             ) : exp.justJoined && !exp.firstStampRecovery ? (
               <StampCelebration>
+                {/* The banner says the NEW thing only. "Welcome to {venue}"
+                    is already the h1 above it, and the venue name is in the
+                    eyebrow above that — so this title used to be the second
+                    verbatim print of the headline and the third print of the
+                    venue name on one screen. (02#21) */}
                 <StatusBanner
-                  title={`Welcome to ${exp.merchantName}.`}
+                  title="You're in."
                   tone="success"
                   className="text-center"
                 >
                   {exp.justStamped
-                    ? "You're in, your first stamp is on the card."
-                    : "You're in. Scan the venue QR in store to collect your first stamp."}
+                    ? "Your first stamp is on the card."
+                    : "Scan the venue QR in store to collect your first stamp."}
                 </StatusBanner>
               </StampCelebration>
             ) : exp.justStamped ? (
@@ -310,13 +315,16 @@ function CardProgressPanel({
           </StatusBanner>
         ) : (
           <div className="grid gap-3">
-            <StatusBanner
-              title="Scan the venue code to add your stamp."
-              tone="neutral"
-            >
+            {/* An instruction, not an outcome (02#32). StatusBanner carries a
+                live-region role — assertive for errors, polite for the rest —
+                which is right for "Stamp secured." and wrong for standing
+                guidance that was already on screen when the page loaded.
+                CustomerActionNote is the instruction register: same weight, no
+                announcement, and visibly not a result. */}
+            <CustomerActionNote title="Scan the venue code to add your stamp.">
               Use the printed QR in the venue. One stamp is available per UK
               business day.
-            </StatusBanner>
+            </CustomerActionNote>
             <Button asChild size="lg" variant="secondary" className="w-full">
               <Link href="/scan">Scan to stamp</Link>
             </Button>
@@ -351,7 +359,7 @@ function CardProgressPanel({
         />
       ) : null}
 
-      <CardDetailsDisclosure cardNumber={cardNumber(exp.membershipId)} />
+      <CardDetailsRow cardNumber={cardNumber(exp.membershipId)} />
     </div>
   )
 }
@@ -373,10 +381,10 @@ function CardGiftChip({
   const badge = rewardSourceBadge(gift.source, merchantName) ?? "Gift"
 
   return (
-    <div className="grid gap-2 rounded-lg border-2 border-ink bg-seal/15 p-3">
+    <PromiseChip kind="gift" className="gap-2">
       <div className="flex items-center gap-1.5">
         <Icon icon={GiftIcon} size={16} />
-        <span className="mono-id tracking-[0.08em] text-ink">{badge}</span>
+        <span className="mono-id tracking-tag text-ink">{badge}</span>
       </div>
       <p className="text-sm leading-tight font-extrabold break-words">
         {gift.rewardName}
@@ -392,7 +400,7 @@ function CardGiftChip({
             : "Ready from the next opening day."}
         </p>
       )}
-    </div>
+    </PromiseChip>
   )
 }
 
@@ -466,12 +474,10 @@ function CardOfferPassChip({ pass }: { pass: CustomerOfferPass }) {
   const opens = formatOfferPassDate(pass.validFrom)
 
   return (
-    <div className="grid gap-2 rounded-lg border-2 border-ink bg-seal/15 p-3">
+    <PromiseChip kind="pass" className="gap-2">
       <div className="flex items-center gap-1.5">
         <Icon icon={DiscountTag01Icon} size={16} />
-        <span className="mono-id tracking-[0.08em] text-ink">
-          Discount pass
-        </span>
+        <span className="mono-id tracking-tag text-ink">Discount pass</span>
       </div>
       <p className="text-sm leading-tight font-extrabold break-words">
         {pass.discountPercent}% off at {pass.venueName}
@@ -485,7 +491,7 @@ function CardOfferPassChip({ pass }: { pass: CustomerOfferPass }) {
           {offerPassChipNote(pass, opens, closes)}
         </p>
       )}
-    </div>
+    </PromiseChip>
   )
 }
 
@@ -509,24 +515,21 @@ function offerPassChipNote(
  * disclosure so the dashboard reads as a reward, not a contract. Collapsed by
  * default — one calm line until the customer asks for the specifics.
  */
-function CardDetailsDisclosure({ cardNumber }: { cardNumber: string }) {
+/**
+ * Card number and the stamping rule, printed rather than hidden.
+ *
+ * This was a `<details>` whose entire payload was ONE 20px row, behind an
+ * unlabelled 12px trigger at the bottom of a ~1,500px page. A disclosure that
+ * conceals 20px is pure interaction cost — and the fact it concealed ("one
+ * stamp per UK business day") is the rule members ask about most, so it was
+ * exactly the wrong thing to bury. (02#23)
+ */
+function CardDetailsRow({ cardNumber }: { cardNumber: string }) {
   return (
-    <details className="group text-left">
-      <summary className="focus-ring flex w-fit cursor-pointer list-none items-center gap-1.5 rounded-sm text-xs font-bold text-ink-soft underline-offset-4 hover:underline [&::-webkit-details-marker]:hidden">
-        Card details
-        <Icon
-          icon={ArrowDown01Icon}
-          size={14}
-          className="text-ink-soft transition-transform duration-[var(--w-dur-fast)] ease-[var(--w-ease)] group-open:rotate-180 motion-reduce:transition-none"
-        />
-      </summary>
-      <dl className="mono-id mt-2 grid gap-1.5 tracking-[0.08em] text-muted-foreground">
-        <div className="flex justify-between gap-3">
-          <dt>{cardNumber}</dt>
-          <dd>One stamp per UK business day</dd>
-        </div>
-      </dl>
-    </details>
+    <dl className="mono-id flex justify-between gap-3 tracking-tag text-muted-foreground">
+      <dt>{cardNumber}</dt>
+      <dd>One stamp per UK business day</dd>
+    </dl>
   )
 }
 

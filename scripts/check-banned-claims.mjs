@@ -179,7 +179,38 @@ async function scanFiles(files, patterns) {
   }
 }
 
-const files = (await Promise.all(SCAN.map(collectFiles))).flat()
+const scanRoots = await Promise.all(
+  SCAN.map(async (root) => [root, await collectFiles(root)])
+)
+
+/**
+ * Non-vacuity guard. `collectFiles` returns [] for a path that does not exist
+ * ("optional path not yet created"), so every rename of a scanned route
+ * silently shrinks this guard's coverage and it still prints a pass. Verified:
+ * renaming three roots dropped the scan from 91 files to 34 with exit 0, and
+ * renaming all of them would report "0 marketing/SEO files" and pass — the
+ * bundle:check bug in another file.
+ *
+ * Every root listed in SCAN exists today. If one is deliberately retired,
+ * delete its line here rather than leaving a dead entry pretending to scan.
+ */
+const emptyRoots = scanRoots
+  .filter(([, found]) => found.length === 0)
+  .map(([root]) => root)
+
+if (emptyRoots.length) {
+  console.error(
+    `✗ ${emptyRoots.length} scan root(s) matched no files, so this guard is not ` +
+      "reading the surfaces it claims to read:\n"
+  )
+  for (const root of emptyRoots) console.error(`  ${root}`)
+  console.error(
+    "\n  Point SCAN at the moved path, or delete the entry if the surface is gone.\n"
+  )
+  process.exit(1)
+}
+
+const files = scanRoots.flatMap(([, found]) => found)
 await scanFiles(files, BANNED)
 
 const reviewVoiceFiles = (
@@ -187,6 +218,23 @@ const reviewVoiceFiles = (
 )
   .flat()
   .filter((file) => REVIEW_VOICE_FILES.test(file))
+
+/**
+ * Same guard for the review-voice tier: 942 rendered-source files today, so a
+ * floor well under that catches a moved root or a narrowed extension filter
+ * without failing on ordinary churn.
+ */
+const MIN_REVIEW_VOICE_FILES = 600
+
+if (reviewVoiceFiles.length < MIN_REVIEW_VOICE_FILES) {
+  console.error(
+    `✗ the review-voice tier read ${reviewVoiceFiles.length} rendered-source file(s), ` +
+      `floor ${MIN_REVIEW_VOICE_FILES}. REVIEW_VOICE_SCAN or REVIEW_VOICE_FILES has ` +
+      "moved and this tier is measuring little or nothing.\n"
+  )
+  process.exit(1)
+}
+
 await scanFiles(reviewVoiceFiles, REVIEW_VOICE)
 
 if (findings.length) {

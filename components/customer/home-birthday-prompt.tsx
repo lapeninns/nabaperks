@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from "react"
 import Link from "next/link"
 
-import { MonoTag, ReceiptCard } from "@/components/brand"
+import { MonoTag } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 
 const DISMISS_KEY = "nabaperks.dob-prompt-dismissed"
@@ -60,12 +60,16 @@ export function HomeBirthdayPrompt() {
   }
 
   return (
-    <ReceiptCard className="grid gap-3">
+    // A ReceiptCard gave an optional data-collection ask the same visual
+    // authority as the member's stamps, at ~185px, injected above the wallet
+    // (CUS 02#17). Dashed border, no hard shadow, no receipt padding: it now
+    // reads as the aside it is. Every word survives.
+    <section className="grid gap-2 rounded-lg border-2 border-dashed border-line bg-card p-3">
       <MonoTag tone="sun">Birthday treat</MonoTag>
-      <h2 className="text-base leading-tight font-extrabold">
+      <h2 className="text-sm leading-tight font-extrabold">
         Add your birthday for a treat on us
       </h2>
-      <p className="text-sm leading-6 text-muted-foreground">
+      <p className="text-xs leading-5 text-muted-foreground">
         Some venues give members a reward during their birthday month. Add yours
         and you won&rsquo;t miss it.
       </p>
@@ -77,6 +81,6 @@ export function HomeBirthdayPrompt() {
           Not now
         </Button>
       </div>
-    </ReceiptCard>
+    </section>
   )
 }

@@ -9,7 +9,7 @@ import {
   type OfferCampaignState,
   type OfferCreatorStep,
 } from "@/app/app/offers/actions"
-import { Eyebrow, Icon, SectionHeader } from "@/components/brand"
+import { Eyebrow, Icon, IconRoundel, SectionHeader } from "@/components/brand"
 import { FormMessage, SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { Disclosure } from "@/components/merchant/launch/disclosure"
@@ -157,7 +157,7 @@ export function OfferCampaignForm({
 
           <fieldset
             hidden={currentStep !== "benefits"}
-            className="grid min-w-0 gap-5 rounded-lg border border-border bg-card p-4 sm:p-6"
+            className="surface-card grid min-w-0 gap-5 p-4 sm:p-6"
           >
             <BenefitStep
               benefitKind={benefitKind}
@@ -177,7 +177,7 @@ export function OfferCampaignForm({
 
           <fieldset
             hidden={currentStep !== "rules"}
-            className="grid min-w-0 gap-5 rounded-lg border border-border bg-card p-4 sm:p-6"
+            className="surface-card grid min-w-0 gap-5 p-4 sm:p-6"
           >
             <RulesStep
               state={state}
@@ -244,13 +244,21 @@ function BenefitStep({
             <label
               key={preset.kind}
               className={cn(
-                "focus-ring-within flex h-full cursor-pointer gap-3 rounded-lg border-[1.5px] border-border bg-card p-3 transition-[border-color,background-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] has-checked:border-ink has-checked:bg-secondary/50 motion-reduce:transition-none",
+                "focus-ring-within flex h-full cursor-pointer gap-3 rounded-lg border-2 border-border bg-card p-3 transition-[border-color,background-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] has-checked:border-ink has-checked:bg-secondary/50 motion-reduce:transition-none",
                 unavailable && "cursor-not-allowed opacity-60"
               )}
             >
-              <span className="grid size-9 shrink-0 place-items-center rounded-full border-[1.5px] border-ink bg-secondary text-foreground">
-                <Icon icon={preset.icon} size={16} />
-              </span>
+              {/* DESIGN.md · Shapes: new framing circles reach for IconRoundel
+                  rather than hand-rolling `rounded-full`, and the list of named
+                  circle exceptions "does not grow without updating this
+                  contract". The 36px disc is off IconRoundel's sm/md/lg rungs,
+                  so the size stays at the call site and the shape, stroke and
+                  tone come from the component — same pixels, one owner. */}
+              <IconRoundel
+                icon={preset.icon}
+                iconSize={16}
+                className="size-9"
+              />
               <span className="grid min-w-0 flex-1 gap-0.5">
                 <span className="flex items-start justify-between gap-2">
                   <span className="text-sm font-semibold text-foreground">
@@ -389,7 +397,7 @@ function RulesStep({
         />
       </div>
 
-      <label className="focus-ring-within flex cursor-pointer items-start gap-3 rounded-lg border-[1.5px] border-border bg-card p-3 transition-[border-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] has-checked:border-ink motion-reduce:transition-none">
+      <label className="focus-ring-within flex cursor-pointer items-start gap-3 rounded-lg border-2 border-border bg-card p-3 transition-[border-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] has-checked:border-ink motion-reduce:transition-none">
         <input
           type="checkbox"
           name="requiresIdCheck"
@@ -418,7 +426,7 @@ function RulesStep({
         error={errors?.extraTerms}
       />
 
-      <div className="grid gap-1.5 rounded-lg border-[1.5px] border-dashed border-border bg-secondary/40 p-3">
+      <div className="grid gap-1.5 rounded-lg border-2 border-dashed border-border bg-secondary/40 p-3">
         <span className="flex items-center gap-2">
           <Icon icon={LockKeyIcon} size={14} strokeWidth={2.25} />
           <Eyebrow>Always included</Eyebrow>
@@ -490,7 +498,7 @@ function ReviewStep({
       ) : null}
 
       <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-6">
-        <div className="grid min-w-0 gap-5 rounded-lg border border-border bg-card p-4 sm:p-6">
+        <div className="surface-card grid min-w-0 gap-5 p-4 sm:p-6">
           <SectionHeader
             eyebrow="Step 3"
             title="Review and publish"
@@ -509,19 +517,6 @@ function ReviewStep({
             stampsRequired={stampsRequired}
           />
 
-          <StatusBanner tone="info" title="The link is the eligibility">
-            Anyone who opens your confidential link can claim this offer, so
-            treat it like the key to the offer itself. Print it on your poster,
-            put it where you want it seen, and rotate it if it goes somewhere it
-            shouldn&apos;t.
-          </StatusBanner>
-
-          <StatusBanner tone="neutral" title="New members only">
-            Customers who already hold a digital loyalty card with you cannot
-            claim this offer. They are told so plainly and are sent to their
-            existing card instead.
-          </StatusBanner>
-
           <form action={action} className="grid gap-4">
             <input type="hidden" name="intent" value="publish" />
             <input
@@ -530,21 +525,55 @@ function ReviewStep({
               value={state.campaignId ?? ""}
             />
 
-            <label className="focus-ring-within flex cursor-pointer items-start gap-3 rounded-lg border-2 border-ink bg-secondary/40 p-3">
-              {/* The value is checked server-side on every publish, so this
-                  box is the confirmation rather than a picture of one. */}
-              <input
-                type="checkbox"
-                name="acknowledgement"
-                value="terms-locked"
-                required
-                className="mt-0.5 size-4 shrink-0 accent-[var(--w-leaf)]"
-              />
-              <span className="text-sm leading-6 text-foreground">
-                I understand these terms are locked once published, and that
-                only customers who are not already members can claim.
-              </span>
-            </label>
+            {/* The two policy notes used to be full StatusBanners stacked above
+                this card, making three consecutive banner tones (success, info,
+                neutral) immediately before the only irreversible action in the
+                product — which desensitises the merchant to banners at exactly
+                the wrong moment. They are the same words, moved into the card
+                that acknowledges them, because that is what is being
+                acknowledged. The banner slot above is now reserved for action
+                outcomes alone. */}
+            <div className="grid gap-3 rounded-lg border-2 border-ink bg-secondary/40 p-3 sm:p-4">
+              <ul className="grid gap-2.5">
+                <li className="grid gap-1">
+                  <p className="text-sm leading-snug font-extrabold text-foreground">
+                    The link is the eligibility
+                  </p>
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    Anyone who opens your confidential link can claim this
+                    offer, so treat it like the key to the offer itself. Print
+                    it on your poster, put it where you want it seen, and rotate
+                    it if it goes somewhere it shouldn&apos;t.
+                  </p>
+                </li>
+                <li className="grid gap-1">
+                  <p className="text-sm leading-snug font-extrabold text-foreground">
+                    New members only
+                  </p>
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    Customers who already hold a digital loyalty card with you
+                    cannot claim this offer. They are told so plainly and are
+                    sent to their existing card instead.
+                  </p>
+                </li>
+              </ul>
+
+              <label className="focus-ring-within tap-floor flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border-2 border-ink/25 bg-card p-3.5 transition-[border-color,background-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] has-checked:border-ink has-checked:bg-secondary has-checked:shadow-[var(--shadow-hard-sm)] motion-reduce:transition-none">
+                {/* The value is checked server-side on every publish, so this
+                    box is the confirmation rather than a picture of one. */}
+                <input
+                  type="checkbox"
+                  name="acknowledgement"
+                  value="terms-locked"
+                  required
+                  className="mt-0.5 size-5 shrink-0 accent-[var(--w-leaf)]"
+                />
+                <span className="text-sm leading-6 text-foreground">
+                  I understand these terms are locked once published, and that
+                  only customers who are not already members can claim.
+                </span>
+              </label>
+            </div>
 
             <div className="flex flex-wrap gap-3">
               <SubmitButton
@@ -592,13 +621,23 @@ function StepTrack({ current }: { current: OfferCreatorStep }) {
   // One non-wrapping pill strip that scrolls on narrow phones instead of
   // reflowing — the active step is always one flick away, never pushed down.
   return (
-    <ol className="flex [scrollbar-width:none] flex-nowrap items-center gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
+    <ol
+      aria-label="Offer creation steps"
+      tabIndex={0}
+      className="focus-ring flex [scrollbar-width:none] flex-nowrap items-center gap-2 overflow-x-auto rounded-sm pb-1 [&::-webkit-scrollbar]:hidden"
+    >
       {STEP_LABELS.map((entry, index) => (
         <li key={entry.step} className="flex shrink-0 items-center gap-2">
           <span
             aria-current={index === currentIndex ? "step" : undefined}
             className={cn(
-              "mono-meta rounded-full border-[1.5px] px-2.5 py-1 whitespace-nowrap",
+              // `rounded-lg` (10px, `--radius`), not `rounded-full`. DESIGN.md
+              // reserves full circles for the stamp family and names `.w-tag`
+              // as the only generic pill outside it — so a hand-rolled
+              // stadium-shaped step chip reads as a STATUS pill, which is what
+              // 03#31 objects to. The mono-meta metrics stay; only the radius
+              // changes, which is exactly the finding's ask.
+              "mono-meta rounded-lg border-2 px-2.5 py-1 whitespace-nowrap",
               index === currentIndex
                 ? "border-ink bg-ink text-paper"
                 : index < currentIndex

@@ -13,6 +13,49 @@ const checkProfile = parseCheckProfile(
 const envContract = JSON.parse(
   readFileSync(join(projectDir, "config/env-contract.json"), "utf8")
 )
+
+/**
+ * Non-vacuity guard for the contract loop below.
+ *
+ * Every required-variable assertion in this script is a `for (const entry of
+ * envContract)` body, so an empty or reshaped contract file makes the whole
+ * check pass while verifying nothing: replacing config/env-contract.json with
+ * `[]` prints "Nabaperks environment configuration is valid." and exits 0.
+ * That is the same shape as `bundle:check` enforcing its budget on 0 routes.
+ *
+ * 41 entries today. The floor and the named anchors are cheap and they make
+ * the failure mode "the contract moved", not "everything is fine".
+ */
+const MIN_CONTRACT_ENTRIES = 30
+const CONTRACT_ANCHOR_NAMES = [
+  "NEXT_PUBLIC_APP_URL",
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "STRIPE_SECRET_KEY",
+]
+const contractNames = new Set(
+  Array.isArray(envContract) ? envContract.map((entry) => entry?.name) : []
+)
+const missingAnchors = CONTRACT_ANCHOR_NAMES.filter(
+  (name) => !contractNames.has(name)
+)
+
+if (!Array.isArray(envContract) || envContract.length < MIN_CONTRACT_ENTRIES) {
+  console.error(
+    `config/env-contract.json describes ${Array.isArray(envContract) ? envContract.length : "no"} ` +
+      `entr(y|ies), floor ${MIN_CONTRACT_ENTRIES}. This check iterates that contract, so it ` +
+      "would report a valid environment while verifying nothing."
+  )
+  process.exit(1)
+}
+
+if (missingAnchors.length > 0) {
+  console.error(
+    `config/env-contract.json is missing required anchor entries: ${missingAnchors.join(", ")}. ` +
+      "The contract has been reshaped and this check no longer covers the core service credentials."
+  )
+  process.exit(1)
+}
 const productionRequiredEnvNames = new Set([
   "CRON_SECRET",
   "PRODUCTION_MONITOR_SECRET",

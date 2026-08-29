@@ -17,7 +17,7 @@ export function PubFitTest({ persona }: { persona: MarketingPersona }) {
       <p className="max-w-[68ch] text-base leading-7 text-muted-foreground">
         {persona.fitNote}
       </p>
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid gap-5 md:grid-cols-2">
         <div className="grid content-start gap-4 rounded-lg border-2 border-ink bg-card p-5 shadow-sm sm:p-6">
           <MonoTag tone="leaf" className="justify-self-start">
             This fits
@@ -41,9 +41,13 @@ export function PubFitTest({ persona }: { persona: MarketingPersona }) {
           </ul>
         </div>
         <div className="grid content-start gap-4 rounded-lg border-2 border-dashed border-line-strong bg-card p-5 sm:p-6">
-          <MonoTag tone="ink" className="justify-self-start">
-            Not right yet
-          </MonoTag>
+          {/* `plain`, not `ink`: a solid near-black pill is the heaviest tone
+              in the palette and was the highest-contrast element on a warm
+              paper page, so the eye landed on "NOT RIGHT YET" first. This
+              component's own docblock says a fit test must not visually punish
+              the "no" answer — the dashed card and the muted glyphs already
+              carry the semantic. */}
+          <MonoTag className="justify-self-start">Not right yet</MonoTag>
           <h3 className="text-xl leading-snug font-extrabold text-foreground">
             We will say so if…
           </h3>

@@ -4,13 +4,12 @@ import Link, { useLinkStatus } from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 
-import { Search01Icon } from "@hugeicons/core-free-icons"
+import { ArrowUp01Icon } from "@hugeicons/core-free-icons"
 
-import { EmptyState, FilterPills, Icon } from "@/components/brand"
-import { StatStrip } from "@/components/data"
+import { EmptyState, Icon } from "@/components/brand"
+import { ConsoleFilterBar, StatStrip } from "@/components/data"
 import { WetInkRise } from "@/components/motion"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import type {
   ActivityCategory,
   ActivityDisplayRow,
@@ -36,6 +35,8 @@ export function ActivityDetailFeed({
   rows,
   limit,
   hasMore,
+  atCeiling = false,
+  ceiling,
   initialFilter = "all",
   initialQuery = "",
   emptyState,
@@ -44,6 +45,10 @@ export function ActivityDetailFeed({
   rows: ActivityDisplayRow[]
   limit: number
   hasMore: boolean
+  /** True once the grown window has hit the page's hard row ceiling. */
+  atCeiling?: boolean
+  /** The ceiling itself, so the footer can name the wall rather than imply it. */
+  ceiling?: number
   initialFilter?: "all" | ActivityCategory
   initialQuery?: string
   emptyState: ReactNode
@@ -123,34 +128,21 @@ export function ActivityDetailFeed({
           ]}
         />
       </section>
-
       <section className="surface-card grid gap-3 p-3 sm:p-4">
-        <div className="relative">
-          <Icon
-            icon={Search01Icon}
-            size={16}
-            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            type="search"
-            value={query}
-            onChange={(event) => {
-              const nextQuery = event.target.value
-              setQuery(nextQuery)
-              scheduleQueryUrlWrite(nextQuery)
-            }}
-            placeholder="Search activity"
-            aria-label="Search activity"
-            className="pl-9"
-          />
-        </div>
-        {/* flex-wrap keeps every pill visible on narrow phones instead of
-            clipping mid-pill in the hidden-scrollbar row with no affordance
-            (same fix as the members table). */}
-        <FilterPills
-          aria-label="Filter activity by type"
-          value={filter}
-          onValueChange={(id) => {
+        {/* One console toolbar composition (03#53) — shared with the members
+            table via components/data/ConsoleFilterBar. Activity keeps its own
+            URL-debounced query strategy; the bar owns the layout only. */}
+        <ConsoleFilterBar
+          query={query}
+          onQueryChange={(nextQuery) => {
+            setQuery(nextQuery)
+            scheduleQueryUrlWrite(nextQuery)
+          }}
+          searchPlaceholder="Search activity"
+          searchLabel="Search activity"
+          filterLabel="Filter activity by type"
+          filterValue={filter}
+          onFilterChange={(id) => {
             const next = normalizeFilter(id)
             setFilter(next)
             // A pill click writes filter + current query immediately; cancel
@@ -159,26 +151,21 @@ export function ActivityDetailFeed({
             cancelPendingUrlWrite()
             updateUrl({ filter: next, query })
           }}
-          className="flex-wrap"
           items={filterOptions.map((option) => ({
             id: option.id,
             label: option.label,
           }))}
+          resultLabel={
+            <>
+              {filteredRows.length} shown
+              {filteredRows.length === rows.length
+                ? ""
+                : ` from ${rows.length}`}
+              .
+            </>
+          }
         />
-        {/* Announce the result count (and the empty state below) to assistive
-            tech as it changes. Compare against rows.length — the number of
-            rendered cards — not the raw event count, so "from N" only appears
-            when the search/filter actually hides rows. */}
-        <p
-          className="text-xs text-muted-foreground"
-          role="status"
-          aria-live="polite"
-        >
-          {filteredRows.length} shown
-          {filteredRows.length === rows.length ? "" : ` from ${rows.length}`}.
-        </p>
-      </section>
-
+      </section>{" "}
       {filteredRows.length === 0 ? (
         <EmptyState
           title="No events in this filter"
@@ -203,31 +190,39 @@ export function ActivityDetailFeed({
           ))}
         </div>
       )}
-
       <footer className="flex flex-wrap items-center justify-between gap-3 px-1">
         {/* Count the rendered rows (threaded), not raw product_events, so the
             number matches the cards on screen. `hasMore` (the server's +1
             sentinel) drives the affordance instead of a now-removed exact
-            total. */}
+            total. At the ceiling the wall is named: the URL limit is clamped
+            server-side, so another "Load more" would have re-rendered the same
+            rows and read as a bug (03#52). */}
         <p className="text-xs text-muted-foreground">
           {rows.length} {rows.length === 1 ? "event" : "events"} loaded
-          {hasMore ? ", more available" : ""}.
+          {hasMore && !atCeiling ? ", more available" : ""}.
+          {hasMore && atCeiling ? (
+            <>
+              {" "}
+              This page shows the most recent {ceiling ?? rows.length}. Search
+              or filter to reach older activity.
+            </>
+          ) : null}
         </p>
-        {hasMore ? (
-          <Button
-            asChild
-            variant="secondary"
-            size="sm"
-            className="min-h-11 sm:min-h-9"
-          >
-            {/* The feed's Suspense boundary is keyed on filter only, so this
-                navigation extends the list in place — the label is the only
-                loading signal, hence the useLinkStatus pending swap. */}
-            <Link href={loadMoreHref({ filter, limit, query })}>
-              <LoadMoreLabel />
-            </Link>
-          </Button>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* A grown window is thousands of pixels tall, and every load leaves
+              the merchant at the bottom of it (03#52). */}
+          {rows.length > 25 ? <BackToTopLink /> : null}
+          {hasMore && !atCeiling ? (
+            <Button asChild variant="secondary" size="sm">
+              {/* The feed's Suspense boundary is keyed on filter only, so this
+                  navigation extends the list in place — the label is the only
+                  loading signal, hence the useLinkStatus pending swap. */}
+              <Link href={loadMoreHref({ filter, limit, query })}>
+                <LoadMoreLabel />
+              </Link>
+            </Button>
+          ) : null}
+        </div>
       </footer>
     </div>
   )
@@ -265,6 +260,22 @@ export function ActivityDetailFeed({
       scroll: false,
     })
   }
+}
+
+/**
+ * Returns the merchant to the top of the console column after a grown window.
+ * `#main` is the shell's `SidebarInset`, which already carries `tabIndex={-1}`,
+ * so this moves the keyboard caret as well as the scroll position.
+ */
+function BackToTopLink() {
+  return (
+    <Button asChild variant="ghost" size="sm">
+      <a href="#main">
+        <Icon icon={ArrowUp01Icon} size={16} />
+        Back to top
+      </a>
+    </Button>
+  )
 }
 
 /** Pending feedback for the in-place "Load more" navigation. */

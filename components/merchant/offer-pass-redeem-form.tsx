@@ -94,7 +94,7 @@ function AttestationCheckbox({
 }) {
   return (
     <div className="grid gap-1.5">
-      <label className="focus-ring-within flex cursor-pointer items-start gap-3 rounded-lg border-[1.5px] border-border bg-card p-3 transition-[border-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] has-checked:border-ink motion-reduce:transition-none">
+      <label className="focus-ring-within flex cursor-pointer items-start gap-3 rounded-lg border-2 border-border bg-card p-3 transition-[border-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] has-checked:border-ink motion-reduce:transition-none">
         <input
           type="checkbox"
           name={name}

@@ -3,18 +3,31 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import type { ReactNode } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
-import { ScanIcon, Search01Icon } from "@hugeicons/core-free-icons"
+import {
+  ScanIcon,
+  Search01Icon,
+  UserMultiple02Icon,
+} from "@hugeicons/core-free-icons"
 
-import { DataTable, StatStrip, type DataTableColumn } from "@/components/data"
-import { FilterPills, Icon, MemberMark, MonoTag } from "@/components/brand"
+import {
+  ConsoleFilterBar,
+  DataTable,
+  type DataTableColumn,
+} from "@/components/data"
+import { EmptyState, Icon, MemberMark, MonoTag } from "@/components/brand"
 import { StampGrid } from "@/components/loyalty/stamp-grid"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import {
   buildCustomersPagination,
   type CustomersPagination,
 } from "@/lib/merchant/customers-paging"
+import {
+  buildCustomersHref,
+  CUSTOMER_MATCH_ID_CAP,
+  type CustomerFilter,
+} from "@/lib/merchant/customers-filter"
 import { formatMerchantCustomerIdentifier } from "@/lib/merchant/customer-identity-display"
 import type {
   MerchantCustomerReadbackRow,
@@ -65,7 +78,11 @@ function CustomerMobileCard({
     <div
       className={cn(
         "surface-card grid overflow-hidden transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none",
-        isSelected && "bg-primary/10 ring-1 ring-primary/30 ring-inset"
+        // Selection is an ink decision, not a ring: a 1px ring at 30% alpha over
+        // a 10% vermillion wash cannot clear 3:1 non-text contrast, and
+        // per-component ring alphas are exactly what DESIGN.md bans. The card's
+        // own 2px border switches to the accent instead.
+        isSelected && "border-primary bg-secondary"
       )}
     >
       {/* Clickable card body */}
@@ -92,7 +109,7 @@ function CustomerMobileCard({
               {row.identifier}
             </span>
             {row.phoneLine ? (
-              <span className="font-mono text-[0.66rem] font-bold tracking-[0.04em] text-muted-foreground">
+              <span className="mono-id text-muted-foreground">
                 {row.phoneLine}
               </span>
             ) : null}
@@ -142,11 +159,7 @@ function CustomerMobileCard({
       {isSelected ? (
         <div className="grid gap-2 border-t-2 border-ink/15 px-3 py-2.5">
           {row.badge.redeemable ? (
-            <Button
-              asChild
-              size="default"
-              className="w-full gap-1.5 mono-meta"
-            >
+            <Button asChild size="default" className="mono-meta w-full gap-1.5">
               <Link href="/app/scan">
                 <Icon icon={ScanIcon} size={14} />
                 Open scanner
@@ -210,7 +223,7 @@ function buildColumns(
         const isHighlighted = row.id === highlightedMembershipId
         return (
           <span
-            className="flex min-w-0 items-center gap-2.5 outline-none"
+            className="focus-ring flex min-w-0 items-center gap-2.5 rounded-sm"
             // Deep-link target: the mount effect scrolls + focuses this so an
             // arriving member is brought into view on the loaded page. The
             // shared DataTable owns the <tr>, so the marker lives on the cell.
@@ -228,7 +241,7 @@ function buildColumns(
                 {row.identifier}
               </span>
               {row.phoneLine ? (
-                <span className="font-mono text-[0.66rem] font-bold tracking-[0.04em] text-muted-foreground">
+                <span className="mono-id text-muted-foreground">
                   {row.phoneLine}
                 </span>
               ) : null}
@@ -285,90 +298,20 @@ function buildColumns(
     {
       key: "reward",
       header: "Reward",
-      cell: (row) => {
-        const style = BADGE_STYLES[row.badge.tone]
-        return (
-          <span className="flex flex-col items-start gap-1.5">
-            <MonoTag tone={style.tag}>{row.badge.label}</MonoTag>
-            {/* A real focusable control so the scan action is keyboard-reachable
-                without relying on the mouse-only row selection (WCAG 2.1.1 /
-                4.1.2). Mirrors the inline CTA the mobile card already exposes. */}
-            {row.badge.redeemable ? (
-              <Button
-                asChild
-                size="sm"
-                className="gap-1.5 mono-id [@media(pointer:coarse)]:min-h-11"
-              >
-                <Link
-                  href="/app/scan"
-                  onClick={(event) => event.stopPropagation()}
-                  aria-label={`Open scanner for ${row.identifier}'s reward QR`}
-                >
-                  <Icon icon={ScanIcon} size={14} />
-                  Scan
-                </Link>
-              </Button>
-            ) : null}
-            <Button
-              asChild
-              size="sm"
-              variant="secondary"
-              className="gap-1.5 mono-id [@media(pointer:coarse)]:min-h-11"
-            >
-              <Link
-                href={`/app/customers/send-reward?member=${encodeURIComponent(row.id)}&label=${encodeURIComponent(row.identifier)}`}
-                onClick={(event) => event.stopPropagation()}
-                aria-label={`Send a reward to ${row.identifier}`}
-              >
-                Send
-              </Link>
-            </Button>
-          </span>
-        )
-      },
+      // The tag alone. This cell used to stack the tag, a conditional Scan
+      // button and an always-present Send button — ~128px per redeemable row,
+      // and 100 competing CTAs on a full page, none of which is the row's
+      // actual primary action. Both actions now live in the selected-member
+      // bar above the table, which is keyboard-reachable the moment a row is
+      // activated (the row is a real Enter/Space control) and mirrors what the
+      // card renderer already did on phones.
+      cell: (row) => (
+        <MonoTag tone={BADGE_STYLES[row.badge.tone].tag}>
+          {row.badge.label}
+        </MonoTag>
+      ),
     },
   ]
-}
-
-// ─── Filtering ────────────────────────────────────────────────────────────────
-
-type CustomerFilter = "all" | "ready" | "active" | "quiet"
-
-/** A member who has visited at least once and is not gone-quiet. */
-function isActiveMember(row: MerchantCustomerReadbackRow): boolean {
-  return row.lastVisitIso != null && row.badge.tone !== "quiet"
-}
-
-function matchesFilter(
-  row: MerchantCustomerReadbackRow,
-  filter: CustomerFilter
-): boolean {
-  switch (filter) {
-    case "ready":
-      return row.badge.tone === "ready"
-    case "quiet":
-      return row.badge.tone === "quiet"
-    case "active":
-      return isActiveMember(row)
-    default:
-      return true
-  }
-}
-
-function filterCustomers(
-  customers: MerchantCustomerReadbackRow[],
-  filter: CustomerFilter,
-  query: string
-): MerchantCustomerReadbackRow[] {
-  const needle = query.trim().toLowerCase()
-  return customers.filter((row) => {
-    if (!matchesFilter(row, filter)) return false
-    if (!needle) return true
-    return (
-      row.identifier.toLowerCase().includes(needle) ||
-      (row.phoneLine?.toLowerCase().includes(needle) ?? false)
-    )
-  })
 }
 
 // ─── Main export ──────────────────────────────────────────────────────────────
@@ -378,57 +321,107 @@ export function CustomerReadbackTable({
   emptyState,
   highlightedMembershipId,
   totalMembers,
+  matchedMembers,
+  counts,
+  filter = "all",
+  query = "",
+  capped = false,
   page = 1,
+  basePath,
 }: {
+  /** One page of the ACTIVE filter + search, already narrowed server-side. */
   customers: MerchantCustomerReadbackRow[]
   emptyState: ReactNode
   highlightedMembershipId?: string
   /**
-   * True membership count from a server-side COUNT. The `customers` list is
-   * one page of at most CUSTOMERS_PAGE_SIZE rows, so its length understates
-   * the real total for large merchants. When provided, the "Members" stat
-   * shows this number and drives the pagination; when omitted it falls back
-   * to `customers.length`, keeping the prior behaviour for any caller that
-   * does not pass it.
+   * True membership count from a server-side COUNT, ignoring filter and
+   * search. When omitted it falls back to `customers.length`, keeping the
+   * prior behaviour for any caller that does not pass it (the DB-free
+   * harness).
    */
   totalMembers?: number
+  /** Members the active filter + search select across every page. */
+  matchedMembers?: number
+  /** Per-pill totals across every page, not just this one. */
+  counts?: Partial<Record<CustomerFilter, number>>
+  /** Active `?filter=`. */
+  filter?: CustomerFilter
+  /** Active `?q=`. */
+  query?: string
+  /** A match set hit CUSTOMER_MATCH_ID_CAP, so this list is the newest N. */
+  capped?: boolean
   /** 1-based page the loader used (drives the Prev/Next links). */
   page?: number
+  /**
+   * Route every control links to. Only the /dev harness passes it: the real
+   * component is mounted there, so without it a pill click would navigate out
+   * of the harness into the auth-gated console route.
+   */
+  basePath?: string
 }) {
+  const router = useRouter()
   const [selectedId, setSelectedId] = useState<string | null>(
     highlightedMembershipId ?? null
   )
-  const [query, setQuery] = useState("")
-  const [filter, setFilter] = useState<CustomerFilter>("all")
+  // Local echo of the URL's `q` so typing stays at input speed; the URL write
+  // is debounced below, exactly as the activity feed does it.
+  const [draftQuery, setDraftQuery] = useState(query)
+  const [syncedQuery, setSyncedQuery] = useState(query)
+  const urlWriteTimer = useRef<number | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
+
+  // Adjust during render rather than in an effect: the search input keeps
+  // focus across the server round-trip (this component is not remounted for a
+  // narrowing change), so a Back navigation that rewrites `?q=` has to reach
+  // the field without a second render pass.
+  if (syncedQuery !== query) {
+    setSyncedQuery(query)
+    setDraftQuery(query)
+  }
+
+  useEffect(
+    () => () => {
+      if (urlWriteTimer.current !== null) {
+        window.clearTimeout(urlWriteTimer.current)
+      }
+    },
+    []
+  )
 
   const handleSelect = (id: string) =>
     setSelectedId((prev) => (prev === id ? null : id))
 
-  // One reduce over the immutable customers prop instead of three full-array
-  // scans on every keystroke; the summary counts never depend on filter/query.
-  const { readyCount, quietCount, activeCount } = useMemo(
-    () =>
-      customers.reduce(
-        (acc, c) => {
-          if (c.badge.tone === "ready") acc.readyCount += 1
-          if (c.badge.tone === "quiet") acc.quietCount += 1
-          if (isActiveMember(c)) acc.activeCount += 1
-          return acc
-        },
-        { readyCount: 0, quietCount: 0, activeCount: 0 }
-      ),
-    [customers]
-  )
+  function navigate(next: { filter: CustomerFilter; query: string }) {
+    // Any change to the narrowing restarts at page 1: page 4 of the old
+    // result set names nothing in the new one.
+    router.replace(
+      buildCustomersHref({
+        filter: next.filter,
+        query: next.query,
+        basePath,
+      }),
+      { scroll: false }
+    )
+  }
 
-  const filtered = useMemo(
-    () => filterCustomers(customers, filter, query),
-    [customers, filter, query]
-  )
+  function cancelPendingUrlWrite() {
+    if (urlWriteTimer.current === null) return
+    window.clearTimeout(urlWriteTimer.current)
+    urlWriteTimer.current = null
+  }
 
-  // Resolve the scan banner against the *visible* list so it never lingers for a
-  // member the current filter/search has hidden.
-  const selected = selectedId ? filtered.find((c) => c.id === selectedId) : null
+  function scheduleQueryUrlWrite(nextQuery: string) {
+    cancelPendingUrlWrite()
+    urlWriteTimer.current = window.setTimeout(() => {
+      urlWriteTimer.current = null
+      navigate({ filter, query: nextQuery })
+    }, 300)
+  }
+
+  const resolvedCounts = counts ?? {}
+  const selected = selectedId
+    ? (customers.find((c) => c.id === selectedId) ?? null)
+    : null
 
   const columns = useMemo(
     () => buildColumns(highlightedMembershipId),
@@ -453,27 +446,76 @@ export function CustomerReadbackTable({
     target.focus({ preventScroll: true })
   }, [highlightedMembershipId])
 
-  const pagination = buildCustomersPagination(
-    page,
-    totalMembers ?? customers.length
-  )
-  const totalLabel = (totalMembers ?? customers.length).toLocaleString("en-GB")
+  const total = totalMembers ?? customers.length
+  const narrowed = filter !== "all" || query.length > 0
+  // Pagination follows the ACTIVE result set, not the venue total: page 4 of
+  // "all members" names nothing once a search has narrowed the list to six.
+  const matched = matchedMembers ?? (narrowed ? customers.length : total)
+  const pagination = buildCustomersPagination(page, matched)
+  const totalLabel = total.toLocaleString("en-GB")
+  const matchedLabel = matched.toLocaleString("en-GB")
 
   if (customers.length === 0) {
-    // Distinguish "no members at all" from "this page is empty" (a stale
-    // ?page= link beyond the end): the latter keeps navigation back.
-    if ((totalMembers ?? 0) > 0) {
+    // Three different zero states, three different recoveries: the venue has no
+    // members at all; a filter/search matched nobody; or a stale ?page= link
+    // points past the end of a real result set.
+    if (narrowed) {
       return (
         <div className="grid gap-3">
-          <div className="surface-card px-4 py-10 text-center">
-            <p className="text-sm font-semibold">Nothing on this page</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Your {totalLabel} members end before page {pagination.page}.
-            </p>
-          </div>
+          <NarrowingControls
+            filter={filter}
+            draftQuery={draftQuery}
+            counts={resolvedCounts}
+            total={total}
+            onQueryChange={(next) => {
+              setDraftQuery(next)
+              scheduleQueryUrlWrite(next)
+            }}
+            onFilterChange={(next) => {
+              cancelPendingUrlWrite()
+              navigate({ filter: next, query: draftQuery })
+            }}
+          />
+          <EmptyState
+            headingLevel={3}
+            icon={Search01Icon}
+            title="No members match"
+            description={
+              query
+                ? `Nothing in your ${totalLabel} members matches "${query}". Members are searchable by the masked email or the last four phone digits you can see.`
+                : `None of your ${totalLabel} members are in this status right now.`
+            }
+            actions={
+              <Button asChild variant="secondary">
+                <Link href={buildCustomersHref({ basePath })}>Clear filters</Link>
+              </Button>
+            }
+          />
+          <PrivacyNote />
+        </div>
+      )
+    }
+
+    if (matched > 0) {
+      return (
+        <div className="grid gap-3">
+          <EmptyState
+            headingLevel={3}
+            icon={UserMultiple02Icon}
+            title="Nothing on this page"
+            description={`Your ${totalLabel} members end before page ${pagination.page}.`}
+            actions={
+              <Button asChild variant="secondary">
+                <Link href={buildCustomersHref({ basePath })}>Back to page 1</Link>
+              </Button>
+            }
+          />
           <CustomersPaginationRow
             pagination={pagination}
             totalLabel={totalLabel}
+            filter={filter}
+            query={query}
+            basePath={basePath}
           />
           <PrivacyNote />
         </div>
@@ -493,117 +535,112 @@ export function CustomerReadbackTable({
     // chain: at worst the ui Table's own overflow-x-auto container scrolls,
     // and the page (intro, filter pills) never overflows the viewport.
     <div className="grid min-w-0 gap-4" ref={rootRef}>
-      <StatStrip
-        items={[
-          {
-            label: "Members",
-            // Prefer the true server-side total over the (paged) loaded count
-            // so large merchants see their real membership size — formatted
-            // with en-GB grouping to match the dashboard KPI ("1,842", not
-            // "1842").
-            value: totalLabel,
-            tone: "ink",
-          },
-          { label: "Ready", value: readyCount, tone: "primary" },
-          { label: "Quiet", value: quietCount, tone: "sun" },
-        ]}
+      {/* The StatStrip that used to sit here read Members / Ready / Quiet —
+          two thirds of which the filter pills below already show as counts,
+          for ~90px on the screen a merchant opens to find one person. The
+          only number it owned alone was the true server-side total, which now
+          leads the readback line under the controls. No count was dropped. */}
+      <NarrowingControls
+        filter={filter}
+        draftQuery={draftQuery}
+        counts={resolvedCounts}
+        total={total}
+        onQueryChange={(next) => {
+          setDraftQuery(next)
+          scheduleQueryUrlWrite(next)
+        }}
+        onFilterChange={(next) => {
+          // A pill click writes immediately; cancel any debounced query write
+          // so it cannot land afterwards with the previous filter captured.
+          cancelPendingUrlWrite()
+          navigate({ filter: next, query: draftQuery })
+        }}
       />
 
-      <div className="grid gap-3 sm:flex sm:items-center sm:justify-between">
-        <div className="relative sm:max-w-xs sm:flex-1">
-          <Icon
-            icon={Search01Icon}
-            size={16}
-            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            type="search"
-            inputMode="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search members"
-            aria-label="Search members"
-            className="pl-9"
-          />
+      {/* One readback line. What it replaced was an apology — the list warned
+          that search and the status pills reached the loaded page and no
+          further, which was true: both ran in the browser over one 15-row
+          window. Both now run in the database across every page (03#18), so
+          the line states the real scope instead of excusing it. */}
+      <p className="mono-meta px-1 text-muted-foreground">
+        {narrowed ? (
+          <>
+            {matchedLabel} of {totalLabel} members match
+            {pagination.totalPages > 1 ? (
+              <>
+                {" "}
+                · showing {pagination.rangeStart}–{pagination.rangeEnd}
+              </>
+            ) : null}
+            , newest first
+            {capped ? (
+              <> · only the newest {CUSTOMER_MATCH_ID_CAP} matches are listed</>
+            ) : null}
+          </>
+        ) : pagination.totalPages > 1 ? (
+          <>
+            {totalLabel} members · showing {pagination.rangeStart}–
+            {pagination.rangeEnd}, newest first
+          </>
+        ) : (
+          <>{totalLabel} members, newest first</>
+        )}
+      </p>
+
+      {/* Selected-member action bar — table widths only (the card list, shown
+          below lg, carries the same actions inline in the selected card). It
+          renders for ANY selected row, not just a redeemable one, because it is
+          now the only place the desktop table offers Send; Scan is added on top
+          when there is a reward waiting. */}
+      {selected ? (
+        <div className="surface-card hidden flex-wrap items-center justify-between gap-3 px-4 py-3 lg:flex">
+          <span className="min-w-0 text-sm font-semibold">
+            {selected.badge.redeemable
+              ? `${selected.identifier} has a reward ready. Ask them to show their reward QR.`
+              : `${selected.identifier} — ${selected.currentStampCount} of ${selected.stampsRequired} stamps.`}
+          </span>
+          <span className="flex flex-wrap items-center gap-2">
+            {selected.badge.redeemable ? (
+              <Button asChild size="sm" className="mono-meta gap-1.5">
+                <Link href="/app/scan">
+                  <Icon icon={ScanIcon} size={14} />
+                  Open scanner
+                </Link>
+              </Button>
+            ) : null}
+            <Button asChild size="sm" variant="secondary">
+              <Link
+                href={`/app/customers/send-reward?member=${encodeURIComponent(selected.id)}&label=${encodeURIComponent(selected.identifier)}`}
+                aria-label={`Send a reward to ${selected.identifier}`}
+              >
+                Send reward
+              </Link>
+            </Button>
+          </span>
         </div>
-        {/* flex-wrap keeps every pill visible on narrow phones instead of
-            clipping mid-pill in the hidden-scrollbar row with no affordance. */}
-        <FilterPills
-          aria-label="Filter members by reward status"
-          value={filter}
-          onValueChange={(id) => setFilter(id as CustomerFilter)}
-          className="flex-wrap sm:justify-end"
-          items={[
-            { id: "all", label: "All", count: customers.length },
-            { id: "ready", label: "Ready", count: readyCount },
-            { id: "active", label: "Active", count: activeCount },
-            { id: "quiet", label: "Quiet", count: quietCount },
-          ]}
+      ) : null}
+
+      {/* Phone + tablet: card list (hidden at lg and above). The switch
+          sits at lg, not sm, because the md sidebar leaves ~510px of content
+          at 768 — too narrow for the five-column table, which previously
+          forced page-level horizontal overflow (clipped intro, cut filter
+          pills, chopped Scan action). This is a bespoke lg split;
+          DataTable's shared contract only supports sm and xl. */}
+      <div className="lg:hidden">
+        <CustomerMobileList
+          customers={customers}
+          selectedId={selectedId}
+          highlightedMembershipId={highlightedMembershipId}
+          onSelect={handleSelect}
         />
       </div>
 
-      {/* Multi-page honesty: search/filter run client-side over the loaded
-          page only, so say so — every member is reachable via the page
-          controls below the list. */}
-      {pagination.totalPages > 1 ? (
-        <p className="px-1 text-xs text-muted-foreground">
-          Showing members {pagination.rangeStart}–{pagination.rangeEnd} of{" "}
-          {totalLabel}, newest first — search and filters cover this page only.
-          Older members are on the later pages.
-        </p>
-      ) : null}
-
-      {/* Scan-reward banner — table widths only (the card list, shown below
-          lg, carries the same CTA inline in the selected card) */}
-      {selected?.badge.redeemable ? (
-        <div className="surface-card hidden flex-wrap items-center justify-between gap-3 px-4 py-3 lg:flex">
-          <span className="min-w-0 text-sm font-semibold">
-            {selected.identifier} has a reward ready. Ask them to show their
-            reward QR.
-          </span>
-          <Button
-            asChild
-            size="sm"
-            className="gap-1.5 mono-meta"
-          >
-            <Link href="/app/scan">
-              <Icon icon={ScanIcon} size={14} />
-              Open scanner
-            </Link>
-          </Button>
-        </div>
-      ) : null}
-
-      {filtered.length === 0 ? (
-        <div className="surface-card px-4 py-10 text-center">
-          <p className="text-sm font-semibold">No members match your filter</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Try a different status or clear the search.
-          </p>
-        </div>
-      ) : (
-        <>
-          {/* Phone + tablet: card list (hidden at lg and above). The switch
-              sits at lg, not sm, because the md sidebar leaves ~510px of
-              content at 768 — too narrow for the five-column table, which
-              previously forced page-level horizontal overflow (clipped intro,
-              cut filter pills, chopped Scan action). This is a bespoke lg
-              split; DataTable's shared contract only supports sm and xl. */}
-          <div className="lg:hidden">
-            <CustomerMobileList
-              customers={filtered}
-              selectedId={selectedId}
-              highlightedMembershipId={highlightedMembershipId}
-              onSelect={handleSelect}
-            />
-          </div>
-
-          {/* Desktop: table (hidden below lg) */}
-          <div className="hidden min-w-0 lg:block">
-            <DataTable
+      {/* Desktop: table (hidden below lg) */}
+      <div className="hidden min-w-0 lg:block">
+        <DataTable
               caption="Your loyalty members and their stamp progress"
               columns={columns}
-              rows={filtered}
+              rows={customers}
               getRowKey={(row) => row.id}
               emptyState={emptyState}
               onRowClick={(row) => handleSelect(row.id)}
@@ -633,19 +670,66 @@ export function CustomerReadbackTable({
                   // into selectedId, and the fallback re-selected the deep-linked
                   // row after the user toggled it off.
                   row.id === selectedId
-                    ? "bg-primary/10 ring-1 ring-primary/30 ring-inset"
+                    ? "bg-secondary [&>td:first-child]:border-l-4 [&>td:first-child]:border-primary"
                     : undefined
                 )
               }
-            />
-          </div>
-        </>
-      )}
+        />
+      </div>
 
-      <CustomersPaginationRow pagination={pagination} totalLabel={totalLabel} />
+      <CustomersPaginationRow
+        pagination={pagination}
+        totalLabel={narrowed ? matchedLabel : totalLabel}
+        filter={filter}
+        query={query}
+        basePath={basePath}
+      />
 
       <PrivacyNote />
     </div>
+  )
+}
+
+/**
+ * Search + status pills, rendered identically above a populated list and above
+ * a "no members match" state — the controls that caused the empty result have
+ * to stay reachable, or the only recovery is the browser back button.
+ *
+ * Counts are server totals for the whole venue, not for the loaded page, so a
+ * pill that reads "Ready 4" leads to four members however deep they sit.
+ */
+function NarrowingControls({
+  filter,
+  draftQuery,
+  counts,
+  total,
+  onQueryChange,
+  onFilterChange,
+}: {
+  filter: CustomerFilter
+  draftQuery: string
+  counts: Partial<Record<CustomerFilter, number>>
+  total: number
+  onQueryChange: (next: string) => void
+  onFilterChange: (next: CustomerFilter) => void
+}) {
+  return (
+    <ConsoleFilterBar
+      layout="inline"
+      query={draftQuery}
+      onQueryChange={onQueryChange}
+      searchPlaceholder="Search members"
+      searchLabel="Search members by masked email or last four digits"
+      filterLabel="Filter members by reward status"
+      filterValue={filter}
+      onFilterChange={(id) => onFilterChange(id as CustomerFilter)}
+      items={[
+        { id: "all", label: "All", count: counts.all ?? total },
+        { id: "ready", label: "Ready", count: counts.ready },
+        { id: "active", label: "Active", count: counts.active },
+        { id: "quiet", label: "Quiet", count: counts.quiet },
+      ]}
+    />
   )
 }
 
@@ -657,55 +741,95 @@ export function CustomerReadbackTable({
 function CustomersPaginationRow({
   pagination,
   totalLabel,
+  filter = "all",
+  query = "",
+  basePath,
 }: {
   pagination: CustomersPagination
   totalLabel: string
+  /** Carried into every page href so paging never drops the narrowing. */
+  filter?: CustomerFilter
+  query?: string
+  basePath?: string
 }) {
   if (pagination.totalPages <= 1) return null
+
+  const pageHref = (page: number) =>
+    buildCustomersHref({ page, filter, query, basePath })
 
   return (
     <nav
       aria-label="Members pages"
       className="flex flex-wrap items-center justify-between gap-3"
     >
-      <Button
-        asChild={pagination.hasPrev}
-        variant="secondary"
-        size="sm"
-        disabled={!pagination.hasPrev}
-      >
-        {pagination.hasPrev ? (
-          <Link href={customersPageHref(pagination.page - 1)} prefetch={false}>
-            Previous page
-          </Link>
-        ) : (
-          <span>Previous page</span>
-        )}
-      </Button>
+      {/* At a boundary the control renders as a real disabled <button> with
+          plain text children and aria-disabled, not an `asChild` <span>: the
+          old shape left a visible element out of the tab order with no state
+          for a screen reader to announce, so a keyboard user simply lost it.
+          First/Last are here because prev/next alone made the oldest members of
+          a large venue an unbounded number of taps away. */}
+      <span className="flex flex-wrap items-center gap-2">
+        <PageStepButton
+          href={pageHref(1)}
+          enabled={pagination.hasPrev}
+          label="First"
+          boundaryHint="you are on the first page"
+        />
+        <PageStepButton
+          href={pageHref(pagination.page - 1)}
+          enabled={pagination.hasPrev}
+          label="Previous page"
+          boundaryHint="you are on the first page"
+        />
+      </span>
       <span className="mono-meta numeric-tabular text-muted-foreground">
         Page {pagination.page} of {pagination.totalPages} · {totalLabel} members
       </span>
-      <Button
-        asChild={pagination.hasNext}
-        variant="secondary"
-        size="sm"
-        disabled={!pagination.hasNext}
-      >
-        {pagination.hasNext ? (
-          <Link href={customersPageHref(pagination.page + 1)} prefetch={false}>
-            Next page
-          </Link>
-        ) : (
-          <span>Next page</span>
-        )}
-      </Button>
+      <span className="flex flex-wrap items-center gap-2">
+        <PageStepButton
+          href={pageHref(pagination.page + 1)}
+          enabled={pagination.hasNext}
+          label="Next page"
+          boundaryHint="you are on the last page"
+        />
+        <PageStepButton
+          href={pageHref(pagination.totalPages)}
+          enabled={pagination.hasNext}
+          label="Last"
+          boundaryHint="you are on the last page"
+        />
+      </span>
     </nav>
   )
 }
 
-/** Page 1 keeps a clean URL; later pages carry ?page=N. */
-function customersPageHref(page: number) {
-  return page <= 1 ? "/app/customers" : `/app/customers?page=${page}`
+function PageStepButton({
+  href,
+  enabled,
+  label,
+  boundaryHint,
+}: {
+  href: string
+  enabled: boolean
+  label: string
+  boundaryHint: string
+}) {
+  if (!enabled) {
+    return (
+      <Button variant="secondary" size="sm" disabled aria-disabled="true">
+        {label}
+        <span className="sr-only">, {boundaryHint}</span>
+      </Button>
+    )
+  }
+
+  return (
+    <Button asChild variant="secondary" size="sm">
+      <Link href={href} prefetch={false}>
+        {label}
+      </Link>
+    </Button>
+  )
 }
 
 function PrivacyNote() {

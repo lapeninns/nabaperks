@@ -4,16 +4,18 @@ import { createAdminServiceRoleClient } from "@/lib/admin/service-role"
 import {
   contactOrIlikeFilter,
   containsPattern,
+  decideVenueFilter,
+  exclusiveDayAfter,
   lookupRange,
   pageMeta,
+  resolveAdminSort,
   type AdminLookupState,
   type AdminPageMeta,
+  type AdminSortColumn,
+  type AdminSortState,
 } from "./lookup-query"
 
-export {
-  getAdminBillingRecords,
-  type AdminBillingRecord,
-} from "./billing-data"
+export { getAdminBillingRecords, type AdminBillingRecord } from "./billing-data"
 export { getAdminPilotMerchants, getAdminPilotReport } from "./pilot-report"
 
 /**
@@ -23,6 +25,36 @@ export { getAdminPilotMerchants, getAdminPilotReport } from "./pilot-report"
  * PostgREST-quoted here before interpolation.
  */
 export type AdminLookupQuery = Partial<AdminLookupState>
+
+/**
+ * The sortable columns of each admin list (ADM 04#60), as a CLOSED map from
+ * URL token to database column. Nothing outside these maps can reach
+ * `.order()`: the token is parsed against the same map that builds the header
+ * links, so a header that is not offered cannot be sorted by a hand-edited
+ * URL either.
+ */
+export const ADMIN_FRAUD_SORT_COLUMNS: Readonly<
+  Record<string, AdminSortColumn>
+> = {
+  // 1 is `high`, so "most severe first" is ascending rank. See resolveAdminSort.
+  severity: { column: "severity_rank", inverted: true },
+  when: { column: "created_at" },
+}
+
+export const ADMIN_AUDIT_SORT_COLUMNS: Readonly<
+  Record<string, AdminSortColumn>
+> = {
+  action: { column: "action" },
+  when: { column: "created_at" },
+}
+
+export const ADMIN_MERCHANT_SORT_COLUMNS: Readonly<
+  Record<string, AdminSortColumn>
+> = {
+  venue: { column: "business_name" },
+  status: { column: "status" },
+  created: { column: "created_at" },
+}
 
 export type AdminPagedRows<T> = {
   rows: T[]
@@ -42,44 +74,85 @@ export async function getAdminOverview() {
   return { merchants, customers, billingIssues, recentAudits }
 }
 
-export async function getAdminMerchants() {
+/**
+ * Merchant accounts, searchable and paged like every other admin list. The
+ * previous hard `.limit(100)` returned the newest 100 rows with no filter, no
+ * total and no signpost, so past 100 merchants "is this venue on the
+ * platform?" was silently answered wrong.
+ */
+export async function getAdminMerchants(
+  lookup: AdminLookupQuery = {},
+  sort?: AdminSortState
+) {
   const supabase = await createAdminServiceRoleClient()
-  const { data, error } = await supabase
+  const page = lookup.page ?? 1
+  const window = lookupRange(page, lookup.size)
+  const order = resolveAdminSort(sort, ADMIN_MERCHANT_SORT_COLUMNS)
+
+  let query = supabase
     .from("merchants")
     .select(
-      "id, business_name, business_slug, email, status, created_at, billing_customers(status, plan, current_period_end)"
+      "id, business_name, business_slug, email, status, created_at, billing_customers(status, plan, current_period_end)",
+      { count: "exact" }
     )
+
+  if (lookup.venue) {
+    query = query.ilike("business_name", containsPattern(lookup.venue))
+  }
+  if (order) {
+    query = query.order(order.column, { ascending: order.ascending })
+  }
+
+  const { data, error, count } = await query
     .order("created_at", { ascending: false })
-    .limit(100)
+    .range(window.from, window.to)
 
   if (error) {
     throw new Error(`Unable to load merchants: ${error.message}`)
   }
 
-  return data ?? []
+  return { rows: data ?? [], meta: pageMeta(count ?? 0, page, lookup.size) }
 }
 
-export async function getAdminQrCodes() {
+/**
+ * QR records, paged and venue-filterable. `merchants!inner` is safe here:
+ * `qr_codes.merchant_id` is NOT NULL, so the join drops no rows — it only
+ * lets the venue fragment filter the parent.
+ */
+export async function getAdminQrCodes(lookup: AdminLookupQuery = {}) {
   const supabase = await createAdminServiceRoleClient()
-  const { data, error } = await supabase
+  const page = lookup.page ?? 1
+  const window = lookupRange(page, lookup.size)
+
+  let query = supabase
     .from("qr_codes")
     .select(
-      "id, qr_id, is_active, destination_type, created_at, merchants(business_name)"
+      "id, qr_id, is_active, destination_type, created_at, merchants!inner(business_name)",
+      { count: "exact" }
     )
+
+  if (lookup.venue) {
+    query = query.ilike(
+      "merchants.business_name",
+      containsPattern(lookup.venue)
+    )
+  }
+
+  const { data, error, count } = await query
     .order("created_at", { ascending: false })
-    .limit(100)
+    .range(window.from, window.to)
 
   if (error) {
     throw new Error(`Unable to load QR codes: ${error.message}`)
   }
 
-  return data ?? []
+  return { rows: data ?? [], meta: pageMeta(count ?? 0, page, lookup.size) }
 }
 
 export async function getAdminCustomers(lookup: AdminLookupQuery = {}) {
   const supabase = await createAdminServiceRoleClient()
   const page = lookup.page ?? 1
-  const window = lookupRange(page)
+  const window = lookupRange(page, lookup.size)
 
   // `!inner` joins keep the embedded filters (contact/venue) applied to the
   // parent rows; membership FKs are non-null so the join never drops rows.
@@ -110,7 +183,7 @@ export async function getAdminCustomers(lookup: AdminLookupQuery = {}) {
     throw new Error(`Unable to load customer memberships: ${error.message}`)
   }
 
-  return { rows: data ?? [], meta: pageMeta(count ?? 0, page) }
+  return { rows: data ?? [], meta: pageMeta(count ?? 0, page, lookup.size) }
 }
 
 export async function getAdminPrivacySupportRows(
@@ -118,7 +191,7 @@ export async function getAdminPrivacySupportRows(
 ) {
   const supabase = await createAdminServiceRoleClient()
   const page = lookup.page ?? 1
-  const window = lookupRange(page)
+  const window = lookupRange(page, lookup.size)
 
   let query = supabase
     .from("customer_memberships")
@@ -147,7 +220,7 @@ export async function getAdminPrivacySupportRows(
     throw new Error(`Unable to load privacy support rows: ${error.message}`)
   }
 
-  return { rows: data ?? [], meta: pageMeta(count ?? 0, page) }
+  return { rows: data ?? [], meta: pageMeta(count ?? 0, page, lookup.size) }
 }
 
 export type AdminUnaffiliatedCustomerRow = {
@@ -171,7 +244,7 @@ export async function getAdminUnaffiliatedCustomers(
 ): Promise<AdminPagedRows<AdminUnaffiliatedCustomerRow>> {
   const supabase = await createAdminServiceRoleClient()
   const page = lookup.page ?? 1
-  const window = lookupRange(page)
+  const window = lookupRange(page, lookup.size)
 
   let query = supabase
     .from("customers_unaffiliated")
@@ -192,12 +265,12 @@ export async function getAdminUnaffiliatedCustomers(
     throw new Error(`Unable to load unaffiliated customers: ${error.message}`)
   }
 
-  return { rows: data ?? [], meta: pageMeta(count ?? 0, page) }
+  return { rows: data ?? [], meta: pageMeta(count ?? 0, page, lookup.size) }
 }
 
-export async function getAdminConsentRecords(page = 1) {
+export async function getAdminConsentRecords(page = 1, size?: number) {
   const supabase = await createAdminServiceRoleClient()
-  const window = lookupRange(page)
+  const window = lookupRange(page, size)
   const { data, error, count } = await supabase
     .from("consent_records")
     .select(
@@ -211,12 +284,12 @@ export async function getAdminConsentRecords(page = 1) {
     throw new Error(`Unable to load consent records: ${error.message}`)
   }
 
-  return { rows: data ?? [], meta: pageMeta(count ?? 0, page) }
+  return { rows: data ?? [], meta: pageMeta(count ?? 0, page, size) }
 }
 
-export async function getAdminRewards(page = 1) {
+export async function getAdminRewards(page = 1, size?: number) {
   const supabase = await createAdminServiceRoleClient()
-  const window = lookupRange(page)
+  const window = lookupRange(page, size)
   const { data, error, count } = await supabase
     .from("reward_events")
     .select(
@@ -230,45 +303,175 @@ export async function getAdminRewards(page = 1) {
     throw new Error(`Unable to load rewards: ${error.message}`)
   }
 
-  return { rows: data ?? [], meta: pageMeta(count ?? 0, page) }
+  return { rows: data ?? [], meta: pageMeta(count ?? 0, page, size) }
 }
 
-export async function getAdminFraudSignals() {
+/** fraud_flags.status check constraint: open / reviewed / dismissed. */
+export type AdminFraudQueue = "open" | "high" | "all"
+
+/**
+ * Triage-shaped fraud readback, searchable and paged like every other admin
+ * list. `queue` filters server-side (default: open work only).
+ *
+ * THE ORDERING IS THE POINT. Rows are ordered by `severity_rank` — the stored
+ * generated column added in `20260809100000_fraud_flag_severity_rank.sql` —
+ * then by recency, IN SQL. This reader used to fetch a fixed newest-100 window
+ * and sort it in memory, because `severity` is a text column whose
+ * alphabetical order (high, low, medium) is not its severity order. That is
+ * correct for exactly one window and wrong for every paged one: each page would
+ * be ranked independently and a high-severity flag on page 3 would sit below a
+ * low-severity one on page 1. Ranked in SQL, page 2 continues page 1 (04#6).
+ */
+export async function getAdminFraudFlags(
+  queue: AdminFraudQueue = "open",
+  lookup: AdminLookupQuery = {},
+  sort?: AdminSortState
+): Promise<AdminPagedRows<AdminFraudFlag>> {
   const supabase = await createAdminServiceRoleClient()
-  const [
-    { data: fraudFlags, error: flagsError },
-    { data: failures, error: failureError },
-  ] = await Promise.all([
+  const page = lookup.page ?? 1
+  const window = lookupRange(page, lookup.size)
+  const order = resolveAdminSort(sort, ADMIN_FRAUD_SORT_COLUMNS)
+  // `fraud_flags.merchant_id` is NOT NULL so `!inner` drops no rows; it is only
+  // asked for when a venue fragment exists, to filter the parent by the embed.
+  const merchantEmbed = lookup.venue
+    ? "merchants!inner(business_name)"
+    : "merchants(business_name)"
+
+  let query = supabase
+    .from("fraud_flags")
+    .select(
+      `id, signal, severity, status, metadata, created_at, ${merchantEmbed}, customers(email, phone_last4)`,
+      { count: "exact" }
+    )
+
+  if (queue === "open") {
+    query = query.eq("status", "open")
+  }
+  if (queue === "high") {
+    query = query.eq("severity", "high")
+  }
+  if (lookup.venue) {
+    query = query.ilike(
+      "merchants.business_name",
+      containsPattern(lookup.venue)
+    )
+  }
+
+  // An explicit sort leads; the default triage order (worst first, then
+  // newest) follows as the tiebreak, so choosing "When" does not silently
+  // discard severity ranking within a timestamp and the default view is
+  // byte-identical to the unsorted one.
+  const ordered = order
+    ? query.order(order.column, { ascending: order.ascending })
+    : query
+
+  const { data, error, count } = await ordered
+    .order("severity_rank", { ascending: true })
+    .order("created_at", { ascending: false })
+    .range(window.from, window.to)
+
+  if (error) {
+    throw new Error(`Unable to load fraud flags: ${error.message}`)
+  }
+
+  const rows = Array.isArray(data) ? data.map(redactFraudFlag) : []
+  return { rows, meta: pageMeta(count ?? 0, page, lookup.size) }
+}
+
+export type AdminRedemptionFailure = {
+  readonly id: string
+  readonly event_name: string
+  readonly created_at: string
+  readonly merchant: string
+}
+
+/**
+ * Redemption-failure product events: the fourth fraud view, paged on the same
+ * `?page=`/`?size=` params as the flags queue because only one view renders at
+ * a time. It was the second half of the fraud page's hard `.limit(100)`, and
+ * unlike the flags it has no ranking problem — `created_at desc` is the order
+ * the page displays.
+ */
+export async function getAdminRedemptionFailures(
+  lookup: AdminLookupQuery = {}
+): Promise<AdminPagedRows<AdminRedemptionFailure>> {
+  const supabase = await createAdminServiceRoleClient()
+  const page = lookup.page ?? 1
+  const window = lookupRange(page, lookup.size)
+  // `product_events.merchant_id` IS nullable (on delete set null), so the inner
+  // join is only asked for when a venue fragment is filtering by it — otherwise
+  // it would silently drop every merchant-less failure event.
+  const merchantEmbed = lookup.venue
+    ? "merchants!inner(business_name)"
+    : "merchants(business_name)"
+
+  let query = supabase
+    .from("product_events")
+    .select(`id, event_name, created_at, ${merchantEmbed}`, {
+      count: "exact",
+    })
+    .eq("event_name", "reward_redemption_failed")
+
+  if (lookup.venue) {
+    query = query.ilike(
+      "merchants.business_name",
+      containsPattern(lookup.venue)
+    )
+  }
+
+  const { data, error, count } = await query
+    .order("created_at", { ascending: false })
+    .range(window.from, window.to)
+
+  if (error) {
+    throw new Error(`Unable to load fraud events: ${error.message}`)
+  }
+
+  const rows = (Array.isArray(data) ? data : []).map((row: unknown) => {
+    const record: Record<string, unknown> = isRecord(row) ? row : {}
+    return {
+      id: fallbackString(record.id, "product-event"),
+      event_name: fallbackString(record.event_name, "reward_redemption_failed"),
+      created_at: fallbackString(record.created_at, ""),
+      merchant: fallbackString(
+        firstRecord(record.merchants)?.business_name,
+        "Merchant"
+      ),
+    }
+  })
+
+  return { rows, meta: pageMeta(count ?? 0, page, lookup.size) }
+}
+
+/** Bucket counts for the fraud queue tabs (head-only, no rows transferred). */
+export async function getAdminFraudQueueCounts() {
+  const supabase = await createAdminServiceRoleClient()
+  const [open, high, all, failures] = await Promise.all([
     supabase
       .from("fraud_flags")
-      .select(
-        "id, signal, severity, status, metadata, created_at, merchants(business_name), customers(email, phone_last4)"
-      )
-      .order("created_at", { ascending: false })
-      .limit(100),
+      .select("*", { count: "exact", head: true })
+      .eq("status", "open"),
+    supabase
+      .from("fraud_flags")
+      .select("*", { count: "exact", head: true })
+      .eq("severity", "high"),
+    supabase.from("fraud_flags").select("*", { count: "exact", head: true }),
+    // The failures tab used to print the LENGTH OF THE LOADED WINDOW as its
+    // count, so it read "100" for any number of failures from 100 upward.
     supabase
       .from("product_events")
-      .select("id, event_name, created_at, merchants(business_name)")
-      .eq("event_name", "reward_redemption_failed")
-      .order("created_at", { ascending: false })
-      .limit(100),
+      .select("*", { count: "exact", head: true })
+      .eq("event_name", "reward_redemption_failed"),
   ])
 
-  if (flagsError) {
-    throw new Error(`Unable to load fraud flags: ${flagsError.message}`)
-  }
-
-  if (failureError) {
-    throw new Error(`Unable to load fraud events: ${failureError.message}`)
-  }
-
   return {
-    fraudFlags: Array.isArray(fraudFlags)
-      ? fraudFlags.map(redactFraudFlag)
-      : [],
-    failures: failures ?? [],
+    open: open.count ?? 0,
+    high: high.count ?? 0,
+    all: all.count ?? 0,
+    failures: failures.count ?? 0,
   }
 }
+
 
 export type AdminReferralOpsRow = {
   readonly referralId: string
@@ -284,19 +487,99 @@ export type AdminReferralOpsRow = {
   readonly fraudFlagCount: number
 }
 
+/** A venue the referral lookup fragment matched, for disambiguation. */
+export type AdminReferralVenueMatch = {
+  readonly id: string
+  readonly name: string
+}
+
+export type AdminReferralOpsPage = {
+  readonly rows: AdminReferralOpsRow[]
+  readonly meta: AdminPageMeta
+  /**
+   * Populated only when the venue fragment matched more than one venue. The
+   * RPC filters by a single `p_merchant_id`, so an ambiguous fragment cannot
+   * be pushed down; the panel asks which venue instead of silently showing
+   * one of them or nothing.
+   */
+  readonly venueMatches: readonly AdminReferralVenueMatch[]
+}
+
+/** Venues whose name contains the fragment, newest name order, capped. */
+const REFERRAL_VENUE_MATCH_LIMIT = 25
+
+async function findReferralVenues(
+  supabase: Awaited<ReturnType<typeof createAdminServiceRoleClient>>,
+  venue: string
+): Promise<AdminReferralVenueMatch[]> {
+  const { data, error } = await supabase
+    .from("merchants")
+    .select("id, business_name")
+    .ilike("business_name", containsPattern(venue))
+    .order("business_name", { ascending: true })
+    .limit(REFERRAL_VENUE_MATCH_LIMIT)
+
+  if (error) {
+    throw new Error(`Unable to resolve referral venue: ${error.message}`)
+  }
+
+  return (data ?? []).map((row) => ({
+    id: String(row.id),
+    name: String(row.business_name),
+  }))
+}
+
 /**
  * Support operational referral view (referral ops visibility): the
  * internal-admin detail behind /admin/referrals. Reads the admin_referral_ops RPC
  * through the gated admin service-role client (its is_service_role_request branch
  * accepts the loader; requireAdminRead has already gated the page).
+ *
+ * Paged, counted and venue-filterable (04#6). Two shapes the other admin
+ * lists do not have to deal with, both forced by the RPC's fixed signature
+ * `admin_referral_ops(uuid, text, integer, integer)`:
+ *
+ * 1. It returns no total, so the count is a separate head-only read of
+ *    `referrals` — the same pattern billing uses.
+ * 2. It filters by one venue id, not a name fragment. The fragment is
+ *    resolved against `merchants` first; a single match is pushed down, and
+ *    an ambiguous one is returned as `venueMatches` for the operator to
+ *    choose from rather than being applied to whichever venue sorted first.
  */
-export async function getAdminReferralOps(): Promise<AdminReferralOpsRow[]> {
+export async function getAdminReferralOps(
+  lookup: AdminLookupQuery = {}
+): Promise<AdminReferralOpsPage> {
   const supabase = await createAdminServiceRoleClient()
+  const page = lookup.page ?? 1
+  const window = lookupRange(page, lookup.size)
+
+  const matches = lookup.venue
+    ? await findReferralVenues(supabase, lookup.venue)
+    : []
+  const decision = decideVenueFilter(lookup.venue, matches)
+  if (decision.kind === "none" || decision.kind === "ambiguous") {
+    // Not "fall back to unfiltered": a fragment that resolves to no single
+    // venue must not be answered with every referral on the platform.
+    return {
+      rows: [],
+      meta: pageMeta(0, page, lookup.size),
+      venueMatches: matches,
+    }
+  }
+  const venueId = decision.kind === "single" ? decision.venueId : null
+
+  const countQuery = supabase
+    .from("referrals")
+    .select("id", { count: "exact", head: true })
+  const { count } = await (venueId
+    ? countQuery.eq("venue_id", venueId)
+    : countQuery)
+
   const { data, error } = await supabase.rpc("admin_referral_ops", {
-    p_merchant_id: null,
+    p_merchant_id: venueId,
     p_status: null,
-    p_limit: 100,
-    p_offset: 0,
+    p_limit: window.to - window.from + 1,
+    p_offset: window.from,
   })
 
   if (error) {
@@ -304,25 +587,39 @@ export async function getAdminReferralOps(): Promise<AdminReferralOpsRow[]> {
   }
 
   const rows: unknown = data
-  if (!Array.isArray(rows)) return []
-
-  return rows.map((row) => {
-    const r = (row ?? {}) as Record<string, unknown>
+  if (!Array.isArray(rows)) {
     return {
-      referralId: String(r.referral_id ?? ""),
-      venueName: typeof r.venue_name === "string" ? r.venue_name : null,
-      status: String(r.status ?? ""),
-      holdReason: typeof r.hold_reason === "string" ? r.hold_reason : null,
-      referrerEmail: typeof r.referrer_email === "string" ? r.referrer_email : null,
-      referredEmail: typeof r.referred_email === "string" ? r.referred_email : null,
-      attributedAt: typeof r.attributed_at === "string" ? r.attributed_at : null,
-      qualifiedAt: typeof r.qualified_at === "string" ? r.qualified_at : null,
-      bonusAwardedAt:
-        typeof r.bonus_awarded_at === "string" ? r.bonus_awarded_at : null,
-      retryCount: Number(r.retry_count ?? 0),
-      fraudFlagCount: Number(r.fraud_flag_count ?? 0),
+      rows: [],
+      meta: pageMeta(count ?? 0, page, lookup.size),
+      venueMatches: [],
     }
-  })
+  }
+
+  return {
+    rows: rows.map(toAdminReferralOpsRow),
+    meta: pageMeta(count ?? 0, page, lookup.size),
+    venueMatches: [],
+  }
+}
+
+function toAdminReferralOpsRow(row: unknown): AdminReferralOpsRow {
+  const r = (row ?? {}) as Record<string, unknown>
+  return {
+    referralId: String(r.referral_id ?? ""),
+    venueName: typeof r.venue_name === "string" ? r.venue_name : null,
+    status: String(r.status ?? ""),
+    holdReason: typeof r.hold_reason === "string" ? r.hold_reason : null,
+    referrerEmail:
+      typeof r.referrer_email === "string" ? r.referrer_email : null,
+    referredEmail:
+      typeof r.referred_email === "string" ? r.referred_email : null,
+    attributedAt: typeof r.attributed_at === "string" ? r.attributed_at : null,
+    qualifiedAt: typeof r.qualified_at === "string" ? r.qualified_at : null,
+    bonusAwardedAt:
+      typeof r.bonus_awarded_at === "string" ? r.bonus_awarded_at : null,
+    retryCount: Number(r.retry_count ?? 0),
+    fraudFlagCount: Number(r.fraud_flag_count ?? 0),
+  }
 }
 
 /**
@@ -383,6 +680,67 @@ function redactDataRequestActivity(row: unknown): AdminDataRequestActivityRow {
     maskedCustomer: adminMaskedCustomer(customer),
     merchant: fallbackString(merchant?.business_name, "Merchant"),
   }
+}
+
+/**
+ * Paged audit readback with an optional venue filter. The audit log is a
+ * search surface by definition ("what did we do to venue X?"); it used to
+ * render the newest 100 rows with no filter, no total and no way to reach row
+ * 101. `merchants!inner` is only used when a venue fragment is supplied —
+ * plenty of audit rows have no merchant, and an unconditional inner join
+ * would silently drop them.
+ */
+export async function getAdminAuditPage(
+  lookup: AdminLookupQuery = {},
+  sort?: AdminSortState
+) {
+  const supabase = await createAdminServiceRoleClient()
+  const page = lookup.page ?? 1
+  const window = lookupRange(page, lookup.size)
+  const order = resolveAdminSort(sort, ADMIN_AUDIT_SORT_COLUMNS)
+  const merchantEmbed = lookup.venue
+    ? "merchants!inner(business_name)"
+    : "merchants(business_name)"
+
+  let query = supabase
+    .from("audit_logs")
+    .select(
+      `id, actor_type, actor_id, action, target_table, target_id, metadata, created_at, ${merchantEmbed}, customers(email, phone_last4)`,
+      { count: "exact" }
+    )
+
+  if (lookup.venue) {
+    query = query.ilike(
+      "merchants.business_name",
+      containsPattern(lookup.venue)
+    )
+  }
+  // The audit log's second question is "when": a trail with no date bound only
+  // answers "what happened most recently" (04#26). `to` is INCLUSIVE, so it
+  // compares against the start of the following day — `created_at` is a
+  // timestamp and a plain `lte` would drop the day that was asked for.
+  if (lookup.from) {
+    query = query.gte("created_at", lookup.from)
+  }
+  if (lookup.to) {
+    query = query.lt("created_at", exclusiveDayAfter(lookup.to))
+  }
+  if (order) {
+    query = query.order(order.column, { ascending: order.ascending })
+  }
+
+  // `created_at desc` stays as the last key whatever the operator chose, so a
+  // sort on a low-cardinality column (a dozen action names) still returns a
+  // stable, meaningful order inside each group rather than an arbitrary one.
+  const { data, error, count } = await query
+    .order("created_at", { ascending: false })
+    .range(window.from, window.to)
+
+  if (error) {
+    throw new Error(`Unable to load audit logs: ${error.message}`)
+  }
+
+  return { rows: data ?? [], meta: pageMeta(count ?? 0, page, lookup.size) }
 }
 
 export async function getAdminAuditLogs(limit = 100) {

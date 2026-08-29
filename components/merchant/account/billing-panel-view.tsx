@@ -119,10 +119,7 @@ export function BillingPanelView({
       {cleanupOutcomeQuery ? <BillingOutcomeQueryCleanup /> : null}
 
       {billingLoadFailed ? (
-        <StatusBanner
-          tone="error"
-          title={<h2>Billing details could not be loaded</h2>}
-        >
+        <StatusBanner tone="error" title="Billing details could not be loaded">
           This is usually temporary.{" "}
           <Link
             href={resolvedRefreshHref}
@@ -155,7 +152,7 @@ export function BillingPanelView({
             </p>
           ) : null}
 
-          <div className="grid gap-3 border-t-2 border-dashed border-ink/20 pt-5">
+          <div className="grid gap-3 border-t-2 border-dashed border-line pt-5">
             {presentation.primaryAction.kind === "checkout" ? (
               <BillingCheckoutForm
                 checkoutAction={checkoutAction}
@@ -191,16 +188,12 @@ export function BillingPanelView({
                       value={billingReturnTo}
                     />
                   ) : null}
-                  <Button type="submit" className="min-h-11 w-full sm:w-fit">
+                  <Button type="submit" className="w-full sm:w-fit">
                     Update payment method
                     <Icon icon={ArrowRight01Icon} size={16} />
                   </Button>
                 </form>
-                <Button
-                  asChild
-                  variant="secondary"
-                  className="min-h-11 w-full sm:w-fit"
-                >
+                <Button asChild variant="secondary" className="w-full sm:w-fit">
                   <Link href="/app/account/cancel">
                     Review cancellation options
                   </Link>
@@ -259,7 +252,7 @@ function ComplimentaryBillingAccess({
       {billingLoadFailed ? (
         <StatusBanner
           tone="error"
-          title={<h2>Existing billing details could not be checked</h2>}
+          title="Existing billing details could not be checked"
         >
           Your complimentary access is unaffected.{" "}
           {refreshHref ? (
@@ -281,19 +274,26 @@ function ComplimentaryBillingAccess({
           description="This venue has complimentary access. No new card or Stripe subscription is required."
         />
 
-        <dl className="grid gap-0 rounded-lg border border-border bg-secondary/40 px-3 py-1 text-sm">
+        <dl className="grid gap-0 rounded-lg border-2 border-ink/20 bg-secondary/40 px-4 py-2 text-sm">
           <PlanRow label="Access" value="Active" />
           <PlanRow label="Cost" value="£0" />
           <PlanRow label="Billing" value="Not required" />
         </dl>
 
+        {/* This one banner keeps its <h2>. 03#59 removed heading elements from
+            StatusBanner titles, which is right in general — a banner should not
+            smuggle a rank into the document outline. But on the complimentary
+            branch this banner IS the section's heading (there is no other), and
+            merchant-billing-recovery asserts
+            getByRole("heading", { name: "Billing access is active" }).
+            The other three titles 03#59 flattened stay plain strings. */}
         <StatusBanner tone="success" title={<h2>Billing access is active</h2>}>
           You can use every included merchant feature without starting a new
           payment plan. Venue launch status is shown separately.
         </StatusBanner>
 
         {hasStripeCustomer && portalAction ? (
-          <div className="grid gap-2 border-t-2 border-dashed border-ink/20 pt-5">
+          <div className="grid gap-2 border-t-2 border-dashed border-line pt-5">
             <p className="text-sm leading-6 text-muted-foreground">
               An existing Stripe customer is still linked to this venue. You can
               manage its card, invoices, or subscription without starting a new
@@ -303,7 +303,7 @@ function ComplimentaryBillingAccess({
               {billingReturnTo ? (
                 <input type="hidden" name="returnTo" value={billingReturnTo} />
               ) : null}
-              <Button type="submit" className="min-h-11 w-full sm:w-fit">
+              <Button type="submit" className="w-full sm:w-fit">
                 Manage existing Stripe billing
                 <Icon icon={ArrowRight01Icon} size={16} />
               </Button>
@@ -323,7 +323,10 @@ function BillingReceipt({
   const receipt = buildBillingPresentation(billing).receipt
 
   return (
-    <dl className="grid gap-0 rounded-lg border border-border bg-secondary/40 px-3 py-1 text-sm">
+    // The money surface: a 2px ink-tinted rule and py-2 gutters rather than the
+    // system's thinnest 1px border and 4px of padding, which left the first and
+    // last PlanRow separators flush against the container edge (03#58).
+    <dl className="grid gap-0 rounded-lg border-2 border-ink/20 bg-secondary/40 px-4 py-2 text-sm">
       {receipt.kind === "unknown" ? (
         <PlanRow label="Plan details" value={receipt.message} />
       ) : receipt.kind === "cycle" ? (
@@ -368,6 +371,11 @@ function BillingOutcomeBanner({
   const model = billingOutcomeModel(outcome)
 
   return (
+    // <h2>, like the complimentary banner above. 03#59 flattened these to
+    // plain strings, but the billing outcome banner IS the section's heading on
+    // every Stripe return path, and merchant-billing-recovery asserts
+    // getByRole("heading") for "Checkout confirmed", "Billing details
+    // refreshed" and "Billing not confirmed".
     <StatusBanner tone={model.tone} title={<h2>{model.title}</h2>}>
       <span className="grid gap-3">
         <span>{model.message}</span>

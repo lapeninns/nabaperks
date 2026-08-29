@@ -110,7 +110,7 @@ function EarnedStampContent({
         <span
           aria-hidden="true"
           className={cn(
-            "font-mono leading-none font-bold tracking-[0.02em] uppercase",
+            "font-mono leading-none font-bold uppercase",
             compact ? "text-[0.69rem]" : "text-[0.81rem]"
           )}
         >
@@ -134,7 +134,7 @@ function EmptyStampContent({ emptyLabel }: { readonly emptyLabel: string }) {
   return (
     <span
       aria-hidden="true"
-      className="text-base leading-none font-extrabold tabular-nums"
+      className="numeric-tabular text-base leading-none font-extrabold"
     >
       {emptyLabel}
     </span>
@@ -156,8 +156,8 @@ function StampDateText({
       className={cn(
         "mono-id leading-none",
         compact
-          ? "tracking-[0.04em]"
-          : "mt-px border-t border-stamp-foreground/40 pt-px tracking-[0.09em]"
+          ? "tracking-meta"
+          : "mt-px border-t border-stamp-foreground/40 pt-px tracking-tag"
       )}
     >
       {dateText}

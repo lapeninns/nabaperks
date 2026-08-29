@@ -1,12 +1,7 @@
 import { cn } from "@/lib/utils"
 
 export type MemberMarkTone =
-  | "ready"
-  | "waiting"
-  | "new"
-  | "quiet"
-  | "redeemed"
-  | "collecting"
+  "ready" | "waiting" | "new" | "quiet" | "redeemed" | "collecting"
 
 const TONE_CLASSES: Record<MemberMarkTone, string> = {
   ready: "border-leaf bg-card text-foreground",
@@ -51,7 +46,7 @@ export function MemberMark({
       )}
       style={{ width: size, height: size, fontSize: Math.round(size * 0.32) }}
     >
-      <span className="relative z-[1] tracking-[0.02em]">{text}</span>
+      <span className="relative z-[1]">{text}</span>
     </span>
   )
 }

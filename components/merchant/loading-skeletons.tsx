@@ -35,30 +35,38 @@ export function MerchantPageTitleSkeleton() {
  *  mono caption) beside the status row, venue title, and action row. */
 export function DashboardQrCardSkeleton() {
   return (
-    <ReceiptCard
-      edge
-      className="grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start sm:gap-6"
-    >
-      <div className="mx-auto grid w-fit justify-items-center gap-2 sm:mx-0">
-        <Skeleton className="aspect-square size-[9.25rem] rounded-lg" />
-        <Skeleton className="h-3 w-32" />
-      </div>
-      <div className="grid gap-3">
-        <div className="grid gap-2">
-          <div className="flex items-center gap-2.5">
-            <Skeleton className="h-3 w-24" />
-            <Skeleton className="h-5 w-14 rounded-full" />
+    // Same `@container` split as DashboardQrCardView: the skeleton stands in
+    // for a card that may be in the page column or in the xl sidecar, and a
+    // viewport breakpoint here would reserve a two-column shape the real card
+    // then renders as one (03#12).
+    <div className="@container">
+      <ReceiptCard
+        edge
+        className="grid gap-4 @md:grid-cols-[auto_minmax(0,1fr)] @md:items-start @md:gap-6"
+      >
+        <div className="mx-auto grid w-fit justify-items-center gap-2 @md:mx-0">
+          {/* 9.25rem is the frame, not the code: a 6rem QR inside p-4 + inner
+              p-2 + 2px borders. Mirrors DashboardQrCardView exactly. */}
+          <Skeleton className="aspect-square size-[9.25rem] rounded-lg" />
+          <Skeleton className="h-3 w-32" />
+        </div>
+        <div className="grid gap-3">
+          <div className="grid gap-2">
+            <div className="flex items-center gap-2.5">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-5 w-14 rounded-full" />
+            </div>
+            <Skeleton className="h-6 w-52 max-w-full" />
           </div>
-          <Skeleton className="h-6 w-52 max-w-full" />
+          <Skeleton className="h-4 w-full max-w-md" />
+          <div className="flex flex-wrap gap-2">
+            <Skeleton className="h-11 w-36" />
+            <Skeleton className="h-11 w-28" />
+            <Skeleton className="h-9 w-32" />
+          </div>
         </div>
-        <Skeleton className="h-4 w-full max-w-md" />
-        <div className="flex flex-wrap gap-2">
-          <Skeleton className="h-11 w-40" />
-          <Skeleton className="h-11 w-28" />
-          <Skeleton className="h-9 w-32" />
-        </div>
-      </div>
-    </ReceiptCard>
+      </ReceiptCard>
+    </div>
   )
 }
 
@@ -75,14 +83,14 @@ export function MerchantDashboardMetricsSkeleton() {
       role="status"
       aria-label="Loading dashboard metrics"
     >
-      <section className="grid gap-3">
+      <section className="grid gap-3.5">
         <div className="grid gap-3">
           <Skeleton className="h-3 w-24" />
           <Skeleton className="h-6 w-56 max-w-full" />
           <Skeleton className="h-4 w-full max-w-xl" />
         </div>
 
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3.5 md:grid-cols-4">
           {[0, 1, 2, 3].map((tile) => (
             <div
               key={tile}
@@ -124,13 +132,13 @@ export function MerchantCompactActivitySkeleton() {
     // Sibling of MerchantDashboardMetricsSkeleton on /app — that skeleton owns
     // the single authoritative `role="status"` announcement, so this fallback is
     // hidden from assistive tech to avoid a duplicate "Loading…" on stream.
-    <ReceiptCard className="grid gap-4" aria-hidden="true">
+    <ReceiptCard className="grid gap-3.5" aria-hidden="true">
       <div className="flex items-end justify-between gap-3">
         <Skeleton className="h-5 w-36" />
         <Skeleton className="h-9 w-20" />
       </div>
 
-      <ol className="overflow-hidden rounded-lg bg-background/60 p-0 [&>li+li]:border-t-2 [&>li+li]:border-dashed [&>li+li]:border-ink/15">
+      <ol className="overflow-hidden rounded-lg bg-background/60 p-0 [&>li+li]:border-t-2 [&>li+li]:border-dashed [&>li+li]:border-line">
         {[0, 1, 2, 3].map((row) => (
           <li
             key={row}
@@ -148,6 +156,49 @@ export function MerchantCompactActivitySkeleton() {
         ))}
       </ol>
     </ReceiptCard>
+  )
+}
+
+// ─── Announcements ────────────────────────────────────────────────────────────
+
+/**
+ * Mirrors {@link AnnouncementCompose}: the section header, the dashed audience
+ * strip, the two labelled fields with their character counters, and the footer
+ * row that carries the Send button.
+ */
+export function AnnouncementComposeSkeleton() {
+  return (
+    <div
+      role="status"
+      aria-label="Loading announcement composer"
+      className="surface-card grid min-w-0 gap-5 p-4 sm:p-5"
+    >
+      <div className="grid gap-2">
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-6 w-56 max-w-full" />
+        <Skeleton className="h-4 w-full max-w-md" />
+      </div>
+
+      <div className="grid gap-2 rounded-lg border-2 border-dashed border-line bg-secondary/45 px-4 py-3">
+        <Skeleton className="h-4 w-3/5" />
+        <Skeleton className="h-3 w-4/5" />
+      </div>
+
+      {[0, 1].map((field) => (
+        <div key={field} className="grid gap-2">
+          <div className="flex items-center justify-between gap-3">
+            <Skeleton className="h-3 w-32" />
+            <Skeleton className="h-3 w-10" />
+          </div>
+          <Skeleton className={field === 0 ? "h-11 w-full" : "h-24 w-full"} />
+        </div>
+      ))}
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Skeleton className="h-4 w-56 max-w-full" />
+        <Skeleton className="h-11 w-full sm:w-48" />
+      </div>
+    </div>
   )
 }
 
@@ -234,20 +285,9 @@ export function MerchantCustomersTableSkeleton() {
       role="status"
       aria-label="Loading loyalty members"
     >
-      {/* Summary strip */}
-      <div className="surface-card grid grid-cols-3 gap-px overflow-hidden bg-line">
-        {[0, 1, 2].map((cell) => (
-          <div
-            key={cell}
-            className="grid justify-items-center gap-1.5 bg-card px-2 py-3"
-          >
-            <Skeleton className="h-6 w-10" />
-            <Skeleton className="h-3 w-14" />
-          </div>
-        ))}
-      </div>
-
-      {/* Search + filter pills */}
+      {/* Search + filter pills. The summary strip that used to lead this
+          fallback is gone with the table's own StatStrip (03#22); the counts
+          live in the pills and the readback line below. */}
       <div className="grid gap-3 sm:flex sm:items-center sm:justify-between">
         <Skeleton className="h-11 w-full sm:max-w-xs" />
         <div className="flex flex-wrap gap-2">
@@ -256,6 +296,9 @@ export function MerchantCustomersTableSkeleton() {
           ))}
         </div>
       </div>
+
+      {/* Readback line */}
+      <Skeleton className="h-3 w-56 max-w-full" />
 
       {/* Phone + tablet: stacked cards (the real card list shows below lg) */}
       <ul className="grid gap-2.5 lg:hidden">
@@ -293,7 +336,7 @@ export function MerchantCustomersTableSkeleton() {
         {rows.map((row) => (
           <div
             key={row}
-            className="flex items-start gap-4 border-b border-dashed border-ink/15 px-4 py-3 last:border-b-0"
+            className="flex items-start gap-4 border-b border-dashed border-line px-4 py-3 last:border-b-0"
           >
             <span className="flex flex-1 items-center gap-2.5">
               <Skeleton className="size-8 rounded-full" />
@@ -378,7 +421,7 @@ export function LaunchPanelSkeleton({
             {[0, 1, 2].map((row) => (
               <div
                 key={row}
-                className="grid grid-cols-[auto_1fr_auto] items-start gap-2.5 rounded-lg border-[1.5px] border-border p-2.5"
+                className="grid grid-cols-[auto_1fr_auto] items-start gap-2.5 rounded-lg border-2 border-border p-2.5"
               >
                 <Skeleton className="size-8 rounded-full" />
                 <div className="grid gap-1.5">
@@ -390,7 +433,7 @@ export function LaunchPanelSkeleton({
             ))}
           </div>
           {/* Dashed "Add a reward" button. */}
-          <Skeleton className="h-12 w-full rounded-lg border-2 border-dashed border-ink/25 bg-transparent" />
+          <Skeleton className="h-12 w-full rounded-lg border-2 border-dashed border-line bg-transparent" />
         </section>
       </div>
     )
@@ -403,7 +446,7 @@ export function LaunchPanelSkeleton({
         role="status"
         aria-label="Loading setup form"
       >
-        <div className="grid min-w-0 gap-3 rounded-lg border border-border bg-card p-3 sm:gap-5 sm:p-6">
+        <div className="surface-card grid min-w-0 gap-3 p-3 sm:gap-5 sm:p-6">
           <div className="flex items-start justify-between gap-3">
             <div className="grid gap-2">
               <Skeleton className="h-6 w-32" />
@@ -487,7 +530,7 @@ export function AccountBillingPanelSkeleton() {
           {[0, 1, 2].map((line) => (
             <div
               key={line}
-              className="flex items-center justify-between gap-4 border-b border-dashed border-ink/15 py-2.5 last:border-b-0"
+              className="flex items-center justify-between gap-4 border-b border-dashed border-line py-2.5 last:border-b-0"
             >
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-4 w-20" />
@@ -497,7 +540,7 @@ export function AccountBillingPanelSkeleton() {
 
         <Skeleton className="h-4 w-full max-w-sm" />
 
-        <div className="grid gap-4 border-t-2 border-dashed border-ink/20 pt-5">
+        <div className="grid gap-4 border-t-2 border-dashed border-line pt-5">
           {/* Active/trialing steady state shows a single Stripe action. */}
           <div className="flex flex-wrap gap-2">
             <Skeleton className="h-11 w-40" />
@@ -518,15 +561,19 @@ export function AccountBillingPanelSkeleton() {
 export function RewardScanContentSkeleton() {
   return (
     <div className="grid gap-4" role="status" aria-label="Loading reward">
-      <div className="flex overflow-hidden rounded-lg border-2 border-ink bg-card">
+      <div className="surface-card-flat flex overflow-hidden">
         <div className="grid flex-1 content-center gap-2 p-4">
           <Skeleton className="h-3 w-24" />
           <Skeleton className="h-5 w-40 max-w-full" />
           <Skeleton className="h-4 w-full max-w-xs" />
         </div>
+        {/* border-line-strong, not border-ink/50: identical pixels (both are
+            50% ink) but the named token. DESIGN.md · Elevation & Depth allows
+            exactly two dashed tones and this is the ticket perforation that
+            mirrors the RewardTicket beside it. */}
         <span
           aria-hidden="true"
-          className="border-l-2 border-dashed border-ink/50"
+          className="border-l-2 border-dashed border-line-strong"
         />
         <div className="grid w-[88px] content-center justify-items-center gap-2 p-3">
           <Skeleton className="size-10 rounded-full" />
@@ -534,7 +581,7 @@ export function RewardScanContentSkeleton() {
         </div>
       </div>
 
-      <div className="grid gap-2 rounded-xl border-2 border-ink bg-card p-4">
+      <div className="grid gap-2 rounded-lg border-2 border-ink bg-card p-4">
         {[0, 1].map((line) => (
           <div key={line} className="flex items-center justify-between gap-4">
             <Skeleton className="h-4 w-20" />
@@ -605,7 +652,7 @@ export function OfferPassScanContentSkeleton() {
   return (
     <div className="grid gap-4" role="status" aria-label="Loading offer pass">
       <div>
-        <div className="grid gap-2 rounded-lg border-2 border-ink bg-card p-4">
+        <div className="surface-card-flat grid gap-2 p-4">
           <Skeleton className="h-3 w-24" />
           <Skeleton className="h-9 w-36" />
           <Skeleton className="h-4 w-40" />
@@ -614,7 +661,7 @@ export function OfferPassScanContentSkeleton() {
         <div aria-hidden="true" className="receipt-edge" />
       </div>
 
-      <div className="grid gap-2 rounded-xl border-2 border-ink bg-card p-4">
+      <div className="grid gap-2 rounded-lg border-2 border-ink bg-card p-4">
         {[0, 1].map((line) => (
           <div key={line} className="flex items-center justify-between gap-4">
             <Skeleton className="h-4 w-20" />

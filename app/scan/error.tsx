@@ -11,7 +11,7 @@ export default function CustomerScanError({
   reset: () => void
 }) {
   return (
-    <CustomerShell className="grid content-center">
+    <CustomerShell>
       <CustomerErrorState
         title="Scanner unavailable"
         description="The scanner could not be opened safely. Try again, or point your phone's camera at the printed venue QR."

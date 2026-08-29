@@ -25,3 +25,4 @@ export {
   type ActivityCategory,
   type StatusKind,
 } from "./icons"
+export { ErrorAlertRegion } from "./error-alert-region"

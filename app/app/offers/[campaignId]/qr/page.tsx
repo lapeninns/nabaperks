@@ -4,6 +4,7 @@ import { ArrowLeft02Icon, Download04Icon } from "@hugeicons/core-free-icons"
 
 import { Icon } from "@/components/brand"
 import { StatusBanner } from "@/components/loyalty/status-banner"
+import { Disclosure } from "@/components/merchant/launch/disclosure"
 import {
   OfferActionNotice,
   OfferCampaignPanel,
@@ -80,7 +81,7 @@ export default async function OfferCampaignQrPage({
           className="grid justify-items-center gap-5 rounded-lg border-2 border-ink bg-ink p-6 text-paper sm:p-10"
         >
           <div className="grid justify-items-center gap-2 text-center">
-            <p className="mono-meta tracking-[0.2em] text-paper/70">
+            <p className="mono-meta tracking-code text-paper/70">
               Scan to claim
             </p>
             <h2 className="max-w-[18ch] text-2xl leading-tight font-extrabold text-balance sm:text-3xl">
@@ -93,14 +94,14 @@ export default async function OfferCampaignQrPage({
             ) : null}
           </div>
 
-          <div className="rounded-2xl border-2 border-ink bg-white p-4 shadow-[8px_8px_0_var(--w-shadow-color)] sm:p-6">
+          <div className="rounded-lg border-2 border-ink bg-qr-foreground p-4 shadow-2xl sm:p-6">
             {/* eslint-disable-next-line @next/next/no-img-element -- merchant-scoped, no-store QR bytes */}
             <img
               src={`${qrPath}.png`}
               alt={`Campaign QR code for ${venueName}`}
               width={720}
               height={720}
-              className="aspect-square h-auto w-[min(80vmin,30rem)] rounded-lg bg-white"
+              className="aspect-square h-auto w-[min(80vmin,30rem)] rounded-lg bg-qr-foreground"
             />
           </div>
 
@@ -110,7 +111,7 @@ export default async function OfferCampaignQrPage({
               you want it claimed. People who already hold your loyalty card
               cannot claim.
             </p>
-            <p className="font-mono text-[11px] leading-5 break-all text-paper/60">
+            <p className="font-mono text-meta leading-5 break-all text-paper/60">
               {claimUrl.replace(/^https?:\/\//, "")}
             </p>
             <Button asChild variant="secondary">
@@ -129,16 +130,23 @@ export default async function OfferCampaignQrPage({
         </StatusBanner>
       )}
 
-      <OfferCampaignPanel
-        campaign={campaign}
-        claimUrl={claimUrl}
-        qrHref={qrPath}
-        qrImageHref={`${qrPath}.png`}
-        returnTo={qrPath}
-        stampsRequired={desk.stampsRequired}
-        showQrLink={false}
-        showShareRow={false}
-      />
+      {/* This is the present-mode screen — the one a merchant holds up at the
+          counter — so the full management panel (rules summary, lifecycle
+          controls, five metric tiles) folds away behind a disclosure instead of
+          re-rendering below the hero. Nothing was removed: the same panel, one
+          tap away, and no second visible "End this offer" on the same journey. */}
+      <Disclosure label="Manage this offer" summaryClassName="min-h-11">
+        <OfferCampaignPanel
+          campaign={campaign}
+          claimUrl={claimUrl}
+          qrHref={qrPath}
+          qrImageHref={`${qrPath}.png`}
+          returnTo={qrPath}
+          stampsRequired={desk.stampsRequired}
+          showQrLink={false}
+          showShareRow={false}
+        />
+      </Disclosure>
     </div>
   )
 }

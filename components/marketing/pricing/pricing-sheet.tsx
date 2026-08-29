@@ -24,7 +24,7 @@ export function PricingSheet({
   return (
     <div
       className={cn(
-        "min-w-0 overflow-hidden rounded-(--radius-sheet) border-2 border-ink bg-card text-card-foreground shadow-md",
+        "min-w-0 overflow-hidden rounded-sheet border-2 border-ink bg-card text-card-foreground shadow-md",
         className
       )}
       {...props}

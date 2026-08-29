@@ -3,6 +3,14 @@
 @import "shadcn/tailwind.css";
 @source "../app/**/*.tsx";
 @source "../components/**/*.tsx";
+/* Tailwind v4 auto-scans every non-gitignored file in the project, so prose is
+   a source. docs/ui-audit/*.md quotes class names constantly — "this shipped as
+   bg-card/95 + backdrop-blur-sm" — and every quoted utility was being compiled
+   into the production stylesheet for components that no longer use it. Proof:
+   `bg-card/95` appears in zero .tsx files and was still in the bundle.
+   Measured at 16,151 bytes, 6.4% of the CSS. Documentation must not be able to
+   change what ships. */
+@source not "../docs/**";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -44,6 +52,7 @@
   --color-cobalt: var(--w-cobalt);
   --color-leaf: var(--w-leaf);
   --color-sun: var(--w-sun);
+  --color-sun-ink: var(--w-sun-ink);
 
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
@@ -60,17 +69,48 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
+  /* Letter-spacing rungs. Eleven distinct tracking-[…] arbitraries were in use
+     against a two-value contract; these are the only sanctioned rungs.
+     meta = .mono-meta/.mono-id/.eyebrow's own 0.06em; tag = the wider MonoTag
+     register; code = genuine character separation for OTP digits and serials. */
+  /* The two sanctioned sizes below text-xs, as standalone utilities. They
+     previously existed only INSIDE .mono-id / .mono-meta, which also bundle the
+     mono family, 700 weight and uppercase — so any surface wanting just the
+     size hand-rolled text-[10px] / text-[11px] / text-[0.6875rem] instead. */
+  --text-micro: 0.625rem;
+  --text-meta: 0.71875rem;
+
+  /* DESIGN.md's `marketing-hero` rank, minted the same way `.type-page-title`
+     mints the page-title rank. The two site heroes hand-numbered themselves
+     `lg:text-6xl` (60px) against a contract that says 56px, so the design
+     system and the largest type object on the site disagreed by 4px. The
+     rung is a size only — weight, leading and tracking stay at the call
+     site, as they do for every other minted rank. (01#15) */
+  --text-marketing-hero: 3.5rem; /* 56px — DESIGN.md typography.marketing-hero */
+
+  --tracking-meta: 0.06em;
+  --tracking-tag: 0.08em;
+  --tracking-code: 0.18em;
+
   --font-sans: var(--font-bricolage-grotesque);
   --font-heading: var(--font-bricolage-grotesque);
   --font-mono: var(--font-space-mono);
 
+  /* Three shapes, not seven. DESIGN.md's contract is sm (chips/tags), lg (every
+     surface) and full (the stamp family only). The xl/2xl/3xl/4xl rungs existed
+     only because stock shadcn shipped them, and they had drifted onto 29 real
+     surfaces while the unlayered Wet Ink layer silently overrode them on
+     another 5 — two radii for one card, decided by whether a slot happened to
+     be themed. Removed so `rounded-xl` cannot compile and the drift cannot
+     recur. */
   --radius-sm: calc(var(--radius) - 6px);
   --radius-md: calc(var(--radius) - 4px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
+  /* The sheet rung. Declared in @theme (not only :root) so it compiles to real
+     `rounded-sheet` / `rounded-t-sheet` utilities — previously it existed only
+     as a custom property, so every sheet hand-numbered it as
+     `rounded-(--radius-sheet)` or, worse, a raw `rounded-t-[18px]`. */
+  --radius-sheet: 18px;
 
   /* Wet Ink elevation — hard offset shadows, never blurred. */
   --shadow-2xs: 1px 1px 0 var(--w-shadow-color);
@@ -101,6 +141,12 @@
 
 :root {
   /* Wet Ink base palette — warm paper, warm near-black ink, flat spot inks. */
+  /* The marketing sticky header: py-3 around a min-h-11 logo ~= 68px. Five
+     different numbers used to clear it — scroll-mt-24, scroll-mt-28,
+     lg:top-24, lg:top-20 — so an anchor jump landed under the header on some
+     surfaces and 44px below it on others (MKT 01#5). One number now. */
+  --marketing-header-h: 4.25rem;
+
   --w-paper: #f6f1e6;
   --w-paper-2: #ece5d4;
   --w-card: #fbf8f1;
@@ -116,6 +162,10 @@
   --w-cobalt: #2b43c8;
   --w-leaf: #16733c;
   --w-sun: #f5a623;
+  /* Sun is a FILL ink: #f5a623 on paper is ~1.8:1, unusable as text. This is
+     its text partner — the same hue driven into the ink — for the rare case a
+     sun-toned surface needs sun-coloured type. */
+  --w-sun-ink: color-mix(in oklch, var(--w-sun) 55%, var(--w-ink));
 
   --w-shadow-color: var(--w-ink);
 
@@ -144,14 +194,13 @@
   --destructive-foreground: #ffffff;
   --destructive-strong: #a62918;
 
-  --border: var(--w-line);
-  --input: var(--w-line);
+  --border: var(--w-line-strong);
+  --input: var(--w-line-strong);
   --ring: var(--w-accent);
 
   /* Loyalty semantics */
   --stamp: var(--w-accent);
   --stamp-foreground: var(--w-accent-ink);
-  --stamp-empty: var(--w-line);
 
   --seal: var(--w-sun);
   --seal-foreground: var(--w-ink);
@@ -177,6 +226,9 @@
   --sidebar-border: var(--w-line);
   --sidebar-ring: var(--w-accent);
 
+  /* Tell the UA which form controls, scrollbars and canvas to render. */
+  color-scheme: light;
+
   /* Shape — sharp-ish print shapes; circles are reserved for the stamp family. */
   --radius: 10px;
   --radius-sheet: 18px;
@@ -189,12 +241,10 @@
   --w-dur-move: 320ms;
   --w-dur-slam: 380ms;
   --w-dur-shake: 300ms;
-  --ease-stamp: var(--w-ease);
-  --duration-fast: var(--w-dur-fast);
-  --duration-reveal: var(--w-dur-move);
 }
 
 .dark {
+  color-scheme: dark;
   /* Wet Ink, night printing — same riso logic on dark paper. */
   --w-paper: #1b1712;
   --w-paper-2: #27211a;
@@ -209,6 +259,7 @@
   --w-cobalt: #7c90ec;
   --w-leaf: #3fae6e;
   --w-sun: #f5a623;
+  --w-sun-ink: color-mix(in oklch, var(--w-sun) 62%, var(--w-paper));
 
   --w-shadow-color: #0d0a07;
 
@@ -310,12 +361,64 @@ body[data-grain="true"]::after {
     transition-duration: 0s;
   }
 
+  /* The 44px tap floor, as one utility. Button's size variants already carry
+     this via `[@media(pointer:coarse)]:min-h-11`; anything interactive that is
+     NOT a Button (asChild badges, hand-rolled pills, interactive table cells)
+     should use `.tap-floor` rather than re-deriving the media query. */
+  .tap-floor {
+    touch-action: manipulation;
+  }
+
+  @media (pointer: coarse) {
+    .tap-floor {
+      min-height: 2.75rem;
+      min-width: 2.75rem;
+    }
+  }
+
   .surface-card {
     border: 2px solid var(--w-ink);
     border-radius: var(--radius-lg);
     background: var(--card);
     color: var(--card-foreground);
     box-shadow: var(--shadow-md);
+  }
+
+  /* Flat sibling of .surface-card — same ink border, radius and card ground,
+     no elevation. This is the single most-repeated surface in the product
+     (47 hand-rolled copies of `rounded-lg border-2 border-ink bg-card`
+     before it existed). Elevation is the ONLY difference between the two, so
+     "is this raised?" stays a one-token decision instead of a class-string
+     one. */
+  .surface-card-flat {
+    border: 2px solid var(--w-ink);
+    border-radius: var(--radius-lg);
+    background: var(--card);
+    color: var(--card-foreground);
+  }
+
+  /* Heading ranks — the named half of the type scale, mirroring DESIGN.md's
+     `typography` block so a rank is set in one place instead of being retyped
+     as utilities at every call site (the audit measured <h1> at 7 size
+     combinations and <h2> at 11). Font-size and leading only: colour, balance
+     and tracking stay at the call site.
+
+     Only the page-title rank is minted. The card-title rank is owned by its own
+     slot rule below, which tests/contracts/ux-production-polish locks to
+     weight-only — a size there would defeat MetricTile's text-2xl KPI value.
+     Body/small (15px/13.5px at weight 500) are not minted either: production
+     sets body with `text-sm`, and redefining it would restyle every paragraph
+     in the product — a design decision, not a codemod. */
+  .type-page-title {
+    font-size: 1.875rem; /* 30px — DESIGN.md page-title (mobile) */
+    line-height: 1.05;
+    font-weight: 800;
+  }
+
+  @media (width >= 40rem) {
+    .type-page-title {
+      font-size: 2.25rem; /* 36px — DESIGN.md page-title (sm+) */
+    }
   }
 
   /* Micro-type scale — the ONLY sizes below text-xs. Two mono utilities
@@ -334,8 +437,14 @@ body[data-grain="true"]::after {
     text-transform: uppercase;
   }
 
+  /* Colour is indirected through --eyebrow-color so an inverted surface can
+     re-point it instead of forking .eyebrow or hand-patching call sites. */
   .eyebrow {
-    color: var(--muted-foreground);
+    color: var(--eyebrow-color, var(--muted-foreground));
+  }
+
+  .on-ink {
+    --eyebrow-color: color-mix(in oklch, var(--w-paper) 72%, transparent);
   }
 
   .mono-id {
@@ -358,7 +467,14 @@ body[data-grain="true"]::after {
      (same mono face, 0.6875rem, 700, 0.08em); .w-tag is the documented alias
      for plain (non-Badge) elements. Long copy story: the pill caps at its
      container width — compose MonoTag (which truncates its content) or wrap
-     the text in a `truncate` span rather than letting the row overflow. */
+     the text in a `truncate` span rather than letting the row overflow.
+
+     KNOWN DEVIATION (03#25): the 1.5px border below is the last 1.5px stroke
+     in the product and it contradicts DESIGN.md's "borders are 2px solid ink
+     everywhere". It is not swept with the others because MonoTag applies this
+     class across ~52 files, so raising it to 2px is a product-wide visual
+     change needing human approval — NEEDS-SIGNOFF.md section 17. Pinned as the
+     only survivor by tests/contracts/ink-border-weight.test.mjs. */
   .w-tag {
     display: inline-flex;
     align-items: center;
@@ -442,6 +558,130 @@ body[data-grain="true"]::after {
   outline-offset: 2px;
 }
 
+/* Native checkboxes — the consent gates, the highest-trust controls in the
+   funnel — shipped as bare `accent-primary` browser defaults: a ~16-20px UA
+   widget with a hairline that carries none of the 2px-ink vocabulary, and no
+   invalid state despite aria-invalid being wired. This themes the native
+   control rather than importing an unthemed shadcn Checkbox, so the existing
+   markup, labels and form semantics are untouched.
+
+   `appearance: none` is scoped to checkboxes that opt in via .ink-check so a
+   stray checkbox elsewhere cannot lose its affordance silently. */
+.ink-check {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1.375rem;
+  height: 1.375rem;
+  border: 2px solid var(--w-ink);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  box-shadow: var(--shadow-hard-sm);
+  display: grid;
+  place-content: center;
+  cursor: pointer;
+  transition:
+    background-color var(--w-dur-fast) var(--w-ease),
+    box-shadow var(--w-dur-fast) var(--w-ease);
+}
+
+.ink-check::after {
+  content: "";
+  width: 0.6rem;
+  height: 0.34rem;
+  border-left: 2.5px solid var(--primary-foreground);
+  border-bottom: 2.5px solid var(--primary-foreground);
+  transform: rotate(-45deg) translate(1px, -1px) scale(0);
+  transition: transform var(--w-dur-fast) var(--w-ease);
+}
+
+.ink-check:checked {
+  background: var(--primary);
+}
+
+.ink-check:checked::after {
+  transform: rotate(-45deg) translate(1px, -1px) scale(1);
+}
+
+.ink-check:active:not(:disabled) {
+  box-shadow: none;
+  translate: 2px 2px;
+}
+
+.ink-check[aria-invalid="true"] {
+  border-color: var(--destructive);
+}
+
+.ink-check:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ink-check,
+  .ink-check::after {
+    transition: none;
+  }
+}
+
+/* Legal documents are the one surface people genuinely print or save as PDF —
+   a customer keeping the terms they agreed to, an operator filing the schedule.
+   Without a print treatment the sticky TOC, the site chrome and the hard offset
+   shadows all render into the page. (01#68) */
+@media print {
+  /* The TOC is targeted by element, not by a data attribute: adding one to
+     the <aside> pushed its tag past Prettier's print width, which re-wrapped
+     the line and broke legal-p3-polish's (formatting-sensitive) assertion on
+     `<aside className="…order-last…"`. The element selector needs no markup
+     change at all. */
+  [data-legal-document] aside,
+  [data-legal-document] [data-legal-related] {
+    display: none !important;
+  }
+
+  [data-legal-document] {
+    max-width: none;
+  }
+
+  /* Chrome off the printed record. 01#68's own complaint is that a merchant
+     who prints the terms to file them gets the sticky site header and the
+     four-column footer on the page; measured before this rule, both still
+     rendered at print media on /terms. `:has()` scopes it to a legal document
+     so printing any other screen still shows where it came from. It is NOT
+     paired with a "expand every <details>" rule: measured, the only
+     <details> on a legal route are the footer's own columns (the TOC
+     disclosure is inside the aside this block already hides), and no
+     cross-browser CSS can force one open in any case. */
+  body:has([data-legal-document]) > * > header,
+  body:has([data-legal-document]) > * > footer {
+    display: none !important;
+  }
+
+  [data-legal-document] * {
+    box-shadow: none !important;
+  }
+
+  /* Keep a clause and its heading together across a page break. */
+  [data-legal-document] section {
+    break-inside: avoid;
+  }
+}
+
+/* Programmatic focus targets — recovery blocks that an action or an error path
+   focuses by script. `.focus-ring` keys off `:focus-visible`, which browsers
+   deliberately do NOT match when focus is moved programmatically onto a
+   `tabIndex={-1}` container, so those blocks were focused with no visible
+   indication at all. Plain `:focus` is correct here precisely because scripted
+   focus is the intended trigger. scroll-margin keeps the block clear of the
+   sticky header when it is scrolled into view. */
+.focus-target {
+  scroll-margin-top: 5rem;
+}
+
+.focus-target:focus {
+  outline: 2px solid color-mix(in oklch, var(--ring) 85%, transparent);
+  outline-offset: 2px;
+}
+
 /* Destructive is excluded here and owns its full treatment below — its
    border/shadow are destructive-inked, and leaving it in this rule would
    need specificity games Lightning CSS's minifier optimises away. */
@@ -462,6 +702,30 @@ body[data-grain="true"]::after {
   scale: none;
   transform: none;
   --tw-shadow: 1px 1px 0 var(--w-shadow-color);
+}
+
+/* ── On-ink surfaces (MKT 01#32) ────────────────────────────────────────────
+   A button's silhouette is a 2px ink border over a 3px ink offset shadow. Put
+   that on `bg-ink` and both vanish: the press affordance and the printed edge
+   that define the button are simply gone.
+
+   `data-on-ink` flips both to paper. It replaces the hand-rolled
+   `[--w-shadow-color:var(--w-paper)]` that TakeoverAnchor and ScarcityBand each
+   carried — that fixed the shadow and left the border invisible, which is the
+   half of this finding that was still open.
+
+   Mirrors the base rule's variant exclusions exactly: ghost and link have no
+   border to flip, and destructive keeps its own inked border so it stays
+   legible as a warning even here. */
+[data-on-ink] {
+  --w-shadow-color: var(--w-paper);
+}
+
+[data-on-ink]
+  [data-slot="button"]:not([data-variant="ghost"]):not(
+    [data-variant="link"]
+  ):not([data-variant="destructive"]) {
+  border-color: var(--w-paper);
 }
 
 [data-slot="button"][data-variant="ghost"],
@@ -598,7 +862,18 @@ body[data-grain="true"]::after {
 }
 
 [data-slot="skeleton"] {
-  background-color: color-mix(in oklch, var(--w-ink) 13%, transparent);
+  /* 13% ink read at ~1.3:1 against paper — below the 3:1 non-text floor, so a
+     loading placeholder was barely perceivable. 20% lands near 1.6:1 for the
+     fill; the dashed hairline below carries the shape when the pulse is off. */
+  background-color: color-mix(in oklch, var(--w-ink) 20%, transparent);
+}
+
+/* Without the pulse, a flat block is easy to mistake for real empty content.
+   A static dashed edge keeps the placeholder legible as a placeholder. */
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="skeleton"] {
+    border: 2px dashed var(--w-line);
+  }
 }
 
 [data-slot="sheet-content"] {
@@ -644,6 +919,16 @@ body[data-grain="true"]::after {
    first adoption cannot ship the stock rounded-2xl + 1px hairline. The
    selector only fires when a Field is nested, so plain field labels
    (FormField) stay borderless. */
+/* Field labels are the most human thing on a form, so they take the spoken
+   register (Bricolage 14px/700), not the printed one. They used to be wrapped
+   in <Eyebrow> at every call site — 11.5px uppercase Space Mono, which defeats
+   word-shape recognition and sits below the practical floor for dyslexic
+   readers. DESIGN.md reserves mono/uppercase for IDs, codes, dates and
+   metadata; .eyebrow stays for the SECTION kicker above a field group. (05#23) */
+[data-slot="field-label"] {
+  font-weight: 700;
+}
+
 [data-slot="field-label"]:has(> [data-slot="field"]) {
   border: 2px solid var(--w-ink);
   border-radius: var(--radius-lg);
@@ -736,6 +1021,14 @@ body[data-grain="true"]::after {
   font-weight: 800;
 }
 
+/* The `size` prop was inert: this layer pinned every nav item to 44px, so the
+   component's own min-h-10 / min-h-12 could never render and `size="lg"`
+   (used by the console nav's primary rail) silently rendered at the default
+   height. Express the second rung here, where it can actually win. */
+[data-slot="sidebar-menu-button"][data-size="lg"] {
+  min-height: 3rem;
+}
+
 [data-slot="sidebar-menu-button"]:focus-visible {
   border-color: var(--w-ink);
   background: var(--sidebar-accent);
@@ -753,12 +1046,22 @@ body[data-grain="true"]::after {
   }
 }
 
+/* "You are here" is a location marker, not an action. It used to render as a
+   solid --w-accent fill with a 2px ink shadow — visually identical to the
+   page's primary button, so every console screen carried two elements claiming
+   to be the hottest thing on it. DESIGN.md reserves the filled vermillion as
+   THE action/stamp ink, so the active item now takes the card ground, the ink
+   border, an 800 label and a vermillion left bar: unmistakable as position,
+   without spending the action ink on it. (03#7) */
 [data-slot="sidebar-menu-button"][data-active="true"],
 [data-slot="sidebar-menu-button"][data-active="true"]:hover,
 [data-slot="sidebar-menu-button"][data-active="true"]:focus-visible {
   border-color: var(--w-ink);
-  background: var(--sidebar-primary);
-  color: var(--sidebar-primary-foreground);
+  border-left-width: 4px;
+  border-left-color: var(--primary);
+  background: var(--card);
+  color: var(--foreground);
+  font-weight: 800;
   --tw-shadow: 2px 2px 0 var(--w-shadow-color);
 }
 
@@ -905,12 +1208,18 @@ body[data-grain="true"]::after {
     scroll-behavior: auto;
   }
 
+  /* Kill motion, not feedback. A blanket `transition-duration` reset also
+     flattened colour, border and shadow transitions — including the 90ms
+     press settle and every hover state — which removes affordance rather than
+     motion. Reduced-motion users still want to see that a control responded;
+     they just do not want it to travel. */
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
+    transition-property: transform, translate, scale, rotate !important;
     transition-duration: 0.01ms !important;
   }
 
@@ -923,4 +1232,68 @@ body[data-grain="true"]::after {
     ):active:not(:disabled, [aria-disabled="true"]) {
     translate: 1px 1px;
   }
+}
+
+/* ── Scrollable-region edge fade (ADM 04#62) ────────────────────────────────
+   The third and last sanctioned functional gradient, alongside the zigzag edge
+   and the conic stamp ring. A focusable overflow-x container tells a screen
+   reader there is more to the right; it tells a sighted user nothing, and on
+   the billing and fraud tables the hidden columns carry the action controls.
+
+   Pure CSS, no scroll listener: the two opaque "cover" layers are attached
+   `local` so they travel with the content, and the two shadow layers are
+   attached `scroll` so they stay pinned to the box. At the left end the cover
+   sits over the left shadow and hides it; scroll right and the cover moves away,
+   revealing it. The fades therefore appear only on the side that has more
+   content, and a table that does not overflow shows neither. */
+.scroll-x-fade {
+  background:
+    linear-gradient(to right, var(--card) 60%, transparent) 0 0 / 28px 100%
+      no-repeat local,
+    linear-gradient(to left, var(--card) 60%, transparent) 100% 0 / 28px 100%
+      no-repeat local,
+    linear-gradient(
+        to right,
+        color-mix(in oklch, var(--foreground) 16%, transparent),
+        transparent
+      )
+      0 0 / 16px 100% no-repeat scroll,
+    linear-gradient(
+        to left,
+        color-mix(in oklch, var(--foreground) 16%, transparent),
+        transparent
+      )
+      100% 0 / 16px 100% no-repeat scroll;
+}
+
+/* ── Transient "updated" stamp on an admin record (ADM 04#50) ───────────────
+   AdminActionForm sets data-just-updated on the enclosing <details> after a
+   successful audited mutation and clears it after 8s. The mark goes on the
+   SUMMARY, which is the only part still on screen once the accordion collapses
+   the record — so an operator who has moved on and come back can still see
+   which record they changed.
+
+   Rendered with ::after rather than a React node so the collapsed state needs
+   no extra markup and no client re-render.
+
+   No entrance animation. The w-prefixed CSS animation vocabulary was
+   deliberately removed and motion-vocabulary.test.mjs keeps it out — including
+   out of comments, since it greps raw source. A fade is not worth reviving it,
+   so the stamp simply appears. */
+details[data-just-updated="true"] > summary::after {
+  content: "updated";
+  margin-inline-start: 0.5rem;
+  border-radius: var(--radius-sm);
+  /* 2px, per DESIGN.md's "borders are 2px solid ink everywhere". This shipped
+     at 1.5px in the 04#50 commit — added days after 03#25 swept 1.5px out of
+     the tree, by me. A rule is only as good as the next thing written under
+     it. */
+  border: 2px solid var(--reward);
+  padding-inline: 0.375rem;
+  font-family: var(--font-space-mono), ui-monospace, monospace;
+  font-size: 0.625rem;
+  line-height: 1.4;
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+  color: var(--reward);
 }

@@ -23,7 +23,7 @@ export function LaunchBillingActivationBanner({
         >
           <Link href={LAUNCH_BILLING_HREF}>
             Proceed to billing
-            <Icon icon={ArrowRight02Icon} size={15} />
+            <Icon icon={ArrowRight02Icon} size={16} />
           </Link>
         </Button>
       </div>

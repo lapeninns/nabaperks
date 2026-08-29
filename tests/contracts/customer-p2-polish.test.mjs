@@ -23,6 +23,18 @@ function readProjectFile(...segments) {
   return readFileSync(path.join(projectRoot, ...segments), "utf8")
 }
 
+/**
+ * Class-name assertions have to read the classes, not the prose about them.
+ * `customer-qr-scanner.tsx` documents the variant it deliberately does NOT
+ * use ("No `sm:grid-cols-2`: …"), so a naive doesNotMatch on the raw file
+ * fails on its own comment. Strip comments first.
+ */
+function withoutComments(source) {
+  return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "")
+}
+
+const VIEWPORT_VARIANT = /(?<![\w-])(?:sm|md|lg|xl):[a-z0-9[\]\-./%_]+/g
+
 test("CUS-P2-01: the receipt footer never invents a card number", () => {
   const flowSystem = readProjectFile(
     "components",
@@ -132,6 +144,106 @@ test("CUS-P2-07: money-path form errors use StatusBanner, not hand-rolled 1px ba
   }
 })
 
+test("CUS-P2-07b: the login OTP-sent confirmation uses the shared success face", () => {
+  const form = readProjectFile(
+    "components",
+    "customer",
+    "customer-login-form.tsx"
+  )
+  const banner = readProjectFile("components", "loyalty", "status-banner.tsx")
+
+  // The confirmation is StatusBanner tone="success", not a hand-rolled box.
+  assert.match(
+    form,
+    /<StatusBanner tone="success" title=\{state\.message\}>/,
+    "the OTP-sent confirmation must use StatusBanner tone=success"
+  )
+  assert.doesNotMatch(
+    form,
+    /border-reward\/30|bg-reward\/12/,
+    "no hand-rolled success box may return to the login form"
+  )
+  // Why that is safe: "we sent your code" must stay POLITE. StatusBanner
+  // derives its announcement from tone, and success resolves to role="status".
+  // If that mapping is ever changed to alert, this login confirmation starts
+  // interrupting screen readers, so pin the mapping here too (05#28).
+  assert.match(
+    banner,
+    /toneRole: Record<StatusBannerTone, "alert" \| "status"> = \{\s*\n\s*success: "status",/,
+    "StatusBanner success must announce politely, not assertively"
+  )
+})
+
+test("CUS 02#6: nothing inside the 410px customer column responds to viewport width", () => {
+  // The column is capped at 410px (max-w-customer), so a `sm:` variant on
+  // anything INSIDE it fires on a screen size the column never reaches: the
+  // phone gets the small value and a desktop browser showing the same 410px
+  // column gets the large one. Content files therefore carry no viewport
+  // variants at all.
+  const contentFiles = [
+    ["components", "customer", "customer-qr-scanner.tsx"],
+    ["components", "customer", "customer-qr-scanner-loader.tsx"],
+    // ADDITIVE (CUS 02#62): the shared scanner chrome is now where the exit
+    // row's classes live, so it inherits the same no-viewport-variant rule.
+    ["components", "customer", "scanner-chrome.tsx"],
+    ["components", "customer", "offer-pass-qr.tsx"],
+    ["components", "customer", "customer-card-experience.tsx"],
+    ["components", "customer", "reward-collection-qr.tsx"],
+    ["components", "loyalty", "reward-ticket.tsx"],
+  ]
+
+  for (const segments of contentFiles) {
+    const live = withoutComments(readProjectFile(...segments)).match(
+      VIEWPORT_VARIANT
+    )
+    assert.equal(
+      live,
+      null,
+      `${segments.join("/")} must not scale on viewport inside a capped column (found ${live?.join(", ")})`
+    )
+  }
+
+  // The two scanner surfaces must agree: the loader kept `sm:grid-cols-2`
+  // after the loaded scanner dropped it, so above 640px the fallback drew two
+  // 173px buttons and the loaded state then re-stacked them to 358px — a
+  // first-paint jump in the one place a comment promised parity.
+  for (const file of [
+    "customer-qr-scanner.tsx",
+    "customer-qr-scanner-loader.tsx",
+    // ADDITIVE (CUS 02#62): and now the one file that actually draws the row.
+    "scanner-chrome.tsx",
+  ]) {
+    assert.doesNotMatch(
+      withoutComments(readProjectFile("components", "customer", file)),
+      /grid-cols-2/,
+      `${file} exits must stack at every width`
+    )
+  }
+
+  // The shells are the exception and must stay the exception: their viewport
+  // variants are page-edge gutters and page top/bottom padding, which respond
+  // to the SCREEN, not the column. Anything else there is the same defect.
+  const shellFiles = [
+    ["components", "layout", "customer-shell.tsx"],
+    ["components", "layout", "customer-app-shell.tsx"],
+    ["components", "customer", "customer-flow-system.tsx"],
+    ["components", "customer", "loading-skeletons.tsx"],
+  ]
+
+  for (const segments of shellFiles) {
+    const live = withoutComments(readProjectFile(...segments)).match(
+      VIEWPORT_VARIANT
+    )
+    for (const variant of live ?? []) {
+      assert.match(
+        variant,
+        /^sm:(px|pt|pb)-/,
+        `${segments.join("/")} may only scale page padding on viewport, found ${variant}`
+      )
+    }
+  }
+})
+
 test("CUS-P2-08: logged-out card access asks for the action the button performs", () => {
   const derive = readProjectFile("lib", "customer", "experience", "derive.ts")
 
@@ -187,6 +299,33 @@ test("CUS-P2-11: the scanner intro speaks barista, not system", () => {
   assert.doesNotMatch(scanner, /OTP checks/)
   // \s+ tolerates the JSX line wrap; the rendered sentence is one line.
   assert.match(scanner, /No\s+app, no plastic\./)
+
+  // ADDITIVE (CUS 02#62). The loader draws the same header component but
+  // cannot import the sentence: this assertion pins it to the scanner by name,
+  // and the loader importing a constant from the scanner would drag the
+  // deferred html5-qrcode chunk into the fallback. So the string is stated
+  // twice — and the two statements must be the same string, or the fallback
+  // says something the loaded state does not.
+  const loader = readProjectFile(
+    "components",
+    "customer",
+    "customer-qr-scanner-loader.tsx"
+  )
+  // Anchored on the whole sentence: the scanner also carries "Point your
+  // camera at the venue QR to collect a stamp." as the invalid-code status
+  // line, and a lazy `[\s\S]*?` from the first "Point your camera" swallows
+  // the file between the two.
+  const INTRO_LINE =
+    /Point your camera at a Nabaperks venue QR to collect your stamp\.\s*No\s+app, no plastic\./
+  const introLine = (source) =>
+    source.match(INTRO_LINE)?.[0].replace(/\s+/g, " ")
+
+  assert.ok(introLine(scanner), "the scanner must carry the intro sentence")
+  assert.equal(
+    introLine(loader),
+    introLine(scanner),
+    "the loader fallback and the loaded scanner must state the same intro line"
+  )
 })
 
 test("CUS-P2-12/16: one customer journey, one column width (max-w-customer)", () => {

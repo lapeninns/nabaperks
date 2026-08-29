@@ -1,0 +1,2893 @@
+# UI audit fixes — items needing human sign-off
+
+All Tier-1 (zero content loss) work in Waves 1–3, plus the no-copy Wave-2
+height reductions, has shipped on `feat/ui-redesign-audit-fixes`. Items 1 and 2
+below were initially deferred and have since been resolved; the rest remain
+open because they need a human decision or a browser, not more effort.
+
+## 1. ~~Real 500 / 800 font weights~~ — RESOLVED
+
+Shipped in `feat(type): load the real 500 and 800 Bricolage faces`. Provenance
+was established by re-downloading Regular and Bold from the pinned commit
+(`ateliertriay/bricolage@84745e5b`, `fonts/ttf/`) and reproducing the two
+SHA-256 values already recorded in `assets/fonts/README.md`, then taking
+Medium and ExtraBold from that same tree. Both new faces carry the correct
+OS/2 `usWeightClass` (500, 800). Poster PDFs are unaffected — `lib/qr/*` pins
+the Regular/Bold filenames as exact string literal types, so the change is
+additive and browser-only.
+
+## 2. ~~A named type scale~~ — PARTLY RESOLVED
+
+`.type-page-title` now implements DESIGN.md's page-title token and is adopted
+by `PageTitle` plus the four `<h1>`s that had drifted off the responsive step.
+Note one visual correction: page titles now use the documented 1.05 leading
+rather than `leading-tight` (1.25).
+
+Still open, and genuinely design decisions rather than codemods:
+
+- **body / small.** DESIGN.md specifies 15px/13.5px at weight 500. Production
+  sets body with `text-sm` (14px) at 435 call sites. Redefining it restyles
+  every paragraph in the product.
+- **The marketing display rank.** `landing/hero` and `landing/process-hero`
+  use `text-4xl sm:text-6xl`; `pubs/pub-guide-hero` uses `text-3xl sm:text-5xl`.
+  Unifying them means choosing one ramp.
+- **`<h2>`.** Still 10 size combinations. DESIGN.md defines no section-title
+  token, so there is nothing to implement against — the rank needs specifying
+  before it can be enforced.
+
+## 3. ~~Three heroes~~ RESOLVED; legal TOC spines superseded
+
+The three heroes were measured and swept — see 01#12 in STATUS-marketing.md
+(1,044/975/1,117px stacked at 768px, 708/643/721px two-column, no overflow at
+768/900/1024). The legal TOC order is now covered by item 7's contract question
+rather than a visual one.
+
+Original text follows for history:
+
+The `md:` breakpoint sweep shipped for eight content grids. Left at `lg:`:
+`landing/hero`, `landing/process-hero`, `pubs/pub-guide-hero`, and the
+`/terms` + `/privacy` TOC spines. These pair prose with a rendered card, QR or
+240px sidebar, where a ~360px column at 768px is a judgement call. They need
+`pnpm test:visual` or a browser, which was not available here.
+
+## 4. Everything in Tier 3 / Tier 4
+
+Unchanged, as scoped: no legal/terms/privacy migration, no `confirmPassword`
+removal, no marketing copy cuts, no `Button` size API deletions. See
+`docs/ui-audit/README.md` for the full triage.
+
+## 5. One audit recommendation that contradicts a contract test — DISPOSITION
+
+**Recommendation: close audit pattern P1 as won't-fix, except the part already
+done.** Reasoning below; overrule it by renegotiating the contract deliberately.
+
+Audit pattern P1 asks for the dead stock classes in `components/ui/*` to be
+pruned so the files read as what they render.
+`tests/contracts/ux-production-polish.test.mjs` locks the opposite policy —
+"theme, not strip" — for `FieldLabel`, because those slots have live consumers
+and the unlayered layer already supplies their treatment. The test is
+authoritative; the audit finding should be closed as won't-fix or the contract
+renegotiated deliberately.
+
+### What P1 actually contained
+
+P1 lists fourteen dead declarations in `components/ui/*`. Two of them it flags as
+**not** overridden and shipping visibly wrong: `Card`'s stray `ring-1` hairline
+outside the 2px ink border, and its 24px image corners bulging past a 10px card.
+Those are a real defect, not a readability complaint, and they are **already
+fixed** — 05#18 is closed, `card.tsx` carries no `ring-1`, and nested images now
+take `rounded-t-lg`/`rounded-b-lg`.
+
+The other twelve are genuinely overridden. Verified rather than assumed: with
+`rounded-2xl` still in the source of six primitives, the computed radii are 10px
+on input/textarea/alert, 999px on badge and 4px on progress. The layer wins.
+
+So what remains of P1 is "prune declarations that have no visual effect so the
+file reads honestly" — worth something, but it is precisely what
+`ux-production-polish` forbids for the slots it covers, on the grounds that a
+pre-themed latent state must not be strippable. Trading a contract's safety
+property for source tidiness is a bad trade at this scale, and the two
+declarations that mattered are already gone.
+
+## 6. ~~The CSP theme-hash test cannot detect provider drift~~ — RESOLVED (05#61)
+
+`lib/security/csp.ts` pins three SHA-256 hashes for the next-themes bootstrap
+script. This section recorded two prerequisites before 05#61 could be actioned.
+Both are now done, and both of the things that made step 2 look impossible were
+wrong.
+
+### The three hashes are three BUNDLERS, not three unreachable render paths
+
+The body next-themes inlines is `(${themeScriptFn.toString()})(${args})`, and
+`toString()` returns whatever the active bundler emitted. So the hash differs
+per bundler as well as per option:
+
+| constant                                  | render path                                 |
+| ----------------------------------------- | ------------------------------------------- |
+| `NEXT_THEMES_SCRIPT_SHA256`               | `pnpm build` — webpack, minified            |
+| `NEXT_THEMES_SERVER_RENDER_SCRIPT_SHA256` | `react-dom/server` against `dist/index.mjs` |
+| `NEXT_THEMES_APP_RENDER_SCRIPT_SHA256`    | `pnpm dev` — SWC, pretty-printed            |
+
+The earlier note said `SERVER_RENDER` and `APP_RENDER` "come from render paths
+needing live credentials". They do not need credentials or authentication at
+all: `APP_RENDER` is what `next dev` serves on **any** page, including `/login`.
+Both dev modes agree — `next dev` (Turbopack) and `next dev --webpack`, which is
+what `playwright.config.ts` boots, emit byte-identical bodies.
+
+Confirming that took one wrong turn worth recording. Enumerating every next-themes
+bootstrap function text in the whole build output (server chunks, client chunks,
+`dist/index.mjs`, `dist/index.js`) and hashing each with the real options produced
+five candidates, two of which matched pins — so `APP_RENDER` looked like a **stale
+pin for a build artefact that no longer exists**, and the tempting conclusion was
+that it could be dropped. It could not: it is the dev-server hash, and dropping it
+would have broken the theme bootstrap in every local run and every Playwright run.
+An exhaustive search over the artefacts you thought of is not an exhaustive search.
+
+### Both prerequisites are done
+
+1. ~~Make the test import the real provider config.~~ Done earlier —
+   `NEXT_THEMES_OPTIONS` lives in `lib/theme/next-themes-options.ts`.
+2. ~~Re-pin all three hashes together.~~ Done, each by reading its own path back:
+   the webpack hash from `.next/server/app/index.html`, the dev hash from a page
+   served by `next dev`, the server-render hash from the unit test. Then verified
+   end-to-end in both servers: the script each one actually serves hashes to its
+   pin **and** appears in that same response's `script-src-elem`.
+
+`tests/unit/csp-theme-hash.test.mjs` now stores the two bundler bodies and asserts
+each one's argument tail equals the tail the real library produces from the live
+`NEXT_THEMES_OPTIONS`. Change an option and all three fail together, which is the
+behaviour this section asked for. Sabotage-checked four ways: flipping
+`enableSystem`, changing `storageKey`, corrupting one byte of a stored body, and
+duplicating two pins each fail it; all four restore clean.
+
+### A correction: this section overstated the defect
+
+The previous text said "the defect is real and High. `enableSystem` is on, so an
+OS-dark user gets `.dark` applied". **That is false**, measured in Chromium at
+`colorScheme: dark` against a production build with `enableSystem: true`:
+`documentElement.className` is `light` and the body ground stays
+`rgb(246, 241, 230)`. The bootstrap only consults `prefers-color-scheme` when the
+stored or default theme is the literal string `"system"`, and `defaultTheme` is
+`"light"`; nothing in the product ever calls `setTheme("system")`.
+
+So 05#61 shipped as **defence-in-depth, not a live-bug fix** — it removes one of
+the two conditions rather than a reachable dark render. The finding's own wording
+was the accurate one ("one config flag away"); this section's paraphrase of it was
+not. The `/dev/design-system` toggle still reaches `.dark` explicitly, verified
+after the change.
+
+### Rejected: pass a nonce instead of pinning hashes
+
+next-themes accepts a `nonce` prop, which would let CSP drop all three hashes.
+Rejected: the nonce lives in a request header, so `app/layout.tsx` would have to
+call `headers()`, which makes the root layout dynamic and de-optimises every
+prerendered marketing page — a much larger regression than the problem, and it
+collides with the LCP work in section 10.
+
+## 7. CORRECTED — 01#49's CLS 0.19 was a dev-server artefact; production is 0.00
+
+The marketing lane wrote the fix, hit the contract, and reverted. I have now
+measured what that costs, so the renegotiation can be decided on numbers.
+
+`components/marketing/pubs/guide-spine.tsx` renders the mobile section list as
+`hydrated && !open ? "hidden lg:block" : "grid"`. The server sends the full
+8-link list visible; hydration collapses it.
+
+Measured on /loyalty-for-pubs at 390x844 (chromium):
+
+|                                    | value                                                       |
+| ---------------------------------- | ----------------------------------------------------------- |
+| section list height at first paint | **302px**                                                   |
+| after hydration                    | **0px**                                                     |
+| document height                    | 11,747px -> 11,472px                                        |
+| **Cumulative Layout Shift** (dev)  | **0.1924** — see the correction below; production is 0.0000 |
+
+Google's "good" threshold is 0.1. This is the site's longest page and its SEO
+hub (an `Article` with `dateModified`), so the shift is both a Core Web Vital
+regression and a visible flash of content that then vanishes.
+
+### Why it is still open
+
+`tests/contracts/marketing-offer-source` pins the literal expression:
+
+```js
+assert.match(
+  spine,
+  /hydrated && !open \? "hidden lg:block" : "grid"/,
+  "the mobile section links must remain visible before client enhancement"
+)
+```
+
+The stated intent — links reachable without JS — is sound. But the expression
+that satisfies it is exactly the expression that causes the shift: it shows the
+list, then hides it. Any fix that removes the shift changes that expression, so
+the assertion and the finding are genuinely incompatible. This is not a
+formatting technicality and I have not touched it.
+
+### Two options, both needing a decision
+
+1. **Native `<details>`/`<summary>`** (the audit's recommendation). No JS, no
+   hydration branch, no shift. Links become _operable_ without JS rather than
+   _visible_ — which may or may not satisfy the assertion's author.
+2. **Stop collapsing on hydration.** Keep the list server-rendered and visible
+   on mobile; make the toggle an enhancement that never hides content by
+   default. Strictly better against the assertion's stated intent (visible
+   before AND after), and removes the shift — but the pinned literal no longer
+   matches.
+
+Either way the assertion needs rewriting to express the intent rather than the
+implementation. Recommend option 2 and an assertion on the rendered guarantee.
+
+### CORRECTED — the 0.19 is a dev-server artefact; production CLS is 0.00
+
+I re-measured before proposing the renegotiation, and the premise does not
+survive.
+
+The 0.1924 (and my re-run's 0.2070) came from Playwright against `pnpm dev`.
+Running the **identical probe** against a production build (`pnpm start`):
+
+| build          | CLS on /loyalty-for-pubs |
+| -------------- | ------------------------ |
+| dev server     | 0.2070                   |
+| **production** | **0.0000**               |
+
+Lighthouse agrees, on the production build, mobile emulation, 3 runs each:
+**0.0517 / 0.0517 / 0.0000** before the font subsetting and **0.0000 / 0.0000 /
+0.0000** after. Google's "good" threshold is 0.100.
+
+Why the difference: in dev, CSS and fonts are injected asynchronously and the
+hydration pass is far slower, so the collapse lands after paint. In the built
+artefact it does not.
+
+Two supporting facts from the same investigation:
+
+- The collapsing section list sits at **top 1295px** on a 390x844 viewport. It
+  is below the fold, so even when it does collapse it moves no visible content —
+  which is why forcing it open (`useState(true)`) changed CLS by **zero**, to
+  sixteen decimal places. I tried exactly that, saw the identical number, and
+  reverted it as an unforced UX change.
+- The real shift the dev observer attributes the 0.207 to is text moving 32px at
+  the top of the page, not the spine at all.
+
+**So there is nothing to renegotiate.** The contract assertion stands unmodified,
+01#49's stated defect does not exist in the shipped artefact, and section 18's
+dependency dissolves with it.
+
+Standing lesson: **Core Web Vitals measured against a dev server are not
+evidence.** This one nearly bought a contract renegotiation.
+
+## 8. The copy/product decisions, measured
+
+These five were flagged as "needs a product decision" and left at that. Here is
+what each actually costs, so the decision is not made on prose.
+
+### 02#64 — offer landing (Critical)
+
+Measured at 390x844 on the offers harness, customer surface:
+
+|                                 | value         |
+| ------------------------------- | ------------- |
+| "Claim this offer" CTA position | **y = 904px** |
+| viewport                        | 844px         |
+| page height                     | 7,102px       |
+
+The primary conversion action sits **below the fold** — a member must scroll
+before they can claim. The audit estimated y760; the measured figure is worse.
+The decision is whether the four restatements of the benefit above it earn
+those 904px.
+
+**Correction — not contract-blocked either.** Like 02#50, the contract
+citation here was true but did not bear on the change. `offer-campaign-ui`
+requires `<StampGrid` and `<OfferPass` to be present in
+`offer-claim-landing.tsx` and absent elsewhere — anti-duplication, not layout.
+Relocating the pass face into a disclosure inside that same file keeps all
+three assertions matching (verified against the source string). Only deleting
+a component outright would break them. This is a conversion decision alone.
+
+**Now measurable, and worse than recorded.** `/offer/[token]` needs a live
+campaign token, so 02#64's central number had never been checked.
+`/dev/home-harness/offer-claim` mounts the real component with the fullest
+plausible campaign. On an iPhone SE the claim control sits at **1,077px**,
+**1.62 viewport heights** down a 1,213px page. The audit said ~760px.
+
+The sticky half is not separable: `claimAction` is the last child of the
+landing grid and sticky is bounded by its containing block (section 12), so
+it would have almost no travel where it sits. Hoisting and sticking are one
+change, and it is a conversion decision — but it can now be made against a
+measurement, and any restructure can be re-measured the same way.
+
+### 01#55 — the three persona spokes
+
+| route                  |   height | words |
+| ---------------------- | -------: | ----: |
+| /loyalty-for-pubs      | 11,472px | 1,741 |
+| /loyalty-for-bars      |  2,363px |   359 |
+| /loyalty-for-cafes     |  2,373px |   361 |
+| /loyalty-for-takeaways |  2,373px |   361 |
+
+The three spokes render from one `PersonaSpokePage`; their page sources are
+**98.1% identical**. They are the same ~360-word page three times with the noun
+swapped. The decision is binary: either write genuinely vertical-specific copy
+(~1,080 words), or collapse them to one route and redirect. Shipping three
+near-identical noindexed pages is the only option with no upside.
+
+### 02#50 — join wizard terms step (Critical)
+
+NOT measurable here: the join flow needs live Supabase credentials
+(`customer-join-*-live-db.spec.ts` all skip without them), so I could not put a
+number on the CTA position. The audit's own arithmetic puts it at ~y780 on a
+667px viewport. Worth measuring against a live DB before deciding.
+
+**Correction — this is not contract-blocked.** The note cited
+`customer-join-frictionless-ux` as pinning the preview. It pins the preview's
+PRESENCE on the QR path and nothing inside it: the assertion's lazy match ends
+at `<TermsFirstStampPreview`. Verified by re-running that regex with the whole
+component body replaced by `return null` (still matches), and by grepping every
+contract file for `RewardTicket` (zero). A content decision, not a contract one.
+
+### 01#23 and 04#54
+
+Both are copy edits whose cost is the copy itself, not layout: 01#23 cuts eight
+objections to five, 04#54 shortens five admin panel descriptions. Neither has a
+measurable geometry argument — they turn on whether the words are load-bearing,
+which only the product owner can say.
+
+## 9. 02#30 — clamping reward terms is a product call, with numbers
+
+The stub half of 02#30 is done (measured floor 70px, shipped at 72px). The
+terms half is deliberately left to you.
+
+Measured at a 260px ticket face, `text-sm leading-6`:
+
+| merchant terms | lines | ticket height |
+| -------------: | ----: | ------------: |
+|       55 chars |     2 |         121px |
+|       90 chars |     3 |         145px |
+|      120 chars |     4 |         169px |
+|      160 chars |     5 |         193px |
+
+`line-clamp-2` plus a "Full terms" disclosure would cap the ticket at 121px —
+about 48px back on a 120-character reward, on the customer's tallest surface.
+
+The reason it is not done: these are the merchant's reward terms, the thing the
+member is actually entitled to. Collapsing them behind a tap by default is a
+product and arguably a consumer-terms decision, not a layout one. The legal
+sheet infrastructure (`components/customer/legal-sheet.tsx`) already exists if
+you want it.
+
+## 10. RESOLVED — subsetting the two unpinned faces fixed the LCP regression
+
+CI is red on `Lighthouse (home)`, `(pricing)` and `(loyalty-for-pubs)`. All
+three pass on `main`. This is a real regression introduced by this branch and it
+should block the merge.
+
+Measured on /loyalty-for-pubs (CI, 3 runs): **LCP 4,854 / 5,130 / 5,265ms**
+against a **4,000ms** budget. Reproduced locally at 6,343ms.
+
+### Cause
+
+The typography fix added two font faces (Medium 500 and ExtraBold 800) so that
+`font-medium` and `font-extrabold` stopped being browser-synthesised. That put
+**four preloaded ~113KB .ttf files** on the critical path. Lighthouse's
+simulated mobile throttling charges all of it against LCP.
+
+Confirmed by experiment — removing just those two faces:
+
+| build                     | LCP (local, 1 run) |
+| ------------------------- | -----------------: |
+| this branch               |            6,343ms |
+| minus the two added faces |            4,257ms |
+| all four faces as woff2   |            4,721ms |
+
+So the two faces cost **2,086ms**, and shipping the same four faces as woff2
+recovers **1,622ms** of it while keeping the typography fix.
+
+Note the diagnosis is not the obvious one: the fonts are not slow to arrive
+(~50ms on localhost) and TBT is 0ms. It is simulated-throttling bandwidth
+contention on the preload, which is why this only shows up in Lighthouse.
+
+### PARTLY FIXED — re-read the contract, it pins less than I said
+
+`poster-font-assets.test.mjs` hash-pins only the four ORIGINAL files. Medium and
+ExtraBold — the two this branch added, and the entire cause — are not pinned, so
+they now ship as woff2 (113KB -> 46KB each) while Regular and Bold stay .ttf for
+PDF parity. Local LCP 6,343ms -> 5,011ms; main measures 4,213ms on the same
+machine. The residual ~92KB of preload over main is the real price of not
+synthesising two weights, and may still exceed the CI budget.
+
+Two other levers measured and rejected: `preload: false` (LCP 4,666ms but FCP
+2,708ms vs a 2,500ms budget) and subsetting (impossible — the originals are
+hash-pinned). All four weights are genuinely used, so none can be dropped.
+
+CI after the woff2 change: **4,534 / 5,117 / 5,526ms** (was 4,854 / 5,130 /
+5,265). The assertion floor moved 320ms; the runner variance is larger than the
+fix. So the engineering levers are now exhausted and what remains is a design
+call. Everything measured:
+
+| lever                                | LCP (local) | verdict                                         |
+| ------------------------------------ | ----------: | ----------------------------------------------- |
+| baseline (this branch)               |     6,343ms | —                                               |
+| **woff2 for the two unpinned faces** | **5,011ms** | **shipped**                                     |
+| `display: optional`                  |     5,010ms | no effect — proves it is bandwidth, not swap    |
+| `preload: false`                     |     4,666ms | rejected: FCP 2,708ms vs a 2,500ms budget       |
+| drop the two added faces             |     4,257ms | works, but reverts the typography fix           |
+| subset the .ttf                      |         n/a | impossible — the four originals are hash-pinned |
+| main, same machine                   |     4,213ms | the control                                     |
+
+`display: optional` measuring identically to `swap` is the useful datum: the
+cost is preload bandwidth on the simulated critical path, not the font swap, so
+no loading-strategy tweak will recover it. Only fewer or smaller bytes will.
+
+**The decision:** two font faces, ~92KB preloaded over main, buy real
+`font-medium` and `font-extrabold` instead of browser-synthesised ones — which
+is defect 05#* that this branch was asked to fix. Either that is worth roughly
+500-1,000ms of simulated LCP or it is not. I do not think an agent should
+quietly pick either way, so the branch ships the typography fix and a red
+Lighthouse check, with the revert one commit away.
+
+### Original note — why I first thought woff2 was impossible
+
+`tests/contracts/poster-font-assets.test.mjs:57` — "the app and PDF renderer
+consume the same four local font files" — pins `BricolageGrotesque-Regular.ttf`
+in `app/layout.tsx`. The PDF renderer needs .ttf (pdf-lib cannot read woff2), so
+serving woff2 to the browser breaks the assertion. The contract's intent is
+sound: screen and printed poster must not drift onto different faces.
+
+I converted the fonts, measured the win, saw the contract fail, and reverted.
+Nothing is weakened; the branch ships .ttf and the red Lighthouse check.
+
+### The three options
+
+1. **Extend the contract** to require the app and PDF to use the same
+   _typeface family and weights_, with woff2 for the browser and .ttf for the
+   PDF, asserting the two lists stay in step. Keeps typography and performance.
+   Needs the assertion rewritten by someone entitled to change its intent.
+2. **Drop the two added faces.** Recovers 2,086ms; `font-medium` and
+   `font-extrabold` go back to being synthesised, which is the defect 05-design
+   -system raised.
+3. **Raise the LCP budget.** Not recommended without a reason beyond "our fonts
+   got bigger".
+
+### RESOLVED — the "impossible" lever was possible for the half that mattered
+
+I closed this section saying the engineering levers were exhausted. They were
+not. The line "subsetting (impossible — the originals are hash-pinned)" is true
+of the originals and false of the two faces that actually cause the regression —
+which the same section had already established are unpinned. My own blocker tell
+number two, in my own document: _true of one half, applied to the whole._
+
+Bricolage carries 527 glyphs for an en-GB site. Subsetting to Latin, Latin-1,
+Latin Extended-A/B, combining marks and the punctuation/currency/arrow ranges
+drops 124 of them, mostly Vietnamese, taking each face 47KB -> 39KB.
+
+Measured on /loyalty-for-pubs, 3 runs per arm, same machine and build:
+
+| build  |               LCP |     FCP |
+| ------ | ----------------: | ------: |
+| before | 5,022/5,009/5,025 | 1,658ms |
+| subset | 3,625/3,771/3,627 | 1,205ms |
+
+`/` and `/pricing` land at 3,769ms and 3,773ms against a 4,000ms budget. All
+three previously failing routes pass locally, and the branch is now faster than
+`main` measured on the same machine (4,213ms).
+
+Kept against smaller files: combining marks and `mark`/`mkmk` (+4.4KB, because
+venue names are user-generated and may be decomposed), `tnum` (for
+`.numeric-tabular`), `kern`, and hinting (another 11KB per face was available,
+declined — not worth risking small-text rendering on a typography branch).
+
+`scripts/build-subset-fonts.sh` regenerates both faces from the .ttf sources.
+
+**No design decision is needed. This section no longer blocks the merge.** CI
+should be re-run to confirm the local result holds on the runner, whose variance
+was previously larger than the fix.
+
+## 11. 02#20 — collapsing the card rails, corrected twice
+
+**Superseded in two places. Read this, not the version below.**
+
+The first correction (kept for the record) was that no test pins the rails. The
+grep that produced it searched for the five **component names**, and a browser
+test never sees a component name. It sees a `data-testid`:
+
+    tests/e2e/customer-referral-bonus-stamp.spec.ts:102
+      const share = page.getByTestId("referral-share-panel")
+      await expect(share).toBeVisible()
+
+Measured in Chromium on `/dev/home-harness/referral-bank` at 390px: wrapping
+`ReferralSharePanel` in a closed `<details>` — exactly what "collapsed by
+default" renders — takes the card page from **1646px to 1365px (−281px, 17%)**
+and makes `isVisible()` return **false**. So the audit's headline saving is real
+and the mechanism fails a live assertion. That assertion is not weakenable: it
+is the proof that the card surfaces a referral link carrying the opaque
+`referral_code` and never the membership UUID.
+
+The second correction is to the split this section proposed. It sorted
+`ReferralBonusBankNotice` into "evergreen promotion". It is not:
+
+    hasVisibleReferralBonusBank(bank) => bank.banked > 0 || bank.awardedToday > 0
+
+It renders only when the member **owns** banked bonus stamps, and its copy
+reports them against `REFERRAL_BONUS_DAILY_CAP` — how many can land today and
+how many stay banked. That is conditional, owned and time-bounded: the same
+argument that keeps `CardOfferPassChip` visible keeps this visible.
+
+What is left, after both corrections:
+
+| rail                      | unconditional? | under test?               | height |
+| ------------------------- | -------------- | ------------------------- | ------ |
+| `CardGiftChip`            | no             | no                        | ~110px |
+| `CardOfferPassChip`       | no             | contract-pinned props     | ~130px |
+| `ReferralBonusBankNotice` | no             | `referral-bonus-stamp`    | 324px  |
+| `ReferralSharePanel`      | **yes**        | **e2e visibility, above** | 305px  |
+| `GoogleReviewButton`      | **yes**        | no                        | 44px   |
+
+The duplicated primary the finding also asks about is **already fixed**: one
+`size="lg"` "Share your link" with copy demoted to `variant="link" size="sm"`.
+
+So the only rail that is both unconditional promotion and free to collapse is
+the Google review button, at **44px of 1646px (2.7%)** — a disclosure costs more
+than it saves. Collapsing the share panel needs a decision about the referral
+loop AND a rewrite of the e2e proof; collapsing the bank or the pass hides value
+the member already owns. None of those is a quiet change.
+
+## 12. 04#26 — sticky table headers need a nested scroll region
+
+Re-tested in chromium rather than taken on trust, and the recorded blocker
+holds. Measured on the customers harness at 1280x700:
+
+- `[data-slot="table-container"]` computes `overflow-x: auto`, and CSS makes
+  `overflow-y` **auto** with it. It is therefore a scroll container on both
+  axes — but it has no height constraint, so `containerScrollsY` is `false`.
+  Sticky-top inside it has a scrollport that never scrolls.
+- Its parent is `surface-card overflow-hidden`, hidden on both axes.
+- Proof: with `position: sticky; top: 0` forced onto the `<thead>`, a 400px page
+  scroll moved it 269px -> 177px. It travelled with the page.
+
+I also tried the clever way out — `overflow-y: clip`, which should leave no Y
+scrollport and let sticky resolve against the viewport. Chrome coerces it to
+`hidden` next to `overflow-x: auto`, and the header still did not stick.
+
+So the only real fix is to bound the container's height (`max-h-[70svh]` or
+similar) and let the table scroll vertically inside itself. That works, and it
+turns every admin table into a nested scroll region — a different interaction
+model on both desktop and touch, and a visible change to page rhythm across
+eleven routes.
+
+That is a UX decision, not a bug fix, so it is here rather than in a commit.
+Everything else in 04#26 (lookup, filter chips, count, range, venue filter,
+paginator) is done.
+
+### Update: rows-per-page raises the stake, with a measurement
+
+The catalogue's console table (the same `DataTable` every admin list uses)
+measures a **40px `thead`** and **69px rows** at 1440x900 with two-line cells.
+So a full page of admin table is now:
+
+| rows per page | table height | viewport heights at 900px |
+| ------------: | -----------: | ------------------------: |
+|            25 |     ~1,765px |                      ~2.0 |
+|            50 |     ~3,490px |                      ~3.9 |
+|           100 |     ~6,940px |                      ~7.7 |
+
+At 25 rows the operator loses the column headers about two thirds of the way
+down one list. At 100 — now selectable, 04#56 — the headers are off-screen for
+roughly seven screens of scrolling, on tables whose columns are pills, dates
+and masked identifiers that are genuinely hard to tell apart without a header.
+
+That does not change the mechanism (the container still has no bounded height,
+still computes `overflow: auto/auto`, and `overflow-y: clip` is still coerced
+to `hidden`; do not re-measure that). It changes the value of fixing it, and it
+adds a cheaper option to the two already recorded:
+
+- bound the table region (`max-h-[70svh]`) on every admin table — the full
+  nested-scroll change, all eleven routes, needs sign-off;
+- bound it **only when the page size exceeds the default**, i.e. the operator
+  who asked for 100 rows opts into a scroll region and nobody else's page
+  rhythm changes. Same CSS, scoped by a param that now exists.
+
+The second is a much smaller decision than the first, and it is the one I would
+put in front of a human. It is still a UX change, so it is still here.
+
+### Third re-measurement, and the one detail that changed (this pass)
+
+Re-probed both ancestors in isolation rather than trusting the earlier note,
+because I had just caught myself recording a convenient negative from too narrow
+a window. The blocker survives:
+
+| wrapper                            | computed              | thead after scroll | stuck |
+| ---------------------------------- | --------------------- | ------------------ | ----- |
+| `overflow-x:auto; overflow-y:auto` | `auto` / `auto`       | -500px             | no    |
+| `overflow-x:auto; overflow-y:clip` | **`hidden`** / `auto` | -500px             | no    |
+
+So `overflow-y: clip` really is coerced to `hidden` beside `overflow-x: auto` in
+this Chrome, and the escape hatch stays shut.
+
+What IS new: there are **two** blocking ancestors, not one, and the outer one is
+dead weight on admin. `DataTable`'s card is `surface-card overflow-hidden`,
+where the `overflow-hidden` exists to clip content to the rounded corners — but
+every admin table passes `className="rounded-none border-0 shadow-none"`. There
+are no corners to clip. That wrapper could be dropped on admin for free.
+
+It would not help on its own: the table above with `overflow-x:auto` alone still
+did not stick. Removing one of two blockers changes nothing, which is exactly
+why it is worth writing down — it is the obvious cheap fix and it does not work.
+
+The options remain the three already listed, and option 3 (bound the height only
+when `size > 25`) is still the cheapest.
+
+### Update — 04#60's other half shipped without this one
+
+04#60 ("no sorting, no aria-sort, no column control, no sticky header") had been
+declined as one job on the strength of THIS entry. Sorting is now shipped and
+URL-driven (`?sort=`/`?dir=`, allowlisted, ordered in PostgreSQL), with
+`aria-sort` on the `<th>` and a browser proof; the sticky header is untouched
+and still waiting here. Worth noting because it is the second time a finding on
+this branch was blocked by a blocker belonging to only part of it — and because
+sortable headers make the sticky question slightly sharper: a column header you
+can now PRESS is a control that scrolls out of reach after about eight rows.
+
+## 13. ~~One manual look: the hero card loop~~ CLOSED — now covered by a test
+
+The gap is gone. `tests/e2e/hero-motion.motion.spec.ts` runs under a new
+`motion` Playwright project that overrides `contextOptions.reducedMotion`, and
+covers all four behaviours below automatically. Verified by sabotage: reverting
+`if (paused) return` makes it fail.
+
+Run it with `pnpm exec playwright test --project=motion`.
+
+Original note follows.
+
+### Original: a verification gap I could not close from here
+
+`playwright.config.ts` sets `reducedMotion: "reduce"` on every project, and
+`useStampJourneyLoop` short-circuits under reduced motion. So the stamp loop
+never animates in ANY automated run. I confirmed this on the unmodified baseline
+as well as this branch: `earnedCount` stays at its rest value throughout.
+
+That means the fix in 01#17 — pause now genuinely stops scheduling, and the loop
+stops when the card scrolls off-screen — is correct by inspection and green on
+every gate, but has never actually been watched. Worth thirty seconds with
+motion enabled on `/` and `/loyalty-for-pubs`:
+
+1. the stamps should cycle;
+2. "Pause the demo" should freeze it on the finished frame;
+3. "Play the demo" should start it cycling again;
+4. scrolling the hero away and back should stop and restart it.
+
+Worth noting for future work: any finding about motion has this blind spot. The
+browser tiers cannot see animation at all.
+
+## 14. 05#65 — `ConsoleSection` declined, with the numbers
+
+Half of this finding is done: 03#1 unified the merchant and admin shells to
+`px-4 py-5 sm:py-6 lg:px-8 lg:py-8`, which is the `py-8 -> py-6` reclaim the
+finding asks for.
+
+The other half — mint `<ConsoleSection>` and route every `/app/*` and `/admin/*`
+page section through it — I am declining, and here is the evidence rather than
+an opinion.
+
+**Console page rhythm is already conventional.** Gap values across `app/app` and
+`app/admin`:
+
+| value   | count | what it is                            |
+| ------- | ----: | ------------------------------------- |
+| `gap-6` |    41 | page-level rhythm — already one value |
+| `gap-2` |    27 | inline rows inside components         |
+| `gap-4` |    17 | mostly nested panels                  |
+| `gap-3` |    15 | intra-component                       |
+| `gap-1` |    13 | label/value pairs                     |
+| `gap-5` |     6 | mixed                                 |
+
+**The `py-*` claim does not hold for console pages.** The finding cites "26
+distinct `py-*` values"; in `app/app` and `app/admin` the entire spread is
+`py-10` x4, `py-2.5` x2, `py-16` x2, `py-12` x1, `py-0` x1. The 26 came from
+counting the whole tree, marketing included.
+
+**Only one page-level grid deviates** (`app/app/offers/page.tsx:147`, `gap-5`).
+Everything else in the non-`gap-6` list is intra-component spacing that a section
+component would not own anyway.
+
+So the component would rename `<div className="grid gap-6">` to
+`<ConsoleSection>` across 33+ files, produce no user-visible change, and churn
+the visual baselines — which is the API sprawl 05#7 criticises, arriving as a
+fix. If you want the abstraction anyway, as a named place to change console
+rhythm later, that is a reasonable call and it is one commit; I am not making it
+on the strength of a premise that measurement does not support.
+
+### Re-measured independently, and two wordings corrected
+
+The gap table and the console `py-*` spread above both reproduce exactly. Two
+things in the prose do not, and neither changes the decision:
+
+- **"41 of 47 page-level grids" is loose.** 47 is 41 `gap-6` + 6 `gap-5`, and it
+  reads as though six page-level grids deviate. Only one does — the other five
+  `gap-5` sites are an inverted QR panel, two responsive step-ups from `gap-3`
+  inside `launch`, and two `ReceiptCard`s. The honest figure is **41 of 42**,
+  which is a stronger argument for declining, not a weaker one.
+- **"26 distinct `py-*`" is now 18 tree-wide.** Measured across `app` and
+  `components` with a class-boundary-anchored pattern. A naive `py-` grep returns
+  23 and five of those are false positives from `copy-to-clipboard`,
+  `copy-url-button`, `copy-field`, `copy-drift` and a stray `py-10)`.
+
+Two additions to the evidence:
+
+- `gap-8` and `space-y-*` appear **zero** times in `app/app` and `app/admin`, so
+  the finding's "every page then adds its own `grid gap-6` / `gap-8` /
+  `space-y-4`" describes drift that is not there.
+- The finding names **three** shells and 03#1 unified two. `customer-app-shell`
+  is still `px-4 pt-6 sm:px-6` plus the tab-bar clearance, which is correct for a
+  410px capped column with a fixed bottom bar and is not console rhythm. Worth
+  stating so the shell half is not read as covering all three.
+
+## 15. 01#54 — the hero half of the type scale
+
+The page-title half is done: seven `titleClassName` clamp overrides deleted, so
+legal, auth and every marketing page now share `type-page-title` (30px / 36px).
+Measured: /pricing, /terms, /signup and /faq are identical at both widths, and
+the legal H1 is no longer larger than the pricing H1.
+
+What is left is the finding's `hero-title` proposal —
+`text-[clamp(2.25rem,6vw,3.5rem)]` for the landing, how-it-works and pub-guide
+heroes.
+
+I have not done it because it would undo work from this same campaign. 01#15
+added the missing middle step to those ramps (`text-4xl sm:text-5xl
+lg:text-6xl`) precisely so the 36px-to-60px jump stopped being a two-step snap.
+A single `clamp()` replaces that ramp with continuous scaling — a different
+typographic decision, not a consolidation of the existing one — and it would
+also move the pub guide's H1 up a step, since it currently runs one rung below
+the other two on purpose.
+
+Both are defensible. Picking between them is a design call, and it wants the
+visual baselines regenerated either way.
+
+## 16. ~~Hard caps in the admin console~~ — RESOLVED, fraud included (04#6)
+
+Billing and referrals no longer truncate: both take a venue lookup and a
+paginator (25/50/100 rows). What is left is two surfaces where a notice is
+still the whole answer:
+
+| surface                  | cap | notice                                           |
+| ------------------------ | --: | ------------------------------------------------ |
+| fraud flags              | 100 | "Showing the newest N of M flags in this queue." |
+| redemption failures      | 100 | "Showing the newest N of M recorded failures."   |
+| evidence case ledger     | 100 | "Showing the newest N of M evidence cases."      |
+| evidence merchant picker | 200 | "First N of M venues, alphabetically."           |
+
+The merchant picker is still the one to look at: it is an alphabetical
+`<select>`, so past 200 venues a late-alphabet name cannot be selected at all.
+The notice stops an operator concluding the venue is not on the platform; it
+does not let them file evidence against it. Making it searchable also needs a
+decision on whether the evidence form may reference a venue an operator cannot
+see in a list, which is why it is here and not in a commit.
+
+### One thing on referrals that is a judgement call, not a bug
+
+`admin_referral_ops` is a guarded RPC whose signature is fixed at
+`(uuid, text, integer, integer)`: it filters by ONE venue id, not a name
+fragment. The lookup therefore resolves the fragment against `merchants`
+first, and when it matches more than one venue the panel renders a chooser
+instead of picking one. Three dispositions were considered:
+
+1. apply the fragment to whichever venue sorted first — silently answers a
+   different question, rejected;
+2. run unfiltered when the fragment is not unique — the same defect, at larger
+   scale, rejected (and `decideVenueFilter` has a unit test that fails if the
+   no-match branch ever returns "unfiltered");
+3. ask which venue — shipped.
+
+The alternative to all three is extending the RPC with a `p_venue text`
+argument. That is a schema change, not a UI one: `create or replace` with a
+different argument list adds an overload rather than replacing, so every
+defaulted call site becomes ambiguous, and doing it properly needs
+`drop function` + recreate proved against a live database (`pnpm test:db`),
+which this branch cannot run. If a venue-name fragment on referrals is wanted
+without the chooser, that is the work.
+
+### Cmd-K and the sticky filter bar
+
+Still open, and still the least valuable third of the finding: both are
+navigation over query params that now exist on six of eleven routes.
+
+### Update — the two remaining caps are now one, and it is not a cap
+
+The evidence ledger took a venue lookup and a paginator, and the merchant picker
+stopped being a dead end: the same `?venue=` term narrows it, so a venue past the
+alphabetical cap is reachable in one search rather than unselectable. Seven of
+eleven admin lists now page, and all five that have a lookup keep it on screen
+while the list scrolls.
+
+### Update — the last cap is gone; the entry is closed
+
+The fraud queue and the redemption-failure list were the two surfaces still
+answering with a notice. Both now page, on the shared `?page=`/`?size=` params
+(they are never co-visible, so they share one), with the same venue lookup as
+the other nine lists — after the ordering was fixed at the source, §30. The
+failures tab count is a head-only count too; it used to print the length of the
+loaded window, so it read "100" for any number of failures from 100 upward.
+
+**Eleven of eleven admin lists now have lookup and paging**, and no admin
+readback carries a hard `.limit(100)`. Nothing on this entry is waiting on a
+person any more.
+
+What remains is the fraud queue, and it is not a truncation problem — it is an
+ordering one. Section 30 has the detail: `getAdminFraudSignals` sorts by severity
+in memory because `severity` is a text column whose alphabetical order is not its
+severity order, so paging it server-side would sort each page independently and
+rank a high-severity flag on page 3 below a low one on page 1. That needs a rank
+column or SQL CASE ordering, which is a data-layer change rather than the UI one
+this finding describes.
+
+## 17. The last 1.5px is `.w-tag` itself (03#25)
+
+I closed 03#25 twice — once before the merge, once after re-sweeping the six
+`border-[1.5px]` call sites main reintroduced. Both times I was reporting the
+Tailwind call sites and not the utility they were imitating.
+
+`app/globals.css`'s `.w-tag` is:
+
+```css
+border: 1.5px solid var(--w-line);
+border-radius: 999px;
+```
+
+and `components/brand/mono-tag.tsx` applies `.w-tag` to every `MonoTag`, which
+renders in **52 files**. So the finding's premise — "DESIGN.md states borders are
+2px solid ink everywhere… there is no 1.5px in the system" — is still true of
+DESIGN.md and still false of the tree, in the one place that matters most.
+
+The call sites are worth having fixed regardless: they were hand-rolled pills
+diverging from the shared one. But raising `.w-tag` to 2px changes every mono
+pill in the product, and the baselines are already stale, so it is a decision
+rather than a sweep.
+
+Three ways to resolve it, in the order I would consider them:
+
+1. **Raise `.w-tag` to 2px.** Consistent with DESIGN.md as written, and the pill
+   gains 1px per side (padding is `4px 11px`, so nothing reflows).
+2. **Document 1.5px as a sanctioned exception** in DESIGN.md, on the grounds
+   that a 2px stroke on an 11px pill reads heavier than the same stroke on a
+   card. That is a legitimate typographic argument and DESIGN.md currently does
+   not make it.
+3. Leave both as they are, which is the only option that keeps the design
+   system's stated rule and its shipped utility disagreeing.
+
+03#25 is back to `[~]` until one of those is chosen. I would rather correct a
+closure than carry a green mark that a reader would find wrong in one grep.
+
+## 18. UNBLOCKED — 01#60 no longer waits on 01#49
+
+These read as separate blocked findings and are the same one.
+
+01#60 asks for a single TOC pattern across the three long-document families, and
+prefers reusing `GuideSpine`. Its "at minimum" alternative is done and verified:
+every guide `h2` has a slug id, all five TOC links resolve, the anchor offset is
+the shared 128px, and the "On this page" disclosure is collapsed by default.
+
+The lane recorded the rest as "a larger refactor of a contract-pinned client
+component". That reason is wrong in a way worth correcting:
+`marketing-offer-source` pins exactly **one line** in `guide-spine.tsx` —
+
+```js
+;/hydrated && !open \? "hidden lg:block" : "grid"/
+```
+
+— not the component's shape. A generic spine could keep it.
+
+The reason recorded here was that this line is 01#49: a section list measuring
+**CLS 0.1924** against Google's 0.1 threshold, which reusing the spine would
+spread to every guide. **That reason is void** — the 0.1924 was a dev-server
+number and production measures 0.0000 (section 7). There is no layout-shift
+defect to propagate. See the UNBLOCKED note at the end of this section for what
+actually remains.
+
+So the order is fixed: resolve 01#49 — which means renegotiating that assertion,
+since the fix was written and reverted — and 01#60's preferred form becomes
+available. Until then the guides keep the disclosure, which has no shift at all.
+
+Doing 01#60 "properly" first would make the site more consistent and measurably
+worse.
+
+### UNBLOCKED — 01#49 dissolved, so the ordering constraint is gone
+
+Section 7 now shows the CLS defect does not exist in a production build
+(0.0000, three Lighthouse runs plus a direct probe). The reason for not reusing
+`GuideSpine` was "it would spread a measured layout-shift defect to every
+guide". There is no such defect to spread.
+
+What remains of 01#60 is therefore an ordinary refactor with no blocker: extract
+a generic TOC from `GuideSpine`, keeping the one pinned line, and use it for the
+guides and legal families. It is real work and it touches a contract-pinned
+component, so it wants its own careful pass rather than being tacked onto this
+one — but it is no longer waiting on a decision from anyone.
+
+### What was actually done, and the one real reason not to go further
+
+Comparing the two TOCs side by side (which is what "pick one pattern" requires)
+turned up a defect neither finding mentions: the hub's phone disclosure links
+measured **36px** against the guides' **44px**. Fixed — `min-h-11` below `lg`,
+`lg:min-h-0` above, since the desktop rail is a dense pointer target where 36px
+is right. Re-measured at 44/36.
+
+The large half stays undone for a specific, checkable reason rather than a
+vague one. The pinned literal
+
+```js
+;/hydrated && !open \? "hidden lg:block" : "grid"/
+```
+
+sits on the `<ol>`'s `className` **inside `guide-spine.tsx`**. Extracting the
+list into a shared component moves that expression to a different file, and
+`marketing-offer-source` reads `guide-spine.tsx` specifically — so the assertion
+fails on a pure refactor that changes no behaviour.
+
+That is a contract renegotiation in exchange for deduplication, not for a defect
+fix, and the finding's own "at minimum" alternative is shipped and verified. If
+the owner wants the unified spine, the assertion needs to move with the code —
+which is a fine thing to do deliberately and a bad thing to do as a side effect.
+
+## 19. 02#10 — the wallet tile, measured and de-risked
+
+The audit wants `HomeCardTile` to become a fixed ~120px summary row. Measured on
+the home harness at 390px: the tile's link is **294px** and the block including
+the pass rail is **338px**. (The audit said ~330px for the tile itself; it was
+close, and it is 294px now that the chrome above it was cut.)
+
+Both contract claims in the status note are real, and they constrain the shape
+differently from how the note reads:
+
+- `offer-customer-pass-wiring` requires the `/pass` link to sit **outside** the
+  tile's own `Link`. That is a sibling rail, so it does **not** block a summary
+  row — it just cannot be folded inside one.
+- `referral-bonus-stamp:168` requires `ReferralBonusBankMini` to render **inside**
+  `home-card-tile.tsx`. That one is inside the tile, and a 120px row has to keep
+  it.
+
+So the row is buildable and the blocker is not a wall. What it is, is a redesign
+of the customer's first screen: deciding what a wallet tile shows at a glance
+(venue, progress, one action) and what moves behind a tap, while keeping a
+compact bank panel and a pass rail visible. That is a product decision about the
+home surface, not a resize, which is why I have not taken it.
+
+If you want it, the cheap first step is deciding whether the stamp grid belongs
+on the tile at all — it is the single tallest block in there, and `/card/[id]`
+already renders the full one.
+
+## 20. 04#48 — the Radix swap, declined with the proof
+
+The note said the shadcn `Checkbox` swap "needs browser proof". It has it now.
+
+`AdminConfirmCheck` gates QR regeneration and reward cancellation. Measured on
+the catalogue:
+
+| property   | audit asked for | measured                                                                 |
+| ---------- | --------------- | ------------------------------------------------------------------------ |
+| box        | 20px            | **22px**                                                                 |
+| tap row    | 44px            | **48px**                                                                 |
+| `required` | —               | `true`                                                                   |
+| unchecked  | —               | `checkValidity()` false, "Please check this box if you want to proceed." |
+| checked    | —               | valid                                                                    |
+
+Every target in the finding is met or exceeded, and the gate enforces itself
+through native constraint validation — **no JavaScript at all**. On a control
+whose entire job is to stop an irreversible action, that is not an incidental
+property.
+
+The shadcn `Checkbox` is Radix: a `<button role="checkbox">` plus a hidden
+input. Its `required` handling depends on the client bundle having loaded and
+hydrated. Swapping would move the enforcement of an irreversibility gate from
+the browser's own form validation into application JavaScript, in exchange for
+using the same primitive as elsewhere.
+
+I do not think that trade is worth making, so 04#48 is closed as done-with-a-
+different-mechanism rather than left open. If you want primitive consistency
+across the console anyway, that is a reasonable call — but it should be made
+knowing what it costs here, which is why this is written down rather than
+silently skipped.
+
+## 21. 03#52 — what cursor paging on the activity feed would cost
+
+The dead "Load more" is fixed (at `limit=250` the href asked for 300 against a
+250 clamp, so the press re-rendered the same rows). The audit also wants
+`?before=<cursor>` or date-window paging with a ~50-row window. That part is
+open, and "it changes the read model" undersells it. Two specific things break:
+
+**1. Search would silently narrow to one page.** `getEnrichedMerchantActivity`
+deliberately does NOT push `q` into the query — the only first-class text column
+is `event_name`, and narrowing on it would hide rows whose match lives in the
+customer label, reward name or metadata, and those joins carry PII that must not
+reach a search predicate. So `q` is a client-side refinement over the loaded
+window. Today that window is everything up to the ceiling; under cursor paging
+it becomes the current page, and "search your activity" would quietly mean
+"search these fifty rows".
+
+**2. Stamp pairs straddle every boundary.** The loader over-fetches by one row
+so a request/collect pair split across the window edge can borrow the spare and
+thread into a single card instead of rendering as two orphans.
+`threadActivityRows` takes the full `limit + 1` window and emits `limit` rows.
+Every additional cursor boundary is another place a pair can split, and the
+one-row spare only covers one such case per page.
+
+Neither is unsolvable — server-side search over a materialised label column
+would fix (1), and threading could look back a row across the cursor for (2).
+Both are data-layer work with a privacy review attached, which is a different
+kind of change from the rest of this campaign.
+
+## 22. The contract-blocked findings, read closely — now two, not three
+
+03#46 turned out to be blocked by a misreading — the contract forbade a `??`
+error merge, not the blur validation the note blamed. So I read the other three
+the same way. All three blocks are real. They are not the same KIND of block,
+and that matters if you renegotiate any of them.
+
+**01#63 — mechanism conflict, most renegotiable.** `legal-p3-polish` asserts
+`<aside className="… order-last … lg:order-none">`, and its header gives the
+reason: on mobile the TOC must sit below the content _so the title is above the
+fold_. The audit wants the TOC above the article — but as a **collapsed
+`<details>`, ~56px**. That serves the very goal the assertion protects. The
+conflict is in the mechanism, not the intent, which makes this the one worth
+reopening first.
+
+**01#65 — genuine design disagreement.** `legal-heading-structure` asserts
+`<h2 className="mono-meta` and explains that clause titles must be real headings
+carrying the sanctioned mono utility. The audit wants them to stop being mono
+micro-type entirely (`text-base sm:text-lg font-extrabold`, because an 11.5px
+heading over 14px body is inverted hierarchy). Both positions are coherent. The
+contract encodes one; the audit argues the other. Someone has to choose.
+
+**01#49 — WITHDRAWN from this list.** It was here because the pinned expression
+was thought to cause CLS 0.1924 against a 0.1 threshold. That measurement came
+from a dev server; production measures 0.0000 across three Lighthouse runs and a
+direct probe (section 7). There is no tension between the contract's goal and the
+measured outcome, because there is no measured defect. Two contract-blocked
+findings remain, not three.
+
+Ranked by what I would revisit: 01#49 (a measured defect), then 01#63 (a
+mechanism swap that keeps the goal), then 01#65 (a taste decision that wants an
+owner).
+
+### Both re-tested in the marketing-lane pass, with numbers. Both blocks hold.
+
+**01#63 — the cost is real, the goal is met, and the mitigation in the code did
+not exist.** Measured at 390x844 on a production build (`pnpm build && PORT=3201
+pnpm start`), `document.styleSheets.length > 0` asserted, the aside anchored by
+`[data-legal-document] aside` rather than by any text:
+
+| route            | page height | TOC block | TOC starts at |
+| ---------------- | ----------: | --------: | ------------: |
+| /privacy         |     8,087px |     647px |       6,880px |
+| /merchant-terms  |     7,459px |     664px |       6,235px |
+| /data-processing |     5,942px |     568px |       4,814px |
+| /terms           |     4,845px |     539px |       3,746px |
+| /cookies         |     4,528px |     580px |       3,388px |
+
+So the audit's "~600px of dead weight at the bottom" is accurate on all five
+legal pages, 8-12% of each. The assertion's own goal is simultaneously met: the
+`<h1>` sits at top 171-186px everywhere, well above an 844px fold.
+
+The correction: `legal-document-page.tsx` carried a comment saying the
+collapsible summary "costs a row instead of a block wherever it sits". It ships
+`open`, so `/cookies`, `/merchant-terms` and `/data-processing` measure the same
+block as `/terms` and `/privacy`, which have no disclosure at all. That comment
+is now fixed in place.
+
+**What a decision would have to choose between**, because there is no free move:
+
+1. renegotiate `legal-p3-polish:28` and put a collapsed `<details>` above the
+   article (the audit's proposal — same goal, different mechanism);
+2. keep the order and collapse the aside below `lg` with a client component —
+   which reintroduces the hydration branch 01#49 complained about, though at
+   3,388-6,880px it is far below the fold and would measure zero CLS;
+3. keep the order and drop the aside entirely below `lg` — the audit's own
+   argument is that a TOC reached after the whole document "delivers nothing",
+   and this is the only option that needs no contract change. It is a visible
+   removal on five legal pages, so it wants human approval.
+
+CSS alone cannot do it: a closed `<details>` cannot be force-opened by a media
+query without `::details-content`, which is not universally supported, and
+duplicating the nav for two breakpoints puts 10-12 links in the DOM twice.
+
+**01#65 — the disagreement is real and the gap is bigger than the audit
+priced.** Computed styles on the first clause of each legal page, production
+build: the clause `<h2>` is **11.5px / 700 / uppercase / 0.92px tracking / Space
+Mono**; the clause body `<p>` is **16px / 400 / Bricolage Grotesque**. The audit
+argued the inversion at 2.5px against a 14px body. Since 01#64 raised legal body
+copy to 16px it is **4.5px** — a 0.72x heading-to-body ratio — repeated over 12
+clauses on /privacy and 10 on /terms and /cookies. Nothing about that changes
+who gets to decide it; it changes what they are deciding about.
+
+## 23. 03#18 — the pattern the audit says to copy only half exists
+
+## 24. CLOSED — 03#18: the pattern the audit named was the wrong pattern, but the change was still possible
+
+**Resolved. Nothing to sign off.** Kept in full because the reasoning below was
+confidently wrong in two specific ways, and both are reusable mistakes.
+
+The section argued that `q` could not go server-side because "there is no
+plaintext column to match against at all", and that `filter` could not because
+the pills mirror a derived badge tone.
+
+**The `q` argument was factually wrong about the schema.** The merchant session
+does not read `customers`; it reads `public.customers_masked`, and that view
+performs the masking IN THE DATABASE:
+`lower(left(email,1)) || '***@' || lower(split_part(email,'@',2))` and
+`'Phone ending ' || phone_last4`
+(`supabase/migrations/20260707095000_phone_plaintext_retirement.sql:811-829`).
+So there IS a column holding exactly the string the merchant sees — an ILIKE
+over it searches the rendered identifier and touches no raw contact data. The
+admin console has run the same two-column masked lookup for months
+(`lib/admin/lookup-query.ts` `contactOrIlikeFilter`). The mistake was reasoning
+about the privacy posture from the application layer without reading the view.
+
+**The `filter` argument was right about the mechanism and wrong about the
+requirement.** Reimplementing first-match-wins badge precedence in SQL would
+indeed be duplication. But the pills never had to mirror the badge, and mirroring
+it was itself a defect: a member 40 days absent who ALSO had a reward waiting was
+missing from Quiet, because the badge showed "Reward waiting". The pills now ask
+the plain membership question. Badge derivation still has exactly one
+implementation, in TypeScript, and the filter and the badge share their London
+day boundaries through `resolveCustomerFilterBoundaries`.
+
+**The one thing this section got right** — "deleting that disclaimer without
+fixing the search underneath it would be the one genuinely bad outcome" — is why
+the disclaimer was removed only in the same commit that made it untrue.
+
+Shipped: `lib/merchant/customers-filter.ts`, `lib/merchant/customers-view.ts`,
+pinned by `tests/contracts/merchant-members-server-search.test.mjs`.
+
+<details>
+<summary>The original section, unedited</summary>
+
+### 03#18 — the pattern the audit says to copy only half exists
+
+The finding tells the customers table to move `q` and `filter` into the URL and
+the server loader, "matching the pattern `activity-detail-feed.tsx:235-267`
+already uses". I read that pattern. It is two different decisions, and neither
+transfers.
+
+**`filter` — activity pushes it server-side; customers cannot.** Activity's
+filter maps to `eventsForCategory(filter)`, an `event_name IN (…)` predicate on
+a real column, served by a composite index. The customers filter tests
+`row.badge.tone === "ready" | "quiet"` and `isActiveMember(row)` — values
+DERIVED in `buildMerchantCustomerReadback`, not stored. Pushing it down means
+reimplementing badge derivation in SQL, which is exactly the duplication 03#13
+was declined for: two implementations of the same rule, drifting, over audited
+loyalty data.
+
+**`q` — activity deliberately does NOT push it server-side.** Its loader says
+why: the only first-class text column is `event_name`, and the richer joins
+carry PII that must not reach a search predicate. The customers table is worse
+on that axis, not better — its identifiers are masked initials over hashed
+phones, so there is no plaintext column to match against at all.
+
+So the existing note ("a data-layer + privacy design change, not a UI fix") is
+right, and this is what it looks like concretely. The honest options are a
+materialised badge/searchable column with its own drift story, or leaving search
+page-scoped and saying so — which the table already does, in the disclaimer the
+audit wants deleted.
+
+Deleting that disclaimer without fixing the search underneath it would be the
+one genuinely bad outcome available here.
+
+</details>
+
+## 25. A claims gap the audit missed, and the contract already knew about
+
+Found while verifying 01#38's "[stale]" note. Worth reading even if nothing else
+here gets actioned, because it is the only item in this document that is about
+what the site _claims_ rather than how it looks.
+
+`tests/contracts/marketing-offer-source.test.mjs` enforces a rule, not a page
+list: **any marketing surface that names a guarantee must also render
+`CLAIMS_BOUNDARY`** — its limits. The test then allowlists two files:
+
+```
+"components/marketing/guides/guide-page.tsx",
+"components/marketing/guides/guides-data.ts",
+```
+
+with a comment calling it a "KNOWN PRE-EXISTING GAP … closing it is tracked
+separately because it edits three indexed pages' copy, which is outside the
+re-role's approved scope."
+
+Verified against the tree: both files print `${GUARANTEE.name}: ${GUARANTEE.line}`
+in the guides' closing CTA, and `CLAIMS_BOUNDARY` appears nowhere under
+`components/marketing/guides/`. So the three `/guides/*` pages — which are
+indexed — state a guarantee without its limits.
+
+**The audit never mentions this.** Its only `CLAIMS_BOUNDARY` finding is 01#38,
+which asks for the boundary to be stated _less often_ on the landing. So the
+audit is asking to reduce the boundary where it is present, and is silent where
+it is absent.
+
+I have not fixed it. It is an addition to marketing copy on three indexed pages
+and it is a claims question, which is the category this campaign has
+consistently escalated rather than guessed at (see 01#67). But it is a different
+kind of open item from the rest of this document: everything else here is a
+design or performance tradeoff, and this is a statement about a commercial
+guarantee appearing without its conditions.
+
+The fix is small — render `CLAIMS_BOUNDARY` beside the guarantee in the guides'
+closing CTA, then delete those two entries from the contract's allowlist, which
+will then enforce it forever.
+
+## 26. Two customer findings closed by measurement, recorded so they stay closed
+
+Neither needs a decision. Both were held open by a claim that measurement
+disproved, and both are the kind of claim that comes back.
+
+**02#2 — the header cannot get any shorter.** Measured at 390px in Chromium on
+`/dev/home-harness/home`: the authed header is **62px** (`py-2` + a 2px rule).
+The `Logo` carries its own `min-h-11`, so 44px of that 62px is the wordmark.
+Deleting the entire `<form>` around "Log out" from the DOM leaves the header at
+**62px**. Relocating the action to the Profile tab saves nothing; the audit's
+"≈24px" was banked when `py-3` became `py-2`.
+
+The blocker recorded against it — "icon-sm refused (CUS-P2-14)" — was wrong.
+CUS-P2-14 asserts exactly one thing:
+
+    assert.doesNotMatch(shell, /size="sm"/)
+
+`size="icon-sm"` does not match that pattern (checked in node), and `icon-sm`
+carries `[@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11`,
+so on the phones this finding is about it _is_ a 44px target. The contract
+permits it. It stays refused because it trades a labelled destructive action for
+an icon and saves zero pixels.
+
+**02#6 — `@container` would convert the wrong 15 declarations.** After fixing
+the three live defects the earlier sweep missed, every remaining viewport
+variant in the customer column is a page gutter or page top/bottom padding on
+one of four shell files:
+
+| file                                        | live variants                               |
+| ------------------------------------------- | ------------------------------------------- |
+| `customer-shell.tsx`                        | `sm:px-6 sm:pt-10 sm:pb-10`                 |
+| `customer-app-shell.tsx`                    | `sm:px-6` ×2                                |
+| `customer-flow-system.tsx`                  | `sm:px-6`, `sm:pt-6/8`, `sm:pb-[max(…)]` ×2 |
+| `components/customer/loading-skeletons.tsx` | the same five, mirroring the flow shell     |
+
+Those measure the gap between the column and the **screen edge**. A container
+query on `max-w-customer` cannot express them, because that container is a
+constant 410px — converting them would freeze the page gutter at its phone
+value on every desktop. The audit also names `components/brand/typography.tsx`,
+which is not a customer file: `PageTitle`/`SectionHeader` have call sites in 9
+merchant directories, 9 marketing ones and 8 admin ones, so converting its `md:`
+action rail would relayout every console and marketing page to fix a customer
+finding.
+
+## 27. The merchant setup reminder: 172-268px on every console route, and the audit's fix costs more than it saves
+
+03#1's second half asks for the setup reminder to become "a _slot_ the page opts
+into next to its title (or a one-line strip inside `PageTitle`'s `actions`)
+rather than an unconditional stacked card". The word "unconditional" was wrong
+and the note carried it for the whole campaign — `app/app/layout.tsx` renders
+`<MerchantSetupReminder>` inside `<Suspense>`, and the component returns null on
+`/app/onboarding`, `/app/launch` and the four print previews
+(`shouldShowMerchantSetupReminder`) and again whenever `readiness.launchReady`.
+It appears only while a venue is genuinely unlaunched, and disappears for good
+the moment it launches.
+
+What it costs while it is there, measured on the dashboard harness (top of the
+page `<h1>`, launch-ready vs setup-incomplete):
+
+| viewport | h1 top, ready | h1 top, incomplete | pushed down | card height |
+| -------- | ------------: | -----------------: | ----------: | ----------: |
+| 320px    |         109px |              377px |       268px |       233px |
+| 390px    |         109px |              353px |       244px |       209px |
+| 768px    |          66px |              271px |       205px |       185px |
+| 1280px   |          59px |              231px |       172px |       137px |
+
+On a 390x844 phone that is 29% of the first screen, on every console route, for
+the whole pre-launch period.
+
+**Why I have not converted it to a slot.** Two costs, one of them structural:
+
+1. A slot is an opt-in on every console page. A page that forgets it silently
+   drops the only surface telling a merchant why their venue is not live. The
+   layout version cannot be forgotten.
+2. The dashboard already shows readiness twice while incomplete — this card
+   ("Next: Your rewards" / "Add rewards") and the `PageTitle` action
+   ("Finish setup"), 172px apart at 1280 and pointing at the same place. A slot
+   next to the title would put them adjacent rather than remove either.
+   Multiplying readiness representations is precisely what 03#43 spent its
+   effort undoing and what 03#3 declined to add a third of.
+
+**The decision that is actually available**, with the number attached: the
+compact card spends roughly 48px of its 209px on `stepHint`, a sentence that
+repeats what `/app/launch` says on arrival ("Add at least three live rewards so
+every full card has something to reveal."). Dropping it below `sm` would take
+the phone cost from 244px to ~196px on seven routes. That is a content
+judgement about the pre-launch console, not a layout one, so it is here rather
+than in a commit.
+
+## 28. RA-11's fixed reward tray overlays 208px of the phone viewport, and that is the thing the audit wanted removed
+
+03#47 asks for the reward-pool selection bar to become
+`sticky bottom-0` so it "participates in flow and the `pb-[8.75rem]` hack
+disappears". `tests/contracts/reward-preset-atomic-add.test.mjs` lines 109-111
+pin the opposite — `fixed … sm:static`, the `editingId === null … fixed` guard,
+and `pb-[8.75rem] … sm:pb-6` — so the change cannot be made without editing
+assertions. It has not been made.
+
+Two of the finding's supporting claims are now measurably stale, and one cost is
+measurably real.
+
+**Stale — "the spacer is guesswork".** Measured at 320, 360 and 390px for every
+selection count from 1 to 7: the tray renders at exactly **140px** in all 21
+cases. `pb-[8.75rem]` is 140px. The wrap the finding predicts ("two lines of
+copy + a two-button row wraps differently at 320px") does not happen, because
+the copy was shortened to one line plus one sub-line and the buttons sit in a
+fixed `grid-cols-[auto_minmax(0,1fr)]` row.
+
+**Stale — "shorten the bar to one line with the two buttons inline".** At 320px
+the tray's inner width is 272px. The count line alone measures 202px and the two
+buttons 76px and 184px, so the single-line layout needs about 478px. It does not
+become possible on any phone in the matrix.
+
+**Real — the overlay.** The tray floats `calc(3.5rem + max(0.75rem, env(safe-area-inset-bottom)))`
+above the viewport bottom (the console tab bar plus a gutter), so its total
+footprint is **208px** of overlaid viewport on a device with no home indicator
+and **230px** on one with a 34px inset. At maximum scroll on `/app/launch?tab=rewards`
+with a selection pending, that band covers the birthday-reward toggle's
+checkbox: a Playwright click on `input[name="enabled"]` times out as
+unactionable there. The surrounding `<label>` is still partly tappable, so this
+is degraded rather than blocked — but it is a control the merchant cannot hit
+directly, and it is below the component that owns the spacer, so no change
+inside `reward-pool-form.tsx` can reach it.
+
+That last point is the whole argument in one line: a `fixed` bar's clearance
+belongs to the scroll container, and the contract pins the clearance to the
+section. A `sticky` bar would not have the problem, which is what 03#47 said.
+
+**The decision:** whether RA-11's intent ("one mobile-persistent Add action that
+never needs scrolling to reach") is satisfied by `sticky bottom-0` — which also
+never needs scrolling to reach — or whether the assertion is meant to pin
+`fixed` specifically. Only the author of RA-11 can say. If it is the intent, the
+three pinned literals can be re-expressed and 03#47 closes; if it is the
+mechanism, 03#47 should be marked declined rather than partial, and this section
+is the reason.
+
+## 29. Report 01 — three marketing judgements, now measured
+
+All three were recorded as "needs a decision" or "wants a browser". Two of them
+are now decided by measurement and closed against the numbers below; the third
+is still a decision, but a narrower one than the note implied.
+
+### 01#30 — two-columning the pricing sheet: measured and declined
+
+Chromium, `/pricing`, `[data-growth-plan-pricing]`:
+
+| viewport | sheet height, one column | with `grid-cols-[1.1fr_0.9fr]` |      delta |
+| -------- | -----------------------: | -----------------------------: | ---------: |
+| 390      |                  1,585px |            n/a (single column) |          — |
+| 768      |                  1,119px |                        1,552px | **+433px** |
+| 1024     |                  1,001px |                        1,004px |       +3px |
+| 1280+    |                    977px |                          908px |  **-69px** |
+
+The sheet caps at 1,088px wide, so nothing changes above 1280. The 768px
+regression is the `ol`: its `10.5rem` label track plus a sentence does not fit a
+0.9fr rail, and the three rows go from 246px to 918px. Moving the threshold to
+`lg:` removes that regression and leaves a best case of -69px (-7%) on one
+breakpoint.
+
+The audit's "= 450px on tablet+" was priced before the `ol` fix that has already
+shipped, which is where the saving actually went (`ol` at 1280: 174px). Not
+shipped. If anyone wants to revisit, the missing ingredient is a narrower label
+track inside a rail, not the two-column grid.
+
+### 01#22 — collapsing four of the five launch steps on mobile: rejection confirmed
+
+Measured at 390x844 on `/how-it-works`:
+
+| thing                              |                      value |
+| ---------------------------------- | -------------------------: |
+| document height                    |                    6,211px |
+| `#launch` section                  |                    1,372px |
+| the steps `<ol>` alone             |                    1,101px |
+| the `<ol>` at 1280                 |                      677px |
+| saving from a `<details>` collapse | ~725px (11.7% of the page) |
+
+The rejection stands and now has its number: 11.7% of the page, bought by
+hiding four of five steps on the page whose job is to explain them. The audit's
+"= 900px" was priced against the ~1,250px vertical stack that the horizontal
+conversion has already removed.
+
+### 01#20 — a compact GrowthPlanPricing on `/`: still a decision, and not contract-blocked
+
+Two things the note did not say.
+
+It is **not** contract-blocked. `marketing-offer-source` pins the string
+`<LandingPricing` into the landing's seven-band ORDER; it says nothing about
+what that component renders, so its interior can be swapped whenever the
+presentation is decided.
+
+Both remaining halves are the **same** decision. "Drop See full pricing" only
+becomes redundant once `/` shows the real sheet, so it cannot be actioned on
+its own.
+
+I looked for an objective divergence hiding behind the decision and did not
+find one. In particular the landing's `SeasonalOfferBanner` is
+`CampaignStrip variant="card"`, which does render `offer.termsLine`, so the
+seasonal terms are published on both surfaces. What is left is presentation:
+
+| aspect       | `/pricing`                                      | `/`                               |
+| ------------ | ----------------------------------------------- | --------------------------------- |
+| container    | `PricingSheet`, 18px ink sheet, bonded strips   | `Card border-primary`             |
+| `OFFER.name` | `<h2>` at 24/30px                               | `<p>` at 14px                     |
+| annual       | `PriceLockup size="lead"` + `annualSavingShort` | "Or {annualPrice}" + "Best value" |
+| timeline     | 3-row `ol` (174px at 1280)                      | absent                            |
+| CTAs         | 1                                               | 2                                 |
+
+## 30. CLOSED — `deadcode:check` could not report an unused export; now ratcheted
+
+Found by the design-system lane while sweeping contract allowlists, verified
+here.
+
+`package.json` runs `knip --include files,dependencies,unresolved`. The
+`exports`, `types`, `nsExports` and `duplicates` rules are therefore never in the
+output, and `knip.json` sets them to `warn` regardless. So a green
+`pnpm deadcode:check` says nothing at all about unused exports.
+
+Enabling the rule reports **78 unused exports** on a conservative count (the lane
+counted 236 including types and namespace exports). Removing the
+`components/ui/**` entry pattern surfaces eight more on top: `AlertAction`,
+`badgeVariants`, `CardFooter`, `CardAction`, `EmptyMedia`, `SheetClose`,
+`SheetFooter`, `TableFooter`.
+
+This is the same blind spot that let 05#27's six dead `field.tsx` exports survive
+a green gate — they had **two** independent reasons to be invisible.
+
+Not turned on here: switching the rule from `warn` to `error` is a 78-to-236 item
+decision with a real chance of deleting something a future feature wants, and it
+belongs to whoever owns the dependency graph. But the current gate's name
+promises something it does not deliver, and that is worth knowing before trusting
+it.
+
+Related and also unactioned: `components/merchant/launch/launch-billing-cta.tsx`
+is dead — zero references outside itself — and two mechanisms keep it alive. It
+is listed as an `entry` in `knip.json`, and `launch-billing-local-stripe` asserts
+the symbol exists. Deleting it means deleting a contract assertion, so it is
+escalated rather than done.
+
+**Costed, in a production build.** Both routes are public, so these are not
+dev-only numbers. Isolating the takeover aside by its `data-takeover-enquiry`
+hook to keep the comparison like-for-like:
+
+| viewport | landing sheet-part | canonical sheet |      delta |
+| -------- | -----------------: | --------------: | ---------: |
+| 375px    |           ~1,391px |         1,653px | **+262px** |
+| 1280px   |             ~929px |           977px |  **+48px** |
+
+So adopting the canonical sheet on `/` costs about a quarter-screen on a
+phone. That is the trade the decision turns on: one consistent commercial
+presentation across both routes, bought with ~262px of landing scroll.
+
+### CLOSED — resolved with a ratchet, not a decision
+
+`pnpm deadexports:check` (in `quality:check`) now reports unused exports. The 233
+pre-existing ones are baselined in `config/dead-exports-baseline.json` and
+tolerated; a NEW one fails, and so does deleting a baselined one without pruning,
+so the count can only fall.
+
+No sign-off needed. The debt is unchanged but bounded, and the gate is no longer
+blind to the most common form of dead code in the repo.
+
+## 31. The fraud queue cannot be paged without a rank column (04#6)
+
+## 32. ~~The fraud queue cannot be paged without a rank column~~ — RESOLVED (04#6)
+
+The rank column was built. `20260809100000_fraud_flag_severity_rank.sql` adds
+`severity_rank` to `fraud_flags` as a **stored generated** smallint (1 = high,
+4 = an unrecognised severity, so a widened check constraint sorts last rather
+than silently ranking as high), and `getAdminFraudFlags` orders by it in SQL
+before paging a `.range()` window.
+
+Option 1 of the two recorded here, with the objection to it removed: the note
+said a rank column "can drift from the text one". A **generated** column
+cannot — PostgreSQL recomputes it on every insert and update and refuses a
+direct write. That was checked rather than assumed, against real PostgreSQL 17
+in a rolled-back session:
+
+    update … set severity = 'high'    severity_rank 3 -> 1
+    update … set severity_rank = 1    ERROR: cannot insert a non-DEFAULT value
+                                      into column "severity_rank"
+
+And the ordering itself, six flags whose severity and recency disagree, paged
+two at a time:
+
+    by severity_rank asc, created_at desc   high,high | medium,medium | low,low
+    by severity      asc, created_at desc   high,high,LOW,LOW  (every medium
+                                            pushed off the first page)
+
+`tests/db/admin-fraud-queue-order.test.mjs` carries both, including the
+counterfactual, so the column cannot be dropped as redundant without a failing
+test. No sign-off is needed; nothing here was a product decision.
+
+The rule the entry stated is worth keeping, and now has its second half:
+**"page it like the others" transfers only where the underlying read is already
+ordered the way the page displays it — and where it is not, fix the ORDER
+first.** Doing it the other way round ships a queue that lies.
+
+## 33. Three venue spokes are unreachable and unindexed, awaiting a decision the code calls pending
+
+`/loyalty-for-cafes`, `/loyalty-for-bars` and `/loyalty-for-takeaways` are
+complete, well-written pages that:
+
+- have **no inbound link** from anywhere on the site (crawled every internal
+  `<a href>` on every public route);
+- are **not in `PUBLIC_SITE_ROUTES`**, so they are not in the sitemap;
+- carry `robots: { index: false, follow: true }`, set deliberately by
+  `personaPageMetadata` for every non-primary persona;
+- each carry a `navLabel` ("Cafés", "Bars", "Takeaways") that **no component
+  renders**.
+
+The code states the intent: _"Keep discovery flowing to the supported pub-first
+offer while these unsupported vertical spokes await traffic/backlink evidence for
+a safe 301, consolidation, or retention decision."_
+
+So this is not a bug, and I reverted my own fix for it. The sitemap omission is
+correct for noindex pages, and adding hub links promotes pages that were
+deliberately de-emphasised.
+
+**But the pending decision is now several months old and has a cost.** The three
+pages are maintained — they are covered by `marketing-offer-source`, they render
+the same offer engine, they will keep appearing in every refactor — while being
+reachable only by typing the URL. The unrendered `navLabel` is the tell that a
+navigation was specified and then dropped.
+
+The three options the comment names, with what each implies:
+
+| option          | implies                                                                                                   |
+| --------------- | --------------------------------------------------------------------------------------------------------- |
+| **Retain**      | link them from `HubHandoff`, drop `index: false`, add to `PUBLIC_SITE_ROUTES`. Treats them as real pages. |
+| **Consolidate** | 301 each to `/loyalty-for-pubs`, delete the routes, keep `PERSONAS` for copy. Stops paying maintenance.   |
+| **Hold**        | status quo — but then `navLabel` should be deleted, because it advertises a nav that is not coming.       |
+
+Recommendation: **hold or consolidate**, not retain. Nothing in the repo suggests
+the traffic/backlink evidence arrived, and retaining is the only option that
+changes public SEO posture.
+
+This needs a marketing/SEO owner, not an engineer.
+
+## 34. What can and cannot be verified in a production build
+
+This bounds every measurement in the campaign, so it belongs in the sign-off
+rather than buried in the method log.
+
+`app/dev/layout.tsx` returns `notFound()` when `NODE_ENV === "production"`, and
+35 harness files repeat the guard individually. That is correct — dev harnesses
+must not be public. It also means:
+
+| surface                              | how it can be measured                                  |
+| ------------------------------------ | ------------------------------------------------------- |
+| marketing, auth, legal, guides       | **production build** — fully verifiable                 |
+| customer, merchant, admin            | **dev server only**, via `/dev` harnesses               |
+| customer/merchant/admin, real routes | needs live credentials (`pnpm test:db`, never run here) |
+
+So every number in this campaign for a customer, merchant or admin surface is a
+**dev-server measurement**, and this session proved dev and production disagree
+in at least two ways:
+
+- **hydration timing** — 01#49's CLS measured 0.207 in dev and 0.000 in
+  production, because dev hydrates far later than paint;
+- **CSS cascade / containment** — the 320px overflow on the pub hub was 65
+  elements in production and effectively invisible in dev.
+
+Static layout heights appear to agree: 01#22's `/how-it-works` page measured
+6,211px in dev and **6,211px** in production, an exact match, and the `#launch`
+list within 2%.
+
+**What this means for the open items.** 02#10 (the wallet tile at ~294px), 02#30
+(the stub floor at 70px) and the other customer-surface numbers cannot currently
+be re-checked against a built artefact by anyone without credentials. They are
+sound as dev measurements of static geometry — the category that agreed — but
+they are not production-verified, and no one should later cite them as if they
+were.
+
+The cheapest way to close this gap is a staging deploy with seeded data, which
+is a decision about environments rather than about UI.
+
+## 35. 01#10 — the closing headline still paraphrases the hero, and only copy can fix it
+
+The rest of 01#10 is settled: `<FinalCta` is pinned into the landing's
+seven-band order by `tests/contracts/marketing-offer-source.test.mjs:238`, so
+the band cannot be deleted; and the body duplication the finding actually cited
+is already gone — `components/marketing/landing/final-cta.tsx` renders neither
+`PLAN_LINE` nor `OFFER.riskFraming`, and `GuaranteeStack` (whose description the
+audit says `riskFraming` duplicated) is on the landing's docs-mode DENY list at
+lines 250-262 of the same contract.
+
+What survives is one sentence:
+
+| where                   | text                                                         |
+| ----------------------- | ------------------------------------------------------------ |
+| `LANDING.hero.headline` | "Give your weekend crowd a reason to come back on a Tuesday" |
+| `FinalCta` `<h2>`       | "Give your weekend customers a reason to come back midweek"  |
+
+The page opens and closes on the same sentence with two nouns swapped. The band
+is 789px at 375/390 in a production build, 678px at 640-1024, 665px at 1280.
+
+This is a marketing copy cut, which the standing instruction excludes, and the
+hero half is doubly constrained: `marketing-offer-source` asserts the hero
+headline literal directly ("the hero headline must use the safe 'a reason to
+come back' framing"). Only the `FinalCta` line is free to change, and only a
+copy owner can change it.
+
+## 36. 01#65's second ask — visible `§NN` clause anchors on the legal pages
+
+Separated out of section 22 because it is a different kind of decision and is
+**not** blocked by `legal-heading-structure`. That assertion pins the h2's
+className prefix (`<h2 className="mono-meta`) and forbids `<p className="mono-`;
+a sibling `<a className="mono-id" href="#clause-id">§04</a>` beside the heading
+matches neither and would ship green.
+
+The upside is the audit's: clauses become countable and copy-linkable, which is
+what a reader wants from a 12-clause privacy notice. Every clause already has a
+stable `id` and a TOC link, so the deep link exists — what is missing is a
+visible handle for it.
+
+It is flagged rather than shipped because printing clause numbers into published
+legal documents changes their citation surface: a customer or a regulator can
+then cite "clause §4 of your terms", and the numbering has to stay stable across
+every future edit or the citation silently retargets. That is a legal-review
+call, not an engineering one.
+
+## 37. 02#30 — the reward-ticket terms, and the stub's second alternative
+
+The customer lane re-measured 02#30's stub half and it is done: the stub is 72px
+(`w-18`) with 8px of padding each side, so 56px of content box, and the longest
+stub word that actually renders — `"Unlocked"`, not the `"REDEEMED"` the old
+note cited — measures **53.77px**. The audit's `w-14` (56px, a 40px box) does
+not fit it and neither does `w-16`. The face is 268px of a 346px ticket.
+Measured on `/dev/design-system` at 375px, `document.styleSheets.length = 3`,
+anchored on `[data-ticket-state]` and its last element child.
+
+Two things are left, and both are decisions rather than engineering.
+
+**(a) Clamping the terms.** The audit asks for `line-clamp-2` on the reward
+description with a "Full terms" disclosure, worth roughly 48px. The description
+carries **merchant reward terms**. Putting them behind a tap is a consumer-facing
+change to how conditions on a promotion are presented, and the person who should
+decide it is whoever owns that risk, not this lane. `components/customer/legal-sheet.tsx`
+already exists, so the mechanism is not the obstacle.
+
+**(b) The alternative the audit offered and nobody evaluated.** The
+recommendation is "reduce the stub to `w-14` **or** move the seal to a
+`-top-2 -right-2 absolute` corner mark and give the face the full width". Only
+the first was ever tested, and the conclusion ("the audit's `w-14` is not
+viable") was then applied to the whole finding. The second recovers the entire
+**72px** of stub — more than twice what the first would have — but it deletes
+the perforated chit silhouette, which is a signature Wet Ink form in
+`DESIGN.md`. That is a visual decision needing human approval, not a resize.
+
+Recommended: decide (a) as a copy/compliance question, and treat (b) as a design
+review item. Neither is blocked on code.
+
+## 38. 02#53 — auto-submitting the OTP needs a code length the client does not have
+
+02#53's six-cell field is genuinely contract-banned (`ux-production-polish`
+asserts DESIGN.md's "single native input … one-time-code", that the shadcn
+`input-otp` primitive file is absent from `components/ui`, and that
+`package.json` does not mention `input-otp`). That much was already recorded
+correctly.
+
+What was NOT tested is the finding's sharper complaint: _"the member must find
+and press a separate 48px 'Check code' button while holding a phone that just
+buzzed."_ No contract blocks auto-submit. It fails on a fact instead:
+
+- the server accepts `/^\d{4,8}$/` (`app/m/[merchantSlug]/join/actions.ts`,
+  `app/home/actions.ts`);
+- `lib/customer/experience/otp-field.ts` exists precisely because the accepted
+  length varies, and `otpFieldMaxLength()` returns the **maximum**, 8;
+- **no call site passes `configuredLength`**, so every OTP input on the customer
+  side is capped at 8 regardless of what was actually sent;
+- `lib/customer/verification.ts` carries a four-digit local bypass mode beside
+  Twilio Verify's six.
+
+So there is no length to fire on. Auto-submitting at a guessed six would spend a
+rate-limited verification attempt on a partial code for any service configured
+to anything else, and the failure is silent to us and loud to the member.
+
+This is fixable, but the fix is a **server change on the identity path**: emit
+the code length alongside the send, thread it to the field, and auto-submit only
+on an exact match. That is worth doing — `inputMode="numeric"` gives iOS a keypad
+with no return key, so implicit form submission is unavailable and the button
+really is the only way out — but it is not a UI edit and it should be scoped
+deliberately rather than guessed at inside a UI audit.
+
+Flagged, not attempted.
+
+## 39. 02#60 — dropping "Back to start" for signed-out members buys 56px and needs a contract change
+
+Recorded so the trade is visible rather than re-litigated.
+
+The authed half of 02#60 — the whole of its stated problem, "the scanner's
+primary exit sends **authed** members out of the app" — is done in both the
+loader and the loaded scanner. The signed-out clause is blocked by
+`customer-error-boundaries`, which asserts the source expression
+`guidance.showRetry ? "ghost" : "secondary"` under the message _"Back to start
+must demote to ghost in the camera-error state"_. Deleting the button deletes
+the expression. Re-verified by sabotage in this lane:
+`not ok 5 … error: 'Back to start must demote to ghost in the camera-error state'`.
+
+What it would buy, measured on `/scan` at 375x667 with a fake camera device, at
+rest, `document.styleSheets.length = 3`, anchored on
+`a[href="/start"]`.parentElement:
+
+| element              | height |
+| -------------------- | -----: |
+| exit row (2x44 + 12) |  100px |
+| viewfinder           |  291px |
+| receipt card         |  688px |
+| **document**         |  739px |
+
+Dropping one exit saves **56px** and leaves the document at 683px against a
+667px viewport — so it does not even buy the fold. The signed-out visitor also
+has a defensible reason to reach `/start`: with no session it is the switchboard
+where they choose customer or venue, which is the opposite of the "sends them
+out of the journey" complaint that motivated the finding.
+
+Recommended: leave it. If someone still wants it, the contract has to be
+renegotiated first, and nobody has asked.
+
+## 40. 03#25 — the last 1.5px stroke in the product is `.w-tag`, and it is 52 files wide
+
+**Decision needed: leave `.w-tag` at 1.5px, or raise it to 2px.**
+
+DESIGN.md is unambiguous — "Borders are **2px solid ink** everywhere; **2px
+dashed** (`.w-rule`) for empty slots" (`DESIGN.md:196`). The eleven Tailwind
+`border-[1.5px]` call sites 03#25 named are gone. What survives is the utility
+itself, in `app/globals.css`:
+
+    .w-tag { … border: 1.5px solid var(--w-line); border-radius: 999px; … }
+
+`MonoTag` applies it, and MonoTag is used across roughly 52 files in every
+console, the customer app and the marketing pages. Raising it to 2px is a
+one-character change with a product-wide visual result: every status pill gains
+weight, and the pills sit beside 2px cards where the current contrast between
+"pill" and "card" is partly carried by that thinner stroke.
+
+**What has been done instead:** the deviation is now documented at the site
+(a comment above the rule pointing here) and pinned by
+`tests/contracts/ink-border-weight.test.mjs`, which asserts (a) no
+`border-[1.5px]` survives anywhere under `app/` or `components/` — after
+asserting it read more than 500 files, so an empty file list cannot pass it —
+and (b) `globals.css` contains exactly ONE 1.5px border declaration.
+
+**Why the guard matters more than the decision.** The sweep has already leaked
+once. The note at the `details[data-just-updated]` rule in `globals.css` records
+a 1.5px border added days AFTER 03#25 cleared the tree, by the same agent that
+cleared it. Whichever way this is decided, the tree now cannot drift back
+silently.
+
+## 41. 03#3 — the sidebar "N ready" chip is affordable now, and still not worth it
+
+**No decision needed unless you disagree.** Recording it because the reason
+changed.
+
+03#3 asked for a right-aligned count on the Members nav item. It was recorded as
+blocked because "it needs a per-render count query the console does not run
+today". That reason is retired: `getMerchantNextActionCounts`
+(`lib/merchant/customers-view.ts`) is a merchant-scoped, PII-free
+`head: true` COUNT plus one bounded id read, shipped with 03#13.
+
+It is still declined, on two grounds that are about where the read lands rather
+than whether it exists:
+
+1. **It would sit on the counter's hot path.** `app/app/layout.tsx` wraps every
+   `/app` route — including `/app/scan` and the four print previews — so the
+   chip adds a members read to screens that have nothing to do with members.
+2. **It is invisible on the device that needs it.** The rail is desktop chrome:
+   `components/layout/merchant-tab-bar.tsx:25` is `md:hidden` and is the phone's
+   nav, and the sidebar trigger in `merchant-app-shell.tsx:172` only appears
+   below `md`. A merchant at the till is not looking at the sidebar.
+
+The same number now leads the dashboard's "Do next" card, one tap away, where
+the read is already paid for and the row deep-links into the filtered list.
+
+## 42. 04#54 — the panel-description budget, measured
+
+Recorded as "a copy decision across 5 surfaces" with no number, which makes it
+a question rather than a decision. Measured in chromium at 1440x900 against the
+REAL `SectionHeader` at the REAL admin container width, with
+`document.styleSheets.length > 0` asserted first (computed: 14px / 24px line
+height / 672px max-width, i.e. `max-w-2xl text-sm leading-6` as shipped):
+
+| Panel description                           | chars | height |
+| ------------------------------------------- | ----: | -----: |
+| privacy/data-request-workflow-panel.tsx:51  |   220 |   72px |
+| customers/customer-memberships-panel.tsx:48 |   153 |   48px |
+| merchants/page.tsx:246                      |    64 |   24px |
+| merchants/page.tsx:412                      |   122 |   48px |
+| evidence/page.tsx:78                        |   127 |   48px |
+| evidence/page.tsx:98                        |   144 |   48px |
+| pilot/page.tsx:55                           |    69 |   24px |
+| pilot/page.tsx:93                           |   122 |   48px |
+| pilot/page.tsx:174                          |   121 |   48px |
+| **total**                                   |       |  408px |
+
+Every description at or under the audit's 90-character budget measured exactly
+one line (64 chars = 416px wide, 69 chars = 463px, against a 672px measure), so
+the budget change is worth **408px -> 216px: 192px across nine panels**, and
+48px on the privacy page rather than the ~200px the audit estimated for it.
+
+What the number does not decide is the part that needs a person:
+
+- the privacy description is the procedural one ("Verify the requester outside
+  this console … until self-service exists"). Moving it into a
+  `Disclosure label="How this works"` hides an operator instruction in a
+  legally sensitive flow by default. That is a copy/legal call, not a layout
+  one;
+- the other eight are ordinary product copy and could take a 90-character
+  budget with no loss of instruction.
+
+**Cheapest split, if it helps:** apply the budget to the eight, leave the
+privacy header at three lines. That is 336px -> 192px for 144px, and no
+operator instruction disappears.
+
+## 43. 04#67 — `StatStrip` on the admin overview would need a per-item link
+
+Recorded as WON'T FIX because adopting `StatStrip` would regress 04#8 (the KPI
+tiles are links into the lists they count). Re-checked at the source rather
+than the assertion, and it holds: `components/data/stat-strip.tsx:8-14` defines
+`StatStripItem` as `{ label, value, tone?, icon? }` — no `href` — and the strip
+is ONE card of four cells, so a single wrapping link would give three distinct
+destinations (`/admin/merchants`, `/admin/customers`, `/admin/billing`, per
+`app/admin/page.tsx:59-80`) one address. The audit's own recommendation also
+reserves `MetricTile` for tiles carrying helper content, which is exactly the
+pilot page, so only the three overview counters were ever in scope.
+
+There is a version that satisfies both findings: an optional per-item `href` on
+`StatStrip`. It is a design-system change to a component the `/dev/design-system`
+page and the `.design-sync` previews also consume, for a **Low** finding, and it
+changes the admin overview visually. Not taken unilaterally. Decide if the
+density is wanted; the code change is small, the review surface is not.
+
+## 44. The audit lookup bar is now four controls wide (04#26)
+
+`/admin/audit` gains an inclusive `from`/`to` date pair, so its sticky lookup
+bar carries venue + two dates + Search/Clear. The row wraps rather than
+squeezing (`flex flex-wrap items-end`), and the other five lookup surfaces are
+untouched because the pair is opt-in — but the audit console is auth-gated, so
+**no human has seen the wrapped bar at 768px or 1024px**. The behaviour is
+tested; the appearance at intermediate widths is not, and cannot be from here.
+One look at `/admin/audit` on a tablet width would close it.
+
+## 45. 04#26 — the audit action taxonomy, derived from the data, and why it is NOT unambiguous
+
+The remaining half of 04#26 is an "action-category filter" on `/admin/audit`. The
+blocker was recorded as "needs a product taxonomy" and left there. This round the
+taxonomy was derived **from the data** instead of proposed from product language,
+and the derivation is the finding: it does not close.
+
+### Method
+
+Every `insert into public.audit_logs` in `supabase/migrations/*.sql` was parsed —
+**110 sites across 161 migrations, all 110 parsed, none skipped**. The `action`
+value was recovered _positionally_ against each insert's own column list (the
+column order is not uniform), which matters because **27** of the 110 write a
+variable or a `case` rather than a literal; each of those was resolved at its
+assignment (`saved_action :=`, `v_action :=`, `action_name :=`, `audit_action :=`,
+`v_saved_action :=`, and five inline `case` expressions). The 2 TypeScript-side
+inserts in `app/admin/security/actions.ts:163,189` were added by hand.
+
+Result: **62 distinct actions**, over **21 distinct `target_table`s**.
+
+### The test: DESIGN.md's only shipped taxonomy
+
+DESIGN.md does contain a category vocabulary, in **Badges & Tags**:
+
+> "Merchant activity categories map to the same spot-ink story everywhere:
+> customer joins are cobalt, stamps are vermillion, rewards are leaf, QR events
+> are sun, and account events stay quiet secondary/plain."
+
+Those five are real and implemented (`ActivityCategory` and `eventsByCategory` in
+`lib/merchant/activity-display.ts`, toned by `components/brand/category-badge.tsx`).
+If they covered `audit_logs.action`, this finding would close today. They do not.
+
+| group                              | actions                                                                                                                                                                                                                                                                             |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| stamp — MAPS (2)                   | `stamp_issued`, `stamp_adjusted`                                                                                                                                                                                                                                                    |
+| qr — MAPS (4)                      | `qr_created`, `qr_regenerated`, `qr_enabled`, `qr_disabled`                                                                                                                                                                                                                         |
+| reward — MAPS (7)                  | `birthday_reward_saved`, `direct_reward_issued`, `reward_cancelled`, `reward_expired_cycle_released`, `reward_invite_created`, `reward_redeemed`, `reward_redemption_failed`                                                                                                        |
+| offers — HOMELESS (10)             | `offer_campaign_claimed`, `offer_campaign_drafted`, `offer_campaign_ended`, `offer_campaign_paused`, `offer_campaign_published`, `offer_campaign_resumed`, `offer_campaign_token_installed`, `offer_campaign_token_rotated`, `offer_campaigns_allowlist_set`, `offer_pass_redeemed` |
+| launch / pilot ops — HOMELESS (7)  | `launch_fee_satisfied`, `launch_self_service_checked`, `merchant_launch_delivered`, `merchant_launch_dispatched`, `merchant_launch_pilot_extended`, `pilot_note_logged`, `staff_training_timed`                                                                                     |
+| reward-pool config — HOMELESS (7)  | `reward_pool_item_activated`, `reward_pool_item_archived`, `reward_pool_item_created`, `reward_pool_item_deactivated`, `reward_pool_item_deleted`, `reward_pool_item_existing`, `reward_pool_item_updated`                                                                          |
+| invites — HOMELESS (5)             | `loyalty_invite_campaign_cancelled`, `loyalty_invite_campaign_confirmed`, `loyalty_invite_campaign_drafted`, `loyalty_invite_claimed`, `loyalty_invites_allowlist_set`                                                                                                              |
+| security — HOMELESS (5)            | `admin_mfa_factor_unenrolled`, `admin_mfa_unenrollment_authorised`, `staff_pin_changed`, `staff_pin_rotated`, `staff_pin_set`                                                                                                                                                       |
+| privacy / consent — HOMELESS (4)   | `consent_opt_out_recorded`, `customer_data_exported`, `customer_pii_erased`, `data_request_logged`                                                                                                                                                                                  |
+| merchant lifecycle — HOMELESS (3)  | `merchant_cancel_reason_recorded`, `merchant_cancellation_interview_recorded`, `merchant_onboarded`                                                                                                                                                                                 |
+| fraud — HOMELESS (2)               | `fraud_flag_created`, `fraud_flag_resolved`                                                                                                                                                                                                                                         |
+| referrals — HOMELESS (2)           | `referral_code_disabled`, `referral_reviewed`                                                                                                                                                                                                                                       |
+| commercial evidence — HOMELESS (2) | `commercial_evidence_drafted`, `commercial_evidence_published`                                                                                                                                                                                                                      |
+| card config — HOMELESS (2)         | `loyalty_card_created`, `loyalty_card_updated`                                                                                                                                                                                                                                      |
+
+**13 of 62 map. 49 of 62 (79%) do not.**
+
+### Why they do not — and it is not a gap in the doc
+
+The clause is scoped, in its own first word, to **merchant activity**. That
+vocabulary describes `product_events` — what a venue and its customers _did_.
+`audit_logs` is the internal-admin trail: who _exercised authority_ over a record,
+including authority no merchant has. Offers, launch/pilot operations, reward-pool
+configuration, MFA unenrolment, PII erasure and fraud adjudication are not
+"merchant activity" in any sense the five categories were written for.
+
+The failure mode is not cosmetic. Forcing the homeless 49 into the nearest of five
+would print `customer_pii_erased` under a cobalt **Customer** chip beside
+`loyalty_invite_claimed` — an irreversible erasure badged as a join, on the one
+surface an operator reads to answer a compliance question. A wrong filter here is
+worse than no filter, which is why nothing was shipped.
+
+### Two implementable options, both unambiguous, for whoever signs this off
+
+**Option A — filter on `target_table` (recommended).** It is a column co-written
+on all 110 inserts, so it needs no naming judgement at all, and `/admin/audit`
+_already prints it_ in the Target column (`AuditTarget`, `app/admin/audit/page.tsx`). The operator
+question it answers — "what did this touch" — is the one the trail is usually read
+for. 21 values, so a `<select>`, not a chip row:
+
+| `target_table`                     | insert sites |
+| ---------------------------------- | -----------: |
+| `billing_customers`                |            1 |
+| `commercial_evidence_cases`        |            1 |
+| `consent_records`                  |            1 |
+| `customer_memberships`             |           16 |
+| `customers`                        |            9 |
+| `fraud_flags`                      |            2 |
+| `loyalty_cards`                    |            7 |
+| `loyalty_invite_campaigns`         |            4 |
+| `loyalty_invite_recipients`        |            2 |
+| `merchant_cancellation_interviews` |            1 |
+| `merchant_launch_fulfilments`      |            3 |
+| `merchants`                        |            8 |
+| `offer_campaign_claims`            |            2 |
+| `offer_campaigns`                  |            8 |
+| `offer_redemptions`                |            1 |
+| `pending_reward_invites`           |            2 |
+| `qr_codes`                         |           11 |
+| `referrals`                        |            2 |
+| `reward_events`                    |           16 |
+| `reward_pool_items`                |            9 |
+| `staff_users`                      |            4 |
+
+**Option B — filter on the exact action.** Also zero-invention, and the audit page
+already prints the raw token in `.mono-id` beneath the spoken name with the
+comment "operators still need the raw token to grep for" — a filter is that
+comment's logical end. Costs a discoverable list of 62.
+
+**Security note for either.** Unlike `?sort=`, this token becomes a _value_ in
+`.eq("action", …)`, not a column in `.order(…)`. PostgREST parameterises the
+value, so a shape check (`^[a-z][a-z0-9_]{2,63}$`) is sufficient and a closed
+62-entry allowlist is not required — and an allowlist would silently hide any
+action written before it drifted. Both options follow the existing opt-in
+precedent (`withDateRange` on `AdminLookupControls`), so the other five lookup
+surfaces stay byte-identical.
+
+Neither was implemented, because _which_ of the two is the product's answer is
+exactly the judgement this entry exists to escalate.
+
+## 46. CONFLICT — DESIGN.md's 14px/22px rhythm is unreachable, and the console ships 24px (05#65)
+
+Checking 05#65's ConsoleSection decline against DESIGN.md, as asked, turned up a
+conflict between the document and the tree that no lane should resolve alone.
+
+**Layout & Spacing** states:
+
+> "4px base unit. 14px gaps between cards, 22px between sections."
+
+The console ships neither. Counted independently this round across `app/app` +
+`app/admin`:
+
+| utility                           |         px | occurrences |
+| --------------------------------- | ---------: | ----------: |
+| `gap-6`                           |         24 |          42 |
+| `gap-2`                           |          8 |          29 |
+| `gap-4`                           |         16 |          17 |
+| `gap-3`                           |         12 |          15 |
+| `gap-1`                           |          4 |          13 |
+| `gap-5`                           |         20 |           6 |
+| `gap-2.5` / `gap-1.5` / `gap-0.5` | 10 / 6 / 2 |      1 each |
+| `gap-8`, `space-y-*`              |          — |       **0** |
+
+Three things follow, and the third is the conflict:
+
+1. The dominant console gap is **24px**, 2px above the published section figure.
+2. The published **14px card gap is used zero times**, although Tailwind ships it
+   as `gap-3.5`. It is reachable and unused.
+3. **22px is not reachable at all.** There is no `gap-5.5` in the default scale,
+   and _neither 14 nor 22 is a multiple of the 4px base unit the same sentence
+   declares_. DESIGN.md's two spacing numbers are mutually inconsistent with its
+   own base unit and cannot be expressed through the utility scale without
+   minting tokens.
+
+**Which the code currently obeys:** the code obeys neither — it obeys Tailwind's
+4px-multiple scale, which is what the "4px base unit" half of the clause says, and
+ignores the "14px / 22px" half.
+
+**Recommendation: change DESIGN.md, not the 42 grids.** 14 and 22 read like
+measurements taken off an early comp and written down as law; they contradict the
+base unit in the same breath, and honouring them means minting two tokens and
+touching every console grid to move a card gap by 10px and a section gap by 2px —
+a change nobody can see and every reviewer must check. Recording 16px/24px (or
+whatever the design owner intends) would make the document describe the system
+that exists and is internally consistent. If instead the 14/22 figures are
+deliberate, they need `--gap-card` / `--gap-section` tokens plus a `tokens:check`
+rule, and _that_ is the ConsoleSection-scale job 05#65 was declined for.
+
+**The 05#65 decline itself stands** on its original reasoning — 42 grids is
+cross-cutting and `ConsoleSection` is still nobody's component. What changed is
+the reason: this is a doc-vs-code conflict in which the doc is the likelier thing
+to be wrong, and picking a winner silently is how a 2px drift becomes a migration.
+
+## 47. 04#54 — the panel-description budget, priced in DESIGN.md's own units
+
+Costed already: nine panel descriptions across five admin surfaces measure 408px;
+at the audit's 90-character budget they measure 216px. The open question was never
+the number, it was _what procedure may be hidden_. DESIGN.md sharpens both halves.
+
+**Layout & Spacing** — "14px gaps between cards, 22px between sections" — converts
+the saving into console rhythm: 192px is **~8.7 section gaps** of admin pushed
+below the fold, on surfaces whose purpose is a dense table the operator came to
+read. That is a real cost to leaving it.
+
+**Typography** supplies the register the audit never named. A panel description is
+not spoken body copy; it is printed metadata — "Space Mono for everything printed
+— IDs, codes, dates, eyebrows, feeds, metadata" — for which the sanctioned size is
+`.mono-meta` at 11.5px, with `.mono-id` at 10px as the floor ("10px is the system
+floor: nothing renders text below it"). Shortening these is moving them toward the
+register they already belong to, not truncating prose.
+
+**Recommendation: cut the eight operational descriptions to the 90-character
+budget (~144px, ~6.5 section gaps) and leave the privacy workflow description at
+220 chars (48px).** It is the legal-adjacent one — procedure a human is
+accountable for — and 48px is a cheap price for not hiding it. Seven of nine
+already exceed the budget and every description at or under it measured one line,
+so the change is bounded and predictable.
+
+**Not implemented.** Cutting product copy is excluded by standing instruction this
+round. This is the recommendation only.
+
+## 48. 05#13 — cut two rungs, not five (Button size API)
+
+Excluded from implementation by standing instruction; this is the recommendation.
+
+`components/ui/button.tsx:38-50` declares nine size rungs. Counted this round by a
+deliberately loose method — every `size="…"` attribute under `app/` + `components/`,
+an **upper** bound because it also catches non-Button consumers:
+
+| rung      |  uses | DESIGN.md names it? |
+| --------- | ----: | ------------------- |
+| `lg`      |    81 | no                  |
+| `sm`      |    77 | **yes**             |
+| `xs`      |     8 | **yes**             |
+| `icon-sm` |     6 | **yes**             |
+| `default` |     6 | no                  |
+| `icon`    |     4 | no                  |
+| `icon-lg` |     2 | no                  |
+| `xl`      | **0** | no                  |
+| `icon-xs` | **0** | no                  |
+
+An upper bound of zero is a true zero, so `xl` and `icon-xs` are provably dead
+however call sites are counted.
+
+DESIGN.md blocks the audit's proposed shape of cut. **Layout & Spacing**:
+
+> "Compact button sizes (`xs`/`sm`/`icon-sm`) are honest: they render at their
+> declared height on fine pointers and grow to the 44px floor on coarse (touch)
+> pointers, the FilterPills pattern."
+
+Those three are named individually, are all in live use, and the coarse-pointer
+promise is implemented literally (`[@media(pointer:coarse)]:min-h-11` on lines
+39-48). A cut to four rungs cannot take them without editing DESIGN.md first.
+**Buttons** specifies only the silhouette ("2px ink border, 10px radius, weight
+700, hard 3px offset shadow") and never the ladder, so nothing else in the doc
+defends the remaining rungs either.
+
+**Recommendation: delete `xl` and `icon-xs` only — a 9→7 cut with zero call-site
+churn and zero DESIGN.md edits** — and keep `xs`/`sm`/`icon-sm` (doc-named) and
+`icon-lg` (2 live uses). Against the audit's 9→4 cut, which the earlier row
+measured at ~90 live call sites. Even this no-op version is still the Button
+size-variant API removal the standing instruction excludes, so it was not done.
+
+## 49. 01#65 — DESIGN.md and `legal-heading-structure` point opposite ways, and the contract's own comment sides with DESIGN.md
+
+Clause headings on `/terms` and `/privacy` render at `.mono-meta` — 11.5px Space
+Mono 700 uppercase — over a 16px Bricolage body. The heading is 4.5px SMALLER
+than the text it introduces, a 0.72x ratio, across 12 clauses on `/privacy` and
+10 each on `/terms` and `/cookies`.
+
+**What DESIGN.md says.** Typography: Bricolage Grotesque is "for everything
+spoken", "Headings are always 800", and Space Mono is for everything "printed —
+IDs, codes, dates, eyebrows, feeds, metadata". A clause heading is spoken
+content. `.mono-meta` is defined in the micro-type scale as metadata metrics.
+
+**How the codebase actually uses `.mono-meta`.** 99 call sites. By host element:
+
+| host                             |  count |
+| -------------------------------- | -----: |
+| `<p>`                            |     33 |
+| `<span>`                         |     21 |
+| `<Button>`                       |      2 |
+| `<dt>`, `<div>`, `<IconRoundel>` | 1 each |
+| **heading tags `<h1>`–`<h6>`**   |  **3** |
+
+The three are `app/terms/page.tsx:119`, `app/privacy/page.tsx:157` and
+`components/legal/legal-document-page.tsx:119` — all legal clause titles. Used
+as metadata ~95 times and as a heading 3 times, this is an outlier, not a rule.
+
+**The treatment the audit wants is already on those pages.** `legal-document-page.tsx:95`,
+`app/terms/page.tsx:69` and `app/privacy/page.tsx:82` all render
+`<p className="text-xl font-extrabold">` for their card titles. Nothing new
+would be introduced; the clause headings would join the page they live on.
+
+**The contract.** `tests/contracts/legal-heading-structure.test.mjs:30` asserts
+`/<h2\s+className="mono-meta/`. Its own comment states the intent:
+
+> Section titles are headings, not mono `<p>` eyebrows. The mono styling now
+> comes from the sanctioned `.mono-meta` utility (DESIGN.md micro-type scale)
+> rather than a hand-rolled font-mono string.
+
+So the assertion bundles two things: that the title is an `<h2>` (the stated
+goal) and that it is styled `.mono-meta` (how it happened to look when the
+regression it guards against — a hand-rolled `font-mono` `<p>` — was fixed).
+The audit's change keeps the `<h2>`, keeps the sanctioned-utility rule, and
+keeps the anti-`<p>` guard on line 31. It breaks only the incidental half.
+
+**Recommendation — change the contract, not the design system.** No assertion
+was touched here. The proposed replacement is STRICTER than today's, because it
+also forbids the inversion that DESIGN.md rules out:
+
+```js
+assert.match(source, /<h2\s+className="[^"]*font-extrabold/) // spoken, 800
+assert.doesNotMatch(source, /<h2[^>]*className="[^"]*mono-meta/) // not metadata
+assert.doesNotMatch(source, /<p className="(?:font-mono|mono-)/) // unchanged
+```
+
+**Not covered by this ruling:** `tracking-tag` sits beside `mono-meta` on all
+three. A previous pass established that `tracking-[0.08em]` was TOKENISED rather
+than removed and `tracking-tag` computes to the same 0.92px, so "stop overriding
+the 0.06em" is a separate token question and is NOT settled here. The `§NN`
+self-linking clause anchors are likewise contract-free but change a published
+legal document's citation surface, and remain a legal-review call.
+
+## 50. 03#25 — DECIDED against DESIGN.md: the token is wrong, and the deviation has a second half nobody had recorded
+
+**Verdict: DESIGN.md is right and `.w-tag` is wrong.** Sections 17 and 40 left
+this as a coin-toss between "raise the token" and "document the exception".
+Read against the document as written, it is not a coin-toss, on three
+independent grounds.
+
+**1. DESIGN.md names the `.w-tag` exemption, and it is a SHAPE exemption.**
+"Shapes" (`DESIGN.md:194-197`): "Borders are **2px solid ink** everywhere; **2px
+dashed** (`.w-rule`) for empty slots, receipt rules, and pick-one suggestion
+tiles… The mono pill `.w-tag` is the only generic pill **shape** outside the
+stamp family." The document goes out of its way to enumerate `.w-tag`'s licence
+and the licence it grants is to be a pill. It grants no weight licence, in that
+paragraph or anywhere else. Option 2 in section 17 ("document 1.5px as a
+sanctioned exception") is therefore not a reading of DESIGN.md; it is an
+amendment to it.
+
+**2. The deviation is not only a weight. It is also a colour, and that half was
+never written down.** "Elevation & Depth" (`DESIGN.md:225-227`): "Dashed lines
+come in two tones only: `--w-line` (18%, receipt rules, empty stamp slots) and
+`--w-line-strong` (50%, empty reward slots and ticket perforations)." `--w-line`
+is scoped by that sentence to **dashed** lines. `.w-tag` draws it **solid**:
+
+    .w-tag { … border: 1.5px solid var(--w-line); … }   app/globals.css:481
+
+and it is the only rule in the stylesheet that does. Every other solid border
+declaration in `app/globals.css` is `2px solid var(--w-ink)` or a spot ink
+(`--destructive`, `--reward`). So the pill is not "a 1.5px version of the 2px
+ink border" — it is a different weight in a different tone, i.e. an entirely
+separate stroke that happens to sit next to the system's one stroke.
+
+That matters for the decision: **raising `.w-tag` to 2px without also deciding
+the colour produces a 2px 18%-ink pill, which satisfies no clause in DESIGN.md
+either.** Section 17's option 1 ("a one-character change") is therefore
+under-specified. The real options are `2px solid var(--w-ink)` (fully on-spec,
+and the heaviest visual change) or `2px solid var(--w-line-strong)` (the 50%
+tone, which is what `--border`/`--input` already resolve to at
+`app/globals.css:189-190`, so the pill would match the input wells rather than
+the cards).
+
+**3. The document's own source of truth gives 1.5px no cover.** "Badges & Tags"
+(`DESIGN.md:497-499`): "The metric source of truth is the unlayered
+`[data-slot="badge"]` rule; `.w-tag` is its documented alias for plain
+(non-Badge) elements." That rule (`app/globals.css:845-853`) sets radius, face,
+size, weight, case and tracking — and **no border at all**. The alias invented a
+border the thing it aliases does not have.
+
+### Why this is still not implemented: a contract pins the current value
+
+`tests/contracts/ink-border-weight.test.mjs:57`:
+
+    assert.deepEqual(declarations, ["border: 1.5px solid var(--w-line);"])
+
+The code currently obeys **the contract**, not DESIGN.md. Changing the token
+fails that assertion, and this campaign's standing rule is that a contract
+assertion may be added but never weakened, deleted or reworded — so the token
+cannot move until someone with authority over the contract moves it. That is the
+right outcome: the assertion was written precisely to hold the line until this
+decision was taken, and it did its job.
+
+**Recommendation: change the contract, then the token, in that order** — the
+contract's own comment says "Raising it to 2px changes every MonoTag in the
+product, so it is a visual decision: NEEDS-SIGNOFF.md section 17", which is an
+invitation to come back once the decision exists. It now does.
+
+**What was done instead this round:** a third `test()` was ADDED to the same
+file pinning the second half of the deviation, so whoever raises the weight
+cannot miss the colour the way three previous passes did. It asserts that
+`.w-tag` is the only solid border in the stylesheet drawn in `--w-line`, and
+that it is one of exactly two sub-2px border boxes in the file. Sabotage-checked
+both ways: swapping the tone to `--w-ink` fails it, and adding a new
+`1px solid var(--w-line)` elsewhere fails it.
+
+## 51. 03#16 — the decline is UPHELD, and the recommended migration is now provably neutral on the defect it was meant to fix
+
+03#16 was the last open Critical on report 03. It is re-verified against source
+(all line numbers in the previous STATUS note had gone stale) and it holds, but
+the reasoning is stronger than "both trees render", and one of the audit's three
+defects has quietly become false.
+
+**Defect (a) — "both DOM trees mount for every row" — the migration does not fix
+it, and now provably does not.** `DataTable`'s responsive path renders the card
+stack and the semantic table as unconditional siblings and hides one with CSS
+(`components/data/data-table.tsx:129-132`, `:341`, `:380`). That was already
+known. What was not: `DataTable` has exactly one mitigation for the cost — the
+`mobilePageSize` progressive reveal, which mounts 10 cards instead of all of
+them — and it is **switched off for any caller that supplies row interaction**:
+
+    components/data/data-table.tsx:345-347
+        rows.length > mobilePageSize && !onRowClick && !getRowProps
+
+This table supplies both (`customer-readback-table.tsx:646`, `:653`), because
+its rows are keyboard-operable selection controls (WCAG 2.1.1 / 4.1.2). So a
+migrated members table would render 50 cards **plus** 50 table rows — exactly the
+100 records per 50-row page the audit counted, with no reduction whatsoever.
+The migration is not merely unhelpful for defect (a); it is arithmetically
+identical, and the `offsetParent !== null` workaround at `:442` would still be
+required for the duplicated `data-customer-highlight` marker.
+
+**Defect (b) — "the two renderers have already drifted" — is now STALE, and has
+been ratcheted so it stays that way.** The audit's example was that the card
+exposed Scan/Send only when selected while "the desktop row always shows
+Scan/Send". 03#17 removed the per-row controls: the Reward cell is the `MonoTag`
+alone (`customer-readback-table.tsx:299-312`) and both renderers now gate both
+actions on selection. Nothing enforced that, and drift is the entire reason a
+second renderer is a defect rather than a preference, so this round added
+`tests/contracts/merchant-members-renderer-parity.test.mjs` (4 tests): the
+desktop column builder contains no `<Link>`, no `<Button>` and neither action
+href; both renderers gate Scan and Send on selection; the bespoke split still
+carries its stated reason; and the two `DataTable` facts the decline rests on
+are asserted against the shared component rather than trusted. Sabotage-checked
+by reinstating a per-row Send link in the Reward cell — 1 of 4 fails.
+
+**Defect (c) — two member-row vocabularies — is real, and DESIGN.md's named
+remedy cannot express this row.** "Console data tables & record cards"
+(`DESIGN.md:420-426`) makes `AdminRecordCard` "the shared renderer returned from
+`mobileCard`", with API `{ title, eyebrow?, status?, fields, action? }` on an
+`<article>` (`components/admin/record-card.tsx:19-44`). The member card is a
+whole-card `aria-pressed` toggle led by a `MemberMark` avatar. `AdminRecordCard`
+has no avatar slot and its root is not pressable, so adopting it means changing
+`AdminRecordCard`'s contract for one consumer — which is the same trade the
+decline rejected, moved one component to the left.
+
+### The DESIGN.md conflict, stated plainly
+
+`DESIGN.md:407-411`: "`cardBreakpoint` has two sanctioned switches: `sm` for
+compact, short-row tables and `xl` for admin consoles… **The old `lg` escape
+hatch is pruned.**" The members table ships a bespoke `lg` split
+(`customer-readback-table.tsx:629`, `:639`) — the pruned escape hatch,
+re-implemented outside the shared component. On the document's face, the code is
+wrong.
+
+**I do not think the code is wrong here, and this is the decision I am asking
+for.** The `lg` boundary is load-bearing and measured: with the 272px sidebar,
+`md` (768px) leaves ~510px of content, which the five-column table cannot hold
+without page-level horizontal overflow. The two sanctioned alternatives both
+lose:
+
+- `sm` (640px) reinstates exactly that overflow.
+- `xl` (1280px) is sanctioned and would let ~150 lines be deleted, but it puts
+  stacked cards on **every laptop** between 1024 and 1280px. DESIGN.md's own
+  rationale for `xl` is that "dense support **records** stay as stacked
+  `AdminRecordCard` rows through tablet widths" — a support-queue argument about
+  admin consoles, not a claim about a merchant's daily five-column member list.
+
+So the honest reading is that **DESIGN.md's breakpoint menu is one case short**,
+not that the members table is delinquent. Two ways to close it:
+
+1. **Amend `DESIGN.md`** to sanction `lg` for console tables whose desktop
+   renderer is width-bound by the sidebar, and add `lg` back to
+   `CARD_BREAKPOINT_CLASSES`. Cheap, and it lets the ~150 lines go. It also
+   re-opens the escape hatch someone deliberately closed, so it needs the person
+   who closed it.
+2. **Replace the responsive pair with one tree** restyled by a container query,
+   as the previous note recommended. This is the only option that fixes defect
+   (a) for all 7+ `mobileCard` consumers at once, and it makes the breakpoint
+   question disappear rather than answering it. It is also much the larger job
+   and touches every admin table.
+
+Until one is chosen, 03#16 moves from open to partial: the decline is evidenced,
+defect (b) is closed and locked, and what remains is a design-system amendment
+rather than merchant work.
+
+## 52. Glassmorphism had shipped on five merchant chrome surfaces — DESIGN.md decides it outright, so this one was fixed rather than escalated
+
+Not a request for sign-off; a record, plus one hand-off. DESIGN.md "Elevation &
+Depth" (`DESIGN.md:223-225`) is unambiguous and needs no interpretation:
+
+> "Transparency is for scrims only (`rgba(33,28,22,0.5)` under sheets). **No
+> glassmorphism**, no photography; the optional paper grain
+> (`<body data-grain="true">`) is the only texture."
+
+Five surfaces shipped a translucent paper/card ground under a `backdrop-filter`
+blur — the textbook definition of the banned effect:
+
+| Surface                                                                 | Was              |
+| ----------------------------------------------------------------------- | ---------------- |
+| `merchant/qr-poster/poster-preview-chrome.tsx:64` (sticky print header) | 95% paper + blur |
+| `merchant/qr-poster/poster-preview-chrome.tsx:164` (desktop sidecar)    | 95% paper        |
+| `merchant/qr-poster/poster-preview-chrome.tsx:202` (sticky action bar)  | 95% paper + blur |
+| `merchant/launch/form-action-bar.tsx:41` (sticky save bar)              | 95% card + blur  |
+| `merchant/reward-pool-form.tsx:411` (the 03#47 selection tray)          | 95% card + blur  |
+
+All five are now the opaque ground. On the reward tray it was also a legibility
+bug, not only a doctrine one: the tray is `fixed` over the reward list it is
+counting, so the bleed-through put reward names behind its own count line.
+Separation on an ink system is the 2px border and the hard offset shadow.
+
+Ratcheted by `tests/contracts/wet-ink-opaque-chrome.test.mjs` (2 tests): no
+`backdrop-blur`/`backdrop-filter` outside a full-bleed `fixed inset-0` scrim
+(the sanctioned case, used by the present-QR dialog overlay), and no `fixed`/
+`sticky` element washes the `bg-card`/`bg-paper` ground. Both assert they read
+more than 500 source files first, and both are sabotage-checked. The test strips
+comments before scanning, because the comments have to be free to name what they
+ban.
+
+**Hand-off — three ground washes remain, all outside the merchant lane** and
+left untouched deliberately rather than reached across a lane boundary:
+
+- `app/how-it-works/page.tsx:70`, `:76` — `bg-paper/10` (marketing)
+- `components/customer/referral-bonus-bank-panels.tsx:41` — `bg-card/80` (customer)
+- `components/merchant/reward-pool-form.tsx:385` — `bg-card/45`, merchant, and
+  **deliberately kept**: this split-button segment sits on a preset tile whose
+  state tint is a sanctioned tone wash (`bg-reward/5` / `bg-seal/10`), so an
+  opaque ground would erase the tile's own state colour behind the control. It
+  is a real letter-violation with a real cost to fixing, and it is not what
+  03#47 is about. The contract above is scoped to chrome precisely so it does
+  not force this one.
+
+## 53. ~~The audit documents are compiled into the production CSS bundle~~ — RESOLVED
+
+**Applied in `2562be4c`, before this section was last edited.** `app/globals.css:13` carries `@source not "../docs/**";` and the stylesheet went 251,481 -> 236,191 bytes (-15,290, 6.1%). Verified afterwards that nothing real was dropped: `mono-meta`, `mono-id`, `w-tag`, `w-rule`, `eyebrow`, `max-w-customer`, `rounded-sheet` and `bg-ink` are all still in the shipped CSS, and the 67-test a11y sweep passes against it.
+
+Left here rather than deleted because the ds-gates lane's decision list still described it as "two lines left for the integrator to apply once, at the end". It was already applied; a second `@source not` line would be harmless but the report should not send anyone looking for work that is done.
+
+The lesson is the durable part and is recorded in COVERAGE: **"it is not in the source" is not evidence that it is not in the artefact.** Tailwind v4 scans every non-gitignored file, so documentation could change what shipped.
+
+## 54. Correction — the de-glassing was FIVE surfaces, not three, and my commit message said three
+
+The `ds-merchant` lane removed the banned `bg-*/95 + backdrop-blur-sm` texture
+from five merchant chrome surfaces: the poster header, the poster **sidecar**,
+the poster action bar, the launch save bar and the reward tray. I committed that
+work on its behalf while it was frozen mid-run and wrote "three surfaces" in the
+commit message, having counted the files in the diff I happened to read rather
+than the surfaces the change touched. `wet-ink-opaque-chrome.test.mjs` pins all
+five; the commit message is wrong and this is the correction of record.
+
+Two exclusions in that work are deliberate and worth keeping:
+
+- `present-qr.tsx`'s Dialog overlay keeps its backdrop filter at `bg-ink/90`.
+  DESIGN.md's clause is "transparency is for scrims only … no glassmorphism",
+  and that IS the scrim. Applying the rule rather than pattern-matching the
+  class name is the distinction.
+- `reward-pool-form.tsx:385` keeps its ground wash, where an opaque ground would
+  erase the tile's own sanctioned tone.
+
+**Visual baselines: the five de-glassed surfaces will diff, and those diffs are
+intended.** They are on top of the 121 already awaiting approval.
+
+## 55. 01#60 — the "contract-blocked" TOC was blocked by a mechanism the finding never asked for
+
+Re-tested in the blockers lane by running it, not by reading section 18.
+
+Section 18 says two opposite things about the same assertion. Its opening reads
+"`marketing-offer-source` pins exactly **one line** in `guide-spine.tsx` … not
+the component's shape. **A generic spine could keep it.**" Its closing reads
+"extracting the list into a shared component moves that expression to a
+different file … so the assertion fails on a pure refactor". Both are true, of
+two different refactors — and the STATUS row propagated the pessimistic one,
+which is how 01#60 reached HANDOFF-NEXT-AGENT as remaining engineering item 2,
+"blocked only because the pinned literal lives inside `guide-spine.tsx`".
+
+The finding asks for the first refactor, in its own words: "reuse `GuideSpine`
+(**make it generic over a section list**)". That is a prop on the existing file,
+not an extraction out of it.
+
+**Run, not reasoned.** `GuideSpine` was given `sections` / `label` props
+defaulting to `PUB_GUIDE_SECTIONS` and `PUB_GUIDE_HERO.jumpLabel`, with the
+three literal reads swapped for the props, and the pinned `<ol>` className left
+where it is:
+
+    node --test tests/contracts/marketing-offer-source.test.mjs
+    # tests 18 / # pass 18 / # fail 0      EXIT=0
+
+Sabotage, so the pass is not vacuous — change the pinned expression to
+`hidden ? "hidden lg:block" : "grid"` and the same file answers:
+
+    not ok 17 - Given the pub hub When it composes sections Then it renders no
+                band another route owns and routes into the guide cluster
+    EXIT=1
+
+The assertion is live and the parameterisation does not touch it. The experiment
+was reverted; no unused prop was shipped.
+
+**So the recorded blocker is void, and the real one is smaller and different in
+kind.** `GuideSpine`'s root is
+`lg:sticky lg:top-[calc(var(--marketing-header-h)+0.75rem)] lg:self-start`; it
+is a rail for a two-column reading grid, which is what
+`components/marketing/pubs/pubs-page.tsx:88-94` gives it
+(`lg:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] lg:items-start`). `GuidePage` renders a
+single `Section width="narrow"` column, so adopting the spine means giving three
+indexed `/guides/*` routes a two-column desktop layout. That is a visual
+redesign of live SEO pages on top of 121 baselines already awaiting approval —
+an owner's call, and a different question from a contract renegotiation.
+
+The finding's "at minimum" alternative is shipped and verified on all three
+guides, so nothing is broken while that decision waits.
+
+**Recommendation:** decide the layout question, not the contract question. If the
+answer is yes, the parameterised spine costs one prop and no assertion moves. If
+the answer is no, 01#60's remaining half should be closed as declined rather than
+carried as blocked, because there is no blocker left to lift.
+
+## 56. 02#20 — the referral rail's "collapsed by default" is a product call, not a test failure
+
+02#20 was recorded as blocked because
+`tests/e2e/customer-referral-bonus-stamp.spec.ts:102-103` does
+`getByTestId("referral-share-panel")` then `toBeVisible()`, "and a closed
+`<details>` makes that false".
+
+That is true of one arrangement and was applied to the whole mechanism. Measured
+in real chromium through Playwright rather than argued, on a minimal document
+with both arrangements side by side:
+
+| arrangement                           | `isVisible()` on the panel testid |
+| ------------------------------------- | --------------------------------- |
+| panel **inside** a closed `<details>` | `false`                           |
+| `<details>` **inside** the panel      | `true`                            |
+
+`getAttribute("data-url")` returned the link from **both** positions, including
+from inside a closed `<details>` — so the assertion that spec is actually named
+for (the share URL carries the opaque `referral_code` and never the membership
+UUID or customer id) is indifferent to the disclosure in either arrangement.
+
+Consequences, both directions:
+
+- The audit's literal recommendation — one "More from {venue}" accordion
+  wrapping the rails — **does** fail that assertion. The refusal was right about
+  the audit's own mechanism.
+- A panel that collapses **its own body**, keeping
+  `<section data-testid="referral-share-panel">` as the visible root, passes it
+  untouched. Nothing is weakened, deleted or reworded.
+
+And the earlier note's closing sentence understates the prize.
+`ReferralSharePanel` is rendered whenever `exp.referralShareUrl` exists
+(`components/customer/customer-card-experience.tsx:346-352`), which is every
+membership — so it is unconditional promotion, exactly like `GoogleReviewButton`,
+and at the audit's ~290px it is the largest single rail below the card. It was
+excluded from that sentence only because the test was read as covering it.
+
+**What is left is one decision, and it is not an engineering one.** Collapsing a
+venue's referral growth loop by default trades card-page length against referral
+starts. That is conversion, so it is flagged here rather than guessed. The path
+is now known to be free of contract cost, and the same shape applies to
+`GoogleReviewButton`.
+
+Not done and why: the panel's height was not re-measured in this lane — `/card/`
+is auth-gated and no harness mounts `ReferralSharePanel`, so the ~290px is the
+audit's figure, not a fresh one. The constraint is what was measured.
+
+## 57. The button's radius was dead code on `<Button>` and live on the one call site that does not use `<Button>` — and that call site still ships without a border
+
+Fixed, with one half handed to the owner.
+
+`components/ui/button.tsx`'s `cva` base carried `rounded-full` — a v1 "Honey &
+Ink" pill, which `DESIGN.md` "Brand & Style" records as "fully superseded",
+against a "Shapes" clause that says "**10px radius** (`--radius`) on buttons".
+
+It reads as dead code, and on a real `<Button>` it is: the unlayered
+`[data-slot="button"]` rules sit outside every `@layer`, so they beat the
+layered utility exactly as "Components · Layer precedence" says. That is
+precisely why nobody removed it — a no-op is cheap to leave.
+
+It is not a no-op where `buttonVariants` is exported and applied to an element
+that carries no `data-slot`. `app/m/[merchantSlug]/page.tsx:134-137` does that
+for the public venue landing's "View reward terms" sheet trigger, which
+`components/customer/legal-sheet.tsx:50-56` renders as a plain `<button>`.
+
+**Measured**, not reasoned: `pnpm build && PORT=3301 pnpm start`, chromium,
+`document.styleSheets.length > 0` and `main#main` asserted before measuring,
+the real shipped class string appended to the live document and read back with
+`getComputedStyle`:
+
+| element                   | `border-radius`  | `border-width` | `box-shadow` |
+| ------------------------- | ---------------- | -------------- | ------------ |
+| plain (as it ships)       | **33,554,432px** | **0px**        | 2px 2px 0    |
+| same string + `data-slot` | 10px             | 2px            | 3px 3px 0    |
+
+The radius half is fixed: the base now says `rounded-lg`, which resolves to the
+same `var(--radius-lg)` = `--radius` = 10px the layer sets, so the two can no
+longer disagree. Re-measured after the fix: plain and slotted both 10px. No
+real `<Button>` moved a pixel. Pinned by
+`tests/contracts/wet-ink-button-radius.test.mjs`.
+
+**The half that needs a decision.** DESIGN.md "Buttons" says "2px ink border,
+10px radius, weight 700, hard 3px offset shadow". That trigger still renders
+`border-width: 0px` and a 2px shadow, because the border and the elevation live
+_only_ in the `data-slot` layer and a plain element cannot reach them. Three of
+the four button properties are wrong on a live customer-facing control.
+
+There is no codemod for it, which is why it is here:
+
+- Attaching `data-slot="button"` inside `CustomerLegalSheet` unconditionally is
+  wrong — `components/customer/join-welcome-step.tsx:73` passes a plain inline
+  text-link class to the same component and would gain an ink border and a
+  shadow.
+- Rendering the trigger as `<Button asChild>` changes the component's API for
+  its other three call-site families.
+- The narrow fix is an opt-in prop (`triggerVariant`), which is a new public
+  API on a shared component.
+
+Recommendation: the opt-in prop, so the one call site that wants a button gets
+a real one and the inline-link call sites are untouched. Not taken here because
+adding public API to a shared customer component is a design decision, and
+because `buttonVariants` being usable at all on a non-`<Button>` element is the
+underlying shape of the bug.
+
+## 58. DESIGN.md's named circle-exception list is stale in **both** directions
+
+`DESIGN.md` "Shapes" lists the exceptions to "full circles are reserved for the
+stamp family" and closes with "the list does not grow without updating this
+contract". Nothing enforced that sentence — before this lane, the only test in
+the repo that looked at `rounded-full` at all was
+`marketing-chrome-tokens.test.mjs`, and it looks at one file.
+
+`tests/contracts/wet-ink-circle-exceptions.test.mjs` now enumerates every
+framing circle in `app/` and `components/`. Two entries do not reconcile with
+the document, and only the owner can edit the design authority:
+
+1. **The list grew.** DESIGN.md grants the exception to "the customer tab-bar
+   chips". `components/layout/merchant-tab-bar.tsx:47` renders the same
+   `size-9` ink-bordered disc for the merchant tab bar and is not named. Either
+   the clause should read "the tab-bar chips" (both lanes, one pattern — the
+   likely intent), or the merchant bar should stop being a circle. It is
+   listed in the contract's allowlist as an unnamed survivor rather than
+   silently blessed or silently deleted.
+
+2. **The list is stale.** DESIGN.md names "join stepper discs".
+   `components/customer/customer-flow-system.tsx:167-175` renders the customer
+   join stepper as `h-1.5` **bars**, not discs, and has done since
+   `3f2a9f61c`. The exception names a shape that no longer ships. (See §58 —
+   those bars have their own problem.)
+
+Fixed in the same pass, and not needing sign-off because the reasoning is
+already a shipped contract's: six pill halos on text links.
+`marketing-chrome-tokens.test.mjs` already rules that navigation links "are
+navigation, not legal links, and were never on the list" and that a disclosure
+summary "is a heading row, not a stamp" — but only inside
+`marketing-layout.tsx`. The auth funnel (`auth-prompt-link.tsx`,
+`auth-form.tsx:127`, and two verbatim copies of AuthPromptLink's class string
+in `reset-password-form.tsx`) and the three legal routes' table-of-contents
+anchors and TOC summary carried the same pill. All now use
+`rounded-(--radius-md)`, which seven other `min-h-11` inline text links in the
+tree already use. `legalLinkClass` — the actual named exception — is untouched.
+
+## 59. There is no on-ink dashed tone in DESIGN.md, and one surface invented one
+
+`DESIGN.md` "Elevation & Depth": "Dashed lines come in two tones only:
+`--w-line` (18%, receipt rules, empty stamp slots) and `--w-line-strong` (50%,
+empty reward slots and ticket perforations)."
+
+Both tones are **ink on paper**. `components/marketing/landing/scarcity-band.tsx:35`
+draws a dashed box on an ink GROUND (`ContrastBand … data-on-ink`), where 18%
+ink on ink is invisible, so it uses `border-paper/40` — the inverse. That is
+correct behaviour against a rule the document does not contain.
+
+The document does have an on-ink story for the other two ink properties:
+`[data-on-ink]` in `app/globals.css:725-729` flips the shadow colour to paper
+and the button border to paper. Dashed rules were simply never extended.
+
+`tests/contracts/wet-ink-dashed-tones.test.mjs` excludes this one site **by
+exact filename**, not by pattern, so a second on-ink dash still fails the
+contract and forces the decision rather than quietly joining an exception.
+
+Recommendation: mint `--w-line-on-ink` (and a `border-line-on-ink` colour) beside
+the existing pair and add one sentence to "Elevation & Depth". A token is the
+same shape of answer the shadow and border already got.
+
+## 60. The customer join stepper's bars contradict the Progress clause on four axes at once
+
+Not fixed. `components/customer/customer-flow-system.tsx:167-175`:
+
+```
+<span className="h-1.5 flex-1 overflow-hidden rounded-full border border-ink bg-secondary">
+  <span className="block h-full rounded-full bg-primary …" />
+</span>
+```
+
+`DESIGN.md` "Progress": "Track is deeper paper; fill is leaf (`--reward`);
+radius is the squared `--radius-sm` print corner. This is encoded in the
+unlayered `[data-slot=progress]` rules, so a bare `<Progress>` is on-spec with
+no call-site colour overrides, and `FunnelChart` renders the same primitive —
+**one bar anatomy for the whole system**."
+
+| axis   | DESIGN.md                    | shipped               |
+| ------ | ---------------------------- | --------------------- |
+| radius | `--radius-sm` (4px, squared) | `rounded-full` (pill) |
+| track  | deeper paper (`--w-paper-2`) | `bg-secondary`        |
+| fill   | leaf (`--reward`)            | `bg-primary`          |
+| border | 2px solid ink                | **1px** `border-ink`  |
+
+Left alone deliberately, and the reason matters: three of the four are visual
+decisions with a plausible defence, and the fourth is a trap.
+
+- The **fill** is vermillion because this stepper measures a JOIN, and DESIGN.md's
+  own colour story makes leaf mean "ready to redeem" — recolouring it to leaf on
+  the join funnel would say the wrong thing. That is a product call, not a
+  conformance one.
+- The **border** is 1px on a **6px-tall** bar. Raising it to the contract's 2px
+  leaves 2px of interior for the fill. "Fix the violation" here makes the
+  control worse, which is exactly the failure mode COVERAGE.md records for
+  layout probes that only ask "does it fit".
+
+So the honest question for the owner is not "which of these four" but "should
+this be a `<Progress>` at all, or is a segmented step indicator a different
+component the Progress clause was never written about?" DESIGN.md is silent on
+segmented steppers, and inventing the rule is not this lane's job.
+
+## 61. `StampDot`'s earned initials are a third size in a two-size register, and every gate agrees with it
+
+Not fixed — the stamp face is the product's signature mark.
+
+`DESIGN.md` "Typography": "Below `text-xs` there are exactly two sanctioned
+sizes … `.mono-meta` [11.5px] … `.mono-id` [10px]. **10px is the system floor:
+nothing renders text below it.** The floor is enforced by `pnpm tokens:check`."
+
+The floor is enforced. "Exactly two" is not.
+`components/loyalty/stamp-dot.tsx:112-115` sets the earned initials at
+`text-[0.69rem]` — **11.04px**, between the two sanctioned sizes, above the
+floor, and therefore invisible to `tokens:check`, `lint`, `typecheck` and every
+contract in the repo. Its sibling at `text-[0.81rem]` (12.96px) is above
+`text-xs` and outside this clause's reach, but is an arbitrary in the same
+class string.
+
+Moving 11.04px to `.mono-meta`'s 11.5px changes two glyphs inside a 36px
+compact disc, on the mark the whole visual language is named after, with 121
+visual baselines already awaiting human diff approval.
+`tests/contracts/wet-ink-type-and-icon-register.test.mjs` pins the exact value
+instead, so it cannot spread to a second site and cannot be quietly "tidied" —
+either direction fails the test and lands in front of a human.
+
+## 62. Sweep residue — five things measured, none of them this lane's to decide
+
+Recorded so the next reader does not re-derive them.
+
+1. **Solid `border-ink/NN` is a 9-value zoo, and the audit is on both sides.**
+   25 solid sites remain at `/10 /15 /20 /25 /30 /35 /40 /50 /60`. DESIGN.md
+   says "Borders are **2px solid ink** everywhere", which would ban all of
+   them — but the audit's own `03#26` _recommends_ `border-ink/25` as the
+   unselected-tile state, and `reward-pool-form.tsx:322` is cited as the
+   pattern to copy. That is a DESIGN.md-vs-audit conflict, so the dashed sweep
+   was scoped to dashed lines (where DESIGN.md's sentence is explicit) and the
+   solids were left. Deciding it means either amending "everywhere" to admit an
+   unselected state, or retiring the low-alpha selection pattern product-wide.
+
+2. **`buttonVariants`' `link` variant declares `rounded-none`.** Same class of
+   dead code as §55's `rounded-full`:
+   `[data-slot="button"][data-variant="link"]` sets `var(--radius-lg)` and
+   wins. Left alone because a link variant has no border and no ground, so its
+   radius is unobservable — it is dead, not wrong. Worth removing the next time
+   that file is open.
+
+3. **The consent checkbox got the Wet Ink treatment; the radio did not.**
+   `app/globals.css` mints `.ink-check` and its comment explains that native
+   checkboxes "shipped as bare `accent-primary` browser defaults: a ~16-20px UA
+   widget with a hairline that carries none of the 2px-ink vocabulary".
+   `components/merchant/offer-campaign-form.tsx:266` is a native `<input
+type="radio">` with `accent-[var(--w-ink)]` — the exact treatment that
+   comment describes as the problem, on the control that picks the offer type.
+   DESIGN.md says nothing about radios, so this is a gap to fill, not a rule to
+   apply.
+
+4. **Twenty source files are not Prettier-clean at HEAD.** `pnpm lint` does not
+   run Prettier and no gate does, so `prettier --write` over the tree produces
+   a 20-file diff that has nothing to do with the change being made. This bit
+   this lane once (a formatting pass had to be reverted file by file). Not
+   fixed here because a 20-file formatting commit inside a design sweep would
+   bury the design change, and because it is a repository-hygiene decision:
+   either add `prettier --check` to `quality:fast` and reformat once, or accept
+   that the tree is not format-gated and stop reaching for `--write`.
+
+5. **The shadow scale has three rungs DESIGN.md never names.** `@theme` mints
+   `--shadow-lg` (5px), `--shadow-xl` (6px) and `--shadow-2xl` (8px) as hard
+   offsets; DESIGN.md "Elevation & Depth" names only `shadow-md` (4px, cards),
+   `shadow-sm` (3px, buttons) and the 1px pressed state. Four call sites use
+   the unnamed rungs (`app/app/offers/[campaignId]/qr/page.tsx:97`,
+   `components/merchant/present-qr.tsx:67`,
+   `components/admin/command-palette.tsx:91`, `components/ui/sheet.tsx:23`).
+   They are all hard offsets, so none of them violates "never blurred" — the
+   only rule DESIGN.md actually states. Reported rather than swept: the
+   document does not forbid them, and this lane does not invent rules.
+
+## 63. Nothing checks formatting, and the count in §60 is low
+
+`package.json` ships `pnpm format` (`prettier --write "**/*.{ts,tsx}"`) but no
+gate ever runs `prettier --check`. `lint-staged` formats only the files a commit
+touches, so anything not touched drifts and nothing notices.
+
+Measured at HEAD across `app/`, `components/` and `lib/`:
+
+    prettier --check  ->  68 files with style issues
+
+The dsweep lane recorded "20 files not Prettier-clean" in §60; that figure came
+from a narrower glob. The number is **68**.
+
+This is not cosmetic. A whitespace-only difference is enough to abort
+`git merge` with "local changes would be overwritten" — it did exactly that,
+twice, during the `lane/dsweep` fan-in, and cost a rebuild of the merge. An
+unformatted tree is a merge hazard, not a tidiness preference.
+
+**Recommendation:** add `"format:check": "prettier --check ..."` to the
+`quality:check` chain, then land the 68-file sweep as ONE commit of its own so
+it never mixes with a behavioural change. Not done here because a formatting
+sweep across 68 files while lanes are in flight would collide with everything
+they touch — this is the last thing to do, after the final fan-in.
+
+## 64. The admin console below 768px hid its own search field, and only a harness could see it
+
+`/admin/*` redirects to `/login`, so the console's appearance had never been
+measured at any width. Section 44 asked for one look at `/admin/audit` on a
+tablet. The look was taken — through `app/dev/admin-harness/audit-lookup`,
+which mounts the REAL `AdminShell` and the REAL `AdminLookupControls` with the
+REAL `withDateRange` + `sticky="flush"` props the audit page passes — and it
+found something other than a wrap problem.
+
+**Below `md` the lookup bar was underneath the console header.** The shell
+renders `header.sticky.top-0.z-30` under 768px; the bar is `sticky top-0 z-20`.
+Once the list scrolled, `document.elementFromPoint` at the centre of
+`input[name="venue"]` returned the HEADER, at 767px and at 390px both. The one
+control a sticky lookup bar exists to keep reachable was neither visible nor
+hittable. This was true of all six sticky lookup surfaces, not only the audit
+trail.
+
+Fixed rather than flagged, because it is a functional occlusion and not a
+matter of taste: `AdminShell` publishes `--console-sticky-top` (3.875rem below
+`md`, 0 at `md` and above) and `AdminLookupControls` sticks to it. Pinned by
+`tests/e2e/admin-lookup-bar.desktop.spec.ts`, which asserts the input is the
+element painted at its own centre — so if the header's height changes, the
+proof fails rather than the console.
+
+### What the wrap actually does, since that was the original question
+
+Measured on the harness with `document.styleSheets.length > 0` asserted first.
+The width that matters is not the viewport: the shell's sidebar, `SidebarInset`,
+padding ramp and `max-w-merchant` column leave a **448px** content column at a
+768px viewport and **684px** at 1024px.
+
+| viewport | bar height | rows                                           |
+| -------- | ---------- | ---------------------------------------------- |
+| 1280     | 159px      | `[venue] [from] [to]` / `[Search] [Clear]`     |
+| 1024     | 159px      | `[venue] [from] [to]` / `[Search] [Clear]`     |
+| 768      | 184px      | `[venue] [from]` / `[to] [Search] [Clear]`     |
+| 767      | 221px      | as above, now resting under the console header |
+
+Nothing overflows its panel at 390, 767, 768, 1024 or 1280, and no control is
+squeezed: venue holds 201px and each date 176px at every width.
+
+**The one judgement, left for the owner.** At 768px the inclusive date PAIR
+splits across two rows — `from` ends row one, `to` starts row two beside the
+Search button — so a labelled pair reads as two unrelated fields. The fix is
+one wrapper: put the two `AdminField`s in a `flex flex-wrap items-end gap-3`
+group so the pair wraps as a unit. The cost is measured, not guessed: at a
+448px column the group cannot share a row with venue, so the bar becomes three
+rows and grows **184px -> 240px**, and it is sticky, so that is 240px of a
+1024px-tall tablet viewport held permanently. Keeping the pair together and
+keeping the bar short are in direct conflict at this width; that is a design
+call, not an engineering one, so it is recorded rather than taken.
+
+## 65. Three admin controls were under the 44px touch floor, and nothing had ever swept the console
+
+DESIGN.md, Layout & Spacing: "Primary tap targets >= 44px", and compact sizes
+"render at their declared height on fine pointers and grow to the 44px floor on
+coarse (touch) pointers". The existing sweep
+(`tests/e2e/touch-targets.desktop.spec.ts`) already runs under a real device
+profile, correctly — but its nine routes were marketing, customer and merchant.
+The admin console is auth-gated, so it had never been swept at all, on any
+pointer.
+
+Swept through the harnesses on Pixel 5, Galaxy Tab S4 and iPad (gen 7):
+
+| control                            | fine | coarse before | coarse after |
+| ---------------------------------- | ---- | ------------- | ------------ |
+| admin page-jump input (`h-9 w-20`) | 36px | 36px          | 44px         |
+| rows-per-page select (`h-9 w-24`)  | 36px | 36px          | 44px         |
+| `DataTable` sortable header link   | 15px | 15px          | 44px         |
+
+The first two sit in `AdminLookupPagination`, immediately beside `Go` and
+`Apply` buttons that were already 44px on touch — `Button`'s size variants
+carry `[@media(pointer:coarse)]:min-h-11` and an `Input`/`SelectField` with an
+explicit `h-9` carries nothing. The third ships on every admin list.
+
+Each takes `.tap-floor`, which `app/globals.css` already mints for exactly this
+case ("anything interactive that is NOT a Button ... should use `.tap-floor`
+rather than re-deriving the media query"). Fine-pointer geometry is unchanged,
+which is what DESIGN.md asks for.
+
+The sort header at 15px was also below **WCAG 2.5.8**'s 24px minimum, with no
+exemption available to a table header — it is not inline in a sentence, it is
+not a user-agent control, and there is no equivalent control elsewhere on the
+page.
+
+Two of the three `ALLOWED` entries in that spec are inert and were left alone
+rather than tidied: the sweep matches them against a description built from tag
+
+- text + className, so `"input[type=checkbox]"` and `"/dev/design-system"` can
+  never match. Nothing is being let through today (checkboxes are skipped
+  in-page; `/dev/design-system` is not in ROUTES), but neither line exempts what
+  it appears to exempt.
+
+## 66. Nothing checked formatting, and 248 files had already drifted
+
+`pnpm format` exists; nothing ever read its result. 248 tracked files fail
+`prettier --check` — 114 under `tests/`, 47 under `lib/`, 23 in
+`.design-sync/`, seven in `scripts/`, and four inside `docs/ui-audit` that this
+campaign's own tooling parses.
+
+Added as a RATCHET (`pnpm format:check`, `config/format-baseline.json`) rather
+than a gate, on the model of the dead-export ratchet: the 248 are tolerated,
+anything newly unformatted fails, and a baselined file that has since been
+formatted must be pruned. **No file was reformatted.** The tree-wide sweep is
+248 files of churn across four concurrent lanes and belongs to the integrator,
+in one place, at the end — the same reasoning as section 53's two-line
+`globals.css` change.
+
+## 67. CORRECTION — 02#64's 1,077px was measured inside chrome the route does not ship
+
+The figure this branch has repeated for 02#64 — "the claim control sits at
+1,077px, 1.62 viewport heights down" — was taken on
+`/dev/home-harness/offer-claim`. That harness sits under
+`app/dev/home-harness/layout.tsx`, which mounts **`CustomerAppShell`**: a header
+and a **fixed bottom tab bar**. The real route, `app/offer/[token]/page.tsx`,
+renders **`CustomerFlowShell` + `Logo` + `ReceiptCard`** and has **no tab bar at
+all**.
+
+Re-probed on an iPhone SE profile, reduced motion, `styleSheets.length`
+asserted, anchored on `[data-harness-claim]`:
+
+    claim control top        1,073px
+    harness header           62px      <- not on the real route
+    harness nav              58px, position: fixed   <- not on the real route
+    topmost element at the
+    centre of the CTA        A.group focus-ring … min-h-14   <- a TAB BAR LINK
+
+So two things are wrong at once. The distance was inflated by chrome the screen
+never renders, and the "the CTA is occluded" observation was an artefact of a
+fixed tab bar that does not exist on `/offer/[token]`.
+
+**The number must be retaken before 02#64 is decided.** Direction of the error
+is known — overstated — but the magnitude is not a simple subtraction, because
+`CustomerFlowShell` brings its own header lockup and safe-area handling.
+
+Found by the ds-gates lane, verified here independently from the two layout
+files and the probe above. It is the harness-drift trap this branch has warned
+every lane about, in the one harness I built myself: **a harness that mounts
+different chrome measures a different screen.** `docs/ui-audit/COVERAGE.md`
+already records five harnesses that duplicate production markup; this is the
+sixth failure of the same kind, and the first where the drift was in the
+_layout_ rather than the markup.

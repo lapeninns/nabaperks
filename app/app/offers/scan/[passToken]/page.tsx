@@ -111,7 +111,7 @@ async function PassScanStream({
       <PassFace context={context} />
 
       <h2 className="sr-only">Member and card details</h2>
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-xl border-2 border-ink bg-card p-4 text-sm">
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-lg border-2 border-ink bg-card p-4 text-sm">
         <dt className="font-bold text-muted-foreground">Member</dt>
         <dd className="text-right font-bold">{context.customerLabel}</dd>
         <dt className="font-bold text-muted-foreground">Card</dt>
@@ -138,14 +138,21 @@ async function PassScanStream({
         />
       ) : null}
 
-      {context.status === "redeemed" ? (
-        <Button asChild className="w-full">
-          <Link href="/app/scan">Scan another code</Link>
+      {/* The twin of the rewards scan exits (03#65). As direct children of
+          the shell's `grid gap-4` section both buttons stretched full width and
+          stacked, reading as two equal-weight choices; at a busy counter the
+          next task is the next member, so "Scan another" leads and the row
+          wraps instead. */}
+      <div className="flex flex-wrap gap-2">
+        {context.status === "redeemed" ? (
+          <Button asChild>
+            <Link href="/app/scan">Scan another code</Link>
+          </Button>
+        ) : null}
+        <Button asChild variant="secondary">
+          <Link href="/app">Back to dashboard</Link>
         </Button>
-      ) : null}
-      <Button asChild variant="secondary" className="w-full">
-        <Link href="/app">Back to dashboard</Link>
-      </Button>
+      </div>
     </>
   )
 }

@@ -63,7 +63,6 @@ export default async function ResetPasswordPage({
             eyebrow="Merchant access"
             title="Reset your console password."
             description={`Enter your venue email and we will send a ${otpCodeLabel} code. Use it to set a new password and get back to your counter.`}
-            titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"
             descriptionClassName="text-base leading-7 text-pretty"
             className="md:grid-cols-1"
           />

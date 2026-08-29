@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils"
 import type { MetricTrendDirection } from "@/lib/merchant/dashboard-trends"
 import { metricTrendClassName } from "@/lib/merchant/dashboard-trends"
 import { Icon, type IconGlyph } from "./icon"
+import { IconRoundel } from "./icon-roundel"
 import {
   Card,
   CardContent,
@@ -58,7 +59,7 @@ export function PageTitle({
   return (
     <section
       className={cn(
-        "grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-start",
+        "grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end",
         className
       )}
     >
@@ -66,7 +67,7 @@ export function PageTitle({
         {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
         <Heading
           className={cn(
-            "max-w-3xl min-w-0 text-3xl leading-tight font-extrabold text-balance break-words text-foreground sm:text-4xl",
+            "type-page-title max-w-3xl min-w-0 text-balance break-words text-foreground",
             titleClassName
           )}
         >
@@ -84,7 +85,7 @@ export function PageTitle({
         ) : null}
       </div>
       {actions ? (
-        <div className="flex flex-wrap gap-2 md:justify-self-end md:pt-8">
+        <div className="flex flex-wrap gap-2 md:self-end md:justify-self-end">
           {actions}
         </div>
       ) : null}
@@ -92,17 +93,38 @@ export function PageTitle({
   )
 }
 
+/**
+ * Rank for a `SectionHeader`'s `h2`.
+ *
+ * `panel` (the default) is the console register: a heading inside a card,
+ * competing with the data under it, deliberately small. `band` is the marketing
+ * register: a heading that owns a full-width band of the page.
+ *
+ * They were the same 18px, so on the landing page one scroll met an h2 at 18px
+ * (Pricing, Merchant evidence), 24px (the closing CTA) and 36px (the product
+ * moment) — three sizes for one rank, with the band headings the SMALLEST
+ * (MKT 01#14). Console callers pass nothing and render exactly as before.
+ */
+export type SectionHeaderSize = "band" | "panel"
+
+const SECTION_HEADER_TITLE: Record<SectionHeaderSize, string> = {
+  band: "text-2xl leading-tight sm:text-3xl",
+  panel: "text-lg leading-snug",
+}
+
 export function SectionHeader({
   eyebrow,
   title,
   description,
   actions,
+  size = "panel",
   className,
 }: {
   eyebrow?: ReactNode
   title: ReactNode
   description?: ReactNode
   actions?: ReactNode
+  size?: SectionHeaderSize
   className?: string
 }) {
   return (
@@ -114,7 +136,12 @@ export function SectionHeader({
     >
       <div className="grid gap-2">
         {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
-        <h2 className="text-lg leading-snug font-extrabold text-foreground">
+        <h2
+          className={cn(
+            SECTION_HEADER_TITLE[size],
+            "font-extrabold text-foreground"
+          )}
+        >
           {title}
         </h2>
         {description ? (
@@ -196,14 +223,17 @@ export function EmptyState({
   return (
     <Empty className={cn("border-2 bg-card p-6 text-center", className)}>
       <EmptyHeader>
+        {/* IconRoundel is the sanctioned framing circle and its docblock names
+            this exact family; the hand-rolled span was a second copy of it. */}
         {icon ? (
-          <span className="mx-auto grid size-11 place-items-center rounded-full border-2 border-ink bg-secondary text-muted-foreground">
-            <Icon icon={icon} size={22} />
-          </span>
+          <IconRoundel
+            icon={icon}
+            iconSize={22}
+            size="lg"
+            className="mx-auto text-muted-foreground"
+          />
         ) : null}
-        <EmptyTitle role="heading" aria-level={headingLevel}>
-          {title}
-        </EmptyTitle>
+        <EmptyTitle as={`h${headingLevel}`}>{title}</EmptyTitle>
         {description ? (
           <EmptyDescription>{description}</EmptyDescription>
         ) : null}

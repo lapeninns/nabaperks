@@ -54,7 +54,7 @@ export function PrintButton({
 
 export function PosterGuidanceText() {
   return (
-    <p className="rounded-lg border-2 border-dashed border-ink/25 bg-paper-deep/50 px-3 py-2 text-sm leading-6 text-muted-foreground">
+    <p className="rounded-lg border-2 border-dashed border-line bg-paper-deep/50 px-3 py-2 text-sm leading-6 text-muted-foreground">
       Preview matches print. Use{" "}
       <strong className="font-extrabold text-foreground">A4 portrait</strong> at{" "}
       <strong className="font-extrabold text-foreground">100% scale</strong> —
@@ -101,7 +101,7 @@ export function PosterTemplateLinks({
             className={cn(
               "mono-id text-muted-foreground",
               isStrip
-                ? "flex shrink-0 items-center px-1 tracking-[0.1em]"
+                ? "flex shrink-0 items-center px-1 tracking-tag"
                 : "mt-2 first:mt-0"
             )}
           >

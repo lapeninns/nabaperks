@@ -620,6 +620,14 @@ describe("contract-offer-campaign-ui source contract", () => {
     const components = OFFER_SURFACE_FILES.filter((file) =>
       file.startsWith("components/")
     )
+    // Non-emptiness, so this loop cannot pass by iterating nothing. If the
+    // offer surface ever moves out of `components/` the filter matches zero
+    // files and every assertion below silently stops running — the same way
+    // `bundle:check` reported PASS while checking 0 of 150 routes.
+    assert.ok(
+      components.length >= 5,
+      `expected the offer surface to include components, found ${components.length}`
+    )
 
     for (const file of components) {
       const source = readProjectFile(file)

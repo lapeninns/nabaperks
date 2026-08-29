@@ -1,9 +1,8 @@
 import type { Metadata } from "next"
-import Link from "next/link"
 
 import { Eyebrow, PageTitle, ReceiptCard } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
-import { Button } from "@/components/ui/button"
+import { LegalRelatedLinks } from "@/components/legal/legal-related-links"
 import {
   PLATFORM_TERMS_META,
   PLATFORM_TERMS_SECTIONS,
@@ -39,6 +38,7 @@ export default function TermsPage() {
     <MarketingLayout>
       <Section
         as="div"
+        data-legal-document
         className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start"
       >
         <aside className="surface-card order-last p-4 lg:sticky lg:top-20 lg:order-none">
@@ -48,7 +48,7 @@ export default function TermsPage() {
               <a
                 key={section.id}
                 href={`#${section.id}`}
-                className="focus-ring inline-flex min-h-11 items-center rounded-full px-3 py-2 text-sm text-muted-foreground underline-offset-4 hover:bg-accent hover:text-accent-foreground"
+                className="focus-ring inline-flex min-h-11 items-center rounded-(--radius-md) px-3 py-2 text-sm text-muted-foreground underline-offset-4 hover:bg-accent hover:text-accent-foreground"
               >
                 {section.title}
               </a>
@@ -61,7 +61,6 @@ export default function TermsPage() {
             eyebrow={PLATFORM_TERMS_META.eyebrow}
             title={PLATFORM_TERMS_META.title}
             description={PLATFORM_TERMS_META.description}
-            titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"
             className="md:grid-cols-1"
           />
 
@@ -70,7 +69,7 @@ export default function TermsPage() {
               <p className="text-xl font-extrabold">
                 {PLATFORM_TERMS_META.cardTitle}
               </p>
-              <span className="mono-id tracking-[0.08em] text-muted-foreground">
+              <span className="mono-id tracking-tag text-muted-foreground">
                 Nº {PLATFORM_TERMS_META.docNumber}
               </span>
             </div>
@@ -84,13 +83,13 @@ export default function TermsPage() {
             ))}
           </ReceiptCard>
 
-          <div className="flex flex-wrap gap-3">
-            <Button asChild variant="secondary">
-              <Link href="/privacy">Privacy notice</Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link href="/cookies">Cookie notice</Link>
-            </Button>
+          <div data-legal-related>
+            <LegalRelatedLinks
+              links={[
+                { href: "/privacy", label: "Privacy notice" },
+                { href: "/cookies", label: "Cookie notice" },
+              ]}
+            />
           </div>
         </article>
       </Section>
@@ -108,13 +107,17 @@ function TermsBlock({
   body: string
 }) {
   return (
+    // Same readability contract as LegalDocumentPage (01#64/65/66): a clause
+    // heading that outranks its clause, body at 16px capped to a 68ch measure
+    // on the foreground colour, and an explicit dashed rule instead of
+    // .w-rule's injected margins. No clause wording is changed.
     <section
       id={id}
       tabIndex={-1}
-      className="w-rule focus-ring grid scroll-mt-28 gap-2 pt-4"
+      className="focus-target grid scroll-mt-28 gap-2 border-t-2 border-dashed border-border pt-5 first:border-t-0 first:pt-0"
     >
-      <h2 className="mono-meta tracking-[0.08em] text-foreground">{title}</h2>
-      <p className="text-sm leading-6 text-muted-foreground">{body}</p>
+      <h2 className="mono-meta tracking-tag text-foreground">{title}</h2>
+      <p className="max-w-[68ch] text-base leading-7 text-foreground">{body}</p>
     </section>
   )
 }

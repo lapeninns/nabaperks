@@ -52,7 +52,9 @@ function useSidebar() {
 function SidebarProvider(props: SidebarProviderProps) {
   const { defaultOpen = true, open: openProp } = props
   const resetKey =
-    openProp === undefined ? `uncontrolled-${String(defaultOpen)}` : "controlled"
+    openProp === undefined
+      ? `uncontrolled-${String(defaultOpen)}`
+      : "controlled"
 
   return <SidebarProviderState key={resetKey} {...props} />
 }
@@ -149,7 +151,10 @@ function Sidebar({
           data-mobile="true"
           side={side}
           className={cn(
-            "w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden",
+            // SheetContent's close button is deliberately NOT hidden here: the mobile
+            // nav drawer previously offered no visible dismissal at all (only Escape,
+            // an overlay tap or a swipe), which is undiscoverable on touch.
+            "w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground",
             className
           )}
           {...props}
@@ -213,7 +218,11 @@ function SidebarTrigger({
       }}
       {...props}
     >
-      <HugeiconsIcon icon={SidebarLeftIcon} strokeWidth={2} aria-hidden="true" />
+      <HugeiconsIcon
+        icon={SidebarLeftIcon}
+        strokeWidth={2}
+        aria-hidden="true"
+      />
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   )
@@ -307,8 +316,9 @@ function SidebarMenuButton({
       className={cn(
         // Focus indication comes from the shared .focus-ring recipe plus the
         // unlayered border/background swap in globals.css — no private ring.
-        "focus-ring flex w-full min-w-0 items-center gap-2 rounded-md px-3 text-left text-sm font-bold transition-[color,background-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none disabled:pointer-events-none disabled:opacity-50",
-        size === "lg" ? "min-h-12" : "min-h-10",
+        "focus-ring flex w-full min-w-0 items-center gap-2 rounded-md px-3 text-left text-sm font-bold transition-[color,background-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none disabled:pointer-events-none disabled:opacity-50 motion-reduce:transition-none",
+        // Height is owned by the unlayered [data-slot=sidebar-menu-button]
+        // rules (44px default, 48px for data-size="lg").
         className
       )}
       {...props}

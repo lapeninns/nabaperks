@@ -23,7 +23,7 @@ export function ActivityCompactFeed({
   return (
     <ol
       className={cn(
-        "overflow-hidden p-0 [&>li+li]:border-t-2 [&>li+li]:border-dashed [&>li+li]:border-ink/15",
+        "overflow-hidden p-0 [&>li+li]:border-t-2 [&>li+li]:border-dashed [&>li+li]:border-line",
         inset ? "rounded-lg bg-background/60" : "surface-card"
       )}
     >
@@ -45,12 +45,7 @@ export function ActivityCompactFeed({
             <p className="text-sm leading-6 font-bold">{row.headline}</p>
           </div>
           {row.primaryAction ? (
-            <Button
-              asChild
-              variant="secondary"
-              size="sm"
-              className="min-h-11 sm:min-h-9"
-            >
+            <Button asChild variant="secondary" size="sm">
               <Link href={row.primaryAction.href}>
                 {row.primaryAction.label}
               </Link>

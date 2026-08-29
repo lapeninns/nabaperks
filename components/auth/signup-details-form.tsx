@@ -1,7 +1,5 @@
 "use client"
 
-import Link from "next/link"
-import type { ReactNode } from "react"
 import { useActionState, useEffect, useState } from "react"
 
 import type { AuthActionState } from "@/app/(auth)/actions"
@@ -16,7 +14,7 @@ import { SubmitButton } from "@/components/forms"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { validateConfirmPassword, validatePassword } from "@/lib/auth/password"
 import { merchantLoginHref } from "@/lib/navigation/merchant-auth-hrefs"
-import { cn } from "@/lib/utils"
+import { AuthPromptLink } from "./auth-prompt-link"
 
 type SignupDetailsFormProps = {
   readonly initialEmail?: string
@@ -202,28 +200,6 @@ export function SignupDetailsForm({
         </AuthPromptLink>
       </p>
     </div>
-  )
-}
-
-function AuthPromptLink({
-  href,
-  className,
-  children,
-}: {
-  readonly href: string
-  readonly className?: string
-  readonly children: ReactNode
-}) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "focus-ring inline-flex min-h-11 items-center rounded-full px-3 py-2 font-bold text-primary underline-offset-4 hover:bg-accent hover:text-accent-foreground hover:underline",
-        className
-      )}
-    >
-      {children}
-    </Link>
   )
 }
 

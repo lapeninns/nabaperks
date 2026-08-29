@@ -343,11 +343,15 @@ function DeskSurface() {
             <Eyebrow>What an offer can give</Eyebrow>
             {/* Mirrors the hub's snap-scroll rail on the phone, three-up grid
                 from sm — the two surfaces map the same presets. */}
-            <ul className="flex snap-x [scrollbar-width:none] gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0 [&::-webkit-scrollbar]:hidden">
+            <ul
+              aria-label="What an offer can give"
+              tabIndex={0}
+              className="focus-ring flex snap-x [scrollbar-width:none] gap-2 overflow-x-auto rounded-sm pb-1 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0 [&::-webkit-scrollbar]:hidden"
+            >
               {OFFER_BENEFIT_PRESETS.map((preset) => (
                 <li
                   key={preset.kind}
-                  className="grid w-60 shrink-0 snap-start content-start gap-1.5 rounded-lg border-[1.5px] border-border bg-card p-3 sm:w-auto sm:min-w-0 sm:p-4"
+                  className="grid w-60 shrink-0 snap-start content-start gap-1.5 rounded-lg border-2 border-border bg-card p-3 sm:w-auto sm:min-w-0 sm:p-4"
                 >
                   <span className="flex items-center gap-2">
                     <Icon icon={preset.icon} size={16} />
@@ -768,7 +772,7 @@ function CustomerSurface() {
             requiresIdCheck={false}
             state="active"
           >
-            <p className="rounded-xl bg-secondary px-3 py-2 text-center text-sm font-bold text-foreground">
+            <p className="rounded-lg bg-secondary px-3 py-2 text-center text-sm font-bold text-foreground">
               A team member scans this before they apply the discount
             </p>
           </OfferPass>
@@ -998,7 +1002,7 @@ function StaffScanScreen({
         </p>
       </ReceiptCard>
 
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-xl border-2 border-ink bg-card p-4 text-sm">
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-lg border-2 border-ink bg-card p-4 text-sm">
         <dt className="font-bold text-muted-foreground">Member</dt>
         {/* Merchant surfaces show a masked identifier and never a number. */}
         <dd className="text-right font-bold">Phone ending 421</dd>

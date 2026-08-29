@@ -1,7 +1,15 @@
 import type { ReactNode } from "react"
 
 import { ReceiptCard } from "@/components/brand"
-import { CustomerTabBar } from "@/components/layout"
+import {
+  CUSTOMER_COLUMN_BOTTOM,
+  CUSTOMER_COLUMN_BOTTOM_DENSE,
+  CUSTOMER_COLUMN_INSET,
+  CUSTOMER_COLUMN_MIN_H,
+  CUSTOMER_COLUMN_TOP,
+  CUSTOMER_COLUMN_TOP_DENSE,
+} from "@/components/layout/customer-column"
+import { CustomerTabBar, TAB_BAR_CLEARANCE } from "@/components/layout"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
@@ -36,12 +44,14 @@ function CustomerFlowShellSkeleton({
   return (
     <main
       className={cn(
-        "min-h-[100dvh] overflow-x-hidden bg-background px-4 text-foreground sm:px-6",
-        // Mirrors CustomerFlowShell's safe-area bottom padding so the
-        // skeleton→content swap never shifts (VCU-P3-06/08 parity).
-        dense
-          ? "pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pt-6 sm:pb-[max(1.5rem,env(safe-area-inset-bottom))]"
-          : "pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pt-8 sm:pb-[max(2rem,env(safe-area-inset-bottom))]"
+        "bg-background text-foreground",
+        // Reads the SAME rhythm module as CustomerFlowShell rather than
+        // restating its class strings, so the skeleton→content swap cannot
+        // shift even one padding step out of sync (CUS 02#5, VCU-P3-06/08).
+        CUSTOMER_COLUMN_MIN_H,
+        CUSTOMER_COLUMN_INSET,
+        dense ? CUSTOMER_COLUMN_TOP_DENSE : CUSTOMER_COLUMN_TOP,
+        dense ? CUSTOMER_COLUMN_BOTTOM_DENSE : CUSTOMER_COLUMN_BOTTOM
       )}
       role="status"
       aria-label="Loading"
@@ -84,7 +94,7 @@ function CustomerFlowShellSkeleton({
 /** The receipt's reward-ticket chit: face + dashed tear-line + seal stub. */
 function RewardTicketSkeleton() {
   return (
-    <div className="flex overflow-hidden rounded-lg border-2 border-ink bg-card">
+    <div className="surface-card-flat flex overflow-hidden">
       <div className="grid flex-1 content-center gap-2 p-4">
         <Skeleton className="h-3 w-20" />
         <Skeleton className="h-5 w-36 max-w-full" />
@@ -92,7 +102,7 @@ function RewardTicketSkeleton() {
       </div>
       <span
         aria-hidden="true"
-        className="border-l-2 border-dashed border-ink/50"
+        className="border-l-2 border-dashed border-line-strong"
       />
       <div className="grid w-[84px] content-center justify-items-center gap-2 p-3">
         <Skeleton className="size-10 rounded-full" />
@@ -123,7 +133,7 @@ function StampRowSkeleton({ size = "size-12" }: { size?: string }) {
 export function CustomerCardSkeleton() {
   return (
     <>
-      <CustomerFlowShellSkeleton className="pb-28">
+      <CustomerFlowShellSkeleton className={TAB_BAR_CLEARANCE}>
         <div className="grid gap-4">
           <Skeleton className="h-4 w-24" />
           <ReceiptCard edge className="grid gap-4">
@@ -155,7 +165,7 @@ export function CustomerCardSkeleton() {
 export function CustomerRewardSkeleton() {
   return (
     <>
-      <CustomerFlowShellSkeleton className="pb-28">
+      <CustomerFlowShellSkeleton className={TAB_BAR_CLEARANCE}>
         <ReceiptCard edge className="grid gap-4">
           <div className="flex items-start justify-between gap-4">
             <Skeleton className="h-3 w-28" />
@@ -253,27 +263,139 @@ export function CustomerPageTitleSkeleton() {
 }
 
 /**
- * Mirrors the home dashboard: the page title and a stack of {@link HomeCardTile}
- * receipts. Rendered inside the persistent {@link CustomerAppShell}, so it omits
- * the shell and tab bar (the layout already holds them).
+ * Mirrors the home dashboard: the compact heading row and a stack of
+ * {@link HomeCardTile} receipts. Rendered inside the persistent
+ * {@link CustomerAppShell}, so it omits the shell and tab bar (the layout
+ * already holds them).
+ *
+ * The measurements here are taken from the real components, not chosen: this
+ * file's own promise is that "the swap to real content never shifts the
+ * layout", and it was not keeping it (CUS 02#16). It used `gap-5`/`gap-3.5`
+ * where the page is `gap-5`/`gap-4`; it drew a `ReceiptCard edge` (a 12px
+ * perforation) and an `<hr class="w-rule">` (28px of margin) that HomeCardTile
+ * does not render at all; and it omitted the tag row and the `bg-accent p-3`
+ * stamp well that it does. Each tile jumped ~40px on arrival. Now: no edge, no
+ * rule, the real gaps, a tag-row block and the accent stamp well.
  */
 export function CustomerHomeSkeleton() {
   return (
     <div className="grid gap-5" role="status" aria-label="Loading your cards">
-      <CustomerPageTitleSkeleton />
-      <div className="grid gap-3.5">
+      {/* The heading row: one h1-sized line plus the summary eyebrow. */}
+      <div className="grid gap-1.5">
+        <Skeleton className="h-6 w-36" />
+        <Skeleton className="h-3 w-52 max-w-full" />
+      </div>
+      <div className="grid gap-4">
         {[0, 1].map((tile) => (
-          <ReceiptCard key={tile} edge className="grid gap-4">
+          <ReceiptCard key={tile} className="grid gap-4">
             <div className="flex items-start justify-between gap-4">
-              <div className="grid min-w-0 flex-1 gap-1.5">
+              <div className="grid min-w-0 flex-1 gap-1">
                 <Skeleton className="h-3 w-20" />
                 <Skeleton className="h-5 w-36 max-w-full" />
+                <Skeleton className="h-4 w-24 max-w-full" />
               </div>
-              <Skeleton className="size-[52px] shrink-0 rounded-full" />
+              <Skeleton className="size-12 shrink-0 rounded-full" />
             </div>
-            <hr className="w-rule" />
-            <StampRowSkeleton size="size-10" />
+            {/* The tag row HomeCardTile prints above its stamp well. */}
+            <div className="flex gap-2">
+              <Skeleton className="h-[26px] w-24 rounded-full" />
+              <Skeleton className="h-[26px] w-20 rounded-full" />
+            </div>
+            {/* The `rounded-lg bg-accent p-3` stamp well, not a bare row. */}
+            <div className="rounded-lg bg-accent p-3">
+              <StampRowSkeleton size="size-10" />
+            </div>
+            <Skeleton className="h-4 w-full max-w-[16rem]" />
           </ReceiptCard>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── Home tab skeletons ──────────────────────────────────────────────────────
+
+/**
+ * Mirrors `/home/activity`: the page title, then day-grouped hairline rows.
+ *
+ * Every authed tab used to fall through to {@link CustomerHomeSkeleton}, so
+ * navigating to Activity showed two fake loyalty cards with stamp rows and then
+ * swapped to a feed — a skeleton that actively lies about what is arriving is
+ * worse than a neutral one, and it produced a large re-layout on every tab
+ * switch (CUS 02#67).
+ */
+export function CustomerActivitySkeleton() {
+  return (
+    <div
+      className="grid gap-6"
+      role="status"
+      aria-label="Loading your activity"
+    >
+      <CustomerPageTitleSkeleton />
+      <div className="grid gap-5">
+        {[0, 1].map((day) => (
+          <section key={day} className="grid gap-1">
+            <Skeleton className="h-3 w-24" />
+            <div className="grid">
+              {[0, 1, 2].map((row) => (
+                <div
+                  key={row}
+                  className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-2.5 gap-y-1 border-b border-dashed border-line py-2.5 last:border-b-0"
+                >
+                  <Skeleton className="mt-[0.45em] size-2 rounded-full" />
+                  <Skeleton className="h-4 w-40 max-w-full" />
+                  <Skeleton className="col-start-2 h-4 w-full max-w-[15rem]" />
+                </div>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/** Mirrors `/home/rewards`: title, two ready reward cards, one history row. */
+export function CustomerRewardsSkeleton() {
+  return (
+    <div className="grid gap-6" role="status" aria-label="Loading your rewards">
+      <CustomerPageTitleSkeleton />
+      <div className="grid gap-4">
+        <div className="grid gap-2">
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-5 w-32" />
+        </div>
+        {[0, 1].map((reward) => (
+          <ReceiptCard key={reward} className="grid gap-3 bg-accent">
+            <div className="flex items-center justify-between gap-2">
+              <Skeleton className="h-[26px] w-32 rounded-full" />
+              <Skeleton className="h-[26px] w-16 rounded-full" />
+            </div>
+            <Skeleton className="h-5 w-44 max-w-full" />
+            <Skeleton className="h-4 w-full max-w-[15rem]" />
+            <Skeleton className="h-12 w-full" />
+          </ReceiptCard>
+        ))}
+        <div className="surface-card p-4">
+          <Skeleton className="h-5 w-40" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Mirrors `/home/profile`: title and three settings sections. */
+export function CustomerProfileSkeleton() {
+  return (
+    <div className="grid gap-6" role="status" aria-label="Loading your profile">
+      <CustomerPageTitleSkeleton />
+      <div className="grid gap-6">
+        {[0, 1, 2].map((section) => (
+          <div key={section} className="surface-card grid gap-3 p-5">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-5 w-40 max-w-full" />
+            <Skeleton className="h-11 w-full" />
+          </div>
         ))}
       </div>
     </div>

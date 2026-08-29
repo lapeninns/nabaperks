@@ -8,6 +8,7 @@ import {
   Home01Icon,
   Megaphone01Icon,
   QrCode01Icon,
+  ScanIcon,
   SecurityCheckIcon,
   Settings01Icon,
   Shield01Icon,
@@ -23,6 +24,13 @@ export type ShellNavItem = {
   label: string
   icon?: IconGlyph
   prefetch?: "auto"
+  /**
+   * Optional task-frequency group. When set, `ConsoleSidebarNav` renders one
+   * labelled `SidebarGroup` per distinct value, in first-appearance order.
+   * Items without a group render as one unlabelled list, which is what the
+   * admin rail still does.
+   */
+  group?: string
 }
 
 export function isActivePath(currentPath: string, href: string) {
@@ -46,11 +54,12 @@ export function parseNavHref(href: string): {
   return { path, tab: new URLSearchParams(queryString).get("tab") }
 }
 
-// The counter scan flows have no nav item of their own; they live under
-// Activity (collection revalidates the activity feed, and the scan 404's CTA
-// already routes back there), so the sidebar highlights a section on those
-// screens.
-const ACTIVITY_ALIAS_PREFIXES = ["/app/scan", "/app/rewards"]
+// The reward scan-detail flows (/app/rewards/scan/*) have no nav item of their
+// own; they live under Activity (collection revalidates the activity feed, and
+// the scan 404's CTA already routes back there), so the sidebar highlights a
+// section on those screens. `/app/scan` is NO LONGER aliased here — it now has
+// its own Counter entry, and leaving it would light two rows at once.
+const ACTIVITY_ALIAS_PREFIXES = ["/app/rewards"]
 
 export function isActiveNavItem(
   currentPath: string,
@@ -84,27 +93,87 @@ export function isActiveNavItem(
   return isActivePath(currentPath, href)
 }
 
+/**
+ * Grouped by how often a venue reaches for the surface, not by build order.
+ * The rail used to be one flat list of seven, so a setup-time surface (Setup,
+ * Poster) sat at exactly the weight of the counter's daily work and of growth
+ * tools a pre-launch venue cannot use yet. `group` drives the labelled
+ * `SidebarGroup`s in ConsoleSidebarNav; the array itself stays flat so every
+ * existing consumer (and the offers/announcements source contracts) is
+ * unchanged.
+ *
+ * Scan now has an entry of its own. It used to have none at all — it aliased to
+ * Activity — so the console's single most-repeated counter action was reachable
+ * only by typing the URL or arriving from a members row.
+ */
 export const merchantNavItems = [
-  { href: "/app", label: "Dashboard", icon: Home01Icon, prefetch: "auto" },
-  { href: "/app/launch", label: "Setup", icon: Settings01Icon },
-  { href: "/app/qr", label: "Poster", icon: QrCode01Icon, prefetch: "auto" },
+  {
+    href: "/app",
+    label: "Dashboard",
+    icon: Home01Icon,
+    prefetch: "auto",
+    group: "Counter",
+  },
+  {
+    href: "/app/scan",
+    label: "Scan",
+    icon: ScanIcon,
+    prefetch: "auto",
+    group: "Counter",
+  },
+  {
+    href: "/app/qr",
+    label: "Poster",
+    icon: QrCode01Icon,
+    prefetch: "auto",
+    group: "Counter",
+  },
   {
     href: "/app/customers",
     label: "Members",
     icon: UserMultiple02Icon,
     prefetch: "auto",
+    group: "Members",
   },
   {
     href: "/app/activity",
     label: "Activity",
     icon: Activity03Icon,
     prefetch: "auto",
+    group: "Members",
   },
-  { href: "/app/announcements", label: "Announce", icon: Megaphone01Icon },
   {
     href: "/app/offers",
     label: "Offers",
     icon: DiscountTag01Icon,
+    prefetch: "auto",
+    group: "Grow",
+  },
+  {
+    href: "/app/announcements",
+    label: "Announce",
+    icon: Megaphone01Icon,
+    group: "Grow",
+  },
+  {
+    href: "/app/launch",
+    label: "Setup",
+    icon: Settings01Icon,
+    group: "Setup",
+  },
+] satisfies readonly ShellNavItem[]
+
+/** The phone counter rail (`MerchantTabBar`): the four highest-frequency
+ *  surfaces. Scan has no sidebar item of its own — it aliases to Activity
+ *  there — so the tab bar is the only one-tap route to the scanner. */
+export const merchantTabBarItems = [
+  { href: "/app", label: "Dashboard", icon: Home01Icon, prefetch: "auto" },
+  { href: "/app/scan", label: "Scan", icon: ScanIcon, prefetch: "auto" },
+  { href: "/app/qr", label: "Poster", icon: QrCode01Icon },
+  {
+    href: "/app/customers",
+    label: "Members",
+    icon: UserMultiple02Icon,
     prefetch: "auto",
   },
 ] satisfies readonly ShellNavItem[]
@@ -122,6 +191,11 @@ export const merchantAccountItems = [
   },
 ] satisfies readonly ShellNavItem[]
 
+export type ShellNavGroup = {
+  label: string
+  items: readonly ShellNavItem[]
+}
+
 export const adminNavItems = [
   // The console hub itself — without this entry the overview shows no active
   // item and is unreachable from the sidebar (isActiveNavItem already
@@ -138,3 +212,42 @@ export const adminNavItems = [
   { href: "/admin/audit", label: "Audit", icon: SecurityCheckIcon },
   { href: "/admin/security", label: "Security", icon: SquareLockPasswordIcon },
 ] satisfies readonly ShellNavItem[]
+
+/**
+ * The same eleven routes, grouped by the job they serve. A flat list makes
+ * scanning positional rather than semantic; the three groups are the three
+ * reasons an operator opens the console. Source of truth stays
+ * `adminNavItems` — these are lookups into it, so a route cannot be listed
+ * twice or silently dropped from the sidebar.
+ */
+function adminNavItem(href: string): ShellNavItem {
+  const item = adminNavItems.find((candidate) => candidate.href === href)
+  if (!item) throw new Error(`Unknown admin nav route: ${href}`)
+  return item
+}
+
+export const adminNavGroups = [
+  {
+    label: "Support",
+    items: [
+      adminNavItem("/admin"),
+      adminNavItem("/admin/merchants"),
+      adminNavItem("/admin/customers"),
+      adminNavItem("/admin/billing"),
+      adminNavItem("/admin/referrals"),
+    ],
+  },
+  {
+    label: "Insight",
+    items: [adminNavItem("/admin/pilot"), adminNavItem("/admin/evidence")],
+  },
+  {
+    label: "Compliance",
+    items: [
+      adminNavItem("/admin/privacy"),
+      adminNavItem("/admin/fraud"),
+      adminNavItem("/admin/audit"),
+      adminNavItem("/admin/security"),
+    ],
+  },
+] satisfies readonly ShellNavGroup[]

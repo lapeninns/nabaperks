@@ -40,6 +40,19 @@ for (const [path, pathItem] of Object.entries(specification.paths ?? {})) {
   }
 }
 
+/**
+ * Non-vacuity guard: this generator's only assertions live inside the loop
+ * above, so an empty or reshaped `paths` object emits a table with no rows and
+ * exits 0 — the generated doc would then agree with itself and `pnpm docs:check`
+ * would pass on a spec that documents nothing. Three operations today.
+ */
+if (operations.length === 0) {
+  throw new Error(
+    "docs/api/openapi.json produced 0 operations. The spec is empty or its `paths` " +
+      "shape has changed, so this generator is documenting nothing."
+  )
+}
+
 operations.sort((left, right) =>
   `${left.path}:${left.method}`.localeCompare(`${right.path}:${right.method}`)
 )

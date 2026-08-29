@@ -1,6 +1,9 @@
 import type { KeyboardEventHandler, ReactNode } from "react"
 
-import { Eyebrow } from "@/components/brand"
+import Link from "next/link"
+import { ArrowDown01Icon, ArrowUp01Icon } from "@hugeicons/core-free-icons"
+
+import { Icon } from "@/components/brand"
 import { ShowMoreList } from "@/components/data/show-more-list"
 import { cn } from "@/lib/utils"
 import {
@@ -17,6 +20,31 @@ export type DataTableColumn<T> = {
   header: ReactNode
   cell: (row: T) => ReactNode
   className?: string
+  /**
+   * Makes this header a sort control. The value is the token that reaches the
+   * URL as `?sort=`, and it is deliberately NOT `key`: the sort token is an
+   * allowlisted server-side column name, while `key` is a React list key a
+   * caller may rename freely. A column without a `sortKey`, or a table without
+   * a `sort` prop, renders exactly the inert header it always did.
+   */
+  sortKey?: string
+}
+
+type DataTableSortDirection = "asc" | "desc"
+
+/**
+ * URL-driven sorting for the console tables (ADM 04#60). Links, not client
+ * state: the admin lists are server components whose filter and pagination are
+ * already query params, so a sorted view stays linkable, back-button safe and
+ * works with no JavaScript — and the ORDER BY happens in the database rather
+ * than over whichever page happens to be loaded, which would rank each page
+ * independently (the trap the fraud queue was left capped for, 04#6).
+ */
+export type DataTableSort = {
+  /** The active sort token, or null when the list is in its default order. */
+  readonly key: string | null
+  readonly direction: DataTableSortDirection
+  readonly hrefFor: (key: string, direction: DataTableSortDirection) => string
 }
 
 /**
@@ -65,11 +93,15 @@ export type DataTableProps<T> = {
   /** Class applied to the mobile-card list (only when `mobileCard` is set). */
   mobileClassName?: string
   /**
-   * Opt-in progressive reveal for the mobile card stack: phones start with
-   * this many cards and a "Show more" control instead of the full stack (an
-   * unpaginated 100-row readback is a ~9,000px page at 375px). Desktop tables
-   * are unaffected. Ignored when `onRowClick`/`getRowProps` are used — those
-   * need per-row handlers the reveal wrapper does not thread through.
+   * Progressive reveal for the card stack: narrow viewports start with this
+   * many cards and a "Show more" control instead of the full stack (an
+   * unpaginated 100-row readback is a ~9,000px page at 375px). DEFAULTS TO 10
+   * — the mitigation was opt-in and had been applied to 2 of 8 admin tables,
+   * so the phone experience of the console varied by an order of magnitude
+   * between routes. Pass a larger number, or `Number.POSITIVE_INFINITY`, to
+   * render the whole stack. Desktop tables are unaffected. Ignored when
+   * `onRowClick`/`getRowProps` are used — those need per-row handlers the
+   * reveal wrapper does not thread through.
    */
   mobilePageSize?: number
   /**
@@ -79,6 +111,11 @@ export type DataTableProps<T> = {
    * is the admin console norm, keeping card records through tablet widths.
    */
   cardBreakpoint?: "sm" | "xl"
+  /**
+   * Sorting state + link builder. Omitted (the default) leaves every header
+   * inert and the markup byte-identical to the unsorted table.
+   */
+  sort?: DataTableSort
 }
 
 /**
@@ -86,6 +123,9 @@ export type DataTableProps<T> = {
  * Do not build these by interpolation — Tailwind cannot statically extract
  * dynamically composed class names.
  */
+/** Cards revealed before the "Show more" control; see `mobilePageSize`. */
+const DEFAULT_MOBILE_PAGE_SIZE = 10
+
 const CARD_BREAKPOINT_CLASSES = {
   sm: { cards: "sm:hidden", table: "hidden sm:block" },
   xl: { cards: "xl:hidden", table: "hidden xl:block" },
@@ -100,6 +140,7 @@ function DataTableCore<T>({
   rowClassName,
   onRowClick,
   getRowProps,
+  sort,
 }: Pick<
   DataTableProps<T>,
   | "caption"
@@ -110,25 +151,31 @@ function DataTableCore<T>({
   | "rowClassName"
   | "onRowClick"
   | "getRowProps"
+  | "sort"
 >) {
   return (
     // The inner ui Table provides the one focusable scroll container; the
     // card only CLIPS to its rounded corners (overflow-hidden), so there are
     // no nested scroll regions / double scrollbars.
     <div className={cn("surface-card overflow-hidden", className)}>
-      <Table className="min-w-full text-sm">
+      <Table label={caption} className="min-w-full text-sm">
         <caption className="sr-only">{caption}</caption>
         <TableHeader className="bg-secondary/60">
           <TableRow className="border-b-2 border-ink hover:bg-transparent">
             {columns.map((column) => (
+              // One type recipe: the `th` used to set a 12px Bricolage
+              // uppercase style that the nested `.eyebrow` then overrode to
+              // 11.5px mono, and the block <p> defeated the h-10 centring.
+              // .eyebrow lives on the cell now; the wrapper element is gone.
               <TableHead
                 key={column.key}
+                aria-sort={ariaSort(column, sort)}
                 className={cn(
-                  "h-10 px-4 text-xs font-extrabold whitespace-nowrap text-muted-foreground uppercase",
+                  "eyebrow h-10 px-4 whitespace-nowrap",
                   column.className
                 )}
               >
-                <Eyebrow>{column.header}</Eyebrow>
+                <SortableHeader column={column} sort={sort} />
               </TableHead>
             ))}
           </TableRow>
@@ -162,6 +209,79 @@ function DataTableCore<T>({
       </Table>
     </div>
   )
+}
+
+/**
+ * `aria-sort` belongs on the header CELL, not on the control inside it
+ * (WAI-ARIA 1.2), and only one column may claim a direction at a time. A
+ * sortable column that is not the active one reports "none"; a column that
+ * cannot be sorted reports nothing at all, because `aria-sort="none"` on an
+ * inert header tells a screen-reader user the table sorts when it does not.
+ */
+function ariaSort<T>(
+  column: DataTableColumn<T>,
+  sort?: DataTableSort
+): "ascending" | "descending" | "none" | undefined {
+  if (!sort || !column.sortKey) return undefined
+  if (sort.key !== column.sortKey) return "none"
+  return sort.direction === "asc" ? "ascending" : "descending"
+}
+
+/**
+ * A sortable header is a real link — the console's whole lookup model is query
+ * params — so it is middle-clickable, copyable and needs no JavaScript.
+ * Pressing the active column toggles its direction; pressing a new one starts
+ * at descending, which is the direction an operator triaging by severity or
+ * recency wants first.
+ */
+function SortableHeader<T>({
+  column,
+  sort,
+}: {
+  readonly column: DataTableColumn<T>
+  readonly sort?: DataTableSort
+}) {
+  if (!sort || !column.sortKey) return <>{column.header}</>
+
+  const active = sort.key === column.sortKey
+  const next: DataTableSortDirection =
+    active && sort.direction === "desc" ? "asc" : "desc"
+
+  return (
+    <Link
+      href={sort.hrefFor(column.sortKey, next)}
+      // "Sort by When" does not say what pressing it will do, and an admin
+      // table can carry four of these.
+      aria-label={`Sort by ${headerLabel(column)}, ${
+        next === "asc" ? "ascending" : "descending"
+      }`}
+      // `.tap-floor`, because this is an interactive control that is not a
+      // Button and so carries none of Button's coarse-pointer floors. Measured
+      // on a coarse device profile it was a 15px-tall target — under DESIGN.md
+      // (Layout & Spacing: "Primary tap targets >= 44px") and under WCAG
+      // 2.5.8's 24px minimum, with no exemption available to a table header.
+      // A fine pointer is unaffected: the utility only adds `touch-action` off
+      // a coarse pointer.
+      className="focus-ring tap-floor -mx-1 inline-flex items-center gap-1 rounded-sm px-1 outline-none hover:text-foreground"
+    >
+      {column.header}
+      <Icon
+        icon={
+          active && sort.direction === "asc" ? ArrowUp01Icon : ArrowDown01Icon
+        }
+        size={12}
+        className={cn(!active && "opacity-35")}
+        aria-hidden="true"
+      />
+    </Link>
+  )
+}
+
+/** A readable name for the sort link, falling back to the sort token. */
+function headerLabel<T>(column: DataTableColumn<T>): string {
+  return typeof column.header === "string"
+    ? column.header
+    : (column.sortKey ?? column.key)
 }
 
 /**
@@ -204,7 +324,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     getRowProps,
     mobileCard,
     mobileClassName,
-    mobilePageSize,
+    mobilePageSize = DEFAULT_MOBILE_PAGE_SIZE,
     cardBreakpoint = "sm",
   } = props
 

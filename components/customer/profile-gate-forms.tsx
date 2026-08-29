@@ -9,9 +9,11 @@ import {
   type ProfileGateActionState,
 } from "@/app/reward/[rewardId]/actions"
 import { profileInputClass } from "@/components/customer/profile-form-parts"
+import { CustomerActionNote } from "@/components/customer/customer-flow-system"
+import { CustomerOtpInput } from "@/components/customer/customer-otp-input"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
-import { otpFieldMaxLength } from "@/lib/customer/experience/otp-field"
+import { SubmitButton } from "@/components/forms"
 import type { ProfileGate } from "@/lib/customer/experience/types"
 import { latestAdultBirthDate } from "@/lib/customer/profile-fields"
 
@@ -47,15 +49,12 @@ function ProfileDetailsStep({
     <form action={action} className="grid gap-4">
       <input type="hidden" name="rewardId" value={rewardId} />
 
-      <StatusBanner
-        title="A few details before this one's yours"
-        tone="neutral"
-      >
+      <CustomerActionNote title="A few details before this one's yours">
         Add your name, date of birth, and email before collection.
         {gate.emailLocked
           ? null
           : " We'll send a one-time code to verify a new email."}
-      </StatusBanner>
+      </CustomerActionNote>
 
       <Field
         label="Full name"
@@ -75,9 +74,9 @@ function ProfileDetailsStep({
       />
       {gate.emailLocked && gate.email ? (
         <>
-          <StatusBanner title="Verified email" tone="neutral">
+          <CustomerActionNote title="Verified email">
             {gate.email} is verified and locked for account security.
-          </StatusBanner>
+          </CustomerActionNote>
           {state.errors?.email ? (
             <StatusBanner title="Code not sent" tone="warning">
               {state.errors.email}
@@ -132,10 +131,7 @@ function ProfileEmailStep({
   rewardId: string
   email: string | null
 }) {
-  const [state, action, pending] = useActionState(
-    verifyProfileEmailAction,
-    initialState
-  )
+  const [state, action] = useActionState(verifyProfileEmailAction, initialState)
   const [resendState, resendAction, resendPending] = useActionState(
     resendProfileEmailAction,
     initialState
@@ -143,10 +139,10 @@ function ProfileEmailStep({
 
   return (
     <div className="grid gap-4">
-      <StatusBanner title="Confirm your email" tone="neutral">
+      <CustomerActionNote title="Confirm your email">
         Enter the code we sent{email ? ` to ${email}` : ""} to verify your email
         before collection.
-      </StatusBanner>
+      </CustomerActionNote>
 
       <form action={action} className="grid gap-4">
         <input type="hidden" name="rewardId" value={rewardId} />
@@ -154,17 +150,10 @@ function ProfileEmailStep({
           <label htmlFor="profile-otp" className="eyebrow">
             Email code
           </label>
-          <input
+          <CustomerOtpInput
             id="profile-otp"
-            name="otp"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            maxLength={otpFieldMaxLength()}
-            className={`${profileInputClass} font-mono`}
-            aria-invalid={Boolean(state.errors?.otp)}
-            aria-describedby={
-              state.errors?.otp ? "profile-otp-error" : undefined
-            }
+            invalid={Boolean(state.errors?.otp)}
+            describedBy={state.errors?.otp ? "profile-otp-error" : undefined}
             onFocus={(event) =>
               event.currentTarget.scrollIntoView({ block: "center" })
             }
@@ -184,9 +173,9 @@ function ProfileEmailStep({
           </StatusBanner>
         ) : null}
 
-        <Button type="submit" size="lg" disabled={pending} className="w-full">
-          {pending ? "Confirming…" : "Confirm email"}
-        </Button>
+        <SubmitButton size="lg" className="w-full" pendingLabel="Confirming…">
+          Confirm email
+        </SubmitButton>
       </form>
 
       {/* size="sm" keeps these on the tap contract at the queuing moment —

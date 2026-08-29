@@ -1,7 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import type { ReactNode } from "react"
 import { useActionState, useEffect, useRef, useState } from "react"
 
 import { signupOtpAction, type AuthActionState } from "@/app/(auth)/actions"
@@ -18,7 +17,7 @@ import {
   merchantPasswordResetHref,
   merchantSignupHref,
 } from "@/lib/navigation/merchant-auth-hrefs"
-import { cn } from "@/lib/utils"
+import { AuthPromptLink } from "./auth-prompt-link"
 
 type AuthAction = (
   state: AuthActionState,
@@ -125,7 +124,12 @@ function SignInForm({
               email: normalizedEmail || undefined,
               next,
             })}
-            className="focus-ring inline-flex min-h-11 items-center rounded-full px-3 text-sm font-bold text-primary underline-offset-4 hover:underline"
+            // rounded-(--radius-md), not rounded-full: the house halo shape
+            // for a min-h-11 inline text link. DESIGN.md · Shapes names the
+            // "legal-link halo family" as its exception and this is auth
+            // navigation, exactly as marketing-chrome-tokens argues for the
+            // footer's site links.
+            className="focus-ring inline-flex min-h-11 items-center rounded-(--radius-md) px-3 text-sm font-bold text-primary underline-offset-4 hover:underline"
           >
             Forgot password?
           </Link>
@@ -149,7 +153,7 @@ function SignInForm({
           action={freshCodeAction}
           aria-label="Get a fresh verification code"
           tabIndex={-1}
-          className="focus-ring grid gap-3 rounded-xl"
+          className="focus-target grid gap-3 rounded-lg"
         >
           <input type="hidden" name="intent" value="resend" />
           <input type="hidden" name="source" value="login" />
@@ -198,31 +202,9 @@ function SwitchPrompt({
   return (
     <p className="text-center text-sm text-muted-foreground">
       New venue?{" "}
-      <SwitchPromptLink href={merchantSignupHref({ email, next })}>
+      <AuthPromptLink href={merchantSignupHref({ email, next })}>
         Start your launch
-      </SwitchPromptLink>
+      </AuthPromptLink>
     </p>
-  )
-}
-
-function SwitchPromptLink({
-  href,
-  className,
-  children,
-}: {
-  readonly href: string
-  readonly className?: string
-  readonly children: ReactNode
-}) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "focus-ring inline-flex min-h-11 items-center rounded-full px-3 py-2 font-bold text-primary underline-offset-4 hover:bg-accent hover:text-accent-foreground hover:underline",
-        className
-      )}
-    >
-      {children}
-    </Link>
   )
 }

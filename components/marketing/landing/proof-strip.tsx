@@ -35,6 +35,7 @@ export function ProofStrip() {
   return (
     <Section id="proof" size="compact">
       <SectionHeader
+        size="band"
         eyebrow="What you can check"
         title="A visible launch, measurable returns and clear limits"
         description="No anonymous testimonials or invented revenue figures — just the delivery, measurement and conditions behind the offer."

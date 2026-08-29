@@ -15,7 +15,10 @@ export const STAMP_JOURNEY_TIMING = {
  * Decorative stamp-row loop: empty → stamps slam in one by one → reveal beat →
  * pause → reset. Reduced motion shows the finished row without animating.
  */
-export function useStampJourneyLoop(total: number) {
+export function useStampJourneyLoop(
+  total: number,
+  { paused = false }: { paused?: boolean } = {}
+) {
   const shouldReduceMotion = useReducedMotionHook()
   const safeTotal = Math.max(total, 0)
   // Start in the completed state so SSR / no-JS / reduced-motion first paint
@@ -31,6 +34,13 @@ export function useStampJourneyLoop(total: number) {
 
   useEffect(() => {
     if (shouldReduceMotion) return
+
+    // A paused loop schedules NOTHING. The hero card used to pause by masking
+    // the hook's output with the finished frame while the timer chain ran on
+    // underneath — so "Pause" stopped the picture but not the work, and
+    // `cycleIndex` kept advancing behind the mask, meaning the reward had
+    // silently moved on by the time anyone pressed Play (01#17).
+    if (paused) return
 
     let cancelled = false
     const timeouts = new Set<ReturnType<typeof setTimeout>>()
@@ -82,13 +92,17 @@ export function useStampJourneyLoop(total: number) {
       cancelled = true
       for (const id of timeouts) clearTimeout(id)
     }
-  }, [safeTotal, shouldReduceMotion])
+  }, [safeTotal, shouldReduceMotion, paused])
+
+  // Paused reports the same finished rest frame that SSR and reduced motion
+  // render, so a pause can never leave a half-stamped card on screen.
+  const atRest = shouldReduceMotion || paused
 
   return {
-    earnedCount: shouldReduceMotion ? safeTotal : earnedCount,
-    slamIndex: shouldReduceMotion ? -1 : slamIndex,
-    revealed: shouldReduceMotion ? true : revealed,
-    revealSlam: shouldReduceMotion ? false : revealSlam,
+    earnedCount: atRest ? safeTotal : earnedCount,
+    slamIndex: atRest ? -1 : slamIndex,
+    revealed: atRest ? true : revealed,
+    revealSlam: atRest ? false : revealSlam,
     revealKey,
     cycleIndex,
     shouldReduceMotion,

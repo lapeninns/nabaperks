@@ -1,7 +1,11 @@
 "use client"
 
 import { useActionState, useState } from "react"
-import { MinusSignIcon, PlusSignIcon } from "@hugeicons/core-free-icons"
+import {
+  MinusSignIcon,
+  PlusSignIcon,
+  Tick02Icon,
+} from "@hugeicons/core-free-icons"
 
 import {
   saveLoyaltyCardAction,
@@ -9,12 +13,14 @@ import {
 } from "@/app/app/card/actions"
 import { Icon } from "@/components/brand"
 import { CustomerCardPreview } from "@/components/merchant/launch/customer-card-preview"
+import { FormActionBar } from "@/components/merchant/launch/form-action-bar"
 import {
   Field,
   TextareaField,
   ToggleRow,
 } from "@/components/merchant/merchant-form-fields"
 import { Button } from "@/components/ui/button"
+import { SelectField } from "@/components/forms"
 import {
   MAX_STAMPS_REQUIRED,
   MIN_STAMPS_REQUIRED,
@@ -84,6 +90,15 @@ export function LoyaltyCardForm({
     })
   }
 
+  // Dirty state drives the action bar's left slot, so the merchant can tell a
+  // saved card from an edited one without scrolling back up the form.
+  const dirty =
+    draft.cardName !== initialValues.cardName ||
+    draft.stampsRequired !== initialValues.stampsRequired ||
+    draft.rewardTerms !== initialValues.rewardTerms ||
+    draft.rewardExpiryDays !== initialValues.rewardExpiryDays ||
+    draft.isActive !== initialValues.isActive
+
   const selectedCadencePreset = cadencePresets.find(
     (preset) => String(preset.stampsRequired) === draft.stampsRequired
   )
@@ -95,7 +110,7 @@ export function LoyaltyCardForm({
     <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-6">
       <form
         action={action}
-        className="order-1 grid min-w-0 gap-3 rounded-lg border border-border bg-card p-3 sm:gap-5 sm:p-6 lg:order-none"
+        className="surface-card order-1 grid min-w-0 gap-3 p-3 sm:gap-5 sm:p-6 lg:order-none"
       >
         <input type="hidden" name="cardId" value={draft.cardId ?? ""} />
         <input
@@ -120,15 +135,13 @@ export function LoyaltyCardForm({
           error={state.errors?.cardName}
         />
 
+        {/* One value, one hierarchy: the three cadences lead (the count IS the
+            decision, so it is the numeral), and the stepper is the demoted
+            "custom number" row beneath them rather than a second, unlinked
+            control of equal weight. Selection is a 2px ink border + a check —
+            the old inverted ink fill outweighed the submit button below it. */}
         <div className="grid gap-2">
           <span className="eyebrow">Visits to reveal</span>
-          <Stepper
-            label="Visits to reveal"
-            value={draft.stampsRequired}
-            min={MIN_STAMPS_REQUIRED}
-            max={MAX_STAMPS_REQUIRED}
-            onChange={updateStampsRequired}
-          />
           {cadencePresets.length > 0 ? (
             <div
               aria-label="Visit cadence presets"
@@ -147,23 +160,52 @@ export function LoyaltyCardForm({
                       updateStampsRequired(String(preset.stampsRequired))
                     }
                     className={cn(
-                      "focus-ring grid min-h-16 min-w-0 gap-1 rounded-lg border-[1.5px] px-3 py-2.5 text-left transition-[background-color,border-color,color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none",
+                      "focus-ring grid min-h-14 min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 rounded-lg border-2 px-3 py-2.5 text-left transition-[background-color,border-color,color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none",
                       selected
-                        ? "border-ink bg-ink text-paper shadow-sm"
-                        : "border-border bg-secondary text-foreground hover:border-ink"
+                        ? "border-ink bg-secondary text-foreground shadow-sm"
+                        : "border-border bg-card text-foreground hover:border-ink"
                     )}
                   >
-                    <span className="text-sm leading-snug font-extrabold text-pretty">
-                      {preset.label}
+                    <span className="numeric-tabular font-mono text-2xl leading-none font-bold">
+                      {preset.stampsRequired}
                     </span>
-                    <span className="mono-id leading-none">
-                      {preset.stampsRequired} visits
+                    <span className="grid min-w-0 gap-0.5">
+                      <span className="flex items-center gap-1.5 text-sm leading-snug font-extrabold text-pretty">
+                        {preset.label}
+                        {selected ? (
+                          <Icon
+                            icon={Tick02Icon}
+                            size={16}
+                            strokeWidth={2.5}
+                            className="shrink-0"
+                          />
+                        ) : null}
+                      </span>
+                      <span className="mono-id leading-none text-muted-foreground">
+                        {preset.stampsRequired} visits
+                      </span>
                     </span>
                   </button>
                 )
               })}
             </div>
           ) : null}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-1">
+            <span
+              id="stamps-required-custom"
+              className="text-xs leading-5 text-muted-foreground"
+            >
+              Or set a custom number
+            </span>
+            <Stepper
+              label="Visits to reveal"
+              describedBy="stamps-required-custom"
+              value={draft.stampsRequired}
+              min={MIN_STAMPS_REQUIRED}
+              max={MAX_STAMPS_REQUIRED}
+              onChange={updateStampsRequired}
+            />
+          </div>
           <p className="text-xs leading-5 text-muted-foreground">
             {cadenceHint}
           </p>
@@ -192,21 +234,20 @@ export function LoyaltyCardForm({
           >
             Reward stays claimable for
           </label>
-          <select
+          <SelectField
             id="rewardExpiryDays"
             name="rewardExpiryDays"
             value={draft.rewardExpiryDays}
             onChange={(event) =>
               updateDraft("rewardExpiryDays", event.target.value)
             }
-            className="h-11 w-full rounded-lg border border-input bg-background px-3 text-sm"
           >
             {REWARD_EXPIRY_OPTIONS.map((days) => (
               <option key={days} value={String(days)}>
                 {rewardExpiryLabel(days)}
               </option>
             ))}
-          </select>
+          </SelectField>
           <p className="text-xs leading-5 text-muted-foreground">
             After this, an uncollected reward lapses and the member starts a
             fresh card. Without it a full card would stop collecting for good.
@@ -232,11 +273,14 @@ export function LoyaltyCardForm({
           </p>
         ) : null}
 
-        <div className="sticky bottom-3 z-10 border-t border-border/80 bg-card/95 pt-3 backdrop-blur-sm sm:static sm:border-0 sm:bg-transparent sm:pt-0 sm:backdrop-blur-none">
+        <FormActionBar
+          className="-mx-3 px-3 sm:px-0"
+          hint={dirty ? "Unsaved changes" : undefined}
+        >
           <Button type="submit" disabled={pending} className="w-full">
             {pending ? "Saving…" : draft.cardId ? "Save card" : "Create card"}
           </Button>
-        </div>
+        </FormActionBar>
       </form>
 
       <CustomerCardPreview
@@ -283,12 +327,15 @@ function Stepper({
   min = 1,
   max = 99,
   label,
+  describedBy,
 }: {
   value: string
   onChange: (value: string) => void
   min?: number
   max?: number
   label: string
+  /** Links the group to the "or set a custom number" line beside it. */
+  describedBy?: string
 }) {
   const parsed = Number.parseInt(value, 10)
   const current = Number.isFinite(parsed)
@@ -301,7 +348,8 @@ function Stepper({
     <div
       role="group"
       aria-label={label}
-      className="inline-flex w-max items-stretch overflow-hidden rounded-lg bg-secondary"
+      aria-describedby={describedBy}
+      className="inline-flex w-max items-stretch overflow-hidden rounded-lg border-2 border-border bg-secondary"
     >
       <button
         type="button"
@@ -314,7 +362,7 @@ function Stepper({
       </button>
       <span
         aria-live="polite"
-        className="numeric-tabular grid min-w-[3.25rem] place-items-center border-x-[1.5px] border-border bg-card font-mono text-base font-bold text-foreground"
+        className="numeric-tabular grid min-w-[3.25rem] place-items-center border-x-2 border-border bg-card font-mono text-base font-bold text-foreground"
       >
         {current}
       </span>

@@ -1,7 +1,5 @@
 "use client"
 
-import Link from "next/link"
-import type { ReactNode } from "react"
 import { useActionState, useEffect, useState } from "react"
 
 import { signupOtpAction } from "@/app/(auth)/actions"
@@ -25,7 +23,7 @@ import {
   merchantPasswordResetHref,
   merchantSignupHref,
 } from "@/lib/navigation/merchant-auth-hrefs"
-import { cn } from "@/lib/utils"
+import { AuthPromptLink } from "./auth-prompt-link"
 
 type SignupVerifyFormProps = {
   readonly email: string
@@ -121,7 +119,7 @@ export function SignupVerifyForm({
 
   return (
     <div className="grid gap-4">
-      <div className="rounded-xl border-2 border-dashed border-border bg-secondary/55 px-3 py-2">
+      <div className="rounded-lg border-2 border-dashed border-border bg-secondary/55 px-3 py-2">
         <Eyebrow>Email address</Eyebrow>
         <p className="text-sm leading-6 font-extrabold break-words">
           {currentEmail}
@@ -164,7 +162,7 @@ export function SignupVerifyForm({
             event.preventDefault()
             setOtp(pastedOtp)
           }}
-          className="font-mono tracking-[0.18em]"
+          className="font-mono tracking-code"
           error={state.errors?.otp}
         />
         <SubmitButton
@@ -236,6 +234,13 @@ export function SignupVerifyForm({
         Wrong email?{" "}
         <AuthPromptLink href={correctionHref}>Back to sign up</AuthPromptLink>
       </p>
+      {/* 05#53 wanted these two behind a disclosure to reclaim ~90px of
+          always-on chrome. Reverted: merchant-auth-recovery's
+          "enumeration-neutral resend presentation stays honest and KEEPS
+          RECOVERY PATHS" asserts the "Log in" link is visible on this screen
+          after a resend, and the enumeration-neutral copy the server returns
+          names both destinations in prose. Hiding them behind a summary breaks
+          that contract, so they stay inline. */}
       <p className="text-center text-sm text-muted-foreground">
         Used this email before?{" "}
         <AuthPromptLink
@@ -278,27 +283,5 @@ function OtpContextFields({
       <input type="hidden" name="next" value={next} />
       <input type="hidden" name="funnelToken" value={funnelToken ?? ""} />
     </>
-  )
-}
-
-function AuthPromptLink({
-  href,
-  className,
-  children,
-}: {
-  readonly href: string
-  readonly className?: string
-  readonly children: ReactNode
-}) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "focus-ring inline-flex min-h-11 items-center rounded-full px-3 py-2 font-bold text-primary underline-offset-4 hover:bg-accent hover:text-accent-foreground hover:underline",
-        className
-      )}
-    >
-      {children}
-    </Link>
   )
 }

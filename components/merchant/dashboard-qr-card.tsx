@@ -127,19 +127,24 @@ export function DashboardQrCardView({
     <PresentQrTrigger>
       <button
         type="button"
-        className="pressable group/ticket mx-auto grid w-fit justify-items-center gap-2 rounded-lg sm:mx-0"
+        className="pressable group/ticket mx-auto grid w-fit justify-items-center gap-2 rounded-lg @md:mx-0"
       >
         <QrFrame
           label={`Venue QR for ${venueName}`}
           className="w-[9.25rem] shadow-[5px_5px_0_var(--w-shadow-color)] transition-shadow duration-[var(--w-dur-press)] ease-[var(--w-ease)] group-active/ticket:shadow-[2px_2px_0_var(--w-shadow-color)] motion-reduce:transition-none"
         >
+          {/* 96px, and that is arithmetic rather than taste: the frame is
+              9.25rem wide with 2px borders, p-4 and an inner p-2, which leaves
+              exactly 6rem of content box. The previous 7.25rem image was 20px
+              wider than the box it sat in and overflowed the frame's right
+              edge. */}
           {/* eslint-disable-next-line @next/next/no-img-element -- protected QR image needs merchant cookies */}
           <img
             src={thumbnailQrSrc}
             alt={`QR code for ${venueName}`}
-            width={148}
-            height={148}
-            className="block aspect-square size-[7.25rem] shrink-0 object-contain"
+            width={96}
+            height={96}
+            className="block aspect-square size-24 shrink-0 object-contain"
           />
         </QrFrame>
         <span className="mono-id text-muted-foreground">
@@ -148,12 +153,12 @@ export function DashboardQrCardView({
       </button>
     </PresentQrTrigger>
   ) : (
-    <div className="mx-auto grid w-fit justify-items-center gap-2 sm:mx-0">
+    <div className="mx-auto grid w-fit justify-items-center gap-2 @md:mx-0">
       <QrFrame
         label={`Venue QR for ${venueName}`}
         className="w-[9.25rem] shadow-[5px_5px_0_var(--w-shadow-color)]"
       >
-        <div className="grid aspect-square size-[7.25rem] place-items-center rounded-md border-2 border-dashed border-ink/25 bg-paper-deep/65 p-3 text-center mono-id tracking-[0.08em] leading-4 text-muted-foreground">
+        <div className="mono-id grid aspect-square size-24 place-items-center rounded-md border-2 border-dashed border-line bg-paper-deep/65 p-3 text-center leading-4 tracking-tag text-muted-foreground">
           {unavailableCopy.label}
         </div>
       </QrFrame>
@@ -162,61 +167,71 @@ export function DashboardQrCardView({
   )
 
   const card = (
-    <ReceiptCard
-      edge
-      className="grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start sm:gap-6"
-    >
-      {ticket}
+    // `@container`, not `sm:` — 03#12 puts this ticket in an 18rem sidecar
+    // beside the KPI grid at `xl`, and a viewport breakpoint cannot tell the
+    // difference between a 288px sidecar and a 288px phone. Measured: inside
+    // the sidecar a `sm:` two-column split leaves the copy track 84px wide.
+    // The card now splits on its OWN width, so it is one column in the sidecar
+    // and on a phone, and two columns whenever it is given the page.
+    <div className="@container">
+      <ReceiptCard
+        edge
+        className="grid gap-4 @md:grid-cols-[auto_minmax(0,1fr)] @md:items-start @md:gap-6"
+      >
+        {ticket}
 
-      <div className="grid min-w-0 gap-3">
-        <div className="grid gap-1.5">
-          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-            <Eyebrow>Counter QR</Eyebrow>
-            <MonoTag tone={status.tone}>{status.label}</MonoTag>
+        <div className="grid min-w-0 gap-3">
+          <div className="grid gap-1.5">
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+              <Eyebrow>Counter QR</Eyebrow>
+              <MonoTag tone={status.tone}>{status.label}</MonoTag>
+            </div>
+            <h2 className="text-xl leading-tight font-extrabold text-balance break-words @md:text-2xl">
+              {venueName}
+            </h2>
           </div>
-          <h2 className="text-xl leading-tight font-extrabold text-balance break-words sm:text-2xl">
-            {venueName}
-          </h2>
-        </div>
 
-        {scansAvailable ? (
-          <>
-            <p className="text-sm leading-6 text-muted-foreground">
-              Customers scan to join and take today&apos;s stamp.
-            </p>
-            <div className="flex flex-wrap items-center gap-2">
-              <PresentQrTrigger>
-                <Button type="button" className="w-full sm:w-auto">
-                  Show full screen
+          {scansAvailable ? (
+            <>
+              <p className="text-sm leading-6 text-muted-foreground">
+                Customers scan to join and take today&apos;s stamp.
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                {/* One wrap row, not a mixed-width stack: the primary used to
+                    be `w-full sm:w-auto` while the two beside it were auto, so
+                    on a phone it rendered as a full-width block with two small
+                    buttons orphaned underneath. */}
+                <PresentQrTrigger>
+                  <Button type="button">Show full screen</Button>
+                </PresentQrTrigger>
+                <CopyUrlButton url={shareUrl} />
+                <Button asChild variant="ghost" size="sm">
+                  <Link href="/app/qr" prefetch={false}>
+                    <Icon icon={PrinterIcon} size={16} />
+                    Poster &amp; print
+                  </Link>
                 </Button>
-              </PresentQrTrigger>
-              <CopyUrlButton url={shareUrl} />
-              <Button asChild variant="ghost" size="sm">
-                <Link href="/app/qr" prefetch={false}>
-                  <Icon icon={PrinterIcon} size={15} />
-                  Poster &amp; print
+              </div>
+            </>
+          ) : (
+            <div className="grid gap-2 rounded-lg border-2 border-dashed border-line bg-paper-deep/45 p-3">
+              <p className="text-sm leading-5 font-extrabold">
+                {unavailableCopy.title}
+              </p>
+              <p className="text-xs leading-5 font-bold text-muted-foreground">
+                {unavailableCopy.body}
+              </p>
+              <Button asChild variant="outline" size="sm" className="w-fit">
+                <Link href={actionHref} prefetch={false}>
+                  {actionLabel}
+                  <Icon icon={ArrowRight01Icon} size={14} />
                 </Link>
               </Button>
             </div>
-          </>
-        ) : (
-          <div className="grid gap-2 rounded-lg border-2 border-dashed border-ink/25 bg-paper-deep/45 p-3">
-            <p className="text-sm leading-5 font-extrabold">
-              {unavailableCopy.title}
-            </p>
-            <p className="text-xs leading-5 font-bold text-muted-foreground">
-              {unavailableCopy.body}
-            </p>
-            <Button asChild variant="outline" size="sm" className="w-fit">
-              <Link href={actionHref} prefetch={false}>
-                {actionLabel}
-                <Icon icon={ArrowRight01Icon} size={14} />
-              </Link>
-            </Button>
-          </div>
-        )}
-      </div>
-    </ReceiptCard>
+          )}
+        </div>
+      </ReceiptCard>
+    </div>
   )
 
   // The dialog root only mounts when there is something to present.

@@ -79,7 +79,6 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
             eyebrow="Start your launch"
             title="Your loyalty card starts here."
             description={`Create your account and verify your email with a ${otpCodeLabel} code. Then share your venue details and approve the pre-filled card and rewards before billing unlocks your QR.`}
-            titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"
             descriptionClassName="text-base leading-7 text-pretty"
             className="md:grid-cols-1"
           />

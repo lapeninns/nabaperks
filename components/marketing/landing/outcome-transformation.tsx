@@ -4,14 +4,10 @@ import {
   CheckmarkCircle02Icon,
 } from "@hugeicons/core-free-icons"
 
-import {
-  Icon,
-  IconRoundel,
-  ReceiptCard,
-  SectionHeader,
-} from "@/components/brand"
+import { Icon, IconRoundel, SectionHeader } from "@/components/brand"
 import { Section } from "@/components/layout"
-import { TRANSFORMATION, VALUE_MATH } from "@/lib/marketing/facts"
+import { ValueMathReceipt } from "@/components/marketing"
+import { TRANSFORMATION } from "@/lib/marketing/facts"
 
 import { SnapRail, SnapRailItem } from "./snap-rail"
 
@@ -26,7 +22,11 @@ import { SnapRail, SnapRailItem } from "./snap-rail"
 export function OutcomeTransformation() {
   return (
     <Section id="outcome" size="dense">
-      <SectionHeader eyebrow="The change" title={TRANSFORMATION.heading} />
+      <SectionHeader
+        size="band"
+        eyebrow="The change"
+        title={TRANSFORMATION.heading}
+      />
       <div className="pt-5 sm:pt-6">
         <SnapRail
           label="Before and after the launch"
@@ -49,9 +49,20 @@ export function OutcomeTransformation() {
               ))}
             </ul>
           </SnapRailItem>
+          {/* aria-hidden, NOT role="presentation". Overriding the role on a
+              direct child of a <ul> makes it an element the list may not
+              contain, which axe flags as a serious WCAG "list" violation —
+              caught by the @a11y sweep on /how-it-works across all four
+              browsers. aria-hidden removes the arrow from the accessibility
+              tree entirely, so the labelled comparison still announces as two
+              items, and the list structure stays valid.
+
+              It is deliberately no longer `hidden` below `sm:` — the arrow IS
+              the transformation, and hiding it left the swipe with no
+              directional cue. */}
           <li
             aria-hidden="true"
-            className="hidden sm:grid sm:place-items-center"
+            className="grid shrink-0 place-items-center px-1 sm:px-0"
           >
             <IconRoundel
               size="lg"
@@ -79,24 +90,10 @@ export function OutcomeTransformation() {
           </SnapRailItem>
         </SnapRail>
       </div>
-      <ReceiptCard
-        edge
+      <ValueMathReceipt
         rotated
-        padding="md"
         wrapperClassName="mx-auto max-w-2xl pt-5 sm:pt-7"
-        className="gap-2"
-      >
-        <p className="mono-meta text-muted-foreground">Does the maths work?</p>
-        <p className="text-sm leading-6 text-muted-foreground">
-          {VALUE_MATH.assumptionLine}
-        </p>
-        <p className="text-2xl leading-tight font-extrabold text-balance text-foreground sm:text-3xl">
-          {VALUE_MATH.coverLine}
-        </p>
-        <p className="mono-id text-muted-foreground uppercase">
-          {VALUE_MATH.illustrativeNote}
-        </p>
-      </ReceiptCard>
+      />
     </Section>
   )
 }

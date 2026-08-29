@@ -3,7 +3,6 @@
 import dynamic from "next/dynamic"
 import type { InputHTMLAttributes } from "react"
 
-import { Eyebrow } from "@/components/brand"
 import { FormField } from "@/components/forms"
 import { Disclosure } from "@/components/merchant/launch/disclosure"
 import { Input } from "@/components/ui/input"
@@ -63,14 +62,14 @@ export function AdvancedGpsChecks({
         outside the radius. If location is switched off or cannot be read, they
         still collect a few times before it is required.
       </p>
-      <label className="flex items-center justify-between gap-4 rounded-lg border-2 border-ink bg-card px-4 py-3 text-sm font-bold">
+      <label className="surface-card-flat flex items-center justify-between gap-4 px-4 py-3 text-sm font-bold">
         <span>Use GPS anomaly checks</span>
         <input
           name="requireGeofence"
           type="checkbox"
           checked={requireGeofence}
           onChange={(event) => onRequireGeofenceChange(event.target.checked)}
-          className="size-5 accent-primary"
+          className="ink-check focus-ring"
         />
       </label>
       <GpsField
@@ -140,7 +139,7 @@ function GpsField({
   error?: string
 }) {
   return (
-    <FormField id={id} label={<Eyebrow>{label}</Eyebrow>} error={error}>
+    <FormField id={id} label={label} error={error}>
       <Input id={id} className="h-12 text-sm" {...props} />
     </FormField>
   )

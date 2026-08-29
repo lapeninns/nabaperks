@@ -2,7 +2,7 @@
 
 import { AlertDiamondIcon } from "@hugeicons/core-free-icons"
 
-import { EmptyState } from "@/components/brand"
+import { EmptyState, ErrorAlertRegion } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 
 /**
@@ -20,26 +20,28 @@ export default function AdminError({
 }) {
   return (
     <main className="mx-auto grid min-h-[50vh] w-full max-w-2xl place-items-center px-6 py-10">
-      <EmptyState
-        icon={AlertDiamondIcon}
-        title="This admin view hit an error"
-        description={
-          <>
-            The view could not load safely. Retry, and if it keeps happening
-            check the server logs.
-            {error.digest ? (
-              <span className="mono-id mt-2 block">
-                Log reference: {error.digest}
-              </span>
-            ) : null}
-          </>
-        }
-        actions={
-          <Button type="button" onClick={reset}>
-            Retry
-          </Button>
-        }
-      />
+      <ErrorAlertRegion>
+        <EmptyState
+          icon={AlertDiamondIcon}
+          title="This admin view hit an error"
+          description={
+            <>
+              The view could not load safely. Retry, and if it keeps happening
+              check the server logs.
+              {error.digest ? (
+                <span className="mono-id mt-2 block">
+                  Log reference: {error.digest}
+                </span>
+              ) : null}
+            </>
+          }
+          actions={
+            <Button type="button" onClick={reset}>
+              Retry
+            </Button>
+          }
+        />
+      </ErrorAlertRegion>
     </main>
   )
 }

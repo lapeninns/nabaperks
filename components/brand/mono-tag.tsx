@@ -43,7 +43,7 @@ export function MonoTag({
       variant="outline"
       className={cn("w-tag", icon && "gap-1", TONE[tone], className)}
     >
-      {icon ? <Icon icon={icon} size={13} strokeWidth={2.25} /> : null}
+      {icon ? <Icon icon={icon} size={14} strokeWidth={2.25} /> : null}
       <span className="min-w-0 truncate">{children}</span>
     </Badge>
   )

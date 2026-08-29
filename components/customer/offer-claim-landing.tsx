@@ -166,6 +166,35 @@ export function OfferClaimLanding({
 }
 
 /**
+ * Column count from the card length, so every length has an intentional shape
+ * rather than a ragged tail. The grid always draws `total + 1` slots (the
+ * reward chip closes the row), so the table is chosen to divide that evenly
+ * where it can: 6 stamps -> 4+3, 8 -> 3+3+3, 10 -> 4+4+3.
+ */
+function previewColumns(stampsRequired: number): number {
+  const slots = Math.max(stampsRequired, 0) + 1
+  if (slots <= 6) return slots
+
+  let best = 5
+  let bestScore = -Infinity
+
+  for (const columns of [5, 4, 3]) {
+    const rows = Math.ceil(slots / columns)
+    const lastRow = slots - columns * (rows - 1)
+    // Fill the final row as far as possible, then prefer fewer rows. A lonely
+    // reward chip on a row of its own is the shape this exists to avoid.
+    const score = lastRow * 10 - rows
+
+    if (score > bestScore) {
+      bestScore = score
+      best = columns
+    }
+  }
+
+  return best
+}
+
+/**
  * The venue's real card with the welcome stamps already on it. `stampsRequired`
  * is the card length the venue actually runs, so a card that cannot be read is
  * not drawn at all rather than drawn at a made-up length.
@@ -191,11 +220,17 @@ function CardProgress({
           {bonusStampCount} welcome {bonusStampCount === 1 ? "stamp" : "stamps"}
         </MonoTag>
       </div>
+      {/* Columns from the card length, not a hard-coded 5. A 6-stamp card
+          (6 + the reward slot = 7) rendered as 5 + 2, leaving three empty
+          columns; a 10-stamp card as 5 + 5 + 1, stranding the reward chip alone
+          on a third row. This is the first impression of the card mechanic, so
+          a ragged grid reads as a bug rather than a designed object
+          (CUS 02#66). */}
       <StampGrid
         current={bonusStampCount}
         total={stampsRequired}
         layout="wrap"
-        wrapColumns={5}
+        wrapColumns={previewColumns(stampsRequired)}
         compact
         rewardSlot="locked"
         venueName={venueName ?? undefined}

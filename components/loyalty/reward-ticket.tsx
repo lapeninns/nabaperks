@@ -41,6 +41,7 @@ export function RewardTicket({
   eyebrow,
   className,
   headingLevel: Heading = "h3",
+  hideStubSeal = false,
 }: {
   state: RewardTicketState
   /** Reward name once revealed, or the sealed mystery title. */
@@ -59,6 +60,17 @@ export function RewardTicket({
    * real section — as a heading it outranks the page's own section headings.
    */
   headingLevel?: "h2" | "h3" | "p"
+  /**
+   * Drop the stub's seal, keeping the stub word.
+   *
+   * The system's rule (CustomerStampCard) is that the sealed mystery shows
+   * ONCE — as the stamp row's terminal chip, or once revealed on this ticket —
+   * "never two seals competing in one view". But a sealed card rendered both:
+   * a `size="sm"` seal as the row chip AND this `size="md"` one in the stub.
+   * The card passes this so the row keeps its terminal chip and the ticket
+   * stops repeating it. (02#31)
+   */
+  hideStubSeal?: boolean
 }) {
   const leaf = state === "ready" || state === "redeemed"
   const redeemed = state === "redeemed"
@@ -77,10 +89,16 @@ export function RewardTicket({
     >
       <div
         className={cn(
-          "relative grid min-w-0 flex-1 content-center gap-1 p-3 sm:p-4",
+          // One padding, not a viewport-keyed pair. The ticket lives inside the
+          // 410px customer column, which is already at its cap by ~700px — so
+          // `sm:p-4` (640px) enlarged the padding on a screen where the ticket
+          // is exactly as wide as it was at 375px, taking measure away from the
+          // terms it wraps. Measured: column 375px -> 410px and then flat.
+          // (02#6)
+          "relative grid min-w-0 flex-1 content-center gap-1 p-3",
           // Reserve a clear band for the redeemed stamp so it never sits on
           // top of the reward name.
-          redeemed && "pb-12 sm:pb-12"
+          redeemed && "pb-12"
         )}
       >
         <span className="eyebrow text-muted-foreground">
@@ -111,7 +129,7 @@ export function RewardTicket({
           // title, still hand-slammed off-square.
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute bottom-2.5 left-4 flex -rotate-[8deg] items-center gap-1.5 rounded-md border-2 border-reward bg-reward/10 px-3 py-1 font-mono text-base font-extrabold tracking-[0.08em] text-reward uppercase"
+            className="pointer-events-none absolute bottom-2.5 left-4 flex -rotate-[8deg] items-center gap-1.5 rounded-md border-2 border-reward bg-reward/10 px-3 py-1 font-mono text-base font-extrabold tracking-tag text-reward uppercase"
           >
             <Icon icon={CheckmarkCircle02Icon} size={18} strokeWidth={2.5} />
             Redeemed
@@ -127,17 +145,31 @@ export function RewardTicket({
 
       <div
         className={cn(
-          "grid w-20 shrink-0 content-center justify-items-center gap-2 p-2 text-center sm:w-[88px] sm:p-3",
+          // w-18 (72px), measured not guessed. The stub's floor is set by the
+          // longest stub word: "REDEEMED" at .mono-id measures 54px, plus p-2
+          // either side = 70px. 72px is the nearest rung that clears it. The
+          // audit's suggested w-14 (56px) is NOT viable — it would leave 40px
+          // of content box for a 54px word. (02#30)
+          //
+          // Flat, not responsive. `sm:w-[88px]` widened the stub by 8px at >=640px — but
+          // the customer column is capped at 410px, so that only ever ate
+          // measure on the surface where the terms are already squeezed into a
+          // 213px newspaper column (CUS 02#30). The base width is set by the
+          // stub word at the mono-id floor ("REDEEMED"), so shrinking it
+          // further needs a rendered measurement, not a guess.
+          "grid w-18 shrink-0 content-center justify-items-center gap-2 p-2 text-center",
           leaf ? "bg-reward/10" : "bg-seal/10"
         )}
       >
-        <RewardSeal
-          state={state}
-          size="md"
-          wiggle={state === "sealed"}
-          breathe={state === "waiting" || state === "ready"}
-          slammed={sealSlammed}
-        />
+        {hideStubSeal ? null : (
+          <RewardSeal
+            state={state}
+            size="md"
+            wiggle={state === "sealed"}
+            breathe={state === "waiting" || state === "ready"}
+            slammed={sealSlammed}
+          />
+        )}
         <span className="mono-id text-muted-foreground">
           {STUB_WORD[state]}
         </span>

@@ -5,9 +5,11 @@ import { MarketingSignupLink } from "@/components/analytics/marketing-signup-lin
 import { PageTitle } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
 import { LandingFaq } from "@/components/marketing/landing"
+import { MARKETING_TEXT_LINK } from "@/components/marketing/text-link"
 import { JsonLd } from "@/components/seo/json-ld"
 import { Button } from "@/components/ui/button"
 import { FAQ_ITEMS, PRODUCT, ROUTES } from "@/lib/marketing/facts"
+import { cn } from "@/lib/utils"
 import {
   breadcrumbSchema,
   faqPageSchema,
@@ -42,23 +44,35 @@ export const metadata: Metadata = {
 export default function FaqPage() {
   return (
     <MarketingLayout>
-      <Section id="faq">
+      <Section id="faq" width="narrow">
         <PageTitle
           eyebrow="FAQ"
           title="Frequently asked questions"
           description="Straight answers about the launch, pricing and what Nabaperks does — and does not — promise."
         />
         <LandingFaq showHeader={false} />
-        <div className="mx-auto mt-8 flex w-full max-w-3xl flex-wrap items-center gap-3">
+        {/* One primary, then the two secondary destinations as text links:
+            three 48px `size="lg"` buttons stacked into a 168px CTA tower on a
+            phone and read as three peers on a desktop, which is no primary at
+            all. */}
+        <div className="mt-8 grid justify-items-start gap-3">
           <Button asChild size="lg">
             <MarketingSignupLink>Start your launch</MarketingSignupLink>
           </Button>
-          <Button asChild size="lg" variant="secondary">
-            <Link href={ROUTES.howItWorks}>See how it works</Link>
-          </Button>
-          <Button asChild size="lg" variant="secondary">
-            <Link href={ROUTES.pricing}>See pricing</Link>
-          </Button>
+          <p className="flex flex-wrap items-center gap-x-5">
+            <Link
+              className={cn(MARKETING_TEXT_LINK, "text-foreground")}
+              href={ROUTES.howItWorks}
+            >
+              See how it works
+            </Link>
+            <Link
+              className={cn(MARKETING_TEXT_LINK, "text-foreground")}
+              href={ROUTES.pricing}
+            >
+              See pricing
+            </Link>
+          </p>
         </div>
       </Section>
       <JsonLd

@@ -13,11 +13,21 @@ export function isMerchantSetupPath(path: string): boolean {
   return path === "/app/onboarding" || path.startsWith("/app/onboarding/")
 }
 
-/** The poster print preview is a full-bleed surface that carries its own header
- *  (PosterPreviewChrome). Suppress the shell's mobile header + bottom tab bar so
- *  they don't double-stack or occlude the scaled A4 sheet on phones. */
+/** Every print preview (poster, table tent, NFC card, NFC plate) is a full-bleed
+ *  surface that carries its own sticky header — `PosterPreviewChrome` or the
+ *  sheet host's own `.qr-poster-chrome`. Only the poster prefix used to be
+ *  listed, so the three sibling routes stacked the shell's mobile header on top
+ *  of their own and scaled their sheet against a viewport the shell had already
+ *  eaten. Suppress the shell's mobile header + bottom tab bar for all four. */
+const PRINT_PREVIEW_PREFIXES = [
+  "/app/qr/poster/",
+  "/app/qr/tent/",
+  "/app/qr/nfc/",
+  "/app/qr/nfc-square/",
+] as const
+
 export function isPosterPrintPath(path: string): boolean {
-  return path.startsWith("/app/qr/poster/")
+  return PRINT_PREVIEW_PREFIXES.some((prefix) => path.startsWith(prefix))
 }
 
 /** Strip query/hash before route predicates run. */

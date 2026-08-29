@@ -16,6 +16,7 @@ export function ProblemPains() {
   return (
     <Section id="problem" size="dense">
       <SectionHeader
+        size="band"
         eyebrow="The midweek problem"
         title={PROBLEM.headline}
         description={PROBLEM.intro}

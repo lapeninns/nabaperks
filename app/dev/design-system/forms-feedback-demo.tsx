@@ -29,7 +29,7 @@ export function FormsFeedbackDemo() {
   return (
     <>
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="grid content-start gap-4 rounded-lg border-2 border-ink bg-card p-5">
+        <div className="surface-card-flat grid content-start gap-4 p-5">
           <Eyebrow>Input states</Eyebrow>
           <div className="grid gap-3">
             <Input
@@ -53,7 +53,7 @@ export function FormsFeedbackDemo() {
           </div>
         </div>
 
-        <div className="grid content-start gap-4 rounded-lg border-2 border-ink bg-card p-5">
+        <div className="surface-card-flat grid content-start gap-4 p-5">
           <Eyebrow>FormField · description + error wiring</Eyebrow>
           <FormField
             id="demo-venue-name"
@@ -76,7 +76,7 @@ export function FormsFeedbackDemo() {
               autoComplete="one-time-code"
               maxLength={6}
               aria-label="One-time passcode"
-              className="font-mono tracking-[0.18em]"
+              className="font-mono tracking-code"
             />
           </div>
         </div>
@@ -85,7 +85,7 @@ export function FormsFeedbackDemo() {
       <div className="grid gap-4 lg:grid-cols-2">
         <PendingFormDemo />
 
-        <div className="grid content-start gap-3 rounded-lg border-2 border-ink bg-card p-5">
+        <div className="surface-card-flat grid content-start gap-3 p-5">
           <Eyebrow>Toasts · themed cn-toast slot</Eyebrow>
           <p className="text-sm leading-6 text-muted-foreground">
             2px ink border, hard shadow, StatusBanner tone washes — richColors
@@ -127,7 +127,7 @@ export function FormsFeedbackDemo() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="grid content-start gap-3 rounded-lg border-2 border-ink bg-card p-5">
+        <div className="surface-card-flat grid content-start gap-3 p-5">
           <Eyebrow>Bare alert · 2px ink slot</Eyebrow>
           <Alert>
             <AlertTitle>Card saved</AlertTitle>
@@ -146,7 +146,7 @@ export function FormsFeedbackDemo() {
           </StatusBanner>
         </div>
 
-        <div className="grid content-start gap-3 rounded-lg border-2 border-ink bg-card p-5">
+        <div className="surface-card-flat grid content-start gap-3 p-5">
           <Eyebrow>Sheet · 18px top radius, weight-800 title</Eyebrow>
           <Sheet>
             <SheetTrigger asChild>
@@ -179,7 +179,7 @@ function PendingFormDemo() {
         await new Promise((resolve) => setTimeout(resolve, 1400))
         setSaved(true)
       }}
-      className="grid content-start gap-3 rounded-lg border-2 border-ink bg-card p-5"
+      className="surface-card-flat grid content-start gap-3 p-5"
     >
       <Eyebrow>SubmitButton · the pending recipe</Eyebrow>
       <p className="text-sm leading-6 text-muted-foreground">

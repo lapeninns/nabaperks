@@ -4,12 +4,23 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-function Table({ className, ...props }: React.ComponentProps<"table">) {
+/**
+ * The scroll container is a focus stop (`tabIndex={0}`), so it must have a
+ * name and a role or a keyboard user lands on an anonymous box. Pass
+ * `label` (DataTable threads its caption through) to name the region.
+ */
+function Table({
+  className,
+  label,
+  ...props
+}: React.ComponentProps<"table"> & { label?: string }) {
   return (
     <div
       data-slot="table-container"
-      className="relative w-full overflow-x-auto"
+      className="scroll-x-fade relative w-full overflow-x-auto"
       tabIndex={0}
+      role="region"
+      aria-label={label ? `${label} (scrollable)` : "Table (scrollable)"}
     >
       <table
         data-slot="table"
@@ -87,7 +98,10 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
     <td
       data-slot="table-cell"
       className={cn(
-        "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0",
+        // whitespace-nowrap is opt-in via data-nowrap. Inherited on every cell
+        // it meant no admin table could ever wrap, so long values forced
+        // horizontal scroll at exactly the widths where the table renders.
+        "p-2 align-middle data-[nowrap=true]:whitespace-nowrap [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props}

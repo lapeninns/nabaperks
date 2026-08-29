@@ -27,7 +27,7 @@ export function BirthdayRewardPanel({
   ) => Promise<BirthdayRewardActionState>
 }) {
   return (
-    <section className="grid min-w-0 gap-4 rounded-lg border border-border bg-card p-3 sm:p-6">
+    <section className="surface-card grid min-w-0 gap-4 p-3 sm:p-6">
       <PageTitle
         headingLevel={2}
         eyebrow="Optional"
