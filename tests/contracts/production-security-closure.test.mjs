@@ -49,17 +49,24 @@ test("build tooling transitive dependencies are pinned past active advisories", 
   assert.equal(packageJson.scripts?.["security:audit"], "pnpm audit")
   assert.equal(workspaceOverride("tmp"), "0.2.7")
   assert.equal(workspaceOverride("uuid"), "11.1.1")
-  assert.equal(workspaceOverride("qs"), "6.15.2")
   // Each of these is a floor, not a preference: the version below it carries a
   // live advisory. brace-expansion moved 5.0.8 -> 5.0.9 (GHSA-rgw5-rvv9-x895),
-  // fast-uri 3.1.4 -> 3.1.5 (GHSA-7p8r-x3mc-p8w7), hono 4.12.27 -> 4.12.34
-  // (GHSA-8j4g-w8fx-2239) and vercel's undici 6.27.0 -> 6.28.0, alongside new
-  // pins for ip-address and the 7.x undici under @vercel/sandbox. Lowering any
-  // of them reintroduces the advisory, so `pnpm security:audit` is the thing
-  // that decides these numbers — not convenience.
+  // fast-uri 3.1.4 -> 3.1.7 (GHSA-7p8r-x3mc-p8w7 plus the 2026-09 URI
+  // canonicalisation advisories), hono 4.12.27 -> 4.12.34
+  // (GHSA-8j4g-w8fx-2239), nanoid -> 3.3.18, browserslist -> 4.28.8 and qs ->
+  // 6.16.0. Puppeteer's browser helper moves to 3.2.1 because that release
+  // removes the unpatched extract-zip path traversal dependency. Vercel's
+  // undici 6.27.0 -> 6.28.0, alongside pins for ip-address and the 7.x undici
+  // under @vercel/sandbox. Lowering any of them reintroduces the advisory, so
+  // `pnpm security:audit` decides these numbers — not convenience.
   assert.equal(workspaceOverride("brace-expansion"), "5.0.9")
-  assert.equal(workspaceOverride("fast-uri"), "^3.1.5")
+  assert.equal(workspaceOverride("browserslist"), "4.28.8")
+  assert.equal(workspaceOverride("fast-uri"), "^3.1.7")
   assert.equal(workspaceOverride("ip-address"), "^10.3.1")
+  assert.equal(workspaceOverride("nanoid"), "3.3.18")
+  assert.equal(workspaceOverride("qs"), "6.16.0")
+  assert.equal(workspaceOverride('"@puppeteer/browsers"'), "3.2.1")
+  assert.equal(workspaceOverride('"@lhci/cli>proxy-agent"'), "^8.0.1")
   assert.equal(workspaceOverride("vercel>undici"), "6.28.0")
   assert.equal(workspaceOverride('"@vercel/sandbox>undici"'), "^7.29.0")
   assert.equal(workspaceOverride("hono@4.12.25"), "4.12.34")
@@ -95,4 +102,19 @@ test("checked-in harness values are not shaped like provider credentials", () =>
   ].join("\n")
 
   assert.equal(/whsec_[A-Za-z0-9+/=_-]{6,}/.test(sources), false)
+})
+
+test("shared CI session fixtures satisfy the production entropy boundary", () => {
+  for (const workflow of ["ci.yml", "nightly.yml"]) {
+    const source = read(".github", "workflows", workflow)
+    const match = source.match(/CUSTOMER_SESSION_SECRET: "([^"]+)"/)
+
+    assert.ok(match, `${workflow} must define a quoted session fixture`)
+    assert.ok(match[1].length >= 32, `${workflow} fixture must be long enough`)
+    assert.match(match[1], /[a-z]/)
+    assert.match(match[1], /[A-Z]/)
+    assert.match(match[1], /\d/)
+    assert.match(match[1], /[^A-Za-z0-9]/)
+    assert.doesNotMatch(match[1], /placeholder|example|change.?me/i)
+  }
 })

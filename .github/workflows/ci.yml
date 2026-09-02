@@ -32,7 +32,7 @@ env:
   TWILIO_ACCOUNT_SID: ACci
   TWILIO_AUTH_TOKEN: ci-twilio-auth-token
   TWILIO_VERIFY_SERVICE_SID: VAci
-  CUSTOMER_SESSION_SECRET: ci-session-secret-placeholder
+  CUSTOMER_SESSION_SECRET: "H9!mD4@qL7#vR2$tK8^xC5&pN3*zW6?g"
   CUSTOMER_PHONE_HMAC_SECRET: ci-hmac-secret-placeholder
   CUSTOMER_PHONE_ENCRYPTION_KEY: ci-encryption-key-placeholder-32b
 
