@@ -1,13 +1,17 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
 import {
   merchantActivitySummaryCacheTag,
   revalidateCacheTag,
 } from "@/lib/cache/tags"
-import { getStampQrContextForMembership } from "@/lib/customer/join"
+import {
+  getCurrentCustomerId,
+  getStampQrContextForMembership,
+} from "@/lib/customer/join"
 import {
   getJoinFirstStampRecovery,
   retryJoinFirstStampRecovery,
@@ -20,6 +24,14 @@ import {
 import { enqueueStampTransitionNotifications } from "@/lib/notifications/events"
 import type { SelfStampActionState } from "@/lib/customer/self-stamp-action-state"
 import { logger } from "@/lib/observability/logger"
+import {
+  customerRateLimitIdentityFromHeaders,
+  enforceRateLimit,
+  RateLimitError,
+} from "@/lib/security/rate-limit"
+
+const SELF_STAMP_ACTION_LIMIT = 10
+const SELF_STAMP_ACTION_WINDOW_MS = 15 * 60 * 1000
 
 function fail(message: string): SelfStampActionState {
   return { status: "error", message }
@@ -33,6 +45,17 @@ export async function selfStampAction(
   _state: SelfStampActionState,
   formData: FormData
 ): Promise<SelfStampActionState> {
+  try {
+    await chargeSelfStampActionAttempt()
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      return fail(
+        "You're going a little fast. Wait a few minutes, then try again."
+      )
+    }
+    throw error
+  }
+
   const membershipId = value(formData, "membershipId")
   const qrId = value(formData, "qrId")
 
@@ -107,6 +130,24 @@ export async function selfStampAction(
     geoFlagged: result.geoFlagged,
     bonusStampsApplied,
   }
+}
+
+async function chargeSelfStampActionAttempt(): Promise<void> {
+  const requestIdentity = customerRateLimitIdentityFromHeaders(await headers())
+  await enforceRateLimit({
+    key: `selfstamp-action:request:${requestIdentity}`,
+    limit: SELF_STAMP_ACTION_LIMIT,
+    windowMs: SELF_STAMP_ACTION_WINDOW_MS,
+  })
+
+  const customerId = await getCurrentCustomerId()
+  if (!customerId) return
+
+  await enforceRateLimit({
+    key: `selfstamp-action:customer:${customerId}`,
+    limit: SELF_STAMP_ACTION_LIMIT,
+    windowMs: SELF_STAMP_ACTION_WINDOW_MS,
+  })
 }
 
 export async function retryJoinFirstStampAction(

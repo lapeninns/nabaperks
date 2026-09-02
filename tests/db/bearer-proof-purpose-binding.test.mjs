@@ -169,39 +169,103 @@ test(
   }
 )
 
-test("one push endpoint keeps at most one active owner", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    const first = await verifiedCustomer(tx, hex64())
-    const second = await verifiedCustomer(tx, hex64())
-    const endpoint = `https://fcm.googleapis.com/fcm/send/${randomUUID()}`
+test(
+  "wrong push keys cannot transfer another customer's endpoint",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const first = await verifiedCustomer(tx, hex64())
+      const second = await verifiedCustomer(tx, hex64())
+      const endpoint = `https://fcm.googleapis.com/fcm/send/${randomUUID()}`
+      const keys = pushKeys()
 
-    await registerPush(tx, first.customerId, endpoint)
-    await registerPush(tx, second.customerId, endpoint)
+      await registerPush(tx, first.customerId, endpoint, keys)
+      await assert.rejects(
+        registerPush(tx, second.customerId, endpoint, pushKeys()),
+        (error) => error?.code === "42501"
+      )
 
-    const [{ owners }] = await tx`
+      const [{ owners }] = await tx`
         select count(*)::int as owners
         from public.push_subscriptions
         where endpoint = ${endpoint}
           and enabled
           and revoked_at is null`
 
-    assert.equal(
-      owners,
-      1,
-      "a browser endpoint belongs to a device, not an account — the previous owner must be retired"
-    )
+      assert.equal(
+        owners,
+        1,
+        "a browser endpoint belongs to a device, not an account — the previous owner must be retired"
+      )
 
-    const [{ customer_id: owner }] = await tx`
+      const [{ customer_id: owner }] = await tx`
         select customer_id from public.push_subscriptions
         where endpoint = ${endpoint} and enabled and revoked_at is null`
 
-    assert.equal(
-      owner,
-      second.customerId,
-      "the newest signed-in customer owns it"
-    )
+      assert.equal(
+        owner,
+        first.customerId,
+        "failed continuity proof leaves the existing owner unchanged"
+      )
+    })
+  }
+)
+
+test("matching push keys transfer a browser endpoint", { skip }, async () => {
+  await inRolledBackTxn(async (tx) => {
+    const first = await verifiedCustomer(tx, hex64())
+    const second = await verifiedCustomer(tx, hex64())
+    const endpoint = `https://fcm.googleapis.com/fcm/send/${randomUUID()}`
+    const keys = pushKeys()
+
+    await registerPush(tx, first.customerId, endpoint, keys)
+    await registerPush(tx, second.customerId, endpoint, keys)
+
+    const [owner] = await tx`
+      select customer_id, failure_reason
+      from public.push_subscriptions
+      where endpoint = ${endpoint} and enabled and revoked_at is null`
+    assert.equal(owner.customer_id, second.customerId)
+
+    const [retired] = await tx`
+      select failure_reason
+      from public.push_subscriptions
+      where endpoint = ${endpoint} and customer_id = ${first.customerId}::uuid`
+    assert.equal(retired.failure_reason, "ownership_transferred")
   })
 })
+
+test(
+  "revoked push history still protects endpoint ownership",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const first = await verifiedCustomer(tx, hex64())
+      const second = await verifiedCustomer(tx, hex64())
+      const endpoint = `https://fcm.googleapis.com/fcm/send/${randomUUID()}`
+      const keys = pushKeys()
+
+      await registerPush(tx, first.customerId, endpoint, keys)
+      await tx`
+      update public.push_subscriptions
+      set enabled = false, revoked_at = now(), updated_at = now()
+      where customer_id = ${first.customerId}::uuid and endpoint = ${endpoint}`
+
+      await assert.rejects(
+        registerPush(tx, second.customerId, endpoint, pushKeys()),
+        (error) => error?.code === "42501"
+      )
+
+      const restoredId = await registerPush(
+        tx,
+        first.customerId,
+        endpoint,
+        keys
+      )
+      assert.ok(restoredId, "the original browser can restore its own endpoint")
+    })
+  }
+)
 
 test(
   "re-registering the same endpoint for the same customer stays idempotent",
@@ -231,7 +295,7 @@ async function createInvite(tx, merchantId, opts = {}) {
       ${opts.phoneHmac ? "4242" : null},
       'A drink on us', 'A drink on us — thanks for being a regular.',
       null, 30, ${opts.tokenHash ?? hex64()},
-      ${opts.unsubscribeTokenHash ?? null})`
+      ${opts.unsubscribeTokenHash ?? (opts.emailHmac ? hex64() : null)})`
   return row
 }
 
@@ -271,11 +335,18 @@ async function isSuppressed(tx, merchantId, emailHmac) {
   return row.suppressed
 }
 
-async function registerPush(tx, customerId, endpoint) {
+function pushKeys() {
+  return {
+    p256dh: `p256dh-${randomUUID()}`,
+    auth: `auth-${randomUUID()}`,
+  }
+}
+
+async function registerPush(tx, customerId, endpoint, keys = pushKeys()) {
   const [row] = await tx`
     select public.register_push_subscription_for_customer(
-      ${customerId}::uuid, ${endpoint}, ${`p256dh-${randomUUID()}`},
-      ${`auth-${randomUUID()}`}, 'test-agent', 'granted') as id`
+      ${customerId}::uuid, ${endpoint}, ${keys.p256dh},
+      ${keys.auth}, 'test-agent', 'granted') as id`
   return row.id
 }
 
@@ -319,31 +390,70 @@ test(
 )
 
 test(
-  "an unsubscribe link already in an inbox keeps working, venue-scoped",
+  "a claim-only token cannot mutate venue email suppression",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
       const venueA = await createRewardPoolFixture(tx)
       const venueB = await createRewardPoolFixture(tx)
       const emailHmac = hex64()
-      const legacyClaimHash = hex64()
+      const claimHash = hex64()
+      const unsubscribeHash = hex64()
 
-      // Emails sent before the token split carry /claim/<claimToken>?unsubscribe=1
-      // and nothing else. Breaking them would strip a live opt-out route.
+      // A null unsubscribe hash is not a trustworthy legacy marker: current
+      // callers could manufacture it, and the public legacy query route is no
+      // longer active. Claim authority must remain purpose-bound.
       await createInvite(tx, venueA.merchantId, {
         emailHmac,
-        tokenHash: legacyClaimHash,
+        tokenHash: claimHash,
+        unsubscribeTokenHash: unsubscribeHash,
       })
 
       const [row] = await tx`
-        select public.suppress_reward_invite_email_by_token(${legacyClaimHash}) as ok`
-      assert.equal(row.ok, true, "legacy links must still unsubscribe")
+        select public.suppress_reward_invite_email_by_token(${claimHash}) as ok`
+      assert.equal(row.ok, false, "claim tokens must not unsubscribe")
 
-      assert.equal(await isSuppressed(tx, venueA.merchantId, emailHmac), true)
+      assert.equal(await isSuppressed(tx, venueA.merchantId, emailHmac), false)
       assert.equal(
         await isSuppressed(tx, venueB.merchantId, emailHmac),
         false,
-        "but only for the venue that sent it — the global scope was the finding"
+        "an unrelated venue also remains unchanged"
+      )
+    })
+  }
+)
+
+test(
+  "new reward invite capabilities cannot overlap across purposes",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const venue = await createRewardPoolFixture(tx)
+      const sharedHash = hex64()
+      await assert.rejects(() =>
+        tx.savepoint((sp) =>
+          createInvite(sp, venue.merchantId, {
+            emailHmac: hex64(),
+            tokenHash: sharedHash,
+            unsubscribeTokenHash: sharedHash,
+          })
+        )
+      )
+
+      const firstClaim = hex64()
+      await createInvite(tx, venue.merchantId, {
+        emailHmac: hex64(),
+        tokenHash: firstClaim,
+        unsubscribeTokenHash: hex64(),
+      })
+      await assert.rejects(() =>
+        tx.savepoint((sp) =>
+          createInvite(sp, venue.merchantId, {
+            emailHmac: hex64(),
+            tokenHash: hex64(),
+            unsubscribeTokenHash: firstClaim,
+          })
+        )
       )
     })
   }

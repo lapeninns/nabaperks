@@ -6,4 +6,5 @@ tmp
 tests
 coverage
 reports
+.env*
 docs

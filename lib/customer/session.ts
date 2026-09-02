@@ -20,6 +20,7 @@ import {
   type PendingPhonePurpose,
 } from "@/lib/customer/session-cookie"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
+import { requiredCustomerSessionSecret } from "@/lib/security/customer-session-secret"
 
 export const pendingPhoneCookieName = "nabaperks_pending_phone"
 export const pendingEmailCookieName = "nabaperks_pending_email"
@@ -57,7 +58,7 @@ export async function setPendingPhoneVerification(
   const cookieStore = await cookies()
   cookieStore.set(
     pendingPhoneCookieName,
-    createPendingPhoneCookieValue(payload, customerSessionSecret()),
+    createPendingPhoneCookieValue(payload, requiredCustomerSessionSecret()),
     cookieOptions(pendingPhoneTtlSeconds)
   )
 
@@ -71,7 +72,7 @@ export async function getPendingPhoneVerification(): Promise<PendingPhonePayload
 
   const result = readPendingPhoneCookieValue(
     value,
-    customerSessionSecret(),
+    requiredCustomerSessionSecret(),
     nowSeconds()
   )
   return result.ok ? result.payload : null
@@ -97,7 +98,7 @@ export async function setPendingEmailVerification(
   const cookieStore = await cookies()
   cookieStore.set(
     pendingEmailCookieName,
-    createPendingEmailCookieValue(payload, customerSessionSecret()),
+    createPendingEmailCookieValue(payload, requiredCustomerSessionSecret()),
     cookieOptions(pendingEmailTtlSeconds)
   )
 
@@ -111,7 +112,7 @@ export async function getPendingEmailVerification(): Promise<PendingEmailPayload
 
   const result = readPendingEmailCookieValue(
     value,
-    customerSessionSecret(),
+    requiredCustomerSessionSecret(),
     nowSeconds()
   )
   return result.ok ? result.payload : null
@@ -139,7 +140,7 @@ export async function setCustomerSession(
   const cookieStore = await cookies()
   cookieStore.set(
     customerSessionCookieName,
-    createCustomerSessionCookieValue(payload, customerSessionSecret()),
+    createCustomerSessionCookieValue(payload, requiredCustomerSessionSecret()),
     cookieOptions(customerSessionTtlSeconds)
   )
 
@@ -158,7 +159,7 @@ export const getCustomerSession = cache(
 
     const result = readCustomerSessionCookieValue(
       value,
-      customerSessionSecret(),
+      requiredCustomerSessionSecret(),
       nowSeconds()
     )
     if (!result.ok) return null
@@ -174,7 +175,7 @@ export async function clearCustomerSession(): Promise<void> {
   if (value) {
     const result = readCustomerSessionCookieValue(
       value,
-      customerSessionSecret(),
+      requiredCustomerSessionSecret(),
       nowSeconds()
     )
     if (result.ok) {
@@ -228,18 +229,6 @@ async function revokeCustomerSession(
   if (error) {
     throw new Error(`Unable to revoke customer session: ${error.message}`)
   }
-}
-
-function customerSessionSecret(): string {
-  const secret = process.env.CUSTOMER_SESSION_SECRET?.trim()
-
-  if (!secret) {
-    throw new Error(
-      "CUSTOMER_SESSION_SECRET is required for customer sessions."
-    )
-  }
-
-  return secret
 }
 
 function cookieOptions(maxAge: number) {

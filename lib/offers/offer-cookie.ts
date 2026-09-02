@@ -9,6 +9,8 @@ import {
 
 import { cookies } from "next/headers"
 
+import { requiredCustomerSessionSecret } from "@/lib/security/customer-session-secret"
+
 /**
  * Encrypted HttpOnly handoff from the /offer/[token] landing into the existing
  * merchant join flow.
@@ -74,13 +76,9 @@ export async function clearOfferCookie(): Promise<void> {
 }
 
 function cipherKey(): Buffer {
-  const secret = process.env.CUSTOMER_SESSION_SECRET?.trim()
-  if (!secret) {
-    throw new Error(
-      "CUSTOMER_SESSION_SECRET is required for offer campaign claims."
-    )
-  }
-  return createHmac("sha256", secret).update(AAD).digest()
+  return createHmac("sha256", requiredCustomerSessionSecret())
+    .update(AAD)
+    .digest()
 }
 
 /**

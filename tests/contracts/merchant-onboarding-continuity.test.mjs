@@ -34,6 +34,24 @@ test("Given onboarding is submitted When source is inspected Then the full venue
   assert.match(action, /redirect\("\/app\/launch\?tab=card"\)/)
 })
 
+test("Given the legacy onboarding adapter When final ACL is inspected Then customers cannot select a global slug", () => {
+  const migration = readProjectFile(
+    "supabase",
+    "migrations",
+    "20260902121000_retire_legacy_onboarding_rpc.sql"
+  )
+
+  assert.match(
+    migration,
+    /revoke all on function public\.create_merchant_onboarding\([\s\S]+?\) from public, anon, authenticated;/i
+  )
+  assert.match(
+    migration,
+    /grant execute on function public\.create_merchant_onboarding\([\s\S]+?\) to service_role;/i
+  )
+  assert.doesNotMatch(migration, /to authenticated/i)
+})
+
 test("Given the atomic onboarding migration When source is inspected Then owner, ledger, lock, ACL, and compatibility invariants are explicit", () => {
   const migration = readProjectFile(
     "supabase",
@@ -123,6 +141,6 @@ test("Given DB proofs use short-lived schema controls When the full DB gate runs
 
   assert.match(
     packageJson.scripts["test:db"],
-    /node --test --test-concurrency=1 tests\/db\/\*\.test\.mjs/
+    /node --import \.\/tests\/db\/helpers\/db-preflight\.mjs --test --test-concurrency=1 tests\/db\/\*\.test\.mjs/
   )
 })

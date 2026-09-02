@@ -1,15 +1,9 @@
 import assert from "node:assert/strict"
-import { existsSync, readFileSync } from "node:fs"
-import path from "node:path"
 import { test } from "node:test"
-import { fileURLToPath } from "node:url"
 
 import postgres from "postgres"
 
-const projectRoot = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../.."
-)
+import { dbUrl as configuredDbUrl } from "./helpers/db.mjs"
 
 const requiredRlsTables = Object.freeze([
   "audit_logs",
@@ -167,53 +161,9 @@ test("all public application tables force RLS and deny API-role schema-managemen
 })
 
 function resolveDbUrl() {
-  const env = {
-    ...readEnvFile(path.join(projectRoot, ".env.local")),
-    ...readEnvFile(path.join(projectRoot, ".env")),
-    ...process.env,
-  }
-
-  return env.SUPABASE_DB_URL?.trim() ?? ""
+  return configuredDbUrl() ?? ""
 }
 
-function readEnvFile(filePath) {
-  if (!existsSync(filePath)) return {}
-
-  const values = {}
-
-  for (const line of readFileSync(filePath, "utf8").split(/\r?\n/)) {
-    const trimmed = line.trim()
-
-    if (!trimmed || trimmed.startsWith("#")) continue
-
-    const equalsIndex = trimmed.indexOf("=")
-
-    if (equalsIndex === -1) continue
-
-    const key = trimmed.slice(0, equalsIndex).trim()
-    let value = trimmed.slice(equalsIndex + 1).trim()
-
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1)
-    }
-
-    values[key] = value
-  }
-
-  return values
-}
-
-function shouldRequireSsl(dbUrl) {
-  try {
-    const url = new URL(dbUrl)
-
-    const hostname = url.hostname.toLowerCase()
-
-    return hostname === "supabase.com" || hostname.endsWith(".supabase.com")
-  } catch {
-    return false
-  }
+function shouldRequireSsl() {
+  return false
 }

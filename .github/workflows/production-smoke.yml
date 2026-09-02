@@ -122,9 +122,12 @@ jobs:
     runs-on: ubuntu-latest
     environment: Monitoring
     permissions:
+      actions: read
       contents: read
       issues: write
     steps:
+      - name: Check out recovery policy
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
       - name: Track the scheduled recovery streak
         id: incident
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
@@ -143,15 +146,31 @@ jobs:
             core.setOutput("ready", "false");
             if (!existing || context.eventName !== "schedule") return;
 
-            const marker = "<!-- production-smoke-recovery-candidate -->";
-            const comments = await github.paginate(github.rest.issues.listComments, {
+            const { pathToFileURL } = require("node:url");
+            const { previousScheduledRunSucceeded } = await import(
+              pathToFileURL(`${process.env.GITHUB_WORKSPACE}/scripts/production-smoke-recovery-core.mjs`).href
+            );
+            const current = await github.rest.actions.getWorkflowRun({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: existing.number,
-              per_page: 100,
+              run_id: context.runId,
             });
-            const latest = comments.at(-1);
-            if (latest?.body?.includes(marker)) {
+            const runs = await github.paginate(
+              github.rest.actions.listWorkflowRunsForWorkflow,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: current.data.workflow_id,
+                event: "schedule",
+                per_page: 100,
+              }
+            );
+            const repository = `${context.repo.owner}/${context.repo.repo}`;
+            if (previousScheduledRunSucceeded({
+              currentRun: current.data,
+              workflowRuns: runs,
+              repository,
+            })) {
               core.setOutput("ready", "true");
               return;
             }
@@ -161,7 +180,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: existing.number,
-              body: `${marker}\nFirst consecutive scheduled recovery probe passed in ${runUrl}. The incident remains open until the next scheduled probe also succeeds.`,
+              body: `First consecutive scheduled recovery probe passed in ${runUrl}. The incident remains open until the next distinct scheduled probe also succeeds.`,
             });
       - name: Check out alert dispatcher
         if: ${{ steps.incident.outputs.ready == 'true' }}

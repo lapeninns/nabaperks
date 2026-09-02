@@ -12,10 +12,7 @@ export const metadata: Metadata = {
 }
 
 export default async function ScanPage() {
-  const sessionSecretConfigured = Boolean(
-    process.env.CUSTOMER_SESSION_SECRET?.trim()
-  )
-  const session = sessionSecretConfigured ? await getCustomerSession() : null
+  const session = await getCustomerSession()
 
   if (session) {
     return (

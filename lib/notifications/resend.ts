@@ -90,10 +90,12 @@ export async function sendEmailOtp({
   to,
   code,
   audience = "customer",
+  idempotencyKey,
 }: {
   to: string
   code: string
   audience?: EmailOtpAudience
+  idempotencyKey?: string
 }) {
   const copy = emailOtpCopy[audience]
 
@@ -102,6 +104,7 @@ export async function sendEmailOtp({
     subject: `${code} ${copy.subjectSuffix}`,
     text: `Your Nabaperks verification code is ${code}. Enter it to ${copy.textReason}. It expires shortly. ${copy.footer}`,
     html: otpEmailHtml(code, audience),
+    idempotencyKey,
   })
 }
 

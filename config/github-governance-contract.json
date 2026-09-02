@@ -43,11 +43,7 @@
         "SUPABASE_DB_PASSWORD",
         "VERCEL_TOKEN"
       ],
-      "requiredVariables": [
-        "SUPABASE_PROJECT_REF",
-        "VERCEL_ORG_ID",
-        "VERCEL_PROJECT_ID"
-      ]
+      "requiredVariables": ["SUPABASE_PROJECT_REF"]
     },
     "Monitoring": {
       "independentReview": false,

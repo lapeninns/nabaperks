@@ -87,11 +87,20 @@ test("Given a public funnel capture request When the route contract is inspected
   const guardedSource = `${route}\n${contract}\n${requestGuard}`
 
   assert.match(guardedSource, /headers\.get\(["']origin["']\)/i)
-  assert.match(guardedSource, /new URL\(request\.url\)/)
-  assert.match(requestGuard, /requestUrl\.origin/)
-  assert.match(requestGuard, /headers\s*\.get\(["']x-forwarded-host["']\)/)
-  assert.match(requestGuard, /headers\.get\(["']host["']\)/)
-  assert.match(requestGuard, /allowedOrigins\.has\(requestOrigin\)/)
+  assert.match(
+    route,
+    /isSameOriginRequest\(request, process\.env\.NEXT_PUBLIC_APP_URL\)/
+  )
+  assert.match(requestGuard, /configuredOrigin/)
+  assert.doesNotMatch(
+    requestGuard,
+    /headers\s*\.get\(["']x-forwarded-host["']\)/
+  )
+  assert.doesNotMatch(
+    requestGuard,
+    /headers\s*\.get\(["']x-forwarded-proto["']\)/
+  )
+  assert.doesNotMatch(requestGuard, /headers\.get\(["']host["']\)/)
   assert.match(guardedSource, /MAX_[A-Z_]*BODY[A-Z_]*BYTES/)
   assert.match(guardedSource, /content-length|body\.length|text\.length/i)
   assert.match(route, /enforceRateLimit/)

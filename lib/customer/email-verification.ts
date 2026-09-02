@@ -10,11 +10,11 @@ import {
   setPendingEmailVerification,
 } from "@/lib/customer/session"
 import { enforceRateLimit } from "@/lib/security/rate-limit"
+import { requiredCustomerSessionSecret } from "@/lib/security/customer-session-secret"
 
 type EmailVerificationStartResult = { status: "sent" }
 type EmailVerificationCheckResult =
-  | { status: "approved"; email: string }
-  | { status: "rejected" }
+  { status: "approved"; email: string } | { status: "rejected" }
 
 /**
  * Email verification for the reward-collection profile gate. Email is optional,
@@ -80,7 +80,7 @@ export async function checkCustomerEmailVerification(
 
 /** Deterministic HMAC binding a code to its address, signed with the cookie secret. */
 export function emailCodeHmac(email: string, code: string): string {
-  return createHmac("sha256", customerSessionSecret())
+  return createHmac("sha256", requiredCustomerSessionSecret())
     .update(`${email.trim().toLowerCase()}:${code}`)
     .digest("hex")
 }
@@ -117,16 +117,4 @@ function isApprovedDevOtp(code: string): boolean {
     Boolean(devCode) &&
     code === devCode
   )
-}
-
-function customerSessionSecret(): string {
-  const secret = process.env.CUSTOMER_SESSION_SECRET?.trim()
-
-  if (!secret) {
-    throw new Error(
-      "CUSTOMER_SESSION_SECRET is required for customer email verification."
-    )
-  }
-
-  return secret
 }

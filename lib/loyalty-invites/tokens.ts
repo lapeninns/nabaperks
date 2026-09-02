@@ -2,6 +2,8 @@ import "server-only"
 
 import { createHash, createHmac } from "node:crypto"
 
+import { requiredCustomerSessionSecret } from "@/lib/security/customer-session-secret"
+
 /**
  * Claim and unsubscribe tokens for a bulk loyalty invitation.
  *
@@ -14,12 +16,10 @@ import { createHash, createHmac } from "node:crypto"
  * output (a plain SHA-256) is ever written to the database.
  */
 
-const secretName = "CUSTOMER_SESSION_SECRET"
-
 type InviteTokenPurpose = "claim" | "unsubscribe"
 
 function deriveToken(recipientId: string, purpose: InviteTokenPurpose): string {
-  return createHmac("sha256", requiredSecret())
+  return createHmac("sha256", requiredCustomerSessionSecret())
     .update(`nabaperks:loyalty-invite:v1:${purpose}:${recipientId}`)
     .digest("base64url")
 }
@@ -55,12 +55,4 @@ export function inviteTokenSet(recipientId: string): InviteTokenSet {
     claimTokenHash: hashInviteToken(claimToken),
     unsubscribeTokenHash: hashInviteToken(unsubscribeToken),
   }
-}
-
-function requiredSecret(): string {
-  const value = process.env[secretName]?.trim()
-  if (!value) {
-    throw new Error(`${secretName} is required for loyalty invitation tokens.`)
-  }
-  return value
 }

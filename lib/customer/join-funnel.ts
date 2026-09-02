@@ -22,6 +22,7 @@ import {
   REQUEST_ID_HEADER,
 } from "@/lib/observability/request-id"
 import { logger } from "@/lib/observability/logger"
+import { requiredCustomerSessionSecret } from "@/lib/security/customer-session-secret"
 
 export type JoinFunnelEventName =
   | "join_page_viewed"
@@ -51,8 +52,8 @@ export async function captureJoinFunnelEvent(
   const token = requestHeaders.get(JOIN_JOURNEY_HEADER)
   const requestId =
     normalizeRequestId(requestHeaders.get(REQUEST_ID_HEADER)) ?? "unavailable"
-  const secret = process.env.CUSTOMER_SESSION_SECRET?.trim()
-  if (!token || !secret) return
+  if (!token) return
+  const secret = requiredCustomerSessionSecret()
 
   const identity = verifyFunnelToken(token, secret, Date.now())
   if (!identity) return

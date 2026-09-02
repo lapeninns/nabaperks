@@ -8,9 +8,7 @@ export type VenueAnnouncementMembership = {
 }
 
 export type VenueAnnouncementTextError =
-  | "invalid_title"
-  | "invalid_body"
-  | "moderation_rejected"
+  "invalid_title" | "invalid_body" | "moderation_rejected"
 
 export type VenueAnnouncementTextResult =
   | { readonly ok: true; readonly title: string; readonly body: string }
@@ -37,6 +35,8 @@ export type VenueAnnouncementDailyLimitInput = {
 
 export const VENUE_ANNOUNCEMENT_DAILY_LIMIT = 2
 export const VENUE_ANNOUNCEMENT_DAILY_WINDOW_MS = 24 * 60 * 60 * 1000
+export const VENUE_ANNOUNCEMENT_ATTEMPT_LIMIT = 12
+export const VENUE_ANNOUNCEMENT_ATTEMPT_WINDOW_MS = 60_000
 export const VENUE_ANNOUNCEMENT_QUERY_BATCH_SIZE = 100
 
 export function chunkVenueAnnouncementCustomerIds(
@@ -129,6 +129,10 @@ export function venueAnnouncementDailyLimitKey(
   input: VenueAnnouncementDailyLimitInput
 ) {
   return `venue-announcement:${input.merchantId}:${input.businessDate}`
+}
+
+export function venueAnnouncementAttemptLimitKey(merchantId: string) {
+  return `venue-announcement-attempt:${merchantId}`
 }
 
 function marketingPreferenceCustomerIds(value: unknown) {

@@ -68,7 +68,15 @@ function validateEnvEntry(entry: EnvContractEntry, value: string) {
   return [
     ...validateEnvVisibility(entry),
     ...validateEnvUrl(entry.name, entry.kind, value),
+    ...validateCustomerSessionSecret(entry.name, value),
   ]
+}
+
+function validateCustomerSessionSecret(name: string, value: string) {
+  if (name !== "CUSTOMER_SESSION_SECRET") return []
+  return isStrongCustomerSessionSecret(value)
+    ? []
+    : ["CUSTOMER_SESSION_SECRET must use a generated high-entropy value"]
 }
 
 function validateEnvVisibility(entry: EnvContractEntry) {
@@ -112,3 +120,4 @@ function validateCustomerOtpBypassMode(mode: string | undefined) {
     `CUSTOMER_OTP_BYPASS_MODE must be ${customerOtpBypassModeAnyFourDigits} or blank`,
   ]
 }
+import { isStrongCustomerSessionSecret } from "@/lib/security/customer-session-secret-core"

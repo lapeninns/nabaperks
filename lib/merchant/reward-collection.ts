@@ -86,10 +86,13 @@ export async function collectMerchantScannedReward(
     }
 
   const supabase = createSupabaseServiceRoleClient()
-  const { data, error } = await supabase.rpc("collect_reward_scan_token", {
-    p_scan_token: scanToken,
-    p_merchant_id: merchant.id,
-  })
+  const { data, error } = await supabase.rpc(
+    "collect_current_reward_scan_token",
+    {
+      p_scan_token: scanToken,
+      p_merchant_id: merchant.id,
+    }
+  )
 
   if (error) {
     return {
@@ -124,8 +127,9 @@ function merchantCollectionBlockedCopy(message: string): string {
       "This reward belongs to a different merchant.",
     ],
     [["scan token already used"], "This reward has already been collected."],
+    [["reward already collected"], "This reward has already been collected."],
     [
-      ["scan token expired", "scan token not found"],
+      ["scan token expired", "scan token not found", "scan token superseded"],
       "This reward could not be collected. Refresh and try again.",
     ],
     [["Reward already redeemed"], "This reward has already been collected."],
@@ -150,10 +154,7 @@ function merchantCollectionBlockedCopy(message: string): string {
       ["Reward is not redeemable"],
       "This reward is no longer available to collect.",
     ],
-    [
-      ["not active", "unavailable"],
-      LOYALTY_PROGRAMME_UNAVAILABLE,
-    ],
+    [["not active", "unavailable"], LOYALTY_PROGRAMME_UNAVAILABLE],
     [
       ["Reward not found", "ownership required", "Verified customer required"],
       "This reward could not be collected. Refresh and try again.",

@@ -12,12 +12,9 @@ import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
  * whether a compromised password-only (aal1) admin session can reach admin
  * state through the Data API directly.
  *
- * The DB-level AAL2 requirement from 20260702180000 was reverted in
- * 20260720100000 because it demanded aal2 unconditionally and locked out every
- * admin (password sign-in is aal1). These tests therefore pin BOTH halves of
- * the app policy in `lib/admin/mfa-gate.ts` ("enforce only when enrolled"):
- * an enrolled admin must have stepped up, and an admin with no verified factor
- * must keep working exactly as before.
+ * Authority requires an independently activated verified factor and AAL2.
+ * Password-only and pending-factor states remain enrolment-only and must not
+ * gain authority through the Data API.
  */
 
 const ready = await isLiveDbReady()
@@ -70,30 +67,24 @@ test(
 )
 
 test(
-  "an admin with no verified factor is still allowed at aal1 (no lockout)",
+  "an active admin with no verified factor is denied at aal1 and aal2",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
       const admin = await createInternalAdmin(tx, { withVerifiedFactor: false })
 
-      const allowed = await asAuthenticatedUser(
-        tx,
-        admin.userId,
-        "aal1",
-        (sp) => isInternalAdmin(sp)
-      )
-
-      assert.equal(
-        allowed,
-        true,
-        "password-only admins must keep working — this is the regression that forced the 20260720100000 revert"
-      )
+      for (const aal of ["aal1", "aal2"]) {
+        const allowed = await asAuthenticatedUser(tx, admin.userId, aal, (sp) =>
+          isInternalAdmin(sp)
+        )
+        assert.equal(allowed, false, `password-only admin denied at ${aal}`)
+      }
     })
   }
 )
 
 test(
-  "an unverified (pending) factor does not trigger the step-up requirement",
+  "an unverified pending factor cannot activate admin authority",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
@@ -111,8 +102,32 @@ test(
 
       assert.equal(
         allowed,
-        true,
-        "an abandoned half-finished enrolment must not lock an admin out of the console"
+        false,
+        "an abandoned or attacker-created pending factor grants no authority"
+      )
+    })
+  }
+)
+
+test(
+  "a second verified factor invalidates the trusted admin factor binding",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const admin = await createInternalAdmin(tx, { withVerifiedFactor: true })
+      await insertTotpFactor(tx, admin.userId, "verified")
+
+      const allowed = await asAuthenticatedUser(
+        tx,
+        admin.userId,
+        "aal2",
+        (sp) => isInternalAdmin(sp)
+      )
+
+      assert.equal(
+        allowed,
+        false,
+        "an unapproved second factor must fail closed even with an aal2 session"
       )
     })
   }
@@ -227,7 +242,12 @@ test(
 
 async function createInternalAdmin(
   tx,
-  { withVerifiedFactor, withUnverifiedFactor = false, isActive = true }
+  {
+    withVerifiedFactor,
+    withUnverifiedFactor = false,
+    isActive = true,
+    activateVerifiedFactor = withVerifiedFactor,
+  }
 ) {
   const userId = randomUUID()
   const email = `admin-${userId.slice(0, 8)}@example.test`
@@ -238,7 +258,13 @@ async function createInternalAdmin(
     values (${userId}::uuid, ${email}, ${isActive})`
 
   if (withVerifiedFactor) {
-    await insertTotpFactor(tx, userId, "verified")
+    const factorId = await insertTotpFactor(tx, userId, "verified")
+    if (activateVerifiedFactor) {
+      await tx`
+        update public.internal_admins
+        set mfa_factor_id = ${factorId}::uuid
+        where user_id = ${userId}::uuid`
+    }
   }
   if (withUnverifiedFactor) {
     await insertTotpFactor(tx, userId, "unverified")
@@ -248,12 +274,14 @@ async function createInternalAdmin(
 }
 
 async function insertTotpFactor(tx, userId, status) {
+  const factorId = randomUUID()
   await tx`
     insert into auth.mfa_factors
       (id, user_id, friendly_name, factor_type, status, created_at, updated_at)
     values
-      (${randomUUID()}::uuid, ${userId}::uuid, ${`totp-${status}`},
+      (${factorId}::uuid, ${userId}::uuid, ${`totp-${status}`},
        'totp', ${status}::auth.factor_status, now(), now())`
+  return factorId
 }
 
 /**

@@ -5,11 +5,15 @@ const SECRET_NAME = "CUSTOMER_SESSION_SECRET"
 const ORIGINAL_SECRET = process.env[SECRET_NAME]
 const CAMPAIGN_ID = "3f1c9a2e-9b5d-4c7a-8f21-5d6e7a8b9c01"
 const OTHER_CAMPAIGN_ID = "7a2b4c6d-1e3f-4a5b-9c8d-0e1f2a3b4c5d"
+const PRIMARY_SECRET =
+  "8f2c1d7a9b4e6f0c3a5d8e1b7c9f2a4d6e0b3c5f8a1d7e9b4c2f6a8d0e3b1c"
+const ROTATED_SECRET =
+  "3b7e1c9a5f2d8b4e0a6c9d1f7b3e5a8c2d6f0b4e9a1c7d5f3b8e2a6c0d4f9b1e"
 
 let tokens
 
 before(async () => {
-  process.env[SECRET_NAME] = "offer-token-unit-secret-value"
+  process.env[SECRET_NAME] = PRIMARY_SECRET
   tokens = await import("@/lib/offers/tokens")
 })
 
@@ -127,7 +131,7 @@ test("Given the secret rotates When a stored link is recovered Then the cipherte
   const rederived = tokens.offerClaimToken(CAMPAIGN_ID, 1)
   assert.equal(tokens.hashOfferToken(rederived), set.claimTokenHash)
 
-  process.env[SECRET_NAME] = "a-completely-different-secret-value"
+  process.env[SECRET_NAME] = ROTATED_SECRET
   const afterRotation = tokens.offerClaimToken(CAMPAIGN_ID, 1)
   assert.notEqual(
     tokens.hashOfferToken(afterRotation),
@@ -140,14 +144,14 @@ test("Given the secret rotates When a stored link is recovered Then the cipherte
     "material sealed under the old secret must fail closed, not decrypt to rubbish"
   )
 
-  process.env[SECRET_NAME] = "offer-token-unit-secret-value"
+  process.env[SECRET_NAME] = PRIMARY_SECRET
 })
 
 test("Given no secret is configured When a token is requested Then it fails closed", () => {
   delete process.env[SECRET_NAME]
   assert.throws(
     () => tokens.offerClaimToken(CAMPAIGN_ID, 1),
-    /CUSTOMER_SESSION_SECRET is required/
+    /CUSTOMER_SESSION_SECRET must use a generated high-entropy value/
   )
-  process.env[SECRET_NAME] = "offer-token-unit-secret-value"
+  process.env[SECRET_NAME] = PRIMARY_SECRET
 })

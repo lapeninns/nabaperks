@@ -6,7 +6,7 @@ import { after, test } from "node:test"
 
 import postgres from "postgres"
 
-const LOCAL_DB_HOSTS = new Set(["127.0.0.1", "localhost", "::1"])
+import { assertLocalSupabaseDbUrl } from "./helpers/db-target.mjs"
 const localDbUrl = resolveLocalDbUrl()
 const skip = localDbUrl
   ? false
@@ -40,7 +40,11 @@ test(
             'stripe_state_event_id'
           )
         order by column_name`
-      assert.equal(columns.length, 10, "all authoritative plan/cursor columns exist")
+      assert.equal(
+        columns.length,
+        10,
+        "all authoritative plan/cursor columns exist"
+      )
 
       const functions = await tx`
         select
@@ -79,8 +83,16 @@ test(
           /search_path=(?:pg_catalog, public|"pg_catalog", "public")/,
           `${fn.proname}: trusted search_path`
         )
-        assert.equal(fn.service_role_execute, true, `${fn.proname}: service role executes`)
-        assert.equal(fn.authenticated_execute, false, `${fn.proname}: authenticated denied`)
+        assert.equal(
+          fn.service_role_execute,
+          true,
+          `${fn.proname}: service role executes`
+        )
+        assert.equal(
+          fn.authenticated_execute,
+          false,
+          `${fn.proname}: authenticated denied`
+        )
         assert.equal(fn.anon_execute, false, `${fn.proname}: anon denied`)
         assert.equal(fn.public_denied, true, `${fn.proname}: PUBLIC denied`)
       }
@@ -105,12 +117,32 @@ test(
         order by relname`
       assert.equal(tables.length, 2)
       for (const table of tables) {
-        assert.equal(table.relrowsecurity, true, `${table.relname}: RLS enabled`)
-        assert.equal(table.relforcerowsecurity, true, `${table.relname}: RLS forced`)
-        assert.equal(table.service_role_access, true, `${table.relname}: service role maintains`)
-        assert.equal(table.authenticated_access, false, `${table.relname}: authenticated denied`)
+        assert.equal(
+          table.relrowsecurity,
+          true,
+          `${table.relname}: RLS enabled`
+        )
+        assert.equal(
+          table.relforcerowsecurity,
+          true,
+          `${table.relname}: RLS forced`
+        )
+        assert.equal(
+          table.service_role_access,
+          true,
+          `${table.relname}: service role maintains`
+        )
+        assert.equal(
+          table.authenticated_access,
+          false,
+          `${table.relname}: authenticated denied`
+        )
         assert.equal(table.anon_access, false, `${table.relname}: anon denied`)
-        assert.equal(table.public_denied, true, `${table.relname}: PUBLIC denied`)
+        assert.equal(
+          table.public_denied,
+          true,
+          `${table.relname}: PUBLIC denied`
+        )
       }
 
       const fixture = await createMerchant(tx, "historical")
@@ -280,13 +312,21 @@ test(
       const winner = claims.find((claim) => claim.claim_status === "claimed")
       const loser = claims.find((claim) => claim.claim_status === "busy")
       assert.ok(winner.worker_lease_id)
-      assert.equal(loser.worker_lease_id, null, "busy never leaks the live fence")
+      assert.equal(
+        loser.worker_lease_id,
+        null,
+        "busy never leaks the live fence"
+      )
 
       const [noBilling] = await sql`
         select count(*)::int as count
         from public.billing_customers
         where merchant_id = ${fixture.merchantId}::uuid`
-      assert.equal(noBilling.count, 0, "a pre-subscription attempt creates no entitlement row")
+      assert.equal(
+        noBilling.count,
+        0,
+        "a pre-subscription attempt creates no entitlement row"
+      )
 
       const customerId = `cus_checkout_${fixture.short}`
       const [unboundFinalize] = await sql`
@@ -298,7 +338,11 @@ test(
           ${`https://checkout.stripe.test/cs_unbound_${fixture.short}`},
           transaction_timestamp() + interval '1 hour'
         ) as finalized`
-      assert.equal(unboundFinalize.finalized, false, "a Session requires a bound customer")
+      assert.equal(
+        unboundFinalize.finalized,
+        false,
+        "a Session requires a bound customer"
+      )
 
       const [bound] = await sql`
         select public.bind_billing_checkout_customer(
@@ -496,7 +540,11 @@ test(
         update public.stripe_webhook_events
         set lease_expires_at = transaction_timestamp() - interval '1 second'
         where stripe_event_id = ${eventId}`
-      const [reclaimed] = await claimWebhook(tx, eventId, "2026-07-10T10:00:00Z")
+      const [reclaimed] = await claimWebhook(
+        tx,
+        eventId,
+        "2026-07-10T10:00:00Z"
+      )
       assert.equal(reclaimed.claim_status, "claimed")
       assert.equal(reclaimed.attempt_count, 3)
       assert.notEqual(reclaimed.lease_id, retry.lease_id)
@@ -651,7 +699,11 @@ test(
         from public.billing_checkout_attempts
         where merchant_id = ${fixture.merchantId}::uuid`
       assert.equal(clearedAttempt.stripe_customer_id, customerId)
-      assert.equal(clearedAttempt.attempt_id, null, "subscription clears attempt, not customer")
+      assert.equal(
+        clearedAttempt.attempt_id,
+        null,
+        "subscription clears attempt, not customer"
+      )
 
       const olderEventId = `evt_older_${fixture.short}`
       const [olderClaim] = await claimWebhook(
@@ -680,7 +732,11 @@ test(
       state = await readBilling(tx, fixture.merchantId)
       assert.equal(state.stripe_price_id, "price_year_490")
       assert.equal(state.stripe_state_event_id, firstEventId)
-      assert.equal(await isProcessed(tx, olderEventId), true, "stale is atomically processed")
+      assert.equal(
+        await isProcessed(tx, olderEventId),
+        true,
+        "stale is atomically processed"
+      )
 
       const equalEventId = `evt_aaa_${fixture.short}`
       const [equalClaim] = await claimWebhook(
@@ -705,7 +761,11 @@ test(
         cancelAtPeriodEnd: false,
         cancelAt: null,
       })
-      assert.equal(equalResult, "applied", "equal timestamps may hydrate current state")
+      assert.equal(
+        equalResult,
+        "applied",
+        "equal timestamps may hydrate current state"
+      )
       state = await readBilling(tx, fixture.merchantId)
       assert.equal(state.stripe_state_event_id, equalEventId)
       assert.equal(state.stripe_subscription_status, "active")
@@ -733,7 +793,11 @@ test(
         cancelAtPeriodEnd: false,
         cancelAt: null,
       })
-      assert.equal(oldSubscriptionResult, "stale", "later old-sub event cannot repoint")
+      assert.equal(
+        oldSubscriptionResult,
+        "stale",
+        "later old-sub event cannot repoint"
+      )
       state = await readBilling(tx, fixture.merchantId)
       assert.equal(state.stripe_subscription_id, `sub_current_${fixture.short}`)
 
@@ -760,7 +824,11 @@ test(
         cancelAtPeriodEnd: false,
         cancelAt: null,
       })
-      assert.equal(newerSubscriptionResult, "applied", "newer Subscription wins")
+      assert.equal(
+        newerSubscriptionResult,
+        "applied",
+        "newer Subscription wins"
+      )
       state = await readBilling(tx, fixture.merchantId)
       assert.equal(state.stripe_subscription_id, `sub_newer_${fixture.short}`)
       assert.equal(state.stripe_state_event_id, newerSubscriptionEvent)
@@ -795,7 +863,11 @@ test(
       assert.equal(currentResult, "applied")
       state = await readBilling(tx, fixture.merchantId)
       assert.equal(state.cancel_at_period_end, true)
-      assert.equal(state.stripe_state_event_id, cursorBeforeCurrent, "current sync preserves cursor")
+      assert.equal(
+        state.stripe_state_event_id,
+        cursorBeforeCurrent,
+        "current sync preserves cursor"
+      )
 
       const customCancellationResult = await applyCurrent(tx, {
         merchantId: fixture.merchantId,
@@ -889,7 +961,11 @@ test(
       )
       assert.equal(await isProcessed(tx, rollbackEventId), false)
       state = await readBilling(tx, fixture.merchantId)
-      assert.equal(state.stripe_price_id, "price_month_49", "failed event rolls billing back")
+      assert.equal(
+        state.stripe_price_id,
+        "price_month_49",
+        "failed event rolls billing back"
+      )
     })
   }
 )
@@ -932,11 +1008,7 @@ test(
       const staleReturnRevision = beforeWebhook.billing_revision
       await sql`select pg_sleep(0.01)`
 
-      const [claim] = await claimWebhook(
-        sql,
-        eventId,
-        "2026-07-10T13:00:00Z"
-      )
+      const [claim] = await claimWebhook(sql, eventId, "2026-07-10T13:00:00Z")
       assert.equal(
         await applyEvent(sql, {
           ...activeSnapshot,
@@ -1180,18 +1252,7 @@ function resolveLocalDbUrl() {
   const value = env.SUPABASE_DB_URL?.trim()
   if (!value) return ""
 
-  let parsed
-  try {
-    parsed = new URL(value)
-  } catch {
-    throw new Error("SUPABASE_DB_URL must be a valid local PostgreSQL URL")
-  }
-  if (!LOCAL_DB_HOSTS.has(parsed.hostname.toLowerCase())) {
-    throw new Error(
-      `Refusing billing durability DB proof against hosted host ${parsed.hostname}`
-    )
-  }
-  return value
+  return assertLocalSupabaseDbUrl(value)
 }
 
 function readEnvFile(filePath) {

@@ -4,6 +4,10 @@ import { randomUUID } from "node:crypto"
 
 import { closeDb, db, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 import { ensureVerifiedCustomerEmail } from "./helpers/verified-customer-email.mjs"
+import {
+  createRewardPoolFixture,
+  upsertRewardPoolItem,
+} from "./helpers/reward-pool-fixture.mjs"
 
 /**
  * Loyalty integrity hardening — live proof for 20260805100000..20260805100500.
@@ -622,6 +626,79 @@ test("the heal is idempotent", { skip }, async () => {
     assert.equal(row.n, 1, "an existing reward is returned, never duplicated")
   })
 })
+
+async function seedFixtureCycle(tx, fixture) {
+  for (let index = 0; index < 3; index += 1) {
+    await upsertRewardPoolItem(tx, fixture, {
+      rewardName: `Isolation reward ${index + 1}`,
+      rewardTerms: "Subject to availability for this isolation test.",
+      displayOrder: index,
+    })
+  }
+
+  await tx`
+    insert into public.stamp_events (
+      merchant_id, customer_id, membership_id, loyalty_card_id, location_id,
+      event_type, stamps_delta, earned_business_date, cycle_number, metadata
+    )
+    select ${fixture.merchantId}::uuid,
+           ${fixture.customerId}::uuid,
+           ${fixture.membershipId}::uuid,
+           ${fixture.cardId}::uuid,
+           ${fixture.locationId}::uuid,
+           'earned', 1,
+           public.uk_business_date(now()) - series.day_offset,
+           1,
+           jsonb_build_object('source', 'isolation_test')
+    from generate_series(1, 3) as series(day_offset)`
+}
+
+test(
+  "an inactive-billing heal candidate cannot block another tenant's expiry",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const poisoned = await createRewardPoolFixture(tx)
+      const healthy = await createRewardPoolFixture(tx)
+      await seedFixtureCycle(tx, poisoned)
+      await seedFixtureCycle(tx, healthy)
+
+      const [{ reward_id: healthyRewardId }] = await tx`
+        select public.mint_cycle_reward_if_missing(
+          ${healthy.membershipId}::uuid
+        ) as reward_id`
+      await tx`
+        update public.reward_events
+        set expires_at = now() - interval '1 minute'
+        where id = ${healthyRewardId}::uuid`
+
+      await tx`
+        update public.merchants
+        set requires_billing = true
+        where id = ${poisoned.merchantId}::uuid`
+
+      const [{ expired }] = await tx`
+        select public.expire_due_reward_events(now()) as expired`
+      assert.ok(expired >= 1, "the healthy due reward still expires")
+
+      const [healthyReward] = await tx`
+        select status
+        from public.reward_events
+        where id = ${healthyRewardId}::uuid`
+      assert.equal(healthyReward.status, "expired")
+
+      const [poisonedRewards] = await tx`
+        select count(*)::int as rows
+        from public.reward_events
+        where membership_id = ${poisoned.membershipId}::uuid`
+      assert.equal(
+        poisonedRewards.rows,
+        0,
+        "billing-ineligible membership does not mint"
+      )
+    })
+  }
+)
 
 // ---------------------------------------------------------------------------
 // 20260805100500 — the merchant expiry setting, and its ACL

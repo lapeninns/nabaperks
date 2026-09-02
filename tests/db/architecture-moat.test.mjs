@@ -6,9 +6,13 @@ import { after, test } from "node:test"
 
 import postgres from "postgres"
 
+import { assertLocalSupabaseDbUrl } from "./helpers/db-target.mjs"
+
 const DEFAULT_LOCAL_DB_URL =
   "postgres://postgres:postgres@127.0.0.1:54322/postgres"
-const dbUrl = process.env.SUPABASE_DB_URL ?? DEFAULT_LOCAL_DB_URL
+const dbUrl = assertLocalSupabaseDbUrl(
+  process.env.SUPABASE_DB_URL ?? DEFAULT_LOCAL_DB_URL
+)
 const BILLING_SERIALIZATION_MIGRATION = join(
   process.cwd(),
   "supabase/migrations/20260713190000_serialize_billing_entitlement.sql"
@@ -525,13 +529,8 @@ test("Given the billing serialization migration When it replays Then both trigge
 })
 
 function createSqlClient() {
-  const hostname = new URL(dbUrl).hostname.toLowerCase()
-  const isSupabaseHost =
-    hostname === "supabase.com" || hostname.endsWith(".supabase.com")
-
   return postgres(dbUrl, {
     max: 1,
-    ssl: isSupabaseHost ? "require" : undefined,
     transform: postgres.camel,
   })
 }

@@ -1,5 +1,9 @@
 import "server-only"
 
+import {
+  parseAuthHookClaim,
+  type AuthHookClaim,
+} from "@/lib/auth/auth-hook-delivery-core"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 /**
@@ -9,21 +13,12 @@ import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
  * Standard-Webhooks check is a ±300s freshness window, so a captured envelope
  * can be replayed inside it to drive another SMS or another email.
  *
- * These hooks are synchronous and sit inside an auth flow, where a duplicate
- * OTP is an annoyance but a MISSING OTP is a lockout. So the contract is
- * asymmetric on purpose — fail closed on replay, fail open on everything else,
- * and never surface a new HTTP status to GoTrue.
+ * Claims are exclusive and finite. Storage uncertainty and processing
+ * collisions must not authorise a second external provider side effect.
  */
 
 export type AuthHookChannel = "email" | "sms"
 
-export type AuthHookClaim = "claimed" | "replay" | "concurrent"
-
-/**
- * Returns "replay" only for an already-completed delivery. Any doubt —
- * a concurrent attempt, an unusable id, or a database problem — resolves to
- * "concurrent", which means "send anyway".
- */
 export async function claimAuthHookDelivery(
   channel: AuthHookChannel,
   webhookId: string
@@ -34,30 +29,43 @@ export async function claimAuthHookDelivery(
     p_webhook_id: webhookId,
   })
 
-  if (error) return "concurrent"
-  return data === "replay" || data === "claimed" ? data : "concurrent"
+  const claim = parseAuthHookClaim(data)
+  if (error || !claim) {
+    throw new Error("Unable to claim auth-hook delivery.")
+  }
+  return claim
 }
 
 /** Record a provider acceptance so a later replay is recognised. */
 export async function completeAuthHookDelivery(
   channel: AuthHookChannel,
-  webhookId: string
+  webhookId: string,
+  leaseId: string
 ): Promise<void> {
   const supabase = createSupabaseServiceRoleClient()
-  await supabase.rpc("complete_auth_hook_delivery", {
+  const { data, error } = await supabase.rpc("complete_auth_hook_delivery", {
     p_channel: channel,
     p_webhook_id: webhookId,
+    p_lease_id: leaseId,
   })
+  if (error || data !== true) {
+    throw new Error("Unable to complete auth-hook delivery.")
+  }
 }
 
 /** Record a delivery failure so a genuine retry may send again. */
 export async function failAuthHookDelivery(
   channel: AuthHookChannel,
-  webhookId: string
+  webhookId: string,
+  leaseId: string
 ): Promise<void> {
   const supabase = createSupabaseServiceRoleClient()
-  await supabase.rpc("fail_auth_hook_delivery", {
+  const { data, error } = await supabase.rpc("fail_auth_hook_delivery", {
     p_channel: channel,
     p_webhook_id: webhookId,
+    p_lease_id: leaseId,
   })
+  if (error || data !== true) {
+    throw new Error("Unable to release auth-hook delivery.")
+  }
 }

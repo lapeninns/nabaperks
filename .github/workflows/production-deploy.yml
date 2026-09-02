@@ -56,8 +56,6 @@ jobs:
       artifact-metadata: write
     env:
       EXPECTED_REVISION: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
-      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
       VERCEL_GIT_COMMIT_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
       VERCEL_ENV: production
       DO_NOT_TRACK: "1"
@@ -70,11 +68,45 @@ jobs:
         run: |
           test "$(git rev-parse HEAD)" = "$EXPECTED_REVISION"
           test "$(git rev-parse origin/main)" = "$EXPECTED_REVISION"
-          test -n "$VERCEL_ORG_ID"
-          test -n "$VERCEL_PROJECT_ID"
+      - name: Load the immutable canonical Vercel target
+        run: |
+          node scripts/vercel-production-target.mjs \
+            --github-env "$GITHUB_ENV" \
+            --evidence "$RUNNER_TEMP/release-vercel-target.json"
       - uses: ./.github/actions/setup
       - name: Verify the locked deployment CLI
         run: test "$(pnpm exec vercel --version | tail -n 1)" = "56.5.0"
+      - name: Verify canonical Vercel project identity
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          test -n "$VERCEL_TOKEN"
+          team_metadata="$(pnpm exec vercel api \
+            "/v2/teams/$CANONICAL_VERCEL_TEAM_ID" \
+            --scope="$CANONICAL_VERCEL_SCOPE" \
+            --token="$VERCEL_TOKEN" \
+            --raw)"
+          metadata="$(pnpm exec vercel api \
+            "/v9/projects/$CANONICAL_VERCEL_PROJECT_ID" \
+            --scope="$CANONICAL_VERCEL_SCOPE" \
+            --token="$VERCEL_TOKEN" \
+            --raw)"
+          jq -e \
+            --arg id "$CANONICAL_VERCEL_TEAM_ID" \
+            --arg slug "$CANONICAL_VERCEL_SCOPE" \
+            '.id == $id and .slug == $slug' \
+            <<<"$team_metadata" >/dev/null
+          jq -e \
+            --arg id "$CANONICAL_VERCEL_PROJECT_ID" \
+            --arg name "$CANONICAL_VERCEL_PROJECT_NAME" \
+            --arg team_id "$CANONICAL_VERCEL_TEAM_ID" \
+            '.id == $id and .name == $name and .accountId == $team_id' \
+            <<<"$metadata" >/dev/null
+          jq -n \
+            --argjson team "$team_metadata" \
+            --argjson project "$metadata" \
+            '{scope: $team.slug, team: {id: $team.id, slug: $team.slug}, project: {id: $project.id, name: $project.name, accountId: $project.accountId}, providerVerified: true}' \
+            > "$RUNNER_TEMP/release-vercel-target.json"
       - name: Package the immutable source revision
         run: |
           git archive --format=tar --prefix=nabaperks/ "$EXPECTED_REVISION" \
@@ -113,6 +145,7 @@ jobs:
             ${{ runner.temp }}/release-source.tgz
             ${{ runner.temp }}/release-source.sha256
             ${{ runner.temp }}/release-sbom.cdx.json
+            ${{ runner.temp }}/release-vercel-target.json
             ${{ steps.provenance.outputs.bundle-path }}
             ${{ steps.sbom.outputs.bundle-path }}
           if-no-files-found: error
@@ -129,6 +162,8 @@ jobs:
             --no-wait \
             --archive=tgz \
             --yes \
+            --project="$CANONICAL_VERCEL_PROJECT_ID" \
+            --scope="$CANONICAL_VERCEL_SCOPE" \
             --meta githubCommitSha="$EXPECTED_REVISION" \
             --token="$VERCEL_TOKEN")"
           case "$deployment_url" in
@@ -166,9 +201,25 @@ jobs:
           DEPLOYMENT_URL: ${{ steps.stage.outputs.url }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
+          deployment_host="${DEPLOYMENT_URL#https://}"
+          case "$deployment_host" in
+            *[!A-Za-z0-9._-]*|'') echo "::error::Invalid staged deployment host."; exit 1 ;;
+          esac
+          deployment_metadata="$(pnpm exec vercel api \
+            "/v13/deployments/$deployment_host" \
+            --scope="$CANONICAL_VERCEL_SCOPE" \
+            --token="$VERCEL_TOKEN" \
+            --raw)"
+          jq -e \
+            --arg project_id "$CANONICAL_VERCEL_PROJECT_ID" \
+            --arg team_id "$CANONICAL_VERCEL_TEAM_ID" \
+            --arg host "$deployment_host" \
+            '.projectId == $project_id and .ownerId == $team_id and .url == $host' \
+            <<<"$deployment_metadata" >/dev/null
           pnpm exec vercel promote "$DEPLOYMENT_URL" \
             --yes \
             --timeout=3m \
+            --scope="$CANONICAL_VERCEL_SCOPE" \
             --token="$VERCEL_TOKEN"
       - name: Record release evidence
         env:
@@ -180,6 +231,7 @@ jobs:
             echo "### Production deployment"
             echo
             echo "- Revision: \`$EXPECTED_REVISION\`"
+            echo "- Vercel target: \`$CANONICAL_VERCEL_SCOPE/$CANONICAL_VERCEL_PROJECT_NAME\` (\`$CANONICAL_VERCEL_PROJECT_ID\`)"
             echo "- Deployment: $DEPLOYMENT_URL"
             echo "- Provenance: $PROVENANCE_URL"
             echo "- SBOM: $SBOM_URL"

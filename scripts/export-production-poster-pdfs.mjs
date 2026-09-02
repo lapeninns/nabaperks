@@ -19,10 +19,14 @@ import { NFC_CARD_PRODUCTION_DESIGNS } from "@/lib/qr/nfc-card-templates"
 import { NFC_SQUARE_PRODUCTION_DESIGNS } from "@/lib/qr/nfc-square-templates"
 import { QR_POSTER_PRODUCTION_DUPLEX_PAIRS } from "@/lib/qr/poster-duplex-pairs"
 import { TENT_PRODUCTION_DESIGNS } from "@/lib/qr/tent-templates"
+import {
+  assertProductionPosterSupabaseTarget,
+  readCanonicalProductionSupabaseRef,
+  resolveProductionPosterCredentials,
+} from "./production-poster-supabase-target.mjs"
 
 const DEFAULT_APP_ORIGIN = "https://nabaperks.com"
 const DEFAULT_OUTPUT = path.join("output", "posters")
-const DEFAULT_HOSTED_ENV = ".env.local.hosted-backup"
 const DEFAULT_LOCAL_ENV = ".env.local"
 const DEFAULT_PREVIEW_ORIGIN = "http://127.0.0.1:3000"
 
@@ -49,8 +53,10 @@ const ASSET_FOLDERS = {
  *
  * Usage:
  *   pnpm dev   # in another terminal
- *   pnpm posters:export-production
- *   pnpm posters:export-production -- --limit 1
+ *   # Export the two required variables into the process environment, or use
+ *   # an explicitly selected credential file stored outside the repository:
+ *   pnpm posters:export-production -- --env-file /secure/path/posters.env
+ *   pnpm posters:export-production -- --env-file /secure/path/posters.env --limit 1
  *   pnpm posters:export-production -- --preview-origin http://127.0.0.1:3000
  */
 
@@ -119,7 +125,7 @@ function parseArgs(argv) {
     throw new Error(`Unknown argument: ${token}`)
   }
   if (!args.envFile) {
-    args.envFile = args.allowLocal ? DEFAULT_LOCAL_ENV : DEFAULT_HOSTED_ENV
+    args.envFile = args.allowLocal ? DEFAULT_LOCAL_ENV : null
   }
   return args
 }
@@ -151,24 +157,6 @@ function sanitizeFolderPart(value) {
 function venueFolderName({ businessSlug, businessName, qrId }) {
   const base = sanitizeFolderPart(businessSlug || businessName)
   return `${base}__${sanitizeFolderPart(qrId)}`
-}
-
-function assertHostedTarget(supabaseUrl, allowLocal) {
-  let hostname
-  try {
-    hostname = new URL(supabaseUrl).hostname.toLowerCase()
-  } catch {
-    throw new Error(`Invalid Supabase URL: ${supabaseUrl}`)
-  }
-  const isLocal =
-    hostname === "127.0.0.1" ||
-    hostname === "localhost" ||
-    hostname.endsWith(".local")
-  if (isLocal && !allowLocal) {
-    throw new Error(
-      `Refusing to export against local Supabase (${hostname}). Pass --allow-local to override, or use a hosted --env-file.`
-    )
-  }
 }
 
 async function loadActiveJoinVenues(supabase, limit) {
@@ -321,20 +309,21 @@ async function exportVenuePrintables(
 }
 
 export async function exportProductionPosterPdfs(options = {}) {
-  const envPath = path.resolve(options.envFile ?? DEFAULT_HOSTED_ENV)
-  const fileEnv = readEnvFile(envPath)
-  const supabaseUrl =
-    fileEnv.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceRoleKey =
-    fileEnv.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
+  const envPath = options.envFile ? path.resolve(options.envFile) : null
+  const fileEnv = envPath ? readEnvFile(envPath) : {}
+  const { serviceRoleKey, supabaseUrl } = resolveProductionPosterCredentials({
+    envFileSelected: Boolean(envPath),
+    fileEnv,
+    processEnv: process.env,
+  })
 
-  if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error(
-      `Need NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY from ${envPath}`
-    )
-  }
-
-  assertHostedTarget(supabaseUrl, Boolean(options.allowLocal))
+  const authorisedSupabaseOrigin = assertProductionPosterSupabaseTarget(
+    supabaseUrl,
+    {
+      allowLocal: Boolean(options.allowLocal),
+      productionRef: readCanonicalProductionSupabaseRef(),
+    }
+  )
 
   const appOrigin = (options.appOrigin || DEFAULT_APP_ORIGIN).replace(/\/$/, "")
   const previewOrigin = (
@@ -344,7 +333,7 @@ export async function exportProductionPosterPdfs(options = {}) {
 
   const outputRoot = path.resolve(options.outputDir || DEFAULT_OUTPUT)
 
-  const supabase = createClient(supabaseUrl, serviceRoleKey, {
+  const supabase = createClient(authorisedSupabaseOrigin, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   })
 
@@ -369,7 +358,7 @@ export async function exportProductionPosterPdfs(options = {}) {
       appOrigin,
       previewOrigin,
       renderMode: "playwright-dev-preview",
-      supabaseHost: new URL(supabaseUrl).hostname,
+      supabaseHost: new URL(authorisedSupabaseOrigin).hostname,
       layout: {
         root: path.basename(outputRoot),
         perVenue:

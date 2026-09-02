@@ -112,7 +112,8 @@ Configure the environment before first use:
 - add `SUPABASE_ACCESS_TOKEN` and `SUPABASE_DB_PASSWORD` as environment
   secrets, plus `SUPABASE_PROJECT_REF` as an environment variable.
 - add `VERCEL_TOKEN` and `PRODUCTION_MONITOR_SECRET` as environment secrets,
-  plus `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID` as environment variables;
+  the Vercel project ID, name and scope come from the reviewed
+  `config/vercel-governance-contract.json` source contract;
 - disable Vercel's automatic Git deployment for `main` when the build-once
   `Production deployment` workflow is activated, while retaining previews if
   desired.

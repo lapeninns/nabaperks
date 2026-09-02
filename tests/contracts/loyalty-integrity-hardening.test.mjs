@@ -28,10 +28,88 @@ const STAMP_CODES = migration(
 const REWARD_EXPIRY = migration(
   "20260805100200_reward_expiry_releases_the_cycle.sql"
 )
+const SELF_STAMP_ATTEMPT_LIMIT = migration(
+  "20260902123000_persist_self_stamp_attempt_limits.sql"
+)
+const TENANT_SAFE_REWARD_EXPIRY = migration(
+  "20260902124000_isolate_reward_expiry_tenants.sql"
+)
 const BLOCK_REASONS = readFileSync(
   new URL("../../lib/customer/experience/block-reasons.ts", import.meta.url),
   "utf8"
 )
+const STAMP_SERVICE = readFileSync(
+  new URL("../../lib/customer/stamp.ts", import.meta.url),
+  "utf8"
+)
+const STAMP_ACTION = readFileSync(
+  new URL("../../app/card/[membershipId]/actions.ts", import.meta.url),
+  "utf8"
+)
+
+test("Given any self-stamp attempt Then its durable allowance is charged first", () => {
+  assert.match(
+    SELF_STAMP_ATTEMPT_LIMIT,
+    /consume_self_service_stamp_attempt[\s\S]*selfstamp-attempt:/
+  )
+  assert.match(
+    SELF_STAMP_ATTEMPT_LIMIT,
+    /revoke all on function public\.consume_self_service_stamp_attempt\(uuid, uuid\)[\s\S]*from public, anon, authenticated/
+  )
+
+  const prechargeAt = STAMP_SERVICE.indexOf(
+    '"consume_self_service_stamp_attempt"'
+  )
+  const referralAt = STAMP_SERVICE.indexOf("drainReferralBonusesBeforeStamp(")
+  const stampAt = STAMP_SERVICE.indexOf('"issue_self_service_stamp"')
+  assert.ok(prechargeAt > 0, "attempt precharge is present")
+  assert.ok(
+    prechargeAt < referralAt,
+    "attempt is charged before referral effects"
+  )
+  assert.ok(prechargeAt < stampAt, "attempt is charged before the stamp RPC")
+
+  const actionChargeAt = STAMP_ACTION.indexOf("chargeSelfStampActionAttempt()")
+  const inputAt = STAMP_ACTION.indexOf('value(formData, "membershipId")')
+  const qrLookupAt = STAMP_ACTION.indexOf("getStampQrContextForMembership(")
+  assert.ok(actionChargeAt > 0, "action-level charge is present")
+  assert.ok(actionChargeAt < inputAt, "malformed input is charged")
+  assert.ok(
+    actionChargeAt < qrLookupAt,
+    "invalid and mismatched QR input is charged"
+  )
+  assert.match(STAMP_ACTION, /selfstamp-action:customer:\$\{customerId\}/)
+  assert.match(STAMP_ACTION, /selfstamp-action:request:\$\{requestIdentity\}/)
+})
+
+test("Given repeated location refusals Then telemetry is aggregated concurrently", () => {
+  assert.match(SELF_STAMP_ATTEMPT_LIMIT, /pg_advisory_xact_lock/)
+  assert.match(SELF_STAMP_ATTEMPT_LIMIT, /'attempt_count'/)
+  assert.match(SELF_STAMP_ATTEMPT_LIMIT, /interval '15 minutes'/)
+  assert.match(
+    SELF_STAMP_ATTEMPT_LIMIT,
+    /if v_existing_flag\.id is not null then[\s\S]*update public\.fraud_flags[\s\S]*return;/
+  )
+})
+
+test("Given one poisoned reward-heal candidate Then other tenants still progress", () => {
+  assert.match(TENANT_SAFE_REWARD_EXPIRY, /loyalty_billing_entitled/)
+  assert.match(TENANT_SAFE_REWARD_EXPIRY, /order by[\s\S]*memberships\.id/)
+  assert.match(TENANT_SAFE_REWARD_EXPIRY, /interval '15 minutes'/)
+  assert.match(
+    TENANT_SAFE_REWARD_EXPIRY,
+    /for update of memberships skip locked/
+  )
+  assert.match(
+    TENANT_SAFE_REWARD_EXPIRY,
+    /exception\s+when others then[\s\S]*reward_cycle_heal_failures/
+  )
+  assert.match(
+    TENANT_SAFE_REWARD_EXPIRY,
+    /on conflict \(membership_id\) do update/
+  )
+  assert.doesNotMatch(TENANT_SAFE_REWARD_EXPIRY, /sqlerrm/i)
+})
 
 test("Given the card-uniqueness migration Then it reconciles before it constrains", () => {
   // Adding the index without first resolving duplicates would fail on any

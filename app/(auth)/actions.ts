@@ -20,6 +20,10 @@ import {
 import { runMerchantOtpProviderVerification } from "@/lib/auth/merchant-email-otp-provider"
 import { cleanupFailedMerchantRecoverySession } from "@/lib/auth/merchant-recovery-session-cleanup"
 import {
+  merchantAuthRateLimitConfigs,
+  type MerchantAuthRateLimitScope,
+} from "@/lib/auth/merchant-auth-rate-limit-core"
+import {
   enforceInitialSignupRecipientBudget,
   enforceMerchantOtpResend,
   MerchantOtpResendRateLimitError,
@@ -57,9 +61,6 @@ export type AuthActionState = {
 }
 
 type AuthMode = "sign-in" | "sign-up"
-
-type AuthRateLimitScope =
-  "merchant-signup" | "merchant-signin" | "merchant-verify"
 
 function value(formData: FormData, key: string) {
   const raw = formData.get(key)
@@ -792,24 +793,28 @@ type AuthRateLimitResult = {
 }
 
 async function enforceAuthRateLimit(
-  scope: AuthRateLimitScope,
+  scope: MerchantAuthRateLimitScope,
   email: string
 ): Promise<AuthRateLimitResult | null> {
   const requestIdentity = await merchantRequestIdentity()
-  const config = {
-    key: `${scope}:${email}:${requestIdentity}`,
-    limit: scope === "merchant-signup" ? 3 : 5,
-    windowMs: 15 * 60_000,
-  }
+  const configs = merchantAuthRateLimitConfigs(scope, email, requestIdentity)
 
   try {
-    await enforceRateLimit(config)
+    for (const config of configs) {
+      await enforceRateLimit(config)
+    }
     return null
   } catch (error) {
     if (error instanceof RateLimitError) {
       let retryAt: string | undefined
       try {
-        retryAt = (await peekRateLimit(config)).resetAt ?? undefined
+        const resets = await Promise.all(
+          configs.map(async (config) => (await peekRateLimit(config)).resetAt)
+        )
+        retryAt = resets
+          .filter((value): value is string => Boolean(value))
+          .sort()
+          .at(-1)
       } catch (readbackError) {
         console.error("Merchant auth rate-limit readback failed", {
           error: safeServerErrorMessage(readbackError),
@@ -843,7 +848,7 @@ function defaultNextPath(mode: AuthMode): string {
   return mode === "sign-up" ? "/app/onboarding" : "/app"
 }
 
-function rateLimitMessage(scope: AuthRateLimitScope): string {
+function rateLimitMessage(scope: MerchantAuthRateLimitScope): string {
   switch (scope) {
     case "merchant-signup":
       return "Too many sign-up attempts. Try again later."
@@ -854,7 +859,9 @@ function rateLimitMessage(scope: AuthRateLimitScope): string {
   }
 }
 
-function rateLimitUnavailableMessage(scope: AuthRateLimitScope): string {
+function rateLimitUnavailableMessage(
+  scope: MerchantAuthRateLimitScope
+): string {
   switch (scope) {
     case "merchant-signup":
       return "We could not start your account just now. Your details are still here — try again."

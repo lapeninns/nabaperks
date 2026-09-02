@@ -47,7 +47,7 @@ const AUTHENTICATED_DIRECT_RPCS = [
   "add_reward_pool_presets",
   "save_loyalty_card_birthday_reward",
   "delete_reward_pool_item",
-  "create_merchant_reward_invite",
+  "create_bounded_merchant_reward_invite",
   "issue_merchant_direct_reward",
   "complete_merchant_onboarding",
   "create_or_get_join_qr",
@@ -73,16 +73,14 @@ const AUTHENTICATED_CALLER_CONTEXT = [
   // the session cookie's factor list is stale for pre-enrolment sessions.
   // Discloses nothing about any other user (it is bound to auth.uid()).
   "viewer_has_verified_mfa_factor",
+  "viewer_has_activated_admin_mfa",
 ]
 
 // Merchant self-service helpers other governed specs pin as
 // authenticated-executable (onboarding transaction, reward-preset atomic add).
 // Not `.rpc()`-called today, but internally owner-scoped / read-only and
 // already granted in production, so they stay to preserve those contracts.
-const SPEC_PINNED_SELF_SERVICE = [
-  "create_merchant_onboarding",
-  "assert_reward_pool_launch_ready",
-]
+const SPEC_PINNED_SELF_SERVICE = ["assert_reward_pool_launch_ready"]
 
 const AUTHENTICATED_ALLOWLIST = new Set([
   ...AUTHENTICATED_DIRECT_RPCS,
@@ -92,6 +90,7 @@ const AUTHENTICATED_ALLOWLIST = new Set([
 
 // A representative dangerous subset that MUST NOT be authenticated-executable.
 const MUST_BE_LOCKED = [
+  "create_merchant_onboarding",
   "admin_purge_stale_customer_pii",
   "claim_due_notification_events",
   "enqueue_notification_event",

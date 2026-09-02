@@ -46,23 +46,33 @@ export async function POST(request: NextRequest) {
     return hookError(400, "Missing recipient phone or code.")
   }
 
-  // Consume the authenticated webhook id BEFORE the provider call. A replay of
-  // an already-completed delivery answers with the ordinary success body, so
-  // GoTrue's retry contract is untouched; anything else sends, because a
-  // missing OTP is far worse than a duplicate one.
-  const claim = await claimAuthHookDelivery("sms", envelope.webhookId)
-  if (claim === "replay") {
+  let claim
+  try {
+    claim = await claimAuthHookDelivery("sms", envelope.webhookId)
+  } catch {
+    return hookError(503, "SMS delivery could not be claimed.")
+  }
+  if (claim.status === "replay") {
     return NextResponse.json({})
+  }
+  if (claim.status === "busy") {
+    return hookError(503, "SMS delivery is already in progress.")
   }
 
   try {
     await sendSmsOtp({ to, code })
   } catch {
-    await failAuthHookDelivery("sms", envelope.webhookId)
+    await failAuthHookDelivery("sms", envelope.webhookId, claim.leaseId).catch(
+      () => undefined
+    )
     return hookError(500, "SMS could not be sent.")
   }
 
-  await completeAuthHookDelivery("sms", envelope.webhookId)
+  try {
+    await completeAuthHookDelivery("sms", envelope.webhookId, claim.leaseId)
+  } catch {
+    return hookError(500, "SMS delivery could not be recorded.")
+  }
 
   return NextResponse.json({})
 }

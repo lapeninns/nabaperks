@@ -45,6 +45,7 @@ test("Given the admin step-up gate When auth helpers are inspected Then privileg
   // nextLevel from the cached session cookie's factor list, so a session minted
   // before the factor was enrolled reports "no factor" and would pass the gate.
   assert.match(adminAuth, /viewer_has_verified_mfa_factor/)
+  assert.match(adminAuth, /viewer_has_activated_admin_mfa/)
   assert.match(adminAuth, /resolveAdminMfaStateFromFacts/)
   assert.doesNotMatch(adminAuth, /aal\.nextLevel/)
 
@@ -53,6 +54,11 @@ test("Given the admin step-up gate When auth helpers are inspected Then privileg
   assert.match(adminAuth, /error: aalError/)
   assert.match(adminAuth, /adminStepUpSatisfied\(access\.mfaState\)/)
   assert.match(mfaGate, /"unknown"/)
+  assert.match(mfaGate, /return state === "satisfied"/)
+  assert.doesNotMatch(
+    mfaGate,
+    /state === "no-factor" \|\| state === "satisfied"/
+  )
 
   // Indeterminate assurance must be recoverable, not a dead-end card.
   assert.match(adminAuth, /if \(mfaState === "unknown"\) \{\s*redirect\(/)
@@ -68,6 +74,8 @@ test("Given the admin step-up gate When auth helpers are inspected Then privileg
     sliceExport(securityActions, "verifyAdminMfaEnrollment"),
     /adminMfaEnrollmentAllowed\(access\.mfaState\)/
   )
+
+  assert.match(adminAuth, /access\.mfaActivated/)
 
   // Stepping up itself must stay on the read gate or it is unsatisfiable.
   const stepUp = sliceExport(securityActions, "stepUpAdminMfa")
