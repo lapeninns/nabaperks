@@ -222,7 +222,7 @@ test("Given the first token response is lost When anonymous capture retries Then
   assert.match(captureQueue, /postCapture\(event, result\.token\)/)
 })
 
-test("Given authoritative merchant auth outcomes When source wiring is inspected Then account creation, resend, and verification telemetry is success-only and fail-open", () => {
+test("Given authoritative merchant auth outcomes When source wiring is inspected Then resend and verification telemetry is success-only and fail-open", () => {
   const actions = readProjectFile("app", "(auth)", "actions.ts")
   const funnelEvents = readProjectFile("lib", "analytics", "funnel-events.ts")
   const afterResponse = readProjectFile("lib", "analytics", "after-response.ts")
@@ -234,7 +234,7 @@ test("Given authoritative merchant auth outcomes When source wiring is inspected
   const verify = sourceSection(
     actions,
     "async function verifySignupOtp",
-    "async function confirmMerchantPasswordReset"
+    "async function confirmMerchantEmailAccess"
   )
   const resend = sourceSection(
     actions,
@@ -258,14 +258,10 @@ test("Given authoritative merchant auth outcomes When source wiring is inspected
   )
   assert.doesNotMatch(funnelEvents, /catch[^\n]*\{[\s\S]{0,220}\bthrow\b/)
 
-  assert.ok(
-    signUp.indexOf("merchant_account_created") > signUp.indexOf("if (error)"),
-    "account-created telemetry follows the provider success guard"
-  )
-  assert.match(
+  assert.doesNotMatch(
     signUp,
-    /identities[\s\S]{0,180}length\s*>\s*0[\s\S]{0,300}merchant_account_created/,
-    "obfuscated existing-account signup success cannot count as a creation"
+    /merchant_account_created/,
+    "enumeration-neutral passwordless signup cannot claim creation before email verification"
   )
   assert.ok(
     resend.indexOf("merchant_otp_resent") >

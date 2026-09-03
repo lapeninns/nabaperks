@@ -123,10 +123,7 @@ export class HttpError extends Error {
   readonly status: number
   readonly url: string
 
-  constructor(
-    status: number,
-    url: string
-  ) {
+  constructor(status: number, url: string) {
     super(`Request to ${url} failed with status ${status}`)
     this.name = "HttpError"
     this.status = status
@@ -173,6 +170,7 @@ export function resilientCall<T>(
 export type ResilientFetchOptions = {
   retries?: number
   initForAttempt?: () => RequestInit
+  beforeAttempt?: () => Promise<void>
   sleep?: (ms: number) => Promise<void>
   /** Override for tests; defaults to the global `fetch`. */
   fetchImpl?: typeof fetch
@@ -196,6 +194,7 @@ export async function resilientFetch(
   return resilientCall(
     name,
     async () => {
+      await options.beforeAttempt?.()
       const response = await doFetch(input, options.initForAttempt?.() ?? init)
       if (response.status >= 500) throw new HttpError(response.status, url)
       return response

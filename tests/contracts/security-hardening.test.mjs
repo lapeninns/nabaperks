@@ -22,11 +22,11 @@ function assertBefore(source, earlier, later) {
   assert.ok(earlierIndex < laterIndex, `${earlier} appears before ${later}`)
 }
 
-test("Given admin RPCs and RLS policies share the internal-admin helper When SQL is inspected Then the DB gate requires step-up only from enrolled admins", () => {
+test("Given admin RPCs and RLS policies share the internal-admin helper When SQL is inspected Then authority requires trusted factor activation and step-up", () => {
   const migration = readProjectFile(
     "supabase",
     "migrations",
-    "20260801120000_admin_assurance_boundary.sql"
+    "20260902120000_require_activated_admin_mfa.sql"
   )
   const adminAuth = readProjectFile("lib", "admin", "auth.ts")
 
@@ -35,21 +35,21 @@ test("Given admin RPCs and RLS policies share the internal-admin helper When SQL
     /create or replace function public\.is_internal_admin\(\)/
   )
 
-  // The gate must be conditional on enrolment. A DB-level AAL2 requirement
-  // that ignored enrolment (20260702180000) locked out every admin, because
-  // password sign-in is aal1 — 20260720100000 had to revert it. Requiring a
-  // verified factor before demanding aal2 is what makes this safe to re-add.
-  assert.match(migration, /has_verified_mfa_factor/)
+  // Browser-reachable enrolment must never be enough to activate authority.
+  // The exact verified factor is bound independently, and drift to multiple
+  // verified factors fails closed before the session's AAL2 claim is accepted.
+  assert.match(migration, /factor\.id = admin\.mfa_factor_id/)
+  assert.match(migration, /factor\.user_id = admin\.user_id/)
+  assert.match(migration, /factor\.factor_type = 'totp'/)
+  assert.match(migration, /factor\.status = 'verified'/)
+  assert.match(migration, /select count\(\*\)[\s\S]*= 1/)
   assert.match(migration, /=\s*'aal2'/)
-  assert.match(migration, /not \(select public\.has_verified_mfa_factor/)
-
-  // The assurance claim must degrade to aal1, never to "stepped up".
-  assert.match(migration, /'aal1'\s*\);/)
+  assert.doesNotMatch(migration, /not \(select public\.has_verified_mfa_factor/)
 
   // The internal helpers stay off the authenticated EXECUTE allowlist.
   assert.match(
     migration,
-    /revoke all on function public\.request_assurance_level\(\) from public, anon, authenticated/
+    /revoke all on function public\.has_activated_admin_mfa\(uuid\)[\s\S]*from public, anon, authenticated/
   )
   assert.match(migration, /notify pgrst, 'reload schema'/)
 
@@ -94,17 +94,21 @@ test("Given customer OTP verification flows When actions are inspected Then gues
   }
 })
 
-test("Given admin MFA removal When the server action is inspected Then AAL2 and durable audit evidence precede the identity mutation", () => {
+test("Given admin MFA removal When the server action is inspected Then AAL2 gates an atomically audited identity mutation", () => {
   const actions = readProjectFile("app", "admin", "security", "actions.ts")
+  const lifecycleMigration = readProjectFile(
+    "supabase",
+    "migrations",
+    "20260902134000_invalidate_admin_mfa_on_factor_changes.sql"
+  )
   const unenrollment = actions.slice(
     actions.indexOf("export async function unenrollAdminMfa")
   )
 
   assert.match(unenrollment, /adminMfaUnenrollmentAllowed\(access\.mfaState\)/)
-  assert.match(unenrollment, /actor_id: access\.userId/)
   assertBefore(
     unenrollment,
-    'action: "admin_mfa_unenrollment_authorised"',
+    "adminMfaUnenrollmentAllowed(access.mfaState)",
     "supabase.auth.mfa.unenroll"
   )
   assertBefore(
@@ -112,9 +116,9 @@ test("Given admin MFA removal When the server action is inspected Then AAL2 and 
     "supabase.auth.mfa.unenroll",
     'revalidatePath("/admin")'
   )
-  assertBefore(
-    unenrollment,
-    'revalidatePath("/admin/audit")',
-    'action: "admin_mfa_factor_unenrolled"'
+  assert.match(
+    lifecycleMigration,
+    /after insert or delete or update of user_id, status, factor_type[\s\S]*on auth\.mfa_factors/i
   )
+  assert.match(lifecycleMigration, /'admin_mfa_factor_unenrolled'/)
 })

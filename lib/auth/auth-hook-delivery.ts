@@ -24,7 +24,7 @@ export async function claimAuthHookDelivery(
   webhookId: string
 ): Promise<AuthHookClaim> {
   const supabase = createSupabaseServiceRoleClient()
-  const { data, error } = await supabase.rpc("claim_auth_hook_delivery", {
+  const { data, error } = await supabase.rpc("claim_auth_hook_delivery_v2", {
     p_channel: channel,
     p_webhook_id: webhookId,
   })
@@ -43,13 +43,33 @@ export async function completeAuthHookDelivery(
   leaseId: string
 ): Promise<void> {
   const supabase = createSupabaseServiceRoleClient()
-  const { data, error } = await supabase.rpc("complete_auth_hook_delivery", {
+  const { data, error } = await supabase.rpc("complete_auth_hook_delivery_v2", {
     p_channel: channel,
     p_webhook_id: webhookId,
     p_lease_id: leaseId,
   })
   if (error || data !== true) {
     throw new Error("Unable to complete auth-hook delivery.")
+  }
+}
+
+/** Fence the lease durably immediately before the provider request begins. */
+export async function markAuthHookDeliveryAttempted(
+  channel: AuthHookChannel,
+  webhookId: string,
+  leaseId: string
+): Promise<void> {
+  const supabase = createSupabaseServiceRoleClient()
+  const { data, error } = await supabase.rpc(
+    "mark_auth_hook_delivery_attempted_v2",
+    {
+      p_channel: channel,
+      p_webhook_id: webhookId,
+      p_lease_id: leaseId,
+    }
+  )
+  if (error || data !== true) {
+    throw new Error("Unable to fence auth-hook provider delivery.")
   }
 }
 
@@ -60,7 +80,7 @@ export async function failAuthHookDelivery(
   leaseId: string
 ): Promise<void> {
   const supabase = createSupabaseServiceRoleClient()
-  const { data, error } = await supabase.rpc("fail_auth_hook_delivery", {
+  const { data, error } = await supabase.rpc("fail_auth_hook_delivery_v2", {
     p_channel: channel,
     p_webhook_id: webhookId,
     p_lease_id: leaseId,

@@ -68,6 +68,44 @@ export async function adjustStampsAction(
   return adminActionSuccess("Stamps adjusted. Logged to the audit trail.")
 }
 
+export async function verifyCustomerDateOfBirthAction(
+  _previousState: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
+  await requireAdminAction()
+  const customerId = value(formData, "customerId")
+  const dateOfBirth = value(formData, "dateOfBirth")
+  const reason = value(formData, "reason")
+
+  if (!customerId || !/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) {
+    return adminActionError("Customer and date of birth are required.")
+  }
+  if (reason.length < 4 || reason.length > 500) {
+    return adminActionError(
+      "Verification reason must be between 4 and 500 characters."
+    )
+  }
+
+  const supabase = await createSupabaseServerClient()
+  const { error } = await supabase.rpc("admin_verify_customer_date_of_birth", {
+    p_customer_id: customerId,
+    p_date_of_birth: dateOfBirth,
+    p_reason: reason,
+  })
+
+  const failure = rpcFailure(
+    error,
+    "Date of birth verification failed. Check the evidence and try again."
+  )
+  if (failure) return failure
+
+  revalidatePath("/admin/customers")
+  revalidatePath("/admin/audit")
+  return adminActionSuccess(
+    "Date of birth verified. Logged to the audit trail."
+  )
+}
+
 export async function cancelRewardAction(
   _previousState: AdminActionState,
   formData: FormData

@@ -3,14 +3,14 @@ import type { Metadata } from "next"
 import { Tick02Icon } from "@hugeicons/core-free-icons"
 import { redirect } from "next/navigation"
 
-import { signInAction } from "@/app/(auth)/actions"
 import { AUTH_SECTION_MIN_H } from "@/app/(auth)/viewport"
 
 import { Eyebrow, Icon, PageTitle, ReceiptCard } from "@/components/brand"
-import { AuthForm } from "@/components/auth/auth-form"
+import { ResetPasswordForm } from "@/components/auth/reset-password-form"
 import { MarketingLayout } from "@/components/layout"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { getCurrentUser } from "@/lib/auth/session"
+import { merchantEmailOtpAliasLength } from "@/lib/auth/merchant-email-otp-alias"
 import { safeMerchantNextPath } from "@/lib/navigation/safe-next-path"
 import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 import { cn } from "@/lib/utils"
@@ -42,7 +42,7 @@ const LOGIN_ERROR_COPY: Record<string, { title: string; body: string }> = {
 
 const LOGIN_ERROR_FALLBACK = {
   title: "Sign-in problem",
-  body: "Something went wrong on the way in. Try again, or reset your password if it keeps happening.",
+  body: "Something went wrong on the way in. Request a fresh email code and try again.",
 }
 
 type LoginPageProps = {
@@ -106,7 +106,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               Back to the counter
             </h2>
             <p className="text-sm leading-6 text-pretty text-muted-foreground">
-              Enter your venue email and password to open the console.
+              Enter your venue email and we will send a one-time sign-in code.
             </p>
           </div>
           {error ? (
@@ -119,12 +119,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               </AlertDescription>
             </Alert>
           ) : null}
-          <AuthForm
-            action={signInAction}
-            mode="sign-in"
+          <ResetPasswordForm
+            otpLength={merchantEmailOtpAliasLength()}
             next={next}
             initialEmail={email}
-            embedded
           />
         </ReceiptCard>
       </section>

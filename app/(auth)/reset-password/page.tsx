@@ -19,13 +19,13 @@ import { cn } from "@/lib/utils"
 
 export const metadata: Metadata = {
   ...PRIVATE_ROUTE_METADATA,
-  title: "Reset merchant password",
-  description: "Reset the password for your Nabaperks merchant console.",
+  title: "Merchant email sign in",
+  description: "Sign in to the Nabaperks merchant console with an email code.",
 }
 
 const otpCodeLabel = merchantEmailOtpAliasDigitLabel()
 const trustPoints = [
-  "Reset takes about a minute",
+  "Sign-in takes about a minute",
   `We email a ${otpCodeLabel} code to confirm it is you`,
   "Your venue setup and loyalty data stay exactly as they were",
 ]
@@ -61,8 +61,8 @@ export default async function ResetPasswordPage({
         <div className="order-2 grid gap-6 lg:order-1">
           <PageTitle
             eyebrow="Merchant access"
-            title="Reset your console password."
-            description={`Enter your venue email and we will send a ${otpCodeLabel} code. Use it to set a new password and get back to your counter.`}
+            title="Open your console with an email code."
+            description={`Enter your venue email and we will send a ${otpCodeLabel} code. No password is required.`}
             titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"
             descriptionClassName="text-base leading-7 text-pretty"
             className="md:grid-cols-1"
@@ -89,10 +89,11 @@ export default async function ResetPasswordPage({
           <div className="mb-5 grid gap-1">
             <Eyebrow>Merchant console</Eyebrow>
             <h2 className="text-[clamp(1.75rem,4vw,2.25rem)] leading-tight font-extrabold text-balance">
-              Reset password
+              Email code sign-in
             </h2>
             <p className="text-sm leading-6 text-pretty text-muted-foreground">
-              Enter your venue email. We will send a {otpCodeLabel} reset code.
+              Enter your venue email. We will send a {otpCodeLabel} sign-in
+              code.
             </p>
           </div>
           <ResetPasswordForm
@@ -113,13 +114,13 @@ async function recoveryCooldown(email: string) {
   try {
     return await readMerchantOtpResendCooldown({
       email,
-      purpose: "recovery",
+      purpose: "signin",
       requestIdentity: rateLimitIdentityFromHeaders(await headers()),
     })
   } catch (error) {
     // The reset form must stay available when durable rate-limit readback is
     // temporarily unavailable. The POST action still enforces both limits.
-    console.error("Merchant recovery cooldown readback failed", {
+    console.error("Merchant sign-in cooldown readback failed", {
       error: error instanceof Error ? error.message : "Unknown server error",
     })
     return undefined

@@ -33,14 +33,8 @@ test("claim parsing accepts only complete fenced states", () => {
 })
 
 test("email provider idempotency is stable and fixed length", () => {
-  const first = authHookEmailIdempotencyKey("opaque-webhook-id", "lease-1")
-  assert.equal(
-    first,
-    authHookEmailIdempotencyKey("opaque-webhook-id", "lease-1")
-  )
-  assert.notEqual(
-    first,
-    authHookEmailIdempotencyKey("opaque-webhook-id", "lease-2")
-  )
+  const first = authHookEmailIdempotencyKey("opaque-webhook-id")
+  assert.equal(first, authHookEmailIdempotencyKey("opaque-webhook-id"))
+  assert.notEqual(first, authHookEmailIdempotencyKey("another-webhook-id"))
   assert.match(first, /^auth-hook-email:[0-9a-f]{64}$/)
 })

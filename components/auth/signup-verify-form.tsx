@@ -250,7 +250,7 @@ export function SignupVerifyForm({
             next: currentNext,
           })}
         >
-          reset your password
+          request a sign-in code
         </AuthPromptLink>
       </p>
     </div>

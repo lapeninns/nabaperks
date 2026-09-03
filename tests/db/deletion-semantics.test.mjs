@@ -3,6 +3,7 @@ import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
+import { actAsActivatedInternalAdmin } from "./helpers/admin-auth.mjs"
 
 /**
  * db deletion semantics — live-DB tier.
@@ -89,7 +90,8 @@ test(
         })
       } catch (error) {
         refused =
-          error?.code === "23503" || /foreign key|violates/i.test(String(error.message))
+          error?.code === "23503" ||
+          /foreign key|violates/i.test(String(error.message))
       }
       assert.ok(
         refused,
@@ -98,14 +100,22 @@ test(
 
       const [{ n: customersAfter }] = await tx`
         select count(*)::int as n from public.customers where id = ${customerId}`
-      assert.equal(customersAfter, 1, "the customers row (and its ledger) survives the refused delete")
+      assert.equal(
+        customersAfter,
+        1,
+        "the customers row (and its ledger) survives the refused delete"
+      )
 
       // The sanctioned order: remove the customers row first, then the auth user.
       await tx`delete from public.customers where id = ${customerId}`
       await tx`delete from auth.users where id = ${authId}::uuid`
       const [{ n: authAfter }] = await tx`
         select count(*)::int as n from auth.users where id = ${authId}::uuid`
-      assert.equal(authAfter, 0, "the auth user can be deleted once the customers row is gone")
+      assert.equal(
+        authAfter,
+        0,
+        "the auth user can be deleted once the customers row is gone"
+      )
     })
   }
 )
@@ -123,11 +133,27 @@ test(
         select customer_id, merchant_id, channel, consent_status, source, policy_version
         from public.consent_records where id = ${consentId}`
       assert.ok(consent, "the consent row survives the customer-row delete")
-      assert.equal(consent.customer_id, null, "the customer reference is nulled, not cascaded")
+      assert.equal(
+        consent.customer_id,
+        null,
+        "the customer reference is nulled, not cascaded"
+      )
       assert.equal(consent.channel, "email", "channel evidence is retained")
-      assert.equal(consent.consent_status, "opted_in", "status evidence is retained")
-      assert.equal(consent.source, "customer_profile", "source evidence is retained")
-      assert.equal(consent.policy_version, "2026-06-06", "policy version evidence is retained")
+      assert.equal(
+        consent.consent_status,
+        "opted_in",
+        "status evidence is retained"
+      )
+      assert.equal(
+        consent.source,
+        "customer_profile",
+        "source evidence is retained"
+      )
+      assert.equal(
+        consent.policy_version,
+        "2026-06-06",
+        "policy version evidence is retained"
+      )
       assert.ok(consent.merchant_id, "merchant attribution is retained")
     })
   }
@@ -140,7 +166,7 @@ test(
     await inRolledBackTxn(async (tx) => {
       const { venue, customerId, consentId } = await seedLinkedCustomer(tx)
 
-      await tx`select set_config('request.jwt.claim.sub', ${ADMIN_UID}, true)`
+      await actAsActivatedInternalAdmin(tx, ADMIN_UID)
       const [{ result }] = await tx`
         select public.admin_erase_customer_pii(
           ${customerId}::uuid, ${venue.merchant_id}::uuid, 'email',
@@ -151,8 +177,16 @@ test(
         select customer_id, channel, consent_status, policy_version
         from public.consent_records where id = ${consentId}`
       assert.ok(consent, "the consent row is still present after erasure")
-      assert.equal(consent.customer_id, customerId, "erasure keeps the customer reference intact")
-      assert.equal(consent.consent_status, "opted_in", "erasure does not rewrite consent evidence")
+      assert.equal(
+        consent.customer_id,
+        customerId,
+        "erasure keeps the customer reference intact"
+      )
+      assert.equal(
+        consent.consent_status,
+        "opted_in",
+        "erasure does not rewrite consent evidence"
+      )
     })
   }
 )
@@ -166,16 +200,27 @@ test(
 
       const [{ n: stampsBefore }] = await tx`
         select count(*)::int as n from public.stamp_events where membership_id = ${membershipId}`
-      assert.ok(stampsBefore >= 1, "the membership has a stamp ledger before deletion")
+      assert.ok(
+        stampsBefore >= 1,
+        "the membership has a stamp ledger before deletion"
+      )
 
       await tx`delete from public.customers where id = ${customerId}`
 
       const [{ n: memberships }] = await tx`
         select count(*)::int as n from public.customer_memberships where id = ${membershipId}`
-      assert.equal(memberships, 0, "the membership cascades away with the customers row")
+      assert.equal(
+        memberships,
+        0,
+        "the membership cascades away with the customers row"
+      )
       const [{ n: stamps }] = await tx`
         select count(*)::int as n from public.stamp_events where membership_id = ${membershipId}`
-      assert.equal(stamps, 0, "the stamp ledger cascades away with the customers row")
+      assert.equal(
+        stamps,
+        0,
+        "the stamp ledger cascades away with the customers row"
+      )
     })
   }
 )

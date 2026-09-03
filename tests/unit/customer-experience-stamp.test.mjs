@@ -134,6 +134,7 @@ test("a waiting unlocked reward holds the completed card with a reward pointer",
 test("a ready reward wins over the stamp form and carries the profile gate", () => {
   const profileGate = {
     complete: false,
+    dateOfBirthVerified: false,
     needsEmailVerification: false,
     fullName: null,
     dateOfBirth: null,
@@ -171,6 +172,7 @@ test("full cards without an unlocked reward block stamping with recovery copy", 
 
   assert.deepEqual(experience, {
     kind: "unavailable",
-    reason: "We're sorting your reward. Check back shortly, or ask a team member.",
+    reason:
+      "We're sorting your reward. Check back shortly, or ask a team member.",
   })
 })

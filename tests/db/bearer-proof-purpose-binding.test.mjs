@@ -181,7 +181,10 @@ test(
 
       await registerPush(tx, first.customerId, endpoint, keys)
       await assert.rejects(
-        registerPush(tx, second.customerId, endpoint, pushKeys()),
+        () =>
+          tx.savepoint((sp) =>
+            registerPush(sp, second.customerId, endpoint, pushKeys())
+          ),
         (error) => error?.code === "42501"
       )
 
@@ -252,7 +255,10 @@ test(
       where customer_id = ${first.customerId}::uuid and endpoint = ${endpoint}`
 
       await assert.rejects(
-        registerPush(tx, second.customerId, endpoint, pushKeys()),
+        () =>
+          tx.savepoint((sp) =>
+            registerPush(sp, second.customerId, endpoint, pushKeys())
+          ),
         (error) => error?.code === "42501"
       )
 
@@ -263,6 +269,135 @@ test(
         keys
       )
       assert.ok(restoredId, "the original browser can restore its own endpoint")
+    })
+  }
+)
+
+test(
+  "revoked same-customer history requires the existing browser keys",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const customer = await verifiedCustomer(tx, hex64())
+      const endpoint = `https://fcm.googleapis.com/fcm/send/${randomUUID()}`
+      const keys = pushKeys()
+
+      const originalId = await registerPush(
+        tx,
+        customer.customerId,
+        endpoint,
+        keys
+      )
+      await tx`
+        select public.disable_push_subscription_for_customer(
+          ${customer.customerId}::uuid, ${endpoint}, 'customer-disabled')`
+
+      await assert.rejects(
+        () =>
+          tx.savepoint((sp) =>
+            registerPush(sp, customer.customerId, endpoint, pushKeys())
+          ),
+        (error) => error?.code === "42501"
+      )
+
+      const [afterRejected] = await tx`
+        select id, enabled, revoked_at, p256dh, auth
+        from public.push_subscriptions
+        where customer_id = ${customer.customerId}::uuid
+          and endpoint = ${endpoint}`
+      assert.equal(afterRejected.id, originalId)
+      assert.equal(afterRejected.enabled, false)
+      assert.notEqual(afterRejected.revoked_at, null)
+      assert.equal(afterRejected.p256dh, keys.p256dh)
+      assert.equal(afterRejected.auth, keys.auth)
+
+      const restoredId = await registerPush(
+        tx,
+        customer.customerId,
+        endpoint,
+        keys
+      )
+      assert.equal(restoredId, originalId)
+      const [restored] = await tx`
+        select enabled, revoked_at
+        from public.push_subscriptions
+        where id = ${originalId}::uuid`
+      assert.equal(restored.enabled, true)
+      assert.equal(restored.revoked_at, null)
+    })
+  }
+)
+
+test(
+  "touching stale push history cannot reclaim another customer's endpoint",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const first = await verifiedCustomer(tx, hex64())
+      const second = await verifiedCustomer(tx, hex64())
+      const endpoint = `https://fcm.googleapis.com/fcm/send/${randomUUID()}`
+      const keys = pushKeys()
+
+      await registerPush(tx, first.customerId, endpoint, keys)
+      await registerPush(tx, second.customerId, endpoint, keys)
+
+      // A former owner can legitimately disable its historical row. That
+      // mutable touch must not make the stale row authoritative over B's
+      // active ownership.
+      await tx`
+        select public.disable_push_subscription_for_customer(
+          ${first.customerId}::uuid, ${endpoint}, 'stale-history-touch')`
+
+      await assert.rejects(
+        () =>
+          tx.savepoint((sp) =>
+            registerPush(sp, first.customerId, endpoint, pushKeys())
+          ),
+        (error) => error?.code === "42501"
+      )
+
+      const [activeOwner] = await tx`
+        select customer_id
+        from public.push_subscriptions
+        where endpoint = ${endpoint} and enabled and revoked_at is null`
+      assert.equal(activeOwner.customer_id, second.customerId)
+
+      // Once the active row is revoked, immutable revocation chronology still
+      // makes the most recent owner B the continuity anchor.
+      await tx`
+        select public.disable_push_subscription_for_customer(
+          ${second.customerId}::uuid, ${endpoint}, 'current-owner-disabled')`
+
+      const history = await tx`
+        select customer_id, revoked_at, created_at, continuity_version
+        from public.push_subscriptions
+        where endpoint = ${endpoint}
+        order by continuity_version`
+      assert.equal(history.length, 2)
+      assert.equal(
+        history[0].revoked_at.getTime(),
+        history[1].revoked_at.getTime(),
+        "the regression fixture must exercise a transaction-timestamp tie"
+      )
+      assert.equal(
+        history[0].created_at.getTime(),
+        history[1].created_at.getTime(),
+        "the regression fixture must also tie row creation timestamps"
+      )
+      assert.ok(
+        BigInt(history[1].continuity_version) >
+          BigInt(history[0].continuity_version),
+        "the immutable event sequence must retain B as the newest owner"
+      )
+      assert.equal(history[1].customer_id, second.customerId)
+
+      await assert.rejects(
+        () =>
+          tx.savepoint((sp) =>
+            registerPush(sp, first.customerId, endpoint, pushKeys())
+          ),
+        (error) => error?.code === "42501"
+      )
     })
   }
 )
@@ -283,11 +418,68 @@ test(
   }
 )
 
+test(
+  "ambiguous legacy ownership is quarantined instead of guessed",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const customer = await verifiedCustomer(tx, hex64())
+      const endpoint = `https://fcm.googleapis.com/fcm/send/${randomUUID()}`
+      const keys = pushKeys()
+      await registerPush(tx, customer.customerId, endpoint, keys)
+      await tx`
+        update public.push_subscriptions
+        set enabled = false,
+            revoked_at = now(),
+            continuity_trusted = false
+        where customer_id = ${customer.customerId}::uuid
+          and endpoint = ${endpoint}`
+
+      await assert.rejects(
+        () =>
+          tx.savepoint((sp) =>
+            registerPush(sp, customer.customerId, endpoint, keys)
+          ),
+        (error) =>
+          error?.code === "42501" && /reconciliation/i.test(error.message)
+      )
+    })
+  }
+)
+
+test(
+  "push continuity sequence is not callable by API roles",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const [row] = await tx`
+      select
+        has_sequence_privilege(
+          'anon',
+          'public.push_subscription_continuity_version_seq',
+          'USAGE'
+        ) as anon_usage,
+        has_sequence_privilege(
+          'authenticated',
+          'public.push_subscription_continuity_version_seq',
+          'USAGE'
+        ) as authenticated_usage`
+      assert.equal(row.anon_usage, false)
+      assert.equal(row.authenticated_usage, false)
+    })
+  }
+)
+
 function hex64() {
   return (randomUUID() + randomUUID()).replace(/-/g, "")
 }
 
 async function createInvite(tx, merchantId, opts = {}) {
+  const unsubscribeTokenHash = Object.hasOwn(opts, "unsubscribeTokenHash")
+    ? opts.unsubscribeTokenHash
+    : opts.emailHmac
+      ? hex64()
+      : null
   const [row] = await tx`
     select * from public.create_merchant_reward_invite(
       ${merchantId}::uuid, ${opts.emailHmac ?? null}, ${opts.phoneHmac ?? null},
@@ -295,7 +487,7 @@ async function createInvite(tx, merchantId, opts = {}) {
       ${opts.phoneHmac ? "4242" : null},
       'A drink on us', 'A drink on us — thanks for being a regular.',
       null, 30, ${opts.tokenHash ?? hex64()},
-      ${opts.unsubscribeTokenHash ?? (opts.emailHmac ? hex64() : null)})`
+      ${unsubscribeTokenHash})`
   return row
 }
 
@@ -452,6 +644,22 @@ test(
             emailHmac: hex64(),
             tokenHash: hex64(),
             unsubscribeTokenHash: firstClaim,
+          })
+        )
+      )
+
+      const firstUnsubscribe = hex64()
+      await createInvite(tx, venue.merchantId, {
+        emailHmac: hex64(),
+        tokenHash: hex64(),
+        unsubscribeTokenHash: firstUnsubscribe,
+      })
+      await assert.rejects(() =>
+        tx.savepoint((sp) =>
+          createInvite(sp, venue.merchantId, {
+            phoneHmac: hex64(),
+            tokenHash: firstUnsubscribe,
+            unsubscribeTokenHash: null,
           })
         )
       )

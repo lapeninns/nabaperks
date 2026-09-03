@@ -23,7 +23,6 @@ test("merchant OTP outcomes are closed and stable", () => {
     "delivery_unavailable",
     "sent",
     "verification_required",
-    "password_update_failed",
   ])
 })
 
@@ -38,7 +37,6 @@ test("only an editable invalid code sends focus back to the OTP field", () => {
     "throttled",
     "verification_unavailable",
     "delivery_unavailable",
-    "password_update_failed",
   ]) {
     assert.equal(merchantOtpFocusTarget(outcome), "recovery", outcome)
   }
@@ -54,7 +52,6 @@ test("terminal code state survives failed resends until a fresh send succeeds", 
     "superseded",
     "delivery_unavailable",
     "verification_required",
-    "password_update_failed",
   ]) {
     assert.equal(merchantOtpRequiresFreshCode(outcome), true, outcome)
   }

@@ -220,7 +220,7 @@ export const MERCHANT_TERMS_SECTIONS: LegalSection[] = [
   {
     id: "account",
     title: "Merchant account",
-    body: "A merchant account is created with a name, email address, password, and emailed verification code. The merchant is responsible for keeping its sign-in and billing access secure and for ensuring that people using the account are authorised to act for the venue.",
+    body: "A merchant account is created with a name, email address, and emailed verification code. The merchant is responsible for keeping its email, sign-in codes, and billing access secure and for ensuring that people using the account are authorised to act for the venue.",
   },
   {
     id: "price-and-trial",

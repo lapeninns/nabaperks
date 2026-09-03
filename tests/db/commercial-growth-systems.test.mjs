@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto"
 import { after, test } from "node:test"
 
 import { closeDb, db, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
+import { actAsActivatedInternalAdmin } from "./helpers/admin-auth.mjs"
 
 const ready = await isLiveDbReady()
 const skip = ready ? false : "commercial growth proof requires current Supabase"
@@ -88,7 +89,7 @@ test(
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
-      await actAsAuthenticated(tx, ADMIN_USER_ID)
+      await actAsActivatedInternalAdmin(tx, ADMIN_USER_ID)
       const [{ admin_capture_commercial_evidence_case: evidenceId }] = await tx`
         select public.admin_capture_commercial_evidence_case(
           ${MERCHANT_ID}::uuid,

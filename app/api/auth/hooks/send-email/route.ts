@@ -2,12 +2,14 @@ import { NextResponse, type NextRequest } from "next/server"
 
 import {
   hookError,
+  hookRetryError,
   openSignedHookEnvelope,
 } from "@/app/api/auth/hooks/signed-hook-envelope"
 import {
   claimAuthHookDelivery,
   completeAuthHookDelivery,
   failAuthHookDelivery,
+  markAuthHookDeliveryAttempted,
 } from "@/lib/auth/auth-hook-delivery"
 import { authHookEmailIdempotencyKey } from "@/lib/auth/auth-hook-delivery-core"
 import {
@@ -15,6 +17,7 @@ import {
   revokeMerchantEmailOtpAlias,
 } from "@/lib/auth/merchant-email-otp-alias"
 import { runMerchantOtpDelivery } from "@/lib/auth/merchant-email-otp-provider"
+import { isDefinitiveProviderRejection } from "@/lib/notifications/provider-delivery-error"
 import { readEmailOtpConfig, sendEmailOtp } from "@/lib/notifications/resend"
 
 export const runtime = "nodejs"
@@ -55,28 +58,29 @@ export async function POST(request: NextRequest) {
     return hookError(400, "Missing recipient email or code.")
   }
 
-  let leaseId: string | null = null
   try {
     readEmailOtpConfig()
-    const purpose =
-      payload.email_data?.email_action_type === "recovery"
-        ? "recovery"
-        : "signup"
-    const audience =
-      purpose === "recovery" ? "merchant-reset" : "merchant-verify"
+  } catch {
+    return hookError(500, "Email hook is not configured.")
+  }
 
-    // Consume the authenticated webhook id BEFORE creating an alias. Alias
-    // creation supersedes the recipient's live code, so a replay would both
-    // resend and invalidate the code they are currently typing.
-    const claim = await claimAuthHookDelivery("email", envelope.webhookId)
-    if (claim.status === "replay") {
-      return NextResponse.json({})
-    }
-    if (claim.status === "busy") {
-      return hookError(503, "Email delivery is already in progress.")
-    }
-    leaseId = claim.leaseId
+  let claim
+  try {
+    claim = await claimAuthHookDelivery("email", envelope.webhookId)
+  } catch {
+    return hookRetryError("Email delivery could not be claimed.")
+  }
+  if (claim.status === "replay") return NextResponse.json({})
+  if (claim.status === "busy") {
+    return hookRetryError("Email delivery is already in progress.")
+  }
 
+  const purpose =
+    payload.email_data?.email_action_type === "recovery" ? "recovery" : "signup"
+  const audience = purpose === "recovery" ? "merchant-reset" : "merchant-verify"
+  let providerAttempted = false
+
+  try {
     await runMerchantOtpDelivery({
       createAlias: () =>
         createMerchantEmailOtpAlias({
@@ -95,35 +99,39 @@ export async function POST(request: NextRequest) {
           aliasId,
           outcome: "delivery_failed",
         }),
-      sendAlias: (aliasCode) =>
-        sendEmailOtp({
+      sendAlias: async (aliasCode) => {
+        await sendEmailOtp({
           to,
           code: aliasCode,
           audience,
-          idempotencyKey: authHookEmailIdempotencyKey(
-            envelope.webhookId,
-            claim.leaseId
-          ),
-        }),
+          idempotencyKey: authHookEmailIdempotencyKey(envelope.webhookId),
+          beforeProviderAttempt: async () => {
+            await markAuthHookDeliveryAttempted(
+              "email",
+              envelope.webhookId,
+              claim.leaseId
+            )
+            providerAttempted = true
+          },
+        })
+      },
+      shouldRevokeAfterSendError: (error) =>
+        !providerAttempted || isDefinitiveProviderRejection(error),
     })
   } catch (error) {
-    if (!(error instanceof Error)) {
-      throw error
-    }
-
-    if (leaseId) {
-      await failAuthHookDelivery("email", envelope.webhookId, leaseId).catch(
-        () => undefined
-      )
-    }
-    return hookError(500, "Email could not be sent.")
+    const definitelyUnsent =
+      !providerAttempted || isDefinitiveProviderRejection(error)
+    const settle = definitelyUnsent
+      ? failAuthHookDelivery
+      : completeAuthHookDelivery
+    await settle("email", envelope.webhookId, claim.leaseId).catch(
+      () => undefined
+    )
+    return hookRetryError("Email could not be sent.")
   }
 
-  if (!leaseId) {
-    return hookError(500, "Email delivery could not be recorded.")
-  }
   try {
-    await completeAuthHookDelivery("email", envelope.webhookId, leaseId)
+    await completeAuthHookDelivery("email", envelope.webhookId, claim.leaseId)
   } catch {
     return hookError(500, "Email delivery could not be recorded.")
   }

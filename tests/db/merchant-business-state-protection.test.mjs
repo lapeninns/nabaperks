@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto"
 import { after, test } from "node:test"
 
 import { closeDb, db, isLiveDbReady } from "./helpers/db.mjs"
+import { ensureActivatedInternalAdmin } from "./helpers/admin-auth.mjs"
 
 /**
  * db emergency containment — Blocker 2: merchant owners can bypass billing.
@@ -45,7 +46,8 @@ async function withMerchant(claims, run) {
       // Switch to the caller context under test.
       await tx`select set_config('request.jwt.claim.role', ${claims.role}, true)`
       await tx`select set_config('request.jwt.claim.sub', ${claims.sub ?? ownerId}, true)`
-      if (claims.aal) await tx`select set_config('request.jwt.claim.aal', ${claims.aal}, true)`
+      if (claims.aal)
+        await tx`select set_config('request.jwt.claim.aal', ${claims.aal}, true)`
 
       captured = await run(tx, { merchantId, ownerId })
       throw ROLLBACK
@@ -64,7 +66,10 @@ test("an owner cannot flip requires_billing directly", async (t) => {
       await tx`update public.merchants set requires_billing = false where id = ${merchantId}::uuid`
     }),
     (error) => {
-      assert.match(String(error.message), /billing|protected|not authorized|privilege/i)
+      assert.match(
+        String(error.message),
+        /billing|protected|not authorized|privilege/i
+      )
       return true
     }
   )
@@ -78,7 +83,10 @@ test("an owner cannot flip status to active directly", async (t) => {
       await tx`update public.merchants set status = 'active' where id = ${merchantId}::uuid`
     }),
     (error) => {
-      assert.match(String(error.message), /status|protected|not authorized|privilege/i)
+      assert.match(
+        String(error.message),
+        /status|protected|not authorized|privilege/i
+      )
       return true
     }
   )
@@ -87,15 +95,18 @@ test("an owner cannot flip status to active directly", async (t) => {
 test("an owner venue rename keeps the location mirror synchronized", async (t) => {
   if (!(await isLiveDbReady())) return t.skip("no live DB")
 
-  const names = await withMerchant({ role: "authenticated" }, async (tx, { merchantId }) => {
-    await tx`update public.merchants set business_name = 'Renamed Venue' where id = ${merchantId}::uuid`
-    const [row] = await tx`
+  const names = await withMerchant(
+    { role: "authenticated" },
+    async (tx, { merchantId }) => {
+      await tx`update public.merchants set business_name = 'Renamed Venue' where id = ${merchantId}::uuid`
+      const [row] = await tx`
       select merchants.business_name, merchant_locations.name as location_name
       from public.merchants
       join public.merchant_locations on merchant_locations.merchant_id = merchants.id
       where merchants.id = ${merchantId}::uuid`
-    return row
-  })
+      return row
+    }
+  )
 
   assert.deepEqual(names, {
     business_name: "Renamed Venue",
@@ -126,11 +137,15 @@ test("a direct location write cannot create a second venue name", async (t) => {
 test("service_role may change the protected columns", async (t) => {
   if (!(await isLiveDbReady())) return t.skip("no live DB")
 
-  const result = await withMerchant({ role: "service_role" }, async (tx, { merchantId }) => {
-    await tx`update public.merchants set requires_billing = false, status = 'active' where id = ${merchantId}::uuid`
-    const [row] = await tx`select requires_billing, status from public.merchants where id = ${merchantId}::uuid`
-    return row
-  })
+  const result = await withMerchant(
+    { role: "service_role" },
+    async (tx, { merchantId }) => {
+      await tx`update public.merchants set requires_billing = false, status = 'active' where id = ${merchantId}::uuid`
+      const [row] =
+        await tx`select requires_billing, status from public.merchants where id = ${merchantId}::uuid`
+      return row
+    }
+  )
 
   assert.equal(result.requires_billing, false)
   assert.equal(result.status, "active")
@@ -146,8 +161,10 @@ test("an internal admin may change the protected columns", async (t) => {
       await tx`insert into public.internal_admins (user_id, email, is_active)
                values (${ownerId}::uuid, ${`admin-${ownerId.slice(0, 8)}@example.test`}, true)
                on conflict (user_id) do update set is_active = true`
+      await ensureActivatedInternalAdmin(tx, ownerId)
       await tx`update public.merchants set requires_billing = false where id = ${merchantId}::uuid`
-      const [row] = await tx`select requires_billing from public.merchants where id = ${merchantId}::uuid`
+      const [row] =
+        await tx`select requires_billing from public.merchants where id = ${merchantId}::uuid`
       return row
     }
   )

@@ -22,12 +22,9 @@ export function parseAuthHookClaim(value: unknown): AuthHookClaim | null {
   return null
 }
 
-export function authHookEmailIdempotencyKey(
-  webhookId: string,
-  leaseId: string
-) {
+export function authHookEmailIdempotencyKey(webhookId: string) {
   return `auth-hook-email:${createHash("sha256")
-    .update(`${webhookId}:${leaseId}`)
+    .update(webhookId)
     .digest("hex")}`
 }
 

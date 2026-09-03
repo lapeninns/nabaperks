@@ -5,6 +5,7 @@ import {
   type TransactionalEmailInput,
 } from "@/lib/notifications/transactional-email-payload"
 import { resilientFetch } from "@/lib/observability/resilience"
+import { DefinitiveProviderRejectionError } from "@/lib/notifications/provider-delivery-error"
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails"
 
@@ -91,11 +92,13 @@ export async function sendEmailOtp({
   code,
   audience = "customer",
   idempotencyKey,
+  beforeProviderAttempt,
 }: {
   to: string
   code: string
   audience?: EmailOtpAudience
   idempotencyKey?: string
+  beforeProviderAttempt?: () => Promise<void>
 }) {
   const copy = emailOtpCopy[audience]
 
@@ -105,6 +108,7 @@ export async function sendEmailOtp({
     text: `Your Nabaperks verification code is ${code}. Enter it to ${copy.textReason}. It expires shortly. ${copy.footer}`,
     html: otpEmailHtml(code, audience),
     idempotencyKey,
+    beforeProviderAttempt,
   })
 }
 
@@ -115,29 +119,37 @@ export async function sendTransactionalEmail({
   html,
   attachments,
   idempotencyKey,
-}: TransactionalEmailInput) {
+  beforeProviderAttempt,
+}: TransactionalEmailInput & {
+  beforeProviderAttempt?: () => Promise<void>
+}) {
   const { apiKey, from } = readEmailOtpConfig()
 
-  const res = await resilientFetch("resend", RESEND_ENDPOINT, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-      ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+  const res = await resilientFetch(
+    "resend",
+    RESEND_ENDPOINT,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+      },
+      body: JSON.stringify(
+        buildTransactionalEmailPayload(from, {
+          to,
+          subject,
+          text,
+          html,
+          ...(attachments ? { attachments } : {}),
+        })
+      ),
     },
-    body: JSON.stringify(
-      buildTransactionalEmailPayload(from, {
-        to,
-        subject,
-        text,
-        html,
-        ...(attachments ? { attachments } : {}),
-      })
-    ),
-  })
+    { beforeAttempt: beforeProviderAttempt }
+  )
 
   if (!res.ok) {
-    throw new Error(
+    throw new DefinitiveProviderRejectionError(
       `Resend send failed (${res.status}): ${await safeDetail(res)}`
     )
   }

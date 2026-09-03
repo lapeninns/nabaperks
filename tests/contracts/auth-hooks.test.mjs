@@ -13,10 +13,9 @@ function readProjectFile(...segments) {
   return readFileSync(path.join(projectRoot, ...segments), "utf8")
 }
 
-test("Given merchant auth When signup and login are inspected Then passwords pair with one-time email verification", () => {
+test("Given merchant auth When signup and login are inspected Then access is email-code only", () => {
   // Given
   const actions = readProjectFile("app", "(auth)", "actions.ts")
-  const authForm = readProjectFile("components", "auth", "auth-form.tsx")
   const signupDetailsForm = readProjectFile(
     "components",
     "auth",
@@ -46,7 +45,6 @@ test("Given merchant auth When signup and login are inspected Then passwords pai
 
   // When
   const authScreens = [
-    authForm,
     signupDetailsForm,
     signupVerifyForm,
     resetForm,
@@ -54,29 +52,20 @@ test("Given merchant auth When signup and login are inspected Then passwords pai
     login,
   ].join("\n")
 
-  // Then — signup creates a password account confirmed by a one-time code,
-  // login uses the password, and reset re-verifies by code before updateUser.
-  assert.match(actions, /validatePassword/)
-  assert.match(actions, /from "@\/lib\/auth\/password"/)
-  assert.match(actions, /signInWithPassword/)
+  // Then — signup and login both mint sessions from mailbox possession. No
+  // product path accepts, stores, verifies, resets, or replaces a password.
+  assert.match(actions, /signInWithOtp/)
   assert.match(actions, /verifyOtp/)
-  assert.match(actions, /type: "signup"/)
-  assert.match(actions, /type: "recovery"/)
-  assert.match(actions, /resetPasswordForEmail/)
-  assert.match(actions, /updateUser/)
-  assert.doesNotMatch(actions, /signInWithOtp/)
+  assert.match(actions, /type: "email"/)
+  assert.match(actions, /shouldCreateUser: true/)
+  assert.match(actions, /shouldCreateUser: context\.flow === "signup"/)
+  assert.doesNotMatch(actions, /signInWithPassword|resetPasswordForEmail/)
+  assert.doesNotMatch(actions, /auth\.updateUser\(\{\s*password/)
 
-  assert.match(signupDetailsForm, /name="password"/)
-  assert.match(signupDetailsForm, /name="confirmPassword"/)
-  assert.match(signupDetailsForm, /PasswordRequirements/)
-  assert.match(signupDetailsForm, /validatePassword/)
-  assert.match(signupDetailsForm, /autoComplete="new-password"/)
-  assert.match(authForm, /autoComplete="current-password"/)
+  assert.doesNotMatch(signupDetailsForm, /password/i)
   assert.match(signupVerifyForm, /autoComplete="one-time-code"/)
   assert.match(signupVerifyForm, /Verify email/)
-  assert.match(authForm, /Forgot password\?/)
-
-  assert.match(resetForm, /name="password"/)
+  assert.doesNotMatch(resetForm, /name="password"|new-password/)
   assert.match(resetForm, /autoComplete="one-time-code"/)
 
   assert.match(sendEmailHook, /"merchant-verify"/)
@@ -85,9 +74,8 @@ test("Given merchant auth When signup and login are inspected Then passwords pai
 
   assert.match(resend, /Nabaperks merchant/)
   assert.match(resend, /Verify your venue email/)
-  assert.match(resend, /Reset your password/)
 
-  assert.match(login, /email and password/i)
+  assert.match(login, /email code/i)
   assert.doesNotMatch(authScreens, /verification\s+link/i)
 })
 
@@ -154,7 +142,7 @@ test("Given merchant email codes are user-facing When verification is attempted 
   assert.match(finalizationMigration, /force row level security/)
 })
 
-test("Given signup and recovery verification When provider checks run Then aliases finalize only after success and release on retryable failure", () => {
+test("Given signup and sign-in verification When provider checks run Then aliases finalize only after success and release on retryable failure", () => {
   const aliasModule = readProjectFile(
     "lib",
     "auth",
@@ -200,7 +188,7 @@ test("Given signup and recovery verification When provider checks run Then alias
   assert.match(actions, /runMerchantOtpProviderVerification/)
   assert.match(actions, /reserveMerchantEmailOtpAlias[\s\S]*verifyOtp/)
   assert.match(actions, /purpose: "signup"/)
-  assert.match(actions, /purpose: "recovery"/)
+  assert.doesNotMatch(actions, /purpose: "recovery"/)
   assert.match(providerFlow, /classifyMerchantOtpProviderOutcome/)
   assert.match(providerFlow, /outcome === "retryable"[\s\S]*release/)
   assert.match(providerFlow, /finalize\(outcome\)/)

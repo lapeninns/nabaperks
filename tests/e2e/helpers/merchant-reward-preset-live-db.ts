@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js"
 import { expect, type BrowserContext, type Page } from "@playwright/test"
 
 import { connectLocalDb, type Sql } from "./admin-live-db"
+import { signInWithGeneratedEmailOtp } from "./passwordless-auth-session"
 
 const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost"])
 const DEFAULT_BROWSER_URL = "http://127.0.0.1:3146"
@@ -160,7 +161,6 @@ export async function createMerchantRewardPresetLiveDbFixture(
 
   const runId = randomUUID().replaceAll("-", "")
   const email = `merchant-reward-preset-${runId.slice(0, 16)}@example.test`
-  const password = `Nabaperks-${randomUUID()}-1!`
   const name = `Reward preset owner ${runId.slice(0, 8)}`
   const merchantId = randomUUID()
   const locationId = randomUUID()
@@ -172,7 +172,6 @@ export async function createMerchantRewardPresetLiveDbFixture(
   try {
     const created = await admin.auth.admin.createUser({
       email,
-      password,
       email_confirm: true,
       user_metadata: { name },
     })
@@ -316,10 +315,7 @@ export async function createMerchantRewardPresetLiveDbFixture(
         },
       }
     )
-    const signIn = await browserAuth.auth.signInWithPassword({
-      email,
-      password,
-    })
+    const signIn = await signInWithGeneratedEmailOtp(browserAuth, admin, email)
     if (
       signIn.error ||
       signIn.data.user?.id !== userId ||

@@ -1,6 +1,78 @@
 -- Moving a browser push endpoint between customers requires proof that the
 -- caller holds the existing subscription's browser-private key material.
 
+create sequence if not exists public.push_subscription_continuity_version_seq;
+
+alter table public.push_subscriptions
+  add column if not exists continuity_version bigint,
+  add column if not exists continuity_trusted boolean;
+
+-- Seed pre-existing rows once. Active ownership sorts last, while revoked-only
+-- history retains the best chronology available before this invariant existed.
+with ranked as (
+  select subscriptions.id,
+         row_number() over (
+           order by
+             md5(subscriptions.endpoint),
+             (subscriptions.enabled and subscriptions.revoked_at is null),
+             subscriptions.revoked_at nulls first,
+             subscriptions.created_at,
+             subscriptions.id
+         ) as continuity_version,
+         dense_rank() over (
+           partition by subscriptions.endpoint
+           order by
+             (subscriptions.enabled and subscriptions.revoked_at is null) desc,
+             subscriptions.revoked_at desc nulls last,
+             subscriptions.created_at desc
+         ) as endpoint_recency_rank,
+         count(*) over (
+           partition by
+             subscriptions.endpoint,
+             (subscriptions.enabled and subscriptions.revoked_at is null),
+             subscriptions.revoked_at,
+             subscriptions.created_at
+         ) as recency_tie_count,
+         bool_or(
+           subscriptions.enabled and subscriptions.revoked_at is null
+         ) over (partition by subscriptions.endpoint) as has_active_owner
+  from public.push_subscriptions subscriptions
+  where subscriptions.continuity_version is null
+)
+update public.push_subscriptions subscriptions
+set continuity_version = ranked.continuity_version,
+    continuity_trusted = not (
+      not ranked.has_active_owner
+      and ranked.endpoint_recency_rank = 1
+      and ranked.recency_tie_count > 1
+    )
+from ranked
+where subscriptions.id = ranked.id;
+
+select setval(
+  'public.push_subscription_continuity_version_seq',
+  greatest(
+    coalesce((select max(continuity_version) from public.push_subscriptions), 0),
+    1
+  ),
+  exists (select 1 from public.push_subscriptions)
+);
+
+alter table public.push_subscriptions
+  alter column continuity_version
+    set default nextval('public.push_subscription_continuity_version_seq'),
+  alter column continuity_version set not null,
+  alter column continuity_trusted set default true,
+  alter column continuity_trusted set not null;
+
+alter sequence public.push_subscription_continuity_version_seq
+  owned by public.push_subscriptions.continuity_version;
+
+revoke all on sequence public.push_subscription_continuity_version_seq
+  from public, anon, authenticated;
+grant usage, select on sequence public.push_subscription_continuity_version_seq
+  to service_role;
+
 create or replace function public.register_push_subscription_for_customer(
   p_customer_id uuid,
   p_endpoint text,
@@ -45,14 +117,21 @@ begin
   select subscriptions.id,
          subscriptions.customer_id,
          subscriptions.p256dh,
-         subscriptions.auth
+         subscriptions.auth,
+         subscriptions.continuity_trusted
   into existing_owner
   from public.push_subscriptions subscriptions
   where subscriptions.endpoint = trim(p_endpoint)
-  order by subscriptions.updated_at desc,
-           subscriptions.created_at desc,
-           subscriptions.id
+  order by
+           (subscriptions.enabled and subscriptions.revoked_at is null) desc,
+           subscriptions.continuity_version desc
   limit 1;
+
+  if existing_owner.id is not null
+     and not existing_owner.continuity_trusted then
+    raise insufficient_privilege using
+      message = 'Push subscription ownership requires operator reconciliation';
+  end if;
 
   if existing_owner.id is not null
      and existing_owner.customer_id <> p_customer_id
@@ -119,7 +198,10 @@ begin
           else coalesce(revoked_at, now())
         end,
         last_seen_at = now(),
-        failure_reason = null
+        failure_reason = null,
+        continuity_version = nextval(
+          'public.push_subscription_continuity_version_seq'
+        )
     where id = subscription_id;
   end if;
 

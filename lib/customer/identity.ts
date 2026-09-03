@@ -20,6 +20,7 @@ export type CurrentCustomer = {
   emailVerifiedAt: string | null
   fullName: string | null
   dateOfBirth: string | null
+  dateOfBirthVerifiedAt: string | null
   phone: string | null
   phoneLast4: string | null
   phoneCountry: string | null
@@ -27,7 +28,7 @@ export type CurrentCustomer = {
 }
 
 const CUSTOMER_COLUMNS =
-  "id, auth_user_id, email, email_verified_at, full_name, date_of_birth, phone_last4, phone_country, created_at"
+  "id, auth_user_id, email, email_verified_at, full_name, date_of_birth, date_of_birth_verified_at, phone_last4, phone_country, created_at"
 
 export const getCurrentCustomer = cache(
   async (): Promise<CurrentCustomer | null> => {
@@ -134,6 +135,7 @@ function toCurrentCustomer(row: unknown): CurrentCustomer | null {
     emailVerifiedAt: nullableString(row.email_verified_at),
     fullName: nullableString(row.full_name),
     dateOfBirth: nullableString(row.date_of_birth),
+    dateOfBirthVerifiedAt: nullableString(row.date_of_birth_verified_at),
     // Plaintext phone no longer exists at rest; this is always the masked form.
     phone: maskedPhoneFromLast4(phoneLast4),
     phoneLast4,

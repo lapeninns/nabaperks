@@ -25,6 +25,7 @@ import { closeDb, db, isLiveDbReady } from "./helpers/db.mjs"
 // Group A — RPCs the app invokes through the anon-key (user-JWT) client.
 // Confirmed by tracing every `.rpc(...)` call site to its client factory.
 const AUTHENTICATED_DIRECT_RPCS = [
+  "current_auth_session_is_passwordless",
   "admin_adjust_membership_stamps",
   "admin_cancel_reward",
   "admin_confirm_merchant_launch_delivered",
@@ -41,6 +42,7 @@ const AUTHENTICATED_DIRECT_RPCS = [
   "offer_claims_export_for_customer",
   "admin_log_pilot_note",
   "admin_capture_commercial_evidence_case",
+  "admin_verify_customer_date_of_birth",
   "save_loyalty_card",
   "upsert_reward_pool_item",
   "set_reward_pool_item_active",
@@ -53,6 +55,7 @@ const AUTHENTICATED_DIRECT_RPCS = [
   "create_or_get_join_qr",
   "set_qr_active",
   "record_merchant_cancellation_interview",
+  "redeem_self_service_reward",
 ]
 
 // Group B — functions the planner evaluates AS the authenticated caller during
@@ -108,6 +111,11 @@ const MUST_BE_LOCKED = [
   "join_customer_membership_with_first_stamp",
   "issue_self_service_stamp",
 ]
+
+const INTERNAL_ONLY_FUNCTIONS = new Set([
+  "purge_customer_otp_devices_after_erasure",
+  "reject_password_access_tokens",
+])
 
 after(closeDb)
 
@@ -167,7 +175,7 @@ test("authenticated can execute only the allowlist", async (t) => {
   )
 })
 
-test("service_role can execute every public function", async (t) => {
+test("service_role can execute every public function except internal hooks", async (t) => {
   if (!(await isLiveDbReady())) return t.skip("no live DB")
 
   const fns = await publicFunctions()
@@ -175,7 +183,9 @@ test("service_role can execute every public function", async (t) => {
   for (const fn of fns) {
     const [{ can }] = await db()`
       select has_function_privilege('service_role', ${fn.oid}::oid, 'EXECUTE') as can`
-    if (!can) missing.push(fn.proname)
+    if (!can && !INTERNAL_ONLY_FUNCTIONS.has(fn.proname)) {
+      missing.push(fn.proname)
+    }
   }
 
   assert.deepEqual(

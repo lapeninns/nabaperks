@@ -53,6 +53,20 @@ export const customerOtpDispatchBurstWindowMs = 60_000
 export const customerOtpDispatchBurstLimit = 30
 export const customerOtpDispatchSustainedWindowMs = 60 * 60_000
 export const customerOtpDispatchSustainedLimit = 150
+export const customerOtpAnonymousBurstLimit = 24
+export const customerOtpAnonymousSustainedLimit = 120
+
+export function customerOtpAnonymousBurstRateLimitKey(
+  scope: CustomerOtpDispatchScope
+): string {
+  return `customer-otp:send:dispatch-budget:${scope}:anonymous:burst`
+}
+
+export function customerOtpAnonymousSustainedRateLimitKey(
+  scope: CustomerOtpDispatchScope
+): string {
+  return `customer-otp:send:dispatch-budget:${scope}:anonymous:sustained`
+}
 
 export function customerOtpDispatchBurstRateLimitKey(
   scope: CustomerOtpDispatchScope

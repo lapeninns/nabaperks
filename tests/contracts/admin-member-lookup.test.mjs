@@ -57,7 +57,10 @@ test("Given operator search terms When they reach the query Then they pass throu
   const data = readProjectFile("lib", "admin", "data.ts")
   const lookupQuery = readProjectFile("lib", "admin", "lookup-query.ts")
 
-  assert.match(data, /from "\.\/lookup-query"|from "@\/lib\/admin\/lookup-query"/)
+  assert.match(
+    data,
+    /from "\.\/lookup-query"|from "@\/lib\/admin\/lookup-query"/
+  )
   assert.match(data, /contactOrIlikeFilter\(/)
   assert.match(data, /containsPattern\(/)
 
@@ -66,24 +69,33 @@ test("Given operator search terms When they reach the query Then they pass throu
   assert.match(lookupQuery, /export function normaliseLookupTerm/)
 })
 
-// contract-admin-member-lookup R3: the lookup exposes no more customer personal data
-// than the existing masked display.
-test("Given the lookup select strings When embeds are inspected Then customer embeds stay email/phone_last4 only and panels keep masking", () => {
+// contract-admin-member-lookup R3: only the MFA-gated customer support surface may
+// read DOB verification state; every other lookup keeps the existing masked fields.
+test("Given the lookup select strings When embeds are inspected Then DOB fields stay confined to the verification surface and panels keep masking", () => {
   const data = readProjectFile("lib", "admin", "data.ts")
 
   const embeds = [
     ...data.matchAll(/(?<![A-Za-z_])customers(?:!inner)?\(([^)]*)\)/g),
   ]
   assert.ok(embeds.length >= 2, "customer embeds are present")
-  for (const embed of embeds) {
+  for (const [index, embed] of embeds.entries()) {
     const columns = embed[1]
       .split(",")
       .map((column) => column.trim())
       .filter(Boolean)
+    const allowedColumns =
+      index === 0
+        ? new Set([
+            "email",
+            "phone_last4",
+            "date_of_birth",
+            "date_of_birth_verified_at",
+          ])
+        : new Set(["email", "phone_last4"])
     for (const column of columns) {
       assert.ok(
-        column === "email" || column === "phone_last4",
-        `customer embed only selects masked-display fields, got: ${column}`
+        allowedColumns.has(column),
+        `customer embed ${index} selects only its allowed fields, got: ${column}`
       )
     }
   }
@@ -108,12 +120,7 @@ test("Given the lookup select strings When embeds are inspected Then customer em
 // linkable, on both the customers surface (R1) and the privacy surface (R6).
 // Pages own the params; their lookup panels render the controls/pagination.
 test("Given the customers and privacy pages When source is inspected Then query params drive lookup, pagination, and controls", () => {
-  const customersPage = readProjectFile(
-    "app",
-    "admin",
-    "customers",
-    "page.tsx"
-  )
+  const customersPage = readProjectFile("app", "admin", "customers", "page.tsx")
   const privacyPage = readProjectFile("app", "admin", "privacy", "page.tsx")
 
   for (const [name, source] of [
@@ -167,12 +174,7 @@ test("Given the customers and privacy pages When source is inspected Then query 
 // state instead of detonating the whole console segment — pages catch the
 // loader failure, panels render the themed inline state.
 test("Given a lookup read failure When the pages render Then an inline error state is used instead of an unguarded throw", () => {
-  const customersPage = readProjectFile(
-    "app",
-    "admin",
-    "customers",
-    "page.tsx"
-  )
+  const customersPage = readProjectFile("app", "admin", "customers", "page.tsx")
   const privacyPage = readProjectFile("app", "admin", "privacy", "page.tsx")
   const membershipsPanel = readProjectFile(
     "app",
@@ -186,11 +188,7 @@ test("Given a lookup read failure When the pages render Then an inline error sta
     "privacy",
     "data-request-workflow-panel.tsx"
   )
-  const controls = readProjectFile(
-    "components",
-    "admin",
-    "lookup-controls.tsx"
-  )
+  const controls = readProjectFile("components", "admin", "lookup-controls.tsx")
 
   assert.match(customersPage, /getAdminCustomers\(lookup\)\.catch\(/)
   assert.match(privacyPage, /getAdminPrivacySupportRows\(lookup\)\.catch\(/)

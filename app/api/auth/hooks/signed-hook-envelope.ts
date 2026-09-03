@@ -11,6 +11,17 @@ export function hookError(httpCode: number, message: string) {
   )
 }
 
+/** Retryable hook response understood by GoTrue's bounded HTTP-hook retry. */
+export function hookRetryError(message: string, retryAfterSeconds = 1) {
+  return NextResponse.json(
+    { error: { http_code: 503, message } },
+    {
+      status: 503,
+      headers: { "Retry-After": String(retryAfterSeconds) },
+    }
+  )
+}
+
 export type SignedHookEnvelope =
   | {
       readonly ok: true

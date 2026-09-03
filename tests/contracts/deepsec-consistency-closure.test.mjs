@@ -75,17 +75,37 @@ test("stale PII retention locks and repeats eligibility before side effects", ()
 })
 
 test("recycled-number takeover remains an explicit, time-bounded accepted risk", () => {
-  const register = read(
-    "docs",
-    "operations",
-    "security-risk-register.md"
-  )
+  const register = read("docs", "operations", "security-risk-register.md")
 
-  assert.match(register, /SEC-RISK-001: recycled mobile number customer access/i)
-  assert.match(register, /Status \| Accepted/)
-  assert.match(register, /Risk owner \| `info@lapeninns\.com`/)
-  assert.match(register, /Review due \| 21 October 2026/)
+  assert.match(
+    register,
+    /SEC-RISK-001: recycled mobile number customer access/i
+  )
+  assert.match(register, /\| Status\s+\| Accepted\s+\|/)
+  assert.match(register, /\| Risk owner\s+\| `info@lapeninns\.com`\s+\|/)
+  assert.match(register, /\| Review due\s+\| 21 October 2026\s+\|/)
   assert.match(register, /retain phone-only customer access/i)
-  assert.match(register, /may therefore inherit the previous holder's customer session/i)
+  assert.match(
+    register,
+    /may therefore inherit the previous holder's customer session/i
+  )
   assert.match(register, /do not solve number\s+reassignment/i)
+})
+
+test("static QR presence limits remain an explicit, time-bounded accepted risk", () => {
+  const register = read("docs", "operations", "security-risk-register.md")
+  const staticQrRisk = register.split("## SEC-RISK-002:")[1] ?? ""
+
+  assert.match(staticQrRisk, /static QR cannot prove venue presence/i)
+  assert.match(staticQrRisk, /\| Status\s+\| Accepted\s+\|/)
+  assert.match(staticQrRisk, /\| Review due\s+\| 2 December 2026\s+\|/)
+  assert.match(staticQrRisk, /retain its stable static venue QR/i)
+  assert.match(
+    staticQrRisk,
+    /indistinguishable from a legitimate in-venue request/i
+  )
+  assert.match(
+    staticQrRisk,
+    /Client GPS alone is not\s+an acceptable closure condition/i
+  )
 })

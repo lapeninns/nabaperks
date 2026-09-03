@@ -1,10 +1,12 @@
 import { createHmac } from "node:crypto"
 
 import { createServerClient } from "@supabase/ssr"
+import { createClient } from "@supabase/supabase-js"
 import type { BrowserContext } from "@playwright/test"
 
+import { signInWithGeneratedEmailOtp } from "./passwordless-auth-session"
+
 const ADMIN_EMAIL = "admin@nabaperks.test"
-const ADMIN_PASSWORD = "NabaperksDemo1!"
 const BROWSER_COOKIE_URL =
   process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3146"
 
@@ -13,6 +15,7 @@ type BrowserCookie = Parameters<BrowserContext["addCookies"]>[0][number]
 type RequiredEnvName =
   | "NEXT_PUBLIC_SUPABASE_URL"
   | "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+  | "SUPABASE_SERVICE_ROLE_KEY"
 
 type SupabaseCookieOptions = {
   readonly expires?: Date
@@ -70,8 +73,9 @@ async function createSeededAdminAal2Session(): Promise<{
   readonly cleanup: AdminMfaCleanup
 }> {
   const cookieJar = new Map<string, StoredCookie>()
+  const supabaseUrl = requiredLocalSupabaseUrl()
   const supabase = createServerClient(
-    requiredEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    supabaseUrl,
     requiredEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
     {
       cookies: {
@@ -97,10 +101,11 @@ async function createSeededAdminAal2Session(): Promise<{
     }
   )
 
-  const signIn = await supabase.auth.signInWithPassword({
-    email: ADMIN_EMAIL,
-    password: ADMIN_PASSWORD,
-  })
+  const signIn = await signInWithGeneratedEmailOtp(
+    supabase,
+    localServiceClient(supabaseUrl),
+    ADMIN_EMAIL
+  )
   if (signIn.error) {
     throw new Error(`seeded admin sign-in: ${signIn.error.message}`)
   }
@@ -135,6 +140,12 @@ async function createSeededAdminAal2Session(): Promise<{
     )
   }
 
+  await setTrustedTestFactorBinding(
+    supabaseUrl,
+    signIn.data.user.id,
+    enrollment.id
+  )
+
   return {
     cookies: Array.from(cookieJar, ([name, cookie]) =>
       browserCookie(name, cookie)
@@ -146,6 +157,42 @@ async function createSeededAdminAal2Session(): Promise<{
       )
     },
   }
+}
+
+function requiredLocalSupabaseUrl(): string {
+  const value = requiredEnv("NEXT_PUBLIC_SUPABASE_URL")
+  const parsed = new URL(value)
+  const hostname = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "")
+  if (!new Set(["127.0.0.1", "localhost", "::1"]).has(hostname)) {
+    throw new Error(
+      "Seeded admin MFA E2E may only bind trusted factors in local Supabase."
+    )
+  }
+  return value
+}
+
+async function setTrustedTestFactorBinding(
+  supabaseUrl: string,
+  userId: string,
+  factorId: string
+): Promise<void> {
+  const admin = localServiceClient(supabaseUrl)
+  const { data, error } = await admin.rpc("activate_internal_admin_mfa", {
+    p_user_id: userId,
+    p_factor_id: factorId,
+  })
+
+  if (error || !data) {
+    throw new Error(
+      `Seeded admin trusted-factor activation failed: ${error?.message ?? "activation returned false"}`
+    )
+  }
+}
+
+function localServiceClient(supabaseUrl: string) {
+  return createClient(supabaseUrl, requiredEnv("SUPABASE_SERVICE_ROLE_KEY"), {
+    auth: { persistSession: false },
+  })
 }
 
 function requiredEnv(name: RequiredEnvName): string {
@@ -237,7 +284,9 @@ function totpCode(secret: string, now: number = Date.now()): string {
   message.writeUInt32BE(Math.floor(counter / 0x1_0000_0000), 0)
   message.writeUInt32BE(counter % 0x1_0000_0000, 4)
 
-  const digest = createHmac("sha1", decodeBase32(secret)).update(message).digest()
+  const digest = createHmac("sha1", decodeBase32(secret))
+    .update(message)
+    .digest()
   const offset = byteAt(digest, digest.length - 1) & 0xf
   const binary =
     ((byteAt(digest, offset) & 0x7f) << 24) |

@@ -11,6 +11,7 @@ create table if not exists public.reward_cycle_heal_failures (
 );
 
 alter table public.reward_cycle_heal_failures enable row level security;
+alter table public.reward_cycle_heal_failures force row level security;
 revoke all on table public.reward_cycle_heal_failures
   from public, anon, authenticated;
 grant select on table public.reward_cycle_heal_failures to service_role;

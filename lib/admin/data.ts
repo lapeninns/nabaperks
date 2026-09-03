@@ -10,10 +10,7 @@ import {
   type AdminPageMeta,
 } from "./lookup-query"
 
-export {
-  getAdminBillingRecords,
-  type AdminBillingRecord,
-} from "./billing-data"
+export { getAdminBillingRecords, type AdminBillingRecord } from "./billing-data"
 export { getAdminPilotMerchants, getAdminPilotReport } from "./pilot-report"
 
 /**
@@ -86,7 +83,7 @@ export async function getAdminCustomers(lookup: AdminLookupQuery = {}) {
   let query = supabase
     .from("customer_memberships")
     .select(
-      "id, current_stamp_count, total_stamps_earned, total_rewards_redeemed, created_at, customers!inner(email, phone_last4), merchants!inner(business_name)",
+      "id, customer_id, current_stamp_count, total_stamps_earned, total_rewards_redeemed, created_at, customers!inner(email, phone_last4, date_of_birth, date_of_birth_verified_at), merchants!inner(business_name)",
       { count: "exact" }
     )
 
@@ -313,9 +310,12 @@ export async function getAdminReferralOps(): Promise<AdminReferralOpsRow[]> {
       venueName: typeof r.venue_name === "string" ? r.venue_name : null,
       status: String(r.status ?? ""),
       holdReason: typeof r.hold_reason === "string" ? r.hold_reason : null,
-      referrerEmail: typeof r.referrer_email === "string" ? r.referrer_email : null,
-      referredEmail: typeof r.referred_email === "string" ? r.referred_email : null,
-      attributedAt: typeof r.attributed_at === "string" ? r.attributed_at : null,
+      referrerEmail:
+        typeof r.referrer_email === "string" ? r.referrer_email : null,
+      referredEmail:
+        typeof r.referred_email === "string" ? r.referred_email : null,
+      attributedAt:
+        typeof r.attributed_at === "string" ? r.attributed_at : null,
       qualifiedAt: typeof r.qualified_at === "string" ? r.qualified_at : null,
       bonusAwardedAt:
         typeof r.bonus_awarded_at === "string" ? r.bonus_awarded_at : null,

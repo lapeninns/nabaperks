@@ -87,8 +87,8 @@ export default async function SignupVerifyPage({
           <div className="border-t-2 border-dashed border-border pt-5">
             <p className="max-w-xl text-sm leading-6 font-bold text-pretty">
               A code confirms this email before venue setup. If you have used
-              this address before, log in or reset your password instead. Keep
-              this tab open while you check your inbox.
+              this address before, request a sign-in code instead. Keep this tab
+              open while you check your inbox.
             </p>
           </div>
         </div>

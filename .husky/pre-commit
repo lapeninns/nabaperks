@@ -1,3 +1,4 @@
+pnpm secrets:check
 pnpm exec lint-staged
 pnpm debt:check
 pnpm agents:check

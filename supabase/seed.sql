@@ -517,20 +517,23 @@ on conflict (id) do update
 set status = excluded.status,
     current_period_end = excluded.current_period_end;
 
-insert into public.customers (id, auth_user_id, email)
+insert into public.customers (id, auth_user_id, email, date_of_birth)
 values
   (
     '15000000-0000-0000-0000-000000000001',
     '00000000-0000-0000-0000-000000000301',
-    'sam.taylor@example.test'
+    'sam.taylor@example.test',
+    date '1990-01-01'
   ),
   (
     '15000000-0000-0000-0000-000000000002',
     '00000000-0000-0000-0000-000000000302',
-    'riley.morgan@example.test'
+    'riley.morgan@example.test',
+    date '1990-01-01'
   )
 on conflict (id) do update
-set email = excluded.email;
+set email = excluded.email,
+    date_of_birth = excluded.date_of_birth;
 
 insert into public.customer_memberships (
   id,

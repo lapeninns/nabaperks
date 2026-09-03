@@ -7,6 +7,7 @@ test("Given an existing under-age DOB When profile completion runs Then the prof
   const completion = profileCompletionFrom({
     fullName: "Young Customer",
     dateOfBirth: "2016-01-01",
+    dateOfBirthVerifiedAt: null,
     email: null,
     emailVerifiedAt: null,
   })
@@ -19,6 +20,7 @@ test("Given an adult DOB without verified email When profile completion runs The
   const completion = profileCompletionFrom({
     fullName: "Adult Customer",
     dateOfBirth: "1990-01-01",
+    dateOfBirthVerifiedAt: null,
     email: null,
     emailVerifiedAt: null,
   })
@@ -31,11 +33,26 @@ test("Given an adult profile and verified email When profile completion runs The
   const completion = profileCompletionFrom({
     fullName: "Adult Customer",
     dateOfBirth: "1990-01-01",
+    dateOfBirthVerifiedAt: "2026-07-10T11:00:00.000Z",
     email: "adult@example.test",
     emailVerifiedAt: "2026-07-10T12:00:00.000Z",
   })
 
   assert.equal(completion.complete, true)
+  assert.equal(completion.dateOfBirthVerified, true)
   assert.equal(completion.emailVerified, true)
   assert.equal(completion.emailLocked, true)
+})
+
+test("Given complete self-asserted details When reward readiness runs Then DOB remains unverified", () => {
+  const completion = profileCompletionFrom({
+    fullName: "Adult Customer",
+    dateOfBirth: "1990-01-01",
+    dateOfBirthVerifiedAt: null,
+    email: "adult@example.test",
+    emailVerifiedAt: "2026-07-10T12:00:00.000Z",
+  })
+
+  assert.equal(completion.complete, true, "profile editing remains complete")
+  assert.equal(completion.dateOfBirthVerified, false)
 })

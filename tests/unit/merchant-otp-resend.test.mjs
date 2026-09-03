@@ -20,14 +20,14 @@ const input = {
   requestIdentity: "trusted-request-identity",
 }
 
-test("resend keys normalize email and separate signup from recovery", () => {
+test("resend keys normalize email and separate signup from sign-in", () => {
   const signup = merchantOtpResendKeys(input)
-  const recovery = merchantOtpResendKeys({ ...input, purpose: "recovery" })
+  const signin = merchantOtpResendKeys({ ...input, purpose: "signin" })
 
   assert.match(signup.cooldown, /operator@venue\.test/)
   assert.match(signup.window, /operator@venue\.test/)
-  assert.notEqual(signup.cooldown, recovery.cooldown)
-  assert.notEqual(signup.window, recovery.window)
+  assert.notEqual(signup.cooldown, signin.cooldown)
+  assert.notEqual(signup.window, signin.window)
   assert.notEqual(signup.cooldown, signup.window)
 })
 
@@ -183,10 +183,10 @@ test("rotating the source identity cannot buy a fresh recipient allowance", () =
 
 test("a different mailbox or purpose is a different recipient budget", () => {
   const signup = merchantOtpResendKeys({ ...input, purpose: "signup" })
-  const recovery = merchantOtpResendKeys({ ...input, purpose: "recovery" })
+  const signin = merchantOtpResendKeys({ ...input, purpose: "signin" })
   const other = merchantOtpResendKeys({ ...input, email: "other@example.test" })
 
-  assert.notEqual(signup.recipientWindow, recovery.recipientWindow)
+  assert.notEqual(signup.recipientWindow, signin.recipientWindow)
   assert.notEqual(signup.recipientWindow, other.recipientWindow)
 })
 

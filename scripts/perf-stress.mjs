@@ -24,13 +24,14 @@ import {
 const projectDir = process.cwd()
 const MERCHANT_ID = "10000000-0000-0000-0000-000000000001"
 const MERCHANT_EMAIL = "amanshresthaaaaa+32@gmail.com"
-const MERCHANT_PASSWORD = "NabaperksDemo1!"
 const CUSTOMERS_PAGE_SIZE = 15
-const RUNS = Math.max(1, Number.parseInt(process.env.PERF_STRESS_RUNS ?? "3", 10))
-const APP_URL = (process.env.PERF_STRESS_APP_URL ?? "http://localhost:3000").replace(
-  /\/$/,
-  ""
+const RUNS = Math.max(
+  1,
+  Number.parseInt(process.env.PERF_STRESS_RUNS ?? "3", 10)
 )
+const APP_URL = (
+  process.env.PERF_STRESS_APP_URL ?? "http://localhost:3000"
+).replace(/\/$/, "")
 
 const env = {
   ...readEnvFile(join(projectDir, ".env.local")),
@@ -42,9 +43,12 @@ async function main() {
   const dbUrl = env.SUPABASE_DB_URL?.trim()
   const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL?.trim()
   const anonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()
+  const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY?.trim()
 
-  if (!dbUrl || !supabaseUrl || !anonKey) {
-    console.error("SUPABASE_DB_URL, NEXT_PUBLIC_SUPABASE_URL, and NEXT_PUBLIC_SUPABASE_ANON_KEY are required.")
+  if (!dbUrl || !supabaseUrl || !anonKey || !serviceRoleKey) {
+    console.error(
+      "SUPABASE_DB_URL, NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY are required."
+    )
     process.exit(1)
   }
 
@@ -55,7 +59,10 @@ async function main() {
     await verifyStressFixture(sql)
   } catch (error) {
     if (isDatabaseConnectionRefused(error)) {
-      printDatabaseConnectionHelp(dbUrl, "pnpm db:supabase:start && pnpm db:reseed:stress")
+      printDatabaseConnectionHelp(
+        dbUrl,
+        "pnpm db:supabase:start && pnpm db:reseed:stress"
+      )
     }
     throw error
   } finally {
@@ -66,12 +73,27 @@ async function main() {
     auth: { persistSession: false, autoRefreshToken: false },
   })
 
-  const { error: signInError } = await authClient.auth.signInWithPassword({
-    email: MERCHANT_EMAIL,
-    password: MERCHANT_PASSWORD,
+  const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
   })
-  if (signInError) {
-    throw new Error(`Merchant sign-in failed: ${signInError.message}`)
+  const generated = await adminClient.auth.admin.generateLink({
+    type: "magiclink",
+    email: MERCHANT_EMAIL,
+  })
+  const tokenHash = generated.data.properties?.hashed_token
+  if (generated.error || !tokenHash) {
+    throw new Error(
+      `Merchant email-code generation failed: ${generated.error?.message ?? "missing token"}`
+    )
+  }
+  const signIn = await authClient.auth.verifyOtp({
+    token_hash: tokenHash,
+    type: "magiclink",
+  })
+  if (signIn.error) {
+    throw new Error(
+      `Merchant email-code sign-in failed: ${signIn.error.message}`
+    )
   }
 
   const queryResults = await runQueryBenchmarks(authClient)
@@ -83,7 +105,9 @@ async function main() {
   } else if (!Array.isArray(httpResults) && httpResults.skipped) {
     console.log(`\nHTTP benchmarks skipped: ${httpResults.reason}`)
   } else {
-    console.log("\nHTTP benchmarks skipped (dev server not reachable). Start with: pnpm dev")
+    console.log(
+      "\nHTTP benchmarks skipped (dev server not reachable). Start with: pnpm dev"
+    )
   }
 }
 
@@ -100,7 +124,9 @@ async function verifyStressFixture(sql) {
   `
 
   if (!row) {
-    throw new Error("Old Crown Girton merchant fixture not found. Run pnpm db:setup first.")
+    throw new Error(
+      "Old Crown Girton merchant fixture not found. Run pnpm db:setup first."
+    )
   }
 
   if (row.owner_email !== MERCHANT_EMAIL) {
@@ -130,7 +156,8 @@ async function runQueryBenchmarks(client) {
         .select("*", { count: "exact", head: true })
         .eq("merchant_id", MERCHANT_ID)
       if (error) throw error
-      if ((count ?? 0) < 1000) throw new Error(`Unexpected member count: ${count}`)
+      if ((count ?? 0) < 1000)
+        throw new Error(`Unexpected member count: ${count}`)
       return count
     }),
     await bench("Members page 1 (15 rows)", RUNS, async () => {
@@ -239,7 +266,11 @@ async function runHttpBenchmarks() {
     await page.waitForURL((url) => url.pathname === "/app", { timeout: 30_000 })
 
     const routes = [
-      { name: "Dashboard /app", path: "/app", ready: /Your venue|Old Crown Girton/i },
+      {
+        name: "Dashboard /app",
+        path: "/app",
+        ready: /Your venue|Old Crown Girton/i,
+      },
       {
         name: "Members /app/customers",
         path: "/app/customers",
@@ -266,7 +297,9 @@ async function runHttpBenchmarks() {
     for (const route of routes) {
       results.push(
         await bench(route.name, RUNS, async () => {
-          await page.goto(`${APP_URL}${route.path}`, { waitUntil: "domcontentloaded" })
+          await page.goto(`${APP_URL}${route.path}`, {
+            waitUntil: "domcontentloaded",
+          })
           await page.getByText(route.ready).first().waitFor({ timeout: 30_000 })
         })
       )
@@ -280,7 +313,9 @@ async function runHttpBenchmarks() {
 
 async function isAppReachable() {
   try {
-    const response = await fetch(`${APP_URL}/login`, { signal: AbortSignal.timeout(3000) })
+    const response = await fetch(`${APP_URL}/login`, {
+      signal: AbortSignal.timeout(3000),
+    })
     return response.ok
   } catch {
     return false

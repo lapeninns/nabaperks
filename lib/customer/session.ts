@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto"
 
 import { cache } from "react"
 
-import { cookies } from "next/headers"
+import { cookies, headers } from "next/headers"
 
 import { customerPhoneHmac } from "@/lib/customer/phone-pii"
 import {
@@ -21,6 +21,7 @@ import {
 } from "@/lib/customer/session-cookie"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import { requiredCustomerSessionSecret } from "@/lib/security/customer-session-secret"
+import { customerDeviceHashFromHeaders } from "@/lib/security/rate-limit"
 
 export const pendingPhoneCookieName = "nabaperks_pending_phone"
 export const pendingEmailCookieName = "nabaperks_pending_email"
@@ -188,12 +189,19 @@ export async function clearCustomerSession(): Promise<void> {
 async function registerCustomerSession(
   payload: CustomerSessionPayload
 ): Promise<void> {
+  const deviceHash = customerDeviceHashFromHeaders(await headers())
+  if (!deviceHash) {
+    throw new Error(
+      "Unable to register customer session without a verified device."
+    )
+  }
   const supabase = createSupabaseServiceRoleClient()
   const expiresAt = new Date(payload.expiresAt * 1000).toISOString()
   const { error } = await supabase.rpc("register_customer_session", {
     p_customer_id: payload.customerId,
     p_session_id: payload.sessionId,
     p_expires_at: expiresAt,
+    p_device_hash: deviceHash,
   })
 
   if (error) {
@@ -204,10 +212,13 @@ async function registerCustomerSession(
 async function isCustomerSessionActive(
   payload: CustomerSessionPayload
 ): Promise<boolean> {
+  const deviceHash = customerDeviceHashFromHeaders(await headers())
+  if (!deviceHash) return false
   const supabase = createSupabaseServiceRoleClient()
   const { data, error } = await supabase.rpc("touch_customer_session", {
     p_customer_id: payload.customerId,
     p_session_id: payload.sessionId,
+    p_device_hash: deviceHash,
   })
 
   if (error) {

@@ -26,9 +26,12 @@ after(async () => {
   await closeDb()
 })
 
-test("both aggregation RPCs exist with service-role-only ACL", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    const rows = await tx`
+test(
+  "both aggregation RPCs exist with service-role-only ACL",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const rows = await tx`
       select
         proname,
         prosecdef,
@@ -41,20 +44,33 @@ test("both aggregation RPCs exist with service-role-only ACL", { skip }, async (
         and proname in ('get_merchant_dashboard_series', 'get_merchant_activity_event_counts')
       order by proname
     `
-    assert.equal(
-      rows.length,
-      2,
-      "get_merchant_dashboard_series and get_merchant_activity_event_counts must exist (RED until the migration lands)"
-    )
-    for (const row of rows) {
-      assert.equal(row.prosecdef, true, `${row.proname} must be SECURITY DEFINER`)
-      assert.equal(row.provolatile, "s", `${row.proname} must be STABLE`)
-      assert.equal(row.service_role_can_execute, true, `${row.proname}: service_role executes`)
-      assert.equal(row.authenticated_can_execute, false, `${row.proname}: authenticated denied`)
-      assert.equal(row.anon_can_execute, false, `${row.proname}: anon denied`)
-    }
-  })
-})
+      assert.equal(
+        rows.length,
+        2,
+        "get_merchant_dashboard_series and get_merchant_activity_event_counts must exist (RED until the migration lands)"
+      )
+      for (const row of rows) {
+        assert.equal(
+          row.prosecdef,
+          true,
+          `${row.proname} must be SECURITY DEFINER`
+        )
+        assert.equal(row.provolatile, "s", `${row.proname} must be STABLE`)
+        assert.equal(
+          row.service_role_can_execute,
+          true,
+          `${row.proname}: service_role executes`
+        )
+        assert.equal(
+          row.authenticated_can_execute,
+          false,
+          `${row.proname}: authenticated denied`
+        )
+        assert.equal(row.anon_can_execute, false, `${row.proname}: anon denied`)
+      }
+    })
+  }
+)
 
 test(
   "dashboard series aggregates exact per-London-day counts, past the row cap",
@@ -80,15 +96,27 @@ test(
       )
 
       const byDay = new Map(rows.map((row) => [row.day, row]))
-      assert.equal(byDay.get(fixture.dayKey(-1))?.joins, 2, "two joins yesterday")
+      assert.equal(
+        byDay.get(fixture.dayKey(-1))?.joins,
+        2,
+        "two joins yesterday"
+      )
       assert.equal(byDay.get(fixture.dayKey(0))?.joins, 1, "one join today")
       assert.equal(
         byDay.get(fixture.dayKey(0))?.stamps,
         1050,
         "stamp count must be exact past the 1,000-row PostgREST cap"
       )
-      assert.equal(byDay.get(fixture.dayKey(-2))?.rewards, 1, "one redemption two days ago")
-      assert.equal(byDay.get(fixture.dayKey(0))?.rewards, 1, "one redemption today")
+      assert.equal(
+        byDay.get(fixture.dayKey(-2))?.rewards,
+        1,
+        "one redemption two days ago"
+      )
+      assert.equal(
+        byDay.get(fixture.dayKey(0))?.rewards,
+        1,
+        "one redemption today"
+      )
     })
   }
 )
@@ -118,11 +146,21 @@ test(
         `)
       )
 
-      const byName = Object.fromEntries(rows.map((row) => [row.event_name, row.event_count]))
-      assert.equal(byName.stamp_issued, 1100, "must be exact past the 1,000-row cap")
+      const byName = Object.fromEntries(
+        rows.map((row) => [row.event_name, row.event_count])
+      )
+      assert.equal(
+        byName.stamp_issued,
+        1100,
+        "must be exact past the 1,000-row cap"
+      )
       assert.equal(byName.customer_joined, 3)
       assert.equal(byName.reward_redeemed, 2)
-      assert.equal(byName.qr_created, undefined, "names outside the allowlist stay out")
+      assert.equal(
+        byName.qr_created,
+        undefined,
+        "names outside the allowlist stay out"
+      )
 
       const emptyAllowlist = await asServiceRole(tx, (sp) =>
         sp.unsafe(`
@@ -131,7 +169,11 @@ test(
           )
         `)
       )
-      assert.equal(emptyAllowlist.length, 0, "an empty allowlist returns zero rows")
+      assert.equal(
+        emptyAllowlist.length,
+        0,
+        "an empty allowlist returns zero rows"
+      )
     })
   }
 )
@@ -162,41 +204,40 @@ test(
       }
       await tx`select set_config('request.jwt.claim.role', 'service_role', true)`
       await tx`select set_config('request.jwt.claim.sub', '', true)`
-      assert.ok(refused, "a non-owner authenticated caller must be refused in-body")
+      assert.ok(
+        refused,
+        "a non-owner authenticated caller must be refused in-body"
+      )
     })
   }
 )
 
-test(
-  "migration replays idempotently and clamps p_days",
-  { skip },
-  async () => {
-    assert.ok(
-      existsSync(MIGRATION_PATH),
-      "migration 20260710091000_merchant_analytics_rpcs.sql must exist (RED until implemented)"
-    )
-    const migrationSql = readFileSync(MIGRATION_PATH, "utf8")
+test("migration replays idempotently and clamps p_days", { skip }, async () => {
+  assert.ok(
+    existsSync(MIGRATION_PATH),
+    "migration 20260710091000_merchant_analytics_rpcs.sql must exist (RED until implemented)"
+  )
+  const migrationSql = readFileSync(MIGRATION_PATH, "utf8")
 
-    await inRolledBackTxn(async (tx) => {
-      await tx.unsafe(migrationSql)
-      await tx.unsafe(migrationSql) // replay must be a no-op, not an error
+  await inRolledBackTxn(async (tx) => {
+    await tx.unsafe(migrationSql)
+    await tx.unsafe(migrationSql) // replay must be a no-op, not an error
 
-      const fixture = await createAnalyticsFixture(tx)
-      await seedJoin(tx, fixture, fixture.dayIso(0), 1)
+    const fixture = await createAnalyticsFixture(tx)
+    await seedJoin(tx, fixture, fixture.dayIso(0), 1)
 
-      // p_days far past the clamp must not error and must still include today.
-      const rows = await asServiceRole(tx, (sp) =>
-        sp.unsafe(`
+    // p_days far past the clamp must not error and must still include today.
+    const rows = await asServiceRole(tx, (sp) =>
+      sp.unsafe(`
           select day::text as day from public.get_merchant_dashboard_series('${fixture.merchantId}'::uuid, 5000)
         `)
-      )
-      assert.ok(
-        rows.some((row) => row.day === fixture.dayKey(0)),
-        "clamped p_days still returns today's bucket"
-      )
-    })
-  }
-)
+    )
+    assert.ok(
+      rows.some((row) => row.day === fixture.dayKey(0)),
+      "clamped p_days still returns today's bucket"
+    )
+  })
+})
 
 async function asServiceRole(tx, fn) {
   return tx.savepoint(async (sp) => {
@@ -265,8 +306,14 @@ async function createAnalyticsFixture(tx) {
     )
   `
   await tx`
-    insert into public.customers (id, email)
-    values (${fixture.customerId}::uuid, ${`an-${fixture.customerId.slice(0, 8)}@example.test`})
+    insert into public.customers (
+      id, email, email_verified_at, full_name, date_of_birth
+    )
+    values (
+      ${fixture.customerId}::uuid,
+      ${`an-${fixture.customerId.slice(0, 8)}@example.test`},
+      now(), 'Analytics Customer', date '1990-01-01'
+    )
   `
   await tx`
     insert into public.customer_memberships (

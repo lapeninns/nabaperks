@@ -116,13 +116,20 @@ test(
 async function createInvite(tx, merchantId, opts = {}) {
   const emailHmac = opts.emailHmac ?? null
   const phoneHmac = opts.phoneHmac ?? null
+  const claimTokenHash = opts.tokenHash ?? hex64()
+  const unsubscribeTokenHash = Object.hasOwn(opts, "unsubscribeTokenHash")
+    ? opts.unsubscribeTokenHash
+    : emailHmac
+      ? hex64()
+      : null
   const [row] = await tx`
     select * from public.create_bounded_merchant_reward_invite(
       ${merchantId}::uuid, ${emailHmac}, ${phoneHmac},
       ${emailHmac ? "r***@example.com" : null}, ${phoneHmac ? "4242" : null},
       ${opts.name ?? "A drink on us"},
       ${opts.terms ?? "A drink on us — thanks for being a regular."},
-      ${opts.message ?? null}, ${opts.days ?? 30}, ${opts.tokenHash ?? hex64()})`
+      ${opts.message ?? null}, ${opts.days ?? 30}, ${claimTokenHash},
+      ${unsubscribeTokenHash})`
   return row
 }
 
@@ -459,8 +466,7 @@ test(
       assert.equal(ownerRows.length, 0, "RLS blocks a non-admin read")
 
       // An internal admin can read.
-      await tx`select set_config('request.jwt.claim.sub', ${fixture.adminUserId}, true)`
-      await tx`select set_config('request.jwt.claim.aal', 'aal2', true)`
+      await actAsInternalAdmin(tx, fixture.adminUserId)
       await tx`set local role authenticated`
       const adminRows = await tx`
       select id from public.pending_reward_invites where id = ${invite.invite_id}::uuid`

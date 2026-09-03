@@ -67,6 +67,53 @@ test(
 )
 
 test(
+  "trusted activation binds only the sole verified TOTP factor and is audited",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const admin = await createInternalAdmin(tx, {
+        withVerifiedFactor: true,
+        activateVerifiedFactor: false,
+      })
+      const [factor] = await tx`
+        select id
+        from auth.mfa_factors
+        where user_id = ${admin.userId}::uuid`
+
+      const [{ activated }] = await tx`
+        select public.activate_internal_admin_mfa(
+          ${admin.userId}::uuid, ${factor.id}::uuid
+        ) as activated`
+      assert.equal(activated, true)
+
+      const [audit] = await tx`
+        select action, target_id, metadata
+        from public.audit_logs
+        where target_id = ${admin.userId}::uuid
+          and action = 'admin_mfa_factor_activated'`
+      assert.equal(audit.action, "admin_mfa_factor_activated")
+      assert.equal(audit.target_id, admin.userId)
+      assert.equal(audit.metadata.factor_id, factor.id)
+
+      await assert.rejects(
+        () =>
+          asAuthenticatedUser(
+            tx,
+            admin.userId,
+            "aal2",
+            (sp) =>
+              sp`
+              select public.activate_internal_admin_mfa(
+                ${admin.userId}::uuid, ${factor.id}::uuid
+              )`
+          ),
+        (error) => error?.code === "42501"
+      )
+    })
+  }
+)
+
+test(
   "an active admin with no verified factor is denied at aal1 and aal2",
   { skip },
   async () => {
@@ -78,6 +125,30 @@ test(
           isInternalAdmin(sp)
         )
         assert.equal(allowed, false, `password-only admin denied at ${aal}`)
+      }
+    })
+  }
+)
+
+test(
+  "a browser-verified but unbound factor remains enrolment-only",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const admin = await createInternalAdmin(tx, {
+        withVerifiedFactor: true,
+        activateVerifiedFactor: false,
+      })
+
+      for (const aal of ["aal1", "aal2"]) {
+        const allowed = await asAuthenticatedUser(tx, admin.userId, aal, (sp) =>
+          isInternalAdmin(sp)
+        )
+        assert.equal(
+          allowed,
+          false,
+          `browser enrolment without trusted activation is denied at ${aal}`
+        )
       }
     })
   }
@@ -128,6 +199,194 @@ test(
         allowed,
         false,
         "an unapproved second factor must fail closed even with an aal2 session"
+      )
+
+      const [binding] = await tx`
+        select mfa_factor_id
+        from public.internal_admins
+        where user_id = ${admin.userId}::uuid`
+      assert.equal(
+        binding.mfa_factor_id,
+        null,
+        "factor-set changes invalidate trusted activation monotonically"
+      )
+    })
+  }
+)
+
+test(
+  "deleting an unapproved factor cannot revive a stale aal2 session",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const admin = await createInternalAdmin(tx, { withVerifiedFactor: true })
+      const unapprovedFactor = await insertTotpFactor(
+        tx,
+        admin.userId,
+        "verified"
+      )
+      await tx`
+        delete from auth.mfa_factors
+        where id = ${unapprovedFactor}::uuid`
+
+      const allowed = await asAuthenticatedUser(
+        tx,
+        admin.userId,
+        "aal2",
+        (sp) => isInternalAdmin(sp)
+      )
+      assert.equal(
+        allowed,
+        false,
+        "the old token stays denied after the extra factor disappears"
+      )
+
+      const [audit] = await tx`
+        select action, metadata
+        from public.audit_logs
+        where target_id = ${admin.userId}::uuid
+          and action = 'admin_mfa_binding_invalidated'
+        order by created_at desc
+        limit 1`
+      assert.equal(audit.action, "admin_mfa_binding_invalidated")
+      assert.equal(audit.metadata.factor_operation, "insert")
+    })
+  }
+)
+
+test(
+  "direct service-role binding changes are rejected outside the audited RPC",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const admin = await createInternalAdmin(tx, {
+        withVerifiedFactor: true,
+        activateVerifiedFactor: false,
+      })
+      const [factor] = await tx`
+        select id
+        from auth.mfa_factors
+        where user_id = ${admin.userId}::uuid`
+
+      await assert.rejects(
+        () =>
+          tx.savepoint(
+            (sp) => sp`
+          update public.internal_admins
+          set mfa_factor_id = ${factor.id}::uuid
+          where user_id = ${admin.userId}::uuid`
+          ),
+        /audited admin MFA lifecycle boundary/i
+      )
+    })
+  }
+)
+
+test(
+  "removing an unbound verified admin factor is still audited",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const admin = await createInternalAdmin(tx, {
+        withVerifiedFactor: true,
+        activateVerifiedFactor: false,
+      })
+      const [factor] = await tx`
+        select id from auth.mfa_factors
+        where user_id = ${admin.userId}::uuid`
+
+      await tx`delete from auth.mfa_factors where id = ${factor.id}::uuid`
+
+      const [audit] = await tx`
+        select action, metadata
+        from public.audit_logs
+        where target_id = ${admin.userId}::uuid
+          and action = 'admin_mfa_factor_unenrolled'
+        order by created_at desc
+        limit 1`
+      assert.equal(audit.action, "admin_mfa_factor_unenrolled")
+      assert.equal(audit.metadata.factor_id, factor.id)
+      assert.equal(audit.metadata.factor_operation, "delete")
+    })
+  }
+)
+
+test(
+  "a factor owned by another admin cannot replace the trusted binding",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const trustedAdmin = await createInternalAdmin(tx, {
+        withVerifiedFactor: true,
+      })
+      const otherAdmin = await createInternalAdmin(tx, {
+        withVerifiedFactor: true,
+      })
+
+      const [otherBinding] = await tx`
+        select mfa_factor_id
+        from public.internal_admins
+        where user_id = ${otherAdmin.userId}::uuid`
+      await assert.rejects(
+        () =>
+          tx.savepoint(
+            (sp) => sp`
+          select public.activate_internal_admin_mfa(
+            ${trustedAdmin.userId}::uuid, ${otherBinding.mfa_factor_id}::uuid
+          )`
+          ),
+        (error) => error?.code === "42501"
+      )
+
+      const allowed = await asAuthenticatedUser(
+        tx,
+        trustedAdmin.userId,
+        "aal2",
+        (sp) => isInternalAdmin(sp)
+      )
+
+      assert.equal(
+        allowed,
+        true,
+        "a rejected replacement leaves the original trusted factor active"
+      )
+    })
+  }
+)
+
+test(
+  "a bound verified non-TOTP factor cannot activate authority",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const admin = await createInternalAdmin(tx, { withVerifiedFactor: false })
+      const factorId = await insertMfaFactor(
+        tx,
+        admin.userId,
+        "verified",
+        "phone"
+      )
+      await assert.rejects(
+        () =>
+          tx.savepoint(
+            (sp) => sp`
+          select public.activate_internal_admin_mfa(
+            ${admin.userId}::uuid, ${factorId}::uuid
+          )`
+          ),
+        (error) => error?.code === "42501"
+      )
+
+      const allowed = await asAuthenticatedUser(
+        tx,
+        admin.userId,
+        "aal2",
+        (sp) => isInternalAdmin(sp)
+      )
+      assert.equal(
+        allowed,
+        false,
+        "only the supported TOTP factor can activate"
       )
     })
   }
@@ -259,11 +518,11 @@ async function createInternalAdmin(
 
   if (withVerifiedFactor) {
     const factorId = await insertTotpFactor(tx, userId, "verified")
-    if (activateVerifiedFactor) {
+    if (activateVerifiedFactor && isActive) {
       await tx`
-        update public.internal_admins
-        set mfa_factor_id = ${factorId}::uuid
-        where user_id = ${userId}::uuid`
+        select public.activate_internal_admin_mfa(
+          ${userId}::uuid, ${factorId}::uuid
+        )`
     }
   }
   if (withUnverifiedFactor) {
@@ -274,13 +533,17 @@ async function createInternalAdmin(
 }
 
 async function insertTotpFactor(tx, userId, status) {
+  return insertMfaFactor(tx, userId, status, "totp")
+}
+
+async function insertMfaFactor(tx, userId, status, factorType) {
   const factorId = randomUUID()
   await tx`
     insert into auth.mfa_factors
       (id, user_id, friendly_name, factor_type, status, created_at, updated_at)
     values
-      (${factorId}::uuid, ${userId}::uuid, ${`totp-${status}`},
-       'totp', ${status}::auth.factor_status, now(), now())`
+      (${factorId}::uuid, ${userId}::uuid, ${`${factorType}-${status}-${factorId}`},
+       ${factorType}::auth.factor_type, ${status}::auth.factor_status, now(), now())`
   return factorId
 }
 

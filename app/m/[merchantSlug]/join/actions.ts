@@ -43,6 +43,7 @@ import {
 } from "@/lib/customer/otp-rate-limit"
 import {
   RateLimitError,
+  customerDeviceHashFromHeaders,
   customerRateLimitIdentityFromHeaders,
   trustedClientIp,
 } from "@/lib/security/rate-limit"
@@ -97,6 +98,7 @@ export async function requestCustomerIdentityAction(
   const country = defaultCountryFromHeaders(requestHeaders)
   const requestIdentity = customerRateLimitIdentityFromHeaders(requestHeaders)
   const clientIp = trustedClientIp(requestHeaders)
+  const deviceHash = customerDeviceHashFromHeaders(requestHeaders)
   const pendingVerification = await getPendingPhoneVerification()
   const isTrustedResend =
     pendingVerification?.purpose === "join" && value(formData, "resend") === "1"
@@ -148,31 +150,23 @@ export async function requestCustomerIdentityAction(
     }
   }
 
-  try {
-    await enforceCustomerOtpSendRateLimit({
-      phone: contact,
-      requestIdentity,
-      trustedIp: clientIp,
-      scope: "join",
-    })
-  } catch (error) {
-    if (error instanceof RateLimitError) {
+  const admitted = await enforceCustomerOtpSendRateLimit({
+    phone: contact,
+    requestIdentity,
+    trustedIp: clientIp,
+    scope: "join",
+    deviceHash,
+  })
+
+  if (admitted) {
+    const verification = await startCustomerPhoneVerification(contact)
+    if (verification.status === "unavailable") {
       return {
         fields: requestFields,
-        errors: { form: "Too many verification requests. Try again later." },
+        errors: {
+          form: "We couldn't send a code just now. Try again shortly.",
+        },
       }
-    }
-
-    throw error
-  }
-
-  const verification = await startCustomerPhoneVerification(contact)
-  if (verification.status === "unavailable") {
-    return {
-      fields: requestFields,
-      errors: {
-        form: "We couldn't send a code just now. Try again shortly.",
-      },
     }
   }
 
@@ -210,7 +204,7 @@ export async function requestCustomerIdentityAction(
   if (value(formData, "resend") === "1") {
     return {
       fields: { merchantSlug, qrId, phoneOtpSent: true },
-      message: "New code sent. It can take a moment to arrive.",
+      message: "If a new code arrives, enter it here.",
     }
   }
 

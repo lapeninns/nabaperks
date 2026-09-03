@@ -11,7 +11,7 @@ export const MERCHANT_OTP_RESEND_WINDOW_LIMIT = 5
 // a fresh send allowance against the same mailbox.
 export const MERCHANT_OTP_RESEND_RECIPIENT_WINDOW_LIMIT = 5
 
-export type MerchantOtpResendPurpose = "signup" | "recovery"
+export type MerchantOtpResendPurpose = "signup" | "signin"
 
 export type MerchantOtpResendInput = Readonly<{
   email: string

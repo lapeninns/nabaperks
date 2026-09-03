@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto"
 import { after, test } from "node:test"
 
 import { closeDb, db, dbUrl, inRolledBackTxn } from "./helpers/db.mjs"
+import { actAsActivatedInternalAdmin } from "./helpers/admin-auth.mjs"
 
 const ready = await isDeliveryPilotReady()
 const skip = ready
@@ -408,8 +409,7 @@ async function createFixture(tx) {
 }
 
 async function actAsAdmin(tx, adminId) {
-  await tx`select set_config('request.jwt.claim.role', 'authenticated', true)`
-  await tx`select set_config('request.jwt.claim.sub', ${adminId}, true)`
+  await actAsActivatedInternalAdmin(tx, adminId)
 }
 
 async function actAsService(tx) {

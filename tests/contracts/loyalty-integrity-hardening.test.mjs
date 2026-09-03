@@ -34,6 +34,9 @@ const SELF_STAMP_ATTEMPT_LIMIT = migration(
 const TENANT_SAFE_REWARD_EXPIRY = migration(
   "20260902124000_isolate_reward_expiry_tenants.sql"
 )
+const FAIR_REWARD_CYCLE_HEALING = migration(
+  "20260902132000_fair_reward_cycle_healing.sql"
+)
 const BLOCK_REASONS = readFileSync(
   new URL("../../lib/customer/experience/block-reasons.ts", import.meta.url),
   "utf8"
@@ -106,9 +109,29 @@ test("Given one poisoned reward-heal candidate Then other tenants still progress
   )
   assert.match(
     TENANT_SAFE_REWARD_EXPIRY,
+    /alter table public\.reward_cycle_heal_failures force row level security;/
+  )
+  assert.match(
+    TENANT_SAFE_REWARD_EXPIRY,
     /on conflict \(membership_id\) do update/
   )
   assert.doesNotMatch(TENANT_SAFE_REWARD_EXPIRY, /sqlerrm/i)
+})
+
+test("Given a non-throwing heal refusal Then tenant-fair cooldown is durable", () => {
+  assert.match(FAIR_REWARD_CYCLE_HEALING, /row_number\(\) over/i)
+  assert.match(
+    FAIR_REWARD_CYCLE_HEALING,
+    /partition by memberships\.merchant_id/i
+  )
+  assert.match(FAIR_REWARD_CYCLE_HEALING, /last_merchant_id[\s\S]*for update/i)
+  assert.match(FAIR_REWARD_CYCLE_HEALING, /merchant_id > v_cursor/i)
+  assert.match(
+    FAIR_REWARD_CYCLE_HEALING,
+    /set last_merchant_id = v_last_merchant_id/i
+  )
+  assert.match(FAIR_REWARD_CYCLE_HEALING, /if v_reward_id is null then/i)
+  assert.match(FAIR_REWARD_CYCLE_HEALING, /'NBS15'/)
 })
 
 test("Given the card-uniqueness migration Then it reconciles before it constrains", () => {

@@ -41,7 +41,11 @@ test("new email invitations cannot manufacture claim-only compatibility", () => 
   )
   assert.match(
     allocation,
-    /existing\.claim_token_hash = new\.unsubscribe_token_hash[\s\S]*existing\.unsubscribe_token_hash = new\.claim_token_hash/
+    /existing\.claim_token_hash = new\.unsubscribe_token_hash/
+  )
+  assert.match(
+    allocation,
+    /existing\.unsubscribe_token_hash = new\.claim_token_hash/
   )
   assert.match(allocation, /pg_advisory_xact_lock/)
 })

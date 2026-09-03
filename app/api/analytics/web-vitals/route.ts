@@ -63,7 +63,9 @@ export async function POST(request: NextRequest) {
   try {
     await recordWebVitalSample(sample)
     return noStoreEmpty(202)
-  } catch {
-    return errorResponse(503)
+  } catch (error) {
+    return error instanceof RateLimitError
+      ? errorResponse(429)
+      : errorResponse(503)
   }
 }

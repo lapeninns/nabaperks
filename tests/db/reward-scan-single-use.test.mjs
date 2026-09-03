@@ -116,7 +116,69 @@ test(
         select * from public.get_reward_scan_context(
           ${replacement.scan_token}::uuid, ${m.merchant_id}::uuid)`
       assert.equal(replacementContext.scan_status, "ready")
+      const [{ liveTokens }] = await tx`
+        select count(*)::int as "liveTokens"
+        from public.reward_scan_tokens
+        where reward_event_id = ${reward.id}::uuid
+          and consumed_at is null
+          and superseded_at is null`
+      assert.equal(
+        liveTokens,
+        1,
+        "exactly one collection capability stays live"
+      )
+
+      const [stableRefresh] = await tx`
+        select * from public.create_reward_scan_token(
+          ${reward.id}::uuid, ${m.customer_id}::uuid)`
+      assert.equal(
+        stableRefresh.scan_token,
+        replacement.scan_token,
+        "a sufficiently fresh token is reused"
+      )
+
+      for (const collector of [
+        "collect_current_reward_scan_token",
+        "collect_reward_scan_token",
+      ]) {
+        await assert.rejects(
+          () =>
+            tx.savepoint((sp) =>
+              sp.unsafe(
+                `select * from public.${collector}($1::uuid, $2::uuid)`,
+                [token, m.merchant_id]
+              )
+            ),
+          /superseded|expired|not found/i,
+          `${collector} rejects the superseded form`
+        )
+      }
       const activeToken = replacement.scan_token
+
+      const [beforeNullMerchant] = await tx`
+        select consumed_at, consumed_by_merchant_id
+        from public.reward_scan_tokens
+        where id = ${activeToken}::uuid`
+      for (const collector of [
+        "collect_current_reward_scan_token",
+        "collect_reward_scan_token",
+      ]) {
+        await assert.rejects(
+          () =>
+            tx.savepoint((sp) =>
+              sp.unsafe(`select * from public.${collector}($1::uuid, null)`, [
+                activeToken,
+              ])
+            ),
+          /different merchant/i,
+          `${collector} rejects an absent merchant identity`
+        )
+      }
+      const [afterNullMerchant] = await tx`
+        select consumed_at, consumed_by_merchant_id
+        from public.reward_scan_tokens
+        where id = ${activeToken}::uuid`
+      assert.deepEqual(afterNullMerchant, beforeNullMerchant)
 
       // The merchant collects the token once, leaving it consumed and redeemed.
       await tx`
@@ -135,6 +197,30 @@ test(
         rewardAfter.status,
         "redeemed",
         "reward is redeemed after collection"
+      )
+      const [oldContextAfterCollection] = await tx`
+        select * from public.get_reward_scan_context(
+          ${token}::uuid, ${m.merchant_id}::uuid)`
+      assert.ok(
+        ["expired", "not_found"].includes(
+          oldContextAfterCollection.scan_status
+        ),
+        "a superseded form is either retained as expired or purged; it never inherits another token's success"
+      )
+      const [activeContextAfterCollection] = await tx`
+        select * from public.get_reward_scan_context(
+          ${activeToken}::uuid, ${m.merchant_id}::uuid)`
+      assert.equal(activeContextAfterCollection.scan_status, "redeemed")
+
+      await assert.rejects(
+        () =>
+          tx.savepoint(
+            (sp) => sp`
+            select * from public.redeem_self_service_reward(
+              ${reward.id}::uuid, ${m.customer_id}::uuid, null, null)`
+          ),
+        /already collected by merchant/i,
+        "self-service cannot claim success after merchant collection"
       )
 
       // R-4: a second collection must not re-consume the token.
@@ -193,19 +279,44 @@ test(
         select * from public.redeem_self_service_reward(
           ${reward.id}::uuid, ${m.customer_id}::uuid, null, null)`
 
-      let rejected = false
-      try {
-        await tx.savepoint(async (sp) => {
-          await sp`
-            select * from public.collect_current_reward_scan_token(
-              ${minted.scan_token}::uuid, ${m.merchant_id}::uuid)`
-        })
-      } catch (error) {
-        rejected = /already collected/i.test(String(error.message))
+      const [beforeRejectedCollections] = await tx`
+        select consumed_at, consumed_by_merchant_id
+        from public.reward_scan_tokens
+        where id = ${minted.scan_token}::uuid`
+
+      for (const collector of [
+        "collect_current_reward_scan_token",
+        "collect_reward_scan_token",
+      ]) {
+        await assert.rejects(
+          () =>
+            tx.savepoint((sp) =>
+              sp.unsafe(
+                `select * from public.${collector}($1::uuid, $2::uuid)`,
+                [minted.scan_token, m.merchant_id]
+              )
+            ),
+          /already collected/i,
+          `${collector} cannot claim a self-service redemption`
+        )
       }
-      assert.ok(
-        rejected,
-        "only the caller that transitions the reward succeeds"
+
+      const [afterRejectedCollections] = await tx`
+        select consumed_at, consumed_by_merchant_id
+        from public.reward_scan_tokens
+        where id = ${minted.scan_token}::uuid`
+      assert.deepEqual(
+        afterRejectedCollections,
+        beforeRejectedCollections,
+        "rejected collectors leave the token's consumption evidence unchanged"
+      )
+      const [staleContext] = await tx`
+        select * from public.get_reward_scan_context(
+          ${minted.scan_token}::uuid, ${m.merchant_id}::uuid)`
+      assert.equal(
+        staleContext.scan_status,
+        "blocked",
+        "an unconsumed token never reports another path's redemption as its own"
       )
     })
   }

@@ -1,6 +1,6 @@
 "use server"
 
-import { cookies, headers } from "next/headers"
+import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
 import { recordMerchantFunnelEventSafely } from "@/lib/analytics/funnel-events"
@@ -18,7 +18,6 @@ import {
   type MerchantOtpOutcome,
 } from "@/lib/auth/merchant-auth-action-state"
 import { runMerchantOtpProviderVerification } from "@/lib/auth/merchant-email-otp-provider"
-import { cleanupFailedMerchantRecoverySession } from "@/lib/auth/merchant-recovery-session-cleanup"
 import {
   merchantAuthRateLimitConfigs,
   type MerchantAuthRateLimitScope,
@@ -37,11 +36,7 @@ import {
   RateLimitError,
   rateLimitIdentityFromHeaders,
 } from "@/lib/security/rate-limit"
-import { validateConfirmPassword, validatePassword } from "@/lib/auth/password"
-import {
-  createSupabaseServerClient,
-  createSupabaseServiceRoleClient,
-} from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export type AuthActionState = {
   fields?: {
@@ -52,25 +47,15 @@ export type AuthActionState = {
   errors?: {
     name?: string
     email?: string
-    password?: string
-    confirmPassword?: string
     otp?: string
     form?: string
   }
   outcome?: "verification_required"
 }
 
-type AuthMode = "sign-in" | "sign-up"
-
 function value(formData: FormData, key: string) {
   const raw = formData.get(key)
   return typeof raw === "string" ? raw.trim() : ""
-}
-
-// Passwords are used verbatim; never trim (leading/trailing characters count).
-function passwordValue(formData: FormData, key: string) {
-  const raw = formData.get(key)
-  return typeof raw === "string" ? raw : ""
 }
 
 function validateEmail(email: string) {
@@ -88,22 +73,13 @@ export async function signUpAction(
   const name = value(formData, "name")
   const email = value(formData, "email").toLowerCase()
   const next = safeMerchantNextPath(
-    value(formData, "next") || defaultNextPath("sign-up"),
-    defaultNextPath("sign-up")
+    value(formData, "next") || "/app/onboarding",
+    "/app/onboarding"
   )
   const errors: NonNullable<AuthActionState["errors"]> = {}
 
-  const password = passwordValue(formData, "password")
-  const confirmPassword = passwordValue(formData, "confirmPassword")
-
   if (name.length < 2) errors.name = "Enter your name."
   if (!validateEmail(email)) errors.email = "Enter a valid email address."
-  const passwordError = validatePassword(password)
-  if (passwordError) errors.password = passwordError
-  else {
-    const confirmError = validateConfirmPassword(password, confirmPassword)
-    if (confirmError) errors.confirmPassword = confirmError
-  }
 
   if (Object.keys(errors).length) {
     return { fields: { name, email, next }, errors }
@@ -136,11 +112,11 @@ export async function signUpAction(
   }
 
   const supabase = await createSupabaseServerClient()
-  const { data, error } = await supabase.auth.signUp({
+  const { error } = await supabase.auth.signInWithOtp({
     email,
-    password,
     options: {
       data: { name },
+      shouldCreateUser: true,
     },
   })
 
@@ -152,18 +128,6 @@ export async function signUpAction(
         form: "Could not create the account just now. Check your details and try again.",
       },
     }
-  }
-
-  // With email-confirmation enabled Supabase deliberately returns an
-  // obfuscated success for an existing account. A real new identity carries
-  // at least one identity row; do not turn the anti-enumeration response into
-  // a false account-created milestone.
-  if (data.user?.identities && data.user.identities.length > 0) {
-    recordMerchantFunnelEventSafely({
-      actorId: data.user.id,
-      event: "merchant_account_created",
-      funnelToken: value(formData, "funnelToken") || undefined,
-    })
   }
 
   try {
@@ -204,57 +168,6 @@ export async function signupOtpAction(
   return invalidOtpIntentState(context)
 }
 
-export async function signInAction(
-  _state: AuthActionState,
-  formData: FormData
-): Promise<AuthActionState> {
-  const email = value(formData, "email").toLowerCase()
-  const password = passwordValue(formData, "password")
-  const next = safeMerchantNextPath(
-    value(formData, "next") || defaultNextPath("sign-in")
-  )
-  const errors: NonNullable<AuthActionState["errors"]> = {}
-
-  if (!validateEmail(email)) errors.email = "Enter a valid email address."
-  if (!password) errors.password = "Enter your password."
-
-  if (Object.keys(errors).length) {
-    return { fields: { email, next }, errors }
-  }
-
-  const rateLimitResult = await enforceAuthRateLimit("merchant-signin", email)
-  if (rateLimitResult) {
-    return {
-      fields: { email, next },
-      errors: { form: rateLimitResult.message },
-    }
-  }
-
-  const supabase = await createSupabaseServerClient()
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
-
-  if (error) {
-    if (error.code === "email_not_confirmed") {
-      // The explicit outcome lets the form render a direct fresh-code POST
-      // instead of sending the merchant through signup again.
-      return {
-        fields: { email, next },
-        outcome: "verification_required",
-        errors: {
-          form: "Verify your email first — get a fresh code and finish verification.",
-        },
-      }
-    }
-
-    return {
-      fields: { email, next },
-      errors: { form: "That email or password is not right." },
-    }
-  }
-
-  redirect(safeMerchantNextPath(next))
-}
-
 export async function passwordResetAction(
   _state: MerchantOtpActionState,
   formData: FormData
@@ -262,7 +175,7 @@ export async function passwordResetAction(
   const intent = value(formData, "intent")
   const context = merchantOtpContext(
     formData,
-    "recovery",
+    "signin",
     intent === "request" ? "request" : "verify"
   )
 
@@ -270,7 +183,7 @@ export async function passwordResetAction(
     return sendMerchantOtp({ context })
   }
   if (intent === "confirm") {
-    return confirmMerchantPasswordReset(context, formData)
+    return confirmMerchantEmailAccess(context, formData)
   }
 
   return invalidOtpIntentState(context)
@@ -308,7 +221,7 @@ async function verifySignupOtp(
     email: context.email,
     purpose: "signup",
     supabase,
-    type: "signup",
+    type: "email",
   })
 
   if (verification.status === "error") {
@@ -324,33 +237,22 @@ async function verifySignupOtp(
   redirect(context.next)
 }
 
-async function confirmMerchantPasswordReset(
+async function confirmMerchantEmailAccess(
   context: MerchantOtpActionContext,
   formData: FormData
 ): Promise<MerchantOtpActionState> {
   const otp = value(formData, "otp").replace(/\s+/g, "")
-  const password = passwordValue(formData, "password")
-  const confirmPassword = passwordValue(formData, "confirmPassword")
   const errors: {
     form?: string
     otp?: string
-    password?: string
-    confirmPassword?: string
   } = {}
 
   if (!validateEmail(context.email)) {
-    errors.form = "Request a fresh reset code."
+    errors.form = "Request a fresh sign-in code."
   }
   if (!otpPattern().test(otp)) {
     errors.otp = `Enter the ${merchantEmailOtpAliasDigitLabel()} code from your email.`
   }
-  const passwordError = validatePassword(password)
-  if (passwordError) errors.password = passwordError
-  else {
-    const confirmError = validateConfirmPassword(password, confirmPassword)
-    if (confirmError) errors.confirmPassword = confirmError
-  }
-
   if (Object.keys(errors).length) {
     return { outcome: "invalid", context, errors }
   }
@@ -362,36 +264,13 @@ async function confirmMerchantPasswordReset(
   const verification = await verifyMerchantEmailOtpAlias({
     aliasCode: otp,
     email: context.email,
-    purpose: "recovery",
+    purpose: "signup",
     supabase,
-    type: "recovery",
+    type: "email",
   })
 
   if (verification.status === "error") {
     return merchantOtpVerificationErrorState(context, verification)
-  }
-
-  let updateError: unknown
-  try {
-    const updateResult = await supabase.auth.updateUser({ password })
-    updateError = updateResult.error
-  } catch (error) {
-    updateError = error
-  }
-
-  if (updateError) {
-    console.error("Merchant recovery password update failed", {
-      error: safeServerErrorMessage(updateError),
-    })
-    await closeFailedMerchantRecoverySession(supabase, verification.accessToken)
-
-    return {
-      outcome: "password_update_failed",
-      context,
-      errors: {
-        form: "Your email was verified, but we could not save that password. Send a fresh reset code before trying again.",
-      },
-    }
   }
 
   redirect(context.next)
@@ -451,7 +330,7 @@ async function sendMerchantOtp({
           outcome: "verification_unavailable",
           context,
           errors: {
-            form: "We could not start the reset email just now. No code was requested — try again in a moment.",
+            form: "We could not start the sign-in email just now. No code was requested — try again in a moment.",
           },
         }
   }
@@ -459,10 +338,13 @@ async function sendMerchantOtp({
   const supabase = await createSupabaseServerClient()
   let deliveryError: unknown
   try {
-    const { error } =
-      context.flow === "signup"
-        ? await supabase.auth.resend({ type: "signup", email: context.email })
-        : await supabase.auth.resetPasswordForEmail(context.email)
+    const { error } = await supabase.auth.signInWithOtp({
+      email: context.email,
+      options: {
+        data: context.name ? { name: context.name } : undefined,
+        shouldCreateUser: context.flow === "signup",
+      },
+    })
     deliveryError = error
   } catch (error) {
     deliveryError = error
@@ -507,8 +389,8 @@ async function sendMerchantOtp({
     retryAt,
     message:
       context.flow === "signup"
-        ? `If this email can receive a signup code, a fresh ${merchantEmailOtpAliasDigitLabel()} code may be on its way. If it arrives, earlier codes no longer work. Used this email before? Log in or reset your password.`
-        : `If that email has a venue account, we sent a fresh ${merchantEmailOtpAliasDigitLabel()} reset code. Earlier codes no longer work.`,
+        ? `If this email can receive a signup code, a fresh ${merchantEmailOtpAliasDigitLabel()} code may be on its way. If it arrives, earlier codes no longer work. Used this email before? Request a sign-in code.`
+        : `If that email has a venue account, a fresh ${merchantEmailOtpAliasDigitLabel()} sign-in code may be on its way. Earlier codes no longer work.`,
   }
 }
 
@@ -518,11 +400,7 @@ type MerchantOtpVerificationResult =
       status: "error"
       outcome: Exclude<
         MerchantOtpOutcome,
-        | "idle"
-        | "sent"
-        | "verification_required"
-        | "password_update_failed"
-        | "delivery_unavailable"
+        "idle" | "sent" | "verification_required" | "delivery_unavailable"
       >
       field: "form" | "otp"
       message: string
@@ -540,7 +418,7 @@ async function verifyMerchantEmailOtpAlias({
   email: string
   purpose: MerchantEmailOtpPurpose
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>
-  type: "recovery" | "signup"
+  type: "email" | "recovery" | "signup"
 }): Promise<MerchantOtpVerificationResult> {
   let reservation: Awaited<ReturnType<typeof reserveMerchantEmailOtpAlias>>
   let verifiedAccessToken: string | undefined
@@ -756,32 +634,6 @@ function invalidOtpIntentState(
   }
 }
 
-async function closeFailedMerchantRecoverySession(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-  accessToken: string | undefined
-): Promise<void> {
-  await cleanupFailedMerchantRecoverySession(accessToken, {
-    signOutLocal: () => supabase.auth.signOut({ scope: "local" }),
-    signOutAdminLocal: (token) => {
-      const serviceRole = createSupabaseServiceRoleClient()
-      return serviceRole.auth.admin.signOut(token, "local")
-    },
-    clearBrowserCredentials: async () => {
-      const cookieStore = await cookies()
-      for (const cookie of cookieStore.getAll()) {
-        if (merchantAuthCookieName(cookie.name)) cookieStore.delete(cookie.name)
-      }
-    },
-    onSafeFailure: (failure) => {
-      console.error("Merchant recovery session cleanup incomplete", failure)
-    },
-  })
-}
-
-function merchantAuthCookieName(name: string): boolean {
-  return /^sb-.+-auth-token(?:-code-verifier|\.\d+)?$/.test(name)
-}
-
 function safeServerErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Unknown server error"
 }
@@ -842,10 +694,6 @@ async function enforceAuthRateLimit(
 
 async function merchantRequestIdentity() {
   return rateLimitIdentityFromHeaders(await headers())
-}
-
-function defaultNextPath(mode: AuthMode): string {
-  return mode === "sign-up" ? "/app/onboarding" : "/app"
 }
 
 function rateLimitMessage(scope: MerchantAuthRateLimitScope): string {

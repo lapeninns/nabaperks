@@ -1,6 +1,13 @@
-import { PlusSignIcon, UserMultiple02Icon } from "@hugeicons/core-free-icons"
+import {
+  PlusSignIcon,
+  Shield01Icon,
+  UserMultiple02Icon,
+} from "@hugeicons/core-free-icons"
 
-import { adjustStampsAction } from "@/app/admin/actions"
+import {
+  adjustStampsAction,
+  verifyCustomerDateOfBirthAction,
+} from "@/app/admin/actions"
 import { AdminActionForm } from "@/components/admin/action-form"
 import {
   AdminLookupControls,
@@ -11,6 +18,7 @@ import {
   AdminField,
   AdminPanel,
   SourceLabel,
+  StatusPill,
   first,
   formatAdminDate,
   maskAdminCustomer,
@@ -86,6 +94,10 @@ export function CustomerMembershipsPanel({
                   title={maskAdminCustomer(customer)}
                   fields={[
                     {
+                      label: "Date of birth",
+                      value: <DateOfBirthStatus customer={customer} />,
+                    },
+                    {
                       label: "Merchant",
                       value: merchant?.business_name ?? "Merchant",
                     },
@@ -118,16 +130,29 @@ export function CustomerMembershipsPanel({
                   ]}
                   action={
                     <AdminRecordActions
-                      label="Adjust stamps"
+                      label="Customer actions"
                       group="membership-support"
                     >
-                      <StampAdjustmentForm membershipId={row.id} />
+                      <div className="grid gap-4">
+                        <DateOfBirthVerificationForm
+                          customerId={row.customer_id}
+                          currentDateOfBirth={customer?.date_of_birth}
+                        />
+                        <StampAdjustmentForm membershipId={row.id} />
+                      </div>
                     </AdminRecordActions>
                   }
                 />
               )
             }}
             columns={[
+              {
+                key: "date-of-birth",
+                header: "Date of birth",
+                cell: (row) => (
+                  <DateOfBirthStatus customer={first(row.customers)} />
+                ),
+              },
               {
                 key: "customer",
                 header: "Customer",
@@ -180,7 +205,23 @@ export function CustomerMembershipsPanel({
               {
                 key: "action",
                 header: "Audited action",
-                cell: (row) => <StampAdjustmentForm membershipId={row.id} />,
+                cell: (row) => {
+                  const customer = first(row.customers)
+                  return (
+                    <AdminRecordActions
+                      label="Customer actions"
+                      group="membership-support"
+                    >
+                      <div className="grid gap-4">
+                        <DateOfBirthVerificationForm
+                          customerId={row.customer_id}
+                          currentDateOfBirth={customer?.date_of_birth}
+                        />
+                        <StampAdjustmentForm membershipId={row.id} />
+                      </div>
+                    </AdminRecordActions>
+                  )
+                },
               },
             ]}
           />
@@ -201,6 +242,65 @@ export function CustomerMembershipsPanel({
         </div>
       )}
     </AdminPanel>
+  )
+}
+
+function DateOfBirthStatus({
+  customer,
+}: {
+  customer?: {
+    date_of_birth?: string | null
+    date_of_birth_verified_at?: string | null
+  }
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="numeric-tabular">
+        {customer?.date_of_birth ?? "Not set"}
+      </span>
+      <StatusPill
+        tone={customer?.date_of_birth_verified_at ? "good" : "warning"}
+      >
+        {customer?.date_of_birth_verified_at ? "Verified" : "Unverified"}
+      </StatusPill>
+    </div>
+  )
+}
+
+function DateOfBirthVerificationForm({
+  customerId,
+  currentDateOfBirth,
+}: {
+  customerId: string
+  currentDateOfBirth?: string | null
+}) {
+  return (
+    <AdminActionForm
+      action={verifyCustomerDateOfBirthAction}
+      className="min-w-0 xl:min-w-[320px]"
+    >
+      <input type="hidden" name="customerId" value={customerId} />
+      <div className="grid gap-2 sm:grid-cols-2">
+        <AdminField
+          label="Verified date of birth"
+          helper="Confirm only after checking reliable evidence."
+        >
+          <Input
+            name="dateOfBirth"
+            type="date"
+            required
+            defaultValue={currentDateOfBirth ?? undefined}
+          />
+        </AdminField>
+        <AdminField label="Evidence note">
+          <Input name="reason" required minLength={4} maxLength={500} />
+        </AdminField>
+      </div>
+      <SubmitButton pendingLabel="Verifying…">
+        <Icon icon={Shield01Icon} size={16} />
+        Verify date of birth
+      </SubmitButton>
+    </AdminActionForm>
   )
 }
 

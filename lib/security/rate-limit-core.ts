@@ -2,6 +2,13 @@ import { createHash } from "node:crypto"
 
 export const CUSTOMER_DEVICE_HEADER = "x-nabaperks-device-id"
 
+export function customerDeviceHashFromHeaders(headers: Headers): string | null {
+  const device = headers.get(CUSTOMER_DEVICE_HEADER)?.trim()
+  if (!device) return null
+
+  return createHash("sha256").update(`customer-device:${device}`).digest("hex")
+}
+
 export function rateLimitIdentityFromHeaders(headers: Headers): string {
   const ip = trustedClientIp(headers)
 

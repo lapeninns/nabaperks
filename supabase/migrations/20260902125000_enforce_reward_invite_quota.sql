@@ -32,11 +32,15 @@ begin
   if new.email_hmac is not null and new.unsubscribe_token_hash is null then
     raise exception 'Email reward invites require an unsubscribe token';
   end if;
-  if new.unsubscribe_token_hash is not null then
-    if new.unsubscribe_token_hash = new.claim_token_hash then
-      raise exception 'Reward invite capabilities must be purpose-separated';
-    end if;
+  if new.unsubscribe_token_hash = new.claim_token_hash then
+    raise exception 'Reward invite capabilities must be purpose-separated';
+  end if;
 
+  if new.unsubscribe_token_hash is null then
+    perform pg_advisory_xact_lock(hashtextextended(
+      'reward-invite-capability:' || new.claim_token_hash, 0
+    ));
+  else
     perform pg_advisory_xact_lock(hashtextextended(
       'reward-invite-capability:' || least(
         new.claim_token_hash,
@@ -49,15 +53,18 @@ begin
         new.unsubscribe_token_hash
       ), 0
     ));
+  end if;
 
-    if exists (
-      select 1
-      from public.pending_reward_invites existing
-      where existing.claim_token_hash = new.unsubscribe_token_hash
-         or existing.unsubscribe_token_hash = new.claim_token_hash
-    ) then
-      raise exception 'Reward invite capability already has another purpose';
-    end if;
+  if exists (
+    select 1
+    from public.pending_reward_invites existing
+    where existing.unsubscribe_token_hash = new.claim_token_hash
+       or (
+         new.unsubscribe_token_hash is not null
+         and existing.claim_token_hash = new.unsubscribe_token_hash
+       )
+  ) then
+    raise exception 'Reward invite capability already has another purpose';
   end if;
 
   if new.email_masked is not null

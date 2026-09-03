@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 
 import { db, isLiveDbReady } from "./db.mjs"
+import { actAsActivatedInternalAdmin } from "./admin-auth.mjs"
 import { ensureVerifiedCustomerEmail } from "./verified-customer-email.mjs"
 
 export async function isRewardPoolDbReady() {
@@ -30,9 +31,7 @@ export async function actAsMerchantOwner(tx, ownerUserId) {
 }
 
 export async function actAsInternalAdmin(tx, adminUserId) {
-  await tx`select set_config('request.jwt.claim.role', 'authenticated', true)`
-  await tx`select set_config('request.jwt.claim.sub', ${adminUserId}, true)`
-  await tx`select set_config('request.jwt.claim.aal', 'aal2', true)`
+  await actAsActivatedInternalAdmin(tx, adminUserId)
 }
 
 export async function expectRewardPoolRpcRejection(

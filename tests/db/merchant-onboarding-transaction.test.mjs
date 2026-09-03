@@ -1067,6 +1067,10 @@ async function installOwnerScopedAuditFailure(sql, ownerUserId) {
     end;
     $function$;
 
+    revoke all on function public.${functionName}()
+      from public, anon, authenticated;
+    grant execute on function public.${functionName}() to service_role;
+
     create trigger ${triggerName}
       before insert on public.audit_logs
       for each row execute function public.${functionName}();
