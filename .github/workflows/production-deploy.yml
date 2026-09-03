@@ -222,7 +222,93 @@ jobs:
         env:
           AUTH_HOOK_CANARY_URL: ${{ steps.stage.outputs.url }}
         run: node scripts/check-auth-hook-secret-alignment.mjs
-      - name: Activate password-token rejection before domain promotion
+      - name: Promote the verified staged deployment
+        env:
+          DEPLOYMENT_URL: ${{ steps.stage.outputs.url }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          deployment_host="${DEPLOYMENT_URL#https://}"
+          case "$deployment_host" in
+            *[!A-Za-z0-9._-]*|'') echo "::error::Invalid staged deployment host."; exit 1 ;;
+          esac
+          deployment_metadata="$(pnpm exec vercel api \
+            "/v13/deployments/$deployment_host" \
+            --scope="$CANONICAL_VERCEL_SCOPE" \
+            --token="$VERCEL_TOKEN" \
+            --raw)"
+          jq -e \
+            --arg project_id "$CANONICAL_VERCEL_PROJECT_ID" \
+            --arg team_id "$CANONICAL_VERCEL_TEAM_ID" \
+            --arg host "$deployment_host" \
+            '.projectId == $project_id and .ownerId == $team_id and .url == $host' \
+            <<<"$deployment_metadata" >/dev/null
+          pnpm exec vercel promote "$DEPLOYMENT_URL" \
+            --yes \
+            --timeout=3m \
+            --scope="$CANONICAL_VERCEL_SCOPE" \
+            --token="$VERCEL_TOKEN"
+      - name: Activate and read back the passwordless Data API guard
+        run: |
+          update_file="$RUNNER_TEMP/data-api-guard-update.json"
+          readback_file="$RUNNER_TEMP/data-api-guard-readback.json"
+          update_query="alter role authenticator set pgrst.db_pre_request = 'private.enforce_passwordless_data_api_session'; notify pgrst, 'reload config'; notify pgrst, 'reload schema'"
+          update_payload="$(jq -n \
+            --arg query "$update_query" \
+            '{query: $query, read_only: false}')"
+          update_status="$(curl --silent --show-error \
+            --output "$update_file" \
+            --write-out '%{http_code}' \
+            --request POST \
+            --header "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            --header "Content-Type: application/json" \
+            --data "$update_payload" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query")"
+          test "$update_status" = "201"
+          readback_query="select split_part(setting, '=', 2) as pre_request from pg_roles cross join lateral unnest(coalesce(rolconfig, array[]::text[])) setting where rolname = 'authenticator' and setting like 'pgrst.db_pre_request=%'"
+          readback_payload="$(jq -n \
+            --arg query "$readback_query" \
+            '{query: $query, read_only: true}')"
+          readback_status="$(curl --silent --show-error \
+            --output "$readback_file" \
+            --write-out '%{http_code}' \
+            --request POST \
+            --header "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            --header "Content-Type: application/json" \
+            --data "$readback_payload" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query")"
+          test "$readback_status" = "201"
+          jq -e \
+            'type == "array" and length == 1 and .[0].pre_request == "private.enforce_passwordless_data_api_session"' \
+            "$readback_file" >/dev/null
+          api_keys_file="$RUNNER_TEMP/supabase-api-keys.json"
+          pnpm exec supabase projects api-keys \
+            --project-ref "$SUPABASE_PROJECT_REF" \
+            --output json > "$api_keys_file"
+          anon_key="$(jq -er \
+            '.[] | select(.name == "anon" and .type == "legacy") | .api_key' \
+            "$api_keys_file")"
+          test -n "$anon_key"
+          printf '::add-mask::%s\n' "$anon_key"
+          guard_probe_file="$RUNNER_TEMP/data-api-guard-probe.json"
+          guard_active=false
+          for attempt in {1..30}; do
+            probe_status="$(curl --silent --show-error --max-time 10 \
+              --output "$guard_probe_file" \
+              --write-out '%{http_code}' \
+              --header "apikey: ${anon_key}" \
+              --header "x-nabaperks-passwordless-guard-probe: active" \
+              "https://${SUPABASE_PROJECT_REF}.supabase.co/rest/v1/" || true)"
+            if [[ "$probe_status" == "403" ]] \
+              && jq -e \
+                '.message == "Passwordless Data API guard is active"' \
+                "$guard_probe_file" >/dev/null 2>&1; then
+              guard_active=true
+              break
+            fi
+            sleep 2
+          done
+          test "$guard_active" = true
+      - name: Activate password-token rejection after passwordless promotion
         run: |
           hook_uri="pg-functions://postgres/public/reject_password_access_tokens"
           update_file="$RUNNER_TEMP/auth-access-token-hook-update.json"
@@ -250,31 +336,6 @@ jobs:
             --arg uri "$hook_uri" \
             '.hook_custom_access_token_enabled == true and .hook_custom_access_token_uri == $uri' \
             "$readback_file" >/dev/null
-      - name: Promote the verified staged deployment
-        env:
-          DEPLOYMENT_URL: ${{ steps.stage.outputs.url }}
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: |
-          deployment_host="${DEPLOYMENT_URL#https://}"
-          case "$deployment_host" in
-            *[!A-Za-z0-9._-]*|'') echo "::error::Invalid staged deployment host."; exit 1 ;;
-          esac
-          deployment_metadata="$(pnpm exec vercel api \
-            "/v13/deployments/$deployment_host" \
-            --scope="$CANONICAL_VERCEL_SCOPE" \
-            --token="$VERCEL_TOKEN" \
-            --raw)"
-          jq -e \
-            --arg project_id "$CANONICAL_VERCEL_PROJECT_ID" \
-            --arg team_id "$CANONICAL_VERCEL_TEAM_ID" \
-            --arg host "$deployment_host" \
-            '.projectId == $project_id and .ownerId == $team_id and .url == $host' \
-            <<<"$deployment_metadata" >/dev/null
-          pnpm exec vercel promote "$DEPLOYMENT_URL" \
-            --yes \
-            --timeout=3m \
-            --scope="$CANONICAL_VERCEL_SCOPE" \
-            --token="$VERCEL_TOKEN"
       - name: Activate reviewed production Auth configuration
         run: supabase config push --project-ref "$SUPABASE_PROJECT_REF"
       - name: Read back complete production Auth hook configuration

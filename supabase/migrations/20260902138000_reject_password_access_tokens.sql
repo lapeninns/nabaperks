@@ -82,10 +82,10 @@ revoke all on function public.current_auth_session_is_passwordless()
 grant execute on function public.current_auth_session_is_passwordless()
   to authenticated, service_role;
 
--- App route guards cannot protect a JWT used directly against PostgREST. Run
--- the same positive-evidence check before every Data API request so a password
--- JWT minted just before hook activation cannot read RLS-protected tables or
--- call authenticated RPCs during the rollout window.
+-- App route guards cannot protect a JWT used directly against PostgREST. This
+-- migration installs the request guard, but the protected production release
+-- activates it only after the passwordless application has been promoted. That
+-- keeps the old password-only application usable if deployment is delayed.
 create schema if not exists private;
 revoke all on schema private from public;
 grant usage on schema private to anon, authenticated, service_role;
@@ -99,7 +99,22 @@ stable
 security definer
 set search_path = ''
 as $$
+declare
+  request_headers jsonb := coalesce(
+    nullif(current_setting('request.headers', true), ''),
+    '{}'
+  )::jsonb;
 begin
+  -- A release probe can prove that PostgREST loaded this pre-request hook
+  -- without needing a production customer credential. The header can only
+  -- make the request carrying it fail; it grants no authority.
+  if
+    request_headers ->> 'x-nabaperks-passwordless-guard-probe' = 'active'
+  then
+    raise insufficient_privilege using
+      message = 'Passwordless Data API guard is active';
+  end if;
+
   if
     auth.role() = 'authenticated'
     and not public.current_auth_session_is_passwordless()
@@ -115,8 +130,4 @@ revoke all on function private.enforce_passwordless_data_api_session()
 grant execute on function private.enforce_passwordless_data_api_session()
   to anon, authenticated, service_role;
 
-alter role authenticator
-  set pgrst.db_pre_request = 'private.enforce_passwordless_data_api_session';
-
-notify pgrst, 'reload config';
 notify pgrst, 'reload schema';

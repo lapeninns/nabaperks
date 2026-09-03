@@ -49,9 +49,12 @@ test("merchant password auth is rejected at the provider token boundary", () => 
   assert.match(accessTokenHook, /enforce_passwordless_data_api_session/)
   assert.match(
     accessTokenHook,
-    /alter role authenticator[\s\S]*pgrst\.db_pre_request = 'private\.enforce_passwordless_data_api_session'/
+    /x-nabaperks-passwordless-guard-probe[\s\S]*Passwordless Data API guard is active/
   )
-  assert.match(accessTokenHook, /notify pgrst, 'reload config'/)
+  assert.doesNotMatch(
+    accessTokenHook,
+    /alter role authenticator|pgrst\.db_pre_request/
+  )
   assert.match(session, /current_auth_session_is_passwordless/)
   assert.match(session, /authMethodError \|\| passwordless !== true/)
 
@@ -71,7 +74,10 @@ test("merchant password auth is rejected at the provider token boundary", () => 
     'supabase config push --project-ref "$SUPABASE_PROJECT_REF"'
   )
   const accessTokenActivationAt = productionDeploy.indexOf(
-    "Activate password-token rejection before domain promotion"
+    "Activate password-token rejection after passwordless promotion"
+  )
+  const dataApiActivationAt = productionDeploy.indexOf(
+    "Activate and read back the passwordless Data API guard"
   )
   const stagedCanaryAt = productionDeploy.indexOf(
     "Prove staged Auth hook signing-secret alignment"
@@ -89,10 +95,22 @@ test("merchant password auth is rejected at the provider token boundary", () => 
   )
   assert.ok(stagedCanaryAt > 0 && promoteAt > stagedCanaryAt)
   assert.ok(
-    accessTokenActivationAt > stagedCanaryAt &&
-      promoteAt > accessTokenActivationAt
+    dataApiActivationAt > promoteAt &&
+      accessTokenActivationAt > dataApiActivationAt
   )
-  assert.ok(authConfigAt > promoteAt)
+  assert.ok(authConfigAt > accessTokenActivationAt)
+  assert.match(
+    productionDeploy,
+    /alter role authenticator set pgrst\.db_pre_request = 'private\.enforce_passwordless_data_api_session'/
+  )
+  assert.match(
+    productionDeploy,
+    /database\/query[\s\S]*\.\[0\]\.pre_request == "private\.enforce_passwordless_data_api_session"/
+  )
+  assert.match(
+    productionDeploy,
+    /projects api-keys[\s\S]*x-nabaperks-passwordless-guard-probe: active[\s\S]*probe_status[\s\S]*403[\s\S]*Passwordless Data API guard is active/
+  )
   assert.match(
     productionDeploy,
     /hook_custom_access_token_enabled: true[\s\S]*hook_custom_access_token_uri: \$uri[\s\S]*--request PATCH/

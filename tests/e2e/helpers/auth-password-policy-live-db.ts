@@ -2,6 +2,7 @@ import { createHmac, randomUUID } from "node:crypto"
 
 import { createClient } from "@supabase/supabase-js"
 import { expect } from "@playwright/test"
+import postgres from "postgres"
 
 import { signInWithGeneratedEmailOtp } from "./passwordless-auth-session"
 
@@ -23,6 +24,9 @@ export function authPasswordPolicyLiveDbSkipReason(): string | undefined {
   }
   if (!process.env.SUPABASE_JWT_SECRET?.trim()) {
     return "SUPABASE_JWT_SECRET is required"
+  }
+  if (!isLocalUrl(process.env.SUPABASE_DB_URL)) {
+    return "SUPABASE_DB_URL must point at local Supabase"
   }
   return undefined
 }
@@ -46,6 +50,7 @@ export async function assertPublicLocalPasswordlessAuth(): Promise<void> {
   let userId: string | undefined
 
   try {
+    await activateLocalPasswordlessDataApiGuard()
     await assertLegacyPasswordJwtDeniedAtDataApi(url)
 
     const created = await admin.auth.admin.createUser({
@@ -87,6 +92,26 @@ export async function assertPublicLocalPasswordlessAuth(): Promise<void> {
   }
 }
 
+async function activateLocalPasswordlessDataApiGuard(): Promise<void> {
+  const dbUrl = requiredEnv("SUPABASE_DB_URL")
+  if (!isLocalUrl(dbUrl)) {
+    throw new Error(
+      "Passwordless Data API activation may target only local DB."
+    )
+  }
+
+  const sql = postgres(dbUrl, { max: 1, prepare: false })
+  try {
+    await sql.unsafe(
+      "alter role authenticator set pgrst.db_pre_request = 'private.enforce_passwordless_data_api_session'"
+    )
+    await sql.unsafe("notify pgrst, 'reload config'")
+    await sql.unsafe("notify pgrst, 'reload schema'")
+  } finally {
+    await sql.end({ timeout: 5 })
+  }
+}
+
 async function assertLegacyPasswordJwtDeniedAtDataApi(
   url: string
 ): Promise<void> {
@@ -94,12 +119,17 @@ async function assertLegacyPasswordJwtDeniedAtDataApi(
   const passwordJwt = signLocalDataApiJwt("password")
   const otpJwt = signLocalDataApiJwt("otp")
 
-  const passwordRead = await fetch(
-    `${url}/rest/v1/merchants?select=id&limit=0`,
-    {
+  let passwordRead: Response | undefined
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    passwordRead = await fetch(`${url}/rest/v1/merchants?select=id&limit=0`, {
       headers: dataApiHeaders(anonKey, passwordJwt),
-    }
-  )
+    })
+    if (passwordRead.status === 403) break
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  }
+  expect(passwordRead).toBeDefined()
+  if (!passwordRead)
+    throw new Error("Data API guard probe produced no response.")
   expect(passwordRead.status).toBe(403)
   expect(await passwordRead.text()).toMatch(
     /passwordless authentication session is required/i
@@ -187,7 +217,12 @@ function isLocalUrl(value: string | undefined): boolean {
   if (!value) return false
   try {
     const host = new URL(value).hostname.toLowerCase()
-    return host === "127.0.0.1" || host === "localhost" || host === "::1"
+    return (
+      host === "127.0.0.1" ||
+      host === "localhost" ||
+      host === "::1" ||
+      host === "[::1]"
+    )
   } catch {
     return false
   }

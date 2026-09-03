@@ -260,19 +260,32 @@ test(
 )
 
 test(
-  "PostgREST registers the passwordless pre-request guard",
+  "the Data API release probe proves the loaded guard without authority",
+  { skip },
+  async () => {
+    await assert.rejects(
+      inRolledBackTxn(async (tx) => {
+        await tx`select set_config(
+          'request.headers',
+          ${JSON.stringify({
+            "x-nabaperks-passwordless-guard-probe": "active",
+          })},
+          true
+        )`
+        await tx`select private.enforce_passwordless_data_api_session()`
+      }),
+      /passwordless data api guard is active/i
+    )
+  }
+)
+
+test(
+  "the release-owned pre-request guard has exact callable privileges",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
       const [row] = await tx`
         select
-          (
-            select split_part(setting, '=', 2)
-            from pg_roles
-            cross join lateral unnest(rolconfig) setting
-            where rolname = 'authenticator'
-              and setting like 'pgrst.db_pre_request=%'
-          ) as pre_request,
           has_function_privilege(
             'authenticated',
             'private.enforce_passwordless_data_api_session()',
@@ -295,7 +308,6 @@ test(
           ) as public`
 
       assert.deepEqual(row, {
-        pre_request: "private.enforce_passwordless_data_api_session",
         authenticated: true,
         anon: true,
         service_role: true,
