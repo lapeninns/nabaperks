@@ -25,7 +25,7 @@ export async function ensureActivatedInternalAdmin(tx, userId) {
       from auth.mfa_factors
       where id = ${admin.mfa_factor_id}::uuid
         and user_id = ${userId}::uuid
-        and factor_type = 'totp'
+        and factor_type = 'webauthn'
         and status = 'verified'`
     if (!bound) {
       throw new Error(`Internal-admin fixture has an invalid MFA binding`)
@@ -37,7 +37,7 @@ export async function ensureActivatedInternalAdmin(tx, userId) {
     select id::text as id
     from auth.mfa_factors
     where user_id = ${userId}::uuid
-      and factor_type = 'totp'
+      and factor_type = 'webauthn'
       and status = 'verified'`
   if (verifiedFactors.length > 1) {
     throw new Error(`Internal-admin fixture has multiple verified factors`)
@@ -48,13 +48,17 @@ export async function ensureActivatedInternalAdmin(tx, userId) {
     factorId = randomUUID()
     await tx`
       insert into auth.mfa_factors
-        (id, user_id, friendly_name, factor_type, status, created_at, updated_at)
+        (id, user_id, friendly_name, factor_type, status,
+         web_authn_credential, created_at, updated_at)
       values (
         ${factorId}::uuid,
         ${userId}::uuid,
-        ${`db-test-totp-${factorId}`},
-        'totp',
+        ${`db-test-webauthn-${factorId}`},
+        'webauthn',
         'verified',
+        jsonb_build_object(
+          'flags', jsonb_build_object('userVerified', true)
+        ),
         now(),
         now()
       )`
@@ -93,6 +97,7 @@ export async function actAsActivatedInternalAdmin(tx, userId) {
   const challengedAt = new Date(
     new Date(activation.mfa_activated_at).getTime() + 1_000
   )
+  await recordWebAuthnAssertion(tx, factorId, true)
   await tx`
     insert into auth.sessions
       (id, user_id, created_at, updated_at, factor_id, aal)
@@ -112,7 +117,7 @@ export async function actAsActivatedInternalAdmin(tx, userId) {
       ${sessionId}::uuid,
       ${challengedAt},
       ${challengedAt},
-      'totp'
+      'mfa/webauthn'
     )`
   const claimValues = {
     sub: userId,
@@ -121,7 +126,7 @@ export async function actAsActivatedInternalAdmin(tx, userId) {
     session_id: sessionId,
     amr: [
       {
-        method: "totp",
+        method: "mfa/webauthn",
         timestamp: Math.floor(challengedAt.getTime() / 1_000),
       },
     ],
@@ -132,4 +137,20 @@ export async function actAsActivatedInternalAdmin(tx, userId) {
   await tx`select set_config('request.jwt.claim.aal', 'aal2', true)`
   await tx`select set_config('request.jwt.claims', ${claims}, true)`
   return claimValues
+}
+
+export async function recordWebAuthnAssertion(tx, factorId, userVerified) {
+  const flags = userVerified ? 5 : 1
+  await tx`
+    update auth.mfa_factors
+    set last_webauthn_challenge_data = jsonb_build_object(
+          'type', 'request',
+          'credential_response', jsonb_build_object(
+            'Response', jsonb_build_object(
+              'AuthenticatorData', jsonb_build_object('flags', ${flags}::integer)
+            )
+          )
+        ),
+        updated_at = now()
+    where id = ${factorId}::uuid`
 }

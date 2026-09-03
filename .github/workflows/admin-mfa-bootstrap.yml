@@ -1,0 +1,281 @@
+name: Publish production admin MFA bootstrap
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_revision:
+        description: Full Git SHA currently at the tip of main
+        required: true
+        type: string
+      confirmation:
+        description: Type PUBLISH_ADMIN_MFA_BOOTSTRAP to continue
+        required: true
+        type: string
+
+concurrency:
+  group: production-admin-mfa-bootstrap
+  cancel-in-progress: false
+
+permissions:
+  checks: read
+  contents: read
+  pull-requests: read
+
+jobs:
+  publish:
+    name: Publish protected WebAuthn bootstrap
+    environment: Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      EXPECTED_REVISION: ${{ inputs.expected_revision }}
+      CONFIRMATION: ${{ inputs.confirmation }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      DO_NOT_TRACK: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.expected_revision }}
+          fetch-depth: 0
+      - name: Verify immutable source and explicit approval
+        run: |
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_REVISION"
+          test "$(git rev-parse origin/main)" = "$EXPECTED_REVISION"
+          test "$CONFIRMATION" = "PUBLISH_ADMIN_MFA_BOOTSTRAP"
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          test -n "$SUPABASE_PROJECT_REF"
+      - name: Verify exact-revision release and security checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          main_checks_file="$RUNNER_TEMP/bootstrap-main-check-runs.json"
+          gh api --paginate --slurp \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${GITHUB_REPOSITORY}/commits/${EXPECTED_REVISION}/check-runs?filter=latest&per_page=100" \
+            > "$main_checks_file"
+          for required_check in \
+            "Release gate" \
+            "Analyze (javascript-typescript)"
+          do
+            jq -e \
+              --arg expected_revision "$EXPECTED_REVISION" \
+              --arg required_check "$required_check" \
+              '[.[] | .check_runs[] |
+                select(
+                  .head_sha == $expected_revision
+                  and .name == $required_check
+                  and .app.slug == "github-actions"
+                  and .status == "completed"
+                  and .conclusion == "success"
+                )] | length >= 1' \
+              "$main_checks_file" >/dev/null
+          done
+
+          associated_prs_file="$RUNNER_TEMP/bootstrap-associated-prs.json"
+          gh api --paginate --slurp \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${GITHUB_REPOSITORY}/commits/${EXPECTED_REVISION}/pulls?per_page=100" \
+            > "$associated_prs_file"
+          matched_pr_count="$(jq \
+            --arg expected_revision "$EXPECTED_REVISION" \
+            --arg repository "$GITHUB_REPOSITORY" \
+            '[.[] | .[] |
+              select(
+                .merged_at != null
+                and .merge_commit_sha == $expected_revision
+                and .base.ref == "main"
+                and .base.repo.full_name == $repository
+              )] | length' \
+            "$associated_prs_file")"
+          test "$matched_pr_count" = "1"
+          reviewed_head_sha="$(jq -er \
+            --arg expected_revision "$EXPECTED_REVISION" \
+            --arg repository "$GITHUB_REPOSITORY" \
+            '.[] | .[] |
+              select(
+                .merged_at != null
+                and .merge_commit_sha == $expected_revision
+                and .base.ref == "main"
+                and .base.repo.full_name == $repository
+              ) | .head.sha' \
+            "$associated_prs_file")"
+          expected_tree_sha="$(gh api \
+            "repos/${GITHUB_REPOSITORY}/git/commits/${EXPECTED_REVISION}" \
+            --jq '.tree.sha')"
+          reviewed_tree_sha="$(gh api \
+            "repos/${GITHUB_REPOSITORY}/git/commits/${reviewed_head_sha}" \
+            --jq '.tree.sha')"
+          test "$reviewed_tree_sha" = "$expected_tree_sha"
+
+          dependency_checks_file="$RUNNER_TEMP/bootstrap-dependency-check-runs.json"
+          gh api --paginate --slurp \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${GITHUB_REPOSITORY}/commits/${reviewed_head_sha}/check-runs?filter=latest&per_page=100" \
+            > "$dependency_checks_file"
+          jq -e \
+            --arg reviewed_head_sha "$reviewed_head_sha" \
+            '[.[] | .check_runs[] |
+              select(
+                .head_sha == $reviewed_head_sha
+                and .name == "Review dependency changes"
+                and .app.slug == "github-actions"
+                and .status == "completed"
+                and .conclusion == "success"
+              )] | length >= 1' \
+            "$dependency_checks_file" >/dev/null
+      - name: Verify the WebAuthn bridge is the production migration frontier
+        run: |
+          response_file="$RUNNER_TEMP/admin-mfa-bootstrap-ledger.json"
+          query="select exists (select 1 from supabase_migrations.schema_migrations where version = '20260902120200') as bridge_applied, not exists (select 1 from supabase_migrations.schema_migrations where version = '20260902120500') as enforcement_pending, (select count(*) from public.internal_admins where is_active) = 1 as sole_active_admin, not exists (select 1 from public.internal_admins admin join auth.mfa_factors factor on factor.user_id = admin.user_id where admin.is_active) as active_admin_is_factorless"
+          payload="$(jq -n --arg query "$query" '{query: $query, read_only: true}')"
+          status="$(curl --silent --show-error \
+            --output "$response_file" \
+            --write-out '%{http_code}' \
+            --request POST \
+            --header "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            --header "Content-Type: application/json" \
+            --data "$payload" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query")"
+          test "$status" = "201"
+          jq -e \
+            'type == "array" and length == 1
+              and .[0].bridge_applied == true
+              and .[0].enforcement_pending == true
+              and .[0].sole_active_admin == true
+              and .[0].active_admin_is_factorless == true' \
+            "$response_file" >/dev/null
+      - name: Load the immutable canonical Vercel target
+        run: |
+          node scripts/vercel-production-target.mjs \
+            --github-env "$GITHUB_ENV" \
+            --evidence "$RUNNER_TEMP/bootstrap-vercel-target.json"
+      - uses: ./.github/actions/setup
+      - name: Verify canonical Vercel project identity
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          test -n "$VERCEL_TOKEN"
+          metadata="$(pnpm exec vercel api \
+            "/v9/projects/$CANONICAL_VERCEL_PROJECT_ID" \
+            --scope="$CANONICAL_VERCEL_SCOPE" \
+            --token="$VERCEL_TOKEN" \
+            --raw)"
+          jq -e \
+            --arg id "$CANONICAL_VERCEL_PROJECT_ID" \
+            --arg team_id "$CANONICAL_VERCEL_TEAM_ID" \
+            '.id == $id and .accountId == $team_id' \
+            <<<"$metadata" >/dev/null
+      - name: Build the secret-free fixed-origin bootstrap
+        id: build-bootstrap
+        run: |
+          anon_key="$(curl --silent --show-error --fail \
+            --header "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/api-keys" \
+            | jq -er '[.[] | select(.name == "anon")][0].api_key')"
+          test -n "$anon_key"
+          output_directory="$RUNNER_TEMP/admin-mfa-bootstrap-site/.vercel/output"
+          ADMIN_MFA_BOOTSTRAP_ANON_KEY="$anon_key" \
+            node scripts/build-admin-mfa-bootstrap.mjs \
+              --output "$output_directory"
+          test -f "$output_directory/config.json"
+          test -f "$output_directory/static/admin-mfa-bootstrap/index.html"
+          test -f "$output_directory/static/assets/bootstrap.js"
+          printf 'site_directory=%s\n' \
+            "$RUNNER_TEMP/admin-mfa-bootstrap-site" >> "$GITHUB_OUTPUT"
+      - name: Deploy an isolated preview-target compatibility site
+        id: deploy
+        env:
+          SITE_DIRECTORY: ${{ steps.build-bootstrap.outputs.site_directory }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          deployment_url="$(pnpm exec vercel deploy \
+            "$SITE_DIRECTORY" \
+            --prebuilt \
+            --target=preview \
+            --no-wait \
+            --archive=tgz \
+            --yes \
+            --project="$CANONICAL_VERCEL_PROJECT_ID" \
+            --scope="$CANONICAL_VERCEL_SCOPE" \
+            --meta githubCommitSha="$EXPECTED_REVISION" \
+            --meta bootstrapRevision="$EXPECTED_REVISION" \
+            --token="$VERCEL_TOKEN")"
+          case "$deployment_url" in
+            https://*) ;;
+            *) echo "::error::Vercel returned no staged deployment URL."; exit 1 ;;
+          esac
+          printf 'url=%s\n' "$deployment_url" >> "$GITHUB_OUTPUT"
+      # Production deployment checks intentionally remain untouched. The
+      # one-route static site is a preview-target deployment containing no
+      # server credential. Exact-revision release, CodeQL and dependency
+      # checks plus the database-frontier proof above form the equivalent
+      # reviewed bootstrap-specific release boundary.
+      - name: Assign and verify the fixed bootstrap origin
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          for attempt in {1..90}; do
+            status="$(curl --silent --show-error --max-time 10 \
+              --output /dev/null --write-out '%{http_code}' \
+              "$DEPLOYMENT_URL/admin-mfa-bootstrap" || true)"
+            if [[ "$status" == "200" ]]; then break; fi
+            sleep 10
+          done
+          test "$status" = "200"
+          pnpm exec vercel alias set "$DEPLOYMENT_URL" mfa.nabaperks.com \
+            --scope="$CANONICAL_VERCEL_SCOPE" \
+            --token="$VERCEL_TOKEN"
+          alias_status="$(curl --silent --show-error --max-time 15 \
+            --output /dev/null --write-out '%{http_code}' \
+            https://mfa.nabaperks.com/admin-mfa-bootstrap)"
+          test "$alias_status" = "200"
+      - name: Enable fixed-origin WebAuthn MFA
+        run: |
+          update_file="$RUNNER_TEMP/admin-webauthn-update.json"
+          readback_file="$RUNNER_TEMP/admin-webauthn-readback.json"
+          origins="https://nabaperks.com,https://www.nabaperks.com,https://mfa.nabaperks.com"
+          payload="$(jq -n --arg origins "$origins" '{
+            mfa_web_authn_enroll_enabled: true,
+            mfa_web_authn_verify_enabled: true,
+            mfa_totp_enroll_enabled: false,
+            mfa_totp_verify_enabled: false,
+            webauthn_rp_display_name: "Nabaperks",
+            webauthn_rp_id: "nabaperks.com",
+            webauthn_rp_origins: $origins
+          }')"
+          update_status="$(curl --silent --show-error \
+            --output "$update_file" \
+            --write-out '%{http_code}' \
+            --request PATCH \
+            --header "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            --header "Content-Type: application/json" \
+            --data "$payload" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/config/auth")"
+          test "$update_status" = "200"
+          readback_status="$(curl --silent --show-error \
+            --output "$readback_file" \
+            --write-out '%{http_code}' \
+            --header "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/config/auth")"
+          test "$readback_status" = "200"
+          jq -e --arg origins "$origins" '
+            .mfa_web_authn_enroll_enabled == true
+            and .mfa_web_authn_verify_enabled == true
+            and .mfa_totp_enroll_enabled == false
+            and .mfa_totp_verify_enabled == false
+            and .webauthn_rp_display_name == "Nabaperks"
+            and .webauthn_rp_id == "nabaperks.com"
+            and .webauthn_rp_origins == $origins' "$readback_file" >/dev/null
+      - name: Record non-secret bootstrap evidence
+        run: |
+          {
+            echo "### Production admin WebAuthn bootstrap"
+            echo
+            echo "- Revision: \`$EXPECTED_REVISION\`"
+            echo "- Origin: https://mfa.nabaperks.com/admin-mfa-bootstrap"
+            echo "- Database frontier and Auth configuration: verified"
+            echo "- No user, factor or credential value is included"
+          } >> "$GITHUB_STEP_SUMMARY"

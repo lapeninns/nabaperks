@@ -213,34 +213,63 @@ Public-origin smoke starts only after promotion.
 ### First admin-MFA enforcement
 
 The admin-MFA change is intentionally an expand/activate/enforce rollout. The
-first database-promotion attempt applies the expand migration, then stops at the
-contract migration while any active admin lacks an independently approved TOTP
-factor. This is an expected fail-closed pause, not a reason to repair the
-migration ledger or weaken `is_internal_admin()`.
+first database-promotion attempt applies the WebAuthn bridge migration, then
+stops at the contract migration while the active admin lacks an independently
+approved passkey or security key. This is an expected fail-closed pause, not a
+reason to repair the migration ledger or weaken `is_internal_admin()`.
 
 1. Before the first attempt, identify the active internal admin through the
    approved operator process. Do not copy user or factor identifiers into chat,
    issue comments or build logs.
-2. After the expand migration has applied, the existing admin signs in to the
-   current application and enrols exactly one TOTP factor at `/admin/security`.
-3. A different trusted operator verifies the admin's identity and confirms that
-   the selected factor is the sole verified TOTP factor for that user.
-4. Dispatch `Activate production admin MFA` for the exact `main` revision with
+2. Confirm production has applied `20260902120200` and has not applied
+   `20260902120500`. Dispatch `Publish production admin MFA bootstrap` for the
+   exact `main` revision with the literal confirmation
+   `PUBLISH_ADMIN_MFA_BOOTSTRAP`. The protected workflow fails closed unless
+   exactly one active admin exists with no factor. Before publishing, it also
+   verifies the exact revision has passed the release gate and CodeQL analysis.
+   For the pull-request-only dependency review, it requires the uniquely
+   associated merged PR and proves its reviewed head tree is byte-for-byte the
+   final `main` tree before accepting that head's successful review. The
+   database-frontier proof replaces the ordinary database-promotion check only
+   for this intentional expand/activate pause.
+   It deploys a one-route, secret-free Vercel preview target with Git commit
+   provenance and assigns only `mfa.nabaperks.com`; it does not weaken or alter
+   the production deployment checks.
+3. Confirm `https://mfa.nabaperks.com/admin-mfa-bootstrap` returns `200`. The
+   existing admin signs in there with an emailed code and enrols exactly one
+   passkey or hardware security key. The authenticator must perform user
+   verification with a PIN, biometric or device screen lock. A real ceremony
+   is intentionally unavailable on localhost because the production relying
+   party is fixed to `nabaperks.com`.
+4. A different trusted operator verifies the admin's identity and confirms that
+   the selected factor is the sole verified WebAuthn factor for that user and
+   that its registration recorded authenticator user verification.
+5. Dispatch `Activate production admin MFA` for the exact `main` revision with
    the verified user UUID, factor UUID and the literal confirmation
    `ACTIVATE_VERIFIED_ADMIN_MFA`. Approve the protected `Production`
    environment only after the independent check. The workflow invokes the
    service-role-only RPC and verifies its boolean readback without printing the
    identifiers.
-5. Re-run `Production database promotion`. The contract precondition now
+6. Re-run `Production database promotion`. The contract precondition now
    succeeds, `is_internal_admin()` begins requiring the activated factor plus
-   AAL2, and all remaining forward migrations can apply.
-6. Confirm an AAL1 session is denied, the activated admin can step up at AAL2,
-   and the activation audit event exists before approving application
-   promotion.
+   AAL2, and all remaining forward migrations can apply. The bridge's
+   `auth.sessions` trigger also rejects AAL2 issuance unless GoTrue's
+   signature-validated assertion carries the authenticator UV bit.
+7. Confirm an AAL1 session is denied, a possession-only WebAuthn assertion is
+   denied, the activated admin can step up with user verification at AAL2, and
+   the activation audit event exists before approving application promotion.
 
-Abort if the factor is missing, unverified, owned by another user, or one of
-multiple verified factors. Never auto-bind a factor: independent activation is
-the security boundary.
+Abort if the factor is missing, unverified, owned by another user, lacks the
+authenticator UV flag, or is one of multiple verified factors. Never auto-bind
+a factor: independent activation is the security boundary. Keep the bootstrap
+alias in its fail-closed state until a separately approved cleanup removes it;
+after successful enrolment its eligibility RPC returns false.
+
+If the browser or runner closes during enrolment and leaves an unverified
+factor, stop rather than relaxing the factorless preflight. After independently
+verifying the admin identity and factor status, remove only that user's
+unverified factor through the approved Auth factor-management process, then
+restart enrolment. Never delete a verified factor as bootstrap recovery.
 
 ### Passwordless Auth configuration sequencing
 

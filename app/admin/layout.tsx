@@ -56,8 +56,8 @@ export default async function AdminLayout({
             Activation pending
           </h1>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            Your authenticator is enrolled. A trusted operator must activate
-            admin access after verifying your identity.
+            Your passkey or security key is enrolled. A trusted operator must
+            activate admin access after verifying your identity.
           </p>
         </section>
       </main>
