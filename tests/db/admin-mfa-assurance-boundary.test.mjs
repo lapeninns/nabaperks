@@ -3,248 +3,415 @@ import { randomUUID } from "node:crypto"
 import { after, test } from "node:test"
 
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
-import { recordWebAuthnAssertion } from "./helpers/admin-auth.mjs"
-
-/**
- * Admin assurance boundary — live-DB proof for `public.is_internal_admin()`.
- *
- * `is_internal_admin()` is the single gate behind ~58 RLS policies and ~22
- * admin RPCs, so it — not the React layout — is the boundary that decides
- * whether a compromised password-only (aal1) admin session can reach admin
- * state through the Data API directly.
- *
- * Authority requires an independently activated verified factor and AAL2.
- * Password-only and pending-factor states remain enrolment-only and must not
- * gain authority through the Data API.
- */
 
 const ready = await isLiveDbReady()
 const skip = ready ? false : "live Supabase DB not reachable/current"
+const ORIGIN = "https://nabaperks.com"
+const CHALLENGE = "A".repeat(43)
 
-after(async () => {
-  await closeDb()
+after(closeDb)
+
+test(
+  "an activated credential without a grant has no admin authority",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const fixture = await createActivatedAdmin(tx)
+      const allowed = await asUser(
+        tx,
+        fixture.userId,
+        fixture.sessionId,
+        (sp) => isInternalAdmin(sp)
+      )
+      assert.equal(allowed, false)
+    })
+  }
+)
+
+test(
+  "a fresh exact-credential grant on a live aal1 session restores authority",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const fixture = await createActivatedAdmin(tx)
+      await grant(tx, fixture)
+      const allowed = await asUser(
+        tx,
+        fixture.userId,
+        fixture.sessionId,
+        (sp) => isInternalAdmin(sp)
+      )
+      assert.equal(allowed, true)
+    })
+  }
+)
+
+test("expired and cross-session grants fail closed", { skip }, async () => {
+  await inRolledBackTxn(async (tx) => {
+    const fixture = await createActivatedAdmin(tx)
+    await grant(tx, fixture, "expired")
+    assert.equal(
+      await asUser(tx, fixture.userId, fixture.sessionId, isInternalAdmin),
+      false
+    )
+
+    const otherSessionId = await createSession(tx, fixture.userId)
+    assert.equal(
+      await asUser(tx, fixture.userId, otherSessionId, isInternalAdmin),
+      false
+    )
+  })
 })
 
 test(
-  "an enrolled admin at aal1 cannot hold admin authority (step-up bypass)",
+  "a grant for a different credential cannot satisfy an activated binding",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
-      const admin = await createInternalAdmin(tx, { withVerifiedFactor: true })
-
-      const allowed = await asAuthenticatedUser(
-        tx,
-        admin.userId,
-        "aal1",
-        (sp) => isInternalAdmin(sp)
-      )
-
+      const fixture = await createActivatedAdmin(tx)
+      const otherUser = await createUser(tx)
+      const otherCredential = await createCredential(tx, otherUser)
+      await tx`
+      insert into public.admin_webauthn_grants
+        (user_id, session_id, credential_id, verified_at, expires_at)
+      values (
+        ${fixture.userId}::uuid, ${fixture.sessionId}::uuid,
+        ${otherCredential}::uuid, clock_timestamp(),
+        clock_timestamp() + interval '10 minutes'
+      )`
       assert.equal(
-        allowed,
-        false,
-        "an enrolled admin whose session never completed the WebAuthn challenge must not be an internal admin at the database boundary"
+        await asUser(tx, fixture.userId, fixture.sessionId, isInternalAdmin),
+        false
       )
     })
   }
 )
 
 test(
-  "an enrolled admin who completed step-up keeps full admin authority",
+  "logout or session deletion invalidates a grant immediately",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
-      const admin = await createInternalAdmin(tx, { withVerifiedFactor: true })
-
-      const allowed = await asAuthenticatedUser(
-        tx,
-        admin.userId,
-        "aal2",
-        (sp) => isInternalAdmin(sp)
-      )
-
-      assert.equal(allowed, true, "aal2 satisfies the step-up requirement")
-    })
-  }
-)
-
-test(
-  "trusted activation binds only the sole verified WebAuthn factor and is audited",
-  { skip },
-  async () => {
-    await inRolledBackTxn(async (tx) => {
-      const admin = await createInternalAdmin(tx, {
-        withVerifiedFactor: true,
-        activateVerifiedFactor: false,
-      })
-      const [factor] = await tx`
-        select id
-        from auth.mfa_factors
-        where user_id = ${admin.userId}::uuid`
-
-      const [{ activated }] = await tx`
-        select public.activate_internal_admin_mfa(
-          ${admin.userId}::uuid, ${factor.id}::uuid
-        ) as activated`
-      assert.equal(activated, true)
-
-      const [audit] = await tx`
-        select action, target_id, metadata
-        from public.audit_logs
-        where target_id = ${admin.userId}::uuid
-          and action = 'admin_mfa_factor_activated'`
-      assert.equal(audit.action, "admin_mfa_factor_activated")
-      assert.equal(audit.target_id, admin.userId)
-      assert.equal(audit.metadata.factor_id, factor.id)
-
-      await assert.rejects(
-        () =>
-          asAuthenticatedUser(
-            tx,
-            admin.userId,
-            "aal2",
-            (sp) =>
-              sp`
-              select public.activate_internal_admin_mfa(
-                ${admin.userId}::uuid, ${factor.id}::uuid
-              )`
-          ),
-        (error) => error?.code === "42501"
-      )
-    })
-  }
-)
-
-test(
-  "an active admin with no verified factor is denied at aal1 and aal2",
-  { skip },
-  async () => {
-    await inRolledBackTxn(async (tx) => {
-      const admin = await createInternalAdmin(tx, { withVerifiedFactor: false })
-
-      for (const aal of ["aal1", "aal2"]) {
-        const allowed = await asAuthenticatedUser(tx, admin.userId, aal, (sp) =>
-          isInternalAdmin(sp)
-        )
-        assert.equal(allowed, false, `password-only admin denied at ${aal}`)
-      }
-    })
-  }
-)
-
-test(
-  "a browser-verified but unbound factor remains enrolment-only",
-  { skip },
-  async () => {
-    await inRolledBackTxn(async (tx) => {
-      const admin = await createInternalAdmin(tx, {
-        withVerifiedFactor: true,
-        activateVerifiedFactor: false,
-      })
-
-      for (const aal of ["aal1", "aal2"]) {
-        const allowed = await asAuthenticatedUser(tx, admin.userId, aal, (sp) =>
-          isInternalAdmin(sp)
-        )
-        assert.equal(
-          allowed,
-          false,
-          `browser enrolment without trusted activation is denied at ${aal}`
-        )
-      }
-    })
-  }
-)
-
-test(
-  "an unverified pending factor cannot activate admin authority",
-  { skip },
-  async () => {
-    await inRolledBackTxn(async (tx) => {
-      const admin = await createInternalAdmin(tx, {
-        withVerifiedFactor: false,
-        withUnverifiedFactor: true,
-      })
-
-      const allowed = await asAuthenticatedUser(
-        tx,
-        admin.userId,
-        "aal1",
-        (sp) => isInternalAdmin(sp)
-      )
-
+      const fixture = await createActivatedAdmin(tx)
+      await grant(tx, fixture)
+      await tx`delete from auth.sessions where id = ${fixture.sessionId}::uuid`
       assert.equal(
-        allowed,
-        false,
-        "an abandoned or attacker-created pending factor grants no authority"
+        await asUser(tx, fixture.userId, fixture.sessionId, isInternalAdmin),
+        false
       )
     })
   }
 )
 
 test(
-  "bootstrap eligibility is limited to the sole active factorless admin",
+  "activation invalidates proof created before independent approval",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const userId = await createAdmin(tx)
+      const credentialId = await createCredential(tx, userId)
+      const sessionId = await createSession(tx, userId)
+      await grant(tx, { userId, credentialId, sessionId })
+      await activate(tx, userId, credentialId)
+      assert.equal(await asUser(tx, userId, sessionId, isInternalAdmin), false)
+    })
+  }
+)
+
+test(
+  "credential revocation atomically removes the binding and grant",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const fixture = await createActivatedAdmin(tx)
+      await grant(tx, fixture)
+      await asUser(
+        tx,
+        fixture.userId,
+        fixture.sessionId,
+        (sp) =>
+          sp`select public.revoke_viewer_admin_webauthn_credential(${fixture.credentialId}::uuid)`
+      )
+      const [state] = await tx`
+      select mfa_factor_id, mfa_activated_at
+      from public.internal_admins where user_id = ${fixture.userId}::uuid`
+      assert.equal(state.mfa_factor_id, null)
+      assert.equal(state.mfa_activated_at, null)
+      assert.equal(
+        Number(
+          (
+            await tx`select count(*) as n from public.admin_webauthn_grants where user_id = ${fixture.userId}::uuid`
+          )[0].n
+        ),
+        0
+      )
+    })
+  }
+)
+
+test(
+  "a challenge is exact-session, purpose, origin, expiry and one-use bound",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
       await tx`update public.internal_admins set is_active = false`
-      const admin = await createInternalAdmin(tx, { withVerifiedFactor: false })
-      const outsiderId = randomUUID()
-      await tx`insert into auth.users (id) values (${outsiderId}::uuid)`
-
-      const eligible = await asAuthenticatedUser(
+      const userId = await createAdmin(tx)
+      const sessionId = await createSession(tx, userId)
+      const challengeId = await asUser(
         tx,
-        admin.userId,
-        "aal1",
+        userId,
+        sessionId,
         async (sp) =>
-          (await sp`select public.can_bootstrap_admin_webauthn() as allowed`)[0]
-            .allowed
+          (
+            await sp`
+          select public.begin_admin_webauthn_challenge(
+            'registration', ${CHALLENGE}, ${ORIGIN}
+          ) as id`
+          )[0].id
       )
-      const outsiderEligible = await asAuthenticatedUser(
-        tx,
-        outsiderId,
-        "aal1",
-        async (sp) =>
-          (await sp`select public.can_bootstrap_admin_webauthn() as allowed`)[0]
-            .allowed
-      )
-      assert.equal(eligible, true)
-      assert.equal(outsiderEligible, false)
-
-      await insertWebAuthnFactor(tx, admin.userId, "unverified")
-      const eligibleWithFactor = await asAuthenticatedUser(
-        tx,
-        admin.userId,
-        "aal1",
-        async (sp) =>
-          (await sp`select public.can_bootstrap_admin_webauthn() as allowed`)[0]
-            .allowed
-      )
-      assert.equal(eligibleWithFactor, false)
-    })
-  }
-)
-
-test(
-  "a WebAuthn factor without authenticator user verification cannot activate",
-  { skip },
-  async () => {
-    await inRolledBackTxn(async (tx) => {
-      const admin = await createInternalAdmin(tx, { withVerifiedFactor: false })
-      const factorId = await insertMfaFactor(
-        tx,
-        admin.userId,
-        "verified",
-        "webauthn",
+      const wrongSession = await createSession(tx, userId)
+      assert.equal(
+        await asUser(tx, userId, wrongSession, (sp) =>
+          consume(sp, challengeId, "registration", ORIGIN)
+        ),
         false
       )
+      assert.equal(
+        await asUser(tx, userId, sessionId, (sp) =>
+          consume(sp, challengeId, "authentication", ORIGIN)
+        ),
+        false
+      )
+      assert.equal(
+        await asUser(tx, userId, sessionId, (sp) =>
+          consume(sp, challengeId, "registration", "https://mfa.nabaperks.com")
+        ),
+        false
+      )
+      assert.equal(
+        await asUser(tx, userId, sessionId, (sp) =>
+          consume(sp, challengeId, "registration", ORIGIN)
+        ),
+        true
+      )
+      assert.equal(
+        await asUser(tx, userId, sessionId, (sp) =>
+          consume(sp, challengeId, "registration", ORIGIN)
+        ),
+        false
+      )
+    })
+  }
+)
 
+test(
+  "forged UV=false registration evidence is rejected",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      await tx`update public.internal_admins set is_active = false`
+      const userId = await createAdmin(tx)
+      const sessionId = await createSession(tx, userId)
+      const challengeId = await asUser(tx, userId, sessionId, async (sp) => {
+        const [{ id }] = await sp`
+        select public.begin_admin_webauthn_challenge(
+          'registration', ${CHALLENGE}, ${ORIGIN}
+        ) as id`
+        assert.equal(await consume(sp, id, "registration", ORIGIN), true)
+        return id
+      })
+      await assert.rejects(
+        () => tx`
+        select public.register_admin_webauthn_credential(
+          ${challengeId}::uuid, ${"B".repeat(32)}, ${"C".repeat(48)}, 0,
+          '[]'::jsonb, 'singleDevice', false, false
+        )`,
+        (error) => error?.code === "22023"
+      )
+    })
+  }
+)
+
+test(
+  "verified registration finalises the challenge and stores the credential",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      await tx`update public.internal_admins set is_active = false`
+      const userId = await createAdmin(tx)
+      const sessionId = await createSession(tx, userId)
+      const challengeId = await asUser(tx, userId, sessionId, async (sp) => {
+        const [{ id }] = await sp`
+        select public.begin_admin_webauthn_challenge(
+          'registration', ${CHALLENGE}, ${ORIGIN}
+        ) as id`
+        assert.equal(await consume(sp, id, "registration", ORIGIN), true)
+        return id
+      })
+
+      const [{ credentialId }] = await tx`
+      select public.register_admin_webauthn_credential(
+        ${challengeId}::uuid, ${"B".repeat(32)}, ${"C".repeat(48)}, 0,
+        '["internal"]'::jsonb, 'singleDevice', false, true
+      ) as "credentialId"`
+      const [challenge] = await tx`
+      select credential_id as "credentialId", finalised_at as "finalisedAt"
+      from public.admin_webauthn_challenges
+      where id = ${challengeId}::uuid`
+
+      assert.equal(challenge.credentialId, credentialId)
+      assert.ok(challenge.finalisedAt)
+    })
+  }
+)
+
+test(
+  "a verified assertion creates one short-lived grant and cannot be replayed",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const fixture = await createActivatedAdmin(tx)
+      const externalCredentialId = await getExternalCredentialId(
+        tx,
+        fixture.credentialId
+      )
+      const challengeId = await createConsumedAuthenticationChallenge(
+        tx,
+        fixture
+      )
+
+      const [{ granted }] = await tx`
+      select public.grant_admin_webauthn_session(
+        ${challengeId}::uuid, ${externalCredentialId}, 0, 1, true
+      ) as granted`
+      const [grantState] = await tx`
+      select
+        expires_at > clock_timestamp() as fresh,
+        expires_at <= clock_timestamp() + interval '10 minutes' as bounded
+      from public.admin_webauthn_grants
+      where user_id = ${fixture.userId}::uuid
+        and session_id = ${fixture.sessionId}::uuid`
+
+      assert.equal(granted, true)
+      assert.deepEqual(grantState, { fresh: true, bounded: true })
+      assert.equal(
+        await asUser(tx, fixture.userId, fixture.sessionId, isInternalAdmin),
+        true
+      )
+      await assertServiceCallRejected(
+        tx,
+        (sp) => sp`
+      select public.grant_admin_webauthn_session(
+        ${challengeId}::uuid, ${externalCredentialId}, 1, 2, true
+      )`
+      )
+    })
+  }
+)
+
+test(
+  "grant issuance rejects false UV, wrong credentials and expired challenges",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const fixture = await createActivatedAdmin(tx)
+      const externalCredentialId = await getExternalCredentialId(
+        tx,
+        fixture.credentialId
+      )
+
+      const falseUvChallenge = await createConsumedAuthenticationChallenge(
+        tx,
+        fixture
+      )
+      await assertServiceCallRejected(
+        tx,
+        (sp) => sp`
+      select public.grant_admin_webauthn_session(
+        ${falseUvChallenge}::uuid, ${externalCredentialId}, 0, 1, false
+      )`
+      )
+
+      const wrongCredentialChallenge =
+        await createConsumedAuthenticationChallenge(tx, fixture)
+      await assertServiceCallRejected(
+        tx,
+        (sp) => sp`
+      select public.grant_admin_webauthn_session(
+        ${wrongCredentialChallenge}::uuid, ${"wrong_credential_" + "X".repeat(24)}, 0, 1, true
+      )`
+      )
+
+      const expiredChallenge = await createConsumedAuthenticationChallenge(
+        tx,
+        fixture
+      )
+      await tx`
+      update public.admin_webauthn_challenges
+      set created_at = clock_timestamp() - interval '6 minutes',
+          expires_at = clock_timestamp() - interval '1 minute'
+      where id = ${expiredChallenge}::uuid`
+      await assertServiceCallRejected(
+        tx,
+        (sp) => sp`
+      select public.grant_admin_webauthn_session(
+        ${expiredChallenge}::uuid, ${externalCredentialId}, 0, 1, true
+      )`
+      )
+    })
+  }
+)
+
+test(
+  "a stale authenticator counter cannot win a later grant",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const fixture = await createActivatedAdmin(tx)
+      const externalCredentialId = await getExternalCredentialId(
+        tx,
+        fixture.credentialId
+      )
+      const firstChallenge = await createConsumedAuthenticationChallenge(
+        tx,
+        fixture
+      )
+      await tx`
+      select public.grant_admin_webauthn_session(
+        ${firstChallenge}::uuid, ${externalCredentialId}, 0, 1, true
+      )`
+
+      const secondChallenge = await createConsumedAuthenticationChallenge(
+        tx,
+        fixture
+      )
+      await assertServiceCallRejected(
+        tx,
+        (sp) => sp`
+      select public.grant_admin_webauthn_session(
+        ${secondChallenge}::uuid, ${externalCredentialId}, 0, 2, true
+      )`
+      )
+    })
+  }
+)
+
+test(
+  "authenticated callers cannot activate their own credential",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const userId = await createAdmin(tx)
+      const credentialId = await createCredential(tx, userId)
+      const sessionId = await createSession(tx, userId)
       await assert.rejects(
         () =>
-          tx.savepoint(
-            (sp) => sp`
-              select public.activate_internal_admin_mfa(
-                ${admin.userId}::uuid, ${factorId}::uuid
-              )`
+          asUser(
+            tx,
+            userId,
+            sessionId,
+            (sp) =>
+              sp`select public.activate_internal_admin_mfa(${userId}::uuid, ${credentialId}::uuid)`
           ),
         (error) => error?.code === "42501"
       )
@@ -253,27 +420,36 @@ test(
 )
 
 test(
-  "an activated admin assertion without the signed UV bit cannot mint an aal2 session",
+  "deactivating an admin clears credential binding and grants",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
-      const admin = await createInternalAdmin(tx, { withVerifiedFactor: true })
-      const factorId = await activatedFactorId(tx, admin.userId)
-      const sessionId = await createAal1SessionWithWebAuthnClaim(
-        tx,
-        admin.userId
-      )
-      await recordWebAuthnAssertion(tx, factorId, false)
+      const fixture = await createActivatedAdmin(tx)
+      await grant(tx, fixture)
+      await tx`update public.internal_admins set is_active = false where user_id = ${fixture.userId}::uuid`
+      const [state] = await tx`
+      select mfa_factor_id, mfa_activated_at
+      from public.internal_admins where user_id = ${fixture.userId}::uuid`
+      assert.equal(state.mfa_factor_id, null)
+      assert.equal(state.mfa_activated_at, null)
+    })
+  }
+)
 
+test(
+  "browser roles cannot read credential, challenge or grant tables directly",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const userId = await createUser(tx)
+      const sessionId = await createSession(tx, userId)
       await assert.rejects(
         () =>
-          tx.savepoint(
-            (sp) => sp`
-              update auth.sessions
-              set factor_id = ${factorId}::uuid,
-                  aal = 'aal2'::auth.aal_level,
-                  updated_at = now()
-              where id = ${sessionId}::uuid`
+          asUser(
+            tx,
+            userId,
+            sessionId,
+            (sp) => sp`select * from public.admin_webauthn_credentials`
           ),
         (error) => error?.code === "42501"
       )
@@ -281,652 +457,113 @@ test(
   }
 )
 
-test(
-  "malformed WebAuthn assertion evidence cannot mint an activated admin aal2 session",
-  { skip },
-  async () => {
-    await inRolledBackTxn(async (tx) => {
-      const admin = await createInternalAdmin(tx, { withVerifiedFactor: true })
-      const factorId = await activatedFactorId(tx, admin.userId)
-      const sessionId = await createAal1SessionWithWebAuthnClaim(
-        tx,
-        admin.userId
-      )
-      await tx`
-        update auth.mfa_factors
-        set last_webauthn_challenge_data = jsonb_build_object(
-              'type', 'request',
-              'credential_response', jsonb_build_object(
-                'Response', jsonb_build_object(
-                  'AuthenticatorData', jsonb_build_object('flags', 'invalid')
-                )
-              )
-            )
-        where id = ${factorId}::uuid`
-
-      await assert.rejects(
-        () =>
-          tx.savepoint(
-            (sp) => sp`
-              update auth.sessions
-              set factor_id = ${factorId}::uuid,
-                  aal = 'aal2'::auth.aal_level
-              where id = ${sessionId}::uuid`
-          ),
-        (error) => error?.code === "42501"
-      )
-    })
-  }
-)
-
-test(
-  "a signature-validated user-verified WebAuthn assertion can mint the activated admin aal2 session",
-  { skip },
-  async () => {
-    await inRolledBackTxn(async (tx) => {
-      const admin = await createInternalAdmin(tx, { withVerifiedFactor: true })
-      const factorId = await activatedFactorId(tx, admin.userId)
-      const sessionId = await createAal1SessionWithWebAuthnClaim(
-        tx,
-        admin.userId
-      )
-      await recordWebAuthnAssertion(tx, factorId, true)
-
-      await tx`
-        update auth.sessions
-        set factor_id = ${factorId}::uuid,
-            aal = 'aal2'::auth.aal_level,
-            updated_at = now()
-        where id = ${sessionId}::uuid`
-      const [session] = await tx`
-        select factor_id::text as factor_id, aal::text as aal
-        from auth.sessions
-        where id = ${sessionId}::uuid`
-      assert.deepEqual(session, { factor_id: factorId, aal: "aal2" })
-    })
-  }
-)
-
-test(
-  "a second verified factor invalidates the trusted admin factor binding",
-  { skip },
-  async () => {
-    await inRolledBackTxn(async (tx) => {
-      const admin = await createInternalAdmin(tx, { withVerifiedFactor: true })
-      await insertWebAuthnFactor(tx, admin.userId, "verified")
-
-      const allowed = await asAuthenticatedUser(
-        tx,
-        admin.userId,
-        "aal2",
-        (sp) => isInternalAdmin(sp)
-      )
-
-      assert.equal(
-        allowed,
-        false,
-        "an unapproved second factor must fail closed even with an aal2 session"
-      )
-
-      const [binding] = await tx`
-        select mfa_factor_id
-        from public.internal_admins
-        where user_id = ${admin.userId}::uuid`
-      assert.equal(
-        binding.mfa_factor_id,
-        null,
-        "factor-set changes invalidate trusted activation monotonically"
-      )
-    })
-  }
-)
-
-test(
-  "deleting an unapproved factor cannot revive a stale aal2 session",
-  { skip },
-  async () => {
-    await inRolledBackTxn(async (tx) => {
-      const admin = await createInternalAdmin(tx, { withVerifiedFactor: true })
-      const unapprovedFactor = await insertWebAuthnFactor(
-        tx,
-        admin.userId,
-        "verified"
-      )
-      await tx`
-        delete from auth.mfa_factors
-        where id = ${unapprovedFactor}::uuid`
-
-      const allowed = await asAuthenticatedUser(
-        tx,
-        admin.userId,
-        "aal2",
-        (sp) => isInternalAdmin(sp)
-      )
-      assert.equal(
-        allowed,
-        false,
-        "the old token stays denied after the extra factor disappears"
-      )
-
-      const [audit] = await tx`
-        select action, metadata
-        from public.audit_logs
-        where target_id = ${admin.userId}::uuid
-          and action = 'admin_mfa_binding_invalidated'
-        order by created_at desc
-        limit 1`
-      assert.equal(audit.action, "admin_mfa_binding_invalidated")
-      assert.equal(audit.metadata.factor_operation, "insert")
-    })
-  }
-)
-
-test(
-  "a token challenged for an old factor stays denied after replacement activation",
-  { skip },
-  async () => {
-    await inRolledBackTxn(async (tx) => {
-      const admin = await createInternalAdmin(tx, { withVerifiedFactor: true })
-      const [initial] = await tx`
-        select mfa_factor_id::text as mfa_factor_id
-        from public.internal_admins
-        where user_id = ${admin.userId}::uuid`
-
-      await tx`select set_config('app.admin_mfa_binding_change', 'trusted_activation', true)`
-      await tx`
-        update public.internal_admins
-        set mfa_activated_at = clock_timestamp() - interval '10 seconds'
-        where user_id = ${admin.userId}::uuid`
-      await tx`select set_config('app.admin_mfa_binding_change', '', true)`
-
-      const sessionId = randomUUID()
-      const oldChallengeAt = new Date(Date.now() - 5_000)
-      await recordWebAuthnAssertion(tx, initial.mfa_factor_id, true)
-      await tx`
-        insert into auth.sessions
-          (id, user_id, created_at, updated_at, factor_id, aal)
-        values (
-          ${sessionId}::uuid,
-          ${admin.userId}::uuid,
-          ${oldChallengeAt},
-          ${oldChallengeAt},
-          ${initial.mfa_factor_id}::uuid,
-          'aal2'::auth.aal_level
-        )`
-      await tx`
-        insert into auth.mfa_amr_claims
-          (id, session_id, created_at, updated_at, authentication_method)
-        values (
-          ${randomUUID()}::uuid,
-          ${sessionId}::uuid,
-          ${oldChallengeAt},
-          ${oldChallengeAt},
-          'mfa/webauthn'
-        )`
-      const oldClaims = {
-        sub: admin.userId,
-        role: "authenticated",
-        aal: "aal2",
-        session_id: sessionId,
-        amr: [
-          {
-            method: "mfa/webauthn",
-            timestamp: Math.floor(oldChallengeAt.getTime() / 1_000),
-          },
-        ],
-      }
-
-      const replacementFactor = await insertWebAuthnFactor(
-        tx,
-        admin.userId,
-        "verified"
-      )
-      await tx`
-        delete from auth.mfa_factors
-        where id = ${initial.mfa_factor_id}::uuid`
-      await tx`
-        select public.activate_internal_admin_mfa(
-          ${admin.userId}::uuid, ${replacementFactor}::uuid
-        )`
-      const [replacement] = await tx`
-        select mfa_activated_at
-        from public.internal_admins
-        where user_id = ${admin.userId}::uuid`
-      assert.equal(
-        new Date(replacement.mfa_activated_at).getMilliseconds(),
-        0,
-        "activation advances to a whole-second JWT timestamp boundary"
-      )
-      const newChallengeAt = new Date(
-        new Date(replacement.mfa_activated_at).getTime() + 1_000
-      )
-
-      // A legitimate challenge updates the authoritative session and produces
-      // a new JWT. The stolen old JWT has the same session id but retains its
-      // old signed AMR timestamp, so it must not inherit the new challenge.
-      await recordWebAuthnAssertion(tx, replacementFactor, true)
-      await tx`
-        update auth.sessions
-        set factor_id = ${replacementFactor}::uuid,
-            aal = 'aal2'::auth.aal_level
-        where id = ${sessionId}::uuid`
-      await tx`
-        update auth.mfa_amr_claims
-        set updated_at = ${newChallengeAt}
-        where session_id = ${sessionId}::uuid
-          and authentication_method = 'mfa/webauthn'`
-
-      const staleAllowed = await asBlobClaimsUser(
-        tx,
-        admin.userId,
-        oldClaims,
-        (sp) => isInternalAdmin(sp)
-      )
-      assert.equal(
-        staleAllowed,
-        false,
-        "an old signed token cannot borrow a post-activation session challenge"
-      )
-
-      const freshAllowed = await asBlobClaimsUser(
-        tx,
-        admin.userId,
-        {
-          ...oldClaims,
-          amr: [
-            {
-              method: "mfa/webauthn",
-              timestamp: Math.floor(newChallengeAt.getTime() / 1_000),
-            },
-          ],
-        },
-        (sp) => isInternalAdmin(sp)
-      )
-      assert.equal(
-        freshAllowed,
-        true,
-        "the replacement factor grants authority only to its fresh token"
-      )
-    })
-  }
-)
-
-test(
-  "direct service-role binding changes are rejected outside the audited RPC",
-  { skip },
-  async () => {
-    await inRolledBackTxn(async (tx) => {
-      const admin = await createInternalAdmin(tx, {
-        withVerifiedFactor: true,
-        activateVerifiedFactor: false,
-      })
-      const [factor] = await tx`
-        select id
-        from auth.mfa_factors
-        where user_id = ${admin.userId}::uuid`
-
-      await assert.rejects(
-        () =>
-          tx.savepoint(
-            (sp) => sp`
-          update public.internal_admins
-          set mfa_factor_id = ${factor.id}::uuid
-          where user_id = ${admin.userId}::uuid`
-          ),
-        /audited admin MFA lifecycle boundary/i
-      )
-    })
-  }
-)
-
-test(
-  "removing an unbound verified admin factor is still audited",
-  { skip },
-  async () => {
-    await inRolledBackTxn(async (tx) => {
-      const admin = await createInternalAdmin(tx, {
-        withVerifiedFactor: true,
-        activateVerifiedFactor: false,
-      })
-      const [factor] = await tx`
-        select id from auth.mfa_factors
-        where user_id = ${admin.userId}::uuid`
-
-      await tx`delete from auth.mfa_factors where id = ${factor.id}::uuid`
-
-      const [audit] = await tx`
-        select action, metadata
-        from public.audit_logs
-        where target_id = ${admin.userId}::uuid
-          and action = 'admin_mfa_factor_unenrolled'
-        order by created_at desc
-        limit 1`
-      assert.equal(audit.action, "admin_mfa_factor_unenrolled")
-      assert.equal(audit.metadata.factor_id, factor.id)
-      assert.equal(audit.metadata.factor_operation, "delete")
-    })
-  }
-)
-
-test(
-  "a factor owned by another admin cannot replace the trusted binding",
-  { skip },
-  async () => {
-    await inRolledBackTxn(async (tx) => {
-      const trustedAdmin = await createInternalAdmin(tx, {
-        withVerifiedFactor: true,
-      })
-      const otherAdmin = await createInternalAdmin(tx, {
-        withVerifiedFactor: true,
-      })
-
-      const [otherBinding] = await tx`
-        select mfa_factor_id
-        from public.internal_admins
-        where user_id = ${otherAdmin.userId}::uuid`
-      await assert.rejects(
-        () =>
-          tx.savepoint(
-            (sp) => sp`
-          select public.activate_internal_admin_mfa(
-            ${trustedAdmin.userId}::uuid, ${otherBinding.mfa_factor_id}::uuid
-          )`
-          ),
-        (error) => error?.code === "42501"
-      )
-
-      const allowed = await asAuthenticatedUser(
-        tx,
-        trustedAdmin.userId,
-        "aal2",
-        (sp) => isInternalAdmin(sp)
-      )
-
-      assert.equal(
-        allowed,
-        true,
-        "a rejected replacement leaves the original trusted factor active"
-      )
-    })
-  }
-)
-
-test(
-  "a bound verified non-WebAuthn factor cannot activate authority",
-  { skip },
-  async () => {
-    await inRolledBackTxn(async (tx) => {
-      const admin = await createInternalAdmin(tx, { withVerifiedFactor: false })
-      const factorId = await insertMfaFactor(
-        tx,
-        admin.userId,
-        "verified",
-        "phone"
-      )
-      await assert.rejects(
-        () =>
-          tx.savepoint(
-            (sp) => sp`
-          select public.activate_internal_admin_mfa(
-            ${admin.userId}::uuid, ${factorId}::uuid
-          )`
-          ),
-        (error) => error?.code === "42501"
-      )
-
-      const allowed = await asAuthenticatedUser(
-        tx,
-        admin.userId,
-        "aal2",
-        (sp) => isInternalAdmin(sp)
-      )
-      assert.equal(
-        allowed,
-        false,
-        "only the supported WebAuthn factor can activate"
-      )
-    })
-  }
-)
-
-test(
-  "a non-admin never gains admin authority at any assurance level",
-  { skip },
-  async () => {
-    await inRolledBackTxn(async (tx) => {
-      const outsiderId = randomUUID()
-      await tx`insert into auth.users (id) values (${outsiderId}::uuid)`
-
-      for (const aal of ["aal1", "aal2"]) {
-        const allowed = await asAuthenticatedUser(tx, outsiderId, aal, (sp) =>
-          isInternalAdmin(sp)
-        )
-        assert.equal(allowed, false, `outsider must be denied at ${aal}`)
-      }
-    })
-  }
-)
-
-test(
-  "the JSON claims blob alone is enough to prove step-up (the production shape)",
-  { skip },
-  async () => {
-    await inRolledBackTxn(async (tx) => {
-      const admin = await createInternalAdmin(tx, { withVerifiedFactor: true })
-
-      // PostgREST populates only request.jwt.claims; it does not set the legacy
-      // per-claim GUCs. If the resolver ever stopped reading the blob, every
-      // enrolled admin would be locked out in production while the per-claim
-      // tests stayed green — the exact regression that forced 20260720100000.
-      const stepped = await asBlobOnlyUser(tx, admin.userId, "aal2", (sp) =>
-        isInternalAdmin(sp)
-      )
-      assert.equal(
-        stepped,
-        true,
-        "aal2 in the claims blob must satisfy step-up"
-      )
-
-      const notStepped = await asBlobOnlyUser(tx, admin.userId, "aal1", (sp) =>
-        isInternalAdmin(sp)
-      )
-      assert.equal(notStepped, false, "aal1 in the claims blob must deny")
-    })
-  }
-)
-
-test(
-  "an admin can read their own enrolment state and no one else's",
-  { skip },
-  async () => {
-    await inRolledBackTxn(async (tx) => {
-      const enrolled = await createInternalAdmin(tx, {
-        withVerifiedFactor: true,
-      })
-      const bare = await createInternalAdmin(tx, { withVerifiedFactor: false })
-
-      const own = await asBlobOnlyUser(
-        tx,
-        enrolled.userId,
-        "aal2",
-        async (sp) =>
-          (await sp`select public.viewer_has_verified_mfa_factor() as v`)[0]?.v
-      )
-      assert.equal(own, true)
-
-      const other = await asBlobOnlyUser(
-        tx,
-        bare.userId,
-        "aal1",
-        async (sp) =>
-          (await sp`select public.viewer_has_verified_mfa_factor() as v`)[0]?.v
-      )
-      assert.equal(
-        other,
-        false,
-        "the viewer helper reports the CALLER's state, never another user's"
-      )
-    })
-  }
-)
-
-test(
-  "an inactive admin stays denied even after completing step-up",
-  { skip },
-  async () => {
-    await inRolledBackTxn(async (tx) => {
-      const admin = await createInternalAdmin(tx, {
-        withVerifiedFactor: true,
-        isActive: false,
-      })
-
-      const allowed = await asAuthenticatedUser(
-        tx,
-        admin.userId,
-        "aal2",
-        (sp) => isInternalAdmin(sp)
-      )
-
-      assert.equal(
-        allowed,
-        false,
-        "deactivation still outranks assurance level"
-      )
-    })
-  }
-)
-
-async function createInternalAdmin(
-  tx,
-  {
-    withVerifiedFactor,
-    withUnverifiedFactor = false,
-    isActive = true,
-    activateVerifiedFactor = withVerifiedFactor,
-  }
-) {
+async function createUser(tx) {
   const userId = randomUUID()
-  const email = `admin-${userId.slice(0, 8)}@example.test`
-
   await tx`insert into auth.users (id) values (${userId}::uuid)`
+  return userId
+}
+
+async function createAdmin(tx) {
+  const userId = await createUser(tx)
   await tx`
     insert into public.internal_admins (user_id, email, is_active)
-    values (${userId}::uuid, ${email}, ${isActive})`
-
-  if (withVerifiedFactor) {
-    const factorId = await insertWebAuthnFactor(tx, userId, "verified")
-    if (activateVerifiedFactor && isActive) {
-      await tx`
-        select public.activate_internal_admin_mfa(
-          ${userId}::uuid, ${factorId}::uuid
-        )`
-    }
-  }
-  if (withUnverifiedFactor) {
-    await insertWebAuthnFactor(tx, userId, "unverified")
-  }
-
-  return { userId, email }
+    values (${userId}::uuid, ${`admin-${userId}@example.test`}, true)`
+  return userId
 }
 
-async function insertWebAuthnFactor(tx, userId, status) {
-  return insertMfaFactor(tx, userId, status, "webauthn")
+async function createCredential(tx, userId) {
+  const credentialId = randomUUID()
+  await tx`
+    insert into public.admin_webauthn_credentials (
+      id, user_id, credential_id, public_key, counter, transports,
+      device_type, backed_up, user_verified
+    ) values (
+      ${credentialId}::uuid, ${userId}::uuid,
+      ${`cred_${credentialId.replaceAll("-", "")}`},
+      ${`public_key_${credentialId.replaceAll("-", "")}`}, 0,
+      '["internal"]'::jsonb, 'singleDevice', false, true
+    )`
+  return credentialId
 }
 
-async function activatedFactorId(tx, userId) {
-  const [admin] = await tx`
-    select mfa_factor_id::text as mfa_factor_id
-    from public.internal_admins
-    where user_id = ${userId}::uuid`
-  return admin.mfa_factor_id
-}
-
-async function createAal1SessionWithWebAuthnClaim(tx, userId) {
+async function createSession(tx, userId) {
   const sessionId = randomUUID()
   await tx`
-    insert into auth.sessions
-      (id, user_id, created_at, updated_at, aal)
-    values (
-      ${sessionId}::uuid, ${userId}::uuid, now(), now(),
-      'aal1'::auth.aal_level
-    )`
-  await tx`
-    insert into auth.mfa_amr_claims
-      (id, session_id, created_at, updated_at, authentication_method)
-    values (
-      ${randomUUID()}::uuid, ${sessionId}::uuid, now(), now(),
-      'mfa/webauthn'
-    )`
+    insert into auth.sessions (id, user_id, created_at, updated_at, aal)
+    values (${sessionId}::uuid, ${userId}::uuid, now(), now(), 'aal1'::auth.aal_level)`
   return sessionId
 }
 
-async function insertMfaFactor(
-  tx,
-  userId,
-  status,
-  factorType,
-  userVerified = true
-) {
-  const factorId = randomUUID()
-  await tx`
-    insert into auth.mfa_factors
-      (id, user_id, friendly_name, factor_type, status,
-       web_authn_credential, created_at, updated_at)
-    values
-      (${factorId}::uuid, ${userId}::uuid, ${`${factorType}-${status}-${factorId}`},
-       ${factorType}::auth.factor_type, ${status}::auth.factor_status,
-       case
-         when ${factorType} = 'webauthn'
-           then jsonb_build_object(
-             'flags', jsonb_build_object('userVerified', ${userVerified})
-           )
-         else null
-       end,
-       now(), now())`
-  return factorId
+async function createActivatedAdmin(tx) {
+  const userId = await createAdmin(tx)
+  const credentialId = await createCredential(tx, userId)
+  await activate(tx, userId, credentialId)
+  return { userId, credentialId, sessionId: await createSession(tx, userId) }
 }
 
-/**
- * Mirrors `asAuthenticatedUser` in tenant-rls.test.mjs, but also carries the
- * assurance-level claim GoTrue puts in every access token. Both the per-claim
- * GUC and the JSON claims blob are set because `auth.uid()` reads either form
- * and the assurance resolver must behave identically for both.
- */
-async function asAuthenticatedUser(tx, userId, aal, fn) {
+async function activate(tx, userId, credentialId) {
+  await tx`
+    select public.activate_internal_admin_mfa(
+      ${userId}::uuid, ${credentialId}::uuid
+    )`
+}
+
+async function getExternalCredentialId(tx, credentialId) {
+  return (
+    await tx`
+      select credential_id as id
+      from public.admin_webauthn_credentials
+      where id = ${credentialId}::uuid`
+  )[0].id
+}
+
+async function createConsumedAuthenticationChallenge(tx, fixture) {
+  return asUser(tx, fixture.userId, fixture.sessionId, async (sp) => {
+    const [{ id }] = await sp`
+      select public.begin_admin_webauthn_challenge(
+        'authentication', ${CHALLENGE}, ${ORIGIN}
+      ) as id`
+    assert.equal(await consume(sp, id, "authentication", ORIGIN), true)
+    return id
+  })
+}
+
+async function assertServiceCallRejected(tx, call) {
+  await assert.rejects(
+    () => tx.savepoint(async (sp) => call(sp)),
+    (error) => error?.code === "42501" || error?.code === "22023"
+  )
+}
+
+async function grant(tx, fixture, state = "fresh") {
+  const verified =
+    state === "expired"
+      ? "clock_timestamp() - interval '20 minutes'"
+      : "clock_timestamp()"
+  const expires =
+    state === "expired"
+      ? "clock_timestamp() - interval '10 minutes'"
+      : "clock_timestamp() + interval '10 minutes'"
+  await tx.unsafe(
+    `insert into public.admin_webauthn_grants
+      (user_id, session_id, credential_id, verified_at, expires_at)
+     values ($1::uuid, $2::uuid, $3::uuid, ${verified}, ${expires})`,
+    [fixture.userId, fixture.sessionId, fixture.credentialId]
+  )
+}
+
+async function asUser(tx, userId, sessionId, fn) {
   return tx.savepoint(async (sp) => {
-    const claims = JSON.stringify(
-      await claimsWithCurrentMfaEvidence(sp, userId, aal)
-    )
+    const claims = JSON.stringify({
+      sub: userId,
+      role: "authenticated",
+      aal: "aal1",
+      session_id: sessionId,
+      amr: [{ method: "otp", timestamp: 1 }],
+    })
     await sp`set local role authenticated`
     await sp`select set_config('request.jwt.claim.role', 'authenticated', true)`
     await sp`select set_config('request.jwt.claim.sub', ${userId}, true)`
-    await sp`select set_config('request.jwt.claim.aal', ${aal}, true)`
-    await sp`select set_config('request.jwt.claims', ${claims}, true)`
-    try {
-      return await fn(sp)
-    } finally {
-      await sp`reset role`
-      await sp`select set_config('request.jwt.claim.aal', '', true)`
-      await sp`select set_config('request.jwt.claims', '', true)`
-      await sp`select set_config('request.jwt.claim.role', 'service_role', true)`
-    }
-  })
-}
-
-/**
- * The production request shape: PostgREST sets ONLY the aggregate claims blob,
- * never the legacy per-claim GUCs. Tests that set both cannot tell the two
- * coalesce branches apart.
- */
-async function asBlobOnlyUser(tx, userId, aal, fn) {
-  return tx.savepoint(async (sp) => {
-    const claims = JSON.stringify(
-      await claimsWithCurrentMfaEvidence(sp, userId, aal)
-    )
-    await sp`set local role authenticated`
-    await sp`select set_config('request.jwt.claim.role', '', true)`
-    await sp`select set_config('request.jwt.claim.sub', '', true)`
-    await sp`select set_config('request.jwt.claim.aal', '', true)`
     await sp`select set_config('request.jwt.claims', ${claims}, true)`
     try {
       return await fn(sp)
@@ -938,80 +575,15 @@ async function asBlobOnlyUser(tx, userId, aal, fn) {
   })
 }
 
-async function asBlobClaimsUser(tx, userId, claims, fn) {
-  return tx.savepoint(async (sp) => {
-    await sp`set local role authenticated`
-    await sp`select set_config('request.jwt.claim.role', '', true)`
-    await sp`select set_config('request.jwt.claim.sub', '', true)`
-    await sp`select set_config('request.jwt.claim.aal', '', true)`
-    await sp`
-      select set_config(
-        'request.jwt.claims',
-        ${JSON.stringify(claims)},
-        true
-      )`
-    try {
-      return await fn(sp)
-    } finally {
-      await sp`reset role`
-      await sp`select set_config('request.jwt.claims', '', true)`
-      await sp`select set_config('request.jwt.claim.role', 'service_role', true)`
-    }
-  })
+async function isInternalAdmin(sql) {
+  return (await sql`select public.is_internal_admin() as allowed`)[0].allowed
 }
 
-async function claimsWithCurrentMfaEvidence(tx, userId, aal) {
-  const claims = { sub: userId, role: "authenticated", aal }
-  if (aal !== "aal2") return claims
-
-  const [activation] = await tx`
-    select mfa_factor_id::text as mfa_factor_id, mfa_activated_at
-    from public.internal_admins
-    where user_id = ${userId}::uuid`
-  if (!activation?.mfa_factor_id || !activation.mfa_activated_at) {
-    return claims
-  }
-
-  const sessionId = randomUUID()
-  const challengedAt = new Date(
-    new Date(activation.mfa_activated_at).getTime() + 1_000
-  )
-  await recordWebAuthnAssertion(tx, activation.mfa_factor_id, true)
-  await tx`
-    insert into auth.sessions
-      (id, user_id, created_at, updated_at, factor_id, aal)
-    values (
-      ${sessionId}::uuid,
-      ${userId}::uuid,
-      ${challengedAt},
-      ${challengedAt},
-      ${activation.mfa_factor_id}::uuid,
-      'aal2'::auth.aal_level
-    )`
-  await tx`
-    insert into auth.mfa_amr_claims
-      (id, session_id, created_at, updated_at, authentication_method)
-    values (
-      ${randomUUID()}::uuid,
-      ${sessionId}::uuid,
-      ${challengedAt},
-      ${challengedAt},
-      'mfa/webauthn'
-    )`
-
-  return {
-    ...claims,
-    session_id: sessionId,
-    amr: [
-      {
-        method: "mfa/webauthn",
-        timestamp: Math.floor(challengedAt.getTime() / 1_000),
-      },
-    ],
-  }
-}
-
-async function isInternalAdmin(sp) {
-  const rows = await sp`select public.is_internal_admin() as allowed`
-  return rows[0]?.allowed ?? null
+async function consume(sql, id, purpose, origin) {
+  return (
+    await sql`
+      select public.consume_viewer_admin_webauthn_challenge(
+        ${id}::uuid, ${purpose}, ${origin}
+      ) as consumed`
+  )[0].consumed
 }

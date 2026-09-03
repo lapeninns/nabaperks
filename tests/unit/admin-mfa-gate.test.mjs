@@ -43,7 +43,7 @@ test("enforcement keys off the verified factor (nextLevel), never the session al
   assert.equal(resolveAdminMfaState("aal1", "aal3"), "no-factor")
 })
 
-test("MFA removal requires an already satisfied AAL2 session", () => {
+test("MFA removal requires a current server-verified session grant", () => {
   assert.equal(adminMfaUnenrollmentAllowed("satisfied"), true)
   assert.equal(adminMfaUnenrollmentAllowed("step-up-required"), false)
   assert.equal(adminMfaUnenrollmentAllowed("no-factor"), false)
@@ -63,22 +63,17 @@ test("only a satisfied session can reach privileged surfaces", () => {
 })
 
 test("the gate resolves enrolment from the database, not the session cookie", () => {
-  // hasVerifiedFactor comes from viewer_has_verified_mfa_factor(); currentLevel
-  // from the signed JWT. A stale cookie can no longer report "no factor".
-  assert.equal(resolveAdminMfaStateFromFacts(false, "aal1"), "no-factor")
-  assert.equal(resolveAdminMfaStateFromFacts(false, "aal2"), "no-factor")
-  assert.equal(resolveAdminMfaStateFromFacts(true, "aal2"), "satisfied")
-  assert.equal(resolveAdminMfaStateFromFacts(true, "aal1"), "step-up-required")
+  assert.equal(resolveAdminMfaStateFromFacts(false, false), "no-factor")
+  assert.equal(resolveAdminMfaStateFromFacts(false, true), "no-factor")
+  assert.equal(resolveAdminMfaStateFromFacts(true, true), "satisfied")
+  assert.equal(resolveAdminMfaStateFromFacts(true, false), "step-up-required")
 })
 
 test("an unreadable assurance fact is unknown, never a permissive default", () => {
-  // getAuthenticatorAssuranceLevel returns { data: null, error } instead of
-  // throwing, so null must not collapse into "no-factor" (which allows).
-  assert.equal(resolveAdminMfaStateFromFacts(null, "aal2"), "unknown")
-  assert.equal(resolveAdminMfaStateFromFacts(undefined, "aal1"), "unknown")
+  assert.equal(resolveAdminMfaStateFromFacts(null, true), "unknown")
+  assert.equal(resolveAdminMfaStateFromFacts(undefined, false), "unknown")
   assert.equal(resolveAdminMfaStateFromFacts(true, null), "unknown")
   assert.equal(resolveAdminMfaStateFromFacts(true, undefined), "unknown")
-  assert.equal(resolveAdminMfaStateFromFacts(true, "aal3"), "unknown")
 })
 
 test("an indeterminate assurance level fails closed", () => {

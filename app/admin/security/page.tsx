@@ -22,8 +22,11 @@ export default async function AdminSecurityPage() {
   let factorId: string | null = null
   if (enrolled) {
     const supabase = await createSupabaseServerClient()
-    const { data } = await supabase.auth.mfa.listFactors()
-    factorId = data?.webauthn?.[0]?.id ?? null
+    const { data, error } = await supabase.rpc(
+      "viewer_admin_webauthn_credential_id"
+    )
+    if (error) throw new Error("Unable to read the administrator credential.")
+    factorId = typeof data === "string" ? data : null
   }
 
   return (

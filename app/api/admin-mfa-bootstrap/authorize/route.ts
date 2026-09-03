@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 
 import { resolveAdminWebAuthnContext } from "@/lib/admin/webauthn-policy"
-import {
-  createSupabaseRouteHandlerClient,
-  createSupabaseServiceRoleClient,
-} from "@/lib/supabase/server"
+import { createSupabaseRouteHandlerClient } from "@/lib/supabase/server"
 
 export async function POST(request: NextRequest) {
   const response = NextResponse.json({ allowed: false }, { status: 403 })
@@ -21,28 +18,10 @@ export async function POST(request: NextRequest) {
   const { data, error } = await supabase.auth.getUser()
   if (error || !data.user) return response
 
-  const serviceRole = createSupabaseServiceRoleClient()
-  const [{ data: admin }, { data: authUser, error: authUserError }] =
-    await Promise.all([
-      serviceRole
-        .from("internal_admins")
-        .select("is_active")
-        .eq("user_id", data.user.id)
-        .maybeSingle(),
-      serviceRole.auth.admin.getUserById(data.user.id),
-    ])
-
-  const verifiedFactors = authUser.user?.factors?.filter(
-    (factor) => factor.status === "verified"
+  const { data: allowed, error: eligibilityError } = await supabase.rpc(
+    "can_bootstrap_admin_webauthn"
   )
-  if (
-    authUserError ||
-    admin?.is_active !== true ||
-    !verifiedFactors ||
-    verifiedFactors.length !== 0
-  ) {
-    return response
-  }
+  if (eligibilityError || allowed !== true) return response
 
   return NextResponse.json({ allowed: true })
 }

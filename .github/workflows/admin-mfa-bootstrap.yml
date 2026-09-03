@@ -125,10 +125,10 @@ jobs:
                 and .conclusion == "success"
               )] | length >= 1' \
             "$dependency_checks_file" >/dev/null
-      - name: Verify the WebAuthn bridge is the production migration frontier
+      - name: Verify the passkey bridge is the production migration frontier
         run: |
           response_file="$RUNNER_TEMP/admin-mfa-bootstrap-ledger.json"
-          query="select exists (select 1 from supabase_migrations.schema_migrations where version = '20260902120200') as bridge_applied, not exists (select 1 from supabase_migrations.schema_migrations where version = '20260902120500') as enforcement_pending, (select count(*) from public.internal_admins where is_active) = 1 as sole_active_admin, not exists (select 1 from public.internal_admins admin join auth.mfa_factors factor on factor.user_id = admin.user_id where admin.is_active) as active_admin_is_factorless"
+          query="select exists (select 1 from supabase_migrations.schema_migrations where version = '20260902120300') as bridge_applied, not exists (select 1 from supabase_migrations.schema_migrations where version = '20260902120500') as enforcement_pending, (select count(*) from public.internal_admins where is_active) = 1 as sole_active_admin, not exists (select 1 from public.admin_webauthn_credentials credential join public.internal_admins admin on admin.user_id = credential.user_id where admin.is_active and credential.revoked_at is null) as active_admin_is_factorless"
           payload="$(jq -n --arg query "$query" '{query: $query, read_only: true}')"
           status="$(curl --silent --show-error \
             --output "$response_file" \
@@ -152,6 +152,21 @@ jobs:
             --github-env "$GITHUB_ENV" \
             --evidence "$RUNNER_TEMP/bootstrap-vercel-target.json"
       - uses: ./.github/actions/setup
+      - uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3
+        with:
+          version: 2.106.0
+      - name: Deploy and verify the session-bound WebAuthn verifier
+        run: |
+          supabase functions deploy admin-webauthn \
+            --no-verify-jwt \
+            --project-ref "$SUPABASE_PROJECT_REF"
+          functions_file="$RUNNER_TEMP/admin-webauthn-functions.json"
+          supabase functions list \
+            --project-ref "$SUPABASE_PROJECT_REF" \
+            --output json > "$functions_file"
+          jq -e \
+            '.[] | select(.name == "admin-webauthn" and .status == "ACTIVE")' \
+            "$functions_file" >/dev/null
       - name: Verify canonical Vercel project identity
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
@@ -232,20 +247,11 @@ jobs:
             --output /dev/null --write-out '%{http_code}' \
             https://mfa.nabaperks.com/admin-mfa-bootstrap)"
           test "$alias_status" = "200"
-      - name: Enable fixed-origin WebAuthn MFA
+      - name: Keep hosted TOTP disabled
         run: |
-          update_file="$RUNNER_TEMP/admin-webauthn-update.json"
-          readback_file="$RUNNER_TEMP/admin-webauthn-readback.json"
-          origins="https://nabaperks.com,https://www.nabaperks.com,https://mfa.nabaperks.com"
-          payload="$(jq -n --arg origins "$origins" '{
-            mfa_web_authn_enroll_enabled: true,
-            mfa_web_authn_verify_enabled: true,
-            mfa_totp_enroll_enabled: false,
-            mfa_totp_verify_enabled: false,
-            webauthn_rp_display_name: "Nabaperks",
-            webauthn_rp_id: "nabaperks.com",
-            webauthn_rp_origins: $origins
-          }')"
+          update_file="$RUNNER_TEMP/admin-totp-update.json"
+          readback_file="$RUNNER_TEMP/admin-totp-readback.json"
+          payload='{"mfa_totp_enroll_enabled":false,"mfa_totp_verify_enabled":false}'
           update_status="$(curl --silent --show-error \
             --output "$update_file" \
             --write-out '%{http_code}' \
@@ -261,14 +267,9 @@ jobs:
             --header "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
             "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/config/auth")"
           test "$readback_status" = "200"
-          jq -e --arg origins "$origins" '
-            .mfa_web_authn_enroll_enabled == true
-            and .mfa_web_authn_verify_enabled == true
-            and .mfa_totp_enroll_enabled == false
-            and .mfa_totp_verify_enabled == false
-            and .webauthn_rp_display_name == "Nabaperks"
-            and .webauthn_rp_id == "nabaperks.com"
-            and .webauthn_rp_origins == $origins' "$readback_file" >/dev/null
+          jq -e '
+            .mfa_totp_enroll_enabled == false
+            and .mfa_totp_verify_enabled == false' "$readback_file" >/dev/null
       - name: Record non-secret bootstrap evidence
         run: |
           {
@@ -276,6 +277,6 @@ jobs:
             echo
             echo "- Revision: \`$EXPECTED_REVISION\`"
             echo "- Origin: https://mfa.nabaperks.com/admin-mfa-bootstrap"
-            echo "- Database frontier and Auth configuration: verified"
+            echo "- Database frontier, WebAuthn verifier and TOTP-disabled configuration: verified"
             echo "- No user, factor or credential value is included"
           } >> "$GITHUB_STEP_SUMMARY"

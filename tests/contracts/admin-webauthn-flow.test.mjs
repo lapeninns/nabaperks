@@ -8,39 +8,54 @@ const projectRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../.."
 )
+const read = (...segments) =>
+  readFileSync(path.join(projectRoot, ...segments), "utf8")
 
-function readProjectFile(...segments) {
-  return readFileSync(path.join(projectRoot, ...segments), "utf8")
-}
+test("admin ceremonies use the fixed-origin server verifier with required user verification", () => {
+  const browser = read("lib", "admin", "webauthn-mfa.ts")
+  const edge = read("supabase", "functions", "admin-webauthn", "index.ts")
 
-test("admin enrolment uses WebAuthn with required user verification", () => {
-  const implementation = readProjectFile("lib", "admin", "webauthn-mfa.ts")
-  const panel = readProjectFile("components", "admin", "mfa-panel.tsx")
-
-  assert.match(implementation, /factorType: "webauthn"/)
-  assert.match(
-    implementation,
-    /authenticatorSelection = \{[\s\S]*userVerification: "required"/
-  )
-  assert.match(implementation, /publicKey\.userVerification = "required"/)
-  assert.match(implementation, /removeUnverifiedFactor/)
-  assert.match(panel, /await authorizeAdminMfaEnrollment\(\)/)
-  assert.match(
-    panel,
-    /await registerAdminWebAuthnFactor\([\s\S]*getSupabaseBrowserClient\(\)/
-  )
-  assert.doesNotMatch(panel, /qrCode|secret|6-digit|authenticator app/i)
+  assert.match(browser, /functions\.invoke\("admin-webauthn"/)
+  assert.match(browser, /startRegistration/)
+  assert.match(browser, /startAuthentication/)
+  assert.doesNotMatch(browser, /supabase\.auth\.mfa/)
+  assert.match(edge, /userVerification: "required"/)
+  assert.match(edge, /requireUserVerification: true/)
+  assert.match(edge, /advancedFIDOConfig: \{ userVerification: "required" \}/)
+  assert.match(edge, /expectedOrigin: record\.origin/)
+  assert.match(edge, /expectedRPID: RP_ID/)
 })
 
-test("step-up accepts exactly one verified WebAuthn factor", () => {
-  const implementation = readProjectFile("lib", "admin", "webauthn-mfa.ts")
-  const page = readProjectFile("app", "admin", "security", "page.tsx")
-
-  assert.match(implementation, /factors\.data\?\.webauthn\.length !== 1/)
-  assert.match(
-    implementation,
-    /const factorId = factors\.data\.webauthn\[0\]\.id/
+test("step-up uses one activated application credential and a server grant", () => {
+  const migration = read(
+    "supabase",
+    "migrations",
+    "20260902120300_support_admin_passkey_step_up.sql"
   )
-  assert.match(page, /data\?\.webauthn\?\.\[0\]\?\.id/)
-  assert.doesNotMatch(page, /data\?\.totp/)
+  const page = read("app", "admin", "security", "page.tsx")
+
+  assert.match(migration, /admin_webauthn_one_live_credential/)
+  assert.match(migration, /grant_admin_webauthn_session/)
+  assert.match(
+    migration,
+    /step_up\.session_id = public\.request_auth_session_id\(\)/
+  )
+  assert.match(migration, /step_up\.credential_id = credential\.id/)
+  assert.match(page, /viewer_admin_webauthn_credential_id/)
+  assert.doesNotMatch(page, /auth\.mfa\.listFactors/)
+})
+
+test("operator UI and rollout guidance describe application grants, not hosted AAL2", () => {
+  const shell = read("components", "layout", "admin-shell.tsx")
+  const runbook = read("docs", "operations", "production-runbook.md")
+  const section =
+    runbook.match(
+      /### First admin-MFA enforcement([\s\S]*?)### Passwordless Auth configuration sequencing/
+    )?.[1] ?? ""
+
+  assert.match(shell, /Passkey verified/)
+  assert.doesNotMatch(shell, /AAL2 verified/)
+  assert.match(section, /20260902120300/)
+  assert.match(section, /exact-session application grant/)
+  assert.doesNotMatch(section, /mfa_factors|auth\.sessions.*trigger|at AAL2/)
 })

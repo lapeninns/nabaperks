@@ -27,6 +27,9 @@ import { closeDb, db, isLiveDbReady } from "./helpers/db.mjs"
 const AUTHENTICATED_DIRECT_RPCS = [
   "current_auth_session_is_passwordless",
   "can_bootstrap_admin_webauthn",
+  "begin_admin_webauthn_challenge",
+  "consume_viewer_admin_webauthn_challenge",
+  "revoke_viewer_admin_webauthn_credential",
   "admin_adjust_membership_stamps",
   "admin_cancel_reward",
   "admin_confirm_merchant_launch_delivered",
@@ -78,6 +81,7 @@ const AUTHENTICATED_CALLER_CONTEXT = [
   // Discloses nothing about any other user (it is bound to auth.uid()).
   "viewer_has_verified_mfa_factor",
   "viewer_has_activated_admin_mfa",
+  "viewer_admin_webauthn_credential_id",
 ]
 
 // Merchant self-service helpers other governed specs pin as
@@ -117,6 +121,8 @@ const INTERNAL_ONLY_FUNCTIONS = new Set([
   "purge_customer_otp_devices_after_erasure",
   "reject_password_access_tokens",
   "require_admin_webauthn_user_verification",
+  "invalidate_admin_webauthn_binding",
+  "invalidate_deactivated_admin_webauthn",
 ])
 
 after(closeDb)
