@@ -12,111 +12,43 @@ const CHALLENGE = "A".repeat(43)
 after(closeDb)
 
 test(
-  "an activated credential without a grant has no admin authority",
-  { skip },
-  async () => {
-    await inRolledBackTxn(async (tx) => {
-      const fixture = await createActivatedAdmin(tx)
-      const allowed = await asUser(
-        tx,
-        fixture.userId,
-        fixture.sessionId,
-        (sp) => isInternalAdmin(sp)
-      )
-      assert.equal(allowed, false)
-    })
-  }
-)
-
-test(
-  "a fresh exact-credential grant on a live aal1 session restores authority",
-  { skip },
-  async () => {
-    await inRolledBackTxn(async (tx) => {
-      const fixture = await createActivatedAdmin(tx)
-      await grant(tx, fixture)
-      const allowed = await asUser(
-        tx,
-        fixture.userId,
-        fixture.sessionId,
-        (sp) => isInternalAdmin(sp)
-      )
-      assert.equal(allowed, true)
-    })
-  }
-)
-
-test("expired and cross-session grants fail closed", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    const fixture = await createActivatedAdmin(tx)
-    await grant(tx, fixture, "expired")
-    assert.equal(
-      await asUser(tx, fixture.userId, fixture.sessionId, isInternalAdmin),
-      false
-    )
-
-    const otherSessionId = await createSession(tx, fixture.userId)
-    assert.equal(
-      await asUser(tx, fixture.userId, otherSessionId, isInternalAdmin),
-      false
-    )
-  })
-})
-
-test(
-  "a grant for a different credential cannot satisfy an activated binding",
-  { skip },
-  async () => {
-    await inRolledBackTxn(async (tx) => {
-      const fixture = await createActivatedAdmin(tx)
-      const otherUser = await createUser(tx)
-      const otherCredential = await createCredential(tx, otherUser)
-      await tx`
-      insert into public.admin_webauthn_grants
-        (user_id, session_id, credential_id, verified_at, expires_at)
-      values (
-        ${fixture.userId}::uuid, ${fixture.sessionId}::uuid,
-        ${otherCredential}::uuid, clock_timestamp(),
-        clock_timestamp() + interval '10 minutes'
-      )`
-      assert.equal(
-        await asUser(tx, fixture.userId, fixture.sessionId, isInternalAdmin),
-        false
-      )
-    })
-  }
-)
-
-test(
-  "logout or session deletion invalidates a grant immediately",
-  { skip },
-  async () => {
-    await inRolledBackTxn(async (tx) => {
-      const fixture = await createActivatedAdmin(tx)
-      await grant(tx, fixture)
-      await tx`delete from auth.sessions where id = ${fixture.sessionId}::uuid`
-      assert.equal(
-        await asUser(tx, fixture.userId, fixture.sessionId, isInternalAdmin),
-        false
-      )
-    })
-  }
-)
-
-test(
-  "activation invalidates proof created before independent approval",
+  "an active internal admin has authority without a second factor",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
       const userId = await createAdmin(tx)
-      const credentialId = await createCredential(tx, userId)
       const sessionId = await createSession(tx, userId)
-      await grant(tx, { userId, credentialId, sessionId })
-      await activate(tx, userId, credentialId)
+
+      assert.equal(await asUser(tx, userId, sessionId, isInternalAdmin), true)
+    })
+  }
+)
+
+test(
+  "an authenticated non-admin has no administrator authority",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const userId = await createUser(tx)
+      const sessionId = await createSession(tx, userId)
+
       assert.equal(await asUser(tx, userId, sessionId, isInternalAdmin), false)
     })
   }
 )
+
+test("an inactive internal admin has no authority", { skip }, async () => {
+  await inRolledBackTxn(async (tx) => {
+    const userId = await createAdmin(tx)
+    const sessionId = await createSession(tx, userId)
+    await tx`
+      update public.internal_admins
+      set is_active = false
+      where user_id = ${userId}::uuid`
+
+    assert.equal(await asUser(tx, userId, sessionId, isInternalAdmin), false)
+  })
+})
 
 test(
   "credential revocation atomically removes the binding and grant",

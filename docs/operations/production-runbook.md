@@ -210,70 +210,25 @@ generates signed source provenance and a CycloneDX SBOM, stages a hosted Vercel
 build with no domain assignment, probes that URL and promotes it.
 Public-origin smoke starts only after promotion.
 
-### First admin-MFA enforcement
+### Administrator authentication policy
 
-The admin-MFA change is intentionally an expand/activate/enforce rollout. The
-first database-promotion attempt applies the WebAuthn bridge migration, then
-stops at the contract migration while the active admin lacks an independently
-approved passkey or security key. This is an expected fail-closed pause, not a
-reason to repair the migration ledger or weaken `is_internal_admin()`.
+Administrator MFA is an explicitly accepted product risk. TOTP remains
+disabled, and neither a passkey nor another second factor is required for the
+admin console. `is_internal_admin()` therefore grants authority only when the
+Supabase-authenticated user has a matching active `internal_admins` row. The
+application repeats that active-membership check before creating any
+service-role client.
 
-1. Before the first attempt, identify the active internal admin through the
-   approved operator process. Do not copy user or factor identifiers into chat,
-   issue comments or build logs.
-2. Confirm production has applied `20260902120300` and has not applied
-   `20260902120500`. Dispatch `Publish production admin MFA bootstrap` for the
-   exact `main` revision with the literal confirmation
-   `PUBLISH_ADMIN_MFA_BOOTSTRAP`. The protected workflow fails closed unless
-   exactly one active admin exists with no factor. Before publishing, it also
-   verifies the exact revision has passed the release gate and CodeQL analysis,
-   then deploys the application-owned WebAuthn verifier before publishing.
-   For the pull-request-only dependency review, it requires the uniquely
-   associated merged PR and proves its reviewed head tree is byte-for-byte the
-   final `main` tree before accepting that head's successful review. The
-   database-frontier proof replaces the ordinary database-promotion check only
-   for this intentional expand/activate pause.
-   It deploys a one-route, secret-free Vercel preview target with Git commit
-   provenance and assigns only `mfa.nabaperks.com`; it does not weaken or alter
-   the production deployment checks.
-3. Confirm `https://mfa.nabaperks.com/admin-mfa-bootstrap` returns `200`. The
-   existing admin signs in there with an emailed code and enrols exactly one
-   passkey or hardware security key. The authenticator must perform user
-   verification with a PIN, biometric or device screen lock. A real ceremony
-   is intentionally unavailable on localhost because the production relying
-   party is fixed to `nabaperks.com`.
-4. A different trusted operator verifies the admin's identity and confirms that
-   the selected credential is the sole live application WebAuthn credential for
-   that user and that its registration recorded authenticator user verification.
-5. Dispatch `Activate production admin MFA` for the exact `main` revision with
-   the verified user UUID, application credential UUID and the literal confirmation
-   `ACTIVATE_VERIFIED_ADMIN_MFA`. Approve the protected `Production`
-   environment only after the independent check. The workflow invokes the
-   service-role-only RPC and verifies its boolean readback without printing the
-   identifiers.
-6. Re-run `Production database promotion`. The contract precondition now
-   succeeds, `is_internal_admin()` begins requiring the activated credential
-   plus a fresh, exact-session application grant, and all remaining forward
-   migrations can apply. Hosted Auth remains at AAL1; the application verifier
-   validates the signature, relying party, origin, challenge and authenticator
-   user-verification bit before issuing a grant of at most ten minutes.
-7. Confirm an AAL1 session without an application grant is denied, a
-   possession-only WebAuthn assertion is denied, the activated admin can step
-   up with user verification, and the activation audit event exists before
-   approving application promotion.
+The WebAuthn tables and verifier may remain deployed as dormant infrastructure,
+but enrolment or possession does not change administrator authority. Do not run
+the bootstrap or activation workflows as a prerequisite for database or
+application promotion. Confirm instead that an authenticated active admin is
+allowed, while an authenticated non-admin and an inactive admin are denied.
 
-Abort if the credential is missing, unverified, owned by another user, lacks
-the authenticator UV flag, or is one of multiple live credentials. Never
-auto-bind a credential: independent activation is the security boundary. Keep the bootstrap
-alias in its fail-closed state until a separately approved cleanup removes it;
-after successful enrolment its eligibility RPC returns false.
-
-If the browser or runner closes after registration but before activation, stop
-rather than relaxing the credential-free preflight. After independently
-verifying the admin identity and credential status, revoke only that user's
-unactivated application credential through an approved service-role operation,
-then restart enrolment. Never revoke an activated credential as bootstrap
-recovery.
+This policy increases the impact of a compromised primary account. It must not
+be described as remediation of the administrator-MFA finding; record that
+finding as accepted risk. Reintroducing mandatory MFA requires a separately
+reviewed policy change, migration, recovery design and operator rollout.
 
 ### Passwordless Auth configuration sequencing
 

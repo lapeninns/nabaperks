@@ -35,6 +35,14 @@ export default async function AdminLayout({
     )
   }
 
+  if (!access.mfaRequired) {
+    return (
+      <AdminShell operatorEmail={access.email} mfaRequired={false}>
+        {children}
+      </AdminShell>
+    )
+  }
+
   // A no-factor admin is confined to enrolment. Factor verification does not
   // activate authority: a trusted operator must independently approve it.
   if (!access.mfaEnrolled) {
