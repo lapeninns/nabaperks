@@ -36,9 +36,10 @@ $$;
 comment on function public.can_bootstrap_admin_webauthn() is
   'Allows only the sole active, factorless internal admin to begin the one-time WebAuthn bootstrap.';
 
-revoke all on function public.can_bootstrap_admin_webauthn() from public;
+revoke all on function public.can_bootstrap_admin_webauthn()
+  from public, anon, authenticated, service_role;
 grant execute on function public.can_bootstrap_admin_webauthn()
-  to authenticated;
+  to authenticated, service_role;
 
 create or replace function public.require_admin_webauthn_user_verification()
 returns trigger
@@ -88,7 +89,7 @@ comment on function public.require_admin_webauthn_user_verification() is
   'Rejects an activated admin AAL2 session unless GoTrue recorded a signature-validated WebAuthn assertion with the authenticator UV bit set.';
 
 revoke all on function public.require_admin_webauthn_user_verification()
-  from public;
+  from public, anon, authenticated, service_role;
 
 drop trigger if exists sessions_require_admin_webauthn_user_verification
   on auth.sessions;

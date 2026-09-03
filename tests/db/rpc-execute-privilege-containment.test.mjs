@@ -26,6 +26,7 @@ import { closeDb, db, isLiveDbReady } from "./helpers/db.mjs"
 // Confirmed by tracing every `.rpc(...)` call site to its client factory.
 const AUTHENTICATED_DIRECT_RPCS = [
   "current_auth_session_is_passwordless",
+  "can_bootstrap_admin_webauthn",
   "admin_adjust_membership_stamps",
   "admin_cancel_reward",
   "admin_confirm_merchant_launch_delivered",
@@ -115,6 +116,7 @@ const MUST_BE_LOCKED = [
 const INTERNAL_ONLY_FUNCTIONS = new Set([
   "purge_customer_otp_devices_after_erasure",
   "reject_password_access_tokens",
+  "require_admin_webauthn_user_verification",
 ])
 
 after(closeDb)
