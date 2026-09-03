@@ -32,6 +32,8 @@ jobs:
       CONFIRMATION: ${{ inputs.confirmation }}
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      # Function deployment parses the hook config but does not publish it.
+      SUPABASE_SEND_EMAIL_HOOK_URI: https://nabaperks.com/api/auth/hooks/send-email
       DO_NOT_TRACK: "1"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -155,6 +157,11 @@ jobs:
       - uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3
         with:
           version: 2.106.0
+      - name: Generate a non-deployable parser-only hook fixture
+        run: |
+          parser_secret="v1,whsec_$(openssl rand -base64 32 | tr -d '\n')"
+          printf '::add-mask::%s\n' "$parser_secret"
+          printf 'SUPABASE_SEND_EMAIL_HOOK_SECRET=%s\n' "$parser_secret" >> "$GITHUB_ENV"
       - name: Deploy and verify the session-bound WebAuthn verifier
         run: |
           supabase functions deploy admin-webauthn \
