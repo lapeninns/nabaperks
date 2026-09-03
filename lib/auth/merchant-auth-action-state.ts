@@ -10,11 +10,10 @@ export const MERCHANT_OTP_OUTCOMES = [
   "delivery_unavailable",
   "sent",
   "verification_required",
-  "password_update_failed",
 ] as const
 
 export type MerchantOtpOutcome = (typeof MERCHANT_OTP_OUTCOMES)[number]
-export type MerchantOtpFlow = "signup" | "recovery"
+export type MerchantOtpFlow = "signup" | "signin"
 export type MerchantOtpStep = "request" | "verify"
 
 export type MerchantOtpActionContext = Readonly<{
@@ -28,8 +27,6 @@ export type MerchantOtpActionContext = Readonly<{
 export type MerchantOtpActionErrors = Readonly<{
   email?: string
   otp?: string
-  password?: string
-  confirmPassword?: string
   form?: string
 }>
 
@@ -73,7 +70,6 @@ export function merchantOtpFocusTarget(
     case "delivery_unavailable":
     case "verification_unavailable":
     case "verification_required":
-    case "password_update_failed":
       return "recovery"
     case "idle":
       return null
@@ -89,7 +85,6 @@ export function merchantOtpRequiresFreshCode(
     case "superseded":
     case "delivery_unavailable":
     case "verification_required":
-    case "password_update_failed":
       return true
     case "idle":
     case "invalid":

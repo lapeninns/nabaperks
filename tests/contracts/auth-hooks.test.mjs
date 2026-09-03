@@ -13,10 +13,9 @@ function readProjectFile(...segments) {
   return readFileSync(path.join(projectRoot, ...segments), "utf8")
 }
 
-test("Given merchant auth When signup and login are inspected Then passwords pair with one-time email verification", () => {
+test("Given merchant auth When signup and login are inspected Then access is email-code only", () => {
   // Given
   const actions = readProjectFile("app", "(auth)", "actions.ts")
-  const authForm = readProjectFile("components", "auth", "auth-form.tsx")
   const signupDetailsForm = readProjectFile(
     "components",
     "auth",
@@ -43,10 +42,15 @@ test("Given merchant auth When signup and login are inspected Then passwords pai
     "route.ts"
   )
   const resend = readProjectFile("lib", "notifications", "resend.ts")
+  const emailActionCore = readProjectFile(
+    "lib",
+    "auth",
+    "send-email-action-core.ts"
+  )
+  const emailCopy = readProjectFile("lib", "notifications", "email-otp-copy.ts")
 
   // When
   const authScreens = [
-    authForm,
     signupDetailsForm,
     signupVerifyForm,
     resetForm,
@@ -54,40 +58,34 @@ test("Given merchant auth When signup and login are inspected Then passwords pai
     login,
   ].join("\n")
 
-  // Then — signup creates a password account confirmed by a one-time code,
-  // login uses the password, and reset re-verifies by code before updateUser.
-  assert.match(actions, /validatePassword/)
-  assert.match(actions, /from "@\/lib\/auth\/password"/)
-  assert.match(actions, /signInWithPassword/)
+  // Then — signup and login both mint sessions from mailbox possession. No
+  // product path accepts, stores, verifies, resets, or replaces a password.
+  assert.match(actions, /signInWithOtp/)
   assert.match(actions, /verifyOtp/)
-  assert.match(actions, /type: "signup"/)
-  assert.match(actions, /type: "recovery"/)
-  assert.match(actions, /resetPasswordForEmail/)
-  assert.match(actions, /updateUser/)
-  assert.doesNotMatch(actions, /signInWithOtp/)
+  assert.match(actions, /type: "email"/)
+  assert.match(actions, /shouldCreateUser: true/)
+  assert.match(actions, /shouldCreateUser: context\.flow === "signup"/)
+  assert.doesNotMatch(actions, /signInWithPassword|resetPasswordForEmail/)
+  assert.doesNotMatch(actions, /auth\.updateUser\(\{\s*password/)
 
-  assert.match(signupDetailsForm, /name="password"/)
-  assert.match(signupDetailsForm, /name="confirmPassword"/)
-  assert.match(signupDetailsForm, /PasswordRequirements/)
-  assert.match(signupDetailsForm, /validatePassword/)
-  assert.match(signupDetailsForm, /autoComplete="new-password"/)
-  assert.match(authForm, /autoComplete="current-password"/)
+  assert.doesNotMatch(signupDetailsForm, /password/i)
   assert.match(signupVerifyForm, /autoComplete="one-time-code"/)
   assert.match(signupVerifyForm, /Verify email/)
-  assert.match(authForm, /Forgot password\?/)
-
-  assert.match(resetForm, /name="password"/)
+  assert.doesNotMatch(resetForm, /name="password"|new-password/)
   assert.match(resetForm, /autoComplete="one-time-code"/)
 
-  assert.match(sendEmailHook, /"merchant-verify"/)
-  assert.match(sendEmailHook, /"merchant-reset"/)
-  assert.match(sendEmailHook, /email_action_type === "recovery"/)
+  assert.match(sendEmailHook, /classifySendEmailAction/)
+  assert.match(sendEmailHook, /Unsupported email action/)
+  assert.match(emailActionCore, /"magiclink"[\s\S]*"merchant-access"/)
+  assert.match(emailActionCore, /"recovery"[\s\S]*"merchant-reset"/)
+  assert.match(emailActionCore, /"signup"[\s\S]*recordsAccountCreation: true/)
 
-  assert.match(resend, /Nabaperks merchant/)
-  assert.match(resend, /Verify your venue email/)
-  assert.match(resend, /Reset your password/)
+  assert.match(resend, /emailOtpCopy/)
+  assert.match(emailCopy, /Nabaperks merchant/)
+  assert.match(emailCopy, /Verify your venue email/)
+  assert.match(emailCopy, /Your venue sign-in code/)
 
-  assert.match(login, /email and password/i)
+  assert.match(login, /email code/i)
   assert.doesNotMatch(authScreens, /verification\s+link/i)
 })
 
@@ -154,7 +152,7 @@ test("Given merchant email codes are user-facing When verification is attempted 
   assert.match(finalizationMigration, /force row level security/)
 })
 
-test("Given signup and recovery verification When provider checks run Then aliases finalize only after success and release on retryable failure", () => {
+test("Given signup and sign-in verification When provider checks run Then aliases finalize only after success and release on retryable failure", () => {
   const aliasModule = readProjectFile(
     "lib",
     "auth",
@@ -173,6 +171,11 @@ test("Given signup and recovery verification When provider checks run Then alias
     "hooks",
     "send-email",
     "route.ts"
+  )
+  const emailActionCore = readProjectFile(
+    "lib",
+    "auth",
+    "send-email-action-core.ts"
   )
 
   assert.match(
@@ -200,14 +203,16 @@ test("Given signup and recovery verification When provider checks run Then alias
   assert.match(actions, /runMerchantOtpProviderVerification/)
   assert.match(actions, /reserveMerchantEmailOtpAlias[\s\S]*verifyOtp/)
   assert.match(actions, /purpose: "signup"/)
-  assert.match(actions, /purpose: "recovery"/)
+  assert.doesNotMatch(actions, /purpose: "recovery"/)
   assert.match(providerFlow, /classifyMerchantOtpProviderOutcome/)
   assert.match(providerFlow, /outcome === "retryable"[\s\S]*release/)
   assert.match(providerFlow, /finalize\(outcome\)/)
   assert.match(providerFlow, /runMerchantOtpDelivery/)
   assert.match(providerFlow, /Only an[\s\S]*definitive rejection/)
 
-  assert.match(emailHook, /purpose[\s\S]*email_action_type === "recovery"/)
+  assert.match(emailHook, /purpose: action\.purpose/)
+  assert.match(emailActionCore, /"recovery"[\s\S]*purpose: "recovery"/)
+  assert.match(emailActionCore, /"magiclink"[\s\S]*purpose: "signup"/)
   assert.match(emailHook, /runMerchantOtpDelivery/)
   assert.match(emailHook, /revokeMerchantEmailOtpAlias/)
   assert.match(emailHook, /delivery_failed/)

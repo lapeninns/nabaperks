@@ -37,8 +37,13 @@ async function seedRewardEvent(tx) {
   assert.ok(v, "the seeded journey venue exists")
 
   const [customer] = await tx`
-    insert into public.customers (email, email_verified_at, full_name, created_at, updated_at)
-    values (${`integrity-${randomUUID()}@test.local`}, now(), 'Integrity Check', now(), now())
+    insert into public.customers (
+      email, email_verified_at, full_name, date_of_birth, created_at, updated_at
+    )
+    values (
+      ${`integrity-${randomUUID()}@test.local`}, now(), 'Integrity Check',
+      date '1990-01-01', now(), now()
+    )
     returning id`
   await ensureVerifiedCustomerEmail(tx, customer.id)
   const [joined] = await tx`

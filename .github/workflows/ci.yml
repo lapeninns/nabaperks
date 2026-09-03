@@ -32,7 +32,7 @@ env:
   TWILIO_ACCOUNT_SID: ACci
   TWILIO_AUTH_TOKEN: ci-twilio-auth-token
   TWILIO_VERIFY_SERVICE_SID: VAci
-  CUSTOMER_SESSION_SECRET: ci-session-secret-placeholder
+  CUSTOMER_SESSION_SECRET: "H9!mD4@qL7#vR2$tK8^xC5&pN3*zW6?g"
   CUSTOMER_PHONE_HMAC_SECRET: ci-hmac-secret-placeholder
   CUSTOMER_PHONE_ENCRYPTION_KEY: ci-encryption-key-placeholder-32b
 
@@ -195,7 +195,44 @@ jobs:
       fail-fast: false
       matrix:
         project: [chromium, mobile-safari, desktop-firefox, desktop-safari]
-        shard: [1/4, 2/4, 3/4, 4/4]
+        # Keep each webpack dev server below Next's memory-restart threshold.
+        # Standard public-repository runners are free, so isolation does not
+        # require paid capacity.
+        shard:
+          [
+            1/32,
+            2/32,
+            3/32,
+            4/32,
+            5/32,
+            6/32,
+            7/32,
+            8/32,
+            9/32,
+            10/32,
+            11/32,
+            12/32,
+            13/32,
+            14/32,
+            15/32,
+            16/32,
+            17/32,
+            18/32,
+            19/32,
+            20/32,
+            21/32,
+            22/32,
+            23/32,
+            24/32,
+            25/32,
+            26/32,
+            27/32,
+            28/32,
+            29/32,
+            30/32,
+            31/32,
+            32/32,
+          ]
     env:
       # The dev-server tier is single-worker on purpose: under two parallel
       # workers the webpack dev server intermittently 500s mid-suite
@@ -246,7 +283,7 @@ jobs:
       fail-fast: false
       matrix:
         project: [chromium, mobile-safari]
-        shard: [1/2, 2/2]
+        shard: [1/8, 2/8, 3/8, 4/8, 5/8, 6/8, 7/8, 8/8]
     env:
       PLAYWRIGHT_WORKERS: "1"
       PLAYWRIGHT_REGULAR_CHROMIUM: "1"
@@ -289,7 +326,7 @@ jobs:
       fail-fast: false
       matrix:
         project: [chromium, mobile-safari]
-        shard: [1/2, 2/2]
+        shard: [1/4, 2/4, 3/4, 4/4]
     env:
       # Pixel snapshots stay single-worker on purpose: parallel load shifts
       # paint timing and would destabilise the blessed baselines.

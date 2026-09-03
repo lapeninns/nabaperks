@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js"
 import { expect, type BrowserContext, type Page } from "@playwright/test"
 
 import { connectLocalDb, type Sql } from "./admin-live-db"
+import { signInWithGeneratedEmailOtp } from "./passwordless-auth-session"
 
 const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost"])
 const DEFAULT_BROWSER_URL = "http://127.0.0.1:3146"
@@ -209,7 +210,6 @@ export async function createMerchantOnboardingLiveDbFixture(
 
   const runId = randomUUID().replaceAll("-", "")
   const email = `merchant-onboarding-${runId.slice(0, 18)}@example.test`
-  const password = `Nabaperks-${randomUUID()}-1!`
   const name = `Live onboarding ${runId.slice(0, 8)}`
   const admin = serviceRoleClient()
   let userId: string | undefined
@@ -217,7 +217,6 @@ export async function createMerchantOnboardingLiveDbFixture(
   try {
     const created = await admin.auth.admin.createUser({
       email,
-      password,
       email_confirm: true,
       user_metadata: { name },
     })
@@ -261,10 +260,7 @@ export async function createMerchantOnboardingLiveDbFixture(
         },
       }
     )
-    const signIn = await browserAuth.auth.signInWithPassword({
-      email,
-      password,
-    })
+    const signIn = await signInWithGeneratedEmailOtp(browserAuth, admin, email)
     if (
       signIn.error ||
       signIn.data.user?.id !== userId ||

@@ -4,6 +4,24 @@ import path from "node:path"
 import { test } from "node:test"
 import { fileURLToPath } from "node:url"
 
+const INVITE_QUOTA = readFileSync(
+  new URL(
+    "../../supabase/migrations/20260902125000_enforce_reward_invite_quota.sql",
+    import.meta.url
+  ),
+  "utf8"
+)
+
+test("pending reward invites enforce quota and opaque bounds in the database", () => {
+  assert.match(INVITE_QUOTA, /before insert on public\.pending_reward_invites/)
+  assert.match(INVITE_QUOTA, /create_bounded_merchant_reward_invite/)
+  assert.match(INVITE_QUOTA, /new\.status not in \('pending', 'matched'\)/)
+  assert.match(INVITE_QUOTA, /\\\*\{3\}@/)
+  assert.match(INVITE_QUOTA, /reward-invite-allocation:/)
+  assert.match(INVITE_QUOTA, /'\^\[0-9a-f\]\{64\}\$'/)
+  assert.match(INVITE_QUOTA, /50,\s*86400000/)
+})
+
 /**
  * contract-rewards-merchant-sent (Phase 4) — invite wiring source contract. Proves the
  * app seams are connected without a browser/DB: email PII codec, the attach
@@ -40,7 +58,7 @@ test("all three creation choke points attach invites", () => {
 
 test("the send action creates an invite + one-off email for an unmatched contact", () => {
   const action = read("app", "app", "customers", "send-reward", "actions.ts")
-  assert.match(action, /create_merchant_reward_invite/)
+  assert.match(action, /create_bounded_merchant_reward_invite/)
   assert.match(action, /createRewardInviteForUnmatchedContact/)
   assert.match(action, /\.eq\("email", normalizeEmail\(raw\)\)/)
   assert.doesNotMatch(action, /\.ilike\("email"/)

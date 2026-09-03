@@ -2,26 +2,21 @@ import "server-only"
 
 import {
   customerOtpRateLimitWindowMs,
-  customerOtpIdentitySendRateLimit,
-  customerOtpIdentitySendWindowMs,
-  customerOtpIpSendRateLimit,
   customerOtpSendIpRateLimitKey,
-  customerOtpIpSendWindowMs,
   customerOtpSendIdentityRateLimitKey,
   customerOtpSendPhoneRateLimitKey,
-  customerOtpSendRateLimit,
   customerOtpVerifyIdentityRateLimitKey,
   customerOtpVerifyPhoneRateLimitKey,
   customerOtpVerifyRateLimit,
-  customerOtpDispatchBurstLimit,
-  customerOtpDispatchBurstRateLimitKey,
-  customerOtpDispatchBurstWindowMs,
-  customerOtpDispatchSustainedLimit,
-  customerOtpDispatchSustainedRateLimitKey,
-  customerOtpDispatchSustainedWindowMs,
   type CustomerOtpDispatchScope,
 } from "@/lib/customer/otp-rate-limit-core"
-import { enforceRateLimit } from "@/lib/security/rate-limit"
+import { customerPhoneHmac } from "@/lib/customer/phone-pii"
+import { logger } from "@/lib/observability/logger"
+import {
+  enforceRateLimit,
+  rateLimitBucketHash,
+} from "@/lib/security/rate-limit"
+import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 type CustomerOtpRateLimitInput = {
   readonly phone: string
@@ -29,6 +24,7 @@ type CustomerOtpRateLimitInput = {
 }
 
 type CustomerOtpSendRateLimitInput = CustomerOtpRateLimitInput & {
+  readonly deviceHash: string | null
   readonly trustedIp: string
   /** Closed set, chosen by the server action — never caller-supplied. */
   readonly scope: CustomerOtpDispatchScope
@@ -39,37 +35,32 @@ export async function enforceCustomerOtpSendRateLimit({
   requestIdentity,
   trustedIp,
   scope,
-}: CustomerOtpSendRateLimitInput): Promise<void> {
-  await enforceRateLimit({
-    key: customerOtpSendIpRateLimitKey(trustedIp),
-    limit: customerOtpIpSendRateLimit,
-    windowMs: customerOtpIpSendWindowMs,
-  })
-  await enforceRateLimit({
-    key: customerOtpSendIdentityRateLimitKey(requestIdentity),
-    limit: customerOtpIdentitySendRateLimit,
-    windowMs: customerOtpIdentitySendWindowMs,
-  })
-  await enforceRateLimit({
-    key: customerOtpSendPhoneRateLimitKey(phone),
-    limit: customerOtpSendRateLimit,
-    windowMs: customerOtpRateLimitWindowMs,
+  deviceHash,
+}: CustomerOtpSendRateLimitInput): Promise<boolean> {
+  const supabase = createSupabaseServiceRoleClient()
+  const { error } = await supabase.rpc("admit_customer_otp_dispatch", {
+    p_scope: scope,
+    p_phone_bucket: rateLimitBucketHash(
+      customerOtpSendPhoneRateLimitKey(phone)
+    ),
+    p_identity_bucket: rateLimitBucketHash(
+      customerOtpSendIdentityRateLimitKey(requestIdentity)
+    ),
+    p_ip_bucket: rateLimitBucketHash(customerOtpSendIpRateLimitKey(trustedIp)),
+    p_phone_hmac: customerPhoneHmac(phone),
+    p_device_hash: deviceHash,
   })
 
-  // Debited LAST, and narrowest-subject-first above it. Each enforce is its own
-  // transaction, so a bucket consumed before a later rejection stays consumed —
-  // putting the shared platform budget last means a request some narrower
-  // bucket was already going to refuse can never burn budget on its way out.
-  await enforceRateLimit({
-    key: customerOtpDispatchBurstRateLimitKey(scope),
-    limit: customerOtpDispatchBurstLimit,
-    windowMs: customerOtpDispatchBurstWindowMs,
-  })
-  await enforceRateLimit({
-    key: customerOtpDispatchSustainedRateLimitKey(scope),
-    limit: customerOtpDispatchSustainedLimit,
-    windowMs: customerOtpDispatchSustainedWindowMs,
-  })
+  if (!error) return true
+
+  if (/rate limit exceeded/i.test(error.message)) {
+    logger.warn("customer_otp_dispatch_capacity_exhausted", {
+      scope,
+    })
+    return false
+  }
+
+  throw new Error(`Unable to enforce customer OTP admission: ${error.message}`)
 }
 
 export async function enforceCustomerOtpVerifyRateLimit({

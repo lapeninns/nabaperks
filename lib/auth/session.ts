@@ -13,6 +13,11 @@ export const getCurrentUser = cache(async () => {
 
   if (error || !user) return null
 
+  const { data: passwordless, error: authMethodError } = await supabase.rpc(
+    "current_auth_session_is_passwordless"
+  )
+  if (authMethodError || passwordless !== true) return null
+
   return user
 })
 

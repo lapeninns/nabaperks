@@ -1,6 +1,7 @@
 import { type NextRequest } from "next/server"
 
 import { getCurrentMerchant } from "@/lib/auth/session"
+import { readBoundedJsonRequest } from "@/lib/http/bounded-json-request"
 import { noStoreJson as json } from "@/lib/http/no-store-json"
 import { getLaunchBillingReadiness } from "@/lib/merchant/launch-readiness"
 import { isLaunchBillingReady } from "@/lib/merchant/launch-readiness-core"
@@ -8,6 +9,9 @@ import { londonBusinessDate } from "@/lib/notifications/london-time"
 import {
   VENUE_ANNOUNCEMENT_DAILY_LIMIT,
   VENUE_ANNOUNCEMENT_DAILY_WINDOW_MS,
+  VENUE_ANNOUNCEMENT_ATTEMPT_LIMIT,
+  VENUE_ANNOUNCEMENT_ATTEMPT_WINDOW_MS,
+  venueAnnouncementAttemptLimitKey,
   venueAnnouncementDailyLimitKey,
 } from "@/lib/notifications/venue-announcement-core"
 import {
@@ -19,12 +23,27 @@ import { RateLimitError, enforceRateLimit } from "@/lib/security/rate-limit"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
+const MAX_VENUE_ANNOUNCEMENT_BODY_BYTES = 2_048
+
 export async function POST(request: NextRequest) {
   const merchant = await getCurrentMerchant()
   if (!merchant) return json({ error: "unauthenticated" }, 401)
 
   if (merchant.status !== "active" && merchant.status !== "trial") {
     return json({ error: "venue_unavailable" }, 403)
+  }
+
+  try {
+    await enforceRateLimit({
+      key: venueAnnouncementAttemptLimitKey(merchant.id),
+      limit: VENUE_ANNOUNCEMENT_ATTEMPT_LIMIT,
+      windowMs: VENUE_ANNOUNCEMENT_ATTEMPT_WINDOW_MS,
+    })
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      return json({ error: "rate_limited" }, 429)
+    }
+    throw error
   }
 
   const billing = await getLaunchBillingReadiness(
@@ -35,7 +54,15 @@ export async function POST(request: NextRequest) {
     return json({ error: "billing_required" }, 403)
   }
 
-  const body = await request.json().catch(() => null)
+  const parsed = await readBoundedJsonRequest(
+    request,
+    MAX_VENUE_ANNOUNCEMENT_BODY_BYTES
+  )
+  if (!parsed.ok) {
+    const error = parsed.status === 400 ? "invalid_title" : parsed.error
+    return json({ error }, parsed.status)
+  }
+  const body = parsed.value
   const validated = validateVenueAnnouncementText({
     title: readString(body, "title"),
     body: readString(body, "body"),

@@ -234,3 +234,84 @@ test(
     })
   }
 )
+
+test(
+  "failed self-stamps durably consume allowance and aggregate refusal telemetry",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const s = await seed(tx)
+
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        await tx`select public.consume_self_service_stamp_attempt(
+          ${s.membershipId}::uuid, ${s.customer.id}::uuid)`
+        await tx`select public.record_stamp_location_refusal(
+          ${s.membershipId}::uuid, ${s.customer.id}::uuid,
+          'location_out_of_range')`
+      }
+
+      let limited = false
+      try {
+        await tx.savepoint(async () => {
+          await tx`select public.consume_self_service_stamp_attempt(
+            ${s.membershipId}::uuid, ${s.customer.id}::uuid)`
+        })
+      } catch (error) {
+        limited = /rate limit exceeded/i.test(String(error.message))
+      }
+      assert.ok(limited, "the eleventh failed attempt is refused")
+
+      const [bucket] = await tx`
+        select count
+        from public.rate_limit_buckets
+        where bucket_key = ${`selfstamp-attempt:${s.membershipId}`}`
+      assert.equal(bucket.count, 10, "all ten failed attempts remain charged")
+
+      const [flags] = await tx`
+        select count(*)::int as rows,
+               max((metadata->>'attempt_count')::int)::int as attempts
+        from public.fraud_flags
+        where membership_id = ${s.membershipId}
+          and signal = 'self_service_geofence_out_of_range'`
+      assert.deepEqual(
+        flags,
+        { rows: 1, attempts: 10 },
+        "one bounded signal retains the refusal count"
+      )
+
+      const [events] = await tx`
+        select count(*)::int as rows
+        from public.product_events
+        where membership_id = ${s.membershipId}
+          and event_name = 'stamp_refused_location'`
+      assert.equal(events.rows, 1, "analytics receives one bounded event")
+    })
+  }
+)
+
+test(
+  "self-stamp precharge preserves ownership and legitimate stamping",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const s = await seed(tx)
+
+      let rejected = false
+      try {
+        await tx.savepoint(async () => {
+          await tx`select public.consume_self_service_stamp_attempt(
+            ${s.membershipId}::uuid, ${randomUUID()}::uuid)`
+        })
+      } catch (error) {
+        rejected = /ownership required/i.test(String(error.message))
+      }
+      assert.ok(rejected, "another customer cannot charge an owned membership")
+
+      await tx`select public.consume_self_service_stamp_attempt(
+        ${s.membershipId}::uuid, ${s.customer.id}::uuid)`
+      await s.ageStamps()
+      await s.stamp()
+      assert.equal(await s.count(), 2, "an allowed in-range stamp still lands")
+    })
+  }
+)

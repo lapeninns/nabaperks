@@ -8,6 +8,10 @@ const projectDir = process.cwd()
 const contract = JSON.parse(
   readFileSync(join(projectDir, "config/env-contract.json"), "utf8")
 )
+const vercelGovernanceContractPath = join(
+  projectDir,
+  "config/vercel-governance-contract.json"
+)
 const customerOtpBypassModeAnyFourDigits = "any-4-digits"
 const twilioVerifyEnvNames = new Set([
   "TWILIO_ACCOUNT_SID",
@@ -37,7 +41,7 @@ if (command === "status") {
   pushVercelEnv()
 } else {
   console.error(
-    "Usage: pnpm env:keys | pnpm env:write-local [--force] | pnpm env:pull-supabase <project-ref> | pnpm env:set-posthog | pnpm env:set-resend | pnpm env:push-vercel [production|preview|development] [--replace]"
+    "Usage: pnpm env:keys | pnpm env:write-local [--force] | pnpm env:pull-supabase <project-ref> | pnpm env:set-posthog | pnpm env:set-resend | pnpm env:push-vercel <production|preview|development> [--replace] [--confirm-production]"
   )
   process.exit(1)
 }
@@ -47,13 +51,13 @@ function printStatus() {
   console.log("")
   console.log("Local CLI availability:")
   console.log(
-    `- supabase: ${available("supabase") ? "installed" : "use pnpm dlx supabase"}`
+    `- supabase: ${available("supabase") ? "installed" : "use pnpm dlx supabase@2.106.0"}`
   )
   console.log(
     `- stripe: ${available("stripe") ? "installed" : "install with brew install stripe/stripe-cli/stripe"}`
   )
   console.log(
-    `- vercel: ${available("vercel") ? "installed" : "use pnpm dlx vercel"}`
+    `- vercel: ${available("vercel") ? "installed" : "run pnpm install"}`
   )
   console.log(
     `- resend: ${available("resend") ? "installed" : "use pnpm dlx resend-cli"}`
@@ -65,9 +69,9 @@ function printStatus() {
   console.log("Provider key sources:")
   console.log("")
   console.log("Supabase:")
-  console.log("  pnpm dlx supabase projects list")
+  console.log("  pnpm dlx supabase@2.106.0 projects list")
   console.log(
-    "  pnpm dlx supabase projects api-keys --project-ref <ref> --output json"
+    "  pnpm dlx supabase@2.106.0 projects api-keys --project-ref <ref> --output json"
   )
   console.log("  NEXT_PUBLIC_SUPABASE_URL=https://<ref>.supabase.co")
   console.log("  NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key from api-keys>")
@@ -112,10 +116,12 @@ function printStatus() {
   )
   console.log("")
   console.log("Vercel:")
-  console.log("  pnpm dlx vercel link")
-  console.log("  pnpm dlx vercel env pull .env.local")
-  console.log("  pnpm dlx vercel env add <NAME> production")
-  console.log("  pnpm env:push-vercel production --replace")
+  console.log("  pnpm exec vercel link")
+  console.log("  pnpm exec vercel env pull .env.local")
+  console.log("  pnpm exec vercel env add <NAME> production")
+  console.log(
+    "  pnpm env:push-vercel production --replace --confirm-production"
+  )
   console.log("")
   console.log("After exporting values in your shell, write .env.local with:")
   console.log("  pnpm env:write-local")
@@ -198,7 +204,7 @@ function pullSupabase() {
     "pnpm",
     [
       "dlx",
-      "supabase",
+      "supabase@2.106.0",
       "projects",
       "api-keys",
       "--project-ref",
@@ -319,6 +325,7 @@ function setPostHog() {
 function pushVercelEnv() {
   const environment = parseVercelEnvironment()
   const replace = process.argv.includes("--replace")
+  const target = readVercelTargetContract()
   const source = join(projectDir, ".env.local")
 
   if (!existsSync(source)) {
@@ -351,7 +358,7 @@ function pushVercelEnv() {
 
   assertVercelProductionEnvSafe(environment, localValues)
 
-  const existingNames = readVercelEnvNames(environment)
+  const existingNames = readVercelEnvNames(environment, target)
   const pushed = []
   const skipped = []
 
@@ -363,11 +370,7 @@ function pushVercelEnv() {
       continue
     }
 
-    if (exists) {
-      removeVercelEnv(name, environment)
-    }
-
-    addVercelEnv(name, localValues[name], environment)
+    addVercelEnv(name, localValues[name], environment, target, exists)
     pushed.push(name)
   }
 
@@ -523,7 +526,12 @@ function parseEnvFile(path) {
 function parseVercelEnvironment() {
   const environment = process.argv.slice(3).find((arg) => !arg.startsWith("--"))
 
-  if (!environment) return "production"
+  if (!environment) {
+    console.error(
+      "Choose a Vercel environment explicitly: production, preview, or development."
+    )
+    process.exit(1)
+  }
 
   if (!["production", "preview", "development"].includes(environment)) {
     console.error(
@@ -532,11 +540,52 @@ function parseVercelEnvironment() {
     process.exit(1)
   }
 
+  if (
+    environment === "production" &&
+    !process.argv.includes("--confirm-production")
+  ) {
+    console.error(
+      "Production env sync requires --confirm-production after the target has been reviewed."
+    )
+    process.exit(1)
+  }
+
   return environment
 }
 
-function readVercelEnvNames(environment) {
-  const result = runVercel(["env", "ls", environment], "")
+function readVercelTargetContract() {
+  let governance
+
+  try {
+    governance = JSON.parse(readFileSync(vercelGovernanceContractPath, "utf8"))
+  } catch {
+    console.error("Unable to read the Vercel governance contract.")
+    process.exit(1)
+  }
+
+  const scope = governance?.scope?.trim()
+  const projectId = governance?.project?.id?.trim()
+  const projectName = governance?.project?.name?.trim()
+
+  if (!scope || !projectId || !projectName) {
+    console.error(
+      "The Vercel governance contract must define scope, project.id, and project.name."
+    )
+    process.exit(1)
+  }
+
+  return { scope, projectId, projectName }
+}
+
+function vercelTargetArgs(target) {
+  return ["--project", target.projectId, "--scope", target.scope]
+}
+
+function readVercelEnvNames(environment, target) {
+  const result = runVercel(
+    ["env", "ls", environment, ...vercelTargetArgs(target)],
+    ""
+  )
 
   if (result.status !== 0) {
     console.error(`Unable to list Vercel ${environment} environment variables.`)
@@ -555,9 +604,17 @@ function readVercelEnvNames(environment) {
   return names
 }
 
-function addVercelEnv(name, value, environment) {
+function addVercelEnv(name, value, environment, target, replace) {
   const result = runVercel(
-    ["env", "add", name, environment, "--yes"],
+    [
+      "env",
+      "add",
+      name,
+      environment,
+      "--yes",
+      ...(replace ? ["--force"] : []),
+      ...vercelTargetArgs(target),
+    ],
     `${value}\n`
   )
 
@@ -568,18 +625,8 @@ function addVercelEnv(name, value, environment) {
   }
 }
 
-function removeVercelEnv(name, environment) {
-  const result = runVercel(["env", "rm", name, environment, "--yes"], "")
-
-  if (result.status !== 0) {
-    console.error(`Unable to remove existing Vercel env variable ${name}.`)
-    printVercelError(result)
-    process.exit(result.status ?? 1)
-  }
-}
-
 function runVercel(args, input) {
-  return spawnSync("pnpm", ["dlx", "vercel", ...args], {
+  return spawnSync("pnpm", ["exec", "vercel", ...args], {
     cwd: projectDir,
     encoding: "utf8",
     input,

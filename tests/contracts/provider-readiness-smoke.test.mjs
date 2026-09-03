@@ -69,7 +69,7 @@ test("provider readiness smoke command is wired into package scripts", () => {
   )
   assert.equal(
     packageJson.scripts["env:check:production"],
-    "node scripts/check-env.mjs --profile=production"
+    "node scripts/check-credential-backups.mjs && node scripts/check-env.mjs --profile=production"
   )
   assert.equal(
     packageJson.scripts["smoke:supabase:migrations"],

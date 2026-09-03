@@ -22,40 +22,67 @@ function assertBefore(source, earlier, later) {
   assert.ok(earlierIndex < laterIndex, `${earlier} appears before ${later}`)
 }
 
-test("Given admin RPCs and RLS policies share the internal-admin helper When SQL is inspected Then the DB gate requires step-up only from enrolled admins", () => {
-  const migration = readProjectFile(
+test("Given admin RPCs and RLS policies share the internal-admin helper When SQL is inspected Then authority requires trusted factor activation and step-up", () => {
+  const expandMigration = readProjectFile(
     "supabase",
     "migrations",
-    "20260801120000_admin_assurance_boundary.sql"
+    "20260902120000_require_activated_admin_mfa.sql"
+  )
+  const enforcementMigration = readProjectFile(
+    "supabase",
+    "migrations",
+    "20260902120500_enforce_activated_admin_mfa.sql"
   )
   const adminAuth = readProjectFile("lib", "admin", "auth.ts")
 
   assert.match(
-    migration,
+    expandMigration,
     /create or replace function public\.is_internal_admin\(\)/
   )
 
-  // The gate must be conditional on enrolment. A DB-level AAL2 requirement
-  // that ignored enrolment (20260702180000) locked out every admin, because
-  // password sign-in is aal1 — 20260720100000 had to revert it. Requiring a
-  // verified factor before demanding aal2 is what makes this safe to re-add.
-  assert.match(migration, /has_verified_mfa_factor/)
-  assert.match(migration, /=\s*'aal2'/)
-  assert.match(migration, /not \(select public\.has_verified_mfa_factor/)
+  // Browser-reachable enrolment must never be enough to activate authority.
+  // The exact verified factor is bound independently, and drift to multiple
+  // verified factors fails closed before the session's AAL2 claim is accepted.
+  assert.match(expandMigration, /factor\.id = admin\.mfa_factor_id/)
+  assert.match(expandMigration, /factor\.user_id = admin\.user_id/)
+  assert.match(expandMigration, /factor\.factor_type = 'totp'/)
+  assert.match(expandMigration, /factor\.status = 'verified'/)
+  assert.match(expandMigration, /select count\(\*\)[\s\S]*= 1/)
+  assert.match(expandMigration, /=\s*'aal2'/)
+  assert.match(
+    expandMigration,
+    /auth_session\.factor_id = admin\.mfa_factor_id/
+  )
+  assert.match(expandMigration, /amr\.updated_at > admin\.mfa_activated_at/)
+  assert.doesNotMatch(
+    expandMigration,
+    /not \(select public\.has_verified_mfa_factor/
+  )
 
-  // The assurance claim must degrade to aal1, never to "stepped up".
-  assert.match(migration, /'aal1'\s*\);/)
+  // Expansion immediately closes old AAL1 authority while self-only enrolment
+  // remains reachable. The contract migration is only a state precondition.
+  assert.doesNotMatch(
+    enforcementMigration,
+    /create or replace function public\.is_internal_admin\(\)/
+  )
+  assert.match(
+    enforcementMigration,
+    /raise check_violation using[\s\S]*message = 'Active internal admins require independently activated MFA before enforcement'/
+  )
 
   // The internal helpers stay off the authenticated EXECUTE allowlist.
   assert.match(
-    migration,
-    /revoke all on function public\.request_assurance_level\(\) from public, anon, authenticated/
+    expandMigration,
+    /revoke all on function public\.has_activated_admin_mfa\(uuid\)[\s\S]*from public, anon, authenticated/
   )
-  assert.match(migration, /notify pgrst, 'reload schema'/)
+  assert.match(expandMigration, /notify pgrst, 'reload schema'/)
+  assert.match(enforcementMigration, /notify pgrst, 'reload schema'/)
 
-  // The app layer still owns what the database cannot see (service-role reads
-  // and Supabase-Auth factor enrolment).
+  // The app mirrors the database authority decision before any service-role
+  // read while retaining self-only Supabase-Auth factor enrolment.
   assert.match(adminAuth, /getAuthenticatorAssuranceLevel|resolveAdminMfaState/)
+  assert.match(adminAuth, /mfaAuthority/)
+  assert.match(adminAuth, /supabase\.rpc\(\s*"is_internal_admin"/)
 })
 
 test("Given customer OTP send flows When actions are inspected Then send limits include a phone-only bucket before provider dispatch", () => {
@@ -94,17 +121,21 @@ test("Given customer OTP verification flows When actions are inspected Then gues
   }
 })
 
-test("Given admin MFA removal When the server action is inspected Then AAL2 and durable audit evidence precede the identity mutation", () => {
+test("Given admin MFA removal When the server action is inspected Then AAL2 gates an atomically audited identity mutation", () => {
   const actions = readProjectFile("app", "admin", "security", "actions.ts")
+  const lifecycleMigration = readProjectFile(
+    "supabase",
+    "migrations",
+    "20260902134000_invalidate_admin_mfa_on_factor_changes.sql"
+  )
   const unenrollment = actions.slice(
     actions.indexOf("export async function unenrollAdminMfa")
   )
 
   assert.match(unenrollment, /adminMfaUnenrollmentAllowed\(access\.mfaState\)/)
-  assert.match(unenrollment, /actor_id: access\.userId/)
   assertBefore(
     unenrollment,
-    'action: "admin_mfa_unenrollment_authorised"',
+    "adminMfaUnenrollmentAllowed(access.mfaState)",
     "supabase.auth.mfa.unenroll"
   )
   assertBefore(
@@ -112,9 +143,9 @@ test("Given admin MFA removal When the server action is inspected Then AAL2 and 
     "supabase.auth.mfa.unenroll",
     'revalidatePath("/admin")'
   )
-  assertBefore(
-    unenrollment,
-    'revalidatePath("/admin/audit")',
-    'action: "admin_mfa_factor_unenrolled"'
+  assert.match(
+    lifecycleMigration,
+    /after insert or delete or update of user_id, status, factor_type[\s\S]*on auth\.mfa_factors/i
   )
+  assert.match(lifecycleMigration, /'admin_mfa_factor_unenrolled'/)
 })

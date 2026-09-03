@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url"
 
 import postgres from "postgres"
 
+import { assertLocalSupabaseDbUrl } from "./db-target.mjs"
+
 /**
  * Live-Supabase helper for the DB integration tier (`pnpm test:db`).
  *
@@ -22,7 +24,7 @@ export function dbUrl() {
     ...process.env,
   }
 
-  return env.SUPABASE_DB_URL?.trim() || undefined
+  return assertLocalSupabaseDbUrl(env.SUPABASE_DB_URL)
 }
 
 const projectRoot = path.resolve(
@@ -39,7 +41,6 @@ export function db() {
   cached = postgres(url, {
     max: 1,
     idle_timeout: 5,
-    ssl: url.includes("127.0.0.1") || url.includes("localhost") ? undefined : "require",
   })
   return cached
 }

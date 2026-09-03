@@ -3,6 +3,7 @@ import "server-only"
 import { createHash } from "node:crypto"
 
 export {
+  customerDeviceHashFromHeaders,
   customerRateLimitIdentityFromHeaders,
   rateLimitIdentityFromHeaders,
   trustedClientIp,
@@ -15,7 +16,7 @@ export class RateLimitError extends Error {
   }
 }
 
-function rateLimitBucketKey(key: string) {
+export function rateLimitBucketHash(key: string) {
   return createHash("sha256").update(key).digest("hex")
 }
 
@@ -28,7 +29,7 @@ export async function peekRateLimit({
   limit: number
   windowMs: number
 }) {
-  const bucketKey = rateLimitBucketKey(key)
+  const bucketKey = rateLimitBucketHash(key)
   const supabase = await createRateLimitClient()
   const { data, error } = await supabase
     .from("rate_limit_buckets")
@@ -64,7 +65,7 @@ export async function enforceRateLimit({
   limit: number
   windowMs: number
 }) {
-  const bucketKey = rateLimitBucketKey(key)
+  const bucketKey = rateLimitBucketHash(key)
   const supabase = await createRateLimitClient()
   const { error } = await supabase.rpc("enforce_rate_limit", {
     p_bucket_key: bucketKey,

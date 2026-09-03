@@ -178,19 +178,22 @@ async function createRewardInviteForUnmatchedContact(
     .digest("hex")
 
   const supabase = await createSupabaseServerClient()
-  const { data, error } = await supabase.rpc("create_merchant_reward_invite", {
-    p_merchant_id: merchant.id,
-    p_email_hmac: emailHmac,
-    p_phone_hmac: phoneHmac,
-    p_email_masked: emailMasked,
-    p_phone_last4: phoneLast4,
-    p_reward_name: input.rewardName,
-    p_reward_terms: input.rewardTerms,
-    p_personal_message: input.message || null,
-    p_reward_expires_after_days: expiresInDays,
-    p_claim_token_hash: claimTokenHash,
-    p_unsubscribe_token_hash: unsubscribeTokenHash,
-  })
+  const { data, error } = await supabase.rpc(
+    "create_bounded_merchant_reward_invite",
+    {
+      p_merchant_id: merchant.id,
+      p_email_hmac: emailHmac,
+      p_phone_hmac: phoneHmac,
+      p_email_masked: emailMasked,
+      p_phone_last4: phoneLast4,
+      p_reward_name: input.rewardName,
+      p_reward_terms: input.rewardTerms,
+      p_personal_message: input.message || null,
+      p_reward_expires_after_days: expiresInDays,
+      p_claim_token_hash: claimTokenHash,
+      p_unsubscribe_token_hash: unsubscribeTokenHash,
+    }
+  )
   if (error) return { ok: false }
 
   const inviteId = data?.[0]?.invite_id as string | undefined

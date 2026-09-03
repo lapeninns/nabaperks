@@ -2,8 +2,10 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 
 const {
+  createPendingAccessRecoveryCookieValue,
   createPendingEmailCookieValue,
   createPendingPhoneCookieValue,
+  readPendingAccessRecoveryCookieValue,
   readPendingEmailCookieValue,
   readPendingPhoneCookieValue,
 } = await import("@/lib/customer/session-cookie-core")
@@ -113,4 +115,60 @@ test("Given an encrypted email cookie When its correct context reads it Then it 
   const result = readPendingEmailCookieValue(cookie, SECRET, 699)
 
   assert.deepEqual(result, { ok: true, payload })
+})
+
+test("access recovery state is encrypted and bound to its dedicated context", () => {
+  const payload = {
+    version: 1,
+    sessionId: "session-id",
+    customerId: "customer-id",
+    phoneHmac: "a".repeat(64),
+    deviceHash: "b".repeat(64),
+    emailHmac: "c".repeat(64),
+    codeHmac: "d".repeat(64),
+    next: "/m/venue/join?step=terms",
+    issuedAt: 100,
+    expiresAt: 700,
+  }
+  const cookie = createPendingAccessRecoveryCookieValue(payload, SECRET)
+
+  assert.ok(!cookie.includes(payload.customerId))
+  assert.deepEqual(readPendingAccessRecoveryCookieValue(cookie, SECRET, 699), {
+    ok: true,
+    payload,
+  })
+  assert.equal(readPendingEmailCookieValue(cookie, SECRET, 699).ok, false)
+})
+
+test("access recovery rejects an external redirect and tampered device binding", () => {
+  const payload = {
+    version: 1,
+    sessionId: "session-id",
+    customerId: "customer-id",
+    phoneHmac: "a".repeat(64),
+    deviceHash: "b".repeat(64),
+    emailHmac: "c".repeat(64),
+    codeHmac: "d".repeat(64),
+    next: "//attacker.example",
+    issuedAt: 100,
+    expiresAt: 700,
+  }
+  const invalidNext = createPendingAccessRecoveryCookieValue(payload, SECRET)
+  assert.deepEqual(
+    readPendingAccessRecoveryCookieValue(invalidNext, SECRET, 699),
+    { ok: false, reason: "malformed" }
+  )
+
+  const valid = createPendingAccessRecoveryCookieValue(
+    { ...payload, next: "/home", deviceHash: "e".repeat(64) },
+    SECRET
+  )
+  const parts = valid.split(".")
+  const ciphertext = Buffer.from(parts[2], "base64url")
+  ciphertext[0] ^= 1
+  parts[2] = ciphertext.toString("base64url")
+  assert.equal(
+    readPendingAccessRecoveryCookieValue(parts.join("."), SECRET, 699).ok,
+    false
+  )
 })

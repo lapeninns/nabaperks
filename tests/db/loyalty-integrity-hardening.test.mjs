@@ -4,6 +4,11 @@ import { randomUUID } from "node:crypto"
 
 import { closeDb, db, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 import { ensureVerifiedCustomerEmail } from "./helpers/verified-customer-email.mjs"
+import {
+  actAsMerchantOwner,
+  createRewardPoolFixture,
+  upsertRewardPoolItem,
+} from "./helpers/reward-pool-fixture.mjs"
 
 /**
  * Loyalty integrity hardening — live proof for 20260805100000..20260805100500.
@@ -47,11 +52,33 @@ async function newCustomer(tx, label) {
   return customer.id
 }
 
-/** Push every earned row back a week so the one-per-UK-day rule stays clear. */
-const ageStamps = (tx, membershipId) => tx`
-  update public.stamp_events
-  set earned_business_date = earned_business_date - 7
-  where membership_id = ${membershipId} and event_type = 'earned'`
+/** Put earned rows on distinct past days so the one-per-UK-day rule stays clear. */
+const ageStamps = async (tx, membershipId) => {
+  await tx`
+    with staged as (
+      select id,
+             row_number() over (order by created_at desc, id)::integer as day_offset
+      from public.stamp_events
+      where membership_id = ${membershipId} and event_type = 'earned'
+    )
+    update public.stamp_events se
+    set earned_business_date = date '1900-01-01' - staged.day_offset
+    from staged
+    where se.id = staged.id`
+
+  await tx`
+  with aged as (
+    select id,
+           row_number() over (order by created_at desc, id)::integer as day_offset
+    from public.stamp_events
+    where membership_id = ${membershipId} and event_type = 'earned'
+  )
+  update public.stamp_events se
+  set earned_business_date =
+    (timezone('Europe/London', now()))::date - aged.day_offset
+  from aged
+  where se.id = aged.id`
+}
 
 /**
  * Run `work` and return the SQLSTATE it raises, or null when it succeeds.
@@ -622,6 +649,172 @@ test("the heal is idempotent", { skip }, async () => {
     assert.equal(row.n, 1, "an existing reward is returned, never duplicated")
   })
 })
+
+async function seedFixtureCycle(tx, fixture) {
+  await actAsMerchantOwner(tx, fixture.ownerUserId)
+  for (let index = 0; index < 3; index += 1) {
+    await upsertRewardPoolItem(tx, fixture, {
+      rewardName: `Isolation reward ${index + 1}`,
+      rewardTerms: "Subject to availability for this isolation test.",
+      displayOrder: index,
+    })
+  }
+
+  await tx`
+    insert into public.stamp_events (
+      merchant_id, customer_id, membership_id, loyalty_card_id, location_id,
+      event_type, stamps_delta, earned_business_date, cycle_number, metadata
+    )
+    select ${fixture.merchantId}::uuid,
+           ${fixture.customerId}::uuid,
+           ${fixture.membershipId}::uuid,
+           ${fixture.cardId}::uuid,
+           ${fixture.locationId}::uuid,
+           'earned', 1,
+           public.uk_business_date(now()) - series.day_offset,
+           1,
+           jsonb_build_object('source', 'isolation_test')
+    from generate_series(1, 3) as series(day_offset)`
+}
+
+test(
+  "an inactive-billing heal candidate cannot block another tenant's expiry",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const poisoned = await createRewardPoolFixture(tx)
+      const healthy = await createRewardPoolFixture(tx)
+      await seedFixtureCycle(tx, poisoned)
+      await seedFixtureCycle(tx, healthy)
+
+      const [{ reward_id: healthyRewardId }] = await tx`
+        select public.mint_cycle_reward_if_missing(
+          ${healthy.membershipId}::uuid
+        ) as reward_id`
+      await tx`
+        update public.reward_events
+        set expires_at = now() - interval '1 minute'
+        where id = ${healthyRewardId}::uuid`
+
+      // Billing lifecycle state is service-owned. Switch back from the
+      // merchant-owner fixture before constructing the poisoned tenant.
+      await tx`select set_config('request.jwt.claim.role', 'service_role', true)`
+      await tx`
+        update public.merchants
+        set requires_billing = true
+        where id = ${poisoned.merchantId}::uuid`
+
+      const [{ expired }] = await tx`
+        select public.expire_due_reward_events(now()) as expired`
+      assert.ok(expired >= 1, "the healthy due reward still expires")
+
+      const [healthyReward] = await tx`
+        select status
+        from public.reward_events
+        where id = ${healthyRewardId}::uuid`
+      assert.equal(healthyReward.status, "expired")
+
+      const [poisonedRewards] = await tx`
+        select count(*)::int as rows
+        from public.reward_events
+        where membership_id = ${poisoned.membershipId}::uuid`
+      assert.equal(
+        poisonedRewards.rows,
+        0,
+        "billing-ineligible membership does not mint"
+      )
+    })
+  }
+)
+
+test(
+  "a non-throwing heal refusal is cooled down while another tenant progresses",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const refused = await createRewardPoolFixture(tx)
+      const healthy = await createRewardPoolFixture(tx)
+      await seedFixtureCycle(tx, healthy)
+
+      // The refused membership is complete according to its counter but has no
+      // ledger stamps/reward pool, so mint_cycle_reward_if_missing returns NULL.
+      await tx`select set_config('request.jwt.claim.role', 'service_role', true)`
+      await tx`
+        update public.customer_memberships
+        set current_stamp_count = 3
+        where id = ${refused.membershipId}::uuid`
+
+      const [{ healed }] = await tx`
+        select public.release_completed_cycles_without_reward(2) as healed`
+      assert.equal(healed, 1, "the healthy tenant progresses in the same batch")
+
+      const [failure] = await tx`
+        select sqlstate, attempt_count, last_failed_at
+        from public.reward_cycle_heal_failures
+        where membership_id = ${refused.membershipId}::uuid`
+      assert.equal(failure.sqlstate, "NBS15")
+      assert.equal(failure.attempt_count, 1)
+
+      const [healthyReward] = await tx`
+        select id
+        from public.reward_events
+        where membership_id = ${healthy.membershipId}::uuid
+          and source = 'stamp_cycle'`
+      assert.ok(healthyReward?.id)
+
+      await tx`select public.release_completed_cycles_without_reward(2)`
+      const [unchangedFailure] = await tx`
+        select attempt_count, last_failed_at
+        from public.reward_cycle_heal_failures
+        where membership_id = ${refused.membershipId}::uuid`
+      assert.equal(
+        unchangedFailure.attempt_count,
+        1,
+        "the 15-minute cooldown prevents immediate poison-row retries"
+      )
+      assert.equal(
+        unchangedFailure.last_failed_at.getTime(),
+        failure.last_failed_at.getTime()
+      )
+    })
+  }
+)
+
+test(
+  "scheduler rotation reaches a tenant beyond the page limit on the next sweep",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const fixtures = await Promise.all([
+        createRewardPoolFixture(tx),
+        createRewardPoolFixture(tx),
+        createRewardPoolFixture(tx),
+      ])
+      for (const fixture of fixtures) await seedFixtureCycle(tx, fixture)
+      await tx`select set_config('request.jwt.claim.role', 'service_role', true)`
+
+      await tx`select public.release_completed_cycles_without_reward(2)`
+      const [firstPage] = await tx`
+        select count(*)::int as rows
+        from public.reward_events
+        where membership_id = any(${fixtures.map((fixture) => fixture.membershipId)}::uuid[])
+          and source = 'stamp_cycle'`
+      assert.equal(firstPage.rows, 2)
+
+      await tx`select public.release_completed_cycles_without_reward(2)`
+      const [secondPage] = await tx`
+        select count(*)::int as rows
+        from public.reward_events
+        where membership_id = any(${fixtures.map((fixture) => fixture.membershipId)}::uuid[])
+          and source = 'stamp_cycle'`
+      assert.equal(
+        secondPage.rows,
+        3,
+        "the wrapped cursor reaches the tenant omitted from the first page"
+      )
+    })
+  }
+)
 
 // ---------------------------------------------------------------------------
 // 20260805100500 — the merchant expiry setting, and its ACL

@@ -7,6 +7,16 @@ function read(path) {
   return readFileSync(path, "utf8")
 }
 
+function shardMatrixPattern(total) {
+  const entries = Array.from(
+    { length: total },
+    (_, index) => `${index + 1}\\/${total}`
+  )
+  return new RegExp(
+    `shard:\\s*\\[\\s*${entries.join("\\s*,\\s*")}\\s*,?\\s*\\]`
+  )
+}
+
 test("Given local changes When an agent prepares a commit Then fast quality hooks run", () => {
   const packageJson = JSON.parse(read("package.json"))
   const hook = read(".husky/pre-commit")
@@ -76,15 +86,29 @@ test("Given an autonomous agent When it enters the repository Then current comma
   assert.match(freshness, /AGENTS\.md/)
 })
 
-test("Given routine pull requests When CI runs Then deep browser proof is sharded for sub-ten-minute feedback", () => {
+test("Given routine pull requests When CI runs Then deep browser proof is sharded into memory-bounded jobs", () => {
   const ci = read(".github/workflows/ci.yml")
+  const nightly = read(".github/workflows/nightly.yml")
+  const nextConfig = read("next.config.ts")
   const playwright = read("playwright.config.ts")
   const release = read(".github/workflows/release-notes.yml")
   const buildJob = ci.slice(ci.indexOf("  build:"), ci.indexOf("\n  e2e:"))
+  const e2eJob = ci.slice(ci.indexOf("  e2e:"), ci.indexOf("\n  e2e-gate:"))
+  const a11yJob = ci.slice(ci.indexOf("  a11y:"), ci.indexOf("\n  a11y-gate:"))
+  const visualJob = ci.slice(
+    ci.indexOf("  visual:"),
+    ci.indexOf("\n  visual-gate:")
+  )
 
   assert.match(ci, /quality:check/)
-  assert.match(ci, /shard: \[1\/4, 2\/4, 3\/4, 4\/4\]/)
-  assert.match(ci, /shard: \[1\/2, 2\/2\]/)
+  assert.match(e2eJob, shardMatrixPattern(32))
+  assert.match(a11yJob, shardMatrixPattern(8))
+  assert.match(visualJob, shardMatrixPattern(4))
+  assert.match(nightly, shardMatrixPattern(32))
+  assert.match(nextConfig, /process\.env\.PLAYWRIGHT_HARNESS === "1"/)
+  assert.match(nextConfig, /onDemandEntries:/)
+  assert.match(nextConfig, /maxInactiveAge: 5_000/)
+  assert.match(nextConfig, /pagesBufferLength: 1/)
   assert.match(ci, /--shard/)
   // Every dev-server browser job stays single-worker: the webpack dev
   // server intermittently 500s under parallel in-job load, and

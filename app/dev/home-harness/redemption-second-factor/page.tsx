@@ -24,6 +24,7 @@ export default function RedemptionSecondFactorHarness() {
           location: { requireGeofence: false, geofenceRadiusMeters: 150 },
           profileGate: {
             complete: false,
+            dateOfBirthVerified: false,
             needsEmailVerification: false,
             fullName: "Alex Regular",
             dateOfBirth: "1990-01-01",

@@ -1,26 +1,17 @@
 /**
- * Admin MFA gate policy — "enforce only when enrolled".
+ * Admin MFA gate policy.
  *
- * The DB-level AAL2 requirement in 20260702180000 was reverted because it
- * demanded aal2 unconditionally and locked out every admin: password sign-in is
- * aal1 and there was no in-app way to reach aal2. 20260801120000 puts the gate
- * back at the database boundary, but encoding THIS policy rather than a blanket
- * requirement — an unenrolled admin is still allowed at aal1, so the lockout
- * cannot recur, and the in-app step-up flow now exists either way.
- *
- * The app layer is therefore no longer the only enforcement point, but it still
- * owns the surfaces the database cannot see: the service-role client bypasses
- * RLS entirely, and factor enrolment happens inside Supabase Auth.
+ * Privileged authority requires a verified factor, trusted activation of that
+ * factor, and an aal2 session. A no-factor session is an enrolment-only state:
+ * it must never reach admin data, mutations, or the service-role client.
  *
  * Supabase `auth.mfa.getAuthenticatorAssuranceLevel()` reports:
  *   - nextLevel === 'aal2'  ⇔ the user has a verified authenticator factor
  *   - currentLevel === 'aal2' ⇔ the current session has completed the challenge
  *
- * Policy:
- *   - no verified factor   → allowed at aal1 (nothing to enforce yet)
- *   - factor + session aal2 → allowed (step-up satisfied)
- *   - factor + session aal1 → step-up required (must complete a TOTP challenge)
- *   - assurance unreadable  → unknown, which denies privileged surfaces
+ * Factor activation is checked separately by the caller because Supabase Auth
+ * enrolment is reachable directly by an authenticated browser. Possession of a
+ * newly enrolled factor alone therefore cannot activate admin authority.
  */
 
 export type AdminMfaState =
@@ -71,9 +62,9 @@ export function isAdminMfaEnrolled(state: AdminMfaState): boolean {
   return state !== "no-factor"
 }
 
-/** True when a factor exists and the session has not stepped up — or we cannot tell. */
+/** True unless the session has proved possession of a verified factor. */
 export function adminMfaStepUpRequired(state: AdminMfaState): boolean {
-  return state === "step-up-required" || state === "unknown"
+  return state !== "satisfied"
 }
 
 /**
@@ -86,7 +77,7 @@ export function adminMfaStepUpRequired(state: AdminMfaState): boolean {
  * predicate is waiting for.
  */
 export function adminStepUpSatisfied(state: AdminMfaState): boolean {
-  return state === "no-factor" || state === "satisfied"
+  return state === "satisfied"
 }
 
 /**
@@ -98,13 +89,11 @@ export function adminMfaUnenrollmentAllowed(state: AdminMfaState): boolean {
 }
 
 /**
- * Adding an authenticator is a security-state transition, so it needs the same
- * proof as any other privileged action. Without this, an attacker holding a
- * compromised aal1 session on an ALREADY-enrolled admin could enrol their own
- * TOTP factor, verify it, and reach aal2 without ever possessing the original
- * authenticator. First-factor bootstrap ("no-factor") stays open — there is no
- * existing factor to prove.
+ * First-factor enrolment is the only transition available before activation.
+ * It does not itself grant authority; a trusted operator must activate the
+ * factor at the database boundary after independently verifying the admin.
+ * Additional factors are denied so a stolen aal1 session cannot bind its own.
  */
 export function adminMfaEnrollmentAllowed(state: AdminMfaState): boolean {
-  return adminStepUpSatisfied(state)
+  return state === "no-factor"
 }

@@ -1,7 +1,9 @@
 import { type NextRequest } from "next/server"
 
 import { getCurrentCustomer } from "@/lib/customer/identity"
+import { readBoundedJsonRequest } from "@/lib/http/bounded-json-request"
 import { noStoreJson as json } from "@/lib/http/no-store-json"
+import { enforcePushMutationRateLimit } from "@/lib/notifications/push-mutation-rate-limit"
 import {
   normalizePermissionState,
   registerCustomerPushSubscription,
@@ -11,6 +13,8 @@ import { RateLimitError, enforceRateLimit } from "@/lib/security/rate-limit"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
+
+const MAX_PUSH_MUTATION_BODY_BYTES = 8_192
 
 export async function POST(request: NextRequest) {
   const customer = await getCurrentCustomer()
@@ -22,6 +26,7 @@ export async function POST(request: NextRequest) {
       limit: 12,
       windowMs: 60_000,
     })
+    await enforcePushMutationRateLimit(customer.id)
   } catch (error) {
     if (error instanceof RateLimitError) {
       return json({ error: "rate_limited" }, 429)
@@ -29,7 +34,15 @@ export async function POST(request: NextRequest) {
     throw error
   }
 
-  const body = await request.json().catch(() => null)
+  const parsed = await readBoundedJsonRequest(
+    request,
+    MAX_PUSH_MUTATION_BODY_BYTES
+  )
+  if (!parsed.ok) {
+    const error = parsed.status === 400 ? "invalid_subscription" : parsed.error
+    return json({ error }, parsed.status)
+  }
+  const body = parsed.value
   const subscription = validatePushSubscriptionInput(subscriptionBody(body))
 
   if (!subscription.ok) {

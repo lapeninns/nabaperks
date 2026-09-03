@@ -3,6 +3,10 @@ import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
+import {
+  actAsActivatedInternalAdmin,
+  ensureActivatedInternalAdmin,
+} from "./helpers/admin-auth.mjs"
 
 /**
  * admin console / architecture audit — live-DB tier.
@@ -82,12 +86,25 @@ test(
       } catch (error) {
         refusedNonAdmin = isAdminRejection(error)
       }
-      assert.ok(refusedNonAdmin, "a non-admin caller cannot resolve fraud flags")
+      assert.ok(
+        refusedNonAdmin,
+        "a non-admin caller cannot resolve fraud flags"
+      )
 
-      // Admin access no longer requires AAL2 step-up (migration
-      // 20260720100000): an active internal_admins row is sufficient, so an
-      // admin at aal1 resolves fraud flags successfully.
-      await actAsAuthenticated(tx, ADMIN_UID, "aal1")
+      await ensureActivatedInternalAdmin(tx, ADMIN_UID)
+      let refusedAal1 = false
+      try {
+        await tx.savepoint(async (sp) => {
+          await actAsAuthenticated(sp, ADMIN_UID, "aal1")
+          await sp`select public.admin_resolve_fraud_flag(
+            ${flagId}::uuid, 'reviewed', ${reason})`
+        })
+      } catch (error) {
+        refusedAal1 = isAdminRejection(error)
+      }
+      assert.ok(refusedAal1, "a password-only admin cannot resolve fraud flags")
+
+      await actAsActivatedInternalAdmin(tx, ADMIN_UID)
       await tx`select public.admin_resolve_fraud_flag(
         ${flagId}::uuid, 'dismissed', ${reason})`
 
@@ -139,11 +156,33 @@ test(
       } catch (error) {
         refusedNonAdmin = isAdminRejection(error)
       }
-      assert.ok(refusedNonAdmin, "a non-admin caller cannot log privacy requests")
+      assert.ok(
+        refusedNonAdmin,
+        "a non-admin caller cannot log privacy requests"
+      )
 
-      // Admin access no longer requires AAL2 step-up (migration
-      // 20260720100000): an admin at aal1 logs privacy requests successfully.
-      await actAsAuthenticated(tx, ADMIN_UID, "aal1")
+      await ensureActivatedInternalAdmin(tx, ADMIN_UID)
+      let refusedAal1 = false
+      try {
+        await tx.savepoint(async (sp) => {
+          await actAsAuthenticated(sp, ADMIN_UID, "aal1")
+          await sp`select public.admin_log_data_request(
+            ${membership.customer_id}::uuid,
+            ${membership.merchant_id}::uuid,
+            'access',
+            'email',
+            ${accessNotes}
+          )`
+        })
+      } catch (error) {
+        refusedAal1 = isAdminRejection(error)
+      }
+      assert.ok(
+        refusedAal1,
+        "a password-only admin cannot dispatch privacy requests"
+      )
+
+      await actAsActivatedInternalAdmin(tx, ADMIN_UID)
 
       const [{ result: accessResult }] = await tx`
         select public.admin_log_data_request(
@@ -174,7 +213,9 @@ test(
         "export returns portable membership data"
       )
       assert.ok(
-        exportResult.stamp_events.every((stampEvent) => "event_type" in stampEvent),
+        exportResult.stamp_events.every(
+          (stampEvent) => "event_type" in stampEvent
+        ),
         "export returns actual stamp ledger event types"
       )
 

@@ -186,6 +186,10 @@ minimum_password_length = 8
 # are: `letters_digits`, `lower_upper_letters_digits`, `lower_upper_letters_digits_symbols`
 password_requirements = "letters_digits"
 
+[functions.production-alert]
+verify_jwt = false
+entrypoint = "./functions/production-alert/index.mjs"
+
 # Configure passkey sign-ins.
 # [auth.passkey]
 # enabled = false
@@ -227,13 +231,9 @@ double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
 enable_confirmations = true
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
-# Required. Without it, any still-valid bearer session can replace the account password and mint a
-# durable credential for the same auth.users.id — turning temporary session theft into permanent
-# access. The product's only password sink, confirmMerchantPasswordReset in app/(auth)/actions.ts,
-# runs on a session that verifyOtp({ type: "recovery" }) minted moments earlier, so it takes
-# GoTrue's recent-login exemption and needs no nonce ceremony. Do not add a signed-in "change
-# password" surface without also wiring /reauthenticate and a send-email hook branch for
-# email_action_type = "reauthentication".
+# Retained as defence in depth for legacy credentials. The product has no password creation,
+# reset, sign-in or replacement sink. Do not add a signed-in password-change surface without also
+# wiring /reauthenticate and a send-email hook branch for email_action_type = "reauthentication".
 secure_password_change = true
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
 max_frequency = "1m0s"
@@ -290,9 +290,9 @@ max_frequency = "5s"
 # uri = "pg-functions://postgres/auth/before-user-created-hook"
 
 # This hook runs before a token is issued and allows you to add additional claims based on the authentication method used.
-# [auth.hook.custom_access_token]
-# enabled = true
-# uri = "pg-functions://<database>/<schema>/<hook_name>"
+[auth.hook.custom_access_token]
+enabled = true
+uri = "pg-functions://postgres/public/reject_password_access_tokens"
 
 [auth.hook.send_email]
 enabled = true
@@ -310,7 +310,7 @@ auth_token = "env(SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN)"
 # Multi-factor-authentication is available to Supabase Pro plan.
 [auth.mfa]
 # Control how many MFA factors can be enrolled at once per user.
-max_enrolled_factors = 10
+max_enrolled_factors = 1
 
 # Control MFA via App Authenticator (TOTP)
 [auth.mfa.totp]

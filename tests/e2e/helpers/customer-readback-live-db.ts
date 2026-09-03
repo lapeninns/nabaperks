@@ -1,4 +1,6 @@
-import { createHmac, randomUUID } from "node:crypto"
+import { createHash, createHmac, randomUUID } from "node:crypto"
+
+import { issueCustomerDeviceToken } from "../../../lib/security/customer-device-token"
 
 import { connectLocalDb, type Sql } from "./admin-live-db"
 import {
@@ -10,6 +12,7 @@ import {
 } from "./customer-readback-seed"
 
 const CUSTOMER_SESSION_COOKIE = "nabaperks_customer_session"
+const CUSTOMER_DEVICE_COOKIE = "nabaperks_device"
 const CUSTOMER_SESSION_TTL_SECONDS = 30 * 24 * 60 * 60
 
 type CustomerSessionPayload = {
@@ -25,6 +28,8 @@ export type BrowserCustomerSession = {
   readonly sessionId: string
   readonly cookieName: string
   readonly cookieValue: string
+  readonly deviceCookieName: string
+  readonly deviceCookieValue: string
   readonly expiresAt: number
 }
 
@@ -64,8 +69,14 @@ export async function createCustomerReadbackFixture(
 
     return {
       ...seed,
-      populatedSession: await createBrowserCustomerSession(sql, seed.customerId),
-      emptySession: await createBrowserCustomerSession(sql, seed.emptyCustomerId),
+      populatedSession: await createBrowserCustomerSession(
+        sql,
+        seed.customerId
+      ),
+      emptySession: await createBrowserCustomerSession(
+        sql,
+        seed.emptyCustomerId
+      ),
       waitingSession: await createBrowserCustomerSession(
         sql,
         seed.waitingCustomerId
@@ -89,6 +100,10 @@ export async function createBrowserCustomerSession(
   customerId: string
 ): Promise<BrowserCustomerSession> {
   const sessionId = randomUUID()
+  const deviceId = randomUUID()
+  const deviceHash = createHash("sha256")
+    .update(`customer-device:${deviceId}`)
+    .digest("hex")
   const issuedAt = Math.floor(Date.now() / 1000)
   const expiresAt = issuedAt + CUSTOMER_SESSION_TTL_SECONDS
   const payload: CustomerSessionPayload = {
@@ -105,14 +120,16 @@ export async function createBrowserCustomerSession(
       customer_id,
       created_at,
       expires_at,
-      last_seen_at
+      last_seen_at,
+      device_hash
     )
     values (
       ${sessionId}::uuid,
       ${customerId}::uuid,
       to_timestamp(${issuedAt}),
       to_timestamp(${expiresAt}),
-      to_timestamp(${issuedAt})
+      to_timestamp(${issuedAt}),
+      ${deviceHash}
     )`
 
   return {
@@ -120,12 +137,19 @@ export async function createBrowserCustomerSession(
     sessionId,
     cookieName: CUSTOMER_SESSION_COOKIE,
     cookieValue: signPayload(payload, customerSessionSecret()),
+    deviceCookieName: CUSTOMER_DEVICE_COOKIE,
+    deviceCookieValue: issueCustomerDeviceToken(
+      deviceId,
+      customerSessionSecret()
+    ),
     expiresAt,
   }
 }
 
 function signPayload(payload: object, secret: string): string {
-  const body = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url")
+  const body = Buffer.from(JSON.stringify(payload), "utf8").toString(
+    "base64url"
+  )
   const signature = createHmac("sha256", secret)
     .update(body)
     .digest("base64url")
@@ -136,7 +160,9 @@ function signPayload(payload: object, secret: string): string {
 function customerSessionSecret(): string {
   const secret = process.env.CUSTOMER_SESSION_SECRET?.trim()
   if (!secret) {
-    throw new Error("CUSTOMER_SESSION_SECRET is required for customer sessions.")
+    throw new Error(
+      "CUSTOMER_SESSION_SECRET is required for customer sessions."
+    )
   }
   return secret
 }

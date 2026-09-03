@@ -156,52 +156,15 @@ export async function unenrollAdminMfa(
 
   const supabase = await createSupabaseServerClient()
 
-  // Supabase Auth and Postgres cannot share a transaction. Record the
-  // authorised request first so the destructive identity action never occurs
-  // without a durable trace, then record its successful outcome below.
-  const { error: requestAuditError } = await supabase
-    .from("audit_logs")
-    .insert({
-      actor_type: "admin",
-      actor_id: access.userId,
-      target_table: "auth.mfa_factors",
-      target_id: factorId,
-      action: "admin_mfa_unenrollment_authorised",
-      metadata: { assurance_level: "aal2" },
-    })
-  if (requestAuditError) {
-    return {
-      ok: false,
-      error: "Could not record the security change. Try again.",
-    }
-  }
-
   const { error } = await supabase.auth.mfa.unenroll({ factorId })
   if (error) {
     return { ok: false, error: error.message }
   }
 
-  // Auth is now authoritative even if completion logging fails below.
+  // The database factor-lifecycle trigger records the deletion atomically and
+  // invalidates any trusted binding in the same Auth transaction.
   revalidatePath("/admin")
   revalidatePath("/admin/audit")
-
-  const { error: completionAuditError } = await supabase
-    .from("audit_logs")
-    .insert({
-      actor_type: "admin",
-      actor_id: access.userId,
-      target_table: "auth.mfa_factors",
-      target_id: factorId,
-      action: "admin_mfa_factor_unenrolled",
-      metadata: { assurance_level: "aal2" },
-    })
-  if (completionAuditError) {
-    return {
-      ok: false,
-      error:
-        "Two-factor authentication was removed, but completion logging failed. Contact support.",
-    }
-  }
 
   return { ok: true, error: null }
 }

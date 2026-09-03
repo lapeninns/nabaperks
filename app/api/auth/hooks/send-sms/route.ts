@@ -2,14 +2,17 @@ import { NextResponse, type NextRequest } from "next/server"
 
 import {
   hookError,
+  hookRetryError,
   openSignedHookEnvelope,
 } from "@/app/api/auth/hooks/signed-hook-envelope"
 import {
   claimAuthHookDelivery,
   completeAuthHookDelivery,
   failAuthHookDelivery,
+  markAuthHookDeliveryAttempted,
 } from "@/lib/auth/auth-hook-delivery"
-import { sendSmsOtp } from "@/lib/notifications/twilio"
+import { isDefinitiveProviderRejection } from "@/lib/notifications/provider-delivery-error"
+import { readSmsOtpConfig, sendSmsOtp } from "@/lib/notifications/twilio"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -46,23 +49,56 @@ export async function POST(request: NextRequest) {
     return hookError(400, "Missing recipient phone or code.")
   }
 
-  // Consume the authenticated webhook id BEFORE the provider call. A replay of
-  // an already-completed delivery answers with the ordinary success body, so
-  // GoTrue's retry contract is untouched; anything else sends, because a
-  // missing OTP is far worse than a duplicate one.
-  const claim = await claimAuthHookDelivery("sms", envelope.webhookId)
-  if (claim === "replay") {
+  try {
+    readSmsOtpConfig()
+  } catch {
+    return hookError(500, "SMS hook is not configured.")
+  }
+
+  let claim
+  try {
+    claim = await claimAuthHookDelivery("sms", envelope.webhookId)
+  } catch {
+    return hookRetryError("SMS delivery could not be claimed.")
+  }
+  if (claim.status === "replay") {
     return NextResponse.json({})
+  }
+  if (claim.status === "busy") {
+    return hookRetryError("SMS delivery is already in progress.")
+  }
+
+  let providerAttempted = false
+  try {
+    await sendSmsOtp({
+      to,
+      code,
+      beforeProviderAttempt: async () => {
+        await markAuthHookDeliveryAttempted(
+          "sms",
+          envelope.webhookId,
+          claim.leaseId
+        )
+        providerAttempted = true
+      },
+    })
+  } catch (error) {
+    const definitelyUnsent =
+      !providerAttempted || isDefinitiveProviderRejection(error)
+    const settle = definitelyUnsent
+      ? failAuthHookDelivery
+      : completeAuthHookDelivery
+    await settle("sms", envelope.webhookId, claim.leaseId).catch(
+      () => undefined
+    )
+    return hookRetryError("SMS could not be sent.")
   }
 
   try {
-    await sendSmsOtp({ to, code })
+    await completeAuthHookDelivery("sms", envelope.webhookId, claim.leaseId)
   } catch {
-    await failAuthHookDelivery("sms", envelope.webhookId)
-    return hookError(500, "SMS could not be sent.")
+    return hookError(500, "SMS delivery could not be recorded.")
   }
-
-  await completeAuthHookDelivery("sms", envelope.webhookId)
 
   return NextResponse.json({})
 }

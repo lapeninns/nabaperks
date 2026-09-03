@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 
 import {
+  adminMfaEnrollmentAllowed,
   adminMfaStepUpRequired,
   adminMfaUnenrollmentAllowed,
   adminStepUpSatisfied,
@@ -10,13 +11,15 @@ import {
   resolveAdminMfaStateFromFacts,
 } from "@/lib/admin/mfa-gate"
 
-test("an admin with no verified factor is allowed at aal1 (nothing to enforce)", () => {
+test("an admin with no verified factor is confined to enrolment", () => {
   // Supabase reports nextLevel 'aal1' when there is no verified factor.
   assert.equal(resolveAdminMfaState("aal1", "aal1"), "no-factor")
   assert.equal(resolveAdminMfaState(null, "aal1"), "no-factor")
   assert.equal(resolveAdminMfaState(null, null), "no-factor")
   assert.equal(isAdminMfaEnrolled("no-factor"), false)
-  assert.equal(adminMfaStepUpRequired("no-factor"), false)
+  assert.equal(adminMfaStepUpRequired("no-factor"), true)
+  assert.equal(adminStepUpSatisfied("no-factor"), false)
+  assert.equal(adminMfaEnrollmentAllowed("no-factor"), true)
 })
 
 test("an enrolled admin who has completed the challenge is satisfied", () => {
@@ -47,13 +50,16 @@ test("MFA removal requires an already satisfied AAL2 session", () => {
   assert.equal(adminMfaUnenrollmentAllowed("unknown"), false)
 })
 
-test("a pending step-up blocks privileged surfaces but never the step-up itself", () => {
+test("only a satisfied session can reach privileged surfaces", () => {
   // Gates the RLS-bypassing service-role client, the leaf page guard, admin
   // mutations, and new-factor enrolment. An enrolled admin sitting at aal1 is
   // exactly the compromised-session case, so it must be false there.
   assert.equal(adminStepUpSatisfied("satisfied"), true)
-  assert.equal(adminStepUpSatisfied("no-factor"), true)
+  assert.equal(adminStepUpSatisfied("no-factor"), false)
   assert.equal(adminStepUpSatisfied("step-up-required"), false)
+  assert.equal(adminMfaEnrollmentAllowed("satisfied"), false)
+  assert.equal(adminMfaEnrollmentAllowed("step-up-required"), false)
+  assert.equal(adminMfaEnrollmentAllowed("unknown"), false)
 })
 
 test("the gate resolves enrolment from the database, not the session cookie", () => {

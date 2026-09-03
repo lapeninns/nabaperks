@@ -125,7 +125,16 @@ test("scheduled production smoke validates both JSON probe contracts", () => {
     /Check out alert dispatcher\n\s+if: \$\{\{ always\(\) \}\}/
   )
   assert.match(workflow, /context\.eventName !== "schedule"/)
-  assert.match(workflow, /production-smoke-recovery-candidate/)
+  assert.match(workflow, /actions: read/)
+  assert.match(workflow, /getWorkflowRun/)
+  assert.match(workflow, /listWorkflowRunsForWorkflow/)
+  assert.doesNotMatch(
+    workflow,
+    /workflow_id: current\.data\.workflow_id,\n\s+event:/
+  )
+  assert.match(workflow, /previousScheduledRunSucceeded/)
+  assert.doesNotMatch(workflow, /production-smoke-recovery-candidate/)
+  assert.doesNotMatch(workflow, /listComments/)
   assert.match(workflow, /steps\.incident\.outputs\.ready == 'true'/)
 
   const filters = smokeFilters(workflow)

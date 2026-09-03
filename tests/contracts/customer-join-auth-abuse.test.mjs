@@ -21,7 +21,7 @@ test("Given join and wallet OTP provider failures When actions are inspected The
   assert.match(join, /referralCode: ref \|\| undefined/)
 })
 
-test("Given customer OTP dispatch When policy source is inspected Then GB-only parsing, bounded calls, and identity-wide sends are enforced", () => {
+test("Given customer OTP dispatch When policy source is inspected Then GB-only parsing and atomic reserved capacity are enforced", () => {
   const join = read("app", "m", "[merchantSlug]", "join", "actions.ts")
   const phone = read("lib", "customer", "phone.ts")
   const verification = read("lib", "customer", "verification.ts")
@@ -36,8 +36,13 @@ test("Given customer OTP dispatch When policy source is inspected Then GB-only p
   )
   assert.match(verification, /AbortSignal\.timeout\(providerTimeoutMs\)/)
   assert.match(verification, /process\.env\.VERCEL_ENV !== "preview"/)
-  assert.match(limits, /customerOtpIdentitySendWindowMs/)
+  assert.match(limits, /admit_customer_otp_dispatch/)
   assert.match(limits, /customerOtpSendIdentityRateLimitKey\(requestIdentity\)/)
+  assert.match(limits, /customerOtpSendPhoneRateLimitKey\(phone\)/)
+  assert.match(limits, /customerOtpSendIpRateLimitKey\(trustedIp\)/)
+  assert.match(limits, /customerPhoneHmac\(phone\)/)
+  assert.match(limits, /if \(!error\) return true/)
+  assert.match(limits, /rate limit exceeded[\s\S]*return false/i)
   assert.match(
     envCheck,
     /CUSTOMER_OTP_BYPASS_MODE must be blank outside local development/

@@ -1,13 +1,17 @@
 import { type NextRequest } from "next/server"
 
 import { getCurrentCustomer } from "@/lib/customer/identity"
+import { readBoundedJsonRequest } from "@/lib/http/bounded-json-request"
 import { noStoreJson as json } from "@/lib/http/no-store-json"
+import { enforcePushMutationRateLimit } from "@/lib/notifications/push-mutation-rate-limit"
 import { pushEndpointFromBody } from "@/lib/notifications/push-subscription-input"
 import {
   disableCustomerPushSubscription,
   validatePushEndpoint,
 } from "@/lib/notifications/push-subscriptions"
 import { RateLimitError, enforceRateLimit } from "@/lib/security/rate-limit"
+
+const MAX_PUSH_MUTATION_BODY_BYTES = 8_192
 
 /**
  * Shared implementation for the push `disable` and `unsubscribe` routes. Both
@@ -34,6 +38,7 @@ export function createDisablePushSubscriptionHandler({
         limit: rateLimitPerMinute,
         windowMs: 60_000,
       })
+      await enforcePushMutationRateLimit(customer.id)
     } catch (error) {
       if (error instanceof RateLimitError) {
         return json({ error: "rate_limited" }, 429)
@@ -41,7 +46,16 @@ export function createDisablePushSubscriptionHandler({
       throw error
     }
 
-    const body = await request.json().catch(() => null)
+    const parsed = await readBoundedJsonRequest(
+      request,
+      MAX_PUSH_MUTATION_BODY_BYTES
+    )
+    if (!parsed.ok) {
+      const error =
+        parsed.status === 400 ? "invalid_subscription" : parsed.error
+      return json({ error }, parsed.status)
+    }
+    const body = parsed.value
     const endpoint = validatePushEndpoint(pushEndpointFromBody(body))
     if (!endpoint) return json({ error: "invalid_subscription" }, 400)
 

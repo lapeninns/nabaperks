@@ -12,6 +12,7 @@
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { performance } from "node:perf_hooks"
+import { createServerClient } from "@supabase/ssr"
 import { createClient } from "@supabase/supabase-js"
 import { chromium } from "@playwright/test"
 import postgres from "postgres"
@@ -24,13 +25,14 @@ import {
 const projectDir = process.cwd()
 const MERCHANT_ID = "10000000-0000-0000-0000-000000000001"
 const MERCHANT_EMAIL = "amanshresthaaaaa+32@gmail.com"
-const MERCHANT_PASSWORD = "NabaperksDemo1!"
 const CUSTOMERS_PAGE_SIZE = 15
-const RUNS = Math.max(1, Number.parseInt(process.env.PERF_STRESS_RUNS ?? "3", 10))
-const APP_URL = (process.env.PERF_STRESS_APP_URL ?? "http://localhost:3000").replace(
-  /\/$/,
-  ""
+const RUNS = Math.max(
+  1,
+  Number.parseInt(process.env.PERF_STRESS_RUNS ?? "3", 10)
 )
+const APP_URL = (
+  process.env.PERF_STRESS_APP_URL ?? "http://localhost:3000"
+).replace(/\/$/, "")
 
 const env = {
   ...readEnvFile(join(projectDir, ".env.local")),
@@ -42,11 +44,21 @@ async function main() {
   const dbUrl = env.SUPABASE_DB_URL?.trim()
   const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL?.trim()
   const anonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()
+  const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY?.trim()
 
-  if (!dbUrl || !supabaseUrl || !anonKey) {
-    console.error("SUPABASE_DB_URL, NEXT_PUBLIC_SUPABASE_URL, and NEXT_PUBLIC_SUPABASE_ANON_KEY are required.")
+  if (!dbUrl || !supabaseUrl || !anonKey || !serviceRoleKey) {
+    console.error(
+      "SUPABASE_DB_URL, NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY are required."
+    )
     process.exit(1)
   }
+
+  assertLocalTarget(dbUrl, "SUPABASE_DB_URL", ["postgres:", "postgresql:"])
+  assertLocalTarget(supabaseUrl, "NEXT_PUBLIC_SUPABASE_URL", [
+    "http:",
+    "https:",
+  ])
+  assertLocalTarget(APP_URL, "PERF_STRESS_APP_URL", ["http:", "https:"])
 
   console.log(`Stress performance probe (${RUNS} run(s) per benchmark)\n`)
 
@@ -55,35 +67,75 @@ async function main() {
     await verifyStressFixture(sql)
   } catch (error) {
     if (isDatabaseConnectionRefused(error)) {
-      printDatabaseConnectionHelp(dbUrl, "pnpm db:supabase:start && pnpm db:reseed:stress")
+      printDatabaseConnectionHelp(
+        dbUrl,
+        "pnpm db:supabase:start && pnpm db:reseed:stress"
+      )
     }
     throw error
   } finally {
     await sql.end({ timeout: 5 })
   }
 
-  const authClient = createClient(supabaseUrl, anonKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
+  const authCookies = new Map()
+  const authClient = createServerClient(supabaseUrl, anonKey, {
+    cookies: {
+      getAll() {
+        return Array.from(authCookies, ([name, cookie]) => ({
+          name,
+          value: cookie.value,
+        }))
+      },
+      setAll(cookiesToSet) {
+        for (const cookie of cookiesToSet) {
+          if (cookie.value) {
+            authCookies.set(cookie.name, {
+              value: cookie.value,
+              options: cookie.options,
+            })
+          } else {
+            authCookies.delete(cookie.name)
+          }
+        }
+      },
+    },
   })
 
-  const { error: signInError } = await authClient.auth.signInWithPassword({
-    email: MERCHANT_EMAIL,
-    password: MERCHANT_PASSWORD,
+  const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
   })
-  if (signInError) {
-    throw new Error(`Merchant sign-in failed: ${signInError.message}`)
+  const generated = await adminClient.auth.admin.generateLink({
+    type: "magiclink",
+    email: MERCHANT_EMAIL,
+  })
+  const tokenHash = generated.data.properties?.hashed_token
+  if (generated.error || !tokenHash) {
+    throw new Error(
+      `Merchant email-code generation failed: ${generated.error?.message ?? "missing token"}`
+    )
+  }
+  const signIn = await authClient.auth.verifyOtp({
+    token_hash: tokenHash,
+    type: "magiclink",
+  })
+  if (signIn.error) {
+    throw new Error(
+      `Merchant email-code sign-in failed: ${signIn.error.message}`
+    )
   }
 
   const queryResults = await runQueryBenchmarks(authClient)
   printResults("Supabase query benchmarks (RLS as +32)", queryResults)
 
-  const httpResults = await runHttpBenchmarks()
+  const httpResults = await runHttpBenchmarks(authCookies)
   if (Array.isArray(httpResults) && httpResults.length) {
     printResults(`HTTP page loads (${APP_URL}, authenticated)`, httpResults)
   } else if (!Array.isArray(httpResults) && httpResults.skipped) {
     console.log(`\nHTTP benchmarks skipped: ${httpResults.reason}`)
   } else {
-    console.log("\nHTTP benchmarks skipped (dev server not reachable). Start with: pnpm dev")
+    console.log(
+      "\nHTTP benchmarks skipped (dev server not reachable). Start with: pnpm dev"
+    )
   }
 }
 
@@ -100,7 +152,9 @@ async function verifyStressFixture(sql) {
   `
 
   if (!row) {
-    throw new Error("Old Crown Girton merchant fixture not found. Run pnpm db:setup first.")
+    throw new Error(
+      "Old Crown Girton merchant fixture not found. Run pnpm db:setup first."
+    )
   }
 
   if (row.owner_email !== MERCHANT_EMAIL) {
@@ -130,7 +184,8 @@ async function runQueryBenchmarks(client) {
         .select("*", { count: "exact", head: true })
         .eq("merchant_id", MERCHANT_ID)
       if (error) throw error
-      if ((count ?? 0) < 1000) throw new Error(`Unexpected member count: ${count}`)
+      if ((count ?? 0) < 1000)
+        throw new Error(`Unexpected member count: ${count}`)
       return count
     }),
     await bench("Members page 1 (15 rows)", RUNS, async () => {
@@ -207,7 +262,7 @@ async function runQueryBenchmarks(client) {
   ]
 }
 
-async function runHttpBenchmarks() {
+async function runHttpBenchmarks(authCookies) {
   if (!(await isAppReachable())) {
     return []
   }
@@ -227,19 +282,30 @@ async function runHttpBenchmarks() {
   }
 
   const context = await browser.newContext()
+  await context.addCookies(
+    Array.from(authCookies, ([name, cookie]) =>
+      browserCookie(name, cookie, APP_URL)
+    )
+  )
   const page = await context.newPage()
 
   try {
-    await page.goto(`${APP_URL}/login?next=${encodeURIComponent("/app")}`, {
+    await page.goto(`${APP_URL}/app`, {
       waitUntil: "domcontentloaded",
     })
-    await page.locator("#email").fill(MERCHANT_EMAIL)
-    await page.locator("#password").fill(MERCHANT_PASSWORD)
-    await page.getByRole("button", { name: "Log in" }).click()
-    await page.waitForURL((url) => url.pathname === "/app", { timeout: 30_000 })
+    if (new URL(page.url()).pathname === "/login") {
+      throw new Error("Passwordless benchmark session was not accepted.")
+    }
+    await page.waitForURL((url) => url.pathname === "/app", {
+      timeout: 30_000,
+    })
 
     const routes = [
-      { name: "Dashboard /app", path: "/app", ready: /Your venue|Old Crown Girton/i },
+      {
+        name: "Dashboard /app",
+        path: "/app",
+        ready: /Your venue|Old Crown Girton/i,
+      },
       {
         name: "Members /app/customers",
         path: "/app/customers",
@@ -266,7 +332,9 @@ async function runHttpBenchmarks() {
     for (const route of routes) {
       results.push(
         await bench(route.name, RUNS, async () => {
-          await page.goto(`${APP_URL}${route.path}`, { waitUntil: "domcontentloaded" })
+          await page.goto(`${APP_URL}${route.path}`, {
+            waitUntil: "domcontentloaded",
+          })
           await page.getByText(route.ready).first().waitFor({ timeout: 30_000 })
         })
       )
@@ -278,9 +346,70 @@ async function runHttpBenchmarks() {
   }
 }
 
+function browserCookie(name, cookie, appUrl) {
+  const options = cookie.options ?? {}
+  const expires = cookieExpires(options)
+  const sameSite = sameSiteOption(options.sameSite)
+
+  return {
+    name,
+    value: cookie.value,
+    url: new URL(appUrl).origin,
+    ...(expires !== undefined ? { expires } : {}),
+    ...(typeof options.httpOnly === "boolean"
+      ? { httpOnly: options.httpOnly }
+      : {}),
+    ...(typeof options.secure === "boolean" ? { secure: options.secure } : {}),
+    ...(sameSite ? { sameSite } : {}),
+  }
+}
+
+function cookieExpires(options) {
+  if (options.expires instanceof Date) {
+    return Math.floor(options.expires.getTime() / 1000)
+  }
+  if (typeof options.maxAge === "number") {
+    return Math.floor(Date.now() / 1000) + options.maxAge
+  }
+  return undefined
+}
+
+function sameSiteOption(value) {
+  switch (value) {
+    case "lax":
+      return "Lax"
+    case "strict":
+    case true:
+      return "Strict"
+    case "none":
+      return "None"
+    default:
+      return undefined
+  }
+}
+
+function assertLocalTarget(value, label, protocols) {
+  let parsed
+  try {
+    parsed = new URL(value)
+  } catch {
+    throw new Error(`${label} must be a valid loopback URL.`)
+  }
+
+  const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "")
+  if (
+    !protocols.includes(parsed.protocol) ||
+    !["localhost", "127.0.0.1", "::1"].includes(host)
+  ) {
+    throw new Error(`${label} must target a local disposable service.`)
+  }
+}
+
 async function isAppReachable() {
   try {
-    const response = await fetch(`${APP_URL}/login`, { signal: AbortSignal.timeout(3000) })
+    const response = await fetch(`${APP_URL}/login`, {
+      signal: AbortSignal.timeout(3000),
+    })
     return response.ok
   } catch {
     return false

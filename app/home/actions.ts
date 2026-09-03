@@ -4,12 +4,12 @@ import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
 import { findCustomerByVerifiedPhone } from "@/lib/customer/identity"
+import { establishCustomerSessionAfterVerifiedPhone } from "@/lib/customer/access-continuity"
 import { defaultCountryFromHeaders, normalizePhone } from "@/lib/customer/phone"
 import {
   clearCustomerSession,
   clearPendingPhoneVerification,
   getPendingPhoneVerification,
-  setCustomerSession,
   setPendingPhoneVerification,
 } from "@/lib/customer/session"
 import {
@@ -23,6 +23,7 @@ import {
 import { safeNextPath } from "@/lib/navigation/safe-next-path"
 import {
   RateLimitError,
+  customerDeviceHashFromHeaders,
   customerRateLimitIdentityFromHeaders,
   trustedClientIp,
 } from "@/lib/security/rate-limit"
@@ -55,6 +56,7 @@ export async function requestCustomerLoginOtpAction(
   const country = defaultCountryFromHeaders(requestHeaders)
   const requestIdentity = customerRateLimitIdentityFromHeaders(requestHeaders)
   const clientIp = trustedClientIp(requestHeaders)
+  const deviceHash = customerDeviceHashFromHeaders(requestHeaders)
   const normalized = normalizePhone(rawContact, country)
 
   if (!normalized.ok) {
@@ -66,31 +68,23 @@ export async function requestCustomerLoginOtpAction(
 
   const contact = normalized.phone.e164
 
-  try {
-    await enforceCustomerOtpSendRateLimit({
-      phone: contact,
-      requestIdentity,
-      trustedIp: clientIp,
-      scope: "wallet",
-    })
-  } catch (error) {
-    if (error instanceof RateLimitError) {
+  const admitted = await enforceCustomerOtpSendRateLimit({
+    phone: contact,
+    requestIdentity,
+    trustedIp: clientIp,
+    scope: "wallet",
+    deviceHash,
+  })
+
+  if (admitted) {
+    const verification = await startCustomerPhoneVerification(contact)
+    if (verification.status === "unavailable") {
       return {
         fields: { contact },
-        errors: { form: "Too many sign-in requests. Try again later." },
+        errors: {
+          form: "We couldn't send a code just now. Try again shortly.",
+        },
       }
-    }
-
-    throw error
-  }
-
-  const verification = await startCustomerPhoneVerification(contact)
-  if (verification.status === "unavailable") {
-    return {
-      fields: { contact },
-      errors: {
-        form: "We couldn't send a code just now. Try again shortly.",
-      },
     }
   }
 
@@ -114,7 +108,7 @@ export async function requestCustomerLoginOtpAction(
   return {
     fields: { contact, otpSent: true },
     message:
-      "If that number has Nabaperks cards, enter the code we sent. Otherwise scan a venue QR to join first.",
+      "If a code arrives for that number, enter it here. Otherwise scan a venue QR to join first.",
   }
 }
 
@@ -197,7 +191,24 @@ export async function verifyCustomerLoginOtpAction(
     }
   }
 
-  await setCustomerSession(customer.id)
+  let access: "authenticated" | "recovery"
+  try {
+    access = await establishCustomerSessionAfterVerifiedPhone({
+      customer,
+      customerWasCreated: false,
+      phoneHmac: pending.phoneHmac,
+      next,
+    })
+  } catch {
+    return {
+      fields: { contact, otpSent: true },
+      errors: {
+        form: "We couldn't confirm account continuity. Try again shortly.",
+      },
+    }
+  }
+
+  if (access === "recovery") redirect("/home/recover")
   await clearPendingPhoneVerification()
   redirect(next)
 }

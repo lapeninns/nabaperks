@@ -87,11 +87,20 @@ test("Given a public funnel capture request When the route contract is inspected
   const guardedSource = `${route}\n${contract}\n${requestGuard}`
 
   assert.match(guardedSource, /headers\.get\(["']origin["']\)/i)
-  assert.match(guardedSource, /new URL\(request\.url\)/)
-  assert.match(requestGuard, /requestUrl\.origin/)
-  assert.match(requestGuard, /headers\s*\.get\(["']x-forwarded-host["']\)/)
-  assert.match(requestGuard, /headers\.get\(["']host["']\)/)
-  assert.match(requestGuard, /allowedOrigins\.has\(requestOrigin\)/)
+  assert.match(
+    route,
+    /isSameOriginRequest\(request, process\.env\.NEXT_PUBLIC_APP_URL\)/
+  )
+  assert.match(requestGuard, /configuredOrigin/)
+  assert.doesNotMatch(
+    requestGuard,
+    /headers\s*\.get\(["']x-forwarded-host["']\)/
+  )
+  assert.doesNotMatch(
+    requestGuard,
+    /headers\s*\.get\(["']x-forwarded-proto["']\)/
+  )
+  assert.doesNotMatch(requestGuard, /headers\.get\(["']host["']\)/)
   assert.match(guardedSource, /MAX_[A-Z_]*BODY[A-Z_]*BYTES/)
   assert.match(guardedSource, /content-length|body\.length|text\.length/i)
   assert.match(route, /enforceRateLimit/)
@@ -213,8 +222,21 @@ test("Given the first token response is lost When anonymous capture retries Then
   assert.match(captureQueue, /postCapture\(event, result\.token\)/)
 })
 
-test("Given authoritative merchant auth outcomes When source wiring is inspected Then account creation, resend, and verification telemetry is success-only and fail-open", () => {
+test("Given authoritative merchant auth outcomes When source wiring is inspected Then resend and verification telemetry is success-only and fail-open", () => {
   const actions = readProjectFile("app", "(auth)", "actions.ts")
+  const sendEmailHook = readProjectFile(
+    "app",
+    "api",
+    "auth",
+    "hooks",
+    "send-email",
+    "route.ts"
+  )
+  const emailActionCore = readProjectFile(
+    "lib",
+    "auth",
+    "send-email-action-core.ts"
+  )
   const funnelEvents = readProjectFile("lib", "analytics", "funnel-events.ts")
   const afterResponse = readProjectFile("lib", "analytics", "after-response.ts")
   const signUp = sourceSection(
@@ -225,7 +247,7 @@ test("Given authoritative merchant auth outcomes When source wiring is inspected
   const verify = sourceSection(
     actions,
     "async function verifySignupOtp",
-    "async function confirmMerchantPasswordReset"
+    "async function confirmMerchantEmailAccess"
   )
   const resend = sourceSection(
     actions,
@@ -249,14 +271,27 @@ test("Given authoritative merchant auth outcomes When source wiring is inspected
   )
   assert.doesNotMatch(funnelEvents, /catch[^\n]*\{[\s\S]{0,220}\bthrow\b/)
 
-  assert.ok(
-    signUp.indexOf("merchant_account_created") > signUp.indexOf("if (error)"),
-    "account-created telemetry follows the provider success guard"
+  assert.doesNotMatch(
+    signUp,
+    /merchant_account_created/,
+    "enumeration-neutral passwordless signup cannot claim creation before email verification"
+  )
+  const classifyAt = sendEmailHook.indexOf("classifySendEmailAction(")
+  const accountCreatedAt = sendEmailHook.indexOf(
+    'event: "merchant_account_created"'
+  )
+  const claimAt = sendEmailHook.indexOf("claimAuthHookDelivery(")
+  assert.ok(classifyAt > 0 && accountCreatedAt > classifyAt)
+  assert.ok(claimAt > accountCreatedAt)
+  assert.match(sendEmailHook, /actorId: userId/)
+  assert.match(emailActionCore, /"signup"[\s\S]*recordsAccountCreation: true/)
+  assert.match(
+    emailActionCore,
+    /"magiclink"[\s\S]*recordsAccountCreation: false/
   )
   assert.match(
-    signUp,
-    /identities[\s\S]{0,180}length\s*>\s*0[\s\S]{0,300}merchant_account_created/,
-    "obfuscated existing-account signup success cannot count as a creation"
+    emailActionCore,
+    /"recovery"[\s\S]*recordsAccountCreation: false/
   )
   assert.ok(
     resend.indexOf("merchant_otp_resent") >

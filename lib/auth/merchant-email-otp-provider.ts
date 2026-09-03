@@ -1,8 +1,5 @@
 export type MerchantOtpProviderOutcome =
-  | "expired"
-  | "rejected"
-  | "retryable"
-  | "verified"
+  "expired" | "rejected" | "retryable" | "verified"
 
 type MerchantOtpProviderFinalizeOutcome = Exclude<
   MerchantOtpProviderOutcome,
@@ -30,6 +27,7 @@ type MerchantOtpDeliveryInput = {
   readonly onRevocationError?: (aliasId: string, error: Error) => void
   readonly revokeAlias: (aliasId: string) => Promise<boolean>
   readonly sendAlias: (aliasCode: string) => Promise<void>
+  readonly shouldRevokeAfterSendError?: (error: unknown) => boolean
 }
 
 /**
@@ -42,6 +40,7 @@ export async function runMerchantOtpDelivery({
   onRevocationError,
   revokeAlias,
   sendAlias,
+  shouldRevokeAfterSendError = () => true,
 }: MerchantOtpDeliveryInput): Promise<MerchantOtpAliasDelivery> {
   const alias = await createAlias()
 
@@ -49,6 +48,7 @@ export async function runMerchantOtpDelivery({
     await sendAlias(alias.aliasCode)
     return alias
   } catch (deliveryError) {
+    if (!shouldRevokeAfterSendError(deliveryError)) throw deliveryError
     try {
       const revoked = await revokeAlias(alias.aliasId)
       if (!revoked) {

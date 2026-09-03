@@ -66,6 +66,7 @@ test("unlocked rewards that are not yet redeemable render the waiting state", ()
 test("redeemable rewards carry the profile gate into the ready state", () => {
   const profileGate = {
     complete: false,
+    dateOfBirthVerified: false,
     needsEmailVerification: true,
     fullName: "A Customer",
     dateOfBirth: null,
@@ -103,6 +104,7 @@ test("ready rewards default to a complete profile gate when no profile lookup is
   assert.equal(experience.kind, "reward_ready")
   assert.deepEqual(experience.profileGate, {
     complete: true,
+    dateOfBirthVerified: true,
     needsEmailVerification: false,
     fullName: null,
     dateOfBirth: null,

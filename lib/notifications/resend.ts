@@ -4,55 +4,19 @@ import {
   buildTransactionalEmailPayload,
   type TransactionalEmailInput,
 } from "@/lib/notifications/transactional-email-payload"
+import {
+  emailOtpCopy,
+  type EmailOtpAudience,
+} from "@/lib/notifications/email-otp-copy"
 import { resilientFetch } from "@/lib/observability/resilience"
+import { DefinitiveProviderRejectionError } from "@/lib/notifications/provider-delivery-error"
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails"
-
-type EmailOtpAudience = "customer" | "merchant-verify" | "merchant-reset"
-
-type EmailOtpCopy = {
-  readonly eyebrow: string
-  readonly title: string
-  readonly intro: string
-  readonly footer: string
-  readonly subjectSuffix: string
-  readonly textReason: string
-}
 
 type EmailOtpConfig = {
   readonly apiKey: string
   readonly from: string
 }
-
-const emailOtpCopy = {
-  customer: {
-    eyebrow: "My Nabaperks",
-    title: "Your verification code",
-    intro: "Enter this code to open your cards. It expires shortly.",
-    footer: "If you didn't request this, you can safely ignore this email.",
-    subjectSuffix: "is your Nabaperks code",
-    textReason: "open your Nabaperks cards",
-  },
-  "merchant-verify": {
-    eyebrow: "Nabaperks merchant",
-    title: "Verify your venue email",
-    intro:
-      "Enter this code on Nabaperks to confirm your email and finish creating your venue account.",
-    footer:
-      "If you did not start a Nabaperks venue signup, you can ignore this email.",
-    subjectSuffix: "is your Nabaperks verification code",
-    textReason: "confirm your Nabaperks venue email",
-  },
-  "merchant-reset": {
-    eyebrow: "Nabaperks merchant",
-    title: "Reset your password",
-    intro: "Enter this code on Nabaperks to set a new venue console password.",
-    footer:
-      "If you did not ask to reset your password, you can ignore this email and your password stays the same.",
-    subjectSuffix: "is your Nabaperks password reset code",
-    textReason: "reset your Nabaperks password",
-  },
-} satisfies Record<EmailOtpAudience, EmailOtpCopy>
 
 async function safeDetail(res: Response) {
   try {
@@ -90,10 +54,14 @@ export async function sendEmailOtp({
   to,
   code,
   audience = "customer",
+  idempotencyKey,
+  beforeProviderAttempt,
 }: {
   to: string
   code: string
   audience?: EmailOtpAudience
+  idempotencyKey?: string
+  beforeProviderAttempt?: () => Promise<void>
 }) {
   const copy = emailOtpCopy[audience]
 
@@ -102,6 +70,8 @@ export async function sendEmailOtp({
     subject: `${code} ${copy.subjectSuffix}`,
     text: `Your Nabaperks verification code is ${code}. Enter it to ${copy.textReason}. It expires shortly. ${copy.footer}`,
     html: otpEmailHtml(code, audience),
+    idempotencyKey,
+    beforeProviderAttempt,
   })
 }
 
@@ -112,29 +82,37 @@ export async function sendTransactionalEmail({
   html,
   attachments,
   idempotencyKey,
-}: TransactionalEmailInput) {
+  beforeProviderAttempt,
+}: TransactionalEmailInput & {
+  beforeProviderAttempt?: () => Promise<void>
+}) {
   const { apiKey, from } = readEmailOtpConfig()
 
-  const res = await resilientFetch("resend", RESEND_ENDPOINT, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-      ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+  const res = await resilientFetch(
+    "resend",
+    RESEND_ENDPOINT,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+      },
+      body: JSON.stringify(
+        buildTransactionalEmailPayload(from, {
+          to,
+          subject,
+          text,
+          html,
+          ...(attachments ? { attachments } : {}),
+        })
+      ),
     },
-    body: JSON.stringify(
-      buildTransactionalEmailPayload(from, {
-        to,
-        subject,
-        text,
-        html,
-        ...(attachments ? { attachments } : {}),
-      })
-    ),
-  })
+    { beforeAttempt: beforeProviderAttempt }
+  )
 
   if (!res.ok) {
-    throw new Error(
+    throw new DefinitiveProviderRejectionError(
       `Resend send failed (${res.status}): ${await safeDetail(res)}`
     )
   }

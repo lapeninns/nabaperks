@@ -118,6 +118,18 @@ test("GitHub production does not require optional Sentry credentials", () => {
   )
 })
 
+test("the Auth hook secret is required only in the protected Production environment", () => {
+  const secret = "SUPABASE_SEND_EMAIL_HOOK_SECRET"
+
+  assert.ok(CONTRACT.environments.Production.requiredSecrets.includes(secret))
+  for (const [name, environment] of Object.entries(CONTRACT.environments)) {
+    if (name !== "Production") {
+      assert.equal(environment.requiredSecrets.includes(secret), false)
+    }
+  }
+  assert.ok(CONTRACT.forbiddenRepositorySecrets.includes(secret))
+})
+
 test("governance evidence fails closed on self-review, broad secrets and shared staging", () => {
   const evidence = completeEvidence()
   evidence.collaborators = evidence.collaborators.slice(0, 1)

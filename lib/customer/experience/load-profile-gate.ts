@@ -6,6 +6,7 @@ import type { ProfileGate } from "./types"
 
 const COMPLETE: ProfileGate = {
   complete: true,
+  dateOfBirthVerified: true,
   needsEmailVerification: false,
   fullName: null,
   dateOfBirth: null,
@@ -24,6 +25,7 @@ export async function loadProfileGate(): Promise<ProfileGate> {
 
   return {
     complete: completion.complete,
+    dateOfBirthVerified: completion.dateOfBirthVerified,
     needsEmailVerification: completion.needsEmailVerification,
     fullName: completion.fullName,
     dateOfBirth: completion.dateOfBirth,

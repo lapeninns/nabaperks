@@ -22,6 +22,7 @@ concurrency:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   preflight:
@@ -32,6 +33,7 @@ jobs:
       EXPECTED_REVISION: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
       CONFIRMATION: ${{ inputs.confirmation }}
       SOURCE_CONCLUSION: ${{ github.event.workflow_run.conclusion || '' }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - name: Require an approved automatic or manual source
         run: |
@@ -41,6 +43,16 @@ jobs:
             test "$GITHUB_REF" = "refs/heads/main"
             test "$EXPECTED_REVISION" = "$GITHUB_SHA"
             test "$CONFIRMATION" = "PROMOTE_PRODUCTION_APPLICATION"
+            successful_database_revision="$(gh run list \
+              --repo "$GITHUB_REPOSITORY" \
+              --workflow production-database.yml \
+              --commit "$EXPECTED_REVISION" \
+              --branch main \
+              --limit 20 \
+              --json conclusion,headSha,status \
+              --jq '.[] | select(.status == "completed" and .conclusion == "success") | .headSha' \
+              | head -n 1)"
+            test "$successful_database_revision" = "$EXPECTED_REVISION"
           fi
 
   deploy:
@@ -56,8 +68,12 @@ jobs:
       artifact-metadata: write
     env:
       EXPECTED_REVISION: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
-      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      SUPABASE_SEND_EMAIL_HOOK_SECRET: ${{ secrets.SUPABASE_SEND_EMAIL_HOOK_SECRET }}
+      SUPABASE_SEND_EMAIL_HOOK_URI: https://nabaperks.com/api/auth/hooks/send-email
+      PRODUCTION_ALERT_WEBHOOK_URL: https://${{ vars.SUPABASE_PROJECT_REF }}.supabase.co/functions/v1/production-alert
+      PRODUCTION_ALERT_WEBHOOK_SECRET: ${{ secrets.PRODUCTION_ALERT_WEBHOOK_SECRET }}
       VERCEL_GIT_COMMIT_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
       VERCEL_ENV: production
       DO_NOT_TRACK: "1"
@@ -70,11 +86,78 @@ jobs:
         run: |
           test "$(git rev-parse HEAD)" = "$EXPECTED_REVISION"
           test "$(git rev-parse origin/main)" = "$EXPECTED_REVISION"
-          test -n "$VERCEL_ORG_ID"
-          test -n "$VERCEL_PROJECT_ID"
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          test -n "$SUPABASE_PROJECT_REF"
+          test -n "$SUPABASE_SEND_EMAIL_HOOK_SECRET"
+          test -n "$PRODUCTION_ALERT_WEBHOOK_SECRET"
+      - name: Load the immutable canonical Vercel target
+        run: |
+          node scripts/vercel-production-target.mjs \
+            --github-env "$GITHUB_ENV" \
+            --evidence "$RUNNER_TEMP/release-vercel-target.json"
       - uses: ./.github/actions/setup
+      - uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3
+        with:
+          version: 2.106.0
       - name: Verify the locked deployment CLI
         run: test "$(pnpm exec vercel --version | tail -n 1)" = "56.5.0"
+      - name: Verify canonical Vercel project identity
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          test -n "$VERCEL_TOKEN"
+          team_metadata="$(pnpm exec vercel api \
+            "/v2/teams/$CANONICAL_VERCEL_TEAM_ID" \
+            --scope="$CANONICAL_VERCEL_SCOPE" \
+            --token="$VERCEL_TOKEN" \
+            --raw)"
+          metadata="$(pnpm exec vercel api \
+            "/v9/projects/$CANONICAL_VERCEL_PROJECT_ID" \
+            --scope="$CANONICAL_VERCEL_SCOPE" \
+            --token="$VERCEL_TOKEN" \
+            --raw)"
+          jq -e \
+            --arg id "$CANONICAL_VERCEL_TEAM_ID" \
+            --arg slug "$CANONICAL_VERCEL_SCOPE" \
+            '.id == $id and .slug == $slug' \
+            <<<"$team_metadata" >/dev/null
+          jq -e \
+            --arg id "$CANONICAL_VERCEL_PROJECT_ID" \
+            --arg name "$CANONICAL_VERCEL_PROJECT_NAME" \
+            --arg team_id "$CANONICAL_VERCEL_TEAM_ID" \
+            '.id == $id and .name == $name and .accountId == $team_id' \
+            <<<"$metadata" >/dev/null
+          jq -n \
+            --argjson team "$team_metadata" \
+            --argjson project "$metadata" \
+            '{scope: $team.slug, team: {id: $team.id, slug: $team.slug}, project: {id: $project.id, name: $project.name, accountId: $project.accountId}, providerVerified: true}' \
+            > "$RUNNER_TEMP/release-vercel-target.json"
+      - name: Deploy and prove the production alert receiver
+        run: |
+          secrets_file="$RUNNER_TEMP/supabase-function-secrets.json"
+          supabase secrets list \
+            --project-ref "$SUPABASE_PROJECT_REF" \
+            --output json > "$secrets_file"
+          for required_name in \
+            PRODUCTION_ALERT_WEBHOOK_SECRET \
+            RESEND_API_KEY \
+            RESEND_FROM; do
+            jq -e --arg name "$required_name" \
+              'map(.name) | index($name) != null' \
+              "$secrets_file" >/dev/null
+          done
+          supabase functions deploy production-alert \
+            --no-verify-jwt \
+            --project-ref "$SUPABASE_PROJECT_REF"
+          functions_file="$RUNNER_TEMP/supabase-functions.json"
+          supabase functions list \
+            --project-ref "$SUPABASE_PROJECT_REF" \
+            --output json > "$functions_file"
+          jq -e \
+            '.[] | select(.name == "production-alert" and .status == "ACTIVE")' \
+            "$functions_file" >/dev/null
+          node scripts/notify-production-alert.mjs trigger release-canary
+          node scripts/notify-production-alert.mjs resolve release-canary
       - name: Package the immutable source revision
         run: |
           git archive --format=tar --prefix=nabaperks/ "$EXPECTED_REVISION" \
@@ -113,6 +196,7 @@ jobs:
             ${{ runner.temp }}/release-source.tgz
             ${{ runner.temp }}/release-source.sha256
             ${{ runner.temp }}/release-sbom.cdx.json
+            ${{ runner.temp }}/release-vercel-target.json
             ${{ steps.provenance.outputs.bundle-path }}
             ${{ steps.sbom.outputs.bundle-path }}
           if-no-files-found: error
@@ -129,6 +213,8 @@ jobs:
             --no-wait \
             --archive=tgz \
             --yes \
+            --project="$CANONICAL_VERCEL_PROJECT_ID" \
+            --scope="$CANONICAL_VERCEL_SCOPE" \
             --meta githubCommitSha="$EXPECTED_REVISION" \
             --token="$VERCEL_TOKEN")"
           case "$deployment_url" in
@@ -161,15 +247,146 @@ jobs:
           done
           echo "::error::The staged deployment did not become ready at ${expected}."
           exit 1
+      - name: Prove staged Auth hook signing-secret alignment
+        env:
+          AUTH_HOOK_CANARY_URL: ${{ steps.stage.outputs.url }}
+        run: node scripts/check-auth-hook-secret-alignment.mjs
       - name: Promote the verified staged deployment
         env:
           DEPLOYMENT_URL: ${{ steps.stage.outputs.url }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
+          deployment_host="${DEPLOYMENT_URL#https://}"
+          case "$deployment_host" in
+            *[!A-Za-z0-9._-]*|'') echo "::error::Invalid staged deployment host."; exit 1 ;;
+          esac
+          deployment_metadata="$(pnpm exec vercel api \
+            "/v13/deployments/$deployment_host" \
+            --scope="$CANONICAL_VERCEL_SCOPE" \
+            --token="$VERCEL_TOKEN" \
+            --raw)"
+          jq -e \
+            --arg project_id "$CANONICAL_VERCEL_PROJECT_ID" \
+            --arg team_id "$CANONICAL_VERCEL_TEAM_ID" \
+            --arg host "$deployment_host" \
+            '.projectId == $project_id and .ownerId == $team_id and .url == $host' \
+            <<<"$deployment_metadata" >/dev/null
           pnpm exec vercel promote "$DEPLOYMENT_URL" \
             --yes \
             --timeout=3m \
+            --scope="$CANONICAL_VERCEL_SCOPE" \
             --token="$VERCEL_TOKEN"
+      - name: Activate and read back the passwordless Data API guard
+        run: |
+          update_file="$RUNNER_TEMP/data-api-guard-update.json"
+          readback_file="$RUNNER_TEMP/data-api-guard-readback.json"
+          update_query="alter role authenticator set pgrst.db_pre_request = 'private.enforce_passwordless_data_api_session'; notify pgrst, 'reload config'; notify pgrst, 'reload schema'"
+          update_payload="$(jq -n \
+            --arg query "$update_query" \
+            '{query: $query, read_only: false}')"
+          update_status="$(curl --silent --show-error \
+            --output "$update_file" \
+            --write-out '%{http_code}' \
+            --request POST \
+            --header "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            --header "Content-Type: application/json" \
+            --data "$update_payload" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query")"
+          test "$update_status" = "201"
+          readback_query="select split_part(setting, '=', 2) as pre_request from pg_roles cross join lateral unnest(coalesce(rolconfig, array[]::text[])) setting where rolname = 'authenticator' and setting like 'pgrst.db_pre_request=%'"
+          readback_payload="$(jq -n \
+            --arg query "$readback_query" \
+            '{query: $query, read_only: true}')"
+          readback_status="$(curl --silent --show-error \
+            --output "$readback_file" \
+            --write-out '%{http_code}' \
+            --request POST \
+            --header "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            --header "Content-Type: application/json" \
+            --data "$readback_payload" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query")"
+          test "$readback_status" = "201"
+          jq -e \
+            'type == "array" and length == 1 and .[0].pre_request == "private.enforce_passwordless_data_api_session"' \
+            "$readback_file" >/dev/null
+          api_keys_file="$RUNNER_TEMP/supabase-api-keys.json"
+          pnpm exec supabase projects api-keys \
+            --project-ref "$SUPABASE_PROJECT_REF" \
+            --output json > "$api_keys_file"
+          anon_key="$(jq -er \
+            '.[] | select(.name == "anon" and .type == "legacy") | .api_key' \
+            "$api_keys_file")"
+          test -n "$anon_key"
+          printf '::add-mask::%s\n' "$anon_key"
+          guard_probe_file="$RUNNER_TEMP/data-api-guard-probe.json"
+          guard_active=false
+          for attempt in {1..30}; do
+            probe_status="$(curl --silent --show-error --max-time 10 \
+              --output "$guard_probe_file" \
+              --write-out '%{http_code}' \
+              --header "apikey: ${anon_key}" \
+              --header "x-nabaperks-passwordless-guard-probe: active" \
+              "https://${SUPABASE_PROJECT_REF}.supabase.co/rest/v1/" || true)"
+            if [[ "$probe_status" == "403" ]] \
+              && jq -e \
+                '.message == "Passwordless Data API guard is active"' \
+                "$guard_probe_file" >/dev/null 2>&1; then
+              guard_active=true
+              break
+            fi
+            sleep 2
+          done
+          test "$guard_active" = true
+      - name: Activate password-token rejection after passwordless promotion
+        run: |
+          hook_uri="pg-functions://postgres/public/reject_password_access_tokens"
+          update_file="$RUNNER_TEMP/auth-access-token-hook-update.json"
+          readback_file="$RUNNER_TEMP/auth-access-token-hook-readback.json"
+          payload="$(jq -n \
+            --arg uri "$hook_uri" \
+            '{hook_custom_access_token_enabled: true, hook_custom_access_token_uri: $uri}')"
+          update_status="$(curl --silent --show-error \
+            --output "$update_file" \
+            --write-out '%{http_code}' \
+            --request PATCH \
+            --header "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            --header "Content-Type: application/json" \
+            --data "$payload" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/config/auth")"
+          test "$update_status" = "200"
+          readback_status="$(curl --silent --show-error \
+            --output "$readback_file" \
+            --write-out '%{http_code}' \
+            --request GET \
+            --header "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/config/auth")"
+          test "$readback_status" = "200"
+          jq -e \
+            --arg uri "$hook_uri" \
+            '.hook_custom_access_token_enabled == true and .hook_custom_access_token_uri == $uri' \
+            "$readback_file" >/dev/null
+      - name: Activate reviewed production Auth configuration
+        run: supabase config push --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Read back complete production Auth hook configuration
+        run: |
+          readback_file="$RUNNER_TEMP/auth-hook-config-readback.json"
+          status="$(curl --silent --show-error \
+            --output "$readback_file" \
+            --write-out '%{http_code}' \
+            --request GET \
+            --header "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/config/auth")"
+          test "$status" = "200"
+          jq -e \
+            '.hook_custom_access_token_enabled == true
+              and .hook_custom_access_token_uri == "pg-functions://postgres/public/reject_password_access_tokens"
+              and .hook_send_email_enabled == true
+              and .hook_send_email_uri == "https://nabaperks.com/api/auth/hooks/send-email"' \
+            "$readback_file" >/dev/null
+      - name: Prove promoted Auth hook signing-secret alignment
+        env:
+          AUTH_HOOK_CANARY_URL: https://nabaperks.com
+        run: node scripts/check-auth-hook-secret-alignment.mjs
       - name: Record release evidence
         env:
           DEPLOYMENT_URL: ${{ steps.stage.outputs.url }}
@@ -180,6 +397,7 @@ jobs:
             echo "### Production deployment"
             echo
             echo "- Revision: \`$EXPECTED_REVISION\`"
+            echo "- Vercel target: \`$CANONICAL_VERCEL_SCOPE/$CANONICAL_VERCEL_PROJECT_NAME\` (\`$CANONICAL_VERCEL_PROJECT_ID\`)"
             echo "- Deployment: $DEPLOYMENT_URL"
             echo "- Provenance: $PROVENANCE_URL"
             echo "- SBOM: $SBOM_URL"

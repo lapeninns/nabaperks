@@ -152,13 +152,23 @@ async function installCustomerSession(
       sameSite: "Lax",
       expires: session.expiresAt,
     },
+    {
+      name: session.deviceCookieName,
+      value: session.deviceCookieValue,
+      url: baseURL,
+      httpOnly: true,
+      sameSite: "Lax",
+      expires: session.expiresAt,
+    },
   ])
 }
 
 async function expectNoHorizontalOverflow(page: Page): Promise<void> {
   const hasOverflow = await page.evaluate(() => {
-    return document.documentElement.scrollWidth >
+    return (
+      document.documentElement.scrollWidth >
       document.documentElement.clientWidth + 1
+    )
   })
 
   expect(hasOverflow).toBe(false)

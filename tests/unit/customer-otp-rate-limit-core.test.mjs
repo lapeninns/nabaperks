@@ -2,6 +2,10 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 
 import {
+  customerOtpAnonymousBurstLimit,
+  customerOtpAnonymousBurstRateLimitKey,
+  customerOtpAnonymousSustainedLimit,
+  customerOtpAnonymousSustainedRateLimitKey,
   customerOtpSendIdentityRateLimitKey,
   customerOtpSendIpRateLimitKey,
   customerOtpSendPhoneRateLimitKey,
@@ -107,4 +111,23 @@ test("the dispatch budget self-heals within an hour", () => {
   assert.equal(customerOtpDispatchBurstWindowMs, 60_000)
   assert.equal(customerOtpDispatchSustainedWindowMs, 60 * 60_000)
   assert.ok(customerOtpDispatchBurstLimit < customerOtpDispatchSustainedLimit)
+})
+
+test("anonymous exhaustion leaves protected burst and sustained capacity", () => {
+  assert.equal(
+    customerOtpDispatchBurstLimit - customerOtpAnonymousBurstLimit,
+    6
+  )
+  assert.equal(
+    customerOtpDispatchSustainedLimit - customerOtpAnonymousSustainedLimit,
+    30
+  )
+  assert.notEqual(
+    customerOtpAnonymousBurstRateLimitKey("wallet"),
+    customerOtpDispatchBurstRateLimitKey("wallet")
+  )
+  assert.notEqual(
+    customerOtpAnonymousSustainedRateLimitKey("join"),
+    customerOtpDispatchSustainedRateLimitKey("join")
+  )
 })

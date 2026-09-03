@@ -21,6 +21,10 @@ export type AdminAccess =
       mfaState: AdminMfaState
       /** Authoritative (database-sourced) enrolment state, not the cookie's. */
       mfaEnrolled: boolean
+      /** Trusted activation is separate from browser-reachable factor enrolment. */
+      mfaActivated: boolean
+      /** Exact-factor, post-activation session evidence from the DB boundary. */
+      mfaAuthority: boolean
       mfaRequired: boolean
     }
   | { status: "denied"; reason: string }
@@ -53,6 +57,11 @@ export const getAdminAccess = cache(async (): Promise<AdminAccess> => {
   }
 
   const mfaState = await resolveAssuranceState(supabase)
+  const { data: mfaActivated, error: activationError } = await supabase.rpc(
+    "viewer_has_activated_admin_mfa"
+  )
+  const { data: mfaAuthority, error: authorityError } =
+    await supabase.rpc("is_internal_admin")
 
   // An assurance level we cannot read means the session itself is unusable, so
   // there is nothing to step up FROM and no in-console way out. Send the admin
@@ -61,14 +70,31 @@ export const getAdminAccess = cache(async (): Promise<AdminAccess> => {
   if (mfaState === "unknown") {
     redirect("/login?next=/admin")
   }
+  if (
+    activationError ||
+    typeof mfaActivated !== "boolean" ||
+    authorityError ||
+    typeof mfaAuthority !== "boolean"
+  ) {
+    redirect("/login?next=/admin")
+  }
+
+  // A token challenged before trusted activation (or for a replaced factor)
+  // can still carry `aal2`. The database correlates the signed token with the
+  // authoritative Auth session and activation epoch; make the app present a
+  // fresh step-up instead of treating that stale claim as authority.
+  const effectiveMfaState =
+    mfaState === "satisfied" && !mfaAuthority ? "step-up-required" : mfaState
 
   return {
     status: "allowed",
     email: data.email,
     userId: user.id,
-    mfaState,
+    mfaState: effectiveMfaState,
     mfaEnrolled: isAdminMfaEnrolled(mfaState),
-    mfaRequired: isAdminMfaEnrolled(mfaState),
+    mfaActivated,
+    mfaAuthority,
+    mfaRequired: true,
   }
 })
 
@@ -127,7 +153,7 @@ export async function requireAdminRead() {
 export async function requireAdminStepUp() {
   const access = await requireAdminRead()
 
-  if (!adminStepUpSatisfied(access.mfaState)) {
+  if (!access.mfaAuthority || !adminStepUpSatisfied(access.mfaState)) {
     throw new Error("Two-factor verification is required before this action.")
   }
 
@@ -144,7 +170,11 @@ export async function canRenderAdminPage(): Promise<boolean> {
   // Leaf pages are gated on the step-up too, not just the role: the layout card
   // is presentation, and a direct RSC-payload request for a nested admin
   // segment does not have to render the layout at all.
-  return isAllowedAdminAccess(access) && adminStepUpSatisfied(access.mfaState)
+  return (
+    isAllowedAdminAccess(access) &&
+    access.mfaAuthority &&
+    adminStepUpSatisfied(access.mfaState)
+  )
 }
 
 function isAllowedAdminAccess(

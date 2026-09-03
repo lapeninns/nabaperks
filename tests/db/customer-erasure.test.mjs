@@ -3,6 +3,7 @@ import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
+import { actAsActivatedInternalAdmin } from "./helpers/admin-auth.mjs"
 
 /**
  * admin console / customer home (erasure) — live-DB tier.
@@ -62,7 +63,10 @@ test(
         await tx`select count(*)::int as n from public.stamp_events
                  where membership_id = ${membershipId} and event_type = 'earned'`
       )[0].n
-      assert.ok(stampsBefore >= 1, "the customer has a real stamp ledger before erasure")
+      assert.ok(
+        stampsBefore >= 1,
+        "the customer has a real stamp ledger before erasure"
+      )
 
       // ---- Admin gate: a NON-admin auth context is refused.
       let refusedNonAdmin = false
@@ -73,12 +77,14 @@ test(
             ${customer.id}::uuid, ${v.merchant_id}::uuid, 'email', 'unauthorised attempt')`
         })
       } catch (error) {
-        refusedNonAdmin = /privilege|admin|not authori/i.test(String(error.message))
+        refusedNonAdmin = /privilege|admin|not authori/i.test(
+          String(error.message)
+        )
       }
       assert.ok(refusedNonAdmin, "a non-admin caller cannot erase a customer")
 
       // ---- Authorised erasure as the seeded internal admin.
-      await tx`select set_config('request.jwt.claim.sub', ${ADMIN_UID}, true)`
+      await actAsActivatedInternalAdmin(tx, ADMIN_UID)
       const [{ uid }] = await tx`select (auth.uid())::text as uid`
       assert.equal(uid, ADMIN_UID, "auth context is the internal admin")
 
@@ -87,7 +93,11 @@ test(
           ${customer.id}::uuid, ${v.merchant_id}::uuid, 'email',
           'Customer-requested erasure, verified via email.') as result`
       assert.equal(result.ok, true, "erasure reports success")
-      assert.equal(result.ledger_retained, true, "erasure reports the ledger is retained")
+      assert.equal(
+        result.ledger_retained,
+        true,
+        "erasure reports the ledger is retained"
+      )
 
       // ---- PII is anonymised.
       const [erased] = await tx`
@@ -102,7 +112,11 @@ test(
       assert.equal(erased.full_name, null, "full name is nulled")
       assert.equal(erased.date_of_birth, null, "date of birth is nulled")
       assert.equal(erased.phone_last4, null, "phone last4 is nulled")
-      assert.equal(erased.email_verified_at, null, "email verification is cleared")
+      assert.equal(
+        erased.email_verified_at,
+        null,
+        "email verification is cleared"
+      )
 
       // ---- The loyalty ledger is RETAINED (the whole point of anonymise-not-delete).
       const [{ n: membershipsAfter }] = await tx`

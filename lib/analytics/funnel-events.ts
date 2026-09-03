@@ -14,6 +14,7 @@ import {
   recordProductEvent,
   type ProductEventName,
 } from "@/lib/analytics/events"
+import { requiredCustomerSessionSecret } from "@/lib/security/customer-session-secret"
 
 type PublicFunnelEventName =
   | "merchant_marketing_viewed"
@@ -22,9 +23,7 @@ type PublicFunnelEventName =
   | "merchant_otp_verification_viewed"
 
 type AuthFunnelEventName =
-  | "merchant_account_created"
-  | "merchant_otp_resent"
-  | "merchant_email_verified"
+  "merchant_account_created" | "merchant_otp_resent" | "merchant_email_verified"
 
 export async function recordAnonymousFunnelEvent({
   event,
@@ -123,9 +122,7 @@ async function persistMerchantFunnelEvent({
 }
 
 function funnelSigningSecret() {
-  const secret = process.env.CUSTOMER_SESSION_SECRET?.trim()
-  if (!secret) throw new Error("Customer session signing secret is unavailable")
-  return secret
+  return requiredCustomerSessionSecret()
 }
 
 function eventSource(event: ProductEventName) {

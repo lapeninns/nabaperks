@@ -104,7 +104,7 @@ test(
 )
 
 test(
-  "R-6: get_reward_scan_context blocks an under-18 customer (parity fix)",
+  "R-6: changing DOB to under 18 retires the merchant scan capability",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
@@ -114,19 +114,18 @@ test(
         update public.customer_memberships
         set current_stamp_count = 3
         where id = ${fixture.membershipId}::uuid`
-      await tx`
-        update public.customers
-        set date_of_birth = (now() - interval '12 years')::date
-        where id = ${fixture.customerId}::uuid`
       const rewardId = await insertReward(tx, fixture, {
         source: "stamp_cycle",
       })
       const tokenId = await insertScanToken(tx, fixture, rewardId)
+      await tx`
+        update public.customers
+        set date_of_birth = (now() - interval '12 years')::date
+        where id = ${fixture.customerId}::uuid`
       const [ctx] = await tx`
         select scan_status, blocked_reason from public.get_reward_scan_context(
           ${tokenId}::uuid, ${fixture.merchantId}::uuid)`
-      assert.equal(ctx.scan_status, "blocked")
-      assert.match(ctx.blocked_reason, /18 or over/i)
+      assert.equal(ctx.scan_status, "expired")
     })
   }
 )

@@ -107,30 +107,40 @@ set identity_data = excluded.identity_data,
     last_sign_in_at = now(),
     updated_at = now();
 
-insert into public.customers (id, auth_user_id, email, phone_last4)
+insert into public.customers (
+  id,
+  auth_user_id,
+  email,
+  phone_last4,
+  date_of_birth
+)
 values
   (
     '15000000-0000-0000-0000-000000000004',
     '00000000-0000-0000-0000-000000000304',
     'priya.patel@example.test',
-    '0201'
+    '0201',
+    date '1990-01-01'
   ),
   (
     '15000000-0000-0000-0000-000000000005',
     '00000000-0000-0000-0000-000000000305',
     'james.wright@example.test',
-    null
+    null,
+    date '1990-01-01'
   ),
   (
     '15000000-0000-0000-0000-000000000006',
     '00000000-0000-0000-0000-000000000306',
     'fiona.okonkwo@example.test',
-    null
+    null,
+    date '1990-01-01'
   )
 on conflict (id) do update
 set email = excluded.email,
     phone_last4 = excluded.phone_last4,
-    auth_user_id = excluded.auth_user_id;
+    auth_user_id = excluded.auth_user_id,
+    date_of_birth = excluded.date_of_birth;
 
 insert into public.customer_memberships (
   id,

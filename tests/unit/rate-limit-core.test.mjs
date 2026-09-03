@@ -2,10 +2,28 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 
 import {
+  customerDeviceHashFromHeaders,
   customerRateLimitIdentityFromHeaders,
   rateLimitIdentityFromHeaders,
   trustedClientIp,
 } from "@/lib/security/rate-limit-core"
+
+test("only a Proxy-verified device header derives a bounded continuity hash", () => {
+  const first = customerDeviceHashFromHeaders(
+    new Headers({
+      "x-nabaperks-device-id": "11111111-1111-4111-8111-111111111111",
+    })
+  )
+  const second = customerDeviceHashFromHeaders(
+    new Headers({
+      "x-nabaperks-device-id": "22222222-2222-4222-8222-222222222222",
+    })
+  )
+
+  assert.match(first, /^[0-9a-f]{64}$/)
+  assert.notEqual(first, second)
+  assert.equal(customerDeviceHashFromHeaders(new Headers()), null)
+})
 
 test("Given a Vercel forwarded IP When identity is derived Then it is the trusted bucket input", () => {
   const headers = new Headers({

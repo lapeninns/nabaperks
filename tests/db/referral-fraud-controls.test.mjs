@@ -3,6 +3,7 @@ import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
+import { actAsActivatedInternalAdmin } from "./helpers/admin-auth.mjs"
 
 /**
  * referral fraud controls — live-DB invariant tier (primary proof).
@@ -35,9 +36,7 @@ async function actAsService(tx) {
   await tx`select set_config('request.jwt.claim.role', 'service_role', true)`
 }
 async function actAsAdmin(tx) {
-  await tx`select set_config('request.jwt.claim.role', 'authenticated', true)`
-  await tx`select set_config('request.jwt.claim.sub', ${ADMIN_UID}, true)`
-  await tx`select set_config('request.jwt.claim.aal', 'aal2', true)`
+  await actAsActivatedInternalAdmin(tx, ADMIN_UID)
 }
 function isRejection(error) {
   return /privilege|admin|owner|access|authori/i.test(String(error.message))
@@ -75,7 +74,8 @@ async function attributeThenQualify(tx, referrerM) {
   return e.id
 }
 async function statusOf(tx, referralId) {
-  const [r] = await tx`select status from public.referrals where id = ${referralId}`
+  const [r] =
+    await tx`select status from public.referrals where id = ${referralId}`
   return r.status
 }
 async function concentrationFlags(tx, referrerM) {
@@ -85,52 +85,84 @@ async function concentrationFlags(tx, referrerM) {
   return n
 }
 
-test("FC-1/FC-2/FC-3: past the concentration threshold, the newest referral is paused + flagged", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    await actAsService(tx)
-    const referrerM = await makeMembership(tx, await makeCustomer(tx))
-    for (let i = 0; i < 5; i++) await seedQualified(tx, referrerM) // at threshold
+test(
+  "FC-1/FC-2/FC-3: past the concentration threshold, the newest referral is paused + flagged",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      await actAsService(tx)
+      const referrerM = await makeMembership(tx, await makeCustomer(tx))
+      for (let i = 0; i < 5; i++) await seedQualified(tx, referrerM) // at threshold
 
-    const sixth = await attributeThenQualify(tx, referrerM) // one over
-    assert.equal(await statusOf(tx, sixth), "rejected", "the over-threshold referral is paused (FC-1)")
-    assert.equal(await concentrationFlags(tx, referrerM), 1, "one referral_concentration flag (FC-2)")
+      const sixth = await attributeThenQualify(tx, referrerM) // one over
+      assert.equal(
+        await statusOf(tx, sixth),
+        "rejected",
+        "the over-threshold referral is paused (FC-1)"
+      )
+      assert.equal(
+        await concentrationFlags(tx, referrerM),
+        1,
+        "one referral_concentration flag (FC-2)"
+      )
 
-    // Settlement awards it no bonus (terminal).
-    await tx`select public.settle_referral_bonus(${sixth}::uuid)`
-    const [r] = await tx`select referrer_bonus_awarded_at from public.referrals where id = ${sixth}`
-    assert.equal(r.referrer_bonus_awarded_at, null, "no bonus for the paused referral (FC-3)")
-  })
-})
+      // Settlement awards it no bonus (terminal).
+      await tx`select public.settle_referral_bonus(${sixth}::uuid)`
+      const [r] =
+        await tx`select referrer_bonus_awarded_at from public.referrals where id = ${sixth}`
+      assert.equal(
+        r.referrer_bonus_awarded_at,
+        null,
+        "no bonus for the paused referral (FC-3)"
+      )
+    })
+  }
+)
 
-test("FC-4: at or below the threshold, referrals are not paused or flagged", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    await actAsService(tx)
-    const referrerM = await makeMembership(tx, await makeCustomer(tx))
-    for (let i = 0; i < 2; i++) await seedQualified(tx, referrerM)
+test(
+  "FC-4: at or below the threshold, referrals are not paused or flagged",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      await actAsService(tx)
+      const referrerM = await makeMembership(tx, await makeCustomer(tx))
+      for (let i = 0; i < 2; i++) await seedQualified(tx, referrerM)
 
-    const third = await attributeThenQualify(tx, referrerM)
-    assert.equal(await statusOf(tx, third), "qualified", "a below-threshold referral stays qualified (FC-4)")
-    assert.equal(await concentrationFlags(tx, referrerM), 0, "no concentration flag below threshold (FC-4)")
-  })
-})
+      const third = await attributeThenQualify(tx, referrerM)
+      assert.equal(
+        await statusOf(tx, third),
+        "qualified",
+        "a below-threshold referral stays qualified (FC-4)"
+      )
+      assert.equal(
+        await concentrationFlags(tx, referrerM),
+        0,
+        "no concentration flag below threshold (FC-4)"
+      )
+    })
+  }
+)
 
-test("review hardening: direct settlement preserves a fraud rejection raised during qualification", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    await actAsService(tx)
-    const referrerM = await makeMembership(tx, await makeCustomer(tx))
-    for (let i = 0; i < 5; i++) await seedQualified(tx, referrerM)
+test(
+  "review hardening: direct settlement preserves a fraud rejection raised during qualification",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      await actAsService(tx)
+      const referrerM = await makeMembership(tx, await makeCustomer(tx))
+      for (let i = 0; i < 5; i++) await seedQualified(tx, referrerM)
 
-    const friendCustomer = await makeCustomer(tx)
-    const friendM = await makeMembership(tx, friendCustomer)
-    const [edge] = await tx`
+      const friendCustomer = await makeCustomer(tx)
+      const friendM = await makeMembership(tx, friendCustomer)
+      const [edge] = await tx`
       insert into public.referrals (
         referred_membership_id, referrer_membership_id, referral_code_used, status)
       values (${friendM}::uuid, ${referrerM}::uuid, 'seed', 'attributed') returning id`
-    const [card] = await tx`
+      const [card] = await tx`
       select id, location_id from public.loyalty_cards
       where merchant_id = ${MERCHANT_ID}::uuid and is_active
       order by created_at asc limit 1`
-    await tx`
+      await tx`
       insert into public.stamp_events (
         merchant_id, customer_id, membership_id, loyalty_card_id, location_id,
         event_type, stamps_delta, earned_business_date, cycle_number, metadata)
@@ -140,158 +172,208 @@ test("review hardening: direct settlement preserves a fraud rejection raised dur
         public.uk_business_date(now()), 1,
         jsonb_build_object('source', 'merchant_qr_action'))`
 
-    const [{ settle_referral_bonus: outcome }] = await tx`
+      const [{ settle_referral_bonus: outcome }] = await tx`
       select public.settle_referral_bonus(${edge.id}::uuid)`
-    assert.equal(outcome, "skipped_terminal", "settlement notices the fraud terminal state")
-    assert.equal(await statusOf(tx, edge.id), "rejected", "the fraud rejection is preserved")
-    const [{ n }] = await tx`
+      assert.equal(
+        outcome,
+        "skipped_terminal",
+        "settlement notices the fraud terminal state"
+      )
+      assert.equal(
+        await statusOf(tx, edge.id),
+        "rejected",
+        "the fraud rejection is preserved"
+      )
+      const [{ n }] = await tx`
       select count(*)::int as n from public.stamp_events
       where membership_id = ${referrerM}::uuid
         and metadata->>'source' = 'referral_bonus'`
-    assert.equal(n, 0, "no bonus bypasses the fraud pause")
-  })
-})
+      assert.equal(n, 0, "no bonus bypasses the fraud pause")
+    })
+  }
+)
 
-test("FC-5/FC-6/FC-8: admin_review_referral clears a paused referral and is not re-paused", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    await actAsService(tx)
-    const referrerM = await makeMembership(tx, await makeCustomer(tx))
-    for (let i = 0; i < 5; i++) await seedQualified(tx, referrerM)
-    const paused = await attributeThenQualify(tx, referrerM)
-    assert.equal(await statusOf(tx, paused), "rejected", "paused by concentration")
+test(
+  "FC-5/FC-6/FC-8: admin_review_referral clears a paused referral and is not re-paused",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      await actAsService(tx)
+      const referrerM = await makeMembership(tx, await makeCustomer(tx))
+      for (let i = 0; i < 5; i++) await seedQualified(tx, referrerM)
+      const paused = await attributeThenQualify(tx, referrerM)
+      assert.equal(
+        await statusOf(tx, paused),
+        "rejected",
+        "paused by concentration"
+      )
 
-    // A non-admin cannot review (FC-8).
-    let rejected = false
-    try {
-      await tx.savepoint(async (sp) => {
-        await sp`select set_config('request.jwt.claim.role', 'authenticated', true)`
-        await sp`select set_config('request.jwt.claim.sub', ${randomUUID()}, true)`
-        await sp`select public.admin_review_referral(${paused}::uuid, 'clear', 'looks legitimate')`
-      })
-    } catch (error) {
-      rejected = isRejection(error)
-    }
-    assert.ok(rejected, "a non-admin cannot review (FC-8)")
+      // A non-admin cannot review (FC-8).
+      let rejected = false
+      try {
+        await tx.savepoint(async (sp) => {
+          await sp`select set_config('request.jwt.claim.role', 'authenticated', true)`
+          await sp`select set_config('request.jwt.claim.sub', ${randomUUID()}, true)`
+          await sp`select public.admin_review_referral(${paused}::uuid, 'clear', 'looks legitimate')`
+        })
+      } catch (error) {
+        rejected = isRejection(error)
+      }
+      assert.ok(rejected, "a non-admin cannot review (FC-8)")
 
-    // Admin clears → qualified, flags dismissed, audit written (FC-5).
-    await actAsAdmin(tx)
-    await tx`select public.admin_review_referral(${paused}::uuid, 'clear', 'reviewed: legitimate high referrer')`
-    await actAsService(tx)
-    assert.equal(await statusOf(tx, paused), "qualified", "clear returns it to qualified (FC-5)")
-    const [{ n: openFlags }] = await tx`
+      // Admin clears → qualified, flags dismissed, audit written (FC-5).
+      await actAsAdmin(tx)
+      await tx`select public.admin_review_referral(${paused}::uuid, 'clear', 'reviewed: legitimate high referrer')`
+      await actAsService(tx)
+      assert.equal(
+        await statusOf(tx, paused),
+        "qualified",
+        "clear returns it to qualified (FC-5)"
+      )
+      const [{ n: openFlags }] = await tx`
       select count(*)::int as n from public.fraud_flags
       where membership_id = ${referrerM} and signal = 'referral_concentration' and status = 'open'`
-    assert.equal(openFlags, 0, "the concentration flag is dismissed on clear (FC-5)")
-    const [{ n: audit }] = await tx`
+      assert.equal(
+        openFlags,
+        0,
+        "the concentration flag is dismissed on clear (FC-5)"
+      )
+      const [{ n: audit }] = await tx`
       select count(*)::int as n from public.audit_logs
       where action = 'referral_reviewed' and target_id = ${paused}::uuid`
-    assert.ok(audit >= 1, "an audit row is written (FC-8)")
+      assert.ok(audit >= 1, "an audit row is written (FC-8)")
 
-    // A subsequent qualify for the same referrer is NOT re-paused (review respected, FC-6).
-    const another = await attributeThenQualify(tx, referrerM)
-    assert.equal(await statusOf(tx, another), "qualified", "a cleared referrer is not re-paused (FC-6)")
-  })
-})
+      // A subsequent qualify for the same referrer is NOT re-paused (review respected, FC-6).
+      const another = await attributeThenQualify(tx, referrerM)
+      assert.equal(
+        await statusOf(tx, another),
+        "qualified",
+        "a cleared referrer is not re-paused (FC-6)"
+      )
+    })
+  }
+)
 
-test("FC-7/FC-8: admin_disable_referral_code deactivates + flags, and the code then attributes nothing", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    const [qr] = await tx.unsafe(PICK_QR)
-    assert.ok(qr, "an active join QR exists")
-    await actAsService(tx)
-    const ownerUid = randomUUID()
-    await tx`insert into auth.users (id) values (${ownerUid}::uuid)`
-    const [ownedCustomer] = await tx`
+test(
+  "FC-7/FC-8: admin_disable_referral_code deactivates + flags, and the code then attributes nothing",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const [qr] = await tx.unsafe(PICK_QR)
+      assert.ok(qr, "an active join QR exists")
+      await actAsService(tx)
+      const ownerUid = randomUUID()
+      await tx`insert into auth.users (id) values (${ownerUid}::uuid)`
+      const [ownedCustomer] = await tx`
       insert into public.customers (
         auth_user_id, email, email_verified_at, created_at, updated_at)
       values (
         ${ownerUid}::uuid, ${`fc-owner-${randomUUID()}@test.local`}, now(), now(), now())
       returning id`
-    const referrerCustomer = ownedCustomer.id
-    const [referrer] = await tx`
+      const referrerCustomer = ownedCustomer.id
+      const [referrer] = await tx`
       select * from public.join_customer_membership_with_first_stamp(
         ${referrerCustomer}::uuid, ${qr.business_slug}, ${qr.qr_id}, false, '2026-06-06', null, null, null)`
-    const [{ referral_code: code }] = await tx`
+      const [{ referral_code: code }] = await tx`
       select referral_code from public.customer_memberships where id = ${referrer.membership_id}`
 
-    // Non-admin cannot disable (FC-8).
-    let rejected = false
-    try {
-      await tx.savepoint(async (sp) => {
-        await sp`select set_config('request.jwt.claim.role', 'authenticated', true)`
-        await sp`select set_config('request.jwt.claim.sub', ${randomUUID()}, true)`
-        await sp`select public.admin_disable_referral_code(${referrer.membership_id}::uuid, 'abuse report')`
-      })
-    } catch (error) {
-      rejected = isRejection(error)
-    }
-    assert.ok(rejected, "a non-admin cannot disable a code (FC-8)")
+      // Non-admin cannot disable (FC-8).
+      let rejected = false
+      try {
+        await tx.savepoint(async (sp) => {
+          await sp`select set_config('request.jwt.claim.role', 'authenticated', true)`
+          await sp`select set_config('request.jwt.claim.sub', ${randomUUID()}, true)`
+          await sp`select public.admin_disable_referral_code(${referrer.membership_id}::uuid, 'abuse report')`
+        })
+      } catch (error) {
+        rejected = isRejection(error)
+      }
+      assert.ok(rejected, "a non-admin cannot disable a code (FC-8)")
 
-    // Admin disables → deactivated + flagged + audited (FC-7).
-    await actAsAdmin(tx)
-    await tx`select public.admin_disable_referral_code(${referrer.membership_id}::uuid, 'confirmed referral abuse')`
-    await actAsService(tx)
-    const [m] = await tx`
+      // Admin disables → deactivated + flagged + audited (FC-7).
+      await actAsAdmin(tx)
+      await tx`select public.admin_disable_referral_code(${referrer.membership_id}::uuid, 'confirmed referral abuse')`
+      await actAsService(tx)
+      const [m] = await tx`
       select referral_code_active from public.customer_memberships where id = ${referrer.membership_id}`
-    assert.equal(m.referral_code_active, false, "the code is deactivated (FC-7)")
-    const [{ n: flags }] = await tx`
+      assert.equal(
+        m.referral_code_active,
+        false,
+        "the code is deactivated (FC-7)"
+      )
+      const [{ n: flags }] = await tx`
       select count(*)::int as n from public.fraud_flags
       where membership_id = ${referrer.membership_id} and signal = 'referral_code_disabled'`
-    assert.ok(flags >= 1, "a referral_code_disabled flag is raised (FC-7)")
+      assert.ok(flags >= 1, "a referral_code_disabled flag is raised (FC-7)")
 
-    // The owner cannot undo an admin disable through rotate or reactivate.
-    await tx`select set_config('request.jwt.claim.role', 'authenticated', true)`
-    await tx`select set_config('request.jwt.claim.sub', ${ownerUid}, true)`
-    for (const action of [
-      (sp) => sp`select public.rotate_membership_referral_code(${referrer.membership_id}::uuid)`,
-      (sp) => sp`select public.set_membership_referral_code_active(${referrer.membership_id}::uuid, true)`,
-    ]) {
-      let ownerRejected = false
-      try {
-        await tx.savepoint(action)
-      } catch (error) {
-        ownerRejected = isRejection(error)
+      // The owner cannot undo an admin disable through rotate or reactivate.
+      await tx`select set_config('request.jwt.claim.role', 'authenticated', true)`
+      await tx`select set_config('request.jwt.claim.sub', ${ownerUid}, true)`
+      for (const action of [
+        (sp) =>
+          sp`select public.rotate_membership_referral_code(${referrer.membership_id}::uuid)`,
+        (sp) =>
+          sp`select public.set_membership_referral_code_active(${referrer.membership_id}::uuid, true)`,
+      ]) {
+        let ownerRejected = false
+        try {
+          await tx.savepoint(action)
+        } catch (error) {
+          ownerRejected = isRejection(error)
+        }
+        assert.ok(
+          ownerRejected,
+          "the owner cannot reactivate an admin-disabled link"
+        )
       }
-      assert.ok(ownerRejected, "the owner cannot reactivate an admin-disabled link")
-    }
-    await actAsService(tx)
+      await actAsService(tx)
 
-    // The disabled code now attributes nothing.
-    const friendCustomer = await makeCustomer(tx)
-    const [friend] = await tx`
+      // The disabled code now attributes nothing.
+      const friendCustomer = await makeCustomer(tx)
+      const [friend] = await tx`
       select * from public.join_customer_membership_with_first_stamp(
         ${friendCustomer}::uuid, ${qr.business_slug}, null, false, '2026-06-06', null, null, ${code})`
-    const [edge] = await tx`
+      const [edge] = await tx`
       select id from public.referrals where referred_membership_id = ${friend.membership_id}`
-    assert.equal(edge, undefined, "a disabled code attributes nothing (FC-7)")
-  })
-})
+      assert.equal(edge, undefined, "a disabled code attributes nothing (FC-7)")
+    })
+  }
+)
 
-test("review hardening: awarded referrals cannot be rewritten by admin review", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    await actAsService(tx)
-    const referrerM = await makeMembership(tx, await makeCustomer(tx))
-    const awarded = await seedQualified(tx, referrerM)
-    await tx`update public.referrals
+test(
+  "review hardening: awarded referrals cannot be rewritten by admin review",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      await actAsService(tx)
+      const referrerM = await makeMembership(tx, await makeCustomer(tx))
+      const awarded = await seedQualified(tx, referrerM)
+      await tx`update public.referrals
       set status = 'awarded', referrer_bonus_awarded_at = now()
       where id = ${awarded}`
 
-    await actAsAdmin(tx)
-    for (const action of ["clear", "reject", "cancel"]) {
-      let rejected = false
-      try {
-        await tx.savepoint((sp) =>
-          sp`select public.admin_review_referral(${awarded}::uuid, ${action}, 'late review')`
-        )
-      } catch (error) {
-        rejected = /awarded|review/i.test(String(error.message))
+      await actAsAdmin(tx)
+      for (const action of ["clear", "reject", "cancel"]) {
+        let rejected = false
+        try {
+          await tx.savepoint(
+            (sp) =>
+              sp`select public.admin_review_referral(${awarded}::uuid, ${action}, 'late review')`
+          )
+        } catch (error) {
+          rejected = /awarded|review/i.test(String(error.message))
+        }
+        assert.ok(rejected, `${action} is refused after award`)
       }
-      assert.ok(rejected, `${action} is refused after award`)
-    }
 
-    await actAsService(tx)
-    const [edge] = await tx`
+      await actAsService(tx)
+      const [edge] = await tx`
       select status, referrer_bonus_awarded_at from public.referrals where id = ${awarded}`
-    assert.equal(edge.status, "awarded", "the paid status remains coherent")
-    assert.ok(edge.referrer_bonus_awarded_at, "the paid timestamp remains present")
-  })
-})
+      assert.equal(edge.status, "awarded", "the paid status remains coherent")
+      assert.ok(
+        edge.referrer_bonus_awarded_at,
+        "the paid timestamp remains present"
+      )
+    })
+  }
+)

@@ -66,7 +66,7 @@ export function RewardReadyPanel({
         name={exp.reward.rewardName}
         description={rewardTermsNode(exp.reward)}
       />
-      {exp.profileGate.complete ? (
+      {exp.profileGate.complete && exp.profileGate.dateOfBirthVerified ? (
         <>
           {/* One instruction per screen (F18b): the title confirms the state and
               the single "scans this QR" line lives beside the QR itself. */}
@@ -76,6 +76,11 @@ export function RewardReadyPanel({
             rewardName={exp.reward.rewardName}
           />
         </>
+      ) : exp.profileGate.complete ? (
+        <StatusBanner title="Date of birth check needed" tone="warning">
+          Ask a team member to verify your date of birth before collecting this
+          reward.
+        </StatusBanner>
       ) : (
         <CustomerProfileGateForm
           rewardId={exp.reward.rewardId}
@@ -114,7 +119,7 @@ export function RedeemedProofPanel({
         The merchant has scanned your QR. A new stamp cycle has started.
       </StatusBanner>
       {proofLine ? (
-        <p className="text-center mono-id tracking-[0.08em] text-muted-foreground">
+        <p className="mono-id text-center tracking-[0.08em] text-muted-foreground">
           {proofLine}
         </p>
       ) : null}

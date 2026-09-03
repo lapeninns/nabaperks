@@ -5,6 +5,7 @@ import { redirect } from "next/navigation"
 import { after } from "next/server"
 
 import { attachRewardInvitesForCustomer } from "@/lib/customer/reward-invites"
+import { establishCustomerSessionAfterVerifiedPhone } from "@/lib/customer/access-continuity"
 import { decryptCustomerEmail } from "@/lib/customer/email-encryption-core"
 import { customerEmailHmac } from "@/lib/customer/email-pii-core"
 import {
@@ -29,7 +30,6 @@ import { defaultCountryFromHeaders, normalizePhone } from "@/lib/customer/phone"
 import {
   clearPendingPhoneVerification,
   getPendingPhoneVerification,
-  setCustomerSession,
   setPendingPhoneVerification,
 } from "@/lib/customer/session"
 import {
@@ -43,6 +43,7 @@ import {
 } from "@/lib/customer/otp-rate-limit"
 import {
   RateLimitError,
+  customerDeviceHashFromHeaders,
   customerRateLimitIdentityFromHeaders,
   trustedClientIp,
 } from "@/lib/security/rate-limit"
@@ -97,6 +98,7 @@ export async function requestCustomerIdentityAction(
   const country = defaultCountryFromHeaders(requestHeaders)
   const requestIdentity = customerRateLimitIdentityFromHeaders(requestHeaders)
   const clientIp = trustedClientIp(requestHeaders)
+  const deviceHash = customerDeviceHashFromHeaders(requestHeaders)
   const pendingVerification = await getPendingPhoneVerification()
   const isTrustedResend =
     pendingVerification?.purpose === "join" && value(formData, "resend") === "1"
@@ -148,31 +150,23 @@ export async function requestCustomerIdentityAction(
     }
   }
 
-  try {
-    await enforceCustomerOtpSendRateLimit({
-      phone: contact,
-      requestIdentity,
-      trustedIp: clientIp,
-      scope: "join",
-    })
-  } catch (error) {
-    if (error instanceof RateLimitError) {
+  const admitted = await enforceCustomerOtpSendRateLimit({
+    phone: contact,
+    requestIdentity,
+    trustedIp: clientIp,
+    scope: "join",
+    deviceHash,
+  })
+
+  if (admitted) {
+    const verification = await startCustomerPhoneVerification(contact)
+    if (verification.status === "unavailable") {
       return {
         fields: requestFields,
-        errors: { form: "Too many verification requests. Try again later." },
+        errors: {
+          form: "We couldn't send a code just now. Try again shortly.",
+        },
       }
-    }
-
-    throw error
-  }
-
-  const verification = await startCustomerPhoneVerification(contact)
-  if (verification.status === "unavailable") {
-    return {
-      fields: requestFields,
-      errors: {
-        form: "We couldn't send a code just now. Try again shortly.",
-      },
     }
   }
 
@@ -210,7 +204,7 @@ export async function requestCustomerIdentityAction(
   if (value(formData, "resend") === "1") {
     return {
       fields: { merchantSlug, qrId, phoneOtpSent: true },
-      message: "New code sent. It can take a moment to arrive.",
+      message: "If a new code arrives, enter it here.",
     }
   }
 
@@ -291,13 +285,12 @@ export async function verifyCustomerOtpAction(
     }
   }
 
-  const customer = await getOrCreateCustomerByVerifiedPhone({
+  const resolution = await getOrCreateCustomerByVerifiedPhone({
     e164: pending.phone,
     country: pending.country,
     last4: pending.phone.slice(-4),
   })
-  await setCustomerSession(customer.id)
-  await clearPendingPhoneVerification()
+  const { customer } = resolution
   await captureJoinFunnelEvent({
     eventName: "join_otp_verified",
     customerId: customer.id,
@@ -305,6 +298,30 @@ export async function verifyCustomerOtpAction(
     entry: joinEntry({ qrId, referralCode: ref }),
     step: "otp",
   })
+
+  let access: "authenticated" | "recovery"
+  try {
+    access = await establishCustomerSessionAfterVerifiedPhone({
+      customer,
+      customerWasCreated: resolution.created,
+      phoneHmac: pending.phoneHmac,
+      next: buildCustomerJoinHref(merchantSlug, {
+        qrId: qrId || undefined,
+        referralCode: ref || undefined,
+        step: "terms",
+      }),
+    })
+  } catch {
+    return {
+      fields: { merchantSlug, qrId, phoneOtpSent: true },
+      errors: {
+        form: "We couldn't confirm account continuity. Try again shortly.",
+      },
+    }
+  }
+
+  if (access === "recovery") redirect("/home/recover")
+  await clearPendingPhoneVerification()
 
   if (qrId) {
     const destination = await destinationForReturningQrVisit(

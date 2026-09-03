@@ -133,7 +133,7 @@ test("Given trust moat regressions need runtime proof When CI is inspected Then 
   assert.match(ci, /run: supabase stop --no-backup/)
   assert.match(
     packageJson,
-    /"test:db": "node --test --test-concurrency=1 tests\/db\/\*\.test\.mjs"/
+    /"test:db": "node --import \.\/tests\/db\/helpers\/db-preflight\.mjs --test --test-concurrency=1 tests\/db\/\*\.test\.mjs"/
   )
   assert.match(dbTest, /Promise\.allSettled/)
   assert.match(dbTest, /issue_self_service_stamp/)

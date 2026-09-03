@@ -28,19 +28,15 @@ test("Given an open circuit When a retry policy is present Then it does not retr
   let retries = 0
 
   await assert.rejects(
-    resilientCall(
-      name,
-      async () => "unexpected",
-      {
-        retry: {
-          retries: 2,
-          onRetry() {
-            retries += 1
-          },
-          sleep: async () => {},
+    resilientCall(name, async () => "unexpected", {
+      retry: {
+        retries: 2,
+        onRetry() {
+          retries += 1
         },
-      }
-    ),
+        sleep: async () => {},
+      },
+    }),
     CircuitOpenError
   )
 
@@ -52,18 +48,13 @@ test("Given resilientFetch without opt-in retries When a server response fails T
   let attempts = 0
 
   await assert.rejects(
-    resilientFetch(
-      name,
-      "https://example.test/unstable",
-      undefined,
-      {
-        fetchImpl: async () => {
-          attempts += 1
-          return new Response("down", { status: 503 })
-        },
-        sleep: async () => {},
-      }
-    ),
+    resilientFetch(name, "https://example.test/unstable", undefined, {
+      fetchImpl: async () => {
+        attempts += 1
+        return new Response("down", { status: 503 })
+      },
+      sleep: async () => {},
+    }),
     HttpError
   )
 
@@ -100,4 +91,30 @@ test("Given resilientFetch with opt-in retries When the retry succeeds Then each
   assert.equal(attempts, 2)
   assert.equal(signals.length, 2)
   assert.notEqual(signals[0], signals[1])
+})
+
+test("Given an open fetch circuit Then the provider-attempt fence is not written", async () => {
+  const name = `unit-fetch-open-before-attempt-${Date.now()}`
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await assert.rejects(
+      resilientFetch(name, "https://example.test/down", undefined, {
+        fetchImpl: async () => {
+          throw new TypeError("network unavailable")
+        },
+      }),
+      /network unavailable/
+    )
+  }
+
+  let fenced = false
+  await assert.rejects(
+    resilientFetch(name, "https://example.test/down", undefined, {
+      beforeAttempt: async () => {
+        fenced = true
+      },
+      fetchImpl: async () => new Response("unexpected", { status: 200 }),
+    }),
+    CircuitOpenError
+  )
+  assert.equal(fenced, false)
 })

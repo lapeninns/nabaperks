@@ -41,13 +41,10 @@
         "PRODUCTION_MONITOR_SECRET",
         "SUPABASE_ACCESS_TOKEN",
         "SUPABASE_DB_PASSWORD",
+        "SUPABASE_SEND_EMAIL_HOOK_SECRET",
         "VERCEL_TOKEN"
       ],
-      "requiredVariables": [
-        "SUPABASE_PROJECT_REF",
-        "VERCEL_ORG_ID",
-        "VERCEL_PROJECT_ID"
-      ]
+      "requiredVariables": ["SUPABASE_PROJECT_REF"]
     },
     "Monitoring": {
       "independentReview": false,
@@ -80,6 +77,7 @@
     "SUPABASE_ACCESS_TOKEN",
     "SUPABASE_BACKUP_READ_TOKEN",
     "SUPABASE_DB_PASSWORD",
+    "SUPABASE_SEND_EMAIL_HOOK_SECRET",
     "VERCEL_TOKEN"
   ]
 }

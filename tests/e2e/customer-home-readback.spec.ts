@@ -76,7 +76,9 @@ test.describe("@customer-flow customer home readback", () => {
         page.getByText(`Joined ${fixture.businessName}`)
       ).toBeVisible()
       await expect(
-        page.getByText(`You started collecting stamps at ${fixture.businessName}.`)
+        page.getByText(
+          `You started collecting stamps at ${fixture.businessName}.`
+        )
       ).toBeVisible()
       await expect(
         page.getByText(`Stamp added at ${fixture.businessName}`)
@@ -166,6 +168,14 @@ async function installCustomerSession(
       sameSite: "Lax",
       expires: session.expiresAt,
     },
+    {
+      name: session.deviceCookieName,
+      value: session.deviceCookieValue,
+      url: baseURL,
+      httpOnly: true,
+      sameSite: "Lax",
+      expires: session.expiresAt,
+    },
   ])
 }
 
@@ -198,8 +208,10 @@ async function openCustomerReadbackPage(
 
 async function expectNoHorizontalOverflow(page: Page): Promise<void> {
   const hasOverflow = await page.evaluate(() => {
-    return document.documentElement.scrollWidth >
+    return (
+      document.documentElement.scrollWidth >
       document.documentElement.clientWidth + 1
+    )
   })
 
   expect(hasOverflow).toBe(false)

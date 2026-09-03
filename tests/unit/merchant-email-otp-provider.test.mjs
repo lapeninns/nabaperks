@@ -49,6 +49,28 @@ test("delivery failure revokes only the just-created alias and scrubs its token"
   })
 })
 
+test("ambiguous delivery acceptance keeps the alias live for the delivered code", async () => {
+  let revoked = false
+  const ambiguous = new TypeError("response lost")
+
+  await assert.rejects(
+    runMerchantOtpDelivery({
+      createAlias: async () => ({ aliasCode: "615001", aliasId: "alias-1" }),
+      revokeAlias: async () => {
+        revoked = true
+        return true
+      },
+      sendAlias: async () => {
+        throw ambiguous
+      },
+      shouldRevokeAfterSendError: () => false,
+    }),
+    ambiguous
+  )
+
+  assert.equal(revoked, false)
+})
+
 test("provider success finalizes verified and never releases", async () => {
   const calls = []
   const result = await runMerchantOtpProviderVerification({

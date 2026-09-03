@@ -61,6 +61,22 @@ export async function issueSelfServiceStamp(
   if (!customer) return { status: "blocked", reason: "Open your cards first." }
 
   const supabase = createSupabaseServiceRoleClient()
+  const { error: attemptError } = await supabase.rpc(
+    "consume_self_service_stamp_attempt",
+    {
+      p_membership_id: membershipId,
+      p_customer_id: customer.id,
+    }
+  )
+
+  if (attemptError) {
+    return blockKnownStampFailure(
+      attemptError.message,
+      membershipId,
+      attemptError.code
+    )
+  }
+
   const referralBonusesPreDrained = await drainReferralBonusesBeforeStamp(
     supabase,
     membershipId,

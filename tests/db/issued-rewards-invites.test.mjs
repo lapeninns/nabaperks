@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto"
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 import {
   actAsInternalAdmin,
+  actAsMerchantOwner,
   createRewardPoolFixture,
   expectRewardPoolRpcRejection,
 } from "./helpers/reward-pool-fixture.mjs"
@@ -26,16 +27,109 @@ function hex64() {
   return (randomUUID() + randomUUID()).replace(/-/g, "")
 }
 
+test(
+  "direct authenticated invite calls share the database allocation quota",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const fixture = await createRewardPoolFixture(tx)
+      await actAsMerchantOwner(tx, fixture.ownerUserId)
+
+      for (let index = 0; index < 50; index += 1) {
+        const invite = await createInvite(tx, fixture.merchantId, {
+          emailHmac: hex64(),
+          tokenHash: hex64(),
+        })
+        assert.equal(invite.deduped, false)
+      }
+
+      await expectRewardPoolRpcRejection(
+        tx,
+        async (sp) => {
+          await createInvite(sp, fixture.merchantId, {
+            emailHmac: hex64(),
+            tokenHash: hex64(),
+          })
+        },
+        /rate limit exceeded/i,
+        "the fifty-first fresh-hash invite is rejected"
+      )
+
+      const [rows] = await tx`
+        select
+          (select count(*)::int from public.pending_reward_invites
+           where merchant_id = ${fixture.merchantId}) as invites,
+          (select count(*)::int from public.product_events
+           where merchant_id = ${fixture.merchantId}
+             and event_name = 'reward_invite_sent') as events,
+          (select count(*)::int from public.audit_logs
+           where merchant_id = ${fixture.merchantId}
+             and action = 'reward_invite_created') as audits`
+      assert.deepEqual(rows, { invites: 50, events: 50, audits: 50 })
+    })
+  }
+)
+
+test(
+  "malformed invite hashes are rejected before consuming quota",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const fixture = await createRewardPoolFixture(tx)
+      await actAsMerchantOwner(tx, fixture.ownerUserId)
+
+      await expectRewardPoolRpcRejection(
+        tx,
+        async (sp) => {
+          await createInvite(sp, fixture.merchantId, {
+            emailHmac: "not-a-hash",
+            tokenHash: hex64(),
+          })
+        },
+        /invalid reward invite email hash/i,
+        "malformed caller-supplied HMACs are rejected"
+      )
+
+      const [bucket] = await tx`
+        select count(*)::int as rows
+        from public.rate_limit_buckets
+        where bucket_key = ${`reward-invite-allocation:${fixture.merchantId}`}`
+      assert.equal(
+        bucket.rows,
+        0,
+        "invalid input does not spend allocation quota"
+      )
+
+      const valid = await createInvite(tx, fixture.merchantId, {
+        emailHmac: hex64(),
+        tokenHash: hex64(),
+      })
+      assert.equal(
+        valid.deduped,
+        false,
+        "a valid bounded invite still succeeds"
+      )
+    })
+  }
+)
+
 async function createInvite(tx, merchantId, opts = {}) {
   const emailHmac = opts.emailHmac ?? null
   const phoneHmac = opts.phoneHmac ?? null
+  const claimTokenHash = opts.tokenHash ?? hex64()
+  const unsubscribeTokenHash = Object.hasOwn(opts, "unsubscribeTokenHash")
+    ? opts.unsubscribeTokenHash
+    : emailHmac
+      ? hex64()
+      : null
   const [row] = await tx`
-    select * from public.create_merchant_reward_invite(
+    select * from public.create_bounded_merchant_reward_invite(
       ${merchantId}::uuid, ${emailHmac}, ${phoneHmac},
       ${emailHmac ? "r***@example.com" : null}, ${phoneHmac ? "4242" : null},
       ${opts.name ?? "A drink on us"},
       ${opts.terms ?? "A drink on us — thanks for being a regular."},
-      ${opts.message ?? null}, ${opts.days ?? 30}, ${opts.tokenHash ?? hex64()})`
+      ${opts.message ?? null}, ${opts.days ?? 30}, ${claimTokenHash},
+      ${unsubscribeTokenHash})`
   return row
 }
 
@@ -372,8 +466,7 @@ test(
       assert.equal(ownerRows.length, 0, "RLS blocks a non-admin read")
 
       // An internal admin can read.
-      await tx`select set_config('request.jwt.claim.sub', ${fixture.adminUserId}, true)`
-      await tx`select set_config('request.jwt.claim.aal', 'aal2', true)`
+      await actAsInternalAdmin(tx, fixture.adminUserId)
       await tx`set local role authenticated`
       const adminRows = await tx`
       select id from public.pending_reward_invites where id = ${invite.invite_id}::uuid`

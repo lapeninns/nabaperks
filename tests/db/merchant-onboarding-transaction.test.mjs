@@ -58,8 +58,8 @@ test(
         )
         assert.equal(
           fn.authenticated_can_execute,
-          true,
-          `${fn.proname}: authenticated executes`
+          fn.proname === "complete_merchant_onboarding",
+          `${fn.proname}: only canonical onboarding is authenticated-executable`
         )
         assert.equal(
           fn.service_role_can_execute,
@@ -602,7 +602,8 @@ test(
         callOnDedicatedConnection(
           fixture,
           (sql) => createLegacyOnboarding(sql, fixture),
-          startTogether
+          startTogether,
+          "service_role"
         ),
         callOnDedicatedConnection(
           fixture,
@@ -1007,13 +1008,23 @@ async function asAnon(tx, fn) {
   })
 }
 
-async function callOnDedicatedConnection(fixture, fn, start = async () => {}) {
+async function callOnDedicatedConnection(
+  fixture,
+  fn,
+  start = async () => {},
+  role = "authenticated"
+) {
   assert.ok(localDbUrl)
   const sql = postgres(localDbUrl, { max: 1 })
   try {
     return await sql.begin(async (tx) => {
-      await tx`set local role authenticated`
-      await tx`select set_config('request.jwt.claim.role', 'authenticated', true)`
+      if (role === "service_role") {
+        await tx`set local role service_role`
+      } else {
+        assert.equal(role, "authenticated")
+        await tx`set local role authenticated`
+      }
+      await tx`select set_config('request.jwt.claim.role', ${role}, true)`
       await tx`select set_config('request.jwt.claim.sub', ${fixture.ownerUserId}, true)`
       await start()
       return fn(tx)
@@ -1055,6 +1066,10 @@ async function installOwnerScopedAuditFailure(sql, ownerUserId) {
       return new;
     end;
     $function$;
+
+    revoke all on function public.${functionName}()
+      from public, anon, authenticated;
+    grant execute on function public.${functionName}() to service_role;
 
     create trigger ${triggerName}
       before insert on public.audit_logs

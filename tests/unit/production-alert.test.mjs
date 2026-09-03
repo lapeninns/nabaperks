@@ -133,6 +133,22 @@ test("production alert supports a separate availability-SLO incident key", async
   )
 })
 
+test("production alert release canaries use an isolated incident key", async () => {
+  let payload
+  await sendProductionAlert({
+    action: "trigger",
+    kind: "release-canary",
+    env: ENV,
+    fetcher: async (_url, init) => {
+      payload = JSON.parse(init.body)
+      return new Response(null, { status: 202 })
+    },
+  })
+
+  assert.equal(payload.kind, "release-canary")
+  assert.equal(payload.dedupKey, "nabaperks-production-release-canary")
+})
+
 test("production alert delivery does not retry receiver contract failures", async () => {
   let calls = 0
   await assert.rejects(

@@ -40,7 +40,7 @@ export async function GET(_request: Request, context: RewardQrRouteContext) {
   }
 
   const profile = await getCustomerProfileCompletion()
-  if (!profile?.complete) {
+  if (!profile?.complete || !profile.dateOfBirthVerified) {
     return new NextResponse("Reward QR not ready", { status: 404 })
   }
 

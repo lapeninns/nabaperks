@@ -8,6 +8,8 @@ import {
   randomBytes,
 } from "node:crypto"
 
+import { requiredCustomerSessionSecret } from "@/lib/security/customer-session-secret"
+
 /**
  * Claim-link material for a merchant offer campaign.
  *
@@ -33,8 +35,6 @@ import {
  * {@link offerClaimToken} directly for display.
  */
 
-const secretName = "CUSTOMER_SESSION_SECRET"
-
 const CIPHER_FORMAT = "v1"
 const IV_BYTES = 12
 const AAD = Buffer.from("nabaperks:offer-campaign:v1:link", "utf8")
@@ -56,7 +56,7 @@ export function offerClaimToken(
     throw new Error("An offer token generation must be a whole number from 1.")
   }
 
-  return createHmac("sha256", requiredSecret())
+  return createHmac("sha256", requiredCustomerSessionSecret())
     .update(`nabaperks:offer-campaign:v1:claim:${id}:${generation}`)
     .digest("base64url")
 }
@@ -130,13 +130,7 @@ export function decryptOfferClaimToken(value: string): string | null {
 }
 
 function cipherKey(): Buffer {
-  return createHmac("sha256", requiredSecret()).update(AAD).digest()
-}
-
-function requiredSecret(): string {
-  const value = process.env[secretName]?.trim()
-  if (!value) {
-    throw new Error(`${secretName} is required for offer campaign links.`)
-  }
-  return value
+  return createHmac("sha256", requiredCustomerSessionSecret())
+    .update(AAD)
+    .digest()
 }

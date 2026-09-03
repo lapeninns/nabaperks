@@ -3,9 +3,12 @@ import { test } from "node:test"
 
 import postgres from "postgres"
 
-const dbUrl =
+import { assertLocalSupabaseDbUrl } from "./helpers/db-target.mjs"
+
+const dbUrl = assertLocalSupabaseDbUrl(
   process.env.SUPABASE_DB_URL ??
-  "postgres://postgres:postgres@127.0.0.1:54322/postgres"
+    "postgres://postgres:postgres@127.0.0.1:54322/postgres"
+)
 
 test("Given the readiness RPC When roles are inspected Then only service role can execute the data-free probe", async () => {
   const sql = postgres(dbUrl, { max: 1 })

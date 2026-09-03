@@ -31,6 +31,9 @@ const devServerPort =
   devServerUrl.port || (devServerUrl.protocol === "https:" ? "443" : "80")
 const devServerEnv = [
   `PORT=${devServerPort}`,
+  // Hosted shards compile many routes in one dev-server process. Give Next
+  // enough heap to avoid its 80%-usage self-restart interrupting live tests.
+  ...(process.env.CI ? ["NODE_OPTIONS=--max-old-space-size=8192"] : []),
   `CUSTOMER_DEV_OTP_CODE=${devOtpCode}`,
   `PLAYWRIGHT_MARKETING_PROMO_NOW=${visualPromoNow}`,
   "PLAYWRIGHT_HARNESS=1",
@@ -94,7 +97,11 @@ export default defineConfig({
     {
       name: "chromium",
       snapshotPathTemplate: ciLinuxSnapshotPathTemplate,
-      testMatch: ["**/*.desktop.spec.ts", "**/visual.spec.ts"],
+      testMatch: [
+        "**/*.desktop.spec.ts",
+        "**/auth-password-policy.spec.ts",
+        "**/visual.spec.ts",
+      ],
       use: {
         ...devices["Desktop Chrome"],
         // Functional and accessibility CI opt into regular Chromium's new

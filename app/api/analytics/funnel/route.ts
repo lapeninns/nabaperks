@@ -28,7 +28,9 @@ const FUNNEL_RATE_LIMIT = 30
 const FUNNEL_RATE_WINDOW_MS = 60_000
 
 export async function POST(request: NextRequest) {
-  if (!isSameOriginRequest(request)) return errorResponse(403)
+  if (!isSameOriginRequest(request, process.env.NEXT_PUBLIC_APP_URL)) {
+    return errorResponse(403)
+  }
   if (!isJsonRequest(request)) return errorResponse(415)
 
   const declaredLength = request.headers.get("content-length")

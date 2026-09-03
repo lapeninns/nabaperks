@@ -80,6 +80,8 @@ export type AccessRecovery = {
  */
 export type ProfileGate = {
   complete: boolean
+  /** Verified evidence, separate from customer-entered profile completeness. */
+  dateOfBirthVerified: boolean
   /** Email entered but unconfirmed — show the inline "enter your code" step. */
   needsEmailVerification: boolean
   fullName: string | null

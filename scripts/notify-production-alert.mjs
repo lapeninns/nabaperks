@@ -13,6 +13,10 @@ const ALERT_KINDS = {
     dedupKey: "nabaperks-production-availability-slo",
     summary: "Nabaperks production availability SLO is breached",
   },
+  "release-canary": {
+    dedupKey: "nabaperks-production-release-canary",
+    summary: "Nabaperks production alert receiver release canary",
+  },
 }
 
 function invariant(condition, message) {

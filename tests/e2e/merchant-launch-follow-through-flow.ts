@@ -101,13 +101,25 @@ export function defineMerchantLaunchFollowThroughTests() {
     page,
   }) => {
     for (const suffix of ["", "?qr=paused"]) {
-      await page.goto(`${HARNESS_ROUTES.dashboard}${suffix}`)
-      const main = page.getByRole("main")
-      await expect(main.getByRole("link", { name: "Scan code" })).toBeVisible()
-      await expect(main.getByRole("link", { name: "Announce" })).toBeVisible()
-      await expect(
-        page.getByRole("link", { name: "Finish setup" })
-      ).toHaveCount(0)
+      const variantPage = await page.context().newPage()
+      await dismissPwaInstall(variantPage)
+
+      try {
+        await gotoHydratedPage(
+          variantPage,
+          `${HARNESS_ROUTES.dashboard}${suffix}`
+        )
+        const main = variantPage.getByRole("main")
+        await expect(
+          main.getByRole("link", { name: "Scan code" })
+        ).toBeVisible()
+        await expect(main.getByRole("link", { name: "Announce" })).toBeVisible()
+        await expect(
+          variantPage.getByRole("link", { name: "Finish setup" })
+        ).toHaveCount(0)
+      } finally {
+        await variantPage.close()
+      }
     }
   })
 

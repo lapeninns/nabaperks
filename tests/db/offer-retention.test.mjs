@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto"
 import { after, test } from "node:test"
 
 import { closeDb, db, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
+import { actAsActivatedInternalAdmin } from "./helpers/admin-auth.mjs"
 import { createRewardPoolFixture } from "./helpers/reward-pool-fixture.mjs"
 
 /**
@@ -70,6 +71,25 @@ async function asAuthenticated(tx, userId, fn) {
     } finally {
       await sp`reset role`
       await sp`select set_config('request.jwt.claims', '', true)`
+      await sp`select set_config('request.jwt.claim.role', 'service_role', true)`
+    }
+  })
+}
+
+async function asInternalAdmin(tx, userId, fn) {
+  const claims = await actAsActivatedInternalAdmin(tx, userId)
+  return tx.savepoint(async (sp) => {
+    await sp`set local role authenticated`
+    await sp`select set_config('request.jwt.claims', ${JSON.stringify(claims)}, true)`
+    await sp`select set_config('request.jwt.claim.role', 'authenticated', true)`
+    await sp`select set_config('request.jwt.claim.sub', ${userId}, true)`
+    await sp`select set_config('request.jwt.claim.aal', 'aal2', true)`
+    try {
+      return await fn(sp)
+    } finally {
+      await sp`reset role`
+      await sp`select set_config('request.jwt.claims', '', true)`
+      await sp`select set_config('request.jwt.claim.aal', '', true)`
       await sp`select set_config('request.jwt.claim.role', 'service_role', true)`
     }
   })
@@ -476,7 +496,7 @@ test(
         expiresInMinutes: 9,
       })
 
-      const erased = await asAuthenticated(tx, fx.adminUserId, async (sp) => {
+      const erased = await asInternalAdmin(tx, fx.adminUserId, async (sp) => {
         const [row] = await sp`
           select public.admin_erase_offer_claims_for_customer(
             ${fx.customerId}::uuid) as n`
@@ -533,7 +553,7 @@ test(
         select id, discount_percent, no_stacking_attested, redeemed_at
         from public.offer_redemptions where scan_token_id = ${honoured}::uuid`
 
-      await asAuthenticated(tx, fx.adminUserId, async (sp) => {
+      await asInternalAdmin(tx, fx.adminUserId, async (sp) => {
         await sp`
           select public.admin_erase_offer_claims_for_customer(
             ${fx.customerId}::uuid)`
@@ -636,7 +656,7 @@ test(
         select * from public.redeem_offer_pass(
           ${honoured}::uuid, ${fx.merchantId}::uuid, false, true, null)`
 
-      const payload = await asAuthenticated(tx, fx.adminUserId, async (sp) => {
+      const payload = await asInternalAdmin(tx, fx.adminUserId, async (sp) => {
         const [row] = await sp`
           select public.offer_claims_export_for_customer(
             ${fx.customerId}::uuid) as payload`
@@ -668,7 +688,7 @@ test(
         "there is no identity-document, date-of-birth or bill-amount field to disclose"
       )
 
-      const emptyPayload = await asAuthenticated(
+      const emptyPayload = await asInternalAdmin(
         tx,
         fx.adminUserId,
         async (sp) => {

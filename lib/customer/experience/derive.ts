@@ -39,6 +39,7 @@ type AccessFailure = {
  *  server/RPC enforce. Loaders that can resolve the customer pass the real gate. */
 const COMPLETE_GATE: ProfileGate = {
   complete: true,
+  dateOfBirthVerified: true,
   needsEmailVerification: false,
   fullName: null,
   dateOfBirth: null,
