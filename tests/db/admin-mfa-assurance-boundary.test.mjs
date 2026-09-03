@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto"
 import { after, test } from "node:test"
 
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
+import { recordWebAuthnAssertion } from "./helpers/admin-auth.mjs"
 
 /**
  * Admin assurance boundary — live-DB proof for `public.is_internal_admin()`.
@@ -181,6 +182,49 @@ test(
 )
 
 test(
+  "bootstrap eligibility is limited to the sole active factorless admin",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      await tx`update public.internal_admins set is_active = false`
+      const admin = await createInternalAdmin(tx, { withVerifiedFactor: false })
+      const outsiderId = randomUUID()
+      await tx`insert into auth.users (id) values (${outsiderId}::uuid)`
+
+      const eligible = await asAuthenticatedUser(
+        tx,
+        admin.userId,
+        "aal1",
+        async (sp) =>
+          (await sp`select public.can_bootstrap_admin_webauthn() as allowed`)[0]
+            .allowed
+      )
+      const outsiderEligible = await asAuthenticatedUser(
+        tx,
+        outsiderId,
+        "aal1",
+        async (sp) =>
+          (await sp`select public.can_bootstrap_admin_webauthn() as allowed`)[0]
+            .allowed
+      )
+      assert.equal(eligible, true)
+      assert.equal(outsiderEligible, false)
+
+      await insertWebAuthnFactor(tx, admin.userId, "unverified")
+      const eligibleWithFactor = await asAuthenticatedUser(
+        tx,
+        admin.userId,
+        "aal1",
+        async (sp) =>
+          (await sp`select public.can_bootstrap_admin_webauthn() as allowed`)[0]
+            .allowed
+      )
+      assert.equal(eligibleWithFactor, false)
+    })
+  }
+)
+
+test(
   "a WebAuthn factor without authenticator user verification cannot activate",
   { skip },
   async () => {
@@ -204,6 +248,101 @@ test(
           ),
         (error) => error?.code === "42501"
       )
+    })
+  }
+)
+
+test(
+  "an activated admin assertion without the signed UV bit cannot mint an aal2 session",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const admin = await createInternalAdmin(tx, { withVerifiedFactor: true })
+      const factorId = await activatedFactorId(tx, admin.userId)
+      const sessionId = await createAal1SessionWithWebAuthnClaim(
+        tx,
+        admin.userId
+      )
+      await recordWebAuthnAssertion(tx, factorId, false)
+
+      await assert.rejects(
+        () =>
+          tx.savepoint(
+            (sp) => sp`
+              update auth.sessions
+              set factor_id = ${factorId}::uuid,
+                  aal = 'aal2'::auth.aal_level,
+                  updated_at = now()
+              where id = ${sessionId}::uuid`
+          ),
+        (error) => error?.code === "42501"
+      )
+    })
+  }
+)
+
+test(
+  "malformed WebAuthn assertion evidence cannot mint an activated admin aal2 session",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const admin = await createInternalAdmin(tx, { withVerifiedFactor: true })
+      const factorId = await activatedFactorId(tx, admin.userId)
+      const sessionId = await createAal1SessionWithWebAuthnClaim(
+        tx,
+        admin.userId
+      )
+      await tx`
+        update auth.mfa_factors
+        set last_webauthn_challenge_data = jsonb_build_object(
+              'type', 'request',
+              'credential_response', jsonb_build_object(
+                'Response', jsonb_build_object(
+                  'AuthenticatorData', jsonb_build_object('flags', 'invalid')
+                )
+              )
+            )
+        where id = ${factorId}::uuid`
+
+      await assert.rejects(
+        () =>
+          tx.savepoint(
+            (sp) => sp`
+              update auth.sessions
+              set factor_id = ${factorId}::uuid,
+                  aal = 'aal2'::auth.aal_level
+              where id = ${sessionId}::uuid`
+          ),
+        (error) => error?.code === "42501"
+      )
+    })
+  }
+)
+
+test(
+  "a signature-validated user-verified WebAuthn assertion can mint the activated admin aal2 session",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const admin = await createInternalAdmin(tx, { withVerifiedFactor: true })
+      const factorId = await activatedFactorId(tx, admin.userId)
+      const sessionId = await createAal1SessionWithWebAuthnClaim(
+        tx,
+        admin.userId
+      )
+      await recordWebAuthnAssertion(tx, factorId, true)
+
+      await tx`
+        update auth.sessions
+        set factor_id = ${factorId}::uuid,
+            aal = 'aal2'::auth.aal_level,
+            updated_at = now()
+        where id = ${sessionId}::uuid`
+      const [session] = await tx`
+        select factor_id::text as factor_id, aal::text as aal
+        from auth.sessions
+        where id = ${sessionId}::uuid`
+      assert.deepEqual(session, { factor_id: factorId, aal: "aal2" })
     })
   }
 )
@@ -302,6 +441,7 @@ test(
 
       const sessionId = randomUUID()
       const oldChallengeAt = new Date(Date.now() - 5_000)
+      await recordWebAuthnAssertion(tx, initial.mfa_factor_id, true)
       await tx`
         insert into auth.sessions
           (id, user_id, created_at, updated_at, factor_id, aal)
@@ -364,6 +504,7 @@ test(
       // A legitimate challenge updates the authoritative session and produces
       // a new JWT. The stolen old JWT has the same session id but retains its
       // old signed AMR timestamp, so it must not inherit the new challenge.
+      await recordWebAuthnAssertion(tx, replacementFactor, true)
       await tx`
         update auth.sessions
         set factor_id = ${replacementFactor}::uuid,
@@ -692,6 +833,33 @@ async function insertWebAuthnFactor(tx, userId, status) {
   return insertMfaFactor(tx, userId, status, "webauthn")
 }
 
+async function activatedFactorId(tx, userId) {
+  const [admin] = await tx`
+    select mfa_factor_id::text as mfa_factor_id
+    from public.internal_admins
+    where user_id = ${userId}::uuid`
+  return admin.mfa_factor_id
+}
+
+async function createAal1SessionWithWebAuthnClaim(tx, userId) {
+  const sessionId = randomUUID()
+  await tx`
+    insert into auth.sessions
+      (id, user_id, created_at, updated_at, aal)
+    values (
+      ${sessionId}::uuid, ${userId}::uuid, now(), now(),
+      'aal1'::auth.aal_level
+    )`
+  await tx`
+    insert into auth.mfa_amr_claims
+      (id, session_id, created_at, updated_at, authentication_method)
+    values (
+      ${randomUUID()}::uuid, ${sessionId}::uuid, now(), now(),
+      'mfa/webauthn'
+    )`
+  return sessionId
+}
+
 async function insertMfaFactor(
   tx,
   userId,
@@ -808,6 +976,7 @@ async function claimsWithCurrentMfaEvidence(tx, userId, aal) {
   const challengedAt = new Date(
     new Date(activation.mfa_activated_at).getTime() + 1_000
   )
+  await recordWebAuthnAssertion(tx, activation.mfa_factor_id, true)
   await tx`
     insert into auth.sessions
       (id, user_id, created_at, updated_at, factor_id, aal)

@@ -17,7 +17,9 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
+  checks: read
   contents: read
+  pull-requests: read
 
 jobs:
   publish:
@@ -44,6 +46,85 @@ jobs:
           test "$CONFIRMATION" = "PUBLISH_ADMIN_MFA_BOOTSTRAP"
           test -n "$SUPABASE_ACCESS_TOKEN"
           test -n "$SUPABASE_PROJECT_REF"
+      - name: Verify exact-revision release and security checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          main_checks_file="$RUNNER_TEMP/bootstrap-main-check-runs.json"
+          gh api --paginate --slurp \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${GITHUB_REPOSITORY}/commits/${EXPECTED_REVISION}/check-runs?filter=latest&per_page=100" \
+            > "$main_checks_file"
+          for required_check in \
+            "Release gate" \
+            "Analyze (javascript-typescript)"
+          do
+            jq -e \
+              --arg expected_revision "$EXPECTED_REVISION" \
+              --arg required_check "$required_check" \
+              '[.[] | .check_runs[] |
+                select(
+                  .head_sha == $expected_revision
+                  and .name == $required_check
+                  and .app.slug == "github-actions"
+                  and .status == "completed"
+                  and .conclusion == "success"
+                )] | length >= 1' \
+              "$main_checks_file" >/dev/null
+          done
+
+          associated_prs_file="$RUNNER_TEMP/bootstrap-associated-prs.json"
+          gh api --paginate --slurp \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${GITHUB_REPOSITORY}/commits/${EXPECTED_REVISION}/pulls?per_page=100" \
+            > "$associated_prs_file"
+          matched_pr_count="$(jq \
+            --arg expected_revision "$EXPECTED_REVISION" \
+            --arg repository "$GITHUB_REPOSITORY" \
+            '[.[] | .[] |
+              select(
+                .merged_at != null
+                and .merge_commit_sha == $expected_revision
+                and .base.ref == "main"
+                and .base.repo.full_name == $repository
+              )] | length' \
+            "$associated_prs_file")"
+          test "$matched_pr_count" = "1"
+          reviewed_head_sha="$(jq -er \
+            --arg expected_revision "$EXPECTED_REVISION" \
+            --arg repository "$GITHUB_REPOSITORY" \
+            '.[] | .[] |
+              select(
+                .merged_at != null
+                and .merge_commit_sha == $expected_revision
+                and .base.ref == "main"
+                and .base.repo.full_name == $repository
+              ) | .head.sha' \
+            "$associated_prs_file")"
+          expected_tree_sha="$(gh api \
+            "repos/${GITHUB_REPOSITORY}/git/commits/${EXPECTED_REVISION}" \
+            --jq '.tree.sha')"
+          reviewed_tree_sha="$(gh api \
+            "repos/${GITHUB_REPOSITORY}/git/commits/${reviewed_head_sha}" \
+            --jq '.tree.sha')"
+          test "$reviewed_tree_sha" = "$expected_tree_sha"
+
+          dependency_checks_file="$RUNNER_TEMP/bootstrap-dependency-check-runs.json"
+          gh api --paginate --slurp \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${GITHUB_REPOSITORY}/commits/${reviewed_head_sha}/check-runs?filter=latest&per_page=100" \
+            > "$dependency_checks_file"
+          jq -e \
+            --arg reviewed_head_sha "$reviewed_head_sha" \
+            '[.[] | .check_runs[] |
+              select(
+                .head_sha == $reviewed_head_sha
+                and .name == "Review dependency changes"
+                and .app.slug == "github-actions"
+                and .status == "completed"
+                and .conclusion == "success"
+              )] | length >= 1' \
+            "$dependency_checks_file" >/dev/null
       - name: Verify the WebAuthn bridge is the production migration frontier
         run: |
           response_file="$RUNNER_TEMP/admin-mfa-bootstrap-ledger.json"
@@ -86,26 +167,51 @@ jobs:
             --arg team_id "$CANONICAL_VERCEL_TEAM_ID" \
             '.id == $id and .accountId == $team_id' \
             <<<"$metadata" >/dev/null
-      - name: Deploy an unaliased production-environment compatibility build
+      - name: Build the secret-free fixed-origin bootstrap
+        id: build-bootstrap
+        run: |
+          anon_key="$(curl --silent --show-error --fail \
+            --header "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/api-keys" \
+            | jq -er '[.[] | select(.name == "anon")][0].api_key')"
+          test -n "$anon_key"
+          output_directory="$RUNNER_TEMP/admin-mfa-bootstrap-site/.vercel/output"
+          ADMIN_MFA_BOOTSTRAP_ANON_KEY="$anon_key" \
+            node scripts/build-admin-mfa-bootstrap.mjs \
+              --output "$output_directory"
+          test -f "$output_directory/config.json"
+          test -f "$output_directory/static/admin-mfa-bootstrap/index.html"
+          test -f "$output_directory/static/assets/bootstrap.js"
+          printf 'site_directory=%s\n' \
+            "$RUNNER_TEMP/admin-mfa-bootstrap-site" >> "$GITHUB_OUTPUT"
+      - name: Deploy an isolated preview-target compatibility site
         id: deploy
         env:
+          SITE_DIRECTORY: ${{ steps.build-bootstrap.outputs.site_directory }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           deployment_url="$(pnpm exec vercel deploy \
-            --prod \
-            --skip-domain \
+            "$SITE_DIRECTORY" \
+            --prebuilt \
+            --target=preview \
             --no-wait \
             --archive=tgz \
             --yes \
             --project="$CANONICAL_VERCEL_PROJECT_ID" \
             --scope="$CANONICAL_VERCEL_SCOPE" \
             --meta githubCommitSha="$EXPECTED_REVISION" \
+            --meta bootstrapRevision="$EXPECTED_REVISION" \
             --token="$VERCEL_TOKEN")"
           case "$deployment_url" in
             https://*) ;;
             *) echo "::error::Vercel returned no staged deployment URL."; exit 1 ;;
           esac
           printf 'url=%s\n' "$deployment_url" >> "$GITHUB_OUTPUT"
+      # Production deployment checks intentionally remain untouched. The
+      # one-route static site is a preview-target deployment containing no
+      # server credential. Exact-revision release, CodeQL and dependency
+      # checks plus the database-frontier proof above form the equivalent
+      # reviewed bootstrap-specific release boundary.
       - name: Assign and verify the fixed bootstrap origin
         env:
           DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}

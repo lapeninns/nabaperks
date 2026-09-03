@@ -76,6 +76,14 @@ test("admin authority requires trusted factor activation and aal2", () => {
   assert.match(webAuthnMigration, /method ->> 'method' = 'mfa\/webauthn'/)
   assert.match(
     webAuthnMigration,
+    /create trigger sessions_require_admin_webauthn_user_verification[\s\S]*before insert or update on auth\.sessions/
+  )
+  assert.match(
+    webAuthnMigration,
+    /last_webauthn_challenge_data[\s\S]*AuthenticatorData,flags[\s\S]*& 4\) <> 4/
+  )
+  assert.match(
+    webAuthnMigration,
     /activate_internal_admin_mfa\([\s\S]*is_service_role_request\(\)[\s\S]*factor\.id = p_factor_id[\s\S]*factor\.factor_type = 'webauthn'[\s\S]*factor\.status = 'verified'/
   )
   assert.match(expandMigration, /'admin_mfa_factor_activated'/)
@@ -141,18 +149,53 @@ test("the compatibility bootstrap preserves the independent activation boundary"
     "workflows",
     "admin-mfa-bootstrap.yml"
   )
+  const staticEntry = readProjectFile(
+    "scripts",
+    "admin-mfa-bootstrap-entry.mjs"
+  )
+  const builder = readProjectFile("scripts", "build-admin-mfa-bootstrap.mjs")
+  const webAuthnMigration = readProjectFile(
+    "supabase",
+    "migrations",
+    "20260902120200_support_admin_webauthn_mfa.sql"
+  )
 
   assert.match(route, /supabase\.auth\.getUser\(\)/)
   assert.match(route, /internal_admins/)
   assert.match(route, /admin\?\.is_active !== true/)
   assert.match(route, /verifiedFactors\.length !== 0/)
   assert.match(workflow, /environment: Production/)
+  assert.match(workflow, /checks: read/)
+  assert.match(workflow, /pull-requests: read/)
+  assert.match(workflow, /commits\/\$\{EXPECTED_REVISION\}\/check-runs/)
+  assert.match(workflow, /commits\/\$\{EXPECTED_REVISION\}\/pulls/)
+  assert.match(workflow, /Release gate/)
+  assert.match(workflow, /Analyze \(javascript-typescript\)/)
+  assert.match(workflow, /Review dependency changes/)
+  assert.match(workflow, /\.merge_commit_sha == \$expected_revision/)
+  assert.match(workflow, /\.base\.ref == "main"/)
+  assert.match(workflow, /reviewed_tree_sha/)
+  assert.match(workflow, /test "\$reviewed_tree_sha" = "\$expected_tree_sha"/)
+  assert.match(workflow, /commits\/\$\{reviewed_head_sha\}\/check-runs/)
+  assert.match(workflow, /\.app\.slug == "github-actions"/)
+  assert.match(workflow, /\.conclusion == "success"/)
   assert.match(workflow, /20260902120200/)
   assert.match(workflow, /20260902120500/)
   assert.match(workflow, /sole_active_admin/)
   assert.match(workflow, /active_admin_is_factorless/)
-  assert.match(workflow, /--prod/)
-  assert.match(workflow, /--skip-domain/)
+  assert.match(workflow, /build-admin-mfa-bootstrap\.mjs/)
+  assert.match(workflow, /--prebuilt/)
+  assert.match(workflow, /--target=preview/)
+  assert.match(workflow, /--meta githubCommitSha="\$EXPECTED_REVISION"/)
+  assert.doesNotMatch(workflow, /--prod(?:\s|\\)/)
+  assert.match(staticEntry, /can_bootstrap_admin_webauthn/)
+  assert.match(staticEntry, /registerAdminWebAuthnFactor/)
+  assert.match(builder, /mfa\.nabaperks\.com/)
+  assert.match(builder, /frame-ancestors 'none'/)
+  assert.match(
+    webAuthnMigration,
+    /grant execute on function public\.can_bootstrap_admin_webauthn\(\)[\s\S]*to authenticated/
+  )
   assert.doesNotMatch(workflow, /activate_internal_admin_mfa/)
 })
 

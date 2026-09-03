@@ -97,6 +97,7 @@ export async function actAsActivatedInternalAdmin(tx, userId) {
   const challengedAt = new Date(
     new Date(activation.mfa_activated_at).getTime() + 1_000
   )
+  await recordWebAuthnAssertion(tx, factorId, true)
   await tx`
     insert into auth.sessions
       (id, user_id, created_at, updated_at, factor_id, aal)
@@ -136,4 +137,20 @@ export async function actAsActivatedInternalAdmin(tx, userId) {
   await tx`select set_config('request.jwt.claim.aal', 'aal2', true)`
   await tx`select set_config('request.jwt.claims', ${claims}, true)`
   return claimValues
+}
+
+export async function recordWebAuthnAssertion(tx, factorId, userVerified) {
+  const flags = userVerified ? 5 : 1
+  await tx`
+    update auth.mfa_factors
+    set last_webauthn_challenge_data = jsonb_build_object(
+          'type', 'request',
+          'credential_response', jsonb_build_object(
+            'Response', jsonb_build_object(
+              'AuthenticatorData', jsonb_build_object('flags', ${flags}::integer)
+            )
+          )
+        ),
+        updated_at = now()
+    where id = ${factorId}::uuid`
 }

@@ -5,6 +5,99 @@
 comment on column public.internal_admins.mfa_activated_at is
   'Trusted activation epoch. A session must complete an exact-factor WebAuthn challenge after this instant before it can hold admin authority.';
 
+create or replace function public.can_bootstrap_admin_webauthn()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select auth.uid() is not null
+    and (
+      select count(*)
+      from public.internal_admins admin
+      where admin.is_active
+    ) = 1
+    and exists (
+      select 1
+      from public.internal_admins admin
+      where admin.user_id = auth.uid()
+        and admin.is_active
+        and admin.mfa_factor_id is null
+        and admin.mfa_activated_at is null
+        and not exists (
+          select 1
+          from auth.mfa_factors factor
+          where factor.user_id = admin.user_id
+        )
+    );
+$$;
+
+comment on function public.can_bootstrap_admin_webauthn() is
+  'Allows only the sole active, factorless internal admin to begin the one-time WebAuthn bootstrap.';
+
+revoke all on function public.can_bootstrap_admin_webauthn() from public;
+grant execute on function public.can_bootstrap_admin_webauthn()
+  to authenticated;
+
+create or replace function public.require_admin_webauthn_user_verification()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  assertion_flags_text text;
+begin
+  select factor.last_webauthn_challenge_data
+           #>> '{credential_response,Response,AuthenticatorData,flags}'
+  into assertion_flags_text
+  from public.internal_admins admin
+  join auth.mfa_factors factor
+    on factor.id = admin.mfa_factor_id
+   and factor.user_id = admin.user_id
+   and factor.factor_type = 'webauthn'
+   and factor.status = 'verified'
+  where admin.user_id = new.user_id
+    and admin.is_active
+    and admin.mfa_activated_at is not null
+    and admin.mfa_factor_id = new.factor_id;
+
+  if not found then
+    return new;
+  end if;
+
+  if not exists (
+       select 1
+       from auth.mfa_factors factor
+       where factor.id = new.factor_id
+         and factor.last_webauthn_challenge_data #>> '{type}' = 'request'
+     )
+     or assertion_flags_text is null
+     or assertion_flags_text !~ '^[0-9]+$'
+     or (assertion_flags_text::integer & 4) <> 4 then
+    raise insufficient_privilege using
+      message = 'User-verified WebAuthn assertion required';
+  end if;
+
+  return new;
+end;
+$$;
+
+comment on function public.require_admin_webauthn_user_verification() is
+  'Rejects an activated admin AAL2 session unless GoTrue recorded a signature-validated WebAuthn assertion with the authenticator UV bit set.';
+
+revoke all on function public.require_admin_webauthn_user_verification()
+  from public;
+
+drop trigger if exists sessions_require_admin_webauthn_user_verification
+  on auth.sessions;
+create trigger sessions_require_admin_webauthn_user_verification
+  before insert or update on auth.sessions
+  for each row
+  when (new.aal = 'aal2' and new.factor_id is not null)
+  execute function public.require_admin_webauthn_user_verification();
+
 create or replace function public.has_activated_admin_mfa(p_user_id uuid)
 returns boolean
 language sql
@@ -74,7 +167,7 @@ as $$
 $$;
 
 comment on function public.request_has_post_activation_admin_mfa(uuid) is
-  'True only when the signed request token and authoritative Auth session prove a WebAuthn challenge with the activated exact factor after trusted activation.';
+  'True only when the signed request token and authoritative Auth session prove a user-verified WebAuthn challenge with the activated exact factor after trusted activation.';
 
 create or replace function public.activate_internal_admin_mfa(
   p_user_id uuid,
