@@ -72,6 +72,8 @@ jobs:
       SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
       SUPABASE_SEND_EMAIL_HOOK_SECRET: ${{ secrets.SUPABASE_SEND_EMAIL_HOOK_SECRET }}
       SUPABASE_SEND_EMAIL_HOOK_URI: https://nabaperks.com/api/auth/hooks/send-email
+      PRODUCTION_ALERT_WEBHOOK_URL: https://${{ vars.SUPABASE_PROJECT_REF }}.supabase.co/functions/v1/production-alert
+      PRODUCTION_ALERT_WEBHOOK_SECRET: ${{ secrets.PRODUCTION_ALERT_WEBHOOK_SECRET }}
       VERCEL_GIT_COMMIT_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
       VERCEL_ENV: production
       DO_NOT_TRACK: "1"
@@ -87,6 +89,7 @@ jobs:
           test -n "$SUPABASE_ACCESS_TOKEN"
           test -n "$SUPABASE_PROJECT_REF"
           test -n "$SUPABASE_SEND_EMAIL_HOOK_SECRET"
+          test -n "$PRODUCTION_ALERT_WEBHOOK_SECRET"
       - name: Load the immutable canonical Vercel target
         run: |
           node scripts/vercel-production-target.mjs \
@@ -129,6 +132,32 @@ jobs:
             --argjson project "$metadata" \
             '{scope: $team.slug, team: {id: $team.id, slug: $team.slug}, project: {id: $project.id, name: $project.name, accountId: $project.accountId}, providerVerified: true}' \
             > "$RUNNER_TEMP/release-vercel-target.json"
+      - name: Deploy and prove the production alert receiver
+        run: |
+          secrets_file="$RUNNER_TEMP/supabase-function-secrets.json"
+          supabase secrets list \
+            --project-ref "$SUPABASE_PROJECT_REF" \
+            --output json > "$secrets_file"
+          for required_name in \
+            PRODUCTION_ALERT_WEBHOOK_SECRET \
+            RESEND_API_KEY \
+            RESEND_FROM; do
+            jq -e --arg name "$required_name" \
+              'map(.name) | index($name) != null' \
+              "$secrets_file" >/dev/null
+          done
+          supabase functions deploy production-alert \
+            --no-verify-jwt \
+            --project-ref "$SUPABASE_PROJECT_REF"
+          functions_file="$RUNNER_TEMP/supabase-functions.json"
+          supabase functions list \
+            --project-ref "$SUPABASE_PROJECT_REF" \
+            --output json > "$functions_file"
+          jq -e \
+            '.[] | select(.name == "production-alert" and .status == "ACTIVE")' \
+            "$functions_file" >/dev/null
+          node scripts/notify-production-alert.mjs trigger release-canary
+          node scripts/notify-production-alert.mjs resolve release-canary
       - name: Package the immutable source revision
         run: |
           git archive --format=tar --prefix=nabaperks/ "$EXPECTED_REVISION" \

@@ -186,6 +186,10 @@ minimum_password_length = 8
 # are: `letters_digits`, `lower_upper_letters_digits`, `lower_upper_letters_digits_symbols`
 password_requirements = "letters_digits"
 
+[functions.production-alert]
+verify_jwt = false
+entrypoint = "./functions/production-alert/index.mjs"
+
 # Configure passkey sign-ins.
 # [auth.passkey]
 # enabled = false

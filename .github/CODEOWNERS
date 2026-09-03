@@ -1,16 +1,16 @@
 # Code ownership for review routing and branch-protection "require review from
 # Code Owners". Default owner for everything not matched below.
-* @lapeninns
+* @lapeninns @amanshresthaa
 
 # Build and deployment.
-/.github/ @lapeninns
-/DESIGN.md @lapeninns
+/.github/ @lapeninns @amanshresthaa
+/DESIGN.md @lapeninns @amanshresthaa
 
 # Trust boundary: data model, RLS, and the security-definer RPCs.
-/supabase/ @lapeninns
-/lib/supabase/ @lapeninns
-/lib/security/ @lapeninns
+/supabase/ @lapeninns @amanshresthaa
+/lib/supabase/ @lapeninns @amanshresthaa
+/lib/security/ @lapeninns @amanshresthaa
 
 # Billing and external integrations.
-/lib/stripe/ @lapeninns
-/app/api/ @lapeninns
+/lib/stripe/ @lapeninns @amanshresthaa
+/app/api/ @lapeninns @amanshresthaa

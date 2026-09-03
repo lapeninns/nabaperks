@@ -184,6 +184,21 @@ query parameters or a non-standard port. Run IDs, the expected revision and a
 random delivery ID are the only event identifiers sent; no customer or provider
 payload is included.
 
+The reviewed receiver is the `production-alert` Supabase Edge Function. Keep
+the matching alert secret, `RESEND_API_KEY` and `RESEND_FROM` in Supabase
+Function secrets, never in source. The service-role claim resolves the first
+active internal administrator as the human recipient and fails closed if none
+exists. Keep a
+matching alert-secret copy in the protected GitHub `Production` environment so
+the release workflow can prove a real trigger and resolution on the isolated
+`release-canary` incident key before promotion. The canary must never use or
+change either operational incident key.
+The function verifies the signature before parsing, persists delivery and incident
+state through service-role-only RPCs, and uses the delivery ID as the Resend
+idempotency key. Configure the GitHub `Monitoring` URL and secret only after
+the fixed workflow revision and receiver are live; otherwise an older workflow
+could resolve an incident using its deprecated comment marker.
+
 Review the migration files before approving the production environment gate.
 The workflow first runs the cost-neutral ephemeral proof described above. Only
 after it passes can the `Production` environment release credentials. The
@@ -232,20 +247,19 @@ the security boundary.
 Database promotion installs the reviewed hook functions but deliberately does
 not publish hosted Auth configuration. `Production deployment` then stages the
 passwordless application and proves that its hook accepts the protected shared
-secret while rejecting an alternate signature. Before changing the public
-domain, the workflow enables only the Postgres custom-access-token hook through
-the Management API and reads back its exact enabled state and function URI.
-This closes direct password-token issuance before the new application is
-public. The current password UI may fail closed for the short interval between
-that readback and promotion; availability must not take priority over restoring
-password authority.
+secret while rejecting an alternate signature. It promotes that verified build
+before enabling server-side enforcement so the public application no longer
+offers a password flow when password-origin sessions begin failing closed.
 
-After domain promotion, `supabase config push` activates the complete reviewed
-Auth configuration, including the Send Email hook. A Management API readback
+Immediately after promotion, the workflow installs and live-probes the
+PostgREST pre-request guard, then enables and reads back the Postgres custom
+access-token hook. `supabase config push` activates the complete reviewed Auth
+configuration, including the Send Email hook. A final Management API readback
 must prove both exact hook URIs before the same non-delivering signed canary is
-run at the public origin. This ordering keeps the shared secret out of source,
-does not repoint production email to a staged hostname, and cannot leave the new
-application public while GoTrue still issues password-origin tokens.
+run at the public origin. Any failure after promotion leaves the passwordless UI
+in place but holds the security release as incomplete until the missing
+server-side activation is retried or the deployment is rolled back. It must
+never be worked around by restoring password UI or weakening either guard.
 
 If either canary, Auth readback, promotion or config push fails, stop the
 release and follow the rollback section. Do not substitute a source-owned hook
