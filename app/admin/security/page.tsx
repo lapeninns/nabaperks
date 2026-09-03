@@ -23,7 +23,7 @@ export default async function AdminSecurityPage() {
   if (enrolled) {
     const supabase = await createSupabaseServerClient()
     const { data } = await supabase.auth.mfa.listFactors()
-    factorId = data?.totp?.[0]?.id ?? null
+    factorId = data?.webauthn?.[0]?.id ?? null
   }
 
   return (

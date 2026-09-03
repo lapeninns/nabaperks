@@ -12,7 +12,7 @@ on:
         required: true
         type: string
       factor_id:
-        description: Independently verified sole TOTP factor UUID
+        description: Independently verified sole WebAuthn factor UUID
         required: true
         type: string
       confirmation:
@@ -81,7 +81,7 @@ jobs:
             echo "### Production admin MFA activation"
             echo
             echo "- Revision: \`$EXPECTED_REVISION\`"
-            echo "- Independently verified sole TOTP factor: activated"
+            echo "- Independently verified sole WebAuthn factor: activated"
             echo "- Audited database boundary: passed"
             echo "- No user or factor identifier is included in this summary"
           } >> "$GITHUB_STEP_SUMMARY"

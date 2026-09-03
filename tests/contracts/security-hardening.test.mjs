@@ -33,6 +33,11 @@ test("Given admin RPCs and RLS policies share the internal-admin helper When SQL
     "migrations",
     "20260902120500_enforce_activated_admin_mfa.sql"
   )
+  const webAuthnMigration = readProjectFile(
+    "supabase",
+    "migrations",
+    "20260902120200_support_admin_webauthn_mfa.sql"
+  )
   const adminAuth = readProjectFile("lib", "admin", "auth.ts")
 
   assert.match(
@@ -45,7 +50,8 @@ test("Given admin RPCs and RLS policies share the internal-admin helper When SQL
   // verified factors fails closed before the session's AAL2 claim is accepted.
   assert.match(expandMigration, /factor\.id = admin\.mfa_factor_id/)
   assert.match(expandMigration, /factor\.user_id = admin\.user_id/)
-  assert.match(expandMigration, /factor\.factor_type = 'totp'/)
+  assert.match(webAuthnMigration, /factor\.factor_type = 'webauthn'/)
+  assert.match(webAuthnMigration, /authentication_method = 'mfa\/webauthn'/)
   assert.match(expandMigration, /factor\.status = 'verified'/)
   assert.match(expandMigration, /select count\(\*\)[\s\S]*= 1/)
   assert.match(expandMigration, /=\s*'aal2'/)

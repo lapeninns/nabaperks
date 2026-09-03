@@ -41,7 +41,7 @@ test(
       assert.equal(
         allowed,
         false,
-        "an enrolled admin whose session never completed the TOTP challenge must not be an internal admin at the database boundary"
+        "an enrolled admin whose session never completed the WebAuthn challenge must not be an internal admin at the database boundary"
       )
     })
   }
@@ -67,7 +67,7 @@ test(
 )
 
 test(
-  "trusted activation binds only the sole verified TOTP factor and is audited",
+  "trusted activation binds only the sole verified WebAuthn factor and is audited",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
@@ -181,12 +181,40 @@ test(
 )
 
 test(
+  "a WebAuthn factor without authenticator user verification cannot activate",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const admin = await createInternalAdmin(tx, { withVerifiedFactor: false })
+      const factorId = await insertMfaFactor(
+        tx,
+        admin.userId,
+        "verified",
+        "webauthn",
+        false
+      )
+
+      await assert.rejects(
+        () =>
+          tx.savepoint(
+            (sp) => sp`
+              select public.activate_internal_admin_mfa(
+                ${admin.userId}::uuid, ${factorId}::uuid
+              )`
+          ),
+        (error) => error?.code === "42501"
+      )
+    })
+  }
+)
+
+test(
   "a second verified factor invalidates the trusted admin factor binding",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
       const admin = await createInternalAdmin(tx, { withVerifiedFactor: true })
-      await insertTotpFactor(tx, admin.userId, "verified")
+      await insertWebAuthnFactor(tx, admin.userId, "verified")
 
       const allowed = await asAuthenticatedUser(
         tx,
@@ -220,7 +248,7 @@ test(
   async () => {
     await inRolledBackTxn(async (tx) => {
       const admin = await createInternalAdmin(tx, { withVerifiedFactor: true })
-      const unapprovedFactor = await insertTotpFactor(
+      const unapprovedFactor = await insertWebAuthnFactor(
         tx,
         admin.userId,
         "verified"
@@ -293,7 +321,7 @@ test(
           ${sessionId}::uuid,
           ${oldChallengeAt},
           ${oldChallengeAt},
-          'totp'
+          'mfa/webauthn'
         )`
       const oldClaims = {
         sub: admin.userId,
@@ -302,13 +330,13 @@ test(
         session_id: sessionId,
         amr: [
           {
-            method: "totp",
+            method: "mfa/webauthn",
             timestamp: Math.floor(oldChallengeAt.getTime() / 1_000),
           },
         ],
       }
 
-      const replacementFactor = await insertTotpFactor(
+      const replacementFactor = await insertWebAuthnFactor(
         tx,
         admin.userId,
         "verified"
@@ -345,7 +373,7 @@ test(
         update auth.mfa_amr_claims
         set updated_at = ${newChallengeAt}
         where session_id = ${sessionId}::uuid
-          and authentication_method = 'totp'`
+          and authentication_method = 'mfa/webauthn'`
 
       const staleAllowed = await asBlobClaimsUser(
         tx,
@@ -366,7 +394,7 @@ test(
           ...oldClaims,
           amr: [
             {
-              method: "totp",
+              method: "mfa/webauthn",
               timestamp: Math.floor(newChallengeAt.getTime() / 1_000),
             },
           ],
@@ -483,7 +511,7 @@ test(
 )
 
 test(
-  "a bound verified non-TOTP factor cannot activate authority",
+  "a bound verified non-WebAuthn factor cannot activate authority",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
@@ -514,7 +542,7 @@ test(
       assert.equal(
         allowed,
         false,
-        "only the supported TOTP factor can activate"
+        "only the supported WebAuthn factor can activate"
       )
     })
   }
@@ -645,7 +673,7 @@ async function createInternalAdmin(
     values (${userId}::uuid, ${email}, ${isActive})`
 
   if (withVerifiedFactor) {
-    const factorId = await insertTotpFactor(tx, userId, "verified")
+    const factorId = await insertWebAuthnFactor(tx, userId, "verified")
     if (activateVerifiedFactor && isActive) {
       await tx`
         select public.activate_internal_admin_mfa(
@@ -654,24 +682,39 @@ async function createInternalAdmin(
     }
   }
   if (withUnverifiedFactor) {
-    await insertTotpFactor(tx, userId, "unverified")
+    await insertWebAuthnFactor(tx, userId, "unverified")
   }
 
   return { userId, email }
 }
 
-async function insertTotpFactor(tx, userId, status) {
-  return insertMfaFactor(tx, userId, status, "totp")
+async function insertWebAuthnFactor(tx, userId, status) {
+  return insertMfaFactor(tx, userId, status, "webauthn")
 }
 
-async function insertMfaFactor(tx, userId, status, factorType) {
+async function insertMfaFactor(
+  tx,
+  userId,
+  status,
+  factorType,
+  userVerified = true
+) {
   const factorId = randomUUID()
   await tx`
     insert into auth.mfa_factors
-      (id, user_id, friendly_name, factor_type, status, created_at, updated_at)
+      (id, user_id, friendly_name, factor_type, status,
+       web_authn_credential, created_at, updated_at)
     values
       (${factorId}::uuid, ${userId}::uuid, ${`${factorType}-${status}-${factorId}`},
-       ${factorType}::auth.factor_type, ${status}::auth.factor_status, now(), now())`
+       ${factorType}::auth.factor_type, ${status}::auth.factor_status,
+       case
+         when ${factorType} = 'webauthn'
+           then jsonb_build_object(
+             'flags', jsonb_build_object('userVerified', ${userVerified})
+           )
+         else null
+       end,
+       now(), now())`
   return factorId
 }
 
@@ -784,7 +827,7 @@ async function claimsWithCurrentMfaEvidence(tx, userId, aal) {
       ${sessionId}::uuid,
       ${challengedAt},
       ${challengedAt},
-      'totp'
+      'mfa/webauthn'
     )`
 
   return {
@@ -792,7 +835,7 @@ async function claimsWithCurrentMfaEvidence(tx, userId, aal) {
     session_id: sessionId,
     amr: [
       {
-        method: "totp",
+        method: "mfa/webauthn",
         timestamp: Math.floor(challengedAt.getTime() / 1_000),
       },
     ],

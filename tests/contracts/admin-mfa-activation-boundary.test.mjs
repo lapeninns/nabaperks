@@ -24,6 +24,11 @@ test("admin authority requires trusted factor activation and aal2", () => {
     "migrations",
     "20260902120500_enforce_activated_admin_mfa.sql"
   )
+  const webAuthnMigration = readProjectFile(
+    "supabase",
+    "migrations",
+    "20260902120200_support_admin_webauthn_mfa.sql"
+  )
 
   assert.match(expandMigration, /factor\.id = admin\.mfa_factor_id/)
   assert.match(expandMigration, /factor\.status = 'verified'/)
@@ -62,9 +67,16 @@ test("admin authority requires trusted factor activation and aal2", () => {
     expandMigration,
     /revoke all on function public\.has_activated_admin_mfa\(uuid\)[\s\S]*from public, anon, authenticated/
   )
+  assert.match(webAuthnMigration, /factor\.factor_type = 'webauthn'/)
   assert.match(
-    expandMigration,
-    /activate_internal_admin_mfa\([\s\S]*is_service_role_request\(\)[\s\S]*factor\.id = p_factor_id[\s\S]*factor\.factor_type = 'totp'[\s\S]*factor\.status = 'verified'/
+    webAuthnMigration,
+    /web_authn_credential #>> '\{flags,userVerified\}'[\s\S]*= 'true'/
+  )
+  assert.match(webAuthnMigration, /authentication_method = 'mfa\/webauthn'/)
+  assert.match(webAuthnMigration, /method ->> 'method' = 'mfa\/webauthn'/)
+  assert.match(
+    webAuthnMigration,
+    /activate_internal_admin_mfa\([\s\S]*is_service_role_request\(\)[\s\S]*factor\.id = p_factor_id[\s\S]*factor\.factor_type = 'webauthn'[\s\S]*factor\.status = 'verified'/
   )
   assert.match(expandMigration, /'admin_mfa_factor_activated'/)
   assert.match(
@@ -105,6 +117,44 @@ test("production activation is protected, exact-revision and identifier-safe", (
 test("direct Auth enrolment cannot add an attacker-controlled second factor", () => {
   const config = readProjectFile("supabase", "config.toml")
   assert.match(config, /\[auth\.mfa\][\s\S]*max_enrolled_factors = 1/)
+  assert.match(
+    config,
+    /\[auth\.mfa\.web_authn\][\s\S]*enroll_enabled = true[\s\S]*verify_enabled = true/
+  )
+  assert.match(
+    config,
+    /\[auth\.mfa\.totp\][\s\S]*enroll_enabled = false[\s\S]*verify_enabled = false/
+  )
+  assert.match(config, /rp_id = "nabaperks\.com"/)
+})
+
+test("the compatibility bootstrap preserves the independent activation boundary", () => {
+  const route = readProjectFile(
+    "app",
+    "api",
+    "admin-mfa-bootstrap",
+    "authorize",
+    "route.ts"
+  )
+  const workflow = readProjectFile(
+    ".github",
+    "workflows",
+    "admin-mfa-bootstrap.yml"
+  )
+
+  assert.match(route, /supabase\.auth\.getUser\(\)/)
+  assert.match(route, /internal_admins/)
+  assert.match(route, /admin\?\.is_active !== true/)
+  assert.match(route, /verifiedFactors\.length !== 0/)
+  assert.match(workflow, /environment: Production/)
+  assert.match(workflow, /20260902120200/)
+  assert.match(workflow, /20260902120500/)
+  assert.match(workflow, /sole_active_admin/)
+  assert.match(workflow, /active_admin_is_factorless/)
+  assert.match(workflow, /mfa\.nabaperks\.com/)
+  assert.match(workflow, /--prod/)
+  assert.match(workflow, /--skip-domain/)
+  assert.doesNotMatch(workflow, /activate_internal_admin_mfa/)
 })
 
 test("factor lifecycle changes invalidate binding and direct DML is guarded", () => {

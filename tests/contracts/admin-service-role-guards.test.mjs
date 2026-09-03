@@ -69,20 +69,11 @@ test("Given the admin step-up gate When auth helpers are inspected Then privileg
   // reachable from the very aal1 session the step-up is waiting on. Slice to
   // the NEXT export so a sibling function's copy cannot satisfy the assertion.
   assert.match(
-    sliceExport(securityActions, "beginAdminMfaEnrollment"),
-    /adminMfaEnrollmentAllowed\(access\.mfaState\)/
-  )
-  assert.match(
-    sliceExport(securityActions, "verifyAdminMfaEnrollment"),
+    sliceExport(securityActions, "authorizeAdminMfaEnrollment"),
     /adminMfaEnrollmentAllowed\(access\.mfaState\)/
   )
 
   assert.match(adminAuth, /access\.mfaAuthority/)
-
-  // Stepping up itself must stay on the read gate or it is unsatisfiable.
-  const stepUp = sliceExport(securityActions, "stepUpAdminMfa")
-  assert.match(stepUp, /await requireAdminRead\(\)/)
-  assert.doesNotMatch(stepUp, /adminMfaEnrollmentAllowed/)
 })
 
 test("Given the admin layout and security page When inspected Then an indeterminate assurance level cannot strand an admin", () => {
