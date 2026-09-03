@@ -3,16 +3,48 @@ import { pathToFileURL } from "node:url"
 import path from "node:path"
 
 const EXACT_FORBIDDEN_NAMES = new Set([".env.vercel-production"])
-const BACKUP_NAME_PATTERNS = [
-  /^\.env(?:\.[a-z0-9_-]+)*(?:\.|-)(?:bak|backup|copy|old|orig|save)(?:[._-][a-z0-9_-]+)*~?$/i,
-  /^\.env(?:\.[a-z0-9_-]+)*~$/i,
-]
+const BACKUP_MARKERS = new Set(["bak", "backup", "copy", "old", "orig", "save"])
+
+function isAsciiLetterOrDigit(character) {
+  const code = character.charCodeAt(0)
+  return (code >= 48 && code <= 57) || (code >= 97 && code <= 122)
+}
+
+function hasBackupMarker(name) {
+  if (!name.startsWith(".env") || name.length === 4) return false
+
+  const suffix = name.slice(4)
+  if (suffix === "~") return true
+  if (suffix[0] !== "." && suffix[0] !== "-") return false
+
+  let token = ""
+  for (let index = 1; index <= suffix.length; index += 1) {
+    const character = suffix[index]
+    if (character && isAsciiLetterOrDigit(character)) {
+      token += character
+      continue
+    }
+
+    if (BACKUP_MARKERS.has(token)) return true
+    token = ""
+
+    if (
+      character !== undefined &&
+      character !== "." &&
+      character !== "-" &&
+      character !== "_" &&
+      !(character === "~" && index === suffix.length - 1)
+    ) {
+      return false
+    }
+  }
+
+  return name.endsWith("~")
+}
 
 function isForbiddenCredentialBackupName(name) {
-  return (
-    EXACT_FORBIDDEN_NAMES.has(name.toLowerCase()) ||
-    BACKUP_NAME_PATTERNS.some((pattern) => pattern.test(name))
-  )
+  const normalised = name.toLowerCase()
+  return EXACT_FORBIDDEN_NAMES.has(normalised) || hasBackupMarker(normalised)
 }
 
 export function forbiddenCredentialBackupNames(names) {

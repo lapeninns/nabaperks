@@ -71,3 +71,15 @@ test("credential backup policy preserves supported environment files", () => {
     []
   )
 })
+
+test("credential backup policy handles repeated separators in linear time", () => {
+  const repeatedSeparators = `.env.bak-${"--".repeat(100_000)}tail`
+
+  assert.deepEqual(forbiddenCredentialBackupNames([repeatedSeparators]), [
+    repeatedSeparators,
+  ])
+  assert.deepEqual(
+    forbiddenCredentialBackupNames([".env.backupish", ".environment.backup"]),
+    []
+  )
+})
