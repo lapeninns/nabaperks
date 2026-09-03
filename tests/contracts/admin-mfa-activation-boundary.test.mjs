@@ -151,7 +151,7 @@ test("the compatibility bootstrap preserves the independent activation boundary"
   assert.match(workflow, /20260902120500/)
   assert.match(workflow, /sole_active_admin/)
   assert.match(workflow, /active_admin_is_factorless/)
-  assert.match(workflow, /mfa\.nabaperks\.com/)
+  assert.equal(workflow.includes("https://mfa.nabaperks.com"), true)
   assert.match(workflow, /--prod/)
   assert.match(workflow, /--skip-domain/)
   assert.doesNotMatch(workflow, /activate_internal_admin_mfa/)
