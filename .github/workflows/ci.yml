@@ -195,7 +195,10 @@ jobs:
       fail-fast: false
       matrix:
         project: [chromium, mobile-safari, desktop-firefox, desktop-safari]
-        shard: [1/4, 2/4, 3/4, 4/4]
+        # Keep each webpack dev server below Next's memory-restart threshold.
+        # Standard public-repository runners are free, so isolation does not
+        # require paid capacity.
+        shard: [1/8, 2/8, 3/8, 4/8, 5/8, 6/8, 7/8, 8/8]
     env:
       # The dev-server tier is single-worker on purpose: under two parallel
       # workers the webpack dev server intermittently 500s mid-suite
@@ -246,7 +249,7 @@ jobs:
       fail-fast: false
       matrix:
         project: [chromium, mobile-safari]
-        shard: [1/2, 2/2]
+        shard: [1/4, 2/4, 3/4, 4/4]
     env:
       PLAYWRIGHT_WORKERS: "1"
       PLAYWRIGHT_REGULAR_CHROMIUM: "1"
@@ -289,7 +292,7 @@ jobs:
       fail-fast: false
       matrix:
         project: [chromium, mobile-safari]
-        shard: [1/2, 2/2]
+        shard: [1/4, 2/4, 3/4, 4/4]
     env:
       # Pixel snapshots stay single-worker on purpose: parallel load shifts
       # paint timing and would destabilise the blessed baselines.
