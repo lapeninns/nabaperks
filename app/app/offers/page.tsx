@@ -153,7 +153,11 @@ function OffersEmptyState() {
         <Eyebrow>What an offer can give</Eyebrow>
         {/* Snap-scroll rail of compact icon rows on the phone; three-up grid
             from sm. Mirrored by the offers harness lane. */}
-        <ul className="flex snap-x [scrollbar-width:none] gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0 [&::-webkit-scrollbar]:hidden">
+        <ul
+          aria-label="Offer benefit examples"
+          className="focus-ring flex snap-x [scrollbar-width:none] gap-2 overflow-x-auto rounded-sm pb-1 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0 [&::-webkit-scrollbar]:hidden"
+          tabIndex={0}
+        >
           {OFFER_BENEFIT_PRESETS.map((preset) => (
             <li
               key={preset.kind}
