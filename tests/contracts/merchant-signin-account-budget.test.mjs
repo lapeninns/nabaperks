@@ -49,7 +49,7 @@ test("merchant password auth is rejected at the provider token boundary", () => 
   assert.match(accessTokenHook, /enforce_passwordless_data_api_session/)
   assert.match(
     accessTokenHook,
-    /alter role authenticator[\s\S]*pgrst\.db_pre_request = 'public\.enforce_passwordless_data_api_session'/
+    /alter role authenticator[\s\S]*pgrst\.db_pre_request = 'private\.enforce_passwordless_data_api_session'/
   )
   assert.match(accessTokenHook, /notify pgrst, 'reload config'/)
   assert.match(session, /current_auth_session_is_passwordless/)
