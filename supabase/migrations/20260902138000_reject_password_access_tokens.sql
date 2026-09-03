@@ -86,7 +86,13 @@ grant execute on function public.current_auth_session_is_passwordless()
 -- the same positive-evidence check before every Data API request so a password
 -- JWT minted just before hook activation cannot read RLS-protected tables or
 -- call authenticated RPCs during the rollout window.
-create or replace function public.enforce_passwordless_data_api_session()
+create schema if not exists private;
+revoke all on schema private from public;
+grant usage on schema private to anon, authenticated, service_role;
+
+drop function if exists public.enforce_passwordless_data_api_session();
+
+create or replace function private.enforce_passwordless_data_api_session()
 returns void
 language plpgsql
 stable
@@ -104,13 +110,13 @@ begin
 end;
 $$;
 
-revoke all on function public.enforce_passwordless_data_api_session()
+revoke all on function private.enforce_passwordless_data_api_session()
   from public, anon, authenticated, service_role;
-grant execute on function public.enforce_passwordless_data_api_session()
+grant execute on function private.enforce_passwordless_data_api_session()
   to anon, authenticated, service_role;
 
 alter role authenticator
-  set pgrst.db_pre_request = 'public.enforce_passwordless_data_api_session';
+  set pgrst.db_pre_request = 'private.enforce_passwordless_data_api_session';
 
 notify pgrst, 'reload config';
 notify pgrst, 'reload schema';

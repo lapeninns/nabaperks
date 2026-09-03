@@ -244,7 +244,7 @@ test(
           role: "authenticated",
           amr: [{ method: "password", timestamp: 1 }],
         })
-        await tx`select public.enforce_passwordless_data_api_session()`
+        await tx`select private.enforce_passwordless_data_api_session()`
       }),
       /passwordless authentication session is required/i
     )
@@ -254,7 +254,7 @@ test(
         role: "authenticated",
         amr: [{ method: "otp", timestamp: 1 }],
       })
-      await tx`select public.enforce_passwordless_data_api_session()`
+      await tx`select private.enforce_passwordless_data_api_session()`
     })
   }
 )
@@ -275,27 +275,27 @@ test(
           ) as pre_request,
           has_function_privilege(
             'authenticated',
-            'public.enforce_passwordless_data_api_session()',
+            'private.enforce_passwordless_data_api_session()',
             'execute'
           ) as authenticated,
           has_function_privilege(
             'anon',
-            'public.enforce_passwordless_data_api_session()',
+            'private.enforce_passwordless_data_api_session()',
             'execute'
           ) as anon,
           has_function_privilege(
             'service_role',
-            'public.enforce_passwordless_data_api_session()',
+            'private.enforce_passwordless_data_api_session()',
             'execute'
           ) as service_role,
           has_function_privilege(
             'public',
-            'public.enforce_passwordless_data_api_session()',
+            'private.enforce_passwordless_data_api_session()',
             'execute'
           ) as public`
 
       assert.deepEqual(row, {
-        pre_request: "public.enforce_passwordless_data_api_session",
+        pre_request: "private.enforce_passwordless_data_api_session",
         authenticated: true,
         anon: true,
         service_role: true,
