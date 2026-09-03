@@ -97,7 +97,11 @@ export default defineConfig({
     {
       name: "chromium",
       snapshotPathTemplate: ciLinuxSnapshotPathTemplate,
-      testMatch: ["**/*.desktop.spec.ts", "**/visual.spec.ts"],
+      testMatch: [
+        "**/*.desktop.spec.ts",
+        "**/auth-password-policy.spec.ts",
+        "**/visual.spec.ts",
+      ],
       use: {
         ...devices["Desktop Chrome"],
         // Functional and accessibility CI opt into regular Chromium's new
