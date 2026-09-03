@@ -193,6 +193,14 @@ async function installCustomerSession(
       sameSite: "Lax",
       expires: fixture.session.expiresAt,
     },
+    {
+      name: fixture.session.deviceCookieName,
+      value: fixture.session.deviceCookieValue,
+      url: baseURL,
+      httpOnly: true,
+      sameSite: "Lax",
+      expires: fixture.session.expiresAt,
+    },
   ])
 }
 

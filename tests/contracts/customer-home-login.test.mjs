@@ -26,10 +26,11 @@ test("Given a customer login phone is unknown When the request action runs Then 
   const requestBlock = actions.slice(requestStart, verifyStart)
   assert.doesNotMatch(requestBlock, /findCustomerByVerifiedPhone/)
   assert.doesNotMatch(requestBlock, /customerId:/)
-  assert.doesNotMatch(
-    actions,
-    /if \(!customer\) \{[\s\S]*fields: \{ contact, otpSent: true \}/
+  const unknownCustomerBlock = actions.slice(
+    actions.indexOf("if (!customer)"),
+    actions.indexOf('let access: "authenticated" | "recovery"')
   )
+  assert.doesNotMatch(unknownCustomerBlock, /otpSent: true/)
   assert.match(
     actions,
     /const verification = await checkCustomerPhoneVerification\(contact, otp\)[\s\S]*findCustomerByVerifiedPhone[\s\S]*if \(!customer\)/

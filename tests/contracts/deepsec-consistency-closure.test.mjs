@@ -74,22 +74,21 @@ test("stale PII retention locks and repeats eligibility before side effects", ()
   )
 })
 
-test("recycled-number takeover remains an explicit, time-bounded accepted risk", () => {
+test("recycled-number takeover is replaced by device and verified-email continuity", () => {
   const register = read("docs", "operations", "security-risk-register.md")
 
   assert.match(
     register,
     /SEC-RISK-001: recycled mobile number customer access/i
   )
-  assert.match(register, /\| Status\s+\| Accepted\s+\|/)
+  assert.match(register, /\| Status\s+\| Remediated in source;/)
   assert.match(register, /\| Risk owner\s+\| `info@lapeninns\.com`\s+\|/)
-  assert.match(register, /\| Review due\s+\| 21 October 2026\s+\|/)
-  assert.match(register, /retain phone-only customer access/i)
+  assert.match(register, /previously customer-bound device/i)
   assert.match(
     register,
-    /may therefore inherit the previous holder's customer session/i
+    /unrecognised device without a verified recovery email fails closed/i
   )
-  assert.match(register, /do not solve number\s+reassignment/i)
+  assert.match(register, /Unbound legacy sessions are revoked/i)
 })
 
 test("static QR presence limits remain an explicit, time-bounded accepted risk", () => {

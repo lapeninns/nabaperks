@@ -149,6 +149,14 @@ export async function installCustomerSession(
       sameSite: "Lax",
       expires: session.expiresAt,
     },
+    {
+      name: session.deviceCookieName,
+      value: session.deviceCookieValue,
+      url: baseURL,
+      httpOnly: true,
+      sameSite: "Lax",
+      expires: session.expiresAt,
+    },
   ])
 }
 

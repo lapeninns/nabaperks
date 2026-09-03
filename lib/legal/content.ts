@@ -153,12 +153,12 @@ export const COOKIE_SECTIONS: LegalSection[] = [
   {
     id: "customer-cookies",
     title: "Customer verification and session cookies",
-    body: "The HttpOnly nabaperks_pending_phone and nabaperks_pending_email cookies each last up to 10 minutes while a phone number or email is checked. After phone verification, the signed HttpOnly nabaperks_customer_session cookie normally lasts 30 days and identifies a revocable server-side customer session.",
+    body: "The HttpOnly nabaperks_pending_phone, nabaperks_pending_email, and nabaperks_access_recovery cookies each last up to 10 minutes while a phone number, email, or existing-wallet recovery is checked. After verification, the signed HttpOnly nabaperks_customer_session cookie normally lasts 30 days and identifies a revocable, device-bound server-side customer session.",
   },
   {
     id: "device-cookie",
     title: "Device and rate-limit cookie",
-    body: "The HttpOnly nabaperks_device cookie is created on application routes and lasts up to one year. It supplies a signed device identifier used by security and rate-limit controls. It is not an authoritative customer, loyalty, reward, or consent record.",
+    body: "The HttpOnly nabaperks_device cookie is created on application routes and lasts up to one year. It supplies a signed device identifier used by security, existing-wallet continuity, session binding, and rate-limit controls. It does not itself contain or grant customer, loyalty, reward, or consent authority.",
   },
   {
     id: "journey-cookie",

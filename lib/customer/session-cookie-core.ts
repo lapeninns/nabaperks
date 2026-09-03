@@ -34,6 +34,19 @@ export type PendingEmailPayload = {
   readonly expiresAt: number
 }
 
+export type PendingAccessRecoveryPayload = {
+  readonly version: 1
+  readonly sessionId: string
+  readonly customerId: string
+  readonly phoneHmac: string
+  readonly deviceHash: string
+  readonly emailHmac: string | null
+  readonly codeHmac: string | null
+  readonly next: string
+  readonly issuedAt: number
+  readonly expiresAt: number
+}
+
 export type CookieReadResult<T> =
   | { readonly ok: true; readonly payload: T }
   | {
@@ -88,6 +101,31 @@ export function readPendingEmailCookieValue(
     context: "email",
     nowSeconds,
     parse: parsePendingEmailPayload,
+  })
+}
+
+export function createPendingAccessRecoveryCookieValue(
+  payload: PendingAccessRecoveryPayload,
+  secret: string
+): string {
+  return createEncryptedPendingCookieValue({
+    payload,
+    secret,
+    context: "access-recovery",
+  })
+}
+
+export function readPendingAccessRecoveryCookieValue(
+  value: string,
+  secret: string,
+  nowSeconds: number
+): CookieReadResult<PendingAccessRecoveryPayload> {
+  return readEncryptedPendingCookieValue({
+    value,
+    secret,
+    context: "access-recovery",
+    nowSeconds,
+    parse: parsePendingAccessRecoveryPayload,
   })
 }
 
@@ -209,6 +247,53 @@ function parsePendingEmailPayload(value: unknown): PendingEmailPayload | null {
   if (typeof expiresAt !== "number") return null
 
   return { version, email, codeHmac, customerId, issuedAt, expiresAt }
+}
+
+function parsePendingAccessRecoveryPayload(
+  value: unknown
+): PendingAccessRecoveryPayload | null {
+  if (!isRecord(value)) return null
+
+  const version = value.version
+  const sessionId = value.sessionId
+  const customerId = value.customerId
+  const phoneHmac = value.phoneHmac
+  const deviceHash = value.deviceHash
+  const emailHmac = value.emailHmac ?? null
+  const codeHmac = value.codeHmac ?? null
+  const next = value.next
+  const issuedAt = value.issuedAt
+  const expiresAt = value.expiresAt
+
+  if (version !== 1) return null
+  if (typeof sessionId !== "string") return null
+  if (typeof customerId !== "string") return null
+  if (typeof phoneHmac !== "string") return null
+  if (typeof deviceHash !== "string") return null
+  if (emailHmac !== null && typeof emailHmac !== "string") return null
+  if (codeHmac !== null && typeof codeHmac !== "string") return null
+  if (
+    typeof next !== "string" ||
+    !next.startsWith("/") ||
+    next.startsWith("//")
+  ) {
+    return null
+  }
+  if (typeof issuedAt !== "number") return null
+  if (typeof expiresAt !== "number") return null
+
+  return {
+    version,
+    sessionId,
+    customerId,
+    phoneHmac,
+    deviceHash,
+    emailHmac,
+    codeHmac,
+    next,
+    issuedAt,
+    expiresAt,
+  }
 }
 
 function parseCustomerSessionPayload(

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation"
 import { after } from "next/server"
 
 import { attachRewardInvitesForCustomer } from "@/lib/customer/reward-invites"
+import { establishCustomerSessionAfterVerifiedPhone } from "@/lib/customer/access-continuity"
 import { decryptCustomerEmail } from "@/lib/customer/email-encryption-core"
 import { customerEmailHmac } from "@/lib/customer/email-pii-core"
 import {
@@ -29,7 +30,6 @@ import { defaultCountryFromHeaders, normalizePhone } from "@/lib/customer/phone"
 import {
   clearPendingPhoneVerification,
   getPendingPhoneVerification,
-  setCustomerSession,
   setPendingPhoneVerification,
 } from "@/lib/customer/session"
 import {
@@ -285,13 +285,12 @@ export async function verifyCustomerOtpAction(
     }
   }
 
-  const customer = await getOrCreateCustomerByVerifiedPhone({
+  const resolution = await getOrCreateCustomerByVerifiedPhone({
     e164: pending.phone,
     country: pending.country,
     last4: pending.phone.slice(-4),
   })
-  await setCustomerSession(customer.id)
-  await clearPendingPhoneVerification()
+  const { customer } = resolution
   await captureJoinFunnelEvent({
     eventName: "join_otp_verified",
     customerId: customer.id,
@@ -299,6 +298,30 @@ export async function verifyCustomerOtpAction(
     entry: joinEntry({ qrId, referralCode: ref }),
     step: "otp",
   })
+
+  let access: "authenticated" | "recovery"
+  try {
+    access = await establishCustomerSessionAfterVerifiedPhone({
+      customer,
+      customerWasCreated: resolution.created,
+      phoneHmac: pending.phoneHmac,
+      next: buildCustomerJoinHref(merchantSlug, {
+        qrId: qrId || undefined,
+        referralCode: ref || undefined,
+        step: "terms",
+      }),
+    })
+  } catch {
+    return {
+      fields: { merchantSlug, qrId, phoneOtpSent: true },
+      errors: {
+        form: "We couldn't confirm account continuity. Try again shortly.",
+      },
+    }
+  }
+
+  if (access === "recovery") redirect("/home/recover")
+  await clearPendingPhoneVerification()
 
   if (qrId) {
     const destination = await destinationForReturningQrVisit(

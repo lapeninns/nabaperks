@@ -4,12 +4,12 @@ import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
 import { findCustomerByVerifiedPhone } from "@/lib/customer/identity"
+import { establishCustomerSessionAfterVerifiedPhone } from "@/lib/customer/access-continuity"
 import { defaultCountryFromHeaders, normalizePhone } from "@/lib/customer/phone"
 import {
   clearCustomerSession,
   clearPendingPhoneVerification,
   getPendingPhoneVerification,
-  setCustomerSession,
   setPendingPhoneVerification,
 } from "@/lib/customer/session"
 import {
@@ -191,7 +191,24 @@ export async function verifyCustomerLoginOtpAction(
     }
   }
 
-  await setCustomerSession(customer.id)
+  let access: "authenticated" | "recovery"
+  try {
+    access = await establishCustomerSessionAfterVerifiedPhone({
+      customer,
+      customerWasCreated: false,
+      phoneHmac: pending.phoneHmac,
+      next,
+    })
+  } catch {
+    return {
+      fields: { contact, otpSent: true },
+      errors: {
+        form: "We couldn't confirm account continuity. Try again shortly.",
+      },
+    }
+  }
+
+  if (access === "recovery") redirect("/home/recover")
   await clearPendingPhoneVerification()
   redirect(next)
 }

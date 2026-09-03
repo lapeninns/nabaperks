@@ -14,13 +14,12 @@ after(async () => {
 const hash = () => randomBytes(32).toString("hex")
 
 test(
-  "verified OTP and active-session devices receive scoped trust",
+  "verified recovery devices receive scoped trust without cross-device bootstrap",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
       const phoneHmac = hash()
       const verifiedDevice = hash()
-      const activeSessionDevice = hash()
       const strangerDevice = hash()
       const [customer] = await tx`
       insert into public.customers (
@@ -41,7 +40,8 @@ test(
       ${customer.id}::uuid,
       ${randomUUID()}::uuid,
       now() + interval '30 days',
-      ${verifiedDevice}
+      ${verifiedDevice},
+      'verified_email'
     )`
       await tx`update public.customer_otp_trusted_devices
       set trusted_at = now() - interval '8 days'
@@ -55,28 +55,16 @@ test(
       assert.equal(verified, true)
       assert.equal(stranger, false)
 
-      const sessionId = randomUUID()
-      await tx`select public.register_customer_session(
-      ${customer.id}::uuid,
-      ${sessionId}::uuid,
-      now() + interval '30 days'
-    )`
-      const [{ touch_customer_session: active }] = await tx`
-      select public.touch_customer_session(
-        ${customer.id}::uuid, ${sessionId}::uuid, ${activeSessionDevice}
+      const [{ customer_auth_device_is_trusted: authTrusted }] = await tx`
+      select public.customer_auth_device_is_trusted(
+        ${customer.id}::uuid, ${verifiedDevice}
       )`
-      assert.equal(active, true)
-
-      await tx`update public.customer_otp_trusted_devices
-      set trusted_at = now() - interval '8 days'
-      where customer_id = ${customer.id}::uuid
-        and device_hash = ${activeSessionDevice}`
-
-      const [{ customer_otp_device_is_trusted: bootstrapped }] = await tx`
-      select public.customer_otp_device_is_trusted(
-        ${phoneHmac}, ${activeSessionDevice}
+      const [{ customer_auth_device_is_trusted: authStranger }] = await tx`
+      select public.customer_auth_device_is_trusted(
+        ${customer.id}::uuid, ${strangerDevice}
       )`
-      assert.equal(bootstrapped, true)
+      assert.equal(authTrusted, true)
+      assert.equal(authStranger, false)
     })
   }
 )
@@ -104,7 +92,8 @@ test(
       ${customer.id}::uuid,
       ${randomUUID()}::uuid,
       now() + interval '30 days',
-      ${deviceHash}
+      ${deviceHash},
+      'verified_email'
     )`
       await tx`update public.customer_otp_trusted_devices
       set trusted_at = now() - interval '8 days'
@@ -172,7 +161,8 @@ test(
           ${customer.id}::uuid,
           ${randomUUID()}::uuid,
           now() + interval '30 days',
-          ${"not-a-device-hash"}
+          ${"not-a-device-hash"},
+          'new_identity'
         )`
           ),
         /invalid customer session/i
@@ -182,7 +172,8 @@ test(
       ${customer.id}::uuid,
       ${randomUUID()}::uuid,
       now() + interval '30 days',
-      ${deviceHash}
+      ${deviceHash},
+      'new_identity'
     )`
       await tx`update public.customer_otp_trusted_devices
       set trusted_at = now() - interval '91 days',
@@ -195,6 +186,20 @@ test(
       await tx`update public.customer_otp_trusted_devices
       set trusted_until = now() + interval '90 days'
       where customer_id = ${customer.id}::uuid`
+
+      await tx`update public.customer_otp_trusted_devices
+      set trust_source = 'verified_otp'
+      where customer_id = ${customer.id}::uuid`
+      const [{ customer_auth_device_is_trusted: legacyTrust }] = await tx`
+      select public.customer_auth_device_is_trusted(
+        ${customer.id}::uuid, ${deviceHash}
+      )`
+      assert.equal(
+        legacyTrust,
+        false,
+        "phone-only trust from before the remediation is not continuity proof"
+      )
+
       await tx`select set_config('app.customer_erasure', 'true', true)`
       await tx`update public.customers
       set phone_hmac = null, phone_ciphertext = null, phone_last4 = null,

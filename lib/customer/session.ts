@@ -9,12 +9,15 @@ import { cookies, headers } from "next/headers"
 import { customerPhoneHmac } from "@/lib/customer/phone-pii"
 import {
   createCustomerSessionCookieValue,
+  createPendingAccessRecoveryCookieValue,
   createPendingEmailCookieValue,
   createPendingPhoneCookieValue,
   readCustomerSessionCookieValue,
+  readPendingAccessRecoveryCookieValue,
   readPendingEmailCookieValue,
   readPendingPhoneCookieValue,
   type CustomerSessionPayload,
+  type PendingAccessRecoveryPayload,
   type PendingEmailPayload,
   type PendingPhonePayload,
   type PendingPhonePurpose,
@@ -25,6 +28,7 @@ import { customerDeviceHashFromHeaders } from "@/lib/security/rate-limit"
 
 export const pendingPhoneCookieName = "nabaperks_pending_phone"
 export const pendingEmailCookieName = "nabaperks_pending_email"
+export const pendingAccessRecoveryCookieName = "nabaperks_access_recovery"
 export const customerSessionCookieName = "nabaperks_customer_session"
 
 type PendingPhoneInput = {
@@ -39,8 +43,14 @@ type PendingEmailInput = {
   customerId?: string | null
 }
 
+type PendingAccessRecoveryInput = Omit<
+  PendingAccessRecoveryPayload,
+  "version" | "issuedAt" | "expiresAt"
+>
+
 const pendingPhoneTtlSeconds = 10 * 60
 const pendingEmailTtlSeconds = 10 * 60
+const pendingAccessRecoveryTtlSeconds = 10 * 60
 const customerSessionTtlSeconds = 30 * 24 * 60 * 60
 
 export async function setPendingPhoneVerification(
@@ -124,19 +134,64 @@ export async function clearPendingEmailVerification(): Promise<void> {
   cookieStore.delete(pendingEmailCookieName)
 }
 
+export async function setPendingAccessRecovery(
+  input: PendingAccessRecoveryInput
+): Promise<PendingAccessRecoveryPayload> {
+  const issuedAt = nowSeconds()
+  const payload: PendingAccessRecoveryPayload = {
+    version: 1,
+    ...input,
+    issuedAt,
+    expiresAt: issuedAt + pendingAccessRecoveryTtlSeconds,
+  }
+  const cookieStore = await cookies()
+  cookieStore.set(
+    pendingAccessRecoveryCookieName,
+    createPendingAccessRecoveryCookieValue(
+      payload,
+      requiredCustomerSessionSecret()
+    ),
+    cookieOptions(pendingAccessRecoveryTtlSeconds)
+  )
+  return payload
+}
+
+export async function getPendingAccessRecovery(): Promise<PendingAccessRecoveryPayload | null> {
+  const cookieStore = await cookies()
+  const value = cookieStore.get(pendingAccessRecoveryCookieName)?.value
+  if (!value) return null
+
+  const result = readPendingAccessRecoveryCookieValue(
+    value,
+    requiredCustomerSessionSecret(),
+    nowSeconds()
+  )
+  return result.ok ? result.payload : null
+}
+
+export async function clearPendingAccessRecovery(): Promise<void> {
+  const cookieStore = await cookies()
+  cookieStore.delete(pendingAccessRecoveryCookieName)
+}
+
+export type CustomerSessionContinuitySource =
+  "new_identity" | "recognised_device" | "verified_email"
+
 export async function setCustomerSession(
-  customerId: string
+  customerId: string,
+  continuitySource: CustomerSessionContinuitySource,
+  sessionId: string = randomUUID()
 ): Promise<CustomerSessionPayload> {
   const issuedAt = nowSeconds()
   const expiresAt = issuedAt + customerSessionTtlSeconds
   const payload: CustomerSessionPayload = {
     version: 2,
-    sessionId: randomUUID(),
+    sessionId,
     customerId,
     issuedAt,
     expiresAt,
   }
-  await registerCustomerSession(payload)
+  await registerCustomerSession(payload, continuitySource)
 
   const cookieStore = await cookies()
   cookieStore.set(
@@ -187,7 +242,8 @@ export async function clearCustomerSession(): Promise<void> {
 }
 
 async function registerCustomerSession(
-  payload: CustomerSessionPayload
+  payload: CustomerSessionPayload,
+  continuitySource: CustomerSessionContinuitySource
 ): Promise<void> {
   const deviceHash = customerDeviceHashFromHeaders(await headers())
   if (!deviceHash) {
@@ -202,6 +258,7 @@ async function registerCustomerSession(
     p_session_id: payload.sessionId,
     p_expires_at: expiresAt,
     p_device_hash: deviceHash,
+    p_continuity_source: continuitySource,
   })
 
   if (error) {

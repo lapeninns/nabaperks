@@ -45,8 +45,13 @@ const PICK = /* sql */ `
 async function seedRelatedRecords(tx, customerId, merchantId) {
   const sessionId = randomUUID()
   await tx`
-    insert into public.customer_sessions (id, customer_id, expires_at)
-    values (${sessionId}::uuid, ${customerId}::uuid, now() + interval '30 days')`
+    insert into public.customer_sessions (
+      id, customer_id, expires_at, device_hash
+    )
+    values (
+      ${sessionId}::uuid, ${customerId}::uuid,
+      now() + interval '30 days', ${"a".repeat(64)}
+    )`
 
   const [push] = await tx`
     insert into public.push_subscriptions

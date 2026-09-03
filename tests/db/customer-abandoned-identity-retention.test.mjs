@@ -46,12 +46,12 @@ test(
         values (${merchant.id}::uuid, ${protectedCustomer.id}::uuid)`
       await tx`
         insert into public.customer_sessions (
-          id, customer_id, created_at, last_seen_at, expires_at
+          id, customer_id, created_at, last_seen_at, expires_at, device_hash
         )
         values
-          (${randomUUID()}::uuid, ${abandoned.id}::uuid, '2000-01-01', '2000-01-01', now() + interval '30 days'),
-          (${randomUUID()}::uuid, ${protectedCustomer.id}::uuid, now(), now(), now() + interval '30 days'),
-          (${randomUUID()}::uuid, ${activeCustomer.id}::uuid, now(), now(), now() + interval '30 days')`
+          (${randomUUID()}::uuid, ${abandoned.id}::uuid, '2000-01-01', '2000-01-01', now() + interval '30 days', ${"a".repeat(64)}),
+          (${randomUUID()}::uuid, ${protectedCustomer.id}::uuid, now(), now(), now() + interval '30 days', ${"b".repeat(64)}),
+          (${randomUUID()}::uuid, ${activeCustomer.id}::uuid, now(), now(), now() + interval '30 days', ${"c".repeat(64)})`
 
       const [purged] = await tx`
         select public.admin_purge_abandoned_customer_identities('2000-01-02') as count`

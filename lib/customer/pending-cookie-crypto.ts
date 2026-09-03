@@ -5,7 +5,7 @@ import {
   randomBytes,
 } from "node:crypto"
 
-export type PendingCookieContext = "email" | "phone"
+export type PendingCookieContext = "access-recovery" | "email" | "phone"
 
 type ExpiringPayload = {
   readonly expiresAt: number
