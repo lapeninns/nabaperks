@@ -37,13 +37,21 @@ test("merchant password auth is rejected at the provider token boundary", () => 
   )
   assert.match(accessTokenHook, /authentication_method = 'password'/)
   assert.match(accessTokenHook, /method ->> 'method' = 'password'/)
+  assert.match(accessTokenHook, /method ->> 'method' in \('otp', 'totp'\)/)
+  assert.match(accessTokenHook, /or not has_passwordless_method/)
   assert.match(accessTokenHook, /'http_code', 403/)
   assert.match(accessTokenHook, /to supabase_auth_admin/)
   assert.match(accessTokenHook, /current_auth_session_is_passwordless/)
   assert.match(
     accessTokenHook,
-    /jsonb_typeof\(auth\.jwt\(\) -> 'amr'\) = 'array'[\s\S]*method ->> 'method' = 'password'/
+    /jsonb_typeof\(auth\.jwt\(\) -> 'amr'\) = 'array'[\s\S]*method ->> 'method' in \('otp', 'totp'\)[\s\S]*method ->> 'method' = 'password'/
   )
+  assert.match(accessTokenHook, /enforce_passwordless_data_api_session/)
+  assert.match(
+    accessTokenHook,
+    /alter role authenticator[\s\S]*pgrst\.db_pre_request = 'public\.enforce_passwordless_data_api_session'/
+  )
+  assert.match(accessTokenHook, /notify pgrst, 'reload config'/)
   assert.match(session, /current_auth_session_is_passwordless/)
   assert.match(session, /authMethodError \|\| passwordless !== true/)
 

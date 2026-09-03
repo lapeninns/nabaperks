@@ -85,6 +85,32 @@ test(
 )
 
 test(
+  "missing, empty, malformed and unknown AMR cannot mint authority",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      for (const claims of [
+        { sub: "00000000-0000-0000-0000-000000000001" },
+        { sub: "00000000-0000-0000-0000-000000000001", amr: [] },
+        { sub: "00000000-0000-0000-0000-000000000001", amr: "otp" },
+        {
+          sub: "00000000-0000-0000-0000-000000000001",
+          amr: [{ method: "oauth", timestamp: 1 }],
+        },
+      ]) {
+        const result = await invokeHook(tx, {
+          authentication_method: "token_refresh",
+          claims,
+        })
+
+        assert.equal(result.error?.http_code, 403)
+        assert.equal(result.claims, undefined)
+      }
+    })
+  }
+)
+
+test(
   "only Supabase Auth may invoke the access-token hook",
   { skip },
   async () => {
@@ -159,6 +185,13 @@ test(
       const [{ current_auth_session_is_passwordless: missingAmr }] =
         await tx`select public.current_auth_session_is_passwordless()`
       assert.equal(missingAmr, false)
+
+      for (const amr of [[], "otp", [{ method: "oauth", timestamp: 1 }]]) {
+        await setClaims(tx, { role: "authenticated", amr })
+        const [{ current_auth_session_is_passwordless: unsupportedAmr }] =
+          await tx`select public.current_auth_session_is_passwordless()`
+        assert.equal(unsupportedAmr, false)
+      }
     })
   }
 )
@@ -201,7 +234,83 @@ test(
   }
 )
 
+test(
+  "the Data API pre-request guard rejects legacy password JWTs",
+  { skip },
+  async () => {
+    await assert.rejects(
+      inRolledBackTxn(async (tx) => {
+        await setClaims(tx, {
+          role: "authenticated",
+          amr: [{ method: "password", timestamp: 1 }],
+        })
+        await tx`select public.enforce_passwordless_data_api_session()`
+      }),
+      /passwordless authentication session is required/i
+    )
+
+    await inRolledBackTxn(async (tx) => {
+      await setClaims(tx, {
+        role: "authenticated",
+        amr: [{ method: "otp", timestamp: 1 }],
+      })
+      await tx`select public.enforce_passwordless_data_api_session()`
+    })
+  }
+)
+
+test(
+  "PostgREST registers the passwordless pre-request guard",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const [row] = await tx`
+        select
+          (
+            select split_part(setting, '=', 2)
+            from pg_roles
+            cross join lateral unnest(rolconfig) setting
+            where rolname = 'authenticator'
+              and setting like 'pgrst.db_pre_request=%'
+          ) as pre_request,
+          has_function_privilege(
+            'authenticated',
+            'public.enforce_passwordless_data_api_session()',
+            'execute'
+          ) as authenticated,
+          has_function_privilege(
+            'anon',
+            'public.enforce_passwordless_data_api_session()',
+            'execute'
+          ) as anon,
+          has_function_privilege(
+            'service_role',
+            'public.enforce_passwordless_data_api_session()',
+            'execute'
+          ) as service_role,
+          has_function_privilege(
+            'public',
+            'public.enforce_passwordless_data_api_session()',
+            'execute'
+          ) as public`
+
+      assert.deepEqual(row, {
+        pre_request: "public.enforce_passwordless_data_api_session",
+        authenticated: true,
+        anon: true,
+        service_role: true,
+        public: false,
+      })
+    })
+  }
+)
+
 async function setClaims(tx, claims) {
+  await tx`select set_config(
+    'request.jwt.claim.role',
+    ${claims.role ?? ""},
+    true
+  )`
   await tx`select set_config(
     'request.jwt.claims',
     ${JSON.stringify(claims)},

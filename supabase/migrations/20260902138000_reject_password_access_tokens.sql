@@ -11,15 +11,29 @@ as $$
 declare
   authentication_method text := event ->> 'authentication_method';
   claims jsonb := event -> 'claims';
+  has_passwordless_method boolean := false;
   used_password boolean := false;
 begin
-  select exists (
-    select 1
-    from jsonb_array_elements(coalesce(claims -> 'amr', '[]'::jsonb)) method
-    where method ->> 'method' = 'password'
-  ) into used_password;
+  if jsonb_typeof(claims -> 'amr') = 'array' then
+    select
+      exists (
+        select 1
+        from jsonb_array_elements(claims -> 'amr') method
+        where method ->> 'method' in ('otp', 'totp')
+      ),
+      exists (
+        select 1
+        from jsonb_array_elements(claims -> 'amr') method
+        where method ->> 'method' = 'password'
+      )
+    into has_passwordless_method, used_password;
+  end if;
 
-  if authentication_method = 'password' or used_password then
+  if
+    authentication_method = 'password'
+    or used_password
+    or not has_passwordless_method
+  then
     return jsonb_build_object(
       'error', jsonb_build_object(
         'http_code', 403,
@@ -48,11 +62,17 @@ stable
 set search_path = ''
 as $$
   select case
-    when jsonb_typeof(auth.jwt() -> 'amr') = 'array' then not exists (
-      select 1
-      from jsonb_array_elements(auth.jwt() -> 'amr') method
-      where method ->> 'method' = 'password'
-    )
+    when jsonb_typeof(auth.jwt() -> 'amr') = 'array' then
+      exists (
+        select 1
+        from jsonb_array_elements(auth.jwt() -> 'amr') method
+        where method ->> 'method' in ('otp', 'totp')
+      )
+      and not exists (
+        select 1
+        from jsonb_array_elements(auth.jwt() -> 'amr') method
+        where method ->> 'method' = 'password'
+      )
     else false
   end;
 $$;
@@ -62,4 +82,35 @@ revoke all on function public.current_auth_session_is_passwordless()
 grant execute on function public.current_auth_session_is_passwordless()
   to authenticated, service_role;
 
+-- App route guards cannot protect a JWT used directly against PostgREST. Run
+-- the same positive-evidence check before every Data API request so a password
+-- JWT minted just before hook activation cannot read RLS-protected tables or
+-- call authenticated RPCs during the rollout window.
+create or replace function public.enforce_passwordless_data_api_session()
+returns void
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if
+    auth.role() = 'authenticated'
+    and not public.current_auth_session_is_passwordless()
+  then
+    raise insufficient_privilege using
+      message = 'A passwordless authentication session is required';
+  end if;
+end;
+$$;
+
+revoke all on function public.enforce_passwordless_data_api_session()
+  from public, anon, authenticated, service_role;
+grant execute on function public.enforce_passwordless_data_api_session()
+  to anon, authenticated, service_role;
+
+alter role authenticator
+  set pgrst.db_pre_request = 'public.enforce_passwordless_data_api_session';
+
+notify pgrst, 'reload config';
 notify pgrst, 'reload schema';
