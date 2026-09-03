@@ -25,6 +25,10 @@ const productionDatabase = readFileSync(
   new URL("../../.github/workflows/production-database.yml", import.meta.url),
   "utf8"
 )
+const productionDeploy = readFileSync(
+  new URL("../../.github/workflows/production-deploy.yml", import.meta.url),
+  "utf8"
+)
 
 test("merchant password auth is rejected at the provider token boundary", () => {
   assert.match(
@@ -55,9 +59,54 @@ test("merchant password auth is rejected at the provider token boundary", () => 
   const migrationAt = productionDatabase.indexOf(
     "supabase db push --linked --include-all"
   )
-  const authConfigAt = productionDatabase.indexOf(
+  const authConfigAt = productionDeploy.indexOf(
     'supabase config push --project-ref "$SUPABASE_PROJECT_REF"'
   )
+  const accessTokenActivationAt = productionDeploy.indexOf(
+    "Activate password-token rejection before domain promotion"
+  )
+  const stagedCanaryAt = productionDeploy.indexOf(
+    "Prove staged Auth hook signing-secret alignment"
+  )
+  const promoteAt = productionDeploy.indexOf(
+    "Promote the verified staged deployment"
+  )
   assert.ok(migrationAt > 0)
-  assert.ok(authConfigAt > migrationAt)
+  assert.doesNotMatch(productionDatabase, /supabase config push/)
+  assert.match(productionDatabase, /openssl rand -base64 32/)
+  assert.match(productionDatabase, /::add-mask::/)
+  assert.doesNotMatch(
+    productionDatabase,
+    /SUPABASE_SEND_EMAIL_HOOK_SECRET:.*(?:secrets\.|whsec_)/
+  )
+  assert.ok(stagedCanaryAt > 0 && promoteAt > stagedCanaryAt)
+  assert.ok(
+    accessTokenActivationAt > stagedCanaryAt &&
+      promoteAt > accessTokenActivationAt
+  )
+  assert.ok(authConfigAt > promoteAt)
+  assert.match(
+    productionDeploy,
+    /hook_custom_access_token_enabled: true[\s\S]*hook_custom_access_token_uri: \$uri[\s\S]*--request PATCH/
+  )
+  assert.match(
+    productionDeploy,
+    /GET[\s\S]*\.hook_custom_access_token_enabled == true[\s\S]*\.hook_custom_access_token_uri == \$uri/
+  )
+  assert.match(
+    productionDeploy,
+    /Read back complete production Auth hook configuration[\s\S]*\.hook_send_email_enabled == true[\s\S]*\.hook_send_email_uri == "https:\/\/nabaperks\.com\/api\/auth\/hooks\/send-email"/
+  )
+  assert.match(productionDeploy, /actions: read/)
+  assert.match(productionDeploy, /--workflow production-database\.yml/)
+  assert.match(productionDeploy, /--commit "\$EXPECTED_REVISION"/)
+  assert.match(productionDeploy, /successful_database_revision/)
+  assert.match(
+    productionDeploy,
+    /SUPABASE_SEND_EMAIL_HOOK_SECRET: \$\{\{ secrets\.SUPABASE_SEND_EMAIL_HOOK_SECRET \}\}/
+  )
+  assert.doesNotMatch(
+    productionDeploy,
+    /SUPABASE_SEND_EMAIL_HOOK_SECRET:[^\n]*(?:\|\||whsec_)/
+  )
 })

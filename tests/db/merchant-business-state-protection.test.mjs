@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto"
 import { after, test } from "node:test"
 
 import { closeDb, db, isLiveDbReady } from "./helpers/db.mjs"
-import { ensureActivatedInternalAdmin } from "./helpers/admin-auth.mjs"
+import { actAsActivatedInternalAdmin } from "./helpers/admin-auth.mjs"
 
 /**
  * db emergency containment — Blocker 2: merchant owners can bypass billing.
@@ -161,7 +161,7 @@ test("an internal admin may change the protected columns", async (t) => {
       await tx`insert into public.internal_admins (user_id, email, is_active)
                values (${ownerId}::uuid, ${`admin-${ownerId.slice(0, 8)}@example.test`}, true)
                on conflict (user_id) do update set is_active = true`
-      await ensureActivatedInternalAdmin(tx, ownerId)
+      await actAsActivatedInternalAdmin(tx, ownerId)
       await tx`update public.merchants set requires_billing = false where id = ${merchantId}::uuid`
       const [row] =
         await tx`select requires_billing from public.merchants where id = ${merchantId}::uuid`

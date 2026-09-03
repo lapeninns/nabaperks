@@ -4,7 +4,10 @@ import { after, test } from "node:test"
 import postgres from "postgres"
 
 import { dbUrl, isLiveDbReady } from "./helpers/db.mjs"
-import { ensureActivatedInternalAdmin } from "./helpers/admin-auth.mjs"
+import {
+  actAsActivatedInternalAdmin,
+  ensureActivatedInternalAdmin,
+} from "./helpers/admin-auth.mjs"
 import { createRewardPoolFixture } from "./helpers/reward-pool-fixture.mjs"
 
 const ready = await isLiveDbReady()
@@ -259,10 +262,14 @@ test(
         }
       )
 
+      const activatedClaims = await actAsActivatedInternalAdmin(
+        tx,
+        fixture.adminUserId
+      )
       await asPostgrestRole(
         tx,
         "authenticated",
-        { sub: fixture.adminUserId, aal: "aal2" },
+        activatedClaims,
         async (authenticatedTx) => {
           await authenticatedTx`
             select * from public.admin_verify_customer_date_of_birth(

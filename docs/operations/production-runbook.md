@@ -109,8 +109,10 @@ Configure the environment before first use:
 
 - permit deployments from `main` only;
 - require an independent reviewer and disable routine administrator bypass;
-- add `SUPABASE_ACCESS_TOKEN` and `SUPABASE_DB_PASSWORD` as environment
-  secrets, plus `SUPABASE_PROJECT_REF` as an environment variable.
+- add `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD` and the same generated
+  `SUPABASE_SEND_EMAIL_HOOK_SECRET` held by Vercel Production as environment
+  secrets, plus `SUPABASE_PROJECT_REF` as an environment variable. Never use a
+  source-owned fallback for the signing secret;
 - add `VERCEL_TOKEN` and `PRODUCTION_MONITOR_SECRET` as environment secrets,
   the Vercel project ID, name and scope come from the reviewed
   `config/vercel-governance-contract.json` source contract;
@@ -193,6 +195,63 @@ generates signed source provenance and a CycloneDX SBOM, stages a hosted Vercel
 build with no domain assignment, probes that URL and promotes it.
 Public-origin smoke starts only after promotion.
 
+### First admin-MFA enforcement
+
+The admin-MFA change is intentionally an expand/activate/enforce rollout. The
+first database-promotion attempt applies the expand migration, then stops at the
+contract migration while any active admin lacks an independently approved TOTP
+factor. This is an expected fail-closed pause, not a reason to repair the
+migration ledger or weaken `is_internal_admin()`.
+
+1. Before the first attempt, identify the active internal admin through the
+   approved operator process. Do not copy user or factor identifiers into chat,
+   issue comments or build logs.
+2. After the expand migration has applied, the existing admin signs in to the
+   current application and enrols exactly one TOTP factor at `/admin/security`.
+3. A different trusted operator verifies the admin's identity and confirms that
+   the selected factor is the sole verified TOTP factor for that user.
+4. Dispatch `Activate production admin MFA` for the exact `main` revision with
+   the verified user UUID, factor UUID and the literal confirmation
+   `ACTIVATE_VERIFIED_ADMIN_MFA`. Approve the protected `Production`
+   environment only after the independent check. The workflow invokes the
+   service-role-only RPC and verifies its boolean readback without printing the
+   identifiers.
+5. Re-run `Production database promotion`. The contract precondition now
+   succeeds, `is_internal_admin()` begins requiring the activated factor plus
+   AAL2, and all remaining forward migrations can apply.
+6. Confirm an AAL1 session is denied, the activated admin can step up at AAL2,
+   and the activation audit event exists before approving application
+   promotion.
+
+Abort if the factor is missing, unverified, owned by another user, or one of
+multiple verified factors. Never auto-bind a factor: independent activation is
+the security boundary.
+
+### Passwordless Auth configuration sequencing
+
+Database promotion installs the reviewed hook functions but deliberately does
+not publish hosted Auth configuration. `Production deployment` then stages the
+passwordless application and proves that its hook accepts the protected shared
+secret while rejecting an alternate signature. Before changing the public
+domain, the workflow enables only the Postgres custom-access-token hook through
+the Management API and reads back its exact enabled state and function URI.
+This closes direct password-token issuance before the new application is
+public. The current password UI may fail closed for the short interval between
+that readback and promotion; availability must not take priority over restoring
+password authority.
+
+After domain promotion, `supabase config push` activates the complete reviewed
+Auth configuration, including the Send Email hook. A Management API readback
+must prove both exact hook URIs before the same non-delivering signed canary is
+run at the public origin. This ordering keeps the shared secret out of source,
+does not repoint production email to a staged hostname, and cannot leave the new
+application public while GoTrue still issues password-origin tokens.
+
+If either canary, Auth readback, promotion or config push fails, stop the
+release and follow the rollback section. Do not substitute a source-owned hook
+secret or re-enable password login. The canary uses a deliberately malformed
+signed body, so it cannot create an alias, send an email or mutate an account.
+
 ## Rollback
 
 Rollback when readiness is red for two consecutive probes, a P0/P1 regression
@@ -200,22 +259,37 @@ is reproduced, auth/session safety is uncertain, or ledger/billing behavior is
 not trustworthy.
 
 1. Freeze further merges and announce the incident owner.
-2. Roll back to the previously identified healthy production deployment, then
-   wait for Vercel to finish:
+2. Once the passwordless Auth configuration has ever been activated, a Vercel
+   rollback candidate must also be passwordless-compatible. Resolve the
+   candidate deployment's full Git SHA and run the source-owned guard before
+   changing domains:
+
+   ```sh
+   node scripts/check-passwordless-rollback-revision.mjs "$HEALTHY_GIT_SHA"
+   ```
+
+   If the guard rejects the candidate, do not roll back to it: the hosted Auth
+   hook would continue rejecting passwords while the old UI asked for one.
+   Keep the current passwordless deployment serving and prepare a reviewed
+   forward fix from the last passwordless-compatible revision. Do not disable
+   the access-token hook to make an old password deployment usable.
+
+3. Roll back only to the verified passwordless-compatible healthy deployment,
+   then wait for Vercel to finish:
 
    ```sh
    vercel rollback "$HEALTHY_DEPLOYMENT_ID" --yes
    vercel rollback status nabaperks
    ```
 
-3. Re-run `/api/health` and `/api/readiness`; record the restored revision.
-4. If a forward-only migration caused the incident, do not edit or delete the
+4. Re-run `/api/health` and `/api/readiness`; record the restored revision.
+5. If a forward-only migration caused the incident, do not edit or delete the
    applied migration. Add and verify a compensating migration on a disposable
    database, then deploy it through the normal gate.
-5. If data repair is required, preserve an export/evidence snapshot first and
+6. If data repair is required, preserve an export/evidence snapshot first and
    use a reviewed, bounded SQL script. Never restore a full backup over live
    data without incident-owner approval and an explicit recovery plan.
-6. Record timeline, affected users, data impact, provider state, commands,
+7. Record timeline, affected users, data impact, provider state, commands,
    deployment IDs and the follow-up issue.
 
 ## Backup and recovery boundary

@@ -255,6 +255,134 @@ test(
 )
 
 test(
+  "a token challenged for an old factor stays denied after replacement activation",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const admin = await createInternalAdmin(tx, { withVerifiedFactor: true })
+      const [initial] = await tx`
+        select mfa_factor_id::text as mfa_factor_id
+        from public.internal_admins
+        where user_id = ${admin.userId}::uuid`
+
+      await tx`select set_config('app.admin_mfa_binding_change', 'trusted_activation', true)`
+      await tx`
+        update public.internal_admins
+        set mfa_activated_at = clock_timestamp() - interval '10 seconds'
+        where user_id = ${admin.userId}::uuid`
+      await tx`select set_config('app.admin_mfa_binding_change', '', true)`
+
+      const sessionId = randomUUID()
+      const oldChallengeAt = new Date(Date.now() - 5_000)
+      await tx`
+        insert into auth.sessions
+          (id, user_id, created_at, updated_at, factor_id, aal)
+        values (
+          ${sessionId}::uuid,
+          ${admin.userId}::uuid,
+          ${oldChallengeAt},
+          ${oldChallengeAt},
+          ${initial.mfa_factor_id}::uuid,
+          'aal2'::auth.aal_level
+        )`
+      await tx`
+        insert into auth.mfa_amr_claims
+          (id, session_id, created_at, updated_at, authentication_method)
+        values (
+          ${randomUUID()}::uuid,
+          ${sessionId}::uuid,
+          ${oldChallengeAt},
+          ${oldChallengeAt},
+          'totp'
+        )`
+      const oldClaims = {
+        sub: admin.userId,
+        role: "authenticated",
+        aal: "aal2",
+        session_id: sessionId,
+        amr: [
+          {
+            method: "totp",
+            timestamp: Math.floor(oldChallengeAt.getTime() / 1_000),
+          },
+        ],
+      }
+
+      const replacementFactor = await insertTotpFactor(
+        tx,
+        admin.userId,
+        "verified"
+      )
+      await tx`
+        delete from auth.mfa_factors
+        where id = ${initial.mfa_factor_id}::uuid`
+      await tx`
+        select public.activate_internal_admin_mfa(
+          ${admin.userId}::uuid, ${replacementFactor}::uuid
+        )`
+      const [replacement] = await tx`
+        select mfa_activated_at
+        from public.internal_admins
+        where user_id = ${admin.userId}::uuid`
+      assert.equal(
+        new Date(replacement.mfa_activated_at).getMilliseconds(),
+        0,
+        "activation advances to a whole-second JWT timestamp boundary"
+      )
+      const newChallengeAt = new Date(
+        new Date(replacement.mfa_activated_at).getTime() + 1_000
+      )
+
+      // A legitimate challenge updates the authoritative session and produces
+      // a new JWT. The stolen old JWT has the same session id but retains its
+      // old signed AMR timestamp, so it must not inherit the new challenge.
+      await tx`
+        update auth.sessions
+        set factor_id = ${replacementFactor}::uuid,
+            aal = 'aal2'::auth.aal_level
+        where id = ${sessionId}::uuid`
+      await tx`
+        update auth.mfa_amr_claims
+        set updated_at = ${newChallengeAt}
+        where session_id = ${sessionId}::uuid
+          and authentication_method = 'totp'`
+
+      const staleAllowed = await asBlobClaimsUser(
+        tx,
+        admin.userId,
+        oldClaims,
+        (sp) => isInternalAdmin(sp)
+      )
+      assert.equal(
+        staleAllowed,
+        false,
+        "an old signed token cannot borrow a post-activation session challenge"
+      )
+
+      const freshAllowed = await asBlobClaimsUser(
+        tx,
+        admin.userId,
+        {
+          ...oldClaims,
+          amr: [
+            {
+              method: "totp",
+              timestamp: Math.floor(newChallengeAt.getTime() / 1_000),
+            },
+          ],
+        },
+        (sp) => isInternalAdmin(sp)
+      )
+      assert.equal(
+        freshAllowed,
+        true,
+        "the replacement factor grants authority only to its fresh token"
+      )
+    })
+  }
+)
+
+test(
   "direct service-role binding changes are rejected outside the audited RPC",
   { skip },
   async () => {
@@ -555,7 +683,9 @@ async function insertMfaFactor(tx, userId, status, factorType) {
  */
 async function asAuthenticatedUser(tx, userId, aal, fn) {
   return tx.savepoint(async (sp) => {
-    const claims = JSON.stringify({ sub: userId, role: "authenticated", aal })
+    const claims = JSON.stringify(
+      await claimsWithCurrentMfaEvidence(sp, userId, aal)
+    )
     await sp`set local role authenticated`
     await sp`select set_config('request.jwt.claim.role', 'authenticated', true)`
     await sp`select set_config('request.jwt.claim.sub', ${userId}, true)`
@@ -579,7 +709,9 @@ async function asAuthenticatedUser(tx, userId, aal, fn) {
  */
 async function asBlobOnlyUser(tx, userId, aal, fn) {
   return tx.savepoint(async (sp) => {
-    const claims = JSON.stringify({ sub: userId, role: "authenticated", aal })
+    const claims = JSON.stringify(
+      await claimsWithCurrentMfaEvidence(sp, userId, aal)
+    )
     await sp`set local role authenticated`
     await sp`select set_config('request.jwt.claim.role', '', true)`
     await sp`select set_config('request.jwt.claim.sub', '', true)`
@@ -593,6 +725,78 @@ async function asBlobOnlyUser(tx, userId, aal, fn) {
       await sp`select set_config('request.jwt.claim.role', 'service_role', true)`
     }
   })
+}
+
+async function asBlobClaimsUser(tx, userId, claims, fn) {
+  return tx.savepoint(async (sp) => {
+    await sp`set local role authenticated`
+    await sp`select set_config('request.jwt.claim.role', '', true)`
+    await sp`select set_config('request.jwt.claim.sub', '', true)`
+    await sp`select set_config('request.jwt.claim.aal', '', true)`
+    await sp`
+      select set_config(
+        'request.jwt.claims',
+        ${JSON.stringify(claims)},
+        true
+      )`
+    try {
+      return await fn(sp)
+    } finally {
+      await sp`reset role`
+      await sp`select set_config('request.jwt.claims', '', true)`
+      await sp`select set_config('request.jwt.claim.role', 'service_role', true)`
+    }
+  })
+}
+
+async function claimsWithCurrentMfaEvidence(tx, userId, aal) {
+  const claims = { sub: userId, role: "authenticated", aal }
+  if (aal !== "aal2") return claims
+
+  const [activation] = await tx`
+    select mfa_factor_id::text as mfa_factor_id, mfa_activated_at
+    from public.internal_admins
+    where user_id = ${userId}::uuid`
+  if (!activation?.mfa_factor_id || !activation.mfa_activated_at) {
+    return claims
+  }
+
+  const sessionId = randomUUID()
+  const challengedAt = new Date(
+    new Date(activation.mfa_activated_at).getTime() + 1_000
+  )
+  await tx`
+    insert into auth.sessions
+      (id, user_id, created_at, updated_at, factor_id, aal)
+    values (
+      ${sessionId}::uuid,
+      ${userId}::uuid,
+      ${challengedAt},
+      ${challengedAt},
+      ${activation.mfa_factor_id}::uuid,
+      'aal2'::auth.aal_level
+    )`
+  await tx`
+    insert into auth.mfa_amr_claims
+      (id, session_id, created_at, updated_at, authentication_method)
+    values (
+      ${randomUUID()}::uuid,
+      ${sessionId}::uuid,
+      ${challengedAt},
+      ${challengedAt},
+      'totp'
+    )`
+
+  return {
+    ...claims,
+    session_id: sessionId,
+    amr: [
+      {
+        method: "totp",
+        timestamp: Math.floor(challengedAt.getTime() / 1_000),
+      },
+    ],
+  }
 }
 
 async function isInternalAdmin(sp) {

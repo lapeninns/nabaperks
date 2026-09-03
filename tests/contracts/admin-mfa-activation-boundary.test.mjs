@@ -14,32 +14,83 @@ function readProjectFile(...segments) {
 }
 
 test("admin authority requires trusted factor activation and aal2", () => {
-  const migration = readProjectFile(
+  const expandMigration = readProjectFile(
     "supabase",
     "migrations",
     "20260902120000_require_activated_admin_mfa.sql"
   )
+  const enforceMigration = readProjectFile(
+    "supabase",
+    "migrations",
+    "20260902120500_enforce_activated_admin_mfa.sql"
+  )
 
-  assert.match(migration, /factor\.id = admin\.mfa_factor_id/)
-  assert.match(migration, /factor\.status = 'verified'/)
+  assert.match(expandMigration, /factor\.id = admin\.mfa_factor_id/)
+  assert.match(expandMigration, /factor\.status = 'verified'/)
   assert.match(
-    migration,
+    expandMigration,
     /select count\(\*\)[\s\S]*verified_factor\.status = 'verified'[\s\S]*\) = 1/
   )
-  assert.match(migration, /request_assurance_level\(\)\) = 'aal2'/)
   assert.match(
-    migration,
+    expandMigration,
+    /create or replace function public\.is_internal_admin/
+  )
+  assert.match(
+    enforceMigration,
+    /where admin\.is_active[\s\S]*not public\.has_activated_admin_mfa\(admin\.user_id\)/
+  )
+  assert.match(enforceMigration, /raise check_violation/)
+  assert.doesNotMatch(
+    enforceMigration,
+    /create or replace function public\.is_internal_admin/
+  )
+  assert.match(expandMigration, /request_assurance_level\(\)\) = 'aal2'/)
+  assert.match(
+    expandMigration,
+    /mfa_activated_at = date_trunc\('second', clock_timestamp\(\)\)\s*\+ interval '1 second'/
+  )
+  assert.match(
+    expandMigration,
+    /auth_session\.factor_id = admin\.mfa_factor_id/
+  )
+  assert.match(expandMigration, /amr\.updated_at > admin\.mfa_activated_at/)
+  assert.match(
+    expandMigration,
+    /method ->> 'timestamp'[\s\S]*floor\(extract\(epoch from amr\.updated_at\)\)/
+  )
+  assert.match(
+    expandMigration,
     /revoke all on function public\.has_activated_admin_mfa\(uuid\)[\s\S]*from public, anon, authenticated/
   )
   assert.match(
-    migration,
+    expandMigration,
     /activate_internal_admin_mfa\([\s\S]*is_service_role_request\(\)[\s\S]*factor\.id = p_factor_id[\s\S]*factor\.factor_type = 'totp'[\s\S]*factor\.status = 'verified'/
   )
-  assert.match(migration, /'admin_mfa_factor_activated'/)
+  assert.match(expandMigration, /'admin_mfa_factor_activated'/)
   assert.match(
-    migration,
+    expandMigration,
     /revoke all on function public\.activate_internal_admin_mfa\(uuid, uuid\)[\s\S]*from public, anon, authenticated/
   )
+})
+
+test("production activation is protected, exact-revision and identifier-safe", () => {
+  const workflow = readProjectFile(
+    ".github",
+    "workflows",
+    "admin-mfa-activation.yml"
+  )
+
+  assert.match(workflow, /workflow_dispatch:/)
+  assert.match(workflow, /environment: Production/)
+  assert.match(workflow, /git rev-parse origin\/main/)
+  assert.match(workflow, /ACTIVATE_VERIFIED_ADMIN_MFA/)
+  assert.match(workflow, /uuid_pattern=/)
+  assert.match(workflow, /public\.activate_internal_admin_mfa/)
+  assert.match(workflow, /\\\$1::uuid, \\\$2::uuid/)
+  assert.match(workflow, /parameters: \[\$admin_user_id, \$factor_id\]/)
+  assert.match(workflow, /api\.supabase\.com\/v1\/projects/)
+  assert.match(workflow, /\.\[0\]\.activated == true/)
+  assert.doesNotMatch(workflow, /echo.*(?:ADMIN_USER_ID|FACTOR_ID)/)
 })
 
 test("direct Auth enrolment cannot add an attacker-controlled second factor", () => {
@@ -59,6 +110,11 @@ test("factor lifecycle changes invalidate binding and direct DML is guarded", ()
     /after insert or delete or update of user_id, status, factor_type[\s\S]*on auth\.mfa_factors/i
   )
   assert.match(migration, /set mfa_factor_id = null/i)
+  assert.match(migration, /mfa_activated_at = null/i)
+  assert.match(
+    migration,
+    /mfa_activated_at = date_trunc\('second', clock_timestamp\(\)\)\s*\+ interval '1 second'/
+  )
   assert.match(migration, /admin_mfa_binding_invalidated/)
   assert.match(migration, /admin_mfa_factor_unenrolled/)
   assert.match(migration, /Use the audited admin MFA lifecycle boundary/)
@@ -68,4 +124,8 @@ test("factor lifecycle changes invalidate binding and direct DML is guarded", ()
   )
   assert.match(migration, /'trusted_activation'/)
   assert.match(migration, /before insert on public\.internal_admins/i)
+  assert.match(
+    migration,
+    /before update of mfa_factor_id, mfa_activated_at on public\.internal_admins/i
+  )
 })

@@ -2,7 +2,7 @@ import { after, test } from "node:test"
 import assert from "node:assert/strict"
 
 import { closeDb, db, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
-import { ensureActivatedInternalAdmin } from "./helpers/admin-auth.mjs"
+import { actAsActivatedInternalAdmin } from "./helpers/admin-auth.mjs"
 
 /**
  * db staff excision — live-DB tier.
@@ -112,7 +112,7 @@ test(
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
-      await ensureActivatedInternalAdmin(tx, ADMIN)
+      await actAsActivatedInternalAdmin(tx, ADMIN)
       const OWNER_A = await seededOwner(tx, MERCHANT_A)
       const OWNER_B = await seededOwner(tx, MERCHANT_B)
 
@@ -187,8 +187,8 @@ async function asAuthenticatedUser(tx, userId, fn) {
     await sp`set local role authenticated`
     await sp`select set_config('request.jwt.claim.role', 'authenticated', true)`
     await sp`select set_config('request.jwt.claim.sub', ${userId}, true)`
-    // is_internal_admin() no longer requires MFA (aal2) as of migration
-    // 20260720100000; aal2 remains a valid level and is harmless here.
+    // The activated-admin helper has already installed the complete signed
+    // session and AMR claims when this caller is the internal admin.
     await sp`select set_config('request.jwt.claim.aal', 'aal2', true)`
     try {
       return await fn(sp)

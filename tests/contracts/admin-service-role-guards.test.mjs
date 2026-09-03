@@ -46,6 +46,8 @@ test("Given the admin step-up gate When auth helpers are inspected Then privileg
   // before the factor was enrolled reports "no factor" and would pass the gate.
   assert.match(adminAuth, /viewer_has_verified_mfa_factor/)
   assert.match(adminAuth, /viewer_has_activated_admin_mfa/)
+  assert.match(adminAuth, /supabase\.rpc\(\s*"is_internal_admin"/)
+  assert.match(adminAuth, /mfaState === "satisfied" && !mfaAuthority/)
   assert.match(adminAuth, /resolveAdminMfaStateFromFacts/)
   assert.doesNotMatch(adminAuth, /aal\.nextLevel/)
 
@@ -75,7 +77,7 @@ test("Given the admin step-up gate When auth helpers are inspected Then privileg
     /adminMfaEnrollmentAllowed\(access\.mfaState\)/
   )
 
-  assert.match(adminAuth, /access\.mfaActivated/)
+  assert.match(adminAuth, /access\.mfaAuthority/)
 
   // Stepping up itself must stay on the read gate or it is unsatisfiable.
   const stepUp = sliceExport(securityActions, "stepUpAdminMfa")

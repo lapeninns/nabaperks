@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto"
 import { after, test } from "node:test"
 
 import { closeDb, db, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
-import { ensureActivatedInternalAdmin } from "./helpers/admin-auth.mjs"
+import { actAsActivatedInternalAdmin } from "./helpers/admin-auth.mjs"
 import { createRewardPoolFixture } from "./helpers/reward-pool-fixture.mjs"
 
 /**
@@ -77,15 +77,10 @@ async function asAuthenticated(tx, userId, fn) {
 }
 
 async function asInternalAdmin(tx, userId, fn) {
-  await ensureActivatedInternalAdmin(tx, userId)
+  const claims = await actAsActivatedInternalAdmin(tx, userId)
   return tx.savepoint(async (sp) => {
-    const claims = JSON.stringify({
-      sub: userId,
-      role: "authenticated",
-      aal: "aal2",
-    })
     await sp`set local role authenticated`
-    await sp`select set_config('request.jwt.claims', ${claims}, true)`
+    await sp`select set_config('request.jwt.claims', ${JSON.stringify(claims)}, true)`
     await sp`select set_config('request.jwt.claim.role', 'authenticated', true)`
     await sp`select set_config('request.jwt.claim.sub', ${userId}, true)`
     await sp`select set_config('request.jwt.claim.aal', 'aal2', true)`

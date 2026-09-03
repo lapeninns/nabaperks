@@ -80,14 +80,56 @@ export async function ensureActivatedInternalAdmin(tx, userId) {
 }
 
 export async function actAsActivatedInternalAdmin(tx, userId) {
-  await ensureActivatedInternalAdmin(tx, userId)
-  const claims = JSON.stringify({
+  const factorId = await ensureActivatedInternalAdmin(tx, userId)
+  const [activation] = await tx`
+    select mfa_activated_at
+    from public.internal_admins
+    where user_id = ${userId}::uuid`
+  if (!activation?.mfa_activated_at) {
+    throw new Error(`Internal-admin fixture has no activation epoch`)
+  }
+
+  const sessionId = randomUUID()
+  const challengedAt = new Date(
+    new Date(activation.mfa_activated_at).getTime() + 1_000
+  )
+  await tx`
+    insert into auth.sessions
+      (id, user_id, created_at, updated_at, factor_id, aal)
+    values (
+      ${sessionId}::uuid,
+      ${userId}::uuid,
+      ${challengedAt},
+      ${challengedAt},
+      ${factorId}::uuid,
+      'aal2'::auth.aal_level
+    )`
+  await tx`
+    insert into auth.mfa_amr_claims
+      (id, session_id, created_at, updated_at, authentication_method)
+    values (
+      ${randomUUID()}::uuid,
+      ${sessionId}::uuid,
+      ${challengedAt},
+      ${challengedAt},
+      'totp'
+    )`
+  const claimValues = {
     sub: userId,
     role: "authenticated",
     aal: "aal2",
-  })
+    session_id: sessionId,
+    amr: [
+      {
+        method: "totp",
+        timestamp: Math.floor(challengedAt.getTime() / 1_000),
+      },
+    ],
+  }
+  const claims = JSON.stringify(claimValues)
   await tx`select set_config('request.jwt.claim.role', 'authenticated', true)`
   await tx`select set_config('request.jwt.claim.sub', ${userId}, true)`
   await tx`select set_config('request.jwt.claim.aal', 'aal2', true)`
   await tx`select set_config('request.jwt.claims', ${claims}, true)`
+  return claimValues
 }

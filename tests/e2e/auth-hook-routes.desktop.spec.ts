@@ -1,4 +1,4 @@
-import { createHmac } from "node:crypto"
+import { createHmac, randomUUID } from "node:crypto"
 
 import { expect, test, type APIRequestContext } from "@playwright/test"
 
@@ -73,6 +73,72 @@ test.describe("Supabase auth hook routes", () => {
     )
     expect(response.status()).toBe(400)
     await expect(response.text()).resolves.toContain("Malformed payload.")
+  })
+
+  test("signed unsupported email actions fail before alias or provider work", async ({
+    request,
+  }) => {
+    const response = await postHook({
+      body: JSON.stringify({
+        user: { email: "venue@example.test", id: randomUUID() },
+        email_data: { token: "provider-token", email_action_type: "invite" },
+      }),
+      path: "/api/auth/hooks/send-email",
+      request,
+    })
+
+    test.skip(
+      response.status() === 401,
+      "existing dev server is not using the Playwright test hook secret"
+    )
+    expect(response.status()).toBe(400)
+    await expect(response.text()).resolves.toContain(
+      "Unsupported email action."
+    )
+  })
+
+  test("signed signup actions require an authoritative user identity", async ({
+    request,
+  }) => {
+    const response = await postHook({
+      body: JSON.stringify({
+        user: { email: "venue@example.test" },
+        email_data: { token: "provider-token", email_action_type: "signup" },
+      }),
+      path: "/api/auth/hooks/send-email",
+      request,
+    })
+
+    test.skip(
+      response.status() === 401,
+      "existing dev server is not using the Playwright test hook secret"
+    )
+    expect(response.status()).toBe(400)
+    await expect(response.text()).resolves.toContain(
+      "Missing signup user identity."
+    )
+  })
+
+  test("signed signup actions reject malformed user identities", async ({
+    request,
+  }) => {
+    const response = await postHook({
+      body: JSON.stringify({
+        user: { email: "venue@example.test", id: "not-a-user-id" },
+        email_data: { token: "provider-token", email_action_type: "signup" },
+      }),
+      path: "/api/auth/hooks/send-email",
+      request,
+    })
+
+    test.skip(
+      response.status() === 401,
+      "existing dev server is not using the Playwright test hook secret"
+    )
+    expect(response.status()).toBe(400)
+    await expect(response.text()).resolves.toContain(
+      "Missing signup user identity."
+    )
   })
 
   test("signed malformed SMS hook payloads fail closed before Twilio", async ({

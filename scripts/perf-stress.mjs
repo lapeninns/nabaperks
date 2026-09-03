@@ -12,6 +12,7 @@
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { performance } from "node:perf_hooks"
+import { createServerClient } from "@supabase/ssr"
 import { createClient } from "@supabase/supabase-js"
 import { chromium } from "@playwright/test"
 import postgres from "postgres"
@@ -52,6 +53,13 @@ async function main() {
     process.exit(1)
   }
 
+  assertLocalTarget(dbUrl, "SUPABASE_DB_URL", ["postgres:", "postgresql:"])
+  assertLocalTarget(supabaseUrl, "NEXT_PUBLIC_SUPABASE_URL", [
+    "http:",
+    "https:",
+  ])
+  assertLocalTarget(APP_URL, "PERF_STRESS_APP_URL", ["http:", "https:"])
+
   console.log(`Stress performance probe (${RUNS} run(s) per benchmark)\n`)
 
   const sql = postgres(dbUrl, { max: 1 })
@@ -69,8 +77,28 @@ async function main() {
     await sql.end({ timeout: 5 })
   }
 
-  const authClient = createClient(supabaseUrl, anonKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
+  const authCookies = new Map()
+  const authClient = createServerClient(supabaseUrl, anonKey, {
+    cookies: {
+      getAll() {
+        return Array.from(authCookies, ([name, cookie]) => ({
+          name,
+          value: cookie.value,
+        }))
+      },
+      setAll(cookiesToSet) {
+        for (const cookie of cookiesToSet) {
+          if (cookie.value) {
+            authCookies.set(cookie.name, {
+              value: cookie.value,
+              options: cookie.options,
+            })
+          } else {
+            authCookies.delete(cookie.name)
+          }
+        }
+      },
+    },
   })
 
   const adminClient = createClient(supabaseUrl, serviceRoleKey, {
@@ -99,7 +127,7 @@ async function main() {
   const queryResults = await runQueryBenchmarks(authClient)
   printResults("Supabase query benchmarks (RLS as +32)", queryResults)
 
-  const httpResults = await runHttpBenchmarks()
+  const httpResults = await runHttpBenchmarks(authCookies)
   if (Array.isArray(httpResults) && httpResults.length) {
     printResults(`HTTP page loads (${APP_URL}, authenticated)`, httpResults)
   } else if (!Array.isArray(httpResults) && httpResults.skipped) {
@@ -234,7 +262,7 @@ async function runQueryBenchmarks(client) {
   ]
 }
 
-async function runHttpBenchmarks() {
+async function runHttpBenchmarks(authCookies) {
   if (!(await isAppReachable())) {
     return []
   }
@@ -254,16 +282,23 @@ async function runHttpBenchmarks() {
   }
 
   const context = await browser.newContext()
+  await context.addCookies(
+    Array.from(authCookies, ([name, cookie]) =>
+      browserCookie(name, cookie, APP_URL)
+    )
+  )
   const page = await context.newPage()
 
   try {
-    await page.goto(`${APP_URL}/login?next=${encodeURIComponent("/app")}`, {
+    await page.goto(`${APP_URL}/app`, {
       waitUntil: "domcontentloaded",
     })
-    await page.locator("#email").fill(MERCHANT_EMAIL)
-    await page.locator("#password").fill(MERCHANT_PASSWORD)
-    await page.getByRole("button", { name: "Log in" }).click()
-    await page.waitForURL((url) => url.pathname === "/app", { timeout: 30_000 })
+    if (new URL(page.url()).pathname === "/login") {
+      throw new Error("Passwordless benchmark session was not accepted.")
+    }
+    await page.waitForURL((url) => url.pathname === "/app", {
+      timeout: 30_000,
+    })
 
     const routes = [
       {
@@ -308,6 +343,65 @@ async function runHttpBenchmarks() {
     return results
   } finally {
     await browser.close()
+  }
+}
+
+function browserCookie(name, cookie, appUrl) {
+  const options = cookie.options ?? {}
+  const expires = cookieExpires(options)
+  const sameSite = sameSiteOption(options.sameSite)
+
+  return {
+    name,
+    value: cookie.value,
+    url: new URL(appUrl).origin,
+    ...(expires !== undefined ? { expires } : {}),
+    ...(typeof options.httpOnly === "boolean"
+      ? { httpOnly: options.httpOnly }
+      : {}),
+    ...(typeof options.secure === "boolean" ? { secure: options.secure } : {}),
+    ...(sameSite ? { sameSite } : {}),
+  }
+}
+
+function cookieExpires(options) {
+  if (options.expires instanceof Date) {
+    return Math.floor(options.expires.getTime() / 1000)
+  }
+  if (typeof options.maxAge === "number") {
+    return Math.floor(Date.now() / 1000) + options.maxAge
+  }
+  return undefined
+}
+
+function sameSiteOption(value) {
+  switch (value) {
+    case "lax":
+      return "Lax"
+    case "strict":
+    case true:
+      return "Strict"
+    case "none":
+      return "None"
+    default:
+      return undefined
+  }
+}
+
+function assertLocalTarget(value, label, protocols) {
+  let parsed
+  try {
+    parsed = new URL(value)
+  } catch {
+    throw new Error(`${label} must be a valid loopback URL.`)
+  }
+
+  const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "")
+  if (
+    !protocols.includes(parsed.protocol) ||
+    !["localhost", "127.0.0.1", "::1"].includes(host)
+  ) {
+    throw new Error(`${label} must target a local disposable service.`)
   }
 }
 

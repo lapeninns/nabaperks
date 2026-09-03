@@ -23,39 +23,66 @@ function assertBefore(source, earlier, later) {
 }
 
 test("Given admin RPCs and RLS policies share the internal-admin helper When SQL is inspected Then authority requires trusted factor activation and step-up", () => {
-  const migration = readProjectFile(
+  const expandMigration = readProjectFile(
     "supabase",
     "migrations",
     "20260902120000_require_activated_admin_mfa.sql"
   )
+  const enforcementMigration = readProjectFile(
+    "supabase",
+    "migrations",
+    "20260902120500_enforce_activated_admin_mfa.sql"
+  )
   const adminAuth = readProjectFile("lib", "admin", "auth.ts")
 
   assert.match(
-    migration,
+    expandMigration,
     /create or replace function public\.is_internal_admin\(\)/
   )
 
   // Browser-reachable enrolment must never be enough to activate authority.
   // The exact verified factor is bound independently, and drift to multiple
   // verified factors fails closed before the session's AAL2 claim is accepted.
-  assert.match(migration, /factor\.id = admin\.mfa_factor_id/)
-  assert.match(migration, /factor\.user_id = admin\.user_id/)
-  assert.match(migration, /factor\.factor_type = 'totp'/)
-  assert.match(migration, /factor\.status = 'verified'/)
-  assert.match(migration, /select count\(\*\)[\s\S]*= 1/)
-  assert.match(migration, /=\s*'aal2'/)
-  assert.doesNotMatch(migration, /not \(select public\.has_verified_mfa_factor/)
+  assert.match(expandMigration, /factor\.id = admin\.mfa_factor_id/)
+  assert.match(expandMigration, /factor\.user_id = admin\.user_id/)
+  assert.match(expandMigration, /factor\.factor_type = 'totp'/)
+  assert.match(expandMigration, /factor\.status = 'verified'/)
+  assert.match(expandMigration, /select count\(\*\)[\s\S]*= 1/)
+  assert.match(expandMigration, /=\s*'aal2'/)
+  assert.match(
+    expandMigration,
+    /auth_session\.factor_id = admin\.mfa_factor_id/
+  )
+  assert.match(expandMigration, /amr\.updated_at > admin\.mfa_activated_at/)
+  assert.doesNotMatch(
+    expandMigration,
+    /not \(select public\.has_verified_mfa_factor/
+  )
+
+  // Expansion immediately closes old AAL1 authority while self-only enrolment
+  // remains reachable. The contract migration is only a state precondition.
+  assert.doesNotMatch(
+    enforcementMigration,
+    /create or replace function public\.is_internal_admin\(\)/
+  )
+  assert.match(
+    enforcementMigration,
+    /raise check_violation using[\s\S]*message = 'Active internal admins require independently activated MFA before enforcement'/
+  )
 
   // The internal helpers stay off the authenticated EXECUTE allowlist.
   assert.match(
-    migration,
+    expandMigration,
     /revoke all on function public\.has_activated_admin_mfa\(uuid\)[\s\S]*from public, anon, authenticated/
   )
-  assert.match(migration, /notify pgrst, 'reload schema'/)
+  assert.match(expandMigration, /notify pgrst, 'reload schema'/)
+  assert.match(enforcementMigration, /notify pgrst, 'reload schema'/)
 
-  // The app layer still owns what the database cannot see (service-role reads
-  // and Supabase-Auth factor enrolment).
+  // The app mirrors the database authority decision before any service-role
+  // read while retaining self-only Supabase-Auth factor enrolment.
   assert.match(adminAuth, /getAuthenticatorAssuranceLevel|resolveAdminMfaState/)
+  assert.match(adminAuth, /mfaAuthority/)
+  assert.match(adminAuth, /supabase\.rpc\(\s*"is_internal_admin"/)
 })
 
 test("Given customer OTP send flows When actions are inspected Then send limits include a phone-only bucket before provider dispatch", () => {

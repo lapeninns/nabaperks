@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 
 import { closeDb, db, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
-import { ensureActivatedInternalAdmin } from "./helpers/admin-auth.mjs"
+import { actAsActivatedInternalAdmin } from "./helpers/admin-auth.mjs"
 
 /**
  * db phone plaintext retirement — live-DB tier.
@@ -110,7 +110,7 @@ test(
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
-      await ensureActivatedInternalAdmin(tx, ADMIN_UID)
+      await actAsActivatedInternalAdmin(tx, ADMIN_UID)
       const [customer] = await tx`
       insert into public.customers (phone_last4, created_at, updated_at)
       values ('9876', now(), now())

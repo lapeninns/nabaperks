@@ -224,6 +224,19 @@ test("Given the first token response is lost When anonymous capture retries Then
 
 test("Given authoritative merchant auth outcomes When source wiring is inspected Then resend and verification telemetry is success-only and fail-open", () => {
   const actions = readProjectFile("app", "(auth)", "actions.ts")
+  const sendEmailHook = readProjectFile(
+    "app",
+    "api",
+    "auth",
+    "hooks",
+    "send-email",
+    "route.ts"
+  )
+  const emailActionCore = readProjectFile(
+    "lib",
+    "auth",
+    "send-email-action-core.ts"
+  )
   const funnelEvents = readProjectFile("lib", "analytics", "funnel-events.ts")
   const afterResponse = readProjectFile("lib", "analytics", "after-response.ts")
   const signUp = sourceSection(
@@ -262,6 +275,23 @@ test("Given authoritative merchant auth outcomes When source wiring is inspected
     signUp,
     /merchant_account_created/,
     "enumeration-neutral passwordless signup cannot claim creation before email verification"
+  )
+  const classifyAt = sendEmailHook.indexOf("classifySendEmailAction(")
+  const accountCreatedAt = sendEmailHook.indexOf(
+    'event: "merchant_account_created"'
+  )
+  const claimAt = sendEmailHook.indexOf("claimAuthHookDelivery(")
+  assert.ok(classifyAt > 0 && accountCreatedAt > classifyAt)
+  assert.ok(claimAt > accountCreatedAt)
+  assert.match(sendEmailHook, /actorId: userId/)
+  assert.match(emailActionCore, /"signup"[\s\S]*recordsAccountCreation: true/)
+  assert.match(
+    emailActionCore,
+    /"magiclink"[\s\S]*recordsAccountCreation: false/
+  )
+  assert.match(
+    emailActionCore,
+    /"recovery"[\s\S]*recordsAccountCreation: false/
   )
   assert.ok(
     resend.indexOf("merchant_otp_resent") >

@@ -42,6 +42,12 @@ test("Given merchant auth When signup and login are inspected Then access is ema
     "route.ts"
   )
   const resend = readProjectFile("lib", "notifications", "resend.ts")
+  const emailActionCore = readProjectFile(
+    "lib",
+    "auth",
+    "send-email-action-core.ts"
+  )
+  const emailCopy = readProjectFile("lib", "notifications", "email-otp-copy.ts")
 
   // When
   const authScreens = [
@@ -68,12 +74,16 @@ test("Given merchant auth When signup and login are inspected Then access is ema
   assert.doesNotMatch(resetForm, /name="password"|new-password/)
   assert.match(resetForm, /autoComplete="one-time-code"/)
 
-  assert.match(sendEmailHook, /"merchant-verify"/)
-  assert.match(sendEmailHook, /"merchant-reset"/)
-  assert.match(sendEmailHook, /email_action_type === "recovery"/)
+  assert.match(sendEmailHook, /classifySendEmailAction/)
+  assert.match(sendEmailHook, /Unsupported email action/)
+  assert.match(emailActionCore, /"magiclink"[\s\S]*"merchant-access"/)
+  assert.match(emailActionCore, /"recovery"[\s\S]*"merchant-reset"/)
+  assert.match(emailActionCore, /"signup"[\s\S]*recordsAccountCreation: true/)
 
-  assert.match(resend, /Nabaperks merchant/)
-  assert.match(resend, /Verify your venue email/)
+  assert.match(resend, /emailOtpCopy/)
+  assert.match(emailCopy, /Nabaperks merchant/)
+  assert.match(emailCopy, /Verify your venue email/)
+  assert.match(emailCopy, /Your venue sign-in code/)
 
   assert.match(login, /email code/i)
   assert.doesNotMatch(authScreens, /verification\s+link/i)
@@ -162,6 +172,11 @@ test("Given signup and sign-in verification When provider checks run Then aliase
     "send-email",
     "route.ts"
   )
+  const emailActionCore = readProjectFile(
+    "lib",
+    "auth",
+    "send-email-action-core.ts"
+  )
 
   assert.match(
     aliasModule,
@@ -195,7 +210,9 @@ test("Given signup and sign-in verification When provider checks run Then aliase
   assert.match(providerFlow, /runMerchantOtpDelivery/)
   assert.match(providerFlow, /Only an[\s\S]*definitive rejection/)
 
-  assert.match(emailHook, /purpose[\s\S]*email_action_type === "recovery"/)
+  assert.match(emailHook, /purpose: action\.purpose/)
+  assert.match(emailActionCore, /"recovery"[\s\S]*purpose: "recovery"/)
+  assert.match(emailActionCore, /"magiclink"[\s\S]*purpose: "signup"/)
   assert.match(emailHook, /runMerchantOtpDelivery/)
   assert.match(emailHook, /revokeMerchantEmailOtpAlias/)
   assert.match(emailHook, /delivery_failed/)

@@ -1,6 +1,7 @@
--- AAL2 does not identify which factor satisfied a session. Make trusted factor
--- activation monotonic across Auth factor lifecycle changes, and make every
--- binding change pass through an audited database-owned path.
+-- AAL2 alone does not identify which factor satisfied a session. Make trusted
+-- factor activation monotonic across Auth factor lifecycle changes, bind it to
+-- an activation epoch, and make every binding change pass through an audited
+-- database-owned path.
 
 create or replace function public.guard_internal_admin_mfa_binding()
 returns trigger
@@ -10,14 +11,15 @@ set search_path = public
 as $function$
 begin
   if tg_op = 'INSERT' then
-    if new.mfa_factor_id is not null then
+    if new.mfa_factor_id is not null or new.mfa_activated_at is not null then
       raise insufficient_privilege using
         message = 'Use the audited admin MFA lifecycle boundary';
     end if;
     return new;
   end if;
 
-  if new.mfa_factor_id is not distinct from old.mfa_factor_id then
+  if new.mfa_factor_id is not distinct from old.mfa_factor_id
+     and new.mfa_activated_at is not distinct from old.mfa_activated_at then
     return new;
   end if;
 
@@ -34,7 +36,7 @@ $function$;
 drop trigger if exists internal_admins_guard_mfa_binding
   on public.internal_admins;
 create trigger internal_admins_guard_mfa_binding
-  before update of mfa_factor_id on public.internal_admins
+  before update of mfa_factor_id, mfa_activated_at on public.internal_admins
   for each row execute function public.guard_internal_admin_mfa_binding();
 
 drop trigger if exists internal_admins_guard_initial_mfa_binding
@@ -77,7 +79,8 @@ begin
   if v_previous_factor_id is not null then
     perform set_config('app.admin_mfa_binding_change', 'factor_lifecycle', true);
     update public.internal_admins
-    set mfa_factor_id = null
+    set mfa_factor_id = null,
+        mfa_activated_at = null
     where user_id = v_user_id
       and mfa_factor_id = v_previous_factor_id;
     perform set_config(
@@ -186,7 +189,9 @@ begin
 
   perform set_config('app.admin_mfa_binding_change', 'trusted_activation', true);
   update public.internal_admins
-  set mfa_factor_id = p_factor_id
+  set mfa_factor_id = p_factor_id,
+      mfa_activated_at = date_trunc('second', clock_timestamp())
+        + interval '1 second'
   where user_id = p_user_id;
   perform set_config(
     'app.admin_mfa_binding_change',

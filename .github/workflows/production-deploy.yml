@@ -22,6 +22,7 @@ concurrency:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   preflight:
@@ -32,6 +33,7 @@ jobs:
       EXPECTED_REVISION: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
       CONFIRMATION: ${{ inputs.confirmation }}
       SOURCE_CONCLUSION: ${{ github.event.workflow_run.conclusion || '' }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - name: Require an approved automatic or manual source
         run: |
@@ -41,6 +43,16 @@ jobs:
             test "$GITHUB_REF" = "refs/heads/main"
             test "$EXPECTED_REVISION" = "$GITHUB_SHA"
             test "$CONFIRMATION" = "PROMOTE_PRODUCTION_APPLICATION"
+            successful_database_revision="$(gh run list \
+              --repo "$GITHUB_REPOSITORY" \
+              --workflow production-database.yml \
+              --commit "$EXPECTED_REVISION" \
+              --branch main \
+              --limit 20 \
+              --json conclusion,headSha,status \
+              --jq '.[] | select(.status == "completed" and .conclusion == "success") | .headSha' \
+              | head -n 1)"
+            test "$successful_database_revision" = "$EXPECTED_REVISION"
           fi
 
   deploy:
@@ -56,6 +68,10 @@ jobs:
       artifact-metadata: write
     env:
       EXPECTED_REVISION: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      SUPABASE_SEND_EMAIL_HOOK_SECRET: ${{ secrets.SUPABASE_SEND_EMAIL_HOOK_SECRET }}
+      SUPABASE_SEND_EMAIL_HOOK_URI: https://nabaperks.com/api/auth/hooks/send-email
       VERCEL_GIT_COMMIT_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
       VERCEL_ENV: production
       DO_NOT_TRACK: "1"
@@ -68,12 +84,18 @@ jobs:
         run: |
           test "$(git rev-parse HEAD)" = "$EXPECTED_REVISION"
           test "$(git rev-parse origin/main)" = "$EXPECTED_REVISION"
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          test -n "$SUPABASE_PROJECT_REF"
+          test -n "$SUPABASE_SEND_EMAIL_HOOK_SECRET"
       - name: Load the immutable canonical Vercel target
         run: |
           node scripts/vercel-production-target.mjs \
             --github-env "$GITHUB_ENV" \
             --evidence "$RUNNER_TEMP/release-vercel-target.json"
       - uses: ./.github/actions/setup
+      - uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3
+        with:
+          version: 2.106.0
       - name: Verify the locked deployment CLI
         run: test "$(pnpm exec vercel --version | tail -n 1)" = "56.5.0"
       - name: Verify canonical Vercel project identity
@@ -196,6 +218,38 @@ jobs:
           done
           echo "::error::The staged deployment did not become ready at ${expected}."
           exit 1
+      - name: Prove staged Auth hook signing-secret alignment
+        env:
+          AUTH_HOOK_CANARY_URL: ${{ steps.stage.outputs.url }}
+        run: node scripts/check-auth-hook-secret-alignment.mjs
+      - name: Activate password-token rejection before domain promotion
+        run: |
+          hook_uri="pg-functions://postgres/public/reject_password_access_tokens"
+          update_file="$RUNNER_TEMP/auth-access-token-hook-update.json"
+          readback_file="$RUNNER_TEMP/auth-access-token-hook-readback.json"
+          payload="$(jq -n \
+            --arg uri "$hook_uri" \
+            '{hook_custom_access_token_enabled: true, hook_custom_access_token_uri: $uri}')"
+          update_status="$(curl --silent --show-error \
+            --output "$update_file" \
+            --write-out '%{http_code}' \
+            --request PATCH \
+            --header "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            --header "Content-Type: application/json" \
+            --data "$payload" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/config/auth")"
+          test "$update_status" = "200"
+          readback_status="$(curl --silent --show-error \
+            --output "$readback_file" \
+            --write-out '%{http_code}' \
+            --request GET \
+            --header "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/config/auth")"
+          test "$readback_status" = "200"
+          jq -e \
+            --arg uri "$hook_uri" \
+            '.hook_custom_access_token_enabled == true and .hook_custom_access_token_uri == $uri' \
+            "$readback_file" >/dev/null
       - name: Promote the verified staged deployment
         env:
           DEPLOYMENT_URL: ${{ steps.stage.outputs.url }}
@@ -221,6 +275,28 @@ jobs:
             --timeout=3m \
             --scope="$CANONICAL_VERCEL_SCOPE" \
             --token="$VERCEL_TOKEN"
+      - name: Activate reviewed production Auth configuration
+        run: supabase config push --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Read back complete production Auth hook configuration
+        run: |
+          readback_file="$RUNNER_TEMP/auth-hook-config-readback.json"
+          status="$(curl --silent --show-error \
+            --output "$readback_file" \
+            --write-out '%{http_code}' \
+            --request GET \
+            --header "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/config/auth")"
+          test "$status" = "200"
+          jq -e \
+            '.hook_custom_access_token_enabled == true
+              and .hook_custom_access_token_uri == "pg-functions://postgres/public/reject_password_access_tokens"
+              and .hook_send_email_enabled == true
+              and .hook_send_email_uri == "https://nabaperks.com/api/auth/hooks/send-email"' \
+            "$readback_file" >/dev/null
+      - name: Prove promoted Auth hook signing-secret alignment
+        env:
+          AUTH_HOOK_CANARY_URL: https://nabaperks.com
+        run: node scripts/check-auth-hook-secret-alignment.mjs
       - name: Record release evidence
         env:
           DEPLOYMENT_URL: ${{ steps.stage.outputs.url }}
