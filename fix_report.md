@@ -99,6 +99,104 @@ Current record outcomes are **31 fixed, 2 no_change, 15 blocked**, representing 
 |  47 | `csf_4f70faffd247bd2b03ccdd33` | `occ_817643fc510839b55de42e8d` | B03   | blocked   |
 |  48 | `csf_e3c9c5f5d2dbdc24d93f74a9` | `occ_b52d00cc1e673342dfc07e5d` | B19   | fixed     |
 
+## B04 continuation: presence-proof classification
+
+This continuation read and hash-checked the sealed `findings.json` and
+`coverage.json`, read the generated sealed `report.md`, and independently traced
+all five mapped occurrences without starting another scan. Records 4, 35, 41,
+44, and 46 are duplicate observations of one broken invariant: only a customer
+who is physically present at the venue should be able to create a visit stamp,
+referral-qualifying visit evidence, and eventual merchant-funded reward value.
+
+The effective shared boundary remains the final `issue_self_service_stamp`
+wrapper and primitive. The public QR route, printed assets, and NFC variants all
+carry the same stable `/q/{qrId}` value. The wrapper proves customer/membership,
+merchant, card, billing, and active-QR association, but it has no independent
+observation of where the request originated. The primitive receives latitude,
+longitude, accuracy, location status, and timing as ordinary caller-controlled
+fields. Exact venue coordinates with claimed acceptable accuracy enter the
+`geo_verification = 'verified'` branch before the authoritative stamp,
+membership, referral, and reward writes.
+
+The impossibility result is precise. Let the complete server-observable request
+tuple be `(customer session, membership, static QR, latitude, longitude,
+accuracy, location status, capture time, request metadata)`. A legitimate
+on-premises browser can submit tuple `T`. A remote party who holds the same
+public QR can submit the identical tuple `T`, because every location and browser
+component is client-authored or replayable. Any deterministic repository-only
+enforcement function receives the same input in both cases. Accepting the
+legitimate request therefore also accepts the indistinguishable remote request;
+rejecting the remote request also rejects the legitimate one. Server-side
+signatures or nonces minted solely after opening the same public static URL do
+not change this result because both parties can obtain them.
+
+Repository-native and no-cost alternatives were exhausted:
+
+- GPS, camera use, cookies, customer passkeys/device keys, push challenges,
+  CAPTCHA, IP geolocation, timing, and browser/request headers establish client
+  or session properties, not venue presence; several are directly spoofable and
+  all can be relayed or reproduced remotely.
+- A short-lived signed token issued from the public static QR route gives
+  freshness but no venue provenance. It would be risk reduction against stale
+  replay, not a presence-proof fix.
+- Existing membership ownership, active merchant/card/billing checks, one stamp
+  per UK business day, durable attempt limits, reward-state gates, refusal
+  telemetry, and audit/fraud signals limit scale and preserve other invariants,
+  but do not distinguish the two requesters.
+- Venue Wi-Fi egress, POS/receipt proof, staff confirmation, a merchant device,
+  rotating display, secure beacon/NFC hardware, or platform device attestation
+  introduces an independent venue-controlled fact. None is repository-only for
+  the current browser product, and each changes the fixed customer/merchant flow
+  or requires external infrastructure. The closest existing pattern is the
+  merchant-authenticated, short-lived, single-use reward scanner; adapting it to
+  visits would require merchant confirmation and is outside the authorised
+  static-QR behaviour.
+
+No application or migration patch was made. Randomising the slug, removing
+location grace, forcing GPS, lowering limits, capping rewards, or manually
+reviewing only the final stamp would leave at least one mapped presence path
+open or would alter legitimate behaviour. Those options are defence in depth or
+product-policy changes, not complete remediation of B04.
+
+Dynamic proof used a disposable isolated Supabase project on alternate loopback
+ports, rebuilt every repository migration, loaded all five seed workflows, and
+ran rolled-back tests. The accepted in-range path advanced a static-QR
+membership when the caller supplied the venue coordinates; this reproduces the
+original exploit because SQL has no provenance bit that distinguishes those
+numbers from a physical GPS reading. The alternate missing/denied-location path
+spent the unverified grace and still collected, while a positive far-away claim
+was refused with `NBS10`. The ordinary static-QR join, stamp-to-full,
+reward-unlock, merchant collection, cycle reset, ownership, daily uniqueness,
+rate-limit, billing, reward-pool, and audit behaviours remained intact.
+
+Ordered continuation verification:
+
+1. Artifact integrity: `shasum -a 256 findings.json coverage.json` matched the
+   two SHA-256 values sealed in `scan-manifest.json`; the five B04 finding and
+   occurrence IDs matched this report.
+2. Candidate syntax and focused contracts: `git diff --check` and
+   `prettier --check fix_report.md` passed. The QR/stamp, public-router,
+   launch-readiness, accepted-risk, and scanner property suites passed 28/28.
+3. Security trigger and alternate malicious path: on the isolated seeded stack,
+   the focused customer stamp, loyalty integrity, and lifecycle command passed
+   27/27. The original copied-QR plus caller-supplied venue-coordinate path still
+   issued the stamp, and the separate denied/unavailable-location grace path
+   still issued eligible stamps. A positive far-away claim was refused, proving
+   that the distance calculation validates the supplied tuple but not its
+   provenance. The original issue therefore still reproduces.
+4. Legitimate control and owning-package gate: the same live command preserved
+   static-QR join, ordinary stamping, reward unlock/collection, and cycle reset.
+   `pnpm quality:fast` passed credential-backup checks, repository-wide lint,
+   TypeScript, 660 contract tests, and 1,001 unit tests.
+5. Fresh read-only candidate review: no concrete source-backed bypass omission,
+   inaccurate classification, or legitimate-flow regression was found. The
+   reviewer independently confirmed that the action parser, service-role RPC,
+   QR wrapper, and final SQL verifier contain no venue-controlled fact.
+
+Outcome: **blocked**, not fixed and not no-change. Closure requires a product
+decision to introduce an independent, server-verifiable venue-controlled fact;
+the accepted-risk record remains time-bounded to 2 December 2026.
+
 ## Files and tests changed
 
 Application/shared boundaries:
