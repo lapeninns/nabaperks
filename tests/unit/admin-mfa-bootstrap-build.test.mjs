@@ -49,13 +49,20 @@ test("bootstrap builder emits only the fixed route as a preview-ready Vercel out
 })
 
 test("bootstrap builder rejects an invalid project boundary", async () => {
-  await assert.rejects(
-    () =>
-      buildAdminMfaBootstrap({
-        outputDirectory: path.join(tmpdir(), "unused-bootstrap-output"),
-        projectRef: "not-a-project",
-        supabaseAnonKey: BROWSER_KEY,
-      }),
-    /valid Supabase project reference/
+  const temporaryDirectory = await mkdtemp(
+    path.join(tmpdir(), "nabaperks-invalid-bootstrap-")
   )
+  try {
+    await assert.rejects(
+      () =>
+        buildAdminMfaBootstrap({
+          outputDirectory: temporaryDirectory,
+          projectRef: "not-a-project",
+          supabaseAnonKey: BROWSER_KEY,
+        }),
+      /valid Supabase project reference/
+    )
+  } finally {
+    await rm(temporaryDirectory, { recursive: true, force: true })
+  }
 })

@@ -190,7 +190,11 @@ test("the compatibility bootstrap preserves the independent activation boundary"
   assert.doesNotMatch(workflow, /--prod(?:\s|\\)/)
   assert.match(staticEntry, /can_bootstrap_admin_webauthn/)
   assert.match(staticEntry, /registerAdminWebAuthnFactor/)
-  assert.match(builder, /mfa\.nabaperks\.com/)
+  assert.ok(
+    builder
+      .split("\n")
+      .includes('const APPROVED_ORIGIN = "https://mfa.nabaperks.com"')
+  )
   assert.match(builder, /frame-ancestors 'none'/)
   assert.match(
     webAuthnMigration,
