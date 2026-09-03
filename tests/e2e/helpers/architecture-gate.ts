@@ -1,4 +1,4 @@
-import { expect, type APIRequestContext, type Page } from "@playwright/test"
+import { expect, type Page } from "@playwright/test"
 
 import { HARNESS_ROUTES } from "./harness"
 
@@ -7,13 +7,10 @@ type HarnessSurfaceCheck = {
   readonly path: string
   readonly visibleText: string | RegExp
   readonly loadedImageName?: string
-  readonly loadedImagePath?: string
   readonly absentText?: readonly RegExp[]
 }
 
-const HARNESS_QR_IMAGE_PATH = "/app/qr/image/qr_harness"
-
-const SURFACE_CHECKS = [
+export const ARCHITECTURE_HARNESS_SURFACES = [
   {
     name: "launch setup",
     path: HARNESS_ROUTES.launch,
@@ -45,7 +42,6 @@ const SURFACE_CHECKS = [
     path: HARNESS_ROUTES.qr,
     visibleText: "Your permanent scan code",
     loadedImageName: "QR code for Mystery Visit Card",
-    loadedImagePath: HARNESS_QR_IMAGE_PATH,
   },
   {
     name: "merchant scanner",
@@ -54,43 +50,7 @@ const SURFACE_CHECKS = [
   },
 ] as const satisfies readonly HarnessSurfaceCheck[]
 
-export async function warmArchitectureHarnessRoutes(
-  request: APIRequestContext
-): Promise<void> {
-  const paths = new Set(
-    SURFACE_CHECKS.flatMap((surface) => [
-      surface.path,
-      ...("loadedImagePath" in surface ? [surface.loadedImagePath] : []),
-    ])
-  )
-
-  for (const path of paths) {
-    const response = await request.get(path, { failOnStatusCode: false })
-
-    if (!response.ok()) {
-      const body = (await response.text()).slice(0, 500)
-      throw new Error(
-        `Architecture harness warm-up failed for ${path}: HTTP ${response.status()}\n${body}`
-      )
-    }
-  }
-}
-
-export async function expectArchitectureHarnessSurfaces(
-  page: Page
-): Promise<void> {
-  for (const surface of SURFACE_CHECKS) {
-    const surfacePage = await page.context().newPage()
-
-    try {
-      await testHarnessSurface(surfacePage, surface)
-    } finally {
-      await surfacePage.close()
-    }
-  }
-}
-
-async function testHarnessSurface(
+export async function expectArchitectureHarnessSurface(
   page: Page,
   surface: HarnessSurfaceCheck
 ): Promise<void> {

@@ -101,10 +101,10 @@ test("Given routine pull requests When CI runs Then deep browser proof is sharde
   )
 
   assert.match(ci, /quality:check/)
-  assert.match(e2eJob, shardMatrixPattern(16))
+  assert.match(e2eJob, shardMatrixPattern(32))
   assert.match(a11yJob, shardMatrixPattern(8))
   assert.match(visualJob, shardMatrixPattern(4))
-  assert.match(nightly, shardMatrixPattern(16))
+  assert.match(nightly, shardMatrixPattern(32))
   assert.match(nextConfig, /process\.env\.PLAYWRIGHT_HARNESS === "1"/)
   assert.match(nextConfig, /onDemandEntries:/)
   assert.match(nextConfig, /maxInactiveAge: 5_000/)
