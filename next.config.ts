@@ -7,9 +7,21 @@ import {
 } from "./lib/security/csp"
 
 const playwrightDistDir = process.env.PLAYWRIGHT_NEXT_DIST_DIR?.trim()
+const isPlaywrightHarness = process.env.PLAYWRIGHT_HARNESS === "1"
 
 const nextConfig: NextConfig = {
   ...(playwrightDistDir ? { distDir: playwrightDistDir } : {}),
+  ...(isPlaywrightHarness
+    ? {
+        // Browser shards visit many unrelated routes in one dev-server
+        // process. Dispose inactive entries aggressively so Webpack cannot
+        // retain every compiled page until Next reaches its restart threshold.
+        onDemandEntries: {
+          maxInactiveAge: 5_000,
+          pagesBufferLength: 1,
+        },
+      }
+    : {}),
   // Drop the `x-powered-by: Next.js` response header — a free stack info-leak
   // hardening (flagged in the 2026-07-05 GEO/technical audit).
   poweredByHeader: false,
