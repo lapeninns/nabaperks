@@ -128,6 +128,10 @@ test("scheduled production smoke validates both JSON probe contracts", () => {
   assert.match(workflow, /actions: read/)
   assert.match(workflow, /getWorkflowRun/)
   assert.match(workflow, /listWorkflowRunsForWorkflow/)
+  assert.doesNotMatch(
+    workflow,
+    /workflow_id: current\.data\.workflow_id,\n\s+event:/
+  )
   assert.match(workflow, /previousScheduledRunSucceeded/)
   assert.doesNotMatch(workflow, /production-smoke-recovery-candidate/)
   assert.doesNotMatch(workflow, /listComments/)

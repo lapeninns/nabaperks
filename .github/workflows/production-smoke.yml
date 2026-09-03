@@ -161,7 +161,6 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 workflow_id: current.data.workflow_id,
-                event: "schedule",
                 per_page: 100,
               }
             );

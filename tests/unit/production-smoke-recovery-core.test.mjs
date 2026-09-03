@@ -75,6 +75,23 @@ test("manual, rerun, wrong-workflow, and wrong-repository records cannot authori
   }
 })
 
+test("the current run must be a first-attempt schedule from this repository", () => {
+  for (const overrides of [
+    { event: "workflow_dispatch" },
+    { run_attempt: 2 },
+    { repository: { full_name: "attacker/fork" } },
+  ]) {
+    assert.equal(
+      previousScheduledRunSucceeded({
+        currentRun: { ...currentRun, ...overrides },
+        workflowRuns: [prior()],
+        repository,
+      }),
+      false
+    )
+  }
+})
+
 test("the current run and an older success cannot skip the immediate prior failure", () => {
   assert.equal(
     previousScheduledRunSucceeded({
@@ -87,5 +104,57 @@ test("the current run and an older success cannot skip the immediate prior failu
       repository,
     }),
     false
+  )
+})
+
+test("an intervening non-scheduled failure resets the recovery streak", () => {
+  assert.equal(
+    previousScheduledRunSucceeded({
+      currentRun: { ...currentRun, id: 21, run_number: 201 },
+      workflowRuns: [
+        prior({
+          id: 20,
+          run_number: 200,
+          event: "workflow_dispatch",
+          conclusion: "failure",
+        }),
+        prior(),
+      ],
+      repository,
+    }),
+    false
+  )
+})
+
+test("a successful rerun cannot hide an intervening failed first attempt", () => {
+  assert.equal(
+    previousScheduledRunSucceeded({
+      currentRun: { ...currentRun, id: 21, run_number: 201 },
+      workflowRuns: [
+        prior({
+          id: 20,
+          run_number: 200,
+          run_attempt: 2,
+          event: "workflow_dispatch",
+        }),
+        prior(),
+      ],
+      repository,
+    }),
+    false
+  )
+})
+
+test("an intervening successful manual probe does not replace scheduled proof", () => {
+  assert.equal(
+    previousScheduledRunSucceeded({
+      currentRun: { ...currentRun, id: 21, run_number: 201 },
+      workflowRuns: [
+        prior({ id: 20, run_number: 200, event: "workflow_dispatch" }),
+        prior(),
+      ],
+      repository,
+    }),
+    true
   )
 })

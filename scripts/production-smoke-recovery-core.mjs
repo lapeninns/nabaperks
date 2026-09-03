@@ -11,21 +11,31 @@ export function previousScheduledRunSucceeded({
     return false
   }
 
-  const previous = workflowRuns
+  const previousRuns = workflowRuns
     .filter(
       (run) =>
         run.id !== currentRun.id &&
         run.workflow_id === currentRun.workflow_id &&
         run.run_number < currentRun.run_number
     )
-    .sort((left, right) => right.run_number - left.run_number)[0]
+    .sort((left, right) => right.run_number - left.run_number)
+  const previousScheduled = previousRuns.find((run) => run.event === "schedule")
 
-  return Boolean(
-    previous &&
-    previous.event === "schedule" &&
-    previous.status === "completed" &&
-    previous.conclusion === "success" &&
-    previous.run_attempt === 1 &&
-    previous.repository?.full_name === repository
+  if (
+    !previousScheduled ||
+    previousScheduled.status !== "completed" ||
+    previousScheduled.conclusion !== "success" ||
+    previousScheduled.run_attempt !== 1 ||
+    previousScheduled.repository?.full_name !== repository
+  ) {
+    return false
+  }
+
+  return !previousRuns.some(
+    (run) =>
+      run.run_number > previousScheduled.run_number &&
+      (run.run_attempt !== 1 ||
+        run.status !== "completed" ||
+        run.conclusion !== "success")
   )
 }
