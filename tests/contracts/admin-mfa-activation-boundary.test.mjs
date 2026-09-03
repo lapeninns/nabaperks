@@ -88,7 +88,7 @@ test("production activation is protected, exact-revision and identifier-safe", (
   assert.match(workflow, /public\.activate_internal_admin_mfa/)
   assert.match(workflow, /\\\$1::uuid, \\\$2::uuid/)
   assert.match(workflow, /parameters: \[\$admin_user_id, \$factor_id\]/)
-  assert.match(workflow, /api\.supabase\.com\/v1\/projects/)
+  assert.equal(workflow.includes("https://api.supabase.com/v1/projects/"), true)
   assert.match(workflow, /\.\[0\]\.activated == true/)
   assert.doesNotMatch(workflow, /echo.*(?:ADMIN_USER_ID|FACTOR_ID)/)
 })
