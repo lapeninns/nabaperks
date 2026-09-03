@@ -167,8 +167,7 @@ test.describe("privacy-safe merchant funnel", () => {
     await page.getByRole("link", { name: "Start your launch" }).first().click()
     await page.getByLabel("Your name").fill("Privacy Proof")
     await page.getByLabel("Email", { exact: true }).fill("proof@example.test")
-    await page.getByLabel("Password", { exact: true }).fill("Privacy123")
-    await page.getByLabel("Confirm password").fill("Privacy123")
+    await expect(page.locator('input[type="password"]')).toHaveCount(0)
     await expect(page.locator('input[name="funnelToken"]')).toHaveValue("")
     await page.getByRole("button", { name: "Create account" }).click()
 
