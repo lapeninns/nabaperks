@@ -86,9 +86,25 @@ test("bootstrap deploys the verifier before publishing the fixed origin and neve
   const deployIndex = workflow.indexOf(
     "supabase functions deploy admin-webauthn"
   )
+  const parserFixtureIndex = workflow.indexOf(
+    "Generate a non-deployable parser-only hook fixture"
+  )
   const aliasIndex = workflow.indexOf("vercel alias set")
+  const preDeploy = workflow.slice(0, deployIndex)
 
   assert.match(workflow, /20260902120300/)
+  assert.ok(parserFixtureIndex >= 0 && parserFixtureIndex < deployIndex)
+  assert.match(
+    workflow,
+    /SUPABASE_SEND_EMAIL_HOOK_URI: https:\/\/nabaperks\.com/
+  )
+  assert.match(preDeploy, /parser_secret=.*openssl rand -base64 32/)
+  assert.match(
+    preDeploy,
+    /printf 'SUPABASE_SEND_EMAIL_HOOK_SECRET=%s\\n' "\$parser_secret" >> "\$GITHUB_ENV"/
+  )
+  assert.doesNotMatch(workflow, /secrets\.SUPABASE_SEND_EMAIL_HOOK_SECRET/)
+  assert.doesNotMatch(workflow, /config\s+push/)
   assert.ok(deployIndex >= 0 && deployIndex < aliasIndex)
   assert.match(workflow, /mfa_totp_enroll_enabled.*false/)
   assert.doesNotMatch(workflow, /mfa_web_authn_enroll_enabled.*true/)
