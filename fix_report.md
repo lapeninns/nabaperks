@@ -52,7 +52,7 @@ Current source outcomes are **39 fixed, 2 no_change, 7 blocked**, representing *
 | --: | ------------------------------ | ------------------------------ | ----- | --------- |
 |   1 | `csf_f6dcf46563d3c07c69376233` | `occ_7538a3adee984949a3db3431` | B01   | fixed     |
 |   2 | `csf_dce8fcee387649101e0c08a8` | `occ_dd7821aba643a5fa01dd0528` | B02   | fixed     |
-|   3 | `csf_afea72096f73e4b94c3358e3` | `occ_9c652c16bd9f4048cc67385d` | B03   | blocked   |
+|   3 | `csf_afea72096f73e4b94c3358e3` | `occ_9c652c16bd9f4048cc67385d` | B03   | fixed     |
 |   4 | `csf_a9f76c8c307a7796de26129f` | `occ_ca3f01aa05fc0ec2ef09659f` | B04   | blocked   |
 |   5 | `csf_8a96124e758e2ea0611d91be` | `occ_9e061d202569d8ce370f4006` | B19   | fixed     |
 |   6 | `csf_0873928c9ee652d5d6c83953` | `occ_e5da9eba467a4feef7a3a4b4` | B05   | fixed     |
@@ -80,23 +80,23 @@ Current source outcomes are **39 fixed, 2 no_change, 7 blocked**, representing *
 |  28 | `csf_4884ebe574801cb7e616903b` | `occ_d9d28895d152a76f4c0b21e3` | B28   | fixed     |
 |  29 | `csf_edd33b6f81e8c6d93fcfde1a` | `occ_22afba2817f96ea166efeff1` | B18   | fixed     |
 |  30 | `csf_042e5cdd56e9a1480dd11361` | `occ_c42263b3dc67e7b1251af573` | B01   | fixed     |
-|  31 | `csf_50148470fbb91202c72f672d` | `occ_5c617b45ea9f1573e4d63656` | B03   | blocked   |
+|  31 | `csf_50148470fbb91202c72f672d` | `occ_5c617b45ea9f1573e4d63656` | B03   | fixed     |
 |  32 | `csf_932edb5525a0cc4407fecba5` | `occ_428efa5e754a3e27a9744b1b` | B01   | fixed     |
 |  33 | `csf_de9e0a47766af2e8d1c6e543` | `occ_546798bdc7af484c97bc21f2` | B02   | fixed     |
-|  34 | `csf_991336d58e4810cc11218166` | `occ_64af57b1176e34eea0f625b3` | B03   | blocked   |
+|  34 | `csf_991336d58e4810cc11218166` | `occ_64af57b1176e34eea0f625b3` | B03   | fixed     |
 |  35 | `csf_3d8117ae28ed089cfe985683` | `occ_b6c1ac9a9efcbb21098d91af` | B04   | blocked   |
 |  36 | `csf_4facd8fee6cad1c3b0c72f20` | `occ_466d15f9f6d5335384fd6a08` | B22   | fixed     |
 |  37 | `csf_aad168dd463ebba65a6436d5` | `occ_1db013b550580427da43d555` | B24   | fixed     |
-|  38 | `csf_fff470bf251f3ae7c68c6642` | `occ_3b365dbb602a19abf8a45862` | B03   | blocked   |
+|  38 | `csf_fff470bf251f3ae7c68c6642` | `occ_3b365dbb602a19abf8a45862` | B03   | fixed     |
 |  39 | `csf_0efb4b1b76618ceae85d9851` | `occ_fb0d2a418accaa06d3328141` | B22   | fixed     |
-|  40 | `csf_df7a51c643138af6c5409223` | `occ_f43b5f90efb6c423a449380f` | B03   | blocked   |
+|  40 | `csf_df7a51c643138af6c5409223` | `occ_f43b5f90efb6c423a449380f` | B03   | fixed     |
 |  41 | `csf_19d7d2ae1650c39bedac4c33` | `occ_e7e61987f30e751e81f5f429` | B04   | blocked   |
 |  42 | `csf_9d7e2f4c03de19742ec0dcb7` | `occ_dff65dec99ca07218404cd89` | B19   | fixed     |
-|  43 | `csf_090bf56abc5398ad0fe9a346` | `occ_fefd2171c8ea5f383a4adac2` | B03   | blocked   |
+|  43 | `csf_090bf56abc5398ad0fe9a346` | `occ_fefd2171c8ea5f383a4adac2` | B03   | fixed     |
 |  44 | `csf_8377eb0db77bfe77522a6497` | `occ_90b01db73db18d6d4fe9c23b` | B04   | blocked   |
-|  45 | `csf_1ba693a6988c01ad09879649` | `occ_f9d38bbb8fa94616ad50f119` | B03   | blocked   |
+|  45 | `csf_1ba693a6988c01ad09879649` | `occ_f9d38bbb8fa94616ad50f119` | B03   | fixed     |
 |  46 | `csf_05421db21e3df84ddcfd4221` | `occ_9452b8a58e7a5bbc926ee0eb` | B04   | blocked   |
-|  47 | `csf_4f70faffd247bd2b03ccdd33` | `occ_817643fc510839b55de42e8d` | B03   | blocked   |
+|  47 | `csf_4f70faffd247bd2b03ccdd33` | `occ_817643fc510839b55de42e8d` | B03   | fixed     |
 |  48 | `csf_e3c9c5f5d2dbdc24d93f74a9` | `occ_b52d00cc1e673342dfc07e5d` | B19   | fixed     |
 
 ## B04 continuation: presence-proof classification
