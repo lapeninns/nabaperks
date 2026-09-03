@@ -42,12 +42,15 @@ export async function unenrollAdminMfa(
 
   const supabase = await createSupabaseServerClient()
 
-  const { error } = await supabase.auth.mfa.unenroll({ factorId })
+  const { error } = await supabase.rpc(
+    "revoke_viewer_admin_webauthn_credential",
+    { p_credential_id: factorId }
+  )
   if (error) {
     return { ok: false, error: error.message }
   }
 
-  // The database factor-lifecycle trigger records the deletion atomically and
+  // The database credential-lifecycle trigger records revocation atomically and
   // invalidates any trusted binding in the same Auth transaction.
   revalidatePath("/admin")
   revalidatePath("/admin/audit")

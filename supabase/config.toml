@@ -190,16 +190,16 @@ password_requirements = "letters_digits"
 verify_jwt = false
 entrypoint = "./functions/production-alert/index.mjs"
 
+[functions.admin-webauthn]
+# The function validates the bearer token with Auth and binds every ceremony to
+# the signed session in PostgreSQL. Gateway verification is intentionally not
+# the only authentication boundary.
+verify_jwt = false
+entrypoint = "./functions/admin-webauthn/index.ts"
+
 # Configure passkey sign-ins.
 # [auth.passkey]
 # enabled = false
-
-# Fixed relying-party settings for administrator WebAuthn MFA. Changing rp_id
-# invalidates existing credentials, so keep this pinned to the apex domain.
-[auth.webauthn]
-rp_display_name = "Nabaperks"
-rp_id = "nabaperks.com"
-rp_origins = ["https://nabaperks.com", "https://www.nabaperks.com", "https://mfa.nabaperks.com"]
 
 [auth.rate_limit]
 # Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled.
@@ -324,11 +324,6 @@ verify_enabled = false
 otp_length = 6
 template = "Your code is {{ .Code }}"
 max_frequency = "5s"
-
-# Configure MFA via WebAuthn
-[auth.mfa.web_authn]
-enroll_enabled = true
-verify_enabled = true
 
 # Use an external OAuth provider. The full list of providers are: `apple`, `azure`, `bitbucket`,
 # `discord`, `facebook`, `github`, `gitlab`, `google`, `keycloak`, `linkedin_oidc`, `notion`, `twitch`,

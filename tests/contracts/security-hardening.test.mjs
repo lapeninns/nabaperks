@@ -33,10 +33,10 @@ test("Given admin RPCs and RLS policies share the internal-admin helper When SQL
     "migrations",
     "20260902120500_enforce_activated_admin_mfa.sql"
   )
-  const webAuthnMigration = readProjectFile(
+  const passkeyMigration = readProjectFile(
     "supabase",
     "migrations",
-    "20260902120200_support_admin_webauthn_mfa.sql"
+    "20260902120300_support_admin_passkey_step_up.sql"
   )
   const adminAuth = readProjectFile("lib", "admin", "auth.ts")
 
@@ -50,11 +50,11 @@ test("Given admin RPCs and RLS policies share the internal-admin helper When SQL
   // verified factors fails closed before the session's AAL2 claim is accepted.
   assert.match(expandMigration, /factor\.id = admin\.mfa_factor_id/)
   assert.match(expandMigration, /factor\.user_id = admin\.user_id/)
-  assert.match(webAuthnMigration, /factor\.factor_type = 'webauthn'/)
-  assert.match(webAuthnMigration, /authentication_method = 'mfa\/webauthn'/)
+  assert.match(passkeyMigration, /admin_webauthn_credentials/)
+  assert.match(passkeyMigration, /admin_webauthn_grants/)
   assert.match(expandMigration, /factor\.status = 'verified'/)
   assert.match(expandMigration, /select count\(\*\)[\s\S]*= 1/)
-  assert.match(expandMigration, /=\s*'aal2'/)
+  assert.match(passkeyMigration, /step_up\.expires_at > clock_timestamp\(\)/)
   assert.match(
     expandMigration,
     /auth_session\.factor_id = admin\.mfa_factor_id/
@@ -86,7 +86,8 @@ test("Given admin RPCs and RLS policies share the internal-admin helper When SQL
 
   // The app mirrors the database authority decision before any service-role
   // read while retaining self-only Supabase-Auth factor enrolment.
-  assert.match(adminAuth, /getAuthenticatorAssuranceLevel|resolveAdminMfaState/)
+  assert.match(adminAuth, /resolveAdminMfaStateFromFacts/)
+  assert.doesNotMatch(adminAuth, /getAuthenticatorAssuranceLevel/)
   assert.match(adminAuth, /mfaAuthority/)
   assert.match(adminAuth, /supabase\.rpc\(\s*"is_internal_admin"/)
 })
@@ -127,12 +128,12 @@ test("Given customer OTP verification flows When actions are inspected Then gues
   }
 })
 
-test("Given admin MFA removal When the server action is inspected Then AAL2 gates an atomically audited identity mutation", () => {
+test("Given admin MFA removal When the server action is inspected Then a current grant gates an atomically audited identity mutation", () => {
   const actions = readProjectFile("app", "admin", "security", "actions.ts")
   const lifecycleMigration = readProjectFile(
     "supabase",
     "migrations",
-    "20260902134000_invalidate_admin_mfa_on_factor_changes.sql"
+    "20260903132000_preserve_admin_passkey_step_up.sql"
   )
   const unenrollment = actions.slice(
     actions.indexOf("export async function unenrollAdminMfa")
@@ -142,16 +143,16 @@ test("Given admin MFA removal When the server action is inspected Then AAL2 gate
   assertBefore(
     unenrollment,
     "adminMfaUnenrollmentAllowed(access.mfaState)",
-    "supabase.auth.mfa.unenroll"
+    'supabase.rpc(\n    "revoke_viewer_admin_webauthn_credential"'
   )
   assertBefore(
     unenrollment,
-    "supabase.auth.mfa.unenroll",
+    'supabase.rpc(\n    "revoke_viewer_admin_webauthn_credential"',
     'revalidatePath("/admin")'
   )
   assert.match(
     lifecycleMigration,
-    /after insert or delete or update of user_id, status, factor_type[\s\S]*on auth\.mfa_factors/i
+    /create or replace function public\.invalidate_admin_webauthn_binding/
   )
   assert.match(lifecycleMigration, /'admin_mfa_factor_unenrolled'/)
 })

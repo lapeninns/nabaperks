@@ -47,13 +47,10 @@ test("Given the admin step-up gate When auth helpers are inspected Then privileg
   assert.match(adminAuth, /viewer_has_verified_mfa_factor/)
   assert.match(adminAuth, /viewer_has_activated_admin_mfa/)
   assert.match(adminAuth, /supabase\.rpc\(\s*"is_internal_admin"/)
-  assert.match(adminAuth, /mfaState === "satisfied" && !mfaAuthority/)
   assert.match(adminAuth, /resolveAdminMfaStateFromFacts/)
   assert.doesNotMatch(adminAuth, /aal\.nextLevel/)
+  assert.doesNotMatch(adminAuth, /getAuthenticatorAssuranceLevel/)
 
-  // getAuthenticatorAssuranceLevel reports failure by returning
-  // { data: null, error } — it does not throw — so the error must be read.
-  assert.match(adminAuth, /error: aalError/)
   assert.match(adminAuth, /adminStepUpSatisfied\(access\.mfaState\)/)
   assert.match(mfaGate, /"unknown"/)
   assert.match(mfaGate, /return state === "satisfied"/)
@@ -63,7 +60,7 @@ test("Given the admin step-up gate When auth helpers are inspected Then privileg
   )
 
   // Indeterminate assurance must be recoverable, not a dead-end card.
-  assert.match(adminAuth, /if \(mfaState === "unknown"\) \{\s*redirect\(/)
+  assert.match(adminAuth, /if \(mfaState === "unknown"\) redirect\(/)
 
   // Enrolling a NEW factor is a credential-minting transition, so it cannot be
   // reachable from the very aal1 session the step-up is waiting on. Slice to

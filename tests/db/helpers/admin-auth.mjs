@@ -1,156 +1,90 @@
 import { randomUUID } from "node:crypto"
 
-/**
- * Provision the trusted half of an internal-admin test fixture.
- *
- * AAL2 alone is not authority: production activation binds one independently
- * approved verified factor to the admin row. Tests that exercise legitimate
- * admin behaviour must model that lifecycle explicitly instead of weakening
- * `public.is_internal_admin()` or hiding activation in the global DB harness.
- */
+/** Provision an independently activated application WebAuthn credential. */
 export async function ensureActivatedInternalAdmin(tx, userId) {
   const [admin] = await tx`
     select mfa_factor_id::text as mfa_factor_id
     from public.internal_admins
-    where user_id = ${userId}::uuid
-      and is_active = true`
-
-  if (!admin) {
-    throw new Error(`Active internal-admin fixture is missing for ${userId}`)
-  }
+    where user_id = ${userId}::uuid and is_active = true`
+  if (!admin) throw new Error(`Active internal-admin fixture is missing`)
 
   if (admin.mfa_factor_id) {
     const [bound] = await tx`
       select id::text as id
-      from auth.mfa_factors
+      from public.admin_webauthn_credentials
       where id = ${admin.mfa_factor_id}::uuid
         and user_id = ${userId}::uuid
-        and factor_type = 'webauthn'
-        and status = 'verified'`
-    if (!bound) {
+        and revoked_at is null
+        and user_verified`
+    if (!bound)
       throw new Error(`Internal-admin fixture has an invalid MFA binding`)
-    }
     return bound.id
   }
 
-  const verifiedFactors = await tx`
+  const live = await tx`
     select id::text as id
-    from auth.mfa_factors
-    where user_id = ${userId}::uuid
-      and factor_type = 'webauthn'
-      and status = 'verified'`
-  if (verifiedFactors.length > 1) {
-    throw new Error(`Internal-admin fixture has multiple verified factors`)
-  }
+    from public.admin_webauthn_credentials
+    where user_id = ${userId}::uuid and revoked_at is null`
+  if (live.length > 1)
+    throw new Error(`Internal-admin fixture has multiple credentials`)
 
-  let factorId = verifiedFactors[0]?.id
-  if (!factorId) {
-    factorId = randomUUID()
+  let credentialId = live[0]?.id
+  if (!credentialId) {
+    credentialId = randomUUID()
+    const opaqueId = `db_test_${credentialId.replaceAll("-", "")}`
     await tx`
-      insert into auth.mfa_factors
-        (id, user_id, friendly_name, factor_type, status,
-         web_authn_credential, created_at, updated_at)
-      values (
-        ${factorId}::uuid,
-        ${userId}::uuid,
-        ${`db-test-webauthn-${factorId}`},
-        'webauthn',
-        'verified',
-        jsonb_build_object(
-          'flags', jsonb_build_object('userVerified', true)
-        ),
-        now(),
-        now()
+      insert into public.admin_webauthn_credentials (
+        id, user_id, credential_id, public_key, counter, transports,
+        device_type, backed_up, user_verified
+      ) values (
+        ${credentialId}::uuid, ${userId}::uuid, ${opaqueId},
+        ${`db_public_key_${credentialId.replaceAll("-", "")}`}, 0,
+        '["internal"]'::jsonb, 'singleDevice', false, true
       )`
   }
+
   const [{ priorRole }] = await tx`
     select current_setting('request.jwt.claim.role', true) as "priorRole"`
   try {
     await tx`select set_config('request.jwt.claim.role', 'service_role', true)`
     await tx`
       select public.activate_internal_admin_mfa(
-        ${userId}::uuid, ${factorId}::uuid
+        ${userId}::uuid, ${credentialId}::uuid
       )`
   } finally {
-    await tx`
-      select set_config(
-        'request.jwt.claim.role',
-        ${priorRole ?? ""},
-        true
-      )`
+    await tx`select set_config('request.jwt.claim.role', ${priorRole ?? ""}, true)`
   }
-
-  return factorId
+  return credentialId
 }
 
+/** Act as an admin whose current live Auth session has a fresh WebAuthn grant. */
 export async function actAsActivatedInternalAdmin(tx, userId) {
-  const factorId = await ensureActivatedInternalAdmin(tx, userId)
-  const [activation] = await tx`
-    select mfa_activated_at
-    from public.internal_admins
-    where user_id = ${userId}::uuid`
-  if (!activation?.mfa_activated_at) {
-    throw new Error(`Internal-admin fixture has no activation epoch`)
-  }
-
+  const credentialId = await ensureActivatedInternalAdmin(tx, userId)
   const sessionId = randomUUID()
-  const challengedAt = new Date(
-    new Date(activation.mfa_activated_at).getTime() + 1_000
-  )
-  await recordWebAuthnAssertion(tx, factorId, true)
   await tx`
-    insert into auth.sessions
-      (id, user_id, created_at, updated_at, factor_id, aal)
+    insert into auth.sessions (id, user_id, created_at, updated_at, aal)
     values (
-      ${sessionId}::uuid,
-      ${userId}::uuid,
-      ${challengedAt},
-      ${challengedAt},
-      ${factorId}::uuid,
-      'aal2'::auth.aal_level
+      ${sessionId}::uuid, ${userId}::uuid, clock_timestamp(),
+      clock_timestamp(), 'aal1'::auth.aal_level
     )`
   await tx`
-    insert into auth.mfa_amr_claims
-      (id, session_id, created_at, updated_at, authentication_method)
-    values (
-      ${randomUUID()}::uuid,
-      ${sessionId}::uuid,
-      ${challengedAt},
-      ${challengedAt},
-      'mfa/webauthn'
+    insert into public.admin_webauthn_grants (
+      user_id, session_id, credential_id, verified_at, expires_at
+    ) values (
+      ${userId}::uuid, ${sessionId}::uuid, ${credentialId}::uuid,
+      clock_timestamp(), clock_timestamp() + interval '10 minutes'
     )`
-  const claimValues = {
+
+  const claims = {
     sub: userId,
     role: "authenticated",
-    aal: "aal2",
+    aal: "aal1",
     session_id: sessionId,
-    amr: [
-      {
-        method: "mfa/webauthn",
-        timestamp: Math.floor(challengedAt.getTime() / 1_000),
-      },
-    ],
+    amr: [{ method: "otp", timestamp: Math.floor(Date.now() / 1_000) }],
   }
-  const claims = JSON.stringify(claimValues)
   await tx`select set_config('request.jwt.claim.role', 'authenticated', true)`
   await tx`select set_config('request.jwt.claim.sub', ${userId}, true)`
-  await tx`select set_config('request.jwt.claim.aal', 'aal2', true)`
-  await tx`select set_config('request.jwt.claims', ${claims}, true)`
-  return claimValues
-}
-
-export async function recordWebAuthnAssertion(tx, factorId, userVerified) {
-  const flags = userVerified ? 5 : 1
-  await tx`
-    update auth.mfa_factors
-    set last_webauthn_challenge_data = jsonb_build_object(
-          'type', 'request',
-          'credential_response', jsonb_build_object(
-            'Response', jsonb_build_object(
-              'AuthenticatorData', jsonb_build_object('flags', ${flags}::integer)
-            )
-          )
-        ),
-        updated_at = now()
-    where id = ${factorId}::uuid`
+  await tx`select set_config('request.jwt.claim.aal', 'aal1', true)`
+  await tx`select set_config('request.jwt.claims', ${JSON.stringify(claims)}, true)`
+  return claims
 }

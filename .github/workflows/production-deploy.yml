@@ -149,12 +149,18 @@ jobs:
           supabase functions deploy production-alert \
             --no-verify-jwt \
             --project-ref "$SUPABASE_PROJECT_REF"
+          supabase functions deploy admin-webauthn \
+            --no-verify-jwt \
+            --project-ref "$SUPABASE_PROJECT_REF"
           functions_file="$RUNNER_TEMP/supabase-functions.json"
           supabase functions list \
             --project-ref "$SUPABASE_PROJECT_REF" \
             --output json > "$functions_file"
           jq -e \
             '.[] | select(.name == "production-alert" and .status == "ACTIVE")' \
+            "$functions_file" >/dev/null
+          jq -e \
+            '.[] | select(.name == "admin-webauthn" and .status == "ACTIVE")' \
             "$functions_file" >/dev/null
           node scripts/notify-production-alert.mjs trigger release-canary
           node scripts/notify-production-alert.mjs resolve release-canary
@@ -382,13 +388,8 @@ jobs:
               and .hook_custom_access_token_uri == "pg-functions://postgres/public/reject_password_access_tokens"
               and .hook_send_email_enabled == true
               and .hook_send_email_uri == "https://nabaperks.com/api/auth/hooks/send-email"
-              and .mfa_web_authn_enroll_enabled == true
-              and .mfa_web_authn_verify_enabled == true
               and .mfa_totp_enroll_enabled == false
-              and .mfa_totp_verify_enabled == false
-              and .webauthn_rp_display_name == "Nabaperks"
-              and .webauthn_rp_id == "nabaperks.com"
-              and .webauthn_rp_origins == "https://nabaperks.com,https://www.nabaperks.com,https://mfa.nabaperks.com"' \
+              and .mfa_totp_verify_enabled == false' \
             "$readback_file" >/dev/null
       - name: Prove promoted Auth hook signing-secret alignment
         env:

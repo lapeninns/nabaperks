@@ -221,12 +221,13 @@ reason to repair the migration ledger or weaken `is_internal_admin()`.
 1. Before the first attempt, identify the active internal admin through the
    approved operator process. Do not copy user or factor identifiers into chat,
    issue comments or build logs.
-2. Confirm production has applied `20260902120200` and has not applied
+2. Confirm production has applied `20260902120300` and has not applied
    `20260902120500`. Dispatch `Publish production admin MFA bootstrap` for the
    exact `main` revision with the literal confirmation
    `PUBLISH_ADMIN_MFA_BOOTSTRAP`. The protected workflow fails closed unless
    exactly one active admin exists with no factor. Before publishing, it also
-   verifies the exact revision has passed the release gate and CodeQL analysis.
+   verifies the exact revision has passed the release gate and CodeQL analysis,
+   then deploys the application-owned WebAuthn verifier before publishing.
    For the pull-request-only dependency review, it requires the uniquely
    associated merged PR and proves its reviewed head tree is byte-for-byte the
    final `main` tree before accepting that head's successful review. The
@@ -242,34 +243,37 @@ reason to repair the migration ledger or weaken `is_internal_admin()`.
    is intentionally unavailable on localhost because the production relying
    party is fixed to `nabaperks.com`.
 4. A different trusted operator verifies the admin's identity and confirms that
-   the selected factor is the sole verified WebAuthn factor for that user and
-   that its registration recorded authenticator user verification.
+   the selected credential is the sole live application WebAuthn credential for
+   that user and that its registration recorded authenticator user verification.
 5. Dispatch `Activate production admin MFA` for the exact `main` revision with
-   the verified user UUID, factor UUID and the literal confirmation
+   the verified user UUID, application credential UUID and the literal confirmation
    `ACTIVATE_VERIFIED_ADMIN_MFA`. Approve the protected `Production`
    environment only after the independent check. The workflow invokes the
    service-role-only RPC and verifies its boolean readback without printing the
    identifiers.
 6. Re-run `Production database promotion`. The contract precondition now
-   succeeds, `is_internal_admin()` begins requiring the activated factor plus
-   AAL2, and all remaining forward migrations can apply. The bridge's
-   `auth.sessions` trigger also rejects AAL2 issuance unless GoTrue's
-   signature-validated assertion carries the authenticator UV bit.
-7. Confirm an AAL1 session is denied, a possession-only WebAuthn assertion is
-   denied, the activated admin can step up with user verification at AAL2, and
-   the activation audit event exists before approving application promotion.
+   succeeds, `is_internal_admin()` begins requiring the activated credential
+   plus a fresh, exact-session application grant, and all remaining forward
+   migrations can apply. Hosted Auth remains at AAL1; the application verifier
+   validates the signature, relying party, origin, challenge and authenticator
+   user-verification bit before issuing a grant of at most ten minutes.
+7. Confirm an AAL1 session without an application grant is denied, a
+   possession-only WebAuthn assertion is denied, the activated admin can step
+   up with user verification, and the activation audit event exists before
+   approving application promotion.
 
-Abort if the factor is missing, unverified, owned by another user, lacks the
-authenticator UV flag, or is one of multiple verified factors. Never auto-bind
-a factor: independent activation is the security boundary. Keep the bootstrap
+Abort if the credential is missing, unverified, owned by another user, lacks
+the authenticator UV flag, or is one of multiple live credentials. Never
+auto-bind a credential: independent activation is the security boundary. Keep the bootstrap
 alias in its fail-closed state until a separately approved cleanup removes it;
 after successful enrolment its eligibility RPC returns false.
 
-If the browser or runner closes during enrolment and leaves an unverified
-factor, stop rather than relaxing the factorless preflight. After independently
-verifying the admin identity and factor status, remove only that user's
-unverified factor through the approved Auth factor-management process, then
-restart enrolment. Never delete a verified factor as bootstrap recovery.
+If the browser or runner closes after registration but before activation, stop
+rather than relaxing the credential-free preflight. After independently
+verifying the admin identity and credential status, revoke only that user's
+unactivated application credential through an approved service-role operation,
+then restart enrolment. Never revoke an activated credential as bootstrap
+recovery.
 
 ### Passwordless Auth configuration sequencing
 

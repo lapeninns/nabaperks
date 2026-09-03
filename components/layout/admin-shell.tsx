@@ -70,11 +70,11 @@ export function AdminShell({
             </span>
           ))}
           <span
-            title={mfaRequired ? "AAL2 verified" : "Admin verified"}
+            title={mfaRequired ? "Passkey verified" : "Admin verified"}
             className="grid min-w-0"
           >
             <MonoTag tone="leaf" className="max-w-full truncate">
-              {mfaRequired ? "AAL2 verified" : "Admin verified"}
+              {mfaRequired ? "Passkey verified" : "Admin verified"}
             </MonoTag>
           </span>
         </SidebarFooter>

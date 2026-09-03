@@ -11,8 +11,8 @@ on:
         description: Independently verified active admin user UUID
         required: true
         type: string
-      factor_id:
-        description: Independently verified sole WebAuthn factor UUID
+      credential_id:
+        description: Independently verified application WebAuthn credential UUID
         required: true
         type: string
       confirmation:
@@ -36,7 +36,7 @@ jobs:
     env:
       EXPECTED_REVISION: ${{ inputs.expected_revision }}
       ADMIN_USER_ID: ${{ inputs.admin_user_id }}
-      FACTOR_ID: ${{ inputs.factor_id }}
+      CREDENTIAL_ID: ${{ inputs.credential_id }}
       CONFIRMATION: ${{ inputs.confirmation }}
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
@@ -54,15 +54,15 @@ jobs:
           test -n "$SUPABASE_PROJECT_REF"
           uuid_pattern='^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$'
           [[ "$ADMIN_USER_ID" =~ $uuid_pattern ]]
-          [[ "$FACTOR_ID" =~ $uuid_pattern ]]
+          [[ "$CREDENTIAL_ID" =~ $uuid_pattern ]]
       - name: Invoke the audited service-role activation boundary
         run: |
           query="with trusted_context as materialized (select set_config('request.jwt.claim.role', 'service_role', true)) select public.activate_internal_admin_mfa(\$1::uuid, \$2::uuid) as activated from trusted_context"
           payload="$(jq -n \
             --arg query "$query" \
             --arg admin_user_id "$ADMIN_USER_ID" \
-            --arg factor_id "$FACTOR_ID" \
-            '{query: $query, parameters: [$admin_user_id, $factor_id], read_only: false}')"
+            --arg credential_id "$CREDENTIAL_ID" \
+            '{query: $query, parameters: [$admin_user_id, $credential_id], read_only: false}')"
           response_file="$RUNNER_TEMP/admin-mfa-activation-response.json"
           status="$(curl --silent --show-error \
             --output "$response_file" \
@@ -81,7 +81,7 @@ jobs:
             echo "### Production admin MFA activation"
             echo
             echo "- Revision: \`$EXPECTED_REVISION\`"
-            echo "- Independently verified sole WebAuthn factor: activated"
+            echo "- Independently verified sole WebAuthn credential: activated"
             echo "- Audited database boundary: passed"
             echo "- No user or factor identifier is included in this summary"
           } >> "$GITHUB_STEP_SUMMARY"
