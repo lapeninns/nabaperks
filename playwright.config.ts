@@ -33,7 +33,8 @@ const devServerEnv = [
   `PORT=${devServerPort}`,
   // Hosted shards compile many routes in one dev-server process. Give Next
   // enough heap to avoid its 80%-usage self-restart interrupting live tests.
-  ...(process.env.CI ? ["NODE_OPTIONS=--max-old-space-size=8192"] : []),
+  // Public GitHub runners have 16 GB, leaving 4 GB for browsers and the OS.
+  ...(process.env.CI ? ["NODE_OPTIONS=--max-old-space-size=12288"] : []),
   `CUSTOMER_DEV_OTP_CODE=${devOtpCode}`,
   `PLAYWRIGHT_MARKETING_PROMO_NOW=${visualPromoNow}`,
   "PLAYWRIGHT_HARNESS=1",
