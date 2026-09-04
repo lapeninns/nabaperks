@@ -391,7 +391,7 @@ jobs:
           jq -e \
             --arg uri "$hook_uri" \
             --arg send_email_uri "$send_email_uri" \
-            --arg send_email_secret_hash "hash:$expected_secret_hash" \
+            --arg send_email_secret_hash "$expected_secret_hash" \
             '.hook_custom_access_token_enabled == true
               and .hook_custom_access_token_uri == $uri
               and .hook_send_email_enabled == true

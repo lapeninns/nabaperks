@@ -115,6 +115,14 @@ test("merchant password auth is rejected at the provider token boundary", () => 
   assert.match(productionDeploy, /umask 077/)
   assert.match(productionDeploy, /--data-binary "@\$payload_file"/)
   assert.doesNotMatch(productionDeploy, /--arg send_email_secret\s/)
+  assert.match(
+    productionDeploy,
+    /--arg send_email_secret_hash "\$expected_secret_hash"/
+  )
+  assert.doesNotMatch(
+    productionDeploy,
+    /--arg send_email_secret_hash "hash:\$expected_secret_hash"/
+  )
   for (const disabledFactor of [
     "mfa_totp_enroll_enabled",
     "mfa_totp_verify_enabled",
