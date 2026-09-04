@@ -18,7 +18,7 @@ test("dormant passkey grants remain exact-session bound but do not control admin
   const policy = read(
     "supabase",
     "migrations",
-    "20260902120500_enforce_activated_admin_mfa.sql"
+    "20260903133000_accept_single_factor_admin_policy.sql"
   )
   assert.match(migration, /admin\.mfa_factor_id = credential\.id/)
   assert.match(migration, /credential\.user_id = admin\.user_id/)

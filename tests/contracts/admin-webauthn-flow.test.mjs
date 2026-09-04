@@ -26,7 +26,7 @@ test("admin ceremonies use the fixed-origin server verifier with required user v
   assert.match(edge, /expectedRPID: RP_ID/)
 })
 
-test("step-up uses one activated application credential and a server grant", () => {
+test("dormant step-up remains isolated while the security page offers no enrolment", () => {
   const migration = read(
     "supabase",
     "migrations",
@@ -41,7 +41,9 @@ test("step-up uses one activated application credential and a server grant", () 
     /step_up\.session_id = public\.request_auth_session_id\(\)/
   )
   assert.match(migration, /step_up\.credential_id = credential\.id/)
-  assert.match(page, /viewer_admin_webauthn_credential_id/)
+  assert.match(page, /Additional verification is not required/)
+  assert.doesNotMatch(page, /AdminMfaPanel/)
+  assert.doesNotMatch(page, /viewer_admin_webauthn_credential_id/)
   assert.doesNotMatch(page, /auth\.mfa\.listFactors/)
 })
 

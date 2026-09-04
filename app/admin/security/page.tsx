@@ -1,33 +1,15 @@
 import type { Metadata } from "next"
 import { connection } from "next/server"
 
-import { AdminMfaPanel } from "@/components/admin/mfa-panel"
 import { Eyebrow } from "@/components/brand"
 import { requireAdminRead } from "@/lib/admin/auth"
 import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
-import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export const metadata: Metadata = PRIVATE_ROUTE_METADATA
 
 export default async function AdminSecurityPage() {
   await connection()
-  // requireAdminRead never step-up-gates (reads stay open); the layout has
-  // already rendered the step-up card if a challenge were pending, so this page
-  // is only reached in the no-factor or satisfied state.
-  const access = await requireAdminRead()
-  // Database-sourced, so a session cookie predating the enrolment cannot make
-  // the page offer first-factor enrolment to an already-enrolled admin.
-  const enrolled = access.mfaEnrolled
-
-  let factorId: string | null = null
-  if (enrolled) {
-    const supabase = await createSupabaseServerClient()
-    const { data, error } = await supabase.rpc(
-      "viewer_admin_webauthn_credential_id"
-    )
-    if (error) throw new Error("Unable to read the administrator credential.")
-    factorId = typeof data === "string" ? data : null
-  }
+  await requireAdminRead()
 
   return (
     <div className="space-y-6">
@@ -37,7 +19,13 @@ export default async function AdminSecurityPage() {
           Two-factor authentication
         </h1>
       </header>
-      <AdminMfaPanel enrolled={enrolled} factorId={factorId} />
+      <section className="surface-card max-w-xl p-6">
+        <h2 className="text-xl font-extrabold">Single-factor access</h2>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          Additional verification is not required under the current
+          administrator authentication policy.
+        </p>
+      </section>
     </div>
   )
 }

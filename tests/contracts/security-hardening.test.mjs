@@ -26,7 +26,7 @@ test("Given administrator MFA is an accepted risk When authority is inspected Th
   const policyMigration = readProjectFile(
     "supabase",
     "migrations",
-    "20260902120500_enforce_activated_admin_mfa.sql"
+    "20260903133000_accept_single_factor_admin_policy.sql"
   )
   const adminAuth = readProjectFile("lib", "admin", "auth.ts")
 
