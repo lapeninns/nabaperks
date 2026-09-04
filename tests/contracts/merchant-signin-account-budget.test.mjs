@@ -109,7 +109,7 @@ test("merchant password auth is rejected at the provider token boundary", () => 
   )
   assert.match(
     productionDeploy,
-    /projects api-keys[\s\S]*x-nabaperks-passwordless-guard-probe: active[\s\S]*probe_status[\s\S]*403[\s\S]*Passwordless Data API guard is active/
+    /projects api-keys[\s\S]*service_role[\s\S]*::add-mask::[\s\S]*x-nabaperks-passwordless-guard-probe: active[\s\S]*probe_status[\s\S]*401[\s\S]*403[\s\S]*\.code == "42501"[\s\S]*Passwordless Data API guard is active/
   )
   assert.match(
     productionDeploy,
