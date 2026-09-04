@@ -96,14 +96,13 @@ test("Given tampered or foreign material When it is decrypted Then it returns nu
   const token = tokens.offerClaimToken(CAMPAIGN_ID, 1)
   const ciphertext = tokens.encryptOfferClaimToken(token)
   const [version, iv, body, tag] = ciphertext.split(".")
+  const tamperedTag = `${tag.startsWith("A") ? "B" : "A"}${tag.slice(1)}`
 
   assert.equal(tokens.decryptOfferClaimToken("not-a-ciphertext"), null)
   assert.equal(tokens.decryptOfferClaimToken(`v2.${iv}.${body}.${tag}`), null)
   assert.equal(tokens.decryptOfferClaimToken(`${version}.${iv}.${body}`), null)
   assert.equal(
-    tokens.decryptOfferClaimToken(
-      [version, iv, body, tag.slice(0, -2) + "aa"].join(".")
-    ),
+    tokens.decryptOfferClaimToken([version, iv, body, tamperedTag].join(".")),
     null,
     "an altered auth tag must fail the AEAD check"
   )

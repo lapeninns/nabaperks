@@ -1,4 +1,4 @@
-import { SectionHeader } from "@/components/brand"
+import { IconRoundel, SectionHeader } from "@/components/brand"
 import { Section } from "@/components/layout"
 import { FAQ_ITEMS, type MarketingFaq } from "@/lib/marketing/facts"
 
@@ -13,17 +13,18 @@ export function FaqList({ items }: { items: readonly MarketingFaq[] }) {
       {items.map((faq) => (
         <details
           key={faq.question}
-          className="group overflow-hidden rounded-(--radius-sheet) border-2 border-ink bg-card shadow-sm"
+          className="group rounded-(--radius-sheet) border-2 border-ink bg-card shadow-sm"
         >
           <summary className="focus-ring flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 rounded-(--radius-sheet) px-5 py-5 text-base font-bold text-foreground lg:text-lg [&::-webkit-details-marker]:hidden">
             {faq.question}
-            <span
-              aria-hidden="true"
-              className="mono-meta grid size-8 shrink-0 place-items-center rounded-full border-2 border-ink bg-secondary text-foreground group-open:bg-ink group-open:text-paper"
+            <IconRoundel
+              size="sm"
+              tone="secondary"
+              className="mono-meta group-open:bg-ink group-open:text-paper"
             >
               <span className="group-open:hidden">+</span>
               <span className="hidden group-open:inline">−</span>
-            </span>
+            </IconRoundel>
           </summary>
           <p className="border-t-2 border-dashed border-border px-5 pb-6 text-base leading-7 text-muted-foreground lg:text-lg">
             {faq.answer}

@@ -1,12 +1,18 @@
-# Nabaperks — Manual QA Report (live browser pass)
+# Nabaperks — Historical Manual QA Report (pre-commit browser pass)
 
-| Field           | Detail                                                                                            |
-| --------------- | ------------------------------------------------------------------------------------------------- |
-| Branch / commit | `codex/security-scan-remediation` @ `63f1bac68` (16 files changed)                                |
-| Environment     | Local dev server, http://localhost:3001 (`pnpm dev -p 3001`), live Chromium                       |
-| Date / tester   | 2026-09-03 / Hermes Agent                                                                         |
-| Scope           | Guest pricing flow, customer login-entry flow, signed-out gate smoke, console sweep               |
-| Companion files | `manual-qa/nabaperks-manual-qa.xlsx` (Run_Log + Defects), `dogfood-output/screenshots/` (4 shots) |
+> This report records the original pricing working-tree review. It is retained
+> as design evidence, not as release proof for the promoted commit. Pull request
+> #237 supplies the exact-head build, contract, accessibility, visual, browser,
+> database, Lighthouse, CodeQL and ZAP evidence required for promotion; GitHub
+> binds those checks to the pull request's current head revision.
+
+| Field             | Detail                                                                                                                 |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Source under test | `codex/security-scan-remediation` @ `63f1bac68` plus the documented 16-file working-tree diff; captured by `63df440ac` |
+| Environment       | Local dev server, http://localhost:3001 (`pnpm dev -p 3001`), live Chromium                                            |
+| Date / tester     | 2026-09-03 / Hermes Agent                                                                                              |
+| Scope             | Guest pricing flow, customer login-entry flow, signed-out gate smoke, console sweep                                    |
+| Companion files   | `manual-qa/nabaperks-manual-qa.xlsx` (Run_Log + Defects), `dogfood-output/screenshots/` (4 shots)                      |
 
 ## Verdict
 
@@ -88,6 +94,10 @@ On `/pricing` at a 320px viewport, the fixed circular "N" badge bottom-left cove
 
 OTP happy path, merchant onboarding/launch/scan/billing, and signed-in admin journeys — all need seeded Supabase sessions and belong to `pnpm test:db` plus the live-db Playwright specs. Service-backed checks (`test:db`, full `test:e2e`/`a11y`/`visual`, `ops:*`) were not run here.
 
-## Worktree state
+## Historical worktree state
 
-Commit `63f1bac68` plus the pre-existing 16-file diff; new untracked outputs: `manual-qa/`, `dogfood-output/`. Dev server left running on :3001.
+At the time of this manual pass, the worktree contained commit `63f1bac68`
+plus the documented 16-file diff and the new `manual-qa/` and
+`dogfood-output/` artifacts. Those source changes were subsequently captured
+by commit `63df440ac`; the current promotion is verified independently by the
+head-bound checks on pull request #237.

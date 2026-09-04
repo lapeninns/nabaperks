@@ -18,6 +18,12 @@ test.describe("Growth Plan pricing sheet @desktop", () => {
   test("Given a desktop viewport When the sheet renders Then the rhythms sit as peers inside one boundary and the page passes axe", async ({
     page,
   }) => {
+    const campaign = page.getByLabel("Current seasonal offer")
+    await expect(campaign).toContainText("The Autumn First-Regular Launch")
+    await expect(campaign).toContainText(
+      "Join the autumn launch cohort by 30 September 2026."
+    )
+
     const sheet = page.locator("[data-growth-plan-pricing]")
     await expect(sheet).toHaveCount(1)
     await expect(sheet).toBeVisible()
@@ -66,6 +72,19 @@ test.describe("Growth Plan pricing sheet @desktop", () => {
       () => document.documentElement.scrollWidth - window.innerWidth
     )
     expect(overflow).toBeLessThanOrEqual(1)
+
+    const firstFaqSummary = page.locator("#pricing-faq summary").first()
+    await firstFaqSummary.focus()
+    await expect(firstFaqSummary).toBeFocused()
+    const focusStyle = await firstFaqSummary.evaluate((element) => {
+      const style = getComputedStyle(element)
+      return {
+        outlineStyle: style.outlineStyle,
+        outlineWidth: Number.parseFloat(style.outlineWidth),
+      }
+    })
+    expect(focusStyle.outlineStyle).not.toBe("none")
+    expect(focusStyle.outlineWidth).toBeGreaterThanOrEqual(2)
 
     await expectNoAxeViolations(page, "Growth Plan pricing sheet")
   })

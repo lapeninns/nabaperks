@@ -210,37 +210,25 @@ generates signed source provenance and a CycloneDX SBOM, stages a hosted Vercel
 build with no domain assignment, probes that URL and promotes it.
 Public-origin smoke starts only after promotion.
 
-### First admin-MFA enforcement
+### Administrator authentication policy
 
-The admin-MFA change is intentionally an expand/activate/enforce rollout. The
-first database-promotion attempt applies the expand migration, then stops at the
-contract migration while any active admin lacks an independently approved TOTP
-factor. This is an expected fail-closed pause, not a reason to repair the
-migration ledger or weaken `is_internal_admin()`.
+Administrator MFA is an explicitly accepted product risk. TOTP remains
+disabled, and neither a passkey nor another second factor is required for the
+admin console. `is_internal_admin()` therefore grants authority only when the
+Supabase-authenticated user has a matching active `internal_admins` row. The
+application repeats that active-membership check before creating any
+service-role client.
 
-1. Before the first attempt, identify the active internal admin through the
-   approved operator process. Do not copy user or factor identifiers into chat,
-   issue comments or build logs.
-2. After the expand migration has applied, the existing admin signs in to the
-   current application and enrols exactly one TOTP factor at `/admin/security`.
-3. A different trusted operator verifies the admin's identity and confirms that
-   the selected factor is the sole verified TOTP factor for that user.
-4. Dispatch `Activate production admin MFA` for the exact `main` revision with
-   the verified user UUID, factor UUID and the literal confirmation
-   `ACTIVATE_VERIFIED_ADMIN_MFA`. Approve the protected `Production`
-   environment only after the independent check. The workflow invokes the
-   service-role-only RPC and verifies its boolean readback without printing the
-   identifiers.
-5. Re-run `Production database promotion`. The contract precondition now
-   succeeds, `is_internal_admin()` begins requiring the activated factor plus
-   AAL2, and all remaining forward migrations can apply.
-6. Confirm an AAL1 session is denied, the activated admin can step up at AAL2,
-   and the activation audit event exists before approving application
-   promotion.
+The WebAuthn tables and verifier may remain deployed as dormant infrastructure,
+but enrolment or possession does not change administrator authority. Do not run
+the bootstrap or activation workflows as a prerequisite for database or
+application promotion. Confirm instead that an authenticated active admin is
+allowed, while an authenticated non-admin and an inactive admin are denied.
 
-Abort if the factor is missing, unverified, owned by another user, or one of
-multiple verified factors. Never auto-bind a factor: independent activation is
-the security boundary.
+This policy increases the impact of a compromised primary account. It must not
+be described as remediation of the administrator-MFA finding; record that
+finding as accepted risk. Reintroducing mandatory MFA requires a separately
+reviewed policy change, migration, recovery design and operator rollout.
 
 ### Passwordless Auth configuration sequencing
 
@@ -252,19 +240,21 @@ before enabling server-side enforcement so the public application no longer
 offers a password flow when password-origin sessions begin failing closed.
 
 Immediately after promotion, the workflow installs and live-probes the
-PostgREST pre-request guard, then enables and reads back the Postgres custom
-access-token hook. `supabase config push` activates the complete reviewed Auth
-configuration, including the Send Email hook. A final Management API readback
-must prove both exact hook URIs before the same non-delivering signed canary is
+PostgREST pre-request guard, then activates the reviewed hosted Auth
+configuration through the Management API. That targeted update enables the
+Postgres custom access-token hook and Send Email hook, publishes the protected
+hook secret, and explicitly keeps TOTP, phone MFA, WebAuthn MFA and passkeys
+disabled. Its readback must prove the exact hook URIs, disabled-factor booleans
+and provider-held secret HMAC before the same non-delivering signed canary is
 run at the public origin. Any failure after promotion leaves the passwordless UI
 in place but holds the security release as incomplete until the missing
 server-side activation is retried or the deployment is rolled back. It must
 never be worked around by restoring password UI or weakening either guard.
 
-If either canary, Auth readback, promotion or config push fails, stop the
-release and follow the rollback section. Do not substitute a source-owned hook
-secret or re-enable password login. The canary uses a deliberately malformed
-signed body, so it cannot create an alias, send an email or mutate an account.
+If either canary, Auth update/readback or promotion fails, stop the release and
+follow the rollback section. Do not substitute a source-owned hook secret or
+re-enable password login. The canary uses a deliberately malformed signed body,
+so it cannot create an alias, send an email or mutate an account.
 
 ## Rollback
 

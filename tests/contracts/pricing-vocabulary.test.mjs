@@ -65,6 +65,25 @@ test("PriceLockup keeps the inline variant contiguous for merchant exact-text sp
   assert.match(source, /\{`£\$\{amount\} \$\{cadence\}`\}/)
 })
 
+test("the seasonal chip keeps the configured campaign identity and deadline", () => {
+  const source = read("components/marketing/pricing/campaign-strip.tsx")
+  const chipBranch = source.slice(
+    source.indexOf('variant === "chip"'),
+    source.indexOf('variant === "strip"')
+  )
+
+  assert.match(chipBranch, /offer\.name/)
+  assert.match(chipBranch, /offer\.deadlineLine/)
+})
+
+test("the FAQ accordion preserves the shared roundel and unclipped focus ring", () => {
+  const source = read("components/marketing/landing/faq.tsx")
+  const faqList = source.slice(0, source.indexOf("export function LandingFaq"))
+
+  assert.match(faqList, /<IconRoundel/)
+  assert.doesNotMatch(faqList, /group overflow-hidden/)
+})
+
 test('Given the campaign strip omits its disclosure by design When any caller renders variant="strip" Then that same file also renders termsLine', () => {
   // CLAIMS-COMPLIANCE GUARD, not a style rule. CampaignStrip's `variant="strip"`
   // deliberately drops offer.termsLine — the disclosure that the campaign

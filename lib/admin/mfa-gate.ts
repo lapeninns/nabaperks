@@ -1,13 +1,9 @@
 /**
  * Admin MFA gate policy.
  *
- * Privileged authority requires a verified factor, trusted activation of that
- * factor, and an aal2 session. A no-factor session is an enrolment-only state:
- * it must never reach admin data, mutations, or the service-role client.
- *
- * Supabase `auth.mfa.getAuthenticatorAssuranceLevel()` reports:
- *   - nextLevel === 'aal2'  ⇔ the user has a verified authenticator factor
- *   - currentLevel === 'aal2' ⇔ the current session has completed the challenge
+ * Privileged authority requires a server-verified WebAuthn credential, trusted
+ * activation of that exact credential, and a short-lived grant bound to the
+ * live signed Auth session. A no-factor session is enrolment-only.
  *
  * Factor activation is checked separately by the caller because Supabase Auth
  * enrolment is reachable directly by an authenticated browser. Possession of a
@@ -31,30 +27,25 @@ export function resolveAdminMfaState(
 /**
  * The resolution the gate actually uses.
  *
- * `hasVerifiedFactor` must come from the database, never from
- * `getAuthenticatorAssuranceLevel().nextLevel`: supabase-js derives nextLevel
- * from the cached session cookie's factor list, so a session minted before the
- * factor was enrolled reports "no factor" and would sail through the gate.
- * `currentLevel` is safe to take from supabase-js — it decodes the signed JWT's
- * `aal` claim.
- *
- * A null/absent currentLevel means the assurance level could not be read at
- * all, which is "unknown", not "aal1".
+ * Both facts come from security-definer database functions. The second fact is
+ * true only for a non-expired server-verified grant for the current session.
  */
 export function resolveAdminMfaStateFromFacts(
   hasVerifiedFactor: boolean | null | undefined,
-  currentLevel: string | null | undefined
+  hasCurrentGrant: boolean | null | undefined
 ): AdminMfaState {
-  if (hasVerifiedFactor === null || hasVerifiedFactor === undefined) {
+  if (
+    hasVerifiedFactor === null ||
+    hasVerifiedFactor === undefined ||
+    hasCurrentGrant === null ||
+    hasCurrentGrant === undefined
+  ) {
     return "unknown"
   }
   if (!hasVerifiedFactor) {
     return "no-factor"
   }
-  if (currentLevel !== "aal1" && currentLevel !== "aal2") {
-    return "unknown"
-  }
-  return currentLevel === "aal2" ? "satisfied" : "step-up-required"
+  return hasCurrentGrant ? "satisfied" : "step-up-required"
 }
 
 /** True once the admin has a verified factor (drives shell display + nudges). */
@@ -81,8 +72,7 @@ export function adminStepUpSatisfied(state: AdminMfaState): boolean {
 }
 
 /**
- * Removing the factor itself is stricter than ordinary admin mutations: the
- * current session must already have proved possession of that factor.
+ * Removing the credential itself requires a current session-bound grant.
  */
 export function adminMfaUnenrollmentAllowed(state: AdminMfaState): boolean {
   return state === "satisfied"

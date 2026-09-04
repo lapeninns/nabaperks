@@ -1,23 +1,7 @@
--- Contract phase for trusted admin-MFA activation. The preceding expand
--- migration already fails admin authority closed while each active admin
--- enrols and is independently activated. This phase advances only when every
--- active admin satisfies the exact approved-factor invariant.
-
-do $migration$
-declare
-  unactivated_admin_count bigint;
-begin
-  select count(*)
-  into unactivated_admin_count
-  from public.internal_admins admin
-  where admin.is_active
-    and not public.has_activated_admin_mfa(admin.user_id);
-
-  if unactivated_admin_count <> 0 then
-    raise check_violation using
-      message = 'Active internal admins require independently activated MFA before enforcement';
-  end if;
-end;
-$migration$;
+-- The mandatory-MFA contract was withdrawn by product decision before it was
+-- promoted to production. Keep this already-published migration version as a
+-- non-blocking ledger step. The final accepted single-factor authority policy
+-- is installed by the later forward-only convergence migration so databases
+-- that already recorded this version reach the same state.
 
 notify pgrst, 'reload schema';

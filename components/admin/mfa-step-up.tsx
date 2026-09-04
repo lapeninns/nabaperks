@@ -1,24 +1,28 @@
 "use client"
 
-import { useActionState } from "react"
+import { useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 
-import {
-  stepUpAdminMfa,
-  type AdminMfaFormState,
-} from "@/app/admin/security/actions"
 import { Eyebrow } from "@/components/brand"
-import { FormField, SubmitButton } from "@/components/forms"
-import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { stepUpAdminWebAuthn } from "@/lib/admin/webauthn-mfa"
+import { getSupabaseBrowserClient } from "@/lib/supabase/browser"
 
-const IDLE: AdminMfaFormState = { ok: false, error: null }
-
-/**
- * Full-page step-up prompt shown by the admin layout when an enrolled admin's
- * session is still aal1. It is the only admin surface rendered in that state, so
- * an admin can always reach it and complete the challenge — no lockout.
- */
 export function AdminMfaStepUp({ operatorEmail }: { operatorEmail: string }) {
-  const [state, action] = useActionState(stepUpAdminMfa, IDLE)
+  const router = useRouter()
+  const [error, setError] = useState<string | null>(null)
+  const [verifying, startTransition] = useTransition()
+
+  const verify = () =>
+    startTransition(async () => {
+      setError(null)
+      const result = await stepUpAdminWebAuthn(getSupabaseBrowserClient())
+      if (!result.ok) {
+        setError(result.error)
+        return
+      }
+      router.refresh()
+    })
 
   return (
     <main className="flex min-h-svh items-center justify-center px-6 py-10">
@@ -28,28 +32,23 @@ export function AdminMfaStepUp({ operatorEmail }: { operatorEmail: string }) {
           Verify it&rsquo;s you
         </h1>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          Two-factor authentication is on for {operatorEmail}. Enter the current
-          6-digit code from your authenticator app to continue.
+          Two-factor authentication is on for {operatorEmail}. Use the enrolled
+          passkey or security key to continue.
         </p>
-        <form action={action} className="mt-5 space-y-4">
-          <FormField
-            id="admin-mfa-step-up-code"
-            label="Authenticator code"
-            error={state.error ?? undefined}
-          >
-            <Input
-              name="code"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
-              placeholder="123456"
-              autoFocus
-            />
-          </FormField>
-          <SubmitButton pendingLabel="Verifying…" className="w-full">
-            Verify
-          </SubmitButton>
-        </form>
+        {error ? (
+          <p role="alert" className="mt-4 text-sm text-destructive">
+            {error}
+          </p>
+        ) : null}
+        <Button
+          type="button"
+          className="mt-5 w-full"
+          disabled={verifying}
+          onClick={verify}
+          autoFocus
+        >
+          {verifying ? "Waiting for your device…" : "Verify with security key"}
+        </Button>
       </section>
     </main>
   )
