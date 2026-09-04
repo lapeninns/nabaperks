@@ -240,19 +240,21 @@ before enabling server-side enforcement so the public application no longer
 offers a password flow when password-origin sessions begin failing closed.
 
 Immediately after promotion, the workflow installs and live-probes the
-PostgREST pre-request guard, then enables and reads back the Postgres custom
-access-token hook. `supabase config push` activates the complete reviewed Auth
-configuration, including the Send Email hook. A final Management API readback
-must prove both exact hook URIs before the same non-delivering signed canary is
+PostgREST pre-request guard, then activates the reviewed hosted Auth
+configuration through the Management API. That targeted update enables the
+Postgres custom access-token hook and Send Email hook, publishes the protected
+hook secret, and explicitly keeps TOTP, phone MFA, WebAuthn MFA and passkeys
+disabled. Its readback must prove the exact hook URIs, disabled-factor booleans
+and provider-held secret HMAC before the same non-delivering signed canary is
 run at the public origin. Any failure after promotion leaves the passwordless UI
 in place but holds the security release as incomplete until the missing
 server-side activation is retried or the deployment is rolled back. It must
 never be worked around by restoring password UI or weakening either guard.
 
-If either canary, Auth readback, promotion or config push fails, stop the
-release and follow the rollback section. Do not substitute a source-owned hook
-secret or re-enable password login. The canary uses a deliberately malformed
-signed body, so it cannot create an alias, send an email or mutate an account.
+If either canary, Auth update/readback or promotion fails, stop the release and
+follow the rollback section. Do not substitute a source-owned hook secret or
+re-enable password login. The canary uses a deliberately malformed signed body,
+so it cannot create an alias, send an email or mutate an account.
 
 ## Rollback
 

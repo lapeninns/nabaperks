@@ -70,11 +70,8 @@ test("merchant password auth is rejected at the provider token boundary", () => 
   const migrationAt = productionDatabase.indexOf(
     "supabase db push --linked --include-all"
   )
-  const authConfigAt = productionDeploy.indexOf(
-    'supabase config push --project-ref "$SUPABASE_PROJECT_REF" --yes'
-  )
   const accessTokenActivationAt = productionDeploy.indexOf(
-    "Activate password-token rejection after passwordless promotion"
+    "Activate reviewed production Auth configuration"
   )
   const dataApiActivationAt = productionDeploy.indexOf(
     "Activate and read back the passwordless Data API guard"
@@ -98,11 +95,7 @@ test("merchant password auth is rejected at the provider token boundary", () => 
     dataApiActivationAt > promoteAt &&
       accessTokenActivationAt > dataApiActivationAt
   )
-  assert.ok(authConfigAt > accessTokenActivationAt)
-  assert.match(
-    productionDeploy,
-    /supabase config push --project-ref "\$SUPABASE_PROJECT_REF" --yes/
-  )
+  assert.doesNotMatch(productionDeploy, /supabase config push/)
   assert.match(
     productionDeploy,
     /alter role authenticator set pgrst\.db_pre_request = 'private\.enforce_passwordless_data_api_session'/
@@ -117,8 +110,11 @@ test("merchant password auth is rejected at the provider token boundary", () => 
   )
   assert.match(
     productionDeploy,
-    /hook_custom_access_token_enabled: true[\s\S]*hook_custom_access_token_uri: \$uri[\s\S]*--request PATCH/
+    /hook_custom_access_token_enabled: true[\s\S]*hook_custom_access_token_uri: \$uri[\s\S]*hook_send_email_enabled: true[\s\S]*hook_send_email_uri: \$send_email_uri[\s\S]*hook_send_email_secrets: env\.SUPABASE_SEND_EMAIL_HOOK_SECRET[\s\S]*--request PATCH/
   )
+  assert.match(productionDeploy, /umask 077/)
+  assert.match(productionDeploy, /--data-binary "@\$payload_file"/)
+  assert.doesNotMatch(productionDeploy, /--arg send_email_secret\s/)
   for (const disabledFactor of [
     "mfa_totp_enroll_enabled",
     "mfa_totp_verify_enabled",
@@ -132,7 +128,7 @@ test("merchant password auth is rejected at the provider token boundary", () => 
   }
   assert.match(
     productionDeploy,
-    /GET[\s\S]*\.hook_custom_access_token_enabled == true[\s\S]*\.hook_custom_access_token_uri == \$uri/
+    /GET[\s\S]*\.hook_custom_access_token_enabled == true[\s\S]*\.hook_custom_access_token_uri == \$uri[\s\S]*\.hook_send_email_enabled == true[\s\S]*\.hook_send_email_uri == \$send_email_uri[\s\S]*\.hook_send_email_secrets == \$send_email_secret_hash/
   )
   assert.match(
     productionDeploy,
