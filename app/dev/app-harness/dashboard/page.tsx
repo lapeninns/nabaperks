@@ -104,7 +104,12 @@ function buildDashboardHarnessReadiness({
 export default async function DashboardHarnessPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ setup?: string; members?: string; qr?: string }>
+  searchParams?: Promise<{
+    setup?: string
+    members?: string
+    qr?: string
+    activity?: string
+  }>
 }) {
   if (process.env.NODE_ENV === "production") {
     notFound()
@@ -115,6 +120,7 @@ export default async function DashboardHarnessPage({
   const showEmptyMembers = params.members === "empty"
   const qrPaused = params.qr === "paused"
   const qrGated = params.qr === "gated"
+  const showReferralActivity = params.activity === "referral"
   const readiness = buildDashboardHarnessReadiness({
     setupIncomplete: showSetupReminder,
     qrPaused,
@@ -123,6 +129,14 @@ export default async function DashboardHarnessPage({
 
   const { readyCount, quietCount, repeatCustomers, members } =
     HARNESS_NEXT_ACTIONS
+  const recentActivityRows = showReferralActivity
+    ? [
+        ...HARNESS_ACTIVITY_ROWS.slice(0, 3),
+        ...HARNESS_ACTIVITY_ROWS.filter(
+          (row) => row.eventName === "referral_bonus_awarded"
+        ).slice(0, 1),
+      ]
+    : HARNESS_ACTIVITY_ROWS.slice(0, 4)
 
   return (
     <div className="grid gap-6">
@@ -217,7 +231,7 @@ export default async function DashboardHarnessPage({
         />
         <ActivityCompactFeed
           inset
-          rows={showEmptyMembers ? [] : HARNESS_ACTIVITY_ROWS.slice(0, 4)}
+          rows={showEmptyMembers ? [] : recentActivityRows}
           emptyState={
             <EmptyState
               title="No activity yet"

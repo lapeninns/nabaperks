@@ -2,6 +2,7 @@ import "server-only"
 
 import type { SupabaseClient } from "@supabase/supabase-js"
 
+import { activityEvents } from "@/lib/merchant/activity-display"
 import {
   assertMerchantCustomerRewardStateLoaded,
   buildMerchantCustomerReadback,
@@ -24,24 +25,6 @@ export {
   type MerchantDashboardSeries,
 } from "@/lib/merchant/dashboard-metrics"
 export type { MerchantDashboardTrends } from "@/lib/merchant/dashboard-trends"
-
-const activityEvents = [
-  "qr_scanned",
-  "customer_joined",
-  "stamp_claim_started",
-  "stamp_issued",
-  "reward_unlocked",
-  "reward_redeemed",
-  "qr_downloaded",
-  "qr_created",
-  "qr_enabled",
-  "qr_disabled",
-  "loyalty_card_created",
-  "loyalty_card_updated",
-  "merchant_signed_up",
-  "subscription_started",
-  "subscription_cancelled",
-]
 
 export type MerchantActivityItem = {
   id: string
@@ -378,7 +361,7 @@ async function getRecentActivity(merchantId: string, limit: number) {
     .from("product_events")
     .select("id, event_name, created_at, metadata")
     .eq("merchant_id", merchantId)
-    .in("event_name", activityEvents)
+    .in("event_name", [...activityEvents])
     .order("created_at", { ascending: false })
     .limit(limit)
 

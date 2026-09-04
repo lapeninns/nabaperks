@@ -72,6 +72,10 @@ test("Given merchant activity builds client search text When product event metad
     "date_of_birth",
     "address",
     "ip",
+    "referral_edge_id",
+    "referred_membership_id",
+    "bonus_stamp_event_id",
+    "membership_id",
   ]) {
     assert.doesNotMatch(allowlist, new RegExp(`"${piiKey}"`))
   }
@@ -80,4 +84,15 @@ test("Given merchant activity builds client search text When product event metad
   assert.match(activity, /SEARCHABLE_METADATA_KEYS\.has\(key\)/)
   assert.doesNotMatch(activity, /JSON\.stringify\(metadata\)/)
   assert.doesNotMatch(activity, /Object\.values\(metadata\)/)
+})
+
+test("Given dashboard activity is loaded When its event set changes Then it uses the canonical activity allowlist", () => {
+  const dashboard = readProjectFile("lib", "merchant", "dashboard.ts")
+
+  assert.match(
+    dashboard,
+    /import \{ activityEvents \} from "@\/lib\/merchant\/activity-display"/
+  )
+  assert.doesNotMatch(dashboard, /const activityEvents\s*=\s*\[/)
+  assert.match(dashboard, /\.in\("event_name", \[\.\.\.activityEvents\]\)/)
 })

@@ -13,6 +13,7 @@ import {
   formatDestinationType,
   rewardLabel,
   summarizeActivity,
+  threadActivityRows,
   toActivityDisplayRow,
   ukDateKey,
 } from "@/lib/merchant/activity-display"
@@ -27,6 +28,7 @@ const ALL_EVENTS = [
   "customer_joined",
   "stamp_claim_started",
   "stamp_issued",
+  "referral_bonus_awarded",
   "reward_unlocked",
   "reward_redeemed",
   "reward_issued",
@@ -49,6 +51,7 @@ test("activityCategory maps every known event and defaults unknowns to account",
     customer_joined: "customer",
     stamp_claim_started: "stamp",
     stamp_issued: "stamp",
+    referral_bonus_awarded: "stamp",
     reward_unlocked: "reward",
     reward_redeemed: "reward",
     reward_issued: "reward",
@@ -76,6 +79,7 @@ test("eventsForCategory returns the full list for all and the scoped list per ca
   assert.deepEqual(eventsForCategory("stamp"), [
     "stamp_claim_started",
     "stamp_issued",
+    "referral_bonus_awarded",
   ])
   assert.deepEqual(eventsForCategory("reward"), [
     "reward_unlocked",
@@ -200,27 +204,126 @@ test("toActivityDisplayRow projects a stamp_issued event", () => {
       { label: "Stamps now", value: "3" },
       { label: "Lifetime stamps", value: "3" },
     ],
-    primaryAction: { label: "View member", href: "/app/customers?highlight=m1" },
+    primaryAction: {
+      label: "View member",
+      href: "/app/customers?highlight=m1",
+    },
     secondaryAction: { label: "Open QR setup", href: "/app/qr" },
   })
 })
 
-test("toActivityDisplayRow projects a customer_joined event", () => {
-  assert.deepEqual(stable(baseRow({ id: "e2", event_name: "customer_joined" })), {
-    eventName: "customer_joined",
-    category: "customer",
-    badgeLabel: "Join",
-    headline: "Member joined",
-    summary: "Joined via venue QR and accepted the loyalty programme.",
-    searchText: "customer joined",
+test("toActivityDisplayRow projects a private standalone referral bonus event", () => {
+  const referralEdgeId = "edge-private-123"
+  const referredMembershipId = "friend-private-456"
+  const row = stable(
+    baseRow({
+      id: "e-referral",
+      event_name: "referral_bonus_awarded",
+      actor_type: "system",
+      metadata: {
+        referral_edge_id: referralEdgeId,
+        referred_membership_id: referredMembershipId,
+        bonus_stamp_event_id: "stamp-event-private-789",
+        new_stamp_count: 4,
+      },
+    })
+  )
+
+  assert.deepEqual(row, {
+    eventName: "referral_bonus_awarded",
+    category: "stamp",
+    badgeLabel: "Referral bonus",
+    headline: "Member earned a referral bonus stamp",
+    summary: "A referred friend collected their first venue stamp.",
+    searchText: "referral bonus awarded new_stamp_count 4",
     details: [
-      { label: "Actor", value: "Merchant account" },
-      { label: "How", value: "Scanned venue QR and completed join" },
-      { label: "Starting stamps", value: "3" },
+      { label: "Actor", value: "Automatic" },
+      {
+        label: "How",
+        value: "A referred friend completed their first visit",
+      },
+      { label: "Stamps now", value: "4" },
     ],
-    primaryAction: { label: "View member", href: "/app/customers?highlight=m1" },
+    primaryAction: {
+      label: "View member",
+      href: "/app/customers?highlight=m1",
+    },
     secondaryAction: undefined,
   })
+  assert.match(row.searchText, /referral/)
+  assert.doesNotMatch(row.searchText, new RegExp(referralEdgeId))
+  assert.doesNotMatch(row.searchText, new RegExp(referredMembershipId))
+  assert.doesNotMatch(row.searchText, /m1/)
+})
+
+test("referral bonus stamp count falls back to the rewarded membership", () => {
+  const row = stable(
+    baseRow({
+      id: "e-referral-fallback",
+      event_name: "referral_bonus_awarded",
+      actor_type: "system",
+      metadata: {},
+    })
+  )
+
+  assert.deepEqual(row.details.at(-1), {
+    label: "Stamps now",
+    value: "3",
+  })
+})
+
+test("referral bonuses stay standalone while a normal claim and issue still thread", () => {
+  const issued = baseRow({
+    id: "issued",
+    created_at: "2026-07-04T12:05:00.000Z",
+  })
+  const claim = baseRow({
+    id: "claim",
+    event_name: "stamp_claim_started",
+    created_at: "2026-07-04T12:00:00.000Z",
+  })
+  const referral = baseRow({
+    id: "referral",
+    event_name: "referral_bonus_awarded",
+    actor_type: "system",
+    created_at: "2026-07-04T11:59:00.000Z",
+  })
+
+  const rows = threadActivityRows(
+    [issued, claim, referral],
+    new Map(),
+    new Map()
+  )
+
+  assert.equal(rows.length, 2)
+  assert.equal(rows[0].id, "issued:claim")
+  assert.equal(rows[0].eventName, "stamp_issued")
+  assert.equal(rows[1].id, "referral")
+  assert.equal(rows[1].eventName, "referral_bonus_awarded")
+})
+
+test("toActivityDisplayRow projects a customer_joined event", () => {
+  assert.deepEqual(
+    stable(baseRow({ id: "e2", event_name: "customer_joined" })),
+    {
+      eventName: "customer_joined",
+      category: "customer",
+      badgeLabel: "Join",
+      headline: "Member joined",
+      summary: "Joined via venue QR and accepted the loyalty programme.",
+      searchText: "customer joined",
+      details: [
+        { label: "Actor", value: "Merchant account" },
+        { label: "How", value: "Scanned venue QR and completed join" },
+        { label: "Starting stamps", value: "3" },
+      ],
+      primaryAction: {
+        label: "View member",
+        href: "/app/customers?highlight=m1",
+      },
+      secondaryAction: undefined,
+    }
+  )
 })
 
 test("toActivityDisplayRow projects a reward_redeemed event and threads the reward name into searchText", () => {
@@ -257,7 +360,9 @@ test("toActivityDisplayRow projects a reward_redeemed event and threads the rewa
 
 test("toActivityDisplayRow projects a qr_scanned event", () => {
   assert.deepEqual(
-    stable(baseRow({ id: "e4", event_name: "qr_scanned", actor_type: "customer" })),
+    stable(
+      baseRow({ id: "e4", event_name: "qr_scanned", actor_type: "customer" })
+    ),
     {
       eventName: "qr_scanned",
       category: "qr",

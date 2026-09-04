@@ -195,9 +195,9 @@ export const HARNESS_TOTAL_MEMBERS = 1842
 // ─── Activity feed ──────────────────────────────────────────────────────────
 
 export const HARNESS_ACTIVITY_SUMMARY: ActivitySummary = {
-  total: 96,
+  total: 97,
   joins: 31,
-  stamps: 347,
+  stamps: 348,
   rewards: 14,
   qrEvents: 58,
   accountEvents: 2,
@@ -308,5 +308,24 @@ export const HARNESS_ACTIVITY_ROWS: ActivityDisplayRow[] = [
     details: [],
     primaryAction: { label: "Open card setup", href: "/app/launch?tab=card" },
     searchText: "loyalty card updated card setup",
+  },
+  {
+    id: "evt_referral_bonus_1",
+    eventName: "referral_bonus_awarded",
+    category: "stamp",
+    badgeLabel: "Referral bonus",
+    headline: "Phone ending 812 earned a referral bonus stamp",
+    summary: "A referred friend collected their first venue stamp.",
+    timestamp: "2026-06-29T08:20:00.000Z",
+    timestampLabel: "Mon 29 Jun 2026, 09:20",
+    relativeTime: "22 min ago",
+    dateGroup: "today",
+    dateGroupLabel: "Today",
+    details: [],
+    primaryAction: {
+      label: "View member",
+      href: "/app/customers?highlight=mbr_45d981",
+    },
+    searchText: "referral bonus awarded phone ending 812",
   },
 ]

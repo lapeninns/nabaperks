@@ -9,7 +9,6 @@ import {
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 import {
-  activityCategory,
   activityEvents,
   clampActivityLimit,
   eventsForCategory,
@@ -20,6 +19,7 @@ import {
   type ActivitySummary,
   type RawActivityRow,
 } from "./activity-display"
+import { applyActivityEventCount } from "./activity-summary"
 
 // The pure display core now lives in ./activity-display. Re-export it here so
 // the six existing callers keep importing from "@/lib/merchant/activity".
@@ -225,36 +225,6 @@ async function loadMerchantActivitySummary(
   }
 
   return summary
-}
-
-function applyActivityEventCount(
-  summary: ActivitySummary,
-  eventName: string,
-  count: number
-) {
-  if (count <= 0) return
-  switch (eventName) {
-    case "customer_joined":
-      summary.joins += count
-      break
-    case "stamp_issued":
-      summary.stamps += count
-      break
-    case "reward_redeemed":
-      summary.rewards += count
-      break
-    case "qr_downloaded":
-    case "qr_scanned":
-      summary.qrEvents += count
-      break
-    default:
-      if (activityCategory(eventName) === "account") {
-        summary.accountEvents += count
-        break
-      }
-      return
-  }
-  summary.total += count
 }
 
 function parseActivityEventCount(value: unknown): number {

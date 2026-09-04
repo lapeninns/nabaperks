@@ -48,6 +48,7 @@ export const activityEvents = [
   "customer_joined",
   "stamp_claim_started",
   "stamp_issued",
+  "referral_bonus_awarded",
   "reward_unlocked",
   "reward_redeemed",
   "reward_issued",
@@ -67,11 +68,7 @@ export const activityEvents = [
 export type ActivityEventName = (typeof activityEvents)[number] | string
 
 export type ActivityCategory =
-  | "customer"
-  | "stamp"
-  | "reward"
-  | "qr"
-  | "account"
+  "customer" | "stamp" | "reward" | "qr" | "account"
 
 export type ActivityDetail = {
   label: string
@@ -165,7 +162,7 @@ export type RawActivityRow = {
 
 export const eventsByCategory: Record<ActivityCategory, ActivityEventName[]> = {
   customer: ["customer_joined"],
-  stamp: ["stamp_claim_started", "stamp_issued"],
+  stamp: ["stamp_claim_started", "stamp_issued", "referral_bonus_awarded"],
   reward: [
     "reward_unlocked",
     "reward_redeemed",
@@ -396,6 +393,36 @@ export function toActivityDisplayRow(
                 value: String(membership.total_stamps_earned),
               }
             : null,
+        ].filter(isDetail),
+      }
+
+    case "referral_bonus_awarded":
+      return {
+        id: row.id,
+        eventName,
+        category,
+        badgeLabel: "Referral bonus",
+        headline: `${customerName(customerLabel)} earned a referral bonus stamp`,
+        summary: "A referred friend collected their first venue stamp.",
+        timestamp,
+        ...base,
+        details: [
+          { label: "Actor", value: "Automatic" },
+          {
+            label: "How",
+            value: "A referred friend completed their first visit",
+          },
+          metadata.new_stamp_count != null
+            ? {
+                label: "Stamps now",
+                value: String(metadata.new_stamp_count),
+              }
+            : membership
+              ? {
+                  label: "Stamps now",
+                  value: String(membership.current_stamp_count),
+                }
+              : null,
         ].filter(isDetail),
       }
 
@@ -965,6 +992,7 @@ export function activityCategory(eventName: string): ActivityCategory {
       return "customer"
     case "stamp_claim_started":
     case "stamp_issued":
+    case "referral_bonus_awarded":
       return "stamp"
     case "reward_unlocked":
     case "reward_redeemed":
