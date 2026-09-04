@@ -71,7 +71,7 @@ test("merchant password auth is rejected at the provider token boundary", () => 
     "supabase db push --linked --include-all"
   )
   const authConfigAt = productionDeploy.indexOf(
-    'supabase config push --project-ref "$SUPABASE_PROJECT_REF"'
+    'supabase config push --project-ref "$SUPABASE_PROJECT_REF" --yes'
   )
   const accessTokenActivationAt = productionDeploy.indexOf(
     "Activate password-token rejection after passwordless promotion"
@@ -101,6 +101,10 @@ test("merchant password auth is rejected at the provider token boundary", () => 
   assert.ok(authConfigAt > accessTokenActivationAt)
   assert.match(
     productionDeploy,
+    /supabase config push --project-ref "\$SUPABASE_PROJECT_REF" --yes/
+  )
+  assert.match(
+    productionDeploy,
     /alter role authenticator set pgrst\.db_pre_request = 'private\.enforce_passwordless_data_api_session'/
   )
   assert.match(
@@ -115,6 +119,17 @@ test("merchant password auth is rejected at the provider token boundary", () => 
     productionDeploy,
     /hook_custom_access_token_enabled: true[\s\S]*hook_custom_access_token_uri: \$uri[\s\S]*--request PATCH/
   )
+  for (const disabledFactor of [
+    "mfa_totp_enroll_enabled",
+    "mfa_totp_verify_enabled",
+    "mfa_phone_enroll_enabled",
+    "mfa_phone_verify_enabled",
+    "mfa_web_authn_enroll_enabled",
+    "mfa_web_authn_verify_enabled",
+    "passkey_enabled",
+  ]) {
+    assert.match(productionDeploy, new RegExp(`${disabledFactor} == false`))
+  }
   assert.match(
     productionDeploy,
     /GET[\s\S]*\.hook_custom_access_token_enabled == true[\s\S]*\.hook_custom_access_token_uri == \$uri/
