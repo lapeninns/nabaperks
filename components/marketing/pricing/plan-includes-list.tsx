@@ -11,17 +11,19 @@ import { cn } from "@/lib/utils"
 export function PlanIncludesList({
   items,
   columns = 1,
+  size = "sm",
   className,
 }: {
   items: readonly string[]
   columns?: 1 | 2
+  size?: "sm" | "lg"
   className?: string
 }) {
   return (
     <ul
       className={cn(
         "grid gap-2.5",
-        columns === 2 && "sm:grid-cols-2 sm:gap-x-6",
+        columns === 2 && "sm:grid-cols-2 sm:gap-x-6 sm:gap-y-4",
         className
       )}
     >
@@ -29,10 +31,17 @@ export function PlanIncludesList({
         <li key={item} className="flex items-start gap-3">
           <Icon
             icon={CheckmarkCircle02Icon}
-            size={18}
+            size={size === "lg" ? 20 : 18}
             className="mt-0.5 shrink-0 text-reward"
           />
-          <span className="text-sm leading-6 text-foreground">{item}</span>
+          <span
+            className={cn(
+              "leading-6 text-foreground",
+              size === "lg" ? "text-base font-medium lg:text-lg" : "text-sm"
+            )}
+          >
+            {item}
+          </span>
         </li>
       ))}
     </ul>

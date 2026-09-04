@@ -5,7 +5,7 @@ import { dismissPwaInstall } from "./helpers/harness"
 
 /**
  * Growth Plan pricing sheet — desktop proof (chromium, firefox, safari
- * projects). The two payment schedules stack inside the single
+ * projects). The two payment rhythms sit as peer columns inside the single
  * Growth Plan boundary, the takeover stays a subordinate enquiry outside
  * it, and the sheet passes the WCAG 2 A/AA axe sweep.
  */
@@ -15,7 +15,7 @@ test.describe("Growth Plan pricing sheet @desktop", () => {
     await page.goto("/pricing")
   })
 
-  test("Given a desktop viewport When the sheet renders Then the schedules stack inside one boundary and the page passes axe", async ({
+  test("Given a desktop viewport When the sheet renders Then the rhythms sit as peers inside one boundary and the page passes axe", async ({
     page,
   }) => {
     const sheet = page.locator("[data-growth-plan-pricing]")
@@ -25,15 +25,15 @@ test.describe("Growth Plan pricing sheet @desktop", () => {
     const payAsYouGo = page.locator('[data-payment-option="28-day"]')
     const annual = page.locator('[data-payment-option="annual"]')
 
-    // Asymmetric hierarchy: the recurring price leads, the annual schedule
-    // sits beneath it. Two equal columns read as a spec table, so the annual
-    // lockup is deliberately subordinate rather than side by side.
+    // Peer rhythms: from the marketing lg breakpoint the two cadences sit
+    // side by side. They are not plan tiers.
     const paygBox = await payAsYouGo.boundingBox()
     const annualBox = await annual.boundingBox()
     if (!paygBox || !annualBox) {
       throw new Error("payment option boxes must be measurable")
     }
-    expect(annualBox.y).toBeGreaterThanOrEqual(paygBox.y + paygBox.height - 1)
+    expect(annualBox.x).toBeGreaterThan(paygBox.x + paygBox.width / 2)
+    expect(Math.abs(annualBox.y - paygBox.y)).toBeLessThan(paygBox.height)
 
     // Both schedules live INSIDE the one Growth Plan boundary.
     const sheetBox = await sheet.boundingBox()
@@ -45,9 +45,13 @@ test.describe("Growth Plan pricing sheet @desktop", () => {
       )
     }
 
-    // One shared CTA; the takeover enquiry stays outside the sheet.
+    // A launch CTA on the 28-day card and in the includes sheet; annual
+    // uses its own label. The takeover enquiry stays outside the sheet.
     await expect(
       sheet.getByRole("link", { name: "Start your launch" })
+    ).toHaveCount(2)
+    await expect(
+      sheet.getByRole("link", { name: "Prepay a year", exact: true })
     ).toHaveCount(1)
     const takeover = page.locator("[data-takeover-enquiry]")
     await expect(takeover).toHaveCount(1)

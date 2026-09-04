@@ -9,38 +9,39 @@ import { cn } from "@/lib/utils"
  * TakeoverAnchor — the bespoke engagement, on ink.
  *
  * Deliberately stacked BELOW the pricing sheet, never beside it: a
- * side-by-side column would read as a third tier, which the offer explicitly
- * is not. The ink ground gives it presence without granting it parity.
- * `TAKEOVER.price` is enquiry-only — there is no self-serve checkout.
+ * column next to the Growth Plan would read as a third tier, which the
+ * offer explicitly is not. The ink ground gives it presence without
+ * granting it parity. `TAKEOVER.price` is enquiry-only — there is no
+ * self-serve checkout.
  */
 export function TakeoverAnchor({ className }: { className?: string }) {
   return (
     <aside
       data-takeover-enquiry
       className={cn(
-        "grid gap-4 rounded-(--radius-sheet) border-2 border-ink bg-ink p-5 text-paper shadow-md sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-6 sm:p-7",
+        "grid gap-10 overflow-hidden rounded-(--radius-sheet) border-2 border-ink bg-ink p-8 text-paper shadow-md sm:p-12 md:grid-cols-2 md:items-center md:gap-12 lg:p-16",
         className
       )}
     >
-      <div className="grid gap-2">
+      <div className="grid gap-5">
         <MonoTag tone="sun" className="justify-self-start">
           Bespoke engagement · enquiry only
         </MonoTag>
-        <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <span className="numeric-tabular text-2xl leading-none font-extrabold text-seal sm:text-3xl">
-            {TAKEOVER.price}
-          </span>
-          <span className="text-base leading-snug font-extrabold text-paper">
-            {TAKEOVER.name}
-          </span>
+        <p className="numeric-tabular text-5xl leading-none font-extrabold tracking-tighter text-primary sm:text-6xl lg:text-7xl">
+          {TAKEOVER.price}
         </p>
-        <p className="max-w-2xl text-sm leading-6 text-paper/80">
+        <p className="text-2xl leading-tight font-extrabold text-paper sm:text-3xl lg:text-4xl">
+          {TAKEOVER.name}
+        </p>
+        <p className="max-w-lg text-base leading-7 text-paper/80 lg:text-xl">
           {TAKEOVER.qualifier} Not a Growth Plan tier — no self-serve checkout.
         </p>
       </div>
-      <Button asChild variant="secondary" className="w-fit shrink-0">
-        <Link href={ROUTES.demo}>{TAKEOVER.action}</Link>
-      </Button>
+      <div className="md:justify-self-end">
+        <Button asChild variant="secondary" size="xl" className="w-fit">
+          <Link href={ROUTES.demo}>{TAKEOVER.action}</Link>
+        </Button>
+      </div>
     </aside>
   )
 }
