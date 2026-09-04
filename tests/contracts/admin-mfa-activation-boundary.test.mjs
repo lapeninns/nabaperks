@@ -13,8 +13,13 @@ const bridge = () =>
     "20260902120300_support_admin_passkey_step_up.sql"
   )
 
-test("admin authority requires independent activation and a live exact-session grant", () => {
+test("dormant passkey grants remain exact-session bound but do not control admin authority", () => {
   const migration = bridge()
+  const policy = read(
+    "supabase",
+    "migrations",
+    "20260903133000_accept_single_factor_admin_policy.sql"
+  )
   assert.match(migration, /admin\.mfa_factor_id = credential\.id/)
   assert.match(migration, /credential\.user_id = admin\.user_id/)
   assert.match(migration, /credential\.revoked_at is null/)
@@ -31,6 +36,11 @@ test("admin authority requires independent activation and a live exact-session g
     )?.[1] ?? "",
     /aal2/
   )
+  assert.match(
+    policy,
+    /create or replace function public\.is_internal_admin\(\)[\s\S]*admin\.user_id = auth\.uid\(\)[\s\S]*admin\.is_active/
+  )
+  assert.doesNotMatch(policy, /request_has_post_activation_admin_mfa/)
 })
 
 test("challenges are purpose and session bound, short-lived and consumed once", () => {

@@ -3,10 +3,6 @@ import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
-import {
-  actAsActivatedInternalAdmin,
-  ensureActivatedInternalAdmin,
-} from "./helpers/admin-auth.mjs"
 
 /**
  * admin console / architecture audit — live-DB tier.
@@ -91,20 +87,7 @@ test(
         "a non-admin caller cannot resolve fraud flags"
       )
 
-      await ensureActivatedInternalAdmin(tx, ADMIN_UID)
-      let refusedAal1 = false
-      try {
-        await tx.savepoint(async (sp) => {
-          await actAsAuthenticated(sp, ADMIN_UID, "aal1")
-          await sp`select public.admin_resolve_fraud_flag(
-            ${flagId}::uuid, 'reviewed', ${reason})`
-        })
-      } catch (error) {
-        refusedAal1 = isAdminRejection(error)
-      }
-      assert.ok(refusedAal1, "a password-only admin cannot resolve fraud flags")
-
-      await actAsActivatedInternalAdmin(tx, ADMIN_UID)
+      await actAsAuthenticated(tx, ADMIN_UID, "aal1")
       await tx`select public.admin_resolve_fraud_flag(
         ${flagId}::uuid, 'dismissed', ${reason})`
 
@@ -161,28 +144,7 @@ test(
         "a non-admin caller cannot log privacy requests"
       )
 
-      await ensureActivatedInternalAdmin(tx, ADMIN_UID)
-      let refusedAal1 = false
-      try {
-        await tx.savepoint(async (sp) => {
-          await actAsAuthenticated(sp, ADMIN_UID, "aal1")
-          await sp`select public.admin_log_data_request(
-            ${membership.customer_id}::uuid,
-            ${membership.merchant_id}::uuid,
-            'access',
-            'email',
-            ${accessNotes}
-          )`
-        })
-      } catch (error) {
-        refusedAal1 = isAdminRejection(error)
-      }
-      assert.ok(
-        refusedAal1,
-        "a password-only admin cannot dispatch privacy requests"
-      )
-
-      await actAsActivatedInternalAdmin(tx, ADMIN_UID)
+      await actAsAuthenticated(tx, ADMIN_UID, "aal1")
 
       const [{ result: accessResult }] = await tx`
         select public.admin_log_data_request(

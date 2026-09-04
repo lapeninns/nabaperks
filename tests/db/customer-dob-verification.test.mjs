@@ -4,10 +4,6 @@ import { after, test } from "node:test"
 import postgres from "postgres"
 
 import { dbUrl, isLiveDbReady } from "./helpers/db.mjs"
-import {
-  actAsActivatedInternalAdmin,
-  ensureActivatedInternalAdmin,
-} from "./helpers/admin-auth.mjs"
 import { createRewardPoolFixture } from "./helpers/reward-pool-fixture.mjs"
 
 const ready = await isLiveDbReady()
@@ -234,18 +230,17 @@ test(
 )
 
 test(
-  "only an activated AAL2 internal admin can verify DOB and preserve legitimate reward use",
+  "an active single-factor internal admin can verify DOB while non-admins remain denied",
   { skip },
   async () => {
     await inPrivilegedRolledBackTxn(async (tx) => {
       const fixture = await createRewardPoolFixture(tx)
       await makeBirthdayEligible(tx, fixture)
-      await ensureActivatedInternalAdmin(tx, fixture.adminUserId)
 
       await asPostgrestRole(
         tx,
         "authenticated",
-        { sub: fixture.adminUserId, aal: "aal1" },
+        { sub: fixture.ownerUserId, aal: "aal1" },
         async (authenticatedTx) => {
           await assert.rejects(
             () =>
@@ -262,14 +257,10 @@ test(
         }
       )
 
-      const activatedClaims = await actAsActivatedInternalAdmin(
-        tx,
-        fixture.adminUserId
-      )
       await asPostgrestRole(
         tx,
         "authenticated",
-        activatedClaims,
+        { sub: fixture.adminUserId, aal: "aal1" },
         async (authenticatedTx) => {
           await authenticatedTx`
             select * from public.admin_verify_customer_date_of_birth(

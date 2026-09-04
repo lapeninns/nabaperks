@@ -22,79 +22,39 @@ test("Given admin read helpers use the service role When they create a client Th
   assert.match(adminAuth, /export async function canRenderAdminPage\(\)/)
   assert.match(adminAuth, /switch \(access\.status\)/)
 
-  // The service-role client bypasses RLS, so the database-side assurance gate
-  // in is_internal_admin() cannot see it. This factory must therefore demand
-  // the step-up itself — requireAdminRead alone is not enough.
+  // The service-role client bypasses RLS, so it must still pass through the
+  // shared authenticated active-admin guard before it is created.
   assert.match(adminServiceRole, /import \{ requireAdminStepUp \}/)
   assert.match(adminServiceRole, /await requireAdminStepUp\(\)/)
   assert.doesNotMatch(adminServiceRole, /await requireAdminRead\(\)/)
   assert.match(adminServiceRole, /createSupabaseServiceRoleClient\(\)/)
 })
 
-test("Given the admin step-up gate When auth helpers are inspected Then privileged surfaces deny an unmet or indeterminate assurance level", () => {
+test("Given administrator MFA is optional When auth helpers are inspected Then privileged surfaces still require active membership", () => {
   const adminAuth = readProjectFile("lib", "admin", "auth.ts")
-  const mfaGate = readProjectFile("lib", "admin", "mfa-gate.ts")
-  const securityActions = readProjectFile(
-    "app",
-    "admin",
-    "security",
-    "actions.ts"
-  )
-
-  // Enrolment state must be read from the database. supabase-js derives
-  // nextLevel from the cached session cookie's factor list, so a session minted
-  // before the factor was enrolled reports "no factor" and would pass the gate.
-  assert.match(adminAuth, /viewer_has_verified_mfa_factor/)
-  assert.match(adminAuth, /viewer_has_activated_admin_mfa/)
-  assert.match(adminAuth, /supabase\.rpc\(\s*"is_internal_admin"/)
-  assert.match(adminAuth, /resolveAdminMfaStateFromFacts/)
-  assert.doesNotMatch(adminAuth, /aal\.nextLevel/)
-  assert.doesNotMatch(adminAuth, /getAuthenticatorAssuranceLevel/)
-
-  assert.match(adminAuth, /adminStepUpSatisfied\(access\.mfaState\)/)
-  assert.match(mfaGate, /"unknown"/)
-  assert.match(mfaGate, /return state === "satisfied"/)
-  assert.doesNotMatch(
-    mfaGate,
-    /state === "no-factor" \|\| state === "satisfied"/
-  )
-
-  // Indeterminate assurance must be recoverable, not a dead-end card.
-  assert.match(adminAuth, /if \(mfaState === "unknown"\) redirect\(/)
-
-  // Enrolling a NEW factor is a credential-minting transition, so it cannot be
-  // reachable from the very aal1 session the step-up is waiting on. Slice to
-  // the NEXT export so a sibling function's copy cannot satisfy the assertion.
+  assert.match(adminAuth, /const user = await getCurrentUser\(\)/)
+  assert.match(adminAuth, /\.from\("internal_admins"\)/)
+  assert.match(adminAuth, /\.eq\("user_id", user\.id\)/)
+  assert.match(adminAuth, /if \(!data\?\.is_active\)/)
+  assert.match(adminAuth, /mfaRequired: false/)
   assert.match(
-    sliceExport(securityActions, "authorizeAdminMfaEnrollment"),
-    /adminMfaEnrollmentAllowed\(access\.mfaState\)/
+    adminAuth,
+    /export async function requireAdminStepUp\(\)[\s\S]*return requireAdminRead\(\)/
   )
-
-  assert.match(adminAuth, /access\.mfaAuthority/)
+  assert.match(
+    adminAuth,
+    /export async function canRenderAdminPage\(\)[\s\S]*return isAllowedAdminAccess\(access\)/
+  )
 })
 
-test("Given the admin layout and security page When inspected Then an indeterminate assurance level cannot strand an admin", () => {
+test("Given administrator MFA is optional When the layout is inspected Then an active admin reaches the shell without enrolment", () => {
   const layout = readProjectFile("app", "admin", "layout.tsx")
-  const securityPage = readProjectFile("app", "admin", "security", "page.tsx")
-
-  // A literal === "step-up-required" skips the "unknown" state, rendering the
-  // full shell with every leaf page blanked and no step-up form anywhere.
-  assert.match(layout, /adminMfaStepUpRequired\(access\.mfaState\)/)
-  assert.doesNotMatch(layout, /mfaState === "step-up-required"/)
-
-  // Deriving enrolment from `!== "no-factor"` shows the wrong panel.
-  assert.match(securityPage, /access\.mfaEnrolled/)
-  assert.doesNotMatch(securityPage, /mfaState !== "no-factor"/)
+  assert.match(layout, /if \(!access\.mfaRequired\)/)
+  assert.match(
+    layout,
+    /if \(!access\.mfaRequired\)[\s\S]*<AdminShell[\s\S]*mfaRequired=\{false\}/
+  )
 })
-
-/** Source of one exported function, up to the next export. */
-function sliceExport(source, name) {
-  const start = source.indexOf(`export async function ${name}`)
-  assert.notEqual(start, -1, `${name} is present`)
-  const rest = source.slice(start + 1)
-  const next = rest.indexOf("\nexport ")
-  return next === -1 ? rest : rest.slice(0, next)
-}
 
 test("Given admin data modules are imported directly When source is inspected Then they do not bypass the admin service-role gate", () => {
   const guardedFiles = [

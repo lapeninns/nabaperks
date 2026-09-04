@@ -26,7 +26,7 @@ test("admin ceremonies use the fixed-origin server verifier with required user v
   assert.match(edge, /expectedRPID: RP_ID/)
 })
 
-test("step-up uses one activated application credential and a server grant", () => {
+test("dormant step-up remains isolated while the security page offers no enrolment", () => {
   const migration = read(
     "supabase",
     "migrations",
@@ -41,21 +41,34 @@ test("step-up uses one activated application credential and a server grant", () 
     /step_up\.session_id = public\.request_auth_session_id\(\)/
   )
   assert.match(migration, /step_up\.credential_id = credential\.id/)
-  assert.match(page, /viewer_admin_webauthn_credential_id/)
+  assert.match(page, /Additional verification is not required/)
+  assert.doesNotMatch(page, /AdminMfaPanel/)
+  assert.doesNotMatch(page, /viewer_admin_webauthn_credential_id/)
   assert.doesNotMatch(page, /auth\.mfa\.listFactors/)
 })
 
-test("operator UI and rollout guidance describe application grants, not hosted AAL2", () => {
+test("operator UI and rollout guidance record WebAuthn as dormant under the accepted-risk policy", () => {
   const shell = read("components", "layout", "admin-shell.tsx")
   const runbook = read("docs", "operations", "production-runbook.md")
   const section =
     runbook.match(
-      /### First admin-MFA enforcement([\s\S]*?)### Passwordless Auth configuration sequencing/
+      /### Administrator authentication policy([\s\S]*?)### Passwordless Auth configuration sequencing/
     )?.[1] ?? ""
 
-  assert.match(shell, /Passkey verified/)
+  assert.match(shell, /Admin verified/)
   assert.doesNotMatch(shell, /AAL2 verified/)
-  assert.match(section, /20260902120300/)
-  assert.match(section, /exact-session application grant/)
-  assert.doesNotMatch(section, /mfa_factors|auth\.sessions.*trigger|at AAL2/)
+  assert.match(section, /MFA is an explicitly accepted product risk/)
+  assert.match(
+    section,
+    /neither a passkey nor another second factor is required/
+  )
+  assert.match(section, /active `internal_admins` row/)
+  assert.match(
+    section,
+    /WebAuthn tables and verifier may remain deployed as dormant/
+  )
+  assert.doesNotMatch(
+    section,
+    /run the bootstrap or activation workflows as a prerequisite/
+  )
 })
