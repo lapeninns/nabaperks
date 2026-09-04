@@ -34,6 +34,7 @@ const PRICING_MODULE = [
   "components/marketing/pricing/fine-print-strip.tsx",
   "components/marketing/pricing/pricing-sheet.tsx",
   "components/marketing/pricing/takeover-anchor.tsx",
+  "components/marketing/pricing/cadence-option.tsx",
 ]
 
 test("the pricing vocabulary stays server-rendered", () => {

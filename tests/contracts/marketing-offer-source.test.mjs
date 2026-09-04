@@ -159,6 +159,8 @@ test("Given the finalised offer pack When marketing facts are loaded Then the pu
       priceCadence: PRODUCT.priceCadence,
       annualPriceAmount: PRODUCT.annualPriceAmount,
       annualPriceCadence: PRODUCT.annualPriceCadence,
+      priceCadenceNote: PRODUCT.priceCadenceNote,
+      annualPriceCadenceNote: PRODUCT.annualPriceCadenceNote,
       annualSavingShort: PRODUCT.annualSavingShort,
     },
     {
@@ -166,6 +168,8 @@ test("Given the finalised offer pack When marketing facts are loaded Then the pu
       priceCadence: "every 28 days",
       annualPriceAmount: "699.90",
       annualPriceCadence: "a year",
+      priceCadenceNote: "after launch fee",
+      annualPriceCadenceNote: "one prepaid payment",
       annualSavingShort: "Save £209.97",
     }
   )
@@ -422,8 +426,15 @@ test("Given one Growth Plan When pricing renders Then both payment schedules sha
     1,
     "pricing should render one Growth Plan sheet"
   )
-  assert.match(sheet, /data-payment-option="28-day"/)
-  assert.match(sheet, /data-payment-option="annual"/)
+  assert.match(sheet, /option="28-day"/)
+  assert.match(sheet, /option="annual"/)
+  const cadence = readProjectFile(
+    "components",
+    "marketing",
+    "pricing",
+    "cadence-option.tsx"
+  )
+  assert.match(cadence, /data-payment-option=\{option\}/)
   assert.match(sheet, /Both choices include the same Growth Plan/)
   assert.match(sheet, /PLAN_INCLUDES/)
   assert.match(sheet, /Start your launch/)

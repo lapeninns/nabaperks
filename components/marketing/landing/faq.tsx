@@ -13,24 +13,19 @@ export function FaqList({ items }: { items: readonly MarketingFaq[] }) {
       {items.map((faq) => (
         <details
           key={faq.question}
-          className="group rounded-lg border-2 border-ink bg-card"
+          className="group overflow-hidden rounded-(--radius-sheet) border-2 border-ink bg-card shadow-sm"
         >
-          <summary className="focus-ring flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-4 py-3 text-sm font-bold text-foreground [&::-webkit-details-marker]:hidden">
+          <summary className="focus-ring flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 rounded-(--radius-sheet) px-5 py-5 text-base font-bold text-foreground lg:text-lg [&::-webkit-details-marker]:hidden">
             {faq.question}
             <span
               aria-hidden="true"
-              className="mono-meta text-muted-foreground group-open:hidden"
+              className="mono-meta grid size-8 shrink-0 place-items-center rounded-full border-2 border-ink bg-secondary text-foreground group-open:bg-ink group-open:text-paper"
             >
-              +
-            </span>
-            <span
-              aria-hidden="true"
-              className="mono-meta hidden text-muted-foreground group-open:inline"
-            >
-              −
+              <span className="group-open:hidden">+</span>
+              <span className="hidden group-open:inline">−</span>
             </span>
           </summary>
-          <p className="border-t-2 border-dashed border-border px-4 py-3 text-sm leading-6 text-muted-foreground">
+          <p className="border-t-2 border-dashed border-border px-5 pb-6 text-base leading-7 text-muted-foreground lg:text-lg">
             {faq.answer}
           </p>
         </details>

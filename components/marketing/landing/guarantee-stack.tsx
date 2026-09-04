@@ -1,7 +1,8 @@
-import { MonoTag, ReceiptCard, SectionHeader } from "@/components/brand"
+import { Eyebrow, MonoTag, ReceiptCard } from "@/components/brand"
 import { Section } from "@/components/layout"
 import {
   CLAIMS_BOUNDARY,
+  DFY_LAUNCH,
   GUARANTEE,
   GUARANTEE_ROI,
   OFFER,
@@ -31,24 +32,28 @@ export function GuaranteeStack() {
   ]
 
   return (
-    <Section id="guarantees" size="dense">
-      <SectionHeader
-        eyebrow="Our guarantees"
-        title="Two guarantees behind your launch"
-        description={OFFER.riskFraming}
-      />
-      <div className="grid gap-4 pt-5 sm:gap-5 sm:pt-6 lg:grid-cols-2">
+    <Section id="guarantees">
+      <div className="max-w-2xl">
+        <Eyebrow>Our guarantees</Eyebrow>
+        <h2 className="mt-3 text-4xl leading-[0.95] font-extrabold tracking-tight text-foreground sm:text-5xl lg:text-7xl">
+          Two guarantees behind your launch
+        </h2>
+        <p className="mt-6 text-lg leading-relaxed text-muted-foreground lg:text-xl">
+          {OFFER.riskFraming}
+        </p>
+      </div>
+      <div className="grid gap-6 pt-10 sm:pt-12 lg:grid-cols-2 lg:gap-8">
         {guarantees.map((guarantee) => (
           <ReceiptCard
             key={guarantee.name}
             edge
-            padding="md"
-            className="h-full gap-3"
+            padding="lg"
+            className="h-full gap-4"
           >
             <MonoTag tone="leaf" className="justify-self-start">
               {guarantee.name}
             </MonoTag>
-            <p className="text-lg leading-snug font-extrabold text-foreground">
+            <p className="text-2xl leading-snug font-extrabold tracking-tight text-foreground lg:text-3xl">
               “{guarantee.line}”
             </p>
             <details className="group border-t-2 border-dashed border-border">
@@ -71,17 +76,16 @@ export function GuaranteeStack() {
           </ReceiptCard>
         ))}
       </div>
-      <div className="mt-5 grid gap-2 border-2 border-dashed border-line-strong bg-card p-5 sm:mt-6">
+      <div className="mt-10 grid gap-4 rounded-(--radius-sheet) border-2 border-dashed border-line-strong bg-card p-8 sm:mt-12 lg:p-12">
         <p className="mono-meta text-foreground">The catch</p>
-        <p className="text-sm leading-6 font-bold text-foreground">
+        <p className="text-2xl leading-snug font-extrabold tracking-tight text-foreground lg:text-3xl">
           {CLAIMS_BOUNDARY.never}
         </p>
-        <p className="text-sm leading-6 text-muted-foreground">
-          {CLAIMS_BOUNDARY.guarantee}
-        </p>
-        <p className="text-sm leading-6 text-muted-foreground">
-          {CLAIMS_BOUNDARY.yourPart}
-        </p>
+        <div className="grid gap-6 text-sm leading-6 text-muted-foreground lg:grid-cols-3 lg:text-base">
+          <p>{CLAIMS_BOUNDARY.guarantee}</p>
+          <p>{CLAIMS_BOUNDARY.yourPart}</p>
+          <p>{DFY_LAUNCH.intro}</p>
+        </div>
       </div>
     </Section>
   )

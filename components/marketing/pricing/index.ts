@@ -1,3 +1,4 @@
+export { CadenceOption } from "./cadence-option"
 export { CampaignStrip } from "./campaign-strip"
 export { FinePrintStrip } from "./fine-print-strip"
 export { PlanIncludesList } from "./plan-includes-list"
