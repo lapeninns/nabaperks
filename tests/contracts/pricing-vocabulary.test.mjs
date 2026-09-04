@@ -34,6 +34,7 @@ const PRICING_MODULE = [
   "components/marketing/pricing/fine-print-strip.tsx",
   "components/marketing/pricing/pricing-sheet.tsx",
   "components/marketing/pricing/takeover-anchor.tsx",
+  "components/marketing/pricing/cadence-option.tsx",
 ]
 
 test("the pricing vocabulary stays server-rendered", () => {
@@ -62,6 +63,25 @@ test("PriceLockup keeps the inline variant contiguous for merchant exact-text sp
   // never two sibling elements — merchant e2e asserts exact single text nodes.
   assert.match(source, /size === "inline"/)
   assert.match(source, /\{`£\$\{amount\} \$\{cadence\}`\}/)
+})
+
+test("the seasonal chip keeps the configured campaign identity and deadline", () => {
+  const source = read("components/marketing/pricing/campaign-strip.tsx")
+  const chipBranch = source.slice(
+    source.indexOf('variant === "chip"'),
+    source.indexOf('variant === "strip"')
+  )
+
+  assert.match(chipBranch, /offer\.name/)
+  assert.match(chipBranch, /offer\.deadlineLine/)
+})
+
+test("the FAQ accordion preserves the shared roundel and unclipped focus ring", () => {
+  const source = read("components/marketing/landing/faq.tsx")
+  const faqList = source.slice(0, source.indexOf("export function LandingFaq"))
+
+  assert.match(faqList, /<IconRoundel/)
+  assert.doesNotMatch(faqList, /group overflow-hidden/)
 })
 
 test('Given the campaign strip omits its disclosure by design When any caller renders variant="strip" Then that same file also renders termsLine', () => {

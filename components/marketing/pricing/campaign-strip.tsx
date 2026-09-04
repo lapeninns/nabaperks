@@ -17,12 +17,30 @@ export function CampaignStrip({
   variant = "card",
   className,
 }: {
-  variant?: "card" | "strip"
+  variant?: "card" | "strip" | "chip"
   className?: string
 }) {
   const offer = getActiveSeasonalOffer()
 
   if (!offer) return null
+
+  if (variant === "chip") {
+    return (
+      <p
+        aria-label="Current seasonal offer"
+        className={cn(
+          "inline-flex max-w-full flex-wrap items-center gap-x-2 gap-y-1 rounded-(--radius-sheet) border-2 border-ink bg-card px-4 py-1.5",
+          className
+        )}
+      >
+        <span aria-hidden="true" className="size-1.5 shrink-0 bg-primary" />
+        <span className="text-sm leading-5 font-bold text-foreground">
+          {offer.name}
+        </span>
+        <span className="mono-meta text-foreground">{offer.deadlineLine}</span>
+      </p>
+    )
+  }
 
   if (variant === "strip") {
     return (

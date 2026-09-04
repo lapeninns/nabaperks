@@ -97,7 +97,13 @@ export const PRODUCT = {
    * forms above and drift-guarded by the marketing offer-source contract.
    */
   priceCadence: "every 28 days",
+  /** Second line in the 28-day price lockup, under `priceCadence`. */
+  priceCadenceNote: "after launch fee",
   annualPriceCadence: "a year",
+  /** Second line in the annual price lockup, under `annualPriceCadence`. */
+  annualPriceCadenceNote: "one prepaid payment",
+  /** Rhythm subtitle on the annual card — not a second plan. */
+  annualRhythm: "Prepaid yearly — one payment after delivery",
   annualBillingDisclosure:
     "One prepaid yearly payment after the delivery-anchored 28-day platform pilot.",
   pilot: "28-day free platform pilot from poster delivery",
@@ -178,6 +184,22 @@ export const OFFER = {
     "You pay for the physical launch today. Allow up to 14 calendar days for print and delivery. Your 28-day platform pilot begins when your posters are delivered, then recurring billing begins after that pilot.",
 } as const
 
+/**
+ * Pricing-page composition copy — the two-card rhythm, not a second product.
+ * Cadence is still chosen later, at billing activation; both CTAs lead to the
+ * same signup route.
+ */
+export const PRICING = {
+  heroLead: "One core plan.",
+  heroEm: "Two clear ways",
+  heroEnd: " to pay.",
+  rhythmTitle: "Choose your rhythm.",
+  rhythmLead: `${OFFER.name} is the entry point. If you prefer one clean annual payment after the pilot, prepay for the year.`,
+  paygCta: "Start your launch",
+  paygSecondary: "Prepay a year and save £209.97",
+  annualCta: "Prepay a year",
+} as const
+
 // --- Value equation (offer pack doc 2) --------------------------------------
 
 /**
@@ -222,6 +244,9 @@ export const VALUE_MATH = {
     "Say an average return visit is worth about £25 to you once costs are out.",
   coverLine:
     "After the launch year, roughly 3 additional profitable visits every 28 days cover the £69.99 subscription.",
+  /** Display split of `coverLine` — the giant numeral beside the sentence. */
+  coverCount: "3",
+  coverCountNote: "profitable visits every 28 days cover the subscription",
   firstYearLine:
     "Roughly 4 additional profitable visits every 28 days cover the £299.99 launch and 12 post-pilot payments during the first 364 days.",
   ninetyDayLine:

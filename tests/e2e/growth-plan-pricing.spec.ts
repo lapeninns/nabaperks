@@ -5,7 +5,7 @@ import { dismissPwaInstall } from "./helpers/harness"
 /**
  * Growth Plan pricing sheet — mobile responsive proof (runs on the
  * mobile-safari project). The sheet must keep ONE unmistakable outer
- * boundary while the two payment schedules stack vertically, with no
+ * boundary while the two payment rhythms stack vertically, with no
  * clipped prices, no horizontal overflow, and 44px+ interactive targets
  * down to a 320px viewport.
  */
@@ -34,9 +34,7 @@ test.describe("Growth Plan pricing sheet @mobile", () => {
     if (!paygBox || !annualBox) {
       throw new Error("payment option boxes must be measurable")
     }
-    expect(annualBox.y).toBeGreaterThanOrEqual(
-      paygBox.y + paygBox.height - 4
-    )
+    expect(annualBox.y).toBeGreaterThanOrEqual(paygBox.y + paygBox.height - 4)
 
     // Ticket-style prices render and are never clipped.
     await expect(page.getByText("£299.99", { exact: true })).toBeVisible()
@@ -50,17 +48,22 @@ test.describe("Growth Plan pricing sheet @mobile", () => {
       ).toBe(true)
     }
 
-    // One shared feature list and one shared CTA inside the sheet.
+    // Shared includes plus a CTA on the 28-day card and in the includes sheet.
     await expect(
       sheet.getByText("Both choices include the same Growth Plan", {
         exact: false,
       })
     ).toHaveCount(1)
-    const cta = sheet.getByRole("link", { name: "Start your launch" })
-    await expect(cta).toHaveCount(1)
-    const ctaBox = await cta.boundingBox()
-    if (!ctaBox) throw new Error("the shared CTA must be measurable")
-    expect(ctaBox.height).toBeGreaterThanOrEqual(44)
+    const ctas = sheet.getByRole("link", { name: "Start your launch" })
+    await expect(ctas).toHaveCount(2)
+    for (const index of [0, 1]) {
+      const ctaBox = await ctas.nth(index).boundingBox()
+      if (!ctaBox) throw new Error("each launch CTA must be measurable")
+      expect(ctaBox.height).toBeGreaterThanOrEqual(44)
+    }
+    await expect(
+      sheet.getByRole("link", { name: "Prepay a year", exact: true })
+    ).toHaveCount(1)
 
     // The takeover enquiry renders OUTSIDE (below) the Growth Plan boundary.
     const takeover = page.locator("[data-takeover-enquiry]")

@@ -17,6 +17,8 @@ const ROUNDEL_TONE = {
   accent: "bg-accent text-foreground",
   card: "bg-card text-foreground",
   primary: "bg-primary text-primary-foreground",
+  ink: "bg-ink text-paper",
+  seal: "bg-seal text-seal-foreground",
 } as const
 
 const ROUNDEL_ICON_SIZE: Record<keyof typeof ROUNDEL_SIZE, number> = {
