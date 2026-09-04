@@ -351,7 +351,17 @@ jobs:
           readback_file="$RUNNER_TEMP/auth-access-token-hook-readback.json"
           payload="$(jq -n \
             --arg uri "$hook_uri" \
-            '{hook_custom_access_token_enabled: true, hook_custom_access_token_uri: $uri}')"
+            '{
+              hook_custom_access_token_enabled: true,
+              hook_custom_access_token_uri: $uri,
+              mfa_totp_enroll_enabled: false,
+              mfa_totp_verify_enabled: false,
+              mfa_phone_enroll_enabled: false,
+              mfa_phone_verify_enabled: false,
+              mfa_web_authn_enroll_enabled: false,
+              mfa_web_authn_verify_enabled: false,
+              passkey_enabled: false
+            }')"
           update_status="$(curl --silent --show-error \
             --output "$update_file" \
             --write-out '%{http_code}' \
@@ -370,10 +380,18 @@ jobs:
           test "$readback_status" = "200"
           jq -e \
             --arg uri "$hook_uri" \
-            '.hook_custom_access_token_enabled == true and .hook_custom_access_token_uri == $uri' \
+            '.hook_custom_access_token_enabled == true
+              and .hook_custom_access_token_uri == $uri
+              and .mfa_totp_enroll_enabled == false
+              and .mfa_totp_verify_enabled == false
+              and .mfa_phone_enroll_enabled == false
+              and .mfa_phone_verify_enabled == false
+              and .mfa_web_authn_enroll_enabled == false
+              and .mfa_web_authn_verify_enabled == false
+              and .passkey_enabled == false' \
             "$readback_file" >/dev/null
       - name: Activate reviewed production Auth configuration
-        run: supabase config push --project-ref "$SUPABASE_PROJECT_REF"
+        run: supabase config push --project-ref "$SUPABASE_PROJECT_REF" --yes
       - name: Read back complete production Auth hook configuration
         run: |
           readback_file="$RUNNER_TEMP/auth-hook-config-readback.json"
@@ -390,7 +408,12 @@ jobs:
               and .hook_send_email_enabled == true
               and .hook_send_email_uri == "https://nabaperks.com/api/auth/hooks/send-email"
               and .mfa_totp_enroll_enabled == false
-              and .mfa_totp_verify_enabled == false' \
+              and .mfa_totp_verify_enabled == false
+              and .mfa_phone_enroll_enabled == false
+              and .mfa_phone_verify_enabled == false
+              and .mfa_web_authn_enroll_enabled == false
+              and .mfa_web_authn_verify_enabled == false
+              and .passkey_enabled == false' \
             "$readback_file" >/dev/null
       - name: Prove promoted Auth hook signing-secret alignment
         env:
