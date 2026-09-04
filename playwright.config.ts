@@ -15,8 +15,8 @@ import { defineConfig, devices } from "@playwright/test"
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3146"
 const devOtpCode = process.env.CUSTOMER_DEV_OTP_CODE ?? "424242"
-const visualPromoNow =
-  process.env.PLAYWRIGHT_MARKETING_PROMO_NOW ?? "2026-07-06T12:00:00Z"
+const visualOfferNow =
+  process.env.PLAYWRIGHT_MARKETING_OFFER_NOW ?? "2026-09-04T12:00:00Z"
 const authHookSecret = `v1,${"whsec"}_${"dGVzdC1ob29rLXNlY3JldA=="}`
 // Known, distinct harness bearers so the cron and readiness gates can be
 // exercised deterministically (see tests/e2e/cron-route-auth.spec.ts). These
@@ -35,7 +35,7 @@ const devServerEnv = [
   // enough heap to avoid its 80%-usage self-restart interrupting live tests.
   ...(process.env.CI ? ["NODE_OPTIONS=--max-old-space-size=8192"] : []),
   `CUSTOMER_DEV_OTP_CODE=${devOtpCode}`,
-  `PLAYWRIGHT_MARKETING_PROMO_NOW=${visualPromoNow}`,
+  `PLAYWRIGHT_MARKETING_OFFER_NOW=${visualOfferNow}`,
   "PLAYWRIGHT_HARNESS=1",
   `SUPABASE_SEND_EMAIL_HOOK_SECRET=${authHookSecret}`,
   `SUPABASE_SEND_SMS_HOOK_SECRET=${authHookSecret}`,
