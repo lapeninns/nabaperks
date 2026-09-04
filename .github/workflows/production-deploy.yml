@@ -319,23 +319,24 @@ jobs:
           pnpm exec supabase projects api-keys \
             --project-ref "$SUPABASE_PROJECT_REF" \
             --output json > "$api_keys_file"
-          anon_key="$(jq -er \
-            '.[] | select(.name == "anon" and .type == "legacy") | .api_key' \
+          guard_probe_key="$(jq -er \
+            '.[] | select(.name == "service_role" and .type == "legacy") | .api_key' \
             "$api_keys_file")"
-          test -n "$anon_key"
-          printf '::add-mask::%s\n' "$anon_key"
+          test -n "$guard_probe_key"
+          printf '::add-mask::%s\n' "$guard_probe_key"
           guard_probe_file="$RUNNER_TEMP/data-api-guard-probe.json"
           guard_active=false
           for attempt in {1..30}; do
             probe_status="$(curl --silent --show-error --max-time 10 \
               --output "$guard_probe_file" \
               --write-out '%{http_code}' \
-              --header "apikey: ${anon_key}" \
+              --header "apikey: ${guard_probe_key}" \
               --header "x-nabaperks-passwordless-guard-probe: active" \
               "https://${SUPABASE_PROJECT_REF}.supabase.co/rest/v1/" || true)"
-            if [[ "$probe_status" == "403" ]] \
+            if [[ "$probe_status" == "401" || "$probe_status" == "403" ]] \
               && jq -e \
-                '.message == "Passwordless Data API guard is active"' \
+                '.code == "42501"
+                  and .message == "Passwordless Data API guard is active"' \
                 "$guard_probe_file" >/dev/null 2>&1; then
               guard_active=true
               break
