@@ -344,16 +344,23 @@ jobs:
             sleep 2
           done
           test "$guard_active" = true
-      - name: Activate password-token rejection after passwordless promotion
+      - name: Activate reviewed production Auth configuration
         run: |
           hook_uri="pg-functions://postgres/public/reject_password_access_tokens"
+          send_email_uri="$SUPABASE_SEND_EMAIL_HOOK_URI"
+          payload_file="$RUNNER_TEMP/auth-hook-config-update-payload.json"
           update_file="$RUNNER_TEMP/auth-access-token-hook-update.json"
           readback_file="$RUNNER_TEMP/auth-access-token-hook-readback.json"
-          payload="$(jq -n \
+          umask 077
+          jq -n \
             --arg uri "$hook_uri" \
+            --arg send_email_uri "$send_email_uri" \
             '{
               hook_custom_access_token_enabled: true,
               hook_custom_access_token_uri: $uri,
+              hook_send_email_enabled: true,
+              hook_send_email_uri: $send_email_uri,
+              hook_send_email_secrets: env.SUPABASE_SEND_EMAIL_HOOK_SECRET,
               mfa_totp_enroll_enabled: false,
               mfa_totp_verify_enabled: false,
               mfa_phone_enroll_enabled: false,
@@ -361,14 +368,14 @@ jobs:
               mfa_web_authn_enroll_enabled: false,
               mfa_web_authn_verify_enabled: false,
               passkey_enabled: false
-            }')"
+            }' > "$payload_file"
           update_status="$(curl --silent --show-error \
             --output "$update_file" \
             --write-out '%{http_code}' \
             --request PATCH \
             --header "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
             --header "Content-Type: application/json" \
-            --data "$payload" \
+            --data-binary "@$payload_file" \
             "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/config/auth")"
           test "$update_status" = "200"
           readback_status="$(curl --silent --show-error \
@@ -378,10 +385,18 @@ jobs:
             --header "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
             "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/config/auth")"
           test "$readback_status" = "200"
+          expected_secret_hash="$(printf '%s' "$SUPABASE_SEND_EMAIL_HOOK_SECRET" \
+            | openssl dgst -sha256 -hmac "$SUPABASE_PROJECT_REF" -hex \
+            | awk '{print $NF}')"
           jq -e \
             --arg uri "$hook_uri" \
+            --arg send_email_uri "$send_email_uri" \
+            --arg send_email_secret_hash "hash:$expected_secret_hash" \
             '.hook_custom_access_token_enabled == true
               and .hook_custom_access_token_uri == $uri
+              and .hook_send_email_enabled == true
+              and .hook_send_email_uri == $send_email_uri
+              and .hook_send_email_secrets == $send_email_secret_hash
               and .mfa_totp_enroll_enabled == false
               and .mfa_totp_verify_enabled == false
               and .mfa_phone_enroll_enabled == false
@@ -390,8 +405,6 @@ jobs:
               and .mfa_web_authn_verify_enabled == false
               and .passkey_enabled == false' \
             "$readback_file" >/dev/null
-      - name: Activate reviewed production Auth configuration
-        run: supabase config push --project-ref "$SUPABASE_PROJECT_REF" --yes
       - name: Read back complete production Auth hook configuration
         run: |
           readback_file="$RUNNER_TEMP/auth-hook-config-readback.json"
