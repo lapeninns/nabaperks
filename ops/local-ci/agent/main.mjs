@@ -43,6 +43,11 @@ import { arch as processArch } from "node:process"
 import { fileURLToPath, pathToFileURL } from "node:url"
 
 import {
+  PROCESS_TREE_OPTIONS,
+  signalProcessTree,
+} from "../core/process-tree.mjs"
+
+import {
   LocalCiError,
   describeValue,
   loadContract,
@@ -552,6 +557,7 @@ export async function execHost(
   signal?.throwIfAborted()
   return new Promise((resolveExec, rejectExec) => {
     const child = spawn(executable, argv.slice(1), {
+      ...PROCESS_TREE_OPTIONS,
       cwd,
       stdio: [input === null ? "ignore" : "pipe", "pipe", "pipe"],
     })
@@ -559,8 +565,8 @@ export async function execHost(
     let stderr = ""
     let abortTimer = null
     const onAbort = () => {
-      child.kill("SIGTERM")
-      abortTimer = setTimeout(() => child.kill("SIGKILL"), 5_000)
+      signalProcessTree(child, "SIGTERM")
+      abortTimer = setTimeout(() => signalProcessTree(child, "SIGKILL"), 5_000)
       abortTimer.unref?.()
     }
     signal?.addEventListener("abort", onAbort, { once: true })
@@ -569,7 +575,10 @@ export async function execHost(
       if (abortTimer) clearTimeout(abortTimer)
       signal?.removeEventListener("abort", onAbort)
     }
-    const timer = setTimeout(() => child.kill("SIGKILL"), timeoutMs)
+    const timer = setTimeout(
+      () => signalProcessTree(child, "SIGKILL"),
+      timeoutMs
+    )
     timer.unref?.()
     child.stdout?.on("data", (chunk) => {
       stdout += chunk.toString("utf8")

@@ -36,6 +36,10 @@ import { spawn } from "node:child_process"
 
 import { LocalCiError, describeValue } from "../core/contract.mjs"
 import { hostSecretNames } from "../core/contract.mjs"
+import {
+  PROCESS_TREE_OPTIONS,
+  signalProcessTree,
+} from "../core/process-tree.mjs"
 
 export class ContainerError extends LocalCiError {}
 
@@ -716,6 +720,7 @@ export async function runContainer(
   {
     timeoutMs = null,
     onOutput = null,
+    onTerminate = null,
     signal = null,
     spawnFn = spawn,
     maxBufferBytes = 8 * 1024 * 1024,
@@ -743,6 +748,7 @@ export async function runContainer(
   const [executable, ...args] = argv
   const started = Date.now()
   const child = spawnFn(executable, args, {
+    ...PROCESS_TREE_OPTIONS,
     stdio: ["ignore", "pipe", "pipe"],
   })
 
@@ -768,9 +774,13 @@ export async function runContainer(
   let escalationTimer = null
 
   const terminate = () => {
-    child.kill("SIGTERM")
+    if (escalationTimer) return
+    // SSH multiplexing can retain a remote channel after the local client
+    // dies. The lifecycle owner must stop the remote container as well.
+    onTerminate?.()
+    signalProcessTree(child, "SIGTERM")
     escalationTimer = setTimeout(() => {
-      child.kill("SIGKILL")
+      signalProcessTree(child, "SIGKILL")
     }, STOP_GRACE_SECONDS * 1000)
     escalationTimer.unref?.()
   }
@@ -955,7 +965,23 @@ export function createContainerRuntime({
           limactl,
           labels,
         })
-        const result = await exec(argv, { timeoutMs, onOutput, signal })
+        let terminationCleanup = null
+        let result
+        try {
+          result = await exec(argv, {
+            timeoutMs,
+            onOutput,
+            signal,
+            onTerminate: () => {
+              terminationCleanup = quietly(
+                buildRemoveArgv({ name: jobName, vm, docker, limactl }),
+                "remove cancelled or timed-out job container"
+              )
+            },
+          })
+        } finally {
+          await terminationCleanup
+        }
         return Object.freeze({
           ...result,
           jobName,
