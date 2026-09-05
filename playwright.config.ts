@@ -133,7 +133,9 @@ export default defineConfig({
   ],
   webServer: {
     ignoreHTTPSErrors: process.env.REWARD_ID_LOOPBACK_HTTPS === "1",
-    command: `${devServerEnv} pnpm exec next dev --webpack`,
+    // Match normal development and avoid Webpack's cold-start layout-chunk
+    // parsing failure (vercel/next.js#66526) observed in the VM browser proof.
+    command: `${devServerEnv} pnpm exec next dev --turbopack`,
     url: devServerReadyUrl,
     reuseExistingServer,
     timeout: process.env.CI ? 180_000 : 120_000,
