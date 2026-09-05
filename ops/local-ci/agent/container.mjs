@@ -15,8 +15,8 @@
  *
  *   2. **The job container is never privileged and publishes no port.** The
  *      lanes that need a Docker daemon get one from a sibling `dind` container
- *      on a job-private network, reachable over TCP at the alias the job
- *      image's `DOCKER_HOST` already points at. The privilege lives in the
+ *      on a job-private network. The job shares only its sidecar's network
+ *      namespace, making nested services reachable on loopback. Privilege stays in the
  *      sidecar, which runs no repository code; the job container that does run
  *      repository code stays unprivileged. `docs/operations/local-ci.md` §9
  *      verifies exactly this with `docker inspect`.
@@ -583,6 +583,7 @@ export function buildDaemonArgv({
  */
 export function buildContainerArgv({
   contract,
+  daemonName = null,
   image,
   name,
   network,
@@ -602,6 +603,15 @@ export function buildContainerArgv({
   assertPinnedImage(image, "job image")
   requireObject(env, "env")
 
+  if (daemonName !== null) {
+    requireOwnedName(daemonName, "daemonName")
+    if (!daemonName.startsWith(DAEMON_CONTAINER_PREFIX)) {
+      fail(
+        "FOREIGN_RESOURCE",
+        "daemonName must identify an agent-owned sidecar"
+      )
+    }
+  }
   const workspacePath = requireNonEmptyString(
     container.workspacePath,
     "contract.container.workspacePath"
@@ -637,7 +647,9 @@ export function buildContainerArgv({
     "--name",
     requireNonEmptyString(name, "name"),
     "--network",
-    requireNonEmptyString(network, "network"),
+    daemonName === null
+      ? requireNonEmptyString(network, "network")
+      : `container:${daemonName}`,
     "--pull=never",
     "--cpus",
     String(container.cpus),
@@ -658,13 +670,13 @@ export function buildContainerArgv({
     "--volume",
     `${requireNonEmptyString(workspaceHostPath, "workspaceHostPath")}:${workspacePath}`,
     "--env",
-    `DOCKER_HOST=tcp://${DAEMON_NETWORK_ALIAS}:${DAEMON_TCP_PORT}`,
+    `DOCKER_HOST=tcp://${daemonName === null ? DAEMON_NETWORK_ALIAS : "127.0.0.1"}:${DAEMON_TCP_PORT}`,
   ]
 
   if (container.readOnlyRootFilesystem === true) {
     argv.push("--read-only")
   }
-  for (const entry of addHosts) {
+  for (const entry of daemonName === null ? addHosts : []) {
     argv.push("--add-host", requireNonEmptyString(entry, "addHosts entry"))
   }
   for (const [key, value] of Object.entries(labels)) {
@@ -936,7 +948,7 @@ export function createContainerRuntime({
           )
         }
         if (needsDaemon) {
-          await exec(
+          const started = await exec(
             buildDaemonArgv({
               contract,
               name: daemonName,
@@ -949,10 +961,34 @@ export function createContainerRuntime({
             }),
             { timeoutMs: 30_000, signal }
           )
+          if (started.exitCode !== 0) {
+            fail(
+              "DAEMON_UNAVAILABLE",
+              `could not start the sidecar daemon for lane ${JSON.stringify(laneId)} (docker exited ${started.exitCode}): ${started.output.trim() || "no output"}`
+            )
+          }
+          const ready = await exec(
+            [
+              ...dockerPrefix({ vm, docker, limactl }),
+              "exec",
+              daemonName,
+              "sh",
+              "-c",
+              'i=0; until docker info >/dev/null 2>&1; do i=$((i + 1)); if [ "$i" -ge 25 ]; then docker info; exit 1; fi; sleep 1; done',
+            ],
+            { timeoutMs: 30_000, signal }
+          )
+          if (ready.exitCode !== 0) {
+            fail(
+              "DAEMON_UNAVAILABLE",
+              `the sidecar daemon for lane ${JSON.stringify(laneId)} did not become ready: ${ready.output.trim() || "no output"}`
+            )
+          }
         }
         signal?.throwIfAborted()
         const argv = buildContainerArgv({
           contract,
+          daemonName: needsDaemon ? daemonName : null,
           image,
           name: jobName,
           network: net,

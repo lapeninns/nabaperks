@@ -249,6 +249,18 @@ grep -n -A2 "^rosetta:" ops/local-ci/host/lima-nabaperks-ci.yaml
 # expect: enabled: false and binfmt: false
 ```
 
+Preload the pinned Docker-in-Docker image before enabling database lanes:
+
+```sh
+limactl shell nabaperks-ci -- docker pull docker:27.5.1-dind
+limactl shell nabaperks-ci -- docker image inspect docker:27.5.1-dind \
+  --format '{{.Id}} {{.Architecture}}'
+```
+
+If `LOCAL_CI_DIND_IMAGE` overrides the default, preload that exact pinned image
+instead. Sidecars use `--pull=never`; a missing image prevents daemon startup
+and must be fixed during provisioning.
+
 ### 1.4 Re-assert the VM against the contract
 
 Two different mechanisms cover the VM, and it matters which is which:
@@ -1140,8 +1152,10 @@ Two containers per job:
   a fresh volume removed with the job.
 - The job container, which runs the pull-request code at
   `container.workspacePath` (`/workspace`) with `container.cpus` and
-  `container.memoryGb` limits, and reaches the daemon over the job's own bridge
-  network.
+  `container.memoryGb` limits. Daemon-backed jobs share their own sidecar's
+  network namespace and reach Docker and nested Supabase services on loopback.
+  The agent checks daemon startup and waits for its API before starting the job.
+  Other jobs use the private bridge directly. No job shares the VM network.
 
 **`container.mountHostDockerSocket` is `false` and must stay false.** The job
 container runs unreviewed code; binding `/var/run/docker.sock` into it is a
