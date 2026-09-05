@@ -146,7 +146,10 @@ export function merchantCollectionBlockedCopy(message: string): string {
       "This reward belongs to a different merchant.",
     ],
     [["scan token already used"], "This reward has already been collected."],
-    [["reward already collected"], "This reward has already been collected."],
+    [
+      ["reward already collected", "Reward already collected"],
+      "This reward has already been collected.",
+    ],
     [
       ["scan token expired", "scan token not found", "scan token superseded"],
       "This reward could not be collected. Refresh and try again.",

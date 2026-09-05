@@ -58,8 +58,7 @@ const ciLinuxSnapshotPathTemplate =
   process.env.CI && process.platform === "linux"
     ? "{testDir}/{testFilePath}-snapshots/{arg}-{projectName}-linux{ext}"
     : undefined
-const reuseExistingServer =
-  !process.env.CI && process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER === "1"
+const reuseExistingServer = process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER === "1"
 const chromiumChannel =
   process.env.PLAYWRIGHT_REGULAR_CHROMIUM === "1" ? "chromium" : undefined
 

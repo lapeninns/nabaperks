@@ -59,7 +59,9 @@ Require isolated database proof of denied callers, forged provenance, rollback,
 expiry, DOB changes, erasure and simultaneous collection, plus browser proof of
 the complete customer/owner journey. Use isolated test fixtures, not production
 customer records. Follow the production runbook's release checks and record
-the migration ledger and deployment revision after promotion.
+the migration ledger and deployment revision after promotion. The ephemeral
+release job runs the ID-check mobile/desktop browser journeys against its
+production build and locally seeded fixtures before production promotion.
 
 An application rollback restores the previous UI while retaining completed
 verification, collection and audit records. Do not reverse collected rewards or

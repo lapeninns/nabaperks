@@ -174,6 +174,22 @@ jobs:
           exit 1
       - name: Replay signed webhooks and the rollback-only loyalty journey
         run: pnpm smoke:staging
+      - name: Seed isolated reward-collection browser fixtures
+        run: pnpm db:seed
+      - uses: ./.github/actions/playwright
+        with:
+          project: chromium
+      - uses: ./.github/actions/playwright
+        with:
+          project: mobile-safari
+      - name: Prove in-person ID collection against the release build
+        env:
+          ADMIN_LIVE_DB_E2E: "1"
+          CUSTOMER_FLOW_E2E: "1"
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+          PLAYWRIGHT_REUSE_EXISTING_SERVER: "1"
+          PLAYWRIGHT_REGULAR_CHROMIUM: "1"
+        run: pnpm test:e2e tests/e2e/merchant-id-verification.spec.ts tests/e2e/merchant-id-verification.desktop.spec.ts --project=mobile-safari --project=chromium
       - name: Record staging evidence
         run: |
           {
@@ -182,6 +198,7 @@ jobs:
             echo "- Revision: \`$EXPECTED_REVISION\`"
             echo "- Target: isolated Supabase CLI stack and loopback production build"
             echo "- Migration ledger, readiness, signed webhook replay and rolled-back loyalty journey: passed"
+            echo "- Customer QR, owner ID confirmation, collection, accessibility and mobile/desktop browser journey: passed"
             echo "- No hosted provider or production credential was used"
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Stop ephemeral staging
