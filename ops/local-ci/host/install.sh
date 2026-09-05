@@ -199,7 +199,8 @@ step "Verifying the revision to install is a reviewed main commit"
 
 script_dir="$(cd "$(dirname "$0")" && pwd -P)"
 repo_root="$(cd "${script_dir}/../../.." && pwd -P)"
-[ -d "${repo_root}/.git" ] || die "${repo_root} is not a git working tree"
+[ "$(git -C "${repo_root}" rev-parse --is-inside-work-tree 2>/dev/null)" = "true" ] \
+  || die "${repo_root} is not a git working tree"
 
 actual_remote="$(git -C "${repo_root}" remote get-url origin 2>/dev/null || echo "")"
 [ "${actual_remote}" = "${EXPECTED_REMOTE}" ] \
@@ -518,11 +519,22 @@ else
   note "extracted ${release_sha}"
 fi
 
+# Credential creation deliberately uses umask 077. Public reviewed code must
+# remain readable by the unprivileged LaunchAgent, including on a repair run.
+sudo chmod -R u=rwX,go=rX "${release_dir}"
+
 # Atomic repoint: create the new link beside the old one, then rename over it.
 # `mv -h` replaces the symlink itself instead of following it into its target.
 sudo ln -sfn "${release_dir}" "${INSTALL_ROOT}/.current.staged"
+sudo chmod -h 0755 "${INSTALL_ROOT}/.current.staged"
 sudo mv -fh "${INSTALL_ROOT}/.current.staged" "${INSTALL_ROOT}/current"
 note "${INSTALL_ROOT}/current -> $(readlink "${INSTALL_ROOT}/current")"
+
+# Check access as the operator, not root, before registering a restart loop.
+(cd "${INSTALL_ROOT}/current" &&
+  test -r "${AGENT_RELATIVE_PATH}" && test -x "${AGENT_RELATIVE_PATH}" &&
+  test -r config/local-ci-contract.json) \
+  || die "the installed release is not accessible to the LaunchAgent operator"
 
 # Keep the last few releases so a rollback is a symlink swap, and no more.
 kept=0

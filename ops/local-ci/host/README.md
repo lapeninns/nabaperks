@@ -42,6 +42,16 @@ specific Apple silicon Mac.
 `/etc/newsyslog.d/com.nabaperks.local-ci.conf` rotates both logs once they
 reach 10 MB, keeping 7 bzip2-compressed generations.
 
+The installer accepts ordinary clones and linked Git worktrees. It normalises
+reviewed release permissions on every run: directories and executable files
+are `0755`, other files are `0644`, and the macOS `current` symlink is `0755`.
+Credentials remain `0600` inside their separate `0700` directory. This repairs
+older installations where the credential-stage `umask 077` left public code
+unreadable by the operator. Operator access is checked before launchd starts;
+registration alone is still not proof of a live heartbeat or a successful job.
+The agent resolves its invocation path through `current` before deciding whether
+to run its CLI; invoking the installed path with `--help` must print usage.
+
 ## Trust boundary
 
 The GitHub App private key can mint installation tokens for the repository, and
@@ -485,3 +495,14 @@ can make. Each has to be checked once on the real machine.
    whatever FileVault setting you chose in step 0.
 
 Record the outcome of each in the cutover runbook when you qualify it.
+
+## Disposable checkout and idle liveness
+
+The VM retains a public repository cache. Each job receives a standalone clone
+with its own `.git` directory, full history and no object hardlinks or alternates
+back to that cache. This keeps Git inspection valid when the checkout is mounted
+at `/workspace` and prevents job code from modifying cached objects through shared
+files. Preparation also upgrades a shallow cache and fetches the requested commit.
+Snapshot inspection errors fail the lane instead of being treated as a clean diff.
+The polling and nightly timers keep Node alive while idle; neither holds a Mac
+power assertion while waiting.

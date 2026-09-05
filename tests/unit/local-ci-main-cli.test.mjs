@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { spawnSync } from "node:child_process"
 import {
   chmodSync,
   closeSync,
@@ -1082,4 +1083,27 @@ test("the poll loop and the nightly never dispatch at the same time", async () =
     "pr:end",
   ])
   assert.equal(gate.waiting, 0)
+})
+
+test("CLI help executes through the installed current symlink with spaces", () => {
+  const root = mkdtempSync(join(tmpdir(), "local ci entry-"))
+  try {
+    const current = join(root, "current")
+    symlinkSync(
+      fileURLToPath(new URL("../../ops/local-ci/agent", import.meta.url)),
+      current
+    )
+    const result = spawnSync(
+      process.execPath,
+      [join(current, "main.mjs"), "--help"],
+      {
+        encoding: "utf8",
+      }
+    )
+    assert.equal(result.status, 0, result.stderr)
+    assert.match(result.stdout, /nabaperks local CI agent/)
+    assert.match(result.stdout, /--watch/)
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
 })

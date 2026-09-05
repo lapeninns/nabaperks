@@ -773,7 +773,6 @@ export function createLoop({
         ((ms) =>
           new Promise((resolve) => {
             timer = setTimeout(resolve, ms)
-            timer.unref?.()
           }))
       log("info", `polling every ${Math.round(interval / 1000)}s`)
       while (!stopping) {
