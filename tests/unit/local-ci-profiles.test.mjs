@@ -150,79 +150,26 @@ test("a lane carrying a forbidden snapshot substring is refused at load", () => 
   )
 })
 
-test("the local a11y lanes declare the one spec they provably do not run", () => {
-  const SPEC = "tests/e2e/customer-join-direct-live-db.spec.ts"
-
+test("current profiles have no known local selection gaps", () => {
   for (const name of PROFILE_NAMES) {
-    const profile = profiles.get(name)
-    const gaps = knownLocalGaps(profile)
-    assert.ok(
-      gaps.length > 0,
-      `${name} must declare the a11y coverage gap in machine-readable form`
-    )
-
-    const gap = gaps.find((entry) => entry.spec === SPEC)
-    assert.ok(gap, `${name} must name ${SPEC} as a known local gap`)
-
-    // Documented, not merely present: every gap says what dropped it, why,
-    // and where the spec still runs.
-    for (const entry of gaps) {
-      assert.equal(typeof entry.laneId, "string")
-      assert.ok(entry.reason.length > 40, "a gap reason has to be a reason")
-      assert.equal(entry.droppedBy, "--grep-invert @visual")
-      assert.ok(Array.isArray(entry.hostedCoverage))
-      assert.ok(entry.hostedCoverage.length > 0)
-      assert.equal(entry.coverageLostOverall, false)
-      for (const covered of entry.hostedCoverage) {
-        assert.match(covered, /\.github\/workflows\/ci\.yml/)
-      }
-    }
-
-    // Every a11y lane carries the flag that drops the spec, so every a11y
-    // lane has to declare the gap - not just the first one someone noticed.
-    const a11yLanes = profile.lanes.filter((lane) =>
-      lane.commands.some((command) => command.includes("test:a11y"))
-    )
-    assert.ok(a11yLanes.length >= 2)
-    for (const lane of a11yLanes) {
-      assert.ok(
-        (lane.knownLocalGaps ?? []).some((entry) => entry.spec === SPEC),
-        `${name}/${lane.id} drops ${SPEC} and must say so`
-      )
-    }
-  }
-})
-
-test("the declared a11y gap describes the repository as it actually is", () => {
-  const SPEC = "tests/e2e/customer-join-direct-live-db.spec.ts"
-  const source = readRepoFile(SPEC)
-
-  // The gap exists because the describe block claims @visual while making no
-  // screenshot comparison. If either half of that stops being true, the gap
-  // record is stale and this test says so rather than the operator finding out
-  // from a missing result.
-  assert.match(source, /@a11y/)
-  assert.match(source, /@visual/)
-  assert.equal(
-    source.includes("toHaveScreenshot"),
-    false,
-    "the spec makes no pixel comparison, which is why the gap is bounded"
-  )
-
-  const gap = knownLocalGaps(profiles.get("pr")).find(
-    (entry) => entry.spec === SPEC
-  )
-  for (const tag of gap.describeTags ?? []) {
-    assert.ok(
-      source.includes(tag),
-      `the gap record claims the describe block is tagged ${tag}`
-    )
+    assert.deepEqual(knownLocalGaps(profiles.get(name)), [])
   }
 })
 
 test("a gap that claims no other plane covers it is refused", () => {
   const raw = JSON.parse(readRepoFile("ops/local-ci/profiles/pr.json"))
   const lane = raw.lanes.find((entry) => entry.id === "a11y-chromium")
+
+  lane.knownLocalGaps = [
+    {
+      spec: "tests/e2e/fixture.spec.ts",
+      reason: "A fixture-only exclusion with explicit hosted coverage.",
+      droppedBy: "--grep-invert @visual",
+      hostedCoverage: [".github/workflows/ci.yml job a11y"],
+      coverageLostOverall: false,
+    },
+  ]
+  assert.equal(knownLocalGaps(validateProfile(raw, contract, "pr")).length, 1)
 
   lane.knownLocalGaps[0].coverageLostOverall = true
   assert.throws(

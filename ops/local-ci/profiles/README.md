@@ -177,13 +177,11 @@ runs `git status --porcelain -- 'tests/e2e/**/*-snapshots'` after each lane and
 fails it on any output. Visual regression stays GitHub-hosted on x64: ci.yml's
 `visual` and `visual-gate` jobs are untouched by this cutover step.
 
-One accepted consequence: `tests/e2e/customer-join-direct-live-db.spec.ts` is
-tagged `@customer-flow @a11y @visual` even though it makes no `toHaveScreenshot`
-call, so `--grep-invert @visual` drops it from the local `a11y-chromium` lane —
-where the hosted `a11y` job, which does not carry that flag, still runs it. The
-spec keeps its hosted coverage in ci.yml's untouched `a11y` and `visual` tiers.
-Re-tagging that `describe` block is the clean fix and is recorded as a follow-on
-rather than smuggled into this pass.
+The direct customer-join and merchant ID-verification journeys use `@a11y`
+without `@visual`: they assert behaviour and accessibility, and capture optional
+screenshot evidence, but do not compare pixel baselines. Both hosted and local
+accessibility lanes therefore select these journeys. Service-backed skips still
+apply identically when local browser database fixtures are unavailable.
 
 ### 2. Every invocation is sharded
 

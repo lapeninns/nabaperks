@@ -16,7 +16,7 @@ import {
   type PublicQrRouterFixture,
 } from "./helpers/public-qr-router-live-db"
 
-test.describe("@customer-flow @a11y @visual direct customer join live DB", () => {
+test.describe("@customer-flow @a11y direct customer join live DB", () => {
   const reason = customerReadbackLiveDbSkipReason()
   test.skip(Boolean(reason), reason)
 
