@@ -1343,33 +1343,37 @@ async function publishCompletedRun({
  * pull-request code at 11am, and an instance installed with `--skip-vm-check`
  * would never have been asserted at all.
  */
-async function dispatchRun({
-  contract,
-  config,
-  logger,
-  evidence,
-  profile,
-  ref,
-  headSha,
-}) {
-  await assertVmIsolationLive({ config, contract })
+export async function dispatchRun(
+  { contract, config, logger, evidence, profile, ref, headSha, signal = null },
+  dependencies = {
+    assertVmIsolationLive,
+    buildDependencies,
+    makeEnvFileWriter,
+    releaseWorkspace,
+  }
+) {
+  signal?.throwIfAborted()
+  await dependencies.assertVmIsolationLive({ config, contract })
+  signal?.throwIfAborted()
   logger.info(
     `instance ${config.vm} re-asserted: no host mounts, no forwarded agent, no host home, no Rosetta`
   )
   const run = evidence.open({ headSha, profile: profile.profile })
   try {
-    const { runner } = await buildDependencies({
+    const { runner } = await dependencies.buildDependencies({
       contract,
       config,
       logger,
       headSha,
       runDir: run.path,
     })
+    signal?.throwIfAborted()
     const outcome = await runner.runProfile({
       profile,
       ref,
       headSha,
-      writeEnvFile: makeEnvFileWriter({ config, headSha }),
+      signal,
+      writeEnvFile: dependencies.makeEnvFileWriter({ config, headSha }),
     })
     writeLaneResults({ runDir: run.path, outcome, contract })
     logger.info(
@@ -1377,7 +1381,7 @@ async function dispatchRun({
     )
     return outcome
   } finally {
-    await releaseWorkspace({ config, headSha })
+    await dependencies.releaseWorkspace({ config, headSha })
     run.close()
   }
 }
@@ -1662,11 +1666,7 @@ async function watch({ contract, config, logger }) {
     logger,
     // Built per job: the runner needs a workspace materialised for that head
     // SHA, and there is no useful long-lived runner to hold open between them.
-    runner: {
-      async runProfile({ profile, ref, headSha }) {
-        return dispatch({ profile, ref, headSha })
-      },
-    },
+    runner: { runProfile: dispatch },
   })
 
   const nightly = createNightlyScheduler({

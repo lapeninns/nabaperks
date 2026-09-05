@@ -867,3 +867,19 @@ test("createLoop refuses to exist without the dependencies it must be given", ()
     (error) => error.code === "INVALID_INPUT"
   )
 })
+
+test("stop during provider reads cannot start a new job", async () => {
+  const pending = deferred()
+  const github = fakeGitHub()
+  github.getRef = () => pending.promise
+  const runner = fakeRunner()
+  const loop = buildLoop({ github, runner })
+  const tick = loop.tick()
+  loop.stop()
+  pending.resolve({ sha: MAIN_SHA })
+  assert.equal((await tick).outcome, "idle")
+  await loop.settle()
+  assert.equal(runner.runs.length, 0)
+  assert.equal(github.created.length, 0)
+  assert.equal((await loop.tick()).outcome, "idle")
+})

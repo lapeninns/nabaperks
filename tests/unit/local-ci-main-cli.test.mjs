@@ -29,6 +29,7 @@ import {
   createRunEvidenceStore,
   createSerialGate,
   execHost,
+  dispatchRun,
   jobImageFilePath,
   nightlyCadence,
   nightlyRunIsDue,
@@ -697,12 +698,12 @@ test("every dispatch path re-asserts the VM before it runs anything", () => {
   const dispatch = source.slice(source.indexOf("async function dispatchRun("))
   assert.match(
     dispatch.slice(0, dispatch.indexOf("evidence.open(")),
-    /await assertVmIsolationLive\(/,
+    /await dependencies\.assertVmIsolationLive\(/,
     "dispatchRun must assert the VM before opening a run"
   )
   // And nothing else materialises a worktree inside the VM.
   assert.equal(
-    source.split("await buildDependencies(").length - 1,
+    source.split("await dependencies.buildDependencies(").length - 1,
     1,
     "buildDependencies must have exactly one call site, inside dispatchRun"
   )
@@ -1106,4 +1107,78 @@ test("CLI help executes through the installed current symlink with spaces", () =
   } finally {
     rmSync(root, { recursive: true, force: true })
   }
+})
+
+test("dispatch preserves cancellation through preparation and releases the workspace", async () => {
+  const controller = new AbortController()
+  const events = []
+  const args = {
+    contract: {},
+    config: {},
+    logger: { info() {} },
+    evidence: {
+      open: () => ({ path: "/unused", close: () => events.push("closed") }),
+    },
+    profile: { profile: "main" },
+    ref: "refs/heads/main",
+    headSha: "a".repeat(40),
+    signal: controller.signal,
+  }
+  const reason = new Error("operator stopped the agent")
+  const dependencies = {
+    assertVmIsolationLive: async () => events.push("isolation"),
+    buildDependencies: async () => ({
+      runner: {
+        runProfile: async ({ signal }) => {
+          assert.equal(signal, controller.signal)
+          controller.abort(reason)
+          signal.throwIfAborted()
+        },
+      },
+    }),
+    makeEnvFileWriter: () => () => {},
+    releaseWorkspace: async () => events.push("released"),
+  }
+  await assert.rejects(
+    dispatchRun(args, dependencies),
+    (error) => error === reason
+  )
+  assert.deepEqual(events, ["isolation", "released", "closed"])
+})
+
+test("cancellation while preparing a workspace prevents any container launch", async () => {
+  const controller = new AbortController()
+  const events = []
+  const reason = new Error("superseded during checkout")
+  await assert.rejects(
+    dispatchRun(
+      {
+        contract: {},
+        config: {},
+        logger: { info() {} },
+        evidence: {
+          open: () => ({ path: "/unused", close: () => events.push("closed") }),
+        },
+        profile: { profile: "main" },
+        headSha: "a".repeat(40),
+        signal: controller.signal,
+      },
+      {
+        assertVmIsolationLive: async () => {},
+        buildDependencies: async () => {
+          controller.abort(reason)
+          return {
+            runner: {
+              runProfile: () => assert.fail("cancelled work must not launch"),
+            },
+          }
+        },
+        makeEnvFileWriter: () =>
+          assert.fail("cancelled work must not create fixtures"),
+        releaseWorkspace: async () => events.push("released"),
+      }
+    ),
+    (error) => error === reason
+  )
+  assert.deepEqual(events, ["released", "closed"])
 })
