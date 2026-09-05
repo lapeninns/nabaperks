@@ -169,3 +169,31 @@ The alert refinement was isolated in a separate worktree after unrelated reward
 changes arrived in the shared checkout. The isolated `pnpm quality:check` passed
 in full, including 686 contracts and 1,291 unit tests, with no lint exclusions.
 Unrelated application changes were preserved and excluded from this work.
+
+## First host installation and controlled run
+
+On 2026-09-05, installation of merged `68fc908f` exposed a root-only release
+and symlink caused by the credential-stage umask. The operator repaired those
+public-code modes; the credential directory and key retained `0700`/`0600`.
+The installed symlink then exposed a CLI entry-detection bug: `--help` exited
+silently because Node resolved the module path but the CLI comparison did not.
+The LaunchAgent was stopped while these fixes were prepared.
+
+A controlled invocation from the real merged release path authenticated with
+App ID `4839346` and published heartbeat check
+[101324074295](https://github.com/lapeninns/nabaperks/runs/101324074295) on the
+contract anchor at `2026-09-05T14:45:37Z`. This was an actual poll-loop heartbeat,
+not a synthetic check. It does not establish launchd liveness or qualification.
+
+Nightly and main runs at `98e95405` failed: their mounted linked worktrees
+referenced Git metadata outside `/workspace`, so the quality lane could not
+inspect Git. The fast lane's snapshot guard also suppressed that inspection
+error. The controlled process subsequently exited while waiting on unreferenced
+timers. No run is counted as qualification, and monitoring remains disabled.
+
+The runtime repair uses standalone Git directories without object hardlinks or
+alternates to the cache, fetches the requested commit and full history even when
+the VM cache was shallow, retains timers while polling, and makes snapshot
+inspection errors fail the lane. Regression tests cover relocated checkouts,
+shallow single-branch caches, separate quiet Node processes and failed Git
+inspection. A subsequent real installed run is still required.

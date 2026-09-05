@@ -612,6 +612,12 @@ export function createLoop({
      * could not be made, so a caller on a timer keeps ticking.
      */
     async tick() {
+      if (stopping) {
+        return Object.freeze({
+          outcome: "idle",
+          reason: "the agent is stopping",
+        })
+      }
       if (polling) {
         return Object.freeze({
           outcome: "idle",
@@ -625,6 +631,13 @@ export function createLoop({
           github.getRef(DEFAULT_BRANCH_REF),
           github.listOpenPullRequests(),
         ])
+        // stop() may have run while the provider reads were pending.
+        if (stopping) {
+          return Object.freeze({
+            outcome: "idle",
+            reason: "the agent is stopping",
+          })
+        }
         const candidates = candidatesFrom({ mainRef, pullRequests, contract })
         const classified = classifyCandidates(candidates, contract)
 
@@ -773,12 +786,12 @@ export function createLoop({
         ((ms) =>
           new Promise((resolve) => {
             timer = setTimeout(resolve, ms)
-            timer.unref?.()
           }))
       log("info", `polling every ${Math.round(interval / 1000)}s`)
       while (!stopping) {
         try {
-          const result = await this.tick()
+          const result = await Promise.race([this.tick(), stopped])
+          if (stopping) break
           if (result.outcome !== "idle") {
             log("info", `tick: ${JSON.stringify(result.outcome)}`)
           }

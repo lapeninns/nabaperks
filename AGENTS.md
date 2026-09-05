@@ -82,9 +82,10 @@ Two boundaries are enforced in code rather than by convention:
   values, then asserts that no host-secret name or credential-shaped host value
   survived.
 
-The plane stays dormant until an operator sets the `LOCAL_CI_MODE` repository
-variable, and at cutover step 1 nothing it reports can block a merge. Provision
-it with `docs/operations/local-ci.md`. The follow-on steps that promote it are
+The hosted bridge stays dormant until an operator sets the `LOCAL_CI_MODE`
+repository variable. Installing the host service starts its poll loop regardless
+of that variable; at cutover step 1 nothing it reports can block a merge.
+Provision it with `docs/operations/local-ci.md`. The follow-on steps that promote it are
 specified in `docs/operations/local-ci-cutover.md` and must not be performed
 from this guide.
 

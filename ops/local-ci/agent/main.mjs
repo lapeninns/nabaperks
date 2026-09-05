@@ -29,6 +29,7 @@ import {
   mkdirSync,
   openSync,
   readFileSync,
+  realpathSync,
   readdirSync,
   rmSync,
   rmdirSync,
@@ -545,9 +546,10 @@ export function permittedExecutable(argv) {
  */
 export async function execHost(
   argv,
-  { input = null, timeoutMs = 600_000, cwd = undefined } = {}
+  { input = null, timeoutMs = 600_000, cwd = undefined, signal = null } = {}
 ) {
   const executable = permittedExecutable(argv)
+  signal?.throwIfAborted()
   return new Promise((resolveExec, rejectExec) => {
     const child = spawn(executable, argv.slice(1), {
       cwd,
@@ -555,6 +557,18 @@ export async function execHost(
     })
     let stdout = ""
     let stderr = ""
+    let abortTimer = null
+    const onAbort = () => {
+      child.kill("SIGTERM")
+      abortTimer = setTimeout(() => child.kill("SIGKILL"), 5_000)
+      abortTimer.unref?.()
+    }
+    signal?.addEventListener("abort", onAbort, { once: true })
+    const cleanup = () => {
+      clearTimeout(timer)
+      if (abortTimer) clearTimeout(abortTimer)
+      signal?.removeEventListener("abort", onAbort)
+    }
     const timer = setTimeout(() => child.kill("SIGKILL"), timeoutMs)
     timer.unref?.()
     child.stdout?.on("data", (chunk) => {
@@ -564,11 +578,15 @@ export async function execHost(
       stderr += chunk.toString("utf8")
     })
     child.once("error", (error) => {
-      clearTimeout(timer)
-      rejectExec(error)
+      cleanup()
+      rejectExec(signal?.aborted ? signal.reason : error)
     })
     child.once("close", (code) => {
-      clearTimeout(timer)
+      cleanup()
+      if (signal?.aborted) {
+        rejectExec(signal.reason)
+        return
+      }
       if (code === 0) resolveExec(stdout)
       else
         rejectExec(
@@ -579,6 +597,9 @@ export async function execHost(
         )
     })
     if (input !== null) {
+      child.stdin.on("error", (error) => {
+        if (!signal?.aborted) rejectExec(error)
+      })
       child.stdin.end(input)
     }
   })
@@ -849,31 +870,40 @@ async function assertVmIsolationLive({ config, contract }) {
   })
 }
 
-/**
- * Materialise the commit inside the VM as a detached worktree.
- *
- * `agent.gitFetchDepth` is 0 - a full clone - because the quality lane's
- * `docs:check` ends in `git diff --exit-code`, which a shallow tree cannot
- * answer. The clone lives in the VM, which has no mounts back to the Mac.
- */
-async function prepareWorkspace({ config, contract, headSha, logger }) {
-  const root = config.vmWorkspaceRoot
+/** Build a self-contained checkout: no Git paths or object hardlinks escape it. */
+export function buildWorkspacePreparationScript({ root, remoteUrl, headSha }) {
   const mirror = `${root}/repo`
-  const worktree = `${root}/runs/${headSha}`
-  logger.info(`preparing ${worktree} inside the VM`)
-  const script = [
+  const workspace = `${root}/runs/${headSha}`
+  return [
     "set -eu",
     `mkdir -p ${shQuote(`${root}/runs`)}`,
-    `if [ ! -d ${shQuote(`${mirror}/.git`)} ]; then git clone ${shQuote(contract.remoteUrl)} ${shQuote(mirror)}; fi`,
+    `if [ ! -d ${shQuote(`${mirror}/.git`)} ]; then git clone ${shQuote(remoteUrl)} ${shQuote(mirror)}; fi`,
     `cd ${shQuote(mirror)}`,
-    `git remote set-url origin ${shQuote(contract.remoteUrl)}`,
-    "git fetch --prune --tags origin",
-    `git worktree remove --force ${shQuote(worktree)} 2>/dev/null || true`,
-    `rm -rf ${shQuote(worktree)}`,
-    `git worktree add --force --detach ${shQuote(worktree)} ${shQuote(headSha)}`,
+    `git remote set-url origin ${shQuote(remoteUrl)}`,
+    'if [ "$(git rev-parse --is-shallow-repository)" = "true" ]; then git fetch --unshallow origin; fi',
+    "git fetch --prune --tags origin '+refs/heads/*:refs/remotes/origin/*'",
+    `git fetch origin ${shQuote(headSha)}`,
+    `git worktree remove --force ${shQuote(workspace)} 2>/dev/null || true`,
+    `rm -rf ${shQuote(workspace)}`,
+    `git clone --no-hardlinks --no-checkout ${shQuote(mirror)} ${shQuote(workspace)}`,
+    `git -C ${shQuote(workspace)} remote set-url origin ${shQuote(remoteUrl)}`,
+    `git -C ${shQuote(workspace)} fetch --no-tags ${shQuote(mirror)} ${shQuote(headSha)}`,
+    `git -C ${shQuote(workspace)} checkout --detach ${shQuote(headSha)}`,
   ].join("\n")
-  await execHost(vmShell(config.vm, script))
-  return worktree
+}
+
+/** Full Git history stays inside the disposable /workspace container mount. */
+async function prepareWorkspace({ config, contract, headSha, logger, signal }) {
+  const root = config.vmWorkspaceRoot
+  const workspace = `${root}/runs/${headSha}`
+  logger.info(`preparing ${workspace} inside the VM`)
+  const script = buildWorkspacePreparationScript({
+    root,
+    remoteUrl: contract.remoteUrl,
+    headSha,
+  })
+  await execHost(vmShell(config.vm, script), { signal })
+  return workspace
 }
 
 async function releaseWorkspace({ config, headSha }) {
@@ -883,7 +913,9 @@ async function releaseWorkspace({ config, headSha }) {
     `git worktree remove --force ${shQuote(`${root}/runs/${headSha}`)} 2>/dev/null || true`,
     `rm -rf ${shQuote(`${root}/runs/${headSha}`)}`,
   ].join("\n")
-  await execHost(vmShell(config.vm, script)).catch(() => {})
+  await execHost(vmShell(config.vm, script), { timeoutMs: 20_000 }).catch(
+    () => {}
+  )
 }
 
 /* --------------------------------------------------------------- evidence */
@@ -1083,7 +1115,7 @@ function makeLaneLogOpener(runDir) {
  * every process on the VM through `ps`, and the runtime fixtures a lane needs
  * are not worth publishing that way even though none of them is a host secret.
  */
-function makeEnvFileWriter({ config, headSha }) {
+function makeEnvFileWriter({ config, headSha, signal }) {
   return async (lane, env) => {
     const path = `${config.vmWorkspaceRoot}/runs/${headSha}/.env.${lane.id}`
     const body = Object.entries(env)
@@ -1091,6 +1123,7 @@ function makeEnvFileWriter({ config, headSha }) {
       .join("\n")
     await execHost(vmShell(config.vm, `umask 077; cat > ${shQuote(path)}`), {
       input: `${body}\n`,
+      signal,
     })
     return path
   }
@@ -1239,6 +1272,7 @@ async function buildDependencies({
   logger,
   headSha,
   runDir,
+  signal,
 }) {
   const containerRuntime = createContainerRuntime({
     contract,
@@ -1251,6 +1285,7 @@ async function buildDependencies({
       execHost(["/bin/sh", "-c", command], {
         timeoutMs: 120_000,
         cwd: REPO_ROOT,
+        signal,
       }),
     randomBytes,
   })
@@ -1259,6 +1294,7 @@ async function buildDependencies({
     contract,
     headSha,
     logger,
+    signal,
   })
   const runner = createRunner({
     contract,
@@ -1333,33 +1369,38 @@ async function publishCompletedRun({
  * pull-request code at 11am, and an instance installed with `--skip-vm-check`
  * would never have been asserted at all.
  */
-async function dispatchRun({
-  contract,
-  config,
-  logger,
-  evidence,
-  profile,
-  ref,
-  headSha,
-}) {
-  await assertVmIsolationLive({ config, contract })
+export async function dispatchRun(
+  { contract, config, logger, evidence, profile, ref, headSha, signal = null },
+  dependencies = {
+    assertVmIsolationLive,
+    buildDependencies,
+    makeEnvFileWriter,
+    releaseWorkspace,
+  }
+) {
+  signal?.throwIfAborted()
+  await dependencies.assertVmIsolationLive({ config, contract })
+  signal?.throwIfAborted()
   logger.info(
     `instance ${config.vm} re-asserted: no host mounts, no forwarded agent, no host home, no Rosetta`
   )
   const run = evidence.open({ headSha, profile: profile.profile })
   try {
-    const { runner } = await buildDependencies({
+    const { runner } = await dependencies.buildDependencies({
       contract,
       config,
       logger,
       headSha,
       runDir: run.path,
+      signal,
     })
+    signal?.throwIfAborted()
     const outcome = await runner.runProfile({
       profile,
       ref,
       headSha,
-      writeEnvFile: makeEnvFileWriter({ config, headSha }),
+      signal,
+      writeEnvFile: dependencies.makeEnvFileWriter({ config, headSha, signal }),
     })
     writeLaneResults({ runDir: run.path, outcome, contract })
     logger.info(
@@ -1367,7 +1408,7 @@ async function dispatchRun({
     )
     return outcome
   } finally {
-    await releaseWorkspace({ config, headSha })
+    await dependencies.releaseWorkspace({ config, headSha })
     run.close()
   }
 }
@@ -1446,18 +1487,21 @@ export function createNightlyScheduler({
 }) {
   let stopping = false
   let timer = null
+  let notifyStop = null
   const log = (level, message) => {
     if (logger && typeof logger[level] === "function") logger[level](message)
   }
   return Object.freeze({
     async start() {
       stopping = false
+      const stopped = new Promise((resolve) => {
+        notifyStop = resolve
+      })
       const wait =
         sleep ??
         ((ms) =>
           new Promise((resolve) => {
             timer = setTimeout(resolve, ms)
-            timer.unref?.()
           }))
       log(
         "info",
@@ -1476,12 +1520,14 @@ export function createNightlyScheduler({
           log("error", `the nightly check failed: ${error.message}`)
         }
         if (stopping) break
-        await wait(intervalMs)
+        await Promise.race([wait(intervalMs), stopped])
       }
     },
     stop() {
       stopping = true
       if (timer) clearTimeout(timer)
+      notifyStop?.()
+      notifyStop = null
     },
   })
 }
@@ -1585,6 +1631,20 @@ async function runNightlyOnce({ contract, config, options, logger }) {
 
 async function watch({ contract, config, logger }) {
   const github = hostGitHubClient({ contract, config, logger })
+  const pollingGithub = createGitHubClient({
+    contract,
+    appId: config.appId,
+    installationId: config.installationId,
+    privateKey: config.privateKey,
+    logger,
+    maxAttempts: 1,
+    fetch: (url, options) =>
+      fetch(url, {
+        ...options,
+        redirect: "error",
+        signal: AbortSignal.timeout(5_000),
+      }),
+  })
   const heartbeat =
     contract.agentLiveness?.provider === "github-check"
       ? createGitHubHeartbeat({
@@ -1617,6 +1677,7 @@ async function watch({ contract, config, logger }) {
   // gate below: one dispatcher releasing the other's assertion would leave a
   // job running with nothing keeping the Mac awake.
   const nightlyAssertion = createSleepAssertion({ logger })
+  const nightlyAbort = new AbortController()
   const evidence = createRunEvidenceStore({ stateRoot: config.stateRoot })
   const gate = createSerialGate()
   const dispatch = (args) =>
@@ -1631,6 +1692,7 @@ async function watch({ contract, config, logger }) {
           logger,
           evidence,
           ...args,
+          signal: nightlyAbort.signal,
         })
       } finally {
         nightlyAssertion.release()
@@ -1642,7 +1704,11 @@ async function watch({ contract, config, logger }) {
 
   const loop = createLoop({
     contract,
-    github,
+    github: {
+      ...github,
+      getRef: pollingGithub.getRef,
+      listOpenPullRequests: pollingGithub.listOpenPullRequests,
+    },
     loadProfile: (name) => loadProfileChecked(name, contract),
     heartbeat,
     sleepAssertion,
@@ -1653,11 +1719,7 @@ async function watch({ contract, config, logger }) {
     logger,
     // Built per job: the runner needs a workspace materialised for that head
     // SHA, and there is no useful long-lived runner to hold open between them.
-    runner: {
-      async runProfile({ profile, ref, headSha }) {
-        return dispatch({ profile, ref, headSha })
-      },
-    },
+    runner: { runProfile: dispatch },
   })
 
   const nightly = createNightlyScheduler({
@@ -1666,7 +1728,7 @@ async function watch({ contract, config, logger }) {
       nightlyTick({
         contract,
         logger,
-        github,
+        github: { ...github, getRef: pollingGithub.getRef },
         evidence,
         dispatch: nightlyDispatch,
         loadProfileFor: (name) => loadProfileChecked(name, contract),
@@ -1685,6 +1747,7 @@ async function watch({ contract, config, logger }) {
   const stop = () => {
     logger.info("stopping after the current tick")
     loop.stop()
+    nightlyAbort.abort(new Error("the agent is stopping"))
     nightly.stop()
     nightlyAssertion.release()
   }
@@ -1735,11 +1798,19 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
 // root and this repository both contain characters that percent-encode in a
 // URL (the checkout lives under ".../LapenInns Project/..."), so the naive
 // form never matches and the CLI silently exits 0 without running.
-const invokedDirectly =
-  typeof process.argv[1] === "string" &&
-  import.meta.url === pathToFileURL(process.argv[1]).href
+function invokedDirectly() {
+  try {
+    // Node resolves the entry module through the installer's `current` link.
+    return (
+      typeof process.argv[1] === "string" &&
+      import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href
+    )
+  } catch {
+    return false
+  }
+}
 
-if (invokedDirectly) {
+if (invokedDirectly()) {
   main().then(
     (code) => {
       process.exitCode = code

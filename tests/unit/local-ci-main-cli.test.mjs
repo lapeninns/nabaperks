@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { spawnSync } from "node:child_process"
 import {
   chmodSync,
   closeSync,
@@ -28,6 +29,7 @@ import {
   createRunEvidenceStore,
   createSerialGate,
   execHost,
+  dispatchRun,
   jobImageFilePath,
   nightlyCadence,
   nightlyRunIsDue,
@@ -696,12 +698,12 @@ test("every dispatch path re-asserts the VM before it runs anything", () => {
   const dispatch = source.slice(source.indexOf("async function dispatchRun("))
   assert.match(
     dispatch.slice(0, dispatch.indexOf("evidence.open(")),
-    /await assertVmIsolationLive\(/,
+    /await dependencies\.assertVmIsolationLive\(/,
     "dispatchRun must assert the VM before opening a run"
   )
   // And nothing else materialises a worktree inside the VM.
   assert.equal(
-    source.split("await buildDependencies(").length - 1,
+    source.split("await dependencies.buildDependencies(").length - 1,
     1,
     "buildDependencies must have exactly one call site, inside dispatchRun"
   )
@@ -1082,4 +1084,136 @@ test("the poll loop and the nightly never dispatch at the same time", async () =
     "pr:end",
   ])
   assert.equal(gate.waiting, 0)
+})
+
+test("CLI help executes through the installed current symlink with spaces", () => {
+  const root = mkdtempSync(join(tmpdir(), "local ci entry-"))
+  try {
+    const current = join(root, "current")
+    symlinkSync(
+      fileURLToPath(new URL("../../ops/local-ci/agent", import.meta.url)),
+      current
+    )
+    const result = spawnSync(
+      process.execPath,
+      [join(current, "main.mjs"), "--help"],
+      {
+        encoding: "utf8",
+      }
+    )
+    assert.equal(result.status, 0, result.stderr)
+    assert.match(result.stdout, /nabaperks local CI agent/)
+    assert.match(result.stdout, /--watch/)
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test("dispatch preserves cancellation through preparation and releases the workspace", async () => {
+  const controller = new AbortController()
+  const events = []
+  const args = {
+    contract: {},
+    config: {},
+    logger: { info() {} },
+    evidence: {
+      open: () => ({ path: "/unused", close: () => events.push("closed") }),
+    },
+    profile: { profile: "main" },
+    ref: "refs/heads/main",
+    headSha: "a".repeat(40),
+    signal: controller.signal,
+  }
+  const reason = new Error("operator stopped the agent")
+  const dependencies = {
+    assertVmIsolationLive: async () => events.push("isolation"),
+    buildDependencies: async () => ({
+      runner: {
+        runProfile: async ({ signal }) => {
+          assert.equal(signal, controller.signal)
+          controller.abort(reason)
+          signal.throwIfAborted()
+        },
+      },
+    }),
+    makeEnvFileWriter: () => () => {},
+    releaseWorkspace: async () => events.push("released"),
+  }
+  await assert.rejects(
+    dispatchRun(args, dependencies),
+    (error) => error === reason
+  )
+  assert.deepEqual(events, ["isolation", "released", "closed"])
+})
+
+test("cancellation while preparing a workspace prevents any container launch", async () => {
+  const controller = new AbortController()
+  const events = []
+  const reason = new Error("superseded during checkout")
+  await assert.rejects(
+    dispatchRun(
+      {
+        contract: {},
+        config: {},
+        logger: { info() {} },
+        evidence: {
+          open: () => ({ path: "/unused", close: () => events.push("closed") }),
+        },
+        profile: { profile: "main" },
+        headSha: "a".repeat(40),
+        signal: controller.signal,
+      },
+      {
+        assertVmIsolationLive: async () => {},
+        buildDependencies: async () => {
+          controller.abort(reason)
+          return {
+            runner: {
+              runProfile: () => assert.fail("cancelled work must not launch"),
+            },
+          }
+        },
+        makeEnvFileWriter: () =>
+          assert.fail("cancelled work must not create fixtures"),
+        releaseWorkspace: async () => events.push("released"),
+      }
+    ),
+    (error) => error === reason
+  )
+  assert.deepEqual(events, ["released", "closed"])
+})
+
+test("execHost cancellation terminates a real child and preserves its reason", async () => {
+  const controller = new AbortController()
+  const reason = new Error("cancel fixture checkout")
+  const timer = setTimeout(() => controller.abort(reason), 50)
+  try {
+    await assert.rejects(
+      execHost(["/bin/sh", "-c", "exec sleep 30"], {
+        input: "x".repeat(1024 * 1024),
+        signal: controller.signal,
+      }),
+      (error) => error === reason
+    )
+  } finally {
+    clearTimeout(timer)
+  }
+})
+
+test("nightly shutdown settles an outstanding interval wait", async () => {
+  let entered
+  const waiting = new Promise((resolve) => {
+    entered = resolve
+  })
+  const scheduler = createNightlyScheduler({
+    tick: async () => ({ ran: false }),
+    sleep: () => {
+      entered()
+      return new Promise(() => {})
+    },
+  })
+  const run = scheduler.start()
+  await waiting
+  scheduler.stop()
+  await run
 })

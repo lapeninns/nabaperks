@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test"
 
+import { playwrightServerNodeOptions } from "./scripts/playwright-server-heap.mjs"
+
 /**
  * Playwright e2e harness.
  *
@@ -33,7 +35,11 @@ const devServerEnv = [
   `PORT=${devServerPort}`,
   // Hosted shards compile many routes in one dev-server process. Give Next
   // enough heap to avoid its 80%-usage self-restart interrupting live tests.
-  ...(process.env.CI ? ["NODE_OPTIONS=--max-old-space-size=8192"] : []),
+  ...(process.env.CI || process.env.PLAYWRIGHT_NODE_HEAP_MB
+    ? [
+        `NODE_OPTIONS=${playwrightServerNodeOptions(process.env.PLAYWRIGHT_NODE_HEAP_MB)}`,
+      ]
+    : []),
   `CUSTOMER_DEV_OTP_CODE=${devOtpCode}`,
   `PLAYWRIGHT_MARKETING_OFFER_NOW=${visualOfferNow}`,
   "PLAYWRIGHT_HARNESS=1",

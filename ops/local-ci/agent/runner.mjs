@@ -391,7 +391,7 @@ function snapshotGuardBlock(contract) {
   const variable = `${SHELL_NS}_snapshot_mutations`
   return [
     `echo ${shellSingleQuote(`${LOG_MARKER} snapshot guard`)}`,
-    `${variable}="$(${guard.mutationCheck.command} || true)"`,
+    `${variable}="$(${guard.mutationCheck.command})"`,
     `if [ -n "$${variable}" ]; then`,
     `  echo ${shellSingleQuote("snapshot guard: this run modified pixel baselines, which a local ARM64 run must never do")} >&2`,
     `  printf '%s\\n' "$${variable}" >&2`,
@@ -1041,6 +1041,21 @@ export function createRunner({
           typeof writeEnvFile === "function"
             ? await writeEnvFile(lane, env)
             : null
+        if (signal?.aborted) {
+          laneResults.push(
+            buildLaneResult({
+              lane,
+              contract,
+              profile: profile.profile,
+              ref,
+              headSha,
+              status: "cancelled",
+              output: "",
+              durationSeconds: 0,
+            })
+          )
+          continue
+        }
         const sink = openLaneLog ? await openLaneLog(`${lane.id}.log`) : null
         let output = ""
 
@@ -1118,7 +1133,11 @@ export function createRunner({
           exitCode: result?.exitCode ?? null,
           timedOut: result?.timedOut ?? false,
           cancelled: result?.cancelled ?? false,
-          status: runtimeError === null ? null : "failure",
+          status: signal?.aborted
+            ? "cancelled"
+            : runtimeError === null
+              ? null
+              : "failure",
           startedAt: new Date(laneStarted).toISOString(),
           completedAt: new Date(laneEnded).toISOString(),
           durationSeconds: Math.round((laneEnded - laneStarted) / 1000),

@@ -500,3 +500,31 @@ test("a declared log that never appeared is recorded as missing, and an empty on
     false
   )
 })
+
+test("cancellation during fixture creation does not launch the lane", async () => {
+  const controller = new AbortController()
+  const runner = createRunner({
+    contract,
+    containerRuntime: {
+      withJobContainer: () =>
+        assert.fail("cancelled fixture setup must not launch"),
+    },
+    resolveRuntimeEnv: async () => ({}),
+    hostEnv: {},
+    arch: "arm64",
+    image: "ghcr.io/lapeninns/nabaperks-ci:2026-09-01",
+    workspaceHostPath: "/unused",
+  })
+  const outcome = await runner.runProfile({
+    profile: profileOf([laneOf()]),
+    ref: "refs/heads/main",
+    headSha: HEAD_SHA,
+    signal: controller.signal,
+    writeEnvFile: async () => {
+      controller.abort()
+      return "/unused.env"
+    },
+  })
+  assert.equal(outcome.record.conclusion, "cancelled")
+  assert.equal(outcome.laneResults[0].status, "cancelled")
+})
