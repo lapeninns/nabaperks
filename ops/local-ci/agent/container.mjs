@@ -1,0 +1,790 @@
+/**
+ * The disposable job container.
+ *
+ * A job container runs code that arrived in a pull request, so the shape of
+ * its `docker run` invocation is a security boundary rather than a
+ * configuration detail. Two properties are asserted by the builder itself,
+ * every time it runs, rather than left to review:
+ *
+ *   1. **No host daemon socket, in any form.** Bind-mounting the Docker daemon
+ *      socket into a container that runs untrusted code is equivalent to
+ *      handing that code root on the VM. `assertNoDaemonSocket` walks the
+ *      finished argv and refuses if any element names it. The contract's
+ *      `container.mountHostDockerSocket` is re-checked at the same point, so a
+ *      contract edit alone cannot open the hole either.
+ *
+ *   2. **The job container is never privileged and publishes no port.** The
+ *      lanes that need a Docker daemon get one from a sibling `dind` container
+ *      on a job-private network, reachable over TCP at the alias the job
+ *      image's `DOCKER_HOST` already points at. The privilege lives in the
+ *      sidecar, which runs no repository code; the job container that does run
+ *      repository code stays unprivileged. `docs/operations/local-ci.md` §9
+ *      verifies exactly this with `docker inspect`.
+ *
+ * The argv builders are pure functions returning arrays, separate from the
+ * impure `runContainer` that spawns them, because the argv is the part worth
+ * pinning in a test: an assertion that the array contains no privilege flag is
+ * a proof, while an assertion about a spawned process is a hope.
+ *
+ * The socket path is assembled from fragments rather than written as a
+ * literal. `docs/operations/local-ci.md` §9 audits this plane by grepping
+ * `ops/local-ci/` for that path, and a literal here - even inside a refusal -
+ * would be a false positive that teaches the operator to ignore the grep.
+ */
+
+import { spawn } from "node:child_process"
+
+import { LocalCiError, describeValue } from "../core/contract.mjs"
+import { hostSecretNames } from "../core/contract.mjs"
+
+export class ContainerError extends LocalCiError {}
+
+/** Name prefixes, matching what the runbook's `docker ps --filter` expects. */
+export const JOB_CONTAINER_PREFIX = "nabaperks-ci-job-"
+export const DAEMON_CONTAINER_PREFIX = "nabaperks-ci-dind-"
+export const NETWORK_PREFIX = "nabaperks-ci-net-"
+
+/**
+ * The network alias the sidecar daemon answers on. The job image pins
+ * `DOCKER_HOST` to this host name, so the two must agree; changing it here
+ * without changing `ops/local-ci/image/Dockerfile` breaks every lane that
+ * starts a container.
+ */
+export const DAEMON_NETWORK_ALIAS = "docker"
+export const DAEMON_TCP_PORT = 2375
+
+/** Grace period between SIGTERM and SIGKILL, in seconds. */
+export const STOP_GRACE_SECONDS = 30
+
+/**
+ * Playwright's Chromium needs more shared memory than Docker's 64 MB default.
+ * `--ipc=host` is the other documented remedy and is deliberately not used: it
+ * puts the job container in the VM's IPC namespace, which is a wider boundary
+ * than this plane should hand to unreviewed code for a memory tuning problem.
+ */
+export const DEFAULT_SHM_SIZE = "2g"
+
+const SOCKET_BASENAME = ["docker", "sock"].join(".")
+const SOCKET_FRAGMENTS = Object.freeze([
+  SOCKET_BASENAME,
+  `/var/run/${SOCKET_BASENAME}`,
+  `/run/${SOCKET_BASENAME}`,
+  ["docker", "socket"].join("."),
+])
+
+/** Argument forms that publish a container port to the VM. */
+const PUBLISH_FLAGS = Object.freeze(["-p", "--publish", "-P", "--publish-all"])
+
+/**
+ * Flags that put a container in one of the VM's own namespaces when their
+ * value is `host`. Checked in both spellings docker accepts - `--network=host`
+ * and `--network host` - because the builders in this file emit the
+ * space-separated form for every flag they set, so that is the form a future
+ * edit is most likely to introduce.
+ */
+const NAMESPACE_FLAGS = Object.freeze([
+  "--network",
+  "--net",
+  "--pid",
+  "--ipc",
+  "--uts",
+  "--userns",
+  "--cgroupns",
+])
+
+/** The flag that hands a container every capability on the VM. */
+const PRIVILEGED_FLAG = "--privileged"
+
+function fail(code, message) {
+  throw new ContainerError(code, `local-ci container: ${message}`)
+}
+
+function requireObject(value, label) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    fail(
+      "INVALID_INPUT",
+      `${label} must be an object (received ${describeValue(value)})`
+    )
+  }
+  return value
+}
+
+function requireNonEmptyString(value, label) {
+  if (typeof value !== "string" || value.trim() === "") {
+    fail(
+      "INVALID_INPUT",
+      `${label} must be a non-empty string (received ${describeValue(value)})`
+    )
+  }
+  return value
+}
+
+/**
+ * Refuse an argv that names the host Docker daemon socket anywhere.
+ *
+ * Applied to every builder's output, including the sidecar's: the sidecar runs
+ * its own daemon and has no more business seeing the VM's socket than the job
+ * does. Pure, and exported so a caller that assembles its own argv can run the
+ * same proof.
+ */
+export function assertNoDaemonSocket(argv, label = "argv") {
+  if (!Array.isArray(argv)) {
+    fail(
+      "INVALID_INPUT",
+      `${label} must be an array of arguments (received ${describeValue(argv)})`
+    )
+  }
+  for (const [index, argument] of argv.entries()) {
+    if (typeof argument !== "string") {
+      fail(
+        "INVALID_INPUT",
+        `${label}[${index}] must be a string (received ${describeValue(argument)})`
+      )
+    }
+    for (const fragment of SOCKET_FRAGMENTS) {
+      if (argument.includes(fragment)) {
+        fail(
+          "HOST_DOCKER_SOCKET_MOUNTED",
+          `${label}[${index}] names the host Docker daemon socket; mounting it into a container that runs repository code is equivalent to giving that code root on the VM`
+        )
+      }
+    }
+  }
+  return argv
+}
+
+function assertNoPublishedPorts(argv, label) {
+  for (const argument of argv) {
+    const flag = argument.split("=", 1)[0]
+    if (PUBLISH_FLAGS.includes(flag)) {
+      fail(
+        "PUBLISHED_PORT",
+        `${label} publishes a container port (${argument}); job containers reach each other over a private network and publish nothing to the VM`
+      )
+    }
+  }
+  return argv
+}
+
+function assertUnprivileged(argv, label) {
+  for (const [index, argument] of argv.entries()) {
+    const separator = argument.indexOf("=")
+    const flag = separator === -1 ? argument : argument.slice(0, separator)
+    if (flag === PRIVILEGED_FLAG) {
+      fail(
+        "PRIVILEGED_JOB_CONTAINER",
+        `${label} carries ${JSON.stringify(argument)}; the container that runs repository code is never privileged - the sidecar daemon holds that privilege instead`
+      )
+    }
+    if (!NAMESPACE_FLAGS.includes(flag)) continue
+    // `--network=host` and `--network host` are the same instruction to
+    // docker. Reading the next element is what makes the second form - the one
+    // every builder here would produce - visible to this proof.
+    const value =
+      separator === -1 ? argv[index + 1] : argument.slice(separator + 1)
+    if (value === "host") {
+      fail(
+        "PRIVILEGED_JOB_CONTAINER",
+        `${label} puts the container in the VM's own namespace (${JSON.stringify(flag)} ${JSON.stringify(value)}); a container that runs repository code never shares a host namespace`
+      )
+    }
+  }
+  return argv
+}
+
+function containerConfig(contract) {
+  requireObject(contract, "contract")
+  const container = requireObject(contract.container, "contract.container")
+  if (container.mountHostDockerSocket !== false) {
+    fail(
+      "HOST_DOCKER_SOCKET_MOUNTED",
+      "contract.container.mountHostDockerSocket must be false before any container argv can be built"
+    )
+  }
+  return container
+}
+
+/** The container wall-clock ceiling in milliseconds. Pure. */
+export function containerTimeoutMs(contract) {
+  const container = containerConfig(contract)
+  const minutes = container.timeoutMinutes
+  if (
+    typeof minutes !== "number" ||
+    !Number.isFinite(minutes) ||
+    minutes <= 0
+  ) {
+    fail(
+      "INVALID_CONTRACT",
+      `contract.container.timeoutMinutes must be a positive finite number (received ${describeValue(minutes)})`
+    )
+  }
+  return Math.round(minutes * 60_000)
+}
+
+function shortSha(headSha) {
+  return requireNonEmptyString(headSha, "headSha").toLowerCase().slice(0, 12)
+}
+
+function slug(value) {
+  return String(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+}
+
+/** Deterministic job container name. Pure. */
+export function jobContainerName({ headSha, laneId, attempt = 1 }) {
+  return `${JOB_CONTAINER_PREFIX}${shortSha(headSha)}-${slug(requireNonEmptyString(laneId, "laneId"))}-${attempt}`
+}
+
+/** Deterministic sidecar daemon container name. Pure. */
+export function daemonContainerName({ headSha, laneId, attempt = 1 }) {
+  return `${DAEMON_CONTAINER_PREFIX}${shortSha(headSha)}-${slug(requireNonEmptyString(laneId, "laneId"))}-${attempt}`
+}
+
+/** Deterministic job-private network name. Pure. */
+export function networkName({ headSha, laneId, attempt = 1 }) {
+  return `${NETWORK_PREFIX}${shortSha(headSha)}-${slug(requireNonEmptyString(laneId, "laneId"))}-${attempt}`
+}
+
+/**
+ * Prefix that runs a docker command inside the Lima VM.
+ *
+ * The Mac never talks to a Docker daemon directly: the engine lives in the VM,
+ * and the VM has no mounts back to the Mac. Pure.
+ */
+export function dockerPrefix({
+  vm = null,
+  docker = "docker",
+  limactl = "limactl",
+} = {}) {
+  if (vm === null || vm === undefined || vm === "") return [docker]
+  return [limactl, "shell", requireNonEmptyString(vm, "vm"), "--", docker]
+}
+
+/** `docker network create --internal? <name>`. Pure. */
+export function buildNetworkCreateArgv({
+  name,
+  vm = null,
+  docker,
+  limactl,
+  driver = "bridge",
+} = {}) {
+  const argv = [
+    ...dockerPrefix({ vm, docker, limactl }),
+    "network",
+    "create",
+    "--driver",
+    driver,
+    requireNonEmptyString(name, "name"),
+  ]
+  return Object.freeze(assertNoDaemonSocket(argv, "network create argv"))
+}
+
+/** `docker network rm <name>`. Pure. */
+export function buildNetworkRemoveArgv({
+  name,
+  vm = null,
+  docker,
+  limactl,
+} = {}) {
+  const argv = [
+    ...dockerPrefix({ vm, docker, limactl }),
+    "network",
+    "rm",
+    requireNonEmptyString(name, "name"),
+  ]
+  return Object.freeze(assertNoDaemonSocket(argv, "network rm argv"))
+}
+
+/** `docker stop --timeout <n> <name>`. Pure. */
+export function buildStopArgv({
+  name,
+  vm = null,
+  docker,
+  limactl,
+  timeoutSeconds = STOP_GRACE_SECONDS,
+} = {}) {
+  const argv = [
+    ...dockerPrefix({ vm, docker, limactl }),
+    "stop",
+    "--timeout",
+    String(timeoutSeconds),
+    requireNonEmptyString(name, "name"),
+  ]
+  return Object.freeze(assertNoDaemonSocket(argv, "stop argv"))
+}
+
+/** `docker rm --force --volumes <name>`. Pure. */
+export function buildRemoveArgv({ name, vm = null, docker, limactl } = {}) {
+  const argv = [
+    ...dockerPrefix({ vm, docker, limactl }),
+    "rm",
+    "--force",
+    "--volumes",
+    requireNonEmptyString(name, "name"),
+  ]
+  return Object.freeze(assertNoDaemonSocket(argv, "rm argv"))
+}
+
+/** `docker inspect --format <fmt> <name>`, for the runbook's own proof. Pure. */
+export function buildInspectArgv({
+  name,
+  vm = null,
+  docker,
+  limactl,
+  format = "{{json .HostConfig}}",
+} = {}) {
+  const argv = [
+    ...dockerPrefix({ vm, docker, limactl }),
+    "inspect",
+    "--format",
+    format,
+    requireNonEmptyString(name, "name"),
+  ]
+  return Object.freeze(assertNoDaemonSocket(argv, "inspect argv"))
+}
+
+function assertPinnedImage(image, label) {
+  requireNonEmptyString(image, label)
+  // The tag lives on the last path segment. Splitting the whole reference on
+  // ":" reads the registry port of `registry.example:5000/nabaperks-ci` as a
+  // tag and lets an untagged image through.
+  const lastSegment = image.split("/").at(-1)
+  const tag = lastSegment.includes(":") ? lastSegment.split(":").at(-1) : null
+  if (
+    !image.includes("@") &&
+    (tag === null || tag === "" || tag === "latest")
+  ) {
+    fail(
+      "UNPINNED_IMAGE",
+      `${label} is ${JSON.stringify(image)}; every image this plane runs must be pinned to an explicit tag or digest, because "latest" makes the run unreproducible and lets a registry change what executes`
+    )
+  }
+  return image
+}
+
+/**
+ * The sidecar Docker daemon.
+ *
+ * This is the container that carries `--privileged`, and it is the only one.
+ * It runs the upstream `dind` image and no repository code: the lanes that
+ * need a daemon (`supabase start`) talk to it over TCP on the job-private
+ * network. `DOCKER_TLS_CERTDIR` is emptied so the daemon listens on plain TCP,
+ * which is safe precisely because the network is private to this one job and
+ * no port is published.
+ *
+ * Pure: returns the argv array.
+ */
+export function buildDaemonArgv({
+  contract,
+  name,
+  network,
+  image,
+  vm = null,
+  docker,
+  limactl,
+  labels = {},
+} = {}) {
+  const container = containerConfig(contract)
+  if (container.dockerInDocker !== true) {
+    fail(
+      "DIND_DISABLED",
+      "contract.container.dockerInDocker is not true; a lane that needs a Docker daemon has no daemon to talk to, and the answer is never to hand it the VM's"
+    )
+  }
+  assertPinnedImage(image, "daemon image")
+
+  const argv = [
+    ...dockerPrefix({ vm, docker, limactl }),
+    "run",
+    "--detach",
+    "--rm",
+    "--name",
+    requireNonEmptyString(name, "name"),
+    "--network",
+    requireNonEmptyString(network, "network"),
+    "--network-alias",
+    DAEMON_NETWORK_ALIAS,
+    // The privilege that a nested daemon genuinely requires, held by the one
+    // container in this design that executes nothing from the repository.
+    "--privileged",
+    "--pull=never",
+    "--stop-timeout",
+    String(STOP_GRACE_SECONDS),
+    "--env",
+    "DOCKER_TLS_CERTDIR=",
+    "--env",
+    `DOCKER_HOST=tcp://0.0.0.0:${DAEMON_TCP_PORT}`,
+  ]
+  for (const [key, value] of Object.entries(labels)) {
+    argv.push("--label", `${key}=${value}`)
+  }
+  argv.push(image, "--host", `tcp://0.0.0.0:${DAEMON_TCP_PORT}`, "--tls=false")
+
+  assertNoDaemonSocket(argv, "daemon argv")
+  assertNoPublishedPorts(argv, "daemon argv")
+  return Object.freeze(argv)
+}
+
+/**
+ * The argv for one lane's disposable job container. **Pure.**
+ *
+ * `env` is the already-built job environment from core/job-env.mjs. Values are
+ * passed with `--env NAME=VALUE` only when `envFile` is absent; the runtime
+ * always supplies `envFile`, because an argument is visible to every process
+ * on the VM through `ps` and a file at mode 0600 is not.
+ *
+ * Returns a frozen array whose first element is the executable, so a caller
+ * spawns `argv[0]` with `argv.slice(1)` and the pure function fully determines
+ * what runs.
+ */
+export function buildContainerArgv({
+  contract,
+  image,
+  name,
+  network,
+  command,
+  workspaceHostPath,
+  env = {},
+  envFile = null,
+  vm = null,
+  docker,
+  limactl,
+  labels = {},
+  addHosts = ["host.docker.internal:host-gateway"],
+  shmSize = DEFAULT_SHM_SIZE,
+  timeoutSeconds = null,
+} = {}) {
+  const container = containerConfig(contract)
+  assertPinnedImage(image, "job image")
+  requireObject(env, "env")
+
+  const workspacePath = requireNonEmptyString(
+    container.workspacePath,
+    "contract.container.workspacePath"
+  )
+  const seconds =
+    timeoutSeconds === null
+      ? Math.round(containerTimeoutMs(contract) / 1000)
+      : timeoutSeconds
+  if (!Number.isInteger(seconds) || seconds <= 0) {
+    fail(
+      "INVALID_INPUT",
+      `timeoutSeconds must be a positive integer (received ${describeValue(seconds)})`
+    )
+  }
+
+  const denied = new Set(hostSecretNames(contract))
+  for (const key of Object.keys(env)) {
+    if (denied.has(key)) {
+      fail(
+        "HOST_SECRET_LEAKED",
+        `the job environment carries ${JSON.stringify(key)}, which contract.hostSecrets forbids from entering a container`
+      )
+    }
+  }
+
+  const argv = [
+    ...dockerPrefix({ vm, docker, limactl }),
+    "run",
+    "--rm",
+    // PID 1 that reaps. Lanes background a dev server and a browser; without
+    // an init the container accumulates zombies for the whole run.
+    "--init",
+    "--name",
+    requireNonEmptyString(name, "name"),
+    "--network",
+    requireNonEmptyString(network, "network"),
+    "--pull=never",
+    "--cpus",
+    String(container.cpus),
+    "--memory",
+    `${container.memoryGb}g`,
+    // Equal to --memory, which disables swap for the container: a lane that
+    // exceeds its budget must fail fast rather than swap the VM to a halt.
+    "--memory-swap",
+    `${container.memoryGb}g`,
+    "--shm-size",
+    requireNonEmptyString(shmSize, "shmSize"),
+    "--stop-timeout",
+    String(STOP_GRACE_SECONDS),
+    "--security-opt",
+    "no-new-privileges",
+    "--workdir",
+    workspacePath,
+    "--volume",
+    `${requireNonEmptyString(workspaceHostPath, "workspaceHostPath")}:${workspacePath}`,
+    "--env",
+    `DOCKER_HOST=tcp://${DAEMON_NETWORK_ALIAS}:${DAEMON_TCP_PORT}`,
+  ]
+
+  if (container.readOnlyRootFilesystem === true) {
+    argv.push("--read-only")
+  }
+  for (const entry of addHosts) {
+    argv.push("--add-host", requireNonEmptyString(entry, "addHosts entry"))
+  }
+  for (const [key, value] of Object.entries(labels)) {
+    argv.push("--label", `${key}=${value}`)
+  }
+  if (envFile !== null) {
+    argv.push("--env-file", requireNonEmptyString(envFile, "envFile"))
+  } else {
+    for (const [key, value] of Object.entries(env)) {
+      argv.push("--env", `${key}=${value}`)
+    }
+  }
+
+  argv.push(image)
+
+  // The wall-clock ceiling, inside the container as well as on the host. The
+  // host-side kill in `runContainer` is the backstop; this is the one that
+  // still applies when the agent process itself has gone away.
+  argv.push(
+    "timeout",
+    "--signal=TERM",
+    `--kill-after=${STOP_GRACE_SECONDS}s`,
+    `${seconds}s`
+  )
+
+  const inner = Array.isArray(command)
+    ? command
+    : ["bash", "-lc", String(command)]
+  for (const [index, part] of inner.entries()) {
+    requireNonEmptyString(part, `command[${index}]`)
+    argv.push(part)
+  }
+
+  // The three proofs, over the finished array rather than over the inputs.
+  assertNoDaemonSocket(argv, "job container argv")
+  assertNoPublishedPorts(argv, "job container argv")
+  assertUnprivileged(argv, "job container argv")
+  return Object.freeze(argv)
+}
+
+/**
+ * Spawn an argv and collect its output. **Impure.**
+ *
+ * Enforces the wall clock on the host as well: the in-container `timeout`
+ * cannot help if the daemon itself wedges, so this escalates SIGTERM then
+ * SIGKILL and reports `timedOut: true`.
+ *
+ * `onOutput` receives every chunk as it arrives, so the caller can stream to a
+ * log file without buffering an hour of Playwright output in memory.
+ */
+export async function runContainer(
+  argv,
+  {
+    timeoutMs = null,
+    onOutput = null,
+    signal = null,
+    spawnFn = spawn,
+    maxBufferBytes = 8 * 1024 * 1024,
+  } = {}
+) {
+  if (!Array.isArray(argv) || argv.length === 0) {
+    fail(
+      "INVALID_INPUT",
+      `runContainer requires a non-empty argv array (received ${describeValue(argv)})`
+    )
+  }
+  assertNoDaemonSocket(argv, "runContainer argv")
+
+  const [executable, ...args] = argv
+  const started = Date.now()
+  const child = spawnFn(executable, args, {
+    stdio: ["ignore", "pipe", "pipe"],
+  })
+
+  let buffered = ""
+  let bufferedBytes = 0
+  let truncated = false
+  const collect = (stream, chunk) => {
+    const text = chunk.toString("utf8")
+    if (onOutput) onOutput(text, stream)
+    if (bufferedBytes >= maxBufferBytes) {
+      truncated = true
+      return
+    }
+    buffered += text
+    bufferedBytes += Buffer.byteLength(text, "utf8")
+  }
+  child.stdout?.on("data", (chunk) => collect("stdout", chunk))
+  child.stderr?.on("data", (chunk) => collect("stderr", chunk))
+
+  let timedOut = false
+  let cancelled = false
+  let killTimer = null
+  let escalationTimer = null
+
+  const terminate = () => {
+    child.kill("SIGTERM")
+    escalationTimer = setTimeout(() => {
+      child.kill("SIGKILL")
+    }, STOP_GRACE_SECONDS * 1000)
+    escalationTimer.unref?.()
+  }
+
+  if (typeof timeoutMs === "number" && timeoutMs > 0) {
+    killTimer = setTimeout(() => {
+      timedOut = true
+      terminate()
+    }, timeoutMs)
+    killTimer.unref?.()
+  }
+  const onAbort = () => {
+    cancelled = true
+    terminate()
+  }
+  signal?.addEventListener?.("abort", onAbort, { once: true })
+
+  try {
+    const { code, signalName } = await new Promise((resolve, reject) => {
+      child.once("error", reject)
+      child.once("close", (exitCode, closeSignal) =>
+        resolve({ code: exitCode, signalName: closeSignal })
+      )
+    })
+    return Object.freeze({
+      exitCode: code,
+      signal: signalName,
+      timedOut,
+      cancelled,
+      truncated,
+      output: buffered,
+      durationMs: Date.now() - started,
+    })
+  } catch (error) {
+    throw new ContainerError(
+      "SPAWN_FAILED",
+      `local-ci container: could not execute ${JSON.stringify(executable)}: ${error.message}`
+    )
+  } finally {
+    if (killTimer) clearTimeout(killTimer)
+    if (escalationTimer) clearTimeout(escalationTimer)
+    signal?.removeEventListener?.("abort", onAbort)
+  }
+}
+
+/**
+ * A small lifecycle wrapper: create the job-private network, start the sidecar
+ * daemon, run the job container, then tear all three down whether the job
+ * passed, failed, timed out or threw. **Impure.**
+ *
+ * Teardown is unconditional and its failures are reported rather than thrown:
+ * a leaked container is an operational problem, but losing the lane's real
+ * result to a teardown error would be worse.
+ */
+export function createContainerRuntime({
+  contract,
+  vm = null,
+  docker = "docker",
+  limactl = "limactl",
+  spawnFn = spawn,
+  logger = null,
+} = {}) {
+  containerConfig(contract)
+  const log = (level, message) => {
+    if (logger && typeof logger[level] === "function") logger[level](message)
+  }
+  const exec = (argv, options = {}) =>
+    runContainer(argv, { spawnFn, ...options })
+
+  return Object.freeze({
+    async withJobContainer({
+      headSha,
+      laneId,
+      attempt = 1,
+      image,
+      daemonImage,
+      command,
+      workspaceHostPath,
+      env,
+      envFile,
+      labels = {},
+      timeoutMs = null,
+      onOutput = null,
+      signal = null,
+      needsDaemon = false,
+    }) {
+      const identity = { headSha, laneId, attempt }
+      const net = networkName(identity)
+      const jobName = jobContainerName(identity)
+      const daemonName = daemonContainerName(identity)
+      const teardownErrors = []
+
+      const quietly = async (argv, label) => {
+        try {
+          await exec(argv, { timeoutMs: 120_000 })
+        } catch (error) {
+          teardownErrors.push(`${label}: ${error.message}`)
+        }
+      }
+
+      await exec(buildNetworkCreateArgv({ name: net, vm, docker, limactl }), {
+        timeoutMs: 60_000,
+      })
+      try {
+        if (needsDaemon) {
+          await exec(
+            buildDaemonArgv({
+              contract,
+              name: daemonName,
+              network: net,
+              image: daemonImage,
+              vm,
+              docker,
+              limactl,
+              labels,
+            }),
+            { timeoutMs: 120_000 }
+          )
+        }
+        const argv = buildContainerArgv({
+          contract,
+          image,
+          name: jobName,
+          network: net,
+          command,
+          workspaceHostPath,
+          env,
+          envFile,
+          vm,
+          docker,
+          limactl,
+          labels,
+        })
+        const result = await exec(argv, { timeoutMs, onOutput, signal })
+        return Object.freeze({
+          ...result,
+          jobName,
+          daemonName,
+          network: net,
+          teardownErrors,
+        })
+      } finally {
+        await quietly(
+          buildRemoveArgv({ name: jobName, vm, docker, limactl }),
+          "remove job container"
+        )
+        if (needsDaemon) {
+          await quietly(
+            buildRemoveArgv({ name: daemonName, vm, docker, limactl }),
+            "remove sidecar daemon"
+          )
+        }
+        await quietly(
+          buildNetworkRemoveArgv({ name: net, vm, docker, limactl }),
+          "remove job network"
+        )
+        if (teardownErrors.length > 0) {
+          log(
+            "warn",
+            `lane ${laneId}: teardown reported ${teardownErrors.join("; ")}`
+          )
+        }
+      }
+    },
+  })
+}

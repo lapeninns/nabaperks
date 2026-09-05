@@ -1,0 +1,577 @@
+{
+  "schema": "nabaperks.local-ci-profile.v1",
+  "profile": "pr",
+  "description": "Authoritative suite for a pull request from the same repository. Environment validation, security audit, lint, typecheck, contract tests, coverage, the seven maintainability sweeps, the print-kit PDF proof, all four functional Playwright projects run as separate sharded invocations, both accessibility projects, and the local Supabase DB/RLS moat.",
+  "baselineEnv": {
+    "CI": "1",
+    "NEXT_PUBLIC_APP_URL": "https://example.test",
+    "NEXT_PUBLIC_SUPABASE_URL": "https://ci.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "ci-anon-key",
+    "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_test_ci",
+    "SUPABASE_SERVICE_ROLE_KEY": "ci-service-role-key",
+    "STRIPE_SECRET_KEY": "sk_test_ci",
+    "STRIPE_LAUNCH_PRICE_ID": "price_launch_ci",
+    "STRIPE_GROWTH_PRICE_ID": "price_ci",
+    "STRIPE_GROWTH_ANNUAL_PRICE_ID": "price_annual_ci",
+    "STRIPE_WEBHOOK_SECRET": "ci_test_webhook_secret",
+    "RESEND_API_KEY": "re_ci",
+    "TWILIO_ACCOUNT_SID": "ACci",
+    "TWILIO_AUTH_TOKEN": "ci-twilio-auth-token",
+    "TWILIO_VERIFY_SERVICE_SID": "VAci"
+  },
+  "baselineRuntimeEnv": ["strict-fixtures"],
+  "notes": [
+    "Command lists are transcribed from .github/workflows/ci.yml and .github/workflows/nightly.yml as they stand today; where a hosted step is a GitHub Action or an inline shell block rather than a command, the transcription is recorded in that lane's notes.",
+    "baselineEnv is ci.yml's workflow-level env block verbatim, plus CI=1 so forbidOnly, failOnFlakyTests, retries and the dev server's --max-old-space-size=8192 behave as they do hosted.",
+    "The three entropy-bearing values ci.yml sets inline (CUSTOMER_SESSION_SECRET, CUSTOMER_PHONE_HMAC_SECRET, CUSTOMER_PHONE_ENCRYPTION_KEY) are absent from baselineEnv on purpose and come from the profile-level strict-fixtures runtime source, so no secret-shaped literal is committed to this file. The values it mints are equal to or stronger than the hosted ones on every rule scripts/check-env.mjs enforces.",
+    "Values that only exist at run time - the anon and service-role keys `supabase status -o env` prints, the generated VAPID pair, the auth-hook signing fixture - are referenced by runtime source id, never inlined. The source definitions live in config/local-ci-contract.json under runtimeEnv.",
+    "Env precedence is baselineEnv, then baselineRuntimeEnv, then the lane's runtimeEnv, then the lane's literal env.",
+    "No lane in any profile writes or compares a pixel baseline: every Playwright invocation carries both --grep-invert @visual and --ignore-snapshots, and no command contains -u, --update-snapshots or test:visual. Visual regression stays GitHub-hosted on x64.",
+    "Lanes run at up to agent.maxConcurrentLanes at once; lanes sharing a concurrencyGroup are serialised against each other."
+  ],
+  "lanes": [
+    {
+      "id": "fast",
+      "title": "Fast lane (lint, typecheck, unit)",
+      "arch": "any",
+      "concurrencyGroup": null,
+      "commands": [
+        "pnpm env:check:production",
+        "pnpm security:audit --ignore-registry-errors",
+        "pnpm lint",
+        "pnpm typecheck",
+        "pnpm test:contracts",
+        "pnpm test:coverage"
+      ],
+      "teardownCommands": [],
+      "backgroundServices": [],
+      "runtimeEnv": ["ci-vapid", "auth-hook-fixture"],
+      "env": {
+        "RESEND_FROM": "Nabaperks CI <ci@example.test>"
+      },
+      "systemDependencies": [
+        {
+          "name": "node",
+          "version": "24",
+          "source": "nvmrc",
+          "pinned": true
+        },
+        {
+          "name": "pnpm",
+          "version": "10.28.0",
+          "source": "corepack",
+          "pinned": true
+        },
+        {
+          "name": "playwright-chromium",
+          "version": "1.62.1",
+          "source": "playwright",
+          "pinned": true,
+          "note": "Installed by `pnpm exec playwright install --with-deps` at image build time, pinned to the @playwright/test version in pnpm-lock.yaml."
+        }
+      ],
+      "timeoutMinutes": 20,
+      "continueOnError": false,
+      "notes": "Transcribed from .github/workflows/ci.yml's fast job, in order. This is one of the two lanes that is merge-blocking today, so command parity here is what the shadow comparison is really measuring. ci.yml's two `>> \"$GITHUB_ENV\"` fixture steps become runtimeEnv sources instead of literals: `node scripts/generate-ci-vapid-env.mjs` is the ci-vapid source, and the split `printf` that assembles the auth-hook signing fixture is the auth-hook-fixture source. The strict production-profile session and phone secrets ci.yml sets inline on this job come from the profile-level strict-fixtures source, so no entropy-bearing literal is committed here. Chromium is a real dependency of this lane and not an accident: four tests in tests/unit/google-review-pdf.test.mjs render through chromium.launch() by way of print-kit-browser, so `pnpm test:coverage` needs a browser exactly as the E2E tiers do. The unit suite runs exactly once, with coverage thresholds enforced."
+    },
+    {
+      "id": "quality",
+      "title": "Quality lane (hygiene sweeps)",
+      "arch": "any",
+      "concurrencyGroup": null,
+      "commands": [
+        "pnpm deadcode:check",
+        "pnpm duplicates:check",
+        "pnpm debt:check",
+        "pnpm docs:check",
+        "pnpm agents:check",
+        "pnpm tokens:check",
+        "pnpm claims:check"
+      ],
+      "teardownCommands": [],
+      "backgroundServices": [],
+      "runtimeEnv": [],
+      "env": {},
+      "systemDependencies": [
+        {
+          "name": "node",
+          "version": "24",
+          "source": "nvmrc",
+          "pinned": true
+        },
+        {
+          "name": "pnpm",
+          "version": "10.28.0",
+          "source": "corepack",
+          "pinned": true
+        }
+      ],
+      "timeoutMinutes": 15,
+      "continueOnError": false,
+      "notes": "The seven maintainability sweeps from ci.yml's quality job, in order. The PDF proof that shares that hosted job lives in the print-kit lane here, because its dependency set (poppler, ImageMagick, two Python wheels, a browser and a running dev server) is disjoint from the sweeps and would otherwise be installed for a lane that never uses it. `pnpm docs:check` regenerates docs/api/README.md and then runs `git diff --exit-code`, so this lane requires the full-history checkout that agent.gitFetchDepth 0 provides; a shallow clone reports a spurious diff."
+    },
+    {
+      "id": "print-kit",
+      "title": "Print-kit PDF proof",
+      "arch": "any",
+      "concurrencyGroup": "http-127.0.0.1-3000",
+      "commands": [
+        "pnpm posters:verify-pdfs",
+        "pnpm posters:verify-production-pdfs"
+      ],
+      "teardownCommands": [],
+      "backgroundServices": [
+        {
+          "id": "print-kit-preview",
+          "command": "pnpm exec next dev --webpack -H 127.0.0.1",
+          "startAfter": 1,
+          "readiness": {
+            "url": "http://127.0.0.1:3000/dev/poster-preview?template=seal",
+            "method": "GET",
+            "attempts": 60,
+            "intervalSeconds": 1
+          },
+          "logFile": "print-kit-preview.log",
+          "stopSignal": "SIGTERM",
+          "onReadinessFailure": "print-log-and-fail"
+        }
+      ],
+      "runtimeEnv": [],
+      "env": {
+        "PRINT_KIT_PREVIEW_ORIGIN": "http://127.0.0.1:3000"
+      },
+      "systemDependencies": [
+        {
+          "name": "node",
+          "version": "24",
+          "source": "nvmrc",
+          "pinned": true
+        },
+        {
+          "name": "pnpm",
+          "version": "10.28.0",
+          "source": "corepack",
+          "pinned": true
+        },
+        {
+          "name": "playwright-chromium",
+          "version": "1.62.1",
+          "source": "playwright",
+          "pinned": true,
+          "note": "Installed by `pnpm exec playwright install --with-deps` at image build time, pinned to the @playwright/test version in pnpm-lock.yaml."
+        },
+        {
+          "name": "poppler-utils",
+          "version": "distribution-default",
+          "source": "apt",
+          "pinned": false,
+          "note": "ci.yml installs it with `apt-get install -y poppler-utils` and pins no version; the image records the resolved version in its build manifest."
+        },
+        {
+          "name": "imagemagick",
+          "version": "distribution-default",
+          "source": "apt",
+          "pinned": false,
+          "note": "ci.yml installs it with `apt-get install -y imagemagick` and pins no version."
+        },
+        {
+          "name": "python3",
+          "version": "distribution-default",
+          "source": "apt",
+          "pinned": false
+        },
+        {
+          "name": "opencv-python-headless",
+          "version": "unpinned",
+          "source": "pip",
+          "pinned": false,
+          "note": "ci.yml runs `python3 -m pip install --quiet opencv-python-headless pymupdf` with no version constraint. linux/arm64 wheels exist for both, which is why this lane is arch `any`."
+        },
+        {
+          "name": "pymupdf",
+          "version": "unpinned",
+          "source": "pip",
+          "pinned": false
+        }
+      ],
+      "timeoutMinutes": 20,
+      "continueOnError": false,
+      "notes": "Transcribed from the last two steps of ci.yml's quality job. `pnpm posters:verify-pdfs` is the pdf-lib vector geometry proof and needs no server; `pnpm posters:verify-production-pdfs` renders the exact Playwright production bundle (duplex posters, tents, cards and plates) against a live preview server, so the release gate cannot pass against a stand-in PDF path. ci.yml expresses the server as an inline shell block that backgrounds `pnpm exec next dev --webpack -H 127.0.0.1`, polls /dev/poster-preview?template=seal up to 60 times at one-second intervals, dumps the log and exits 1 if it never answers, and kills the process on EXIT. That is declared here as a backgroundService with startAfter 1 rather than transcribed as a heredoc, so the agent owns the lifecycle and the readiness contract is machine-readable. concurrencyGroup http-127.0.0.1-3000 keeps this lane, the nightly load lane and the nightly zap-full lane off each other's port."
+    },
+    {
+      "id": "e2e-chromium",
+      "title": "Functional E2E (chromium)",
+      "arch": "any",
+      "concurrencyGroup": null,
+      "commands": [
+        "pnpm test:e2e -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"1/8\"",
+        "pnpm test:e2e -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"2/8\"",
+        "pnpm test:e2e -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"3/8\"",
+        "pnpm test:e2e -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"4/8\"",
+        "pnpm test:e2e -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"5/8\"",
+        "pnpm test:e2e -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"6/8\"",
+        "pnpm test:e2e -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"7/8\"",
+        "pnpm test:e2e -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"8/8\""
+      ],
+      "teardownCommands": [],
+      "backgroundServices": [],
+      "runtimeEnv": [],
+      "env": {
+        "PLAYWRIGHT_WORKERS": "1",
+        "PLAYWRIGHT_REGULAR_CHROMIUM": "1",
+        "CUSTOMER_DEV_OTP_CODE": "424242",
+        "PLAYWRIGHT_BASE_URL": "http://127.0.0.1:3146",
+        "PLAYWRIGHT_NEXT_DIST_DIR": ".next-e2e-e2e-chromium"
+      },
+      "systemDependencies": [
+        {
+          "name": "node",
+          "version": "24",
+          "source": "nvmrc",
+          "pinned": true
+        },
+        {
+          "name": "pnpm",
+          "version": "10.28.0",
+          "source": "corepack",
+          "pinned": true
+        },
+        {
+          "name": "playwright-chromium",
+          "version": "1.62.1",
+          "source": "playwright",
+          "pinned": true,
+          "note": "Installed by `pnpm exec playwright install --with-deps` at image build time, pinned to the @playwright/test version in pnpm-lock.yaml."
+        }
+      ],
+      "timeoutMinutes": 45,
+      "continueOnError": false,
+      "notes": "Transcribed from .github/workflows/ci.yml's e2e job (`pnpm test:e2e -- --project=\"${{ matrix.project }}\" ...`). Sharded 8 ways, one Playwright invocation per shard, each with its own fresh webpack dev server. Sharding here buys memory, not parallelism: nightly.yml records that an UNSHARDED run against one dev server dies with \"FATAL ERROR: Ineffective mark-compacts near heap limit - JavaScript heap out of memory\" after roughly 154 tests (run 30196429475, chromium 13 failed / 141 passed), after which every navigation fails with ERR_CONNECTION_REFUSED. 1/8 of a project is about 28 functional tests per dev server, five times inside that recorded failure point, and it is the denominator the hosted a11y tier already runs green. The hosted e2e denominator of 32 is not copied because hosted sharding also buys 32-way runner parallelism that a single-machine plane does not have: 32 shards x 4 projects would be 128 sequential dev-server boots and would blow the 75-minute local budget on process startup alone. Carries --grep-invert @visual and --ignore-snapshots so this lane can neither read nor write a pixel baseline. Playwright encodes only process.platform in the {platform} snapshot token, so the blessed x86-64 `-linux` PNGs resolve identically on ARM64; visual regression therefore stays on the GitHub-hosted x64 `visual` / `visual-gate` jobs in ci.yml, which cutover step 1 does not touch. PLAYWRIGHT_WORKERS \"1\" and the CUSTOMER_DEV_OTP_CODE \"424242\" fixture are carried exactly where ci.yml carries them: under two workers the webpack dev server intermittently 500s mid-suite and failOnFlakyTests turns any recovery into a red run. PLAYWRIGHT_REGULAR_CHROMIUM \"1\" is job-level env on the hosted lane and is carried on every project for the same reason. PLAYWRIGHT_BASE_URL and PLAYWRIGHT_NEXT_DIST_DIR are the one deliberate divergence from hosted: every hosted shard owns a whole runner, so all of them use the 127.0.0.1:3146 default and the shared .next-e2e directory. Here up to agent.maxConcurrentLanes lanes share one machine, so each lane is given its own dev-server port (3146) and its own Next dist directory. Every e2e spec and helper reads process.env.PLAYWRIGHT_BASE_URL with 3146 only as a fallback, and scripts/run-playwright.mjs treats a caller-supplied PLAYWRIGHT_NEXT_DIST_DIR as caller-owned, so the agent removes it after the lane."
+    },
+    {
+      "id": "e2e-mobile-safari",
+      "title": "Functional E2E (mobile-safari)",
+      "arch": "any",
+      "concurrencyGroup": null,
+      "commands": [
+        "pnpm test:e2e -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"1/8\"",
+        "pnpm test:e2e -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"2/8\"",
+        "pnpm test:e2e -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"3/8\"",
+        "pnpm test:e2e -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"4/8\"",
+        "pnpm test:e2e -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"5/8\"",
+        "pnpm test:e2e -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"6/8\"",
+        "pnpm test:e2e -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"7/8\"",
+        "pnpm test:e2e -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"8/8\""
+      ],
+      "teardownCommands": [],
+      "backgroundServices": [],
+      "runtimeEnv": [],
+      "env": {
+        "PLAYWRIGHT_WORKERS": "1",
+        "PLAYWRIGHT_REGULAR_CHROMIUM": "1",
+        "CUSTOMER_DEV_OTP_CODE": "424242",
+        "PLAYWRIGHT_BASE_URL": "http://127.0.0.1:3148",
+        "PLAYWRIGHT_NEXT_DIST_DIR": ".next-e2e-e2e-mobile-safari"
+      },
+      "systemDependencies": [
+        {
+          "name": "node",
+          "version": "24",
+          "source": "nvmrc",
+          "pinned": true
+        },
+        {
+          "name": "pnpm",
+          "version": "10.28.0",
+          "source": "corepack",
+          "pinned": true
+        },
+        {
+          "name": "playwright-webkit",
+          "version": "1.62.1",
+          "source": "playwright",
+          "pinned": true,
+          "note": "Installed by `pnpm exec playwright install --with-deps` at image build time, pinned to the @playwright/test version in pnpm-lock.yaml."
+        }
+      ],
+      "timeoutMinutes": 50,
+      "continueOnError": false,
+      "notes": "Transcribed from .github/workflows/ci.yml's e2e job (`pnpm test:e2e -- --project=\"${{ matrix.project }}\" ...`). Sharded 8 ways, one Playwright invocation per shard, each with its own fresh webpack dev server. Sharding here buys memory, not parallelism: nightly.yml records that an UNSHARDED run against one dev server dies with \"FATAL ERROR: Ineffective mark-compacts near heap limit - JavaScript heap out of memory\" after roughly 154 tests (run 30196429475, chromium 13 failed / 141 passed), after which every navigation fails with ERR_CONNECTION_REFUSED. 1/8 of a project is about 28 functional tests per dev server, five times inside that recorded failure point, and it is the denominator the hosted a11y tier already runs green. The hosted e2e denominator of 32 is not copied because hosted sharding also buys 32-way runner parallelism that a single-machine plane does not have: 32 shards x 4 projects would be 128 sequential dev-server boots and would blow the 75-minute local budget on process startup alone. Carries --grep-invert @visual and --ignore-snapshots so this lane can neither read nor write a pixel baseline. Playwright encodes only process.platform in the {platform} snapshot token, so the blessed x86-64 `-linux` PNGs resolve identically on ARM64; visual regression therefore stays on the GitHub-hosted x64 `visual` / `visual-gate` jobs in ci.yml, which cutover step 1 does not touch. PLAYWRIGHT_WORKERS \"1\" and the CUSTOMER_DEV_OTP_CODE \"424242\" fixture are carried exactly where ci.yml carries them: under two workers the webpack dev server intermittently 500s mid-suite and failOnFlakyTests turns any recovery into a red run. PLAYWRIGHT_REGULAR_CHROMIUM \"1\" is job-level env on the hosted lane and is carried on every project for the same reason. PLAYWRIGHT_BASE_URL and PLAYWRIGHT_NEXT_DIST_DIR are the one deliberate divergence from hosted: every hosted shard owns a whole runner, so all of them use the 127.0.0.1:3146 default and the shared .next-e2e directory. Here up to agent.maxConcurrentLanes lanes share one machine, so each lane is given its own dev-server port (3148) and its own Next dist directory. Every e2e spec and helper reads process.env.PLAYWRIGHT_BASE_URL with 3146 only as a fallback, and scripts/run-playwright.mjs treats a caller-supplied PLAYWRIGHT_NEXT_DIST_DIR as caller-owned, so the agent removes it after the lane."
+    },
+    {
+      "id": "e2e-desktop-firefox",
+      "title": "Functional E2E (desktop-firefox)",
+      "arch": "any",
+      "concurrencyGroup": null,
+      "commands": [
+        "pnpm test:e2e -- --project=\"desktop-firefox\" --grep-invert @visual --ignore-snapshots --shard=\"1/8\"",
+        "pnpm test:e2e -- --project=\"desktop-firefox\" --grep-invert @visual --ignore-snapshots --shard=\"2/8\"",
+        "pnpm test:e2e -- --project=\"desktop-firefox\" --grep-invert @visual --ignore-snapshots --shard=\"3/8\"",
+        "pnpm test:e2e -- --project=\"desktop-firefox\" --grep-invert @visual --ignore-snapshots --shard=\"4/8\"",
+        "pnpm test:e2e -- --project=\"desktop-firefox\" --grep-invert @visual --ignore-snapshots --shard=\"5/8\"",
+        "pnpm test:e2e -- --project=\"desktop-firefox\" --grep-invert @visual --ignore-snapshots --shard=\"6/8\"",
+        "pnpm test:e2e -- --project=\"desktop-firefox\" --grep-invert @visual --ignore-snapshots --shard=\"7/8\"",
+        "pnpm test:e2e -- --project=\"desktop-firefox\" --grep-invert @visual --ignore-snapshots --shard=\"8/8\""
+      ],
+      "teardownCommands": [],
+      "backgroundServices": [],
+      "runtimeEnv": [],
+      "env": {
+        "PLAYWRIGHT_WORKERS": "1",
+        "PLAYWRIGHT_REGULAR_CHROMIUM": "1",
+        "CUSTOMER_DEV_OTP_CODE": "424242",
+        "PLAYWRIGHT_BASE_URL": "http://127.0.0.1:3149",
+        "PLAYWRIGHT_NEXT_DIST_DIR": ".next-e2e-e2e-desktop-firefox"
+      },
+      "systemDependencies": [
+        {
+          "name": "node",
+          "version": "24",
+          "source": "nvmrc",
+          "pinned": true
+        },
+        {
+          "name": "pnpm",
+          "version": "10.28.0",
+          "source": "corepack",
+          "pinned": true
+        },
+        {
+          "name": "playwright-firefox",
+          "version": "1.62.1",
+          "source": "playwright",
+          "pinned": true,
+          "note": "Installed by `pnpm exec playwright install --with-deps` at image build time, pinned to the @playwright/test version in pnpm-lock.yaml."
+        }
+      ],
+      "timeoutMinutes": 45,
+      "continueOnError": false,
+      "notes": "Transcribed from .github/workflows/ci.yml's e2e job (`pnpm test:e2e -- --project=\"${{ matrix.project }}\" ...`). Sharded 8 ways, one Playwright invocation per shard, each with its own fresh webpack dev server. Sharding here buys memory, not parallelism: nightly.yml records that an UNSHARDED run against one dev server dies with \"FATAL ERROR: Ineffective mark-compacts near heap limit - JavaScript heap out of memory\" after roughly 154 tests (run 30196429475, chromium 13 failed / 141 passed), after which every navigation fails with ERR_CONNECTION_REFUSED. 1/8 of a project is about 28 functional tests per dev server, five times inside that recorded failure point, and it is the denominator the hosted a11y tier already runs green. The hosted e2e denominator of 32 is not copied because hosted sharding also buys 32-way runner parallelism that a single-machine plane does not have: 32 shards x 4 projects would be 128 sequential dev-server boots and would blow the 75-minute local budget on process startup alone. Carries --grep-invert @visual and --ignore-snapshots so this lane can neither read nor write a pixel baseline. Playwright encodes only process.platform in the {platform} snapshot token, so the blessed x86-64 `-linux` PNGs resolve identically on ARM64; visual regression therefore stays on the GitHub-hosted x64 `visual` / `visual-gate` jobs in ci.yml, which cutover step 1 does not touch. PLAYWRIGHT_WORKERS \"1\" and the CUSTOMER_DEV_OTP_CODE \"424242\" fixture are carried exactly where ci.yml carries them: under two workers the webpack dev server intermittently 500s mid-suite and failOnFlakyTests turns any recovery into a red run. PLAYWRIGHT_REGULAR_CHROMIUM \"1\" is job-level env on the hosted lane and is carried on every project for the same reason. PLAYWRIGHT_BASE_URL and PLAYWRIGHT_NEXT_DIST_DIR are the one deliberate divergence from hosted: every hosted shard owns a whole runner, so all of them use the 127.0.0.1:3146 default and the shared .next-e2e directory. Here up to agent.maxConcurrentLanes lanes share one machine, so each lane is given its own dev-server port (3149) and its own Next dist directory. Every e2e spec and helper reads process.env.PLAYWRIGHT_BASE_URL with 3146 only as a fallback, and scripts/run-playwright.mjs treats a caller-supplied PLAYWRIGHT_NEXT_DIST_DIR as caller-owned, so the agent removes it after the lane."
+    },
+    {
+      "id": "e2e-desktop-safari",
+      "title": "Functional E2E (desktop-safari)",
+      "arch": "any",
+      "concurrencyGroup": null,
+      "commands": [
+        "pnpm test:e2e -- --project=\"desktop-safari\" --grep-invert @visual --ignore-snapshots --shard=\"1/8\"",
+        "pnpm test:e2e -- --project=\"desktop-safari\" --grep-invert @visual --ignore-snapshots --shard=\"2/8\"",
+        "pnpm test:e2e -- --project=\"desktop-safari\" --grep-invert @visual --ignore-snapshots --shard=\"3/8\"",
+        "pnpm test:e2e -- --project=\"desktop-safari\" --grep-invert @visual --ignore-snapshots --shard=\"4/8\"",
+        "pnpm test:e2e -- --project=\"desktop-safari\" --grep-invert @visual --ignore-snapshots --shard=\"5/8\"",
+        "pnpm test:e2e -- --project=\"desktop-safari\" --grep-invert @visual --ignore-snapshots --shard=\"6/8\"",
+        "pnpm test:e2e -- --project=\"desktop-safari\" --grep-invert @visual --ignore-snapshots --shard=\"7/8\"",
+        "pnpm test:e2e -- --project=\"desktop-safari\" --grep-invert @visual --ignore-snapshots --shard=\"8/8\""
+      ],
+      "teardownCommands": [],
+      "backgroundServices": [],
+      "runtimeEnv": [],
+      "env": {
+        "PLAYWRIGHT_WORKERS": "1",
+        "PLAYWRIGHT_REGULAR_CHROMIUM": "1",
+        "CUSTOMER_DEV_OTP_CODE": "424242",
+        "PLAYWRIGHT_BASE_URL": "http://127.0.0.1:3150",
+        "PLAYWRIGHT_NEXT_DIST_DIR": ".next-e2e-e2e-desktop-safari"
+      },
+      "systemDependencies": [
+        {
+          "name": "node",
+          "version": "24",
+          "source": "nvmrc",
+          "pinned": true
+        },
+        {
+          "name": "pnpm",
+          "version": "10.28.0",
+          "source": "corepack",
+          "pinned": true
+        },
+        {
+          "name": "playwright-webkit",
+          "version": "1.62.1",
+          "source": "playwright",
+          "pinned": true,
+          "note": "Installed by `pnpm exec playwright install --with-deps` at image build time, pinned to the @playwright/test version in pnpm-lock.yaml."
+        }
+      ],
+      "timeoutMinutes": 45,
+      "continueOnError": false,
+      "notes": "Transcribed from .github/workflows/ci.yml's e2e job (`pnpm test:e2e -- --project=\"${{ matrix.project }}\" ...`). Sharded 8 ways, one Playwright invocation per shard, each with its own fresh webpack dev server. Sharding here buys memory, not parallelism: nightly.yml records that an UNSHARDED run against one dev server dies with \"FATAL ERROR: Ineffective mark-compacts near heap limit - JavaScript heap out of memory\" after roughly 154 tests (run 30196429475, chromium 13 failed / 141 passed), after which every navigation fails with ERR_CONNECTION_REFUSED. 1/8 of a project is about 28 functional tests per dev server, five times inside that recorded failure point, and it is the denominator the hosted a11y tier already runs green. The hosted e2e denominator of 32 is not copied because hosted sharding also buys 32-way runner parallelism that a single-machine plane does not have: 32 shards x 4 projects would be 128 sequential dev-server boots and would blow the 75-minute local budget on process startup alone. Carries --grep-invert @visual and --ignore-snapshots so this lane can neither read nor write a pixel baseline. Playwright encodes only process.platform in the {platform} snapshot token, so the blessed x86-64 `-linux` PNGs resolve identically on ARM64; visual regression therefore stays on the GitHub-hosted x64 `visual` / `visual-gate` jobs in ci.yml, which cutover step 1 does not touch. PLAYWRIGHT_WORKERS \"1\" and the CUSTOMER_DEV_OTP_CODE \"424242\" fixture are carried exactly where ci.yml carries them: under two workers the webpack dev server intermittently 500s mid-suite and failOnFlakyTests turns any recovery into a red run. PLAYWRIGHT_REGULAR_CHROMIUM \"1\" is job-level env on the hosted lane and is carried on every project for the same reason. PLAYWRIGHT_BASE_URL and PLAYWRIGHT_NEXT_DIST_DIR are the one deliberate divergence from hosted: every hosted shard owns a whole runner, so all of them use the 127.0.0.1:3146 default and the shared .next-e2e directory. Here up to agent.maxConcurrentLanes lanes share one machine, so each lane is given its own dev-server port (3150) and its own Next dist directory. Every e2e spec and helper reads process.env.PLAYWRIGHT_BASE_URL with 3146 only as a fallback, and scripts/run-playwright.mjs treats a caller-supplied PLAYWRIGHT_NEXT_DIST_DIR as caller-owned, so the agent removes it after the lane."
+    },
+    {
+      "id": "a11y-chromium",
+      "title": "Accessibility (chromium)",
+      "arch": "any",
+      "concurrencyGroup": null,
+      "commands": [
+        "pnpm test:a11y -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"1/8\"",
+        "pnpm test:a11y -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"2/8\"",
+        "pnpm test:a11y -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"3/8\"",
+        "pnpm test:a11y -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"4/8\"",
+        "pnpm test:a11y -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"5/8\"",
+        "pnpm test:a11y -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"6/8\"",
+        "pnpm test:a11y -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"7/8\"",
+        "pnpm test:a11y -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"8/8\""
+      ],
+      "teardownCommands": [],
+      "backgroundServices": [],
+      "runtimeEnv": [],
+      "env": {
+        "PLAYWRIGHT_WORKERS": "1",
+        "PLAYWRIGHT_REGULAR_CHROMIUM": "1",
+        "CUSTOMER_DEV_OTP_CODE": "424242",
+        "PLAYWRIGHT_BASE_URL": "http://127.0.0.1:3151",
+        "PLAYWRIGHT_NEXT_DIST_DIR": ".next-e2e-a11y-chromium"
+      },
+      "systemDependencies": [
+        {
+          "name": "node",
+          "version": "24",
+          "source": "nvmrc",
+          "pinned": true
+        },
+        {
+          "name": "pnpm",
+          "version": "10.28.0",
+          "source": "corepack",
+          "pinned": true
+        },
+        {
+          "name": "playwright-chromium",
+          "version": "1.62.1",
+          "source": "playwright",
+          "pinned": true,
+          "note": "Installed by `pnpm exec playwright install --with-deps` at image build time, pinned to the @playwright/test version in pnpm-lock.yaml."
+        }
+      ],
+      "timeoutMinutes": 15,
+      "continueOnError": false,
+      "knownLocalGaps": [
+        {
+          "spec": "tests/e2e/customer-join-direct-live-db.spec.ts",
+          "describeTags": ["@customer-flow", "@a11y", "@visual"],
+          "droppedBy": "--grep-invert @visual",
+          "reason": "The describe block claims @visual but makes zero toHaveScreenshot calls (grep -c toHaveScreenshot returns 0). Every local Playwright invocation carries --grep-invert @visual so an ARM64 run can neither read nor rewrite the hosted x86-64 `-linux` pixel baselines - Playwright encodes only process.platform in the {platform} snapshot token, so those filenames resolve identically here. The hosted a11y job does not carry that flag, so this spec runs hosted and not in this lane.",
+          "hostedCoverage": [
+            ".github/workflows/ci.yml job a11y",
+            ".github/workflows/ci.yml job visual"
+          ],
+          "coverageLostOverall": false,
+          "coverageNote": "Cutover step 1 does not modify the hosted a11y or visual tiers, so the spec keeps running on every pull request. The gap is local-lane-only and bounded to this one spec.",
+          "resolution": "Re-tag the describe block so it stops claiming @visual. That changes which specs the hosted visual tier selects, so it is a follow-on change and is deliberately not smuggled into cutover step 1."
+        }
+      ],
+      "notes": "Transcribed from .github/workflows/ci.yml's a11y job (`pnpm test:a11y -- --project=\"${{ matrix.project }}\" ...`). Sharded 8 ways, one Playwright invocation per shard, each with its own fresh webpack dev server. Sharding here buys memory, not parallelism: nightly.yml records that an UNSHARDED run against one dev server dies with \"FATAL ERROR: Ineffective mark-compacts near heap limit - JavaScript heap out of memory\" after roughly 154 tests (run 30196429475, chromium 13 failed / 141 passed), after which every navigation fails with ERR_CONNECTION_REFUSED. 1/8 of a project is about 28 functional tests per dev server, five times inside that recorded failure point, and it is the denominator the hosted a11y tier already runs green. The hosted e2e denominator of 32 is not copied because hosted sharding also buys 32-way runner parallelism that a single-machine plane does not have: 32 shards x 4 projects would be 128 sequential dev-server boots and would blow the 75-minute local budget on process startup alone. Carries --grep-invert @visual and --ignore-snapshots so this lane can neither read nor write a pixel baseline. Playwright encodes only process.platform in the {platform} snapshot token, so the blessed x86-64 `-linux` PNGs resolve identically on ARM64; visual regression therefore stays on the GitHub-hosted x64 `visual` / `visual-gate` jobs in ci.yml, which cutover step 1 does not touch. PLAYWRIGHT_WORKERS \"1\" and the CUSTOMER_DEV_OTP_CODE \"424242\" fixture are carried exactly where ci.yml carries them: under two workers the webpack dev server intermittently 500s mid-suite and failOnFlakyTests turns any recovery into a red run. PLAYWRIGHT_REGULAR_CHROMIUM \"1\" is job-level env on the hosted lane and is carried on every project for the same reason. PLAYWRIGHT_BASE_URL and PLAYWRIGHT_NEXT_DIST_DIR are the one deliberate divergence from hosted: every hosted shard owns a whole runner, so all of them use the 127.0.0.1:3146 default and the shared .next-e2e directory. Here up to agent.maxConcurrentLanes lanes share one machine, so each lane is given its own dev-server port (3151) and its own Next dist directory. Every e2e spec and helper reads process.env.PLAYWRIGHT_BASE_URL with 3146 only as a fallback, and scripts/run-playwright.mjs treats a caller-supplied PLAYWRIGHT_NEXT_DIST_DIR as caller-owned, so the agent removes it after the lane. One spec, tests/e2e/customer-join-direct-live-db.spec.ts, is tagged both @a11y and @visual even though it makes no toHaveScreenshot call, so --grep-invert @visual drops it from this lane. That is an accepted, bounded coverage difference against the hosted a11y job, which does not carry the flag: the spec keeps running hosted in ci.yml's untouched a11y and visual tiers, and the alternative - letting one lane resolve baselines on ARM64 - is the failure this whole guard exists to prevent. Re-tagging that describe block is the clean fix and is recorded as a follow-on, not smuggled into this pass."
+    },
+    {
+      "id": "a11y-mobile-safari",
+      "title": "Accessibility (mobile-safari)",
+      "arch": "any",
+      "concurrencyGroup": null,
+      "commands": [
+        "pnpm test:a11y -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"1/8\"",
+        "pnpm test:a11y -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"2/8\"",
+        "pnpm test:a11y -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"3/8\"",
+        "pnpm test:a11y -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"4/8\"",
+        "pnpm test:a11y -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"5/8\"",
+        "pnpm test:a11y -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"6/8\"",
+        "pnpm test:a11y -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"7/8\"",
+        "pnpm test:a11y -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"8/8\""
+      ],
+      "teardownCommands": [],
+      "backgroundServices": [],
+      "runtimeEnv": [],
+      "env": {
+        "PLAYWRIGHT_WORKERS": "1",
+        "PLAYWRIGHT_REGULAR_CHROMIUM": "1",
+        "CUSTOMER_DEV_OTP_CODE": "424242",
+        "PLAYWRIGHT_BASE_URL": "http://127.0.0.1:3152",
+        "PLAYWRIGHT_NEXT_DIST_DIR": ".next-e2e-a11y-mobile-safari"
+      },
+      "systemDependencies": [
+        {
+          "name": "node",
+          "version": "24",
+          "source": "nvmrc",
+          "pinned": true
+        },
+        {
+          "name": "pnpm",
+          "version": "10.28.0",
+          "source": "corepack",
+          "pinned": true
+        },
+        {
+          "name": "playwright-webkit",
+          "version": "1.62.1",
+          "source": "playwright",
+          "pinned": true,
+          "note": "Installed by `pnpm exec playwright install --with-deps` at image build time, pinned to the @playwright/test version in pnpm-lock.yaml."
+        }
+      ],
+      "timeoutMinutes": 15,
+      "continueOnError": false,
+      "knownLocalGaps": [
+        {
+          "spec": "tests/e2e/customer-join-direct-live-db.spec.ts",
+          "describeTags": ["@customer-flow", "@a11y", "@visual"],
+          "droppedBy": "--grep-invert @visual",
+          "reason": "The describe block claims @visual but makes zero toHaveScreenshot calls (grep -c toHaveScreenshot returns 0). Every local Playwright invocation carries --grep-invert @visual so an ARM64 run can neither read nor rewrite the hosted x86-64 `-linux` pixel baselines - Playwright encodes only process.platform in the {platform} snapshot token, so those filenames resolve identically here. The hosted a11y job does not carry that flag, so this spec runs hosted and not in this lane.",
+          "hostedCoverage": [
+            ".github/workflows/ci.yml job a11y",
+            ".github/workflows/ci.yml job visual"
+          ],
+          "coverageLostOverall": false,
+          "coverageNote": "Cutover step 1 does not modify the hosted a11y or visual tiers, so the spec keeps running on every pull request. The gap is local-lane-only and bounded to this one spec.",
+          "resolution": "Re-tag the describe block so it stops claiming @visual. That changes which specs the hosted visual tier selects, so it is a follow-on change and is deliberately not smuggled into cutover step 1."
+        }
+      ],
+      "notes": "Transcribed from .github/workflows/ci.yml's a11y job (`pnpm test:a11y -- --project=\"${{ matrix.project }}\" ...`). Sharded 8 ways, one Playwright invocation per shard, each with its own fresh webpack dev server. Sharding here buys memory, not parallelism: nightly.yml records that an UNSHARDED run against one dev server dies with \"FATAL ERROR: Ineffective mark-compacts near heap limit - JavaScript heap out of memory\" after roughly 154 tests (run 30196429475, chromium 13 failed / 141 passed), after which every navigation fails with ERR_CONNECTION_REFUSED. 1/8 of a project is about 28 functional tests per dev server, five times inside that recorded failure point, and it is the denominator the hosted a11y tier already runs green. The hosted e2e denominator of 32 is not copied because hosted sharding also buys 32-way runner parallelism that a single-machine plane does not have: 32 shards x 4 projects would be 128 sequential dev-server boots and would blow the 75-minute local budget on process startup alone. Carries --grep-invert @visual and --ignore-snapshots so this lane can neither read nor write a pixel baseline. Playwright encodes only process.platform in the {platform} snapshot token, so the blessed x86-64 `-linux` PNGs resolve identically on ARM64; visual regression therefore stays on the GitHub-hosted x64 `visual` / `visual-gate` jobs in ci.yml, which cutover step 1 does not touch. PLAYWRIGHT_WORKERS \"1\" and the CUSTOMER_DEV_OTP_CODE \"424242\" fixture are carried exactly where ci.yml carries them: under two workers the webpack dev server intermittently 500s mid-suite and failOnFlakyTests turns any recovery into a red run. PLAYWRIGHT_REGULAR_CHROMIUM \"1\" is job-level env on the hosted lane and is carried on every project for the same reason. PLAYWRIGHT_BASE_URL and PLAYWRIGHT_NEXT_DIST_DIR are the one deliberate divergence from hosted: every hosted shard owns a whole runner, so all of them use the 127.0.0.1:3146 default and the shared .next-e2e directory. Here up to agent.maxConcurrentLanes lanes share one machine, so each lane is given its own dev-server port (3152) and its own Next dist directory. Every e2e spec and helper reads process.env.PLAYWRIGHT_BASE_URL with 3146 only as a fallback, and scripts/run-playwright.mjs treats a caller-supplied PLAYWRIGHT_NEXT_DIST_DIR as caller-owned, so the agent removes it after the lane. Only chromium and mobile-safari run accessibility, exactly as ci.yml's a11y matrix does."
+    },
+    {
+      "id": "db",
+      "title": "DB behavioral moat",
+      "arch": "any",
+      "concurrencyGroup": "supabase-local",
+      "commands": ["supabase start", "pnpm db:seed", "pnpm test:db"],
+      "teardownCommands": ["supabase stop --no-backup"],
+      "backgroundServices": [],
+      "runtimeEnv": ["auth-hook-fixture"],
+      "env": {
+        "SUPABASE_SEND_EMAIL_HOOK_URI": "http://host.docker.internal:3147/api/auth/hooks/send-email",
+        "SUPABASE_DB_URL": "postgres://postgres:postgres@127.0.0.1:54322/postgres"
+      },
+      "systemDependencies": [
+        {
+          "name": "node",
+          "version": "24",
+          "source": "nvmrc",
+          "pinned": true
+        },
+        {
+          "name": "pnpm",
+          "version": "10.28.0",
+          "source": "corepack",
+          "pinned": true
+        },
+        {
+          "name": "supabase-cli",
+          "version": "2.106.0",
+          "source": "binary",
+          "pinned": true,
+          "note": "Same version ci.yml and production-database.yml pin through supabase/setup-cli."
+        },
+        {
+          "name": "docker-engine",
+          "version": "image-provided",
+          "source": "docker-in-docker",
+          "pinned": false,
+          "note": "Runs inside the job container (container.dockerInDocker); the host Docker socket is never mounted."
+        }
+      ],
+      "timeoutMinutes": 25,
+      "continueOnError": false,
+      "notes": "Transcribed from ci.yml's db job. `supabase start` and `supabase stop --no-backup` wrap `pnpm db:seed` and `pnpm test:db`; the stop is a teardownCommand rather than a command because ci.yml runs it under `if: always()`, and teardownCommands run whether the lane passed or failed. The two env values are the exact ones ci.yml sets: the 3147 auth-hook URI on host.docker.internal, and the local Supabase Postgres URL that tests/db/helpers/db-target.mjs validates as local before any test module can open a client. This lane deliberately does NOT use the supabase-local runtime source: ci.yml's db job reaches Postgres directly over SUPABASE_DB_URL and never reads `supabase status`, so adding minted anon and service-role keys here would be a divergence, not a fix. The nightly db-stress lane does need them, and declares them. `pnpm test:db` is already --test-concurrency=1, so the concurrencyGroup exists for the local Supabase ports (54321/54322), not for the suite."
+    }
+  ]
+}
