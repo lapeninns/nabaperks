@@ -10,6 +10,20 @@ function readJson(path) {
   return JSON.parse(read(path))
 }
 
+/**
+ * `value` as a pattern that matches it literally.
+ *
+ * Every regular expression below is built by interpolating contract data, and
+ * contract data is text: a `.` in a script path, a `(` in a check name, a `+`
+ * in a version. Unescaped, those are operators - so the assertion either
+ * throws on an invalid pattern or, worse, passes against text the contract
+ * does not actually name. Escaping only the dot, which is what this file used
+ * to do, covers exactly one of the metacharacters.
+ */
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
 const CONTRACT_PATH = "config/local-ci-contract.json"
 const CI_PATH = ".github/workflows/ci.yml"
 const PROFILE_NAMES = ["pr", "main", "nightly"]
@@ -170,7 +184,7 @@ test("cutover step 1 cannot change what blocks a merge", () => {
   for (const job of HOSTED_JOBS) {
     assert.match(
       ci,
-      new RegExp(`\\n {2}${job}:\\n`),
+      new RegExp(`\\n {2}${escapeRegExp(job)}:\\n`),
       `${CI_PATH} must still declare the ${job} job`
     )
   }
@@ -193,15 +207,18 @@ test("cutover step 1 cannot change what blocks a merge", () => {
   )
   assert.match(releaseGate, /needs\.fast\.result/)
   assert.match(releaseGate, /needs\.build\.result/)
-  assert.doesNotMatch(releaseGate, new RegExp(bridgeJob))
+  assert.doesNotMatch(releaseGate, new RegExp(escapeRegExp(bridgeJob)))
 
   // 4. No job anywhere lists the bridge in `needs:`. The positive control
   //    proves the two forms a dependency can take are the forms searched for.
   assert.match(ci, /\n {6}- fast\n/)
   assert.match(ci, /\n {4}needs: fast\n/)
-  assert.doesNotMatch(ci, new RegExp(`\\n {6}- ${bridgeJob}\\n`))
-  assert.doesNotMatch(ci, new RegExp(`needs: [^\\n]*${bridgeJob}`))
-  assert.doesNotMatch(ci, new RegExp(`needs\\.${bridgeJob}\\.`))
+  assert.doesNotMatch(ci, new RegExp(`\\n {6}- ${escapeRegExp(bridgeJob)}\\n`))
+  assert.doesNotMatch(
+    ci,
+    new RegExp(`needs: [^\\n]*${escapeRegExp(bridgeJob)}`)
+  )
+  assert.doesNotMatch(ci, new RegExp(`needs\\.${escapeRegExp(bridgeJob)}\\.`))
 
   // 5. The bridge job exists, is advisory in the workflow as well as in the
   //    contract, depends on nothing, and holds no write permission.
@@ -210,14 +227,16 @@ test("cutover step 1 cannot change what blocks a merge", () => {
   const bridge = jobSlice(ci, bridgeJob)
   assert.match(
     bridge,
-    new RegExp(`\\n {4}name: ${contract.bridge.checkName}\\n`)
+    new RegExp(`\\n {4}name: ${escapeRegExp(contract.bridge.checkName)}\\n`)
   )
   assert.match(bridge, /\n {4}continue-on-error: true\n/)
   assert.match(
     bridge,
-    new RegExp(`\\n {4}timeout-minutes: ${contract.bridge.timeoutMinutes}\\n`)
+    new RegExp(
+      `\\n {4}timeout-minutes: ${escapeRegExp(contract.bridge.timeoutMinutes)}\\n`
+    )
   )
-  assert.match(bridge, new RegExp(contract.bridge.script.replace(/\./g, "\\.")))
+  assert.match(bridge, new RegExp(escapeRegExp(contract.bridge.script)))
   assert.doesNotMatch(bridge, /\n {4}needs:/)
   assert.match(bridge, /\n {6}checks: read\n/)
   assert.match(bridge, /\n {6}contents: read\n/)
@@ -527,7 +546,7 @@ test("both local CI runbooks carry the App permission boundary and the no-PR-cod
     ]) {
       assert.match(
         doc,
-        new RegExp(permission),
+        new RegExp(escapeRegExp(permission)),
         `${path} must name the ${permission} permission`
       )
     }
@@ -540,7 +559,7 @@ test("both local CI runbooks carry the App permission boundary and the no-PR-cod
     ]) {
       assert.match(
         doc,
-        new RegExp(refused),
+        new RegExp(escapeRegExp(refused)),
         `${path} must name ${refused} as a permission that is never granted`
       )
     }
@@ -558,7 +577,10 @@ test("both local CI runbooks carry the App permission boundary and the no-PR-cod
   // The runbook is the one that has to make the boundary auditable.
   const runbook = read("docs/operations/local-ci.md")
   assert.match(runbook, /grep -RIn "docker\\\.sock" ops\/local-ci\//)
-  assert.match(runbook, new RegExp(`"cutoverStep": ${contract.cutoverStep}`))
+  assert.match(
+    runbook,
+    new RegExp(`"cutoverStep": ${escapeRegExp(contract.cutoverStep)}`)
+  )
   assert.match(runbook, /No job lists it\s+in `needs:`/)
 })
 

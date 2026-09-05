@@ -1,7 +1,7 @@
 /**
  * The GitHub REST client the agent uses to see work and to publish proof.
  *
- * Three properties are load-bearing, and each one is a mechanism rather than a
+ * Four properties are load-bearing, and each one is a mechanism rather than a
  * convention:
  *
  *   1. **The App private key never leaves this module, and no derived
@@ -24,6 +24,13 @@
  *      workflows; none of those has a call site here, and the guard is what
  *      keeps that true after the next edit.
  *
+ *   4. **No value from the contract reaches a URL unchecked.** Repository
+ *      names, commit SHAs, refs and ids are validated against the shapes
+ *      GitHub actually uses before they are interpolated, and `resolveApiUrl`
+ *      then re-parses the composed URL and asserts it still sits under the API
+ *      root. A `..` or an absolute URL in a config file would otherwise send
+ *      an installation token to a host nobody chose.
+ *
  * Everything that can be a pure function is one. `signAppJwt`, `parseRateLimit`
  * and the response normalisers take their inputs as arguments and touch
  * nothing ambient, so the parts most likely to be wrong are the parts a test
@@ -33,7 +40,11 @@
 import { createPrivateKey, createSign } from "node:crypto"
 import { setTimeout as delay } from "node:timers/promises"
 
-import { LocalCiError, describeValue } from "../core/contract.mjs"
+import {
+  LocalCiError,
+  describeValue,
+  quoteForMessage,
+} from "../core/contract.mjs"
 import { redactCredentials } from "../core/job-env.mjs"
 
 export const GITHUB_API_BASE_URL = "https://api.github.com"
@@ -263,17 +274,286 @@ export function retryDelayMs(attempt, rateLimit, nowMs) {
   return Math.min(1000 * 2 ** (attempt - 1), 30_000)
 }
 
-/** `owner/repo` from the contract, refusing anything that is not one. Pure. */
-export function repositorySlug(contract) {
-  const full = contract?.repository
-  if (typeof full !== "string" || !/^[^/]+\/[^/]+$/.test(full)) {
-    throw new GitHubApiError(
-      "INVALID_CONTRACT",
-      `contract.repository must be an "owner/repo" full name (received ${describeValue(full)})`
+/**
+ * Everything that reaches the URL of an outbound request is validated below,
+ * at the boundary, rather than trusted for where it came from.
+ *
+ * `contract.repository` is a value read off disk and the ids are whatever the
+ * caller was handed; neither is a proof. A repository name carrying `..`, a
+ * second slash or a scheme silently retargets `${baseUrl}${path}` at a
+ * different API path or a different host - and every request this module makes
+ * carries an installation token in an Authorization header, so a retargeted
+ * request hands that token to whoever answers rather than returning a 404.
+ *
+ * `resolveApiUrl` is the half that closes the class of bug rather than the
+ * instance: whatever the components were, the URL about to be fetched is
+ * re-parsed and asserted to still sit under the API root, so a future caller
+ * that interpolates something new cannot reintroduce the escape.
+ */
+
+/** The characters GitHub allows in an owner or a repository name, and no others. */
+export const REPOSITORY_FULL_NAME_PATTERN = /^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/
+
+/** A commit SHA as GitHub writes one: 40 lowercase hexadecimal characters. */
+export const COMMIT_SHA_PATTERN = /^[0-9a-f]{40}$/
+
+/** One component of a git ref path, e.g. `heads` or `main`. */
+const REF_SEGMENT_PATTERN = /^[A-Za-z0-9._-]+$/
+
+/** The values the Checks API documents for `filter`. */
+export const CHECK_RUN_FILTERS = Object.freeze(["latest", "all"])
+
+/**
+ * A refusal to send, as opposed to a failure GitHub reported. It extends
+ * `GitHubApiError` rather than `LocalCiError` directly so that every existing
+ * `instanceof GitHubApiError` catch still sees it, while `.code` and the type
+ * both say the request never left this machine.
+ */
+export class GitHubRequestTargetError extends GitHubApiError {}
+
+/**
+ * Refusals are the messages most likely to be pasted into an issue, and the
+ * value being refused is frequently the one a caller built out of something
+ * sensitive, so every one of them is redacted on the way out.
+ */
+function refuse(code, message) {
+  return new GitHubRequestTargetError(code, redactSecrets(message))
+}
+
+const isTraversalSegment = (segment) => segment === "." || segment === ".."
+
+/**
+ * `owner/repo`, refusing anything that could move a request off the repository
+ * it appears to name. Pure.
+ */
+export function requireRepositoryFullName(
+  value,
+  label = "contract.repository"
+) {
+  if (typeof value !== "string" || !REPOSITORY_FULL_NAME_PATTERN.test(value)) {
+    throw refuse(
+      "INVALID_REPOSITORY",
+      `${label} must be an "owner/repo" full name built from the characters GitHub allows (received ${describeValue(value)}); a scheme, a second slash or any other character would point the request somewhere else`
     )
   }
-  const [owner, repo] = full.split("/")
-  return Object.freeze({ owner, repo, fullName: full })
+  const [owner, repo] = value.split("/")
+  if (isTraversalSegment(owner) || isTraversalSegment(repo)) {
+    // `.` and `..` are legal characters in a repository name but not a legal
+    // whole one, and either half resolves to a different API path.
+    throw refuse(
+      "INVALID_REPOSITORY",
+      `${label} is ${quoteForMessage(value)}, one half of which is a path traversal segment; that resolves to a different API path than the repository it appears to name`
+    )
+  }
+  return Object.freeze({ owner, repo, fullName: value })
+}
+
+/** A commit SHA, exactly as GitHub returns one. Pure. */
+export function requireCommitSha(value, label = "the commit SHA") {
+  if (typeof value !== "string" || !COMMIT_SHA_PATTERN.test(value)) {
+    throw refuse(
+      "INVALID_COMMIT_SHA",
+      `${label} must be 40 lowercase hexadecimal characters, as GitHub writes a commit SHA (received ${describeValue(value)})`
+    )
+  }
+  return value
+}
+
+/**
+ * A git ref path without the `refs/` prefix, e.g. `heads/main`. Pure.
+ *
+ * Slashes are legal here, which is exactly why the segments are checked one by
+ * one instead of the whole string being percent-encoded.
+ */
+export function requireRefPath(value, label = "the git ref") {
+  if (typeof value !== "string" || value === "") {
+    throw refuse(
+      "INVALID_REF",
+      `${label} must be a non-empty ref such as "heads/main" (received ${describeValue(value)})`
+    )
+  }
+  const unsafe = value
+    .split("/")
+    .find(
+      (segment) =>
+        !REF_SEGMENT_PATTERN.test(segment) || isTraversalSegment(segment)
+    )
+  if (unsafe !== undefined) {
+    throw refuse(
+      "INVALID_REF",
+      `${label} ${quoteForMessage(value)} carries the segment ${JSON.stringify(unsafe)}, which is not a git ref component; only [A-Za-z0-9._-] separated by single slashes reaches the API`
+    )
+  }
+  return value
+}
+
+/** A positive integer id on its way into a path. Pure. */
+function requireNumericId(value, label) {
+  if (typeof value === "number" && Number.isInteger(value) && value > 0) {
+    return String(value)
+  }
+  if (typeof value === "string" && /^[0-9]+$/.test(value)) return value
+  throw refuse(
+    "INVALID_INPUT",
+    `${label} must be a positive integer id (received ${describeValue(value)})`
+  )
+}
+
+/** GitHub caps a page at 100 and rejects anything else. Pure. */
+function requirePageSize(value, label) {
+  if (!Number.isInteger(value) || value < 1 || value > 100) {
+    throw refuse(
+      "INVALID_INPUT",
+      `${label} must be an integer from 1 to 100 (received ${describeValue(value)})`
+    )
+  }
+  return String(value)
+}
+
+function requireCheckName(value, label) {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw refuse(
+      "INVALID_INPUT",
+      `${label} must be a non-empty check-run name (received ${describeValue(value)})`
+    )
+  }
+  return value
+}
+
+function requireCheckRunFilter(value, label) {
+  if (!CHECK_RUN_FILTERS.includes(value)) {
+    throw refuse(
+      "INVALID_INPUT",
+      `${label} must be one of ${CHECK_RUN_FILTERS.join(", ")} (received ${describeValue(value)})`
+    )
+  }
+  return value
+}
+
+/**
+ * A path that can only ever address something *under* the API root. Pure.
+ *
+ * Each clause below is a way a string can stop being relative: an absolute URL
+ * replaces the host outright, `//` replaces it while keeping the scheme, a
+ * backslash is folded into a slash by the WHATWG parser, and tabs and newlines
+ * are stripped by it - so a value containing one does not describe the request
+ * that would actually be sent.
+ */
+export function requireRelativeRequestPath(value, label = "the request path") {
+  if (typeof value !== "string" || value === "") {
+    throw refuse(
+      "UNSAFE_REQUEST_PATH",
+      `${label} must be a non-empty string beginning with "/" (received ${describeValue(value)})`
+    )
+  }
+  if (URL.canParse(value)) {
+    throw refuse(
+      "UNSAFE_REQUEST_PATH",
+      `${label} ${quoteForMessage(value)} parses as an absolute URL, which would send the request - and its Authorization header - to a host this client never chose`
+    )
+  }
+  if (value.startsWith("//")) {
+    throw refuse(
+      "UNSAFE_REQUEST_PATH",
+      `${label} ${quoteForMessage(value)} begins with "//", which is a protocol-relative URL: it keeps the scheme and replaces the host`
+    )
+  }
+  if (!value.startsWith("/")) {
+    throw refuse(
+      "UNSAFE_REQUEST_PATH",
+      `${label} ${quoteForMessage(value)} must begin with "/"; a path relative to the API root is the only shape this client sends`
+    )
+  }
+  if (value.includes("\\")) {
+    throw refuse(
+      "UNSAFE_REQUEST_PATH",
+      `${label} ${quoteForMessage(value)} contains a backslash, which the URL parser folds into a slash`
+    )
+  }
+  if (value.includes("#")) {
+    throw refuse(
+      "UNSAFE_REQUEST_PATH",
+      `${label} ${quoteForMessage(value)} contains a fragment marker, which silently truncates the request that is sent`
+    )
+  }
+  if (/[^!-~]/.test(value)) {
+    throw refuse(
+      "UNSAFE_REQUEST_PATH",
+      `${label} ${quoteForMessage(value)} contains a character outside printable ASCII; whitespace and control characters are stripped by the URL parser, so such a value does not describe the request that is sent`
+    )
+  }
+  const [pathname] = value.split("?")
+  const traversal = pathname.split("/").find(isTraversalSegment)
+  if (traversal !== undefined) {
+    throw refuse(
+      "UNSAFE_REQUEST_PATH",
+      `${label} ${quoteForMessage(value)} contains the segment ${JSON.stringify(traversal)}, which escapes the path it appears to name`
+    )
+  }
+  return value
+}
+
+/** The API root a client may be pointed at. Pure. */
+export function requireApiBaseUrl(value, label = "the GitHub API base URL") {
+  if (typeof value !== "string" || !URL.canParse(value)) {
+    throw refuse(
+      "INVALID_API_BASE_URL",
+      `${label} must be an absolute URL such as ${GITHUB_API_BASE_URL} (received ${describeValue(value)})`
+    )
+  }
+  const url = new URL(value)
+  if (url.protocol !== "https:") {
+    // Worded without the word "token" on purpose: `redactSecrets` removes
+    // whatever follows one, and a refusal that redacts its own prose is a
+    // refusal nobody can act on.
+    throw refuse(
+      "INVALID_API_BASE_URL",
+      `${label} must be https (received ${quoteForMessage(url.protocol)}); every request made through it carries an Authorization credential, and cleartext would publish it to anyone on the path`
+    )
+  }
+  if (url.search !== "" || url.hash !== "") {
+    throw refuse(
+      "INVALID_API_BASE_URL",
+      `${label} must carry no query string or fragment (received ${quoteForMessage(value)})`
+    )
+  }
+  return url
+}
+
+/**
+ * The absolute URL for `path` under `baseUrl`, asserted to still be under it.
+ * Pure, and the last thing that runs before `fetch`.
+ */
+export function resolveApiUrl(baseUrl, path) {
+  const base = requireApiBaseUrl(baseUrl)
+  const safePath = requireRelativeRequestPath(path)
+  const root = base.href.endsWith("/") ? base.href.slice(0, -1) : base.href
+  const composed = `${root}${safePath}`
+  if (!URL.canParse(composed)) {
+    throw refuse(
+      "UNSAFE_REQUEST_URL",
+      `${safePath} does not compose a parseable URL against ${root}`
+    )
+  }
+  const resolved = new URL(composed)
+  const rootPath = base.pathname.endsWith("/")
+    ? base.pathname
+    : `${base.pathname}/`
+  if (
+    resolved.origin !== base.origin ||
+    !resolved.pathname.startsWith(rootPath)
+  ) {
+    throw refuse(
+      "UNSAFE_REQUEST_URL",
+      `${safePath} resolves to ${resolved.origin}${resolved.pathname}, which is outside the API root ${base.origin}${rootPath}; this client will not send an Authorization header there`
+    )
+  }
+  return resolved.href
+}
+
+/** `owner/repo` from the contract, refusing anything that is not one. Pure. */
+export function repositorySlug(contract) {
+  return requireRepositoryFullName(contract?.repository, "contract.repository")
 }
 
 /**
@@ -454,7 +734,10 @@ export function createGitHubClient({
   let cachedToken = null
 
   async function send({ method, path, body, token, accept = GITHUB_ACCEPT }) {
-    const url = `${baseUrl}${path}`
+    // Re-validated here even though every caller below builds `path` from
+    // checked components: this is the one line every outbound request passes
+    // through, so it is the only place the guarantee cannot be edited around.
+    const url = resolveApiUrl(baseUrl, path)
     const headers = {
       accept,
       "content-type": "application/json",
@@ -607,9 +890,10 @@ export function createGitHubClient({
      * that never existed.
      */
     async listOpenPullRequests({ perPage = 100 } = {}) {
+      const size = requirePageSize(perPage, "listOpenPullRequests({ perPage })")
       const payload = await api(
         "GET",
-        `/repos/${owner}/${repo}/pulls?state=open&per_page=${perPage}&sort=updated&direction=desc`
+        `/repos/${owner}/${repo}/pulls?state=open&per_page=${size}&sort=updated&direction=desc`
       )
       if (!Array.isArray(payload)) {
         throw new GitHubApiError(
@@ -631,7 +915,10 @@ export function createGitHubClient({
           `getRef requires a ref such as "heads/main" (received ${describeValue(ref)})`
         )
       }
-      const normalised = ref.startsWith("refs/") ? ref.slice(5) : ref
+      const normalised = requireRefPath(
+        ref.startsWith("refs/") ? ref.slice(5) : ref,
+        "getRef(ref)"
+      )
       const payload = await api(
         "GET",
         `/repos/${owner}/${repo}/git/ref/${normalised}`
@@ -663,7 +950,7 @@ export function createGitHubClient({
     }) {
       const body = {
         name,
-        head_sha: headSha,
+        head_sha: requireCommitSha(headSha, "createCheckRun({ headSha })"),
         status,
         ...(conclusion === undefined || conclusion === null
           ? {}
@@ -681,12 +968,7 @@ export function createGitHubClient({
       checkRunId,
       { status, conclusion, output, detailsUrl, completedAt }
     ) {
-      if (checkRunId === undefined || checkRunId === null) {
-        throw new GitHubApiError(
-          "INVALID_INPUT",
-          `updateCheckRun requires a check run id (received ${describeValue(checkRunId)})`
-        )
-      }
+      const id = requireNumericId(checkRunId, "updateCheckRun(checkRunId)")
       const body = {
         ...(status ? { status } : {}),
         ...(conclusion ? { conclusion } : {}),
@@ -694,11 +976,7 @@ export function createGitHubClient({
         ...(completedAt ? { completed_at: completedAt } : {}),
         ...(output ? { output: clampCheckOutput(output) } : {}),
       }
-      return api(
-        "PATCH",
-        `/repos/${owner}/${repo}/check-runs/${checkRunId}`,
-        body
-      )
+      return api("PATCH", `/repos/${owner}/${repo}/check-runs/${id}`, body)
     },
 
     /**
@@ -712,17 +990,29 @@ export function createGitHubClient({
       ref,
       { checkName = null, filter = "latest" } = {}
     ) {
-      const query = new URLSearchParams({ filter, per_page: "100" })
-      if (checkName) query.set("check_name", checkName)
+      const sha = requireCommitSha(ref, "getCheckRunsForRef(ref)")
+      // Percent-encoded rather than form-encoded: `URLSearchParams` writes a
+      // space as `+`, and the same query built by scripts/check-local-ci-proof
+      // writes it as `%20`. One of the two would be asking a different
+      // question, and a check name with a space is the normal case here.
+      const query = [
+        `filter=${encodeURIComponent(requireCheckRunFilter(filter, "getCheckRunsForRef({ filter })"))}`,
+        "per_page=100",
+      ]
+      if (checkName !== null && checkName !== undefined) {
+        query.push(
+          `check_name=${encodeURIComponent(requireCheckName(checkName, "getCheckRunsForRef({ checkName })"))}`
+        )
+      }
       const payload = await api(
         "GET",
-        `/repos/${owner}/${repo}/commits/${ref}/check-runs?${query.toString()}`
+        `/repos/${owner}/${repo}/commits/${sha}/check-runs?${query.join("&")}`
       )
       const runs = payload?.check_runs
       if (!Array.isArray(runs)) {
         throw new GitHubApiError(
           "INVALID_RESPONSE",
-          `the check-run listing for ${ref} returned ${describeValue(runs)}, expected an array`
+          `the check-run listing for ${sha} returned ${describeValue(runs)}, expected an array`
         )
       }
       return Object.freeze([...runs])
@@ -751,15 +1041,10 @@ export function createGitHubClient({
           `${JSON.stringify(operation)} has no implementation here; ${JSON.stringify(ACTIONS_WRITE_OPERATION)} is the only Actions write with a call site`
         )
       }
-      if (runId === undefined || runId === null) {
-        throw new GitHubApiError(
-          "INVALID_INPUT",
-          `rerunWorkflowJob requires a workflow run id (received ${describeValue(runId)})`
-        )
-      }
+      const id = requireNumericId(runId, "rerunWorkflowJob({ runId })")
       await api(
         "POST",
-        `/repos/${owner}/${repo}/actions/runs/${runId}/${ACTIONS_WRITE_OPERATION}`
+        `/repos/${owner}/${repo}/actions/runs/${id}/${ACTIONS_WRITE_OPERATION}`
       )
       return Object.freeze({ runId, operation: ACTIONS_WRITE_OPERATION })
     },

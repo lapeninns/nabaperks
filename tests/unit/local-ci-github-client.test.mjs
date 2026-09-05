@@ -8,6 +8,7 @@ import { loadContract } from "../../ops/local-ci/core/contract.mjs"
 import {
   GITHUB_API_VERSION,
   GitHubApiError,
+  GitHubRequestTargetError,
   JWT_LIFETIME_SECONDS,
   buildAppJwtClaims,
   clampCheckOutput,
@@ -16,6 +17,11 @@ import {
   normalisePullRequest,
   parseRateLimit,
   redactSecrets,
+  repositorySlug,
+  requireCommitSha,
+  requireRelativeRequestPath,
+  requireRepositoryFullName,
+  resolveApiUrl,
   retryDelayMs,
   signAppJwt,
 } from "../../ops/local-ci/agent/github.mjs"
@@ -67,6 +73,7 @@ const stubFetch = (routes) => {
     const key = `${init.method} ${path}`
     calls.push({
       key,
+      url,
       path,
       method: init.method,
       headers: init.headers,
@@ -511,4 +518,251 @@ test("the client refuses to exist without the identity it needs", () => {
       }),
     (error) => error.code === "INVALID_PRIVATE_KEY"
   )
+})
+
+/**
+ * The request-target guards.
+ *
+ * `contract.repository` is a value read off disk and the SHAs and ids come
+ * from a payload or the environment. Every request here carries an
+ * installation token in an Authorization header, so a component carrying `..`
+ * or an absolute URL does not produce a 404 - it hands that token to whatever
+ * answers at the address it retargeted the request to. These tests pin the
+ * refusals, and pin that the refusal happens before `fetch` is reached.
+ */
+
+test("a repository name that could move the request is refused before any fetch", () => {
+  assert.deepEqual(
+    { ...requireRepositoryFullName("lapeninns/nabaperks") },
+    { owner: "lapeninns", repo: "nabaperks", fullName: "lapeninns/nabaperks" }
+  )
+  assert.equal(repositorySlug(contract).fullName, "lapeninns/nabaperks")
+
+  const refused = [
+    "lapeninns/..",
+    "../../app/installations/1/access_tokens",
+    "lapeninns/nabaperks/../../app",
+    "https://evil.example.com/lapeninns/nabaperks",
+    "lapeninns",
+    "lapeninns/naba perks",
+    ".",
+    42,
+    null,
+  ]
+  for (const value of refused) {
+    assert.throws(
+      () => requireRepositoryFullName(value),
+      (error) => {
+        assert.ok(error instanceof GitHubRequestTargetError)
+        assert.ok(error instanceof GitHubApiError)
+        assert.equal(error.code, "INVALID_REPOSITORY")
+        return true
+      },
+      `${JSON.stringify(value)} must not be accepted as a repository`
+    )
+  }
+
+  const calls = []
+  assert.throws(
+    () =>
+      createGitHubClient({
+        contract: { ...contract, repository: "lapeninns/.." },
+        appId: APP_ID,
+        installationId: INSTALLATION_ID,
+        privateKey,
+        fetch: async (...args) => {
+          calls.push(args)
+          return json(200, {})
+        },
+      }),
+    (error) => error.code === "INVALID_REPOSITORY"
+  )
+  assert.deepEqual(calls, [], "the client never existed, so nothing was sent")
+})
+
+test("a request path that is not relative to the API root is refused", () => {
+  assert.equal(
+    requireRelativeRequestPath("/repos/a/b/pulls?state=open"),
+    "/repos/a/b/pulls?state=open"
+  )
+  // `..` in a query value is inert - it is the path that can escape.
+  assert.equal(
+    requireRelativeRequestPath("/check-runs?check_name=a..b"),
+    "/check-runs?check_name=a..b"
+  )
+
+  const refused = [
+    ["https://evil.example.com/app", /absolute URL/],
+    ["//evil.example.com/app", /protocol-relative/],
+    ["/repos/a/b/../../app/installations/1/access_tokens", /escapes the path/],
+    ["/repos/a/./b", /escapes the path/],
+    ["repos/a/b", /must begin with/],
+    ["/repos/a\\..\\b", /backslash/],
+    ["/repos/a/b#fragment", /fragment/],
+    ["/repos/a/b\n/c", /printable ASCII/],
+    ["", /non-empty/],
+    [null, /non-empty/],
+  ]
+  for (const [value, reason] of refused) {
+    assert.throws(
+      () => requireRelativeRequestPath(value),
+      (error) => {
+        assert.ok(error instanceof GitHubRequestTargetError)
+        assert.equal(error.code, "UNSAFE_REQUEST_PATH")
+        assert.match(error.message, reason)
+        return true
+      },
+      `${JSON.stringify(value)} must not be accepted as a request path`
+    )
+  }
+})
+
+test("only a commit SHA in the exact shape GitHub writes reaches the commits endpoint", async () => {
+  assert.equal(requireCommitSha(HEAD_SHA), HEAD_SHA)
+
+  const fetch = stubFetch({ "POST /app/installations": json(201, TOKEN_BODY) })
+  const github = createGitHubClient({
+    contract,
+    appId: APP_ID,
+    installationId: INSTALLATION_ID,
+    privateKey,
+    fetch,
+    now: () => NOW,
+    sleep: async () => {},
+  })
+
+  const refused = [
+    "z".repeat(40),
+    "A".repeat(40),
+    HEAD_SHA.slice(0, 39),
+    `${HEAD_SHA}/../../app`,
+    "heads/main",
+    null,
+  ]
+  for (const value of refused) {
+    await assert.rejects(
+      () => github.getCheckRunsForRef(value),
+      (error) => {
+        assert.ok(error instanceof GitHubRequestTargetError)
+        assert.equal(error.code, "INVALID_COMMIT_SHA")
+        return true
+      },
+      `${JSON.stringify(value)} must not be accepted as a commit SHA`
+    )
+  }
+  assert.deepEqual(
+    fetch.calls,
+    [],
+    "a refused SHA does not even mint a token, so nothing left the machine"
+  )
+})
+
+test("a valid request reaches exactly the URL the API root and the contract describe", async () => {
+  const fetch = stubFetch({
+    "POST /app/installations": json(201, TOKEN_BODY),
+    "GET /repos/lapeninns/nabaperks/commits": json(200, { check_runs: [] }),
+  })
+  const github = createGitHubClient({
+    contract,
+    appId: APP_ID,
+    installationId: INSTALLATION_ID,
+    privateKey,
+    fetch,
+    now: () => NOW,
+    sleep: async () => {},
+  })
+
+  assert.deepEqual(
+    await github.getCheckRunsForRef(HEAD_SHA, {
+      checkName: contract.checkName,
+    }),
+    []
+  )
+  assert.equal(
+    fetch.calls[0].url,
+    "https://api.github.com/app/installations/89012345/access_tokens"
+  )
+  assert.equal(
+    fetch.calls.at(-1).url,
+    `https://api.github.com/repos/lapeninns/nabaperks/commits/${HEAD_SHA}/check-runs?filter=latest&per_page=100&check_name=Nabaperks%20Local%20CI`
+  )
+  // Percent-encoded, not form-encoded: the bridge poller writes a space as
+  // `%20`, and a `+` here would be asking about a differently named check.
+  assert.equal(fetch.calls.at(-1).url.includes("+"), false)
+
+  // A base URL with a path prefix keeps it, and the resolved URL is asserted
+  // to still sit under it.
+  assert.equal(
+    resolveApiUrl("https://ghe.example.com/api/v3", "/repos/a/b"),
+    "https://ghe.example.com/api/v3/repos/a/b"
+  )
+  assert.throws(
+    () => resolveApiUrl("https://api.github.com", "https://evil.example.com/x"),
+    (error) => error.code === "UNSAFE_REQUEST_PATH"
+  )
+
+  // The guard lives in `send`, so a client pointed at a base that would put a
+  // bearer token on the wire in cleartext refuses without calling fetch.
+  const cleartext = createGitHubClient({
+    contract,
+    appId: APP_ID,
+    installationId: INSTALLATION_ID,
+    privateKey,
+    fetch,
+    now: () => NOW,
+    sleep: async () => {},
+    baseUrl: "http://api.github.com",
+  })
+  const before = fetch.calls.length
+  await assert.rejects(
+    () => cleartext.listOpenPullRequests(),
+    (error) => {
+      assert.equal(error.code, "INVALID_API_BASE_URL")
+      assert.match(error.message, /Authorization credential/)
+      return true
+    }
+  )
+  assert.equal(fetch.calls.length, before)
+})
+
+test("a refusal never carries the credential the refused value was built from", async () => {
+  const fetch = stubFetch({ "POST /app/installations": json(201, TOKEN_BODY) })
+  const github = createGitHubClient({
+    contract,
+    appId: APP_ID,
+    installationId: INSTALLATION_ID,
+    privateKey,
+    fetch,
+    now: () => NOW,
+    sleep: async () => {},
+  })
+
+  const attempts = [
+    () => github.getCheckRunsForRef(TOKEN_BODY.token),
+    () => github.getRef(`heads/../${TOKEN_BODY.token}`),
+    () =>
+      github.updateCheckRun(`Bearer ${TOKEN_BODY.token}`, {
+        status: "completed",
+      }),
+    () =>
+      github.createCheckRun({
+        name: contract.checkName,
+        headSha: TOKEN_BODY.token,
+        status: "queued",
+      }),
+    () => github.rerunWorkflowJob({ runId: `Bearer ${TOKEN_BODY.token}` }),
+  ]
+  for (const attempt of attempts) {
+    await assert.rejects(attempt, (error) => {
+      assert.ok(error instanceof GitHubRequestTargetError)
+      assert.equal(
+        error.message.includes(TOKEN_BODY.token),
+        false,
+        `a refusal leaked the installation token: ${error.message}`
+      )
+      assert.match(error.message, /\[redacted\]/)
+      return true
+    })
+  }
+  assert.deepEqual(fetch.calls, [], "every refusal came before the network")
 })

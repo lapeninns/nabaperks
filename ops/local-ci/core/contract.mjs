@@ -101,7 +101,7 @@ export function toEpochMs(value, label = "timestamp") {
     if (Number.isNaN(parsed)) {
       throw new LocalCiError(
         "INVALID_TIMESTAMP",
-        `${label} must be an ISO-8601 timestamp (received ${JSON.stringify(value)})`
+        `${label} must be an ISO-8601 timestamp (received ${quoteForMessage(value)})`
       )
     }
     return parsed
@@ -117,12 +117,113 @@ export function toIsoTimestamp(value, label = "timestamp") {
   return new Date(toEpochMs(value, label)).toISOString()
 }
 
-/** Human-readable type description used in every refusal message. */
+/** Longest description `describeValue` returns before it truncates. */
+export const DESCRIBE_VALUE_MAX_LENGTH = 120
+
+function boundDescription(text) {
+  if (text.length <= DESCRIBE_VALUE_MAX_LENGTH) return text
+  return `${text.slice(0, DESCRIBE_VALUE_MAX_LENGTH)}... (${text.length} characters)`
+}
+
+/**
+ * Quote a string for a refusal message without using `JSON.stringify`.
+ *
+ * `JSON.stringify` looks like the obvious choice and is the wrong one here. It
+ * is a JSON serialiser, not an escaper for the places these messages travel:
+ * it leaves U+2028 and U+2029 unescaped even though both terminate a line in
+ * JavaScript source, and it passes every other unassigned control character
+ * through as a raw code unit. These strings end up in check summaries, in
+ * evidence JSON and in logs that get embedded elsewhere, so a value carrying
+ * a line separator can break the document that quotes it.
+ *
+ * Escaping the delimiter and the backslash first, then every C0 control, DEL
+ * and the two Unicode line terminators, gives one representation that is safe
+ * in all of those places and still reads like the original.
+ */
+export function quoteForMessage(value) {
+  const escaped = String(value)
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/[\u0000-\u001f\u007f\u2028\u2029]/g, (character) => {
+      const code = character.codePointAt(0)
+      if (character === "\n") return "\\n"
+      if (character === "\r") return "\\r"
+      if (character === "\t") return "\\t"
+      return `\\u${code.toString(16).padStart(4, "0")}`
+    })
+  return `"${escaped}"`
+}
+
+/**
+ * A function's identity without its body.
+ *
+ * `String(fn)` is the function's entire source. Interpolating that into a
+ * refusal pastes arbitrary code - and whatever a closure's source happens to
+ * name - where a type name belongs, which makes the message unreadable and
+ * puts caller code into logs and published check summaries. The name and the
+ * arity are what a reader actually needs to spot the wrong callback.
+ *
+ * The reads are guarded because a Proxy can throw from `name` or `length`, and
+ * describeValue only ever runs on a path that is already refusing: a second
+ * failure there would replace the real reason with a TypeError.
+ */
+function describeFunction(value) {
+  try {
+    const name =
+      typeof value.name === "string" && value.name !== ""
+        ? value.name
+        : "(anonymous)"
+    const arity = Number.isInteger(value.length) ? value.length : "?"
+    return boundDescription(`function ${name}/${arity}`)
+  } catch {
+    return "function (unreadable)"
+  }
+}
+
+/**
+ * An object's shape without its contents.
+ *
+ * `String(obj)` runs a caller-supplied `toString`, and even the default one
+ * says nothing. The key count is the useful bounded fact; the values are never
+ * touched, because job-env.mjs builds the host-secret isolation boundary on
+ * top of this module and a refusal must not be able to print what it carries.
+ * `Object.keys` reads no getters, so describing a value stays side-effect free.
+ */
+function describeObject(value) {
+  try {
+    const count = Object.keys(value).length
+    return `an object with ${count} key${count === 1 ? "" : "s"}`
+  } catch {
+    return "an object"
+  }
+}
+
+/**
+ * Human-readable type description used in every refusal message.
+ *
+ * Only bounded facts about a value ever leave here - a type, and at most a
+ * name, an arity, a length or a key count. Nothing that could be arbitrarily
+ * long or arbitrarily sensitive is stringified, so a refusal stays readable
+ * and a pathological value cannot flood a log through an error message.
+ *
+ * It also never throws. Every call site is already on its way to raising a
+ * refusal, and a hostile value - a revoked Proxy, a throwing getter - must not
+ * be able to replace that refusal's real reason with a TypeError thrown while
+ * composing the message.
+ */
 export function describeValue(value) {
-  if (value === null) return "null"
-  if (Array.isArray(value)) return `an array of length ${value.length}`
-  if (typeof value === "string") return `the string ${JSON.stringify(value)}`
-  return `${typeof value} ${String(value)}`
+  try {
+    if (value === null) return "null"
+    if (Array.isArray(value)) return `an array of length ${value.length}`
+    if (typeof value === "string") {
+      return boundDescription(`the string ${quoteForMessage(value)}`)
+    }
+    if (typeof value === "function") return describeFunction(value)
+    if (typeof value === "object") return describeObject(value)
+    return boundDescription(`${typeof value} ${String(value)}`)
+  } catch {
+    return "a value that cannot be described"
+  }
 }
 
 function fail(code, message) {
@@ -204,7 +305,7 @@ function requireOwnerRepo(value, path) {
   if (!OWNER_REPO.test(value)) {
     fail(
       "CONTRACT_SHAPE",
-      `${path} must be an exact "owner/repo" full name with no extra path segments (received ${JSON.stringify(value)})`
+      `${path} must be an exact "owner/repo" full name with no extra path segments (received ${quoteForMessage(value)})`
     )
   }
   return value
@@ -308,7 +409,7 @@ function validateHostSecrets(contract) {
     if (seen.has(name)) {
       fail(
         "CONTRACT_SHAPE",
-        `hostSecrets[${index}] repeats ${JSON.stringify(name)}`
+        `hostSecrets[${index}] repeats ${quoteForMessage(name)}`
       )
     }
     seen.add(name)
@@ -337,7 +438,7 @@ function validateRuntimeEnv(runtimeEnv) {
     requireObject(source, path)
     requireNonEmptyString(source.id, `${path}.id`)
     if (seen.has(source.id)) {
-      fail("CONTRACT_SHAPE", `${path}.id repeats ${JSON.stringify(source.id)}`)
+      fail("CONTRACT_SHAPE", `${path}.id repeats ${quoteForMessage(source.id)}`)
     }
     seen.add(source.id)
     requireNonEmptyString(source.kind, `${path}.kind`)

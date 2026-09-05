@@ -83,8 +83,67 @@ function requireCount(value, path) {
   return value
 }
 
-function escapeCell(value) {
-  return String(value).replace(/\|/g, "\\|").replace(/\n/g, " ")
+/**
+ * A value rendered into a markdown table cell.
+ *
+ * The backslash is escaped first because it is the escape character: escaping
+ * the pipe first turns a value containing `\|` into `\\|`, where the leading
+ * backslash consumes its own escape and the pipe breaks out to forge an extra
+ * column. This table is the evidence a reviewer reads before merging, so a
+ * crafted lane id or failure string must not be able to move a count into a
+ * different column.
+ *
+ * A row ends at the first line break and a carriage return ends it exactly as
+ * a newline does, so both fold to a space - and a CRLF pair, which is what a
+ * Windows-shaped log line carries, folds to one space rather than two.
+ *
+ * The escaped characters are deliberately disjoint from the credential shapes
+ * in job-env.mjs: redaction runs over the finished string, so an escape
+ * inserted inside a token would hide it from the pass that must catch it.
+ */
+export function escapeCell(value) {
+  return String(value)
+    .replace(/\\/g, "\\\\")
+    .replace(/\|/g, "\\|")
+    .replace(/\r\n?|\n/g, " ")
+}
+
+/**
+ * A value rendered as a markdown code span.
+ *
+ * Backticks inside the value are data, not delimiters, and a code span has no
+ * escape character - a backslash inside one is a literal backslash. So the
+ * span is fenced with one more backtick than the longest run it contains and
+ * padded when the value itself begins or ends with one, which is what
+ * CommonMark prescribes. Without this a lane id containing a backtick closes
+ * its own span early and the remainder renders as markdown.
+ */
+function codeSpan(value) {
+  const text = String(value).replace(/\r\n?|\n/g, " ")
+  const longestRun = (text.match(/`+/g) ?? []).reduce(
+    (longest, run) => Math.max(longest, run.length),
+    0
+  )
+  const fence = "`".repeat(longestRun + 1)
+  const pad = text.startsWith("`") || text.endsWith("`") ? " " : ""
+  return `${fence}${pad}${text}${pad}${fence}`
+}
+
+/**
+ * A value rendered as running markdown text - a failure title, a message, a
+ * reason.
+ *
+ * Line breaks fold to a space because a list item is one line, and the
+ * characters that could restructure what follows are escaped: the backslash
+ * first, then the code-span delimiter, the raw-HTML opener (`<!--` would hide
+ * the rest of the section from the reader outright), the link brackets and
+ * the table delimiter. Everything else is left alone, so a message naming
+ * `timed_out` or a shard `1/8` still reads as itself.
+ */
+function escapeInline(value) {
+  return String(value)
+    .replace(/[\\`<>[\]|]/g, "\\$&")
+    .replace(/\r\n?|\n/g, " ")
 }
 
 /** `45s` / `12m 03s`. An em dash when the duration was not recorded. */
@@ -330,9 +389,9 @@ function renderFailures(failures) {
   }
   const shown = failures.slice(0, FAILURE_LIST_CAP)
   const lines = shown.map((entry) => {
-    const where = entry.laneId ? `\`${escapeCell(entry.laneId)}\` — ` : ""
-    const detail = entry.message ? `: ${escapeCell(entry.message)}` : ""
-    return `- ${where}${escapeCell(entry.title)}${detail}`
+    const where = entry.laneId ? `${codeSpan(entry.laneId)} — ` : ""
+    const detail = entry.message ? `: ${escapeInline(entry.message)}` : ""
+    return `- ${where}${escapeInline(entry.title)}${detail}`
   })
   if (failures.length > shown.length) {
     // Announced, never silent. Someone reading a capped list has to know the
@@ -348,8 +407,8 @@ function renderHostedOnly(hostedOnlyLanes) {
   if (hostedOnlyLanes.length === 0) return null
   const lines = hostedOnlyLanes.map((entry) =>
     entry.reason
-      ? `- \`${escapeCell(entry.laneId)}\` — ${escapeCell(entry.reason)}`
-      : `- \`${escapeCell(entry.laneId)}\``
+      ? `- ${codeSpan(entry.laneId)} — ${escapeInline(entry.reason)}`
+      : `- ${codeSpan(entry.laneId)}`
   )
   return [
     "## Lanes left to the GitHub-hosted plane",
@@ -403,12 +462,16 @@ export function renderCheckSummary(record, contract) {
       ? `${rawTitle.slice(0, TITLE_MAX_LENGTH - 1)}…`
       : rawTitle
 
+  // The conclusion and the head SHA are validated shapes, but the profile and
+  // the ref are whatever the run was started with, and a ref carrying a line
+  // break or a backtick would restructure the block a reviewer reads. One rule
+  // for all four, so no future field arrives unescaped by omission.
   const summaryLines = [
-    `**Conclusion:** \`${normalised.conclusion}\``,
-    `**Profile:** \`${normalised.profile}\``,
-    `**Head SHA:** \`${normalised.headSha}\``,
+    `**Conclusion:** ${codeSpan(normalised.conclusion)}`,
+    `**Profile:** ${codeSpan(normalised.profile)}`,
+    `**Head SHA:** ${codeSpan(normalised.headSha)}`,
   ]
-  if (normalised.ref) summaryLines.push(`**Ref:** \`${normalised.ref}\``)
+  if (normalised.ref) summaryLines.push(`**Ref:** ${codeSpan(normalised.ref)}`)
   summaryLines.push(
     `**Duration:** ${formatDuration(normalised.durationSeconds)}`,
     "",

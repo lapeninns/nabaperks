@@ -11,6 +11,7 @@ import {
   SummaryError,
   assertPublishable,
   buildLaneSummary,
+  escapeCell,
   extractLaneSummary,
   formatDuration,
   redactSummaryText,
@@ -89,6 +90,100 @@ test("the summary ends with the evidence digest and carries the machine-readable
     /\| fast \| success \| 12m 34s \| 120 \| 118 \| 0 \| 2 \| 0 \|/
   )
   assert.equal(rendered.title, "success — 1/1 lanes, 118/120 tests")
+})
+
+/**
+ * The cells of a rendered table row, split the way a markdown reader splits
+ * them: a backslash escapes whatever follows it, every other `|` is a column
+ * boundary. An eight-column row yields ten entries - the empty strings outside
+ * the leading and trailing pipes.
+ */
+function markdownCells(row) {
+  const cells = []
+  let cell = ""
+  for (let index = 0; index < row.length; index += 1) {
+    const char = row[index]
+    if (char === "\\" && index + 1 < row.length) {
+      cell += row[index + 1]
+      index += 1
+    } else if (char === "|") {
+      cells.push(cell)
+      cell = ""
+    } else {
+      cell += char
+    }
+  }
+  cells.push(cell)
+  return cells
+}
+
+test("a table cell cannot forge a column, whatever the value ends in", () => {
+  // A value ending in a backslash, immediately followed by a pipe. Escaping
+  // the pipe before the backslash emits `evidence\\|999`, where the backslash
+  // escapes the backslash and the pipe is left bare to open a ninth column -
+  // so a crafted lane id could file counts under a heading they did not earn,
+  // on the one surface a reviewer reads before merging.
+  assert.equal(escapeCell("evidence\\|999"), "evidence\\\\\\|999")
+
+  // A carriage return ends a row exactly as a newline does, and a CRLF pair is
+  // one break, not two.
+  assert.equal(
+    escapeCell("first\r\nsecond\rthird\nfourth"),
+    "first second third fourth"
+  )
+
+  const laneId = "evidence\\| 9 | 9 | 9"
+  const rendered = renderCheckSummary(
+    record({ lanes: [lane({ laneId })] }),
+    contract
+  )
+  const row = rendered.text
+    .split("\n")
+    .find((line) => line.startsWith("| evidence"))
+  assert.ok(row, "the lane row must be published")
+
+  const cells = markdownCells(row)
+  assert.equal(cells.length, 10, "the row still has exactly eight columns")
+  assert.equal(cells[1].trim(), laneId, "and the lane id survives intact")
+  assert.equal(cells[2].trim(), "success")
+  assert.equal(cells[4].trim(), "120")
+})
+
+test("a backtick in a value cannot restructure the markdown around it", () => {
+  const rendered = renderCheckSummary(
+    record({
+      conclusion: "failure",
+      ref: "refs/heads/`whoami`",
+      lanes: [
+        lane({
+          laneId: "fa`st",
+          status: "failure",
+          testsFailed: 1,
+          failures: [
+            {
+              title: "spec `a` failed",
+              message: "<!-- the rest of the section would vanish",
+            },
+          ],
+        }),
+      ],
+    }),
+    contract
+  )
+
+  // The code span is fenced wider than the run it carries, because a code span
+  // has no escape character; the running text is backslash-escaped, because it
+  // does. An HTML comment opener is escaped for the same reason a backtick is:
+  // unescaped it hides everything after it from the reader.
+  const failureLine = rendered.text
+    .split("\n")
+    .find((line) => line.startsWith("- ``"))
+  assert.equal(
+    failureLine,
+    "- ``fa`st`` — spec \\`a\\` failed: \\<!-- the rest of the section would vanish"
+  )
+  assert.ok(rendered.summary.includes("**Ref:** `` refs/heads/`whoami` ``"))
+  assert.equal(extractLaneSummary(rendered.text).lanes[0].laneId, "fa`st")
 })
 
 test("a capped failure list announces the cap; it never silently truncates", () => {

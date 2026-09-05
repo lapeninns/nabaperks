@@ -23,9 +23,11 @@
 import { spawn } from "node:child_process"
 import { randomBytes } from "node:crypto"
 import {
+  closeSync,
+  fstatSync,
   mkdirSync,
+  openSync,
   readFileSync,
-  statSync,
   writeFileSync,
   appendFileSync,
 } from "node:fs"
@@ -34,7 +36,12 @@ import { dirname, join, resolve as resolvePath } from "node:path"
 import { arch as processArch } from "node:process"
 import { fileURLToPath, pathToFileURL } from "node:url"
 
-import { LocalCiError, loadContract } from "../core/contract.mjs"
+import {
+  LocalCiError,
+  describeValue,
+  loadContract,
+  quoteForMessage,
+} from "../core/contract.mjs"
 import { loadProfile, snapshotGuardViolations } from "../core/profiles.mjs"
 import { isCommitSha } from "../core/queue.mjs"
 import { renderCheckSummary } from "../core/summary.mjs"
@@ -152,7 +159,7 @@ export function parseArgs(argv) {
     if (!isCommitSha(options.sha)) {
       throw new CliError(
         "INVALID_ARGUMENTS",
-        `--sha must be a 40-character hexadecimal commit SHA (received ${JSON.stringify(options.sha)})`
+        `--sha must be a 40-character hexadecimal commit SHA (received ${quoteForMessage(options.sha)})`
       )
     }
     options.ref = options.ref ?? `refs/heads/${options.profile}`
@@ -175,22 +182,65 @@ export function expandHome(path, home) {
  * verifies with `stat`. A group- or world-readable private key on a machine
  * that also runs pull-request code is not a warning: it is the whole boundary,
  * so this refuses rather than continuing with a caveat.
+ *
+ * The check and the read happen on **one descriptor**. Checking the mode by
+ * path and then opening the path again leaves a window in which the name can be
+ * repointed - the classic symlink swap - so the bytes that come back are not
+ * the bytes whose permissions were approved. Since the barrier this enforces is
+ * the one protecting the GitHub App private key, that window is the whole bug:
+ * `openSync` once, `fstatSync` the descriptor, read the same descriptor.
+ *
+ * A symlink at the path is still followed. It is the target's mode that
+ * `fstat` reports either way, and refusing `O_NOFOLLOW`-style would break an
+ * operator who keeps the `.pem` outside the state root while buying nothing -
+ * once the descriptor is fixed, no swap can change what is read through it.
  */
 export function readCredentialFile(path, label) {
-  let stats
+  let fd
   try {
-    stats = statSync(path)
-  } catch {
-    return null
-  }
-  const mode = stats.mode & 0o777
-  if ((mode & 0o077) !== 0) {
+    fd = openSync(path, "r")
+  } catch (error) {
+    // Only a genuinely absent file is "not configured". Every other failure -
+    // a permission denial, a dangling symlink, a directory where a file was
+    // expected - means a credential IS installed here and cannot be read, and
+    // returning null for those would send firstExisting on to the next
+    // candidate and silently authenticate as a different key. Fail loudly.
+    if (error.code === "ENOENT") return null
     throw new CliError(
-      "CREDENTIAL_PERMISSIONS",
-      `${label} at ${path} is mode ${mode.toString(8).padStart(4, "0")}; it must be 0600 (owner-only). Fix it with: chmod 600 ${path}`
+      "CREDENTIAL_UNREADABLE",
+      `${label} at ${path} exists but could not be opened (${error.code ?? error.message}); refusing to fall back to another credential`
     )
   }
-  return readFileSync(path, "utf8")
+  try {
+    const stats = fstatSync(fd)
+    // `open` succeeds on a directory, so the type has to be checked explicitly
+    // or the EISDIR surfaces later from the read as a raw fs error instead of a
+    // refusal that names the credential.
+    if (!stats.isFile()) {
+      throw new CliError(
+        "CREDENTIAL_UNREADABLE",
+        `${label} at ${path} is not a regular file; refusing to fall back to another credential`
+      )
+    }
+    const mode = stats.mode & 0o777
+    if ((mode & 0o077) !== 0) {
+      throw new CliError(
+        "CREDENTIAL_PERMISSIONS",
+        `${label} at ${path} is mode ${mode.toString(8).padStart(4, "0")}; it must be 0600 (owner-only). Fix it with: chmod 600 ${path}`
+      )
+    }
+    try {
+      return readFileSync(fd, "utf8")
+    } catch (error) {
+      if (error instanceof CliError) throw error
+      throw new CliError(
+        "CREDENTIAL_UNREADABLE",
+        `${label} at ${path} could not be read (${error.code ?? error.message}); refusing to fall back to another credential`
+      )
+    }
+  } finally {
+    closeSync(fd)
+  }
 }
 
 function firstExisting(root, filenames, label) {
@@ -301,13 +351,74 @@ function createLogger() {
   }
 }
 
-/** Run a command on the host or inside the VM, optionally feeding it stdin. */
-function execHost(
+/**
+ * The executables this agent may spawn on the host.
+ *
+ * Every `execHost` argv is assembled from data that starts at the command line
+ * - a head SHA, a profile name, the VM name - so leaving `argv[0]` free lets a
+ * crafted invocation choose which binary runs *outside* the container, next to
+ * the GitHub App private key. `ops/local-ci/README.md` describes a plane that
+ * shells out to a fixed, small set of tools; this is that description as a
+ * mechanism instead of a convention.
+ *
+ * `git`, `docker` and `curl` are documented tools of this plane but are absent
+ * here on purpose: they run *inside* the VM, as words in a script that
+ * `/bin/sh` or `limactl shell` interprets, and `container.mjs` owns the
+ * `docker` argv it spawns. Nothing in this file ever names them as a host
+ * executable, so admitting them here would widen the allowlist past its only
+ * two real call sites.
+ *
+ * Entries are matched whole. A basename match would accept `/tmp/x/limactl`,
+ * which is the attack this exists to stop.
+ */
+export const PERMITTED_HOST_EXECUTABLES = Object.freeze(["/bin/sh", "limactl"])
+
+/**
+ * Check one argv and return the *allowlist's own* string for its executable.
+ *
+ * Returning the matched constant rather than `argv[0]` is the point: what
+ * reaches `spawn` is then one of the two literals above by construction, not a
+ * caller-supplied value that merely compared equal to one.
+ */
+export function permittedExecutable(argv) {
+  if (!Array.isArray(argv) || argv.length === 0) {
+    throw new CliError(
+      "INVALID_COMMAND",
+      `a host command must be a non-empty array (received ${describeValue(argv)})`
+    )
+  }
+  const nonString = argv.findIndex((word) => typeof word !== "string")
+  if (nonString !== -1) {
+    throw new CliError(
+      "INVALID_COMMAND",
+      `host command word ${nonString} must be a string (received ${describeValue(argv[nonString])})`
+    )
+  }
+  const executable = PERMITTED_HOST_EXECUTABLES.find((name) => name === argv[0])
+  if (executable === undefined) {
+    throw new CliError(
+      "EXECUTABLE_NOT_PERMITTED",
+      `this agent may not run ${JSON.stringify(argv[0])} on the host; the permitted executables are ${PERMITTED_HOST_EXECUTABLES.join(", ")}`
+    )
+  }
+  return executable
+}
+
+/**
+ * Run a command on the host or inside the VM, optionally feeding it stdin.
+ *
+ * `async` rather than a bare `Promise` so a refused argv arrives as a rejection
+ * like every other failure here - `releaseWorkspace` swallows this call with
+ * `.catch()`, and a synchronous throw would escape that and mask a run's real
+ * outcome from inside a `finally`.
+ */
+export async function execHost(
   argv,
   { input = null, timeoutMs = 600_000, cwd = undefined } = {}
 ) {
+  const executable = permittedExecutable(argv)
   return new Promise((resolveExec, rejectExec) => {
-    const child = spawn(argv[0], argv.slice(1), {
+    const child = spawn(executable, argv.slice(1), {
       cwd,
       stdio: [input === null ? "ignore" : "pipe", "pipe", "pipe"],
     })
@@ -342,6 +453,27 @@ function execHost(
   })
 }
 
+/**
+ * Quote one value for POSIX `sh`.
+ *
+ * The scripts below are assembled as text and handed to `/bin/sh -c`, so every
+ * interpolated value is shell syntax until it is quoted. The inputs are not
+ * arbitrary - a head SHA is validated as 40 hex, a lane id comes from a
+ * reviewed profile - but "currently well-formed" is not a security boundary:
+ * this agent exists to run pull-request code, and the remote URL, the
+ * workspace root and the VM name all reach here from a contract file or the
+ * environment. Quoting at the seam means a future caller cannot turn a value
+ * into a command by accident.
+ *
+ * Single quotes are literal in `sh` for every character except the single
+ * quote itself, which is closed, escaped and reopened.
+ */
+export function shQuote(value) {
+  const text = String(value)
+  if (text === "") return "''"
+  return `'${text.replace(/'/g, `'\\''`)}'`
+}
+
 const vmShell = (vm, script) =>
   vm === null
     ? ["/bin/sh", "-c", script]
@@ -361,14 +493,14 @@ async function prepareWorkspace({ config, contract, headSha, logger }) {
   logger.info(`preparing ${worktree} inside the VM`)
   const script = [
     "set -eu",
-    `mkdir -p ${root}/runs`,
-    `if [ ! -d ${mirror}/.git ]; then git clone ${contract.remoteUrl} ${mirror}; fi`,
-    `cd ${mirror}`,
-    "git remote set-url origin " + contract.remoteUrl,
+    `mkdir -p ${shQuote(`${root}/runs`)}`,
+    `if [ ! -d ${shQuote(`${mirror}/.git`)} ]; then git clone ${shQuote(contract.remoteUrl)} ${shQuote(mirror)}; fi`,
+    `cd ${shQuote(mirror)}`,
+    `git remote set-url origin ${shQuote(contract.remoteUrl)}`,
     "git fetch --prune --tags origin",
-    `git worktree remove --force ${worktree} 2>/dev/null || true`,
-    `rm -rf ${worktree}`,
-    `git worktree add --force --detach ${worktree} ${headSha}`,
+    `git worktree remove --force ${shQuote(worktree)} 2>/dev/null || true`,
+    `rm -rf ${shQuote(worktree)}`,
+    `git worktree add --force --detach ${shQuote(worktree)} ${shQuote(headSha)}`,
   ].join("\n")
   await execHost(vmShell(config.vm, script))
   return worktree
@@ -377,9 +509,9 @@ async function prepareWorkspace({ config, contract, headSha, logger }) {
 async function releaseWorkspace({ config, headSha }) {
   const root = config.vmWorkspaceRoot
   const script = [
-    `cd ${root}/repo 2>/dev/null || exit 0`,
-    `git worktree remove --force ${root}/runs/${headSha} 2>/dev/null || true`,
-    `rm -rf ${root}/runs/${headSha}`,
+    `cd ${shQuote(`${root}/repo`)} 2>/dev/null || exit 0`,
+    `git worktree remove --force ${shQuote(`${root}/runs/${headSha}`)} 2>/dev/null || true`,
+    `rm -rf ${shQuote(`${root}/runs/${headSha}`)}`,
   ].join("\n")
   await execHost(vmShell(config.vm, script)).catch(() => {})
 }
@@ -418,7 +550,7 @@ function makeEnvFileWriter({ config, headSha }) {
     const body = Object.entries(env)
       .map(([name, value]) => `${name}=${value}`)
       .join("\n")
-    await execHost(vmShell(config.vm, `umask 077; cat > ${path}`), {
+    await execHost(vmShell(config.vm, `umask 077; cat > ${shQuote(path)}`), {
       input: `${body}\n`,
     })
     return path
