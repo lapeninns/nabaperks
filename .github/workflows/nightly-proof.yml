@@ -1,0 +1,83 @@
+name: Local CI nightly proof
+
+# The freshness monitor for the local CI execution plane.
+#
+# The advisory `local-proof` bridge in ci.yml only reports on commits somebody
+# pushed, which leaves the blind spot this workflow exists to close: a sleeping
+# Mac, a VM that never came back from a reboot, and an agent that died on
+# Tuesday are indistinguishable from a quiet week. Once a day this asks a
+# different question - did the local plane publish a *successful*
+# `Nabaperks Local CI (nightly)` check for the default branch inside
+# `nightlyProof.maxAgeHours` (36)? - and that question has an answer even when
+# nobody has opened a pull request.
+#
+# ADVISORY AT CUTOVER STEP 1, ON PURPOSE. No machine is provisioned yet, so an
+# enforcing monitor would fire a guaranteed false alarm every single day until
+# the agent exists, and a daily false alarm is how a real one gets ignored. It
+# is inert three ways: the job is skipped entirely until an operator sets the
+# repository variable LOCAL_CI_MODE, the job carries `continue-on-error: true`,
+# and scripts/check-nightly-proof.mjs reads `nightlyProof.enforcement` from
+# config/local-ci-contract.json at run time and returns 0 while it is
+# "advisory". It does not page and it does not open an incident issue - note
+# the permissions below carry no `issues` scope at all, so it could not open
+# one if it tried.
+#
+# CUTOVER STEP 3 promotes it: set `nightlyProof.enforcement` to "blocking" in
+# the contract - which is all the script needs - then drop `continue-on-error`
+# here and add the incident-issue step, which is also what first requires an
+# `issues: write` scope. See docs/operations/local-ci-cutover.md.
+
+on:
+  # Late morning UTC, well clear of the overnight local nightly run it checks
+  # on, and clear of the other scheduled workflows in this repository
+  # (nightly.yml at 02:24, slo-report.yml at 07:13).
+  schedule:
+    - cron: "47 9 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: local-ci-nightly-proof
+  cancel-in-progress: true
+
+# Read-only, and narrower than it looks: `contents: read` is what the checkout
+# needs, `checks: read` is what reading the proof needs, and nothing else is
+# granted. This workflow observes the local plane and can never write to it.
+permissions:
+  contents: read
+  checks: read
+
+jobs:
+  freshness:
+    name: Nightly proof freshness
+    # Dormant until an operator provisions the local plane. Until then there is
+    # no agent anywhere and therefore no nightly proof to expect, so running
+    # would only manufacture noise.
+    if: ${{ vars.LOCAL_CI_MODE != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true
+    # Job-level permissions replace the workflow-level set rather than merging
+    # with it, so both scopes are restated here.
+    permissions:
+      contents: read
+      checks: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .nvmrc
+      - name: Require a recent successful nightly local CI proof
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          LOCAL_CI_MODE: ${{ vars.LOCAL_CI_MODE }}
+          # For a scheduled run this is the default branch, which is the only
+          # branch the local plane publishes nightly proofs for. The script
+          # walks back from this branch's head rather than asking about the
+          # head alone: the nightly proves whatever commit was head when it
+          # started, and by now main has usually moved on, so a head-only
+          # question would report "missing" every day the repository saw a
+          # merge - the exact false alarm this monitor must not produce.
+          LOCAL_CI_NIGHTLY_REF: ${{ github.ref_name }}
+        run: node scripts/check-nightly-proof.mjs

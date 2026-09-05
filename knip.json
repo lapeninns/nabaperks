@@ -12,6 +12,7 @@
     "components/**/*.{ts,tsx}",
     "hooks/**/*.{ts,tsx}",
     "lib/**/*.{ts,tsx}",
+    "ops/**/*.mjs",
     "scripts/**/*.mjs",
     "tests/**/*.{mjs,ts,tsx}",
     "*.{ts,mts,mjs}"
