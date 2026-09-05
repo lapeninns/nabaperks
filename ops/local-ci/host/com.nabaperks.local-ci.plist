@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Nabaperks local CI agent - macOS LaunchAgent (user/gui domain).
+
+  Installed by ops/local-ci/host/install.sh to
+  ~/Library/LaunchAgents/com.nabaperks.local-ci.plist. The committed file and
+  the installed file are byte-identical: every path here is absolute and
+  operator-independent, so nothing is templated at install time.
+
+  This is a LaunchAgent, not a LaunchDaemon, on purpose. `limactl` with
+  vmType "vz" needs a GUI (Aqua) session to hold the Virtualization.framework
+  VM, so the agent has to run in the logged-in user's session. That is the
+  reason install.sh tells the operator to enable automatic login, and the
+  reason LimitLoadToSessionType is Aqua.
+
+  ==========================================================================
+  SLEEP CONTRACT - read this before changing anything below.
+  ==========================================================================
+  The Mac must stay awake WHILE A CI JOB IS RUNNING and must be free to sleep
+  at every other moment. launchd cannot express that: a plist can only start a
+  process, and any power assertion held by this plist would be held for the
+  agent's entire lifetime - which is always.
+
+  So the assertion does NOT live here. It lives in the agent:
+
+    * This plist starts the agent WITHOUT caffeinate. An idle agent holds no
+      power assertion and the Mac sleeps normally.
+    * When the agent claims a job it forks the job runner, then spawns
+      `/usr/bin/caffeinate -i -m -w <job-runner-pid>` as a sibling process.
+        -i  prevent idle system sleep
+        -m  prevent disk sleep
+        -w  exit when that pid exits, releasing the assertion
+      Because the assertion is bound to the job runner's pid via -w, it is
+      released when the job ends, when the job is cancelled, and even when the
+      agent itself crashes. There is no path that leaks a permanent assertion.
+    * The macOS persistent power-management settings CLI is forbidden anywhere
+      under ops/. It mutates global system state that outlives the agent;
+      caffeinate takes a scoped, self-releasing assertion instead. A contract
+      test asserts that CLI's absence and the presence of the
+      `caffeinate -i -m -w` invocation in the agent source.
+
+  Verify a live assertion with: pgrep -fl caffeinate
+  It prints the flags and the job-runner pid the assertion is bound to.
+  ==========================================================================
+-->
+<plist version="1.0">
+  <dict>
+    <key>Label</key>
+    <string>com.nabaperks.local-ci</string>
+
+    <!-- Absolute, and entirely under the reviewed install root. The symlink
+         /opt/nabaperks-local-ci/current is repointed atomically by install.sh
+         to a release directory extracted from a verified main commit, so the
+         agent can never be executed from unreviewed pull-request code. -->
+    <key>ProgramArguments</key>
+    <array>
+      <string>/opt/nabaperks-local-ci/current/ops/local-ci/agent/main.mjs</string>
+      <!-- Required. Without it the agent parses as a one-shot run, exits 2 for
+           the missing --profile/--sha, and KeepAlive restarts it forever. -->
+      <string>--watch</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/opt/nabaperks-local-ci/current</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Restart the agent whenever it exits, for any reason. ThrottleInterval
+         keeps a crash loop from saturating the machine. -->
+    <key>KeepAlive</key>
+    <true/>
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+
+    <!-- Give a claimed job time to finish and report before launchd escalates
+         to SIGKILL on stop or reload. -->
+    <key>ExitTimeOut</key>
+    <integer>120</integer>
+
+    <!-- Aqua only: vz-backed Lima VMs require a logged-in GUI session. -->
+    <key>LimitLoadToSessionType</key>
+    <string>Aqua</string>
+
+    <!-- Standard, not Background: a Background ProcessType is clamped to a low
+         QoS by App Nap and would throttle every build. -->
+    <key>ProcessType</key>
+    <string>Standard</string>
+    <key>LowPriorityIO</key>
+    <false/>
+    <key>Nice</key>
+    <integer>0</integer>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+      <!-- launchd starts with a minimal PATH. node, limactl and docker all
+           live in Homebrew or /usr/local on an Apple silicon Mac. -->
+      <key>PATH</key>
+      <string>/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+      <key>LANG</key>
+      <string>en_US.UTF-8</string>
+      <key>LC_ALL</key>
+      <string>en_US.UTF-8</string>
+      <!-- The agent resolves its credential directory from $HOME, which launchd
+           sets for a gui-domain agent. NABAPERKS_LOCAL_CI_HOME is deliberately
+           NOT set here: hardcoding an operator's home directory would make the
+           committed plist non-portable and would break the byte-identical
+           install invariant. Default: $HOME/.nabaperks-local-ci -->
+      <key>NABAPERKS_LOCAL_CI_INSTALL_ROOT</key>
+      <string>/opt/nabaperks-local-ci/current</string>
+    </dict>
+
+    <!-- Log directory is created by install.sh as
+         /opt/nabaperks-local-ci/logs, owned by the operator, mode 0750, and
+         rotated by /etc/newsyslog.d/com.nabaperks.local-ci.conf. -->
+    <key>StandardOutPath</key>
+    <string>/opt/nabaperks-local-ci/logs/agent.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/opt/nabaperks-local-ci/logs/agent.err.log</string>
+
+    <key>SoftResourceLimits</key>
+    <dict>
+      <key>NumberOfFiles</key>
+      <integer>8192</integer>
+    </dict>
+  </dict>
+</plist>
