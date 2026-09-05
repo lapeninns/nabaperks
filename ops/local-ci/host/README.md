@@ -49,6 +49,8 @@ Credentials remain `0600` inside their separate `0700` directory. This repairs
 older installations where the credential-stage `umask 077` left public code
 unreadable by the operator. Operator access is checked before launchd starts;
 registration alone is still not proof of a live heartbeat or a successful job.
+The agent resolves its invocation path through `current` before deciding whether
+to run its CLI; invoking the installed path with `--help` must print usage.
 
 ## Trust boundary
 

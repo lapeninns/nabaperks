@@ -29,6 +29,7 @@ import {
   mkdirSync,
   openSync,
   readFileSync,
+  realpathSync,
   readdirSync,
   rmSync,
   rmdirSync,
@@ -1735,11 +1736,19 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
 // root and this repository both contain characters that percent-encode in a
 // URL (the checkout lives under ".../LapenInns Project/..."), so the naive
 // form never matches and the CLI silently exits 0 without running.
-const invokedDirectly =
-  typeof process.argv[1] === "string" &&
-  import.meta.url === pathToFileURL(process.argv[1]).href
+function invokedDirectly() {
+  try {
+    // Node resolves the entry module through the installer's `current` link.
+    return (
+      typeof process.argv[1] === "string" &&
+      import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href
+    )
+  } catch {
+    return false
+  }
+}
 
-if (invokedDirectly) {
+if (invokedDirectly()) {
   main().then(
     (code) => {
       process.exitCode = code
