@@ -1,0 +1,226 @@
+# Nabaperks local CI execution plane - isolated Linux build VM.
+#
+# Create with:
+#   limactl create --name=nabaperks-ci ops/local-ci/host/lima-nabaperks-ci.yaml
+#   limactl start nabaperks-ci
+#
+# Isolation contract (asserted by tests/contracts/devops-local-ci.test.mjs
+# against config/local-ci-contract.json's `vm` block). That test covers this
+# committed file; nothing compares the *running* instance against it, so a VM
+# created by any route other than `limactl start` on this file is unverified:
+#
+#   1. `mounts: []`            - the VM cannot see a single byte of the macOS
+#                                filesystem. The GitHub App private key and the
+#                                UptimeRobot heartbeat URL live in
+#                                ~/.nabaperks-local-ci on the Mac host, so they
+#                                are unreachable from the VM by construction,
+#                                and therefore unreachable from any job
+#                                container running inside it.
+#   2. `ssh.forwardAgent: false` and `ssh.loadDotSSHPubKeys: false`
+#                              - no host SSH agent socket is forwarded into the
+#                                guest, and none of the operator's personal
+#                                public keys are installed. Only the per
+#                                instance Lima key can reach the guest.
+#   3. `networks: []` + user-mode NAT only, plus `portForwards[].ignore: true`
+#                              - Lima never publishes a guest port on the Mac,
+#                                so nothing on the LAN can reach the VM.
+#   4. ufw default-deny incoming inside the guest (provision step 1), with a
+#      single allow for SSH from the host-side NAT gateway address that Lima
+#      itself uses. This is the concrete inbound-blocking mechanism; it is
+#      executed, not merely asserted in prose.
+#   5. A DOCKER-USER conntrack DROP rule (provision step 2) closes the well
+#      known hole where Docker's own iptables rules bypass ufw for published
+#      container ports. Job containers are never started with `-p` either.
+#   6. `rosetta.enabled: false` - the guest is native ARM64 only. Playwright
+#      encodes just `process.platform` in the {platform} snapshot token, so a
+#      Linux ARM64 run is indistinguishable from a Linux x64 run in a snapshot
+#      filename. Local runs therefore never write or compare visual snapshots;
+#      the local profiles pass --ignore-snapshots and never invoke test:visual.
+
+minimumLimaVersion: "1.0.0"
+
+vmType: "vz"
+os: "Linux"
+arch: "aarch64"
+
+# Ubuntu 24.04 LTS (noble), ARM64. The image is intentionally referenced by the
+# rolling `release` path rather than a fabricated digest. To pin it, replace the
+# location with a dated build under
+# https://cloud-images.ubuntu.com/releases/24.04/release-YYYYMMDD/ and add the
+# matching `digest:` taken from that directory's SHA256SUMS file. The refresh
+# procedure lives in ops/local-ci/host/README.md.
+images:
+  - location: "https://cloud-images.ubuntu.com/releases/24.04/release/ubuntu-24.04-server-cloudimg-arm64.img"
+    arch: "aarch64"
+
+cpus: 12
+memory: "40GiB"
+disk: "150GiB"
+
+# No host directory is visible to the guest. This is the primary trust boundary.
+mounts: []
+
+ssh:
+  forwardAgent: false
+  loadDotSSHPubKeys: false
+
+# Nothing but Docker Engine runs container workloads in this VM.
+containerd:
+  system: false
+  user: false
+
+# Native ARM64 only. See isolation note 6 above.
+rosetta:
+  enabled: false
+  binfmt: false
+
+# No vmnet / shared / bridged interface. User-mode NAT is the only path out,
+# and it offers no inbound route at all.
+networks: []
+
+# Refuse to publish any guest port onto the Mac. Without this Lima auto-forwards
+# listening guest ports to 127.0.0.1 on the host.
+portForwards:
+  - guestIP: "0.0.0.0"
+    guestPortRange: [1, 65535]
+    ignore: true
+
+video:
+  display: "none"
+
+firmware:
+  legacyBIOS: false
+
+provision:
+  # ---------------------------------------------------------------- firewall
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -euo pipefail
+      export DEBIAN_FRONTEND=noninteractive
+
+      apt-get update -qq
+      apt-get install -y -qq --no-install-recommends \
+        ufw iptables netfilter-persistent iptables-persistent ca-certificates curl gnupg
+
+      # The host side of Lima's user-mode NAT. Every Lima transport (SSH,
+      # guestagent) arrives from this address; nothing else can route here.
+      host_gateway="$(ip route show default | awk '{ print $3; exit }')"
+      if [ -z "${host_gateway}" ]; then
+        echo "refusing to configure the firewall: no default route" >&2
+        exit 1
+      fi
+
+      # Idempotent: reset then rebuild the whole ruleset on every boot.
+      ufw --force reset >/dev/null
+      ufw default deny incoming
+      ufw default allow outgoing
+      ufw allow in on lo
+      ufw allow in proto tcp from "${host_gateway}" to any port 22 \
+        comment "lima ssh from the host NAT gateway only"
+      ufw --force enable
+      ufw status verbose
+
+  # ------------------------------------------------------------ docker engine
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -euo pipefail
+      export DEBIAN_FRONTEND=noninteractive
+
+      # Pinned Docker Engine. Refresh with `apt-cache madison docker-ce` inside
+      # the VM and update this literal plus the ledger in host/README.md.
+      DOCKER_VERSION="5:27.5.1-1~ubuntu.24.04~noble"
+
+      install -m 0755 -d /etc/apt/keyrings
+      if [ ! -s /etc/apt/keyrings/docker.gpg ]; then
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+          | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+        chmod 0644 /etc/apt/keyrings/docker.gpg
+      fi
+      cat > /etc/apt/sources.list.d/docker.list <<'REPO'
+      deb [arch=arm64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu noble stable
+      REPO
+
+      apt-get update -qq
+      if ! dpkg-query -W -f='${Version}' docker-ce 2>/dev/null | grep -qx "${DOCKER_VERSION}"; then
+        apt-get install -y -qq \
+          "docker-ce=${DOCKER_VERSION}" \
+          "docker-ce-cli=${DOCKER_VERSION}" \
+          containerd.io \
+          docker-buildx-plugin \
+          docker-compose-plugin
+      fi
+      apt-mark hold docker-ce docker-ce-cli
+
+      install -m 0755 -d /etc/docker
+      cat > /etc/docker/daemon.json <<'DAEMON'
+      {
+        "iptables": true,
+        "ip6tables": false,
+        "live-restore": false,
+        "log-driver": "json-file",
+        "log-opts": { "max-size": "16m", "max-file": "3" },
+        "default-address-pools": [{ "base": "172.31.0.0/16", "size": 24 }]
+      }
+      DAEMON
+
+      systemctl enable docker
+      systemctl restart docker
+
+      # Docker's own FORWARD rules run before ufw's, so ufw alone does not stop
+      # traffic to a published container port. Drop every NEW inbound flow that
+      # arrives on the external interface and is destined for a container. This
+      # is installed as a systemd unit so it survives reboots independently of
+      # whether Lima replays provisioning.
+      cat > /usr/local/sbin/nabaperks-docker-inbound-deny <<'GUARD'
+      #!/bin/bash
+      set -euo pipefail
+      ext_if="$(ip route show default | awk '{ print $5; exit }')"
+      [ -n "${ext_if}" ] || exit 1
+      iptables -N DOCKER-USER 2>/dev/null || true
+      if ! iptables -C DOCKER-USER -i "${ext_if}" -m conntrack --ctstate NEW -j DROP 2>/dev/null; then
+        iptables -I DOCKER-USER 1 -i "${ext_if}" -m conntrack --ctstate NEW -j DROP
+      fi
+      GUARD
+      chmod 0755 /usr/local/sbin/nabaperks-docker-inbound-deny
+
+      cat > /etc/systemd/system/nabaperks-docker-inbound-deny.service <<'UNIT'
+      [Unit]
+      Description=Drop new inbound connections to Docker containers
+      After=docker.service
+      Requires=docker.service
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      ExecStart=/usr/local/sbin/nabaperks-docker-inbound-deny
+
+      [Install]
+      WantedBy=multi-user.target
+      UNIT
+      systemctl daemon-reload
+      systemctl enable --now nabaperks-docker-inbound-deny.service
+
+  # -------------------------------------------------------------- workspace
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -euo pipefail
+      # The job runner's scratch root. Clones, container volumes and evidence
+      # live here; nothing under it is shared with the Mac.
+      install -d -m 0750 -o "${LIMA_CIDATA_USER}" -g "${LIMA_CIDATA_USER}" /var/lib/nabaperks-ci
+      usermod -aG docker "${LIMA_CIDATA_USER}"
+
+probes:
+  - mode: readiness
+    description: "docker engine is up and the inbound-deny guard is loaded"
+    script: |
+      #!/bin/bash
+      set -euo pipefail
+      timeout 300s bash -c "until command -v docker >/dev/null 2>&1; do sleep 3; done"
+      timeout 300s bash -c "until docker info >/dev/null 2>&1; do sleep 3; done"
+      timeout 60s bash -c "until ufw status | grep -q 'Status: active'; do sleep 2; done"
+    hint: |
+      Docker Engine or the firewall did not come up. Inspect with:
+        limactl shell nabaperks-ci -- sudo journalctl -u docker -u nabaperks-docker-inbound-deny

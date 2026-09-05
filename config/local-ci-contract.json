@@ -1,0 +1,249 @@
+{
+  "schema": "nabaperks.local-ci.v1",
+  "checkName": "Nabaperks Local CI",
+  "nightlyCheckName": "Nabaperks Local CI (nightly)",
+  "repository": "lapeninns/nabaperks",
+  "remoteUrl": "https://github.com/lapeninns/nabaperks.git",
+  "allowedHeadRepository": "lapeninns/nabaperks",
+  "cutoverStep": 1,
+  "stage": "bridge-shadow",
+  "description": "Single source of truth shared by the local CI agent (ops/local-ci), the bridge job in .github/workflows/ci.yml, the nightly proof verifier, and the contract tests. Cutover step 1 ships the agent and the bridge advisory: no job in ci.yml is deleted, renamed, or newly depended upon, and release-gate still needs exactly [fast, build].",
+  "githubApp": {
+    "name": "Nabaperks Local CI",
+    "appId": null,
+    "installationId": null,
+    "repositoryId": null,
+    "permissions": {
+      "checks": "write",
+      "actions": "write",
+      "contents": "read",
+      "pull_requests": "read",
+      "metadata": "read"
+    },
+    "allowedActionsWriteOperations": ["rerun-failed-jobs"],
+    "privateKeyPath": "~/.nabaperks-local-ci/app-private-key.pem",
+    "privateKeyMode": "0600",
+    "notes": "appId, installationId and repositoryId are null sentinels until the App is created and installed by hand (runbook M1/M5). No proof lane may be promoted from advisory to blocking while any of the three is null. The only non-GET Actions call the agent is permitted to make is rerun-failed-jobs."
+  },
+  "bridge": {
+    "job": "local-proof",
+    "checkName": "Local CI proof",
+    "workflow": ".github/workflows/ci.yml",
+    "script": "scripts/check-local-ci-proof.mjs",
+    "timeoutMinutes": 120,
+    "pollIntervalSeconds": 30,
+    "enforcement": "advisory",
+    "requiredCheck": false,
+    "dependents": [],
+    "headShaRule": "On pull_request the bridge polls the PR head SHA (github.event.pull_request.head.sha), which must differ from GITHUB_SHA; on push it polls GITHUB_SHA, which must equal it. A mismatch fails the job in seconds with a self-describing message rather than timing out.",
+    "notes": "Additive only at cutover step 1. No job in ci.yml lists local-proof in its needs, so release-gate's merge-blocking surface is bit-for-bit today's [fast, build]. Step 3 is what flips enforcement to blocking."
+  },
+  "nightlyProof": {
+    "maxAgeHours": 36,
+    "checkName": "Nabaperks Local CI (nightly)",
+    "profile": "nightly",
+    "workflow": ".github/workflows/nightly-proof.yml",
+    "script": "scripts/check-nightly-proof.mjs",
+    "enforcement": "advisory",
+    "notes": "The verifier fails when the newest nightly proof for the default branch is older than maxAgeHours. 36 hours is one 24-hour cadence plus a 12-hour recovery window, so a single missed night warns without paging and two consecutive misses fail."
+  },
+  "shadowMode": {
+    "enabled": true,
+    "requiredConsecutiveEquivalent": 3,
+    "ledgerIssueTitle": "[Local CI] Shadow qualification ledger",
+    "flipsAtCutoverStep": 3,
+    "notes": "While enabled the agent publishes results and the bridge reports them, but no merge decision depends on them. Cutover step 3 sets enabled to false in the same commit that flips bridge.enforcement to blocking."
+  },
+  "agent": {
+    "pollIntervalSeconds": 60,
+    "maxConcurrentJobs": 1,
+    "maxConcurrentLanes": 4,
+    "logRetentionDays": 30,
+    "heartbeatIntervalMinutes": 5,
+    "queueDepthLimit": 8,
+    "gitFetchDepth": 0,
+    "installRoot": "/opt/nabaperks-local-ci/current",
+    "stateRoot": "~/.nabaperks-local-ci",
+    "launchdLabel": "com.lapeninns.nabaperks.local-ci",
+    "notes": "maxConcurrentJobs bounds whole CI runs (one head SHA at a time). maxConcurrentLanes bounds lanes inside one run; lanes that declare the same concurrencyGroup are serialised against each other regardless. gitFetchDepth 0 is required because the quality lane's docs:check runs git diff --exit-code."
+  },
+  "container": {
+    "cpus": 10,
+    "memoryGb": 32,
+    "timeoutMinutes": 110,
+    "dockerInDocker": true,
+    "mountHostDockerSocket": false,
+    "network": "bridge",
+    "readOnlyRootFilesystem": false,
+    "workspacePath": "/workspace",
+    "notes": "timeoutMinutes is deliberately 10 minutes inside bridge.timeoutMinutes so the agent kills and reports a run before the hosted bridge job gives up on it. dockerInDocker is what lets the DB lane run `supabase start` without ever handing a job the host Docker socket; mountHostDockerSocket must stay false, because the host socket is a container escape."
+  },
+  "vm": {
+    "name": "nabaperks-ci",
+    "definition": "ops/local-ci/host/lima-nabaperks-ci.yaml",
+    "os": "ubuntu-24.04",
+    "arch": "aarch64",
+    "cpus": 12,
+    "memoryGb": 40,
+    "diskGb": 150,
+    "mounts": [],
+    "forwardAgent": false,
+    "inboundConnections": "blocked",
+    "notes": "The self-check re-asserts every value here against `limactl list --json` at start and before every dispatch, and refuses on any mount entry, a forwarded agent, or a private key readable beyond 0600."
+  },
+  "toolchain": {
+    "node": "24",
+    "pnpm": "10.28.0",
+    "playwright": "1.62.1",
+    "supabaseCli": "2.106.0",
+    "postgresMajorVersion": 17,
+    "notes": "node comes from .nvmrc, pnpm from package.json packageManager, playwright from the installed @playwright/test, supabaseCli from the version pinned by supabase/setup-cli in ci.yml and production-database.yml, postgresMajorVersion from supabase/config.toml."
+  },
+  "profiles": {
+    "pr": "ops/local-ci/profiles/pr.json",
+    "main": "ops/local-ci/profiles/main.json",
+    "nightly": "ops/local-ci/profiles/nightly.json"
+  },
+  "profileSchema": "nabaperks.local-ci-profile.v1",
+  "laneDefaults": {
+    "continueOnError": false,
+    "arch": "any",
+    "concurrencyGroup": null,
+    "teardownCommands": [],
+    "backgroundServices": [],
+    "runtimeEnv": []
+  },
+  "archValues": ["any", "x64-only"],
+  "runtimeEnv": {
+    "schema": "nabaperks.local-ci-runtime-env.v1",
+    "description": "Values that only exist at run time. A lane references a source by id in its runtimeEnv array; the runtime resolves the source once per lane and layers the result over baselineEnv and then the lane's own literal env. No literal value for any of these may appear in this contract or in any profile.",
+    "precedence": ["baselineEnv", "runtimeEnv", "laneEnv"],
+    "sources": [
+      {
+        "id": "supabase-local",
+        "kind": "command",
+        "resolution": "per-lane",
+        "command": "supabase status -o env",
+        "format": "dotenv",
+        "secret": true,
+        "provides": [
+          "NEXT_PUBLIC_SUPABASE_URL",
+          "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+          "SUPABASE_SERVICE_ROLE_KEY",
+          "SUPABASE_DB_URL"
+        ],
+        "map": {
+          "API_URL": "NEXT_PUBLIC_SUPABASE_URL",
+          "ANON_KEY": "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+          "SERVICE_ROLE_KEY": "SUPABASE_SERVICE_ROLE_KEY",
+          "DB_URL": "SUPABASE_DB_URL"
+        },
+        "requires": ["supabase-started"],
+        "notes": "The anon and service-role keys the local stack mints are per-stack and are never written to disk in this repository. Only lanes that talk to the local stack over HTTP need this source; the db lane deliberately does not use it, because ci.yml's db job reaches Postgres directly over SUPABASE_DB_URL and nothing else."
+      },
+      {
+        "id": "ci-vapid",
+        "kind": "command",
+        "resolution": "per-run",
+        "command": "node scripts/generate-ci-vapid-env.mjs",
+        "format": "dotenv",
+        "secret": false,
+        "provides": [
+          "WEB_PUSH_VAPID_PUBLIC_KEY",
+          "WEB_PUSH_VAPID_PRIVATE_KEY",
+          "WEB_PUSH_VAPID_SUBJECT"
+        ],
+        "notes": "The local equivalent of ci.yml's `node scripts/generate-ci-vapid-env.mjs >> \"$GITHUB_ENV\"`. The generated pair is a matched non-secret fixture; env:check:production verifies the public point matches the private scalar."
+      },
+      {
+        "id": "auth-hook-fixture",
+        "kind": "generated",
+        "resolution": "per-run",
+        "generator": "standard-webhook-secret",
+        "spec": {
+          "version": "v1",
+          "bytes": 32,
+          "encoding": "base64"
+        },
+        "secret": false,
+        "provides": ["SUPABASE_SEND_EMAIL_HOOK_SECRET"],
+        "notes": "The local equivalent of the split `printf` fixtures in ci.yml's fast and db jobs, which exist only so the workflow file carries no signing-secret-shaped literal. The runtime assembles a fresh standard-webhook-shaped fixture per run; check-env.mjs's hasStandardWebhookSecretShape is the acceptance boundary. Never a real credential and never written to a tracked file."
+      },
+      {
+        "id": "strict-fixtures",
+        "kind": "generated",
+        "resolution": "per-run",
+        "generator": "high-entropy-fixture",
+        "spec": {
+          "bytes": 32,
+          "encoding": "base64url",
+          "minLength": 32
+        },
+        "secret": false,
+        "provides": [
+          "CRON_SECRET",
+          "PRODUCTION_MONITOR_SECRET",
+          "CUSTOMER_SESSION_SECRET",
+          "CUSTOMER_PHONE_HMAC_SECRET",
+          "CUSTOMER_PHONE_ENCRYPTION_KEY"
+        ],
+        "notes": "The local equivalent of the strict production-profile values ci.yml's fast job sets inline. Those are quoted literals in the workflow; here they are minted per run so no entropy-bearing literal is committed. check-env.mjs requires at least 32 characters, no whitespace, at least 12 distinct characters, and no placeholder word - which 32 random bytes in base64url satisfies by construction."
+      }
+    ],
+    "resolutionValues": ["per-run", "per-lane"],
+    "resolutionNotes": "per-run sources resolve once and every lane in the run sees the same value, which is what lets one lane seed ciphertext another lane reads back. per-lane sources resolve inside the lane, after its own setup commands have run - `supabase status -o env` has no answer until that lane's `supabase start` has completed."
+  },
+  "snapshotGuard": {
+    "enabled": true,
+    "reason": "Playwright encodes only process.platform in the {platform} snapshot token, so the hosted x86-64 `-linux` baselines resolve identically on ARM64. A local run that resolved them would compare, and could rewrite, the wrong PNGs.",
+    "layers": [
+      "every Playwright invocation in every profile carries --grep-invert @visual",
+      "every Playwright invocation in every profile carries --ignore-snapshots",
+      "no profile command contains -u, --update-snapshots, or test:visual",
+      "after every lane the agent runs the mutation check below and fails the lane if it reports anything"
+    ],
+    "mutationCheck": {
+      "command": "git status --porcelain -- 'tests/e2e/**/*-snapshots'",
+      "mustBeEmpty": true
+    },
+    "forbiddenCommandSubstrings": ["-u ", "--update-snapshots", "test:visual"],
+    "notes": "Visual regression stays GitHub-hosted on x64 for the whole cutover. The hosted `visual` and `visual-gate` jobs in ci.yml are untouched by cutover step 1."
+  },
+  "hostSecrets": [
+    "LOCAL_CI_GITHUB_APP_ID",
+    "LOCAL_CI_GITHUB_APP_PRIVATE_KEY",
+    "LOCAL_CI_GITHUB_INSTALLATION_ID",
+    "LOCAL_CI_WEBHOOK_SECRET",
+    "LOCAL_CI_HEARTBEAT_URL"
+  ],
+  "hostSecretsPolicy": {
+    "storageRoot": "~/.nabaperks-local-ci",
+    "fileMode": "0600",
+    "neverEnterContainer": true,
+    "notes": "These names live on the VM host only. The agent mints a short-lived installation token from the App private key on the host and uses it on the host; no job container ever receives any of these names, the derived token, or a mount that could reach them. A repository secret cannot reach this plane at all, which is why the load-race lane stays hosted."
+  },
+  "evidence": {
+    "resultSchema": "nabaperks.lane-result.v1",
+    "artifactRoot": "~/.nabaperks-local-ci/runs",
+    "retentionDays": 30,
+    "notes": "One lane-result document per lane per run, retained for agent.logRetentionDays so a shadow-mode comparison against the hosted plane can be reconstructed after the fact."
+  },
+  "concurrencyGroups": {
+    "http-127.0.0.1-3000": "Lanes that bind 127.0.0.1:3000 - print-kit's dev-server preview, and the nightly load and zap-full lanes' `pnpm start`.",
+    "supabase-local": "Lanes that run their own local Supabase stack on 54321/54322 - db and the nightly db-stress lane."
+  },
+  "playwrightPorts": {
+    "e2e-chromium": 3146,
+    "e2e-mobile-safari": 3148,
+    "e2e-desktop-firefox": 3149,
+    "e2e-desktop-safari": 3150,
+    "a11y-chromium": 3151,
+    "a11y-mobile-safari": 3152,
+    "reserved": {
+      "3000": "print-kit preview, load, zap-full",
+      "3147": "SUPABASE_SEND_EMAIL_HOOK_URI on host.docker.internal (db lane)"
+    },
+    "notes": "Hosted shards each own a whole runner and all use the 127.0.0.1:3146 default. Concurrent local lanes need distinct dev-server ports, so each Playwright lane sets PLAYWRIGHT_BASE_URL and its own PLAYWRIGHT_NEXT_DIST_DIR. 3147 is never assigned to a browser lane because it is the auth-hook callback port the db lane's SUPABASE_SEND_EMAIL_HOOK_URI points at."
+  },
+  "localShards": 8
+}
