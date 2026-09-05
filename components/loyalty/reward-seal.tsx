@@ -1,6 +1,6 @@
 import {
   CheckmarkCircle02Icon,
-  ClockIcon,
+  Clock01Icon,
   GiftIcon,
   HelpCircleIcon,
 } from "@hugeicons/core-free-icons"
@@ -16,7 +16,7 @@ export type RewardSealSize = "sm" | "md" | "lg"
 /** The seal's mark per state — the redeemed check is earned only, never a promise. */
 const GLYPH: Record<RewardSealState, IconGlyph> = {
   sealed: HelpCircleIcon,
-  waiting: ClockIcon,
+  waiting: Clock01Icon,
   ready: GiftIcon,
   redeemed: CheckmarkCircle02Icon,
 }
