@@ -64,8 +64,7 @@ const ciLinuxSnapshotPathTemplate =
   process.env.CI && process.platform === "linux"
     ? "{testDir}/{testFilePath}-snapshots/{arg}-{projectName}-linux{ext}"
     : undefined
-const reuseExistingServer =
-  !process.env.CI && process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER === "1"
+const reuseExistingServer = process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER === "1"
 const chromiumChannel =
   process.env.PLAYWRIGHT_REGULAR_CHROMIUM === "1" ? "chromium" : undefined
 
@@ -133,6 +132,7 @@ export default defineConfig({
     },
   ],
   webServer: {
+    ignoreHTTPSErrors: process.env.REWARD_ID_LOOPBACK_HTTPS === "1",
     command: `${devServerEnv} pnpm exec next dev --webpack`,
     url: devServerReadyUrl,
     reuseExistingServer,

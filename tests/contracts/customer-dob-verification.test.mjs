@@ -32,7 +32,7 @@ test("customer-entered DOB is separated from verified reward eligibility", () =>
   assert.match(migration, /status = 'redeemed'/)
 })
 
-test("DOB verification is an MFA-gated, audited internal-admin workflow", () => {
+test("DOB verification retains audited admin support while the QR allows owner review", () => {
   const migration = readProjectFile(
     "supabase",
     "migrations",
@@ -79,6 +79,7 @@ test("DOB verification is an MFA-gated, audited internal-admin workflow", () => 
   assert.match(panel, /Confirm only after checking reliable evidence\./)
   assert.match(panel, /Verify date of birth/)
   assert.match(rewardPanel, /profileGate\.dateOfBirthVerified/)
-  assert.match(rewardPanel, /Date of birth check needed/)
-  assert.match(rewardQrRoute, /!profile\.dateOfBirthVerified/)
+  assert.match(rewardPanel, /ID check needed/)
+  assert.doesNotMatch(rewardQrRoute, /!profile\.dateOfBirthVerified/)
+  assert.match(rewardQrRoute, /!profile\?\.complete/)
 })

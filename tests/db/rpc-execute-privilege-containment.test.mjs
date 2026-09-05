@@ -47,6 +47,8 @@ const AUTHENTICATED_DIRECT_RPCS = [
   "admin_log_pilot_note",
   "admin_capture_commercial_evidence_case",
   "admin_verify_customer_date_of_birth",
+  "get_owner_reward_scan_context",
+  "verify_and_collect_reward_scan_token",
   "save_loyalty_card",
   "upsert_reward_pool_item",
   "set_reward_pool_item_active",
@@ -117,7 +119,11 @@ const MUST_BE_LOCKED = [
   "issue_self_service_stamp",
 ]
 
-const INTERNAL_ONLY_FUNCTIONS = new Set([
+const SERVICE_ROLE_EXCLUDED_FUNCTIONS = new Set([
+  "get_owner_reward_scan_context",
+  "verify_and_collect_reward_scan_token",
+  "require_eligible_reward_for_scan_token",
+  "purge_merchant_id_checks_after_customer_erasure",
   "purge_customer_otp_devices_after_erasure",
   "reject_password_access_tokens",
   "require_admin_webauthn_user_verification",
@@ -183,7 +189,7 @@ test("authenticated can execute only the allowlist", async (t) => {
   )
 })
 
-test("service_role can execute every public function except internal hooks", async (t) => {
+test("service_role can execute every public function except internal hooks and owner-only RPCs", async (t) => {
   if (!(await isLiveDbReady())) return t.skip("no live DB")
 
   const fns = await publicFunctions()
@@ -191,7 +197,7 @@ test("service_role can execute every public function except internal hooks", asy
   for (const fn of fns) {
     const [{ can }] = await db()`
       select has_function_privilege('service_role', ${fn.oid}::oid, 'EXECUTE') as can`
-    if (!can && !INTERNAL_ONLY_FUNCTIONS.has(fn.proname)) {
+    if (!can && !SERVICE_ROLE_EXCLUDED_FUNCTIONS.has(fn.proname)) {
       missing.push(fn.proname)
     }
   }

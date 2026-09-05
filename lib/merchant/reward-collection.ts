@@ -2,13 +2,16 @@ import "server-only"
 
 import { getCurrentMerchant } from "@/lib/auth/session"
 import { formatMerchantCustomerIdentifier } from "@/lib/merchant/customer-identity-display"
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
+import {
+  createSupabaseServerClient,
+  createSupabaseServiceRoleClient,
+} from "@/lib/supabase/server"
 import { LOYALTY_PROGRAMME_UNAVAILABLE } from "@/lib/copy/product-copy"
 
 export type MerchantRewardScanContext =
   | { status: "unauthenticated" | "not_found" | "unauthorized" | "expired" }
   | {
-      status: "ready" | "redeemed" | "blocked"
+      status: "ready" | "redeemed" | "blocked" | "verification_required"
       scanToken: string
       rewardId: string
       rewardName: string
@@ -16,6 +19,7 @@ export type MerchantRewardScanContext =
       membershipId: string
       currentStampCount: number | null
       customerLabel: string
+      idCheck?: { fullName: string; dateOfBirth: string }
       blockedReason?: string
     }
 
@@ -36,16 +40,15 @@ export async function loadMerchantRewardScanContext(
   const merchant = await getCurrentMerchant()
   if (!merchant) return { status: "unauthenticated" }
 
-  const supabase = createSupabaseServiceRoleClient()
-  const { data, error } = await supabase.rpc("get_reward_scan_context", {
+  const supabase = await createSupabaseServerClient()
+  const { data, error } = await supabase.rpc("get_owner_reward_scan_context", {
     p_scan_token: scanToken,
-    p_merchant_id: merchant.id,
   })
 
   if (error) {
-    // Keep raw Postgres detail in server logs only; surface a stable,
-    // non-revealing message so DB hints never reach the client/error boundary.
-    console.error("get_reward_scan_context failed", error)
+    if (error.code === "42501") return { status: "not_found" }
+    // Log only the failure code; provider messages can contain identity fields.
+    console.error("get_owner_reward_scan_context failed", { code: error.code })
     throw new Error("Unable to load reward scan context.")
   }
 
@@ -56,16 +59,12 @@ export async function loadMerchantRewardScanContext(
 
   if (scanStatus === "not_found" || !scanStatus) return { status: "not_found" }
   if (scanStatus === "unauthorized") return { status: "unauthorized" }
-  // Expiry maps to a stable 'expired' status, matching the collect path which
-  // raises 'Reward scan token expired' for the same expires_at <= now() case —
-  // no brittle substring match on the read side. The migration that makes
-  // get_reward_scan_context emit 'expired' (20260628122828) is checked in but
-  // applied separately via db:migrate; until then the RPC returns 'not_found'
-  // and the not_found branch above keeps the current 404 behaviour.
+  // Keep token expiry distinct from missing records, without parsing error text.
   if (scanStatus === "expired") return { status: "expired" }
 
   if (
     scanStatus !== "ready" &&
+    scanStatus !== "verification_required" &&
     scanStatus !== "redeemed" &&
     scanStatus !== "blocked"
   ) {
@@ -120,14 +119,37 @@ export async function collectMerchantScannedReward(
   }
 }
 
-function merchantCollectionBlockedCopy(message: string): string {
+export function merchantCollectionBlockedCopy(message: string): string {
   const rules: ReadonlyArray<readonly [readonly string[], string]> = [
+    [
+      ["date of birth changed"],
+      "The customer's date of birth changed. Refresh and check their ID again.",
+    ],
+    [
+      ["Confirm the in-person"],
+      "Confirm the in-person photo ID check before collection.",
+    ],
+    [
+      [
+        "Merchant owner access required",
+        "Reward not available to this merchant",
+      ],
+      "This reward is not available to your merchant account.",
+    ],
+    [
+      ["Verified adult date of birth required"],
+      "Check the customer's photo ID before collecting this reward. Refresh to open the ID check.",
+    ],
+    [["Reward expired"], "This reward has expired and cannot be collected."],
     [
       ["belongs to a different merchant"],
       "This reward belongs to a different merchant.",
     ],
     [["scan token already used"], "This reward has already been collected."],
-    [["reward already collected"], "This reward has already been collected."],
+    [
+      ["reward already collected", "Reward already collected"],
+      "This reward has already been collected.",
+    ],
     [
       ["scan token expired", "scan token not found", "scan token superseded"],
       "This reward could not be collected. Refresh and try again.",
@@ -138,7 +160,7 @@ function merchantCollectionBlockedCopy(message: string): string {
       "This reward cannot be collected until the next opening day.",
     ],
     [
-      ["Complete your profile"],
+      ["Complete your profile", "Verified email required"],
       "Ask the customer to finish their profile before this reward can be collected.",
     ],
     [
@@ -151,7 +173,7 @@ function merchantCollectionBlockedCopy(message: string): string {
       "This customer has not collected enough stamps yet.",
     ],
     [
-      ["Reward is not redeemable"],
+      ["Reward is not redeemable", "Reward is not ready to collect"],
       "This reward is no longer available to collect.",
     ],
     [["not active", "unavailable"], LOYALTY_PROGRAMME_UNAVAILABLE],
@@ -186,6 +208,12 @@ function scanContext(
     return { status: "not_found" }
   }
 
+  const fullName = stringField(row, "customer_full_name")
+  const dateOfBirth = stringField(row, "customer_date_of_birth")
+  if (status === "verification_required" && (!fullName || !dateOfBirth)) {
+    return { status: "not_found" }
+  }
+
   return {
     status,
     scanToken,
@@ -193,9 +221,13 @@ function scanContext(
     rewardName,
     rewardTerms: stringField(row, "reward_terms") ?? "",
     membershipId,
+    idCheck:
+      status === "verification_required" && fullName && dateOfBirth
+        ? { fullName, dateOfBirth }
+        : undefined,
     currentStampCount: numberField(row, "current_stamp_count"),
-    // Only the masked label leaves this loader. Raw email/phone are read solely
-    // to compute the mask and are never added to MerchantRewardScanContext.
+    // The authenticated RPC already returns masked email and a phone suffix.
+    // Preserve the display fallback without relying on this loader for privacy.
     customerLabel: formatMerchantCustomerIdentifier({
       email: stringField(row, "customer_email"),
       phone: stringField(row, "customer_phone"),

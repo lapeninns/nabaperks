@@ -2,8 +2,7 @@ import "server-only"
 
 import { getCustomerRewardState } from "@/lib/customer/reward"
 import { getLocationRequirement } from "@/lib/customer/stamp"
-import { rewardStampThresholdMet } from "@/lib/customer/issued-reward-display"
-import { isRedeemableFrom } from "@/lib/customer/uk-date"
+import { rewardQrAvailability } from "@/lib/customer/reward-qr-eligibility"
 import { customerLoginHref } from "@/lib/navigation/safe-next-path"
 
 import type { RewardContext } from "./derive"
@@ -38,17 +37,18 @@ export async function loadRewardExperienceContext(
   const { reward, assignedReward, loyaltyCard, merchant, membership } =
     rewardState
   const location = await getLocationRequirement(loyaltyCard.location_id)
-  const redeemable =
-    reward.status === "unlocked" &&
-    !rewardState.unavailableReason &&
-    rewardStampThresholdMet(
-      reward.source,
-      membership.current_stamp_count,
-      loyaltyCard.stamps_required
-    ) &&
-    isRedeemableFrom(reward.redeemable_from)
+  const availability = rewardQrAvailability({
+    status: reward.status,
+    source: reward.source,
+    redeemableFrom: reward.redeemable_from,
+    expiresAt: reward.expires_at,
+    currentStampCount: membership.current_stamp_count,
+    stampsRequired: loyaltyCard.stamps_required,
+    unavailableReason: rewardState.unavailableReason,
+  })
+  const availableForReview = availability.status === "ready"
   // The gate only governs a ready reward — skip the profile lookup otherwise.
-  const profileGate = redeemable ? await loadProfileGate() : undefined
+  const profileGate = availableForReview ? await loadProfileGate() : undefined
 
   return {
     reward: {
@@ -60,13 +60,14 @@ export async function loadRewardExperienceContext(
     },
     merchantName: merchant.business_name,
     status: reward.status,
-    redeemable,
+    availableForReview,
     // Server-confirmed collection instant, surfaced as a quiet proof line on the
     // redeemed panel (F26). Null until the merchant scan marks it collected.
     redeemedAt: reward.redeemed_at,
     justRedeemed: flags.justRedeemed === true,
     location,
-    unavailableReason: rewardState.unavailableReason,
+    unavailableReason:
+      availability.status === "blocked" ? availability.reason : undefined,
     profileGate,
   }
 }

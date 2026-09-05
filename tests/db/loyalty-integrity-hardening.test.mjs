@@ -732,6 +732,9 @@ test(
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
+      // Drain seeded background candidates before asserting an exact two-row
+      // page. All changes remain inside this test's rolled-back transaction.
+      await tx`select public.release_completed_cycles_without_reward(1000000)`
       const refused = await createRewardPoolFixture(tx)
       const healthy = await createRewardPoolFixture(tx)
       await seedFixtureCycle(tx, healthy)
@@ -785,6 +788,8 @@ test(
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
+      // Seed data must not occupy one of the two slots under test.
+      await tx`select public.release_completed_cycles_without_reward(1000000)`
       const fixtures = await Promise.all([
         createRewardPoolFixture(tx),
         createRewardPoolFixture(tx),

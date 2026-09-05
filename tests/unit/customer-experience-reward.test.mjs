@@ -27,7 +27,7 @@ function rewardContext(overrides = {}) {
     reward: rewardView(),
     merchantName: "The Test Arms",
     status: "unlocked",
-    redeemable: false,
+    availableForReview: false,
     location: locationRequirement(),
     justRedeemed: false,
     ...overrides,
@@ -51,7 +51,7 @@ test("unlocked rewards that are not yet redeemable render the waiting state", ()
   const experience = deriveCustomerExperience({
     entry: "reward",
     context: rewardContext({
-      redeemable: false,
+      availableForReview: false,
     }),
   })
 
@@ -77,7 +77,7 @@ test("redeemable rewards carry the profile gate into the ready state", () => {
   const experience = deriveCustomerExperience({
     entry: "reward",
     context: rewardContext({
-      redeemable: true,
+      availableForReview: true,
       location,
       profileGate,
     }),
@@ -97,7 +97,7 @@ test("ready rewards default to a complete profile gate when no profile lookup is
   const experience = deriveCustomerExperience({
     entry: "reward",
     context: rewardContext({
-      redeemable: true,
+      availableForReview: true,
     }),
   })
 
@@ -118,7 +118,7 @@ test("redeemed rewards render proof before any ready or waiting state", () => {
     entry: "reward",
     context: rewardContext({
       status: "redeemed",
-      redeemable: true,
+      availableForReview: true,
       redeemedAt: "2026-07-01T12:00:00.000Z",
     }),
   })
@@ -137,7 +137,7 @@ test("blocked or expired reward facts render unavailable copy instead of collect
     entry: "reward",
     context: rewardContext({
       status: "expired",
-      redeemable: false,
+      availableForReview: false,
       unavailableReason: "This reward has expired.",
     }),
   })

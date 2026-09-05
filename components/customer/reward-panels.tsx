@@ -35,6 +35,7 @@ export function RewardWaitingPanel({
       footerLeft={cardNumber(exp.reward.membershipId)}
     >
       <RewardTicket
+        headingLevel="h2"
         state="waiting"
         name={exp.reward.rewardName}
         description={rewardTermsNode(exp.reward)}
@@ -62,25 +63,31 @@ export function RewardReadyPanel({
       footerLeft={cardNumber(exp.reward.membershipId)}
     >
       <RewardTicket
-        state="ready"
+        headingLevel="h2"
+        state={
+          exp.profileGate.dateOfBirthVerified
+            ? "ready"
+            : "verification_required"
+        }
         name={exp.reward.rewardName}
         description={rewardTermsNode(exp.reward)}
       />
-      {exp.profileGate.complete && exp.profileGate.dateOfBirthVerified ? (
+      {exp.profileGate.complete ? (
         <>
           {/* One instruction per screen (F18b): the title confirms the state and
               the single "scans this QR" line lives beside the QR itself. */}
-          <StatusBanner title="Ready for merchant scan." tone="success" />
+          {exp.profileGate.dateOfBirthVerified ? (
+            <StatusBanner title="Ready for merchant scan." tone="success" />
+          ) : (
+            <StatusBanner title="ID check needed" tone="warning">
+              Show this code and your photo ID to the venue owner.
+            </StatusBanner>
+          )}
           <RewardCollectionLive
             rewardId={exp.reward.rewardId}
             rewardName={exp.reward.rewardName}
           />
         </>
-      ) : exp.profileGate.complete ? (
-        <StatusBanner title="Date of birth check needed" tone="warning">
-          Ask a team member to verify your date of birth before collecting this
-          reward.
-        </StatusBanner>
       ) : (
         <CustomerProfileGateForm
           rewardId={exp.reward.rewardId}
@@ -110,6 +117,7 @@ export function RedeemedProofPanel({
       footerRight="REDEEMED"
     >
       <RewardTicket
+        headingLevel="h2"
         state="redeemed"
         name={exp.reward.rewardName}
         description={rewardTermsNode(exp.reward)}

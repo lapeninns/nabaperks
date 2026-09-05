@@ -86,14 +86,15 @@ test(
   async () => {
     await inRolledBackTxn(async (tx) => {
       const fixture = await createRewardPoolFixture(tx)
-      await tx`
-        update public.customer_memberships
-        set current_stamp_count = 0
-        where id = ${fixture.membershipId}::uuid`
       const rewardId = await insertReward(tx, fixture, {
         source: "stamp_cycle",
       })
       const tokenId = await insertScanToken(tx, fixture, rewardId)
+      // Mint while eligible, then prove collection readback rechecks the balance.
+      await tx`
+        update public.customer_memberships
+        set current_stamp_count = 0
+        where id = ${fixture.membershipId}::uuid`
       const [ctx] = await tx`
         select scan_status, blocked_reason from public.get_reward_scan_context(
           ${tokenId}::uuid, ${fixture.merchantId}::uuid)`
@@ -140,15 +141,15 @@ test(
         update public.customer_memberships
         set current_stamp_count = 0
         where id = ${fixture.membershipId}::uuid`
-      await tx`
-        update public.customers
-        set full_name = null
-        where id = ${fixture.customerId}::uuid`
       const rewardId = await insertReward(tx, fixture, {
         source: "birthday_month",
         birthdayYear: 2026,
       })
       const tokenId = await insertScanToken(tx, fixture, rewardId)
+      await tx`
+        update public.customers
+        set full_name = null
+        where id = ${fixture.customerId}::uuid`
       const [ctx] = await tx`
         select scan_status, blocked_reason from public.get_reward_scan_context(
           ${tokenId}::uuid, ${fixture.merchantId}::uuid)`

@@ -8,6 +8,7 @@ import {
   revalidateCacheTag,
 } from "@/lib/cache/tags"
 import { collectMerchantScannedReward } from "@/lib/merchant/reward-collection"
+import { verifyAndCollectMerchantReward } from "@/lib/merchant/reward-id-verification"
 
 export type MerchantRewardCollectionActionState = {
   errors?: {
@@ -21,11 +22,22 @@ export async function confirmMerchantRewardCollectionAction(
 ): Promise<MerchantRewardCollectionActionState> {
   const scanToken = value(formData, "scanToken")
 
-  if (!scanToken) {
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      scanToken
+    )
+  ) {
     return { errors: { form: "Reward unavailable." } }
   }
 
-  const result = await collectMerchantScannedReward(scanToken)
+  const result =
+    value(formData, "collectionMode") === "verify_id"
+      ? await verifyAndCollectMerchantReward({
+          scanToken,
+          expectedDateOfBirth: value(formData, "expectedDateOfBirth"),
+          idConfirmed: value(formData, "idConfirmed") === "true",
+        })
+      : await collectMerchantScannedReward(scanToken)
 
   if (result.status === "blocked") {
     return { errors: { form: result.reason } }
