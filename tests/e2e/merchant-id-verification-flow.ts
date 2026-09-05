@@ -53,6 +53,11 @@ export function registerMerchantIdVerificationTests() {
       const merchantContext = await browser.newContext({
         baseURL,
         viewport: page.viewportSize() ?? undefined,
+        isMobile: testInfo.project.use.isMobile,
+        hasTouch: testInfo.project.use.hasTouch,
+        deviceScaleFactor: testInfo.project.use.deviceScaleFactor,
+        userAgent: testInfo.project.use.userAgent,
+        reducedMotion: "reduce",
         ignoreHTTPSErrors: process.env.REWARD_ID_LOOPBACK_HTTPS === "1",
       })
       const merchant = await merchantContext.newPage()
@@ -96,6 +101,29 @@ export function registerMerchantIdVerificationTests() {
         if (!decoded) throw new Error("Reward QR could not be decoded")
         const scan = new URL(decoded.data)
         expect(scan.origin).toBe(new URL(baseURL).origin)
+        await expect(
+          page
+            .getByRole("figure", {
+              name: `Merchant-scan QR for ${fixture.rewardName}`,
+            })
+            .locator("[aria-busy]")
+        ).toHaveAttribute("aria-busy", "false")
+        const qrImage = page.getByRole("img", {
+          name: `QR code for collecting ${fixture.rewardName}`,
+        })
+        // Centre the code above the fixed bottom navigation before scanning
+        // the pixels, just as the customer can position it at the counter.
+        await qrImage.evaluate((image) =>
+          image.scrollIntoView({ block: "center" })
+        )
+        const renderedQr = PNG.sync.read(await qrImage.screenshot())
+        expect(
+          jsQR(
+            new Uint8ClampedArray(renderedQr.data),
+            renderedQr.width,
+            renderedQr.height
+          )?.data
+        ).toBe(decoded.data)
         await assertRenderedQuality(page)
         await screenshotEvidence(
           page,
