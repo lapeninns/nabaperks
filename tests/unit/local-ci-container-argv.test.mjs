@@ -199,6 +199,25 @@ test("container argv: the job container is never privileged and shares no host n
   )
 })
 
+test("daemon-backed jobs share only their owned sidecar network and keep DB loopback", () => {
+  const daemonName = daemonContainerName({ headSha: HEAD_SHA, laneId: "db" })
+  const built = argv({ daemonName })
+  assert.equal(valueAfter(built, "--network"), `container:${daemonName}`)
+  assert.ok(built.includes(`DOCKER_HOST=tcp://127.0.0.1:${DAEMON_TCP_PORT}`))
+  assert.equal(built.includes("--add-host"), false)
+  assert.equal(built.includes("--privileged"), false)
+  assert.equal(built.includes("--pid"), false)
+  for (const foreign of [
+    "host",
+    "postgres",
+    jobContainerName({ headSha: HEAD_SHA, laneId: "db" }),
+  ]) {
+    assert.throws(() => argv({ daemonName: foreign }), {
+      code: "FOREIGN_RESOURCE",
+    })
+  }
+})
+
 test("container argv: no port is published to the VM", () => {
   const built = argv()
   for (const flag of ["-p", "-P", "--publish", "--publish-all"]) {
@@ -415,6 +434,7 @@ test("a lane removes its own leftovers before it creates them, and touches nothi
   assert.deepEqual(sequence.slice(created), [
     "network create",
     "run",
+    "exec",
     "run",
     "rm",
     "rm",
@@ -458,6 +478,62 @@ test("a network that will not create stops the lane instead of blaming it", asyn
     false,
     "no container is started into a network that does not exist"
   )
+})
+
+test("a missing daemon image fails before repository code starts and still cleans up", async () => {
+  const { spawnFn, calls } = scriptedSpawn((argv) =>
+    subCommand(argv) === "run" && argv.includes("--detach")
+      ? { code: 125, stderr: `No such image: ${DAEMON_IMAGE}\n` }
+      : {}
+  )
+  const runtime = createContainerRuntime({ contract, vm: VM, spawnFn })
+  await assert.rejects(
+    () =>
+      runtime.withJobContainer({
+        ...IDENTITY,
+        image: IMAGE,
+        daemonImage: DAEMON_IMAGE,
+        command: ["bash", "-lc", "pnpm test:db"],
+        workspaceHostPath: "/var/lib/nabaperks-ci/runs/head",
+        env: {},
+        needsDaemon: true,
+      }),
+    (error) => {
+      assert.equal(error.code, "DAEMON_UNAVAILABLE")
+      assert.match(error.message, /No such image/)
+      return true
+    }
+  )
+  assert.equal(calls.filter((argv) => subCommand(argv) === "run").length, 1)
+  assert.deepEqual(calls.slice(-3).map(subCommand), ["rm", "rm", "network rm"])
+})
+
+test("a daemon that never becomes ready cannot start repository code", async () => {
+  const { spawnFn, calls } = scriptedSpawn((argv) =>
+    subCommand(argv) === "exec"
+      ? { code: 1, stderr: "Cannot connect to the Docker daemon\n" }
+      : {}
+  )
+  const runtime = createContainerRuntime({ contract, vm: VM, spawnFn })
+  await assert.rejects(
+    () =>
+      runtime.withJobContainer({
+        ...IDENTITY,
+        image: IMAGE,
+        daemonImage: DAEMON_IMAGE,
+        command: ["bash", "-lc", "pnpm test:db"],
+        workspaceHostPath: "/var/lib/nabaperks-ci/runs/head",
+        env: {},
+        needsDaemon: true,
+      }),
+    (error) => {
+      assert.equal(error.code, "DAEMON_UNAVAILABLE")
+      assert.match(error.message, /did not become ready.*Cannot connect/)
+      return true
+    }
+  )
+  assert.equal(calls.filter((argv) => subCommand(argv) === "run").length, 1)
+  assert.deepEqual(calls.slice(-3).map(subCommand), ["rm", "rm", "network rm"])
 })
 
 test("reading a lane's log back out of the workspace happens in the VM and never follows a link", () => {
