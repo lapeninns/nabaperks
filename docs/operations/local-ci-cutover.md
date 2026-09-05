@@ -903,6 +903,17 @@ governance does not currently prove the `Production` copy exists.
 
 ## 5.2 UptimeRobot configuration
 
+**Operator amendment (2026-09-05):** the operator rejected both UptimeRobot and
+Healthchecks and selected a GitHub Actions watchdog. The implementation and
+activation rehearsal are specified in [the watchdog runbook](local-ci-watchdog.md).
+The external-provider objects below are superseded for this installation; do
+not create their accounts or secrets. GitHub schedules can be delayed or dropped,
+so this choice does not satisfy an independent availability observer or a fixed
+alert deadline. Step 6's UptimeRobot uptime-ratio reader and seven-day warm-up
+must be redesigned and qualified before any availability gate is promoted;
+passing scheduled probes must not be represented as an independent uptime ratio.
+The ordering and evidence requirements for every other cutover step remain.
+
 Three provider-side objects, none of which can be created from the repository.
 
 1. **Public health monitor.** Keyword monitor on

@@ -16,7 +16,7 @@
 #      not on a mounted volume, not under a world-writable ancestor, and not
 #      reachable from the Lima VM (which is asserted to have zero mounts).
 #      Symlinks are resolved first, so the checks see the real target.
-#   4. Places the GitHub App private key and the UptimeRobot heartbeat URL at
+#   4. Places the GitHub App private key and the optional monitoring heartbeat URL at
 #      mode 0600 in that directory.
 #   5. Asserts the Lima instance's isolation properties.
 #   6. Pins the job image tag the agent will run, and proves the image exists
@@ -37,7 +37,7 @@
 #                               nabaperks-ci-job:<commit sha>. Kept across
 #                               re-runs, so it is needed once.
 #   --github-app-key PATH       Copy this PEM in as the GitHub App private key.
-#   --heartbeat-url-file PATH   Copy this file in as the UptimeRobot heartbeat
+#   --heartbeat-url-file PATH   Copy this file in as the optional monitoring heartbeat
 #                               URL. A file, never a --flag value: an argument
 #                               is visible to every process on the machine via
 #                               `ps` and is recorded in shell history.
@@ -381,10 +381,22 @@ if [ -n "${heartbeat_url_file_src}" ]; then
   copy_secret "${heartbeat_url_file_src}" "${HEARTBEAT_FILE}"
 fi
 
-for required_secret in "${KEY_FILE}" "${HEARTBEAT_FILE}"; do
+# Read the selected merged revision, never the working tree, for rollback parity.
+revision_contract="${scratch}/contract.json"
+git -C "${repo_root}" show "${release_sha}:config/local-ci-contract.json" >"${revision_contract}" \
+  || die "revision has no local CI contract"
+heartbeat_provider="$(node -e 'const fs = require("node:fs"); const c = JSON.parse(fs.readFileSync(process.argv[1], "utf8")); process.stdout.write(c.agentLiveness?.provider ?? "https")' "${revision_contract}")"
+required_secrets=("${KEY_FILE}")
+case "${heartbeat_provider}" in
+  github-check) note "GitHub App heartbeat selected; no external ping URL required" ;;
+  https) required_secrets+=("${HEARTBEAT_FILE}") ;;
+  *) die "unknown heartbeat provider: ${heartbeat_provider}" ;;
+esac
+
+for required_secret in "${required_secrets[@]}"; do
   path="${secret_dir_real}/${required_secret}"
   if [ ! -f "${path}" ]; then
-    die "missing ${path}. Create the GitHub App private key and the UptimeRobot heartbeat URL first, then re-run with --github-app-key / --heartbeat-url-file. The procedure is in ops/local-ci/host/README.md."
+    die "missing ${path}. Supply the required file with --github-app-key or, for the legacy HTTPS provider, --heartbeat-url-file. See ops/local-ci/host/README.md."
   fi
   chmod 0600 "${path}"
   mode="$(stat -f '%OLp' "${path}")"

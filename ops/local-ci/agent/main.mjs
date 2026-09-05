@@ -53,6 +53,7 @@ import { isCommitSha } from "../core/queue.mjs"
 import { renderCheckSummary } from "../core/summary.mjs"
 import { createContainerRuntime } from "./container.mjs"
 import { createGitHubClient } from "./github.mjs"
+import { createGitHubHeartbeat } from "./github-heartbeat.mjs"
 import { createHeartbeat } from "./heartbeat.mjs"
 import { createLoop, createSleepAssertion } from "./loop.mjs"
 import { createRunner, createRuntimeEnvResolver } from "./runner.mjs"
@@ -1584,11 +1585,27 @@ async function runNightlyOnce({ contract, config, options, logger }) {
 
 async function watch({ contract, config, logger }) {
   const github = hostGitHubClient({ contract, config, logger })
-  const heartbeat = createHeartbeat({
-    url: config.heartbeatUrl,
-    contract,
-    logger,
-  })
+  const heartbeat =
+    contract.agentLiveness?.provider === "github-check"
+      ? createGitHubHeartbeat({
+          github: createGitHubClient({
+            contract,
+            appId: config.appId,
+            installationId: config.installationId,
+            privateKey: config.privateKey,
+            logger,
+            maxAttempts: 1,
+            fetch: (url, options) =>
+              fetch(url, {
+                ...options,
+                redirect: "error",
+                signal: AbortSignal.timeout(5_000),
+              }),
+          }),
+          contract,
+          logger,
+        })
+      : createHeartbeat({ url: config.heartbeatUrl, contract, logger })
   if (!heartbeat.enabled) {
     logger.warn(
       "no monitoring heartbeat URL on this host; an agent that stops polling will not raise an alarm (runbook §2.5 step 3)"

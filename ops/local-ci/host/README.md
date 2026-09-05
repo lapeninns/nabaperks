@@ -34,7 +34,7 @@ specific Apple silicon Mac.
 
 ~/.nabaperks-local-ci/              <operator> 0700   NEVER in git, NEVER in the VM
 ├── github-app-private-key.pem      <operator> 0600
-└── uptimerobot-heartbeat-url       <operator> 0600
+└── uptimerobot-heartbeat-url       <operator> 0600 (optional legacy provider)
 
 ~/.lima/nabaperks-ci/               the VM instance: 12 vCPU, 40 GiB RAM, 150 GiB disk
 ```
@@ -45,7 +45,7 @@ reach 10 MB, keeping 7 bzip2-compressed generations.
 ## Trust boundary
 
 The GitHub App private key can mint installation tokens for the repository, and
-the UptimeRobot heartbeat URL can silence the agent-liveness alarm. Both are
+an optional monitoring heartbeat URL can silence the agent-liveness alarm. Both are
 **host-only secrets**. Four independent barriers keep them away from job code,
 and none of them is a policy statement — each is a mechanism you can observe.
 
@@ -269,17 +269,22 @@ key is downloadable exactly once.
    `config/local-ci-contract.json` in a normal reviewed pull request. They are
    identifiers, not secrets.
 
-### 5. Create the UptimeRobot heartbeat monitor
+### 5. Configure the GitHub watchdog
 
-Create a heartbeat monitor named `nabaperks-local-ci-agent`, copy its POST URL,
-and write it to a file. Write it to a **file**, never a shell argument:
-arguments are visible to every process on the machine through `ps` and are
-recorded in shell history.
+The operator selected GitHub Actions monitoring on 2026-09-05. No UptimeRobot
+or Healthchecks account, ping URL, API key or paid subscription is needed.
+The merged contract selects `agentLiveness.provider: github-check`; the agent
+uses its existing App credential to publish a separate heartbeat check every
+five minutes. The installer reads this setting from the selected merged
+revision, including on rollback, and requires an external URL only for older
+revisions using the HTTPS provider. The legacy URL filename remains supported.
 
-```sh
-umask 077
-printf '%s\n' '<heartbeat url>' > ~/heartbeat-url.txt
-```
+Follow [the watchdog runbook](../../../docs/operations/local-ci-watchdog.md)
+after installation. Leave `LOCAL_CI_WATCHDOG_ENABLED` unset until a real agent
+heartbeat is visible and notification delivery can be rehearsed. The scheduled
+monitor fails on evidence older than 20 minutes (five-minute cadence plus
+15-minute grace). This is a detection threshold, not an alert-delivery deadline:
+GitHub can delay or drop scheduled jobs, and GitHub outages affect both sides.
 
 ### 6. Install the agent
 
@@ -291,7 +296,6 @@ cd /path/to/nabaperks
 git checkout main && git pull --ff-only
 ops/local-ci/host/install.sh \
   --github-app-key ~/Downloads/<app>.private-key.pem \
-  --heartbeat-url-file ~/heartbeat-url.txt \
   --job-image "nabaperks-ci-job:<the sha you built the image from>"
 ```
 
@@ -305,10 +309,10 @@ finding out at first dispatch, when every lane fails at once.
 `--revision <sha>` installs a specific merged commit instead of `HEAD`, which
 is how a rollback works without moving the working tree.
 
-It will tell you to delete the two originals afterwards. Do that:
+After verifying the installed key, remove its original:
 
 ```sh
-rm ~/Downloads/<app>.private-key.pem ~/heartbeat-url.txt
+rm ~/Downloads/<app>.private-key.pem
 ```
 
 Expected refusals, all of which are correct behaviour:
