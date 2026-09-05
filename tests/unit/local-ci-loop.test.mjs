@@ -80,7 +80,7 @@ const pull = (overrides = {}) => ({
   ref: "refs/pull/41/head",
   sha: PR_SHA,
   headRepository: contract.repository,
-  headRepositoryId: 998877,
+  headRepositoryId: contract.githubApp.repositoryId,
   baseRepository: contract.repository,
   ...overrides,
 })
@@ -258,7 +258,10 @@ test("routing: a renamed repository presenting the allowlisted name is refused o
 
   const candidates = candidatesFrom({
     mainRef: { ref: DEFAULT_BRANCH_REF, sha: MAIN_SHA },
-    pullRequests: [pull(), pull({ number: 43, headRepositoryId: 4242 })],
+    pullRequests: [
+      pull({ headRepositoryId: pinned.githubApp.repositoryId }),
+      pull({ number: 43, headRepositoryId: 4242 }),
+    ],
     contract: pinned,
   })
   const classified = classifyCandidates(candidates, pinned)

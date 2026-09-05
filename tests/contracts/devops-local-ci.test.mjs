@@ -502,6 +502,30 @@ test("the build VM is isolated from the Mac by construction", () => {
   assert.match(lima, /\nrosetta:\n {2}enabled: false\n/)
 })
 
+test("VM provisioning avoids conflicting firewall managers and checks privileged readiness", () => {
+  const lima = read("ops/local-ci/host/lima-nabaperks-ci.yaml")
+  const install = lima.match(
+    /apt-get install -y -qq --no-install-recommends \\\n([^\n]+)/
+  )
+  assert.ok(install, "the firewall package installation must be present")
+  assert.match(install[1], /\bufw\b/)
+  assert.doesNotMatch(install[1], /(?:iptables|netfilter)-persistent/)
+
+  const probeStart = lima.indexOf("\nprobes:\n")
+  assert.notEqual(probeStart, -1)
+  const probe = lima.slice(probeStart)
+  assert.match(probe, /sudo -n docker info/)
+  assert.match(probe, /sudo -n ufw status/)
+  assert.match(
+    probe,
+    /sudo -n systemctl is-active --quiet nabaperks-docker-inbound-deny\.service/
+  )
+  assert.match(
+    probe,
+    /sudo -n iptables -C DOCKER-USER [^\n]*ctstate NEW -j DROP/
+  )
+})
+
 test("the job container never receives the host Docker daemon socket", () => {
   const contract = readJson(CONTRACT_PATH)
   const container = read("ops/local-ci/agent/container.mjs")

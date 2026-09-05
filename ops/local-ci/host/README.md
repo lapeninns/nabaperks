@@ -198,6 +198,15 @@ limactl create --name=nabaperks-ci ops/local-ci/host/lima-nabaperks-ci.yaml
 limactl start nabaperks-ci
 ```
 
+After the first successful boot, stop and start the instance once so the SSH
+session picks up the guest user's newly granted Docker group membership:
+
+```sh
+limactl stop --tty=false nabaperks-ci
+limactl start --tty=false nabaperks-ci
+limactl shell nabaperks-ci -- docker info
+```
+
 Then confirm the isolation properties actually took effect in the running
 instance, not just in the template:
 

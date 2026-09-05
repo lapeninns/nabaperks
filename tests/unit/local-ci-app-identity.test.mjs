@@ -34,7 +34,17 @@ const CONTRACT_TEXT = readFileSync(
   "utf8"
 )
 
-const contract = loadContract(() => CONTRACT_TEXT)
+// Exercise the pre-provisioning state explicitly, independent of live App IDs.
+const sourceContract = loadContract(() => CONTRACT_TEXT)
+const contract = validateContract({
+  ...sourceContract,
+  githubApp: {
+    ...sourceContract.githubApp,
+    appId: null,
+    installationId: null,
+    repositoryId: null,
+  },
+})
 
 /** The contract after the App has been created and installed by hand. */
 const provisioned = validateContract({
@@ -253,4 +263,23 @@ test("a check run that is not an object is refused rather than treated as absent
       (error) => error.code === IDENTITY_CODES.INVALID_CHECK_RUN
     )
   }
+})
+
+test("the configured App identity accepts its own ID and rejects an impostor", () => {
+  const appId = sourceContract.githubApp.appId
+  assert.ok(Number.isSafeInteger(appId))
+  const app = { id: appId, slug: expectedAppSlug(sourceContract) }
+  assert.equal(
+    assertCheckRunIdentity(checkRun({ app }), sourceContract, expected).id,
+    55
+  )
+  assert.throws(
+    () =>
+      assertCheckRunIdentity(
+        checkRun({ app: { ...app, id: appId + 1 } }),
+        sourceContract,
+        expected
+      ),
+    (error) => error.code === IDENTITY_CODES.APP_ID_MISMATCH
+  )
 })

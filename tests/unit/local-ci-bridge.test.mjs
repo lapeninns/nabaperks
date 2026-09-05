@@ -49,7 +49,7 @@ const checkRun = (overrides = {}) => ({
   head_sha: REQUESTED_SHA,
   status: "completed",
   conclusion: "success",
-  app: { id: 1234567, slug: "nabaperks-local-ci" },
+  app: { id: contract.githubApp.appId, slug: "nabaperks-local-ci" },
   ...overrides,
 })
 
