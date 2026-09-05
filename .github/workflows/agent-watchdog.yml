@@ -19,6 +19,8 @@ jobs:
     if: ${{ vars.LOCAL_CI_WATCHDOG_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    outputs:
+      healthy: ${{ steps.observe.outcome == 'success' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -27,6 +29,8 @@ jobs:
         with:
           node-version-file: .nvmrc
       - name: Require a heartbeat from the pinned App within 20 minutes
+        id: observe
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/check-agent-liveness.mjs
@@ -37,8 +41,45 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     permissions: {}
+    outputs:
+      healthy: ${{ steps.observe.outcome == 'success' }}
     steps:
       - name: Probe public production liveness
+        id: observe
+        continue-on-error: true
         run: |
           body="$(curl --fail --silent --show-error --max-time 10 https://nabaperks.com/api/health)"
           jq -e '.status == "ok" and .scope == "liveness" and .service == "nabaperks" and .environment == "production" and .targetEnvironment == "production"' <<<"$body"
+
+  alerts:
+    name: Deliver watchdog alerts
+    needs: [heartbeat, public-health]
+    if: ${{ always() && vars.LOCAL_CI_WATCHDOG_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Open once on failure and close on recovery
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        env:
+          HEARTBEAT_HEALTHY: ${{ needs.heartbeat.result == 'success' && needs.heartbeat.outputs.healthy == 'true' }}
+          PUBLIC_HEALTHY: ${{ needs.public-health.result == 'success' && needs.public-health.outputs.healthy == 'true' }}
+        with:
+          script: |
+            const { pathToFileURL } = await import('node:url');
+            const { readFileSync } = await import('node:fs');
+            const { reconcileWatchdogIncidents } = await import(pathToFileURL(`${process.env.GITHUB_WORKSPACE}/scripts/watchdog-incidents.mjs`).href);
+            const contract = JSON.parse(readFileSync('config/local-ci-contract.json', 'utf8'));
+            const results = await reconcileWatchdogIncidents({
+              github, repository: context.repo,
+              healthy: { heartbeat: process.env.HEARTBEAT_HEALTHY === 'true', publicHealth: process.env.PUBLIC_HEALTHY === 'true' },
+              runUrl: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              assignee: contract.agentLiveness.notificationAssignee,
+            });
+            await core.summary.addHeading('Watchdog observations — a successful delivery is not a health verdict')
+              .addTable([['Monitor', 'Observed state', 'Incident action'], ...results.map(row => [row.monitor, row.state, `${row.action}${row.issue ? ` (#${row.issue})` : ''}`])]).write();

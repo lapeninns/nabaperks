@@ -253,6 +253,7 @@
     "maxAgeMinutes": 20,
     "gating": false,
     "activationVariable": "LOCAL_CI_WATCHDOG_ENABLED",
+    "notificationAssignee": "lapeninns",
     "notes": "Operator selected GitHub Actions instead of external monitoring. Poll heartbeat every 5 minutes, 15 minutes grace. Alerts may be delayed or missed during GitHub scheduling or availability failures. Enable only after real agent publication and verify GitHub notification delivery."
   }
 }
