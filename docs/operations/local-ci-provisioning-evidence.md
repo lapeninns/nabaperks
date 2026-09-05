@@ -35,9 +35,11 @@ The GitHub settings and installation pages showed:
 | Installation visibility | Only on the owner's account                                         |
 
 These non-secret identifiers are pinned in `config/local-ci-contract.json`.
-The signing-key download was blocked by Chrome and is awaiting operator
-recovery. No installation token has been minted or tested, and no App credential
-has entered the VM. App registration is not proof of agent authentication.
+The initial signing-key download was blocked by Chrome. The operator then
+downloaded the key; it was restricted to mode `0600` on the Mac. The real
+client minted an installation token, verified App ID `4839346` and slug
+`nabaperks-local-ci`, and read `heads/main` from `lapeninns/nabaperks`.
+The key and token were not printed, and no App credential entered the VM.
 
 ## First VM attempt
 
@@ -75,16 +77,58 @@ repository-routing fixtures use the configured identifiers. A regression test
 accepts the configured App ID and rejects a different ID with the same slug.
 None of these offline checks establishes fresh-boot or credential readiness.
 
+## Fresh VM validation after PR #239
+
+PR #239 merged as `9fb41d6cbc8f198b0a7d3102b91483ef54f55d11`. Its latest hosted
+checks finished with 173 successes and one skip. Lighthouse home initially
+failed at 4,230 ms against 4,000 ms; one retry passed on the same commit without
+changing code or budgets. The merge commit's Release gate also passed.
+
+The failed VM was deleted and recreated from that merged template. First boot
+completed with cloud-init exit code 0 and every Lima readiness check satisfied.
+After the documented stop/start, live inspection verified:
+
+- UFW active, default incoming and routed traffic denied, outgoing allowed.
+- SSH admitted only from the Lima gateway; loopback traffic admitted.
+- The external-interface `DOCKER-USER` rule drops NEW inbound connections.
+- The guard's systemd service is active and enabled.
+- Unprivileged Docker access works; Engine 27.5.1 reports `aarch64`.
+- No `/Users`, Rosetta, forwarded SSH agent, virtiofs or 9p host mounts.
+
+A credential-free clone inside the VM matched the merged SHA. The first image
+build then failed because five apt version pins were unavailable. The host
+README records the archive candidates used in the diagnostic rebuild. That
+build uses the merged Dockerfile with explicit version arguments; it does not
+install unmerged agent code. A diagnostic image is not the installed job image.
+
+## Image runtime validation
+
+The apt refresh produced a complete diagnostic image. Its smoke check verified
+UID 501 / GID 1000 workspace ownership, writable pnpm stores, no daemon socket,
+and Python imports from the print-kit virtualenv. It also exposed an unexpected
+pnpm 11.25.0 selection outside a project, despite the declared 10.28.0 pin.
+Inspection found Corepack's per-user last-known-good version was 11.25.0 after
+the build removed root's cache.
+
+The candidate Dockerfile retains Corepack in `/opt/corepack`, disables implicit
+latest-version selection, and asserts pnpm's version as the unprivileged user.
+A diagnostic build of that candidate completed inside the isolated VM using
+only the merged dependency manifests as its build context. Its smoke checks
+passed with networking disabled: pnpm resolved to 10.28.0 both outside a project
+and in the merged repository, the workspace identity remained 501:1000, the
+cache was writable, and the Python virtualenv imports succeeded. No candidate
+image or unmerged agent was installed as the execution plane.
+
 ## Remaining proof
 
-After the provisioning fix merges, recreate the VM from the committed template
-and repeat the complete isolation checks. Then build the job image for the
-first time, verify the signing key and installation token, install the reviewed
-agent, and run real jobs. Keep `LOCAL_CI_MODE` unset until those prerequisites
+Complete the job-image build, merge any image fixes through normal review,
+rebuild from the merged commit, install the reviewed agent with its heartbeat
+monitor, and run real jobs. Keep `LOCAL_CI_MODE` unset until those prerequisites
 are met. Dual-run comparison and per-lane routing still need the additive
 implementation described by the cutover specification before shadow
 qualification can establish three consecutive equivalent SHAs.
 
-The Dockerfile has not been built, the agent has not polled GitHub, and no
+The candidate image build and offline smoke checks passed, but the agent has
+not polled GitHub and no
 end-to-end local CI or recovery rehearsal has passed. No hosted lane or merge
 dependency was changed by this provisioning fix.

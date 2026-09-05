@@ -357,21 +357,60 @@ When a pin goes stale the build fails with
 `Version '<x>' for '<pkg>' was not found` — that is a stale pin, not a broken
 Dockerfile.
 
-| Pin                      | Value                             | Source of truth / refresh command                                                                 |
-| ------------------------ | --------------------------------- | ------------------------------------------------------------------------------------------------- |
-| Node major               | `24`                              | `.nvmrc`; the image verifies its own Node major against it                                        |
-| `NODE_PKG_VERSION`       | `24.11.0-1nodesource1`            | `apt-cache madison nodejs` with the NodeSource repo enabled                                       |
-| pnpm                     | `10.28.0`                         | `package.json` `packageManager`                                                                   |
-| Playwright               | `1.62.1`                          | `@playwright/test` as resolved in `pnpm-lock.yaml`                                                |
-| Supabase CLI             | `2.106.0`                         | `supabase/setup-cli` `version` input in `ci.yml`                                                  |
-| Supabase CLI digest      | build arg, no default             | `sha256sum supabase_2.106.0_linux_arm64.deb`                                                      |
-| Docker Engine / CLI      | `5:27.5.1-1~ubuntu.24.04~noble`   | `apt-cache madison docker-ce` with the Docker repo enabled                                        |
-| k6 version               | build arg, no default             | no repository pin exists: `nightly.yml` uses `grafana/setup-k6-action@v1` with no `version` input |
-| k6 digest                | build arg, no default             | `sha256sum k6-v<version>-linux-arm64.tar.gz`                                                      |
-| `opencv-python-headless` | `4.10.0.84`                       | matches the package `ci.yml` installs for `posters:verify-pdfs`                                   |
-| `pymupdf`                | `1.24.10`                         | as above                                                                                          |
-| apt package versions     | `ARG APT_*` in the Dockerfile     | `apt-cache madison <pkg>` inside an `ubuntu:24.04` container                                      |
-| Ubuntu cloud image       | rolling `releases/24.04/release/` | pin to a dated build plus its `SHA256SUMS` digest when you qualify one                            |
+| Pin                      | Value                                                              | Source of truth / refresh command                                                          |
+| ------------------------ | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| Node major               | `24`                                                               | `.nvmrc`; the image verifies its own Node major against it                                 |
+| `NODE_PKG_VERSION`       | `24.11.0-1nodesource1`                                             | `apt-cache madison nodejs` with the NodeSource repo enabled                                |
+| pnpm                     | `10.28.0`                                                          | `package.json` `packageManager`                                                            |
+| Playwright               | `1.62.1`                                                           | `@playwright/test` as resolved in `pnpm-lock.yaml`                                         |
+| Supabase CLI             | `2.106.0`                                                          | `supabase/setup-cli` `version` input in `ci.yml`                                           |
+| Supabase CLI digest      | `a004217bc9e146e6aede8f7f26138fbd94cfdffa5ed4c6b9983bc8b804e5c928` | `sha256sum supabase_2.106.0_linux_arm64.deb`                                               |
+| Docker Engine / CLI      | `5:27.5.1-1~ubuntu.24.04~noble`                                    | `apt-cache madison docker-ce` with the Docker repo enabled                                 |
+| k6 version               | `2.2.0`                                                            | qualification pin; `nightly.yml` uses `grafana/setup-k6-action@v1` with no `version` input |
+| k6 digest                | `4ecd64cadcc792402d16293836115480419c4447c032858f564852d98f1bf54c` | `sha256sum k6-v<version>-linux-arm64.tar.gz`                                               |
+| `opencv-python-headless` | `4.10.0.84`                                                        | matches the package `ci.yml` installs for `posters:verify-pdfs`                            |
+| `pymupdf`                | `1.24.10`                                                          | as above                                                                                   |
+| apt package versions     | `ARG APT_*` in the Dockerfile                                      | `apt-cache madison <pkg>` inside an `ubuntu:24.04` container                               |
+| Ubuntu cloud image       | rolling `releases/24.04/release/`                                  | pin to a dated build plus its `SHA256SUMS` digest when you qualify one                     |
+
+### Ubuntu package refresh — 2026-09-05
+
+The first real image build failed because the archived versions of curl, Git,
+xz-utils, Poppler and python3-venv were absent. Querying `apt-cache policy`
+inside the ARM64 `ubuntu:24.04` image returned the versions below. The refreshed
+pins also keep GnuPG, jq and CA certificates on the current archive candidates.
+
+| Argument              | Verified archive candidate     |
+| --------------------- | ------------------------------ |
+| `APT_CA_CERTIFICATES` | `20260601~24.04.1`             |
+| `APT_CURL`            | `8.5.0-2ubuntu10.13`           |
+| `APT_GIT`             | `1:2.43.0-1ubuntu7.3`          |
+| `APT_GNUPG`           | `2.4.4-2ubuntu17.6`            |
+| `APT_JQ`              | `1.7.1-3ubuntu0.24.04.2`       |
+| `APT_UNZIP`           | `6.0-28ubuntu4.1`              |
+| `APT_XZ_UTILS`        | `5.6.1+really5.4.5-1ubuntu0.3` |
+| `APT_POPPLER_UTILS`   | `24.02.0-1ubuntu9.9`           |
+| `APT_IMAGEMAGICK`     | `8:6.9.12.98+dfsg1-5.2build2`  |
+| `APT_PYTHON3_VENV`    | `3.12.3-0ubuntu2.1`            |
+
+The Ubuntu image used for this inspection resolved to
+`sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517`.
+Package availability is verified; full image and job qualification are separate.
+
+### Preserve the pnpm pin across users and cache cleanup
+
+The initial image build activated pnpm 10.28.0 under root, then removed
+`/root/.cache` after `pnpm fetch`. The final unprivileged user selected pnpm
+11.25.0 outside a project, so a successful build did not prove the declared
+package-manager pin survived.
+
+`COREPACK_HOME=/opt/corepack` now keeps the prepared manager in a persistent,
+container-local cache shared by the build and runtime users.
+`COREPACK_DEFAULT_TO_LATEST=0` prevents implicit latest-version selection; see
+[Corepack's documented environment variables](https://github.com/nodejs/corepack#environment-variables).
+The build asserts the version again after switching to `runner`. Qualification
+also runs `pnpm --version` without network access both in an empty workspace and
+in the merged project's directory, checking for 10.28.0 in each case.
 
 ### Why the Python dependencies need a virtualenv
 

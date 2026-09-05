@@ -62,16 +62,16 @@ ARG SUPABASE_CLI_VERSION=2.106.0
 ARG DOCKER_CLI_VERSION=5:27.5.1-1~ubuntu.24.04~noble
 
 # Ubuntu 24.04 (noble) archive pins.
-ARG APT_CA_CERTIFICATES=20240203
-ARG APT_CURL=8.5.0-2ubuntu10.6
-ARG APT_GIT=1:2.43.0-1ubuntu7.2
-ARG APT_GNUPG=2.4.4-2ubuntu17
-ARG APT_JQ=1.7.1-3build1
+ARG APT_CA_CERTIFICATES=20260601~24.04.1
+ARG APT_CURL=8.5.0-2ubuntu10.13
+ARG APT_GIT=1:2.43.0-1ubuntu7.3
+ARG APT_GNUPG=2.4.4-2ubuntu17.6
+ARG APT_JQ=1.7.1-3ubuntu0.24.04.2
 ARG APT_UNZIP=6.0-28ubuntu4.1
-ARG APT_XZ_UTILS=5.6.1+really5.4.5-1build0.1
-ARG APT_POPPLER_UTILS=24.02.0-1ubuntu9.3
+ARG APT_XZ_UTILS=5.6.1+really5.4.5-1ubuntu0.3
+ARG APT_POPPLER_UTILS=24.02.0-1ubuntu9.9
 ARG APT_IMAGEMAGICK=8:6.9.12.98+dfsg1-5.2build2
-ARG APT_PYTHON3_VENV=3.12.3-0ubuntu2
+ARG APT_PYTHON3_VENV=3.12.3-0ubuntu2.1
 
 # Python wheels for the print-kit geometry proof.
 ARG PIP_OPENCV_PYTHON_HEADLESS=4.10.0.84
@@ -132,9 +132,14 @@ RUN nvmrc_major="$(tr -d '[:space:]' < /tmp/nvmrc | cut -d. -f1 | tr -d 'v')" \
  && test "$(node -p 'process.versions.node.split(".")[0]')" = "${NODE_MAJOR}"
 
 # -------------------------------------------------------------------- pnpm
+# Keep the activated version outside /root/.cache, which the store layer cleans.
+# The runtime UID differs from root and must reuse this exact prepared manager.
+ENV COREPACK_HOME=/opt/corepack \
+    COREPACK_DEFAULT_TO_LATEST=0
 RUN if ! command -v corepack >/dev/null 2>&1; then npm install -g corepack; fi \
  && corepack enable \
  && corepack prepare "pnpm@${PNPM_VERSION}" --activate \
+ && chmod -R a+rwX "${COREPACK_HOME}" \
  && test "$(pnpm --version)" = "${PNPM_VERSION}"
 
 # ------------------------------------------------------- playwright + browsers
@@ -301,6 +306,7 @@ WORKDIR /home/runner/work
 # print-kit lane failing on `import cv2` an hour into a run.
 RUN node --version \
  && pnpm --version \
+ && test "$(pnpm --version)" = "${PNPM_VERSION}" \
  && supabase --version \
  && k6 version \
  && docker --version \
