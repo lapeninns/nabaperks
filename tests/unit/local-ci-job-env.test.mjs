@@ -14,6 +14,7 @@ import {
   isCredentialShaped,
   redactCredentials,
 } from "../../ops/local-ci/core/job-env.mjs"
+import { assertLocalSupabaseDbUrl } from "../db/helpers/db-target.mjs"
 
 /**
  * local CI — the secret-isolation boundary.
@@ -38,7 +39,26 @@ const contract = loadContract(
 )
 
 const pr = loadProfile("pr", contract, readRepoFile)
+const main = loadProfile("main", contract, readRepoFile)
 const nightly = loadProfile("nightly", contract, readRepoFile)
+
+/** Every profile the agent can dispatch, keyed by the name it is loaded under. */
+const PROFILES = Object.freeze({ pr, main, nightly })
+
+// Several fixtures below carry, by construction, exactly the shape of a live
+// Stripe, Resend, Supabase or GitHub credential - for the isolation test that
+// is the whole point. Written as literals they trip GitHub push protection and
+// they would also be the sort of scannable string the repository forbids in CI
+// files elsewhere (see production-security-closure). Composing them at run time
+// keeps the value the detector sees byte-identical while leaving no matchable
+// literal in the tree.
+const shape = (prefix, body) => `${prefix}_${body}`
+
+/** The Standard Webhooks secret the db lane signs its auth-hook fixture with. */
+const HOOK_SECRET = `v1,${shape("whsec", "dGhpc2lzYWNpZml4dHVyZXZhbHVlMDA=")}`
+
+/** The dependency install every lane runs before the work it exists to do. */
+const INSTALL_COMMAND = "pnpm install --frozen-lockfile"
 
 /** Everything the pr profile's declared runtime-env sources promise. */
 const RUNTIME_ENV = {
@@ -50,7 +70,7 @@ const RUNTIME_ENV = {
   WEB_PUSH_VAPID_PUBLIC_KEY: "BJ4vapidpublicpointfixturevalue",
   WEB_PUSH_VAPID_PRIVATE_KEY: "vapidprivatescalarfixturevalue",
   WEB_PUSH_VAPID_SUBJECT: "mailto:ci@example.test",
-  SUPABASE_SEND_EMAIL_HOOK_SECRET: "v1,whsec_dGhpc2lzYWNpZml4dHVyZXZhbHVlMDA=",
+  SUPABASE_SEND_EMAIL_HOOK_SECRET: HOOK_SECRET,
 }
 
 const FAST_LANE = laneById(pr, "fast")
@@ -69,6 +89,7 @@ test("secret isolation: no host-secret name reaches the job, even when the host 
   const hostEnv = {
     PATH: "/usr/local/bin:/usr/bin",
     HOME: "/Users/ci",
+    TERM: "xterm-256color",
   }
   for (const name of contract.hostSecrets) {
     hostEnv[name] = `value-of-${name.toLowerCase()}-0123456789`
@@ -87,7 +108,7 @@ test("secret isolation: no host-secret name reaches the job, even when the host 
       `the value of ${name} must never appear under any name`
     )
   }
-  assert.equal(env.PATH, "/usr/local/bin:/usr/bin")
+  assert.equal(env.TERM, "xterm-256color")
 })
 
 test("secret isolation: a host secret smuggled in under a passthrough name is refused", () => {
@@ -99,7 +120,7 @@ test("secret isolation: a host secret smuggled in under a passthrough name is re
       build({
         hostEnv: {
           LOCAL_CI_HEARTBEAT_URL: heartbeat,
-          TMPDIR: heartbeat,
+          TERM: heartbeat,
         },
       }),
     (error) => {
@@ -118,9 +139,11 @@ test("secret isolation: a PEM private key never crosses, whatever name it arrive
     "-----END RSA PRIVATE KEY-----",
   ].join("\n")
 
-  const env = build({ hostEnv: { PATH: pem, HOME: "/Users/ci" } })
-  assert.equal(env.PATH, undefined, "a PEM in the agent's shell stays there")
-  assert.equal(env.HOME, "/Users/ci")
+  const env = build({ hostEnv: { TERM: pem } })
+  assert.equal(env.TERM, undefined, "a PEM in the agent's shell stays there")
+  // The positive control: the same name carrying an ordinary value does cross,
+  // so the assertion above is the credential filter and not an empty list.
+  assert.equal(build({ hostEnv: { TERM: "xterm" } }).TERM, "xterm")
 
   assert.throws(
     () => assertNoHostSecrets({ INNOCENT_NAME: pem }, contract),
@@ -131,15 +154,6 @@ test("secret isolation: a PEM private key never crosses, whatever name it arrive
     }
   )
 })
-
-// These fixtures are synthetic, but by construction they carry exactly the
-// shape of a live Stripe, Resend or GitHub credential - that is the whole
-// point of the test. Written as literals they trip GitHub push protection and
-// they would also be the sort of scannable string the repository forbids in CI
-// files elsewhere (see production-security-closure). Composing them at run time
-// keeps the value the detector sees byte-identical while leaving no matchable
-// literal in the tree.
-const shape = (prefix, body) => `${prefix}_${body}`
 
 test("secret isolation: sk_, whsec_, re_ and GitHub token shapes are dropped from the host passthrough", () => {
   const shapes = {
@@ -162,10 +176,14 @@ test("secret isolation: sk_, whsec_, re_ and GitHub token shapes are dropped fro
 
   for (const value of shapes.credentials) {
     assert.ok(isCredentialShaped(value), `${value} must be recognised`)
-    const env = build({ hostEnv: { TERM: value, HOME: "/Users/ci" } })
+    const env = build({ hostEnv: { TERM: value } })
     assert.equal(env.TERM, undefined, `${value} must not travel into a job`)
-    assert.equal(env.HOME, "/Users/ci")
   }
+  assert.equal(
+    build({ hostEnv: { TERM: "screen-256color" } }).TERM,
+    "screen-256color",
+    "the filter must drop credentials, not the whole passthrough"
+  )
   for (const value of shapes.fixtures) {
     assert.equal(credentialShapeOf(value), null, `${value} is a fixture`)
   }
@@ -274,13 +292,18 @@ test("the lane's own env wins over everything the profile declared", () => {
     profile: pr,
     lane: chromium,
     runtimeEnv: RUNTIME_ENV,
-    hostEnv: { PLAYWRIGHT_BROWSERS_PATH: "/ms-playwright" },
+    hostEnv: {
+      PLAYWRIGHT_BROWSERS_PATH: "/Users/ci/Library/Caches/ms-playwright",
+    },
     contract,
   })
   assert.equal(laneEnv.PLAYWRIGHT_BASE_URL, "http://127.0.0.1:3146")
   assert.equal(laneEnv.PLAYWRIGHT_NEXT_DIST_DIR, ".next-e2e-e2e-chromium")
-  assert.equal(laneEnv.PLAYWRIGHT_BROWSERS_PATH, "/ms-playwright")
   assert.equal(laneEnv.CI, "1")
+  // The image installs the browsers under /opt/ms-playwright and pins the
+  // variable to it. The agent's macOS cache directory has no Linux browsers
+  // behind it, so it is not allowed to overwrite that pin.
+  assert.equal(laneEnv.PLAYWRIGHT_BROWSERS_PATH, undefined)
 })
 
 test("a runtime-env name a declared source promised but did not resolve is refused", () => {
@@ -312,6 +335,173 @@ test("a lane referencing a runtime-env source the contract does not declare is r
       }),
     (error) => error.code === "UNKNOWN_RUNTIME_ENV_SOURCE"
   )
+})
+
+test("no host path, identity, locale or clock crosses the macOS/Linux boundary", () => {
+  // Everything below is what a launchd agent on the operator's Mac actually
+  // has in its environment. None of it describes anything that exists inside
+  // an Ubuntu container: HOME and TMPDIR are macOS paths, PATH is the plist's
+  // and drops the /opt/print-kit-venv/bin the image prepends for the print-kit
+  // Python dependencies, DOCKER_HOST names a daemon on the Mac rather than the
+  // job-private sidecar, and TZ would make a date-sensitive lane disagree with
+  // the UTC hosted plane it is shadow-compared against.
+  const hostEnv = {
+    DOCKER_HOST: "tcp://192.168.64.2:2375",
+    HOME: "/Users/operator",
+    HOSTNAME: "operators-macbook.local",
+    LANG: "en_US.UTF-8",
+    LC_ALL: "en_US.UTF-8",
+    PATH: "/usr/bin:/bin:/usr/sbin:/sbin",
+    PLAYWRIGHT_BROWSERS_PATH: "/Users/operator/Library/Caches/ms-playwright",
+    SHELL: "/bin/zsh",
+    TMPDIR: "/var/folders/rs/9m0000gn/T/",
+    TZ: "Asia/Kathmandu",
+    USER: "operator",
+    TERM: "xterm-256color",
+  }
+
+  const env = build({ hostEnv })
+  for (const name of Object.keys(hostEnv)) {
+    if (name === "TERM") continue
+    assert.equal(
+      env[name],
+      undefined,
+      `${name} is a macOS value and must not reach a Linux container`
+    )
+  }
+  assert.equal(env.TERM, "xterm-256color")
+  assert.deepEqual(
+    HOST_ENV_PASSTHROUGH,
+    ["TERM"],
+    "the passthrough is the whole list of host values a job may see; growing it needs the same per-name argument the module records"
+  )
+})
+
+test("every lane installs the commit's own dependencies before it needs them", () => {
+  for (const [name, profile] of Object.entries(PROFILES)) {
+    for (const lane of profile.lanes) {
+      const where = `${name}/${lane.id}`
+      const at = lane.commands.indexOf(INSTALL_COMMAND)
+      assert.notEqual(
+        at,
+        -1,
+        `${where} runs against a bare git worktree, so it must install dependencies`
+      )
+
+      // The only command allowed to precede the install is `supabase start`,
+      // which runs the pinned CLI binary and touches no node_modules. It has
+      // to stay first in the lane that declares a per-lane runtimeEnv source,
+      // because agent/runner.mjs resolves that source after commands[0].
+      for (const earlier of lane.commands.slice(0, at)) {
+        assert.equal(
+          earlier,
+          "supabase start",
+          `${where} runs ${JSON.stringify(earlier)} before its dependency tree exists`
+        )
+      }
+
+      for (const command of lane.commands) {
+        if (!command.startsWith("pnpm install")) continue
+        assert.equal(
+          command,
+          INSTALL_COMMAND,
+          `${where}: an install without --frozen-lockfile lets a drifted pnpm-lock.yaml resolve some other tree instead of failing`
+        )
+      }
+    }
+  }
+})
+
+test("a background service still starts after the command it depends on", () => {
+  // `startAfter` is the index in `commands` after which the service starts, so
+  // it moves whenever a command is inserted ahead of it. The dependency-install
+  // insertion is what makes that a live hazard: a dev server that came up after
+  // `pnpm install` instead of after `pnpm build` would serve nothing.
+  for (const [name, profile] of Object.entries(PROFILES)) {
+    for (const lane of profile.lanes) {
+      for (const service of lane.backgroundServices) {
+        const where = `${name}/${lane.id}/${service.id}`
+        assert.ok(
+          Number.isInteger(service.startAfter) && service.startAfter >= 1,
+          `${where}.startAfter must be a positive command index`
+        )
+        assert.ok(
+          service.startAfter <= lane.commands.length,
+          `${where}.startAfter points past the end of the lane`
+        )
+        assert.notEqual(
+          lane.commands[service.startAfter - 1],
+          INSTALL_COMMAND,
+          `${where} would start before the command it exists to serve; a command was inserted ahead of it without moving startAfter`
+        )
+      }
+    }
+  }
+})
+
+test("the database tier's Postgres URL stays on loopback, as its own guard demands", () => {
+  // tests/db/helpers/db-target.mjs refuses any SUPABASE_DB_URL that is not
+  // loopback, so no profile edit can aim the database tier at a real database.
+  // The address is therefore not where the nested-daemon problem is fixed:
+  // agent/container.mjs runs docker:dind as a separate container on a
+  // job-private bridge, so `supabase start` publishes 54322 in the sidecar's
+  // network namespace and the job container's own loopback answers nothing.
+  // Making the lane reach it means sharing that namespace, in container.mjs.
+  const carried = []
+  for (const [name, profile] of Object.entries(PROFILES)) {
+    for (const lane of profile.lanes) {
+      const url = lane.env.SUPABASE_DB_URL
+      if (url === undefined) continue
+      carried.push(`${name}/${lane.id}`)
+      assert.equal(
+        assertLocalSupabaseDbUrl(url),
+        url,
+        `${name}/${lane.id} sets a SUPABASE_DB_URL the database suite would refuse to open`
+      )
+      const parsed = new URL(url)
+      assert.equal(parsed.hostname, "127.0.0.1")
+      assert.equal(parsed.port, "54322")
+    }
+  }
+  assert.deepEqual(carried, [
+    "pr/db",
+    "main/db",
+    "nightly/db",
+    "nightly/db-stress",
+  ])
+})
+
+test("the job image warms a dependency store and adopts the workspace owner's uid", () => {
+  const dockerfile = readRepoFile("ops/local-ci/image/Dockerfile")
+
+  // The store is warmed from the lockfile with `pnpm fetch`. A baked
+  // node_modules would be main's resolved tree, and would let a pull request
+  // that changes pnpm-lock.yaml pass against dependencies it does not declare.
+  assert.match(dockerfile, /\bpnpm fetch\b/)
+  assert.match(dockerfile, /npm_config_store_dir=\/opt\/pnpm-store/)
+  assert.doesNotMatch(
+    dockerfile,
+    /^\s*(?:RUN|&&|\|\|)\s+pnpm install/m,
+    "the image must warm a store, never bake a resolved dependency tree"
+  )
+
+  // The runtime identity comes from the mount, not from a number someone
+  // guessed: the worktree is created by the Lima VM's user, whose uid is a
+  // property of the operator's Mac.
+  assert.doesNotMatch(dockerfile, /useradd --uid 1001\b/)
+  assert.match(dockerfile, /ARG RUNNER_UID=/)
+  assert.match(dockerfile, /stat -c '%u'/)
+  assert.match(dockerfile, /exec setpriv /)
+  assert.match(
+    dockerfile,
+    /\nENTRYPOINT \["\/usr\/local\/bin\/local-ci-entrypoint"\]/
+  )
+
+  // The other half of the passthrough fix: what the agent stops forwarding,
+  // the image has to supply itself.
+  assert.match(dockerfile, /\nENV HOME=\/home\/runner/)
+  assert.match(dockerfile, /ENV PATH="\/opt\/print-kit-venv\/bin:\$\{PATH\}"/)
+  assert.match(dockerfile, /command -v python3/)
 })
 
 test("the built environment is frozen, and every value is a string", () => {

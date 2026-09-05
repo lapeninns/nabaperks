@@ -13,6 +13,7 @@
  * Usage:
  *
  *   local-ci-agent --watch
+ *   local-ci-agent --nightly
  *   local-ci-agent --profile pr --ref refs/pull/12/head --sha <40 hex>
  *   local-ci-agent --profile main --ref refs/heads/main --sha <40 hex> --dry-run
  *
@@ -28,11 +29,15 @@ import {
   mkdirSync,
   openSync,
   readFileSync,
+  readdirSync,
+  rmSync,
+  rmdirSync,
+  statSync,
   writeFileSync,
   appendFileSync,
 } from "node:fs"
 import { homedir } from "node:os"
-import { dirname, join, resolve as resolvePath } from "node:path"
+import { dirname, join, resolve as resolvePath, sep } from "node:path"
 import { arch as processArch } from "node:process"
 import { fileURLToPath, pathToFileURL } from "node:url"
 
@@ -41,6 +46,7 @@ import {
   describeValue,
   loadContract,
   quoteForMessage,
+  toEpochMs,
 } from "../core/contract.mjs"
 import { loadProfile, snapshotGuardViolations } from "../core/profiles.mjs"
 import { isCommitSha } from "../core/queue.mjs"
@@ -69,6 +75,7 @@ const HEARTBEAT_FILENAMES = Object.freeze([
 const USAGE = `nabaperks local CI agent
 
   --watch                 poll for work until stopped (the launchd mode)
+  --nightly               one-shot: publish today's nightly proof if it is due
   --profile <name>        one-shot: pr | main | nightly
   --ref <ref>             one-shot: the git ref, e.g. refs/heads/main
   --sha <sha>             one-shot: the 40-character head commit SHA
@@ -76,22 +83,27 @@ const USAGE = `nabaperks local CI agent
   --no-publish            run locally but publish no check run
   --help                  this text
 
-Host configuration (environment first, then a file under the state root):
+Host configuration (environment first, then a file the installer wrote):
 
   LOCAL_CI_GITHUB_APP_ID              GitHub App id
   LOCAL_CI_GITHUB_INSTALLATION_ID     installation id
   LOCAL_CI_GITHUB_APP_PRIVATE_KEY     PEM contents (a path is used otherwise)
   LOCAL_CI_HEARTBEAT_URL              monitoring heartbeat URL
   LOCAL_CI_JOB_IMAGE                  the pinned job image tag
+  LOCAL_CI_JOB_IMAGE_FILE             where install.sh recorded that tag
   LOCAL_CI_DIND_IMAGE                 the pinned sidecar daemon image tag
   NABAPERKS_LOCAL_CI_HOME             state root (default ~/.nabaperks-local-ci)
   NABAPERKS_LOCAL_CI_VM               Lima instance (default from the contract)
 `
 
+/** The ref a nightly proof is produced for. */
+export const DEFAULT_MAIN_REF = "refs/heads/main"
+
 /** Parse argv into an options record. Pure. */
 export function parseArgs(argv) {
   const options = {
     watch: false,
+    nightly: false,
     profile: null,
     ref: null,
     sha: null,
@@ -115,6 +127,9 @@ export function parseArgs(argv) {
     switch (argument) {
       case "--watch":
         options.watch = true
+        break
+      case "--nightly":
+        options.nightly = true
         break
       case "--profile":
         options.profile = next()
@@ -143,11 +158,30 @@ export function parseArgs(argv) {
     }
   }
   if (options.help) return options
-  if (options.watch && options.profile) {
+  const modes = [
+    options.watch ? "--watch" : null,
+    options.nightly ? "--nightly" : null,
+    options.profile ? "--profile" : null,
+  ].filter((name) => name !== null)
+  if (modes.length > 1) {
     throw new CliError(
       "INVALID_ARGUMENTS",
-      "--watch and --profile are different modes; pass one or the other"
+      `${modes.join(", ")} are different modes; pass exactly one`
     )
+  }
+  if (options.nightly) {
+    // The nightly proof is always the default branch's head, resolved from
+    // GitHub at dispatch time: a scheduled run has no operator to name a SHA,
+    // and pinning one in a schedule would prove a commit nobody is on.
+    if (options.sha) {
+      throw new CliError(
+        "INVALID_ARGUMENTS",
+        "--nightly resolves the default branch head itself; do not pass --sha"
+      )
+    }
+    options.profile = "nightly"
+    options.ref = options.ref ?? DEFAULT_MAIN_REF
+    return options
   }
   if (!options.watch) {
     if (!options.profile || !options.sha) {
@@ -252,6 +286,90 @@ function firstExisting(root, filenames, label) {
 }
 
 /**
+ * Read a host state file that is configuration rather than a credential.
+ *
+ * Absent is `null`; anything else that goes wrong is a refusal, for the same
+ * reason `readCredentialFile` refuses: a file that exists and cannot be read
+ * means the host was configured and the configuration is unreadable, which is
+ * not the same thing as "not configured yet".
+ */
+export function readStateFile(path, label) {
+  let fd
+  try {
+    fd = openSync(path, "r")
+  } catch (error) {
+    if (error.code === "ENOENT") return null
+    throw new CliError(
+      "STATE_FILE_UNREADABLE",
+      `${label} at ${path} exists but could not be opened (${error.code ?? error.message})`
+    )
+  }
+  try {
+    if (!fstatSync(fd).isFile()) {
+      throw new CliError(
+        "STATE_FILE_UNREADABLE",
+        `${label} at ${path} is not a regular file`
+      )
+    }
+    return readFileSync(fd, "utf8")
+  } finally {
+    closeSync(fd)
+  }
+}
+
+/**
+ * Where `install.sh` recorded the pinned job image tag.
+ *
+ * The tag is per-host - it names an image built inside that Mac's VM - so it
+ * cannot be a literal in the committed plist, which install.sh installs
+ * byte-identically. The plist therefore carries the *path* (absolute and
+ * operator-independent) and the installer writes the *value* there under
+ * `sudo`, root-owned beside the release tree. The tag is not a secret, but it
+ * decides which image executes pull-request code, so it belongs in the same
+ * integrity domain as the agent source rather than in a user-writable dotfile.
+ *
+ * The default is derived from `contract.agent.installRoot` so the path exists
+ * in exactly one place in this repository.
+ */
+export function jobImageFilePath(env, contract) {
+  const named = env?.LOCAL_CI_JOB_IMAGE_FILE
+  if (typeof named === "string" && named.trim() !== "") return named.trim()
+  const installRoot = contract?.agent?.installRoot
+  if (typeof installRoot !== "string" || installRoot.trim() === "") return null
+  return join(dirname(installRoot), "job-image")
+}
+
+/**
+ * The characters an image reference may contain here.
+ *
+ * The tag reaches `docker run` as an argv word, so a value with whitespace, a
+ * leading `-` or shell punctuation is not a typo to tolerate: it is a word
+ * that changes what the container runtime is being asked to do. Refusing at
+ * the point the value is read keeps `container.mjs`'s argv builders working on
+ * a reference that has already been proven to be one.
+ */
+const JOB_IMAGE_PATTERN =
+  /^[A-Za-z0-9][A-Za-z0-9._\-/]*(?::[\w][\w.-]*|@[\w:.+-]+)$/
+
+/** Validate a job image reference and return it trimmed. */
+export function requireJobImage(value, source) {
+  const text = typeof value === "string" ? value.trim() : ""
+  if (text === "") {
+    throw new CliError(
+      "MISSING_JOB_IMAGE",
+      `${source} holds no job image tag. It is the pinned tag of the image built from a verified main commit inside the VM (ops/local-ci/host/README.md §3), e.g. nabaperks-ci-job:<commit sha>.`
+    )
+  }
+  if (text.length > 255 || !JOB_IMAGE_PATTERN.test(text)) {
+    throw new CliError(
+      "INVALID_JOB_IMAGE",
+      `${source} is ${quoteForMessage(text)}, which is not a pinned image reference. Expected name:tag or name@digest, e.g. nabaperks-ci-job:<commit sha>.`
+    )
+  }
+  return text
+}
+
+/**
  * Resolve the host's configuration from the environment and the state root.
  *
  * The environment wins so an operator can run a one-shot by hand without
@@ -317,13 +435,24 @@ export function resolveHostConfig({ env, contract, home }) {
     )
   }
 
-  const jobImage = env.LOCAL_CI_JOB_IMAGE ?? null
+  // The environment wins for a hand-run one-shot; the installed service has no
+  // environment to speak of, so it reads the file install.sh pinned. Without
+  // the file the launchd job used to start, fail MISSING_JOB_IMAGE and be
+  // restarted by KeepAlive forever, which is a crash loop rather than a poller.
+  const jobImageFile = jobImageFilePath(env, contract)
+  let jobImage = env.LOCAL_CI_JOB_IMAGE ?? null
+  let jobImageSource = "LOCAL_CI_JOB_IMAGE"
+  if (jobImage === null && jobImageFile !== null) {
+    jobImage = readStateFile(jobImageFile, "the pinned job image tag")
+    jobImageSource = jobImageFile
+  }
   if (jobImage === null) {
     throw new CliError(
       "MISSING_JOB_IMAGE",
-      "LOCAL_CI_JOB_IMAGE is unset. It is the pinned tag of the image built from a verified main commit inside the VM (ops/local-ci/host/README.md §3), e.g. nabaperks-ci-job:<commit sha>."
+      `no pinned job image. Set LOCAL_CI_JOB_IMAGE, or let ops/local-ci/host/install.sh record the tag at ${jobImageFile ?? "the path in LOCAL_CI_JOB_IMAGE_FILE"} (ops/local-ci/host/README.md §3).`
     )
   }
+  const pinnedJobImage = requireJobImage(jobImage, jobImageSource)
 
   return Object.freeze({
     stateRoot,
@@ -332,7 +461,8 @@ export function resolveHostConfig({ env, contract, home }) {
     heartbeatUrl,
     appId,
     installationId,
-    jobImage,
+    jobImage: pinnedJobImage,
+    jobImageSource,
     daemonImage: env.LOCAL_CI_DIND_IMAGE ?? "docker:27.5.1-dind",
     vm: env.NABAPERKS_LOCAL_CI_VM ?? contract.vm?.name ?? null,
     vmWorkspaceRoot: "/var/lib/nabaperks-ci",
@@ -479,6 +609,245 @@ const vmShell = (vm, script) =>
     ? ["/bin/sh", "-c", script]
     : ["limactl", "shell", vm, "--", "/bin/sh", "-c", script]
 
+/* ------------------------------------------------------- the VM self-check */
+
+/**
+ * The last line of the guest probe, and the proof that all of it ran.
+ *
+ * Without a terminator, a probe that died halfway - the VM stopped, the SSH
+ * transport dropped, `limactl shell` printed a warning and exited 0 - would
+ * present as "every isolation property is absent", which reads exactly like
+ * "every isolation property is satisfied". The marker turns a truncated probe
+ * into a refusal instead of a silent pass.
+ */
+export const VM_PROBE_MARKER = "probe=ok"
+
+/**
+ * What the guest is asked about itself before every dispatch.
+ *
+ * These are live facts, not declared ones. `~/.lima/<name>/lima.yaml` says
+ * what the instance was created from; `findmnt` says what is mounted right
+ * now, and a host directory mounted into a running VM by hand is invisible to
+ * the former and obvious to the latter. Each line is `key=value` so the
+ * parsing is a pure function of text.
+ */
+export const VM_PROBE_SCRIPT = [
+  "set -u",
+  'printf "ssh_auth_sock=[%s]\\n" "${SSH_AUTH_SOCK:-}"',
+  // `findmnt` answering "nothing is mounted" and `findmnt` not being installed
+  // both used to print an empty host_mounts, and the caller reads empty as
+  // "clean". That is fail-open on the one probe that decides whether this VM
+  // may receive pull-request code: deleting the binary would silence the
+  // check. Report the tool's own availability separately so a missing or
+  // failing findmnt refuses the dispatch instead of passing it.
+  'if command -v findmnt >/dev/null 2>&1; then printf "findmnt=present\\n"; else printf "findmnt=absent\\n"; fi',
+  'if command -v findmnt >/dev/null 2>&1; then if host_mounts="$(findmnt -rn -t virtiofs,9p,nfs,nfs4,cifs,sshfs -o TARGET)"; then printf "host_mounts_status=ok\\n"; else status=$?; if [ "$status" -eq 1 ]; then printf "host_mounts_status=ok\\n"; host_mounts=""; else printf "host_mounts_status=failed\\n"; host_mounts=""; fi; fi; else printf "host_mounts_status=unavailable\\n"; host_mounts=""; fi',
+  'printf "host_mounts=%s\\n" "$(printf "%s" "${host_mounts:-}" | tr "\\n" " ")"',
+  'printf "host_home=%s\\n" "$(ls -d /Users 2>/dev/null || printf absent)"',
+  'printf "rosetta=%s\\n" "$(ls -d /mnt/lima-rosetta 2>/dev/null || printf absent)"',
+  `printf "${VM_PROBE_MARKER}\\n"`,
+].join("\n")
+
+/**
+ * `limactl list --json` as an array of instance records. Pure.
+ *
+ * Lima has emitted both a JSON array and newline-delimited objects across
+ * versions, so both are accepted; anything else is `VM_UNVERIFIABLE` rather
+ * than an empty list, because "I could not read the answer" must not resolve
+ * to "there is nothing to worry about".
+ */
+export function parseLimaInstances(text) {
+  const trimmed = String(text ?? "").trim()
+  if (trimmed === "") return []
+  try {
+    const parsed = JSON.parse(trimmed)
+    return Array.isArray(parsed) ? parsed : [parsed]
+  } catch {
+    const instances = []
+    for (const line of trimmed.split("\n")) {
+      const candidate = line.trim()
+      if (candidate === "") continue
+      try {
+        instances.push(JSON.parse(candidate))
+      } catch {
+        throw new CliError(
+          "VM_UNVERIFIABLE",
+          `limactl list --json emitted a line that is not JSON: ${quoteForMessage(candidate.slice(0, 120))}`
+        )
+      }
+    }
+    return instances
+  }
+}
+
+/** The guest probe's `key=value` lines as a record. Pure. */
+export function parseVmProbe(text) {
+  const report = Object.create(null)
+  for (const line of String(text ?? "").split("\n")) {
+    const at = line.indexOf("=")
+    if (at <= 0) continue
+    report[line.slice(0, at).trim()] = line.slice(at + 1).trim()
+  }
+  return report
+}
+
+const isNonEmptyArray = (value) => Array.isArray(value) && value.length > 0
+
+/**
+ * Refuse unless the live VM still presents the isolation this plane rests on.
+ * **Pure**: it decides, it does not look.
+ *
+ * The VM is the entire reason it is safe to run pull-request code on a Mac
+ * that holds a GitHub App private key, and "the VM was isolated when it was
+ * installed" is a different claim from "the VM is isolated now". An instance
+ * can be stopped and re-created, edited with `limactl edit`, or - the case no
+ * configuration file records - handed a mount at run time. It can also have
+ * been installed with `--skip-vm-check` and never checked at all.
+ *
+ * So the properties are re-derived from two live sources on every dispatch:
+ * the instance record for what Lima believes it is running, and a probe inside
+ * the guest for what is actually true there. Every mismatch is collected and
+ * reported together, because an operator fixing one violation wants to know
+ * about the other three before recreating the instance.
+ */
+export function assertVmIsolation({ vm, instances, probe, contract }) {
+  if (typeof vm !== "string" || vm.trim() === "") {
+    throw new CliError(
+      "VM_NOT_CONFIGURED",
+      `no Lima instance is configured, so the isolation this plane depends on cannot be asserted and pull-request code would run directly on the Mac. Set NABAPERKS_LOCAL_CI_VM or contract.vm.name (received ${describeValue(vm)}).`
+    )
+  }
+  const list = Array.isArray(instances) ? instances : []
+  const instance = list.find((entry) => entry?.name === vm)
+  if (instance === undefined) {
+    throw new CliError(
+      "VM_NOT_FOUND",
+      `limactl reports no instance named ${quoteForMessage(vm)}; create it from ${contract?.vm?.definition ?? "the committed Lima template"} before dispatching a job.`
+    )
+  }
+  const status = String(instance.status ?? "")
+  if (status.toLowerCase() !== "running") {
+    throw new CliError(
+      "VM_NOT_RUNNING",
+      `instance ${vm} is ${quoteForMessage(status || "in an unreported state")}, not Running; start it with: limactl start ${vm}`
+    )
+  }
+
+  const violations = []
+  const config = instance.config ?? {}
+
+  // Lima omits an empty list from the JSON, so only a *present, non-empty*
+  // collection is evidence of a violation here. The absence of evidence is
+  // covered by the guest probe below, which cannot be omitted.
+  const mounts = instance.mounts ?? config.mounts
+  if (isNonEmptyArray(mounts)) {
+    violations.push(
+      `declares ${mounts.length} host mount(s); the credential directory on the Mac must be unreachable from every job container`
+    )
+  }
+  const networks = instance.networks ?? config.networks
+  if (isNonEmptyArray(networks)) {
+    violations.push(
+      `declares ${networks.length} shared network(s); the template pins networks: [] so nothing inbound can reach the guest`
+    )
+  }
+  const ssh = config.ssh ?? {}
+  if (ssh.forwardAgent === true) {
+    violations.push(
+      "forwards an SSH agent; a job container could then authenticate as the operator"
+    )
+  }
+  if (ssh.loadDotSSHPubKeys === true) {
+    violations.push(
+      "loads the operator's ~/.ssh public keys; the template pins loadDotSSHPubKeys: false"
+    )
+  }
+  if (config.rosetta?.enabled === true) {
+    violations.push(
+      "enables Rosetta; the template pins rosetta.enabled: false so no x86-64 binary runs under emulation"
+    )
+  }
+
+  const report = probe ?? {}
+  if (report.probe !== "ok") {
+    throw new CliError(
+      "VM_UNVERIFIABLE",
+      `the isolation probe inside ${vm} did not run to completion (expected a trailing ${VM_PROBE_MARKER} line); refusing to dispatch on an unverified VM`
+    )
+  }
+  if (report.ssh_auth_sock !== "[]") {
+    violations.push(
+      `has SSH_AUTH_SOCK set to ${quoteForMessage(report.ssh_auth_sock)}; a forwarded agent socket is reachable from inside the guest`
+    )
+  }
+  // An unanswerable mount question is a refusal, not a pass. `findmnt` being
+  // absent or erroring would otherwise render an empty host_mounts that reads
+  // exactly like a clean guest, which would let the strongest isolation check
+  // be disabled by removing one binary.
+  if (report.findmnt !== "present") {
+    violations.push(
+      "has no usable findmnt, so its live mount table cannot be read; the host-mount check cannot be answered and must not be assumed clean"
+    )
+  } else if (report.host_mounts_status !== "ok") {
+    violations.push(
+      `could not read its live mount table (findmnt reported ${quoteForMessage(report.host_mounts_status ?? "nothing")}); the host-mount check cannot be answered and must not be assumed clean`
+    )
+  } else if (report.host_mounts !== "") {
+    violations.push(
+      `has host filesystem mounts live right now: ${report.host_mounts.trim()}`
+    )
+  }
+  if (report.host_home !== "absent") {
+    violations.push(
+      `can see ${report.host_home} inside the guest; the Mac's home directory must not be visible there`
+    )
+  }
+  if (report.rosetta !== "absent") {
+    violations.push(`has Rosetta mounted at ${report.rosetta}`)
+  }
+
+  if (violations.length > 0) {
+    throw new CliError(
+      "VM_ISOLATION_VIOLATION",
+      `instance ${vm} no longer matches the isolation this plane depends on, so no pull-request code will be dispatched to it:\n  - ${violations.join("\n  - ")}\nDelete and recreate it from ${contract?.vm?.definition ?? "the committed Lima template"}; never patch it in place.`
+    )
+  }
+  return Object.freeze({ vm, status })
+}
+
+/**
+ * Ask the host and the guest, then decide. **Impure.**
+ *
+ * Any failure to *ask* is itself a refusal: a dispatch that proceeds because
+ * the check could not be made has no isolation guarantee at all.
+ */
+async function assertVmIsolationLive({ config, contract }) {
+  const vm = config.vm
+  if (typeof vm !== "string" || vm.trim() === "") {
+    // Same refusal as the pure check, raised before anything is spawned.
+    return assertVmIsolation({ vm, instances: [], probe: null, contract })
+  }
+  let listed
+  let probed
+  try {
+    listed = await execHost(["limactl", "list", "--json", vm], {
+      timeoutMs: 60_000,
+    })
+    probed = await execHost(vmShell(vm, VM_PROBE_SCRIPT), { timeoutMs: 60_000 })
+  } catch (error) {
+    throw new CliError(
+      "VM_UNVERIFIABLE",
+      `could not re-assert the isolation of instance ${vm} (${error.message}); refusing to dispatch`
+    )
+  }
+  return assertVmIsolation({
+    vm,
+    instances: parseLimaInstances(listed),
+    probe: parseVmProbe(probed),
+    contract,
+  })
+}
+
 /**
  * Materialise the commit inside the VM as a detached worktree.
  *
@@ -516,11 +885,180 @@ async function releaseWorkspace({ config, headSha }) {
   await execHost(vmShell(config.vm, script)).catch(() => {})
 }
 
-/** Per-run evidence directory on the Mac, mode 0700. */
-function openRunDirectory({ config, headSha }) {
-  const dir = join(config.stateRoot, "runs", headSha)
-  mkdirSync(dir, { recursive: true, mode: 0o700 })
-  return dir
+/* --------------------------------------------------------------- evidence */
+
+/**
+ * The name of one run's evidence directory: profile, instant, entropy.
+ *
+ * A commit is not a run. The queue deliberately admits a `pr`, a `main` and a
+ * `nightly` job for the same SHA - a fast-forwarded pull-request commit is
+ * tested again the moment it lands on main - and the contract promises one
+ * lane-result document *per lane per run*. Keying the directory on the SHA
+ * alone made the second run truncate the first one's `<lane>.log` and rewrite
+ * its `lane-result.json`, destroying exactly the shadow-qualification record
+ * the cutover is supposed to be built from.
+ *
+ * The instant is in the name rather than only in the filesystem metadata so
+ * the ordering survives a copy, a backup restore and `rsync`.
+ */
+export function runDirectoryName({ profile, at, entropy }) {
+  const stamp = new Date(toEpochMs(at, "run instant"))
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\.\d+Z$/, "Z")
+  return `${profile}-${stamp}-${entropy}`
+}
+
+const RUN_DIRECTORY_PATTERN = /^(.+)-(\d{8}T\d{6}Z)-([0-9a-f]+)$/
+
+/** Read a run directory's name back. Pure; `null` when it is not one. */
+export function parseRunDirectoryName(name) {
+  const match = RUN_DIRECTORY_PATTERN.exec(String(name ?? ""))
+  if (match === null) return null
+  const [, profile, stamp] = match
+  const iso = `${stamp.slice(0, 4)}-${stamp.slice(4, 6)}-${stamp.slice(6, 11)}:${stamp.slice(11, 13)}:${stamp.slice(13, 15)}Z`
+  const at = Date.parse(iso)
+  if (Number.isNaN(at)) return null
+  return Object.freeze({ profile, at })
+}
+
+function readDirectoryNames(path) {
+  try {
+    return readdirSync(path, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+  } catch (error) {
+    if (error.code === "ENOENT") return []
+    throw error
+  }
+}
+
+/**
+ * The run evidence on the Mac: one directory per run, and the retention sweep
+ * that eventually deletes it.
+ *
+ * This is the store `createLoop` takes as `logStore`. Without it the loop's
+ * retention branch returns 0 on every tick and `agent.logRetentionDays` is a
+ * number no code reads, so lane logs accumulate until the disk fills.
+ *
+ * A run that is still open is protected by construction: `open()` records the
+ * directory and `list()` marks it `running`, which `core/retention.mjs` treats
+ * as never expirable regardless of age.
+ */
+export function createRunEvidenceStore({
+  stateRoot,
+  now = () => Date.now(),
+  entropy = () => randomBytes(3).toString("hex"),
+}) {
+  const root = join(stateRoot, "runs")
+  const active = new Set()
+
+  const entryFor = (path, name) => {
+    const parsed = parseRunDirectoryName(name)
+    let createdAt = parsed?.at ?? null
+    if (createdAt === null) {
+      const stats = statSync(path)
+      createdAt = stats.birthtimeMs || stats.mtimeMs
+    }
+    return Object.freeze({
+      path,
+      profile: parsed?.profile ?? null,
+      createdAt,
+      running: active.has(path),
+    })
+  }
+
+  const listEntries = () => {
+    const entries = []
+    for (const shaName of readDirectoryNames(root)) {
+      const parent = join(root, shaName)
+      const runs = readDirectoryNames(parent)
+      if (runs.length === 0) {
+        // A commit directory with no run inside it: either emptied by an
+        // earlier sweep or written by a pre-per-run layout. Either way it is
+        // the thing that ages out.
+        entries.push(entryFor(parent, shaName))
+        continue
+      }
+      for (const runName of runs) {
+        entries.push(entryFor(join(parent, runName), runName))
+      }
+    }
+    return entries
+  }
+
+  return Object.freeze({
+    root,
+
+    /** Create this run's directory, mode 0700, and protect it while open. */
+    open({ headSha, profile }) {
+      const parent = join(root, headSha)
+      mkdirSync(parent, { recursive: true, mode: 0o700 })
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        const path = join(
+          parent,
+          runDirectoryName({ profile, at: now(), entropy: entropy() })
+        )
+        try {
+          // Deliberately not `recursive`: an EEXIST here means another run
+          // already owns the name, and silently sharing it is the collision
+          // this directory layout exists to prevent.
+          mkdirSync(path, { mode: 0o700 })
+        } catch (error) {
+          if (error.code === "EEXIST") continue
+          throw error
+        }
+        active.add(path)
+        return Object.freeze({
+          path,
+          close() {
+            active.delete(path)
+          },
+        })
+      }
+      throw new CliError(
+        "EVIDENCE_DIRECTORY",
+        `could not create a fresh evidence directory under ${parent}`
+      )
+    },
+
+    /** Every run's evidence directory, for the retention sweep. */
+    list() {
+      return listEntries()
+    },
+
+    /** When this profile last started a run here, or null. */
+    lastRunAt(profile) {
+      let newest = null
+      for (const entry of listEntries()) {
+        if (entry.profile !== profile) continue
+        if (newest === null || entry.createdAt > newest) {
+          newest = entry.createdAt
+        }
+      }
+      return newest
+    },
+
+    /** Delete one aged-out entry, and the commit directory it emptied. */
+    remove(entry) {
+      const path = entry?.path
+      if (typeof path !== "string" || !path.startsWith(`${root}${sep}`)) {
+        throw new CliError(
+          "EVIDENCE_DIRECTORY",
+          `refusing to delete ${describeValue(path)}: the retention sweep may only remove paths under ${root}`
+        )
+      }
+      rmSync(path, { recursive: true, force: true })
+      const parent = dirname(path)
+      if (parent !== root) {
+        try {
+          rmdirSync(parent)
+        } catch {
+          // Still holds another run of the same commit. Nothing to do.
+        }
+      }
+    },
+  })
 }
 
 function makeLaneLogOpener(runDir) {
@@ -581,16 +1119,126 @@ function writeLaneResults({ runDir, outcome, contract }) {
   )
 }
 
+/**
+ * How often the nightly proof is produced.
+ *
+ * Daily, because `nightlyProof.maxAgeHours` is 36: one cadence plus a 12-hour
+ * recovery window, so a single missed night warns without paging and two
+ * consecutive misses fail. The two numbers are one design, and
+ * `nightlyCadence` refuses a contract in which they stop agreeing.
+ */
+export const NIGHTLY_CADENCE_HOURS = 24
+
+/**
+ * How often the agent asks whether a nightly is due.
+ *
+ * Short relative to the cadence on purpose: this is the mechanism that turns a
+ * missed window into a late run rather than a skipped one. A Mac asleep,
+ * logged out or powered off at the scheduled hour comes back, is asked again
+ * within the quarter hour, sees the last run is older than the cadence, and
+ * produces the proof then. A launchd `StartCalendarInterval` cannot do that -
+ * it replays a window missed during sleep, but a window missed while the
+ * machine was off is gone.
+ */
+export const NIGHTLY_CHECK_INTERVAL_MS = 15 * 60_000
+
+const HOUR_MS = 3_600_000
+
+/** The nightly cadence and the freshness window it has to fit inside. Pure. */
+export function nightlyCadence(contract) {
+  const maxAgeHours = contract?.nightlyProof?.maxAgeHours
+  if (
+    typeof maxAgeHours !== "number" ||
+    !Number.isFinite(maxAgeHours) ||
+    maxAgeHours <= NIGHTLY_CADENCE_HOURS
+  ) {
+    throw new CliError(
+      "INVALID_CONTRACT",
+      `contract.nightlyProof.maxAgeHours must be a number greater than the ${NIGHTLY_CADENCE_HOURS}-hour nightly cadence, or one missed run fails the freshness monitor with no recovery window (received ${describeValue(maxAgeHours)})`
+    )
+  }
+  return Object.freeze({
+    cadenceHours: NIGHTLY_CADENCE_HOURS,
+    maxAgeHours,
+    recoveryHours: maxAgeHours - NIGHTLY_CADENCE_HOURS,
+  })
+}
+
+/**
+ * Whether a nightly proof is due. Pure.
+ *
+ * The question is asked of the local evidence rather than of GitHub, because
+ * the evidence directory is written before the run starts: an attempt that
+ * crashed still moved the clock forward, so a hard failure retries on the next
+ * cadence instead of every quarter hour, and the freshness monitor is the
+ * thing that notices a plane which cannot finish a run at all.
+ */
+export function nightlyRunIsDue({ lastRunAt, now, contract }) {
+  const cadence = nightlyCadence(contract)
+  if (lastRunAt === null || lastRunAt === undefined) {
+    return Object.freeze({
+      due: true,
+      ageHours: null,
+      reason: "no nightly run is on record on this host",
+    })
+  }
+  const ageHours =
+    (toEpochMs(now, "now") - toEpochMs(lastRunAt, "the last nightly run")) /
+    HOUR_MS
+  if (ageHours >= cadence.cadenceHours) {
+    return Object.freeze({
+      due: true,
+      ageHours,
+      reason: `the last nightly run was ${ageHours.toFixed(1)}h ago, at or past the ${cadence.cadenceHours}h cadence; the freshness monitor fails at ${cadence.maxAgeHours}h`,
+    })
+  }
+  return Object.freeze({
+    due: false,
+    ageHours,
+    reason: `the last nightly run was ${ageHours.toFixed(1)}h ago; the next is due in ${(cadence.cadenceHours - ageHours).toFixed(1)}h`,
+  })
+}
+
+/**
+ * One at a time, in the order they asked.
+ *
+ * The poll loop and the nightly schedule are two dispatchers inside one
+ * process, and `agent.maxConcurrentJobs` is 1: two profiles running at once
+ * would exceed the VM's whole CPU and memory budget and produce two sets of
+ * results nobody can compare. A gate rather than a refusal because the loop
+ * treats a throwing runner as a failed job, and a pull request must not be
+ * failed for arriving while the nightly happened to be running.
+ */
+export function createSerialGate() {
+  let tail = Promise.resolve()
+  let depth = 0
+  return Object.freeze({
+    get waiting() {
+      return depth
+    },
+    run(task) {
+      depth += 1
+      const started = tail.then(() => task())
+      tail = started.then(
+        () => {},
+        () => {}
+      )
+      return started.finally(() => {
+        depth -= 1
+      })
+    },
+  })
+}
+
 /* -------------------------------------------------------------------- main */
 
-async function buildDependencies({ contract, config, logger, headSha }) {
-  const github = createGitHubClient({
-    contract,
-    appId: config.appId,
-    installationId: config.installationId,
-    privateKey: config.privateKey,
-    logger,
-  })
+async function buildDependencies({
+  contract,
+  config,
+  logger,
+  headSha,
+  runDir,
+}) {
   const containerRuntime = createContainerRuntime({
     contract,
     vm: config.vm,
@@ -615,7 +1263,7 @@ async function buildDependencies({ contract, config, logger, headSha }) {
     contract,
     containerRuntime,
     resolveRuntimeEnv,
-    openLaneLog: makeLaneLogOpener(openRunDirectory({ config, headSha })),
+    openLaneLog: makeLaneLogOpener(runDir),
     hostEnv: process.env,
     arch: processArch,
     image: config.jobImage,
@@ -623,76 +1271,319 @@ async function buildDependencies({ contract, config, logger, headSha }) {
     workspaceHostPath,
     logger,
   })
-  return { github, runner, containerRuntime }
+  return { runner, containerRuntime }
 }
 
-async function runOnce({ contract, config, options, logger }) {
-  const headSha = options.sha.toLowerCase()
-  const profile = loadProfile(options.profile, contract, (path) =>
-    readFileSync(join(REPO_ROOT, path), "utf8")
-  )
-  const violations = snapshotGuardViolations(profile, contract)
-  if (violations.length > 0) {
-    throw new CliError(
-      "SNAPSHOT_GUARD_VIOLATION",
-      `profile ${options.profile} would let a local ARM64 run touch a pixel baseline:\n  ${violations.join("\n  ")}`
-    )
-  }
-  if (options.dryRun) {
-    logger.info(
-      `dry run: profile ${profile.profile}, ${profile.lanes.length} lanes, host arch ${processArch}, sha ${headSha}`
-    )
-    return 0
-  }
-
-  const runDir = openRunDirectory({ config, headSha })
-  const { github, runner } = await buildDependencies({
-    contract,
-    config,
-    logger,
-    headSha,
-  })
-  try {
-    const outcome = await runner.runProfile({
-      profile,
-      ref: options.ref,
-      headSha,
-      writeEnvFile: makeEnvFileWriter({ config, headSha }),
-    })
-    writeLaneResults({ runDir, outcome, contract })
-    const summary = renderCheckSummary(outcome.record, contract)
-    logger.info(summary.title)
-    if (options.publish) {
-      await github.createCheckRun({
-        name:
-          profile.profile === "nightly"
-            ? contract.nightlyCheckName
-            : contract.checkName,
-        headSha,
-        status: "completed",
-        conclusion: outcome.record.conclusion,
-        startedAt: outcome.startedAt,
-        completedAt: outcome.completedAt,
-        output: summary,
-      })
-    }
-    logger.info(
-      `evidence in ${runDir} (log digest ${outcome.record.logDigest})`
-    )
-    return outcome.record.conclusion === "success" ? 0 : 1
-  } finally {
-    await releaseWorkspace({ config, headSha })
-  }
-}
-
-async function watch({ contract, config, logger }) {
-  const github = createGitHubClient({
+function hostGitHubClient({ contract, config, logger }) {
+  return createGitHubClient({
     contract,
     appId: config.appId,
     installationId: config.installationId,
     privateKey: config.privateKey,
     logger,
   })
+}
+
+/** Load a profile, refusing one that could rewrite a pixel baseline. */
+function loadProfileChecked(name, contract) {
+  const profile = loadProfile(name, contract, (path) =>
+    readFileSync(join(REPO_ROOT, path), "utf8")
+  )
+  const violations = snapshotGuardViolations(profile, contract)
+  if (violations.length > 0) {
+    throw new CliError(
+      "SNAPSHOT_GUARD_VIOLATION",
+      `profile ${name} would let a local ARM64 run touch a pixel baseline:\n  ${violations.join("\n  ")}`
+    )
+  }
+  return profile
+}
+
+const checkNameFor = (profile, contract) =>
+  profile.profile === "nightly" ? contract.nightlyCheckName : contract.checkName
+
+async function publishCompletedRun({
+  github,
+  contract,
+  profile,
+  headSha,
+  outcome,
+  summary,
+}) {
+  await github.createCheckRun({
+    name: checkNameFor(profile, contract),
+    headSha,
+    status: "completed",
+    conclusion: outcome.record.conclusion,
+    startedAt: outcome.startedAt,
+    completedAt: outcome.completedAt,
+    output: summary,
+  })
+}
+
+/**
+ * Run one profile against one commit, and leave the evidence behind.
+ *
+ * Every dispatch on this host goes through here - the poll loop's, the nightly
+ * schedule's and a hand-run one-shot's - because the first thing it does has
+ * to be true for all three: the live VM is re-asserted before any commit is
+ * materialised inside it. Asserting only at startup would let an instance that
+ * gained a host mount, a forwarded agent or Rosetta at 10am still receive
+ * pull-request code at 11am, and an instance installed with `--skip-vm-check`
+ * would never have been asserted at all.
+ */
+async function dispatchRun({
+  contract,
+  config,
+  logger,
+  evidence,
+  profile,
+  ref,
+  headSha,
+}) {
+  await assertVmIsolationLive({ config, contract })
+  logger.info(
+    `instance ${config.vm} re-asserted: no host mounts, no forwarded agent, no host home, no Rosetta`
+  )
+  const run = evidence.open({ headSha, profile: profile.profile })
+  try {
+    const { runner } = await buildDependencies({
+      contract,
+      config,
+      logger,
+      headSha,
+      runDir: run.path,
+    })
+    const outcome = await runner.runProfile({
+      profile,
+      ref,
+      headSha,
+      writeEnvFile: makeEnvFileWriter({ config, headSha }),
+    })
+    writeLaneResults({ runDir: run.path, outcome, contract })
+    logger.info(
+      `evidence in ${run.path} (log digest ${outcome.record.logDigest})`
+    )
+    return outcome
+  } finally {
+    await releaseWorkspace({ config, headSha })
+    run.close()
+  }
+}
+
+/**
+ * Decide whether a nightly proof is due and, if it is, produce one.
+ *
+ * Shared by `--nightly` and the schedule the watch agent runs, so the two
+ * cannot drift into disagreeing about what "due" means.
+ */
+export async function nightlyTick({
+  contract,
+  logger,
+  github,
+  evidence,
+  loadProfileFor,
+  dispatch,
+  publish = null,
+  ref = DEFAULT_MAIN_REF,
+  now = () => Date.now(),
+}) {
+  const verdict = nightlyRunIsDue({
+    lastRunAt: evidence.lastRunAt(contract.nightlyProof.profile),
+    now: now(),
+    contract,
+  })
+  if (!verdict.due) {
+    return Object.freeze({
+      ...verdict,
+      ran: false,
+      headSha: null,
+      conclusion: null,
+    })
+  }
+  const head = await github.getRef(ref)
+  const headSha = String(head.sha).toLowerCase()
+  logger.info(
+    `nightly proof is due (${verdict.reason}); running the ${contract.nightlyProof.profile} profile for ${headSha}`
+  )
+  const profile = loadProfileFor(contract.nightlyProof.profile)
+  const outcome = await dispatch({ profile, ref: head.ref ?? ref, headSha })
+  if (publish) {
+    try {
+      await publish({ profile, headSha, outcome })
+    } catch (error) {
+      // A publish failure must not look like a missed run: the lanes ran and
+      // the evidence is on disk, so this is loud and the freshness monitor is
+      // what escalates if it keeps happening.
+      logger.error(
+        `the nightly proof for ${headSha} ran but could not be published: ${error.message}`
+      )
+    }
+  }
+  return Object.freeze({
+    ...verdict,
+    ran: true,
+    headSha,
+    conclusion: outcome.record.conclusion,
+  })
+}
+
+/**
+ * The nightly schedule, running inside the watch agent.
+ *
+ * Deliberately not a second launchd job: a `StartCalendarInterval` agent skips
+ * a window the machine was powered off for, silently, which is precisely the
+ * failure the freshness monitor exists to catch. Asking a cheap local question
+ * every quarter hour turns every kind of missed window - asleep, logged out,
+ * powered off, agent restarted - into a late run instead.
+ */
+export function createNightlyScheduler({
+  logger,
+  tick,
+  intervalMs = NIGHTLY_CHECK_INTERVAL_MS,
+  sleep = null,
+}) {
+  let stopping = false
+  let timer = null
+  const log = (level, message) => {
+    if (logger && typeof logger[level] === "function") logger[level](message)
+  }
+  return Object.freeze({
+    async start() {
+      stopping = false
+      const wait =
+        sleep ??
+        ((ms) =>
+          new Promise((resolve) => {
+            timer = setTimeout(resolve, ms)
+            timer.unref?.()
+          }))
+      log(
+        "info",
+        `checking every ${Math.round(intervalMs / 60_000)}m whether a nightly proof is due`
+      )
+      while (!stopping) {
+        try {
+          const result = await tick()
+          if (result.ran) {
+            log(
+              "info",
+              `nightly proof for ${result.headSha}: ${result.conclusion}`
+            )
+          }
+        } catch (error) {
+          log("error", `the nightly check failed: ${error.message}`)
+        }
+        if (stopping) break
+        await wait(intervalMs)
+      }
+    },
+    stop() {
+      stopping = true
+      if (timer) clearTimeout(timer)
+    },
+  })
+}
+
+/** Report the VM verdict without deciding on it. Used where a refusal would
+ * be worse than a warning: a dry-run preflight an operator runs before the VM
+ * exists, and agent startup, where exiting would only make launchd restart
+ * into a crash loop. Every real dispatch still refuses. */
+async function reportVmIsolation({ config, contract, logger }) {
+  try {
+    await assertVmIsolationLive({ config, contract })
+    logger.info(`instance ${config.vm} is running and still isolated`)
+    return true
+  } catch (error) {
+    logger.error(
+      `${error.code ?? "VM_UNVERIFIABLE"}: ${error.message}. No job will be dispatched until this is fixed.`
+    )
+    return false
+  }
+}
+
+async function runOnce({ contract, config, options, logger }) {
+  const headSha = options.sha.toLowerCase()
+  const profile = loadProfileChecked(options.profile, contract)
+  if (options.dryRun) {
+    logger.info(
+      `dry run: profile ${profile.profile}, ${profile.lanes.length} lanes, host arch ${processArch}, sha ${headSha}`
+    )
+    await reportVmIsolation({ config, contract, logger })
+    return 0
+  }
+
+  const github = hostGitHubClient({ contract, config, logger })
+  const evidence = createRunEvidenceStore({ stateRoot: config.stateRoot })
+  const outcome = await dispatchRun({
+    contract,
+    config,
+    logger,
+    evidence,
+    profile,
+    ref: options.ref,
+    headSha,
+  })
+  const summary = renderCheckSummary(outcome.record, contract)
+  logger.info(summary.title)
+  if (options.publish) {
+    await publishCompletedRun({
+      github,
+      contract,
+      profile,
+      headSha,
+      outcome,
+      summary,
+    })
+  }
+  return outcome.record.conclusion === "success" ? 0 : 1
+}
+
+async function runNightlyOnce({ contract, config, options, logger }) {
+  const evidence = createRunEvidenceStore({ stateRoot: config.stateRoot })
+  if (options.dryRun) {
+    const verdict = nightlyRunIsDue({
+      lastRunAt: evidence.lastRunAt(contract.nightlyProof.profile),
+      now: Date.now(),
+      contract,
+    })
+    logger.info(
+      `dry run: a nightly proof is ${verdict.due ? "due" : "not due"} - ${verdict.reason}`
+    )
+    await reportVmIsolation({ config, contract, logger })
+    return 0
+  }
+  const github = hostGitHubClient({ contract, config, logger })
+  const result = await nightlyTick({
+    contract,
+    logger,
+    github,
+    evidence,
+    ref: options.ref,
+    loadProfileFor: (name) => loadProfileChecked(name, contract),
+    dispatch: (args) =>
+      dispatchRun({ contract, config, logger, evidence, ...args }),
+    publish: options.publish
+      ? ({ profile, headSha, outcome }) =>
+          publishCompletedRun({
+            github,
+            contract,
+            profile,
+            headSha,
+            outcome,
+            summary: renderCheckSummary(outcome.record, contract),
+          })
+      : null,
+  })
+  if (!result.ran) {
+    logger.info(`no nightly run: ${result.reason}`)
+    return 0
+  }
+  return result.conclusion === "success" ? 0 : 1
+}
+
+async function watch({ contract, config, logger }) {
+  const github = hostGitHubClient({ contract, config, logger })
   const heartbeat = createHeartbeat({
     url: config.heartbeatUrl,
     contract,
@@ -704,51 +1595,85 @@ async function watch({ contract, config, logger }) {
     )
   }
   const sleepAssertion = createSleepAssertion({ logger })
+  // A second assertion for the nightly rather than sharing the loop's.
+  // `release` is unconditional, and the loop acquires *before* it reaches the
+  // gate below: one dispatcher releasing the other's assertion would leave a
+  // job running with nothing keeping the Mac awake.
+  const nightlyAssertion = createSleepAssertion({ logger })
+  const evidence = createRunEvidenceStore({ stateRoot: config.stateRoot })
+  const gate = createSerialGate()
+  const dispatch = (args) =>
+    gate.run(() => dispatchRun({ contract, config, logger, evidence, ...args }))
+  const nightlyDispatch = (args) =>
+    gate.run(async () => {
+      nightlyAssertion.acquire()
+      try {
+        return await dispatchRun({
+          contract,
+          config,
+          logger,
+          evidence,
+          ...args,
+        })
+      } finally {
+        nightlyAssertion.release()
+      }
+    })
+
+  logger.info(`job image ${config.jobImage} (from ${config.jobImageSource})`)
+  await reportVmIsolation({ config, contract, logger })
 
   const loop = createLoop({
     contract,
     github,
-    loadProfile: (name) =>
-      loadProfile(name, contract, (path) =>
-        readFileSync(join(REPO_ROOT, path), "utf8")
-      ),
+    loadProfile: (name) => loadProfileChecked(name, contract),
     heartbeat,
     sleepAssertion,
+    // The retention sweep the contract promises. Without a store the loop's
+    // sweep returns 0 on every tick and `agent.logRetentionDays` is a number
+    // no code reads, so lane logs accumulate until the disk fills.
+    logStore: evidence,
     logger,
     // Built per job: the runner needs a workspace materialised for that head
     // SHA, and there is no useful long-lived runner to hold open between them.
     runner: {
       async runProfile({ profile, ref, headSha }) {
-        const runDir = openRunDirectory({ config, headSha })
-        const { runner } = await buildDependencies({
-          contract,
-          config,
-          logger,
-          headSha,
-        })
-        try {
-          const outcome = await runner.runProfile({
-            profile,
-            ref,
-            headSha,
-            writeEnvFile: makeEnvFileWriter({ config, headSha }),
-          })
-          writeLaneResults({ runDir, outcome, contract })
-          return outcome
-        } finally {
-          await releaseWorkspace({ config, headSha })
-        }
+        return dispatch({ profile, ref, headSha })
       },
     },
+  })
+
+  const nightly = createNightlyScheduler({
+    logger,
+    tick: () =>
+      nightlyTick({
+        contract,
+        logger,
+        github,
+        evidence,
+        dispatch: nightlyDispatch,
+        loadProfileFor: (name) => loadProfileChecked(name, contract),
+        publish: ({ profile, headSha, outcome }) =>
+          publishCompletedRun({
+            github,
+            contract,
+            profile,
+            headSha,
+            outcome,
+            summary: renderCheckSummary(outcome.record, contract),
+          }),
+      }),
   })
 
   const stop = () => {
     logger.info("stopping after the current tick")
     loop.stop()
+    nightly.stop()
+    nightlyAssertion.release()
   }
   process.once("SIGINT", stop)
   process.once("SIGTERM", stop)
-  await loop.start()
+  await Promise.all([loop.start(), nightly.start()])
   return 0
 }
 
@@ -774,9 +1699,11 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
     logger.info(
       `contract ${contract.schema}, cutover step ${contract.cutoverStep}, stage ${contract.stage}`
     )
-    return options.watch
-      ? await watch({ contract, config, logger })
-      : await runOnce({ contract, config, options, logger })
+    if (options.watch) return await watch({ contract, config, logger })
+    if (options.nightly) {
+      return await runNightlyOnce({ contract, config, options, logger })
+    }
+    return await runOnce({ contract, config, options, logger })
   } catch (error) {
     if (error instanceof LocalCiError) {
       logger.error(`${error.code}: ${error.message}`)

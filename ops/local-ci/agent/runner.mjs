@@ -17,6 +17,23 @@
  *     `skipped`. A missing row and a passing row look identical from the
  *     outside, and the whole point of this plane is that they must not.
  *
+ *   - **A log named in the evidence exists.** `logParts` lists the files this
+ *     run actually wrote into the run directory, and `logDigest` is the bundle
+ *     digest over exactly those files in exactly that order. A background
+ *     service's log is written inside the VM workspace, which is deleted with
+ *     the worktree, so it is copied out before the lane's result is built; one
+ *     that could not be copied is named in `missingLogParts` rather than
+ *     quietly dropped, because an absent log and an empty log are different
+ *     facts.
+ *
+ * The run also has a deadline of its own. Every lane carries a timeout, but a
+ * profile's lanes summed run far past `bridge.timeoutMinutes` - so a run that
+ * is slow rather than hung would still be burning the machine long after the
+ * hosted bridge had given up, and would publish into a check nobody was
+ * waiting for. `runDeadlineMs` is the whole-profile ceiling that keeps the
+ * agent-side expiry first, and it is enforced by clamping the in-flight lane
+ * and skipping the rest.
+ *
  * Everything above `createRunner` is pure: the parsers, the shell-script
  * builder, the lane-result builder and the record builder all take their
  * inputs as arguments. `createRunner` is the only impure export, and it is
@@ -30,7 +47,7 @@ import {
   describeValue,
   runtimeEnvSource,
 } from "../core/contract.mjs"
-import { digestLogBundle, logDigest } from "../core/digest.mjs"
+import { digestLogBundle } from "../core/digest.mjs"
 import { buildJobEnv } from "../core/job-env.mjs"
 import { selectLanes } from "../core/profiles.mjs"
 import { LANE_STATUSES } from "../core/summary.mjs"
@@ -42,6 +59,15 @@ export const LOG_MARKER = "##local-ci##"
 
 /** Cap on failure titles collected from one lane's output. */
 export const LANE_FAILURE_CAP = 50
+
+/**
+ * Minutes held back from the bridge's ceiling for everything that happens
+ * after the last lane stops: the container teardown, the workspace release,
+ * the evidence write and the check-run publish. A deadline that consumed the
+ * whole window would expire into a bridge that had already stopped polling,
+ * which is the failure it exists to prevent.
+ */
+export const PUBLISH_MARGIN_MINUTES = 10
 
 /** Shell variable namespace, chosen not to collide with anything a lane sets. */
 const SHELL_NS = "__lci"
@@ -58,6 +84,45 @@ function requireObject(value, label) {
     )
   }
   return value
+}
+
+/* ----------------------------------------------------------------- deadline */
+
+/**
+ * The whole-profile ceiling, in milliseconds. **Pure.**
+ *
+ * Derived from the bridge's own ceiling rather than from the profile, because
+ * the property that matters is a relationship between the two planes: the
+ * agent must stop, tear down and publish while the hosted job is still
+ * listening. Summing the lanes would derive the opposite - pr and main allow
+ * about 295 lane-minutes and nightly about 535, all of them past the 120 the
+ * bridge waits.
+ *
+ * This is a ceiling on the run, not a budget for it. A healthy pr run finishes
+ * inside a fraction of it; what it stops is the run that is merely slow, which
+ * a per-lane timeout never catches because no single lane exceeds its own.
+ */
+export function runDeadlineMs(contract) {
+  requireObject(contract, "contract")
+  const minutes = contract.bridge?.timeoutMinutes
+  if (
+    typeof minutes !== "number" ||
+    !Number.isFinite(minutes) ||
+    minutes <= 0
+  ) {
+    fail(
+      "INVALID_CONTRACT",
+      `contract.bridge.timeoutMinutes must be a positive finite number (received ${describeValue(minutes)})`
+    )
+  }
+  const budget = minutes - PUBLISH_MARGIN_MINUTES
+  if (budget <= 0) {
+    fail(
+      "INVALID_CONTRACT",
+      `contract.bridge.timeoutMinutes is ${minutes}, which leaves nothing once the ${PUBLISH_MARGIN_MINUTES}-minute publishing margin is held back; the agent-side ceiling must expire before the bridge's`
+    )
+  }
+  return Math.round(budget * 60_000)
 }
 
 /* ------------------------------------------------------------------ parsing */
@@ -417,14 +482,49 @@ export function buildLaneScript(lane, contract, { workspacePath = null } = {}) {
   return lines.join("\n")
 }
 
-/** Log file name for a lane, and the extra parts its services write. Pure. */
+/**
+ * The background-service logs a lane declares. **Pure.**
+ *
+ * `source` is the name the service writes inside the workspace; `stored` is
+ * the name that copy takes in the run directory. They differ because the run
+ * directory is flat and shared by every lane in the run, so two lanes that
+ * declared the same log file name would otherwise overwrite each other's
+ * evidence - and the digest of whichever was written first would then no
+ * longer match its own bytes on disk.
+ */
+export function laneServiceLogs(lane) {
+  requireObject(lane, "lane")
+  const taken = new Set([`${lane.id}.log`])
+  return Object.freeze(
+    (lane.backgroundServices ?? []).map((service) => {
+      const source = service.logFile ?? `${service.id}.log`
+      const stored = `${lane.id}.${source}`
+      // Two parts under one name would mean the second overwrote the first,
+      // and the digest of a bundle that names both would match neither file.
+      if (taken.has(stored)) {
+        fail(
+          "DUPLICATE_LOG_PART",
+          `lane ${JSON.stringify(lane.id)} would store two log parts as ${JSON.stringify(stored)}; every part in a run directory has to be openable by the name the evidence gives it`
+        )
+      }
+      taken.add(stored)
+      return Object.freeze({ serviceId: service.id, source, stored })
+    })
+  )
+}
+
+/**
+ * Every log part a lane would contribute if everything it declares is
+ * captured, in digest order. Pure.
+ *
+ * This is the declared set, not the recorded one: a lane result's `logParts`
+ * names only the files that reached the run directory.
+ */
 export function laneLogParts(lane) {
   requireObject(lane, "lane")
   return Object.freeze([
     `${lane.id}.log`,
-    ...(lane.backgroundServices ?? []).map(
-      (service) => service.logFile ?? `${service.id}.log`
-    ),
+    ...laneServiceLogs(lane).map((part) => part.stored),
   ])
 }
 
@@ -443,6 +543,12 @@ function statusFor({ exitCode, timedOut, cancelled }) {
  * Null means "the output carried no tally this runner recognised", and
  * `countsParsed`/`countsExpected` say whether that is a fact about the lane
  * (a hygiene lane runs no tests) or a defect in this plane's evidence.
+ *
+ * `logs` is `[{ name, text }]`: the files this lane put in the run directory,
+ * in the order they are hashed. `logParts` is their names and `logDigest` is
+ * `digestLogBundle` over their texts, so the record's manifest and its digest
+ * can never describe different sets of bytes. Anything the lane declared and
+ * did not produce belongs in `missingLogs` as `{ name, reason }`.
  */
 export function buildLaneResult({
   lane,
@@ -458,7 +564,8 @@ export function buildLaneResult({
   startedAt = null,
   completedAt = null,
   durationSeconds = null,
-  logParts = null,
+  logs = null,
+  missingLogs = [],
   logDigestValue = null,
 }) {
   requireObject(lane, "lane")
@@ -469,6 +576,29 @@ export function buildLaneResult({
       "INVALID_LANE_STATUS",
       `lane status must be one of ${LANE_STATUSES.join(", ")} (received ${describeValue(resolved)})`
     )
+  }
+
+  // A lane that never started wrote nothing, so it names no parts. Every other
+  // lane has at least its own streamed output.
+  const parts =
+    logs ??
+    (resolved === "skipped" || resolved === "cancelled"
+      ? []
+      : [{ name: `${lane.id}.log`, text: output }])
+  for (const [index, part] of parts.entries()) {
+    requireObject(part, `logs[${index}]`)
+    if (typeof part.name !== "string" || part.name.trim() === "") {
+      fail(
+        "INVALID_INPUT",
+        `logs[${index}].name must be a non-empty string (received ${describeValue(part.name)})`
+      )
+    }
+    if (typeof part.text !== "string") {
+      fail(
+        "INVALID_INPUT",
+        `logs[${index}].text must be a string (received ${describeValue(part.text)}); a part named in logParts must carry the bytes it was hashed from`
+      )
+    }
   }
 
   const countsExpected = expectsTestCounts(lane)
@@ -520,8 +650,12 @@ export function buildLaneResult({
     countSources: [...counts.sources],
     failures: [...extractFailureTitles(output)],
     commands: [...(lane.commands ?? [])],
-    logParts: logParts ?? [...laneLogParts(lane)],
-    logDigest: logDigestValue ?? logDigest(output),
+    logParts: parts.map((part) => part.name),
+    missingLogParts: missingLogs.map((entry) => ({
+      name: entry.name,
+      reason: entry.reason ?? null,
+    })),
+    logDigest: logDigestValue ?? digestLogBundle(parts.map((p) => p.text)),
   })
 }
 
@@ -568,11 +702,19 @@ export function unparsedCountLanes(laneResults) {
   )
 }
 
-/** The run conclusion implied by its lanes. Pure. */
-export function conclusionFor(laneResults) {
+/**
+ * The run conclusion implied by its lanes. Pure.
+ *
+ * `deadlineExpired` reads as a timed-out lane, because that is what it is: the
+ * run was stopped by a clock rather than by a result.
+ */
+export function conclusionFor(laneResults, { deadlineExpired = false } = {}) {
   if (laneResults.some((lane) => lane.status === "cancelled"))
     return "cancelled"
-  if (laneResults.some((lane) => lane.status === "timed_out"))
+  if (
+    deadlineExpired ||
+    laneResults.some((lane) => lane.status === "timed_out")
+  )
     return "timed_out"
   if (laneResults.some((lane) => lane.status === "failure")) return "failure"
   if (laneResults.every((lane) => lane.status === "skipped")) return "skipped"
@@ -585,6 +727,10 @@ export function conclusionFor(laneResults) {
  * Lanes this host could not run appear in `hostedOnlyLanes` with the reason
  * `selectLanes` gave, so the published summary states their absence rather
  * than leaving a gap a reader has to notice.
+ *
+ * A run stopped by its own deadline says so in the failure list as well as in
+ * the conclusion, because "timed_out" on its own does not distinguish one
+ * hung lane from a profile that simply did not fit.
  */
 export function buildRunRecord({
   profile,
@@ -597,6 +743,8 @@ export function buildRunRecord({
   logDigestValue,
   plane = "local",
   conclusion = null,
+  deadlineExpired = false,
+  deadlineMinutes = null,
 }) {
   if (!Array.isArray(laneResults)) {
     fail(
@@ -611,13 +759,34 @@ export function buildRunRecord({
     message:
       "the lane ran a test command but printed no summary this agent recognises; its counts are reported as zero and cannot be compared against the hosted plane",
   }))
+  for (const lane of laneResults) {
+    for (const part of lane.missingLogParts ?? []) {
+      failures.push({
+        laneId: lane.laneId,
+        title: `declared log ${part.name} is not in the evidence`,
+        message:
+          part.reason ??
+          "the lane declared this log and the run directory does not hold it; that lane's evidence cannot be fully reconstructed",
+      })
+    }
+  }
+  if (deadlineExpired) {
+    const skipped = laneResults.filter(
+      (lane) => lane.status === "skipped"
+    ).length
+    failures.push({
+      laneId: null,
+      title: "the run hit its whole-profile deadline",
+      message: `the agent stopped ${deadlineMinutes === null ? "at its whole-profile ceiling" : `after ${deadlineMinutes} minutes`} so it could tear down and publish before the hosted bridge stops polling; ${skipped} lane(s) never ran and this result covers less than the profile declares`,
+    })
+  }
 
   return {
     plane,
     profile,
     ref,
     headSha: String(headSha).toLowerCase(),
-    conclusion: conclusion ?? conclusionFor(laneResults),
+    conclusion: conclusion ?? conclusionFor(laneResults, { deadlineExpired }),
     durationSeconds,
     logDigest: logDigestValue,
     lanes: laneResults.map((lane) => toSummaryLane(lane)),
@@ -707,6 +876,12 @@ export function createRuntimeEnvResolver({ contract, exec, randomBytes }) {
  * two lanes are ever in flight, so no two lanes contend for 127.0.0.1:3000 or
  * for the local Supabase ports. Running independent lanes in parallel is a
  * later change, and it is the concurrency groups that will make it safe.
+ *
+ * The run's own deadline is enforced in two places, both of them here: a lane
+ * about to start after it has passed is skipped instead, and a lane that
+ * starts inside it is given the *remaining* time rather than its own, so the
+ * container is stopped and torn down at the deadline rather than at whatever
+ * its profile allowed.
  */
 export function createRunner({
   contract,
@@ -733,6 +908,65 @@ export function createRunner({
     if (logger && typeof logger[level] === "function") logger[level](message)
   }
 
+  /**
+   * The lane's own streamed output plus every background-service log it
+   * declared, copied out of the VM workspace and into the run directory.
+   *
+   * Called while the workspace still exists - the caller deletes the worktree
+   * once the run ends, and these files live inside it. A log that could not be
+   * copied comes back in `missing` with the reason, never dropped: the whole
+   * value of the digest is that a reader can rebuild it from the files the
+   * record names.
+   */
+  async function captureLaneLogs(lane, laneOutput) {
+    const logs = [{ name: `${lane.id}.log`, text: laneOutput }]
+    const missing = []
+    for (const part of laneServiceLogs(lane)) {
+      if (typeof containerRuntime.readWorkspaceLog !== "function") {
+        missing.push({
+          name: part.stored,
+          reason:
+            "this container runtime cannot read a file back out of the run workspace",
+        })
+        continue
+      }
+      const read = await containerRuntime.readWorkspaceLog({
+        workspaceHostPath,
+        name: part.source,
+      })
+      if (read.status !== "captured") {
+        missing.push({
+          name: part.stored,
+          reason:
+            read.reason ??
+            `${part.source}, declared by background service ${part.serviceId}, is ${read.status}`,
+        })
+        continue
+      }
+      if (read.truncated === true) {
+        // The stored copy and its digest still agree, so the evidence stays
+        // verifiable; what is lost is the tail of a service's own log.
+        log(
+          "warn",
+          `lane ${lane.id}: ${part.source} was longer than this plane copies out of the workspace; the evidence holds its first portion only`
+        )
+      }
+      try {
+        const sink = openLaneLog ? await openLaneLog(part.stored) : null
+        sink?.write(read.text)
+        await sink?.close?.()
+      } catch (error) {
+        missing.push({
+          name: part.stored,
+          reason: `read out of the workspace but could not be written to the run directory: ${error.message}`,
+        })
+        continue
+      }
+      logs.push({ name: part.stored, text: read.text })
+    }
+    return { logs, missing }
+  }
+
   return Object.freeze({
     async runProfile({
       profile,
@@ -744,6 +978,9 @@ export function createRunner({
       requireObject(profile, "profile")
       const routing = selectLanes(profile, { arch })
       const runStarted = now()
+      const deadlineMs = runDeadlineMs(contract)
+      const deadlineMinutes = Math.round(deadlineMs / 60_000)
+      const deadlineAt = runStarted + deadlineMs
 
       // Per-run sources resolve once so every lane sees identical values.
       const perRunValues = {}
@@ -760,9 +997,23 @@ export function createRunner({
       const laneResults = []
       const logBundle = []
       let stopped = false
+      let deadlineExpired = false
 
       for (const lane of routing.local) {
-        if (stopped || signal?.aborted) {
+        const remainingMs = deadlineAt - now()
+        if (
+          !stopped &&
+          !deadlineExpired &&
+          !signal?.aborted &&
+          remainingMs <= 0
+        ) {
+          deadlineExpired = true
+          log(
+            "warn",
+            `the run passed its ${deadlineMinutes}-minute ceiling before lane ${lane.id} started; the remaining lanes are recorded as skipped and this run publishes a timed-out conclusion while the hosted bridge is still listening`
+          )
+        }
+        if (stopped || deadlineExpired || signal?.aborted) {
           laneResults.push(
             buildLaneResult({
               lane,
@@ -793,7 +1044,8 @@ export function createRunner({
         const sink = openLaneLog ? await openLaneLog(`${lane.id}.log`) : null
         let output = ""
 
-        let result
+        let result = null
+        let runtimeError = null
         try {
           result = await containerRuntime.withJobContainer({
             headSha,
@@ -809,35 +1061,74 @@ export function createRunner({
               "com.nabaperks.local-ci.lane": lane.id,
               "com.nabaperks.local-ci.head-sha": String(headSha).toLowerCase(),
             },
-            timeoutMs: Math.round(lane.timeoutMinutes * 60_000),
-            needsDaemon: lane.concurrencyGroup === "supabase-local",
+            // The remaining run budget, not the lane's own: the two differ
+            // only when the deadline would fall inside this lane, and that is
+            // precisely when the lane must be the one to give way.
+            timeoutMs: Math.min(
+              Math.round(lane.timeoutMinutes * 60_000),
+              remainingMs
+            ),
+            // The lane declares this. Inferring it from `concurrencyGroup`
+            // tied "needs a Docker daemon" to "contends for the Supabase
+            // ports", which are unrelated facts: the nightly `zap-full` lane
+            // shells out to `docker run` while grouping on the HTTP port, so
+            // it was scheduled without a daemon and could only ever have
+            // failed. A group rename must not be able to take the daemon away
+            // from a lane that needs one.
+            needsDaemon: lane.needsDaemon === true,
             signal,
             onOutput: (chunk) => {
               output += chunk
               sink?.write(chunk)
             },
           })
+        } catch (error) {
+          // A lane whose container could not be started at all - a stale
+          // resource that would not reconcile, a docker that is not there - is
+          // a failed lane, not a failed run. Letting this escape would abort
+          // the whole profile before anything was published, and the check the
+          // bridge is polling would simply never arrive.
+          runtimeError = error
+          // Through the sink as well, so the reason is in the lane's log file
+          // and not only in the agent's own stderr. The digest below covers
+          // these bytes; the file it is rebuilt from has to carry them too.
+          const note = `${LOG_MARKER} lane ${lane.id} could not run: ${error.message}\n`
+          output += note
+          sink?.write(note)
+          log("error", `lane ${lane.id} could not run: ${error.message}`)
         } finally {
           await sink?.close?.()
         }
 
+        // The bytes the log file received, rather than the runtime's own
+        // buffered copy: that copy is capped, and a digest taken over a
+        // truncated copy would not match the file §6.4 rebuilds it from. The
+        // fallback is for a runtime that returns output without streaming it,
+        // which writes no file either.
+        const laneOutput = output === "" ? (result?.output ?? "") : output
         const laneEnded = now()
+        const captured = await captureLaneLogs(lane, laneOutput)
         const laneResult = buildLaneResult({
           lane,
           contract,
           profile: profile.profile,
           ref,
           headSha,
-          output: result?.output ?? output,
+          output: laneOutput,
           exitCode: result?.exitCode ?? null,
           timedOut: result?.timedOut ?? false,
           cancelled: result?.cancelled ?? false,
+          status: runtimeError === null ? null : "failure",
           startedAt: new Date(laneStarted).toISOString(),
           completedAt: new Date(laneEnded).toISOString(),
           durationSeconds: Math.round((laneEnded - laneStarted) / 1000),
+          logs: captured.logs,
+          missingLogs: captured.missing,
         })
         laneResults.push(laneResult)
-        logBundle.push(result?.output ?? output)
+        // In `logParts` order, so the run digest is reproducible from the
+        // manifest the lane documents publish.
+        logBundle.push(...captured.logs.map((part) => part.text))
 
         if (laneResult.status !== "success" && lane.continueOnError !== true) {
           log(
@@ -852,6 +1143,8 @@ export function createRunner({
       return Object.freeze({
         laneResults: Object.freeze(laneResults),
         routing,
+        deadlineExpired,
+        deadlineAt: new Date(deadlineAt).toISOString(),
         record: buildRunRecord({
           profile: profile.profile,
           ref,
@@ -861,6 +1154,8 @@ export function createRunner({
           reasons: routing.reasons,
           durationSeconds: Math.round((runEnded - runStarted) / 1000),
           logDigestValue: digestLogBundle(logBundle),
+          deadlineExpired,
+          deadlineMinutes,
         }),
         startedAt: new Date(runStarted).toISOString(),
         completedAt: new Date(runEnded).toISOString(),

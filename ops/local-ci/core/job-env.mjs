@@ -39,21 +39,48 @@ export class JobEnvError extends LocalCiError {}
  * The only names forwarded from the agent's own environment. Everything a lane
  * needs beyond this is declared in the profile, so adding a variable to the
  * agent's shell cannot silently change what a job sees.
+ *
+ * The list is short because the two sides of this boundary are different
+ * operating systems. The agent is a launchd job on macOS; the lane is a
+ * process in a Linux container. A name belongs here only when the host's value
+ * still means something over there, and almost none do:
+ *
+ *   HOME, TMPDIR    macOS paths - /Users/<operator> and a /var/folders/...
+ *                   scratch directory - that do not exist in the container and
+ *                   cannot be created in it. Forwarding HOME points every
+ *                   tool's cache, pnpm's store included, at nowhere.
+ *   PATH            under launchd this is the plist's PATH, which has none of
+ *                   the container's tool directories and, in particular, not
+ *                   the /opt/print-kit-venv/bin the image prepends so the
+ *                   print-kit scripts resolve python3 to the interpreter that
+ *                   has opencv and pymupdf in it.
+ *   USER, SHELL,    host identity: the operator's account name, their login
+ *   HOSTNAME        shell, their Mac's name. Nothing in the container answers
+ *                   to any of them, and HOSTNAME additionally writes the
+ *                   operator's machine name into a log published to a check
+ *                   run.
+ *   LANG, LC_ALL    the image pins LANG=C.UTF-8. The host's locale is not
+ *                   generated in the container, and letting it through makes
+ *                   collation and formatting depend on whose Mac this is.
+ *   TZ              the GitHub-hosted runners this plane is shadow-compared
+ *                   against run in UTC, which is what the container gets when
+ *                   TZ is unset. Forwarding the operator's zone would make a
+ *                   date-sensitive test disagree with the hosted plane for a
+ *                   reason that has nothing to do with the commit.
+ *   DOCKER_HOST     the lane's daemon is the sidecar on its own private
+ *                   network; the image and agent/container.mjs both pin the
+ *                   address. The agent's own DOCKER_HOST names something on
+ *                   the Mac, and overriding the pinned value with it would
+ *                   take the database tier's daemon away.
+ *   PLAYWRIGHT_     the image installs the browsers under /opt/ms-playwright
+ *   BROWSERS_PATH   and pins the variable to it. A host value is a macOS cache
+ *                   directory with no Linux browsers behind it.
+ *
+ * TERM is what survives: a terminfo name, not a path, an identity, a locale or
+ * a clock. The container's stdio is a pipe, so it can change how output looks
+ * and nothing else.
  */
-export const HOST_ENV_PASSTHROUGH = Object.freeze([
-  "DOCKER_HOST",
-  "HOME",
-  "HOSTNAME",
-  "LANG",
-  "LC_ALL",
-  "PATH",
-  "PLAYWRIGHT_BROWSERS_PATH",
-  "SHELL",
-  "TERM",
-  "TMPDIR",
-  "TZ",
-  "USER",
-])
+export const HOST_ENV_PASSTHROUGH = Object.freeze(["TERM"])
 
 /**
  * Credential shapes refused out of `hostEnv`. Deliberately anchored on

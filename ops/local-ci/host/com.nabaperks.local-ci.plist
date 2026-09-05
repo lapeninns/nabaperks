@@ -43,6 +43,27 @@
   Verify a live assertion with: pgrep -fl caffeinate
   It prints the flags and the job-runner pid the assertion is bound to.
   ==========================================================================
+
+  ==========================================================================
+  THERE IS NO SECOND LAUNCHD JOB FOR THE NIGHTLY PROOF.
+  ==========================================================================
+  `Nabaperks Local CI (nightly)` is published by this agent, which asks every
+  15 minutes whether the last nightly run is older than the 24-hour cadence
+  and produces one when it is. That is deliberate, and it is not what a
+  StartCalendarInterval job would do:
+
+    * launchd replays a calendar window missed while the Mac was ASLEEP, but a
+      window missed while it was powered off or logged out is gone. The
+      freshness monitor (nightlyProof.maxAgeHours, 36) would then report stale
+      with nothing on the host explaining why.
+    * A separate job would also dispatch a second container run alongside a
+      pull request already in flight, and agent.maxConcurrentJobs is 1.
+
+  Asking a cheap local question on a short interval turns every kind of missed
+  window - asleep, powered off, logged out, agent restarted - into a late run
+  instead of a skipped one, and the run is serialised against the poll loop
+  inside this one process.
+  ==========================================================================
 -->
 <plist version="1.0">
   <dict>
@@ -109,6 +130,25 @@
            install invariant. Default: $HOME/.nabaperks-local-ci -->
       <key>NABAPERKS_LOCAL_CI_INSTALL_ROOT</key>
       <string>/opt/nabaperks-local-ci/current</string>
+
+      <!-- Where install.sh recorded the pinned job image tag.
+
+           The agent refuses to start without a pinned image, and the tag names
+           an image built inside THIS Mac's VM, so it cannot be a literal here
+           without breaking the byte-identical install above. The plist carries
+           the path; install.sh writes the value, root-owned beside the release
+           tree, and refuses to register this job unless the two agree. The two
+           halves are one interface: with the path missing or pointing
+           somewhere else, the agent would start, fail MISSING_JOB_IMAGE and be
+           restarted by KeepAlive forever, which is a crash loop rather than a
+           poller.
+
+           The file holds an image tag, not a secret, but it decides which
+           image executes pull-request code - so it lives under /opt with the
+           reviewed source (root:wheel, go-w) rather than in a user-writable
+           dotfile. -->
+      <key>LOCAL_CI_JOB_IMAGE_FILE</key>
+      <string>/opt/nabaperks-local-ci/job-image</string>
     </dict>
 
     <!-- Log directory is created by install.sh as

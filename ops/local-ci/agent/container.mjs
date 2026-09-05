@@ -45,6 +45,21 @@ export const DAEMON_CONTAINER_PREFIX = "nabaperks-ci-dind-"
 export const NETWORK_PREFIX = "nabaperks-ci-net-"
 
 /**
+ * Every name this agent creates carries one of these prefixes, and nothing
+ * else on the operator's daemon does.
+ *
+ * The reconciliation below removes resources before it creates them, which is
+ * how the agent recovers from being killed mid-lane. That makes "which
+ * resources may this agent destroy?" a safety question rather than a naming
+ * convention, so the destroying argv builders answer it themselves.
+ */
+export const OWNED_NAME_PREFIXES = Object.freeze([
+  JOB_CONTAINER_PREFIX,
+  DAEMON_CONTAINER_PREFIX,
+  NETWORK_PREFIX,
+])
+
+/**
  * The network alias the sidecar daemon answers on. The job image pins
  * `DOCKER_HOST` to this host name, so the two must agree; changing it here
  * without changing `ops/local-ci/image/Dockerfile` breaks every lane that
@@ -117,6 +132,44 @@ function requireNonEmptyString(value, label) {
     )
   }
   return value
+}
+
+/** True for a docker resource name one of this module's builders produced. */
+export function isAgentOwnedName(name) {
+  return (
+    typeof name === "string" &&
+    OWNED_NAME_PREFIXES.some((prefix) => name.startsWith(prefix))
+  )
+}
+
+/**
+ * Refuse a name this agent did not create.
+ *
+ * Applied to the builders that create and destroy, not to the ones that run a
+ * container: the VM's daemon is shared with whatever else the operator keeps
+ * there, and `docker rm --force` against a name that arrived from outside this
+ * module is the one mistake in this file that would be felt off the plane.
+ */
+function requireOwnedName(name, label) {
+  requireNonEmptyString(name, label)
+  if (!isAgentOwnedName(name)) {
+    fail(
+      "FOREIGN_RESOURCE",
+      `${label} is ${JSON.stringify(name)}, which carries none of this agent's prefixes (${OWNED_NAME_PREFIXES.join(", ")}); this plane creates and destroys only the resources it named itself`
+    )
+  }
+  return name
+}
+
+/**
+ * Quote one value for POSIX `sh`.
+ *
+ * Only the workspace read below assembles a script rather than an argv, and
+ * the path it interpolates ends in a name a profile declared, so the quoting
+ * is the seam that keeps a declared file name from becoming a command.
+ */
+function shQuote(value) {
+  return `'${String(value).replace(/'/g, `'\\''`)}'`
 }
 
 /**
@@ -248,6 +301,15 @@ export function networkName({ headSha, laneId, attempt = 1 }) {
 }
 
 /**
+ * Prefix that runs any command inside the Lima VM, or nothing when there is no
+ * VM to enter. Pure.
+ */
+function vmPrefix({ vm = null, limactl = "limactl" } = {}) {
+  if (vm === null || vm === undefined || vm === "") return []
+  return [limactl, "shell", requireNonEmptyString(vm, "vm"), "--"]
+}
+
+/**
  * Prefix that runs a docker command inside the Lima VM.
  *
  * The Mac never talks to a Docker daemon directly: the engine lives in the VM,
@@ -258,17 +320,17 @@ export function dockerPrefix({
   docker = "docker",
   limactl = "limactl",
 } = {}) {
-  if (vm === null || vm === undefined || vm === "") return [docker]
-  return [limactl, "shell", requireNonEmptyString(vm, "vm"), "--", docker]
+  return [...vmPrefix({ vm, limactl }), docker]
 }
 
-/** `docker network create --internal? <name>`. Pure. */
+/** `docker network create --driver <driver> --label … <name>`. Pure. */
 export function buildNetworkCreateArgv({
   name,
   vm = null,
   docker,
   limactl,
   driver = "bridge",
+  labels = {},
 } = {}) {
   const argv = [
     ...dockerPrefix({ vm, docker, limactl }),
@@ -276,8 +338,14 @@ export function buildNetworkCreateArgv({
     "create",
     "--driver",
     driver,
-    requireNonEmptyString(name, "name"),
   ]
+  // Labelled for the same reason the containers are: the runbook's sweep has
+  // to be able to name what this plane left behind without matching on a
+  // prefix that a human could also have typed.
+  for (const [key, value] of Object.entries(labels)) {
+    argv.push("--label", `${key}=${value}`)
+  }
+  argv.push(requireOwnedName(name, "name"))
   return Object.freeze(assertNoDaemonSocket(argv, "network create argv"))
 }
 
@@ -292,7 +360,7 @@ export function buildNetworkRemoveArgv({
     ...dockerPrefix({ vm, docker, limactl }),
     "network",
     "rm",
-    requireNonEmptyString(name, "name"),
+    requireOwnedName(name, "name"),
   ]
   return Object.freeze(assertNoDaemonSocket(argv, "network rm argv"))
 }
@@ -310,7 +378,7 @@ export function buildStopArgv({
     "stop",
     "--timeout",
     String(timeoutSeconds),
-    requireNonEmptyString(name, "name"),
+    requireOwnedName(name, "name"),
   ]
   return Object.freeze(assertNoDaemonSocket(argv, "stop argv"))
 }
@@ -322,7 +390,7 @@ export function buildRemoveArgv({ name, vm = null, docker, limactl } = {}) {
     "rm",
     "--force",
     "--volumes",
-    requireNonEmptyString(name, "name"),
+    requireOwnedName(name, "name"),
   ]
   return Object.freeze(assertNoDaemonSocket(argv, "rm argv"))
 }
@@ -343,6 +411,76 @@ export function buildInspectArgv({
     requireNonEmptyString(name, "name"),
   ]
   return Object.freeze(assertNoDaemonSocket(argv, "inspect argv"))
+}
+
+/* ------------------------------------------------- reading back a job's log */
+
+/** Exit status the read script uses for "the declared file is not there". */
+export const READ_ABSENT_STATUS = 3
+
+/** Exit status for "something is at that path, but not a regular file". */
+export const READ_NOT_A_FILE_STATUS = 4
+
+/**
+ * Ceiling on one log part read back out of the workspace. A background service
+ * that logged a gigabyte does not get to exhaust the agent's heap on its way
+ * into the evidence directory; the read is truncated and says so.
+ */
+export const MAX_LOG_PART_BYTES = 4 * 1024 * 1024
+
+/**
+ * Read one file out of a run's workspace **inside the VM**. Pure: returns the
+ * argv.
+ *
+ * A lane's background service writes its log into the bind-mounted workspace,
+ * which lives in the VM and is deleted with the worktree once the run ends. The
+ * evidence directory is on the Mac, so the bytes have to be carried across that
+ * boundary before the workspace is released, and this module is where the VM
+ * boundary is already crossed.
+ *
+ * The script refuses a symlink rather than following it. The file it reads was
+ * created by repository code running in the job container, and that code shares
+ * the workspace with the lane's own `.env` file: following a link would let a
+ * pull request choose what gets copied to the Mac and published as evidence.
+ */
+export function buildWorkspaceReadArgv({
+  workspaceHostPath,
+  name,
+  vm = null,
+  limactl,
+  shell = "/bin/sh",
+  maxBytes = MAX_LOG_PART_BYTES,
+} = {}) {
+  requireNonEmptyString(workspaceHostPath, "workspaceHostPath")
+  requireNonEmptyString(name, "name")
+  if (name.includes("/") || name.split("/").includes("..")) {
+    fail(
+      "INVALID_INPUT",
+      `log part name ${JSON.stringify(name)} must be a single file name inside the workspace, with no path separator`
+    )
+  }
+  if (!Number.isInteger(maxBytes) || maxBytes <= 0) {
+    fail(
+      "INVALID_INPUT",
+      `maxBytes must be a positive integer (received ${describeValue(maxBytes)})`
+    )
+  }
+  const path = `${workspaceHostPath}/${name}`
+  const script = [
+    "set -eu",
+    `part=${shQuote(path)}`,
+    `if [ -L "$part" ]; then exit ${READ_NOT_A_FILE_STATUS}; fi`,
+    `if [ ! -e "$part" ]; then exit ${READ_ABSENT_STATUS}; fi`,
+    `if [ ! -f "$part" ]; then exit ${READ_NOT_A_FILE_STATUS}; fi`,
+    `head -c ${maxBytes} -- "$part"`,
+  ].join("\n")
+  const argv = [
+    ...vmPrefix({ vm, limactl }),
+    requireNonEmptyString(shell, "shell"),
+    "-c",
+    script,
+  ]
+  return Object.freeze(assertNoDaemonSocket(argv, "workspace read argv"))
 }
 
 function assertPinnedImage(image, label) {
@@ -668,13 +806,23 @@ export async function runContainer(
 }
 
 /**
- * A small lifecycle wrapper: create the job-private network, start the sidecar
- * daemon, run the job container, then tear all three down whether the job
- * passed, failed, timed out or threw. **Impure.**
+ * A small lifecycle wrapper: reconcile whatever a previous run left behind,
+ * create the job-private network, start the sidecar daemon, run the job
+ * container, then tear all three down whether the job passed, failed, timed out
+ * or threw. **Impure.**
  *
  * Teardown is unconditional and its failures are reported rather than thrown:
  * a leaked container is an operational problem, but losing the lane's real
  * result to a teardown error would be worse.
+ *
+ * The reconciliation is what makes that teardown survivable. Kill the agent -
+ * or the VM - between the create and the finally, and the detached sidecar and
+ * the named network outlive the process that owned them. The names are
+ * deterministic in the head SHA and the lane, so the next attempt at the same
+ * lane collides with its own leftovers, and launchd would restart into the same
+ * collision forever. Removing this attempt's three names before creating them
+ * turns that into a self-healing restart. It removes only those three names,
+ * every one of which carries a prefix this module owns.
  */
 export function createContainerRuntime({
   contract,
@@ -722,9 +870,44 @@ export function createContainerRuntime({
         }
       }
 
-      await exec(buildNetworkCreateArgv({ name: net, vm, docker, limactl }), {
-        timeoutMs: 60_000,
-      })
+      // Nothing is reported when these find nothing: on a healthy run they all
+      // exit non-zero because the resource is absent, which is the normal case
+      // and not a fact worth putting in front of an operator.
+      const reconcile = async (argv) => {
+        try {
+          await exec(argv, { timeoutMs: 120_000 })
+        } catch {
+          // A reconciliation that cannot run is not itself a failure; the
+          // create below is what decides whether this lane can start.
+        }
+      }
+      await reconcile(buildRemoveArgv({ name: jobName, vm, docker, limactl }))
+      await reconcile(
+        buildRemoveArgv({ name: daemonName, vm, docker, limactl })
+      )
+      await reconcile(
+        buildNetworkRemoveArgv({ name: net, vm, docker, limactl })
+      )
+
+      const created = await exec(
+        buildNetworkCreateArgv({
+          name: net,
+          vm,
+          docker,
+          limactl,
+          labels,
+        }),
+        { timeoutMs: 60_000 }
+      )
+      // Checked rather than assumed. An ignored non-zero exit here surfaces
+      // three commands later as a `docker run` that cannot find its network,
+      // and the lane's evidence would blame the lane.
+      if (created.exitCode !== 0) {
+        fail(
+          "NETWORK_UNAVAILABLE",
+          `could not create the job-private network ${JSON.stringify(net)} for lane ${JSON.stringify(laneId)} (docker exited ${created.exitCode}): ${created.output.trim() || "no output"}`
+        )
+      }
       try {
         if (needsDaemon) {
           await exec(
@@ -785,6 +968,94 @@ export function createContainerRuntime({
           )
         }
       }
+    },
+
+    /**
+     * Read one declared log back out of a run's workspace. **Impure.**
+     *
+     * Returns `{ name, status, text, reason }` and never throws: a log that
+     * cannot be read is a fact about the evidence, and the caller records it as
+     * one. `absent` and `unreadable` are kept apart from an empty `captured`
+     * because a service that logged nothing and a service whose log vanished
+     * are different things to be told.
+     *
+     * Only stdout becomes the text. `limactl` writes its own notices to stderr,
+     * and a notice folded into the bytes would corrupt a digest that is
+     * supposed to be reproducible from the file on disk.
+     */
+    async readWorkspaceLog({
+      workspaceHostPath,
+      name,
+      timeoutMs = 60_000,
+      maxBytes = MAX_LOG_PART_BYTES,
+    }) {
+      let argv
+      try {
+        argv = buildWorkspaceReadArgv({
+          workspaceHostPath,
+          name,
+          vm,
+          limactl,
+          maxBytes,
+        })
+      } catch (error) {
+        return Object.freeze({
+          name,
+          status: "unreadable",
+          text: "",
+          reason: error.message,
+        })
+      }
+
+      let text = ""
+      let result
+      try {
+        result = await exec(argv, {
+          timeoutMs,
+          onOutput: (chunk, stream) => {
+            if (stream === "stdout") text += chunk
+          },
+        })
+      } catch (error) {
+        return Object.freeze({
+          name,
+          status: "unreadable",
+          text: "",
+          reason: error.message,
+        })
+      }
+
+      if (result.exitCode === 0) {
+        return Object.freeze({
+          name,
+          status: "captured",
+          text,
+          truncated: Buffer.byteLength(text, "utf8") >= maxBytes,
+          reason: null,
+        })
+      }
+      if (result.exitCode === READ_ABSENT_STATUS) {
+        return Object.freeze({
+          name,
+          status: "absent",
+          text: "",
+          reason: `no file at ${workspaceHostPath}/${name} when the lane ended`,
+        })
+      }
+      if (result.exitCode === READ_NOT_A_FILE_STATUS) {
+        return Object.freeze({
+          name,
+          status: "unreadable",
+          text: "",
+          reason: `${workspaceHostPath}/${name} is a symlink or not a regular file; this plane does not follow a link the job container could have planted`,
+        })
+      }
+      return Object.freeze({
+        name,
+        status: "unreadable",
+        text: "",
+        reason: `reading ${workspaceHostPath}/${name} exited ${result.exitCode}${result.timedOut ? " (timed out)" : ""}`,
+      })
     },
   })
 }

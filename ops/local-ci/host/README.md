@@ -57,6 +57,17 @@ and none of them is a policy statement — each is a mechanism you can observe.
 2. **The VM has no host agent credentials.** `ssh.forwardAgent: false` and
    `ssh.loadDotSSHPubKeys: false`. No `SSH_AUTH_SOCK` is forwarded and none of
    the operator's personal public keys are installed in the guest.
+
+   Barriers 1 and 2 are **re-derived immediately before every dispatch**, not
+   trusted from the day the VM was installed. An instance can be stopped and
+   edited, recreated, or handed a mount at run time, and one installed with
+   `--skip-vm-check` was never checked at all — so the agent asks the live
+   instance (`limactl list --json`) and the live guest (`findmnt`, `/Users`,
+   `SSH_AUTH_SOCK`, `/mnt/lima-rosetta`) each time, and refuses to materialise
+   any commit inside a VM whose answers have changed. A probe it cannot run at
+   all refuses too: a dispatch that proceeds because the check could not be
+   made has no isolation guarantee at all.
+
 3. **The job container cannot become root on the VM.** The image installs the
    Docker _CLI_ only and pins `DOCKER_HOST` to a sibling `docker:dind`
    container over TCP. The daemon socket is never bind-mounted; doing so would
@@ -66,8 +77,11 @@ and none of them is a policy statement — each is a mechanism you can observe.
    working tree, inside the world-readable install root, under `/tmp`,
    `/var/tmp`, `/Volumes`, `/Users/Shared`, `/Library` or `/System`, on any
    mounted volume other than the boot volume, or beneath a world-writable
-   ancestor directory. It then forces `0700` on the directory and `0600` on
-   both files and verifies the result with `stat`.
+   ancestor directory. Every path is canonicalised first — symlinks in the
+   final component included — so a credential directory that is itself a
+   symlink into the repository or onto a mounted volume is refused on what it
+   points at, not on what it looks like. It then forces `0700` on the directory
+   and `0600` on both files and verifies the result with `stat`.
 
 Two more properties follow from the same file:
 
@@ -134,9 +148,13 @@ changing both sides in the same commit.
 | Heartbeat file `uptimerobot-heartbeat-url`                                    | `install.sh`                          |
 | Lima instance name `nabaperks-ci`                                             | `install.sh`, `uninstall.sh`          |
 | Log paths `/opt/nabaperks-local-ci/logs/agent.{out,err}.log`                  | plist, `install.sh`                   |
+| Job image pin `/opt/nabaperks-local-ci/job-image`                             | plist, `install.sh`, `main.mjs`       |
 
 `install.sh` fails loudly if the agent entrypoint is missing from the commit it
-is installing, so a rename cannot ship half-applied.
+is installing, so a rename cannot ship half-applied. It refuses just as loudly
+if the plist's `LOCAL_CI_JOB_IMAGE_FILE` does not name the path it writes the
+pinned tag to: the agent will not start without a pinned image, and a
+LaunchAgent that cannot start is a `KeepAlive` crash loop, not a poller.
 
 The plist sets `NABAPERKS_LOCAL_CI_INSTALL_ROOT` but deliberately does **not**
 set `NABAPERKS_LOCAL_CI_HOME`: hard-coding an operator's home directory would
@@ -224,6 +242,11 @@ docker build -f ops/local-ci/image/Dockerfile -t "nabaperks-ci-job:$(git rev-par
 The build fails on purpose if either digest is absent. An unverified download
 must not silently succeed.
 
+Note the tag: `nabaperks-ci-job:<the commit it was built from>`. That is the
+value `install.sh` pins in step 6, and the agent refuses a floating tag such as
+`latest` — a tag that can be repointed lets a rebuild change what executes
+without changing anything reviewable.
+
 ### 4. Create the GitHub App and its private key
 
 Not automatable from here: the App is created in GitHub's UI, and the private
@@ -259,8 +282,19 @@ cd /path/to/nabaperks
 git checkout main && git pull --ff-only
 ops/local-ci/host/install.sh \
   --github-app-key ~/Downloads/<app>.private-key.pem \
-  --heartbeat-url-file ~/heartbeat-url.txt
+  --heartbeat-url-file ~/heartbeat-url.txt \
+  --job-image "nabaperks-ci-job:<the sha you built the image from>"
 ```
+
+`--job-image` is needed once. The tag is written to
+`/opt/nabaperks-local-ci/job-image` (root-owned, `0644`) and kept across
+re-runs, and the installer derives it by itself when the VM is running and
+holds exactly one `nabaperks-ci-job` image. It also proves the image exists
+inside the VM before registering the service, because the alternative is
+finding out at first dispatch, when every lane fails at once.
+
+`--revision <sha>` installs a specific merged commit instead of `HEAD`, which
+is how a rollback works without moving the working tree.
 
 It will tell you to delete the two originals afterwards. Do that:
 
@@ -270,14 +304,17 @@ rm ~/Downloads/<app>.private-key.pem ~/heartbeat-url.txt
 
 Expected refusals, all of which are correct behaviour:
 
-| Message                                        | Cause                                                                        |
-| ---------------------------------------------- | ---------------------------------------------------------------------------- |
-| `refusing to run as root`                      | Run as the operator. Privileged steps escalate individually.                 |
-| `the working tree is dirty`                    | Uncommitted or untracked files. The bytes were never reviewed.               |
-| `HEAD (...) is not an ancestor of origin/main` | You are on a feature branch. Pull-request code never becomes the agent.      |
-| `origin is '...', expected '...'`              | Wrong remote.                                                                |
-| `refusing to keep credentials ...`             | The credential directory is in a location a job or another user could reach. |
-| `instance nabaperks-ci declares host mounts`   | The VM was created from something other than the committed template.         |
+| Message                                          | Cause                                                                        |
+| ------------------------------------------------ | ---------------------------------------------------------------------------- |
+| `refusing to run as root`                        | Run as the operator. Privileged steps escalate individually.                 |
+| `the working tree is dirty`                      | Uncommitted or untracked files. The bytes were never reviewed.               |
+| `HEAD (...) is not an ancestor of origin/main`   | You are on a feature branch. Pull-request code never becomes the agent.      |
+| `origin is '...', expected '...'`                | Wrong remote.                                                                |
+| `refusing to keep credentials ...`               | The credential directory is in a location a job or another user could reach. |
+| `instance nabaperks-ci declares host mounts`     | The VM was created from something other than the committed template.         |
+| `no job image is pinned ...`                     | Pass `--job-image`, or start the VM so the tag can be derived.               |
+| `image '...' does not exist inside ...`          | Build the job image first (section 3).                                       |
+| `the plist does not set LOCAL_CI_JOB_IMAGE_FILE` | The plist and the installer drifted apart; fix both in one commit.           |
 
 ### 7. Verify
 
@@ -287,6 +324,21 @@ tail -f /opt/nabaperks-local-ci/logs/agent.err.log
 pgrep -fl caffeinate                        # empty when idle, present during a job
 ls -le ~/.nabaperks-local-ci                # both files 0600, directory 0700
 readlink /opt/nabaperks-local-ci/current    # the installed release sha
+cat /opt/nabaperks-local-ci/job-image       # the pinned job image tag
+```
+
+There is **one** launchd job. The nightly proof
+(`Nabaperks Local CI (nightly)`) is published by this same agent, which asks
+every 15 minutes whether the last nightly run is older than the 24-hour cadence
+and produces one when it is. A `StartCalendarInterval` job would silently skip
+a window the Mac was powered off for, which is the failure the freshness
+monitor exists to catch; asking a cheap local question on a short interval
+turns every missed window into a late run instead. See the header comment in
+`com.nabaperks.local-ci.plist`.
+
+```sh
+# ask the question without running anything
+node /opt/nabaperks-local-ci/current/ops/local-ci/agent/main.mjs --nightly --dry-run
 ```
 
 ## Pin ledger
@@ -339,10 +391,11 @@ launchctl kickstart -k "gui/$(id -u)/com.nabaperks.local-ci"
 git -C /path/to/nabaperks checkout main && git -C /path/to/nabaperks pull --ff-only
 /path/to/nabaperks/ops/local-ci/host/install.sh
 
-# roll back to a previous release without a checkout
-sudo ln -sfn /opt/nabaperks-local-ci/releases/<older-sha> /opt/nabaperks-local-ci/.current.staged
-sudo mv -fh /opt/nabaperks-local-ci/.current.staged /opt/nabaperks-local-ci/current
-launchctl kickstart -k "gui/$(id -u)/com.nabaperks.local-ci"
+# roll back to a previous release
+/path/to/nabaperks/ops/local-ci/host/install.sh --revision <older-sha>
+
+# repoint the job image after rebuilding it
+/path/to/nabaperks/ops/local-ci/host/install.sh --job-image nabaperks-ci-job:<sha>
 
 # remove the service, keep the VM, the releases and the credentials
 ops/local-ci/host/uninstall.sh

@@ -10,7 +10,9 @@
  * Every decision is delegated to `ops/local-ci/core/bridge.mjs`, which is a
  * pure function of the check run, the requested SHA and two timestamps. This
  * file owns only the impure parts: reading the environment, calling the API,
- * sleeping between polls, and choosing an exit code.
+ * sleeping between polls, and choosing an exit code. Each of those is a
+ * parameter with a default, so a test can drive the whole path — contract,
+ * clock, API, environment and sleep — with no network and no waiting.
  *
  * The one exception is the request-target guards, which are imported from the
  * agent's GitHub client rather than restated here. Both planes interpolate a
@@ -28,7 +30,8 @@
  */
 
 import { appendFileSync, readFileSync } from "node:fs"
-import { setTimeout as sleep } from "node:timers/promises"
+import { setTimeout as sleepFor } from "node:timers/promises"
+import { pathToFileURL } from "node:url"
 
 import {
   requireCommitSha,
@@ -45,11 +48,7 @@ import {
 } from "../ops/local-ci/core/contract.mjs"
 
 const COMMIT_SHA = /^[0-9a-fA-F]{40}$/
-const API_ROOT = process.env.GITHUB_API_URL || "https://api.github.com"
-
-function log(message) {
-  process.stdout.write(`local-proof: ${message}\n`)
-}
+const DEFAULT_API_ROOT = "https://api.github.com"
 
 /**
  * The head SHA this run must prove, plus the wiring check from the contract's
@@ -57,7 +56,7 @@ function log(message) {
  * seconds with a self-describing message, rather than burning the whole
  * `bridge.timeoutMinutes` ceiling waiting for a commit nobody will publish.
  */
-function resolveRequestedSha(env) {
+export function resolveRequestedSha(env) {
   const requested = (env.LOCAL_CI_HEAD_SHA || "").trim()
   const workflowSha = (env.GITHUB_SHA || "").trim()
   const eventName = env.GITHUB_EVENT_NAME || ""
@@ -93,14 +92,15 @@ function resolveRequestedSha(env) {
  * hand that token to a different path or a different host. `resolveApiUrl`
  * re-parses the finished URL and refuses anything outside the API root.
  */
-async function fetchCheckRun(repository, sha, checkName, token) {
+export async function fetchCheckRun(options) {
+  const { repository, sha, checkName, token, apiRoot, fetchImpl } = options
   const { fullName } = requireRepositoryFullName(repository, "the repository")
   const commit = requireCommitSha(sha, "the head SHA")
   const url = resolveApiUrl(
-    API_ROOT,
+    apiRoot,
     `/repos/${fullName}/commits/${commit}/check-runs?check_name=${encodeURIComponent(checkName)}&per_page=100`
   )
-  const response = await fetch(url, {
+  const response = await fetchImpl(url, {
     headers: {
       accept: "application/vnd.github+json",
       authorization: `Bearer ${token}`,
@@ -122,8 +122,8 @@ async function fetchCheckRun(repository, sha, checkName, token) {
   })
 }
 
-function summarise(state, contract) {
-  const path = process.env.GITHUB_STEP_SUMMARY
+function summarise(state, contract, env) {
+  const path = env.GITHUB_STEP_SUMMARY
   if (!path) return
   const advisory = contract.shadowMode?.enabled === true
   const lines = [
@@ -144,9 +144,46 @@ function summarise(state, contract) {
   }
 }
 
-async function main() {
-  const contract = loadContract((path) => readFileSync(path, "utf8"))
-  const mode = (process.env.LOCAL_CI_MODE || "").trim()
+/**
+ * WHY THIS POLLER NEVER REPORTS A PREVIOUS ATTEMPT, AND SO CAN NEVER RERUN.
+ *
+ * `decideBridgeAction` returns `"rerun"` only to a caller that recorded an
+ * earlier timed-out attempt for this SHA *and* can act on the answer. This job
+ * is neither, and both halves are structural rather than incidental:
+ *
+ *   - it holds `contents: read` and `checks: read` and no Actions scope of any
+ *     kind, which `tests/contracts/devops-local-ci.test.mjs` asserts against
+ *     `.github/workflows/ci.yml` by refusing any `: write` in the job; and
+ *   - a job cannot re-run the workflow run it is part of. By the time a late
+ *     proof lands, the attempt that timed out has already finished, and there
+ *     is no hosted job left running to notice.
+ *
+ * The Mac-came-back-from-sleep repair therefore belongs to the host agent,
+ * which mints an installation token carrying the App's Actions write and
+ * issues the single permitted `rerun-failed-jobs` call against the finished
+ * run — the arrangement `contract.githubApp.allowedActionsWriteOperations` and
+ * docs/operations/local-ci.md section 5.3 already describe. Passing a null
+ * outcome and a zero attempt count here is not a placeholder for wiring still
+ * to come: it is the statement that this caller is never the rerunner.
+ */
+const POLLER_PREVIOUS_OUTCOME = null
+const POLLER_RERUN_ATTEMPTS = 0
+
+/**
+ * The CLI body. Everything impure is a parameter with a default, so a test can
+ * drive the whole path offline. Returns the process exit code.
+ */
+export async function runLocalProofCheck(options = {}) {
+  const {
+    env = process.env,
+    contract = loadContract((path) => readFileSync(path, "utf8")),
+    fetchImpl = fetch,
+    now = () => Date.now(),
+    sleep = (ms) => sleepFor(ms),
+    log = (message) => process.stdout.write(`local-proof: ${message}\n`),
+  } = options
+
+  const mode = (env.LOCAL_CI_MODE || "").trim()
   if (mode === "") {
     log(
       "the repository variable LOCAL_CI_MODE is unset, so the local plane is dormant and there is nothing to wait for"
@@ -158,48 +195,42 @@ async function main() {
   // repository name is a wiring error, and failing in seconds with a message
   // that names it beats a token-bearing request to somewhere unintended.
   const { fullName: repository } = requireRepositoryFullName(
-    process.env.GITHUB_REPOSITORY || contract.repository,
+    env.GITHUB_REPOSITORY || contract.repository,
     "GITHUB_REPOSITORY"
   )
-  const token = process.env.GITHUB_TOKEN || ""
+  const token = env.GITHUB_TOKEN || ""
   if (token === "") {
     throw new Error("GITHUB_TOKEN is required to read check runs")
   }
+  const apiRoot = env.GITHUB_API_URL || DEFAULT_API_ROOT
 
-  const requestedSha = resolveRequestedSha(process.env)
-  const startedAt = Date.now()
+  const requestedSha = resolveRequestedSha(env)
+  const startedAt = now()
   const pollMs = contract.bridge.pollIntervalSeconds * 1000
   log(
     `waiting for the ${JSON.stringify(contract.checkName)} check run on ${requestedSha} (ceiling ${contract.bridge.timeoutMinutes} minutes, polling every ${contract.bridge.pollIntervalSeconds}s)`
   )
 
-  // The bridge job holds `checks: read` and nothing more. Reruns are the host
-  // agent's single Actions-write call, so this poller never issues one and its
-  // attempt count is always zero.
-  const rerunAttempts = 0
   for (;;) {
-    const checkRun = await fetchCheckRun(
+    const checkRun = await fetchCheckRun({
       repository,
-      requestedSha,
-      contract.checkName,
-      token
-    )
-    const state = describeBridgeState({
+      sha: requestedSha,
+      checkName: contract.checkName,
+      token,
+      apiRoot,
+      fetchImpl,
+    })
+    const observation = {
       checkRun,
       requestedSha,
       startedAt,
-      now: Date.now(),
+      now: now(),
       contract,
-      rerunAttempts,
-    })
-    const { action } = decideBridgeAction({
-      checkRun,
-      requestedSha,
-      startedAt,
-      now: Date.now(),
-      contract,
-      rerunAttempts,
-    })
+      previousOutcome: POLLER_PREVIOUS_OUTCOME,
+      rerunAttempts: POLLER_RERUN_ATTEMPTS,
+    }
+    const state = describeBridgeState(observation)
+    const { action } = decideBridgeAction(observation)
 
     if (action === "wait") {
       log(state.reason)
@@ -207,17 +238,22 @@ async function main() {
       continue
     }
 
-    summarise(state, contract)
+    summarise(state, contract, env)
 
     if (action === "accept") {
       log(`accepted: ${state.reason}`)
       return 0
     }
     if (action === "rerun") {
-      log(
-        `the local plane published a proof after this job had already given up: ${state.reason}. The host agent owns the single rerun-failed-jobs call; this job does not hold Actions write.`
+      // Unreachable while this poller reports no previous attempt, and handled
+      // rather than deleted so that an edit which starts feeding it one fails
+      // loudly here instead of logging a repair the job has no permission to
+      // perform. Deliberately outside the shadow-mode softening below: a
+      // caller asking for an Actions write it does not hold is a wiring bug,
+      // not a verdict about the local plane.
+      throw new Error(
+        `the bridge asked for a rerun of ${requestedSha}, which this job cannot issue: local-proof holds no Actions write, and a running job cannot re-run the workflow run it is part of. The single rerun-failed-jobs call belongs to the host agent — see docs/operations/local-ci.md section 5.3`
       )
-      return contract.shadowMode?.enabled === true ? 0 : 1
     }
 
     log(`rejected: ${state.reason}`)
@@ -231,12 +267,18 @@ async function main() {
   }
 }
 
-main().then(
-  (code) => {
-    process.exitCode = code
-  },
-  (error) => {
-    process.stderr.write(`local-proof: ${error.message}\n`)
-    process.exitCode = 1
-  }
-)
+const invokedDirectly =
+  typeof process.argv[1] === "string" &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+
+if (invokedDirectly) {
+  runLocalProofCheck().then(
+    (code) => {
+      process.exitCode = code
+    },
+    (error) => {
+      process.stderr.write(`local-proof: ${error.message}\n`)
+      process.exitCode = 1
+    }
+  )
+}

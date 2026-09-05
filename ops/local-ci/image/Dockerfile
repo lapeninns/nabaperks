@@ -11,12 +11,15 @@
 #     --build-arg SUPABASE_CLI_SHA256=<digest> \
 #     .
 #
-# Two properties this image must keep, both of which are load-bearing:
+# Three properties this image must keep, all of which are load-bearing:
 #
-#   1. IT CONTAINS NO CREDENTIAL. Nothing is COPYed from the host except
-#      .nvmrc, no secret is passed as a build argument, and the final layer
-#      fails the build if a credential-shaped file made it in. The GitHub App
-#      private key and the UptimeRobot heartbeat URL live on the macOS host in
+#   1. IT CONTAINS NO CREDENTIAL. The only things COPYed from the host are
+#      .nvmrc and the dependency manifests the pnpm store layer reads
+#      (package.json, pnpm-lock.yaml, pnpm-workspace.yaml, patches/) - tracked,
+#      reviewed files, none of which carries a secret. No secret is passed as a
+#      build argument, and the final layer fails the build if a
+#      credential-shaped file made it in. The GitHub App private key and the
+#      UptimeRobot heartbeat URL live on the macOS host in
 #      ~/.nabaperks-local-ci, which the Lima VM cannot see at all (mounts: []),
 #      so they cannot reach this image or a container started from it.
 #
@@ -26,6 +29,14 @@
 #      socket path is never named in this file and the agent never passes -v
 #      for it. Bind-mounting the daemon socket into a job container is
 #      equivalent to giving the job root on the VM.
+#
+#   3. IT NEVER RUNS REPOSITORY CODE AS ROOT, AND IT CAN STILL WRITE THE
+#      WORKSPACE. Those two pull against each other: the worktree at /workspace
+#      is a bind mount created by the Lima VM's own user, whose numeric id is a
+#      property of the operator's Mac and is not knowable at build time. The
+#      entrypoint below reconciles the `runner` account with the mount's owner
+#      and then drops to it, so the lane writes .next, coverage, generated docs
+#      and its service logs as an unprivileged user that happens to own them.
 #
 # Every system dependency below is version-pinned. When apt reports
 # "Version '<x>' for '<pkg>' was not found", the pin is stale rather than
@@ -191,10 +202,74 @@ RUN install -m 0755 -d /etc/apt/keyrings \
 
 ENV DOCKER_HOST=tcp://docker:2375
 
+# ------------------------------------------------------ warm pnpm store
+# A job container gets a fresh git worktree at /workspace and no node_modules,
+# so every lane's first command is `pnpm install --frozen-lockfile` - the same
+# command .github/actions/setup runs hosted, declared in the profiles rather
+# than baked here.
+#
+# What IS baked here is the pnpm *store*, and the distinction is the whole
+# point. A baked node_modules would be main's resolved tree, and a pull request
+# that changes pnpm-lock.yaml is exactly the case CI exists to catch: the image
+# would answer with the wrong dependencies and the lane would pass against a
+# tree the commit does not describe. A store is content-addressed, so a stale
+# one is only a colder cache - `--frozen-lockfile` still reads the commit's own
+# lockfile, still fails when that lockfile disagrees with package.json, and
+# still fetches whatever the store is missing.
+#
+# `pnpm fetch` populates the store from the lockfile alone, which is why the
+# source tree is not in this build stage. Without it the first install of every
+# run would pull the entire dependency graph from the registry, and the pr
+# profile has a 75-minute budget to fit into.
+#
+# The store is made world-writable rather than owned by a fixed account,
+# because the runtime uid is not known until the entrypoint has read the
+# workspace mount, and a recursive chown of a hundred thousand store files at
+# container start would cost more than the cache saves. The container is
+# disposable and single-tenant, and the store lives in the image layer, so
+# nothing a lane writes here outlives it.
+# The npm_config_ pair is the half pnpm actually reads - it takes its settings
+# from npm-style configuration, and these two are `store-dir` and `cache-dir`.
+# The NABAPERKS_ pair names the same paths for the layers below, so nothing has
+# to repeat the literal. The RUN that follows asserts the two agree, because a
+# store pnpm quietly ignores looks exactly like a store it is using.
+ENV NABAPERKS_PNPM_STORE=/opt/pnpm-store \
+    NABAPERKS_PNPM_CACHE=/opt/pnpm-cache \
+    npm_config_store_dir=/opt/pnpm-store \
+    npm_config_cache_dir=/opt/pnpm-cache
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml /tmp/pnpm-fetch/
+COPY patches /tmp/pnpm-fetch/patches/
+
+RUN cd /tmp/pnpm-fetch \
+ && store_path="$(pnpm store path)" \
+ && case "${store_path}" in \
+      "${NABAPERKS_PNPM_STORE}"|"${NABAPERKS_PNPM_STORE}"/*) ;; \
+      *) echo "pnpm resolved its store to ${store_path}, not under ${NABAPERKS_PNPM_STORE}: npm_config_store_dir is no longer honoured and every lane would download the whole graph" >&2; exit 1 ;; \
+    esac \
+ && pnpm fetch \
+ && rm -rf /tmp/pnpm-fetch /root/.cache /root/.npm \
+ && mkdir -p "${NABAPERKS_PNPM_CACHE}" \
+ && chmod -R a+rwX "${NABAPERKS_PNPM_STORE}" "${NABAPERKS_PNPM_CACHE}"
+
 # ----------------------------------------------------------- unprivileged user
-RUN groupadd --gid 1001 runner \
- && useradd --uid 1001 --gid 1001 --create-home --shell /bin/bash runner \
+# The build-time ids are a starting point, not the answer: the entrypoint below
+# moves the account onto whatever owns the workspace mount. They exist so the
+# image is coherent on its own and so the common case costs nothing.
+ARG RUNNER_UID=1001
+ARG RUNNER_GID=1001
+RUN groupadd --gid "${RUNNER_GID}" runner \
+ && useradd --uid "${RUNNER_UID}" --gid "${RUNNER_GID}" --create-home --shell /bin/bash runner \
  && install -d -m 0755 -o runner -g runner /home/runner/work
+
+# Set explicitly rather than left to docker's USER inference, because the
+# container starts as root (see the entrypoint) and `setpriv` does not rebuild
+# the environment of the process it execs. HOME in particular has to be a path
+# that exists in THIS filesystem: the agent no longer forwards the operator's
+# macOS HOME, which is the other half of the same fix.
+ENV HOME=/home/runner \
+    USER=runner \
+    LOGNAME=runner
 
 # ------------------------------------------------- credential-absence assertion
 # A failed build here is the intended outcome: it means something added a
@@ -219,7 +294,11 @@ RUN set -euo pipefail; \
 USER runner
 WORKDIR /home/runner/work
 
-# Print the whole toolchain so a job log records exactly what it ran on.
+# Print the whole toolchain so a job log records exactly what it ran on, and
+# prove the unprivileged account can actually reach it. The last two lines are
+# assertions rather than reports: a warm store the lane cannot write is a cache
+# miss on every install, and a python3 that resolves outside the venv is the
+# print-kit lane failing on `import cv2` an hour into a run.
 RUN node --version \
  && pnpm --version \
  && supabase --version \
@@ -227,6 +306,68 @@ RUN node --version \
  && docker --version \
  && python3 -c "import cv2, fitz; print('opencv', cv2.__version__)" \
  && { pdftoppm -v 2>&1 || true; } | head -n 1 \
- && { identify -version 2>&1 || true; } | head -n 1
+ && { identify -version 2>&1 || true; } | head -n 1 \
+ && test -w "${NABAPERKS_PNPM_STORE}" \
+ && test "$(command -v python3)" = "${NABAPERKS_PRINT_KIT_VENV}/bin/python3"
 
+# ------------------------------------------------------------------ entrypoint
+# The workspace is a bind mount of a git worktree the Lima VM's own user
+# created. That user's numeric id belongs to the operator's Mac - Lima gives
+# the guest account the host's uid - so no number written here can be right for
+# every install, and a mismatch is not a warning: the lane can read the
+# checkout and cannot write .next, coverage, the regenerated API docs, the
+# Playwright report or a background service's log file.
+#
+# So the container starts as root, spends one syscall-sized moment moving the
+# `runner` account onto the mount's owner, and drops to it with `setpriv`
+# before anything from the pull request executes. `--security-opt
+# no-new-privileges`, which agent/container.mjs sets on every job container,
+# means the dropped process cannot climb back.
+USER root
+COPY <<'EOF_ENTRYPOINT' /usr/local/bin/local-ci-entrypoint
+#!/usr/bin/env bash
+# Reconcile the runner account with the owner of the mounted workspace, then
+# drop to it and exec the lane. See the Dockerfile section above for why.
+set -Eeuo pipefail
+
+workspace="${NABAPERKS_CI_WORKSPACE:-/workspace}"
+
+if [ -d "${workspace}" ]; then
+  target_uid="$(stat -c '%u' "${workspace}")"
+  target_gid="$(stat -c '%g' "${workspace}")"
+else
+  # No workspace mounted: an operator poking at the image by hand. Keep the
+  # account the build made rather than inventing an identity.
+  target_uid="$(id -u runner)"
+  target_gid="$(id -g runner)"
+fi
+
+if [ "${target_uid}" -eq 0 ]; then
+  echo "local-ci entrypoint: ${workspace} is owned by root, and this container runs pull-request code, so it will not run it as root. Create the worktree as the VM's unprivileged user." >&2
+  exit 1
+fi
+
+current_uid="$(id -u runner)"
+current_gid="$(id -g runner)"
+
+# --non-unique because ubuntu:24.04 already ships an account at 1000 and the
+# host id is whatever it is; two names sharing a number is harmless in a
+# single-purpose container, and refusing to start over it would not be.
+if [ "${target_gid}" -ne "${current_gid}" ]; then
+  groupmod --non-unique --gid "${target_gid}" runner
+fi
+if [ "${target_uid}" -ne "${current_uid}" ]; then
+  usermod --non-unique --uid "${target_uid}" --gid "${target_gid}" runner
+fi
+if [ "${target_uid}" -ne "${current_uid}" ] || [ "${target_gid}" -ne "${current_gid}" ]; then
+  chown -R "${target_uid}:${target_gid}" "${HOME:-/home/runner}"
+fi
+
+exec setpriv --reuid "${target_uid}" --regid "${target_gid}" --init-groups -- "$@"
+EOF_ENTRYPOINT
+
+RUN chmod 0755 /usr/local/bin/local-ci-entrypoint \
+ && /usr/local/bin/local-ci-entrypoint id -un
+
+ENTRYPOINT ["/usr/local/bin/local-ci-entrypoint"]
 CMD ["/bin/bash"]

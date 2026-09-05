@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { EventEmitter } from "node:events"
 import { readFileSync } from "node:fs"
 import { test } from "node:test"
 import { fileURLToPath } from "node:url"
@@ -8,16 +9,28 @@ import {
   ContainerError,
   DAEMON_NETWORK_ALIAS,
   DAEMON_TCP_PORT,
+  READ_ABSENT_STATUS,
+  READ_NOT_A_FILE_STATUS,
   assertNoDaemonSocket,
   buildContainerArgv,
   buildDaemonArgv,
+  buildNetworkCreateArgv,
+  buildNetworkRemoveArgv,
+  buildRemoveArgv,
+  buildStopArgv,
+  buildWorkspaceReadArgv,
   containerTimeoutMs,
+  createContainerRuntime,
+  daemonContainerName,
   dockerPrefix,
+  isAgentOwnedName,
   jobContainerName,
+  networkName,
 } from "../../ops/local-ci/agent/container.mjs"
 
 /**
- * local CI — the shape of a job container's `docker run`.
+ * local CI — the shape of a job container's `docker run`, and the lifecycle
+ * around it.
  *
  * The argv is a security boundary, not a configuration detail, so the builder
  * proves three things about the finished array every time it runs: the host
@@ -26,6 +39,11 @@ import {
  * namespaces. The socket path is assembled from fragments here for the same
  * reason it is in the module: docs/operations/local-ci.md audits that plane by
  * grepping for the literal.
+ *
+ * The lifecycle tests at the bottom cover the other half: a docker daemon that
+ * still holds the last run's leftovers, and reading a lane's log back out of
+ * the workspace before the worktree is deleted. Both spawn, so both are driven
+ * with a scripted `spawnFn` rather than a real docker.
  */
 
 const CONTRACT_TEXT = readFileSync(
@@ -279,4 +297,243 @@ test("every docker command runs inside the Lima VM, never against a daemon on th
     jobContainerName({ headSha: HEAD_SHA, laneId: "e2e-chromium" }),
     "nabaperks-ci-job-ffffffffffff-e2e-chromium-1"
   )
+})
+
+/* ------------------------------------------------------- lifecycle: spawning */
+
+const VM = contract.vm.name
+const IDENTITY = { headSha: HEAD_SHA, laneId: "db" }
+const JOB_NAME = jobContainerName(IDENTITY)
+const DAEMON_NAME = daemonContainerName(IDENTITY)
+const NET_NAME = networkName(IDENTITY)
+
+/**
+ * A `spawnFn` that runs nothing. `script(argv, index)` returns the exit code
+ * and streams for that call; every argv is recorded in order.
+ */
+function scriptedSpawn(script = () => ({})) {
+  const calls = []
+  const spawnFn = (executable, args) => {
+    const argv = [executable, ...args]
+    calls.push(argv)
+    const child = new EventEmitter()
+    child.stdout = new EventEmitter()
+    child.stderr = new EventEmitter()
+    child.kill = () => {}
+    const outcome = script(argv, calls.length - 1) ?? {}
+    setImmediate(() => {
+      if (outcome.error) {
+        child.emit("error", outcome.error)
+        return
+      }
+      if (outcome.stdout) child.stdout.emit("data", Buffer.from(outcome.stdout))
+      if (outcome.stderr) child.stderr.emit("data", Buffer.from(outcome.stderr))
+      child.emit("close", outcome.code ?? 0, null)
+    })
+    return child
+  }
+  return { spawnFn, calls }
+}
+
+/** The docker sub-command of one recorded argv, e.g. "network create". */
+const subCommand = (argv) => {
+  const start = argv.indexOf("docker") + 1
+  const words = argv.slice(start).filter((word) => !word.startsWith("-"))
+  return words[0] === "network" ? `network ${words[1]}` : words[0]
+}
+
+test("a create-or-destroy argv may only name a resource this agent made", () => {
+  assert.equal(isAgentOwnedName(JOB_NAME), true)
+  assert.equal(isAgentOwnedName(DAEMON_NAME), true)
+  assert.equal(isAgentOwnedName(NET_NAME), true)
+  assert.equal(isAgentOwnedName("postgres"), false)
+  assert.equal(isAgentOwnedName("bridge"), false)
+
+  // The reconciliation below runs `docker rm --force` before it creates
+  // anything. That is only safe while a name it did not mint cannot reach it.
+  for (const [label, build] of Object.entries({
+    "network create": buildNetworkCreateArgv,
+    "network rm": buildNetworkRemoveArgv,
+    stop: buildStopArgv,
+    rm: buildRemoveArgv,
+  })) {
+    for (const name of ["postgres", "bridge", "nabaperks-web", ""]) {
+      assert.throws(
+        () => build({ name, vm: VM }),
+        (error) => {
+          assert.ok(error instanceof ContainerError)
+          assert.ok(["FOREIGN_RESOURCE", "INVALID_INPUT"].includes(error.code))
+          return true
+        },
+        `${label} must refuse ${JSON.stringify(name)}`
+      )
+    }
+    assert.ok(Array.isArray(build({ name: JOB_NAME, vm: VM })))
+  }
+})
+
+test("a lane removes its own leftovers before it creates them, and touches nothing else", async () => {
+  const { spawnFn, calls } = scriptedSpawn()
+  const runtime = createContainerRuntime({ contract, vm: VM, spawnFn })
+
+  await runtime.withJobContainer({
+    ...IDENTITY,
+    image: IMAGE,
+    daemonImage: DAEMON_IMAGE,
+    command: ["bash", "-lc", "pnpm test:db"],
+    workspaceHostPath: "/var/lib/nabaperks-ci/runs/head",
+    env: {},
+    envFile: "/run/nabaperks-ci/db.env",
+    needsDaemon: true,
+  })
+
+  const sequence = calls.map(subCommand)
+  const created = sequence.indexOf("network create")
+  assert.ok(created > 0, "the create is not the first thing this lane does")
+
+  // A run killed mid-lane leaves the detached sidecar and the named network
+  // behind; the names are deterministic, so the restart would collide with
+  // itself forever. These three are what make launchd's restart self-healing.
+  assert.deepEqual(sequence.slice(0, created), ["rm", "rm", "network rm"])
+  assert.deepEqual(
+    calls.slice(0, created).map((argv) => argv.at(-1)),
+    [JOB_NAME, DAEMON_NAME, NET_NAME]
+  )
+
+  // Every name this lane ever hands to a destructive docker command is one of
+  // its own three, in the VM, and never a bare `docker` on the Mac.
+  for (const argv of calls) {
+    assert.equal(argv[0], "limactl")
+    if (["rm", "network rm", "stop"].includes(subCommand(argv))) {
+      assert.ok(
+        [JOB_NAME, DAEMON_NAME, NET_NAME].includes(argv.at(-1)),
+        `${argv.join(" ")} names a resource this agent did not create`
+      )
+    }
+  }
+  assert.deepEqual(sequence.slice(created), [
+    "network create",
+    "run",
+    "run",
+    "rm",
+    "rm",
+    "network rm",
+  ])
+})
+
+test("a network that will not create stops the lane instead of blaming it", async () => {
+  const { spawnFn, calls } = scriptedSpawn((argv) =>
+    subCommand(argv) === "network create"
+      ? {
+          code: 1,
+          stderr: `Error response from daemon: network with name ${NET_NAME} already exists\n`,
+        }
+      : {}
+  )
+  const runtime = createContainerRuntime({ contract, vm: VM, spawnFn })
+
+  await assert.rejects(
+    () =>
+      runtime.withJobContainer({
+        ...IDENTITY,
+        image: IMAGE,
+        daemonImage: DAEMON_IMAGE,
+        command: ["bash", "-lc", "pnpm test:db"],
+        workspaceHostPath: "/var/lib/nabaperks-ci/runs/head",
+        env: {},
+        envFile: "/run/nabaperks-ci/db.env",
+      }),
+    (error) => {
+      assert.ok(error instanceof ContainerError)
+      assert.equal(error.code, "NETWORK_UNAVAILABLE")
+      // The docker error reaches the caller, so the lane's evidence says what
+      // actually happened rather than reporting a lane that failed on its own.
+      assert.match(error.message, /already exists/)
+      return true
+    }
+  )
+  assert.equal(
+    calls.some((argv) => subCommand(argv) === "run"),
+    false,
+    "no container is started into a network that does not exist"
+  )
+})
+
+test("reading a lane's log back out of the workspace happens in the VM and never follows a link", () => {
+  const argv = buildWorkspaceReadArgv({
+    workspaceHostPath: "/var/lib/nabaperks-ci/runs/head",
+    name: "print-kit-preview.log",
+    vm: VM,
+  })
+  assert.deepEqual(argv.slice(0, 5), ["limactl", "shell", VM, "--", "/bin/sh"])
+  assert.equal(argv[5], "-c")
+
+  const script = argv[6]
+  assert.match(
+    script,
+    /\[ -L "\$part" \]/,
+    "the file was written by repository code, which shares the workspace with the lane's own .env"
+  )
+  assert.match(script, new RegExp(`exit ${READ_NOT_A_FILE_STATUS}`))
+  assert.match(script, new RegExp(`exit ${READ_ABSENT_STATUS}`))
+  assert.match(
+    script,
+    /'\/var\/lib\/nabaperks-ci\/runs\/head\/print-kit-preview\.log'/
+  )
+  assert.equal(script.includes(SOCKET_BASENAME), false)
+
+  // A declared log file name is a path inside the workspace and nothing else.
+  for (const name of ["../.env.db", "sub/dir.log", "/etc/passwd"]) {
+    assert.throws(
+      () =>
+        buildWorkspaceReadArgv({
+          workspaceHostPath: "/var/lib/nabaperks-ci/runs/head",
+          name,
+          vm: VM,
+        }),
+      (error) => error.code === "INVALID_INPUT",
+      `${name} must be refused`
+    )
+  }
+})
+
+test("a log read reports captured, absent and unreadable as three different facts", async () => {
+  const read = async (outcome) => {
+    const { spawnFn } = scriptedSpawn(() => outcome)
+    return createContainerRuntime({
+      contract,
+      vm: VM,
+      spawnFn,
+    }).readWorkspaceLog({
+      workspaceHostPath: "/var/lib/nabaperks-ci/runs/head",
+      name: "print-kit-preview.log",
+    })
+  }
+
+  const captured = await read({
+    code: 0,
+    stdout: "ready on 127.0.0.1:3000\n",
+    stderr: "limactl: using the default instance\n",
+  })
+  assert.equal(captured.status, "captured")
+  assert.equal(
+    captured.text,
+    "ready on 127.0.0.1:3000\n",
+    "only stdout is the log; a limactl notice folded in would break the digest"
+  )
+
+  const absent = await read({ code: READ_ABSENT_STATUS })
+  assert.equal(absent.status, "absent")
+  assert.match(absent.reason, /no file at/)
+
+  const linked = await read({ code: READ_NOT_A_FILE_STATUS })
+  assert.equal(linked.status, "unreadable")
+  assert.match(linked.reason, /symlink/)
+
+  const broken = await read({ error: new Error("limactl: instance is down") })
+  assert.equal(broken.status, "unreadable")
+  assert.match(broken.reason, /instance is down/)
+  // Never a throw: a log that cannot be read is a fact about the evidence, and
+  // the runner has to be able to record it as one.
+  assert.equal(broken.text, "")
 })

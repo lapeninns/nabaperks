@@ -10,6 +10,8 @@ import {
 import { logDigest } from "../../ops/local-ci/core/digest.mjs"
 import { queuedJobs, runningJobs } from "../../ops/local-ci/core/queue.mjs"
 import {
+  ABORT_STOPPING,
+  ABORT_SUPERSEDED,
   CAFFEINATE_FLAGS,
   CAFFEINATE_PATH,
   DEFAULT_BRANCH_REF,
@@ -25,10 +27,15 @@ import {
  *
  * A tick is an ordinary function call over injected dependencies, so a test
  * drives a day of agent behaviour offline: a fork pull request arriving, a
- * force push landing mid-run, a run throwing. Two rules are asserted rather
- * than assumed - a refused request is recorded and never enqueued, and the
- * sleep assertion is acquired for a running job and released in a `finally`,
- * so an idle agent holds nothing and the Mac sleeps normally.
+ * force push landing mid-run, a run throwing. Five rules are asserted rather
+ * than assumed - a refused request is recorded and never enqueued; the sleep
+ * assertion is acquired for a running job and released in a `finally`; a tick
+ * returns without waiting for the run it started; a superseding SHA and a
+ * SIGTERM both abort a run in flight; and every run completes its check run,
+ * including the ones that never produced a record.
+ *
+ * A run no longer finishes inside the tick that started it, so a test that
+ * asserts on a run's effects takes it with `settle()`.
  */
 
 const CONTRACT_TEXT = readFileSync(
@@ -45,6 +52,27 @@ const PR_SHA = "b".repeat(40)
 const FORK_SHA = "c".repeat(40)
 const NEW_MAIN_SHA = "d".repeat(40)
 const NOW = Date.parse("2026-09-04T09:00:00.000Z")
+
+const deferred = () => {
+  let resolve
+  const promise = new Promise((settle) => {
+    resolve = settle
+  })
+  return { promise, resolve }
+}
+
+/**
+ * A liveness assertion needs a bound, or a regression hangs the test run
+ * instead of failing it. The timer is the test's own; the loop is still driven
+ * entirely by injected values.
+ */
+const returnsPromptly = (promise) => {
+  const timeout = new Promise((resolve) => {
+    const handle = setTimeout(() => resolve("still waiting"), 2000)
+    handle.unref?.()
+  })
+  return Promise.race([promise.then(() => "returned"), timeout])
+}
 
 const pull = (overrides = {}) => ({
   event: "pull_request",
@@ -147,12 +175,22 @@ const buildLoop = ({ github, runner, sleepAssertion, ...rest } = {}) =>
     ...rest,
   })
 
+/** A contract whose allowlist names a repository this plane never sees. */
+const elsewhereContract = () => {
+  const raw = JSON.parse(CONTRACT_TEXT)
+  return validateContract({
+    ...raw,
+    allowedHeadRepository: "someone-else/nabaperks",
+  })
+}
+
 test("routing: a fork pull request is never enqueued and never reaches the runner", async () => {
   const github = fakeGitHub({ pulls: [pull(), FORK_PULL] })
   const runner = fakeRunner()
   const loop = buildLoop({ github, runner })
 
   const first = await loop.tick()
+  await loop.settle()
   assert.equal(first.outcome, "ran")
   assert.equal(first.hostedFork, 1)
   assert.equal(first.refused, 0)
@@ -268,6 +306,7 @@ test("the sleep assertion is acquired for a job and released when it finishes", 
   const loop = buildLoop({ github, runner, sleepAssertion })
 
   const result = await loop.tick()
+  await loop.settle()
   assert.equal(result.outcome, "ran")
   assert.deepEqual(sleepAssertion.events, ["acquire", "release"])
 })
@@ -279,7 +318,8 @@ test("the sleep assertion is released in a finally even when the run throws", as
   const runner = fakeRunner(() => boom)
   const loop = buildLoop({ github, runner, sleepAssertion })
 
-  await assert.rejects(() => loop.tick(), /the container daemon wedged/)
+  await loop.tick()
+  await assert.rejects(() => loop.settle(), /the container daemon wedged/)
   assert.deepEqual(
     sleepAssertion.events,
     ["acquire", "release"],
@@ -295,15 +335,101 @@ test("the sleep assertion is released in a finally even when the run throws", as
   assert.equal(runningJobs(loop.state).length, 0)
 })
 
+test("a thrown run completes its check run rather than leaving it in_progress forever", async () => {
+  const github = fakeGitHub()
+  const runner = fakeRunner(
+    () => new Error("the workspace could not be prepared")
+  )
+  const loop = buildLoop({ github, runner })
+
+  await loop.tick()
+  await assert.rejects(() => loop.settle(), /workspace could not be prepared/)
+
+  // Nothing retries this SHA - the queue entry is completed and every later
+  // poll deduplicates it - so a check left in_progress is one the bridge waits
+  // out its whole ceiling for.
+  assert.equal(github.created.length, 1)
+  assert.equal(github.created[0].status, "in_progress")
+  assert.equal(github.updated.length, 1)
+  assert.equal(github.updated[0].id, 1001)
+  assert.equal(github.updated[0].status, "completed")
+  assert.equal(github.updated[0].conclusion, "failure")
+  assert.match(github.updated[0].output.summary, /could not be prepared/)
+  assert.match(github.updated[0].output.title, /did not run/)
+})
+
+test("a thrown run whose check was never opened publishes a completed one instead", async () => {
+  const created = []
+  const github = {
+    ...fakeGitHub(),
+    async createCheckRun(payload) {
+      if (payload.status === "in_progress") {
+        throw new Error("GitHub returned HTTP 500")
+      }
+      created.push(payload)
+      return { id: 7 }
+    },
+  }
+  const loop = buildLoop({
+    github,
+    runner: fakeRunner(() => new Error("docker never came up")),
+  })
+
+  await loop.tick()
+  await assert.rejects(() => loop.settle(), /docker never came up/)
+
+  assert.equal(created.length, 1)
+  assert.equal(created[0].headSha, MAIN_SHA)
+  assert.equal(created[0].name, contract.checkName)
+  assert.equal(created[0].status, "completed")
+  assert.equal(created[0].conclusion, "failure")
+})
+
+test("a GitHub outage while reporting a thrown run does not mask the run's own error", async () => {
+  const errors = []
+  const github = {
+    ...fakeGitHub(),
+    async updateCheckRun() {
+      throw new Error("GitHub returned HTTP 502")
+    },
+  }
+  const loop = buildLoop({
+    github,
+    runner: fakeRunner(() => new Error("the container daemon wedged")),
+    logger: { error: (message) => errors.push(message) },
+  })
+
+  await loop.tick()
+  await assert.rejects(
+    () => loop.settle(),
+    /the container daemon wedged/,
+    "the reporting failure must not replace the failure an operator has to fix"
+  )
+  assert.equal(
+    errors.some((message) => /could not complete the check run/.test(message)),
+    true
+  )
+})
+
+test("a host secret named in a thrown run's message never reaches the published check", async () => {
+  const secret = contract.hostSecrets[1]
+  const github = fakeGitHub()
+  const loop = buildLoop({
+    github,
+    runner: fakeRunner(() => new Error(`could not read ${secret} from disk`)),
+  })
+
+  await loop.tick()
+  await assert.rejects(() => loop.settle(), /could not read/)
+  assert.equal(github.updated.length, 1)
+  assert.equal(github.updated[0].output.summary.includes(secret), false)
+  assert.match(github.updated[0].output.summary, /\[redacted\]/)
+})
+
 test("an idle tick holds no sleep assertion at all", async () => {
   const sleepAssertion = fakeSleepAssertion()
-  const raw = JSON.parse(CONTRACT_TEXT)
-  const elsewhere = validateContract({
-    ...raw,
-    allowedHeadRepository: "someone-else/nabaperks",
-  })
   const loop = createLoop({
-    contract: elsewhere,
+    contract: elsewhereContract(),
     github: fakeGitHub(),
     runner: fakeRunner(),
     sleepAssertion,
@@ -319,6 +445,7 @@ test("the run is published as in_progress and then completed on the same check r
   const github = fakeGitHub()
   const loop = buildLoop({ github, runner: fakeRunner() })
   await loop.tick()
+  await loop.settle()
 
   assert.equal(github.created.length, 1)
   assert.equal(github.created[0].name, contract.checkName)
@@ -338,6 +465,7 @@ test("a second tick deduplicates the same head SHA rather than re-running it", a
   const loop = buildLoop({ github, runner })
 
   assert.equal((await loop.tick()).outcome, "ran")
+  await loop.settle()
   const second = await loop.tick()
   assert.equal(second.outcome, "idle")
   assert.deepEqual(
@@ -368,8 +496,10 @@ test("a force push on the default branch supersedes the queued SHA", async () =>
   const loop = buildLoop({ github, runner })
 
   await loop.tick()
+  await loop.settle()
   mainSha = NEW_MAIN_SHA
   await loop.tick()
+  await loop.settle()
 
   assert.deepEqual(
     runner.runs.map((run) => run.headSha),
@@ -387,10 +517,13 @@ test("a failing run is published as a failure and the loop keeps going", async (
   const loop = buildLoop({ github, runner })
 
   const first = await loop.tick()
-  assert.equal(first.conclusion, "failure")
+  assert.equal(first.outcome, "ran")
+  const outcome = await loop.settle()
+  assert.equal(outcome.record.conclusion, "failure")
   assert.equal(github.updated[0].conclusion, "failure")
 
   const second = await loop.tick()
+  await loop.settle()
   assert.equal(second.outcome, "ran")
   assert.equal(second.job.profile, "pr")
 })
@@ -409,6 +542,7 @@ test("a check-run publish failure does not lose the run", async () => {
   const loop = buildLoop({ github, runner })
 
   const result = await loop.tick()
+  await loop.settle()
   assert.equal(result.outcome, "ran")
   assert.deepEqual(
     runner.runs.map((run) => run.headSha),
@@ -417,6 +551,192 @@ test("a check-run publish failure does not lose the run", async () => {
   assert.equal(
     loop.state.jobs.find((job) => job.sha === MAIN_SHA).result.status,
     "success"
+  )
+})
+
+test("the tick returns while the run is still going, so polling and the heartbeat continue", async () => {
+  const gate = deferred()
+  const entered = deferred()
+  const github = fakeGitHub()
+  const beats = []
+  const heartbeat = {
+    async ping() {
+      beats.push(NOW)
+      return { sent: true, reason: "ok" }
+    },
+  }
+  const runner = {
+    runs: [],
+    async runProfile({ headSha }) {
+      this.runs.push(headSha)
+      entered.resolve()
+      await gate.promise
+      return { record: record(headSha) }
+    },
+  }
+  const loop = buildLoop({ github, runner, heartbeat })
+
+  const ticking = loop.tick()
+  await entered.promise
+  assert.equal(
+    await returnsPromptly(ticking),
+    "returned",
+    "a tick that waits for its run stops polling for the length of a profile"
+  )
+  const first = await ticking
+  assert.equal(first.outcome, "ran")
+  assert.equal(
+    loop.busy,
+    true,
+    "the tick returned while the profile was still running"
+  )
+
+  // The tick that a blocking loop could never reach: it polls, it reports the
+  // job in flight, and it beats the heartbeat the liveness monitor watches.
+  const second = await loop.tick()
+  assert.equal(second.outcome, "idle")
+  assert.equal(second.running, first.job.id)
+  assert.equal(beats.length, 2, "an agent mid-run must not go silent")
+
+  gate.resolve()
+  const outcome = await loop.settle()
+  assert.equal(outcome.record.conclusion, "success")
+  assert.equal(loop.busy, false)
+  assert.deepEqual(
+    runner.runs,
+    [MAIN_SHA],
+    "polling through a run must not start a second one"
+  )
+  assert.equal(github.created.length, 1)
+})
+
+test("a force push during a run aborts it and the replacement SHA runs next", async () => {
+  const entered = deferred()
+  let mainSha = MAIN_SHA
+  let observedSignal = null
+  const github = fakeGitHub()
+  const runner = {
+    runs: [],
+    async runProfile({ headSha, signal }) {
+      this.runs.push(headSha)
+      if (headSha !== MAIN_SHA) return { record: record(headSha) }
+      observedSignal = signal
+      entered.resolve()
+      if (!signal.aborted) {
+        await new Promise((resolve) =>
+          signal.addEventListener("abort", resolve, { once: true })
+        )
+      }
+      // What the real runner does with an aborted signal: stop the lanes and
+      // report the run cancelled.
+      return { record: record(headSha, "cancelled") }
+    },
+  }
+  const loop = createLoop({
+    contract,
+    github,
+    runner,
+    loadProfile: async (name) => ({ profile: name, lanes: [] }),
+    now: () => NOW,
+  })
+  const originalGetRef = github.getRef
+  github.getRef = async (ref) => ({
+    ...(await originalGetRef(ref)),
+    sha: mainSha,
+  })
+
+  const ticking = loop.tick()
+  await entered.promise
+  assert.equal(await returnsPromptly(ticking), "returned")
+  assert.equal((await ticking).outcome, "ran")
+
+  mainSha = NEW_MAIN_SHA
+  const second = await loop.tick()
+  assert.equal(
+    observedSignal.aborted,
+    true,
+    "supersession must be able to stop work already in flight"
+  )
+  assert.equal(observedSignal.reason.code, ABORT_SUPERSEDED)
+  assert.equal(second.queued, 1)
+
+  const outcome = await loop.settle()
+  assert.equal(outcome.record.conclusion, "cancelled")
+  assert.equal(github.updated.length, 1)
+  assert.equal(github.updated[0].status, "completed")
+  assert.equal(github.updated[0].conclusion, "cancelled")
+
+  const third = await loop.tick()
+  await loop.settle()
+  assert.equal(third.outcome, "ran")
+  assert.deepEqual(runner.runs, [MAIN_SHA, NEW_MAIN_SHA])
+})
+
+test("stop() settles the wait it interrupts instead of parking until launchd kills the agent", async () => {
+  const parked = deferred()
+  const loop = createLoop({
+    contract: elsewhereContract(),
+    github: fakeGitHub(),
+    runner: fakeRunner(),
+    loadProfile: async (name) => ({ profile: name }),
+    now: () => NOW,
+    // A wait nothing but `stop()` can settle - which is exactly the shape of
+    // the real one once its timer has been cleared.
+    sleep: () => {
+      parked.resolve()
+      return new Promise(() => {})
+    },
+  })
+
+  const started = loop.start()
+  await parked.promise
+  loop.stop()
+
+  assert.equal(
+    await returnsPromptly(started),
+    "returned",
+    "a SIGTERM while idle must return from start(), not wait out launchd's ExitTimeOut"
+  )
+})
+
+test("stop() aborts the run in flight so its check does not stay in_progress", async () => {
+  const entered = deferred()
+  let observedSignal = null
+  const github = fakeGitHub()
+  const runner = {
+    runs: [],
+    async runProfile({ headSha, signal }) {
+      this.runs.push(headSha)
+      observedSignal = signal
+      entered.resolve()
+      if (!signal.aborted) {
+        await new Promise((resolve) =>
+          signal.addEventListener("abort", resolve, { once: true })
+        )
+      }
+      return { record: record(headSha, "cancelled") }
+    },
+  }
+  const loop = buildLoop({
+    github,
+    runner,
+    sleep: () => new Promise(() => {}),
+  })
+
+  const started = loop.start()
+  await entered.promise
+  loop.stop()
+
+  assert.equal(await returnsPromptly(started), "returned")
+  assert.equal(observedSignal.aborted, true)
+  assert.equal(observedSignal.reason.code, ABORT_STOPPING)
+  assert.equal(loop.busy, false)
+  assert.equal(github.updated.length, 1)
+  assert.equal(github.updated[0].status, "completed")
+  assert.equal(
+    github.updated[0].conclusion,
+    "cancelled",
+    "start() must not return before the aborted run has reported"
   )
 })
 
@@ -442,8 +762,36 @@ test("expired logs are swept, and a running job's log is never swept", async () 
   })
 
   const result = await loop.tick()
+  await loop.settle()
   assert.equal(result.swept, 1)
   assert.deepEqual(removed, ["old"])
+})
+
+test("a loop with no log store says so at startup rather than reporting a swept-nothing sweep", async () => {
+  const warnings = []
+  const loop = buildLoop({
+    github: fakeGitHub(),
+    runner: fakeRunner(),
+    logger: { warn: (message) => warnings.push(message) },
+  })
+
+  assert.equal(
+    warnings.some(
+      (message) =>
+        /retention sweep can never run/.test(message) &&
+        message.includes(String(contract.agent.logRetentionDays))
+    ),
+    true,
+    "a retention promise this loop cannot keep must be loud at construction"
+  )
+
+  const result = await loop.tick()
+  await loop.settle()
+  assert.equal(
+    result.swept,
+    null,
+    "null is 'there is no store to sweep'; 0 would read as a healthy sweep"
+  )
 })
 
 test("the sleep assertion is a scoped caffeinate bound to the agent's own pid", () => {

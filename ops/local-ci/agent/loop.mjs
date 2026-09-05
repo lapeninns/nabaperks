@@ -9,7 +9,7 @@
  * more than `tick()` on an interval, and it is the only part of this file that
  * a test cannot reach.
  *
- * Two rules are enforced here rather than assumed:
+ * Six rules are enforced here rather than assumed:
  *
  *   - **A refused request is recorded and never enqueued.** Fork pull requests
  *     do not reach the queue, do not reach the runner and do not produce a
@@ -26,6 +26,30 @@
  *     The launchd plist deliberately does NOT wrap the agent in caffeinate;
  *     that would hold an assertion for the agent's entire lifetime, which is
  *     always. See ops/local-ci/host/com.nabaperks.local-ci.plist.
+ *
+ *   - **A tick never waits for the run it starts.** A profile has up to 75
+ *     minutes; a tick that awaited it would stop polling for 75 minutes, and
+ *     an agent that stops polling is one the liveness monitor reports dead and
+ *     a force push cannot reach. The run is started, the tick returns, and the
+ *     run is reachable through `settle()`. Single concurrency is unchanged -
+ *     `contract.agent.maxConcurrentJobs` is 1 and no second job starts while
+ *     one is in flight.
+ *
+ *   - **A run in flight is abortable.** The supersession rule is worth little
+ *     if it can only cancel work that has not started, so the run is handed an
+ *     AbortSignal: a newer SHA on its ref aborts it, and so does `stop()`.
+ *
+ *   - **A run that produced no record still completes its check.** Workspace
+ *     preparation, runtime-env resolution and container startup all fail
+ *     before the runner has anything to report. A check left `in_progress`
+ *     there strands the bridge for its whole ceiling on a SHA that is never
+ *     retried, because the queue entry is completed and later polls
+ *     deduplicate it.
+ *
+ *   - **`stop()` settles the wait it interrupts.** Clearing the poll timer
+ *     without settling the promise that timer was going to settle parks the
+ *     loop on a promise nothing can resolve, and launchd escalates to SIGKILL
+ *     when its ExitTimeOut expires.
  */
 
 import { spawn } from "node:child_process"
@@ -43,13 +67,24 @@ import {
   selectNext,
 } from "../core/queue.mjs"
 import { partitionLogs } from "../core/retention.mjs"
-import { renderCheckSummary } from "../core/summary.mjs"
+import {
+  assertPublishable,
+  redactSummaryText,
+  renderCheckSummary,
+} from "../core/summary.mjs"
 import { matchesPinnedRepositoryId } from "./github.mjs"
 
 export class LoopError extends LocalCiError {}
 
 /** The default branch this plane treats as `main` work. */
 export const DEFAULT_BRANCH_REF = "refs/heads/main"
+
+/**
+ * Why a run in flight was aborted. Both arrive at the runner as
+ * `signal.reason.code`, so a cancelled run can say which of the two happened.
+ */
+export const ABORT_SUPERSEDED = "RUN_SUPERSEDED"
+export const ABORT_STOPPING = "AGENT_STOPPING"
 
 /**
  * The documented sleep assertion: `caffeinate -i -m -w <job pid>`.
@@ -200,7 +235,8 @@ export function classifyCandidates(candidates, contract) {
  *
  * `acquire` is a no-op when an assertion is already held, so a re-entrant
  * caller cannot leak a second `caffeinate`. `release` is safe to call when
- * nothing is held, which is what makes the `finally` in `tick` unconditional.
+ * nothing is held, which is what makes the `finally` in `executeJob`
+ * unconditional and `stop()` free to release on its way out.
  */
 export function createSleepAssertion({
   spawnFn = spawn,
@@ -256,9 +292,9 @@ export function createSleepAssertion({
  *
  * Every dependency is injected: `github` (ops/local-ci/agent/github.mjs),
  * `runner`, `heartbeat`, `sleepAssertion`, `loadProfile`, `now`, `sleep`,
- * `logger` and an optional `logStore` for the retention sweep. Nothing here
- * reaches for the clock, the network, the filesystem or the process
- * environment on its own.
+ * `logger` and a `logStore` for the retention sweep. Nothing here reaches for
+ * the clock, the network, the filesystem or the process environment on its
+ * own.
  */
 export function createLoop({
   contract,
@@ -286,19 +322,38 @@ export function createLoop({
     if (logger && typeof logger[level] === "function") logger[level](message)
   }
 
+  const canSweep = Boolean(logStore) && typeof logStore.list === "function"
+  if (!canSweep) {
+    // The contract promises `agent.logRetentionDays` of evidence and no more.
+    // With no store this loop can delete nothing, so that promise is quietly
+    // untrue and the run evidence grows until the disk is full. Said once, at
+    // construction, rather than every poll: a warning repeated every minute is
+    // one an operator learns to scroll past.
+    log(
+      "warn",
+      `no logStore was given to createLoop, so the ${contract.agent?.logRetentionDays}-day retention sweep can never run; run evidence under ${contract.evidence?.artifactRoot ?? "the evidence root"} will accumulate until the disk fills`
+    )
+  }
+
   let queue = createQueueState(contract)
   const refusals = []
-  let running = false
+  let polling = false
   let stopping = false
   let timer = null
+  let notifyStop = null
+  // The run this loop started and has not yet observed finishing, and the most
+  // recent one whatever its state. `settle()` reads the second so a caller can
+  // still take the outcome of a run that finished between two ticks.
+  let inFlight = null
+  let lastRun = null
+
+  const checkNameFor = (job) =>
+    job.profile === "nightly" ? contract.nightlyCheckName : contract.checkName
 
   async function publishStart(job) {
     try {
       const created = await github.createCheckRun({
-        name:
-          job.profile === "nightly"
-            ? contract.nightlyCheckName
-            : contract.checkName,
+        name: checkNameFor(job),
         headSha: job.sha,
         status: "in_progress",
         startedAt: new Date(now()).toISOString(),
@@ -331,10 +386,7 @@ export function createLoop({
     try {
       if (checkRunId === null) {
         await github.createCheckRun({
-          name:
-            job.profile === "nightly"
-              ? contract.nightlyCheckName
-              : contract.checkName,
+          name: checkNameFor(job),
           headSha: job.sha,
           ...payload,
         })
@@ -349,8 +401,82 @@ export function createLoop({
     }
   }
 
+  /**
+   * The check output for a run that produced no record.
+   *
+   * `renderCheckSummary` needs lanes, counts and a log digest, and this path
+   * has none of them - the failure happened before the runner produced
+   * anything. So the output is built here and put through the same redaction
+   * and the same proof pass the rendered summary uses: an unexpected error
+   * message is exactly where a token turns up, and this text goes to GitHub.
+   * A detail that cannot be proved clean is replaced wholesale rather than
+   * withheld, because the check still has to complete.
+   */
+  function renderIncompleteOutput(job, error, cancelled) {
+    const title = `${job.profile} — ${cancelled ? "cancelled" : "did not run"}`
+    const detail = cancelled
+      ? `The local plane cancelled \`${job.sha}\` on \`${job.ref}\` before the run produced a result.`
+      : `The local plane claimed \`${job.sha}\` on \`${job.ref}\` and could not run it, so there is no lane result to report.`
+    const parts = {
+      title: redactSummaryText(title, contract),
+      summary: redactSummaryText(
+        `${detail}\n\n**Error:** ${error?.message ?? String(error)}`,
+        contract
+      ),
+    }
+    try {
+      assertPublishable(parts, contract)
+      return parts
+    } catch (proofError) {
+      log(
+        "warn",
+        `the failure detail for ${job.sha} did not survive the publishable-output proof and was withheld: ${proofError.message}`
+      )
+      return {
+        title: `local run — ${cancelled ? "cancelled" : "did not run"}`,
+        summary:
+          "The local plane could not run this commit. The failure detail was withheld because it did not survive the publishable-output proof; the agent log on the host carries it.",
+      }
+    }
+  }
+
+  /**
+   * Complete the check run for a job whose run threw.
+   *
+   * Deliberately failure-tolerant. It runs on the error path, and letting a
+   * GitHub outage throw from here would replace the real failure - the one the
+   * operator has to fix - with a reporting failure.
+   */
+  async function publishIncomplete(job, checkRunId, error, cancelled) {
+    try {
+      const payload = {
+        status: "completed",
+        conclusion: cancelled ? "cancelled" : "failure",
+        completedAt: new Date(now()).toISOString(),
+        output: renderIncompleteOutput(job, error, cancelled),
+      }
+      if (checkRunId === null) {
+        await github.createCheckRun({
+          name: checkNameFor(job),
+          headSha: job.sha,
+          ...payload,
+        })
+        return
+      }
+      await github.updateCheckRun(checkRunId, payload)
+    } catch (publishError) {
+      log(
+        "error",
+        `could not complete the check run for ${job.sha} after the run failed: ${publishError.message}`
+      )
+    }
+  }
+
   async function sweepRetention(instant) {
-    if (!logStore || typeof logStore.list !== "function") return 0
+    // null rather than 0: "there is no store to sweep" and "nothing had aged
+    // out" are different facts, and this number is published in the tick
+    // result where a zero reads as a healthy sweep.
+    if (!canSweep) return null
     try {
       const entries = await logStore.list()
       const running_ = runningJobs(queue).map((job) => job.id)
@@ -367,7 +493,7 @@ export function createLoop({
     }
   }
 
-  async function executeJob(job) {
+  async function executeJob(job, signal) {
     const profile = await loadProfile(job.profile)
     const checkRunId = await publishStart(job)
     // Acquired here, not at the top of the tick: an idle agent must hold no
@@ -378,6 +504,7 @@ export function createLoop({
         profile,
         ref: job.ref,
         headSha: job.sha,
+        signal,
       })
       await publishResult(job, checkRunId, outcome.record)
       const applied = complete(
@@ -401,11 +528,23 @@ export function createLoop({
       queue = applied.state
       return outcome
     } catch (error) {
-      log("error", `run for ${job.sha} failed: ${error.message}`)
+      const cancelled = signal?.aborted === true
+      log(
+        "error",
+        `run for ${job.sha} ${cancelled ? "was cancelled" : "failed"}: ${error.message}`
+      )
+      // The check is completed before the error is rethrown. Nothing retries
+      // this SHA - the queue entry is completed here and every later poll
+      // deduplicates it - so a check left in_progress is one the bridge waits
+      // out its entire ceiling for.
+      await publishIncomplete(job, checkRunId, error, cancelled)
       const applied = complete(
         queue,
         job.id,
-        { status: "incomplete", error: error.message },
+        {
+          status: cancelled ? "cancelled" : "incomplete",
+          error: error.message,
+        },
         now()
       )
       queue = applied.state
@@ -417,6 +556,38 @@ export function createLoop({
     }
   }
 
+  /**
+   * Start a job and return without waiting for it. The returned entry carries
+   * the promise; `settle()` is how a caller takes the outcome.
+   */
+  function startJob(job) {
+    const controller = new AbortController()
+    const entry = { job, controller, completion: null }
+    entry.completion = executeJob(job, controller.signal).then(
+      (outcome) => {
+        if (inFlight === entry) inFlight = null
+        return outcome
+      },
+      (error) => {
+        if (inFlight === entry) inFlight = null
+        throw error
+      }
+    )
+    // Observed here so a run nobody settles can never take the process down
+    // with an unhandled rejection. `settle()` re-raises it for a caller that
+    // wants it, and `executeJob` has already logged it.
+    entry.completion.catch(() => {})
+    inFlight = entry
+    lastRun = entry
+    return entry
+  }
+
+  function abortInFlight(code, message) {
+    if (inFlight === null || inFlight.controller.signal.aborted) return false
+    inFlight.controller.abort(new LoopError(code, `local-ci loop: ${message}`))
+    return true
+  }
+
   return Object.freeze({
     get state() {
       return queue
@@ -425,22 +596,29 @@ export function createLoop({
       return Object.freeze([...refusals])
     },
     get busy() {
-      return running
+      return inFlight !== null
     },
 
     /**
      * One poll. Lists the default branch head and every open pull request,
-     * classifies each, enqueues what this plane owns, cancels superseded SHAs,
-     * and runs at most one job.
+     * classifies each, enqueues what this plane owns, cancels superseded SHAs
+     * - aborting one in flight - and starts at most one job.
+     *
+     * It does not wait for the job it starts: that is what keeps the next poll
+     * and the next heartbeat on schedule through a 75-minute profile. Use
+     * `settle()` to take the run's outcome.
      *
      * Returns a record of what happened; it throws only when the poll itself
      * could not be made, so a caller on a timer keeps ticking.
      */
     async tick() {
-      if (running) {
-        return Object.freeze({ outcome: "idle", reason: "a job is in flight" })
+      if (polling) {
+        return Object.freeze({
+          outcome: "idle",
+          reason: "a poll is already in flight",
+        })
       }
-      running = true
+      polling = true
       const instant = now()
       try {
         const [mainRef, pullRequests] = await Promise.all([
@@ -482,6 +660,17 @@ export function createLoop({
           queue = cancelled.state
           for (const id of cancelled.cancelled) {
             log("info", `cancelled ${id}: superseded on ${entry.candidate.ref}`)
+            // Cancelling the queue entry of a job that is already executing
+            // only renames it. The run itself stops because of this abort, and
+            // without it the machine spends the next hour proving something
+            // about code that is no longer at that ref.
+            if (inFlight !== null && inFlight.job.id === id) {
+              abortInFlight(
+                ABORT_SUPERSEDED,
+                `run ${id} was superseded by ${entry.candidate.sha} on ${entry.candidate.ref}`
+              )
+              log("info", `aborting the run in flight for ${id}`)
+            }
           }
         }
 
@@ -511,38 +700,60 @@ export function createLoop({
           if (!result.deduplicated) queuedCount += 1
         }
 
-        const selected = selectNext(queue, instant)
-        queue = selected.state
+        // One job at a time, guarded on `inFlight` rather than on the queue's
+        // own concurrency check: a superseded job stops counting as running the
+        // moment it is cancelled, while the process it started is still winding
+        // down, and starting a second run into that would put two of them on
+        // the same ports and the same local Supabase stack.
+        let started = null
+        if (inFlight === null) {
+          const selected = selectNext(queue, instant)
+          queue = selected.state
+          if (selected.job !== null) started = startJob(selected.job)
+        }
+        const runningId = inFlight === null ? null : inFlight.job.id
+
         const swept = await sweepRetention(instant)
         const beat = heartbeat ? await heartbeat.ping() : null
 
-        if (selected.job === null) {
-          return Object.freeze({
-            outcome: queuedCount > 0 ? "queued" : "idle",
-            queued: queuedCount,
-            waiting: queuedJobs(queue).length,
-            refused: classified.refused.length,
-            hostedFork: classified.hostedFork.length,
-            swept,
-            heartbeat: beat,
-          })
-        }
-
-        const outcome = await executeJob(selected.job)
-        return Object.freeze({
-          outcome: "ran",
-          job: selected.job,
-          conclusion: outcome.record.conclusion,
+        const common = {
           queued: queuedCount,
           waiting: queuedJobs(queue).length,
           refused: classified.refused.length,
           hostedFork: classified.hostedFork.length,
+          running: runningId,
           swept,
           heartbeat: beat,
+        }
+
+        if (started === null) {
+          return Object.freeze({
+            outcome: queuedCount > 0 ? "queued" : "idle",
+            ...common,
+          })
+        }
+
+        return Object.freeze({
+          outcome: "ran",
+          job: started.job,
+          ...common,
         })
       } finally {
-        running = false
+        polling = false
       }
+    },
+
+    /**
+     * Wait for the run this loop started most recently and return its outcome,
+     * or null when it has never started one.
+     *
+     * A run no longer finishes inside the tick that started it, so this is how
+     * a caller takes its result: `start()` on its way out, a test between two
+     * ticks. It re-raises whatever the run threw.
+     */
+    async settle() {
+      if (lastRun === null) return null
+      return await lastRun.completion
     },
 
     /**
@@ -554,6 +765,9 @@ export function createLoop({
     async start() {
       stopping = false
       const interval = pollIntervalMs(contract)
+      const stopped = new Promise((resolve) => {
+        notifyStop = resolve
+      })
       const wait =
         sleep ??
         ((ms) =>
@@ -572,14 +786,48 @@ export function createLoop({
           log("error", `tick failed: ${error.message}`)
         }
         if (stopping) break
-        await wait(interval)
+        // Raced against `stopped` so a SIGTERM arriving mid-wait returns now
+        // rather than a poll interval later. The race covers an injected
+        // `sleep` too: `stop()` cannot reach inside one of those either.
+        await Promise.race([wait(interval), stopped])
+      }
+      // `stop()` aborted the run in flight; waiting for it here is what gets
+      // its cancelled check published before the process exits.
+      try {
+        await this.settle()
+      } catch {
+        // Already logged by `executeJob`, and a run that ended badly is not a
+        // shutdown that ended badly.
       }
     },
 
-    /** Ask `start()` to return after the current tick. */
+    /**
+     * Ask `start()` to return: wake the poll wait, abort the run in flight,
+     * release the assertion.
+     *
+     * The wake is the part that is easy to miss. `start()` is parked on a
+     * promise that only the poll timer settles, and clearing that timer
+     * without settling it leaves the loop awaiting something nothing can
+     * resolve - until launchd's ExitTimeOut expires and SIGKILL arrives, two
+     * minutes after the agent had already finished its work.
+     *
+     * The run in flight is aborted rather than waited for. A profile has 75
+     * minutes and launchd has 120 seconds, so the real choice is between a
+     * check completed as `cancelled` and a check left `in_progress` by a
+     * killed process.
+     */
     stop() {
       stopping = true
-      if (timer) clearTimeout(timer)
+      if (timer) {
+        clearTimeout(timer)
+        timer = null
+      }
+      if (notifyStop) {
+        const resolve = notifyStop
+        notifyStop = null
+        resolve()
+      }
+      abortInFlight(ABORT_STOPPING, "the agent is stopping")
       sleepAssertion?.release()
     },
   })

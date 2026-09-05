@@ -63,7 +63,7 @@ created by hand on the Mac host.
 | `/opt/nabaperks-local-ci/current/`                 | Mac host | Symlink to the installed, reviewed agent revision                                                                      |
 | `/opt/nabaperks-local-ci/logs/agent.{out,err}.log` | Mac host | Agent process logs, rotated by newsyslog                                                                               |
 | `~/.nabaperks-local-ci/app-private-key.pem`        | Mac host | GitHub App private key, mode `0600`                                                                                    |
-| `~/.nabaperks-local-ci/runs/`                      | Mac host | Per-run lane evidence, retained 30 days                                                                                |
+| `~/.nabaperks-local-ci/runs/<sha>/<run>/`          | Mac host | Per-run lane evidence, one directory per run, retained 30 days                                                         |
 
 Read `config/local-ci-contract.json` before running any procedure below. Every
 numeric bound quoted here is committed there as data; the contract tests assert
@@ -193,6 +193,31 @@ There is no inbound path to the agent by design: the GitHub App is created with
 its webhook **inactive** (section 2), so the agent polls outward and nothing
 needs to reach the Mac. If you find yourself opening a port or standing up a
 tunnel, stop — that is a design change, not an operational step.
+
+**These checks are made again before every dispatch, by the agent.** The
+verification in this section is a point in time, and a VM can be stopped and
+edited, recreated, or handed a mount at run time by anyone with a shell on the
+Mac; an instance installed with `--skip-vm-check` was never checked at all.
+So immediately before it materialises any commit inside the guest, the agent
+re-derives the same properties from two live sources — `limactl list --json`
+for what Lima believes it is running, and a probe inside the guest for what is
+actually true there:
+
+| Property                       | How it is re-derived                             |
+| ------------------------------ | ------------------------------------------------ |
+| the instance exists and is up  | `limactl list --json <name>`, `status`           |
+| no host mounts                 | `findmnt -t virtiofs,9p,nfs,cifs,sshfs` is empty |
+| the Mac's home is not visible  | `/Users` does not exist in the guest             |
+| no forwarded SSH agent         | `SSH_AUTH_SOCK` is empty in the guest            |
+| no Rosetta                     | `/mnt/lima-rosetta` does not exist               |
+| no declared mounts or networks | the instance record's `mounts` / `networks`      |
+
+Any mismatch refuses the dispatch with `VM_ISOLATION_VIOLATION` and names every
+property that failed, so an instance is recreated once rather than four times.
+A probe that cannot be run at all is `VM_UNVERIFIABLE` and refuses too: a
+dispatch that proceeds because the check could not be made has no isolation
+guarantee. Recreate the instance from the committed template; never patch it
+in place.
 
 **Docker inside the VM, native ARM64.** The Mac's Docker socket is never
 shared; the guest runs its own pinned daemon, and Rosetta is disabled so no
@@ -419,18 +444,36 @@ committed plist.
 
 ```sh
 cd /path/to/nabaperks
-git fetch origin main
+git checkout main && git pull --ff-only
 REVISION="$(git rev-parse origin/main)"
-ops/local-ci/host/install.sh --revision "$REVISION"
+ops/local-ci/host/install.sh \
+  --revision "$REVISION" \
+  --job-image "nabaperks-ci-job:<the sha the image was built from>"
 ```
 
-The installer refuses a revision that is not an ancestor of `origin/main` or
-that does not carry a successful `Release gate` check. **Never install from a
-pull-request branch**, and never edit anything under `/opt/nabaperks-local-ci/`
-by hand. The integrity of that tree rests on filesystem permissions alone
-(`root:wheel`, `go-w`, written only by `install.sh` under `sudo`): the agent
-does **not** hash the installed tree, so a hand edit made as root would run
-undetected.
+`--revision` names the bytes to install; `git archive` takes them from that
+commit, so the working tree is never moved and a rollback is the same command
+with an older sha. `--job-image` pins the container image the agent runs. It is
+needed **once**: the tag is written to `/opt/nabaperks-local-ci/job-image`,
+kept across re-runs, and derived from the VM automatically when the instance is
+running and holds exactly one `nabaperks-ci-job` image.
+
+That pin is not optional, and this is why it is validated here rather than
+discovered at first run: the agent refuses to start without a pinned image, and
+a LaunchAgent that cannot start is a `KeepAlive` crash loop, not a poller. The
+installer refuses to register the job unless the plist's
+`LOCAL_CI_JOB_IMAGE_FILE` names the same path it wrote, and — when the VM is
+reachable — unless `docker image inspect` finds the tag inside it.
+
+The installer refuses a revision that is not an ancestor of `origin/main`, a
+dirty working tree, an unexpected `origin`, and a credential directory it
+cannot prove is safe. It does **not** consult the `Release gate` check for that
+revision; that is a judgement the operator makes before naming a sha. **Never
+install from a pull-request branch**, and never edit anything under
+`/opt/nabaperks-local-ci/` by hand. The integrity of that tree rests on
+filesystem permissions alone (`root:wheel`, `go-w`, written only by
+`install.sh` under `sudo`): the agent does **not** hash the installed tree, so a
+hand edit made as root would run undetected.
 
 ### 3.2 Verify the service is loaded
 
@@ -458,9 +501,19 @@ node /opt/nabaperks-local-ci/current/ops/local-ci/agent/main.mjs \
 tail -20 /opt/nabaperks-local-ci/logs/agent.err.log
 ```
 
-The preflight resolves the host credentials, mints an installation token and
-re-asserts the profile and snapshot guard. It is safe to run at any time; it starts no
-job.
+The preflight resolves the host credentials and the pinned job image,
+re-asserts the profile and snapshot guard, and reports whether the live Lima
+instance still presents the isolation properties a dispatch requires. It is
+safe to run at any time; it starts no job, and it warns rather than failing on
+the VM so it is still useful before the instance exists.
+
+Confirm the pin the service will use:
+
+```sh
+cat /opt/nabaperks-local-ci/job-image     # root:wheel, 0644
+limactl shell nabaperks-ci -- docker image inspect "$(cat /opt/nabaperks-local-ci/job-image)" \
+  --format '{{.Id}}'
+```
 
 ### 3.3 Surviving reboot
 
@@ -525,17 +578,22 @@ Test the sleep path once:
 1. Trigger a cycle so a job is in flight.
 2. `pmset sleepnow` from another terminal.
 3. Wake the Mac.
-4. Confirm the agent resumes, and — if the bridge job for that SHA had already
-   hit its ceiling — that exactly one automatic bridge rerun was issued
-   (section 5.3).
+4. Confirm the agent resumes and republishes the check for that SHA. If the
+   bridge job had already hit its ceiling, expect it to stay red: the automatic
+   rerun is not wired yet (section 5.3), so recover it with "Re-run all jobs"
+   as in section 5.4.
 
 ### 3.5 Upgrading and rolling back
 
-Repeat 3.1 with the new `origin/main` revision. The installer keeps the
-previous release directory, so a rollback is a second
-`install.sh --revision <previous sha>`. `git pull` inside
-`/opt/nabaperks-local-ci/` is not an upgrade path and will trip the
-installed-tree hash check.
+Repeat 3.1 with the new `origin/main` revision. The installer keeps the last
+five release directories, so a rollback is a second
+`install.sh --revision <previous sha>` — the release is already extracted and
+the `current` symlink is repointed atomically.
+
+`git pull` inside `/opt/nabaperks-local-ci/` is **not** an upgrade path.
+Nothing hashes that tree, so such an edit would run silently and undetected;
+its integrity is filesystem permissions alone (section 3.1). Every change to
+the installed agent goes through `install.sh`, from a reviewed commit.
 
 ---
 
@@ -596,14 +654,25 @@ failure for the purposes of 4.6 either.
 `nabaperks.lane-result.v1` document per lane per run under the contract's
 `evidence.artifactRoot`:
 
+One commit can be run more than once - a fast-forwarded pull-request commit is
+tested again the moment it lands on `main`, and the nightly proves whatever
+`main`'s head is - so evidence is keyed by **run**, not by commit:
+`runs/<headSha>/<profile>-<UTC instant>-<entropy>/`. Pick the run you mean.
+
 ```sh
 SHA=<40 hex head sha>
-ls ~/.nabaperks-local-ci/runs/"$SHA"/
-python3 - "$SHA" <<'PY' > "/tmp/local-$SHA.json"
+ls -1 ~/.nabaperks-local-ci/runs/"$SHA"/      # one entry per run of this commit
+PROFILE=pr                                    # pr | main | nightly
+python3 - "$SHA" "$PROFILE" <<'PY' > "/tmp/local-$SHA.json"
 import json, pathlib, sys
-root = pathlib.Path.home() / ".nabaperks-local-ci" / "runs" / sys.argv[1]
+commit = pathlib.Path.home() / ".nabaperks-local-ci" / "runs" / sys.argv[1]
+runs = sorted(
+    d for d in commit.iterdir() if d.is_dir() and d.name.startswith(sys.argv[2] + "-")
+)
+assert runs, f"no {sys.argv[2]} run recorded for {sys.argv[1]}"
+root = runs[-1]  # the newest: the directory name sorts by UTC instant
 lanes = []
-for path in sorted(root.rglob("*.json")):
+for path in sorted(root.glob("*.json")):
     doc = json.loads(path.read_text())
     if doc.get("schema") == "nabaperks.lane-result.v1":
         lanes.append(doc)
@@ -698,6 +767,37 @@ window, so a single missed night warns and two consecutive misses fail. It is
 advisory in step 1. Treat a failing verifier as a signal that the qualification
 evidence has gone stale.
 
+**What produces that proof.** The watch agent does, by itself. Every 15 minutes
+it asks a purely local question — is the newest `nightly` run directory under
+`~/.nabaperks-local-ci/runs/` older than the 24-hour cadence? — and when the
+answer is yes it resolves the default branch head from GitHub and runs the
+`nightly` profile for it, serialised against the poll loop so only one job is
+ever in flight.
+
+There is deliberately **no separate launchd timer**:
+
+- A `StartCalendarInterval` job replays a window missed while the Mac was
+  asleep, but a window missed while it was powered off or logged out is simply
+  gone, and the freshness monitor would report stale with nothing on the host
+  explaining why. Asking a cheap question on a short interval turns every kind
+  of missed window into a _late_ run instead of a skipped one.
+- A second job would also dispatch alongside a pull request already running,
+  and `agent.maxConcurrentJobs` is 1.
+
+The cadence and the window are one design, and the agent refuses a contract in
+which `nightlyProof.maxAgeHours` is not greater than the 24-hour cadence: with
+no recovery margin, one missed night would fail the monitor outright.
+
+To see the decision without running anything, or to force the question now:
+
+```sh
+node /opt/nabaperks-local-ci/current/ops/local-ci/agent/main.mjs --nightly --dry-run
+node /opt/nabaperks-local-ci/current/ops/local-ci/agent/main.mjs --nightly
+```
+
+`--nightly` is the same decision the agent makes on its own: it exits 0 without
+running anything when a proof is still inside the cadence.
+
 ### 4.6 The rule for an ARM64-incompatible lane
 
 Some lanes will not survive ARM64 Linux. The likely candidates are Lighthouse
@@ -790,21 +890,38 @@ timeout.
 local plane must not hold a workflow run — and, from step 3, a merge — open for
 hours.
 
-### 5.3 The automatic bridge rerun after wake
+### 5.3 The automatic bridge rerun after wake — NOT YET WIRED
 
-When the Mac wakes and the agent finishes a SHA whose bridge job has already
-ended in a timeout, the agent decides whether to repair it. It reruns only
-when all of these hold:
+> **Status: designed and permitted, but no code issues it today.** The rerun is
+> a recovery convenience, not a safety property: a timed-out bridge is red, and
+> from step 3 a red bridge blocks the merge. Nothing unsafe happens without it —
+> the operator does one extra thing, described in 5.4.
+
+The intended behaviour, once wired: when the Mac wakes and the agent finishes a
+SHA whose bridge job has already ended in a timeout, it repairs that run, but
+only when all of these hold:
 
 - the workflow run is still for the current head SHA;
 - the bridge job actually ended in a timeout or a failure;
 - the agent has not already issued a rerun for that run.
 
-It then issues exactly one
-`POST /repos/lapeninns/nabaperks/actions/runs/{run_id}/rerun-failed-jobs`. That
-call is the sole reason the App holds Actions write, and the only non-GET
-Actions call in the whole agent. Because the endpoint re-runs _failed_ jobs, it
-repairs the timed-out bridge and leaves everything else alone.
+It would then issue exactly one
+`POST /repos/lapeninns/nabaperks/actions/runs/{run_id}/rerun-failed-jobs` —
+the sole reason the App holds Actions write, and the only non-GET Actions call
+in the agent.
+
+**What exists now.** `ops/local-ci/agent/github.mjs` implements
+`rerunWorkflowJob`, refusing any operation other than the one pinned in the
+contract. `ops/local-ci/core/bridge.mjs` returns a `rerun` decision for exactly
+the state above. `scripts/check-local-ci-proof.mjs` correctly _refuses_ to make
+the call itself and says why: the `local-proof` job holds `checks: read` and no
+Actions write, and a running job cannot re-run the workflow run it belongs to.
+
+**What is missing.** The host agent never calls `rerunWorkflowJob`. Wiring it
+needs a `listWorkflowRuns`-style lookup on the GitHub client to find the bridge
+run for a SHA (a GET, already covered by Actions _read_), a call site in the
+agent's publish path, and once-per-run bookkeeping. Until that lands, treat
+every timed-out bridge as the operator fallback in 5.4.
 
 ### 5.4 The operator fallback — and the exact reason it needs "Re-run all jobs"
 
@@ -865,9 +982,12 @@ Two further constraints:
   `/etc/newsyslog.d/com.nabaperks.local-ci.conf`. These are for debugging the
   supervisor: why it refused to start, which `LocalCiError` code it returned,
   whether a dispatch was skipped.
-- **Per-run evidence** — `~/.nabaperks-local-ci/runs/<headSha>/`, holding the
-  `nabaperks.lane-result.v1` documents and the captured lane logs. These are
-  the evidence a check run attests to, and the input to section 4's comparison.
+- **Per-run evidence** — `~/.nabaperks-local-ci/runs/<headSha>/<profile>-<UTC
+instant>-<entropy>/`, holding the `nabaperks.lane-result.v1` documents and
+  the captured lane logs. These are the evidence a check run attests to, and
+  the input to section 4's comparison. One directory per **run**, not per
+  commit: the `pr`, `main` and `nightly` runs of one SHA are separate records,
+  and none of them overwrites another.
 
 Neither is ever written into the repository, and neither survives in a
 container after it exits.
@@ -879,8 +999,14 @@ pruning rule is deliberately conservative:
 
 - a run directory is pruned only when it is **strictly older** than the window;
 - the boundary day and today are **never** pruned;
-- directory names that are not dates or SHAs are ignored entirely;
+- a run still in flight is never pruned, whatever its age — a long run started
+  before the cutoff would otherwise have its own log deleted mid-write;
+- a commit directory is removed only once its last run has been;
 - the selection is stable across a daylight-saving boundary.
+
+The sweep runs on every poll tick of the watch agent, so an installed service
+prunes without anyone asking it to. It is the agent that does this: nothing
+else reads `agent.logRetentionDays`.
 
 The consequence, stated honestly: **an outcome older than 30 days cannot be
 re-verified against local evidence.** GitHub retains the hosted plane's logs
@@ -923,7 +1049,7 @@ map is rendered into it.
    schema.
 
    ```sh
-   RUN_DIR=~/.nabaperks-local-ci/runs/<headSha>
+   RUN_DIR=~/.nabaperks-local-ci/runs/<headSha>/<run>
    python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));print(d["logDigest"])' \
      "$RUN_DIR/lane-result.json"
    ```
@@ -932,7 +1058,7 @@ map is rendered into it.
    the agent's own pure digest module:
 
    ```sh
-   RUN_DIR=~/.nabaperks-local-ci/runs/<headSha> \
+   RUN_DIR=~/.nabaperks-local-ci/runs/<headSha>/<run> \
    node --input-type=module -e '
      import { readFile } from "node:fs/promises"
      import { digestLogBundle } from "/opt/nabaperks-local-ci/current/ops/local-ci/core/digest.mjs"
@@ -1035,8 +1161,10 @@ This is the rule that makes everything above hold.
   absolute path in the LaunchAgent's `ProgramArguments`. `current` is a symlink
   that `install.sh` repoints atomically to a release directory extracted from a
   verified `main` commit.
-- That revision must be an ancestor of `origin/main` **and** carry a successful
-  `Release gate` check.
+- `install.sh` proves that revision is an ancestor of `origin/main` before it
+  extracts anything. Confirming the revision also carries a successful
+  `Release gate` check is the operator's judgement at install time; the
+  installer does not query GitHub, and section 3.1 says so.
 - The installed tree is protected by filesystem permissions only — `root:wheel`,
   `go-w`, written solely by `install.sh` under `sudo`. There is **no** runtime
   SHA-256 verification of that tree; adding it is tracked as follow-on work in
