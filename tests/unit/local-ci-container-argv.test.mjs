@@ -550,3 +550,41 @@ test("an already-cancelled process never spawns", async () => {
   assert.equal(result.cancelled, true)
   assert.equal(result.timedOut, false)
 })
+
+test("cancellation closes descendant output pipes before container cleanup", async () => {
+  const controller = new AbortController()
+  const started = Date.now()
+  let terminationRequests = 0
+  const result = await runContainer(
+    [
+      process.execPath,
+      "-e",
+      `
+      const child = require('node:child_process').spawn(process.execPath,
+        ['-e', 'console.log("descendant-ready"); setTimeout(() => {}, 6000)'],
+        {stdio: 'inherit'});
+      setTimeout(() => {}, 10000);
+    `,
+    ],
+    {
+      signal: controller.signal,
+      onTerminate: () => {
+        terminationRequests += 1
+      },
+      onOutput: (output) => {
+        if (output.includes("descendant-ready")) controller.abort()
+      },
+    }
+  )
+  assert.equal(controller.signal.aborted, true)
+  assert.equal(result.cancelled, true)
+  assert.equal(
+    terminationRequests,
+    1,
+    "the lifecycle owner must stop its remote job"
+  )
+  assert.ok(
+    Date.now() - started < 3000,
+    "descendant must not hold the output pipe open"
+  )
+})

@@ -1183,17 +1183,22 @@ test("cancellation while preparing a workspace prevents any container launch", a
   assert.deepEqual(events, ["released", "closed"])
 })
 
-test("execHost cancellation terminates a real child and preserves its reason", async () => {
+test("execHost cancellation terminates descendants and preserves its reason", async () => {
   const controller = new AbortController()
+  const started = Date.now()
   const reason = new Error("cancel fixture checkout")
   const timer = setTimeout(() => controller.abort(reason), 50)
   try {
     await assert.rejects(
-      execHost(["/bin/sh", "-c", "exec sleep 30"], {
+      execHost(["/bin/sh", "-c", "sleep 6 & wait"], {
         input: "x".repeat(1024 * 1024),
         signal: controller.signal,
       }),
       (error) => error === reason
+    )
+    assert.ok(
+      Date.now() - started < 3000,
+      "descendant output pipes must close promptly"
     )
   } finally {
     clearTimeout(timer)
