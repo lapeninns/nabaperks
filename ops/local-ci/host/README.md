@@ -42,6 +42,14 @@ specific Apple silicon Mac.
 `/etc/newsyslog.d/com.nabaperks.local-ci.conf` rotates both logs once they
 reach 10 MB, keeping 7 bzip2-compressed generations.
 
+The installer accepts ordinary clones and linked Git worktrees. It normalises
+reviewed release permissions on every run: directories and executable files
+are `0755`, other files are `0644`, and the macOS `current` symlink is `0755`.
+Credentials remain `0600` inside their separate `0700` directory. This repairs
+older installations where the credential-stage `umask 077` left public code
+unreadable by the operator. Operator access is checked before launchd starts;
+registration alone is still not proof of a live heartbeat or a successful job.
+
 ## Trust boundary
 
 The GitHub App private key can mint installation tokens for the repository, and
