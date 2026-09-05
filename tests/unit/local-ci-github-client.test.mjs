@@ -502,10 +502,18 @@ test("rate-limit headers are read from either a Headers object or a plain record
 })
 
 test("the client refuses to exist without the identity it needs", () => {
-  // appId and installationId are null sentinels in the contract until the App
-  // has been created and installed by hand.
+  // Model the pre-provisioning state explicitly now that the real App is pinned.
+  const unprovisioned = {
+    ...contract,
+    githubApp: { ...contract.githubApp, appId: null, installationId: null },
+  }
   assert.throws(
-    () => createGitHubClient({ contract, privateKey, fetch: async () => {} }),
+    () =>
+      createGitHubClient({
+        contract: unprovisioned,
+        privateKey,
+        fetch: async () => {},
+      }),
     (error) => error.code === "MISSING_APP_IDENTITY"
   )
   assert.throws(

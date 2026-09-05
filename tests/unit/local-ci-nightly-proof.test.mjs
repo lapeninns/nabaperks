@@ -36,7 +36,17 @@ const CONTRACT_TEXT = readFileSync(
   "utf8"
 )
 
-const contract = loadContract(() => CONTRACT_TEXT)
+// Exercise the pre-provisioning state explicitly, independent of live App IDs.
+const sourceContract = loadContract(() => CONTRACT_TEXT)
+const contract = validateContract({
+  ...sourceContract,
+  githubApp: {
+    ...sourceContract.githubApp,
+    appId: null,
+    installationId: null,
+    repositoryId: null,
+  },
+})
 
 /** The contract once the App exists — cutover step 3's shape, not step 1's. */
 const PROVISIONED = validateContract({

@@ -10,9 +10,9 @@
   "description": "Single source of truth shared by the local CI agent (ops/local-ci), the bridge job in .github/workflows/ci.yml, the nightly proof verifier, and the contract tests. Cutover step 1 ships the agent and the bridge advisory: no job in ci.yml is deleted, renamed, or newly depended upon, and release-gate still needs exactly [fast, build].",
   "githubApp": {
     "name": "Nabaperks Local CI",
-    "appId": null,
-    "installationId": null,
-    "repositoryId": null,
+    "appId": 4839346,
+    "installationId": 159244911,
+    "repositoryId": 1268458916,
     "permissions": {
       "checks": "write",
       "actions": "write",
@@ -23,7 +23,7 @@
     "allowedActionsWriteOperations": ["rerun-failed-jobs"],
     "privateKeyPath": "~/.nabaperks-local-ci/app-private-key.pem",
     "privateKeyMode": "0600",
-    "notes": "appId, installationId and repositoryId are null sentinels until the App is created and installed by hand (runbook M1/M5). No proof lane may be promoted from advisory to blocking while any of the three is null. The only non-GET Actions call the agent is permitted to make is rerun-failed-jobs."
+    "notes": "Identifiers pinned from the Nabaperks Local CI App installed on lapeninns/nabaperks only on 2026-09-05. Null remains the pre-provisioning sentinel, and no proof lane may be promoted from advisory to blocking while any identifier is null. Pinning identifiers does not prove signing-key authentication or VM qualification. The only non-GET Actions call the agent is permitted to make is rerun-failed-jobs."
   },
   "bridge": {
     "job": "local-proof",
