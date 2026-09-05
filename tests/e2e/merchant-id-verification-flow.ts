@@ -22,7 +22,20 @@ export function registerMerchantIdVerificationTests() {
   test.describe("merchant in-person ID verification", () => {
     const reason = adminLiveDbSkipReason()
     test.skip(Boolean(reason), reason)
-    test.use({ serviceWorkers: "block" })
+    test.use({
+      serviceWorkers: "block",
+      ignoreHTTPSErrors: process.env.REWARD_ID_LOOPBACK_HTTPS === "1",
+    })
+    test.beforeEach(async ({ baseURL }) => {
+      if (
+        !baseURL ||
+        !["localhost", "127.0.0.1"].includes(new URL(baseURL).hostname)
+      ) {
+        throw new Error(
+          "ID-check fixtures require a loopback application origin"
+        )
+      }
+    })
 
     test("@a11y @visual customer QR → owner sign-in → ID check → collected on both screens", async ({
       page,
@@ -40,6 +53,7 @@ export function registerMerchantIdVerificationTests() {
       const merchantContext = await browser.newContext({
         baseURL,
         viewport: page.viewportSize() ?? undefined,
+        ignoreHTTPSErrors: process.env.REWARD_ID_LOOPBACK_HTTPS === "1",
       })
       const merchant = await merchantContext.newPage()
       const errors: string[] = []
@@ -124,8 +138,23 @@ export function registerMerchantIdVerificationTests() {
             response.request().method() === "POST" &&
             response.url().includes("/app/rewards/scan/")
         )
+        let releaseSubmission: () => void = () => {}
+        const submissionGate = new Promise<void>((resolve) => {
+          releaseSubmission = resolve
+        })
+        await merchant.route("**/app/rewards/scan/**", async (route) => {
+          if (route.request().method() === "POST") await submissionGate
+          await route.fallback()
+        })
         await collect.click()
-        await expect(collect).toBeDisabled()
+        try {
+          await expect(
+            merchant.getByRole("button", { name: "Marking collected…" })
+          ).toBeDisabled()
+          await expect(confirmed).toBeDisabled()
+        } finally {
+          releaseSubmission()
+        }
         await submitted
         await expect(
           merchant.getByRole("alert").filter({ hasText: "Reward collected" })

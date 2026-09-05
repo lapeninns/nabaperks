@@ -62,6 +62,9 @@ customer records. Follow the production runbook's release checks and record
 the migration ledger and deployment revision after promotion. The ephemeral
 release job runs the ID-check mobile/desktop browser journeys against its
 production build and locally seeded fixtures before production promotion.
+The browser proof uses a loopback HTTPS proxy and a throwaway local certificate
+so production CSP remains intact. Only the local browser context accepts that
+self-signed certificate.
 
 An application rollback restores the previous UI while retaining completed
 verification, collection and audit records. Do not reverse collected rewards or

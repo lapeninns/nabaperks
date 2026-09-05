@@ -126,6 +126,7 @@ export default defineConfig({
     },
   ],
   webServer: {
+    ignoreHTTPSErrors: process.env.REWARD_ID_LOOPBACK_HTTPS === "1",
     command: `${devServerEnv} pnpm exec next dev --webpack`,
     url: devServerReadyUrl,
     reuseExistingServer,
