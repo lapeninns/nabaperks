@@ -57,12 +57,45 @@ is source-aligned and PITR-backed:
 pnpm ops:supabase:check
 ```
 
+## Local CI execution plane
+
+`ops/local-ci/` is a dependency-free agent that runs CI lanes on an operator's
+own Mac inside a Lima VM, publishes the outcome to GitHub as a check run, and is
+joined to the hosted plane by the advisory `local-proof` job in
+`.github/workflows/ci.yml`. `config/local-ci-contract.json` is the single source
+of truth for both halves; where any document disagrees with it, the contract is
+correct and the document is stale.
+
+```bash
+pnpm ops:ci:agent          # one-shot: --profile <pr|main|nightly> --sha <sha>
+pnpm ops:ci:agent:watch    # the long-running poll loop launchd starts
+pnpm ops:ci:nightly-proof  # fail when the newest nightly proof is stale
+```
+
+Two boundaries are enforced in code rather than by convention:
+
+- Fork code never reaches the VM. `ops/local-ci/core/allowlist.mjs` admits work
+  only when the head repository equals the contract's allowed repository by
+  exact string comparison, so a fork pull request stays on the hosted plane.
+- Host secrets never enter a job container. `ops/local-ci/core/job-env.mjs`
+  builds each job environment from a passthrough allowlist plus reviewed profile
+  values, then asserts that no host-secret name or credential-shaped host value
+  survived.
+
+The plane stays dormant until an operator sets the `LOCAL_CI_MODE` repository
+variable, and at cutover step 1 nothing it reports can block a merge. Provision
+it with `docs/operations/local-ci.md`. The follow-on steps that promote it are
+specified in `docs/operations/local-ci-cutover.md` and must not be performed
+from this guide.
+
 ## Repository boundaries
 
 - `app/` owns routes, layouts, route handlers, and server actions.
 - `components/` owns reusable UI and must not create Supabase server clients.
 - `lib/` owns domain logic, service adapters, and trust-boundary helpers.
 - `supabase/` owns migrations, seeds, RLS, and database RPCs.
+- `ops/` owns operator tooling that runs outside the deployed app, currently the
+  local CI execution plane in `ops/local-ci/`.
 - `tests/` separates source contracts, unit behavior, live database proof, and
   Playwright journeys.
 - `docs/operations/agent-readiness.md` maps the autonomous-readiness controls.
