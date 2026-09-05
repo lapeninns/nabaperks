@@ -118,6 +118,20 @@ limactl start --tty=false nabaperks-ci
 limactl list --json nabaperks-ci
 ```
 
+After the **first successful boot**, restart once before using Docker as the
+guest user:
+
+```sh
+limactl stop --tty=false nabaperks-ci
+limactl start --tty=false nabaperks-ci
+limactl shell nabaperks-ci -- docker info
+```
+
+Lima opens its initial SSH session before provisioning adds the guest user to
+the Docker group. That existing session retains its old group membership.
+The restart creates a fresh session; the readiness probe uses passwordless
+sudo to inspect the daemon and firewall while first boot is still completing.
+
 First boot downloads the Ubuntu 24.04 ARM64 cloud image and runs three
 provisioning scripts: the ufw firewall, pinned Docker Engine with its
 `DOCKER-USER` inbound-deny guard, and the `/var/lib/nabaperks-ci` workspace

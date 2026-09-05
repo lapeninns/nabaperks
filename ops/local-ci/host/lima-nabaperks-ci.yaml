@@ -100,8 +100,11 @@ provision:
       export DEBIAN_FRONTEND=noninteractive
 
       apt-get update -qq
+      # UFW owns firewall persistence. Noble's ufw package explicitly breaks
+      # iptables-persistent and netfilter-persistent; installing them together
+      # aborts provisioning before the default-deny rules are applied.
       apt-get install -y -qq --no-install-recommends \
-        ufw iptables netfilter-persistent iptables-persistent ca-certificates curl gnupg
+        ufw iptables ca-certificates curl gnupg
 
       # The host side of Lima's user-mode NAT. Every Lima transport (SSH,
       # guestagent) arrives from this address; nothing else can route here.
@@ -218,9 +221,17 @@ probes:
     script: |
       #!/bin/bash
       set -euo pipefail
+      # Readiness probes run as the guest user. Its first SSH session predates
+      # usermod's docker-group change, and firewall inspection requires root.
+      # Check the daemon through passwordless sudo; reconnect after first boot
+      # before checking unprivileged Docker access (runbook section 1.2).
       timeout 300s bash -c "until command -v docker >/dev/null 2>&1; do sleep 3; done"
-      timeout 300s bash -c "until docker info >/dev/null 2>&1; do sleep 3; done"
-      timeout 60s bash -c "until ufw status | grep -q 'Status: active'; do sleep 2; done"
+      timeout 300s bash -c "until sudo -n docker info >/dev/null 2>&1; do sleep 3; done"
+      timeout 60s bash -c "until sudo -n ufw status | grep -q 'Status: active'; do sleep 2; done"
+      sudo -n systemctl is-active --quiet nabaperks-docker-inbound-deny.service
+      ext_if="$(ip route show default | awk '{ print $5; exit }')"
+      test -n "${ext_if}"
+      sudo -n iptables -C DOCKER-USER -i "${ext_if}" -m conntrack --ctstate NEW -j DROP
     hint: |
       Docker Engine or the firewall did not come up. Inspect with:
         limactl shell nabaperks-ci -- sudo journalctl -u docker -u nabaperks-docker-inbound-deny
