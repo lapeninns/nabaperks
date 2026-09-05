@@ -36,6 +36,17 @@ async function runPrivacyRetention() {
     Date.now() - STALE_CUSTOMER_PII_RETENTION_DAYS * DAY_MS
   ).toISOString()
   const supabase = createSupabaseServiceRoleClient()
+  // Retire expired reward capabilities in their own transaction, outside QR
+  // creation and collection's customer/reward/token lock sequence.
+  const { error: rewardTokenError } = await supabase.rpc(
+    "purge_expired_reward_scan_tokens"
+  )
+  if (rewardTokenError) {
+    logger.warn("privacy_retention_reward_token_purge_failed", {
+      reason: "database_rejected",
+    })
+    return { errorCode: "reward_token_purge_failed", result: null }
+  }
   const abandonedCutoff = new Date(
     Date.now() - ABANDONED_IDENTITY_RETENTION_DAYS * DAY_MS
   ).toISOString()

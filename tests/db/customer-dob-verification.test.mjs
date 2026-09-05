@@ -185,13 +185,21 @@ test(
           "a token minted before provenance invalidation is no longer merchant-ready"
         )
 
+        const [reviewToken] = await serviceTx`
+          select * from public.create_reward_scan_token(
+            ${rewardId}::uuid, ${fixture.customerId}::uuid
+          )`
+        assert.ok(
+          reviewToken.scan_token,
+          "an adult can present a QR for owner ID review"
+        )
         await assert.rejects(
           () =>
             serviceTx.savepoint(
               (sp) => sp`
-              select * from public.create_reward_scan_token(
-                ${rewardId}::uuid, ${fixture.customerId}::uuid
-              )`
+            select * from public.collect_reward_scan_token(
+              ${reviewToken.scan_token}::uuid, ${fixture.merchantId}::uuid
+            )`
             ),
           /verified adult date of birth required/i
         )

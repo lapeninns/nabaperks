@@ -100,7 +100,14 @@ async function RewardScanStream({
     <>
       {isRedeemed && collected ? <CelebrationUrlCleanup /> : null}
       <RewardTicket
-        state={isRedeemed ? "redeemed" : "ready"}
+        headingLevel="h2"
+        state={
+          isRedeemed
+            ? "redeemed"
+            : context.status === "verification_required"
+              ? "verification_required"
+              : "ready"
+        }
         name={context.rewardName}
         description={context.rewardTerms}
         sealSlammed={isRedeemed && collected}
@@ -132,11 +139,19 @@ async function RewardScanStream({
         </StatusBanner>
       ) : (
         <>
-          <StatusBanner title="Ready to collect" tone="success">
-            Check the reward against the order. Mark it collected when you have
-            served it.
+          <StatusBanner
+            title={context.idCheck ? "ID check needed" : "Ready to collect"}
+            tone={context.idCheck ? "warning" : "success"}
+          >
+            {context.idCheck
+              ? "Check the customer's photo ID before serving this reward."
+              : "Check the reward against the order. Mark it collected when you have served it."}
           </StatusBanner>
-          <MerchantRewardCollectionForm scanToken={context.scanToken} />
+          <MerchantRewardCollectionForm
+            key={context.idCheck?.dateOfBirth ?? "verified"}
+            scanToken={context.scanToken}
+            idCheck={context.idCheck}
+          />
         </>
       )}
 

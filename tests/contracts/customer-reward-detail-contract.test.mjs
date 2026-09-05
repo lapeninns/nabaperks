@@ -41,14 +41,18 @@ test("Given a reward might be waiting, blocked, or ready When the loader compute
     "load-reward.ts"
   )
   const redeemableBlock = loader.slice(
-    loader.indexOf("const redeemable ="),
+    loader.indexOf("const availability ="),
     loader.indexOf("const profileGate =")
   )
 
-  assert.match(redeemableBlock, /reward\.status === "unlocked"/)
-  assert.match(redeemableBlock, /!rewardState\.unavailableReason/)
-  assert.match(redeemableBlock, /rewardStampThresholdMet\(/)
-  assert.match(redeemableBlock, /isRedeemableFrom\(reward\.redeemable_from\)/)
+  assert.match(redeemableBlock, /rewardQrAvailability\(/)
+  assert.match(redeemableBlock, /status: reward\.status/)
+  assert.match(redeemableBlock, /source: reward\.source/)
+  assert.match(redeemableBlock, /expiresAt: reward\.expires_at/)
+  assert.match(
+    redeemableBlock,
+    /unavailableReason: rewardState\.unavailableReason/
+  )
 })
 
 test("Given profile completion is only needed for collection When the reward is not redeemable Then the profile gate is skipped", () => {
@@ -61,7 +65,7 @@ test("Given profile completion is only needed for collection When the reward is 
 
   assert.match(
     loader,
-    /const profileGate = redeemable \? await loadProfileGate\(\) : undefined/
+    /const profileGate = availableForReview \? await loadProfileGate\(\) : undefined/
   )
   assert.match(loader, /profileGate,?/)
 })

@@ -25,7 +25,8 @@ type SeedRewardSetupRow = {
 }
 
 export async function createRewardCollectionFixture(
-  sql: Sql
+  sql: Sql,
+  options: { unverified?: boolean } = {}
 ): Promise<RewardCollectionFixture | undefined> {
   const rows = await sql<readonly SeedRewardSetupRow[]>`
     select
@@ -138,6 +139,15 @@ export async function createRewardCollectionFixture(
         encode(extensions.digest(lower(email), 'sha256'), 'hex')
       )
       where id = ${fixture.customerId}::uuid`
+
+    if (options.unverified) {
+      await sql`
+        update public.customers
+        set date_of_birth_verified_at = null,
+            date_of_birth_verification_source = null,
+            date_of_birth_verified_by = null
+        where id = ${fixture.customerId}::uuid`
+    }
 
     const mintedRows = await sql<readonly { readonly scan_token: string }[]>`
       select scan_token::text

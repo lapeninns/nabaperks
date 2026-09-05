@@ -6,13 +6,15 @@ import { cn } from "@/lib/utils"
 
 import { RewardSeal } from "./reward-seal"
 
-export type RewardTicketState = "sealed" | "waiting" | "ready" | "redeemed"
+export type RewardTicketState =
+  "sealed" | "waiting" | "ready" | "verification_required" | "redeemed"
 
 /** Mono eyebrow printed on the ticket face per state. */
 const KICKER: Record<RewardTicketState, string> = {
   sealed: "Mystery reward",
   waiting: "Your reward",
   ready: "Your reward · ready",
+  verification_required: "Your reward · ID check needed",
   redeemed: "Redeemed",
 }
 
@@ -21,6 +23,7 @@ const STUB_WORD: Record<RewardTicketState, string> = {
   sealed: "Sealed",
   waiting: "Unlocked",
   ready: "Ready",
+  verification_required: "ID check",
   redeemed: "Done",
 }
 
@@ -132,7 +135,10 @@ export function RewardTicket({
         )}
       >
         <RewardSeal
-          state={state}
+          state={state === "verification_required" ? "waiting" : state}
+          label={
+            state === "verification_required" ? "ID check needed" : undefined
+          }
           size="md"
           wiggle={state === "sealed"}
           breathe={state === "waiting" || state === "ready"}

@@ -13,11 +13,23 @@ function readProjectFile(...segments) {
   return readFileSync(path.join(projectRoot, ...segments), "utf8")
 }
 
-test("Given reward QR refreshes can happen repeatedly When tokens are minted Then expired rows are purged and reusable tokens are preferred", () => {
+test("Given reward QR refreshes repeat When tokens are minted Then reusable tokens are preferred and retention remains scheduled", () => {
   const migration = readProjectFile(
     "supabase",
     "migrations",
     "20260630123000_cleanup_reward_scan_tokens.sql"
+  )
+  const minting = readProjectFile(
+    "supabase",
+    "migrations",
+    "20260905140000_reward_scan_eligibility.sql"
+  )
+  const retention = readProjectFile(
+    "app",
+    "api",
+    "cron",
+    "privacy-retention",
+    "route.ts"
   )
   const tokenModule = readProjectFile("lib", "customer", "reward-scan-token.ts")
   const qrHelper = readProjectFile("lib", "customer", "reward-qr.ts")
@@ -26,16 +38,19 @@ test("Given reward QR refreshes can happen repeatedly When tokens are minted The
     migration,
     /create or replace function public\.purge_expired_reward_scan_tokens/
   )
-  assert.match(migration, /delete from public\.reward_scan_tokens[\s\S]*expires_at <= p_now/)
   assert.match(
     migration,
-    /perform public\.purge_expired_reward_scan_tokens\(now\(\)\)/
+    /delete from public\.reward_scan_tokens[\s\S]*expires_at <= p_now/
+  )
+  assert.match(retention, /purge_expired_reward_scan_tokens/)
+  assert.match(
+    minting,
+    /t\.consumed_at is null[\s\S]*t\.expires_at > now\(\) \+ interval '5 minutes'/
   )
   assert.match(
-    migration,
-    /reward_scan_tokens\.consumed_at is null[\s\S]*reward_scan_tokens\.expires_at > now\(\) \+ interval '5 minutes'/
+    minting,
+    /return next;[\s\S]*return;[\s\S]*insert into public\.reward_scan_tokens/
   )
-  assert.match(migration, /return next;[\s\S]*return;[\s\S]*insert into public\.reward_scan_tokens/)
   assert.match(tokenModule, /rpc\("create_reward_scan_token"/)
   assert.match(qrHelper, /server may reuse a token/)
   assert.doesNotMatch(qrHelper, /each fetch mints a new token/)
@@ -50,20 +65,30 @@ test("Given a reward QR image is requested When source is inspected Then token m
     "route.ts"
   )
   const stateGateIndex = route.indexOf('rewardState.status !== "ready"')
-  const redeemableIndex = route.indexOf("const redeemable =")
+  const redeemableIndex = route.indexOf("const availability =")
   const tokenIndex = route.indexOf("await createRewardScanToken")
   const renderIndex = route.indexOf("await renderQrCodePng")
 
   assert.match(route, /getCustomerRewardState\(rewardId\)/)
   assert.match(route, /if \(rewardState\.status !== "ready"\)/)
-  assert.match(route, /return new NextResponse\("Reward QR not found", \{ status: 404 \}\)/)
-  assert.match(route, /rewardState\.reward\.status === "unlocked"/)
-  assert.match(route, /!rewardState\.unavailableReason/)
-  assert.match(route, /rewardStampThresholdMet\(/)
-  assert.match(route, /isRedeemableFrom\(rewardState\.reward\.redeemable_from\)/)
-  assert.match(route, /return new NextResponse\("Reward QR not ready", \{ status: 404 \}\)/)
+  assert.match(
+    route,
+    /return new NextResponse\("Reward QR not found", \{ status: 404 \}\)/
+  )
+  assert.match(route, /rewardQrAvailability\(/)
+  assert.match(route, /expiresAt: rewardState\.reward\.expires_at/)
+  assert.match(route, /availability\.status !== "ready"/)
+  assert.match(route, /!profile\?\.complete/)
+  assert.doesNotMatch(route, /!profile\.dateOfBirthVerified/)
+  assert.match(
+    route,
+    /return new NextResponse\("Reward QR not ready", \{ status: 404 \}\)/
+  )
   assert.match(route, /rewardId,\s*customerId: rewardState\.customerId/)
-  assert.match(route, /\$\{serverEnv\.NEXT_PUBLIC_APP_URL\}\/r\/\$\{token\.scanToken\}/)
+  assert.match(
+    route,
+    /\$\{serverEnv\.NEXT_PUBLIC_APP_URL\}\/r\/\$\{token\.scanToken\}/
+  )
   assert.match(route, /"Content-Type": "image\/png"/)
   assert.match(route, /"Cache-Control": "private, no-store"/)
   assert.doesNotMatch(route, /searchParams|request\.url|customerId:\s*string/)

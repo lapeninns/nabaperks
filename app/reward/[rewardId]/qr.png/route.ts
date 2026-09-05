@@ -3,8 +3,7 @@ import { NextResponse } from "next/server"
 import { getCustomerRewardState } from "@/lib/customer/reward"
 import { createRewardScanToken } from "@/lib/customer/reward-scan-token"
 import { getCustomerProfileCompletion } from "@/lib/customer/profile"
-import { rewardStampThresholdMet } from "@/lib/customer/issued-reward-display"
-import { isRedeemableFrom } from "@/lib/customer/uk-date"
+import { rewardQrAvailability } from "@/lib/customer/reward-qr-eligibility"
 import { getServerEnv } from "@/lib/env/server"
 import { renderQrCodePng } from "@/lib/qr/assets"
 
@@ -25,22 +24,22 @@ export async function GET(_request: Request, context: RewardQrRouteContext) {
     return new NextResponse("Reward QR not found", { status: 404 })
   }
 
-  const redeemable =
-    rewardState.reward.status === "unlocked" &&
-    !rewardState.unavailableReason &&
-    rewardStampThresholdMet(
-      rewardState.reward.source,
-      rewardState.membership.current_stamp_count,
-      rewardState.loyaltyCard.stamps_required
-    ) &&
-    isRedeemableFrom(rewardState.reward.redeemable_from)
+  const availability = rewardQrAvailability({
+    status: rewardState.reward.status,
+    source: rewardState.reward.source,
+    redeemableFrom: rewardState.reward.redeemable_from,
+    expiresAt: rewardState.reward.expires_at,
+    currentStampCount: rewardState.membership.current_stamp_count,
+    stampsRequired: rewardState.loyaltyCard.stamps_required,
+    unavailableReason: rewardState.unavailableReason,
+  })
 
-  if (!redeemable) {
+  if (availability.status !== "ready") {
     return new NextResponse("Reward QR not ready", { status: 404 })
   }
 
   const profile = await getCustomerProfileCompletion()
-  if (!profile?.complete || !profile.dateOfBirthVerified) {
+  if (!profile?.complete) {
     return new NextResponse("Reward QR not ready", { status: 404 })
   }
 

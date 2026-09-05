@@ -126,7 +126,7 @@ export type RewardContext =
       reward: RewardView
       merchantName: string
       status: string
-      redeemable: boolean
+      availableForReview: boolean
       /** Server-confirmed collection instant for the redeemed-proof line (F26). */
       redeemedAt?: string | null
       justRedeemed: boolean
@@ -397,7 +397,7 @@ function deriveReward(context: RewardContext): CustomerExperience {
     candidates.push("redeemed_proof")
   }
   if (!context.unavailableReason) {
-    if (context.redeemable) candidates.push("reward_ready")
+    if (context.availableForReview) candidates.push("reward_ready")
     else if (context.status === "unlocked") candidates.push("reward_waiting")
   }
 
