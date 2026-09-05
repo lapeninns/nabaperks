@@ -850,31 +850,40 @@ async function assertVmIsolationLive({ config, contract }) {
   })
 }
 
-/**
- * Materialise the commit inside the VM as a detached worktree.
- *
- * `agent.gitFetchDepth` is 0 - a full clone - because the quality lane's
- * `docs:check` ends in `git diff --exit-code`, which a shallow tree cannot
- * answer. The clone lives in the VM, which has no mounts back to the Mac.
- */
-async function prepareWorkspace({ config, contract, headSha, logger }) {
-  const root = config.vmWorkspaceRoot
+/** Build a self-contained checkout: no Git paths or object hardlinks escape it. */
+export function buildWorkspacePreparationScript({ root, remoteUrl, headSha }) {
   const mirror = `${root}/repo`
-  const worktree = `${root}/runs/${headSha}`
-  logger.info(`preparing ${worktree} inside the VM`)
-  const script = [
+  const workspace = `${root}/runs/${headSha}`
+  return [
     "set -eu",
     `mkdir -p ${shQuote(`${root}/runs`)}`,
-    `if [ ! -d ${shQuote(`${mirror}/.git`)} ]; then git clone ${shQuote(contract.remoteUrl)} ${shQuote(mirror)}; fi`,
+    `if [ ! -d ${shQuote(`${mirror}/.git`)} ]; then git clone ${shQuote(remoteUrl)} ${shQuote(mirror)}; fi`,
     `cd ${shQuote(mirror)}`,
-    `git remote set-url origin ${shQuote(contract.remoteUrl)}`,
-    "git fetch --prune --tags origin",
-    `git worktree remove --force ${shQuote(worktree)} 2>/dev/null || true`,
-    `rm -rf ${shQuote(worktree)}`,
-    `git worktree add --force --detach ${shQuote(worktree)} ${shQuote(headSha)}`,
+    `git remote set-url origin ${shQuote(remoteUrl)}`,
+    'if [ "$(git rev-parse --is-shallow-repository)" = "true" ]; then git fetch --unshallow origin; fi',
+    "git fetch --prune --tags origin '+refs/heads/*:refs/remotes/origin/*'",
+    `git fetch origin ${shQuote(headSha)}`,
+    `git worktree remove --force ${shQuote(workspace)} 2>/dev/null || true`,
+    `rm -rf ${shQuote(workspace)}`,
+    `git clone --no-hardlinks --no-checkout ${shQuote(mirror)} ${shQuote(workspace)}`,
+    `git -C ${shQuote(workspace)} remote set-url origin ${shQuote(remoteUrl)}`,
+    `git -C ${shQuote(workspace)} fetch --no-tags ${shQuote(mirror)} ${shQuote(headSha)}`,
+    `git -C ${shQuote(workspace)} checkout --detach ${shQuote(headSha)}`,
   ].join("\n")
+}
+
+/** Full Git history stays inside the disposable /workspace container mount. */
+async function prepareWorkspace({ config, contract, headSha, logger }) {
+  const root = config.vmWorkspaceRoot
+  const workspace = `${root}/runs/${headSha}`
+  logger.info(`preparing ${workspace} inside the VM`)
+  const script = buildWorkspacePreparationScript({
+    root,
+    remoteUrl: contract.remoteUrl,
+    headSha,
+  })
   await execHost(vmShell(config.vm, script))
-  return worktree
+  return workspace
 }
 
 async function releaseWorkspace({ config, headSha }) {
@@ -1458,7 +1467,6 @@ export function createNightlyScheduler({
         ((ms) =>
           new Promise((resolve) => {
             timer = setTimeout(resolve, ms)
-            timer.unref?.()
           }))
       log(
         "info",

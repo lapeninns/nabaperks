@@ -391,7 +391,7 @@ function snapshotGuardBlock(contract) {
   const variable = `${SHELL_NS}_snapshot_mutations`
   return [
     `echo ${shellSingleQuote(`${LOG_MARKER} snapshot guard`)}`,
-    `${variable}="$(${guard.mutationCheck.command} || true)"`,
+    `${variable}="$(${guard.mutationCheck.command})"`,
     `if [ -n "$${variable}" ]; then`,
     `  echo ${shellSingleQuote("snapshot guard: this run modified pixel baselines, which a local ARM64 run must never do")} >&2`,
     `  printf '%s\\n' "$${variable}" >&2`,

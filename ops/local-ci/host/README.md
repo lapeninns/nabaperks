@@ -495,3 +495,14 @@ can make. Each has to be checked once on the real machine.
    whatever FileVault setting you chose in step 0.
 
 Record the outcome of each in the cutover runbook when you qualify it.
+
+## Disposable checkout and idle liveness
+
+The VM retains a public repository cache. Each job receives a standalone clone
+with its own `.git` directory, full history and no object hardlinks or alternates
+back to that cache. This keeps Git inspection valid when the checkout is mounted
+at `/workspace` and prevents job code from modifying cached objects through shared
+files. Preparation also upgrades a shallow cache and fetches the requested commit.
+Snapshot inspection errors fail the lane instead of being treated as a clean diff.
+The polling and nightly timers keep Node alive while idle; neither holds a Mac
+power assertion while waiting.
