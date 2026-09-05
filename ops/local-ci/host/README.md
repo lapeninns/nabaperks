@@ -506,3 +506,9 @@ files. Preparation also upgrades a shallow cache and fetches the requested commi
 Snapshot inspection errors fail the lane instead of being treated as a clean diff.
 The polling and nightly timers keep Node alive while idle; neither holds a Mac
 power assertion while waiting.
+
+The browser lanes request a 12 GiB Next.js heap through
+`PLAYWRIGHT_NODE_HEAP_MB` inside the 32 GiB job-container limit. Hosted shards
+retain their 8 GiB default. The override accepts only bounded integer values
+(1–16 GiB); it cannot add shell arguments. This gives the larger local shards
+headroom without relaxing any test assertion or retry policy.

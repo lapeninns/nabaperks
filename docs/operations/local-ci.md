@@ -630,8 +630,9 @@ required check.
    gh variable list --repo lapeninns/nabaperks
    ```
 
-   With the variable unset the agent is dormant. `shadow` is the only value
-   used during qualification; the values that make the bridge load-bearing
+   This activates the hosted bridge. The installed agent polls independently
+   of this variable; stop its LaunchAgent to pause local execution. `shadow` is
+   the only value used during qualification; values that make the bridge load-bearing
    belong to later cutover steps and are documented in
    `docs/operations/local-ci-cutover.md`.
 

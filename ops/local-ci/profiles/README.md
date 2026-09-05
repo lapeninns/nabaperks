@@ -60,8 +60,11 @@ Precedence, lowest first: `baselineEnv` → `baselineRuntimeEnv` →
 lane `runtimeEnv` → lane `env`.
 
 `baselineEnv` is `.github/workflows/ci.yml`'s workflow-level `env:` block
-verbatim, plus `CI=1` so `forbidOnly`, `failOnFlakyTests`, `retries: 1` and the
-dev server's `--max-old-space-size=8192` behave exactly as they do hosted.
+verbatim, plus `CI=1` so `forbidOnly`, `failOnFlakyTests` and `retries: 1`
+behave exactly as they do hosted. Browser lanes explicitly request a 12288 MiB
+heap through `PLAYWRIGHT_NODE_HEAP_MB`, versus the hosted 8192 MiB default.
+This expected resource difference stays within the 32 GiB local container; it
+does not change which test outcomes count as equivalent.
 
 Three of ci.yml's values are deliberately **absent** from `baselineEnv`:
 `CUSTOMER_SESSION_SECRET`, `CUSTOMER_PHONE_HMAC_SECRET` and
@@ -219,7 +222,7 @@ workers the webpack dev server intermittently 500s mid-suite, and
 `PLAYWRIGHT_REGULAR_CHROMIUM: "1"` is job-level env on the hosted browser tiers
 and is carried on every project here for the same reason.
 
-The one deliberate divergence is per-lane isolation. Every hosted shard owns a
+The other deliberate environment differences provide per-lane isolation. Every hosted shard owns a
 whole runner, so all of them use the `127.0.0.1:3146` default and the shared
 `.next-e2e` dist directory. Concurrent local lanes cannot. Each Playwright lane
 therefore sets its own `PLAYWRIGHT_BASE_URL` and its own
