@@ -132,3 +132,26 @@ The candidate image build and offline smoke checks passed, but the agent has
 not polled GitHub and no
 end-to-end local CI or recovery rehearsal has passed. No hosted lane or merge
 dependency was changed by this provisioning fix.
+
+## Monitoring decision
+
+UptimeRobot Free rejected the required heartbeat monitor. The temporary setup
+API key was revoked through its settings UI and the local setup files removed.
+The operator initially considered Healthchecks Free, then explicitly rejected
+both services and selected a GitHub Actions watchdog. No monitor or paid plan
+was created. Watchdog implementation is source-verified separately; live App
+heartbeat publication, scheduled detection, notification delivery and recovery
+still need to be rehearsed. The lapeninns notification settings showed Actions notifications enabled on
+GitHub and email for failed workflows only; actual delivery remains unproven.
+The contract launchd label now matches the existing installer and plist,
+`com.nabaperks.local-ci`, so operator recovery commands can use the contract.
+GitHub is a shared dependency of publisher and
+observer, and scheduling does not guarantee an alert deadline.
+
+Watchdog source checks passed: 686 contracts (the full 685-test suite plus the
+new watchdog contract), 1,288 units, typecheck, dead code, duplication, debt,
+generated docs and agent docs. `quality:check` stopped at lint errors in
+pre-existing Git-ignored `QA_CERTIFICATION_EVIDENCE/` scripts. Repository lint
+passed when only that local evidence directory was excluded; no lint rule or
+tracked ignore configuration was changed. These checks do not establish live
+watchdog or notification delivery.

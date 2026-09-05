@@ -64,7 +64,7 @@
     "gitFetchDepth": 0,
     "installRoot": "/opt/nabaperks-local-ci/current",
     "stateRoot": "~/.nabaperks-local-ci",
-    "launchdLabel": "com.lapeninns.nabaperks.local-ci",
+    "launchdLabel": "com.nabaperks.local-ci",
     "notes": "maxConcurrentJobs bounds whole CI runs (one head SHA at a time). maxConcurrentLanes bounds lanes inside one run; lanes that declare the same concurrencyGroup are serialised against each other regardless. gitFetchDepth 0 is required because the quality lane's docs:check runs git diff --exit-code."
   },
   "container": {
@@ -245,5 +245,14 @@
     },
     "notes": "Hosted shards each own a whole runner and all use the 127.0.0.1:3146 default. Concurrent local lanes need distinct dev-server ports, so each Playwright lane sets PLAYWRIGHT_BASE_URL and its own PLAYWRIGHT_NEXT_DIST_DIR. 3147 is never assigned to a browser lane because it is the auth-hook callback port the db lane's SUPABASE_SEND_EMAIL_HOOK_URI points at."
   },
-  "localShards": 8
+  "localShards": 8,
+  "agentLiveness": {
+    "provider": "github-check",
+    "checkName": "Nabaperks Local CI heartbeat",
+    "anchorSha": "9fb41d6cbc8f198b0a7d3102b91483ef54f55d11",
+    "maxAgeMinutes": 20,
+    "gating": false,
+    "activationVariable": "LOCAL_CI_WATCHDOG_ENABLED",
+    "notes": "Operator selected GitHub Actions instead of external monitoring. Poll heartbeat every 5 minutes, 15 minutes grace. Alerts may be delayed or missed during GitHub scheduling or availability failures. Enable only after real agent publication and verify GitHub notification delivery."
+  }
 }
