@@ -227,6 +227,7 @@
       "runtimeEnv": [],
       "env": {
         "PLAYWRIGHT_WORKERS": "1",
+        "PLAYWRIGHT_NODE_HEAP_MB": "12288",
         "PLAYWRIGHT_REGULAR_CHROMIUM": "1",
         "CUSTOMER_DEV_OTP_CODE": "424242",
         "PLAYWRIGHT_BASE_URL": "http://127.0.0.1:3146",
@@ -279,6 +280,7 @@
       "runtimeEnv": [],
       "env": {
         "PLAYWRIGHT_WORKERS": "1",
+        "PLAYWRIGHT_NODE_HEAP_MB": "12288",
         "PLAYWRIGHT_REGULAR_CHROMIUM": "1",
         "CUSTOMER_DEV_OTP_CODE": "424242",
         "PLAYWRIGHT_BASE_URL": "http://127.0.0.1:3148",
@@ -331,6 +333,7 @@
       "runtimeEnv": [],
       "env": {
         "PLAYWRIGHT_WORKERS": "1",
+        "PLAYWRIGHT_NODE_HEAP_MB": "12288",
         "PLAYWRIGHT_REGULAR_CHROMIUM": "1",
         "CUSTOMER_DEV_OTP_CODE": "424242",
         "PLAYWRIGHT_BASE_URL": "http://127.0.0.1:3149",
@@ -383,6 +386,7 @@
       "runtimeEnv": [],
       "env": {
         "PLAYWRIGHT_WORKERS": "1",
+        "PLAYWRIGHT_NODE_HEAP_MB": "12288",
         "PLAYWRIGHT_REGULAR_CHROMIUM": "1",
         "CUSTOMER_DEV_OTP_CODE": "424242",
         "PLAYWRIGHT_BASE_URL": "http://127.0.0.1:3150",
@@ -435,6 +439,7 @@
       "runtimeEnv": [],
       "env": {
         "PLAYWRIGHT_WORKERS": "1",
+        "PLAYWRIGHT_NODE_HEAP_MB": "12288",
         "PLAYWRIGHT_REGULAR_CHROMIUM": "1",
         "CUSTOMER_DEV_OTP_CODE": "424242",
         "PLAYWRIGHT_BASE_URL": "http://127.0.0.1:3151",
@@ -502,6 +507,7 @@
       "runtimeEnv": [],
       "env": {
         "PLAYWRIGHT_WORKERS": "1",
+        "PLAYWRIGHT_NODE_HEAP_MB": "12288",
         "PLAYWRIGHT_REGULAR_CHROMIUM": "1",
         "CUSTOMER_DEV_OTP_CODE": "424242",
         "PLAYWRIGHT_BASE_URL": "http://127.0.0.1:3152",
