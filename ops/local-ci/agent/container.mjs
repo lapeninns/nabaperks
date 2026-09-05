@@ -729,6 +729,17 @@ export async function runContainer(
   }
   assertNoDaemonSocket(argv, "runContainer argv")
 
+  if (signal?.aborted) {
+    return Object.freeze({
+      exitCode: null,
+      signal: null,
+      timedOut: false,
+      cancelled: true,
+      truncated: false,
+      output: "",
+      durationMs: 0,
+    })
+  }
   const [executable, ...args] = argv
   const started = Date.now()
   const child = spawnFn(executable, args, {
@@ -856,6 +867,7 @@ export function createContainerRuntime({
       signal = null,
       needsDaemon = false,
     }) {
+      signal?.throwIfAborted()
       const identity = { headSha, laneId, attempt }
       const net = networkName(identity)
       const jobName = jobContainerName(identity)
@@ -864,7 +876,7 @@ export function createContainerRuntime({
 
       const quietly = async (argv, label) => {
         try {
-          await exec(argv, { timeoutMs: 120_000 })
+          await exec(argv, { timeoutMs: 15_000 })
         } catch (error) {
           teardownErrors.push(`${label}: ${error.message}`)
         }
@@ -875,8 +887,10 @@ export function createContainerRuntime({
       // and not a fact worth putting in front of an operator.
       const reconcile = async (argv) => {
         try {
-          await exec(argv, { timeoutMs: 120_000 })
+          await exec(argv, { timeoutMs: 30_000, signal })
+          signal?.throwIfAborted()
         } catch {
+          signal?.throwIfAborted()
           // A reconciliation that cannot run is not itself a failure; the
           // create below is what decides whether this lane can start.
         }
@@ -889,26 +903,28 @@ export function createContainerRuntime({
         buildNetworkRemoveArgv({ name: net, vm, docker, limactl })
       )
 
-      const created = await exec(
-        buildNetworkCreateArgv({
-          name: net,
-          vm,
-          docker,
-          limactl,
-          labels,
-        }),
-        { timeoutMs: 60_000 }
-      )
-      // Checked rather than assumed. An ignored non-zero exit here surfaces
-      // three commands later as a `docker run` that cannot find its network,
-      // and the lane's evidence would blame the lane.
-      if (created.exitCode !== 0) {
-        fail(
-          "NETWORK_UNAVAILABLE",
-          `could not create the job-private network ${JSON.stringify(net)} for lane ${JSON.stringify(laneId)} (docker exited ${created.exitCode}): ${created.output.trim() || "no output"}`
-        )
-      }
       try {
+        signal?.throwIfAborted()
+        const created = await exec(
+          buildNetworkCreateArgv({
+            name: net,
+            vm,
+            docker,
+            limactl,
+            labels,
+          }),
+          { timeoutMs: 30_000, signal }
+        )
+        signal?.throwIfAborted()
+        // Checked rather than assumed. An ignored non-zero exit here surfaces
+        // three commands later as a `docker run` that cannot find its network,
+        // and the lane's evidence would blame the lane.
+        if (created.exitCode !== 0) {
+          fail(
+            "NETWORK_UNAVAILABLE",
+            `could not create the job-private network ${JSON.stringify(net)} for lane ${JSON.stringify(laneId)} (docker exited ${created.exitCode}): ${created.output.trim() || "no output"}`
+          )
+        }
         if (needsDaemon) {
           await exec(
             buildDaemonArgv({
@@ -921,9 +937,10 @@ export function createContainerRuntime({
               limactl,
               labels,
             }),
-            { timeoutMs: 120_000 }
+            { timeoutMs: 30_000, signal }
           )
         }
+        signal?.throwIfAborted()
         const argv = buildContainerArgv({
           contract,
           image,

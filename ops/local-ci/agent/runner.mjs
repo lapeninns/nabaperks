@@ -1041,6 +1041,21 @@ export function createRunner({
           typeof writeEnvFile === "function"
             ? await writeEnvFile(lane, env)
             : null
+        if (signal?.aborted) {
+          laneResults.push(
+            buildLaneResult({
+              lane,
+              contract,
+              profile: profile.profile,
+              ref,
+              headSha,
+              status: "cancelled",
+              output: "",
+              durationSeconds: 0,
+            })
+          )
+          continue
+        }
         const sink = openLaneLog ? await openLaneLog(`${lane.id}.log`) : null
         let output = ""
 
@@ -1118,7 +1133,11 @@ export function createRunner({
           exitCode: result?.exitCode ?? null,
           timedOut: result?.timedOut ?? false,
           cancelled: result?.cancelled ?? false,
-          status: runtimeError === null ? null : "failure",
+          status: signal?.aborted
+            ? "cancelled"
+            : runtimeError === null
+              ? null
+              : "failure",
           startedAt: new Date(laneStarted).toISOString(),
           completedAt: new Date(laneEnded).toISOString(),
           durationSeconds: Math.round((laneEnded - laneStarted) / 1000),
