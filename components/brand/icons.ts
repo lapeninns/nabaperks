@@ -3,7 +3,7 @@ import {
   Cancel01Icon,
   CheckmarkBadge04Icon,
   CheckmarkCircle02Icon,
-  ClockIcon,
+  Clock01Icon,
   GiftIcon,
   InformationCircleIcon,
   QrCode01Icon,
@@ -24,7 +24,7 @@ export const STATUS_ICON: Record<StatusKind, IconGlyph> = {
   success: CheckmarkCircle02Icon,
   warning: Alert02Icon,
   error: Cancel01Icon,
-  pending: ClockIcon,
+  pending: Clock01Icon,
   info: InformationCircleIcon,
 }
 
