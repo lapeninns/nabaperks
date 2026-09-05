@@ -72,7 +72,7 @@ test.describe("PWA offline fallback", () => {
     )
 
     const result = await page.evaluate(async () => {
-      const cache = await caches.open("nabaperks-pwa-v3")
+      const cache = await caches.open("nabaperks-pwa-v4")
       const staleUrl =
         "/_next/static/chunks/nabaperks-stale-cache-proof.js?v=old"
       const freshUrl =

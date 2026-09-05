@@ -1,5 +1,5 @@
 // Bump on offline-shell changes so existing installs re-capture the shell.
-const CACHE_NAME = "nabaperks-pwa-v3"
+const CACHE_NAME = "nabaperks-pwa-v4"
 const OFFLINE_URL = "/offline"
 const NEXT_STATIC_PREFIX = "/_next/static/"
 const STATIC_ASSET_PATHS = [
@@ -95,7 +95,9 @@ async function cacheOfflineShell(cache) {
   // arms the dev HMR client's reload-on-disconnect loop, and the primary
   // recovery (the same-URL "Try again" anchor) works unhydrated by design.
   const matches = [
-    ...html.matchAll(/href="([^"]*\/_next\/static\/css\/[^"]+\.css[^"]*)"/g),
+    ...html.matchAll(
+      /href="([^"]*\/_next\/static\/(?:css|chunks)\/[^"]+\.css[^"]*)"/g
+    ),
   ]
   const paths = [...new Set(matches.map((match) => match[1]))]
   await Promise.all(paths.map((path) => cache.add(path)))
@@ -105,7 +107,7 @@ async function cacheOfflineShell(cache) {
 // The shell's stylesheets reference the brand fonts; capture them too so the
 // offline page keeps its type without the network.
 async function cacheShellFonts(cache, shellPaths) {
-  const cssPaths = shellPaths.filter((path) => path.includes("/css/"))
+  const cssPaths = shellPaths.filter((path) => /\.css(?:[?#]|$)/.test(path))
   const fontPaths = new Set()
   await Promise.all(
     cssPaths.map(async (path) => {
