@@ -155,3 +155,17 @@ pre-existing Git-ignored `QA_CERTIFICATION_EVIDENCE/` scripts. Repository lint
 passed when only that local evidence directory was excluded; no lint rule or
 tracked ignore configuration was changed. These checks do not establish live
 watchdog or notification delivery.
+
+GitHub's native notifications are per workflow run. To avoid an email every
+five minutes during a sleeping-Mac outage, the watchdog uses one assigned bot
+incident per failing monitor and closes it on recovery. Repeated failures make
+no issue writes. Observation remains read-only; only the separate delivery job
+has `issues: write`. Neither gains permission to publish a heartbeat. A green
+workflow means alert delivery completed, not that the monitored state is healthy;
+the summary and incident show the observed state. No incident has been created
+or notification delivery claimed before activation.
+
+The alert refinement was isolated in a separate worktree after unrelated reward
+changes arrived in the shared checkout. The isolated `pnpm quality:check` passed
+in full, including 686 contracts and 1,291 unit tests, with no lint exclusions.
+Unrelated application changes were preserved and excluded from this work.

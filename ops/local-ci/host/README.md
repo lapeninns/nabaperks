@@ -282,9 +282,12 @@ revisions using the HTTPS provider. The legacy URL filename remains supported.
 Follow [the watchdog runbook](../../../docs/operations/local-ci-watchdog.md)
 after installation. Leave `LOCAL_CI_WATCHDOG_ENABLED` unset until a real agent
 heartbeat is visible and notification delivery can be rehearsed. The scheduled
-monitor fails on evidence older than 20 minutes (five-minute cadence plus
+monitor opens one assigned incident on evidence older than 20 minutes (five-minute cadence plus
 15-minute grace). This is a detection threshold, not an alert-delivery deadline:
 GitHub can delay or drop scheduled jobs, and GitHub outages affect both sides.
+Repeated failures leave the incident unchanged; recovery closes it. Read the
+workflow summary and incident state, since a successful delivery job does not
+mean the monitored targets are healthy.
 
 ### 6. Install the agent
 
