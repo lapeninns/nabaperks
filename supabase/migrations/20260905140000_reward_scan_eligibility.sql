@@ -196,7 +196,13 @@ begin
   reward_terms := v_context.reward_terms;
   membership_id := v_context.membership_id;
   current_stamp_count := v_context.current_stamp_count;
-  customer_email := v_context.customer_email;
+  -- This authenticated RPC is callable directly, without the application's
+  -- display formatter. Use the existing contact-privacy boundary in every
+  -- lifecycle state; never copy the service-only context's raw email.
+  select masked.email into customer_email
+  from public.reward_events rewards
+  join public.customers_masked masked on masked.id = rewards.customer_id
+  where rewards.id = v_context.reward_event_id;
   customer_phone_last4 := v_context.customer_phone_last4;
   blocked_reason := v_context.blocked_reason;
 

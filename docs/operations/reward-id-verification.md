@@ -30,7 +30,8 @@ still request ID when appropriate. Internal-admin verification remains available
 - `get_owner_reward_scan_context(scan_token)` uses the authenticated owner
   session and returns `verification_required` with name/DOB only for an eligible
   reward at that owner's venue. Terminal or blocked contexts contain no ID-check
-  fields. Contact details remain masked by the application loader.
+  fields. Email is read through `customers_masked` inside the RPC itself, so
+  direct authenticated calls also receive masked contact details in every state.
 - `verify_and_collect_reward_scan_token(scan_token, expected_date_of_birth,
 id_confirmed)` takes no caller-supplied customer, merchant or verifier identity.
   It rechecks ownership, eligibility and the reviewed DOB under row locks.

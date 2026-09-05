@@ -226,8 +226,8 @@ function scanContext(
         ? { fullName, dateOfBirth }
         : undefined,
     currentStampCount: numberField(row, "current_stamp_count"),
-    // Only the masked label leaves this loader. Raw email/phone are read solely
-    // to compute the mask and are never added to MerchantRewardScanContext.
+    // The authenticated RPC already returns masked email and a phone suffix.
+    // Preserve the display fallback without relying on this loader for privacy.
     customerLabel: formatMerchantCustomerIdentifier({
       email: stringField(row, "customer_email"),
       phone: stringField(row, "customer_phone"),
