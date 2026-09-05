@@ -43,7 +43,15 @@ const nextConfig: NextConfig = {
   experimental: {
     // Each browser shard starts a new dev server. Avoid restoring a cached
     // Turbopack task graph across those short-lived harness processes.
-    ...(isPlaywrightHarness ? { turbopackFileSystemCacheForDev: false } : {}),
+    ...(isPlaywrightHarness
+      ? {
+          turbopackFileSystemCacheForDev: false,
+          // Next's dev debug channel mistakes Firefox service-worker responses
+          // (transferSize 0) for cached documents, then reloads indefinitely
+          // when their per-request debug stream is absent from sessionStorage.
+          reactDebugChannel: false,
+        }
+      : {}),
     optimizePackageImports: ["@hugeicons/react", "radix-ui", "motion"],
   },
   // Allow the loopback IP origin in dev so agent browser proofs driven against
