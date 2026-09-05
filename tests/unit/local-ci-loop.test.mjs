@@ -883,3 +883,22 @@ test("stop during provider reads cannot start a new job", async () => {
   assert.equal(github.created.length, 0)
   assert.equal((await loop.tick()).outcome, "idle")
 })
+
+test("stop returns without waiting for a stalled provider read", async () => {
+  const entered = deferred()
+  const pending = deferred()
+  const github = fakeGitHub()
+  github.getRef = () => {
+    entered.resolve()
+    return pending.promise
+  }
+  const runner = fakeRunner()
+  const loop = buildLoop({ github, runner })
+  const started = loop.start()
+  await entered.promise
+  loop.stop()
+  assert.equal(await returnsPromptly(started), "returned")
+  pending.resolve({ sha: MAIN_SHA })
+  await Promise.resolve()
+  assert.equal(runner.runs.length, 0)
+})

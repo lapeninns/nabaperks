@@ -790,7 +790,8 @@ export function createLoop({
       log("info", `polling every ${Math.round(interval / 1000)}s`)
       while (!stopping) {
         try {
-          const result = await this.tick()
+          const result = await Promise.race([this.tick(), stopped])
+          if (stopping) break
           if (result.outcome !== "idle") {
             log("info", `tick: ${JSON.stringify(result.outcome)}`)
           }

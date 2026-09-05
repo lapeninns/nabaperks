@@ -26,6 +26,7 @@ import {
   isAgentOwnedName,
   jobContainerName,
   networkName,
+  runContainer,
 } from "../../ops/local-ci/agent/container.mjs"
 
 /**
@@ -536,4 +537,16 @@ test("a log read reports captured, absent and unreadable as three different fact
   // Never a throw: a log that cannot be read is a fact about the evidence, and
   // the runner has to be able to record it as one.
   assert.equal(broken.text, "")
+})
+
+test("an already-cancelled process never spawns", async () => {
+  const result = await runContainer(
+    ["limactl", "shell", "ci", "--", "docker", "run", "fixture"],
+    {
+      signal: AbortSignal.abort(new Error("stopped before spawn")),
+      spawnFn: () => assert.fail("already-cancelled work must not spawn"),
+    }
+  )
+  assert.equal(result.cancelled, true)
+  assert.equal(result.timedOut, false)
 })

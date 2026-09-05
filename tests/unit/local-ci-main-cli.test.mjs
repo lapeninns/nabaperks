@@ -1182,3 +1182,38 @@ test("cancellation while preparing a workspace prevents any container launch", a
   )
   assert.deepEqual(events, ["released", "closed"])
 })
+
+test("execHost cancellation terminates a real child and preserves its reason", async () => {
+  const controller = new AbortController()
+  const reason = new Error("cancel fixture checkout")
+  const timer = setTimeout(() => controller.abort(reason), 50)
+  try {
+    await assert.rejects(
+      execHost(["/bin/sh", "-c", "exec sleep 30"], {
+        input: "x".repeat(1024 * 1024),
+        signal: controller.signal,
+      }),
+      (error) => error === reason
+    )
+  } finally {
+    clearTimeout(timer)
+  }
+})
+
+test("nightly shutdown settles an outstanding interval wait", async () => {
+  let entered
+  const waiting = new Promise((resolve) => {
+    entered = resolve
+  })
+  const scheduler = createNightlyScheduler({
+    tick: async () => ({ ran: false }),
+    sleep: () => {
+      entered()
+      return new Promise(() => {})
+    },
+  })
+  const run = scheduler.start()
+  await waiting
+  scheduler.stop()
+  await run
+})

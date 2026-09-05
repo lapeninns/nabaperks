@@ -546,9 +546,10 @@ export function permittedExecutable(argv) {
  */
 export async function execHost(
   argv,
-  { input = null, timeoutMs = 600_000, cwd = undefined } = {}
+  { input = null, timeoutMs = 600_000, cwd = undefined, signal = null } = {}
 ) {
   const executable = permittedExecutable(argv)
+  signal?.throwIfAborted()
   return new Promise((resolveExec, rejectExec) => {
     const child = spawn(executable, argv.slice(1), {
       cwd,
@@ -556,6 +557,18 @@ export async function execHost(
     })
     let stdout = ""
     let stderr = ""
+    let abortTimer = null
+    const onAbort = () => {
+      child.kill("SIGTERM")
+      abortTimer = setTimeout(() => child.kill("SIGKILL"), 5_000)
+      abortTimer.unref?.()
+    }
+    signal?.addEventListener("abort", onAbort, { once: true })
+    const cleanup = () => {
+      clearTimeout(timer)
+      if (abortTimer) clearTimeout(abortTimer)
+      signal?.removeEventListener("abort", onAbort)
+    }
     const timer = setTimeout(() => child.kill("SIGKILL"), timeoutMs)
     timer.unref?.()
     child.stdout?.on("data", (chunk) => {
@@ -565,11 +578,15 @@ export async function execHost(
       stderr += chunk.toString("utf8")
     })
     child.once("error", (error) => {
-      clearTimeout(timer)
-      rejectExec(error)
+      cleanup()
+      rejectExec(signal?.aborted ? signal.reason : error)
     })
     child.once("close", (code) => {
-      clearTimeout(timer)
+      cleanup()
+      if (signal?.aborted) {
+        rejectExec(signal.reason)
+        return
+      }
       if (code === 0) resolveExec(stdout)
       else
         rejectExec(
@@ -580,6 +597,9 @@ export async function execHost(
         )
     })
     if (input !== null) {
+      child.stdin.on("error", (error) => {
+        if (!signal?.aborted) rejectExec(error)
+      })
       child.stdin.end(input)
     }
   })
@@ -873,7 +893,7 @@ export function buildWorkspacePreparationScript({ root, remoteUrl, headSha }) {
 }
 
 /** Full Git history stays inside the disposable /workspace container mount. */
-async function prepareWorkspace({ config, contract, headSha, logger }) {
+async function prepareWorkspace({ config, contract, headSha, logger, signal }) {
   const root = config.vmWorkspaceRoot
   const workspace = `${root}/runs/${headSha}`
   logger.info(`preparing ${workspace} inside the VM`)
@@ -882,7 +902,7 @@ async function prepareWorkspace({ config, contract, headSha, logger }) {
     remoteUrl: contract.remoteUrl,
     headSha,
   })
-  await execHost(vmShell(config.vm, script))
+  await execHost(vmShell(config.vm, script), { signal })
   return workspace
 }
 
@@ -893,7 +913,9 @@ async function releaseWorkspace({ config, headSha }) {
     `git worktree remove --force ${shQuote(`${root}/runs/${headSha}`)} 2>/dev/null || true`,
     `rm -rf ${shQuote(`${root}/runs/${headSha}`)}`,
   ].join("\n")
-  await execHost(vmShell(config.vm, script)).catch(() => {})
+  await execHost(vmShell(config.vm, script), { timeoutMs: 20_000 }).catch(
+    () => {}
+  )
 }
 
 /* --------------------------------------------------------------- evidence */
@@ -1093,7 +1115,7 @@ function makeLaneLogOpener(runDir) {
  * every process on the VM through `ps`, and the runtime fixtures a lane needs
  * are not worth publishing that way even though none of them is a host secret.
  */
-function makeEnvFileWriter({ config, headSha }) {
+function makeEnvFileWriter({ config, headSha, signal }) {
   return async (lane, env) => {
     const path = `${config.vmWorkspaceRoot}/runs/${headSha}/.env.${lane.id}`
     const body = Object.entries(env)
@@ -1101,6 +1123,7 @@ function makeEnvFileWriter({ config, headSha }) {
       .join("\n")
     await execHost(vmShell(config.vm, `umask 077; cat > ${shQuote(path)}`), {
       input: `${body}\n`,
+      signal,
     })
     return path
   }
@@ -1249,6 +1272,7 @@ async function buildDependencies({
   logger,
   headSha,
   runDir,
+  signal,
 }) {
   const containerRuntime = createContainerRuntime({
     contract,
@@ -1261,6 +1285,7 @@ async function buildDependencies({
       execHost(["/bin/sh", "-c", command], {
         timeoutMs: 120_000,
         cwd: REPO_ROOT,
+        signal,
       }),
     randomBytes,
   })
@@ -1269,6 +1294,7 @@ async function buildDependencies({
     contract,
     headSha,
     logger,
+    signal,
   })
   const runner = createRunner({
     contract,
@@ -1366,6 +1392,7 @@ export async function dispatchRun(
       logger,
       headSha,
       runDir: run.path,
+      signal,
     })
     signal?.throwIfAborted()
     const outcome = await runner.runProfile({
@@ -1373,7 +1400,7 @@ export async function dispatchRun(
       ref,
       headSha,
       signal,
-      writeEnvFile: dependencies.makeEnvFileWriter({ config, headSha }),
+      writeEnvFile: dependencies.makeEnvFileWriter({ config, headSha, signal }),
     })
     writeLaneResults({ runDir: run.path, outcome, contract })
     logger.info(
@@ -1460,12 +1487,16 @@ export function createNightlyScheduler({
 }) {
   let stopping = false
   let timer = null
+  let notifyStop = null
   const log = (level, message) => {
     if (logger && typeof logger[level] === "function") logger[level](message)
   }
   return Object.freeze({
     async start() {
       stopping = false
+      const stopped = new Promise((resolve) => {
+        notifyStop = resolve
+      })
       const wait =
         sleep ??
         ((ms) =>
@@ -1489,12 +1520,14 @@ export function createNightlyScheduler({
           log("error", `the nightly check failed: ${error.message}`)
         }
         if (stopping) break
-        await wait(intervalMs)
+        await Promise.race([wait(intervalMs), stopped])
       }
     },
     stop() {
       stopping = true
       if (timer) clearTimeout(timer)
+      notifyStop?.()
+      notifyStop = null
     },
   })
 }
@@ -1598,6 +1631,20 @@ async function runNightlyOnce({ contract, config, options, logger }) {
 
 async function watch({ contract, config, logger }) {
   const github = hostGitHubClient({ contract, config, logger })
+  const pollingGithub = createGitHubClient({
+    contract,
+    appId: config.appId,
+    installationId: config.installationId,
+    privateKey: config.privateKey,
+    logger,
+    maxAttempts: 1,
+    fetch: (url, options) =>
+      fetch(url, {
+        ...options,
+        redirect: "error",
+        signal: AbortSignal.timeout(5_000),
+      }),
+  })
   const heartbeat =
     contract.agentLiveness?.provider === "github-check"
       ? createGitHubHeartbeat({
@@ -1630,6 +1677,7 @@ async function watch({ contract, config, logger }) {
   // gate below: one dispatcher releasing the other's assertion would leave a
   // job running with nothing keeping the Mac awake.
   const nightlyAssertion = createSleepAssertion({ logger })
+  const nightlyAbort = new AbortController()
   const evidence = createRunEvidenceStore({ stateRoot: config.stateRoot })
   const gate = createSerialGate()
   const dispatch = (args) =>
@@ -1644,6 +1692,7 @@ async function watch({ contract, config, logger }) {
           logger,
           evidence,
           ...args,
+          signal: nightlyAbort.signal,
         })
       } finally {
         nightlyAssertion.release()
@@ -1655,7 +1704,11 @@ async function watch({ contract, config, logger }) {
 
   const loop = createLoop({
     contract,
-    github,
+    github: {
+      ...github,
+      getRef: pollingGithub.getRef,
+      listOpenPullRequests: pollingGithub.listOpenPullRequests,
+    },
     loadProfile: (name) => loadProfileChecked(name, contract),
     heartbeat,
     sleepAssertion,
@@ -1675,7 +1728,7 @@ async function watch({ contract, config, logger }) {
       nightlyTick({
         contract,
         logger,
-        github,
+        github: { ...github, getRef: pollingGithub.getRef },
         evidence,
         dispatch: nightlyDispatch,
         loadProfileFor: (name) => loadProfileChecked(name, contract),
@@ -1694,6 +1747,7 @@ async function watch({ contract, config, logger }) {
   const stop = () => {
     logger.info("stopping after the current tick")
     loop.stop()
+    nightlyAbort.abort(new Error("the agent is stopping"))
     nightly.stop()
     nightlyAssertion.release()
   }
