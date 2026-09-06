@@ -56,6 +56,7 @@ import {
 } from "../core/contract.mjs"
 import { loadProfile, snapshotGuardViolations } from "../core/profiles.mjs"
 import { isCommitSha } from "../core/queue.mjs"
+import { parseImageCachePin } from "../core/image-cache.mjs"
 import { renderCheckSummary } from "../core/summary.mjs"
 import { createContainerRuntime } from "./container.mjs"
 import { createGitHubClient } from "./github.mjs"
@@ -99,6 +100,7 @@ Host configuration (environment first, then a file the installer wrote):
   LOCAL_CI_JOB_IMAGE                  the pinned job image tag
   LOCAL_CI_JOB_IMAGE_FILE             where install.sh recorded that tag
   LOCAL_CI_DIND_IMAGE                 the pinned sidecar daemon image tag
+  LOCAL_CI_IMAGE_CACHE_PIN_FILE       optional reviewed image archive pin
   NABAPERKS_LOCAL_CI_HOME             state root (default ~/.nabaperks-local-ci)
   NABAPERKS_LOCAL_CI_VM               Lima instance (default from the contract)
 `
@@ -460,6 +462,26 @@ export function resolveHostConfig({ env, contract, home }) {
     )
   }
   const pinnedJobImage = requireJobImage(jobImage, jobImageSource)
+  const explicitCacheFile = env.LOCAL_CI_IMAGE_CACHE_PIN_FILE?.trim() || null
+  const imageCachePinFile =
+    explicitCacheFile ??
+    (jobImageFile === null
+      ? null
+      : join(dirname(jobImageFile), "image-cache.json"))
+  const imageCachePinText =
+    imageCachePinFile === null
+      ? null
+      : readStateFile(
+          imageCachePinFile,
+          "the verified Supabase image archive pin"
+        )
+  if (explicitCacheFile !== null && imageCachePinText === null) {
+    throw new CliError(
+      "INVALID_IMAGE_CACHE",
+      "the explicitly configured image archive pin is missing"
+    )
+  }
+  const imageCachePin = parseImageCachePin(imageCachePinText)
 
   return Object.freeze({
     stateRoot,
@@ -470,6 +492,7 @@ export function resolveHostConfig({ env, contract, home }) {
     installationId,
     jobImage: pinnedJobImage,
     jobImageSource,
+    imageCachePin,
     daemonImage: env.LOCAL_CI_DIND_IMAGE ?? "docker:27.5.1-dind",
     vm: env.NABAPERKS_LOCAL_CI_VM ?? contract.vm?.name ?? null,
     vmWorkspaceRoot: "/var/lib/nabaperks-ci",
@@ -1287,6 +1310,7 @@ async function buildDependencies({
     contract,
     vm: config.vm,
     logger,
+    imageCachePin: config.imageCachePin,
   })
   const resolveRuntimeEnv = createRuntimeEnvResolver({
     contract,
