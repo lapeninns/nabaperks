@@ -390,6 +390,22 @@ Dockerfile.
 | apt package versions     | `ARG APT_*` in the Dockerfile                                      | `apt-cache madison <pkg>` inside an `ubuntu:24.04` container                               |
 | Ubuntu cloud image       | rolling `releases/24.04/release/`                                  | pin to a dated build plus its `SHA256SUMS` digest when you qualify one                     |
 
+### Supabase image registry parity
+
+The `db` lanes in all three profiles and nightly `db-stress` declare
+`SUPABASE_INTERNAL_IMAGE_REGISTRY=ghcr.io`. This matches the environment
+exported by the [pinned hosted setup action](https://github.com/supabase/setup-cli/blob/46f7f98c7f948ad727d22c1e67fab04c223a0520/src/main.ts).
+Installing the CLI binary alone does not reproduce that action's environment.
+Without the value, local database setup uses the default registry; qualification
+recorded rate-limit responses and interrupted downloads that exhausted its
+25-minute lane timeout before assertions could run.
+
+The registry setting changes neither service versions nor test coverage. Each
+lane retains a fresh, disposable Docker daemon and the same timeout. Registry
+credentials and host overrides are not forwarded. A change to these profiles
+takes effect only after the reviewed revision merges and the operator installs
+it from main; a PR cannot update the running agent's profiles.
+
 ### Ubuntu package refresh — 2026-09-05
 
 The first real image build failed because the archived versions of curl, Git,

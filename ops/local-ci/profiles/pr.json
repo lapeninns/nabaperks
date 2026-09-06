@@ -538,6 +538,7 @@
       "backgroundServices": [],
       "runtimeEnv": ["auth-hook-fixture"],
       "env": {
+        "SUPABASE_INTERNAL_IMAGE_REGISTRY": "ghcr.io",
         "SUPABASE_SEND_EMAIL_HOOK_URI": "http://host.docker.internal:3147/api/auth/hooks/send-email",
         "SUPABASE_DB_URL": "postgres://postgres:postgres@127.0.0.1:54322/postgres"
       },
