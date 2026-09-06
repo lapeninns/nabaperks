@@ -829,6 +829,21 @@ the fork/fallback proofs remain separate requirements. A floor decrease or skip
 ceiling increase needs a documented coverage change in the ledger; do not adjust
 limits merely to accept a failed comparison.
 
+The comparison command preserves `countsExpected` and `countsParsed` from the
+published summary. A missing tally remains incomplete evidence; it is never
+reinterpreted as a measured zero. Run conclusions must agree with their lane
+statuses. A real executed lane divergence is retained when subsequent lanes
+carry the runner's `blockedByLaneId`; those skipped lanes cannot qualify, and
+an unexplained skip still makes the attempt incomplete. This retains evidence
+for the architecture pin-back decision without treating skipped coverage as a
+pass. Architecture attribution still requires operator diagnosis under 4.6.
+
+Matching failed or timed-out totals do not establish the same cause. Until
+independent same-cause evidence is available, the command returns `incomplete`
+for an otherwise matching failed pair and does not add it to an automatic
+streak. The operator must inspect the actual failures to apply rule 4.4.1;
+aggregate counts alone are never sufficient evidence of a common failure.
+
 ### 4.5 Recording the outcome
 
 For each of the three SHAs, record in the ledger issue:

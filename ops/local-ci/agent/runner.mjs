@@ -567,6 +567,7 @@ export function buildLaneResult({
   logs = null,
   missingLogs = [],
   logDigestValue = null,
+  blockedByLaneId = null,
 }) {
   requireObject(lane, "lane")
   requireObject(contract, "contract")
@@ -645,6 +646,7 @@ export function buildLaneResult({
     testsFailed: counts.testsFailed,
     testsSkipped: counts.testsSkipped,
     flaky: counts.flaky,
+    blockedByLaneId,
     countsExpected,
     countsParsed: parsed !== null,
     countSources: [...counts.sources],
@@ -680,6 +682,9 @@ export function toSummaryLane(laneResult) {
     testsFailed: orZero(laneResult.testsFailed),
     testsSkipped: orZero(laneResult.testsSkipped),
     flaky: orZero(laneResult.flaky),
+    countsExpected: laneResult.countsExpected,
+    countsParsed: laneResult.countsParsed,
+    blockedByLaneId: laneResult.blockedByLaneId ?? null,
     failures: (laneResult.failures ?? []).map((title) => ({
       title,
       laneId: laneResult.laneId,
@@ -788,6 +793,7 @@ export function buildRunRecord({
     headSha: String(headSha).toLowerCase(),
     conclusion: conclusion ?? conclusionFor(laneResults, { deadlineExpired }),
     durationSeconds,
+    deadlineExpired,
     logDigest: logDigestValue,
     lanes: laneResults.map((lane) => toSummaryLane(lane)),
     failures,
@@ -997,6 +1003,7 @@ export function createRunner({
       const laneResults = []
       const logBundle = []
       let stopped = false
+      let stoppedByLaneId = null
       let deadlineExpired = false
 
       for (const lane of routing.local) {
@@ -1022,6 +1029,7 @@ export function createRunner({
               ref,
               headSha,
               status: signal?.aborted ? "cancelled" : "skipped",
+              blockedByLaneId: stoppedByLaneId,
               output: "",
               durationSeconds: 0,
             })
@@ -1155,6 +1163,7 @@ export function createRunner({
             `lane ${lane.id} reported ${laneResult.status}; stopping the run - the remaining lanes are recorded as skipped`
           )
           stopped = true
+          stoppedByLaneId = lane.id
         }
       }
 

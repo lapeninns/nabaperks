@@ -5,7 +5,10 @@ import { fileURLToPath } from "node:url"
 
 import { loadContract } from "../../ops/local-ci/core/contract.mjs"
 import { digestLogBundle } from "../../ops/local-ci/core/digest.mjs"
-import { renderCheckSummary } from "../../ops/local-ci/core/summary.mjs"
+import {
+  extractLaneSummary,
+  renderCheckSummary,
+} from "../../ops/local-ci/core/summary.mjs"
 import {
   PUBLISH_MARGIN_MINUTES,
   createRunner,
@@ -328,6 +331,12 @@ test("a container runtime that cannot start a lane fails that lane, and the run 
   assert.deepEqual(outcome.laneResults[0].logParts, ["fast.log"])
   assert.equal(outcome.laneResults[1].status, "skipped")
   assert.equal(outcome.record.conclusion, "failure")
+  assert.equal(outcome.laneResults[1].blockedByLaneId, "fast")
+  const published = extractLaneSummary(
+    renderCheckSummary(outcome.record, contract).text
+  )
+  assert.equal(published.lanes[1].blockedByLaneId, "fast")
+  assert.equal(published.lanes[0].countsParsed, false)
 
   // The reason reaches the lane's own log, so the evidence says why the lane
   // has nothing in it rather than leaving an empty file behind.
