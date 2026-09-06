@@ -464,10 +464,10 @@ load-bearing:
   failed jobs" (a failed-jobs re-run does not re-evaluate `route`, so
   `hosted-proof` stays skipped and the gate fails closed); and — the hard
   precondition — `pnpm ops:github:check` reporting the new
-  `github:ruleset-status-checks-exact` finding as **PASS**. Today
-  `scripts/github-governance/checks.mjs:202-205` validates `requiredChecks`
-  with `missingNames`, a subset test, so the repository **cannot currently
-  prove** the live ruleset does not also require `Typecheck and build`, `E2E
+  `github:ruleset-status-checks-exact` finding as **PASS**. The exact-name
+  check in `scripts/github-governance/checks.mjs` requires strict mode and
+  rejects both missing and unexpected names. Its live readback must prove
+  the ruleset does not also require `Typecheck and build`, `E2E
 (DB-free harness tier)`, `Accessibility sweep` or `DB behavioral moat gate`.
   Deleting a job whose check name is live-required deadlocks every subsequent
   PR until a repository admin edits branch protection.

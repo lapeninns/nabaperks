@@ -215,6 +215,20 @@ export function evaluateGitHubGovernance(contract, evidence) {
         : `missing or non-strict checks: ${missingChecks.join(", ") || "strict mode"}`
     )
   )
+  const unexpectedChecks = missingNames(
+    statusChecks,
+    contract.ruleset.requiredChecks
+  )
+  const exactChecks = strictChecks && unexpectedChecks.length === 0
+  findings.push(
+    finding(
+      "github:ruleset-status-checks-exact",
+      exactChecks,
+      exactChecks
+        ? "strict required check names exactly match the governance contract"
+        : `required check mismatch: missing [${missingChecks.join(", ")}]; unexpected [${unexpectedChecks.join(", ")}]; strict ${statusRule?.strict_required_status_checks_policy === true}`
+    )
+  )
 
   for (const [name, target] of Object.entries(contract.environments)) {
     findings.push(

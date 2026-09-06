@@ -118,6 +118,49 @@ test("GitHub production does not require optional Sentry credentials", () => {
   )
 })
 
+for (const [label, transform, expected, detail] of [
+  [
+    "reordered names",
+    (rule) => rule.required_status_checks.reverse(),
+    "PASS",
+    /exactly match/,
+  ],
+  [
+    "retired extra check",
+    (rule) =>
+      rule.required_status_checks.push({ context: "DB behavioral moat gate" }),
+    "FAIL",
+    /unexpected \[DB behavioral moat gate\]/,
+  ],
+  [
+    "missing required check",
+    (rule) => rule.required_status_checks.shift(),
+    "FAIL",
+    /missing \[[^\]]+\]/,
+  ],
+  [
+    "non-strict policy",
+    (rule) => {
+      rule.strict_required_status_checks_policy = false
+    },
+    "FAIL",
+    /strict false/,
+  ],
+]) {
+  test(`exact ruleset comparison handles ${label}`, () => {
+    const evidence = completeEvidence()
+    const rule = evidence.ruleset.rules.find(
+      ({ type }) => type === "required_status_checks"
+    ).parameters
+    transform(rule)
+    const result = evaluateGitHubGovernance(CONTRACT, evidence).find(
+      ({ control }) => control === "github:ruleset-status-checks-exact"
+    )
+    assert.equal(result.status, expected)
+    assert.match(result.detail, detail)
+  })
+}
+
 test("the Auth hook secret is required only in the protected Production environment", () => {
   const secret = "SUPABASE_SEND_EMAIL_HOOK_SECRET"
 
@@ -166,6 +209,10 @@ test("governance evidence reports missing release checks and environment materia
   )
 
   assert.match(byControl.get("github:ruleset-status-checks"), /Release gate/)
+  assert.match(
+    byControl.get("github:ruleset-status-checks-exact"),
+    /Release gate/
+  )
   assert.match(byControl.get("environment:Production:secrets"), /VERCEL_TOKEN/)
   assert.match(
     byControl.get("environment:Production:variables"),
