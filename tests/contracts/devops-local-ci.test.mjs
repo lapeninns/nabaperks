@@ -642,7 +642,10 @@ test("non-baseline accessibility journeys stay in both planes' selections", () =
     assert.doesNotMatch(source, /@visual|toHaveScreenshot/)
   }
   const hostedA11y = jobSlice(read(CI_PATH), "a11y")
-  assert.match(hostedA11y, /pnpm test:a11y -- --project=/)
+  assert.match(
+    hostedA11y,
+    /node scripts\/ci\/browser-workload\.mjs hosted test:a11y --project=/
+  )
   assert.doesNotMatch(hostedA11y, /--grep-invert @visual/)
   for (const name of PROFILE_NAMES) {
     const profile = readJson(PROFILE_PATHS[name])

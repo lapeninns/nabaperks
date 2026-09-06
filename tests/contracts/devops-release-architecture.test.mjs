@@ -34,10 +34,11 @@ test("successful application promotion verifies the exact production revision", 
   const smoke = read(".github/workflows/production-smoke.yml")
 
   assert.match(smoke, /workflow_run:/)
-  assert.match(smoke, /workflows: \["Production deployment"\]/)
+  assert.match(smoke, /workflows: \["Production database promotion"\]/)
   assert.match(smoke, /workflow_run\.conclusion == 'success'/)
   assert.match(smoke, /workflow_run\.head_branch == 'main'/)
-  assert.match(smoke, /workflow_run\.head_sha/)
+  assert.match(smoke, /read-candidate-artifact\.mjs/)
+  assert.doesNotMatch(smoke, /workflow_run\.head_sha/)
   assert.match(smoke, /timeout-minutes: 7/)
   assert.match(smoke, /EXPECTED_REVISION:0:12/)
   assert.match(smoke, /for attempt in \{1\.\.30\}/)
@@ -48,7 +49,8 @@ test("successful application promotion verifies the exact production revision", 
 test("production CD attests immutable source, builds remotely, verifies and then promotes", () => {
   const workflow = read(".github/workflows/production-deploy.yml")
 
-  assert.match(workflow, /workflows: \["Production database promotion"\]/)
+  assert.match(workflow, /workflow_call:/)
+  assert.doesNotMatch(workflow, /workflow_dispatch:|workflow_run:/)
   assert.match(workflow, /name: Production deployment preflight/)
   assert.match(workflow, /needs: preflight/)
   assert.match(workflow, /environment: Production/)
@@ -72,7 +74,7 @@ test("production CD attests immutable source, builds remotely, verifies and then
   assert.doesNotMatch(workflow, /SENTRY_/)
   assert.doesNotMatch(workflow, /ops:sentry:check/)
   assert.doesNotMatch(workflow, /check-sentry-release\.mjs/)
-  assert.match(workflow, /PROMOTE_PRODUCTION_APPLICATION/)
+  assert.match(workflow, /PROMOTE_PRODUCTION_DATABASE/)
   assert.doesNotMatch(workflow, /pnpm dlx|npm install --global|@latest/)
 
   const attest = workflow.indexOf("Attest source provenance")
@@ -83,7 +85,7 @@ test("production CD attests immutable source, builds remotely, verifies and then
   const promote = workflow.indexOf("Promote the verified staged deployment")
   assert.ok(attest > -1 && stage > attest && verify > stage && promote > verify)
   assert.ok(
-    workflow.indexOf("PROMOTE_PRODUCTION_APPLICATION") <
+    workflow.indexOf("PROMOTE_PRODUCTION_DATABASE") <
       workflow.indexOf("environment: Production")
   )
 })
@@ -162,7 +164,7 @@ test("production database promotion is CI-led, protected and exact-revision", ()
   )
   const verify = workflow.indexOf(
     "node scripts/check-supabase-migrations.mjs",
-    promoteJob
+    apply
   )
   assert.ok(dryRun > -1 && apply > dryRun && verify > apply)
   assert.doesNotMatch(workflow, /supabase (db reset|seed|migration repair)/)

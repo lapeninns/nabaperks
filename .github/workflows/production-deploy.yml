@@ -1,24 +1,19 @@
 name: Production deployment
 
+# Called only by the release owner, which holds the lock through public proof.
 on:
-  workflow_run:
-    workflows: ["Production database promotion"]
-    types: [completed]
-    branches: [main]
-  workflow_dispatch:
+  workflow_call:
     inputs:
       expected_revision:
-        description: Full Git SHA currently at the tip of main
+        description: Full immutable candidate SHA admitted by the release owner
         required: true
         type: string
-      confirmation:
-        description: Type PROMOTE_PRODUCTION_APPLICATION to continue
+      release_run_id:
         required: true
         type: string
-
-concurrency:
-  group: production-deployment
-  cancel-in-progress: false
+      release_run_attempt:
+        required: true
+        type: number
 
 permissions:
   contents: read
@@ -30,29 +25,38 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     env:
-      EXPECTED_REVISION: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
-      CONFIRMATION: ${{ inputs.confirmation }}
+      EXPECTED_REVISION: ${{ inputs.expected_revision }}
+      RELEASE_RUN_ID: ${{ inputs.release_run_id }}
+      RELEASE_RUN_ATTEMPT: ${{ inputs.release_run_attempt }}
+      CONFIRMATION: ${{ github.event.inputs.confirmation || '' }}
       SOURCE_CONCLUSION: ${{ github.event.workflow_run.conclusion || '' }}
+      SOURCE_REVISION: ${{ github.event.workflow_run.head_sha || '' }}
+      SOURCE_BRANCH: ${{ github.event.workflow_run.head_branch || '' }}
+      SOURCE_EVENT: ${{ github.event.workflow_run.event || '' }}
+      SOURCE_WORKFLOW: ${{ github.event.workflow_run.name || '' }}
+      SOURCE_REPOSITORY: ${{ github.event.workflow_run.head_repository.full_name || '' }}
       GH_TOKEN: ${{ github.token }}
     steps:
-      - name: Require an approved automatic or manual source
+      - name: Require the bound production release owner
         run: |
+          test "$GITHUB_REPOSITORY" = "lapeninns/nabaperks"
+          test "$RELEASE_RUN_ID" = "$GITHUB_RUN_ID"
+          test "$RELEASE_RUN_ATTEMPT" = "$GITHUB_RUN_ATTEMPT"
+          [[ "$EXPECTED_REVISION" =~ ^[a-f0-9]{40}$ ]]
+          caller_path="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --jq '.path')"
+          test "$caller_path" = ".github/workflows/production-database.yml"
           if [[ "$GITHUB_EVENT_NAME" == "workflow_run" ]]; then
             test "$SOURCE_CONCLUSION" = "success"
+            test "$SOURCE_BRANCH" = "main"
+            test "$SOURCE_EVENT" = "push"
+            test "$SOURCE_WORKFLOW" = "CI"
+            test "$SOURCE_REPOSITORY" = "$GITHUB_REPOSITORY"
+            test "$SOURCE_REVISION" = "$EXPECTED_REVISION"
           else
+            test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
             test "$GITHUB_REF" = "refs/heads/main"
             test "$EXPECTED_REVISION" = "$GITHUB_SHA"
-            test "$CONFIRMATION" = "PROMOTE_PRODUCTION_APPLICATION"
-            successful_database_revision="$(gh run list \
-              --repo "$GITHUB_REPOSITORY" \
-              --workflow production-database.yml \
-              --commit "$EXPECTED_REVISION" \
-              --branch main \
-              --limit 20 \
-              --json conclusion,headSha,status \
-              --jq '.[] | select(.status == "completed" and .conclusion == "success") | .headSha' \
-              | head -n 1)"
-            test "$successful_database_revision" = "$EXPECTED_REVISION"
+            test "$CONFIRMATION" = "PROMOTE_PRODUCTION_DATABASE"
           fi
 
   deploy:
@@ -63,25 +67,33 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
+      actions: read
       id-token: write
       attestations: write
       artifact-metadata: write
     env:
-      EXPECTED_REVISION: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
+      EXPECTED_REVISION: ${{ inputs.expected_revision }}
+      RELEASE_RUN_ID: ${{ inputs.release_run_id }}
+      RELEASE_RUN_ATTEMPT: ${{ inputs.release_run_attempt }}
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
       SUPABASE_SEND_EMAIL_HOOK_SECRET: ${{ secrets.SUPABASE_SEND_EMAIL_HOOK_SECRET }}
       SUPABASE_SEND_EMAIL_HOOK_URI: https://nabaperks.com/api/auth/hooks/send-email
       PRODUCTION_ALERT_WEBHOOK_URL: https://${{ vars.SUPABASE_PROJECT_REF }}.supabase.co/functions/v1/production-alert
       PRODUCTION_ALERT_WEBHOOK_SECRET: ${{ secrets.PRODUCTION_ALERT_WEBHOOK_SECRET }}
-      VERCEL_GIT_COMMIT_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
+      VERCEL_GIT_COMMIT_SHA: ${{ inputs.expected_revision }}
       VERCEL_ENV: production
       DO_NOT_TRACK: "1"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
+          ref: ${{ inputs.expected_revision }}
           fetch-depth: 0
+      - name: Download the exact parent-attempt database stage
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: production-database-stage-${{ inputs.release_run_id }}-${{ inputs.release_run_attempt }}
+          path: ${{ runner.temp }}/release-ledger/
       - name: Verify immutable source and provider identity
         run: |
           test "$(git rev-parse HEAD)" = "$EXPECTED_REVISION"
@@ -132,6 +144,18 @@ jobs:
             --argjson project "$metadata" \
             '{scope: $team.slug, team: {id: $team.id, slug: $team.slug}, project: {id: $project.id, name: $project.name, accountId: $project.accountId}, providerVerified: true}' \
             > "$RUNNER_TEMP/release-vercel-target.json"
+      - name: Verify the database chain and live baseline before application mutations
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          baseline="$(jq -er '.revision' "$RUNNER_TEMP/release-ledger/baseline.json")"
+          node scripts/release/stage-ledger.mjs verify --baseline "$baseline" --stage database-applied \
+            --manifest "$RUNNER_TEMP/release-ledger/database-applied.json" \
+            --evidence "$RUNNER_TEMP/release-ledger/database-applied-evidence.json"
+          node scripts/release/deployed-baseline.mjs "$RUNNER_TEMP/release-ledger/before-application.json"
+          jq -e --slurpfile baseline "$RUNNER_TEMP/release-ledger/baseline.json" \
+            'del(.observedAt) == ($baseline[0] | del(.observedAt))' \
+            "$RUNNER_TEMP/release-ledger/before-application.json" >/dev/null
       - name: Deploy and prove the production alert receiver
         run: |
           secrets_file="$RUNNER_TEMP/supabase-function-secrets.json"
@@ -171,6 +195,8 @@ jobs:
           test -s "$RUNNER_TEMP/release-source.tgz"
           sha256sum "$RUNNER_TEMP/release-source.tgz" \
             > "$RUNNER_TEMP/release-source.sha256"
+          expected_digest="$(jq -er '.sourceDigest' "$RUNNER_TEMP/release-ledger/identity.json")"
+          test "$(sha256sum "$RUNNER_TEMP/release-source.tgz" | cut -d ' ' -f 1)" = "$expected_digest"
       - name: Generate the deployment SBOM
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
@@ -213,6 +239,10 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           test -n "$VERCEL_TOKEN"
+          baseline="$(jq -er '.revision' "$RUNNER_TEMP/release-ledger/baseline.json")"
+          node scripts/release/stage-ledger.mjs verify --baseline "$baseline" --stage database-applied \
+            --manifest "$RUNNER_TEMP/release-ledger/database-applied.json" \
+            --evidence "$RUNNER_TEMP/release-ledger/database-applied-evidence.json"
           deployment_url="$(pnpm exec vercel deploy \
             --prod \
             --skip-domain \
@@ -247,6 +277,8 @@ jobs:
               && jq -e --arg revision "$expected" \
                 '.status == "ready" and .checks.database == "ok" and .checks.operational == "ok" and .revision == $revision and .environment == "production" and .targetEnvironment == "production"' \
                 <<<"$readiness" >/dev/null 2>&1; then
+              jq -n --argjson health "$health" --argjson readiness "$readiness" \
+                '{health: $health, readiness: $readiness}' > "$RUNNER_TEMP/release-ledger/staged-probes.json"
               exit 0
             fi
             sleep 10
@@ -271,17 +303,42 @@ jobs:
             --scope="$CANONICAL_VERCEL_SCOPE" \
             --token="$VERCEL_TOKEN" \
             --raw)"
-          jq -e \
-            --arg project_id "$CANONICAL_VERCEL_PROJECT_ID" \
-            --arg team_id "$CANONICAL_VERCEL_TEAM_ID" \
-            --arg host "$deployment_host" \
-            '.projectId == $project_id and .ownerId == $team_id and .url == $host' \
-            <<<"$deployment_metadata" >/dev/null
-          pnpm exec vercel promote "$DEPLOYMENT_URL" \
+          candidate_file="$RUNNER_TEMP/release-candidate.json"
+          node scripts/release/candidate.mjs <<<"$deployment_metadata" > "$candidate_file"
+          deployment_id="$(jq -er '.deploymentId' "$candidate_file")"
+          baseline="$(jq -er '.revision' "$RUNNER_TEMP/release-ledger/baseline.json")"
+          jq -n --slurpfile identity "$RUNNER_TEMP/release-ledger/identity.json" \
+            --slurpfile candidate "$candidate_file" --slurpfile probes "$RUNNER_TEMP/release-ledger/staged-probes.json" \
+            '{stage: "candidate-ready", result: "success", identity: $identity[0], candidate: $candidate[0], probes: $probes[0], authHookAlignment: "success"}' \
+            > "$RUNNER_TEMP/release-ledger/candidate-ready-evidence.json"
+          node scripts/release/stage-ledger.mjs record --baseline "$baseline" --stage candidate-ready \
+            --previous "$RUNNER_TEMP/release-ledger/database-applied.json" \
+            --evidence "$RUNNER_TEMP/release-ledger/candidate-ready-evidence.json" \
+            --output "$RUNNER_TEMP/release-ledger/candidate-ready.json"
+          node scripts/release/deployed-baseline.mjs "$RUNNER_TEMP/release-ledger/before-promotion.json"
+          jq -e --slurpfile baseline "$RUNNER_TEMP/release-ledger/baseline.json" \
+            'del(.observedAt) == ($baseline[0] | del(.observedAt))' \
+            "$RUNNER_TEMP/release-ledger/before-promotion.json" >/dev/null
+          node scripts/release/stage-ledger.mjs verify --baseline "$baseline" --stage candidate-ready \
+            --manifest "$RUNNER_TEMP/release-ledger/candidate-ready.json" \
+            --evidence "$RUNNER_TEMP/release-ledger/candidate-ready-evidence.json"
+          pnpm exec vercel promote "$deployment_id" \
             --yes \
             --timeout=3m \
             --scope="$CANONICAL_VERCEL_SCOPE" \
             --token="$VERCEL_TOKEN"
+          node scripts/release/deployed-baseline.mjs "$RUNNER_TEMP/release-ledger/promoted-alias.json"
+          jq -e --slurpfile candidate "$candidate_file" \
+            '.deploymentId == $candidate[0].deploymentId and .revision == $candidate[0].revision' \
+            "$RUNNER_TEMP/release-ledger/promoted-alias.json" >/dev/null
+          jq -n --slurpfile identity "$RUNNER_TEMP/release-ledger/identity.json" \
+            --slurpfile alias "$RUNNER_TEMP/release-ledger/promoted-alias.json" \
+            '{stage: "promoted", result: "success", identity: $identity[0], publicAlias: $alias[0]}' \
+            > "$RUNNER_TEMP/release-ledger/promoted-evidence.json"
+          node scripts/release/stage-ledger.mjs record --baseline "$baseline" --stage promoted \
+            --previous "$RUNNER_TEMP/release-ledger/candidate-ready.json" \
+            --evidence "$RUNNER_TEMP/release-ledger/promoted-evidence.json" \
+            --output "$RUNNER_TEMP/release-ledger/promoted.json"
       - name: Activate and read back the passwordless Data API guard
         run: |
           update_file="$RUNNER_TEMP/data-api-guard-update.json"
@@ -432,6 +489,68 @@ jobs:
         env:
           AUTH_HOOK_CANARY_URL: https://nabaperks.com
         run: node scripts/check-auth-hook-secret-alignment.mjs
+      - name: Verify the exact promoted public revision under the release lock
+        env:
+          PRODUCTION_MONITOR_SECRET: ${{ secrets.PRODUCTION_MONITOR_SECRET }}
+        run: |
+          test -n "$PRODUCTION_MONITOR_SECRET"
+          expected="${EXPECTED_REVISION:0:12}"
+          for attempt in {1..30}; do
+            health="$(curl --fail --silent --show-error --max-time 10 https://nabaperks.com/api/health || true)"
+            readiness="$(curl --fail --silent --show-error --max-time 10 \
+              --header "Authorization: Bearer ${PRODUCTION_MONITOR_SECRET}" \
+              https://nabaperks.com/api/readiness || true)"
+            if jq -e --arg revision "$expected" '.status == "ok" and .revision == $revision and .environment == "production" and .targetEnvironment == "production"' <<<"$health" >/dev/null 2>&1 \
+              && jq -e --arg revision "$expected" '.status == "ready" and .checks.database == "ok" and .checks.operational == "ok" and .revision == $revision and .environment == "production" and .targetEnvironment == "production"' <<<"$readiness" >/dev/null 2>&1; then
+              jq -n --argjson health "$health" --argjson readiness "$readiness" \
+                '{health: $health, readiness: $readiness}' > "$RUNNER_TEMP/release-ledger/public-probes.json"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::Public production proof failed after promotion; the release remains incomplete."
+          exit 1
+      - name: Record verified public proof and the complete release chain
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          baseline="$(jq -er '.revision' "$RUNNER_TEMP/release-ledger/baseline.json")"
+          node scripts/release/deployed-baseline.mjs "$RUNNER_TEMP/release-ledger/verified-alias.json"
+          jq -e --slurpfile candidate "$RUNNER_TEMP/release-candidate.json" \
+            '.deploymentId == $candidate[0].deploymentId and .revision == $candidate[0].revision' \
+            "$RUNNER_TEMP/release-ledger/verified-alias.json" >/dev/null
+          jq -n --slurpfile identity "$RUNNER_TEMP/release-ledger/identity.json" \
+            --slurpfile alias "$RUNNER_TEMP/release-ledger/verified-alias.json" \
+            --slurpfile probes "$RUNNER_TEMP/release-ledger/public-probes.json" \
+            '{stage: "verified", result: "success", identity: $identity[0], publicAlias: $alias[0], probes: $probes[0], authHookAlignment: "success"}' \
+            > "$RUNNER_TEMP/release-ledger/verified-evidence.json"
+          node scripts/release/stage-ledger.mjs record --baseline "$baseline" --stage verified \
+            --previous "$RUNNER_TEMP/release-ledger/promoted.json" \
+            --evidence "$RUNNER_TEMP/release-ledger/verified-evidence.json" \
+            --output "$RUNNER_TEMP/release-ledger/verified.json"
+          node scripts/release/stage-ledger.mjs verify --baseline "$baseline" --stage verified \
+            --manifest "$RUNNER_TEMP/release-ledger/verified.json" \
+            --evidence "$RUNNER_TEMP/release-ledger/verified-evidence.json"
+      - name: Retain the complete verified release stage bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: production-verified-stage-${{ inputs.release_run_id }}-${{ inputs.release_run_attempt }}
+          path: ${{ runner.temp }}/release-ledger/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Bind successful public proof to the release owner
+        run: |
+          mkdir -p "$RUNNER_TEMP/production-candidate"
+          jq --arg run_id "$GITHUB_RUN_ID" --argjson attempt "$GITHUB_RUN_ATTEMPT" \
+            '. + {releaseRunId: $run_id, releaseRunAttempt: $attempt, promotion: "success", publicProof: "success"}' \
+            "$RUNNER_TEMP/release-candidate.json" > "$RUNNER_TEMP/production-candidate/release-candidate.json"
+      - name: Retain the exact successfully promoted candidate
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: production-candidate-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/production-candidate/release-candidate.json
+          if-no-files-found: error
+          retention-days: 90
       - name: Record release evidence
         env:
           DEPLOYMENT_URL: ${{ steps.stage.outputs.url }}

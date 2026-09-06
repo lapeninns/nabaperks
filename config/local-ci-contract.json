@@ -136,7 +136,11 @@
     "network": "bridge",
     "readOnlyRootFilesystem": false,
     "workspacePath": "/workspace",
-    "notes": "timeoutMinutes is deliberately 10 minutes inside bridge.timeoutMinutes so the agent kills and reports a run before the hosted bridge job gives up on it. dockerInDocker is what lets the DB lane run `supabase start` without ever handing a job the host Docker socket; mountHostDockerSocket must stay false, because the host socket is a container escape."
+    "notes": "timeoutMinutes is deliberately 10 minutes inside bridge.timeoutMinutes so the agent kills and reports a run before the hosted bridge job gives up on it. dockerInDocker is what lets the DB lane run `supabase start` without ever handing a job the host Docker socket; mountHostDockerSocket must stay false, because the host socket is a container escape.",
+    "daemon": {
+      "cpus": 1,
+      "memoryGb": 6
+    }
   },
   "vm": {
     "name": "nabaperks-ci",
@@ -149,7 +153,9 @@
     "mounts": [],
     "forwardAgent": false,
     "inboundConnections": "blocked",
-    "notes": "The self-check re-asserts every value here against `limactl list --json` at start and before every dispatch, and refuses on any mount entry, a forwarded agent, or a private key readable beyond 0600."
+    "notes": "The self-check re-asserts every value here against `limactl list --json` at start and before every dispatch, and refuses on any mount entry, a forwarded agent, or a private key readable beyond 0600.",
+    "reserveCpus": 1,
+    "reserveMemoryGb": 2
   },
   "toolchain": {
     "node": "24",

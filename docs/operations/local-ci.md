@@ -1266,3 +1266,51 @@ the merge lane rather than waiting for a manual audit.
   production promotion path this merge lane ultimately feeds.
 - `docs/operations/devops-maturity.md` — where the ARM64 hosted-pinning
   decisions from section 4.6 are recorded.
+
+## Durable controller and bounded execution redesign
+
+The later redesign source introduces a host-owned `attempts.json` and
+`controller.lock` beneath the configured state root. These are separate from
+candidate workspaces. Watch, one-shot and nightly execution acquire the same
+controller lease before accessing the journal. PID plus process-start identity
+prevents treating a reused PID as the former owner. An unreadable, malformed or
+unverifiable lease fails closed; inspect the owner and retained evidence
+before any manual repair. Never kill another controller merely to acquire it.
+
+Attempts are persisted using atomic replacement and file/directory fsync before
+work starts. Restart converts a running attempt to interrupted. The default
+policy permits at most two attempts and a one-minute backoff for infrastructure
+outcomes; a test failure is not automatically retried into success. Nightly
+scopes include the daily identity. No-publish fixture runs still use durable
+attempts but do not enqueue an App result. Journal corruption or persistence
+failure stops admission.
+
+Completion publication uses a durable outbox. Before creating an App check,
+the publisher persists intent and a stable attempt identity. A lost creation
+response is reconciled against exact App, check name, head SHA and attempt
+`external_id`, then continued by immutable check ID. It does not blindly
+repeat the POST. If no matching provider result can be established, the entry
+remains pending; inspect provider evidence and reconcile with the operational
+owner. Deleting the journal or inventing a replacement successful result is
+not recovery. On shutdown, delayed publication callbacks cannot dispatch more
+work or write the released controller's journal.
+
+The resource contract allocates 10 CPUs/32 GiB to the unprivileged job and
+1 CPU/6 GiB to its Docker sidecar, leaving 1 CPU/2 GiB for the 12 CPU/40 GiB VM.
+Both containers disable additional swap. The runner rejects overcommitted or
+malformed budgets before admission. The sidecar's privileges remain inside the
+VM; this is not evidence of a disposable VM or qualification for authoritative
+untrusted execution. Browser lanes remain serial, with unchanged projects,
+shards and worker/retry policy.
+
+The [verified image cache](local-ci-image-cache.md) avoids repeated registry
+downloads while validating archive, manifest and loaded image identity before
+repository commands. Timeout and cancellation also bound preload. Installation
+and host activation still require coordinated operational ownership and the
+reviewed immutable revision. Source changes never repoint the installed agent
+or resume a paused watcher.
+
+See the [completion evidence](ci-redesign-completion.md) for actual fixture
+results, installed revision, full-main/nightly gaps and provider prerequisites.
+A successful filtered database or browser lane is not a full profile or an
+exact-commit App qualification.

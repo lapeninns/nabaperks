@@ -13,7 +13,7 @@ on:
         type: string
 
 concurrency:
-  group: production-admin-mfa-bootstrap
+  group: production-release
   cancel-in-progress: false
 
 permissions:

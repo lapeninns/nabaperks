@@ -92,5 +92,13 @@ Do not change `shadowMode.enabled`, `bridge.enforcement` or a cutover-stage labe
 to make local evidence authoritative without implementing and verifying the
 required trust and fallback controls.
 
+The [completion evidence matrix](ci-redesign-completion.md) records the later
+implementation, independent review, service-backed qualification and remaining
+rollout gates. Shared command runners, durable attempts/resource enforcement,
+signed-proof preparation, unified release ownership and recovery evidence are
+tracked there separately from their merge and installed state. Full hosted
+coverage remains authoritative until disposable execution and independent
+trusted publication are qualified.
+
 See [local operations](local-ci.md), [production operations](production-runbook.md)
 and [incident response](incident-response.md) for their respective boundaries.

@@ -1,0 +1,51 @@
+{
+  "schema": "nabaperks.ci-workloads.v1",
+  "commands": {
+    "fast": [
+      ["pnpm", "env:check:production"],
+      ["pnpm", "security:audit", "--ignore-registry-errors"],
+      ["pnpm", "lint"],
+      ["pnpm", "typecheck"],
+      ["pnpm", "test:contracts"]
+    ],
+    "coverage": [["pnpm", "test:coverage"]],
+    "quality": [
+      ["pnpm", "deadcode:check"],
+      ["pnpm", "duplicates:check"],
+      ["pnpm", "debt:check"],
+      ["pnpm", "docs:check"],
+      ["pnpm", "agents:check"],
+      ["pnpm", "tokens:check"],
+      ["pnpm", "claims:check"]
+    ],
+    "build": [
+      ["pnpm", "build"],
+      ["pnpm", "bundle:check"],
+      ["pnpm", "jsonld:check"]
+    ]
+  },
+  "browsers": {
+    "test:e2e": {
+      "projects": [
+        "chromium",
+        "mobile-safari",
+        "desktop-firefox",
+        "desktop-safari"
+      ],
+      "hostedShards": 32,
+      "localShards": 8,
+      "grepInvert": "@visual"
+    },
+    "test:a11y": {
+      "projects": ["chromium", "mobile-safari"],
+      "hostedShards": 8,
+      "localShards": 8,
+      "grep": "@a11y"
+    },
+    "test:visual": {
+      "projects": ["chromium", "mobile-safari"],
+      "hostedShards": 4,
+      "grep": "@visual"
+    }
+  }
+}

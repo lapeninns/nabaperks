@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { IMAGE_CACHE_MANIFEST_SHA256 } from "../../ops/local-ci/core/image-cache.mjs"
 import { EventEmitter } from "node:events"
 import { readFileSync } from "node:fs"
 import { test } from "node:test"
@@ -12,6 +13,7 @@ import {
   READ_ABSENT_STATUS,
   READ_NOT_A_FILE_STATUS,
   assertNoDaemonSocket,
+  assertResourceBudgets,
   buildContainerArgv,
   buildDaemonArgv,
   buildNetworkCreateArgv,
@@ -662,5 +664,215 @@ test("cancellation closes descendant output pipes before container cleanup", asy
   assert.ok(
     Date.now() - started < 3000,
     "descendant must not hold the output pipe open"
+  )
+})
+
+test("resource budgets: sidecar CPU and memory are bounded with swap disabled", () => {
+  const daemon = buildDaemonArgv({
+    contract,
+    name: "nabaperks-ci-dind-ffffffffffff-db-1",
+    network: "nabaperks-ci-net-ffffffffffff-db-1",
+    image: DAEMON_IMAGE,
+  })
+  assert.equal(
+    valueAfter(daemon, "--cpus"),
+    String(contract.container.daemon.cpus)
+  )
+  assert.equal(
+    valueAfter(daemon, "--memory"),
+    `${contract.container.daemon.memoryGb}g`
+  )
+  assert.equal(
+    valueAfter(daemon, "--memory-swap"),
+    valueAfter(daemon, "--memory")
+  )
+  assertResourceBudgets(contract)
+})
+
+test("resource budgets: every budget rejects nonnumeric, nonfinite and nonpositive values", () => {
+  for (const path of [
+    ["container", "cpus"],
+    ["container", "memoryGb"],
+    ["container", "daemon", "cpus"],
+    ["container", "daemon", "memoryGb"],
+    ["vm", "cpus"],
+    ["vm", "memoryGb"],
+    ["vm", "reserveCpus"],
+    ["vm", "reserveMemoryGb"],
+  ]) {
+    for (const invalid of [undefined, null, "2", 0, -1, NaN, Infinity]) {
+      const modified = structuredClone(contract)
+      const owner = path
+        .slice(0, -1)
+        .reduce((object, key) => object[key], modified)
+      owner[path.at(-1)] = invalid
+      assert.throws(() => argv({ contract: modified }), {
+        code: "INVALID_RESOURCE_BUDGET",
+      })
+      assert.throws(() => buildDaemonArgv({ contract: modified }), {
+        code: "INVALID_RESOURCE_BUDGET",
+      })
+    }
+  }
+})
+
+test("resource budgets: either container refuses CPU or memory overcommit including VM reserve", () => {
+  for (const field of ["cpus", "memoryGb"]) {
+    const modified = structuredClone(contract)
+    modified.container.daemon[field] += 0.25
+    assert.throws(() => argv({ contract: modified }), {
+      code: "RESOURCE_OVERCOMMIT",
+    })
+    assert.throws(() => buildDaemonArgv({ contract: modified }), {
+      code: "RESOURCE_OVERCOMMIT",
+    })
+    assert.throws(() => createContainerRuntime({ contract: modified }), {
+      code: "RESOURCE_OVERCOMMIT",
+    })
+  }
+})
+
+test("a failed image preload prevents repository code and still removes the sidecar", async () => {
+  const { spawnFn, calls } = scriptedSpawn((argv) =>
+    argv.includes("image-cache-load")
+      ? { code: 1, stderr: "archive rejected" }
+      : {}
+  )
+  const runtime = createContainerRuntime({
+    contract,
+    vm: VM,
+    spawnFn,
+    imageCachePin: {
+      archiveSha256: "a".repeat(64),
+      manifestSha256: IMAGE_CACHE_MANIFEST_SHA256,
+    },
+  })
+  await assert.rejects(
+    () =>
+      runtime.withJobContainer({
+        ...IDENTITY,
+        image: IMAGE,
+        daemonImage: DAEMON_IMAGE,
+        command: ["bash", "-lc", "pnpm test:db"],
+        workspaceHostPath: "/var/lib/nabaperks-ci/runs/head",
+        env: {},
+        needsDaemon: true,
+      }),
+    { code: "IMAGE_CACHE_UNAVAILABLE" }
+  )
+  assert.equal(
+    calls.some((argv) => argv.includes(IMAGE)),
+    false
+  )
+  assert.ok(calls.some((argv) => argv.includes("image-cache-load")))
+  assert.deepEqual(calls.slice(-3).map(subCommand), ["rm", "rm", "network rm"])
+})
+
+test("only a daemon-backed lane loads images, and it loads before repository code", async () => {
+  for (const needsDaemon of [true, false]) {
+    const { spawnFn, calls } = scriptedSpawn()
+    const runtime = createContainerRuntime({
+      contract,
+      vm: VM,
+      spawnFn,
+      imageCachePin: {
+        archiveSha256: "a".repeat(64),
+        manifestSha256: IMAGE_CACHE_MANIFEST_SHA256,
+      },
+    })
+    await runtime.withJobContainer({
+      ...IDENTITY,
+      image: IMAGE,
+      daemonImage: DAEMON_IMAGE,
+      command: ["bash", "-lc", "pnpm test"],
+      workspaceHostPath: "/var/lib/nabaperks-ci/runs/head",
+      env: {},
+      needsDaemon,
+    })
+    const loaded = calls.findIndex((argv) => argv.includes("image-cache-load"))
+    const ran = calls.findIndex((argv) => argv.includes(IMAGE))
+    assert.ok(ran >= 0)
+    if (needsDaemon) assert.ok(loaded >= 0 && loaded < ran)
+    else assert.equal(loaded, -1)
+  }
+})
+
+test("cancelling an image preload prevents repository commands and cleans only its resources", async () => {
+  const controller = new AbortController()
+  const { spawnFn, calls } = scriptedSpawn((argv) => {
+    if (argv.includes("image-cache-load"))
+      setImmediate(() => controller.abort())
+    return {}
+  })
+  const runtime = createContainerRuntime({
+    contract,
+    vm: VM,
+    spawnFn,
+    imageCachePin: {
+      archiveSha256: "a".repeat(64),
+      manifestSha256: IMAGE_CACHE_MANIFEST_SHA256,
+    },
+  })
+  await assert.rejects(
+    () =>
+      runtime.withJobContainer({
+        ...IDENTITY,
+        image: IMAGE,
+        daemonImage: DAEMON_IMAGE,
+        command: ["bash", "-lc", "pnpm test:db"],
+        workspaceHostPath: "/var/lib/nabaperks-ci/runs/head",
+        env: {},
+        needsDaemon: true,
+        signal: controller.signal,
+      }),
+    { name: "AbortError" }
+  )
+  assert.equal(
+    calls.some((argv) => argv.includes(IMAGE)),
+    false
+  )
+  assert.deepEqual(
+    calls.slice(-3).map((argv) => argv.at(-1)),
+    [JOB_NAME, DAEMON_NAME, NET_NAME]
+  )
+})
+
+test("image preload time consumes the lane budget before repository commands", async (t) => {
+  let now = 1000
+  t.mock.method(Date, "now", () => now)
+  const { spawnFn, calls } = scriptedSpawn((argv) => {
+    if (argv.includes("image-cache-load")) now += 10001
+    return {}
+  })
+  const runtime = createContainerRuntime({
+    contract,
+    vm: VM,
+    spawnFn,
+    imageCachePin: {
+      archiveSha256: "a".repeat(64),
+      manifestSha256: IMAGE_CACHE_MANIFEST_SHA256,
+    },
+  })
+  await assert.rejects(
+    () =>
+      runtime.withJobContainer({
+        ...IDENTITY,
+        image: IMAGE,
+        daemonImage: DAEMON_IMAGE,
+        command: ["bash", "-lc", "pnpm test:db"],
+        workspaceHostPath: "/var/lib/nabaperks-ci/runs/head",
+        env: {},
+        needsDaemon: true,
+        timeoutMs: 10000,
+      }),
+    { code: "IMAGE_CACHE_TIMEOUT" }
+  )
+  assert.equal(
+    calls.some((argv) => argv.includes(IMAGE)),
+    false
+  )
+  assert.deepEqual(
+    calls.slice(-3).map((argv) => argv.at(-1)),
+    [JOB_NAME, DAEMON_NAME, NET_NAME]
   )
 })
