@@ -182,7 +182,10 @@ published check's failure list — incomplete evidence is a defect of this plane
 and the shadow comparison must not read it as a green run with nothing to prove.
 `toSummaryLane` renders a null as `0` in the check's lane table only because the
 GitHub-facing schema requires an integer; the failure entry is what stops that
-zero from being the only thing a reader sees.
+zero from being the only thing a reader sees. The machine-readable summary also
+preserves `countsExpected` and `countsParsed`, so comparison code can distinguish
+that display zero from a measured count. Runner-induced skips name their
+`blockedByLaneId`, retaining the preceding executed failure for diagnosis.
 
 Verify a published check against the logs on disk with the procedure in
 `docs/operations/local-ci.md` §6.4.

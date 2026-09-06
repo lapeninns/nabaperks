@@ -214,6 +214,15 @@ function normaliseLane(lane, index) {
     flaky:
       lane.flaky === undefined ? 0 : requireCount(lane.flaky, `${path}.flaky`),
     failures,
+    ...(typeof lane.countsExpected === "boolean"
+      ? { countsExpected: lane.countsExpected }
+      : {}),
+    ...(typeof lane.countsParsed === "boolean"
+      ? { countsParsed: lane.countsParsed }
+      : {}),
+    ...(typeof lane.blockedByLaneId === "string"
+      ? { blockedByLaneId: lane.blockedByLaneId }
+      : {}),
   }
 }
 
@@ -279,6 +288,7 @@ function normaliseRecord(record, contract) {
     ref: typeof record.ref === "string" ? record.ref : null,
     headSha: record.headSha.toLowerCase(),
     conclusion: record.conclusion,
+    deadlineExpired: record.deadlineExpired === true,
     durationSeconds:
       typeof record.durationSeconds === "number"
         ? record.durationSeconds
@@ -302,6 +312,7 @@ export function buildLaneSummary(record, contract) {
     profile: normalised.profile,
     headSha: normalised.headSha,
     conclusion: normalised.conclusion,
+    ...(normalised.deadlineExpired ? { deadlineExpired: true } : {}),
     logDigest: normalised.logDigest,
     lanes: normalised.lanes.map((lane) => ({
       laneId: lane.laneId,
@@ -312,6 +323,15 @@ export function buildLaneSummary(record, contract) {
       testsFailed: lane.testsFailed,
       testsSkipped: lane.testsSkipped,
       flaky: lane.flaky,
+      ...(typeof lane.countsExpected === "boolean"
+        ? { countsExpected: lane.countsExpected }
+        : {}),
+      ...(typeof lane.countsParsed === "boolean"
+        ? { countsParsed: lane.countsParsed }
+        : {}),
+      ...(lane.blockedByLaneId
+        ? { blockedByLaneId: lane.blockedByLaneId }
+        : {}),
     })),
     hostedOnlyLanes: normalised.hostedOnlyLanes.map((entry) => entry.laneId),
   }
