@@ -52,7 +52,66 @@
     "requiredConsecutiveEquivalent": 3,
     "ledgerIssueTitle": "[Local CI] Shadow qualification ledger",
     "flipsAtCutoverStep": 3,
-    "notes": "While enabled the agent publishes results and the bridge reports them, but no merge decision depends on them. Cutover step 3 sets enabled to false in the same commit that flips bridge.enforcement to blocking."
+    "notes": "While enabled the agent publishes results and the bridge reports them, but no merge decision depends on them. Cutover step 3 sets enabled to false in the same commit that flips bridge.enforcement to blocking.",
+    "qualification": {
+      "profiles": ["pr", "main"],
+      "maxProfileDurationSeconds": 4500,
+      "baselineHeadSha": "79b8a048a3c64a7340db04635fe1143442888f9d",
+      "baselineEvidence": "https://github.com/lapeninns/nabaperks/issues/255",
+      "lanes": {
+        "fast": {
+          "kind": "tests",
+          "minimumTests": 2006,
+          "maximumSkipped": 0
+        },
+        "quality": {
+          "kind": "commands",
+          "minimumTests": 0,
+          "maximumSkipped": 0
+        },
+        "print-kit": {
+          "kind": "commands",
+          "minimumTests": 0,
+          "maximumSkipped": 0
+        },
+        "e2e-chromium": {
+          "kind": "tests",
+          "minimumTests": 238,
+          "maximumSkipped": 25
+        },
+        "e2e-mobile-safari": {
+          "kind": "tests",
+          "minimumTests": 281,
+          "maximumSkipped": 42
+        },
+        "e2e-desktop-firefox": {
+          "kind": "tests",
+          "minimumTests": 235,
+          "maximumSkipped": 41
+        },
+        "e2e-desktop-safari": {
+          "kind": "tests",
+          "minimumTests": 235,
+          "maximumSkipped": 41
+        },
+        "a11y-chromium": {
+          "kind": "tests",
+          "minimumTests": 68,
+          "maximumSkipped": 1
+        },
+        "a11y-mobile-safari": {
+          "kind": "tests",
+          "minimumTests": 71,
+          "maximumSkipped": 2
+        },
+        "db": {
+          "kind": "tests",
+          "minimumTests": 528,
+          "maximumSkipped": 0
+        }
+      },
+      "notes": "Floors preserve the complete suite selected on the baseline head. Skip ceilings are the observed DB-free browser-fixture and project-specific skips in its complete local PR proof, with the accessibility selection repair included; hosted comparison must independently satisfy the same ceilings. Quality and print-kit execute command checks rather than countable test suites, so only those two lanes have a zero floor. Lowering a floor or raising a ceiling requires a documented change to expected coverage in the shadow ledger. This read-only comparison policy changes neither routing nor enforcement. Mutation at concurrency 8 within 75 minutes, fork/fallback evidence and three consecutive equivalent PR heads remain separate cutover prerequisites."
+    }
   },
   "agent": {
     "pollIntervalSeconds": 60,

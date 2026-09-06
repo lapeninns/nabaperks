@@ -770,6 +770,65 @@ A SHA is **equivalent** only when every compared lane satisfies all three rules
 and no expected lane is missing. Otherwise it is **divergent** (a rule failed)
 or **incomplete** (evidence is missing or unusable).
 
+### 4.4.1 Read-only comparison command
+
+`shadowMode.qualification` in `config/local-ci-contract.json` pins the test
+floors, skip ceilings and 4,500-second PR/main budget. The baseline is the
+complete local PR proof on `79b8a048a3c64a7340db04635fe1143442888f9d`, after the
+non-baseline accessibility tags were corrected. Its browser skips are the
+existing DB-free fixture and project-specific skips. Hosted results must
+independently satisfy those same ceilings. The two command-only lanes, quality
+and print-kit, have explicit zero floors because they do not run a countable
+node:test or Playwright suite. This does not exempt their exit status.
+
+Save the **full** local check response with `gh api repos/lapeninns/nabaperks/check-runs/<id>`.
+The command below validates the pinned App ID, check name, completed status and
+SHA, reads the embedded published lane summary, and measures elapsed time from
+`started_at` to `completed_at`. Listing check runs is insufficient because that
+endpoint can truncate the embedded summary.
+
+Prepare hosted evidence from the matching CI run's complete job logs and job
+conclusions. Collect every expected shard exactly once: 32 per functional
+browser project and eight per accessibility project. Strip GitHub timestamps
+and ANSI colour codes before using `parseLaneCounts` from
+`ops/local-ci/agent/runner.mjs`; retain source run/job IDs and raw logs beside
+the evidence. Do not infer zero counts from missing logs. Split the hosted
+quality job into its hygiene and print-kit command results, each with its
+actual status and explicit zero test counts.
+
+The hosted JSON envelope has `schema: "nabaperks.lane-result.v1"`,
+`plane: "hosted"`, the exact `headSha`, `profile: "pr"` or `"main"`, a run
+`conclusion`, and a `lanes` array. Each lane contains `laneId`, `status`,
+`testsRun`, `testsPassed`, `testsFailed`, `testsSkipped` and `flaky`. The
+comparison covers the ten lanes named in the contract; keep hosted-only visual,
+Lighthouse and governance evidence separately with its result and reason for
+exclusion. The run conclusion here describes these compared lanes, not a
+hosted-only job. Provider authenticity and complete log collection remain the
+operator's responsibility; the offline comparator cannot authenticate a saved
+file or reconstruct an omitted shard.
+
+```sh
+pnpm ops:ci:shadow-compare -- \
+  --sha <40-hex-PR-head> --profile pr \
+  --local-check /tmp/local-check.json \
+  --hosted-evidence /tmp/hosted-evidence.json
+```
+
+The JSON output separates `verdict` (equivalent/divergent/incomplete) from the
+absolute local `budget` result. Missing lanes, duplicate lanes, wrong identities,
+missing counts and absent limits are incomplete. Both planes reporting the same
+unexpected skips or zero tests still fails the ceilings/floors. The command
+exits nonzero for a non-equivalent result or an exceeded budget. It never writes
+a GitHub check, changes routing, or promotes a gate. Preserve each output in the
+ledger in attempt order. `shadowEquivalenceStreak` tallies PR comparison outputs;
+repeated heads do not increase the count, and an ineligible attempt resets it.
+
+This command does not certify the full cutover. Three consecutive PR heads,
+a complete main profile, mutation at concurrency eight within 75 minutes, and
+the fork/fallback proofs remain separate requirements. A floor decrease or skip
+ceiling increase needs a documented coverage change in the ledger; do not adjust
+limits merely to accept a failed comparison.
+
 ### 4.5 Recording the outcome
 
 For each of the three SHAs, record in the ledger issue:
