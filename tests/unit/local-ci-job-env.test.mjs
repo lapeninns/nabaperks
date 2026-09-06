@@ -439,6 +439,44 @@ test("a background service still starts after the command it depends on", () => 
   }
 })
 
+test("database jobs use the hosted Supabase registry without inheriting a host override", () => {
+  const checked = []
+  for (const [name, profile] of Object.entries(PROFILES)) {
+    for (const lane of profile.lanes) {
+      if (!lane.commands.includes("supabase start")) continue
+      const env = buildJobEnv({
+        profile,
+        lane,
+        contract,
+        hostEnv: { SUPABASE_INTERNAL_IMAGE_REGISTRY: "host.example.test" },
+        runtimeEnv: {
+          ...RUNTIME_ENV,
+          NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon.jwt.fixture",
+          SUPABASE_SERVICE_ROLE_KEY: "service.jwt.fixture",
+          SUPABASE_DB_URL:
+            "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
+        },
+      })
+      assert.equal(env.SUPABASE_INTERNAL_IMAGE_REGISTRY, "ghcr.io")
+      checked.push(`${name}/${lane.id}`)
+    }
+  }
+  assert.deepEqual(checked, [
+    "pr/db",
+    "main/db",
+    "nightly/db",
+    "nightly/db-stress",
+  ])
+  assert.equal(
+    build({
+      hostEnv: { SUPABASE_INTERNAL_IMAGE_REGISTRY: "host.example.test" },
+    }).SUPABASE_INTERNAL_IMAGE_REGISTRY,
+    undefined,
+    "registry selection is a reviewed lane value, never host passthrough"
+  )
+})
+
 test("the database tier's Postgres URL stays on loopback, as its own guard demands", () => {
   // tests/db/helpers/db-target.mjs refuses any SUPABASE_DB_URL that is not
   // loopback, so no profile edit can aim the database tier at a real database.
