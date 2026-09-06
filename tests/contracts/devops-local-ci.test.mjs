@@ -608,63 +608,30 @@ test("both local CI runbooks carry the App permission boundary and the no-PR-cod
   assert.match(runbook, /No job lists it\s+in `needs:`/)
 })
 
-test("the local a11y lanes record their one known coverage gap as data", () => {
-  const spec = "tests/e2e/customer-join-direct-live-db.spec.ts"
-
-  // The premise of the gap, verified against the tree rather than trusted:
-  // the spec claims @visual, makes no screenshot assertion, and the hosted
-  // a11y job - unlike every local lane - does not filter @visual out.
-  const specSource = read(spec)
-  assert.match(specSource, /test\.describe\("@customer-flow @a11y @visual /)
-  assert.doesNotMatch(specSource, /toHaveScreenshot/)
+test("non-baseline accessibility journeys stay in both planes' selections", () => {
+  for (const spec of [
+    "tests/e2e/customer-join-direct-live-db.spec.ts",
+    "tests/e2e/merchant-id-verification-flow.ts",
+  ]) {
+    const source = read(spec)
+    assert.match(source, /@a11y/)
+    assert.doesNotMatch(source, /@visual|toHaveScreenshot/)
+  }
   const hostedA11y = jobSlice(read(CI_PATH), "a11y")
   assert.match(hostedA11y, /pnpm test:a11y -- --project=/)
   assert.doesNotMatch(hostedA11y, /--grep-invert @visual/)
-
   for (const name of PROFILE_NAMES) {
     const profile = readJson(PROFILE_PATHS[name])
-    const a11yLanes = profile.lanes.filter((lane) =>
-      lane.id.startsWith("a11y-")
-    )
-    assert.equal(
-      a11yLanes.length,
-      2,
-      `${name} must run two accessibility lanes`
-    )
-
-    for (const lane of a11yLanes) {
-      const where = `${name}/${lane.id}`
-      assert.ok(
-        Array.isArray(lane.knownLocalGaps),
-        `${where} must declare knownLocalGaps`
-      )
-      const gap = lane.knownLocalGaps.find((entry) => entry.spec === spec)
-      assert.ok(gap, `${where} must record the ${spec} gap`)
-      assert.equal(gap.droppedBy, "--grep-invert @visual")
-      assert.deepEqual(gap.describeTags, ["@customer-flow", "@a11y", "@visual"])
-      assert.match(gap.reason, /toHaveScreenshot/)
-      assert.match(gap.reason, /process\.platform/)
-      assert.ok(
-        gap.hostedCoverage.some((entry) => /\ba11y\b/.test(entry)),
-        `${where} must name the hosted job that still covers the spec`
-      )
-      assert.equal(
-        gap.coverageLostOverall,
-        false,
-        `${where}: cutover step 1 does not touch the hosted tiers, so nothing is lost overall`
-      )
-      assert.match(gap.resolution, /@visual/)
-    }
-
-    // Only the lanes that actually diverge from hosted may claim a gap; an
-    // empty or blanket list elsewhere would make the field meaningless.
-    for (const lane of profile.lanes) {
-      if (lane.id.startsWith("a11y-")) continue
-      assert.equal(
-        lane.knownLocalGaps,
-        undefined,
-        `${name}/${lane.id} must not claim a coverage gap it does not have`
-      )
+    const lanes = profile.lanes.filter((lane) => lane.id.startsWith("a11y-"))
+    assert.equal(lanes.length, 2)
+    for (const lane of lanes) {
+      assert.equal(lane.knownLocalGaps, undefined)
+      for (const command of lane.commands.filter((entry) =>
+        entry.includes("test:a11y")
+      )) {
+        assert.match(command, /--grep-invert @visual/)
+        assert.match(command, /--ignore-snapshots/)
+      }
     }
   }
 })

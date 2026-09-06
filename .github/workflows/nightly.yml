@@ -116,13 +116,10 @@ jobs:
   mutation:
     name: Mutation testing
     runs-on: ubuntu-latest
-    # Stryker's `command` runner only supports coverageAnalysis: "off", so the
-    # whole 798-test unit suite re-runs for every mutant across the 8 files in
-    # stryker.conf.json. That has been sitting on the old 60-minute ceiling for
-    # weeks (60m04s, 59m18s, 60m18s, 60m18s on main across 07-23..07-26) and
-    # tipped from pass to timeout on 07-25. Raised so the job reports a real
-    # mutation score instead of a timeout; if it creeps back, shrink `mutate`
-    # rather than raising this again.
+    # The command runner checks the mutation targets' direct tests first and
+    # runs the complete unit suite for every survivor. An already detected
+    # mutant exits early instead of repeating unrelated browser-backed tests.
+    # Preserve the eight-file scope and the existing 90-minute job ceiling.
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

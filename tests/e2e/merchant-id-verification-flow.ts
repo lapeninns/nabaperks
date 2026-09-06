@@ -37,7 +37,7 @@ export function registerMerchantIdVerificationTests() {
       }
     })
 
-    test("@a11y @visual customer QR → owner sign-in → ID check → collected on both screens", async ({
+    test("@a11y customer QR → owner sign-in → ID check → collected on both screens", async ({
       page,
       context,
       browser,

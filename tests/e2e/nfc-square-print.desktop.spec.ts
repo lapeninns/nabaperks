@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test"
 import { PDFDocument } from "pdf-lib"
 
+import { gotoHydratedPage } from "./helpers/harness"
+
 const SQUARE_PAGE_POINTS = (100 * 72) / 25.4
 const SQUARE_PAGE_PIXELS = (100 * 96) / 25.4
 
@@ -33,7 +35,7 @@ test.describe("100 mm NFC square printing", () => {
   test("isolates the plate from the app shell at the physical page origin", async ({
     page,
   }) => {
-    await page.goto("/dev/nfc-square-preview?design=tap")
+    await gotoHydratedPage(page, "/dev/nfc-square-preview?design=tap")
     await page.evaluate(() => {
       const printRoot = document.querySelector(".qr-poster-print-root")
       if (!(printRoot instanceof HTMLElement)) {
@@ -51,50 +53,54 @@ test.describe("100 mm NFC square printing", () => {
 
     const printRoot = page.locator(".qr-poster-print-root")
     const plate = printRoot.locator('[data-nfc-face="square-front"]')
-    const geometry = await printRoot.evaluate((element) => {
-      const rootBounds = element.getBoundingClientRect()
-      const plateElement = element.querySelector(
-        '[data-nfc-face="square-front"]'
-      )
-      if (!(plateElement instanceof HTMLElement)) {
-        throw new Error("NFC square plate was not rendered")
-      }
-      const plateBounds = plateElement.getBoundingClientRect()
-
-      return {
-        root: {
-          left: rootBounds.left,
-          top: rootBounds.top,
-          width: rootBounds.width,
-          height: rootBounds.height,
-        },
-        plate: {
-          left: plateBounds.left,
-          top: plateBounds.top,
-          width: plateBounds.width,
-          height: plateBounds.height,
-          scrollWidth: plateElement.scrollWidth,
-          scrollHeight: plateElement.scrollHeight,
-        },
-      }
-    })
-
-    await expect(page.locator(".qr-poster-chrome")).toBeHidden()
     await expect(plate).toBeVisible()
-    expect(geometry.root.left).toBeCloseTo(0, 1)
-    expect(geometry.root.top).toBeCloseTo(0, 1)
-    expect(geometry.root.width).toBeCloseTo(SQUARE_PAGE_PIXELS, 0)
-    expect(geometry.root.height).toBeCloseTo(SQUARE_PAGE_PIXELS, 0)
-    expect(geometry.plate.left).toBeCloseTo(0, 1)
-    expect(geometry.plate.top).toBeCloseTo(0, 1)
-    expect(geometry.plate.width).toBeCloseTo(SQUARE_PAGE_PIXELS, 0)
-    expect(geometry.plate.height).toBeCloseTo(SQUARE_PAGE_PIXELS, 0)
-    expect(geometry.plate.scrollWidth).toBeLessThanOrEqual(
-      Math.ceil(geometry.plate.width)
-    )
-    expect(geometry.plate.scrollHeight).toBeLessThanOrEqual(
-      Math.ceil(geometry.plate.height)
-    )
+    await expect(page.locator(".qr-poster-chrome")).toBeHidden()
+    // WebKit can expose the previous layout immediately after print emulation.
+    // Re-read geometry; all physical-size and origin tolerances stay exact.
+    await expect(async () => {
+      const geometry = await printRoot.evaluate((element) => {
+        const rootBounds = element.getBoundingClientRect()
+        const plateElement = element.querySelector(
+          '[data-nfc-face="square-front"]'
+        )
+        if (!(plateElement instanceof HTMLElement)) {
+          throw new Error("NFC square plate was not rendered")
+        }
+        const plateBounds = plateElement.getBoundingClientRect()
+
+        return {
+          root: {
+            left: rootBounds.left,
+            top: rootBounds.top,
+            width: rootBounds.width,
+            height: rootBounds.height,
+          },
+          plate: {
+            left: plateBounds.left,
+            top: plateBounds.top,
+            width: plateBounds.width,
+            height: plateBounds.height,
+            scrollWidth: plateElement.scrollWidth,
+            scrollHeight: plateElement.scrollHeight,
+          },
+        }
+      })
+
+      expect(geometry.root.left).toBeCloseTo(0, 1)
+      expect(geometry.root.top).toBeCloseTo(0, 1)
+      expect(geometry.root.width).toBeCloseTo(SQUARE_PAGE_PIXELS, 0)
+      expect(geometry.root.height).toBeCloseTo(SQUARE_PAGE_PIXELS, 0)
+      expect(geometry.plate.left).toBeCloseTo(0, 1)
+      expect(geometry.plate.top).toBeCloseTo(0, 1)
+      expect(geometry.plate.width).toBeCloseTo(SQUARE_PAGE_PIXELS, 0)
+      expect(geometry.plate.height).toBeCloseTo(SQUARE_PAGE_PIXELS, 0)
+      expect(geometry.plate.scrollWidth).toBeLessThanOrEqual(
+        Math.ceil(geometry.plate.width)
+      )
+      expect(geometry.plate.scrollHeight).toBeLessThanOrEqual(
+        Math.ceil(geometry.plate.height)
+      )
+    }).toPass({ timeout: 5_000 })
   })
 
   test("generates one native 100×100 mm browser PDF page", async ({

@@ -12,7 +12,7 @@
   ],
   "testRunner": "command",
   "commandRunner": {
-    "command": "node --import ./tests/support/register-alias.mjs --test tests/unit/*.test.mjs"
+    "command": "node scripts/run-mutation-tests.mjs"
   },
   "coverageAnalysis": "off",
   "reporters": ["progress", "clear-text", "html"],
@@ -20,5 +20,6 @@
     "high": 80,
     "low": 60,
     "break": 50
-  }
+  },
+  "concurrency": 2
 }
