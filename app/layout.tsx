@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next"
-import localFont from "next/font/local"
+import { BRAND_FONT_CLASSES, BRAND_FONT_VARIABLES } from "@/lib/brand-fonts"
 
 import "./globals.css"
 import { PlaywrightHydrationSignal } from "@/components/dev-tools/playwright-hydration-signal"
@@ -14,43 +14,6 @@ import {
   SITE_URL,
   websiteSchema,
 } from "@/lib/seo/structured-data"
-
-const bricolageGrotesque = localFont({
-  src: [
-    {
-      path: "../assets/fonts/BricolageGrotesque-Regular.ttf",
-      weight: "400",
-      style: "normal",
-    },
-    {
-      path: "../assets/fonts/BricolageGrotesque-Bold.ttf",
-      weight: "700",
-      style: "normal",
-    },
-  ],
-  variable: "--font-bricolage-grotesque",
-  display: "swap",
-})
-
-const spaceMono = localFont({
-  src: [
-    {
-      path: "../assets/fonts/SpaceMono-Regular.ttf",
-      weight: "400",
-      style: "normal",
-    },
-    {
-      path: "../assets/fonts/SpaceMono-Bold.ttf",
-      weight: "700",
-      style: "normal",
-    },
-  ],
-  variable: "--font-space-mono",
-  display: "swap",
-  // This supporting display face should not compete with the primary body and
-  // heading face on the critical render path.
-  preload: false,
-})
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -112,7 +75,8 @@ export default function RootLayout({
       suppressHydrationWarning
       data-playwright-harness={isPlaywrightHarness ? "true" : undefined}
       data-scroll-behavior="smooth"
-      className={`${bricolageGrotesque.variable} ${spaceMono.variable} antialiased`}
+      className={`${BRAND_FONT_CLASSES} antialiased`}
+      style={BRAND_FONT_VARIABLES}
     >
       <body className="font-sans" inert={isPlaywrightHarness}>
         <ThemeProvider>
