@@ -614,7 +614,7 @@
       ],
       "timeoutMinutes": 120,
       "continueOnError": false,
-      "notes": "Transcribed from nightly.yml's mutation job, with `--concurrency 8` added. Stryker's `command` runner only supports coverageAnalysis \"off\", so the whole unit suite re-runs for every mutant across the eight files in stryker.conf.json; on a two-vCPU hosted runner that has been sitting on the ceiling (60m04s, 59m18s, 60m18s, 60m18s on main) and tipped from pass to timeout. Eight concurrent mutant workers on a 12-vCPU VM is what turns a timeout into a real mutation score. Chromium is required and not optional: Stryker replays the unit suite as its initial test run, and the four tests in tests/unit/google-review-pdf.test.mjs launch a real browser. Without it Stryker aborts with \"There were failed tests in the initial test run\" before mutating anything.",
+      "notes": "Transcribed from nightly.yml's mutation job, with `--concurrency 8` added. The command runner first runs tests that directly exercise the eight mutation targets. Every survivor then runs the complete unit suite; only already detected mutants exit early. The full mutation scope, score thresholds and 75-minute local lane budget remain required. Chromium remains required because the full unit suite includes browser-backed PDF tests. A focused sample is diagnostic only; qualification requires all mutants at concurrency eight within budget.",
       "needsDaemon": false
     },
     {
