@@ -585,7 +585,7 @@
       "concurrencyGroup": null,
       "commands": [
         "pnpm install --frozen-lockfile",
-        "pnpm mutation:check -- --concurrency 8"
+        "pnpm mutation:check --concurrency 8"
       ],
       "teardownCommands": [],
       "backgroundServices": [],

@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test"
 import { PDFDocument } from "pdf-lib"
 
+import { gotoHydratedPage } from "./helpers/harness"
+
 const SQUARE_PAGE_POINTS = (100 * 72) / 25.4
 const SQUARE_PAGE_PIXELS = (100 * 96) / 25.4
 
@@ -33,7 +35,7 @@ test.describe("100 mm NFC square printing", () => {
   test("isolates the plate from the app shell at the physical page origin", async ({
     page,
   }) => {
-    await page.goto("/dev/nfc-square-preview?design=tap")
+    await gotoHydratedPage(page, "/dev/nfc-square-preview?design=tap")
     await page.evaluate(() => {
       const printRoot = document.querySelector(".qr-poster-print-root")
       if (!(printRoot instanceof HTMLElement)) {
@@ -51,6 +53,7 @@ test.describe("100 mm NFC square printing", () => {
 
     const printRoot = page.locator(".qr-poster-print-root")
     const plate = printRoot.locator('[data-nfc-face="square-front"]')
+    await expect(plate).toBeVisible()
     const geometry = await printRoot.evaluate((element) => {
       const rootBounds = element.getBoundingClientRect()
       const plateElement = element.querySelector(

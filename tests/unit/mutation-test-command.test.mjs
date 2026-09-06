@@ -1,8 +1,28 @@
 import assert from "node:assert/strict"
-import { readdirSync } from "node:fs"
+import { readFileSync, readdirSync } from "node:fs"
 import { test } from "node:test"
+import { StrykerCli } from "@stryker-mutator/core"
 
 import { runMutationTests } from "../../scripts/run-mutation-tests.mjs"
+
+test("the real Stryker CLI parses the nightly profile as eight workers", () => {
+  const profile = JSON.parse(
+    readFileSync("ops/local-ci/profiles/nightly.json", "utf8")
+  )
+  const command = profile.lanes
+    .find(({ id }) => id === "mutation")
+    .commands.find((value) => value.startsWith("pnpm mutation:check "))
+  let parsed
+  new StrykerCli(
+    ["node", "stryker", "run", ...command.split(" ").slice(2)],
+    undefined,
+    async (options) => {
+      parsed = options
+    }
+  ).run()
+  assert.equal(parsed.concurrency, 8)
+  assert.equal(parsed.configFile, undefined)
+})
 
 test("a survivor is checked against every unit test, including newly added files", () => {
   const commands = []

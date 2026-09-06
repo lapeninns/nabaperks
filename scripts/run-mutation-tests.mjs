@@ -41,7 +41,7 @@ export function runMutationTests({ run = spawnSync, list = readdirSync } = {}) {
         "--import",
         "./tests/support/register-alias.mjs",
         "--test",
-        "--test-concurrency=2",
+        "--test-concurrency=1",
         ...files,
       ],
       { stdio: "inherit", env: process.env }
