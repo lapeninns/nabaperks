@@ -659,3 +659,11 @@ test("non-baseline accessibility journeys stay in both planes' selections", () =
     }
   }
 })
+
+test("the profile guide preserves complete hosted gating and retires field-only cutover", () => {
+  const guide = read("ops/local-ci/profiles/README.md")
+  assert.match(guide, /all nine hosted roots/)
+  assert.match(guide, /field-flip procedure is superseded/)
+  assert.match(guide, /trusted verifier independent of candidate code/)
+  assert.doesNotMatch(guide, /needs exactly `\[fast, build\]`/)
+})
