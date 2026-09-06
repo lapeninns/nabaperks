@@ -114,10 +114,11 @@ without resolving them.
   token. ARM64 Linux resolves the same `-linux` filenames as the hosted x86-64
   baselines, so every local Playwright invocation carries `--grep-invert @visual`
   **and** `--ignore-snapshots`. Visual regression must stay GitHub-hosted.
-- **`tests/e2e/customer-join-direct-live-db.spec.ts:19`** is tagged `@visual` but
-  makes zero `toHaveScreenshot` calls, so `--grep-invert @visual` drops it from
-  the local a11y lanes. Recorded in `knownLocalGaps` in the profiles. Retagging
-  it would change what the hosted visual tier runs — decide deliberately.
+- **Non-baseline accessibility journeys now have matching selection.** The
+  direct customer-join and merchant ID-verification journeys retain `@a11y`
+  but no longer claim `@visual`; neither compares pixel baselines. The stale
+  `knownLocalGaps` records have been removed. Existing fixture-dependent skips
+  remain, and the local snapshot guard still excludes actual visual tests.
 - **Unsharded Playwright against one webpack dev server is fatal** (heap OOM,
   recorded in `nightly.yml` as run 30196429475). Local lanes shard 1/8; hosted
   uses 1/32 because hosted sharding also buys runner parallelism a single VM
