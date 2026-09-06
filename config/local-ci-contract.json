@@ -7,7 +7,7 @@
   "allowedHeadRepository": "lapeninns/nabaperks",
   "cutoverStep": 1,
   "stage": "bridge-shadow",
-  "description": "Single source of truth shared by the local CI agent (ops/local-ci), the bridge job in .github/workflows/ci.yml, the nightly proof verifier, and the contract tests. Cutover step 1 ships the agent and the bridge advisory: no job in ci.yml is deleted, renamed, or newly depended upon, and release-gate still needs exactly [fast, build].",
+  "description": "Single source of truth for the local CI agent, independent advisory observer, nightly verifier and contract tests. Hosted Release gate requires complete hosted validation; local evidence remains advisory at cutover step 1.",
   "githubApp": {
     "name": "Nabaperks Local CI",
     "appId": 4839346,
@@ -28,7 +28,7 @@
   "bridge": {
     "job": "local-proof",
     "checkName": "Local CI proof",
-    "workflow": ".github/workflows/ci.yml",
+    "workflow": ".github/workflows/local-ci-shadow.yml",
     "script": "scripts/check-local-ci-proof.mjs",
     "timeoutMinutes": 120,
     "pollIntervalSeconds": 30,
@@ -36,7 +36,8 @@
     "requiredCheck": false,
     "dependents": [],
     "headShaRule": "On pull_request the bridge polls the PR head SHA (github.event.pull_request.head.sha), which must differ from GITHUB_SHA; on push it polls GITHUB_SHA, which must equal it. A mismatch fails the job in seconds with a self-describing message rather than timing out.",
-    "notes": "Additive only at cutover step 1. No job in ci.yml lists local-proof in its needs, so release-gate's merge-blocking surface is bit-for-bit today's [fast, build]. Step 3 is what flips enforcement to blocking."
+    "notes": "Hosted observation is a single read in an independent workflow, with no CI or release dependents. timeoutMinutes remains the optional polling/local execution deadline, not the observer job duration. Configuration alone cannot grant merge authority; the redesign requires a separately trusted verifier and qualified isolation.",
+    "observationTimeoutMinutes": 2
   },
   "nightlyProof": {
     "maxAgeHours": 36,
@@ -52,7 +53,7 @@
     "requiredConsecutiveEquivalent": 3,
     "ledgerIssueTitle": "[Local CI] Shadow qualification ledger",
     "flipsAtCutoverStep": 3,
-    "notes": "While enabled the agent publishes results and the bridge reports them, but no merge decision depends on them. Cutover step 3 sets enabled to false in the same commit that flips bridge.enforcement to blocking.",
+    "notes": "The agent publishes eventual App results; the independent hosted observer takes one snapshot without waiting. No merge decision depends on either. A future enforced cutover requires a trusted verifier and qualification, not only a configuration flip.",
     "qualification": {
       "profiles": ["pr", "main"],
       "maxProfileDurationSeconds": 4500,

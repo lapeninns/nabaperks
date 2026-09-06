@@ -35,10 +35,8 @@ const PROFILE_PATHS = Object.freeze({
 
 /**
  * Every job id `.github/workflows/ci.yml` declared before the local CI plane
- * existed, in file order. Cutover step 1 is additive: this list may only ever
- * gain the bridge job at the end. A deletion, a rename or a reorder is what
- * this array exists to catch, and step 3 is where it is legitimately rewritten
- * (docs/operations/local-ci-cutover.md section 3.1).
+ * existed, in file order. The redesign preserves their workloads while moving
+ * advisory observation into its own bounded workflow.
  */
 const HOSTED_JOBS = Object.freeze([
   "fast",
@@ -165,9 +163,10 @@ test("the local CI contract pins the numbers the whole plane is built around", (
   ])
 })
 
-test("cutover step 1 cannot change what blocks a merge", () => {
+test("hosted proof is complete and shadow observation cannot hold release open", () => {
   const contract = readJson(CONTRACT_PATH)
   const ci = read(CI_PATH)
+  const shadow = read(contract.bridge.workflow)
   const bridgeJob = contract.bridge.job
 
   // 1. The contract itself says the bridge is inert.
@@ -178,9 +177,13 @@ test("cutover step 1 cannot change what blocks a merge", () => {
   assert.equal(contract.shadowMode.flipsAtCutoverStep, 3)
   assert.equal(contract.nightlyProof.enforcement, "advisory")
 
-  // 2. Every job that existed before this pass still exists, in order, and the
-  //    bridge is the single addition. Nothing was deleted or renamed.
-  assert.deepEqual(declaredJobIds(ci), [...HOSTED_JOBS, bridgeJob])
+  // The whole CI workflow contains only hosted proof; observation is separate.
+  assert.deepEqual(declaredJobIds(ci), HOSTED_JOBS)
+  assert.equal(
+    contract.bridge.workflow,
+    ".github/workflows/local-ci-shadow.yml"
+  )
+  assert.deepEqual(declaredJobIds(shadow), [bridgeJob])
   for (const job of HOSTED_JOBS) {
     assert.match(
       ci,
@@ -189,9 +192,7 @@ test("cutover step 1 cannot change what blocks a merge", () => {
     )
   }
 
-  // 3. The release gate still needs exactly [fast, build], and its own body
-  //    says nothing about the bridge. The slice is bounded, so this cannot
-  //    pass by accident on a renamed job (jobSlice asserts the anchor).
+  // All existing workload roots are required; no local observation is evidence.
   const releaseGate = jobSlice(ci, "release-gate")
   assert.match(releaseGate, /\n {4}name: Release gate\n/)
   const needsBlock = releaseGate.match(
@@ -203,10 +204,23 @@ test("cutover step 1 cannot change what blocks a merge", () => {
       .trim()
       .split("\n")
       .map((line) => line.trim().replace(/^- /, "")),
-    ["fast", "build"]
+    [
+      "fast",
+      "quality",
+      "build",
+      "e2e",
+      "a11y",
+      "visual",
+      "lighthouse",
+      "zap-baseline",
+      "db",
+    ]
   )
-  assert.match(releaseGate, /needs\.fast\.result/)
-  assert.match(releaseGate, /needs\.build\.result/)
+  assert.match(releaseGate, /CI_REQUIRED_EVIDENCE: \$\{\{ toJSON\(needs\) \}\}/)
+  assert.match(releaseGate, /node scripts\/ci\/verify-required-evidence\.mjs/)
+  assert.doesNotMatch(releaseGate, /continue-on-error/)
+  for (const job of HOSTED_JOBS)
+    assert.doesNotMatch(jobSlice(ci, job), /continue-on-error/)
   assert.doesNotMatch(releaseGate, new RegExp(escapeRegExp(bridgeJob)))
 
   // 4. No job anywhere lists the bridge in `needs:`. The positive control
@@ -222,9 +236,9 @@ test("cutover step 1 cannot change what blocks a merge", () => {
 
   // 5. The bridge job exists, is advisory in the workflow as well as in the
   //    contract, depends on nothing, and holds no write permission.
-  const occurrences = ci.split(`\n  ${bridgeJob}:\n`).length - 1
+  const occurrences = shadow.split(`\n  ${bridgeJob}:\n`).length - 1
   assert.equal(occurrences, 1, `${bridgeJob} must be declared exactly once`)
-  const bridge = jobSlice(ci, bridgeJob)
+  const bridge = jobSlice(shadow, bridgeJob)
   assert.match(
     bridge,
     new RegExp(`\\n {4}name: ${escapeRegExp(contract.bridge.checkName)}\\n`)
@@ -233,10 +247,17 @@ test("cutover step 1 cannot change what blocks a merge", () => {
   assert.match(
     bridge,
     new RegExp(
-      `\\n {4}timeout-minutes: ${escapeRegExp(contract.bridge.timeoutMinutes)}\\n`
+      `\\n {4}timeout-minutes: ${escapeRegExp(contract.bridge.observationTimeoutMinutes)}\\n`
     )
   )
   assert.match(bridge, new RegExp(escapeRegExp(contract.bridge.script)))
+  assert.match(bridge, /LOCAL_CI_OBSERVE_ONCE: "true"/)
+  assert.equal(contract.bridge.observationTimeoutMinutes, 2)
+  const database = read(".github/workflows/production-database.yml")
+  assert.match(database, /workflows: \["CI"\]/)
+  assert.match(database, /require_successful_workflow ci\.yml 1/)
+  assert.match(database, /require_successful_workflow codeql\.yml 60/)
+  assert.doesNotMatch(database, /local-ci-shadow|Local CI shadow observation/)
   assert.doesNotMatch(bridge, /\n {4}needs:/)
   assert.match(bridge, /\n {6}checks: read\n/)
   assert.match(bridge, /\n {6}contents: read\n/)
@@ -601,11 +622,14 @@ test("both local CI runbooks carry the App permission boundary and the no-PR-cod
   // The runbook is the one that has to make the boundary auditable.
   const runbook = read("docs/operations/local-ci.md")
   assert.match(runbook, /grep -RIn "docker\\\.sock" ops\/local-ci\//)
+  assert.equal(contract.cutoverStep, 1)
+  assert.match(runbook, /local-ci-shadow\.yml/)
+  assert.match(runbook, /LOCAL_CI_OBSERVE_ONCE=true/)
   assert.match(
     runbook,
-    new RegExp(`"cutoverStep": ${escapeRegExp(contract.cutoverStep)}`)
+    /Missing or pending proof is observational, not test success/
   )
-  assert.match(runbook, /No job lists it\s+in `needs:`/)
+  assert.match(runbook, /superseded/)
 })
 
 test("non-baseline accessibility journeys stay in both planes' selections", () => {

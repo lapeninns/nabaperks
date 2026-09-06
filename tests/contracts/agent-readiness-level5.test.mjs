@@ -153,30 +153,22 @@ test("Given routine pull requests When CI runs Then deep browser proof is sharde
     )
   }
 
-  // The stable required check covers deterministic source and build proof;
-  // longer platform suites remain visible without delaying routine merges.
+  // The stable required check covers every existing hosted validation root.
   assert.match(ci, /name: Typecheck and build/)
   assert.match(ci, /needs: \[fast, quality, build\]/)
   assert.match(ci, /name: Release gate/)
-  for (const dependency of ["fast", "build"]) {
-    assert.match(
-      ci,
-      new RegExp(`release-gate:[\\s\\S]*?- ${dependency}`),
-      `Release gate must require ${dependency}`
-    )
-  }
-  for (const nonBlockingDependency of [
-    "e2e-gate",
-    "a11y-gate",
-    "visual-gate",
-    "lighthouse-gate",
+  for (const dependency of [
+    "fast",
+    "quality",
+    "build",
+    "e2e",
+    "a11y",
+    "visual",
+    "lighthouse",
     "zap-baseline",
     "db",
   ]) {
-    assert.doesNotMatch(
-      ci.slice(ci.indexOf("\n  release-gate:")),
-      new RegExp(`- ${nonBlockingDependency}`)
-    )
+    assert.match(ci, new RegExp(`release-gate:[\\s\\S]*?- ${dependency}\\n`))
   }
   const lighthouseJob = ci.slice(
     ci.indexOf("\n  lighthouse:"),
