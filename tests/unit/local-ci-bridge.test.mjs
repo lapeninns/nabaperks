@@ -273,6 +273,51 @@ const POLLER_ENV = Object.freeze({
   LOCAL_CI_HEAD_SHA: REQUESTED_SHA,
 })
 
+test("observe-once reports current state with one fetch and no polling sleeps", async () => {
+  for (const runs of [
+    [],
+    [checkRun({ status: "in_progress", conclusion: null })],
+    [checkRun()],
+    [checkRun({ conclusion: "failure" })],
+    [checkRun({ conclusion: "timed_out" })],
+    [checkRun({ app: { id: 15368, slug: "github-actions" } })],
+  ]) {
+    const result = await pollFor({
+      responses: [runs],
+      env: { LOCAL_CI_OBSERVE_ONCE: "true" },
+    })
+    assert.equal(result.code, 0)
+    assert.equal(result.urls.length, 1)
+    assert.deepEqual(result.sleeps, [])
+    assert.match(
+      result.logs.at(-1),
+      /consult the App check for eventual local validation/
+    )
+    assert.ok(result.logs.some((line) => line.startsWith("observation (")))
+    assert.ok(!result.logs.some((line) => line.startsWith("accepted:")))
+  }
+})
+
+test("observe-once cannot soften an enforcing or inconsistent contract", async () => {
+  for (const overrides of [
+    { shadowMode: { ...contract.shadowMode, enabled: false } },
+    { shadowMode: {} },
+    { bridge: { ...contract.bridge, enforcement: "blocking" } },
+    { bridge: { ...contract.bridge, requiredCheck: true } },
+    { bridge: { ...contract.bridge, dependents: ["release-gate"] } },
+  ]) {
+    await assert.rejects(
+      runLocalProofCheck({
+        env: { ...POLLER_ENV, LOCAL_CI_OBSERVE_ONCE: "true" },
+        contract: { ...contract, ...overrides },
+        fetchImpl: () => assert.fail("must reject before calling the provider"),
+        sleep: () => assert.fail("must never sleep"),
+      }),
+      /observe-once requires a non-required advisory shadow contract/
+    )
+  }
+})
+
 /**
  * The contract as cutover step 3 leaves it: the App provisioned, the bridge
  * blocking, shadow mode off. `validateContract` refuses a blocking bridge

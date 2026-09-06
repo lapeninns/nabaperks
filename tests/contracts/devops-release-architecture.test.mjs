@@ -6,26 +6,28 @@ function read(path) {
   return readFileSync(path, "utf8")
 }
 
-test("CI exposes one stable release gate over deterministic merge proof", () => {
+test("CI exposes one stable release gate over complete hosted proof", () => {
   const ci = read(".github/workflows/ci.yml")
   const releaseGate = ci.slice(ci.indexOf("\n  release-gate:"))
-
-  assert.match(ci, /\n  e2e:\n[\s\S]*?\n    needs: fast\n/)
   assert.match(releaseGate, /name: Release gate/)
-  for (const dependency of ["fast", "build"]) {
-    assert.match(releaseGate, new RegExp(`- ${dependency}`))
-    assert.match(releaseGate, new RegExp(`needs\\.${dependency}\\.result`))
-  }
-  for (const nonBlockingDependency of [
-    "e2e-gate",
-    "a11y-gate",
-    "visual-gate",
-    "lighthouse-gate",
+  assert.match(releaseGate, /timeout-minutes: 3/)
+  for (const dependency of [
+    "fast",
+    "quality",
+    "build",
+    "e2e",
+    "a11y",
+    "visual",
+    "lighthouse",
     "zap-baseline",
     "db",
   ]) {
-    assert.doesNotMatch(releaseGate, new RegExp(`- ${nonBlockingDependency}`))
+    assert.match(releaseGate, new RegExp(`      - ${dependency}\\n`))
   }
+  assert.match(releaseGate, /if: \$\{\{ always\(\) \}\}/)
+  assert.match(releaseGate, /CI_REQUIRED_EVIDENCE: \$\{\{ toJSON\(needs\) \}\}/)
+  assert.match(releaseGate, /node scripts\/ci\/verify-required-evidence\.mjs/)
+  assert.doesNotMatch(ci, /\n  local-proof:/)
 })
 
 test("successful application promotion verifies the exact production revision", () => {
