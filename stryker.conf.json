@@ -12,7 +12,7 @@
   ],
   "testRunner": "command",
   "commandRunner": {
-    "command": "node --import ./tests/support/register-alias.mjs --test --test-concurrency=1 tests/unit/*.test.mjs"
+    "command": "node --import ./tests/support/register-alias.mjs --test --test-concurrency=2 tests/unit/*.test.mjs"
   },
   "coverageAnalysis": "off",
   "reporters": ["progress", "clear-text", "html"],
