@@ -1,0 +1,85 @@
+{
+  "supabaseCliVersion": "2.106.0",
+  "cliSourceCommit": "bd39bcf5e613be87943f8bb8fe4ce75c8dfd84de",
+  "platform": "linux/arm64",
+  "images": [
+    {
+      "tag": "ghcr.io/supabase/postgres:17.6.1.134",
+      "digest": "sha256:be8d5f7272e8d80cf0d9e4955aecb2138467881f17a800e7317e8934f4d76c17",
+      "configDigest": "sha256:74a46dbece95a3aed95c338675d939964eb3632c175979ff88cb1088982d846f",
+      "compressedBytes": 364342763
+    },
+    {
+      "tag": "ghcr.io/supabase/kong:2.8.1",
+      "digest": "sha256:8a5a7357d6cbda1840574130d109fc37b8088750d32c87b50f3b7909b7975425",
+      "configDigest": "sha256:a5957d67fc55af3d11bdbd87de76f7480e3c4d8bcb715d6cfd01922780f46ea9",
+      "compressedBytes": 48524280
+    },
+    {
+      "tag": "ghcr.io/supabase/mailpit:v1.22.3",
+      "digest": "sha256:4ba592bb4e7292ce29b60e6abc487a5d91a2e686dc6ec839367d9f64d2253702",
+      "configDigest": "sha256:90a701565603e92e27b2341f06b8e790d03a777aa58dcd66b1a6fe4e00f4a305",
+      "compressedBytes": 12082474
+    },
+    {
+      "tag": "ghcr.io/supabase/postgrest:v14.13",
+      "digest": "sha256:77c56c839e49d5a037e93fd49de7822a65bcdeafc4b9e37338ead504e36ba307",
+      "configDigest": "sha256:d9f703dad8433308ec7a28b857df31391589c1d5cef121afffcec36a13d2fbb2",
+      "compressedBytes": 152398777
+    },
+    {
+      "tag": "ghcr.io/supabase/postgres-meta:v0.96.6",
+      "digest": "sha256:abbb468e4e5a14b5b4edd29caf1fa1d98ee606da89fed3bfc653a6f85985401a",
+      "configDigest": "sha256:81fd57e12193bf7bc949f80e8b70d61e96a43d3f48f4d3766df1f6080959632f",
+      "compressedBytes": 98826875
+    },
+    {
+      "tag": "ghcr.io/supabase/studio:2026.06.08-sha-8af2bb0",
+      "digest": "sha256:f08dbf673e26da7d8b6ae4310a64a0a10845562f432e18c5df99276b1242b497",
+      "configDigest": "sha256:db67f4d16952c92e010e71532be84384a0ec82accc7334c06610d4f69219d846",
+      "compressedBytes": 321605510
+    },
+    {
+      "tag": "ghcr.io/supabase/imgproxy:v3.8.0",
+      "digest": "sha256:97691a5e75c2cf38694917b6f78ab4900426a5905035e9e5057ab0a236254107",
+      "configDigest": "sha256:696a5c233e29165b01ba3a93ae5eceb67be624d5deaa9ed259683beb94f55102",
+      "compressedBytes": 58335050
+    },
+    {
+      "tag": "ghcr.io/supabase/edge-runtime:v1.74.1",
+      "digest": "sha256:65febd8e017bf9d5d83d2a89ad0be5aceb239a86be6eb957b8a580cc35b00254",
+      "configDigest": "sha256:9c969afa5866f1fa1423342ff076e253fe5e053ef33b9addaa73da0ffbf7b84e",
+      "compressedBytes": 378113351
+    },
+    {
+      "tag": "ghcr.io/supabase/vector:0.53.0-alpine",
+      "digest": "sha256:d2d5381f69b885c1b10d396623bf8d5ce825bcb8f8efcdb14a3154223c13b3b7",
+      "configDigest": "sha256:e7f63a77a2a67f809d40b35b956f5402c3358bf2b2839338b52b6ed533ba8a2e",
+      "compressedBytes": 56193673
+    },
+    {
+      "tag": "ghcr.io/supabase/gotrue:v2.189.0",
+      "digest": "sha256:cce6c1d00352f22ee7634066012830f69636c157017ea166634c48dbb58eefb7",
+      "configDigest": "sha256:46cc7cade1221616f0ce8d1c898e275a2b8ad849941edbe0e0f3b4857ac5e3a8",
+      "compressedBytes": 24891809
+    },
+    {
+      "tag": "ghcr.io/supabase/realtime:v2.106.0",
+      "digest": "sha256:1e86da6ac6c5f09049f23e938e860ac121201b8fc1039d01ca0e6ae3e45ac321",
+      "configDigest": "sha256:6530ffa08f4e18d62ae3d6734a2a2c72e20ea8d826b83b427b258d9d05e7fedd",
+      "compressedBytes": 120188450
+    },
+    {
+      "tag": "ghcr.io/supabase/storage-api:v1.60.15",
+      "digest": "sha256:69855b622f4e3f5835e5f2ee8d1bb414b7378b0ca283ff64ed836457eb4c0981",
+      "configDigest": "sha256:ddf64e642c19579a28b81c83ef41f6a22be7e2a34ed52d949decca945be21824",
+      "compressedBytes": 235139781
+    },
+    {
+      "tag": "ghcr.io/supabase/logflare:1.44.1",
+      "digest": "sha256:47686184a268e2a5574bfd985f006e0ae12a43d16f46fa78d9ebc41577aabc5d",
+      "configDigest": "sha256:f7236f8ce691c432938fde9079e411cbe9f1f763ecf43007c8c38450096ffbea",
+      "compressedBytes": 270834081
+    }
+  ]
+}

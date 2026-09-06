@@ -16,6 +16,7 @@ import { after, before, test } from "node:test"
 import { fileURLToPath } from "node:url"
 
 import { loadContract } from "../../ops/local-ci/core/contract.mjs"
+import { IMAGE_CACHE_MANIFEST_SHA256 } from "../../ops/local-ci/core/image-cache.mjs"
 import { partitionLogs } from "../../ops/local-ci/core/retention.mjs"
 import { createLoop } from "../../ops/local-ci/agent/loop.mjs"
 import {
@@ -1221,4 +1222,39 @@ test("nightly shutdown settles an outstanding interval wait", async () => {
   await waiting
   scheduler.stop()
   await run
+})
+
+test("host configuration loads an operator pin and refuses an explicitly missing pin", () => {
+  const stateRoot = mkdtempSync(join(tmpdir(), "nabaperks-cache-pin-"))
+  try {
+    const env = {
+      LOCAL_CI_GITHUB_APP_PRIVATE_KEY: "PEM",
+      LOCAL_CI_JOB_IMAGE: "nabaperks-ci-job:abc123",
+      LOCAL_CI_JOB_IMAGE_FILE: join(stateRoot, "job-image"),
+    }
+    const resolve = (overrides = {}) =>
+      resolveHostConfig({
+        env: { ...env, ...overrides },
+        contract: hostContract,
+        home: root,
+      })
+    assert.equal(resolve().imageCachePin, null)
+    assert.throws(
+      () =>
+        resolve({
+          LOCAL_CI_IMAGE_CACHE_PIN_FILE: join(stateRoot, "absent.json"),
+        }),
+      { code: "INVALID_IMAGE_CACHE" }
+    )
+    const pin = {
+      archiveSha256: "a".repeat(64),
+      manifestSha256: IMAGE_CACHE_MANIFEST_SHA256,
+    }
+    writeFileSync(join(stateRoot, "image-cache.json"), JSON.stringify(pin))
+    assert.deepEqual(resolve().imageCachePin, pin)
+    writeFileSync(join(stateRoot, "image-cache.json"), "{}")
+    assert.throws(() => resolve(), { code: "INVALID_IMAGE_CACHE" })
+  } finally {
+    rmSync(stateRoot, { recursive: true, force: true })
+  }
 })

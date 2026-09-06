@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { IMAGE_CACHE_MANIFEST_SHA256 } from "../../ops/local-ci/core/image-cache.mjs"
 import { EventEmitter } from "node:events"
 import { readFileSync } from "node:fs"
 import { test } from "node:test"
@@ -663,4 +664,69 @@ test("cancellation closes descendant output pipes before container cleanup", asy
     Date.now() - started < 3000,
     "descendant must not hold the output pipe open"
   )
+})
+
+test("a failed image preload prevents repository code and still removes the sidecar", async () => {
+  const { spawnFn, calls } = scriptedSpawn((argv) =>
+    argv.includes("image-cache-load")
+      ? { code: 1, stderr: "archive rejected" }
+      : {}
+  )
+  const runtime = createContainerRuntime({
+    contract,
+    vm: VM,
+    spawnFn,
+    imageCachePin: {
+      archiveSha256: "a".repeat(64),
+      manifestSha256: IMAGE_CACHE_MANIFEST_SHA256,
+    },
+  })
+  await assert.rejects(
+    () =>
+      runtime.withJobContainer({
+        ...IDENTITY,
+        image: IMAGE,
+        daemonImage: DAEMON_IMAGE,
+        command: ["bash", "-lc", "pnpm test:db"],
+        workspaceHostPath: "/var/lib/nabaperks-ci/runs/head",
+        env: {},
+        needsDaemon: true,
+      }),
+    { code: "IMAGE_CACHE_UNAVAILABLE" }
+  )
+  assert.equal(
+    calls.some((argv) => argv.includes(IMAGE)),
+    false
+  )
+  assert.ok(calls.some((argv) => argv.includes("image-cache-load")))
+  assert.deepEqual(calls.slice(-3).map(subCommand), ["rm", "rm", "network rm"])
+})
+
+test("only a daemon-backed lane loads images, and it loads before repository code", async () => {
+  for (const needsDaemon of [true, false]) {
+    const { spawnFn, calls } = scriptedSpawn()
+    const runtime = createContainerRuntime({
+      contract,
+      vm: VM,
+      spawnFn,
+      imageCachePin: {
+        archiveSha256: "a".repeat(64),
+        manifestSha256: IMAGE_CACHE_MANIFEST_SHA256,
+      },
+    })
+    await runtime.withJobContainer({
+      ...IDENTITY,
+      image: IMAGE,
+      daemonImage: DAEMON_IMAGE,
+      command: ["bash", "-lc", "pnpm test"],
+      workspaceHostPath: "/var/lib/nabaperks-ci/runs/head",
+      env: {},
+      needsDaemon,
+    })
+    const loaded = calls.findIndex((argv) => argv.includes("image-cache-load"))
+    const ran = calls.findIndex((argv) => argv.includes(IMAGE))
+    assert.ok(ran >= 0)
+    if (needsDaemon) assert.ok(loaded >= 0 && loaded < ran)
+    else assert.equal(loaded, -1)
+  }
 })

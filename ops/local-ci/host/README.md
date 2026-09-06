@@ -18,6 +18,10 @@ specific Apple silicon Mac.
 | `uninstall.sh`                 | Idempotent uninstaller. Removes only OS registrations unless told otherwise.           |
 | `../image/Dockerfile`          | The disposable per-job container image.                                                |
 
+For slow or interrupted registry downloads, provision the optional
+[verified Supabase image archive](../../../docs/operations/local-ci-image-cache.md).
+The archive is loaded into each fresh daemon before any job code runs.
+
 ## Host layout after installation
 
 ```
