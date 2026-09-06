@@ -1,15 +1,11 @@
 /** Read-only same-SHA evidence comparison. This module never changes a gate. */
-const COUNT_FIELDS = ["testsRun", "testsPassed", "testsFailed", "testsSkipped"]
-const COMPARABLE_STATUSES = new Set(["success", "failure", "timed_out"])
-const SCHEMA = "nabaperks.lane-result.v1"
-
-function requireCondition(condition, message) {
-  if (!condition) throw new TypeError(message)
-}
-
-function isCount(value) {
-  return Number.isSafeInteger(value) && value >= 0
-}
+import {
+  COUNT_FIELDS,
+  hasCounts,
+  indexEvidence,
+  isCount,
+  requireCondition,
+} from "./shadow-evidence.mjs"
 
 function validateLimits(contract, profile) {
   const limits = contract?.shadowMode?.qualification
@@ -40,62 +36,45 @@ function validateLimits(contract, profile) {
   return limits
 }
 
-function indexEvidence(evidence, plane, headSha, profile, expectedIds) {
-  requireCondition(
-    evidence?.schema === SCHEMA &&
-      evidence.plane === plane &&
-      evidence.headSha === headSha &&
-      evidence.profile === profile,
-    `${plane}: schema, plane, SHA or profile mismatch`
-  )
-  requireCondition(
-    COMPARABLE_STATUSES.has(evidence.conclusion),
-    `${plane}: incomplete or cancelled run`
-  )
-  requireCondition(Array.isArray(evidence.lanes), `${plane}: missing lanes`)
-  const indexed = new Map()
-  for (const lane of evidence.lanes) {
-    const label = `${plane}/${lane?.laneId}`
-    requireCondition(
-      expectedIds.includes(lane?.laneId) && !indexed.has(lane.laneId),
-      `${label}: unexpected or duplicate lane`
-    )
-    requireCondition(
-      lane.schema === SCHEMA &&
-        lane.plane === plane &&
-        lane.headSha === headSha &&
-        lane.profile === profile,
-      `${label}: schema, plane, SHA or profile mismatch`
-    )
-    requireCondition(
-      COMPARABLE_STATUSES.has(lane.status),
-      `${label}: incomplete or cancelled lane`
-    )
-    requireCondition(
-      COUNT_FIELDS.every((field) => isCount(lane[field])) &&
-        isCount(lane.flaky),
-      `${label}: missing or invalid counts`
-    )
-    requireCondition(
-      lane.testsRun ===
-        lane.testsPassed + lane.testsFailed + lane.testsSkipped + lane.flaky,
-      `${label}: inconsistent counts`
-    )
-    requireCondition(
-      lane.status !== "success" || (lane.testsFailed === 0 && lane.flaky === 0),
-      `${label}: successful lane contains failures or flakes`
-    )
-    indexed.set(lane.laneId, lane)
-  }
-  for (const id of expectedIds) {
-    requireCondition(indexed.has(id), `${plane}/${id}: missing expected lane`)
-  }
-  return indexed
-}
-
 function compareLane(id, limit, local, hosted) {
+  const selected = (lane) =>
+    Object.fromEntries(
+      ["status", ...COUNT_FIELDS, "flaky", "countsParsed", "blockedByLaneId"]
+        .filter((field) => lane[field] !== undefined)
+        .map((field) => [field, lane[field]])
+    )
+  const result = (verdict, reasons, blockedSkip = false) => ({
+    laneId: id,
+    minimumTests: limit.minimumTests,
+    maximumSkipped: limit.maximumSkipped,
+    local: selected(local),
+    hosted: selected(hosted),
+    verdict,
+    equivalent: verdict === "equivalent",
+    blockedSkip,
+    reasons,
+  })
+  const skipped = [local, hosted].filter((lane) => lane.status === "skipped")
+  if (skipped.length) {
+    return result(
+      "incomplete",
+      ["lane did not run"],
+      skipped.every((lane) => typeof lane.blockedByLaneId === "string")
+    )
+  }
   const reasons = []
   if (local.status !== hosted.status) reasons.push("status mismatch")
+  // Hygiene commands legitimately have no parser tally, but test lanes must.
+  const completeCounts = (lane) =>
+    hasCounts(
+      limit.kind === "commands" ? { ...lane, countsParsed: true } : lane
+    )
+  if (!completeCounts(local) || !completeCounts(hosted)) {
+    return result(reasons.length ? "divergent" : "incomplete", [
+      ...reasons,
+      "missing machine-readable test counts",
+    ])
+  }
   for (const field of COUNT_FIELDS) {
     if (local[field] !== hosted[field]) reasons.push(`${field} mismatch`)
   }
@@ -104,23 +83,16 @@ function compareLane(id, limit, local, hosted) {
     ["hosted", hosted],
   ]) {
     if (lane.testsRun < limit.minimumTests) reasons.push(`${plane} below floor`)
-    if (lane.testsSkipped > limit.maximumSkipped) {
+    if (lane.testsSkipped > limit.maximumSkipped)
       reasons.push(`${plane} exceeds skip ceiling`)
-    }
   }
-  const selected = (lane) =>
-    Object.fromEntries(
-      ["status", ...COUNT_FIELDS, "flaky"].map((field) => [field, lane[field]])
-    )
-  return {
-    laneId: id,
-    minimumTests: limit.minimumTests,
-    maximumSkipped: limit.maximumSkipped,
-    local: selected(local),
-    hosted: selected(hosted),
-    equivalent: reasons.length === 0,
-    reasons,
+  if (reasons.length) return result("divergent", reasons)
+  if (local.status !== "success") {
+    return result("incomplete", [
+      "matching failure counts do not establish the same cause; independent failure evidence is required",
+    ])
   }
+  return result("equivalent", [])
 }
 
 /**
@@ -156,9 +128,15 @@ export function compareShadowEvidence({
     const lanes = ids.map((id) =>
       compareLane(id, limits.lanes[id], localLanes.get(id), hostedLanes.get(id))
     )
-    const verdict = lanes.every((lane) => lane.equivalent)
-      ? "equivalent"
-      : "divergent"
+    const incomplete = lanes.filter((lane) => lane.verdict === "incomplete")
+    const divergent = lanes.some((lane) => lane.verdict === "divergent")
+    const verdict = incomplete.some((lane) => !lane.blockedSkip)
+      ? "incomplete"
+      : divergent
+        ? "divergent"
+        : incomplete.length
+          ? "incomplete"
+          : "equivalent"
     const budgetSatisfied =
       publishedDurationSeconds <= limits.maxProfileDurationSeconds
     return {
@@ -172,7 +150,9 @@ export function compareShadowEvidence({
         satisfied: budgetSatisfied,
       },
       lanes,
-      reasons: [],
+      reasons: lanes.flatMap((lane) =>
+        lane.reasons.map((reason) => `${lane.laneId}: ${reason}`)
+      ),
     }
   } catch (error) {
     return { ...base, reasons: [error.message], lanes: [] }
