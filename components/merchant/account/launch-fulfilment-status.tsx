@@ -17,11 +17,13 @@ const dateFormat = new Intl.DateTimeFormat("en-GB", {
 export function LaunchFulfilmentStatus({
   fulfilment,
   billingStatus,
+  now,
 }: {
   readonly fulfilment: MerchantLaunchFulfilment
   readonly billingStatus: string | null
+  readonly now?: Date
 }) {
-  const model = statusModel(fulfilment, billingStatus)
+  const model = statusModel(fulfilment, billingStatus, now)
   const trialEndPending =
     fulfilment.syncStatus === "pending" || fulfilment.syncStatus === "retry"
   const deliveryConfirmed = fulfilment.deliveredAt !== null
@@ -125,7 +127,8 @@ function formatLaunchDate(value: string): string {
 
 function statusModel(
   fulfilment: MerchantLaunchFulfilment,
-  billingStatus: string | null
+  billingStatus: string | null,
+  now?: Date
 ): {
   title: string
   detail: string
@@ -167,11 +170,14 @@ function statusModel(
     }
   }
   if (
-    hasLaunchPilotEnded({
-      billingStatus,
-      syncStatus: fulfilment.syncStatus,
-      confirmedStripeTrialEnd: fulfilment.confirmedStripeTrialEnd,
-    })
+    hasLaunchPilotEnded(
+      {
+        billingStatus,
+        syncStatus: fulfilment.syncStatus,
+        confirmedStripeTrialEnd: fulfilment.confirmedStripeTrialEnd,
+      },
+      now
+    )
   ) {
     return {
       title: "Your 28-day platform pilot has ended",

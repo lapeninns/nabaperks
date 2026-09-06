@@ -6,6 +6,9 @@ import type { MerchantLaunchFulfilment } from "@/lib/merchant/launch-fulfilment"
 
 export const dynamic = "force-dynamic"
 
+// Keep the dated pilot fixtures stable when the real clock passes their end.
+const HARNESS_NOW = new Date("2026-08-10T12:00:00.000Z")
+
 const BASE: MerchantLaunchFulfilment = {
   fulfilmentStatus: "awaiting_dispatch",
   deliveryUnknown: false,
@@ -89,6 +92,7 @@ async function TrialHarnessState({
       <LaunchFulfilmentStatus
         fulfilment={fulfilment}
         billingStatus={billingStatus}
+        now={HARNESS_NOW}
       />
     </div>
   )
