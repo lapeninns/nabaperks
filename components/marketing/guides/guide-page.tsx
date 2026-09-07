@@ -13,8 +13,15 @@ import {
   webPageSchema,
 } from "@/lib/seo/structured-data"
 
+import { GuideSpine } from "@/components/marketing/pubs/guide-spine"
+
 import { ComparisonTable } from "./comparison-table"
-import { GUIDES, PAPER_VS_QR_ROWS, type Guide } from "./guides-data"
+import {
+  GUIDES,
+  guideSectionId,
+  PAPER_VS_QR_ROWS,
+  type Guide,
+} from "./guides-data"
 
 /** Shared metadata recipe for the guide routes. */
 export function guidePageMetadata(guide: Guide): Metadata {
@@ -45,6 +52,15 @@ export function guidePageMetadata(guide: Guide): Metadata {
  * comparison table where the guide calls for it, and one clearly-priced CTA.
  */
 export function GuidePage({ guide }: { guide: Guide }) {
+  // The spine needs a jump target and a short label per section; a guide
+  // section carries only a heading, so both are derived from it. Deriving the
+  // id through `guideSectionId` is what keeps these `href`s and the
+  // `<section id>`s below in step.
+  const spineSections = guide.sections.map((section) => ({
+    id: guideSectionId(section.heading),
+    navLabel: section.heading,
+  }))
+
   return (
     <MarketingLayout>
       <Section width="narrow">
@@ -58,10 +74,28 @@ export function GuidePage({ guide }: { guide: Guide }) {
           <time dateTime={guide.updatedOn}>19 July 2026</time>
         </p>
       </Section>
-      <Section width="narrow" size="compact" as="div">
-        <article className="grid gap-8">
+      {/* `entrance={false}` for the same reason the hub sets it: a lingering
+          transform on this grid would become the spine's containing block and
+          break its sticky positioning. */}
+      <Section
+        width="narrow"
+        size="compact"
+        as="div"
+        entrance={false}
+        className="lg:grid lg:grid-cols-[minmax(0,10rem)_minmax(0,1fr)] lg:items-start lg:gap-10"
+      >
+        {/* Desktop only. 01#60 asks for a two-column *reading* layout; the
+            spine's phone disclosure is a separate affordance the guides have
+            not been signed off for, and adding it here would also move the
+            mobile visual baseline for no decision anyone made. */}
+        <GuideSpine sections={spineSections} className="hidden lg:block" />
+        <article className="grid gap-8 pt-6 lg:pt-0">
           {guide.sections.map((section) => (
-            <section key={section.heading} className="grid gap-3">
+            <section
+              key={section.heading}
+              id={guideSectionId(section.heading)}
+              className="grid scroll-mt-28 gap-3"
+            >
               <h2 className="text-xl leading-snug font-extrabold text-foreground">
                 {section.heading}
               </h2>
