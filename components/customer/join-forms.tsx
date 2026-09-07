@@ -11,6 +11,7 @@ import {
 } from "@/app/m/[merchantSlug]/join/actions"
 import { Eyebrow, MonoTag } from "@/components/brand"
 import { customerInputClass } from "@/components/customer/input-class"
+import { JoinActionBar } from "@/components/customer/join-action-bar"
 import { CustomerLegalConsentLinks } from "@/components/customer/legal-sheet"
 import { StatusBanner } from "@/components/loyalty"
 import type { JoinCard } from "@/lib/customer/experience/types"
@@ -165,7 +166,7 @@ export function CustomerJoinForm({
       {/* One flat wrapper, two inline checkboxes — the consent rows share a
           single surface instead of two stacked bordered cards, so the primary
           CTA stays above the fold on small screens. */}
-      <fieldset className="surface-card grid gap-3 p-4 text-sm">
+      <fieldset className="surface-card grid gap-2.5 p-3 text-sm sm:p-4">
         <legend className="sr-only">Join choices</legend>
         <label className="flex items-start gap-3">
           <input
@@ -205,9 +206,9 @@ export function CustomerJoinForm({
             type="checkbox"
             className="mt-0.5 size-5 shrink-0 accent-primary"
           />
-          <span className="grid gap-1">
+          <span className="grid gap-0.5">
             <Eyebrow>Marketing updates</Eyebrow>
-            <span className="leading-6 text-muted-foreground">
+            <span className="text-xs leading-5 text-muted-foreground">
               Send me occasional offers from this business. Optional.
             </span>
           </span>
@@ -225,21 +226,25 @@ export function CustomerJoinForm({
         // a hand-rolled 1px box.
         <StatusBanner tone="error" title={state.errors.form} />
       ) : null}
-      <p className="text-center text-xs leading-5 text-muted-foreground">
-        {joinCompletionHint({
+      {/* No text field on this step, so the action can pin to the bottom of
+          the viewport on short phones (JoinActionBar) with the completion
+          hint riding under it. */}
+      <JoinActionBar
+        note={joinCompletionHint({
           hasQr: Boolean(qrId),
           requireGeofence,
         })}
-      </p>
-      <Button type="submit" size="lg" disabled={pending} className="w-full">
-        {pending
-          ? qrId
-            ? "Stamping…"
-            : "Saving…"
-          : qrId
-            ? "Get my first stamp"
-            : "Save my card"}
-      </Button>
+      >
+        <Button type="submit" size="lg" disabled={pending} className="w-full">
+          {pending
+            ? qrId
+              ? "Stamping…"
+              : "Saving…"
+            : qrId
+              ? "Get my first stamp"
+              : "Save my card"}
+        </Button>
+      </JoinActionBar>
     </form>
   )
 }

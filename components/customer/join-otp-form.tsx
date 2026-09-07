@@ -120,31 +120,36 @@ export function CustomerOtpForm({
             {/* Marks this submission as a resend so the action answers in place
                 (returned state) instead of redirecting the phone step forward. */}
             <input type="hidden" name="resend" value="1" />
+            {/* One compact row instead of a second card: where the code went,
+                the resend, and the way out, all inside one live region so a
+                resend outcome is announced in place (CUS-P1-02). */}
             <div
-              className="surface-card grid gap-2 p-3 text-left"
+              className="grid gap-1.5 rounded-lg border-2 border-dashed border-border px-3 py-2.5 text-left"
               aria-live="polite"
             >
-              <div className="flex items-center justify-between gap-3">
-                <span className="eyebrow text-muted-foreground">Sent to</span>
+              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                <p className="text-sm">
+                  <span className="text-muted-foreground">Sent to </span>
+                  <span className="font-bold tabular-nums">
+                    Phone ending {contactLast4}
+                  </span>
+                </p>
                 <SubmitButton
                   variant="link"
                   size="xs"
-                  className="shrink-0 text-xs"
+                  className="-mr-2 shrink-0 text-xs"
                   pendingLabel="Sending…"
                 >
                   Resend code
                 </SubmitButton>
               </div>
-              <p className="text-sm font-bold tabular-nums">
-                Phone ending {contactLast4}
-              </p>
               {resendError ? (
-                <p className="text-sm leading-6 text-destructive">
+                <p className="text-sm leading-5 text-destructive">
                   {resendError}
                 </p>
               ) : null}
               {resendMessage ? (
-                <p className="text-sm leading-6 font-semibold text-foreground">
+                <p className="text-sm leading-5 font-semibold text-foreground">
                   {resendMessage}
                 </p>
               ) : null}
