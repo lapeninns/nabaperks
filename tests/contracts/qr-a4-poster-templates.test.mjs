@@ -64,8 +64,22 @@ test("poster route uses protected QR context and the unified render hosts", () =
     "poster-pdf-registry.ts"
   )
 
-  assert.match(posterPage, /getOwnedQrImageContext/)
-  assert.match(posterPage, /renderPosterQrCodePng/)
+  // The poster route reaches the protected QR context and the PNG render
+  // through the shared print-asset preamble instead of calling them itself,
+  // so this guarantee is pinned in two halves rather than one: the route
+  // must delegate, and the preamble must be what performs the protected
+  // calls. Pinning only the page source would pass for a route that had
+  // quietly stopped going through the protected path at all.
+  const printAssetRoute = readProjectFile(
+    "lib",
+    "merchant",
+    "print-asset-route.ts"
+  )
+
+  assert.match(posterPage, /resolvePrintAssetRequest/)
+  assert.match(posterPage, /renderPrintAssetQr/)
+  assert.match(printAssetRoute, /getOwnedQrImageContext/)
+  assert.match(printAssetRoute, /renderPosterQrCodePng/)
   assert.match(browserHost, /data-sheet="a4"/)
   assert.match(browserHost, /PosterDesignSheet/)
   assert.match(browserRegistry, /POSTER_BROWSER_RENDERERS/)
@@ -73,7 +87,7 @@ test("poster route uses protected QR context and the unified render hosts", () =
   assert.match(pdfHost, /drawPosterPdf/)
   assert.match(pdfRegistry, /POSTER_PDF_RENDERERS/)
   assert.doesNotMatch(
-    [posterPage, browserHost, browserRegistry].join("\n"),
+    [posterPage, printAssetRoute, browserHost, browserRegistry].join("\n"),
     /pdf-lib|sharp|qr_assets|asset-store/
   )
 })
