@@ -45,6 +45,7 @@ import {
   requireJobImage,
   resolveHostConfig,
   runDirectoryName,
+  isStoppedInstance,
 } from "../../ops/local-ci/agent/main.mjs"
 
 /**
@@ -689,6 +690,64 @@ test("the guest probe asks about every property the template pins", () => {
   assert.ok(
     VM_PROBE_SCRIPT.trimEnd().endsWith(`printf "${VM_PROBE_MARKER}\\n"`)
   )
+})
+
+test("a stopped instance is started before the isolation verdict; every other non-running state stays a refusal", () => {
+  assert.equal(
+    isStoppedInstance({
+      vm: "nabaperks-ci",
+      instances: [{ name: "nabaperks-ci", status: "Stopped" }],
+    }),
+    true
+  )
+  assert.equal(
+    isStoppedInstance({
+      vm: "nabaperks-ci",
+      instances: [{ name: "nabaperks-ci", status: "stopped" }],
+    }),
+    true
+  )
+  for (const status of ["Running", "Broken", "Starting", "", undefined]) {
+    assert.equal(
+      isStoppedInstance({
+        vm: "nabaperks-ci",
+        instances: [{ name: "nabaperks-ci", status }],
+      }),
+      false,
+      `status ${String(status)} must not be auto-started`
+    )
+  }
+  assert.equal(
+    isStoppedInstance({
+      vm: "nabaperks-ci",
+      instances: [{ name: "other", status: "Stopped" }],
+    }),
+    false,
+    "only the configured instance is ever started"
+  )
+  assert.equal(
+    isStoppedInstance({ vm: "nabaperks-ci", instances: null }),
+    false
+  )
+
+  // The live path starts only after a listing says Stopped, lists again, and
+  // still hands the verdict to the pure check: the pure check keeps refusing
+  // anything that is not Running.
+  const source = readFileSync(AGENT_SOURCE, "utf8")
+  const liveStart = source.indexOf("async function assertVmIsolationLive(")
+  const live = source.slice(
+    liveStart,
+    source.indexOf("\nasync function", liveStart + 10)
+  )
+  const listAt = live.indexOf('["limactl", "list", "--json", vm]')
+  const startAt = live.indexOf('["limactl", "start", "--tty=false", vm]')
+  assert.ok(listAt > -1 && startAt > listAt, "start follows a listing")
+  assert.ok(
+    live.indexOf('["limactl", "list", "--json", vm]', startAt) > startAt,
+    "the instance is listed again after starting"
+  )
+  assert.match(live, /isStoppedInstance\(/)
+  assert.match(source, /"VM_NOT_RUNNING"/)
 })
 
 test("every dispatch path re-asserts the VM before it runs anything", () => {

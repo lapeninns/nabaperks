@@ -572,6 +572,14 @@ node /opt/nabaperks-local-ci/current/ops/local-ci/agent/main.mjs \
 any exit, with `ThrottleInterval` 30 seconds so a crash loop cannot saturate
 the machine. The expected state after any reboot with a session is `running`.
 
+Lima does not restart the VM after a reboot. The agent covers that itself: when
+the pre-dispatch listing reports the instance as `Stopped` it runs
+`limactl start --tty=false nabaperks-ci`, lists again, and only then takes the
+isolation verdict from the running instance. Any other non-running state
+(`Broken`, `Starting`, unknown) is still a refusal. Pausing the plane remains a
+LaunchAgent action, never `limactl stop`: a stopped VM is treated as an
+accident to repair, not as a pause.
+
 ### 3.4 Surviving sleep
 
 Sleep is blocked **only while a job is running**, and the assertion is tied to
