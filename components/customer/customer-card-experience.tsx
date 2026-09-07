@@ -309,17 +309,16 @@ function CardProgressPanel({
             Your next scan window opens on the next UK business day.
           </StatusBanner>
         ) : (
-          <div className="grid gap-3">
-            <StatusBanner
-              title="Scan the venue code to add your stamp."
-              tone="neutral"
-            >
-              Use the printed QR in the venue. One stamp is available per UK
-              business day.
-            </StatusBanner>
+          // One action and one line: the instruction lives in the button,
+          // so the card stays inside the first screen (the stamp-per-day rule
+          // is in the card details disclosure below).
+          <div className="grid gap-1.5">
             <Button asChild size="lg" variant="secondary" className="w-full">
               <Link href="/scan">Scan to stamp</Link>
             </Button>
+            <p className="text-center text-xs leading-5 text-muted-foreground">
+              Use the printed QR at the venue to add today&apos;s stamp.
+            </p>
           </div>
         )}
       </CustomerStampCard>
@@ -341,6 +340,7 @@ function CardProgressPanel({
           url={exp.referralShareUrl}
           membershipId={exp.membershipId}
           venueName={exp.merchantName}
+          compact
         />
       ) : null}
 
