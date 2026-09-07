@@ -13,7 +13,7 @@ import { Eyebrow, MonoTag } from "@/components/brand"
 import { customerInputClass } from "@/components/customer/input-class"
 import { JoinActionBar } from "@/components/customer/join-action-bar"
 import {
-  otpChannelSendLabel,
+  OTP_SEND_LABEL,
   type OtpChannel,
 } from "@/lib/customer/otp-channel-core"
 import { CustomerLegalConsentLinks } from "@/components/customer/legal-sheet"
@@ -105,7 +105,7 @@ export function CustomerIdentityForm({
           className="w-full"
           disabled={requestPending}
         >
-          {requestPending ? "Sending…" : otpChannelSendLabel(channel)}
+          {requestPending ? "Sending…" : OTP_SEND_LABEL}
         </Button>
         <p role="status" aria-live="polite" className="sr-only">
           {requestPending ? "Sending your code" : ""}
