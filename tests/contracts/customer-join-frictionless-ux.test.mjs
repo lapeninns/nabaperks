@@ -62,10 +62,24 @@ test("OTP entry normalises pasted codes and gives expiry a direct recovery", () 
   const actions = read("app", "m", "[merchantSlug]", "join", "actions.ts")
   const otp = read("components", "customer", "join-otp-form.tsx")
 
+  // Normalisation moved out of this form and into the one shared OTP field,
+  // so the guarantee is pinned in two halves: each surface that asks for a
+  // code must use the shared field, and the shared field must be what
+  // normalises. Pinning only join-otp-form, as before, said nothing about
+  // customer login or the profile gate — and neither of those normalised at
+  // all, which is the defect 02#53 recorded.
+  const otpInput = read("components", "customer", "customer-otp-input.tsx")
+  const login = read("components", "customer", "customer-login-form.tsx")
+  const profileGate = read("components", "customer", "profile-gate-forms.tsx")
+
   assert.match(actions, /normalizeOtpInput\(value\(formData, "otp"\)\)/)
   assert.match(actions, /errors: \{ otp: "That code was not accepted\." \}/)
   assert.match(actions, /That code has expired\. Request a new one\./)
-  assert.match(otp, /normalizeOtpInput/)
+  assert.match(otp, /CustomerOtpInput/)
+  assert.match(login, /CustomerOtpInput/)
+  assert.match(profileGate, /CustomerOtpInput/)
+  assert.match(otpInput, /normalizeOtpInput/)
+  assert.match(otpInput, /otpFieldMaxLength/)
   assert.match(otp, /requestState\.errors\?\.contact/)
   assert.match(otp, /Request a new code/)
   assert.match(otp, /Wrong number\? Use a different one/)

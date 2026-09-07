@@ -8,14 +8,11 @@ import {
   verifyCustomerOtpAction,
   type CustomerIdentityState,
 } from "@/app/m/[merchantSlug]/join/actions"
+import { CustomerOtpInput } from "@/components/customer/customer-otp-input"
 import { customerInputClass } from "@/components/customer/input-class"
 import { SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
-import {
-  normalizeOtpInput,
-  otpFieldMaxLength,
-} from "@/lib/customer/experience/otp-field"
 import { buildCustomerJoinHref } from "@/lib/navigation/customer-join-intent"
 
 const identityInitialState: CustomerIdentityState = {}
@@ -42,7 +39,6 @@ export function CustomerOtpForm({
     identityInitialState
   )
   const state = verifyState
-  const otpMaxLength = otpFieldMaxLength()
   // A failed or rate-limited resend returns errors; a successful one returns
   // a confirmation message. Both surface inside the aria-live card below so
   // the customer at the counter hears and sees the outcome (CUS-P1-02). While
@@ -81,23 +77,13 @@ export function CustomerOtpForm({
               <label htmlFor="otp" className="eyebrow">
                 Text code
               </label>
-              <input
+              <CustomerOtpInput
                 id="otp"
                 name="otp"
-                inputMode="numeric"
-                autoComplete="one-time-code"
                 autoFocus
                 className={`${customerInputClass} font-mono`}
                 aria-invalid={Boolean(state.errors?.otp)}
                 aria-describedby={state.errors?.otp ? "otp-error" : "otp-hint"}
-                onInput={(event) => {
-                  const digits = normalizeOtpInput(
-                    event.currentTarget.value
-                  ).slice(0, otpMaxLength)
-                  if (event.currentTarget.value !== digits) {
-                    event.currentTarget.value = digits
-                  }
-                }}
               />
               {state.errors?.otp ? (
                 <p
