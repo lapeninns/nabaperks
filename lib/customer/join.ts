@@ -10,7 +10,9 @@ import {
   loadMerchantJoinState,
   loadQrIdentity,
   loadQrJoinState,
+  type JoinLoyaltyCardRow,
 } from "@/lib/customer/join-lookup"
+import { rewardExamplesFromPool } from "@/lib/customer/reward-examples"
 import { enforceQrScanRateLimit } from "@/lib/customer/qr-rate-limit"
 import { isValidPublicQrId } from "@/lib/customer/qr-rate-limit-core"
 import { logger } from "@/lib/observability/logger"
@@ -32,6 +34,9 @@ export type CustomerJoinContext = {
     card_name: string
     stamps_required: number
     reward_terms: string
+    /** Active reward-pool names in display order — examples of the draw,
+     *  never a promise of one reward. */
+    reward_examples: string[]
   }
 }
 
@@ -122,7 +127,7 @@ export async function resolveQrForJoin(
     qrId: qrCode.qr_id,
     qrCodeId: qrCode.id,
     merchant,
-    loyaltyCard,
+    loyaltyCard: joinLoyaltyCard(loyaltyCard),
   } satisfies CustomerJoinContext
 }
 
@@ -172,13 +177,18 @@ export async function getMerchantJoinContext(
       email: data.email,
       phone: data.phone,
     },
-    loyaltyCard: {
-      id: loyaltyCard.id,
-      card_name: loyaltyCard.card_name,
-      stamps_required: loyaltyCard.stamps_required,
-      reward_terms: loyaltyCard.reward_terms,
-    },
+    loyaltyCard: joinLoyaltyCard(loyaltyCard),
   } satisfies CustomerJoinContext
+}
+
+function joinLoyaltyCard(card: JoinLoyaltyCardRow) {
+  return {
+    id: card.id,
+    card_name: card.card_name,
+    stamps_required: card.stamps_required,
+    reward_terms: card.reward_terms,
+    reward_examples: rewardExamplesFromPool(card.reward_pool_items),
+  }
 }
 
 export async function getMembershipForCustomer(

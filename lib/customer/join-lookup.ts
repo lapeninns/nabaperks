@@ -27,6 +27,13 @@ import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
  */
 export const JOIN_CONTEXT_CACHE_SECONDS = 60
 
+/**
+ * Bump when the shape of a stage-B row changes: the key then misses the
+ * entries a previous deploy wrote, instead of serving a row the new code
+ * cannot read. Stage A holds only identity, so it never needs this.
+ */
+export const JOIN_CONTEXT_SHAPE = "v2"
+
 export type QrIdentity = {
   qrCodeId: string
   merchantId: string
@@ -50,12 +57,21 @@ export type JoinMerchantRow = {
   billing_customers: BillingCustomerEmbed
 }
 
+export type JoinRewardPoolItemRow = {
+  reward_name: string
+  is_active: boolean
+  display_order: number | null
+}
+
 export type JoinLoyaltyCardRow = {
   id: string
   card_name: string
   stamps_required: number
   reward_terms: string
   is_active: boolean
+  /** The venue's reward pool, embedded so the welcome pitch can name real
+   *  examples of what the mystery draw can land on. */
+  reward_pool_items?: JoinRewardPoolItemRow[] | null
 }
 
 export type QrJoinStateRow = {
@@ -72,11 +88,16 @@ export type MerchantJoinStateRow = Omit<JoinMerchantRow, "id"> & {
   loyalty_cards: JoinLoyaltyCardRow | JoinLoyaltyCardRow[] | null
 }
 
-const QR_JOIN_STATE_SELECT =
-  "id, qr_id, is_active, destination_type, merchants(id, business_name, business_slug, email, phone, status, requires_billing, billing_customers(status)), loyalty_cards!loyalty_card_id(id, card_name, stamps_required, reward_terms, is_active)"
+// reward_pool_items reaches loyalty_cards through two foreign keys (a simple
+// loyalty_card_id and a composite merchant/location/card context key), so
+// the embed names the simple constraint explicitly; an unhinted embed is a
+// PostgREST 300 that would turn every scan into "unavailable".
+const CARD_COLUMNS =
+  "id, card_name, stamps_required, reward_terms, is_active, reward_pool_items!reward_pool_items_loyalty_card_id_fkey(reward_name, is_active, display_order)"
 
-const MERCHANT_JOIN_STATE_SELECT =
-  "id, business_name, business_slug, email, phone, status, requires_billing, billing_customers(status), loyalty_cards(id, card_name, stamps_required, reward_terms, is_active)"
+const QR_JOIN_STATE_SELECT = `id, qr_id, is_active, destination_type, merchants(id, business_name, business_slug, email, phone, status, requires_billing, billing_customers(status)), loyalty_cards!loyalty_card_id(${CARD_COLUMNS})`
+
+const MERCHANT_JOIN_STATE_SELECT = `id, business_name, business_slug, email, phone, status, requires_billing, billing_customers(status), loyalty_cards(${CARD_COLUMNS})`
 
 const cacheOptions = { revalidateSeconds: JOIN_CONTEXT_CACHE_SECONDS }
 
@@ -125,7 +146,7 @@ export function loadQrJoinState(
 
       return (data as QrJoinStateRow | null) ?? null
     },
-    ["qr-join-context", merchantId, qrCodeId],
+    ["qr-join-context", JOIN_CONTEXT_SHAPE, merchantId, qrCodeId],
     [merchantCacheTag(merchantId)],
     cacheOptions
   )
@@ -177,7 +198,7 @@ export function loadMerchantJoinState(
 
       return (data as MerchantJoinStateRow | null) ?? null
     },
-    ["merchant-join-context", merchantId],
+    ["merchant-join-context", JOIN_CONTEXT_SHAPE, merchantId],
     [merchantCacheTag(merchantId)],
     cacheOptions
   )

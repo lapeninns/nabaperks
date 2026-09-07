@@ -11,6 +11,7 @@ import {
 import { WetInkShake, WetInkSoftStamp } from "@/components/motion"
 import { joinUnlockingRewardHook } from "@/lib/customer/experience/copy"
 import type { JoinCard, JoinMerchant } from "@/lib/customer/experience/types"
+import { rewardExampleForCycle } from "@/lib/customer/reward-examples"
 import { stampDisplayDates } from "@/lib/customer/uk-calendar"
 
 /**
@@ -31,7 +32,11 @@ export function JoinOfferJourney({
   const total = Math.max(card.stampsRequired, 0)
   const [previewDates] = useState(() => stampDisplayDates(total))
   const loop = useStampJourneyLoop(total)
-  const beat = journeyBeat(loop.earnedCount, loop.revealed, total)
+  // A different pool item each time the loop comes round, so over a few
+  // cycles the guest sees what the draw can land on — as examples, never as
+  // the reward. First paint and reduced motion show the first item.
+  const example = rewardExampleForCycle(card.rewardExamples, loop.cycleIndex)
+  const beat = journeyBeat(loop.earnedCount, loop.revealed, total, example)
 
   return (
     <WetInkShake
@@ -67,7 +72,7 @@ export function JoinOfferJourney({
         revealSlam={loop.revealSlam}
         revealKey={loop.revealKey}
       />
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+      <div className="grid gap-1">
         <span className="text-sm leading-snug font-semibold">
           {joinUnlockingRewardHook(total)}.
         </span>
@@ -89,10 +94,13 @@ export function JoinOfferJourney({
 function journeyBeat(
   earnedCount: number,
   revealed: boolean,
-  total: number
+  total: number,
+  example: string | null
 ): string {
   if (total === 0) return "Reward"
-  if (revealed && earnedCount >= total) return "Reward unlocked"
+  if (revealed && earnedCount >= total) {
+    return example ? `Could be… ${example}` : "Reward unlocked"
+  }
   if (earnedCount === 0) return "Your first visit"
   const suffix = earnedCount === 1 ? " · today" : ""
   return `Stamp ${earnedCount} of ${total}${suffix}`

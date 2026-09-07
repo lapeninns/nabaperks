@@ -106,6 +106,8 @@ export type JoinCard = {
   name: string
   stampsRequired: number
   rewardTerms: string
+  /** Names from the venue's active reward pool — examples of the draw. */
+  rewardExamples?: readonly string[]
 }
 
 /** Reward facts shared by waiting/ready/redeemed panels. */
