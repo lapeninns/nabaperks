@@ -22,13 +22,12 @@ export default async function QrTentPage({
   params,
   searchParams,
 }: QrTentPageProps) {
-  const { design, qrCodeId, backHref, qrContext } =
-    await resolvePrintAssetRequest({
-      params,
-      searchParams,
-      paramKey: "design",
-      getDesign: getTentDesign,
-    })
+  const { design, backHref, qrContext } = await resolvePrintAssetRequest({
+    params,
+    searchParams,
+    paramKey: "design",
+    getDesign: getTentDesign,
+  })
 
   const env = getServerEnv()
   const shareUrl = `${env.NEXT_PUBLIC_APP_URL}/q/${qrContext.qrCode.qr_id}`

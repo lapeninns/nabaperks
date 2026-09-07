@@ -24,13 +24,12 @@ export default async function QrNfcSquarePage({
   params,
   searchParams,
 }: QrNfcSquarePageProps) {
-  const { design, qrCodeId, backHref, qrContext } =
-    await resolvePrintAssetRequest({
-      params,
-      searchParams,
-      paramKey: "design",
-      getDesign: getNfcSquareDesign,
-    })
+  const { design, backHref, qrContext } = await resolvePrintAssetRequest({
+    params,
+    searchParams,
+    paramKey: "design",
+    getDesign: getNfcSquareDesign,
+  })
 
   const env = getServerEnv()
   const joinUrl = appendQrShareChannel(
