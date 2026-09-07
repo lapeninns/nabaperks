@@ -1,7 +1,7 @@
 {
   "schema": "nabaperks.local-ci-profile.v1",
   "profile": "main",
-  "description": "Post-merge suite for the default branch. Byte-for-byte the same authoritative lane set as the pr profile, so a merge can never be proved by a weaker suite than the pull request that produced it.",
+  "description": "Advisory post-merge suite for the default branch. It retains the same local lane set as the pr profile; complete hosted validation remains the merge and release authority.",
   "baselineEnv": {
     "CI": "1",
     "NEXT_PUBLIC_APP_URL": "https://example.test",

@@ -42,29 +42,32 @@ obligations.
 
 ## Completion matrix
 
-All implementation rows below are in the isolated
-`codex/ci-redesign-completion-20260907` worktree until a commit or PR is recorded.
-The original PR #266 and PR #264 worktrees remain preserved.
+The reviewed core is commit `86b58fce81618b002311f3c96f07e60c171f3dcb` in
+[draft PR #268](https://github.com/lapeninns/nabaperks/pull/268), with separate
+follow-up preparation tracked in the isolated
+`codex/ci-redesign-completion-20260907` worktree. It is unmerged and requires
+independent GitHub approval. The original PR #266 and PR #264 worktrees remain
+preserved.
 
-| Requirement                          | Source implementation                                                                                 | Review and local evidence                                                                            | Merge / installation                                   | Hosted / operational proof and blocker                                                                                                    |
-| ------------------------------------ | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Complete hosted gate                 | PR #266, nine roots and strict result validation                                                      | Independent review; 53 focused tests; current-head hosted checks passed                              | Open, independent GitHub approval required             | Resulting main CI, observer and downstream release still need post-merge proof                                                            |
-| Advisory observer                    | PR #266, separate read-only one-read two-minute job                                                   | Missing/pending cannot become passing local tests                                                    | Open                                                   | Exact-main observer timing after merge pending                                                                                            |
-| Shared workload commands             | `config/ci-workloads.json`, shared runners, hosted/local wiring                                       | Command failure, exact selection and multiset tests                                                  | Unmerged, uninstalled                                  | 152 hosted / 48 local browser invocations retained; all six before/after selection inventories equivalent; execution measurements running |
-| Browser execution parity             | Identity, outcomes, skips, flakes, process result and resource evidence comparator                    | Global teardown failure regression added after independent review                                    | Qualification helper only                              | Real report collection and measured before/after runs required before grouping                                                            |
-| Durable attempts                     | Journal, bounded infrastructure retry, publication outbox, nightly/one-shot/watch integration         | Crash/restart/publication/cancellation fixture tests                                                 | Unmerged, uninstalled                                  | Dedicated fixture controller crash/restart cleanup passed; full controller installation remains unqualified                               |
-| Exclusive controller                 | Atomic PID/start-identity lease and conservative stale-owner recovery                                 | Live-owner, stale-owner and unverifiable-owner cases                                                 | Unmerged, uninstalled                                  | Shared-host installation and failure-injection qualification required                                                                     |
-| Resource bounds                      | Job 10 CPU/32 GiB, DinD 1 CPU/6 GiB, reserve 1 CPU/2 GiB                                              | Both command builders reject malformed budgets/overcommit                                            | Unmerged, uninstalled                                  | Live cgroups confirmed CPU/memory/zero swap; exact DB lane passed under limits at 00:32:55 BST                                            |
-| Verified image preload               | PR #264 source plus current budget/cancellation integration                                           | Archive/blob/layer/image identity and timeout tests                                                  | Unmerged, uninstalled                                  | Full archive and image identity verified; 528/528 DB tests passed including teardown in 241 seconds                                       |
-| Trusted local proof                  | Signed envelope, independently supplied policy/log hashes, replay-aware routing decision              | Forged/stale/mismatched/missing/duplicate/replayed proof tests                                       | Prepared; no local authority                           | Signing/policy provisioning, trusted supervisor integration and disposable execution unqualified                                          |
-| Trusted observer                     | Manual main-only workflow, no candidate checkout, always full hosted routing                          | CLI missing-policy fallback verified                                                                 | Unmerged                                               | Protected supervisor evidence deliberately absent; no coverage reduction                                                                  |
-| Unified release ownership            | DB workflow calls reusable application stage while retaining `production-release` lock                | Independent review and caller identity/DAG/artifact fixture tests passed                             | Unmerged                                               | Real approval/secret/permission/concurrency behaviour requires protected hosted run                                                       |
-| Exact candidate promotion            | Full SHA/project/team/READY/target/immutable-ID validation immediately before promotion               | Negative candidate and artifact tests                                                                | Unmerged                                               | Actual staged provider readback on resulting main pending                                                                                 |
-| Release handoff to smoke             | Run/attempt-bound candidate artifact, successful promotion/public probes required                     | Wrong outer SHA, wrong attempt/path, corrupt/missing artifact tests                                  | Unmerged                                               | GitHub reusable-run artifact shape and actual downstream smoke require hosted proof                                                       |
-| Stage and compatibility records      | Five-stage producer and workflow enforcement, authenticated baseline and exact run/attempt transfer   | Independent review; stale/replay/wrong-attempt/changed-alias/dirty-source rejection                  | Unmerged; CI-only unchanged-app/schema admission wired | Hosted chain and authentic general application/schema compatibility producer remain required                                              |
-| Populated schema upgrade             | Loopback-only marked fixture harness; exact baseline migration prefix; real synthetic schema fixtures | 9 tests passed; independent review closed invariant, transaction/ledger and artifact-binding defects | Unmerged                                               | Real platform DB, meaningful baseline/candidate/rollback app probes and successful execution required                                     |
-| Independent monitoring               | Separate scheduler/paging dependency and delivery/acknowledgement evidence contract                   | Missing/stale/dependent/mismatched evidence rejected                                                 | Preparation only                                       | Existing GitHub + production Supabase page path does not qualify; external operator/service decision needed                               |
-| Backup lineage and measured recovery | Protected digest-bound source ledger/counts/restore operation; post-query end-to-end RTO              | Wrong lineage, tampering, count mismatch and verification-over-RTO cases                             | Unmerged                                               | Reviewed provider lineage/baseline, isolated restored project and measured drill absent                                                   |
+| Requirement                          | Source implementation                                                                                 | Review and local evidence                                                                            | Merge / installation                                   | Hosted / operational proof and blocker                                                                                                                        |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Complete hosted gate                 | PR #266, nine roots and strict result validation                                                      | Independent review; 53 focused tests; current-head hosted checks passed                              | Open, independent GitHub approval required             | Resulting main CI, observer and downstream release still need post-merge proof                                                                                |
+| Advisory observer                    | PR #266, separate read-only one-read two-minute job                                                   | Missing/pending cannot become passing local tests                                                    | Open                                                   | Exact-main observer timing after merge pending                                                                                                                |
+| Shared workload commands             | `config/ci-workloads.json`, shared runners, hosted/local wiring                                       | Command failure, exact selection and multiset tests                                                  | Unmerged, uninstalled                                  | 152 hosted / 48 local browser invocations retained; all six selection inventories equivalent; 976 passes, 152 skips, no failures/flakes across 48 invocations |
+| Browser execution parity             | Identity, outcomes, skips, flakes, process result and resource evidence comparator                    | Global teardown failure regression added after independent review                                    | Qualification helper only                              | Reviewed eight-shard versus unsharded pilot prepared; actual paired runtime measurements still required                                                       |
+| Durable attempts                     | Journal, bounded infrastructure retry, publication outbox, nightly/one-shot/watch integration         | Crash/restart/publication/cancellation fixture tests                                                 | Unmerged, uninstalled                                  | Dedicated fixture controller crash/restart cleanup passed; full controller installation remains unqualified                                                   |
+| Exclusive controller                 | Atomic PID/start-identity lease and conservative stale-owner recovery                                 | Live-owner, stale-owner and unverifiable-owner cases                                                 | Unmerged, uninstalled                                  | Shared-host installation and failure-injection qualification required                                                                                         |
+| Resource bounds                      | Job 10 CPU/32 GiB, DinD 1 CPU/6 GiB, reserve 1 CPU/2 GiB                                              | Both command builders reject malformed budgets/overcommit                                            | Unmerged, uninstalled                                  | Live cgroups confirmed CPU/memory/zero swap; exact DB lane passed under limits at 00:32:55 BST                                                                |
+| Verified image preload               | PR #264 source plus current budget/cancellation integration                                           | Archive/blob/layer/image identity and timeout tests                                                  | Unmerged, uninstalled                                  | Full archive and image identity verified; 528/528 DB tests passed including teardown in 241 seconds                                                           |
+| Trusted local proof                  | Signed envelope, independently supplied policy/log hashes, replay-aware routing decision              | Forged/stale/mismatched/missing/duplicate/replayed proof tests                                       | Prepared; no local authority                           | Signing/policy provisioning, trusted supervisor integration and disposable execution unqualified                                                              |
+| Trusted observer                     | Manual main-only workflow, no candidate checkout, always full hosted routing                          | CLI missing-policy fallback verified                                                                 | Unmerged                                               | Protected supervisor and disposable Lima adapter independently reviewed; root installation, service identity and actual isolation qualification absent        |
+| Unified release ownership            | DB workflow calls reusable application stage while retaining `production-release` lock                | Independent review and caller identity/DAG/artifact fixture tests passed                             | Unmerged                                               | Real approval/secret/permission/concurrency behaviour requires protected hosted run                                                                           |
+| Exact candidate promotion            | Full SHA/project/team/READY/target/immutable-ID validation immediately before promotion               | Negative candidate and artifact tests                                                                | Unmerged                                               | Actual staged provider readback on resulting main pending                                                                                                     |
+| Release handoff to smoke             | Run/attempt-bound candidate artifact, successful promotion/public probes required                     | Wrong outer SHA, wrong attempt/path, corrupt/missing artifact tests                                  | Unmerged                                               | GitHub reusable-run artifact shape and actual downstream smoke require hosted proof                                                                           |
+| Stage and compatibility records      | Five-stage producer and workflow enforcement, authenticated baseline and exact run/attempt transfer   | Independent review; stale/replay/wrong-attempt/changed-alias/dirty-source rejection                  | Unmerged; CI-only unchanged-app/schema admission wired | Hosted chain and authentic general application/schema compatibility producer remain required                                                                  |
+| Populated schema upgrade             | Loopback-only marked fixture harness; exact baseline migration prefix; real synthetic schema fixtures | 9 tests passed; independent review closed invariant, transaction/ledger and artifact-binding defects | Unmerged                                               | Real platform DB, meaningful baseline/candidate/rollback app probes and successful execution required                                                         |
+| Independent monitoring               | Separate scheduler/paging dependency and delivery/acknowledgement evidence contract                   | Missing/stale/dependent/mismatched evidence rejected                                                 | Preparation only                                       | Existing GitHub + production Supabase page path does not qualify; external operator/service decision needed                                                   |
+| Backup lineage and measured recovery | Protected digest-bound source ledger/counts/restore operation; post-query end-to-end RTO              | Wrong lineage, tampering, count mismatch and verification-over-RTO cases                             | Unmerged                                               | Reviewed provider lineage/baseline, isolated restored project and measured drill absent                                                                       |
 
 ## Current operating authority
 
@@ -215,6 +218,94 @@ Browser before/after `--list` JSON inventories matched across all six local
 suites: E2E Chromium 238, mobile Safari 281, Firefox 235, desktop Safari 235;
 accessibility Chromium 68 and mobile Safari 71. Actual execution of all 48
 unchanged invocations is separate from selection inventory and is recorded
-when complete. Visual remains a hosted lane: ARM Linux shares snapshot names
+below. Visual remains a hosted lane: ARM Linux shares snapshot names
 with the blessed x64 PNGs and is not an equivalent baseline environment. No
 baseline was updated.
+
+### Exact committed core and initial hosted readback
+
+A separate clean detached worktree at
+`86b58fce81618b002311f3c96f07e60c171f3dcb` received its own frozen dependency
+install. `pnpm quality:check` passed **688 contract tests and 1,510 unit tests**
+with zero failures, including the remaining repository gates. `pnpm build`
+also passed for that exact clean commit with synthetic provider fixtures. The actual
+`stage-ledger qualify` CLI also passed for that full source tree against the
+authenticated deployed-baseline revision, using an explicitly synthetic local
+run ID. It establishes source admission behaviour, not a production release.
+
+The CodeQL analysis workflow [34068194044](https://github.com/lapeninns/nabaperks/actions/runs/34068194044)
+and dependency review
+[34068194013](https://github.com/lapeninns/nabaperks/actions/runs/34068194013)
+succeeded for the core commit, but the separate CodeQL findings check failed with eight new alerts (four filesystem-race and four filesystem-to-HTTP dataflow reports). Analysis completion does not mean clean findings. The boundary fixes are under independent review; no alert was suppressed or dismissed. The separate observer
+[34068194004](https://github.com/lapeninns/nabaperks/actions/runs/34068194004)
+ran from 00:54:53 to 00:55:03 BST on 7 September 2026. Its actual single-read
+step reported no matching App check, explicitly stated that this was not a
+merge verdict, and completed in roughly half a second without polling. The
+successful observer means observation completed; no local tests passed on its
+account. Full hosted
+[CI 34068194035](https://github.com/lapeninns/nabaperks/actions/runs/34068194035)
+subsequently passed all 168 jobs. Release gate ran from 01:03:58 to 01:04:08 BST. The failed separate CodeQL findings check still prevents describing all PR checks as successful.
+
+Authentic domain-probe artifacts were built for deployed baseline
+`bf6f38cff3563130295e5819548101a3bd1998f7` and candidate
+`86b58fce81618b002311f3c96f07e60c171f3dcb` from clean source exports, isolated
+fresh stores and pinned frozen dependency installs. The bundled Linux ARM
+Node 24.11.0 binary SHA-256 is
+`bdcfa37d37f877ec1893226ccf24f68ed97867075a11a2e5a3a3533950b1a86e`.
+The baseline and candidate contain the same application and migration bytes;
+this artifact build does not itself prove a populated migration delta or an
+executed application probe. Pristine platform execution remains a separate
+recorded step.
+
+### Completed local browser execution
+
+At 01:15 BST on 7 September 2026, all six local browser lanes completed:
+
+| Lane                        | Passed | Declared skips | Failed / flaky | Duration |
+| --------------------------- | -----: | -------------: | -------------- | -------- |
+| E2E Chromium                |    213 |             25 | 0 / 0          | 7m08s    |
+| E2E mobile Safari           |    239 |             42 | 0 / 0          | 7m44s    |
+| E2E Firefox                 |    194 |             41 | 0 / 0          | 10m39s   |
+| E2E desktop Safari          |    194 |             41 | 0 / 0          | 6m07s    |
+| Accessibility Chromium      |     67 |              1 | 0 / 0          | 3m16s    |
+| Accessibility mobile Safari |     69 |              2 | 0 / 0          | 3m28s    |
+
+The 48 unchanged invocations selected 1,128 tests: 976 passed and 152 skipped.
+Total duration was 2,302 seconds. Pixel baseline guards passed. Maximum sampled
+memory was 6.145 GiB under the 32 GiB job limit; sampling does not establish
+true process RSS peak. Source comparison covered 1,275 files and found only
+the profile description correction from authoritative to advisory; executable
+browser and application source matched the frozen fixture. Next-generated
+fixture tsconfig changes were retained separately. All owned containers and
+networks were removed, and the installed watcher remained absent.
+
+The local qualification directory retains 46 evidence files with 45 verified
+hashes, including `BROWSER-QUALIFICATION-REPORT.md`, `browser-result.json`,
+selection comparisons, resource samples, source differences and
+`evidence-sha256.json`. This is current workload qualification; it is not a
+paired grouping benchmark or proof of full-main/nightly coverage.
+
+### Reviewed follow-up preparation
+
+The disposable Lima adapter now preserves raw log bytes through signing and
+base64 audit persistence, including bounded partial timeout output. Cleanup
+requires provider-read ownership nonce, attempt, source and runtime bindings.
+Independent reproductions confirmed split UTF-8/invalid bytes remain exact and
+a colliding foreign VM is not deleted. Lima template validation passed; no
+disposable VM was created. Root-protected runtime installation, dedicated
+service identity, prepared offline image and actual isolation proof remain
+external operational prerequisites.
+
+The browser grouping experiment has independent source review and eight
+passing fixture tests. Host-only receipts bind the entire result, policy,
+lifecycle, configuration and measurement bundle, plus experiment definition
+and budget. Its prepared eight-shard versus unsharded arms do not change
+active wrappers, profiles or coverage. Every experimental result retains
+`activation: false`.
+
+The pristine Supabase platform provisioner has independent source review and
+seven passing fixture tests. It requires empty private DinD, pinned images,
+an authentic blank platform clone and a one-use target marker; cleanup is
+restricted to the exact project. Actual platform startup, populated upgrade,
+application probes and real SQL failure injection remain separate service
+proof obligations.

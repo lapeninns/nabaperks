@@ -4,6 +4,8 @@ import {
   mkdtempSync,
   mkdirSync,
   readFileSync,
+  realpathSync,
+  symlinkSync,
   rmSync,
   writeFileSync,
 } from "node:fs"
@@ -12,6 +14,7 @@ import { join } from "node:path"
 import { test } from "node:test"
 import {
   applyObservation,
+  canonicalAlert,
   deliverEvent,
   initialMonitorState,
   observeProduction,
@@ -217,7 +220,7 @@ test("outages dedupe and recovery requires two spaced green observations; failur
 })
 
 test("signed receiver retries preserve event identity and never label acceptance delivered", async () => {
-  const event = { deliveryId: "fixture-delivery", action: "trigger" }
+  const event = validEvent()
   const calls = []
   const receipt = await deliverEvent(event, {
     config: config(),
@@ -255,7 +258,9 @@ test("signed receiver retries preserve event identity and never label acceptance
 })
 
 test("durable outbox survives failed delivery and next process sends same event; overlap fails closed", async (t) => {
-  const directory = mkdtempSync(join(tmpdir(), "independent-monitor-"))
+  const directory = realpathSync(
+    mkdtempSync(join(tmpdir(), "independent-monitor-"))
+  )
   t.after(() => rmSync(directory, { force: true, recursive: true }))
   const configDigest = "a".repeat(64)
   writeFileSync(
@@ -302,4 +307,86 @@ test("durable outbox survives failed delivery and next process sends same event;
   )
   mkdirSync(join(directory, "run.lock"))
   await assert.rejects(runMonitorOnce(options), /EEXIST/)
+})
+
+function validEvent() {
+  return {
+    schema: "nabaperks.independent-monitor-alert.v1",
+    service: "nabaperks",
+    environment: "production",
+    action: "trigger",
+    incidentId: "11111111-1111-4111-8111-111111111111",
+    deliveryId: "22222222-2222-4222-8222-222222222222",
+    occurredAt: "2026-09-06T12:00:00.000Z",
+    summary: "Production health or readiness failed",
+  }
+}
+
+test("outbound boundaries reject unapproved destinations and non-protocol persisted data before transport", async () => {
+  let calls = 0
+  const fetcher = async () => {
+    calls++
+    return new Response(null, { status: 202 })
+  }
+  await assert.rejects(
+    observeProduction({
+      config: { ...config(), origin: "https://unapproved.example" },
+      monitorSecret: secret,
+      fetcher,
+    }),
+    /canonical/
+  )
+  await assert.rejects(
+    deliverEvent(validEvent(), {
+      config: { ...config(), webhookUrl: "http://127.0.0.1/events" },
+      webhookSecret: secret,
+      fetcher,
+    }),
+    /HTTPS/
+  )
+  for (const event of [
+    { ...validEvent(), extra: "unapproved file contents" },
+    { ...validEvent(), deliveryId: "arbitrary file contents" },
+    { ...validEvent(), incidentId: "../private" },
+    { ...validEvent(), occurredAt: "2026-09-06" },
+    { ...validEvent(), summary: "unapproved copy" },
+  ])
+    await assert.rejects(
+      deliverEvent(event, { config: config(), webhookSecret: secret, fetcher })
+    )
+  assert.equal(calls, 0)
+  const event = validEvent()
+  assert.deepEqual(canonicalAlert(event), event)
+  assert.notEqual(canonicalAlert(event), event)
+})
+
+test("monitor refuses a symlink ancestor before reading or delivering persisted state", async () => {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), "monitor-ancestry-")))
+  try {
+    const state = join(root, "private")
+    mkdirSync(state, { mode: 0o700 })
+    writeFileSync(
+      join(state, "state.json"),
+      JSON.stringify(initialMonitorState("a".repeat(64))),
+      { mode: 0o600 }
+    )
+    symlinkSync(root, join(root, "alias"), "dir")
+    let calls = 0
+    await assert.rejects(
+      runMonitorOnce({
+        config: config(join(root, "alias", "private")),
+        configDigest: "a".repeat(64),
+        monitorSecret: secret,
+        webhookSecret: secret,
+        fetcher: async () => {
+          calls++
+          throw Error("unexpected")
+        },
+      }),
+      /symlink/
+    )
+    assert.equal(calls, 0)
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
 })

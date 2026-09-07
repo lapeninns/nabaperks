@@ -1,5 +1,13 @@
+import { spawnSync } from "node:child_process"
 import test from "node:test"
-import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs"
+import {
+  mkdtempSync,
+  writeFileSync,
+  mkdirSync,
+  realpathSync,
+  symlinkSync,
+  rmSync,
+} from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { createHash } from "node:crypto"
@@ -126,7 +134,7 @@ test("runner refuses unmarked database before any database mutation", () => {
 })
 
 function makeProbe(revision = "a".repeat(40)) {
-  const root = mkdtempSync(join(tmpdir(), "upgrade-probe-test-"))
+  const root = realpathSync(mkdtempSync(join(tmpdir(), "upgrade-probe-test-")))
   const artifactRoot = join(root, "artifact")
   mkdirSync(artifactRoot)
   for (const [name, contents] of Object.entries({
@@ -318,4 +326,59 @@ test("migration guard refuses ABORT rollback alias and inline psql target escape
         transactionalMigration({ name: "20260101000000_first.sql", contents }),
       /transaction control|meta commands/
     )
+})
+
+test("artifact hashing refuses a symlink ancestor and a substituted file link", () => {
+  const { probe, cleanup } = makeProbe()
+  const parent = realpathSync(
+    mkdtempSync(join(tmpdir(), "upgrade-alias-test-"))
+  )
+  try {
+    const alias = join(parent, "alias")
+    symlinkSync(probe.artifactRoot, alias, "dir")
+    assert.throws(() => probeTreeDigest(alias), /symlink/)
+    const nested = join(probe.artifactRoot, "nested")
+    mkdirSync(nested)
+    symlinkSync(join(probe.artifactRoot, "app.mjs"), join(nested, "linked.mjs"))
+    assert.throws(() => probeTreeDigest(probe.artifactRoot), /symlink/)
+  } finally {
+    cleanup()
+    rmSync(parent, { recursive: true, force: true })
+  }
+})
+
+test("digest rejects an ancestor replaced during a file open", () => {
+  const script = `
+    import fs from 'node:fs';
+    import { syncBuiltinESMExports } from 'node:module';
+    import { tmpdir } from 'node:os';
+    import { join } from 'node:path';
+    import assert from 'node:assert/strict';
+    const root = fs.realpathSync(fs.mkdtempSync(join(tmpdir(), 'probe-race-')));
+    const artifact = join(root, 'artifact'), outside = join(root, 'outside');
+    fs.mkdirSync(artifact); fs.mkdirSync(outside); fs.mkdirSync(join(artifact,'nested'));
+    fs.writeFileSync(join(artifact,'nested/file'), 'original');
+    fs.writeFileSync(join(outside,'file'), 'replacement');
+    const original = fs.openSync; let swapped = false;
+    fs.openSync = function(path, ...args) {
+      if (path === join(artifact,'nested/file') && !swapped) {
+        swapped = true;
+        fs.renameSync(join(artifact,'nested'), join(root,'saved'));
+        fs.symlinkSync(outside, join(artifact,'nested'));
+      }
+      return original(path, ...args);
+    };
+    syncBuiltinESMExports();
+    try {
+      const { probeTreeDigest } = await import('./scripts/release/populated-upgrade.mjs');
+      assert.throws(() => probeTreeDigest(artifact), /directory changed/);
+      assert.equal(swapped, true);
+    } finally { fs.rmSync(root, { recursive:true, force:true }); }
+  `
+  const result = spawnSync(
+    process.execPath,
+    ["--input-type=module", "-e", script],
+    { encoding: "utf8" }
+  )
+  assert.equal(result.status, 0, result.stderr)
 })

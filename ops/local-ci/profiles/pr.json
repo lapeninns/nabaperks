@@ -1,7 +1,7 @@
 {
   "schema": "nabaperks.local-ci-profile.v1",
   "profile": "pr",
-  "description": "Authoritative suite for a pull request from the same repository. Environment validation, security audit, lint, typecheck, contract tests, coverage, the seven maintainability sweeps, the print-kit PDF proof, all four functional Playwright projects run as separate sharded invocations, both accessibility projects, and the local Supabase DB/RLS moat.",
+  "description": "Advisory local suite for a pull request from the same repository. Environment validation, security audit, lint, typecheck, contract tests, coverage, the seven maintainability sweeps, the print-kit PDF proof, all four functional Playwright projects run as separate sharded invocations, both accessibility projects, and the local Supabase DB/RLS moat.",
   "baselineEnv": {
     "CI": "1",
     "NEXT_PUBLIC_APP_URL": "https://example.test",

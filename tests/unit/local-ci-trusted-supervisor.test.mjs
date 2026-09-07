@@ -1,10 +1,15 @@
 import assert from "node:assert/strict"
 import { generateKeyPairSync } from "node:crypto"
 import { test } from "node:test"
+import { mkdtempSync, openSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import { spawnSync } from "node:child_process"
 import {
   runTrustedSupervisor,
   supervisorCommandDigest,
   readProtectedFile,
+  readSigningPipe,
 } from "../../ops/local-ci/host/trusted-supervisor.mjs"
 import { verifyProofPolicy } from "../../ops/local-ci/core/proof-policy.mjs"
 import { FULL_HOSTED_ROOTS } from "../../ops/local-ci/core/routing.mjs"
@@ -244,4 +249,51 @@ test("runtime revision is independently bound before execution and retained in s
     false
   )
   assert.equal(mismatched.events.at(-1)[0], "destroy")
+})
+
+test("signing pipe reads bounded bytes and refuses regular files or oversized streams", () => {
+  const root = mkdtempSync(join(tmpdir(), "supervisor-pipe-"))
+  try {
+    const ordinary = join(root, "ordinary")
+    writeFileSync(ordinary, "fixture")
+    assert.throws(
+      () => readSigningPipe(openSync(ordinary, "r")),
+      /must be a pipe/
+    )
+    const producer = join(root, "producer.mjs")
+    const consumer = join(root, "consumer.mjs")
+    const moduleUrl = new URL(
+      "../../ops/local-ci/host/trusted-supervisor.mjs",
+      import.meta.url
+    ).href
+    writeFileSync(
+      consumer,
+      `import {readSigningPipe} from ${JSON.stringify(moduleUrl)}; try {const bytes=readSigningPipe(0); console.log(bytes.length); bytes.fill(0)} catch {process.exitCode=7}`
+    )
+    for (const [length, status] of [
+      [16, 0],
+      [16385, 7],
+    ]) {
+      writeFileSync(
+        producer,
+        `process.stdout.write(Buffer.alloc(${length}, 120))`
+      )
+      const result = spawnSync(
+        "sh",
+        [
+          "-c",
+          '\"$1\" \"$2\" | \"$1\" \"$3\"',
+          "fixture",
+          process.execPath,
+          producer,
+          consumer,
+        ],
+        { encoding: "utf8" }
+      )
+      assert.equal(result.status, status, result.stderr)
+      if (status === 0) assert.equal(result.stdout.trim(), String(length))
+    }
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
 })

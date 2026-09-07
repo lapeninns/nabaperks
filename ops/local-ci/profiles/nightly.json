@@ -1,7 +1,7 @@
 {
   "schema": "nabaperks.local-ci-profile.v1",
   "profile": "nightly",
-  "description": "Scheduled hardening suite: every lane the main profile runs, plus mutation testing at concurrency 8, the k6 public-route load check, a database concurrency stress lane, and the full ZAP scan.",
+  "description": "Advisory scheduled hardening suite: every lane the main profile runs, plus mutation testing at concurrency 8, the k6 public-route load check, a database concurrency stress lane, and the full ZAP scan.",
   "baselineEnv": {
     "CI": "1",
     "NEXT_PUBLIC_APP_URL": "https://example.test",

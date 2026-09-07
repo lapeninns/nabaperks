@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /** Protected host entrypoint. Install independently; never run from candidate code. */
 import { createHash, createPrivateKey, createPublicKey } from "node:crypto"
-import { readFile, lstat, realpath } from "node:fs/promises"
-import { readFileSync, fstatSync } from "node:fs"
+import { open, lstat, realpath } from "node:fs/promises"
+import { closeSync, constants, fstatSync, readSync } from "node:fs"
 import { dirname, resolve, isAbsolute } from "node:path"
 import { pathToFileURL } from "node:url"
 const FULL_HOSTED_ROOTS = Object.freeze([
@@ -128,20 +128,69 @@ export async function readProtectedFile(path) {
     canonical === resolve(path),
     "Protected paths must not contain symlinks"
   )
-  let current = canonical
+  let current = dirname(canonical)
   while (true) {
     const stat = await lstat(current)
     requireTrue(
       stat.uid === 0 && (stat.mode & 0o022) === 0 && !stat.isSymbolicLink(),
       "Protected path must be root-owned and not group/world writable"
     )
-    if (current === canonical)
-      requireTrue(stat.isFile(), "Protected input must be a regular file")
+    requireTrue(stat.isDirectory(), "Protected ancestor must be a directory")
     const parent = dirname(current)
     if (parent === current) break
     current = parent
   }
-  return readFile(canonical)
+  const file = await open(
+    canonical,
+    constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK
+  )
+  try {
+    const stat = await file.stat()
+    requireTrue(
+      stat.isFile() && stat.uid === 0 && (stat.mode & 0o022) === 0,
+      "Protected input must be a root-owned regular file without untrusted writes"
+    )
+    // Inspect and read one opened object; a later pathname replacement cannot
+    // substitute another file between the ownership check and this read.
+    return await file.readFile()
+  } finally {
+    await file.close()
+  }
+}
+
+/** Bound the inherited pipe before allocating/reading arbitrary key input. */
+export function readSigningPipe(descriptor) {
+  requireTrue(
+    Number.isSafeInteger(descriptor) && descriptor >= 0,
+    "Invalid signing descriptor"
+  )
+  const bytes = Buffer.alloc(16_385)
+  try {
+    requireTrue(
+      fstatSync(descriptor).isFIFO(),
+      "Signing key descriptor must be a pipe"
+    )
+    let length = 0
+    while (length < bytes.length) {
+      const count = readSync(
+        descriptor,
+        bytes,
+        length,
+        bytes.length - length,
+        null
+      )
+      if (count === 0) break
+      length += count
+    }
+    requireTrue(
+      length > 0 && length <= 16_384,
+      "Signing key input exceeds limit or is empty"
+    )
+    return Buffer.from(bytes.subarray(0, length))
+  } finally {
+    bytes.fill(0)
+    closeSync(descriptor)
+  }
 }
 
 function checkAllocation(allocation, config) {
@@ -376,13 +425,8 @@ export async function main(args = process.argv.slice(2)) {
   )
   const adapter = await import(pathToFileURL(config.adapterPath).href)
   const descriptor = Number(args[3])
-  requireTrue(
-    fstatSync(descriptor).isFIFO(),
-    "Signing key descriptor must be a pipe"
-  )
-  const keyBytes = readFileSync(descriptor)
+  const keyBytes = readSigningPipe(descriptor)
   try {
-    requireTrue(keyBytes.length <= 16_384, "Signing key input exceeds limit")
     const result = await runTrustedSupervisor({
       config,
       privateKey: keyBytes,

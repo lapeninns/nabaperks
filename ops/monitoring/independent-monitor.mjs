@@ -2,16 +2,19 @@ import assert from "node:assert/strict"
 import { createHash, createHmac, randomUUID } from "node:crypto"
 import {
   closeSync,
+  constants,
+  fstatSync,
   fsyncSync,
   lstatSync,
   mkdirSync,
   openSync,
   readFileSync,
+  realpathSync,
   renameSync,
   rmSync,
   writeFileSync,
 } from "node:fs"
-import { isAbsolute, join, resolve } from "node:path"
+import { dirname, isAbsolute, join, resolve } from "node:path"
 import { pathToFileURL } from "node:url"
 
 const ROOT = new URL("../../", import.meta.url)
@@ -25,13 +28,16 @@ const SLO = JSON.parse(
   readFileSync(new URL("config/production-slos.json", ROOT), "utf8")
 )
 const HASH = /^[a-f0-9]{64}$/
+const UUID =
+  /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/
+const PRODUCTION_ORIGIN = "https://nabaperks.com"
 const digest = (bytes) => createHash("sha256").update(bytes).digest("hex")
 
 export function validateMonitorConfig(config) {
   assert.equal(config.schema, "nabaperks.independent-monitor-runtime.v1")
   assert.equal(
     config.origin,
-    "https://nabaperks.com",
+    PRODUCTION_ORIGIN,
     "canonical production origin required"
   )
   assert.ok(
@@ -165,41 +171,66 @@ function validateState(state, configDigest) {
   )
   assert.ok(
     state.incident === null ||
-      (typeof state.incident.id === "string" &&
+      (UUID.test(state.incident.id) &&
         Number.isFinite(Date.parse(state.incident.openedAt))),
     "invalid incident state"
   )
-  for (const event of state.outbox) {
-    assert.deepEqual(
-      Object.keys(event).sort(),
-      [
-        "action",
-        "deliveryId",
-        "environment",
-        "incidentId",
-        "occurredAt",
-        "schema",
-        "service",
-        "summary",
-      ],
-      "unexpected pending payload fields"
-    )
-    assert.ok(
-      event.schema === "nabaperks.independent-monitor-alert.v1" &&
-        ["trigger", "resolve"].includes(event.action) &&
-        typeof event.deliveryId === "string" &&
-        typeof event.incidentId === "string" &&
-        Number.isFinite(Date.parse(event.occurredAt)),
-      "invalid pending event"
-    )
-    assert.equal(event.service, "nabaperks")
-    assert.equal(event.environment, "production")
-    assert.equal(
-      event.summary,
+  for (const event of state.outbox) canonicalAlert(event)
+}
+
+/** Only protocol identifiers and fixed operational copy may reach the receiver. */
+export function canonicalAlert(event) {
+  assert.deepEqual(
+    Object.keys(event).sort(),
+    [
+      "action",
+      "deliveryId",
+      "environment",
+      "incidentId",
+      "occurredAt",
+      "schema",
+      "service",
+      "summary",
+    ],
+    "unexpected pending payload fields"
+  )
+  assert.ok(
+    event.schema === "nabaperks.independent-monitor-alert.v1" &&
+      ["trigger", "resolve"].includes(event.action) &&
+      UUID.test(event.deliveryId) &&
+      UUID.test(event.incidentId) &&
+      Number.isFinite(Date.parse(event.occurredAt)),
+    "invalid pending event"
+  )
+  assert.equal(event.service, "nabaperks")
+  assert.equal(event.environment, "production")
+  assert.match(
+    event.occurredAt,
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
+  )
+  assert.equal(
+    new Date(event.occurredAt).toISOString(),
+    event.occurredAt,
+    "canonical event timestamp required"
+  )
+  assert.equal(
+    event.summary,
+    event.action === "trigger"
+      ? "Production health or readiness failed"
+      : "Two consecutive timely production observations passed"
+  )
+  return {
+    schema: "nabaperks.independent-monitor-alert.v1",
+    service: "nabaperks",
+    environment: "production",
+    action: event.action === "trigger" ? "trigger" : "resolve",
+    incidentId: event.incidentId,
+    deliveryId: event.deliveryId,
+    occurredAt: event.occurredAt,
+    summary:
       event.action === "trigger"
         ? "Production health or readiness failed"
-        : "Two consecutive timely production observations passed"
-    )
+        : "Two consecutive timely production observations passed",
   }
 }
 
@@ -210,6 +241,7 @@ export async function observeProduction({
   clock = () => performance.now(),
   wallClock = () => new Date(),
 }) {
+  validateMonitorConfig(config)
   assert.ok(
     typeof monitorSecret === "string" && monitorSecret.length >= 32,
     "monitor credential required"
@@ -221,7 +253,7 @@ export async function observeProduction({
   ]) {
     try {
       const started = clock()
-      const response = await fetcher(`${config.origin}/api/${route}`, {
+      const response = await fetcher(`${PRODUCTION_ORIGIN}/api/${route}`, {
         method: "GET",
         redirect: "error",
         cache: "no-store",
@@ -338,22 +370,25 @@ export async function deliverEvent(
     sleeper = (ms) => new Promise((r) => setTimeout(r, ms)),
   }
 ) {
+  validateMonitorConfig(config)
+  const payload = canonicalAlert(event)
+  const receiver = new URL(config.webhookUrl)
   assert.ok(
     typeof webhookSecret === "string" && webhookSecret.length >= 32,
     "receiver signing credential required"
   )
-  const body = JSON.stringify(event)
+  const body = JSON.stringify(payload)
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const timestamp = String(Math.floor(Date.now() / 1000))
-      const response = await fetcher(config.webhookUrl, {
+      const response = await fetcher(receiver, {
         method: "POST",
         body,
         redirect: "error",
         signal: AbortSignal.timeout(10_000),
         headers: {
           "content-type": "application/json",
-          "x-nabaperks-delivery": event.deliveryId,
+          "x-nabaperks-delivery": payload.deliveryId,
           "x-nabaperks-timestamp": timestamp,
           "x-nabaperks-signature": `v1=${createHmac("sha256", webhookSecret).update(`${timestamp}.${body}`).digest("hex")}`,
         },
@@ -370,15 +405,55 @@ export async function deliverEvent(
   return { receiverAccepted: false, retryable: true }
 }
 
-function privateDirectory(directory) {
-  const stat = lstatSync(directory)
-  assert.ok(
-    stat.isDirectory() && !stat.isSymbolicLink() && (stat.mode & 0o077) === 0,
-    "state directory must be private and not a symlink"
+function privateDirectory(directory, identity) {
+  assert.equal(
+    realpathSync(directory),
+    resolve(directory),
+    "state path ancestors must not contain symlinks"
   )
+  const uid = process.getuid()
+  let current = resolve(directory)
+  let selected
+  while (true) {
+    const stat = lstatSync(current)
+    assert.ok(
+      stat.isDirectory() && !stat.isSymbolicLink(),
+      "state ancestors must be directories"
+    )
+    assert.ok(
+      stat.uid === 0 || stat.uid === uid,
+      "state ancestor has an untrusted owner"
+    )
+    if (current === resolve(directory)) {
+      assert.ok(
+        stat.uid === uid && (stat.mode & 0o077) === 0,
+        "state directory must be private and owned by this runtime"
+      )
+      selected = { dev: stat.dev, ino: stat.ino }
+    } else {
+      // A root-owned sticky temporary directory prevents other users replacing
+      // our child entry; arbitrary group/world-writable parents do not.
+      assert.ok(
+        (stat.mode & 0o022) === 0 ||
+          (stat.uid === 0 && (stat.mode & 0o1000) !== 0),
+        "state ancestor permits untrusted replacement"
+      )
+    }
+    const parent = dirname(current)
+    if (parent === current) break
+    current = parent
+  }
+  if (identity)
+    assert.deepEqual(
+      selected,
+      identity,
+      "provisioned state directory was replaced"
+    )
+  return selected
 }
 
-function saveState(directory, state) {
+function saveState(directory, state, identity) {
+  privateDirectory(directory, identity)
   const temp = join(directory, `state-${randomUUID()}.tmp`)
   const fd = openSync(temp, "wx", 0o600)
   try {
@@ -410,17 +485,29 @@ export async function runMonitorOnce({
     monitorSecret?.length >= 32 && webhookSecret?.length >= 32,
     "independent runtime credentials required"
   )
-  privateDirectory(config.stateDirectory)
+  const directoryIdentity = privateDirectory(config.stateDirectory)
   const lock = join(config.stateDirectory, "run.lock")
   mkdirSync(lock, { mode: 0o700 })
   try {
     const stateFile = join(config.stateDirectory, "state.json")
-    const stat = lstatSync(stateFile)
-    assert.ok(
-      stat.isFile() && !stat.isSymbolicLink() && (stat.mode & 0o077) === 0,
-      "private provisioned monitor state required"
+    const descriptor = openSync(
+      stateFile,
+      constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK
     )
-    const state = JSON.parse(readFileSync(stateFile, "utf8"))
+    let state
+    try {
+      const stat = fstatSync(descriptor)
+      assert.ok(
+        stat.isFile() &&
+          stat.uid === process.getuid() &&
+          (stat.mode & 0o077) === 0 &&
+          stat.size <= 131_072,
+        "private bounded provisioned monitor state required"
+      )
+      state = JSON.parse(readFileSync(descriptor, "utf8"))
+    } finally {
+      closeSync(descriptor)
+    }
     validateState(state, configDigest)
     const observation = await observeProduction({
       config,
@@ -429,7 +516,7 @@ export async function runMonitorOnce({
       wallClock: now,
     })
     applyObservation(state, observation, config, now())
-    saveState(config.stateDirectory, state)
+    saveState(config.stateDirectory, state, directoryIdentity)
     let accepted = 0
     while (state.outbox.length && accepted < 3) {
       const receipt = await deliverEvent(state.outbox[0], {
@@ -443,7 +530,7 @@ export async function runMonitorOnce({
         "independent receiver acceptance failed; durable event retained"
       )
       state.outbox.shift()
-      saveState(config.stateDirectory, state)
+      saveState(config.stateDirectory, state, directoryIdentity)
       accepted++
     }
     assert.equal(
@@ -460,6 +547,7 @@ export async function runMonitorOnce({
       assurance: "receiver-acceptance-only",
     }
   } finally {
+    privateDirectory(config.stateDirectory, directoryIdentity)
     rmSync(lock, { recursive: true })
   }
 }

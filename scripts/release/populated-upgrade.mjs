@@ -1,6 +1,16 @@
 import assert from "node:assert/strict"
 import { createHash } from "node:crypto"
-import { readFileSync, readdirSync, lstatSync, existsSync } from "node:fs"
+import {
+  closeSync,
+  constants,
+  fstatSync,
+  openSync,
+  readFileSync,
+  readdirSync,
+  realpathSync,
+  lstatSync,
+  existsSync,
+} from "node:fs"
 import { spawnSync } from "node:child_process"
 import { resolve, join, dirname } from "node:path"
 import { pathToFileURL } from "node:url"
@@ -69,24 +79,82 @@ export function migrationDelta(baseline, candidate) {
 // Digest the complete self-contained build, dependencies and runtime. Symlinks
 // and dotenv files are forbidden so validation cannot accidentally follow an
 // external dependency checkout or load repository/provider credentials.
+function readProbeFile(path) {
+  const descriptor = openSync(
+    path,
+    constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK
+  )
+  try {
+    const before = fstatSync(descriptor, { bigint: true })
+    assert.ok(before.isFile(), "Probe artifact special files forbidden")
+    const contents = readFileSync(descriptor)
+    const after = fstatSync(descriptor, { bigint: true })
+    assert.ok(
+      before.size === after.size &&
+        before.mtimeNs === after.mtimeNs &&
+        before.ctimeNs === after.ctimeNs,
+      "Probe artifact changed during descriptor read"
+    )
+    return { contents, mode: Number(before.mode & 0o777n) }
+  } finally {
+    closeSync(descriptor)
+  }
+}
+
 export function probeTreeDigest(root) {
   assert.equal(resolve(root), root, "Absolute probe artifact root required")
+  assert.equal(
+    realpathSync(root),
+    root,
+    "Probe artifact ancestors must not contain symlinks"
+  )
   const records = []
   function walk(directory, prefix = "") {
-    for (const name of readdirSync(directory).sort()) {
-      assert.ok(
-        !/^\.env(?:\.|$)/.test(name),
-        "Probe artifact must not contain dotenv files"
+    const descriptor = openSync(
+      directory,
+      constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_DIRECTORY
+    )
+    try {
+      const before = fstatSync(descriptor, { bigint: true })
+      assert.ok(before.isDirectory(), "Probe artifact directory required")
+      assert.equal(
+        realpathSync(directory),
+        directory,
+        "Probe artifact directory alias forbidden"
       )
-      const path = join(directory, name),
-        relative = prefix + name
-      const stat = lstatSync(path)
-      assert.ok(!stat.isSymbolicLink(), "Probe artifact symlinks forbidden")
-      if (stat.isDirectory()) walk(path, relative + "/")
-      else {
-        assert.ok(stat.isFile(), "Probe artifact special files forbidden")
-        records.push([relative, stat.mode & 0o777, sha256(readFileSync(path))])
+      for (const name of readdirSync(directory).sort()) {
+        assert.ok(
+          !/^\.env(?:\.|$)/.test(name),
+          "Probe artifact must not contain dotenv files"
+        )
+        const path = join(directory, name),
+          relative = prefix + name
+        const stat = lstatSync(path)
+        assert.ok(!stat.isSymbolicLink(), "Probe artifact symlinks forbidden")
+        if (stat.isDirectory()) walk(path, relative + "/")
+        else {
+          assert.ok(stat.isFile(), "Probe artifact special files forbidden")
+          const file = readProbeFile(path)
+          records.push([relative, file.mode, sha256(file.contents)])
+        }
       }
+      const after = fstatSync(descriptor, { bigint: true })
+      const current = lstatSync(directory, { bigint: true })
+      assert.equal(
+        realpathSync(directory),
+        directory,
+        "Probe artifact directory changed during traversal"
+      )
+      assert.ok(
+        current.isDirectory() &&
+          current.dev === before.dev &&
+          current.ino === before.ino &&
+          before.mtimeNs === after.mtimeNs &&
+          before.ctimeNs === after.ctimeNs,
+        "Probe artifact directory changed during traversal"
+      )
+    } finally {
+      closeSync(descriptor)
     }
   }
   assert.ok(
@@ -105,7 +173,7 @@ export function validateProbeArtifact(probe, revision) {
     /^[a-f0-9]{64}$/,
     "Probe artifact manifest digest required"
   )
-  const manifestBytes = readFileSync(probe.manifestPath)
+  const manifestBytes = readProbeFile(probe.manifestPath).contents
   assert.equal(
     sha256(manifestBytes),
     probe.manifestDigest,
@@ -134,18 +202,12 @@ export function validateProbeArtifact(probe, revision) {
       `Missing probe ${key}`
     )
   }
+  const runtime = readProbeFile(
+    join(probe.artifactRoot, manifest.runtime)
+  ).contents
+  readProbeFile(join(probe.artifactRoot, manifest.entrypoint))
   assert.ok(
-    lstatSync(join(probe.artifactRoot, manifest.runtime)).isFile(),
-    "Bundled runtime file required"
-  )
-  assert.ok(
-    lstatSync(join(probe.artifactRoot, manifest.entrypoint)).isFile(),
-    "Bound probe entrypoint file required"
-  )
-  assert.ok(
-    !readFileSync(join(probe.artifactRoot, manifest.runtime))
-      .subarray(0, 2)
-      .equals(Buffer.from("#!")),
+    !runtime.subarray(0, 2).equals(Buffer.from("#!")),
     "Runtime must be a bundled binary, not an interpreter wrapper"
   )
   assert.ok(
