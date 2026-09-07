@@ -49,6 +49,8 @@ const AUTHENTICATED_DIRECT_RPCS = [
   "admin_verify_customer_date_of_birth",
   "get_owner_reward_scan_context",
   "verify_and_collect_reward_scan_token",
+  "get_venue_code_today",
+  "rotate_venue_code",
   "save_loyalty_card",
   "upsert_reward_pool_item",
   "set_reward_pool_item_active",
@@ -117,11 +119,16 @@ const MUST_BE_LOCKED = [
   "record_customer_marketing_consent",
   "join_customer_membership_with_first_stamp",
   "issue_self_service_stamp",
+  "consume_venue_code_attempt",
+  "issue_venue_code_stamp",
 ]
 
 const SERVICE_ROLE_EXCLUDED_FUNCTIONS = new Set([
   "get_owner_reward_scan_context",
   "verify_and_collect_reward_scan_token",
+  // Bound to auth.uid(): only the signed-in owner may read or reset the code.
+  "get_venue_code_today",
+  "rotate_venue_code",
   "require_eligible_reward_for_scan_token",
   "purge_merchant_id_checks_after_customer_erasure",
   "purge_customer_otp_devices_after_erasure",

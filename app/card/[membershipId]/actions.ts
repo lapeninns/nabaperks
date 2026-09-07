@@ -8,6 +8,7 @@ import {
   merchantActivitySummaryCacheTag,
   revalidateCacheTag,
 } from "@/lib/cache/tags"
+import { blockReasonCopy } from "@/lib/customer/experience/block-reasons"
 import {
   getCurrentCustomerId,
   getStampQrContextForMembership,
@@ -19,22 +20,36 @@ import {
 import { drainReferralBonusBankWithOutcome } from "@/lib/customer/referral-bonus-bank"
 import {
   issueSelfServiceStamp,
+  issueVenueCodeStamp,
   type GeoCoordinates,
+  type IssueSelfServiceStampResult,
 } from "@/lib/customer/stamp"
 import { enqueueStampTransitionNotifications } from "@/lib/notifications/events"
-import type { SelfStampActionState } from "@/lib/customer/self-stamp-action-state"
+import type {
+  SelfStampActionState,
+  SelfStampBlockedDetail,
+} from "@/lib/customer/self-stamp-action-state"
 import { logger } from "@/lib/observability/logger"
 import {
+  customerDeviceHashFromHeaders,
   customerRateLimitIdentityFromHeaders,
   enforceRateLimit,
+  rateLimitIdentityFromHeaders,
   RateLimitError,
 } from "@/lib/security/rate-limit"
 
 const SELF_STAMP_ACTION_LIMIT = 10
 const SELF_STAMP_ACTION_WINDOW_MS = 15 * 60 * 1000
+const VENUE_CODE_LENGTH = 6
+const SCAN_FIRST_COPY = "Scan the venue code to add your stamp."
 
-function fail(message: string): SelfStampActionState {
-  return { status: "error", message }
+type IssuedStamp = Extract<IssueSelfServiceStampResult, { status: "issued" }>
+
+function fail(
+  message: string,
+  detail: SelfStampBlockedDetail = {}
+): SelfStampActionState {
+  return { status: "error", message, ...detail }
 }
 
 function unknownStamp(): SelfStampActionState {
@@ -49,9 +64,7 @@ export async function selfStampAction(
     await chargeSelfStampActionAttempt()
   } catch (error) {
     if (error instanceof RateLimitError) {
-      return fail(
-        "You're going a little fast. Wait a few minutes, then try again."
-      )
+      return fail(blockReasonCopy("rate_limited"), { reason: "rate_limited" })
     }
     throw error
   }
@@ -84,9 +97,104 @@ export async function selfStampAction(
   }
 
   if (result.status === "blocked") {
-    return fail(result.reason)
+    return fail(result.reason, { reason: result.blockReason })
   }
 
+  return completeIssuedStamp(membershipId, qrContext.merchant.id, result)
+}
+
+/**
+ * The venue-code fallback. Same QR proof, same attempt throttle shape and the
+ * same post-stamp side effects as {@link selfStampAction}; the only new input
+ * is the six-digit code a team member read out, which the RPC verifies.
+ */
+export async function venueCodeStampAction(
+  _state: SelfStampActionState,
+  formData: FormData
+): Promise<SelfStampActionState> {
+  try {
+    await chargeVenueCodeActionAttempt()
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      return fail(blockReasonCopy("rate_limited"), { reason: "rate_limited" })
+    }
+    throw error
+  }
+
+  const membershipId = value(formData, "membershipId")
+  const qrId = value(formData, "qrId")
+  const code = value(formData, "code").replace(/\s+/g, "")
+
+  if (!membershipId || !qrId) {
+    return fail(SCAN_FIRST_COPY)
+  }
+
+  if (!new RegExp(`^[0-9]{${VENUE_CODE_LENGTH}}$`).test(code)) {
+    return fail(blockReasonCopy("venue_code_format"), {
+      reason: "venue_code_format",
+    })
+  }
+
+  const qrContext = await getStampQrContextForMembership(membershipId, qrId)
+
+  if (!qrContext) {
+    return fail(SCAN_FIRST_COPY)
+  }
+
+  const requestHeaders = await headers()
+  let result: Awaited<ReturnType<typeof issueVenueCodeStamp>>
+  try {
+    result = await issueVenueCodeStamp({
+      membershipId,
+      qrId,
+      code,
+      deviceHash: customerDeviceHashFromHeaders(requestHeaders),
+      networkHash: rateLimitIdentityFromHeaders(requestHeaders),
+    })
+  } catch (error) {
+    if (!(error instanceof Error)) {
+      throw error
+    }
+    logger.error("venue_code_stamp_unexpected_error", {
+      membershipId,
+      error,
+    })
+    return unknownStamp()
+  }
+
+  if (result.status === "blocked") {
+    return fail(result.reason, { reason: result.blockReason })
+  }
+
+  if (result.status === "code_rejected") {
+    return fail(blockReasonCopy("venue_code_rejected"), {
+      reason: "venue_code_rejected",
+      attemptsRemaining: result.attemptsRemaining,
+    })
+  }
+
+  if (result.status === "locked_out") {
+    return fail(blockReasonCopy("venue_code_locked"), {
+      reason: "venue_code_locked",
+      lockedUntil: result.lockedUntil ?? undefined,
+    })
+  }
+
+  return completeIssuedStamp(membershipId, qrContext.merchant.id, result)
+}
+
+/**
+ * Everything that happens once a stamp has landed: settle banked referral
+ * bonuses, mark the card and home routes stale, and queue the push
+ * transition. Shared by the GPS path and the venue-code path so the two can
+ * never drift. The customer stays on the stamp screen; the UI confirms the
+ * stamp in place.
+ */
+async function completeIssuedStamp(
+  membershipId: string,
+  merchantId: string,
+  result: IssuedStamp
+): Promise<SelfStampActionState> {
   let bonusStampsApplied = 0
   let bonusRewardUnlocked = false
   try {
@@ -104,8 +212,7 @@ export async function selfStampAction(
   }
 
   // Mark the card route stale so navigating away/back reflects the new stamp.
-  // The customer stays on this screen; the UI confirms the stamp in place.
-  revalidateCacheTag(merchantActivitySummaryCacheTag(qrContext.merchant.id))
+  revalidateCacheTag(merchantActivitySummaryCacheTag(merchantId))
   revalidatePath(`/card/${membershipId}`)
   revalidatePath("/home")
 
@@ -132,10 +239,36 @@ export async function selfStampAction(
   }
 }
 
+type ActionBucketKeys = {
+  readonly request: (requestIdentity: string) => string
+  readonly customer: (customerId: string) => string
+}
+
+/** The GPS stamp's app-layer throttle. */
 async function chargeSelfStampActionAttempt(): Promise<void> {
+  await chargeActionAttempt({
+    request: (requestIdentity) => `selfstamp-action:request:${requestIdentity}`,
+    customer: (customerId) => `selfstamp-action:customer:${customerId}`,
+  })
+}
+
+/** The venue-code stamp's app-layer throttle — its own buckets, so one path cannot starve the other. */
+async function chargeVenueCodeActionAttempt(): Promise<void> {
+  await chargeActionAttempt({
+    request: (requestIdentity) => `venuecode-action:request:${requestIdentity}`,
+    customer: (customerId) => `venuecode-action:customer:${customerId}`,
+  })
+}
+
+/**
+ * Two app-layer buckets — one per request identity, one per signed-in
+ * customer — charged before any database work, in addition to the RPC's own
+ * committed-first throttle.
+ */
+async function chargeActionAttempt(keys: ActionBucketKeys): Promise<void> {
   const requestIdentity = customerRateLimitIdentityFromHeaders(await headers())
   await enforceRateLimit({
-    key: `selfstamp-action:request:${requestIdentity}`,
+    key: keys.request(requestIdentity),
     limit: SELF_STAMP_ACTION_LIMIT,
     windowMs: SELF_STAMP_ACTION_WINDOW_MS,
   })
@@ -144,7 +277,7 @@ async function chargeSelfStampActionAttempt(): Promise<void> {
   if (!customerId) return
 
   await enforceRateLimit({
-    key: `selfstamp-action:customer:${customerId}`,
+    key: keys.customer(customerId),
     limit: SELF_STAMP_ACTION_LIMIT,
     windowMs: SELF_STAMP_ACTION_WINDOW_MS,
   })

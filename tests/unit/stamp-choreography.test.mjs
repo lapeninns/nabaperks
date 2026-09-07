@@ -6,6 +6,7 @@ import {
   readbackBonusStampsApplied,
   reduceStampChoreography,
   stampChoreographyView,
+  venueCodeOffered,
 } from "@/lib/customer/experience/stamp-choreography"
 
 const issued = {
@@ -256,4 +257,73 @@ test("a server-derived unlocked reward stays revealed after reload", () => {
   assert.equal(view.confirmed, true)
   assert.equal(view.statusTitle, "That's the full card.")
   assert.equal(view.statusBody, "Your reward is ready to open.")
+})
+
+test("the venue-code fallback is offered for location refusals and wrong codes, never for a lockout", () => {
+  assert.equal(venueCodeOffered("location_out_of_range"), true)
+  assert.equal(venueCodeOffered("location_required"), true)
+  assert.equal(venueCodeOffered("venue_code_rejected"), true)
+  assert.equal(venueCodeOffered("venue_code_format"), true)
+  assert.equal(venueCodeOffered("venue_code_locked"), false)
+  assert.equal(venueCodeOffered("venue_code_refusal_missing"), false)
+  assert.equal(venueCodeOffered("already_stamped_today"), false)
+  assert.equal(venueCodeOffered(undefined), false)
+})
+
+test("a blocked view carries the fallback facts and a retry clears them", () => {
+  const checking = reduceStampChoreography(initialStampChoreographyState, {
+    type: "request_started",
+  })
+  const refused = reduceStampChoreography(checking, {
+    type: "request_blocked",
+    message: "Location couldn't confirm you're at the venue.",
+    reason: "location_out_of_range",
+  })
+  const refusedView = stampChoreographyView(refused, baseView)
+  assert.equal(refusedView.venueCodeOffer, true)
+  assert.equal(refusedView.venueCodeAttemptsRemaining, null)
+  assert.equal(refusedView.venueCodeLockedUntil, null)
+  assert.equal(refusedView.secured, false, "the customer may try again")
+
+  const retry = reduceStampChoreography(refused, { type: "request_started" })
+  assert.equal(retry.phase, "checking")
+  assert.equal(stampChoreographyView(retry, baseView).venueCodeOffer, false)
+
+  const wrong = reduceStampChoreography(retry, {
+    type: "request_blocked",
+    message: "That code isn't right.",
+    reason: "venue_code_rejected",
+    attemptsRemaining: 3,
+  })
+  const wrongView = stampChoreographyView(wrong, baseView)
+  assert.equal(wrongView.venueCodeOffer, true)
+  assert.equal(wrongView.venueCodeAttemptsRemaining, 3)
+
+  const locked = reduceStampChoreography(
+    reduceStampChoreography(wrong, { type: "request_started" }),
+    {
+      type: "request_blocked",
+      message: "Too many tries.",
+      reason: "venue_code_locked",
+      lockedUntil: "2026-09-07T12:15:00.000Z",
+    }
+  )
+  const lockedView = stampChoreographyView(locked, baseView)
+  assert.equal(lockedView.venueCodeOffer, false)
+  assert.equal(lockedView.venueCodeLockedUntil, "2026-09-07T12:15:00.000Z")
+})
+
+test("a plain (non-location) refusal offers no fallback", () => {
+  const checking = reduceStampChoreography(initialStampChoreographyState, {
+    type: "request_started",
+  })
+  const blocked = reduceStampChoreography(checking, {
+    type: "request_blocked",
+    message: "You're already stamped today.",
+    reason: "already_stamped_today",
+  })
+  const view = stampChoreographyView(blocked, baseView)
+  assert.equal(view.venueCodeOffer, false)
+  assert.equal(view.venueCodeAttemptsRemaining, null)
+  assert.equal(view.venueCodeLockedUntil, null)
 })
