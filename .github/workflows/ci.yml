@@ -40,9 +40,9 @@ env:
 # split so feedback fails fast: the fast lane gates every dev-server browser
 # tier, the quality lane carries the hygiene sweeps, and the production
 # bundle is built exactly once and shared with Lighthouse + ZAP as an
-# artifact. The required release gate covers the deterministic fast and build
-# lanes. Long browser, accessibility, visual, performance, security-proxy and
-# database suites continue to publish evidence without delaying routine merges.
+# artifact. The required Release gate covers all nine validation roots. Missing,
+# skipped, cancelled or failed lanes cannot approve a merge. The advisory local
+# observation runs separately so it cannot hold the whole CI workflow open.
 jobs:
   fast:
     name: Fast lane (lint, typecheck, unit)
@@ -65,11 +65,8 @@ jobs:
       - name: Configure non-secret CI auth-hook fixture
         run: |
           printf 'SUPABASE_SEND_EMAIL_HOOK_SECRET=v1,%s_%s\n' whsec VTghZE0zQGtSNyN2SDIkY1E5XnBMNSZ3RjQqek42P3g= >> "$GITHUB_ENV"
-      - run: pnpm env:check:production
-      - run: pnpm security:audit --ignore-registry-errors
-      - run: pnpm lint
-      - run: pnpm typecheck
-      - run: pnpm test:contracts
+      - name: Run shared fast validation commands
+        run: node scripts/ci/run-workload.mjs fast
       # Four tests in tests/unit/google-review-pdf.test.mjs render through a
       # real Chromium (google-review-pdf -> google-review-pdf-render ->
       # print-kit-browser -> chromium.launch()), so the unit tier needs a
@@ -81,7 +78,7 @@ jobs:
         with:
           project: chromium
       # The unit suite runs exactly once, with coverage thresholds enforced.
-      - run: pnpm test:coverage
+      - run: node scripts/ci/run-workload.mjs coverage
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: ${{ !cancelled() }}
         with:
@@ -99,13 +96,8 @@ jobs:
         with:
           fetch-depth: 0
       - uses: ./.github/actions/setup
-      - run: pnpm deadcode:check
-      - run: pnpm duplicates:check
-      - run: pnpm debt:check
-      - run: pnpm docs:check
-      - run: pnpm agents:check
-      - run: pnpm tokens:check
-      - run: pnpm claims:check
+      - name: Run shared quality validation commands
+        run: node scripts/ci/run-workload.mjs quality
       # Keep the vector/pdf-lib poster geometry proof, then render the exact
       # Playwright production bundle (duplex posters, tents, cards and plates)
       # so the release gate cannot pass against a stand-in PDF path.
@@ -153,9 +145,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/setup
-      - run: pnpm build
-      - run: pnpm bundle:check
-      - run: pnpm jsonld:check
+      - name: Run shared production build validation commands
+        run: node scripts/ci/run-workload.mjs build
       - name: Share production bundle with Lighthouse and ZAP
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
@@ -252,7 +243,7 @@ jobs:
         uses: ./.github/actions/playwright
         with:
           project: ${{ matrix.project }}
-      - run: pnpm test:e2e -- --project="${{ matrix.project }}" --grep-invert @visual --shard="${{ matrix.shard }}"
+      - run: node scripts/ci/browser-workload.mjs hosted test:e2e --project="${{ matrix.project }}" --grep-invert @visual --shard="${{ matrix.shard }}"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: ${{ !cancelled() && failure() }}
         with:
@@ -295,7 +286,7 @@ jobs:
         uses: ./.github/actions/playwright
         with:
           project: ${{ matrix.project }}
-      - run: pnpm test:a11y -- --project="${{ matrix.project }}" --shard="${{ matrix.shard }}"
+      - run: node scripts/ci/browser-workload.mjs hosted test:a11y --project="${{ matrix.project }}" --shard="${{ matrix.shard }}"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: ${{ !cancelled() && failure() }}
         with:
@@ -470,9 +461,8 @@ jobs:
     steps:
       # Stable required-check name so branch protection can block a merge when
       # the live Postgres/RLS/RPC moat is red. Mirrors e2e-gate/a11y-gate; the
-      # `db` job is not folded into any other rollup, so without this a broken
-      # ledger invariant could merge (QA plan R-01). Mark this required in
-      # branch protection.
+      # `db` job also feeds the required Release gate. Keep this named rollup
+      # for existing dashboards while the aggregate enforces its outcome.
       - name: Require the DB behavioral moat to pass
         env:
           DB_RESULT: ${{ needs.db.result }}
@@ -482,95 +472,23 @@ jobs:
     name: Release gate
     needs:
       - fast
+      - quality
       - build
+      - e2e
+      - a11y
+      - visual
+      - lighthouse
+      - zap-baseline
+      - db
     if: ${{ always() }}
     runs-on: ubuntu-latest
-    timeout-minutes: 1
-    steps:
-      - name: Require deterministic merge proof
-        env:
-          FAST_RESULT: ${{ needs.fast.result }}
-          BUILD_RESULT: ${{ needs.build.result }}
-        run: |
-          test "$FAST_RESULT" = "success"
-          test "$BUILD_RESULT" = "success"
-
-  # ---------------------------------------------------------------------------
-  # Cutover step 1 bridge - ADVISORY, and additive only.
-  #
-  # Everything above this comment is byte-for-byte what it was before the local
-  # CI plane existed: no job was deleted, renamed, reordered, or had its
-  # `needs:` reduced, and no job anywhere lists `local-proof` in `needs:`. The
-  # merge-blocking surface is therefore still exactly `release-gate` over
-  # [fast, build]. tests/contracts/devops-local-ci.test.mjs asserts all of that
-  # against this file, so a later edit cannot quietly widen it.
-  #
-  # The job is advisory three times over, deliberately belt-and-braces:
-  #   1. nothing depends on it, so it cannot gate a merge even if it fails;
-  #   2. `continue-on-error: true`, so a failure does not redden the run;
-  #   3. the poller reads `bridge.enforcement` and `shadowMode.enabled` out of
-  #      config/local-ci-contract.json at run time and returns 0 while the
-  #      plane is in shadow mode. Nothing about the verdict is hardcoded here,
-  #      so promoting the bridge is a contract edit rather than a workflow
-  #      edit - see docs/operations/local-ci-cutover.md, cutover step 3, which
-  #      is also where `continue-on-error` is dropped and the job is added to
-  #      `release-gate`'s `needs:`.
-  #
-  # The job is skipped outright until an operator sets the repository variable
-  # LOCAL_CI_MODE, so an unprovisioned local plane costs no runner minutes.
-  # ---------------------------------------------------------------------------
-  local-proof:
-    name: Local CI proof
-    # An allowlist, not a denylist: the only two events that may reach the
-    # local plane are a pull request whose head branch lives in this very
-    # repository, and a push to main. A fork pull request carries untrusted
-    # code and must never be dispatched to a machine on someone's desk, and
-    # naming the two permitted events explicitly means a future trigger added
-    # to `on:` cannot silently inherit access.
-    if: >-
-      ${{ vars.LOCAL_CI_MODE != ''
-      && ((github.event_name == 'pull_request'
-      && github.event.pull_request.head.repo.full_name == github.repository)
-      || (github.event_name == 'push'
-      && github.ref == 'refs/heads/main')) }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    continue-on-error: true
-    # Job-level permissions replace the workflow-level set outright rather than
-    # merging with it, so `contents: read` has to be restated for the checkout
-    # to work. `checks: read` is the only addition, and the job holds no write
-    # scope of any kind: it observes the proof, it never publishes one.
-    permissions:
-      contents: read
-      checks: read
+    # Allow cold checkout time without turning this short verdict into a wait.
+    timeout-minutes: 3
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version-file: .nvmrc
-      - name: Await the local CI proof for this head commit
+      - name: Require complete hosted validation
         env:
-          GITHUB_TOKEN: ${{ github.token }}
-          LOCAL_CI_MODE: ${{ vars.LOCAL_CI_MODE }}
-          # WHY THIS IS NOT `github.sha` ON A PULL REQUEST.
-          #
-          # For a `pull_request` event GitHub synthesises an ephemeral merge
-          # commit of the head branch into the base, and `github.sha` is that
-          # merge commit. It exists only inside this workflow run: it is on no
-          # branch, it is never pushed, and the local agent - which clones the
-          # repository and checks out the contributor's actual head commit -
-          # will never see it, so it can never publish a proof against it.
-          # Polling `github.sha` here would therefore hunt for a check run that
-          # cannot exist and burn the full 120-minute ceiling before giving up.
-          #
-          # The commit the local plane actually proves is the pull request head,
-          # `github.event.pull_request.head.sha`. On `push` there is no merge
-          # commit and `github.sha` already is the head, so the ternary below
-          # picks the right one for each event. scripts/check-local-ci-proof.mjs
-          # re-asserts this pairing against GITHUB_EVENT_NAME and fails in
-          # seconds with a self-describing message if the two are ever wired the
-          # wrong way round, rather than timing out silently.
-          LOCAL_CI_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-        run: node scripts/check-local-ci-proof.mjs
+          CI_REQUIRED_EVIDENCE: ${{ toJSON(needs) }}
+        run: node scripts/ci/verify-required-evidence.mjs

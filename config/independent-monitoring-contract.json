@@ -1,0 +1,18 @@
+{
+  "schema": "nabaperks.independent-monitoring-contract.v1",
+  "owner": "Lapen Inns product operations",
+  "activation": "external-evidence-required",
+  "evidenceSchema": "nabaperks.independent-monitoring-evidence.v1",
+  "service": "nabaperks",
+  "environment": "production",
+  "monitoredDependency": "supabase:skonlhwstejberyzobep",
+  "forbiddenSchedulerDependencies": ["github", "supabase:skonlhwstejberyzobep"],
+  "forbiddenPagingDependencies": ["github", "supabase:skonlhwstejberyzobep"],
+  "maximumEvidenceAgeDays": 30,
+  "maximumDetectionMinutes": 20,
+  "maximumReceiverAcceptanceMinutes": 5,
+  "maximumProviderDeliveryMinutes": 5,
+  "maximumHumanAcknowledgementMinutes": 15,
+  "maximumRecoveryDetectionMinutes": 20,
+  "notes": "Qualification validates protected reviewed evidence only. It does not provision monitoring, verify account settings, deliver a page or establish ongoing availability. Dependency inventories must include scheduler, runtime, state store, DNS, secrets and delivery prerequisites. GitHub and the monitored production Supabase project cannot be required for detection or paging. Receiver acceptance, provider delivery and operator acknowledgement are separate evidence stages."
+}

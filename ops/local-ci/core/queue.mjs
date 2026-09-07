@@ -259,7 +259,9 @@ export function cancelObsolete(state, ref, newSha, now = null) {
  *
  * Deduplication is by `(ref, sha, profile)` against every job that has not
  * been cancelled, so re-delivering a webhook is a no-op that returns the
- * existing job rather than a second run of identical work.
+ * existing job rather than a second run of identical work. Only a caller that
+ * has independently admitted a durable retry may set job.retry to bypass a
+ * completed entry; queued/running work still deduplicates.
  *
  * Returns `{ state, job, deduplicated, cancelled }`.
  */
@@ -297,7 +299,10 @@ export function enqueue(state, job, now) {
 
   const key = jobKey({ ref, sha, profile })
   const existing = state.jobs.find(
-    (candidate) => candidate.key === key && candidate.status !== "cancelled"
+    (candidate) =>
+      candidate.key === key &&
+      candidate.status !== "cancelled" &&
+      !(job.retry === true && candidate.status === "completed")
   )
   if (existing) {
     // Deliberately before the supersede pass: an identical request cancels

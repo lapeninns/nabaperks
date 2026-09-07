@@ -1,6 +1,19 @@
-# Local CI cutover — follow-on specification (steps 3-7)
+# Local CI cutover — superseded historical specification
 
-Cutover step 1 (this pass) merged the local CI execution plane as **inert
+> **Superseded by [CI redesign](ci-redesign.md).** The remainder is a historical
+> design against `08ec0f434`, retained for rationale and test ideas. Its commands,
+> line references, gate membership, job counts and numbered activation steps are
+> not the current implementation or an executable rollout procedure. In redesign
+> Phase 1, `Release gate` requires all nine hosted roots and the observer lives in
+> `local-ci-shadow.yml`, reads once, and cannot delay `CI`. The agent remains in
+> advisory shadow mode. Do not flip `LOCAL_CI_MODE`, `shadowMode.enabled`,
+> `bridge.enforcement` or `stage` to acquire merge authority. Future authority
+> requires a new reviewed implementation, isolation and proof qualification,
+> equivalent hosted fallback and separately verified provider requirements.
+
+## Historical proposal (not current operating instructions)
+
+The historical cutover step 1 merged the local CI execution plane as **inert
 scaffolding**: `ops/local-ci/`, `config/local-ci-contract.json`, an advisory
 `local-proof` job appended to `.github/workflows/ci.yml`, a nightly proof
 verifier, unit and contract coverage, and the host provisioning files. It

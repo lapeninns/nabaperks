@@ -774,3 +774,39 @@ test("a refusal never carries the credential the refused value was built from", 
   }
   assert.deepEqual(fetch.calls, [], "every refusal came before the network")
 })
+
+test("check creation carries durable external identity and never transport-retries an ambiguous POST", async () => {
+  const fetch = stubFetch({
+    "POST /app/installations/": json(201, TOKEN_BODY),
+    "POST /repos/lapeninns/nabaperks/check-runs": () => {
+      throw new Error("accepted then disconnected")
+    },
+  })
+  const github = createGitHubClient({
+    contract,
+    appId: APP_ID,
+    installationId: INSTALLATION_ID,
+    privateKey,
+    fetch,
+    now: () => NOW,
+    sleep: async () => {},
+    maxAttempts: 3,
+  })
+  await assert.rejects(
+    github.createCheckRun({
+      name: contract.checkName,
+      headSha: HEAD_SHA,
+      externalId: "nabaperks-attempt:unique",
+      status: "in_progress",
+    }),
+    /disconnected/
+  )
+  const creates = fetch.calls.filter((entry) =>
+    entry.path.endsWith("/check-runs")
+  )
+  assert.equal(creates.length, 1)
+  assert.equal(
+    JSON.parse(creates[0].body).external_id,
+    "nabaperks-attempt:unique"
+  )
+})

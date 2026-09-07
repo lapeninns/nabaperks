@@ -1,0 +1,45 @@
+name: Trusted local proof preparation
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_revision:
+        description: Exact candidate SHA to observe; this does not dispatch execution
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  checks: read
+
+jobs:
+  observe:
+    name: Trusted observation (hosted routing retained)
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    env:
+      REQUESTED_SHA: ${{ inputs.candidate_revision }}
+    steps:
+      - name: Require the trusted main control plane
+        run: |
+          test "$GITHUB_REF" = "refs/heads/main"
+          [[ "$REQUESTED_SHA" =~ ^[a-f0-9]{40}$ ]]
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Verify the trusted checkout
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .nvmrc
+      # No candidate checkout, policy input, signing key or authority switch.
+      # Missing protected supervisor policy keeps all nine roots hosted.
+      - name: Evaluate the prepared trusted observer
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node scripts/ci/observe-trusted-local-proof.mjs \
+            --repository "$GITHUB_REPOSITORY" --sha "$REQUESTED_SHA" \
+            > "$RUNNER_TEMP/trusted-observation.json"
+          cat "$RUNNER_TEMP/trusted-observation.json" >> "$GITHUB_STEP_SUMMARY"

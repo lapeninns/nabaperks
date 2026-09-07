@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { createHash } from "node:crypto"
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import path from "node:path"
@@ -7,7 +8,6 @@ import { test } from "node:test"
 import {
   assertRestoreDatabaseUrl,
   loadRestoreEvidence,
-  migrationVersionsAt,
   resolveRestoreDrillConfig,
 } from "../../scripts/check-restored-backup.mjs"
 
@@ -18,6 +18,11 @@ const ENV = {
   RECOVERY_RTO_MINUTES: "30",
   RESTORE_DRILL_BACKUP_ID: "1178567050",
   RESTORE_DRILL_BACKUPS_FILE: "backups.json",
+  RESTORE_DRILL_STARTED_AT: "2026-07-22T10:02:00.000Z",
+  RESTORE_DRILL_LINEAGE_FILE: "lineage.json",
+  RESTORE_DRILL_LINEAGE_SHA256: "a".repeat(64),
+  RESTORE_DRILL_SOURCE_MANIFEST_FILE: "manifest.json",
+  RESTORE_DRILL_SOURCE_MANIFEST_SHA256: "b".repeat(64),
   RESTORE_DRILL_CONFIRMATION: "VERIFY_NON_PRODUCTION_RESTORE",
   RESTORE_DRILL_DB_URL: `postgresql://postgres.${TARGET_REF}:password@aws-0-eu-west-2.pooler.supabase.com:5432/postgres`,
   RESTORE_DRILL_PROJECT_REF: TARGET_REF,
@@ -98,10 +103,52 @@ test("restore provider evidence ties a recent physical backup to a fresh same-re
     ])
   )
 
-  const config = resolveRestoreDrillConfig(ENV, root)
+  const manifest = {
+    schema: "nabaperks.backup-source-manifest.v1",
+    sourceProjectRef: ENV.PRODUCTION_SUPABASE_PROJECT_REF,
+    backupId: ENV.RESTORE_DRILL_BACKUP_ID,
+    backupAt: "2026-07-22T10:00:00.000Z",
+    migrations: ["20260722110000"],
+    counts: {
+      auth_users: "1",
+      memberships: "1",
+      merchants: "1",
+      rewards: "0",
+      stamps: "1",
+    },
+    invariants: { activeCronJobs: 0 },
+  }
+  const manifestBytes = JSON.stringify(manifest)
+  const manifestSha256 = createHash("sha256")
+    .update(manifestBytes)
+    .digest("hex")
+  writeFileSync(path.join(root, "manifest.json"), manifestBytes)
+  const lineageBytes = JSON.stringify({
+    schema: "nabaperks.restore-lineage.v1",
+    sourceProjectRef: manifest.sourceProjectRef,
+    backupId: manifest.backupId,
+    backupAt: manifest.backupAt,
+    restoreProjectRef: TARGET_REF,
+    sourceManifestSha256: manifestSha256,
+    providerOperationId: "restore-123",
+    status: "COMPLETED",
+    startedAt: "2026-07-22T10:03:00.000Z",
+    completedAt: "2026-07-22T10:15:00.000Z",
+  })
+  writeFileSync(path.join(root, "lineage.json"), lineageBytes)
+  const config = resolveRestoreDrillConfig(
+    {
+      ...ENV,
+      RESTORE_DRILL_SOURCE_MANIFEST_SHA256: manifestSha256,
+      RESTORE_DRILL_LINEAGE_SHA256: createHash("sha256")
+        .update(lineageBytes)
+        .digest("hex"),
+    },
+    root
+  )
   const evidence = loadRestoreEvidence(config, now)
-  assert.deepEqual(evidence.expectedMigrations, ["20260722090000"])
-  assert.equal(evidence.elapsedMinutes, 25)
+  assert.deepEqual(evidence.expectedMigrations, ["20260722110000"])
+  assert.equal(evidence.startedAt.toISOString(), ENV.RESTORE_DRILL_STARTED_AT)
 })
 
 test("restore drill database URL must identify the disposable target", () => {
@@ -127,13 +174,4 @@ test("restore drill database URL must identify the disposable target", () => {
       ),
     /restore project/
   )
-})
-
-test("migration cutoff derives the ledger expected at backup time", () => {
-  const versions = migrationVersionsAt(
-    process.cwd(),
-    new Date("2026-07-22T10:03:30.000Z")
-  )
-  assert.ok(versions.includes("20260722100300"))
-  assert.ok(!versions.includes("20260722100400"))
 })

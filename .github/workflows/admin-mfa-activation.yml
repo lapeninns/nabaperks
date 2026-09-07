@@ -21,7 +21,7 @@ on:
         type: string
 
 concurrency:
-  group: production-admin-mfa-activation
+  group: production-release
   cancel-in-progress: false
 
 permissions:

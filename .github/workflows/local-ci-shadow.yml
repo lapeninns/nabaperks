@@ -1,0 +1,59 @@
+name: Local CI shadow observation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: local-ci-shadow-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+# A single read of current App evidence, not a wait or an authoritative verdict.
+# The App publishes its eventual result independently. Never trigger release
+# workflows from this observer or add its check to required merge contexts.
+jobs:
+  local-proof:
+    name: Local CI proof
+    # An allowlist, not a denylist: the only two events that may reach the
+    # local plane are a pull request whose head branch lives in this very
+    # repository, and a push to main. A fork pull request carries untrusted
+    # code and must never be dispatched to a machine on someone's desk, and
+    # naming the two permitted events explicitly means a future trigger added
+    # to `on:` cannot silently inherit access.
+    if: >-
+      ${{ vars.LOCAL_CI_MODE != ''
+      && ((github.event_name == 'pull_request'
+      && github.event.pull_request.head.repo.full_name == github.repository)
+      || (github.event_name == 'push'
+      && github.ref == 'refs/heads/main')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    continue-on-error: true
+    # Job-level permissions replace the workflow-level set outright rather than
+    # merging with it, so `contents: read` has to be restated for the checkout
+    # to work. `checks: read` is the only addition, and the job holds no write
+    # scope of any kind: it observes the proof, it never publishes one.
+    permissions:
+      contents: read
+      checks: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .nvmrc
+      - name: Observe current local proof without waiting
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          LOCAL_CI_MODE: ${{ vars.LOCAL_CI_MODE }}
+          LOCAL_CI_OBSERVE_ONCE: "true"
+          # Local App results name the actual PR head, not GitHub's synthetic
+          # merge SHA. This observation is never required release evidence.
+          LOCAL_CI_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/check-local-ci-proof.mjs

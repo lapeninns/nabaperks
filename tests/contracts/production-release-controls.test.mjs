@@ -367,8 +367,24 @@ for (const [name, value, message] of [
 test("Given hosted release configuration When release controls are inspected Then environment validation precedes repository checks", () => {
   const vercel = JSON.parse(readFileSync("vercel.json", "utf8"))
   const ci = readFileSync(".github/workflows/ci.yml", "utf8")
-  const envCheckIndex = ci.indexOf("- run: pnpm env:check:production")
-  const lintIndex = ci.indexOf("- run: pnpm lint")
+  const { commands } = JSON.parse(
+    readFileSync("config/ci-workloads.json", "utf8")
+  )
+  const envCheckIndex = commands.fast.findIndex(
+    (command) => command[1] === "env:check:production"
+  )
+  const lintIndex = commands.fast.findIndex((command) => command[1] === "lint")
+  assert.match(ci, /run: node scripts\/ci\/run-workload\.mjs fast/)
+  assert.deepEqual(
+    commands.fast.map((command) => command.slice(0, 2)),
+    [
+      ["pnpm", "env:check:production"],
+      ["pnpm", "security:audit"],
+      ["pnpm", "lint"],
+      ["pnpm", "typecheck"],
+      ["pnpm", "test:contracts"],
+    ]
+  )
 
   assert.equal(vercel.buildCommand, "pnpm env:check && pnpm build")
   assert.notEqual(envCheckIndex, -1)
@@ -377,15 +393,23 @@ test("Given hosted release configuration When release controls are inspected The
     envCheckIndex < lintIndex,
     "CI must validate the environment before repository gates"
   )
-  assert.match(ci, /- run: pnpm security:audit/)
+  assert.ok(
+    commands.fast.findIndex((command) => command[1] === "security:audit") <
+      lintIndex
+  )
 })
 
-test("Given the CI build job When VAPID fixtures are configured Then a generator runs before production validation", () => {
+test("Given the CI fast job When VAPID fixtures are configured Then a generator runs before production validation", () => {
   const ci = readFileSync(".github/workflows/ci.yml", "utf8")
   const generatorIndex = ci.indexOf(
     'node scripts/generate-ci-vapid-env.mjs >> "$GITHUB_ENV"'
   )
-  const envCheckIndex = ci.indexOf("- run: pnpm env:check:production")
+  const envCheckIndex = ci.indexOf("run: node scripts/ci/run-workload.mjs fast")
+  const { commands } = JSON.parse(
+    readFileSync("config/ci-workloads.json", "utf8")
+  )
+  assert.deepEqual(commands.fast[0], ["pnpm", "env:check:production"])
+  assert.notEqual(envCheckIndex, -1)
 
   assert.doesNotMatch(ci, /ci-vapid-(?:public|private)-key/)
   assert.notEqual(

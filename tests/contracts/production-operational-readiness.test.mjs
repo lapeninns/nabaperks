@@ -87,8 +87,9 @@ test("scheduled production smoke validates both JSON probe contracts", () => {
 
   assert.match(workflow, /cron: "7\/15 \* \* \* \*"/)
   assert.match(workflow, /workflow_run:/)
-  assert.match(workflow, /workflows: \["Production deployment"\]/)
-  assert.match(workflow, /github\.event\.workflow_run\.head_sha/)
+  assert.match(workflow, /workflows: \["Production database promotion"\]/)
+  assert.match(workflow, /read-candidate-artifact\.mjs/)
+  assert.doesNotMatch(workflow, /github\.event\.workflow_run\.head_sha/)
   assert.match(workflow, /Wait for the verified revision to reach production/)
   assert.match(workflow, /within five minutes/)
   const urls = workflowUrls(workflow)

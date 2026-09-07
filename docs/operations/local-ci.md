@@ -13,34 +13,33 @@ evidence, and auditing the security boundary.
 
 ## Status: what is and is not active today
 
-This document describes **cutover step 1 only** — `config/local-ci-contract.json`
-carries `"cutoverStep": 1` and `"stage": "bridge-shadow"`. After step 1 merges:
+The current source implements **CI redesign Phase 1**, described in
+[CI redesign](ci-redesign.md). This describes source behaviour, not a claim
+that the installed Mac agent or provider configuration has been updated.
 
-- The `local-proof` job in `.github/workflows/ci.yml` is **advisory**
-  (`bridge.enforcement: "advisory"`, `bridge.dependents: []`). No job lists it
-  in `needs:`. `release-gate` still declares `needs: [fast, build]` and still
-  asserts only `test "$FAST_RESULT" = "success"` and
-  `test "$BUILD_RESULT" = "success"`.
-- `config/github-governance-contract.json` still pins `requiredChecks` to
-  exactly three names: `Release gate`, `Analyze (javascript-typescript)` and
-  `Review dependency changes`. Neither the bridge job nor the
-  `Nabaperks Local CI` check run is one of them.
-- Every hosted job that gated a merge before step 1 still gates it. No job was
-  deleted, renamed, or had its `needs:` reduced.
-- **Nothing in this runbook can block a merge today.** A Mac that is switched
-  off, a VM that will not boot, or a GitHub App that was never created makes
-  the advisory bridge report a failure or a timeout and changes nothing else.
-  That is deliberate: the local plane earns trust by shadowing the hosted
-  plane, not by being trusted in advance.
-- `shadowMode.enabled` is `true` and flips at cutover step 3, in the same
-  commit that flips `bridge.enforcement` to blocking. Not before.
-- The agent is **dormant** until an operator sets the repository variable
-  `LOCAL_CI_MODE`. With that variable unset there is no local plane at all.
+- `Release gate` retains its name and requires all nine hosted roots: `fast`,
+  `quality`, `build`, `e2e`, `a11y`, `visual`, `lighthouse`, `zap-baseline`, `db`.
+  No test coverage is removed or routed locally by this phase.
+- The advisory observer is in `.github/workflows/local-ci-shadow.yml`, separate
+  from `CI`. It preserves the same same-repository/event allowlist, reads once
+  with `LOCAL_CI_OBSERVE_ONCE=true`, and has a two-minute job timeout. It does not
+  wait for the Mac. Missing or pending proof is observational, not test success.
+- The App continues publishing eventual local results. The agent, App permission
+  boundary and shadow qualification remain unchanged; no local result becomes
+  authoritative. Neither the observer nor the local App check is required by
+  this phase. API or malformed-proof errors remain visible in the observer.
+- Database promotion still waits for successful whole exact-main CI and CodeQL,
+  then protected ephemeral proof and production approval. Separating the observer
+  removes its waiting time from that dependency without bypassing validation.
+- `LOCAL_CI_MODE` controls hosted observation, not service startup. The installed
+  agent polls independently; leave a paused watcher paused until its separate
+  operational resumption is authorised.
 
-The remaining cutover steps — promoting the bridge, converting the staging
-job, monitoring v2, governance and recovery — are documented separately in
-`docs/operations/local-ci-cutover.md`. Do not perform any of them from this
-document.
+`config/local-ci-contract.json` still carries the historical `bridge-shadow`
+agent policy. Its older cutover-step labels and polling ceilings are not rollout
+instructions. [The prior cutover specification](local-ci-cutover.md) is
+superseded. Do not acquire local merge authority by flipping a variable or
+contract field; follow a separately reviewed redesign phase.
 
 ## File map
 
@@ -58,17 +57,17 @@ created by hand on the Mac host.
 | `ops/local-ci/agent/main.mjs --dry-run`            | repo     | Host preflight mode of the agent: resolves credentials, loads the profile, runs the snapshot guard, dispatches nothing |
 | `ops/local-ci/core/`                               | repo     | Pure decision modules — no clock, no network, no filesystem                                                            |
 | `ops/local-ci/profiles/{pr,main,nightly}.json`     | repo     | Lane definitions, including each lane's `arch`                                                                         |
-| `scripts/check-local-ci-proof.mjs`                 | repo     | The bridge poller run by the `local-proof` job                                                                         |
+| `scripts/check-local-ci-proof.mjs`                 | repo     | Proof reader; single observation in `local-ci-shadow.yml`                                                              |
 | `.github/workflows/nightly-proof.yml`              | repo     | Nightly proof verifier (`scripts/check-nightly-proof.mjs`)                                                             |
 | `/opt/nabaperks-local-ci/current/`                 | Mac host | Symlink to the installed, reviewed agent revision                                                                      |
 | `/opt/nabaperks-local-ci/logs/agent.{out,err}.log` | Mac host | Agent process logs, rotated by newsyslog                                                                               |
 | `~/.nabaperks-local-ci/app-private-key.pem`        | Mac host | GitHub App private key, mode `0600`                                                                                    |
 | `~/.nabaperks-local-ci/runs/<sha>/<run>/`          | Mac host | Per-run lane evidence, one directory per run, retained 30 days                                                         |
 
-Read `config/local-ci-contract.json` before running any procedure below. Every
-numeric bound quoted here is committed there as data; the contract tests assert
-it, and the agent re-reads it at start rather than hardcoding it. Where this document and the contract disagree, the
-contract is correct and this document is stale — fix the document.
+Read `config/local-ci-contract.json` before running any procedure below. Agent bounds are committed there as data and checked by tests. Hosted observer
+placement and its two-minute single-observation bound are owned by
+`.github/workflows/local-ci-shadow.yml`; historical polling values do not override
+that workflow. Verify current source before using older provisioning examples.
 
 ---
 
@@ -323,13 +322,13 @@ carries exactly the permissions below, on exactly one repository.
 Grant these repository permissions and **nothing else**. They are declared as
 data in `config/local-ci-contract.json` under `githubApp.permissions`.
 
-| Permission        | Level          | Why it is needed                                                                                                                                                                                                                                                                                                                                                                                |
-| ----------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Checks**        | Read and write | The agent creates the `Nabaperks Local CI` check run for a head SHA and completes it with the conclusion and the lane summary. This is the agent's only published output.                                                                                                                                                                                                                       |
-| **Actions**       | Read and write | Read: find the bridge workflow run and its jobs for a SHA. Write: used **solely** to call `POST /repos/lapeninns/nabaperks/actions/runs/{run_id}/rerun-failed-jobs` when a bridge job timed out while the Mac was asleep (section 5). The contract pins `allowedActionsWriteOperations` to that single operation, and a contract test asserts it is the only non-GET Actions call under `ops/`. |
-| **Contents**      | Read           | Fetch `refs/heads/<branch>` and read the commit graph to build the candidate set. Read-only: the agent never pushes, never tags, never opens a pull request.                                                                                                                                                                                                                                    |
-| **Pull requests** | Read           | Enumerate open pull requests and read `head.repo.full_name`, `head.repo.id`, `head.ref`, `head.sha` and `base.ref` — the inputs to the fork allowlist predicate.                                                                                                                                                                                                                                |
-| **Metadata**      | Read           | Mandatory; GitHub grants it automatically alongside any repository permission.                                                                                                                                                                                                                                                                                                                  |
+| Permission        | Level          | Why it is needed                                                                                                                                                                                                                                                                                                                                                                                            |
+| ----------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Checks**        | Read and write | The agent creates the `Nabaperks Local CI` check run for a head SHA and completes it with the conclusion and the lane summary. This is the agent's only published output.                                                                                                                                                                                                                                   |
+| **Actions**       | Read and write | Read: workflow metadata. Write: the existing helper is restricted **solely** to `POST /repos/lapeninns/nabaperks/actions/runs/{run_id}/rerun-failed-jobs` for the historical bridge-repair design; Phase 1 does not wire that repair (section 5). The contract pins `allowedActionsWriteOperations` to that single operation, and a contract test asserts it is the only non-GET Actions call under `ops/`. |
+| **Contents**      | Read           | Fetch `refs/heads/<branch>` and read the commit graph to build the candidate set. Read-only: the agent never pushes, never tags, never opens a pull request.                                                                                                                                                                                                                                                |
+| **Pull requests** | Read           | Enumerate open pull requests and read `head.repo.full_name`, `head.repo.id`, `head.ref`, `head.sha` and `base.ref` — the inputs to the fork allowlist predicate.                                                                                                                                                                                                                                            |
+| **Metadata**      | Read           | Mandatory; GitHub grants it automatically alongside any repository permission.                                                                                                                                                                                                                                                                                                                              |
 
 ### 2.2 The permissions that must NOT be granted
 
@@ -553,7 +552,7 @@ stating plainly rather than engineering around:
   screen first.
 - Both postures are acceptable. Keeping FileVault on and accepting a manual
   unlock after each reboot means the plane is dormant until someone unlocks the
-  Mac. That is a _delay_, not a failure: the bridge is advisory in step 1, and
+  Mac. That is a _delay_, not a failure: local proof remains advisory, and
   section 5 covers it afterwards. Record which posture this host uses so an
   on-call operator knows whether to expect self-recovery.
 
@@ -605,9 +604,9 @@ Test the sleep path once:
 2. `pmset sleepnow` from another terminal.
 3. Wake the Mac.
 4. Confirm the agent resumes and republishes the check for that SHA. If the
-   bridge job had already hit its ceiling, expect it to stay red: the automatic
-   rerun is not wired yet (section 5.3), so recover it with "Re-run all jobs"
-   as in section 5.4.
+   observer already reported pending, that snapshot stays observational; inspect
+   the App’s eventual completion instead. No hosted rerun is needed solely to
+   replace a pending snapshot (section 5).
 
 ### 3.5 Upgrading and rolling back
 
@@ -626,7 +625,7 @@ the installed agent goes through `install.sh`, from a reviewed commit.
 ## 4. Shadow qualification
 
 Qualification is the evidence that the local plane may eventually be trusted.
-Until it passes, the bridge stays advisory. Nothing in this section changes a
+Local proof stays advisory even after qualification passes. Nothing here changes a
 required check.
 
 ### 4.1 Preconditions
@@ -635,18 +634,17 @@ required check.
 2. `githubApp.appId`, `githubApp.installationId` and
    `githubApp.repositoryId` are pinned to positive integers on `main`
    (section 2.6).
-3. Turn the plane on:
+3. Enable advisory hosted observation, only during an authorised qualification:
 
    ```sh
    gh variable set LOCAL_CI_MODE --body shadow --repo lapeninns/nabaperks
    gh variable list --repo lapeninns/nabaperks
    ```
 
-   This activates the hosted bridge. The installed agent polls independently
-   of this variable; stop its LaunchAgent to pause local execution. `shadow` is
-   the only value used during qualification; values that make the bridge load-bearing
-   belong to later cutover steps and are documented in
-   `docs/operations/local-ci-cutover.md`.
+   This enables the separate single-observation workflow. The installed agent
+   polls independently of this variable. `shadow` is the qualification value;
+   no variable value substitutes for reviewed implementation of local authority.
+   Do not resume a paused LaunchAgent as part of this source-only phase.
 
 4. Open the ledger issue if it does not exist, titled exactly as
    `shadowMode.ledgerIssueTitle` records:
@@ -857,15 +855,16 @@ For each of the three SHAs, record in the ledger issue:
 - for a divergent lane, which of the three rules failed, and why.
 
 Qualification is not complete while any lane is unproved on either plane.
-Cutover step 3 replaces this manual comparison with an automated comparator
-reading the same records; until then, the ledger issue is the ledger.
+The superseded cutover proposal described a later comparator. Qualification
+records remain useful, but passing them does not activate local authority; the
+current redesign requires separately reviewed isolation and trusted verification.
 
 The nightly proof verifier (`.github/workflows/nightly-proof.yml`, running
 `scripts/check-nightly-proof.mjs`) independently fails when the newest
 `Nabaperks Local CI (nightly)` proof for the default branch is older than
 `nightlyProof.maxAgeHours` (36) — one 24-hour cadence plus a 12-hour recovery
 window, so a single missed night warns and two consecutive misses fail. It is
-advisory in step 1. Treat a failing verifier as a signal that the qualification
+advisory in this phase. Treat a failing verifier as a signal that the qualification
 evidence has gone stale.
 
 **What produces that proof.** The watch agent does, by itself. Every 15 minutes
@@ -948,129 +947,53 @@ ARM64 run that resolved those baselines would compare against the wrong images
 — and, worse, Playwright's default `updateSnapshots` behaviour **writes** the
 actual image before failing. Local runs therefore never write and never compare
 visual snapshots. The hosted `visual` and `visual-gate` jobs in `ci.yml` are
-untouched by cutover step 1.
+retained in redesign Phase 1 and required by `Release gate`.
 
 ---
 
-## 5. Mac offline, VM outage, and the fallback
+## 5. Mac offline, VM outage, and hosted validation
 
-### 5.1 What actually happens today
+### 5.1 Current behaviour
 
-In step 1 the bridge is advisory. An offline Mac makes the `local-proof` job
-report a timeout and changes nothing else: no job depends on it and it is not a
-required check. **Rehearse this section anyway.** It becomes load-bearing at
-cutover step 3, and the first time you need it should not be the first time you
-have run it.
+The observer makes one metadata observation and exits. If the Mac is offline or
+asleep, the local check may be missing or pending; this is reported without
+waiting. If the VM fails, inspect `agent.err.log` and the eventual App result.
+Neither condition makes local proof authoritative or changes hosted CI results.
+Invalid SHA/event wiring, malformed evidence and API failures must remain
+visible errors, rather than being described as successful local tests.
 
-Distinguish the two outages, because the symptom differs:
+Hosted validation already runs in full. There is no local outage fallback
+variable to set and no reason to rerun every hosted job merely because local
+proof was absent. Diagnose an actual hosted failure on its own evidence.
+Production promotion continues to require whole exact-main CI and CodeQL.
 
-- **Mac offline or asleep at the boundary.** No check run is created at all.
-  The bridge polls until its ceiling.
-- **Mac up, VM broken.** The dispatch fails when `limactl shell` cannot reach
-  the instance; again, no check run is created, and the failure lands in
-  `agent.err.log`. Fix the VM per section 1, or fall back.
+### 5.2 Observation and eventual results
 
-A third case is not an outage at all and must not be treated as one: the bridge
-enforces a head-SHA rule. On `pull_request` it polls the pull request's head
-SHA, which must differ from `GITHUB_SHA`; on `push` it polls `GITHUB_SHA`,
-which must equal it. A mismatch fails the job in **seconds** with a
-self-describing message rather than timing out. If a bridge job fails almost
-immediately, read the message — it is a wiring error, not a dead Mac.
+`local-ci-shadow.yml` uses `LOCAL_CI_OBSERVE_ONCE=true` and a two-minute job
+bound. It never sleeps while waiting for the agent. Historical contract polling
+ceilings describe the older reader mode, not the current hosted observer. The
+App's check is the source of the later local completion result; the earlier
+snapshot is not retroactively changed into success.
 
-### 5.2 The 120-minute bridge ceiling
+The App's existing permission contract and rerun helper remain unchanged in
+this phase. They do not authorise the observer to rerun workflows, dispatch
+local work or publish an authoritative verdict. On PR events the observer uses
+the default PR merge-tree checkout and may execute candidate repository code
+with a read-only token; it performs no `pnpm install`. The host agent is never
+updated from PR code. A verifier independent of candidate code is a later
+redesign phase. No automatic bridge-repair feature is introduced.
+The old `LOCAL_CI_FALLBACK_SHA` and full-rerun procedure belongs to the superseded
+routing proposal and must not be used to activate local authority.
 
-The bridge job's ceiling is **120 minutes** (`bridge.timeoutMinutes`), polling
-every 30 seconds (`bridge.pollIntervalSeconds`). The job container's own
-ceiling is **110 minutes** (`container.timeoutMinutes`) — deliberately ten
-minutes inside the bridge ceiling, so the agent kills and _reports_ an
-over-running job before the hosted bridge gives up waiting for it. The
-difference is what turns a hang into a readable failure instead of a silent
-timeout.
+### 5.3 Recovery and qualification
 
-120 minutes is far below GitHub's own six-hour job limit, on purpose: a hung
-local plane must not hold a workflow run — and, from step 3, a merge — open for
-hours.
-
-### 5.3 The automatic bridge rerun after wake — NOT YET WIRED
-
-> **Status: designed and permitted, but no code issues it today.** The rerun is
-> a recovery convenience, not a safety property: a timed-out bridge is red, and
-> from step 3 a red bridge blocks the merge. Nothing unsafe happens without it —
-> the operator does one extra thing, described in 5.4.
-
-The intended behaviour, once wired: when the Mac wakes and the agent finishes a
-SHA whose bridge job has already ended in a timeout, it repairs that run, but
-only when all of these hold:
-
-- the workflow run is still for the current head SHA;
-- the bridge job actually ended in a timeout or a failure;
-- the agent has not already issued a rerun for that run.
-
-It would then issue exactly one
-`POST /repos/lapeninns/nabaperks/actions/runs/{run_id}/rerun-failed-jobs` —
-the sole reason the App holds Actions write, and the only non-GET Actions call
-in the agent.
-
-**What exists now.** `ops/local-ci/agent/github.mjs` implements
-`rerunWorkflowJob`, refusing any operation other than the one pinned in the
-contract. `ops/local-ci/core/bridge.mjs` returns a `rerun` decision for exactly
-the state above. `scripts/check-local-ci-proof.mjs` correctly _refuses_ to make
-the call itself and says why: the `local-proof` job holds `checks: read` and no
-Actions write, and a running job cannot re-run the workflow run it belongs to.
-
-**What is missing.** The host agent never calls `rerunWorkflowJob`. Wiring it
-needs a `listWorkflowRuns`-style lookup on the GitHub client to find the bridge
-run for a SHA (a GET, already covered by Actions _read_), a call site in the
-agent's publish path, and once-per-run bookkeeping. Until that lands, treat
-every timed-out bridge as the operator fallback in 5.4.
-
-### 5.4 The operator fallback — and the exact reason it needs "Re-run all jobs"
-
-When the local plane will not come back in time, route the SHA's work to the
-hosted plane:
-
-```sh
-SHA=<40 hex sha>
-gh variable set LOCAL_CI_FALLBACK_SHA --body "$SHA" --repo lapeninns/nabaperks
-
-# Find the existing run for that SHA, then re-run ALL of its jobs:
-gh run list --repo lapeninns/nabaperks --commit "$SHA" \
-  --json databaseId,event,name,conclusion
-gh run rerun <run-id> --repo lapeninns/nabaperks     # NO --failed flag
-```
-
-**This is the operational fact the fallback turns on: GitHub's "Re-run failed
-jobs" does NOT re-run skipped jobs.** The fallback works by re-evaluating the
-route so lanes move from the local plane to the hosted plane. On the first
-attempt those hosted lanes were `skipped`, not failed. "Re-run failed jobs"
-therefore leaves them skipped, does not re-evaluate the route, and the run
-cannot go green no matter how many times it is pressed. **Always use "Re-run
-all jobs"** — the button in the run's UI, or `gh run rerun <run-id>` with no
-`--failed`.
-
-Two further constraints:
-
-- **Re-run the existing push run; do not push an empty commit to make a new
-  one.** `production-database.yml` matches on `--event push`, and re-running
-  preserves the run's event. A new run for a new SHA is a different SHA and
-  does not unblock the one you care about.
-- **Clear the variable afterwards.** It is scoped to that one SHA, so a stale
-  value is not dangerous, but leaving it set makes the next incident harder to
-  read:
-
-  ```sh
-  gh variable delete LOCAL_CI_FALLBACK_SHA --repo lapeninns/nabaperks
-  ```
-
-### 5.5 Returning to normal
-
-1. Fix the underlying cause — section 1 for the VM, section 3 for the service.
-2. The installed-tree preflight in section 3.4 exits clean.
-   exits clean.
-3. Confirm the next internal pull-request SHA produces a `Nabaperks Local CI`
-   check run.
-4. If the outage spanned a qualification attempt, that attempt is
-   `incomplete` and the counter in 4.2 resets.
+Repair host/VM problems only within the separately authorised operational scope.
+Before resuming a paused watcher, verify the installed revision and host state;
+this source change does not install or resume it. Once running, inspect the
+App's final lane evidence and preserve incomplete/failed qualification attempts.
+Keep comparison and shadow-mode safeguards in place. Future authoritative local
+routing requires disposable execution, trusted verification, durable attempt
+handling and equivalent hosted fallback from the current redesign plan.
 
 ---
 
@@ -1331,9 +1254,9 @@ the merge lane rather than waiting for a manual audit.
 
 ## Related documents
 
-- `docs/operations/local-ci-cutover.md` — cutover steps 3 to 7, including
-  promoting the bridge out of advisory mode. **Nothing in that document has
-  been performed.**
+- `docs/operations/ci-redesign.md` — current phases, scope and remaining proof.
+- `docs/operations/local-ci-cutover.md` — superseded historical proposal; its
+  activation commands are not current operating instructions.
 - `ops/local-ci/README.md` — the agent's own inventory, schemas and module map.
 - `ops/local-ci/host/README.md` — VM image refresh and the Docker Engine
   version ledger.
@@ -1343,3 +1266,51 @@ the merge lane rather than waiting for a manual audit.
   production promotion path this merge lane ultimately feeds.
 - `docs/operations/devops-maturity.md` — where the ARM64 hosted-pinning
   decisions from section 4.6 are recorded.
+
+## Durable controller and bounded execution redesign
+
+The later redesign source introduces a host-owned `attempts.json` and
+`controller.lock` beneath the configured state root. These are separate from
+candidate workspaces. Watch, one-shot and nightly execution acquire the same
+controller lease before accessing the journal. PID plus process-start identity
+prevents treating a reused PID as the former owner. An unreadable, malformed or
+unverifiable lease fails closed; inspect the owner and retained evidence
+before any manual repair. Never kill another controller merely to acquire it.
+
+Attempts are persisted using atomic replacement and file/directory fsync before
+work starts. Restart converts a running attempt to interrupted. The default
+policy permits at most two attempts and a one-minute backoff for infrastructure
+outcomes; a test failure is not automatically retried into success. Nightly
+scopes include the daily identity. No-publish fixture runs still use durable
+attempts but do not enqueue an App result. Journal corruption or persistence
+failure stops admission.
+
+Completion publication uses a durable outbox. Before creating an App check,
+the publisher persists intent and a stable attempt identity. A lost creation
+response is reconciled against exact App, check name, head SHA and attempt
+`external_id`, then continued by immutable check ID. It does not blindly
+repeat the POST. If no matching provider result can be established, the entry
+remains pending; inspect provider evidence and reconcile with the operational
+owner. Deleting the journal or inventing a replacement successful result is
+not recovery. On shutdown, delayed publication callbacks cannot dispatch more
+work or write the released controller's journal.
+
+The resource contract allocates 10 CPUs/32 GiB to the unprivileged job and
+1 CPU/6 GiB to its Docker sidecar, leaving 1 CPU/2 GiB for the 12 CPU/40 GiB VM.
+Both containers disable additional swap. The runner rejects overcommitted or
+malformed budgets before admission. The sidecar's privileges remain inside the
+VM; this is not evidence of a disposable VM or qualification for authoritative
+untrusted execution. Browser lanes remain serial, with unchanged projects,
+shards and worker/retry policy.
+
+The [verified image cache](local-ci-image-cache.md) avoids repeated registry
+downloads while validating archive, manifest and loaded image identity before
+repository commands. Timeout and cancellation also bound preload. Installation
+and host activation still require coordinated operational ownership and the
+reviewed immutable revision. Source changes never repoint the installed agent
+or resume a paused watcher.
+
+See the [completion evidence](ci-redesign-completion.md) for actual fixture
+results, installed revision, full-main/nightly gaps and provider prerequisites.
+A successful filtered database or browser lane is not a full profile or an
+exact-commit App qualification.

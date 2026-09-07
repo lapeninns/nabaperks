@@ -1,14 +1,13 @@
 #!/usr/bin/env node
 /**
- * The agent's command-line entry point, and the only file in this package that
- * reads `process.env`, touches the filesystem or exits the process.
+ * The agent's command-line entry point. Host filesystem operations are also
+ * isolated in the attempt journal and controller lease helpers.
  *
  * Everything below is composition: it resolves the host's credentials, checks
  * their permissions, builds the injected dependencies, and hands them to the
  * pure core and the runtime modules. Keeping that in one file is what lets the
- * rest of the package be unit-tested with no environment at all - and it is
- * what makes "which code can see the GitHub App private key?" a question with
- * a one-file answer.
+ * rest of the package be unit-tested with injected dependencies. Candidate
+ * containers never receive the host GitHub App private key.
  *
  * Usage:
  *
@@ -20,6 +19,10 @@
  * Exit status is 0 only when the requested work completed and, for a one-shot
  * run, concluded successfully.
  */
+
+import { createAttemptJournal, publishAttempt } from "../core/attempts.mjs"
+import { acquireControllerLease } from "./lease.mjs"
+import { publishDurableCheck } from "./publisher.mjs"
 
 import { spawn } from "node:child_process"
 import { randomBytes } from "node:crypto"
@@ -56,6 +59,7 @@ import {
 } from "../core/contract.mjs"
 import { loadProfile, snapshotGuardViolations } from "../core/profiles.mjs"
 import { isCommitSha } from "../core/queue.mjs"
+import { parseImageCachePin } from "../core/image-cache.mjs"
 import { renderCheckSummary } from "../core/summary.mjs"
 import { createContainerRuntime } from "./container.mjs"
 import { createGitHubClient } from "./github.mjs"
@@ -99,6 +103,7 @@ Host configuration (environment first, then a file the installer wrote):
   LOCAL_CI_JOB_IMAGE                  the pinned job image tag
   LOCAL_CI_JOB_IMAGE_FILE             where install.sh recorded that tag
   LOCAL_CI_DIND_IMAGE                 the pinned sidecar daemon image tag
+  LOCAL_CI_IMAGE_CACHE_PIN_FILE       optional reviewed image archive pin
   NABAPERKS_LOCAL_CI_HOME             state root (default ~/.nabaperks-local-ci)
   NABAPERKS_LOCAL_CI_VM               Lima instance (default from the contract)
 `
@@ -460,6 +465,26 @@ export function resolveHostConfig({ env, contract, home }) {
     )
   }
   const pinnedJobImage = requireJobImage(jobImage, jobImageSource)
+  const explicitCacheFile = env.LOCAL_CI_IMAGE_CACHE_PIN_FILE?.trim() || null
+  const imageCachePinFile =
+    explicitCacheFile ??
+    (jobImageFile === null
+      ? null
+      : join(dirname(jobImageFile), "image-cache.json"))
+  const imageCachePinText =
+    imageCachePinFile === null
+      ? null
+      : readStateFile(
+          imageCachePinFile,
+          "the verified Supabase image archive pin"
+        )
+  if (explicitCacheFile !== null && imageCachePinText === null) {
+    throw new CliError(
+      "INVALID_IMAGE_CACHE",
+      "the explicitly configured image archive pin is missing"
+    )
+  }
+  const imageCachePin = parseImageCachePin(imageCachePinText)
 
   return Object.freeze({
     stateRoot,
@@ -470,6 +495,7 @@ export function resolveHostConfig({ env, contract, home }) {
     installationId,
     jobImage: pinnedJobImage,
     jobImageSource,
+    imageCachePin,
     daemonImage: env.LOCAL_CI_DIND_IMAGE ?? "docker:27.5.1-dind",
     vm: env.NABAPERKS_LOCAL_CI_VM ?? contract.vm?.name ?? null,
     vmWorkspaceRoot: "/var/lib/nabaperks-ci",
@@ -1287,6 +1313,7 @@ async function buildDependencies({
     contract,
     vm: config.vm,
     logger,
+    imageCachePin: config.imageCachePin,
   })
   const resolveRuntimeEnv = createRuntimeEnvResolver({
     contract,
@@ -1327,6 +1354,13 @@ function hostGitHubClient({ contract, config, logger }) {
     installationId: config.installationId,
     privateKey: config.privateKey,
     logger,
+    maxAttempts: 1,
+    fetch: (url, options) =>
+      fetch(url, {
+        ...options,
+        redirect: "error",
+        signal: AbortSignal.timeout(5_000),
+      }),
   })
 }
 
@@ -1345,26 +1379,101 @@ function loadProfileChecked(name, contract) {
   return profile
 }
 
-const checkNameFor = (profile, contract) =>
-  profile.profile === "nightly" ? contract.nightlyCheckName : contract.checkName
-
-async function publishCompletedRun({
-  github,
-  contract,
+/** Durable one-shot/nightly dispatch; watcher PR/main uses the same journal. */
+export async function executeDurableRun({
+  journal,
   profile,
+  ref,
   headSha,
-  outcome,
-  summary,
+  dispatch,
+  publish = null,
+  now = () => Date.now(),
+  signal = null,
 }) {
-  await github.createCheckRun({
-    name: checkNameFor(profile, contract),
-    headSha,
-    status: "completed",
-    conclusion: outcome.record.conclusion,
-    startedAt: outcome.startedAt,
-    completedAt: outcome.completedAt,
-    output: summary,
-  })
+  const scope = `${publish ? "commit" : "local-only"}${profile.profile === "nightly" ? `:${new Date(now()).toISOString().slice(0, 10)}` : ""}`
+  const job = {
+    profile: profile.profile,
+    ref,
+    sha: headSha,
+    scope,
+    publish: publish !== null,
+  }
+  const matching = () =>
+    journal.entries.filter(
+      (entry) =>
+        entry.profile === job.profile &&
+        entry.ref === ref &&
+        entry.sha === headSha &&
+        (entry.scope ?? "commit") === scope
+    )
+  for (const attempt of matching()) {
+    if (
+      attempt.status !== "running" &&
+      !attempt.published &&
+      attempt.publish !== false &&
+      publish
+    ) {
+      await publishAttempt(journal, attempt.id, publish)
+    }
+  }
+  if (!journal.eligible(job)) {
+    const previous = matching().at(-1)
+    if (previous?.record)
+      return {
+        record: previous.record,
+        startedAt: previous.startedAt,
+        completedAt: previous.completedAt,
+      }
+    throw new Error(
+      "Durable local CI attempt is not eligible; retry backoff or limit applies"
+    )
+  }
+  const id = journal.begin(job)
+  let outcome
+  try {
+    outcome = await dispatch({ profile, ref, headSha, signal })
+    if (signal?.aborted)
+      outcome = {
+        ...outcome,
+        record: { ...outcome.record, conclusion: "cancelled" },
+      }
+    journal.finish(id, outcome.record.conclusion, outcome.record)
+  } catch (error) {
+    journal.finish(id, signal?.aborted ? "cancelled" : "incomplete")
+    // Preserve the execution error; an unavailable publisher remains in the
+    // durable outbox for the next controller rather than replacing its cause.
+    if (publish) await publishAttempt(journal, id, publish).catch(() => {})
+    throw error
+  }
+  if (publish) {
+    await publishAttempt(journal, id, publish)
+  }
+  return outcome
+}
+
+function durablePublisher({ github, contract, journal }) {
+  return async (attempt) => {
+    const output = attempt.record
+      ? renderCheckSummary(attempt.record, contract)
+      : {
+          title: `${attempt.profile} — interrupted`,
+          summary:
+            "The controller recovered an incomplete attempt. No successful local test evidence exists for this attempt.",
+        }
+    await publishDurableCheck({
+      github,
+      contract,
+      journal,
+      attempt,
+      payload: {
+        status: "completed",
+        conclusion: attempt.record?.conclusion ?? "failure",
+        startedAt: attempt.startedAt,
+        completedAt: attempt.completedAt,
+        output,
+      },
+    })
+  }
 }
 
 /**
@@ -1436,14 +1545,35 @@ export async function nightlyTick({
   loadProfileFor,
   dispatch,
   publish = null,
+  attempts = null,
+  publishPending = null,
   ref = DEFAULT_MAIN_REF,
   now = () => Date.now(),
 }) {
-  const verdict = nightlyRunIsDue({
+  for (const attempt of attempts?.entries ?? []) {
+    if (
+      attempt.profile === contract.nightlyProof.profile &&
+      attempt.status !== "running" &&
+      !attempt.published &&
+      attempt.publish !== false &&
+      publishPending
+    ) {
+      await publishAttempt(attempts, attempt.id, publishPending)
+    }
+  }
+  let verdict = nightlyRunIsDue({
     lastRunAt: evidence.lastRunAt(contract.nightlyProof.profile),
     now: now(),
     contract,
   })
+  const latest = attempts?.entries
+    .filter((entry) => entry.profile === contract.nightlyProof.profile)
+    .at(-1)
+  if (latest && attempts.eligible(latest))
+    verdict = {
+      due: true,
+      reason: "an interrupted nightly attempt is eligible for a bounded retry",
+    }
   if (!verdict.due) {
     return Object.freeze({
       ...verdict,
@@ -1571,27 +1701,22 @@ async function runOnce({ contract, config, options, logger }) {
 
   const github = hostGitHubClient({ contract, config, logger })
   const evidence = createRunEvidenceStore({ stateRoot: config.stateRoot })
-  const outcome = await dispatchRun({
-    contract,
-    config,
-    logger,
-    evidence,
+  const journal = createAttemptJournal({
+    path: join(config.stateRoot, "attempts.json"),
+  })
+  const outcome = await executeDurableRun({
+    journal,
     profile,
     ref: options.ref,
     headSha,
+    dispatch: (args) =>
+      dispatchRun({ contract, config, logger, evidence, ...args }),
+    publish: options.publish
+      ? durablePublisher({ github, contract, journal })
+      : null,
   })
   const summary = renderCheckSummary(outcome.record, contract)
   logger.info(summary.title)
-  if (options.publish) {
-    await publishCompletedRun({
-      github,
-      contract,
-      profile,
-      headSha,
-      outcome,
-      summary,
-    })
-  }
   return outcome.record.conclusion === "success" ? 0 : 1
 }
 
@@ -1610,7 +1735,14 @@ async function runNightlyOnce({ contract, config, options, logger }) {
     return 0
   }
   const github = hostGitHubClient({ contract, config, logger })
+  const journal = createAttemptJournal({
+    path: join(config.stateRoot, "attempts.json"),
+  })
   const result = await nightlyTick({
+    attempts: journal,
+    publishPending: options.publish
+      ? durablePublisher({ github, contract, journal })
+      : null,
     contract,
     logger,
     github,
@@ -1618,18 +1750,15 @@ async function runNightlyOnce({ contract, config, options, logger }) {
     ref: options.ref,
     loadProfileFor: (name) => loadProfileChecked(name, contract),
     dispatch: (args) =>
-      dispatchRun({ contract, config, logger, evidence, ...args }),
-    publish: options.publish
-      ? ({ profile, headSha, outcome }) =>
-          publishCompletedRun({
-            github,
-            contract,
-            profile,
-            headSha,
-            outcome,
-            summary: renderCheckSummary(outcome.record, contract),
-          })
-      : null,
+      executeDurableRun({
+        journal,
+        ...args,
+        dispatch: (request) =>
+          dispatchRun({ contract, config, logger, evidence, ...request }),
+        publish: options.publish
+          ? durablePublisher({ github, contract, journal })
+          : null,
+      }),
   })
   if (!result.ran) {
     logger.info(`no nightly run: ${result.reason}`)
@@ -1688,6 +1817,9 @@ async function watch({ contract, config, logger }) {
   const nightlyAssertion = createSleepAssertion({ logger })
   const nightlyAbort = new AbortController()
   const evidence = createRunEvidenceStore({ stateRoot: config.stateRoot })
+  const attempts = createAttemptJournal({
+    path: join(config.stateRoot, "attempts.json"),
+  })
   const gate = createSerialGate()
   const dispatch = (args) =>
     gate.run(() => dispatchRun({ contract, config, logger, evidence, ...args }))
@@ -1695,13 +1827,13 @@ async function watch({ contract, config, logger }) {
     gate.run(async () => {
       nightlyAssertion.acquire()
       try {
-        return await dispatchRun({
-          contract,
-          config,
-          logger,
-          evidence,
+        return await executeDurableRun({
+          journal: attempts,
           ...args,
           signal: nightlyAbort.signal,
+          dispatch: (request) =>
+            dispatchRun({ contract, config, logger, evidence, ...request }),
+          publish: durablePublisher({ github, contract, journal: attempts }),
         })
       } finally {
         nightlyAssertion.release()
@@ -1712,6 +1844,7 @@ async function watch({ contract, config, logger }) {
   await reportVmIsolation({ config, contract, logger })
 
   const loop = createLoop({
+    attempts,
     contract,
     github: {
       ...github,
@@ -1735,21 +1868,18 @@ async function watch({ contract, config, logger }) {
     logger,
     tick: () =>
       nightlyTick({
+        attempts,
+        publishPending: durablePublisher({
+          github,
+          contract,
+          journal: attempts,
+        }),
         contract,
         logger,
         github: { ...github, getRef: pollingGithub.getRef },
         evidence,
         dispatch: nightlyDispatch,
         loadProfileFor: (name) => loadProfileChecked(name, contract),
-        publish: ({ profile, headSha, outcome }) =>
-          publishCompletedRun({
-            github,
-            contract,
-            profile,
-            headSha,
-            outcome,
-            summary: renderCheckSummary(outcome.record, contract),
-          }),
       }),
   })
 
@@ -1788,11 +1918,20 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
     logger.info(
       `contract ${contract.schema}, cutover step ${contract.cutoverStep}, stage ${contract.stage}`
     )
-    if (options.watch) return await watch({ contract, config, logger })
-    if (options.nightly) {
-      return await runNightlyOnce({ contract, config, options, logger })
+    const lease = options.dryRun
+      ? null
+      : acquireControllerLease({
+          path: join(config.stateRoot, "controller.lock"),
+        })
+    try {
+      if (options.watch) return await watch({ contract, config, logger })
+      if (options.nightly) {
+        return await runNightlyOnce({ contract, config, options, logger })
+      }
+      return await runOnce({ contract, config, options, logger })
+    } finally {
+      lease?.release()
     }
-    return await runOnce({ contract, config, options, logger })
   } catch (error) {
     if (error instanceof LocalCiError) {
       logger.error(`${error.code}: ${error.message}`)

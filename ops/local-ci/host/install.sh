@@ -36,6 +36,7 @@
 #   --job-image TAG             Pin the job image the agent runs, e.g.
 #                               nabaperks-ci-job:<commit sha>. Kept across
 #                               re-runs, so it is needed once.
+#   --image-cache-pin FILE      Install the verified Supabase archive pin.
 #   --github-app-key PATH       Copy this PEM in as the GitHub App private key.
 #   --heartbeat-url-file PATH   Copy this file in as the optional monitoring heartbeat
 #                               URL. A file, never a --flag value: an argument
@@ -56,6 +57,7 @@ AGENT_RELATIVE_PATH="ops/local-ci/agent/main.mjs"
 LIMA_RELATIVE_PATH="ops/local-ci/host/lima-nabaperks-ci.yaml"
 KEY_FILE="github-app-private-key.pem"
 HEARTBEAT_FILE="uptimerobot-heartbeat-url"
+# Optional --image-cache-pin FILE installs a verified Supabase archive pin.
 JOB_IMAGE_FILE="${INSTALL_ROOT}/job-image"
 JOB_IMAGE_REPOSITORY="nabaperks-ci-job"
 RELEASES_TO_KEEP=5
@@ -64,6 +66,7 @@ github_app_key_src=""
 heartbeat_url_file_src=""
 revision_arg=""
 job_image_arg=""
+image_cache_pin_arg=""
 skip_vm_check="no"
 scratch=""
 
@@ -153,6 +156,11 @@ while [ "$#" -gt 0 ]; do
     --job-image)
       [ "$#" -ge 2 ] || die "--job-image needs an image tag"
       job_image_arg="$2"
+      shift 2
+      ;;
+    --image-cache-pin)
+      [ "$#" -ge 2 ] || die "--image-cache-pin needs a JSON pin path"
+      image_cache_pin_arg="$2"
       shift 2
       ;;
     --github-app-key)
@@ -487,6 +495,41 @@ if [ "${vm_reachable}" = "yes" ]; then
   note "image ${job_image} exists inside ${VM_NAME}"
 else
   note "not verified against the VM: ${job_image} (the instance was not reachable)"
+fi
+
+# A pin is optional on an unprovisioned host. Once present it must match the
+# target release's reviewed image manifest; silently dropping a stale pin
+# would put multi-gigabyte registry downloads back inside every DB lane.
+image_cache_pin_source="${image_cache_pin_arg}"
+if [ -z "${image_cache_pin_source}" ] && [ -f "${INSTALL_ROOT}/image-cache.json" ]; then
+  image_cache_pin_source="${INSTALL_ROOT}/image-cache.json"
+fi
+if [ -n "${image_cache_pin_source}" ]; then
+  [ "${vm_reachable}" = "yes" ] || die "image cache pinning requires a reachable VM"
+  git -C "${repo_root}" show "${release_sha}:config/local-ci-image-manifest.json" >"${scratch}/image-manifest.json" \
+    || die "the target release has no reviewed image manifest"
+  node - "${scratch}/image-manifest.json" "${image_cache_pin_source}" >"${scratch}/image-cache.json" <<'NODE'
+const fs = require("node:fs")
+const { createHash } = require("node:crypto")
+const manifest = JSON.parse(fs.readFileSync(process.argv[2], "utf8"))
+const pin = JSON.parse(fs.readFileSync(process.argv[3], "utf8"))
+const expected = createHash("sha256").update(JSON.stringify(manifest)).digest("hex")
+if (typeof pin?.archiveSha256 !== "string" || !/^[a-f0-9]{64}$/.test(pin.archiveSha256 ?? "") || pin.manifestSha256 !== expected) {
+  throw new Error("image archive pin does not match the target release; prepare its reviewed manifest")
+}
+process.stdout.write(JSON.stringify({archiveSha256: pin.archiveSha256, manifestSha256: expected}) + "\n")
+NODE
+  image_cache_sha="$(node -e 'process.stdout.write(require(process.argv[1]).archiveSha256)' "${scratch}/image-cache.json")"
+  limactl shell "${VM_NAME}" -- /bin/sh -c '
+    set -eu
+    archive="/var/lib/nabaperks-ci-images/$1.tar"
+    test ! -L "$archive"
+    actual=$(sha256sum "$archive")
+    test "${actual%% *}" = "$1"
+  ' image-cache-verify "${image_cache_sha}" \
+    || die "the VM image archive is absent or does not match its pin"
+  sudo install -m 0644 -o root -g wheel "${scratch}/image-cache.json" "${INSTALL_ROOT}/image-cache.json"
+  note "pinned verified Supabase image archive ${image_cache_sha}"
 fi
 
 printf '%s\n' "${job_image}" | sudo tee "${JOB_IMAGE_FILE}" >/dev/null

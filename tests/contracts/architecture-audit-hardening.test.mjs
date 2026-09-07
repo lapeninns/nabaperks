@@ -76,15 +76,34 @@ test("Given cross-request merchant caches When loader keys are inspected Then te
   )
 })
 
-test("Given CI runs on branches When workflow is inspected Then lint and tests gate the build", () => {
+test("Given CI runs on branches When shared workloads are inspected Then lint, tests and build gate release", () => {
   const ci = readProjectFile(".github", "workflows", "ci.yml")
-
-  assert.match(ci, /run: pnpm lint/)
-  assert.match(ci, /run: pnpm test/)
-  assert(
-    ci.indexOf("run: pnpm test") < ci.indexOf("run: pnpm build"),
-    "tests should run before the production build"
+  const { commands } = JSON.parse(
+    readProjectFile("config", "ci-workloads.json")
   )
+  const fast = ci.slice(ci.indexOf("\n  fast:"), ci.indexOf("\n  quality:"))
+  const build = ci.slice(ci.indexOf("\n  build:"), ci.indexOf("\n  e2e:"))
+  const release = ci.slice(ci.indexOf("\n  release-gate:"))
+  assert.match(fast, /run: node scripts\/ci\/run-workload\.mjs fast/)
+  assert.match(fast, /run: node scripts\/ci\/run-workload\.mjs coverage/)
+  assert.ok(
+    fast.indexOf("run-workload.mjs fast") <
+      fast.indexOf("run-workload.mjs coverage")
+  )
+  assert.deepEqual(
+    commands.fast.map((command) => command.slice(0, 2)),
+    [
+      ["pnpm", "env:check:production"],
+      ["pnpm", "security:audit"],
+      ["pnpm", "lint"],
+      ["pnpm", "typecheck"],
+      ["pnpm", "test:contracts"],
+    ]
+  )
+  assert.deepEqual(commands.coverage, [["pnpm", "test:coverage"]])
+  assert.match(build, /run: node scripts\/ci\/run-workload\.mjs build/)
+  assert.deepEqual(commands.build[0], ["pnpm", "build"])
+  assert.match(release, /needs:\s+- fast\s+- quality\s+- build/)
 })
 
 test("Given Playwright runs in CI When focused tests are present Then the config rejects them", () => {

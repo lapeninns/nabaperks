@@ -50,6 +50,9 @@ jobs:
       CONFIGURED_RESTORE_DRILL_PROJECT_REF: ${{ vars.RESTORE_DRILL_PROJECT_REF }}
       PRODUCTION_SUPABASE_PROJECT_REF: skonlhwstejberyzobep
       RECOVERY_RTO_MINUTES: ${{ vars.RECOVERY_RTO_MINUTES }}
+      RESTORE_DRILL_STARTED_AT: ${{ vars.RESTORE_DRILL_STARTED_AT }}
+      RESTORE_DRILL_LINEAGE_SHA256: ${{ vars.RESTORE_DRILL_LINEAGE_SHA256 }}
+      RESTORE_DRILL_SOURCE_MANIFEST_SHA256: ${{ vars.RESTORE_DRILL_SOURCE_MANIFEST_SHA256 }}
       RESTORE_DRILL_BACKUP_ID: ${{ inputs.backup_id }}
       RESTORE_DRILL_CONFIRMATION: ${{ inputs.confirmation }}
       RESTORE_DRILL_PROJECT_REF: ${{ inputs.restore_project_ref }}
@@ -73,8 +76,25 @@ jobs:
         run: |
           supabase backups list --project-ref "$PRODUCTION_SUPABASE_PROJECT_REF" --output json > "$RUNNER_TEMP/backups.json"
           supabase projects list --output json > "$RUNNER_TEMP/projects.json"
+      - name: Materialise independently reviewed recovery evidence
+        env:
+          RESTORE_DRILL_LINEAGE_JSON: ${{ vars.RESTORE_DRILL_LINEAGE_JSON }}
+          RESTORE_DRILL_SOURCE_MANIFEST_JSON: ${{ vars.RESTORE_DRILL_SOURCE_MANIFEST_JSON }}
+        run: |
+          umask 077
+          node --input-type=module <<'NODE'
+          import { writeFileSync } from 'node:fs';
+          for (const [name, file] of [['RESTORE_DRILL_LINEAGE_JSON', 'restore-lineage.json'], ['RESTORE_DRILL_SOURCE_MANIFEST_JSON', 'backup-source-manifest.json']]) {
+            const value = process.env[name];
+            if (!value || value.length > 48000) throw new Error('Reviewed recovery evidence is missing or oversized');
+            JSON.parse(value);
+            writeFileSync(`${process.env.RUNNER_TEMP}/${file}`, value, { mode: 0o600 });
+          }
+          NODE
       - name: Verify the restored ledger, RLS and core read path
         env:
+          RESTORE_DRILL_LINEAGE_FILE: ${{ runner.temp }}/restore-lineage.json
+          RESTORE_DRILL_SOURCE_MANIFEST_FILE: ${{ runner.temp }}/backup-source-manifest.json
           RESTORE_DRILL_BACKUPS_FILE: ${{ runner.temp }}/backups.json
           RESTORE_DRILL_DB_URL: ${{ secrets.RESTORE_DRILL_DB_URL }}
           RESTORE_DRILL_PROJECTS_FILE: ${{ runner.temp }}/projects.json

@@ -17,7 +17,7 @@ on:
         type: string
 
 concurrency:
-  group: production-database-promotion
+  group: production-release
   cancel-in-progress: false
 
 permissions:
@@ -230,6 +230,8 @@ jobs:
     timeout-minutes: 15
     env:
       EXPECTED_REVISION: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
+      RELEASE_RUN_ID: ${{ github.run_id }}
+      RELEASE_RUN_ATTEMPT: ${{ github.run_attempt }}
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
@@ -260,11 +262,71 @@ jobs:
           test -n "$SUPABASE_ACCESS_TOKEN"
           test -n "$SUPABASE_DB_PASSWORD"
           test -n "$SUPABASE_PROJECT_REF"
+      - name: Qualify unchanged runtime against the authenticated deployed baseline
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/release-ledger"
+          node scripts/release/deployed-baseline.mjs "$RUNNER_TEMP/release-ledger/baseline.json"
+          baseline="$(jq -er '.revision' "$RUNNER_TEMP/release-ledger/baseline.json")"
+          node scripts/release/stage-ledger.mjs identity --baseline "$baseline" \
+            > "$RUNNER_TEMP/release-ledger/identity.json"
+          # This is unchanged-source qualification, not populated upgrade proof.
+          # Changed runtime/schema inputs fail here without execution evidence.
+          node scripts/release/stage-ledger.mjs qualify --baseline "$baseline" \
+            --output "$RUNNER_TEMP/release-ledger/qualified.json" \
+            --evidence "$RUNNER_TEMP/release-ledger/qualified-evidence.json"
       - name: Link the approved production project
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Require unchanged production schema before database application
+        run: node scripts/check-supabase-migrations.mjs > "$RUNNER_TEMP/release-ledger/pre-apply-ledger.txt"
       - name: Prove the forward-only migration plan
         run: supabase db push --linked --dry-run --include-all
+      - name: Recheck qualification and the unchanged live alias before database writes
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          baseline="$(jq -er '.revision' "$RUNNER_TEMP/release-ledger/baseline.json")"
+          node scripts/release/stage-ledger.mjs verify --baseline "$baseline" --stage qualified \
+            --manifest "$RUNNER_TEMP/release-ledger/qualified.json" \
+            --evidence "$RUNNER_TEMP/release-ledger/qualified-evidence.json"
+          node scripts/release/deployed-baseline.mjs "$RUNNER_TEMP/release-ledger/before-database.json"
+          jq -e --slurpfile baseline "$RUNNER_TEMP/release-ledger/baseline.json" \
+            'del(.observedAt) == ($baseline[0] | del(.observedAt))' \
+            "$RUNNER_TEMP/release-ledger/before-database.json" >/dev/null
       - name: Apply forward-only migrations
         run: supabase db push --linked --include-all
       - name: Verify the production migration ledger
-        run: node scripts/check-supabase-migrations.mjs
+        run: |
+          node scripts/check-supabase-migrations.mjs > "$RUNNER_TEMP/release-ledger/post-apply-ledger.txt"
+          jq -n --slurpfile identity "$RUNNER_TEMP/release-ledger/identity.json" \
+            --rawfile readback "$RUNNER_TEMP/release-ledger/post-apply-ledger.txt" \
+            '{stage: "database-applied", result: "success", identity: $identity[0], migrationLedgerReadback: $readback}' \
+            > "$RUNNER_TEMP/release-ledger/database-applied-evidence.json"
+          baseline="$(jq -er '.revision' "$RUNNER_TEMP/release-ledger/baseline.json")"
+          node scripts/release/stage-ledger.mjs record --baseline "$baseline" --stage database-applied \
+            --previous "$RUNNER_TEMP/release-ledger/qualified.json" \
+            --evidence "$RUNNER_TEMP/release-ledger/database-applied-evidence.json" \
+            --output "$RUNNER_TEMP/release-ledger/database-applied.json"
+      - name: Retain the database stage and authoritative baseline for the release owner
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: production-database-stage-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release-ledger/
+          if-no-files-found: error
+          retention-days: 90
+
+  application:
+    name: Promote and prove the same application candidate
+    needs: promote
+    uses: ./.github/workflows/production-deploy.yml
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    with:
+      expected_revision: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
+      release_run_id: ${{ github.run_id }}
+      release_run_attempt: ${{ github.run_attempt }}

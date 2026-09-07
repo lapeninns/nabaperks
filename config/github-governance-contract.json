@@ -58,7 +58,15 @@
     "Recovery Drill": {
       "independentReview": true,
       "requiredSecrets": ["RESTORE_DRILL_DB_URL", "SUPABASE_BACKUP_READ_TOKEN"],
-      "requiredVariables": ["RECOVERY_RTO_MINUTES", "RESTORE_DRILL_PROJECT_REF"]
+      "requiredVariables": [
+        "RECOVERY_RTO_MINUTES",
+        "RESTORE_DRILL_PROJECT_REF",
+        "RESTORE_DRILL_STARTED_AT",
+        "RESTORE_DRILL_LINEAGE_JSON",
+        "RESTORE_DRILL_LINEAGE_SHA256",
+        "RESTORE_DRILL_SOURCE_MANIFEST_JSON",
+        "RESTORE_DRILL_SOURCE_MANIFEST_SHA256"
+      ]
     }
   },
   "forbiddenRepositorySecrets": [

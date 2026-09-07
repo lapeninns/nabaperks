@@ -59,12 +59,14 @@ pnpm ops:supabase:check
 
 ## Local CI execution plane
 
-`ops/local-ci/` is a dependency-free agent that runs CI lanes on an operator's
-own Mac inside a Lima VM, publishes the outcome to GitHub as a check run, and is
-joined to the hosted plane by the advisory `local-proof` job in
-`.github/workflows/ci.yml`. `config/local-ci-contract.json` is the single source
-of truth for both halves; where any document disagrees with it, the contract is
-correct and the document is stale.
+`ops/local-ci/` runs CI lanes on an operator's Mac inside a Lima VM and
+publishes the outcome through a GitHub App. The advisory observer is in
+`.github/workflows/local-ci-shadow.yml`, separate from `CI`: it reads once with
+`LOCAL_CI_OBSERVE_ONCE=true` and has a two-minute job timeout. Missing or pending
+proof is observational, never a passing local test result or merge authority.
+`config/local-ci-contract.json` owns agent policy; the workflows own hosted
+placement. `Release gate` requires all nine hosted roots: `fast`, `quality`,
+`build`, `e2e`, `a11y`, `visual`, `lighthouse`, `zap-baseline` and `db`.
 
 ```bash
 pnpm ops:ci:agent          # one-shot: --profile <pr|main|nightly> --sha <sha>
@@ -82,12 +84,17 @@ Two boundaries are enforced in code rather than by convention:
   values, then asserts that no host-secret name or credential-shaped host value
   survived.
 
-The hosted bridge stays dormant until an operator sets the `LOCAL_CI_MODE`
-repository variable. Installing the host service starts its poll loop regardless
-of that variable; at cutover step 1 nothing it reports can block a merge.
-Provision it with `docs/operations/local-ci.md`. The follow-on steps that promote it are
-specified in `docs/operations/local-ci-cutover.md` and must not be performed
-from this guide.
+`LOCAL_CI_MODE` controls observation, not host-service startup or merge
+requirements. Installing the host service starts its poll loop independently;
+resuming a paused watcher is a separate operational action. Local execution and
+App publication remain advisory. Database promotion still requires successful
+whole exact-main CI and CodeQL, followed by protected release proof.
+
+Read `docs/operations/ci-redesign.md` for the current phased redesign and
+`docs/operations/local-ci.md` for host operations. The historical
+`docs/operations/local-ci-cutover.md` is superseded: do not promote local proof
+by flipping its variables or contract fields. Future local authority needs
+separately reviewed isolation, trusted verification and equivalent fallback.
 
 ## Repository boundaries
 

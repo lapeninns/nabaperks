@@ -1,6 +1,6 @@
 /**
  * The hosted half of the local CI bridge — the poller the `local-proof` job in
- * `.github/workflows/ci.yml` runs.
+ * `.github/workflows/local-ci-shadow.yml` runs.
  *
  * It joins a plane GitHub can see to a plane it cannot: the local agent
  * publishes a check run named `contract.checkName` for a head commit, and this
@@ -21,12 +21,10 @@
  * be two things to keep in agreement, and the copy that drifted would be the
  * one that leaked the token.
  *
- * At cutover step 1 the job is advisory in three independent ways, and this
- * script is the third: no job lists `local-proof` in `needs:`, the job carries
- * `continue-on-error: true`, and while `shadowMode.enabled` is true a
- * rejection is reported and then exits 0. Cutover step 3 is what flips
- * `bridge.enforcement` to `"blocking"` and `shadowMode.enabled` to false, in
- * one commit; nothing here needs to change for that to take effect.
+ * Hosted observation is now independent of CI and makes one read. It refuses
+ * an enforcing contract and never supplies merge or deployment authority.
+ * The polling entrypoint remains available for offline compatibility tests
+ * and operator diagnostics; a future cutover requires a trusted verifier.
  */
 
 import { appendFileSync, readFileSync } from "node:fs"
@@ -153,7 +151,7 @@ function summarise(state, contract, env) {
  *
  *   - it holds `contents: read` and `checks: read` and no Actions scope of any
  *     kind, which `tests/contracts/devops-local-ci.test.mjs` asserts against
- *     `.github/workflows/ci.yml` by refusing any `: write` in the job; and
+ *     `.github/workflows/local-ci-shadow.yml` by refusing any `: write` in the job; and
  *   - a job cannot re-run the workflow run it is part of. By the time a late
  *     proof lands, the attempt that timed out has already finished, and there
  *     is no hosted job left running to notice.
@@ -183,6 +181,19 @@ export async function runLocalProofCheck(options = {}) {
     log = (message) => process.stdout.write(`local-proof: ${message}\n`),
   } = options
 
+  const observeOnce = env.LOCAL_CI_OBSERVE_ONCE === "true"
+  if (
+    observeOnce &&
+    (contract.shadowMode?.enabled !== true ||
+      contract.bridge.enforcement !== "advisory" ||
+      contract.bridge.requiredCheck !== false ||
+      contract.bridge.dependents?.length !== 0)
+  ) {
+    throw new Error(
+      "observe-once requires a non-required advisory shadow contract"
+    )
+  }
+
   const mode = (env.LOCAL_CI_MODE || "").trim()
   if (mode === "") {
     log(
@@ -208,7 +219,9 @@ export async function runLocalProofCheck(options = {}) {
   const startedAt = now()
   const pollMs = contract.bridge.pollIntervalSeconds * 1000
   log(
-    `waiting for the ${JSON.stringify(contract.checkName)} check run on ${requestedSha} (ceiling ${contract.bridge.timeoutMinutes} minutes, polling every ${contract.bridge.pollIntervalSeconds}s)`
+    observeOnce
+      ? `observing ${JSON.stringify(contract.checkName)} on ${requestedSha} once; this is not a merge verdict`
+      : `waiting for the ${JSON.stringify(contract.checkName)} check run on ${requestedSha} (ceiling ${contract.bridge.timeoutMinutes} minutes, polling every ${contract.bridge.pollIntervalSeconds}s)`
   )
 
   for (;;) {
@@ -231,6 +244,15 @@ export async function runLocalProofCheck(options = {}) {
     }
     const state = describeBridgeState(observation)
     const { action } = decideBridgeAction(observation)
+
+    if (observeOnce) {
+      summarise(state, contract, env)
+      log(`observation (${action}): ${state.reason}`)
+      log(
+        "observation complete; consult the App check for eventual local validation"
+      )
+      return 0
+    }
 
     if (action === "wait") {
       log(state.reason)
