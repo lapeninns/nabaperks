@@ -713,6 +713,21 @@ export const VM_PROBE_SCRIPT = [
  * than an empty list, because "I could not read the answer" must not resolve
  * to "there is nothing to worry about".
  */
+/**
+ * A Lima instance that exists but is `Stopped` is the one state the agent can
+ * repair on its own: after a Mac reboot nothing restarts the VM, so without
+ * this every dispatch would be refused until an operator ran
+ * `limactl start` by hand — which is exactly what left a failing verdict on
+ * every pull request during the first cutover week. Any other non-Running
+ * state (Broken, Starting, unknown) stays a refusal, and the operator's way
+ * to pause the plane is still the LaunchAgent, never the VM.
+ */
+export function isStoppedInstance({ vm, instances }) {
+  const list = Array.isArray(instances) ? instances : []
+  const instance = list.find((entry) => entry?.name === vm)
+  return String(instance?.status ?? "").toLowerCase() === "stopped"
+}
+
 export function parseLimaInstances(text) {
   const trimmed = String(text ?? "").trim()
   if (trimmed === "") return []
@@ -890,6 +905,16 @@ async function assertVmIsolationLive({ config, contract }) {
     listed = await execHost(["limactl", "list", "--json", vm], {
       timeoutMs: 60_000,
     })
+    if (isStoppedInstance({ vm, instances: parseLimaInstances(listed) })) {
+      // Start, then list again: the isolation verdict below must come from
+      // the instance as it is now running, never from the pre-start listing.
+      await execHost(["limactl", "start", "--tty=false", vm], {
+        timeoutMs: 600_000,
+      })
+      listed = await execHost(["limactl", "list", "--json", vm], {
+        timeoutMs: 60_000,
+      })
+    }
     probed = await execHost(vmShell(vm, VM_PROBE_SCRIPT), { timeoutMs: 60_000 })
   } catch (error) {
     throw new CliError(
