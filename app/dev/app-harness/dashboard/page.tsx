@@ -20,6 +20,7 @@ import { ActivityCompactFeed } from "@/components/merchant/activity-compact-feed
 import { MerchantDashboardHeaderActions } from "@/components/merchant/dashboard-header-actions"
 import { DashboardMembersEmptyState } from "@/components/merchant/dashboard-home-streams"
 import { DashboardQrCardView } from "@/components/merchant/dashboard-qr-card"
+import { DashboardVenueCodeCardView } from "@/components/merchant/dashboard-venue-code-card"
 import { MerchantNextActions } from "@/components/merchant/dashboard-next-actions"
 import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-panel"
 import { WetInkRise } from "@/components/motion"
@@ -34,6 +35,7 @@ import {
   HARNESS_NEXT_ACTIONS,
   HARNESS_TREND_SERIES,
 } from "../fixtures"
+import { noopResetVenueCodeAction } from "./actions"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -150,6 +152,11 @@ export default async function DashboardHarnessPage({
         scansAvailable={readiness.launchReady}
         actionHref={qrGated ? "/app/launch?tab=billing" : "/app/qr"}
         actionLabel={qrGated ? "Finish launch setup" : "Review QR setup"}
+      />
+
+      <DashboardVenueCodeCardView
+        code="482913"
+        resetAction={noopResetVenueCodeAction}
       />
 
       {showEmptyMembers ? (

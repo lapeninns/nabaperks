@@ -96,7 +96,7 @@ test("Given a stamp is issued When post-issue side effects run Then they occur o
 
   assert.match(
     action,
-    /if \(result\.status === "blocked"\) \{[\s\S]*return fail\(result\.reason\)/
+    /if \(result\.status === "blocked"\) \{[\s\S]*return fail\(result\.reason, \{ reason: result\.blockReason \}\)/
   )
   assert.ok(
     action.indexOf('if (result.status === "blocked")') <

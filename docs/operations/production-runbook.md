@@ -418,3 +418,28 @@ supabase projects list
 - Monthly: rotate or review privileged keys, test rollback, review data
   retention jobs and update this runbook after any provider or architecture
   change.
+
+## Venue code (location-check fallback)
+
+Self-service stamping refuses a stamp when a phone's location is outside the
+venue or the unverified-location grace is spent. The fallback is a six-digit
+**venue code** that changes every day at 05:00 Europe/London and is shown only
+on the owner's `/app` dashboard behind "Show code". A team member reads it out;
+the member types it on their own phone and the stamp is issued through the
+normal pipeline with only the location check bypassed. The code is honoured
+only within fifteen minutes of a server-recorded refusal, attempts are
+throttled per membership, device, venue and network, and five wrong codes lock
+the membership for fifteen minutes.
+
+- **Reset a leaked code:** the owner ticks the confirmation under the dashboard
+  card and presses "Reset code". The old code stops working immediately and
+  the reset is audited (`venue_code_reset`) without the code itself.
+- **Evidence:** every code-confirmed stamp carries
+  `metadata->>'geo_verification' = 'venue_code'` on `stamp_events`, a row in
+  `venue_code_stamp_receipts`, and marks the answering refusal in `fraud_flags`
+  as reviewed. The owner activity feed labels these stamps.
+- **Abuse review:** query `product_events` for `venue_code_rejected` and
+  `venue_code_stamp_issued` per merchant and day. A venue whose code-confirmed
+  stamps outnumber its GPS-verified ones deserves a look.
+- **Rollback:** redeploy the previous application revision. The database
+  objects stay in place and dormant; no data migration is required.

@@ -67,11 +67,7 @@ export const activityEvents = [
 export type ActivityEventName = (typeof activityEvents)[number] | string
 
 export type ActivityCategory =
-  | "customer"
-  | "stamp"
-  | "reward"
-  | "qr"
-  | "account"
+  "customer" | "stamp" | "reward" | "qr" | "account"
 
 export type ActivityDetail = {
   label: string
@@ -362,14 +358,23 @@ export function toActivityDisplayRow(
         category,
         badgeLabel: "Stamp collected",
         headline: `${customerName(customerLabel)} collected ${stampLabel(row, membership)}`,
-        summary: metadata.geo_flagged
-          ? "Customer stamp was issued and a location anomaly was flagged."
-          : "Customer stamp was issued from the venue QR.",
+        summary:
+          metadata.geo_verification === "venue_code"
+            ? "Customer stamp was confirmed with today's venue code after the location check couldn't confirm the visit."
+            : metadata.geo_flagged
+              ? "Customer stamp was issued and a location anomaly was flagged."
+              : "Customer stamp was issued from the venue QR.",
         timestamp,
         ...base,
         details: [
           ...sharedDetails,
-          { label: "How", value: "Self-service QR stamp" },
+          {
+            label: "How",
+            value:
+              metadata.geo_verification === "venue_code"
+                ? "Venue code after a location refusal"
+                : "Self-service QR stamp",
+          },
           metadata.new_stamp_count != null
             ? {
                 label: "Stamps now",

@@ -38,6 +38,10 @@ test("Given every customer block reason When copy is rendered Then raw technical
     "profile_incomplete",
     "location_required",
     "location_out_of_range",
+    "venue_code_rejected",
+    "venue_code_refusal_missing",
+    "venue_code_locked",
+    "venue_code_format",
     "unavailable",
     "unknown",
   ]
@@ -79,6 +83,9 @@ test("Given a stamp refusal SQLSTATE When it is mapped Then the code decides the
     ["NBS08", "unavailable"],
     ["NBS10", "location_out_of_range"],
     ["NBS11", "location_required"],
+    ["NBS14", "venue_code_refusal_missing"],
+    ["NBC01", "venue_code_locked"],
+    ["NBC02", "venue_code_format"],
   ]
 
   for (const [code, reason] of cases) {
