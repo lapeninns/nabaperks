@@ -176,7 +176,8 @@ export async function getCustomerHomeDashboard(): Promise<HomeDashboard> {
   }
 
   // Ordered is_active desc, created asc → first row per merchant is the
-  // active (or earliest) card, matching getCustomerCardState's selection.
+  // active (or earliest) card, matching get_customer_card_state's selection
+  // (parity pinned by tests/db/customer-card-state.test.mjs).
   const cardByMerchant = new Map<string, RawLoyaltyCard>()
   for (const card of (cardsResult.data ?? []) as RawLoyaltyCard[]) {
     if (!cardByMerchant.has(card.merchant_id))

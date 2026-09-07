@@ -232,11 +232,12 @@ test(
         from unnest(array[
           'public.customer_auth_device_is_trusted(uuid,text)',
           'public.register_customer_session(uuid,uuid,timestamp with time zone,text,text)',
-          'public.touch_customer_session(uuid,uuid,text)'
+          'public.touch_customer_session(uuid,uuid,text)',
+          'public.touch_customer_session_and_load(uuid,uuid,text)'
         ]) as functions(signature)
       `
 
-      assert.equal(rows.length, 3)
+      assert.equal(rows.length, 4)
       for (const row of rows) {
         assert.equal(row.public_execute, false, `${row.signature}: PUBLIC`)
         assert.equal(row.anon_execute, false, `${row.signature}: anon`)

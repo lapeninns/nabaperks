@@ -10,7 +10,7 @@ import {
 } from "@/lib/customer/phone-pii"
 import type { NormalizedPhone } from "@/lib/customer/phone"
 import { attachRewardInvitesForCustomer } from "@/lib/customer/reward-invites"
-import { getCustomerSession } from "@/lib/customer/session"
+import { resolveCustomerSession } from "@/lib/customer/session"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export type CurrentCustomer = {
@@ -32,26 +32,35 @@ const CUSTOMER_COLUMNS =
 
 export const getCurrentCustomer = cache(
   async (): Promise<CurrentCustomer | null> => {
-    const session = await getCustomerSession()
+    const resolved = await resolveCustomerSession()
+    if (!resolved) return null
 
-    if (!session) return null
+    const { customer } = resolved
+    if (customer.status === "customer_missing") return null
+    if (customer.status === "active") return toCurrentCustomer(customer.row)
 
-    const supabase = createSupabaseServiceRoleClient()
-    const { data, error } = await supabase
-      .from("customers")
-      .select(CUSTOMER_COLUMNS)
-      .eq("id", session.customerId)
-      .maybeSingle()
-
-    if (error) {
-      throw new Error(`Unable to load customer: ${error.message}`)
-    }
-
-    if (!data) return null
-
-    return toCurrentCustomer(data)
+    // The merged session RPC is not deployed yet: read the row ourselves for
+    // one release rather than fail every authenticated request.
+    return loadCustomerById(resolved.payload.customerId)
   }
 )
+
+async function loadCustomerById(
+  customerId: string
+): Promise<CurrentCustomer | null> {
+  const supabase = createSupabaseServiceRoleClient()
+  const { data, error } = await supabase
+    .from("customers")
+    .select(CUSTOMER_COLUMNS)
+    .eq("id", customerId)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(`Unable to load customer: ${error.message}`)
+  }
+
+  return data ? toCurrentCustomer(data) : null
+}
 
 export async function findCustomerByVerifiedPhone(
   phone: NormalizedPhone

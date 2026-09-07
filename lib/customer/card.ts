@@ -1,11 +1,17 @@
 import "server-only"
 
 import { loyaltyAvailability } from "@/lib/customer/availability"
+import { legacyGetCustomerCardState } from "@/lib/customer/card-legacy-read"
+import {
+  parseCustomerCardStateRow,
+  toRewardSummary,
+} from "@/lib/customer/card-state-row"
 import { getCurrentCustomer } from "@/lib/customer/identity"
 import {
   pickIssuedUnlockedReward,
   pickStampBlockingUnlockedReward,
 } from "@/lib/customer/primary-reward"
+import { isMissingRpcError } from "@/lib/supabase/missing-rpc"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export {
@@ -68,34 +74,6 @@ export type CustomerCardState =
       billingStatus: string | null
     }
 
-type RawMembership = {
-  id: string
-  merchant_id: string
-  customer_id: string
-  current_stamp_count: number
-  total_rewards_redeemed: number
-  active_cycle_number: number
-  referral_code: string
-  referral_code_active: boolean
-  merchants:
-    | {
-        business_name: string
-        business_slug: string
-        status: string
-        requires_billing: boolean
-        pub_google_review: string | null
-        locals: string | null
-      }
-    | Array<{
-        business_name: string
-        business_slug: string
-        status: string
-        requires_billing: boolean
-        pub_google_review: string | null
-        locals: string | null
-      }>
-}
-
 export async function getCustomerCardState(
   membershipId: string
 ): Promise<CustomerCardState> {
@@ -103,78 +81,46 @@ export async function getCustomerCardState(
 
   if (!currentCustomer) return { status: "unauthenticated" }
 
+  // One hop: membership, merchant, card, unlocked rewards and billing. The RPC
+  // proves ownership against the session's customer id before it reads any
+  // detail; a non-owner receives a bare status.
   const supabase = createSupabaseServiceRoleClient()
-  const { data, error } = await supabase
-    .from("customer_memberships")
-    .select(
-      "id, merchant_id, customer_id, current_stamp_count, total_rewards_redeemed, active_cycle_number, referral_code, referral_code_active, merchants(business_name, business_slug, status, requires_billing, pub_google_review, locals)"
-    )
-    .eq("id", membershipId)
-    .maybeSingle()
+  const { data, error } = await supabase.rpc("get_customer_card_state", {
+    p_membership_id: membershipId,
+    p_customer_id: currentCustomer.id,
+  })
 
   if (error) {
+    if (isMissingRpcError(error)) {
+      // App deployed ahead of the migration: previous multi-query read, for
+      // one release.
+      return legacyGetCustomerCardState(currentCustomer.id, membershipId)
+    }
     throw new Error(`Unable to load customer card: ${error.message}`)
   }
 
-  if (!data) return { status: "not_found" }
+  const state = parseCustomerCardStateRow(data)
+  if (state.status === "not_found") return { status: "not_found" }
+  if (state.status === "unauthorized") return { status: "unauthorized" }
 
-  const membership = data as RawMembership
-  const merchant = first(membership.merchants)
+  const { membership, merchant, loyaltyCard, unlockedRewards, billingStatus } =
+    state
 
+  // Belt and braces: the database already refused a non-owner, and the row it
+  // returned must still name the session's customer.
   if (membership.customer_id !== currentCustomer.id) {
     return { status: "unauthorized" }
-  }
-
-  const [
-    { data: loyaltyCard, error: cardError },
-    { data: unlockedRewards, error: rewardError },
-    { data: billing, error: billingError },
-  ] = await Promise.all([
-    supabase
-      .from("loyalty_cards")
-      .select(
-        "card_name, stamps_required, reward_name, reward_terms, is_active"
-      )
-      .eq("merchant_id", membership.merchant_id)
-      .order("is_active", { ascending: false })
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle(),
-    supabase
-      .from("reward_events")
-      .select(
-        "id, status, reward_name, reward_terms, redeemable_from, expires_at, source, created_at"
-      )
-      .eq("membership_id", membership.id)
-      .eq("status", "unlocked")
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("billing_customers")
-      .select("status")
-      .eq("merchant_id", membership.merchant_id)
-      .maybeSingle(),
-  ])
-
-  if (cardError) {
-    throw new Error(`Unable to load loyalty card: ${cardError.message}`)
-  }
-  if (rewardError) {
-    throw new Error(`Unable to load reward status: ${rewardError.message}`)
-  }
-  if (billingError) {
-    throw new Error(`Unable to load billing status: ${billingError.message}`)
   }
 
   const unavailableReason = unavailableMessage(
     merchant.status,
     loyaltyCard?.is_active ?? false,
-    billing?.status ?? null,
+    billingStatus,
     merchant.requires_billing
   )
 
-  const unlockedRewardRows = unlockedRewards ?? []
-  const stampCycleReward = pickStampBlockingUnlockedReward(unlockedRewardRows)
-  const issuedReward = pickIssuedUnlockedReward(unlockedRewardRows)
+  const stampCycleReward = pickStampBlockingUnlockedReward(unlockedRewards)
+  const issuedReward = pickIssuedUnlockedReward(unlockedRewards)
 
   return {
     status: "ready",
@@ -196,33 +142,9 @@ export async function getCustomerCardState(
       locals: merchant.locals,
     },
     loyaltyCard,
-    stampCycleReward: mapRewardSummary(stampCycleReward),
-    issuedReward: mapRewardSummary(issuedReward),
-    billingStatus: billing?.status ?? null,
-  }
-}
-
-function mapRewardSummary(
-  reward: {
-    id: string
-    status: string
-    reward_name: string
-    reward_terms: string
-    redeemable_from: string | null
-    expires_at: string | null
-    source: string | null
-  } | null
-) {
-  if (!reward) return null
-
-  return {
-    id: reward.id,
-    status: reward.status,
-    reward_name: reward.reward_name,
-    reward_terms: reward.reward_terms,
-    redeemable_from: reward.redeemable_from,
-    expires_at: reward.expires_at,
-    source: reward.source,
+    stampCycleReward: toRewardSummary(stampCycleReward),
+    issuedReward: toRewardSummary(issuedReward),
+    billingStatus,
   }
 }
 
@@ -238,8 +160,4 @@ export function unavailableMessage(
     billingStatus,
     requiresBilling,
   }).message
-}
-
-function first<T>(value: T | T[]) {
-  return Array.isArray(value) ? value[0] : value
 }
