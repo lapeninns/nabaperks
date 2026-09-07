@@ -1,5 +1,9 @@
 import { REFERRAL_BONUS_STAMP_LABEL } from "@/lib/customer/card-stamp-labels"
-import type { SelfStampActionState } from "@/lib/customer/self-stamp-action-state"
+import type { CustomerBlockReason } from "@/lib/customer/experience/block-reasons"
+import type {
+  SelfStampActionState,
+  SelfStampBlockedDetail,
+} from "@/lib/customer/self-stamp-action-state"
 
 type IssuedStamp = Extract<SelfStampActionState, { status: "issued" }>
 
@@ -8,14 +12,14 @@ export type StampChoreographyState =
   | { phase: "checking" }
   | { phase: "printing"; result: IssuedStamp }
   | { phase: "confirmed"; result: IssuedStamp }
-  | { phase: "blocked"; message: string }
+  | ({ phase: "blocked"; message: string } & SelfStampBlockedDetail)
   | { phase: "unknown" }
   | { phase: "closed" }
 
 export type StampChoreographyEvent =
   | { type: "request_started" }
   | { type: "request_issued"; result: IssuedStamp }
-  | { type: "request_blocked"; message: string }
+  | ({ type: "request_blocked"; message: string } & SelfStampBlockedDetail)
   | { type: "request_unknown" }
   | { type: "readback_issued"; result: IssuedStamp }
   | { type: "readback_closed" }
@@ -30,6 +34,22 @@ export function readbackBonusStampsApplied(
   current: number
 ): number {
   return Math.max(current - previousCurrent - 1, 0)
+}
+
+/**
+ * Whether a refusal is one the venue-code fallback can answer: the location
+ * check said no (or the last code was wrong / malformed and can be retyped).
+ * A lockout, or a code entered without any refused scan, offers nothing.
+ */
+export function venueCodeOffered(
+  reason: CustomerBlockReason | undefined
+): boolean {
+  return (
+    reason === "location_out_of_range" ||
+    reason === "location_required" ||
+    reason === "venue_code_rejected" ||
+    reason === "venue_code_format"
+  )
 }
 
 export function reduceStampChoreography(
@@ -47,7 +67,13 @@ export function reduceStampChoreography(
         : state
     case "request_blocked":
       return state.phase === "checking" || state.phase === "unknown"
-        ? { phase: "blocked", message: event.message }
+        ? {
+            phase: "blocked",
+            message: event.message,
+            reason: event.reason,
+            attemptsRemaining: event.attemptsRemaining,
+            lockedUntil: event.lockedUntil,
+          }
         : state
     case "request_unknown":
       return state.phase === "checking" ? { phase: "unknown" } : state
@@ -73,7 +99,17 @@ type StampViewInput = {
   rewardUnlocked: boolean
 }
 
-export type StampChoreographyView = {
+/** What the stamp screen needs to render the venue-code fallback, if any. */
+export type VenueCodeFallbackView = {
+  /** Show the six-digit code input beneath the refusal. */
+  venueCodeOffer: boolean
+  /** Tries left before a lockout, when the last code was wrong. */
+  venueCodeAttemptsRemaining: number | null
+  /** ISO time the lockout lifts, when attempts are exhausted. */
+  venueCodeLockedUntil: string | null
+}
+
+export type StampChoreographyView = VenueCodeFallbackView & {
   displayCurrent: number
   dates: string[]
   slamIndex: number
@@ -88,6 +124,23 @@ export type StampChoreographyView = {
   statusBody: string
   rewardUnlocked: boolean
   rewardSlammed: boolean
+}
+
+const NO_FALLBACK: VenueCodeFallbackView = {
+  venueCodeOffer: false,
+  venueCodeAttemptsRemaining: null,
+  venueCodeLockedUntil: null,
+}
+
+function venueCodeFallback(
+  state: StampChoreographyState
+): VenueCodeFallbackView {
+  if (state.phase !== "blocked") return NO_FALLBACK
+  return {
+    venueCodeOffer: venueCodeOffered(state.reason),
+    venueCodeAttemptsRemaining: state.attemptsRemaining ?? null,
+    venueCodeLockedUntil: state.lockedUntil ?? null,
+  }
 }
 
 function issuedResult(state: StampChoreographyState): IssuedStamp | undefined {
@@ -158,9 +211,11 @@ export function stampChoreographyView(
   const cardComplete = input.total > 0 && displayCurrent >= input.total
   const printing = state.phase === "printing"
   const closed = !input.canStamp && state.phase === "idle"
+  const fallback = venueCodeFallback(state)
 
   if (state.phase === "checking") {
     return {
+      ...fallback,
       displayCurrent,
       dates: displayDates(input, result),
       slamIndex: -1,
@@ -180,6 +235,7 @@ export function stampChoreographyView(
 
   if (state.phase === "blocked") {
     return {
+      ...fallback,
       displayCurrent,
       dates: displayDates(input, result),
       slamIndex: -1,
@@ -199,6 +255,7 @@ export function stampChoreographyView(
 
   if (state.phase === "unknown") {
     return {
+      ...fallback,
       displayCurrent,
       dates: displayDates(input, result),
       slamIndex: -1,
@@ -219,6 +276,7 @@ export function stampChoreographyView(
 
   if (state.phase === "closed") {
     return {
+      ...fallback,
       displayCurrent,
       dates: displayDates(input, result),
       slamIndex: -1,
@@ -240,6 +298,7 @@ export function stampChoreographyView(
   if (result) {
     const copy = issuedCopy(result, input.total)
     return {
+      ...fallback,
       displayCurrent,
       dates: displayDates(input, result),
       slamIndex: printing ? venueStampIndex(result, input.total) : -1,
@@ -257,6 +316,7 @@ export function stampChoreographyView(
 
   if (closed && input.rewardUnlocked) {
     return {
+      ...fallback,
       displayCurrent,
       dates: displayDates(input, result),
       slamIndex: -1,
@@ -275,6 +335,7 @@ export function stampChoreographyView(
   }
 
   return {
+    ...fallback,
     displayCurrent,
     dates: displayDates(input, result),
     slamIndex: -1,

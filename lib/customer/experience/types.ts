@@ -53,6 +53,11 @@ export type StampBlockReason =
   | "profile_incomplete"
   | "location_required"
   | "location_out_of_range"
+  // Venue-code fallback after a refused location check.
+  | "venue_code_rejected"
+  | "venue_code_refusal_missing"
+  | "venue_code_locked"
+  | "venue_code_format"
   | "unavailable"
   | "unknown"
 

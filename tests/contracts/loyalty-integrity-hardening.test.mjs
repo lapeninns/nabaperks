@@ -37,6 +37,9 @@ const TENANT_SAFE_REWARD_EXPIRY = migration(
 const FAIR_REWARD_CYCLE_HEALING = migration(
   "20260902132000_fair_reward_cycle_healing.sql"
 )
+// The venue-code fallback raises its own stable codes (NBS14, NBC01, NBC02)
+// and must be classified by the same TypeScript table.
+const VENUE_CODE_RPCS = migration("20260908100000_venue_code_rpcs.sql")
 const BLOCK_REASONS = readFileSync(
   new URL("../../lib/customer/experience/block-reasons.ts", import.meta.url),
   "utf8"
@@ -154,10 +157,13 @@ test("Given the card-uniqueness migration Then it reconciles before it constrain
 
 test("Given every NBS refusal code in SQL Then block-reasons.ts maps exactly the same set", () => {
   const inSql = new Set(
-    [...STAMP_CODES.matchAll(/errcode = '(NBS\d{2})'/g)].map((m) => m[1])
+    [
+      ...STAMP_CODES.matchAll(/errcode = '(NB[SC]\d{2})'/g),
+      ...VENUE_CODE_RPCS.matchAll(/errcode = '(NB[SC]\d{2})'/g),
+    ].map((m) => m[1])
   )
   const inTs = new Set(
-    [...BLOCK_REASONS.matchAll(/^\s{2}(NBS\d{2}):/gm)].map((m) => m[1])
+    [...BLOCK_REASONS.matchAll(/^\s{2}(NB[SC]\d{2}):/gm)].map((m) => m[1])
   )
 
   assert.ok(inSql.size >= 8, `expected the NBS table, saw ${inSql.size}`)

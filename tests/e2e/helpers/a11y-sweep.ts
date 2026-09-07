@@ -52,6 +52,10 @@ const HARNESS_LANES = [
   `${HARNESS_ROUTES.offers}?surface=staff`,
   HARNESS_ROUTES.skeletons,
   HARNESS_ROUTES.states,
+  // The customer stamp screen with the venue-code fallback offered, and with
+  // the fallback locked out — the two states that add or withhold a form.
+  "/dev/home-harness/stamp?mode=location-blocked",
+  "/dev/home-harness/stamp?mode=code-locked",
   HARNESS_ROUTES.designSystem,
   HARNESS_ROUTES.posterPreview,
   HARNESS_ROUTES.tentPreview,

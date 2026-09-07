@@ -2,7 +2,7 @@ import type { StampBlockReason } from "./types"
 
 import { LOYALTY_PROGRAMME_UNAVAILABLE } from "@/lib/copy/product-copy"
 
-type CustomerBlockReason = StampBlockReason | "billing_required"
+export type CustomerBlockReason = StampBlockReason | "billing_required"
 
 /**
  * Single source of truth for turning a stamp/redeem RPC failure into a typed
@@ -24,7 +24,9 @@ type CustomerBlockReason = StampBlockReason | "billing_required"
 /**
  * Stable refusal codes raised by the stamping path. Mirrors the NBS.. table in
  * supabase/migrations/20260805100100_stamp_refusal_codes_and_location_verification.sql
- * and must move in the same change as that migration.
+ * and the venue-code codes in
+ * supabase/migrations/20260908100000_venue_code_rpcs.sql, and must move in the
+ * same change as those migrations.
  */
 const STAMP_SQLSTATE_REASONS: Readonly<Record<string, CustomerBlockReason>> = {
   NBS01: "already_stamped_today",
@@ -37,6 +39,11 @@ const STAMP_SQLSTATE_REASONS: Readonly<Record<string, CustomerBlockReason>> = {
   NBS08: "unavailable",
   NBS10: "location_out_of_range",
   NBS11: "location_required",
+  // Venue-code fallback: a code is only honoured shortly after a
+  // server-recorded location refusal, and attempts are throttled.
+  NBS14: "venue_code_refusal_missing",
+  NBC01: "venue_code_locked",
+  NBC02: "venue_code_format",
 }
 
 /**
@@ -117,12 +124,24 @@ export function blockReasonCopy(reason: CustomerBlockReason): string {
       return "Add your details before collection — a name and date of birth, plus a verified email if you add one."
     case "location_out_of_range":
       // Positive evidence of absence: the device reported a position and it is
-      // not the venue. Named plainly, without accusing anyone of anything.
-      return "This stamp needs you to be at the venue. Collect it next time you visit."
+      // not the venue. Named plainly, without accusing anyone of anything — and
+      // with the fallback, because a customer at the counter with a wobbly fix
+      // can be told today's code by a team member.
+      return "Location couldn't confirm you're at the venue. Try again, or ask a team member for today's code."
     case "location_required":
       // The grace budget is spent. The copy has to name the fix, because the
       // customer is standing in the venue and the phone is the problem.
-      return "Turn on location for this venue to collect your stamp, then scan again."
+      return "Turn on location for this venue and scan again, or ask a team member for today's code."
+    case "venue_code_rejected":
+      return "That code isn't right. Check it with a team member."
+    case "venue_code_refusal_missing":
+      // The code is a fallback for a refused location check, never a way in on
+      // its own — so the recovery is the scan the customer skipped.
+      return "Scan the venue QR first, then enter today's code."
+    case "venue_code_locked":
+      return "Too many tries. Ask a team member and try again in 15 minutes."
+    case "venue_code_format":
+      return "Today's code is six digits."
     case "unavailable":
       return LOYALTY_PROGRAMME_UNAVAILABLE
     case "unknown":

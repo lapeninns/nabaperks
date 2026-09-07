@@ -5,12 +5,14 @@ import { Suspense } from "react"
 import { PageTitle } from "@/components/brand"
 import { MerchantDashboardHeaderActions } from "@/components/merchant/dashboard-header-actions"
 import { DashboardQrCard } from "@/components/merchant/dashboard-qr-card"
+import { DashboardVenueCodeCard } from "@/components/merchant/dashboard-venue-code-card"
 import {
   MerchantCompactActivityStream,
   MerchantDashboardStream,
 } from "@/components/merchant/dashboard-home-streams"
 import {
   DashboardQrCardSkeleton,
+  DashboardVenueCodeCardSkeleton,
   MerchantCompactActivitySkeleton,
   MerchantDashboardMetricsSkeleton,
 } from "@/components/merchant/loading-skeletons"
@@ -64,6 +66,16 @@ export default async function MerchantAppPage() {
       <StreamErrorBoundary label="your venue QR">
         <Suspense fallback={<DashboardQrCardSkeleton />}>
           <DashboardQrCard />
+        </Suspense>
+      </StreamErrorBoundary>
+
+      {/* Today's team code sits beside the QR: it is the other thing a team
+          member reaches for at the till, when a customer's phone couldn't
+          confirm they're here. Its own boundary keeps the code read off the
+          header/metrics critical path. */}
+      <StreamErrorBoundary label="today's team code">
+        <Suspense fallback={<DashboardVenueCodeCardSkeleton />}>
+          <DashboardVenueCodeCard />
         </Suspense>
       </StreamErrorBoundary>
 
