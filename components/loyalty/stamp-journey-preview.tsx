@@ -30,9 +30,53 @@ export function StampJourneyPreview({
   const safeTotal = Math.max(total, 0)
   /** Anchor to the UK calendar day when the customer opens this page. */
   const [previewDates] = useState(() => stampDisplayDates(safeTotal))
-  const { earnedCount, slamIndex, revealed, revealSlam, revealKey } =
-    useStampJourneyLoop(safeTotal)
+  const loop = useStampJourneyLoop(safeTotal)
 
+  return (
+    <StampJourneyRow
+      total={safeTotal}
+      venueName={venueName}
+      compact={compact}
+      className={className}
+      previewDates={previewDates}
+      {...loop}
+    />
+  )
+}
+
+export type StampJourneyRowState = {
+  earnedCount: number
+  slamIndex: number
+  revealed: boolean
+  revealSlam: boolean
+  revealKey: number
+}
+
+/**
+ * The stamp row driven by a {@link useStampJourneyLoop} state. Split from the
+ * preview so a surface can compose the loop with its own beats (the join
+ * welcome card shakes on stamp one and pops its header seal on the reveal)
+ * while the row itself stays the one shared implementation.
+ */
+export function StampJourneyRow({
+  total,
+  venueName,
+  compact = false,
+  className,
+  previewDates,
+  earnedCount,
+  slamIndex,
+  revealed,
+  revealSlam,
+  revealKey,
+}: StampJourneyRowState & {
+  total: number
+  venueName?: string
+  compact?: boolean
+  className?: string
+  previewDates: readonly string[]
+}) {
+  const safeTotal = Math.max(total, 0)
   const columnCount = Math.min(Math.max(safeTotal, 1), 6) + 1
 
   return (
@@ -46,9 +90,11 @@ export function StampJourneyPreview({
           : "[grid-template-columns:repeat(var(--stamp-journey-cols),minmax(0,1fr))] gap-2",
         className
       )}
-      style={{
-        "--stamp-journey-cols": columnCount,
-      } as CSSProperties}
+      style={
+        {
+          "--stamp-journey-cols": columnCount,
+        } as CSSProperties
+      }
     >
       {Array.from({ length: safeTotal }).map((_, index) => {
         const earned = index < earnedCount

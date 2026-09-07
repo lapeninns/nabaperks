@@ -236,9 +236,12 @@ height: `JoinActionBar` (`components/customer/join-action-bar.tsx`) pins the
 button to the bottom of the viewport while the screen is taller than the
 phone and sits in flow once it fits. Only screens without a text field use it
 (welcome, terms); the phone and code steps keep their button in flow, short
-enough to fit with the keyboard up. The offer is pitched once, compactly —
-a strip of venue mark, venue · card, one reward line and the sealed seal —
-so no join step repeats the full stamp card.
+enough to fit with the keyboard up. The offer is pitched once: on the
+welcome step as the looping stamp journey (`JoinOfferJourney` — stamp one
+slams and shudders the card, the reward pops on the row and the header seal
+together, a mono caption narrates each beat), and on every later step as a
+strip of venue mark, venue · card, one reward line and the sealed seal — so
+no join step repeats the full stamp card.
 
 ## Motion
 
