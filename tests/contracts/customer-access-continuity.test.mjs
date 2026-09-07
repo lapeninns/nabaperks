@@ -22,13 +22,21 @@ test("existing phone OTP reaches one shared continuity boundary before session m
   }
   assert.match(
     boundary,
-    /customerWasCreated[\s\S]*"new_identity"[\s\S]*customerDeviceIsRecognised[\s\S]*"recognised_device"[\s\S]*startCustomerAccessRecovery/
+    /customerWasCreated[\s\S]*"new_identity"[\s\S]*customerDeviceIsRecognised[\s\S]*"recognised_device"[\s\S]*REQUIRE_DEVICE_CONTINUITY[\s\S]*startCustomerAccessRecovery[\s\S]*setCustomerSession\(customer\.id, "verified_phone"\)/
   )
   assert.match(join, /customerWasCreated: resolution\.created/)
   assert.match(join, /step: "terms"/)
 })
 
-test("unrecognised existing customers recover only through their pre-existing verified email", () => {
+test("device continuity is disabled: a verified phone OTP alone opens an existing wallet on any device", () => {
+  const boundary = read("lib", "customer", "access-continuity.ts")
+
+  assert.match(boundary, /SEC-RISK-001 is deliberately reopened/)
+  assert.match(boundary, /const REQUIRE_DEVICE_CONTINUITY: boolean = false/)
+  assert.match(boundary, /setCustomerSession\(customer\.id, "verified_phone"\)/)
+})
+
+test("the dormant email recovery journey stays intact behind the disabled gate", () => {
   const recovery = read("lib", "customer", "access-continuity.ts")
   const action = read("app", "home", "recover", "actions.ts")
 
@@ -80,6 +88,32 @@ test("customer sessions are device-bound and legacy unbound entry points are ret
   assert.match(migration, /p_continuity_source = 'new_identity'/)
   assert.match(migration, /p_continuity_source = 'verified_email'/)
   assert.doesNotMatch(migration, /qr_codes|stamp_events|reward_events/)
+})
+
+test("phone-only continuity is accepted by the RPC without widening device trust", () => {
+  const relaxation = read(
+    "supabase",
+    "migrations",
+    "20260908120000_allow_verified_phone_continuity.sql"
+  )
+
+  assert.match(
+    relaxation,
+    /p_continuity_source not in \([\s\S]*'verified_phone'[\s\S]*\) then/
+  )
+  assert.match(
+    relaxation,
+    /p_continuity_source = 'verified_phone' then[\s\S]*continuity_is_valid := true/
+  )
+  assert.match(
+    relaxation,
+    /customer_otp_trusted_devices_source_check[\s\S]*'verified_phone'/
+  )
+  assert.doesNotMatch(
+    relaxation,
+    /create or replace function public\.customer_auth_device_is_trusted/
+  )
+  assert.match(relaxation, /notify pgrst, 'reload schema';/)
 })
 
 test("static QR and customer loyalty routes remain outside the continuity patch", () => {

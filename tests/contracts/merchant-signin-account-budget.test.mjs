@@ -110,7 +110,7 @@ test("merchant password auth is rejected at the provider token boundary", () => 
   )
   assert.match(
     productionDeploy,
-    /hook_custom_access_token_enabled: true[\s\S]*hook_custom_access_token_uri: \$uri[\s\S]*hook_send_email_enabled: true[\s\S]*hook_send_email_uri: \$send_email_uri[\s\S]*hook_send_email_secrets: env\.SUPABASE_SEND_EMAIL_HOOK_SECRET[\s\S]*--request PATCH/
+    /hook_custom_access_token_enabled: true[\s\S]*hook_custom_access_token_uri: \$uri[\s\S]*hook_send_email_enabled: true[\s\S]*hook_send_email_uri: \$send_email_uri[\s\S]*hook_send_email_secrets: env\.SUPABASE_SEND_EMAIL_HOOK_SECRET[\s\S]*rate_limit_email_sent: 60[\s\S]*--request PATCH/
   )
   assert.match(productionDeploy, /umask 077/)
   assert.match(productionDeploy, /--data-binary "@\$payload_file"/)
@@ -136,11 +136,11 @@ test("merchant password auth is rejected at the provider token boundary", () => 
   }
   assert.match(
     productionDeploy,
-    /GET[\s\S]*\.hook_custom_access_token_enabled == true[\s\S]*\.hook_custom_access_token_uri == \$uri[\s\S]*\.hook_send_email_enabled == true[\s\S]*\.hook_send_email_uri == \$send_email_uri[\s\S]*\.hook_send_email_secrets == \$send_email_secret_hash/
+    /GET[\s\S]*\.hook_custom_access_token_enabled == true[\s\S]*\.hook_custom_access_token_uri == \$uri[\s\S]*\.hook_send_email_enabled == true[\s\S]*\.hook_send_email_uri == \$send_email_uri[\s\S]*\.hook_send_email_secrets == \$send_email_secret_hash[\s\S]*\.rate_limit_email_sent == 60/
   )
   assert.match(
     productionDeploy,
-    /Read back complete production Auth hook configuration[\s\S]*\.hook_send_email_enabled == true[\s\S]*\.hook_send_email_uri == "https:\/\/nabaperks\.com\/api\/auth\/hooks\/send-email"/
+    /Read back complete production Auth hook configuration[\s\S]*\.hook_send_email_enabled == true[\s\S]*\.hook_send_email_uri == "https:\/\/nabaperks\.com\/api\/auth\/hooks\/send-email"[\s\S]*\.rate_limit_email_sent == 60/
   )
   assert.match(productionDeploy, /actions: read/)
   const application = productionDatabase.slice(

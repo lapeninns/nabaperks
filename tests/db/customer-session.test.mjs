@@ -125,6 +125,56 @@ test(
 )
 
 test(
+  "session: phone-only continuity mints on an unknown device without granting device trust",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      // No verified recovery email: exactly the wallet the old gate stranded.
+      const [customer] = await tx`
+      insert into public.customers (email, created_at, updated_at)
+      values (${`sess-${randomUUID()}@test.local`}, now(), now())
+      returning id`
+      const knownDevice = deviceHash()
+      const unknownDevice = deviceHash()
+
+      // An established wallet: one device already trusted the strong way.
+      await tx`select public.register_customer_session(
+      ${customer.id}::uuid, ${randomUUID()}::uuid, now() + interval '30 days',
+      ${knownDevice}, 'new_identity')`
+
+      // A brand-new browser presents no trust at all.
+      const [{ customer_auth_device_is_trusted: trustedBefore }] = await tx`
+      select public.customer_auth_device_is_trusted(
+        ${customer.id}::uuid, ${unknownDevice}
+      )`
+      assert.equal(trustedBefore, false, "the new device starts untrusted")
+
+      // Phone possession alone is now sufficient to mint there.
+      const sessionId = randomUUID()
+      await tx`select public.register_customer_session(
+      ${customer.id}::uuid, ${sessionId}::uuid, now() + interval '30 days',
+      ${unknownDevice}, 'verified_phone')`
+      const [{ touch_customer_session: active }] = await tx`
+      select public.touch_customer_session(
+        ${customer.id}::uuid, ${sessionId}::uuid, ${unknownDevice}
+      )`
+      assert.equal(active, true, "the phone-only session is live")
+
+      // But it must not count as device trust when the control is restored.
+      const [{ customer_auth_device_is_trusted: trustedAfter }] = await tx`
+      select public.customer_auth_device_is_trusted(
+        ${customer.id}::uuid, ${unknownDevice}
+      )`
+      assert.equal(
+        trustedAfter,
+        false,
+        "phone possession does not promote a device to trusted"
+      )
+    })
+  }
+)
+
+test(
   "session: a copied cookie cannot move to another device or use an unbound overload",
   { skip },
   async () => {
