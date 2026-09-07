@@ -46,12 +46,15 @@ export function CustomerFlowShell({
   return (
     <main
       className={cn(
-        "min-h-[100dvh] overflow-x-hidden bg-background px-4 text-foreground sm:px-6",
+        // `clip`, not `hidden`: hidden makes <main> the scroll container for any
+        // `position: sticky` descendant (the join action bar), which then never
+        // pins; clip only cuts horizontal overflow.
+        "min-h-[100dvh] overflow-x-clip bg-background px-4 text-foreground sm:px-6",
         // Bottom padding respects the home-indicator safe area so the last
         // CTA or link never sits clipped against the screen edge
         // (VCU-P3-06/08).
         dense
-          ? "pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pt-6 sm:pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+          ? "pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pt-6 sm:pb-[max(1.5rem,env(safe-area-inset-bottom))]"
           : "pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pt-8 sm:pb-[max(2rem,env(safe-area-inset-bottom))]"
       )}
     >
@@ -59,7 +62,7 @@ export function CustomerFlowShell({
         className={cn(
           // One customer column: the shared 410px token (CUS-P2-12/16), so
           // skeleton and content agree at every width.
-          "mx-auto grid w-full min-w-0 max-w-customer",
+          "mx-auto grid w-full max-w-customer min-w-0",
           dense ? "gap-4" : "gap-5",
           className
         )}
@@ -94,7 +97,12 @@ export function CustomerFlowShell({
               <h1
                 className={cn(
                   "leading-[1.04] font-extrabold tracking-tight text-balance",
-                  dense ? "text-[1.65rem]" : "text-[2.1rem]"
+                  // Fluid between the 320px and 430px phone widths so a
+                  // two-line headline never becomes three on the narrowest
+                  // devices and never shouts on the widest.
+                  dense
+                    ? "text-[clamp(1.45rem,4.2vw+0.5rem,1.65rem)]"
+                    : "text-[clamp(1.75rem,5.6vw+0.4rem,2.1rem)]"
                 )}
               >
                 {title}
@@ -122,7 +130,7 @@ function OnboardingProgress({ progress }: { progress: FlowProgress }) {
     // The text row ("Step 2 of 3") is real content and stays readable to
     // screen readers; only the decorative bars hide (CUS-P3-03).
     <div className="grid gap-2">
-      <div className="flex items-center justify-between mono-id tracking-[0.08em] text-muted-foreground">
+      <div className="mono-id flex items-center justify-between tracking-[0.08em] text-muted-foreground">
         <span>{progress.label ?? "Setup"}</span>
         <span>
           Step {step} of {total}
@@ -208,7 +216,7 @@ export function CustomerReceipt({
       <hr className="w-rule" />
       {children}
       {metaLines ? (
-        <div className="grid gap-1 mono-id tracking-[0.08em] text-muted-foreground">
+        <div className="mono-id grid gap-1 tracking-[0.08em] text-muted-foreground">
           {metaLines}
         </div>
       ) : null}
