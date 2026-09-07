@@ -117,6 +117,16 @@ async function runPrivacyRetention() {
     })
   }
 
+  // Venue-code attempt lockouts only mean something while a window or a lock
+  // is live; a day after the last wrong code they are noise.
+  const { data: purgedVenueCodeLockouts, error: venueCodeLockoutError } =
+    await supabase.rpc("purge_stale_venue_code_lockouts")
+  if (venueCodeLockoutError) {
+    logger.warn("privacy_retention_venue_code_lockout_purge_failed", {
+      reason: venueCodeLockoutError.message,
+    })
+  }
+
   const webVitalCutoff = new Date(
     Date.now() - WEB_VITAL_RETENTION_DAYS * DAY_MS
   ).toISOString()
@@ -146,6 +156,7 @@ async function runPrivacyRetention() {
     loyaltyInviteError ||
     offerError ||
     bucketError ||
+    venueCodeLockoutError ||
     webVitalError ||
     authHookError
 
@@ -165,6 +176,10 @@ async function runPrivacyRetention() {
         typeof sweptOffers === "number" ? sweptOffers : 0,
       purgedRateLimitBuckets:
         typeof purgedBuckets === "number" ? purgedBuckets : 0,
+      purgedVenueCodeLockouts:
+        typeof purgedVenueCodeLockouts === "number"
+          ? purgedVenueCodeLockouts
+          : 0,
       purgedAuthHookDeliveries:
         typeof purgedAuthHooks === "number" ? purgedAuthHooks : 0,
       webVitalCutoff,
