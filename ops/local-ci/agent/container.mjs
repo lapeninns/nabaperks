@@ -37,6 +37,10 @@ import { spawn } from "node:child_process"
 import { LocalCiError, describeValue } from "../core/contract.mjs"
 import { hostSecretNames } from "../core/contract.mjs"
 import {
+  buildImageCacheLoadArgv,
+  IMAGE_CACHE_LOAD_TIMEOUT_MS,
+} from "../core/image-cache.mjs"
+import {
   PROCESS_TREE_OPTIONS,
   signalProcessTree,
 } from "../core/process-tree.mjs"
@@ -259,6 +263,41 @@ function containerConfig(contract) {
     )
   }
   return container
+}
+
+/** Reject malformed or overcommitted budgets before either container starts. */
+export function assertResourceBudgets(contract) {
+  const container = containerConfig(contract)
+  const daemon = requireObject(container.daemon, "contract.container.daemon")
+  const vm = requireObject(contract.vm, "contract.vm")
+  const budgets = {
+    "container.cpus": container.cpus,
+    "container.memoryGb": container.memoryGb,
+    "container.daemon.cpus": daemon.cpus,
+    "container.daemon.memoryGb": daemon.memoryGb,
+    "vm.cpus": vm.cpus,
+    "vm.memoryGb": vm.memoryGb,
+    "vm.reserveCpus": vm.reserveCpus,
+    "vm.reserveMemoryGb": vm.reserveMemoryGb,
+  }
+  for (const [label, value] of Object.entries(budgets)) {
+    if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+      fail(
+        "INVALID_RESOURCE_BUDGET",
+        `${label} must be a positive finite number`
+      )
+    }
+  }
+  if (
+    container.cpus + daemon.cpus + vm.reserveCpus > vm.cpus ||
+    container.memoryGb + daemon.memoryGb + vm.reserveMemoryGb > vm.memoryGb
+  ) {
+    fail(
+      "RESOURCE_OVERCOMMIT",
+      "job and daemon budgets must leave the declared VM CPU and memory reserves"
+    )
+  }
+  return Object.freeze({ container, daemon })
 }
 
 /** The container wall-clock ceiling in milliseconds. Pure. */
@@ -528,7 +567,7 @@ export function buildDaemonArgv({
   limactl,
   labels = {},
 } = {}) {
-  const container = containerConfig(contract)
+  const { container, daemon } = assertResourceBudgets(contract)
   if (container.dockerInDocker !== true) {
     fail(
       "DIND_DISABLED",
@@ -551,6 +590,12 @@ export function buildDaemonArgv({
     // The privilege that a nested daemon genuinely requires, held by the one
     // container in this design that executes nothing from the repository.
     "--privileged",
+    "--cpus",
+    String(daemon.cpus),
+    "--memory",
+    `${daemon.memoryGb}g`,
+    "--memory-swap",
+    `${daemon.memoryGb}g`,
     "--pull=never",
     "--stop-timeout",
     String(STOP_GRACE_SECONDS),
@@ -599,7 +644,7 @@ export function buildContainerArgv({
   shmSize = DEFAULT_SHM_SIZE,
   timeoutSeconds = null,
 } = {}) {
-  const container = containerConfig(contract)
+  const { container } = assertResourceBudgets(contract)
   assertPinnedImage(image, "job image")
   requireObject(env, "env")
 
@@ -864,8 +909,9 @@ export function createContainerRuntime({
   limactl = "limactl",
   spawnFn = spawn,
   logger = null,
+  imageCachePin = null,
 } = {}) {
-  containerConfig(contract)
+  assertResourceBudgets(contract)
   const log = (level, message) => {
     if (logger && typeof logger[level] === "function") logger[level](message)
   }
@@ -983,6 +1029,42 @@ export function createContainerRuntime({
               "DAEMON_UNAVAILABLE",
               `the sidecar daemon for lane ${JSON.stringify(laneId)} did not become ready: ${ready.output.trim() || "no output"}`
             )
+          }
+          if (imageCachePin !== null) {
+            const loadStartedAt = Date.now()
+            log("info", `loading verified Supabase image archive for ${laneId}`)
+            const loaded = await exec(
+              buildImageCacheLoadArgv({
+                pin: imageCachePin,
+                vm,
+                daemonName,
+                docker,
+                limactl,
+              }),
+              {
+                timeoutMs: Math.min(
+                  timeoutMs ?? IMAGE_CACHE_LOAD_TIMEOUT_MS,
+                  IMAGE_CACHE_LOAD_TIMEOUT_MS
+                ),
+                signal,
+              }
+            )
+            signal?.throwIfAborted()
+            if (loaded.exitCode !== 0 || loaded.timedOut || loaded.cancelled) {
+              fail(
+                "IMAGE_CACHE_UNAVAILABLE",
+                `verified image archive could not be loaded for ${laneId}: ${loaded.output.trim() || "no output"}`
+              )
+            }
+            // Loading is part of the lane budget, not extra time added to it.
+            if (timeoutMs !== null) {
+              timeoutMs -= Date.now() - loadStartedAt
+              if (timeoutMs <= 0)
+                fail(
+                  "IMAGE_CACHE_TIMEOUT",
+                  "image loading exhausted the lane budget"
+                )
+            }
           }
         }
         signal?.throwIfAborted()

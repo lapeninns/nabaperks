@@ -279,8 +279,14 @@ Two hosted jobs are deliberately **not** reproduced:
 
 ## What these files do not do
 
-At cutover step 1 nothing here is on the merge path. The bridge job
-(`local-proof`) is advisory, no job in `ci.yml` lists it in `needs:`, and
-`release-gate` still needs exactly `[fast, build]`. `shadowMode.enabled` is
-`true`. Promoting any of this to blocking is cutover step 3, and it is a single
-commit that flips `bridge.enforcement` and `shadowMode.enabled` together.
+These local profiles remain advisory and `shadowMode.enabled` remains `true`.
+The separate `.github/workflows/local-ci-shadow.yml` observer reads once; no CI
+or release job depends on it. `Release gate` requires all nine hosted roots:
+`fast`, `quality`, `build`, `e2e`, `a11y`, `visual`, `lighthouse`, `zap-baseline`
+and `db`.
+
+The old step-3 field-flip procedure is superseded. Local merge authority requires
+qualified isolation, a trusted verifier independent of candidate code, and
+an equivalent hosted fallback. Changing `bridge.enforcement` or
+`shadowMode.enabled` alone is not an authorised cutover. Follow
+[the CI redesign guide](../../../docs/operations/ci-redesign.md).

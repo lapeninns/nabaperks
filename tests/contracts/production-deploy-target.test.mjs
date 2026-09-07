@@ -27,9 +27,48 @@ test("promotion retains explicit canonical scope and target evidence", () => {
   const promote = workflow.slice(workflow.indexOf("pnpm exec vercel promote"))
   assert.match(promote, /--scope="\$CANONICAL_VERCEL_SCOPE"/)
   assert.match(workflow, /\/v13\/deployments\/\$deployment_host/)
-  assert.match(
-    workflow,
-    /\.projectId == \$project_id and \.ownerId == \$team_id and \.url == \$host/
+  const validateAt = workflow.indexOf(
+    'node scripts/release/candidate.mjs <<<"$deployment_metadata" > "$candidate_file"'
   )
+  const identityAt = workflow.indexOf(
+    'deployment_id="$(jq -er \'.deploymentId\' "$candidate_file")"'
+  )
+  const promoteAt = workflow.indexOf(
+    'pnpm exec vercel promote "$deployment_id"'
+  )
+  assert.ok(
+    validateAt >= 0 && identityAt > validateAt && promoteAt > identityAt
+  )
+  const validator = readFileSync(
+    new URL("../../scripts/release/candidate.mjs", import.meta.url),
+    "utf8"
+  )
+  const compactValidator = validator.replace(/\s+/g, "")
+  const containsValidator = (source) =>
+    compactValidator.includes(source.replace(/\s+/g, ""))
+  for (const binding of [
+    "metadata.projectId, expected.projectId",
+    "metadata.ownerId, expected.teamId",
+    "metadata.url, url.hostname",
+    "metadata.meta?.githubCommitSha, expected.revision",
+    'metadata.target, "production"',
+    'metadata.readyState, "READY"',
+  ])
+    assert.ok(containsValidator(`assert.equal(${binding}`), binding)
+  assert.ok(
+    containsValidator('assert.match(expected.revision ?? "", /^[a-f0-9]{40}$/')
+  )
+  assert.ok(
+    containsValidator('assert.match(metadata.id ?? "", /^dpl_[A-Za-z0-9]+$/')
+  )
+  for (const binding of [
+    "revision: process.env.EXPECTED_REVISION",
+    "projectId: process.env.CANONICAL_VERCEL_PROJECT_ID",
+    "teamId: process.env.CANONICAL_VERCEL_TEAM_ID",
+    "url: process.env.DEPLOYMENT_URL",
+  ])
+    assert.ok(containsValidator(binding), binding)
+  assert.match(validator, /process\.exitCode = 1/)
+  assert.doesNotMatch(workflow, /vercel promote "\$DEPLOYMENT_URL"/)
   assert.match(workflow, /Vercel target:/)
 })

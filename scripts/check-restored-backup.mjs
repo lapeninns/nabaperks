@@ -1,9 +1,14 @@
 import assert from "node:assert/strict"
-import { readFileSync, readdirSync } from "node:fs"
+import { readFileSync } from "node:fs"
 import path from "node:path"
 import { pathToFileURL } from "node:url"
 
 import postgres from "postgres"
+
+import {
+  completeRestoreEvidence,
+  verifyRestoreLineage,
+} from "./recovery/restore-evidence.mjs"
 
 const PRODUCTION_PROJECT_REF = "skonlhwstejberyzobep"
 const REQUIRED_TABLES = [
@@ -75,6 +80,17 @@ export function resolveRestoreDrillConfig(
 
   return {
     backupId,
+    recoveryStartedAt: required(env, "RESTORE_DRILL_STARTED_AT"),
+    lineageFile: path.resolve(
+      root,
+      required(env, "RESTORE_DRILL_LINEAGE_FILE")
+    ),
+    lineageSha256: required(env, "RESTORE_DRILL_LINEAGE_SHA256"),
+    manifestFile: path.resolve(
+      root,
+      required(env, "RESTORE_DRILL_SOURCE_MANIFEST_FILE")
+    ),
+    manifestSha256: required(env, "RESTORE_DRILL_SOURCE_MANIFEST_SHA256"),
     backupsFile: path.resolve(
       root,
       required(env, "RESTORE_DRILL_BACKUPS_FILE")
@@ -193,31 +209,8 @@ export function loadRestoreEvidence(config, now = new Date()) {
     targetCreatedAt.getTime() >= backupAt.getTime(),
     "restore project predates the selected backup"
   )
-  const elapsedMinutes = (now.getTime() - targetCreatedAt.getTime()) / 60_000
-  assert.ok(elapsedMinutes >= 0, "restore project timestamp is in the future")
-  assert.ok(
-    elapsedMinutes <= config.rtoMinutes,
-    `restore verification exceeded the ${config.rtoMinutes}-minute RTO`
-  )
-
-  return {
-    backup,
-    backupAt,
-    elapsedMinutes,
-    expectedMigrations: migrationVersionsAt(config.root, backupAt),
-    target,
-  }
-}
-
-export function migrationVersionsAt(root, cutoff) {
-  const cutoffVersion = cutoff
-    .toISOString()
-    .replace(/[-:T.Z]/g, "")
-    .slice(0, 14)
-  return readdirSync(path.join(root, "supabase", "migrations"))
-    .map((filename) => filename.match(/^(\d{14})_.*\.sql$/)?.[1])
-    .filter((version) => version && version <= cutoffVersion)
-    .sort()
+  const lineage = verifyRestoreLineage(config, backupAt, targetCreatedAt, now)
+  return { backup, backupAt, target, ...lineage }
 }
 
 export async function verifyRestoredDatabase(sql, expectedMigrations) {
@@ -316,11 +309,13 @@ export async function verifyRestoredDatabase(sql, expectedMigrations) {
 
 export async function runRestoreDrill({
   env = process.env,
-  now = new Date(),
+  clock = () => new Date(),
+  connect = postgres,
+  verifyDatabase = verifyRestoredDatabase,
 } = {}) {
   const config = resolveRestoreDrillConfig(env)
-  const providerEvidence = loadRestoreEvidence(config, now)
-  const sql = postgres(config.dbUrl, {
+  const providerEvidence = loadRestoreEvidence(config, clock())
+  const sql = connect(config.dbUrl, {
     max: 1,
     ssl: "require",
     connect_timeout: 10,
@@ -329,18 +324,22 @@ export async function runRestoreDrill({
   })
 
   try {
-    const databaseEvidence = await verifyRestoredDatabase(
+    const databaseEvidence = await verifyDatabase(
       sql,
       providerEvidence.expectedMigrations
     )
     return {
-      schema: "nabaperks.restore-drill-evidence.v1",
+      schema: "nabaperks.restore-drill-evidence.v2",
       sourceProjectRef: config.sourceProjectRef,
       restoreProjectRef: config.projectRef,
       backupId: config.backupId,
       backupAt: providerEvidence.backupAt.toISOString(),
-      verifiedAt: now.toISOString(),
-      elapsedMinutes: Number(providerEvidence.elapsedMinutes.toFixed(2)),
+      ...completeRestoreEvidence(
+        config,
+        providerEvidence,
+        databaseEvidence,
+        clock()
+      ),
       region: providerEvidence.target.region,
       ...databaseEvidence,
     }

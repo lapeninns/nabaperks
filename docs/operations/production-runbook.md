@@ -67,9 +67,13 @@ full webhook payloads.
    readiness, replay signed webhooks, and roll back its synthetic loyalty
    journey before the protected production database job becomes eligible. If
    the optional hosted-staging path is active, wait for that additional gate as
-   well. Then wait for `Production deployment`, which builds and attests one
-   immutable source revision, lets Vercel build it with protected production
-   values, stages it without domains, verifies it and then promotes it.
+   well. The same outer run then calls the reusable `Production deployment`
+   stage while retaining the `production-release` concurrency lock. It builds
+   and attests one immutable source revision, stages a Vercel build without
+   domains, validates its full SHA, canonical project/team, READY state and
+   immutable deployment ID, then promotes that ID. Immediate public proof
+   remains inside the outer lock. This is one release run, with protected
+   environments on both database and application jobs.
 3. Record the deployment URL and Git commit SHA.
 4. Verify the exact revision and both probes:
 
@@ -204,11 +208,66 @@ The workflow first runs the cost-neutral ephemeral proof described above. Only
 after it passes can the `Production` environment release credentials. The
 production job runs a linked dry run immediately before applying forward-only
 migrations and fails unless the remote and repository ledgers match. Never
-repair, reset or seed production from this path. A successful run starts the
-exact-revision production deployment workflow automatically. That workflow
+repair, reset or seed production from this path. After successful database
+application, the outer run invokes the reusable application workflow. It
 generates signed source provenance and a CycloneDX SBOM, stages a hosted Vercel
-build with no domain assignment, probes that URL and promotes it.
-Public-origin smoke starts only after promotion.
+build with no domain assignment, probes that URL and promotes its validated
+immutable ID. The complete outer run retains `production-release`; the
+application callee has no competing same-group lock. The admin activation and
+bootstrap mutators share that lock, while the non-production recovery drill
+uses its own group.
+
+Release-triggered `Production smoke` reads the single candidate artifact from
+the successful outer run and exact attempt. It validates the originating
+workflow, repository, event, artifact identity and candidate metadata. The
+outer run head SHA is not a substitute for the actual deployed candidate.
+Scheduled availability smoke remains independent.
+
+Manual recovery dispatches the outer `Production database promotion` workflow
+with the full main-tip SHA and `PROMOTE_PRODUCTION_DATABASE`; it repeats
+ephemeral proof and the forward-only database path. There is no standalone
+application-only dispatch. A failure after database application is an
+incomplete release and requires compatibility review before retry or rollback.
+GitHub concurrency does not promise FIFO delivery: a newer pending run may
+replace an older pending run. Main advancement while waiting for approval may
+also invalidate the immutable main-tip guard. Inspect the last completed stage
+and actual provider state before proceeding.
+
+### Release stage evidence and compatibility admission
+
+The release owner records `qualified → database-applied → candidate-ready →
+promoted → verified` using `scripts/release/stage-ledger.mjs`. Every stage binds
+the candidate full SHA, authenticated deployed baseline and rollback SHAs,
+compressed source archive digest, migration filename/content digest, outer run
+and attempt, preceding stage digest and successful evidence bytes. The latest
+ledger embeds its predecessors; retain its matching external evidence and the
+provider baseline readback as well. Generated evidence stays outside the
+checkout so each command can recheck exact clean source identity.
+
+Before database application, the protected job resolves the current public
+alias through authenticated Vercel metadata and reads the alias again to reject
+a concurrent change. It verifies the qualification and live alias immediately
+before writes. The application job downloads the exact run/attempt database
+stage, checks it before its first mutation, and rechecks the baseline before
+promotion. Full provider alias readback must match the candidate after promotion
+and after public proof, before the verified stage can be retained.
+
+The initial workflow admission is deliberately limited to unchanged application
+and schema. A complete baseline-to-candidate Git tree comparison must contain
+only narrowly reviewed CI, operations, test and documentation paths; production
+migration-ledger parity is required before writes. Application, dependency or
+schema changes require authentic populated-upgrade and baseline/candidate/
+rollback application execution evidence. There is currently no workflow input
+that accepts an arbitrary compatibility JSON file. The disposable harness and
+reviewed domain probes are preparation until their authenticated producer is
+integrated. This means ordinary application/schema releases remain blocked by
+this new admission path until that work is complete; do not weaken the
+classification or claim that unchanged-source qualification executed an upgrade.
+
+Evidence expires after one hour across the whole chain. If approval waiting,
+main advancement, provider drift or a partial rerun invalidates it, start a
+fresh complete outer run after reviewing the actual completed stages. A stale
+ledger must not be redated or accepted to resume a consequential operation.
 
 ### Administrator authentication policy
 
@@ -310,7 +369,11 @@ Vercel, provider webhooks, Edge Functions or customer-facing DNS. Disable any
 copied database cron or external extension work before verification. In the
 protected GitHub `Recovery Drill` environment configure:
 
-- `RESTORE_DRILL_PROJECT_REF` and `RECOVERY_RTO_MINUTES` as variables;
+- `RESTORE_DRILL_PROJECT_REF`, `RECOVERY_RTO_MINUTES` and
+  `RESTORE_DRILL_STARTED_AT` as variables;
+- independently reviewed `RESTORE_DRILL_LINEAGE_JSON` and
+  `RESTORE_DRILL_SOURCE_MANIFEST_JSON`, each with a separately pinned
+  `RESTORE_DRILL_LINEAGE_SHA256` or `RESTORE_DRILL_SOURCE_MANIFEST_SHA256`;
 - `RESTORE_DRILL_DB_URL` for the disposable target and a fine-grained
   `SUPABASE_BACKUP_READ_TOKEN` as secrets.
 
@@ -318,8 +381,15 @@ The environment requires an independent reviewer and permits only `main`.
 Dispatch `Recovery drill` with the physical backup ID, matching target ref and
 literal confirmation `VERIFY_NON_PRODUCTION_RESTORE`. It fails closed if the
 target is production, outside the production organisation/region, not newly
-created, unhealthy, older than the configured RTO, or does not match the
-migration ledger expected at the backup timestamp. Database verification runs
+created, unhealthy, outside the measured RTO, or inconsistent with the
+reviewed backup lineage and source baseline. Lineage must bind the production
+source, exact backup and recovery point, completed provider restore operation
+and disposable target. The source manifest must contain the actually applied
+migration ledger and aggregate row counts at that recovery point. Migration
+filename dates cannot establish the historical ledger. Evidence digests must
+be approved independently; hashing a submitted file inside the run does not
+authenticate its provenance. RTO runs from the protected recovery start through
+the completion of database verification, including its final clock read. Database verification runs
 in a read-only transaction and checks forced RLS, core RPCs, valid constraints
 and indexes, inactive database cron, and non-sensitive row counts. Retain the
 generated evidence artifact for one year. Delete the disposable restored
@@ -336,9 +406,20 @@ external incident before closing the GitHub issue, but only after two
 consecutive scheduled green runs. A deployment-triggered or manually dispatched
 success cannot close an incident, and a new failure resets the recovery streak.
 Successful green probes do not emit repeated resolve events when no incident is
-open. Test the receiver monthly with a controlled workflow dispatch and record
-the receiver event ID, acknowledging operator and timestamps without copying
-the signing secret.
+open. A receiver 2xx means acceptance only; it does not prove provider delivery or
+human acknowledgement. Prepare a controlled monthly rehearsal and obtain
+explicit authorisation before sending its page. Record separate receiver
+receipt, provider delivered event and human acknowledgement identifiers and
+timestamps without copying the signing secret.
+
+`config/independent-monitoring-contract.json` and
+`scripts/recovery/monitoring-evidence.mjs` define the stronger independent
+monitoring qualification. Detection and paging must not depend on GitHub or
+the monitored production Supabase project. Their complete dependency inventory
+includes scheduler, runtime, state store, DNS, secrets and delivery. The
+current GitHub scheduler and Supabase receiver do not satisfy that independent
+requirement. A reviewed evidence file is preparation for qualification, not
+proof that an external monitor is configured or remains operational.
 
 ## Availability SLO and error budget
 

@@ -143,9 +143,50 @@ test("merchant password auth is rejected at the provider token boundary", () => 
     /Read back complete production Auth hook configuration[\s\S]*\.hook_send_email_enabled == true[\s\S]*\.hook_send_email_uri == "https:\/\/nabaperks\.com\/api\/auth\/hooks\/send-email"/
   )
   assert.match(productionDeploy, /actions: read/)
-  assert.match(productionDeploy, /--workflow production-database\.yml/)
-  assert.match(productionDeploy, /--commit "\$EXPECTED_REVISION"/)
-  assert.match(productionDeploy, /successful_database_revision/)
+  const application = productionDatabase.slice(
+    productionDatabase.indexOf("\n  application:")
+  )
+  const protectedDatabase = productionDatabase.slice(
+    productionDatabase.indexOf("\n  promote:"),
+    productionDatabase.indexOf("\n  application:")
+  )
+  assert.match(protectedDatabase, /environment: Production/)
+  assert.match(protectedDatabase, /supabase db push --linked --include-all/)
+  assert.match(
+    application,
+    /needs: promote\s+uses: \.\/\.github\/workflows\/production-deploy\.yml/
+  )
+  assert.match(application, /release_run_id: \$\{\{ github\.run_id \}\}/)
+  assert.match(
+    application,
+    /release_run_attempt: \$\{\{ github\.run_attempt \}\}/
+  )
+  assert.match(
+    application,
+    /expected_revision: \$\{\{ github\.event_name == 'workflow_run' && github\.event\.workflow_run\.head_sha \|\| inputs\.expected_revision \}\}/
+  )
+  assert.match(
+    productionDeploy,
+    /test "\$GITHUB_REPOSITORY" = "lapeninns\/nabaperks"/
+  )
+  assert.match(productionDeploy, /test "\$RELEASE_RUN_ID" = "\$GITHUB_RUN_ID"/)
+  assert.match(
+    productionDeploy,
+    /test "\$RELEASE_RUN_ATTEMPT" = "\$GITHUB_RUN_ATTEMPT"/
+  )
+  assert.match(
+    productionDeploy,
+    /caller_path="\$\(gh api "repos\/\$GITHUB_REPOSITORY\/actions\/runs\/\$GITHUB_RUN_ID" --jq '\.path'\)"/
+  )
+  assert.match(
+    productionDeploy,
+    /test "\$caller_path" = "\.github\/workflows\/production-database\.yml"/
+  )
+  assert.match(
+    productionDeploy,
+    /test "\$SOURCE_REVISION" = "\$EXPECTED_REVISION"/
+  )
+  assert.match(productionDeploy, /test "\$EXPECTED_REVISION" = "\$GITHUB_SHA"/)
   assert.match(
     productionDeploy,
     /SUPABASE_SEND_EMAIL_HOOK_SECRET: \$\{\{ secrets\.SUPABASE_SEND_EMAIL_HOOK_SECRET \}\}/

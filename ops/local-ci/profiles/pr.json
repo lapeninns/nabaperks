@@ -1,7 +1,7 @@
 {
   "schema": "nabaperks.local-ci-profile.v1",
   "profile": "pr",
-  "description": "Authoritative suite for a pull request from the same repository. Environment validation, security audit, lint, typecheck, contract tests, coverage, the seven maintainability sweeps, the print-kit PDF proof, all four functional Playwright projects run as separate sharded invocations, both accessibility projects, and the local Supabase DB/RLS moat.",
+  "description": "Advisory local suite for a pull request from the same repository. Environment validation, security audit, lint, typecheck, contract tests, coverage, the seven maintainability sweeps, the print-kit PDF proof, all four functional Playwright projects run as separate sharded invocations, both accessibility projects, and the local Supabase DB/RLS moat.",
   "baselineEnv": {
     "CI": "1",
     "NEXT_PUBLIC_APP_URL": "https://example.test",
@@ -38,12 +38,8 @@
       "concurrencyGroup": null,
       "commands": [
         "pnpm install --frozen-lockfile",
-        "pnpm env:check:production",
-        "pnpm security:audit --ignore-registry-errors",
-        "pnpm lint",
-        "pnpm typecheck",
-        "pnpm test:contracts",
-        "pnpm test:coverage"
+        "node scripts/ci/run-workload.mjs fast",
+        "node scripts/ci/run-workload.mjs coverage"
       ],
       "teardownCommands": [],
       "backgroundServices": [],
@@ -84,13 +80,7 @@
       "concurrencyGroup": null,
       "commands": [
         "pnpm install --frozen-lockfile",
-        "pnpm deadcode:check",
-        "pnpm duplicates:check",
-        "pnpm debt:check",
-        "pnpm docs:check",
-        "pnpm agents:check",
-        "pnpm tokens:check",
-        "pnpm claims:check"
+        "node scripts/ci/run-workload.mjs quality"
       ],
       "teardownCommands": [],
       "backgroundServices": [],
@@ -212,14 +202,14 @@
       "concurrencyGroup": null,
       "commands": [
         "pnpm install --frozen-lockfile",
-        "pnpm test:e2e -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"1/8\"",
-        "pnpm test:e2e -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"2/8\"",
-        "pnpm test:e2e -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"3/8\"",
-        "pnpm test:e2e -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"4/8\"",
-        "pnpm test:e2e -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"5/8\"",
-        "pnpm test:e2e -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"6/8\"",
-        "pnpm test:e2e -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"7/8\"",
-        "pnpm test:e2e -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"8/8\""
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"1/8\"",
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"2/8\"",
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"3/8\"",
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"4/8\"",
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"5/8\"",
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"6/8\"",
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"7/8\"",
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"8/8\""
       ],
       "teardownCommands": [],
       "backgroundServices": [],
@@ -265,14 +255,14 @@
       "concurrencyGroup": null,
       "commands": [
         "pnpm install --frozen-lockfile",
-        "pnpm test:e2e -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"1/8\"",
-        "pnpm test:e2e -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"2/8\"",
-        "pnpm test:e2e -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"3/8\"",
-        "pnpm test:e2e -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"4/8\"",
-        "pnpm test:e2e -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"5/8\"",
-        "pnpm test:e2e -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"6/8\"",
-        "pnpm test:e2e -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"7/8\"",
-        "pnpm test:e2e -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"8/8\""
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"1/8\"",
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"2/8\"",
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"3/8\"",
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"4/8\"",
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"5/8\"",
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"6/8\"",
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"7/8\"",
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"8/8\""
       ],
       "teardownCommands": [],
       "backgroundServices": [],
@@ -318,14 +308,14 @@
       "concurrencyGroup": null,
       "commands": [
         "pnpm install --frozen-lockfile",
-        "pnpm test:e2e -- --project=\"desktop-firefox\" --grep-invert @visual --ignore-snapshots --shard=\"1/8\"",
-        "pnpm test:e2e -- --project=\"desktop-firefox\" --grep-invert @visual --ignore-snapshots --shard=\"2/8\"",
-        "pnpm test:e2e -- --project=\"desktop-firefox\" --grep-invert @visual --ignore-snapshots --shard=\"3/8\"",
-        "pnpm test:e2e -- --project=\"desktop-firefox\" --grep-invert @visual --ignore-snapshots --shard=\"4/8\"",
-        "pnpm test:e2e -- --project=\"desktop-firefox\" --grep-invert @visual --ignore-snapshots --shard=\"5/8\"",
-        "pnpm test:e2e -- --project=\"desktop-firefox\" --grep-invert @visual --ignore-snapshots --shard=\"6/8\"",
-        "pnpm test:e2e -- --project=\"desktop-firefox\" --grep-invert @visual --ignore-snapshots --shard=\"7/8\"",
-        "pnpm test:e2e -- --project=\"desktop-firefox\" --grep-invert @visual --ignore-snapshots --shard=\"8/8\""
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"desktop-firefox\" --grep-invert @visual --ignore-snapshots --shard=\"1/8\"",
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"desktop-firefox\" --grep-invert @visual --ignore-snapshots --shard=\"2/8\"",
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"desktop-firefox\" --grep-invert @visual --ignore-snapshots --shard=\"3/8\"",
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"desktop-firefox\" --grep-invert @visual --ignore-snapshots --shard=\"4/8\"",
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"desktop-firefox\" --grep-invert @visual --ignore-snapshots --shard=\"5/8\"",
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"desktop-firefox\" --grep-invert @visual --ignore-snapshots --shard=\"6/8\"",
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"desktop-firefox\" --grep-invert @visual --ignore-snapshots --shard=\"7/8\"",
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"desktop-firefox\" --grep-invert @visual --ignore-snapshots --shard=\"8/8\""
       ],
       "teardownCommands": [],
       "backgroundServices": [],
@@ -371,14 +361,14 @@
       "concurrencyGroup": null,
       "commands": [
         "pnpm install --frozen-lockfile",
-        "pnpm test:e2e -- --project=\"desktop-safari\" --grep-invert @visual --ignore-snapshots --shard=\"1/8\"",
-        "pnpm test:e2e -- --project=\"desktop-safari\" --grep-invert @visual --ignore-snapshots --shard=\"2/8\"",
-        "pnpm test:e2e -- --project=\"desktop-safari\" --grep-invert @visual --ignore-snapshots --shard=\"3/8\"",
-        "pnpm test:e2e -- --project=\"desktop-safari\" --grep-invert @visual --ignore-snapshots --shard=\"4/8\"",
-        "pnpm test:e2e -- --project=\"desktop-safari\" --grep-invert @visual --ignore-snapshots --shard=\"5/8\"",
-        "pnpm test:e2e -- --project=\"desktop-safari\" --grep-invert @visual --ignore-snapshots --shard=\"6/8\"",
-        "pnpm test:e2e -- --project=\"desktop-safari\" --grep-invert @visual --ignore-snapshots --shard=\"7/8\"",
-        "pnpm test:e2e -- --project=\"desktop-safari\" --grep-invert @visual --ignore-snapshots --shard=\"8/8\""
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"desktop-safari\" --grep-invert @visual --ignore-snapshots --shard=\"1/8\"",
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"desktop-safari\" --grep-invert @visual --ignore-snapshots --shard=\"2/8\"",
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"desktop-safari\" --grep-invert @visual --ignore-snapshots --shard=\"3/8\"",
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"desktop-safari\" --grep-invert @visual --ignore-snapshots --shard=\"4/8\"",
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"desktop-safari\" --grep-invert @visual --ignore-snapshots --shard=\"5/8\"",
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"desktop-safari\" --grep-invert @visual --ignore-snapshots --shard=\"6/8\"",
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"desktop-safari\" --grep-invert @visual --ignore-snapshots --shard=\"7/8\"",
+        "node scripts/ci/browser-workload.mjs local test:e2e --project=\"desktop-safari\" --grep-invert @visual --ignore-snapshots --shard=\"8/8\""
       ],
       "teardownCommands": [],
       "backgroundServices": [],
@@ -424,14 +414,14 @@
       "concurrencyGroup": null,
       "commands": [
         "pnpm install --frozen-lockfile",
-        "pnpm test:a11y -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"1/8\"",
-        "pnpm test:a11y -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"2/8\"",
-        "pnpm test:a11y -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"3/8\"",
-        "pnpm test:a11y -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"4/8\"",
-        "pnpm test:a11y -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"5/8\"",
-        "pnpm test:a11y -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"6/8\"",
-        "pnpm test:a11y -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"7/8\"",
-        "pnpm test:a11y -- --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"8/8\""
+        "node scripts/ci/browser-workload.mjs local test:a11y --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"1/8\"",
+        "node scripts/ci/browser-workload.mjs local test:a11y --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"2/8\"",
+        "node scripts/ci/browser-workload.mjs local test:a11y --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"3/8\"",
+        "node scripts/ci/browser-workload.mjs local test:a11y --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"4/8\"",
+        "node scripts/ci/browser-workload.mjs local test:a11y --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"5/8\"",
+        "node scripts/ci/browser-workload.mjs local test:a11y --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"6/8\"",
+        "node scripts/ci/browser-workload.mjs local test:a11y --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"7/8\"",
+        "node scripts/ci/browser-workload.mjs local test:a11y --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"8/8\""
       ],
       "teardownCommands": [],
       "backgroundServices": [],
@@ -477,14 +467,14 @@
       "concurrencyGroup": null,
       "commands": [
         "pnpm install --frozen-lockfile",
-        "pnpm test:a11y -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"1/8\"",
-        "pnpm test:a11y -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"2/8\"",
-        "pnpm test:a11y -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"3/8\"",
-        "pnpm test:a11y -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"4/8\"",
-        "pnpm test:a11y -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"5/8\"",
-        "pnpm test:a11y -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"6/8\"",
-        "pnpm test:a11y -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"7/8\"",
-        "pnpm test:a11y -- --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"8/8\""
+        "node scripts/ci/browser-workload.mjs local test:a11y --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"1/8\"",
+        "node scripts/ci/browser-workload.mjs local test:a11y --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"2/8\"",
+        "node scripts/ci/browser-workload.mjs local test:a11y --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"3/8\"",
+        "node scripts/ci/browser-workload.mjs local test:a11y --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"4/8\"",
+        "node scripts/ci/browser-workload.mjs local test:a11y --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"5/8\"",
+        "node scripts/ci/browser-workload.mjs local test:a11y --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"6/8\"",
+        "node scripts/ci/browser-workload.mjs local test:a11y --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"7/8\"",
+        "node scripts/ci/browser-workload.mjs local test:a11y --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"8/8\""
       ],
       "teardownCommands": [],
       "backgroundServices": [],

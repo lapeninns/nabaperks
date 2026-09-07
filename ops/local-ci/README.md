@@ -4,12 +4,19 @@ This directory is a second CI plane. It runs the same lanes `.github/workflows/c
 runs, on a Mac in the operator's home, and publishes the result to GitHub as a
 check run through a dedicated GitHub App.
 
-**At cutover step 1 it blocks nothing.** `config/local-ci-contract.json` carries
-`bridge.enforcement: "advisory"` and `bridge.dependents: []`, no job in `ci.yml`
-lists the bridge in its `needs:`, and `release-gate` still requires exactly
-`[fast, build]`. Read `docs/operations/local-ci-cutover.md` before changing any
-of that; steps 3–7 are what promote this plane, and each is a reviewed change of
-its own.
+**Local proof remains advisory in CI redesign Phase 1.** The hosted observer
+has moved out of `ci.yml` to `.github/workflows/local-ci-shadow.yml`. It performs
+one observation with `LOCAL_CI_OBSERVE_ONCE=true`, under a two-minute job timeout;
+it does not wait for the agent. Missing/pending proof is an observation, not
+successful test evidence. The App continues publishing the eventual local result.
+
+`Release gate` retains its name and now requires all nine hosted roots:
+`fast`, `quality`, `build`, `e2e`, `a11y`, `visual`, `lighthouse`, `zap-baseline`
+and `db`. No hosted coverage moves locally in this phase. The agent, shadow
+qualification and App permissions are unchanged. See
+`docs/operations/ci-redesign.md`; the earlier steps in
+`docs/operations/local-ci-cutover.md` are superseded, not an activation recipe.
+A configuration flip cannot authorise local merge authority.
 
 ---
 
@@ -25,8 +32,9 @@ ops/local-ci/
 ```
 
 `config/local-ci-contract.json` is the single source of truth. Both planes, the
-agent, the bridge and the tests read it; nothing in this directory hard-codes a
-timeout, a lane list, a repository name or a retention window.
+agent, proof reader and tests read it. The observer workflow separately owns its
+two-minute job bound and single-observation mode; historical polling bounds in
+the contract do not make that workflow wait.
 
 ---
 
@@ -111,7 +119,8 @@ namespace, or any published port, and refuses any argument naming the host
 Docker daemon socket. Lanes that need a Docker daemon (`supabase start`) get a
 sibling `dind` container on a job-private network, reachable over TCP at the
 alias the job image's `DOCKER_HOST` already points at. The privilege lives in
-the sidecar, which executes nothing from the repository. `docs/operations/local-ci.md`
+the sidecar. Candidate code can reach its Docker API, so this is not proof
+that the persistent guest is safe for authoritative unreviewed execution. `docs/operations/local-ci.md`
 §9 verifies this from the outside with `docker inspect`.
 
 **4. No credential is ever logged.** `github.mjs` redacts JWTs, installation
@@ -220,6 +229,7 @@ runbook, not by code in this directory:
 
 - `docs/operations/local-ci.md` — the full runbook, including everything that
   cannot be done from inside this repository.
-- `docs/operations/local-ci-cutover.md` — cutover steps 1–7.
+- `docs/operations/ci-redesign.md` — current redesign phases and verification.
+- `docs/operations/local-ci-cutover.md` — superseded historical specification.
 - `ops/local-ci/host/README.md` — VM, launchd and image provisioning.
 - `ops/local-ci/profiles/README.md` — how a profile maps onto `ci.yml`.

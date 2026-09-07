@@ -206,7 +206,7 @@ async function main() {
   const kind = process.argv[3] ?? "readiness"
   const result = await sendProductionAlert({ action, kind })
   console.log(
-    `External production alert acknowledged with HTTP ${result.status}.`
+    `Production alert receiver accepted the request with HTTP ${result.status}.`
   )
 }
 

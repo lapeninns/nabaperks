@@ -4,7 +4,7 @@ on:
   schedule:
     - cron: "7/15 * * * *"
   workflow_run:
-    workflows: ["Production deployment"]
+    workflows: ["Production database promotion"]
     types: [completed]
   workflow_dispatch:
     inputs:
@@ -21,7 +21,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  EXPECTED_REVISION: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision || '' }}
+  EXPECTED_REVISION: ${{ github.event_name == 'workflow_dispatch' && inputs.expected_revision || '' }}
 
 jobs:
   probes:
@@ -30,6 +30,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 7
     environment: Monitoring
+    permissions:
+      contents: read
+      actions: read
     env:
       PRODUCTION_MONITOR_SECRET: ${{ secrets.PRODUCTION_MONITOR_SECRET }}
     steps:
@@ -37,6 +40,21 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
         with:
           persist-credentials: false
+      - name: Resolve the released candidate from its bound artifact
+        if: ${{ github.event_name == 'workflow_run' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_RUN_ID: ${{ github.event.workflow_run.id }}
+          RELEASE_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        run: |
+          node scripts/vercel-production-target.mjs --github-env "$GITHUB_ENV" --evidence "$RUNNER_TEMP/smoke-vercel-target.json"
+      - name: Verify the exact release artifact and successful public proof
+        if: ${{ github.event_name == 'workflow_run' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_RUN_ID: ${{ github.event.workflow_run.id }}
+          RELEASE_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        run: node scripts/release/read-candidate-artifact.mjs
       - name: Wait for the verified revision to reach production
         if: ${{ env.EXPECTED_REVISION != '' }}
         run: |

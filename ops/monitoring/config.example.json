@@ -1,0 +1,31 @@
+{
+  "schema": "nabaperks.independent-monitor-runtime.v1",
+  "origin": "https://nabaperks.com",
+  "stateDirectory": "/var/lib/nabaperks-independent-monitor",
+  "intervalSeconds": 300,
+  "expectedRevision": "",
+  "webhookUrl": "https://replace-with-independent-receiver.invalid/events",
+  "dependencies": {
+    "scheduler": {
+      "provider": "replace-with-scheduler-provider",
+      "inventoryComplete": false,
+      "dependencies": ["replace-with-scheduler-provider"]
+    },
+    "runtime": {
+      "provider": "replace-with-runtime-provider",
+      "inventoryComplete": false,
+      "dependencies": ["replace-with-runtime-provider"]
+    },
+    "state": {
+      "provider": "replace-with-state-provider",
+      "inventoryComplete": false,
+      "dependencies": ["replace-with-state-provider"]
+    },
+    "paging": {
+      "provider": "replace-with-paging-provider",
+      "hostname": "replace-with-independent-receiver.invalid",
+      "inventoryComplete": false,
+      "dependencies": ["replace-with-paging-provider"]
+    }
+  }
+}

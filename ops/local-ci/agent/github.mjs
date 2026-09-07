@@ -746,8 +746,14 @@ export function createGitHubClient({
     }
     if (token) headers.authorization = `Bearer ${token}`
 
+    // Check creation is not idempotent. A lost response is reconciled by the
+    // host journal using external_id; transport retries could duplicate it.
+    const requestAttempts =
+      method === "POST" && path === `/repos/${owner}/${repo}/check-runs`
+        ? 1
+        : maxAttempts
     let lastError = null
-    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    for (let attempt = 1; attempt <= requestAttempts; attempt += 1) {
       let response
       try {
         response = await fetch(url, {
@@ -763,7 +769,7 @@ export function createGitHubClient({
           ),
           { method, path }
         )
-        if (attempt === maxAttempts) throw lastError
+        if (attempt === requestAttempts) throw lastError
         await sleep(retryDelayMs(attempt, null, now()))
         continue
       }
@@ -788,7 +794,10 @@ export function createGitHubClient({
         method,
         path,
       })
-      if (attempt < maxAttempts && isRetryableStatus(status, error.rateLimit)) {
+      if (
+        attempt < requestAttempts &&
+        isRetryableStatus(status, error.rateLimit)
+      ) {
         const waitMs = retryDelayMs(attempt, error.rateLimit, now())
         log(
           "warn",
@@ -945,12 +954,21 @@ export function createGitHubClient({
       conclusion,
       output,
       detailsUrl,
+      externalId,
       startedAt,
       completedAt,
     }) {
       const body = {
         name,
         head_sha: requireCommitSha(headSha, "createCheckRun({ headSha })"),
+        ...(externalId === undefined
+          ? {}
+          : {
+              external_id: requireCheckName(
+                externalId,
+                "createCheckRun({ externalId })"
+              ),
+            }),
         status,
         ...(conclusion === undefined || conclusion === null
           ? {}

@@ -53,6 +53,8 @@
  */
 
 import { spawn } from "node:child_process"
+import { publishAttempt } from "../core/attempts.mjs"
+import { publishDurableCheck } from "./publisher.mjs"
 
 import { LocalCiError, describeValue } from "../core/contract.mjs"
 import { classifyRequest } from "../core/allowlist.mjs"
@@ -304,6 +306,7 @@ export function createLoop({
   heartbeat = null,
   sleepAssertion = null,
   logStore = null,
+  attempts = null,
   now = () => Date.now(),
   sleep = null,
   logger = null,
@@ -339,6 +342,7 @@ export function createLoop({
   const refusals = []
   let polling = false
   let stopping = false
+  let generation = 0
   let timer = null
   let notifyStop = null
   // The run this loop started and has not yet observed finishing, and the most
@@ -350,8 +354,26 @@ export function createLoop({
   const checkNameFor = (job) =>
     job.profile === "nightly" ? contract.nightlyCheckName : contract.checkName
 
-  async function publishStart(job) {
+  async function publishStart(job, attemptId = null) {
     try {
+      if (attemptId) {
+        await publishDurableCheck({
+          github,
+          contract,
+          journal: attempts,
+          attempt: attempts.entries.find((entry) => entry.id === attemptId),
+          payload: {
+            status: "in_progress",
+            startedAt: new Date(now()).toISOString(),
+            output: {
+              title: `${job.profile} — running`,
+              summary: `Running durable attempt for ${job.sha}.`,
+            },
+          },
+        })
+        return attempts.entries.find((entry) => entry.id === attemptId)
+          .checkRunId
+      }
       const created = await github.createCheckRun({
         name: checkNameFor(job),
         headSha: job.sha,
@@ -375,7 +397,13 @@ export function createLoop({
     }
   }
 
-  async function publishResult(job, checkRunId, record) {
+  async function publishResult(
+    job,
+    checkRunId,
+    record,
+    attemptId = null,
+    stillOwned = () => true
+  ) {
     const output = renderCheckSummary(record, contract)
     const payload = {
       status: "completed",
@@ -384,20 +412,31 @@ export function createLoop({
       output,
     }
     try {
+      if (attemptId)
+        return await publishDurableCheck({
+          github,
+          contract,
+          journal: attempts,
+          attempt: attempts.entries.find((entry) => entry.id === attemptId),
+          payload,
+          stillOwned,
+        })
       if (checkRunId === null) {
         await github.createCheckRun({
           name: checkNameFor(job),
           headSha: job.sha,
           ...payload,
         })
-        return
+        return true
       }
       await github.updateCheckRun(checkRunId, payload)
+      return true
     } catch (error) {
       log(
         "error",
         `could not publish the result for ${job.sha}: ${error.message}`
       )
+      return false
     }
   }
 
@@ -447,7 +486,14 @@ export function createLoop({
    * GitHub outage throw from here would replace the real failure - the one the
    * operator has to fix - with a reporting failure.
    */
-  async function publishIncomplete(job, checkRunId, error, cancelled) {
+  async function publishIncomplete(
+    job,
+    checkRunId,
+    error,
+    cancelled,
+    attemptId = null,
+    stillOwned = () => true
+  ) {
     try {
       const payload = {
         status: "completed",
@@ -455,20 +501,31 @@ export function createLoop({
         completedAt: new Date(now()).toISOString(),
         output: renderIncompleteOutput(job, error, cancelled),
       }
+      if (attemptId)
+        return await publishDurableCheck({
+          github,
+          contract,
+          journal: attempts,
+          attempt: attempts.entries.find((entry) => entry.id === attemptId),
+          payload,
+          stillOwned,
+        })
       if (checkRunId === null) {
         await github.createCheckRun({
           name: checkNameFor(job),
           headSha: job.sha,
           ...payload,
         })
-        return
+        return true
       }
       await github.updateCheckRun(checkRunId, payload)
+      return true
     } catch (publishError) {
       log(
         "error",
         `could not complete the check run for ${job.sha} after the run failed: ${publishError.message}`
       )
+      return false
     }
   }
 
@@ -479,11 +536,13 @@ export function createLoop({
     if (!canSweep) return null
     try {
       const entries = await logStore.list()
+      if (stopping) return 0
       const running_ = runningJobs(queue).map((job) => job.id)
       const partition = partitionLogs(entries, instant, contract, {
         runningJobIds: running_,
       })
       for (const entry of partition.expired) {
+        if (stopping) break
         await logStore.remove(entry)
       }
       return partition.expired.length
@@ -493,20 +552,40 @@ export function createLoop({
     }
   }
 
-  async function executeJob(job, signal) {
-    const profile = await loadProfile(job.profile)
-    const checkRunId = await publishStart(job)
+  async function executeJob(job, signal, attemptId) {
+    let checkRunId = null
     // Acquired here, not at the top of the tick: an idle agent must hold no
     // power assertion, or the Mac never sleeps again.
     sleepAssertion?.acquire()
     try {
-      const outcome = await runner.runProfile({
+      const profile = await loadProfile(job.profile)
+      signal?.throwIfAborted()
+      checkRunId = await publishStart(job, attemptId)
+      signal?.throwIfAborted()
+      let outcome = await runner.runProfile({
         profile,
         ref: job.ref,
         headSha: job.sha,
         signal,
       })
-      await publishResult(job, checkRunId, outcome.record)
+      if (signal?.aborted)
+        outcome = {
+          ...outcome,
+          record: { ...outcome.record, conclusion: "cancelled" },
+        }
+      if (attemptId)
+        attempts.finish(
+          attemptId,
+          signal?.reason?.code === ABORT_SUPERSEDED
+            ? "superseded"
+            : outcome.record.conclusion,
+          outcome.record
+        )
+      if (attemptId)
+        await publishAttempt(attempts, attemptId, () =>
+          publishResult(job, checkRunId, outcome.record, attemptId)
+        )
+      else await publishResult(job, checkRunId, outcome.record)
       const applied = complete(
         queue,
         job.id,
@@ -533,11 +612,23 @@ export function createLoop({
         "error",
         `run for ${job.sha} ${cancelled ? "was cancelled" : "failed"}: ${error.message}`
       )
-      // The check is completed before the error is rethrown. Nothing retries
-      // this SHA - the queue entry is completed here and every later poll
-      // deduplicates it - so a check left in_progress is one the bridge waits
-      // out its entire ceiling for.
-      await publishIncomplete(job, checkRunId, error, cancelled)
+      // Persist incomplete execution before publishing. The durable journal
+      // permits one bounded infrastructure retry after publication/backoff;
+      // an unjournalled caller retains the original queue deduplication.
+      if (attemptId)
+        attempts.finish(
+          attemptId,
+          signal?.reason?.code === ABORT_SUPERSEDED
+            ? "superseded"
+            : cancelled
+              ? "cancelled"
+              : "incomplete"
+        )
+      if (attemptId)
+        await publishAttempt(attempts, attemptId, () =>
+          publishIncomplete(job, checkRunId, error, cancelled, attemptId)
+        )
+      else await publishIncomplete(job, checkRunId, error, cancelled)
       const applied = complete(
         queue,
         job.id,
@@ -563,7 +654,8 @@ export function createLoop({
   function startJob(job) {
     const controller = new AbortController()
     const entry = { job, controller, completion: null }
-    entry.completion = executeJob(job, controller.signal).then(
+    const attemptId = attempts?.begin(job) ?? null
+    entry.completion = executeJob(job, controller.signal, attemptId).then(
       (outcome) => {
         if (inFlight === entry) inFlight = null
         return outcome
@@ -612,6 +704,10 @@ export function createLoop({
      * could not be made, so a caller on a timer keeps ticking.
      */
     async tick() {
+      const ownGeneration = generation
+      const stopped = () => stopping || generation !== ownGeneration
+      const stopResult = () =>
+        Object.freeze({ outcome: "idle", reason: "the agent is stopping" })
       if (stopping) {
         return Object.freeze({
           outcome: "idle",
@@ -632,7 +728,7 @@ export function createLoop({
           github.listOpenPullRequests(),
         ])
         // stop() may have run while the provider reads were pending.
-        if (stopping) {
+        if (stopped()) {
           return Object.freeze({
             outcome: "idle",
             reason: "the agent is stopping",
@@ -687,8 +783,49 @@ export function createLoop({
           }
         }
 
+        // Re-publish durable terminal evidence before admitting any retry.
+        // Interrupted work can only publish failure, never a fabricated success.
+        for (const attempt of attempts?.entries ?? []) {
+          if (stopped()) return stopResult()
+          if (
+            attempt.status === "running" ||
+            attempt.publish === false ||
+            attempt.published ||
+            (inFlight &&
+              inFlight.job.sha === attempt.sha &&
+              inFlight.job.ref === attempt.ref &&
+              inFlight.job.profile === attempt.profile)
+          )
+            continue
+          await publishAttempt(
+            attempts,
+            attempt.id,
+            () =>
+              attempt.record
+                ? publishResult(
+                    attempt,
+                    attempt.checkRunId,
+                    attempt.record,
+                    attempt.id,
+                    () => !stopped()
+                  )
+                : publishIncomplete(
+                    attempt,
+                    attempt.checkRunId,
+                    new Error(`Durable attempt ended ${attempt.status}`),
+                    ["cancelled", "superseded"].includes(attempt.status),
+                    attempt.id,
+                    () => !stopped()
+                  ),
+            () => !stopped()
+          )
+          if (stopped()) return stopResult()
+        }
+
+        if (stopped()) return stopResult()
         let queuedCount = 0
         for (const entry of classified.local) {
+          if (attempts && !attempts.eligible(entry.candidate)) continue
           if (isQueueFull(queue)) {
             log(
               "warn",
@@ -699,6 +836,7 @@ export function createLoop({
           const result = enqueue(
             queue,
             {
+              retry: attempts !== null,
               ref: entry.candidate.ref,
               sha: entry.candidate.sha,
               profile: entry.candidate.profile,
@@ -719,6 +857,7 @@ export function createLoop({
         // down, and starting a second run into that would put two of them on
         // the same ports and the same local Supabase stack.
         let started = null
+        if (stopped()) return stopResult()
         if (inFlight === null) {
           const selected = selectNext(queue, instant)
           queue = selected.state
@@ -727,7 +866,9 @@ export function createLoop({
         const runningId = inFlight === null ? null : inFlight.job.id
 
         const swept = await sweepRetention(instant)
+        if (stopped()) return stopResult()
         const beat = heartbeat ? await heartbeat.ping() : null
+        if (stopped()) return stopResult()
 
         const common = {
           queued: queuedCount,
@@ -776,6 +917,7 @@ export function createLoop({
      * lose the queue.
      */
     async start() {
+      generation += 1
       stopping = false
       const interval = pollIntervalMs(contract)
       const stopped = new Promise((resolve) => {
@@ -830,6 +972,7 @@ export function createLoop({
      * killed process.
      */
     stop() {
+      generation += 1
       stopping = true
       if (timer) {
         clearTimeout(timer)
