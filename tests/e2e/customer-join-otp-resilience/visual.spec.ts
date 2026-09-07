@@ -52,8 +52,10 @@ test.describe("OTP resilience", () => {
       expect(new URL(page.url()).searchParams.get("ref")).toBe("FRIEND01")
 
       await page.getByRole("button", { name: "Resend code" }).click()
+      // Resends answer in place with neutral copy that does not reveal
+      // whether a code was dispatched.
       await expect(
-        page.getByText("New code sent. It can take a moment to arrive.")
+        page.getByText("If a new code arrives, enter it here.", { exact: true })
       ).toBeVisible()
 
       await page.locator("#otp").fill(WRONG_OTP)
