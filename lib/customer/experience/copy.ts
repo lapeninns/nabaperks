@@ -38,7 +38,7 @@ type UnavailableExperience = Extract<
 /** QR-scan welcome — mirrors join-with-first-stamp: scan → verify → terms → stamp. */
 export const JOIN_WELCOME_HOW_IT_WORKS = [
   "You scanned the venue QR",
-  "Confirm your number with one text",
+  "Confirm your number with one WhatsApp message",
   "Your first stamp lands on your card",
 ] as const
 
@@ -48,7 +48,7 @@ export const JOIN_WELCOME_PHONE_REASSURANCE =
   "Already have a card here? Same number, same card." as const
 
 /** Shown under the phone field on step 2 — sets expectation before the SMS arrives. */
-export const JOIN_PHONE_CODE_HINT = "We'll text you a one-time code." as const
+export const JOIN_PHONE_CODE_HINT = "We'll send you a one-time code." as const
 
 /** Join-only number guidance: the promise, not the plumbing. */
 export const JOIN_PHONE_RETENTION_HINT =
@@ -111,15 +111,15 @@ export function getCustomerExperienceViewModel(
       }
     case "join_phone":
       return {
-        eyebrow: "One text, no password",
+        eyebrow: "One message, no password",
         headline: "Save your stamp to your number",
-        supportLine: `One text confirms it's you. Your ${exp.merchant.name} card then follows you on every visit.`,
+        supportLine: `One WhatsApp message confirms it's you. Your ${exp.merchant.name} card then follows you on every visit.`,
       }
     case "join_otp":
       return {
-        eyebrow: "Check your texts",
+        eyebrow: "Check your messages",
         headline: "Enter your code",
-        supportLine: "It's in the text we just sent you.",
+        supportLine: "It's in the message we just sent you.",
       }
     case "join_terms":
       return exp.qrId

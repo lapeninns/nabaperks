@@ -1,3 +1,4 @@
+import type { OtpChannel } from "@/lib/customer/otp-channel-core"
 /**
  * Customer experience layer — the union of states a customer can be in across
  * the QR → join → stamp → card → reward journey.
@@ -149,6 +150,8 @@ export type CustomerExperience =
       merchant: JoinMerchant
       card: JoinCard
       qrId?: string
+      /** Channel the code will be sent on first. */
+      channel: OtpChannel
     }
   | {
       kind: "join_otp"
@@ -156,6 +159,8 @@ export type CustomerExperience =
       card: JoinCard
       qrId?: string
       contactLast4: string
+      /** Where the code went, so the step says "by text" or "on WhatsApp". */
+      channel: OtpChannel
       location: LocationRequirement
     }
   | {

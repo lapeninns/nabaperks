@@ -13,6 +13,12 @@ import { customerInputClass } from "@/components/customer/input-class"
 import { SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
+import {
+  alternateOtpChannel,
+  otpChannelPhrase,
+  otpChannelSwitchLabel,
+  type OtpChannel,
+} from "@/lib/customer/otp-channel-core"
 import { buildCustomerJoinHref } from "@/lib/navigation/customer-join-intent"
 
 const identityInitialState: CustomerIdentityState = {}
@@ -22,6 +28,8 @@ export type CustomerOtpFormProps = {
   qrId?: string
   referralCode?: string
   contactLast4: string
+  /** Channel that carried the code — the row says so and offers the other. */
+  channel?: OtpChannel
 }
 
 export function CustomerOtpForm({
@@ -29,6 +37,7 @@ export function CustomerOtpForm({
   qrId,
   referralCode,
   contactLast4,
+  channel = "sms",
 }: CustomerOtpFormProps) {
   const [verifyState, verifyAction] = useActionState(
     verifyCustomerOtpAction,
@@ -57,6 +66,7 @@ export function CustomerOtpForm({
   const freshCodeError =
     state.errors?.contact ?? requestState.errors?.contact ?? undefined
   const needsFreshCode = Boolean(freshCodeError)
+  const otherChannel = alternateOtpChannel(channel)
 
   return (
     <div className="grid gap-4">
@@ -99,7 +109,7 @@ export function CustomerOtpForm({
                   id="otp-hint"
                   className="text-xs leading-5 text-muted-foreground"
                 >
-                  Paste or type the code from the text.
+                  Paste or type the code from the message.
                 </p>
               )}
             </div>
@@ -120,6 +130,7 @@ export function CustomerOtpForm({
             {/* Marks this submission as a resend so the action answers in place
                 (returned state) instead of redirecting the phone step forward. */}
             <input type="hidden" name="resend" value="1" />
+            <input type="hidden" name="channel" value={channel} />
             {/* One compact row instead of a second card: where the code went,
                 the resend, and the way out, all inside one live region so a
                 resend outcome is announced in place (CUS-P1-02). */}
@@ -129,7 +140,9 @@ export function CustomerOtpForm({
             >
               <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                 <p className="text-sm">
-                  <span className="text-muted-foreground">Sent to </span>
+                  <span className="text-muted-foreground">
+                    Sent {otpChannelPhrase(channel)} to{" "}
+                  </span>
                   <span className="font-bold tabular-nums">
                     Phone ending {contactLast4}
                   </span>
@@ -160,6 +173,24 @@ export function CustomerOtpForm({
                 Wrong number? Use a different one
               </Link>
             </div>
+          </form>
+
+          {/* The other channel, one tap away: a resend on WhatsApp (or back to
+              text) through the same admission and the same neutral reply. */}
+          <form action={requestAction} className="grid justify-items-center">
+            <input type="hidden" name="merchantSlug" value={merchantSlug} />
+            <input type="hidden" name="qrId" value={qrId ?? ""} />
+            <input type="hidden" name="ref" value={referralCode ?? ""} />
+            <input type="hidden" name="resend" value="1" />
+            <input type="hidden" name="channel" value={otherChannel} />
+            <SubmitButton
+              variant="link"
+              size="xs"
+              className="text-xs"
+              pendingLabel="Sending…"
+            >
+              {otpChannelSwitchLabel(otherChannel)}
+            </SubmitButton>
           </form>
         </>
       )}

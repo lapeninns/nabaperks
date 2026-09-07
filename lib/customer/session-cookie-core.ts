@@ -7,12 +7,16 @@ import {
 
 export type PendingPhonePurpose = "join" | "wallet"
 
+export type PendingPhoneChannel = "sms" | "whatsapp"
+
 export type PendingPhonePayload = {
   readonly version: 2
   readonly purpose: PendingPhonePurpose
   readonly phone: string
   readonly phoneHmac: string
   readonly country: string
+  /** Channel that carried the code; absent on cookies minted before it existed. */
+  readonly channel?: PendingPhoneChannel
   readonly issuedAt: number
   readonly expiresAt: number
 }
@@ -207,6 +211,7 @@ function parsePendingPhonePayload(value: unknown): PendingPhonePayload | null {
   const phone = value.phone
   const phoneHmac = value.phoneHmac
   const country = value.country
+  const channel = value.channel
   const issuedAt = value.issuedAt
   const expiresAt = value.expiresAt
 
@@ -215,6 +220,11 @@ function parsePendingPhonePayload(value: unknown): PendingPhonePayload | null {
   if (typeof phone !== "string") return null
   if (typeof phoneHmac !== "string") return null
   if (typeof country !== "string") return null
+  // Optional, but never lenient: a signed cookie with an unknown channel is
+  // not one this build wrote.
+  if (channel !== undefined && channel !== "sms" && channel !== "whatsapp") {
+    return null
+  }
   if (typeof issuedAt !== "number") return null
   if (typeof expiresAt !== "number") return null
 
@@ -224,6 +234,7 @@ function parsePendingPhonePayload(value: unknown): PendingPhonePayload | null {
     phone,
     phoneHmac,
     country,
+    ...(channel ? { channel } : {}),
     issuedAt,
     expiresAt,
   }

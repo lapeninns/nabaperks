@@ -16,7 +16,7 @@ function readProjectFile(...segments) {
 test("Given a customer login phone is unknown When the request action runs Then lookup waits until OTP proof", () => {
   const actions = readProjectFile("app", "home", "actions.ts")
 
-  assert.match(actions, /await startCustomerPhoneVerification\(contact\)/)
+  assert.match(actions, /await startCustomerPhoneVerification\(\s*contact,?/)
   const requestStart = actions.indexOf(
     "export async function requestCustomerLoginOtpAction"
   )

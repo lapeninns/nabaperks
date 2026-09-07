@@ -12,6 +12,10 @@ import {
 import { Eyebrow, MonoTag } from "@/components/brand"
 import { customerInputClass } from "@/components/customer/input-class"
 import { JoinActionBar } from "@/components/customer/join-action-bar"
+import {
+  otpChannelSendLabel,
+  type OtpChannel,
+} from "@/lib/customer/otp-channel-core"
 import { CustomerLegalConsentLinks } from "@/components/customer/legal-sheet"
 import { StatusBanner } from "@/components/loyalty"
 import type { JoinCard } from "@/lib/customer/experience/types"
@@ -33,12 +37,15 @@ export type CustomerIdentityFormProps = {
   merchantSlug: string
   qrId?: string
   referralCode?: string
+  /** Channel the code goes out on first; the button says where. */
+  channel?: OtpChannel
 }
 
 export function CustomerIdentityForm({
   merchantSlug,
   qrId,
   referralCode,
+  channel = "whatsapp",
 }: CustomerIdentityFormProps) {
   const [state, requestAction, requestPending] = useActionState(
     requestCustomerIdentityAction,
@@ -51,6 +58,7 @@ export function CustomerIdentityForm({
         <input type="hidden" name="merchantSlug" value={merchantSlug} />
         <input type="hidden" name="qrId" value={qrId ?? ""} />
         <input type="hidden" name="ref" value={referralCode ?? ""} />
+        <input type="hidden" name="channel" value={channel} />
         <div className="grid gap-2">
           <label htmlFor="contact" className="eyebrow">
             UK phone number
@@ -97,7 +105,7 @@ export function CustomerIdentityForm({
           className="w-full"
           disabled={requestPending}
         >
-          {requestPending ? "Sending…" : "Text me the code"}
+          {requestPending ? "Sending…" : otpChannelSendLabel(channel)}
         </Button>
         <p role="status" aria-live="polite" className="sr-only">
           {requestPending ? "Sending your code" : ""}

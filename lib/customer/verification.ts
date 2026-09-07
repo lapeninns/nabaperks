@@ -1,8 +1,14 @@
 import "server-only"
 
+import {
+  alternateOtpChannel,
+  type OtpChannel,
+} from "@/lib/customer/otp-channel-core"
 import { logger } from "@/lib/observability/logger"
 
-type VerificationStartResult = { readonly status: "sent" | "unavailable" }
+type VerificationStartResult =
+  | { readonly status: "sent"; readonly channel: OtpChannel }
+  | { readonly status: "unavailable" }
 type VerificationCheckResult = {
   readonly status: "approved" | "rejected" | "unavailable"
 }
@@ -18,27 +24,59 @@ type TwilioVerifyConfigResult =
       readonly ok: false
       readonly reason: "missing_credentials" | "missing_service"
     }
+type ProviderFailureCategory =
+  | "missing_credentials"
+  | "missing_service"
+  | "timeout"
+  | "network"
+  | "rate_limited"
+  | "upstream"
+  | "provider_rejected_request"
+  | "malformed_response"
 type ProviderResult =
   | { readonly ok: true; readonly status: string }
-  | { readonly ok: false }
+  | { readonly ok: false; readonly category: ProviderFailureCategory }
 
 const verifyBaseUrl = "https://verify.twilio.com/v2/Services"
 const anyFourDigitBypassMode = "any-4-digits"
 const providerTimeoutMs = 8_000
 
+/**
+ * Send the code on `channel`. When the provider rejects the request itself
+ * (a 4xx that is not a rate limit — for WhatsApp, typically a number with no
+ * WhatsApp account), the code goes out on the other channel instead, and the
+ * result names the channel that actually carried it so the code step can say
+ * where to look. Outages (timeouts, 5xx, missing config) are not retried on
+ * the other channel: they are the provider being down, not the channel.
+ */
 export async function startCustomerPhoneVerification(
-  phone: string
+  phone: string,
+  channel: OtpChannel = "sms"
 ): Promise<VerificationStartResult> {
   if (isAnyFourDigitOtpBypassEnabled() || isDevOtpConfigured()) {
-    return { status: "sent" }
+    return { status: "sent", channel }
   }
 
   const result = await postVerifyForm("Verifications", {
     To: phone,
-    Channel: "sms",
+    Channel: channel,
   })
+  if (result.ok) return { status: "sent", channel }
 
-  return { status: result.ok ? "sent" : "unavailable" }
+  if (result.category === "provider_rejected_request") {
+    const fallback = alternateOtpChannel(channel)
+    logger.warn("customer_verification_channel_fallback", {
+      from: channel,
+      to: fallback,
+    })
+    const retry = await postVerifyForm("Verifications", {
+      To: phone,
+      Channel: fallback,
+    })
+    if (retry.ok) return { status: "sent", channel: fallback }
+  }
+
+  return { status: "unavailable" }
 }
 
 export async function checkCustomerPhoneVerification(
@@ -78,7 +116,7 @@ async function postVerifyForm(
       operation: path,
       category: configured.reason,
     })
-    return { ok: false }
+    return { ok: false, category: configured.reason }
   }
 
   const { config } = configured
@@ -97,28 +135,30 @@ async function postVerifyForm(
     })
   } catch (error) {
     if (!(error instanceof Error)) throw error
+    const category = error.name === "TimeoutError" ? "timeout" : "network"
     logger.error("customer_verification_provider_unavailable", {
       operation: path,
-      category: error.name === "TimeoutError" ? "timeout" : "network",
+      category,
     })
-    return { ok: false }
+    return { ok: false, category }
   }
 
   if (!response.ok) {
     if (path === "VerificationCheck" && [400, 404].includes(response.status)) {
       return { ok: true, status: "rejected" }
     }
+    const category: ProviderFailureCategory =
+      response.status === 429
+        ? "rate_limited"
+        : response.status >= 500
+          ? "upstream"
+          : "provider_rejected_request"
     logger.error("customer_verification_provider_unavailable", {
       operation: path,
-      category:
-        response.status === 429
-          ? "rate_limited"
-          : response.status >= 500
-            ? "upstream"
-            : "provider_rejected_request",
+      category,
       providerStatus: response.status,
     })
-    return { ok: false }
+    return { ok: false, category }
   }
 
   let payload: unknown
@@ -130,7 +170,7 @@ async function postVerifyForm(
       operation: path,
       category: "malformed_response",
     })
-    return { ok: false }
+    return { ok: false, category: "malformed_response" }
   }
 
   const status = readStatus(payload)
@@ -139,7 +179,7 @@ async function postVerifyForm(
       operation: path,
       category: "malformed_response",
     })
-    return { ok: false }
+    return { ok: false, category: "malformed_response" }
   }
   return { ok: true, status }
 }
