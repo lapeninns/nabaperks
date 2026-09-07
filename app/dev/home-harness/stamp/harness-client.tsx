@@ -17,6 +17,22 @@ type HarnessMode =
   | "unknown-closed"
   | "closed"
   | "reloaded-final"
+  | "location-blocked"
+  | "code-rejected"
+  | "code-locked"
+
+const LOCATION_MODES = new Set<HarnessMode>([
+  "location-blocked",
+  "code-rejected",
+  "code-locked",
+])
+
+const LOCATION_REFUSED: SelfStampActionState = {
+  status: "error",
+  reason: "location_out_of_range",
+  message:
+    "Location couldn't confirm you're at the venue. Try again, or ask a team member for today's code.",
+}
 
 function wait(delayMs: number) {
   return new Promise<void>((resolve) => {
@@ -41,10 +57,7 @@ export function StampHarnessClient({
           : 3
   const [current, setCurrent] = useState(startingCurrent)
   const [stampDates, setStampDates] = useState(
-    ["12 Jul", "13 Jul", "14 Jul", "15 Jul", "16 Jul"].slice(
-      0,
-      startingCurrent
-    )
+    ["12 Jul", "13 Jul", "14 Jul", "15 Jul", "16 Jul"].slice(0, startingCurrent)
   )
   const [canStamp, setCanStamp] = useState(
     mode !== "closed" && mode !== "reloaded-final"
@@ -53,36 +66,68 @@ export function StampHarnessClient({
   const [submitCount, setSubmitCount] = useState(0)
   const [refreshCount, setRefreshCount] = useState(0)
 
-  const submitStamp = useCallback(
-    async (): Promise<SelfStampActionState> => {
+  const submitStamp = useCallback(async (): Promise<SelfStampActionState> => {
+    setSubmitCount((count) => count + 1)
+    await wait(delayMs)
+
+    if (mode === "blocked") {
+      return {
+        status: "error",
+        message: "Today's stamp is not available yet. Try again tomorrow.",
+      }
+    }
+    if (LOCATION_MODES.has(mode)) return LOCATION_REFUSED
+    if (
+      mode === "unknown" ||
+      mode === "unknown-issued" ||
+      mode === "unknown-issued-bonus" ||
+      mode === "unknown-closed"
+    ) {
+      throw new Error("Harness transport failure")
+    }
+
+    return {
+      status: "issued",
+      newStampCount: mode === "final" ? 5 : 4,
+      rewardUnlocked: mode === "final",
+      geoFlagged: false,
+      bonusStampsApplied: 0,
+    }
+  }, [delayMs, mode])
+
+  // The venue-code fallback: a wrong code counts down tries, a lockout hides
+  // the input, and the right code prints the stamp through the same path.
+  const submitVenueCode =
+    useCallback(async (): Promise<SelfStampActionState> => {
       setSubmitCount((count) => count + 1)
       await wait(delayMs)
 
-      if (mode === "blocked") {
+      if (mode === "code-rejected") {
         return {
           status: "error",
-          message: "Today's stamp is not available yet. Try again tomorrow.",
+          reason: "venue_code_rejected",
+          attemptsRemaining: 3,
+          message: "That code isn't right. Check it with a team member.",
         }
       }
-      if (
-        mode === "unknown" ||
-        mode === "unknown-issued" ||
-        mode === "unknown-issued-bonus" ||
-        mode === "unknown-closed"
-      ) {
-        throw new Error("Harness transport failure")
+      if (mode === "code-locked") {
+        return {
+          status: "error",
+          reason: "venue_code_locked",
+          lockedUntil: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+          message:
+            "Too many tries. Ask a team member and try again in 15 minutes.",
+        }
       }
 
       return {
         status: "issued",
-        newStampCount: mode === "final" ? 5 : 4,
-        rewardUnlocked: mode === "final",
+        newStampCount: 4,
+        rewardUnlocked: false,
         geoFlagged: false,
         bonusStampsApplied: 0,
       }
-    },
-    [delayMs, mode]
-  )
+    }, [delayMs, mode])
 
   const refreshCard = useCallback(() => {
     setRefreshCount((count) => count + 1)
@@ -128,6 +173,7 @@ export function StampHarnessClient({
         rewardUnlocked={rewardReady}
         location={{ requireGeofence: false, geofenceRadiusMeters: 75 }}
         submitStamp={submitStamp}
+        submitVenueCode={submitVenueCode}
         refreshCard={refreshCard}
       />
       {rewardReady ? (

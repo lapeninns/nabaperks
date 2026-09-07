@@ -12,6 +12,9 @@ const MODES = new Set([
   "unknown-closed",
   "closed",
   "reloaded-final",
+  "location-blocked",
+  "code-rejected",
+  "code-locked",
 ])
 
 export default async function StampHarnessPage({
@@ -38,7 +41,10 @@ export default async function StampHarnessPage({
         mode === "unknown-issued-bonus" ||
         mode === "unknown-closed" ||
         mode === "closed" ||
-        mode === "reloaded-final"
+        mode === "reloaded-final" ||
+        mode === "location-blocked" ||
+        mode === "code-rejected" ||
+        mode === "code-locked"
           ? mode
           : "success"
       }

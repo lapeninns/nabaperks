@@ -317,6 +317,34 @@ test(
   }
 )
 
+// A schema-level `revoke all on schema private` strips the USAGE that makes the
+// pre-request guard callable, and PostgREST then answers every request — any
+// role, any table — with `permission denied for schema private`. Object-level
+// revokes, not schema-level ones, are what contain `private`.
+test(
+  "API roles keep the schema usage the pre-request guard needs",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const [row] = await tx`
+        select
+          has_schema_privilege('authenticated', 'private', 'USAGE')
+            as authenticated,
+          has_schema_privilege('anon', 'private', 'USAGE') as anon,
+          has_schema_privilege('service_role', 'private', 'USAGE')
+            as service_role,
+          has_schema_privilege('public', 'private', 'USAGE') as public`
+
+      assert.deepEqual(row, {
+        authenticated: true,
+        anon: true,
+        service_role: true,
+        public: false,
+      })
+    })
+  }
+)
+
 async function setClaims(tx, claims) {
   await tx`select set_config(
     'request.jwt.claim.role',
