@@ -6,6 +6,7 @@ import { cache } from "react"
 
 import { cookies, headers } from "next/headers"
 
+import type { OtpChannel } from "@/lib/customer/otp-channel-core"
 import { customerPhoneHmac } from "@/lib/customer/phone-pii"
 import {
   createCustomerSessionCookieValue,
@@ -40,6 +41,8 @@ type PendingPhoneInput = {
   purpose: PendingPhonePurpose
   phone: string
   country: string
+  /** Channel that carried the code, so the code step says where to look. */
+  channel?: OtpChannel
 }
 
 type PendingEmailInput = {
@@ -68,6 +71,7 @@ export async function setPendingPhoneVerification(
     phone: input.phone,
     phoneHmac: customerPhoneHmac(input.phone),
     country: input.country,
+    ...(input.channel ? { channel: input.channel } : {}),
     issuedAt,
     expiresAt: issuedAt + pendingPhoneTtlSeconds,
   }

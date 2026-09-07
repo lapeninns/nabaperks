@@ -67,7 +67,7 @@ test("Given customer OTP send flows When actions are inspected Then send limits 
     assertBefore(
       actions,
       "await enforceCustomerOtpSendRateLimit",
-      "await startCustomerPhoneVerification(contact)"
+      "await startCustomerPhoneVerification("
     )
     assert.doesNotMatch(
       actions,

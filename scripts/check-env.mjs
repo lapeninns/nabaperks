@@ -282,6 +282,14 @@ if (hostedOrProductionProfile && customerDevOtpCode) {
   invalid.push("CUSTOMER_DEV_OTP_CODE must be blank outside local development")
 }
 
+const customerOtpPrimaryChannel = values.CUSTOMER_OTP_PRIMARY_CHANNEL?.trim()
+if (
+  customerOtpPrimaryChannel &&
+  !["sms", "whatsapp"].includes(customerOtpPrimaryChannel.toLowerCase())
+) {
+  invalid.push("CUSTOMER_OTP_PRIMARY_CHANNEL must be sms, whatsapp or blank")
+}
+
 if (
   !customerOtpTwilioBypassed &&
   values.TWILIO_VERIFY_SERVICE_SID?.trim() &&

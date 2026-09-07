@@ -172,3 +172,42 @@ test("access recovery rejects an external redirect and tampered device binding",
     false
   )
 })
+
+test("a pending phone cookie carries the channel that sent the code, and rejects one it does not know", () => {
+  const base = {
+    version: 2,
+    purpose: "join",
+    phone: "+447700900123",
+    phoneHmac: "a".repeat(64),
+    country: "GB",
+    issuedAt: 100,
+    expiresAt: 700,
+  }
+
+  const withChannel = readPendingPhoneCookieValue(
+    createPendingPhoneCookieValue({ ...base, channel: "whatsapp" }, SECRET),
+    SECRET,
+    200
+  )
+  assert.equal(withChannel.ok, true)
+  assert.equal(withChannel.ok && withChannel.payload.channel, "whatsapp")
+
+  // Cookies minted before the channel existed still read; the field is absent.
+  const legacy = readPendingPhoneCookieValue(
+    createPendingPhoneCookieValue(base, SECRET),
+    SECRET,
+    200
+  )
+  assert.equal(legacy.ok, true)
+  assert.equal(legacy.ok && "channel" in legacy.payload, false)
+
+  const unknown = readPendingPhoneCookieValue(
+    createPendingPhoneCookieValue(
+      { ...base, channel: "carrier-pigeon" },
+      SECRET
+    ),
+    SECRET,
+    200
+  )
+  assert.equal(unknown.ok, false)
+})

@@ -1,3 +1,4 @@
+import type { OtpChannel } from "@/lib/customer/otp-channel-core"
 import { pickByPriority } from "./priorities"
 import {
   assertNever,
@@ -147,6 +148,9 @@ export type JoinContext =
       hasSession: boolean
       pendingOtp: boolean
       pendingPhone?: string
+      pendingChannel?: OtpChannel
+      /** Channel a first code goes out on (configured primary). */
+      primaryChannel?: OtpChannel
       membership: { id: string; current: number } | null
       location: LocationRequirement
     }
@@ -464,6 +468,7 @@ function deriveJoin(context: JoinContext): CustomerExperience {
           kind: "join_phone",
           merchant: context.merchant,
           card: context.card,
+          channel: context.primaryChannel ?? "whatsapp",
           qrId,
         }
       }
@@ -491,6 +496,7 @@ function deriveJoin(context: JoinContext): CustomerExperience {
         card: context.card,
         qrId: context.qrId,
         contactLast4: context.pendingPhone?.slice(-4) ?? "",
+        channel: context.pendingChannel ?? "sms",
         location: context.location,
       }
     case "join_welcome":
@@ -499,6 +505,7 @@ function deriveJoin(context: JoinContext): CustomerExperience {
           kind: "join_phone",
           merchant: context.merchant,
           card: context.card,
+          channel: context.primaryChannel ?? "whatsapp",
           qrId,
         }
       }
@@ -513,6 +520,7 @@ function deriveJoin(context: JoinContext): CustomerExperience {
         kind: "join_phone",
         merchant: context.merchant,
         card: context.card,
+        channel: context.primaryChannel ?? "whatsapp",
         qrId: context.qrId,
       }
   }

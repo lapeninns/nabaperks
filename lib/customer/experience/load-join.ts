@@ -7,6 +7,7 @@ import {
   getMembershipForCustomer,
   getMerchantJoinContext,
 } from "@/lib/customer/join"
+import { primaryOtpChannel } from "@/lib/customer/otp-channel-core"
 import { getPendingPhoneVerification } from "@/lib/customer/session"
 import { getMerchantStampLocationRequirement } from "@/lib/customer/stamp"
 import { logger } from "@/lib/observability/logger"
@@ -77,6 +78,7 @@ export async function loadJoinExperienceContext(
     qrId: searchParams.qr,
     step: searchParams.step,
     location: baseLocation,
+    primaryChannel: primaryOtpChannel(process.env.CUSTOMER_OTP_PRIMARY_CHANNEL),
   }
 
   const customer = await getCurrentCustomer()
@@ -123,6 +125,7 @@ export async function loadJoinExperienceContext(
       hasSession: false,
       pendingOtp,
       pendingPhone: pending.phone,
+      pendingChannel: pending.channel,
       membership: null,
     }
   }

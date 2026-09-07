@@ -12,6 +12,7 @@ import {
   getPendingPhoneVerification,
   setPendingPhoneVerification,
 } from "@/lib/customer/session"
+import { primaryOtpChannel } from "@/lib/customer/otp-channel-core"
 import {
   checkCustomerPhoneVerification,
   startCustomerPhoneVerification,
@@ -76,8 +77,17 @@ export async function requestCustomerLoginOtpAction(
     deviceHash,
   })
 
+  // Same primary channel as the join flow (WhatsApp by default), same
+  // automatic fallback; the pending cookie records where the code went.
+  const requestedChannel = primaryOtpChannel(
+    process.env.CUSTOMER_OTP_PRIMARY_CHANNEL
+  )
+  let sentChannel = requestedChannel
   if (admitted) {
-    const verification = await startCustomerPhoneVerification(contact)
+    const verification = await startCustomerPhoneVerification(
+      contact,
+      requestedChannel
+    )
     if (verification.status === "unavailable") {
       return {
         fields: { contact },
@@ -86,6 +96,7 @@ export async function requestCustomerLoginOtpAction(
         },
       }
     }
+    sentChannel = verification.channel
   }
 
   try {
@@ -93,6 +104,7 @@ export async function requestCustomerLoginOtpAction(
       purpose: "wallet",
       phone: contact,
       country: normalized.phone.country,
+      channel: sentChannel,
     })
   } catch (error) {
     logVerificationSendFailure("wallet", error)

@@ -190,6 +190,13 @@
     "optional": true
   },
   {
+    "name": "CUSTOMER_OTP_PRIMARY_CHANNEL",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Channel that carries a customer's one-time code first: whatsapp (default) or sms. The other channel stays available as the guest's alternative and the automatic fallback. whatsapp requires a WhatsApp sender enabled on the Twilio Verify service.",
+    "optional": true
+  },
+  {
     "name": "CUSTOMER_SESSION_SECRET",
     "visibility": "server",
     "kind": "string",

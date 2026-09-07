@@ -54,7 +54,7 @@ test("capacity refusal is neutral and skips provider work on both public paths",
   ]) {
     const action = read(...segments)
     const admission = action.indexOf("const admitted =")
-    const provider = action.indexOf("startCustomerPhoneVerification(contact)")
+    const provider = action.indexOf("startCustomerPhoneVerification(")
     assert.ok(admission >= 0 && provider > admission)
     assert.match(action.slice(admission, provider + 80), /if \(admitted\)/)
     assert.doesNotMatch(

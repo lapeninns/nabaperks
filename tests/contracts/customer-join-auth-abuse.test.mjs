@@ -31,8 +31,9 @@ test("Given customer OTP dispatch When policy source is inspected Then GB-only p
   assert.match(phone, /parsed\.country !== "GB"/)
   assert.ok(
     join.indexOf("getMerchantJoinContext") <
-      join.indexOf("startCustomerPhoneVerification(contact)"),
-    "merchant and QR context must be validated before SMS dispatch"
+      join.indexOf("startCustomerPhoneVerification(") &&
+      join.indexOf("startCustomerPhoneVerification(") > -1,
+    "merchant and QR context must be validated before code dispatch"
   )
   assert.match(verification, /AbortSignal\.timeout\(providerTimeoutMs\)/)
   assert.match(verification, /process\.env\.VERCEL_ENV !== "preview"/)

@@ -77,7 +77,9 @@ test.describe("@customer-flow referral attribution live DB", () => {
         page.getByRole("heading", { name: "Save your stamp to your number" })
       ).toBeVisible()
       await page.locator("#contact").fill(friendPhone.national)
-      await page.getByRole("button", { name: "Text me the code" }).click()
+      await page
+        .getByRole("button", { name: "Send my code on WhatsApp" })
+        .click()
       await expect(
         page.getByRole("heading", { name: "Enter your code" })
       ).toBeVisible()
@@ -156,7 +158,9 @@ test.describe("@customer-flow referral attribution live DB", () => {
         referrer.referralCode
       )
       await page.locator("#contact").fill(friendPhone.national)
-      await page.getByRole("button", { name: "Text me the code" }).click()
+      await page
+        .getByRole("button", { name: "Send my code on WhatsApp" })
+        .click()
       await page.locator("#otp").fill(DEV_OTP)
       await page.getByRole("button", { name: "Check code" }).click()
       await page.getByLabel(/Loyalty terms/i).check()

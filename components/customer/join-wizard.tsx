@@ -103,6 +103,7 @@ function PhoneStep({
       <CustomerIdentityForm
         merchantSlug={exp.merchant.slug}
         qrId={exp.qrId}
+        channel={exp.channel}
         referralCode={referralCode}
       />
     </JoinShell>
@@ -128,6 +129,7 @@ function OtpStep({
         merchantSlug={exp.merchant.slug}
         qrId={exp.qrId}
         contactLast4={exp.contactLast4}
+        channel={exp.channel}
         referralCode={referralCode}
       />
     </JoinShell>
