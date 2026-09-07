@@ -67,8 +67,8 @@ rounded:
   stamp: 9999px
 spacing:
   base: 4px
-  card-gap: 14px
-  section-gap: 22px
+  card-gap: 24px
+  section-gap: 24px
   max-width-customer: 410px
   max-width-merchant: 1152px
   max-width-marketing: 1152px
@@ -218,7 +218,9 @@ transparent)`). The 85% mix is a floor, not a taste choice: composited over
 
 ## Layout & Spacing
 
-4px base unit. 14px gaps between cards, 22px between sections. Customer
+4px base unit, and every shipped gap is a multiple of it. 24px (`gap-6`) is
+the dominant gap, between cards and between sections alike; tighter clusters
+step down through 16px, 12px and 8px. Customer
 column max ~410px (thumb zone — use the `max-w-customer` utility, minted from
 `--container-customer`, so one journey ships one width), merchant 1152px
 (`max-w-merchant`), marketing content 1152px (`max-w-marketing`), and
