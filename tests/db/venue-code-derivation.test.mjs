@@ -134,7 +134,6 @@ test("no API role can read the seed or derive a code", { skip }, async () => {
   for (const role of ["anon", "authenticated", "service_role"]) {
     const [row] = await sql`
       select
-        has_schema_privilege(${role}, 'private', 'USAGE') as schema_usage,
         has_table_privilege(${role}, 'private.venue_code_seeds', 'SELECT') as seed_select,
         has_function_privilege(
           ${role}, 'private.venue_code_for(uuid, timestamptz)', 'EXECUTE'
@@ -142,7 +141,9 @@ test("no API role can read the seed or derive a code", { skip }, async () => {
         has_function_privilege(
           ${role}, 'private.venue_code_day(timestamptz)', 'EXECUTE'
         ) as day`
-    assert.equal(row.schema_usage, false, `${role} has no usage on private`)
+    // Schema-level USAGE is deliberately granted (20260902138000) so PostgREST
+    // can call the private pre-request guard on every request; containment here
+    // is per object, and USAGE alone reaches nothing.
     assert.equal(row.seed_select, false, `${role} cannot read seeds`)
     assert.equal(row.derive, false, `${role} cannot derive a code`)
     assert.equal(row.day, false, `${role} cannot call venue_code_day`)
