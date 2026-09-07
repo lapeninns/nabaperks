@@ -287,9 +287,15 @@ paired grouping benchmark or proof of full-main/nightly coverage.
 
 ### Reviewed follow-up preparation
 
-The disposable Lima adapter now preserves raw log bytes through signing and
-base64 audit persistence, including bounded partial timeout output. Cleanup
-requires provider-read ownership nonce, attempt, source and runtime bindings.
+This preparation is deliberately **not** carried on the reviewed core branch.
+It lives on `codex/ci-redesign-followup-prep`, which contains the core plus the
+three prepared adapters, so the core pull request stays reviewable and its code
+scanning surface stays limited to the redesign itself. None of it is activated,
+and none of it is a merge prerequisite.
+
+The disposable Lima adapter preserves raw log bytes through signing and base64
+audit persistence, including bounded partial timeout output. Cleanup requires
+provider-read ownership nonce, attempt, source and runtime bindings.
 Independent reproductions confirmed split UTF-8/invalid bytes remain exact and
 a colliding foreign VM is not deleted. Lima template validation passed; no
 disposable VM was created. Root-protected runtime installation, dedicated
@@ -301,7 +307,9 @@ passing fixture tests. Host-only receipts bind the entire result, policy,
 lifecycle, configuration and measurement bundle, plus experiment definition
 and budget. Its prepared eight-shard versus unsharded arms do not change
 active wrappers, profiles or coverage. Every experimental result retains
-`activation: false`.
+`activation: false`. Its generated Playwright configuration is built by string
+interpolation and code scanning reports it as unsanitised code construction;
+that must be resolved on the follow-up branch before any activation.
 
 The pristine Supabase platform provisioner has independent source review and
 seven passing fixture tests. It requires empty private DinD, pinned images,
@@ -309,3 +317,23 @@ an authentic blank platform clone and a one-use target marker; cleanup is
 restricted to the exact project. Actual platform startup, populated upgrade,
 application probes and real SQL failure injection remain separate service
 proof obligations.
+
+### Code scanning state
+
+Seven of the eight alerts recorded against the core commit are closed at their
+source boundaries. Four filesystem-race reports are closed by inspecting and
+reading a single opened descriptor; the observation path no longer derives its
+request target from file data.
+
+Four findings remain open and are assessed as false positives on guarded code.
+They are not dismissed. Three `js/file-access-to-http` reports on
+`deliverEvent` follow the configured receiver URL and the alert payload, both
+of which are rebuilt from validated primitives: the receiver must be public
+HTTPS with no credentials, port, query or fragment, must not share a monitored
+or control-plane domain, and must match the reviewed paging hostname binding;
+every delivered field is a literal constant, a format-checked UUID or a
+canonical ISO timestamp. One `js/shell-command-injection-from-environment`
+report covers a test that passes the interpreter and fixture paths as `sh`
+positional parameters rather than interpolating them. A reviewer must decide
+between a justified dismissal and restructuring these call sites; neither has
+been done unilaterally.
