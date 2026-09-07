@@ -175,7 +175,7 @@ export async function clearPendingAccessRecovery(): Promise<void> {
 }
 
 export type CustomerSessionContinuitySource =
-  "new_identity" | "recognised_device" | "verified_email"
+  "new_identity" | "recognised_device" | "verified_email" | "verified_phone"
 
 export async function setCustomerSession(
   customerId: string,

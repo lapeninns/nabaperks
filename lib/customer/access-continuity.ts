@@ -21,6 +21,14 @@ import {
 } from "@/lib/security/rate-limit"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
+// SEC-RISK-001 is deliberately reopened: a verified phone OTP alone opens an
+// existing wallet from any browser or device. The device-continuity gate and
+// its verified-email recovery journey stay wired below so the control is
+// restored by flipping this one constant and reverting
+// supabase/migrations/20260908120000_allow_verified_phone_continuity.sql.
+// See docs/operations/security-risk-register.md.
+const REQUIRE_DEVICE_CONTINUITY: boolean = false
+
 type EstablishCustomerAccessInput = {
   customer: CurrentCustomer
   customerWasCreated: boolean
@@ -72,14 +80,19 @@ export async function establishCustomerSessionAfterVerifiedPhone({
     return "authenticated"
   }
 
-  await startCustomerAccessRecovery({
-    customer,
-    phoneHmac,
-    deviceHash,
-    next,
-  })
-  await clearPendingPhoneVerification()
-  return "recovery"
+  if (REQUIRE_DEVICE_CONTINUITY) {
+    await startCustomerAccessRecovery({
+      customer,
+      phoneHmac,
+      deviceHash,
+      next,
+    })
+    await clearPendingPhoneVerification()
+    return "recovery"
+  }
+
+  await setCustomerSession(customer.id, "verified_phone")
+  return "authenticated"
 }
 
 export async function verifyCustomerAccessRecovery(
