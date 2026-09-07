@@ -63,6 +63,7 @@ export async function loadJoinExperienceContext(
     name: context.loyaltyCard.card_name,
     stampsRequired: context.loyaltyCard.stamps_required,
     rewardTerms: context.loyaltyCard.reward_terms,
+    rewardExamples: context.loyaltyCard.reward_examples,
   }
   // Geofence gate is only consumed by the final terms step (the only screen that
   // can issue the first stamp), so default it cheaply and resolve the real value

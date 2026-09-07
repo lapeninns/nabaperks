@@ -27,8 +27,25 @@ test("the join lookup is cached in two stages under the merchant tag, with no si
 
   // Stage B holds every mutable field under the merchant tag that all
   // merchant, admin and Stripe writers already revalidate.
-  assert.match(lookup, /\["qr-join-context", merchantId, qrCodeId\]/)
-  assert.match(lookup, /\["merchant-join-context", merchantId\]/)
+  // Stage B keys carry a shape version so a deploy that changes the row shape
+  // never reads an entry the previous deploy wrote.
+  assert.match(
+    lookup,
+    /\["qr-join-context", JOIN_CONTEXT_SHAPE, merchantId, qrCodeId\]/
+  )
+  assert.match(
+    lookup,
+    /\["merchant-join-context", JOIN_CONTEXT_SHAPE, merchantId\]/
+  )
+  assert.match(lookup, /JOIN_CONTEXT_SHAPE = "v\d+"/)
+  // The reward-pool embed must name its foreign key: two relationships exist
+  // between reward_pool_items and loyalty_cards, and an unhinted embed fails
+  // the whole lookup.
+  assert.match(
+    lookup,
+    /reward_pool_items!reward_pool_items_loyalty_card_id_fkey\(reward_name, is_active, display_order\)/
+  )
+  assert.doesNotMatch(lookup, /[^!]reward_pool_items\(/)
   assert.equal(
     (lookup.match(/\[merchantCacheTag\(merchantId\)\]/g) ?? []).length,
     2
