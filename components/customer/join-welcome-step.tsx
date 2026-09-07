@@ -1,23 +1,17 @@
 import Link from "next/link"
 
-import { VenueMark } from "@/components/brand"
 import { CustomerFlowShell } from "@/components/customer/customer-flow-system"
 import { JoinActionBar } from "@/components/customer/join-action-bar"
+import { JoinOfferJourney } from "@/components/customer/join-offer-journey"
 import { CustomerVenueTermsSheet } from "@/components/customer/legal-sheet"
-import { RewardSeal, StampGrid } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import {
   JOIN_WELCOME_HOW_IT_WORKS,
   JOIN_WELCOME_HOW_IT_WORKS_LABEL,
   JOIN_WELCOME_PHONE_REASSURANCE,
-  joinUnlockingRewardHook,
   type CustomerExperienceViewModel,
 } from "@/lib/customer/experience/copy"
-import type {
-  CustomerExperience,
-  JoinCard,
-  JoinMerchant,
-} from "@/lib/customer/experience/types"
+import type { CustomerExperience } from "@/lib/customer/experience/types"
 import { buildCustomerJoinHref } from "@/lib/navigation/customer-join-intent"
 
 const ONBOARDING_STEPS = 3
@@ -46,7 +40,7 @@ export function WelcomeStep({
       dense
       screenLabel="Customer join"
     >
-      <JoinOfferCard merchant={exp.merchant} card={exp.card} />
+      <JoinOfferJourney merchant={exp.merchant} card={exp.card} />
       {vm.primaryAction ? (
         <JoinActionBar note={JOIN_WELCOME_PHONE_REASSURANCE}>
           <Button asChild size="lg" className="w-full">
@@ -73,46 +67,6 @@ export function WelcomeStep({
         triggerClassName="inline-flex w-fit text-xs font-bold underline underline-offset-4"
       />
     </CustomerFlowShell>
-  )
-}
-
-/**
- * The offer in one compact card: venue mark, card name, the stamp journey as
- * a single row with the sealed reward at its end, and the reward hook as one
- * line. The full receipt (headline, ticket, footer) belongs to the card the
- * customer owns after joining, not to the pitch.
- */
-function JoinOfferCard({
-  merchant,
-  card,
-}: {
-  merchant: JoinMerchant
-  card: JoinCard
-}) {
-  return (
-    <div className="surface-card grid gap-3 p-3 text-left sm:p-4">
-      <div className="flex items-center gap-3">
-        <VenueMark size={44} name={merchant.name} className="shrink-0" />
-        <div className="grid min-w-0 flex-1 gap-0.5">
-          <span className="eyebrow text-muted-foreground">{merchant.name}</span>
-          <span className="line-clamp-2 text-base leading-tight font-extrabold break-words">
-            {card.name}
-          </span>
-        </div>
-        <RewardSeal state="sealed" size="sm" wiggle className="shrink-0" />
-      </div>
-      <StampGrid
-        current={0}
-        total={card.stampsRequired}
-        showEmptySlotNumbers
-        rewardSlot="locked"
-        venueName={merchant.name}
-        compact
-      />
-      <p className="text-sm leading-snug font-semibold">
-        {joinUnlockingRewardHook(card.stampsRequired)}.
-      </p>
-    </div>
   )
 }
 
