@@ -38,6 +38,8 @@ test("merchant OTP actions expose explicit signup and sign-in state machines", (
   assert.doesNotMatch(actions, /signInWithPassword|resetPasswordForEmail/)
   assert.doesNotMatch(actions, /auth\.updateUser\(\{\s*password/)
   assert.match(actions, /signInWithOtp/)
+  assert.match(actions, /signOut\(\{\s*scope:\s*"local"\s*\}\)/)
+  assert.doesNotMatch(actions, /signOut\(\s*\)/)
   assert.match(actions, /verifyOtp/)
   assert.match(actions, /Merchant OTP provider send failed/)
   assert.doesNotMatch(actions, /already has a venue account/i)

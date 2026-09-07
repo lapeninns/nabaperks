@@ -191,7 +191,8 @@ export async function passwordResetAction(
 
 export async function signOutAction() {
   const supabase = await createSupabaseServerClient()
-  await supabase.auth.signOut()
+  // This till or phone only. The Auth default (global) would sign every device out.
+  await supabase.auth.signOut({ scope: "local" })
   redirect("/login")
 }
 
