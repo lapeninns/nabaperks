@@ -12,7 +12,6 @@ import {
   addLocationCapture,
   resolveStampLocation,
   shouldAttemptStampLocation,
-  type StampLocationCapture,
 } from "@/components/customer/self-service-forms"
 import { StampPressButton } from "@/components/customer/stamp-press-button"
 import { VenueCodeForm } from "@/components/customer/venue-code-form"
@@ -129,8 +128,6 @@ export function StampCollector({
         location.firstVerifiedVisit
       )
   )
-  const locationPromiseRef =
-    useRef<Promise<StampLocationCapture | null> | null>(null)
   const requestInFlightRef = useRef(false)
   const refresh = refreshCard ?? router.refresh
   const view = stampChoreographyView(state, {
@@ -143,11 +140,10 @@ export function StampCollector({
   })
 
   useEffect(() => {
-    if (!locationNotice) {
-      locationPromiseRef.current = Promise.resolve(null)
-      return
-    }
-    locationPromiseRef.current = resolveStampLocation(true)
+    if (!locationNotice) return
+    // Warm the permission prompt and GPS chip. The stamp request captures a
+    // fresh fix when the customer actually collects, so this result is unused.
+    void resolveStampLocation(true)
   }, [locationNotice, membershipId, qrId])
 
   useEffect(() => {
@@ -234,9 +230,9 @@ export function StampCollector({
     markStampPhase("checking")
 
     try {
-      const locationCapture =
-        (await locationPromiseRef.current) ??
-        (locationNotice ? await resolveStampLocation(true) : null)
+      const locationCapture = locationNotice
+        ? await resolveStampLocation(true)
+        : null
       const formData = new FormData()
       formData.set("membershipId", membershipId)
       formData.set("qrId", qrId)

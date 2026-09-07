@@ -14,6 +14,22 @@ const choreography = read("lib/customer/experience/stamp-choreography.ts")
 const action = read("app/card/[membershipId]/actions.ts")
 const actionState = read("lib/customer/self-stamp-action-state.ts")
 
+test("GPS is captured when the customer stamps, not from a stale page-load promise", () => {
+  const issueStart = collector.indexOf("async function issueStamp")
+  const issueEnd = collector.indexOf("async function issueWithCode")
+  const body = collector.slice(issueStart, issueEnd)
+  assert.match(
+    body,
+    /await resolveStampLocation\(true\)/,
+    "the stamp action must take a fresh GPS reading at collect time"
+  )
+  assert.doesNotMatch(
+    body,
+    /locationPromiseRef/,
+    "a page-load GPS promise must not be submitted as the stamp location"
+  )
+})
+
 test("pending never renders an optimistic earned stamp", () => {
   assert.doesNotMatch(
     collector,
