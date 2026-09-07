@@ -25,6 +25,10 @@ type AppSurface = "admin" | "customer" | "marketing" | "merchant"
 type InstallCopy = { readonly title: string; readonly description: string }
 
 const DISMISS_STORAGE_KEY = "nabaperks:pwa-install-dismissed:v2"
+/** Customer surface views this session; the prompt waits for the second. */
+const CUSTOMER_VIEWS_STORAGE_KEY = "nabaperks:pwa-customer-views"
+/** Breathing room after the second view lands before the prompt appears. */
+const CUSTOMER_PROMPT_DELAY_MS = 3000
 const CUSTOMER_PREFIXES = ["/home", "/card", "/reward", "/m", "/q"] as const
 const MERCHANT_PREFIXES = ["/app"] as const
 const IOS_INSTALL_DESCRIPTION =
@@ -141,6 +145,12 @@ export function AppPwa() {
   const [isIos, setIsIos] = useState(false)
   const [isEditingText, setIsEditingText] = useState(false)
   const [dismissed, setDismissed] = useState(false)
+  // A customer's first screen is a card they just earned or a stamp that
+  // just landed; an install offer over that moment competes with it. Count
+  // customer views per session and prompt from the second one, after a beat.
+  // The path that became ready is stored (not a boolean) so a navigation
+  // resets eligibility without a synchronous state write in the effect.
+  const [readyPath, setReadyPath] = useState<string | null>(null)
 
   const surface = useMemo(() => routeSurface(pathname), [pathname])
   const copy = useMemo(() => INSTALL_COPY[surface], [surface])
@@ -227,6 +237,25 @@ export function AppPwa() {
   }, [])
 
   useEffect(() => {
+    if (surface !== "customer") return
+    let views = 1
+    try {
+      views =
+        Number(window.sessionStorage.getItem(CUSTOMER_VIEWS_STORAGE_KEY)) + 1
+      window.sessionStorage.setItem(CUSTOMER_VIEWS_STORAGE_KEY, String(views))
+    } catch {
+      views = 2
+    }
+    if (views < 2) return
+    const timer = window.setTimeout(
+      () => setReadyPath(pathname),
+      CUSTOMER_PROMPT_DELAY_MS
+    )
+    return () => window.clearTimeout(timer)
+  }, [surface, pathname])
+  const customerReady = readyPath === pathname
+
+  useEffect(() => {
     const onBeforeInstallPrompt = (event: Event) => {
       if (!isBeforeInstallPromptEvent(event)) return
 
@@ -253,6 +282,7 @@ export function AppPwa() {
     // and customer switchboard, where the install offer is the point (this is
     // what makes INSTALL_COPY.marketing reachable).
     (surface === "marketing" && pathname !== "/start") ||
+    (surface === "customer" && !customerReady) ||
     isStandalone ||
     isEditingText ||
     dismissed

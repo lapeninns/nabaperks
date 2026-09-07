@@ -27,10 +27,18 @@ export function ReferralSharePanel({
   url,
   membershipId,
   venueName,
+  compact = false,
 }: {
   url: string
   membershipId: string
   venueName: string
+  /**
+   * One row — icon, the offer in five words, the share button — with the
+   * explanation, copy link and management controls folded behind a
+   * disclosure. The collecting card uses this so the stamp card owns the
+   * first screen; the full panel stays for surfaces with room.
+   */
+  compact?: boolean
 }) {
   const [copied, setCopied] = useState(false)
   const router = useRouter()
@@ -81,6 +89,85 @@ export function ReferralSharePanel({
       // Share sheet dismissed or unavailable — fall back to copying the link.
     }
     await copyLink()
+  }
+
+  if (compact) {
+    return (
+      <section
+        data-testid="referral-share-panel"
+        className="grid gap-2 rounded-lg border-2 border-ink bg-card p-3 text-left shadow-xs"
+      >
+        <div className="flex items-center gap-3">
+          <span className="grid size-9 shrink-0 -rotate-6 place-items-center rounded-md border-2 border-ink bg-cobalt text-paper shadow-xs">
+            <Icon icon={UserMultiple02Icon} size={18} strokeWidth={2.25} />
+          </span>
+          <div className="grid min-w-0 flex-1 gap-0.5">
+            <h2 className="text-sm leading-tight font-black text-foreground">
+              Bring a regular
+            </h2>
+            <p className="text-xs leading-snug text-ink-soft">
+              They get a card, you get a bonus stamp.
+            </p>
+          </div>
+          <Button type="button" size="sm" onClick={share} className="shrink-0">
+            <Icon icon={LinkSquare02Icon} size={16} />
+            Share your link
+          </Button>
+        </div>
+        <span
+          data-testid="referral-share-url"
+          data-url={url}
+          className="sr-only"
+        >
+          {url}
+        </span>
+        <details className="group text-left">
+          <summary className="focus-ring flex w-fit cursor-pointer list-none items-center gap-1 rounded-sm text-xs font-bold text-ink-soft underline-offset-4 hover:underline [&::-webkit-details-marker]:hidden">
+            More options
+            <span
+              aria-hidden="true"
+              className="transition-transform duration-[var(--w-dur-fast)] ease-[var(--w-ease)] group-open:rotate-45 motion-reduce:transition-none"
+            >
+              +
+            </span>
+          </summary>
+          <div className="mt-2 grid gap-2">
+            <p className="text-xs leading-5 text-ink-soft">
+              Share your link. When they collect their first stamp, your card
+              gets one bonus stamp.
+            </p>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={copyLink}
+              className="w-full"
+            >
+              <Icon icon={copied ? Tick02Icon : LinkSquare02Icon} size={16} />
+              {copied ? "Copied" : "Copy link"}
+            </Button>
+            <div className="flex items-center gap-4 text-xs">
+              <button
+                type="button"
+                onClick={resetLink}
+                disabled={managing}
+                className="focus-ring inline-flex items-center rounded-sm px-1 font-semibold text-ink-soft underline underline-offset-2 disabled:opacity-50 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:px-2"
+              >
+                Reset link
+              </button>
+              <button
+                type="button"
+                onClick={pauseInvites}
+                disabled={managing}
+                className="focus-ring inline-flex items-center rounded-sm px-1 font-semibold text-ink-soft underline underline-offset-2 disabled:opacity-50 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:px-2"
+              >
+                Pause invites
+              </button>
+            </div>
+          </div>
+        </details>
+      </section>
+    )
   }
 
   return (
