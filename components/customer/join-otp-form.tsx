@@ -75,7 +75,7 @@ export function CustomerOtpForm({
             <input type="hidden" name="ref" value={referralCode ?? ""} />
             <div className="grid gap-2">
               <label htmlFor="otp" className="eyebrow">
-                Text code
+                Your code
               </label>
               <CustomerOtpInput
                 id="otp"
@@ -99,7 +99,7 @@ export function CustomerOtpForm({
                   id="otp-hint"
                   className="text-xs leading-5 text-muted-foreground"
                 >
-                  Paste or enter the verification code sent to your phone.
+                  Paste or type the code from the text.
                 </p>
               )}
             </div>

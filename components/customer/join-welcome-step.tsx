@@ -109,9 +109,8 @@ function JoinOfferCard({
         venueName={merchant.name}
         compact
       />
-      <p className="text-sm leading-snug text-muted-foreground">
-        {joinUnlockingRewardHook(card.stampsRequired)}, yours from the next UK
-        business day.
+      <p className="text-sm leading-snug font-semibold">
+        {joinUnlockingRewardHook(card.stampsRequired)}.
       </p>
     </div>
   )

@@ -39,7 +39,7 @@ test.describe("OTP resilience", () => {
       if (!fixture) return
 
       await page.goto(`${publicQrPath(fixture.activeQrId)}?ref=FRIEND01`)
-      await page.getByRole("link", { name: "Get today's stamp" }).click()
+      await page.getByRole("link", { name: "Claim my first stamp" }).click()
       await page.locator("#contact").fill("+1 202 555 0123")
       await page.getByRole("button", { name: "Text me the code" }).click()
       await expect(page.getByText("Enter a UK phone number.")).toBeVisible()

@@ -159,7 +159,6 @@ function TermsStep({
         qrId={exp.qrId}
         merchantName={exp.merchant.name}
         card={exp.card}
-        requireGeofence={exp.location.requireGeofence}
         referralCode={referralCode}
       />
     </JoinShell>
@@ -235,7 +234,7 @@ function TermsFirstStampPreview({
       merchant={merchant}
       card={card}
       eyebrow="Your first stamp"
-      hook={`Stamp 1 of ${Math.max(card.stampsRequired, 1)} prints onto your card when you accept.`}
+      hook="Lands on your card the moment you accept."
     />
   )
 }
@@ -253,7 +252,7 @@ function TermsSavedCardPreview({
       merchant={merchant}
       card={card}
       eyebrow="Your saved card"
-      hook="Scan the venue QR when you're there to collect stamp 1."
+      hook="Scan the venue QR on your next visit for stamp 1."
     />
   )
 }
@@ -307,12 +306,7 @@ function JoinHeroCard({
       reward={{
         state: "sealed",
         name: MYSTERY_REWARD_SEALED_LABEL,
-        description: (
-          <>
-            Your assigned reward stays hidden until the final stamp and can be
-            redeemed from the next UK business day.
-          </>
-        ),
+        description: <>Your reward stays a surprise until the final stamp.</>,
       }}
     >
       {children}
