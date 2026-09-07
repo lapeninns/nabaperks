@@ -2,7 +2,7 @@ import { expect, test, type BrowserContext, type Page } from "@playwright/test"
 
 import { verifyCustomerDeviceToken } from "@/lib/security/customer-device-token"
 
-import { connectLocalDb, type Sql } from "./helpers/admin-live-db"
+import { connectLocalDb } from "./helpers/admin-live-db"
 import { customerReadbackLiveDbSkipReason } from "./helpers/customer-readback-live-db"
 import { dismissPwaInstall } from "./helpers/harness"
 import {
@@ -58,12 +58,11 @@ test.describe("@customer-flow public QR router live DB", () => {
 
       await expectUnavailableQr(page, fixture.inactiveQrId)
 
-      await pauseMerchant(sql, fixture)
-      await expectUnavailableQr(page, fixture.activeQrId)
-
-      await activateMerchant(sql, fixture)
-      await lapseBilling(sql, fixture)
-      await expectUnavailableQr(page, fixture.activeQrId)
+      // Paused-merchant and lapsed-billing venues are seeded closed rather than
+      // flipped mid-test: the public QR lookup is served from a 60s data cache
+      // keyed by merchant, and a direct SQL flip fires no revalidation tag.
+      await expectUnavailableQr(page, fixture.pausedQrId)
+      await expectUnavailableQr(page, fixture.lapsedBillingQrId)
     } finally {
       await cleanupPublicQrRateLimitBuckets(sql, rateLimitBucketKeys)
       await cleanupPublicQrRouterFixture(sql, fixture)
@@ -202,34 +201,4 @@ async function installCustomerSession(
       expires: fixture.session.expiresAt,
     },
   ])
-}
-
-async function pauseMerchant(
-  sql: Sql,
-  fixture: PublicQrRouterFixture
-): Promise<void> {
-  await sql`
-    update public.merchants
-    set status = 'paused'
-    where id = ${fixture.merchantId}::uuid`
-}
-
-async function activateMerchant(
-  sql: Sql,
-  fixture: PublicQrRouterFixture
-): Promise<void> {
-  await sql`
-    update public.merchants
-    set status = 'active'
-    where id = ${fixture.merchantId}::uuid`
-}
-
-async function lapseBilling(
-  sql: Sql,
-  fixture: PublicQrRouterFixture
-): Promise<void> {
-  await sql`
-    update public.billing_customers
-    set status = 'past_due'
-    where merchant_id = ${fixture.merchantId}::uuid`
 }

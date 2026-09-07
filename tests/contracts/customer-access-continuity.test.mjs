@@ -125,5 +125,8 @@ test("static QR and customer loyalty routes remain outside the continuity patch"
   assert.match(qr, /\/card\/\$\{membership\.id\}\/stamp\?qr=/)
   assert.match(qr, /buildCustomerJoinHref/)
   assert.match(join, /destinationForReturningQrVisit/)
+  // A customer minted in this request cannot already hold a card, so the
+  // returning-member lookup is skipped for them.
+  assert.match(join, /if \(qrId && !resolution\.created\)/)
   assert.match(join, /joinRewardsAction/)
 })

@@ -43,6 +43,13 @@ test("Given customer OTP dispatch When policy source is inspected Then GB-only p
   assert.match(limits, /customerPhoneHmac\(phone\)/)
   assert.match(limits, /if \(!error\) return true/)
   assert.match(limits, /rate limit exceeded[\s\S]*return false/i)
+  // OTP guesses are admitted by one RPC that debits both buckets atomically.
+  assert.match(limits, /admit_customer_otp_verify/)
+  assert.match(limits, /customerOtpVerifyPhoneRateLimitKey\(phone\)/)
+  assert.match(
+    limits,
+    /customerOtpVerifyIdentityRateLimitKey\(requestIdentity\)/
+  )
   assert.match(
     envCheck,
     /CUSTOMER_OTP_BYPASS_MODE must be blank outside local development/

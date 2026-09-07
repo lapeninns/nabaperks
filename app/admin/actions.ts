@@ -8,7 +8,12 @@ import {
   adminActionSuccess,
   type AdminActionState,
 } from "@/lib/admin/action-state"
-import { qrImageContextCacheTag, revalidateCacheTag } from "@/lib/cache/tags"
+import { createAdminServiceRoleClient } from "@/lib/admin/service-role"
+import {
+  qrImageContextCacheTag,
+  revalidateCacheTag,
+  revalidateMerchantCacheTags,
+} from "@/lib/cache/tags"
 import { buildExportDownload } from "@/lib/admin/data-export"
 import { MARKETING_POLICY_VERSION } from "@/lib/customer/consent"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
@@ -179,6 +184,22 @@ export async function resolveFraudFlagAction(
   )
 }
 
+/**
+ * The customer join lookup is cached under the merchant tag, so an admin QR
+ * change must fan out to that tag. The merchant id is read server-side from
+ * the QR row, never from the form, and resolved before the RPC so a
+ * regeneration (which deactivates the old row) still has it.
+ */
+async function merchantIdForQrCode(qrCodeId: string): Promise<string | null> {
+  const supabase = await createAdminServiceRoleClient()
+  const { data } = await supabase
+    .from("qr_codes")
+    .select("merchant_id")
+    .eq("id", qrCodeId)
+    .maybeSingle()
+  return typeof data?.merchant_id === "string" ? data.merchant_id : null
+}
+
 export async function setQrActiveAction(
   _previousState: AdminActionState,
   formData: FormData
@@ -195,6 +216,7 @@ export async function setQrActiveAction(
     return adminActionError("Operator reason is required.")
   }
 
+  const merchantId = await merchantIdForQrCode(qrCodeId)
   const supabase = await createSupabaseServerClient()
   const { error } = await supabase.rpc("admin_set_qr_active", {
     p_qr_code_id: qrCodeId,
@@ -209,6 +231,7 @@ export async function setQrActiveAction(
   if (failure) return failure
 
   revalidateCacheTag(qrImageContextCacheTag(qrCodeId))
+  if (merchantId) revalidateMerchantCacheTags(merchantId)
   revalidatePath("/admin/merchants")
   revalidatePath("/admin/audit")
   return adminActionSuccess(
@@ -233,6 +256,7 @@ export async function regenerateQrAction(
     return adminActionError("Operator reason is required.")
   }
 
+  const merchantId = await merchantIdForQrCode(qrCodeId)
   const supabase = await createSupabaseServerClient()
   const { error } = await supabase.rpc("admin_regenerate_qr_code", {
     p_qr_code_id: qrCodeId,
@@ -246,6 +270,7 @@ export async function regenerateQrAction(
   if (failure) return failure
 
   revalidateCacheTag(qrImageContextCacheTag(qrCodeId))
+  if (merchantId) revalidateMerchantCacheTags(merchantId)
   revalidatePath("/admin/merchants")
   revalidatePath("/admin/audit")
   return adminActionSuccess("QR code regenerated. Logged to the audit trail.")

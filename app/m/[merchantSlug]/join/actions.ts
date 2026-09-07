@@ -127,11 +127,7 @@ export async function requestCustomerIdentityAction(
 
   let joinContext: Awaited<ReturnType<typeof getMerchantJoinContext>>
   try {
-    joinContext = await getMerchantJoinContext(
-      merchantSlug,
-      qrId || undefined,
-      requestIdentity
-    )
+    joinContext = await getMerchantJoinContext(merchantSlug, qrId || undefined)
   } catch {
     logger.error("customer_join_otp_context_failed", {
       operation: "validate_before_otp_send",
@@ -323,11 +319,13 @@ export async function verifyCustomerOtpAction(
   if (access === "recovery") redirect("/home/recover")
   await clearPendingPhoneVerification()
 
-  if (qrId) {
+  // A customer created seconds ago cannot hold a card here yet, so the
+  // returning-member lookup only runs for an existing identity.
+  if (qrId && !resolution.created) {
     const destination = await destinationForReturningQrVisit(
       merchantSlug,
       qrId,
-      requestIdentity
+      customer.id
     )
     if (destination) redirect(destination)
   }
