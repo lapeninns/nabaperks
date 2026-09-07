@@ -8,10 +8,10 @@ import {
   verifyProfileEmailAction,
   type ProfileGateActionState,
 } from "@/app/reward/[rewardId]/actions"
+import { CustomerOtpInput } from "@/components/customer/customer-otp-input"
 import { profileInputClass } from "@/components/customer/profile-form-parts"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
-import { otpFieldMaxLength } from "@/lib/customer/experience/otp-field"
 import type { ProfileGate } from "@/lib/customer/experience/types"
 import { latestAdultBirthDate } from "@/lib/customer/profile-fields"
 
@@ -154,12 +154,9 @@ function ProfileEmailStep({
           <label htmlFor="profile-otp" className="eyebrow">
             Email code
           </label>
-          <input
+          <CustomerOtpInput
             id="profile-otp"
             name="otp"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            maxLength={otpFieldMaxLength()}
             className={`${profileInputClass} font-mono`}
             aria-invalid={Boolean(state.errors?.otp)}
             aria-describedby={
