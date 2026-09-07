@@ -17,6 +17,8 @@ import {
   customerOtpDispatchSustainedLimit,
   customerOtpDispatchSustainedRateLimitKey,
   customerOtpDispatchSustainedWindowMs,
+  customerOtpRateLimitWindowMs,
+  customerOtpVerifyRateLimit,
 } from "@/lib/customer/otp-rate-limit-core"
 
 test("Given send requests for one phone from different identities When buckets are built Then the phone bucket is stable", () => {
@@ -130,4 +132,11 @@ test("anonymous exhaustion leaves protected burst and sustained capacity", () =>
     customerOtpAnonymousSustainedRateLimitKey("join"),
     customerOtpDispatchSustainedRateLimitKey("join")
   )
+})
+
+test("the OTP verify limits match the admit_customer_otp_verify migration", () => {
+  // The RPC bakes these in (5 per 15 minutes, per phone and per identity); the
+  // app-side constants feed only the one-release fallback, so they must agree.
+  assert.equal(customerOtpVerifyRateLimit, 5)
+  assert.equal(customerOtpRateLimitWindowMs, 900_000)
 })

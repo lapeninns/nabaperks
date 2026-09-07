@@ -13,9 +13,11 @@ import {
 import { customerPhoneHmac } from "@/lib/customer/phone-pii"
 import { logger } from "@/lib/observability/logger"
 import {
+  RateLimitError,
   enforceRateLimit,
   rateLimitBucketHash,
 } from "@/lib/security/rate-limit"
+import { isMissingRpcError } from "@/lib/supabase/missing-rpc"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 type CustomerOtpRateLimitInput = {
@@ -63,18 +65,48 @@ export async function enforceCustomerOtpSendRateLimit({
   throw new Error(`Unable to enforce customer OTP admission: ${error.message}`)
 }
 
+/**
+ * Limit OTP guesses per phone and per request identity. Both buckets are
+ * debited inside one RPC transaction (`admit_customer_otp_verify`), so a
+ * rejection by either rolls back the other's debit. The limits live in the
+ * migration; the constants imported here feed only the one-release fallback
+ * and are pinned to the SQL by contract test.
+ */
 export async function enforceCustomerOtpVerifyRateLimit({
   phone,
   requestIdentity,
 }: CustomerOtpRateLimitInput): Promise<void> {
-  await enforceRateLimit({
-    key: customerOtpVerifyPhoneRateLimitKey(phone),
-    limit: customerOtpVerifyRateLimit,
-    windowMs: customerOtpRateLimitWindowMs,
+  const phoneKey = customerOtpVerifyPhoneRateLimitKey(phone)
+  const identityKey = customerOtpVerifyIdentityRateLimitKey(requestIdentity)
+  const supabase = createSupabaseServiceRoleClient()
+  const { error } = await supabase.rpc("admit_customer_otp_verify", {
+    p_phone_bucket: rateLimitBucketHash(phoneKey),
+    p_identity_bucket: rateLimitBucketHash(identityKey),
   })
-  await enforceRateLimit({
-    key: customerOtpVerifyIdentityRateLimitKey(requestIdentity),
-    limit: customerOtpVerifyRateLimit,
-    windowMs: customerOtpRateLimitWindowMs,
-  })
+
+  if (!error) return
+
+  if (/rate limit exceeded/i.test(error.message)) {
+    throw new RateLimitError()
+  }
+
+  if (isMissingRpcError(error)) {
+    // App deployed ahead of the migration: keep the previous shape for one
+    // release instead of failing every OTP check.
+    await enforceRateLimit({
+      key: phoneKey,
+      limit: customerOtpVerifyRateLimit,
+      windowMs: customerOtpRateLimitWindowMs,
+    })
+    await enforceRateLimit({
+      key: identityKey,
+      limit: customerOtpVerifyRateLimit,
+      windowMs: customerOtpRateLimitWindowMs,
+    })
+    return
+  }
+
+  throw new Error(
+    `Unable to enforce customer OTP verify admission: ${error.message}`
+  )
 }

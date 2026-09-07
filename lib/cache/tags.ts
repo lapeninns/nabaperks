@@ -32,13 +32,19 @@ export function qrImageContextCacheTag(qrCodeId: string) {
   return `${CACHE_TAGS.qrImageContext}:${qrCodeId}`
 }
 
+type CacheByScopeOptions = {
+  /** Override the default revalidation window (seconds). */
+  revalidateSeconds?: number
+}
+
 export function cacheByScope<Value>(
   load: () => Promise<Value>,
   keyParts: readonly string[],
-  tags: readonly string[]
+  tags: readonly string[],
+  options: CacheByScopeOptions = {}
 ) {
   return unstable_cache(load, [...keyParts], {
-    revalidate: CACHE_REVALIDATE_SECONDS,
+    revalidate: options.revalidateSeconds ?? CACHE_REVALIDATE_SECONDS,
     tags: [...tags],
   })()
 }

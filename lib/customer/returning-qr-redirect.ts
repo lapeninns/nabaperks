@@ -1,35 +1,34 @@
 import "server-only"
 
-import { getCurrentCustomer } from "@/lib/customer/identity"
 import {
-  getExistingMembershipForCurrentUser,
+  getMembershipForCustomer,
   getMerchantJoinContext,
 } from "@/lib/customer/join"
 
+/**
+ * Where a customer who just verified their phone on a QR join lands if they
+ * already hold a card at this venue: the stamp screen, so the visit counts.
+ * The caller passes the customer it already resolved; this never re-reads the
+ * session, and the join context behind it is a cache hit.
+ */
 export async function destinationForReturningQrVisit(
   merchantSlug: string,
   qrId: string,
-  scanRateLimitIdentity?: string
+  customerId: string
 ): Promise<string | null> {
-  const customer = await getCurrentCustomer()
-  if (!customer) return null
-
   let context: Awaited<ReturnType<typeof getMerchantJoinContext>>
 
   try {
-    context = await getMerchantJoinContext(
-      merchantSlug,
-      qrId,
-      scanRateLimitIdentity
-    )
+    context = await getMerchantJoinContext(merchantSlug, qrId)
   } catch {
     return null
   }
 
   if (!context?.available) return null
 
-  const membership = await getExistingMembershipForCurrentUser(
-    context.merchant.id
+  const membership = await getMembershipForCustomer(
+    context.merchant.id,
+    customerId
   )
   if (!membership) return null
 

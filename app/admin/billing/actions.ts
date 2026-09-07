@@ -8,6 +8,7 @@ import {
   type AdminActionState,
 } from "@/lib/admin/action-state"
 import { requireAdminAction } from "@/lib/admin/auth"
+import { revalidateMerchantCacheTags } from "@/lib/cache/tags"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 function value(formData: FormData, key: string): string {
@@ -27,7 +28,11 @@ function optionalDate(
     : { ok: false }
 }
 
-function revalidateBillingAdmin(): void {
+function revalidateBillingAdmin(merchantId: string): void {
+  // Defensive: these RPCs write fulfilment rows, not billing status, but the
+  // customer join lookup is cached under the merchant tag, so keep the fan-out
+  // uniform with every other merchant-scoped admin write.
+  revalidateMerchantCacheTags(merchantId)
   revalidatePath("/admin/billing")
   revalidatePath("/admin/audit")
   revalidatePath("/app/account")
@@ -57,7 +62,7 @@ export async function markLaunchDispatchedAction(
       "Dispatch could not be recorded. Review the current status and retry."
     )
   }
-  revalidateBillingAdmin()
+  revalidateBillingAdmin(merchantId)
   return adminActionSuccess("Poster dispatch recorded in the audit trail.")
 }
 
@@ -85,7 +90,7 @@ export async function confirmLaunchDeliveredAction(
       "Delivery could not be confirmed. Review the dispatch evidence and retry."
     )
   }
-  revalidateBillingAdmin()
+  revalidateBillingAdmin(merchantId)
   return adminActionSuccess(
     "Delivery confirmed. The 28-day platform pilot has started."
   )
@@ -115,7 +120,7 @@ export async function extendLaunchPilotAction(
       "The extension could not be saved. It must be later than the current pilot end."
     )
   }
-  revalidateBillingAdmin()
+  revalidateBillingAdmin(merchantId)
   return adminActionSuccess(
     "Pilot extension saved and queued for Stripe synchronisation."
   )
