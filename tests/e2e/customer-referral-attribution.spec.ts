@@ -74,7 +74,7 @@ test.describe("@customer-flow referral attribution live DB", () => {
         )}`
       )
       await expect(
-        page.getByRole("heading", { name: "Save your card to your number" })
+        page.getByRole("heading", { name: "Save your stamp to your number" })
       ).toBeVisible()
       await page.locator("#contact").fill(friendPhone.national)
       await page.getByRole("button", { name: "Text me the code" }).click()
@@ -151,7 +151,7 @@ test.describe("@customer-flow referral attribution live DB", () => {
       await page.goto(
         `${publicQrPath(fixture.activeQrId)}?ref=${encodeURIComponent(referrer.referralCode)}`
       )
-      await page.getByRole("link", { name: "Get today's stamp" }).click()
+      await page.getByRole("link", { name: "Claim my first stamp" }).click()
       expect(new URL(page.url()).searchParams.get("ref")).toBe(
         referrer.referralCode
       )

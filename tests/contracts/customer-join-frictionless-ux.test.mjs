@@ -93,10 +93,42 @@ test("stamp pages never render caller-controlled blocked copy", () => {
   assert.doesNotMatch(loader, /blockedReason|boundedReason/)
 })
 
-test("the verified terms step loads and discloses the merchant location policy", () => {
+test("the location policy is disclosed in the legal pack, never as operational detail on a join screen", () => {
   const loader = read("lib", "customer", "experience", "load-join.ts")
   const copy = read("lib", "customer", "experience", "copy.ts")
+  const legal = read("lib", "legal", "content.ts")
+  const forms = read("components", "customer", "join-forms.tsx")
+  const wizard = read("components", "customer", "join-wizard.tsx")
 
+  // The loader still resolves the policy for the stamp flow; the join screens
+  // stay guest-facing and point at the venue terms and privacy notice, which
+  // carry the disclosure.
   assert.match(loader, /getMerchantStampLocationRequirement/)
-  assert.match(copy, /Location checks begin on later qualifying visits/)
+  assert.match(legal, /Location checks and suspected misuse/)
+  assert.match(legal, /Location information/)
+  // Scope the copy check to the join view-models: the stamp screens keep the
+  // one-stamp-per-day rule because that one is the guest's own rule.
+  const joinCopy = copy.slice(
+    copy.indexOf("export const JOIN_WELCOME_HOW_IT_WORKS"),
+    copy.indexOf('case "stamp_confirm"')
+  )
+  for (const source of [joinCopy, forms, wizard]) {
+    assert.doesNotMatch(source, /Location checks begin|business day/)
+  }
+})
+
+test("the consent step offers one-tap select-all without pre-ticking or hiding the separate choices", () => {
+  const form = read("components", "customer", "join-forms.tsx")
+
+  assert.match(form, /Yes to all/)
+  assert.match(form, /aria-controls="loyalty-terms marketing-opt-in"/)
+  assert.match(form, /useState\(false\)[\s\S]*useState\(false\)/)
+  assert.match(form, /selectAllRef\.current\.indeterminate/)
+  assert.match(
+    form,
+    /name="loyaltyTerms"[\s\S]*checked=\{loyaltyTermsAccepted\}/
+  )
+  assert.match(form, /name="marketingOptIn"[\s\S]*checked=\{marketingOptIn\}/)
+  assert.match(form, /Optional, unsubscribe any/)
+  assert.doesNotMatch(form, /defaultChecked/)
 })

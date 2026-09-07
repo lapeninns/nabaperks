@@ -61,14 +61,14 @@ export async function openOtpStep(
   } else {
     await page.goto(publicQrPath(fixture.activeQrId))
     await expect(
-      page.getByRole("heading", { name: "Keep your card on your phone" })
+      page.getByRole("heading", { name: "Your first stamp is ready" })
     ).toBeVisible()
 
-    await page.getByRole("link", { name: "Get today's stamp" }).click()
+    await page.getByRole("link", { name: "Claim my first stamp" }).click()
   }
 
   await expect(
-    page.getByRole("heading", { name: "Save your card to your number" })
+    page.getByRole("heading", { name: "Save your stamp to your number" })
   ).toBeVisible()
 
   await page.locator("#contact").fill(phone.national)
@@ -117,7 +117,7 @@ export async function openDirectTermsStep(
 
   await page.getByRole("link", { name: "Join rewards" }).click()
   await expect(
-    page.getByRole("heading", { name: "Save your card to your number" })
+    page.getByRole("heading", { name: "Save your stamp to your number" })
   ).toBeVisible()
 
   await page.locator("#contact").fill(phone.national)
