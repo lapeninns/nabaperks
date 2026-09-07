@@ -424,7 +424,8 @@ jobs:
               mfa_phone_verify_enabled: false,
               mfa_web_authn_enroll_enabled: false,
               mfa_web_authn_verify_enabled: false,
-              passkey_enabled: false
+              passkey_enabled: false,
+              rate_limit_email_sent: 60
             }' > "$payload_file"
           update_status="$(curl --silent --show-error \
             --output "$update_file" \
@@ -460,7 +461,8 @@ jobs:
               and .mfa_phone_verify_enabled == false
               and .mfa_web_authn_enroll_enabled == false
               and .mfa_web_authn_verify_enabled == false
-              and .passkey_enabled == false' \
+              and .passkey_enabled == false
+              and .rate_limit_email_sent == 60' \
             "$readback_file" >/dev/null
       - name: Read back complete production Auth hook configuration
         run: |
@@ -483,7 +485,8 @@ jobs:
               and .mfa_phone_verify_enabled == false
               and .mfa_web_authn_enroll_enabled == false
               and .mfa_web_authn_verify_enabled == false
-              and .passkey_enabled == false' \
+              and .passkey_enabled == false
+              and .rate_limit_email_sent == 60' \
             "$readback_file" >/dev/null
       - name: Prove promoted Auth hook signing-secret alignment
         env:

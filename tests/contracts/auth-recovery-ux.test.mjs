@@ -45,6 +45,10 @@ test("merchant OTP actions expose explicit signup and sign-in state machines", (
   assert.match(state, /retryAt\?: string/)
   assert.match(resend, /MERCHANT_OTP_RESEND_COOLDOWN_MS = 60_000/)
   assert.match(
+    readProjectFile("supabase", "config.toml"),
+    /\[auth\.rate_limit\][\s\S]*email_sent = 60/
+  )
+  assert.match(
     actions,
     /Merchant OTP resend limit failed[\s\S]{0,900}outcome: "verification_unavailable"/
   )
