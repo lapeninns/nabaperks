@@ -36,6 +36,15 @@ const expectedIndexes = Object.freeze([
   "referrals_referred_customer_id_idx",
   "referrals_referrer_customer_id_idx",
   "referrals_referrer_stamp_event_id_idx",
+  "venue_code_attempt_lockouts_merchant_id_idx",
+  "venue_code_stamp_receipts_customer_id_idx",
+  "venue_code_stamp_receipts_location_id_idx",
+  "venue_code_stamp_receipts_loyalty_card_id_idx",
+  "venue_code_stamp_receipts_membership_id_idx",
+  "venue_code_stamp_receipts_merchant_id_idx",
+  "venue_code_stamp_receipts_refusal_flag_id_idx",
+  // Unique, so it also serves as the FK support index for stamp_event_id.
+  "venue_code_stamp_receipts_stamp_event_id_key",
 ])
 
 after(closeDb)
