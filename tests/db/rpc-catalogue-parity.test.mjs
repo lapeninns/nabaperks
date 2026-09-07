@@ -45,6 +45,10 @@ const EXPECTED_SIGNATURES = {
   qualify_referral_on_stamp: ["p_membership_id uuid, p_stamp_event_id uuid"],
   admit_qr_scan: ["p_identity_bucket text, p_code_bucket text"],
   admit_customer_otp_verify: ["p_phone_bucket text, p_identity_bucket text"],
+  touch_customer_session_and_load: [
+    "p_customer_id uuid, p_session_id uuid, p_device_hash text",
+  ],
+  get_customer_card_state: ["p_membership_id uuid, p_customer_id uuid"],
 }
 
 const ready = await isLiveDbReady()

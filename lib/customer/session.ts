@@ -22,6 +22,11 @@ import {
   type PendingPhonePayload,
   type PendingPhonePurpose,
 } from "@/lib/customer/session-cookie"
+import {
+  parseCustomerSessionLoadRow,
+  type CustomerSessionLoadRow,
+} from "@/lib/customer/session-load-row"
+import { isMissingRpcError } from "@/lib/supabase/missing-rpc"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import { requiredCustomerSessionSecret } from "@/lib/security/customer-session-secret"
 import { customerDeviceHashFromHeaders } from "@/lib/security/rate-limit"
@@ -203,12 +208,23 @@ export async function setCustomerSession(
   return payload
 }
 
+export type ResolvedCustomerSession = {
+  readonly payload: CustomerSessionPayload
+  /**
+   * The customer row that came back with the touch. `not_loaded` means the
+   * merged RPC is not deployed yet and the legacy touch was used instead, so
+   * the caller reads the row itself (one-release fallback).
+   */
+  readonly customer: CustomerSessionLoadRow | { readonly status: "not_loaded" }
+}
+
 // Memoized per request: on the customer home path the session is resolved by
 // the authed layout AND again inside getCurrentCustomer, which otherwise fires
-// the touch_customer_session RPC twice per page. cache() dedupes it to a single
-// touch per request — touching once is the correct semantic, not a regression.
-export const getCustomerSession = cache(
-  async (): Promise<CustomerSessionPayload | null> => {
+// the session touch twice per page. cache() dedupes it to a single touch per
+// request — touching once is the correct semantic, not a regression. The same
+// hop also returns the customer row, so identity needs no second read.
+export const resolveCustomerSession = cache(
+  async (): Promise<ResolvedCustomerSession | null> => {
     const cookieStore = await cookies()
     const value = cookieStore.get(customerSessionCookieName)?.value
     if (!value) return null
@@ -220,10 +236,43 @@ export const getCustomerSession = cache(
     )
     if (!result.ok) return null
 
-    const active = await isCustomerSessionActive(result.payload)
-    return active ? result.payload : null
+    const deviceHash = customerDeviceHashFromHeaders(await headers())
+    if (!deviceHash) return null
+
+    const supabase = createSupabaseServiceRoleClient()
+    const { data, error } = await supabase.rpc(
+      "touch_customer_session_and_load",
+      {
+        p_customer_id: result.payload.customerId,
+        p_session_id: result.payload.sessionId,
+        p_device_hash: deviceHash,
+      }
+    )
+
+    if (error) {
+      if (isMissingRpcError(error)) {
+        // App deployed ahead of the migration: validate with the legacy touch
+        // and let identity read the row itself, for one release.
+        const active = await touchCustomerSession(result.payload, deviceHash)
+        return active
+          ? { payload: result.payload, customer: { status: "not_loaded" } }
+          : null
+      }
+      throw new Error(`Unable to verify customer session: ${error.message}`)
+    }
+
+    const customer = parseCustomerSessionLoadRow(data)
+    if (customer.status === "inactive") return null
+
+    return { payload: result.payload, customer }
   }
 )
+
+/** The signed session payload, or null. Callers that only need "is there a
+ *  session" use this; it shares the single per-request touch above. */
+export async function getCustomerSession(): Promise<CustomerSessionPayload | null> {
+  return (await resolveCustomerSession())?.payload ?? null
+}
 
 export async function clearCustomerSession(): Promise<void> {
   const cookieStore = await cookies()
@@ -266,11 +315,11 @@ async function registerCustomerSession(
   }
 }
 
-async function isCustomerSessionActive(
-  payload: CustomerSessionPayload
+/** Legacy touch, kept only for the one-release fallback above. */
+async function touchCustomerSession(
+  payload: CustomerSessionPayload,
+  deviceHash: string
 ): Promise<boolean> {
-  const deviceHash = customerDeviceHashFromHeaders(await headers())
-  if (!deviceHash) return false
   const supabase = createSupabaseServiceRoleClient()
   const { data, error } = await supabase.rpc("touch_customer_session", {
     p_customer_id: payload.customerId,

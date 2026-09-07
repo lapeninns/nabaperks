@@ -130,3 +130,65 @@ test("static QR and customer loyalty routes remain outside the continuity patch"
   assert.match(join, /if \(qrId && !resolution\.created\)/)
   assert.match(join, /joinRewardsAction/)
 })
+
+test("the session load RPC delegates to the device-bound touch and returns exactly the identity columns", () => {
+  const migration = read(
+    "supabase",
+    "migrations",
+    "20260909110000_customer_session_and_card_read_rpcs.sql"
+  )
+  const session = read("lib", "customer", "session.ts")
+  const identity = read("lib", "customer", "identity.ts")
+
+  // Session validity has one definition; the loader calls it, never copies it.
+  assert.match(
+    migration,
+    /not public\.touch_customer_session\(p_customer_id, p_session_id, p_device_hash\)/
+  )
+  assert.doesNotMatch(
+    migration,
+    /create or replace function public\.touch_customer_session\(/
+  )
+  assert.doesNotMatch(
+    migration,
+    /create or replace function public\.register_customer_session/
+  )
+  assert.doesNotMatch(migration, /customer_otp_trusted_devices/)
+  assert.match(migration, /is_service_role_request\(\)/)
+  assert.match(
+    migration,
+    /grant execute on function public\.touch_customer_session_and_load\(uuid, uuid, text\)\s+to service_role;/
+  )
+
+  // The row the RPC returns is the row identity narrows: every column in
+  // CUSTOMER_COLUMNS must be declared in the returns table.
+  const columns = identity
+    .match(/const CUSTOMER_COLUMNS =\s*"([^"]+)"/)[1]
+    .split(",")
+    .map((column) => column.trim())
+  const returnsTable = migration.slice(
+    migration.indexOf("returns table ("),
+    migration.indexOf(")\nlanguage plpgsql")
+  )
+  for (const column of columns) {
+    assert.match(returnsTable, new RegExp(`\\b${column} `), column)
+  }
+
+  // One touch per request: session.ts calls the merged RPC and keeps the
+  // legacy touch only behind the missing-RPC fallback; identity reads the row
+  // the touch returned instead of issuing its own select.
+  assert.match(session, /\.rpc\(\s*"touch_customer_session_and_load"/)
+  assert.ok(
+    session.indexOf("isMissingRpcError(error)") <
+      session.indexOf('.rpc("touch_customer_session",'),
+    "the legacy touch is reachable only when the merged RPC is missing"
+  )
+  assert.match(session, /p_device_hash: deviceHash/)
+  assert.match(identity, /resolveCustomerSession\(\)/)
+  assert.match(identity, /toCurrentCustomer\(customer\.row\)/)
+  const getCurrent = identity.slice(
+    identity.indexOf("export const getCurrentCustomer"),
+    identity.indexOf("async function loadCustomerById")
+  )
+  assert.doesNotMatch(getCurrent, /\.from\("customers"\)/)
+})
