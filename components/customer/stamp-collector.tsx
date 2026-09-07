@@ -3,15 +3,18 @@
 import { useEffect, useReducer, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 
-import { selfStampAction } from "@/app/card/[membershipId]/actions"
+import {
+  selfStampAction,
+  venueCodeStampAction,
+} from "@/app/card/[membershipId]/actions"
 import { CustomerStampCard } from "@/components/customer/customer-flow-system"
 import {
   addLocationCapture,
   resolveStampLocation,
   shouldAttemptStampLocation,
-  type StampLocationCapture,
 } from "@/components/customer/self-service-forms"
 import { StampPressButton } from "@/components/customer/stamp-press-button"
+import { VenueCodeForm } from "@/components/customer/venue-code-form"
 import {
   initialStampChoreographyState,
   readbackBonusStampsApplied,
@@ -52,6 +55,8 @@ export type StampCollectorProps = {
     nextVisitNumber?: number
   }
   submitStamp?: StampSubmitter
+  /** The venue-code fallback submitter; injectable for the DB-free harness. */
+  submitVenueCode?: StampSubmitter
   refreshCard?: () => void
 }
 
@@ -104,6 +109,7 @@ export function StampCollector({
   rewardUnlocked: authoritativeRewardUnlocked = false,
   location,
   submitStamp = selfStampAction,
+  submitVenueCode = venueCodeStampAction,
   refreshCard,
 }: StampCollectorProps) {
   const router = useRouter()
@@ -122,8 +128,6 @@ export function StampCollector({
         location.firstVerifiedVisit
       )
   )
-  const locationPromiseRef =
-    useRef<Promise<StampLocationCapture | null> | null>(null)
   const requestInFlightRef = useRef(false)
   const refresh = refreshCard ?? router.refresh
   const view = stampChoreographyView(state, {
@@ -136,11 +140,10 @@ export function StampCollector({
   })
 
   useEffect(() => {
-    if (!locationNotice) {
-      locationPromiseRef.current = Promise.resolve(null)
-      return
-    }
-    locationPromiseRef.current = resolveStampLocation(true)
+    if (!locationNotice) return
+    // Warm the permission prompt and GPS chip. The stamp request captures a
+    // fresh fix when the customer actually collects, so this result is unused.
+    void resolveStampLocation(true)
   }, [locationNotice, membershipId, qrId])
 
   useEffect(() => {
@@ -188,6 +191,38 @@ export function StampCollector({
     return () => window.clearTimeout(timeoutId)
   }, [reduceMotion, state.phase])
 
+  /** One settlement path for both the GPS stamp and the venue-code stamp. */
+  function settle(next: SelfStampActionState) {
+    if (next.status === "error") {
+      requestInFlightRef.current = false
+      dispatch({
+        type: "request_blocked",
+        message: next.message,
+        reason: next.reason,
+        attemptsRemaining: next.attemptsRemaining,
+        lockedUntil: next.lockedUntil,
+      })
+      markStampPhase("blocked")
+      return
+    }
+    if (next.status !== "issued") {
+      dispatch({ type: "request_unknown" })
+      markStampPhase("unknown")
+      refresh()
+      return
+    }
+
+    dispatch({ type: "request_issued", result: next })
+    markStampPhase("issued")
+    if (next.rewardUnlocked) refresh()
+  }
+
+  function lostResult() {
+    dispatch({ type: "request_unknown" })
+    markStampPhase("unknown")
+    refresh()
+  }
+
   async function issueStamp() {
     if (requestInFlightRef.current || view.secured || !canStamp) return
     requestInFlightRef.current = true
@@ -195,40 +230,43 @@ export function StampCollector({
     markStampPhase("checking")
 
     try {
-      const locationCapture =
-        (await locationPromiseRef.current) ??
-        (locationNotice ? await resolveStampLocation(true) : null)
+      const locationCapture = locationNotice
+        ? await resolveStampLocation(true)
+        : null
       const formData = new FormData()
       formData.set("membershipId", membershipId)
       formData.set("qrId", qrId)
       addLocationCapture(formData, locationCapture)
       markStampPhase("request")
 
-      const next = await submitStamp(initialSelfStampState, formData)
-      if (next.status === "error") {
-        requestInFlightRef.current = false
-        dispatch({ type: "request_blocked", message: next.message })
-        markStampPhase("blocked")
-        return
-      }
-      if (next.status !== "issued") {
-        dispatch({ type: "request_unknown" })
-        markStampPhase("unknown")
-        refresh()
-        return
-      }
-
-      dispatch({ type: "request_issued", result: next })
-      markStampPhase("issued")
-      if (next.rewardUnlocked) refresh()
+      settle(await submitStamp(initialSelfStampState, formData))
     } catch {
-      dispatch({ type: "request_unknown" })
-      markStampPhase("unknown")
-      refresh()
+      lostResult()
+    }
+  }
+
+  async function issueWithCode(code: string) {
+    if (requestInFlightRef.current || view.secured || !canStamp) return
+    requestInFlightRef.current = true
+    dispatch({ type: "request_started" })
+    markStampPhase("checking")
+
+    try {
+      const formData = new FormData()
+      formData.set("membershipId", membershipId)
+      formData.set("qrId", qrId)
+      formData.set("code", code)
+      markStampPhase("request")
+
+      settle(await submitVenueCode(initialSelfStampState, formData))
+    } catch {
+      lostResult()
     }
   }
 
   const rewardUnlocked = view.rewardUnlocked
+  const showVenueCode =
+    canStamp && (view.venueCodeOffer || view.venueCodeLockedUntil !== null)
 
   return (
     <div aria-busy={view.ariaBusy || undefined} data-stamp-phase={state.phase}>
@@ -250,7 +288,21 @@ export function StampCollector({
         rewardSlot={rewardUnlocked ? "revealed" : "locked"}
         hideFooter
         hideHeaderText
-        afterGrid={<StampStatusBand view={view} phase={state.phase} />}
+        afterGrid={
+          <div className="grid gap-3">
+            <StampStatusBand view={view} phase={state.phase} />
+            {showVenueCode ? (
+              <VenueCodeForm
+                attemptsRemaining={view.venueCodeAttemptsRemaining}
+                lockedUntil={view.venueCodeLockedUntil}
+                pending={view.pending}
+                onSubmit={(code) => {
+                  void issueWithCode(code)
+                }}
+              />
+            ) : null}
+          </div>
+        }
       >
         <div className="grid justify-items-center gap-3 pt-2">
           <StampPressButton

@@ -16,6 +16,8 @@ const requiredRlsTables = Object.freeze([
   "qr_codes",
   "reward_events",
   "stamp_events",
+  "venue_code_attempt_lockouts",
+  "venue_code_stamp_receipts",
 ])
 
 const prohibitedApiRolePrivileges = Object.freeze([

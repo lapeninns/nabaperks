@@ -33,6 +33,23 @@ export function MerchantPageTitleSkeleton() {
 
 /** Mirrors {@link DashboardQrCardView}: the tappable QR ticket (frame +
  *  mono caption) beside the status row, venue title, and action row. */
+export function DashboardVenueCodeCardSkeleton() {
+  return (
+    <ReceiptCard edge className="grid gap-4">
+      <div className="grid gap-2">
+        <div className="flex items-center gap-2.5">
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-5 w-36 rounded-full" />
+        </div>
+        <Skeleton className="h-6 w-40" />
+        <Skeleton className="h-4 w-full max-w-md" />
+      </div>
+      <Skeleton className="h-10 w-48" />
+      <Skeleton className="h-9 w-28" />
+    </ReceiptCard>
+  )
+}
+
 export function DashboardQrCardSkeleton() {
   return (
     <ReceiptCard

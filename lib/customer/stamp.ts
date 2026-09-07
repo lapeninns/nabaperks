@@ -5,6 +5,7 @@ import {
   blockReasonCopy,
   stampBlockReasonFromSqlState,
   toStampBlockReason,
+  type CustomerBlockReason,
 } from "@/lib/customer/experience/block-reasons"
 import { getCurrentCustomer } from "@/lib/customer/identity"
 import { logger } from "@/lib/observability/logger"
@@ -27,12 +28,33 @@ export type IssueSelfServiceStampResult =
       rewardUnlocked: boolean
       geoFlagged: boolean
     }
-  | { status: "blocked"; reason: string }
+  | { status: "blocked"; reason: string; blockReason: CustomerBlockReason }
 
 type IssuedStampResult = Extract<
   IssueSelfServiceStampResult,
   { status: "issued" }
 >
+
+type BlockedStampResult = Extract<
+  IssueSelfServiceStampResult,
+  { status: "blocked" }
+>
+
+export type VenueCodeStampInput = {
+  readonly membershipId: string
+  readonly qrId: string
+  readonly code: string
+  /** sha256 of the proxy-minted device cookie, or null when absent. */
+  readonly deviceHash: string | null
+  /** Hashed verified client IP, or null locally (no x-vercel-forwarded-for). */
+  readonly networkHash: string | null
+}
+
+export type IssueVenueCodeStampResult =
+  | IssuedStampResult
+  | BlockedStampResult
+  | { status: "code_rejected"; attemptsRemaining: number }
+  | { status: "locked_out"; lockedUntil: string | null }
 
 type IssueStampRpcParams = {
   readonly p_membership_id: string
@@ -58,7 +80,7 @@ export async function issueSelfServiceStamp(
   coordinates?: GeoCoordinates
 ): Promise<IssueSelfServiceStampResult> {
   const customer = await getCurrentCustomer()
-  if (!customer) return { status: "blocked", reason: "Open your cards first." }
+  if (!customer) return notSignedIn()
 
   const supabase = createSupabaseServiceRoleClient()
   const { error: attemptError } = await supabase.rpc(
@@ -107,18 +129,119 @@ export async function issueSelfServiceStamp(
   // A separately settled referral bonus can fill the card before the visit stamp
   // is reached. The RPC returns no stamp id so the customer sees the waiting
   // reward without the scan being counted as a location-verified visit.
-  if (
-    row &&
-    !stringValue(row.stamp_event_id) &&
-    booleanValue(row.reward_unlocked)
-  ) {
-    return { status: "blocked", reason: blockReasonCopy("reward_ready_first") }
-  }
+  if (filledByReferralBonus(row)) return rewardReadyFirst()
 
   const issuedStamp = issuedStampResult(row)
   if (!issuedStamp) throw new Error("Unable to issue a stamp")
 
   return issuedStamp
+}
+
+/**
+ * The venue-code fallback: a customer whose location check was refused types
+ * the six-digit code a team member read out, and the stamp is issued through
+ * the same QR transaction with only the location gate bypassed.
+ *
+ * Mirrors {@link issueSelfServiceStamp} step for step — a committed-first
+ * attempt charge, the referral settle-before-stamp, then the RPC — with two
+ * deliberate differences: a wrong code comes back as a status, never an error,
+ * so the lockout ledger the RPC wrote is honoured; and no location refusal is
+ * recorded here, because a refused code is not a location refusal.
+ */
+export async function issueVenueCodeStamp(
+  input: VenueCodeStampInput
+): Promise<IssueVenueCodeStampResult> {
+  const customer = await getCurrentCustomer()
+  if (!customer) return notSignedIn()
+
+  const supabase = createSupabaseServiceRoleClient()
+  const { error: attemptError } = await supabase.rpc(
+    "consume_venue_code_attempt",
+    {
+      p_membership_id: input.membershipId,
+      p_customer_id: customer.id,
+      p_device_hash: input.deviceHash,
+      p_network_hash: input.networkHash,
+    }
+  )
+
+  if (attemptError) {
+    return blockKnownStampFailure(
+      attemptError.message,
+      input.membershipId,
+      attemptError.code
+    )
+  }
+
+  const referralBonusesPreDrained = await drainReferralBonusesBeforeStamp(
+    supabase,
+    input.membershipId,
+    customer.id
+  )
+  const { data, error } = await supabase.rpc("issue_venue_code_stamp", {
+    p_membership_id: input.membershipId,
+    p_customer_id: customer.id,
+    p_qr_id: input.qrId,
+    p_code: input.code,
+    p_device_hash: input.deviceHash,
+    p_referral_bonuses_pre_drained: referralBonusesPreDrained,
+  })
+
+  if (error) {
+    return blockKnownStampFailure(error.message, input.membershipId, error.code)
+  }
+
+  const row = firstRecord(data)
+  const status = row ? stringValue(row.status) : ""
+
+  if (status === "code_rejected") {
+    return {
+      status,
+      attemptsRemaining: (row && numberValue(row.attempts_remaining)) ?? 0,
+    }
+  }
+  if (status === "locked_out") {
+    return {
+      status,
+      lockedUntil: (row && stringValue(row.locked_until)) || null,
+    }
+  }
+
+  if (filledByReferralBonus(row)) return rewardReadyFirst()
+
+  const issuedStamp = issuedStampResult(row)
+  if (!issuedStamp) throw new Error("Unable to issue a venue-code stamp")
+
+  return issuedStamp
+}
+
+function notSignedIn(): BlockedStampResult {
+  return {
+    status: "blocked",
+    reason: "Open your cards first.",
+    blockReason: "unauthenticated",
+  }
+}
+
+function rewardReadyFirst(): BlockedStampResult {
+  return {
+    status: "blocked",
+    reason: blockReasonCopy("reward_ready_first"),
+    blockReason: "reward_ready_first",
+  }
+}
+
+/**
+ * A separately settled referral bonus can fill the card before the visit
+ * stamp is reached. The RPC then returns no stamp id, so the customer sees the
+ * waiting reward without the scan being counted as a location-verified visit.
+ */
+function filledByReferralBonus(row: Record<string, unknown> | null): boolean {
+  return (
+    row !== null &&
+    !stringValue(row.stamp_event_id) &&
+    booleanValue(row.reward_unlocked)
+  )
 }
 
 function buildIssueStampRpcParams(
@@ -239,7 +362,11 @@ function blockKnownStampFailure(
     })
   }
 
-  return { status: "blocked", reason: blockReasonCopy(reason) }
+  return {
+    status: "blocked",
+    reason: blockReasonCopy(reason),
+    blockReason: reason,
+  }
 }
 
 function issuedStampResult(
