@@ -25,17 +25,14 @@ export function alternateOtpChannel(channel: OtpChannel): OtpChannel {
   return channel === "sms" ? "whatsapp" : "sms"
 }
 
-/** How the guest hears about the channel: "by text" / "on WhatsApp". */
-export function otpChannelPhrase(channel: OtpChannel): string {
-  return channel === "sms" ? "by text" : "on WhatsApp"
-}
+/**
+ * The only channel word a guest ever reads. The code step never says which
+ * channel carried the code; when it went out on WhatsApp the step offers a
+ * text as the alternative. When it already went by text (the fallback
+ * landed there because WhatsApp refused the number) there is nothing to
+ * switch to, so no link shows.
+ */
+export const OTP_TEXT_FALLBACK_LABEL = "Text me instead"
 
-/** The switch link on the code step, named for where the code would go next. */
-export function otpChannelSwitchLabel(target: OtpChannel): string {
-  return target === "sms" ? "Text me instead" : "Send it on WhatsApp instead"
-}
-
-/** The phone step's one button, named for where the code will arrive. */
-export function otpChannelSendLabel(channel: OtpChannel): string {
-  return channel === "sms" ? "Text me the code" : "Send my code on WhatsApp"
-}
+/** The phone step's one button — neutral, because the fallback may reroute it. */
+export const OTP_SEND_LABEL = "Send my code"

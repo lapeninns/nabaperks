@@ -2,10 +2,9 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 
 import {
+  OTP_SEND_LABEL,
+  OTP_TEXT_FALLBACK_LABEL,
   alternateOtpChannel,
-  otpChannelPhrase,
-  otpChannelSendLabel,
-  otpChannelSwitchLabel,
   parseOtpChannel,
   primaryOtpChannel,
 } from "@/lib/customer/otp-channel-core"
@@ -25,13 +24,10 @@ test("WhatsApp is the primary channel unless the environment names SMS", () => {
   assert.equal(primaryOtpChannel(" SMS "), "sms")
 })
 
-test("the alternate channel is the other one, and the copy names the destination", () => {
+test("the alternate channel is the other one, and the guest-facing labels name no channel but text", () => {
   assert.equal(alternateOtpChannel("sms"), "whatsapp")
   assert.equal(alternateOtpChannel("whatsapp"), "sms")
-  assert.equal(otpChannelPhrase("sms"), "by text")
-  assert.equal(otpChannelPhrase("whatsapp"), "on WhatsApp")
-  assert.equal(otpChannelSwitchLabel("whatsapp"), "Send it on WhatsApp instead")
-  assert.equal(otpChannelSwitchLabel("sms"), "Text me instead")
-  assert.equal(otpChannelSendLabel("whatsapp"), "Send my code on WhatsApp")
-  assert.equal(otpChannelSendLabel("sms"), "Text me the code")
+  assert.equal(OTP_SEND_LABEL, "Send my code")
+  assert.equal(OTP_TEXT_FALLBACK_LABEL, "Text me instead")
+  assert.doesNotMatch(OTP_SEND_LABEL + OTP_TEXT_FALLBACK_LABEL, /whatsapp/i)
 })

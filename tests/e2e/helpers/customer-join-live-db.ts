@@ -72,7 +72,7 @@ export async function openOtpStep(
   ).toBeVisible()
 
   await page.locator("#contact").fill(phone.national)
-  await page.getByRole("button", { name: "Send my code on WhatsApp" }).click()
+  await page.getByRole("button", { name: "Send my code" }).click()
   await expect(
     page.getByRole("heading", { name: "Enter your code" })
   ).toBeVisible()
@@ -121,7 +121,7 @@ export async function openDirectTermsStep(
   ).toBeVisible()
 
   await page.locator("#contact").fill(phone.national)
-  await page.getByRole("button", { name: "Send my code on WhatsApp" }).click()
+  await page.getByRole("button", { name: "Send my code" }).click()
   await expect(
     page.getByRole("heading", { name: "Enter your code" })
   ).toBeVisible()

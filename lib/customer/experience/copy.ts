@@ -38,7 +38,7 @@ type UnavailableExperience = Extract<
 /** QR-scan welcome — mirrors join-with-first-stamp: scan → verify → terms → stamp. */
 export const JOIN_WELCOME_HOW_IT_WORKS = [
   "You scanned the venue QR",
-  "Confirm your number with one WhatsApp message",
+  "Confirm your number with one message",
   "Your first stamp lands on your card",
 ] as const
 
@@ -113,7 +113,7 @@ export function getCustomerExperienceViewModel(
       return {
         eyebrow: "One message, no password",
         headline: "Save your stamp to your number",
-        supportLine: `One WhatsApp message confirms it's you. Your ${exp.merchant.name} card then follows you on every visit.`,
+        supportLine: `One message confirms it's you. Your ${exp.merchant.name} card then follows you on every visit.`,
       }
     case "join_otp":
       return {

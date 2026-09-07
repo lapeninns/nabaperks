@@ -111,7 +111,46 @@ test("Given a preview deployment When a dev OTP is configured Then provider bypa
   )
   const result = await startCustomerPhoneVerification(PHONE)
 
-  assert.deepEqual(result, { status: "sent" })
+  assert.deepEqual(result, { status: "sent", channel: "sms" })
+  assert.equal(globalThis.fetch.mock.callCount(), 1)
+})
+
+test("Given the provider refuses a WhatsApp send When the code is requested Then it goes out by text and says so", async () => {
+  configureProvider()
+  const channels = []
+  mock.method(globalThis, "fetch", async (_url, init) => {
+    channels.push(new URLSearchParams(init.body).get("Channel"))
+    return channels.length === 1
+      ? new Response('{"code":60220}', { status: 400 })
+      : Response.json({ status: "pending" })
+  })
+  const result = await startCustomerPhoneVerification(PHONE, "whatsapp")
+
+  assert.deepEqual(result, { status: "sent", channel: "sms" })
+  assert.deepEqual(channels, ["whatsapp", "sms"])
+})
+
+test("Given the provider is down When a WhatsApp code is requested Then no second channel is tried", async () => {
+  configureProvider()
+  mock.method(
+    globalThis,
+    "fetch",
+    async () => new Response("", { status: 503 })
+  )
+  const result = await startCustomerPhoneVerification(PHONE, "whatsapp")
+
+  assert.deepEqual(result, { status: "unavailable" })
+  assert.equal(globalThis.fetch.mock.callCount(), 1)
+})
+
+test("Given a WhatsApp send is accepted When the code is requested Then the result names WhatsApp for the code step", async () => {
+  configureProvider()
+  mock.method(globalThis, "fetch", async () =>
+    Response.json({ status: "pending" })
+  )
+  const result = await startCustomerPhoneVerification(PHONE, "whatsapp")
+
+  assert.deepEqual(result, { status: "sent", channel: "whatsapp" })
   assert.equal(globalThis.fetch.mock.callCount(), 1)
 })
 

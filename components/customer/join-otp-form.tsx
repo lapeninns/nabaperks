@@ -14,9 +14,7 @@ import { SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import {
-  alternateOtpChannel,
-  otpChannelPhrase,
-  otpChannelSwitchLabel,
+  OTP_TEXT_FALLBACK_LABEL,
   type OtpChannel,
 } from "@/lib/customer/otp-channel-core"
 import { buildCustomerJoinHref } from "@/lib/navigation/customer-join-intent"
@@ -66,7 +64,9 @@ export function CustomerOtpForm({
   const freshCodeError =
     state.errors?.contact ?? requestState.errors?.contact ?? undefined
   const needsFreshCode = Boolean(freshCodeError)
-  const otherChannel = alternateOtpChannel(channel)
+  // A text is offered only when the code went out on WhatsApp; if it already
+  // went by text, that is because WhatsApp refused the number.
+  const offersText = channel === "whatsapp"
 
   return (
     <div className="grid gap-4">
@@ -140,9 +140,7 @@ export function CustomerOtpForm({
             >
               <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                 <p className="text-sm">
-                  <span className="text-muted-foreground">
-                    Sent {otpChannelPhrase(channel)} to{" "}
-                  </span>
+                  <span className="text-muted-foreground">Sent to </span>
                   <span className="font-bold tabular-nums">
                     Phone ending {contactLast4}
                   </span>
@@ -175,23 +173,25 @@ export function CustomerOtpForm({
             </div>
           </form>
 
-          {/* The other channel, one tap away: a resend on WhatsApp (or back to
-              text) through the same admission and the same neutral reply. */}
-          <form action={requestAction} className="grid justify-items-center">
-            <input type="hidden" name="merchantSlug" value={merchantSlug} />
-            <input type="hidden" name="qrId" value={qrId ?? ""} />
-            <input type="hidden" name="ref" value={referralCode ?? ""} />
-            <input type="hidden" name="resend" value="1" />
-            <input type="hidden" name="channel" value={otherChannel} />
-            <SubmitButton
-              variant="link"
-              size="xs"
-              className="text-xs"
-              pendingLabel="Sending…"
-            >
-              {otpChannelSwitchLabel(otherChannel)}
-            </SubmitButton>
-          </form>
+          {/* A text, one tap away: a resend by SMS through the same admission
+              and the same neutral reply. */}
+          {offersText ? (
+            <form action={requestAction} className="grid justify-items-center">
+              <input type="hidden" name="merchantSlug" value={merchantSlug} />
+              <input type="hidden" name="qrId" value={qrId ?? ""} />
+              <input type="hidden" name="ref" value={referralCode ?? ""} />
+              <input type="hidden" name="resend" value="1" />
+              <input type="hidden" name="channel" value="sms" />
+              <SubmitButton
+                variant="link"
+                size="xs"
+                className="text-xs"
+                pendingLabel="Sending…"
+              >
+                {OTP_TEXT_FALLBACK_LABEL}
+              </SubmitButton>
+            </form>
+          ) : null}
         </>
       )}
     </div>

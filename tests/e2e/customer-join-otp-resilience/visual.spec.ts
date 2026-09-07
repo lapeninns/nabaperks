@@ -41,15 +41,11 @@ test.describe("OTP resilience", () => {
       await page.goto(`${publicQrPath(fixture.activeQrId)}?ref=FRIEND01`)
       await page.getByRole("link", { name: "Claim my first stamp" }).click()
       await page.locator("#contact").fill("+1 202 555 0123")
-      await page
-        .getByRole("button", { name: "Send my code on WhatsApp" })
-        .click()
+      await page.getByRole("button", { name: "Send my code" }).click()
       await expect(page.getByText("Enter a UK phone number.")).toBeVisible()
 
       await page.locator("#contact").fill(phone.national)
-      await page
-        .getByRole("button", { name: "Send my code on WhatsApp" })
-        .click()
+      await page.getByRole("button", { name: "Send my code" }).click()
       await expect(
         page.getByRole("heading", { name: "Enter your code" })
       ).toBeVisible()
