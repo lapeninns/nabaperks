@@ -27,6 +27,7 @@ export function CustomerFlowShell({
   children,
   className,
   dense = false,
+  landscapeCompact = false,
   screenLabel = "Customer flow",
 }: {
   eyebrow?: ReactNode
@@ -41,6 +42,15 @@ export function CustomerFlowShell({
    * when the on-screen keyboard is up.
    */
   dense?: boolean
+  /**
+   * Opt the screen into the landscape floor (≤480px tall): the headline steps
+   * down to one quiet line and the support line gives way, so the screen's
+   * control can reach the first screen. Only screens whose panel carries the
+   * state in its own words (the stamp screen's band) should ask for this —
+   * on join, reward and access-recovery screens the support line *is* the
+   * instruction, so they keep it.
+   */
+  landscapeCompact?: boolean
   screenLabel?: string
 }) {
   return (
@@ -97,31 +107,42 @@ export function CustomerFlowShell({
         {progress ? <OnboardingProgress progress={progress} /> : null}
 
         {title || description ? (
-          <section className="grid gap-3 text-center squat:gap-1">
+          <section
+            className={cn(
+              "grid gap-3 text-center",
+              landscapeCompact && "squat:gap-1"
+            )}
+          >
             {title ? (
               <h1
                 className={cn(
                   "leading-[1.04] font-extrabold tracking-tight text-balance",
                   // Fluid between the 320px and 430px phone widths so a
                   // two-line headline never becomes three on the narrowest
-                  // devices and never shouts on the widest. On the landscape
-                  // floor (≤480px tall) the headline steps down to a single
-                  // line so the screen's control can still reach the first
-                  // screen — it stays an h1, just quieter.
+                  // devices and never shouts on the widest. On an opted-in
+                  // landscape floor (≤480px tall) the headline steps down to
+                  // a single line so the screen's control can still reach the
+                  // first screen — it stays an h1, just quieter.
                   dense
                     ? "text-[clamp(1.45rem,4.2vw+0.5rem,1.65rem)]"
                     : "text-[clamp(1.75rem,5.6vw+0.4rem,2.1rem)]",
-                  "squat:text-xl squat:leading-tight"
+                  landscapeCompact && "squat:text-xl squat:leading-tight"
                 )}
               >
                 {title}
               </h1>
             ) : null}
             {description ? (
-              // Secondary on every screen; on the landscape floor it is the
-              // first thing to give way (the headline and the panel's own
-              // band carry the state).
-              <p className="mx-auto max-w-[31ch] text-[0.96rem] leading-6 text-muted-foreground squat:hidden">
+              // On an opted-in landscape floor the support line is the first
+              // thing to give way (the panel's own band carries the state).
+              // Elsewhere it stays: on join, reward and sign-in screens it is
+              // the instruction itself.
+              <p
+                className={cn(
+                  "mx-auto max-w-[31ch] text-[0.96rem] leading-6 text-muted-foreground",
+                  landscapeCompact && "squat:hidden"
+                )}
+              >
                 {description}
               </p>
             ) : null}

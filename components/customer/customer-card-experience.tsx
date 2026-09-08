@@ -86,6 +86,11 @@ export function CustomerCardExperience({
         title={vm.headline}
         description={vm.supportLine}
         className="pb-28"
+        // Only the stamp screens opt into the landscape floor: their band
+        // restates the state, so the support line can give way there. The
+        // access-recovery and reward screens keep theirs — it is the
+        // instruction.
+        landscapeCompact={isStampScreen(experience.kind)}
         screenLabel={screenLabelFor(experience.kind)}
       >
         <ExperiencePanel
@@ -695,6 +700,14 @@ function StatusNotice({
 
 function cardNumber(membershipId: string): string {
   return `CARD Nº ${membershipId.slice(0, 8).toUpperCase()}`
+}
+
+function isStampScreen(kind: CustomerExperienceKind): boolean {
+  return (
+    kind === "stamp_confirm" ||
+    kind === "card_stamped_today" ||
+    kind === "stamp_unmatched"
+  )
 }
 
 function screenLabelFor(kind: CustomerExperienceKind): string {
