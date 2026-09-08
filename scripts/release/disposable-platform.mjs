@@ -10,7 +10,9 @@ import { join } from "node:path"
 export function provisionDisposablePlatform() {
   const root = realpathSync(mkdtempSync(join(tmpdir(), "upgrade-platform-")))
   const marker = randomUUID()
-  const project = `upgrade-${marker}`
+  // Supabase truncates project identifiers at 40 characters. Keep the full
+  // random identity within that limit so ownership and container names agree.
+  const project = `upgrade-${marker.replaceAll("-", "")}`
   const database = `codex_upgrade_${marker.replaceAll("-", "")}`
   const env = { PATH: process.env.PATH, HOME: root, CI: "1", DO_NOT_TRACK: "1" }
   function execute(command, args, input) {
