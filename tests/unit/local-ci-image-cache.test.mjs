@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { fileURLToPath } from "node:url"
 import { spawnSync } from "node:child_process"
 import { createHash } from "node:crypto"
 import {
@@ -142,7 +143,11 @@ test("verified archive bytes stream to the sidecar and every loaded tag is check
 test("operator preparer preserves resume progress and rejects unverified registry content", () => {
   const result = spawnSync(
     "python3",
-    [new URL("./local-ci-image-cache-python.py", import.meta.url).pathname],
+    [
+      fileURLToPath(
+        new URL("./local-ci-image-cache-python.py", import.meta.url)
+      ),
+    ],
     { encoding: "utf8" }
   )
   assert.equal(result.status, 0, result.stderr)

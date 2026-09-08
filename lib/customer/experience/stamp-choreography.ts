@@ -9,7 +9,16 @@ type IssuedStamp = Extract<SelfStampActionState, { status: "issued" }>
 
 export type StampChoreographyState =
   | { phase: "idle" }
-  | { phase: "checking" }
+  | {
+      phase: "checking"
+      /**
+       * The card count when the request went out. The inking slot is derived
+       * from this snapshot, not the live props: the stamp action revalidates
+       * the card path before it returns, so props can advance mid-request and
+       * the live count would point the wet outline at the *next* slot.
+       */
+      startedCurrent?: number
+    }
   | { phase: "printing"; result: IssuedStamp }
   | { phase: "confirmed"; result: IssuedStamp }
   | ({ phase: "blocked"; message: string } & SelfStampBlockedDetail)
@@ -17,7 +26,7 @@ export type StampChoreographyState =
   | { phase: "closed" }
 
 export type StampChoreographyEvent =
-  | { type: "request_started" }
+  | { type: "request_started"; current?: number }
   | { type: "request_issued"; result: IssuedStamp }
   | ({ type: "request_blocked"; message: string } & SelfStampBlockedDetail)
   | { type: "request_unknown" }
@@ -59,7 +68,7 @@ export function reduceStampChoreography(
   switch (event.type) {
     case "request_started":
       return state.phase === "idle" || state.phase === "blocked"
-        ? { phase: "checking" }
+        ? { phase: "checking", startedCurrent: event.current }
         : state
     case "request_issued":
       return state.phase === "checking"
@@ -113,6 +122,13 @@ export type StampChoreographyView = VenueCodeFallbackView & {
   displayCurrent: number
   dates: string[]
   slamIndex: number
+  /**
+   * The slot that is inking while the request is in flight, or -1. It renders
+   * as a wet outline, never as an earned stamp: `displayCurrent` does not move
+   * until the server says so (F10), but the press gets an immediate, honest
+   * answer on the card instead of only on the button.
+   */
+  pendingIndex: number
   cardComplete: boolean
   secured: boolean
   pending: boolean
@@ -141,6 +157,21 @@ function venueCodeFallback(
     venueCodeAttemptsRemaining: state.attemptsRemaining ?? null,
     venueCodeLockedUntil: state.lockedUntil ?? null,
   }
+}
+
+/**
+ * The slot the in-flight stamp would land in, anchored to the count captured
+ * when the request started. Once the live count has moved past that snapshot
+ * the stamp has landed server-side and there is nothing left to ink.
+ */
+function pendingSlotIndex(
+  input: StampViewInput,
+  startedCurrent: number | undefined
+): number {
+  const anchor = startedCurrent ?? input.current
+  if (input.total <= 0 || anchor >= input.total) return -1
+  if (input.current > anchor) return -1
+  return Math.max(anchor, 0)
 }
 
 function issuedResult(state: StampChoreographyState): IssuedStamp | undefined {
@@ -214,11 +245,13 @@ export function stampChoreographyView(
   const fallback = venueCodeFallback(state)
 
   if (state.phase === "checking") {
+    const pendingIndex = pendingSlotIndex(input, state.startedCurrent)
     return {
       ...fallback,
       displayCurrent,
       dates: displayDates(input, result),
       slamIndex: -1,
+      pendingIndex,
       cardComplete,
       secured: true,
       pending: true,
@@ -227,7 +260,10 @@ export function stampChoreographyView(
       buttonLabel: "Checking today's stamp",
       announcement: "Checking today's stamp.",
       statusTitle: "Checking today's stamp.",
-      statusBody: "Your card stays unchanged until the venue confirms it.",
+      statusBody:
+        pendingIndex >= 0
+          ? `Slot ${pendingIndex + 1} is inking. It lands once the venue confirms.`
+          : "It lands once the venue confirms.",
       rewardUnlocked: false,
       rewardSlammed: false,
     }
@@ -239,6 +275,7 @@ export function stampChoreographyView(
       displayCurrent,
       dates: displayDates(input, result),
       slamIndex: -1,
+      pendingIndex: -1,
       cardComplete,
       secured: false,
       pending: false,
@@ -259,6 +296,7 @@ export function stampChoreographyView(
       displayCurrent,
       dates: displayDates(input, result),
       slamIndex: -1,
+      pendingIndex: -1,
       cardComplete,
       secured: true,
       pending: true,
@@ -280,6 +318,7 @@ export function stampChoreographyView(
       displayCurrent,
       dates: displayDates(input, result),
       slamIndex: -1,
+      pendingIndex: -1,
       cardComplete,
       secured: true,
       pending: false,
@@ -302,6 +341,7 @@ export function stampChoreographyView(
       displayCurrent,
       dates: displayDates(input, result),
       slamIndex: printing ? venueStampIndex(result, input.total) : -1,
+      pendingIndex: -1,
       cardComplete,
       secured: true,
       pending: false,
@@ -320,6 +360,7 @@ export function stampChoreographyView(
       displayCurrent,
       dates: displayDates(input, result),
       slamIndex: -1,
+      pendingIndex: -1,
       cardComplete,
       secured: true,
       pending: false,
@@ -339,6 +380,7 @@ export function stampChoreographyView(
     displayCurrent,
     dates: displayDates(input, result),
     slamIndex: -1,
+    pendingIndex: -1,
     cardComplete,
     secured: closed,
     pending: false,

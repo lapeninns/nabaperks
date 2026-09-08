@@ -18,6 +18,9 @@ export const metadata: Metadata = {
     follow: false,
   },
 }
+// The only DB read behind this page is served from the data cache, so make
+// request-time rendering explicit rather than relying on an uncached read.
+export const dynamic = "force-dynamic"
 
 type MerchantTermsPageProps = {
   params: Promise<{

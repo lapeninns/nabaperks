@@ -52,9 +52,9 @@ test.describe("pending phone privacy", () => {
       expect(pending?.value).not.toContain(phone.e164)
       expect(pending?.value.split(".")).toHaveLength(4)
       expect(await page.locator("body").textContent()).not.toContain(phone.e164)
-      expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain(
-        phone.e164
-      )
+      expect(
+        await page.evaluate(() => JSON.stringify(localStorage))
+      ).not.toContain(phone.e164)
 
       if (!pending) return
       const replacement = pending.value.endsWith("A") ? "B" : "A"
@@ -66,7 +66,7 @@ test.describe("pending phone privacy", () => {
       ])
       await page.reload()
       await expect(
-        page.getByRole("heading", { name: "Keep your card on your phone" })
+        page.getByRole("heading", { name: "Your first stamp is ready" })
       ).toBeVisible()
       await expect(page.locator("#otp")).toHaveCount(0)
     } finally {

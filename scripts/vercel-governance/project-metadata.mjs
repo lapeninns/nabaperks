@@ -35,3 +35,8 @@ export function selectVercelProjectMetadata(raw) {
     })),
   }
 }
+
+// Deliberately excludes deployment metadata, URLs, environment and build logs.
+export function selectDeploymentMetadata(raw) {
+  return { id: raw.uid ?? raw.id, source: raw.source, created: raw.created }
+}

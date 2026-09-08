@@ -15,12 +15,7 @@ import type {
 import type { CustomerOtpFormProps } from "@/components/customer/join-otp-form"
 import { WelcomeStep } from "@/components/customer/join-welcome-step"
 import { UnavailableRecoveryActions } from "@/components/customer/unavailable-recovery"
-import {
-  RewardSeal,
-  RewardTicket,
-  StampGrid,
-  StatusBanner,
-} from "@/components/loyalty"
+import { RewardSeal, StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import {
   ASK_TEAM_FOR_QR,
@@ -32,7 +27,6 @@ import {
   joinUnlockingRewardHook,
   type CustomerExperienceViewModel,
 } from "@/lib/customer/experience/copy"
-import { stampDisplayDates } from "@/lib/customer/uk-calendar"
 import type {
   CustomerExperience,
   JoinCard,
@@ -109,6 +103,7 @@ function PhoneStep({
       <CustomerIdentityForm
         merchantSlug={exp.merchant.slug}
         qrId={exp.qrId}
+        channel={exp.channel}
         referralCode={referralCode}
       />
     </JoinShell>
@@ -134,6 +129,7 @@ function OtpStep({
         merchantSlug={exp.merchant.slug}
         qrId={exp.qrId}
         contactLast4={exp.contactLast4}
+        channel={exp.channel}
         referralCode={referralCode}
       />
     </JoinShell>
@@ -165,7 +161,6 @@ function TermsStep({
         qrId={exp.qrId}
         merchantName={exp.merchant.name}
         card={exp.card}
-        requireGeofence={exp.location.requireGeofence}
         referralCode={referralCode}
       />
     </JoinShell>
@@ -173,22 +168,41 @@ function TermsStep({
 }
 
 /**
- * Step-specific motivation strip after the welcome card scrolls away. Phone keeps
- * a compact reward hook beside the number field; terms previews stamp one on the
- * card. The code step stays clean — one headline, one field, one CTA.
+ * The offer in one line beside a form: venue mark, venue · card, one hook and
+ * the sealed reward. Every form step carries the same 80px strip so the
+ * customer never loses sight of what they are unlocking, and never scrolls
+ * past a second stamp card to reach the field or the button.
  */
-export function UnlockingReminder({
+function JoinOfferStrip({
   merchant,
   card,
+  eyebrow,
+  hook,
 }: {
   merchant: JoinMerchant
   card: JoinCard
+  eyebrow: string
+  hook: string
 }) {
-  return <PhoneUnlockingReminder merchant={merchant} card={card} />
+  return (
+    <div className="surface-card flex items-center gap-3 p-3 text-left">
+      <VenueMark size={40} name={merchant.name} className="shrink-0" />
+      <div className="grid min-w-0 flex-1 gap-0.5">
+        <span className="eyebrow text-muted-foreground">{eyebrow}</span>
+        {/* Two lines before clipping — long venue · card compounds stay
+            readable at 375 (VCU-P3-09). */}
+        <span className="line-clamp-2 text-sm leading-tight font-extrabold break-words">
+          {merchant.name} · {card.name}
+        </span>
+        <p className="text-xs leading-snug text-muted-foreground">{hook}</p>
+      </div>
+      <RewardSeal state="sealed" size="sm" wiggle className="shrink-0" />
+    </div>
+  )
 }
 
-/** Compact reward hook — no journey animation (that lives on the welcome card). */
-function PhoneUnlockingReminder({
+/** Phone step: the reward hook beside the number field. */
+function UnlockingReminder({
   merchant,
   card,
 }: {
@@ -196,27 +210,20 @@ function PhoneUnlockingReminder({
   card: JoinCard
 }) {
   return (
-    <div className="surface-card flex items-center gap-3 p-3 text-left">
-      <VenueMark size={40} name={merchant.name} />
-      <div className="grid min-w-0 flex-1 gap-0.5">
-        <span className="eyebrow text-muted-foreground">
-          You&apos;re unlocking
-        </span>
-        {/* Two lines before clipping — long venue · card compounds stay
-            readable at 375 (VCU-P3-09). */}
-        <span className="line-clamp-2 text-sm leading-tight font-extrabold break-words">
-          {merchant.name} · {card.name}
-        </span>
-        <p className="text-xs leading-snug text-muted-foreground">
-          {joinUnlockingRewardHook(card.stampsRequired)}
-        </p>
-      </div>
-      <RewardSeal state="sealed" size="sm" wiggle className="shrink-0" />
-    </div>
+    <JoinOfferStrip
+      merchant={merchant}
+      card={card}
+      eyebrow="You're unlocking"
+      hook={joinUnlockingRewardHook(card.stampsRequired)}
+    />
   )
 }
 
-/** Static preview of stamp one landing — the outcome of accepting terms. */
+/**
+ * Terms step, QR journey: the outcome of accepting in one line. The full
+ * stamp card with stamp one printed is what the card page shows next, so the
+ * pitch here stays a strip and the consent form stays above the fold.
+ */
 function TermsFirstStampPreview({
   merchant,
   card,
@@ -224,45 +231,17 @@ function TermsFirstStampPreview({
   merchant: JoinMerchant
   card: JoinCard
 }) {
-  const previewDates = stampDisplayDates(1)
-
   return (
-    <div className="surface-card grid gap-3 p-3 text-left">
-      <div className="flex items-center gap-3">
-        <VenueMark size={40} name={merchant.name} />
-        <div className="grid min-w-0 gap-0.5">
-          <span className="eyebrow text-muted-foreground">
-            Your first stamp
-          </span>
-          {/* Two lines before clipping (VCU-P3-09, shared with the phone
-              chip). */}
-          <span className="line-clamp-2 text-sm leading-tight font-extrabold break-words">
-            {merchant.name} · {card.name}
-          </span>
-        </div>
-      </div>
-      <StampGrid
-        current={1}
-        total={card.stampsRequired}
-        dates={previewDates}
-        rewardSlot="locked"
-        compact
-        venueName={merchant.name}
-      />
-      <RewardTicket
-        state="sealed"
-        name={MYSTERY_REWARD_SEALED_LABEL}
-        description={
-          <>
-            {joinUnlockingRewardHook(card.stampsRequired)}, yours from the next
-            UK business day.
-          </>
-        }
-      />
-    </div>
+    <JoinOfferStrip
+      merchant={merchant}
+      card={card}
+      eyebrow="Your first stamp"
+      hook="Lands on your card the moment you accept."
+    />
   )
 }
 
+/** Terms step, direct join: the card is saved; stamp one waits at the venue. */
 function TermsSavedCardPreview({
   merchant,
   card,
@@ -271,30 +250,12 @@ function TermsSavedCardPreview({
   card: JoinCard
 }) {
   return (
-    <div className="surface-card grid gap-3 p-3 text-left">
-      <div className="flex items-center gap-3">
-        <VenueMark size={40} name={merchant.name} />
-        <div className="grid min-w-0 gap-0.5">
-          <span className="eyebrow text-muted-foreground">Your saved card</span>
-          <span className="line-clamp-2 text-sm leading-tight font-extrabold break-words">
-            {merchant.name} · {card.name}
-          </span>
-        </div>
-      </div>
-      <StampGrid
-        current={0}
-        total={card.stampsRequired}
-        dates={[]}
-        rewardSlot="locked"
-        compact
-        venueName={merchant.name}
-      />
-      <RewardTicket
-        state="sealed"
-        name={MYSTERY_REWARD_SEALED_LABEL}
-        description="Scan the printed venue QR when you're there to collect your first stamp."
-      />
-    </div>
+    <JoinOfferStrip
+      merchant={merchant}
+      card={card}
+      eyebrow="Your saved card"
+      hook="Scan the venue QR on your next visit for stamp 1."
+    />
   )
 }
 
@@ -347,12 +308,7 @@ function JoinHeroCard({
       reward={{
         state: "sealed",
         name: MYSTERY_REWARD_SEALED_LABEL,
-        description: (
-          <>
-            Your assigned reward stays hidden until the final stamp and can be
-            redeemed from the next UK business day.
-          </>
-        ),
+        description: <>Your reward stays a surprise until the final stamp.</>,
       }}
     >
       {children}

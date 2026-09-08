@@ -14,7 +14,11 @@ export {
 } from "./reward-seal"
 export { RewardTeaser } from "./reward-teaser"
 export { RewardTicket, type RewardTicketState } from "./reward-ticket"
-export { StampJourneyPreview } from "./stamp-journey-preview"
+export {
+  StampJourneyPreview,
+  StampJourneyRow,
+  type StampJourneyRowState,
+} from "./stamp-journey-preview"
 export { useStampJourneyLoop } from "./use-stamp-journey-loop"
 export {
   RewardChip,

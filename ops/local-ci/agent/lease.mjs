@@ -41,6 +41,18 @@ function readOwner(path) {
   return owner
 }
 
+export function assertControllerLeaseOwned({
+  path,
+  pid = process.pid,
+  probe = processStartIdentity,
+}) {
+  const owner = readOwner(path)
+  if (owner.pid !== pid || owner.start !== probe(pid))
+    throw new Error(
+      "Resource recovery requires this process to own the controller lease"
+    )
+}
+
 export function acquireControllerLease({
   path,
   pid = process.pid,

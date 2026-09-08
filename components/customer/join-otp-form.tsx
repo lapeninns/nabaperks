@@ -13,6 +13,10 @@ import { customerInputClass } from "@/components/customer/input-class"
 import { SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
+import {
+  OTP_TEXT_FALLBACK_LABEL,
+  type OtpChannel,
+} from "@/lib/customer/otp-channel-core"
 import { buildCustomerJoinHref } from "@/lib/navigation/customer-join-intent"
 
 const identityInitialState: CustomerIdentityState = {}
@@ -22,6 +26,8 @@ export type CustomerOtpFormProps = {
   qrId?: string
   referralCode?: string
   contactLast4: string
+  /** Channel that carried the code — the row says so and offers the other. */
+  channel?: OtpChannel
 }
 
 export function CustomerOtpForm({
@@ -29,6 +35,7 @@ export function CustomerOtpForm({
   qrId,
   referralCode,
   contactLast4,
+  channel = "sms",
 }: CustomerOtpFormProps) {
   const [verifyState, verifyAction] = useActionState(
     verifyCustomerOtpAction,
@@ -57,6 +64,9 @@ export function CustomerOtpForm({
   const freshCodeError =
     state.errors?.contact ?? requestState.errors?.contact ?? undefined
   const needsFreshCode = Boolean(freshCodeError)
+  // A text is offered only when the code went out on WhatsApp; if it already
+  // went by text, that is because WhatsApp refused the number.
+  const offersText = channel === "whatsapp"
 
   return (
     <div className="grid gap-4">
@@ -75,7 +85,7 @@ export function CustomerOtpForm({
             <input type="hidden" name="ref" value={referralCode ?? ""} />
             <div className="grid gap-2">
               <label htmlFor="otp" className="eyebrow">
-                Text code
+                Your code
               </label>
               <CustomerOtpInput
                 id="otp"
@@ -99,7 +109,7 @@ export function CustomerOtpForm({
                   id="otp-hint"
                   className="text-xs leading-5 text-muted-foreground"
                 >
-                  Paste or enter the verification code sent to your phone.
+                  Paste or type the code from the message.
                 </p>
               )}
             </div>
@@ -120,31 +130,37 @@ export function CustomerOtpForm({
             {/* Marks this submission as a resend so the action answers in place
                 (returned state) instead of redirecting the phone step forward. */}
             <input type="hidden" name="resend" value="1" />
+            <input type="hidden" name="channel" value={channel} />
+            {/* One compact row instead of a second card: where the code went,
+                the resend, and the way out, all inside one live region so a
+                resend outcome is announced in place (CUS-P1-02). */}
             <div
-              className="surface-card grid gap-2 p-3 text-left"
+              className="grid gap-1.5 rounded-lg border-2 border-dashed border-border px-3 py-2.5 text-left"
               aria-live="polite"
             >
-              <div className="flex items-center justify-between gap-3">
-                <span className="eyebrow text-muted-foreground">Sent to</span>
+              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                <p className="text-sm">
+                  <span className="text-muted-foreground">Sent to </span>
+                  <span className="font-bold tabular-nums">
+                    Phone ending {contactLast4}
+                  </span>
+                </p>
                 <SubmitButton
                   variant="link"
                   size="xs"
-                  className="shrink-0 text-xs"
+                  className="-mr-2 shrink-0 text-xs"
                   pendingLabel="Sending…"
                 >
                   Resend code
                 </SubmitButton>
               </div>
-              <p className="text-sm font-bold tabular-nums">
-                Phone ending {contactLast4}
-              </p>
               {resendError ? (
-                <p className="text-sm leading-6 text-destructive">
+                <p className="text-sm leading-5 text-destructive">
                   {resendError}
                 </p>
               ) : null}
               {resendMessage ? (
-                <p className="text-sm leading-6 font-semibold text-foreground">
+                <p className="text-sm leading-5 font-semibold text-foreground">
                   {resendMessage}
                 </p>
               ) : null}
@@ -156,6 +172,26 @@ export function CustomerOtpForm({
               </Link>
             </div>
           </form>
+
+          {/* A text, one tap away: a resend by SMS through the same admission
+              and the same neutral reply. */}
+          {offersText ? (
+            <form action={requestAction} className="grid justify-items-center">
+              <input type="hidden" name="merchantSlug" value={merchantSlug} />
+              <input type="hidden" name="qrId" value={qrId ?? ""} />
+              <input type="hidden" name="ref" value={referralCode ?? ""} />
+              <input type="hidden" name="resend" value="1" />
+              <input type="hidden" name="channel" value="sms" />
+              <SubmitButton
+                variant="link"
+                size="xs"
+                className="text-xs"
+                pendingLabel="Sending…"
+              >
+                {OTP_TEXT_FALLBACK_LABEL}
+              </SubmitButton>
+            </form>
+          ) : null}
         </>
       )}
     </div>

@@ -6,12 +6,16 @@ import { recordProductEvent } from "@/lib/analytics/events"
 import { loyaltyAvailability } from "@/lib/customer/availability"
 import { getCurrentCustomer } from "@/lib/customer/identity"
 import {
-  isValidPublicQrId,
-  qrScanCodeRateLimitKey,
-  qrScanIdentityRateLimitKey,
-} from "@/lib/customer/qr-rate-limit-core"
+  loadMerchantIdBySlug,
+  loadMerchantJoinState,
+  loadQrIdentity,
+  loadQrJoinState,
+  type JoinLoyaltyCardRow,
+} from "@/lib/customer/join-lookup"
+import { rewardExamplesFromPool } from "@/lib/customer/reward-examples"
+import { enforceQrScanRateLimit } from "@/lib/customer/qr-rate-limit"
+import { isValidPublicQrId } from "@/lib/customer/qr-rate-limit-core"
 import { logger } from "@/lib/observability/logger"
-import { enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export type CustomerJoinContext = {
@@ -30,55 +34,10 @@ export type CustomerJoinContext = {
     card_name: string
     stamps_required: number
     reward_terms: string
+    /** Active reward-pool names in display order — examples of the draw,
+     *  never a promise of one reward. */
+    reward_examples: string[]
   }
-}
-
-type BillingCustomerEmbed =
-  | { status: string | null }
-  | Array<{ status: string | null }>
-  | null
-
-type RawQrLookup = {
-  id: string
-  qr_id: string
-  is_active: boolean
-  destination_type: string
-  merchants:
-    | {
-        id: string
-        business_name: string
-        business_slug: string
-        email: string
-        phone: string | null
-        status: string
-        requires_billing: boolean
-        billing_customers: BillingCustomerEmbed
-      }
-    | Array<{
-        id: string
-        business_name: string
-        business_slug: string
-        email: string
-        phone: string | null
-        status: string
-        requires_billing: boolean
-        billing_customers: BillingCustomerEmbed
-      }>
-  loyalty_cards:
-    | {
-        id: string
-        card_name: string
-        stamps_required: number
-        reward_terms: string
-        is_active: boolean
-      }
-    | Array<{
-        id: string
-        card_name: string
-        stamps_required: number
-        reward_terms: string
-        is_active: boolean
-      }>
 }
 
 type ResolveQrForJoinOptions = {
@@ -89,6 +48,15 @@ type ResolveQrForJoinOptions = {
   scanSource?: string | null
 }
 
+/**
+ * Resolve a public QR id to its merchant, card and availability.
+ *
+ * The lookup itself is served from the data cache (`lib/customer/join-lookup.ts`)
+ * so the join wizard, its actions and the stamp page do not each re-read
+ * Postgres. The scan rate limiter and the `qr_scanned` event stay here, in
+ * front of and after the cached read: `/q/[qrId]` is the only caller that
+ * enables them, so one physical scan is one admission and one event.
+ */
 export async function resolveQrForJoin(
   qrId: string,
   {
@@ -101,34 +69,15 @@ export async function resolveQrForJoin(
   if (!isValidPublicQrId(qrId)) return null
 
   if (enforceScanRateLimit) {
-    await enforceRateLimit({
-      key: qrScanIdentityRateLimitKey(scanRateLimitIdentity),
-      limit: 120,
-      windowMs: 60_000,
-    })
-    await enforceRateLimit({
-      key: qrScanCodeRateLimitKey(qrId, scanRateLimitIdentity),
-      limit: 60,
-      windowMs: 60_000,
-    })
+    await enforceQrScanRateLimit({ qrId, identity: scanRateLimitIdentity })
   }
 
-  const supabase = createSupabaseServiceRoleClient()
-  const { data, error } = await supabase
-    .from("qr_codes")
-    .select(
-      "id, qr_id, is_active, destination_type, merchants(id, business_name, business_slug, email, phone, status, requires_billing, billing_customers(status)), loyalty_cards!loyalty_card_id(id, card_name, stamps_required, reward_terms, is_active)"
-    )
-    .eq("qr_id", qrId)
-    .maybeSingle()
+  const identity = await loadQrIdentity(qrId)
+  if (!identity) return null
 
-  if (error) {
-    throw new Error(`Unable to resolve QR code: ${error.message}`)
-  }
+  const qrCode = await loadQrJoinState(identity.merchantId, identity.qrCodeId)
+  if (!qrCode) return null
 
-  if (!data) return null
-
-  const qrCode = data as RawQrLookup
   const merchant = first(qrCode.merchants)
   const loyaltyCard = first(qrCode.loyalty_cards)
   const billingStatus =
@@ -178,49 +127,36 @@ export async function resolveQrForJoin(
     qrId: qrCode.qr_id,
     qrCodeId: qrCode.id,
     merchant,
-    loyaltyCard,
+    loyaltyCard: joinLoyaltyCard(loyaltyCard),
   } satisfies CustomerJoinContext
 }
 
+/**
+ * Join context for the wizard, its actions and the public merchant pages.
+ * Never rate-limits and never records a scan: those belong to the physical
+ * scan on `/q/[qrId]`, and every read here is a cache hit behind it.
+ */
 export async function getMerchantJoinContext(
   merchantSlug: string,
-  qrId?: string,
-  scanRateLimitIdentity?: string
+  qrId?: string
 ) {
   if (qrId) {
-    let qrContext: Awaited<ReturnType<typeof resolveQrForJoin>>
-
-    try {
-      qrContext = await resolveQrForJoin(qrId, {
-        enforceScanRateLimit: Boolean(scanRateLimitIdentity),
-        recordScan: false,
-        scanRateLimitIdentity,
-      })
-    } catch (error) {
-      if (error instanceof RateLimitError) return null
-      throw error
-    }
+    const qrContext = await resolveQrForJoin(qrId, {
+      enforceScanRateLimit: false,
+      recordScan: false,
+    })
 
     if (!qrContext) return null
     if (qrContext.merchant.business_slug !== merchantSlug) return null
     return qrContext
   }
 
-  const supabase = createSupabaseServiceRoleClient()
-  const { data, error } = await supabase
-    .from("merchants")
-    .select(
-      "id, business_name, business_slug, email, phone, status, requires_billing, billing_customers(status), loyalty_cards(id, card_name, stamps_required, reward_terms, is_active)"
-    )
-    .eq("business_slug", merchantSlug)
-    .eq("loyalty_cards.is_active", true)
-    .maybeSingle()
+  const identity = await loadMerchantIdBySlug(merchantSlug)
+  if (!identity) return null
 
-  if (error) {
-    throw new Error(`Unable to load merchant join page: ${error.message}`)
-  }
-
+  const data = await loadMerchantJoinState(identity.merchantId)
   if (!data) return null
+  if (data.business_slug !== merchantSlug) return null
 
   const loyaltyCard = first(data.loyalty_cards)
   if (!loyaltyCard?.is_active) return null
@@ -241,19 +177,24 @@ export async function getMerchantJoinContext(
       email: data.email,
       phone: data.phone,
     },
-    loyaltyCard: {
-      id: loyaltyCard.id,
-      card_name: loyaltyCard.card_name,
-      stamps_required: loyaltyCard.stamps_required,
-      reward_terms: loyaltyCard.reward_terms,
-    },
+    loyaltyCard: joinLoyaltyCard(loyaltyCard),
   } satisfies CustomerJoinContext
 }
 
-export async function getExistingMembershipForCurrentUser(merchantId: string) {
-  const customerId = await getCurrentCustomerId()
-  if (!customerId) return null
+function joinLoyaltyCard(card: JoinLoyaltyCardRow) {
+  return {
+    id: card.id,
+    card_name: card.card_name,
+    stamps_required: card.stamps_required,
+    reward_terms: card.reward_terms,
+    reward_examples: rewardExamplesFromPool(card.reward_pool_items),
+  }
+}
 
+export async function getMembershipForCustomer(
+  merchantId: string,
+  customerId: string
+) {
   const supabase = createSupabaseServiceRoleClient()
   const { data: membership, error: membershipError } = await supabase
     .from("customer_memberships")
@@ -267,6 +208,13 @@ export async function getExistingMembershipForCurrentUser(merchantId: string) {
   }
 
   return membership
+}
+
+export async function getExistingMembershipForCurrentUser(merchantId: string) {
+  const customerId = await getCurrentCustomerId()
+  if (!customerId) return null
+
+  return getMembershipForCustomer(merchantId, customerId)
 }
 
 export async function getCurrentCustomerId(): Promise<string | null> {

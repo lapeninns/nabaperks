@@ -8,44 +8,55 @@ be reviewed by its due date or sooner when a listed trigger occurs.
 
 | Field      | Decision                                                                  |
 | ---------- | ------------------------------------------------------------------------- |
-| Status     | Remediated in source; production rollout pending                          |
+| Status     | Reopened; device continuity disabled in source                            |
 | Risk owner | `info@lapeninns.com`                                                      |
 | Accepted   | 21 July 2026                                                              |
 | Remediated | 3 September 2026                                                          |
+| Reopened   | 7 September 2026                                                          |
+| Review due | 7 December 2026                                                           |
 | Source     | `.deepsec/findings/MEDIUM/Nabaperks-other-account-takeover-1a4d2762eb.md` |
 
 ### Decision
 
-Phone possession remains the first verification step, but no longer establishes
-continuity with an existing customer by itself. A genuinely new phone identity
-can still create its first wallet. An existing phone can open its historical
-wallet only from a previously customer-bound device or after a fresh code sent
-to the verified email already on that customer record.
+A verified phone OTP again establishes continuity with an existing customer on
+its own, from any browser or device. The stronger control shipped on
+3 September 2026 is retained in the tree but switched off.
 
-An unrecognised device without a verified recovery email fails closed. It does
-not receive the historical session, create a replacement wallet, or reassign
-the phone. Unbound legacy sessions are revoked during migration rather than
-being attached to whichever device presents them first.
+It was switched off because it locked out the customers it was meant to
+protect. Its migration revoked every device trust row minted before it, so no
+browser was recognised for any pre-existing customer, and a recovery email can
+only be verified from an already authenticated session. An existing customer
+with no verified recovery email therefore had no path back into their own
+wallet from any device, including the one they had always used.
 
-### Restored invariant
+### Reopened exposure
 
-- Session registration records the verified device and rejects later touches
-  from another device.
-- Existing-customer phone login and QR join share the same pre-session
-  continuity decision.
-- Recovery state is encrypted, short-lived, customer/phone/device-bound, and
-  releases the session only while the original phone and verified email remain
-  unchanged.
+A person who is issued a recycled mobile number can open the previous holder's
+wallet, and with it their venue cards, stamp balances, and unredeemed rewards.
+Phone possession is once more the only proof required. The exposure is real,
+accepted, and scoped to customer wallets: merchant, admin, and billing surfaces
+are unaffected.
+
+### Retained invariant
+
+- Existing-customer phone login and QR join still share one pre-session
+  continuity boundary, so the control is restored in one place.
+- Session registration still records the verified device and rejects later
+  touches from another device, so a copied cookie still cannot move.
+- Sessions minted this way are recorded with the `verified_phone` continuity
+  source, which is excluded from device trust, so restoring the control does
+  not inherit trust that phone possession alone created.
+- The verified-email recovery journey stays wired behind
+  `REQUIRE_DEVICE_CONTINUITY` in `lib/customer/access-continuity.ts`.
 - Customer existence remains undisclosed until after phone OTP proof.
-- Static QR routing, wallet identifiers, membership, stamping, and rewards are
-  unchanged after legitimate authentication.
 
-### Rollout note
+### Exit condition
 
-Local source and database tests can establish the control design but do not
-prove production deployment. Keep this item operationally open until the
-continuity migration and compatible application release have been read back in
-production. A production holder of the old build remains exposed until then.
+Restore the control once existing wallets carry a verified recovery email, or
+once a venue-attested re-trust path exists, so that enabling it no longer
+strands customers. Restoring means setting `REQUIRE_DEVICE_CONTINUITY` to true
+and reverting
+`supabase/migrations/20260908120000_allow_verified_phone_continuity.sql`.
 
 ## SEC-RISK-002: static QR cannot prove venue presence
 

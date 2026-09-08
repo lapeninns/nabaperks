@@ -28,6 +28,9 @@ export const metadata: Metadata = {
   ...PRIVATE_ROUTE_METADATA,
   title: "Collect your stamp",
 }
+// The only DB read behind this page is served from the data cache, so make
+// request-time rendering explicit rather than relying on an uncached read.
+export const dynamic = "force-dynamic"
 
 type MerchantRewardsPageProps = {
   params: Promise<{

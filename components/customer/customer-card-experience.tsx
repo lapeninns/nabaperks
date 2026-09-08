@@ -21,6 +21,7 @@ import { ReferralBonusBankNotice } from "@/components/customer/referral-bonus-ba
 import { CustomerTabBar } from "@/components/layout"
 import { ReferralSharePanel } from "@/components/customer/referral-share-panel"
 import { StampCollector } from "@/components/customer/stamp-collector"
+import { UnavailableRecoveryActions } from "@/components/customer/unavailable-recovery"
 import {
   RedeemedProofPanel,
   RewardReadyPanel,
@@ -85,6 +86,11 @@ export function CustomerCardExperience({
         title={vm.headline}
         description={vm.supportLine}
         className="pb-28"
+        // Only the stamp screens opt into the landscape floor: their band
+        // restates the state, so the support line can give way there. The
+        // access-recovery and reward screens keep theirs — it is the
+        // instruction.
+        landscapeCompact={isStampScreen(experience.kind)}
         screenLabel={screenLabelFor(experience.kind)}
       >
         <ExperiencePanel
@@ -122,6 +128,8 @@ function ExperiencePanel({
     case "card_stamped_today":
     case "stamp_confirm":
       return <StampScreenPanel exp={experience} />
+    case "stamp_unmatched":
+      return <StampUnmatchedPanel exp={experience} />
     case "reward_waiting":
       return <RewardWaitingPanel exp={experience} />
     case "reward_ready":
@@ -309,17 +317,16 @@ function CardProgressPanel({
             Your next scan window opens on the next UK business day.
           </StatusBanner>
         ) : (
-          <div className="grid gap-3">
-            <StatusBanner
-              title="Scan the venue code to add your stamp."
-              tone="neutral"
-            >
-              Use the printed QR in the venue. One stamp is available per UK
-              business day.
-            </StatusBanner>
+          // One action and one line: the instruction lives in the button,
+          // so the card stays inside the first screen (the stamp-per-day rule
+          // is in the card details disclosure below).
+          <div className="grid gap-1.5">
             <Button asChild size="lg" variant="secondary" className="w-full">
               <Link href="/scan">Scan to stamp</Link>
             </Button>
+            <p className="text-center text-xs leading-5 text-muted-foreground">
+              Use the printed QR at the venue to add today&apos;s stamp.
+            </p>
           </div>
         )}
       </CustomerStampCard>
@@ -341,6 +348,7 @@ function CardProgressPanel({
           url={exp.referralShareUrl}
           membershipId={exp.membershipId}
           venueName={exp.merchantName}
+          compact
         />
       ) : null}
 
@@ -552,7 +560,7 @@ function StampScreenPanel({
     exp.kind === "card_stamped_today" ? exp.reward : undefined
 
   return (
-    <section className="grid gap-5">
+    <section className="grid gap-5 short:gap-4">
       <StampCollector
         membershipId={exp.membershipId}
         qrId={exp.qrId}
@@ -578,6 +586,61 @@ function StampScreenPanel({
           <Link href={`/card/${exp.membershipId}`}>Back to card</Link>
         </Button>
       )}
+    </section>
+  )
+}
+
+/**
+ * The stamp screen reached without a usable QR. The card stays — it is the
+ * member's own and the reassuring thing on screen — and the band that would
+ * hold today's stamp status names the problem and what fixes it, with the
+ * shared recovery pair beneath. Never a bare sentence with no way forward.
+ */
+function StampUnmatchedPanel({
+  exp,
+}: {
+  exp: Extract<CustomerExperience, { kind: "stamp_unmatched" }>
+}) {
+  const band =
+    exp.problem === "missing"
+      ? {
+          title: "No venue QR on this visit.",
+          body: "Scan the printed QR at the counter and today's stamp button appears right here.",
+        }
+      : {
+          title: "Stamp not added.",
+          body: "That code belongs to another venue or has been replaced. Scan the printed QR at the counter again, or ask a team member.",
+        }
+
+  return (
+    <section className="grid gap-5 short:gap-4">
+      <CustomerStampCard
+        venueName={exp.merchantName}
+        cardName={exp.cardName}
+        current={exp.current}
+        total={exp.total}
+        stampDates={exp.stampDates}
+        reward={{
+          state: "sealed",
+          name: SEALED_REWARD_NAME,
+          description: SEALED_REWARD_NOTE,
+        }}
+        rewardSlot="locked"
+        hideFooter
+        hideHeaderText
+        afterGrid={
+          <section
+            data-stamp-unmatched={exp.problem}
+            className="grid min-h-28 grid-rows-[auto_1fr] content-start gap-1 rounded-lg border-2 border-dashed border-line-strong bg-secondary/45 px-4 py-3 text-center short:min-h-24"
+          >
+            <p className="font-extrabold text-balance">{band.title}</p>
+            <p className="text-sm leading-5 font-medium text-ink-soft">
+              {band.body}
+            </p>
+          </section>
+        }
+      />
+      <UnavailableRecoveryActions />
     </section>
   )
 }
@@ -639,10 +702,19 @@ function cardNumber(membershipId: string): string {
   return `CARD Nº ${membershipId.slice(0, 8).toUpperCase()}`
 }
 
+function isStampScreen(kind: CustomerExperienceKind): boolean {
+  return (
+    kind === "stamp_confirm" ||
+    kind === "card_stamped_today" ||
+    kind === "stamp_unmatched"
+  )
+}
+
 function screenLabelFor(kind: CustomerExperienceKind): string {
   switch (kind) {
     case "stamp_confirm":
     case "card_stamped_today":
+    case "stamp_unmatched":
       return "Customer stamp"
     case "reward_waiting":
     case "reward_ready":

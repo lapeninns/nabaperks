@@ -308,7 +308,10 @@ test("production env validation executes with analytics off and fails closed for
       .filter(
         (entry) =>
           !analyticsNames.has(entry.name) &&
-          entry.name !== "CUSTOMER_OTP_BYPASS_MODE"
+          // Enumerated optional settings: a placeholder string is not a valid
+          // value, and blank (their default) is what production uses.
+          entry.name !== "CUSTOMER_OTP_BYPASS_MODE" &&
+          entry.name !== "CUSTOMER_OTP_PRIMARY_CHANNEL"
       )
       .map((entry) => [entry.name, validTestEnvValue(entry)])
   )

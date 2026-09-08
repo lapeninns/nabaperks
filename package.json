@@ -11,9 +11,9 @@
     "clean": "rm -rf .next .next-e2e coverage test-results playwright-report reports/lighthouse reports/mutation",
     "typecheck": "tsc --noEmit",
     "test": "pnpm test:contracts && pnpm test:unit",
-    "test:contracts": "node --test tests/contracts/*.test.mjs",
-    "test:unit": "node --import ./tests/support/register-alias.mjs --test tests/unit/*.test.mjs",
-    "test:coverage": "mkdir -p coverage && node --import ./tests/support/register-alias.mjs --experimental-test-coverage --test-coverage-include='lib/**' --test-coverage-lines=80 --test-coverage-functions=80 --test-coverage-branches=70 --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=coverage/lcov.info --test tests/unit/*.test.mjs",
+    "test:contracts": "node scripts/ci/node-test-runner.mjs --test tests/contracts/*.test.mjs",
+    "test:unit": "node scripts/ci/node-test-runner.mjs --import ./tests/support/register-alias.mjs --test tests/unit/*.test.mjs",
+    "test:coverage": "mkdir -p coverage && node scripts/ci/node-test-runner.mjs --import ./tests/support/register-alias.mjs --experimental-test-coverage --test-coverage-include='lib/**' --test-coverage-lines=80 --test-coverage-functions=80 --test-coverage-branches=70 --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=coverage/lcov.info --test tests/unit/*.test.mjs",
     "test:db": "node --import ./tests/db/helpers/db-preflight.mjs --test --test-concurrency=1 tests/db/*.test.mjs",
     "test:e2e": "node scripts/run-playwright.mjs",
     "test:e2e:ui": "node scripts/run-playwright.mjs --ui",
@@ -82,7 +82,10 @@
     "env:set-resend": "node scripts/env-keys.mjs set-resend",
     "env:push-vercel": "node scripts/env-keys.mjs push-vercel",
     "env:write-local": "node scripts/env-keys.mjs write-local",
-    "test:mutation-command": "node scripts/run-mutation-tests.mjs"
+    "test:mutation-command": "node scripts/run-mutation-tests.mjs",
+    "ops:factory:status": "node scripts/ci/factory-status.mjs",
+    "ops:factory:action": "node scripts/ci/factory-action.mjs",
+    "ops:ci:benchmark": "node ops/local-ci/benchmark.mjs"
   },
   "engines": {
     "node": ">=22.0.0",

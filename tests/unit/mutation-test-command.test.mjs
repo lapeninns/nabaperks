@@ -82,3 +82,24 @@ test("missing tests and interrupted or failed commands never report success", ()
     1
   )
 })
+
+test("mutation child excludes compiler overrides without losing mutant selection", () => {
+  const env = {
+    NODE_PATH: "/sandbox/node_modules",
+    NODE_OPTIONS: "--require injected",
+    ESBUILD_BINARY_PATH: "/untrusted",
+    STRYKER_MUTATOR_ACTIVE_MUTANT: "42",
+    PATH: "/usr/bin",
+  }
+  runMutationTests({
+    env,
+    run: (_command, _args, options) => {
+      assert.deepEqual(options.env, {
+        STRYKER_MUTATOR_ACTIVE_MUTANT: "42",
+        PATH: "/usr/bin",
+      })
+      return { status: 0 }
+    },
+  })
+  assert.equal(env.NODE_PATH, "/sandbox/node_modules")
+})

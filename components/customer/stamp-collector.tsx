@@ -77,7 +77,11 @@ function StampStatusBand({
       data-stamp-status-band
       data-phase={phase}
       className={cn(
-        "grid h-28 grid-rows-[1.5rem_1fr] content-start gap-1 overflow-y-auto rounded-lg border-2 px-4 py-3 text-center",
+        // A reserved band so feedback replaces in place without the card
+        // jumping between phases — reserved with min-height, not a hard
+        // height: the copy must never scroll inside a 112px box when a large
+        // type setting or a long refusal needs more room.
+        "grid min-h-28 grid-rows-[auto_1fr] content-start gap-1 rounded-lg border-2 px-4 py-3 text-center short:min-h-24 squat:content-center squat:text-left",
         view.confirmed
           ? "border-reward bg-reward/10"
           : phase === "blocked"
@@ -226,7 +230,7 @@ export function StampCollector({
   async function issueStamp() {
     if (requestInFlightRef.current || view.secured || !canStamp) return
     requestInFlightRef.current = true
-    dispatch({ type: "request_started" })
+    dispatch({ type: "request_started", current })
     markStampPhase("checking")
 
     try {
@@ -248,7 +252,7 @@ export function StampCollector({
   async function issueWithCode(code: string) {
     if (requestInFlightRef.current || view.secured || !canStamp) return
     requestInFlightRef.current = true
-    dispatch({ type: "request_started" })
+    dispatch({ type: "request_started", current })
     markStampPhase("checking")
 
     try {
@@ -276,6 +280,7 @@ export function StampCollector({
         current={view.displayCurrent}
         total={total}
         slamIndex={view.slamIndex}
+        pendingIndex={view.pendingIndex}
         stampDates={view.dates}
         reward={{
           state: rewardUnlocked ? "waiting" : "sealed",
@@ -288,50 +293,65 @@ export function StampCollector({
         rewardSlot={rewardUnlocked ? "revealed" : "locked"}
         hideFooter
         hideHeaderText
+        // The stamp control sits directly under its feedback band, *above*
+        // the reward ticket: grid → status → (code fallback) → press → ticket.
+        // With the ticket in between, the button fell below the fold on a
+        // 390×844 phone — the one thing the screen exists for was off-screen
+        // after a scan. The sealed ticket is context, not the action.
+        // Landscape floor (≤480px tall): the band and the press sit side by
+        // side — feedback left, control right — so both stay in the first
+        // screen; the code fallback and the location note span the rows
+        // beneath. Every cell is placed explicitly: with auto-placement the
+        // two-column fallback could not follow the band on row 1, so it fell
+        // to row 2 and pushed the press to row 3 — exactly when the keyboard
+        // makes height scarcest.
         afterGrid={
-          <div className="grid gap-3">
-            <StampStatusBand view={view} phase={state.phase} />
+          <div className="grid gap-3 short:gap-2 squat:grid-cols-[minmax(0,1fr)_auto] squat:items-center">
+            <div className="squat:col-start-1 squat:row-start-1">
+              <StampStatusBand view={view} phase={state.phase} />
+            </div>
             {showVenueCode ? (
-              <VenueCodeForm
-                attemptsRemaining={view.venueCodeAttemptsRemaining}
-                lockedUntil={view.venueCodeLockedUntil}
-                pending={view.pending}
-                onSubmit={(code) => {
-                  void issueWithCode(code)
+              <div className="squat:col-span-2 squat:row-start-2">
+                <VenueCodeForm
+                  attemptsRemaining={view.venueCodeAttemptsRemaining}
+                  lockedUntil={view.venueCodeLockedUntil}
+                  pending={view.pending}
+                  onSubmit={(code) => {
+                    void issueWithCode(code)
+                  }}
+                />
+              </div>
+            ) : null}
+            <div className="grid justify-items-center gap-3 pt-1 short:gap-2 short:pt-0 squat:col-start-2 squat:row-start-1">
+              <StampPressButton
+                onStamp={() => {
+                  void issueStamp()
                 }}
+                venueName={venueName}
+                secured={view.secured}
+                confirmed={view.confirmed}
+                pending={view.pending}
+                label={view.buttonLabel}
               />
+              <p
+                className="sr-only"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+              >
+                {view.announcement}
+              </p>
+            </div>
+            {locationNotice ? (
+              <p className="rounded-lg bg-secondary px-3 py-2 text-center text-xs leading-5 text-muted-foreground squat:col-span-2 squat:row-start-3">
+                This venue may try a soft location check within{" "}
+                {location.geofenceRadiusMeters}m. Your stamp still saves if your
+                phone cannot share location.
+              </p>
             ) : null}
           </div>
         }
-      >
-        <div className="grid justify-items-center gap-3 pt-2">
-          <StampPressButton
-            onStamp={() => {
-              void issueStamp()
-            }}
-            venueName={venueName}
-            secured={view.secured}
-            confirmed={view.confirmed}
-            pending={view.pending}
-            label={view.buttonLabel}
-          />
-          <p
-            className="sr-only"
-            role="status"
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            {view.announcement}
-          </p>
-          {locationNotice ? (
-            <p className="rounded-lg bg-secondary px-3 py-2 text-center text-xs leading-5 text-muted-foreground">
-              This venue may try a soft location check within{" "}
-              {location.geofenceRadiusMeters}m. Your stamp still saves if your
-              phone cannot share location.
-            </p>
-          ) : null}
-        </div>
-      </CustomerStampCard>
+      />
     </div>
   )
 }

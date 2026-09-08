@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { fileURLToPath } from "node:url"
 import { generateKeyPairSync } from "node:crypto"
 import { test } from "node:test"
 import { mkdtempSync, openSync, rmSync, writeFileSync } from "node:fs"
@@ -215,7 +216,7 @@ test("resource policy and commands alter signed command digest", () => {
 })
 test("protected file loader rejects candidate-owned worktree path", async () => {
   await assert.rejects(
-    readProtectedFile(new URL(import.meta.url).pathname),
+    readProtectedFile(fileURLToPath(import.meta.url)),
     /root-owned|symlinks/
   )
 })

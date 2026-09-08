@@ -17,6 +17,10 @@ import {
   type PublicQrRouterFixture,
 } from "./helpers/public-qr-router-live-db"
 
+// Neutral resend reply from requestCustomerIdentityAction: the same copy
+// whether the dispatch limiter admitted or refused the send (anti-enumeration).
+const RESEND_OUTCOME = "If a new code arrives, enter it here."
+
 test.describe("@customer-flow customer join live DB", () => {
   const reason = customerReadbackLiveDbSkipReason()
   test.skip(Boolean(reason), reason)
@@ -140,23 +144,27 @@ test.describe("@customer-flow customer join live DB", () => {
 
       await openOtpStep(page, fixture, phone)
       const resend = page.getByRole("button", { name: "Resend code" })
+      const resendOutcome = page.getByText(RESEND_OUTCOME, { exact: true })
 
-      for (let attempt = 0; attempt < 4; attempt += 1) {
-        await resend.click()
-        await expect(
-          page.getByText("New code sent. It can take a moment to arrive.", {
-            exact: true,
-          })
-        ).toBeVisible()
+      // The phone dispatch bucket admits 5 sends per 15 minutes: the initial
+      // send plus 4 resends. The 5th resend is refused by the limiter, but the
+      // action deliberately answers admitted and refused resends with the same
+      // neutral copy so the reply never reveals whether a code was dispatched.
+      // Every click round-trips a server action, so wait for that POST to
+      // settle before reading the outcome — the copy is identical each time.
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        await Promise.all([
+          page.waitForResponse(
+            (response) =>
+              response.request().method() === "POST" &&
+              new URL(response.url()).pathname.includes("/join")
+          ),
+          resend.click(),
+        ])
+        await expect(resendOutcome).toBeVisible()
         await expect(resend).toBeEnabled()
+        await expect(page.getByText(/too many/i)).toHaveCount(0)
       }
-
-      await resend.click()
-      await expect(
-        page.getByText("Too many verification requests. Try again later.", {
-          exact: true,
-        })
-      ).toBeVisible()
 
       await page.locator("#otp").fill(DEV_OTP)
       await page.getByRole("button", { name: "Check code" }).click()

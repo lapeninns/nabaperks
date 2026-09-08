@@ -10,6 +10,7 @@ import {
   validateStageTransition,
 } from "./manifest.mjs"
 import { validateCompatibilityEvidence } from "./compatibility.mjs"
+import { isOperatorPackageComparison } from "./operator-package-proof.mjs"
 
 const STAGES = [
   "qualified",
@@ -24,6 +25,19 @@ const CI_FILES = new Set([
   "DESIGN.md",
   "README.md",
   ".github/CODEOWNERS",
+  "config/software-factory.json",
+  "ops/factory/github.mjs",
+  "ops/factory/journal.mjs",
+  "ops/factory/report.mjs",
+  "ops/factory/review-summary.mjs",
+  "ops/factory/state.mjs",
+  "ops/factory/workflow-checks.mjs",
+  "scripts/check-vercel-governance.mjs",
+  "scripts/run-mutation-tests.mjs",
+  "scripts/vercel-governance/checks.mjs",
+  "scripts/vercel-governance/deployment-observation.mjs",
+  "scripts/vercel-governance/project-metadata.mjs",
+  "scripts/release/operator-package-proof.mjs",
   "config/ci-workloads.json",
   "config/github-governance-contract.json",
   "config/local-ci-contract.json",
@@ -58,9 +72,13 @@ const CI_PREFIXES = [
 const digest = (contents) => createHash("sha256").update(contents).digest("hex")
 const jsonBytes = (value) => Buffer.from(`${JSON.stringify(value)}\n`)
 
-export function requiresCompatibility(changedPaths) {
+export function requiresCompatibility(changedPaths, packageComparison = null) {
   return changedPaths.filter(
     (path) =>
+      !(
+        path === "package.json" &&
+        isOperatorPackageComparison(packageComparison)
+      ) &&
       !CI_FILES.has(path) &&
       !CI_PREFIXES.some((prefix) => path.startsWith(prefix))
   )
@@ -154,6 +172,13 @@ export function sourceIdentity({
       migrationDigest: migrationDigest(migrations),
     },
     changedPaths,
+    packageComparison: changedPaths.includes("package.json")
+      ? {
+          schema: "nabaperks.operator-package-comparison.v1",
+          baseline: git(["show", `${baselineRevision}:package.json`]),
+          candidate: git(["show", `${revision}:package.json`]),
+        }
+      : null,
   }
 }
 
@@ -163,7 +188,10 @@ export function qualifyRelease(
   { now = Date.now(), maxAgeMs = 3_600_000 } = {}
 ) {
   const { identity, changedPaths } = source
-  const runtimeChanges = requiresCompatibility(changedPaths)
+  const runtimeChanges = requiresCompatibility(
+    changedPaths,
+    source.packageComparison
+  )
   let mode = "unchanged-application-and-schema"
   if (runtimeChanges.length > 0) {
     assert.ok(
@@ -193,6 +221,7 @@ export function qualifyRelease(
     identity,
     mode,
     changedPaths,
+    packageComparison: source.packageComparison ?? null,
     compatibility: mode === "executed-compatibility" ? compatibility : null,
   }
   const bytes = jsonBytes(evidence)
@@ -306,7 +335,10 @@ export function verifyLedger(
     )
     if (evidence.mode === "unchanged-application-and-schema") {
       assert.deepEqual(
-        requiresCompatibility(evidence.changedPaths),
+        requiresCompatibility(
+          evidence.changedPaths,
+          evidence.packageComparison
+        ),
         [],
         "unchanged qualification includes runtime changes"
       )
@@ -372,6 +404,11 @@ export function verifySourceComparison(ledger, source) {
     evidence.changedPaths,
     source.changedPaths,
     "qualification does not match the full Git tree comparison"
+  )
+  assert.deepEqual(
+    evidence.packageComparison ?? null,
+    source.packageComparison ?? null,
+    "qualification package comparison does not match the exact Git blobs"
   )
 }
 

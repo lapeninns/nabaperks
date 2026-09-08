@@ -95,6 +95,7 @@ export function StampGrid({
   total,
   dates,
   slamIndex = -1,
+  pendingIndex = -1,
   showEmptySlotNumbers = false,
   rewardSlot,
   previewJourney = false,
@@ -113,6 +114,8 @@ export function StampGrid({
   total: number
   dates?: string[]
   slamIndex?: number
+  /** Slot inking while a stamp request is in flight (wet outline, not earned). */
+  pendingIndex?: number
   showEmptySlotNumbers?: boolean
   /** Reward-ticket chip destination after the stamp slots. */
   rewardSlot?: RewardSlotState
@@ -176,6 +179,7 @@ export function StampGrid({
       >
         <StampDot
           earned={earned}
+          pending={!earned && slot.index === pendingIndex}
           label={`Stamp ${slot.index + 1} ${earned ? "earned" : "empty"}`}
           date={earned ? dates?.[slot.index] : undefined}
           slotNumber={slot.index + 1}
@@ -184,9 +188,7 @@ export function StampGrid({
           compact={compact}
           venueName={venueName}
           venueInitials={venueInitials}
-          onSlamComplete={
-            slot.index === slamIndex ? onSlamComplete : undefined
-          }
+          onSlamComplete={slot.index === slamIndex ? onSlamComplete : undefined}
         />
       </span>
     )

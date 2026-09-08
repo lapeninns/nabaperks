@@ -1,3 +1,4 @@
+import type { OtpChannel } from "@/lib/customer/otp-channel-core"
 /**
  * Customer experience layer — the union of states a customer can be in across
  * the QR → join → stamp → card → reward journey.
@@ -106,6 +107,8 @@ export type JoinCard = {
   name: string
   stampsRequired: number
   rewardTerms: string
+  /** Names from the venue's active reward pool — examples of the draw. */
+  rewardExamples?: readonly string[]
 }
 
 /** Reward facts shared by waiting/ready/redeemed panels. */
@@ -147,6 +150,8 @@ export type CustomerExperience =
       merchant: JoinMerchant
       card: JoinCard
       qrId?: string
+      /** Channel the code will be sent on first. */
+      channel: OtpChannel
     }
   | {
       kind: "join_otp"
@@ -154,6 +159,8 @@ export type CustomerExperience =
       card: JoinCard
       qrId?: string
       contactLast4: string
+      /** Where the code went, so the step says "by text" or "on WhatsApp". */
+      channel: OtpChannel
       location: LocationRequirement
     }
   | {
@@ -208,6 +215,23 @@ export type CustomerExperience =
         rewardName: string
         redeemableFrom: string | null
       }
+    }
+  | {
+      /**
+       * The stamp screen was opened without a QR that matches this card —
+       * either no `qr` at all, or one that resolves to a different venue or
+       * to nothing. The member's card is still shown (it is theirs and it is
+       * the reassuring thing on screen); only the stamp control is withheld,
+       * with a recovery path in its place instead of a dead-end sentence.
+       */
+      kind: "stamp_unmatched"
+      problem: "missing" | "unmatched"
+      membershipId: string
+      merchantName: string
+      cardName: string
+      current: number
+      total: number
+      stampDates: string[]
     }
   // --- Card (the card is always shown; reward sub-status drives the footer) ---
   | {

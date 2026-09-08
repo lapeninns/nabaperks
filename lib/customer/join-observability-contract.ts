@@ -52,6 +52,7 @@ export function joinStepForExperienceKind(
     case "card_collecting":
     case "card_stamped_today":
     case "stamp_confirm":
+    case "stamp_unmatched":
     case "reward_waiting":
     case "reward_ready":
     case "redeemed_proof":

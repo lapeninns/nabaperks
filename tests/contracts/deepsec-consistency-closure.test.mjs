@@ -74,21 +74,30 @@ test("stale PII retention locks and repeats eligibility before side effects", ()
   )
 })
 
-test("recycled-number takeover is replaced by device and verified-email continuity", () => {
+test("recycled-number takeover is a named, reopened risk with an exit condition", () => {
   const register = read("docs", "operations", "security-risk-register.md")
+  const recycledNumberRisk =
+    register.split("## SEC-RISK-001:")[1]?.split("## SEC-RISK-002:")[0] ?? ""
 
   assert.match(
     register,
     /SEC-RISK-001: recycled mobile number customer access/i
   )
-  assert.match(register, /\| Status\s+\| Remediated in source;/)
-  assert.match(register, /\| Risk owner\s+\| `info@lapeninns\.com`\s+\|/)
-  assert.match(register, /previously customer-bound device/i)
   assert.match(
-    register,
-    /unrecognised device without a verified recovery email fails closed/i
+    recycledNumberRisk,
+    /\| Status\s+\| Reopened; device continuity disabled in source\s+\|/
   )
-  assert.match(register, /Unbound legacy sessions are revoked/i)
+  assert.match(
+    recycledNumberRisk,
+    /\| Risk owner\s+\| `info@lapeninns\.com`\s+\|/
+  )
+  assert.match(recycledNumberRisk, /\| Review due\s+\| 7 December 2026\s+\|/)
+  assert.match(
+    recycledNumberRisk,
+    /recycled mobile number can open the previous/i
+  )
+  assert.match(recycledNumberRisk, /REQUIRE_DEVICE_CONTINUITY/)
+  assert.match(recycledNumberRisk, /### Exit condition/)
 })
 
 test("static QR presence limits remain an explicit, time-bounded accepted risk", () => {

@@ -50,6 +50,10 @@ import {
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import { buildCustomerJoinHref } from "@/lib/navigation/customer-join-intent"
 import { normalizeOtpInput } from "@/lib/customer/experience/otp-field"
+import {
+  parseOtpChannel,
+  primaryOtpChannel,
+} from "@/lib/customer/otp-channel-core"
 import { logger } from "@/lib/observability/logger"
 import {
   normalizeRequestId,
@@ -105,6 +109,12 @@ export async function requestCustomerIdentityAction(
   const rawContact = isTrustedResend
     ? pendingVerification.phone
     : submittedContact
+  // Where the code goes: a resend may switch channel ("Send it on WhatsApp
+  // instead"); a first send uses the configured primary, SMS by default.
+  const requestedChannel =
+    parseOtpChannel(value(formData, "channel")) ??
+    (isTrustedResend ? pendingVerification.channel : undefined) ??
+    primaryOtpChannel(process.env.CUSTOMER_OTP_PRIMARY_CHANNEL)
   const normalized = normalizePhone(rawContact, country)
 
   if (!normalized.ok) {
@@ -127,11 +137,7 @@ export async function requestCustomerIdentityAction(
 
   let joinContext: Awaited<ReturnType<typeof getMerchantJoinContext>>
   try {
-    joinContext = await getMerchantJoinContext(
-      merchantSlug,
-      qrId || undefined,
-      requestIdentity
-    )
+    joinContext = await getMerchantJoinContext(merchantSlug, qrId || undefined)
   } catch {
     logger.error("customer_join_otp_context_failed", {
       operation: "validate_before_otp_send",
@@ -158,8 +164,14 @@ export async function requestCustomerIdentityAction(
     deviceHash,
   })
 
+  // The channel that actually carried the code: the provider may have fallen
+  // back to the other one, and the code step must say where to look.
+  let sentChannel = requestedChannel
   if (admitted) {
-    const verification = await startCustomerPhoneVerification(contact)
+    const verification = await startCustomerPhoneVerification(
+      contact,
+      requestedChannel
+    )
     if (verification.status === "unavailable") {
       return {
         fields: requestFields,
@@ -168,6 +180,7 @@ export async function requestCustomerIdentityAction(
         },
       }
     }
+    sentChannel = verification.channel
   }
 
   try {
@@ -175,6 +188,7 @@ export async function requestCustomerIdentityAction(
       purpose: "join",
       phone: contact,
       country: normalized.phone.country,
+      channel: sentChannel,
     })
   } catch (error) {
     if (!(error instanceof Error)) {
@@ -323,11 +337,13 @@ export async function verifyCustomerOtpAction(
   if (access === "recovery") redirect("/home/recover")
   await clearPendingPhoneVerification()
 
-  if (qrId) {
+  // A customer created seconds ago cannot hold a card here yet, so the
+  // returning-member lookup only runs for an existing identity.
+  if (qrId && !resolution.created) {
     const destination = await destinationForReturningQrVisit(
       merchantSlug,
       qrId,
-      requestIdentity
+      customer.id
     )
     if (destination) redirect(destination)
   }

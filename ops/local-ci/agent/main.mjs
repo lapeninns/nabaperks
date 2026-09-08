@@ -62,6 +62,7 @@ import { isCommitSha } from "../core/queue.mjs"
 import { parseImageCachePin } from "../core/image-cache.mjs"
 import { renderCheckSummary } from "../core/summary.mjs"
 import { createContainerRuntime } from "./container.mjs"
+import { reconcileAgentResources } from "./recovery.mjs"
 import { createGitHubClient } from "./github.mjs"
 import { createGitHubHeartbeat } from "./github-heartbeat.mjs"
 import { createHeartbeat } from "./heartbeat.mjs"
@@ -713,6 +714,21 @@ export const VM_PROBE_SCRIPT = [
  * than an empty list, because "I could not read the answer" must not resolve
  * to "there is nothing to worry about".
  */
+/**
+ * A Lima instance that exists but is `Stopped` is the one state the agent can
+ * repair on its own: after a Mac reboot nothing restarts the VM, so without
+ * this every dispatch would be refused until an operator ran
+ * `limactl start` by hand — which is exactly what left a failing verdict on
+ * every pull request during the first cutover week. Any other non-Running
+ * state (Broken, Starting, unknown) stays a refusal, and the operator's way
+ * to pause the plane is still the LaunchAgent, never the VM.
+ */
+export function isStoppedInstance({ vm, instances }) {
+  const list = Array.isArray(instances) ? instances : []
+  const instance = list.find((entry) => entry?.name === vm)
+  return String(instance?.status ?? "").toLowerCase() === "stopped"
+}
+
 export function parseLimaInstances(text) {
   const trimmed = String(text ?? "").trim()
   if (trimmed === "") return []
@@ -890,6 +906,16 @@ async function assertVmIsolationLive({ config, contract }) {
     listed = await execHost(["limactl", "list", "--json", vm], {
       timeoutMs: 60_000,
     })
+    if (isStoppedInstance({ vm, instances: parseLimaInstances(listed) })) {
+      // Start, then list again: the isolation verdict below must come from
+      // the instance as it is now running, never from the pre-start listing.
+      await execHost(["limactl", "start", "--tty=false", vm], {
+        timeoutMs: 600_000,
+      })
+      listed = await execHost(["limactl", "list", "--json", vm], {
+        timeoutMs: 60_000,
+      })
+    }
     probed = await execHost(vmShell(vm, VM_PROBE_SCRIPT), { timeoutMs: 60_000 })
   } catch (error) {
     throw new CliError(
@@ -897,11 +923,29 @@ async function assertVmIsolationLive({ config, contract }) {
       `could not re-assert the isolation of instance ${vm} (${error.message}); refusing to dispatch`
     )
   }
-  return assertVmIsolation({
+  const isolation = assertVmIsolation({
     vm,
     instances: parseLimaInstances(listed),
     probe: parseVmProbe(probed),
     contract,
+  })
+  return isolation
+}
+
+export async function reconcileOwnedResources({ config, contract }) {
+  const profiles = Object.fromEntries(
+    Object.keys(contract.profiles).map((name) => [
+      name,
+      loadProfile(name, contract, (path) =>
+        readFileSync(join(REPO_ROOT, path), "utf8")
+      ).lanes.map((lane) => lane.id),
+    ])
+  )
+  return reconcileAgentResources({
+    vm: config.vm,
+    stateRoot: config.stateRoot,
+    profiles,
+    exec: execHost,
   })
 }
 
@@ -919,7 +963,7 @@ export function buildWorkspacePreparationScript({ root, remoteUrl, headSha }) {
     "git fetch --prune --tags origin '+refs/heads/*:refs/remotes/origin/*'",
     `git fetch origin ${shQuote(headSha)}`,
     `git worktree remove --force ${shQuote(workspace)} 2>/dev/null || true`,
-    `rm -rf ${shQuote(workspace)}`,
+    `rm -rf ${shQuote(workspace)} ${shQuote(`${workspace}-lanes`)}`,
     `git clone --no-hardlinks --no-checkout ${shQuote(mirror)} ${shQuote(workspace)}`,
     `git -C ${shQuote(workspace)} remote set-url origin ${shQuote(remoteUrl)}`,
     `git -C ${shQuote(workspace)} fetch --no-tags ${shQuote(mirror)} ${shQuote(headSha)}`,
@@ -941,16 +985,44 @@ async function prepareWorkspace({ config, contract, headSha, logger, signal }) {
   return workspace
 }
 
+/** Each lane owns its Git metadata, dependencies, caches and generated files. */
+export function buildLaneWorkspaceScript({
+  workspace,
+  laneId,
+  headSha,
+  remoteUrl,
+}) {
+  if (!isCommitSha(headSha) || !/^[a-z][a-z0-9-]*$/.test(laneId))
+    throw new Error("Invalid lane workspace identity")
+  if (!workspace.endsWith(`/runs/${headSha}`))
+    throw new Error("Lane workspace must belong to the exact run")
+  const destination = `${workspace}-lanes/${laneId}`
+  return {
+    destination,
+    script: [
+      "set -eu",
+      `mkdir -p ${shQuote(`${workspace}-lanes`)}`,
+      // git clone refuses an existing directory with content; no candidate
+      // workspace is reused, and --no-hardlinks prevents cross-lane mutation.
+      `git clone --no-hardlinks --no-checkout ${shQuote(workspace)} ${shQuote(destination)}`,
+      `git -C ${shQuote(destination)} remote set-url origin ${shQuote(remoteUrl)}`,
+      `git -C ${shQuote(destination)} checkout --detach ${shQuote(headSha)}`,
+    ].join("\n"),
+  }
+}
+
 async function releaseWorkspace({ config, headSha }) {
   const root = config.vmWorkspaceRoot
   const script = [
+    "set -eu",
+    `remaining=$(docker ps --all --filter ${shQuote(`label=com.nabaperks.local-ci.head-sha=${headSha}`)} --format '{{.Names}}')`,
+    'if [ -n "$remaining" ]; then echo "CI resources remain; workspace quarantined" >&2; exit 1; fi',
     `cd ${shQuote(`${root}/repo`)} 2>/dev/null || exit 0`,
     `git worktree remove --force ${shQuote(`${root}/runs/${headSha}`)} 2>/dev/null || true`,
     `rm -rf ${shQuote(`${root}/runs/${headSha}`)}`,
+    `rm -rf ${shQuote(`${root}/runs/${headSha}-lanes`)}`,
   ].join("\n")
-  await execHost(vmShell(config.vm, script), { timeoutMs: 20_000 }).catch(
-    () => {}
-  )
+  await execHost(vmShell(config.vm, script), { timeoutMs: 20_000 })
 }
 
 /* --------------------------------------------------------------- evidence */
@@ -1342,6 +1414,16 @@ async function buildDependencies({
     image: config.jobImage,
     daemonImage: config.daemonImage,
     workspaceHostPath,
+    prepareLaneWorkspace: async (lane, options) => {
+      const { destination, script } = buildLaneWorkspaceScript({
+        workspace: workspaceHostPath,
+        laneId: lane.id,
+        headSha,
+        remoteUrl: contract.remoteUrl,
+      })
+      await execHost(vmShell(config.vm, script), options)
+      return destination
+    },
     logger,
   })
   return { runner, containerRuntime }
@@ -1491,6 +1573,7 @@ export async function dispatchRun(
   { contract, config, logger, evidence, profile, ref, headSha, signal = null },
   dependencies = {
     assertVmIsolationLive,
+    reconcileOwnedResources,
     buildDependencies,
     makeEnvFileWriter,
     releaseWorkspace,
@@ -1498,6 +1581,8 @@ export async function dispatchRun(
 ) {
   signal?.throwIfAborted()
   await dependencies.assertVmIsolationLive({ config, contract })
+  signal?.throwIfAborted()
+  await dependencies.reconcileOwnedResources?.({ config, contract })
   signal?.throwIfAborted()
   logger.info(
     `instance ${config.vm} re-asserted: no host mounts, no forwarded agent, no host home, no Rosetta`
@@ -1526,8 +1611,11 @@ export async function dispatchRun(
     )
     return outcome
   } finally {
-    await dependencies.releaseWorkspace({ config, headSha })
-    run.close()
+    try {
+      await dependencies.releaseWorkspace({ config, headSha })
+    } finally {
+      run.close()
+    }
   }
 }
 

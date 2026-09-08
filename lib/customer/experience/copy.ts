@@ -38,51 +38,42 @@ type UnavailableExperience = Extract<
 /** QR-scan welcome — mirrors join-with-first-stamp: scan → verify → terms → stamp. */
 export const JOIN_WELCOME_HOW_IT_WORKS = [
   "You scanned the venue QR",
-  "Verify your number with one text, no app",
-  "Accept the terms and your first stamp prints onto the card",
+  "Confirm your number with one message",
+  "Your first stamp lands on your card",
 ] as const
 
 export const JOIN_WELCOME_HOW_IT_WORKS_LABEL = "How it works" as const
 
 export const JOIN_WELCOME_PHONE_REASSURANCE =
-  "Already have a card? Use the same number and we'll find it." as const
+  "Already have a card here? Same number, same card." as const
 
 /** Shown under the phone field on step 2 — sets expectation before the SMS arrives. */
-export const JOIN_PHONE_CODE_HINT =
-  "We'll send a one-time code by text." as const
+export const JOIN_PHONE_CODE_HINT = "We'll send you a one-time code." as const
 
-/** Join-only number guidance: honest GB scope plus the retention promise. */
+/** Join-only number guidance: the promise, not the plumbing. */
 export const JOIN_PHONE_RETENTION_HINT =
-  "Use a UK number that can receive texts. Your card and progress stay linked to this number." as const
+  "Only used to keep your stamps safe. No spam, ever." as const
 
 /** Returns to the QR welcome card when the customer wants the full preview again. */
-export const JOIN_PHONE_BACK_LABEL = "See how stamps and rewards work" as const
+export const JOIN_PHONE_BACK_LABEL = "What do I get?" as const
 
-/** Step-2 reward hook — keeps *why* in one line beside the phone field. */
+/** The reward hook — keeps *why* in one line on every join step. */
 export function joinUnlockingRewardHook(stampsRequired: number): string {
   const stamps = Math.max(stampsRequired, 1)
   return stamps === 1
-    ? "1 stamp unlocks a mystery reward"
-    : `${stamps} stamps unlock a mystery reward`
+    ? "Just 1 stamp to a mystery reward"
+    : `Just ${stamps} stamps to a mystery reward`
 }
 
-export function joinCompletionHint({
-  hasQr,
-  requireGeofence,
-}: {
-  hasQr: boolean
-  requireGeofence: boolean
-}): string {
-  if (!hasQr) {
-    return "Save your card now. Your progress stays linked to this number, ready for your first venue scan."
-  }
-
-  const retention =
-    "Finish here to collect today's stamp. Your card and progress stay linked to this number for next time."
-
-  return requireGeofence
-    ? `${retention} Location checks begin on later qualifying visits.`
-    : retention
+/**
+ * The line under the final button. Guest-facing: what they keep, not how the
+ * system checks it. Operational policy (location checks, the stamp calendar)
+ * lives in the venue terms and privacy notice, one tap away on every step.
+ */
+export function joinCompletionHint({ hasQr }: { hasQr: boolean }): string {
+  return hasQr
+    ? "Your stamp and card stay saved to this number."
+    : "Your card is saved to this number, ready for your first visit."
 }
 
 /**
@@ -106,12 +97,12 @@ export function getCustomerExperienceViewModel(
       // members verify and route to their card; new members finish terms and
       // earn stamp #1 in the same onboarding call.
       return {
-        eyebrow: "Venue QR scanned",
-        headline: "Keep your card on your phone",
+        eyebrow: "Stamp 1 is ready",
+        headline: "Your first stamp is ready",
         supportLine:
-          "New here? Your first stamp is waiting. Keep your card and progress linked to your number, no app or password.",
+          "Save it to your number in 20 seconds. No app, no password, and it's there on every visit.",
         primaryAction: {
-          label: "Get today's stamp",
+          label: "Claim my first stamp",
           href: buildCustomerJoinHref(exp.merchant.slug, {
             qrId: exp.qrId,
             step: "phone",
@@ -120,33 +111,32 @@ export function getCustomerExperienceViewModel(
       }
     case "join_phone":
       return {
-        eyebrow: "One text, no password",
-        headline: "Save your card to your number",
-        supportLine: `Keep ${exp.merchant.name}'s card and progress linked to your number. ${joinUnlockingRewardHook(exp.card.stampsRequired)}.`,
+        eyebrow: "One message, no password",
+        headline: "Save your stamp to your number",
+        supportLine: `One message confirms it's you. Your ${exp.merchant.name} card then follows you on every visit.`,
       }
     case "join_otp":
       return {
-        eyebrow: "Check your texts",
+        eyebrow: "Check your messages",
         headline: "Enter your code",
-        supportLine: "We sent a one-time code to your phone.",
+        supportLine: "It's in the message we just sent you.",
       }
     case "join_terms":
       return exp.qrId
         ? {
             eyebrow: "Last step",
             headline: "Collect your first stamp",
-            supportLine:
-              "Accept the loyalty terms and we'll print stamp one onto your card.",
+            supportLine: "One tick and stamp 1 is on your card.",
           }
         : {
             eyebrow: "Last step",
             headline: "Save your loyalty card",
             supportLine:
-              "Accept the loyalty terms to keep this card. Your first stamp is waiting at the venue.",
+              "One tick and your card is saved for your first visit.",
           }
     case "join_returning":
       return {
-        eyebrow: "Card found",
+        eyebrow: "Welcome back",
         headline: `${exp.current} of ${exp.total} stamps saved`,
         supportLine: `Your ${exp.merchant.name} card is already on this number.`,
         primaryAction: {
@@ -185,6 +175,22 @@ export function getCustomerExperienceViewModel(
           href: `/card/${exp.membershipId}`,
         },
       }
+    case "stamp_unmatched":
+      // The shell carries the one headline and a reassurance; the panel's
+      // band beneath the card carries the instruction, so the two never
+      // repeat each other. No primaryAction: the panel renders the shared
+      // recovery pair (scan again / open my cards) itself.
+      return exp.problem === "missing"
+        ? {
+            eyebrow: "Today's stamp",
+            headline: "Open this from the venue QR",
+            supportLine: `Your ${exp.merchantName} card is safe — nothing has changed.`,
+          }
+        : {
+            eyebrow: "Today's stamp",
+            headline: "That QR didn't match this card",
+            supportLine: `Your ${exp.merchantName} stamps are safe — nothing has changed.`,
+          }
     case "card_collecting":
       return cardCollectingViewModel(exp)
     case "reward_waiting":

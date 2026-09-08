@@ -28,6 +28,23 @@ Do not promote a release until all of these are true:
 8. A rollback candidate (the last healthy Vercel production deployment) is
    identified before promotion.
 
+### Operator-only release qualification
+
+The release ledger compares the exact candidate with the authenticated deployed
+baseline. Individually reviewed factory and Vercel-governance tooling is outside
+the deployed application. New files under those directories are not implicitly
+exempt: unlisted files still require compatibility proof.
+
+A changed `package.json` remains a runtime change unless its exact baseline and
+candidate Git blobs prove that only the six enumerated test/factory/benchmark
+scripts changed. All dependencies, package-manager settings and other metadata
+must match. The audited build, start, prepare and credential-check commands must
+match their expected values, with no additional production lifecycle hooks.
+Both package blobs are retained in qualification evidence and reread from Git
+before every later release stage. A changed build command, dependency, lockfile,
+application file or migration still requires populated upgrade and rollback
+compatibility proof; this exception does not execute or replace that proof.
+
 ### Stripe live acceptance gate
 
 Stripe is accepted only when an operator records all of the following against

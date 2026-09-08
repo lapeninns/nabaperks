@@ -1,28 +1,27 @@
 import Link from "next/link"
 
-import {
-  CustomerFlowShell,
-  CustomerReceipt,
-} from "@/components/customer/customer-flow-system"
+import { CustomerFlowShell } from "@/components/customer/customer-flow-system"
+import { JoinActionBar } from "@/components/customer/join-action-bar"
+import { JoinOfferJourney } from "@/components/customer/join-offer-journey"
 import { CustomerVenueTermsSheet } from "@/components/customer/legal-sheet"
-import { RewardTicket, StampJourneyPreview } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
-import { MYSTERY_REWARD_SEALED_LABEL } from "@/lib/copy/product-copy"
 import {
   JOIN_WELCOME_HOW_IT_WORKS,
   JOIN_WELCOME_HOW_IT_WORKS_LABEL,
   JOIN_WELCOME_PHONE_REASSURANCE,
   type CustomerExperienceViewModel,
 } from "@/lib/customer/experience/copy"
-import type {
-  CustomerExperience,
-  JoinCard,
-  JoinMerchant,
-} from "@/lib/customer/experience/types"
+import type { CustomerExperience } from "@/lib/customer/experience/types"
 import { buildCustomerJoinHref } from "@/lib/navigation/customer-join-intent"
 
 const ONBOARDING_STEPS = 3
 
+/**
+ * Step 1 of the join wizard. One offer card, one action, and the supporting
+ * detail folded away beneath it: the customer at the counter should read the
+ * venue, see the stamp journey, and tap once — without scrolling on a 667px
+ * phone. "How it works" and the venue terms stay one tap away.
+ */
 export function WelcomeStep({
   exp,
   vm,
@@ -39,12 +38,11 @@ export function WelcomeStep({
       description={vm.supportLine}
       progress={{ step: 1, total: ONBOARDING_STEPS, label: "Keep your card" }}
       dense
-      className="content-center gap-3"
       screenLabel="Customer join"
     >
-      <JoinWelcomeCard merchant={exp.merchant} card={exp.card} />
+      <JoinOfferJourney merchant={exp.merchant} card={exp.card} />
       {vm.primaryAction ? (
-        <div className="grid gap-2">
+        <JoinActionBar note={JOIN_WELCOME_PHONE_REASSURANCE}>
           <Button asChild size="lg" className="w-full">
             <Link
               href={buildCustomerJoinHref(exp.merchant.slug, {
@@ -56,10 +54,7 @@ export function WelcomeStep({
               {vm.primaryAction.label}
             </Link>
           </Button>
-          <p className="text-center text-xs leading-5 font-semibold text-muted-foreground">
-            {JOIN_WELCOME_PHONE_REASSURANCE}
-          </p>
-        </div>
+        </JoinActionBar>
       ) : null}
       <HowItWorksList />
       <CustomerVenueTermsSheet
@@ -75,46 +70,24 @@ export function WelcomeStep({
   )
 }
 
-function JoinWelcomeCard({
-  merchant,
-  card,
-}: {
-  merchant: JoinMerchant
-  card: JoinCard
-}) {
-  return (
-    <CustomerReceipt
-      venueName={merchant.name}
-      title={card.name}
-      eyebrow={merchant.name}
-      hideFooter
-    >
-      <StampJourneyPreview
-        total={card.stampsRequired}
-        venueName={merchant.name}
-        className="py-1"
-      />
-      <RewardTicket
-        state="sealed"
-        name={MYSTERY_REWARD_SEALED_LABEL}
-        description={
-          <>
-            Collect {card.stampsRequired} stamps to unlock a surprise reward,
-            yours from the next UK business day.
-          </>
-        }
-      />
-    </CustomerReceipt>
-  )
-}
-
+/**
+ * Folded by default: the three steps are reassurance, not a decision, so they
+ * sit one tap away instead of pushing the action down. Native disclosure — no
+ * script, no hydration, open state survives a reload.
+ */
 function HowItWorksList() {
   return (
-    <section className="grid gap-2 text-left">
-      <p className="eyebrow text-muted-foreground">
-        {JOIN_WELCOME_HOW_IT_WORKS_LABEL}
-      </p>
-      <ol className="grid gap-2">
+    <details className="group grid gap-2 text-left">
+      <summary className="focus-ring eyebrow flex cursor-pointer list-none items-center justify-between gap-3 rounded-md py-1 text-muted-foreground [&::-webkit-details-marker]:hidden">
+        <span>{JOIN_WELCOME_HOW_IT_WORKS_LABEL}</span>
+        <span
+          aria-hidden="true"
+          className="text-base leading-none transition-transform duration-[var(--w-dur-fast)] ease-[var(--w-ease)] group-open:rotate-45 motion-reduce:transition-none"
+        >
+          +
+        </span>
+      </summary>
+      <ol className="grid gap-2 pb-1">
         {JOIN_WELCOME_HOW_IT_WORKS.map((step, index) => (
           <li key={step} className="flex items-start gap-3">
             <span
@@ -127,6 +100,6 @@ function HowItWorksList() {
           </li>
         ))}
       </ol>
-    </section>
+    </details>
   )
 }

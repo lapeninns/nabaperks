@@ -39,27 +39,21 @@ test("a QR welcome leads with value and keeps progress linked to the number", ()
   const viewModel = getCustomerExperienceViewModel(experience)
 
   assert.equal(experience.kind, "join_welcome")
-  assert.match(
-    viewModel.supportLine,
-    /^New here\? Your first stamp is waiting\./
-  )
-  assert.match(viewModel.supportLine, /progress linked to your number/)
-  assert.equal(viewModel.primaryAction?.label, "Get today's stamp")
+  assert.equal(viewModel.headline, "Your first stamp is ready")
+  assert.match(viewModel.supportLine, /^Save it to your number/)
+  assert.match(viewModel.supportLine, /No app, no password/)
+  assert.equal(viewModel.primaryAction?.label, "Claim my first stamp")
 })
 
-test("join completion copy preserves progress without overstating QR proof", () => {
+test("join completion copy keeps the promise without overstating QR proof or leaking policy", () => {
+  assert.match(joinCompletionHint({ hasQr: true }), /stamp and card stay saved/)
   assert.match(
-    joinCompletionHint({ hasQr: true, requireGeofence: false }),
-    /collect today's stamp/
+    joinCompletionHint({ hasQr: false }),
+    /ready for your first visit/
   )
-  assert.match(
-    joinCompletionHint({ hasQr: true, requireGeofence: true }),
-    /Location checks begin on later qualifying visits/
-  )
-  assert.match(
-    joinCompletionHint({ hasQr: false, requireGeofence: false }),
-    /ready for your first venue scan/
-  )
+  for (const hasQr of [true, false]) {
+    assert.doesNotMatch(joinCompletionHint({ hasQr }), /location|business day/i)
+  }
 })
 
 test("a direct verified join uses honest save-card copy", () => {

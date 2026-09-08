@@ -35,6 +35,7 @@
 import { spawn } from "node:child_process"
 
 import { LocalCiError, describeValue } from "../core/contract.mjs"
+import { laneResources } from "../core/lane-scheduler.mjs"
 import { hostSecretNames } from "../core/contract.mjs"
 import {
   buildImageCacheLoadArgv,
@@ -628,6 +629,7 @@ export function buildDaemonArgv({
  */
 export function buildContainerArgv({
   contract,
+  resources = null,
   daemonName = null,
   image,
   name,
@@ -644,7 +646,11 @@ export function buildContainerArgv({
   shmSize = DEFAULT_SHM_SIZE,
   timeoutSeconds = null,
 } = {}) {
-  const { container } = assertResourceBudgets(contract)
+  assertResourceBudgets(contract)
+  const container = {
+    ...contract.container,
+    ...laneResources({ id: name, resources }, contract),
+  }
   assertPinnedImage(image, "job image")
   requireObject(env, "env")
 
@@ -927,6 +933,7 @@ export function createContainerRuntime({
       daemonImage,
       command,
       workspaceHostPath,
+      resources = null,
       env,
       envFile,
       labels = {},
@@ -1070,6 +1077,7 @@ export function createContainerRuntime({
         signal?.throwIfAborted()
         const argv = buildContainerArgv({
           contract,
+          resources,
           daemonName: needsDaemon ? daemonName : null,
           image,
           name: jobName,
@@ -1122,6 +1130,34 @@ export function createContainerRuntime({
           buildNetworkRemoveArgv({ name: net, vm, docker, limactl }),
           "remove job network"
         )
+        // A non-throwing Docker command can still have failed. Verify absence
+        // through successful daemon reads before releasing this lane's budget.
+        for (const [args, names] of [
+          [
+            ["ps", "--all", "--format", "{{.Names}}"],
+            [jobName, daemonName],
+          ],
+          [["network", "ls", "--format", "{{.Name}}"], [net]],
+        ]) {
+          try {
+            const observed = await exec(
+              [...dockerPrefix({ vm, docker, limactl }), ...args],
+              { timeoutMs: 15_000 }
+            )
+            const remaining = observed.output.trim().split(/\r?\n/)
+            if (
+              observed.exitCode !== 0 ||
+              observed.timedOut ||
+              observed.cancelled ||
+              names.some((name) => remaining.includes(name))
+            )
+              teardownErrors.push(
+                "owned resource absence could not be verified"
+              )
+          } catch {
+            teardownErrors.push("owned resource absence could not be verified")
+          }
+        }
         if (teardownErrors.length > 0) {
           log(
             "warn",

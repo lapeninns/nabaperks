@@ -38,12 +38,18 @@ test("merchant OTP actions expose explicit signup and sign-in state machines", (
   assert.doesNotMatch(actions, /signInWithPassword|resetPasswordForEmail/)
   assert.doesNotMatch(actions, /auth\.updateUser\(\{\s*password/)
   assert.match(actions, /signInWithOtp/)
+  assert.match(actions, /signOut\(\{\s*scope:\s*"local"\s*\}\)/)
+  assert.doesNotMatch(actions, /signOut\(\s*\)/)
   assert.match(actions, /verifyOtp/)
   assert.match(actions, /Merchant OTP provider send failed/)
   assert.doesNotMatch(actions, /already has a venue account/i)
   assert.match(state, /export const MERCHANT_OTP_OUTCOMES/)
   assert.match(state, /retryAt\?: string/)
   assert.match(resend, /MERCHANT_OTP_RESEND_COOLDOWN_MS = 60_000/)
+  assert.match(
+    readProjectFile("supabase", "config.toml"),
+    /\[auth\.rate_limit\][\s\S]*email_sent = 60/
+  )
   assert.match(
     actions,
     /Merchant OTP resend limit failed[\s\S]{0,900}outcome: "verification_unavailable"/

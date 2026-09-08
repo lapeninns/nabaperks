@@ -6,6 +6,15 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Height-aware variants for the customer flow. Every other breakpoint in the
+   journey is width-based, but the stamp screen's failure mode is a *short*
+   viewport: a landscape phone (375pt tall), the on-screen keyboard over the
+   venue-code field, or a small phone with the browser chrome up. `short`
+   tightens rhythm and the press target so the primary control stays in the
+   first screen; `squat` is the landscape / keyboard floor. */
+@custom-variant short (@media (max-height: 700px));
+@custom-variant squat (@media (max-height: 480px));
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

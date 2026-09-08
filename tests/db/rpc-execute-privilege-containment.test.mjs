@@ -102,6 +102,8 @@ const AUTHENTICATED_ALLOWLIST = new Set([
 
 // A representative dangerous subset that MUST NOT be authenticated-executable.
 const MUST_BE_LOCKED = [
+  "touch_customer_session_and_load",
+  "get_customer_card_state",
   "create_merchant_onboarding",
   "admin_purge_stale_customer_pii",
   "claim_due_notification_events",

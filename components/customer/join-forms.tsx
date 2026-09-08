@@ -11,6 +11,11 @@ import {
 } from "@/app/m/[merchantSlug]/join/actions"
 import { Eyebrow, MonoTag } from "@/components/brand"
 import { customerInputClass } from "@/components/customer/input-class"
+import { JoinActionBar } from "@/components/customer/join-action-bar"
+import {
+  OTP_SEND_LABEL,
+  type OtpChannel,
+} from "@/lib/customer/otp-channel-core"
 import { CustomerLegalConsentLinks } from "@/components/customer/legal-sheet"
 import { StatusBanner } from "@/components/loyalty"
 import type { JoinCard } from "@/lib/customer/experience/types"
@@ -32,12 +37,15 @@ export type CustomerIdentityFormProps = {
   merchantSlug: string
   qrId?: string
   referralCode?: string
+  /** Channel the code goes out on first; the button says where. */
+  channel?: OtpChannel
 }
 
 export function CustomerIdentityForm({
   merchantSlug,
   qrId,
   referralCode,
+  channel = "whatsapp",
 }: CustomerIdentityFormProps) {
   const [state, requestAction, requestPending] = useActionState(
     requestCustomerIdentityAction,
@@ -50,6 +58,7 @@ export function CustomerIdentityForm({
         <input type="hidden" name="merchantSlug" value={merchantSlug} />
         <input type="hidden" name="qrId" value={qrId ?? ""} />
         <input type="hidden" name="ref" value={referralCode ?? ""} />
+        <input type="hidden" name="channel" value={channel} />
         <div className="grid gap-2">
           <label htmlFor="contact" className="eyebrow">
             UK phone number
@@ -96,7 +105,7 @@ export function CustomerIdentityForm({
           className="w-full"
           disabled={requestPending}
         >
-          {requestPending ? "Sending…" : "Text me the code"}
+          {requestPending ? "Sending…" : OTP_SEND_LABEL}
         </Button>
         <p role="status" aria-live="polite" className="sr-only">
           {requestPending ? "Sending your code" : ""}
@@ -130,7 +139,6 @@ export type CustomerJoinFormProps = {
   referralCode?: string
   merchantName: string
   card: JoinCard
-  requireGeofence: boolean
 }
 
 export function CustomerJoinForm({
@@ -139,14 +147,16 @@ export function CustomerJoinForm({
   referralCode,
   merchantName,
   card,
-  requireGeofence,
 }: CustomerJoinFormProps) {
   const [state, action, pending] = useActionState(
     joinRewardsAction,
     joinInitialState
   )
   const loyaltyTermsRef = useRef<HTMLInputElement>(null)
+  const selectAllRef = useRef<HTMLInputElement>(null)
   const [loyaltyTermsAccepted, setLoyaltyTermsAccepted] = useState(false)
+  const [marketingOptIn, setMarketingOptIn] = useState(false)
+  const allSelected = loyaltyTermsAccepted && marketingOptIn
   const loyaltyTermsError = loyaltyTermsAccepted
     ? undefined
     : state.errors?.loyaltyTerms
@@ -157,19 +167,54 @@ export function CustomerJoinForm({
     loyaltyTermsRef.current?.scrollIntoView({ block: "center" })
   }, [loyaltyTermsError])
 
+  // The "select all" box reflects the two real choices beneath it: checked
+  // when both are, mixed when one is, clear when neither. It is a shortcut
+  // for a genuine choice, never a pre-tick — both rows start clear.
+  useEffect(() => {
+    if (!selectAllRef.current) return
+    selectAllRef.current.indeterminate =
+      !allSelected && (loyaltyTermsAccepted || marketingOptIn)
+  }, [allSelected, loyaltyTermsAccepted, marketingOptIn])
+
+  function selectAll(checked: boolean) {
+    setLoyaltyTermsAccepted(checked)
+    setMarketingOptIn(checked)
+  }
+
   return (
     <form action={action} className="grid gap-4">
       <input type="hidden" name="merchantSlug" value={merchantSlug} />
       <input type="hidden" name="qrId" value={qrId ?? ""} />
       <input type="hidden" name="ref" value={referralCode ?? ""} />
-      {/* One flat wrapper, two inline checkboxes — the consent rows share a
-          single surface instead of two stacked bordered cards, so the primary
-          CTA stays above the fold on small screens. */}
-      <fieldset className="surface-card grid gap-3 p-4 text-sm">
+      {/* One surface, three rows. The highlighted "select all" row is the
+          one-tap path; the two rows beneath it are the real, separate choices
+          (the marketing box is optional and never pre-ticked), so a guest who
+          wants only the card can still take exactly that. */}
+      <fieldset className="surface-card grid gap-2.5 p-3 text-sm sm:p-4">
         <legend className="sr-only">Join choices</legend>
+        <label className="-m-1 flex items-center gap-3 rounded-lg border-2 border-ink bg-primary/10 p-3">
+          <input
+            ref={selectAllRef}
+            type="checkbox"
+            checked={allSelected}
+            onChange={(event) => selectAll(event.currentTarget.checked)}
+            aria-controls="loyalty-terms marketing-opt-in"
+            className="size-6 shrink-0 accent-primary"
+          />
+          <span className="grid gap-0.5">
+            <span className="text-base leading-tight font-extrabold">
+              Yes to all
+            </span>
+            <span className="text-xs leading-5 text-muted-foreground">
+              Accept the terms and hear about offers from {merchantName}. Or
+              pick below.
+            </span>
+          </span>
+        </label>
         <label className="flex items-start gap-3">
           <input
             ref={loyaltyTermsRef}
+            id="loyalty-terms"
             name="loyaltyTerms"
             type="checkbox"
             checked={loyaltyTermsAccepted}
@@ -201,14 +246,18 @@ export function CustomerJoinForm({
         <hr className="w-rule" />
         <label className="flex items-start gap-3">
           <input
+            id="marketing-opt-in"
             name="marketingOptIn"
             type="checkbox"
+            checked={marketingOptIn}
+            onChange={(event) => setMarketingOptIn(event.currentTarget.checked)}
             className="mt-0.5 size-5 shrink-0 accent-primary"
           />
-          <span className="grid gap-1">
-            <Eyebrow>Marketing updates</Eyebrow>
-            <span className="leading-6 text-muted-foreground">
-              Send me occasional offers from this business. Optional.
+          <span className="grid gap-0.5">
+            <Eyebrow>Offers and perks</Eyebrow>
+            <span className="text-xs leading-5 text-muted-foreground">
+              Occasional offers from {merchantName}. Optional, unsubscribe any
+              time.
             </span>
           </span>
         </label>
@@ -225,21 +274,20 @@ export function CustomerJoinForm({
         // a hand-rolled 1px box.
         <StatusBanner tone="error" title={state.errors.form} />
       ) : null}
-      <p className="text-center text-xs leading-5 text-muted-foreground">
-        {joinCompletionHint({
-          hasQr: Boolean(qrId),
-          requireGeofence,
-        })}
-      </p>
-      <Button type="submit" size="lg" disabled={pending} className="w-full">
-        {pending
-          ? qrId
-            ? "Stamping…"
-            : "Saving…"
-          : qrId
-            ? "Get my first stamp"
-            : "Save my card"}
-      </Button>
+      {/* No text field on this step, so the action can pin to the bottom of
+          the viewport on short phones (JoinActionBar) with the completion
+          hint riding under it. */}
+      <JoinActionBar note={joinCompletionHint({ hasQr: Boolean(qrId) })}>
+        <Button type="submit" size="lg" disabled={pending} className="w-full">
+          {pending
+            ? qrId
+              ? "Stamping…"
+              : "Saving…"
+            : qrId
+              ? "Get my first stamp"
+              : "Save my card"}
+        </Button>
+      </JoinActionBar>
     </form>
   )
 }

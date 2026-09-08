@@ -1,7 +1,4 @@
-import type {
-  CustomerExperienceEntry,
-  CustomerExperienceKind,
-} from "./types"
+import type { CustomerExperienceEntry, CustomerExperienceKind } from "./types"
 
 /**
  * Route-aware priority tables.
@@ -23,6 +20,7 @@ export const STAMP_PRIORITY = [
   "reward_waiting",
   "card_stamped_today",
   "stamp_confirm",
+  "stamp_unmatched",
 ] as const satisfies readonly CustomerExperienceKind[]
 
 export const REWARD_PRIORITY = [

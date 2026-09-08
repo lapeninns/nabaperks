@@ -4,12 +4,12 @@ import { headers } from "next/headers"
 
 import { getCurrentCustomer } from "@/lib/customer/identity"
 import {
-  getExistingMembershipForCurrentUser,
+  getMembershipForCustomer,
   getMerchantJoinContext,
 } from "@/lib/customer/join"
+import { primaryOtpChannel } from "@/lib/customer/otp-channel-core"
 import { getPendingPhoneVerification } from "@/lib/customer/session"
 import { getMerchantStampLocationRequirement } from "@/lib/customer/stamp"
-import { customerRateLimitIdentityFromHeaders } from "@/lib/security/rate-limit"
 import { logger } from "@/lib/observability/logger"
 import {
   normalizeRequestId,
@@ -38,11 +38,7 @@ export async function loadJoinExperienceContext(
   const requestHeaders = await headers()
 
   try {
-    context = await getMerchantJoinContext(
-      merchantSlug,
-      searchParams.qr,
-      customerRateLimitIdentityFromHeaders(requestHeaders)
-    )
+    context = await getMerchantJoinContext(merchantSlug, searchParams.qr)
   } catch (error) {
     if (!(error instanceof Error)) throw error
     logger.error("customer_join_context_failed", {
@@ -68,10 +64,11 @@ export async function loadJoinExperienceContext(
     name: context.loyaltyCard.card_name,
     stampsRequired: context.loyaltyCard.stamps_required,
     rewardTerms: context.loyaltyCard.reward_terms,
+    rewardExamples: context.loyaltyCard.reward_examples,
   }
   // Geofence gate is only consumed by the final terms step (the only screen that
   // can issue the first stamp), so default it cheaply and resolve the real value
-  // only on that branch.
+  // only once a session exists.
   const baseLocation = { requireGeofence: false, geofenceRadiusMeters: 150 }
   const base = {
     merchantId: context.merchant.id,
@@ -81,12 +78,18 @@ export async function loadJoinExperienceContext(
     qrId: searchParams.qr,
     step: searchParams.step,
     location: baseLocation,
+    primaryChannel: primaryOtpChannel(process.env.CUSTOMER_OTP_PRIMARY_CHANNEL),
   }
 
   const customer = await getCurrentCustomer()
-  const membership = customer
-    ? await getExistingMembershipForCurrentUser(context.merchant.id)
-    : null
+  // Membership and the location policy are independent reads for a verified
+  // customer, so they run together rather than one after the other.
+  const [membership, location] = customer
+    ? await Promise.all([
+        getMembershipForCustomer(context.merchant.id, customer.id),
+        getMerchantStampLocationRequirement(context.merchant.id),
+      ])
+    : [null, baseLocation]
 
   if (membership) {
     return {
@@ -103,7 +106,7 @@ export async function loadJoinExperienceContext(
   if (customer) {
     return {
       ...base,
-      location: await getMerchantStampLocationRequirement(context.merchant.id),
+      location,
       hasSession: true,
       pendingOtp: false,
       membership: null,
@@ -122,6 +125,7 @@ export async function loadJoinExperienceContext(
       hasSession: false,
       pendingOtp,
       pendingPhone: pending.phone,
+      pendingChannel: pending.channel,
       membership: null,
     }
   }
