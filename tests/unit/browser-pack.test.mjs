@@ -33,7 +33,7 @@ test("packing preserves the existing shard denominator and selection", () => {
   ])
     assert.throws(() => browserPackRequests({ project: "chromium", shards }))
   assert.throws(() =>
-    browserPackRequests({ project: "mobile-safari", shards: ["1/32"] })
+    browserPackRequests({ project: "unknown", shards: ["1/32"] })
   )
 })
 
