@@ -2,7 +2,7 @@ import "server-only"
 
 import { createHmac, randomInt, timingSafeEqual } from "node:crypto"
 
-import { enforceCustomerEmailOtpCooldown } from "@/lib/customer/email-otp-cooldown"
+import { enforceCustomerEmailOtpAdmission } from "@/lib/customer/email-otp-cooldown"
 import { sendEmailOtp } from "@/lib/notifications/resend"
 import {
   clearPendingEmailVerification,
@@ -32,16 +32,10 @@ export async function startCustomerEmailVerification(
   if (!customerSession) {
     throw new Error("A customer session is required for email verification.")
   }
-  await enforceCustomerEmailOtpCooldown(normalizedEmail)
-  await enforceRateLimit({
-    key: `customer-email-verification-send:customer:${customerSession.customerId}`,
-    limit: 6,
-    windowMs: 24 * 60 * 60_000,
-  })
-  await enforceRateLimit({
-    key: `customer-email-verification-send:${normalizedEmail}`,
-    limit: 3,
-    windowMs: 15 * 60_000,
+  await enforceCustomerEmailOtpAdmission({
+    email: normalizedEmail,
+    customerId: customerSession.customerId,
+    flow: "verification",
   })
 
   const code = generateCode()

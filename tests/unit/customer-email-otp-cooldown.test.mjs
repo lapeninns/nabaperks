@@ -1,28 +1,61 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { enforceCustomerEmailOtpCooldown } from "@/lib/customer/email-otp-cooldown"
-import { RateLimitError } from "@/lib/security/rate-limit"
+import { enforceCustomerEmailOtpAdmission } from "@/lib/customer/email-otp-cooldown"
+import { customerEmailHmac } from "@/lib/customer/email-pii-core"
+import { RateLimitError, rateLimitBucketHash } from "@/lib/security/rate-limit"
 
-test("customer email cooldown normalises recipients and rejects bursts until 60 seconds", async () => {
-  const buckets = new Map()
-  let now = 0
-  const enforce = async ({ key, limit, windowMs }) => {
-    assert.equal(limit, 1)
-    if ((buckets.get(key) ?? -1) > now) throw new RateLimitError()
-    buckets.set(key, now + windowMs)
+process.env.CUSTOMER_EMAIL_HMAC_SECRET = "email-admission-test-secret"
+
+test("email admission preserves deployed quota keys and shares a normalised cross-flow cooldown", async () => {
+  const calls = []
+  const admit = async (buckets) => {
+    calls.push(buckets)
+    return { error: null }
   }
-  await enforceCustomerEmailOtpCooldown(" Person@Example.test ", enforce)
-  now = 3500
+  for (const flow of ["verification", "recovery"]) {
+    await enforceCustomerEmailOtpAdmission(
+      { email: " Person@Example.test ", customerId: "customer-1", flow },
+      admit
+    )
+  }
+  assert.deepEqual(calls[0], {
+    p_customer_bucket: rateLimitBucketHash(
+      "customer-email-verification-send:customer:customer-1"
+    ),
+    p_recipient_bucket: rateLimitBucketHash(
+      "customer-email-verification-send:person@example.test"
+    ),
+    p_cooldown_bucket: rateLimitBucketHash(
+      "customer-email-otp:cooldown:person@example.test"
+    ),
+  })
+  assert.deepEqual(calls[1], {
+    p_customer_bucket: rateLimitBucketHash(
+      "customer-access-recovery-send:customer:customer-1"
+    ),
+    p_recipient_bucket: rateLimitBucketHash(
+      `customer-access-recovery-send:${customerEmailHmac("person@example.test")}`
+    ),
+    p_cooldown_bucket: calls[0].p_cooldown_bucket,
+  })
+})
+
+test("email admission preserves rate-limit errors and fails closed without its migration", async () => {
+  const input = {
+    email: "person@example.test",
+    customerId: "customer-1",
+    flow: "verification",
+  }
   await assert.rejects(
-    enforceCustomerEmailOtpCooldown("person@example.test", enforce),
+    enforceCustomerEmailOtpAdmission(input, async () => ({
+      error: { message: "Rate limit exceeded" },
+    })),
     RateLimitError
   )
-  await enforceCustomerEmailOtpCooldown("another@example.test", enforce)
-  now = 59999
   await assert.rejects(
-    enforceCustomerEmailOtpCooldown("person@example.test", enforce),
-    RateLimitError
+    enforceCustomerEmailOtpAdmission(input, async () => ({
+      error: { message: "function missing" },
+    })),
+    /Unable to enforce customer email admission/
   )
-  now = 60000
-  await enforceCustomerEmailOtpCooldown("person@example.test", enforce)
 })

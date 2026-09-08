@@ -13,7 +13,7 @@ import {
   setCustomerSession,
   setPendingAccessRecovery,
 } from "@/lib/customer/session"
-import { enforceCustomerEmailOtpCooldown } from "@/lib/customer/email-otp-cooldown"
+import { enforceCustomerEmailOtpAdmission } from "@/lib/customer/email-otp-cooldown"
 import { sendEmailOtp } from "@/lib/notifications/resend"
 import { requiredCustomerSessionSecret } from "@/lib/security/customer-session-secret"
 import {
@@ -214,16 +214,10 @@ async function startCustomerAccessRecovery({
     return
   }
 
-  await enforceCustomerEmailOtpCooldown(verifiedEmail)
-  await enforceRateLimit({
-    key: `customer-access-recovery-send:customer:${customer.id}`,
-    limit: 6,
-    windowMs: 24 * 60 * 60_000,
-  })
-  await enforceRateLimit({
-    key: `customer-access-recovery-send:${customerEmailHmac(verifiedEmail)}`,
-    limit: 3,
-    windowMs: 15 * 60_000,
+  await enforceCustomerEmailOtpAdmission({
+    email: verifiedEmail,
+    customerId: customer.id,
+    flow: "recovery",
   })
 
   const code = String(randomInt(0, 1_000_000)).padStart(6, "0")

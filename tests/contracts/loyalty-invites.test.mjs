@@ -244,7 +244,7 @@ test("customer email verification and recovery apply cooldown before replacing p
     ["lib/customer/access-continuity.ts", "const code = String(randomInt"],
   ]) {
     const source = read(file)
-    const cooldown = source.indexOf("await enforceCustomerEmailOtpCooldown")
+    const cooldown = source.indexOf("await enforceCustomerEmailOtpAdmission")
     assert.ok(cooldown >= 0)
     assert.ok(cooldown < source.indexOf(pending))
     assert.ok(cooldown < source.indexOf("await sendEmailOtp"))
