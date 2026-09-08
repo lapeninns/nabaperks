@@ -232,7 +232,7 @@ test("invite senders use purpose-separated one-click headers and configured repl
     const route = read(`app/api/email/unsubscribe/${kind}/[token]/route.ts`)
     assert.match(
       route,
-      new RegExp(`postEmailUnsubscribe\\("${kind}", token\\)`)
+      new RegExp(`postEmailUnsubscribe\\("${kind}", token, request\\)`)
     )
     assert.doesNotMatch(route, /getUser|getSession|cookies|redirect\(/)
   }

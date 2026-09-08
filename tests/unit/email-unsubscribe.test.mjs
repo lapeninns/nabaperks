@@ -7,7 +7,7 @@ import { build } from "esbuild"
 async function loadRoute(kind) {
   const result = await build({
     stdin: {
-      contents: `export * from "./app/api/email/unsubscribe/${kind}/[token]/route.ts"; export { state } from "fixture-state";`,
+      contents: `export * from "./app/api/email/unsubscribe/${kind}/[token]/route.ts"; export * as invite from "./app/api/email/unsubscribe/invite/[token]/route.ts"; export * as claim from "./app/api/email/unsubscribe/claim/[token]/route.ts"; export { state } from "fixture-state";`,
       resolveDir: process.cwd(),
     },
     bundle: true,
@@ -30,9 +30,9 @@ async function loadRoute(kind) {
               path === "server-only"
                 ? ""
                 : path === "fixture-state"
-                  ? `export const state = { calls: [], limits: [], suppressed: new Set(), failure: null };`
+                  ? `export const state = { calls: [], limits: [], suppressed: new Set(), buckets: new Map(), failure: null };`
                   : path.endsWith("rate-limit")
-                    ? `import {state} from "fixture-state"; export class RateLimitError extends Error {}; export async function enforceRateLimit(config) {state.limits.push(config); if(state.failure === "rate") throw new RateLimitError(); if(state.failure === "storage") throw new Error("offline");}`
+                    ? `import {state} from "fixture-state"; export class RateLimitError extends Error {}; export async function enforceRateLimit(config) {state.limits.push(config); if(state.failure === "rate") throw new RateLimitError(); if(state.failure === "storage") throw new Error("offline"); const used = state.buckets.get(config.key) || 0; if(used >= config.limit) throw new RateLimitError(); state.buckets.set(config.key, used + 1);}`
                     : `import {state} from "fixture-state"; export function createSupabaseServiceRoleClient() {return {rpc: async (rpc,args) => {state.calls.push({rpc,args}); if(state.failure === "database") return {error:{message:"offline"}}; const key = args.p_unsubscribe_token_hash; const repeated = state.suppressed.has(key); state.suppressed.add(key); return {data: !repeated, error: null};}};}`,
           }))
         },
@@ -84,7 +84,7 @@ for (const kind of ["invite", "claim"]) {
         .update(token)
         .digest("hex"),
     })
-    assert.equal(route.state.limits.length, 2)
+    assert.equal(route.state.limits.length, 4)
     assert.ok(route.state.limits.every((c) => !c.key.includes(token)))
   })
   test(`${kind}: malformed tokens and failed storage never acknowledge suppression`, async () => {
@@ -112,3 +112,66 @@ for (const kind of ["invite", "claim"]) {
     assert.equal(route.state.suppressed.size, 0)
   })
 }
+
+test("rotating tokens and endpoint kinds share trusted caller admission before token persistence", async () => {
+  const route = await loadRoute("invite")
+  for (let index = 0; index < 305; index++) {
+    const kind = index % 2 ? "invite" : "claim"
+    const token = index.toString(16).padStart(43, "A")
+    const response = await route[kind].POST(
+      new Request(`https://nabaperks.com/?rotation=${index}`, {
+        method: "POST",
+        headers: {
+          "x-vercel-forwarded-for": "192.0.2.10",
+          "x-forwarded-for": `192.0.2.${index}`,
+          "x-real-ip": `192.0.2.${index}`,
+          "x-nabaperks-device-id": `device-${index}`,
+          "user-agent": `agent-${index}`,
+        },
+        body: `rotation=${index}`,
+      }),
+      { params: Promise.resolve({ token }) }
+    )
+    assert.equal(response.status, index < 300 ? 200 : 429)
+  }
+  assert.equal(route.state.calls.length, 300)
+  assert.equal(route.state.buckets.size, 301)
+  assert.equal(
+    route.state.limits.filter(({ key }) => !key.includes(":caller:")).length,
+    300
+  )
+  const response = await route.invite.POST(
+    new Request("https://nabaperks.com", {
+      method: "POST",
+      headers: { "x-vercel-forwarded-for": "192.0.2.11" },
+    }),
+    { params: Promise.resolve({ token: "B".repeat(43) }) }
+  )
+  assert.equal(
+    response.status,
+    200,
+    "another provider caller retains an independent budget"
+  )
+})
+
+test("missing trusted identity shares a bounded fallback despite spoofed forwarding headers", async () => {
+  const route = await loadRoute("invite")
+  const post = (index) =>
+    route.POST(
+      new Request("https://nabaperks.com", {
+        method: "POST",
+        headers: { "x-forwarded-for": `192.0.2.${index}` },
+      }),
+      {
+        params: Promise.resolve({
+          token: index.toString(16).padStart(43, "C"),
+        }),
+      }
+    )
+  assert.equal((await post(0)).status, 200)
+  const caller = route.state.limits[0]
+  route.state.buckets.set(caller.key, caller.limit)
+  assert.equal((await post(1)).status, 429)
+  assert.equal(route.state.calls.length, 1)
+  assert.equal(route.state.buckets.size, 2)
+})

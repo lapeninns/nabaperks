@@ -218,6 +218,10 @@ function AboutYouEditForm({
 }
 
 function AboutYouEmailVerify({ email }: { email: string | null }) {
+  const [resendState, resendAction, resendPending] = useActionState(
+    resendHomeProfileEmailAction,
+    initialState
+  )
   const [state, action, pending] = useActionState(
     verifyHomeProfileEmailAction,
     initialState
@@ -268,9 +272,14 @@ function AboutYouEmailVerify({ email }: { email: string | null }) {
       {/* size="sm" keeps these on the tap contract at the queuing moment —
           declared 36px on fine pointers, 44px floor on touch (CUS-P2-10). */}
       <div className="flex items-center justify-between gap-3">
-        <form action={resendHomeProfileEmailAction}>
-          <Button type="submit" variant="link" size="sm">
-            Email me a new code
+        <form action={resendAction}>
+          <Button
+            type="submit"
+            variant="link"
+            size="sm"
+            disabled={resendPending}
+          >
+            {resendPending ? "Sending…" : "Email me a new code"}
           </Button>
         </form>
         <form action={clearHomeProfileEmailAction}>
@@ -279,6 +288,9 @@ function AboutYouEmailVerify({ email }: { email: string | null }) {
           </Button>
         </form>
       </div>
+      <p role="status" className="text-sm text-muted-foreground">
+        {resendState.errors?.form ?? resendState.message}
+      </p>
     </div>
   )
 }

@@ -2,6 +2,7 @@ import "server-only"
 
 import { hashInviteToken } from "@/lib/loyalty-invites/tokens"
 import { enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit"
+import { rateLimitIdentityFromHeaders } from "@/lib/security/rate-limit-core"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 type UnsubscribeKind = "invite" | "claim"
@@ -14,15 +15,22 @@ const RESPONSE_HEADERS = {
 /** Token possession authorises only the venue/address resolved by the RPC. */
 export async function postEmailUnsubscribe(
   kind: UnsubscribeKind,
-  token: string
+  token: string,
+  request: Request
 ) {
   if (!/^[A-Za-z0-9_-]{43}$/.test(token)) {
     return new Response(null, { status: 400, headers: RESPONSE_HEADERS })
   }
   const tokenHash = hashInviteToken(token)
   try {
-    // Per-token limits avoid blocking unrelated subscribers behind a mailbox
-    // provider's shared egress IP. Raw bearer tokens never enter rate-limit keys.
+    // Admit callers before creating token buckets. Both endpoint kinds share
+    // this budget, with a higher allowance for shared mailbox-provider egress.
+    await enforceRateLimit({
+      key: `email-unsubscribe:caller:${rateLimitIdentityFromHeaders(request.headers)}`,
+      limit: 300,
+      windowMs: 60_000,
+    })
+    // Raw bearer tokens never enter rate-limit keys.
     await enforceRateLimit({
       key: `email-unsubscribe:${kind}:${tokenHash}`,
       limit: 20,
