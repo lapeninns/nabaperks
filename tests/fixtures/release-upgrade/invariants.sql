@@ -17,7 +17,7 @@ begin
   end if;
 end $$;
 select json_build_object('fixtureRows',
-  (select count(*) from auth.users where email in ('upgrade-owner@example.test','upgrade-customer@example.test')) +
+  (select count(*) from auth.users where email in ('upgrade-owner@example.test','upgrade-owner-2@example.test','upgrade-owner-3@example.test','upgrade-customer@example.test')) +
   (select count(*) from public.merchants where business_slug like 'synthetic-upgrade-%') +
   (select count(*) from public.billing_customers where stripe_customer_id like 'cus_synthetic_upgrade_%') +
   (select count(*) from public.merchant_locations where id='ee300000-0000-4000-8000-000000000001') +

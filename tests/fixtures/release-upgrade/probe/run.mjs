@@ -41,7 +41,8 @@ await withDisposableTransaction(async (tx) => {
       merchantId: MERCHANT,
       snapshot,
       entitlementStatus: "past_due",
-      expectedBillingUpdatedAt: billing.updated_at.toISOString(),
+      // Preserve PostgreSQL microseconds for the actual optimistic-lock RPC.
+      expectedBillingUpdatedAt: billing.updated_at,
     }),
     "applied"
   )

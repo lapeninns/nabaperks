@@ -75,7 +75,16 @@ export async function withDisposableTransaction(callback, env = process.env) {
     connect_timeout: 5,
     idle_timeout: 5,
     onnotice: () => {},
-    types: { bigint: postgres.BigInt },
+    types: {
+      bigint: postgres.BigInt,
+      // Supabase transports timestamp strings without losing PG microseconds.
+      timestamp: {
+        to: 1184,
+        from: [1114, 1184],
+        serialize: (value) => String(value),
+        parse: (value) => value,
+      },
+    },
   })
   const rollback = Symbol("successful-probe-rollback")
   let result
