@@ -17,7 +17,7 @@ import {
 import { buildLoyaltyInviteEmail } from "@/lib/notifications/loyalty-invite-email"
 import { inviteUnsubscribeHeaders } from "@/lib/notifications/invite-unsubscribe-headers"
 import { readEmailOtpConfig } from "@/lib/notifications/resend"
-import { sendWithSenderCompatibility } from "@/lib/notifications/resend-sender-compatibility"
+import { sendWithPayloadCompatibility } from "@/lib/notifications/resend-payload-compatibility"
 import { buildTransactionalEmailPayload } from "@/lib/notifications/transactional-email-payload"
 import { logger } from "@/lib/observability/logger"
 import { absoluteUrl } from "@/lib/seo/structured-data"
@@ -226,12 +226,19 @@ async function sendOne(
   idempotencyKey: string
 ): Promise<{ status: number | null; providerId: string | null }> {
   try {
-    const res = await sendWithSenderCompatibility({
-      sender: config.marketingFrom ?? config.from,
+    const res = await sendWithPayloadCompatibility({
+      payload: buildTransactionalEmailPayload(
+        config.marketingFrom ?? config.from,
+        {
+          to,
+          ...email,
+          replyTo: config.replyTo,
+        }
+      ),
       legacySender: config.from,
       idempotencyKey,
       beforeLegacyAttempt: () => sleep(1000),
-      send: (sender) =>
+      send: (payload) =>
         fetch(RESEND_ENDPOINT, {
           method: "POST",
           headers: {
@@ -239,13 +246,7 @@ async function sendOne(
             "Content-Type": "application/json",
             "Idempotency-Key": idempotencyKey,
           },
-          body: JSON.stringify(
-            buildTransactionalEmailPayload(sender, {
-              to,
-              ...email,
-              replyTo: config.replyTo,
-            })
-          ),
+          body: JSON.stringify(payload),
         }),
     })
     if (!res.ok) return { status: res.status, providerId: null }
