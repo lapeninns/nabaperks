@@ -37,3 +37,31 @@ test("transactional email payload forwards all production poster PDFs to Resend"
   )
   assert.doesNotMatch(`${payload.text}${payload.html}`, /https?:\/\//)
 })
+
+test("optional email metadata is omitted when unset and passed in provider format when set", () => {
+  const email = {
+    to: "delivered@resend.dev",
+    subject: "Fixture",
+    text: "Fixture",
+    html: "<p>Fixture</p>",
+  }
+  const from = "Nabaperks <login@nabaperks.com>"
+  assert.deepEqual(buildTransactionalEmailPayload(from, email), {
+    from,
+    to: [email.to],
+    subject: email.subject,
+    text: email.text,
+    html: email.html,
+  })
+  const headers = {
+    "List-Unsubscribe": "<https://nabaperks.com/example>",
+    "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+  }
+  const payload = buildTransactionalEmailPayload(from, {
+    ...email,
+    replyTo: "Nabaperks <support@nabaperks.com>",
+    headers,
+  })
+  assert.equal(payload.reply_to, "Nabaperks <support@nabaperks.com>")
+  assert.deepEqual(payload.headers, headers)
+})

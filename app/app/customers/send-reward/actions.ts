@@ -21,6 +21,7 @@ import {
 } from "@/lib/merchant/send-reward-fields"
 import { shouldSuppressRewardInviteEmail } from "@/lib/merchant/reward-invite-suppression"
 import { buildRewardInviteEmail } from "@/lib/notifications/reward-invite-email"
+import { inviteUnsubscribeHeaders } from "@/lib/notifications/invite-unsubscribe-headers"
 import { sendTransactionalEmail } from "@/lib/notifications/resend"
 import { RateLimitError, enforceRateLimit } from "@/lib/security/rate-limit"
 import {
@@ -123,7 +124,17 @@ async function isInviteEmailSuppressed(
     p_merchant_id: merchantId,
     p_email_hmac: emailHmac,
   })
-  return shouldSuppressRewardInviteEmail(result)
+  if (shouldSuppressRewardInviteEmail(result)) return true
+  // Provider complaints/bounces on a loyalty invitation also stop reward mail.
+  // Per-venue unsubscribe rows keep their existing, narrower scope.
+  const globalSuppression = await supabase
+    .from("loyalty_invite_email_suppressions")
+    .select("id")
+    .eq("email_hmac", emailHmac)
+    .is("merchant_id", null)
+    .limit(1)
+    .maybeSingle()
+  return shouldSuppressRewardInviteEmail(globalSuppression)
 }
 
 /**
@@ -234,6 +245,7 @@ async function createRewardInviteForUnmatchedContact(
         subject: email.subject,
         text: email.text,
         html: email.html,
+        headers: inviteUnsubscribeHeaders(appUrl, "claim", unsubscribeToken),
       })
       if (inviteId) {
         await service

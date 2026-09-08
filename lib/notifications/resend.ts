@@ -16,6 +16,7 @@ const RESEND_ENDPOINT = "https://api.resend.com/emails"
 type EmailOtpConfig = {
   readonly apiKey: string
   readonly from: string
+  readonly replyTo?: string
 }
 
 async function safeDetail(res: Response) {
@@ -81,12 +82,14 @@ export async function sendTransactionalEmail({
   text,
   html,
   attachments,
+  replyTo,
+  headers,
   idempotencyKey,
   beforeProviderAttempt,
 }: TransactionalEmailInput & {
   beforeProviderAttempt?: () => Promise<void>
 }) {
-  const { apiKey, from } = readEmailOtpConfig()
+  const { apiKey, from, replyTo: configuredReplyTo } = readEmailOtpConfig()
 
   const res = await resilientFetch(
     "resend",
@@ -104,6 +107,8 @@ export async function sendTransactionalEmail({
           subject,
           text,
           html,
+          replyTo: replyTo ?? configuredReplyTo,
+          headers,
           ...(attachments ? { attachments } : {}),
         })
       ),
@@ -126,5 +131,6 @@ export function readEmailOtpConfig(): EmailOtpConfig {
     throw new Error("Resend is not configured (RESEND_API_KEY / RESEND_FROM).")
   }
 
-  return { apiKey, from }
+  const replyTo = process.env.RESEND_REPLY_TO?.trim() || undefined
+  return { apiKey, from, replyTo }
 }

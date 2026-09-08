@@ -13,6 +13,7 @@ import {
   setCustomerSession,
   setPendingAccessRecovery,
 } from "@/lib/customer/session"
+import { enforceCustomerEmailOtpCooldown } from "@/lib/customer/email-otp-cooldown"
 import { sendEmailOtp } from "@/lib/notifications/resend"
 import { requiredCustomerSessionSecret } from "@/lib/security/customer-session-secret"
 import {
@@ -213,6 +214,7 @@ async function startCustomerAccessRecovery({
     return
   }
 
+  await enforceCustomerEmailOtpCooldown(verifiedEmail)
   await enforceRateLimit({
     key: `customer-access-recovery-send:customer:${customer.id}`,
     limit: 6,

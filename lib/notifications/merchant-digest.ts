@@ -5,6 +5,7 @@ import {
   getMerchantDashboardData,
   type MerchantDashboardMerchant,
 } from "@/lib/merchant/dashboard"
+import { logWeeklyInviteDeliverySummary } from "@/lib/notifications/invite-delivery-summary"
 import { logger } from "@/lib/observability/logger"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
@@ -93,6 +94,7 @@ export async function runMerchantWeeklyDigest({
     return { ...result, notConfigured: true }
   }
 
+  await logWeeklyInviteDeliverySummary(now)
   const merchants = await listWeeklyDigestMerchants()
   const periodStart = londonWeekStart(now)
 

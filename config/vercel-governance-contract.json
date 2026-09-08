@@ -46,6 +46,7 @@
   ],
   "environments": {
     "preview": {
+      "optionalKeys": ["RESEND_REPLY_TO"],
       "requiredKeys": [
         "CUSTOMER_EMAIL_ENCRYPTION_KEY",
         "CUSTOMER_EMAIL_HMAC_SECRET",
@@ -80,6 +81,7 @@
       ]
     },
     "staging": {
+      "optionalKeys": ["RESEND_REPLY_TO"],
       "requiredKeys": [
         "CUSTOMER_EMAIL_ENCRYPTION_KEY",
         "CUSTOMER_EMAIL_HMAC_SECRET",
@@ -115,6 +117,7 @@
       ]
     },
     "production": {
+      "optionalKeys": ["RESEND_REPLY_TO"],
       "requiredKeys": [
         "CRON_SECRET",
         "CUSTOMER_EMAIL_ENCRYPTION_KEY",

@@ -122,6 +122,13 @@
     "optional": true
   },
   {
+    "name": "RESEND_REPLY_TO",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Optional monitored reply address for all Resend email, e.g. Nabaperks <support@nabaperks.com>. Enable only after inbound routing is verified.",
+    "optional": true
+  },
+  {
     "name": "WEB_PUSH_VAPID_PUBLIC_KEY",
     "visibility": "server",
     "kind": "string",

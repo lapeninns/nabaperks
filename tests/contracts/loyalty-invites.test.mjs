@@ -207,3 +207,61 @@ test("review hardening: Svix headers, actor audit, revocable completed, erase or
     "invitation scrub runs before admin_log_data_request"
   )
 })
+
+test("invite senders use purpose-separated one-click headers and configured reply-to", () => {
+  const worker = read("lib/loyalty-invites/delivery-worker.ts")
+  const reward = read("app/app/customers/send-reward/actions.ts")
+  assert.match(
+    worker,
+    /inviteUnsubscribeHeaders\([\s\S]*"invite",[\s\S]*unsubscribeToken/
+  )
+  assert.match(worker, /replyTo: config\.replyTo/)
+  assert.match(worker, /buildTransactionalEmailPayload/)
+  assert.match(
+    reward,
+    /inviteUnsubscribeHeaders\(appUrl, "claim", unsubscribeToken\)/
+  )
+  const sender = read("lib/notifications/resend.ts")
+  const otp = sender.slice(
+    sender.indexOf("export async function sendEmailOtp"),
+    sender.indexOf("export async function sendTransactionalEmail")
+  )
+  assert.doesNotMatch(otp, /headers|List-Unsubscribe/)
+  assert.match(sender, /process\.env\.RESEND_REPLY_TO/)
+  for (const kind of ["invite", "claim"]) {
+    const route = read(`app/api/email/unsubscribe/${kind}/[token]/route.ts`)
+    assert.match(
+      route,
+      new RegExp(`postEmailUnsubscribe\\("${kind}", token\\)`)
+    )
+    assert.doesNotMatch(route, /getUser|getSession|cookies|redirect\(/)
+  }
+})
+
+test("customer email verification and recovery apply cooldown before replacing pending codes", () => {
+  for (const [file, pending] of [
+    ["lib/customer/email-verification.ts", "await setPendingEmailVerification"],
+    ["lib/customer/access-continuity.ts", "const code = String(randomInt"],
+  ]) {
+    const source = read(file)
+    const cooldown = source.indexOf("await enforceCustomerEmailOtpCooldown")
+    assert.ok(cooldown >= 0)
+    assert.ok(cooldown < source.indexOf(pending))
+    assert.ok(cooldown < source.indexOf("await sendEmailOtp"))
+  }
+})
+
+test("weekly complaints are visible as aggregate new suppressions and reward invites honour global suppression", () => {
+  const summary = read("lib/notifications/invite-delivery-summary.ts")
+  assert.match(summary, /count: "exact", head: true/)
+  assert.match(summary, /newComplaintSuppressions/)
+  assert.match(summary, /newBounceSuppressions/)
+  assert.match(summary, /\.is\("merchant_id", null\)/)
+  assert.match(
+    read("lib/notifications/merchant-digest.ts"),
+    /await logWeeklyInviteDeliverySummary\(now\)/
+  )
+  const reward = read("app/app/customers/send-reward/actions.ts")
+  assert.match(reward, /\.from\("loyalty_invite_email_suppressions"\)/)
+  assert.match(reward, /shouldSuppressRewardInviteEmail\(globalSuppression\)/)
+})
