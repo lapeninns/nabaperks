@@ -53,9 +53,12 @@ export function CustomerFlowShell({
         // Bottom padding respects the home-indicator safe area so the last
         // CTA or link never sits clipped against the screen edge
         // (VCU-P3-06/08).
+        // Short viewports (landscape, keyboard up) tighten the top rhythm so
+        // the screen's control lands in the first screen; the safe-area
+        // bottom padding is untouched.
         dense
-          ? "pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pt-6 sm:pb-[max(1.5rem,env(safe-area-inset-bottom))]"
-          : "pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pt-8 sm:pb-[max(2rem,env(safe-area-inset-bottom))]"
+          ? "pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pt-6 sm:pb-[max(1.5rem,env(safe-area-inset-bottom))] short:pt-3 squat:pt-2"
+          : "pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pt-8 sm:pb-[max(2rem,env(safe-area-inset-bottom))] short:pt-3 squat:pt-2"
       )}
     >
       <div
@@ -63,7 +66,9 @@ export function CustomerFlowShell({
           // One customer column: the shared 410px token (CUS-P2-12/16), so
           // skeleton and content agree at every width.
           "mx-auto grid w-full max-w-customer min-w-0",
-          dense ? "gap-4" : "gap-5",
+          dense
+            ? "gap-4 short:gap-3 squat:gap-2"
+            : "gap-5 short:gap-3 squat:gap-2",
           className
         )}
         data-screen-label={screenLabel}
@@ -92,24 +97,31 @@ export function CustomerFlowShell({
         {progress ? <OnboardingProgress progress={progress} /> : null}
 
         {title || description ? (
-          <section className="grid gap-3 text-center">
+          <section className="grid gap-3 text-center squat:gap-1">
             {title ? (
               <h1
                 className={cn(
                   "leading-[1.04] font-extrabold tracking-tight text-balance",
                   // Fluid between the 320px and 430px phone widths so a
                   // two-line headline never becomes three on the narrowest
-                  // devices and never shouts on the widest.
+                  // devices and never shouts on the widest. On the landscape
+                  // floor (≤480px tall) the headline steps down to a single
+                  // line so the screen's control can still reach the first
+                  // screen — it stays an h1, just quieter.
                   dense
                     ? "text-[clamp(1.45rem,4.2vw+0.5rem,1.65rem)]"
-                    : "text-[clamp(1.75rem,5.6vw+0.4rem,2.1rem)]"
+                    : "text-[clamp(1.75rem,5.6vw+0.4rem,2.1rem)]",
+                  "squat:text-xl squat:leading-tight"
                 )}
               >
                 {title}
               </h1>
             ) : null}
             {description ? (
-              <p className="mx-auto max-w-[31ch] text-[0.96rem] leading-6 text-muted-foreground">
+              // Secondary on every screen; on the landscape floor it is the
+              // first thing to give way (the headline and the panel's own
+              // band carry the state).
+              <p className="mx-auto max-w-[31ch] text-[0.96rem] leading-6 text-muted-foreground squat:hidden">
                 {description}
               </p>
             ) : null}
@@ -192,7 +204,15 @@ export function CustomerReceipt({
       className={cn("grid gap-4", className)}
       data-edge-class="receipt-edge"
     >
-      <div className="flex min-w-0 items-start justify-between gap-3 sm:gap-4">
+      {/* When the receipt carries no headline text the header row is only the
+          venue mark — identity the stamps themselves already print — so on the
+          landscape floor it and its rule give way to the grid and control. */}
+      <div
+        className={cn(
+          "flex min-w-0 items-start justify-between gap-3 sm:gap-4",
+          !title && !eyebrow && "squat:hidden"
+        )}
+      >
         <div className="grid min-w-0 gap-1 text-left">
           {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
           {title ? (
@@ -213,7 +233,7 @@ export function CustomerReceipt({
         />
       </div>
 
-      <hr className="w-rule" />
+      <hr className={cn("w-rule", !title && !eyebrow && "squat:hidden")} />
       {children}
       {metaLines ? (
         <div className="mono-id grid gap-1 tracking-[0.08em] text-muted-foreground">
@@ -325,7 +345,9 @@ export function CustomerStampCard({
         layout={wrapStamps ? "wrap" : "row"}
         wrapColumns={wrapColumnCount}
         compact={compact}
-        className="py-1"
+        // Landscape floor: cap the row so the auto-fit tracks shrink the discs
+        // (never below their 44px minimum) instead of filling the column.
+        className="py-1 squat:mx-auto squat:w-full squat:max-w-[18rem]"
         onSlamComplete={onSlamComplete}
       />
       {afterGrid}
