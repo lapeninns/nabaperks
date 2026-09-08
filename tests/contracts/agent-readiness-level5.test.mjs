@@ -1,3 +1,4 @@
+import { packShards } from "../../scripts/ci/run-browser-pack.mjs"
 import assert from "node:assert/strict"
 import { existsSync, readFileSync } from "node:fs"
 import { test } from "node:test"
@@ -101,7 +102,12 @@ test("Given routine pull requests When CI runs Then deep browser proof is sharde
   )
 
   assert.match(ci, /quality:check/)
-  assert.match(e2eJob, shardMatrixPattern(32))
+  assert.match(e2eJob, /pack: \[1, 2, 3, 4, 5, 6, 7, 8\]/)
+  assert.match(e2eJob, /node scripts\/ci\/run-browser-pack\.mjs/)
+  assert.deepEqual(
+    Array.from({ length: 8 }, (_, index) => packShards(index + 1)).flat(),
+    Array.from({ length: 32 }, (_, index) => `${index + 1}/32`)
+  )
   assert.match(a11yJob, shardMatrixPattern(8))
   assert.match(visualJob, shardMatrixPattern(4))
   assert.match(nightly, shardMatrixPattern(32))
@@ -135,13 +141,10 @@ test("Given routine pull requests When CI runs Then deep browser proof is sharde
     )
   }
 
-  // The dev-server tiers fan out from the fast lane; the production-bundle
-  // consumers fan out from the single production build.
+  // Independent roots start immediately; visual scheduling and consumers of
+  // the single production bundle retain their existing dependencies.
   for (const [job, dependency] of [
-    ["e2e", "fast"],
-    ["a11y", "fast"],
     ["visual", "fast"],
-    ["db", "fast"],
     ["lighthouse", "build"],
     ["zap-baseline", "build"],
   ]) {
@@ -151,6 +154,13 @@ test("Given routine pull requests When CI runs Then deep browser proof is sharde
         `\\n  ${job}:\\n(?:(?!\\n  [a-z][a-z0-9-]*:\\n)[\\s\\S])*?\\n    needs: ${dependency}\\n`
       )
     )
+  }
+
+  for (const job of ["quality", "e2e", "a11y", "db"]) {
+    const block = ci
+      .split(`\n  ${job}:\n`)[1]
+      .split(/\n  [a-z][a-z0-9-]*:\n/)[0]
+    assert.doesNotMatch(block, /\n    needs:|needs\.fast/)
   }
 
   // The stable required check covers every existing hosted validation root.
