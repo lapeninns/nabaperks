@@ -229,3 +229,40 @@ test("missing or incomplete observation cannot prove suppression", () => {
     )
   }
 })
+
+test("deployment collector rejects incomplete pages and accepts explicit pagination completion", async () => {
+  const { collectDeploymentObservation } =
+    await import("../../scripts/vercel-governance/deployment-observation.mjs")
+  for (const page of [
+    {},
+    { deployments: [] },
+    { pagination: { next: null } },
+    { deployments: [], pagination: {} },
+    { deployments: [], pagination: { next: "123" } },
+    { deployments: [{}], pagination: { next: null } },
+  ])
+    assert.throws(
+      () => collectDeploymentObservation(CONTRACT, () => page),
+      /deployment/i
+    )
+  let calls = 0
+  const observation = collectDeploymentObservation(CONTRACT, () =>
+    ++calls === 1
+      ? {
+          deployments: [{ uid: "first", source: "git", created: 123 }],
+          pagination: { next: 100 },
+        }
+      : { deployments: [], pagination: { next: null } }
+  )
+  assert.equal(calls, 2)
+  assert.equal(observation.complete, true)
+  assert.equal(observation.deployments[0].id, "first")
+  assert.throws(
+    () =>
+      collectDeploymentObservation(CONTRACT, () => ({
+        deployments: [],
+        pagination: { next: 100 },
+      })),
+    /did not advance/
+  )
+})

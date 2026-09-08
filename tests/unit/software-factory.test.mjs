@@ -1,14 +1,29 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { mkdtempSync, rmSync, readFileSync, realpathSync } from "node:fs"
+import {
+  mkdtempSync,
+  rmSync,
+  readFileSync,
+  realpathSync,
+  writeFileSync,
+  symlinkSync,
+  mkdirSync,
+} from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
   evaluatePullRequest,
   evaluateRelease,
 } from "../../ops/factory/state.mjs"
-import { withJournal, reserveRepair } from "../../ops/factory/journal.mjs"
-import { factoryPolicy as policy } from "../../scripts/ci/factory-status.mjs"
+import {
+  withJournal,
+  reserveRepair,
+  readJournal,
+} from "../../ops/factory/journal.mjs"
+import {
+  factoryPolicy as policy,
+  collectFactoryStatus,
+} from "../../scripts/ci/factory-status.mjs"
 import { factoryAction } from "../../scripts/ci/factory-action.mjs"
 
 const SHA = "a".repeat(40),
@@ -274,6 +289,65 @@ test("uncertain writes and a changed candidate cannot produce duplicate requests
     assert.throws(() => factoryAction({ ...request, sha: MERGE }), /changed/)
     assert.throws(() => factoryAction(request), /uncertain/)
     assert.throws(() => factoryAction(request), /already has/)
+  } finally {
+    rmSync(directory, { recursive: true, force: true })
+  }
+})
+
+test("merge conflicts and absent candidates precede waiting for missing checks", () => {
+  for (const change of [
+    { mergeStateStatus: "DIRTY" },
+    { mergeStateStatus: "BEHIND" },
+    { candidateSha: null },
+  ])
+    assert.equal(
+      state({ ...ready(), checks: [], ...change }).state,
+      "merge-blocked"
+    )
+  assert.equal(
+    state({ ...ready(), checks: [], mergeStateStatus: "BLOCKED" }).state,
+    "testing"
+  )
+})
+
+test("release snapshot rejects a changed or unavailable main revision", () => {
+  function fixture(finalSha) {
+    let mainReads = 0
+    return (args) => {
+      const path = args.find((arg) => arg.startsWith("repos/"))
+      if (path?.endsWith("/commits/main"))
+        return { sha: ++mainReads === 1 ? SHA : finalSha }
+      if (path?.includes("/pulls?")) return [[]]
+      if (path?.includes("status=")) return [{ workflow_runs: [] }]
+      if (path?.endsWith("runs?per_page=1")) return { workflow_runs: [] }
+      throw new Error("Unexpected fixture read")
+    }
+  }
+  assert.equal(collectFactoryStatus({ read: fixture(SHA) }).mainSha, SHA)
+  for (const changed of [MERGE, undefined])
+    assert.throws(
+      () => collectFactoryStatus({ read: fixture(changed) }),
+      /Base branch changed/
+    )
+})
+
+test("both journal callers reject symlinks and non-files while regular reads persist", () => {
+  const directory = realpathSync(mkdtempSync(join(tmpdir(), "factory-file-")))
+  const path = join(directory, "state.json")
+  const value = { version: 1, pullRequests: { 284: { repairCycles: 1 } } }
+  try {
+    assert.deepEqual(readJournal(directory), { version: 1, pullRequests: {} })
+    writeFileSync(join(directory, "target.json"), JSON.stringify(value))
+    symlinkSync(join(directory, "target.json"), path)
+    assert.throws(() => readJournal(directory))
+    assert.throws(() => withJournal(directory, () => {}))
+    rmSync(path)
+    mkdirSync(path)
+    assert.throws(() => readJournal(directory), /Invalid factory journal file/)
+    rmSync(path, { recursive: true })
+    writeFileSync(path, JSON.stringify(value))
+    assert.deepEqual(readJournal(directory), value)
+    withJournal(directory, (journal) => assert.deepEqual(journal, value))
   } finally {
     rmSync(directory, { recursive: true, force: true })
   }

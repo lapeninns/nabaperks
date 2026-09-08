@@ -39,6 +39,16 @@ export function evaluatePullRequest(pr, policy, now = Date.now()) {
       "use-hosted-review",
       "External repository code is ineligible for local execution."
     )
+  if (
+    ["DIRTY", "BEHIND"].includes(pr.mergeStateStatus) ||
+    !/^[a-f0-9]{40}$/.test(pr.candidateSha ?? "")
+  )
+    return result(
+      "merge-blocked",
+      "coordinator",
+      "diagnose-merge-block",
+      `GitHub reports ${pr.mergeStateStatus} or no usable merge candidate; refresh or repair the merge before waiting for checks.`
+    )
   const required = policy.requiredChecks.map((expected) => {
     const candidates = pr.checks.filter(
       (check) =>

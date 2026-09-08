@@ -1,4 +1,8 @@
 import {
+  constants,
+  openSync,
+  fstatSync,
+  closeSync,
   mkdirSync,
   lstatSync,
   readFileSync,
@@ -36,20 +40,7 @@ export function withJournal(directory, operation) {
   }
   try {
     const path = join(root, "state.json")
-    let journal = { version: 1, pullRequests: {} }
-    try {
-      if (!lstatSync(path).isFile() || lstatSync(path).isSymbolicLink())
-        throw new Error("Invalid factory journal file")
-      journal = JSON.parse(readFileSync(path, "utf8"))
-    } catch (error) {
-      if (error.code !== "ENOENT") throw error
-    }
-    if (
-      journal.version !== 1 ||
-      !journal.pullRequests ||
-      Array.isArray(journal.pullRequests)
-    )
-      throw new Error("Invalid factory journal")
+    const journal = readJournal(root)
     const save = () => {
       const temporary = join(root, `state-${process.pid}.tmp`)
       writeFileSync(temporary, JSON.stringify(journal, null, 2) + "\n", {
@@ -94,10 +85,20 @@ export function reserveRepair(journal, { number, sha, maxRepairCycles, now }) {
 
 export function readJournal(directory) {
   const path = join(resolve(directory), "state.json")
+  let descriptor
   try {
-    if (!lstatSync(path).isFile() || lstatSync(path).isSymbolicLink())
+    descriptor = openSync(
+      path,
+      constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK
+    )
+  } catch (error) {
+    if (error.code === "ENOENT") return { version: 1, pullRequests: {} }
+    throw error
+  }
+  try {
+    if (!fstatSync(descriptor).isFile())
       throw new Error("Invalid factory journal file")
-    const journal = JSON.parse(readFileSync(path, "utf8"))
+    const journal = JSON.parse(readFileSync(descriptor, "utf8"))
     if (
       journal.version !== 1 ||
       !journal.pullRequests ||
@@ -105,8 +106,7 @@ export function readJournal(directory) {
     )
       throw new Error("Invalid factory journal")
     return journal
-  } catch (error) {
-    if (error.code === "ENOENT") return { version: 1, pullRequests: {} }
-    throw error
+  } finally {
+    closeSync(descriptor)
   }
 }

@@ -67,7 +67,18 @@ export function collectFactoryStatus({
       })
     }
   }
-  for (const release of collectReleases(policy, read))
+  const releases = collectReleases(policy, read)
+  const currentMain = read([
+    "api",
+    `repos/${policy.repository}/commits/${policy.baseBranch}`,
+    "--jq",
+    "{sha}",
+  ])
+  if (!/^[a-f0-9]{40}$/.test(main?.sha ?? "") || currentMain?.sha !== main.sha)
+    throw new Error(
+      "Base branch changed or is unavailable; refresh the snapshot"
+    )
+  for (const release of releases)
     items.push(evaluateRelease(release, main.sha, policy, now))
   return {
     schema: "nabaperks.factory-status.v1",
