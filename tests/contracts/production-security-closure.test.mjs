@@ -52,8 +52,8 @@ test("build tooling transitive dependencies are pinned past active advisories", 
   // Each of these is a floor, not a preference: the version below it carries a
   // live advisory. brace-expansion moved 5.0.8 -> 5.0.9 (GHSA-rgw5-rvv9-x895),
   // fast-uri 3.1.4 -> 3.1.7 (GHSA-7p8r-x3mc-p8w7 plus the 2026-09 URI
-  // canonicalisation advisories), hono 4.12.27 -> 4.12.34
-  // (GHSA-8j4g-w8fx-2239), nanoid -> 3.3.18, browserslist -> 4.28.8 and qs ->
+  // canonicalisation advisories), hono -> 4.13.5 (the 2026-09 SSG, body
+  // nesting and fragment-query advisories), nanoid -> 3.3.18, browserslist -> 4.28.8 and qs ->
   // 6.16.0. Puppeteer's browser helper moves to 3.2.1 because that release
   // removes the unpatched extract-zip path traversal dependency. Vercel's
   // undici 6.27.0 -> 6.28.0, alongside pins for ip-address and the 7.x undici
@@ -69,7 +69,7 @@ test("build tooling transitive dependencies are pinned past active advisories", 
   assert.equal(workspaceOverride('"@lhci/cli>proxy-agent"'), "^8.0.1")
   assert.equal(workspaceOverride("vercel>undici"), "6.28.0")
   assert.equal(workspaceOverride('"@vercel/sandbox>undici"'), "^7.29.0")
-  assert.equal(workspaceOverride("hono@4.12.25"), "4.12.34")
+  assert.equal(workspaceOverride("hono@4.12.25"), "4.13.5")
   assert.match(
     read("pnpm-workspace.yaml"),
     /^patchedDependencies:\n  minimatch@3\.1\.5: patches\/minimatch@3\.1\.5\.patch$/m

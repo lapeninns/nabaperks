@@ -15,7 +15,9 @@ import {
   inviteUnsubscribeToken,
 } from "@/lib/loyalty-invites/tokens"
 import { buildLoyaltyInviteEmail } from "@/lib/notifications/loyalty-invite-email"
+import { inviteUnsubscribeHeaders } from "@/lib/notifications/invite-unsubscribe-headers"
 import { readEmailOtpConfig } from "@/lib/notifications/resend"
+import { sendWithPayloadCompatibility } from "@/lib/notifications/resend-payload-compatibility"
 import { buildTransactionalEmailPayload } from "@/lib/notifications/transactional-email-payload"
 import { logger } from "@/lib/observability/logger"
 import { absoluteUrl } from "@/lib/seo/structured-data"
@@ -61,7 +63,7 @@ function sleep(ms: number): Promise<void> {
 export async function runLoyaltyInviteDrain(options?: {
   maxEmails?: number
 }): Promise<LoyaltyInviteDrainResult> {
-  let config: { apiKey: string; from: string }
+  let config: ReturnType<typeof readEmailOtpConfig>
   try {
     config = readEmailOtpConfig()
   } catch {
@@ -125,7 +127,7 @@ export async function runLoyaltyInviteDrain(options?: {
 
 async function processRecipient(
   supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
-  config: { apiKey: string; from: string },
+  config: ReturnType<typeof readEmailOtpConfig>,
   recipient: LeasedRecipient
 ): Promise<SendOutcome> {
   let to = ""
@@ -162,7 +164,14 @@ async function processRecipient(
   const { status, providerId } = await sendOne(
     config,
     to,
-    email,
+    {
+      ...email,
+      headers: inviteUnsubscribeHeaders(
+        absoluteUrl("/"),
+        "invite",
+        unsubscribeToken
+      ),
+    },
     inviteIdempotencyKey(recipient.recipient_id)
   )
 
@@ -206,27 +215,39 @@ async function processRecipient(
 }
 
 async function sendOne(
-  config: { apiKey: string; from: string },
+  config: ReturnType<typeof readEmailOtpConfig>,
   to: string,
-  email: { subject: string; text: string; html: string },
+  email: {
+    subject: string
+    text: string
+    html: string
+    headers: Readonly<Record<string, string>>
+  },
   idempotencyKey: string
 ): Promise<{ status: number | null; providerId: string | null }> {
   try {
-    const res = await fetch(RESEND_ENDPOINT, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${config.apiKey}`,
-        "Content-Type": "application/json",
-        "Idempotency-Key": idempotencyKey,
-      },
-      body: JSON.stringify(
-        buildTransactionalEmailPayload(config.from, {
+    const res = await sendWithPayloadCompatibility({
+      payload: buildTransactionalEmailPayload(
+        config.marketingFrom ?? config.from,
+        {
           to,
-          subject: email.subject,
-          text: email.text,
-          html: email.html,
-        })
+          ...email,
+          replyTo: config.replyTo,
+        }
       ),
+      legacySender: config.from,
+      idempotencyKey,
+      beforeLegacyAttempt: () => sleep(1000),
+      send: (payload) =>
+        fetch(RESEND_ENDPOINT, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${config.apiKey}`,
+            "Content-Type": "application/json",
+            "Idempotency-Key": idempotencyKey,
+          },
+          body: JSON.stringify(payload),
+        }),
     })
     if (!res.ok) return { status: res.status, providerId: null }
     const body = (await res.json().catch(() => null)) as { id?: unknown } | null

@@ -8,13 +8,24 @@ export type TransactionalEmailInput = {
   readonly subject: string
   readonly text: string
   readonly html: string
+  readonly category?: "transactional" | "marketing"
+  readonly replyTo?: string
+  readonly headers?: Readonly<Record<string, string>>
   readonly attachments?: readonly TransactionalEmailAttachment[]
   readonly idempotencyKey?: string
 }
 
 export function buildTransactionalEmailPayload(
   from: string,
-  { to, subject, text, html, attachments }: TransactionalEmailInput
+  {
+    to,
+    subject,
+    text,
+    html,
+    attachments,
+    replyTo,
+    headers,
+  }: TransactionalEmailInput
 ) {
   return {
     from,
@@ -22,6 +33,8 @@ export function buildTransactionalEmailPayload(
     subject,
     text,
     html,
+    ...(replyTo ? { reply_to: replyTo } : {}),
+    ...(headers ? { headers } : {}),
     ...(attachments ? { attachments } : {}),
   }
 }

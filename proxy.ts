@@ -38,7 +38,11 @@ const CUSTOMER_DEVICE_TTL_SECONDS = 365 * 24 * 60 * 60
 // server components and route handlers via the forwarded request headers, and
 // echoes it on the response so clients and logs can be correlated end to end.
 export async function proxy(request: NextRequest) {
-  const operationalProbe = isOperationalProbePath(request.nextUrl.pathname)
+  const operationalProbe =
+    isOperationalProbePath(request.nextUrl.pathname) ||
+    /^\/api\/email\/unsubscribe\/(invite|claim)\/[^/]+$/.test(
+      request.nextUrl.pathname
+    )
   const requestId = resolveRequestId(request.headers)
   const requestPath = `${request.nextUrl.pathname}${request.nextUrl.search}`
   const nonce = btoa(crypto.randomUUID())

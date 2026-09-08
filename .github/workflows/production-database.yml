@@ -222,12 +222,111 @@ jobs:
           fi
           supabase stop --no-backup || true
 
-  promote:
-    name: Database promotion
+  baseline:
+    name: Authenticate the deployed baseline
     needs: staging
     environment: Production
+    timeout-minutes: 10
+    outputs:
+      artifact_id: ${{ steps.baseline-upload.outputs.artifact-id }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    env:
+      EXPECTED_REVISION: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
+      RELEASE_RUN_ID: ${{ github.run_id }}
+      RELEASE_RUN_ATTEMPT: ${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .nvmrc
+      - name: Read the authoritative production baseline
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_REVISION"
+          test "$(git rev-parse origin/main)" = "$EXPECTED_REVISION"
+          mkdir -p "$RUNNER_TEMP/release-baseline"
+          node scripts/release/deployed-baseline.mjs "$RUNNER_TEMP/release-baseline/baseline.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        id: baseline-upload
+        with:
+          name: release-baseline-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release-baseline/baseline.json
+          if-no-files-found: error
+          retention-days: 90
+
+  qualification:
+    name: Qualify runtime without production credentials
+    needs: baseline
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      artifact_id: ${{ steps.qualification-upload.outputs.artifact-id }}
+    runs-on: ubuntu-latest
+    env:
+      EXPECTED_REVISION: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
+      RELEASE_RUN_ID: ${{ github.run_id }}
+      RELEASE_RUN_ATTEMPT: ${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .nvmrc
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+      - uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3
+        with:
+          version: 2.106.0
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: ${{ needs.baseline.outputs.artifact_id }}
+          path: ${{ runner.temp }}/release-baseline
+          merge-multiple: true
+      - name: Install the disposable database client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Qualify runtime against the authenticated deployed baseline
+        run: |
+          mkdir -p "$RUNNER_TEMP/release-ledger"
+          baseline="$(jq -er '.revision' "$RUNNER_TEMP/release-baseline/baseline.json")"
+          node scripts/release/qualify-runtime.mjs "$baseline" "$RUNNER_TEMP/release-runtime"
+          compatibility=()
+          if [[ -f "$RUNNER_TEMP/release-runtime/compatibility.json" ]]; then
+            compatibility=(--compatibility "$RUNNER_TEMP/release-runtime/compatibility.json")
+          fi
+          node scripts/release/stage-ledger.mjs qualify --baseline "$baseline" "${compatibility[@]}"             --output "$RUNNER_TEMP/release-ledger/qualified.json"             --evidence "$RUNNER_TEMP/release-ledger/qualified-evidence.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        id: qualification-upload
+        with:
+          name: release-qualification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/release-ledger/qualified.json
+            ${{ runner.temp }}/release-ledger/qualified-evidence.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain immutable runtime probe and build evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: release-runtime-artifacts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release-runtime/
+          if-no-files-found: ignore
+          retention-days: 90
+
+  promote:
+    name: Database promotion
+    needs: [baseline, qualification]
+    environment: Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
     env:
       EXPECTED_REVISION: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
       RELEASE_RUN_ID: ${{ github.run_id }}
@@ -244,6 +343,8 @@ jobs:
         with:
           ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
           fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version-file: .nvmrc
@@ -262,24 +363,31 @@ jobs:
           test -n "$SUPABASE_ACCESS_TOKEN"
           test -n "$SUPABASE_DB_PASSWORD"
           test -n "$SUPABASE_PROJECT_REF"
-      - name: Qualify unchanged runtime against the authenticated deployed baseline
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: ${{ needs.baseline.outputs.artifact_id }}
+          path: ${{ runner.temp }}/release-baseline
+          merge-multiple: true
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: ${{ needs.qualification.outputs.artifact_id }}
+          path: ${{ runner.temp }}/release-qualification
+          merge-multiple: true
+      - name: Verify qualification on the fresh protected runner
         run: |
           mkdir -p "$RUNNER_TEMP/release-ledger"
-          node scripts/release/deployed-baseline.mjs "$RUNNER_TEMP/release-ledger/baseline.json"
+          cp "$RUNNER_TEMP/release-baseline/baseline.json" "$RUNNER_TEMP/release-ledger/baseline.json"
+          cp "$RUNNER_TEMP/release-qualification/qualified.json" "$RUNNER_TEMP/release-ledger/qualified.json"
+          cp "$RUNNER_TEMP/release-qualification/qualified-evidence.json" "$RUNNER_TEMP/release-ledger/qualified-evidence.json"
           baseline="$(jq -er '.revision' "$RUNNER_TEMP/release-ledger/baseline.json")"
-          node scripts/release/stage-ledger.mjs identity --baseline "$baseline" \
-            > "$RUNNER_TEMP/release-ledger/identity.json"
-          # This is unchanged-source qualification, not populated upgrade proof.
-          # Changed runtime/schema inputs fail here without execution evidence.
-          node scripts/release/stage-ledger.mjs qualify --baseline "$baseline" \
-            --output "$RUNNER_TEMP/release-ledger/qualified.json" \
-            --evidence "$RUNNER_TEMP/release-ledger/qualified-evidence.json"
+          node scripts/release/stage-ledger.mjs identity --baseline "$baseline"             > "$RUNNER_TEMP/release-ledger/identity.json"
+          node scripts/release/stage-ledger.mjs verify --baseline "$baseline" --stage qualified             --manifest "$RUNNER_TEMP/release-ledger/qualified.json"             --evidence "$RUNNER_TEMP/release-ledger/qualified-evidence.json"
       - name: Link the approved production project
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
-      - name: Require unchanged production schema before database application
-        run: node scripts/check-supabase-migrations.mjs > "$RUNNER_TEMP/release-ledger/pre-apply-ledger.txt"
+      - name: Require qualified production migration prefix before database application
+        run: |
+          baseline="$(jq -er '.revision' "$RUNNER_TEMP/release-ledger/baseline.json")"
+          node scripts/release/pre-apply-migrations.mjs "$baseline" > "$RUNNER_TEMP/release-ledger/pre-apply-ledger.txt"
       - name: Prove the forward-only migration plan
         run: supabase db push --linked --dry-run --include-all
       - name: Recheck qualification and the unchanged live alias before database writes

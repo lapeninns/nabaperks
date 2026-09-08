@@ -273,7 +273,7 @@ test("fixture drift after an app probe fails even when SQL checks exit successfu
                 else if (sql.startsWith("begin read only;")) {
                   invariantRead++
                   stdout = JSON.stringify({
-                    fixtureRows: invariantRead === 3 ? 15 : 16,
+                    fixtureRows: invariantRead === 3 ? 17 : 18,
                     subscriptions: 3,
                     memberships: 1,
                     stampEvents: 1,

@@ -95,6 +95,116 @@
           }
         }
       }
+    },
+    "/api/email/unsubscribe/invite/{token}": {
+      "post": {
+        "summary": "Suppress future venue invite email",
+        "operationId": "postInviteEmailUnsubscribe",
+        "x-source": "app/api/email/unsubscribe/invite/[token]/route.ts",
+        "security": [],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{43}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Empty acknowledgement, including unknown tokens and repeated requests. Suppression is scoped to the venue resolved from the independent unsubscribe token."
+          },
+          "400": {
+            "description": "Malformed token."
+          },
+          "429": {
+            "description": "Rate limited. Retry-After: 60."
+          },
+          "503": {
+            "description": "Suppression or rate-limit storage unavailable. Retry-After: 60."
+          }
+        }
+      },
+      "get": {
+        "summary": "Open unsubscribe confirmation page",
+        "operationId": "getInviteEmailUnsubscribe",
+        "x-source": "app/api/email/unsubscribe/invite/[token]/route.ts",
+        "security": [],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{43}$"
+            }
+          }
+        ],
+        "responses": {
+          "307": {
+            "description": "Redirect to the confirmation page; does not suppress email."
+          }
+        }
+      }
+    },
+    "/api/email/unsubscribe/claim/{token}": {
+      "post": {
+        "summary": "Suppress future venue invite email",
+        "operationId": "postClaimEmailUnsubscribe",
+        "x-source": "app/api/email/unsubscribe/claim/[token]/route.ts",
+        "security": [],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{43}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Empty acknowledgement, including unknown tokens and repeated requests. Suppression is scoped to the venue resolved from the independent unsubscribe token."
+          },
+          "400": {
+            "description": "Malformed token."
+          },
+          "429": {
+            "description": "Rate limited. Retry-After: 60."
+          },
+          "503": {
+            "description": "Suppression or rate-limit storage unavailable. Retry-After: 60."
+          }
+        }
+      },
+      "get": {
+        "summary": "Open unsubscribe confirmation page",
+        "operationId": "getClaimEmailUnsubscribe",
+        "x-source": "app/api/email/unsubscribe/claim/[token]/route.ts",
+        "security": [],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{43}$"
+            }
+          }
+        ],
+        "responses": {
+          "307": {
+            "description": "Redirect to the confirmation page; does not suppress email."
+          }
+        }
+      }
     }
   },
   "components": {

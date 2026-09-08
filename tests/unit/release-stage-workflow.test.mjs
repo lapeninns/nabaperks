@@ -34,10 +34,10 @@ function step(source, name) {
 
 test("database admission qualifies source and verifies current schema and alias before writes", () => {
   const qualification = database.indexOf(
-    "Qualify unchanged runtime against the authenticated deployed baseline"
+    "Qualify runtime against the authenticated deployed baseline"
   )
   const preLedger = database.indexOf(
-    "Require unchanged production schema before database application"
+    "Require qualified production migration prefix before database application"
   )
   const guard = database.indexOf(
     "Recheck qualification and the unchanged live alias before database writes"
@@ -55,13 +55,76 @@ test("database admission qualifies source and verifies current schema and alias 
   )
   assert.match(database, /RELEASE_RUN_ID: \$\{\{ github.run_id \}\}/)
   assert.match(database, /RELEASE_RUN_ATTEMPT: \$\{\{ github.run_attempt \}\}/)
-  assert.doesNotMatch(database, /--compatibility|QUALIFICATION_BYPASS/)
+  assert.doesNotMatch(database, /QUALIFICATION_BYPASS/)
+  assert.match(database, /qualify-runtime\.mjs[\s\S]*--compatibility/)
   assert.match(
     step(
       database,
-      "Qualify unchanged runtime against the authenticated deployed baseline"
+      "Qualify runtime against the authenticated deployed baseline"
     ),
-    /deployed-baseline\.mjs[\s\S]*stage-ledger\.mjs qualify/
+    /release-baseline\/baseline\.json[\s\S]*stage-ledger\.mjs qualify/
+  )
+})
+
+test("runtime execution has a fresh credential-free runner and cannot supply the authoritative baseline", () => {
+  const job = (name, next) =>
+    database.slice(
+      database.indexOf(`  ${name}:\n`),
+      database.indexOf(`  ${next}:\n`)
+    )
+  const baseline = job("baseline", "qualification")
+  const qualification = job("qualification", "promote")
+  const promote = job("promote", "application")
+  assert.match(qualification, /needs: baseline/)
+  assert.match(qualification, /runs-on: ubuntu-latest/)
+  assert.match(qualification, /persist-credentials: false/)
+  assert.doesNotMatch(
+    qualification,
+    /secrets\.|environment:|self-hosted|: write|VERCEL_TOKEN|SUPABASE_ACCESS_TOKEN|SUPABASE_DB_PASSWORD/
+  )
+  assert.match(
+    qualification,
+    /artifact-ids: \$\{\{ needs.baseline.outputs.artifact_id \}\}/
+  )
+  assert.match(
+    qualification,
+    /name: release-runtime-artifacts-\$\{\{ github.run_id \}\}-\$\{\{ github.run_attempt \}\}/
+  )
+  assert.match(
+    qualification,
+    /path: \$\{\{ runner.temp \}\}\/release-runtime\//
+  )
+  assert.doesNotMatch(promote, /release-runtime-artifacts|release-runtime\//)
+  assert.match(promote, /needs: \[baseline, qualification\]/)
+  assert.match(
+    promote,
+    /artifact-ids: \$\{\{ needs.baseline.outputs.artifact_id \}\}/
+  )
+  assert.match(
+    promote,
+    /artifact-ids: \$\{\{ needs.qualification.outputs.artifact_id \}\}/
+  )
+  for (const privileged of [baseline, promote]) {
+    assert.match(privileged, /environment: Production/)
+    assert.match(privileged, /persist-credentials: false/)
+    assert.doesNotMatch(
+      privileged,
+      /qualify-runtime\.mjs|build-probe\.mjs|pnpm install|pnpm build/
+    )
+  }
+  const guard = step(
+    database,
+    "Verify qualification on the fresh protected runner"
+  )
+  assert.match(guard, /cp "\$RUNNER_TEMP\/release-baseline\/baseline.json"/)
+  assert.doesNotMatch(guard, /release-qualification\/baseline|cp .*\*/)
+  assert.match(
+    guard,
+    /stage-ledger\.mjs identity[\s\S]*stage-ledger\.mjs verify/
+  )
+  assert.ok(
+    database.indexOf("Verify qualification on the fresh protected runner") <
+      database.indexOf("Link the approved production project")
   )
 })
 

@@ -315,7 +315,6 @@ export function runPopulatedUpgrade(
   const cleanEnv = {
     PATH: env.PATH,
     LANG: "C.UTF-8",
-    PGDATABASE: options.databaseUrl,
     PGCONNECT_TIMEOUT: "5",
   }
   function execute(
@@ -341,7 +340,11 @@ export function runPopulatedUpgrade(
   }
   const git = (...args) => execute("git", args).trim()
   const psql = (input) =>
-    execute("psql", ["-X", "-qAt", "-v", "ON_ERROR_STOP=1"], input).trim()
+    execute(
+      "psql",
+      ["-X", "-qAt", "-v", "ON_ERROR_STOP=1", "--dbname", options.databaseUrl],
+      input
+    ).trim()
   function migrations(revision) {
     assert.equal(
       git("rev-parse", `${revision}^{commit}`),
@@ -448,7 +451,7 @@ export function runPopulatedUpgrade(
   for (const migration of baseline) psql(transactions.get(migration.name))
   psql(fixture)
   const before = JSON.parse(psql(invariants))
-  assert.equal(before.fixtureRows, 16, "Synthetic fixture row count mismatch")
+  assert.equal(before.fixtureRows, 18, "Synthetic fixture row count mismatch")
   for (const migration of delta) psql(transactions.get(migration.name))
   const after = JSON.parse(psql(invariants))
   assert.deepEqual(
