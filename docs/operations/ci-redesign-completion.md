@@ -5,6 +5,30 @@ Owner: Lapen Inns product operations. Working evidence record started on
 merge, installation, provider configuration and operational qualification are
 different states. This record does not authorise bypassing any of them.
 
+## 8 September implementation update
+
+The approved follow-up is implemented on `codex/local-first-factory`, based on
+main `f5d782b64b24831f131704499428180b14c5fe3d`. It adds the advisory
+[owner decision loop](software-factory.md), a corrected Vercel suppression
+check, the [paginated consumption baseline](ci-cost-baseline.md), a bounded
+Chromium packing pilot and the mutation-harness environment repair.
+
+Local validation passed on Node 24.18.0: `pnpm quality:check` (712 contract
+and 1,567 unit tests), the fixture-only production build, 32 Chromium pilot
+tests and Stryker's actual `--dryRunOnly` execution. The dry run proves its
+initial test harness now starts successfully; it does not establish a mutation
+score. The Vercel readback intentionally fails its two suppression controls.
+
+This update is source implementation and local proof, not installation or
+cutover. Review, merge, the hosted pilot, protected release-path verification,
+disposable guest/network qualification, independently protected publication,
+hosted fallback trials and recovery proof remain distinct rollout gates.
+Git build suppression and local authority have not been enabled. The production
+queue was occupied by another release at implementation time.
+
+The sections below retain their original dated evidence. They must not be read
+as current provider or checkout state.
+
 ## Verified starting point
 
 At 23:57 BST on 6 September 2026, remote main was

@@ -4,6 +4,8 @@ import { readFileSync } from "node:fs"
 import { evaluateVercelGovernance } from "./vercel-governance/checks.mjs"
 import { selectVercelProjectMetadata } from "./vercel-governance/project-metadata.mjs"
 
+import { collectDeploymentObservation } from "./vercel-governance/deployment-observation.mjs"
+
 const CONTRACT_PATH = "config/vercel-governance-contract.json"
 const VERCEL_CONFIG_PATH = "vercel.json"
 
@@ -43,7 +45,14 @@ export function collectVercelGovernanceEvidence(contract) {
   const environments = {}
 
   for (const name of Object.keys(contract.environments)) {
-    const result = vercelJson(["env", "ls", name, ...scopeArgs])
+    const result = vercelJson([
+      "env",
+      "ls",
+      name,
+      "--project",
+      contract.project.name,
+      ...scopeArgs,
+    ])
     environments[name] = (result.envs ?? []).map(
       ({ key, type, target, gitBranch, configurationId }) => ({
         key,
@@ -57,6 +66,7 @@ export function collectVercelGovernanceEvidence(contract) {
 
   return {
     project: collectProjectMetadata(contract),
+    deploymentObservation: collectDeploymentObservation(contract, vercelJson),
     checks: checks.checks ?? [],
     environments,
   }
@@ -78,6 +88,7 @@ const evidencePath = process.env.VERCEL_GOVERNANCE_EVIDENCE_FILE
 const evidence = evidencePath
   ? JSON.parse(readFileSync(evidencePath, "utf8"))
   : collectVercelGovernanceEvidence(contract)
+evidence.sourceGit = vercelConfig.git ?? {}
 const findings = evaluateVercelGovernance(contract, evidence)
 
 printVercelFindings(findings)

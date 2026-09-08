@@ -153,14 +153,33 @@ export function evaluateVercelGovernance(contract, evidence) {
     )
   )
 
-  const createDeployments = project.gitProviderOptions?.createDeployments
   findings.push(
     finding(
       "vercel:git-auto-deploy",
-      createDeployments === git.createDeployments,
-      createDeployments === git.createDeployments
-        ? "Git-provider deployments are disabled for the protected build-once path"
-        : "Git-provider deployments remain enabled; disable them only after protected release credentials are live"
+      evidence.sourceGit?.deploymentEnabled === false,
+      evidence.sourceGit?.deploymentEnabled === false
+        ? "checked source explicitly disables Git deployments; live behaviour requires separate observation"
+        : "checked source lacks git.deploymentEnabled=false; createDeployments metadata does not prove build suppression"
+    )
+  )
+
+  const observation = evidence.deploymentObservation
+  const observed =
+    observation?.complete === true &&
+    Number.isFinite(Date.parse(observation.since)) &&
+    Number.isFinite(Date.parse(observation.checkedAt)) &&
+    Date.parse(observation.since) < Date.parse(observation.checkedAt) &&
+    Array.isArray(observation.deployments)
+  const gitBuilds = observed
+    ? observation.deployments.filter((entry) => entry.source === "git")
+    : []
+  findings.push(
+    finding(
+      "vercel:git-deployment-observation",
+      observed && gitBuilds.length === 0,
+      !observed
+        ? "complete timestamped deployment observation is missing"
+        : `${gitBuilds.length} Git deployments observed between ${observation.since} and ${observation.checkedAt}; this window does not prove future suppression`
     )
   )
 
