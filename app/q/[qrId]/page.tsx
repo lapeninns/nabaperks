@@ -6,6 +6,8 @@ import { redirect } from "next/navigation"
 import { AlertDiamondIcon } from "@hugeicons/core-free-icons"
 
 import { EmptyState } from "@/components/brand"
+import { CanonicalUrl } from "@/components/customer/canonical-url"
+import { CustomerCardExperience } from "@/components/customer/customer-card-experience"
 import {
   CustomerFlowShell,
   CustomerReceipt,
@@ -17,6 +19,8 @@ import {
   CARD_UNAVAILABLE_TITLE,
   OPEN_MY_CARDS_LABEL,
 } from "@/lib/copy/product-copy"
+import { deriveCustomerExperience } from "@/lib/customer/experience/derive"
+import { loadStampExperienceContext } from "@/lib/customer/experience/load-stamp"
 import {
   getExistingMembershipForCurrentUser,
   resolveQrForJoin,
@@ -101,7 +105,36 @@ export default async function PublicQrPage({
   })
 
   if (membership) {
-    redirect(`/card/${membership.id}/stamp?qr=${encodedQrId}`)
+    // A returning member gets the stamp screen from this render — the one
+    // server round trip the scan already paid for — instead of a 302 to
+    // `/card/[membershipId]/stamp` and a second cold dynamic render on venue
+    // wifi. The canonical address is applied client-side without navigating,
+    // so bookmarks, the login `next` target and `router.refresh()` all still
+    // point at the stamp route (and a refresh never re-charges the scan
+    // rate limit through this resolver).
+    const stampContext = await loadStampExperienceContext(
+      membership.id,
+      qrContext.qrId ?? qrId
+    )
+    const experience = deriveCustomerExperience({
+      entry: "stamp",
+      context: stampContext,
+    })
+
+    if (experience.kind === "reward_ready") {
+      redirect(`/reward/${experience.reward.rewardId}`)
+    }
+
+    return (
+      <>
+        <CanonicalUrl href={`/card/${membership.id}/stamp?qr=${encodedQrId}`} />
+        <CustomerCardExperience
+          experience={experience}
+          offerPasses={[]}
+          offerClaimNotice={null}
+        />
+      </>
+    )
   }
 
   redirect(joinUrl)

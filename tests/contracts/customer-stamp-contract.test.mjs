@@ -74,10 +74,10 @@ test("Given stamp context is loaded for the page When QR is missing or invalid T
     loader,
     /if \(!qr\) \{[\s\S]*qrValid: false[\s\S]*qrMissing: true/
   )
-  assert.match(
-    loader,
-    /const qrContext = await getStampQrContextForMembership\(membershipId, qr\)/
-  )
+  // The QR match is awaited alongside the other independent card reads; the
+  // contract is that it happens, and before the location policy — not that
+  // it is awaited on its own line.
+  assert.match(loader, /getStampQrContextForMembership\(membershipId, qr\)/)
   assert.match(
     loader,
     /if \(!qrContext\) \{[\s\S]*qrValid: false[\s\S]*qrMissing: false/
