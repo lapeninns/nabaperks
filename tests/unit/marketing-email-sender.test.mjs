@@ -50,3 +50,62 @@ test("marketing configuration separates invitations from OTP and falls back when
     }
   }
 })
+
+test("sender cutover replays the legacy payload with the same key without another delivery", async (t) => {
+  const keys = [
+    "RESEND_API_KEY",
+    "RESEND_FROM",
+    "RESEND_MARKETING_FROM",
+    "RESEND_REPLY_TO",
+  ]
+  const previous = Object.fromEntries(
+    keys.map((key) => [key, process.env[key]])
+  )
+  const accepted = new Map()
+  const attempts = []
+  t.mock.method(globalThis, "fetch", async (_url, init) => {
+    const key = new Headers(init.headers).get("Idempotency-Key")
+    const body = JSON.parse(init.body)
+    attempts.push({ key, body })
+    if (accepted.has(key) && accepted.get(key) !== init.body) {
+      return Response.json(
+        { name: "invalid_idempotent_request" },
+        { status: 409 }
+      )
+    }
+    accepted.set(key, init.body)
+    return Response.json({ id: "same-provider-message" })
+  })
+  const input = {
+    to: "person@example.test",
+    subject: "Digest",
+    text: "Weekly report",
+    html: "<p>Weekly report</p>",
+    category: "marketing",
+    idempotencyKey: "merchant-digest:fixture:2026-09-07",
+  }
+  try {
+    process.env.RESEND_API_KEY = "fixture-only"
+    process.env.RESEND_FROM = "Nabaperks <login@nabaperks.com>"
+    delete process.env.RESEND_MARKETING_FROM
+    delete process.env.RESEND_REPLY_TO
+    await sendTransactionalEmail(input)
+    process.env.RESEND_MARKETING_FROM = "Nabaperks <hello@mail.nabaperks.com>"
+    await sendTransactionalEmail(input)
+    assert.equal(accepted.size, 1)
+    assert.equal(attempts.length, 3)
+    assert.deepEqual(attempts[0], attempts[2])
+    assert.equal(attempts[1].key, attempts[0].key)
+    assert.notEqual(attempts[1].body.from, attempts[0].body.from)
+    const next = { ...input, idempotencyKey: "merchant-digest:new:2026-09-07" }
+    await sendTransactionalEmail(next)
+    await sendTransactionalEmail(next)
+    assert.equal(accepted.size, 2)
+    assert.equal(attempts.at(-1).body.from, process.env.RESEND_MARKETING_FROM)
+  } finally {
+    for (const key of keys) {
+      if (previous[key] === undefined) delete process.env[key]
+      else process.env[key] = previous[key]
+    }
+  }
+})

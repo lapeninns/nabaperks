@@ -10,6 +10,7 @@ import {
 } from "@/lib/notifications/email-otp-copy"
 import { resilientFetch } from "@/lib/observability/resilience"
 import { DefinitiveProviderRejectionError } from "@/lib/notifications/provider-delivery-error"
+import { sendWithSenderCompatibility } from "@/lib/notifications/resend-sender-compatibility"
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails"
 
@@ -99,30 +100,36 @@ export async function sendTransactionalEmail({
   } = readEmailOtpConfig()
   const sender = category === "marketing" ? (marketingFrom ?? from) : from
 
-  const res = await resilientFetch(
-    "resend",
-    RESEND_ENDPOINT,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
-      },
-      body: JSON.stringify(
-        buildTransactionalEmailPayload(sender, {
-          to,
-          subject,
-          text,
-          html,
-          replyTo: replyTo ?? configuredReplyTo,
-          headers,
-          ...(attachments ? { attachments } : {}),
-        })
+  const res = await sendWithSenderCompatibility({
+    sender,
+    legacySender: from,
+    idempotencyKey,
+    send: (attemptSender) =>
+      resilientFetch(
+        "resend",
+        RESEND_ENDPOINT,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+            ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+          },
+          body: JSON.stringify(
+            buildTransactionalEmailPayload(attemptSender, {
+              to,
+              subject,
+              text,
+              html,
+              replyTo: replyTo ?? configuredReplyTo,
+              headers,
+              ...(attachments ? { attachments } : {}),
+            })
+          ),
+        },
+        { beforeAttempt: beforeProviderAttempt }
       ),
-    },
-    { beforeAttempt: beforeProviderAttempt }
-  )
+  })
 
   if (!res.ok) {
     throw new DefinitiveProviderRejectionError(
