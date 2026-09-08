@@ -353,7 +353,7 @@ function deriveStamp(context: StampContext): CustomerExperience {
       if (!unlockedReward) {
         return {
           kind: "unavailable",
-          reason: "Scan the venue code again to add your stamp.",
+          reason: "Scan the venue QR again to add your stamp.",
         }
       }
       return {
@@ -368,7 +368,7 @@ function deriveStamp(context: StampContext): CustomerExperience {
       if (!unlockedReward) {
         return {
           kind: "unavailable",
-          reason: "Scan the venue code again to add your stamp.",
+          reason: "Scan the venue QR again to add your stamp.",
         }
       }
       return {
@@ -381,11 +381,18 @@ function deriveStamp(context: StampContext): CustomerExperience {
     case "stamp_confirm":
       return stampScreenExperience(kind, context)
     default:
+      // No QR, or one that does not match this card. The member's card is
+      // still theirs to see — only the stamp control is withheld, and the
+      // panel offers a way back (re-scan / cards) instead of a dead end.
       return {
-        kind: "unavailable",
-        reason: context.qrMissing
-          ? "Open this screen from the printed venue QR so the stamp is tied to the right business."
-          : "Scan the venue code again to add your stamp.",
+        kind: "stamp_unmatched",
+        problem: context.qrMissing ? "missing" : "unmatched",
+        membershipId: context.membershipId,
+        merchantName: context.merchantName,
+        cardName: context.cardName ?? "",
+        current: context.current ?? 0,
+        total: context.total ?? 0,
+        stampDates: context.stampDates ?? [],
       }
   }
 }

@@ -216,6 +216,23 @@ export type CustomerExperience =
         redeemableFrom: string | null
       }
     }
+  | {
+      /**
+       * The stamp screen was opened without a QR that matches this card —
+       * either no `qr` at all, or one that resolves to a different venue or
+       * to nothing. The member's card is still shown (it is theirs and it is
+       * the reassuring thing on screen); only the stamp control is withheld,
+       * with a recovery path in its place instead of a dead-end sentence.
+       */
+      kind: "stamp_unmatched"
+      problem: "missing" | "unmatched"
+      membershipId: string
+      merchantName: string
+      cardName: string
+      current: number
+      total: number
+      stampDates: string[]
+    }
   // --- Card (the card is always shown; reward sub-status drives the footer) ---
   | {
       kind: "card_collecting"
