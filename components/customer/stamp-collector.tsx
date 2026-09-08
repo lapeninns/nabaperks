@@ -280,6 +280,7 @@ export function StampCollector({
         current={view.displayCurrent}
         total={total}
         slamIndex={view.slamIndex}
+        pendingIndex={view.pendingIndex}
         stampDates={view.dates}
         reward={{
           state: rewardUnlocked ? "waiting" : "sealed",

@@ -7,6 +7,12 @@ import { cn } from "@/lib/utils"
 
 type StampDotProps = {
   readonly earned: boolean
+  /**
+   * A stamp request is in flight for this slot. Draws the wet outline — stamp
+   * ink, no fill — so the press answers on the card at once without ever
+   * showing an earned mark the server could still refuse.
+   */
+  readonly pending?: boolean
   readonly label: string
   readonly date?: string
   readonly slotNumber?: number
@@ -27,6 +33,7 @@ type EarnedStampContentProps = {
 
 export function StampDot({
   earned,
+  pending = false,
   label,
   date,
   slotNumber,
@@ -51,8 +58,9 @@ export function StampDot({
       >
         <span
           role="img"
-          aria-label={stampAriaLabel(earned, label, date)}
+          aria-label={stampAriaLabel(earned, label, date, pending)}
           data-earned={earned}
+          data-stamp-pending={!earned && pending ? "true" : undefined}
           data-stamp-earned={earnedStampData(earned)}
           data-compact={compactStampData(earned, compact)}
           data-slammed={slammedStampData(earned, slammed)}
@@ -61,7 +69,9 @@ export function StampDot({
             compact ? "min-h-9" : "min-h-11",
             earned
               ? "border-ink bg-stamp text-stamp-foreground shadow-sm"
-              : "border-dashed border-border bg-background text-muted-foreground",
+              : pending
+                ? "border-stamp bg-stamp/10 text-stamp motion-safe:animate-pulse"
+                : "border-dashed border-border bg-background text-muted-foreground",
             className
           )}
         >
@@ -191,9 +201,11 @@ function stampDateText(
 function stampAriaLabel(
   earned: boolean,
   label: string,
-  date: string | undefined
+  date: string | undefined,
+  pending = false
 ): string {
-  return date && earned ? `${label}, ${date}` : label
+  if (date && earned) return `${label}, ${date}`
+  return !earned && pending ? `${label}, inking` : label
 }
 
 function earnedStampData(earned: boolean): "true" | undefined {
