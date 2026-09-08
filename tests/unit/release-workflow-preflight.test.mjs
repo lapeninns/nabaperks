@@ -38,6 +38,21 @@ const automatic = {
   CALLER_PATH: ".github/workflows/production-database.yml",
 }
 
+test("release attempt input accepts GitHub's string context on initial and retried runs", () => {
+  // GitHub validates reusable inputs before running the shell preflight. Its
+  // run_attempt context is a string even though it contains a decimal number.
+  assert.match(
+    deploy,
+    /release_run_attempt:\n        required: true\n        type: string/
+  )
+  assert.match(owner, /release_run_attempt: \$\{\{ github\.run_attempt \}\}/)
+  for (const attempt of ["1", "2", "10"]) {
+    const context = { ...automatic, GITHUB_RUN_ATTEMPT: attempt }
+    assert.equal(run({ ...context, RELEASE_RUN_ATTEMPT: attempt }), 0)
+    assert.notEqual(run({ ...context, RELEASE_RUN_ATTEMPT: "stale" }), 0)
+  }
+})
+
 function run(env) {
   const dir = mkdtempSync(join(tmpdir(), "release-preflight-"))
   try {
