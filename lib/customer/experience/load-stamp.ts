@@ -129,11 +129,14 @@ export async function loadStampExperienceContext(
     }
   }
 
-  // Card progress so the stamp screen renders the live card grid; both the
-  // already-stamped and ready-to-stamp states show it.
-  const [progress, stampedToday] = await Promise.all([
+  // Card progress, the same-day check and the QR match are independent reads
+  // and go out together — the stamp screen is the first thing a member sees
+  // after a physical scan, so every sequential await here is felt. Only the
+  // location policy waits on the QR (see customer-stamp-contract).
+  const [progress, stampedToday, qrContext] = await Promise.all([
     loadCardProgress(cardState),
     isStampedToday(membershipId),
+    qr ? getStampQrContextForMembership(membershipId, qr) : null,
   ])
 
   if (stampedToday) {
@@ -161,8 +164,6 @@ export async function loadStampExperienceContext(
       location: DEFAULT_LOCATION,
     }
   }
-
-  const qrContext = await getStampQrContextForMembership(membershipId, qr)
 
   if (!qrContext) {
     return {

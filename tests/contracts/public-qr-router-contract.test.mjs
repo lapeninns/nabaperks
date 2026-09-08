@@ -48,9 +48,16 @@ test("Given a public QR route redirects customers When QR ids cross into URLs Th
     page,
     /buildCustomerJoinHref\(qrContext\.merchant\.business_slug, \{[\s\S]*qrId: qrContext\.qrId \?\? qrId,[\s\S]*referralCode: ref,[\s\S]*step: "welcome"/
   )
+  // A returning member is rendered in place (no 302); the canonical stamp
+  // address is applied client-side and must carry the encoded id.
   assert.match(
     page,
-    /redirect\(`\/card\/\$\{membership\.id\}\/stamp\?qr=\$\{encodedQrId\}`\)/
+    /<CanonicalUrl href=\{`\/card\/\$\{membership\.id\}\/stamp\?qr=\$\{encodedQrId\}`\} \/>/
+  )
+  assert.doesNotMatch(
+    page,
+    /redirect\(`\/card\/\$\{membership\.id\}\/stamp/,
+    "a member's scan must not pay for a second server render via redirect"
   )
   assert.doesNotMatch(page, /\?qr=\$\{qrContext\.qrId\}/)
   assert.doesNotMatch(page, /stamp\?qr=\$\{qrContext\.qrId\}/)
