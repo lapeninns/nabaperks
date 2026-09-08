@@ -144,3 +144,22 @@ auditable. Browser-only proof cannot substitute for DB/RLS/webhook proof.
 Report which checks ran, which service-backed checks were unavailable, and the
 exact remaining worktree state. Do not claim production/provider readiness from
 local source alone.
+
+## Delivery coordination
+
+Use `pnpm ops:factory:status` to identify current review, check and release
+blockers before claiming readiness. Follow
+`docs/operations/software-factory.md` for the bounded repair loop and owner
+updates. Continue routine fixes within the authorised task; bring a concrete
+result and recommendation when a genuine owner decision is required.
+
+## Code Review Rules
+
+- Loyalty, reward, identity, billing and consent changes must preserve
+  server-authoritative auditability. Browser storage is never mutation proof.
+- CI or release changes must bind evidence to the current candidate and the
+  expected provider identity. Missing, stale, skipped or failed required proof
+  must not permit merge or promotion; preserve hosted fallback during pilots.
+- Database changes must preserve the deployed application's compatibility until
+  its replacement is verified. Do not treat migration success as app rollout
+  or a passing smoke check as restore or customer-journey proof.

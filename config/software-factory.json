@@ -1,0 +1,17 @@
+{
+  "schema": "nabaperks.software-factory.v1",
+  "repository": "lapeninns/nabaperks",
+  "baseBranch": "main",
+  "reviewer": { "login": "chatgpt-codex-connector[bot]", "userId": 199175422 },
+  "requiredChecks": [
+    { "name": "Release gate", "appId": 15368 },
+    { "name": "Analyze (javascript-typescript)", "appId": 15368 },
+    { "name": "Review dependency changes", "appId": 15368 }
+  ],
+  "reviewWaitMinutes": 20,
+  "checkWaitMinutes": 60,
+  "maxRepairCycles": 2,
+  "releaseWorkflow": "production-database.yml",
+  "releaseWaitMinutes": 30,
+  "observationOnly": true
+}

@@ -2,7 +2,10 @@ import { spawnSync } from "node:child_process"
 import { readFileSync } from "node:fs"
 
 import { evaluateVercelGovernance } from "./vercel-governance/checks.mjs"
-import { selectVercelProjectMetadata } from "./vercel-governance/project-metadata.mjs"
+import {
+  selectVercelProjectMetadata,
+  selectDeploymentMetadata,
+} from "./vercel-governance/project-metadata.mjs"
 
 const CONTRACT_PATH = "config/vercel-governance-contract.json"
 const VERCEL_CONFIG_PATH = "vercel.json"
@@ -32,6 +35,44 @@ function collectProjectMetadata(contract) {
   return selectVercelProjectMetadata(raw)
 }
 
+function collectDeploymentObservation(contract) {
+  const checkedAt = new Date().toISOString()
+  const since = new Date(
+    Date.parse(checkedAt) - 24 * 60 * 60 * 1000
+  ).toISOString()
+  const deployments = []
+  const seen = new Set()
+  let until
+  for (let page = 0; page < 100; page++) {
+    const params = new URLSearchParams({
+      projectId: contract.project.id,
+      limit: "100",
+      since: String(Date.parse(since)),
+    })
+    if (until) params.set("until", String(until))
+    const result = vercelJson([
+      "api",
+      `/v6/deployments?${params}`,
+      "--scope",
+      contract.scope,
+      "--raw",
+    ])
+    for (const raw of result.deployments ?? []) {
+      const entry = selectDeploymentMetadata(raw)
+      if (!seen.has(entry.id)) {
+        seen.add(entry.id)
+        deployments.push(entry)
+      }
+    }
+    if (!result.pagination?.next)
+      return { checkedAt, since, complete: true, deployments }
+    if (until && result.pagination.next >= until)
+      throw new Error("Deployment pagination did not advance")
+    until = result.pagination.next
+  }
+  throw new Error("Deployment observation exceeded its pagination bound")
+}
+
 export function collectVercelGovernanceEvidence(contract) {
   const scopeArgs = ["--scope", contract.scope, "--format", "json"]
   const checks = vercelJson([
@@ -43,7 +84,14 @@ export function collectVercelGovernanceEvidence(contract) {
   const environments = {}
 
   for (const name of Object.keys(contract.environments)) {
-    const result = vercelJson(["env", "ls", name, ...scopeArgs])
+    const result = vercelJson([
+      "env",
+      "ls",
+      name,
+      "--project",
+      contract.project.name,
+      ...scopeArgs,
+    ])
     environments[name] = (result.envs ?? []).map(
       ({ key, type, target, gitBranch, configurationId }) => ({
         key,
@@ -57,6 +105,7 @@ export function collectVercelGovernanceEvidence(contract) {
 
   return {
     project: collectProjectMetadata(contract),
+    deploymentObservation: collectDeploymentObservation(contract),
     checks: checks.checks ?? [],
     environments,
   }
@@ -78,6 +127,7 @@ const evidencePath = process.env.VERCEL_GOVERNANCE_EVIDENCE_FILE
 const evidence = evidencePath
   ? JSON.parse(readFileSync(evidencePath, "utf8"))
   : collectVercelGovernanceEvidence(contract)
+evidence.sourceGit = vercelConfig.git ?? {}
 const findings = evaluateVercelGovernance(contract, evidence)
 
 printVercelFindings(findings)

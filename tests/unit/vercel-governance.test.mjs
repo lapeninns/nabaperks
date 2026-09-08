@@ -38,6 +38,13 @@ function deploymentCheck(target) {
 
 function completeEvidence() {
   return {
+    sourceGit: { deploymentEnabled: false },
+    deploymentObservation: {
+      complete: true,
+      since: "2026-09-08T00:00:00Z",
+      checkedAt: "2026-09-09T00:00:00Z",
+      deployments: [],
+    },
     project: {
       id: CONTRACT.project.id,
       name: CONTRACT.project.name,
@@ -81,7 +88,7 @@ test("complete Vercel evidence satisfies every target control", () => {
 
 test("Vercel evidence fails closed on auto deploys and non-blocking checks", () => {
   const evidence = completeEvidence()
-  evidence.project.gitProviderOptions.createDeployments = "enabled"
+  evidence.sourceGit.deploymentEnabled = true
   evidence.checks[0].blocks = "none"
 
   const failures = evaluateVercelGovernance(CONTRACT, evidence)
@@ -189,4 +196,36 @@ test("project evidence drops every environment and deployment value", () => {
   assert.doesNotMatch(JSON.stringify(selected), new RegExp(secretSentinel))
   assert.equal(selected.protectionBypassCount, 1)
   assert.deepEqual(selected.crons, CONTRACT.sourceCrons)
+})
+
+test("disabled provider metadata cannot conceal observed Git builds", () => {
+  const evidence = completeEvidence()
+  delete evidence.sourceGit
+  evidence.deploymentObservation.deployments.push({
+    id: "git-build",
+    source: "git",
+    created: Date.parse("2026-09-08T12:00:00Z"),
+  })
+  const failures = evaluateVercelGovernance(CONTRACT, evidence)
+    .filter(({ status }) => status === "FAIL")
+    .map(({ control }) => control)
+  assert.ok(failures.includes("vercel:git-auto-deploy"))
+  assert.ok(failures.includes("vercel:git-deployment-observation"))
+})
+
+test("missing or incomplete observation cannot prove suppression", () => {
+  for (const observation of [
+    undefined,
+    { complete: false },
+    { complete: true, deployments: [] },
+  ]) {
+    const evidence = completeEvidence()
+    evidence.deploymentObservation = observation
+    assert.equal(
+      evaluateVercelGovernance(CONTRACT, evidence).find(
+        ({ control }) => control === "vercel:git-deployment-observation"
+      ).status,
+      "FAIL"
+    )
+  }
 })

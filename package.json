@@ -82,7 +82,9 @@
     "env:set-resend": "node scripts/env-keys.mjs set-resend",
     "env:push-vercel": "node scripts/env-keys.mjs push-vercel",
     "env:write-local": "node scripts/env-keys.mjs write-local",
-    "test:mutation-command": "node scripts/run-mutation-tests.mjs"
+    "test:mutation-command": "node scripts/run-mutation-tests.mjs",
+    "ops:factory:status": "node scripts/ci/factory-status.mjs",
+    "ops:factory:action": "node scripts/ci/factory-action.mjs"
   },
   "engines": {
     "node": ">=22.0.0",
