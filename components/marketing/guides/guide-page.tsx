@@ -89,7 +89,7 @@ export function GuidePage({ guide }: { guide: Guide }) {
             not been signed off for, and adding it here would also move the
             mobile visual baseline for no decision anyone made. */}
         <GuideSpine sections={spineSections} className="hidden lg:block" />
-        <article className="grid gap-8 pt-6 lg:pt-0">
+        <article className="grid gap-8">
           {guide.sections.map((section) => (
             <section
               key={section.heading}
