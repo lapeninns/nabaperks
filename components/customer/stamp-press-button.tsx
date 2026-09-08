@@ -38,7 +38,10 @@ function StampDiscFace({
   return (
     <span
       className={cn(
-        "grid size-[5.5rem] place-items-center rounded-full border-2 border-ink shadow-md transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none",
+        // On a short viewport (landscape, keyboard up) the disc drops a step so
+        // the whole control still sits in the first screen; the ring SVG is
+        // viewBox-scaled and follows for free.
+        "grid size-[5.5rem] place-items-center rounded-full border-2 border-ink shadow-md transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none short:size-[4.75rem]",
         confirmed
           ? "bg-reward text-reward-foreground"
           : pending
@@ -271,7 +274,7 @@ export function StampPressButton({
         onClick={handleClick}
         data-stamp-press-button
         className={cn(
-          "focus-ring relative grid size-28 touch-none place-items-center select-none",
+          "focus-ring relative grid size-28 touch-none place-items-center select-none short:size-24",
           inactive ? "cursor-default" : "cursor-pointer"
         )}
       >

@@ -86,6 +86,16 @@ export function VenueCodeForm({
               event.target.value.replace(/\D/g, "").slice(0, VENUE_CODE_LENGTH)
             )
           }}
+          // The field sits low on the screen beneath the refusal band. When the
+          // on-screen keyboard opens, iOS shrinks the dynamic viewport and can
+          // leave the input under the keyboard; pulling it to the centre keeps
+          // the digits and the submit button visible while typing.
+          onFocus={(event) => {
+            event.currentTarget.scrollIntoView({
+              block: "center",
+              behavior: "smooth",
+            })
+          }}
           aria-describedby={hintId}
           aria-invalid={attemptsRemaining !== null ? true : undefined}
           className={`${customerInputClass} w-full text-center font-mono text-xl tracking-[0.35em] md:text-xl`}

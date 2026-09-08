@@ -40,8 +40,8 @@ function CustomerFlowShellSkeleton({
         // Mirrors CustomerFlowShell's safe-area bottom padding so the
         // skeleton→content swap never shifts (VCU-P3-06/08 parity).
         dense
-          ? "pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pt-6 sm:pb-[max(1.5rem,env(safe-area-inset-bottom))]"
-          : "pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pt-8 sm:pb-[max(2rem,env(safe-area-inset-bottom))]"
+          ? "pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pt-6 sm:pb-[max(1.5rem,env(safe-area-inset-bottom))] short:pt-3 squat:pt-2"
+          : "pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pt-8 sm:pb-[max(2rem,env(safe-area-inset-bottom))] short:pt-3 squat:pt-2"
       )}
       role="status"
       aria-label="Loading"
@@ -51,7 +51,9 @@ function CustomerFlowShellSkeleton({
           // Same token as the real CustomerFlowShell (CUS-P2-16) so the
           // skeleton→content swap never jumps width.
           "mx-auto grid w-full max-w-customer",
-          dense ? "gap-4" : "gap-5",
+          dense
+            ? "gap-4 short:gap-3 squat:gap-2"
+            : "gap-5 short:gap-3 squat:gap-2",
           className
         )}
       >

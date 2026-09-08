@@ -552,7 +552,7 @@ function StampScreenPanel({
     exp.kind === "card_stamped_today" ? exp.reward : undefined
 
   return (
-    <section className="grid gap-5">
+    <section className="grid gap-5 short:gap-4">
       <StampCollector
         membershipId={exp.membershipId}
         qrId={exp.qrId}
