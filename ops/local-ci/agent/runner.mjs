@@ -1092,8 +1092,21 @@ export function createRunner({
             if (lane.resources) {
               if (typeof prepareLaneWorkspace !== "function")
                 throw new Error("Parallel lanes require isolated workspaces")
-              laneWorkspace = await prepareLaneWorkspace(lane)
+              const preparationBudgetMs = deadlineAt - now()
+              if (preparationBudgetMs <= 0)
+                throw new Error(
+                  "Profile deadline expired before workspace preparation"
+                )
+              laneWorkspace = await prepareLaneWorkspace(lane, {
+                timeoutMs: preparationBudgetMs,
+                signal,
+              })
             }
+            if (deadlineAt <= now())
+              throw new Error(
+                "Profile deadline expired during workspace preparation"
+              )
+            signal?.throwIfAborted()
             result = await containerRuntime.withJobContainer({
               headSha,
               laneId: lane.id,
@@ -1136,6 +1149,7 @@ export function createRunner({
                 "Container cleanup was not verified; stopping admission"
               )
           } catch (error) {
+            if (deadlineAt <= now()) deadlineExpired = true
             // A lane whose container could not be started at all - a stale
             // resource that would not reconcile, a docker that is not there - is
             // a failed lane, not a failed run. Letting this escape would abort

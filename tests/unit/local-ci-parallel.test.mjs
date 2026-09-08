@@ -243,3 +243,58 @@ test("runner executes isolated containers concurrently and retains deterministic
     digestLogBundle(lanes.map((entry) => `##local-ci## ${entry.id}\n`))
   )
 })
+
+test("workspace preparation receives the remaining deadline and cannot start a late container", async () => {
+  let time = 0
+  let preparation
+  let containers = 0
+  const abort = new AbortController()
+  const runner = createRunner({
+    contract,
+    arch: "arm64",
+    now: () => time,
+    resolveRuntimeEnv: async () => ({}),
+    prepareLaneWorkspace: async (_lane, options) => {
+      preparation = options
+      time += options.timeoutMs
+      return "/run/private"
+    },
+    containerRuntime: {
+      withJobContainer: async () => {
+        containers++
+        return { exitCode: 0 }
+      },
+    },
+  })
+  const outcome = await runner.runProfile({
+    headSha: "a".repeat(40),
+    signal: abort.signal,
+    profile: {
+      profile: "pr",
+      baselineEnv: { CI: "1" },
+      baselineRuntimeEnv: [],
+      lanes: [
+        lane("one", {
+          title: "one",
+          arch: "any",
+          commands: ["true"],
+          teardownCommands: [],
+          backgroundServices: [],
+          runtimeEnv: [],
+          env: {},
+          timeoutMinutes: 10,
+          continueOnError: false,
+        }),
+      ],
+    },
+    writeEnvFile: async () => {
+      time += 1234
+      return "/env"
+    },
+  })
+  assert.equal(preparation.signal, abort.signal)
+  assert.equal(preparation.timeoutMs, Date.parse(outcome.deadlineAt) - 1234)
+  assert.equal(containers, 0)
+  assert.equal(outcome.deadlineExpired, true)
+  assert.equal(outcome.record.conclusion, "timed_out")
+})

@@ -1423,14 +1423,14 @@ async function buildDependencies({
     image: config.jobImage,
     daemonImage: config.daemonImage,
     workspaceHostPath,
-    prepareLaneWorkspace: async (lane) => {
+    prepareLaneWorkspace: async (lane, options) => {
       const { destination, script } = buildLaneWorkspaceScript({
         workspace: workspaceHostPath,
         laneId: lane.id,
         headSha,
         remoteUrl: contract.remoteUrl,
       })
-      await execHost(vmShell(config.vm, script), { signal })
+      await execHost(vmShell(config.vm, script), options)
       return destination
     },
     logger,

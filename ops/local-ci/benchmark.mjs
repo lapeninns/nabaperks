@@ -185,14 +185,14 @@ async function main() {
       image,
       daemonImage: "docker:27.5.1-dind",
       workspaceHostPath: workspace,
-      prepareLaneWorkspace: async (lane) => {
+      prepareLaneWorkspace: async (lane, options) => {
         const prepared = buildLaneWorkspaceScript({
           workspace,
           laneId: lane.id,
           headSha: sha,
           remoteUrl: contract.remoteUrl,
         })
-        await shell(prepared.script)
+        await shell(prepared.script, options)
         return prepared.destination
       },
       openLaneLog: (name) => {
