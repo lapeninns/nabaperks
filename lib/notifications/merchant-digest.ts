@@ -126,6 +126,7 @@ export async function runMerchantWeeklyDigest({
         subject: email.subject,
         text: email.text,
         html: email.html,
+        category: "marketing",
         idempotencyKey: `merchant-digest:${merchant.id}:${periodStart}`,
       })
       await completeMerchantWeeklyDigest(merchant.id, periodStart, leaseId, now)

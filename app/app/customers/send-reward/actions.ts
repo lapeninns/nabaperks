@@ -245,6 +245,7 @@ async function createRewardInviteForUnmatchedContact(
         subject: email.subject,
         text: email.text,
         html: email.html,
+        category: "marketing",
         headers: inviteUnsubscribeHeaders(appUrl, "claim", unsubscribeToken),
       })
       if (inviteId) {

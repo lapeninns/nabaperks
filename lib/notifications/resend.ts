@@ -16,6 +16,7 @@ const RESEND_ENDPOINT = "https://api.resend.com/emails"
 type EmailOtpConfig = {
   readonly apiKey: string
   readonly from: string
+  readonly marketingFrom?: string
   readonly replyTo?: string
 }
 
@@ -82,6 +83,7 @@ export async function sendTransactionalEmail({
   text,
   html,
   attachments,
+  category = "transactional",
   replyTo,
   headers,
   idempotencyKey,
@@ -89,7 +91,13 @@ export async function sendTransactionalEmail({
 }: TransactionalEmailInput & {
   beforeProviderAttempt?: () => Promise<void>
 }) {
-  const { apiKey, from, replyTo: configuredReplyTo } = readEmailOtpConfig()
+  const {
+    apiKey,
+    from,
+    marketingFrom,
+    replyTo: configuredReplyTo,
+  } = readEmailOtpConfig()
+  const sender = category === "marketing" ? (marketingFrom ?? from) : from
 
   const res = await resilientFetch(
     "resend",
@@ -102,7 +110,7 @@ export async function sendTransactionalEmail({
         ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
       },
       body: JSON.stringify(
-        buildTransactionalEmailPayload(from, {
+        buildTransactionalEmailPayload(sender, {
           to,
           subject,
           text,
@@ -132,5 +140,6 @@ export function readEmailOtpConfig(): EmailOtpConfig {
   }
 
   const replyTo = process.env.RESEND_REPLY_TO?.trim() || undefined
-  return { apiKey, from, replyTo }
+  const marketingFrom = process.env.RESEND_MARKETING_FROM?.trim() || undefined
+  return { apiKey, from, replyTo, marketingFrom }
 }

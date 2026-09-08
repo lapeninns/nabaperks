@@ -233,7 +233,7 @@ async function sendOne(
         "Idempotency-Key": idempotencyKey,
       },
       body: JSON.stringify(
-        buildTransactionalEmailPayload(config.from, {
+        buildTransactionalEmailPayload(config.marketingFrom ?? config.from, {
           to,
           ...email,
           replyTo: config.replyTo,

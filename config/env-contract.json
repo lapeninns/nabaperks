@@ -129,6 +129,13 @@
     "optional": true
   },
   {
+    "name": "RESEND_MARKETING_FROM",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Optional verified marketing sender for invites and merchant digests, e.g. Nabaperks <hello@mail.nabaperks.com>. Falls back to RESEND_FROM; never used for OTP.",
+    "optional": true
+  },
+  {
     "name": "WEB_PUSH_VAPID_PUBLIC_KEY",
     "visibility": "server",
     "kind": "string",
