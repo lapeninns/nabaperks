@@ -279,6 +279,9 @@ applies every baseline migration, inserts 18 synthetic records, then applies
 the candidate suffix. Baseline, candidate and rollback application domain
 functions execute real billing, loyalty and webhook RPCs on the upgraded
 schema, with their mutations rolled back and populated invariants rechecked.
+The producer currently requires identical numeric Node pins in baseline and
+candidate and a matching executing Node version. A changed Node pin fails
+closed until separate per-revision runtime provisioning is implemented.
 The producer binds successful execution to the current release identity; no
 workflow input accepts caller-supplied compatibility evidence. Selected domain
 RPC proof does not replace the separate browser and signed-webhook staging job.

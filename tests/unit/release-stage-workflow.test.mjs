@@ -86,6 +86,15 @@ test("runtime execution has a fresh credential-free runner and cannot supply the
     qualification,
     /artifact-ids: \$\{\{ needs.baseline.outputs.artifact_id \}\}/
   )
+  assert.match(
+    qualification,
+    /name: release-runtime-artifacts-\$\{\{ github.run_id \}\}-\$\{\{ github.run_attempt \}\}/
+  )
+  assert.match(
+    qualification,
+    /path: \$\{\{ runner.temp \}\}\/release-runtime\//
+  )
+  assert.doesNotMatch(promote, /release-runtime-artifacts|release-runtime\//)
   assert.match(promote, /needs: \[baseline, qualification\]/)
   assert.match(
     promote,

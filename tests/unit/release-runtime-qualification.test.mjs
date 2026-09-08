@@ -1,7 +1,10 @@
 import test from "node:test"
 import assert from "node:assert/strict"
 import { verifyMigrationPrefix } from "../../scripts/release/pre-apply-migrations.mjs"
-import { bindExecution } from "../../scripts/release/qualify-runtime.mjs"
+import {
+  assertSharedRuntime,
+  bindExecution,
+} from "../../scripts/release/qualify-runtime.mjs"
 
 const migration = (version, contents = "select 1;") => ({
   name: `${version}_proof.sql`,
@@ -89,4 +92,26 @@ test("release envelope refuses missing, failed or mismatched execution proof", (
     { checks: execution.checks.map((x) => ({ ...x, result: "failure" })) },
   ])
     assert.throws(() => bindExecution({ ...execution, ...mutation }, identity))
+})
+
+test("runtime qualification rejects changed pins and the wrong executable version", () => {
+  for (const pin of ["24", "24.18", "24.18.0", "v24.18.0\n"]) {
+    assert.doesNotThrow(() =>
+      assertSharedRuntime({
+        baselinePin: pin,
+        candidatePin: pin,
+        runtimeVersion: "v24.18.0",
+      })
+    )
+  }
+  for (const [baselinePin, candidatePin, runtimeVersion] of [
+    ["22", "24", "v24.18.0"],
+    ["24.17.0", "24.18.0", "v24.18.0"],
+    ["24", "24", "v22.18.0"],
+    ["24.18.0", "24.18.0", "v24.17.0"],
+    ["lts/*", "lts/*", "v24.18.0"],
+  ])
+    assert.throws(() =>
+      assertSharedRuntime({ baselinePin, candidatePin, runtimeVersion })
+    )
 })

@@ -38,6 +38,34 @@ export function bindExecution(execution, identity) {
   })
 }
 
+// Until per-revision runtime provisioning is supported, refuse runtime
+// transitions rather than certifying rollback with the candidate runtime.
+export function assertSharedRuntime({
+  baselinePin,
+  candidatePin,
+  runtimeVersion,
+}) {
+  const normalize = (pin) => pin.trim().replace(/^v/, "")
+  const baseline = normalize(baselinePin)
+  const candidate = normalize(candidatePin)
+  assert.match(
+    baseline,
+    /^\d+(?:\.\d+){0,2}$/,
+    "Baseline Node pin must be numeric"
+  )
+  assert.equal(
+    candidate,
+    baseline,
+    "Different baseline/candidate Node pins require separate runtime qualification"
+  )
+  const actual = normalize(runtimeVersion).split(".")
+  assert.equal(actual.length, 3, "Actual Node version must be complete")
+  assert.ok(
+    baseline.split(".").every((part, index) => part === actual[index]),
+    "Qualification runtime does not match the shared Node pin"
+  )
+}
+
 export function qualifyRuntime({
   repository,
   baselineRevision,
@@ -82,6 +110,14 @@ export function qualifyRuntime({
   ])
   let platform
   try {
+    assertSharedRuntime({
+      baselinePin: execute("git", [
+        "show",
+        `${baselineRevision}:.nvmrc`,
+      ]).toString(),
+      candidatePin: execute("git", ["show", `${revision}:.nvmrc`]).toString(),
+      runtimeVersion: process.version,
+    })
     const runtimePath = realpathSync(process.execPath)
     const runtimeDigest = hash(readFileSync(runtimePath))
     const probes = [
