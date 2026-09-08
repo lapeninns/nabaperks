@@ -10,12 +10,14 @@ import {
 } from "@/lib/notifications/email-otp-copy"
 import { resilientFetch } from "@/lib/observability/resilience"
 import { DefinitiveProviderRejectionError } from "@/lib/notifications/provider-delivery-error"
+import { sendWithSenderCompatibility } from "@/lib/notifications/resend-sender-compatibility"
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails"
 
 type EmailOtpConfig = {
   readonly apiKey: string
   readonly from: string
+  readonly marketingFrom?: string
   readonly replyTo?: string
 }
 
@@ -82,6 +84,7 @@ export async function sendTransactionalEmail({
   text,
   html,
   attachments,
+  category = "transactional",
   replyTo,
   headers,
   idempotencyKey,
@@ -89,32 +92,44 @@ export async function sendTransactionalEmail({
 }: TransactionalEmailInput & {
   beforeProviderAttempt?: () => Promise<void>
 }) {
-  const { apiKey, from, replyTo: configuredReplyTo } = readEmailOtpConfig()
+  const {
+    apiKey,
+    from,
+    marketingFrom,
+    replyTo: configuredReplyTo,
+  } = readEmailOtpConfig()
+  const sender = category === "marketing" ? (marketingFrom ?? from) : from
 
-  const res = await resilientFetch(
-    "resend",
-    RESEND_ENDPOINT,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
-      },
-      body: JSON.stringify(
-        buildTransactionalEmailPayload(from, {
-          to,
-          subject,
-          text,
-          html,
-          replyTo: replyTo ?? configuredReplyTo,
-          headers,
-          ...(attachments ? { attachments } : {}),
-        })
+  const res = await sendWithSenderCompatibility({
+    sender,
+    legacySender: from,
+    idempotencyKey,
+    send: (attemptSender) =>
+      resilientFetch(
+        "resend",
+        RESEND_ENDPOINT,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+            ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+          },
+          body: JSON.stringify(
+            buildTransactionalEmailPayload(attemptSender, {
+              to,
+              subject,
+              text,
+              html,
+              replyTo: replyTo ?? configuredReplyTo,
+              headers,
+              ...(attachments ? { attachments } : {}),
+            })
+          ),
+        },
+        { beforeAttempt: beforeProviderAttempt }
       ),
-    },
-    { beforeAttempt: beforeProviderAttempt }
-  )
+  })
 
   if (!res.ok) {
     throw new DefinitiveProviderRejectionError(
@@ -132,5 +147,6 @@ export function readEmailOtpConfig(): EmailOtpConfig {
   }
 
   const replyTo = process.env.RESEND_REPLY_TO?.trim() || undefined
-  return { apiKey, from, replyTo }
+  const marketingFrom = process.env.RESEND_MARKETING_FROM?.trim() || undefined
+  return { apiKey, from, replyTo, marketingFrom }
 }

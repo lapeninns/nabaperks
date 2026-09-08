@@ -8,6 +8,7 @@ export type TransactionalEmailInput = {
   readonly subject: string
   readonly text: string
   readonly html: string
+  readonly category?: "transactional" | "marketing"
   readonly replyTo?: string
   readonly headers?: Readonly<Record<string, string>>
   readonly attachments?: readonly TransactionalEmailAttachment[]

@@ -46,7 +46,7 @@
   ],
   "environments": {
     "preview": {
-      "optionalKeys": ["RESEND_REPLY_TO"],
+      "optionalKeys": ["RESEND_REPLY_TO", "RESEND_MARKETING_FROM"],
       "requiredKeys": [
         "CUSTOMER_EMAIL_ENCRYPTION_KEY",
         "CUSTOMER_EMAIL_HMAC_SECRET",
@@ -81,7 +81,7 @@
       ]
     },
     "staging": {
-      "optionalKeys": ["RESEND_REPLY_TO"],
+      "optionalKeys": ["RESEND_REPLY_TO", "RESEND_MARKETING_FROM"],
       "requiredKeys": [
         "CUSTOMER_EMAIL_ENCRYPTION_KEY",
         "CUSTOMER_EMAIL_HMAC_SECRET",
@@ -117,7 +117,7 @@
       ]
     },
     "production": {
-      "optionalKeys": ["RESEND_REPLY_TO"],
+      "optionalKeys": ["RESEND_REPLY_TO", "RESEND_MARKETING_FROM"],
       "requiredKeys": [
         "CRON_SECRET",
         "CUSTOMER_EMAIL_ENCRYPTION_KEY",

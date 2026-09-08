@@ -187,9 +187,8 @@ _(append: date · change · inbox placement observed · mail-tester score)_
   rejection of claim tokens, and existing reward unsubscribe purpose binding.
   Local production build passes with synthetic configuration; the first attempt
   using only `.env.example` failed because required fixture values were absent.
-- **Still pending:** protected PR review/CI and deployment, Google Postmaster DNS
-  verification (domain is added but unverified), reputation data after seven
-  days, raw Gmail DKIM coverage of both unsubscribe headers, Gmail native
+- **Still pending:** protected PR review/CI and deployment, marketing-subdomain Postmaster
+  verification, reputation data after seven days, raw Gmail DKIM coverage of both unsubscribe headers, Gmail native
   unsubscribe plus production suppression readback, Gmail/Outlook/Yahoo inbox
   placement, and a mail-tester score. No inbox-placement or mail-tester result
   is claimed. Google may withhold reputation data at low sending volumes.
@@ -197,3 +196,23 @@ _(append: date · change · inbox placement observed · mail-tester score)_
 Protocol references: [RFC 8058](https://www.rfc-editor.org/rfc/rfc8058),
 [Resend email fields](https://resend.com/docs/api-reference/emails/send-email),
 [Google Postmaster setup](https://support.google.com/mail/answer/9981691).
+
+### Marketing sender follow-up (PR 2)
+
+Resend verified `mail.nabaperks.com` and all issued records before this change
+was prepared. Loyalty and reward invitations plus weekly merchant digests now
+select `RESEND_MARKETING_FROM` when set; blank or absent configuration falls
+back to `RESEND_FROM`. OTP and other transactional messages continue using
+`RESEND_FROM`. Vercel production/preview values are configured, but this behaviour
+is not live until both PRs pass the protected review and deployment gates.
+
+Postmaster readback on 8 September confirms `nabaperks.com` verified. Its
+compliance dashboard is dated 14 July and still reports DMARC needs work; this
+is stale evidence, not verification of today's DNS. The dashboard also reports
+insufficient Gmail traffic for deliverability analysis. `mail.nabaperks.com` is
+added, with ownership verification awaiting the operator because the browser
+Verify domain action does not open its verification window.
+
+Both implementation worktrees passed `pnpm quality:check`. PR 1 passed 715
+contract and 1587 unit tests; the marketing follow-up passed 716 contract and
+1588 unit tests. Production inbox placement and mail-tester remain unmeasured.
