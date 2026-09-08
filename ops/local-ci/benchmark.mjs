@@ -18,7 +18,11 @@ import { loadProfile } from "./core/profiles.mjs"
 import { parseImageCachePin } from "./core/image-cache.mjs"
 import { createContainerRuntime } from "./agent/container.mjs"
 import { acquireControllerLease } from "./agent/lease.mjs"
-import { createRunner, createRuntimeEnvResolver } from "./agent/runner.mjs"
+import {
+  createRunner,
+  createRuntimeEnvResolver,
+  laneBrowserReports,
+} from "./agent/runner.mjs"
 import {
   assertVmIsolation,
   parseLimaInstances,
@@ -75,6 +79,43 @@ export function resourceSamplingSummary(samples, laneIds) {
     errors,
     missingLanes,
     valid: samples.length > 0 && errors === 0 && missingLanes.length === 0,
+  }
+}
+
+export function collectBrowserEvidence({ lanes, names, read }) {
+  const expected = lanes.flatMap(laneBrowserReports).map((part) => part.stored)
+  const received = names.filter(
+    (name) => name.includes(".local-ci-") && name.endsWith(".json")
+  )
+  const missing = expected.filter((name) => !received.includes(name))
+  const unexpected = received.filter((name) => !expected.includes(name))
+  const errors = []
+  const tests = expected
+    .filter((name) => received.includes(name))
+    .flatMap((name) => {
+      try {
+        return inventoryFromPlaywright(JSON.parse(read(name)))
+      } catch (error) {
+        errors.push({ name, message: error.message })
+        return []
+      }
+    })
+  return {
+    tests,
+    reportEvidence: {
+      expected: expected.length,
+      received: received.length,
+      missing,
+      unexpected,
+      errors,
+      valid:
+        expected.length > 0 &&
+        new Set(expected).size === expected.length &&
+        missing.length === 0 &&
+        unexpected.length === 0 &&
+        errors.length === 0 &&
+        tests.length > 0,
+    },
   }
 }
 
@@ -243,13 +284,11 @@ async function main() {
         .filter((lane) => lane.status !== "skipped")
         .map((lane) => lane.laneId)
     )
-    const tests = readdirSync(directory)
-      .filter((name) => name.includes(".local-ci-") && name.endsWith(".json"))
-      .flatMap((name) =>
-        inventoryFromPlaywright(
-          JSON.parse(readFileSync(join(directory, name), "utf8"))
-        )
-      )
+    const { tests, reportEvidence } = collectBrowserEvidence({
+      lanes: profile.lanes,
+      names: readdirSync(directory),
+      read: (name) => readFileSync(join(directory, name), "utf8"),
+    })
     const result = {
       sha,
       mode,
@@ -259,6 +298,7 @@ async function main() {
       durationMs: Date.now() - startedAt,
       ...outcome,
       resourceEvidence,
+      reportEvidence,
       tests,
     }
     writeFileSync(
@@ -280,6 +320,7 @@ async function main() {
     if (
       outcome.record.conclusion !== "success" ||
       !resourceEvidence.valid ||
+      !reportEvidence.valid ||
       tests.some(
         (test) =>
           test.flaky ||

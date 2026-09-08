@@ -62,6 +62,7 @@ import { isCommitSha } from "../core/queue.mjs"
 import { parseImageCachePin } from "../core/image-cache.mjs"
 import { renderCheckSummary } from "../core/summary.mjs"
 import { createContainerRuntime } from "./container.mjs"
+import { reconcileAgentResources } from "./recovery.mjs"
 import { createGitHubClient } from "./github.mjs"
 import { createGitHubHeartbeat } from "./github-heartbeat.mjs"
 import { createHeartbeat } from "./heartbeat.mjs"
@@ -928,34 +929,24 @@ async function assertVmIsolationLive({ config, contract }) {
     probe: parseVmProbe(probed),
     contract,
   })
-  const containers = await execHost(
-    [
-      "limactl",
-      "shell",
-      vm,
-      "--",
-      "docker",
-      "ps",
-      "--all",
-      "--format",
-      "{{.Names}}",
-    ],
-    { timeoutMs: 30_000 }
-  )
-  if (
-    containers
-      .split(/\r?\n/)
-      .some(
-        (name) =>
-          name.startsWith("nabaperks-ci-job-") ||
-          name.startsWith("nabaperks-ci-dind-")
-      )
-  )
-    throw new CliError(
-      "ORPHANED_CI_RESOURCE",
-      "Existing CI containers require reconciliation before admitting another run"
-    )
   return isolation
+}
+
+export async function reconcileOwnedResources({ config, contract }) {
+  const profiles = Object.fromEntries(
+    Object.keys(contract.profiles).map((name) => [
+      name,
+      loadProfile(name, contract, (path) =>
+        readFileSync(join(REPO_ROOT, path), "utf8")
+      ).lanes.map((lane) => lane.id),
+    ])
+  )
+  return reconcileAgentResources({
+    vm: config.vm,
+    stateRoot: config.stateRoot,
+    profiles,
+    exec: execHost,
+  })
 }
 
 /** Build a self-contained checkout: no Git paths or object hardlinks escape it. */
@@ -972,7 +963,7 @@ export function buildWorkspacePreparationScript({ root, remoteUrl, headSha }) {
     "git fetch --prune --tags origin '+refs/heads/*:refs/remotes/origin/*'",
     `git fetch origin ${shQuote(headSha)}`,
     `git worktree remove --force ${shQuote(workspace)} 2>/dev/null || true`,
-    `rm -rf ${shQuote(workspace)}`,
+    `rm -rf ${shQuote(workspace)} ${shQuote(`${workspace}-lanes`)}`,
     `git clone --no-hardlinks --no-checkout ${shQuote(mirror)} ${shQuote(workspace)}`,
     `git -C ${shQuote(workspace)} remote set-url origin ${shQuote(remoteUrl)}`,
     `git -C ${shQuote(workspace)} fetch --no-tags ${shQuote(mirror)} ${shQuote(headSha)}`,
@@ -1582,6 +1573,7 @@ export async function dispatchRun(
   { contract, config, logger, evidence, profile, ref, headSha, signal = null },
   dependencies = {
     assertVmIsolationLive,
+    reconcileOwnedResources,
     buildDependencies,
     makeEnvFileWriter,
     releaseWorkspace,
@@ -1589,6 +1581,8 @@ export async function dispatchRun(
 ) {
   signal?.throwIfAborted()
   await dependencies.assertVmIsolationLive({ config, contract })
+  signal?.throwIfAborted()
+  await dependencies.reconcileOwnedResources?.({ config, contract })
   signal?.throwIfAborted()
   logger.info(
     `instance ${config.vm} re-asserted: no host mounts, no forwarded agent, no host home, no Rosetta`

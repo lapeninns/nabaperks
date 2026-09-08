@@ -3,7 +3,10 @@ import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { test } from "node:test"
-import { acquireControllerLease } from "../../ops/local-ci/agent/lease.mjs"
+import {
+  acquireControllerLease,
+  assertControllerLeaseOwned,
+} from "../../ops/local-ci/agent/lease.mjs"
 function fixture(t) {
   const directory = mkdtempSync(join(tmpdir(), "ci-lease-"))
   t.after(() => rmSync(directory, { recursive: true, force: true }))
@@ -64,4 +67,24 @@ test("unverifiable owner, interrupted acquisition and recovery guard fail closed
     () => acquireControllerLease({ path, pid: 12, probe: () => "start" }),
     { code: "EEXIST" }
   )
+})
+
+test("resource recovery requires the current PID and process start identity", (t) => {
+  const path = fixture(t)
+  const lease = acquireControllerLease({
+    path,
+    pid: 11,
+    probe: () => "original",
+  })
+  assertControllerLeaseOwned({ path, pid: 11, probe: () => "original" })
+  assert.throws(
+    () =>
+      assertControllerLeaseOwned({ path, pid: 12, probe: () => "original" }),
+    /own the controller lease/
+  )
+  assert.throws(
+    () => assertControllerLeaseOwned({ path, pid: 11, probe: () => "reused" }),
+    /own the controller lease/
+  )
+  lease.release()
 })

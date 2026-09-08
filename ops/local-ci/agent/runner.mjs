@@ -369,7 +369,7 @@ function backgroundServiceBlock(service, index) {
     `echo ${shellSingleQuote(`${LOG_MARKER} starting background service ${service.id}`)}`,
     `( ${service.command} ) > ${shellSingleQuote(logFile)} 2>&1 &`,
     `${SHELL_NS}_pids="$${SHELL_NS}_pids $!"`,
-    `sleep ${service.startAfter ?? 1}`,
+    "sleep 1",
     `${readyVar}=0`,
     `for ${SHELL_NS}_attempt in $(seq 1 ${attempts}); do`,
     `  if curl -fsS -o /dev/null -X ${method} ${shellSingleQuote(readiness.url)}; then`,
@@ -407,7 +407,7 @@ function snapshotGuardBlock(contract) {
  *
  * Structure, in order: strict mode, an EXIT trap that stops background
  * services and runs the lane's teardown commands whatever happened, the
- * background services with their readiness polls, the lane's commands, the
+ * lane commands with background services at their declared command boundary, the
  * per-lane runtime-env resolution after the first command, and finally the
  * contract's snapshot-mutation check.
  *
@@ -457,9 +457,20 @@ export function buildLaneScript(lane, contract, { workspacePath = null } = {}) {
     `echo ${shellSingleQuote(`${LOG_MARKER} lane ${lane.id} starting`)}`
   )
 
-  for (const [index, service] of services.entries()) {
-    lines.push(...backgroundServiceBlock(service, index))
+  for (const service of services) {
+    const after = service.startAfter ?? 0
+    if (!Number.isInteger(after) || after < 0 || after > commands.length)
+      fail(
+        "INVALID_BACKGROUND_SERVICE_ORDER",
+        "Background service startAfter must name a command boundary"
+      )
   }
+  const startServicesAfter = (completed) => {
+    for (const [index, service] of services.entries())
+      if ((service.startAfter ?? 0) === completed)
+        lines.push(...backgroundServiceBlock(service, index))
+  }
+  startServicesAfter(0)
 
   for (const [index, command] of commands.entries()) {
     lines.push(
@@ -475,6 +486,7 @@ export function buildLaneScript(lane, contract, { workspacePath = null } = {}) {
         lines.push(...runtimeEnvBlock(source))
       }
     }
+    startServicesAfter(index + 1)
   }
 
   lines.push(...snapshotGuardBlock(contract))
@@ -513,6 +525,25 @@ export function laneServiceLogs(lane) {
       return Object.freeze({ serviceId: service.id, source, stored })
     })
   )
+}
+
+export function laneBrowserReports(lane) {
+  return lane.env?.LOCAL_CI_BROWSER_JSON === "1"
+    ? lane.commands
+        .filter((command) =>
+          command.includes("node scripts/ci/browser-workload.mjs ")
+        )
+        .map((command) => {
+          const source = browserReportName(
+            command.replaceAll('"', "").split(/\s+/)
+          )
+          return {
+            source,
+            stored: `${lane.id}.${source}`,
+            serviceId: "browser report",
+          }
+        })
+    : []
 }
 
 /**
@@ -928,22 +959,7 @@ export function createRunner({
   async function captureLaneLogs(lane, laneOutput, laneWorkspace) {
     const logs = [{ name: `${lane.id}.log`, text: laneOutput }]
     const missing = []
-    const browserReports =
-      lane.env?.LOCAL_CI_BROWSER_JSON === "1"
-        ? lane.commands
-            .filter((command) =>
-              command.includes("node scripts/ci/browser-workload.mjs ")
-            )
-            .map((command) => {
-              const flags = command.replaceAll('"', "").split(/\s+/)
-              const source = browserReportName(flags)
-              return {
-                source,
-                stored: `${lane.id}.${source}`,
-                serviceId: "browser report",
-              }
-            })
-        : []
+    const browserReports = laneBrowserReports(lane)
     for (const part of [...laneServiceLogs(lane), ...browserReports]) {
       if (typeof containerRuntime.readWorkspaceLog !== "function") {
         missing.push({
