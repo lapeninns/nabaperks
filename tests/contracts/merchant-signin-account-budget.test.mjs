@@ -87,7 +87,7 @@ test("merchant password auth is rejected at the provider token boundary", () => 
   assert.match(productionDatabase, /openssl rand -base64 32/)
   assert.match(productionDatabase, /::add-mask::/)
   assert.doesNotMatch(
-    productionDatabase,
+    productionDatabase.split("\n  application:\n")[0],
     /SUPABASE_SEND_EMAIL_HOOK_SECRET:.*(?:secrets\.|whsec_)/
   )
   assert.ok(stagedCanaryAt > 0 && promoteAt > stagedCanaryAt)

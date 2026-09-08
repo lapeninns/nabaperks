@@ -32,7 +32,9 @@ const automatic = {
   SOURCE_CONCLUSION: "success",
   SOURCE_BRANCH: "main",
   SOURCE_EVENT: "push",
-  SOURCE_WORKFLOW: "CI",
+  SOURCE_WORKFLOW: `CI head:${sha} base:${sha}`,
+  SOURCE_RUN_ID: "456",
+  SOURCE_PATH: ".github/workflows/ci.yml",
   SOURCE_REPOSITORY: "lapeninns/nabaperks",
   SOURCE_REVISION: sha,
   CALLER_PATH: ".github/workflows/production-database.yml",
@@ -58,7 +60,7 @@ function run(env) {
   try {
     writeFileSync(
       join(dir, "gh"),
-      '#!/bin/sh\nprintf "%s\\n" "$CALLER_PATH"\n',
+      '#!/bin/sh\ncase "$2" in\n */456) test "$SOURCE_LOOKUP_FAIL" != 1 || exit 1; printf "%s\\n" "$SOURCE_PATH" ;;\n *) printf "%s\\n" "$CALLER_PATH" ;;\nesac\n',
       { mode: 0o700 }
     )
     return spawnSync(
@@ -86,7 +88,9 @@ test("real release preflight accepts only bound automatic CI source", () => {
     SOURCE_CONCLUSION: "failure",
     SOURCE_BRANCH: "feature",
     SOURCE_EVENT: "pull_request",
-    SOURCE_WORKFLOW: "Unrelated",
+    SOURCE_RUN_ID: "",
+    SOURCE_PATH: ".github/workflows/unrelated.yml",
+    SOURCE_LOOKUP_FAIL: "1",
     SOURCE_REPOSITORY: "foreign/repository",
     SOURCE_REVISION: "b".repeat(40),
     GITHUB_EVENT_NAME: "workflow_call",
