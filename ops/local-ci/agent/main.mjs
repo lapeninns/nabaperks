@@ -922,12 +922,40 @@ async function assertVmIsolationLive({ config, contract }) {
       `could not re-assert the isolation of instance ${vm} (${error.message}); refusing to dispatch`
     )
   }
-  return assertVmIsolation({
+  const isolation = assertVmIsolation({
     vm,
     instances: parseLimaInstances(listed),
     probe: parseVmProbe(probed),
     contract,
   })
+  const containers = await execHost(
+    [
+      "limactl",
+      "shell",
+      vm,
+      "--",
+      "docker",
+      "ps",
+      "--all",
+      "--format",
+      "{{.Names}}",
+    ],
+    { timeoutMs: 30_000 }
+  )
+  if (
+    containers
+      .split(/\r?\n/)
+      .some(
+        (name) =>
+          name.startsWith("nabaperks-ci-job-") ||
+          name.startsWith("nabaperks-ci-dind-")
+      )
+  )
+    throw new CliError(
+      "ORPHANED_CI_RESOURCE",
+      "Existing CI containers require reconciliation before admitting another run"
+    )
+  return isolation
 }
 
 /** Build a self-contained checkout: no Git paths or object hardlinks escape it. */
@@ -995,14 +1023,15 @@ export function buildLaneWorkspaceScript({
 async function releaseWorkspace({ config, headSha }) {
   const root = config.vmWorkspaceRoot
   const script = [
+    "set -eu",
+    `remaining=$(docker ps --all --filter ${shQuote(`label=com.nabaperks.local-ci.head-sha=${headSha}`)} --format '{{.Names}}')`,
+    'if [ -n "$remaining" ]; then echo "CI resources remain; workspace quarantined" >&2; exit 1; fi',
     `cd ${shQuote(`${root}/repo`)} 2>/dev/null || exit 0`,
     `git worktree remove --force ${shQuote(`${root}/runs/${headSha}`)} 2>/dev/null || true`,
     `rm -rf ${shQuote(`${root}/runs/${headSha}`)}`,
     `rm -rf ${shQuote(`${root}/runs/${headSha}-lanes`)}`,
   ].join("\n")
-  await execHost(vmShell(config.vm, script), { timeoutMs: 20_000 }).catch(
-    () => {}
-  )
+  await execHost(vmShell(config.vm, script), { timeoutMs: 20_000 })
 }
 
 /* --------------------------------------------------------------- evidence */
@@ -1588,8 +1617,11 @@ export async function dispatchRun(
     )
     return outcome
   } finally {
-    await dependencies.releaseWorkspace({ config, headSha })
-    run.close()
+    try {
+      await dependencies.releaseWorkspace({ config, headSha })
+    } finally {
+      run.close()
+    }
   }
 }
 

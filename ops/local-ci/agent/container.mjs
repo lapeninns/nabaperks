@@ -1130,6 +1130,34 @@ export function createContainerRuntime({
           buildNetworkRemoveArgv({ name: net, vm, docker, limactl }),
           "remove job network"
         )
+        // A non-throwing Docker command can still have failed. Verify absence
+        // through successful daemon reads before releasing this lane's budget.
+        for (const [args, names] of [
+          [
+            ["ps", "--all", "--format", "{{.Names}}"],
+            [jobName, daemonName],
+          ],
+          [["network", "ls", "--format", "{{.Name}}"], [net]],
+        ]) {
+          try {
+            const observed = await exec(
+              [...dockerPrefix({ vm, docker, limactl }), ...args],
+              { timeoutMs: 15_000 }
+            )
+            const remaining = observed.output.trim().split(/\r?\n/)
+            if (
+              observed.exitCode !== 0 ||
+              observed.timedOut ||
+              observed.cancelled ||
+              names.some((name) => remaining.includes(name))
+            )
+              teardownErrors.push(
+                "owned resource absence could not be verified"
+              )
+          } catch {
+            teardownErrors.push("owned resource absence could not be verified")
+          }
+        }
         if (teardownErrors.length > 0) {
           log(
             "warn",

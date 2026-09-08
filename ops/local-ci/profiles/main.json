@@ -234,7 +234,8 @@
         "PLAYWRIGHT_REGULAR_CHROMIUM": "1",
         "CUSTOMER_DEV_OTP_CODE": "424242",
         "PLAYWRIGHT_BASE_URL": "http://127.0.0.1:3146",
-        "PLAYWRIGHT_NEXT_DIST_DIR": ".next-e2e-e2e-chromium"
+        "PLAYWRIGHT_NEXT_DIST_DIR": ".next-e2e-e2e-chromium",
+        "LOCAL_CI_BROWSER_JSON": "1"
       },
       "systemDependencies": [
         {
@@ -291,7 +292,8 @@
         "PLAYWRIGHT_REGULAR_CHROMIUM": "1",
         "CUSTOMER_DEV_OTP_CODE": "424242",
         "PLAYWRIGHT_BASE_URL": "http://127.0.0.1:3148",
-        "PLAYWRIGHT_NEXT_DIST_DIR": ".next-e2e-e2e-mobile-safari"
+        "PLAYWRIGHT_NEXT_DIST_DIR": ".next-e2e-e2e-mobile-safari",
+        "LOCAL_CI_BROWSER_JSON": "1"
       },
       "systemDependencies": [
         {
@@ -348,7 +350,8 @@
         "PLAYWRIGHT_REGULAR_CHROMIUM": "1",
         "CUSTOMER_DEV_OTP_CODE": "424242",
         "PLAYWRIGHT_BASE_URL": "http://127.0.0.1:3149",
-        "PLAYWRIGHT_NEXT_DIST_DIR": ".next-e2e-e2e-desktop-firefox"
+        "PLAYWRIGHT_NEXT_DIST_DIR": ".next-e2e-e2e-desktop-firefox",
+        "LOCAL_CI_BROWSER_JSON": "1"
       },
       "systemDependencies": [
         {
@@ -405,7 +408,8 @@
         "PLAYWRIGHT_REGULAR_CHROMIUM": "1",
         "CUSTOMER_DEV_OTP_CODE": "424242",
         "PLAYWRIGHT_BASE_URL": "http://127.0.0.1:3150",
-        "PLAYWRIGHT_NEXT_DIST_DIR": ".next-e2e-e2e-desktop-safari"
+        "PLAYWRIGHT_NEXT_DIST_DIR": ".next-e2e-e2e-desktop-safari",
+        "LOCAL_CI_BROWSER_JSON": "1"
       },
       "systemDependencies": [
         {
@@ -462,7 +466,8 @@
         "PLAYWRIGHT_REGULAR_CHROMIUM": "1",
         "CUSTOMER_DEV_OTP_CODE": "424242",
         "PLAYWRIGHT_BASE_URL": "http://127.0.0.1:3151",
-        "PLAYWRIGHT_NEXT_DIST_DIR": ".next-e2e-a11y-chromium"
+        "PLAYWRIGHT_NEXT_DIST_DIR": ".next-e2e-a11y-chromium",
+        "LOCAL_CI_BROWSER_JSON": "1"
       },
       "systemDependencies": [
         {
@@ -519,7 +524,8 @@
         "PLAYWRIGHT_REGULAR_CHROMIUM": "1",
         "CUSTOMER_DEV_OTP_CODE": "424242",
         "PLAYWRIGHT_BASE_URL": "http://127.0.0.1:3152",
-        "PLAYWRIGHT_NEXT_DIST_DIR": ".next-e2e-a11y-mobile-safari"
+        "PLAYWRIGHT_NEXT_DIST_DIR": ".next-e2e-a11y-mobile-safari",
+        "LOCAL_CI_BROWSER_JSON": "1"
       },
       "systemDependencies": [
         {

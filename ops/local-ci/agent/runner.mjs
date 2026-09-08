@@ -52,6 +52,7 @@ import { buildJobEnv } from "../core/job-env.mjs"
 import { laneResources, scheduleLanes } from "../core/lane-scheduler.mjs"
 import { selectLanes } from "../core/profiles.mjs"
 import { LANE_STATUSES } from "../core/summary.mjs"
+import { browserReportName } from "../../../scripts/ci/browser-workload.mjs"
 
 export class RunnerError extends LocalCiError {}
 
@@ -927,7 +928,23 @@ export function createRunner({
   async function captureLaneLogs(lane, laneOutput, laneWorkspace) {
     const logs = [{ name: `${lane.id}.log`, text: laneOutput }]
     const missing = []
-    for (const part of laneServiceLogs(lane)) {
+    const browserReports =
+      lane.env?.LOCAL_CI_BROWSER_JSON === "1"
+        ? lane.commands
+            .filter((command) =>
+              command.includes("node scripts/ci/browser-workload.mjs ")
+            )
+            .map((command) => {
+              const flags = command.replaceAll('"', "").split(/\s+/)
+              const source = browserReportName(flags)
+              return {
+                source,
+                stored: `${lane.id}.${source}`,
+                serviceId: "browser report",
+              }
+            })
+        : []
+    for (const part of [...laneServiceLogs(lane), ...browserReports]) {
       if (typeof containerRuntime.readWorkspaceLog !== "function") {
         missing.push({
           name: part.stored,
@@ -1114,6 +1131,10 @@ export function createRunner({
                 sink?.write(chunk)
               },
             })
+            if (result.teardownErrors?.length)
+              throw new Error(
+                "Container cleanup was not verified; stopping admission"
+              )
           } catch (error) {
             // A lane whose container could not be started at all - a stale
             // resource that would not reconcile, a docker that is not there - is
