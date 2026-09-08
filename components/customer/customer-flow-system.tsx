@@ -270,6 +270,7 @@ export function CustomerStampCard({
   total,
   reward,
   slamIndex = -1,
+  pendingIndex = -1,
   stampDates,
   metaLines,
   hideFooter = false,
@@ -294,6 +295,8 @@ export function CustomerStampCard({
     sealSlammed?: boolean
   }
   slamIndex?: number
+  /** Slot inking while a stamp request is in flight — see {@link StampGrid}. */
+  pendingIndex?: number
   stampDates?: string[]
   metaLines?: ReactNode
   /** Drop the receipt's mono footer (card number + stamp-rule line). */
@@ -337,6 +340,7 @@ export function CustomerStampCard({
         total={total}
         dates={stampDates}
         slamIndex={slamIndex}
+        pendingIndex={pendingIndex}
         showEmptySlotNumbers
         rewardSlot={
           rewardSlot ?? (reward.state === "sealed" ? "locked" : undefined)
