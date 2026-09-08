@@ -14,6 +14,22 @@ export type GuideSection = {
   readonly paragraphs: readonly string[]
 }
 
+/**
+ * The anchor a guide section answers to.
+ *
+ * Guide sections carry a heading and nothing else, so the id is derived rather
+ * than authored — and it has to be derived in exactly one place, because the
+ * spine's `href` and the `<section id>` it jumps to are written by different
+ * components. Two independent slugifiers would drift on the first heading
+ * containing a comma.
+ */
+export function guideSectionId(heading: string): string {
+  return heading
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+}
+
 export type ComparisonRow = {
   readonly aspect: string
   readonly paper: string

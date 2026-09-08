@@ -2,13 +2,19 @@
 
 import { useEffect, useState } from "react"
 
-import {
-  PUB_GUIDE_HERO,
-  PUB_GUIDE_SECTIONS,
-  type PubGuideSectionId,
-} from "@/lib/marketing/facts"
+import { PUB_GUIDE_HERO, PUB_GUIDE_SECTIONS } from "@/lib/marketing/facts"
 import { useHydrated } from "@/lib/motion/use-hydrated"
 import { cn } from "@/lib/utils"
+
+/**
+ * What the spine needs of a section: somewhere to jump, and a word for it.
+ * Deliberately narrower than `PubGuideSection` so the guide routes, whose
+ * sections carry only a heading, can supply the same shape.
+ */
+export type GuideSpineSection = {
+  readonly id: string
+  readonly navLabel: string
+}
 
 /**
  * The hub's spine — a sticky "on this page" rail from `lg` up, and a collapsed
@@ -20,17 +26,27 @@ import { cn } from "@/lib/utils"
  * sticky overlay on a phone would fight the reading column, hence the
  * disclosure. Scroll-spy is progressive: with JS off, every link still jumps.
  */
-export function GuideSpine() {
+export function GuideSpine({
+  sections = PUB_GUIDE_SECTIONS,
+  jumpLabel = PUB_GUIDE_HERO.jumpLabel,
+  className,
+}: {
+  readonly sections?: readonly GuideSpineSection[]
+  readonly jumpLabel?: string
+  /**
+   * Merged onto the `<nav>` itself, not a wrapper: a wrapping element would
+   * become the sticky containing block and pin the rail to its own height.
+   */
+  readonly className?: string
+} = {}) {
   const hydrated = useHydrated()
-  const [activeId, setActiveId] = useState<PubGuideSectionId>(
-    PUB_GUIDE_SECTIONS[0].id
-  )
+  const [activeId, setActiveId] = useState<string>(sections[0].id)
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
-    const targets = PUB_GUIDE_SECTIONS.map((section) =>
-      document.getElementById(section.id)
-    ).filter((element): element is HTMLElement => element !== null)
+    const targets = sections
+      .map((section) => document.getElementById(section.id))
+      .filter((element): element is HTMLElement => element !== null)
 
     if (targets.length === 0) return
 
@@ -44,19 +60,19 @@ export function GuideSpine() {
             (a, b) => a.boundingClientRect.top - b.boundingClientRect.top
           )[0]
 
-        if (inBand) setActiveId(inBand.target.id as PubGuideSectionId)
+        if (inBand) setActiveId(inBand.target.id)
       },
       { rootMargin: "-96px 0px -70% 0px" }
     )
 
     for (const target of targets) observer.observe(target)
     return () => observer.disconnect()
-  }, [])
+  }, [sections])
 
   return (
     <nav
-      aria-label={PUB_GUIDE_HERO.jumpLabel}
-      className="lg:sticky lg:top-24 lg:self-start"
+      aria-label={jumpLabel}
+      className={cn("lg:sticky lg:top-24 lg:self-start", className)}
     >
       <button
         type="button"
@@ -68,16 +84,14 @@ export function GuideSpine() {
           hydrated ? "flex" : "hidden"
         )}
       >
-        <span className="mono-meta text-muted-foreground">
-          {PUB_GUIDE_HERO.jumpLabel}
-        </span>
+        <span className="mono-meta text-muted-foreground">{jumpLabel}</span>
         <span aria-hidden="true" className="mono-id text-primary uppercase">
-          {open ? "Close" : `${PUB_GUIDE_SECTIONS.length} sections`}
+          {open ? "Close" : `${sections.length} sections`}
         </span>
       </button>
 
       <p className="mono-meta hidden text-muted-foreground lg:block">
-        {PUB_GUIDE_HERO.jumpLabel}
+        {jumpLabel}
       </p>
 
       <ol
@@ -87,7 +101,7 @@ export function GuideSpine() {
           hydrated && !open ? "hidden lg:block" : "grid"
         )}
       >
-        {PUB_GUIDE_SECTIONS.map((section, index) => {
+        {sections.map((section, index) => {
           const active = section.id === activeId
 
           return (
