@@ -135,10 +135,21 @@ export async function loadStampExperienceContext(
   // location policy waits on the QR (see customer-stamp-contract). Progress is
   // loaded for every outcome, including the QR failures: the card is the
   // member's own and stays on screen whatever happened to the query string.
-  const [progress, stampedToday, qrContext] = await Promise.all([
+  //
+  // The QR lookup starts now but is only *awaited* once it matters. A member
+  // already stamped today gets their card whatever the QR did; a transient
+  // read error in that lookup must not send them to the error boundary, so
+  // the settled result is held and its error re-thrown only on the path that
+  // actually needs the answer.
+  const qrLookup = qr
+    ? getStampQrContextForMembership(membershipId, qr).then(
+        (value) => ({ ok: true as const, value }),
+        (error: unknown) => ({ ok: false as const, error })
+      )
+    : Promise.resolve({ ok: true as const, value: null })
+  const [progress, stampedToday] = await Promise.all([
     loadCardProgress(cardState),
     isStampedToday(membershipId),
-    qr ? getStampQrContextForMembership(membershipId, qr) : null,
   ])
 
   if (stampedToday) {
@@ -167,6 +178,10 @@ export async function loadStampExperienceContext(
       ...progress,
     }
   }
+
+  const qrResult = await qrLookup
+  if (!qrResult.ok) throw qrResult.error
+  const qrContext = qrResult.value
 
   if (!qrContext) {
     return {

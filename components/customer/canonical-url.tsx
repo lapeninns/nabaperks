@@ -22,7 +22,13 @@ export function CanonicalUrl({ href }: { href: string }) {
   useEffect(() => {
     const target = new URL(href, window.location.origin)
     if (target.href === window.location.href) return
-    window.history.replaceState(window.history.state, "", target)
+    // `null`, never `window.history.state`: on a hydrated App Router page the
+    // current state carries Next's internal `__NA` marker, and the patched
+    // replaceState treats any state bearing it as one of Next's own internal
+    // calls and skips the router sync. With a fresh state Next copies its
+    // internals in and applies the URL, so usePathname(), the tab bar and
+    // router.refresh() all follow to the canonical stamp route.
+    window.history.replaceState(null, "", target)
   }, [href])
 
   return null

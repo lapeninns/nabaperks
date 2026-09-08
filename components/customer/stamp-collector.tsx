@@ -230,7 +230,7 @@ export function StampCollector({
   async function issueStamp() {
     if (requestInFlightRef.current || view.secured || !canStamp) return
     requestInFlightRef.current = true
-    dispatch({ type: "request_started" })
+    dispatch({ type: "request_started", current })
     markStampPhase("checking")
 
     try {
@@ -252,7 +252,7 @@ export function StampCollector({
   async function issueWithCode(code: string) {
     if (requestInFlightRef.current || view.secured || !canStamp) return
     requestInFlightRef.current = true
-    dispatch({ type: "request_started" })
+    dispatch({ type: "request_started", current })
     markStampPhase("checking")
 
     try {
@@ -300,12 +300,18 @@ export function StampCollector({
         // after a scan. The sealed ticket is context, not the action.
         // Landscape floor (≤480px tall): the band and the press sit side by
         // side — feedback left, control right — so both stay in the first
-        // screen; the code fallback and the location note span the row.
+        // screen; the code fallback and the location note span the rows
+        // beneath. Every cell is placed explicitly: with auto-placement the
+        // two-column fallback could not follow the band on row 1, so it fell
+        // to row 2 and pushed the press to row 3 — exactly when the keyboard
+        // makes height scarcest.
         afterGrid={
           <div className="grid gap-3 short:gap-2 squat:grid-cols-[minmax(0,1fr)_auto] squat:items-center">
-            <StampStatusBand view={view} phase={state.phase} />
+            <div className="squat:col-start-1 squat:row-start-1">
+              <StampStatusBand view={view} phase={state.phase} />
+            </div>
             {showVenueCode ? (
-              <div className="squat:col-span-2">
+              <div className="squat:col-span-2 squat:row-start-2">
                 <VenueCodeForm
                   attemptsRemaining={view.venueCodeAttemptsRemaining}
                   lockedUntil={view.venueCodeLockedUntil}
@@ -316,7 +322,7 @@ export function StampCollector({
                 />
               </div>
             ) : null}
-            <div className="grid justify-items-center gap-3 pt-1 short:gap-2 short:pt-0">
+            <div className="grid justify-items-center gap-3 pt-1 short:gap-2 short:pt-0 squat:col-start-2 squat:row-start-1">
               <StampPressButton
                 onStamp={() => {
                   void issueStamp()
@@ -337,7 +343,7 @@ export function StampCollector({
               </p>
             </div>
             {locationNotice ? (
-              <p className="rounded-lg bg-secondary px-3 py-2 text-center text-xs leading-5 text-muted-foreground squat:col-span-2">
+              <p className="rounded-lg bg-secondary px-3 py-2 text-center text-xs leading-5 text-muted-foreground squat:col-span-2 squat:row-start-3">
                 This venue may try a soft location check within{" "}
                 {location.geofenceRadiusMeters}m. Your stamp still saves if your
                 phone cannot share location.

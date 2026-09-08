@@ -327,3 +327,52 @@ test("a plain (non-location) refusal offers no fallback", () => {
   assert.equal(view.venueCodeAttemptsRemaining, null)
   assert.equal(view.venueCodeLockedUntil, null)
 })
+
+test("the inking slot is anchored to the count captured at request start", () => {
+  const checking = reduceStampChoreography(initialStampChoreographyState, {
+    type: "request_started",
+    current: 2,
+  })
+  assert.equal(checking.phase, "checking")
+
+  // Props unchanged: slot 3 (index 2) is inking.
+  assert.equal(stampChoreographyView(checking, baseView).pendingIndex, 2)
+
+  // Revalidated props arrive early with the landed stamp: nothing left to ink,
+  // and never the *following* slot.
+  const advanced = stampChoreographyView(checking, { ...baseView, current: 3 })
+  assert.equal(advanced.pendingIndex, -1)
+  assert.equal(advanced.displayCurrent, 3)
+
+  // Without a snapshot the live count is the anchor (older callers).
+  const legacy = reduceStampChoreography(initialStampChoreographyState, {
+    type: "request_started",
+  })
+  assert.equal(stampChoreographyView(legacy, baseView).pendingIndex, 2)
+
+  // A completing stamp on a full card has no empty slot to ink.
+  const full = reduceStampChoreography(initialStampChoreographyState, {
+    type: "request_started",
+    current: 5,
+  })
+  assert.equal(
+    stampChoreographyView(full, { ...baseView, current: 5 }).pendingIndex,
+    -1
+  )
+})
+
+test("no phase other than checking exposes an inking slot", () => {
+  const checking = reduceStampChoreography(initialStampChoreographyState, {
+    type: "request_started",
+    current: 2,
+  })
+  const printing = reduceStampChoreography(checking, {
+    type: "request_issued",
+    result: { ...issued, newStampCount: 3, rewardUnlocked: false },
+  })
+  assert.equal(stampChoreographyView(printing, baseView).pendingIndex, -1)
+  assert.equal(
+    stampChoreographyView(initialStampChoreographyState, baseView).pendingIndex,
+    -1
+  )
+})
