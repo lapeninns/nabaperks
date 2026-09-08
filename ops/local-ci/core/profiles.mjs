@@ -22,6 +22,7 @@ import {
   profilePath,
   runtimeEnvSourceIds,
 } from "./contract.mjs"
+import { laneResources, lanesFit } from "./lane-scheduler.mjs"
 
 /** Host architectures the agent can run on, as `process.arch` spells them. */
 export const HOST_ARCHITECTURES = Object.freeze(["arm64", "x64"])
@@ -201,6 +202,12 @@ function validateLane(lane, index, contract, seenIds, knownSourceIds) {
 
   validateRuntimeEnvIds(lane.runtimeEnv, `${path}.runtimeEnv`, knownSourceIds)
   requireStringMap(lane.env, `${path}.env`)
+  if (lane.resources !== undefined) {
+    requireObject(lane.resources, `${path}.resources`)
+    laneResources(lane, contract)
+    if (!lanesFit([lane], contract))
+      fail("RESOURCE_OVERCOMMIT", `${path} cannot fit the VM budget`)
+  }
 
   if (lane.knownLocalGaps !== undefined) {
     const gaps = requireArray(lane.knownLocalGaps, `${path}.knownLocalGaps`)

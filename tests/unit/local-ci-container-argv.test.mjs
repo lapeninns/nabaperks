@@ -441,6 +441,8 @@ test("a lane removes its own leftovers before it creates them, and touches nothi
     "rm",
     "rm",
     "network rm",
+    "ps",
+    "network ls",
   ])
 })
 
@@ -507,7 +509,11 @@ test("a missing daemon image fails before repository code starts and still clean
     }
   )
   assert.equal(calls.filter((argv) => subCommand(argv) === "run").length, 1)
-  assert.deepEqual(calls.slice(-3).map(subCommand), ["rm", "rm", "network rm"])
+  assert.deepEqual(calls.slice(-5, -2).map(subCommand), [
+    "rm",
+    "rm",
+    "network rm",
+  ])
 })
 
 test("a daemon that never becomes ready cannot start repository code", async () => {
@@ -535,7 +541,11 @@ test("a daemon that never becomes ready cannot start repository code", async () 
     }
   )
   assert.equal(calls.filter((argv) => subCommand(argv) === "run").length, 1)
-  assert.deepEqual(calls.slice(-3).map(subCommand), ["rm", "rm", "network rm"])
+  assert.deepEqual(calls.slice(-5, -2).map(subCommand), [
+    "rm",
+    "rm",
+    "network rm",
+  ])
 })
 
 test("reading a lane's log back out of the workspace happens in the VM and never follows a link", () => {
@@ -689,6 +699,33 @@ test("resource budgets: sidecar CPU and memory are bounded with swap disabled", 
   assertResourceBudgets(contract)
 })
 
+test("a parallel lane receives its admitted cgroup budget with no extra swap", () => {
+  const built = argv({ resources: { cpus: 2, memoryGb: 8 } })
+  assert.equal(valueAfter(built, "--cpus"), "2")
+  assert.equal(valueAfter(built, "--memory"), "8g")
+  assert.equal(valueAfter(built, "--memory-swap"), "8g")
+  assert.throws(() => argv({ resources: { cpus: 11, memoryGb: 8 } }))
+})
+
+test("successful commands cannot hide leaked containers or unverifiable teardown", async () => {
+  for (const response of [{ stdout: `${JOB_NAME}\n` }, { code: 1 }]) {
+    const { spawnFn } = scriptedSpawn((args) =>
+      subCommand(args) === "ps" ? response : {}
+    )
+    const runtime = createContainerRuntime({ contract, vm: VM, spawnFn })
+    const result = await runtime.withJobContainer({
+      ...IDENTITY,
+      image: IMAGE,
+      daemonImage: DAEMON_IMAGE,
+      command: ["true"],
+      workspaceHostPath: "/workspace",
+      env: {},
+    })
+    assert.equal(result.exitCode, 0)
+    assert.ok(result.teardownErrors.length > 0)
+  }
+})
+
 test("resource budgets: every budget rejects nonnumeric, nonfinite and nonpositive values", () => {
   for (const path of [
     ["container", "cpus"],
@@ -765,7 +802,11 @@ test("a failed image preload prevents repository code and still removes the side
     false
   )
   assert.ok(calls.some((argv) => argv.includes("image-cache-load")))
-  assert.deepEqual(calls.slice(-3).map(subCommand), ["rm", "rm", "network rm"])
+  assert.deepEqual(calls.slice(-5, -2).map(subCommand), [
+    "rm",
+    "rm",
+    "network rm",
+  ])
 })
 
 test("only a daemon-backed lane loads images, and it loads before repository code", async () => {
@@ -832,7 +873,7 @@ test("cancelling an image preload prevents repository commands and cleans only i
     false
   )
   assert.deepEqual(
-    calls.slice(-3).map((argv) => argv.at(-1)),
+    calls.slice(-5, -2).map((argv) => argv.at(-1)),
     [JOB_NAME, DAEMON_NAME, NET_NAME]
   )
 })
@@ -872,7 +913,7 @@ test("image preload time consumes the lane budget before repository commands", a
     false
   )
   assert.deepEqual(
-    calls.slice(-3).map((argv) => argv.at(-1)),
+    calls.slice(-5, -2).map((argv) => argv.at(-1)),
     [JOB_NAME, DAEMON_NAME, NET_NAME]
   )
 })

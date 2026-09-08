@@ -1303,13 +1303,19 @@ owner. Deleting the journal or inventing a replacement successful result is
 not recovery. On shutdown, delayed publication callbacks cannot dispatch more
 work or write the released controller's journal.
 
-The resource contract allocates 10 CPUs/32 GiB to the unprivileged job and
-1 CPU/6 GiB to its Docker sidecar, leaving 1 CPU/2 GiB for the 12 CPU/40 GiB VM.
+The resource contract caps simultaneous unprivileged jobs at 10 CPUs/32 GiB.
+Each Docker sidecar needs 1 CPU/6 GiB, and admission preserves at least
+1 CPU/2 GiB for the 12 CPU/40 GiB VM. The scheduler admits up to six lanes
+only when all resource and concurrency-group budgets fit; four 8 GiB browser
+lanes already consume the entire job-memory budget. Every lane has its own
+checkout, Git metadata, dependencies and generated output.
 Both containers disable additional swap. The runner rejects overcommitted or
 malformed budgets before admission. The sidecar's privileges remain inside the
 VM; this is not evidence of a disposable VM or qualification for authoritative
-untrusted execution. Browser lanes remain serial, with unchanged projects,
-shards and worker/retry policy.
+untrusted execution. Browser projects can overlap in separate containers; each project retains
+its eight sequential shards and one Playwright worker. Browser heaps are capped
+at 6 GiB within their 8 GiB containers. The fast lane explicitly caps Node test
+processes at four; hosted Node tests retain their existing default.
 
 The [verified image cache](local-ci-image-cache.md) avoids repeated registry
 downloads while validating archive, manifest and loaded image identity before
