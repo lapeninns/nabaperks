@@ -175,6 +175,22 @@ export function getCustomerExperienceViewModel(
           href: `/card/${exp.membershipId}`,
         },
       }
+    case "stamp_unmatched":
+      // The shell carries the one headline and a reassurance; the panel's
+      // band beneath the card carries the instruction, so the two never
+      // repeat each other. No primaryAction: the panel renders the shared
+      // recovery pair (scan again / open my cards) itself.
+      return exp.problem === "missing"
+        ? {
+            eyebrow: "Today's stamp",
+            headline: "Open this from the venue QR",
+            supportLine: `Your ${exp.merchantName} card is safe — nothing has changed.`,
+          }
+        : {
+            eyebrow: "Today's stamp",
+            headline: "That QR didn't match this card",
+            supportLine: `Your ${exp.merchantName} stamps are safe — nothing has changed.`,
+          }
     case "card_collecting":
       return cardCollectingViewModel(exp)
     case "reward_waiting":

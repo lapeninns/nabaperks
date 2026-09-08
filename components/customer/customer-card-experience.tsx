@@ -21,6 +21,7 @@ import { ReferralBonusBankNotice } from "@/components/customer/referral-bonus-ba
 import { CustomerTabBar } from "@/components/layout"
 import { ReferralSharePanel } from "@/components/customer/referral-share-panel"
 import { StampCollector } from "@/components/customer/stamp-collector"
+import { UnavailableRecoveryActions } from "@/components/customer/unavailable-recovery"
 import {
   RedeemedProofPanel,
   RewardReadyPanel,
@@ -122,6 +123,8 @@ function ExperiencePanel({
     case "card_stamped_today":
     case "stamp_confirm":
       return <StampScreenPanel exp={experience} />
+    case "stamp_unmatched":
+      return <StampUnmatchedPanel exp={experience} />
     case "reward_waiting":
       return <RewardWaitingPanel exp={experience} />
     case "reward_ready":
@@ -582,6 +585,61 @@ function StampScreenPanel({
   )
 }
 
+/**
+ * The stamp screen reached without a usable QR. The card stays — it is the
+ * member's own and the reassuring thing on screen — and the band that would
+ * hold today's stamp status names the problem and what fixes it, with the
+ * shared recovery pair beneath. Never a bare sentence with no way forward.
+ */
+function StampUnmatchedPanel({
+  exp,
+}: {
+  exp: Extract<CustomerExperience, { kind: "stamp_unmatched" }>
+}) {
+  const band =
+    exp.problem === "missing"
+      ? {
+          title: "No venue QR on this visit.",
+          body: "Scan the printed QR at the counter and today's stamp button appears right here.",
+        }
+      : {
+          title: "Stamp not added.",
+          body: "That code belongs to another venue or has been replaced. Scan the printed QR at the counter again, or ask a team member.",
+        }
+
+  return (
+    <section className="grid gap-5 short:gap-4">
+      <CustomerStampCard
+        venueName={exp.merchantName}
+        cardName={exp.cardName}
+        current={exp.current}
+        total={exp.total}
+        stampDates={exp.stampDates}
+        reward={{
+          state: "sealed",
+          name: SEALED_REWARD_NAME,
+          description: SEALED_REWARD_NOTE,
+        }}
+        rewardSlot="locked"
+        hideFooter
+        hideHeaderText
+        afterGrid={
+          <section
+            data-stamp-unmatched={exp.problem}
+            className="grid min-h-28 grid-rows-[auto_1fr] content-start gap-1 rounded-lg border-2 border-dashed border-line-strong bg-secondary/45 px-4 py-3 text-center short:min-h-24"
+          >
+            <p className="font-extrabold text-balance">{band.title}</p>
+            <p className="text-sm leading-5 font-medium text-ink-soft">
+              {band.body}
+            </p>
+          </section>
+        }
+      />
+      <UnavailableRecoveryActions />
+    </section>
+  )
+}
+
 function UnavailablePanel({ vm }: { vm: CustomerExperienceViewModel }) {
   return (
     <section className="grid gap-5">
@@ -643,6 +701,7 @@ function screenLabelFor(kind: CustomerExperienceKind): string {
   switch (kind) {
     case "stamp_confirm":
     case "card_stamped_today":
+    case "stamp_unmatched":
       return "Customer stamp"
     case "reward_waiting":
     case "reward_ready":

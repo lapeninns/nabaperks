@@ -132,7 +132,9 @@ export async function loadStampExperienceContext(
   // Card progress, the same-day check and the QR match are independent reads
   // and go out together — the stamp screen is the first thing a member sees
   // after a physical scan, so every sequential await here is felt. Only the
-  // location policy waits on the QR (see customer-stamp-contract).
+  // location policy waits on the QR (see customer-stamp-contract). Progress is
+  // loaded for every outcome, including the QR failures: the card is the
+  // member's own and stays on screen whatever happened to the query string.
   const [progress, stampedToday, qrContext] = await Promise.all([
     loadCardProgress(cardState),
     isStampedToday(membershipId),
@@ -162,6 +164,7 @@ export async function loadStampExperienceContext(
       qrValid: false,
       qrMissing: true,
       location: DEFAULT_LOCATION,
+      ...progress,
     }
   }
 
@@ -175,6 +178,7 @@ export async function loadStampExperienceContext(
       qrMissing: false,
       qrId: qr,
       location: DEFAULT_LOCATION,
+      ...progress,
     }
   }
 

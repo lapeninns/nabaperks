@@ -41,20 +41,25 @@ function stampContext(overrides = {}) {
   }
 }
 
-test("missing QR proof tells the customer to open from the printed venue QR", () => {
+test("missing QR proof keeps the member's card on screen and names the fix", () => {
   const experience = deriveCustomerExperience({
     entry: "stamp",
     context: stampContext(),
   })
 
   assert.deepEqual(experience, {
-    kind: "unavailable",
-    reason:
-      "Open this screen from the printed venue QR so the stamp is tied to the right business.",
+    kind: "stamp_unmatched",
+    problem: "missing",
+    membershipId: "membership_1",
+    merchantName: "The Test Arms",
+    cardName: "Regulars Card",
+    current: 2,
+    total: 5,
+    stampDates: ["30 Jun"],
   })
 })
 
-test("invalid QR proof asks for another scan instead of showing the stamp form", () => {
+test("invalid QR proof withholds the stamp form but never the card", () => {
   const experience = deriveCustomerExperience({
     entry: "stamp",
     context: stampContext({
@@ -64,9 +69,34 @@ test("invalid QR proof asks for another scan instead of showing the stamp form",
   })
 
   assert.deepEqual(experience, {
-    kind: "unavailable",
-    reason: "Scan the venue code again to add your stamp.",
+    kind: "stamp_unmatched",
+    problem: "unmatched",
+    membershipId: "membership_1",
+    merchantName: "The Test Arms",
+    cardName: "Regulars Card",
+    current: 2,
+    total: 5,
+    stampDates: ["30 Jun"],
   })
+})
+
+test("a QR failure without loaded progress still renders an empty, safe card", () => {
+  const experience = deriveCustomerExperience({
+    entry: "stamp",
+    context: stampContext({
+      cardName: undefined,
+      current: undefined,
+      total: undefined,
+      stampDates: undefined,
+      todayLabel: undefined,
+    }),
+  })
+
+  assert.equal(experience.kind, "stamp_unmatched")
+  assert.equal(experience.cardName, "")
+  assert.equal(experience.current, 0)
+  assert.equal(experience.total, 0)
+  assert.deepEqual(experience.stampDates, [])
 })
 
 test("valid QR proof renders the stamp confirmation with live card progress", () => {
