@@ -8,10 +8,6 @@ import { inventoryFromPlaywright, compareInventory } from "./browser-parity.mjs"
 // Group existing shards; never change their denominator, selection or worker
 // count. Each invocation owns a fresh Playwright server and wrapper cleanup.
 export function browserPackRequests({ project, shards }) {
-  if (project !== "chromium")
-    throw new Error(
-      "Only the Chromium packing pilot is qualified for invocation"
-    )
   if (
     !Array.isArray(shards) ||
     shards.length < 1 ||
@@ -152,7 +148,7 @@ if (
     const [project, shardList, output, mode, ...extra] = process.argv.slice(2)
     if (!output || extra.length || (mode && mode !== "--list"))
       throw new Error(
-        "Usage: browser-pack.mjs chromium 1/32,2/32 <new-evidence-directory> [--list]"
+        "Usage: browser-pack.mjs <project> 1/32,2/32 <new-evidence-directory> [--list]"
       )
     await runBrowserPack({
       project,

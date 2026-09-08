@@ -21,6 +21,7 @@ import {
 } from "@/lib/customer/profile"
 import { validateProfileFields } from "@/lib/customer/profile-fields"
 import { clearPendingEmailVerification } from "@/lib/customer/session"
+import { RateLimitError } from "@/lib/security/rate-limit"
 
 const PROFILE_PATH = "/home/profile"
 
@@ -173,12 +174,25 @@ export async function updateHomeMarketingConsentAction(
   return { channel, optedIn }
 }
 
-export async function resendHomeProfileEmailAction(): Promise<void> {
-  const customer = await getCurrentCustomer()
-  if (customer?.email && !customer.emailVerifiedAt) {
+export async function resendHomeProfileEmailAction(): Promise<ProfileEditState> {
+  try {
+    const customer = await getCurrentCustomer()
+    if (!customer?.email || customer.emailVerifiedAt) {
+      return { errors: { form: "There is no email awaiting confirmation." } }
+    }
     await startCustomerEmailVerification(customer.email)
+  } catch (error) {
+    return {
+      errors: {
+        form:
+          error instanceof RateLimitError
+            ? "Please wait a minute before requesting another code."
+            : "We couldn't email a new code. Try again.",
+      },
+    }
   }
   revalidatePath(PROFILE_PATH)
+  return { message: "We've emailed you a new code." }
 }
 
 export async function clearHomeProfileEmailAction(): Promise<void> {
