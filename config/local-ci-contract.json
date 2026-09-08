@@ -117,7 +117,7 @@
   "agent": {
     "pollIntervalSeconds": 60,
     "maxConcurrentJobs": 1,
-    "maxConcurrentLanes": 4,
+    "maxConcurrentLanes": 6,
     "logRetentionDays": 30,
     "heartbeatIntervalMinutes": 5,
     "queueDepthLimit": 8,
@@ -125,7 +125,7 @@
     "installRoot": "/opt/nabaperks-local-ci/current",
     "stateRoot": "~/.nabaperks-local-ci",
     "launchdLabel": "com.nabaperks.local-ci",
-    "notes": "maxConcurrentJobs bounds whole CI runs (one head SHA at a time). maxConcurrentLanes bounds lanes inside one run; lanes that declare the same concurrencyGroup are serialised against each other regardless. gitFetchDepth 0 is required because the quality lane's docs:check runs git diff --exit-code."
+    "notes": "maxConcurrentJobs bounds whole CI runs (one head SHA at a time). maxConcurrentLanes is an upper bound; the scheduler also caps summed lane CPU/RAM, sidecars and VM reserves. Each resource-sized lane owns an independent checkout. Lanes sharing a concurrencyGroup remain serialised. gitFetchDepth 0 is required because the quality lane's docs:check runs git diff --exit-code."
   },
   "container": {
     "cpus": 10,

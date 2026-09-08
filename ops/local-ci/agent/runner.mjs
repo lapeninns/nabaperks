@@ -49,6 +49,7 @@ import {
 } from "../core/contract.mjs"
 import { digestLogBundle } from "../core/digest.mjs"
 import { buildJobEnv } from "../core/job-env.mjs"
+import { laneResources, scheduleLanes } from "../core/lane-scheduler.mjs"
 import { selectLanes } from "../core/profiles.mjs"
 import { LANE_STATUSES } from "../core/summary.mjs"
 
@@ -877,11 +878,9 @@ export function createRuntimeEnvResolver({ contract, exec, randomBytes }) {
  * sink), `hostEnv`, `now`, and `logger`. Nothing here reads `process.env` or
  * the clock directly.
  *
- * Lanes run one at a time, in profile order. `contract.agent.maxConcurrentLanes`
- * is therefore satisfied trivially, and every `concurrencyGroup` with it: no
- * two lanes are ever in flight, so no two lanes contend for 127.0.0.1:3000 or
- * for the local Supabase ports. Running independent lanes in parallel is a
- * later change, and it is the concurrency groups that will make it safe.
+ * Independent lanes run within the shared CPU/RAM and concurrency-group budget.
+ * Every resource-sized lane gets an isolated workspace before execution.
+ * Results and log digests retain profile order regardless of completion order.
  *
  * The run's own deadline is enforced in two places, both of them here: a lane
  * about to start after it has passed is skipped instead, and a lane that
@@ -899,6 +898,7 @@ export function createRunner({
   image,
   daemonImage,
   workspaceHostPath,
+  prepareLaneWorkspace = null,
   now = () => Date.now(),
   logger = null,
 } = {}) {
@@ -924,7 +924,7 @@ export function createRunner({
    * value of the digest is that a reader can rebuild it from the files the
    * record names.
    */
-  async function captureLaneLogs(lane, laneOutput) {
+  async function captureLaneLogs(lane, laneOutput, laneWorkspace) {
     const logs = [{ name: `${lane.id}.log`, text: laneOutput }]
     const missing = []
     for (const part of laneServiceLogs(lane)) {
@@ -937,7 +937,7 @@ export function createRunner({
         continue
       }
       const read = await containerRuntime.readWorkspaceLog({
-        workspaceHostPath,
+        workspaceHostPath: laneWorkspace,
         name: part.source,
       })
       if (read.status !== "captured") {
@@ -1000,29 +1000,34 @@ export function createRunner({
         }
       }
 
-      const laneResults = []
-      const logBundle = []
+      const laneResults = Array(routing.local.length)
+      const logBundles = Array(routing.local.length)
+        .fill(null)
+        .map(() => [])
       let stopped = false
       let stoppedByLaneId = null
       let deadlineExpired = false
 
-      for (const lane of routing.local) {
-        const remainingMs = deadlineAt - now()
-        if (
-          !stopped &&
-          !deadlineExpired &&
-          !signal?.aborted &&
-          remainingMs <= 0
-        ) {
-          deadlineExpired = true
-          log(
-            "warn",
-            `the run passed its ${deadlineMinutes}-minute ceiling before lane ${lane.id} started; the remaining lanes are recorded as skipped and this run publishes a timed-out conclusion while the hosted bridge is still listening`
-          )
-        }
-        if (stopped || deadlineExpired || signal?.aborted) {
-          laneResults.push(
-            buildLaneResult({
+      const scheduling = await scheduleLanes({
+        lanes: routing.local,
+        contract,
+        run: async (lane, laneIndex) => {
+          let laneWorkspace = workspaceHostPath
+          const remainingMs = deadlineAt - now()
+          if (
+            !stopped &&
+            !deadlineExpired &&
+            !signal?.aborted &&
+            remainingMs <= 0
+          ) {
+            deadlineExpired = true
+            log(
+              "warn",
+              `the run passed its ${deadlineMinutes}-minute ceiling before lane ${lane.id} started; the remaining lanes are recorded as skipped and this run publishes a timed-out conclusion while the hosted bridge is still listening`
+            )
+          }
+          if (stopped || deadlineExpired || signal?.aborted) {
+            laneResults[laneIndex] = buildLaneResult({
               lane,
               contract,
               profile: profile.profile,
@@ -1033,25 +1038,23 @@ export function createRunner({
               output: "",
               durationSeconds: 0,
             })
-          )
-          continue
-        }
+            return
+          }
 
-        const laneStarted = now()
-        const env = buildJobEnv({
-          profile,
-          lane: laneForEnvBuild(lane, contract),
-          runtimeEnv: perRunValues,
-          hostEnv,
-          contract,
-        })
-        const envFile =
-          typeof writeEnvFile === "function"
-            ? await writeEnvFile(lane, env)
-            : null
-        if (signal?.aborted) {
-          laneResults.push(
-            buildLaneResult({
+          const laneStarted = now()
+          const env = buildJobEnv({
+            profile,
+            lane: laneForEnvBuild(lane, contract),
+            runtimeEnv: perRunValues,
+            hostEnv,
+            contract,
+          })
+          const envFile =
+            typeof writeEnvFile === "function"
+              ? await writeEnvFile(lane, env)
+              : null
+          if (signal?.aborted) {
+            laneResults[laneIndex] = buildLaneResult({
               lane,
               contract,
               profile: profile.profile,
@@ -1061,114 +1064,129 @@ export function createRunner({
               output: "",
               durationSeconds: 0,
             })
-          )
-          continue
-        }
-        const sink = openLaneLog ? await openLaneLog(`${lane.id}.log`) : null
-        let output = ""
+            return
+          }
+          const sink = openLaneLog ? await openLaneLog(`${lane.id}.log`) : null
+          let output = ""
 
-        let result = null
-        let runtimeError = null
-        try {
-          result = await containerRuntime.withJobContainer({
+          let result = null
+          let runtimeError = null
+          try {
+            if (lane.resources) {
+              if (typeof prepareLaneWorkspace !== "function")
+                throw new Error("Parallel lanes require isolated workspaces")
+              laneWorkspace = await prepareLaneWorkspace(lane)
+            }
+            result = await containerRuntime.withJobContainer({
+              headSha,
+              laneId: lane.id,
+              image,
+              daemonImage,
+              command: ["bash", "-lc", buildLaneScript(lane, contract)],
+              workspaceHostPath: laneWorkspace,
+              resources: laneResources(lane, contract),
+              env,
+              envFile,
+              labels: {
+                "com.nabaperks.local-ci.profile": profile.profile,
+                "com.nabaperks.local-ci.lane": lane.id,
+                "com.nabaperks.local-ci.head-sha":
+                  String(headSha).toLowerCase(),
+              },
+              // The remaining run budget, not the lane's own: the two differ
+              // only when the deadline would fall inside this lane, and that is
+              // precisely when the lane must be the one to give way.
+              timeoutMs: Math.min(
+                Math.round(lane.timeoutMinutes * 60_000),
+                Math.max(1, deadlineAt - now())
+              ),
+              // The lane declares this. Inferring it from `concurrencyGroup`
+              // tied "needs a Docker daemon" to "contends for the Supabase
+              // ports", which are unrelated facts: the nightly `zap-full` lane
+              // shells out to `docker run` while grouping on the HTTP port, so
+              // it was scheduled without a daemon and could only ever have
+              // failed. A group rename must not be able to take the daemon away
+              // from a lane that needs one.
+              needsDaemon: lane.needsDaemon === true,
+              signal,
+              onOutput: (chunk) => {
+                output += chunk
+                sink?.write(chunk)
+              },
+            })
+          } catch (error) {
+            // A lane whose container could not be started at all - a stale
+            // resource that would not reconcile, a docker that is not there - is
+            // a failed lane, not a failed run. Letting this escape would abort
+            // the whole profile before anything was published, and the check the
+            // bridge is polling would simply never arrive.
+            runtimeError = error
+            // Through the sink as well, so the reason is in the lane's log file
+            // and not only in the agent's own stderr. The digest below covers
+            // these bytes; the file it is rebuilt from has to carry them too.
+            const note = `${LOG_MARKER} lane ${lane.id} could not run: ${error.message}\n`
+            output += note
+            sink?.write(note)
+            log("error", `lane ${lane.id} could not run: ${error.message}`)
+          } finally {
+            await sink?.close?.()
+          }
+
+          // The bytes the log file received, rather than the runtime's own
+          // buffered copy: that copy is capped, and a digest taken over a
+          // truncated copy would not match the file §6.4 rebuilds it from. The
+          // fallback is for a runtime that returns output without streaming it,
+          // which writes no file either.
+          const laneOutput = output === "" ? (result?.output ?? "") : output
+          const laneEnded = now()
+          const captured = await captureLaneLogs(
+            lane,
+            laneOutput,
+            laneWorkspace
+          )
+          const laneResult = buildLaneResult({
+            lane,
+            contract,
+            profile: profile.profile,
+            ref,
             headSha,
-            laneId: lane.id,
-            image,
-            daemonImage,
-            command: ["bash", "-lc", buildLaneScript(lane, contract)],
-            workspaceHostPath,
-            env,
-            envFile,
-            labels: {
-              "com.nabaperks.local-ci.profile": profile.profile,
-              "com.nabaperks.local-ci.lane": lane.id,
-              "com.nabaperks.local-ci.head-sha": String(headSha).toLowerCase(),
-            },
-            // The remaining run budget, not the lane's own: the two differ
-            // only when the deadline would fall inside this lane, and that is
-            // precisely when the lane must be the one to give way.
-            timeoutMs: Math.min(
-              Math.round(lane.timeoutMinutes * 60_000),
-              remainingMs
-            ),
-            // The lane declares this. Inferring it from `concurrencyGroup`
-            // tied "needs a Docker daemon" to "contends for the Supabase
-            // ports", which are unrelated facts: the nightly `zap-full` lane
-            // shells out to `docker run` while grouping on the HTTP port, so
-            // it was scheduled without a daemon and could only ever have
-            // failed. A group rename must not be able to take the daemon away
-            // from a lane that needs one.
-            needsDaemon: lane.needsDaemon === true,
-            signal,
-            onOutput: (chunk) => {
-              output += chunk
-              sink?.write(chunk)
-            },
+            output: laneOutput,
+            exitCode: result?.exitCode ?? null,
+            timedOut: result?.timedOut ?? false,
+            cancelled: result?.cancelled ?? false,
+            status: signal?.aborted
+              ? "cancelled"
+              : runtimeError === null
+                ? null
+                : "failure",
+            startedAt: new Date(laneStarted).toISOString(),
+            completedAt: new Date(laneEnded).toISOString(),
+            durationSeconds: Math.round((laneEnded - laneStarted) / 1000),
+            logs: captured.logs,
+            missingLogs: captured.missing,
           })
-        } catch (error) {
-          // A lane whose container could not be started at all - a stale
-          // resource that would not reconcile, a docker that is not there - is
-          // a failed lane, not a failed run. Letting this escape would abort
-          // the whole profile before anything was published, and the check the
-          // bridge is polling would simply never arrive.
-          runtimeError = error
-          // Through the sink as well, so the reason is in the lane's log file
-          // and not only in the agent's own stderr. The digest below covers
-          // these bytes; the file it is rebuilt from has to carry them too.
-          const note = `${LOG_MARKER} lane ${lane.id} could not run: ${error.message}\n`
-          output += note
-          sink?.write(note)
-          log("error", `lane ${lane.id} could not run: ${error.message}`)
-        } finally {
-          await sink?.close?.()
-        }
+          laneResults[laneIndex] = laneResult
+          // In `logParts` order, so the run digest is reproducible from the
+          // manifest the lane documents publish.
+          logBundles[laneIndex] = captured.logs.map((part) => part.text)
 
-        // The bytes the log file received, rather than the runtime's own
-        // buffered copy: that copy is capped, and a digest taken over a
-        // truncated copy would not match the file §6.4 rebuilds it from. The
-        // fallback is for a runtime that returns output without streaming it,
-        // which writes no file either.
-        const laneOutput = output === "" ? (result?.output ?? "") : output
-        const laneEnded = now()
-        const captured = await captureLaneLogs(lane, laneOutput)
-        const laneResult = buildLaneResult({
-          lane,
-          contract,
-          profile: profile.profile,
-          ref,
-          headSha,
-          output: laneOutput,
-          exitCode: result?.exitCode ?? null,
-          timedOut: result?.timedOut ?? false,
-          cancelled: result?.cancelled ?? false,
-          status: signal?.aborted
-            ? "cancelled"
-            : runtimeError === null
-              ? null
-              : "failure",
-          startedAt: new Date(laneStarted).toISOString(),
-          completedAt: new Date(laneEnded).toISOString(),
-          durationSeconds: Math.round((laneEnded - laneStarted) / 1000),
-          logs: captured.logs,
-          missingLogs: captured.missing,
-        })
-        laneResults.push(laneResult)
-        // In `logParts` order, so the run digest is reproducible from the
-        // manifest the lane documents publish.
-        logBundle.push(...captured.logs.map((part) => part.text))
-
-        if (laneResult.status !== "success" && lane.continueOnError !== true) {
-          log(
-            "warn",
-            `lane ${lane.id} reported ${laneResult.status}; stopping the run - the remaining lanes are recorded as skipped`
-          )
-          stopped = true
-          stoppedByLaneId = lane.id
-        }
-      }
+          if (
+            laneResult.status !== "success" &&
+            lane.continueOnError !== true
+          ) {
+            log(
+              "warn",
+              `lane ${lane.id} reported ${laneResult.status}; stopping the run - the remaining lanes are recorded as skipped`
+            )
+            stopped = true
+            stoppedByLaneId ??= lane.id
+          }
+        },
+      })
 
       const runEnded = now()
       return Object.freeze({
+        peakConcurrentLanes: scheduling.peak,
         laneResults: Object.freeze(laneResults),
         routing,
         deadlineExpired,
@@ -1181,7 +1199,7 @@ export function createRunner({
           hostedOnly: routing.hostedOnly,
           reasons: routing.reasons,
           durationSeconds: Math.round((runEnded - runStarted) / 1000),
-          logDigestValue: digestLogBundle(logBundle),
+          logDigestValue: digestLogBundle(logBundles.flat()),
           deadlineExpired,
           deadlineMinutes,
         }),

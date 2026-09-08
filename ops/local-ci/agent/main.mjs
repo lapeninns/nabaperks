@@ -966,12 +966,39 @@ async function prepareWorkspace({ config, contract, headSha, logger, signal }) {
   return workspace
 }
 
+/** Each lane owns its Git metadata, dependencies, caches and generated files. */
+export function buildLaneWorkspaceScript({
+  workspace,
+  laneId,
+  headSha,
+  remoteUrl,
+}) {
+  if (!isCommitSha(headSha) || !/^[a-z][a-z0-9-]*$/.test(laneId))
+    throw new Error("Invalid lane workspace identity")
+  if (!workspace.endsWith(`/runs/${headSha}`))
+    throw new Error("Lane workspace must belong to the exact run")
+  const destination = `${workspace}-lanes/${laneId}`
+  return {
+    destination,
+    script: [
+      "set -eu",
+      `mkdir -p ${shQuote(`${workspace}-lanes`)}`,
+      // git clone refuses an existing directory with content; no candidate
+      // workspace is reused, and --no-hardlinks prevents cross-lane mutation.
+      `git clone --no-hardlinks --no-checkout ${shQuote(workspace)} ${shQuote(destination)}`,
+      `git -C ${shQuote(destination)} remote set-url origin ${shQuote(remoteUrl)}`,
+      `git -C ${shQuote(destination)} checkout --detach ${shQuote(headSha)}`,
+    ].join("\n"),
+  }
+}
+
 async function releaseWorkspace({ config, headSha }) {
   const root = config.vmWorkspaceRoot
   const script = [
     `cd ${shQuote(`${root}/repo`)} 2>/dev/null || exit 0`,
     `git worktree remove --force ${shQuote(`${root}/runs/${headSha}`)} 2>/dev/null || true`,
     `rm -rf ${shQuote(`${root}/runs/${headSha}`)}`,
+    `rm -rf ${shQuote(`${root}/runs/${headSha}-lanes`)}`,
   ].join("\n")
   await execHost(vmShell(config.vm, script), { timeoutMs: 20_000 }).catch(
     () => {}
@@ -1367,6 +1394,16 @@ async function buildDependencies({
     image: config.jobImage,
     daemonImage: config.daemonImage,
     workspaceHostPath,
+    prepareLaneWorkspace: async (lane) => {
+      const { destination, script } = buildLaneWorkspaceScript({
+        workspace: workspaceHostPath,
+        laneId: lane.id,
+        headSha,
+        remoteUrl: contract.remoteUrl,
+      })
+      await execHost(vmShell(config.vm, script), { signal })
+      return destination
+    },
     logger,
   })
   return { runner, containerRuntime }

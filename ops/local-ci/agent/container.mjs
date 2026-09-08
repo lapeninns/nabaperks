@@ -35,6 +35,7 @@
 import { spawn } from "node:child_process"
 
 import { LocalCiError, describeValue } from "../core/contract.mjs"
+import { laneResources } from "../core/lane-scheduler.mjs"
 import { hostSecretNames } from "../core/contract.mjs"
 import {
   buildImageCacheLoadArgv,
@@ -628,6 +629,7 @@ export function buildDaemonArgv({
  */
 export function buildContainerArgv({
   contract,
+  resources = null,
   daemonName = null,
   image,
   name,
@@ -644,7 +646,11 @@ export function buildContainerArgv({
   shmSize = DEFAULT_SHM_SIZE,
   timeoutSeconds = null,
 } = {}) {
-  const { container } = assertResourceBudgets(contract)
+  assertResourceBudgets(contract)
+  const container = {
+    ...contract.container,
+    ...laneResources({ id: name, resources }, contract),
+  }
   assertPinnedImage(image, "job image")
   requireObject(env, "env")
 
@@ -927,6 +933,7 @@ export function createContainerRuntime({
       daemonImage,
       command,
       workspaceHostPath,
+      resources = null,
       env,
       envFile,
       labels = {},
@@ -1070,6 +1077,7 @@ export function createContainerRuntime({
         signal?.throwIfAborted()
         const argv = buildContainerArgv({
           contract,
+          resources,
           daemonName: needsDaemon ? daemonName : null,
           image,
           name: jobName,
