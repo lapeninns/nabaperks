@@ -15,6 +15,12 @@ remove the system package installation step.
 
 ## Implementation and acceptance
 
+Qualification occurs on the unmerged performance PR. Main retains its previous
+hosted matrix until the full candidate workflow succeeds and the PR is approved.
+A candidate failure blocks that PR; it does not replace production or disable
+main's established workflow. Do not merge based only on local checks or a partial
+browser run. After merge, a reviewed revert restores the established matrix.
+
 E2E now uses eight packs per browser, covering the same original 32 shards in
 ascending groups of four. All four browser projects remain selected. Each shard
 retains one worker, its original denominator and selection, a fresh Playwright
@@ -27,7 +33,9 @@ pass. Reports and timing evidence are retained for every pack.
 E2E and accessibility use Microsoft's Playwright 1.62.1 Noble image, pinned to
 registry manifest digest
 `sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e`.
-The runtime verifies the installed Playwright version, browser location and all
+The container runs as UID 1001 to match GitHub's pwuser-owned home directory;
+Firefox refuses a root process using that directory. The runtime verifies the
+installed Playwright version, browser location and all
 three browser executables. Upgrade the image tag, digest and verifier version
 alongside the Playwright dependency, then requalify. Image download time must be
 included in comparisons; the image removes repeated apt installation, not all
