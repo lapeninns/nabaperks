@@ -9,6 +9,10 @@ import { buildLaneWorkspaceScript } from "../../ops/local-ci/agent/main.mjs"
 import { nodeTestArguments } from "../../scripts/ci/node-test-runner.mjs"
 import { createRunner } from "../../ops/local-ci/agent/runner.mjs"
 import { digestLogBundle } from "../../ops/local-ci/core/digest.mjs"
+import {
+  command as benchmarkCommand,
+  resourceSamplingSummary,
+} from "../../ops/local-ci/benchmark.mjs"
 
 const contract = JSON.parse(
   readFileSync(new URL("../../config/local-ci-contract.json", import.meta.url))
@@ -20,6 +24,36 @@ const lane = (id, extra = {}) => ({
   ...extra,
 })
 const tick = () => new Promise((resolve) => setImmediate(resolve))
+
+test("benchmark sampling and cleanup run real child processes without an abort signal", async () => {
+  const argv = [process.execPath, "-e", "process.stdout.write('sample')"]
+  assert.equal(await benchmarkCommand(argv, { signal: null }), "sample")
+  assert.equal(await benchmarkCommand(argv), "sample")
+  await assert.rejects(
+    benchmarkCommand(argv, { signal: AbortSignal.abort() }),
+    { name: "AbortError" }
+  )
+})
+
+test("qualification rejects sampler errors and a lane with no resource samples", () => {
+  const sample = {
+    containers: [{ Name: "nabaperks-ci-job-sha-e2e-chromium-1" }],
+  }
+  assert.equal(resourceSamplingSummary([sample], ["e2e-chromium"]).valid, true)
+  assert.equal(
+    resourceSamplingSummary(
+      [sample, { error: "signal rejected" }],
+      ["e2e-chromium"]
+    ).valid,
+    false
+  )
+  assert.equal(
+    resourceSamplingSummary([sample], ["e2e-chromium", "e2e-mobile-safari"])
+      .valid,
+    false
+  )
+  assert.equal(resourceSamplingSummary([], []).valid, false)
+})
 
 test("four real admissions overlap within the VM budget and retain input result order", async () => {
   const lanes = ["a", "b", "c", "d", "e"].map((id) => lane(id))

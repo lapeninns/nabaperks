@@ -32,17 +32,14 @@ import { inventoryFromPlaywright } from "../../scripts/ci/browser-parity.mjs"
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..")
 const quote = (value) => `'${String(value).replaceAll("'", "'\\''")}'`
 const controller = new AbortController()
-for (const signal of ["SIGINT", "SIGTERM"])
-  process.once(signal, () => controller.abort())
-
-function command(
+export function command(
   argv,
   { input, signal = controller.signal, timeoutMs = 600_000 } = {}
 ) {
   return new Promise((accept, reject) => {
     const child = spawn(argv[0], argv.slice(1), {
       cwd: root,
-      signal,
+      signal: signal ?? undefined,
       timeout: timeoutMs,
     })
     let stdout = "",
@@ -61,6 +58,24 @@ function command(
     )
     child.stdin.end(input)
   })
+}
+
+export function resourceSamplingSummary(samples, laneIds) {
+  const names = new Set(
+    samples.flatMap((sample) =>
+      (sample.containers ?? []).map((container) => container.Name)
+    )
+  )
+  const errors = samples.filter((sample) => sample.error).length
+  const missingLanes = laneIds.filter(
+    (id) => ![...names].some((name) => name?.includes(`-${id}-`))
+  )
+  return {
+    samples: samples.length,
+    errors,
+    missingLanes,
+    valid: samples.length > 0 && errors === 0 && missingLanes.length === 0,
+  }
 }
 
 async function main() {
@@ -216,6 +231,18 @@ async function main() {
         return path
       },
     })
+    sampling = false
+    await sampler
+    const resourceEvidence = resourceSamplingSummary(
+      readFileSync(join(directory, "resources.jsonl"), "utf8")
+        .trim()
+        .split(/\r?\n/)
+        .filter(Boolean)
+        .map(JSON.parse),
+      outcome.laneResults
+        .filter((lane) => lane.status !== "skipped")
+        .map((lane) => lane.laneId)
+    )
     const tests = readdirSync(directory)
       .filter((name) => name.includes(".local-ci-") && name.endsWith(".json"))
       .flatMap((name) =>
@@ -231,6 +258,7 @@ async function main() {
       imageId,
       durationMs: Date.now() - startedAt,
       ...outcome,
+      resourceEvidence,
       tests,
     }
     writeFileSync(
@@ -251,6 +279,7 @@ async function main() {
     )
     if (
       outcome.record.conclusion !== "success" ||
+      !resourceEvidence.valid ||
       tests.some(
         (test) =>
           test.flaky ||
@@ -276,7 +305,14 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(error.message)
-  process.exitCode = 1
-})
+if (
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
+  for (const signal of ["SIGINT", "SIGTERM"])
+    process.once(signal, () => controller.abort())
+  main().catch((error) => {
+    console.error(error.message)
+    process.exitCode = 1
+  })
+}
