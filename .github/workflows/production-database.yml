@@ -227,7 +227,7 @@ jobs:
     needs: staging
     environment: Production
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 45
     env:
       EXPECTED_REVISION: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
       RELEASE_RUN_ID: ${{ github.run_id }}
@@ -244,6 +244,7 @@ jobs:
         with:
           ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
           fetch-depth: 0
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version-file: .nvmrc
@@ -262,7 +263,9 @@ jobs:
           test -n "$SUPABASE_ACCESS_TOKEN"
           test -n "$SUPABASE_DB_PASSWORD"
           test -n "$SUPABASE_PROJECT_REF"
-      - name: Qualify unchanged runtime against the authenticated deployed baseline
+      - name: Install the disposable database client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Qualify runtime against the authenticated deployed baseline
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
@@ -271,15 +274,20 @@ jobs:
           baseline="$(jq -er '.revision' "$RUNNER_TEMP/release-ledger/baseline.json")"
           node scripts/release/stage-ledger.mjs identity --baseline "$baseline" \
             > "$RUNNER_TEMP/release-ledger/identity.json"
-          # This is unchanged-source qualification, not populated upgrade proof.
-          # Changed runtime/schema inputs fail here without execution evidence.
-          node scripts/release/stage-ledger.mjs qualify --baseline "$baseline" \
+          node scripts/release/qualify-runtime.mjs "$baseline" "$RUNNER_TEMP/release-ledger/runtime"
+          compatibility=()
+          if [[ -f "$RUNNER_TEMP/release-ledger/runtime/compatibility.json" ]]; then
+            compatibility=(--compatibility "$RUNNER_TEMP/release-ledger/runtime/compatibility.json")
+          fi
+          node scripts/release/stage-ledger.mjs qualify --baseline "$baseline" "${compatibility[@]}" \
             --output "$RUNNER_TEMP/release-ledger/qualified.json" \
             --evidence "$RUNNER_TEMP/release-ledger/qualified-evidence.json"
       - name: Link the approved production project
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
-      - name: Require unchanged production schema before database application
-        run: node scripts/check-supabase-migrations.mjs > "$RUNNER_TEMP/release-ledger/pre-apply-ledger.txt"
+      - name: Require qualified production migration prefix before database application
+        run: |
+          baseline="$(jq -er '.revision' "$RUNNER_TEMP/release-ledger/baseline.json")"
+          node scripts/release/pre-apply-migrations.mjs "$baseline" > "$RUNNER_TEMP/release-ledger/pre-apply-ledger.txt"
       - name: Prove the forward-only migration plan
         run: supabase db push --linked --dry-run --include-all
       - name: Recheck qualification and the unchanged live alias before database writes

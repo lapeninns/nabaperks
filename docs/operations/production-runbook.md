@@ -269,17 +269,32 @@ stage, checks it before its first mutation, and rechecks the baseline before
 promotion. Full provider alias readback must match the candidate after promotion
 and after public proof, before the verified stage can be retained.
 
-The initial workflow admission is deliberately limited to unchanged application
-and schema. A complete baseline-to-candidate Git tree comparison must contain
-only narrowly reviewed CI, operations, test and documentation paths; production
-migration-ledger parity is required before writes. Application, dependency or
-schema changes require authentic populated-upgrade and baseline/candidate/
-rollback application execution evidence. There is currently no workflow input
-that accepts an arbitrary compatibility JSON file. The disposable harness and
-reviewed domain probes are preparation until their authenticated producer is
-integrated. This means ordinary application/schema releases remain blocked by
-this new admission path until that work is complete; do not weaken the
-classification or claim that unchanged-source qualification executed an upgrade.
+The workflow compares the complete baseline-to-candidate Git tree. Changes
+limited to narrowly reviewed CI, operations, test and documentation paths can
+qualify as unchanged runtime. Application, dependency or schema changes run
+`scripts/release/qualify-runtime.mjs` within the protected release job. It builds
+immutable probes from clean exact baseline/candidate commits with fresh frozen
+dependencies, provisions a blank Supabase 17 project without provider secrets,
+applies every baseline migration, inserts 18 synthetic records, then applies
+the candidate suffix. Baseline, candidate and rollback application domain
+functions execute real billing, loyalty and webhook RPCs on the upgraded
+schema, with their mutations rolled back and populated invariants rechecked.
+The producer binds successful execution to the current release identity; no
+workflow input accepts caller-supplied compatibility evidence. Selected domain
+RPC proof does not replace the separate browser and signed-webhook staging job.
+
+Before applying production migrations, the live ledger must be a contiguous
+prefix of the qualified candidate and include every baseline migration. This
+permits a previously completed migration step while refusing missing history,
+remote-only migrations, or changed baseline SQL bytes. Full candidate parity
+is still required after application. Retain the raw execution, immutable probe
+artifacts and stage evidence with the release. The random disposable project is
+stopped without backup after qualification; cleanup failure blocks release.
+
+`vercel.json` disables automatic Git deployments. The protected release owner
+uses the existing CLI build/deploy/promote path so database admission and
+migration application finish before application promotion. Repository pushes
+alone must never publish an application that requires a missing database RPC.
 
 Evidence expires after one hour across the whole chain. If approval waiting,
 main advancement, provider drift or a partial rerun invalidates it, start a
