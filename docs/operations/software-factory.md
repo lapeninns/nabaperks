@@ -11,8 +11,13 @@ all nine required roots until isolated local evidence and fallback are proven.
 Run `pnpm ops:factory:status` for a decision table, or
 `pnpm ops:factory:status -- --json` for structured evidence. Collection reads
 GitHub metadata, paginates PRs, reviews, check runs and review threads, and checks
-that the head and merge candidate did not move during collection. It never
-reads PR instructions or downloads candidate artifacts. Missing, raced or
+that the head, base and merge candidate did not move during collection.
+GitHub Actions attaches checks to the PR head. The report binds each expected-App
+check to its workflow path, check suite and a fixed workflow run title containing
+the event head and base SHAs. The run's mutable PR association is not base-revision
+proof. Older unstamped runs cannot establish readiness. This is workflow-event
+evidence; per-step checkout attestation remains part of future local authority
+qualification. The collector never reads PR instructions or downloads candidate artifacts. Missing, raced or
 unavailable evidence yields `unknown`, not readiness. The hosted
 `Delivery decision report` uses main's code and read-only permissions.
 
@@ -39,8 +44,8 @@ pnpm ops:factory:action -- reserve-repair <pr-number> <full-head-sha>
 pnpm ops:factory:action -- finish-repair <pr-number> <new-full-head-sha>
 ```
 
-`request-review` requires current successful expected-App checks on the merge
-candidate, no unresolved findings and missing current-head reviewer coverage.
+`request-review` requires current successful expected-App checks for the current
+head and base, no unresolved findings and missing current-head reviewer coverage.
 It posts only the fixed `@codex review` request. Reviewer instructions can also
 be scoped in `AGENTS.md`. A reviewer `COMMENTED` record is coverage evidence,
 not a GitHub approval, proof that no defects exist or exhaustive security proof.

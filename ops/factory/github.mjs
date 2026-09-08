@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process"
+import { bindWorkflowChecks } from "./workflow-checks.mjs"
 import { reviewSummaryCommit } from "./review-summary.mjs"
 
 export function githubJson(args) {
@@ -91,10 +92,17 @@ export function collectPullRequest(
   }
   const checks = candidateSha
     ? githubPages(
-        `repos/${repo}/commits/${candidateSha}/check-runs?per_page=100&filter=latest`,
+        `repos/${repo}/commits/${pr.headRefOid}/check-runs?per_page=100&filter=latest`,
         read
       ).flatMap((page) => page.check_runs ?? [])
     : []
+  const boundChecks = bindWorkflowChecks(checks, {
+    policy,
+    number,
+    headSha: pr.headRefOid,
+    baseSha: raw.base.sha,
+    read,
+  })
   const [owner, name] = repo.split("/")
   const query = `query($owner:String!,$name:String!,$number:Int!,$endCursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){reviewThreads(first:100,after:$endCursor){nodes{isResolved} pageInfo{hasNextPage endCursor}}}}}`
   const threads = read([
@@ -125,9 +133,13 @@ export function collectPullRequest(
     "api",
     `repos/${repo}/pulls/${number}`,
     "--jq",
-    "{sha:.head.sha,merge:.merge_commit_sha}",
+    "{sha:.head.sha,base:.base.sha,merge:.merge_commit_sha}",
   ])
-  if (finalHead.sha !== pr.headRefOid || finalHead.merge !== candidateSha)
+  if (
+    finalHead.sha !== pr.headRefOid ||
+    finalHead.base !== raw.base.sha ||
+    finalHead.merge !== candidateSha
+  )
     throw new Error("PR candidate changed during collection; retry")
   return {
     number,
@@ -135,6 +147,7 @@ export function collectPullRequest(
     state: pr.state,
     headSha: pr.headRefOid,
     candidateSha,
+    baseSha: raw.base.sha,
     headRepository: raw.head.repo?.full_name,
     isDraft: pr.isDraft,
     reviewDecision: pr.reviewDecision,
@@ -148,14 +161,7 @@ export function collectPullRequest(
       .flatMap((page) => page.data.repository.pullRequest.reviewThreads.nodes)
       .filter((thread) => !thread.isResolved).length,
     reviews: coverageReviews,
-    checks: checks.map((entry) => ({
-      id: entry.id,
-      name: entry.name,
-      appId: entry.app.id,
-      sha: entry.head_sha,
-      status: entry.status,
-      conclusion: entry.conclusion,
-    })),
+    checks: boundChecks,
   }
 }
 

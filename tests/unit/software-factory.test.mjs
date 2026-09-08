@@ -28,6 +28,7 @@ import { factoryAction } from "../../scripts/ci/factory-action.mjs"
 
 const SHA = "a".repeat(40),
   MERGE = "b".repeat(40),
+  BASE = "c".repeat(40),
   NOW = Date.parse("2026-09-08T14:00:00Z")
 function ready() {
   return {
@@ -38,6 +39,7 @@ function ready() {
     isDraft: false,
     headSha: SHA,
     candidateSha: MERGE,
+    baseSha: BASE,
     headRepository: policy.repository,
     headCommittedAt: new Date(NOW).toISOString(),
     reviewDecision: "APPROVED",
@@ -56,7 +58,9 @@ function ready() {
     checks: policy.requiredChecks.map((check, index) => ({
       ...check,
       id: index + 1,
-      sha: MERGE,
+      sha: SHA,
+      baseSha: BASE,
+      workflowBound: true,
       status: "completed",
       conclusion: "success",
     })),
@@ -80,7 +84,9 @@ test("missing, wrong-App, old-head and skipped checks cannot report readiness", 
   for (const change of [
     undefined,
     { appId: 999 },
-    { sha: SHA },
+    { sha: MERGE },
+    { baseSha: MERGE },
+    { workflowBound: false },
     { conclusion: "skipped" },
     { status: "queued", conclusion: null },
   ]) {
@@ -229,13 +235,30 @@ function readFixture(args) {
           ...check,
           app: { id: check.appId },
           head_sha: check.sha,
+          details_url: `https://github.com/${policy.repository}/actions/runs/${check.id}/job/${check.id}`,
+          check_suite: { id: check.id },
         })),
       },
     ]
+  if (path?.includes("/actions/runs/")) {
+    const id = Number(path.split("/").at(-1))
+    const expected = policy.requiredChecks[id - 1]
+    return {
+      id,
+      repository: { full_name: policy.repository },
+      event: "pull_request",
+      head_sha: SHA,
+      check_suite_id: id,
+      path: expected.workflowPath,
+      display_title: `${expected.workflowName} head:${SHA} base:${BASE}`,
+      pull_requests: [{ number: 1 }],
+    }
+  }
   if (path?.includes(`/commits/${SHA}`))
     return { commit: { committer: { date: new Date(NOW).toISOString() } } }
-  if (args.includes("--jq")) return { sha: SHA, merge: MERGE }
+  if (args.includes("--jq")) return { sha: SHA, base: BASE, merge: MERGE }
   return {
+    base: { sha: BASE },
     head: { sha: SHA, repo: { full_name: policy.repository } },
     merge_commit_sha: MERGE,
   }

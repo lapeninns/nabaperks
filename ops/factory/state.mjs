@@ -54,7 +54,9 @@ export function evaluatePullRequest(pr, policy, now = Date.now()) {
       (check) =>
         check.name === expected.name &&
         check.appId === expected.appId &&
-        check.sha === pr.candidateSha
+        check.sha === pr.headSha &&
+        check.baseSha === pr.baseSha &&
+        check.workflowBound === true
     )
     return candidates.sort((a, b) => b.id - a.id)[0]
   })
@@ -92,7 +94,7 @@ export function evaluatePullRequest(pr, policy, now = Date.now()) {
       stale ? "check-stalled" : "testing",
       "coordinator",
       stale ? "diagnose-check-wait" : "observe-checks",
-      "Required checks must succeed from the expected App on the current merge candidate."
+      "Required checks need expected-App workflow evidence stamped with the current PR head and base."
     )
   }
   if (!review) {
