@@ -3,6 +3,17 @@ name: Production deployment
 # Called only by the release owner, which holds the lock through public proof.
 on:
   workflow_call:
+    secrets:
+      SUPABASE_ACCESS_TOKEN:
+        required: true
+      SUPABASE_SEND_EMAIL_HOOK_SECRET:
+        required: true
+      PRODUCTION_ALERT_WEBHOOK_SECRET:
+        required: true
+      PRODUCTION_MONITOR_SECRET:
+        required: true
+      VERCEL_TOKEN:
+        required: true
     inputs:
       expected_revision:
         description: Full immutable candidate SHA admitted by the release owner
@@ -33,7 +44,7 @@ jobs:
       SOURCE_REVISION: ${{ github.event.workflow_run.head_sha || '' }}
       SOURCE_BRANCH: ${{ github.event.workflow_run.head_branch || '' }}
       SOURCE_EVENT: ${{ github.event.workflow_run.event || '' }}
-      SOURCE_WORKFLOW: ${{ github.event.workflow_run.name || '' }}
+      SOURCE_RUN_ID: ${{ github.event.workflow_run.id || '' }}
       SOURCE_REPOSITORY: ${{ github.event.workflow_run.head_repository.full_name || '' }}
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -49,7 +60,9 @@ jobs:
             test "$SOURCE_CONCLUSION" = "success"
             test "$SOURCE_BRANCH" = "main"
             test "$SOURCE_EVENT" = "push"
-            test "$SOURCE_WORKFLOW" = "CI"
+            [[ "$SOURCE_RUN_ID" =~ ^[0-9]+$ ]]
+            source_path="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" --jq '.path')"
+            test "$source_path" = ".github/workflows/ci.yml"
             test "$SOURCE_REPOSITORY" = "$GITHUB_REPOSITORY"
             test "$SOURCE_REVISION" = "$EXPECTED_REVISION"
           else
