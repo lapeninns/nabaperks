@@ -19,6 +19,18 @@
  * `41 FF 42` would then attest to one and the same digest. A caller that hands
  * over a string is encoded to UTF-8 once, and those bytes are what is hashed.
  *
+ * This module cannot win that property on its own, and for a while it did not.
+ * A digest that binds bytes is worth nothing if the bytes were decoded before
+ * they arrived, and `agent/container.mjs` used to decode each captured chunk
+ * as it landed - so both call sites were handed U+FFFD text and the collision
+ * above survived end to end regardless of what happened here. The capture path
+ * now carries buffers from the process's stdout through the run directory to
+ * `digestLogBundle`, and `agent/runner.mjs` records each log part's `bytes`
+ * beside the `text` its parsers read. Anything that reintroduces a decode
+ * upstream of here takes the guarantee away again without touching this file,
+ * which is what the end-to-end tests in `tests/unit/local-ci-runner.test.mjs`
+ * are there to catch.
+ *
  * `digestLogBundle` hashes a length-prefixed concatenation. Without the length
  * prefix, the two-part bundles ["ab", "c"] and ["a", "bc"] hash identically,
  * so a log reassembled in the wrong split would still verify. The part count

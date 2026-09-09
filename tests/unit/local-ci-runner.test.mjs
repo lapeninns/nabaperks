@@ -1,8 +1,10 @@
 import assert from "node:assert/strict"
+import { EventEmitter } from "node:events"
 import { readFileSync } from "node:fs"
 import { test } from "node:test"
 import { fileURLToPath } from "node:url"
 
+import { createContainerRuntime } from "../../ops/local-ci/agent/container.mjs"
 import { loadContract } from "../../ops/local-ci/core/contract.mjs"
 import { digestLogBundle } from "../../ops/local-ci/core/digest.mjs"
 import {
@@ -109,11 +111,24 @@ function fakeRuntime({ lanes = {}, workspaceLogs = {}, throwFor = {} } = {}) {
       const timedOut = wanted > options.timeoutMs
       const took = timedOut ? options.timeoutMs : wanted
       clock.advance(took)
-      const output = script.output ?? `##local-ci## lane ${options.laneId} ok\n`
-      options.onOutput?.(output, "stdout")
+      // `chunks` streams the lane's output as the real runtime does, in
+      // buffers whose boundaries the script chooses; `output` is the simpler
+      // string form the rest of these tests use.
+      const chunks =
+        script.chunks ??
+        script.output ??
+        `##local-ci## lane ${options.laneId} ok\n`
+      const emitted = Array.isArray(chunks) ? chunks : [chunks]
+      for (const chunk of emitted) options.onOutput?.(chunk, "stdout")
+      const outputBytes = Buffer.concat(
+        emitted.map((chunk) =>
+          Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk), "utf8")
+        )
+      )
       return {
         exitCode: timedOut ? 124 : (script.exitCode ?? 0),
-        output,
+        output: outputBytes.toString("utf8"),
+        outputBytes,
         timedOut,
         cancelled: false,
         durationMs: took,
@@ -133,19 +148,34 @@ function fakeRuntime({ lanes = {}, workspaceLogs = {}, throwFor = {} } = {}) {
   }
 }
 
-/** Every log part written into the run directory, by name. */
+/**
+ * Every log part written into the run directory, by name.
+ *
+ * `bytes` is the file as `appendFileSync` would have left it; `files` is the
+ * text view of the same file. The real sink appends buffers, so a fake that
+ * concatenated chunks as strings would quietly repair a capture path that had
+ * already lost bytes - and the digest tests below exist to catch exactly that.
+ */
 function fakeRunDirectory() {
-  const files = new Map()
+  const bytes = new Map()
   const opened = []
+  const files = {
+    get: (name) => bytes.get(name)?.toString("utf8"),
+    has: (name) => bytes.has(name),
+  }
   return {
+    bytes,
     files,
     opened,
     openLaneLog(name) {
       opened.push(name)
-      files.set(name, "")
+      bytes.set(name, Buffer.alloc(0))
       return {
         write(chunk) {
-          files.set(name, files.get(name) + chunk)
+          const part = Buffer.isBuffer(chunk)
+            ? chunk
+            : Buffer.from(String(chunk), "utf8")
+          bytes.set(name, Buffer.concat([bytes.get(name), part]))
         },
         close() {},
       }
@@ -310,6 +340,160 @@ test("a lane still running at the deadline is stopped there, not at its own long
   assert.equal(outcome.record.conclusion, "timed_out")
 })
 
+test("the evidence digest separates two logs that differ only in bytes a decode would fold together", async () => {
+  // The finding this exists for. `core/digest.mjs` hashes bytes rather than a
+  // decoding of them, but that bought nothing while the capture path decoded
+  // every chunk on arrival: both logs reached the digest as `A<U+FFFD>B` and
+  // attested to one and the same hash. The property has to hold from the
+  // process's stdout to the published record, not in the digest unit alone.
+  const digestOfLaneLog = async (bytes) => {
+    clock = fakeClock()
+    const runDir = fakeRunDirectory()
+    const outcome = await runnerFor({
+      runtime: fakeRuntime({ lanes: { fast: { chunks: [bytes] } } }),
+      runDir,
+    }).runProfile({
+      profile: profileOf([laneOf({ id: "fast" })]),
+      headSha: HEAD_SHA,
+    })
+    return { outcome, runDir }
+  }
+
+  const lone = Buffer.from([0x41, 0x80, 0x42])
+  const invalid = Buffer.from([0x41, 0xff, 0x42])
+  const first = await digestOfLaneLog(lone)
+  const second = await digestOfLaneLog(invalid)
+
+  assert.deepEqual(
+    first.runDir.bytes.get("fast.log"),
+    lone,
+    "the run directory holds the bytes the lane wrote, undecoded"
+  )
+  assert.deepEqual(second.runDir.bytes.get("fast.log"), invalid)
+  assert.equal(
+    first.runDir.files.get("fast.log"),
+    second.runDir.files.get("fast.log"),
+    "the two logs are indistinguishable once decoded, which is the whole risk"
+  )
+  assert.notEqual(
+    first.outcome.laneResults[0].logDigest,
+    second.outcome.laneResults[0].logDigest,
+    "the lane digest must separate them"
+  )
+  assert.notEqual(
+    first.outcome.record.logDigest,
+    second.outcome.record.logDigest,
+    "and so must the run digest the check publishes"
+  )
+
+  // §6.4 rebuilds from the file on disk, and must land on the same value.
+  assert.equal(
+    first.outcome.record.logDigest,
+    digestLogBundle([first.runDir.bytes.get("fast.log")])
+  )
+  assert.equal(
+    second.outcome.record.logDigest,
+    digestLogBundle([second.runDir.bytes.get("fast.log")])
+  )
+})
+
+test("a lane's log survives a multi-byte character split across two stream chunks", async () => {
+  clock = fakeClock()
+  // Valid UTF-8 throughout: this is corruption of a good log, not a question
+  // about invalid bytes. `£` is `C2 A3`, and the chunk boundary falls between.
+  const written = Buffer.from("lane says £5 and ✓\n", "utf8")
+  const boundary = written.indexOf(0xc2) + 1
+  const runDir = fakeRunDirectory()
+  const outcome = await runnerFor({
+    runtime: fakeRuntime({
+      lanes: {
+        fast: {
+          chunks: [written.subarray(0, boundary), written.subarray(boundary)],
+        },
+      },
+    }),
+    runDir,
+  }).runProfile({
+    profile: profileOf([laneOf({ id: "fast" })]),
+    headSha: HEAD_SHA,
+  })
+
+  assert.deepEqual(
+    runDir.bytes.get("fast.log"),
+    written,
+    "the log file must be byte-identical to what the lane wrote"
+  )
+  assert.equal(runDir.files.get("fast.log"), "lane says £5 and ✓\n")
+  assert.ok(
+    !runDir.files.get("fast.log").includes("�"),
+    "no replacement character may appear in a log that was valid UTF-8"
+  )
+  assert.equal(
+    outcome.record.logDigest,
+    digestLogBundle([written]),
+    "and the digest attests to those bytes"
+  )
+})
+
+test("the log a lane writes reaches the published digest byte for byte, through the real container runtime", async () => {
+  clock = fakeClock()
+  // Nothing is stubbed here but the operating system's `spawn`: the real
+  // `createContainerRuntime` and the real runner carry these bytes from the
+  // process's stdout to `record.logDigest`. The two tests above pin the
+  // property at each end; this one pins the seam between them, which is where
+  // it was actually lost - a decode inside `runContainer` made every layer
+  // above it hash a U+FFFD text no matter how careful `core/digest.mjs` was.
+  const written = Buffer.from("héllo ÿ\n", "binary")
+  assert.ok(
+    written.toString("utf8").includes("�"),
+    "the fixture has to contain bytes a decode would destroy, or it proves nothing"
+  )
+
+  const spawnFn = (executable, args) => {
+    const child = new EventEmitter()
+    child.stdout = new EventEmitter()
+    child.stderr = new EventEmitter()
+    child.pid = 4242
+    const isJobRun =
+      args.includes("run") &&
+      args.some((argument) => String(argument).includes("nabaperks-ci-job-"))
+    setImmediate(() => {
+      // Split so a byte pair lands either side of a chunk boundary.
+      if (isJobRun) {
+        child.stdout.emit("data", written.subarray(0, 2))
+        child.stdout.emit("data", written.subarray(2))
+      }
+      child.emit("close", 0, null)
+    })
+    return child
+  }
+
+  const runDir = fakeRunDirectory()
+  const outcome = await runnerFor({
+    runtime: createContainerRuntime({ contract, spawnFn }),
+    runDir,
+  }).runProfile({
+    profile: profileOf([laneOf({ id: "fast" })]),
+    headSha: HEAD_SHA,
+  })
+
+  assert.deepEqual(
+    runDir.bytes.get("fast.log"),
+    written,
+    "the run directory holds what the lane wrote, byte for byte"
+  )
+  assert.equal(
+    outcome.record.logDigest,
+    digestLogBundle([written]),
+    "and the digest the check publishes attests to those bytes"
+  )
+  assert.notEqual(
+    outcome.record.logDigest,
+    digestLogBundle([Buffer.from(written.toString("utf8"), "utf8")]),
+    "a digest over the decoded text would be a different value, and is what this plane used to publish"
+  )
+})
+
 test("a container runtime that cannot start a lane fails that lane, and the run still publishes", async () => {
   clock = fakeClock()
   const profile = profileOf([laneOf({ id: "fast" }), laneOf({ id: "quality" })])
@@ -346,7 +530,7 @@ test("a container runtime that cannot start a lane fails that lane, and the run 
   )
   assert.equal(
     outcome.laneResults[0].logDigest,
-    digestLogBundle([runDir.files.get("fast.log")]),
+    digestLogBundle([runDir.bytes.get("fast.log")]),
     "the digest is over the bytes the log file actually holds"
   )
   assert.ok(renderCheckSummary(outcome.record, contract).title)
@@ -433,11 +617,12 @@ test("a declared background-service log is copied into the run directory and has
   )
 
   // docs/operations/local-ci.md §6.4 verbatim: rebuild the digest from the
-  // bytes on disk, in the order the record names them.
+  // bytes on disk, in the order the record names them. Bytes, not a decoding
+  // of them, which is what §6.4's `readFile` now asks for.
   const rebuilt = digestLogBundle(
     outcome.laneResults
       .flatMap((entry) => entry.logParts)
-      .map((name) => runDir.files.get(name))
+      .map((name) => runDir.bytes.get(name))
   )
   assert.equal(rebuilt, outcome.record.logDigest)
 })
