@@ -3,7 +3,10 @@ import "server-only"
 import { getServerEnv } from "@/lib/env/server"
 import { logger } from "@/lib/observability/logger"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
-import { sendTransactionalEmail } from "@/lib/notifications/resend"
+import {
+  prepareTransactionalEmailPayload,
+  sendPreparedTransactionalEmail,
+} from "@/lib/notifications/resend"
 import {
   deliverQrStatusEmail,
   type QrStatusDeliveryRow,
@@ -27,9 +30,24 @@ export async function drainQrStatusEmails(
         deliverQrStatusEmail({
           row,
           workspaceUrl,
-          send: (input) =>
-            sendTransactionalEmail({
-              ...input,
+          prepare: prepareTransactionalEmailPayload,
+          persist: async (candidate) => {
+            const { data: payload, error: payloadError } = await service.rpc(
+              "prepare_qr_status_email",
+              {
+                p_id: row.id,
+                p_lease_id: row.lease_id,
+                p_payload: candidate,
+              }
+            )
+            if (payloadError || typeof payload !== "string")
+              throw new Error("payload_not_persisted")
+            return payload
+          },
+          send: (payload, idempotencyKey) =>
+            sendPreparedTransactionalEmail({
+              payload,
+              idempotencyKey,
               signal: AbortSignal.timeout(15_000),
               beforeProviderAttempt: async () => {
                 const now = new Date()

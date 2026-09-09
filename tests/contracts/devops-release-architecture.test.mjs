@@ -42,7 +42,7 @@ test("successful application promotion verifies the exact production revision", 
   assert.match(smoke, /timeout-minutes: 7/)
   assert.match(smoke, /EXPECTED_REVISION:0:12/)
   assert.match(smoke, /for attempt in \{1\.\.30\}/)
-  assert.match(smoke, /\.signals\.cronJobs[\s\S]*length == 7/)
+  assert.match(smoke, /\.signals\.cronJobs[\s\S]*length == 8/)
   assert.match(smoke, /Production did not expose expected revision/)
 })
 

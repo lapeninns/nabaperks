@@ -166,7 +166,7 @@ begin
 end;
 $$;
 
-create or replace function public.set_qr_active(
+create or replace function public.activate_merchant_qr_explicit(
   p_merchant_id uuid,
   p_qr_code_id uuid,
   p_is_active boolean
@@ -258,8 +258,23 @@ $$;
 
 notify pgrst, 'reload schema';
 
--- The legacy void RPC remains compatible. The merchant UI needs a precise
--- transition outcome so a no-op cannot claim that another email was queued.
+-- The old application uses set_qr_active for both explicit resume and automatic
+-- setup repair. Those calls are indistinguishable, so legacy activation must
+-- fail closed to preserve a pause during rollout or application rollback.
+revoke all on function public.activate_merchant_qr_explicit(uuid, uuid, boolean) from public, anon, authenticated, service_role;
+create or replace function public.set_qr_active(p_merchant_id uuid, p_qr_code_id uuid, p_is_active boolean)
+returns void language plpgsql security definer set search_path = public, auth as $$
+begin
+  if auth.uid() is null or not public.is_merchant_owner(p_merchant_id) then
+    raise insufficient_privilege using message = 'Merchant owner required';
+  end if;
+  if p_is_active is true and exists (
+    select 1 from public.qr_codes where id = p_qr_code_id and merchant_id = p_merchant_id and is_active
+  ) then return; end if;
+  raise insufficient_privilege using message = 'Use Venue QR email verification to pause or the explicit Resume action';
+end;
+$$;
+-- The current merchant UI receives a precise transition outcome.
 create function public.resume_merchant_qr(p_merchant_id uuid, p_qr_code_id uuid)
 returns jsonb language plpgsql security definer set search_path = public, auth as $$
 declare v_active boolean;
@@ -269,7 +284,7 @@ begin
       and m.owner_user_id = auth.uid() for update of q;
   if not found then raise insufficient_privilege using message = 'QR code not found for merchant'; end if;
   if v_active then return jsonb_build_object('status', 'unchanged'); end if;
-  perform public.set_qr_active(p_merchant_id, p_qr_code_id, true);
+  perform public.activate_merchant_qr_explicit(p_merchant_id, p_qr_code_id, true);
   return jsonb_build_object('status', 'resumed');
 end;
 $$;

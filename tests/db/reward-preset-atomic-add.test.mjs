@@ -1245,10 +1245,9 @@ async function activateQrOnDedicatedConnection(fixture, qrId, applicationName) {
       await tx`select set_config('application_name', ${applicationName}, true)`
       await tx`set local role authenticated`
       await actAsMerchantOwner(tx, fixture.ownerUserId)
-      return tx`select public.set_qr_active(
+      return tx`select public.resume_merchant_qr(
         ${fixture.merchantId}::uuid,
-        ${qrId}::uuid,
-        true
+        ${qrId}::uuid
       )`
     })
   } finally {

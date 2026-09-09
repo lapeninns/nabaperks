@@ -59,8 +59,12 @@ test("delivery retry keeps a stable recipient idempotency key after ambiguous pr
     is_active: false,
     scans_available: false,
     changed_at: base.changedAt,
+    provider_payload: null,
   }
   const keys = []
+  const bodies = []
+  let stored
+  const persist = async (candidate) => (stored ??= candidate)
   const outcomes = []
   const finish = async (outcome) => {
     outcomes.push(outcome)
@@ -70,9 +74,12 @@ test("delivery retry keeps a stable recipient idempotency key after ambiguous pr
     await deliverQrStatusEmail({
       row,
       workspaceUrl: base.workspaceUrl,
+      prepare: JSON.stringify,
+      persist,
       finish,
-      send: async (payload) => {
-        keys.push(payload.idempotencyKey)
+      send: async (payload, key) => {
+        bodies.push(payload)
+        keys.push(key)
         throw new Error("timeout")
       },
     }),
@@ -81,16 +88,27 @@ test("delivery retry keeps a stable recipient idempotency key after ambiguous pr
   assert.equal(
     await deliverQrStatusEmail({
       row: { ...row, lease_id: "lease-2" },
-      workspaceUrl: base.workspaceUrl,
+      workspaceUrl: "https://changed.test/app/qr",
+      prepare: (input) =>
+        JSON.stringify({
+          ...input,
+          from: "changed@example.test",
+          subject: "New template",
+        }),
+      persist,
       finish,
-      send: async (payload) => {
-        keys.push(payload.idempotencyKey)
+      send: async (payload, key) => {
+        bodies.push(payload)
+        keys.push(key)
       },
     }),
     true
   )
   assert.deepEqual(keys, ["qr-status:email-1", "qr-status:email-1"])
   assert.deepEqual(outcomes, ["temporary", "sent"])
+  assert.equal(bodies[0], bodies[1])
+  assert.match(bodies[1], /example.test/)
+  assert.doesNotMatch(bodies[1], /changed.test|New template/)
 })
 
 test("delivery failures and lost leases cannot be reported as recorded success", async () => {
@@ -113,11 +131,14 @@ test("delivery failures and lost leases cannot be reported as recorded success",
     is_active: true,
     scans_available: true,
     changed_at: base.changedAt,
+    provider_payload: null,
   }
   assert.equal(
     await deliverQrStatusEmail({
       row,
       workspaceUrl: base.workspaceUrl,
+      prepare: JSON.stringify,
+      persist: async (candidate) => candidate,
       send: async () => {},
       finish: async () => false,
     }),
@@ -131,4 +152,36 @@ test("owner address is masked and replay response never claims a fresh pause", (
   assert.equal(isQrPauseComplete("already_completed"), true)
   assert.equal(isQrPauseComplete("incorrect"), false)
   assert.match(qrPauseResult("already_completed").message, /current status/)
+})
+
+test("failed payload persistence prevents the provider request", async () => {
+  let sends = 0
+  const outcomes = []
+  const result = await deliverQrStatusEmail({
+    row: {
+      id: "email-persist",
+      lease_id: "lease",
+      recipient: "owner@example.test",
+      venue_name: "Crown",
+      is_active: false,
+      scans_available: false,
+      changed_at: base.changedAt,
+      provider_payload: null,
+    },
+    workspaceUrl: base.workspaceUrl,
+    prepare: JSON.stringify,
+    persist: async () => {
+      throw new Error("database unavailable")
+    },
+    send: async () => {
+      sends++
+    },
+    finish: async (outcome) => {
+      outcomes.push(outcome)
+      return true
+    },
+  })
+  assert.equal(result, false)
+  assert.equal(sends, 0)
+  assert.deepEqual(outcomes, ["temporary"])
 })

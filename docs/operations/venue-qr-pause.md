@@ -37,7 +37,10 @@ The action schedules a prompt delivery attempt after the response. The protected
 `GET /api/cron/qr-status-email-drain` runs every five minutes and claims at most
 20 emails per invocation using five-minute leases and `SKIP LOCKED`. Each
 provider send is bounded to 15 seconds and rechecks the live lease before every
-provider attempt. Every retry uses `qr-status:<outbox-id>` as its stable provider
+provider attempt. Before its first send, the worker persists the exact provider request body,
+including sender, Reply-To, subject, template and link. Lease-checked preparation
+returns those same bytes on later attempts, including after a deployment or
+configuration change. Every retry uses `qr-status:<outbox-id>` as its stable provider
 idempotency key. Attempts stop at 12 or 20 hours, keeping retries inside the
 provider's 24-hour idempotency window. An accepted recipient is not retried just
 because a different recipient failed.
@@ -54,20 +57,26 @@ when the 24-hour provider window has passed.
 ## Release and rollback
 
 Apply the four `20260909200000`–`20260909200300` migrations in order through the
-protected database promotion. Storage is additive; enforcement keeps the resume
-signature and fails closed for older merchant pause clients. No new secrets or
+protected database promotion. Storage is additive. The old `set_qr_active` signature is retained, but attempts
+to change state fail closed: the old application uses that same RPC for explicit
+resume and automatic setup repair, which the database cannot distinguish. The
+new application resumes only through `resume_merchant_qr`. No new secrets or
 sender configuration are needed. The new cron uses the existing `CRON_SECRET`.
 
 The prior operational-signals RPC continues to return the seven jobs understood
-by the deployed app. The new application reads `production_operational_signals_v2`
+by the deployed app. The new v2 signal calculation includes QR provider
+failures (including backoff and terminal outcomes) and the age of pending QR
+confirmations, so successful empty cron runs cannot erase delivery health.
+The new application reads `production_operational_signals_v2`
 and requires all eight jobs, including the new drain. This preserves old-app
 readiness and application rollback compatibility without weakening new-app
 monitoring. After deployment, verify that the new cron has run within its
 15-minute monitoring gap.
 
 For an application rollback, retain the new database protections and outbox.
-Old merchant pause controls will fail safely; resume and internal admin controls
-remain available. Continue draining outstanding confirmations through the
+Old merchant pause and resume controls will fail safely. Automatic setup repair
+cannot reactivate a paused QR. Restore a compatible application for merchant
+resume; internal admin controls remain available. Continue draining outstanding confirmations through the
 protected endpoint on a compatible deployment until the application is restored.
 Do not restore unverified merchant pause privileges as a rollback shortcut.
 

@@ -2,6 +2,8 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 import {
   sendEmailOtp,
+  prepareTransactionalEmailPayload,
+  sendPreparedTransactionalEmail,
   sendTransactionalEmail,
 } from "@/lib/notifications/resend"
 
@@ -104,3 +106,46 @@ for (const marketingFrom of [undefined, "Nabaperks <hello@nabaperks.com>"]) {
     }
   })
 }
+
+test("persisted operational mail sends identical bytes after sender settings change", async (t) => {
+  const keys = ["RESEND_API_KEY", "RESEND_FROM", "RESEND_REPLY_TO"]
+  const previous = Object.fromEntries(
+    keys.map((key) => [key, process.env[key]])
+  )
+  const calls = []
+  t.mock.method(globalThis, "fetch", async (_url, init) => {
+    calls.push({ body: init.body, key: init.headers["Idempotency-Key"] })
+    return Response.json({ id: "accepted" })
+  })
+  try {
+    process.env.RESEND_API_KEY = "fixture-only"
+    process.env.RESEND_FROM = "original@example.test"
+    process.env.RESEND_REPLY_TO = "original-reply@example.test"
+    const payload = prepareTransactionalEmailPayload({
+      to: "recipient@example.test",
+      subject: "Original",
+      text: "Original https://original.test/app/qr",
+      html: "<p>Original</p>",
+    })
+    await sendPreparedTransactionalEmail({
+      payload,
+      idempotencyKey: "qr-status:fixture",
+    })
+    process.env.RESEND_FROM = "replacement@example.test"
+    process.env.RESEND_REPLY_TO = "replacement-reply@example.test"
+    await sendPreparedTransactionalEmail({
+      payload,
+      idempotencyKey: "qr-status:fixture",
+    })
+    assert.equal(calls.length, 2)
+    assert.deepEqual(calls[1], calls[0])
+    assert.equal(calls[1].body, payload)
+    assert.match(payload, /original-reply@example.test/)
+    assert.doesNotMatch(payload, /replacement/)
+  } finally {
+    for (const key of keys) {
+      if (previous[key] === undefined) delete process.env[key]
+      else process.env[key] = previous[key]
+    }
+  }
+})

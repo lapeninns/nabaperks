@@ -8,6 +8,7 @@ export type QrStatusDeliveryRow = {
   is_active: boolean
   scans_available: boolean
   changed_at: string
+  provider_payload: string | null
 }
 export type QrEmailOutcome = "sent" | "temporary" | "permanent"
 
@@ -27,32 +28,36 @@ export function qrEmailFailureOutcome(error: unknown): QrEmailOutcome {
 export async function deliverQrStatusEmail({
   row,
   workspaceUrl,
+  prepare,
+  persist,
   send,
   finish,
 }: {
   row: QrStatusDeliveryRow
   workspaceUrl: string
-  send: (
-    input: ReturnType<typeof buildQrStatusEmail> & {
-      to: string
-      idempotencyKey: string
-    }
-  ) => Promise<void>
+  prepare: (
+    input: ReturnType<typeof buildQrStatusEmail> & { to: string }
+  ) => string
+  persist: (candidate: string) => Promise<string>
+  send: (payload: string, idempotencyKey: string) => Promise<void>
   finish: (outcome: QrEmailOutcome) => Promise<boolean>
 }) {
   let outcome: QrEmailOutcome = "sent"
   try {
-    await send({
-      to: row.recipient,
-      idempotencyKey: `qr-status:${row.id}`,
-      ...buildQrStatusEmail({
-        venueName: row.venue_name,
-        isActive: row.is_active,
-        scansAvailable: row.scans_available,
-        changedAt: row.changed_at,
-        workspaceUrl,
-      }),
-    })
+    const candidate =
+      row.provider_payload ??
+      prepare({
+        to: row.recipient,
+        ...buildQrStatusEmail({
+          venueName: row.venue_name,
+          isActive: row.is_active,
+          scansAvailable: row.scans_available,
+          changedAt: row.changed_at,
+          workspaceUrl,
+        }),
+      })
+    const payload = await persist(candidate)
+    await send(payload, `qr-status:${row.id}`)
   } catch (error) {
     outcome = qrEmailFailureOutcome(error)
   }

@@ -103,7 +103,7 @@ full webhook payloads.
 
    Liveness must report `status=ok` and readiness must report
    `status=ready`, `checks.database=ok` and `checks.operational=ok`. Its
-   `signals` object must include seven cron jobs plus numeric queue-age and
+   `signals` object must include eight cron jobs plus numeric queue-age and
    provider-delivery fields. Both probes must show the promoted revision.
 
 5. Confirm `/` returns 404. Run anonymous smoke checks for `/signup`,

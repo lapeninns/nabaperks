@@ -71,7 +71,7 @@ async function resume(tx, f) {
     tx,
     "authenticated",
     { sub: f.ownerUserId },
-    (sp) => sp`select public.set_qr_active(${f.merchantId}, ${f.qrId}, true)`
+    (sp) => sp`select public.resume_merchant_qr(${f.merchantId}, ${f.qrId})`
   )
 }
 
@@ -451,5 +451,114 @@ test("merchant resume reports no-ops without creating duplicate confirmations", 
     assert.equal((await run())[0].result.status, "resumed")
     assert.equal((await run())[0].result.status, "unchanged")
     assert.equal((await state(tx, f)).emails, 4)
+  })
+})
+
+test("old application setup cannot reactivate a paused QR and private activation is not callable", async () => {
+  await inRolledBackTxn(async (tx) => {
+    const f = await fixture(tx)
+    await verify(tx, f, await ready(tx, f))
+    for (const operation of [
+      (sp) => sp`select public.set_qr_active(${f.merchantId}, ${f.qrId}, true)`,
+      (sp) =>
+        sp`select public.activate_merchant_qr_explicit(${f.merchantId}, ${f.qrId}, true)`,
+    ])
+      await assert.rejects(
+        asPostgrestRole(tx, "authenticated", { sub: f.ownerUserId }, operation),
+        /permission|explicit Resume/i
+      )
+    assert.equal((await state(tx, f)).is_active, false)
+    await resume(tx, f)
+    assert.equal((await state(tx, f)).is_active, true)
+  })
+})
+
+test("v2 includes QR retry failures, terminal failures and backoff queue age without changing legacy health", async () => {
+  await inRolledBackTxn(async (tx) => {
+    const f = await fixture(tx)
+    await verify(tx, f, await ready(tx, f))
+    await tx`update public.qr_status_email_outbox set attempts = 1, last_attempt_at = now(), failure_code = 'temporary', next_attempt_at = now() + interval '1 hour', changed_at = now() - interval '30 minutes' where merchant_id = ${f.merchantId}`
+    const read = async () =>
+      (
+        await tx`select public.production_operational_signals() as legacy, public.production_operational_signals_v2() as current`
+      )[0]
+    const [{ count }] =
+      await tx`select count(*)::int from public.qr_status_email_outbox where merchant_id = ${f.merchantId}`
+    const before = await read()
+    assert.equal(
+      before.current.providerDeliveryFailures24h -
+        before.legacy.providerDeliveryFailures24h,
+      count
+    )
+    assert.equal(
+      before.current.providerDeliveryAttempts24h -
+        before.legacy.providerDeliveryAttempts24h,
+      count
+    )
+    assert.ok(before.current.notificationQueueAgeMinutes >= 30)
+    await tx`update public.qr_status_email_outbox set status = 'failed', failure_code = 'retry_exhausted' where merchant_id = ${f.merchantId}`
+    const after = await read()
+    assert.deepEqual(after.legacy, before.legacy)
+    assert.equal(
+      after.current.providerDeliveryFailures24h -
+        after.legacy.providerDeliveryFailures24h,
+      count
+    )
+  })
+})
+
+test("leased outbox preparation persists exact first-send bytes across retry and rejects stale leases", async () => {
+  await inRolledBackTxn(async (tx) => {
+    const f = await fixture(tx)
+    await verify(tx, f, await ready(tx, f))
+    const [row] = await asPostgrestRole(
+      tx,
+      "service_role",
+      {},
+      (sp) =>
+        sp`select * from public.claim_qr_status_emails(${f.merchantId}, 20)`
+    )
+    const original = JSON.stringify({
+      from: "Original <sender@example.test>",
+      to: [row.recipient],
+      subject: "Original subject",
+      text: "Original content https://original.test/app/qr",
+      html: "<p>Original content</p>",
+      reply_to: "original@example.test",
+    })
+    const prepare = (lease, payload) =>
+      asPostgrestRole(
+        tx,
+        "service_role",
+        {},
+        (sp) =>
+          sp`select public.prepare_qr_status_email(${row.id}, ${lease}, ${payload}) as payload`
+      )
+    await assert.rejects(prepare(randomUUID(), original), /lease expired/)
+    assert.equal((await prepare(row.lease_id, original))[0].payload, original)
+    await asPostgrestRole(
+      tx,
+      "service_role",
+      {},
+      (sp) =>
+        sp`select public.finish_qr_status_email(${row.id}, ${row.lease_id}, 'temporary')`
+    )
+    await tx`update public.qr_status_email_outbox set next_attempt_at = now() where id = ${row.id}`
+    const [retry] = await asPostgrestRole(
+      tx,
+      "service_role",
+      {},
+      (sp) =>
+        sp`select * from public.claim_qr_status_emails(${f.merchantId}, 20)`
+    )
+    assert.equal(retry.id, row.id)
+    assert.equal(retry.provider_payload, original)
+    assert.equal(
+      (
+        await prepare(retry.lease_id, JSON.stringify({ changed: "deployment" }))
+      )[0].payload,
+      original
+    )
+    await assert.rejects(prepare(row.lease_id, original), /lease expired/)
   })
 })
