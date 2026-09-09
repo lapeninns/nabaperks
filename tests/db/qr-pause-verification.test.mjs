@@ -2,7 +2,11 @@ import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 import { after, test } from "node:test"
 import postgres from "postgres"
-import { closeDb, dbUrl, inRolledBackTxn } from "./helpers/db.mjs"
+import { dbUrl } from "./helpers/db.mjs"
+import {
+  closeVerificationDb as closeDb,
+  inVerificationTxn as inRolledBackTxn,
+} from "./helpers/merchant-id-verification.mjs"
 import { asPostgrestRole } from "./helpers/postgrest-role.mjs"
 import {
   actAsMerchantOwner,
@@ -309,7 +313,9 @@ test("delivery claims are leased, recipient completion is independent, crash ret
 })
 
 test("two concurrent verifications consume one challenge and create one transition", async () => {
-  const sql = postgres(dbUrl(), { max: 3 })
+  const url = new URL(dbUrl())
+  url.username = "supabase_admin"
+  const sql = postgres(url.toString(), { max: 3 })
   let f
   try {
     const prepared = await sql.begin(async (tx) => {
