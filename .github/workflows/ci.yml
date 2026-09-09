@@ -14,9 +14,18 @@ on:
 # leave the superseded main commit with no successful CI run at all - and
 # 'Release gate' evidence is required at an exact main revision, so a commit
 # whose only run was cancelled cannot be released from without re-running CI.
-# Push runs therefore queue behind each other and are allowed to finish.
+#
+# Turning cancellation off is not on its own enough to protect a main commit.
+# Per docs/operations/production-runbook.md, "GitHub concurrency does not
+# promise FIFO delivery: a newer pending run may replace an older pending
+# run." With one shared group per ref, three rapid pushes to main leave run 1
+# running, run 2 pending and run 3 displacing pending run 2, so the middle
+# commit ends with no run at all. Keying the group by github.sha on a push
+# gives every main commit a group of its own, so no push can displace another
+# and every commit keeps its own evidence. Pull requests keep the shared
+# per-ref group, where superseding the older run is the wanted behaviour.
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event_name == 'push' && github.sha || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:

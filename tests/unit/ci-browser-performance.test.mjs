@@ -162,13 +162,18 @@ test("both browser tiers stay single-worker and neither narrows its selection", 
   assert.equal(workloads.browsers["test:visual"].hostedShards, 4)
 })
 
-test("CI concurrency cannot cancel the in-flight run of a previous main commit", () => {
+/** The workflow-level `concurrency:` block, as written in the workflow. */
+function readConcurrency() {
   const ci = readCi()
   const start = ci.indexOf("\nconcurrency:\n")
   assert.notEqual(start, -1, `${CI_PATH} must declare workflow concurrency`)
   const rest = ci.slice(start + 1)
   const end = rest.search(/\n\S/)
-  const concurrency = rest.slice(0, end === -1 ? rest.length : end)
+  return rest.slice(0, end === -1 ? rest.length : end)
+}
+
+test("CI concurrency cannot cancel the in-flight run of a previous main commit", () => {
+  const concurrency = readConcurrency()
 
   const cancel = concurrency.match(/\n {2}cancel-in-progress: (.+)/)
   assert.ok(cancel, "the concurrency group must declare cancel-in-progress")
@@ -194,6 +199,151 @@ test("CI concurrency cannot cancel the in-flight run of a previous main commit",
     /pull_request|refs\/heads\/main|github\.ref/,
     "the expression must distinguish pull-request pushes from main"
   )
+})
+
+/**
+ * Evaluate a `${{ ... }}` template under GitHub Actions' operator semantics.
+ *
+ * Pattern-matching the expression is not enough to know what it resolves to.
+ * A key that mentions `github.sha`, `github.ref` and the push event can still
+ * bind them the wrong way round - `github.event_name == 'push' && github.ref
+ * || github.sha` puts main back on one shared group whilst giving every pull
+ * request a group of its own - and a guard built from regexes passes it. So
+ * the group is evaluated here, once per event type, and the assertions are
+ * made about the group names that come out.
+ *
+ * `A && B` yields B when A is truthy and A otherwise; `X || Y` yields X when
+ * truthy and Y otherwise. Every string but the empty one is truthy. Only `==`
+ * comparisons and dotted context lookups appear in this workflow, so that is
+ * all this understands; anything richer fails `readLeaf` rather than being
+ * silently mis-evaluated into a false pass.
+ */
+function evaluateTemplate(template, context) {
+  const isTruthy = (value) =>
+    value !== false && value !== "" && value !== null && value !== undefined
+
+  const lookUp = (path) =>
+    path
+      .split(".")
+      .reduce((node, key) => (node == null ? undefined : node[key]), context)
+
+  const readLeaf = (token) => {
+    const comparison = token.match(/^(.+?) == '(.*)'$/)
+    if (comparison) return lookUp(comparison[1].trim()) === comparison[2]
+    if (/^'.*'$/.test(token)) return token.slice(1, -1)
+    assert.match(
+      token,
+      /^[a-z_]+(\.[a-z_]+)+$/,
+      `this evaluator does not understand "${token}"; extend it rather than leaving a concurrency key unevaluated`
+    )
+    return lookUp(token)
+  }
+
+  return template.replace(/\$\{\{(.+?)\}\}/g, (_, body) => {
+    let result
+    for (const alternative of body.split("||")) {
+      let conjunction
+      for (const operand of alternative.split("&&")) {
+        const value = readLeaf(operand.trim())
+        conjunction =
+          conjunction === undefined || isTruthy(conjunction)
+            ? value
+            : conjunction
+      }
+      result = result === undefined || !isTruthy(result) ? conjunction : result
+    }
+    return String(result)
+  })
+}
+
+/** The `github` context a run of the given event type would see. */
+const githubContext = ({ eventName, sha, ref }) => ({
+  github: { workflow: "CI", event_name: eventName, sha, ref },
+})
+
+test("CI concurrency gives every main push a group of its own", () => {
+  const concurrency = readConcurrency()
+
+  const group = concurrency.match(/\n {2}group: (.+)/)
+  assert.ok(group, "the workflow must declare a concurrency group")
+  const expression = group[1].trim()
+
+  // Switching cancellation off is not by itself enough. The runbook records
+  // that "GitHub concurrency does not promise FIFO delivery: a newer pending
+  // run may replace an older pending run", so a group shared by every push to
+  // main lets a third push evict the second while it is still pending, and
+  // the middle commit ends with no run at all. A push must therefore be keyed
+  // by its own commit. This is the regression guard: reverting to a shared
+  // group in the belief that `cancel-in-progress: false` suffices fails here.
+  //
+  // GitHub only ever replaces a pending run with a newer one from the *same*
+  // group, so three commits landing on main in quick succession producing
+  // three distinct groups is what makes that eviction impossible rather than
+  // merely unlikely.
+  const shas = ["aaaaaaa", "bbbbbbb", "ccccccc"]
+  const pushGroups = shas.map((sha) =>
+    evaluateTemplate(
+      expression,
+      githubContext({ eventName: "push", sha, ref: "refs/heads/main" })
+    )
+  )
+  assert.equal(
+    new Set(pushGroups).size,
+    pushGroups.length,
+    `three pushes to main must land in three groups, not ${JSON.stringify(pushGroups)}; ` +
+      "a shared group lets a later push displace an earlier pending run and " +
+      "leave that commit without CI, which cancel-in-progress: false does not prevent"
+  )
+  for (const [index, sha] of shas.entries()) {
+    assert.ok(
+      pushGroups[index].includes(sha),
+      "a push's group must be keyed by its own commit, not merely be unique"
+    )
+  }
+
+  // Pull requests keep the shared per-ref group, asserted in both directions:
+  // two pushes to one pull request share a group so the newer supersedes the
+  // older, and two different pull requests do not collide. Checking both is
+  // what catches a key that binds github.sha and github.ref the wrong way
+  // round, which looks identical to the intended expression to any test that
+  // only searches for the names.
+  const pullRequest = (sha, number) =>
+    evaluateTemplate(
+      expression,
+      githubContext({
+        eventName: "pull_request",
+        sha,
+        ref: `refs/pull/${number}/merge`,
+      })
+    )
+  assert.equal(
+    pullRequest("1111111", 296),
+    pullRequest("2222222", 296),
+    "two pushes to one pull request must share a group so the newer supersedes the older"
+  )
+  assert.notEqual(
+    pullRequest("1111111", 296),
+    pullRequest("3333333", 295),
+    "two pull requests must not share a concurrency group"
+  )
+  assert.notEqual(
+    pullRequest("1111111", 296),
+    pushGroups[0],
+    "a pull request must not share a group with a push"
+  )
+
+  // Only the `github` and `inputs` contexts are available to a workflow-level
+  // `concurrency` key. `env` is not, and reaching for it silently produces an
+  // empty group shared by every run.
+  const contexts = [...expression.matchAll(/\b([a-z]+)\./g)].map(
+    (match) => match[1]
+  )
+  for (const context of contexts) {
+    assert.ok(
+      ["github", "inputs"].includes(context),
+      `${context} is not available to a workflow-level concurrency key`
+    )
+  }
 })
 
 test("prepared image verification rejects version drift and missing browsers", () => {
