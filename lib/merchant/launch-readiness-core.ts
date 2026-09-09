@@ -289,7 +289,7 @@ export function isJoinQrProvisionEligible(input: EnsureJoinQrInput): boolean {
     input.activeRewardPoolItemCount >= LAUNCH_MIN_ACTIVE_REWARDS &&
     input.venueReady &&
     input.billingReady &&
-    input.qrCode?.is_active !== true
+    input.qrCode === null
   )
 }
 

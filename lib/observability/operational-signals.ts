@@ -62,7 +62,7 @@ export async function checkOperationalReadiness({
     if (!origin || !validThresholds(thresholds)) return operationalError()
 
     const response = await fetcher(
-      new URL("/rest/v1/rpc/production_operational_signals", origin),
+      new URL("/rest/v1/rpc/production_operational_signals_v2", origin),
       {
         method: "POST",
         headers: {

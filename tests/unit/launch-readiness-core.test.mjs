@@ -349,8 +349,8 @@ test("isJoinQrProvisionEligible: all gates required, QR not already active", () 
       ...base,
       qrCode: { id: "q", is_active: false },
     }),
-    true,
-    "inactive QR is eligible (re-enable)"
+    false,
+    "a paused QR requires explicit resume"
   )
 })
 

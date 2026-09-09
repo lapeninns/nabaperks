@@ -205,6 +205,57 @@
           }
         }
       }
+    },
+    "/api/cron/qr-status-email-drain": {
+      "get": {
+        "summary": "Drain Venue QR status confirmation emails",
+        "operationId": "drainQrStatusEmails",
+        "x-source": "app/api/cron/qr-status-email-drain/route.ts",
+        "description": "Claims due confirmation emails under a lease. Uses stable per-recipient delivery keys and bounded retries. Does not change QR status.",
+        "security": [
+          {
+            "cronBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "All claimed emails were accepted by the provider and outcomes recorded. This does not prove mailbox delivery.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["ok", "result"],
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    },
+                    "result": {
+                      "type": "object",
+                      "required": ["sent", "failed"],
+                      "properties": {
+                        "sent": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "failed": {
+                          "type": "integer",
+                          "const": 0
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid cron bearer token."
+          },
+          "500": {
+            "description": "At least one delivery, database operation or cron observation failed. Pending work remains queued for retry."
+          }
+        }
+      }
     }
   },
   "components": {
@@ -212,6 +263,11 @@
       "monitorBearer": {
         "type": "http",
         "scheme": "bearer"
+      },
+      "cronBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "CRON_SECRET bearer token for operator cron jobs."
       }
     },
     "schemas": {

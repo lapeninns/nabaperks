@@ -89,7 +89,9 @@ export async function sendTransactionalEmail({
   headers,
   idempotencyKey,
   beforeProviderAttempt,
+  signal,
 }: TransactionalEmailInput & {
+  signal?: AbortSignal
   beforeProviderAttempt?: () => Promise<void>
 }) {
   const {
@@ -124,6 +126,7 @@ export async function sendTransactionalEmail({
             ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
           },
           body: JSON.stringify(payload),
+          signal,
         },
         { beforeAttempt: beforeProviderAttempt }
       ),

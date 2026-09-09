@@ -1,5 +1,7 @@
 import Link from "next/link"
 
+import { QrPauseDialog } from "@/components/merchant/launch/qr-pause-dialog"
+
 import { setQrActiveAction } from "@/app/app/qr/actions"
 import { SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty/status-banner"
@@ -87,6 +89,7 @@ export function QrPanelLive({
       nfcSquareHrefs={nfcSquareHrefs}
       statusAction={
         <QrStatusAction
+          venueName={venueName}
           qrCodeId={qrCodeId}
           isActive={isActive}
           billingReady={billingReady}
@@ -164,11 +167,13 @@ function QrWorkspaceWarnings({
 }
 
 function QrStatusAction({
+  venueName,
   qrCodeId,
   isActive,
   billingReady,
   returnHref,
 }: {
+  readonly venueName: string
   readonly qrCodeId: string
   readonly isActive: boolean
   readonly billingReady: boolean
@@ -181,6 +186,9 @@ function QrStatusAction({
       </Button>
     )
   }
+
+  if (isActive)
+    return <QrPauseDialog qrCodeId={qrCodeId} venueName={venueName} />
 
   return (
     <form action={setQrActiveAction}>

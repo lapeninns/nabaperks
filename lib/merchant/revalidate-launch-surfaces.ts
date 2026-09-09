@@ -8,5 +8,6 @@ import { revalidateMerchantCacheTags } from "@/lib/cache/tags"
 export function revalidateMerchantLaunchSurfaces(merchantId: string) {
   revalidateMerchantCacheTags(merchantId)
   revalidatePath("/app/launch")
+  revalidatePath("/app/qr")
   revalidatePath("/app")
 }

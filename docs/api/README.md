@@ -6,6 +6,7 @@ Externally consumed liveness and protected readiness contracts. Product-internal
 
 | Method | Path                                    | Summary                                                | Source                                              |
 | ------ | --------------------------------------- | ------------------------------------------------------ | --------------------------------------------------- |
+| GET    | `/api/cron/qr-status-email-drain`       | Drain Venue QR status confirmation emails              | `app/api/cron/qr-status-email-drain/route.ts`       |
 | GET    | `/api/email/unsubscribe/claim/{token}`  | Open unsubscribe confirmation page                     | `app/api/email/unsubscribe/claim/[token]/route.ts`  |
 | POST   | `/api/email/unsubscribe/claim/{token}`  | Suppress future venue invite email                     | `app/api/email/unsubscribe/claim/[token]/route.ts`  |
 | GET    | `/api/email/unsubscribe/invite/{token}` | Open unsubscribe confirmation page                     | `app/api/email/unsubscribe/invite/[token]/route.ts` |

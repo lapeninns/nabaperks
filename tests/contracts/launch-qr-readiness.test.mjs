@@ -204,7 +204,7 @@ test("Given launch and QR pages render setup When the model loads Then GET rende
   )
   assert.match(
     qrActions,
-    /export async function setQrActiveAction[\s\S]*\.rpc\("set_qr_active"/
+    /export async function setQrActiveAction[\s\S]*\.rpc\("resume_merchant_qr"/
   )
   assert.match(
     cardActions,
@@ -243,7 +243,7 @@ test("Given billing is not ready When QR provision or enable is attempted Then e
   )
   assert.match(
     qrActions,
-    /setQrActiveAction[\s\S]*nextActive && !isLaunchBillingReady\(billing\)[\s\S]*set_qr_active/
+    /setQrActiveAction[\s\S]*nextActive && !isLaunchBillingReady\(billing\)[\s\S]*resume_merchant_qr/
   )
 })
 

@@ -58,26 +58,6 @@ export async function ensureJoinQrProvisioned(
     return { provisioned: true, created: true }
   }
 
-  if (!input.qrCode.is_active) {
-    const { error } = await supabase.rpc("set_qr_active", {
-      p_merchant_id: input.merchantId,
-      p_qr_code_id: input.qrCode.id,
-      p_is_active: true,
-    })
-
-    if (error) {
-      logger.error("ensure_join_qr_activate_failed", {
-        merchantId: input.merchantId,
-        qrCodeId: input.qrCode.id,
-        rpc: "set_qr_active",
-        error,
-      })
-      return { provisioned: false, created: false }
-    }
-
-    return { provisioned: true, created: false }
-  }
-
   return { provisioned: true, created: false }
 }
 

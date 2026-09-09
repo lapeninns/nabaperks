@@ -173,7 +173,9 @@ function statusMessage(
   const message = params.created
     ? "QR code created."
     : params.enabled
-      ? "QR code enabled."
+      ? params.enabled === "already"
+        ? "QR code is already enabled."
+        : "QR code enabled."
       : params.disabled
         ? "QR code disabled."
         : null
@@ -184,9 +186,13 @@ function statusMessage(
 
   return (
     <StatusBanner tone="success" title={message}>
-      {nextHref
-        ? "One step from live. Proceed to billing to activate your venue and start accepting stamps."
-        : "The permanent resolver and share URL are ready below."}
+      {params.enabled === "1"
+        ? "Confirmation emails are queued for the owner and venue. Check the current scan status below."
+        : params.enabled === "already"
+          ? "No change was needed and no new confirmation email was queued."
+          : nextHref
+            ? "One step from live. Proceed to billing to activate your venue and start accepting stamps."
+            : "The permanent resolver and share URL are ready below."}
     </StatusBanner>
   )
 }
