@@ -7,12 +7,46 @@ import {
   requireCondition,
 } from "./shadow-evidence.mjs"
 
+/**
+ * profiles gates the duration-budget comparison; only streakProfiles may feed
+ * the equivalence streak. Absent configuration stays at the narrower PR-only
+ * policy rather than silently admitting every compared profile.
+ *
+ * The list is code-owned on purpose: configuration may only ever narrow it.
+ * Widening the streak is a qualification-policy change that has to be reviewed
+ * as code, so a contract edit alone must never make a new profile count
+ * towards cutover evidence.
+ */
+const DEFAULT_STREAK_PROFILES = ["pr"]
+
+function streakProfilesOf(limits) {
+  const configured = limits?.streakProfiles
+  if (configured === undefined) return DEFAULT_STREAK_PROFILES
+  requireCondition(
+    Array.isArray(configured) &&
+      configured.length > 0 &&
+      configured.every(
+        (name) => typeof name === "string" && limits.profiles?.includes(name)
+      ),
+    "streakProfiles must name compared profiles"
+  )
+  const widened = configured.filter(
+    (name) => !DEFAULT_STREAK_PROFILES.includes(name)
+  )
+  requireCondition(
+    widened.length === 0,
+    `streakProfiles may only narrow the code-owned streak policy; remove ${widened.join(", ")}`
+  )
+  return configured
+}
+
 function validateLimits(contract, profile) {
   const limits = contract?.shadowMode?.qualification
   requireCondition(
     limits?.profiles?.includes(profile),
     `No qualification policy for profile ${profile}`
   )
+  streakProfilesOf(limits)
   requireCondition(
     isCount(limits.maxProfileDurationSeconds) &&
       limits.maxProfileDurationSeconds > 0,
@@ -143,7 +177,9 @@ export function compareShadowEvidence({
       ...base,
       verdict,
       eligibleForStreak:
-        profile === "pr" && verdict === "equivalent" && budgetSatisfied,
+        streakProfilesOf(limits).includes(profile) &&
+        verdict === "equivalent" &&
+        budgetSatisfied,
       budget: {
         durationSeconds: publishedDurationSeconds,
         maximumSeconds: limits.maxProfileDurationSeconds,
@@ -159,18 +195,23 @@ export function compareShadowEvidence({
   }
 }
 
-/** Results must be supplied in attempt order. Repeating a SHA never adds one. */
-export function shadowEquivalenceStreak(results, required) {
+/**
+ * Results must be supplied in attempt order. Repeating a SHA never adds one.
+ * The contract is optional so the tally can be recomputed from stored results
+ * alone; without it the narrower default policy applies.
+ */
+export function shadowEquivalenceStreak(results, required, contract) {
   requireCondition(
     Number.isSafeInteger(required) && required > 0,
     "Invalid streak length"
   )
+  const streakProfiles = streakProfilesOf(contract?.shadowMode?.qualification)
   let heads = []
   for (const result of results) {
     const eligible =
       result?.eligibleForStreak === true &&
       result.verdict === "equivalent" &&
-      result.profile === "pr" &&
+      streakProfiles.includes(result.profile) &&
       result.budget?.satisfied === true &&
       /^[a-f0-9]{40}$/.test(result.headSha ?? "")
     if (!eligible) heads = []

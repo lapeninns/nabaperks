@@ -1,5 +1,12 @@
 # CI consumption baseline
 
+> **This is the pre-#288 baseline.** The 168-job runs sampled below predate
+> `aed95ca9b` (#288, merged 2026-09-08), which replaced the 32-shard browser
+> matrix with eight packs per browser. Main now runs 72 jobs at roughly 165
+> machine-minutes per run, measured 2026-09-09 — see
+> [hosted browser CI performance](ci-browser-performance.md). Keep this table as
+> the before-figure; do not read it as current consumption.
+
 Read-only provider snapshot: 2026-09-08T13:01:31.644Z. Re-run
 `node scripts/ci/collect-usage.mjs 5` for current evidence. The collector reads
 all sampled attempts and all artifact pages, deduplicating reused job IDs.
@@ -37,5 +44,6 @@ survivors. Shard wall times were approximately 25.5, 14.8, 21.1 and 16.7 seconds
 
 This is runner/selection proof on macOS. Hosted Linux x64 runtime comparisons,
 whole-process resource measurements, server restart measurements and the rest
-of the shard inventory remain necessary before changing the required matrix.
-The existing matrix and all nine Release gate roots remain active.
+of the shard inventory remained necessary before changing the required matrix.
+That change has since been made and merged as `aed95ca9b` (#288); all nine
+`Release gate` roots remain active and unchanged by it.

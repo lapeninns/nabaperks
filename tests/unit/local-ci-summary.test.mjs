@@ -89,7 +89,10 @@ test("the summary ends with the evidence digest and carries the machine-readable
     rendered.text,
     /\| fast \| success \| 12m 34s \| 120 \| 118 \| 0 \| 2 \| 0 \|/
   )
-  assert.equal(rendered.title, "success — 1/1 lanes, 118/120 tests")
+  assert.equal(
+    rendered.title,
+    "success — 1/1 lanes, 118/120 tests, 1/9 required roots local"
+  )
 })
 
 /**

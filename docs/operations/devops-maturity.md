@@ -31,8 +31,15 @@ recovery exercises require separate readback before they may be marked complete.
 
 ## Repository-owned acceptance
 
-- [x] One stable `Release gate` aggregates every release-critical CI proof.
-- [x] Expensive E2E fan-out waits for the fast lint/type/unit lane.
+- [x] One stable `Release gate` aggregates every release-critical CI proof. Its
+      `needs:` list in `.github/workflows/ci.yml` is exactly the nine roots
+      `fast`, `quality`, `build`, `e2e`, `a11y`, `visual`, `lighthouse`,
+      `zap-baseline` and `db`.
+- [x] Expensive fan-out is bounded by per-job timeouts and by the roots it
+      genuinely consumes. Since `aed95ca9b` (#288), E2E, accessibility, quality
+      and DB no longer wait for the fast lane — they consume no output from it.
+      `visual` still declares `needs: fast`; `lighthouse` and `zap-baseline`
+      still declare `needs: build`, because they consume the production build.
 - [x] Successful `main` CI starts the protected database-promotion chain, whose
       completion automatically triggers exact-revision production verification;
       scheduled availability checks remain revision-agnostic so a deliberate
@@ -75,6 +82,39 @@ recovery exercises require separate readback before they may be marked complete.
       and newly created same-region restore target, then proves the as-of-backup
       ledger and core database path without writing to the restored database.
       Executing and recording the provider restore remains provider-owned.
+
+## ARM64 hosted-pinning decisions
+
+This is the ledger that section 4.6 of [the local CI runbook](local-ci.md)
+writes to. A lane that cannot survive ARM64 Linux is pinned back to the hosted
+plane by setting its `"arch"` to `"x64-only"` in
+`ops/local-ci/profiles/{pr,main,nightly}.json`; the default from
+`laneDefaults.arch` is `"any"`. Pinning changes which plane executes a lane,
+never whether it executes.
+
+Every lane declared in the three profiles at `d5f5c3641`:
+
+| Lane                                                          | Profiles          | `arch`     |
+| ------------------------------------------------------------- | ----------------- | ---------- |
+| `fast`, `quality`, `print-kit`, `db`                          | pr, main, nightly | `any`      |
+| `e2e-{chromium,mobile-safari,desktop-firefox,desktop-safari}` | pr, main, nightly | `any`      |
+| `a11y-{chromium,mobile-safari}`                               | pr, main, nightly | `any`      |
+| `mutation`, `load`, `db-stress`                               | nightly           | `any`      |
+| `zap-full`                                                    | nightly           | `x64-only` |
+
+`zap-full` is the only pinned lane, and the pin predates this ledger — no dated
+two-strike record exists for it, so its original justification is **unverified**
+here. It has consequently never executed on the local plane; its hosted
+counterpart is the `zap-full` job in `.github/workflows/nightly.yml`, so the
+lane does still run somewhere. No two-strike ARM64 trial has been recorded for
+any other lane.
+
+Visual regression, Lighthouse and the baseline ZAP scan are absent from this
+table because they have no local lane at all — they exist only as hosted
+`Release gate` roots, alongside `build`. They were never subject to the
+two-strike trial, so nothing pinned them; the local profiles simply never
+claimed them. Recording a new pin means adding a dated row above with the lane
+id, the reason and the two SHAs whose `divergent` verdicts justified it.
 
 ## Provider-owned acceptance
 

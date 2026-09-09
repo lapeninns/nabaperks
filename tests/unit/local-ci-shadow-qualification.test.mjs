@@ -331,3 +331,173 @@ test("an infrastructure failure retains status divergence even without a tally",
   assert.match(result.lanes[0].reasons.join(" "), /status mismatch/)
   assert.doesNotMatch(result.lanes[0].reasons.join(" "), /below floor/)
 })
+
+/**
+ * The complete, successful main-profile run this contract's floors and ceilings
+ * were refreshed from: ~/.nabaperks-local-ci/runs/<sha>/main-20260908T234905Z-
+ * dec709/lane-result.json, conclusion success, 947s. Pinning the real counts
+ * here keeps the contract falsifiable against evidence rather than against
+ * itself.
+ */
+const OBSERVED_HEAD = "d5f5c36417efd114117ca75eb5e7866b9a7ac06d"
+const OBSERVED_RUN = {
+  durationSeconds: 947,
+  lanes: {
+    fast: { testsRun: 2351, testsSkipped: 0 },
+    quality: { testsRun: 0, testsSkipped: 0 },
+    "print-kit": { testsRun: 0, testsSkipped: 0 },
+    "e2e-chromium": { testsRun: 245, testsSkipped: 26 },
+    "e2e-mobile-safari": { testsRun: 288, testsSkipped: 43 },
+    "e2e-desktop-firefox": { testsRun: 242, testsSkipped: 42 },
+    "e2e-desktop-safari": { testsRun: 242, testsSkipped: 42 },
+    "a11y-chromium": { testsRun: 71, testsSkipped: 1 },
+    "a11y-mobile-safari": { testsRun: 74, testsSkipped: 2 },
+    db: { testsRun: 576, testsSkipped: 0 },
+  },
+}
+
+function observedFixture(profile = "pr") {
+  const contract = structuredClone(CONTRACT)
+  const evidence = (plane) => ({
+    schema: "nabaperks.lane-result.v1",
+    plane,
+    profile,
+    headSha: OBSERVED_HEAD,
+    conclusion: "success",
+    lanes: Object.entries(OBSERVED_RUN.lanes).map(
+      ([laneId, { testsRun, testsSkipped }]) => ({
+        schema: "nabaperks.lane-result.v1",
+        plane,
+        profile,
+        headSha: OBSERVED_HEAD,
+        laneId,
+        status: "success",
+        testsRun,
+        testsPassed: testsRun - testsSkipped,
+        testsFailed: 0,
+        testsSkipped,
+        flaky: 0,
+        countsParsed: testsRun > 0,
+        countsExpected: testsRun > 0,
+      })
+    ),
+  })
+  return {
+    contract,
+    headSha: OBSERVED_HEAD,
+    profile,
+    local: evidence("local"),
+    hosted: evidence("hosted"),
+    publishedDurationSeconds: OBSERVED_RUN.durationSeconds,
+  }
+}
+
+test("the observed successful main-profile run satisfies every floor and ceiling", () => {
+  const result = compareShadowEvidence(observedFixture("main"))
+  assert.deepEqual(result.reasons, [])
+  assert.equal(result.verdict, "equivalent")
+  assert.equal(result.budget.satisfied, true)
+})
+
+test("the same observed counts on a PR head are streak-eligible", () => {
+  const result = compareShadowEvidence(observedFixture())
+  assert.equal(result.verdict, "equivalent")
+  assert.equal(result.eligibleForStreak, true)
+})
+
+function reasonsFor(result, laneId) {
+  return result.lanes.find((lane) => lane.laneId === laneId)?.reasons ?? []
+}
+
+for (const laneId of Object.keys(OBSERVED_RUN.lanes)) {
+  const observed = OBSERVED_RUN.lanes[laneId]
+  if (observed.testsRun === 0) continue
+  test(`one test fewer than the ${laneId} floor still diverges`, () => {
+    const input = observedFixture()
+    for (const record of [input.local, input.hosted]) {
+      const lane = record.lanes.find((entry) => entry.laneId === laneId)
+      lane.testsRun -= 1
+      lane.testsPassed -= 1
+    }
+    const result = compareShadowEvidence(input)
+    assert.equal(result.verdict, "divergent")
+    // Assert on the lane's own reasons: a joined-string match would accept an
+    // identical complaint raised against a different lane.
+    assert.deepEqual(reasonsFor(result, laneId), [
+      "local below floor",
+      "hosted below floor",
+    ])
+    assert.equal(result.eligibleForStreak, false)
+  })
+  test(`one skip more than the ${laneId} ceiling still diverges`, () => {
+    const input = observedFixture()
+    for (const record of [input.local, input.hosted]) {
+      const lane = record.lanes.find((entry) => entry.laneId === laneId)
+      lane.testsSkipped += 1
+      lane.testsPassed -= 1
+    }
+    const result = compareShadowEvidence(input)
+    assert.equal(result.verdict, "divergent")
+    assert.deepEqual(reasonsFor(result, laneId), [
+      "local exceeds skip ceiling",
+      "hosted exceeds skip ceiling",
+    ])
+    assert.equal(result.eligibleForStreak, false)
+  })
+}
+
+test("streakProfiles, not the compared profiles, decides what feeds the streak", () => {
+  const qualification = CONTRACT.shadowMode.qualification
+  assert.deepEqual(qualification.streakProfiles, ["pr"])
+  assert.ok(qualification.profiles.includes("main"))
+  const main = compareShadowEvidence(observedFixture("main"))
+  assert.equal(main.verdict, "equivalent")
+  assert.equal(main.eligibleForStreak, false)
+  assert.equal(
+    shadowEquivalenceStreak(
+      [
+        { ...main, headSha: "a".repeat(40), eligibleForStreak: true },
+        { ...main, headSha: "b".repeat(40), eligibleForStreak: true },
+        { ...main, headSha: "c".repeat(40), eligibleForStreak: true },
+      ],
+      3,
+      CONTRACT
+    ).length,
+    0,
+    "a forged eligibility flag cannot smuggle a main proof into the streak"
+  )
+})
+
+test("configuration cannot widen the streak beyond the code-owned policy", () => {
+  const input = observedFixture("main")
+  input.contract.shadowMode.qualification.streakProfiles = ["pr", "main"]
+  const result = compareShadowEvidence(input)
+  assert.equal(
+    result.verdict,
+    "incomplete",
+    "admitting main to the streak is a policy change that must be reviewed as code"
+  )
+  assert.match(result.reasons.join(" "), /may only narrow/)
+  assert.equal(result.eligibleForStreak, false)
+  assert.throws(
+    () => shadowEquivalenceStreak([result], 1, input.contract),
+    /may only narrow/,
+    "a contract edit alone must never satisfy the cutover streak"
+  )
+})
+
+test("configuration may still narrow the streak", () => {
+  const input = observedFixture()
+  input.contract.shadowMode.qualification.streakProfiles = ["pr"]
+  const result = compareShadowEvidence(input)
+  assert.equal(result.verdict, "equivalent")
+  assert.equal(result.eligibleForStreak, true)
+})
+
+test("streakProfiles cannot name a profile that is never compared", () => {
+  const input = observedFixture()
+  input.contract.shadowMode.qualification.streakProfiles = ["pr", "nightly"]
+  const result = compareShadowEvidence(input)
+  assert.equal(result.verdict, "incomplete")
+  assert.match(result.reasons.join(" "), /streakProfiles/)
+})
