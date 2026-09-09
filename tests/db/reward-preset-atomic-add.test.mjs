@@ -1102,11 +1102,9 @@ async function assertQrActivationRemovalRace(removal) {
       await actAsMerchantOwner(tx, fixture.ownerUserId)
       const rewards = await addRewardPoolPresets(tx, fixture, THREE_PRESETS)
       const qr = await createOrGetJoinQr(tx, fixture)
-      await tx`select public.set_qr_active(
-        ${fixture.merchantId}::uuid,
-        ${qr.qr_code_uuid}::uuid,
-        false
-      )`
+      // Backend fixture setup; merchant pause now needs its own email challenge.
+      await tx`update public.qr_codes set is_active = false
+        where id = ${qr.qr_code_uuid}::uuid`
       const [reward] = await tx`
         select
           id::text as id,
@@ -1239,11 +1237,7 @@ async function removeRewardAfterHoldingCardLock(
   }
 }
 
-async function activateQrOnDedicatedConnection(
-  fixture,
-  qrId,
-  applicationName
-) {
+async function activateQrOnDedicatedConnection(fixture, qrId, applicationName) {
   assert.ok(localDbUrl)
   const sql = postgres(localDbUrl, { max: 1 })
   try {
@@ -1251,10 +1245,9 @@ async function activateQrOnDedicatedConnection(
       await tx`select set_config('application_name', ${applicationName}, true)`
       await tx`set local role authenticated`
       await actAsMerchantOwner(tx, fixture.ownerUserId)
-      return tx`select public.set_qr_active(
+      return tx`select public.resume_merchant_qr(
         ${fixture.merchantId}::uuid,
-        ${qrId}::uuid,
-        true
+        ${qrId}::uuid
       )`
     })
   } finally {
@@ -1276,9 +1269,7 @@ async function waitForDatabaseLock(sql, applicationName) {
     await new Promise((resolve) => setTimeout(resolve, 20))
   }
 
-  throw new Error(
-    "QR activation did not wait on the shared loyalty-card lock"
-  )
+  throw new Error("QR activation did not wait on the shared loyalty-card lock")
 }
 
 function createDeferred() {

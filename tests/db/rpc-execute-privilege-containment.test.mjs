@@ -62,6 +62,8 @@ const AUTHENTICATED_DIRECT_RPCS = [
   "complete_merchant_onboarding",
   "create_or_get_join_qr",
   "set_qr_active",
+  "verify_and_pause_qr",
+  "resume_merchant_qr",
   "record_merchant_cancellation_interview",
   "redeem_self_service_reward",
 ]
@@ -112,6 +114,14 @@ const MUST_BE_LOCKED = [
   "record_notification_delivery",
   "record_operational_cron_run",
   "production_operational_signals",
+  "production_operational_signals_v2",
+  "issue_qr_pause_challenge",
+  "record_merchant_qr_transition",
+  "activate_merchant_qr_explicit",
+  "production_operational_signals_base",
+  "claim_qr_status_emails",
+  "finish_qr_status_email",
+  "prepare_qr_status_email",
   "apply_current_stripe_subscription",
   "bind_billing_checkout_offer",
   "claim_billing_checkout_attempt",
@@ -126,6 +136,12 @@ const MUST_BE_LOCKED = [
 ]
 
 const SERVICE_ROLE_EXCLUDED_FUNCTIONS = new Set([
+  "verify_and_pause_qr",
+  "resume_merchant_qr",
+  "record_merchant_qr_transition",
+  "activate_merchant_qr_explicit",
+  "production_operational_signals_base",
+  "guard_qr_status_update",
   "get_owner_reward_scan_context",
   "verify_and_collect_reward_scan_token",
   // Bound to auth.uid(): only the signed-in owner may read or reset the code.

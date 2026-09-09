@@ -1,5 +1,7 @@
 {
-  "git": { "deploymentEnabled": false },
+  "git": {
+    "deploymentEnabled": false
+  },
   "buildCommand": "pnpm env:check && pnpm build",
   "regions": ["lhr1"],
   "crons": [
@@ -30,6 +32,10 @@
     {
       "path": "/api/cron/billing-trial-sync",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/qr-status-email-drain",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

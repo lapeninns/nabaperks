@@ -1,6 +1,7 @@
 "use server"
 
 import { redirect } from "next/navigation"
+import { after } from "next/server"
 
 import { capturePostHogEvent } from "@/lib/analytics/events"
 import { scheduleMerchantActivationEvent } from "@/lib/analytics/merchant-activation-events"
@@ -17,6 +18,7 @@ import { buildNfcSquarePdfAttachments } from "@/lib/notifications/nfc-square-pdf
 import { buildPosterEmailContent } from "@/lib/notifications/poster-email"
 import { buildPosterPdfAttachments } from "@/lib/notifications/poster-pdf"
 import { buildTentPdfAttachments } from "@/lib/notifications/tent-pdf"
+import { drainQrStatusEmails } from "@/lib/notifications/qr-status-worker"
 import { sendTransactionalEmail } from "@/lib/notifications/resend"
 import { appendQrShareChannel } from "@/lib/qr/nfc-card-share-url"
 import { enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit"
@@ -92,7 +94,7 @@ export async function setQrActiveAction(formData: FormData) {
   const qrCodeId = formData.get("qrCodeId")
   const nextActive = formData.get("nextActive") === "true"
 
-  if (!merchant || typeof qrCodeId !== "string") {
+  if (!merchant || typeof qrCodeId !== "string" || !nextActive) {
     redirect(
       qrReturnHref(returnBase, `error=${encodeURIComponent(QR_UPDATE_ERROR)}`)
     )
@@ -120,16 +122,20 @@ export async function setQrActiveAction(formData: FormData) {
   }
 
   const supabase = await createSupabaseServerClient()
-  const { error } = await supabase.rpc("set_qr_active", {
+  const { data: transition, error } = await supabase.rpc("resume_merchant_qr", {
     p_merchant_id: merchant.id,
     p_qr_code_id: qrCodeId,
-    p_is_active: nextActive,
   })
 
   if (error) {
     redirect(
       qrReturnHref(returnBase, `error=${encodeURIComponent(QR_UPDATE_ERROR)}`)
     )
+  }
+
+  if (transition?.status === "unchanged") {
+    revalidateMerchantLaunchSurfaces(merchant.id)
+    redirect(qrReturnHref(returnBase, "enabled=already"))
   }
 
   await capturePostHogEvent({
@@ -146,7 +152,8 @@ export async function setQrActiveAction(formData: FormData) {
 
   revalidateMerchantLaunchSurfaces(merchant.id)
 
-  redirect(qrReturnHref(returnBase, `${nextActive ? "enabled" : "disabled"}=1`))
+  after(() => drainQrStatusEmails(merchant.id))
+  redirect(qrReturnHref(returnBase, "enabled=1"))
 }
 
 export type EmailPosterState = { ok?: boolean; message?: string }

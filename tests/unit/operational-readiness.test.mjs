@@ -26,6 +26,7 @@ function operationalSignals(overrides = {}) {
       "referral-bonus-drain",
       "loyalty-invite-drain",
       "billing-trial-sync",
+      "qr-status-email-drain",
     ].map((name) => ({
       name,
       state: "ok",
@@ -179,7 +180,7 @@ test("operational readiness accepts bounded aggregate signals", async () => {
   assert.deepEqual(result, { operational: "ok", signals })
   assert.match(
     request.input,
-    /\/rest\/v1\/rpc\/production_operational_signals$/
+    /\/rest\/v1\/rpc\/production_operational_signals_v2$/
   )
   assert.equal(request.init.method, "POST")
   assert.equal(request.init.headers.apikey, "service-role-test-key")
@@ -287,7 +288,7 @@ test("operational readiness permits only the explicit ephemeral loopback origin"
   assert.deepEqual(result, { operational: "ok", signals })
   assert.equal(
     request,
-    "http://127.0.0.1:54321/rest/v1/rpc/production_operational_signals"
+    "http://127.0.0.1:54321/rest/v1/rpc/production_operational_signals_v2"
   )
 })
 

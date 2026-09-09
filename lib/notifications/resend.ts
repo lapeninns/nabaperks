@@ -89,7 +89,9 @@ export async function sendTransactionalEmail({
   headers,
   idempotencyKey,
   beforeProviderAttempt,
+  signal,
 }: TransactionalEmailInput & {
+  signal?: AbortSignal
   beforeProviderAttempt?: () => Promise<void>
 }) {
   const {
@@ -124,6 +126,7 @@ export async function sendTransactionalEmail({
             ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
           },
           body: JSON.stringify(payload),
+          signal,
         },
         { beforeAttempt: beforeProviderAttempt }
       ),
@@ -134,6 +137,53 @@ export async function sendTransactionalEmail({
       `Resend send failed (${res.status}): ${await safeDetail(res)}`
     )
   }
+}
+
+/** Snapshot content and sender settings before any durable outbox send. */
+export function prepareTransactionalEmailPayload(
+  input: TransactionalEmailInput
+) {
+  const { from, replyTo } = readEmailOtpConfig()
+  return JSON.stringify(
+    buildTransactionalEmailPayload(from, {
+      ...input,
+      replyTo: input.replyTo ?? replyTo,
+    })
+  )
+}
+
+/** Replay the exact persisted request without template or sender reconstruction. */
+export async function sendPreparedTransactionalEmail({
+  payload,
+  idempotencyKey,
+  beforeProviderAttempt,
+  signal,
+}: {
+  payload: string
+  idempotencyKey: string
+  beforeProviderAttempt?: () => Promise<void>
+  signal?: AbortSignal
+}) {
+  const { apiKey } = readEmailOtpConfig()
+  const res = await resilientFetch(
+    "resend",
+    RESEND_ENDPOINT,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        "Idempotency-Key": idempotencyKey,
+      },
+      body: payload,
+      signal,
+    },
+    { beforeAttempt: beforeProviderAttempt }
+  )
+  if (!res.ok)
+    throw new DefinitiveProviderRejectionError(
+      `Resend send failed (${res.status}): ${await safeDetail(res)}`
+    )
 }
 
 export function readEmailOtpConfig(): EmailOtpConfig {
