@@ -12,6 +12,13 @@
  *   - Exactly one trailing newline is stripped, because "the file ends with a
  *     newline" is a property of how it was written, not of what it says.
  *
+ * Past that point it is bytes all the way to the hash. A digest offered as
+ * proof that a log was not altered has to bind that log's bytes, so nothing
+ * here decodes a buffer into a string on the way in: decoding replaces every
+ * invalid UTF-8 sequence with U+FFFD, and the two distinct logs `41 80 42` and
+ * `41 FF 42` would then attest to one and the same digest. A caller that hands
+ * over a string is encoded to UTF-8 once, and those bytes are what is hashed.
+ *
  * `digestLogBundle` hashes a length-prefixed concatenation. Without the length
  * prefix, the two-part bundles ["ab", "c"] and ["a", "bc"] hash identically,
  * so a log reassembled in the wrong split would still verify. The part count
@@ -34,41 +41,74 @@ export class DigestError extends LocalCiError {}
 
 const DIGEST_HEX = /^[0-9a-f]{64}$/
 
+const CARRIAGE_RETURN = 0x0d
+const LINE_FEED = 0x0a
+
 /** True for a 64-character lowercase hexadecimal SHA-256 digest. */
 export function isDigestShaped(value) {
   return typeof value === "string" && DIGEST_HEX.test(value)
 }
 
-function toText(input, label) {
-  if (typeof input === "string") return input
-  // Buffers are decoded as UTF-8 on purpose: the thing being hashed is a text
-  // log, and the check output and the on-disk file must canonicalise the same
-  // way whether the caller read the file as text or as bytes.
-  if (input instanceof Uint8Array) return Buffer.from(input).toString("utf8")
+function toBytes(input, label) {
+  // A string is encoded to UTF-8 here, once, and is never decoded again; a
+  // buffer is taken exactly as it stands. Both paths reach the hash as bytes.
+  if (typeof input === "string") return Buffer.from(input, "utf8")
+  if (input instanceof Uint8Array) return Buffer.from(input)
   throw new DigestError(
     "INVALID_INPUT",
     `${label} must be a string or a Uint8Array/Buffer (received ${describeValue(input)})`
   )
 }
 
-/**
- * Canonicalise log text before hashing: CRLF to LF, then strip at most one
- * trailing newline. Exported so a caller writing the log to disk can store the
- * same bytes it attested to.
- */
-export function canonicalizeLogText(input) {
-  const text = toText(input, "log text")
-  const unified = text.replace(/\r\n/g, "\n")
-  return unified.endsWith("\n") ? unified.slice(0, -1) : unified
+function foldCarriageReturns(bytes) {
+  if (!bytes.includes(CARRIAGE_RETURN)) return bytes
+  const folded = Buffer.alloc(bytes.length)
+  let length = 0
+  for (let index = 0; index < bytes.length; index += 1) {
+    // Only the CR of a CR LF pair goes; a lone CR is content and stays.
+    if (bytes[index] === CARRIAGE_RETURN && bytes[index + 1] === LINE_FEED) {
+      continue
+    }
+    folded[length] = bytes[index]
+    length += 1
+  }
+  return folded.subarray(0, length)
 }
 
 /**
- * Lowercase hex SHA-256 of the canonicalised text. Stable for identical input,
- * and stable across a trailing-newline or line-ending difference.
+ * Canonicalise log bytes before hashing: CRLF to LF, then strip at most one
+ * trailing newline. This is the form the digest binds, so a caller writing the
+ * log to disk can store exactly these bytes.
+ *
+ * The scan is byte-wise, which is safe rather than merely convenient: no byte
+ * of a multi-byte UTF-8 sequence is below 0x80, so a CR or LF byte is always a
+ * real CR or LF and never the tail of some other character. It is also the
+ * only way to canonicalise a log that is *not* valid UTF-8 without destroying
+ * the very bytes the digest exists to bind.
+ */
+export function canonicalizeLogBytes(input, label = "log text") {
+  const bytes = foldCarriageReturns(toBytes(input, label))
+  return bytes.at(-1) === LINE_FEED ? bytes.subarray(0, -1) : bytes
+}
+
+/**
+ * The text view of the canonical form, for a caller that wants to read or
+ * render the log rather than hash it. A caller that needs the exact bytes the
+ * digest attested to wants `canonicalizeLogBytes`: decoding is lossy for a log
+ * that is not valid UTF-8, which is precisely why the digest does not go
+ * through it.
+ */
+export function canonicalizeLogText(input) {
+  return canonicalizeLogBytes(input, "log text").toString("utf8")
+}
+
+/**
+ * Lowercase hex SHA-256 of the canonicalised bytes. Stable for identical
+ * input, and stable across a trailing-newline or line-ending difference.
  */
 export function logDigest(input) {
   return createHash(DIGEST_ALGORITHM)
-    .update(canonicalizeLogText(input), "utf8")
+    .update(canonicalizeLogBytes(input))
     .digest("hex")
 }
 
@@ -78,25 +118,16 @@ export function logDigest(input) {
  * newline rules above would be wrong.
  */
 export function rawDigest(input) {
-  const hash = createHash(DIGEST_ALGORITHM)
-  if (typeof input === "string") {
-    hash.update(input, "utf8")
-  } else if (input instanceof Uint8Array) {
-    hash.update(Buffer.from(input))
-  } else {
-    throw new DigestError(
-      "INVALID_INPUT",
-      `rawDigest input must be a string or a Uint8Array/Buffer (received ${describeValue(input)})`
-    )
-  }
-  return hash.digest("hex")
+  return createHash(DIGEST_ALGORITHM)
+    .update(toBytes(input, "rawDigest input"))
+    .digest("hex")
 }
 
 /**
  * Digest an ordered bundle of log parts.
  *
- * Each part is canonicalised, then fed in as its UTF-8 byte length, a newline,
- * and the bytes. The part count leads the stream. Moving a byte between two
+ * Each part is canonicalised, then fed in as its byte length, a newline, and
+ * those same bytes. The part count leads the stream. Moving a byte between two
  * adjacent parts, or splitting one part into two, changes the digest.
  *
  * The order is the caller's: the lane-result record names its parts in
@@ -112,10 +143,7 @@ export function digestLogBundle(parts) {
   const hash = createHash(DIGEST_ALGORITHM)
   hash.update(`${parts.length}\n`, "utf8")
   for (const [index, part] of parts.entries()) {
-    const canonical = canonicalizeLogText(
-      toText(part, `digestLogBundle part ${index}`)
-    )
-    const bytes = Buffer.from(canonical, "utf8")
+    const bytes = canonicalizeLogBytes(part, `digestLogBundle part ${index}`)
     hash.update(`${bytes.length}\n`, "utf8")
     hash.update(bytes)
   }

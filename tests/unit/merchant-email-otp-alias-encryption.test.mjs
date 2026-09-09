@@ -24,19 +24,34 @@ const TOKEN = "pkce_1234567890abcdefghijklmnopqrstuvwxyz"
 
 test("a token round-trips through encrypt/decrypt", () => {
   const stored = encryptOtpAliasToken(TOKEN)
-  assert.equal(decryptOtpAliasToken(stored), TOKEN, "decrypt returns the original token")
+  assert.equal(
+    decryptOtpAliasToken(stored),
+    TOKEN,
+    "decrypt returns the original token"
+  )
 })
 
 test("the stored value is versioned ciphertext, not the plaintext", () => {
   const stored = encryptOtpAliasToken(TOKEN)
-  assert.match(stored, /^v1\./, "the value is self-describing (v1 prefix) for rotation")
-  assert.ok(!stored.includes(TOKEN), "the plaintext token never appears at rest")
+  assert.match(
+    stored,
+    /^v1\./,
+    "the value is self-describing (v1 prefix) for rotation"
+  )
+  assert.ok(
+    !stored.includes(TOKEN),
+    "the plaintext token never appears at rest"
+  )
 })
 
 test("every encryption uses a fresh IV", () => {
   const a = encryptOtpAliasToken(TOKEN)
   const b = encryptOtpAliasToken(TOKEN)
-  assert.notEqual(a, b, "identical tokens produce different ciphertext (fresh IV)")
+  assert.notEqual(
+    a,
+    b,
+    "identical tokens produce different ciphertext (fresh IV)"
+  )
 })
 
 test("a tampered value fails auth-tag verification as an integrity error", () => {
@@ -47,7 +62,12 @@ test("a tampered value fails auth-tag verification as an integrity error", () =>
   // test flake); flipping a decoded byte is a guaranteed real change.
   const body = Buffer.from(parts[3], "base64url")
   body[0] ^= 0x01
-  const tampered = [parts[0], parts[1], parts[2], body.toString("base64url")].join(".")
+  const tampered = [
+    parts[0],
+    parts[1],
+    parts[2],
+    body.toString("base64url"),
+  ].join(".")
 
   assert.throws(
     () => decryptOtpAliasToken(tampered),
@@ -61,6 +81,32 @@ test("a malformed versioned value is an integrity error, not plaintext", () => {
     () => decryptOtpAliasToken("v1.not-a-real-shape"),
     OtpAliasTokenIntegrityError,
     "a v1-prefixed value that does not parse must be rejected"
+  )
+})
+
+test("the auth tag is written at the full 16 bytes", () => {
+  const [, , tag] = encryptOtpAliasToken(TOKEN).split(".")
+  assert.equal(
+    Buffer.from(tag, "base64url").byteLength,
+    16,
+    "every row ever written carries a full tag, so decrypt can demand one"
+  )
+})
+
+test("a truncated auth tag is an integrity error, not a shortcut", () => {
+  // GCM verifies only as many tag bytes as it is handed. Until the codec pinned
+  // authTagLength, the first four bytes of a real tag decrypted happily — and a
+  // four-byte tag is orders of magnitude cheaper to forge than a full one, on a
+  // value that IS a usable Supabase login token.
+  const parts = encryptOtpAliasToken(TOKEN).split(".")
+  parts[2] = Buffer.from(parts[2], "base64url")
+    .subarray(0, 4)
+    .toString("base64url")
+
+  assert.throws(
+    () => decryptOtpAliasToken(parts.join(".")),
+    OtpAliasTokenIntegrityError,
+    "a short tag must be refused, not verified against its own prefix"
   )
 })
 

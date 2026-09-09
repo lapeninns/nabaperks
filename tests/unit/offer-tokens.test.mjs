@@ -108,6 +108,31 @@ test("Given tampered or foreign material When it is decrypted Then it returns nu
   )
 })
 
+test("Given a truncated auth tag When it is decrypted Then it is refused rather than verified against its own prefix", () => {
+  const token = tokens.offerClaimToken(CAMPAIGN_ID, 1)
+  const [version, iv, body, tag] = tokens
+    .encryptOfferClaimToken(token)
+    .split(".")
+
+  // Sealing always writes the full 16 bytes, which is why decrypt can insist on
+  // them: GCM otherwise verifies only as many bytes as it is handed, so the
+  // first four of a genuine tag used to decrypt — and four bytes are far
+  // cheaper to forge than sixteen.
+  assert.equal(Buffer.from(tag, "base64url").byteLength, 16)
+
+  for (const bytes of [4, 8, 12, 15]) {
+    const truncated = Buffer.from(tag, "base64url")
+      .subarray(0, bytes)
+      .toString("base64url")
+
+    assert.equal(
+      tokens.decryptOfferClaimToken([version, iv, body, truncated].join(".")),
+      null,
+      `a ${bytes}-byte tag must not open the poster link`
+    )
+  }
+})
+
 test("Given a token set When it is built Then it carries exactly what the rotate RPC stores", () => {
   const set = tokens.offerClaimTokenSet(CAMPAIGN_ID, 3)
 
