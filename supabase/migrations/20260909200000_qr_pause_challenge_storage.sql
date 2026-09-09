@@ -52,8 +52,8 @@ alter table public.qr_pause_attempts enable row level security;
 alter table public.qr_pause_attempts force row level security;
 alter table public.qr_status_email_outbox enable row level security;
 alter table public.qr_status_email_outbox force row level security;
-revoke all on public.qr_pause_challenges, public.qr_pause_attempts, public.qr_status_email_outbox from public, anon, authenticated;
-grant all on public.qr_pause_challenges, public.qr_pause_attempts, public.qr_status_email_outbox to service_role;
+revoke all on public.qr_pause_challenges, public.qr_pause_attempts, public.qr_status_email_outbox from public, anon, authenticated, service_role;
+grant select, insert, update, delete on public.qr_pause_challenges, public.qr_pause_attempts, public.qr_status_email_outbox to service_role;
 revoke all on sequence public.qr_pause_attempts_id_seq from public, anon, authenticated;
 grant usage, select on sequence public.qr_pause_attempts_id_seq to service_role;
 
