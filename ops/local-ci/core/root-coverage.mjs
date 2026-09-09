@@ -16,6 +16,14 @@
  * Resolution is total. Every lane id resolves to a root or is reported as
  * covering none - never dropped - because a dropped lane is exactly how a
  * coverage claim starts overstating itself.
+ *
+ * Coverage counts lanes that executed. A lane the runner recorded as skipped
+ * or cancelled never started a command, so counting its root as covered would
+ * be the same overstatement in a smaller place: a run that stopped at its
+ * first failure would still publish `5/9 required roots local` and name e2e,
+ * a11y and db among them. Those lanes are not dropped either - they are
+ * published in `notRunLanes`, because a profile that declared a lane and did
+ * not run it is a fact the evidence has to carry.
  */
 
 import { LocalCiError, describeValue } from "./contract.mjs"
@@ -40,6 +48,41 @@ export const UNMAPPED_KINDS = Object.freeze([
   "not-required",
   "unknown",
 ])
+
+/**
+ * Lane statuses that mean the lane never executed.
+ *
+ * A subset of summary.mjs's `LANE_STATUSES`, which cannot be imported here -
+ * summary.mjs imports this module. Both of these are written by
+ * agent/runner.mjs for a lane that never started: `skipped` when an earlier
+ * lane stopped the run or the whole-profile deadline expired before this lane
+ * came up, `cancelled` when the run's abort signal reached it first. Neither
+ * runs a command and neither writes a log part, so neither is evidence that
+ * its root ran here.
+ *
+ * `failure` and `timed_out` are deliberately absent. Those lanes executed:
+ * they streamed output, they carry a log part, and the run's conclusion
+ * already says their result was not a pass. Their root did run locally, and
+ * saying otherwise would understate the plane in the opposite direction.
+ */
+export const NON_EXECUTING_LANE_STATUSES = Object.freeze([
+  "skipped",
+  "cancelled",
+])
+
+/**
+ * Whether a lane with this status executed.
+ *
+ * An absent status reads as executed, which is what a caller passing bare lane
+ * ids - a profile's declared lanes, before any run - means by them.
+ */
+export function laneExecuted(status) {
+  return (
+    status === null ||
+    status === undefined ||
+    !NON_EXECUTING_LANE_STATUSES.includes(status)
+  )
+}
 
 /**
  * Lanes that correspond to no required root, and where their work sits instead.
@@ -113,14 +156,47 @@ export function rootForLane(laneId) {
 }
 
 /**
+ * One entry of `computeRootCoverage`'s lane list, as `{ laneId, status }`.
+ *
+ * A bare string is a lane id with no recorded status, which is how a caller
+ * describing a profile's declared lanes - rather than a finished run - names
+ * them. An object carries the status the run recorded, so a lane that never
+ * started can be told from one that ran.
+ */
+function normaliseLaneEntry(entry, index) {
+  const path = `laneIds[${index}]`
+  if (entry !== null && typeof entry === "object" && !Array.isArray(entry)) {
+    const laneId = requireLaneId(entry.laneId ?? entry.id, `${path}.laneId`)
+    const { status } = entry
+    if (
+      status !== null &&
+      status !== undefined &&
+      (typeof status !== "string" || status.trim() === "")
+    ) {
+      fail(
+        "COVERAGE_SHAPE",
+        `${path}.status must be a non-empty string or absent (received ${describeValue(status)})`
+      )
+    }
+    return { laneId, status: status ?? null }
+  }
+  return { laneId: requireLaneId(entry, path), status: null }
+}
+
+/**
  * Which of `requiredRoots` the given lanes cover, and which they do not.
  *
- * `laneIds` are the lanes that ran on this plane; `requiredRoots` defaults to
- * the hosted plane's full required set. Returns
- * `{ requiredRoots, coveredRoots, uncoveredRoots, laneRoots, unmappedLanes,
- * complete }`, where `laneRoots` has exactly one entry per lane id passed in,
- * in order, and `unmappedLanes` names every lane that covers no required root
- * together with why.
+ * `laneIds` are this plane's lanes, each either a lane id or
+ * `{ laneId, status }`; `requiredRoots` defaults to the hosted plane's full
+ * required set. Returns `{ requiredRoots, coveredRoots, uncoveredRoots,
+ * laneRoots, unmappedLanes, notRunLanes, complete }`, where `laneRoots` has
+ * exactly one entry per lane passed in, in order, `unmappedLanes` names every
+ * lane that covers no required root together with why, and `notRunLanes`
+ * names every lane whose status says it never executed.
+ *
+ * Only lanes that executed contribute to `coveredRoots`. A lane appears in
+ * `laneRoots` under the root it would have run either way, because that
+ * mapping is a property of the lane and not of one run's outcome.
  */
 export function computeRootCoverage(
   laneIds,
@@ -143,11 +219,23 @@ export function computeRootCoverage(
   )
 
   const laneRoots = []
+  const executedLaneRoots = []
   const unmappedLanes = []
-  for (const [index, laneId] of laneIds.entries()) {
-    const id = requireLaneId(laneId, `laneIds[${index}]`)
+  const notRunLanes = []
+  for (const [index, entry] of laneIds.entries()) {
+    const { laneId: id, status } = normaliseLaneEntry(entry, index)
     const resolved = rootForLane(id)
     laneRoots.push(Object.freeze({ laneId: id, root: resolved.root }))
+
+    if (laneExecuted(status)) {
+      executedLaneRoots.push(resolved.root)
+    } else {
+      // Named, never dropped: the run declared this lane and did not run it,
+      // and hiding that would trade one overstatement for another.
+      notRunLanes.push(
+        Object.freeze({ laneId: id, root: resolved.root, status })
+      )
+    }
 
     if (!resolved.known) {
       unmappedLanes.push(
@@ -190,9 +278,7 @@ export function computeRootCoverage(
     )
   }
 
-  const coveredRoots = roots.filter((root) =>
-    laneRoots.some((entry) => entry.root === root)
-  )
+  const coveredRoots = roots.filter((root) => executedLaneRoots.includes(root))
   const uncoveredRoots = roots.filter((root) => !coveredRoots.includes(root))
 
   return Object.freeze({
@@ -201,6 +287,7 @@ export function computeRootCoverage(
     uncoveredRoots: Object.freeze(uncoveredRoots),
     laneRoots: Object.freeze(laneRoots),
     unmappedLanes: Object.freeze(unmappedLanes),
+    notRunLanes: Object.freeze(notRunLanes),
     complete: uncoveredRoots.length === 0,
   })
 }

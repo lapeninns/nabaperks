@@ -9,10 +9,22 @@
  * same `nabaperks.lane-result.v1` envelope the local plane publishes, so the
  * two documents are comparable because they were built the same way.
  *
- * Three rules govern this file:
+ * Five rules govern this file:
  *
  *   - **Read-only.** Every provider call is a GET. This never publishes a
  *     check, reruns a job, or writes provider state of any kind.
+ *
+ *   - **The policy is read at the evidence SHA.** Job placement, the lane
+ *     vocabulary and the qualification limits all come from `ci.yml` and the
+ *     contract *as they stand at `--sha`*, read out of git rather than out of
+ *     the working tree. Collecting a PR head while sitting on main is the
+ *     documented invocation, so a tool that read the checkout would compare a
+ *     run against another revision's policy without saying so.
+ *
+ *   - **Evidence comes from the pinned repository.** `contract.repository` is
+ *     the trust boundary: a run read from a fork carries that fork's Actions
+ *     configuration, and nothing downstream inspects `provider.repository`.
+ *     `--repo` may therefore only ever restate the pinned repository.
  *
  *   - **A job that cannot be placed stops the run.** Hosted e2e and a11y are
  *     sharded across many jobs while the local plane runs one lane per
@@ -31,8 +43,8 @@
  */
 
 import { execFile as execFileCallback } from "node:child_process"
-import { readFile, writeFile } from "node:fs/promises"
-import { pathToFileURL } from "node:url"
+import { writeFile } from "node:fs/promises"
+import { fileURLToPath, pathToFileURL } from "node:url"
 import { parseArgs, promisify } from "node:util"
 
 import { parseLaneCounts } from "../../ops/local-ci/agent/runner.mjs"
@@ -40,8 +52,14 @@ import { REQUIRED_HOSTED_JOBS } from "./verify-required-evidence.mjs"
 
 const execFile = promisify(execFileCallback)
 
+/** The checkout this script belongs to; the git repository read at `--sha`. */
+export const REPO_ROOT = fileURLToPath(new URL("../../", import.meta.url))
+
 /** The workflow whose jobs carry the hosted workload. */
 export const CI_WORKFLOW_PATH = ".github/workflows/ci.yml"
+
+/** The qualification policy, read at the evidence SHA rather than on disk. */
+export const CONTRACT_PATH = "config/local-ci-contract.json"
 
 /** Shard key of a lane that hosted runs as a single unsharded job. */
 export const SINGLE_SHARD = "(single)"
@@ -56,12 +74,30 @@ export const SINGLE_SHARD = "(single)"
  *
  * `quality` is the one hosted job that carries two local lanes: the hygiene
  * sweeps and the print-kit PDF proof share it hosted and are split locally
- * only because their dependency sets are disjoint. Both are command checks,
- * so the job's single outcome is the honest status for each.
+ * only because their dependency sets are disjoint. The job's single conclusion
+ * therefore says nothing about which half of it failed, so `laneSteps` names
+ * the steps each lane is made of and the statuses are derived from those. The
+ * names are the rendered step names the Actions API reports, which for a named
+ * step is its `name:` in ci.yml; `buildLaneIndex` refuses when the workflow no
+ * longer declares one of them.
  */
 export const HOSTED_LANE_SOURCES = Object.freeze({
   fast: { lanes: ["fast"], shardKeys: [] },
-  quality: { lanes: ["quality", "print-kit"], shardKeys: [] },
+  quality: {
+    lanes: ["quality", "print-kit"],
+    shardKeys: [],
+    laneSteps: {
+      quality: ["Run shared quality validation commands"],
+      // The two proofs plus the tooling they need: an install that fails is a
+      // print-kit failure, and locally the image provides the same tooling.
+      "print-kit": [
+        "Install PDF QA tooling",
+        "Install Chromium for production print-kit rendering",
+        "Verify pdf-lib poster geometry",
+        "Verify production preview print-kit PDFs",
+      ],
+    },
+  },
   e2e: { lanePrefix: "e2e", laneKey: "project", shardKeys: ["pack"] },
   a11y: { lanePrefix: "a11y", laneKey: "project", shardKeys: ["shard"] },
   db: { lanes: ["db"], shardKeys: [] },
@@ -111,13 +147,15 @@ function escapeRegExp(value) {
 /* ---------------------------------------------------------------- workflow */
 
 /**
- * ci.yml's jobs as `{ name, matrix }`, keyed by job id. Pure.
+ * ci.yml's jobs as `{ name, matrix, stepNames }`, keyed by job id. Pure.
  *
- * No YAML parser is a dependency of this repository, so this reads the two
+ * No YAML parser is a dependency of this repository, so this reads the three
  * things it needs the way the contract tests already do: job bodies are
  * indented four spaces or more, so the first following line indented exactly
  * two ends the job. A matrix key whose value is not an inline sequence (the
  * `include:` form) is recorded with a null value rather than guessed at.
+ * `stepNames` collects the job's named steps, which is what a split lane's
+ * mapping is checked against.
  */
 export function parseWorkflowJobs(text) {
   const marker = "\njobs:\n"
@@ -134,6 +172,9 @@ export function parseWorkflowJobs(text) {
         .trim()
         .replace(/^(["'])(.*)\1$/, "$2"),
       matrix: parseMatrix(body),
+      stepNames: [...body.matchAll(/^ {6}- name: (.+)$/gm)].map((step) =>
+        step[1].trim().replace(/^(["'])(.*)\1$/, "$2")
+      ),
     })
   }
   requireCondition(jobs.size > 0, `${CI_WORKFLOW_PATH} declares no jobs`)
@@ -227,6 +268,40 @@ function shardKeyOf(source, values, jobId) {
 }
 
 /**
+ * A split job's step mapping, checked against the workflow it splits. Pure.
+ *
+ * The mapping only means anything while ci.yml still declares those steps: a
+ * renamed step would otherwise read as a step that never ran, which is a lane
+ * quietly reported as skipped. Every lane the job carries must claim at least
+ * one step, and no step may be claimed twice, or one half's outcome would be
+ * charged to both lanes again.
+ */
+function laneStepsOf(source, jobId, stepNames) {
+  const laneSteps = source.laneSteps
+  if (laneSteps === undefined) return null
+  requireCondition(
+    (source.lanes ?? []).length > 0 &&
+      source.lanes.every((laneId) => (laneSteps[laneId] ?? []).length > 0) &&
+      Object.keys(laneSteps).every((laneId) => source.lanes.includes(laneId)),
+    `the hosted lane split for ci.yml job ${jobId} does not name steps for each lane it carries`
+  )
+  const claimed = Object.values(laneSteps).flat()
+  requireCondition(
+    new Set(claimed).size === claimed.length,
+    `the hosted lane split for ci.yml job ${jobId} claims a step for more than one lane`
+  )
+  for (const [laneId, names] of Object.entries(laneSteps)) {
+    for (const stepName of names) {
+      requireCondition(
+        stepNames.includes(stepName),
+        `${CI_WORKFLOW_PATH} job ${jobId} declares no step ${JSON.stringify(stepName)}, which lane ${laneId} is derived from; the split has drifted from the workflow`
+      )
+    }
+  }
+  return laneSteps
+}
+
+/**
  * The lane vocabulary this run is expected to fill, derived from ci.yml. Pure.
  *
  * Refuses when ci.yml declares a job this file classifies neither way, when a
@@ -256,7 +331,8 @@ export function buildLaneIndex(workflowText, laneIds) {
 
   const expected = new Map()
   for (const [jobId, source] of Object.entries(HOSTED_LANE_SOURCES)) {
-    const { matrix } = jobs.get(jobId)
+    const { matrix, stepNames } = jobs.get(jobId)
+    const laneSteps = laneStepsOf(source, jobId, stepNames)
     const lanes =
       source.lanes ??
       cartesian([source.laneKey], matrix, jobId).map(
@@ -272,7 +348,11 @@ export function buildLaneIndex(workflowText, laneIds) {
         laneIds.includes(laneId),
         `${CI_WORKFLOW_PATH} job ${jobId} fans out to lane ${laneId}, which the qualification policy does not list`
       )
-      expected.set(laneId, { jobId, shards })
+      expected.set(laneId, {
+        jobId,
+        shards,
+        steps: laneSteps?.[laneId] ?? null,
+      })
     }
   }
   for (const laneId of laneIds) {
@@ -453,7 +533,59 @@ export function laneCountsFromLogs({ kind, status, logs }) {
 
 /* ------------------------------------------------------------------ record */
 
-function laneStatusOf(laneId, shards) {
+function combineStatuses(laneId, statuses, unit) {
+  if (statuses.includes("timed_out")) return "timed_out"
+  if (statuses.includes("failure")) return "failure"
+  if (statuses.every((status) => status === "skipped")) return "skipped"
+  requireCondition(
+    statuses.every((status) => status === "success"),
+    `lane ${laneId} mixes skipped and completed ${unit}; a partly executed lane cannot stand in for the whole lane`
+  )
+  return "success"
+}
+
+/**
+ * One shard job's declared steps as `{ name, conclusion, status }`. Pure.
+ *
+ * A step the runner never reached is absent from the job's step list rather
+ * than reported as skipped, so absence is read as "did not run" - which is
+ * what a hygiene failure does to the print-kit steps that follow it. Absence
+ * from a job that concluded success is the other case, and that is drift
+ * between this mapping and the workflow, so it refuses instead.
+ */
+function laneStepResults(laneId, shardKey, job, stepNames) {
+  requireCondition(
+    Array.isArray(job.steps),
+    `lane ${laneId} shard ${shardKey} carries no step list; the lanes sharing hosted job ${JSON.stringify(job.name)} cannot be told apart`
+  )
+  return stepNames.map((name) => {
+    const matches = job.steps.filter((step) => step?.name === name)
+    requireCondition(
+      matches.length <= 1,
+      `lane ${laneId} shard ${shardKey} runs step ${JSON.stringify(name)} ${matches.length} times; an ambiguous step cannot give the lane a status`
+    )
+    if (matches.length === 0) {
+      requireCondition(
+        job.conclusion !== "success",
+        `lane ${laneId} shard ${shardKey} concluded success without running step ${JSON.stringify(name)}; the split has drifted from the workflow`
+      )
+      return { name, conclusion: null, status: "skipped" }
+    }
+    const [step] = matches
+    requireCondition(
+      step.status === "completed",
+      `lane ${laneId} shard ${shardKey} step ${JSON.stringify(name)} is still ${step.status}; an unfinished run is not evidence`
+    )
+    const status = LANE_STATUS_BY_CONCLUSION[step.conclusion]
+    requireCondition(
+      status !== undefined,
+      `lane ${laneId} shard ${shardKey} step ${JSON.stringify(name)} concluded ${JSON.stringify(step.conclusion)}, which the comparison does not accept as a lane outcome`
+    )
+    return { name, conclusion: step.conclusion, status }
+  })
+}
+
+function laneStatusOf(laneId, shards, stepsByShard) {
   const statuses = shards.map(([shardKey, job]) => {
     requireCondition(
       job.status === "completed",
@@ -464,16 +596,16 @@ function laneStatusOf(laneId, shards) {
       status !== undefined,
       `lane ${laneId} shard ${shardKey} concluded ${JSON.stringify(job.conclusion)}, which the comparison does not accept as a lane outcome`
     )
-    return status
+    // A job shared by two lanes still has to have finished comparably, but its
+    // conclusion covers both halves, so this lane's half is read off its steps.
+    if (stepsByShard === null) return status
+    return combineStatuses(
+      laneId,
+      stepsByShard.get(shardKey).map((step) => step.status),
+      "steps"
+    )
   })
-  if (statuses.includes("timed_out")) return "timed_out"
-  if (statuses.includes("failure")) return "failure"
-  if (statuses.every((status) => status === "skipped")) return "skipped"
-  requireCondition(
-    statuses.every((status) => status === "success"),
-    `lane ${laneId} mixes skipped and completed shards; a partly executed lane cannot stand in for the whole lane`
-  )
-  return "success"
+  return combineStatuses(laneId, statuses, "shards")
 }
 
 function spanSeconds(jobs) {
@@ -492,6 +624,10 @@ function spanSeconds(jobs) {
  * `durationSeconds` is the lane's wall clock - the span from its first shard
  * starting to its last finishing - so it means what the local lane's duration
  * means rather than being a sum of parallel shard times.
+ *
+ * `stepNames`, when the lane shares its hosted job with another lane, is the
+ * subset of that job's steps this lane is made of; the shard record then
+ * carries their conclusions so the document says which half is being reported.
  */
 export function buildHostedLane({
   laneId,
@@ -500,10 +636,20 @@ export function buildHostedLane({
   sourceJob,
   shards,
   logsByJobId,
+  stepNames = null,
 }) {
   const entries = [...shards].sort(([a], [b]) => a.localeCompare(b))
   const jobs = entries.map(([, job]) => job)
-  const status = laneStatusOf(laneId, entries)
+  const stepsByShard =
+    stepNames === null
+      ? null
+      : new Map(
+          entries.map(([shardKey, job]) => [
+            shardKey,
+            laneStepResults(laneId, shardKey, job, stepNames),
+          ])
+        )
+  const status = laneStatusOf(laneId, entries, stepsByShard)
   const counts = laneCountsFromLogs({
     kind,
     status,
@@ -539,8 +685,49 @@ export function buildHostedLane({
       jobId: job.id,
       name: job.name,
       conclusion: job.conclusion,
+      ...(stepsByShard === null
+        ? {}
+        : {
+            steps: stepsByShard
+              .get(shardKey)
+              .map(({ name, conclusion }) => ({ name, conclusion })),
+          }),
     })),
     jobIds: jobs.map((job) => job.id),
+  }
+}
+
+/**
+ * Every failing lane job answered by a failing lane. Pure.
+ *
+ * A lane whose status comes from steps reads a step that never ran as "did not
+ * run", so a job that failed before or after the steps any lane claims - in
+ * `Set up job`, the checkout, the teardown - would leave both its lanes
+ * reporting skipped and the run reporting success. That failure belongs to no
+ * lane and cannot be attributed, so it refuses rather than disappearing.
+ */
+function requireFailuresAttributed(lanes) {
+  const statusesByJobId = new Map()
+  for (const lane of lanes) {
+    for (const jobId of lane.jobIds) {
+      statusesByJobId.set(jobId, [
+        ...(statusesByJobId.get(jobId) ?? []),
+        lane.status,
+      ])
+    }
+  }
+  const failed = ["failure", "timed_out"]
+  for (const lane of lanes) {
+    for (const shard of lane.shards) {
+      if (!failed.includes(LANE_STATUS_BY_CONCLUSION[shard.conclusion]))
+        continue
+      requireCondition(
+        (statusesByJobId.get(shard.jobId) ?? []).some((status) =>
+          failed.includes(status)
+        ),
+        `hosted job ${shard.jobId} ${JSON.stringify(shard.name)} concluded ${shard.conclusion}, but no lane it carries reports a failure; the failure lies outside the steps any lane claims and cannot be attributed`
+      )
+    }
   }
 }
 
@@ -584,12 +771,17 @@ export function buildHostedEvidence({
     run.status === "completed",
     `run ${run.id} is still ${run.status}`
   )
-  // Provenance has to name what was read, not what the contract pins, or a run
-  // collected from a fork with --repo would be filed under the canonical
-  // repository. Where the run states its own identity, it is checked too.
+  // The pinned repository is the trust boundary: a fork's run was produced by
+  // an Actions configuration nobody here reviewed, and nothing downstream
+  // inspects provider.repository, so the refusal has to happen here. Where the
+  // run states its own identity, that is checked against the same pin.
   requireCondition(
-    typeof repository === "string" && repository !== "",
-    "the repository the run was read from is unknown"
+    typeof contract?.repository === "string" && contract.repository !== "",
+    "the contract pins no repository to read hosted evidence from"
+  )
+  requireCondition(
+    repository === contract.repository,
+    `hosted evidence must come from the pinned repository ${contract.repository}; ${JSON.stringify(repository)} is outside the trust boundary`
   )
   const runRepository = run.repository?.full_name
   requireCondition(
@@ -617,8 +809,10 @@ export function buildHostedEvidence({
       sourceJob: index.expected.get(laneId).jobId,
       shards: placed.get(laneId),
       logsByJobId,
+      stepNames: index.expected.get(laneId).steps,
     })
   )
+  requireFailuresAttributed(lanes)
   const statuses = lanes.map((lane) => lane.status)
   return {
     ...envelope,
@@ -742,16 +936,67 @@ export async function readJobLogs({ reader, repository, jobIds }) {
 
 /* --------------------------------------------------------------------- CLI */
 
+/**
+ * A tracked file as it stands at the evidence SHA, read out of git.
+ *
+ * The documented invocation collects a PR head while the operator sits on
+ * another branch, so the working tree is the wrong source for anything that
+ * decides how the run is read: job placement, the lane vocabulary and the
+ * qualification limits all belong to the revision under comparison. A SHA the
+ * checkout does not carry refuses with the fetch that would fix it rather than
+ * falling back to whatever is on disk, because that fallback is exactly the
+ * silent mismatch this exists to prevent.
+ */
+export async function readAtSha({ sha, path, exec = execFile }) {
+  try {
+    const { stdout } = await exec(
+      "git",
+      ["-C", REPO_ROOT, "show", `${sha}:${path}`],
+      { maxBuffer: 64 * 1024 * 1024 }
+    )
+    return stdout
+  } catch (error) {
+    throw new HostedEvidenceError(
+      `cannot read ${path} at ${sha}: ${String(error?.stderr ?? error?.message ?? error).trim()}; ` +
+        `fetch the evidence commit (git fetch origin ${sha}) and retry. Reading the working tree instead would compare the run against another revision's policy.`
+    )
+  }
+}
+
+/**
+ * The repository to read, which may only ever be the contract's pinned one.
+ *
+ * `--repo` predates this check and could redirect the whole collection at a
+ * fork, whose Actions configuration is outside the trust boundary and whose
+ * run nothing downstream would question. Like `streakProfiles`, configuration
+ * may narrow a code-owned policy and never redirect it, so the flag survives
+ * as an assertion an operator can make and cannot use to widen anything.
+ */
+export function resolveRepository({ contract, requested }) {
+  const pinned = contract?.repository
+  requireCondition(
+    typeof pinned === "string" && pinned !== "",
+    "the contract pins no repository to read hosted evidence from"
+  )
+  requireCondition(
+    requested === undefined || requested === pinned,
+    `--repo may only restate the pinned repository ${pinned}; ${JSON.stringify(requested)} is outside the trust boundary`
+  )
+  return pinned
+}
+
 const USAGE = `Usage: node scripts/ci/hosted-evidence.mjs --sha <40-hex> [options]
 
 Reads a hosted GitHub Actions CI run and writes the hosted evidence document
 that 'pnpm ops:ci:shadow-compare --hosted-evidence FILE' consumes. Read-only:
-every provider call is a GET.
+every provider call is a GET. The workflow and the qualification contract are
+read at --sha, so the checkout may sit on any branch as long as it carries the
+evidence commit.
 
   --sha SHA        head commit of the hosted run (required)
   --run-id ID      the run to read, when a SHA has more than one
   --profile NAME   qualification profile (default: pr)
-  --repo SLUG      owner/name (default: the pinned contract repository)
+  --repo SLUG      assert the pinned contract repository; it may not redirect
   --out FILE       write the document here instead of stdout
   --no-logs        skip job logs; every test lane reports counts unavailable
   --help           print this
@@ -818,7 +1063,7 @@ export function summariseHostedEvidence(document) {
 
 export async function main(
   argv,
-  { readFileImpl = readFile, writeFileImpl = writeFile, reader } = {}
+  { readAtShaImpl = readAtSha, writeFileImpl = writeFile, reader } = {}
 ) {
   const { values } = parseArgs({
     args: argv,
@@ -840,16 +1085,11 @@ export async function main(
     COMMIT_SHA.test(values.sha ?? ""),
     `--sha must be 40 lowercase hex characters\n\n${USAGE}`
   )
-  const contract = JSON.parse(
-    await readFileImpl(
-      new URL("../../config/local-ci-contract.json", import.meta.url),
-      "utf8"
-    )
-  )
-  const workflowText = await readFileImpl(
-    new URL(`../../${CI_WORKFLOW_PATH}`, import.meta.url),
-    "utf8"
-  )
+  const [contractText, workflowText] = await Promise.all([
+    readAtShaImpl({ sha: values.sha, path: CONTRACT_PATH }),
+    readAtShaImpl({ sha: values.sha, path: CI_WORKFLOW_PATH }),
+  ])
+  const contract = JSON.parse(contractText)
   const document = await collectHostedEvidence({
     contract,
     workflowText,
@@ -857,7 +1097,7 @@ export async function main(
     sha: values.sha,
     runId: values["run-id"],
     profile: values.profile,
-    repository: values.repo ?? contract.repository,
+    repository: resolveRepository({ contract, requested: values.repo }),
     withLogs: !values["no-logs"],
   })
   const json = `${JSON.stringify(document, null, 2)}\n`

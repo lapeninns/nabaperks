@@ -225,3 +225,131 @@ test("the published check states its coverage instead of leaving 10/10 to imply 
   assert.equal(parsed.lanes.length, laneIds.length)
   assert.deepEqual(parsed.hostedOnlyLanes, [])
 })
+
+test("a lane that never started covers nothing, whatever its root would have been", () => {
+  const coverage = computeRootCoverage([
+    { laneId: "fast", status: "success" },
+    { laneId: "quality", status: "failure" },
+    { laneId: "e2e-chromium", status: "skipped" },
+    { laneId: "a11y-chromium", status: "cancelled" },
+    { laneId: "db", status: "timed_out" },
+  ])
+
+  // `failure` and `timed_out` ran: the lane executed and the run's conclusion
+  // already says what its result was. `skipped` and `cancelled` did not.
+  assert.deepEqual([...coverage.coveredRoots], ["fast", "quality", "db"])
+  assert.ok(coverage.uncoveredRoots.includes("e2e"))
+  assert.ok(coverage.uncoveredRoots.includes("a11y"))
+
+  // Not run is not the same as not declared, so the lanes are still named.
+  assert.deepEqual(
+    coverage.notRunLanes.map(({ laneId, root, status }) => ({
+      laneId,
+      root,
+      status,
+    })),
+    [
+      { laneId: "e2e-chromium", root: "e2e", status: "skipped" },
+      { laneId: "a11y-chromium", root: "a11y", status: "cancelled" },
+    ]
+  )
+  // And the lane-to-root mapping is untouched: it is a property of the lane,
+  // not of one run's outcome.
+  assert.deepEqual(
+    coverage.laneRoots.find((entry) => entry.laneId === "e2e-chromium"),
+    { laneId: "e2e-chromium", root: "e2e" }
+  )
+})
+
+test("bare lane ids still read as lanes that ran, so the declared-lane view is unchanged", () => {
+  const declared = computeRootCoverage(laneIdsOf("pr"))
+  const executed = computeRootCoverage(
+    laneIdsOf("pr").map((laneId) => ({ laneId, status: "success" }))
+  )
+
+  assert.deepEqual([...declared.coveredRoots], [...executed.coveredRoots])
+  assert.deepEqual([...declared.notRunLanes], [])
+  assert.deepEqual([...executed.notRunLanes], [])
+})
+
+test("a run that stops at its first failure publishes only the roots that ran", () => {
+  const laneIds = laneIdsOf("pr")
+  const rendered = renderCheckSummary(
+    {
+      profile: "pr",
+      headSha: "d".repeat(40),
+      conclusion: "failure",
+      logDigest: logDigest("lane output"),
+      lanes: laneIds.map((laneId) => {
+        if (laneId === "fast") {
+          return {
+            laneId,
+            status: "success",
+            testsRun: 10,
+            testsPassed: 10,
+            testsFailed: 0,
+            testsSkipped: 0,
+          }
+        }
+        if (laneId === "quality") {
+          return {
+            laneId,
+            status: "failure",
+            testsRun: 4,
+            testsPassed: 3,
+            testsFailed: 1,
+            testsSkipped: 0,
+            failures: ["lint: unused export"],
+          }
+        }
+        // Everything after the failing lane: recorded, never started.
+        return {
+          laneId,
+          status: "skipped",
+          blockedByLaneId: "quality",
+          testsRun: 0,
+          testsPassed: 0,
+          testsFailed: 0,
+          testsSkipped: 0,
+        }
+      }),
+    },
+    contract
+  )
+
+  // The headline number is the one that would have lied: two roots ran here,
+  // not five, and the title has to say two.
+  assert.equal(
+    rendered.title,
+    "failure — 1/10 lanes, 13/14 tests, 2/9 required roots local"
+  )
+  assert.match(rendered.summary, /Required roots:\s*2 of 9/)
+
+  const parsed = extractLaneSummary(rendered.text)
+  assert.deepEqual(parsed.rootCoverage.coveredRoots, ["fast", "quality"])
+  for (const root of ["e2e", "a11y", "db"]) {
+    assert.ok(
+      parsed.rootCoverage.uncoveredRoots.includes(root),
+      `${root} never started, so it must not be published as covered`
+    )
+  }
+  assert.deepEqual(
+    parsed.rootCoverage.notRunLanes.map((entry) => entry.laneId),
+    laneIds.filter((laneId) => !["fast", "quality"].includes(laneId))
+  )
+  for (const entry of parsed.rootCoverage.notRunLanes) {
+    assert.equal(entry.status, "skipped")
+  }
+
+  // The skipped lanes do not vanish from the prose either.
+  assert.ok(
+    rendered.text.includes(
+      "- Declared but not run: local lane `e2e-chromium` was recorded `skipped` and never started, so the `e2e` root is not counted as covered here"
+    ),
+    `the skipped lanes must stay visible (was ${JSON.stringify(rendered.text)})`
+  )
+
+  // Additive only: the fields the shadow comparison already reads are intact.
+  assert.equal(parsed.lanes.length, laneIds.length)
+  assert.equal(parsed.lanes[2].blockedByLaneId, "quality")
+})

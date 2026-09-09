@@ -402,3 +402,72 @@ test("extractLaneSummary distinguishes an absent block from a corrupt one", () =
   ].join("\n")
   assert.equal(extractLaneSummary(corrupt), null)
 })
+
+test("a skipped lane is published as a lane that ran nothing, not as coverage", () => {
+  const stopped = record({
+    conclusion: "failure",
+    lanes: [
+      lane({ status: "failure", testsFailed: 2, testsPassed: 116 }),
+      lane({
+        laneId: "db",
+        title: "Database",
+        status: "skipped",
+        durationSeconds: 0,
+        blockedByLaneId: "fast",
+        testsRun: 0,
+        testsPassed: 0,
+        testsFailed: 0,
+        testsSkipped: 0,
+      }),
+    ],
+  })
+  const rendered = renderCheckSummary(stopped, contract)
+
+  // `fast` executed and failed, so its root ran here; `db` never started, so
+  // the count stays at one even though two lanes have rows.
+  assert.equal(
+    rendered.title,
+    "failure — 0/2 lanes, 116/120 tests, 1/9 required roots local"
+  )
+  assert.match(rendered.summary, /Required roots:\s*1 of 9/)
+  assert.match(rendered.summary, /1 declared lane\(s\) never started/)
+
+  // The row is still there: the evidence says the lane was expected.
+  assert.match(rendered.text, /\| db \| skipped \|/)
+
+  const parsed = extractLaneSummary(rendered.text)
+  assert.ok(!parsed.rootCoverage.coveredRoots.includes("db"))
+  assert.ok(parsed.rootCoverage.uncoveredRoots.includes("db"))
+  assert.deepEqual(parsed.rootCoverage.notRunLanes, [
+    { laneId: "db", root: "db", status: "skipped" },
+  ])
+
+  // Additive only: the fields the shadow comparison reads keep their shape.
+  assert.deepEqual(parsed.lanes[1], {
+    laneId: "db",
+    status: "skipped",
+    durationSeconds: 0,
+    testsRun: 0,
+    testsPassed: 0,
+    testsFailed: 0,
+    testsSkipped: 0,
+    flaky: 0,
+    blockedByLaneId: "fast",
+  })
+  // The table and the JSON still come from the same normalised record.
+  assert.deepEqual(parsed, buildLaneSummary(stopped, contract))
+})
+
+test("a run where every lane succeeded reports exactly what it reported before", () => {
+  const rendered = renderCheckSummary(record(), contract)
+  const parsed = extractLaneSummary(rendered.text)
+
+  assert.equal(
+    rendered.title,
+    "success — 1/1 lanes, 118/120 tests, 1/9 required roots local"
+  )
+  assert.deepEqual(parsed.rootCoverage.coveredRoots, ["fast"])
+  assert.deepEqual(parsed.rootCoverage.notRunLanes, [])
+  assert.ok(!rendered.text.includes("Declared but not run"))
+  assert.ok(!rendered.summary.includes("never started"))
+})

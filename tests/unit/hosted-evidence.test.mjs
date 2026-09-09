@@ -5,11 +5,16 @@ import { test } from "node:test"
 import { compareShadowEvidence } from "../../ops/local-ci/core/shadow-qualification.mjs"
 import {
   CI_WORKFLOW_PATH,
+  CONTRACT_PATH,
+  REPO_ROOT,
   SINGLE_SHARD,
   buildHostedEvidence,
   buildLaneIndex,
   collectHostedEvidence,
   laneCountsFromLogs,
+  main,
+  readAtSha,
+  resolveRepository,
   stripRunnerTimestamps,
 } from "../../scripts/ci/hosted-evidence.mjs"
 
@@ -24,9 +29,7 @@ import {
  * refuse rather than emit a document.
  */
 
-const contract = JSON.parse(
-  readFileSync("config/local-ci-contract.json", "utf8")
-)
+const contract = JSON.parse(readFileSync(CONTRACT_PATH, "utf8"))
 const workflowText = readFileSync(CI_WORKFLOW_PATH, "utf8")
 const laneIds = Object.keys(contract.shadowMode.qualification.lanes)
 const HEAD_SHA = "d5f5c36417efd114117ca75eb5e7866b9a7ac06d"
@@ -84,6 +87,61 @@ const nodeTestLog = (tests) =>
     "ℹ todo 0",
   ])
 
+/**
+ * The quality job's steps, in the order and under the names the Actions API
+ * reports them for run 34290952137. The hygiene sweep is one step; the four
+ * that follow are the print-kit lane, so this fixture is what lets the two
+ * lanes be told apart from one hosted job.
+ */
+const QUALITY_WORKLOAD_STEPS = [
+  "Set up job",
+  "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+  "Run ./.github/actions/setup",
+  "Run shared quality validation commands",
+  "Install PDF QA tooling",
+  "Install Chromium for production print-kit rendering",
+  "Verify pdf-lib poster geometry",
+  "Verify production preview print-kit PDFs",
+]
+const QUALITY_TEARDOWN_STEPS = [
+  "Post Install Chromium for production print-kit rendering",
+  "Post Run ./.github/actions/setup",
+  "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+  "Complete job",
+]
+
+/**
+ * That step list once `failedStep` has failed. A step the runner never reached
+ * is absent from the API's list rather than reported as skipped, which is how
+ * a hygiene failure hides the print-kit steps; teardown still runs.
+ */
+function qualityJobSteps(failedStep = null) {
+  const stopAt =
+    failedStep === null
+      ? QUALITY_WORKLOAD_STEPS.length
+      : QUALITY_WORKLOAD_STEPS.indexOf(failedStep) + 1
+  assert.ok(stopAt > 0, `unknown quality step ${failedStep}`)
+  return [
+    ...QUALITY_WORKLOAD_STEPS.slice(0, stopAt),
+    ...QUALITY_TEARDOWN_STEPS,
+  ].map((name, index) => ({
+    name,
+    number: index + 1,
+    status: "completed",
+    conclusion: name === failedStep ? "failure" : "success",
+  }))
+}
+
+/** The quality job as the run reports it, optionally with one step failed. */
+function withQualityFailure(fixture, failedStep) {
+  const job = fixture.jobs.find(
+    (candidate) => candidate.name === "Quality lane (hygiene sweeps)"
+  )
+  job.conclusion = "failure"
+  job.steps = qualityJobSteps(failedStep)
+  return fixture
+}
+
 /** The 72 jobs a complete CI run publishes, with the logs the lane jobs wrote. */
 function hostedRun() {
   const jobs = []
@@ -105,7 +163,7 @@ function hostedRun() {
   }
 
   add("Fast lane (lint, typecheck, unit)", nodeTestLog(singleLaneTotal("fast")))
-  add("Quality lane (hygiene sweeps)")
+  add("Quality lane (hygiene sweeps)", null, { steps: qualityJobSteps() })
   add("DB behavioral moat", nodeTestLog(singleLaneTotal("db")))
   for (const project of PROJECTS) {
     for (let pack = 1; pack <= 8; pack += 1) {
@@ -433,14 +491,17 @@ test("a run for another head is never accepted as evidence", () => {
   )
 })
 
-test("provenance names the repository the run was actually read from", () => {
-  // A fork's run must not be filed under the pinned canonical repository.
-  const forked = build(hostedRun(), { repository: "someone/nabaperks-fork" })
-  assert.equal(forked.provider.repository, "someone/nabaperks-fork")
+test("evidence from anywhere but the pinned repository is refused", () => {
+  // A fork's Actions configuration is outside the trust boundary, and nothing
+  // downstream inspects provider.repository, so the refusal belongs here.
+  assert.throws(
+    () => build(hostedRun(), { repository: "someone/nabaperks-fork" }),
+    /must come from the pinned repository lapeninns\/nabaperks/
+  )
   assert.equal(
     build(hostedRun()).provider.repository,
     contract.repository,
-    "the contract repository stays the default"
+    "the pinned repository is what provenance records"
   )
   assert.throws(
     () =>
@@ -455,5 +516,240 @@ test("provenance names the repository the run was actually read from", () => {
         run: { ...run, path: ".github/workflows/local-ci-shadow.yml" },
       }),
     /is a run of \.github\/workflows\/local-ci-shadow\.yml/
+  )
+})
+
+test("--repo may restate the pinned repository and never redirect", () => {
+  assert.equal(
+    resolveRepository({ contract, requested: undefined }),
+    contract.repository
+  )
+  assert.equal(
+    resolveRepository({ contract, requested: contract.repository }),
+    contract.repository
+  )
+  assert.throws(
+    () => resolveRepository({ contract, requested: "someone/nabaperks-fork" }),
+    /--repo may only restate the pinned repository lapeninns\/nabaperks/
+  )
+  assert.throws(
+    () => resolveRepository({ contract: {}, requested: undefined }),
+    /pins no repository/
+  )
+})
+
+test("the two lanes sharing the quality job get their own steps' status", () => {
+  const hygieneFailed = build(
+    withQualityFailure(hostedRun(), "Run shared quality validation commands")
+  )
+  assert.equal(laneOf(hygieneFailed, "quality").status, "failure")
+  // The print-kit steps never ran, so the lane did not run; charging it with
+  // the hygiene failure would misattribute a failure whose steps all passed.
+  const printKit = laneOf(hygieneFailed, "print-kit")
+  assert.equal(printKit.status, "skipped")
+  assert.deepEqual(
+    printKit.shards[0].steps.map((step) => step.conclusion),
+    [null, null, null, null]
+  )
+
+  // The mirror image: the sweeps passed and the PDF proof did not.
+  const proofFailed = build(
+    withQualityFailure(hostedRun(), "Verify production preview print-kit PDFs")
+  )
+  assert.equal(laneOf(proofFailed, "quality").status, "success")
+  assert.equal(laneOf(proofFailed, "print-kit").status, "failure")
+  assert.equal(proofFailed.conclusion, "failure")
+  assert.deepEqual(laneOf(proofFailed, "quality").shards[0].steps, [
+    { name: "Run shared quality validation commands", conclusion: "success" },
+  ])
+
+  // The tooling installs belong to the lane that needs them.
+  const toolingFailed = build(
+    withQualityFailure(hostedRun(), "Install PDF QA tooling")
+  )
+  assert.equal(laneOf(toolingFailed, "quality").status, "success")
+  assert.equal(laneOf(toolingFailed, "print-kit").status, "failure")
+})
+
+test("a hygiene failure is not reported as a print-kit divergence", () => {
+  const passing = build(hostedRun())
+  const local = {
+    ...passing,
+    plane: "local",
+    lanes: passing.lanes.map((lane) => ({ ...lane, plane: "local" })),
+  }
+  const comparison = compareShadowEvidence({
+    contract,
+    headSha: HEAD_SHA,
+    profile: "main",
+    local,
+    hosted: build(
+      withQualityFailure(hostedRun(), "Run shared quality validation commands")
+    ),
+    publishedDurationSeconds: 1200,
+  })
+  const laneVerdict = (laneId) =>
+    comparison.lanes.find((lane) => lane.laneId === laneId)
+  assert.deepEqual(laneVerdict("print-kit").reasons, ["lane did not run"])
+  assert.equal(laneVerdict("print-kit").verdict, "incomplete")
+  // The lane that did fail is still reported as a mismatch, on its own steps.
+  assert.deepEqual(laneVerdict("quality").reasons, ["status mismatch"])
+  assert.equal(laneVerdict("quality").verdict, "divergent")
+})
+
+test("a split lane whose steps cannot be read refuses", () => {
+  const qualityJob = (fixture) =>
+    fixture.jobs.find((job) => job.name === "Quality lane (hygiene sweeps)")
+
+  const noSteps = hostedRun()
+  delete qualityJob(noSteps).steps
+  assert.throws(() => build(noSteps), /carries no step list/)
+
+  const missingStep = hostedRun()
+  const job = qualityJob(missingStep)
+  job.steps = job.steps.filter(
+    (step) => step.name !== "Verify pdf-lib poster geometry"
+  )
+  assert.throws(
+    () => build(missingStep),
+    /concluded success without running step "Verify pdf-lib poster geometry"/
+  )
+
+  const cancelledStep = hostedRun()
+  qualityJob(cancelledStep).steps = qualityJobSteps().map((step) =>
+    step.name === "Install PDF QA tooling"
+      ? { ...step, conclusion: "cancelled" }
+      : step
+  )
+  assert.throws(
+    () => build(cancelledStep),
+    /step "Install PDF QA tooling" concluded "cancelled"/
+  )
+})
+
+test("a renamed ci.yml step refuses instead of reading as a lane that did not run", () => {
+  const renamed = workflowText.replace(
+    "      - name: Verify pdf-lib poster geometry",
+    "      - name: Verify poster geometry"
+  )
+  assert.notEqual(renamed, workflowText)
+  assert.throws(
+    () => buildLaneIndex(renamed, laneIds),
+    /declares no step "Verify pdf-lib poster geometry", which lane print-kit is derived from/
+  )
+})
+
+test("the workflow and the contract are read out of git at the evidence SHA", async () => {
+  const requested = []
+  const exec = async (file, args) => {
+    requested.push([file, ...args])
+    return { stdout: "{}" }
+  }
+  await readAtSha({ sha: HEAD_SHA, path: CONTRACT_PATH, exec })
+  await readAtSha({ sha: HEAD_SHA, path: CI_WORKFLOW_PATH, exec })
+  assert.deepEqual(requested, [
+    ["git", "-C", REPO_ROOT, "show", `${HEAD_SHA}:${CONTRACT_PATH}`],
+    ["git", "-C", REPO_ROOT, "show", `${HEAD_SHA}:${CI_WORKFLOW_PATH}`],
+  ])
+
+  // Real git, so this is the refusal an operator actually meets, and the
+  // contract that comes back is the committed one rather than the checkout's.
+  await assert.rejects(
+    readAtSha({ sha: "0".repeat(40), path: CONTRACT_PATH }),
+    (error) => {
+      assert.match(error.message, /cannot read config\/local-ci-contract\.json/)
+      assert.match(error.message, /git fetch origin 0{40}/)
+      return true
+    }
+  )
+  const committed = JSON.parse(
+    await readAtSha({ sha: "HEAD", path: CONTRACT_PATH })
+  )
+  assert.equal(committed.repository, contract.repository)
+})
+
+test("the CLI reads its policy at --sha and cannot be pointed at a fork", async () => {
+  const fixture = hostedRun()
+  const reader = {
+    json: async (path) =>
+      path.includes("/jobs?")
+        ? { total_count: fixture.jobs.length, jobs: fixture.jobs }
+        : run,
+    text: async () => {
+      throw new Error("no log")
+    },
+  }
+  const requested = []
+  const readAtShaImpl = async ({ sha, path }) => {
+    requested.push(`${sha}:${path}`)
+    return path === CONTRACT_PATH ? JSON.stringify(contract) : workflowText
+  }
+  const written = []
+  const argv = [
+    "--sha",
+    HEAD_SHA,
+    "--run-id",
+    String(run.id),
+    "--profile",
+    "main",
+    "--no-logs",
+    "--out",
+    "hosted-evidence.json",
+  ]
+  const code = await main(argv, {
+    readAtShaImpl,
+    writeFileImpl: async (path, json) => written.push([path, json]),
+    reader,
+  })
+  assert.equal(code, 0)
+  assert.deepEqual(requested.sort(), [
+    `${HEAD_SHA}:${CI_WORKFLOW_PATH}`,
+    `${HEAD_SHA}:${CONTRACT_PATH}`,
+  ])
+  const document = JSON.parse(written[0][1])
+  assert.equal(document.headSha, HEAD_SHA)
+  assert.equal(document.provider.repository, contract.repository)
+
+  await assert.rejects(
+    main([...argv, "--repo", "someone/nabaperks-fork"], {
+      readAtShaImpl,
+      writeFileImpl: async () => {},
+      reader,
+    }),
+    /--repo may only restate the pinned repository/
+  )
+})
+
+test("a split job that fails outside every lane's steps cannot be attributed", () => {
+  const fixture = hostedRun()
+  const job = fixture.jobs.find(
+    (candidate) => candidate.name === "Quality lane (hygiene sweeps)"
+  )
+  // A checkout failure: no step any lane claims ever ran, so neither lane can
+  // carry the failure and the run must not report a clean success instead.
+  job.conclusion = "failure"
+  job.steps = [
+    {
+      name: "Set up job",
+      number: 1,
+      status: "completed",
+      conclusion: "success",
+    },
+    {
+      name: "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      number: 2,
+      status: "completed",
+      conclusion: "failure",
+    },
+    {
+      name: "Complete job",
+      number: 3,
+      status: "completed",
+      conclusion: "success",
+    },
+  ]
+  assert.throws(
+    () => build(fixture),
+    /concluded failure, but no lane it carries reports a failure/
   )
 })
