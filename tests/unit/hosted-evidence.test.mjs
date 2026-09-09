@@ -40,6 +40,19 @@ const PROJECTS = [
   "desktop-safari",
 ]
 
+/**
+ * The hosted fan-out ci.yml declares. Named rather than repeated so that a
+ * regrouping of the same tests - four packs of eight /32 shards instead of
+ * eight of four, four accessibility shards instead of eight - is a one-line
+ * fixture change and cannot quietly leave an assertion counting the old shape.
+ */
+const E2E_PACKS = 4
+const A11Y_SHARDS = 4
+const VISUAL_SHARDS = 4
+const NON_LANE_JOBS = 21
+const TOTAL_JOBS =
+  3 + PROJECTS.length * E2E_PACKS + 2 * (A11Y_SHARDS + VISUAL_SHARDS) + 13
+
 const run = {
   id: 34290952137,
   run_attempt: 1,
@@ -142,7 +155,7 @@ function withQualityFailure(fixture, failedStep) {
   return fixture
 }
 
-/** The 72 jobs a complete CI run publishes, with the logs the lane jobs wrote. */
+/** The 48 jobs a complete CI run publishes, with the logs the lane jobs wrote. */
 function hostedRun() {
   const jobs = []
   const logs = new Map()
@@ -166,22 +179,22 @@ function hostedRun() {
   add("Quality lane (hygiene sweeps)", null, { steps: qualityJobSteps() })
   add("DB behavioral moat", nodeTestLog(singleLaneTotal("db")))
   for (const project of PROJECTS) {
-    for (let pack = 1; pack <= 8; pack += 1) {
+    for (let pack = 1; pack <= E2E_PACKS; pack += 1) {
       add(
         `E2E (${project}, pack ${pack})`,
-        playwrightLog(shardTally(`e2e-${project}`, 8))
+        playwrightLog(shardTally(`e2e-${project}`, E2E_PACKS))
       )
     }
   }
   for (const project of ["chromium", "mobile-safari"]) {
-    for (let shard = 1; shard <= 8; shard += 1) {
+    for (let shard = 1; shard <= A11Y_SHARDS; shard += 1) {
       add(
-        `Accessibility (${project}, shard ${shard}/8)`,
-        playwrightLog(shardTally(`a11y-${project}`, 8))
+        `Accessibility (${project}, shard ${shard}/${A11Y_SHARDS})`,
+        playwrightLog(shardTally(`a11y-${project}`, A11Y_SHARDS))
       )
     }
-    for (let shard = 1; shard <= 4; shard += 1) {
-      add(`Visual regression (${project}, shard ${shard}/4)`)
+    for (let shard = 1; shard <= VISUAL_SHARDS; shard += 1) {
+      add(`Visual regression (${project}, shard ${shard}/${VISUAL_SHARDS})`)
     }
   }
   for (const route of ["home", "pricing", "loyalty-for-pubs", "signup"]) {
@@ -223,11 +236,11 @@ test("the lane index derives its fan-out from the ci.yml matrix", () => {
   assert.deepEqual([...index.expected.keys()].sort(), [...laneIds].sort())
   assert.deepEqual(
     [...index.expected.get("e2e-chromium").shards],
-    ["1", "2", "3", "4", "5", "6", "7", "8"]
+    ["1", "2", "3", "4"]
   )
   assert.deepEqual(
     [...index.expected.get("a11y-mobile-safari").shards],
-    ["1/8", "2/8", "3/8", "4/8", "5/8", "6/8", "7/8", "8/8"]
+    ["1/4", "2/4", "3/4", "4/4"]
   )
   assert.deepEqual([...index.expected.get("db").shards], [SINGLE_SHARD])
   // The hygiene sweeps and the PDF proof share one hosted job.
@@ -241,27 +254,27 @@ test("hosted shards aggregate back into one lane per local project", () => {
   assert.equal(document.headSha, HEAD_SHA)
   assert.equal(document.conclusion, "success")
   assert.equal(document.provider.runId, run.id)
-  assert.equal(document.provider.jobCount, 72)
-  assert.equal(document.nonLaneJobs.length, 21)
+  assert.equal(document.provider.jobCount, TOTAL_JOBS)
+  assert.equal(document.nonLaneJobs.length, NON_LANE_JOBS)
 
-  const tally = shardTally("e2e-chromium", 8)
+  const tally = shardTally("e2e-chromium", E2E_PACKS)
   const chromium = laneOf(document, "e2e-chromium")
-  assert.equal(chromium.shards.length, 8)
-  assert.equal(chromium.testsRun, (tally.passed + tally.skipped) * 8)
-  assert.equal(chromium.testsPassed, tally.passed * 8)
-  assert.equal(chromium.testsSkipped, tally.skipped * 8)
+  assert.equal(chromium.shards.length, E2E_PACKS)
+  assert.equal(chromium.testsRun, (tally.passed + tally.skipped) * E2E_PACKS)
+  assert.equal(chromium.testsPassed, tally.passed * E2E_PACKS)
+  assert.equal(chromium.testsSkipped, tally.skipped * E2E_PACKS)
   assert.equal(chromium.countsParsed, true)
   assert.equal(chromium.countsExpected, true)
   assert.deepEqual(chromium.countSources, ["playwright"])
-  assert.equal(chromium.jobIds.length, 8)
-  assert.equal(new Set(chromium.jobIds).size, 8)
+  assert.equal(chromium.jobIds.length, E2E_PACKS)
+  assert.equal(new Set(chromium.jobIds).size, E2E_PACKS)
 
   assert.equal(laneOf(document, "fast").testsRun, singleLaneTotal("fast"))
   assert.equal(laneOf(document, "db").testsRun, singleLaneTotal("db"))
-  const a11y = shardTally("a11y-chromium", 8)
+  const a11y = shardTally("a11y-chromium", A11Y_SHARDS)
   assert.equal(
     laneOf(document, "a11y-chromium").testsRun,
-    (a11y.passed + a11y.skipped) * 8
+    (a11y.passed + a11y.skipped) * A11Y_SHARDS
   )
   // A command lane reports zero because zero is the truth there, and says so.
   const quality = laneOf(document, "quality")
@@ -334,12 +347,12 @@ test("an unfinished or uncomparable job outcome refuses", () => {
   ]) {
     const fixture = hostedRun()
     const shard = fixture.jobs.find(
-      (job) => job.name === "Accessibility (chromium, shard 2/8)"
+      (job) => job.name === "Accessibility (chromium, shard 2/4)"
     )
     Object.assign(shard, overrides)
     assert.throws(
       () => build(fixture),
-      /a11y-chromium shard 2\/8/,
+      /a11y-chromium shard 2\/4/,
       JSON.stringify(overrides)
     )
   }
@@ -348,7 +361,7 @@ test("an unfinished or uncomparable job outcome refuses", () => {
 test("counts unavailable for one shard make the whole lane unavailable", () => {
   const fixture = hostedRun()
   const shard = fixture.jobs.find(
-    (job) => job.name === "E2E (chromium, pack 5)"
+    (job) => job.name === "E2E (chromium, pack 3)"
   )
   fixture.logs.delete(shard.id)
   const lane = laneOf(build(fixture), "e2e-chromium")
@@ -419,7 +432,7 @@ test("the emitted document is what compareShadowEvidence reads", () => {
   // must say "cannot assert equivalence" rather than "equivalent".
   const fixture = hostedRun()
   fixture.logs.delete(
-    fixture.jobs.find((job) => job.name === "E2E (chromium, pack 5)").id
+    fixture.jobs.find((job) => job.name === "E2E (chromium, pack 3)").id
   )
   const incomplete = compareShadowEvidence({
     contract,
@@ -466,13 +479,17 @@ test("the collector never asks the provider to change anything", async () => {
     profile: "main",
     repository: contract.repository,
   })
-  const packs = shardTally("e2e-chromium", 8)
+  const packs = shardTally("e2e-chromium", E2E_PACKS)
   assert.equal(
     laneOf(document, "e2e-chromium").testsRun,
-    (packs.passed + packs.skipped) * 8
+    (packs.passed + packs.skipped) * E2E_PACKS
   )
-  // Logs are read only for the lanes that have counts to read.
-  assert.equal(requested.filter((path) => path.endsWith("/logs")).length, 50)
+  // Logs are read only for the lanes that have counts to read: the fast and
+  // DB lanes plus every e2e pack and accessibility shard.
+  assert.equal(
+    requested.filter((path) => path.endsWith("/logs")).length,
+    2 + PROJECTS.length * E2E_PACKS + 2 * A11Y_SHARDS
+  )
   assert.ok(
     requested.every(
       (path) => !path.includes("rerun") && !path.includes("check-runs")

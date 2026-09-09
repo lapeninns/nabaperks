@@ -10,28 +10,41 @@ import { join } from "node:path"
 import { tmpdir } from "node:os"
 
 test("packing preserves the existing shard denominator and selection", () => {
-  const requests = browserPackRequests({
-    project: "chromium",
-    shards: ["1/32", "2/32", "3/32", "4/32"],
-  })
+  // A pack is now eight shards rather than four: the same tests, grouped so
+  // that per-job setup - checkout, the container pull, browser verification -
+  // is paid sixteen times instead of thirty-three. The denominator stays /32
+  // precisely because the selection must not move.
+  const shards = Array.from({ length: 8 }, (_, index) => `${index + 1}/32`)
+  const requests = browserPackRequests({ project: "chromium", shards })
+  assert.deepEqual(
+    requests.map((request) => request.shard),
+    shards
+  )
   assert.deepEqual(
     requests.map((request) => request.args),
-    [1, 2, 3, 4].map((n) => [
+    shards.map((shard) => [
       "test",
       "--project=chromium",
       "--grep-invert",
       "@visual",
-      `--shard=${n}/32`,
+      `--shard=${shard}`,
     ])
   )
-  for (const shards of [
+  // Bounds and uniqueness still hold at the new size. A duplicate would run
+  // one slice twice and, paired with an omission elsewhere, hide the gap; a
+  // ninth shard would mean the pack list no longer partitions the suite.
+  for (const invalid of [
     [],
     ["1/8"],
     ["1/32", "1/32"],
     ["0/32"],
-    ["1/32", "2/32", "3/32", "4/32", "5/32"],
+    ["33/32"],
+    Array.from({ length: 9 }, (_, index) => `${index + 1}/32`),
+    [...shards.slice(0, 7), "7/32"],
   ])
-    assert.throws(() => browserPackRequests({ project: "chromium", shards }))
+    assert.throws(() =>
+      browserPackRequests({ project: "chromium", shards: invalid })
+    )
   assert.throws(() =>
     browserPackRequests({ project: "unknown", shards: ["1/32"] })
   )

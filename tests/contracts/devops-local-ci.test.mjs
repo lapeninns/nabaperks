@@ -647,6 +647,30 @@ test("non-baseline accessibility journeys stay in both planes' selections", () =
     /node scripts\/ci\/browser-workload\.mjs hosted test:a11y --project=/
   )
   assert.doesNotMatch(hostedA11y, /--grep-invert @visual/)
+
+  // Fewer hosted accessibility jobs must not mean fewer accessibility tests.
+  // The shard list in the workflow is the manifest denominator spelled out,
+  // so halving one without the other would either skip a quarter of the
+  // suite or fail every job on an unqualified shard. Single-worker execution
+  // is asserted here too: it is the property a "make it cheaper" edit reaches
+  // for once the job count has already been cut.
+  const a11yDefinition = readJson("config/ci-workloads.json").browsers[
+    "test:a11y"
+  ]
+  assert.equal(a11yDefinition.hostedShards, 4)
+  assert.equal(a11yDefinition.grep, "@a11y")
+  assert.match(
+    hostedA11y,
+    new RegExp(
+      `\\n {8}shard: \\[${Array.from(
+        { length: a11yDefinition.hostedShards },
+        (_, index) =>
+          escapeRegExp(`${index + 1}/${a11yDefinition.hostedShards}`)
+      ).join(", ")}\\]\\n`
+    ),
+    "the hosted a11y matrix must declare exactly the manifest's shards"
+  )
+  assert.match(hostedA11y, /\n {6}PLAYWRIGHT_WORKERS: "1"\n/)
   for (const name of PROFILE_NAMES) {
     const profile = readJson(PROFILE_PATHS[name])
     const lanes = profile.lanes.filter((lane) => lane.id.startsWith("a11y-"))
