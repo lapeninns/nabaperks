@@ -6,6 +6,9 @@ Candidate host: the operator's Apple M5 Pro Mac (18 cores, 64 GiB), already
 running Lima VMs `nabaperks-ci` and the unrelated `nabatable-runner`
 Scoping basis: worktree `codex/local-first-ci-20260909` at `905362a5d`, based on
 `origin/main` `d5f5c3641`. Measurements taken 2026-09-09.
+Review update 2026-09-10 against `621231afed6f`: distinguish the historical
+72-job measurements from the post-#296 48-job matrix, correct the cost model
+for event-triggered usage, and specify credential-free fallback routing.
 
 This document is a scoping decision, not an installation plan. No runner was
 registered, no provider setting was changed and no workflow was edited while it
@@ -43,17 +46,14 @@ set, exactly the tiers with no x86-64 baseline dependency and no
 goes private, the licensing question is answered, and the machine has spare
 capacity it does not currently have.
 
-**And it never reaches the free quota.** After review, the retained hosted
-workflows — the ones the document's own security boundary forbids moving, plus
-CodeQL and dependency review — were re-measured at **~4,220 billed minutes per
-month** in the recommended split. That floor alone is 41% over the entire
-3,000-minute allowance **before a single CI run**. There is therefore no
-break-even run rate: scenario (e) does not fit the free quota at any number of
-CI runs, including zero. An earlier draft claimed a break-even near 80 runs per
-month; that figure was wrong and no corrected figure replaces it, because the
-quantity it described does not exist. This does not change the recommendation —
-it removes the last version of the recommendation in which a runner ever makes
-the bill disappear.
+**At the modelled volume, the split remains over quota.** Scenario (e) uses
+400 CI run records plus the observed non-CI monthly mix: ~19,420 billed minutes
+against a 3,000-minute allowance. The ~4,220 non-CI component is a mixture of
+scheduled, PR, push and manual work, not a fixed floor. It cannot establish that
+zero or every lower CI rate exceeds the allowance. The quota section separates
+those triggers and gives the conditional break-even; the previous claim that
+no break-even can exist is withdrawn. Public-repository exposure, licensing and
+capacity remain separate reasons not to start this pilot.
 
 Do the cheap moves first — landing PR #296, deleting `nightly.yml`, trimming the
 smoke cadence — because they are cheap, not because they are larger. **They are
@@ -225,7 +225,7 @@ Rounded job durations were aggregated across **every** execution attempt
 (`/actions/runs/<id>/jobs?filter=all`) for all 241 `ci.yml` runs in the 30 days
 to 2026-09-09. The matrix shape changed repeatedly inside that window — daily
 means run from 19 jobs on 2026-08-13 to 184 on 2026-09-05 — so the per-run
-figure is taken from the 38 run records that carry **today's** shape, between
+figure is taken from the 38 run records that carry the **historical 72-job** shape, between
 2026-09-08T16:57Z and 2026-09-09T21:11Z:
 
 | Conclusion  | Records | Share of lifetime runs | Mean billed min/record |
@@ -251,15 +251,15 @@ non-CI re-measurement in the table after next.
 
 ### Inputs
 
-| Input                                               | Value                                                                                                       | Confidence                                              |
-| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| CI workflow-run records per month                   | 404 (1,143 records over 86.2 days; complete history, first run 2026-06-15)                                  | verified                                                |
-| Run-rate volatility                                 | last-30d 241/mo, lifetime 404/mo, last-7d 952/mo                                                            | verified                                                |
-| Billed minutes per CI **run record**, today's shape | **191** — blended over conclusions and executed attempts (see above)                                        | measured over 38 current-shape run records              |
-| Billed minutes per CI run, post-#296 48-job shape   | ~160                                                                                                        | inferred from #296's own modelling plus per-job ceiling |
-| Non-CI billed minutes per month                     | **~16,150**, 74% of it `nightly.yml`                                                                        | measured per workflow over the last 30 days             |
-| `nightly.yml` per run                               | 285.6 raw / **355 billed** across 133 jobs (run `34323842337`); mean of the six most recent runs 331 billed | verified                                                |
-| Rate / quota                                        | $0.006 per minute over 3,000 free minutes                                                                   | verified rate; quota assumes Pro or Team                |
+| Input                                                             | Value                                                                                                       | Confidence                                              |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| CI workflow-run records per month                                 | 404 (1,143 records over 86.2 days; complete history, first run 2026-06-15)                                  | verified                                                |
+| Run-rate volatility                                               | last-30d 241/mo, lifetime 404/mo, last-7d 952/mo                                                            | verified                                                |
+| Billed minutes per CI **run record**, the historical 72-job shape | **191** — blended over conclusions and executed attempts (see above)                                        | measured over 38 pre-#296 run records                   |
+| Billed minutes per CI run, post-#296 48-job shape                 | ~160                                                                                                        | inferred from #296's own modelling plus per-job ceiling |
+| Non-CI billed minutes per month                                   | **~16,150**, 74% of it `nightly.yml`                                                                        | measured per workflow over the last 30 days             |
+| `nightly.yml` per run                                             | 285.6 raw / **355 billed** across 133 jobs (run `34323842337`); mean of the six most recent runs 331 billed | verified                                                |
+| Rate / quota                                                      | $0.006 per minute over 3,000 free minutes                                                                   | verified rate; quota assumes Pro or Team                |
 
 An earlier draft carried the non-CI figure as an inferred band of
 12,000–15,000, then replaced it with ~12,470 by scaling each workflow's
@@ -302,17 +302,21 @@ costs nothing and adds no plane.
 
 ### Monthly cost, 400 CI run records/month, $0.006/min, 3,000 free minutes
 
-| #   | Scenario                                                                | Billed min/mo | Over quota | **Cost/month** |
-| --- | ----------------------------------------------------------------------- | ------------- | ---------- | -------------- |
-| a   | **Public, today**                                                       | 0             | 0          | **$0**         |
-| b   | Private, everything hosted, today's shape                               | ~92,450       | 89,450     | ~$537          |
-| c   | Private, everything hosted, post-#296                                   | ~80,150       | 77,150     | **~$463**      |
-| d   | Private, recommended split, `nightly` still hosted                      | ~31,350       | 28,350     | ~$170          |
-| e   | Private, recommended split + **secret-free `nightly` tier** self-hosted | ~19,420       | 16,420     | **~$99**       |
-| f   | Private, **no runner**, `nightly` deleted and smoke cadence trimmed     | ~67,130       | 64,130     | ~$385          |
+This is a scenario with 400 CI records and the separately measured non-CI
+monthly counts held at their observed values. It is not a forecast that assumes
+those counts stay fixed as PR, push or release frequency changes.
+
+| #   | Scenario                                                                      | Billed min/mo | Over quota | **Cost/month** |
+| --- | ----------------------------------------------------------------------------- | ------------- | ---------- | -------------- |
+| a   | **Public, today**                                                             | 0             | 0          | **$0**         |
+| b   | Private, everything hosted, the historical 72-job shape                       | ~92,450       | 89,450     | ~$537          |
+| c   | Private, everything hosted, post-#296                                         | ~80,150       | 77,150     | **~$463**      |
+| d   | Private, recommended split, `nightly` still hosted                            | ~31,350       | 28,350     | ~$170          |
+| e   | Private, recommended split + **secret-free `nightly` tier** self-hosted       | ~19,420       | 16,420     | **~$99**       |
+| f   | Private, **no runner**, `nightly` deleted and smoke executions reduced by 75% | ~67,130       | 64,130     | ~$385          |
 
 Scenarios (c) through (f) all assume PR #296 has landed. Without it, (f) is
-impossible: CI alone at today's 191-billed-minute shape is ~76,300
+impossible: CI alone at the historical 191-billed-minute shape is ~76,300
 minutes/month, above (f)'s whole total.
 
 **Scenario (e) changed after review, and not in the pilot's favour.** An earlier
@@ -333,8 +337,7 @@ returns only `LOCAL_CI_MODE` and `LOCAL_CI_WATCHDOG_ENABLED`), so `load-race`
 is conditioned out of every run and contributes zero billed minutes. The guard
 is needed for the day someone sets those variables, not for the arithmetic.
 
-**Does the recommended split fit the free quota? No — and the table says so
-rather than hiding it.** Scenario (e), the best case in this document, is
+**Does the recommended split fit the free quota at these volumes? No.** Scenario (e), the lowest-cost private 400-record scenario in this document, is
 **~19,420 billed minutes against a 3,000-minute allowance: about 6.5x over,
 16,420 chargeable minutes, ~$99/month.** No scenario except (a) fits. The
 runner turns a $463 bill into a $99 bill; it does not turn it into a $0 bill,
@@ -348,51 +351,59 @@ non-CI workflows the security boundary forbids moving at all.
 the private world is scenario (c) minus scenario (e) — roughly **$364 per
 month, $4,370 per year**. Scenario (f) decomposes: deleting `nightly.yml`
 without any runner work is worth about **$72/month** on its own (11,930 billed
-minutes), and quartering the smoke cadence a further **~$7** (1,090 minutes);
+minutes), and reducing actual smoke executions by 75% a further **~$7** (1,090 minutes);
 the runner is what delivers the rest — and, per the Decision section, roughly
 twice what the cheap moves do.
 
-#### The quota break-even does not exist
+#### Quota break-even depends on scheduled and event-triggered usage
 
-An earlier draft said scenario (e) "fits free only below roughly 80 CI
-runs/month". That was impossible on its own figures — 80 runs at 38 residual
-hosted minutes is 3,040 minutes, already over the allowance before any non-CI
-workflow is counted — and the corrected arithmetic removes the quantity
-altogether.
+The retained ~4,220 minutes are an observed monthly workload, not an
+irreducible floor. The current workflow triggers divide it as follows:
 
-Scenario (e)'s monthly hosted total is `38 × R` (residual CI) plus a **fixed
-non-CI floor that no runner can move**:
+| Retained hosted workflow                     | Observed billed min/mo | Trigger and scaling behaviour                                                                                    |
+| -------------------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `production-smoke.yml`                       | 1,450                  | Scheduled checks, release-completion events and manual runs; only the scheduled part is independent of releases. |
+| `production-database.yml`                    | 1,500                  | Completed main CI runs and manual dispatches; successful preflight controls which downstream jobs execute.       |
+| `codeql.yml`                                 | 570                    | PRs, main pushes and a weekly schedule; only the scheduled part is independent of changes.                       |
+| `dependency-review.yml`                      | 190                    | PR events.                                                                                                       |
+| `factory-status.yml`                         | 160                    | Scheduled, workflow-completion, PR-target and manual events.                                                     |
+| `production-deploy.yml`                      | 50                     | Reusable release workflow calls; the historical separate-run count must not be treated as a standing schedule.   |
+| `slo-report.yml`                             | 30                     | Scheduled and manual runs.                                                                                       |
+| `release-notes.yml`                          | 50                     | Main pushes and manual dispatches.                                                                               |
+| `agent-watchdog.yml` / `local-ci-shadow.yml` | 200                    | Watchdog scheduled/manual work plus shadow PR/main-push work.                                                    |
+| Other retained workflows                     | ~20                    | Inspect their scheduled/manual triggers separately.                                                              |
+| **Observed total**                           | **~4,220**             | **Mixed event types; not a fixed floor.**                                                                        |
 
-| Retained hosted workflow             | Billed min/mo | Why it stays hosted                       |
-| ------------------------------------ | ------------- | ----------------------------------------- |
-| `production-smoke.yml`               | 1,450         | `Monitoring` environment secrets          |
-| `production-database.yml`            | 1,500         | `Production` environment secrets          |
-| `codeql.yml`                         | 570           | no arm64 bundle at the pinned v4.37.9     |
-| `dependency-review.yml`              | 190           | required check, architecture-neutral      |
-| `factory-status.yml`                 | 160           | `pull_request_target`; must never route   |
-| `production-deploy.yml`              | 50            | `Production` environment secrets          |
-| `slo-report.yml`                     | 30            | `Monitoring` environment secrets          |
-| `release-notes.yml`                  | 50            | trivial; no reason to move                |
-| `agent-watchdog` / `local-ci-shadow` | 200           | local-first scaffolding, hosted by design |
-| everything else                      | ~20           | —                                         |
-| **floor**                            | **~4,220**    |                                           |
+For `R` CI run records/month, let `S` be billed scheduled usage and `E` the
+billed non-CI usage driven by PRs, pushes, releases and manual operations. The
+correct model is `M = 38R + S + E`, so a 3,000-minute quota requires
+`38R + E ≤ 3,000 − S`. The aggregate counts above do not partition `S` and `E`
+or establish a constant number of PRs, merges and manual runs per CI record.
+An event-level census and an explicit activity/cadence assumption are needed
+for a numeric break-even for this repository.
 
-**4,220 > 3,000.** Setting `38R + 4,220 ≤ 3,000` gives `R ≤ −32`. There is no
-non-negative run rate at which scenario (e) fits the free allowance — not 80
-runs a month, not one, not zero. The same holds for the cheapest configuration
-in this document: (f) plus the split has a floor of ~3,130 and still does not
-fit. Only after also retiring `agent-watchdog.yml`, `local-ci-shadow.yml` and
-`nightly-proof.yml` — which a successful pilot would arguably make redundant —
-does the floor drop to ~2,930, leaving ~70 minutes of headroom, or **about two
-CI runs a month** at 38 billed minutes each. That is not an operating point.
+If that assumption is `E = eR + U`, with `e` event-driven billed minutes per CI
+record and `U` independently chosen manual usage, the threshold is
+`R ≤ (3,000 − S − U) / (38 + e)`, provided `S + U ≤ 3,000`. A negative numerator
+would rule it out **under those assumptions**, not at every possible activity
+level. Within this 38-minute-per-record model, with zero other usage, the
+upper bound is **78 whole CI records
+per month** (`78 × 38 = 2,964`; `79 × 38 = 3,002`). Thus the old estimate of 80
+was wrong, but so was replacing it with a universal claim that no non-negative
+rate can fit. On a 2,000-minute allowance, the corresponding upper bound is 52.
+Actual scheduled and event-driven work can only lower these bounds.
 
-On a Free plan's 2,000-minute allowance (open question 4) it is worse again:
-the fixed floor alone is more than twice the whole allowance.
+Scheduled delivery must also be modelled explicitly. The configured
+`production-smoke.yml` cadence is every 15 minutes: if all 96 daily schedules
+run for a 30-day month at the sampled two billed minutes each, smoke alone is
+5,760 minutes. The observed total of 726 smoke records is much lower and mixes
+scheduled and release/manual events. It must not be treated as guaranteed
+future schedule delivery or reduced fourfold merely by changing the cron.
 
-**This strengthens the recommendation rather than changing it.** The decision
-was already "do not pilot"; what has gone is the last framing in which a runner
-eventually makes the bill disappear. It makes the bill smaller, permanently, by
-about 79%.
+At the specific 400-record scenario, the split still reduces a modelled $463
+bill to about $99. The cost model supports that scenario comparison; it does
+not prove that every lower workload remains over quota. No schedule, workflow,
+repository visibility or runner setting is changed by this analysis.
 
 Two caveats attached to that saving:
 
@@ -431,8 +442,8 @@ security boundary added `production-database.yml` back to the hosted side. The
 scenario costs above are 3–19% higher than the earlier draft's: (b) $520 →
 $537, (c) $445 → $463, (e) $83 → $99, (f) $376 → $385. The **saving** barely
 moved ($362 → $364) because both sides of the subtraction rose together; the
-**quota conclusion** moved a great deal, because the fixed hosted floor rose
-past the allowance.
+**quota conclusion** also needed a separate correction: an observed mixed-event
+monthly total cannot be used as a fixed floor when varying the CI run rate.
 
 Two inputs still rest on nothing measured: the post-#296 per-run figure of ~160
 billed minutes, and the choice of 400 CI run records/month, which sits inside a
@@ -440,8 +451,14 @@ measured 241–952 band depending on the window.
 
 ## Recommended job split
 
-Machine-minutes from run `34290952137`, reproduced independently. Raw and billed
-reconcile exactly to 154.1 and 190.
+The duration tables below describe historical run `34290952137`, reproduced
+independently: 72 jobs, 154.1 raw and 190 billed minutes. They are not current
+matrix counts. At reviewed head `621231afed6f`, #296 has reduced E2E to 16 jobs
+and accessibility to 8. The same proposed split now contains **30 self-hosted
+jobs and 18 hosted jobs**. Of those 30, **27 invoke `./.github/actions/setup`**:
+16 E2E + 8 accessibility + `fast` + `quality` + `db`. The other three are gate
+jobs. Current cache-traffic estimates use 27 restores, not the old 51; the
+historical duration measurements below remain labelled by their source run.
 
 ### Self-hosted arm64 — 126.1 raw / 152 billed minutes per run (80.0% of billed)
 
@@ -590,19 +607,16 @@ fact.
 
 ### Honest limit of the split
 
-Migrating everything movable still leaves 38 billed minutes per run hosted plus
-the whole retained non-CI floor. At 400 run records/month that is 15,200 CI
-minutes plus ~4,220 non-CI minutes — roughly **19,400 billed minutes against a
-3,000-minute quota, about six and a half times over**. The non-CI floor alone
-already exceeds the allowance by 41%, so this is not a run-rate problem that
-patience solves.
-**ARM migration alone does not get this repository under quota, and neither
-does anything else in this document.** `visual` and `lighthouse` are the binding
-constraint inside CI, and neither is an architecture problem; outside CI the
-binding constraint is `production-smoke.yml` and `production-database.yml`,
-which the security boundary forbids moving at any price.
-PR #296 does not change this residual at all: it trims `e2e` and `a11y` shards,
-which are exactly the jobs that leave the hosted meter anyway.
+Using the historical residual of 38 hosted billed minutes per CI run, the
+400-record scenario leaves 15,200 CI minutes plus the observed ~4,220 non-CI
+minutes: roughly **19,400 billed minutes against a 3,000-minute quota**.
+That is over quota at the modelled volume. It does not establish an
+irreducible non-CI floor or rule out every lower activity level; use the
+conditional calculation in the quota section for that question.
+`visual` and `lighthouse` account for most residual CI usage, while protected
+production workflows remain hosted. #296 trims E2E and accessibility, the
+jobs proposed to leave the hosted meter, so it does not reduce that residual
+hosted job set. Future timing or cadence changes need their own measurements.
 
 ## What happens to the bespoke local-CI plane
 
@@ -742,8 +756,10 @@ worth doing whether or not a pilot ever happens.
       assumption.
 - [ ] **7. Build and prove the rollback mechanism with no runner registered.**
       A hosted-only preflight job whose output feeds `runs-on`, gated on a
-      repository variable, proven on a real pull request to be a complete no-op
-      that changes no check name. This must exist first, because it is what
+      repository variable, with no runner-list API call or additional credential,
+      proven on a real pull request to be a complete no-op that changes no check
+      name. An absent/invalid flag or evaluation error selects hosted; an
+      enabled flag does not prove that a runner is online. This must exist first, because it is what
       prevents the revert-deadlock described below. Prove the **whole** tier-1
       sequence, including the explicit `gh run rerun` in step 4 — a kill switch
       that stops routing but leaves the required check cancelled is not a
@@ -772,37 +788,37 @@ worth doing whether or not a pilot ever happens.
       about coverage, this is about an entry point no approval policy gates.
 - [ ] **12. Pilot one cheap tier only, and name it precisely.** `db` — 3.1 raw
       minutes, no browsers, no baselines, no budgets. Not `e2e`, even though
-      that is where the money is: 32 jobs is the wrong blast radius for a first
+      that is where the money is: 16 jobs is the wrong blast radius for a first
       attempt. Or better, pilot the **secret-free nightly tier**, which blocks
       no merge at all.
 
       **"Pilot `nightly.yml`" is the wrong instruction and an earlier draft
-          gave it.** The workflow is not secret-free. Five of its six jobs are —
-          `cross-browser` (`nightly.yml:36`), `cross-browser-gate` (`:104`),
-          `mutation` (`:116`), `load` (`:144`) and `zap-full` (`:184`); every
-          credential they touch is a literal non-secret fixture in the workflow's
-          own `env:` block (`:15-33`). The sixth, `load-race` (`:167`), runs
-          `if: ${{ vars.STAMP_RACE_URL != '' && vars.REDEEM_RACE_URL != '' }}` and
-          passes `secrets.STAMP_RACE_AUTH_TOKEN` into `k6 run
-          tests/load/stamp-redeem-race.js` (`:180`) — a repository secret handed to
-          candidate code. The bespoke plane already refuses exactly this job for
-          exactly this reason: `ops/local-ci/profiles/nightly.json:33` records that
-          `load-race` "is absent because it requires repository secrets, which
-          cannot reach this plane; it stays hosted", and
-          `config/local-ci-contract.json:289` says the same of the contract's
-          `hostSecretsPolicy`. A runner pilot that inherited "run nightly.yml"
-          would silently drop that carve-out.
+                      gave it.** The workflow is not secret-free. Five of its six jobs are —
+                      `cross-browser` (`nightly.yml:36`), `cross-browser-gate` (`:104`),
+                      `mutation` (`:116`), `load` (`:144`) and `zap-full` (`:184`); every
+                      credential they touch is a literal non-secret fixture in the workflow's
+                      own `env:` block (`:15-33`). The sixth, `load-race` (`:167`), runs
+                      `if: ${{ vars.STAMP_RACE_URL != '' && vars.REDEEM_RACE_URL != '' }}` and
+                      passes `secrets.STAMP_RACE_AUTH_TOKEN` into `k6 run
+                      tests/load/stamp-redeem-race.js` (`:180`) — a repository secret handed to
+                      candidate code. The bespoke plane already refuses exactly this job for
+                      exactly this reason: `ops/local-ci/profiles/nightly.json:33` records that
+                      `load-race` "is absent because it requires repository secrets, which
+                      cannot reach this plane; it stays hosted", and
+                      `config/local-ci-contract.json:289` says the same of the contract's
+                      `hostSecretsPolicy`. A runner pilot that inherited "run nightly.yml"
+                      would silently drop that carve-out.
 
-          So: route the five named jobs, and pin `load-race` with an explicit
-          `runs-on: ubuntu-latest` plus an inline comment, then extend the contract
-          test from item 3 to assert that `load-race` never carries a self-hosted
-          label. The guard costs nothing in minutes today —
-          `vars.STAMP_RACE_URL` and `vars.REDEEM_RACE_URL` are both unset, so the
-          job is conditioned out of every run and
-          `docs/operations/full-operational-qa-certification-matrix.md:110` records
-          it as never having executed. It is a guard against the day those
-          variables are set, which is the day the pilot would otherwise start
-          handling a production-adjacent token on the operator's Mac.
+                      So: route the five named jobs, and pin `load-race` with an explicit
+                      `runs-on: ubuntu-latest` plus an inline comment, then extend the contract
+                      test from item 3 to assert that `load-race` never carries a self-hosted
+                      label. The guard costs nothing in minutes today —
+                      `vars.STAMP_RACE_URL` and `vars.REDEEM_RACE_URL` are both unset, so the
+                      job is conditioned out of every run and
+                      `docs/operations/full-operational-qa-certification-matrix.md:110` records
+                      it as never having executed. It is a guard against the day those
+                      variables are set, which is the day the pilot would otherwise start
+                      handling a production-adjacent token on the operator's Mac.
 
 - [ ] **13. Rehearse tier-3 rollback before you need it.** Destroy and recreate
       the pilot VM from its YAML once, on a quiet day, and time it. A rollback
@@ -814,10 +830,20 @@ worth doing whether or not a pilot ever happens.
 
 `runs-on` accepts the `vars` context (confirmed in GitHub's context-availability
 table; note `env` is **not** available there, so an env-based indirection will
-not work). A hosted-only preflight job reads a kill-switch variable and the
-runner's live status, and emits either `ubuntu-latest` or the runner label;
-every routed tier consumes that output. Check names never change, so branch
-protection is never touched.
+not work). A hosted-only preflight job reads the `SELF_HOSTED_PILOT` variable
+and emits the runner label only for the exact value `on`; an absent or different
+value selects `ubuntu-latest`. Every routed tier consumes that output. Check
+names never change, so branch protection is never touched.
+
+This design deliberately makes **no live runner-status API call**. GitHub's
+[repository runner-list endpoint](https://docs.github.com/en/rest/actions/self-hosted-runners#list-self-hosted-runners-for-a-repository)
+requires repository Administration read permission, which the ordinary
+`GITHUB_TOKEN` cannot grant. GitHub documents a separate App token or PAT for
+[permissions unavailable to `GITHUB_TOKEN`](https://docs.github.com/en/actions/tutorials/authenticate-with-github_token#granting-additional-permissions).
+No such credential is provisioned by this pilot design. The consequence is
+explicit: when the flag is `on`, an offline runner may leave work queued. The
+operator must use the stop/cancel/rerun procedure below; this preflight provides
+manual fallback, not automatic liveness-based routing.
 
 ```sh
 # 1. Stop future routing. Every run that starts from here is hosted.
@@ -848,7 +874,7 @@ and the ruleset has `bypass_actors: []`, so nobody can merge past it.
 
 Two consequences for the advertised recovery time. First, the rerun replays the
 whole workflow on hosted runners, so "recovery" means the variable flip plus a
-full CI cycle (~10 minutes wall clock at today's shape), not 30 seconds — the
+full CI cycle (~10 minutes wall clock at the historical 72-job shape), not 30 seconds — the
 30 seconds is only how long it takes to stop the bleeding. Second, `gh run
 rerun` re-uses the original run's workflow file and head SHA, so it picks up
 the new variable value at preflight time; a rerun before the variable is set
@@ -859,8 +885,10 @@ supersedes the cancelled run with a fresh hosted one. That is not available on
 a stale or foreign branch, so the rerun is the general procedure.
 
 The preflight must run on `ubuntu-latest`, with a short timeout, no checkout,
-and every error path defaulting to `ubuntu-latest`. Its worst possible outcome
-must be "everything runs hosted".
+no extra credential, and handled variable-evaluation errors selecting
+`ubuntu-latest`. Runner availability remains unknown when the flag is `on`.
+Prove the offline-runner recovery case as well as the flag-off case before a
+pilot; do not advertise an automatic health fallback.
 
 **Tier 1 is an availability control, not a security control.** For
 `pull_request` from a fork the workflow file comes from the attacker's head
@@ -967,8 +995,8 @@ window — which is a change to the runbook, not to this document.
 | Sleep                    | `pmset -g custom` shows `sleep 1` on both AC and battery, currently held off only by a manually started Amphetamine session and Electron apps. The bespoke agent holds a **job-scoped** `caffeinate` because it decides on the host when to claim work. A runner is assigned work **inside the guest**, which cannot take a macOS power assertion. Either the Mac never sleeps, or the runner is intermittently offline.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | Reboot                   | **Not a LaunchAgent question — a Lima question.** Prerequisite 9 puts the runner inside a dedicated third Linux Lima VM and forbids installing it on macOS, so the runner service is a systemd unit in the guest (`./svc.sh install`) and starts when the guest starts. The unsolved host-side problem is what starts the **VM** after a Mac reboot, and neither existing instance solves it: `~/Library/LaunchAgents` contains no `lima.*` autostart file, and `limactl list` shows both `nabaperks-ci` and `nabatable-runner` running only because something started them. Two mechanisms exist and both are user-login-scoped. `limactl autostart <instance>` (Lima 2.2.0; the deprecated alias is `start-at-login`) registers, in its own words, an autostart file that starts the instance "when the user logs in". The alternative is a bespoke supervisor agent — `~/Library/LaunchAgents/com.nabatable.runner-vm.plist` does exactly this for the other project, `RunAtLoad` + `KeepAlive` around a `limactl start` wrapper. So the auto-login and FileVault constraints do not disappear; they move one layer up, from the runner service to the VM that hosts it, and they now gate a merge-blocking check rather than an advisory plane. Pick a mechanism, register it, and **test it with a real reboot** before week one. |
 | Mid-run drops            | A sleep, lid close, Wi-Fi change or VPN toggle breaks the long poll and GitHub fails the job with "lost communication with the server" — a **red required check on a green change**, which trains reflexive re-runs and corrodes the gate.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| Parallelism              | One runner instance takes one job at a time. Approaching the hosted fan-out of 72 jobs means N registrations, N `_work` trees, N services, N update paths — on a machine with zero spare cores.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| Home uplink              | **The largest unmodelled operational cost, and it does not go away.** `actions/cache` is backed by GitHub's storage, not the host, and it downloads on every cache hit whether or not the path is already warm locally. The `setup-node`/pnpm entry alone is **~0.27 GiB** (measured from `gh api .../actions/caches`), restored by the 51 of 54 self-hosted jobs that check out and run `./.github/actions/setup` (the three gate jobs do neither): roughly **14 GiB inbound per CI run, ~5–6 TB/month at 400 runs**, over a residential connection, plus browser caches and any image pull. Hosted runners get this from inside GitHub's network at LAN speed, which is why "Initialize containers" is only 29 s there. Either accept the transfer, or explicitly bypass `actions/cache` on the self-hosted plane and rely on a pre-warmed guest — a design decision, not a detail.                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Parallelism              | One runner instance takes one job at a time. Approaching the current proposed self-hosted fan-out of 30 jobs means N registrations, N `_work` trees, N services, N update paths — on a machine with zero spare cores.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Home uplink              | **The largest unmodelled operational cost, and it does not go away.** `actions/cache` is backed by GitHub's storage, not the host, and it downloads on every cache hit whether or not the path is already warm locally. The `setup-node`/pnpm entry alone is **~0.27 GiB** (measured from `gh api .../actions/caches`), restored by the **27 of 30** proposed self-hosted jobs that run `./.github/actions/setup` in the post-#296 matrix (the three gate jobs do neither): **0.27 × 27 = 7.29 GiB inbound per CI run, ~2.85 TiB/month at 400 runs**, over a residential connection, plus browser caches and any image pull. Hosted runners get this from inside GitHub's network at LAN speed, which is why "Initialize containers" is only 29 s there. Either accept the transfer, or explicitly bypass `actions/cache` on the self-hosted plane and rely on a pre-warmed guest — a design decision, not a detail.                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | Steady state             | Realistically 45–90 minutes per month per runner instance, plus sole on-call for a frozen merge gate.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 
 **Ephemeral mode: a narrower claim than an earlier draft made.** Fixed per-job
@@ -1013,7 +1041,7 @@ documentation.
   404/month, with a 241–952/month band by window. Conclusions: 367 success,
   447 failure, 329 cancelled. Executed attempts: 1,221 (1,077 × 1, 56 × 2,
   9 × 3, 1 × 5), an inflation of ×1.068 over the record count.
-- Billed minutes per CI run record at today's shape, aggregated over rounded
+- Billed minutes per CI run record at the historical 72-job shape, aggregated over rounded
   job durations across all attempts (`?filter=all`) for the 38 records between
   2026-09-08T16:57Z and 2026-09-09T21:11Z: success 202 (n=28), failure 178
   (n=5), cancelled 153 (n=5); blended at the lifetime conclusion mix and the
@@ -1024,8 +1052,8 @@ documentation.
 - Non-CI monthly total **~16,150** billed minutes, from counting each
   workflow's actual runs in the 30 days to 2026-09-09 and multiplying by the
   mean billed minutes of its five or six most recent runs. The retained hosted
-  floor under the recommended split is **~4,220** of that, which exceeds the
-  entire 3,000-minute allowance.
+  workload under the recommended split is **~4,220** of that at the observed
+  event mix. It includes change-triggered work and is not a fixed floor.
 - `nightly.yml`'s `load-race` job is gated on `vars.STAMP_RACE_URL` and
   `vars.REDEEM_RACE_URL`; `gh api repos/lapeninns/nabaperks/actions/variables`
   returns only `LOCAL_CI_MODE` and `LOCAL_CI_WATCHDOG_ENABLED`, so the job is
@@ -1123,10 +1151,12 @@ if wrong.
   a _different_ arm64 Ubuntu 24.04 image, plus the absence of any branded
   `chrome`/`msedge` channel in `playwright.config.ts`. Cheap to settle: one
   `docker run` in the guest.
-- **The ~14 GiB/run cache-transfer figure** is `0.27 GiB × ~54 self-hosted jobs`
-  from live cache sizes and this run's job counts. The per-entry size and the
-  job count are measured; that every job re-downloads on a self-hosted runner
-  follows from how `actions/cache` works and was not observed here.
+- **The ~7.3 GiB/run cache-transfer estimate** is `0.27 GiB × 27 setup jobs`
+  in the post-#296 matrix at `621231afed6f`. At 400 runs it is ~2.85 TiB/month,
+  before browser caches or image pulls. The entry size was measured on
+  2026-09-09 and the 27 consumers were counted from current workflow source;
+  transfer on an actual self-hosted runner was not measured. The earlier
+  51-restore estimate described the pre-#296 matrix and is superseded.
 
 ### Open questions the operator must answer
 
@@ -1143,8 +1173,9 @@ if wrong.
    repository, and fixing it (adding `integration_id`) is cheap enough to do
    without waiting for the answer.
 4. **Which plan is the account on?** `gh api user` returns `plan: null`. Free is
-   2,000 minutes rather than 3,000, which shifts every private figure and every
-   break-even by roughly a third.
+   2,000 minutes rather than 3,000. That changes both bills and the conditional
+   quota threshold; the threshold is not a uniform one-third reduction once
+   scheduled and manual usage are included.
 5. **Will the operator accept that the Mac stops sleeping?** That is the only
    clean answer to the power-assertion problem, and it is a lifestyle and power
    decision, not a technical one. If not, the pilot must be designed around an
@@ -1154,19 +1185,20 @@ if wrong.
    minutes. If it is redundant, deleting it is the single largest cost reduction
    available that costs nothing and adds no plane. Note the shape of the answer
    changed with the re-measurement: deleting it is worth ~$72/month against a
-   private bill, but it does **not** bring the repository near the free quota,
-   because the untouchable hosted floor beneath it is ~4,220 minutes.
+   private bill, but the 400-record scenario remains well over quota. The
+   ~4,220 retained non-CI minutes reflect the observed activity mix and must
+   not be treated as a fixed floor at other CI rates.
 7. **Why does `production-smoke.yml` run so often, and is its cadence now worth
    cutting?** An earlier draft said 1,183 runs over 86 days = 13.8/day and
    dismissed the workflow as ~$1.90/month. Both halves were wrong. The
    workflow's first run was 2026-07-14, not the repository's creation date, so
    the correct denominator is 57 days; measured directly, it ran **726 times in
    the 30 days to 2026-09-09 — 24/day — at 2 billed minutes each, ~1,450 billed
-   minutes/month.** A fourfold cadence cut saves ~1,090 minutes, about
-   **$6.50/month** — still small in dollars, but the workflow is now the
-   **second-largest non-CI line** and, more importantly, it is one of the
-   `Production`/`Monitoring`-secret workflows that can never move to a runner,
-   so it sits inside the fixed floor that makes the free quota unreachable.
+   minutes/month.** A fourfold reduction in actual executions would save
+   ~1,090 minutes, about **$6.50/month**, but changing the cron alone does not
+   establish that saving: separate scheduled, release-triggered and manual
+   runs first. It is a protected workflow that stays hosted; only its scheduled
+   portion is independent of release activity.
    `nightly.yml` remains where the money is, by a factor of about eight rather
    than twenty-four.
 8. **Is the local plane's ~40% success rate an ARM problem, a scheduler problem
@@ -1185,8 +1217,8 @@ if wrong.
     is the larger half of the residual hosted spend.
 11. **What is the actual upstream and downstream bandwidth of the operator's
     connection, and is a metered or fair-use cap in play?** The plan implies
-    roughly 14 GiB of inbound `actions/cache` traffic per CI run (~5–6 TB/month
-    at 400 runs). If that is unacceptable, the design must bypass
+    roughly 7.3 GiB of inbound pnpm-cache traffic per CI run (~2.85 TiB/month
+    at 400 runs in the post-#296 matrix), plus browsers and image pulls. If that is unacceptable, the design must bypass
     `actions/cache` on the self-hosted plane and pre-warm the guest instead —
     which is a different plan, with different failure modes, and it is better to
     know that before week one than during it.
@@ -1204,8 +1236,9 @@ Stated plainly, because the evidence does not support a smooth-migration story.
   already happens, and a max-config attempt this session was measured about 20%
   slower.
 - **The largest operational cost is not in any table but one row.** Keeping
-  `actions/cache` on the self-hosted plane moves roughly 14 GiB per CI run onto
-  a residential uplink, ~5–6 TB/month at the measured pace. Nothing about
+  `actions/cache` on the proposed self-hosted plane implies roughly 7.3 GiB of
+  pnpm-cache downloads per CI run, ~2.85 TiB/month at 400 runs, plus browser
+  caches and image pulls. This uses the post-#296 count of 27 setup jobs. Nothing about
   running on your own hardware makes GitHub's cache service local.
 - **The plane a pilot would replace fails three runs in five, not one in two.**
   Counted from the retained evidence store rather than from prose: of the 86
