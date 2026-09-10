@@ -59,6 +59,7 @@ const laneOf = (overrides = {}) => ({
   arch: "any",
   concurrencyGroup: null,
   commands: ["pnpm test:unit"],
+  workloadCommand: 1,
   teardownCommands: [],
   backgroundServices: [],
   runtimeEnv: [],
@@ -445,7 +446,7 @@ test("the log a lane writes reaches the published digest byte for byte, through 
   // property at each end; this one pins the seam between them, which is where
   // it was actually lost - a decode inside `runContainer` made every layer
   // above it hash a U+FFFD text no matter how careful `core/digest.mjs` was.
-  const written = Buffer.from("héllo ÿ\n", "binary")
+  const written = Buffer.from("héllo\0ÿ\n", "binary")
   assert.ok(
     written.toString("utf8").includes("�"),
     "the fixture has to contain bytes a decode would destroy, or it proves nothing"
@@ -781,4 +782,63 @@ test("the generated lane shell emits its execution marker when it reaches the wo
     child.stdout.indexOf("execution-started:fast") <
       child.stdout.indexOf("executed workload\n")
   )
+})
+
+test("failed dependency setup cannot publish executed root coverage", async () => {
+  clock = fakeClock()
+  const lane = laneOf({
+    commands: ["exit 19", "printf 'validation reached\\n'"],
+    workloadCommand: 2,
+  })
+  const child = spawnSync(
+    "bash",
+    ["-c", buildLaneScript(lane, contract, { workspacePath: process.cwd() })],
+    { encoding: "utf8" }
+  )
+  assert.equal(child.status, 19)
+  assert.doesNotMatch(child.stdout, /execution-started:/)
+  const outcome = await runnerFor({
+    runtime: fakeRuntime({
+      lanes: { fast: { output: child.stdout, exitCode: child.status } },
+    }),
+    runDir: fakeRunDirectory(),
+  }).runProfile({ profile: profileOf([lane]), headSha: HEAD_SHA })
+  assert.equal(outcome.laneResults[0].executionStarted, false)
+  const published = extractLaneSummary(
+    renderCheckSummary(outcome.record, contract).text
+  )
+  assert.deepEqual(published.rootCoverage.coveredRoots, [])
+})
+
+test("a workload failure after multiple setup commands still records its start", () => {
+  const lane = laneOf({
+    id: "db",
+    commands: ["printf 'installed\\n'", "printf 'seeded\\n'", "exit 23"],
+    workloadCommand: 3,
+  })
+  const child = spawnSync(
+    "bash",
+    ["-c", buildLaneScript(lane, contract, { workspacePath: process.cwd() })],
+    { encoding: "utf8" }
+  )
+  assert.equal(child.status, 23)
+  assert.match(child.stdout, /^##local-ci## execution-started:db$/m)
+  assert.ok(
+    child.stdout.indexOf("seeded\n") <
+      child.stdout.indexOf("execution-started:db")
+  )
+})
+
+test("unmarked older profiles cannot claim execution from setup alone", () => {
+  const lane = laneOf({
+    commands: ["printf 'setup only\\n'"],
+    workloadCommand: undefined,
+  })
+  const child = spawnSync(
+    "bash",
+    ["-c", buildLaneScript(lane, contract, { workspacePath: process.cwd() })],
+    { encoding: "utf8" }
+  )
+  assert.equal(child.status, 0)
+  assert.doesNotMatch(child.stdout, /execution-started:/)
 })

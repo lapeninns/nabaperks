@@ -846,10 +846,13 @@ main evidence requires a `push` on `main`. The saved provider metadata carries
 that distinction and the comparator refuses missing or mismatched identity.
 Coloured textual test tallies are parsed after terminal control codes are removed.
 
-Coverage requires a command-start marker for every local lane mapped to a root.
-A setup failure cannot count as execution, and cancellation after the marker
-still records that the command began. Older records without this marker cannot
-claim executed coverage; this does not change the hosted merge requirements.
+Coverage requires a validation-start marker for every local lane mapped to a
+root. Each profile names its first validation command with the one-based
+`workloadCommand` field. Dependency installation, database startup and seeding
+precede that boundary; a failure in those steps cannot count as validation.
+Cancellation after the marker still records that validation began. Older
+profiles without the field emit no marker and cannot claim executed coverage;
+this does not change the hosted merge requirements.
 
 Produce hosted evidence with `pnpm ops:ci:hosted-evidence --sha <sha>`
 (`scripts/ci/hosted-evidence.mjs`), which reads the matching CI run's jobs and
@@ -861,7 +864,7 @@ read-only: it never publishes a check, reruns a job or writes to GitHub.
 
 Hand-assembly is no longer the documented path. It remains possible, and if you
 do it, collect every expected shard exactly once — 32 per functional browser
-project and eight per accessibility project — strip GitHub timestamps and ANSI
+project and four per accessibility project — strip GitHub timestamps and ANSI
 colour codes before using `parseLaneCounts` from
 `ops/local-ci/agent/runner.mjs`, retain source run/job IDs and raw logs beside
 the evidence, never infer zero counts from missing logs, and split the hosted

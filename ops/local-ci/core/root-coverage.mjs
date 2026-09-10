@@ -17,7 +17,7 @@
  * covering none - never dropped - because a dropped lane is exactly how a
  * coverage claim starts overstating itself.
  *
- * Coverage counts explicit command-start markers. Status alone does not prove
+ * Coverage counts explicit validation-start markers. Status alone does not prove
  * execution; a failed setup never ran, while cancellation can follow execution.
  * Counting a root without every mapped lane starting would
  * be the same overstatement in a smaller place: a run that stopped at its

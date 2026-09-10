@@ -50,7 +50,7 @@ import {
 import { digestLogBundle } from "../core/digest.mjs"
 import { buildJobEnv } from "../core/job-env.mjs"
 import { laneResources, scheduleLanes } from "../core/lane-scheduler.mjs"
-import { selectLanes } from "../core/profiles.mjs"
+import { selectLanes, workloadCommandIndex } from "../core/profiles.mjs"
 import { LANE_STATUSES } from "../core/summary.mjs"
 import { browserReportName } from "../../../scripts/ci/browser-workload.mjs"
 
@@ -426,6 +426,7 @@ export function buildLaneScript(lane, contract, { workspacePath = null } = {}) {
     )
   }
   const cwd = workspacePath ?? contract.container?.workspacePath
+  const workloadIndex = workloadCommandIndex(lane)
   const teardown = lane.teardownCommands ?? []
   const services = lane.backgroundServices ?? []
   const perLaneSources = (lane.runtimeEnv ?? [])
@@ -473,7 +474,7 @@ export function buildLaneScript(lane, contract, { workspacePath = null } = {}) {
   startServicesAfter(0)
 
   for (const [index, command] of commands.entries()) {
-    if (index === 0)
+    if (index === workloadIndex)
       lines.push(
         `echo ${shellSingleQuote(`${LOG_MARKER} execution-started:${lane.id}`)}`
       )

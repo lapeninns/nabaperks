@@ -26,12 +26,15 @@ mismatch and API errors remain visible. The local App independently publishes
 its eventual completion result; an earlier observation is not final evidence.
 
 The observer does not dispatch local execution and has no write or merge
-authority. On PR events its default checkout is the PR merge tree, so it may
-execute candidate repository observer code with a read-only GitHub token, like
-an ordinary read-only PR check; it does not run `pnpm install`. A trusted verifier
-independent of candidate code belongs to a later phase. The host agent is never
-updated from PR code. The local agent, App permission contract and
-shadow qualification remain unchanged. No local check acquires merge authority.
+authority. On PR events it explicitly checks out the event's base SHA and runs
+the already-reviewed observer and identity checks from that revision with a
+read-only GitHub token; it does not run `pnpm install`. `LOCAL_CI_HEAD_SHA` still
+names the PR head, so the observation judges the candidate without executing
+its verifier code. Push events use their own SHA. This separates the observer's
+code from the PR, but qualification for local merge authority remains a later
+phase. The host agent is never updated from PR code. The checkout pin changes
+neither App permissions nor qualification policy. No local check acquires merge
+authority.
 `LOCAL_CI_MODE` controls observation and does not start or stop the installed
 host service. A paused watcher remains a separate operational decision.
 

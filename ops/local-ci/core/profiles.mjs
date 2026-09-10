@@ -32,6 +32,21 @@ export const X64_ONLY = "x64-only"
 
 export class ProfileError extends LocalCiError {}
 
+/** One-based validation boundary; an older unmarked lane proves no execution. */
+export function workloadCommandIndex(lane) {
+  if (lane.workloadCommand === undefined) return null
+  if (
+    !Number.isInteger(lane.workloadCommand) ||
+    lane.workloadCommand < 1 ||
+    lane.workloadCommand > lane.commands.length
+  )
+    fail(
+      "INVALID_WORKLOAD_COMMAND",
+      `lane ${JSON.stringify(lane.id)} workloadCommand must name an existing command (one-based)`
+    )
+  return lane.workloadCommand - 1
+}
+
 function fail(code, message) {
   throw new ProfileError(code, `local-ci profile: ${message}`)
 }
@@ -180,6 +195,7 @@ function validateLane(lane, index, contract, seenIds, knownSourceIds) {
   for (const [commandIndex, command] of commands.entries()) {
     requireNonEmptyString(command, `${path}.commands[${commandIndex}]`)
   }
+  workloadCommandIndex(lane)
 
   const teardown = requireArray(
     lane.teardownCommands,
