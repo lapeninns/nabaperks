@@ -110,3 +110,56 @@ test("unusable inputs and provider listing failures cannot create duplicate or f
   await assert.rejects(reconcileWatchdogIncidents(valid))
   assert.equal(writes.length, 0)
 })
+
+test("a paused monitor neither opens an incident nor closes a standing one", async () => {
+  // Pausing the local CI plane is a deliberate operator action, not an
+  // outage: `null` says nobody looked. It must not open an incident, and it
+  // must not close one either, because closing asserts a recovery that no
+  // observation supports. Production health is a separate monitor and keeps
+  // reporting normally while the local one is paused.
+  const { options, issues, writes } = fixture()
+
+  let results = await reconcileWatchdogIncidents({
+    ...options,
+    healthy: { heartbeat: null, publicHealth: true },
+  })
+  assert.equal(results[0].monitor, "heartbeat")
+  assert.equal(results[0].state, "not monitored")
+  assert.equal(results[0].action, "none")
+  assert.equal(writes.length, 0, "an unmonitored component writes nothing")
+  assert.equal(issues.length, 0)
+
+  // A standing incident survives the monitor being switched off.
+  await reconcileWatchdogIncidents({
+    ...options,
+    healthy: { heartbeat: false, publicHealth: true },
+  })
+  assert.equal(issues.length, 1)
+  assert.equal(issues[0].state, "open")
+
+  results = await reconcileWatchdogIncidents({
+    ...options,
+    healthy: { heartbeat: null, publicHealth: true },
+  })
+  assert.equal(results[0].state, "not monitored")
+  assert.equal(results[0].issue, 1, "the standing incident is still named")
+  assert.equal(issues[0].state, "open", "pausing is not a recovery")
+
+  // Production health still opens its own incident while local CI is paused.
+  results = await reconcileWatchdogIncidents({
+    ...options,
+    healthy: { heartbeat: null, publicHealth: false },
+  })
+  const publicResult = results.find((row) => row.monitor === "publicHealth")
+  assert.equal(publicResult.action, "opened")
+
+  // A non-boolean that is not null is still rejected.
+  await assert.rejects(
+    () =>
+      reconcileWatchdogIncidents({
+        ...options,
+        healthy: { heartbeat: "paused", publicHealth: true },
+      }),
+    /Both watchdog observations are required/
+  )
+})

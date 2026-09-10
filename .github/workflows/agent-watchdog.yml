@@ -37,7 +37,9 @@ jobs:
 
   public-health:
     name: Public health watchdog
-    if: ${{ vars.LOCAL_CI_WATCHDOG_ENABLED == 'true' }}
+    # Deliberately ungated. This probes production, not the local CI plane, and
+    # LOCAL_CI_WATCHDOG_ENABLED is the switch an operator reaches for when they
+    # pause that plane - which used to take production monitoring down with it.
     runs-on: ubuntu-latest
     timeout-minutes: 2
     permissions: {}
@@ -54,7 +56,7 @@ jobs:
   alerts:
     name: Deliver watchdog alerts
     needs: [heartbeat, public-health]
-    if: ${{ always() && vars.LOCAL_CI_WATCHDOG_ENABLED == 'true' }}
+    if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -67,6 +69,9 @@ jobs:
       - name: Open once on failure and close on recovery
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         env:
+          # A skipped heartbeat job means the local plane is intentionally
+          # paused, which is not an outage. It reaches the reconciler as null.
+          HEARTBEAT_MONITORED: ${{ needs.heartbeat.result != 'skipped' }}
           HEARTBEAT_HEALTHY: ${{ needs.heartbeat.result == 'success' && needs.heartbeat.outputs.healthy == 'true' }}
           PUBLIC_HEALTHY: ${{ needs.public-health.result == 'success' && needs.public-health.outputs.healthy == 'true' }}
         with:
@@ -77,7 +82,10 @@ jobs:
             const contract = JSON.parse(readFileSync('config/local-ci-contract.json', 'utf8'));
             const results = await reconcileWatchdogIncidents({
               github, repository: context.repo,
-              healthy: { heartbeat: process.env.HEARTBEAT_HEALTHY === 'true', publicHealth: process.env.PUBLIC_HEALTHY === 'true' },
+              healthy: {
+                heartbeat: process.env.HEARTBEAT_MONITORED === 'true' ? process.env.HEARTBEAT_HEALTHY === 'true' : null,
+                publicHealth: process.env.PUBLIC_HEALTHY === 'true',
+              },
               runUrl: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
               assignee: contract.agentLiveness.notificationAssignee,
             });
