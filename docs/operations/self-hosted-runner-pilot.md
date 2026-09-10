@@ -39,7 +39,7 @@ sufficient:
    wall, not a minutes problem, and no runner work touches it.
 
 **The honest bottom line.** In the private world the recommended split saves
-roughly **$364 per month**, and its shape is right — 74.7% of billed CI minutes
+roughly **$362 per month**, and its shape is right — 74.7% of billed CI minutes
 sit in `e2e` and `a11y` alone (142 of 190), and 80.0% in the whole self-hosted
 set, exactly the tiers with no x86-64 baseline dependency and no
 2-core-calibrated budget. But the saving is unavailable until the repository
@@ -47,8 +47,8 @@ goes private, the licensing question is answered, and the machine has spare
 capacity it does not currently have.
 
 **At the modelled volume, the split remains over quota.** Scenario (e) uses
-400 CI run records plus the observed non-CI monthly mix: ~19,420 billed minutes
-against a 3,000-minute allowance. The ~4,220 non-CI component is a mixture of
+400 CI run records plus the observed non-CI monthly mix: ~19,820 billed minutes
+against a 3,000-minute allowance. The ~4,620 non-CI component is a mixture of
 scheduled, PR, push and manual work, not a fixed floor. It cannot establish that
 zero or every lower CI rate exceeds the allowance. The quota section separates
 those triggers and gives the conditional break-even; the previous claim that
@@ -59,8 +59,8 @@ Do the cheap moves first — landing PR #296, deleting `nightly.yml`, trimming t
 smoke cadence — because they are cheap, not because they are larger. **They are
 not larger.** Measured against the same model: the cheap moves take scenario (b)
 to scenario (f), recovering about **25,300 billed minutes/month (~$152)**; a
-pilot layered on top of (f) recovers a further **~48,800 billed minutes/month
-(~$293)**. The runner is worth roughly twice the cheap moves. The argument for
+pilot layered on top of (f) recovers a further **~48,400 billed minutes/month
+(~$290)**. The runner is worth roughly twice the cheap moves. The argument for
 doing the cheap moves first is that they add no execution plane and no security
 surface — an argument about risk and effort, not about magnitude. An earlier
 draft of this document claimed the opposite; the arithmetic above is the
@@ -68,9 +68,10 @@ correction, and it survives the re-measurement described in the cost model.
 
 If a pilot proceeds anyway, it must be justified on latency and independence
 from GitHub, **not** on money, and it must start on a throwaway VM with the
-**secret-free nightly tier only** — `cross-browser`, `cross-browser-gate`,
-`mutation`, `load` and `zap-full` — never with `nightly.yml` as a whole and
-never with the pull-request path. `nightly.yml`'s sixth job, `load-race`
+**four named non-secret nightly jobs only** — `cross-browser`,
+`cross-browser-gate`, `mutation` and `load` — never with `nightly.yml` as a whole
+and never with the pull-request path. Keep `zap-full` hosted until its native
+ARM execution is qualified, even though an ARM64 image is now published. `nightly.yml`'s sixth job, `load-race`
 (`:167-183`), passes `secrets.STAMP_RACE_AUTH_TOKEN` to candidate code and must
 be pinned hosted by an explicit `runs-on: ubuntu-latest` plus a contract test.
 An earlier draft recommended "start with `nightly.yml`" without that carve-out,
@@ -312,7 +313,7 @@ those counts stay fixed as PR, push or release frequency changes.
 | b   | Private, everything hosted, the historical 72-job shape                       | ~92,450       | 89,450     | ~$537          |
 | c   | Private, everything hosted, post-#296                                         | ~80,150       | 77,150     | **~$463**      |
 | d   | Private, recommended split, `nightly` still hosted                            | ~31,350       | 28,350     | ~$170          |
-| e   | Private, recommended split + **secret-free `nightly` tier** self-hosted       | ~19,420       | 16,420     | **~$99**       |
+| e   | Private, recommended split + **four non-secret `nightly` jobs** self-hosted   | ~19,820       | 16,820     | **~$101**      |
 | f   | Private, **no runner**, `nightly` deleted and smoke executions reduced by 75% | ~67,130       | 64,130     | ~$385          |
 
 Scenarios (c) through (f) all assume PR #296 has landed. Without it, (f) is
@@ -329,27 +330,43 @@ reviewer costed the correction at the 795 billed minutes the old table listed;
 re-measured, the workflow is **~1,500 billed minutes/month**, so the residual
 hosted usage was understated by roughly twice what the review assumed.
 
-Scenario (e) also now moves only `nightly.yml`'s **secret-free tier**
-(`cross-browser`, `cross-browser-gate`, `mutation`, `load`, `zap-full`), leaving
-`load-race` hosted. That carve-out costs nothing today: `vars.STAMP_RACE_URL`
-and `vars.REDEEM_RACE_URL` are both unset (`gh api .../actions/variables`
-returns only `LOCAL_CI_MODE` and `LOCAL_CI_WATCHDOG_ENABLED`), so `load-race`
-is conditioned out of every run and contributes zero billed minutes. The guard
-is needed for the day someone sets those variables, not for the arithmetic.
+Scenario (e) moves only `cross-browser`, `cross-browser-gate`, `mutation` and
+`load`. It retains both `load-race` (secret-bearing, currently conditioned out)
+and `zap-full` (native ARM execution not qualified) on hosted runners.
+The latter adds **~402 billed minutes/month** to the earlier scenario (e):
+the six most recent nightly run records before 2026-09-10 contain one successful
+hosted `ZAP full scan` job each, billed at **12, 10, 13, 10, 12 and 10 minutes**.
+That is 67/6 = 11.17 minutes/run, or 402 minutes at the observed 36 nightly
+records/month. The sampled run IDs are `34323842337`, `34198628566`,
+`34095221625`, `34018441294`, `34018112799` and `34017648420`; job durations were
+rounded up separately and all attempts were read with `jobs?filter=all`.
+The non-CI total stays ~16,150; keeping ZAP hosted moves ~402 of the nightly
+component into the retained portion, from ~4,220 to **~4,620**. Thus scenario
+(e) becomes ~19,820 billed minutes, ~16,820 over quota and **~$101/month**.
+
+A manifest-only check on 2026-09-10 found both Linux AMD64 and ARM64 in
+`ghcr.io/zaproxy/zaproxy:stable`; the ARM64 child digest was
+`sha256:05cbf4cab5d2fdaef55b0cd0b586f22d0ce4f75e0995f3cea2db23afbbdfd2f8`.
+The local profile's comment that no ARM64 image exists is stale, but its
+`zap-full.arch = x64-only` restriction remains in force. Image availability
+alone is not proof that this repository's action, host networking and scan
+execute natively and preserve the hosted outcome. Before moving it, pin the
+chosen image, demonstrate native execution and review the profile/routing
+change separately. No image was pulled or scan run for this document update.
 
 **Does the recommended split fit the free quota at these volumes? No.** Scenario (e), the lowest-cost private 400-record scenario in this document, is
-**~19,420 billed minutes against a 3,000-minute allowance: about 6.5x over,
-16,420 chargeable minutes, ~$99/month.** No scenario except (a) fits. The
-runner turns a $463 bill into a $99 bill; it does not turn it into a $0 bill,
+**~19,820 billed minutes against a 3,000-minute allowance: about 6.6x over,
+16,820 chargeable minutes, ~$101/month.** No scenario except (a) fits. The
+runner turns a $463 bill into a $101 bill; it does not turn it into a $0 bill,
 and nothing in the ARM migration can. That residual splits two ways, and
 neither half is an architecture problem: ~15,200 minutes of hosted CI, of which
 32 of every 38 per-run minutes are `visual` and `lighthouse` — pinned hosted
-for pixel baselines and uncalibrated Lighthouse budgets — and ~4,220 minutes of
+for pixel baselines and uncalibrated Lighthouse budgets — and ~4,620 minutes of
 non-CI workflows the security boundary forbids moving at all.
 
 **What the operator actually pays: $0 per month today.** The pilot's value in
-the private world is scenario (c) minus scenario (e) — roughly **$364 per
-month, $4,370 per year**. Scenario (f) decomposes: deleting `nightly.yml`
+the private world is scenario (c) minus scenario (e) — roughly **$362 per
+month, $4,340 per year**. Scenario (f) decomposes: deleting `nightly.yml`
 without any runner work is worth about **$72/month** on its own (11,930 billed
 minutes), and reducing actual smoke executions by 75% a further **~$7** (1,090 minutes);
 the runner is what delivers the rest — and, per the Decision section, roughly
@@ -357,7 +374,7 @@ twice what the cheap moves do.
 
 #### Quota break-even depends on scheduled and event-triggered usage
 
-The retained ~4,220 minutes are an observed monthly workload, not an
+The retained ~4,620 minutes are an observed monthly workload, not an
 irreducible floor. The current workflow triggers divide it as follows:
 
 | Retained hosted workflow                     | Observed billed min/mo | Trigger and scaling behaviour                                                                                    |
@@ -372,7 +389,8 @@ irreducible floor. The current workflow triggers divide it as follows:
 | `release-notes.yml`                          | 50                     | Main pushes and manual dispatches.                                                                               |
 | `agent-watchdog.yml` / `local-ci-shadow.yml` | 200                    | Watchdog scheduled/manual work plus shadow PR/main-push work.                                                    |
 | Other retained workflows                     | ~20                    | Inspect their scheduled/manual triggers separately.                                                              |
-| **Observed total**                           | **~4,220**             | **Mixed event types; not a fixed floor.**                                                                        |
+| `nightly.yml` / `zap-full`                   | ~402                   | Scheduled/manual nightly runs; retained until native ARM execution is qualified.                                 |
+| **Observed total**                           | **~4,620**             | **Mixed event types; not a fixed floor.**                                                                        |
 
 For `R` CI run records/month, let `S` be billed scheduled usage and `E` the
 billed non-CI usage driven by PRs, pushes, releases and manual operations. The
@@ -401,7 +419,7 @@ scheduled and release/manual events. It must not be treated as guaranteed
 future schedule delivery or reduced fourfold merely by changing the cron.
 
 At the specific 400-record scenario, the split still reduces a modelled $463
-bill to about $99. The cost model supports that scenario comparison; it does
+bill to about $101. The cost model supports that scenario comparison; it does
 not prove that every lower workload remains over quota. No schedule, workflow,
 repository visibility or runner setting is changed by this analysis.
 
@@ -413,7 +431,7 @@ Two caveats attached to that saving:
   scenario (e)'s entire bill and it appears in none of the figures above.
   _Whether Code Security is purchasable at all on a personal-account plan is
   unverified._
-- The $364 saving is the difference between two bills that are both far over
+- The $362 saving is the difference between two bills that are both far over
   quota. None of it is a saving against $0, which is what the repository pays
   today.
 
@@ -440,10 +458,11 @@ non-CI workflows over a 30-day window rather than scaling lifetime counts moved
 the non-CI total from ~12,470 to ~16,150 (+30%), and correcting scenario (e)'s
 security boundary added `production-database.yml` back to the hosted side. The
 scenario costs above are 3–19% higher than the earlier draft's: (b) $520 →
-$537, (c) $445 → $463, (e) $83 → $99, (f) $376 → $385. The **saving** barely
-moved ($362 → $364) because both sides of the subtraction rose together; the
-**quota conclusion** also needed a separate correction: an observed mixed-event
-monthly total cannot be used as a fixed floor when varying the CI run rate.
+$537, (c) $445 → $463, (f) $376 → $385. Retaining the ZAP full scan moves
+(e) from the previously corrected ~$99 to **~$101** and the private-scenario
+saving from ~$364 to **~$362**. The quota conclusion needed a separate
+correction: an observed mixed-event monthly total cannot be used as a fixed
+floor when varying the CI run rate.
 
 Two inputs still rest on nothing measured: the post-#296 per-run figure of ~160
 billed minutes, and the choice of 400 CI run records/month, which sits inside a
@@ -608,8 +627,8 @@ fact.
 ### Honest limit of the split
 
 Using the historical residual of 38 hosted billed minutes per CI run, the
-400-record scenario leaves 15,200 CI minutes plus the observed ~4,220 non-CI
-minutes: roughly **19,400 billed minutes against a 3,000-minute quota**.
+400-record scenario leaves 15,200 CI minutes plus the observed ~4,620 non-CI
+minutes: roughly **19,820 billed minutes against a 3,000-minute quota**.
 That is over quota at the modelled volume. It does not establish an
 irreducible non-CI floor or rule out every lower activity level; use the
 conditional calculation in the quota section for that question.
@@ -709,14 +728,29 @@ that currently gates nothing.
 - Keep the bespoke agent installed and paused during any pilot window. Its stop
   path is graceful ("stopping after the current tick" appears in the live log),
   and restarting it costs one `launchctl` command.
-- If a pilot ever reaches equivalence, retire `ops/local-ci/agent`,
-  `ops/local-ci/host`, `routing.mjs`, the proof envelope and policy, the trusted
-  supervisor, the shadow observer and the nightly proof.
-- Keep regardless of outcome, because they are plane-agnostic:
-  `config/ci-workloads.json`, `scripts/ci/run-workload.mjs`,
-  `scripts/ci/hosted-evidence.mjs`, `ops/local-ci/compare-shadow.mjs`,
-  `ops/local-ci/core/shadow-{evidence,qualification}.mjs`, and the watchdog
-  incident reconciler repointed at the runners API.
+- Retire the bespoke plane only after a separate, reviewed qualification
+  proves the proposed runner **against an all-GitHub-hosted execution of the
+  same full candidate SHA**, with matching workload definitions and complete
+  outcomes. Retain distinct provider run/attempt identities and per-job runner
+  metadata, including runner IDs, names, groups, labels and native architecture
+  evidence. Verify the all-hosted route from the reviewed workflow and provider
+  worker metadata; an Actions App check name does not establish the hardware.
+  A mixed or self-hosted Actions run is not the hosted baseline. Only then
+  consider retiring `ops/local-ci/agent`, `ops/local-ci/host`, `routing.mjs`, the
+  proof envelope and policy, the trusted supervisor, shadow observer and
+  nightly proof.
+- Keep the shared workload definition and runner command:
+  `config/ci-workloads.json` and `scripts/ci/run-workload.mjs`.
+  The evidence producer and comparator are useful starting points, **not a
+  ready-made qualification for this pilot**. `scripts/ci/hosted-evidence.mjs`
+  assigns `plane: "hosted"` to an Actions run without checking its runner
+  placement. Feeding a self-hosted Actions run to it would mislabel the plane.
+  Before using `ops/local-ci/compare-shadow.mjs` or the shadow qualification
+  modules, add reviewed validation of the separate all-hosted baseline and
+  pilot evidence identities. Current local evidence also lacks trusted
+  execution verification and cannot establish an eligible streak. Do not
+  relabel records or infer qualification from a green Actions check. Keep any
+  watchdog repointing separate, with its required API credential reviewed.
 
 The workload definition is already shared: `ci.yml` invokes
 `node scripts/ci/run-workload.mjs <lane>` and the local profiles invoke the same
@@ -755,17 +789,17 @@ worth doing whether or not a pilot ever happens.
       once while you are here — it is the last unverified feasibility
       assumption.
 - [ ] **7. Build and prove the rollback mechanism with no runner registered.**
-      A hosted-only preflight job whose output feeds `runs-on`, gated on a
-      repository variable, with no runner-list API call or additional credential,
-      proven on a real pull request to be a complete no-op that changes no check
-      name. An absent/invalid flag or evaluation error selects hosted; an
-      enabled flag does not prove that a runner is online. This must exist first, because it is what
-      prevents the revert-deadlock described below. Prove the **whole** tier-1
-      sequence, including the explicit `gh run rerun` in step 4 — a kill switch
-      that stops routing but leaves the required check cancelled is not a
-      rollback. Understand its limit: it
-      controls _your_ runs, not a fork's — a hostile pull request supplies its
-      own workflow file and never reads the variable.
+      Use the repository variable directly in each eligible job's `runs-on`, as
+      shown in tier 1. Add no routing preflight job, `needs` edge, API call or
+      credential. Preserve all existing test/build prerequisites and check
+      names. With no pilot runner registered, prove flag off/absent/invalid
+      cases execute the complete hosted roots, failed real prerequisites still
+      block, cancellation remains effective, and changing the flag before a
+      rerun actually produces hosted execution for the same SHA. This is a
+      prerequisite, not an implemented capability. Rehearse the whole
+      stop/cancel/rerun sequence; a cancelled required check is not recovery.
+      It controls only reviewed workflows that contain the expression, so a
+      foreign or stale workflow without it needs tier-2 containment instead.
 - [ ] **8. Reclaim capacity.** Either pause the bespoke agent, or explicitly
       reduce `container.cpus`/`vm.cpus` in the contract so `lanesFit` reflects
       the reduced share. Never add a runner's budget on top of a saturated
@@ -786,39 +820,7 @@ worth doing whether or not a pilot ever happens.
       `factory-status.yml` today; the contract test from item 3 keeps it true.
       This is separate from item 10 because the reason is different: item 10 is
       about coverage, this is about an entry point no approval policy gates.
-- [ ] **12. Pilot one cheap tier only, and name it precisely.** `db` — 3.1 raw
-      minutes, no browsers, no baselines, no budgets. Not `e2e`, even though
-      that is where the money is: 16 jobs is the wrong blast radius for a first
-      attempt. Or better, pilot the **secret-free nightly tier**, which blocks
-      no merge at all.
-
-      **"Pilot `nightly.yml`" is the wrong instruction and an earlier draft
-                      gave it.** The workflow is not secret-free. Five of its six jobs are —
-                      `cross-browser` (`nightly.yml:36`), `cross-browser-gate` (`:104`),
-                      `mutation` (`:116`), `load` (`:144`) and `zap-full` (`:184`); every
-                      credential they touch is a literal non-secret fixture in the workflow's
-                      own `env:` block (`:15-33`). The sixth, `load-race` (`:167`), runs
-                      `if: ${{ vars.STAMP_RACE_URL != '' && vars.REDEEM_RACE_URL != '' }}` and
-                      passes `secrets.STAMP_RACE_AUTH_TOKEN` into `k6 run
-                      tests/load/stamp-redeem-race.js` (`:180`) — a repository secret handed to
-                      candidate code. The bespoke plane already refuses exactly this job for
-                      exactly this reason: `ops/local-ci/profiles/nightly.json:33` records that
-                      `load-race` "is absent because it requires repository secrets, which
-                      cannot reach this plane; it stays hosted", and
-                      `config/local-ci-contract.json:289` says the same of the contract's
-                      `hostSecretsPolicy`. A runner pilot that inherited "run nightly.yml"
-                      would silently drop that carve-out.
-
-                      So: route the five named jobs, and pin `load-race` with an explicit
-                      `runs-on: ubuntu-latest` plus an inline comment, then extend the contract
-                      test from item 3 to assert that `load-race` never carries a self-hosted
-                      label. The guard costs nothing in minutes today —
-                      `vars.STAMP_RACE_URL` and `vars.REDEEM_RACE_URL` are both unset, so the
-                      job is conditioned out of every run and
-                      `docs/operations/full-operational-qa-certification-matrix.md:110` records
-                      it as never having executed. It is a guard against the day those
-                      variables are set, which is the day the pilot would otherwise start
-                      handling a production-adjacent token on the operator's Mac.
+- [ ] **12. Pilot one cheap tier only, and name it precisely.** Prefer the four non-secret nightly jobs `cross-browser`, `cross-browser-gate`, `mutation` and `load`, which block no merge. `db` is another bounded candidate (3.1 historical raw minutes, no browser or visual baselines), but it is a required root. Do not start with all 16 E2E jobs. Keep **both** excluded nightly jobs explicitly on `ubuntu-latest`: `load-race` passes `secrets.STAMP_RACE_AUTH_TOKEN` to candidate code when its URL variables are set; `zap-full` has no qualified native ARM run and remains `x64-only` in the local profile. A published ARM64 ZAP image does not lift that restriction. Add routing contract checks for both exclusions before registration. `load-race` is currently conditioned out, while ZAP contributes the ~402 hosted monthly minutes included in the corrected scenario (e). Moving either requires a separate reviewed change with the relevant secret boundary or native execution proof.
 
 - [ ] **13. Rehearse tier-3 rollback before you need it.** Destroy and recreate
       the pilot VM from its YAML once, on a quiet day, and time it. A rollback
@@ -826,14 +828,42 @@ worth doing whether or not a pilot ever happens.
 
 ## Rollback
 
-### Tier 1 — repository variable: ~30 seconds to stop routing, one CI cycle to recover
+### Tier 1 — trusted workflow fallback: stop routing, then recover CI
 
-`runs-on` accepts the `vars` context (confirmed in GitHub's context-availability
-table; note `env` is **not** available there, so an env-based indirection will
-not work). A hosted-only preflight job reads the `SELF_HOSTED_PILOT` variable
-and emits the runner label only for the exact value `on`; an absent or different
-value selects `ubuntu-latest`. Every routed tier consumes that output. Check
-names never change, so branch protection is never touched.
+**Apply this procedure only to a reviewed workflow that implements the direct
+routing expression below.** Verify the workflow bytes and full
+head SHA before replaying a stale run. A foreign, fork-supplied or older
+workflow may omit these controls; do not rerun it as a recovery action. For
+untrusted or unknown workflow definitions, cancel the work and de-register the
+runner using tier 2. De-registration contains the exposure but does not rewrite
+its `runs-on` labels or make that workflow run hosted; recovery needs a reviewed
+hosted workflow on a branch whose definition is under owner control.
+
+GitHub's [context-availability table](https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#context-availability)
+allows `vars` directly in `jobs.<job_id>.runs-on`; `env` is not available there.
+Use a fixed reviewed label for the enabled case and a hosted default, for example:
+
+```yaml
+# Illustrative pilot label; no runner with this label is registered by this PR.
+runs-on: ${{ vars.SELF_HOSTED_PILOT == 'on' && 'nabaperks-arm64-pilot' || 'ubuntu-latest' }}
+```
+
+A value matching `on` selects the fixed pilot label; an unset variable or other
+value selects `ubuntu-latest`. The flag never becomes an arbitrary runner label.
+There is **no routing preflight job or output dependency**. That removes the
+failure/timeout path in which a preflight causes required descendants to be
+skipped under GitHub's [`needs` semantics](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idneeds).
+Keep each job's existing `needs`, `if` and `continue-on-error` settings unchanged;
+do not weaken real test/build prerequisites or accept skipped required roots.
+An optional diagnostic job must not become a routing prerequisite.
+
+Before registration, retain hosted proof for flag off/absent/invalid cases,
+workflow cancellation, failed real test/build prerequisites and an actual
+stop/cancel/rerun after changing the flag. Confirm that the rerun selects hosted
+workers for the same full SHA and completes every required root. Do not assume
+that merely writing a repository variable recovers a queued or cancelled run.
+These are implementation acceptance criteria, not tests performed by this
+documentation-only PR.
 
 This design deliberately makes **no live runner-status API call**. GitHub's
 [repository runner-list endpoint](https://docs.github.com/en/rest/actions/self-hosted-runners#list-self-hosted-runners-for-a-repository)
@@ -842,11 +872,11 @@ requires repository Administration read permission, which the ordinary
 [permissions unavailable to `GITHUB_TOKEN`](https://docs.github.com/en/actions/tutorials/authenticate-with-github_token#granting-additional-permissions).
 No such credential is provisioned by this pilot design. The consequence is
 explicit: when the flag is `on`, an offline runner may leave work queued. The
-operator must use the stop/cancel/rerun procedure below; this preflight provides
+operator must use the stop/cancel/rerun procedure below; this expression provides
 manual fallback, not automatic liveness-based routing.
 
 ```sh
-# 1. Stop future routing. Every run that starts from here is hosted.
+# 1. Stop future routing in the reviewed workflow that implements this flag.
 gh variable set SELF_HOSTED_PILOT --body off
 
 # 2. Cancel the in-flight run. This ONLY cancels; it starts nothing.
@@ -877,23 +907,23 @@ whole workflow on hosted runners, so "recovery" means the variable flip plus a
 full CI cycle (~10 minutes wall clock at the historical 72-job shape), not 30 seconds — the
 30 seconds is only how long it takes to stop the bleeding. Second, `gh run
 rerun` re-uses the original run's workflow file and head SHA, so it picks up
-the new variable value at preflight time; a rerun before the variable is set
+the routing variable when the rerun jobs are scheduled; a rerun before the variable is set
 would route straight back to the runner, which is why the order above matters.
-The one case where a push does substitute for step 4 is a branch you control:
-`ci.yml` sets `cancel-in-progress: true` (`:12`), so pushing a new commit
-supersedes the cancelled run with a fresh hosted one. That is not available on
-a stale or foreign branch, so the rerun is the general procedure.
+On a branch you control, a new push can instead create fresh checks for its
+new SHA after the flag is off. An exact-SHA rerun is available only when the
+original workflow has the reviewed routing expression. Neither
+procedure converts a foreign workflow that hard-codes a self-hosted label into
+a hosted workflow; use the tier-2 containment and trusted replacement described
+at the start of this section.
 
-The preflight must run on `ubuntu-latest`, with a short timeout, no checkout,
-no extra credential, and handled variable-evaluation errors selecting
-`ubuntu-latest`. Runner availability remains unknown when the flag is `on`.
-Prove the offline-runner recovery case as well as the flag-off case before a
-pilot; do not advertise an automatic health fallback.
+Runner availability remains unknown when the flag is enabled. Prove the
+offline-runner recovery case as well as the flag-off case before a pilot; this
+is manual fallback, not automatic health-based routing.
 
 **Tier 1 is an availability control, not a security control.** For
 `pull_request` from a fork the workflow file comes from the attacker's head
-commit, so it contains whatever `runs-on` the attacker wrote — the preflight
-job, the kill-switch variable and the whole indirection are simply absent from
+commit, so it contains whatever `runs-on` the attacker wrote — the kill-switch
+variable and the whole indirection may be absent from
 that run. Turning the variable off stops _your_ jobs reaching the runner; it
 does nothing to stop _theirs_. Only removing the label from GitHub's routing —
 tier 2 — has any effect on a hostile pull request. Do not let the 30-second
@@ -1052,7 +1082,7 @@ documentation.
 - Non-CI monthly total **~16,150** billed minutes, from counting each
   workflow's actual runs in the 30 days to 2026-09-09 and multiplying by the
   mean billed minutes of its five or six most recent runs. The retained hosted
-  workload under the recommended split is **~4,220** of that at the observed
+  workload under the recommended split is **~4,620** of that at the observed
   event mix. It includes change-triggered work and is not a fixed floor.
 - `nightly.yml`'s `load-race` job is gated on `vars.STAMP_RACE_URL` and
   `vars.REDEEM_RACE_URL`; `gh api repos/lapeninns/nabaperks/actions/variables`
@@ -1165,7 +1195,7 @@ if wrong.
 2. **Will Code Security be bought, and can it be bought on this account?** It is
    the only path that keeps two of the three required checks alive on a private
    repository, and at ~$30/month it is ~30% of the recommended split's bill
-   (scenario (e), ~$99).
+   (scenario (e), ~$101).
    Whether a personal account can purchase it is unverified.
 3. **Does GitHub accept a check run from an arbitrary App as satisfying a
    required context that omits `integration_id`?** This is the load-bearing
@@ -1186,7 +1216,7 @@ if wrong.
    available that costs nothing and adds no plane. Note the shape of the answer
    changed with the re-measurement: deleting it is worth ~$72/month against a
    private bill, but the 400-record scenario remains well over quota. The
-   ~4,220 retained non-CI minutes reflect the observed activity mix and must
+   ~4,620 retained non-CI minutes reflect the observed activity mix and must
    not be treated as a fixed floor at other CI rates.
 7. **Why does `production-smoke.yml` run so often, and is its cadence now worth
    cutting?** An earlier draft said 1,183 runs over 86 days = 13.8/day and
