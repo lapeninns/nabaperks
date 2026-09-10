@@ -370,7 +370,7 @@ test("a run that stops at its first failure publishes only the roots that ran", 
   // not five, and the title has to say two.
   assert.equal(
     rendered.title,
-    "failure — 1/10 lanes, 13/14 tests, 2/9 required roots local"
+    `failure — 1/${laneIds.length} lanes, 13/14 tests, 2/9 required roots local`
   )
   assert.match(rendered.summary, /Required roots:\s*2 of 9/)
 

@@ -499,7 +499,15 @@ export function snapshotGuardViolations(profile, contract) {
     }
     for (const command of lane.commands) {
       if (!/playwright|test:e2e|test:a11y/.test(command)) continue
-      if (!command.includes("--grep-invert @visual")) {
+      const inversions = [
+        ...command.matchAll(
+          /--grep-invert(?:=|\s+)(?:"([^"]+)"|'([^']+)'|(\S+))/g
+        ),
+      ]
+      const pattern = inversions[0]
+        ?.slice(1)
+        .find((value) => value !== undefined)
+      if (inversions.length !== 1 || !pattern?.split("|").includes("@visual")) {
         violations.push(
           `${profile.profile}/${lane.id}: Playwright invocation is missing --grep-invert @visual: ${command}`
         )

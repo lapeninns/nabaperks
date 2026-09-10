@@ -135,7 +135,7 @@ test("the workflow matrices declare exactly the packs and shards the code produc
       )
 })
 
-test("both browser tiers stay single-worker and neither narrows its selection", () => {
+test("both browser tiers stay single-worker and compose the complete browser union", () => {
   const ci = readCi()
 
   for (const jobId of ["e2e", "a11y"]) {
@@ -154,8 +154,9 @@ test("both browser tiers stay single-worker and neither narrows its selection", 
   const e2eDefinition = workloads.browsers["test:e2e"]
   const a11yDefinition = workloads.browsers["test:a11y"]
   assert.equal(e2eDefinition.hostedShards, 32)
-  assert.equal(e2eDefinition.grepInvert, "@visual")
+  assert.equal(e2eDefinition.grepInvert, "@visual|@a11y")
   assert.equal(e2eDefinition.grep, undefined)
+  assert.deepEqual(a11yDefinition.projects, E2E_PROJECTS)
   assert.equal(a11yDefinition.grep, "@a11y")
   assert.equal(a11yDefinition.grepInvert, undefined)
   // The pixel-baseline authority is out of scope for this change.

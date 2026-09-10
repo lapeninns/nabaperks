@@ -34,10 +34,15 @@
       ],
       "hostedShards": 32,
       "localShards": 32,
-      "grepInvert": "@visual"
+      "grepInvert": "@visual|@a11y"
     },
     "test:a11y": {
-      "projects": ["chromium", "mobile-safari"],
+      "projects": [
+        "chromium",
+        "mobile-safari",
+        "desktop-firefox",
+        "desktop-safari"
+      ],
       "hostedShards": 4,
       "localShards": 8,
       "grep": "@a11y"

@@ -267,7 +267,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: [chromium, mobile-safari]
+        project: [chromium, mobile-safari, desktop-firefox, desktop-safari]
         # Four shards, not eight: the same union of accessibility specs split
         # more coarsely. Setup was 55% of this tier's machine-minutes, and it
         # is paid once per job, so a coarser split spends the minutes on tests.

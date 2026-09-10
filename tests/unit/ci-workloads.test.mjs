@@ -70,8 +70,8 @@ test("every local browser command resolves to all original shards with snapshot 
         count++
       }
     }
-    // Four e2e projects at /32 and two a11y projects at /8, per profile.
-    assert.equal(count, 4 * 32 + 2 * 8)
+    // Four e2e projects at /32 and four a11y projects at /8, per profile.
+    assert.equal(count, 4 * 32 + 4 * 8)
   }
 })
 
@@ -240,6 +240,7 @@ test("shared command manifest retains each hosted safety command in order", () =
 })
 
 test("the browser manifest pins every tier's projects, selection and denominators", () => {
+  // Accessibility moves as a complete four-project union in this change.
   // Read as a whole rather than field by field: this is the file a future
   // "let us just make CI cheaper" edit reaches for, and the cheap edits all
   // look like small numbers - one fewer project, a narrower grep, a smaller
@@ -254,7 +255,7 @@ test("the browser manifest pins every tier's projects, selection and denominator
   // authority and stays exactly as it was.
   //
   // test:e2e's localShards moved 8 -> 32 to match hostedShards. That is the
-  // one denominator change these guards permit, because it raises the split
+  // denominator change already reviewed, because it raises the split
   // rather than lowering it: the executed union is identical and every server
   // carries fewer tests. It is a memory fix with kernel evidence behind it.
   // At /8 a mobile-safari shard is 37 tests - all of them a11y-sweep axe
@@ -274,10 +275,15 @@ test("the browser manifest pins every tier's projects, selection and denominator
       ],
       hostedShards: 32,
       localShards: 32,
-      grepInvert: "@visual",
+      grepInvert: "@visual|@a11y",
     },
     "test:a11y": {
-      projects: ["chromium", "mobile-safari"],
+      projects: [
+        "chromium",
+        "mobile-safari",
+        "desktop-firefox",
+        "desktop-safari",
+      ],
       hostedShards: 4,
       localShards: 8,
       grep: "@a11y",
