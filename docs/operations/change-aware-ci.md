@@ -23,6 +23,15 @@ database work, CI and release tooling therefore retain full validation. Deleted,
 renamed, executable, symlinked and unsupported files also retain the full suite.
 These rules are narrower than a folder-based exemption.
 
+Literal class edits qualify only for the reviewed typography, colour, border
+and spacing utilities in `scripts/ci/impact-classes.mjs`. Interaction utilities
+such as `pointer-events-none`, visibility or positioning controls, custom classes,
+arbitrary values and arbitrary selectors retain full functional validation.
+Changing an existing interaction class is also a full change. A mixed eligible
+page/documentation PR retains changed-document formatting and link checks; its
+fast and quality jobs provide the shared baseline without repeating those checks
+in the documentation job.
+
 The selection job executes policy from the PR's already-reviewed base SHA and
 reads candidate Git objects without executing candidate classifier code. Its
 plan binds repository, base, head and merge SHA, file/blob inventory and policy
@@ -35,6 +44,7 @@ Independent security checks retain their existing provider contexts.
 
 Policy installation and changes to selection, browser execution, test mapping
 or browser policy run the whole suite plus the bounded targeted comparison.
+`package.json` is included because it owns the full visual test command.
 This is the only time the same page checks intentionally run twice. Normal
 qualified PRs run their selected tier; other normal PRs run the full tier.
 

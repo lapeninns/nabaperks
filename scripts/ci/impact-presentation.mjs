@@ -1,6 +1,7 @@
 import posix from "node:path/posix"
 import ts from "typescript"
 import { readSourceTree } from "./impact-git.mjs"
+import { presentationClassShape } from "./impact-classes.mjs"
 
 const TEXT_PARENTS = new Set([
   "a",
@@ -77,7 +78,9 @@ export function presentationShape(text, path) {
         replacements.push([
           node.initializer.getStart(source),
           node.initializer.end,
-          '"__CI_PROP__"',
+          name === "className"
+            ? presentationClassShape(node.initializer.text)
+            : '"__CI_PROP__"',
         ])
     }
     ts.forEachChild(node, visit)

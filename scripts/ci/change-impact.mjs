@@ -18,10 +18,19 @@ export const FULL_ROOTS = Object.freeze([
   "db",
 ])
 
-export function requiredRoots(profile) {
+export function requiredRoots(profile, changes = []) {
   if (profile === "documentation") return ["documentation"]
   if (profile === "public-pages")
-    return ["fast", "quality", "build", "targeted-browser", "targeted-visual"]
+    return [
+      "fast",
+      "quality",
+      "build",
+      "targeted-browser",
+      "targeted-visual",
+      ...(changes.some((change) => isDocumentationPath(change.path))
+        ? ["documentation"]
+        : []),
+    ]
   if (profile === "full") return [...FULL_ROOTS]
   throw new Error("Unknown CI impact profile")
 }
@@ -100,6 +109,6 @@ export function calculateImpact(
     changes,
     changeDigest: digest(changes),
     policyDigest: digest(policy),
-    required: requiredRoots(classification.profile),
+    required: requiredRoots(classification.profile, changes),
   }
 }

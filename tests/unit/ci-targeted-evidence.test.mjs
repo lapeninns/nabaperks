@@ -7,6 +7,7 @@ import {
 import {
   targetedArguments,
   validateTargetedRuntime,
+  runDocumentation,
 } from "../../scripts/ci/run-targeted-checks.mjs"
 import { fullPlan } from "../../scripts/ci/impact-plan-contract.mjs"
 import { needsSelectionComparison } from "../../scripts/ci/plan-checks.mjs"
@@ -20,6 +21,31 @@ const record = {
   flaky: false,
   skipReason: "",
 }
+
+test("mixed page and documentation validation adds formatting and links without duplicating its baseline", () => {
+  const commands = []
+  const path = "docs/operations/change-aware-ci.md"
+  const result = runDocumentation(
+    {
+      profile: "public-pages",
+      required: ["documentation"],
+      changes: [{ path, status: "M" }],
+    },
+    {
+      spawn(command, args) {
+        commands.push([command, ...args])
+        return { status: 0 }
+      },
+    }
+  )
+  assert.deepEqual(commands, [
+    ["pnpm", "exec", "prettier", "--check", "--", path],
+  ])
+  assert.deepEqual(result, { files: 1, missing: [] })
+  assert.throws(() =>
+    runDocumentation({ profile: "public-pages", required: [], changes: [] })
+  )
+})
 
 test("targeted outcomes must occur exactly once in successful full execution", () => {
   assert.equal(compareAffectedOutcomes([record], [record]).matched, 1)
@@ -85,6 +111,7 @@ test("qualified page selection keeps existing test identities and unqualified po
   )
   assert.throws(() => targetedArguments(plan, "visual", "desktop-firefox"))
   for (const path of [
+    "package.json",
     "scripts/ci/impact-documentation.mjs",
     "config/ci-workloads.json",
     "tests/e2e/helpers/a11y-sweep.ts",

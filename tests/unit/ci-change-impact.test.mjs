@@ -6,6 +6,7 @@ import { join } from "node:path"
 import {
   classifyChanges,
   calculateImpact,
+  requiredRoots,
 } from "../../scripts/ci/change-impact.mjs"
 import {
   isPresentationOnly,
@@ -141,6 +142,101 @@ test("a one-line behaviour change, new import or new JSX structure cannot masque
   assert.throws(
     () => isPresentationOnly(before, "<p broken=", "page.tsx"),
     /Unparseable/
+  )
+})
+
+test("interaction, visibility, positioning and arbitrary classes retain full functional validation", () => {
+  const original =
+    '<div className="flex gap-3"><a href="/signup">Start</a></div>'
+  for (const utility of [
+    "pointer-events-none",
+    "hover:pointer-events-none",
+    "[pointer-events:none]",
+    "sm:[&>*]:pointer-events-none",
+    "!pointer-events-none",
+    "touch-none",
+    "hidden",
+    "invisible",
+    "opacity-0",
+    "absolute",
+    "z-50",
+    "w-0",
+    "overflow-hidden",
+    "translate-x-full",
+    "unknown-custom-class",
+  ]) {
+    const changed = original.replace("flex gap-3", `flex gap-3 ${utility}`)
+    assert.equal(
+      isPresentationOnly(original, changed, "page.tsx"),
+      false,
+      utility
+    )
+    assert.equal(
+      isPresentationOnly(changed, original, "page.tsx"),
+      false,
+      `removed ${utility}`
+    )
+    assert.equal(
+      classify([change("app/faq/page.tsx")], copy.replace("p-2", utility))
+        .profile,
+      "full",
+      utility
+    )
+  }
+  for (const utility of [
+    "gap-4",
+    "text-lg",
+    "font-semibold",
+    "sm:bg-slate-100",
+    "rounded-md",
+    "border-2",
+  ]) {
+    const changed = original.replace("flex gap-3", `flex gap-3 ${utility}`)
+    assert.equal(
+      isPresentationOnly(original, changed, "page.tsx"),
+      true,
+      utility
+    )
+  }
+})
+
+test("a mixed eligible PR retains the documentation evidence required for its Markdown files", () => {
+  const changes = [change("app/about/page.tsx"), change("docs/operations/a.md")]
+  assert.equal(classify(changes).profile, "public-pages")
+  const plan = {
+    ...fullPlan(identity, "Mixed eligible change", false),
+    profile: "public-pages",
+    changes,
+    pages: [
+      {
+        path: "app/about/page.tsx",
+        route: "/about",
+        visualName: "marketing-about",
+      },
+    ],
+    changeDigest: "d".repeat(64),
+    policyDigest: "e".repeat(64),
+    required: requiredRoots("public-pages", changes),
+  }
+  assert.ok(plan.required.includes("documentation"))
+  const evidence = evidenceFor("documentation")
+  evidence.selection.outputs.plan = JSON.stringify(plan)
+  for (const name of ALL_WORKLOADS)
+    evidence[name].result = plan.required.includes(name) ? "success" : "skipped"
+  assert.match(
+    verifyImpactEvidence(evidence, identity),
+    /documentation: passed/
+  )
+  evidence.documentation.result = "skipped"
+  assert.throws(
+    () => verifyImpactEvidence(evidence, identity),
+    /documentation: successful execution required/
+  )
+  plan.required = plan.required.filter((name) => name !== "documentation")
+  evidence.selection.outputs.plan = JSON.stringify(plan)
+  assert.throws(
+    () => verifyImpactEvidence(evidence, identity),
+    /Required checks differ/
   )
 })
 

@@ -12,6 +12,7 @@ import {
 export function needsSelectionComparison(path) {
   return (
     path === ".github/workflows/ci.yml" ||
+    path === "package.json" ||
     ["config/ci-impact-policy.json", "config/ci-workloads.json"].includes(
       path
     ) ||

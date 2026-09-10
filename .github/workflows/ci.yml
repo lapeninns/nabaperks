@@ -120,7 +120,7 @@ jobs:
   documentation:
     name: Documentation validation
     needs: selection
-    if: ${{ needs.selection.outputs.profile == 'documentation' || needs.selection.outputs.comparison == 'true' }}
+    if: ${{ needs.selection.outputs.profile == 'documentation' || (needs.selection.outputs.profile == 'public-pages' && contains(fromJSON(needs.selection.outputs.plan).required, 'documentation')) || needs.selection.outputs.comparison == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:

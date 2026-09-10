@@ -210,6 +210,8 @@ export function localMarkdownLinks(paths, { cwd = process.cwd() } = {}) {
 export function runDocumentation(plan, { spawn = spawnSync } = {}) {
   assert.ok(
     plan.profile === "documentation" ||
+      (plan.profile === "public-pages" &&
+        plan.required.includes("documentation")) ||
       (plan.profile === "full" && plan.comparisonRequired)
   )
   const files = plan.changes
@@ -218,10 +220,16 @@ export function runDocumentation(plan, { spawn = spawnSync } = {}) {
     )
     .map((change) => change.path)
   const commands = [
-    ["pnpm", "secrets:check"],
-    ["pnpm", "test:contracts"],
-    ["pnpm", "docs:check"],
-    ["pnpm", "agents:check"],
+    // Public-page fast/quality jobs already run these shared checks. Its
+    // documentation job adds only the changed-document formatting/link proof.
+    ...(plan.profile === "public-pages"
+      ? []
+      : [
+          ["pnpm", "secrets:check"],
+          ["pnpm", "test:contracts"],
+          ["pnpm", "docs:check"],
+          ["pnpm", "agents:check"],
+        ]),
     ...(files.length
       ? [["pnpm", "exec", "prettier", "--check", "--", ...files]]
       : []),

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict"
 import { FULL_SHA } from "./impact-git.mjs"
+import { isDocumentationPath } from "./impact-documentation.mjs"
 
 export const ALL_WORKLOADS = Object.freeze([
   "fast",
@@ -73,14 +74,20 @@ export function validatePlan(plan, expected) {
     Object.hasOwn(PROFILE_WORKLOADS, plan.profile),
     "Unknown impact profile"
   )
-  assert.deepEqual(
-    plan.required,
-    [...PROFILE_WORKLOADS[plan.profile]],
-    "Required checks differ from the profile"
-  )
   assert.equal(typeof plan.comparisonRequired, "boolean")
   assert.ok(typeof plan.reason === "string" && plan.reason.length > 0)
   assert.ok(Array.isArray(plan.pages) && Array.isArray(plan.changes))
+  const required = [...PROFILE_WORKLOADS[plan.profile]]
+  if (
+    plan.profile === "public-pages" &&
+    plan.changes.some((change) => isDocumentationPath(change.path))
+  )
+    required.push("documentation")
+  assert.deepEqual(
+    plan.required,
+    required,
+    "Required checks differ from the profile"
+  )
   if (plan.profile === "public-pages") {
     assert.ok(
       plan.pages.length > 0 && plan.pages.length <= 3,
