@@ -25,6 +25,9 @@ const CARD_UNIQUENESS = migration(
 const STAMP_CODES = migration(
   "20260805100100_stamp_refusal_codes_and_location_verification.sql"
 )
+const UNVERIFIED_GRACE_TWO = migration(
+  "20260910100000_unverified_geofence_grace_two.sql"
+)
 const REWARD_EXPIRY = migration(
   "20260805100200_reward_expiry_releases_the_cycle.sql"
 )
@@ -199,6 +202,17 @@ test("Given location verification Then only a positive out-of-range fix refuses"
     STAMP_CODES.indexOf("elsif v_distance > v_effective_radius_meters")
   )
   assert.doesNotMatch(poorAccuracyBranch, /raise exception/)
+})
+
+test("Given unverified location Then grace is two visits per membership", () => {
+  assert.match(
+    UNVERIFIED_GRACE_TWO,
+    /create or replace function public\.geofence_unverified_grace_limit\(\)/
+  )
+  assert.match(
+    UNVERIFIED_GRACE_TWO,
+    /as \$function\$\s*select 2;\s*\$function\$/
+  )
 })
 
 test("Given the first two visits Then they are exempt so joining is never gated", () => {
