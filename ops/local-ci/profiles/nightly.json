@@ -40,6 +40,7 @@
       "title": "Fast lane (lint, typecheck, unit)",
       "arch": "any",
       "concurrencyGroup": null,
+      "workloadCommand": 2,
       "commands": [
         "pnpm install --frozen-lockfile",
         "node scripts/ci/run-workload.mjs fast",
@@ -87,6 +88,7 @@
       "title": "Quality lane (hygiene sweeps)",
       "arch": "any",
       "concurrencyGroup": null,
+      "workloadCommand": 2,
       "commands": [
         "pnpm install --frozen-lockfile",
         "node scripts/ci/run-workload.mjs quality"
@@ -123,6 +125,7 @@
       "title": "Print-kit PDF proof",
       "arch": "any",
       "concurrencyGroup": "http-127.0.0.1-3000",
+      "workloadCommand": 2,
       "commands": [
         "pnpm install --frozen-lockfile",
         "pnpm posters:verify-pdfs",
@@ -217,6 +220,7 @@
       "title": "Functional E2E (chromium)",
       "arch": "any",
       "concurrencyGroup": null,
+      "workloadCommand": 2,
       "commands": [
         "pnpm install --frozen-lockfile",
         "node scripts/ci/browser-workload.mjs local test:e2e --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"1/8\"",
@@ -275,6 +279,7 @@
       "title": "Functional E2E (mobile-safari)",
       "arch": "any",
       "concurrencyGroup": null,
+      "workloadCommand": 2,
       "commands": [
         "pnpm install --frozen-lockfile",
         "node scripts/ci/browser-workload.mjs local test:e2e --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"1/8\"",
@@ -333,6 +338,7 @@
       "title": "Functional E2E (desktop-firefox)",
       "arch": "any",
       "concurrencyGroup": null,
+      "workloadCommand": 2,
       "commands": [
         "pnpm install --frozen-lockfile",
         "node scripts/ci/browser-workload.mjs local test:e2e --project=\"desktop-firefox\" --grep-invert @visual --ignore-snapshots --shard=\"1/8\"",
@@ -391,6 +397,7 @@
       "title": "Functional E2E (desktop-safari)",
       "arch": "any",
       "concurrencyGroup": null,
+      "workloadCommand": 2,
       "commands": [
         "pnpm install --frozen-lockfile",
         "node scripts/ci/browser-workload.mjs local test:e2e --project=\"desktop-safari\" --grep-invert @visual --ignore-snapshots --shard=\"1/8\"",
@@ -449,6 +456,7 @@
       "title": "Accessibility (chromium)",
       "arch": "any",
       "concurrencyGroup": null,
+      "workloadCommand": 2,
       "commands": [
         "pnpm install --frozen-lockfile",
         "node scripts/ci/browser-workload.mjs local test:a11y --project=\"chromium\" --grep-invert @visual --ignore-snapshots --shard=\"1/8\"",
@@ -507,6 +515,7 @@
       "title": "Accessibility (mobile-safari)",
       "arch": "any",
       "concurrencyGroup": null,
+      "workloadCommand": 2,
       "commands": [
         "pnpm install --frozen-lockfile",
         "node scripts/ci/browser-workload.mjs local test:a11y --project=\"mobile-safari\" --grep-invert @visual --ignore-snapshots --shard=\"1/8\"",
@@ -565,6 +574,7 @@
       "title": "DB behavioral moat",
       "arch": "any",
       "concurrencyGroup": "supabase-local",
+      "workloadCommand": 4,
       "commands": [
         "pnpm install --frozen-lockfile",
         "supabase start",
@@ -621,6 +631,7 @@
       "title": "Mutation testing",
       "arch": "any",
       "concurrencyGroup": null,
+      "workloadCommand": 2,
       "commands": [
         "pnpm install --frozen-lockfile",
         "pnpm mutation:check --concurrency 8"
@@ -664,6 +675,7 @@
       "title": "k6 public route load checks",
       "arch": "any",
       "concurrencyGroup": "http-127.0.0.1-3000",
+      "workloadCommand": 3,
       "commands": [
         "pnpm install --frozen-lockfile",
         "pnpm build",
@@ -725,6 +737,7 @@
       "title": "Database concurrency stress",
       "arch": "any",
       "concurrencyGroup": "supabase-local",
+      "workloadCommand": 5,
       "commands": [
         "supabase start",
         "pnpm install --frozen-lockfile",
@@ -782,6 +795,7 @@
       "title": "ZAP full scan",
       "arch": "x64-only",
       "concurrencyGroup": "http-127.0.0.1-3000",
+      "workloadCommand": 3,
       "commands": [
         "pnpm install --frozen-lockfile",
         "pnpm build",

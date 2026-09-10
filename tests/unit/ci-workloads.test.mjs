@@ -226,6 +226,45 @@ test("shared command manifest retains each hosted safety command in order", () =
   ])
 })
 
+test("the browser manifest pins every tier's projects, selection and denominators", () => {
+  // Read as a whole rather than field by field: this is the file a future
+  // "let us just make CI cheaper" edit reaches for, and the cheap edits all
+  // look like small numbers - one fewer project, a narrower grep, a smaller
+  // hosted denominator. Any of those changes the set of tests executed, which
+  // is the one thing the packing work was not allowed to touch.
+  //
+  // test:e2e keeps hostedShards 32 because the regrouping moved job count,
+  // not the denominator: packs group existing /32 shards. test:a11y drops
+  // from eight hosted shards to four, which is a different split of the same
+  // union - eight jobs' worth of repeated setup for eleven minutes of actual
+  // test work did not pay for itself. test:visual is the pixel-baseline
+  // authority and stays exactly as it was.
+  assert.deepEqual(workloads.browsers, {
+    "test:e2e": {
+      projects: [
+        "chromium",
+        "mobile-safari",
+        "desktop-firefox",
+        "desktop-safari",
+      ],
+      hostedShards: 32,
+      localShards: 8,
+      grepInvert: "@visual",
+    },
+    "test:a11y": {
+      projects: ["chromium", "mobile-safari"],
+      hostedShards: 4,
+      localShards: 8,
+      grep: "@a11y",
+    },
+    "test:visual": {
+      projects: ["chromium", "mobile-safari"],
+      hostedShards: 4,
+      grep: "@visual",
+    },
+  })
+})
+
 test("global teardown failures and incomplete processes cannot qualify grouping", () => {
   const report = { errors: [{ message: "global teardown failed" }], suites: [] }
   assert.throws(() => inventoryFromPlaywright(report), /global errors/)

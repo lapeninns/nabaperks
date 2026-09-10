@@ -7,14 +7,24 @@ import { inventoryFromPlaywright, compareInventory } from "./browser-parity.mjs"
 
 // Group existing shards; never change their denominator, selection or worker
 // count. Each invocation owns a fresh Playwright server and wrapper cleanup.
+//
+// The cap is eight rather than four so a pack can carry a whole eighth of the
+// untouched /32 matrix (see packShards): halving the hosted e2e job count from
+// 33 to 16 removes about 14.8 machine-minutes of repeated per-job setup from a
+// 90.8 machine-minute tier. Raising the cap is safe only because the loop below
+// stays sequential and one-shard-at-a-time - every shard gets a fresh server,
+// so a pack of eight uses the same peak memory as a pack of four and never
+// approaches the out-of-memory kill an unsharded run hits after ~154 tests.
 export function browserPackRequests({ project, shards }) {
   if (
     !Array.isArray(shards) ||
     shards.length < 1 ||
-    shards.length > 4 ||
+    shards.length > 8 ||
     new Set(shards).size !== shards.length
   )
-    throw new Error("A pilot group requires one to four unique existing shards")
+    throw new Error(
+      "A pilot group requires one to eight unique existing shards"
+    )
   return shards.map((shard) => ({
     shard,
     args: browserArguments({

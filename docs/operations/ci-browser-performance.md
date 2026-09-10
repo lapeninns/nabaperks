@@ -15,11 +15,11 @@ remove the system package installation step.
 
 ## Implementation and acceptance
 
-Qualification occurs on the unmerged performance PR. Main retains its previous
-hosted matrix until the full candidate workflow succeeds and the PR is approved.
-A candidate failure blocks that PR; it does not replace production or disable
-main's established workflow. Do not merge based only on local checks or a partial
-browser run. After merge, a reviewed revert restores the established matrix.
+**This work is merged.** It landed on 2026-09-08 as
+`aed95ca9b33eacbe79c7a4b2808976649b2502c6` (#288) and is main's hosted matrix at
+`d5f5c3641`. Earlier revisions of this section described qualification on an
+unmerged PR; that is no longer the state. Rollback is a reviewed revert
+restoring the prior browser matrix and runner setup, not a pending decision.
 
 E2E now uses eight packs per browser, covering the same original 32 shards in
 ascending groups of four. All four browser projects remain selected. Each shard
@@ -48,10 +48,23 @@ Lighthouse and ZAP still consume the single production build. The release gate
 continues to require all nine roots. This changes hosted scheduling only; local
 execution remains advisory and production authority is unchanged.
 
-The intended workflow has 72 jobs instead of 168. A 6–10 minute full-CI duration
-is a target to validate, not a measured result. Qualification requires the full
-hosted run, review of all 32 pack inventories and outcomes, and comparison of
-wall time, image/setup time, aggregate job time, retries and failures. Track
-multiple subsequent runs including cold starts before claiming a stable saving.
-Main, security and deployment checks remain separately required. Rollback is a
-normal reviewed revert restoring the prior browser matrix and runner setup.
+## Measured after merge
+
+The job count landed as intended: **72 jobs per CI run instead of 168**.
+Measured on 2026-09-09, a run consumes roughly 165 machine-minutes with a
+6–7 minute wall clock, against the 254.77 and 247.07 aggregate execution minutes
+recorded for 168-job runs in the [consumption baseline](ci-cost-baseline.md).
+
+Two caveats keep this short of a stable saving claim:
+
+- Over 25 consecutive runs in a 6.8-hour window — 1,782 jobs and 4,041 raw
+  job-minutes — about **14% of job-minutes were burned by runs that were
+  subsequently cancelled**. That waste is scheduling behaviour, not browser
+  setup, and this change does not address it.
+- Cold-start behaviour across a longer window is still **unmeasured**. Aggregate
+  execution minutes are not billed minutes.
+
+Review of all 32 pack inventories and outcomes, and comparison of image/setup
+time, retries and failures, remains the standing qualification for any further
+change to this matrix. Main, security and deployment checks remain separately
+required.

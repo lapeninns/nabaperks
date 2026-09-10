@@ -214,11 +214,14 @@ runbook, not by code in this directory:
   `uptimerobot-heartbeat-url`; the contract and `docs/operations/local-ci.md`
   name them `app-private-key.pem` and `heartbeat.url`. `main.mjs` accepts either
   pair so an install from either document works.
-- Lanes run one at a time. `agent.maxConcurrentLanes` and every
-  `concurrencyGroup` are therefore satisfied trivially — no two lanes are ever in
-  flight, so nothing contends for `127.0.0.1:3000` or the local Supabase ports.
-  Running independent lanes in parallel is a later change, and the concurrency
-  groups are what will make it safe.
+- Independent lanes run in parallel, bounded by `lanesFit` in
+  `core/lane-scheduler.mjs`: the summed lane CPU and memory must fit inside
+  `container.cpus` and `container.memoryGb` after the daemon reserve, and lanes
+  sharing a `concurrencyGroup` stay serialised so nothing contends for
+  `127.0.0.1:3000` or the local Supabase ports. Bounded parallelism landed in
+  `aed95ca9b` (#288). `agent.maxConcurrentLanes` is an upper bound that the CPU
+  budget reaches first: the smallest lane asks for 2 CPUs against
+  `container.cpus` 10, so at most 5 lanes are ever in flight.
 - `container.workspacePath` is `/workspace`, which the job container's
   `--workdir` and bind mount both use; the image's own `WORKDIR` is
   `/home/runner/work` and is overridden per run.

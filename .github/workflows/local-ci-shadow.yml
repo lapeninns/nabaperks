@@ -42,8 +42,17 @@ jobs:
       contents: read
       checks: read
     steps:
+      # Candidate code must never own the verifier that judges it. On a
+      # pull request actions/checkout defaults to refs/pull/N/merge, which is
+      # the author's tree: scripts/check-local-ci-proof.mjs, the App-identity
+      # check it imports and the pinned contract it reads would all be written
+      # by the very change under observation. Pinning the base SHA runs the
+      # verifier from a commit that is already on main and already reviewed.
+      # Only the judging code moves; LOCAL_CI_HEAD_SHA below still names the
+      # real pull request head, so the observation stays about the candidate.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:

@@ -8,10 +8,17 @@
  * per-lane counts are published twice: once in a table and once as fenced
  * JSON, from the same source values.
  *
- * Two rules are absolute:
+ * Three rules are absolute:
  *
  *   - Truncation is always announced. A failure list that silently stops at 20
  *     entries reads as "20 failures" when it was 400, and someone merges.
+ *   - Coverage is always stated, and it counts lanes that ran. `10/10 lanes`
+ *     is a count of this run's own lanes, not of the work the merge gate
+ *     requires, and left alone it reads as "local CI ran everything" when four
+ *     required roots never ran here at all. So the roots with no local lane
+ *     that executed are named, next to the lane count - and a lane the run
+ *     recorded without a command-start marker supplies no execution proof.
+ *     Cancellation after that marker still records an executed workload.
  *   - Nothing named in `contract.hostSecrets`, and nothing credential-shaped,
  *     survives into the output. The redaction runs over the finished strings
  *     and then a proof pass re-checks them, because the redaction is an
@@ -21,6 +28,7 @@
 import { LocalCiError, describeValue } from "./contract.mjs"
 import { formatDigestLine, isDigestShaped } from "./digest.mjs"
 import { credentialShapeOf, redactCredentials } from "./job-env.mjs"
+import { computeRootCoverage, rootForLane } from "./root-coverage.mjs"
 
 /** Maximum failure entries rendered before the "N more" line takes over. */
 export const FAILURE_LIST_CAP = 20
@@ -58,6 +66,41 @@ export const REDACTION_PLACEHOLDER = "[redacted]"
 export class SummaryError extends LocalCiError {}
 
 const COMMIT_SHA = /^[0-9a-fA-F]{40}$/
+
+/**
+ * The lane list root coverage is computed from.
+ *
+ * The status travels with the id because coverage counts lanes that executed:
+ * a lane recorded as skipped - the runner's word for "an earlier lane failed"
+ * or "the profile deadline expired before this one came up" - never ran its
+ * root here, and must not be published as covering it.
+ */
+const coverageLanesOf = (lanes, contract, profile) => {
+  const recorded = lanes.map((lane) => ({
+    laneId: lane.laneId,
+    status: lane.status,
+    executionStarted: lane.executionStarted,
+    executionVerified: lane.executionVerified,
+  }))
+  const expected = ["pr", "main"].includes(profile)
+    ? Object.keys(contract.shadowMode?.qualification?.lanes ?? {}).filter(
+        (id) =>
+          lanes.some(
+            (lane) => rootForLane(lane.laneId).root === rootForLane(id).root
+          )
+      )
+    : []
+  return [
+    ...recorded,
+    ...expected
+      .filter((id) => !lanes.some((lane) => lane.laneId === id))
+      .map((laneId) => ({
+        laneId,
+        status: "missing",
+        executionStarted: false,
+      })),
+  ]
+}
 
 function fail(code, message) {
   throw new SummaryError(code, `local-ci summary: ${message}`)
@@ -205,6 +248,11 @@ function normaliseLane(lane, index) {
     laneId,
     title: typeof lane.title === "string" ? lane.title : laneId,
     status: lane.status,
+    executionStarted:
+      typeof lane.executionStarted === "boolean" ? lane.executionStarted : null,
+    ...(lane.executionStarted === true && lane.executionVerified === true
+      ? { executionVerified: true }
+      : {}),
     durationSeconds:
       typeof lane.durationSeconds === "number" ? lane.durationSeconds : null,
     testsRun: requireCount(lane.testsRun, `${path}.testsRun`),
@@ -306,6 +354,9 @@ function normaliseRecord(record, contract) {
  */
 export function buildLaneSummary(record, contract) {
   const normalised = normaliseRecord(record, contract)
+  const coverage = computeRootCoverage(
+    coverageLanesOf(normalised.lanes, contract, normalised.profile)
+  )
   return {
     schema: normalised.schema,
     plane: normalised.plane,
@@ -317,6 +368,13 @@ export function buildLaneSummary(record, contract) {
     lanes: normalised.lanes.map((lane) => ({
       laneId: lane.laneId,
       status: lane.status,
+      executionStarted:
+        typeof lane.executionStarted === "boolean"
+          ? lane.executionStarted
+          : null,
+      ...(lane.executionStarted === true && lane.executionVerified === true
+        ? { executionVerified: true }
+        : {}),
       durationSeconds: lane.durationSeconds,
       testsRun: lane.testsRun,
       testsPassed: lane.testsPassed,
@@ -334,6 +392,30 @@ export function buildLaneSummary(record, contract) {
         : {}),
     })),
     hostedOnlyLanes: normalised.hostedOnlyLanes.map((entry) => entry.laneId),
+    // Additive: compare-shadow.mjs and extractLaneSummary read the fields
+    // above and must keep reading them unchanged. This one exists so the
+    // coverage claim is machine-readable too - a future consumer should not
+    // have to infer it from a lane count either.
+    rootCoverage: {
+      requiredRoots: [...coverage.requiredRoots],
+      coveredRoots: [...coverage.coveredRoots],
+      uncoveredRoots: [...coverage.uncoveredRoots],
+      unmappedLanes: coverage.unmappedLanes.map(({ laneId, kind }) => ({
+        laneId,
+        kind,
+      })),
+      // Additive again, and for the same reason: a consumer that sees a root
+      // missing from `coveredRoots` must be able to tell "this plane runs no
+      // lane for it" from "this run declared a lane and never started it".
+      unverifiedLanes: coverage.unverifiedLanes.map(
+        ({ laneId, root, status }) => ({ laneId, root, status })
+      ),
+      notRunLanes: coverage.notRunLanes.map(({ laneId, root, status }) => ({
+        laneId,
+        root,
+        status,
+      })),
+    },
   }
 }
 
@@ -423,6 +505,54 @@ function renderFailures(failures) {
   return ["## Failures", "", ...lines].join("\n")
 }
 
+const listRoots = (roots) =>
+  roots.length === 0 ? "none" : roots.map((root) => codeSpan(root)).join(", ")
+
+/**
+ * The coverage statement. Rendered on every run, including a complete one:
+ * "all nine ran here" is a fact worth publishing, and a section that appears
+ * only on the bad days is a section a reader learns to skip.
+ *
+ * The count is of roots a lane actually ran. A lane the run recorded as
+ * missing supervisor execution proof gets its own bullet, so the profile's intent
+ * is still visible without its unrun lanes reading as coverage.
+ */
+function renderRootCoverage(coverage) {
+  const lines = [
+    "## Required-root coverage",
+    "",
+    `Verified local validation covers ${coverage.coveredRoots.length} of the ${coverage.requiredRoots.length} roots the hosted plane requires.`,
+    "Every mapped lane needs supervisor-owned execution proof. Candidate stdout",
+    "and command-start log markers are unverified, regardless of lane status.",
+    "",
+    `- Covered by a local lane that ran: ${listRoots(coverage.coveredRoots)}`,
+    `- Not fully covered locally: ${listRoots(coverage.uncoveredRoots)}`,
+  ]
+  for (const entry of [...coverage.notRunLanes, ...coverage.unverifiedLanes]) {
+    // A declared lane without execution proof. Named rather than dropped, because
+    // the reader has to be able to tell a root this plane runs no lane for
+    // from one whose lane this run did not reach.
+    // Phrased so a skim cannot read it as coverage: the root is named as the
+    // one this lane did not run, never as one it covers.
+    const consequence =
+      entry.root === null
+        ? "and it covers no required root in any case"
+        : `so the ${codeSpan(entry.root)} root is not counted as covered here`
+    lines.push(
+      `- No execution proof: local lane ${codeSpan(entry.laneId)} was recorded ${codeSpan(entry.status)} without verified validation-start evidence, ${consequence}`
+    )
+  }
+  for (const entry of coverage.unmappedLanes) {
+    // The bullet leads with its label rather than the lane id, so a reader -
+    // and the tests that read this text back line by line - can tell a
+    // coverage bullet from a failure bullet without parsing either.
+    lines.push(
+      `- Local lane ${codeSpan(entry.laneId)} covers no required root — ${escapeInline(entry.reason)}`
+    )
+  }
+  return lines.join("\n")
+}
+
 function renderHostedOnly(hostedOnlyLanes) {
   if (hostedOnlyLanes.length === 0) return null
   const lines = hostedOnlyLanes.map((entry) =>
@@ -470,13 +600,19 @@ export function renderCheckSummary(record, contract) {
   const lanesPassed = normalised.lanes.filter(
     (lane) => lane.status === "success"
   ).length
+  const coverage = computeRootCoverage(
+    coverageLanesOf(normalised.lanes, contract, normalised.profile)
+  )
 
   const failures = [
     ...normalised.runFailures,
     ...normalised.lanes.flatMap((lane) => lane.failures),
   ]
 
-  const rawTitle = `${normalised.conclusion} — ${lanesPassed}/${normalised.lanes.length} lanes, ${totals.passed}/${totals.run} tests`
+  // The lane count stays - it is true of the lanes that ran - but it no longer
+  // stands alone, because the one number a reader sees in the checks list must
+  // not be one that reads as "everything ran".
+  const rawTitle = `${normalised.conclusion} — ${lanesPassed}/${normalised.lanes.length} lanes, ${totals.passed}/${totals.run} tests, ${coverage.coveredRoots.length}/${coverage.requiredRoots.length} required roots local`
   const title =
     rawTitle.length > TITLE_MAX_LENGTH
       ? `${rawTitle.slice(0, TITLE_MAX_LENGTH - 1)}…`
@@ -495,14 +631,23 @@ export function renderCheckSummary(record, contract) {
   summaryLines.push(
     `**Duration:** ${formatDuration(normalised.durationSeconds)}`,
     "",
-    `Tests: ${totals.run} run · ${totals.passed} passed · ${totals.failed} failed · ${totals.skipped} skipped · ${totals.flaky} flaky.`
+    `Tests: ${totals.run} run · ${totals.passed} passed · ${totals.failed} failed · ${totals.skipped} skipped · ${totals.flaky} flaky.`,
+    `Required roots: ${coverage.coveredRoots.length} of ${coverage.requiredRoots.length} covered by a local lane that ran · unverified or not run locally: ${listRoots(coverage.uncoveredRoots)}.`
   )
+  if (coverage.notRunLanes.length + coverage.unverifiedLanes.length > 0) {
+    // The one line that keeps a stopped run from reading like a short one.
+    summaryLines.push(
+      `${coverage.notRunLanes.length + coverage.unverifiedLanes.length} declared lane(s) lack verified validation-start proof and cover nothing here: ${[...coverage.notRunLanes, ...coverage.unverifiedLanes].map((entry) => codeSpan(entry.laneId)).join(", ")}.`
+    )
+  }
 
   const hostedOnly = renderHostedOnly(normalised.hostedOnlyLanes)
   const sections = [
     "## Lanes",
     "",
     renderLaneTable(normalised.lanes),
+    "",
+    renderRootCoverage(coverage),
     "",
     ...(hostedOnly === null ? [] : [hostedOnly, ""]),
     renderFailures(failures),

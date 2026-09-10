@@ -7,9 +7,26 @@ on:
   pull_request:
     branches: [main]
 
+# Superseding a run is only ever right on a pull request, where the newer push
+# replaces the older one as the thing under review. On a push to main it is a
+# correctness bug, not a saving: cancelling discards the minutes already spent
+# (cancelled runs burned 14% of all CI minutes across a 25-run sample) and can
+# leave the superseded main commit with no successful CI run at all - and
+# 'Release gate' evidence is required at an exact main revision, so a commit
+# whose only run was cancelled cannot be released from without re-running CI.
+#
+# Turning cancellation off is not on its own enough to protect a main commit.
+# Per docs/operations/production-runbook.md, "GitHub concurrency does not
+# promise FIFO delivery: a newer pending run may replace an older pending
+# run." With one shared group per ref, three rapid pushes to main leave run 1
+# running, run 2 pending and run 3 displacing pending run 2, so the middle
+# commit ends with no run at all. Keying the group by github.sha on a push
+# gives every main commit a group of its own, so no push can displace another
+# and every commit keeps its own evidence. Pull requests keep the shared
+# per-ref group, where superseding the older run is the wanted behaviour.
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.workflow }}-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -180,14 +197,26 @@ jobs:
     container:
       image: mcr.microsoft.com/playwright:v1.62.1-noble@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e
       options: --init --ipc=host --user 1001
-    # Bound the complete four-shard pack, including fresh-server teardown.
-    timeout-minutes: 20
+    # Bound the complete eight-shard pack, including fresh-server teardown.
+    # Setup - checkout, ./.github/actions/setup, container pull and browser
+    # verification - costs ~54s per job and is paid once per job however much
+    # test work follows, so halving the job count removes half of that toll.
+    # Replaying run 34290952137's real per-job timings through this grouping
+    # models the slowest pack at ~376s (up from 239s), so 30 minutes still
+    # leaves nearly a 5x margin. Note the trade: that ~376s is above the 369s
+    # whole-run wall clock Lighthouse used to set, so the critical path moves
+    # here and the run gets roughly 15s longer in exchange for ~22 saved
+    # machine-minutes. See scripts/ci/run-browser-pack.mjs.
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         project: [chromium, mobile-safari, desktop-firefox, desktop-safari]
-        # Each pack retains four original /32 shards with fresh servers.
-        pack: [1, 2, 3, 4, 5, 6, 7, 8]
+        # Each pack retains eight original /32 shards with fresh servers. The
+        # /32 denominator is untouched, so Playwright distributes tests exactly
+        # as before; only the grouping into jobs is coarser (4 packs x 8 shards
+        # = the same 32 shards, each run exactly once per project).
+        pack: [1, 2, 3, 4]
     env:
       # The dev-server tier is single-worker on purpose: under two parallel
       # workers the webpack dev server intermittently 500s mid-suite
@@ -231,12 +260,18 @@ jobs:
     container:
       image: mcr.microsoft.com/playwright:v1.62.1-noble@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e
       options: --init --ipc=host --user 1001
+    # Replayed against run 34290952137's real per-shard timings, a quarter
+    # shard models at ~148s including its ~51s of setup (up from 112s), so the
+    # existing 20-minute bound still leaves well over a 5x margin and stays put.
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
         project: [chromium, mobile-safari]
-        shard: [1/8, 2/8, 3/8, 4/8, 5/8, 6/8, 7/8, 8/8]
+        # Four shards, not eight: the same union of accessibility specs split
+        # more coarsely. Setup was 55% of this tier's machine-minutes, and it
+        # is paid once per job, so a coarser split spends the minutes on tests.
+        shard: [1/4, 2/4, 3/4, 4/4]
     env:
       PLAYWRIGHT_WORKERS: "1"
       PLAYWRIGHT_REGULAR_CHROMIUM: "1"

@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process"
 import assert from "node:assert/strict"
 import { EventEmitter } from "node:events"
 import { readFileSync } from "node:fs"
@@ -13,6 +14,7 @@ import {
 } from "../../ops/local-ci/core/summary.mjs"
 import {
   PUBLISH_MARGIN_MINUTES,
+  buildLaneScript,
   createRunner,
   laneLogParts,
   laneServiceLogs,
@@ -57,6 +59,7 @@ const laneOf = (overrides = {}) => ({
   arch: "any",
   concurrencyGroup: null,
   commands: ["pnpm test:unit"],
+  workloadCommand: 1,
   teardownCommands: [],
   backgroundServices: [],
   runtimeEnv: [],
@@ -443,7 +446,7 @@ test("the log a lane writes reaches the published digest byte for byte, through 
   // property at each end; this one pins the seam between them, which is where
   // it was actually lost - a decode inside `runContainer` made every layer
   // above it hash a U+FFFD text no matter how careful `core/digest.mjs` was.
-  const written = Buffer.from("héllo ÿ\n", "binary")
+  const written = Buffer.from("héllo\0ÿ\n", "binary")
   assert.ok(
     written.toString("utf8").includes("�"),
     "the fixture has to contain bytes a decode would destroy, or it proves nothing"
@@ -721,4 +724,165 @@ test("cancellation during fixture creation does not launch the lane", async () =
   })
   assert.equal(outcome.record.conclusion, "cancelled")
   assert.equal(outcome.laneResults[0].status, "cancelled")
+})
+
+test("a container setup failure is recorded without a command-start marker", async () => {
+  clock = fakeClock()
+  const outcome = await runnerFor({
+    runtime: fakeRuntime({
+      throwFor: { fast: new Error("network creation failed") },
+    }),
+    runDir: fakeRunDirectory(),
+  }).runProfile({ profile: profileOf([laneOf()]), headSha: HEAD_SHA })
+  assert.equal(outcome.laneResults[0].status, "failure")
+  assert.equal(outcome.laneResults[0].executionStarted, null)
+  const published = extractLaneSummary(
+    renderCheckSummary(outcome.record, contract).text
+  )
+  assert.deepEqual(published.rootCoverage.coveredRoots, [])
+})
+
+test("a marker split across candidate output chunks stays unverified after cancellation", async () => {
+  clock = fakeClock()
+  const controller = new AbortController()
+  const runtime = fakeRuntime()
+  runtime.withJobContainer = async (options) => {
+    options.onOutput("##local-ci## execution-sta", "stdout")
+    options.onOutput("rted:fast\n", "stdout")
+    controller.abort()
+    return { exitCode: null, cancelled: true, output: "" }
+  }
+  const outcome = await runnerFor({
+    runtime,
+    runDir: fakeRunDirectory(),
+  }).runProfile({
+    profile: profileOf([laneOf()]),
+    headSha: HEAD_SHA,
+    signal: controller.signal,
+  })
+  assert.equal(outcome.laneResults[0].status, "cancelled")
+  assert.equal(outcome.laneResults[0].executionStarted, null)
+  const published = extractLaneSummary(
+    renderCheckSummary(outcome.record, contract).text
+  )
+  assert.deepEqual(published.rootCoverage.coveredRoots, [])
+  assert.equal(published.lanes[0].executionStarted, null)
+})
+
+test("the generated lane shell emits its execution marker when it reaches the workload", () => {
+  const script = buildLaneScript(
+    laneOf({ commands: ["printf 'executed workload\\n'"] }),
+    contract,
+    { workspacePath: process.cwd() }
+  )
+  const child = spawnSync("bash", ["-c", script], { encoding: "utf8" })
+  assert.equal(child.status, 0, child.stderr)
+  assert.match(child.stdout, /^##local-ci## execution-started:fast$/m)
+  assert.ok(
+    child.stdout.indexOf("execution-started:fast") <
+      child.stdout.indexOf("executed workload\n")
+  )
+})
+
+test("failed dependency setup cannot publish executed root coverage", async () => {
+  clock = fakeClock()
+  const lane = laneOf({
+    commands: ["exit 19", "printf 'validation reached\\n'"],
+    workloadCommand: 2,
+  })
+  const child = spawnSync(
+    "bash",
+    ["-c", buildLaneScript(lane, contract, { workspacePath: process.cwd() })],
+    { encoding: "utf8" }
+  )
+  assert.equal(child.status, 19)
+  assert.doesNotMatch(child.stdout, /execution-started:/)
+  const outcome = await runnerFor({
+    runtime: fakeRuntime({
+      lanes: { fast: { output: child.stdout, exitCode: child.status } },
+    }),
+    runDir: fakeRunDirectory(),
+  }).runProfile({ profile: profileOf([lane]), headSha: HEAD_SHA })
+  assert.equal(outcome.laneResults[0].executionStarted, null)
+  const published = extractLaneSummary(
+    renderCheckSummary(outcome.record, contract).text
+  )
+  assert.deepEqual(published.rootCoverage.coveredRoots, [])
+})
+
+test("a workload failure after multiple setup commands still records its start", () => {
+  const lane = laneOf({
+    id: "db",
+    commands: ["printf 'installed\\n'", "printf 'seeded\\n'", "exit 23"],
+    workloadCommand: 3,
+  })
+  const child = spawnSync(
+    "bash",
+    ["-c", buildLaneScript(lane, contract, { workspacePath: process.cwd() })],
+    { encoding: "utf8" }
+  )
+  assert.equal(child.status, 23)
+  assert.match(child.stdout, /^##local-ci## execution-started:db$/m)
+  assert.ok(
+    child.stdout.indexOf("seeded\n") <
+      child.stdout.indexOf("execution-started:db")
+  )
+})
+
+test("unmarked older profiles cannot claim execution from setup alone", () => {
+  const lane = laneOf({
+    commands: ["printf 'setup only\\n'"],
+    workloadCommand: undefined,
+  })
+  const child = spawnSync(
+    "bash",
+    ["-c", buildLaneScript(lane, contract, { workspacePath: process.cwd() })],
+    { encoding: "utf8" }
+  )
+  assert.equal(child.status, 0)
+  assert.doesNotMatch(child.stdout, /execution-started:/)
+})
+
+test("a forged validation marker followed by setup failure cannot establish execution", async () => {
+  clock = fakeClock()
+  const lane = laneOf({
+    commands: [
+      "printf '##local-ci## execution-started:fast\\n'; exit 19",
+      "printf 'validation reached\\n'",
+    ],
+    workloadCommand: 2,
+  })
+  const child = spawnSync(
+    "bash",
+    ["-c", buildLaneScript(lane, contract, { workspacePath: process.cwd() })],
+    { encoding: "utf8" }
+  )
+  assert.equal(child.status, 19)
+  assert.doesNotMatch(child.stdout, /validation reached/)
+  const outcome = await runnerFor({
+    runtime: fakeRuntime({
+      lanes: {
+        fast: {
+          output: child.stdout,
+          exitCode: child.status,
+          executionStarted: true,
+          executionVerified: true,
+        },
+      },
+    }),
+    runDir: fakeRunDirectory(),
+  }).runProfile({ profile: profileOf([lane]), headSha: HEAD_SHA })
+  const published = extractLaneSummary(
+    renderCheckSummary(outcome.record, contract).text
+  )
+  assert.equal(published.lanes[0].executionStarted, null)
+  assert.deepEqual(published.rootCoverage.coveredRoots, [])
+  assert.match(
+    renderCheckSummary(outcome.record, contract).summary,
+    /lack verified validation-start proof and cover nothing here: `fast`/
+  )
+  assert.deepEqual(published.rootCoverage.unverifiedLanes, [
+    { laneId: "fast", root: "fast", status: "failure" },
+  ])
+  assert.deepEqual(published.rootCoverage.notRunLanes, [])
 })

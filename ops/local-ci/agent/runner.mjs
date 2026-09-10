@@ -50,7 +50,7 @@ import {
 import { digestLogBundle } from "../core/digest.mjs"
 import { buildJobEnv } from "../core/job-env.mjs"
 import { laneResources, scheduleLanes } from "../core/lane-scheduler.mjs"
-import { selectLanes } from "../core/profiles.mjs"
+import { selectLanes, workloadCommandIndex } from "../core/profiles.mjs"
 import { LANE_STATUSES } from "../core/summary.mjs"
 import { browserReportName } from "../../../scripts/ci/browser-workload.mjs"
 
@@ -426,6 +426,7 @@ export function buildLaneScript(lane, contract, { workspacePath = null } = {}) {
     )
   }
   const cwd = workspacePath ?? contract.container?.workspacePath
+  const workloadIndex = workloadCommandIndex(lane)
   const teardown = lane.teardownCommands ?? []
   const services = lane.backgroundServices ?? []
   const perLaneSources = (lane.runtimeEnv ?? [])
@@ -473,6 +474,10 @@ export function buildLaneScript(lane, contract, { workspacePath = null } = {}) {
   startServicesAfter(0)
 
   for (const [index, command] of commands.entries()) {
+    if (index === workloadIndex)
+      lines.push(
+        `echo ${shellSingleQuote(`${LOG_MARKER} execution-started:${lane.id}`)}`
+      )
     lines.push(
       `echo ${shellSingleQuote(`${LOG_MARKER} command ${index + 1}/${commands.length}: ${command}`)}`,
       command
@@ -635,6 +640,7 @@ export function buildLaneResult({
   missingLogs = [],
   logDigestValue = null,
   blockedByLaneId = null,
+  executionStarted = null,
 }) {
   requireObject(lane, "lane")
   requireObject(contract, "contract")
@@ -734,6 +740,8 @@ export function buildLaneResult({
     testsSkipped: counts.testsSkipped,
     flaky: counts.flaky,
     blockedByLaneId,
+    executionStarted:
+      typeof executionStarted === "boolean" ? executionStarted : null,
     countsExpected,
     countsParsed: parsed !== null,
     countSources: [...counts.sources],
@@ -763,6 +771,7 @@ export function toSummaryLane(laneResult) {
     laneId: laneResult.laneId,
     title: laneResult.title ?? laneResult.laneId,
     status: laneResult.status,
+    executionStarted: laneResult.executionStarted,
     durationSeconds: laneResult.durationSeconds,
     testsRun: orZero(laneResult.testsRun),
     testsPassed: orZero(laneResult.testsPassed),
@@ -1132,6 +1141,7 @@ export function createRunner({
               ref,
               headSha,
               status: signal?.aborted ? "cancelled" : "skipped",
+              executionStarted: false,
               blockedByLaneId: stoppedByLaneId,
               output: "",
               durationSeconds: 0,
@@ -1159,6 +1169,7 @@ export function createRunner({
               ref,
               headSha,
               status: "cancelled",
+              executionStarted: false,
               output: "",
               durationSeconds: 0,
             })
@@ -1287,6 +1298,10 @@ export function createRunner({
             ref,
             headSha,
             output: laneOutput,
+            // Candidate stdout is never authenticated execution evidence. The
+            // current container protocol has no supervisor-owned validation
+            // transition, even when a setup command prints our log marker.
+            executionStarted: null,
             exitCode: result?.exitCode ?? null,
             timedOut: result?.timedOut ?? false,
             cancelled: result?.cancelled ?? false,

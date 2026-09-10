@@ -38,7 +38,7 @@
     },
     "test:a11y": {
       "projects": ["chromium", "mobile-safari"],
-      "hostedShards": 8,
+      "hostedShards": 4,
       "localShards": 8,
       "grep": "@a11y"
     },
