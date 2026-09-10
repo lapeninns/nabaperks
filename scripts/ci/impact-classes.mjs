@@ -19,27 +19,10 @@ const COSMETIC = [
   /^underline-offset-(?:0|1|2|4|8)$/,
   COLOUR_CLASS,
 ]
-const VARIANTS = new Set([
-  "sm",
-  "md",
-  "lg",
-  "xl",
-  "2xl",
-  "hover",
-  "focus",
-  "focus-visible",
-  "active",
-  "disabled",
-  "dark",
-])
-
 export function isCosmeticClass(token) {
-  const parts = token.split(":")
-  const utility = parts.pop()
-  return (
-    parts.every((part) => VARIANTS.has(part)) &&
-    COSMETIC.some((pattern) => pattern.test(utility))
-  )
+  // The selected checks do not exercise every interaction state, breakpoint
+  // or colour scheme. Keep all variants until those states have explicit proof.
+  return COSMETIC.some((pattern) => pattern.test(token))
 }
 
 export function presentationClassShape(value) {

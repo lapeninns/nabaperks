@@ -1,6 +1,6 @@
 import posix from "node:path/posix"
 import ts from "typescript"
-import { readSourceTree } from "./impact-git.mjs"
+import { readSourceTree, readAt, isToolingSourcePath } from "./impact-git.mjs"
 import { presentationClassShape } from "./impact-classes.mjs"
 
 const TEXT_PARENTS = new Set([
@@ -96,10 +96,30 @@ export function isPresentationOnly(before, after, path) {
   return presentationShape(before, path) === presentationShape(after, path)
 }
 
+function requireKnownModuleResolution(sha, options) {
+  const parsed = ts.parseConfigFileTextToJson(
+    "tsconfig.json",
+    readAt(sha, "tsconfig.json", options)
+  )
+  const config = parsed.config
+  const compiler = config?.compilerOptions
+  if (
+    parsed.error ||
+    config?.extends ||
+    config?.references?.length ||
+    compiler?.baseUrl !== undefined ||
+    compiler?.rootDirs !== undefined ||
+    compiler?.moduleSuffixes !== undefined ||
+    JSON.stringify(compiler?.paths) !== JSON.stringify({ "@/*": ["./*"] })
+  )
+    throw new Error("Unqualified module resolution requires full validation")
+}
+
 // Next page modules must remain leaf entry points. An import of one from any
 // other source widens its effects, including aliases, re-exports and literal
 // dynamic imports. Computed dynamic imports make this proof unavailable.
 export function findPageConsumers(sha, pagePaths, { cwd } = {}) {
+  requireKnownModuleResolution(sha, { cwd })
   const pages = new Set(pagePaths.map((path) => path.replace(/\.tsx$/, "")))
   const consumers = []
   for (const { path, text } of readSourceTree(sha, { cwd })) {
@@ -113,6 +133,14 @@ export function findPageConsumers(sha, pagePaths, { cwd } = {}) {
         node.moduleSpecifier
       )
         references.push(node.moduleSpecifier)
+      if (
+        ts.isCallExpression(node) &&
+        ts.isPropertyAccessExpression(node.expression) &&
+        ((ts.isIdentifier(node.expression.expression) &&
+          node.expression.expression.text === "require") ||
+          ts.isMetaProperty(node.expression.expression))
+      )
+        throw new Error("Computed module discovery requires full validation")
       if (
         ts.isCallExpression(node) &&
         (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
@@ -133,11 +161,17 @@ export function findPageConsumers(sha, pagePaths, { cwd } = {}) {
       if (!ts.isStringLiteralLike(reference))
         throw new Error("Unresolved module reference")
       const value = reference.text
+      if (value.startsWith("#"))
+        throw new Error("Package import aliases require full validation")
       const resolved = value.startsWith("@/")
-        ? value.slice(2)
+        ? posix.join(".", value.slice(2))
         : value.startsWith(".")
           ? posix.normalize(posix.join(posix.dirname(path), value))
           : null
+      if (resolved && isToolingSourcePath(resolved))
+        throw new Error(
+          "Application imports excluded tooling; consumers are uncertain"
+        )
       if (resolved && pages.has(resolved.replace(/\.[cm]?[jt]sx?$/, "")))
         consumers.push(path)
     }

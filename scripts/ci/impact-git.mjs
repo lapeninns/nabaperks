@@ -3,6 +3,17 @@ import { createHash } from "node:crypto"
 
 export const FULL_SHA = /^[a-f0-9]{40}$/
 
+export function isToolingSourcePath(path) {
+  return (
+    /^(?:\.design-sync|\.github|\.husky|ops|scripts|supabase|tests)(?:\/|$)/.test(
+      path
+    ) ||
+    /^(?:eslint|playwright|postcss|stryker)\.config(?:\.[cm]?[jt]s)?$/.test(
+      path
+    )
+  )
+}
+
 export function git(
   args,
   { cwd = process.cwd(), encoding = "utf8", input } = {}
@@ -28,12 +39,23 @@ export function readSourceTree(sha, { cwd } = {}) {
       if (!match) throw new Error("Unsupported source tree entry")
       return { mode: match[1], type: match[2], oid: match[3], path: match[4] }
     })
-    .filter((entry) =>
-      /^(app|components|hooks|lib)\/.*\.[cm]?[jt]sx?$/.test(entry.path)
-    )
-  if (!entries.length) return []
   if (
     entries.some(
+      (entry) =>
+        !isToolingSourcePath(entry.path) &&
+        ["120000", "160000"].includes(entry.mode)
+    )
+  )
+    throw new Error(
+      "Application symlinks or submodules make source consumers uncertain"
+    )
+  const sources = entries.filter(
+    (entry) =>
+      /\.[cm]?[jt]sx?$/.test(entry.path) && !isToolingSourcePath(entry.path)
+  )
+  if (!sources.length) return []
+  if (
+    sources.some(
       (entry) =>
         entry.type !== "blob" ||
         entry.mode !== "100644" ||
@@ -45,10 +67,10 @@ export function readSourceTree(sha, { cwd } = {}) {
   const data = git(["cat-file", "--batch"], {
     cwd,
     encoding: null,
-    input: entries.map((entry) => entry.oid).join("\n") + "\n",
+    input: sources.map((entry) => entry.oid).join("\n") + "\n",
   })
   let offset = 0
-  return entries.map((entry, index) => {
+  return sources.map((entry, index) => {
     const end = data.indexOf(10, offset)
     const header = /^([a-f0-9]{40}) blob (\d+)$/.exec(
       data.subarray(offset, end).toString("ascii")
@@ -66,7 +88,7 @@ export function readSourceTree(sha, { cwd } = {}) {
       data[offset - 1] !== 10 ||
       !Buffer.from(text).equals(blob) ||
       text.includes("\0") ||
-      (index === entries.length - 1 && offset !== data.length)
+      (index === sources.length - 1 && offset !== data.length)
     )
       throw new Error("Truncated or invalid source batch")
     return { path: entry.path, text }

@@ -6,6 +6,7 @@ import {
   writeFileSync,
   readFileSync,
   rmSync,
+  symlinkSync,
 } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
@@ -212,6 +213,15 @@ test("interaction, visibility, positioning and arbitrary classes retain full fun
   for (const utility of [
     "pointer-events-none",
     "hover:pointer-events-none",
+    "focus:text-transparent",
+    "focus-visible:text-transparent",
+    "hover:bg-black",
+    "active:text-transparent",
+    "disabled:text-transparent",
+    "dark:text-transparent",
+    "sm:bg-slate-100",
+    "2xl:text-transparent",
+    "sm:focus:text-transparent",
     "[pointer-events:none]",
     "sm:[&>*]:pointer-events-none",
     "!pointer-events-none",
@@ -248,7 +258,7 @@ test("interaction, visibility, positioning and arbitrary classes retain full fun
     "gap-4",
     "text-lg",
     "font-semibold",
-    "sm:bg-slate-100",
+    "bg-slate-100",
     "rounded-md",
     "border-2",
   ]) {
@@ -350,6 +360,10 @@ function repository(t) {
     git(["-c", "core.hooksPath=/dev/null", "commit", "-qm", "fixture"], { cwd })
     return git(["rev-parse", "HEAD"], { cwd }).trim()
   }
+  put(
+    "tsconfig.json",
+    JSON.stringify({ compilerOptions: { paths: { "@/*": ["./*"] } } })
+  )
   return { cwd, put, commit }
 }
 
@@ -553,6 +567,13 @@ test("consumer proof recognises re-exports and dynamic imports, and refuses comp
   assert.deepEqual(findPageConsumers(sha, ["app/about/page.tsx"], fixture), [
     "lib/consumer.ts",
   ])
+  for (const target of ["@/app/unused/../about/page", "@//app/about/page"]) {
+    fixture.put("lib/consumer.ts", `export { default } from "${target}"\n`)
+    assert.deepEqual(
+      findPageConsumers(fixture.commit(), ["app/about/page.tsx"], fixture),
+      ["lib/consumer.ts"]
+    )
+  }
   fixture.put(
     "lib/consumer.ts",
     'export const load = () => import("../app/about/page.tsx")\n'
@@ -570,6 +591,85 @@ test("consumer proof recognises re-exports and dynamic imports, and refuses comp
     () => findPageConsumers(sha, ["app/about/page.tsx"], fixture),
     /Computed imports/
   )
+  for (const discovery of [
+    'require.context("../app", true, /page/)',
+    'import.meta.glob("../app/**/*.tsx")',
+  ]) {
+    fixture.put("lib/consumer.ts", `export const pages = ${discovery}\n`)
+    assert.throws(
+      () =>
+        findPageConsumers(fixture.commit(), ["app/about/page.tsx"], fixture),
+      /Computed module discovery/
+    )
+  }
+})
+
+test("root runtime entries and additional source directories cannot hide page consumers", (t) => {
+  const fixture = repository(t)
+  fixture.put("app/about/page.tsx", before)
+  for (const path of [
+    "proxy.ts",
+    "instrumentation.ts",
+    "next.config.ts",
+    "features/shared-page.ts",
+  ])
+    fixture.put(path, 'export { default } from "@/app/about/page"\n')
+  const base = fixture.commit()
+  assert.deepEqual(findPageConsumers(base, ["app/about/page.tsx"], fixture), [
+    "features/shared-page.ts",
+    "instrumentation.ts",
+    "next.config.ts",
+    "proxy.ts",
+  ])
+  fixture.put("app/about/page.tsx", copy)
+  assert.equal(calculateImpact(base, fixture.commit(), fixture).profile, "full")
+})
+
+test("extensionless source symlinks cannot hide alternate paths to a page module", (t) => {
+  const fixture = repository(t)
+  fixture.put("app/about/page.tsx", before)
+  fixture.put(
+    "lib/consumer.ts",
+    'export { default } from "@/app/linked/page"\n'
+  )
+  symlinkSync("about", join(fixture.cwd, "app/linked"), "dir")
+  assert.throws(
+    () => findPageConsumers(fixture.commit(), ["app/about/page.tsx"], fixture),
+    /symlinks or submodules/
+  )
+})
+
+test("unqualified resolution and production imports into excluded tooling retain full checks", (t) => {
+  const fixture = repository(t)
+  fixture.put("app/about/page.tsx", before)
+  const paths = { "@/*": ["./*"] }
+  for (const compilerOptions of [
+    { paths: { ...paths, "pages/*": ["app/*"] } },
+    { paths, baseUrl: "." },
+    { paths, rootDirs: ["app", "features"] },
+    { paths, moduleSuffixes: [".native", ""] },
+  ]) {
+    fixture.put("tsconfig.json", JSON.stringify({ compilerOptions }))
+    assert.throws(
+      () =>
+        findPageConsumers(fixture.commit(), ["app/about/page.tsx"], fixture),
+      /Unqualified module resolution/
+    )
+  }
+  fixture.put("tsconfig.json", JSON.stringify({ compilerOptions: { paths } }))
+  for (const target of [
+    "@/scripts/consumer",
+    "@/scripts",
+    "../tests/consumer",
+    "#page",
+  ]) {
+    fixture.put("lib/use-page.ts", `export { default } from "${target}"\n`)
+    assert.throws(
+      () =>
+        findPageConsumers(fixture.commit(), ["app/about/page.tsx"], fixture),
+      /excluded tooling|Package import aliases/
+    )
+  }
 })
 
 const identity = {

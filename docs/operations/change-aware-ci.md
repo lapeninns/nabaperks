@@ -23,10 +23,19 @@ database work, CI and release tooling therefore retain full validation. Deleted,
 renamed, executable, symlinked and unsupported files also retain the full suite.
 These rules are narrower than a folder-based exemption.
 
+Consumer analysis includes root runtime entries such as `proxy.ts`,
+`instrumentation.ts` and `next.config.ts`, as well as additional source folders.
+Known tooling is excluded from that scan; an application import into excluded
+tooling makes impact uncertain. Module aliases beyond the reviewed `@/*` mapping,
+inherited resolution settings and computed imports also require full validation.
+
 Literal class edits qualify only for the reviewed typography, colour, border
 and spacing utilities in `scripts/ci/impact-classes.mjs`. Interaction utilities
 such as `pointer-events-none`, visibility or positioning controls, custom classes,
 arbitrary values and arbitrary selectors retain full functional validation.
+All class variants, including focus, hover, disabled, dark and responsive
+breakpoints, remain in the syntax comparison: the selected checks have no
+explicit proof for every such state. Changing one therefore requires full CI.
 Changing an existing interaction class is also a full change. A mixed eligible
 page/documentation PR retains changed-document formatting and link checks; its
 fast and quality jobs provide the shared baseline without repeating those checks
