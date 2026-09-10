@@ -39,6 +39,7 @@ const lane = (overrides = {}) => ({
   laneId: "fast",
   title: "Fast checks",
   status: "success",
+  executionVerified: true,
   executionStarted: true,
   durationSeconds: 754,
   testsRun: 120,
@@ -74,6 +75,7 @@ test("the summary ends with the evidence digest and carries the machine-readable
     {
       laneId: "fast",
       status: "success",
+      executionVerified: true,
       executionStarted: true,
       durationSeconds: 754,
       testsRun: 120,
@@ -435,7 +437,7 @@ test("a skipped lane is published as a lane that ran nothing, not as coverage", 
   assert.match(rendered.summary, /Required roots:\s*1 of 9/)
   assert.match(
     rendered.summary,
-    /1 declared lane\(s\) lack command-start proof/
+    /1 declared lane\(s\) lack verified validation-start proof/
   )
 
   // The row is still there: the evidence says the lane was expected.

@@ -25,10 +25,9 @@ import {
  *     documented invocation, so a tool that read the checkout would compare a
  *     run against another revision's policy without saying so.
  *
- *   - **Evidence comes from the pinned repository.** `contract.repository` is
- *     the trust boundary: a run read from a fork carries that fork's Actions
- *     configuration, and nothing downstream inspects `provider.repository`.
- *     `--repo` may therefore only ever restate the pinned repository.
+ *   - **Evidence comes from the pinned repository.** The reviewed verifier pins
+ *     the repository independently of the candidate contract. Both the producer
+ *     and comparator validate provider identity. `--repo` can only restate it.
  *
  *   - **A job that cannot be placed stops the run.** Hosted e2e and a11y are
  *     sharded across many jobs while the local plane runs one lane per
@@ -52,6 +51,7 @@ import { fileURLToPath, pathToFileURL } from "node:url"
 import { parseArgs, promisify, stripVTControlCharacters } from "node:util"
 
 import { parseLaneCounts } from "../../ops/local-ci/agent/runner.mjs"
+import { collectCheckoutProof } from "../../ops/local-ci/core/checkout-proof.mjs"
 import { REQUIRED_HOSTED_JOBS } from "./verify-required-evidence.mjs"
 
 const execFile = promisify(execFileCallback)
@@ -755,6 +755,7 @@ export function buildHostedEvidence({
   workflowText,
   logsByJobId = new Map(),
   repository = HOSTED_REPOSITORY,
+  checkoutProof = null,
 }) {
   requireCondition(
     COMMIT_SHA.test(headSha ?? ""),
@@ -778,10 +779,8 @@ export function buildHostedEvidence({
     run.status === "completed",
     `run ${run.id} is still ${run.status}`
   )
-  // The pinned repository is the trust boundary: a fork's run was produced by
-  // an Actions configuration nobody here reviewed, and nothing downstream
-  // inspects provider.repository, so the refusal has to happen here. Where the
-  // run states its own identity, that is checked against the same pin.
+  // Refuse a fork or redirected candidate contract before collecting lanes.
+  // The saved-evidence comparator checks the same independently pinned identity.
   requireCondition(
     typeof contract?.repository === "string" && contract.repository !== "",
     "the evidence contract must retain the independently pinned repository"
@@ -851,6 +850,7 @@ export function buildHostedEvidence({
       runAttempt: run.run_attempt ?? null,
       runUrl: run.html_url ?? null,
       jobCount: jobs.length,
+      checkoutProof,
     },
     lanes,
     nonLaneJobs,
@@ -894,6 +894,19 @@ export function createGitHubReader({
   return {
     json: async (path) => JSON.parse(await read(path)),
     text: (path) => read(path),
+    // gh reads provider-separated archive step logs and prefixes every line.
+    // Whole-job stdout cannot distinguish checkout output from a later forgery.
+    stepLog: async (repository, jobId) => {
+      const { stdout } = await exec(
+        "gh",
+        ["run", "view", "--repo", repository, "--job", String(jobId), "--log"],
+        {
+          maxBuffer: 256 * 1024 * 1024,
+          ...(token ? { env: { ...process.env, GH_TOKEN: token } } : {}),
+        }
+      )
+      return stdout
+    },
   }
 }
 
@@ -1050,6 +1063,19 @@ export async function collectHostedEvidence({
     repository,
     jobIds: testLaneJobIds,
   })
+  const comparisonJobIds = new Set(
+    [...placed.values()].flatMap((shards) =>
+      [...shards.values()].map((job) => job.id)
+    )
+  )
+  const checkoutProof = withLogs
+    ? await collectCheckoutProof({
+        reader,
+        repository,
+        run,
+        jobs: jobs.filter((job) => comparisonJobIds.has(job.id)),
+      })
+    : null
   return buildHostedEvidence({
     contract,
     profile,
@@ -1059,6 +1085,7 @@ export async function collectHostedEvidence({
     workflowText,
     logsByJobId,
     repository,
+    checkoutProof,
   })
 }
 
@@ -1066,6 +1093,9 @@ export async function collectHostedEvidence({
 export function summariseHostedEvidence(document) {
   return [
     `run ${document.provider.runId} attempt ${document.provider.runAttempt} — ${document.provider.jobCount} jobs, ${document.conclusion}`,
+    document.provider.checkoutProof
+      ? `  checkout trees recorded for ${document.provider.checkoutProof.checkouts.length} comparison jobs`
+      : "  checkout/tree proof UNAVAILABLE (equivalence cannot be asserted)",
     ...document.lanes.map(
       (lane) =>
         `  ${lane.laneId}: ${lane.status}, ${lane.shards.length} shard(s), ` +

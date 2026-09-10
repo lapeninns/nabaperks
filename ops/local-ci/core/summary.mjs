@@ -80,6 +80,7 @@ const coverageLanesOf = (lanes, contract, profile) => {
     laneId: lane.laneId,
     status: lane.status,
     executionStarted: lane.executionStarted,
+    executionVerified: lane.executionVerified,
   }))
   const expected = ["pr", "main"].includes(profile)
     ? Object.keys(contract.shadowMode?.qualification?.lanes ?? {}).filter(
@@ -247,7 +248,11 @@ function normaliseLane(lane, index) {
     laneId,
     title: typeof lane.title === "string" ? lane.title : laneId,
     status: lane.status,
-    executionStarted: lane.executionStarted === true,
+    executionStarted:
+      typeof lane.executionStarted === "boolean" ? lane.executionStarted : null,
+    ...(lane.executionStarted === true && lane.executionVerified === true
+      ? { executionVerified: true }
+      : {}),
     durationSeconds:
       typeof lane.durationSeconds === "number" ? lane.durationSeconds : null,
     testsRun: requireCount(lane.testsRun, `${path}.testsRun`),
@@ -363,7 +368,13 @@ export function buildLaneSummary(record, contract) {
     lanes: normalised.lanes.map((lane) => ({
       laneId: lane.laneId,
       status: lane.status,
-      executionStarted: lane.executionStarted === true,
+      executionStarted:
+        typeof lane.executionStarted === "boolean"
+          ? lane.executionStarted
+          : null,
+      ...(lane.executionStarted === true && lane.executionVerified === true
+        ? { executionVerified: true }
+        : {}),
       durationSeconds: lane.durationSeconds,
       testsRun: lane.testsRun,
       testsPassed: lane.testsPassed,
@@ -396,6 +407,9 @@ export function buildLaneSummary(record, contract) {
       // Additive again, and for the same reason: a consumer that sees a root
       // missing from `coveredRoots` must be able to tell "this plane runs no
       // lane for it" from "this run declared a lane and never started it".
+      unverifiedLanes: coverage.unverifiedLanes.map(
+        ({ laneId, root, status }) => ({ laneId, root, status })
+      ),
       notRunLanes: coverage.notRunLanes.map(({ laneId, root, status }) => ({
         laneId,
         root,
@@ -500,22 +514,21 @@ const listRoots = (roots) =>
  * only on the bad days is a section a reader learns to skip.
  *
  * The count is of roots a lane actually ran. A lane the run recorded as
- * missing an execution marker gets its own bullet, so the profile's intent
+ * missing supervisor execution proof gets its own bullet, so the profile's intent
  * is still visible without its unrun lanes reading as coverage.
  */
 function renderRootCoverage(coverage) {
   const lines = [
     "## Required-root coverage",
     "",
-    `This run ran local lanes for ${coverage.coveredRoots.length} of the ${coverage.requiredRoots.length} roots the hosted plane`,
-    "requires. The lane count above counts this run's own lanes, so the roots",
-    "that did not run here are named rather than left to be read out of their",
-    "absence. Every mapped lane must carry a command-start marker before its root counts.",
+    `Verified local validation covers ${coverage.coveredRoots.length} of the ${coverage.requiredRoots.length} roots the hosted plane requires.`,
+    "Every mapped lane needs supervisor-owned execution proof. Candidate stdout",
+    "and command-start log markers are unverified, regardless of lane status.",
     "",
     `- Covered by a local lane that ran: ${listRoots(coverage.coveredRoots)}`,
     `- Not fully covered locally: ${listRoots(coverage.uncoveredRoots)}`,
   ]
-  for (const entry of coverage.notRunLanes) {
+  for (const entry of [...coverage.notRunLanes, ...coverage.unverifiedLanes]) {
     // A declared lane without execution proof. Named rather than dropped, because
     // the reader has to be able to tell a root this plane runs no lane for
     // from one whose lane this run did not reach.
@@ -526,7 +539,7 @@ function renderRootCoverage(coverage) {
         ? "and it covers no required root in any case"
         : `so the ${codeSpan(entry.root)} root is not counted as covered here`
     lines.push(
-      `- No execution proof: local lane ${codeSpan(entry.laneId)} was recorded ${codeSpan(entry.status)} without a command-start marker, ${consequence}`
+      `- No execution proof: local lane ${codeSpan(entry.laneId)} was recorded ${codeSpan(entry.status)} without verified validation-start evidence, ${consequence}`
     )
   }
   for (const entry of coverage.unmappedLanes) {
@@ -619,12 +632,12 @@ export function renderCheckSummary(record, contract) {
     `**Duration:** ${formatDuration(normalised.durationSeconds)}`,
     "",
     `Tests: ${totals.run} run · ${totals.passed} passed · ${totals.failed} failed · ${totals.skipped} skipped · ${totals.flaky} flaky.`,
-    `Required roots: ${coverage.coveredRoots.length} of ${coverage.requiredRoots.length} covered by a local lane that ran · not run locally: ${listRoots(coverage.uncoveredRoots)}.`
+    `Required roots: ${coverage.coveredRoots.length} of ${coverage.requiredRoots.length} covered by a local lane that ran · unverified or not run locally: ${listRoots(coverage.uncoveredRoots)}.`
   )
-  if (coverage.notRunLanes.length > 0) {
+  if (coverage.notRunLanes.length + coverage.unverifiedLanes.length > 0) {
     // The one line that keeps a stopped run from reading like a short one.
     summaryLines.push(
-      `${coverage.notRunLanes.length} declared lane(s) lack command-start proof and cover nothing here: ${coverage.notRunLanes.map((entry) => codeSpan(entry.laneId)).join(", ")}.`
+      `${coverage.notRunLanes.length + coverage.unverifiedLanes.length} declared lane(s) lack verified validation-start proof and cover nothing here: ${[...coverage.notRunLanes, ...coverage.unverifiedLanes].map((entry) => codeSpan(entry.laneId)).join(", ")}.`
     )
   }
 

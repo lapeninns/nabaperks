@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { withCheckoutProof } from "../helpers/checkout-proof.mjs"
 import { readFileSync } from "node:fs"
 import { test } from "node:test"
 
@@ -61,7 +62,7 @@ function fixture() {
     headSha: HEAD,
     profile: "pr",
     local: evidence("local"),
-    hosted: evidence("hosted"),
+    hosted: withCheckoutProof(evidence("hosted")),
     publishedDurationSeconds: 4500,
   }
 }
@@ -405,7 +406,7 @@ function observedFixture(profile = "pr") {
     headSha: OBSERVED_HEAD,
     profile,
     local: evidence("local"),
-    hosted: evidence("hosted"),
+    hosted: withCheckoutProof(evidence("hosted")),
     publishedDurationSeconds: OBSERVED_RUN.durationSeconds,
   }
 }
@@ -588,4 +589,22 @@ test("saved comparison uses the evidence SHA's limits and the verifier's App ide
   assert.match(result.reasons.join(" "), /below floor/)
   check.app.id = candidate.githubApp.appId
   await assert.rejects(compareSavedEvidence(options, deps), /pinned App/)
+})
+
+test("matching counts cannot qualify a different synthetic merge tree or missing checkout proof", () => {
+  for (const change of [
+    (x) => {
+      x.hosted.provider.checkoutProof.checkouts[0].treeSha = "d".repeat(40)
+    },
+    (x) => {
+      delete x.hosted.provider.checkoutProof
+    },
+  ]) {
+    const input = fixture()
+    change(input)
+    const result = compareShadowEvidence(input)
+    assert.equal(result.verdict, "incomplete")
+    assert.equal(result.eligibleForStreak, false)
+    assert.match(result.reasons.join(" "), /checkout|tree/)
+  }
 })

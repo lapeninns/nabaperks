@@ -826,9 +826,12 @@ or **incomplete** (evidence is missing or unusable).
 
 `shadowMode.qualification` in `config/local-ci-contract.json` pins the test
 floors, skip ceilings and 4,500-second PR/main budget. The baseline is the
-complete local PR proof on `79b8a048a3c64a7340db04635fe1143442888f9d`, after the
-non-baseline accessibility tags were corrected. Its browser skips are the
-existing DB-free fixture and project-specific skips. Hosted results must
+recorded local main run on `d5f5c36417efd114117ca75eb5e7866b9a7ac06d`, at
+`~/.nabaperks-local-ci/runs/d5f5c36417efd114117ca75eb5e7866b9a7ac06d/main-20260908T234905Z-dec709/lane-result.json`.
+It supersedes the `79b8a048a3c64a7340db04635fe1143442888f9d` PR baseline
+linked from issue #255. The contract retains that earlier provenance under
+`supersededBaseline`; the current floors and skip ceilings come from the main
+run. Its browser skips are the existing DB-free fixture and project-specific skips. Hosted results must
 independently satisfy those same ceilings. The two command-only lanes, quality
 and print-kit, have explicit zero floors because they do not run a countable
 node:test or Playwright suite. This does not exempt their exit status.
@@ -846,13 +849,27 @@ main evidence requires a `push` on `main`. The saved provider metadata carries
 that distinction and the comparator refuses missing or mismatched identity.
 Coloured textual test tallies are parsed after terminal control codes are removed.
 
-Coverage requires a validation-start marker for every local lane mapped to a
-root. Each profile names its first validation command with the one-based
-`workloadCommand` field. Dependency installation, database startup and seeding
-precede that boundary; a failure in those steps cannot count as validation.
-Cancellation after the marker still records that validation began. Older
-profiles without the field emit no marker and cannot claim executed coverage;
-this does not change the hosted merge requirements.
+The producer also reads each comparison job's provider-separated checkout step
+log, resolves the reported commit through GitHub's Git object API, and records
+its tree alongside the local head's tree. The comparator requires complete
+checkout proof for every contributing job and equal trees. A PR's synthetic
+merge commit may have a different tree from its head; matching `run.head_sha`
+alone is insufficient. Missing/expired logs, missing Git objects, or old evidence
+without this proof make comparison incomplete. Provider logs whose steps are
+labelled `UNKNOWN STEP` cannot establish checkout identity and are refused;
+there is no fallback to a SHA printed elsewhere in the combined job log.
+These are initial checkout
+observations, not runtime attestation or local promotion authority.
+
+Root coverage requires supervisor-owned validation-start evidence for every
+mapped local lane. The current container protocol cannot provide it, so admitted
+lanes publish `executionStarted: null` and appear under `unverifiedLanes` rather
+than counting as verified root coverage. Lanes never admitted are separately
+recorded as not run. Candidate stdout, including an `execution-started` marker
+printed by a dependency script, is never promoted to execution proof. The
+`workloadCommand` boundary and its log marker remain diagnostic only. Older
+marker-derived `executionStarted: true` records without supervisor verification
+also remain unverified. This does not change the hosted merge requirements.
 
 Produce hosted evidence with `pnpm ops:ci:hosted-evidence --sha <sha>`
 (`scripts/ci/hosted-evidence.mjs`), which reads the matching CI run's jobs and

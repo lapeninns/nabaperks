@@ -735,14 +735,14 @@ test("a container setup failure is recorded without a command-start marker", asy
     runDir: fakeRunDirectory(),
   }).runProfile({ profile: profileOf([laneOf()]), headSha: HEAD_SHA })
   assert.equal(outcome.laneResults[0].status, "failure")
-  assert.equal(outcome.laneResults[0].executionStarted, false)
+  assert.equal(outcome.laneResults[0].executionStarted, null)
   const published = extractLaneSummary(
     renderCheckSummary(outcome.record, contract).text
   )
   assert.deepEqual(published.rootCoverage.coveredRoots, [])
 })
 
-test("a marker split across output chunks survives cancellation and publication", async () => {
+test("a marker split across candidate output chunks stays unverified after cancellation", async () => {
   clock = fakeClock()
   const controller = new AbortController()
   const runtime = fakeRuntime()
@@ -761,12 +761,12 @@ test("a marker split across output chunks survives cancellation and publication"
     signal: controller.signal,
   })
   assert.equal(outcome.laneResults[0].status, "cancelled")
-  assert.equal(outcome.laneResults[0].executionStarted, true)
+  assert.equal(outcome.laneResults[0].executionStarted, null)
   const published = extractLaneSummary(
     renderCheckSummary(outcome.record, contract).text
   )
-  assert.deepEqual(published.rootCoverage.coveredRoots, ["fast"])
-  assert.equal(published.lanes[0].executionStarted, true)
+  assert.deepEqual(published.rootCoverage.coveredRoots, [])
+  assert.equal(published.lanes[0].executionStarted, null)
 })
 
 test("the generated lane shell emits its execution marker when it reaches the workload", () => {
@@ -803,7 +803,7 @@ test("failed dependency setup cannot publish executed root coverage", async () =
     }),
     runDir: fakeRunDirectory(),
   }).runProfile({ profile: profileOf([lane]), headSha: HEAD_SHA })
-  assert.equal(outcome.laneResults[0].executionStarted, false)
+  assert.equal(outcome.laneResults[0].executionStarted, null)
   const published = extractLaneSummary(
     renderCheckSummary(outcome.record, contract).text
   )
@@ -841,4 +841,48 @@ test("unmarked older profiles cannot claim execution from setup alone", () => {
   )
   assert.equal(child.status, 0)
   assert.doesNotMatch(child.stdout, /execution-started:/)
+})
+
+test("a forged validation marker followed by setup failure cannot establish execution", async () => {
+  clock = fakeClock()
+  const lane = laneOf({
+    commands: [
+      "printf '##local-ci## execution-started:fast\\n'; exit 19",
+      "printf 'validation reached\\n'",
+    ],
+    workloadCommand: 2,
+  })
+  const child = spawnSync(
+    "bash",
+    ["-c", buildLaneScript(lane, contract, { workspacePath: process.cwd() })],
+    { encoding: "utf8" }
+  )
+  assert.equal(child.status, 19)
+  assert.doesNotMatch(child.stdout, /validation reached/)
+  const outcome = await runnerFor({
+    runtime: fakeRuntime({
+      lanes: {
+        fast: {
+          output: child.stdout,
+          exitCode: child.status,
+          executionStarted: true,
+          executionVerified: true,
+        },
+      },
+    }),
+    runDir: fakeRunDirectory(),
+  }).runProfile({ profile: profileOf([lane]), headSha: HEAD_SHA })
+  const published = extractLaneSummary(
+    renderCheckSummary(outcome.record, contract).text
+  )
+  assert.equal(published.lanes[0].executionStarted, null)
+  assert.deepEqual(published.rootCoverage.coveredRoots, [])
+  assert.match(
+    renderCheckSummary(outcome.record, contract).summary,
+    /lack verified validation-start proof and cover nothing here: `fast`/
+  )
+  assert.deepEqual(published.rootCoverage.unverifiedLanes, [
+    { laneId: "fast", root: "fast", status: "failure" },
+  ])
+  assert.deepEqual(published.rootCoverage.notRunLanes, [])
 })

@@ -17,8 +17,9 @@
  * covering none - never dropped - because a dropped lane is exactly how a
  * coverage claim starts overstating itself.
  *
- * Coverage counts explicit validation-start markers. Status alone does not prove
- * execution; a failed setup never ran, while cancellation can follow execution.
+ * Coverage requires supervisor-verified validation execution. Candidate stdout
+ * markers and terminal statuses are not execution proof. Unknown is distinct
+ * from a supervisor recording that the lane was never admitted.
  * Counting a root without every mapped lane starting would
  * be the same overstatement in a smaller place: a run that stopped at its
  * first failure would still publish `5/9 required roots local` and name e2e,
@@ -50,9 +51,9 @@ export const UNMAPPED_KINDS = Object.freeze([
   "unknown",
 ])
 
-/** Recorded runs require an explicit execution marker; status is not proof. */
-export function laneExecuted(executionStarted) {
-  return executionStarted === true
+/** Only a supervisor may assert verification; no current runtime emits it. */
+export function laneExecuted(executionStarted, executionVerified) {
+  return executionStarted === true && executionVerified === true
 }
 
 /**
@@ -138,7 +139,7 @@ function normaliseLaneEntry(entry, index) {
   const path = `laneIds[${index}]`
   if (entry !== null && typeof entry === "object" && !Array.isArray(entry)) {
     const laneId = requireLaneId(entry.laneId ?? entry.id, `${path}.laneId`)
-    const { status, executionStarted } = entry
+    const { status, executionStarted, executionVerified } = entry
     if (
       status !== null &&
       status !== undefined &&
@@ -151,20 +152,27 @@ function normaliseLaneEntry(entry, index) {
     }
     if (
       executionStarted !== undefined &&
+      executionStarted !== null &&
       typeof executionStarted !== "boolean"
     ) {
       fail(
         "COVERAGE_SHAPE",
-        `${path}.executionStarted must be boolean or absent`
+        `${path}.executionStarted must be boolean, null or absent`
       )
     }
-    return { laneId, status: status ?? null, executionStarted }
+    return {
+      laneId,
+      status: status ?? null,
+      executionStarted,
+      executionVerified,
+    }
   }
   // Bare IDs describe configured coverage, not an executed run.
   return {
     laneId: requireLaneId(entry, path),
     status: null,
     executionStarted: true,
+    executionVerified: true,
   }
 }
 
@@ -174,10 +182,11 @@ function normaliseLaneEntry(entry, index) {
  * `laneIds` are this plane's lanes, each either a lane id or
  * `{ laneId, status }`; `requiredRoots` defaults to the hosted plane's full
  * required set. Returns `{ requiredRoots, coveredRoots, uncoveredRoots,
- * laneRoots, unmappedLanes, notRunLanes, complete }`, where `laneRoots` has
+ * laneRoots, unmappedLanes, notRunLanes, unverifiedLanes, complete }`, where `laneRoots` has
  * exactly one entry per lane passed in, in order, `unmappedLanes` names every
  * lane that covers no required root together with why, and `notRunLanes`
- * names every lane whose status says it never executed.
+ * names lanes the supervisor never admitted. `unverifiedLanes` carries missing
+ * or unauthenticated execution claims, including legacy stdout markers.
  *
  * Only lanes that executed contribute to `coveredRoots`. A lane appears in
  * `laneRoots` under the root it would have run either way, because that
@@ -207,11 +216,13 @@ export function computeRootCoverage(
   const executedLaneIds = new Set()
   const unmappedLanes = []
   const notRunLanes = []
+  const unverifiedLanes = []
   for (const [index, entry] of laneIds.entries()) {
     const {
       laneId: id,
       status,
       executionStarted,
+      executionVerified,
     } = normaliseLaneEntry(entry, index)
     if (laneRoots.some((lane) => lane.laneId === id)) {
       fail("COVERAGE_SHAPE", `duplicate lane ${id} cannot establish coverage`)
@@ -219,14 +230,11 @@ export function computeRootCoverage(
     const resolved = rootForLane(id)
     laneRoots.push(Object.freeze({ laneId: id, root: resolved.root }))
 
-    if (laneExecuted(executionStarted)) {
+    if (laneExecuted(executionStarted, executionVerified)) {
       executedLaneIds.add(id)
     } else {
-      // Named, never dropped: the run declared this lane and did not run it,
-      // and hiding that would trade one overstatement for another.
-      notRunLanes.push(
-        Object.freeze({ laneId: id, root: resolved.root, status })
-      )
+      const missing = executionStarted === false ? notRunLanes : unverifiedLanes
+      missing.push(Object.freeze({ laneId: id, root: resolved.root, status }))
     }
 
     if (!resolved.known) {
@@ -286,6 +294,7 @@ export function computeRootCoverage(
     laneRoots: Object.freeze(laneRoots),
     unmappedLanes: Object.freeze(unmappedLanes),
     notRunLanes: Object.freeze(notRunLanes),
+    unverifiedLanes: Object.freeze(unverifiedLanes),
     complete: uncoveredRoots.length === 0,
   })
 }

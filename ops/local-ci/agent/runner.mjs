@@ -640,7 +640,7 @@ export function buildLaneResult({
   missingLogs = [],
   logDigestValue = null,
   blockedByLaneId = null,
-  executionStarted = false,
+  executionStarted = null,
 }) {
   requireObject(lane, "lane")
   requireObject(contract, "contract")
@@ -740,7 +740,8 @@ export function buildLaneResult({
     testsSkipped: counts.testsSkipped,
     flaky: counts.flaky,
     blockedByLaneId,
-    executionStarted: executionStarted === true,
+    executionStarted:
+      typeof executionStarted === "boolean" ? executionStarted : null,
     countsExpected,
     countsParsed: parsed !== null,
     countSources: [...counts.sources],
@@ -770,7 +771,7 @@ export function toSummaryLane(laneResult) {
     laneId: laneResult.laneId,
     title: laneResult.title ?? laneResult.laneId,
     status: laneResult.status,
-    executionStarted: laneResult.executionStarted === true,
+    executionStarted: laneResult.executionStarted,
     durationSeconds: laneResult.durationSeconds,
     testsRun: orZero(laneResult.testsRun),
     testsPassed: orZero(laneResult.testsPassed),
@@ -1140,6 +1141,7 @@ export function createRunner({
               ref,
               headSha,
               status: signal?.aborted ? "cancelled" : "skipped",
+              executionStarted: false,
               blockedByLaneId: stoppedByLaneId,
               output: "",
               durationSeconds: 0,
@@ -1167,6 +1169,7 @@ export function createRunner({
               ref,
               headSha,
               status: "cancelled",
+              executionStarted: false,
               output: "",
               durationSeconds: 0,
             })
@@ -1295,9 +1298,10 @@ export function createRunner({
             ref,
             headSha,
             output: laneOutput,
-            executionStarted: laneOutput
-              .split(/\r?\n/)
-              .includes(`${LOG_MARKER} execution-started:${lane.id}`),
+            // Candidate stdout is never authenticated execution evidence. The
+            // current container protocol has no supervisor-owned validation
+            // transition, even when a setup command prints our log marker.
+            executionStarted: null,
             exitCode: result?.exitCode ?? null,
             timedOut: result?.timedOut ?? false,
             cancelled: result?.cancelled ?? false,

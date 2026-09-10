@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { withCheckoutProof } from "../helpers/checkout-proof.mjs"
 import { readFileSync } from "node:fs"
 import { test } from "node:test"
 
@@ -221,16 +222,18 @@ function hostedRun() {
 }
 
 const build = ({ jobs, logs }, overrides = {}) =>
-  buildHostedEvidence({
-    contract,
-    profile: "main",
-    headSha: HEAD_SHA,
-    run,
-    jobs,
-    workflowText,
-    logsByJobId: logs,
-    ...overrides,
-  })
+  withCheckoutProof(
+    buildHostedEvidence({
+      contract,
+      profile: "main",
+      headSha: HEAD_SHA,
+      run,
+      jobs,
+      workflowText,
+      logsByJobId: logs,
+      ...overrides,
+    })
+  )
 
 const laneOf = (document, laneId) =>
   document.lanes.find((lane) => lane.laneId === laneId)
