@@ -213,6 +213,9 @@ export function computeRootCoverage(
       status,
       executionStarted,
     } = normaliseLaneEntry(entry, index)
+    if (laneRoots.some((lane) => lane.laneId === id)) {
+      fail("COVERAGE_SHAPE", `duplicate lane ${id} cannot establish coverage`)
+    }
     const resolved = rootForLane(id)
     laneRoots.push(Object.freeze({ laneId: id, root: resolved.root }))
 

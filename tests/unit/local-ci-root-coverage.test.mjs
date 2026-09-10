@@ -424,3 +424,14 @@ test("a summary missing other configured browser results cannot claim that root"
     3
   )
 })
+
+test("a duplicate lane cannot hide a missing execution marker", () => {
+  assert.throws(
+    () =>
+      computeRootCoverage([
+        { laneId: "fast", status: "success", executionStarted: true },
+        { laneId: "fast", status: "skipped", executionStarted: false },
+      ]),
+    /duplicate lane/
+  )
+})
