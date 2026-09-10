@@ -45,9 +45,17 @@ const laneIdsOf = (profileName) =>
     )
   ).lanes.map((lane) => lane.id)
 
-test("the pr and main profiles leave four required roots to the hosted plane", () => {
+// Explicit simulated supervisor evidence; declarations alone cannot prove execution.
+const verifiedLanes = (ids) =>
+  ids.map((laneId) => ({
+    laneId,
+    executionStarted: true,
+    executionVerified: true,
+  }))
+
+test("verified pr and main lanes leave four required roots to the hosted plane", () => {
   for (const profileName of ["pr", "main"]) {
-    const coverage = computeRootCoverage(laneIdsOf(profileName))
+    const coverage = computeRootCoverage(verifiedLanes(laneIdsOf(profileName)))
 
     assert.deepEqual(
       [...coverage.uncoveredRoots],
@@ -99,19 +107,21 @@ test("the nightly-only lanes never stand in for a required root", () => {
   }
 })
 
-test("a profile covering all nine required roots reports nothing uncovered", () => {
-  const coverage = computeRootCoverage([
-    "fast",
-    "quality",
-    "build",
-    "e2e-chromium",
-    "e2e-desktop-firefox",
-    "a11y-chromium",
-    "visual",
-    "lighthouse",
-    "zap-baseline",
-    "db",
-  ])
+test("verified execution of all nine required roots reports nothing uncovered", () => {
+  const coverage = computeRootCoverage(
+    verifiedLanes([
+      "fast",
+      "quality",
+      "build",
+      "e2e-chromium",
+      "e2e-desktop-firefox",
+      "a11y-chromium",
+      "visual",
+      "lighthouse",
+      "zap-baseline",
+      "db",
+    ])
+  )
 
   assert.deepEqual([...coverage.uncoveredRoots], [])
   assert.deepEqual([...coverage.coveredRoots], [...FULL_HOSTED_ROOTS])
@@ -120,7 +130,9 @@ test("a profile covering all nine required roots reports nothing uncovered", () 
 })
 
 test("a lane id no rule accounts for is reported, never ignored", () => {
-  const coverage = computeRootCoverage(["fast", "e2e-webkit-next", "sparkle"])
+  const coverage = computeRootCoverage(
+    verifiedLanes(["fast", "e2e-webkit-next", "sparkle"])
+  )
 
   // A prefix rule is a rule: a new browser project joins the e2e root without
   // anyone editing this module.
@@ -140,10 +152,10 @@ test("a lane id no rule accounts for is reported, never ignored", () => {
 })
 
 test("a root outside the required list is reported rather than counted as coverage", () => {
-  const coverage = computeRootCoverage(
-    ["fast", "lighthouse"],
-    ["fast", "build"]
-  )
+  const coverage = computeRootCoverage(verifiedLanes(["fast", "lighthouse"]), [
+    "fast",
+    "build",
+  ])
 
   assert.deepEqual([...coverage.coveredRoots], ["fast"])
   assert.deepEqual([...coverage.uncoveredRoots], ["build"])
@@ -289,7 +301,17 @@ test("bare lane ids describe configured coverage separately from recorded execut
     }))
   )
 
-  assert.deepEqual([...declared.coveredRoots], [...executed.coveredRoots])
+  assert.deepEqual([...declared.coveredRoots], [])
+  assert.deepEqual([...declared.uncoveredRoots], [...FULL_HOSTED_ROOTS])
+  assert.equal(declared.complete, false)
+  assert.deepEqual(
+    declared.unverifiedLanes.map((lane) => lane.laneId),
+    laneIdsOf("pr")
+  )
+  assert.ok(declared.unverifiedLanes.every((lane) => lane.status === null))
+  assert.deepEqual(declared.laneRoots, executed.laneRoots)
+  assert.ok(executed.coveredRoots.length > 0)
+  assert.deepEqual(executed.unverifiedLanes, [])
   assert.deepEqual([...declared.notRunLanes], [])
   assert.deepEqual([...executed.notRunLanes], [])
 })
@@ -475,5 +497,17 @@ test("legacy stdout-marker true is unverified without supervisor evidence", () =
   assert.deepEqual(coverage.notRunLanes, [])
   assert.deepEqual(coverage.unverifiedLanes, [
     { laneId: "fast", root: "fast", status: "success" },
+  ])
+})
+
+test("a bare member blocks a root even beside a verified sibling", () => {
+  const coverage = computeRootCoverage(
+    [...verifiedLanes(["e2e-chromium"]), "e2e-mobile-safari"],
+    ["e2e"]
+  )
+  assert.deepEqual(coverage.coveredRoots, [])
+  assert.equal(coverage.complete, false)
+  assert.deepEqual(coverage.unverifiedLanes, [
+    { laneId: "e2e-mobile-safari", root: "e2e", status: null },
   ])
 })
