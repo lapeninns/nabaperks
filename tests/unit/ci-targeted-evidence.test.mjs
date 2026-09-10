@@ -56,6 +56,12 @@ test("local link validation rejects missing inline and reference targets", () =>
   try {
     for (const markdown of [
       "Read [the runbook](missing.md).",
+      "Read [the runbook](<missing file.md>).",
+      'Read [the runbook](<missing file.md> "Incident procedure").',
+      "Read [the runbook](missing(file).md).",
+      "Read [the runbook](missing\\(file\\).md).",
+      "> [incident]: missing.md",
+      "![Runbook diagram](<missing image.png>)",
       "Read [the runbook][incident].\n\n[incident]: missing.md",
       "Read [incident][].\n\n[incident]: missing.md",
       "Read [incident].\n\n[incident]: missing.md",
@@ -84,6 +90,9 @@ test("reference targets support local files, fragments, titles and external URLs
       join(cwd, "guide.md"),
       [
         "Read [the runbook](incident.md#response).",
+        "Read [the procedure](<incident procedure.md>).",
+        'Read [the procedure](<incident procedure.md#response> "Procedure").',
+        "Read [the procedure](incident%20procedure.md).",
         '[incident]: incident.md#response "Incident procedure"',
         "[space]: <incident procedure.md>",
         "[encoded]: incident%20procedure.md#response",
@@ -92,6 +101,31 @@ test("reference targets support local files, fragments, titles and external URLs
         "[external]: https://example.com/incident",
         "[email]: mailto:support@example.com",
         "[fragment]: #response",
+      ].join("\n")
+    )
+    assert.deepEqual(localMarkdownLinks(["guide.md"], { cwd }), {
+      files: 1,
+      missing: [],
+    })
+  } finally {
+    rmSync(cwd, { recursive: true, force: true })
+  }
+})
+
+test("Markdown code examples are not treated as local link destinations", () => {
+  const cwd = mkdtempSync(join(tmpdir(), "nabaperks-markdown-links-"))
+  try {
+    writeFileSync(
+      join(cwd, "guide.md"),
+      [
+        "Example: `[label](<missing example.md>)`.",
+        "",
+        "```markdown",
+        "[label](missing.md)",
+        "[incident]: <missing reference.md>",
+        "```",
+        "",
+        "    [indented](missing.md)",
       ].join("\n")
     )
     assert.deepEqual(localMarkdownLinks(["guide.md"], { cwd }), {

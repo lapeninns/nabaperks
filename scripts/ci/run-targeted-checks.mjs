@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join, resolve, dirname } from "node:path"
 import { pathToFileURL } from "node:url"
 import { spawnSync } from "node:child_process"
+import { parsers } from "prettier/plugins/markdown"
 import { runBoundedCommand } from "./run-bounded-command.mjs"
 import { inventoryFromPlaywright, compareInventory } from "./browser-parity.mjs"
 import { impactPolicy, isDocumentationPath } from "./change-impact.mjs"
@@ -186,24 +187,31 @@ export async function runTargetedBrowser(
   return evidence
 }
 
+function markdownLinkTargets(text) {
+  // Use the same installed Markdown parser as the required formatter. This
+  // handles destinations, escapes and block structure without regex gaps.
+  const tree = parsers.markdown.parse(text)
+  assert.equal(
+    tree?.type,
+    "root",
+    "Markdown parser returned an unsupported tree"
+  )
+  const nodes = [tree]
+  const targets = []
+  while (nodes.length) {
+    const node = nodes.pop()
+    if (["link", "image", "definition"].includes(node.type))
+      targets.push(node.url)
+    if (node.children) nodes.push(...node.children)
+  }
+  return targets
+}
+
 export function localMarkdownLinks(paths, { cwd = process.cwd() } = {}) {
   const missing = []
   for (const path of paths) {
     const text = readFileSync(resolve(cwd, path), "utf8")
-    const targets = [
-      ...Array.from(
-        text.matchAll(/\]\(<?([^\s)>]+)>?(?:\s+"[^"]*")?\)/g),
-        (match) => match[1]
-      ),
-      // Reference definitions serve full, collapsed and shortcut links. Their
-      // destinations may be angle-delimited or start on the following line.
-      ...Array.from(
-        text.matchAll(
-          /^ {0,3}\[(?:[^\]\\\r\n]|\\.)+\]:[ \t]*(?:\r?\n[ \t]*)?(?:<([^<>\r\n]*)>|([^\s]+))/gm
-        ),
-        (match) => match[1] ?? match[2]
-      ),
-    ]
+    const targets = markdownLinkTargets(text)
     for (const destination of targets) {
       const target = destination.split("#")[0]
       if (
