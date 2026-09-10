@@ -419,7 +419,12 @@ test("the emitted document is what compareShadowEvidence reads", () => {
   const local = {
     ...hosted,
     plane: "local",
-    lanes: hosted.lanes.map((lane) => ({ ...lane, plane: "local" })),
+    lanes: hosted.lanes.map((lane) => ({
+      ...lane,
+      plane: "local",
+      executionStarted: true,
+      executionVerified: true,
+    })),
   }
   const equivalent = compareShadowEvidence({
     contract,
@@ -600,7 +605,12 @@ test("a hygiene failure is not reported as a print-kit divergence", () => {
   const local = {
     ...passing,
     plane: "local",
-    lanes: passing.lanes.map((lane) => ({ ...lane, plane: "local" })),
+    lanes: passing.lanes.map((lane) => ({
+      ...lane,
+      plane: "local",
+      executionStarted: true,
+      executionVerified: true,
+    })),
   }
   const comparison = compareShadowEvidence({
     contract,

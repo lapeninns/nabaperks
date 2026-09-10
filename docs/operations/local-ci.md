@@ -869,7 +869,13 @@ recorded as not run. Candidate stdout, including an `execution-started` marker
 printed by a dependency script, is never promoted to execution proof. The
 `workloadCommand` boundary and its log marker remain diagnostic only. Older
 marker-derived `executionStarted: true` records without supervisor verification
-also remain unverified. This does not change the hosted merge requirements.
+also remain unverified. Qualification additionally requires verified execution
+for every admitted local lane; matching counts and checkout trees cannot make
+unverified results eligible for the PR streak. The current runtime therefore
+cannot qualify that streak until supervisor-owned execution proof exists.
+Saved comparisons must also carry `localExecutionVerified: true`; older reports
+without this result cannot be replayed into the streak.
+This does not change the hosted merge requirements.
 
 Produce hosted evidence with `pnpm ops:ci:hosted-evidence --sha <sha>`
 (`scripts/ci/hosted-evidence.mjs`), which reads the matching CI run's jobs and

@@ -49,6 +49,9 @@ function fixture() {
         headSha: HEAD,
         laneId,
         status: "success",
+        // Synthetic supervisor evidence; historical counts alone do not qualify.
+        executionStarted: true,
+        executionVerified: true,
         testsRun: limit.minimumTests,
         testsPassed: limit.minimumTests - limit.maximumSkipped,
         testsFailed: 0,
@@ -266,6 +269,15 @@ test("a missing tally survives the actual runner-to-published-summary round trip
   assert.equal(published.countsExpected, true)
   assert.equal(published.countsParsed, false)
   Object.assign(input.local.lanes[0], published)
+  const unverified = compareShadowEvidence(input)
+  assert.equal(unverified.verdict, "incomplete")
+  assert.match(unverified.reasons.join(" "), /Unverified local validation/)
+  // Isolate tally admission with hypothetical supervisor evidence. The actual
+  // runner publication above supplies none and cannot reach qualification.
+  Object.assign(input.local.lanes[0], {
+    executionStarted: true,
+    executionVerified: true,
+  })
   const result = compareShadowEvidence(input)
   assert.equal(result.verdict, "incomplete")
   assert.match(result.lanes[0].reasons.join(" "), /missing machine-readable/)
@@ -306,6 +318,8 @@ for (const failedIndex of [0, 3, 8]) {
     for (const lane of input.local.lanes.slice(failedIndex + 1)) {
       Object.assign(lane, {
         status: "skipped",
+        executionStarted: false,
+        executionVerified: false,
         testsRun: 0,
         testsPassed: 0,
         testsFailed: 0,
@@ -391,6 +405,9 @@ function observedFixture(profile = "pr") {
         headSha: OBSERVED_HEAD,
         laneId,
         status: "success",
+        // Synthetic supervisor evidence; historical counts alone do not qualify.
+        executionStarted: true,
+        executionVerified: true,
         testsRun,
         testsPassed: testsRun - testsSkipped,
         testsFailed: 0,
@@ -411,14 +428,14 @@ function observedFixture(profile = "pr") {
   }
 }
 
-test("the observed successful main-profile run satisfies every floor and ceiling", () => {
+test("observed main counts satisfy floors with separate synthetic execution and checkout proof", () => {
   const result = compareShadowEvidence(observedFixture("main"))
   assert.deepEqual(result.reasons, [])
   assert.equal(result.verdict, "equivalent")
   assert.equal(result.budget.satisfied, true)
 })
 
-test("the same observed counts on a PR head are streak-eligible", () => {
+test("observed counts on a PR head qualify only with separate synthetic execution proof", () => {
   const result = compareShadowEvidence(observedFixture())
   assert.equal(result.verdict, "equivalent")
   assert.equal(result.eligibleForStreak, true)
@@ -606,5 +623,66 @@ test("matching counts cannot qualify a different synthetic merge tree or missing
     assert.equal(result.verdict, "incomplete")
     assert.equal(result.eligibleForStreak, false)
     assert.match(result.reasons.join(" "), /checkout|tree/)
+  }
+})
+
+for (const field of ["executionStarted", "executionVerified"]) {
+  for (const value of [undefined, null, false, "true"]) {
+    test(`qualification rejects ${field}=${String(value)} even with matching counts and checkout trees`, () => {
+      for (const laneIndex of [0, 1]) {
+        const input = fixture()
+        input.local.lanes[laneIndex][field] = value
+        input.local.rootCoverage = {
+          complete: true,
+          coveredRoots: ["fast", "quality", "e2e", "a11y", "db"],
+        }
+        const result = compareShadowEvidence(input)
+        assert.equal(result.verdict, "incomplete")
+        assert.equal(result.eligibleForStreak, false)
+        assert.match(
+          result.reasons.join(" "),
+          /Unverified local validation execution/
+        )
+      }
+    })
+  }
+}
+
+test("three distinct unverified heads cannot satisfy the qualification streak", () => {
+  const results = ["a", "b", "c"].map((letter) => {
+    const input = fixture()
+    input.headSha = letter.repeat(40)
+    for (const evidence of [input.local, input.hosted]) {
+      evidence.headSha = input.headSha
+      evidence.provider.headSha = input.headSha
+      for (const lane of evidence.lanes) lane.headSha = input.headSha
+    }
+    withCheckoutProof(input.hosted)
+    for (const lane of input.local.lanes) {
+      lane.executionStarted = null
+      delete lane.executionVerified
+    }
+    return compareShadowEvidence(input)
+  })
+  assert.ok(
+    results.every(
+      (result) => result.verdict === "incomplete" && !result.eligibleForStreak
+    )
+  )
+  assert.equal(shadowEquivalenceStreak(results, 3).satisfied, false)
+  assert.equal(shadowEquivalenceStreak(results, 3).length, 0)
+})
+
+test("saved comparison reports without verified execution cannot replay into a streak", () => {
+  const verified = compareShadowEvidence(fixture())
+  assert.equal(verified.localExecutionVerified, true)
+  for (const value of [undefined, null, false, "true"]) {
+    const reports = ["a", "b", "c"].map((letter) => ({
+      ...verified,
+      headSha: letter.repeat(40),
+      localExecutionVerified: value,
+    }))
+    assert.equal(shadowEquivalenceStreak(reports, 3).length, 0)
+    assert.equal(shadowEquivalenceStreak(reports, 3).satisfied, false)
   }
 })

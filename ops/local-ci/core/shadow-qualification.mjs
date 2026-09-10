@@ -149,6 +149,7 @@ export function compareShadowEvidence({
     profile,
     verdict: "incomplete",
     eligibleForStreak: false,
+    localExecutionVerified: false,
   }
   try {
     requireCondition(/^[a-f0-9]{40}$/.test(headSha ?? ""), "Invalid head SHA")
@@ -157,6 +158,16 @@ export function compareShadowEvidence({
     const limits = validateLimits(contract, profile)
     const ids = Object.keys(limits.lanes)
     const localLanes = indexEvidence(local, "local", headSha, profile, ids)
+    // Skipped lanes are already non-qualifying; retain their blocker diagnostics.
+    const unverified = [...localLanes.values()].filter(
+      (lane) =>
+        lane.status !== "skipped" &&
+        (lane.executionStarted !== true || lane.executionVerified !== true)
+    )
+    requireCondition(
+      unverified.length === 0,
+      `Unverified local validation execution: ${unverified.map((lane) => lane.laneId).join(", ")}`
+    )
     const hostedLanes = indexEvidence(hosted, "hosted", headSha, profile, ids)
     requireCondition(
       Number.isFinite(publishedDurationSeconds) &&
@@ -175,14 +186,20 @@ export function compareShadowEvidence({
         : incomplete.length
           ? "incomplete"
           : "equivalent"
+    const localExecutionVerified = [...localLanes.values()].every(
+      (lane) =>
+        lane.executionStarted === true && lane.executionVerified === true
+    )
     const budgetSatisfied =
       publishedDurationSeconds <= limits.maxProfileDurationSeconds
     return {
       ...base,
       verdict,
+      localExecutionVerified,
       eligibleForStreak:
         streakProfilesOf(limits).includes(profile) &&
         verdict === "equivalent" &&
+        localExecutionVerified &&
         budgetSatisfied,
       budget: {
         durationSeconds: publishedDurationSeconds,
@@ -214,6 +231,7 @@ export function shadowEquivalenceStreak(results, required, contract) {
   for (const result of results) {
     const eligible =
       result?.eligibleForStreak === true &&
+      result.localExecutionVerified === true &&
       result.verdict === "equivalent" &&
       streakProfiles.includes(result.profile) &&
       result.budget?.satisfied === true &&
