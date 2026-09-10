@@ -22,6 +22,7 @@
 
 import { createAttemptJournal, publishAttempt } from "../core/attempts.mjs"
 import { acquireControllerLease } from "./lease.mjs"
+import { assertInstalledExecutionCurrent } from "./installed-revision.mjs"
 import { publishDurableCheck } from "./publisher.mjs"
 
 import { spawn } from "node:child_process"
@@ -1572,6 +1573,7 @@ function durablePublisher({ github, contract, journal }) {
 export async function dispatchRun(
   { contract, config, logger, evidence, profile, ref, headSha, signal = null },
   dependencies = {
+    assertInstalledExecutionCurrent,
     assertVmIsolationLive,
     reconcileOwnedResources,
     buildDependencies,
@@ -1579,6 +1581,11 @@ export async function dispatchRun(
     releaseWorkspace,
   }
 ) {
+  signal?.throwIfAborted()
+  const installedRevision = await dependencies.assertInstalledExecutionCurrent({
+    contract,
+    logger,
+  })
   signal?.throwIfAborted()
   await dependencies.assertVmIsolationLive({ config, contract })
   signal?.throwIfAborted()
@@ -1589,6 +1596,11 @@ export async function dispatchRun(
   )
   const run = evidence.open({ headSha, profile: profile.profile })
   try {
+    writeFileSync(
+      join(run.path, "installed-revision.json"),
+      `${JSON.stringify(installedRevision, null, 2)}\n`,
+      { mode: 0o600 }
+    )
     const { runner } = await dependencies.buildDependencies({
       contract,
       config,

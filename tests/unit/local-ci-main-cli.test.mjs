@@ -1169,7 +1169,9 @@ test("CLI help executes through the installed current symlink with spaces", () =
   }
 })
 
-test("dispatch preserves cancellation through preparation and releases the workspace", async () => {
+test("dispatch preserves cancellation through preparation and releases the workspace", async (t) => {
+  const runDir = mkdtempSync(join(tmpdir(), "ci-dispatch-"))
+  t.after(() => rmSync(runDir, { recursive: true, force: true }))
   const controller = new AbortController()
   const events = []
   const args = {
@@ -1177,7 +1179,7 @@ test("dispatch preserves cancellation through preparation and releases the works
     config: {},
     logger: { info() {} },
     evidence: {
-      open: () => ({ path: "/unused", close: () => events.push("closed") }),
+      open: () => ({ path: runDir, close: () => events.push("closed") }),
     },
     profile: { profile: "main" },
     ref: "refs/heads/main",
@@ -1186,6 +1188,7 @@ test("dispatch preserves cancellation through preparation and releases the works
   }
   const reason = new Error("operator stopped the agent")
   const dependencies = {
+    assertInstalledExecutionCurrent: async () => events.push("revision"),
     assertVmIsolationLive: async () => events.push("isolation"),
     buildDependencies: async () => ({
       runner: {
@@ -1203,10 +1206,12 @@ test("dispatch preserves cancellation through preparation and releases the works
     dispatchRun(args, dependencies),
     (error) => error === reason
   )
-  assert.deepEqual(events, ["isolation", "released", "closed"])
+  assert.deepEqual(events, ["revision", "isolation", "released", "closed"])
 })
 
-test("cancellation while preparing a workspace prevents any container launch", async () => {
+test("cancellation while preparing a workspace prevents any container launch", async (t) => {
+  const runDir = mkdtempSync(join(tmpdir(), "ci-dispatch-"))
+  t.after(() => rmSync(runDir, { recursive: true, force: true }))
   const controller = new AbortController()
   const events = []
   const reason = new Error("superseded during checkout")
@@ -1217,13 +1222,14 @@ test("cancellation while preparing a workspace prevents any container launch", a
         config: {},
         logger: { info() {} },
         evidence: {
-          open: () => ({ path: "/unused", close: () => events.push("closed") }),
+          open: () => ({ path: runDir, close: () => events.push("closed") }),
         },
         profile: { profile: "main" },
         headSha: "a".repeat(40),
         signal: controller.signal,
       },
       {
+        assertInstalledExecutionCurrent: async () => ({}),
         assertVmIsolationLive: async () => {},
         buildDependencies: async () => {
           controller.abort(reason)
