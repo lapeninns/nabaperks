@@ -1,6 +1,12 @@
 import assert from "node:assert/strict"
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
-import { join, resolve, dirname } from "node:path"
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  writeFileSync,
+} from "node:fs"
+import { join, resolve, dirname, relative, isAbsolute, sep } from "node:path"
 import { pathToFileURL } from "node:url"
 import { spawnSync } from "node:child_process"
 import { parsers } from "prettier/plugins/markdown"
@@ -207,8 +213,16 @@ function markdownLinkTargets(text) {
   return targets
 }
 
+function withinRoot(root, target) {
+  const path = relative(root, target)
+  return path !== ".." && !path.startsWith(`..${sep}`) && !isAbsolute(path)
+}
+
 export function localMarkdownLinks(paths, { cwd = process.cwd() } = {}) {
+  const root = resolve(cwd)
+  const canonicalRoot = realpathSync(root)
   const missing = []
+  const escaped = []
   for (const path of paths) {
     const text = readFileSync(resolve(cwd, path), "utf8")
     const targets = markdownLinkTargets(text)
@@ -221,10 +235,14 @@ export function localMarkdownLinks(paths, { cwd = process.cwd() } = {}) {
       )
         continue
       const decoded = decodeURIComponent(target)
-      if (!existsSync(resolve(cwd, dirname(path), decoded)))
-        missing.push(`${path}: ${target}`)
+      const resolved = resolve(root, dirname(path), decoded)
+      if (!withinRoot(root, resolved)) escaped.push(`${path}: ${target}`)
+      else if (!existsSync(resolved)) missing.push(`${path}: ${target}`)
+      else if (!withinRoot(canonicalRoot, realpathSync(resolved)))
+        escaped.push(`${path}: ${target}`)
     }
   }
+  assert.deepEqual(escaped, [], "Documentation links escape the repository")
   assert.deepEqual(missing, [], "Documentation has missing local link targets")
   return { files: paths.length, missing }
 }

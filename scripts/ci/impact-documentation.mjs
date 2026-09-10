@@ -1,5 +1,11 @@
 import { readFileSync } from "node:fs"
-import { safePath, readChanges, readBlob, digest } from "./impact-git.mjs"
+import {
+  safePath,
+  readChanges,
+  readBlob,
+  readAt,
+  digest,
+} from "./impact-git.mjs"
 
 export const impactPolicy = JSON.parse(
   readFileSync(
@@ -22,10 +28,18 @@ export function isDocumentationPath(path, policy = impactPolicy) {
 export function documentationDifference(baseSha, candidateSha, { cwd } = {}) {
   const changes = readChanges(baseSha, candidateSha, { cwd })
   if (!changes.length || changes.length > 200) return null
+  // The outer release workflow SHA can differ from its actual candidate.
+  // Re-read data from that immutable candidate; never execute candidate code
+  // or let a later smoke checkout reinterpret the original allowlist.
+  const policy = JSON.parse(
+    readAt(candidateSha, "config/ci-impact-policy.json", { cwd })
+  )
+  if (policy.schema !== "nabaperks.ci-impact-policy.v1")
+    throw new Error("Unknown candidate impact policy")
   if (
     changes.some(
       (change) =>
-        !isDocumentationPath(change.path) ||
+        !isDocumentationPath(change.path, policy) ||
         !["A", "M"].includes(change.status) ||
         change.newMode !== "100644" ||
         !["000000", "100644"].includes(change.oldMode)
@@ -35,7 +49,7 @@ export function documentationDifference(baseSha, candidateSha, { cwd } = {}) {
   for (const change of changes) readBlob(change.newOid, { cwd })
   return {
     changeDigest: digest(changes),
-    policyDigest: digest(impactPolicy),
+    policyDigest: digest(policy),
     paths: changes.map((change) => change.path),
   }
 }

@@ -1,6 +1,12 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs"
+import {
+  mkdtempSync,
+  mkdirSync,
+  writeFileSync,
+  rmSync,
+  symlinkSync,
+} from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
@@ -112,6 +118,42 @@ test("reference targets support local files, fragments, titles and external URLs
   }
 })
 
+test("local links reject lexical, encoded and symlink escapes while allowing parents inside the checkout", (t) => {
+  const root = mkdtempSync(join(tmpdir(), "nabaperks-markdown-bounds-"))
+  t.after(() => rmSync(root, { recursive: true, force: true }))
+  const cwd = join(root, "repo")
+  const outside = join(root, "repo-sibling")
+  mkdirSync(join(cwd, "docs"), { recursive: true })
+  mkdirSync(outside)
+  writeFileSync(join(outside, "target.md"), "# Outside")
+  writeFileSync(join(cwd, "target.md"), "# Inside")
+  symlinkSync(join(outside, "target.md"), join(cwd, "linked.md"))
+  symlinkSync(outside, join(cwd, "linked-directory"), "dir")
+  symlinkSync(join(cwd, "target.md"), join(cwd, "inside.md"))
+  for (const target of [
+    "../../repo-sibling/target.md",
+    "%2e%2e/%2e%2e/repo-sibling/target.md",
+    encodeURIComponent(join(outside, "target.md")),
+    "../linked.md",
+    "../linked-directory/target.md",
+  ]) {
+    writeFileSync(join(cwd, "docs/guide.md"), `[target](${target})`)
+    assert.throws(
+      () => localMarkdownLinks(["docs/guide.md"], { cwd }),
+      /Documentation links escape the repository/,
+      target
+    )
+  }
+  writeFileSync(
+    join(cwd, "docs/guide.md"),
+    "[parent](../target.md) and [local symlink](../inside.md)"
+  )
+  assert.deepEqual(localMarkdownLinks(["docs/guide.md"], { cwd }), {
+    files: 1,
+    missing: [],
+  })
+})
+
 test("Markdown code examples are not treated as local link destinations", () => {
   const cwd = mkdtempSync(join(tmpdir(), "nabaperks-markdown-links-"))
   try {
@@ -203,6 +245,8 @@ test("qualified page selection keeps existing test identities and unqualified po
   for (const path of [
     "package.json",
     "scripts/ci/impact-documentation.mjs",
+    "scripts/ci/impact-snapshots.mjs",
+    "tests/e2e/visual.spec.ts",
     "config/ci-workloads.json",
     "tests/e2e/helpers/a11y-sweep.ts",
     "scripts/ci/browser-workload.mjs",
@@ -213,5 +257,23 @@ test("qualified page selection keeps existing test identities and unqualified po
   assert.equal(
     needsSelectionComparison("docs/operations/production-runbook.md"),
     false
+  )
+  for (const name of [
+    "marketing-about",
+    "marketing-faq",
+    "marketing-how-it-works",
+  ])
+    for (const project of ["chromium", "mobile-safari"])
+      assert.equal(
+        needsSelectionComparison(
+          `tests/e2e/visual.spec.ts-snapshots/${name}-${project}-linux.png`
+        ),
+        false
+      )
+  assert.equal(
+    needsSelectionComparison(
+      "tests/e2e/visual.spec.ts-snapshots/marketing-about-desktop-firefox-linux.png"
+    ),
+    true
   )
 })

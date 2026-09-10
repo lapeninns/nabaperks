@@ -1,4 +1,5 @@
 import { digest, safePath, readChanges, readBlob } from "./impact-git.mjs"
+import { qualifiedSnapshotPage } from "./impact-snapshots.mjs"
 import { impactPolicy, isDocumentationPath } from "./impact-documentation.mjs"
 export { impactPolicy, isDocumentationPath } from "./impact-documentation.mjs"
 import {
@@ -45,6 +46,7 @@ export function classifyChanges(
   if (!Array.isArray(changes) || changes.length === 0)
     return full("No complete non-empty change inventory")
   const pages = []
+  const snapshots = []
   for (const change of changes) {
     if (
       !safePath(change.path) ||
@@ -59,6 +61,13 @@ export function classifyChanges(
       read(change.newOid)
       continue
     }
+    const snapshotPage = qualifiedSnapshotPage(change.path, policy)
+    if (snapshotPage) {
+      if (change.status !== "M" || change.oldMode !== "100644")
+        return full("Visual baseline additions require full validation")
+      snapshots.push({ path: change.path, pagePath: snapshotPage })
+      continue
+    }
     const page = policy.publicPages[change.path]
     if (!page || change.status !== "M")
       return full(`Unqualified change: ${change.path}`)
@@ -68,6 +77,14 @@ export function classifyChanges(
       return full(`Behaviour or structure changed: ${change.path}`)
     pages.push({ path: change.path, ...page })
   }
+  const selectedPagePaths = new Set(pages.map((page) => page.path))
+  const unpairedSnapshot = snapshots.find(
+    (snapshot) => !selectedPagePaths.has(snapshot.pagePath)
+  )
+  if (unpairedSnapshot)
+    return full(
+      `Visual baseline has no matching qualified page change: ${unpairedSnapshot.path}`
+    )
   if (!pages.length)
     return {
       profile: "documentation",
@@ -78,7 +95,9 @@ export function classifyChanges(
     return full("Public page has other source consumers")
   return {
     profile: "public-pages",
-    reason: "Only literal presentation changed in qualified leaf pages",
+    reason: snapshots.length
+      ? "Only literal presentation and matching canonical visual baselines changed in qualified leaf pages"
+      : "Only literal presentation changed in qualified leaf pages",
     pages,
   }
 }

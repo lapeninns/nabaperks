@@ -9,11 +9,11 @@ policy. Local source and unit tests do not establish that hosted qualification.
 
 ## Initial scope
 
-| Profile       | Eligible changes                                                                              | Required hosted checks                                                                                                                                                         |
-| ------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Documentation | Regular Markdown files under `docs/operations/` or `docs/decisions/`, plus `README.md`        | Secrets, source contracts, generated documentation consistency, agent guidance, changed-file formatting and local links                                                        |
-| Public pages  | Literal JSX text and reviewed presentation attributes in `/about`, `/faq` and `/how-it-works` | Existing fast, quality and production build checks; existing page accessibility tests across four browser projects; existing visual tests on hosted Chromium and mobile Safari |
-| Full          | Everything else, forks, missing or uncertain impact evidence                                  | All nine existing hosted roots                                                                                                                                                 |
+| Profile       | Eligible changes                                                                                                                                         | Required hosted checks                                                                                                                                                         |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Documentation | Regular Markdown files under `docs/operations/` or `docs/decisions/`, plus `README.md`                                                                   | Secrets, source contracts, generated documentation consistency, agent guidance, changed-file formatting and local links                                                        |
+| Public pages  | Literal JSX text and reviewed presentation attributes in `/about`, `/faq` and `/how-it-works`, optionally with their matching canonical visual baselines | Existing fast, quality and production build checks; existing page accessibility tests across four browser projects; existing visual tests on hosted Chromium and mobile Safari |
+| Full          | Everything else, forks, missing or uncertain impact evidence                                                                                             | All nine existing hosted roots                                                                                                                                                 |
 
 The public-page classifier compares TypeScript syntax trees. Imports, links,
 handlers, expressions, element structure and arbitrary component properties must
@@ -31,6 +31,20 @@ Changing an existing interaction class is also a full change. A mixed eligible
 page/documentation PR retains changed-document formatting and link checks; its
 fast and quality jobs provide the shared baseline without repeating those checks
 in the documentation job.
+
+A qualified page may also update its existing Chromium and mobile Safari Linux
+PNG baselines. Every changed baseline must belong to a page whose source change
+independently qualifies in the same PR. Baseline-only changes, other pages,
+other platforms, additions, deletions and file-mode changes retain full CI.
+Expected image updates do not change test selection and therefore do not trigger
+a duplicate targeted/full comparison by themselves. Tests, snapshot naming rules
+and selection policy changes still require that comparison.
+
+The affected visual job uploads its `results` directories inside the
+`targeted-visual` artifact, including actual and difference images when a
+comparison fails. Review that evidence before updating the matching canonical
+baseline. An expected screenshot update must still pass the existing visual
+comparison and ordinary PR review; it is never automatically accepted.
 
 The selection job executes policy from the PR's already-reviewed base SHA and
 reads candidate Git objects without executing candidate classifier code. Its
@@ -79,7 +93,10 @@ records a bound `production-unchanged` artifact. Ephemeral staging, runtime
 qualification, database promotion and application deployment do not run. Smoke
 verification independently checks the artifact's Git difference and probes the
 existing production revision; it does not claim the new documentation commit
-was deployed. The protected baseline approval remains necessary because the
+was deployed. Release-triggered smoke checks pin their scripts to the completed
+release run's immutable revision and read the allowlist from the artifact's
+actual candidate revision, so a newer main cannot change that decision. The
+protected baseline approval remains necessary because the
 current credential scope lives in Production. This change removes subsequent
 deployment work, not that initial approval.
 

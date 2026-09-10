@@ -38,7 +38,11 @@ test("successful application promotion verifies the exact production revision", 
   assert.match(smoke, /workflow_run\.conclusion == 'success'/)
   assert.match(smoke, /workflow_run\.head_branch == 'main'/)
   assert.match(smoke, /read-candidate-artifact\.mjs/)
-  assert.doesNotMatch(smoke, /workflow_run\.head_sha/)
+  assert.match(
+    smoke,
+    /ref: \$\{\{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha \|\| github.sha \}\}/
+  )
+  assert.doesNotMatch(smoke, /EXPECTED_REVISION:.*workflow_run\.head_sha/)
   assert.match(smoke, /timeout-minutes: 7/)
   assert.match(smoke, /EXPECTED_REVISION:0:12/)
   assert.match(smoke, /for attempt in \{1\.\.30\}/)

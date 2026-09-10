@@ -1,13 +1,21 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs"
+import {
+  mkdtempSync,
+  mkdirSync,
+  writeFileSync,
+  readFileSync,
+  rmSync,
+} from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
   classifyChanges,
   calculateImpact,
   requiredRoots,
+  impactPolicy,
 } from "../../scripts/ci/change-impact.mjs"
+import { documentationDifference } from "../../scripts/ci/impact-documentation.mjs"
 import {
   isPresentationOnly,
   findPageConsumers,
@@ -87,6 +95,59 @@ test("copy and literal intrinsic style changes qualify only in reviewed public l
   assert.equal(
     classify([change("app/about/page.tsx")], copy, () => ["app/other/page.tsx"])
       .profile,
+    "full"
+  )
+})
+
+test("canonical baselines stay selective only alongside their own qualified page changes", () => {
+  const snapshot = (name, project = "chromium") =>
+    `tests/e2e/visual.spec.ts-snapshots/${name}-${project}-linux.png`
+  for (const [path, name] of [
+    ["app/about/page.tsx", "marketing-about"],
+    ["app/faq/page.tsx", "marketing-faq"],
+    ["app/how-it-works/page.tsx", "marketing-how-it-works"],
+  ]) {
+    for (const project of ["chromium", "mobile-safari"]) {
+      const baseline = change(snapshot(name, project))
+      const result = classify([baseline, change(path)])
+      assert.equal(result.profile, "public-pages")
+      assert.deepEqual(
+        result.pages.map((page) => page.path),
+        [path]
+      )
+      assert.equal(classify([baseline]).profile, "full")
+      assert.equal(
+        classify([change("docs/operations/a.md"), baseline]).profile,
+        "full"
+      )
+      for (const fields of [
+        { status: "A", oldMode: "000000" },
+        { status: "D", newMode: "000000" },
+        { newMode: "120000" },
+        { newMode: "100755" },
+      ])
+        assert.equal(
+          classify([change(path), { ...baseline, ...fields }]).profile,
+          "full"
+        )
+    }
+  }
+  for (const path of [
+    snapshot("marketing-faq"),
+    snapshot("marketing-about", "desktop-firefox"),
+    "tests/e2e/visual.spec.ts-snapshots/marketing-about-chromium.png",
+    "tests/e2e/visual.spec.ts-snapshots/marketing-about-chromium-linux.png.mjs",
+  ])
+    assert.equal(
+      classify([change("app/about/page.tsx"), change(path)]).profile,
+      "full",
+      path
+    )
+  assert.equal(
+    classify(
+      [change("app/about/page.tsx"), change(snapshot("marketing-about"))],
+      copy.replace("p-2", "pointer-events-none")
+    ).profile,
     "full"
   )
 })
@@ -294,6 +355,7 @@ function repository(t) {
 
 test("no deployment requires the entire difference from actual production to be documentation", (t) => {
   const fixture = repository(t)
+  fixture.put("config/ci-impact-policy.json", JSON.stringify(impactPolicy))
   fixture.put("docs/operations/a.md", "# A\n")
   fixture.put("app/runtime.ts", "export const value = 1\n")
   const deployed = fixture.commit()
@@ -366,6 +428,98 @@ test("no deployment requires the entire difference from actual production to be 
     ),
     null
   )
+})
+
+test("release comparison reads the candidate policy even when the smoke checkout has newer policy", (t) => {
+  const fixture = repository(t)
+  const policy = {
+    ...impactPolicy,
+    documentation: { files: [], prefixes: ["docs/release-notes/"] },
+  }
+  fixture.put("config/ci-impact-policy.json", JSON.stringify(policy))
+  fixture.put("docs/release-notes/update.md", "# Before\n")
+  const deployed = fixture.commit()
+  fixture.put("docs/release-notes/update.md", "# After\n")
+  const candidate = fixture.commit()
+  const original = documentationDifference(deployed, candidate, fixture)
+  assert.deepEqual(original.paths, ["docs/release-notes/update.md"])
+  fixture.put("config/ci-impact-policy.json", JSON.stringify(impactPolicy))
+  const later = fixture.commit()
+  assert.notEqual(later, candidate)
+  assert.deepEqual(
+    documentationDifference(deployed, candidate, fixture),
+    original
+  )
+  assert.equal(documentationDifference(deployed, later, fixture), null)
+})
+
+test("a real copy and binary-baseline merge selects affected checks without duplicate qualification", (t) => {
+  const fixture = repository(t)
+  const baselinePath =
+    "tests/e2e/visual.spec.ts-snapshots/marketing-about-chromium-linux.png"
+  fixture.put("app/about/page.tsx", before)
+  fixture.put(
+    baselinePath,
+    readFileSync(
+      new URL(
+        "../e2e/visual.spec.ts-snapshots/marketing-about-chromium-linux.png",
+        import.meta.url
+      )
+    )
+  )
+  const baseSha = fixture.commit()
+  fixture.put("app/about/page.tsx", copy)
+  // This fixture exercises Git binary inventory and routing. Actual baseline
+  // pixels are separately checked by the required hosted visual execution.
+  fixture.put(
+    baselinePath,
+    readFileSync(
+      new URL(
+        "../e2e/visual.spec.ts-snapshots/marketing-faq-chromium-linux.png",
+        import.meta.url
+      )
+    )
+  )
+  const headSha = fixture.commit()
+  const candidateSha = git(
+    [
+      "commit-tree",
+      `${headSha}^{tree}`,
+      "-p",
+      baseSha,
+      "-p",
+      headSha,
+      "-m",
+      "Fixture merge",
+    ],
+    fixture
+  ).trim()
+  git(["checkout", "--detach", "-q", baseSha], fixture)
+  const plan = planChecks(
+    {
+      GITHUB_REPOSITORY: "lapeninns/nabaperks",
+      GITHUB_EVENT_NAME: "pull_request",
+      CI_BASE_SHA: baseSha,
+      CI_HEAD_SHA: headSha,
+      GITHUB_SHA: candidateSha,
+      CI_HEAD_REPOSITORY: "lapeninns/nabaperks",
+    },
+    fixture
+  )
+  assert.equal(plan.profile, "public-pages")
+  assert.equal(plan.comparisonRequired, false)
+  assert.equal(plan.changes.length, 2)
+  assert.deepEqual(
+    plan.pages.map((page) => page.route),
+    ["/about"]
+  )
+  assert.deepEqual(plan.required, [
+    "fast",
+    "quality",
+    "build",
+    "targeted-browser",
+    "targeted-visual",
+  ])
 })
 
 test("real Git comparison includes both sides of moves and does not read dirty working files", (t) => {
