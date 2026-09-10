@@ -57,6 +57,14 @@ test("merchant cancellation records an interview before direct Stripe cancellati
       actions.indexOf("submitCancellationInterviewAction")
   )
   assert.match(panel, /Review cancellation options/)
+  assert.match(
+    read("app/app/account/cancel/page.tsx"),
+    /isCancellableMerchantSubscription/
+  )
+  assert.match(
+    read("app/dev/app-harness/account/cancel/page.tsx"),
+    /isCancellableMerchantSubscription/
+  )
 })
 
 test("merchant terms specify the ROI start, claim window and both billing remedies", () => {

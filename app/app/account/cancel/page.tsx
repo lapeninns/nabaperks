@@ -6,6 +6,7 @@ import { CancellationInterviewForm } from "@/components/merchant/account/cancell
 import { Button } from "@/components/ui/button"
 import { getCurrentMerchant } from "@/lib/auth/session"
 import { getMerchantBilling } from "@/lib/merchant/billing"
+import { isCancellableMerchantSubscription } from "@/lib/merchant/billing-cancellable"
 
 export const metadata = { title: "Review cancellation" }
 
@@ -15,9 +16,7 @@ export default async function CancellationReviewPage() {
 
   const result = await getMerchantBilling(merchant.id)
   const cancellable =
-    result.ok &&
-    Boolean(result.billing?.stripe_subscription_id) &&
-    ["trialing", "active", "past_due"].includes(result.billing?.status ?? "")
+    result.ok && isCancellableMerchantSubscription(result.billing)
 
   return (
     <div className="grid gap-6">

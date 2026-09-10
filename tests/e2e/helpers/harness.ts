@@ -17,6 +17,7 @@ export const HARNESS_ROUTES = {
   customers: "/dev/app-harness/customers",
   activity: "/dev/app-harness/activity",
   account: "/dev/app-harness/account",
+  cancel: "/dev/app-harness/account/cancel",
   qr: "/dev/app-harness/qr",
   scan: "/dev/app-harness/scan",
   rewardScan: "/dev/app-harness/reward-scan",
