@@ -51,7 +51,7 @@ those release tests. It is deliberately unchanged.
 Hosted E2E keeps four packs of eight /32 shards per project. Hosted a11y keeps
 /4 sharding and now covers four projects, so it has 16 jobs instead of eight.
 Local E2E retains /32; local a11y retains /8 and adds two independent lanes.
-All local lanes retain the reviewed 4096 MiB heap and 8 GiB cgroup cap. The
+All local lanes retain the proposed 4096 MiB heap and 8 GiB cgroup cap. The
 scheduler still admits against the same combined lane/daemon/VM limits.
 Visual snapshots, server mode, retries, workers, flaky-test policy, test files,
 required checks and protected provider settings are unchanged. The visual
@@ -70,6 +70,63 @@ The local plane must remain paused and unqualified. A reviewer must approve a
 new complete per-identity composition ledger and its per-lane baseline from
 real hosted and isolated local executions before any future local qualification.
 A shorter E2E count must not be accepted by lowering old floors to get green.
+
+## Executed accessibility comparison and validation
+
+Predeclared attempt D executed only the four a11y lanes from
+`c47bccf77ae97af9cd1d566f20b96fa38d5810d5`, from 16:37:10 to 16:42:52 UTC on
+10 September (341 seconds). It used isolated canary state and the pinned original
+PR #300 dispatcher at `61c7b690c481c5c70c06efb46e00bc9b778fb5ec`; no installed
+controller, publication client or signing credential was used. This was a bounded
+a11y run, not the entire revised main profile.
+
+| Project         | Passed | Skipped | JSON shards | Duration, seconds | Sampled cgroup peak, GiB |
+| --------------- | -----: | ------: | ----------: | ----------------: | -----------------------: |
+| Chromium        |     71 |       1 |           8 |               292 |                    4.839 |
+| Mobile Safari   |     73 |       2 |           8 |               341 |                    6.434 |
+| Desktop Firefox |     71 |       1 |           8 |               321 |                    5.352 |
+| Desktop Safari  |     71 |       1 |           8 |               333 |                    6.269 |
+
+All four lanes succeeded with zero missing parts, failed tests, retries or flaky
+outcomes. Comparing their 32 executed JSON reports with the `@a11y` subset of
+the earlier full-main B run's 128 E2E reports established the same **291 distinct
+identities**, **286 passes**, **five skips**, and **identical per-identity outcomes
+and skip reasons**. No identity was missing or added, and every skip had a reason.
+`a11y-runtime-comparison.json` and `canary-d-summary.json` retain the reconciliation
+in the external evidence directory.
+
+The kernel capture had no new OOM scopes; it retained the same ten historical
+scopes as after C, with the last OOM long before these experiments. Sampled
+cgroup OOM counters stayed zero. The image was pinned by observed immutable
+Docker ID, not attested contents; its declared source was older, and frozen
+candidate dependencies were installed in each lane. Ten-second `memory.peak`
+samples can miss a container's final interval and measure all cgroup charges,
+not process RSS. B and D have different heap policy and scheduling. This outcome
+comparison is not a full resource-parity or qualification report, nor proof of
+lower end-to-end main-profile or hosted duration.
+
+`pnpm quality:check` passed for this implementation: 717 contracts and 1787 unit
+tests, plus lint/typecheck, hygiene and documentation gates. A fixture-only
+production build passed. The composition comparator also passed against four
+real Playwright list reports and has regressions rejecting exclusion alone,
+expansion alone and a missing tier.
+
+Intermediate validation failures were retained and corrected: the first CI unit
+run had one old fixed lane-count expectation; the first quality run had two
+source contracts tied to the old selector/two-project matrix; the second had
+19 unit failures from old selectors and hosted-evidence fixtures with no new
+lane policy. The final run above passed after those assumptions were updated.
+Production qualification policy was not relaxed. Provider/collector unit tests
+use an explicitly synthetic offline policy with the two extra a11y entries, while
+a new regression asserts that the **actual unchanged qualification contract
+refuses the expanded matrix** until a real reviewed baseline exists. Synthetic
+test records were never installed or published as qualification evidence.
+
+Status: **IMPLEMENTED, PENDING REVIEW OR INSTALLATION**. Draft PR #301 is stacked
+on PR #300, and the CI pull-request trigger targets `main`; this draft therefore
+does not have the complete hosted candidate run. Next: independently review and
+merge #300, retarget #301 to main, run its full hosted checks, and review a new
+per-identity composition ledger and per-lane baseline before local qualification.
 
 ## Nightly investigation
 
