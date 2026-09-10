@@ -14,7 +14,7 @@ export function SelectField({
       <select
         data-slot="input"
         className={cn(
-          "h-12 w-full min-w-0 appearance-none px-4 pr-11 text-sm transition-[border-color,outline-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none",
+          "h-12 w-full min-w-0 appearance-none px-4 pr-11 text-base transition-[border-color,outline-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none md:text-sm",
           className
         )}
         {...props}

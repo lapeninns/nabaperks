@@ -141,7 +141,7 @@ function GpsField({
 }) {
   return (
     <FormField id={id} label={<Eyebrow>{label}</Eyebrow>} error={error}>
-      <Input id={id} className="h-12 text-sm" {...props} />
+      <Input id={id} className="h-12" {...props} />
     </FormField>
   )
 }

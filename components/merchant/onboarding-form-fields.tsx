@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
  * layout only. Kept as an export because onboarding-form passes it into
  * VenueAddressFields.
  */
-export const onboardingInputClassName = "h-12 text-sm"
+export const onboardingInputClassName = "h-12"
 
 export type BusinessTypeOption = {
   readonly value: string
