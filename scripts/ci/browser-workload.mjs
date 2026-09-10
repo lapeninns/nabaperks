@@ -3,6 +3,7 @@ import { existsSync } from "node:fs"
 import { resolve } from "node:path"
 import { pathToFileURL } from "node:url"
 import { workloads } from "./run-workload.mjs"
+import { processExitCode } from "./process-exit.mjs"
 
 export function browserArguments({ plane, suite, project, shard }) {
   if (!["hosted", "local"].includes(plane))
@@ -56,28 +57,11 @@ export function browserReportName(args) {
 }
 
 /**
- * The exit code a shard's outcome deserves. **Pure.**
- *
- * A shard the kernel killed and a shard whose assertions failed are different
- * facts about a run, and `result.signal ? 1 : status` collapsed them into the
- * one code Playwright already uses for a red suite. That is how the memory
- * cgroup killing `next-server` mid-shard reached the lane record as an
- * ordinary test failure, with the surviving tests' ECONNREFUSED as its
- * evidence. A signalled shard therefore reports 128 + the signal number, the
- * convention a shell uses for the same fact, so no reader has to infer which
- * of the two happened.
+ * A signal received by Playwright or its wrapper remains distinguishable from
+ * an assertion failure. A killed next-server grandchild can still make a live
+ * Playwright process exit 1; that case needs kernel/cgroup and server evidence.
  */
-export function browserExitCode({ status = null, signal = null } = {}) {
-  if (!signal) return status ?? 1
-  const numbers = {
-    SIGKILL: 9,
-    SIGTERM: 15,
-    SIGABRT: 6,
-    SIGSEGV: 11,
-    SIGINT: 2,
-  }
-  return 128 + (numbers[signal] ?? 0)
-}
+export const browserExitCode = processExitCode
 
 if (
   process.argv[1] &&
