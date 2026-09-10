@@ -1,4 +1,9 @@
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto"
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  randomBytes,
+} from "node:crypto"
 
 /**
  * Pure at-rest codec for merchant_email_otp_aliases.supabase_token (no
@@ -16,6 +21,11 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:
 
 const encryptionKeyName = "MERCHANT_OTP_ALIAS_TOKEN_ENCRYPTION_KEY"
 const VERSION_PREFIX = "v1"
+// Pinned on both sides of the codec: with no explicit authTagLength Node accepts
+// ANY valid GCM tag on decrypt, from 4 bytes up, and a short tag is orders of
+// magnitude cheaper to forge than a full one. Every value ever written here used
+// Node's 16-byte default, so requiring 16 turns away only truncated tags.
+const TAG_BYTES = 16
 
 /** A versioned value that fails parsing or auth-tag verification. */
 export class OtpAliasTokenIntegrityError extends Error {
@@ -27,8 +37,13 @@ export class OtpAliasTokenIntegrityError extends Error {
 
 export function encryptOtpAliasToken(token: string): string {
   const iv = randomBytes(12)
-  const cipher = createCipheriv("aes-256-gcm", cipherKey(), iv)
-  const ciphertext = Buffer.concat([cipher.update(token, "utf8"), cipher.final()])
+  const cipher = createCipheriv("aes-256-gcm", cipherKey(), iv, {
+    authTagLength: TAG_BYTES,
+  })
+  const ciphertext = Buffer.concat([
+    cipher.update(token, "utf8"),
+    cipher.final(),
+  ])
   const tag = cipher.getAuthTag()
 
   return [
@@ -54,7 +69,8 @@ export function decryptOtpAliasToken(stored: string): string {
     const decipher = createDecipheriv(
       "aes-256-gcm",
       cipherKey(),
-      Buffer.from(ivPart, "base64url")
+      Buffer.from(ivPart, "base64url"),
+      { authTagLength: TAG_BYTES }
     )
     decipher.setAuthTag(Buffer.from(tagPart, "base64url"))
     const plaintext = Buffer.concat([

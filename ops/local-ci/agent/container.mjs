@@ -472,6 +472,10 @@ export const READ_NOT_A_FILE_STATUS = 4
  */
 export const MAX_LOG_PART_BYTES = 4 * 1024 * 1024
 
+/** The `outputBytes`/`bytes` of a capture that never produced any. Shared and
+ * never written to, so one allocation serves every empty result. */
+const EMPTY_OUTPUT = Buffer.alloc(0)
+
 /**
  * Read one file out of a run's workspace **inside the VM**. Pure: returns the
  * argv.
@@ -775,8 +779,16 @@ export function buildContainerArgv({
  * cannot help if the daemon itself wedges, so this escalates SIGTERM then
  * SIGKILL and reports `timedOut: true`.
  *
- * `onOutput` receives every chunk as it arrives, so the caller can stream to a
- * log file without buffering an hour of Playwright output in memory.
+ * `onOutput` receives every chunk as it arrives - as a Buffer, never as text -
+ * so the caller can stream to a log file without buffering an hour of
+ * Playwright output in memory, and can do so without a decode standing between
+ * the process and the bytes its digest will attest to.
+ *
+ * The result carries both views. `outputBytes` is exactly what the process
+ * wrote. `output` is that same capture decoded once, for the callers that only
+ * want to `.trim()` it into an error message; it is decoded over the whole
+ * capture rather than per chunk, because a multi-byte sequence that straddles
+ * a chunk boundary survives the first and is destroyed by the second.
  */
 export async function runContainer(
   argv,
@@ -805,6 +817,7 @@ export async function runContainer(
       cancelled: true,
       truncated: false,
       output: "",
+      outputBytes: EMPTY_OUTPUT,
       durationMs: 0,
     })
   }
@@ -815,18 +828,24 @@ export async function runContainer(
     stdio: ["ignore", "pipe", "pipe"],
   })
 
-  let buffered = ""
+  const buffered = []
   let bufferedBytes = 0
   let truncated = false
   const collect = (stream, chunk) => {
-    const text = chunk.toString("utf8")
-    if (onOutput) onOutput(text, stream)
+    // Bytes, not text. Decoding here decoded once per chunk, which corrupted a
+    // multi-byte UTF-8 sequence split across a chunk boundary - `A£B` arriving
+    // as `41 C2` then `A3 42` was captured as two U+FFFD - and folded every
+    // invalid byte into U+FFFD as well, so the digest downstream could no
+    // longer tell the log `41 80 42` from the log `41 FF 42`. Holding the
+    // buffers means the capture is the bytes the process wrote.
+    const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+    if (onOutput) onOutput(bytes, stream)
     if (bufferedBytes >= maxBufferBytes) {
       truncated = true
       return
     }
-    buffered += text
-    bufferedBytes += Buffer.byteLength(text, "utf8")
+    buffered.push(bytes)
+    bufferedBytes += bytes.length
   }
   child.stdout?.on("data", (chunk) => collect("stdout", chunk))
   child.stderr?.on("data", (chunk) => collect("stderr", chunk))
@@ -868,13 +887,15 @@ export async function runContainer(
         resolve({ code: exitCode, signalName: closeSignal })
       )
     })
+    const outputBytes = Buffer.concat(buffered)
     return Object.freeze({
       exitCode: code,
       signal: signalName,
       timedOut,
       cancelled,
       truncated,
-      output: buffered,
+      output: outputBytes.toString("utf8"),
+      outputBytes,
       durationMs: Date.now() - started,
     })
   } catch (error) {
@@ -1200,17 +1221,21 @@ export function createContainerRuntime({
           name,
           status: "unreadable",
           text: "",
+          bytes: EMPTY_OUTPUT,
           reason: error.message,
         })
       }
 
-      let text = ""
+      // Buffers, for the same reason the streamed capture holds buffers: this
+      // is the other input to the evidence digest, and a decode on the way in
+      // would put a service log's bytes beyond what that digest can bind.
+      const captured = []
       let result
       try {
         result = await exec(argv, {
           timeoutMs,
           onOutput: (chunk, stream) => {
-            if (stream === "stdout") text += chunk
+            if (stream === "stdout") captured.push(chunk)
           },
         })
       } catch (error) {
@@ -1218,16 +1243,19 @@ export function createContainerRuntime({
           name,
           status: "unreadable",
           text: "",
+          bytes: EMPTY_OUTPUT,
           reason: error.message,
         })
       }
 
       if (result.exitCode === 0) {
+        const bytes = Buffer.concat(captured)
         return Object.freeze({
           name,
           status: "captured",
-          text,
-          truncated: Buffer.byteLength(text, "utf8") >= maxBytes,
+          text: bytes.toString("utf8"),
+          bytes,
+          truncated: bytes.length >= maxBytes,
           reason: null,
         })
       }
@@ -1236,6 +1264,7 @@ export function createContainerRuntime({
           name,
           status: "absent",
           text: "",
+          bytes: EMPTY_OUTPUT,
           reason: `no file at ${workspaceHostPath}/${name} when the lane ended`,
         })
       }
@@ -1244,6 +1273,7 @@ export function createContainerRuntime({
           name,
           status: "unreadable",
           text: "",
+          bytes: EMPTY_OUTPUT,
           reason: `${workspaceHostPath}/${name} is a symlink or not a regular file; this plane does not follow a link the job container could have planted`,
         })
       }
@@ -1251,6 +1281,7 @@ export function createContainerRuntime({
         name,
         status: "unreadable",
         text: "",
+        bytes: EMPTY_OUTPUT,
         reason: `reading ${workspaceHostPath}/${name} exited ${result.exitCode}${result.timedOut ? " (timed out)" : ""}`,
       })
     },

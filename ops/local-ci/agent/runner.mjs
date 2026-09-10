@@ -567,6 +567,34 @@ export function laneLogParts(lane) {
 
 /* ----------------------------------------------------------------- records */
 
+/**
+ * The bytes of a log part. **Pure.**
+ *
+ * A caller that carried buffers all the way from the capture hands over the
+ * capture itself; one that only ever had text - a test double, a container
+ * runtime that returns a string - is encoded here, once. Either way the digest
+ * upstream is handed bytes rather than a decoding of them.
+ */
+function toLogBytes(value) {
+  if (Buffer.isBuffer(value)) return value
+  if (value instanceof Uint8Array) return Buffer.from(value)
+  return Buffer.from(String(value), "utf8")
+}
+
+/**
+ * What a log part contributes to the evidence digest. **Pure.**
+ *
+ * `bytes` when the part carries them, because that is the log as it was
+ * written and as it sits in the run directory. `text` is the fallback for a
+ * part assembled from a string, and it is a genuinely weaker binding: a
+ * decoding has already folded every invalid byte into U+FFFD, so the distinct
+ * logs `41 80 42` and `41 FF 42` reach it as one and the same string. The
+ * capture path in `createRunner` supplies `bytes` for every part it records.
+ */
+function logPartBytes(part) {
+  return toLogBytes(part.bytes ?? part.text)
+}
+
 function statusFor({ exitCode, timedOut, cancelled }) {
   if (cancelled) return "cancelled"
   if (timedOut) return "timed_out"
@@ -581,11 +609,17 @@ function statusFor({ exitCode, timedOut, cancelled }) {
  * `countsParsed`/`countsExpected` say whether that is a fact about the lane
  * (a hygiene lane runs no tests) or a defect in this plane's evidence.
  *
- * `logs` is `[{ name, text }]`: the files this lane put in the run directory,
- * in the order they are hashed. `logParts` is their names and `logDigest` is
- * `digestLogBundle` over their texts, so the record's manifest and its digest
- * can never describe different sets of bytes. Anything the lane declared and
- * did not produce belongs in `missingLogs` as `{ name, reason }`.
+ * `logs` is `[{ name, text, bytes? }]`: the files this lane put in the run
+ * directory, in the order they are hashed. `logParts` is their names and
+ * `logDigest` is `digestLogBundle` over their `bytes`, so the record's
+ * manifest and its digest can never describe different sets of bytes.
+ * Anything the lane declared and did not produce belongs in `missingLogs` as
+ * `{ name, reason }`.
+ *
+ * `bytes` is the binding and `text` is the reading: the counts, the failure
+ * titles and the summary come off `text`, while nothing that reaches the hash
+ * has been through a decode. A part given only `text` still hashes, but it
+ * binds that decoding rather than the log - see `logPartBytes`.
  */
 export function buildLaneResult({
   lane,
@@ -623,7 +657,13 @@ export function buildLaneResult({
     logs ??
     (resolved === "skipped" || resolved === "cancelled"
       ? []
-      : [{ name: `${lane.id}.log`, text: output }])
+      : [
+          {
+            name: `${lane.id}.log`,
+            text: output,
+            bytes: toLogBytes(output),
+          },
+        ])
   for (const [index, part] of parts.entries()) {
     requireObject(part, `logs[${index}]`)
     if (typeof part.name !== "string" || part.name.trim() === "") {
@@ -636,6 +676,20 @@ export function buildLaneResult({
       fail(
         "INVALID_INPUT",
         `logs[${index}].text must be a string (received ${describeValue(part.text)}); a part named in logParts must carry the bytes it was hashed from`
+      )
+    }
+    // `bytes` is what the digest binds when it is there. It is optional, so a
+    // caller holding only text still builds a record, but it may not be some
+    // other type: silently falling back to `text` would drop the byte binding
+    // without saying so.
+    if (
+      part.bytes !== undefined &&
+      part.bytes !== null &&
+      !(part.bytes instanceof Uint8Array)
+    ) {
+      fail(
+        "INVALID_INPUT",
+        `logs[${index}].bytes must be a Uint8Array/Buffer when present (received ${describeValue(part.bytes)})`
       )
     }
   }
@@ -696,7 +750,7 @@ export function buildLaneResult({
       name: entry.name,
       reason: entry.reason ?? null,
     })),
-    logDigest: logDigestValue ?? digestLogBundle(parts.map((p) => p.text)),
+    logDigest: logDigestValue ?? digestLogBundle(parts.map(logPartBytes)),
   })
 }
 
@@ -963,8 +1017,15 @@ export function createRunner({
    * value of the digest is that a reader can rebuild it from the files the
    * record names.
    */
-  async function captureLaneLogs(lane, laneOutput, laneWorkspace) {
-    const logs = [{ name: `${lane.id}.log`, text: laneOutput }]
+  async function captureLaneLogs(
+    lane,
+    laneOutput,
+    laneOutputBytes,
+    laneWorkspace
+  ) {
+    const logs = [
+      { name: `${lane.id}.log`, text: laneOutput, bytes: laneOutputBytes },
+    ]
     const missing = []
     const browserReports = laneBrowserReports(lane)
     for (const part of [...laneServiceLogs(lane), ...browserReports]) {
@@ -997,9 +1058,13 @@ export function createRunner({
           `lane ${lane.id}: ${part.source} was longer than this plane copies out of the workspace; the evidence holds its first portion only`
         )
       }
+      // The bytes the workspace read returned, so the file in the run
+      // directory is byte-identical to the service log and the digest below
+      // binds what §6.4 will rebuild from that file.
+      const readBytes = toLogBytes(read.bytes ?? read.text)
       try {
         const sink = openLaneLog ? await openLaneLog(part.stored) : null
-        sink?.write(read.text)
+        sink?.write(readBytes)
         await sink?.close?.()
       } catch (error) {
         missing.push({
@@ -1008,7 +1073,7 @@ export function createRunner({
         })
         continue
       }
-      logs.push({ name: part.stored, text: read.text })
+      logs.push({ name: part.stored, text: read.text, bytes: readBytes })
     }
     return { logs, missing }
   }
@@ -1107,7 +1172,10 @@ export function createRunner({
             return
           }
           const sink = openLaneLog ? await openLaneLog(`${lane.id}.log`) : null
-          let output = ""
+          // Buffers, in arrival order. These are what the log file receives and
+          // what the digest binds; the text view is decoded from them once, at
+          // the end, so no chunk boundary falls inside a character.
+          const outputChunks = []
 
           let result = null
           let runtimeError = null
@@ -1163,8 +1231,13 @@ export function createRunner({
               needsDaemon: lane.needsDaemon === true,
               signal,
               onOutput: (chunk) => {
-                output += chunk
-                sink?.write(chunk)
+                // A container runtime hands over buffers; a test double may
+                // still hand over a string, and encoding it here is exact.
+                const bytes = Buffer.isBuffer(chunk)
+                  ? chunk
+                  : Buffer.from(chunk, "utf8")
+                outputChunks.push(bytes)
+                sink?.write(bytes)
               },
             })
             if (result.teardownErrors?.length)
@@ -1182,8 +1255,11 @@ export function createRunner({
             // Through the sink as well, so the reason is in the lane's log file
             // and not only in the agent's own stderr. The digest below covers
             // these bytes; the file it is rebuilt from has to carry them too.
-            const note = `${LOG_MARKER} lane ${lane.id} could not run: ${error.message}\n`
-            output += note
+            const note = Buffer.from(
+              `${LOG_MARKER} lane ${lane.id} could not run: ${error.message}\n`,
+              "utf8"
+            )
+            outputChunks.push(note)
             sink?.write(note)
             log("error", `lane ${lane.id} could not run: ${error.message}`)
           } finally {
@@ -1195,11 +1271,20 @@ export function createRunner({
           // truncated copy would not match the file §6.4 rebuilds it from. The
           // fallback is for a runtime that returns output without streaming it,
           // which writes no file either.
-          const laneOutput = output === "" ? (result?.output ?? "") : output
+          const streamed = Buffer.concat(outputChunks)
+          const laneOutputBytes =
+            streamed.length === 0
+              ? toLogBytes(result?.outputBytes ?? result?.output ?? "")
+              : streamed
+          // Decoded once, over the whole lane capture. Only the digest needs
+          // the bytes; the count parser, the failure extractor and the summary
+          // all read this.
+          const laneOutput = laneOutputBytes.toString("utf8")
           const laneEnded = now()
           const captured = await captureLaneLogs(
             lane,
             laneOutput,
+            laneOutputBytes,
             laneWorkspace
           )
           const laneResult = buildLaneResult({
@@ -1229,7 +1314,7 @@ export function createRunner({
           laneResults[laneIndex] = laneResult
           // In `logParts` order, so the run digest is reproducible from the
           // manifest the lane documents publish.
-          logBundles[laneIndex] = captured.logs.map((part) => part.text)
+          logBundles[laneIndex] = captured.logs.map(logPartBytes)
 
           if (
             laneResult.status !== "success" &&

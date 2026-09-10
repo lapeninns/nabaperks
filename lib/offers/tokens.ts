@@ -37,6 +37,11 @@ import { requiredCustomerSessionSecret } from "@/lib/security/customer-session-s
 
 const CIPHER_FORMAT = "v1"
 const IV_BYTES = 12
+// Pinned on both sides of the codec: with no explicit authTagLength Node accepts
+// ANY valid GCM tag on decrypt, from 4 bytes up, and a short tag is orders of
+// magnitude cheaper to forge than a full one. Every value ever written here used
+// Node's 16-byte default, so requiring 16 turns away only truncated tags.
+const TAG_BYTES = 16
 const AAD = Buffer.from("nabaperks:offer-campaign:v1:link", "utf8")
 
 /**
@@ -96,7 +101,9 @@ export function offerClaimTokenSet(
 /** AES-256-GCM, key derived from the same secret, format `v1.<iv>.<ct>.<tag>`. */
 export function encryptOfferClaimToken(token: string): string {
   const iv = randomBytes(IV_BYTES)
-  const cipher = createCipheriv("aes-256-gcm", cipherKey(), iv)
+  const cipher = createCipheriv("aes-256-gcm", cipherKey(), iv, {
+    authTagLength: TAG_BYTES,
+  })
   cipher.setAAD(AAD)
   const body = Buffer.concat([cipher.update(token, "utf8"), cipher.final()])
   return [
@@ -116,7 +123,8 @@ export function decryptOfferClaimToken(value: string): string | null {
     const decipher = createDecipheriv(
       "aes-256-gcm",
       cipherKey(),
-      Buffer.from(ivPart, "base64url")
+      Buffer.from(ivPart, "base64url"),
+      { authTagLength: TAG_BYTES }
     )
     decipher.setAAD(AAD)
     decipher.setAuthTag(Buffer.from(tagPart, "base64url"))

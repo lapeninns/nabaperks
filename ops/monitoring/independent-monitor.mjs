@@ -14,10 +14,15 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs"
-import { dirname, isAbsolute, join, resolve } from "node:path"
-import { pathToFileURL } from "node:url"
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path"
+import { fileURLToPath, pathToFileURL } from "node:url"
 
 const ROOT = new URL("../../", import.meta.url)
+// ROOT is a file: URL, so its pathname is percent-encoded. A checkout path
+// containing a space — or '#', '?', or non-ASCII — could then never share a
+// prefix with a decoded filesystem path, so the containment guard below passed
+// for state that was in fact inside the checkout. fileURLToPath decodes it.
+const CHECKOUT = resolve(fileURLToPath(ROOT))
 const CONTRACT = JSON.parse(
   readFileSync(
     new URL("config/independent-monitoring-contract.json", ROOT),
@@ -33,6 +38,20 @@ const UUID =
 const PRODUCTION_ORIGIN = "https://nabaperks.com"
 const digest = (bytes) => createHash("sha256").update(bytes).digest("hex")
 
+/**
+ * Undelivered alert state must survive a redeploy or `git clean -xfd`, so it
+ * may not live in the checkout. Containment is compared segment-wise rather
+ * than by string prefix: a sibling such as '<checkout>-state' shares the
+ * checkout's characters but not its path, and is a legitimate location.
+ */
+function insideCheckout(directory) {
+  const offset = relative(CHECKOUT, resolve(directory))
+  return (
+    offset === "" ||
+    (!isAbsolute(offset) && offset !== ".." && !offset.startsWith(`..${sep}`))
+  )
+}
+
 export function validateMonitorConfig(config) {
   assert.equal(config.schema, "nabaperks.independent-monitor-runtime.v1")
   assert.equal(
@@ -45,7 +64,7 @@ export function validateMonitorConfig(config) {
     "absolute independently hosted state directory required"
   )
   assert.ok(
-    !resolve(config.stateDirectory).startsWith(resolve(new URL(ROOT).pathname)),
+    !insideCheckout(config.stateDirectory),
     "monitor state must be outside source checkout"
   )
   assert.ok(

@@ -45,6 +45,27 @@ test("rejects a non-versioned (plaintext) value — no legacy passthrough", () =
   )
 })
 
+test("writes a full 16-byte auth tag, so pinning the length reads every row", () => {
+  const [, , tag] = encryptCustomerEmail("regular@example.com").split(".")
+  assert.equal(Buffer.from(tag, "base64url").byteLength, 16)
+})
+
+test("rejects a truncated auth tag", () => {
+  // GCM verifies only as many tag bytes as it is handed, so before the codec
+  // pinned authTagLength the first four bytes of a genuine tag were enough to
+  // decrypt — and four bytes are trivially cheaper to forge than sixteen.
+  // Truncation has to fail exactly as hard as tampering.
+  const parts = encryptCustomerEmail("regular@example.com").split(".")
+  parts[2] = Buffer.from(parts[2], "base64url")
+    .subarray(0, 4)
+    .toString("base64url")
+
+  assert.throws(
+    () => decryptCustomerEmail(parts.join(".")),
+    CustomerEmailCipherIntegrityError
+  )
+})
+
 test("fails closed when the key is missing", async () => {
   const previous = process.env.CUSTOMER_EMAIL_ENCRYPTION_KEY
   delete process.env.CUSTOMER_EMAIL_ENCRYPTION_KEY

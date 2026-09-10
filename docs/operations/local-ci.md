@@ -1181,7 +1181,11 @@ map is rendered into it.
      const record = JSON.parse(await readFile(`${dir}/lane-result.json`, "utf8"))
      const parts = []
      for (const name of record.logParts) {
-       parts.push(await readFile(`${dir}/${name}`, "utf8"))
+       // No encoding argument, so this reads Buffers. The digest binds the
+       // log's bytes; reading as "utf8" would replace every invalid byte with
+       // U+FFFD before the hash saw it, rebuild a different digest, and report
+       // an intact run as an integrity finding.
+       parts.push(await readFile(`${dir}/${name}`))
      }
      console.log(digestLogBundle(parts))
    '
