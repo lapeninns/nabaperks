@@ -141,7 +141,7 @@
     "network": "bridge",
     "readOnlyRootFilesystem": false,
     "workspacePath": "/workspace",
-    "notes": "timeoutMinutes is deliberately 10 minutes inside bridge.timeoutMinutes so the agent kills and reports a run before the hosted bridge job gives up on it. dockerInDocker is what lets the DB lane run `supabase start` without ever handing a job the host Docker socket; mountHostDockerSocket must stay false, because the host socket is a container escape.",
+    "notes": "timeoutMinutes is deliberately 10 minutes inside bridge.timeoutMinutes so the agent kills and reports a run before the hosted bridge job gives up on it. dockerInDocker is what lets the DB lane run `supabase start` without ever handing a job the host Docker socket; mountHostDockerSocket must stay false, because the host socket is a container escape. Admission retains 32 GiB for job containers plus the 6 GiB daemon and 2 GiB VM reserve, within 40 GiB total. Browser lanes keep an 8 GiB cgroup cap; browserMemory reserves 4 GiB outside V8 old space. No VM or sidecar capacity is borrowed to raise a lane ceiling.",
     "daemon": {
       "cpus": 1,
       "memoryGb": 6
@@ -326,5 +326,11 @@
     "activationVariable": "LOCAL_CI_WATCHDOG_ENABLED",
     "notificationAssignee": "lapeninns",
     "notes": "Operator selected GitHub Actions instead of external monitoring. Poll heartbeat every 5 minutes, 15 minutes grace. Alerts may be delayed or missed during GitHub scheduling or availability failures. Enable only after real agent publication and verify GitHub notification delivery."
+  },
+  "browserMemory": {
+    "oldSpaceMb": 4096,
+    "browserReserveMb": 1536,
+    "nativeAndToolsReserveMb": 2560,
+    "notes": "Planning allocations inside each 8192 MiB browser lane: 4096 MiB V8 old space, 1536 MiB browser allowance (above the historical 1.07 GiB WebKit observation), and 2560 MiB for native memory, young space, tooling and filesystem charges. Only the whole-container limit is enforced by cgroups. These allocations do not bound RSS or guarantee a V8 error before an OOM kill. Keep /32 e2e sharding and verify full-profile cgroup peaks and kernel OOM scopes in the VM."
   }
 }

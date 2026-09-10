@@ -51,7 +51,7 @@ export async function reconcileWatchdogIncidents({
     throw new Error("Invalid watchdog run URL")
   }
   for (const kind of Object.keys(MONITORS)) {
-    if (typeof healthy[kind] !== "boolean")
+    if (typeof healthy[kind] !== "boolean" && healthy[kind] !== null)
       throw new Error("Both watchdog observations are required")
   }
   const open = []
@@ -72,7 +72,18 @@ export async function reconcileWatchdogIncidents({
   const results = []
   for (const kind of Object.keys(MONITORS)) {
     const incidents = open.filter((issue) => isOurIncident(issue, kind))
-    if (healthy[kind]) {
+    // `null` is "nobody looked", which is neither health nor an outage. A
+    // deliberately paused agent must not open an incident, and it must not
+    // close a standing one either - closing would assert a recovery no
+    // observation supports. Say so instead, and leave whatever is open alone.
+    if (healthy[kind] === null) {
+      results.push({
+        monitor: kind,
+        state: "not monitored",
+        action: "none",
+        ...(incidents.length ? { issue: incidents[0].number } : {}),
+      })
+    } else if (healthy[kind]) {
       for (const issue of incidents) {
         await github.rest.issues.update({
           owner,

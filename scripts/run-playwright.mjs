@@ -2,6 +2,7 @@
 import { spawnSync } from "node:child_process"
 import { existsSync, readFileSync, rmSync } from "node:fs"
 import { join } from "node:path"
+import { processExitCode } from "./ci/process-exit.mjs"
 
 const playwrightArgs = process.argv.slice(2).filter((arg) => arg !== "--")
 const projectDir = process.cwd()
@@ -34,7 +35,10 @@ if (result.error) {
   process.exit(1)
 }
 
-process.exit(result.status ?? 1)
+if (result.signal) {
+  console.error(`Playwright child terminated by signal ${result.signal}`)
+}
+process.exit(processExitCode(result))
 
 function readEnvFile(path) {
   if (!existsSync(path)) return {}

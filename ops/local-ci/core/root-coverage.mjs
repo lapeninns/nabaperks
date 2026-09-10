@@ -171,8 +171,8 @@ function normaliseLaneEntry(entry, index) {
   return {
     laneId: requireLaneId(entry, path),
     status: null,
-    executionStarted: true,
-    executionVerified: true,
+    executionStarted: null,
+    executionVerified: null,
   }
 }
 

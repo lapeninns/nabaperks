@@ -33,7 +33,7 @@
         "desktop-safari"
       ],
       "hostedShards": 32,
-      "localShards": 8,
+      "localShards": 32,
       "grepInvert": "@visual"
     },
     "test:a11y": {

@@ -3,6 +3,7 @@ import { existsSync } from "node:fs"
 import { resolve } from "node:path"
 import { pathToFileURL } from "node:url"
 import { workloads } from "./run-workload.mjs"
+import { processExitCode } from "./process-exit.mjs"
 
 export function browserArguments({ plane, suite, project, shard }) {
   if (!["hosted", "local"].includes(plane))
@@ -55,6 +56,13 @@ export function browserReportName(args) {
   return `local-ci-${project}-${shard.replace("/", "-of-")}.json`
 }
 
+/**
+ * A signal received by Playwright or its wrapper remains distinguishable from
+ * an assertion failure. A killed next-server grandchild can still make a live
+ * Playwright process exit 1; that case needs kernel/cgroup and server evidence.
+ */
+export const browserExitCode = processExitCode
+
 if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(process.argv[1]).href
@@ -76,7 +84,11 @@ if (
       { stdio: "inherit", env }
     )
     if (result.error) throw result.error
-    process.exitCode = result.signal ? 1 : (result.status ?? 1)
+    if (result.signal)
+      console.error(
+        `browser workload terminated by signal ${result.signal}; this is an infrastructure failure, not a test result`
+      )
+    process.exitCode = browserExitCode(result)
   } catch (error) {
     console.error(error.message)
     process.exitCode = 1
