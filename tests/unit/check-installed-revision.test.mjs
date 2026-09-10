@@ -1,3 +1,18 @@
+import {
+  mkdtempSync,
+  mkdirSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import {
+  inspectReleaseFiles,
+  inspectJobImage,
+  INSTALLED_REQUIRED_FILES,
+} from "../../scripts/ci/installed-execution-surface.mjs"
 import assert from "node:assert/strict"
 import { test } from "node:test"
 import {
@@ -30,10 +45,13 @@ const fakeGit = ({
   known = true,
   behind = [],
   ahead = [],
+  providerRevision = reference,
 } = {}) => {
   const calls = []
   const git = (args) => {
     calls.push(args.join(" "))
+    if (args[0] === "ls-remote")
+      return { status: 0, stdout: `${providerRevision}\trefs/heads/main\n` }
     if (args[0] === "rev-parse") return { status: 0, stdout: `${reference}\n` }
     if (args[0] === "cat-file") return { status: known ? 0 : 128, stdout: "" }
     if (args[0] === "merge-base")
@@ -55,6 +73,12 @@ const inspect = (options = {}, gitOptions = {}) => {
     git,
     readLink: () => `${INSTALL_ROOT}/releases/${INSTALLED}`,
     exists: () => true,
+    inspectFiles: () => {},
+    inspectImage: () => ({
+      pin: `nabaperks-ci-job:${REFERENCE}`,
+      sourceRevision: REFERENCE,
+      changedPaths: [],
+    }),
     ...options,
   })
   return { report, calls }
@@ -279,7 +303,9 @@ test("the reference is configurable and must resolve to a full commit SHA", () =
   assert.equal(report.reference.name, "upstream/main")
   assert.ok(calls.includes("rev-parse upstream/main"))
   assert.throws(
-    () => inspect({}, { reference: "origin/main\n" }).report,
+    () =>
+      inspect({}, { reference: "origin/main\n", providerRevision: REFERENCE })
+        .report,
     /did not resolve to a commit SHA/
   )
 })
@@ -292,4 +318,111 @@ test("classification rejects malformed revisions rather than guessing", () => {
     { installedRevision: undefined, reference: null },
   ])
     assert.throws(() => classifyInstalledRevision({ ...input, ancestor: true }))
+})
+
+test("a stale tracking ref cannot clear drift even when the install matches it", () => {
+  const { report, calls } = inspect(
+    { readLink: () => `${INSTALL_ROOT}/releases/${INSTALLED}` },
+    { reference: INSTALLED, providerRevision: REFERENCE }
+  )
+  assert.equal(report.exitCode, 2)
+  assert.equal(report.reason, "stale-reference")
+  assert.ok(
+    calls.some((call) =>
+      call.startsWith("ls-remote https://github.com/lapeninns/nabaperks.git")
+    )
+  )
+})
+
+test("dangling and incomplete release directories fail before a matched result", () => {
+  const root = mkdtempSync(join(tmpdir(), "nabaperks-installed-files-"))
+  const currentLink = join(root, "current")
+  const target = join(root, "releases", REFERENCE)
+  try {
+    mkdirSync(join(root, "releases"))
+    symlinkSync(target, currentLink)
+    assert.throws(() => inspectReleaseFiles({ currentLink, target }), /ENOENT/)
+    mkdirSync(target)
+    assert.throws(() => inspectReleaseFiles({ currentLink, target }), /ENOENT/)
+    for (const file of INSTALLED_REQUIRED_FILES) {
+      const dest = join(target, file)
+      mkdirSync(join(dest, ".."), { recursive: true })
+      writeFileSync(dest, "fixture")
+    }
+    assert.equal(
+      inspectReleaseFiles({ currentLink, target }),
+      realpathSync(target)
+    )
+    const { report } = inspect({
+      inspectFiles: () => {
+        throw new Error("missing installed entrypoint")
+      },
+    })
+    assert.equal(report.reason, "incomplete-release")
+    assert.equal(report.exitCode, 2)
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test("a preserved job-image pin cannot clear changed image build inputs", () => {
+  const calls = []
+  const imageGit = (args) => {
+    calls.push(args)
+    return {
+      status: 0,
+      stdout:
+        args[0] === "diff" ? "ops/local-ci/image/Dockerfile\n.nvmrc\n" : "",
+    }
+  }
+  const inspectImage = (options) =>
+    inspectJobImage({
+      ...options,
+      git: imageGit,
+      readText: () => `nabaperks-ci-job:${INSTALLED}\n`,
+    })
+  const { report } = inspect({
+    readLink: () => `${INSTALL_ROOT}/releases/${REFERENCE}`,
+    inspectImage,
+  })
+  assert.equal(report.status, "image-source-drift")
+  assert.equal(report.exitCode, 5)
+  assert.equal(report.jobImage.sourceRevision, INSTALLED)
+  assert.deepEqual(report.jobImage.changedPaths, [
+    "ops/local-ci/image/Dockerfile",
+    ".nvmrc",
+  ])
+  assert.ok(
+    calls.some(
+      (args) =>
+        args[0] === "diff" &&
+        args.includes("pnpm-workspace.yaml") &&
+        args.includes("patches/")
+    )
+  )
+})
+
+test("unattributable or unreviewed job images cannot produce a clean install report", () => {
+  for (const pin of ["nabaperks-ci-job:latest", `other-image:${INSTALLED}`]) {
+    assert.throws(
+      () =>
+        inspectJobImage({
+          currentLink: CURRENT_LINK,
+          referenceRevision: REFERENCE,
+          git: fakeGit().git,
+          readText: () => pin,
+        }),
+      /attributable full build revision/
+    )
+  }
+  assert.throws(
+    () =>
+      inspectJobImage({
+        currentLink: CURRENT_LINK,
+        referenceRevision: REFERENCE,
+        git: () => ({ status: 1, stdout: "" }),
+        readText: () => `nabaperks-ci-job:${UNMERGED}`,
+      }),
+    /not reviewed main history/
+  )
 })

@@ -1,3 +1,4 @@
+import { requireHostedIdentity } from "./hosted-identity.mjs"
 /** Read-only same-SHA evidence comparison. This module never changes a gate. */
 import {
   COUNT_FIELDS,
@@ -150,6 +151,7 @@ export function compareShadowEvidence({
   }
   try {
     requireCondition(/^[a-f0-9]{40}$/.test(headSha ?? ""), "Invalid head SHA")
+    requireHostedIdentity(hosted?.provider, profile, headSha)
     const limits = validateLimits(contract, profile)
     const ids = Object.keys(limits.lanes)
     const localLanes = indexEvidence(local, "local", headSha, profile, ids)

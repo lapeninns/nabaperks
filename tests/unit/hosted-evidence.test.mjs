@@ -60,6 +60,10 @@ const run = {
   conclusion: "success",
   head_sha: HEAD_SHA,
   head_branch: "main",
+  event: "push",
+  path: CI_WORKFLOW_PATH,
+  repository: { full_name: "lapeninns/nabaperks" },
+  head_repository: { full_name: "lapeninns/nabaperks" },
   html_url: "https://github.com/lapeninns/nabaperks/actions/runs/34290952137",
 }
 
@@ -525,14 +529,14 @@ test("evidence from anywhere but the pinned repository is refused", () => {
       build(hostedRun(), {
         run: { ...run, repository: { full_name: "someone/nabaperks-fork" } },
       }),
-    /belongs to someone\/nabaperks-fork, not lapeninns\/nabaperks/
+    /pinned repository/
   )
   assert.throws(
     () =>
       build(hostedRun(), {
         run: { ...run, path: ".github/workflows/local-ci-shadow.yml" },
       }),
-    /is a run of \.github\/workflows\/local-ci-shadow\.yml/
+    /pinned repository, workflow/
   )
 })
 
@@ -551,7 +555,7 @@ test("--repo may restate the pinned repository and never redirect", () => {
   )
   assert.throws(
     () => resolveRepository({ contract: {}, requested: undefined }),
-    /pins no repository/
+    /independently pinned repository/
   )
 })
 
@@ -769,4 +773,71 @@ test("a split job that fails outside every lane's steps cannot be attributed", (
     () => build(fixture),
     /concluded failure, but no lane it carries reports a failure/
   )
+})
+
+test("a candidate cannot move the verifier repository pin to a fork", () => {
+  const candidate = structuredClone(contract)
+  candidate.repository = "someone/nabaperks-fork"
+  assert.throws(
+    () => resolveRepository({ contract: candidate }),
+    /independently pinned repository/
+  )
+  assert.throws(
+    () =>
+      build(hostedRun(), {
+        contract: candidate,
+        repository: candidate.repository,
+      }),
+    /pinned repository/
+  )
+})
+
+test("hosted profile identity requires the matching event and canonical main branch", () => {
+  assert.throws(() => build(hostedRun(), { profile: "pr" }), /event and branch/)
+  assert.throws(
+    () => build(hostedRun(), { run: { ...run, head_branch: "codex/feature" } }),
+    /event and branch/
+  )
+  assert.throws(
+    () => build(hostedRun(), { run: { ...run, event: "workflow_dispatch" } }),
+    /event and branch/
+  )
+  assert.throws(
+    () =>
+      build(hostedRun(), {
+        run: { ...run, head_repository: { full_name: "someone/fork" } },
+      }),
+    /pinned repository/
+  )
+  const pr = build(hostedRun(), {
+    profile: "pr",
+    run: { ...run, event: "pull_request", head_branch: "codex/feature" },
+  })
+  assert.equal(pr.provider.event, "pull_request")
+  assert.equal(pr.provider.headBranch, "codex/feature")
+  assert.equal(pr.provider.headSha, HEAD_SHA)
+})
+
+test("coloured hosted Playwright and node tallies retain their counts", () => {
+  const counts = laneCountsFromLogs({
+    kind: "tests",
+    status: "success",
+    logs: [
+      stamped([
+        "\u001b[32m  8 passed\u001b[0m (41s)",
+        "\u001b[36m  2 skipped\u001b[0m",
+      ]),
+      stamped([
+        "\u001b[32mℹ tests 4\u001b[0m",
+        "ℹ pass 4",
+        "ℹ fail 0",
+        "ℹ skipped 0",
+        "ℹ todo 0",
+      ]),
+    ],
+  })
+  assert.equal(counts.testsRun, 14)
+  assert.equal(counts.testsPassed, 12)
+  assert.equal(counts.testsSkipped, 2)
+  assert.equal(counts.countsParsed, true)
 })

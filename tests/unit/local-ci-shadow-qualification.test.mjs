@@ -32,6 +32,14 @@ function fixture() {
     profile: "pr",
     headSha: HEAD,
     conclusion: "success",
+    provider: {
+      repository: "lapeninns/nabaperks",
+      headRepository: "lapeninns/nabaperks",
+      workflow: ".github/workflows/ci.yml",
+      headSha: HEAD,
+      event: "pull_request",
+      headBranch: "codex/test",
+    },
     lanes: Object.entries(contract.shadowMode.qualification.lanes).map(
       ([laneId, limit]) => ({
         schema: "nabaperks.lane-result.v1",
@@ -202,6 +210,8 @@ test("duration is not compared across planes but exceeding the local budget bloc
 test("main proof never counts as a PR head", () => {
   const input = fixture()
   input.profile = "main"
+  input.hosted.provider.event = "push"
+  input.hosted.provider.headBranch = "main"
   for (const record of [input.local, input.hosted]) {
     record.profile = "main"
     for (const lane of record.lanes) lane.profile = "main"
@@ -364,6 +374,14 @@ function observedFixture(profile = "pr") {
     profile,
     headSha: OBSERVED_HEAD,
     conclusion: "success",
+    provider: {
+      repository: "lapeninns/nabaperks",
+      headRepository: "lapeninns/nabaperks",
+      workflow: ".github/workflows/ci.yml",
+      headSha: OBSERVED_HEAD,
+      event: profile === "pr" ? "pull_request" : "push",
+      headBranch: profile === "pr" ? "codex/test" : "main",
+    },
     lanes: Object.entries(OBSERVED_RUN.lanes).map(
       ([laneId, { testsRun, testsSkipped }]) => ({
         schema: "nabaperks.lane-result.v1",
@@ -500,4 +518,74 @@ test("streakProfiles cannot name a profile that is never compared", () => {
   const result = compareShadowEvidence(input)
   assert.equal(result.verdict, "incomplete")
   assert.match(result.reasons.join(" "), /streakProfiles/)
+})
+
+test("stored evidence cannot relabel main pushes or fork runs as eligible PR proof", () => {
+  for (const change of [
+    (p) => {
+      p.event = "push"
+    },
+    (p) => {
+      p.repository = "someone/fork"
+    },
+    (p) => {
+      p.headRepository = "someone/fork"
+    },
+    (p) => {
+      p.headSha = "b".repeat(40)
+    },
+  ]) {
+    const input = fixture()
+    change(input.hosted.provider)
+    const result = compareShadowEvidence(input)
+    assert.equal(result.verdict, "incomplete")
+    assert.equal(result.eligibleForStreak, false)
+  }
+})
+
+test("saved comparison uses the evidence SHA's limits and the verifier's App identity", async () => {
+  const { compareSavedEvidence } =
+    await import("../../ops/local-ci/compare-shadow.mjs")
+  const input = fixture()
+  const candidate = structuredClone(input.contract)
+  candidate.shadowMode.qualification.lanes.fast.minimumTests += 1
+  candidate.githubApp.appId = 999999
+  const check = {
+    status: "completed",
+    head_sha: HEAD,
+    conclusion: "success",
+    app: { id: CONTRACT.githubApp.appId },
+    name: CONTRACT.checkName,
+    started_at: "2026-09-10T00:00:00Z",
+    completed_at: "2026-09-10T00:10:00Z",
+    output: {
+      text: renderCheckSummary(
+        { ...input.local, logDigest: "f".repeat(64) },
+        CONTRACT
+      ).text,
+    },
+  }
+  const reads = []
+  const deps = {
+    readAtShaImpl: async (request) => {
+      reads.push(request)
+      return JSON.stringify(candidate)
+    },
+    readJsonImpl: async (path) =>
+      path instanceof URL ? CONTRACT : path === "local" ? check : input.hosted,
+  }
+  const options = {
+    sha: HEAD,
+    profile: "pr",
+    localCheckPath: "local",
+    hostedEvidencePath: "hosted",
+  }
+  const result = await compareSavedEvidence(options, deps)
+  assert.deepEqual(reads, [
+    { sha: HEAD, path: "config/local-ci-contract.json" },
+  ])
+  assert.equal(result.verdict, "divergent")
+  assert.match(result.reasons.join(" "), /below floor/)
+  check.app.id = candidate.githubApp.appId
+  await assert.rejects(compareSavedEvidence(options, deps), /pinned App/)
 })

@@ -17,8 +17,8 @@
  *     requires, and left alone it reads as "local CI ran everything" when four
  *     required roots never ran here at all. So the roots with no local lane
  *     that executed are named, next to the lane count - and a lane the run
- *     recorded as skipped or cancelled covers nothing, because it never
- *     started.
+ *     recorded without a command-start marker supplies no execution proof.
+ *     Cancellation after that marker still records an executed workload.
  *   - Nothing named in `contract.hostSecrets`, and nothing credential-shaped,
  *     survives into the output. The redaction runs over the finished strings
  *     and then a proof pass re-checks them, because the redaction is an
@@ -28,7 +28,7 @@
 import { LocalCiError, describeValue } from "./contract.mjs"
 import { formatDigestLine, isDigestShaped } from "./digest.mjs"
 import { credentialShapeOf, redactCredentials } from "./job-env.mjs"
-import { computeRootCoverage } from "./root-coverage.mjs"
+import { computeRootCoverage, rootForLane } from "./root-coverage.mjs"
 
 /** Maximum failure entries rendered before the "N more" line takes over. */
 export const FAILURE_LIST_CAP = 20
@@ -75,8 +75,31 @@ const COMMIT_SHA = /^[0-9a-fA-F]{40}$/
  * or "the profile deadline expired before this one came up" - never ran its
  * root here, and must not be published as covering it.
  */
-const coverageLanesOf = (lanes) =>
-  lanes.map((lane) => ({ laneId: lane.laneId, status: lane.status }))
+const coverageLanesOf = (lanes, contract, profile) => {
+  const recorded = lanes.map((lane) => ({
+    laneId: lane.laneId,
+    status: lane.status,
+    executionStarted: lane.executionStarted,
+  }))
+  const expected = ["pr", "main"].includes(profile)
+    ? Object.keys(contract.shadowMode?.qualification?.lanes ?? {}).filter(
+        (id) =>
+          lanes.some(
+            (lane) => rootForLane(lane.laneId).root === rootForLane(id).root
+          )
+      )
+    : []
+  return [
+    ...recorded,
+    ...expected
+      .filter((id) => !lanes.some((lane) => lane.laneId === id))
+      .map((laneId) => ({
+        laneId,
+        status: "missing",
+        executionStarted: false,
+      })),
+  ]
+}
 
 function fail(code, message) {
   throw new SummaryError(code, `local-ci summary: ${message}`)
@@ -224,6 +247,7 @@ function normaliseLane(lane, index) {
     laneId,
     title: typeof lane.title === "string" ? lane.title : laneId,
     status: lane.status,
+    executionStarted: lane.executionStarted === true,
     durationSeconds:
       typeof lane.durationSeconds === "number" ? lane.durationSeconds : null,
     testsRun: requireCount(lane.testsRun, `${path}.testsRun`),
@@ -325,7 +349,9 @@ function normaliseRecord(record, contract) {
  */
 export function buildLaneSummary(record, contract) {
   const normalised = normaliseRecord(record, contract)
-  const coverage = computeRootCoverage(coverageLanesOf(normalised.lanes))
+  const coverage = computeRootCoverage(
+    coverageLanesOf(normalised.lanes, contract, normalised.profile)
+  )
   return {
     schema: normalised.schema,
     plane: normalised.plane,
@@ -337,6 +363,7 @@ export function buildLaneSummary(record, contract) {
     lanes: normalised.lanes.map((lane) => ({
       laneId: lane.laneId,
       status: lane.status,
+      executionStarted: lane.executionStarted === true,
       durationSeconds: lane.durationSeconds,
       testsRun: lane.testsRun,
       testsPassed: lane.testsPassed,
@@ -473,7 +500,7 @@ const listRoots = (roots) =>
  * only on the bad days is a section a reader learns to skip.
  *
  * The count is of roots a lane actually ran. A lane the run recorded as
- * skipped or cancelled gets its own bullet instead, so the profile's intent
+ * missing an execution marker gets its own bullet, so the profile's intent
  * is still visible without its unrun lanes reading as coverage.
  */
 function renderRootCoverage(coverage) {
@@ -483,13 +510,13 @@ function renderRootCoverage(coverage) {
     `This run ran local lanes for ${coverage.coveredRoots.length} of the ${coverage.requiredRoots.length} roots the hosted plane`,
     "requires. The lane count above counts this run's own lanes, so the roots",
     "that did not run here are named rather than left to be read out of their",
-    "absence, and a lane that never started counts for none of them.",
+    "absence. Every mapped lane must carry a command-start marker before its root counts.",
     "",
     `- Covered by a local lane that ran: ${listRoots(coverage.coveredRoots)}`,
-    `- Not run locally: ${listRoots(coverage.uncoveredRoots)}`,
+    `- Not fully covered locally: ${listRoots(coverage.uncoveredRoots)}`,
   ]
   for (const entry of coverage.notRunLanes) {
-    // A declared lane that never started. Named rather than dropped, because
+    // A declared lane without execution proof. Named rather than dropped, because
     // the reader has to be able to tell a root this plane runs no lane for
     // from one whose lane this run did not reach.
     // Phrased so a skim cannot read it as coverage: the root is named as the
@@ -499,7 +526,7 @@ function renderRootCoverage(coverage) {
         ? "and it covers no required root in any case"
         : `so the ${codeSpan(entry.root)} root is not counted as covered here`
     lines.push(
-      `- Declared but not run: local lane ${codeSpan(entry.laneId)} was recorded ${codeSpan(entry.status)} and never started, ${consequence}`
+      `- No execution proof: local lane ${codeSpan(entry.laneId)} was recorded ${codeSpan(entry.status)} without a command-start marker, ${consequence}`
     )
   }
   for (const entry of coverage.unmappedLanes) {
@@ -560,7 +587,9 @@ export function renderCheckSummary(record, contract) {
   const lanesPassed = normalised.lanes.filter(
     (lane) => lane.status === "success"
   ).length
-  const coverage = computeRootCoverage(coverageLanesOf(normalised.lanes))
+  const coverage = computeRootCoverage(
+    coverageLanesOf(normalised.lanes, contract, normalised.profile)
+  )
 
   const failures = [
     ...normalised.runFailures,
@@ -595,7 +624,7 @@ export function renderCheckSummary(record, contract) {
   if (coverage.notRunLanes.length > 0) {
     // The one line that keeps a stopped run from reading like a short one.
     summaryLines.push(
-      `${coverage.notRunLanes.length} declared lane(s) never started and cover nothing here: ${coverage.notRunLanes.map((entry) => codeSpan(entry.laneId)).join(", ")}.`
+      `${coverage.notRunLanes.length} declared lane(s) lack command-start proof and cover nothing here: ${coverage.notRunLanes.map((entry) => codeSpan(entry.laneId)).join(", ")}.`
     )
   }
 

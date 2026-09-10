@@ -473,6 +473,10 @@ export function buildLaneScript(lane, contract, { workspacePath = null } = {}) {
   startServicesAfter(0)
 
   for (const [index, command] of commands.entries()) {
+    if (index === 0)
+      lines.push(
+        `echo ${shellSingleQuote(`${LOG_MARKER} execution-started:${lane.id}`)}`
+      )
     lines.push(
       `echo ${shellSingleQuote(`${LOG_MARKER} command ${index + 1}/${commands.length}: ${command}`)}`,
       command
@@ -601,6 +605,7 @@ export function buildLaneResult({
   missingLogs = [],
   logDigestValue = null,
   blockedByLaneId = null,
+  executionStarted = false,
 }) {
   requireObject(lane, "lane")
   requireObject(contract, "contract")
@@ -680,6 +685,7 @@ export function buildLaneResult({
     testsSkipped: counts.testsSkipped,
     flaky: counts.flaky,
     blockedByLaneId,
+    executionStarted: executionStarted === true,
     countsExpected,
     countsParsed: parsed !== null,
     countSources: [...counts.sources],
@@ -709,6 +715,7 @@ export function toSummaryLane(laneResult) {
     laneId: laneResult.laneId,
     title: laneResult.title ?? laneResult.laneId,
     status: laneResult.status,
+    executionStarted: laneResult.executionStarted === true,
     durationSeconds: laneResult.durationSeconds,
     testsRun: orZero(laneResult.testsRun),
     testsPassed: orZero(laneResult.testsPassed),
@@ -1202,6 +1209,9 @@ export function createRunner({
             ref,
             headSha,
             output: laneOutput,
+            executionStarted: laneOutput
+              .split(/\r?\n/)
+              .includes(`${LOG_MARKER} execution-started:${lane.id}`),
             exitCode: result?.exitCode ?? null,
             timedOut: result?.timedOut ?? false,
             cancelled: result?.cancelled ?? false,

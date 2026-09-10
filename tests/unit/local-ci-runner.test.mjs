@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process"
 import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
 import { test } from "node:test"
@@ -11,6 +12,7 @@ import {
 } from "../../ops/local-ci/core/summary.mjs"
 import {
   PUBLISH_MARGIN_MINUTES,
+  buildLaneScript,
   createRunner,
   laneLogParts,
   laneServiceLogs,
@@ -536,4 +538,62 @@ test("cancellation during fixture creation does not launch the lane", async () =
   })
   assert.equal(outcome.record.conclusion, "cancelled")
   assert.equal(outcome.laneResults[0].status, "cancelled")
+})
+
+test("a container setup failure is recorded without a command-start marker", async () => {
+  clock = fakeClock()
+  const outcome = await runnerFor({
+    runtime: fakeRuntime({
+      throwFor: { fast: new Error("network creation failed") },
+    }),
+    runDir: fakeRunDirectory(),
+  }).runProfile({ profile: profileOf([laneOf()]), headSha: HEAD_SHA })
+  assert.equal(outcome.laneResults[0].status, "failure")
+  assert.equal(outcome.laneResults[0].executionStarted, false)
+  const published = extractLaneSummary(
+    renderCheckSummary(outcome.record, contract).text
+  )
+  assert.deepEqual(published.rootCoverage.coveredRoots, [])
+})
+
+test("a marker split across output chunks survives cancellation and publication", async () => {
+  clock = fakeClock()
+  const controller = new AbortController()
+  const runtime = fakeRuntime()
+  runtime.withJobContainer = async (options) => {
+    options.onOutput("##local-ci## execution-sta", "stdout")
+    options.onOutput("rted:fast\n", "stdout")
+    controller.abort()
+    return { exitCode: null, cancelled: true, output: "" }
+  }
+  const outcome = await runnerFor({
+    runtime,
+    runDir: fakeRunDirectory(),
+  }).runProfile({
+    profile: profileOf([laneOf()]),
+    headSha: HEAD_SHA,
+    signal: controller.signal,
+  })
+  assert.equal(outcome.laneResults[0].status, "cancelled")
+  assert.equal(outcome.laneResults[0].executionStarted, true)
+  const published = extractLaneSummary(
+    renderCheckSummary(outcome.record, contract).text
+  )
+  assert.deepEqual(published.rootCoverage.coveredRoots, ["fast"])
+  assert.equal(published.lanes[0].executionStarted, true)
+})
+
+test("the generated lane shell emits its execution marker when it reaches the workload", () => {
+  const script = buildLaneScript(
+    laneOf({ commands: ["printf 'executed workload\\n'"] }),
+    contract,
+    { workspacePath: process.cwd() }
+  )
+  const child = spawnSync("bash", ["-c", script], { encoding: "utf8" })
+  assert.equal(child.status, 0, child.stderr)
+  assert.match(child.stdout, /^##local-ci## execution-started:fast$/m)
+  assert.ok(
+    child.stdout.indexOf("execution-started:fast") <
+      child.stdout.indexOf("executed workload\n")
+  )
 })

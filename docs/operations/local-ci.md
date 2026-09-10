@@ -839,6 +839,18 @@ SHA, reads the embedded published lane summary, and measures elapsed time from
 `started_at` to `completed_at`. Listing check runs is insufficient because that
 endpoint can truncate the embedded summary.
 
+The producer and saved-evidence comparator both read qualification limits from
+`--sha`. The reviewed verifier pins the canonical repository separately from
+that candidate contract. Hosted PR evidence requires a `pull_request` event;
+main evidence requires a `push` on `main`. The saved provider metadata carries
+that distinction and the comparator refuses missing or mismatched identity.
+Coloured textual test tallies are parsed after terminal control codes are removed.
+
+Coverage requires a command-start marker for every local lane mapped to a root.
+A setup failure cannot count as execution, and cancellation after the marker
+still records that the command began. Older records without this marker cannot
+claim executed coverage; this does not change the hosted merge requirements.
+
 Produce hosted evidence with `pnpm ops:ci:hosted-evidence --sha <sha>`
 (`scripts/ci/hosted-evidence.mjs`), which reads the matching CI run's jobs and
 logs through the GitHub REST API and emits the envelope described below. It
@@ -1400,3 +1412,15 @@ See the [completion evidence](ci-redesign-completion.md) for actual fixture
 results, installed revision, full-main/nightly gaps and provider prerequisites.
 A successful filtered database or browser lane is not a full profile or an
 exact-commit App qualification.
+
+### Installed source and image drift
+
+Run `pnpm ops:ci:installed-revision -- --json` after fetching canonical main.
+The checker compares the selected reference with a fresh read of GitHub main,
+validates the resolved release directory and installed entrypoint files, then
+compares the root-owned `job-image` pin's declared build revision with the
+current image build inputs. Missing release files, stale references and
+unattributable image pins fail closed; changed image inputs return
+`image-source-drift`. The image comparison covers source compatibility only:
+it does not attest the binary image contents or prove runtime qualification.
+The check never installs a release, rebuilds an image or restarts a service.

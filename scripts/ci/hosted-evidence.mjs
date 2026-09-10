@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+import {
+  HOSTED_REPOSITORY,
+  requireHostedIdentity,
+} from "../../ops/local-ci/core/hosted-identity.mjs"
 /**
  * The hosted half of the shadow comparison's input.
  *
@@ -45,7 +49,7 @@
 import { execFile as execFileCallback } from "node:child_process"
 import { writeFile } from "node:fs/promises"
 import { fileURLToPath, pathToFileURL } from "node:url"
-import { parseArgs, promisify } from "node:util"
+import { parseArgs, promisify, stripVTControlCharacters } from "node:util"
 
 import { parseLaneCounts } from "../../ops/local-ci/agent/runner.mjs"
 import { REQUIRED_HOSTED_JOBS } from "./verify-required-evidence.mjs"
@@ -467,7 +471,10 @@ export function placeHostedJobs({ index, jobs, laneIds }) {
  * without this every hosted lane would report counts it could not read.
  */
 export function stripRunnerTimestamps(text) {
-  return String(text).replace(/^\d{4}-\d{2}-\d{2}T[\d:.]+Z /gm, "")
+  return stripVTControlCharacters(String(text)).replace(
+    /^\d{4}-\d{2}-\d{2}T[\d:.]+Z /gm,
+    ""
+  )
 }
 
 /**
@@ -747,7 +754,7 @@ export function buildHostedEvidence({
   jobs,
   workflowText,
   logsByJobId = new Map(),
-  repository = contract?.repository,
+  repository = HOSTED_REPOSITORY,
 }) {
   requireCondition(
     COMMIT_SHA.test(headSha ?? ""),
@@ -777,12 +784,22 @@ export function buildHostedEvidence({
   // run states its own identity, that is checked against the same pin.
   requireCondition(
     typeof contract?.repository === "string" && contract.repository !== "",
-    "the contract pins no repository to read hosted evidence from"
+    "the evidence contract must retain the independently pinned repository"
   )
   requireCondition(
-    repository === contract.repository,
+    repository === HOSTED_REPOSITORY &&
+      contract.repository === HOSTED_REPOSITORY,
     `hosted evidence must come from the pinned repository ${contract.repository}; ${JSON.stringify(repository)} is outside the trust boundary`
   )
+  const providerIdentity = {
+    repository: run.repository?.full_name,
+    headRepository: run.head_repository?.full_name,
+    workflow: run.path,
+    headSha: run.head_sha,
+    event: run.event,
+    headBranch: run.head_branch,
+  }
+  requireHostedIdentity(providerIdentity, profile, headSha)
   const runRepository = run.repository?.full_name
   requireCondition(
     runRepository === undefined || runRepository === repository,
@@ -827,6 +844,7 @@ export function buildHostedEvidence({
       jobs.filter((job) => job.started_at && job.completed_at)
     ),
     provider: {
+      ...providerIdentity,
       repository,
       workflow: CI_WORKFLOW_PATH,
       runId: run.id,
@@ -973,10 +991,10 @@ export async function readAtSha({ sha, path, exec = execFile }) {
  * as an assertion an operator can make and cannot use to widen anything.
  */
 export function resolveRepository({ contract, requested }) {
-  const pinned = contract?.repository
+  const pinned = HOSTED_REPOSITORY
   requireCondition(
-    typeof pinned === "string" && pinned !== "",
-    "the contract pins no repository to read hosted evidence from"
+    contract?.repository === pinned,
+    "the evidence contract must retain the independently pinned repository"
   )
   requireCondition(
     requested === undefined || requested === pinned,

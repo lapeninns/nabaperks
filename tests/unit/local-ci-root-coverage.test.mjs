@@ -171,6 +171,7 @@ test("the published check states its coverage instead of leaving 10/10 to imply 
       lanes: laneIds.map((laneId) => ({
         laneId,
         status: "success",
+        executionStarted: true,
         testsRun: 10,
         testsPassed: 10,
         testsFailed: 0,
@@ -228,11 +229,11 @@ test("the published check states its coverage instead of leaving 10/10 to imply 
 
 test("a lane that never started covers nothing, whatever its root would have been", () => {
   const coverage = computeRootCoverage([
-    { laneId: "fast", status: "success" },
-    { laneId: "quality", status: "failure" },
+    { laneId: "fast", status: "success", executionStarted: true },
+    { laneId: "quality", status: "failure", executionStarted: true },
     { laneId: "e2e-chromium", status: "skipped" },
     { laneId: "a11y-chromium", status: "cancelled" },
-    { laneId: "db", status: "timed_out" },
+    { laneId: "db", status: "timed_out", executionStarted: true },
   ])
 
   // `failure` and `timed_out` ran: the lane executed and the run's conclusion
@@ -261,10 +262,14 @@ test("a lane that never started covers nothing, whatever its root would have bee
   )
 })
 
-test("bare lane ids still read as lanes that ran, so the declared-lane view is unchanged", () => {
+test("bare lane ids describe configured coverage separately from recorded execution", () => {
   const declared = computeRootCoverage(laneIdsOf("pr"))
   const executed = computeRootCoverage(
-    laneIdsOf("pr").map((laneId) => ({ laneId, status: "success" }))
+    laneIdsOf("pr").map((laneId) => ({
+      laneId,
+      status: "success",
+      executionStarted: true,
+    }))
   )
 
   assert.deepEqual([...declared.coveredRoots], [...executed.coveredRoots])
@@ -285,6 +290,7 @@ test("a run that stops at its first failure publishes only the roots that ran", 
           return {
             laneId,
             status: "success",
+            executionStarted: true,
             testsRun: 10,
             testsPassed: 10,
             testsFailed: 0,
@@ -295,6 +301,7 @@ test("a run that stops at its first failure publishes only the roots that ran", 
           return {
             laneId,
             status: "failure",
+            executionStarted: true,
             testsRun: 4,
             testsPassed: 3,
             testsFailed: 1,
@@ -344,7 +351,7 @@ test("a run that stops at its first failure publishes only the roots that ran", 
   // The skipped lanes do not vanish from the prose either.
   assert.ok(
     rendered.text.includes(
-      "- Declared but not run: local lane `e2e-chromium` was recorded `skipped` and never started, so the `e2e` root is not counted as covered here"
+      "- No execution proof: local lane `e2e-chromium` was recorded `skipped` without a command-start marker, so the `e2e` root is not counted as covered here"
     ),
     `the skipped lanes must stay visible (was ${JSON.stringify(rendered.text)})`
   )
@@ -352,4 +359,68 @@ test("a run that stops at its first failure publishes only the roots that ran", 
   // Additive only: the fields the shadow comparison already reads are intact.
   assert.equal(parsed.lanes.length, laneIds.length)
   assert.equal(parsed.lanes[2].blockedByLaneId, "quality")
+})
+
+test("one executed browser lane cannot cover a partly skipped matrix root", () => {
+  const lanes = laneIdsOf("pr").map((laneId) => ({
+    laneId,
+    status: "skipped",
+    executionStarted: false,
+  }))
+  Object.assign(
+    lanes.find((lane) => lane.laneId === "e2e-chromium"),
+    { status: "failure", executionStarted: true }
+  )
+  const coverage = computeRootCoverage(lanes)
+  assert.equal(coverage.coveredRoots.includes("e2e"), false)
+})
+
+test("setup failures and legacy statuses carry no execution proof, but an interrupted workload does", () => {
+  for (const status of ["success", "failure", "timed_out"]) {
+    assert.deepEqual(
+      computeRootCoverage([{ laneId: "fast", status }]).coveredRoots,
+      []
+    )
+    assert.deepEqual(
+      computeRootCoverage([{ laneId: "fast", status, executionStarted: false }])
+        .coveredRoots,
+      []
+    )
+  }
+  assert.deepEqual(
+    computeRootCoverage([
+      { laneId: "fast", status: "cancelled", executionStarted: true },
+    ]).coveredRoots,
+    ["fast"]
+  )
+})
+
+test("a summary missing other configured browser results cannot claim that root", () => {
+  const rendered = renderCheckSummary(
+    {
+      profile: "pr",
+      headSha: "c".repeat(40),
+      conclusion: "success",
+      logDigest: logDigest("fixture"),
+      lanes: [
+        {
+          laneId: "e2e-chromium",
+          status: "success",
+          executionStarted: true,
+          testsRun: 1,
+          testsPassed: 1,
+          testsFailed: 0,
+          testsSkipped: 0,
+        },
+      ],
+    },
+    contract
+  )
+  const parsed = extractLaneSummary(rendered.text)
+  assert.equal(parsed.rootCoverage.coveredRoots.includes("e2e"), false)
+  assert.equal(
+    parsed.rootCoverage.notRunLanes.filter((lane) => lane.status === "missing")
+      .length,
+    3
+  )
 })

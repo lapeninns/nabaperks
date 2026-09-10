@@ -1,3 +1,8 @@
+import { HOSTED_REPOSITORY } from "../../ops/local-ci/core/hosted-identity.mjs"
+import {
+  inspectReleaseFiles,
+  inspectJobImage,
+} from "./installed-execution-surface.mjs"
 import { spawnSync } from "node:child_process"
 import { existsSync, readFileSync, readlinkSync } from "node:fs"
 import { basename, join } from "node:path"
@@ -38,6 +43,7 @@ export const INSTALLED_REVISION_EXIT_CODES = Object.freeze({
   "install-unavailable": 2,
   "execution-surface-drift": 3,
   "unreviewed-install": 4,
+  "image-source-drift": 5,
 })
 
 const REVISION_PATTERN = /^[a-f0-9]{40}$/
@@ -140,6 +146,8 @@ export function classifyInstalledRevision({
 export function renderInstalledRevisionSummary(report) {
   if (report.status === "install-unavailable")
     return `Local CI install is unreadable (${report.reason}): ${report.detail}`
+  if (report.status === "image-source-drift")
+    return `Pinned job image ${report.jobImage.pin} has stale build inputs: ${report.jobImage.changedPaths.join(", ")}`
   const installed = describe(report.installedRevision)
   const against = `${report.reference.name} ${describe(report.reference.revision)}`
   if (report.status === "matched")
@@ -172,14 +180,16 @@ function unavailable(installRoot, currentLink, reason, detail) {
 }
 
 /** Read-only inspection. Nothing here writes to the install root, touches a
- * service or mutates git state; the only git calls are rev-parse, rev-list,
- * merge-base and log. */
+ * service or mutates git state. ls-remote verifies the current canonical main;
+ * local Git and installed files supply source and image-input comparisons. */
 export function inspectInstalledRevision({
   installRoot = localCiContract.agent.installRoot,
   reference = DEFAULT_REFERENCE,
   git = runGit,
   readLink = readlinkSync,
   exists = existsSync,
+  inspectFiles = inspectReleaseFiles,
+  inspectImage = inspectJobImage,
 } = {}) {
   const currentLink = currentLinkPath(installRoot)
   let target
@@ -201,9 +211,37 @@ export function inspectInstalledRevision({
       "unrecognised-release-name",
       `'current' points at ${target}, whose basename is not a commit SHA`
     )
+  try {
+    inspectFiles({ currentLink, target })
+  } catch (error) {
+    return unavailable(
+      installRoot,
+      currentLink,
+      "incomplete-release",
+      error.message
+    )
+  }
+  const providerRefs = gitOutput(git, [
+    "ls-remote",
+    `https://github.com/${HOSTED_REPOSITORY}.git`,
+    "refs/heads/main",
+  ])
+  const providerRevision = providerRefs
+    .trim()
+    .match(/^([a-f0-9]{40})\s+refs\/heads\/main$/)?.[1]
+  if (!providerRevision)
+    throw new Error("Cannot verify current main with the canonical provider")
   const referenceRevision = gitOutput(git, ["rev-parse", reference]).trim()
   if (!REVISION_PATTERN.test(referenceRevision))
     throw new Error(`Reference ${reference} did not resolve to a commit SHA`)
+  if (referenceRevision !== providerRevision) {
+    return unavailable(
+      installRoot,
+      currentLink,
+      "stale-reference",
+      `Reference ${reference} differs from current provider main ${providerRevision}; fetch main before retrying`
+    )
+  }
   const named = { name: reference, revision: referenceRevision }
   // An install whose revision is not even an object here cannot be attributed to
   // any reviewed commit, which is the unreviewed case rather than a git error.
@@ -227,7 +265,7 @@ export function inspectInstalledRevision({
         `${from}..${to}`,
       ])
     )
-  return {
+  const report = {
     installRoot,
     currentLink,
     ...classifyInstalledRevision({
@@ -244,9 +282,26 @@ export function inspectInstalledRevision({
       ahead: range(referenceRevision, installedRevision),
     }),
   }
+  try {
+    report.jobImage = inspectImage({ currentLink, referenceRevision, git })
+  } catch (error) {
+    return unavailable(
+      installRoot,
+      currentLink,
+      "unattributed-image",
+      error.message
+    )
+  }
+  if (report.exitCode === 0 && report.jobImage.changedPaths.length) {
+    report.status = "image-source-drift"
+    report.exitCode = INSTALLED_REVISION_EXIT_CODES[report.status]
+    report.summary = renderInstalledRevisionSummary(report)
+  }
+  return report
 }
 
 export function main(args = process.argv.slice(2), env = process.env) {
+  args = args.filter((arg) => arg !== "--")
   const options = {
     installRoot: env.LOCAL_CI_INSTALL_ROOT,
     reference: env.LOCAL_CI_REVISION_REFERENCE,
