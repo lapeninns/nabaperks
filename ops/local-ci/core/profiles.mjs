@@ -23,6 +23,7 @@ import {
   runtimeEnvSourceIds,
 } from "./contract.mjs"
 import { laneResources, lanesFit } from "./lane-scheduler.mjs"
+import { assertBrowserMemoryBudget } from "./browser-budget.mjs"
 
 /** Host architectures the agent can run on, as `process.arch` spells them. */
 export const HOST_ARCHITECTURES = Object.freeze(["arm64", "x64"])
@@ -218,6 +219,7 @@ function validateLane(lane, index, contract, seenIds, knownSourceIds) {
 
   validateRuntimeEnvIds(lane.runtimeEnv, `${path}.runtimeEnv`, knownSourceIds)
   requireStringMap(lane.env, `${path}.env`)
+  assertBrowserMemoryBudget(lane, contract)
   if (lane.resources !== undefined) {
     requireObject(lane.resources, `${path}.resources`)
     laneResources(lane, contract)
