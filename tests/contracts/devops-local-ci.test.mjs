@@ -39,6 +39,11 @@ const PROFILE_PATHS = Object.freeze({
  * advisory observation into its own bounded workflow.
  */
 const HOSTED_JOBS = Object.freeze([
+  "selection",
+  "documentation",
+  "targeted-browser",
+  "targeted-visual",
+  "selection-comparison",
   "fast",
   "quality",
   "build",
@@ -214,10 +219,15 @@ test("hosted proof is complete and shadow observation cannot hold release open",
       "lighthouse",
       "zap-baseline",
       "db",
+      "selection",
+      "documentation",
+      "targeted-browser",
+      "targeted-visual",
+      "selection-comparison",
     ]
   )
   assert.match(releaseGate, /CI_REQUIRED_EVIDENCE: \$\{\{ toJSON\(needs\) \}\}/)
-  assert.match(releaseGate, /node scripts\/ci\/verify-required-evidence\.mjs/)
+  assert.match(releaseGate, /node scripts\/ci\/verify-impact-evidence\.mjs/)
   assert.doesNotMatch(releaseGate, /continue-on-error/)
   for (const job of HOSTED_JOBS)
     assert.doesNotMatch(jobSlice(ci, job), /continue-on-error/)
@@ -226,7 +236,7 @@ test("hosted proof is complete and shadow observation cannot hold release open",
   // 4. No job anywhere lists the bridge in `needs:`. The positive control
   //    proves the two forms a dependency can take are the forms searched for.
   assert.match(ci, /\n {6}- fast\n/)
-  assert.match(ci, /\n {4}needs: fast\n/)
+  assert.match(ci, /\n {4}needs: \[selection, fast\]\n/)
   assert.doesNotMatch(ci, new RegExp(`\\n {6}- ${escapeRegExp(bridgeJob)}\\n`))
   assert.doesNotMatch(
     ci,

@@ -26,7 +26,7 @@ test("CI exposes one stable release gate over complete hosted proof", () => {
   }
   assert.match(releaseGate, /if: \$\{\{ always\(\) \}\}/)
   assert.match(releaseGate, /CI_REQUIRED_EVIDENCE: \$\{\{ toJSON\(needs\) \}\}/)
-  assert.match(releaseGate, /node scripts\/ci\/verify-required-evidence\.mjs/)
+  assert.match(releaseGate, /node scripts\/ci\/verify-impact-evidence\.mjs/)
   assert.doesNotMatch(ci, /\n  local-proof:/)
 })
 
@@ -146,7 +146,13 @@ test("production database promotion is CI-led, protected and exact-revision", ()
     /SUPABASE_SEND_EMAIL_HOOK_URI: https:\/\/nabaperks\.com\/api\/auth\/hooks\/send-email/
   )
   assert.match(workflow, /run: pnpm smoke:staging/)
-  assert.match(workflow, /needs: staging/)
+  assert.match(workflow, /needs: \[baseline, staging\]/)
+  assert.match(
+    workflow,
+    /needs\.baseline\.outputs\.application_required == 'true'/
+  )
+  assert.match(workflow, /node scripts\/release\/no-deployment\.mjs/)
+  assert.match(workflow, /production-unchanged-/)
   assert.doesNotMatch(workflow, /secrets\.STAGING_/)
   assert.match(workflow, /secrets\.SUPABASE_ACCESS_TOKEN/)
   assert.match(workflow, /secrets\.SUPABASE_DB_PASSWORD/)

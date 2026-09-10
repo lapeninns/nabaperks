@@ -1,0 +1,93 @@
+# Change-aware CI
+
+Owner: Lapen Inns product operations.
+
+Pull requests keep the stable `Release gate` and select checks from the complete
+immutable merge candidate. The first policy installation must pass full hosted
+CI and a targeted/full execution comparison before it can become reviewed base
+policy. Local source and unit tests do not establish that hosted qualification.
+
+## Initial scope
+
+| Profile       | Eligible changes                                                                              | Required hosted checks                                                                                                                                                         |
+| ------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Documentation | Regular Markdown files under `docs/operations/` or `docs/decisions/`, plus `README.md`        | Secrets, source contracts, generated documentation consistency, agent guidance, changed-file formatting and local links                                                        |
+| Public pages  | Literal JSX text and reviewed presentation attributes in `/about`, `/faq` and `/how-it-works` | Existing fast, quality and production build checks; existing page accessibility tests across four browser projects; existing visual tests on hosted Chromium and mobile Safari |
+| Full          | Everything else, forks, missing or uncertain impact evidence                                  | All nine existing hosted roots                                                                                                                                                 |
+
+The public-page classifier compares TypeScript syntax trees. Imports, links,
+handlers, expressions, element structure and arbitrary component properties must
+remain identical. It checks for other source consumers of the page modules.
+Shared UI, global styles, dependencies, runtime behaviour, critical domain logic,
+database work, CI and release tooling therefore retain full validation. Deleted,
+renamed, executable, symlinked and unsupported files also retain the full suite.
+These rules are narrower than a folder-based exemption.
+
+The selection job executes policy from the PR's already-reviewed base SHA and
+reads candidate Git objects without executing candidate classifier code. Its
+plan binds repository, base, head and merge SHA, file/blob inventory and policy
+digests. The gate checks the same identity using reviewed policy and requires
+every selected job to succeed. Unselected jobs must be explicitly skipped and
+are reported as **not required, not executed**. They are never counted as passed.
+Independent security checks retain their existing provider contexts.
+
+## Qualification before selection authority
+
+Policy installation and changes to selection, browser execution, test mapping
+or browser policy run the whole suite plus the bounded targeted comparison.
+This is the only time the same page checks intentionally run twice. Normal
+qualified PRs run their selected tier; other normal PRs run the full tier.
+
+The comparison requires successful full e2e, accessibility and visual jobs, all
+128 e2e part reports, eight accessibility reports, eight visual reports and six
+targeted project manifests. It matches existing test identities and successful
+runtime outcomes on the same candidate. Missing, empty, duplicated, skipped,
+retried, flaky or different results fail qualification. Worker, retry, browser
+configuration and fresh-server policies must match. Visual qualification stays
+on Linux x64 and uses the existing baselines. A test list or a local ARM visual
+run is not a substitute.
+
+The installation PR cannot use its own new policy to reduce its checks. Its
+reviewed base has no classifier, so bootstrap requires all nine roots and the
+comparison. After independent review and merge, the policy can select future
+eligible PRs. Expanding eligible files requires another reviewed qualification.
+
+## Main and release behaviour
+
+Every exact-main push continues to run the complete CI suite. Production
+preflight still requires successful exact-main CI and CodeQL. Selective PR
+success cannot stand in for this release evidence.
+
+After preflight, the existing protected Production baseline reader authenticates
+the live Vercel deployment, canonical project/team and full deployed SHA. The
+release compares **that deployed revision to the whole candidate**, using only
+the documentation allowlist. A docs-only last commit on top of pending runtime
+work therefore still requires a complete application release.
+
+When that complete difference contains only qualified documentation, the release
+records a bound `production-unchanged` artifact. Ephemeral staging, runtime
+qualification, database promotion and application deployment do not run. Smoke
+verification independently checks the artifact's Git difference and probes the
+existing production revision; it does not claim the new documentation commit
+was deployed. The protected baseline approval remains necessary because the
+current credential scope lives in Production. This change removes subsequent
+deployment work, not that initial approval.
+
+Runtime changes retain ephemeral staging, runtime qualification, database
+compatibility and protected database/application promotion in order. Explicit
+manual promotion keeps its requested redeployment behaviour. Uncertain release
+identity or unavailable Git evidence must never produce a no-deployment result.
+
+## Verification and rollback
+
+Run the impact classifier, evidence, artifact-reader and workflow contract tests,
+then `pnpm quality:check` and a fixture production build. Run the targeted browser
+runner to check real selection and teardown. Require the full hosted run and
+same-candidate comparison before merging selection policy. Record provider job
+timings after rollout before claiming a measured time saving.
+
+To disable selection, return the planner's profile to `full` for all PRs while
+keeping the stable gate and all hosted workloads. Revert the documentation
+no-deployment path independently if needed. Do not turn missing evidence into
+success, change protected contexts, or promote advisory local evidence to merge
+authority. Follow [production operations](production-runbook.md) for releases.

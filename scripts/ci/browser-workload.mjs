@@ -78,6 +78,16 @@ if (
         )
       args.push("--reporter=line,json")
     }
+    if (env.CI_BROWSER_JSON_REPORT) {
+      if (env.LOCAL_CI_BROWSER_JSON === "1")
+        throw new Error(
+          "Hosted and local report destinations cannot be combined"
+        )
+      env.PLAYWRIGHT_JSON_OUTPUT_NAME = resolve(env.CI_BROWSER_JSON_REPORT)
+      if (existsSync(env.PLAYWRIGHT_JSON_OUTPUT_NAME))
+        throw new Error("Hosted comparison report already exists")
+      args.push("--reporter=line,json")
+    }
     const result = spawnSync(
       "pnpm",
       ["exec", "node", "scripts/run-playwright.mjs", ...args.slice(1)],

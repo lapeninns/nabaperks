@@ -75,7 +75,7 @@ test("runtime execution has a fresh credential-free runner and cannot supply the
   const baseline = job("baseline", "qualification")
   const qualification = job("qualification", "promote")
   const promote = job("promote", "application")
-  assert.match(qualification, /needs: baseline/)
+  assert.match(qualification, /needs: \[baseline, staging\]/)
   assert.match(qualification, /runs-on: ubuntu-latest/)
   assert.match(qualification, /persist-credentials: false/)
   assert.doesNotMatch(

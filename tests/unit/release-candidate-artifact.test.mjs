@@ -202,3 +202,33 @@ test("artifact discovery rejects stale, duplicate, expired and foreign run artif
     assert.equal(downloaded, false)
   }
 })
+
+test("no-deployment discovery never satisfies promotion-only readers or accepts ambiguous outcomes", async () => {
+  const unchanged = { ...artifact, name: "production-unchanged-42-2" }
+  for (const [artifacts, options] of [
+    [[unchanged], {}],
+    [[artifact, unchanged], { allowUnchanged: true }],
+  ]) {
+    let downloaded = false
+    await assert.rejects(
+      readReleaseCandidate(
+        expected,
+        {
+          async getJson(path) {
+            if (path.endsWith("/runs/42")) return run
+            if (path.endsWith("/workflows/production-database.yml"))
+              return workflow
+            return { artifacts, total_count: artifacts.length }
+          },
+          async download() {
+            downloaded = true
+            return zip()
+          },
+        },
+        options
+      ),
+      /one exact candidate artifact/
+    )
+    assert.equal(downloaded, false)
+  }
+})

@@ -3,6 +3,7 @@ import { appendFileSync } from "node:fs"
 import { inflateRawSync } from "node:zlib"
 import { pathToFileURL } from "node:url"
 import { validateProductionCandidate } from "./candidate.mjs"
+import { validateNoDeployment } from "./no-deployment.mjs"
 
 const MAX_ARCHIVE_BYTES = 65_536
 const MAX_JSON_BYTES = 16_384
@@ -238,7 +239,11 @@ export function validateCandidateArtifact(candidate, expected) {
   }
 }
 
-export async function readReleaseCandidate(expected, { getJson, download }) {
+export async function readReleaseCandidate(
+  expected,
+  { getJson, download },
+  { allowUnchanged = false, cwd } = {}
+) {
   assert.match(
     expected.repository ?? "",
     /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/,
@@ -262,7 +267,12 @@ export async function readReleaseCandidate(expected, { getJson, download }) {
     "artifact listing count mismatch"
   )
   const name = `production-candidate-${expected.runId}-${expected.attempt}`
-  const matches = listing.artifacts.filter((artifact) => artifact.name === name)
+  const unchangedName = `production-unchanged-${expected.runId}-${expected.attempt}`
+  const matches = listing.artifacts.filter(
+    (artifact) =>
+      artifact.name === name ||
+      (allowUnchanged && artifact.name === unchangedName)
+  )
   assert.equal(matches.length, 1, "expected one exact candidate artifact")
   const artifact = matches[0]
   assert.equal(artifact.expired, false, "candidate artifact expired")
@@ -280,7 +290,10 @@ export async function readReleaseCandidate(expected, { getJson, download }) {
     "artifact run mismatch"
   )
   const bytes = await download(`${root}/artifacts/${artifact.id}/zip`)
-  const candidate = validateCandidateArtifact(readCandidateZip(bytes), expected)
+  const candidate =
+    artifact.name === unchangedName
+      ? validateNoDeployment(readCandidateZip(bytes), expected, { cwd })
+      : validateCandidateArtifact(readCandidateZip(bytes), expected)
   validateReleaseRun(
     await getJson(`${root}/runs/${expected.runId}`),
     workflow,
@@ -351,12 +364,18 @@ if (
         projectId: process.env.CANONICAL_VERCEL_PROJECT_ID,
         teamId: process.env.CANONICAL_VERCEL_TEAM_ID,
       },
-      githubClient(process.env.GH_TOKEN)
+      githubClient(process.env.GH_TOKEN),
+      { allowUnchanged: true }
     )
     appendFileSync(
       process.env.GITHUB_ENV,
       `EXPECTED_REVISION=${candidate.revision}\n`
     )
+    if (candidate.outcome === "not-required" && process.env.GITHUB_STEP_SUMMARY)
+      appendFileSync(
+        process.env.GITHUB_STEP_SUMMARY,
+        `### Existing production verification\n\nApplication deployment was not required for documentation candidate \`${candidate.candidateRevision}\`. These probes check the existing deployed revision \`${candidate.revision}\`; they do not claim the candidate was deployed.\n`
+      )
     console.log(JSON.stringify(candidate))
   } catch {
     console.error(
