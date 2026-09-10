@@ -21,6 +21,7 @@ import {
 } from "../../scripts/ci/run-targeted-checks.mjs"
 import { fullPlan } from "../../scripts/ci/impact-plan-contract.mjs"
 import { needsSelectionComparison } from "../../scripts/ci/plan-checks.mjs"
+import { comparisonDependencies } from "../../scripts/ci/impact-dependencies.mjs"
 
 const record = {
   project: "chromium",
@@ -179,6 +180,86 @@ test("Markdown code examples are not treated as local link destinations", () => 
   }
 })
 
+test("HTML anchors and images use the same bounded local destination checks", (t) => {
+  const guide = "guide.md"
+  const cwd = mkdtempSync(join(tmpdir(), "nabaperks-markdown-html-"))
+  t.after(() => rmSync(cwd, { recursive: true, force: true }))
+  writeFileSync(join(cwd, "present.md"), "# Present")
+  writeFileSync(join(cwd, "present.png"), "image fixture")
+  for (const html of [
+    '<a href="missing.md">Runbook</a>',
+    "<A HREF=missing.md>Runbook</A>",
+    "<img src='missing.png'>",
+    '<details>\n<summary>Runbook</summary>\n<a href="missing.md">Read</a>\n</details>',
+    '<video poster="missing.png"></video>',
+  ]) {
+    writeFileSync(join(cwd, guide), html)
+    assert.throws(
+      () => localMarkdownLinks([guide], { cwd }),
+      /missing local link targets/,
+      html
+    )
+  }
+  for (const html of [
+    '<a href="present&#46;md">Encoded</a>',
+    '<img srcset="present.png 1x, missing.png 2x">',
+  ]) {
+    writeFileSync(join(cwd, guide), html)
+    assert.throws(
+      () => localMarkdownLinks([guide], { cwd }),
+      /character references|srcset/
+    )
+  }
+  writeFileSync(
+    join(cwd, guide),
+    [
+      '<a href="present.md#section">Runbook</a> and <img src="present.png">',
+      "",
+      '<a href="https://example.test/?a=1&amp;b=2">External</a>',
+      '<!-- <img src="missing-comment.png"> -->',
+      "",
+      '`<a href="missing-code.md">example</a>`',
+      "",
+      '```html\n<img src="missing-block.png">\n```',
+    ].join("\n")
+  )
+  assert.deepEqual(localMarkdownLinks([guide], { cwd }), {
+    files: 1,
+    missing: [],
+  })
+})
+
+test("comparison qualification follows transitive dependencies from reviewed source", (t) => {
+  const root = mkdtempSync(join(tmpdir(), "nabaperks-comparison-dependencies-"))
+  t.after(() => rmSync(root, { recursive: true, force: true }))
+  mkdirSync(join(root, "nested"))
+  writeFileSync(
+    join(root, "entry.mjs"),
+    'export { value } from "./nested/helper.mjs"'
+  )
+  writeFileSync(
+    join(root, "nested/helper.mjs"),
+    'import { value } from "../leaf.mjs"; export { value }'
+  )
+  writeFileSync(join(root, "leaf.mjs"), "export const value = 1")
+  const options = { root, entrypoints: ["entry.mjs"] }
+  assert.deepEqual([...comparisonDependencies(options)].sort(), [
+    "entry.mjs",
+    "leaf.mjs",
+    "nested/helper.mjs",
+  ])
+  writeFileSync(
+    join(root, "leaf.mjs"),
+    "export const load = (path) => import(path)"
+  )
+  assert.throws(
+    () => comparisonDependencies(options),
+    /Computed comparison dependencies/
+  )
+  writeFileSync(join(root, "leaf.mjs"), 'import "./missing.mjs"')
+  assert.throws(() => comparisonDependencies(options), /dependency is missing/)
+})
+
 test("targeted outcomes must occur exactly once in successful full execution", () => {
   assert.equal(compareAffectedOutcomes([record], [record]).matched, 1)
   for (const patch of [
@@ -244,6 +325,9 @@ test("qualified page selection keeps existing test identities and unqualified po
   assert.throws(() => targetedArguments(plan, "visual", "desktop-firefox"))
   for (const path of [
     "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    ".nvmrc",
     "scripts/ci/impact-documentation.mjs",
     "scripts/ci/impact-snapshots.mjs",
     "tests/e2e/visual.spec.ts",
@@ -252,12 +336,21 @@ test("qualified page selection keeps existing test identities and unqualified po
     "scripts/ci/browser-workload.mjs",
     "playwright.config.ts",
     ".github/actions/playwright/action.yml",
+    ".github/actions/setup/action.yml",
+    "ops/local-ci/core/process-tree.mjs",
+    "scripts/ci/process-exit.mjs",
+    "scripts/ci/run-workload.mjs",
+    "scripts/ci/check-browser-image.mjs",
+    "scripts/playwright-server-heap.mjs",
+    "tests/e2e/helpers/axe.ts",
+    "tests/e2e/helpers/harness.ts",
   ])
     assert.equal(needsSelectionComparison(path), true, path)
   assert.equal(
     needsSelectionComparison("docs/operations/production-runbook.md"),
     false
   )
+  assert.equal(needsSelectionComparison("ops/local-ci/core/job-env.mjs"), false)
   for (const name of [
     "marketing-about",
     "marketing-faq",

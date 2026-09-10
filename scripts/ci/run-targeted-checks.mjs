@@ -10,6 +10,7 @@ import { join, resolve, dirname, relative, isAbsolute, sep } from "node:path"
 import { pathToFileURL } from "node:url"
 import { spawnSync } from "node:child_process"
 import { parsers } from "prettier/plugins/markdown"
+import { parsers as htmlParsers } from "prettier/plugins/html"
 import { runBoundedCommand } from "./run-bounded-command.mjs"
 import { inventoryFromPlaywright, compareInventory } from "./browser-parity.mjs"
 import { impactPolicy, isDocumentationPath } from "./change-impact.mjs"
@@ -204,10 +205,40 @@ function markdownLinkTargets(text) {
   )
   const nodes = [tree]
   const targets = []
+  const html = []
   while (nodes.length) {
     const node = nodes.pop()
     if (["link", "image", "definition"].includes(node.type))
       targets.push(node.url)
+    if (node.type === "html") html.push(node.value)
+    if (node.children) nodes.push(...[...node.children].reverse())
+  }
+  if (html.length) targets.push(...htmlLinkTargets(html.join("\n")))
+  return targets
+}
+
+function htmlLinkTargets(text) {
+  const nodes = [htmlParsers.html.parse(text)]
+  const targets = []
+  while (nodes.length) {
+    const node = nodes.pop()
+    for (const attribute of node.attrs ?? []) {
+      const name = attribute.name.toLowerCase()
+      const value = attribute.value
+      assert.ok(
+        name !== "srcset" || !value,
+        "HTML srcset needs explicit Markdown image links for validation"
+      )
+      if (!["href", "src", "poster"].includes(name) || !value) continue
+      // The formatter's HTML parser preserves character references. Reject
+      // unvalidated local references rather than treating their spelling as a
+      // filesystem path; percent-encoded local paths use the normal validator.
+      assert.ok(
+        !value.includes("&") || /^[A-Za-z][A-Za-z0-9+.-]*:|^[/#]/.test(value),
+        "Local HTML URLs with character references need Markdown link syntax"
+      )
+      targets.push(value)
+    }
     if (node.children) nodes.push(...node.children)
   }
   return targets

@@ -210,7 +210,37 @@ jobs:
       CI_IMPACT_PLAN: ${{ needs.selection.outputs.plan }}
       CI_COMPARISON_NEEDS: ${{ toJSON(needs) }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Check out reviewed comparison policy
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.sha }}
+          persist-credentials: false
+      - name: Select the immutable comparison verifier
+        id: verifier
+        env:
+          REVIEWED_REVISION: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$REVIEWED_REVISION"
+          if [ -f scripts/ci/compare-targeted-evidence.mjs ]; then
+            echo "revision=$REVIEWED_REVISION" >> "$GITHUB_OUTPUT"
+            echo "source=reviewed-base" >> "$GITHUB_OUTPUT"
+          else
+            test "$GITHUB_EVENT_NAME" = pull_request
+            test ! -f config/ci-impact-policy.json
+            # This exact verifier received code-owner review before later PR
+            # repairs. Its approval is not approval of the current PR head.
+            echo "revision=1a50396145b2daf0aed9b8de2f4a0cd2db0542a2" >> "$GITHUB_OUTPUT"
+            echo "source=reviewed-bootstrap" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Check out the immutable verifier
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ steps.verifier.outputs.revision }}
+          persist-credentials: false
+      - name: Verify the comparison source revision
+        env:
+          VERIFIER_REVISION: ${{ steps.verifier.outputs.revision }}
+        run: test "$(git rev-parse HEAD)" = "$VERIFIER_REVISION"
       - uses: ./.github/actions/setup
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
@@ -229,6 +259,19 @@ jobs:
           pattern: targeted-*
           path: ${{ runner.temp }}/targeted
       - run: node scripts/ci/compare-targeted-evidence.mjs "$RUNNER_TEMP"
+      - name: Record the immutable verifier identity
+        env:
+          VERIFIER_REVISION: ${{ steps.verifier.outputs.revision }}
+          VERIFIER_SOURCE: ${{ steps.verifier.outputs.source }}
+        run: |
+          node --input-type=module <<'JS'
+          import { readFileSync, writeFileSync } from 'node:fs'
+          import { join } from 'node:path'
+          const path = join(process.env.RUNNER_TEMP, 'selection-comparison.json')
+          const result = JSON.parse(readFileSync(path, 'utf8'))
+          result.verifier = { revision: process.env.VERIFIER_REVISION, source: process.env.VERIFIER_SOURCE }
+          writeFileSync(path, JSON.stringify(result, null, 2) + '\n')
+          JS
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: ci-selection-comparison

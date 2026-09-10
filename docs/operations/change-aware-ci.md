@@ -23,6 +23,11 @@ database work, CI and release tooling therefore retain full validation. Deleted,
 renamed, executable, symlinked and unsupported files also retain the full suite.
 These rules are narrower than a folder-based exemption.
 
+Local-link checks parse Markdown and HTML anchors, images and poster URLs, with
+the same repository bounds for each. HTML character references in local URLs
+and `srcset` require explicit Markdown links instead of unvalidated destination
+syntax. Code examples and HTML comments are ignored.
+
 Consumer analysis includes root runtime entries such as `proxy.ts`,
 `instrumentation.ts` and `next.config.ts`, as well as additional source folders.
 Known tooling is excluded from that scan; an application import into excluded
@@ -68,6 +73,10 @@ Independent security checks retain their existing provider contexts.
 Policy installation and changes to selection, browser execution, test mapping
 or browser policy run the whole suite plus the bounded targeted comparison.
 `package.json` is included because it owns the full visual test command.
+The reviewed dependency graph also covers transitive runner, verifier and test
+helpers, including process-tree signalling, exit handling, browser image checks
+and accessibility fixtures. Locks, workspace overrides, Node version and setup
+actions require comparison too. An unavailable dependency graph fails closed.
 This is the only time the same page checks intentionally run twice. Normal
 qualified PRs run their selected tier; other normal PRs run the full tier.
 
@@ -79,6 +88,19 @@ retried, flaky or different results fail qualification. Worker, retry, browser
 configuration and fresh-server policies must match. Visual qualification stays
 on Linux x64 and uses the existing baselines. A test list or a local ARM visual
 run is not a substitute.
+
+The comparison verdict executes from the immutable reviewed PR base, including
+that checkout's dependency lock. The candidate's reports are data, and changes
+to its verifier cannot replace this verdict. The artifact records the verifier
+revision separately from the tested merge revision. A base with installed policy
+but a missing verifier fails instead of downgrading to bootstrap.
+
+The first installation has no base verifier. Its fixed bootstrap source is
+`1a50396145b2daf0aed9b8de2f4a0cd2db0542a2`, whose comparison implementation received
+[code-owner review](https://github.com/lapeninns/nabaperks/pull/307#pullrequestreview-5171767005)
+before later repairs. The comparison implementation is unchanged at that pin.
+This historical review identifies the bootstrap code; it does not approve the
+current PR or replace its fresh code-owner approval.
 
 The installation PR cannot use its own new policy to reduce its checks. Its
 reviewed base has no classifier, so bootstrap requires all nine roots and the

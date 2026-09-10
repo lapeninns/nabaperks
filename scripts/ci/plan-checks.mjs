@@ -3,6 +3,7 @@ import { pathToFileURL } from "node:url"
 import { calculateImpact } from "./change-impact.mjs"
 import { git, requireCommit } from "./impact-git.mjs"
 import { qualifiedSnapshotPage } from "./impact-snapshots.mjs"
+import { comparisonDependencies } from "./impact-dependencies.mjs"
 import {
   expectedIdentity,
   fullPlan,
@@ -10,13 +11,20 @@ import {
   FULL_WORKLOADS,
 } from "./impact-plan-contract.mjs"
 
+let dependencyPaths
+
 export function needsSelectionComparison(path) {
   // Expected pixels do not change test selection. The classifier separately
   // requires each baseline update to accompany its qualified page change.
   if (qualifiedSnapshotPage(path)) return false
   return (
     path === ".github/workflows/ci.yml" ||
-    path === "package.json" ||
+    [
+      "package.json",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      ".nvmrc",
+    ].includes(path) ||
     ["config/ci-impact-policy.json", "config/ci-workloads.json"].includes(
       path
     ) ||
@@ -27,7 +35,9 @@ export function needsSelectionComparison(path) {
     /^tests\/e2e\/(a11y|visual|helpers\/a11y)/.test(path) ||
     /^scripts\/ci\/(browser-|run-browser|run-bounded)/.test(path) ||
     path === "scripts/run-playwright.mjs" ||
-    path.startsWith(".github/actions/playwright/")
+    path.startsWith(".github/actions/playwright/") ||
+    path.startsWith(".github/actions/setup/") ||
+    (dependencyPaths ??= comparisonDependencies()).has(path)
   )
 }
 
@@ -63,9 +73,17 @@ export function planChecks(env, { cwd } = {}) {
       "Change inventory unavailable; all checks remain required"
     )
   }
-  const comparisonRequired = impact.changes.some((change) =>
-    needsSelectionComparison(change.path)
-  )
+  let comparisonRequired
+  try {
+    comparisonRequired = impact.changes.some((change) =>
+      needsSelectionComparison(change.path)
+    )
+  } catch {
+    return fullPlan(
+      identity,
+      "Comparison dependencies unavailable; complete validation and comparison required"
+    )
+  }
   let profile = impact.profile
   let reason = impact.reason
   if (identity.event === "push") {
