@@ -30,7 +30,16 @@ import {
  * refuse rather than emit a document.
  */
 
-const contract = JSON.parse(readFileSync(CONTRACT_PATH, "utf8"))
+const liveContract = JSON.parse(readFileSync(CONTRACT_PATH, "utf8"))
+// These are synthetic offline collector fixtures, NOT approved qualification
+// limits. The actual contract keeps its old floors and must refuse the new
+// composition until an independently reviewed baseline exists (tested below).
+const contract = structuredClone(liveContract)
+for (const project of ["desktop-firefox", "desktop-safari"]) {
+  contract.shadowMode.qualification.lanes[`a11y-${project}`] = {
+    ...contract.shadowMode.qualification.lanes["a11y-chromium"],
+  }
+}
 const workflowText = readFileSync(CI_WORKFLOW_PATH, "utf8")
 const laneIds = Object.keys(contract.shadowMode.qualification.lanes)
 const HEAD_SHA = "d5f5c36417efd114117ca75eb5e7866b9a7ac06d"
@@ -52,7 +61,7 @@ const A11Y_SHARDS = 4
 const VISUAL_SHARDS = 4
 const NON_LANE_JOBS = 21
 const TOTAL_JOBS =
-  3 + PROJECTS.length * E2E_PACKS + 2 * (A11Y_SHARDS + VISUAL_SHARDS) + 13
+  3 + PROJECTS.length * (E2E_PACKS + A11Y_SHARDS) + 2 * VISUAL_SHARDS + 13
 
 const run = {
   id: 34290952137,
@@ -160,7 +169,7 @@ function withQualityFailure(fixture, failedStep) {
   return fixture
 }
 
-/** The 48 jobs a complete CI run publishes, with the logs the lane jobs wrote. */
+/** A synthetic complete matrix, with fabricated logs used only in unit tests. */
 function hostedRun() {
   const jobs = []
   const logs = new Map()
@@ -191,13 +200,15 @@ function hostedRun() {
       )
     }
   }
-  for (const project of ["chromium", "mobile-safari"]) {
+  for (const project of PROJECTS) {
     for (let shard = 1; shard <= A11Y_SHARDS; shard += 1) {
       add(
         `Accessibility (${project}, shard ${shard}/${A11Y_SHARDS})`,
         playwrightLog(shardTally(`a11y-${project}`, A11Y_SHARDS))
       )
     }
+  }
+  for (const project of ["chromium", "mobile-safari"]) {
     for (let shard = 1; shard <= VISUAL_SHARDS; shard += 1) {
       add(`Visual regression (${project}, shard ${shard}/${VISUAL_SHARDS})`)
     }
@@ -237,6 +248,21 @@ const build = ({ jobs, logs }, overrides = {}) =>
 
 const laneOf = (document, laneId) =>
   document.lanes.find((lane) => lane.laneId === laneId)
+
+test("the actual qualification policy refuses the new composition until its baseline is reviewed", () => {
+  assert.throws(
+    () =>
+      buildLaneIndex(
+        workflowText,
+        Object.keys(liveContract.shadowMode.qualification.lanes)
+      ),
+    /a11y-desktop-firefox.*qualification policy does not list/
+  )
+  assert.throws(
+    () => build(hostedRun(), { contract: liveContract }),
+    /a11y-desktop-firefox.*qualification policy does not list/
+  )
+})
 
 test("the lane index derives its fan-out from the ci.yml matrix", () => {
   const index = buildLaneIndex(workflowText, laneIds)
@@ -500,7 +526,7 @@ test("the collector never asks the provider to change anything", async () => {
   // DB lanes plus every e2e pack and accessibility shard.
   assert.equal(
     requested.filter((path) => path.endsWith("/logs")).length,
-    2 + PROJECTS.length * E2E_PACKS + 2 * A11Y_SHARDS
+    2 + PROJECTS.length * (E2E_PACKS + A11Y_SHARDS)
   )
   assert.ok(
     requested.every(

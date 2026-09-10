@@ -24,8 +24,13 @@ export function browserArguments({ plane, suite, project, shard }) {
     throw new Error("Invalid or unqualified browser shard")
   const args = ["test", `--project=${project}`]
   if (definition.grep) args.push("--grep", definition.grep)
-  if (definition.grepInvert || plane === "local")
-    args.push("--grep-invert", "@visual")
+  const excluded = [
+    ...new Set([
+      ...(plane === "local" ? ["@visual"] : []),
+      ...(definition.grepInvert?.split("|") ?? []),
+    ]),
+  ]
+  if (excluded.length) args.push("--grep-invert", excluded.join("|"))
   if (plane === "local") args.push("--ignore-snapshots")
   args.push(`--shard=${shard}`)
   return args

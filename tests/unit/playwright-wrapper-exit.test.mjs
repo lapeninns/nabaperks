@@ -43,7 +43,7 @@ test("real Playwright child signals survive the inner wrapper, pnpm and browser 
         "test:e2e",
         "--project=mobile-safari",
         "--grep-invert",
-        "@visual",
+        "@visual|@a11y",
         "--ignore-snapshots",
         "--shard=1/32",
       ],

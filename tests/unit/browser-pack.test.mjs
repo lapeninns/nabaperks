@@ -9,7 +9,7 @@ import { mkdtempSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
 
-test("packing preserves the existing shard denominator and selection", () => {
+test("packing preserves the declared shard denominator and composed selection", () => {
   // A pack is now eight shards rather than four: the same tests, grouped so
   // that per-job setup - checkout, the container pull, browser verification -
   // is paid sixteen times instead of thirty-three. The denominator stays /32
@@ -26,7 +26,7 @@ test("packing preserves the existing shard denominator and selection", () => {
       "test",
       "--project=chromium",
       "--grep-invert",
-      "@visual",
+      "@visual|@a11y",
       `--shard=${shard}`,
     ])
   )

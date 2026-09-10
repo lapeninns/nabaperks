@@ -375,7 +375,7 @@ test("visual regression stays hosted: no local lane can read or write a pixel ba
         if (!/playwright|test:e2e|test:a11y/.test(command)) continue
         playwrightInvocations += 1
         assert.ok(
-          command.includes("--grep-invert @visual"),
+          /--grep-invert (?:"@visual\|@a11y"|@visual)(?:\s|$)/.test(command),
           `${where} must carry --grep-invert @visual`
         )
         assert.ok(
@@ -674,7 +674,15 @@ test("non-baseline accessibility journeys stay in both planes' selections", () =
   for (const name of PROFILE_NAMES) {
     const profile = readJson(PROFILE_PATHS[name])
     const lanes = profile.lanes.filter((lane) => lane.id.startsWith("a11y-"))
-    assert.equal(lanes.length, 2)
+    assert.deepEqual(
+      lanes.map((lane) => lane.id).sort(),
+      [
+        "a11y-chromium",
+        "a11y-mobile-safari",
+        "a11y-desktop-firefox",
+        "a11y-desktop-safari",
+      ].sort()
+    )
     for (const lane of lanes) {
       assert.equal(lane.knownLocalGaps, undefined)
       for (const command of lane.commands.filter((entry) =>

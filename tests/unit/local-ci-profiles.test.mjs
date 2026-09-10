@@ -167,7 +167,7 @@ test("the snapshot guard holds for every profile, in both directions", () => {
     for (const lane of profile.lanes) {
       for (const command of lane.commands) {
         if (!/playwright|test:e2e|test:a11y/.test(command)) continue
-        assert.match(command, /--grep-invert @visual/)
+        assert.match(command, /--grep-invert ["']?@visual/)
         assert.match(command, /--ignore-snapshots/)
       }
     }
