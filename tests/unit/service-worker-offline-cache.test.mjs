@@ -39,3 +39,20 @@ for (const stylesheet of [
     assert.ok(!captured.includes(script))
   })
 }
+
+test("notificationclick keeps same-origin paths and rejects a foreign origin", () => {
+  const runtime = {
+    URL,
+    addEventListener() {},
+    location: { origin: "https://nabaperks.com" },
+  }
+  runtime.self = runtime
+  const results = runInNewContext(
+    `${source}\n;[safeNotificationUrl("/card/abc"), safeNotificationUrl("https://evil.example/phish"), safeNotificationUrl("https://nabaperks.com/home")]`,
+    runtime
+  )
+  const [sameOrigin, foreignOrigin, absoluteHome] = results
+  assert.equal(sameOrigin, "/card/abc")
+  assert.equal(foreignOrigin, "/home")
+  assert.equal(absoluteHome, "/home")
+})
