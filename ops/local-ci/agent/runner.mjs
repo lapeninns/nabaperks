@@ -696,7 +696,17 @@ export function buildLaneResult({
   }
 
   const countsExpected = expectsTestCounts(lane)
-  const parsed = resolved === "skipped" ? null : parseLaneCounts(output)
+  // A browser lane declares one report per shard. When seven of its eight are
+  // missing, the tally it printed is one shard's, not the lane's, and parsing
+  // it would publish an eighth of the workload as this lane's coverage - the
+  // same lie zero would tell, told with a plausible number instead. Incomplete
+  // evidence therefore reports nulls and `countsParsed: false`, which is the
+  // state `unparsedCountLanes` already names in the run's failure list.
+  const evidenceIncomplete = missingLogs.length > 0
+  const parsed =
+    resolved === "skipped" || evidenceIncomplete
+      ? null
+      : parseLaneCounts(output)
   // A lane that legitimately runs no tests reports zeros, because zero is the
   // truth there. A lane that should have printed a tally and did not reports
   // nulls, because zero would be a lie.

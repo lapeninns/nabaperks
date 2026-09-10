@@ -16,6 +16,7 @@ import {
   PUBLISH_MARGIN_MINUTES,
   buildLaneScript,
   createRunner,
+  laneBrowserReports,
   laneLogParts,
   laneServiceLogs,
   runDeadlineMs,
@@ -628,6 +629,87 @@ test("a declared background-service log is copied into the run directory and has
       .map((name) => runDir.bytes.get(name))
   )
   assert.equal(rebuilt, outcome.record.logDigest)
+})
+
+test("a browser lane that produced one shard report of eight publishes no test tally", async () => {
+  // The live failure this guards, from main-20260910T125254Z-4f5eb5: the
+  // mobile-safari lane's dev server died inside shard 1, the runner stopped
+  // the lane, and shards 2..8 never ran. The lane still recorded
+  // testsRun 37 / countsParsed true - one eighth of a 292-test project
+  // published as that lane's coverage, and classed as an ordinary test
+  // failure. Counts must be null whenever the declared evidence is
+  // incomplete, so `unparsedCountLanes` names the lane in the run record.
+  const shard = (n) =>
+    `node scripts/ci/browser-workload.mjs local test:e2e --project="mobile-safari" --grep-invert @visual --ignore-snapshots --shard="${n}/8"`
+  const lane = laneOf({
+    id: "e2e-mobile-safari",
+    title: "Functional E2E (mobile-safari)",
+    commands: [
+      "pnpm install --frozen-lockfile",
+      ...Array.from({ length: 8 }, (_, index) => shard(index + 1)),
+    ],
+    env: { LOCAL_CI_BROWSER_JSON: "1" },
+  })
+
+  // Shard 1 alone reached the run directory, and its Playwright tally is the
+  // one the old code parsed as the whole lane's.
+  const reports = laneBrowserReports(lane)
+  assert.equal(reports.length, 8, "eight shard commands declare eight reports")
+
+  clock = fakeClock()
+  const runDir = fakeRunDirectory()
+  const outcome = await runnerFor({
+    runtime: fakeRuntime({
+      lanes: {
+        "e2e-mobile-safari": {
+          exitCode: 1,
+          output: "  2 failed\n  35 passed (2.0m)\n",
+        },
+      },
+      workspaceLogs: {
+        [reports[0].source]: {
+          name: reports[0].source,
+          status: "captured",
+          text: "{}",
+        },
+      },
+    }),
+    runDir,
+  }).runProfile({ profile: profileOf([lane]), headSha: HEAD_SHA })
+
+  const result = outcome.laneResults[0]
+  assert.equal(
+    result.missingLogParts.length,
+    7,
+    "seven shard reports are absent"
+  )
+  assert.equal(result.countsExpected, true)
+  assert.equal(
+    result.countsParsed,
+    false,
+    "a tally covering one shard of eight is not this lane's tally"
+  )
+  assert.equal(result.testsRun, null)
+  assert.equal(result.testsPassed, null)
+  assert.equal(result.testsFailed, null)
+
+  // The run record has to say so, not merely omit it: a reader seeing the
+  // coerced zero in the summary table must find the reason beside it.
+  assert.ok(
+    outcome.record.failures.some(
+      (entry) =>
+        entry.laneId === "e2e-mobile-safari" &&
+        /no machine-readable test tally/.test(entry.title)
+    ),
+    "the lane is named among the run's failures for its unparsed counts"
+  )
+  assert.equal(
+    outcome.record.failures.filter((entry) =>
+      /is not in the evidence/.test(entry.title)
+    ).length,
+    7,
+    "each absent shard report is named"
+  )
 })
 
 test("a declared log that never appeared is recorded as missing, and an empty one is not the same fact", async () => {
