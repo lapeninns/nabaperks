@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs"
 import { runWorkload, workloads } from "../../scripts/ci/run-workload.mjs"
 import {
   browserArguments,
+  browserExitCode,
   parseBrowserRequest,
 } from "../../scripts/ci/browser-workload.mjs"
 import {
@@ -48,17 +49,29 @@ test("every local browser command resolves to all original shards with snapshot 
     )) {
       assert.equal(lane.env.PLAYWRIGHT_WORKERS, "1")
       const commands = lane.commands.slice(1)
-      assert.equal(commands.length, 8)
+      // The denominator is read from the reviewed workload rather than
+      // written here twice: a profile that lost or gained a shard command
+      // must fail this, and a profile that merely tracks an approved
+      // denominator must not need this file edited to say so.
+      const suite = /browser-workload\.mjs local (\S+) /.exec(commands[0])?.[1]
+      const shards = workloads.browsers[suite]?.localShards
+      assert.ok(shards, `lane ${lane.id} names a known browser suite`)
+      assert.equal(
+        commands.length,
+        shards,
+        `lane ${lane.id} must carry every one of its ${shards} shards`
+      )
       for (const [index, command] of commands.entries()) {
         const args = command.replaceAll('"', "").split(" ").slice(2)
         const generated = parseBrowserRequest(args)
         assert.ok(generated.includes("--ignore-snapshots"))
         assert.ok(generated.includes("--grep-invert"))
-        assert.ok(generated.includes(`--shard=${index + 1}/8`))
+        assert.ok(generated.includes(`--shard=${index + 1}/${shards}`))
         count++
       }
     }
-    assert.equal(count, 48)
+    // Four e2e projects at /32 and two a11y projects at /8, per profile.
+    assert.equal(count, 4 * 32 + 2 * 8)
   }
 })
 
@@ -239,6 +252,18 @@ test("the browser manifest pins every tier's projects, selection and denominator
   // union - eight jobs' worth of repeated setup for eleven minutes of actual
   // test work did not pay for itself. test:visual is the pixel-baseline
   // authority and stays exactly as it was.
+  //
+  // test:e2e's localShards moved 8 -> 32 to match hostedShards. That is the
+  // one denominator change these guards permit, because it raises the split
+  // rather than lowering it: the executed union is identical and every server
+  // carries fewer tests. It is a memory fix with kernel evidence behind it.
+  // At /8 a mobile-safari shard is 37 tests - all of them a11y-sweep axe
+  // scans against one `next dev` - and the VM recorded twelve containers in
+  // which the memory cgroup killed `next-server` at 6.06-6.43 GiB anon-RSS
+  // against an 8 GiB lane and a 6144 MiB heap ceiling, taking WPEWebProcess
+  // with it. The surviving tests then failed on ECONNREFUSED and read as
+  // ordinary assertion failures. /32 is ~10 tests per server, which is what
+  // the hosted tier already runs green.
   assert.deepEqual(workloads.browsers, {
     "test:e2e": {
       projects: [
@@ -248,7 +273,7 @@ test("the browser manifest pins every tier's projects, selection and denominator
         "desktop-safari",
       ],
       hostedShards: 32,
-      localShards: 8,
+      localShards: 32,
       grepInvert: "@visual",
     },
     "test:a11y": {
@@ -284,4 +309,23 @@ test("global teardown failures and incomplete processes cannot qualify grouping"
       false
     )
   }
+})
+
+test("a signalled browser shard is not reported as a failed test suite", () => {
+  // The memory cgroup killing `next-server` mid-shard used to reach the lane
+  // record as exit 1 - the same code Playwright returns for a red suite - and
+  // the surviving tests' ECONNREFUSED was the only trace. The kill now carries
+  // its own code so the lane result can tell an infrastructure failure from a
+  // test failure without a reader inferring it from the log.
+  assert.equal(browserExitCode({ status: null, signal: "SIGKILL" }), 137)
+  assert.equal(browserExitCode({ status: null, signal: "SIGTERM" }), 143)
+  assert.notEqual(browserExitCode({ status: null, signal: "SIGKILL" }), 1)
+
+  // An ordinary red suite and a clean pass are untouched.
+  assert.equal(browserExitCode({ status: 1, signal: null }), 1)
+  assert.equal(browserExitCode({ status: 0, signal: null }), 0)
+
+  // A spawn that produced neither is a failure, never a silent success.
+  assert.equal(browserExitCode({}), 1)
+  assert.equal(browserExitCode(), 1)
 })
