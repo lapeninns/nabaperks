@@ -55,6 +55,30 @@ export function browserReportName(args) {
   return `local-ci-${project}-${shard.replace("/", "-of-")}.json`
 }
 
+/**
+ * The exit code a shard's outcome deserves. **Pure.**
+ *
+ * A shard the kernel killed and a shard whose assertions failed are different
+ * facts about a run, and `result.signal ? 1 : status` collapsed them into the
+ * one code Playwright already uses for a red suite. That is how the memory
+ * cgroup killing `next-server` mid-shard reached the lane record as an
+ * ordinary test failure, with the surviving tests' ECONNREFUSED as its
+ * evidence. A signalled shard therefore reports 128 + the signal number, the
+ * convention a shell uses for the same fact, so no reader has to infer which
+ * of the two happened.
+ */
+export function browserExitCode({ status = null, signal = null } = {}) {
+  if (!signal) return status ?? 1
+  const numbers = {
+    SIGKILL: 9,
+    SIGTERM: 15,
+    SIGABRT: 6,
+    SIGSEGV: 11,
+    SIGINT: 2,
+  }
+  return 128 + (numbers[signal] ?? 0)
+}
+
 if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(process.argv[1]).href
@@ -76,7 +100,11 @@ if (
       { stdio: "inherit", env }
     )
     if (result.error) throw result.error
-    process.exitCode = result.signal ? 1 : (result.status ?? 1)
+    if (result.signal)
+      console.error(
+        `browser workload terminated by signal ${result.signal}; this is an infrastructure failure, not a test result`
+      )
+    process.exitCode = browserExitCode(result)
   } catch (error) {
     console.error(error.message)
     process.exitCode = 1
