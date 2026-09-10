@@ -1,5 +1,21 @@
 # Local CI provisioning evidence — 2026-09-05
 
+> **Dated evidence record. Do not read it as current state.** Everything below
+> is what was observed on 2026-09-05 and remains accurate as history. Three of
+> its facts have since changed:
+>
+> - `Release gate` no longer requires `fast` and `build` only. At
+>   `d5f5c3641` it requires all nine hosted roots — `fast`, `quality`, `build`,
+>   `e2e`, `a11y`, `visual`, `lighthouse`, `zap-baseline`, `db`. The
+>   `[fast, build]` gate this record describes was retired.
+> - `LOCAL_CI_MODE` is no longer unset. Read back 2026-09-09 it is `shadow`, and
+>   `LOCAL_CI_WATCHDOG_ENABLED` is `true`.
+> - The agent has since been installed and polls. It runs under launchd as
+>   `com.nabaperks.local-ci` at revision `aed95ca9b`.
+>
+> For current state see [the operator runbook](local-ci.md); for the corrected
+> handover narrative see [the handoff](local-ci-handoff.md).
+
 This records the first hardware provisioning attempt after PR #238 merged as
 `292db876c8b83d344a66ddaca6d7142bf3741b98`. It is not shadow qualification.
 
@@ -13,8 +29,10 @@ This records the first hardware provisioning attempt after PR #238 merged as
   Lighthouse home run failed LCP at 4,232 ms against 4,000 ms; the single retry
   passed without a code or budget change. This does not prove repeatability.
 - The step-1 workflow change was exactly 80 insertions and zero deletions.
-  `Release gate` still required exactly `fast` and `build`. Both deliberate
-  interlock mutations failed, with an unmodified control passing.
+  `Release gate` still required exactly `fast` and `build` **on that date**;
+  that gate has since been replaced by the nine-root gate described in the
+  banner above. Both deliberate interlock mutations failed, with an unmodified
+  control passing.
 - Baseline local checks passed: 684 contracts, 1,284 unit tests, typecheck,
   scoped ESLint, debt, agent docs, dead code, duplication and generated docs.
 
@@ -119,7 +137,7 @@ and in the merged repository, the workspace identity remained 501:1000, the
 cache was writable, and the Python virtualenv imports succeeded. No candidate
 image or unmerged agent was installed as the execution plane.
 
-## Remaining proof
+## Remaining proof (as it stood on 2026-09-05)
 
 Complete the job-image build, merge any image fixes through normal review,
 rebuild from the merged commit, install the reviewed agent with its heartbeat
@@ -127,6 +145,16 @@ monitor, and run real jobs. Keep `LOCAL_CI_MODE` unset until those prerequisites
 are met. Dual-run comparison and per-lane routing still need the additive
 implementation described by the cutover specification before shadow
 qualification can establish three consecutive equivalent SHAs.
+
+**Status on 2026-09-09.** The image was built, the agent was installed and it
+does run real jobs; `LOCAL_CI_MODE` is `shadow`. Dual-run comparison arrived the
+day after this record, in `902a529ec` (#259):
+`ops/local-ci/compare-shadow.mjs` compares a saved local check against saved
+hosted evidence for one SHA. Per-lane routing is **still not implemented**, and
+no qualification streak exists — shadow qualification has still not established
+three consecutive equivalent SHAs. Neither has run reliability: `main`
+11 success / 14 failure / 9 cancelled / 1 timed out, `pr` 19 / 21 / 11, and no
+`nightly` run has ever succeeded.
 
 The candidate image build and offline smoke checks passed, but the agent has
 not polled GitHub and no

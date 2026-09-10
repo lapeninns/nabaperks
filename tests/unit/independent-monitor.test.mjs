@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { createHmac } from "node:crypto"
 import {
+  cpSync,
   mkdtempSync,
   mkdirSync,
   readFileSync,
@@ -12,6 +13,7 @@ import {
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { test } from "node:test"
+import { fileURLToPath, pathToFileURL } from "node:url"
 import {
   applyObservation,
   canonicalAlert,
@@ -84,6 +86,48 @@ test("runtime rejects shared failure domains, unreviewed inventories and provide
   value.webhookUrl =
     "https://skonlhwstejberyzobep.supabase.co/functions/v1/production-alert"
   assert.throws(() => validateMonitorConfig(value), /failure domain/)
+})
+
+test("state isolation decodes the checkout path and compares whole path segments", async (t) => {
+  assert.throws(
+    () =>
+      validateMonitorConfig(
+        config(
+          join(fileURLToPath(new URL("../../", import.meta.url)), ".state")
+        )
+      ),
+    /outside source checkout/
+  )
+  // The operator's own checkout contains a space. Compared percent-encoded, it
+  // shares no prefix with a decoded state path, so every location — including
+  // the checkout itself — was accepted and a `git clean -xfd` would take the
+  // undelivered outbox with it.
+  const base = realpathSync(mkdtempSync(join(tmpdir(), "monitor checkout ")))
+  t.after(() => rmSync(base, { force: true, recursive: true }))
+  const checkout = join(base, "Nabaperks")
+  const source = fileURLToPath(new URL("../../", import.meta.url))
+  mkdirSync(join(checkout, "ops", "monitoring"), { recursive: true })
+  mkdirSync(join(checkout, "config"), { recursive: true })
+  cpSync(
+    join(source, "ops/monitoring/independent-monitor.mjs"),
+    join(checkout, "ops/monitoring/independent-monitor.mjs")
+  )
+  for (const file of [
+    "independent-monitoring-contract.json",
+    "production-slos.json",
+  ])
+    cpSync(join(source, "config", file), join(checkout, "config", file))
+  const relocated = await import(
+    pathToFileURL(join(checkout, "ops/monitoring/independent-monitor.mjs")).href
+  )
+  for (const directory of [join(checkout, ".monitor-state"), checkout])
+    assert.throws(
+      () => relocated.validateMonitorConfig(config(directory)),
+      /outside source checkout/
+    )
+  // A sibling shares the checkout's characters but not its path, so it is a
+  // legitimate independently hosted location that must stay accepted.
+  relocated.validateMonitorConfig(config(`${checkout}-state`))
 })
 
 test("independent probes preserve production semantics, narrow bearer scope and enforce latency", async () => {

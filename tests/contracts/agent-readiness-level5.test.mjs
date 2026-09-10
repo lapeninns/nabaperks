@@ -102,13 +102,15 @@ test("Given routine pull requests When CI runs Then deep browser proof is sharde
   )
 
   assert.match(ci, /quality:check/)
-  assert.match(e2eJob, /pack: \[1, 2, 3, 4, 5, 6, 7, 8\]/)
+  assert.match(e2eJob, /pack: \[1, 2, 3, 4\]/)
   assert.match(e2eJob, /node scripts\/ci\/run-browser-pack\.mjs/)
+  // Four packs of eight, not eight of four: the /32 denominator is untouched,
+  // so this still asserts that every original shard is carried exactly once.
   assert.deepEqual(
-    Array.from({ length: 8 }, (_, index) => packShards(index + 1)).flat(),
+    Array.from({ length: 4 }, (_, index) => packShards(index + 1)).flat(),
     Array.from({ length: 32 }, (_, index) => `${index + 1}/32`)
   )
-  assert.match(a11yJob, shardMatrixPattern(8))
+  assert.match(a11yJob, shardMatrixPattern(4))
   assert.match(visualJob, shardMatrixPattern(4))
   assert.match(nightly, shardMatrixPattern(32))
   assert.match(nextConfig, /process\.env\.PLAYWRIGHT_HARNESS === "1"/)

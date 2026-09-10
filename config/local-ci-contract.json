@@ -56,13 +56,18 @@
     "notes": "The agent publishes eventual App results; the independent hosted observer takes one snapshot without waiting. No merge decision depends on either. A future enforced cutover requires a trusted verifier and qualification, not only a configuration flip.",
     "qualification": {
       "profiles": ["pr", "main"],
+      "streakProfiles": ["pr"],
       "maxProfileDurationSeconds": 4500,
-      "baselineHeadSha": "79b8a048a3c64a7340db04635fe1143442888f9d",
-      "baselineEvidence": "https://github.com/lapeninns/nabaperks/issues/255",
+      "baselineHeadSha": "d5f5c36417efd114117ca75eb5e7866b9a7ac06d",
+      "baselineEvidence": "https://github.com/lapeninns/nabaperks/issues/255 (original 79b8a048a baseline, superseded); current counts from ~/.nabaperks-local-ci/runs/d5f5c36417efd114117ca75eb5e7866b9a7ac06d/main-20260908T234905Z-dec709/lane-result.json",
+      "supersededBaseline": {
+        "headSha": "79b8a048a3c64a7340db04635fe1143442888f9d",
+        "evidence": "https://github.com/lapeninns/nabaperks/issues/255"
+      },
       "lanes": {
         "fast": {
           "kind": "tests",
-          "minimumTests": 2006,
+          "minimumTests": 2351,
           "maximumSkipped": 0
         },
         "quality": {
@@ -77,41 +82,41 @@
         },
         "e2e-chromium": {
           "kind": "tests",
-          "minimumTests": 238,
-          "maximumSkipped": 25
+          "minimumTests": 245,
+          "maximumSkipped": 26
         },
         "e2e-mobile-safari": {
           "kind": "tests",
-          "minimumTests": 281,
-          "maximumSkipped": 42
+          "minimumTests": 288,
+          "maximumSkipped": 43
         },
         "e2e-desktop-firefox": {
           "kind": "tests",
-          "minimumTests": 235,
-          "maximumSkipped": 41
+          "minimumTests": 242,
+          "maximumSkipped": 42
         },
         "e2e-desktop-safari": {
           "kind": "tests",
-          "minimumTests": 235,
-          "maximumSkipped": 41
+          "minimumTests": 242,
+          "maximumSkipped": 42
         },
         "a11y-chromium": {
           "kind": "tests",
-          "minimumTests": 68,
+          "minimumTests": 71,
           "maximumSkipped": 1
         },
         "a11y-mobile-safari": {
           "kind": "tests",
-          "minimumTests": 71,
+          "minimumTests": 74,
           "maximumSkipped": 2
         },
         "db": {
           "kind": "tests",
-          "minimumTests": 528,
+          "minimumTests": 576,
           "maximumSkipped": 0
         }
       },
-      "notes": "Floors preserve the complete suite selected on the baseline head. Skip ceilings are the observed DB-free browser-fixture and project-specific skips in its complete local PR proof, with the accessibility selection repair included; hosted comparison must independently satisfy the same ceilings. Quality and print-kit execute command checks rather than countable test suites, so only those two lanes have a zero floor. Lowering a floor or raising a ceiling requires a documented change to expected coverage in the shadow ledger. This read-only comparison policy changes neither routing nor enforcement. Mutation at concurrency 8 within 75 minutes, fork/fallback evidence and three consecutive equivalent PR heads remain separate cutover prerequisites."
+      "notes": "Floors are the counts a complete, successful main-profile run recorded on the baseline head (fast 2351, e2e-chromium 245, e2e-mobile-safari 288, e2e-desktop-firefox 242, e2e-desktop-safari 242, a11y-chromium 71, a11y-mobile-safari 74, db 576), so a real loss of tests is detected instead of being absorbed by slack. Skip ceilings are that same run's DB-free browser-fixture and project-specific skips; hosted comparison must independently satisfy the same ceilings. This baseline supersedes 79b8a048a3c64a7340db04635fe1143442888f9d, whose floors and ceilings are recorded in the ledger issue under supersededBaseline: since that head tests/e2e/customer-venue-code-live-db-flow.ts added one declared test that every DB-free browser project skips, which is the whole of the +1 on each e2e ceiling (chromium 26, mobile-safari 43, desktop-firefox 42, desktop-safari 42). That is an expected-coverage change rather than a coverage reduction, because the test still executes wherever ADMIN_LIVE_DB_E2E=1 supplies a live database. Quality and print-kit execute command checks rather than countable test suites, so only those two lanes have a zero floor. Lowering a floor or raising a ceiling requires a documented change to expected coverage in the shadow ledger. profiles is the set the duration budget applies to; streakProfiles is the narrower set whose comparisons may feed the equivalence streak, and widening it is a qualification-policy change. This read-only comparison policy changes neither routing nor enforcement. Mutation at concurrency 8 within 75 minutes, fork/fallback evidence and three consecutive equivalent PR heads remain separate cutover prerequisites."
     }
   },
   "agent": {

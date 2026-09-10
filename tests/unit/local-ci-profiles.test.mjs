@@ -60,6 +60,39 @@ test("every profile the contract names loads and validates against it", () => {
   )
 })
 
+test("every shipped lane starts coverage at validation, after its setup", () => {
+  for (const profile of profiles.values()) {
+    for (const lane of profile.lanes) {
+      const workload = lane.commands[lane.workloadCommand - 1]
+      assert.equal(typeof workload, "string", `${profile.profile}/${lane.id}`)
+      assert.doesNotMatch(
+        workload,
+        /pnpm install|supabase start|pnpm db:seed|pnpm db:reseed/
+      )
+      if (lane.id === "db") assert.equal(workload, "pnpm test:db")
+      if (lane.id === "db-stress") assert.equal(workload, "pnpm perf:stress")
+      if (lane.id === "load") assert.match(workload, /^k6 run /)
+      if (lane.id === "zap-full") assert.match(workload, /zap-full-scan\.py/)
+      assert.ok(
+        lane.commands
+          .slice(0, lane.workloadCommand - 1)
+          .includes("pnpm install --frozen-lockfile")
+      )
+    }
+  }
+})
+
+test("invalid workload boundaries are refused before a profile can run", () => {
+  for (const boundary of [0, -1, 1.5, "2", null, 999]) {
+    const raw = JSON.parse(readRepoFile("ops/local-ci/profiles/pr.json"))
+    raw.lanes[0].workloadCommand = boundary
+    assert.throws(
+      () => validateProfile(raw, contract, "pr"),
+      (error) => error.code === "INVALID_WORKLOAD_COMMAND"
+    )
+  }
+})
+
 test("profile selection: an x64-only lane is excluded from local and reported as hostedOnly", () => {
   const nightly = profiles.get("nightly")
   const x64Only = nightly.lanes.filter((lane) => lane.arch === X64_ONLY)
@@ -144,6 +177,7 @@ test("the snapshot guard holds for every profile, in both directions", () => {
 test("a lane carrying a forbidden snapshot substring is refused at load", () => {
   const raw = JSON.parse(readRepoFile("ops/local-ci/profiles/pr.json"))
   raw.lanes[0].commands = ["pnpm test:visual"]
+  raw.lanes[0].workloadCommand = 1
   assert.throws(
     () => validateProfile(raw, contract, "pr"),
     (error) => error.code === "SNAPSHOT_GUARD_VIOLATION"

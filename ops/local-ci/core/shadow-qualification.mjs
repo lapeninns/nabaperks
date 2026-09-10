@@ -1,3 +1,5 @@
+import { requireHostedIdentity } from "./hosted-identity.mjs"
+import { requireSameCheckoutTree } from "./checkout-proof.mjs"
 /** Read-only same-SHA evidence comparison. This module never changes a gate. */
 import {
   COUNT_FIELDS,
@@ -7,12 +9,46 @@ import {
   requireCondition,
 } from "./shadow-evidence.mjs"
 
+/**
+ * profiles gates the duration-budget comparison; only streakProfiles may feed
+ * the equivalence streak. Absent configuration stays at the narrower PR-only
+ * policy rather than silently admitting every compared profile.
+ *
+ * The list is code-owned on purpose: configuration may only ever narrow it.
+ * Widening the streak is a qualification-policy change that has to be reviewed
+ * as code, so a contract edit alone must never make a new profile count
+ * towards cutover evidence.
+ */
+const DEFAULT_STREAK_PROFILES = ["pr"]
+
+function streakProfilesOf(limits) {
+  const configured = limits?.streakProfiles
+  if (configured === undefined) return DEFAULT_STREAK_PROFILES
+  requireCondition(
+    Array.isArray(configured) &&
+      configured.length > 0 &&
+      configured.every(
+        (name) => typeof name === "string" && limits.profiles?.includes(name)
+      ),
+    "streakProfiles must name compared profiles"
+  )
+  const widened = configured.filter(
+    (name) => !DEFAULT_STREAK_PROFILES.includes(name)
+  )
+  requireCondition(
+    widened.length === 0,
+    `streakProfiles may only narrow the code-owned streak policy; remove ${widened.join(", ")}`
+  )
+  return configured
+}
+
 function validateLimits(contract, profile) {
   const limits = contract?.shadowMode?.qualification
   requireCondition(
     limits?.profiles?.includes(profile),
     `No qualification policy for profile ${profile}`
   )
+  streakProfilesOf(limits)
   requireCondition(
     isCount(limits.maxProfileDurationSeconds) &&
       limits.maxProfileDurationSeconds > 0,
@@ -113,12 +149,25 @@ export function compareShadowEvidence({
     profile,
     verdict: "incomplete",
     eligibleForStreak: false,
+    localExecutionVerified: false,
   }
   try {
     requireCondition(/^[a-f0-9]{40}$/.test(headSha ?? ""), "Invalid head SHA")
+    requireHostedIdentity(hosted?.provider, profile, headSha)
+    requireSameCheckoutTree(hosted, headSha)
     const limits = validateLimits(contract, profile)
     const ids = Object.keys(limits.lanes)
     const localLanes = indexEvidence(local, "local", headSha, profile, ids)
+    // Skipped lanes are already non-qualifying; retain their blocker diagnostics.
+    const unverified = [...localLanes.values()].filter(
+      (lane) =>
+        lane.status !== "skipped" &&
+        (lane.executionStarted !== true || lane.executionVerified !== true)
+    )
+    requireCondition(
+      unverified.length === 0,
+      `Unverified local validation execution: ${unverified.map((lane) => lane.laneId).join(", ")}`
+    )
     const hostedLanes = indexEvidence(hosted, "hosted", headSha, profile, ids)
     requireCondition(
       Number.isFinite(publishedDurationSeconds) &&
@@ -137,13 +186,21 @@ export function compareShadowEvidence({
         : incomplete.length
           ? "incomplete"
           : "equivalent"
+    const localExecutionVerified = [...localLanes.values()].every(
+      (lane) =>
+        lane.executionStarted === true && lane.executionVerified === true
+    )
     const budgetSatisfied =
       publishedDurationSeconds <= limits.maxProfileDurationSeconds
     return {
       ...base,
       verdict,
+      localExecutionVerified,
       eligibleForStreak:
-        profile === "pr" && verdict === "equivalent" && budgetSatisfied,
+        streakProfilesOf(limits).includes(profile) &&
+        verdict === "equivalent" &&
+        localExecutionVerified &&
+        budgetSatisfied,
       budget: {
         durationSeconds: publishedDurationSeconds,
         maximumSeconds: limits.maxProfileDurationSeconds,
@@ -159,18 +216,24 @@ export function compareShadowEvidence({
   }
 }
 
-/** Results must be supplied in attempt order. Repeating a SHA never adds one. */
-export function shadowEquivalenceStreak(results, required) {
+/**
+ * Results must be supplied in attempt order. Repeating a SHA never adds one.
+ * The contract is optional so the tally can be recomputed from stored results
+ * alone; without it the narrower default policy applies.
+ */
+export function shadowEquivalenceStreak(results, required, contract) {
   requireCondition(
     Number.isSafeInteger(required) && required > 0,
     "Invalid streak length"
   )
+  const streakProfiles = streakProfilesOf(contract?.shadowMode?.qualification)
   let heads = []
   for (const result of results) {
     const eligible =
       result?.eligibleForStreak === true &&
+      result.localExecutionVerified === true &&
       result.verdict === "equivalent" &&
-      result.profile === "pr" &&
+      streakProfiles.includes(result.profile) &&
       result.budget?.satisfied === true &&
       /^[a-f0-9]{40}$/.test(result.headSha ?? "")
     if (!eligible) heads = []

@@ -5,26 +5,52 @@ Healthchecks. Standard hosted runners for this public repository are free.
 No additional service account or App permission is required. The alert-delivery
 job has repository `issues: write`; observation jobs remain read-only.
 
+**Live state, read back 2026-09-09:** repository variable
+`LOCAL_CI_WATCHDOG_ENABLED=true`, so steps 1–4 of "Activate and rehearse" below
+have been performed. Whether the outage/recovery rehearsal in steps 5–6 was
+completed and its notification delivery observed is **unverified** — no such
+record exists in this repository. The 2026-09-07 outage described below is
+evidence against, not for, delivered detection.
+
 ## Evidence and limitations
 
 The real host poll loop creates a `Nabaperks Local CI heartbeat` check through
-the pinned App and updates it every five minutes. Its permanent anchor is the
+the pinned App and updates it on the contract's
+`agent.heartbeatIntervalMinutes` (5). Its permanent anchor is the
 merged provisioning commit recorded in `agentLiveness.anchorSha`; ordinary
 merges cannot make the heartbeat disappear. It does not attach a success check
 to current PRs or prove VM health or successful job execution. Those still need
 the regular local CI proof and nightly proof.
 
-`agent-watchdog.yml` runs every five minutes, offset from the hour. It accepts
-only successful, completed heartbeats with the configured name, App ID, App
-slug and anchor SHA. Evidence over 20 minutes old or more than one minute in
-the future fails. API and response failures fail closed. A separate job probes
-the public production health endpoint. Neither job is a merge dependency.
+`agent-watchdog.yml` declares `cron: "3/5 * * * *"` — a five-minute schedule,
+offset from the hour. It accepts only successful, completed heartbeats with the
+configured name, App ID, App slug and anchor SHA. Evidence over 20 minutes old
+(`agentLiveness.maxAgeMinutes`) or more than one minute in the future fails.
+API and response failures fail closed. A separate job probes the public
+production health endpoint. Neither job is a merge dependency.
+
+**The declared cadence is not the delivered cadence.** GitHub throttles
+high-frequency schedules, and on this repository it throttles this one heavily.
+Measured on 2026-09-09: 12 scheduled runs of `agent-watchdog.yml` across a
+37.3-hour window — a mean gap of about 3.1 hours and a longest gap of about
+4.6 hours, not five minutes. Real detection latency is therefore hours. The
+20-minute age limit only decides the verdict of a run that has already started;
+it does not bound when that run starts. Read "every five minutes" about this
+workflow, here or anywhere else, as the declared cron and nothing more.
+
+The consequence is already on record. The agent was down from 04:30Z to 22:12Z
+on 2026-09-07 — 17 hours 42 minutes, with 69 `instance nabaperks-ci is stopped
+... refusing to dispatch` lines in the agent log — and no watchdog incident was
+raised for it. Treat the watchdog as a coarse liveness sampler, not as an outage
+alarm with a deadline.
 
 GitHub schedules can be delayed or dropped, and this design cannot independently
 detect a GitHub outage. Workflow notifications depend on the operator's GitHub
 notification settings. A 20-minute age limit is not a guaranteed notification
-deadline. The public probe does not supply an independent uptime ratio for
-the future availability gate in cutover step 6.
+deadline. The public probe does not supply an independent uptime ratio for any
+future availability gate. (Earlier drafts named "cutover step 6" here; that
+numbering belongs to [the superseded cutover specification](local-ci-cutover.md)
+and is not a current rollout step.)
 
 The observer steps retain failure outcomes but allow the delivery job to run.
 A successful workflow means observations were delivered, not that both targets
@@ -32,8 +58,8 @@ were healthy. Its summary shows each observed state. For each failing monitor,
 the delivery job creates one bot-owned incident assigned to `lapeninns`; repeated
 failures make no writes or comments. Recovery closes that incident. Human-created
 issues are never changed. GitHub issue notifications provide outage and recovery
-alerts without emailing a failed workflow every five minutes. Errors running the
-observer or delivering alerts still surface in workflow results and incidents.
+alerts without emailing a failed workflow on every watchdog run. Errors running
+the observer or delivering alerts still surface in workflow results and incidents.
 
 ## Activate and rehearse
 
@@ -52,10 +78,13 @@ observer or delivering alerts still surface in workflow results and incidents.
    the bridge, nightly proof or any merge dependency.
 5. With no local job running, stop the LaunchAgent and leave the last real
    heartbeat untouched. After more than 20 minutes, dispatch the watchdog and
-   also observe a scheduled run report the failure. Verify one incident is
-   assigned to `lapeninns` and the operator receives its notification. Let a
-   second run observe the same failure: the issue must remain unchanged, with
-   no duplicate issue or comment. Record the actual delay. Never forge a stale
+   also observe a scheduled run report the failure. Budget hours, not minutes,
+   for that scheduled observation: the measured gap between scheduled runs is
+   about 3.1 hours on average. Verify one incident is assigned to `lapeninns`
+   and the operator receives its notification. Let a second run observe the
+   same failure: the issue must remain unchanged, with no duplicate issue or
+   comment. Record the actual delay — that measured delay, not the cron
+   expression, is this monitor's detection latency. Never forge a stale
    timestamp.
 6. Restart the agent, observe a new real heartbeat, and confirm the next
    watchdog reports healthy and closes the incident. Verify recovery notification

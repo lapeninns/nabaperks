@@ -41,6 +41,52 @@ instructions. [The prior cutover specification](local-ci-cutover.md) is
 superseded. Do not acquire local merge authority by flipping a variable or
 contract field; follow a separately reviewed redesign phase.
 
+### Live readback, 2026-09-09
+
+Measured or read back directly on this date. Everything else in this runbook
+describes source behaviour and procedure, not the installed state.
+
+| Fact                        | Observed value                                                                                                                     |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `origin/main`               | `d5f5c36417efd114117ca75eb5e7866b9a7ac06d`                                                                                         |
+| Installed agent revision    | `aed95ca9b` — five commits behind `origin/main`                                                                                    |
+| launchd job                 | `com.nabaperks.local-ci` running                                                                                                   |
+| Self-hosted Actions runners | **zero** — the architecture is GitHub App check publication, not a runner                                                          |
+| `LOCAL_CI_MODE`             | `shadow`                                                                                                                           |
+| `LOCAL_CI_WATCHDOG_ENABLED` | `true`                                                                                                                             |
+| Contract                    | `cutoverStep` 1, `stage` `bridge-shadow`, `bridge.enforcement` `advisory`, `bridge.requiredCheck` false, `shadowMode.enabled` true |
+
+Three things this runbook describes are implemented in source but **not live**:
+
+- `routeTrustedProof` (`ops/local-ci/core/routing.mjs`) has no callers. No code
+  path can return `route: 'local'`.
+- The trusted supervisor is not installed: `/opt/nabaperks-trusted-ci` does not
+  exist on the host.
+- The `Trusted local proof preparation` workflow has never run.
+
+**Coverage the local plane does not have.** The `pr` and `main` profiles declare
+ten lanes — `fast`, `quality`, `print-kit`, four `e2e-*`, two `a11y-*` and `db`.
+Mapped onto the nine hosted roots that gate a merge, they cover `fast`,
+`quality`, `e2e`, `a11y` and `db`; `print-kit` has no hosted root of its own —
+hosted print-kit verification runs inside the `quality` job. There
+is **no local lane for `build`, `visual`, `lighthouse` or `zap-baseline`**. The
+local plane is therefore not a substitute for the hosted gate, and no amount of
+local green changes that.
+
+**Measured performance and reliability.** One `main`-profile run on
+`d5f5c3641` completed in 947 seconds across 10 lanes and 4,089 tests, conclusion
+`success`. Reliability over the recorded history is materially worse than that
+single run suggests: `main` 11 success / 14 failure / 9 cancelled / 1 timed out;
+`pr` 19 success / 21 failure / 11 cancelled. No `nightly` run has ever
+succeeded — `db-stress` fails deterministically with
+`Cannot find package 'postgres'`, and `zap-full` is pinned `x64-only` and so
+never executes locally.
+
+**Hosted cost, for comparison.** A CI run is 72 jobs and roughly 165
+machine-minutes, with a 6–7 minute wall clock. Over 25 consecutive runs in a
+6.8-hour window: 1,782 jobs and 4,041 raw job-minutes, of which about 14% was
+burned by runs that were subsequently cancelled.
+
 ## File map
 
 Everything this runbook references is either committed in the repository or
@@ -780,9 +826,12 @@ or **incomplete** (evidence is missing or unusable).
 
 `shadowMode.qualification` in `config/local-ci-contract.json` pins the test
 floors, skip ceilings and 4,500-second PR/main budget. The baseline is the
-complete local PR proof on `79b8a048a3c64a7340db04635fe1143442888f9d`, after the
-non-baseline accessibility tags were corrected. Its browser skips are the
-existing DB-free fixture and project-specific skips. Hosted results must
+recorded local main run on `d5f5c36417efd114117ca75eb5e7866b9a7ac06d`, at
+`~/.nabaperks-local-ci/runs/d5f5c36417efd114117ca75eb5e7866b9a7ac06d/main-20260908T234905Z-dec709/lane-result.json`.
+It supersedes the `79b8a048a3c64a7340db04635fe1143442888f9d` PR baseline
+linked from issue #255. The contract retains that earlier provenance under
+`supersededBaseline`; the current floors and skip ceilings come from the main
+run. Its browser skips are the existing DB-free fixture and project-specific skips. Hosted results must
 independently satisfy those same ceilings. The two command-only lanes, quality
 and print-kit, have explicit zero floors because they do not run a countable
 node:test or Playwright suite. This does not exempt their exit status.
@@ -793,12 +842,55 @@ SHA, reads the embedded published lane summary, and measures elapsed time from
 `started_at` to `completed_at`. Listing check runs is insufficient because that
 endpoint can truncate the embedded summary.
 
-Prepare hosted evidence from the matching CI run's complete job logs and job
-conclusions. Collect every expected shard exactly once: 32 per functional
-browser project and eight per accessibility project. Strip GitHub timestamps
-and ANSI colour codes before using `parseLaneCounts` from
-`ops/local-ci/agent/runner.mjs`; retain source run/job IDs and raw logs beside
-the evidence. Do not infer zero counts from missing logs. Split the hosted
+The producer and saved-evidence comparator both read qualification limits from
+`--sha`. The reviewed verifier pins the canonical repository separately from
+that candidate contract. Hosted PR evidence requires a `pull_request` event;
+main evidence requires a `push` on `main`. The saved provider metadata carries
+that distinction and the comparator refuses missing or mismatched identity.
+Coloured textual test tallies are parsed after terminal control codes are removed.
+
+The producer also reads each comparison job's provider-separated checkout step
+log, resolves the reported commit through GitHub's Git object API, and records
+its tree alongside the local head's tree. The comparator requires complete
+checkout proof for every contributing job and equal trees. A PR's synthetic
+merge commit may have a different tree from its head; matching `run.head_sha`
+alone is insufficient. Missing/expired logs, missing Git objects, or old evidence
+without this proof make comparison incomplete. Provider logs whose steps are
+labelled `UNKNOWN STEP` cannot establish checkout identity and are refused;
+there is no fallback to a SHA printed elsewhere in the combined job log.
+These are initial checkout
+observations, not runtime attestation or local promotion authority.
+
+Root coverage requires supervisor-owned validation-start evidence for every
+mapped local lane. The current container protocol cannot provide it, so admitted
+lanes publish `executionStarted: null` and appear under `unverifiedLanes` rather
+than counting as verified root coverage. Lanes never admitted are separately
+recorded as not run. Candidate stdout, including an `execution-started` marker
+printed by a dependency script, is never promoted to execution proof. The
+`workloadCommand` boundary and its log marker remain diagnostic only. Older
+marker-derived `executionStarted: true` records without supervisor verification
+also remain unverified. Qualification additionally requires verified execution
+for every admitted local lane; matching counts and checkout trees cannot make
+unverified results eligible for the PR streak. The current runtime therefore
+cannot qualify that streak until supervisor-owned execution proof exists.
+Saved comparisons must also carry `localExecutionVerified: true`; older reports
+without this result cannot be replayed into the streak.
+This does not change the hosted merge requirements.
+
+Produce hosted evidence with `pnpm ops:ci:hosted-evidence --sha <sha>`
+(`scripts/ci/hosted-evidence.mjs`), which reads the matching CI run's jobs and
+logs through the GitHub REST API and emits the envelope described below. It
+aggregates the sharded browser jobs back into one lane per project, refuses on
+an unmappable job, a duplicated shard or a missing required root, and marks
+counts it could not parse as unavailable rather than inferring zero. It is
+read-only: it never publishes a check, reruns a job or writes to GitHub.
+
+Hand-assembly is no longer the documented path. It remains possible, and if you
+do it, collect every expected shard exactly once — 32 per functional browser
+project and four per accessibility project — strip GitHub timestamps and ANSI
+colour codes before using `parseLaneCounts` from
+`ops/local-ci/agent/runner.mjs`, retain source run/job IDs and raw logs beside
+the evidence, never infer zero counts from missing logs, and split the hosted
 quality job into its hygiene and print-kit command results, each with its
 actual status and explicit zero test counts.
 
@@ -868,12 +960,25 @@ records remain useful, but passing them does not activate local authority; the
 current redesign requires separately reviewed isolation and trusted verification.
 
 The nightly proof verifier (`.github/workflows/nightly-proof.yml`, running
-`scripts/check-nightly-proof.mjs`) independently fails when the newest
+`scripts/check-nightly-proof.mjs`) _reports_ a stale verdict when the newest
 `Nabaperks Local CI (nightly)` proof for the default branch is older than
 `nightlyProof.maxAgeHours` (36) — one 24-hour cadence plus a 12-hour recovery
-window, so a single missed night warns and two consecutive misses fail. It is
-advisory in this phase. Treat a failing verifier as a signal that the qualification
-evidence has gone stale.
+window, so a single missed night warns and two consecutive misses report stale.
+
+**It cannot go red today, and nothing depends on it.** Two independent reasons:
+`nightlyProofExitCode` in `scripts/check-nightly-proof.mjs` returns 0 unless
+`nightlyProof.enforcement === "blocking"`, and the contract sets that field to
+`"advisory"`; and the job in `.github/workflows/nightly-proof.yml` also carries
+`continue-on-error: true`. So the verdict is a summary line, not a failure —
+read the summary, do not wait for a red check. Making it fail is one contract
+string plus dropping `continue-on-error`, which is a reviewed change, not a
+routine flip.
+
+There is also nothing for it to observe. **No nightly local run has ever
+succeeded.** The `db-stress` lane fails deterministically with
+`Cannot find package 'postgres'`, and the `zap-full` lane has never executed at
+all. Until those two are fixed, a "stale nightly proof" verdict is the expected
+steady state and carries no information about qualification freshness.
 
 **What produces that proof.** The watch agent does, by itself. Every 15 minutes
 it asks a purely local question — is the newest `nightly` run directory under
@@ -928,8 +1033,12 @@ Precisely:
    that lane in `ops/local-ci/profiles/pr.json`, `main.json` and
    `nightly.json`. `x64-only` is one of the two values the contract's
    `archValues` permits; the default from `laneDefaults.arch` is `any`.
-3. Record the decision — lane id, date, reason, and the two SHAs — in the ARM64
-   decision subsection of `docs/operations/devops-maturity.md`.
+3. Record the decision — lane id, date, reason, and the two SHAs — under
+   [ARM64 hosted-pinning decisions](devops-maturity.md#arm64-hosted-pinning-decisions)
+   in `docs/operations/devops-maturity.md`. That ledger also lists every lane's
+   current `arch`. At `d5f5c3641` exactly one lane is pinned, `zap-full` in the
+   nightly profile, and its pin predates the ledger, so no two-strike record
+   backs it.
 4. **The lane must still run on the merge path.** Pinning changes _which plane
    executes a lane_, never _whether it executes_. A lane pinned `x64-only` runs
    on the hosted plane on every route, including the internal pull-request
@@ -1098,7 +1207,11 @@ map is rendered into it.
      const record = JSON.parse(await readFile(`${dir}/lane-result.json`, "utf8"))
      const parts = []
      for (const name of record.logParts) {
-       parts.push(await readFile(`${dir}/${name}`, "utf8"))
+       // No encoding argument, so this reads Buffers. The digest binds the
+       // log's bytes; reading as "utf8" would replace every invalid byte with
+       // U+FFFD before the hash saw it, rebuild a different digest, and report
+       // an intact run as an integrity finding.
+       parts.push(await readFile(`${dir}/${name}`))
      }
      console.log(digestLogBundle(parts))
    '
@@ -1272,8 +1385,9 @@ the merge lane rather than waiting for a manual audit.
   integrity-finding path referenced in section 6.4.
 - `docs/operations/production-runbook.md` — release entry criteria and the
   production promotion path this merge lane ultimately feeds.
-- `docs/operations/devops-maturity.md` — where the ARM64 hosted-pinning
-  decisions from section 4.6 are recorded.
+- `docs/operations/devops-maturity.md` — its
+  [ARM64 hosted-pinning decisions](devops-maturity.md#arm64-hosted-pinning-decisions)
+  section is where the section 4.6 pins are recorded.
 
 ## Durable controller and bounded execution redesign
 
@@ -1328,3 +1442,15 @@ See the [completion evidence](ci-redesign-completion.md) for actual fixture
 results, installed revision, full-main/nightly gaps and provider prerequisites.
 A successful filtered database or browser lane is not a full profile or an
 exact-commit App qualification.
+
+### Installed source and image drift
+
+Run `pnpm ops:ci:installed-revision -- --json` after fetching canonical main.
+The checker compares the selected reference with a fresh read of GitHub main,
+validates the resolved release directory and installed entrypoint files, then
+compares the root-owned `job-image` pin's declared build revision with the
+current image build inputs. Missing release files, stale references and
+unattributable image pins fail closed; changed image inputs return
+`image-source-drift`. The image comparison covers source compatibility only:
+it does not attest the binary image contents or prove runtime qualification.
+The check never installs a release, rebuilds an image or restarts a service.
