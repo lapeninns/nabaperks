@@ -30,7 +30,7 @@ export function AuthField({
           Aria wiring comes from FormField, which injects aria-describedby
           covering BOTH the description (e.g. the password rules hint) and the
           error id, plus aria-invalid — no manual duplicates here. */}
-      <Input id={id} className={cn("h-12 text-sm", className)} {...props} />
+      <Input id={id} className={cn("h-12", className)} {...props} />
     </FormField>
   )
 }

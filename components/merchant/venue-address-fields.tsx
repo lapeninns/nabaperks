@@ -11,7 +11,7 @@ export function VenueAddressFields({
   // One form language across the merchant journey: mono-uppercase labels and
   // the themed slot well (VME-P2-11). Callers add layout classes only.
   labelClassName = "eyebrow",
-  inputClassName = "h-12 text-sm",
+  inputClassName = "h-12",
   columns = 1,
   requireAddress = false,
   onFieldChange,

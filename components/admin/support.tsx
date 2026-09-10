@@ -26,7 +26,7 @@ const STATUS_PILL_ICON: Record<
  * primitives, which the unlayered ink layer already themes.
  */
 export const adminSelectClasses =
-  "focus-ring min-h-11 rounded-lg border-2 border-ink bg-card px-3 text-sm outline-none transition-[border-color,outline-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none focus-visible:border-ring"
+  "focus-ring min-h-11 rounded-lg border-2 border-ink bg-card px-3 text-base outline-none transition-[border-color,outline-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none focus-visible:border-ring md:text-sm"
 
 export function AdminPanel({
   children,
@@ -186,10 +186,12 @@ export function maskAdminContact(value?: string | null) {
  * at rest (db phone plaintext retirement); phone-identity customers are
  * disambiguated by their stored last4.
  */
-export function maskAdminCustomer(customer?: {
-  email?: string | null
-  phone_last4?: string | null
-} | null) {
+export function maskAdminCustomer(
+  customer?: {
+    email?: string | null
+    phone_last4?: string | null
+  } | null
+) {
   if (customer?.email) return maskAdminContact(customer.email)
   if (customer?.phone_last4) return `Phone ending ${customer.phone_last4}`
   return "Customer"
