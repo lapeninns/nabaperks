@@ -190,8 +190,22 @@ export function localMarkdownLinks(paths, { cwd = process.cwd() } = {}) {
   const missing = []
   for (const path of paths) {
     const text = readFileSync(resolve(cwd, path), "utf8")
-    for (const match of text.matchAll(/\]\(<?([^\s)>]+)>?(?:\s+"[^"]*")?\)/g)) {
-      const target = match[1].split("#")[0]
+    const targets = [
+      ...Array.from(
+        text.matchAll(/\]\(<?([^\s)>]+)>?(?:\s+"[^"]*")?\)/g),
+        (match) => match[1]
+      ),
+      // Reference definitions serve full, collapsed and shortcut links. Their
+      // destinations may be angle-delimited or start on the following line.
+      ...Array.from(
+        text.matchAll(
+          /^ {0,3}\[(?:[^\]\\\r\n]|\\.)+\]:[ \t]*(?:\r?\n[ \t]*)?(?:<([^<>\r\n]*)>|([^\s]+))/gm
+        ),
+        (match) => match[1] ?? match[2]
+      ),
+    ]
+    for (const destination of targets) {
+      const target = destination.split("#")[0]
       if (
         !target ||
         /^[A-Za-z][A-Za-z0-9+.-]*:/.test(target) ||

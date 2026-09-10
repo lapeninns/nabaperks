@@ -1,5 +1,8 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import {
   compareAffectedOutcomes,
   browserPolicy,
@@ -8,6 +11,7 @@ import {
   targetedArguments,
   validateTargetedRuntime,
   runDocumentation,
+  localMarkdownLinks,
 } from "../../scripts/ci/run-targeted-checks.mjs"
 import { fullPlan } from "../../scripts/ci/impact-plan-contract.mjs"
 import { needsSelectionComparison } from "../../scripts/ci/plan-checks.mjs"
@@ -45,6 +49,58 @@ test("mixed page and documentation validation adds formatting and links without 
   assert.throws(() =>
     runDocumentation({ profile: "public-pages", required: [], changes: [] })
   )
+})
+
+test("local link validation rejects missing inline and reference targets", () => {
+  const cwd = mkdtempSync(join(tmpdir(), "nabaperks-markdown-links-"))
+  try {
+    for (const markdown of [
+      "Read [the runbook](missing.md).",
+      "Read [the runbook][incident].\n\n[incident]: missing.md",
+      "Read [incident][].\n\n[incident]: missing.md",
+      "Read [incident].\n\n[incident]: missing.md",
+      '[incident]: missing.md "Incident procedure"',
+      "[incident]: <missing file.md>",
+      "[incident]:\n  missing.md#response",
+    ]) {
+      writeFileSync(join(cwd, "guide.md"), markdown)
+      assert.throws(
+        () => localMarkdownLinks(["guide.md"], { cwd }),
+        /Documentation has missing local link targets/,
+        markdown
+      )
+    }
+  } finally {
+    rmSync(cwd, { recursive: true, force: true })
+  }
+})
+
+test("reference targets support local files, fragments, titles and external URLs", () => {
+  const cwd = mkdtempSync(join(tmpdir(), "nabaperks-markdown-links-"))
+  try {
+    writeFileSync(join(cwd, "incident.md"), "# Incident")
+    writeFileSync(join(cwd, "incident procedure.md"), "# Procedure")
+    writeFileSync(
+      join(cwd, "guide.md"),
+      [
+        "Read [the runbook](incident.md#response).",
+        '[incident]: incident.md#response "Incident procedure"',
+        "[space]: <incident procedure.md>",
+        "[encoded]: incident%20procedure.md#response",
+        "[next-line]:",
+        "  incident.md",
+        "[external]: https://example.com/incident",
+        "[email]: mailto:support@example.com",
+        "[fragment]: #response",
+      ].join("\n")
+    )
+    assert.deepEqual(localMarkdownLinks(["guide.md"], { cwd }), {
+      files: 1,
+      missing: [],
+    })
+  } finally {
+    rmSync(cwd, { recursive: true, force: true })
+  }
 })
 
 test("targeted outcomes must occur exactly once in successful full execution", () => {
