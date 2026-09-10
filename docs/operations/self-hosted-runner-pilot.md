@@ -59,8 +59,8 @@ Do the cheap moves first — landing PR #296, deleting `nightly.yml`, trimming t
 smoke cadence — because they are cheap, not because they are larger. **They are
 not larger.** Measured against the same model: the cheap moves take scenario (b)
 to scenario (f), recovering about **25,300 billed minutes/month (~$152)**; a
-pilot layered on top of (f) recovers a further **~48,400 billed minutes/month
-(~$290)**. The runner is worth roughly twice the cheap moves. The argument for
+pilot layered on top of (f) recovers a further **~48,800 billed minutes/month
+(~$293)**. The runner is worth roughly twice the cheap moves. The argument for
 doing the cheap moves first is that they add no execution plane and no security
 surface — an argument about risk and effort, not about magnitude. An earlier
 draft of this document claimed the opposite; the arithmetic above is the
