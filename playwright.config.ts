@@ -138,6 +138,13 @@ export default defineConfig({
     command: `${devServerEnv} pnpm exec next dev --turbopack`,
     url: devServerReadyUrl,
     reuseExistingServer,
+    // Playwright discards webServer stdout by default, and that is how a dead
+    // dev server became invisible: when the memory cgroup killed next-server
+    // mid-shard, the only trace left in the lane log was the surviving tests'
+    // ECONNREFUSED, so an infrastructure failure read as an assertion
+    // failure. Anything the server says about its own death - a V8 heap
+    // limit, a restart notice - belongs in the evidence.
+    stdout: "pipe",
     timeout: process.env.CI ? 180_000 : 120_000,
   },
 })

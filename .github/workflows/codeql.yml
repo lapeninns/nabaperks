@@ -9,9 +9,15 @@ on:
   schedule:
     - cron: "27 3 * * 1"
 
+# Keyed the way ci.yml keys itself, and for the same reason: on a push the
+# group is the commit, so a later push to main cannot cancel the run that is
+# the earlier main commit's only CodeQL evidence - and `Analyze
+# (javascript-typescript)` is a required check, so a cancelled run leaves that
+# commit unable to satisfy the gate. Superseded pull-request work is still
+# cancelled, which is the case cancellation is actually for.
 concurrency:
-  group: codeql-${{ github.ref }}
-  cancel-in-progress: true
+  group: codeql-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   analyze:
