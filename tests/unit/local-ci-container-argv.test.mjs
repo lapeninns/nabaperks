@@ -627,6 +627,65 @@ test("a log read reports captured, absent and unreadable as three different fact
   assert.equal(broken.text, "")
 })
 
+/** A spawn that emits exactly the given stdout chunks, then exits zero. */
+function spawnEmitting(chunks) {
+  return () => {
+    const child = new EventEmitter()
+    child.stdout = new EventEmitter()
+    child.stderr = new EventEmitter()
+    child.pid = 4242
+    setImmediate(() => {
+      for (const chunk of chunks) child.stdout.emit("data", chunk)
+      child.emit("close", 0, null)
+    })
+    return child
+  }
+}
+
+test("the capture keeps the process's bytes, across chunk boundaries and through invalid UTF-8", async () => {
+  // `A£B`, with the two bytes of `£` arriving in different chunks. Decoding
+  // per chunk turned this perfectly valid log into `A<U+FFFD><U+FFFD>B`.
+  const valid = Buffer.from("A£B", "utf8")
+  assert.equal(valid.toString("hex"), "41c2a342")
+  const streamed = []
+  const split = await runContainer(["fixture"], {
+    spawnFn: spawnEmitting([valid.subarray(0, 2), valid.subarray(2)]),
+    onOutput: (chunk) => streamed.push(chunk),
+  })
+  assert.deepEqual(
+    split.outputBytes,
+    valid,
+    "a multi-byte sequence split across two chunks must survive the capture"
+  )
+  assert.equal(split.output, "A£B", "and still decode to the log it was")
+  assert.ok(
+    streamed.every((chunk) => Buffer.isBuffer(chunk)),
+    "onOutput streams bytes, so the log file receives what the process wrote"
+  )
+  assert.deepEqual(Buffer.concat(streamed), valid)
+
+  // The two logs the digest has to be able to tell apart. Neither is valid
+  // UTF-8, and decoding folds both to `A<U+FFFD>B`.
+  const first = await runContainer(["fixture"], {
+    spawnFn: spawnEmitting([Buffer.from([0x41, 0x80, 0x42])]),
+  })
+  const second = await runContainer(["fixture"], {
+    spawnFn: spawnEmitting([Buffer.from([0x41, 0xff, 0x42])]),
+  })
+  assert.equal(
+    first.output,
+    second.output,
+    "the text view cannot separate them"
+  )
+  assert.notDeepEqual(
+    first.outputBytes,
+    second.outputBytes,
+    "the capture must, because the digest is taken over it"
+  )
+  assert.equal(first.outputBytes.toString("hex"), "418042")
+  assert.equal(second.outputBytes.toString("hex"), "41ff42")
+})
+
 test("an already-cancelled process never spawns", async () => {
   const result = await runContainer(
     ["limactl", "shell", "ci", "--", "docker", "run", "fixture"],

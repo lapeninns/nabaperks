@@ -23,6 +23,11 @@ import { requiredCustomerSessionSecret } from "@/lib/security/customer-session-s
 const COOKIE_NAME = "nabaperks_loyalty_invite"
 const FORMAT = "v1"
 const IV_BYTES = 12
+// Pinned on both sides of the codec: with no explicit authTagLength Node accepts
+// ANY valid GCM tag on decrypt, from 4 bytes up, and a short tag is orders of
+// magnitude cheaper to forge than a full one. Every value ever written here used
+// Node's 16-byte default, so requiring 16 turns away only truncated tags.
+const TAG_BYTES = 16
 const AAD = Buffer.from("nabaperks:loyalty-invite-cookie:v1", "utf8")
 const TTL_SECONDS = 60 * 60
 
@@ -73,7 +78,9 @@ function cipherKey(): Buffer {
 
 function encrypt(payload: InviteCookieContext): string {
   const iv = randomBytes(IV_BYTES)
-  const cipher = createCipheriv("aes-256-gcm", cipherKey(), iv)
+  const cipher = createCipheriv("aes-256-gcm", cipherKey(), iv, {
+    authTagLength: TAG_BYTES,
+  })
   cipher.setAAD(AAD)
   const ciphertext = Buffer.concat([
     cipher.update(JSON.stringify(payload), "utf8"),
@@ -96,7 +103,8 @@ function decrypt(value: string): InviteCookieContext | null {
     const decipher = createDecipheriv(
       "aes-256-gcm",
       cipherKey(),
-      Buffer.from(ivPart, "base64url")
+      Buffer.from(ivPart, "base64url"),
+      { authTagLength: TAG_BYTES }
     )
     decipher.setAAD(AAD)
     decipher.setAuthTag(Buffer.from(tagPart, "base64url"))

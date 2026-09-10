@@ -34,6 +34,9 @@ export type EncryptedPendingCookieReadResult<T> =
 
 const FORMAT_VERSION = "v2"
 const IV_BYTES = 12
+// The reader below already refuses a tag that is not this long; passing it as
+// authTagLength makes the GCM layer refuse one too, instead of accepting any
+// valid tag from 4 bytes up as Node does when the option is left unset.
 const TAG_BYTES = 16
 const BASE64URL = /^[A-Za-z0-9_-]+$/
 
@@ -43,7 +46,9 @@ export function createEncryptedPendingCookieValue({
   context,
 }: EncryptedPendingCookieInput): string {
   const iv = randomBytes(IV_BYTES)
-  const cipher = createCipheriv("aes-256-gcm", deriveKey(secret, context), iv)
+  const cipher = createCipheriv("aes-256-gcm", deriveKey(secret, context), iv, {
+    authTagLength: TAG_BYTES,
+  })
   cipher.setAAD(authenticatedContext(context))
   const ciphertext = Buffer.concat([
     cipher.update(JSON.stringify(payload), "utf8"),
@@ -92,7 +97,8 @@ export function readEncryptedPendingCookieValue<T extends ExpiringPayload>({
     const decipher = createDecipheriv(
       "aes-256-gcm",
       deriveKey(secret, context),
-      iv
+      iv,
+      { authTagLength: TAG_BYTES }
     )
     decipher.setAAD(authenticatedContext(context))
     decipher.setAuthTag(tag)

@@ -26,6 +26,11 @@ import { normalizeEmail } from "@/lib/customer/email-pii-core"
 
 const encryptionKeyName = "CUSTOMER_EMAIL_ENCRYPTION_KEY"
 const VERSION_PREFIX = "v1"
+// Pinned on both sides of the codec: with no explicit authTagLength Node accepts
+// ANY valid GCM tag on decrypt, from 4 bytes up, and a short tag is orders of
+// magnitude cheaper to forge than a full one. Every value ever written here used
+// Node's 16-byte default, so requiring 16 turns away only truncated tags.
+const TAG_BYTES = 16
 
 /** A stored value that fails parsing or auth-tag verification. */
 export class CustomerEmailCipherIntegrityError extends Error {
@@ -37,7 +42,9 @@ export class CustomerEmailCipherIntegrityError extends Error {
 
 export function encryptCustomerEmail(email: string): string {
   const iv = randomBytes(12)
-  const cipher = createCipheriv("aes-256-gcm", cipherKey(), iv)
+  const cipher = createCipheriv("aes-256-gcm", cipherKey(), iv, {
+    authTagLength: TAG_BYTES,
+  })
   const ciphertext = Buffer.concat([
     cipher.update(normalizeEmail(email), "utf8"),
     cipher.final(),
@@ -66,7 +73,8 @@ export function decryptCustomerEmail(stored: string): string {
     const decipher = createDecipheriv(
       "aes-256-gcm",
       cipherKey(),
-      Buffer.from(ivPart, "base64url")
+      Buffer.from(ivPart, "base64url"),
+      { authTagLength: TAG_BYTES }
     )
     decipher.setAuthTag(Buffer.from(tagPart, "base64url"))
     const plaintext = Buffer.concat([
