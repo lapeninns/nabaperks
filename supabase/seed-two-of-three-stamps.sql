@@ -8,12 +8,16 @@
 
 begin;
 
-update public.reward_events
+update public.reward_events re
 set
   status = 'cancelled',
-  cancelled_reason = coalesce(cancelled_reason, 'seed_two_of_three_stamps'),
+  cancelled_reason = coalesce(re.cancelled_reason, 'seed_two_of_three_stamps'),
   updated_at = now()
-where status = 'unlocked';
+from public.merchants m
+left join public.billing_customers bc on bc.merchant_id = m.id
+where m.id = re.merchant_id
+  and re.status = 'unlocked'
+  and public.loyalty_billing_entitled(m.requires_billing, bc.status);
 
 delete from public.stamp_events se
 using public.customer_memberships cm
