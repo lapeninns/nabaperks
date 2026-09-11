@@ -40,6 +40,12 @@ substitute copied reports or constant execution records. Qualification changes
 must have their complete input tree reviewed in a prerequisite; ordinary PRs that
 do not change selection retain their normal selected or full profile.
 
+Updating only inert proposals uses all nine existing workloads and code-owner
+review. It does not activate or qualify the future inputs. Applying a proposal
+to the active workflow or selection tooling then requires the targeted/full
+comparison against the newly reviewed base. The staging PR therefore does not
+need to match its proposed future inputs to the base's older proposal.
+
 Documentation validation executes the checker, formatter, plugins and configuration
 from the reviewed checkout against a temporary archive of regular candidate files.
 Candidate checkers, formatter configurations, package managers and hooks never
