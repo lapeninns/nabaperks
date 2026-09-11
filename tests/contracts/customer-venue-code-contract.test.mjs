@@ -139,6 +139,11 @@ test("the form is a numeric one-time-code field that only renders when offered",
   )
   assert.match(
     collector,
+    /LocationRetryButton/,
+    "a location refusal also offers a tap that re-asks the browser for location"
+  )
+  assert.match(
+    collector,
     /submitVenueCode = venueCodeStampAction/,
     "the real action is the default submitter"
   )

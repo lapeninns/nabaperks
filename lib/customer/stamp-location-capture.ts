@@ -14,8 +14,6 @@ export function shouldAttemptStampLocation(
 export const SOFT_GPS_CAPTURE_TIMEOUT_MS = 10_000
 const SOFT_GPS_CAPTURE_WATCHDOG_MS = 500
 
-const LOCATION_DENIAL_MEMORY_KEY = "nabaperks:soft-gps-denied:v1"
-
 export type StampLocationCapture = {
   readonly latitude: number | null
   readonly longitude: number | null
@@ -24,96 +22,32 @@ export type StampLocationCapture = {
   readonly captureElapsedMs: number
 }
 
-export function resolveStampLocation(
+export async function resolveStampLocation(
   shouldAttemptLocation: boolean,
   timeoutMs = SOFT_GPS_CAPTURE_TIMEOUT_MS
 ): Promise<StampLocationCapture | null> {
-  return new Promise((resolve) => {
-    if (!shouldAttemptLocation || typeof navigator === "undefined") {
-      resolve(null)
-      return
-    }
+  if (!shouldAttemptLocation || typeof navigator === "undefined") {
+    return null
+  }
 
-    if (!navigator.geolocation) {
-      resolve({
-        latitude: null,
-        longitude: null,
-        accuracyMeters: null,
-        locationStatus: "unsupported",
-        captureElapsedMs: 0,
-      })
-      return
+  if (!navigator.geolocation) {
+    return {
+      latitude: null,
+      longitude: null,
+      accuracyMeters: null,
+      locationStatus: "unsupported",
+      captureElapsedMs: 0,
     }
+  }
 
-    // A remembered denial resolves the soft check locally — no fresh browser
-    // prompt, so the customer is never re-nagged and the stamp is never delayed.
-    if (rememberedLocationDenied()) {
-      resolve({
-        latitude: null,
-        longitude: null,
-        accuracyMeters: null,
-        locationStatus: "denied_remembered",
-        captureElapsedMs: 0,
-      })
-      return
-    }
+  // Script cannot re-open a blocked OS prompt. Skip the GPS wait in that
+  // case so the stamp is not delayed. A later Allow in site settings shows
+  // up as granted or prompt on the next collect, and we capture again.
+  if ((await geolocationPermissionState()) === "denied") {
+    return emptyCapture("denied_remembered")
+  }
 
-    const startedAt = nowMs()
-    const waitMs = Math.max(Math.trunc(timeoutMs), 1)
-    let settled = false
-    const finish = (capture: StampLocationCapture) => {
-      if (settled) return
-      settled = true
-      clearTimeout(timer)
-      resolve(capture)
-    }
-    // Hang-guard only. The browser timeout is the real deadline so a fix that
-    // arrives near the end of the window is not discarded by a racing timer.
-    const timer = globalThis.setTimeout(() => {
-      finish({
-        latitude: null,
-        longitude: null,
-        accuracyMeters: null,
-        locationStatus: "timeout",
-        captureElapsedMs: waitMs,
-      })
-    }, waitMs + SOFT_GPS_CAPTURE_WATCHDOG_MS)
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { coords } = position
-        finish({
-          latitude: coords.latitude,
-          longitude: coords.longitude,
-          accuracyMeters: coords.accuracy,
-          locationStatus: "granted",
-          captureElapsedMs: elapsedMs(startedAt),
-        })
-      },
-      (error) => {
-        if (error.code === error.PERMISSION_DENIED) {
-          rememberLocationDenied()
-        }
-        finish({
-          latitude: null,
-          longitude: null,
-          accuracyMeters: null,
-          locationStatus:
-            error.code === error.PERMISSION_DENIED
-              ? "denied"
-              : error.code === error.TIMEOUT
-                ? "timeout"
-                : "unavailable",
-          captureElapsedMs: elapsedMs(startedAt),
-        })
-      },
-      {
-        enableHighAccuracy: true,
-        maximumAge: 0,
-        timeout: waitMs,
-      }
-    )
-  })
+  return captureGeolocation(timeoutMs)
 }
 
 export function addLocationCapture(
@@ -135,19 +69,84 @@ export function addLocationCapture(
   formData.set("capture_elapsed_ms", String(capture.captureElapsedMs))
 }
 
-function rememberedLocationDenied(): boolean {
+function captureGeolocation(timeoutMs: number): Promise<StampLocationCapture> {
+  return new Promise((resolve) => {
+    const startedAt = nowMs()
+    const waitMs = Math.max(Math.trunc(timeoutMs), 1)
+    let settled = false
+    const finish = (capture: StampLocationCapture) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      resolve(capture)
+    }
+    // Hang-guard only. The browser timeout is the real deadline so a fix that
+    // arrives near the end of the window is not discarded by a racing timer.
+    const timer = globalThis.setTimeout(() => {
+      finish({
+        ...emptyCapture("timeout"),
+        captureElapsedMs: waitMs,
+      })
+    }, waitMs + SOFT_GPS_CAPTURE_WATCHDOG_MS)
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { coords } = position
+        finish({
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          accuracyMeters: coords.accuracy,
+          locationStatus: "granted",
+          captureElapsedMs: elapsedMs(startedAt),
+        })
+      },
+      (error) => {
+        finish({
+          ...emptyCapture(
+            error.code === error.PERMISSION_DENIED
+              ? "denied"
+              : error.code === error.TIMEOUT
+                ? "timeout"
+                : "unavailable"
+          ),
+          captureElapsedMs: elapsedMs(startedAt),
+        })
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: waitMs,
+      }
+    )
+  })
+}
+
+async function geolocationPermissionState(): Promise<
+  "granted" | "denied" | "prompt" | "unknown"
+> {
   try {
-    return localStorage.getItem(LOCATION_DENIAL_MEMORY_KEY) === "1"
+    if (!navigator.permissions?.query) return "unknown"
+    const result = await navigator.permissions.query({ name: "geolocation" })
+    if (
+      result.state === "granted" ||
+      result.state === "denied" ||
+      result.state === "prompt"
+    ) {
+      return result.state
+    }
+    return "unknown"
   } catch {
-    return false
+    return "unknown"
   }
 }
 
-function rememberLocationDenied(): void {
-  try {
-    localStorage.setItem(LOCATION_DENIAL_MEMORY_KEY, "1")
-  } catch {
-    return
+function emptyCapture(locationStatus: string): StampLocationCapture {
+  return {
+    latitude: null,
+    longitude: null,
+    accuracyMeters: null,
+    locationStatus,
+    captureElapsedMs: 0,
   }
 }
 

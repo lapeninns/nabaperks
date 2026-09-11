@@ -61,6 +61,18 @@ export function venueCodeOffered(
   )
 }
 
+/**
+ * Whether the refusal is one that allowing location could actually answer.
+ * Narrower than venueCodeOffered: a mistyped or rejected code is not a
+ * location problem, and offering "Allow location" there abandons the code the
+ * customer was mid-way through entering.
+ */
+export function locationRetryOffered(
+  reason: CustomerBlockReason | undefined
+): boolean {
+  return reason === "location_out_of_range" || reason === "location_required"
+}
+
 export function reduceStampChoreography(
   state: StampChoreographyState,
   event: StampChoreographyEvent
@@ -112,6 +124,7 @@ type StampViewInput = {
 export type VenueCodeFallbackView = {
   /** Show the six-digit code input beneath the refusal. */
   venueCodeOffer: boolean
+  locationRetryOffer: boolean
   /** Tries left before a lockout, when the last code was wrong. */
   venueCodeAttemptsRemaining: number | null
   /** ISO time the lockout lifts, when attempts are exhausted. */
@@ -144,6 +157,7 @@ export type StampChoreographyView = VenueCodeFallbackView & {
 
 const NO_FALLBACK: VenueCodeFallbackView = {
   venueCodeOffer: false,
+  locationRetryOffer: false,
   venueCodeAttemptsRemaining: null,
   venueCodeLockedUntil: null,
 }
@@ -154,6 +168,7 @@ function venueCodeFallback(
   if (state.phase !== "blocked") return NO_FALLBACK
   return {
     venueCodeOffer: venueCodeOffered(state.reason),
+    locationRetryOffer: locationRetryOffered(state.reason),
     venueCodeAttemptsRemaining: state.attemptsRemaining ?? null,
     venueCodeLockedUntil: state.lockedUntil ?? null,
   }

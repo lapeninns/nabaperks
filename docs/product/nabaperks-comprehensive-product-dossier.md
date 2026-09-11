@@ -500,7 +500,7 @@ Merchant data includes authentication, business/venue/address details, coordinat
 - Customer session: normally 30 days.
 - Signed device/rate-limit cookie: up to one year.
 - Merchant/admin session cookies: controlled by Supabase Auth configuration.
-- Local storage: onboarding draft, location-prompt refusal, install/birthday prompt dismissals, and similar convenience state.
+- Local storage: onboarding draft, install/birthday prompt dismissals, and similar convenience state.
 - Session storage: first-party funnel continuity and rotating proof selections.
 - Service worker: offline page, icons, and static assets only; authenticated/API data is network-only.
 

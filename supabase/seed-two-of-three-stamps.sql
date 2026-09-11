@@ -1,5 +1,10 @@
--- Demo helper: every membership sits at 2/3 stamps with no stamp earned today
+-- Demo helper: billed memberships sit at 2/3 stamps with no stamp earned today
 -- and no unlocked reward waiting. Idempotent — safe to re-run.
+--
+-- Stamp inserts are gated by loyalty_billing_entitlement, so this must not
+-- touch merchants whose billing is missing, paused, or past due (for example
+-- leftover architecture-moat fixtures). Those rows would raise
+-- "This loyalty programme is unavailable while billing is inactive".
 
 begin;
 
@@ -10,14 +15,13 @@ set
   updated_at = now()
 where status = 'unlocked';
 
-delete from public.stamp_events
-where event_type = 'earned'
-  and earned_business_date = public.uk_business_date(now());
-
 delete from public.stamp_events se
 using public.customer_memberships cm
+join public.merchants m on m.id = cm.merchant_id
+left join public.billing_customers bc on bc.merchant_id = m.id
 where se.membership_id = cm.id
-  and se.event_type = 'earned';
+  and se.event_type = 'earned'
+  and public.loyalty_billing_entitled(m.requires_billing, bc.status);
 
 insert into public.stamp_events (
   merchant_id,
@@ -50,7 +54,10 @@ from public.customer_memberships cm
 join public.loyalty_cards lc
   on lc.merchant_id = cm.merchant_id
  and lc.is_active
-cross join lateral generate_series(1, 2) as stamp_index(stamp_no);
+join public.merchants m on m.id = cm.merchant_id
+left join public.billing_customers bc on bc.merchant_id = m.id
+cross join lateral generate_series(1, 2) as stamp_index(stamp_no)
+where public.loyalty_billing_entitled(m.requires_billing, bc.status);
 
 update public.customer_memberships cm
 set
@@ -62,7 +69,10 @@ set
   last_visit_at = now() - interval '1 day',
   updated_at = now()
 from public.loyalty_cards lc
+join public.merchants m on m.id = lc.merchant_id
+left join public.billing_customers bc on bc.merchant_id = m.id
 where lc.merchant_id = cm.merchant_id
-  and lc.is_active;
+  and lc.is_active
+  and public.loyalty_billing_entitled(m.requires_billing, bc.status);
 
 commit;
