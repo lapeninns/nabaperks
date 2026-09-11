@@ -38,3 +38,21 @@ export function verifyQualificationScope(plan, options) {
   )
   return pages
 }
+
+export const BROWSER_PROJECTS = Object.freeze([
+  "chromium",
+  "mobile-safari",
+  "desktop-firefox",
+  "desktop-safari",
+])
+export const VISUAL_PROJECTS = Object.freeze(["chromium", "mobile-safari"])
+export function selectedPages(plan) {
+  if (plan.profile === "public-pages") return plan.pages
+  assert.equal(plan.profile, "full")
+  assert.equal(
+    plan.comparisonRequired,
+    true,
+    "Full runs only duplicate selected checks during policy qualification"
+  )
+  return selectedQualificationPages(plan)
+}

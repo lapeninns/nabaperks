@@ -4,7 +4,16 @@ import { join, resolve } from "node:path"
 import { pathToFileURL } from "node:url"
 import { runBoundedCommand } from "./run-bounded-command.mjs"
 import { inventoryFromPlaywright, compareInventory } from "./browser-parity.mjs"
-import { selectedQualificationPages } from "./impact-qualification-scope.mjs"
+import {
+  selectedPages,
+  BROWSER_PROJECTS,
+  VISUAL_PROJECTS,
+} from "./impact-qualification-scope.mjs"
+export {
+  selectedPages,
+  BROWSER_PROJECTS,
+  VISUAL_PROJECTS,
+} from "./impact-qualification-scope.mjs"
 import { candidateBrowserEnvironment } from "./impact-browser-environment.mjs"
 import { runDocumentationEvidence } from "./documentation-evidence.mjs"
 export {
@@ -16,25 +25,7 @@ import { git } from "./impact-git.mjs"
 import { browserPolicy } from "./impact-browser-evidence.mjs"
 import { browserConfiguration } from "./browser-configuration.mjs"
 
-export const BROWSER_PROJECTS = Object.freeze([
-  "chromium",
-  "mobile-safari",
-  "desktop-firefox",
-  "desktop-safari",
-])
-export const VISUAL_PROJECTS = Object.freeze(["chromium", "mobile-safari"])
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-
-export function selectedPages(plan) {
-  if (plan.profile === "public-pages") return plan.pages
-  assert.equal(plan.profile, "full")
-  assert.equal(
-    plan.comparisonRequired,
-    true,
-    "Full runs only duplicate selected checks during policy qualification"
-  )
-  return selectedQualificationPages(plan)
-}
 
 export function targetedArguments(plan, suite, project) {
   const pages = selectedPages(plan)

@@ -120,25 +120,18 @@ to its verifier cannot replace this verdict. The artifact records the verifier
 revision separately from the tested merge revision. A base with installed policy
 but a missing verifier fails instead of downgrading to bootstrap.
 
-The first installation has no base verifier. Its fixed bootstrap source is
-`1a50396145b2daf0aed9b8de2f4a0cd2db0542a2`, whose comparison implementation received
-[code-owner review](https://github.com/lapeninns/nabaperks/pull/307#pullrequestreview-5171767005)
-before later repairs. The comparison implementation is unchanged at that pin.
-This historical review identifies the bootstrap code; it does not approve the
-current PR or replace its fresh code-owner approval. That verifier predates the
-resolved-settings digest, workflow identity and documentation case evidence.
-Bootstrap therefore additionally requires the candidate's page allowlist,
-browser configuration, its helper, browser/setup actions, Node version and
-dependency manifests/locks to be identical to the pin. It cannot qualify a changed
-browser configuration. After installation, comparisons use the reviewed base's
-expanded verifier. Record the bootstrap source check and an independent readback
-of captured settings, workflow environments and documentation cases for this
-initial installation. The documentation job must also pass its fixed cases.
+The verifier foundation must be reviewed and merged before the integration.
+It adds the read-only verifier and evidence contracts while leaving full CI and
+release behaviour in place. The integration fails selection immediately if the
+reviewed base lacks that verifier or the documentation evidence contract. It
+cannot fall back to an older verifier that ignores newly required evidence.
 
-The installation PR cannot use its own new policy to reduce its checks. Its
-reviewed base has no classifier, so bootstrap requires all nine roots and the
-comparison. After independent review and merge, the policy can select future
-eligible PRs. Expanding eligible files requires another reviewed qualification.
+After the foundation lands, the integration still has no classifier on its
+reviewed base and therefore runs all nine hosted roots plus the complete
+comparison. Only after that comparison, review and merge can the new policy
+select future eligible PRs. Stage future incompatible verifier schemas before
+changing their producers as well. Expanding eligible files requires another
+reviewed qualification.
 
 ## Main and release behaviour
 

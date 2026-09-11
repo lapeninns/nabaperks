@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { FULL_SHA } from "./impact-git.mjs"
-import { isDocumentationPath } from "./impact-documentation.mjs"
+import { isDocumentationPath, impactPolicy } from "./impact-documentation.mjs"
+import { qualificationPages } from "./impact-qualification-scope.mjs"
 
 export const ALL_WORKLOADS = Object.freeze([
   "fast",
@@ -59,7 +60,7 @@ export function expectedIdentity(env) {
   return identity
 }
 
-export function validatePlan(plan, expected) {
+export function validatePlan(plan, expected, policy = impactPolicy) {
   assert.equal(
     plan?.schema,
     "nabaperks.ci-impact-plan.v1",
@@ -80,7 +81,7 @@ export function validatePlan(plan, expected) {
   const required = [...PROFILE_WORKLOADS[plan.profile]]
   if (
     plan.profile === "public-pages" &&
-    plan.changes.some((change) => isDocumentationPath(change.path))
+    plan.changes.some((change) => isDocumentationPath(change.path, policy))
   )
     required.push("documentation")
   assert.deepEqual(
@@ -89,15 +90,17 @@ export function validatePlan(plan, expected) {
     "Required checks differ from the profile"
   )
   if (plan.profile === "public-pages") {
+    const reviewedPages = qualificationPages(policy)
     assert.ok(
-      plan.pages.length > 0 && plan.pages.length <= 3,
+      plan.pages.length > 0 && plan.pages.length <= reviewedPages.length,
       "Affected pages are missing"
     )
-    const known = {
-      "app/about/page.tsx": ["/about", "marketing-about"],
-      "app/faq/page.tsx": ["/faq", "marketing-faq"],
-      "app/how-it-works/page.tsx": ["/how-it-works", "marketing-how-it-works"],
-    }
+    const known = Object.fromEntries(
+      reviewedPages.map(({ path, route, visualName }) => [
+        path,
+        [route, visualName],
+      ])
+    )
     assert.equal(
       new Set(plan.pages.map((page) => page.path)).size,
       plan.pages.length

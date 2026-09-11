@@ -95,8 +95,13 @@ jobs:
           if [ -f scripts/ci/plan-checks.mjs ]; then
             node scripts/ci/plan-checks.mjs
           else
-            # Initial installation has no classifier on the reviewed base.
-            # It must pass the whole suite AND the new comparison before merge.
+            # The evidence verifier must land separately before producers can
+            # qualify themselves. Fail here before scheduling application jobs.
+            if [ ! -f scripts/ci/compare-targeted-evidence.mjs ] || [ ! -f scripts/ci/documentation-evidence-contract.mjs ]; then
+              echo "::error::Land the reviewed CI selection verifier foundation before this integration."
+              exit 1
+            fi
+            # No classifier yet: full validation and comparison remain required.
             node --input-type=module <<'JS'
           import { appendFileSync } from 'node:fs'
           const identity = {
@@ -230,17 +235,10 @@ jobs:
           REVIEWED_REVISION: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.sha }}
         run: |
           test "$(git rev-parse HEAD)" = "$REVIEWED_REVISION"
-          if [ -f scripts/ci/compare-targeted-evidence.mjs ]; then
-            echo "revision=$REVIEWED_REVISION" >> "$GITHUB_OUTPUT"
-            echo "source=reviewed-base" >> "$GITHUB_OUTPUT"
-          else
-            test "$GITHUB_EVENT_NAME" = pull_request
-            test ! -f config/ci-impact-policy.json
-            # This exact verifier received code-owner review before later PR
-            # repairs. Its approval is not approval of the current PR head.
-            echo "revision=1a50396145b2daf0aed9b8de2f4a0cd2db0542a2" >> "$GITHUB_OUTPUT"
-            echo "source=reviewed-bootstrap" >> "$GITHUB_OUTPUT"
-          fi
+          test -f scripts/ci/compare-targeted-evidence.mjs
+          test -f scripts/ci/documentation-evidence-contract.mjs
+          echo "revision=$REVIEWED_REVISION" >> "$GITHUB_OUTPUT"
+          echo "source=reviewed-base" >> "$GITHUB_OUTPUT"
       - name: Check out the immutable verifier
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -250,14 +248,6 @@ jobs:
         env:
           VERIFIER_REVISION: ${{ steps.verifier.outputs.revision }}
         run: test "$(git rev-parse HEAD)" = "$VERIFIER_REVISION"
-      - name: Bound bootstrap to the reviewed browser configuration
-        if: ${{ steps.verifier.outputs.source == 'reviewed-bootstrap' }}
-        env:
-          VERIFIER_REVISION: ${{ steps.verifier.outputs.revision }}
-          CANDIDATE_REVISION: ${{ github.sha }}
-        run: |
-          git fetch --no-tags --depth=1 origin "$CANDIDATE_REVISION"
-          git diff --exit-code "$VERIFIER_REVISION" "$CANDIDATE_REVISION" -- config/ci-impact-policy.json playwright.config.ts scripts/playwright-server-heap.mjs package.json pnpm-lock.yaml pnpm-workspace.yaml .nvmrc .github/actions/setup .github/actions/playwright
       - uses: ./.github/actions/setup
       # Candidate checkout is data only. Dependencies and verifier still come
       # from the immutable reviewed checkout above.

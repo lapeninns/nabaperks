@@ -10,6 +10,7 @@ import {
 import { join, dirname } from "node:path"
 import { tmpdir } from "node:os"
 import { git } from "../../scripts/ci/impact-git.mjs"
+import { validatePlan } from "../../scripts/ci/impact-plan-contract.mjs"
 import {
   browserEnvironmentFromWorkflow,
   candidateBrowserEnvironment,
@@ -129,6 +130,41 @@ test("reviewed comparison accepts exact candidate page additions removals and re
       () => verifyQualificationScope({ ...plan, qualificationPages: stale }, f),
       /immutable candidate policy/
     )
+    const page =
+      plan.qualificationPages.find(
+        (entry) =>
+          !stale.some(
+            (old) =>
+              old.path === entry.path && old.visualName === entry.visualName
+          )
+      ) ?? plan.qualificationPages[0]
+    const selective = {
+      schema: "nabaperks.ci-impact-plan.v1",
+      identity: plan.identity,
+      profile: "public-pages",
+      reason: "Literal edit after the proposed policy has been reviewed",
+      pages: [page],
+      changes: [{ path: page.path, status: "M" }],
+      required: [
+        "fast",
+        "quality",
+        "build",
+        "targeted-browser",
+        "targeted-visual",
+      ],
+      comparisonRequired: false,
+      changeDigest: "a".repeat(64),
+      policyDigest: "b".repeat(64),
+    }
+    assert.equal(
+      validatePlan(selective, plan.identity, next).profile,
+      "public-pages"
+    )
+    if (operation !== "remove")
+      assert.throws(
+        () => validatePlan(selective, plan.identity, policy),
+        /Unqualified page selection/
+      )
   }
 })
 

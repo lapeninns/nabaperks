@@ -13,7 +13,7 @@ import {
   selectedPages,
   BROWSER_PROJECTS,
   VISUAL_PROJECTS,
-} from "./run-targeted-checks.mjs"
+} from "./impact-qualification-scope.mjs"
 import {
   browserPolicy,
   compareAffectedOutcomes,
@@ -21,7 +21,7 @@ import {
 import { browserConfiguration } from "./browser-configuration.mjs"
 import { verifyQualificationScope } from "./impact-qualification-scope.mjs"
 import { candidateBrowserEnvironment } from "./impact-browser-environment.mjs"
-import { verifyDocumentationEvidence } from "./documentation-evidence.mjs"
+import { verifyDocumentationEvidence } from "./documentation-evidence-contract.mjs"
 
 function filesUnder(root) {
   const paths = []

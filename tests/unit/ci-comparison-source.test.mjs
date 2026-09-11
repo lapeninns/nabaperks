@@ -28,7 +28,6 @@ const selector = script
   .split("\n")
   .map((line) => line.replace(/^          /, ""))
   .join("\n")
-const bootstrap = "1a50396145b2daf0aed9b8de2f4a0cd2db0542a2"
 
 function fixture(t) {
   const cwd = mkdtempSync(join(tmpdir(), "ci-comparison-source-"))
@@ -93,6 +92,10 @@ test("a weakened candidate verifier cannot replace the selected base verdict", (
     path,
     'if (process.env.PROOF !== "valid") throw new Error("Invalid raw proof")'
   )
+  f.put(
+    "scripts/ci/documentation-evidence-contract.mjs",
+    "export const schema = 'v1'"
+  )
   const base = f.commit()
   f.put(path, 'console.log("success without checking proof")')
   const candidate = f.commit()
@@ -111,44 +114,64 @@ test("a weakened candidate verifier cannot replace the selected base verdict", (
   assert.notEqual(f.select(candidate).status, 0)
 })
 
-test("bootstrap uses one immutable reviewed pin only before policy installation", (t) => {
+test("integration requires a reviewed verifier that consumes the documentation contract", (t) => {
   const f = fixture(t)
-  f.put("README.md", "# Before installation")
+  f.put("README.md", "# Before foundation")
+  assert.notEqual(f.select(f.commit()).status, 0)
+  f.put(
+    "scripts/ci/compare-targeted-evidence.mjs",
+    "export const legacy = true"
+  )
+  assert.notEqual(f.select(f.commit()).status, 0)
+  f.put(
+    "scripts/ci/documentation-evidence-contract.mjs",
+    "export const schema = 'v1'"
+  )
   const base = f.commit()
   assert.equal(f.select(base).status, 0)
-  assert.match(f.select(base).text, new RegExp(`revision=${bootstrap}`))
-  assert.notEqual(f.select(base, "push").status, 0)
-  f.put("config/ci-impact-policy.json", "{}")
-  assert.notEqual(f.select(f.commit()).status, 0)
+  assert.match(f.select(base).text, new RegExp(`revision=${base}`))
+  assert.match(f.select(base).text, /source=reviewed-base/)
+  assert.doesNotMatch(job, /reviewed-bootstrap|1a503961/)
 })
 
-test("bootstrap rejects browser configuration or dependency changes before running its older verifier", (t) => {
-  const body = job.match(
-    /name: Bound bootstrap to the reviewed browser configuration[\s\S]*?run: \|\n([\s\S]*?)\n      - uses:/
+test("missing foundation stops selection before application jobs can start", (t) => {
+  const f = fixture(t)
+  f.put("README.md", "# Before foundation")
+  f.commit()
+  const body = workflow.match(
+    /name: Classify the immutable candidate with reviewed policy[\s\S]*?run: \|\n([\s\S]*?)\n\n  documentation:/
   )?.[1]
   assert.ok(body)
   const command = body
     .split("\n")
     .map((line) => line.replace(/^          /, ""))
-    .filter((line) => !line.startsWith("git fetch "))
     .join("\n")
-  const f = fixture(t)
-  f.put("playwright.config.ts", "export default {}")
-  const base = f.commit()
-  f.put("scripts/ci/reporter.mjs", "export default class Reporter {}")
-  const execute = (sha) =>
+  const output = join(f.cwd, "plan-output"),
+    summary = join(f.cwd, "summary")
+  const execute = () =>
     spawnSync("bash", ["-e", "-c", command], {
       cwd: f.cwd,
-      env: { ...process.env, VERIFIER_REVISION: base, CANDIDATE_REVISION: sha },
       encoding: "utf8",
-    }).status
-  assert.equal(execute(f.commit()), 0)
-  f.put(
-    "playwright.config.ts",
-    "export default { use: { viewport: process.env.SELECTION_COMPARISON ? null : { width: 800, height: 600 } } }"
+      env: {
+        ...process.env,
+        GITHUB_OUTPUT: output,
+        GITHUB_STEP_SUMMARY: summary,
+      },
+    })
+  const missing = execute()
+  assert.notEqual(missing.status, 0)
+  assert.match(
+    missing.stdout,
+    /Land the reviewed CI selection verifier foundation/
   )
-  assert.notEqual(execute(f.commit()), 0)
-  git(["checkout", base, "--", "playwright.config.ts"], f)
-  f.put("pnpm-lock.yaml", "changed browser version")
-  assert.notEqual(execute(f.commit()), 0)
+  f.put(
+    "scripts/ci/compare-targeted-evidence.mjs",
+    "export const verifier = true"
+  )
+  f.put(
+    "scripts/ci/documentation-evidence-contract.mjs",
+    "export const schema = 'v1'"
+  )
+  assert.equal(execute().status, 0)
+  assert.match(readFileSync(output, "utf8"), /profile=full\ncomparison=true/)
 })
