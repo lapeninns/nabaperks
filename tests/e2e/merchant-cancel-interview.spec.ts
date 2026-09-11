@@ -1,13 +1,19 @@
 import { expect, test } from "@playwright/test"
 
 import { expectNoAxeViolations } from "./helpers/axe"
-import { dismissPwaInstall, HARNESS_ROUTES } from "./helpers/harness"
+import { dismissPwaInstall } from "./helpers/harness"
+
+// Declared here rather than in HARNESS_ROUTES: that helper is in the CI
+// comparison dependency graph, so changing it forces every PR touching it
+// through the full targeted/full qualification. This spec is its only
+// consumer, so a local constant costs nothing and keeps the profile plain.
+const CANCEL_ROUTE = "/dev/app-harness/account/cancel"
 
 const CANCELLABLE_STATES = ["trialing", "active", "past_due"] as const
 const NON_CANCELLABLE_STATES = ["none", "cancelled"] as const
 
 function cancelHarnessPath(billing: string) {
-  return `${HARNESS_ROUTES.cancel}?billing=${encodeURIComponent(billing)}`
+  return `${CANCEL_ROUTE}?billing=${encodeURIComponent(billing)}`
 }
 
 test.describe("merchant cancellation interview", () => {
@@ -64,7 +70,7 @@ test.describe("merchant cancellation interview", () => {
     await expect(page.getByTestId("cancellation-interview-resolution")).toHaveText(
       "support_call"
     )
-    expect(new URL(page.url()).pathname).toBe(HARNESS_ROUTES.cancel)
+    expect(new URL(page.url()).pathname).toBe(CANCEL_ROUTE)
     await expectNoAxeViolations(
       page,
       "cancellation interview support follow-up success"
@@ -101,7 +107,7 @@ test.describe("merchant cancellation interview", () => {
       page.getByText("Stripe cancellation could not be opened. Please try again.")
     ).toBeVisible()
     await expect(submit).toBeEnabled()
-    expect(new URL(page.url()).pathname).toBe(HARNESS_ROUTES.cancel)
+    expect(new URL(page.url()).pathname).toBe(CANCEL_ROUTE)
   })
 
   test("non-cancellable billing states show copy without the form", async ({
