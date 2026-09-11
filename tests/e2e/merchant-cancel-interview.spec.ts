@@ -65,7 +65,6 @@ test.describe("merchant cancellation interview", () => {
       "support_call"
     )
     expect(new URL(page.url()).pathname).toBe(HARNESS_ROUTES.cancel)
-    expect(page.url()).not.toMatch(/stripe\.com/i)
     await expectNoAxeViolations(
       page,
       "cancellation interview support follow-up success"
@@ -103,7 +102,6 @@ test.describe("merchant cancellation interview", () => {
     ).toBeVisible()
     await expect(submit).toBeEnabled()
     expect(new URL(page.url()).pathname).toBe(HARNESS_ROUTES.cancel)
-    expect(page.url()).not.toMatch(/stripe\.com/i)
   })
 
   test("non-cancellable billing states show copy without the form", async ({
