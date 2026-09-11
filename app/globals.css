@@ -565,6 +565,48 @@ body[data-grain="true"]::after {
   outline-color: color-mix(in oklch, var(--destructive) 85%, transparent);
 }
 
+/* iOS Safari zooms the page when a focused control renders below 16px, and it
+   never zooms back out — the member is left on a magnified, side-scrolling
+   form. Floor every text control on touch devices.
+
+   `pointer: coarse` is deliberate, and it does cover an iPad with a Magic
+   Keyboard or mouse attached: WebKit resolved bug 209292 by keeping the
+   non-`any-` features touch-suitable, so `pointer` stays `coarse` and `hover`
+   stays `none` on a pointer-paired iPad — only `any-pointer`/`any-hover` flip.
+   So this rule fires there, which is precisely the case `md:text-sm` would
+   otherwise leave at 14px. Do NOT "fix" this to `any-pointer: coarse`: that
+   would newly impose the floor on touchscreen laptops and touch-display Macs,
+   losing desktop density to close a gap that does not exist. The
+   `@media (hover: hover)` gates elsewhere in this file behave the same way and
+   are consistent with this choice.
+
+   This sits unlayered next to the input story above for the same cascade
+   reason: Tailwind's utilities live in @layer utilities, and an unlayered rule
+   outranks every layered one, so it beats `text-sm` wherever a call site still
+   sets one. Above the 768px `md` breakpoint that is the ONLY thing holding the
+   size up, because `md:text-sm` has taken over by then.
+
+   Excluded: checkbox, radio, range, file and colour, where font-size does not
+   size the control and a floor would only shift labels and the `file:` button;
+   and anything marked `data-font-floor="exempt"`, which is how a control that
+   deliberately sets a LARGER size keeps it. This declaration is a flat `1rem`,
+   so without that opt-out it would SHRINK such a control — CSS cannot express
+   "raise but never lower" against an element's own computed size. */
+@media (pointer: coarse) {
+  input:not(
+      [type="checkbox"],
+      [type="radio"],
+      [type="range"],
+      [type="file"],
+      [type="color"],
+      [data-font-floor="exempt"]
+    ),
+  textarea:not([data-font-floor="exempt"]),
+  select:not([data-font-floor="exempt"]) {
+    font-size: 1rem;
+  }
+}
+
 /* Bare Alert honours the 2px ink contract; StatusBanner remains the loyalty
    face and simply layers its tone washes on top. */
 [data-slot="alert"] {

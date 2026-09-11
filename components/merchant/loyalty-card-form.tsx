@@ -199,7 +199,7 @@ export function LoyaltyCardForm({
             onChange={(event) =>
               updateDraft("rewardExpiryDays", event.target.value)
             }
-            className="h-11 w-full rounded-lg border border-input bg-background px-3 text-sm"
+            className="h-11 w-full rounded-lg border border-input bg-background px-3 text-base md:text-sm"
           >
             {REWARD_EXPIRY_OPTIONS.map((days) => (
               <option key={days} value={String(days)}>
