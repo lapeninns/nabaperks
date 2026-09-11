@@ -151,6 +151,19 @@ test.describe("customer push notifications", () => {
       })
     })
     await page.route("**/api/notifications/push/subscribe", async (route) => {
+      // Inspect the request before fulfilling it: a regression to the wrong
+      // method or an empty/malformed body would otherwise still reach the
+      // success message and pass.
+      const request = route.request()
+      expect(request.method()).toBe("POST")
+      const payload = request.postDataJSON() as {
+        subscription?: { endpoint?: unknown }
+        permissionState?: unknown
+      } | null
+      expect(payload, "subscribe must carry a JSON body").toBeTruthy()
+      expect(typeof payload?.subscription?.endpoint).toBe("string")
+      expect(payload?.subscription?.endpoint).toBeTruthy()
+      expect(typeof payload?.permissionState).toBe("string")
       subscribePosts += 1
       await route.fulfill({
         status: 200,
@@ -174,10 +187,13 @@ test.describe("customer push notifications", () => {
 
     const enable = page.getByRole("button", { name: "Enable push" })
     if (!(await enable.isEnabled())) {
+      // "Push needs attention" means initialisation threw despite the installed
+      // serviceWorker and PushManager fakes. That is a regression in the happy
+      // path, not an unsupported environment, so it must fail rather than be
+      // accepted as a valid skip.
+      await expect(page.getByText("Push needs attention")).toHaveCount(0)
       await expect(
-        page.getByText(
-          /Push is not available|Install needed|Push is blocked|Push needs attention/
-        )
+        page.getByText(/Push is not available|Install needed|Push is blocked/)
       ).toBeVisible()
       expect(subscribePosts).toBe(0)
       return
