@@ -39,6 +39,7 @@
 supabase/.temp/
 
 # local agent/tooling output
+.codegraph
 .deepsec/
 .superpowers/
 .omo/
