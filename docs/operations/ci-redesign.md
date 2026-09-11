@@ -4,6 +4,11 @@ Owner: Lapen Inns product operations. This document records source behaviour and
 reviewed rollout boundaries. A merged workflow, installed local agent, provider
 ruleset and verified production release are separate states.
 
+The subsequent [change-aware CI policy](change-aware-ci.md) qualifies narrower
+PR checks and documentation-only release outcomes. It preserves complete
+exact-main CI and the independent protected application release requirements.
+The phase descriptions below record the preceding rollout stages.
+
 ## Phase 1: complete hosted gate and separate observation
 
 `Release gate` retains its check name and requires successful results from all
