@@ -332,7 +332,6 @@ test("qualified page selection keeps existing test identities and unqualified po
     "scripts/ci/impact-snapshots.mjs",
     "tests/e2e/visual.spec.ts",
     "config/ci-workloads.json",
-    "config/ci-qualification-inputs/scripts/check-env.mjs.source",
     "tests/e2e/helpers/a11y-sweep.ts",
     "scripts/ci/browser-workload.mjs",
     "playwright.config.ts",
@@ -354,6 +353,11 @@ test("qualified page selection keeps existing test identities and unqualified po
     false
   )
   assert.equal(needsSelectionComparison("ops/local-ci/core/job-env.mjs"), false)
+  for (const path of [
+    "config/ci-qualification-inputs/scripts/check-env.mjs.source",
+    "config/ci-qualification-workflow.yml",
+  ])
+    assert.equal(needsSelectionComparison(path), false, path)
   for (const name of [
     "marketing-about",
     "marketing-faq",

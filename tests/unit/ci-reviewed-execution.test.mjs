@@ -195,6 +195,68 @@ test("staged inputs bind future checkers and tests to separately reviewed exact 
   )
 })
 
+test("inert proposal updates retain all required checks before later activation is qualified", (t) => {
+  const f = fixture(t)
+  const paths = [
+    "config/ci-qualification-workflow.yml",
+    "config/ci-qualification-inputs/scripts/check-env.mjs.source",
+  ]
+  for (const path of paths) f.put(path, "existing proposal\n")
+  const baseSha = f.commit()
+  for (const path of paths) {
+    f.put(path, "future proposal for separate review\n")
+    const headSha = f.commit()
+    const candidateSha = git(
+      [
+        "-c",
+        "user.name=Fixture",
+        "-c",
+        "user.email=ci@example.test",
+        "commit-tree",
+        `${headSha}^{tree}`,
+        "-p",
+        baseSha,
+        "-p",
+        headSha,
+        "-m",
+        "Merge proposal fixture",
+      ],
+      f
+    ).trim()
+    git(["checkout", "--detach", "-q", baseSha], f)
+    const env = {
+      GITHUB_REPOSITORY: "lapeninns/nabaperks",
+      GITHUB_EVENT_NAME: "pull_request",
+      CI_BASE_SHA: baseSha,
+      CI_HEAD_SHA: headSha,
+      GITHUB_SHA: candidateSha,
+      CI_HEAD_REPOSITORY: "lapeninns/nabaperks",
+    }
+    const plan = planChecks(env, f)
+    assert.equal(plan.profile, "full")
+    assert.equal(plan.comparisonRequired, false)
+    assert.equal(plan.required.length, 9)
+    const evidence = {
+      selection: { result: "success", outputs: { plan: JSON.stringify(plan) } },
+      ...Object.fromEntries(
+        ALL_WORKLOADS.map((name) => [
+          name,
+          {
+            result: plan.required.includes(name) ? "success" : "skipped",
+          },
+        ])
+      ),
+      "selection-comparison": { result: "skipped" },
+    }
+    const options = { ...f, headRepository: env.CI_HEAD_REPOSITORY }
+    assert.doesNotThrow(() =>
+      verifyImpactEvidence(evidence, plan.identity, options)
+    )
+    evidence.fast.result = "skipped"
+    assert.throws(() => verifyImpactEvidence(evidence, plan.identity, options))
+  }
+})
+
 test("live input verification detects binary changes, executable modes and symlink substitution", (t) => {
   const f = fixture(t)
   f.put(".github/workflows/ci.yml", "jobs: {}\n")

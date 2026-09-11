@@ -138,6 +138,12 @@ The candidate must preserve the staged copies too. A qualification change needs
 its complete input tree reviewed first; ordinary eligible PRs keep their selected
 checks, and ordinary unsupported changes keep the full suite.
 
+An inert proposal update runs all nine existing workloads and requires code-owner
+review; it does not activate or qualify future inputs. The later change applying
+that proposal to the active workflow or selection tooling performs the comparison
+against the newly reviewed base. This keeps the prerequisite review step usable
+after selection is installed, while activation still needs complete qualification.
+
 The comparison verdict executes from the immutable reviewed PR base, including
 that checkout's dependency lock. The candidate's reports are data, and changes
 to its verifier cannot replace this verdict. The artifact records the verifier

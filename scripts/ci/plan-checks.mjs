@@ -20,18 +20,15 @@ export function needsSelectionComparison(path) {
   if (qualifiedSnapshotPage(path)) return false
   return (
     path === ".github/workflows/ci.yml" ||
-    path.startsWith("config/ci-qualification-inputs/") ||
     [
       "package.json",
       "pnpm-lock.yaml",
       "pnpm-workspace.yaml",
       ".nvmrc",
     ].includes(path) ||
-    [
-      "config/ci-impact-policy.json",
-      "config/ci-workloads.json",
-      "config/ci-qualification-workflow.yml",
-    ].includes(path) ||
+    ["config/ci-impact-policy.json", "config/ci-workloads.json"].includes(
+      path
+    ) ||
     /^scripts\/ci\/(impact-|change-impact|plan-checks|verify-impact|run-targeted|compare-targeted)/.test(
       path
     ) ||
