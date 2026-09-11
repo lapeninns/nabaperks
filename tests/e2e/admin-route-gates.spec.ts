@@ -11,6 +11,7 @@ const ADMIN_ROUTES = [
   "/admin/merchants",
   "/admin/pilot",
   "/admin/privacy",
+  "/admin/security",
 ] as const
 
 test.describe("admin route gates", () => {
