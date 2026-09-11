@@ -71,6 +71,12 @@ export type LocationRequirement = {
   geofenceRadiusMeters: number
   firstVerifiedVisit?: number
   nextVisitNumber?: number
+  /**
+   * Unverified-location stamps this membership can still commit before the
+   * server refuses with `location_required`. Undefined when unknown (no
+   * membership, or a loader that does not compute it).
+   */
+  unverifiedGraceRemaining?: number
 }
 
 /** Recovery target for unavailable/unauthenticated panels (customer sign-in). */

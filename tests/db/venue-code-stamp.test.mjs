@@ -7,11 +7,13 @@ import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 /**
  * venue code stamp — live-DB tier.
  *
- * The RPCs of 20260908100000. A wrong code is a returned status whose ledger
- * survives; five of them lock the membership out; a right code is honoured
- * only after a server-recorded location refusal, and then issues the stamp
- * through the shared transaction with every non-location refusal intact.
- * The owner reads and resets the code only for a venue they own.
+ * The RPCs of 20260908100000 as re-created by 20260911120000. A wrong code
+ * is a returned status whose ledger survives; five of them lock the
+ * membership out; a right code issues the stamp through the shared
+ * transaction with every non-location refusal intact — linked to a recent
+ * server-recorded location refusal when one exists, and standing on its own
+ * when none does. The owner reads and resets the code only for a venue they
+ * own.
  */
 
 const ready = await isLiveDbReady()
@@ -192,8 +194,17 @@ test(
   }
 )
 
+async function unverifiedCount(tx, membershipId) {
+  const [row] = await tx`
+    select count(*)::int as n from public.stamp_events
+    where membership_id = ${membershipId}::uuid
+      and event_type = 'earned'
+      and metadata->>'geo_verification' = 'unverified'`
+  return row.n
+}
+
 test(
-  "the right code without a recent recorded refusal is NBS14 and leaves no receipt",
+  "the right code with no recorded refusal issues a direct venue-code stamp and spends no grace",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
@@ -201,9 +212,49 @@ test(
       const fixture = await joinAndBackdateFirstStamp(tx, venue)
       const code = await todaysCode(tx, venue.merchant_id)
 
-      assert.equal(await enterCodeSqlstate(tx, venue, fixture, code), "NBS14")
-      assert.equal((await receipts(tx, fixture.membershipId)).length, 0)
-      assert.equal(await earnedCount(tx, fixture.membershipId), 1)
+      const [{ n: flags }] = await tx`
+        select count(*)::int as n from public.fraud_flags
+        where membership_id = ${fixture.membershipId}::uuid`
+      assert.equal(flags, 0, "no refusal was ever recorded")
+      const graceBefore = await unverifiedCount(tx, fixture.membershipId)
+
+      const result = await enterCode(tx, venue, fixture, code)
+      assert.equal(result.status, "issued")
+      assert.equal(result.new_stamp_count, 2)
+      assert.ok(result.stamp_event_id)
+
+      const [stamp] = await tx`select metadata from public.stamp_events
+                             where id = ${result.stamp_event_id}::uuid`
+      assert.equal(stamp.metadata.geo_verification, "venue_code")
+      assert.equal(stamp.metadata.geo_flagged, false)
+      assert.equal(stamp.metadata.presence_evidence.kind, "venue_code")
+      assert.equal(
+        stamp.metadata.presence_evidence.entry_context,
+        "direct_venue_code"
+      )
+      assert.equal(
+        "original_failure_reason" in stamp.metadata.presence_evidence,
+        false,
+        "no refusal to name"
+      )
+
+      const rows = await receipts(tx, fixture.membershipId)
+      assert.equal(rows.length, 1, "exactly one receipt")
+      assert.equal(rows[0].entry_context, "direct_venue_code")
+      assert.equal(rows[0].refusal_flag_id, null)
+      assert.equal(rows[0].original_failure_reason, null)
+      assert.equal(rows[0].stamp_event_id, result.stamp_event_id)
+
+      assert.equal(
+        await unverifiedCount(tx, fixture.membershipId),
+        graceBefore,
+        "a code-confirmed stamp never draws on the unverified grace"
+      )
+      assert.equal(await earnedCount(tx, fixture.membershipId), 2)
+
+      // Once is the limit: the daily rule still holds on the direct path.
+      assert.equal(await enterCodeSqlstate(tx, venue, fixture, code), "NBS01")
+      assert.equal((await receipts(tx, fixture.membershipId)).length, 1)
     })
   }
 )
@@ -244,10 +295,15 @@ test(
       const rows = await receipts(tx, fixture.membershipId)
       assert.equal(rows.length, 1)
       assert.equal(rows[0].stamp_event_id, result.stamp_event_id)
+      assert.equal(rows[0].entry_context, "after_location_refusal")
       assert.equal(rows[0].original_failure_reason, "location_out_of_range")
       assert.ok(
         rows[0].refusal_flag_id,
         "the receipt names the refusal it answered"
+      )
+      assert.equal(
+        stamp.metadata.presence_evidence.entry_context,
+        "after_location_refusal"
       )
 
       const [flag] = await tx`select status, metadata from public.fraud_flags

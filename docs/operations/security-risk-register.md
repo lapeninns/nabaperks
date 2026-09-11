@@ -101,6 +101,12 @@ that neither the public identifier nor client GPS can establish venue presence.
   durable.
 - Reward issuance and redemption remain server-authoritative.
 - Fraud evidence remains available for review and audited resolution.
+- The daily venue code is the only presence proof the fallback relies on. The
+  earlier precondition that a valid code be preceded by a server-recorded
+  location refusal was removed on 11 September 2026 (`20260911120000`): any
+  client could create that refusal by submitting `location_status = 'denied'`,
+  so it added no assurance and only forced a wasted, throttled submit before a
+  legitimate member could use the code.
 
 ### Reconsider immediately when
 
