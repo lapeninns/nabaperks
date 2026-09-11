@@ -1,0 +1,461 @@
+name: Production database promotion
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      expected_revision:
+        description: Full Git SHA currently at the tip of main
+        required: true
+        type: string
+      confirmation:
+        description: Type PROMOTE_PRODUCTION_DATABASE to continue
+        required: true
+        type: string
+
+concurrency:
+  group: production-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  preflight:
+    name: Production database preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      EXPECTED_REVISION: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
+      CONFIRMATION: ${{ inputs.confirmation }}
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_CONCLUSION: ${{ github.event.workflow_run.conclusion || '' }}
+    steps:
+      - name: Require an approved automatic or manual source
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_run" ]]; then
+            test "$SOURCE_CONCLUSION" = "success"
+          else
+            test "$GITHUB_REF" = "refs/heads/main"
+            test "$EXPECTED_REVISION" = "$GITHUB_SHA"
+            test "$CONFIRMATION" = "PROMOTE_PRODUCTION_DATABASE"
+          fi
+      - name: Require successful release and security gates for this revision
+        run: |
+          require_successful_workflow() {
+            local workflow="$1"
+            local attempts="$2"
+            local successful_revision
+            for ((attempt = 1; attempt <= attempts; attempt++)); do
+              successful_revision="$(gh run list \
+                --repo "$GITHUB_REPOSITORY" \
+                --workflow "$workflow" \
+                --commit "$EXPECTED_REVISION" \
+                --branch main \
+                --event push \
+                --limit 20 \
+                --json conclusion,headSha,status \
+                --jq '.[] | select(.status == "completed" and .conclusion == "success") | .headSha' \
+                | head -n 1)"
+              if [[ "$successful_revision" == "$EXPECTED_REVISION" ]]; then
+                return 0
+              fi
+              if ((attempt < attempts)); then
+                sleep 10
+              fi
+            done
+            echo "::error::${workflow} did not succeed for ${EXPECTED_REVISION}."
+            return 1
+          }
+
+          require_successful_workflow ci.yml 1
+          require_successful_workflow codeql.yml 60
+
+  staging:
+    name: Cost-neutral ephemeral release proof
+    needs: baseline
+    if: ${{ needs.baseline.outputs.application_required == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    env:
+      EXPECTED_REVISION: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
+      STAGING_APP_URL: http://127.0.0.1:3000
+      STAGING_EXPECTED_REVISION: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
+      STAGING_MODE: ephemeral
+      STAGING_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+      STAGING_SUPABASE_DB_URL: postgres://postgres:postgres@127.0.0.1:54322/postgres
+      SUPABASE_DB_URL: postgres://postgres:postgres@127.0.0.1:54322/postgres
+      SUPABASE_SEND_EMAIL_HOOK_URI: http://host.docker.internal:3147/api/auth/hooks/send-email
+      NEXT_PUBLIC_APP_URL: https://127.0.0.1:3001
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      VERCEL_GIT_COMMIT_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
+      VERCEL_ENV: preview
+      VERCEL_TARGET_ENV: staging
+      DO_NOT_TRACK: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
+          fetch-depth: 0
+      - name: Verify immutable source and cost-neutral target
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_REVISION"
+          test "$(git rev-parse origin/main)" = "$EXPECTED_REVISION"
+          test "$STAGING_MODE" = "ephemeral"
+          test "$STAGING_APP_URL" = "http://127.0.0.1:3000"
+          test "$STAGING_SUPABASE_DB_URL" = "postgres://postgres:postgres@127.0.0.1:54322/postgres"
+      - uses: ./.github/actions/setup
+      - uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3
+        with:
+          version: 2.106.0
+      - name: Generate ephemeral-only provider fixtures
+        run: |
+          export_fixture() {
+            local name="$1"
+            local value="$2"
+            printf '::add-mask::%s\n' "$value"
+            printf '%s=%s\n' "$name" "$value" >> "$GITHUB_ENV"
+          }
+
+          monitor_secret="$(openssl rand -hex 32)"
+          resend_webhook_secret="whsec_$(openssl rand -base64 32 | tr -d '\n')"
+          stripe_webhook_secret="whsec_$(openssl rand -hex 32)"
+
+          export_fixture CUSTOMER_EMAIL_ENCRYPTION_KEY "$(openssl rand -hex 32)"
+          export_fixture CUSTOMER_EMAIL_HMAC_SECRET "$(openssl rand -hex 32)"
+          export_fixture CUSTOMER_PHONE_ENCRYPTION_KEY "$(openssl rand -hex 32)"
+          export_fixture CUSTOMER_PHONE_HMAC_SECRET "$(openssl rand -hex 32)"
+          export_fixture CUSTOMER_SESSION_SECRET "$(openssl rand -hex 32)"
+          export_fixture MERCHANT_OTP_ALIAS_TOKEN_ENCRYPTION_KEY "$(openssl rand -hex 32)"
+          export_fixture NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY "pk_test_$(openssl rand -hex 16)"
+          export_fixture PRODUCTION_MONITOR_SECRET "$monitor_secret"
+          export_fixture RESEND_API_KEY "re_$(openssl rand -hex 32)"
+          export_fixture RESEND_WEBHOOK_SECRET "$resend_webhook_secret"
+          export_fixture STAGING_MONITOR_SECRET "$monitor_secret"
+          export_fixture STAGING_RESEND_WEBHOOK_SECRET "$resend_webhook_secret"
+          export_fixture STAGING_STRIPE_WEBHOOK_SECRET "$stripe_webhook_secret"
+          export_fixture STRIPE_LAUNCH_PRICE_ID "price_$(openssl rand -hex 16)"
+          export_fixture STRIPE_GROWTH_ANNUAL_PRICE_ID "price_$(openssl rand -hex 16)"
+          export_fixture STRIPE_GROWTH_PRICE_ID "price_$(openssl rand -hex 16)"
+          export_fixture STRIPE_SECRET_KEY "sk_test_$(openssl rand -hex 32)"
+          export_fixture STRIPE_WEBHOOK_SECRET "$stripe_webhook_secret"
+          export_fixture SUPABASE_SEND_EMAIL_HOOK_SECRET "v1,whsec_$(openssl rand -base64 32 | tr -d '\n')"
+          export_fixture TWILIO_ACCOUNT_SID "AC$(openssl rand -hex 16)"
+          export_fixture TWILIO_AUTH_TOKEN "$(openssl rand -hex 32)"
+          export_fixture TWILIO_VERIFY_SERVICE_SID "VA$(openssl rand -hex 16)"
+      - name: Start isolated Supabase and export ephemeral API keys
+        run: |
+          supabase start
+          eval "$(supabase status -o env)"
+          test "$API_URL" = "$NEXT_PUBLIC_SUPABASE_URL"
+          test -n "$ANON_KEY"
+          test -n "$SERVICE_ROLE_KEY"
+          printf 'NEXT_PUBLIC_SUPABASE_ANON_KEY=%s\n' "$ANON_KEY" >> "$GITHUB_ENV"
+          printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
+      - name: Verify the complete migration ledger on ephemeral staging
+        run: node scripts/check-supabase-migrations.mjs --local
+      - name: Build and start the exact revision locally
+        run: |
+          pnpm build
+          pnpm start > "$RUNNER_TEMP/nabaperks-ephemeral-staging.log" 2>&1 &
+          printf '%s\n' "$!" > "$RUNNER_TEMP/nabaperks-ephemeral-staging.pid"
+          for attempt in {1..60}; do
+            if curl --fail --silent --show-error "$STAGING_APP_URL/api/health" >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat "$RUNNER_TEMP/nabaperks-ephemeral-staging.log"
+          exit 1
+      - name: Replay signed webhooks and the rollback-only loyalty journey
+        run: pnpm smoke:staging
+      - name: Seed isolated reward-collection browser fixtures
+        run: pnpm db:seed
+      - uses: ./.github/actions/playwright
+        with:
+          project: chromium
+      - uses: ./.github/actions/playwright
+        with:
+          project: mobile-safari
+      - name: Serve the release build over loopback HTTPS
+        run: |
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
+            -subj '/CN=localhost' -addext 'subjectAltName=DNS:localhost,IP:127.0.0.1' \
+            -keyout "$RUNNER_TEMP/reward-proof.key" -out "$RUNNER_TEMP/reward-proof.crt"
+          node scripts/run-loopback-https.mjs \
+            "$RUNNER_TEMP/reward-proof.key" "$RUNNER_TEMP/reward-proof.crt" 3001 3000 \
+            > "$RUNNER_TEMP/reward-proof-https.log" 2>&1 &
+          printf '%s\n' "$!" > "$RUNNER_TEMP/reward-proof-https.pid"
+      - name: Prove in-person ID collection against the release build
+        env:
+          REWARD_ID_LOOPBACK_HTTPS: "1"
+          ADMIN_LIVE_DB_E2E: "1"
+          CUSTOMER_FLOW_E2E: "1"
+          PLAYWRIGHT_BASE_URL: https://127.0.0.1:3001
+          PLAYWRIGHT_REUSE_EXISTING_SERVER: "1"
+          PLAYWRIGHT_REGULAR_CHROMIUM: "1"
+        run: pnpm test:e2e tests/e2e/merchant-id-verification.spec.ts tests/e2e/merchant-id-verification.desktop.spec.ts --project=mobile-safari --project=chromium
+      - name: Record staging evidence
+        run: |
+          {
+            echo "### Cost-neutral ephemeral release proof"
+            echo
+            echo "- Revision: \`$EXPECTED_REVISION\`"
+            echo "- Target: isolated Supabase CLI stack and loopback production build"
+            echo "- Migration ledger, readiness, signed webhook replay and rolled-back loyalty journey: passed"
+            echo "- Customer QR, owner ID confirmation, collection, accessibility and mobile/desktop browser journey: passed"
+            echo "- No hosted provider or production credential was used"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Stop ephemeral staging
+        if: always()
+        run: |
+          if [[ -f "$RUNNER_TEMP/nabaperks-ephemeral-staging.pid" ]]; then
+            kill "$(cat "$RUNNER_TEMP/nabaperks-ephemeral-staging.pid")" 2>/dev/null || true
+          fi
+          if [[ -f "$RUNNER_TEMP/reward-proof-https.pid" ]]; then
+            kill "$(cat "$RUNNER_TEMP/reward-proof-https.pid")" 2>/dev/null || true
+          fi
+          supabase stop --no-backup || true
+
+  baseline:
+    name: Authenticate the deployed baseline
+    needs: preflight
+    environment: Production
+    timeout-minutes: 10
+    outputs:
+      artifact_id: ${{ steps.baseline-upload.outputs.artifact-id }}
+      application_required: ${{ steps.impact.outputs.application_required }}
+    runs-on: ubuntu-latest
+    env:
+      EXPECTED_REVISION: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
+      RELEASE_RUN_ID: ${{ github.run_id }}
+      RELEASE_RUN_ATTEMPT: ${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .nvmrc
+      - name: Read the authoritative production baseline
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_REVISION"
+          test "$(git rev-parse origin/main)" = "$EXPECTED_REVISION"
+          mkdir -p "$RUNNER_TEMP/release-baseline"
+          node scripts/release/deployed-baseline.mjs "$RUNNER_TEMP/release-baseline/baseline.json"
+      - name: Compare the entire candidate with authenticated production
+        id: impact
+        run: node scripts/release/no-deployment.mjs "$RUNNER_TEMP/release-baseline/baseline.json" "$RUNNER_TEMP/release-baseline/release-candidate.json"
+      - name: Retain explicit evidence that no application deployment was required
+        if: ${{ steps.impact.outputs.application_required == 'false' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: production-unchanged-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release-baseline/release-candidate.json
+          if-no-files-found: error
+          retention-days: 90
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        id: baseline-upload
+        with:
+          name: release-baseline-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release-baseline/baseline.json
+          if-no-files-found: error
+          retention-days: 90
+
+  qualification:
+    name: Qualify runtime without production credentials
+    needs: [baseline, staging]
+    if: ${{ needs.baseline.outputs.application_required == 'true' }}
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      artifact_id: ${{ steps.qualification-upload.outputs.artifact-id }}
+    runs-on: ubuntu-latest
+    env:
+      EXPECTED_REVISION: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
+      RELEASE_RUN_ID: ${{ github.run_id }}
+      RELEASE_RUN_ATTEMPT: ${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .nvmrc
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+      - uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3
+        with:
+          version: 2.106.0
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: ${{ needs.baseline.outputs.artifact_id }}
+          path: ${{ runner.temp }}/release-baseline
+          merge-multiple: true
+      - name: Install the disposable database client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Qualify runtime against the authenticated deployed baseline
+        run: |
+          mkdir -p "$RUNNER_TEMP/release-ledger"
+          baseline="$(jq -er '.revision' "$RUNNER_TEMP/release-baseline/baseline.json")"
+          node scripts/release/qualify-runtime.mjs "$baseline" "$RUNNER_TEMP/release-runtime"
+          compatibility=()
+          if [[ -f "$RUNNER_TEMP/release-runtime/compatibility.json" ]]; then
+            compatibility=(--compatibility "$RUNNER_TEMP/release-runtime/compatibility.json")
+          fi
+          node scripts/release/stage-ledger.mjs qualify --baseline "$baseline" "${compatibility[@]}"             --output "$RUNNER_TEMP/release-ledger/qualified.json"             --evidence "$RUNNER_TEMP/release-ledger/qualified-evidence.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        id: qualification-upload
+        with:
+          name: release-qualification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/release-ledger/qualified.json
+            ${{ runner.temp }}/release-ledger/qualified-evidence.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain immutable runtime probe and build evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: release-runtime-artifacts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release-runtime/
+          if-no-files-found: ignore
+          retention-days: 90
+
+  promote:
+    name: Database promotion
+    needs: [baseline, qualification]
+    if: ${{ needs.baseline.outputs.application_required == 'true' }}
+    environment: Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      EXPECTED_REVISION: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
+      RELEASE_RUN_ID: ${{ github.run_id }}
+      RELEASE_RUN_ATTEMPT: ${{ github.run_attempt }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      # db push parses the hook URI even though this job never publishes Auth
+      # configuration. production-deploy.yml owns hosted hook activation.
+      SUPABASE_SEND_EMAIL_HOOK_URI: https://nabaperks.com/api/auth/hooks/send-email
+      DO_NOT_TRACK: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .nvmrc
+      - uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3
+        with:
+          version: 2.106.0
+      - name: Generate a non-deployable parser-only hook fixture
+        run: |
+          parser_secret="v1,whsec_$(openssl rand -base64 32 | tr -d '\n')"
+          printf '::add-mask::%s\n' "$parser_secret"
+          printf 'SUPABASE_SEND_EMAIL_HOOK_SECRET=%s\n' "$parser_secret" >> "$GITHUB_ENV"
+      - name: Verify immutable revision and protected credentials
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_REVISION"
+          test "$(git rev-parse origin/main)" = "$EXPECTED_REVISION"
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          test -n "$SUPABASE_DB_PASSWORD"
+          test -n "$SUPABASE_PROJECT_REF"
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: ${{ needs.baseline.outputs.artifact_id }}
+          path: ${{ runner.temp }}/release-baseline
+          merge-multiple: true
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: ${{ needs.qualification.outputs.artifact_id }}
+          path: ${{ runner.temp }}/release-qualification
+          merge-multiple: true
+      - name: Verify qualification on the fresh protected runner
+        run: |
+          mkdir -p "$RUNNER_TEMP/release-ledger"
+          cp "$RUNNER_TEMP/release-baseline/baseline.json" "$RUNNER_TEMP/release-ledger/baseline.json"
+          cp "$RUNNER_TEMP/release-qualification/qualified.json" "$RUNNER_TEMP/release-ledger/qualified.json"
+          cp "$RUNNER_TEMP/release-qualification/qualified-evidence.json" "$RUNNER_TEMP/release-ledger/qualified-evidence.json"
+          baseline="$(jq -er '.revision' "$RUNNER_TEMP/release-ledger/baseline.json")"
+          node scripts/release/stage-ledger.mjs identity --baseline "$baseline"             > "$RUNNER_TEMP/release-ledger/identity.json"
+          node scripts/release/stage-ledger.mjs verify --baseline "$baseline" --stage qualified             --manifest "$RUNNER_TEMP/release-ledger/qualified.json"             --evidence "$RUNNER_TEMP/release-ledger/qualified-evidence.json"
+      - name: Link the approved production project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Require qualified production migration prefix before database application
+        run: |
+          baseline="$(jq -er '.revision' "$RUNNER_TEMP/release-ledger/baseline.json")"
+          node scripts/release/pre-apply-migrations.mjs "$baseline" > "$RUNNER_TEMP/release-ledger/pre-apply-ledger.txt"
+      - name: Prove the forward-only migration plan
+        run: supabase db push --linked --dry-run --include-all
+      - name: Recheck qualification and the unchanged live alias before database writes
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          baseline="$(jq -er '.revision' "$RUNNER_TEMP/release-ledger/baseline.json")"
+          node scripts/release/stage-ledger.mjs verify --baseline "$baseline" --stage qualified \
+            --manifest "$RUNNER_TEMP/release-ledger/qualified.json" \
+            --evidence "$RUNNER_TEMP/release-ledger/qualified-evidence.json"
+          node scripts/release/deployed-baseline.mjs "$RUNNER_TEMP/release-ledger/before-database.json"
+          jq -e --slurpfile baseline "$RUNNER_TEMP/release-ledger/baseline.json" \
+            'del(.observedAt) == ($baseline[0] | del(.observedAt))' \
+            "$RUNNER_TEMP/release-ledger/before-database.json" >/dev/null
+      - name: Apply forward-only migrations
+        run: supabase db push --linked --include-all
+      - name: Verify the production migration ledger
+        run: |
+          node scripts/check-supabase-migrations.mjs > "$RUNNER_TEMP/release-ledger/post-apply-ledger.txt"
+          jq -n --slurpfile identity "$RUNNER_TEMP/release-ledger/identity.json" \
+            --rawfile readback "$RUNNER_TEMP/release-ledger/post-apply-ledger.txt" \
+            '{stage: "database-applied", result: "success", identity: $identity[0], migrationLedgerReadback: $readback}' \
+            > "$RUNNER_TEMP/release-ledger/database-applied-evidence.json"
+          baseline="$(jq -er '.revision' "$RUNNER_TEMP/release-ledger/baseline.json")"
+          node scripts/release/stage-ledger.mjs record --baseline "$baseline" --stage database-applied \
+            --previous "$RUNNER_TEMP/release-ledger/qualified.json" \
+            --evidence "$RUNNER_TEMP/release-ledger/database-applied-evidence.json" \
+            --output "$RUNNER_TEMP/release-ledger/database-applied.json"
+      - name: Retain the database stage and authoritative baseline for the release owner
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: production-database-stage-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release-ledger/
+          if-no-files-found: error
+          retention-days: 90
+
+  application:
+    name: Promote and prove the same application candidate
+    needs: promote
+    uses: ./.github/workflows/production-deploy.yml
+    secrets:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_SEND_EMAIL_HOOK_SECRET: ${{ secrets.SUPABASE_SEND_EMAIL_HOOK_SECRET }}
+      PRODUCTION_ALERT_WEBHOOK_SECRET: ${{ secrets.PRODUCTION_ALERT_WEBHOOK_SECRET }}
+      PRODUCTION_MONITOR_SECRET: ${{ secrets.PRODUCTION_MONITOR_SECRET }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    with:
+      expected_revision: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
+      release_run_id: ${{ github.run_id }}
+      release_run_attempt: ${{ github.run_attempt }}
