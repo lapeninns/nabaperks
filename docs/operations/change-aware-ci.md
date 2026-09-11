@@ -33,11 +33,11 @@ merge candidate. Qualification always runs eight fixed positive and negative
 Markdown cases, including formatting, inline/reference links, HTML links and a
 code example, even when the change inventory contains no Markdown. The reviewed
 verifier checks the complete case set and independently re-reads the candidate's
-documentation file inventory. Qualification then runs the actual candidate checker
-in isolated Docker containers against the reviewed corpus and the changed files.
-The reviewed parent observes exit statuses and owns the expected answers; copied
-success constants cannot qualify the checker. See [the verifier contract](ci-selection-verifier.md)
-for the pinned image, isolation and cleanup requirements.
+documentation file inventory. Qualification then runs the checker, formatter and
+configuration from the reviewed checkout against candidate content and the reviewed
+corpus. Candidate modules, formatter configs, package managers and hooks never
+execute during this reference validation. See [the verifier contract](ci-selection-verifier.md)
+for input bounds and exact source requirements.
 
 Consumer analysis includes root runtime entries such as `proxy.ts`,
 `instrumentation.ts` and `next.config.ts`, as well as additional source folders.
@@ -121,6 +121,13 @@ name the same host runner. Missing, dynamic or different environments fail even
 when Playwright settings and test outcomes match. The artifact records the
 candidate workflow digest and those job environments, and every targeted
 manifest must match that independently read identity.
+
+Before accepting reports, the verifier also checks the complete candidate workflow
+against the reviewed `config/ci-qualification-workflow.yml` proposal. Its steps,
+conditions, environment, actions and artifact wiring must match exactly. The CI
+executables, test sources, dependencies and configuration must match the reviewed
+base's Git objects; changing a producer to emit copied reports fails before report
+comparison. An execution-input change needs a separately reviewed prerequisite.
 
 The comparison verdict executes from the immutable reviewed PR base, including
 that checkout's dependency lock. The candidate's reports are data, and changes

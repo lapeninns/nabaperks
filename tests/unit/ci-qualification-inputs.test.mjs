@@ -31,7 +31,7 @@ import {
 } from "../../scripts/ci/documentation-evidence.mjs"
 
 const workflow = readFileSync(
-  new URL("../../.github/workflows/ci.yml", import.meta.url),
+  new URL("../../config/ci-qualification-workflow.yml", import.meta.url),
   "utf8"
 )
 const policy = JSON.parse(

@@ -26,9 +26,11 @@ export function needsSelectionComparison(path) {
       "pnpm-workspace.yaml",
       ".nvmrc",
     ].includes(path) ||
-    ["config/ci-impact-policy.json", "config/ci-workloads.json"].includes(
-      path
-    ) ||
+    [
+      "config/ci-impact-policy.json",
+      "config/ci-workloads.json",
+      "config/ci-qualification-workflow.yml",
+    ].includes(path) ||
     /^scripts\/ci\/(impact-|change-impact|plan-checks|verify-impact|run-targeted|compare-targeted)/.test(
       path
     ) ||

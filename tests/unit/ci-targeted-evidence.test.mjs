@@ -35,7 +35,7 @@ const record = {
 
 test("mixed page and documentation validation adds formatting and links without duplicating its baseline", () => {
   const commands = []
-  const path = "docs/operations/change-aware-ci.md"
+  const path = "docs/operations/ci-selection-verifier.md"
   const result = runDocumentation(
     {
       profile: "public-pages",
