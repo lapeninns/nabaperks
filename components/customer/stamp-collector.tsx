@@ -12,7 +12,9 @@ import {
   addLocationCapture,
   resolveStampLocation,
   shouldAttemptStampLocation,
+  type StampLocationCapture,
 } from "@/components/customer/self-service-forms"
+import { LocationRetryButton } from "@/components/customer/location-retry-button"
 import { StampPressButton } from "@/components/customer/stamp-press-button"
 import { VenueCodeForm } from "@/components/customer/venue-code-form"
 import {
@@ -227,16 +229,16 @@ export function StampCollector({
     refresh()
   }
 
-  async function issueStamp() {
+  async function issueStamp(prefetched: StampLocationCapture | null = null) {
     if (requestInFlightRef.current || view.secured || !canStamp) return
     requestInFlightRef.current = true
     dispatch({ type: "request_started", current })
     markStampPhase("checking")
 
     try {
-      const locationCapture = locationNotice
-        ? await resolveStampLocation(true)
-        : null
+      const locationCapture =
+        prefetched ??
+        (locationNotice ? await resolveStampLocation(true) : null)
       const formData = new FormData()
       formData.set("membershipId", membershipId)
       formData.set("qrId", qrId)
@@ -311,7 +313,15 @@ export function StampCollector({
               <StampStatusBand view={view} phase={state.phase} />
             </div>
             {showVenueCode ? (
-              <div className="squat:col-span-2 squat:row-start-2">
+              <div className="grid gap-3 squat:col-span-2 squat:row-start-2">
+                {locationNotice && view.locationRetryOffer ? (
+                  <LocationRetryButton
+                    disabled={view.pending}
+                    onGranted={(capture) => {
+                      void issueStamp(capture)
+                    }}
+                  />
+                ) : null}
                 <VenueCodeForm
                   attemptsRemaining={view.venueCodeAttemptsRemaining}
                   lockedUntil={view.venueCodeLockedUntil}

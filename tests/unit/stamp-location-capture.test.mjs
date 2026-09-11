@@ -62,6 +62,46 @@ test("a browser timeout is recorded as timeout", async () => {
   assert.equal(capture?.locationStatus, "timeout")
 })
 
+test("a blocked permission skips GPS because the OS will not prompt again", async () => {
+  let called = 0
+  installGeolocation(() => {
+    called += 1
+  }, "denied")
+  const capture = await resolveStampLocation(true, 80)
+  assert.equal(capture?.locationStatus, "denied_remembered")
+  assert.equal(called, 0)
+})
+
+test("a later Allow is captured even after a previous denial", async () => {
+  installGeolocation((_success, error) => {
+    error(geoError(PERMISSION_DENIED))
+  })
+  const denied = await resolveStampLocation(true, 80)
+  assert.equal(denied?.locationStatus, "denied")
+
+  installGeolocation((success) => {
+    success({
+      coords: { latitude: 52.208, longitude: 0.091, accuracy: 18 },
+    })
+  }, "granted")
+  const capture = await resolveStampLocation(true, 80)
+  assert.equal(capture?.locationStatus, "granted")
+  assert.equal(capture?.latitude, 52.208)
+})
+
+test("prompt permission still asks the browser so the dialog can return", async () => {
+  let called = 0
+  installGeolocation((success) => {
+    called += 1
+    success({
+      coords: { latitude: 52.208, longitude: 0.091, accuracy: 18 },
+    })
+  }, "prompt")
+  const capture = await resolveStampLocation(true, 80)
+  assert.equal(called, 1)
+  assert.equal(capture?.locationStatus, "granted")
+})
+
 test("location capture is attached to the stamp form", () => {
   const formData = new FormData()
   addLocationCapture(formData, {
@@ -76,10 +116,19 @@ test("location capture is attached to the stamp form", () => {
   assert.equal(formData.get("latitude"), "52.2")
 })
 
-function installGeolocation(impl) {
+function installGeolocation(impl, permission) {
   Object.defineProperty(globalThis, "navigator", {
     configurable: true,
-    value: { geolocation: { getCurrentPosition: impl } },
+    value: {
+      geolocation: { getCurrentPosition: impl },
+      ...(permission
+        ? {
+            permissions: {
+              query: async () => ({ state: permission }),
+            },
+          }
+        : {}),
+    },
   })
 }
 

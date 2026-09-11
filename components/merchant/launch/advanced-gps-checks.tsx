@@ -61,7 +61,7 @@ export function AdvancedGpsChecks({
         On by default. A member&apos;s first two visits never ask for location.
         After that, a stamp is refused only when their phone reports a position
         outside the radius. If location is switched off or cannot be read, they
-        still collect a few times before it is required.
+        still collect twice before it is required.
       </p>
       <label className="flex items-center justify-between gap-4 rounded-lg border-2 border-ink bg-card px-4 py-3 text-sm font-bold">
         <span>Use GPS anomaly checks</span>
