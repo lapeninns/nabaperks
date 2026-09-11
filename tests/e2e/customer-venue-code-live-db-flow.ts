@@ -65,12 +65,17 @@ export function registerCustomerVenueCodeLiveDbTests() {
         await context.grantPermissions(["geolocation"], { origin: baseURL })
         await context.setGeolocation(FAR_FROM_VENUE)
 
-        // 1. The member scans from far away and the location check refuses.
+        // 1. The member scans from far away. This visit must confirm location,
+        //    so the screen offers "Use my location" and the code side by side;
+        //    the location check refuses the far fix.
         await page.goto(
           `/card/${fixture.membershipId}/stamp?qr=${fixture.qrId}`
         )
         const root = page.locator("[data-stamp-phase]")
-        await root.getByRole("button", { name: "Add today's stamp" }).click()
+        await expect(
+          root.getByRole("button", { name: "Enter venue code" })
+        ).toBeVisible()
+        await root.getByRole("button", { name: "Use my location" }).click()
         await expect(root).toHaveAttribute("data-stamp-phase", "blocked")
         await expect(root.locator("[data-stamp-status-band]")).toContainText(
           "ask a team member for today's code"

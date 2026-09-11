@@ -259,15 +259,193 @@ test("a server-derived unlocked reward stays revealed after reload", () => {
   assert.equal(view.statusBody, "Your reward is ready to open.")
 })
 
-test("the venue-code fallback is offered for location refusals and wrong codes, never for a lockout", () => {
+test("the venue-code fallback is offered for location refusals, throttles and wrong codes, never for a lockout", () => {
   assert.equal(venueCodeOffered("location_out_of_range"), true)
   assert.equal(venueCodeOffered("location_required"), true)
+  assert.equal(venueCodeOffered("location_blocked"), true)
+  // The stamp path being throttled is exactly when the code — with its own
+  // throttle — is the way forward; hiding it here is how a member got stuck.
+  assert.equal(venueCodeOffered("rate_limited"), true)
   assert.equal(venueCodeOffered("venue_code_rejected"), true)
   assert.equal(venueCodeOffered("venue_code_format"), true)
   assert.equal(venueCodeOffered("venue_code_locked"), false)
+  // The code path's own throttle: re-offering the form would only refuse again.
+  assert.equal(venueCodeOffered("venue_code_rate_limited"), false)
   assert.equal(venueCodeOffered("venue_code_refusal_missing"), false)
   assert.equal(venueCodeOffered("already_stamped_today"), false)
   assert.equal(venueCodeOffered(undefined), false)
+})
+
+test("a visit that must confirm location offers both methods before any refusal", () => {
+  const plain = stampChoreographyView(initialStampChoreographyState, baseView)
+  assert.equal(plain.locationControls, false)
+  assert.equal(plain.venueCodeOffer, false)
+  assert.equal(plain.statusTitle, "Ready for today's stamp.")
+
+  const verified = stampChoreographyView(initialStampChoreographyState, {
+    ...baseView,
+    verificationRequired: true,
+  })
+  assert.equal(verified.locationControls, true)
+  assert.equal(verified.venueCodeOffer, true)
+  assert.equal(verified.secured, false)
+  assert.equal(verified.statusTitle, "Confirm you're at the venue.")
+  assert.match(verified.statusBody, /location, or enter today's code/)
+
+  const closed = stampChoreographyView(initialStampChoreographyState, {
+    ...baseView,
+    canStamp: false,
+    verificationRequired: true,
+  })
+  assert.equal(closed.locationControls, false, "nothing to confirm today")
+  assert.equal(closed.venueCodeOffer, false)
+})
+
+test("asking the browser for a fix shows in the band without inking the card", () => {
+  const view = stampChoreographyView(initialStampChoreographyState, {
+    ...baseView,
+    verificationRequired: true,
+    acquiringLocation: true,
+  })
+  assert.equal(view.pendingIndex, -1, "nothing has been sent")
+  assert.equal(view.pending, false, "the code form stays usable")
+  assert.equal(view.ariaBusy, true)
+  assert.equal(view.statusTitle, "Checking your location.")
+  assert.match(view.statusBody, /enter today's venue code instead/)
+  assert.equal(view.locationControls, true)
+  assert.equal(view.venueCodeOffer, true)
+})
+
+test("a refusal decided on the phone blocks from idle, offers both methods, and spends no request", () => {
+  const refused = reduceStampChoreography(initialStampChoreographyState, {
+    type: "capture_refused",
+    message: "Location is blocked for this site.",
+  })
+  assert.equal(refused.phase, "blocked")
+  assert.equal(refused.reason, "location_blocked")
+
+  const view = stampChoreographyView(refused, {
+    ...baseView,
+    verificationRequired: true,
+  })
+  assert.equal(view.venueCodeOffer, true)
+  assert.equal(view.locationControls, true)
+  assert.equal(view.statusBody, "Location is blocked for this site.")
+
+  const inFlight = reduceStampChoreography(initialStampChoreographyState, {
+    type: "request_started",
+  })
+  assert.equal(
+    reduceStampChoreography(inFlight, {
+      type: "capture_refused",
+      message: "late",
+    }),
+    inFlight,
+    "a request already in flight is never overwritten"
+  )
+})
+
+test("a throttled stamp keeps the code on screen and says so", () => {
+  const checking = reduceStampChoreography(initialStampChoreographyState, {
+    type: "request_started",
+  })
+  const throttled = reduceStampChoreography(checking, {
+    type: "request_blocked",
+    message: "You're going a little fast. Wait a few minutes, then try again.",
+    reason: "rate_limited",
+  })
+  const view = stampChoreographyView(throttled, {
+    ...baseView,
+    verificationRequired: true,
+  })
+  assert.equal(view.venueCodeOffer, true)
+  assert.equal(view.locationControls, true)
+  assert.match(view.statusBody, /Or enter today's venue code below\.$/)
+  assert.doesNotMatch(
+    view.announcement,
+    /venue code below/,
+    "the live region reads the refusal as the server put it"
+  )
+})
+
+test("a throttled code path withholds the form but keeps location on a verified visit", () => {
+  const checking = reduceStampChoreography(initialStampChoreographyState, {
+    type: "request_started",
+  })
+  const throttled = reduceStampChoreography(checking, {
+    type: "request_blocked",
+    message:
+      "Too many code tries in a row. Wait a few minutes, then try again.",
+    reason: "venue_code_rate_limited",
+  })
+  const view = stampChoreographyView(throttled, {
+    ...baseView,
+    verificationRequired: true,
+  })
+  assert.equal(view.venueCodeOffer, false)
+  assert.equal(view.locationControls, true)
+  assert.doesNotMatch(view.statusBody, /venue code below/)
+})
+
+test("a lockout withholds both methods until it lifts", () => {
+  const checking = reduceStampChoreography(initialStampChoreographyState, {
+    type: "request_started",
+  })
+  const locked = reduceStampChoreography(checking, {
+    type: "request_blocked",
+    message: "Too many tries.",
+    reason: "venue_code_locked",
+    lockedUntil: "2026-09-11T20:00:00.000Z",
+  })
+  const view = stampChoreographyView(locked, {
+    ...baseView,
+    verificationRequired: true,
+  })
+  assert.equal(view.venueCodeOffer, false)
+  assert.equal(view.locationControls, false)
+  assert.equal(view.venueCodeLockedUntil, "2026-09-11T20:00:00.000Z")
+})
+
+test("an issued stamp says how the visit was confirmed when that matters", () => {
+  const checking = reduceStampChoreography(initialStampChoreographyState, {
+    type: "request_started",
+  })
+  const plain = {
+    ...issued,
+    newStampCount: 3,
+    rewardUnlocked: false,
+    bonusStampsApplied: 0,
+  }
+  const body = (result, extra = {}) =>
+    stampChoreographyView(
+      reduceStampChoreography(checking, { type: "request_issued", result }),
+      { ...baseView, ...extra }
+    ).statusBody
+
+  assert.doesNotMatch(body(plain), /location|venue code/)
+  assert.match(
+    body({ ...plain, verification: "venue_code" }),
+    /Confirmed using today's venue code\.$/
+  )
+  assert.match(
+    body({ ...plain, geoFlagged: true, verification: "unverified" }),
+    /Added without a location check\.$/,
+    "with no grace count known, no number is invented"
+  )
+  assert.match(
+    body(
+      { ...plain, geoFlagged: true, verification: "unverified" },
+      { unverifiedGraceRemaining: 2 }
+    ),
+    /1 more can be added without one\.$/
+  )
+  assert.match(
+    body(
+      { ...plain, geoFlagged: true, verification: "unverified" },
+      { unverifiedGraceRemaining: 1 }
+    ),
+    /Next time, location or the venue code is needed\.$/
+  )
 })
 
 test("a blocked view carries the fallback facts and a retry clears them", () => {

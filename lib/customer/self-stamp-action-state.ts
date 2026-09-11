@@ -11,6 +11,13 @@ export type SelfStampBlockedDetail = {
   lockedUntil?: string
 }
 
+/**
+ * How the issued visit was confirmed, when the service can say. `venue_code`
+ * and `unverified` are the two the customer should be told about; a GPS
+ * verified or pre-threshold stamp needs no caveat and carries nothing.
+ */
+export type StampVerification = "venue_code" | "unverified"
+
 export type SelfStampActionState =
   | { status: "idle" }
   | { status: "unknown" }
@@ -21,6 +28,7 @@ export type SelfStampActionState =
       rewardUnlocked: boolean
       geoFlagged: boolean
       bonusStampsApplied: number
+      verification?: StampVerification
     }
 
 export const initialSelfStampState: SelfStampActionState = { status: "idle" }

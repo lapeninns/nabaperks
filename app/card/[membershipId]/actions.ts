@@ -116,7 +116,12 @@ export async function venueCodeStampAction(
     await chargeVenueCodeActionAttempt()
   } catch (error) {
     if (error instanceof RateLimitError) {
-      return fail(blockReasonCopy("rate_limited"), { reason: "rate_limited" })
+      // The code path's own throttle. Named apart from the stamp path's
+      // `rate_limited`, which the screen answers by offering the code — the
+      // wrong answer when the code is what is throttled.
+      return fail(blockReasonCopy("venue_code_rate_limited"), {
+        reason: "venue_code_rate_limited",
+      })
     }
     throw error
   }
@@ -163,6 +168,13 @@ export async function venueCodeStampAction(
   }
 
   if (result.status === "blocked") {
+    // consume_venue_code_attempt's buckets surface as the generic
+    // "Rate limit exceeded" refusal; on this path that is the code's throttle.
+    if (result.blockReason === "rate_limited") {
+      return fail(blockReasonCopy("venue_code_rate_limited"), {
+        reason: "venue_code_rate_limited",
+      })
+    }
     return fail(result.reason, { reason: result.blockReason })
   }
 
@@ -236,6 +248,7 @@ async function completeIssuedStamp(
     rewardUnlocked: result.rewardUnlocked || bonusRewardUnlocked,
     geoFlagged: result.geoFlagged,
     bonusStampsApplied,
+    ...(result.verification ? { verification: result.verification } : {}),
   }
 }
 

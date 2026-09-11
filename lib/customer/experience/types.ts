@@ -54,11 +54,18 @@ export type StampBlockReason =
   | "profile_incomplete"
   | "location_required"
   | "location_out_of_range"
+  // Decided on the phone, never by the server: the capture carried no fix
+  // and the unverified grace is spent, so a request would only be refused.
+  | "location_blocked"
   // Venue-code fallback after a refused location check.
   | "venue_code_rejected"
   | "venue_code_refusal_missing"
   | "venue_code_locked"
   | "venue_code_format"
+  // The code path's own throttle (app buckets or consume_venue_code_attempt),
+  // kept apart from `rate_limited` so the screen never re-offers a throttled
+  // code form.
+  | "venue_code_rate_limited"
   | "unavailable"
   | "unknown"
 

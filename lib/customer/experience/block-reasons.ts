@@ -132,6 +132,10 @@ export function blockReasonCopy(reason: CustomerBlockReason): string {
       // The grace budget is spent. The copy has to name the fix, because the
       // customer is standing in the venue and the phone is the problem.
       return "Turn on location for this venue and scan again, or ask a team member for today's code."
+    case "location_blocked":
+      // Same situation, decided on the phone before any request was spent:
+      // the browser gave no fix and the grace is already used up.
+      return "Location is blocked for this site. Allow it in your browser settings, or enter today's venue code."
     case "venue_code_rejected":
       return "That code isn't right. Check it with a team member."
     case "venue_code_refusal_missing":
@@ -140,6 +144,11 @@ export function blockReasonCopy(reason: CustomerBlockReason): string {
       return "Scan the venue QR first, then enter today's code."
     case "venue_code_locked":
       return "Too many tries. Ask a team member and try again in 15 minutes."
+    case "venue_code_rate_limited":
+      // The code path itself is throttled, so the recovery is to wait — not
+      // to enter the code again, which would only be refused until the window
+      // passes.
+      return "Too many code tries in a row. Wait a few minutes, then try again."
     case "venue_code_format":
       return "Today's code is six digits."
     case "unavailable":
