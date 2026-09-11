@@ -28,6 +28,7 @@ const CRON_ROUTES = [
   "/api/cron/merchant-digest",
   "/api/cron/privacy-retention",
   "/api/cron/qr-status-email-drain",
+  "/api/cron/billing-trial-sync",
 ] as const
 
 async function getWithAuth(
