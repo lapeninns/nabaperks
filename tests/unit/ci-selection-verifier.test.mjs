@@ -13,13 +13,13 @@ import {
   captureBrowserConfiguration,
   browserConfiguration,
 } from "../../scripts/ci/browser-configuration.mjs"
-import { compareTargetedEvidence } from "../../scripts/ci/compare-targeted-evidence.mjs"
+import { compareTargetedReports } from "../../scripts/ci/compare-targeted-evidence.mjs"
 import { browserPolicy } from "../../scripts/ci/impact-browser-evidence.mjs"
 import { inventoryFromPlaywright } from "../../scripts/ci/browser-parity.mjs"
 import { digest, git } from "../../scripts/ci/impact-git.mjs"
 import { candidateBrowserEnvironment } from "../../scripts/ci/impact-browser-environment.mjs"
 import { DOCUMENTATION_CASES } from "../../scripts/ci/documentation-evidence-contract.mjs"
-import { fullPlan } from "../../scripts/ci/impact-plan-contract.mjs"
+import { fullPlan } from "../../scripts/ci/impact-comparison-plan.mjs"
 import {
   BROWSER_PROJECTS,
   VISUAL_PROJECTS,
@@ -119,7 +119,7 @@ test("complete qualification rejects mismatched or missing browser configuration
     forbidOnly: true,
     failOnFlakyTests: true,
     version: "1.62.1",
-    updateSnapshots: "missing",
+    updateSnapshots: "none",
     webServer: { reuseExistingServer: false, command: "fixture-server" },
     projects: projects.map((name) => ({
       name,
@@ -142,14 +142,22 @@ test("complete qualification rejects mismatched or missing browser configuration
     "Configuration fixture",
     true
   )
-  const report = (project, names) => ({
+  const report = (project, names, tier = "e2e") => ({
     config,
     suites: [
       {
-        title: "fixture",
-        specs: names.map((title) => ({
-          title,
-          file: "fixture.spec.ts",
+        title:
+          tier === "visual"
+            ? "visual.spec.ts"
+            : project === "mobile-safari"
+              ? "a11y.spec.ts"
+              : "a11y.desktop.spec.ts",
+        specs: names.map((name) => ({
+          title:
+            tier === "visual"
+              ? `Given ${selectedPages(plan).find((page) => page.route === name)?.visualName ?? name} When it renders Then the viewport matches the approved Wet Ink baseline`
+              : `no axe violations: ${name}`,
+          file: tier === "visual" ? "visual.spec.ts" : "helpers/a11y-sweep.ts",
           tests: [
             {
               projectName: project,
@@ -181,7 +189,7 @@ test("complete qualification rejects mismatched or missing browser configuration
             String(i),
             tier === "e2e" ? `runtime/${i}-of-32.json` : `full-${tier}.json`
           ),
-          report(project, i === 1 ? pageNames : [`filler-${i}`])
+          report(project, i === 1 ? pageNames : [`filler-${i}`], tier)
         )
   const files = []
   for (const [suite, members] of [
@@ -200,7 +208,9 @@ test("complete qualification rejects mismatched or missing browser configuration
         browserPolicy: browserPolicy({ config }),
         browserConfiguration: configuration,
         browserEnvironment: environment,
-        tests: inventoryFromPlaywright(report(project, pageNames)),
+        tests: inventoryFromPlaywright(
+          report(project, pageNames, suite === "visual" ? "visual" : "e2e")
+        ),
         executions: [true, false].map((listOnly) => ({
           listOnly,
           status: 0,
@@ -236,14 +246,14 @@ test("complete qualification rejects mismatched or missing browser configuration
   )
   needs.selection.outputs = { plan: JSON.stringify(plan) }
   assert.equal(
-    compareTargetedEvidence(root, plan, needs, options).qualification,
-    "passed"
+    compareTargetedReports(root, plan, needs, options).qualification,
+    "reports-matched"
   )
   const docsPath = join(root, "documentation/documentation.json")
   const documentation = JSON.parse(readFileSync(docsPath, "utf8"))
   write(docsPath, { ...documentation, corpus: undefined })
   assert.throws(
-    () => compareTargetedEvidence(root, plan, needs, options),
+    () => compareTargetedReports(root, plan, needs, options),
     /missing, changed or failed/
   )
   write(docsPath, {
@@ -251,17 +261,64 @@ test("complete qualification rejects mismatched or missing browser configuration
     files: [{ path: "README.md", blob: "a".repeat(40) }],
   })
   assert.throws(
-    () => compareTargetedEvidence(root, plan, needs, options),
+    () => compareTargetedReports(root, plan, needs, options),
     /candidate file\/blob inventory/
   )
   write(docsPath, documentation)
   const { path, manifest } = files[0]
+  const unrelated = [2, 3, 4].flatMap((index) =>
+    inventoryFromPlaywright(report(manifest.project, [`filler-${index}`]))
+  )
+  write(path, { ...manifest, tests: unrelated })
+  assert.throws(
+    () => compareTargetedReports(root, plan, needs, options),
+    /declared page coverage/
+  )
+  write(path, manifest)
+  for (const updateSnapshots of ["all", "changed", "missing", undefined]) {
+    const visualFiles = files.filter((file) => file.manifest.suite === "visual")
+    for (const file of visualFiles)
+      write(file.path, {
+        ...file.manifest,
+        browserPolicy: { ...file.manifest.browserPolicy, updateSnapshots },
+      })
+    for (const project of VISUAL_PROJECTS)
+      for (let index = 1; index <= 4; index++) {
+        const original = report(
+          project,
+          index === 1 ? pageNames : [`filler-${index}`],
+          "visual"
+        )
+        write(
+          join(root, "full-visual", project, String(index), "full-visual.json"),
+          {
+            ...original,
+            config: { ...config, updateSnapshots },
+          }
+        )
+      }
+    assert.throws(
+      () => compareTargetedReports(root, plan, needs, options),
+      /must not update snapshots/
+    )
+    for (const file of visualFiles) write(file.path, file.manifest)
+    for (const project of VISUAL_PROJECTS)
+      for (let index = 1; index <= 4; index++)
+        write(
+          join(root, "full-visual", project, String(index), "full-visual.json"),
+          report(
+            project,
+            index === 1 ? pageNames : [`filler-${index}`],
+            "visual"
+          )
+        )
+  }
   write(path, {
     ...manifest,
     browserEnvironment: { ...environment, workflowDigest: "a".repeat(64) },
   })
   assert.throws(
-    () => compareTargetedEvidence(root, plan, needs, options),
+    () => compareTargetedReports(root, plan, needs, options),
     /candidate workflow data/
   )
   write(path, manifest)
@@ -272,12 +329,12 @@ test("complete qualification rejects mismatched or missing browser configuration
     ),
   })
   assert.throws(
-    () => compareTargetedEvidence(root, plan, needs, options),
+    () => compareTargetedReports(root, plan, needs, options),
     /browser settings differ/
   )
   write(path, { ...manifest, browserConfiguration: undefined })
   assert.throws(
-    () => compareTargetedEvidence(root, plan, needs, options),
+    () => compareTargetedReports(root, plan, needs, options),
     /browser settings differ/
   )
   write(path, manifest)
@@ -286,7 +343,7 @@ test("complete qualification rejects mismatched or missing browser configuration
     config: { ...config, metadata: {} },
   })
   assert.throws(
-    () => compareTargetedEvidence(root, plan, needs, options),
+    () => compareTargetedReports(root, plan, needs, options),
     /configuration is missing/
   )
 })

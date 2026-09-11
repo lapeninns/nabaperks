@@ -18,8 +18,26 @@ export function git(
   args,
   { cwd = process.cwd(), encoding = "utf8", input } = {}
 ) {
-  return execFileSync("git", args, {
+  const env = Object.fromEntries(
+    Object.entries(process.env).filter(
+      ([name]) =>
+        !name.startsWith("GIT_") ||
+        [
+          "GIT_AUTHOR_NAME",
+          "GIT_AUTHOR_EMAIL",
+          "GIT_COMMITTER_NAME",
+          "GIT_COMMITTER_EMAIL",
+        ].includes(name)
+    )
+  )
+  return execFileSync("git", ["--no-replace-objects", ...args], {
     cwd,
+    env: {
+      ...env,
+      GIT_CONFIG_NOSYSTEM: "1",
+      GIT_CONFIG_GLOBAL: "/dev/null",
+      GIT_GRAFT_FILE: "/dev/null",
+    },
     encoding,
     input,
     maxBuffer: 32 * 1024 * 1024,

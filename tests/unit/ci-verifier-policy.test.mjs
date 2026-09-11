@@ -9,8 +9,11 @@ import {
 } from "node:fs"
 import { join, dirname } from "node:path"
 import { tmpdir } from "node:os"
-import { git } from "../../scripts/ci/impact-git.mjs"
-import { validatePlan } from "../../scripts/ci/impact-plan-contract.mjs"
+import { git, readAt, readChanges } from "../../scripts/ci/impact-git.mjs"
+import {
+  fullPlan,
+  validateComparisonPlan,
+} from "../../scripts/ci/impact-comparison-plan.mjs"
 import {
   browserEnvironmentFromWorkflow,
   candidateBrowserEnvironment,
@@ -91,6 +94,8 @@ test("candidate workflow identity rejects changed targeted images despite identi
   )
   assert.deepEqual(candidateBrowserEnvironment(f.base, f), original)
   for (const invalid of [
+    workflow.replaceAll("ubuntu-latest", "self-hosted"),
+    workflow.replaceAll("ubuntu-latest", "ubuntu-24.04-arm"),
     workflow.replace(/@sha256:[a-f0-9]{64}/, ""),
     workflow.replace(
       "options: --init --ipc=host --user 1001",
@@ -106,6 +111,40 @@ test("candidate workflow identity rejects changed targeted images despite identi
     ),
   ])
     assert.throws(() => browserEnvironmentFromWorkflow(invalid))
+})
+
+test("immutable Git reads ignore replacement refs and ambient Git overrides", (t) => {
+  const f = fixture(t)
+  f.put("README.md", "# Original\n")
+  const original = f.commit()
+  f.put("README.md", "# Replacement\n")
+  const replacement = f.commit()
+  const expected = readChanges(original, replacement, f)
+  git(["replace", original, replacement], f)
+  assert.equal(readAt(original, "README.md", f), "# Original\n")
+  assert.deepEqual(readChanges(original, replacement, f), expected)
+  const overrides = {
+    GIT_DIR: join(f.cwd, "missing"),
+    GIT_WORK_TREE: join(f.cwd, "missing"),
+    GIT_OBJECT_DIRECTORY: join(f.cwd, "missing"),
+    GIT_REPLACE_REF_BASE: "refs/replace/",
+    GIT_CONFIG_COUNT: "1",
+    GIT_CONFIG_KEY_0: "core.bare",
+    GIT_CONFIG_VALUE_0: "true",
+  }
+  const previous = Object.fromEntries(
+    Object.keys(overrides).map((key) => [key, process.env[key]])
+  )
+  try {
+    Object.assign(process.env, overrides)
+    assert.equal(readAt(original, "README.md", f), "# Original\n")
+    assert.deepEqual(readChanges(original, replacement, f), expected)
+  } finally {
+    for (const [key, value] of Object.entries(previous)) {
+      if (value === undefined) delete process.env[key]
+      else process.env[key] = value
+    }
+  }
 })
 
 test("reviewed comparison accepts exact candidate page additions removals and renames as data", (t) => {
@@ -134,41 +173,6 @@ test("reviewed comparison accepts exact candidate page additions removals and re
       () => verifyQualificationScope({ ...plan, qualificationPages: stale }, f),
       /immutable candidate policy/
     )
-    const page =
-      plan.qualificationPages.find(
-        (entry) =>
-          !stale.some(
-            (old) =>
-              old.path === entry.path && old.visualName === entry.visualName
-          )
-      ) ?? plan.qualificationPages[0]
-    const selective = {
-      schema: "nabaperks.ci-impact-plan.v1",
-      identity: plan.identity,
-      profile: "public-pages",
-      reason: "Literal edit after the proposed policy has been reviewed",
-      pages: [page],
-      changes: [{ path: page.path, status: "M" }],
-      required: [
-        "fast",
-        "quality",
-        "build",
-        "targeted-browser",
-        "targeted-visual",
-      ],
-      comparisonRequired: false,
-      changeDigest: "a".repeat(64),
-      policyDigest: "b".repeat(64),
-    }
-    assert.equal(
-      validatePlan(selective, plan.identity, next).profile,
-      "public-pages"
-    )
-    if (operation !== "remove")
-      assert.throws(
-        () => validatePlan(selective, plan.identity, policy),
-        /Unqualified page selection/
-      )
   }
 })
 
@@ -206,4 +210,31 @@ test("documentation evidence requires the candidate's complete changed file and 
       ),
     /candidate file\/blob inventory/
   )
+})
+
+test("the foundation cannot authorise forged selective plans", () => {
+  const identity = {
+    repository: "lapeninns/nabaperks",
+    event: "pull_request",
+    baseSha: "a".repeat(40),
+    headSha: "b".repeat(40),
+    candidateSha: "c".repeat(40),
+  }
+  const plan = fullPlan(identity, "Full qualification only")
+  assert.equal(validateComparisonPlan(plan, identity).profile, "full")
+  for (const profile of ["documentation", "public-pages"])
+    assert.throws(
+      () =>
+        validateComparisonPlan(
+          {
+            ...plan,
+            profile,
+            changes: [{ path: "README.md" }],
+            changeDigest: "a".repeat(64),
+            policyDigest: "b".repeat(64),
+          },
+          identity
+        ),
+      /all application workloads/
+    )
 })
