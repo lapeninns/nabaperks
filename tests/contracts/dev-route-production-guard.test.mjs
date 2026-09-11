@@ -35,6 +35,7 @@ const expectedDevPages = [
   "app/dev/home-harness/gift-chip/page.tsx",
   "app/dev/home-harness/home/page.tsx",
   "app/dev/home-harness/invite-claim/page.tsx",
+  "app/dev/home-harness/push/page.tsx",
   "app/dev/home-harness/redemption-second-factor/page.tsx",
   "app/dev/home-harness/referral-bank/page.tsx",
   "app/dev/home-harness/rewards/page.tsx",
