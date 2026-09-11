@@ -9,6 +9,7 @@ import {
   BROWSER_IMAGE_VERSION,
   verifyBrowserImage,
 } from "../../scripts/ci/check-browser-image.mjs"
+import { browserEnvironmentFromWorkflow } from "../../scripts/ci/impact-browser-environment.mjs"
 
 const CI_PATH = ".github/workflows/ci.yml"
 
@@ -362,28 +363,25 @@ test("prepared image verification rejects version drift and missing browsers", (
   ])
     assert.throws(() => verifyBrowserImage({ ...valid, ...change }, () => true))
   assert.throws(() => verifyBrowserImage(valid, () => false))
-  // Guard the active workflow as well as the reviewed proposal. Tying the
-  // pinned and hardened counts to the number of image references keeps the
-  // assertion true for either file's job count, while still failing if any
-  // browser container loses its digest pin or its privilege drop.
-  for (const path of [
-    ".github/workflows/ci.yml",
-    "config/ci-qualification-workflow.yml",
-  ]) {
-    const workflow = readFileSync(path, "utf8")
-    const images = workflow.split("mcr.microsoft.com/playwright:").length - 1
-    assert.ok(images >= 2, path)
-    assert.equal(
-      workflow.split(
-        `mcr.microsoft.com/playwright:v${BROWSER_IMAGE_VERSION}-noble@sha256:`
-      ).length - 1,
-      images,
-      path
-    )
-    assert.equal(
-      workflow.split("options: --init --ipc=host --user 1001").length - 1,
-      images,
-      path
-    )
+  // Guard the active workflow as well as the reviewed proposal, and read each
+  // browser job individually rather than counting occurrences. Counting lets a
+  // job that loses its whole container block escape, because the image, pin and
+  // option totals all fall together. Naming the jobs fails instead when any one
+  // of them loses its container, its digest pin, its version or its privilege
+  // drop, and the reviewed parser already rejects a missing job outright.
+  const pinnedImage = new RegExp(
+    `^mcr\\.microsoft\\.com/playwright:v${BROWSER_IMAGE_VERSION}-noble@sha256:[a-f0-9]{64}$`
+  )
+  for (const path of [CI_PATH, "config/ci-qualification-workflow.yml"]) {
+    const jobs = browserEnvironmentFromWorkflow(readFileSync(path, "utf8"))
+    for (const name of ["e2e", "a11y", "targeted-browser"]) {
+      assert.match(jobs[name].image, pinnedImage, `${path} ${name} image`)
+      assert.equal(
+        jobs[name].options,
+        "--init --ipc=host --user 1001",
+        `${path} ${name} options`
+      )
+      assert.equal(jobs[name].runner, "ubuntu-latest", `${path} ${name} runner`)
+    }
   }
 })
