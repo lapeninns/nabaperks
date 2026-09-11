@@ -43,6 +43,7 @@ test("Given every customer block reason When copy is rendered Then raw technical
     "venue_code_refusal_missing",
     "venue_code_locked",
     "venue_code_format",
+    "venue_code_rate_limited",
     "unavailable",
     "unknown",
   ]

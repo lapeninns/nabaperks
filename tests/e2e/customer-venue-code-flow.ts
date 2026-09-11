@@ -242,6 +242,58 @@ export function registerCustomerVenueCodeTests() {
       await expect(root).toHaveAttribute("data-stamp-phase", "confirmed")
     })
 
+    test("a code lockout on a verified visit shows only the lockout notice — no press, no location", async ({
+      page,
+    }) => {
+      const root = await openVerifiedVisit(page, "verify-code-locked")
+      await root.getByRole("button", { name: "Enter venue code" }).click()
+      const form = root.locator("[data-venue-code-form]")
+      await form.getByLabel("Today's code from a team member").fill("000000")
+      await form.getByRole("button", { name: "Add my stamp" }).click()
+
+      await expect(root).toHaveAttribute("data-stamp-phase", "blocked")
+      await expect(root.locator("[data-venue-code-locked]")).toContainText(
+        "Too many tries"
+      )
+      await expect(root.locator("[data-venue-code-form]")).toHaveCount(0)
+      await expect(
+        root.getByRole("button", { name: "Use my location" })
+      ).toHaveCount(0)
+      await expect(
+        root.getByRole("button", {
+          name: /add today's stamp|try today's stamp again/i,
+        })
+      ).toHaveCount(0)
+      await expect(page.locator("[data-submit-count]")).toHaveText("1")
+    })
+
+    test("a throttled code path withholds the form but keeps location", async ({
+      page,
+    }) => {
+      const root = await openVerifiedVisit(page, "verify-code-throttled")
+      await root.getByRole("button", { name: "Enter venue code" }).click()
+      const form = root.locator("[data-venue-code-form]")
+      await form.getByLabel("Today's code from a team member").fill("482913")
+      await form.getByRole("button", { name: "Add my stamp" }).click()
+
+      await expect(root).toHaveAttribute("data-stamp-phase", "blocked")
+      await expect(root.locator("[data-stamp-status-band]")).toContainText(
+        "Too many code tries in a row"
+      )
+      await expect(root.locator("[data-stamp-status-band]")).not.toContainText(
+        "venue code below"
+      )
+      await expect(root.locator("[data-venue-code-form]")).toHaveCount(0)
+      await expect(
+        root.getByRole("button", { name: "Use my location" })
+      ).toBeEnabled()
+      await expect(
+        root.getByRole("button", {
+          name: /add today's stamp|try today's stamp again/i,
+        })
+      ).toHaveCount(0)
+    })
+
     test("the verified-visit offer has no accessibility violations @a11y", async ({
       page,
     }) => {

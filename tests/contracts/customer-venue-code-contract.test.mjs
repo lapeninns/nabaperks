@@ -168,6 +168,31 @@ test("the form is a numeric one-time-code field that only renders when offered",
     /reason === "venue_code_locked"/,
     "a lockout withholds the form"
   )
+  assert.doesNotMatch(
+    offered,
+    /reason === "venue_code_rate_limited"/,
+    "a throttled code path never re-offers the form"
+  )
+  const codeAction = slice(
+    action,
+    "export async function venueCodeStampAction",
+    "async function completeIssuedStamp"
+  )
+  assert.doesNotMatch(
+    codeAction,
+    /reason: "rate_limited"/,
+    "the code action names its own throttle, never the stamp path's"
+  )
+  assert.equal(
+    (codeAction.match(/reason: "venue_code_rate_limited"/g) ?? []).length,
+    2,
+    "both the app buckets and consume_venue_code_attempt map to the code throttle"
+  )
+  assert.match(
+    collector,
+    /!\(verificationRequired && !view\.secured && !view\.pending\)/,
+    "a verified visit never renders the ordinary press while the customer can act (a lockout shows only its notice)"
+  )
   assert.match(
     collector,
     /submitVenueCode = venueCodeStampAction/,

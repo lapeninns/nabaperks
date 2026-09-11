@@ -144,6 +144,11 @@ export function blockReasonCopy(reason: CustomerBlockReason): string {
       return "Scan the venue QR first, then enter today's code."
     case "venue_code_locked":
       return "Too many tries. Ask a team member and try again in 15 minutes."
+    case "venue_code_rate_limited":
+      // The code path itself is throttled, so the recovery is to wait — not
+      // to enter the code again, which would only be refused until the window
+      // passes.
+      return "Too many code tries in a row. Wait a few minutes, then try again."
     case "venue_code_format":
       return "Today's code is six digits."
     case "unavailable":

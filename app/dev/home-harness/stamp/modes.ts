@@ -17,6 +17,8 @@ export const STAMP_HARNESS_MODES = [
   "verify-grace-left",
   "verify-located",
   "verify-rate-limited",
+  "verify-code-locked",
+  "verify-code-throttled",
 ] as const
 
 export type HarnessMode = (typeof STAMP_HARNESS_MODES)[number]

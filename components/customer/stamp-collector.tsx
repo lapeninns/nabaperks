@@ -302,6 +302,15 @@ export function StampCollector({
 
   const rewardUnlocked = view.rewardUnlocked
   const showLocationControls = canStamp && view.locationControls
+  // On a visit that must confirm location the ordinary press never renders
+  // while the customer can still act: it would submit with no capture, and
+  // with grace left that commits a courtesy stamp without any location
+  // attempt. During a code lockout, which withholds both controls, only the
+  // lockout notice is on screen. The press returns for the in-flight and
+  // settled phases so the inking and confirmed states keep their control.
+  const showStampPress =
+    !showLocationControls &&
+    !(verificationRequired && !view.secured && !view.pending)
   // The code form is on screen once the customer asked for it, after any
   // refusal it can answer, or (as a notice) while a lockout runs.
   const showVenueCodeForm =
@@ -373,7 +382,7 @@ export function StampCollector({
               </div>
             ) : null}
             <div className="grid justify-items-center gap-3 pt-1 short:gap-2 short:pt-0 squat:col-start-2 squat:row-start-1">
-              {showLocationControls ? null : (
+              {showStampPress ? (
                 <StampPressButton
                   onStamp={() => {
                     void issueStamp(null)
@@ -384,7 +393,7 @@ export function StampCollector({
                   pending={view.pending}
                   label={view.buttonLabel}
                 />
-              )}
+              ) : null}
               <p
                 className="sr-only"
                 role="status"

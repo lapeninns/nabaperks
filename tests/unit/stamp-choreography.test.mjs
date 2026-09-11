@@ -269,6 +269,8 @@ test("the venue-code fallback is offered for location refusals, throttles and wr
   assert.equal(venueCodeOffered("venue_code_rejected"), true)
   assert.equal(venueCodeOffered("venue_code_format"), true)
   assert.equal(venueCodeOffered("venue_code_locked"), false)
+  // The code path's own throttle: re-offering the form would only refuse again.
+  assert.equal(venueCodeOffered("venue_code_rate_limited"), false)
   assert.equal(venueCodeOffered("venue_code_refusal_missing"), false)
   assert.equal(venueCodeOffered("already_stamped_today"), false)
   assert.equal(venueCodeOffered(undefined), false)
@@ -364,6 +366,25 @@ test("a throttled stamp keeps the code on screen and says so", () => {
     /venue code below/,
     "the live region reads the refusal as the server put it"
   )
+})
+
+test("a throttled code path withholds the form but keeps location on a verified visit", () => {
+  const checking = reduceStampChoreography(initialStampChoreographyState, {
+    type: "request_started",
+  })
+  const throttled = reduceStampChoreography(checking, {
+    type: "request_blocked",
+    message:
+      "Too many code tries in a row. Wait a few minutes, then try again.",
+    reason: "venue_code_rate_limited",
+  })
+  const view = stampChoreographyView(throttled, {
+    ...baseView,
+    verificationRequired: true,
+  })
+  assert.equal(view.venueCodeOffer, false)
+  assert.equal(view.locationControls, true)
+  assert.doesNotMatch(view.statusBody, /venue code below/)
 })
 
 test("a lockout withholds both methods until it lifts", () => {

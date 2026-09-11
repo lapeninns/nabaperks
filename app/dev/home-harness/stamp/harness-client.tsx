@@ -64,6 +64,31 @@ const VERIFY_MODES: Partial<
       bonusStampsApplied: 0,
     },
   },
+  // The code path is locked out / throttled. Grace is left on purpose: if a
+  // stamp press ever rendered here, one tap would commit a courtesy stamp
+  // with no location attempt, and the submit counter would show it.
+  "verify-code-locked": {
+    unverifiedGraceRemaining: 1,
+    stamp: {
+      status: "issued",
+      newStampCount: 4,
+      rewardUnlocked: false,
+      geoFlagged: true,
+      bonusStampsApplied: 0,
+      verification: "unverified",
+    },
+  },
+  "verify-code-throttled": {
+    unverifiedGraceRemaining: 1,
+    stamp: {
+      status: "issued",
+      newStampCount: 4,
+      rewardUnlocked: false,
+      geoFlagged: true,
+      bonusStampsApplied: 0,
+      verification: "unverified",
+    },
+  },
   // The stamp path is throttled; the code must stay on screen.
   "verify-rate-limited": {
     unverifiedGraceRemaining: 1,
@@ -161,6 +186,14 @@ export function StampHarnessClient({
       setSubmitCount((count) => count + 1)
       await wait(delayMs)
 
+      if (mode === "verify-code-throttled") {
+        return {
+          status: "error",
+          reason: "venue_code_rate_limited",
+          message:
+            "Too many code tries in a row. Wait a few minutes, then try again.",
+        }
+      }
       if (mode === "code-rejected") {
         return {
           status: "error",
@@ -169,7 +202,7 @@ export function StampHarnessClient({
           message: "That code isn't right. Check it with a team member.",
         }
       }
-      if (mode === "code-locked") {
+      if (mode === "code-locked" || mode === "verify-code-locked") {
         return {
           status: "error",
           reason: "venue_code_locked",

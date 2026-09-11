@@ -62,6 +62,10 @@ export type StampBlockReason =
   | "venue_code_refusal_missing"
   | "venue_code_locked"
   | "venue_code_format"
+  // The code path's own throttle (app buckets or consume_venue_code_attempt),
+  // kept apart from `rate_limited` so the screen never re-offers a throttled
+  // code form.
+  | "venue_code_rate_limited"
   | "unavailable"
   | "unknown"
 
