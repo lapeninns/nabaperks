@@ -14,9 +14,18 @@ const INITIAL_STATE: CancellationInterviewActionState = { status: "idle" }
 const SELECT_CLASSES =
   "focus-ring min-h-11 w-full rounded-2xl border border-input bg-secondary/60 px-4 text-base outline-none md:text-sm"
 
-export function CancellationInterviewForm() {
+export type CancellationInterviewAction = (
+  previousState: CancellationInterviewActionState,
+  formData: FormData
+) => Promise<CancellationInterviewActionState>
+
+export function CancellationInterviewForm({
+  interviewAction = submitCancellationInterviewAction,
+}: {
+  interviewAction?: CancellationInterviewAction
+} = {}) {
   const [state, action, pending] = useActionState(
-    submitCancellationInterviewAction,
+    interviewAction,
     INITIAL_STATE
   )
 
@@ -30,7 +39,12 @@ export function CancellationInterviewForm() {
   }
 
   return (
-    <form action={action} aria-busy={pending} className="grid gap-4">
+    <form
+      action={action}
+      aria-busy={pending}
+      data-cancellation-interview-form
+      className="grid gap-4"
+    >
       <label className="grid gap-1.5 text-sm font-bold">
         Main reason for leaving
         <select name="primaryReason" required className={SELECT_CLASSES}>
@@ -104,6 +118,15 @@ export function CancellationInterviewForm() {
       <Button type="submit" disabled={pending} className="w-full sm:w-fit">
         {pending ? "Saving your review…" : "Continue"}
       </Button>
+      {pending ? (
+        <p
+          role="status"
+          aria-live="polite"
+          className="text-xs leading-5 font-bold text-muted-foreground"
+        >
+          Saving your review…
+        </p>
+      ) : null}
       <p className="text-xs leading-5 text-muted-foreground">
         Choosing a support call does not cancel your subscription. Choosing to
         continue opens Stripe, where you confirm the cancellation date.

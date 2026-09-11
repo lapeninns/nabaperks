@@ -10,8 +10,10 @@ const projectRoot = path.resolve(
 )
 
 const expectedDevPages = [
+  "app/dev/app-harness/account/cancel/page.tsx",
   "app/dev/app-harness/account/page.tsx",
   "app/dev/app-harness/activity/page.tsx",
+  "app/dev/app-harness/admin-mfa/page.tsx",
   "app/dev/app-harness/announcements/page.tsx",
   "app/dev/app-harness/customers/page.tsx",
   "app/dev/app-harness/dashboard/page.tsx",
@@ -34,6 +36,7 @@ const expectedDevPages = [
   "app/dev/home-harness/gift-chip/page.tsx",
   "app/dev/home-harness/home/page.tsx",
   "app/dev/home-harness/invite-claim/page.tsx",
+  "app/dev/home-harness/push/page.tsx",
   "app/dev/home-harness/redemption-second-factor/page.tsx",
   "app/dev/home-harness/referral-bank/page.tsx",
   "app/dev/home-harness/rewards/page.tsx",
