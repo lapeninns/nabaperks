@@ -124,10 +124,19 @@ manifest must match that independently read identity.
 
 Before accepting reports, the verifier also checks the complete candidate workflow
 against the reviewed `config/ci-qualification-workflow.yml` proposal. Its steps,
-conditions, environment, actions and artifact wiring must match exactly. The CI
-executables, test sources, dependencies and configuration must match the reviewed
-base's Git objects; changing a producer to emit copied reports fails before report
-comparison. An execution-input change needs a separately reviewed prerequisite.
+conditions, environment, actions and artifact wiring must match exactly. Every
+other tracked input is bound to reviewed Git objects, including workload scripts,
+all test suites and fixtures, imported application code, configuration and binary
+assets. Qualified internal Markdown receives its separate reviewed content check.
+A file outside known tooling directories cannot silently weaken a required job.
+
+Future inputs can be explicitly reviewed under `config/ci-qualification-inputs/`
+in the prerequisite, retaining their repository paths with a `.source` suffix.
+These inert copies define the exact accepted candidate
+replacements while the foundation keeps its existing active workflow and tests.
+The candidate must preserve the staged copies too. A qualification change needs
+its complete input tree reviewed first; ordinary eligible PRs keep their selected
+checks, and ordinary unsupported changes keep the full suite.
 
 The comparison verdict executes from the immutable reviewed PR base, including
 that checkout's dependency lock. The candidate's reports are data, and changes
@@ -141,8 +150,8 @@ release behaviour in place. The integration fails selection immediately if the
 reviewed base lacks that verifier or the documentation evidence contract. It
 cannot fall back to an older verifier that ignores newly required evidence.
 
-After the foundation lands, the integration still has no classifier on its
-reviewed base and therefore runs all nine hosted roots plus the complete
+After the foundation lands, its staged planner recognises that the integration
+changes the active CI workflow and requires all nine hosted roots plus the complete
 comparison. Only after that comparison, review and merge can the new policy
 select future eligible PRs. Stage future incompatible verifier schemas before
 changing their producers as well. Expanding eligible files requires another

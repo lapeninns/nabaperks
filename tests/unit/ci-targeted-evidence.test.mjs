@@ -332,6 +332,7 @@ test("qualified page selection keeps existing test identities and unqualified po
     "scripts/ci/impact-snapshots.mjs",
     "tests/e2e/visual.spec.ts",
     "config/ci-workloads.json",
+    "config/ci-qualification-inputs/scripts/check-env.mjs.source",
     "tests/e2e/helpers/a11y-sweep.ts",
     "scripts/ci/browser-workload.mjs",
     "playwright.config.ts",
