@@ -1,6 +1,12 @@
 import assert from "node:assert/strict"
 import { createHash } from "node:crypto"
-import { lstatSync, readFileSync } from "node:fs"
+import {
+  constants,
+  openSync,
+  fstatSync,
+  readFileSync,
+  closeSync,
+} from "node:fs"
 import { fileURLToPath } from "node:url"
 import { join } from "node:path"
 import { git, readAt, digest } from "./impact-git.mjs"
@@ -86,23 +92,35 @@ function verifyLiveInputs(reviewed, cwd) {
       "Qualification input must be a regular file"
     )
     const path = join(cwd, input.path)
-    const stat = lstatSync(path)
-    assert.ok(stat.isFile(), "Reviewed execution input is not a regular file")
-    assert.equal(
-      stat.mode & 0o111 ? "100755" : "100644",
-      input.mode,
-      "Reviewed execution input mode differs in the verifier worktree"
+    // Open once without following a substituted link or blocking on a FIFO.
+    // Inspect and hash that same descriptor, even if its pathname changes.
+    assert.equal(typeof constants.O_NOFOLLOW, "number")
+    assert.equal(typeof constants.O_NONBLOCK, "number")
+    const descriptor = openSync(
+      path,
+      constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK
     )
-    const content = readFileSync(path)
-    const blob = createHash("sha1")
-      .update(`blob ${content.length}\0`)
-      .update(content)
-      .digest("hex")
-    assert.equal(
-      blob,
-      input.blob,
-      `Reviewed execution input differs in the verifier worktree: ${input.path}`
-    )
+    try {
+      const stat = fstatSync(descriptor)
+      assert.ok(stat.isFile(), "Reviewed execution input is not a regular file")
+      assert.equal(
+        stat.mode & 0o111 ? "100755" : "100644",
+        input.mode,
+        "Reviewed execution input mode differs in the verifier worktree"
+      )
+      const content = readFileSync(descriptor)
+      const blob = createHash("sha1")
+        .update(`blob ${content.length}\0`)
+        .update(content)
+        .digest("hex")
+      assert.equal(
+        blob,
+        input.blob,
+        `Reviewed execution input differs in the verifier worktree: ${input.path}`
+      )
+    } finally {
+      closeSync(descriptor)
+    }
   }
 }
 

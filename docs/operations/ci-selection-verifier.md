@@ -32,8 +32,9 @@ workflow retain its current checks while the prerequisite explicitly reviews the
 future test or executable. The staged copies themselves must also remain identical
 in the candidate, and cannot replace the workflow's separate complete comparison.
 All live reviewed files are verified as regular files with matching modes and
-binary-safe Git blob hashes. Candidate-provided staged copies cannot change the
-expected inventory.
+binary-safe Git blob hashes. The verifier opens each file once without following
+links or blocking on a substituted FIFO, then checks and reads that same descriptor.
+Candidate-provided staged copies cannot change the expected inventory.
 
 A producer or imported application module cannot omit a required process and
 substitute copied reports or constant execution records. Qualification changes
