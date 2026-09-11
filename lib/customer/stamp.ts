@@ -73,6 +73,12 @@ export type LocationRequirement = {
   geofenceRadiusMeters: number
   firstVerifiedVisit: number
   nextVisitNumber: number
+  /**
+   * How many more unverified-location stamps the server will still commit for
+   * this membership before refusing with NBS11 (`location_required`). Only a
+   * membership-scoped read knows this; venue-level reads leave it undefined.
+   */
+  unverifiedGraceRemaining?: number
 }
 
 export async function issueSelfServiceStamp(
@@ -431,7 +437,65 @@ export async function getMembershipLocationRequirement(
   }
 
   const requirement = await getMerchantStampLocationRequirement(merchantId)
-  return { ...requirement, nextVisitNumber: (count ?? 0) + 1 }
+  const nextVisitNumber = (count ?? 0) + 1
+
+  // The grace count is only worth a round trip once a stamp could be asked to
+  // verify location. Before that the client never captures GPS at all.
+  if (
+    !requirement.requireGeofence ||
+    nextVisitNumber < requirement.firstVerifiedVisit
+  ) {
+    return { ...requirement, nextVisitNumber }
+  }
+
+  return {
+    ...requirement,
+    nextVisitNumber,
+    unverifiedGraceRemaining: await getUnverifiedGraceRemaining(
+      supabase,
+      membershipId
+    ),
+  }
+}
+
+/**
+ * How many unverified-location stamps the membership can still commit. Mirrors
+ * the check in `private.issue_visit_stamp`: committed `unverified` stamps
+ * against `public.geofence_unverified_grace_limit()`. The client uses it to
+ * decide whether a capture without a fix is worth submitting at all.
+ */
+async function getUnverifiedGraceRemaining(
+  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
+  membershipId: string
+): Promise<number> {
+  const [{ data: limitData, error: limitError }, { count, error: usedError }] =
+    await Promise.all([
+      supabase.rpc("geofence_unverified_grace_limit"),
+      supabase
+        .from("stamp_events")
+        .select("id", { count: "exact", head: true })
+        .eq("membership_id", membershipId)
+        .eq("event_type", "earned")
+        .eq("metadata->>geo_verification", "unverified"),
+    ])
+
+  if (limitError) {
+    throw new Error(
+      `Unable to load unverified grace limit: ${limitError.message}`
+    )
+  }
+  if (usedError) {
+    throw new Error(
+      `Unable to load unverified stamp count: ${usedError.message}`
+    )
+  }
+
+  const limit = numberValue(limitData)
+  if (limit === null) {
+    throw new Error("Unable to load unverified grace limit: empty result")
+  }
+
+  return Math.max(Math.trunc(limit) - (count ?? 0), 0)
 }
 
 /**

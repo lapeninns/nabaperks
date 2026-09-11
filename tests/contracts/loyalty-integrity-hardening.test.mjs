@@ -41,8 +41,12 @@ const FAIR_REWARD_CYCLE_HEALING = migration(
   "20260902132000_fair_reward_cycle_healing.sql"
 )
 // The venue-code fallback raises its own stable codes (NBS14, NBC01, NBC02)
-// and must be classified by the same TypeScript table.
-const VENUE_CODE_RPCS = migration("20260908100000_venue_code_rpcs.sql")
+// and must be classified by the same TypeScript table. 20260911120000
+// re-creates issue_venue_code_stamp without the NBS14 raise; the code stays
+// classified for clients that meet an un-migrated database.
+const VENUE_CODE_RPCS =
+  migration("20260908100000_venue_code_rpcs.sql") +
+  migration("20260911120000_venue_code_direct_entry.sql")
 const BLOCK_REASONS = readFileSync(
   new URL("../../lib/customer/experience/block-reasons.ts", import.meta.url),
   "utf8"

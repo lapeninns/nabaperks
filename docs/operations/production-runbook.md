@@ -558,8 +558,11 @@ venue or the unverified-location grace is spent. The fallback is a six-digit
 **venue code** that changes every day at 05:00 Europe/London and is shown only
 on the owner's `/app` dashboard behind "Show code". A team member reads it out;
 the member types it on their own phone and the stamp is issued through the
-normal pipeline with only the location check bypassed. The code is honoured
-only within fifteen minutes of a server-recorded refusal, attempts are
+normal pipeline with only the location check bypassed. The code stands on its
+own: a member whose phone cannot share location can use it without a failed
+location attempt first (since `20260911120000`; the earlier rule that required
+a server-recorded refusal within fifteen minutes was removed because any client
+could manufacture that refusal, so it was not a control). Attempts are
 throttled per membership, device, venue and network, and five wrong codes lock
 the membership for fifteen minutes.
 
@@ -567,9 +570,12 @@ the membership for fifteen minutes.
   card and presses "Reset code". The old code stops working immediately and
   the reset is audited (`venue_code_reset`) without the code itself.
 - **Evidence:** every code-confirmed stamp carries
-  `metadata->>'geo_verification' = 'venue_code'` on `stamp_events`, a row in
-  `venue_code_stamp_receipts`, and marks the answering refusal in `fraud_flags`
-  as reviewed. The owner activity feed labels these stamps.
+  `metadata->>'geo_verification' = 'venue_code'` on `stamp_events` and a row in
+  `venue_code_stamp_receipts` whose `entry_context` is
+  `after_location_refusal` (the code answered a recorded refusal, which is
+  then marked reviewed in `fraud_flags`) or `direct_venue_code` (no prior
+  refusal; the refusal columns are null). The owner activity feed labels these
+  stamps.
 - **Abuse review:** query `product_events` for `venue_code_rejected` and
   `venue_code_stamp_issued` per merchant and day. A venue whose code-confirmed
   stamps outnumber its GPS-verified ones deserves a look.
