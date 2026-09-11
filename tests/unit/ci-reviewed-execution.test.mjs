@@ -11,6 +11,7 @@ import {
 } from "node:fs"
 import { join, dirname } from "node:path"
 import { tmpdir } from "node:os"
+import { spawnSync } from "node:child_process"
 import { git } from "../../scripts/ci/impact-git.mjs"
 import { verifyQualificationSource } from "../../scripts/ci/qualification-source.mjs"
 import { qualifyReviewedDocumentation } from "../../scripts/ci/reviewed-documentation.mjs"
@@ -283,8 +284,38 @@ test("live input verification detects binary changes, executable modes and symli
   symlinkSync(join(f.cwd, "outside.bin"), join(f.cwd, path))
   assert.throws(
     () => verifyQualificationSource(reviewed, options),
-    /not a regular file/
+    (error) => error.code === "ELOOP"
   )
+})
+
+test("a substituted FIFO fails reviewed input validation without blocking", (t) => {
+  const f = fixture(t)
+  f.put(".github/workflows/ci.yml", "jobs: {}\n")
+  f.put("config/ci-qualification-workflow.yml", "jobs: {}\n")
+  const path = join(f.cwd, "scripts/check.mjs")
+  f.put("scripts/check.mjs", "reviewed input\n")
+  const reviewed = f.commit()
+  rmSync(path)
+  assert.equal(spawnSync("mkfifo", [path]).status, 0)
+  const verifierModuleUrl = new URL(
+    "../../scripts/ci/qualification-source.mjs",
+    import.meta.url
+  ).href
+  const options = JSON.stringify({ cwd: f.cwd, reviewedCwd: f.cwd })
+  const code = `import { verifyQualificationSource } from ${JSON.stringify(verifierModuleUrl)};
+    try { verifyQualificationSource(${JSON.stringify(reviewed)}, ${options}) }
+    catch (error) { if (/not a regular file/.test(error.message)) process.exit(42); throw error }`
+  const result = spawnSync(
+    process.execPath,
+    ["--input-type=module", "-e", code],
+    {
+      encoding: "utf8",
+      timeout: 5000,
+    }
+  )
+  assert.equal(result.error, undefined)
+  assert.equal(result.signal, null)
+  assert.equal(result.status, 42, result.stderr)
 })
 
 test("reviewed documentation checks candidate content without executing its checker or formatter config", (t) => {
