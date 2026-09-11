@@ -1,0 +1,18 @@
+{
+  "schema": "nabaperks.ci-impact-policy.v1",
+  "documentation": {
+    "prefixes": ["docs/operations/", "docs/decisions/"],
+    "files": ["README.md"]
+  },
+  "publicPages": {
+    "app/about/page.tsx": {
+      "route": "/about",
+      "visualName": "marketing-about"
+    },
+    "app/faq/page.tsx": { "route": "/faq", "visualName": "marketing-faq" },
+    "app/how-it-works/page.tsx": {
+      "route": "/how-it-works",
+      "visualName": "marketing-how-it-works"
+    }
+  }
+}
