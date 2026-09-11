@@ -23,7 +23,8 @@ import {
   affectedPageTests,
 } from "./impact-browser-evidence.mjs"
 import { browserConfiguration } from "./browser-configuration.mjs"
-import { qualifyDocumentationInSandbox } from "./documentation-sandbox.mjs"
+import { qualifyReviewedDocumentation } from "./reviewed-documentation.mjs"
+import { verifyQualificationSource } from "./qualification-source.mjs"
 import { verifyQualificationScope } from "./impact-qualification-scope.mjs"
 import { candidateBrowserEnvironment } from "./impact-browser-environment.mjs"
 import { verifyDocumentationEvidence } from "./documentation-evidence-contract.mjs"
@@ -232,13 +233,22 @@ export function compareTargetedReports(root, plan, needs, options) {
 }
 
 export function qualifyTargetedEvidence(root, plan, needs, options) {
+  const executionSource = verifyQualificationSource(
+    plan.identity.candidateSha,
+    options
+  )
   const result = compareTargetedReports(root, plan, needs, options)
-  const independentDocumentation = qualifyDocumentationInSandbox(
+  const independentDocumentation = qualifyReviewedDocumentation(
     plan.identity.candidateSha,
     result.documentation.files,
     options
   )
-  return { ...result, qualification: "passed", independentDocumentation }
+  return {
+    ...result,
+    qualification: "passed",
+    executionSource,
+    independentDocumentation,
+  }
 }
 
 if (

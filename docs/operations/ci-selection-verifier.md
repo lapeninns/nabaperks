@@ -2,52 +2,47 @@
 
 Owner: Lapen Inns product operations.
 
-This foundation adds a comparison verifier for future change-aware CI evidence.
-It leaves the current workflow, required checks, browser runners and release
-process in place. The page policy is verification data; no planner or workflow
-uses it to omit a check in this revision.
+This foundation stages the reviewed CI toolchain and a proposed workflow contract
+before enabling selective checks. The active workflow and release process retain
+all required workloads. Browser evidence gains configuration metadata; the staged
+planner, targeted runner and selective gate have no active workflow callers yet.
 
-The host verifier consumes candidate Git objects and artifacts without importing
-candidate code into the host process. It requires:
+The verifier accepts full qualification plans only. It requires all 128 full e2e,
+eight accessibility and eight visual reports, and the four targeted browser plus
+two targeted visual manifests. Each targeted test must match its declared page,
+successful outcome, resolved browser settings and immutable image identity.
+Qualification runners must be literal `ubuntu-latest`; visual snapshot updates
+must be disabled, including creation of missing baselines.
 
-- Successful full e2e, accessibility, visual and documentation jobs, plus both
-  targeted tiers, bound to the same selection plan.
-- All 128 full e2e, eight accessibility and eight visual reports, and exactly
-  the four targeted browser and two targeted visual project manifests.
-- Matching executed test identities, successful outcomes, resolved browser
-  settings and immutable container image identities from the candidate workflow.
-- Exact tests for each declared page, canonical `ubuntu-latest` runners, and
-  visual runs with snapshot updates disabled, including missing baselines.
-- The candidate's bounded page policy, including proposed page additions,
-  removals and visual-name changes.
-- The exact changed Markdown file/blob inventory and the complete eight-case
-  documentation qualification corpus. Missing or altered evidence fails.
+Before considering reports, qualification checks the candidate against
+`config/ci-qualification-workflow.yml`, a reviewable proposal rather than an
+active GitHub workflow. The whole workflow must match, including commands,
+conditions, environment, actions and artifact wiring. Executable CI inputs,
+selected test sources, action definitions, dependency locks and configuration must
+match the reviewed base's Git objects. Additions, removals, replacements or dirty
+reviewed inputs fail. A producer cannot omit its process and substitute copied
+reports or constant execution records. Changes to these inputs require a separately
+reviewed prerequisite before the integration can qualify them.
 
-Report comparison alone returns `reports-matched`. Qualification additionally
-executes the candidate's actual documentation checker against the reviewed valid
-and broken cases and the changed Markdown files. The reviewed parent process
-owns the expected results and observes each container exit status; copied
-success constants cannot replace checker execution.
+Documentation validation executes the checker, formatter, plugins and configuration
+from the reviewed checkout against a temporary archive of regular candidate files.
+Candidate checkers, formatter configurations, package managers and hooks never
+execute. The reference checks the exact changed Markdown inventory and eight
+reviewed valid/broken cases, even if the candidate contains no checker module.
+Inputs, subprocess output, memory and duration are bounded. Candidate symlinks,
+submodules and unsafe archive paths fail before extraction. Git replacements,
+grafts and ambient Git overrides cannot reinterpret the named revisions.
 
-This step requires Docker. A pinned official Node 24 image installs candidate
-dependencies as an unprivileged user with install scripts disabled. Runtime
-containers have no network, host credentials or Docker socket; their root is
-read-only, their resources are bounded, and only the reviewed invocation harness
-and fixtures are mounted read-only. Git replacement refs and ambient Git
-configuration overrides cannot reinterpret the candidate identities. The output
-records the verifier revision and whether its worktree was clean.
+Report comparison alone returns `reports-matched`. The CLI returns `passed` only
+after source wiring and independently reviewed documentation validation also pass.
+It records both revisions, executable and workflow digests, page outcomes and the
+reference checker results. Its selection gate separately recomputes the complete
+plan from immutable Git objects before allowing any workload to be omitted.
 
-This foundation accepts full comparison plans only. A candidate-provided
-selective profile, file inventory or digest cannot authorise omitted checks.
-The later integration must separately bind selective plans to the immutable
-Git difference using its reviewed classifier.
-
-Land this verifier through the existing full CI and code-owner review before
-enabling the corresponding producer changes. The later integration must execute
-this verifier and its dependencies from the already reviewed base, keep the
-candidate checkout as data, and require the comparison before granting selection
-authority. A legacy verifier that ignores the documentation artifact cannot
-substitute for this prerequisite.
+Land this foundation through full CI and code-owner approval first. The integration
+must execute its verifier and dependency lock from that reviewed base. Missing
+foundation code stops the integration before application jobs start. There is no
+legacy verifier fallback, candidate execution sandbox or Docker requirement.
 
 For an operator readback, provide `CI_IMPACT_PLAN`, `CI_COMPARISON_NEEDS`, the
 standard repository/base/head/candidate environment identity and
@@ -58,7 +53,7 @@ node scripts/ci/compare-targeted-evidence.mjs /path/to/downloaded-evidence
 ```
 
 The evidence directory contains `full-e2e`, `full-a11y`, `full-visual`, `targeted`
-and `documentation/documentation.json`. The resulting
-`selection-comparison.json` binds its verdict to the candidate. Provider run
-identity, review approval and the source checkout remain separately required
-evidence; a local comparison does not establish merge or production readiness.
+and `documentation/documentation.json`. The resulting `selection-comparison.json`
+binds its verdict to the candidate. Provider run identity, review approval and
+the source checkout remain separate evidence; local comparison cannot establish
+merge or production readiness.

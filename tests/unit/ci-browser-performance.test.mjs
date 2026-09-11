@@ -362,15 +362,15 @@ test("prepared image verification rejects version drift and missing browsers", (
   ])
     assert.throws(() => verifyBrowserImage({ ...valid, ...change }, () => true))
   assert.throws(() => verifyBrowserImage(valid, () => false))
-  const workflow = readFileSync(".github/workflows/ci.yml", "utf8")
+  const workflow = readFileSync("config/ci-qualification-workflow.yml", "utf8")
   assert.equal(
     workflow.split("options: --init --ipc=host --user 1001").length - 1,
-    2
+    3
   )
   assert.equal(
     workflow.split(
       `mcr.microsoft.com/playwright:v${BROWSER_IMAGE_VERSION}-noble@sha256:`
     ).length - 1,
-    2
+    3
   )
 })
