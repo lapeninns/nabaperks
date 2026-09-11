@@ -3,6 +3,7 @@ import { createHash, randomUUID } from "node:crypto"
 import type { BrowserContext } from "@playwright/test"
 
 import { customerEmailHmac } from "@/lib/customer/email-pii-core"
+import { codeHmac as recoveryCodeHmac } from "@/lib/customer/access-continuity"
 import { createPendingAccessRecoveryCookieValue } from "@/lib/customer/session-cookie-core"
 import { issueCustomerDeviceToken } from "@/lib/security/customer-device-token"
 
@@ -55,6 +56,7 @@ export async function installPendingAccessRecovery(
     phoneHmac?: string
     email?: string | null
     next?: string
+    recoveryCode?: string
   } = { canUseEmail: true }
 ): Promise<PendingAccessRecoveryFixture> {
   const secret = requiredSessionSecret()
@@ -71,7 +73,19 @@ export async function installPendingAccessRecovery(
       ? customerEmailHmac(email)
       : PLACEHOLDER_HMAC
     : null
-  const codeHmac = options.canUseEmail ? PLACEHOLDER_HMAC : null
+  // With a recoveryCode, store the digest the production derivation actually
+  // produces, so the happy path exercises the real comparison instead of the
+  // dev-OTP bypass. A regression in that derivation then fails the test.
+  const codeHmac = options.canUseEmail
+    ? options.recoveryCode && email
+      ? recoveryCodeHmac({
+          customerId,
+          deviceHash,
+          email,
+          code: options.recoveryCode,
+        })
+      : PLACEHOLDER_HMAC
+    : null
   const cookieValue = createPendingAccessRecoveryCookieValue(
     {
       version: 1,
@@ -117,7 +131,12 @@ export async function seedRecoverableCustomer(sql: Sql): Promise<{
 }> {
   const customerId = randomUUID()
   const email = `recover-${customerId.slice(0, 8)}@example.test`
-  const phoneHmac = PLACEHOLDER_HMAC
+  // customers_phone_hmac_unique_idx is a unique index and Playwright runs
+  // fullyParallel, so a shared placeholder collides between concurrent
+  // fixtures. Derive the digest from this fixture's own id instead.
+  const phoneHmac = createHash("sha256")
+    .update(`customer-phone:${customerId}`)
+    .digest("hex")
   const emailHmac = customerEmailHmac(email)
 
   await sql`

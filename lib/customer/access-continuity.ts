@@ -308,7 +308,9 @@ function recoveryCurrentCustomer(
   }
 }
 
-function codeHmac({
+// Exported so end-to-end fixtures can store a real recovery-code digest instead
+// of a placeholder. A regression in this derivation then fails those tests.
+export function codeHmac({
   customerId,
   deviceHash,
   email,

@@ -25,6 +25,10 @@ import {
 
 const DEV_OTP = process.env.CUSTOMER_DEV_OTP_CODE ?? "424242"
 const WRONG_OTP = DEV_OTP === "000000" ? "111111" : "000000"
+// Deliberately not the dev OTP: verifyCustomerAccessRecovery short-circuits on
+// that value, so a real code is required to exercise the production digest
+// comparison. Kept distinct from WRONG_OTP so the reject case stays meaningful.
+const REAL_RECOVERY_CODE = DEV_OTP === "314159" ? "271828" : "314159"
 const NO_EMAIL_COPY =
   /We can't safely open this existing wallet on a new device because it has no verified recovery email/i
 
@@ -42,9 +46,13 @@ export function describeCustomerAccessRecovery() {
     test("no pending recovery redirects to wallet login", async ({ page }) => {
       const response = await page.goto("/home/recover")
       test.skip(
-        !response || response.status() >= 400,
+        !response,
         "customer-flow dev server is not serving /home/recover"
       )
+      expect(
+        response?.status() ?? 0,
+        "/home/recover must respond successfully; a 4xx or 5xx is an application regression"
+      ).toBeLessThan(400)
 
       await expect(page).toHaveURL(/\/home\/login/)
       await expect(
@@ -62,9 +70,13 @@ export function describeCustomerAccessRecovery() {
       await installPendingAccessRecovery(context, { canUseEmail: true })
       const response = await page.goto("/home/recover")
       test.skip(
-        !response || response.status() >= 400,
+        !response,
         "customer-flow dev server is not serving /home/recover"
       )
+      expect(
+        response?.status() ?? 0,
+        "/home/recover must respond successfully; a 4xx or 5xx is an application regression"
+      ).toBeLessThan(400)
 
       await expect(
         page.getByRole("heading", { name: "Confirm this is your wallet" })
@@ -106,9 +118,13 @@ export function describeCustomerAccessRecovery() {
 
         const response = await page.goto("/home/recover")
         test.skip(
-          !response || response.status() >= 400,
+          !response,
           "customer-flow dev server is not serving /home/recover"
         )
+        expect(
+          response?.status() ?? 0,
+          "/home/recover must respond successfully; a 4xx or 5xx is an application regression"
+        ).toBeLessThan(400)
 
         await page.locator("#recovery-code").fill(WRONG_OTP)
         await Promise.all([
@@ -120,9 +136,7 @@ export function describeCustomerAccessRecovery() {
           page.getByRole("button", { name: "Open my wallet" }).click(),
         ])
 
-        await expect(
-          page.getByText(/That code didn't match/i)
-        ).toBeVisible()
+        await expect(page.getByText(/That code didn't match/i)).toBeVisible()
         await expect(page.locator("#recovery-code")).toBeVisible()
 
         const cookies = await context.cookies()
@@ -131,13 +145,24 @@ export function describeCustomerAccessRecovery() {
           "no customer session is minted for a rejected recovery code"
         ).toBeUndefined()
         expect(new URL(page.url()).pathname).toBe("/home/recover")
+
+        // A rejected code must not leave a server session behind, even if the
+        // response never emitted Set-Cookie. Check the ledger before cleanup
+        // deletes the row that would expose the regression.
+        const sessions = await sql`
+          select 1 from public.customer_sessions
+          where customer_id = ${customerId}::uuid`
+        expect(
+          sessions.length,
+          "a rejected recovery code must not create a customer session row"
+        ).toBe(0)
       } finally {
         if (customerId) await cleanupRecoverableCustomer(sql, customerId)
         await sql.end()
       }
     })
 
-    test("a valid dev OTP opens the existing wallet", async ({
+    test("a valid recovery code opens the existing wallet", async ({
       context,
       page,
     }) => {
@@ -157,15 +182,20 @@ export function describeCustomerAccessRecovery() {
           customerId: seeded.customerId,
           phoneHmac: seeded.phoneHmac,
           email: seeded.email,
+          recoveryCode: REAL_RECOVERY_CODE,
         })
 
         const response = await page.goto("/home/recover")
         test.skip(
-          !response || response.status() >= 400,
+          !response,
           "customer-flow dev server is not serving /home/recover"
         )
+        expect(
+          response?.status() ?? 0,
+          "/home/recover must respond successfully; a 4xx or 5xx is an application regression"
+        ).toBeLessThan(400)
 
-        await page.locator("#recovery-code").fill(DEV_OTP)
+        await page.locator("#recovery-code").fill(REAL_RECOVERY_CODE)
         await Promise.all([
           page.waitForResponse(
             (candidate) =>
@@ -183,7 +213,9 @@ export function describeCustomerAccessRecovery() {
             )
           })
           .toBe(true)
-        await expect(page).not.toHaveURL(/\/home\/recover/)
+        // The fixture fixes next to /home, so assert that exact destination:
+        // a redirect to /home/login would satisfy a negative assertion.
+        await expect.poll(() => new URL(page.url()).pathname).toBe("/home")
       } finally {
         if (customerId) await cleanupRecoverableCustomer(sql, customerId)
         await sql.end()
@@ -200,9 +232,13 @@ export function describeCustomerAccessRecovery() {
       await installPendingAccessRecovery(context, { canUseEmail: false })
       const response = await page.goto("/home/recover")
       test.skip(
-        !response || response.status() >= 400,
+        !response,
         "customer-flow dev server is not serving /home/recover"
       )
+      expect(
+        response?.status() ?? 0,
+        "/home/recover must respond successfully; a 4xx or 5xx is an application regression"
+      ).toBeLessThan(400)
 
       await expect(page.getByText(NO_EMAIL_COPY)).toBeVisible()
       await expect(page.locator("#recovery-code")).toHaveCount(0)
@@ -240,11 +276,17 @@ export function describeCustomerAccessRecovery() {
 
         const response = await page.goto("/home/recover")
         test.skip(
-          !response || response.status() >= 400,
+          !response,
           "customer-flow dev server is not serving /home/recover"
         )
+        expect(
+          response?.status() ?? 0,
+          "/home/recover must respond successfully; a 4xx or 5xx is an application regression"
+        ).toBeLessThan(400)
 
-        await page.getByRole("button", { name: "Send a fresh email code" }).click()
+        await page
+          .getByRole("button", { name: "Send a fresh email code" })
+          .click()
         await expect(
           page.getByText(
             /A fresh code has been sent|couldn't send a new code|Too many recovery emails|recovery attempt has expired/i
