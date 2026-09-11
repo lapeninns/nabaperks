@@ -60,14 +60,13 @@ export function validateNoDeployment(artifact, expected, { cwd } = {}) {
   assert.equal(artifact.repository, expected.repository)
   assert.equal(artifact.releaseRunId, expected.runId)
   assert.equal(artifact.releaseRunAttempt, expected.attempt)
-  const verified = createNoDeployment(
-    artifact.baseline,
-    {
-      ...expected,
-      candidateRevision: artifact.candidateRevision,
-    },
-    { cwd }
+  assert.match(expected.candidateRevision ?? "", FULL_SHA)
+  assert.equal(
+    artifact.candidateRevision,
+    expected.candidateRevision,
+    "No-deployment candidate differs from the originating release revision"
   )
+  const verified = createNoDeployment(artifact.baseline, expected, { cwd })
   assert.ok(
     verified,
     "Candidate contains application changes or uncertain impact"

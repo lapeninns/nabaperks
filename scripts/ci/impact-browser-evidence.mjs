@@ -1,6 +1,9 @@
 import assert from "node:assert/strict"
 import { testIdentity } from "./browser-parity.mjs"
 
+// Keep the original envelope for the immutable bootstrap verifier. Reviewed
+// base comparisons also require browserConfiguration, which captures resolved
+// use options that Playwright's ordinary JSON project projection omits.
 export function browserPolicy(report) {
   const config = report?.config
   assert.equal(config?.workers, 1, "One browser worker is required")

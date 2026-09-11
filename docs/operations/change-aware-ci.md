@@ -85,7 +85,11 @@ The comparison requires successful full e2e, accessibility and visual jobs, all
 targeted project manifests. It matches existing test identities and successful
 runtime outcomes on the same candidate. Missing, empty, duplicated, skipped,
 retried, flaky or different results fail qualification. Worker, retry, browser
-configuration and fresh-server policies must match. Visual qualification stays
+configuration and fresh-server policies must match. A companion reporter records
+a canonical digest of every resolved project `use` option, including browser,
+device, viewport, launch and context settings, without publishing credentials or
+headers. Reviewed-base comparisons require that evidence in both full reports
+and targeted manifests; missing or different settings fail. Visual qualification stays
 on Linux x64 and uses the existing baselines. A test list or a local ARM visual
 run is not a substitute.
 
@@ -100,7 +104,13 @@ The first installation has no base verifier. Its fixed bootstrap source is
 [code-owner review](https://github.com/lapeninns/nabaperks/pull/307#pullrequestreview-5171767005)
 before later repairs. The comparison implementation is unchanged at that pin.
 This historical review identifies the bootstrap code; it does not approve the
-current PR or replace its fresh code-owner approval.
+current PR or replace its fresh code-owner approval. That verifier predates the
+resolved-settings digest. Bootstrap therefore additionally requires the candidate's
+browser configuration, its helper, browser/setup actions, Node version and
+dependency manifests/locks to be identical to the pin. It cannot qualify a changed
+browser configuration. After installation, comparisons use the reviewed base's
+expanded settings verifier. Record both the bootstrap source check and an
+independent comparison of the captured settings for this initial installation.
 
 The installation PR cannot use its own new policy to reduce its checks. Its
 reviewed base has no classifier, so bootstrap requires all nine roots and the
@@ -124,7 +134,10 @@ records a bound `production-unchanged` artifact. Ephemeral staging, runtime
 qualification, database promotion and application deployment do not run. Smoke
 verification independently checks the artifact's Git difference and probes the
 existing production revision; it does not claim the new documentation commit
-was deployed. Release-triggered smoke checks pin their scripts to the completed
+was deployed. A no-deployment artifact must name the completed release run's full
+head revision; a different or missing revision fails even when its own older
+Git difference contains only documentation. This extra restriction applies to
+the no-deployment path. Release-triggered smoke checks pin their scripts to the completed
 release run's immutable revision and read the allowlist from the artifact's
 actual candidate revision, so a newer main cannot change that decision. The
 protected baseline approval remains necessary because the

@@ -76,7 +76,9 @@ if (
         throw new Error(
           "Browser report already exists; refusing stale evidence"
         )
-      args.push("--reporter=line,json")
+      args.push(
+        "--reporter=line,json,./scripts/ci/browser-configuration-reporter.mjs"
+      )
     }
     if (env.CI_BROWSER_JSON_REPORT) {
       if (env.LOCAL_CI_BROWSER_JSON === "1")
@@ -86,7 +88,9 @@ if (
       env.PLAYWRIGHT_JSON_OUTPUT_NAME = resolve(env.CI_BROWSER_JSON_REPORT)
       if (existsSync(env.PLAYWRIGHT_JSON_OUTPUT_NAME))
         throw new Error("Hosted comparison report already exists")
-      args.push("--reporter=line,json")
+      args.push(
+        "--reporter=line,json,./scripts/ci/browser-configuration-reporter.mjs"
+      )
     }
     const result = spawnSync(
       "pnpm",

@@ -17,6 +17,7 @@ import { impactPolicy, isDocumentationPath } from "./change-impact.mjs"
 import { expectedIdentity, validatePlan } from "./impact-plan-contract.mjs"
 import { git } from "./impact-git.mjs"
 import { browserPolicy } from "./impact-browser-evidence.mjs"
+import { browserConfiguration } from "./browser-configuration.mjs"
 
 export const BROWSER_PROJECTS = Object.freeze([
   "chromium",
@@ -118,6 +119,7 @@ export async function runTargetedBrowser(
   const args = targetedArguments(plan, suite, project)
   const reports = []
   const policies = []
+  const configurations = []
   const executions = []
   for (const listOnly of [true, false]) {
     const reportPath = join(root, listOnly ? "listed.json" : "runtime.json")
@@ -129,7 +131,7 @@ export async function runTargetedBrowser(
         "node",
         "scripts/run-playwright.mjs",
         ...args,
-        "--reporter=json",
+        "--reporter=json,./scripts/ci/browser-configuration-reporter.mjs",
         `--output=${join(root, "results")}`,
         ...(listOnly ? ["--list"] : []),
       ],
@@ -167,6 +169,7 @@ export async function runTargetedBrowser(
     )
     const report = JSON.parse(readFileSync(reportPath, "utf8"))
     policies.push(browserPolicy(report))
+    configurations.push(browserConfiguration(report))
     reports.push(inventoryFromPlaywright(report))
   }
   assert.deepEqual(
@@ -175,6 +178,11 @@ export async function runTargetedBrowser(
     "Browser policy changed between inventory and execution"
   )
   validateTargetedRuntime(reports[0], reports[1], selectedPages(plan).length)
+  assert.deepEqual(
+    configurations[0],
+    configurations[1],
+    "Resolved browser settings changed between inventory and execution"
+  )
   const evidence = {
     schema: "nabaperks.targeted-browser.v1",
     identity: plan.identity,
@@ -186,6 +194,7 @@ export async function runTargetedBrowser(
     platform: process.platform,
     architecture: process.arch,
     browserPolicy: policies[1],
+    browserConfiguration: configurations[1],
   }
   writeFileSync(
     join(root, "selection.json"),

@@ -12,6 +12,7 @@ const ENTRYPOINTS = [
   "scripts/ci/browser-workload.mjs",
   "scripts/ci/run-browser-pack.mjs",
   "scripts/ci/check-browser-image.mjs",
+  "scripts/ci/browser-configuration-reporter.mjs",
   "scripts/run-playwright.mjs",
   "playwright.config.ts",
   "tests/e2e/a11y.spec.ts",

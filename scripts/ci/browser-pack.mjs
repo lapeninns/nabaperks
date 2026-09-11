@@ -68,7 +68,7 @@ export async function runBrowserPack(
         "node",
         "scripts/run-playwright.mjs",
         ...request.args.slice(1),
-        "--reporter=json",
+        "--reporter=json,./scripts/ci/browser-configuration-reporter.mjs",
         `--output=${join(directory, `results-${id}`)}`,
         ...(listOnly ? ["--list"] : []),
       ],

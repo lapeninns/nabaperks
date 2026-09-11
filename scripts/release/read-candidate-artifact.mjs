@@ -292,7 +292,11 @@ export async function readReleaseCandidate(
   const bytes = await download(`${root}/artifacts/${artifact.id}/zip`)
   const candidate =
     artifact.name === unchangedName
-      ? validateNoDeployment(readCandidateZip(bytes), expected, { cwd })
+      ? validateNoDeployment(
+          readCandidateZip(bytes),
+          { ...expected, candidateRevision: run.head_sha },
+          { cwd }
+        )
       : validateCandidateArtifact(readCandidateZip(bytes), expected)
   validateReleaseRun(
     await getJson(`${root}/runs/${expected.runId}`),

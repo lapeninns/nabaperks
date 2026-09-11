@@ -121,3 +121,34 @@ test("bootstrap uses one immutable reviewed pin only before policy installation"
   f.put("config/ci-impact-policy.json", "{}")
   assert.notEqual(f.select(f.commit()).status, 0)
 })
+
+test("bootstrap rejects browser configuration or dependency changes before running its older verifier", (t) => {
+  const body = job.match(
+    /name: Bound bootstrap to the reviewed browser configuration[\s\S]*?run: \|\n([\s\S]*?)\n      - uses:/
+  )?.[1]
+  assert.ok(body)
+  const command = body
+    .split("\n")
+    .map((line) => line.replace(/^          /, ""))
+    .filter((line) => !line.startsWith("git fetch "))
+    .join("\n")
+  const f = fixture(t)
+  f.put("playwright.config.ts", "export default {}")
+  const base = f.commit()
+  f.put("scripts/ci/reporter.mjs", "export default class Reporter {}")
+  const execute = (sha) =>
+    spawnSync("bash", ["-e", "-c", command], {
+      cwd: f.cwd,
+      env: { ...process.env, VERIFIER_REVISION: base, CANDIDATE_REVISION: sha },
+      encoding: "utf8",
+    }).status
+  assert.equal(execute(f.commit()), 0)
+  f.put(
+    "playwright.config.ts",
+    "export default { use: { viewport: process.env.SELECTION_COMPARISON ? null : { width: 800, height: 600 } } }"
+  )
+  assert.notEqual(execute(f.commit()), 0)
+  git(["checkout", base, "--", "playwright.config.ts"], f)
+  f.put("pnpm-lock.yaml", "changed browser version")
+  assert.notEqual(execute(f.commit()), 0)
+})

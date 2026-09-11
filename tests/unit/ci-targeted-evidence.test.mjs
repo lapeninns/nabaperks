@@ -341,6 +341,8 @@ test("qualified page selection keeps existing test identities and unqualified po
     "scripts/ci/process-exit.mjs",
     "scripts/ci/run-workload.mjs",
     "scripts/ci/check-browser-image.mjs",
+    "scripts/ci/browser-configuration-reporter.mjs",
+    "scripts/ci/browser-configuration.mjs",
     "scripts/playwright-server-heap.mjs",
     "tests/e2e/helpers/axe.ts",
     "tests/e2e/helpers/harness.ts",

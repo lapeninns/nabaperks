@@ -18,6 +18,7 @@ import {
   browserPolicy,
   compareAffectedOutcomes,
 } from "./impact-browser-evidence.mjs"
+import { browserConfiguration } from "./browser-configuration.mjs"
 
 function filesUnder(root) {
   const paths = []
@@ -48,6 +49,7 @@ export function readFullReports(root, tier) {
   )
   const tests = []
   let policy
+  let configuration
   for (const path of files) {
     const report = JSON.parse(readFileSync(path, "utf8"))
     const current = browserPolicy(report)
@@ -58,9 +60,17 @@ export function readFullReports(root, tier) {
         "Full tier execution policy differs between reports"
       )
     policy = current
+    const resolved = browserConfiguration(report)
+    if (configuration)
+      assert.deepEqual(
+        resolved,
+        configuration,
+        "Full tier browser settings differ between reports"
+      )
+    configuration = resolved
     tests.push(...inventoryFromPlaywright(report))
   }
-  return { tests, policy, reports: files.length }
+  return { tests, policy, configuration, reports: files.length }
 }
 
 export function compareTargetedEvidence(root, plan, needs) {
@@ -135,12 +145,18 @@ export function compareTargetedEvidence(root, plan, needs) {
       tier.policy,
       "Targeted and full execution policies differ"
     )
+    assert.deepEqual(
+      manifest.browserConfiguration,
+      tier.configuration,
+      "Targeted and full browser settings differ"
+    )
     const result = compareAffectedOutcomes(tier.tests, manifest.tests)
     if (
       manifest.suite === "browser" &&
       VISUAL_PROJECTS.includes(manifest.project)
     ) {
       assert.deepEqual(manifest.browserPolicy, full.a11y.policy)
+      assert.deepEqual(manifest.browserConfiguration, full.a11y.configuration)
       compareAffectedOutcomes(full.a11y.tests, manifest.tests)
     }
     results.push({

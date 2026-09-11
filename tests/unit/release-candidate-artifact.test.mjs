@@ -1,6 +1,12 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 import { deflateRawSync } from "node:zlib"
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs"
+import { join } from "node:path"
+import { tmpdir } from "node:os"
+import { git } from "../../scripts/ci/impact-git.mjs"
+import { impactPolicy } from "../../scripts/ci/change-impact.mjs"
+import { createNoDeployment } from "../../scripts/release/no-deployment.mjs"
 import {
   readCandidateZip,
   readReleaseCandidate,
@@ -231,4 +237,64 @@ test("no-deployment discovery never satisfies promotion-only readers or accepts 
     )
     assert.equal(downloaded, false)
   }
+})
+
+test("no-deployment evidence must name the originating release revision, not an older docs-only commit", async (t) => {
+  const cwd = mkdtempSync(join(tmpdir(), "no-deployment-origin-"))
+  t.after(() => rmSync(cwd, { recursive: true, force: true }))
+  git(["init", "-q"], { cwd })
+  git(["config", "user.name", "CI fixture"], { cwd })
+  git(["config", "user.email", "ci@example.test"], { cwd })
+  const put = (path, value) => {
+    mkdirSync(join(cwd, path, ".."), { recursive: true })
+    writeFileSync(join(cwd, path), value)
+  }
+  const commit = () => {
+    git(["add", "--all"], { cwd })
+    git(["-c", "core.hooksPath=/dev/null", "commit", "-qm", "fixture"], { cwd })
+    return git(["rev-parse", "HEAD"], { cwd }).trim()
+  }
+  put("config/ci-impact-policy.json", JSON.stringify(impactPolicy))
+  put("docs/operations/a.md", "# Before\n")
+  const baselineRevision = commit()
+  put("docs/operations/a.md", "# After\n")
+  const candidateRevision = commit()
+  const unchanged = createNoDeployment(
+    {
+      schema: "nabaperks.production-baseline.v1",
+      ...candidate,
+      revision: baselineRevision,
+      observedAt: "2026-09-10T18:00:00Z",
+    },
+    { ...expected, candidateRevision },
+    { cwd }
+  )
+  assert.ok(unchanged)
+  const read = (head_sha) =>
+    readReleaseCandidate(
+      expected,
+      {
+        async getJson(path) {
+          if (path.endsWith("/runs/42")) return { ...run, head_sha }
+          if (path.endsWith("/workflows/production-database.yml"))
+            return workflow
+          return {
+            artifacts: [{ ...artifact, name: "production-unchanged-42-2" }],
+            total_count: 1,
+          }
+        },
+        async download() {
+          return zip(unchanged)
+        },
+      },
+      { allowUnchanged: true, cwd }
+    )
+  assert.equal((await read(candidateRevision)).revision, baselineRevision)
+  put("app/runtime.ts", "export const changed = true\n")
+  const applicationRevision = commit()
+  await assert.rejects(
+    read(applicationRevision),
+    /originating release revision/
+  )
+  await assert.rejects(read(undefined))
 })

@@ -241,6 +241,14 @@ jobs:
         env:
           VERIFIER_REVISION: ${{ steps.verifier.outputs.revision }}
         run: test "$(git rev-parse HEAD)" = "$VERIFIER_REVISION"
+      - name: Bound bootstrap to the reviewed browser configuration
+        if: ${{ steps.verifier.outputs.source == 'reviewed-bootstrap' }}
+        env:
+          VERIFIER_REVISION: ${{ steps.verifier.outputs.revision }}
+          CANDIDATE_REVISION: ${{ github.sha }}
+        run: |
+          git fetch --no-tags --depth=1 origin "$CANDIDATE_REVISION"
+          git diff --exit-code "$VERIFIER_REVISION" "$CANDIDATE_REVISION" -- playwright.config.ts scripts/playwright-server-heap.mjs package.json pnpm-lock.yaml pnpm-workspace.yaml .nvmrc .github/actions/setup .github/actions/playwright
       - uses: ./.github/actions/setup
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
@@ -568,7 +576,7 @@ jobs:
           SELECTION_COMPARISON: ${{ needs.selection.outputs.comparison }}
         run: |
           if [ "$SELECTION_COMPARISON" = true ]; then
-            pnpm test:visual -- --project="${{ matrix.project }}" --shard="${{ matrix.shard }}" --reporter=line,json
+            pnpm test:visual -- --project="${{ matrix.project }}" --shard="${{ matrix.shard }}" --reporter=line,json,./scripts/ci/browser-configuration-reporter.mjs
           else
             pnpm test:visual -- --project="${{ matrix.project }}" --shard="${{ matrix.shard }}"
           fi
