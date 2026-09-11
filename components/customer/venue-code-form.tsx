@@ -78,6 +78,11 @@ export function VenueCodeForm({
           type="text"
           inputMode="numeric"
           pattern="[0-9]*"
+          /* Deliberately 20px (text-xl below) so the code stays legible at
+             arm's length across a counter. Opt out of the coarse-pointer
+             font floor in app/globals.css, which is a flat 1rem and would
+             otherwise shrink this field on exactly the phones that use it. */
+          data-font-floor="exempt"
           autoComplete="one-time-code"
           maxLength={VENUE_CODE_LENGTH}
           value={code}
