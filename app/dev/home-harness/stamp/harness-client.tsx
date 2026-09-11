@@ -7,25 +7,74 @@ import { StampCollector } from "@/components/customer/stamp-collector"
 import { Button } from "@/components/ui/button"
 import type { SelfStampActionState } from "@/lib/customer/self-stamp-action-state"
 
-type HarnessMode =
-  | "success"
-  | "final"
-  | "blocked"
-  | "unknown"
-  | "unknown-issued"
-  | "unknown-issued-bonus"
-  | "unknown-closed"
-  | "closed"
-  | "reloaded-final"
-  | "location-blocked"
-  | "code-rejected"
-  | "code-locked"
+import type { HarnessMode } from "./modes"
 
 const LOCATION_MODES = new Set<HarnessMode>([
   "location-blocked",
   "code-rejected",
   "code-locked",
 ])
+
+/**
+ * The verified-visit lanes. Every one is visit four at a venue with the
+ * check on; they differ in what the page payload says about the unverified
+ * grace and in how the server answers a stamp request.
+ */
+const VERIFY_MODES: Partial<
+  Record<
+    HarnessMode,
+    {
+      unverifiedGraceRemaining: number
+      stamp: SelfStampActionState
+    }
+  >
+> = {
+  // Both courtesy stamps used. A capture without a fix must not be sent at
+  // all; if the collector sends one anyway the server would refuse it.
+  "verify-grace-spent": {
+    unverifiedGraceRemaining: 0,
+    stamp: {
+      status: "error",
+      reason: "location_required",
+      message:
+        "Turn on location for this venue and scan again, or ask a team member for today's code.",
+    },
+  },
+  // One courtesy stamp left: a capture without a fix is sent once and lands
+  // unverified.
+  "verify-grace-left": {
+    unverifiedGraceRemaining: 1,
+    stamp: {
+      status: "issued",
+      newStampCount: 4,
+      rewardUnlocked: false,
+      geoFlagged: true,
+      bonusStampsApplied: 0,
+      verification: "unverified",
+    },
+  },
+  // The browser gave a fix (the spec grants geolocation) and it verified.
+  "verify-located": {
+    unverifiedGraceRemaining: 0,
+    stamp: {
+      status: "issued",
+      newStampCount: 4,
+      rewardUnlocked: false,
+      geoFlagged: false,
+      bonusStampsApplied: 0,
+    },
+  },
+  // The stamp path is throttled; the code must stay on screen.
+  "verify-rate-limited": {
+    unverifiedGraceRemaining: 1,
+    stamp: {
+      status: "error",
+      reason: "rate_limited",
+      message:
+        "You're going a little fast. Wait a few minutes, then try again.",
+    },
+  },
+}
 
 const LOCATION_REFUSED: SelfStampActionState = {
   status: "error",
@@ -47,6 +96,7 @@ export function StampHarnessClient({
   mode: HarnessMode
   delayMs: number
 }) {
+  const verify = VERIFY_MODES[mode]
   const startingCurrent =
     mode === "final"
       ? 4
@@ -65,35 +115,44 @@ export function StampHarnessClient({
   const [rewardReady, setRewardReady] = useState(mode === "reloaded-final")
   const [submitCount, setSubmitCount] = useState(0)
   const [refreshCount, setRefreshCount] = useState(0)
+  const [lastLocationStatus, setLastLocationStatus] = useState("")
 
-  const submitStamp = useCallback(async (): Promise<SelfStampActionState> => {
-    setSubmitCount((count) => count + 1)
-    await wait(delayMs)
+  const submitStamp = useCallback(
+    async (
+      _state: SelfStampActionState,
+      formData: FormData
+    ): Promise<SelfStampActionState> => {
+      setSubmitCount((count) => count + 1)
+      setLastLocationStatus(String(formData.get("location_status") ?? ""))
+      await wait(delayMs)
 
-    if (mode === "blocked") {
-      return {
-        status: "error",
-        message: "Today's stamp is not available yet. Try again tomorrow.",
+      if (verify) return verify.stamp
+      if (mode === "blocked") {
+        return {
+          status: "error",
+          message: "Today's stamp is not available yet. Try again tomorrow.",
+        }
       }
-    }
-    if (LOCATION_MODES.has(mode)) return LOCATION_REFUSED
-    if (
-      mode === "unknown" ||
-      mode === "unknown-issued" ||
-      mode === "unknown-issued-bonus" ||
-      mode === "unknown-closed"
-    ) {
-      throw new Error("Harness transport failure")
-    }
+      if (LOCATION_MODES.has(mode)) return LOCATION_REFUSED
+      if (
+        mode === "unknown" ||
+        mode === "unknown-issued" ||
+        mode === "unknown-issued-bonus" ||
+        mode === "unknown-closed"
+      ) {
+        throw new Error("Harness transport failure")
+      }
 
-    return {
-      status: "issued",
-      newStampCount: mode === "final" ? 5 : 4,
-      rewardUnlocked: mode === "final",
-      geoFlagged: false,
-      bonusStampsApplied: 0,
-    }
-  }, [delayMs, mode])
+      return {
+        status: "issued",
+        newStampCount: mode === "final" ? 5 : 4,
+        rewardUnlocked: mode === "final",
+        geoFlagged: false,
+        bonusStampsApplied: 0,
+      }
+    },
+    [delayMs, mode, verify]
+  )
 
   // The venue-code fallback: a wrong code counts down tries, a lockout hides
   // the input, and the right code prints the stamp through the same path.
@@ -126,6 +185,7 @@ export function StampHarnessClient({
         rewardUnlocked: false,
         geoFlagged: false,
         bonusStampsApplied: 0,
+        verification: "venue_code",
       }
     }, [delayMs, mode])
 
@@ -158,6 +218,7 @@ export function StampHarnessClient({
       <div className="sr-only" aria-hidden="true">
         <span data-submit-count>{submitCount}</span>
         <span data-refresh-count>{refreshCount}</span>
+        <span data-last-location-status>{lastLocationStatus}</span>
       </div>
       <StampCollector
         membershipId="mem_harness_stamp"
@@ -171,7 +232,17 @@ export function StampHarnessClient({
         todayLabel="16 Jul"
         rewardName="Mystery reward"
         rewardUnlocked={rewardReady}
-        location={{ requireGeofence: false, geofenceRadiusMeters: 75 }}
+        location={
+          verify
+            ? {
+                requireGeofence: true,
+                geofenceRadiusMeters: 75,
+                firstVerifiedVisit: 3,
+                nextVisitNumber: 4,
+                unverifiedGraceRemaining: verify.unverifiedGraceRemaining,
+              }
+            : { requireGeofence: false, geofenceRadiusMeters: 75 }
+        }
         submitStamp={submitStamp}
         submitVenueCode={submitVenueCode}
         refreshCard={refreshCard}

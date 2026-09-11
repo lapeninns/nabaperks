@@ -10,13 +10,13 @@ import {
 import { CustomerStampCard } from "@/components/customer/customer-flow-system"
 import {
   addLocationCapture,
-  resolveStampLocation,
+  decideCaptureSubmission,
   shouldAttemptStampLocation,
   type StampLocationCapture,
 } from "@/components/customer/self-service-forms"
-import { LocationRetryButton } from "@/components/customer/location-retry-button"
 import { StampPressButton } from "@/components/customer/stamp-press-button"
 import { VenueCodeForm } from "@/components/customer/venue-code-form"
+import { VerifyVisitControls } from "@/components/customer/verify-visit-controls"
 import {
   initialStampChoreographyState,
   readbackBonusStampsApplied,
@@ -55,6 +55,7 @@ export type StampCollectorProps = {
     geofenceRadiusMeters: number
     firstVerifiedVisit?: number
     nextVisitNumber?: number
+    unverifiedGraceRemaining?: number
   }
   submitStamp?: StampSubmitter
   /** The venue-code fallback submitter; injectable for the DB-free harness. */
@@ -125,16 +126,21 @@ export function StampCollector({
     initialStampChoreographyState
   )
   const initialCurrentRef = useRef(current)
-  const [locationNotice] = useState(
-    () =>
-      canStamp &&
-      shouldAttemptStampLocation(
-        location.requireGeofence,
-        location.nextVisitNumber ?? current + 1,
-        location.firstVerifiedVisit
-      )
-  )
+  // Whether this visit must confirm location. Decided from the server's
+  // lifetime visit number; `current + 1` is only the DB-free harness fallback.
+  const verificationRequired =
+    canStamp &&
+    shouldAttemptStampLocation(
+      location.requireGeofence,
+      location.nextVisitNumber ?? current + 1,
+      location.firstVerifiedVisit
+    )
+  const [codeOpen, setCodeOpen] = useState(false)
+  const [acquiringLocation, setAcquiringLocation] = useState(false)
   const requestInFlightRef = useRef(false)
+  // The server answered `location_required` to a capture without a fix during
+  // this visit: the grace is spent whatever the page payload said.
+  const refusedWithoutFixRef = useRef(false)
   const refresh = refreshCard ?? router.refresh
   const view = stampChoreographyView(state, {
     canStamp,
@@ -143,14 +149,10 @@ export function StampCollector({
     stampDates,
     todayLabel,
     rewardUnlocked: authoritativeRewardUnlocked,
+    verificationRequired,
+    acquiringLocation,
+    unverifiedGraceRemaining: location.unverifiedGraceRemaining,
   })
-
-  useEffect(() => {
-    if (!locationNotice) return
-    // Warm the permission prompt and GPS chip. The stamp request captures a
-    // fresh fix when the customer actually collects, so this result is unused.
-    void resolveStampLocation(true)
-  }, [locationNotice, membershipId, qrId])
 
   useEffect(() => {
     if (state.phase !== "unknown") return
@@ -201,6 +203,9 @@ export function StampCollector({
   function settle(next: SelfStampActionState) {
     if (next.status === "error") {
       requestInFlightRef.current = false
+      if (next.reason === "location_required") {
+        refusedWithoutFixRef.current = true
+      }
       dispatch({
         type: "request_blocked",
         message: next.message,
@@ -229,25 +234,50 @@ export function StampCollector({
     refresh()
   }
 
-  async function issueStamp(prefetched: StampLocationCapture | null = null) {
+  /**
+   * Send the stamp request. The capture, when there is one, was taken by
+   * "Use my location" on the customer's tap — this never asks the browser
+   * itself, so a stamp press before the verified-visit threshold carries no
+   * location and a verified visit carries exactly the reading the customer
+   * just gave.
+   */
+  async function issueStamp(capture: StampLocationCapture | null) {
     if (requestInFlightRef.current || view.secured || !canStamp) return
     requestInFlightRef.current = true
     dispatch({ type: "request_started", current })
     markStampPhase("checking")
 
     try {
-      const locationCapture =
-        prefetched ??
-        (locationNotice ? await resolveStampLocation(true) : null)
       const formData = new FormData()
       formData.set("membershipId", membershipId)
       formData.set("qrId", qrId)
-      addLocationCapture(formData, locationCapture)
+      addLocationCapture(formData, capture)
       markStampPhase("request")
 
       settle(await submitStamp(initialSelfStampState, formData))
     } catch {
       lostResult()
+    }
+  }
+
+  /**
+   * The browser has answered. A fix is always sent. A capture without one is
+   * sent only while the server would still commit it against the unverified
+   * grace; otherwise the refusal is decided here, no request is spent, and
+   * the venue code stays on screen.
+   */
+  function handleCapture(capture: StampLocationCapture) {
+    const decision = decideCaptureSubmission(capture, {
+      unverifiedGraceRemaining: location.unverifiedGraceRemaining,
+      refusedWithoutFix: refusedWithoutFixRef.current,
+    })
+    if (decision.action === "submit") {
+      void issueStamp(capture)
+      return
+    }
+    if (decision.action === "refuse") {
+      dispatch({ type: "capture_refused", message: decision.message })
+      markStampPhase("blocked")
     }
   }
 
@@ -271,8 +301,13 @@ export function StampCollector({
   }
 
   const rewardUnlocked = view.rewardUnlocked
-  const showVenueCode =
-    canStamp && (view.venueCodeOffer || view.venueCodeLockedUntil !== null)
+  const showLocationControls = canStamp && view.locationControls
+  // The code form is on screen once the customer asked for it, after any
+  // refusal it can answer, or (as a notice) while a lockout runs.
+  const showVenueCodeForm =
+    canStamp &&
+    (view.venueCodeLockedUntil !== null ||
+      (view.venueCodeOffer && (codeOpen || state.phase === "blocked")))
 
   return (
     <div aria-busy={view.ariaBusy || undefined} data-stamp-phase={state.phase}>
@@ -296,53 +331,60 @@ export function StampCollector({
         hideFooter
         hideHeaderText
         // The stamp control sits directly under its feedback band, *above*
-        // the reward ticket: grid → status → (code fallback) → press → ticket.
-        // With the ticket in between, the button fell below the fold on a
-        // 390×844 phone — the one thing the screen exists for was off-screen
-        // after a scan. The sealed ticket is context, not the action.
+        // the reward ticket: grid → status → (verify pair / code) → press →
+        // ticket. With the ticket in between, the button fell below the fold
+        // on a 390×844 phone — the one thing the screen exists for was
+        // off-screen after a scan. The sealed ticket is context, not the
+        // action. On a visit that must confirm location the press gives way
+        // to the location / venue-code pair until the request is in flight.
         // Landscape floor (≤480px tall): the band and the press sit side by
         // side — feedback left, control right — so both stay in the first
-        // screen; the code fallback and the location note span the rows
-        // beneath. Every cell is placed explicitly: with auto-placement the
-        // two-column fallback could not follow the band on row 1, so it fell
-        // to row 2 and pushed the press to row 3 — exactly when the keyboard
-        // makes height scarcest.
+        // screen; the pair and the code form span the rows beneath. Every
+        // cell is placed explicitly: with auto-placement the two-column
+        // fallback could not follow the band on row 1, so it fell to row 2
+        // and pushed the press to row 3 — exactly when the keyboard makes
+        // height scarcest.
         afterGrid={
           <div className="grid gap-3 short:gap-2 squat:grid-cols-[minmax(0,1fr)_auto] squat:items-center">
             <div className="squat:col-start-1 squat:row-start-1">
               <StampStatusBand view={view} phase={state.phase} />
             </div>
-            {showVenueCode ? (
+            {showLocationControls || showVenueCodeForm ? (
               <div className="grid gap-3 squat:col-span-2 squat:row-start-2">
-                {locationNotice && view.locationRetryOffer ? (
-                  <LocationRetryButton
-                    disabled={view.pending}
-                    onGranted={(capture) => {
-                      void issueStamp(capture)
+                {showLocationControls ? (
+                  <VerifyVisitControls
+                    disabled={view.pending || view.secured}
+                    codeOpen={showVenueCodeForm}
+                    onCapture={handleCapture}
+                    onOpenCode={() => setCodeOpen(true)}
+                    onAcquiringChange={setAcquiringLocation}
+                  />
+                ) : null}
+                {showVenueCodeForm ? (
+                  <VenueCodeForm
+                    attemptsRemaining={view.venueCodeAttemptsRemaining}
+                    lockedUntil={view.venueCodeLockedUntil}
+                    pending={view.pending}
+                    onSubmit={(code) => {
+                      void issueWithCode(code)
                     }}
                   />
                 ) : null}
-                <VenueCodeForm
-                  attemptsRemaining={view.venueCodeAttemptsRemaining}
-                  lockedUntil={view.venueCodeLockedUntil}
-                  pending={view.pending}
-                  onSubmit={(code) => {
-                    void issueWithCode(code)
-                  }}
-                />
               </div>
             ) : null}
             <div className="grid justify-items-center gap-3 pt-1 short:gap-2 short:pt-0 squat:col-start-2 squat:row-start-1">
-              <StampPressButton
-                onStamp={() => {
-                  void issueStamp()
-                }}
-                venueName={venueName}
-                secured={view.secured}
-                confirmed={view.confirmed}
-                pending={view.pending}
-                label={view.buttonLabel}
-              />
+              {showLocationControls ? null : (
+                <StampPressButton
+                  onStamp={() => {
+                    void issueStamp(null)
+                  }}
+                  venueName={venueName}
+                  secured={view.secured}
+                  confirmed={view.confirmed}
+                  pending={view.pending}
+                  label={view.buttonLabel}
+                />
+              )}
               <p
                 className="sr-only"
                 role="status"
@@ -352,13 +394,6 @@ export function StampCollector({
                 {view.announcement}
               </p>
             </div>
-            {locationNotice ? (
-              <p className="rounded-lg bg-secondary px-3 py-2 text-center text-xs leading-5 text-muted-foreground squat:col-span-2 squat:row-start-3">
-                This venue may try a soft location check within{" "}
-                {location.geofenceRadiusMeters}m. Your stamp still saves if your
-                phone cannot share location.
-              </p>
-            ) : null}
           </div>
         }
       />

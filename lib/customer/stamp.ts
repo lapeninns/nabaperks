@@ -8,6 +8,7 @@ import {
   type CustomerBlockReason,
 } from "@/lib/customer/experience/block-reasons"
 import { getCurrentCustomer } from "@/lib/customer/identity"
+import type { StampVerification } from "@/lib/customer/self-stamp-action-state"
 import { logger } from "@/lib/observability/logger"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
@@ -27,6 +28,8 @@ export type IssueSelfServiceStampResult =
       newStampCount: number
       rewardUnlocked: boolean
       geoFlagged: boolean
+      /** Set when the visit was confirmed by the venue code or committed unverified. */
+      verification?: StampVerification
     }
   | { status: "blocked"; reason: string; blockReason: CustomerBlockReason }
 
@@ -218,7 +221,7 @@ export async function issueVenueCodeStamp(
   const issuedStamp = issuedStampResult(row)
   if (!issuedStamp) throw new Error("Unable to issue a venue-code stamp")
 
-  return issuedStamp
+  return { ...issuedStamp, verification: "venue_code" }
 }
 
 function notSignedIn(): BlockedStampResult {
@@ -385,12 +388,16 @@ function issuedStampResult(
 
   if (!stampEventId || newStampCount === null) return null
 
+  // geo_flagged is only ever true on a returned row for a stamp the primitive
+  // committed as unverified (a refused fix raises instead of returning).
+  const geoFlagged = booleanValue(row.geo_flagged)
   return {
     status: "issued",
     stampEventId,
     newStampCount,
     rewardUnlocked: booleanValue(row.reward_unlocked),
-    geoFlagged: booleanValue(row.geo_flagged),
+    geoFlagged,
+    ...(geoFlagged ? { verification: "unverified" as const } : {}),
   }
 }
 

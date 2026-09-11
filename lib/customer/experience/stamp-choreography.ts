@@ -30,6 +30,12 @@ export type StampChoreographyEvent =
   | { type: "request_issued"; result: IssuedStamp }
   | ({ type: "request_blocked"; message: string } & SelfStampBlockedDetail)
   | { type: "request_unknown" }
+  /**
+   * The phone refused to spend a request: the capture carried no fix and the
+   * unverified grace is spent. Nothing was sent, so this lands from idle or
+   * from an earlier block, never from an in-flight request.
+   */
+  | { type: "capture_refused"; message: string }
   | { type: "readback_issued"; result: IssuedStamp }
   | { type: "readback_closed" }
   | { type: "print_settled" }
@@ -47,8 +53,10 @@ export function readbackBonusStampsApplied(
 
 /**
  * Whether a refusal is one the venue-code fallback can answer: the location
- * check said no (or the last code was wrong / malformed and can be retyped).
- * A lockout, or a code entered without any refused scan, offers nothing.
+ * check said no (server-side, or on the phone before a request was spent),
+ * the stamp path is throttled (the code has its own throttle, so it is the
+ * way past a burst of failed location taps), or the last code was wrong /
+ * malformed and can be retyped. Only a lockout withholds it.
  */
 export function venueCodeOffered(
   reason: CustomerBlockReason | undefined
@@ -56,21 +64,27 @@ export function venueCodeOffered(
   return (
     reason === "location_out_of_range" ||
     reason === "location_required" ||
+    reason === "location_blocked" ||
+    reason === "rate_limited" ||
     reason === "venue_code_rejected" ||
     reason === "venue_code_format"
   )
 }
 
 /**
- * Whether the refusal is one that allowing location could actually answer.
+ * Whether the refusal is one that a fresh location reading could answer.
  * Narrower than venueCodeOffered: a mistyped or rejected code is not a
- * location problem, and offering "Allow location" there abandons the code the
- * customer was mid-way through entering.
+ * location problem, and re-offering "Use my location" there abandons the code
+ * the customer was mid-way through entering.
  */
 export function locationRetryOffered(
   reason: CustomerBlockReason | undefined
 ): boolean {
-  return reason === "location_out_of_range" || reason === "location_required"
+  return (
+    reason === "location_out_of_range" ||
+    reason === "location_required" ||
+    reason === "location_blocked"
+  )
 }
 
 export function reduceStampChoreography(
@@ -98,6 +112,14 @@ export function reduceStampChoreography(
         : state
     case "request_unknown":
       return state.phase === "checking" ? { phase: "unknown" } : state
+    case "capture_refused":
+      return state.phase === "idle" || state.phase === "blocked"
+        ? {
+            phase: "blocked",
+            message: event.message,
+            reason: "location_blocked",
+          }
+        : state
     case "readback_issued":
       return state.phase === "unknown"
         ? { phase: "printing", result: event.result }
@@ -118,13 +140,24 @@ type StampViewInput = {
   stampDates: string[]
   todayLabel: string
   rewardUnlocked: boolean
+  /**
+   * This visit has to confirm location (visit three onwards at a venue with
+   * the check on). The press is replaced by the location / venue-code pair,
+   * and the code is offered before any refusal.
+   */
+  verificationRequired?: boolean
+  /** The browser is being asked for a fix; nothing has been sent yet. */
+  acquiringLocation?: boolean
+  /** Unverified stamps still available, from the page payload, if known. */
+  unverifiedGraceRemaining?: number
 }
 
 /** What the stamp screen needs to render the venue-code fallback, if any. */
 export type VenueCodeFallbackView = {
-  /** Show the six-digit code input beneath the refusal. */
+  /** The six-digit code may be entered (idle on a verified visit, or after a refusal it answers). */
   venueCodeOffer: boolean
-  locationRetryOffer: boolean
+  /** Show "Use my location" / "Enter venue code" instead of the stamp press. */
+  locationControls: boolean
   /** Tries left before a lockout, when the last code was wrong. */
   venueCodeAttemptsRemaining: number | null
   /** ISO time the lockout lifts, when attempts are exhausted. */
@@ -157,18 +190,32 @@ export type StampChoreographyView = VenueCodeFallbackView & {
 
 const NO_FALLBACK: VenueCodeFallbackView = {
   venueCodeOffer: false,
-  locationRetryOffer: false,
+  locationControls: false,
   venueCodeAttemptsRemaining: null,
   venueCodeLockedUntil: null,
 }
 
 function venueCodeFallback(
-  state: StampChoreographyState
+  state: StampChoreographyState,
+  input: StampViewInput
 ): VenueCodeFallbackView {
+  const verificationRequired = Boolean(input.verificationRequired)
+  if (state.phase === "idle") {
+    if (!input.canStamp || !verificationRequired) return NO_FALLBACK
+    return {
+      venueCodeOffer: true,
+      locationControls: true,
+      venueCodeAttemptsRemaining: null,
+      venueCodeLockedUntil: null,
+    }
+  }
   if (state.phase !== "blocked") return NO_FALLBACK
+  const lockedOut = state.reason === "venue_code_locked"
   return {
     venueCodeOffer: venueCodeOffered(state.reason),
-    locationRetryOffer: locationRetryOffered(state.reason),
+    locationControls:
+      !lockedOut &&
+      (verificationRequired || locationRetryOffered(state.reason)),
     venueCodeAttemptsRemaining: state.attemptsRemaining ?? null,
     venueCodeLockedUntil: state.lockedUntil ?? null,
   }
@@ -225,12 +272,40 @@ function venueStampIndex(result: IssuedStamp, total: number): number {
   return Math.min(Math.max(beforeVenueStamp, 0), Math.max(total - 1, 0))
 }
 
+/**
+ * How the visit was confirmed, when that is worth saying. A code-confirmed
+ * stamp says so; an unverified one says so and, when the page knew the grace,
+ * how many more the venue will take without a location check.
+ */
+function verificationCopy(
+  result: IssuedStamp,
+  unverifiedGraceRemaining: number | undefined
+): string {
+  if (result.verification === "venue_code") {
+    return " Confirmed using today's venue code."
+  }
+  if (result.verification !== "unverified") return ""
+  if (unverifiedGraceRemaining === undefined) {
+    return " Added without a location check."
+  }
+  const left = Math.max(unverifiedGraceRemaining - 1, 0)
+  if (left === 0) {
+    return " Added without a location check. Next time, location or the venue code is needed."
+  }
+  return left === 1
+    ? " Added without a location check. 1 more can be added without one."
+    : ` Added without a location check. ${left} more can be added without one.`
+}
+
 function issuedCopy(
   result: IssuedStamp,
-  total: number
+  total: number,
+  unverifiedGraceRemaining: number | undefined
 ): Pick<StampChoreographyView, "announcement" | "statusTitle" | "statusBody"> {
   const complete = total > 0 && result.newStampCount >= total
-  const extra = bonusCopy(result.bonusStampsApplied)
+  const extra =
+    bonusCopy(result.bonusStampsApplied) +
+    verificationCopy(result, unverifiedGraceRemaining)
   if (complete) {
     return {
       announcement:
@@ -248,6 +323,17 @@ function issuedCopy(
   }
 }
 
+/** The refusal band, with the venue code named when it is the way past a throttle. */
+function blockedBody(
+  state: Extract<StampChoreographyState, { phase: "blocked" }>,
+  fallback: VenueCodeFallbackView
+): string {
+  if (state.reason === "rate_limited" && fallback.venueCodeOffer) {
+    return `${state.message} Or enter today's venue code below.`
+  }
+  return state.message
+}
+
 export function stampChoreographyView(
   state: StampChoreographyState,
   input: StampViewInput
@@ -257,7 +343,36 @@ export function stampChoreographyView(
   const cardComplete = input.total > 0 && displayCurrent >= input.total
   const printing = state.phase === "printing"
   const closed = !input.canStamp && state.phase === "idle"
-  const fallback = venueCodeFallback(state)
+  const fallback = venueCodeFallback(state, input)
+
+  // The browser is being asked for a fix. Nothing has been sent, so the card
+  // does not ink and the venue code stays open; only the band says what is
+  // happening and that the permission sheet, if any, is the thing to answer.
+  if (
+    input.acquiringLocation &&
+    (state.phase === "idle" || state.phase === "blocked") &&
+    input.canStamp
+  ) {
+    return {
+      ...fallback,
+      displayCurrent,
+      dates: displayDates(input, result),
+      slamIndex: -1,
+      pendingIndex: -1,
+      cardComplete,
+      secured: false,
+      pending: false,
+      confirmed: false,
+      ariaBusy: true,
+      buttonLabel: "Checking location",
+      announcement: "Checking your location.",
+      statusTitle: "Checking your location.",
+      statusBody:
+        "Allow location if your phone asks. Or enter today's venue code instead.",
+      rewardUnlocked: false,
+      rewardSlammed: false,
+    }
+  }
 
   if (state.phase === "checking") {
     const pendingIndex = pendingSlotIndex(input, state.startedCurrent)
@@ -299,7 +414,7 @@ export function stampChoreographyView(
       buttonLabel: "Try today's stamp again",
       announcement: `Stamp not added. ${state.message}`,
       statusTitle: "Stamp not added.",
-      statusBody: state.message,
+      statusBody: blockedBody(state, fallback),
       rewardUnlocked: false,
       rewardSlammed: false,
     }
@@ -350,7 +465,7 @@ export function stampChoreographyView(
   }
 
   if (result) {
-    const copy = issuedCopy(result, input.total)
+    const copy = issuedCopy(result, input.total, input.unverifiedGraceRemaining)
     return {
       ...fallback,
       displayCurrent,
@@ -405,10 +520,14 @@ export function stampChoreographyView(
     announcement: "",
     statusTitle: closed
       ? "You're stamped for today."
-      : "Ready for today's stamp.",
+      : fallback.locationControls
+        ? "Confirm you're at the venue."
+        : "Ready for today's stamp.",
     statusBody: closed
       ? "Come back on the next UK business day."
-      : "Tap the stamp, or press and hold, to print today's mark.",
+      : fallback.locationControls
+        ? "Use your phone's location, or enter today's code from a team member."
+        : "Tap the stamp, or press and hold, to print today's mark.",
     rewardUnlocked: input.rewardUnlocked,
     rewardSlammed: false,
   }

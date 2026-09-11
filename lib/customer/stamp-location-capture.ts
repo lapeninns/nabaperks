@@ -12,42 +12,62 @@ export function shouldAttemptStampLocation(
 // Indoor pub GPS often needs several seconds. The previous 1.2s window timed
 // out before a fix arrived and then ignored the late success.
 export const SOFT_GPS_CAPTURE_TIMEOUT_MS = 10_000
-const SOFT_GPS_CAPTURE_WATCHDOG_MS = 500
+
+/**
+ * Written by the flow before #272 to remember a refused prompt. Nothing reads
+ * it any more, and a stale "1" once kept a customer marked as denied after they
+ * had allowed location in site settings. Cleared on sight, best effort.
+ */
+const LEGACY_DENIAL_MEMORY_KEY = "nabaperks:soft-gps-denied:v1"
 
 export type StampLocationCapture = {
   readonly latitude: number | null
   readonly longitude: number | null
   readonly accuracyMeters: number | null
+  /**
+   * `granted` carries a fix. `denied`, `timeout`, `unavailable` and
+   * `unsupported` are what the browser said. `cancelled` means the customer
+   * moved on (to the venue code) before the browser answered; it must never be
+   * submitted.
+   */
   readonly locationStatus: string
   readonly captureElapsedMs: number
 }
 
+export type GeolocationPermissionState =
+  "granted" | "denied" | "prompt" | "unknown"
+
+/**
+ * Ask the browser for a fix. Always asks: a hard-blocked site answers
+ * PERMISSION_DENIED at once and at no cost, and asking is the only way to
+ * notice that the customer has since allowed location in site settings. The
+ * Permissions API is for copy only (see {@link geolocationPermissionState}).
+ *
+ * The browser's own `timeout` is the deadline. Per spec it does not start
+ * until permission is granted, so a customer reading the permission sheet is
+ * never timed out under it. Pass a signal to abandon the wait when the
+ * customer switches to the venue code; a fix arriving after that is ignored.
+ */
 export async function resolveStampLocation(
   shouldAttemptLocation: boolean,
-  timeoutMs = SOFT_GPS_CAPTURE_TIMEOUT_MS
+  timeoutMs = SOFT_GPS_CAPTURE_TIMEOUT_MS,
+  signal?: AbortSignal
 ): Promise<StampLocationCapture | null> {
   if (!shouldAttemptLocation || typeof navigator === "undefined") {
     return null
   }
 
+  forgetLegacyDenial()
+
   if (!navigator.geolocation) {
-    return {
-      latitude: null,
-      longitude: null,
-      accuracyMeters: null,
-      locationStatus: "unsupported",
-      captureElapsedMs: 0,
-    }
+    return emptyCapture("unsupported")
   }
 
-  // Script cannot re-open a blocked OS prompt. Skip the GPS wait in that
-  // case so the stamp is not delayed. A later Allow in site settings shows
-  // up as granted or prompt on the next collect, and we capture again.
-  if ((await geolocationPermissionState()) === "denied") {
-    return emptyCapture("denied_remembered")
+  if (signal?.aborted) {
+    return emptyCapture("cancelled")
   }
 
-  return captureGeolocation(timeoutMs)
+  return captureGeolocation(timeoutMs, signal)
 }
 
 export function addLocationCapture(
@@ -69,7 +89,93 @@ export function addLocationCapture(
   formData.set("capture_elapsed_ms", String(capture.captureElapsedMs))
 }
 
-function captureGeolocation(timeoutMs: number): Promise<StampLocationCapture> {
+/**
+ * What the browser currently says about this site's location permission.
+ * Copy only: a missing or throwing Permissions API resolves to `unknown` and
+ * must never hide a control or skip the browser call.
+ */
+export async function geolocationPermissionState(): Promise<GeolocationPermissionState> {
+  try {
+    if (typeof navigator === "undefined" || !navigator.permissions?.query) {
+      return "unknown"
+    }
+    const result = await navigator.permissions.query({ name: "geolocation" })
+    if (
+      result.state === "granted" ||
+      result.state === "denied" ||
+      result.state === "prompt"
+    ) {
+      return result.state
+    }
+    return "unknown"
+  } catch {
+    return "unknown"
+  }
+}
+
+export type CaptureDecision =
+  | { readonly action: "submit" }
+  | { readonly action: "ignore" }
+  | { readonly action: "refuse"; readonly message: string }
+
+export type CaptureDecisionInput = {
+  /**
+   * Unverified stamps the server will still commit for this membership, from
+   * the page payload. Undefined when the page could not say.
+   */
+  readonly unverifiedGraceRemaining: number | undefined
+  /**
+   * The server has already answered `location_required` to a capture without
+   * a fix during this visit — so the grace is spent whatever the payload said.
+   */
+  readonly refusedWithoutFix: boolean
+}
+
+/**
+ * Whether a capture is worth a stamp request. A fix always is. A capture with
+ * no fix is only worth it while the server would still commit an unverified
+ * stamp against the grace; once that is spent, submitting it charges the
+ * attempt bucket and comes back refused — ten of those was how a member lost
+ * the venue-code form. Decided here, on the phone, so the code stays offered.
+ */
+export function decideCaptureSubmission(
+  capture: StampLocationCapture | null,
+  input: CaptureDecisionInput
+): CaptureDecision {
+  if (!capture || capture.locationStatus === "granted") {
+    return { action: "submit" }
+  }
+  if (capture.locationStatus === "cancelled") {
+    return { action: "ignore" }
+  }
+
+  const graceLeft =
+    input.unverifiedGraceRemaining === undefined
+      ? !input.refusedWithoutFix
+      : input.unverifiedGraceRemaining > 0 && !input.refusedWithoutFix
+  if (graceLeft) {
+    return { action: "submit" }
+  }
+
+  return { action: "refuse", message: noFixMessage(capture.locationStatus) }
+}
+
+function noFixMessage(locationStatus: string): string {
+  switch (locationStatus) {
+    case "denied":
+      return "Location is blocked for this site. Allow it in your browser settings, or enter today's venue code."
+    case "unsupported":
+      return "This browser can't share location. Enter today's venue code instead."
+    default:
+      // timeout, unavailable, or anything the browser invents later.
+      return "Couldn't get a location fix. Try again nearer a window or door, or enter today's venue code."
+  }
+}
+
+function captureGeolocation(
+  timeoutMs: number,
+  signal: AbortSignal | undefined
+): Promise<StampLocationCapture> {
   return new Promise((resolve) => {
     const startedAt = nowMs()
     const waitMs = Math.max(Math.trunc(timeoutMs), 1)
@@ -77,17 +183,16 @@ function captureGeolocation(timeoutMs: number): Promise<StampLocationCapture> {
     const finish = (capture: StampLocationCapture) => {
       if (settled) return
       settled = true
-      clearTimeout(timer)
+      signal?.removeEventListener("abort", onAbort)
       resolve(capture)
     }
-    // Hang-guard only. The browser timeout is the real deadline so a fix that
-    // arrives near the end of the window is not discarded by a racing timer.
-    const timer = globalThis.setTimeout(() => {
+    const onAbort = () => {
       finish({
-        ...emptyCapture("timeout"),
-        captureElapsedMs: waitMs,
+        ...emptyCapture("cancelled"),
+        captureElapsedMs: elapsedMs(startedAt),
       })
-    }, waitMs + SOFT_GPS_CAPTURE_WATCHDOG_MS)
+    }
+    signal?.addEventListener("abort", onAbort, { once: true })
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -121,22 +226,11 @@ function captureGeolocation(timeoutMs: number): Promise<StampLocationCapture> {
   })
 }
 
-async function geolocationPermissionState(): Promise<
-  "granted" | "denied" | "prompt" | "unknown"
-> {
+function forgetLegacyDenial(): void {
   try {
-    if (!navigator.permissions?.query) return "unknown"
-    const result = await navigator.permissions.query({ name: "geolocation" })
-    if (
-      result.state === "granted" ||
-      result.state === "denied" ||
-      result.state === "prompt"
-    ) {
-      return result.state
-    }
-    return "unknown"
+    globalThis.localStorage?.removeItem(LEGACY_DENIAL_MEMORY_KEY)
   } catch {
-    return "unknown"
+    // Storage can be unavailable or throw in private modes; capture goes on.
   }
 }
 

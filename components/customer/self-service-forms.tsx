@@ -2,6 +2,7 @@
 
 export {
   addLocationCapture,
+  decideCaptureSubmission,
   resolveStampLocation,
   shouldAttemptStampLocation,
   SOFT_GPS_CAPTURE_TIMEOUT_MS,

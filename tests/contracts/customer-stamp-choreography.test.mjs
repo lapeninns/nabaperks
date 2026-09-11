@@ -8,25 +8,67 @@ const read = (relativePath) =>
   readFileSync(path.join(root, relativePath), "utf8")
 
 const collector = read("components/customer/stamp-collector.tsx")
+const controls = read("components/customer/verify-visit-controls.tsx")
 const pressButton = read("components/customer/stamp-press-button.tsx")
 const wetInk = read("components/motion/wet-ink.tsx")
 const choreography = read("lib/customer/experience/stamp-choreography.ts")
 const action = read("app/card/[membershipId]/actions.ts")
 const actionState = read("lib/customer/self-stamp-action-state.ts")
 
-test("GPS is captured when the customer stamps, not from a stale page-load promise", () => {
-  const issueStart = collector.indexOf("async function issueStamp")
-  const issueEnd = collector.indexOf("async function issueWithCode")
-  const body = collector.slice(issueStart, issueEnd)
-  assert.match(
-    body,
-    /await resolveStampLocation\(true\)/,
-    "the stamp action must take a fresh GPS reading at collect time"
+test("GPS is asked for only from the customer's location tap — never on page load, never by the stamp request", () => {
+  assert.doesNotMatch(
+    collector,
+    /resolveStampLocation/,
+    "the collector never asks the browser itself: not on mount, not inside issueStamp"
   )
   assert.doesNotMatch(
-    body,
+    collector,
     /locationPromiseRef/,
     "a page-load GPS promise must not be submitted as the stamp location"
+  )
+  assert.match(
+    controls,
+    /resolveStampLocation\(\s*true,\s*undefined,\s*controller\.signal\s*\)/,
+    "the only call site is the Use my location tap, and it can be abandoned"
+  )
+  assert.match(
+    controls,
+    /abortRef\.current\?\.abort\(\)[\s\S]{0,40}onOpenCode\(\)/,
+    "switching to the venue code abandons an in-flight location wait"
+  )
+  const issueStart = collector.indexOf("async function issueStamp")
+  const issueEnd = collector.indexOf("function handleCapture")
+  assert.match(
+    collector.slice(issueStart, issueEnd),
+    /addLocationCapture\(formData, capture\)/,
+    "the request carries exactly the capture the tap produced"
+  )
+})
+
+test("a capture without a fix is only sent while the server would still commit it", () => {
+  const start = collector.indexOf("function handleCapture")
+  const end = collector.indexOf("async function issueWithCode")
+  const body = collector.slice(start, end)
+  assert.match(body, /decideCaptureSubmission\(capture, \{/)
+  assert.match(
+    body,
+    /unverifiedGraceRemaining: location\.unverifiedGraceRemaining/
+  )
+  assert.match(body, /refusedWithoutFix: refusedWithoutFixRef\.current/)
+  assert.match(
+    body,
+    /decision\.action === "refuse"[\s\S]{0,120}capture_refused/,
+    "a refusal decided on the phone goes to the choreography, not to the server"
+  )
+  assert.match(
+    collector,
+    /next\.reason === "location_required"[\s\S]{0,60}refusedWithoutFixRef\.current = true/,
+    "the server's location_required outranks the page payload for the rest of the visit"
+  )
+  assert.doesNotMatch(
+    collector,
+    /still saves if your phone cannot share location/,
+    "the notice that promised a stamp regardless of location is gone"
   )
 })
 

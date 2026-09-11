@@ -135,12 +135,38 @@ test("the form is a numeric one-time-code field that only renders when offered",
   )
   assert.match(
     collector,
-    /view\.venueCodeOffer \|\| view\.venueCodeLockedUntil !== null/
+    /view\.venueCodeLockedUntil !== null \|\|[\s\S]{0,80}view\.venueCodeOffer && \(codeOpen \|\| state\.phase === "blocked"\)/,
+    "the form shows when asked for, after a refusal it answers, or as a lockout notice"
   )
   assert.match(
     collector,
+    /VerifyVisitControls/,
+    "a verified visit offers Use my location and Enter venue code side by side"
+  )
+  assert.doesNotMatch(
+    collector,
     /LocationRetryButton/,
-    "a location refusal also offers a tap that re-asks the browser for location"
+    "the after-refusal-only retry button is gone"
+  )
+  const choreography = readFileSync(
+    "lib/customer/experience/stamp-choreography.ts",
+    "utf8"
+  )
+  const offered = slice(
+    choreography,
+    "export function venueCodeOffered",
+    "export function locationRetryOffered"
+  )
+  assert.match(
+    offered,
+    /reason === "rate_limited"/,
+    "a throttled stamp path keeps the code (which has its own throttle) on screen"
+  )
+  assert.match(offered, /reason === "location_blocked"/)
+  assert.doesNotMatch(
+    offered,
+    /reason === "venue_code_locked"/,
+    "a lockout withholds the form"
   )
   assert.match(
     collector,

@@ -236,6 +236,7 @@ async function completeIssuedStamp(
     rewardUnlocked: result.rewardUnlocked || bonusRewardUnlocked,
     geoFlagged: result.geoFlagged,
     bonusStampsApplied,
+    ...(result.verification ? { verification: result.verification } : {}),
   }
 }
 

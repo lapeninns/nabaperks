@@ -132,6 +132,10 @@ export function blockReasonCopy(reason: CustomerBlockReason): string {
       // The grace budget is spent. The copy has to name the fix, because the
       // customer is standing in the venue and the phone is the problem.
       return "Turn on location for this venue and scan again, or ask a team member for today's code."
+    case "location_blocked":
+      // Same situation, decided on the phone before any request was spent:
+      // the browser gave no fix and the grace is already used up.
+      return "Location is blocked for this site. Allow it in your browser settings, or enter today's venue code."
     case "venue_code_rejected":
       return "That code isn't right. Check it with a team member."
     case "venue_code_refusal_missing":
