@@ -65,8 +65,11 @@ publishes the outcome through a GitHub App. The advisory observer is in
 `LOCAL_CI_OBSERVE_ONCE=true` and has a two-minute job timeout. Missing or pending
 proof is observational, never a passing local test result or merge authority.
 `config/local-ci-contract.json` owns agent policy; the workflows own hosted
-placement. `Release gate` requires all nine hosted roots: `fast`, `quality`,
-`build`, `e2e`, `a11y`, `visual`, `lighthouse`, `zap-baseline` and `db`.
+placement. For full CI, `Release gate` requires all nine hosted roots: `fast`,
+`quality`, `build`, `e2e`, `a11y`, `visual`, `lighthouse`, `zap-baseline` and `db`.
+Qualified documentation and literal public-page PR changes use the reviewed
+[change-aware policy](docs/operations/change-aware-ci.md). Exact-main CI continues
+to require every hosted root.
 
 ```bash
 pnpm ops:ci:agent          # one-shot: --profile <pr|main|nightly> --sha <sha>

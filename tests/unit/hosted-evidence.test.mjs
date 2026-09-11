@@ -50,9 +50,9 @@ const PROJECTS = [
 const E2E_PACKS = 4
 const A11Y_SHARDS = 4
 const VISUAL_SHARDS = 4
-const NON_LANE_JOBS = 21
+const NON_LANE_JOBS = 26
 const TOTAL_JOBS =
-  3 + PROJECTS.length * E2E_PACKS + 2 * (A11Y_SHARDS + VISUAL_SHARDS) + 13
+  3 + PROJECTS.length * E2E_PACKS + 2 * (A11Y_SHARDS + VISUAL_SHARDS) + 18
 
 const run = {
   id: 34290952137,
@@ -206,6 +206,11 @@ function hostedRun() {
     add(`Lighthouse (${route})`)
   }
   for (const name of [
+    "Select required checks",
+    "Documentation validation",
+    "Affected page browser checks",
+    "Affected page visual checks",
+    "Verify targeted and full outcomes",
     "Production build",
     "Typecheck and build",
     "E2E (DB-free harness tier)",

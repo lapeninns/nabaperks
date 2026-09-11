@@ -77,7 +77,8 @@ jobs:
 
   staging:
     name: Cost-neutral ephemeral release proof
-    needs: preflight
+    needs: baseline
+    if: ${{ needs.baseline.outputs.application_required == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
@@ -224,11 +225,12 @@ jobs:
 
   baseline:
     name: Authenticate the deployed baseline
-    needs: staging
+    needs: preflight
     environment: Production
     timeout-minutes: 10
     outputs:
       artifact_id: ${{ steps.baseline-upload.outputs.artifact-id }}
+      application_required: ${{ steps.impact.outputs.application_required }}
     runs-on: ubuntu-latest
     env:
       EXPECTED_REVISION: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
@@ -251,6 +253,17 @@ jobs:
           test "$(git rev-parse origin/main)" = "$EXPECTED_REVISION"
           mkdir -p "$RUNNER_TEMP/release-baseline"
           node scripts/release/deployed-baseline.mjs "$RUNNER_TEMP/release-baseline/baseline.json"
+      - name: Compare the entire candidate with authenticated production
+        id: impact
+        run: node scripts/release/no-deployment.mjs "$RUNNER_TEMP/release-baseline/baseline.json" "$RUNNER_TEMP/release-baseline/release-candidate.json"
+      - name: Retain explicit evidence that no application deployment was required
+        if: ${{ steps.impact.outputs.application_required == 'false' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: production-unchanged-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release-baseline/release-candidate.json
+          if-no-files-found: error
+          retention-days: 90
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         id: baseline-upload
         with:
@@ -261,7 +274,8 @@ jobs:
 
   qualification:
     name: Qualify runtime without production credentials
-    needs: baseline
+    needs: [baseline, staging]
+    if: ${{ needs.baseline.outputs.application_required == 'true' }}
     timeout-minutes: 45
     permissions:
       contents: read
@@ -324,6 +338,7 @@ jobs:
   promote:
     name: Database promotion
     needs: [baseline, qualification]
+    if: ${{ needs.baseline.outputs.application_required == 'true' }}
     environment: Production
     runs-on: ubuntu-latest
     timeout-minutes: 45

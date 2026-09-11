@@ -138,7 +138,7 @@ test("Given routine pull requests When CI runs Then deep browser proof is sharde
     assert.match(
       ci,
       new RegExp(
-        `  ${job}:[\\s\\S]*?name: ${protectedName}[\\s\\S]*?needs: ${dependency}`
+        `  ${job}:[\\s\\S]*?name: ${protectedName}[\\s\\S]*?needs: \\[selection, ${dependency}\\]`
       )
     )
   }
@@ -153,7 +153,7 @@ test("Given routine pull requests When CI runs Then deep browser proof is sharde
     assert.match(
       ci,
       new RegExp(
-        `\\n  ${job}:\\n(?:(?!\\n  [a-z][a-z0-9-]*:\\n)[\\s\\S])*?\\n    needs: ${dependency}\\n`
+        `\\n  ${job}:\\n(?:(?!\\n  [a-z][a-z0-9-]*:\\n)[\\s\\S])*?\\n    needs: \\[selection, ${dependency}\\]\\n`
       )
     )
   }
@@ -162,12 +162,13 @@ test("Given routine pull requests When CI runs Then deep browser proof is sharde
     const block = ci
       .split(`\n  ${job}:\n`)[1]
       .split(/\n  [a-z][a-z0-9-]*:\n/)[0]
-    assert.doesNotMatch(block, /\n    needs:|needs\.fast/)
+    assert.match(block, /\n    needs: selection\n/)
+    assert.doesNotMatch(block, /needs\.fast/)
   }
 
   // The stable required check covers every existing hosted validation root.
   assert.match(ci, /name: Typecheck and build/)
-  assert.match(ci, /needs: \[fast, quality, build\]/)
+  assert.match(ci, /needs: \[selection, fast, quality, build\]/)
   assert.match(ci, /name: Release gate/)
   for (const dependency of [
     "fast",

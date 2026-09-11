@@ -39,7 +39,9 @@ jobs:
       - name: Check out the probe contract
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
         with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
           persist-credentials: false
+          fetch-depth: 0
       - name: Resolve the released candidate from its bound artifact
         if: ${{ github.event_name == 'workflow_run' }}
         env:

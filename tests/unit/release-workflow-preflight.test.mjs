@@ -148,7 +148,11 @@ test("one outer lock spans successful database application through public verifi
 test("downstream smoke authenticates actual deployed candidate instead of outer workflow SHA", () => {
   const smoke = read("production-smoke.yml")
   assert.match(smoke, /workflows: \["Production database promotion"\]/)
-  assert.doesNotMatch(smoke, /workflow_run\.head_sha/)
+  assert.match(
+    smoke,
+    /ref: \$\{\{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha \|\| github.sha \}\}/
+  )
+  assert.doesNotMatch(smoke, /EXPECTED_REVISION:.*workflow_run\.head_sha/)
   assert.match(smoke, /run: node scripts\/release\/read-candidate-artifact.mjs/)
   assert.ok(
     smoke.indexOf("read-candidate-artifact.mjs") <
