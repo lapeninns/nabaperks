@@ -362,15 +362,28 @@ test("prepared image verification rejects version drift and missing browsers", (
   ])
     assert.throws(() => verifyBrowserImage({ ...valid, ...change }, () => true))
   assert.throws(() => verifyBrowserImage(valid, () => false))
-  const workflow = readFileSync("config/ci-qualification-workflow.yml", "utf8")
-  assert.equal(
-    workflow.split("options: --init --ipc=host --user 1001").length - 1,
-    3
-  )
-  assert.equal(
-    workflow.split(
-      `mcr.microsoft.com/playwright:v${BROWSER_IMAGE_VERSION}-noble@sha256:`
-    ).length - 1,
-    3
-  )
+  // Guard the active workflow as well as the reviewed proposal. Tying the
+  // pinned and hardened counts to the number of image references keeps the
+  // assertion true for either file's job count, while still failing if any
+  // browser container loses its digest pin or its privilege drop.
+  for (const path of [
+    ".github/workflows/ci.yml",
+    "config/ci-qualification-workflow.yml",
+  ]) {
+    const workflow = readFileSync(path, "utf8")
+    const images = workflow.split("mcr.microsoft.com/playwright:").length - 1
+    assert.ok(images >= 2, path)
+    assert.equal(
+      workflow.split(
+        `mcr.microsoft.com/playwright:v${BROWSER_IMAGE_VERSION}-noble@sha256:`
+      ).length - 1,
+      images,
+      path
+    )
+    assert.equal(
+      workflow.split("options: --init --ipc=host --user 1001").length - 1,
+      images,
+      path
+    )
+  }
 })
