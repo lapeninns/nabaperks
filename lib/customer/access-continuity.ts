@@ -1,9 +1,10 @@
 import "server-only"
 
-import { createHmac, randomInt, randomUUID, timingSafeEqual } from "node:crypto"
+import { randomInt, randomUUID, timingSafeEqual } from "node:crypto"
 
 import { headers } from "next/headers"
 
+import { customerAccessRecoveryCodeHmac } from "@/lib/customer/access-continuity-core"
 import { customerEmailHmac } from "@/lib/customer/email-pii-core"
 import type { CurrentCustomer } from "@/lib/customer/identity"
 import {
@@ -308,30 +309,16 @@ function recoveryCurrentCustomer(
   }
 }
 
-// Exported so end-to-end fixtures can store a real recovery-code digest instead
-// of a placeholder. A regression in this derivation then fails those tests.
-export function codeHmac({
-  customerId,
-  deviceHash,
-  email,
-  code,
-}: {
+function codeHmac(input: {
   customerId: string
   deviceHash: string
   email: string
   code: string
 }): string {
-  return createHmac("sha256", requiredCustomerSessionSecret())
-    .update("nabaperks:customer-access-recovery:v1")
-    .update("\0")
-    .update(customerId)
-    .update("\0")
-    .update(deviceHash)
-    .update("\0")
-    .update(email.trim().toLowerCase())
-    .update("\0")
-    .update(code)
-    .digest("hex")
+  return customerAccessRecoveryCodeHmac({
+    ...input,
+    secret: requiredCustomerSessionSecret(),
+  })
 }
 
 function safeEqual(left: string, right: string): boolean {

@@ -3,7 +3,7 @@ import { createHash, randomUUID } from "node:crypto"
 import type { BrowserContext } from "@playwright/test"
 
 import { customerEmailHmac } from "@/lib/customer/email-pii-core"
-import { codeHmac as recoveryCodeHmac } from "@/lib/customer/access-continuity"
+import { customerAccessRecoveryCodeHmac } from "@/lib/customer/access-continuity-core"
 import { createPendingAccessRecoveryCookieValue } from "@/lib/customer/session-cookie-core"
 import { issueCustomerDeviceToken } from "@/lib/security/customer-device-token"
 
@@ -78,11 +78,12 @@ export async function installPendingAccessRecovery(
   // dev-OTP bypass. A regression in that derivation then fails the test.
   const codeHmac = options.canUseEmail
     ? options.recoveryCode && email
-      ? recoveryCodeHmac({
+      ? customerAccessRecoveryCodeHmac({
           customerId,
           deviceHash,
           email,
           code: options.recoveryCode,
+          secret,
         })
       : PLACEHOLDER_HMAC
     : null
