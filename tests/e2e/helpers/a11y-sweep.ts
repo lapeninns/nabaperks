@@ -56,8 +56,6 @@ const HARNESS_LANES = [
   // the fallback locked out — the two states that add or withhold a form.
   "/dev/home-harness/stamp?mode=location-blocked",
   "/dev/home-harness/stamp?mode=code-locked",
-  // A verified visit before any refusal: location and venue code side by side.
-  "/dev/home-harness/stamp?mode=verify-grace-spent",
   HARNESS_ROUTES.designSystem,
   HARNESS_ROUTES.posterPreview,
   HARNESS_ROUTES.tentPreview,
