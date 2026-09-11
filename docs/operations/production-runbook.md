@@ -78,7 +78,15 @@ full webhook payloads.
 
 1. Merge the independently reviewed branch through protected `main`; do not
    bypass checks.
-2. Wait for `Production database promotion`: its cost-neutral ephemeral proof
+2. Wait for exact-main CI and CodeQL, then review the protected
+   `Authenticate the deployed baseline` job in `Production database promotion`.
+   This first approval permits the authenticated Vercel baseline readback. If
+   the complete deployed-to-candidate difference is qualified internal
+   documentation only, the run records `production-unchanged` evidence and
+   skips staging, database and application deployment. Record the existing
+   production revision and the separate documentation candidate; do not report
+   that candidate as deployed. See [change-aware CI](change-aware-ci.md).
+   For application releases, the cost-neutral ephemeral proof
    must start a fresh Supabase CLI stack, build the exact revision on the
    loopback origin, verify the full migration ledger and authenticated
    readiness, replay signed webhooks, and roll back its synthetic loyalty
@@ -220,10 +228,13 @@ idempotency key. Configure the GitHub `Monitoring` URL and secret only after
 the fixed workflow revision and receiver are live; otherwise an older workflow
 could resolve an incident using its deprecated comment marker.
 
-Review the migration files before approving the production environment gate.
-The workflow first runs the cost-neutral ephemeral proof described above. Only
-after it passes can the `Production` environment release credentials. The
-production job runs a linked dry run immediately before applying forward-only
+Review the migration files before approving the production environment gates.
+After exact-main CI and CodeQL, the first protected job authenticates the
+deployed baseline and decides whether application deployment is required.
+Runtime releases then run the cost-neutral ephemeral proof described above and
+qualify compatibility on a fresh runner without production credentials. Only
+after both succeed does the protected database promotion job become eligible.
+That job runs a linked dry run immediately before applying forward-only
 migrations and fails unless the remote and repository ledgers match. Never
 repair, reset or seed production from this path. After successful database
 application, the outer run invokes the reusable application workflow. It
@@ -234,11 +245,14 @@ application callee has no competing same-group lock. The admin activation and
 bootstrap mutators share that lock, while the non-production recovery drill
 uses its own group.
 
-Release-triggered `Production smoke` reads the single candidate artifact from
-the successful outer run and exact attempt. It validates the originating
-workflow, repository, event, artifact identity and candidate metadata. The
-outer run head SHA is not a substitute for the actual deployed candidate.
-Scheduled availability smoke remains independent.
+Release-triggered `Production smoke` reads the single candidate or explicit
+no-deployment artifact from the successful outer run and exact attempt. It
+validates the originating workflow, repository, event and artifact identity.
+A promotion requires successful candidate metadata and public proof. A
+documentation-only outcome requires an independently verified Git difference
+and probes the existing baseline revision. The outer run head SHA is not a
+substitute for the actual deployed revision. Scheduled availability smoke
+remains independent.
 
 Manual recovery dispatches the outer `Production database promotion` workflow
 with the full main-tip SHA and `PROMOTE_PRODUCTION_DATABASE`; it repeats
@@ -271,8 +285,10 @@ and after public proof, before the verified stage can be retained.
 
 The workflow compares the complete baseline-to-candidate Git tree. Changes
 limited to narrowly reviewed CI, operations, test and documentation paths can
-qualify as unchanged runtime. Application, dependency or schema changes run
-`scripts/release/qualify-runtime.mjs` within the protected release job. It builds
+qualify as unchanged runtime. This compatibility admission is separate from the
+narrower documentation-only rule that avoids deployment entirely. Application,
+dependency or schema changes run `scripts/release/qualify-runtime.mjs` on the
+fresh qualification runner without production credentials. It builds
 immutable probes from clean exact baseline/candidate commits with fresh frozen
 dependencies, provisions a blank Supabase 17 project without provider secrets,
 applies every baseline migration, inserts 18 synthetic records, then applies
