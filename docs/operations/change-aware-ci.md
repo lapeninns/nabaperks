@@ -28,6 +28,13 @@ the same repository bounds for each. HTML character references in local URLs
 and `srcset` require explicit Markdown links instead of unvalidated destination
 syntax. Code examples and HTML comments are ignored.
 
+The documentation artifact binds the checked files and their Git blobs to the
+merge candidate. Qualification always runs eight fixed positive and negative
+Markdown cases, including formatting, inline/reference links, HTML links and a
+code example, even when the change inventory contains no Markdown. The reviewed
+verifier checks the complete case set and independently re-reads the candidate's
+documentation file inventory; job success alone cannot qualify the checker.
+
 Consumer analysis includes root runtime entries such as `proxy.ts`,
 `instrumentation.ts` and `next.config.ts`, as well as additional source folders.
 Known tooling is excluded from that scan; an application import into excluded
@@ -93,6 +100,20 @@ and targeted manifests; missing or different settings fail. Visual qualification
 on Linux x64 and uses the existing baselines. A test list or a local ARM visual
 run is not a substitute.
 
+The reviewed planner reads qualification pages from the candidate policy as
+bounded JSON data. The verifier independently checks that same Git object, so
+adding, removing or renaming a page qualifies the proposed page set instead of
+comparing it with the base's older allowlist. This does not grant selection
+authority until the policy change passes review and merges.
+
+The verifier also parses the candidate workflow as data. Full e2e, accessibility
+and targeted browser jobs must name the same literal Playwright image with an
+immutable SHA-256 digest, runner and container options. Both visual jobs must
+name the same host runner. Missing, dynamic or different environments fail even
+when Playwright settings and test outcomes match. The artifact records the
+candidate workflow digest and those job environments, and every targeted
+manifest must match that independently read identity.
+
 The comparison verdict executes from the immutable reviewed PR base, including
 that checkout's dependency lock. The candidate's reports are data, and changes
 to its verifier cannot replace this verdict. The artifact records the verifier
@@ -105,12 +126,14 @@ The first installation has no base verifier. Its fixed bootstrap source is
 before later repairs. The comparison implementation is unchanged at that pin.
 This historical review identifies the bootstrap code; it does not approve the
 current PR or replace its fresh code-owner approval. That verifier predates the
-resolved-settings digest. Bootstrap therefore additionally requires the candidate's
+resolved-settings digest, workflow identity and documentation case evidence.
+Bootstrap therefore additionally requires the candidate's page allowlist,
 browser configuration, its helper, browser/setup actions, Node version and
 dependency manifests/locks to be identical to the pin. It cannot qualify a changed
 browser configuration. After installation, comparisons use the reviewed base's
-expanded settings verifier. Record both the bootstrap source check and an
-independent comparison of the captured settings for this initial installation.
+expanded verifier. Record the bootstrap source check and an independent readback
+of captured settings, workflow environments and documentation cases for this
+initial installation. The documentation job must also pass its fixed cases.
 
 The installation PR cannot use its own new policy to reduce its checks. Its
 reviewed base has no classifier, so bootstrap requires all nine roots and the

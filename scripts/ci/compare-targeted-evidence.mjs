@@ -19,6 +19,9 @@ import {
   compareAffectedOutcomes,
 } from "./impact-browser-evidence.mjs"
 import { browserConfiguration } from "./browser-configuration.mjs"
+import { verifyQualificationScope } from "./impact-qualification-scope.mjs"
+import { candidateBrowserEnvironment } from "./impact-browser-environment.mjs"
+import { verifyDocumentationEvidence } from "./documentation-evidence.mjs"
 
 function filesUnder(root) {
   const paths = []
@@ -73,7 +76,7 @@ export function readFullReports(root, tier) {
   return { tests, policy, configuration, reports: files.length }
 }
 
-export function compareTargetedEvidence(root, plan, needs) {
+export function compareTargetedEvidence(root, plan, needs, options) {
   assert.equal(plan.profile, "full", "Selection qualification needs a full run")
   assert.equal(plan.comparisonRequired, true)
   const expectedJobs = [
@@ -92,6 +95,18 @@ export function compareTargetedEvidence(root, plan, needs) {
     JSON.parse(needs.selection.outputs.plan),
     plan,
     "Comparison uses a different selection plan"
+  )
+  verifyQualificationScope(plan, options)
+  const browserEnvironment = candidateBrowserEnvironment(
+    plan.identity.candidateSha,
+    options
+  )
+  const documentation = verifyDocumentationEvidence(
+    JSON.parse(
+      readFileSync(join(root, "documentation", "documentation.json"), "utf8")
+    ),
+    plan,
+    options
   )
   const full = Object.fromEntries(
     ["e2e", "a11y", "visual"].map((tier) => [
@@ -123,6 +138,11 @@ export function compareTargetedEvidence(root, plan, needs) {
       manifest.pages,
       selectedPages(plan),
       "Targeted page coverage differs from the policy"
+    )
+    assert.deepEqual(
+      manifest.browserEnvironment,
+      browserEnvironment,
+      "Targeted browser environment differs from candidate workflow data"
     )
     assert.equal(manifest.platform, "linux")
     assert.equal(
@@ -170,6 +190,8 @@ export function compareTargetedEvidence(root, plan, needs) {
     identity: plan.identity,
     qualification: "passed",
     pages: selectedPages(plan),
+    browserEnvironment,
+    documentation,
     results,
     fullReports: Object.fromEntries(
       Object.entries(full).map(([tier, value]) => [tier, value.reports])
@@ -193,7 +215,8 @@ if (
     const result = compareTargetedEvidence(
       root,
       plan,
-      JSON.parse(process.env.CI_COMPARISON_NEEDS ?? "null")
+      JSON.parse(process.env.CI_COMPARISON_NEEDS ?? "null"),
+      { cwd: process.env.CI_COMPARISON_CANDIDATE_TREE }
     )
     writeFileSync(
       join(root, "selection-comparison.json"),

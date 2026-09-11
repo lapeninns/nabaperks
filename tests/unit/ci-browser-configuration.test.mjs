@@ -19,6 +19,9 @@ import {
 import { compareTargetedEvidence } from "../../scripts/ci/compare-targeted-evidence.mjs"
 import { browserPolicy } from "../../scripts/ci/impact-browser-evidence.mjs"
 import { inventoryFromPlaywright } from "../../scripts/ci/browser-parity.mjs"
+import { git } from "../../scripts/ci/impact-git.mjs"
+import { candidateBrowserEnvironment } from "../../scripts/ci/impact-browser-environment.mjs"
+import { qualifyDocumentation } from "../../scripts/ci/documentation-evidence.mjs"
 import { fullPlan } from "../../scripts/ci/impact-plan-contract.mjs"
 import {
   BROWSER_PROJECTS,
@@ -134,6 +137,35 @@ test("the real Playwright JSON reporter retains resolved settings on listing and
 test("complete qualification rejects mismatched or missing browser configuration evidence", (t) => {
   const root = mkdtempSync(join(tmpdir(), "browser-configuration-comparison-"))
   t.after(() => rmSync(root, { recursive: true, force: true }))
+  for (const path of [
+    "config/ci-impact-policy.json",
+    ".github/workflows/ci.yml",
+  ]) {
+    mkdirSync(dirname(join(root, path)), { recursive: true })
+    writeFileSync(
+      join(root, path),
+      readFileSync(new URL(`../../${path}`, import.meta.url))
+    )
+  }
+  const options = { cwd: root }
+  git(["init", "-q"], options)
+  git(["add", "--all"], options)
+  git(
+    [
+      "-c",
+      "user.name=Fixture",
+      "-c",
+      "user.email=ci@example.test",
+      "-c",
+      "core.hooksPath=/dev/null",
+      "commit",
+      "-qm",
+      "fixture",
+    ],
+    options
+  )
+  const sha = git(["rev-parse", "HEAD"], options).trim()
+  const environment = candidateBrowserEnvironment(sha, options)
   const configuration = captureBrowserConfiguration(resolved())
   const config = {
     workers: 1,
@@ -156,9 +188,9 @@ test("complete qualification rejects mismatched or missing browser configuration
     {
       repository: "lapeninns/nabaperks",
       event: "pull_request",
-      headSha: "a".repeat(40),
-      baseSha: "b".repeat(40),
-      candidateSha: "c".repeat(40),
+      headSha: sha,
+      baseSha: sha,
+      candidateSha: sha,
     },
     "Configuration fixture",
     true
@@ -220,6 +252,7 @@ test("complete qualification rejects mismatched or missing browser configuration
         architecture: "x64",
         browserPolicy: browserPolicy({ config }),
         browserConfiguration: configuration,
+        browserEnvironment: environment,
         tests: inventoryFromPlaywright(report(project, pageNames)),
         executions: [true, false].map((listOnly) => ({
           listOnly,
@@ -233,6 +266,13 @@ test("complete qualification rejects mismatched or missing browser configuration
       write(path, manifest)
       files.push({ path, manifest })
     }
+  write(join(root, "documentation/documentation.json"), {
+    schema: "nabaperks.documentation-evidence.v1",
+    identity: plan.identity,
+    files: [],
+    checks: { formatting: "not-required", localLinks: "not-required" },
+    corpus: qualifyDocumentation(),
+  })
   const needs = Object.fromEntries(
     [
       "selection",
@@ -246,7 +286,7 @@ test("complete qualification rejects mismatched or missing browser configuration
   )
   needs.selection.outputs = { plan: JSON.stringify(plan) }
   assert.equal(
-    compareTargetedEvidence(root, plan, needs).qualification,
+    compareTargetedEvidence(root, plan, needs, options).qualification,
     "passed"
   )
   const { path, manifest } = files[0]
@@ -257,12 +297,12 @@ test("complete qualification rejects mismatched or missing browser configuration
     ),
   })
   assert.throws(
-    () => compareTargetedEvidence(root, plan, needs),
+    () => compareTargetedEvidence(root, plan, needs, options),
     /browser settings differ/
   )
   write(path, { ...manifest, browserConfiguration: undefined })
   assert.throws(
-    () => compareTargetedEvidence(root, plan, needs),
+    () => compareTargetedEvidence(root, plan, needs, options),
     /browser settings differ/
   )
   write(path, manifest)
@@ -271,7 +311,7 @@ test("complete qualification rejects mismatched or missing browser configuration
     config: { ...config, metadata: {} },
   })
   assert.throws(
-    () => compareTargetedEvidence(root, plan, needs),
+    () => compareTargetedEvidence(root, plan, needs, options),
     /configuration is missing/
   )
 })

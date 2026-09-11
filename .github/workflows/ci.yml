@@ -127,8 +127,16 @@ jobs:
       CI_IMPACT_PLAN: ${{ needs.selection.outputs.plan }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
       - uses: ./.github/actions/setup
       - run: node scripts/ci/run-targeted-checks.mjs documentation
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ci-documentation-evidence
+          path: ${{ runner.temp }}/documentation-evidence/documentation.json
+          if-no-files-found: error
+          retention-days: 7
 
   targeted-browser:
     name: Affected page browser checks
@@ -209,6 +217,7 @@ jobs:
     env:
       CI_IMPACT_PLAN: ${{ needs.selection.outputs.plan }}
       CI_COMPARISON_NEEDS: ${{ toJSON(needs) }}
+      CI_COMPARISON_CANDIDATE_TREE: ${{ github.workspace }}/comparison-candidate
     steps:
       - name: Check out reviewed comparison policy
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -248,8 +257,21 @@ jobs:
           CANDIDATE_REVISION: ${{ github.sha }}
         run: |
           git fetch --no-tags --depth=1 origin "$CANDIDATE_REVISION"
-          git diff --exit-code "$VERIFIER_REVISION" "$CANDIDATE_REVISION" -- playwright.config.ts scripts/playwright-server-heap.mjs package.json pnpm-lock.yaml pnpm-workspace.yaml .nvmrc .github/actions/setup .github/actions/playwright
+          git diff --exit-code "$VERIFIER_REVISION" "$CANDIDATE_REVISION" -- config/ci-impact-policy.json playwright.config.ts scripts/playwright-server-heap.mjs package.json pnpm-lock.yaml pnpm-workspace.yaml .nvmrc .github/actions/setup .github/actions/playwright
       - uses: ./.github/actions/setup
+      # Candidate checkout is data only. Dependencies and verifier still come
+      # from the immutable reviewed checkout above.
+      - name: Read the immutable candidate as Git data
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          path: comparison-candidate
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: ci-documentation-evidence
+          path: ${{ runner.temp }}/documentation
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           pattern: playwright-report-*

@@ -3,6 +3,7 @@ import { pathToFileURL } from "node:url"
 import { calculateImpact } from "./change-impact.mjs"
 import { git, requireCommit } from "./impact-git.mjs"
 import { qualifiedSnapshotPage } from "./impact-snapshots.mjs"
+import { candidateQualificationPages } from "./impact-qualification-scope.mjs"
 import { comparisonDependencies } from "./impact-dependencies.mjs"
 import {
   expectedIdentity,
@@ -108,6 +109,11 @@ export function planChecks(env, { cwd } = {}) {
     pages: profile === "public-pages" ? impact.pages : [],
     required: profile === "full" ? [...FULL_WORKLOADS] : impact.required,
   }
+  if (comparisonRequired)
+    plan.qualificationPages = candidateQualificationPages(
+      identity.candidateSha,
+      { cwd }
+    )
   return validatePlan(plan, identity)
 }
 
