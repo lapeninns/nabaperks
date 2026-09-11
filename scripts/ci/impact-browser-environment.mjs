@@ -55,6 +55,11 @@ export function browserEnvironmentFromWorkflow(text) {
   ]) {
     const job = field(jobs, name)
     const runner = literal(field(job, "runs-on"))
+    assert.equal(
+      runner,
+      "ubuntu-latest",
+      "Qualification requires the reviewed GitHub-hosted runner"
+    )
     const container = field(job, "container", true)
     if (["visual", "targeted-visual"].includes(name)) {
       assert.equal(

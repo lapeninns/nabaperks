@@ -7,8 +7,11 @@ import {
 } from "node:fs"
 import { join, resolve, basename } from "node:path"
 import { pathToFileURL } from "node:url"
-import { inventoryFromPlaywright } from "./browser-parity.mjs"
-import { expectedIdentity, validatePlan } from "./impact-plan-contract.mjs"
+import { inventoryFromPlaywright, compareInventory } from "./browser-parity.mjs"
+import {
+  expectedIdentity,
+  validateComparisonPlan,
+} from "./impact-comparison-plan.mjs"
 import {
   selectedPages,
   BROWSER_PROJECTS,
@@ -17,8 +20,10 @@ import {
 import {
   browserPolicy,
   compareAffectedOutcomes,
+  affectedPageTests,
 } from "./impact-browser-evidence.mjs"
 import { browserConfiguration } from "./browser-configuration.mjs"
+import { qualifyDocumentationInSandbox } from "./documentation-sandbox.mjs"
 import { verifyQualificationScope } from "./impact-qualification-scope.mjs"
 import { candidateBrowserEnvironment } from "./impact-browser-environment.mjs"
 import { verifyDocumentationEvidence } from "./documentation-evidence-contract.mjs"
@@ -76,7 +81,7 @@ export function readFullReports(root, tier) {
   return { tests, policy, configuration, reports: files.length }
 }
 
-export function compareTargetedEvidence(root, plan, needs, options) {
+export function compareTargetedReports(root, plan, needs, options) {
   assert.equal(plan.profile, "full", "Selection qualification needs a full run")
   assert.equal(plan.comparisonRequired, true)
   const expectedJobs = [
@@ -160,6 +165,31 @@ export function compareTargetedEvidence(root, plan, needs, options) {
       assert.equal(execution.unexpectedSurvivors, false)
     }
     const tier = manifest.suite === "browser" ? full.e2e : full.visual
+    if (manifest.suite === "visual") {
+      assert.equal(
+        tier.policy.updateSnapshots,
+        "none",
+        "Visual qualification must not update snapshots"
+      )
+      assert.equal(
+        manifest.browserPolicy.updateSnapshots,
+        "none",
+        "Targeted visual qualification must not update snapshots"
+      )
+    }
+    assert.equal(
+      compareInventory(
+        affectedPageTests(
+          tier.tests,
+          selectedPages(plan),
+          manifest.suite,
+          manifest.project
+        ),
+        manifest.tests
+      ).equivalent,
+      true,
+      "Targeted tests differ from the declared page coverage"
+    )
     assert.deepEqual(
       manifest.browserPolicy,
       tier.policy,
@@ -188,7 +218,7 @@ export function compareTargetedEvidence(root, plan, needs, options) {
   return {
     schema: "nabaperks.ci-selection-comparison.v1",
     identity: plan.identity,
-    qualification: "passed",
+    qualification: "reports-matched",
     pages: selectedPages(plan),
     browserEnvironment,
     documentation,
@@ -201,6 +231,16 @@ export function compareTargetedEvidence(root, plan, needs, options) {
   }
 }
 
+export function qualifyTargetedEvidence(root, plan, needs, options) {
+  const result = compareTargetedReports(root, plan, needs, options)
+  const independentDocumentation = qualifyDocumentationInSandbox(
+    plan.identity.candidateSha,
+    result.documentation.files,
+    options
+  )
+  return { ...result, qualification: "passed", independentDocumentation }
+}
+
 if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(process.argv[1]).href
@@ -208,11 +248,11 @@ if (
   try {
     assert.equal(process.argv.length, 3)
     const root = resolve(process.argv[2])
-    const plan = validatePlan(
+    const plan = validateComparisonPlan(
       JSON.parse(process.env.CI_IMPACT_PLAN ?? "null"),
       expectedIdentity(process.env)
     )
-    const result = compareTargetedEvidence(
+    const result = qualifyTargetedEvidence(
       root,
       plan,
       JSON.parse(process.env.CI_COMPARISON_NEEDS ?? "null"),

@@ -33,7 +33,11 @@ merge candidate. Qualification always runs eight fixed positive and negative
 Markdown cases, including formatting, inline/reference links, HTML links and a
 code example, even when the change inventory contains no Markdown. The reviewed
 verifier checks the complete case set and independently re-reads the candidate's
-documentation file inventory; job success alone cannot qualify the checker.
+documentation file inventory. Qualification then runs the actual candidate checker
+in isolated Docker containers against the reviewed corpus and the changed files.
+The reviewed parent observes exit statuses and owns the expected answers; copied
+success constants cannot qualify the checker. See [the verifier contract](ci-selection-verifier.md)
+for the pinned image, isolation and cleanup requirements.
 
 Consumer analysis includes root runtime entries such as `proxy.ts`,
 `instrumentation.ts` and `next.config.ts`, as well as additional source folders.
@@ -70,7 +74,9 @@ comparison and ordinary PR review; it is never automatically accepted.
 The selection job executes policy from the PR's already-reviewed base SHA and
 reads candidate Git objects without executing candidate classifier code. Its
 plan binds repository, base, head and merge SHA, file/blob inventory and policy
-digests. The gate checks the same identity using reviewed policy and requires
+digests. The gate recomputes the entire selection plan from the immutable Git difference
+using the reviewed classifier, including changed files, digests, pages and required
+checks. A candidate-provided selective profile cannot suppress real work. It requires
 every selected job to succeed. Unselected jobs must be explicitly skipped and
 are reported as **not required, not executed**. They are never counted as passed.
 Independent security checks retain their existing provider contexts.
@@ -97,7 +103,9 @@ a canonical digest of every resolved project `use` option, including browser,
 device, viewport, launch and context settings, without publishing credentials or
 headers. Reviewed-base comparisons require that evidence in both full reports
 and targeted manifests; missing or different settings fail. Visual qualification stays
-on Linux x64 and uses the existing baselines. A test list or a local ARM visual
+on Linux x64 with `--update-snapshots=none` and uses the existing baselines.
+Both full and targeted visual reports must confirm that snapshots cannot be
+created or updated. Each targeted test identity must match the declared page. A test list or a local ARM visual
 run is not a substitute.
 
 The reviewed planner reads qualification pages from the candidate policy as
@@ -108,7 +116,7 @@ authority until the policy change passes review and merges.
 
 The verifier also parses the candidate workflow as data. Full e2e, accessibility
 and targeted browser jobs must name the same literal Playwright image with an
-immutable SHA-256 digest, runner and container options. Both visual jobs must
+immutable SHA-256 digest, runner and container options. All five qualification jobs must use literal `ubuntu-latest` runners. Both visual jobs must
 name the same host runner. Missing, dynamic or different environments fail even
 when Playwright settings and test outcomes match. The artifact records the
 candidate workflow digest and those job environments, and every targeted

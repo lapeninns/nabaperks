@@ -10,7 +10,7 @@ test("CI exposes one stable release gate over complete hosted proof", () => {
   const ci = read(".github/workflows/ci.yml")
   const releaseGate = ci.slice(ci.indexOf("\n  release-gate:"))
   assert.match(releaseGate, /name: Release gate/)
-  assert.match(releaseGate, /timeout-minutes: 3/)
+  assert.match(releaseGate, /timeout-minutes: 5/)
   for (const dependency of [
     "fast",
     "quality",

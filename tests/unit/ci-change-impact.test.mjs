@@ -27,7 +27,10 @@ import {
   fullPlan,
   ALL_WORKLOADS,
 } from "../../scripts/ci/impact-plan-contract.mjs"
-import { verifyImpactEvidence } from "../../scripts/ci/verify-impact-evidence.mjs"
+import {
+  summarizeImpactEvidence,
+  verifyImpactEvidence,
+} from "../../scripts/ci/verify-impact-evidence.mjs"
 import { planChecks } from "../../scripts/ci/plan-checks.mjs"
 import {
   createNoDeployment,
@@ -295,18 +298,18 @@ test("a mixed eligible PR retains the documentation evidence required for its Ma
   for (const name of ALL_WORKLOADS)
     evidence[name].result = plan.required.includes(name) ? "success" : "skipped"
   assert.match(
-    verifyImpactEvidence(evidence, identity),
+    summarizeImpactEvidence(evidence, identity),
     /documentation: passed/
   )
   evidence.documentation.result = "skipped"
   assert.throws(
-    () => verifyImpactEvidence(evidence, identity),
+    () => summarizeImpactEvidence(evidence, identity),
     /documentation: successful execution required/
   )
   plan.required = plan.required.filter((name) => name !== "documentation")
   evidence.selection.outputs.plan = JSON.stringify(plan)
   assert.throws(
-    () => verifyImpactEvidence(evidence, identity),
+    () => summarizeImpactEvidence(evidence, identity),
     /Required checks differ/
   )
 })
@@ -713,21 +716,21 @@ function evidenceFor(profile, comparisonRequired = false) {
 
 test("required evidence distinguishes justified non-execution from success", () => {
   assert.match(
-    verifyImpactEvidence(evidenceFor("documentation"), identity),
+    summarizeImpactEvidence(evidenceFor("documentation"), identity),
     /db: not required \(not executed\)/
   )
   assert.match(
-    verifyImpactEvidence(evidenceFor("full"), identity),
+    summarizeImpactEvidence(evidenceFor("full"), identity),
     /db: passed/
   )
   assert.match(
-    verifyImpactEvidence(evidenceFor("full", true), identity),
+    summarizeImpactEvidence(evidenceFor("full", true), identity),
     /targeted-visual: passed/
   )
   const unexpected = evidenceFor("documentation")
   unexpected.db.result = "success"
   assert.throws(
-    () => verifyImpactEvidence(unexpected, identity),
+    () => summarizeImpactEvidence(unexpected, identity),
     /explicitly not required/
   )
 })
@@ -748,7 +751,7 @@ test("every required job rejects missing, skipped, cancelled or failed proof", (
         const bad = structuredClone(good)
         bad[name].result = result
         assert.throws(
-          () => verifyImpactEvidence(bad, identity),
+          () => summarizeImpactEvidence(bad, identity),
           undefined,
           `${name}: ${result}`
         )
@@ -756,7 +759,7 @@ test("every required job rejects missing, skipped, cancelled or failed proof", (
       const bad = structuredClone(good)
       delete bad[name]
       assert.throws(
-        () => verifyImpactEvidence(bad, identity),
+        () => summarizeImpactEvidence(bad, identity),
         /missing CI jobs/
       )
     }
@@ -773,7 +776,7 @@ test("stale identities, changed profile requirements and a selective main run ne
     "event",
   ])
     assert.throws(
-      () => verifyImpactEvidence(good, { ...identity, [field]: "other" }),
+      () => summarizeImpactEvidence(good, { ...identity, [field]: "other" }),
       /another candidate/
     )
   const changed = structuredClone(good)
@@ -781,14 +784,14 @@ test("stale identities, changed profile requirements and a selective main run ne
   plan.required = []
   changed.selection.outputs.plan = JSON.stringify(plan)
   assert.throws(
-    () => verifyImpactEvidence(changed, identity),
+    () => summarizeImpactEvidence(changed, identity),
     /Required checks/
   )
   plan.required = ["documentation"]
   plan.identity.event = "push"
   changed.selection.outputs.plan = JSON.stringify(plan)
   assert.throws(
-    () => verifyImpactEvidence(changed, plan.identity),
+    () => summarizeImpactEvidence(changed, plan.identity),
     /complete main CI/
   )
   assert.throws(() => expectedIdentity({}), /repository/)
@@ -824,6 +827,35 @@ test("the planner verifies the real merge parents and uses the already reviewed 
     CI_HEAD_REPOSITORY: identity.repository,
   }
   assert.equal(planChecks(env, fixture).profile, "documentation")
+  const plan = planChecks(env, fixture)
+  const evidence = evidenceFor("documentation")
+  evidence.selection.outputs.plan = JSON.stringify(plan)
+  const gate = { ...fixture, headRepository: identity.repository }
+  assert.match(
+    verifyImpactEvidence(evidence, plan.identity, gate),
+    /db: not required/
+  )
+  for (const patch of [
+    { changes: [change("docs/operations/forged.md")] },
+    { changeDigest: "d".repeat(64) },
+    { policyDigest: "e".repeat(64) },
+    { reason: "Unverified candidate assertion" },
+  ]) {
+    const forged = structuredClone(evidence)
+    forged.selection.outputs.plan = JSON.stringify({ ...plan, ...patch })
+    assert.throws(
+      () => verifyImpactEvidence(forged, plan.identity, gate),
+      /immutable Git classification/
+    )
+  }
+  assert.throws(
+    () =>
+      verifyImpactEvidence(evidence, plan.identity, {
+        ...gate,
+        headRepository: "external/fork",
+      }),
+    /immutable Git classification/
+  )
   assert.equal(
     planChecks({ ...env, CI_HEAD_REPOSITORY: "external/fork" }, fixture)
       .profile,

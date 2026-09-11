@@ -50,6 +50,7 @@ export function targetedArguments(plan, suite, project) {
   )
   return [
     "tests/e2e/visual\\.spec\\.ts$",
+    "--update-snapshots=none",
     `--project=${project}`,
     "--grep",
     `@visual.*Given (${pages.map((page) => escapeRegex(page.visualName)).join("|")}) When it renders`,

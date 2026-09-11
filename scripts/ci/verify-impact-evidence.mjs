@@ -1,13 +1,15 @@
 import { appendFileSync } from "node:fs"
 import { pathToFileURL } from "node:url"
 import assert from "node:assert/strict"
+import { planChecks } from "./plan-checks.mjs"
 import {
   ALL_WORKLOADS,
   expectedIdentity,
   validatePlan,
 } from "./impact-plan-contract.mjs"
 
-export function verifyImpactEvidence(evidence, identity) {
+// Formats validated job states only; the CLI additionally rebinds the plan to Git.
+export function summarizeImpactEvidence(evidence, identity) {
   assert.ok(
     evidence && typeof evidence === "object" && !Array.isArray(evidence),
     "Missing job evidence"
@@ -51,6 +53,32 @@ export function verifyImpactEvidence(evidence, identity) {
     "Selection comparison is missing or unexpected"
   )
   return `Profile: ${plan.profile}\n${plan.reason}\n${rows.join("\n")}`
+}
+
+export function verifyImpactEvidence(
+  evidence,
+  identity,
+  { cwd, headRepository = process.env.CI_HEAD_REPOSITORY } = {}
+) {
+  const summary = summarizeImpactEvidence(evidence, identity)
+  const actual = planChecks(
+    {
+      GITHUB_REPOSITORY: identity.repository,
+      GITHUB_EVENT_NAME: identity.event,
+      CI_BASE_SHA: identity.baseSha,
+      CI_HEAD_SHA: identity.headSha,
+      GITHUB_SHA: identity.candidateSha,
+      GITHUB_REF: identity.event === "push" ? "refs/heads/main" : undefined,
+      CI_HEAD_REPOSITORY: headRepository,
+    },
+    { cwd }
+  )
+  assert.deepEqual(
+    JSON.parse(evidence.selection.outputs.plan),
+    actual,
+    "Selection plan differs from the reviewed immutable Git classification"
+  )
+  return summary
 }
 
 if (

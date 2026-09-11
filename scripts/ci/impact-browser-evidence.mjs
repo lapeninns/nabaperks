@@ -1,6 +1,34 @@
 import assert from "node:assert/strict"
 import { testIdentity } from "./browser-parity.mjs"
 
+export function affectedPageTests(full, pages, suite, project) {
+  const visual = suite === "visual"
+  const file = visual ? "visual.spec.ts" : "helpers/a11y-sweep.ts"
+  const spec = visual
+    ? "visual.spec.ts"
+    : project === "mobile-safari"
+      ? "a11y.spec.ts"
+      : "a11y.desktop.spec.ts"
+  return pages.map((page) => {
+    const title = visual
+      ? `Given ${page.visualName} When it renders Then the viewport matches the approved Wet Ink baseline`
+      : `no axe violations: ${page.route}`
+    const matches = full.filter(
+      (record) =>
+        record.project === project &&
+        record.file === file &&
+        record.title[0] === spec &&
+        record.title.at(-1) === title
+    )
+    assert.equal(
+      matches.length,
+      1,
+      "Full execution must contain exactly one mapped check for each declared page"
+    )
+    return matches[0]
+  })
+}
+
 // Keep the original envelope for the immutable bootstrap verifier. Reviewed
 // base comparisons also require browserConfiguration, which captures resolved
 // use options that Playwright's ordinary JSON project projection omits.
