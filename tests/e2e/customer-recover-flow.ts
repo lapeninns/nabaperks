@@ -216,6 +216,26 @@ export function describeCustomerAccessRecovery() {
         // The fixture fixes next to /home, so assert that exact destination:
         // a redirect to /home/login would satisfy a negative assertion.
         await expect.poll(() => new URL(page.url()).pathname).toBe("/home")
+
+        // A cookie and a destination do not prove the server recorded the
+        // right thing. Email recovery must register the device as
+        // verified_email; verified_phone is unconditionally valid in
+        // 20260908120000_allow_verified_phone_continuity.sql, so a swap would
+        // satisfy both checks above while corrupting the audit trail.
+        const sessions = await sql`
+          select revoked_at from public.customer_sessions
+          where customer_id = ${customerId}::uuid`
+        expect(
+          sessions.filter((row) => row.revoked_at === null).length,
+          "successful recovery must mint exactly one live customer session"
+        ).toBe(1)
+        const trusted = await sql`
+          select trust_source from public.customer_otp_trusted_devices
+          where customer_id = ${customerId}::uuid`
+        expect(
+          trusted.map((row) => row.trust_source),
+          "email recovery must record verified_email, not another continuity source"
+        ).toEqual(["verified_email"])
       } finally {
         if (customerId) await cleanupRecoverableCustomer(sql, customerId)
         await sql.end()

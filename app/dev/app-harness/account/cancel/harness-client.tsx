@@ -26,6 +26,23 @@ export function CancellationInterviewHarnessClient() {
       setAttemptCount((current) => current + 1)
       setLastResolution(resolution)
 
+      // Mirror submitCancellationInterviewAction's guard. Without it, a form
+      // field that loses or renames its `name` still reports success here
+      // while production would reject the submission.
+      const primaryReason = formData.get("primaryReason")
+      const details = formData.get("details")
+      if (
+        typeof primaryReason !== "string" ||
+        typeof details !== "string" ||
+        (resolution !== "continue_cancellation" && resolution !== "support_call")
+      ) {
+        return {
+          status: "error",
+          message:
+            "Choose a cancellation reason and what you would like to do next.",
+        }
+      }
+
       // Long enough for browser proof to observe the shared pending interlock,
       // short enough to keep the DB-free suite fast and deterministic.
       await new Promise((resolve) => window.setTimeout(resolve, 600))

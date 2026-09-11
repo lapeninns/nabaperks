@@ -157,12 +157,21 @@ test.describe("customer push notifications", () => {
       const request = route.request()
       expect(request.method()).toBe("POST")
       const payload = request.postDataJSON() as {
-        subscription?: { endpoint?: unknown }
+        subscription?: {
+          endpoint?: unknown
+          keys?: { p256dh?: string; auth?: string }
+        }
         permissionState?: unknown
       } | null
       expect(payload, "subscribe must carry a JSON body").toBeTruthy()
       expect(typeof payload?.subscription?.endpoint).toBe("string")
       expect(payload?.subscription?.endpoint).toBeTruthy()
+      // Production also requires both keys; without these a regression that
+      // drops them still shows "Push is on" while the real endpoint 400s.
+      expect(typeof payload?.subscription?.keys?.p256dh).toBe("string")
+      expect(payload?.subscription?.keys?.p256dh?.length ?? 0).toBeGreaterThan(19)
+      expect(typeof payload?.subscription?.keys?.auth).toBe("string")
+      expect(payload?.subscription?.keys?.auth?.length ?? 0).toBeGreaterThan(7)
       expect(typeof payload?.permissionState).toBe("string")
       subscribePosts += 1
       await route.fulfill({
