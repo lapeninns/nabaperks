@@ -17,12 +17,28 @@ must be disabled, including creation of missing baselines.
 Before considering reports, qualification checks the candidate against
 `config/ci-qualification-workflow.yml`, a reviewable proposal rather than an
 active GitHub workflow. The whole workflow must match, including commands,
-conditions, environment, actions and artifact wiring. Executable CI inputs,
-selected test sources, action definitions, dependency locks and configuration must
-match the reviewed base's Git objects. Additions, removals, replacements or dirty
-reviewed inputs fail. A producer cannot omit its process and substitute copied
-reports or constant execution records. Changes to these inputs require a separately
-reviewed prerequisite before the integration can qualify them.
+conditions, environment, actions and artifact wiring. Every other tracked input
+must match the reviewed base's Git objects, including all workload scripts, unit,
+contract and database tests, fixtures, application modules, configuration and binary
+assets. Qualified internal Markdown is checked separately as content. This avoids
+assuming that a file outside a known tooling directory cannot influence validation.
+Additions, removals, replacements, mode changes or dirty reviewed inputs fail.
+
+The foundation can stage a future input under `config/ci-qualification-inputs/`,
+preserving its repository path and appending `.source` so tools treat the copy as
+inert review data. The reviewed copy's exact
+Git blob and mode then define the accepted candidate input. This lets the existing
+workflow retain its current checks while the prerequisite explicitly reviews the
+future test or executable. The staged copies themselves must also remain identical
+in the candidate, and cannot replace the workflow's separate complete comparison.
+All live reviewed files are verified as regular files with matching modes and
+binary-safe Git blob hashes. Candidate-provided staged copies cannot change the
+expected inventory.
+
+A producer or imported application module cannot omit a required process and
+substitute copied reports or constant execution records. Qualification changes
+must have their complete input tree reviewed in a prerequisite; ordinary PRs that
+do not change selection retain their normal selected or full profile.
 
 Documentation validation executes the checker, formatter, plugins and configuration
 from the reviewed checkout against a temporary archive of regular candidate files.

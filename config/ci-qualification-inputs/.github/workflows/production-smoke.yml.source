@@ -1,0 +1,233 @@
+name: Production smoke
+
+on:
+  schedule:
+    - cron: "7/15 * * * *"
+  workflow_run:
+    workflows: ["Production database promotion"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      expected_revision:
+        description: Optional full or 12-character Git revision for promotion verification
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-smoke
+  cancel-in-progress: true
+
+env:
+  EXPECTED_REVISION: ${{ github.event_name == 'workflow_dispatch' && inputs.expected_revision || '' }}
+
+jobs:
+  probes:
+    name: Liveness and readiness
+    if: ${{ github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    environment: Monitoring
+    permissions:
+      contents: read
+      actions: read
+    env:
+      PRODUCTION_MONITOR_SECRET: ${{ secrets.PRODUCTION_MONITOR_SECRET }}
+    steps:
+      - name: Check out the probe contract
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Resolve the released candidate from its bound artifact
+        if: ${{ github.event_name == 'workflow_run' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_RUN_ID: ${{ github.event.workflow_run.id }}
+          RELEASE_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        run: |
+          node scripts/vercel-production-target.mjs --github-env "$GITHUB_ENV" --evidence "$RUNNER_TEMP/smoke-vercel-target.json"
+      - name: Verify the exact release artifact and successful public proof
+        if: ${{ github.event_name == 'workflow_run' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_RUN_ID: ${{ github.event.workflow_run.id }}
+          RELEASE_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        run: node scripts/release/read-candidate-artifact.mjs
+      - name: Wait for the verified revision to reach production
+        if: ${{ env.EXPECTED_REVISION != '' }}
+        run: |
+          expected="${EXPECTED_REVISION:0:12}"
+          for attempt in {1..30}; do
+            body="$(curl --fail --silent --show-error --max-time 10 https://nabaperks.com/api/health || true)"
+            revision="$(jq -r '.revision // empty' <<<"$body" 2>/dev/null || true)"
+            if [[ "$revision" == "$expected" ]]; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::Production did not expose expected revision ${expected} within five minutes."
+          exit 1
+      - name: Verify public liveness
+        run: |
+          body="$(curl --fail --silent --show-error --max-time 10 https://nabaperks.com/api/health)"
+          jq -e --arg revision "$EXPECTED_REVISION" '.status == "ok" and .scope == "liveness" and .service == "nabaperks" and (try (.time | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601 | type == "number") catch false) and (.revision | type == "string" and length == 12) and ($revision == "" or .revision == ($revision[0:12])) and .environment == "production" and .targetEnvironment == "production"' <<<"$body"
+      - name: Verify dependency readiness
+        run: |
+          body="$(curl --fail --silent --show-error --max-time 10 --header "Authorization: Bearer ${PRODUCTION_MONITOR_SECRET}" https://nabaperks.com/api/readiness)"
+          jq -e --arg revision "$EXPECTED_REVISION" '.status == "ready" and .scope == "readiness" and .checks.database == "ok" and .checks.operational == "ok" and (.signals.notificationQueueAgeMinutes | type == "number") and (.signals.loyaltyInviteQueueAgeMinutes | type == "number") and (.signals.providerDeliveryFailureRate24h | type == "number") and (.signals.cronJobs | type == "array" and length == 8) and .service == "nabaperks" and (try (.time | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601 | type == "number") catch false) and (.revision | type == "string" and length == 12) and ($revision == "" or .revision == ($revision[0:12])) and .environment == "production" and .targetEnvironment == "production"' <<<"$body"
+      - name: Enforce production probe latency
+        env:
+          PRODUCTION_SLO_CONFIG: config/production-slos.json
+        run: node scripts/check-production-probe-latency.mjs
+
+  incident:
+    name: Error to insight
+    needs: probes
+    if: ${{ always() && needs.probes.result == 'failure' }}
+    runs-on: ubuntu-latest
+    environment: Monitoring
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Create or update incident issue
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const title = "[Production alert] Nabaperks readiness failure";
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: "area: platform,priority: p0-critical",
+              per_page: 100,
+            });
+            const existing = issues.find((issue) => !issue.pull_request && issue.title === title);
+            const body = `The scheduled production liveness or dependency-readiness probe failed.\n\nRun: ${runUrl}\nRevision expectation: ${process.env.EXPECTED_REVISION || "current production"}\n\nFollow docs/operations/incident-response.md. Do not paste secrets, raw customer data, or provider payloads into this issue.`;
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ["bug", "area: platform", "priority: p0-critical"],
+              });
+            }
+      - name: Check out alert dispatcher
+        if: ${{ always() }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+      - name: Page the external incident channel
+        if: ${{ always() }}
+        env:
+          PRODUCTION_ALERT_WEBHOOK_URL: ${{ secrets.PRODUCTION_ALERT_WEBHOOK_URL }}
+          PRODUCTION_ALERT_WEBHOOK_SECRET: ${{ secrets.PRODUCTION_ALERT_WEBHOOK_SECRET }}
+        run: node scripts/notify-production-alert.mjs trigger
+
+  resolve-incident:
+    name: Resolve recovered production alert
+    needs: probes
+    if: ${{ always() && needs.probes.result == 'success' }}
+    runs-on: ubuntu-latest
+    environment: Monitoring
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+    steps:
+      - name: Check out recovery policy
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+      - name: Track the scheduled recovery streak
+        id: incident
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const title = "[Production alert] Nabaperks readiness failure";
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: "area: platform,priority: p0-critical",
+              per_page: 100,
+            });
+            const existing = issues.find((issue) => !issue.pull_request && issue.title === title);
+            core.setOutput("number", existing?.number ?? "");
+            core.setOutput("ready", "false");
+            if (!existing || context.eventName !== "schedule") return;
+
+            const { pathToFileURL } = require("node:url");
+            const { previousScheduledRunSucceeded } = await import(
+              pathToFileURL(`${process.env.GITHUB_WORKSPACE}/scripts/production-smoke-recovery-core.mjs`).href
+            );
+            const current = await github.rest.actions.getWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId,
+            });
+            const runs = await github.paginate(
+              github.rest.actions.listWorkflowRunsForWorkflow,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: current.data.workflow_id,
+                per_page: 100,
+              }
+            );
+            const repository = `${context.repo.owner}/${context.repo.repo}`;
+            if (previousScheduledRunSucceeded({
+              currentRun: current.data,
+              workflowRuns: runs,
+              repository,
+            })) {
+              core.setOutput("ready", "true");
+              return;
+            }
+
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: existing.number,
+              body: `First consecutive scheduled recovery probe passed in ${runUrl}. The incident remains open until the next distinct scheduled probe also succeeds.`,
+            });
+      - name: Check out alert dispatcher
+        if: ${{ steps.incident.outputs.ready == 'true' }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+      - name: Resolve the external incident
+        if: ${{ steps.incident.outputs.ready == 'true' }}
+        env:
+          PRODUCTION_ALERT_WEBHOOK_URL: ${{ secrets.PRODUCTION_ALERT_WEBHOOK_URL }}
+          PRODUCTION_ALERT_WEBHOOK_SECRET: ${{ secrets.PRODUCTION_ALERT_WEBHOOK_SECRET }}
+        run: node scripts/notify-production-alert.mjs resolve
+      - name: Close the recovered incident issue
+        if: ${{ steps.incident.outputs.ready == 'true' }}
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        env:
+          INCIDENT_NUMBER: ${{ steps.incident.outputs.number }}
+        with:
+          script: |
+            const issueNumber = Number(process.env.INCIDENT_NUMBER);
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: `Production probes recovered in ${runUrl}. External paging acknowledged the resolution.`,
+            });
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              state: "closed",
+            });

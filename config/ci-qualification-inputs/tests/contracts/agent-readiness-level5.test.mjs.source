@@ -1,0 +1,216 @@
+import { packShards } from "../../scripts/ci/run-browser-pack.mjs"
+import assert from "node:assert/strict"
+import { existsSync, readFileSync } from "node:fs"
+import { test } from "node:test"
+
+function read(path) {
+  assert.equal(existsSync(path), true, `${path} must exist`)
+  return readFileSync(path, "utf8")
+}
+
+function shardMatrixPattern(total) {
+  const entries = Array.from(
+    { length: total },
+    (_, index) => `${index + 1}\\/${total}`
+  )
+  return new RegExp(
+    `shard:\\s*\\[\\s*${entries.join("\\s*,\\s*")}\\s*,?\\s*\\]`
+  )
+}
+
+test("Given local changes When an agent prepares a commit Then fast quality hooks run", () => {
+  const packageJson = JSON.parse(read("package.json"))
+  const hook = read(".husky/pre-commit")
+
+  assert.equal(packageJson.scripts.prepare, "husky")
+  assert.equal(typeof packageJson.scripts["quality:fast"], "string")
+  assert.equal(typeof packageJson["lint-staged"], "object")
+  assert.match(hook, /lint-staged/)
+})
+
+test("Given source changes When static quality runs Then size complexity dead code duplication and debt are enforced", () => {
+  const packageJson = JSON.parse(read("package.json"))
+  const eslint = read("eslint.config.mjs")
+  const knip = read("knip.json")
+  const jscpd = read("jscpd.json")
+  const debtCheck = read("scripts/check-technical-debt.mjs")
+
+  for (const script of [
+    "deadcode:check",
+    "duplicates:check",
+    "debt:check",
+    "quality:check",
+  ]) {
+    assert.equal(
+      typeof packageJson.scripts[script],
+      "string",
+      `${script} must exist`
+    )
+  }
+  assert.match(eslint, /complexity/)
+  assert.match(eslint, /max-lines/)
+  assert.match(knip, /unresolved/)
+  assert.match(jscpd, /threshold/)
+  assert.match(debtCheck, /TODO|FIXME/)
+})
+
+test("Given database-backed routes When query regressions run Then N plus one plans are analyzed", () => {
+  const queryPlanTest = read("tests/db/rls-hashed-policies.test.mjs")
+
+  assert.match(queryPlanTest, /N\+1 query detection/)
+  assert.match(queryPlanTest, /explain \(analyze, format json\)/i)
+  assert.match(queryPlanTest, /Actual Loops/)
+})
+
+test("Given HTTP APIs When docs are generated Then a valid source-linked OpenAPI contract stays current", () => {
+  const packageJson = JSON.parse(read("package.json"))
+  const openapi = JSON.parse(read("docs/api/openapi.json"))
+  const generatedDocs = read("docs/api/README.md")
+  const generator = read("scripts/generate-api-docs.mjs")
+
+  assert.match(openapi.openapi, /^3\./)
+  assert.ok(Object.keys(openapi.paths).length >= 2)
+  assert.match(generatedDocs, /Generated from `docs\/api\/openapi\.json`/)
+  assert.match(generator, /x-source/)
+  assert.equal(typeof packageJson.scripts["docs:check"], "string")
+})
+
+test("Given an autonomous agent When it enters the repository Then current commands conventions and a focused skill are discoverable", () => {
+  const agents = read("AGENTS.md")
+  const skill = read(".factory/skills/nabaperks-readiness/SKILL.md")
+  const freshness = read("scripts/check-agent-docs.mjs")
+
+  assert.match(agents, /pnpm quality:fast/)
+  assert.match(agents, /camelCase/)
+  assert.match(agents, /docs\/operations\/agent-readiness\.md/)
+  assert.match(skill, /^---[\s\S]*name:[\s\S]*description:/)
+  assert.match(freshness, /AGENTS\.md/)
+})
+
+test("Given routine pull requests When CI runs Then deep browser proof is sharded into memory-bounded jobs", () => {
+  const ci = read(".github/workflows/ci.yml")
+  const nightly = read(".github/workflows/nightly.yml")
+  const nextConfig = read("next.config.ts")
+  const playwright = read("playwright.config.ts")
+  const release = read(".github/workflows/release-notes.yml")
+  const buildJob = ci.slice(ci.indexOf("  build:"), ci.indexOf("\n  e2e:"))
+  const e2eJob = ci.slice(ci.indexOf("  e2e:"), ci.indexOf("\n  e2e-gate:"))
+  const a11yJob = ci.slice(ci.indexOf("  a11y:"), ci.indexOf("\n  a11y-gate:"))
+  const visualJob = ci.slice(
+    ci.indexOf("  visual:"),
+    ci.indexOf("\n  visual-gate:")
+  )
+
+  assert.match(ci, /quality:check/)
+  assert.match(e2eJob, /pack: \[1, 2, 3, 4\]/)
+  assert.match(e2eJob, /node scripts\/ci\/run-browser-pack\.mjs/)
+  // Four packs of eight, not eight of four: the /32 denominator is untouched,
+  // so this still asserts that every original shard is carried exactly once.
+  assert.deepEqual(
+    Array.from({ length: 4 }, (_, index) => packShards(index + 1)).flat(),
+    Array.from({ length: 32 }, (_, index) => `${index + 1}/32`)
+  )
+  assert.match(a11yJob, shardMatrixPattern(4))
+  assert.match(visualJob, shardMatrixPattern(4))
+  assert.match(nightly, shardMatrixPattern(32))
+  assert.match(nextConfig, /process\.env\.PLAYWRIGHT_HARNESS === "1"/)
+  assert.match(nextConfig, /onDemandEntries:/)
+  assert.match(nextConfig, /maxInactiveAge: 5_000/)
+  assert.match(nextConfig, /pagesBufferLength: 1/)
+  assert.match(ci, /--shard/)
+  // Every dev-server browser job stays single-worker: the webpack dev
+  // server intermittently 500s under parallel in-job load, and
+  // failOnFlakyTests turns any recovery into a red run. Wall-clock
+  // parallelism comes from sharding across jobs instead.
+  assert.match(ci, /PLAYWRIGHT_WORKERS: "1"/)
+  assert.doesNotMatch(ci, /PLAYWRIGHT_WORKERS: "(?!1")/)
+  assert.match(playwright, /fullyParallel: true/)
+  assert.match(playwright, /workers: localWorkers/)
+  assert.doesNotMatch(buildJob, /e2e:install/)
+  assert.match(ci, /\.\/\.github\/actions\/playwright/)
+
+  for (const [job, protectedName, dependency] of [
+    ["e2e-gate", "E2E \\(DB-free harness tier\\)", "e2e"],
+    ["a11y-gate", "Accessibility sweep", "a11y"],
+    ["visual-gate", "Visual regression", "visual"],
+    ["lighthouse-gate", "Lighthouse CI", "lighthouse"],
+  ]) {
+    assert.match(
+      ci,
+      new RegExp(
+        `  ${job}:[\\s\\S]*?name: ${protectedName}[\\s\\S]*?needs: \\[selection, ${dependency}\\]`
+      )
+    )
+  }
+
+  // Independent roots start immediately; visual scheduling and consumers of
+  // the single production bundle retain their existing dependencies.
+  for (const [job, dependency] of [
+    ["visual", "fast"],
+    ["lighthouse", "build"],
+    ["zap-baseline", "build"],
+  ]) {
+    assert.match(
+      ci,
+      new RegExp(
+        `\\n  ${job}:\\n(?:(?!\\n  [a-z][a-z0-9-]*:\\n)[\\s\\S])*?\\n    needs: \\[selection, ${dependency}\\]\\n`
+      )
+    )
+  }
+
+  for (const job of ["quality", "e2e", "a11y", "db"]) {
+    const block = ci
+      .split(`\n  ${job}:\n`)[1]
+      .split(/\n  [a-z][a-z0-9-]*:\n/)[0]
+    assert.match(block, /\n    needs: selection\n/)
+    assert.doesNotMatch(block, /needs\.fast/)
+  }
+
+  // The stable required check covers every existing hosted validation root.
+  assert.match(ci, /name: Typecheck and build/)
+  assert.match(ci, /needs: \[selection, fast, quality, build\]/)
+  assert.match(ci, /name: Release gate/)
+  for (const dependency of [
+    "fast",
+    "quality",
+    "build",
+    "e2e",
+    "a11y",
+    "visual",
+    "lighthouse",
+    "zap-baseline",
+    "db",
+  ]) {
+    assert.match(ci, new RegExp(`release-gate:[\\s\\S]*?- ${dependency}\\n`))
+  }
+  const lighthouseJob = ci.slice(
+    ci.indexOf("\n  lighthouse:"),
+    ci.indexOf("\n  lighthouse-gate:")
+  )
+  const zapJob = ci.slice(
+    ci.indexOf("\n  zap-baseline:"),
+    ci.indexOf("\n  db:")
+  )
+  for (const consumer of [lighthouseJob, zapJob]) {
+    assert.doesNotMatch(consumer, /run: pnpm build/)
+    assert.match(consumer, /download-artifact/)
+    assert.match(consumer, /name: next-build/)
+  }
+
+  assert.match(ci, /--collect\.url=/)
+  assert.match(release, /release-drafter/)
+})
+
+test("Given a reportable task When an issue is opened Then structured bug feature debt and incident templates exist", () => {
+  for (const path of [
+    ".github/ISSUE_TEMPLATE/bug.yml",
+    ".github/ISSUE_TEMPLATE/feature.yml",
+    ".github/ISSUE_TEMPLATE/technical-debt.yml",
+    ".github/ISSUE_TEMPLATE/incident.yml",
+  ]) {
+    const template = read(path)
+    assert.match(template, /name:/)
+    assert.match(template, /labels:/)
+    assert.match(template, /body:/)
+  }
+})

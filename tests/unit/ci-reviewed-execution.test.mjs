@@ -6,6 +6,8 @@ import {
   writeFileSync,
   rmSync,
   existsSync,
+  chmodSync,
+  symlinkSync,
 } from "node:fs"
 import { join, dirname } from "node:path"
 import { tmpdir } from "node:os"
@@ -57,7 +59,7 @@ test("qualification rejects omitted commands, forged producers and changed insta
   )
   const reviewed = f.commit()
   const options = { cwd: f.cwd, reviewedCwd: f.cwd }
-  assert.equal(verifyQualificationSource(reviewed, options).executionInputs, 1)
+  assert.equal(verifyQualificationSource(reviewed, options).executionInputs, 2)
   for (const [path, text, expected] of [
     [
       ".github/workflows/ci.yml",
@@ -88,6 +90,138 @@ test("qualification rejects omitted commands, forged producers and changed insta
   assert.equal(
     verifyQualificationSource(candidate, options).candidateSha,
     candidate
+  )
+})
+
+test("qualification binds all required workload inputs regardless of path or extension", (t) => {
+  const f = fixture(t)
+  const paths = [
+    "scripts/check-env.mjs",
+    "scripts/check-bundle-size.mjs",
+    "scripts/check-agent-docs.mjs",
+    "scripts/check-design-tokens.mjs",
+    "scripts/run-supabase-sql.mjs",
+    "scripts/ci/hosted-evidence.mjs",
+    "tests/unit/coverage.test.mjs",
+    "tests/contracts/required.test.mjs",
+    "tests/db/required.test.mjs",
+    "tests/support/register-alias.mjs",
+    "tests/fixtures/expected-results.json",
+    "ops/local-ci/core/workspace.mjs",
+    "eslint.config.mjs",
+    "knip.json",
+    "jscpd.json",
+    ".lighthouserc.json",
+    ".github/actions/setup/action.yml",
+    "supabase/config.toml",
+    "supabase/seed.sql",
+    "config/env-contract.json",
+    "lib/env/validation.ts",
+    "app/page.tsx",
+    "docs/operations/hidden-executable.mjs",
+    "unexpected-directory/required-input",
+    "patches/minimatch@3.1.5.patch",
+    "documentation draft/notes.md",
+  ]
+  for (const path of paths) f.put(path, "reviewed input\n")
+  f.put(".github/workflows/ci.yml", "jobs: {}\n")
+  f.put("config/ci-qualification-workflow.yml", "jobs: {}\n")
+  const reviewed = f.commit()
+  const options = { cwd: f.cwd, reviewedCwd: f.cwd }
+  const result = verifyQualificationSource(reviewed, options)
+  assert.equal(result.scope, "complete-tracked-input-tree")
+  for (const path of paths) {
+    f.put(path, "weakened check or expected result\n")
+    const candidate = f.commit()
+    git(["checkout", "--detach", "-q", reviewed], f)
+    assert.throws(
+      () => verifyQualificationSource(candidate, options),
+      (error) => error.message.includes("differ from reviewed source: " + path)
+    )
+  }
+  for (const change of [
+    () => rmSync(join(f.cwd, paths[0])),
+    () => chmodSync(join(f.cwd, paths[0]), 0o755),
+    () => f.put("new-checker/without-extension", "unreviewed\n"),
+    () => {
+      f.put("docs/operations/executable.md", "# Executable content\n")
+      chmodSync(join(f.cwd, "docs/operations/executable.md"), 0o755)
+    },
+  ]) {
+    change()
+    const candidate = f.commit()
+    git(["checkout", "--detach", "-q", reviewed], f)
+    assert.throws(
+      () => verifyQualificationSource(candidate, options),
+      /executables/
+    )
+  }
+})
+
+test("staged inputs bind future checkers and tests to separately reviewed exact blobs", (t) => {
+  const f = fixture(t)
+  const path = "scripts/check-env.mjs"
+  const newTest = "tests/unit/future.test.mjs"
+  const stagedPath = (path) =>
+    "config/ci-qualification-inputs/" + path + ".source"
+  const future = "console.log('run the reviewed future check')\n"
+  f.put(".github/workflows/ci.yml", "jobs: { legacy: {} }\n")
+  f.put("config/ci-qualification-workflow.yml", "jobs: { future: {} }\n")
+  f.put(path, "console.log('run the existing check')\n")
+  f.put(stagedPath(path), future)
+  f.put(stagedPath(newTest), "console.log('run the reviewed future test')\n")
+  const reviewed = f.commit()
+  f.put(".github/workflows/ci.yml", "jobs: { future: {} }\n")
+  f.put(path, future)
+  f.put(newTest, "console.log('run the reviewed future test')\n")
+  const candidate = f.commit()
+  git(["checkout", "--detach", "-q", reviewed], f)
+  const options = { cwd: f.cwd, reviewedCwd: f.cwd }
+  assert.equal(verifyQualificationSource(candidate, options).stagedInputs, 2)
+  for (const target of [path, newTest, stagedPath(path)]) {
+    git(["checkout", "--detach", "-q", candidate], f)
+    f.put(target, "console.log('success without validation')\n")
+    const forged = f.commit()
+    git(["checkout", "--detach", "-q", reviewed], f)
+    assert.throws(
+      () => verifyQualificationSource(forged, options),
+      /executables/
+    )
+  }
+  f.put(stagedPath(path), "dirty proposed checker\n")
+  assert.throws(
+    () => verifyQualificationSource(candidate, options),
+    /differs in the verifier worktree/
+  )
+})
+
+test("live input verification detects binary changes, executable modes and symlink substitution", (t) => {
+  const f = fixture(t)
+  f.put(".github/workflows/ci.yml", "jobs: {}\n")
+  f.put("config/ci-qualification-workflow.yml", "jobs: {}\n")
+  const path = "tests/fixtures/expected.bin"
+  f.put(path, Buffer.from([0x80]))
+  const reviewed = f.commit()
+  const options = { cwd: f.cwd, reviewedCwd: f.cwd }
+  assert.ok(verifyQualificationSource(reviewed, options))
+  f.put(path, Buffer.from([0x81]))
+  assert.throws(
+    () => verifyQualificationSource(reviewed, options),
+    /verifier worktree/
+  )
+  f.put(path, Buffer.from([0x80]))
+  chmodSync(join(f.cwd, path), 0o755)
+  assert.throws(
+    () => verifyQualificationSource(reviewed, options),
+    /input mode differs/
+  )
+  chmodSync(join(f.cwd, path), 0o644)
+  rmSync(join(f.cwd, path))
+  f.put("outside.bin", Buffer.from([0x80]))
+  symlinkSync(join(f.cwd, "outside.bin"), join(f.cwd, path))
+  assert.throws(
+    () => verifyQualificationSource(reviewed, options),
+    /not a regular file/
   )
 })
 

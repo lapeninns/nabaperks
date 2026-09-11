@@ -5,7 +5,7 @@ export const FULL_SHA = /^[a-f0-9]{40}$/
 
 export function isToolingSourcePath(path) {
   return (
-    /^(?:\.design-sync|\.github|\.husky|ops|scripts|supabase|tests)(?:\/|$)/.test(
+    /^(?:\.design-sync|\.github|\.husky|ops|scripts|supabase|tests|config\/ci-qualification-inputs)(?:\/|$)/.test(
       path
     ) ||
     /^(?:eslint|playwright|postcss|stryker)\.config(?:\.[cm]?[jt]s)?$/.test(

@@ -20,6 +20,7 @@ export function needsSelectionComparison(path) {
   if (qualifiedSnapshotPage(path)) return false
   return (
     path === ".github/workflows/ci.yml" ||
+    path.startsWith("config/ci-qualification-inputs/") ||
     [
       "package.json",
       "pnpm-lock.yaml",
