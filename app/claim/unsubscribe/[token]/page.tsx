@@ -1,7 +1,10 @@
 import { headers } from "next/headers"
 
-import { Logo, ReceiptCard } from "@/components/brand"
-import { Button } from "@/components/ui/button"
+import {
+  ClaimUnsubscribePanel,
+  ClaimUnsubscribeShell,
+  type ClaimUnsubscribeState,
+} from "@/components/customer/claim-unsubscribe-panel"
 import {
   RateLimitError,
   enforceRateLimit,
@@ -42,72 +45,28 @@ export default async function UnsubscribeRewardInvitePage({
   } catch (error) {
     if (error instanceof RateLimitError) {
       return (
-        <UnsubscribeShell title="Try again shortly">
+        <ClaimUnsubscribeShell title="Try again shortly">
           <p className="text-sm leading-6 text-muted-foreground">
             Too many attempts from here. Please try again in a few minutes.
           </p>
-        </UnsubscribeShell>
+        </ClaimUnsubscribeShell>
       )
     }
     throw error
   }
 
-  if (sp.unsubscribe === "done") {
-    return (
-      <UnsubscribeShell title="You're unsubscribed">
-        <p className="text-sm leading-6 text-muted-foreground">
-          You won&rsquo;t get invite emails from this venue again.
-        </p>
-      </UnsubscribeShell>
-    )
-  }
-
-  if (sp.unsubscribe === "failed") {
-    return (
-      <UnsubscribeShell title="We couldn't save that change">
-        <p className="text-sm leading-6 text-muted-foreground">
-          Please try again. Your email preference has not been changed yet.
-        </p>
-        <form action={unsubscribeRewardInviteAction}>
-          <input type="hidden" name="token" value={token} />
-          <Button type="submit" variant="secondary" className="w-full">
-            Try again
-          </Button>
-        </form>
-      </UnsubscribeShell>
-    )
-  }
+  const state: ClaimUnsubscribeState =
+    sp.unsubscribe === "done"
+      ? "done"
+      : sp.unsubscribe === "failed"
+        ? "failed"
+        : "default"
 
   return (
-    <UnsubscribeShell title="Stop these emails?">
-      <p className="text-sm leading-6 text-muted-foreground">
-        We only email once about a reward, but you can stop invite emails from
-        this venue here.
-      </p>
-      <form action={unsubscribeRewardInviteAction}>
-        <input type="hidden" name="token" value={token} />
-        <Button type="submit" variant="secondary" className="w-full">
-          Stop these emails
-        </Button>
-      </form>
-    </UnsubscribeShell>
-  )
-}
-
-function UnsubscribeShell({
-  title,
-  children,
-}: {
-  title: string
-  children: React.ReactNode
-}) {
-  return (
-    <main className="flex min-h-svh items-center justify-center px-6 py-10">
-      <ReceiptCard className="w-full max-w-sm space-y-4 p-6 text-center">
-        <Logo />
-        <h1 className="text-2xl leading-tight font-extrabold">{title}</h1>
-        {children}
-      </ReceiptCard>
-    </main>
+    <ClaimUnsubscribePanel
+      state={state}
+      token={token}
+      action={unsubscribeRewardInviteAction}
+    />
   )
 }
