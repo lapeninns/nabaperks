@@ -250,7 +250,10 @@ export function registerLocationRecoveryTests() {
       ).toContainText("Reload or reopen")
       await expect(
         root.locator("[data-location-permission-help]")
-      ).toContainText("delete Chrome, install it again")
+      ).toContainText("deleting Chrome and installing it again")
+      await expect(
+        root.locator("[data-location-permission-help]")
+      ).toContainText("sign in again, reopen or rescan the venue QR code")
       await root.getByText("Need help?", { exact: true }).click()
       await root.getByRole("button", { name: "Try Again", exact: true }).click()
       await expect(

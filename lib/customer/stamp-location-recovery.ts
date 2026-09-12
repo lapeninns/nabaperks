@@ -111,7 +111,7 @@ export const LOCATION_HELP: Record<
     steps:
       "iPhone Settings → Privacy & Security → Location Services → Chrome → While Using the App. Turn on Precise Location, return here and tap Try Again.",
     detail:
-      "Chrome can still remember a blocked website permission even when iPhone Settings allows Chrome. Reload or reopen Nabaperks and try once more. If it stays blocked, open the same page in Safari and allow location there, or ask a team member for today's venue code. Chrome on iPhone may not show a Location switch in Site information. If Chrome still blocks this site after that, delete Chrome, install it again, open Nabaperks, and choose Allow when it asks for location. That can clear a saved block Chrome on iPhone does not let you reset.",
+      "Chrome can still remember a blocked website permission even when iPhone Settings allows Chrome. Reload or reopen Nabaperks and try once more. If it stays blocked, open the same page in Safari and allow location there, or ask a team member for today's venue code. Chrome on iPhone may not show a Location switch in Site information. If Chrome still blocks this site after that, deleting Chrome and installing it again can clear a saved block Chrome on iPhone does not let you reset. Deleting Chrome also removes its local data, including your Nabaperks sign-in, so afterwards sign in again, reopen or rescan the venue QR code, tap the location button, and choose Allow when Chrome asks.",
   },
   "android-chrome": {
     label: "Chrome on Android",
