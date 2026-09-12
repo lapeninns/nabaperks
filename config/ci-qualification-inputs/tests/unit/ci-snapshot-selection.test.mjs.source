@@ -1,0 +1,44 @@
+import assert from "node:assert/strict"
+import { test } from "node:test"
+import {
+  classifyChanges,
+  FULL_ROOTS,
+  requiredRoots,
+} from "../../scripts/ci/change-impact.mjs"
+import { needsSelectionComparison } from "../../scripts/ci/plan-checks.mjs"
+
+test("ordinary visual baselines keep all hosted roots without policy qualification", () => {
+  for (const path of [
+    "tests/e2e/visual.spec.ts-snapshots/harness-offers-staff-chromium-linux.png",
+    "tests/e2e/visual.spec.ts-snapshots/harness-offers-customer-mobile-safari.png",
+  ]) {
+    assert.equal(needsSelectionComparison(path), false, path)
+    const impact = classifyChanges([
+      {
+        path,
+        status: "M",
+        oldMode: "100644",
+        newMode: "100644",
+        oldOid: "a".repeat(40),
+        newOid: "b".repeat(40),
+      },
+    ])
+    assert.equal(impact.profile, "full")
+    assert.deepEqual(requiredRoots(impact.profile), FULL_ROOTS)
+  }
+})
+
+test("visual executables and disguised suffixes still require policy qualification", () => {
+  for (const path of [
+    "tests/e2e/visual.spec.ts",
+    "tests/e2e/a11y.spec.ts",
+    "tests/e2e/a11y.desktop.spec.ts",
+    "tests/e2e/visual.spec.ts-snapshots/reference.png.mjs",
+    "tests/e2e/visual.spec.ts-snapshots/reference.png/run.ts",
+    "scripts/ci/plan-checks.mjs",
+    ".github/workflows/ci.yml",
+    "playwright.config.ts",
+    "package.json",
+  ])
+    assert.equal(needsSelectionComparison(path), true, path)
+})
