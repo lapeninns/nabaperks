@@ -95,11 +95,20 @@ export function VenueCodeForm({
           // on-screen keyboard opens, iOS shrinks the dynamic viewport and can
           // leave the input under the keyboard; pulling it to the centre keeps
           // the digits and the submit button visible while typing.
+          //
+          // The scroll is instant, like the other customer forms, not forced
+          // smooth. A forced `behavior: "smooth"` ignores the user's
+          // prefers-reduced-motion setting (globals.css only neutralises CSS
+          // scroll-behavior, not an explicit JS argument), and it made the
+          // submit button a moving target: Firefox runs smooth scrolling on
+          // the compositor, so the button's layout position reads as stable
+          // while it is still visually sliding, and a tap or automated click
+          // taken during that slide lands beside it. CI's reduced-motion
+          // desktop-firefox project hit exactly that about one run in ten
+          // (tests/e2e/customer-venue-code-flow.ts, fill then click), and
+          // each miss cost a full re-run of the pull request's checks.
           onFocus={(event) => {
-            event.currentTarget.scrollIntoView({
-              block: "center",
-              behavior: "smooth",
-            })
+            event.currentTarget.scrollIntoView({ block: "center" })
           }}
           aria-describedby={hintId}
           aria-invalid={attemptsRemaining !== null ? true : undefined}
