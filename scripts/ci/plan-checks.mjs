@@ -2,7 +2,6 @@ import { appendFileSync } from "node:fs"
 import { pathToFileURL } from "node:url"
 import { calculateImpact } from "./change-impact.mjs"
 import { git, requireCommit } from "./impact-git.mjs"
-import { qualifiedSnapshotPage } from "./impact-snapshots.mjs"
 import { candidateQualificationPages } from "./impact-qualification-scope.mjs"
 import { comparisonDependencies } from "./impact-dependencies.mjs"
 import {
@@ -15,9 +14,11 @@ import {
 let dependencyPaths
 
 export function needsSelectionComparison(path) {
-  // Expected pixels do not change test selection. The classifier separately
-  // requires each baseline update to accompany its qualified page change.
-  if (qualifiedSnapshotPage(path)) return false
+  // PNG references do not execute test selection. The classifier still requires
+  // matching public-page changes for selective baselines; all other baselines
+  // retain the complete hosted workload set. Executable suffixes are excluded.
+  if (/^tests\/e2e\/visual\.spec\.ts-snapshots\/[^/]+\.png$/.test(path))
+    return false
   return (
     path === ".github/workflows/ci.yml" ||
     [

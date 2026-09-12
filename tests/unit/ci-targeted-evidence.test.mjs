@@ -374,6 +374,6 @@ test("qualified page selection keeps existing test identities and unqualified po
     needsSelectionComparison(
       "tests/e2e/visual.spec.ts-snapshots/marketing-about-desktop-firefox-linux.png"
     ),
-    true
+    false
   )
 })
