@@ -76,14 +76,17 @@ const OFFER_LANDING_ADDRESS_LIMIT = 600
  * Wi-Fi, or a mobile carrier's NAT. A per-address-only allowance therefore
  * refuses exactly the customers the poster was printed for.
  *
- * The narrow bucket is per device. The proxy mints a signed `nabaperks_device`
- * cookie on this route and forwards that id as a header on the same request, and
+ * The narrow bucket is per device. The proxy already mints a signed
+ * `nabaperks_device` cookie on this route and forwards its id as a header, and
  * the customer identity below folds that together with the address. Thirty loads
  * in a quarter of an hour is far more than one phone needs, refreshes included.
  * It is enforced first so a single device hammering the link is cut off without
  * first spending the room's allowance.
  *
- * The wide bucket is the per-address ceiling that still has to exist. Six
+ * The wide bucket is the per-address ceiling that still has to exist. A brand
+ * new browser has no device cookie on its very first request — the proxy sets it
+ * on the way out — so first loads from one address all share one identity by
+ * construction, and the narrow bucket cannot be relied on to admit them. Six
  * hundred loads in a quarter of an hour covers a full house several times over
  * while still bounding the work one address can ask of the database. It is not
  * what makes the link unguessable: the token is a 256-bit HMAC digest, so

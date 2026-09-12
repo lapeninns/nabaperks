@@ -23,8 +23,6 @@ import {
 import {
   CUSTOMER_DEVICE_COOKIE,
   CUSTOMER_DEVICE_TTL_SECONDS,
-  CUSTOMER_SESSION_COOKIE,
-  CUSTOMER_SESSION_TTL_SECONDS,
   persistentCookieOptions,
 } from "@/lib/http/persistent-cookie-options"
 import { CUSTOMER_DEVICE_HEADER } from "@/lib/security/rate-limit-core"
@@ -64,7 +62,7 @@ export async function proxy(request: NextRequest) {
       csp,
       nonce,
       joinJourney?.token,
-      customerDevice?.id
+      customerDevice?.isNew ? undefined : customerDevice?.id
     )
     const nextResponse = NextResponse.next({
       request: { headers: requestHeaders },
@@ -94,17 +92,6 @@ export async function proxy(request: NextRequest) {
       CUSTOMER_DEVICE_COOKIE,
       customerDevice.token,
       persistentCookieOptions(CUSTOMER_DEVICE_TTL_SECONDS)
-    )
-  }
-
-  const customerSession = operationalProbe
-    ? undefined
-    : request.cookies.get(CUSTOMER_SESSION_COOKIE)?.value
-  if (customerSession) {
-    response.cookies.set(
-      CUSTOMER_SESSION_COOKIE,
-      customerSession,
-      persistentCookieOptions(CUSTOMER_SESSION_TTL_SECONDS)
     )
   }
 

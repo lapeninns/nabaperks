@@ -18,16 +18,18 @@ test("Given Safari discards Max-Age-only cookies When customer cookies are set T
   assert.match(cookie, /expires: new Date\(nowMs \+ maxAge \* 1_000\)/)
   assert.match(session, /persistentCookieOptions\(customerSessionTtlSeconds\)/)
   assert.match(proxy, /persistentCookieOptions\(CUSTOMER_DEVICE_TTL_SECONDS\)/)
-  assert.match(proxy, /persistentCookieOptions\(CUSTOMER_SESSION_TTL_SECONDS\)/)
+  assert.doesNotMatch(
+    proxy,
+    /persistentCookieOptions\(CUSTOMER_SESSION_TTL_SECONDS\)/
+  )
 })
 
-test("Given a returning Safari visit When the proxy runs Then it refreshes existing device and session cookies rather than minting a new device", () => {
+test("Given a returning Safari visit When the proxy runs Then it refreshes the verified device cookie and keeps cookieless requests unscoped", () => {
   const proxy = read("proxy.ts")
 
   assert.match(proxy, /token: issueCustomerDeviceToken\(verified, secret\)/)
-  assert.match(proxy, /customerDevice\?\.id/)
-  assert.doesNotMatch(proxy, /customerDevice\?\.isNew \? undefined/)
-  assert.match(
+  assert.match(proxy, /customerDevice\?\.isNew \? undefined/)
+  assert.doesNotMatch(
     proxy,
     /request\.cookies\.get\(CUSTOMER_SESSION_COOKIE\)\?\.value/
   )

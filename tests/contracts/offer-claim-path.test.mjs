@@ -116,7 +116,7 @@ describe("contract-offer-claim-path source contract", () => {
     // without meeting the argument for the other.
     const reasoning = flattenProse(limiter)
     assert.match(reasoning, /guest Wi-Fi, or a mobile carrier's NAT/)
-    assert.match(reasoning, /forwards that id as a header on the same request/)
+    assert.match(reasoning, /no device cookie on its very first request/)
     assert.match(reasoning, /256-bit HMAC digest/)
 
     // Still limited, and still answered with the calm state.
