@@ -4,6 +4,7 @@ import {
   FEEDBACK_THRESHOLD_MINUTES,
   checkWindow,
   collectFeedback,
+  mostRecentlyMerged,
   renderFeedback,
   summariseFeedback,
 } from "../../scripts/ci/pr-feedback-time.mjs"
@@ -61,9 +62,11 @@ test("a re-run's later completion lengthens the window; queued checks fall back 
   assert.equal(rerun.minutes.toFixed(2), "16.35")
   assert.equal(rerun.lastCheck, "CI / Release gate")
 
-  // Legacy commit statuses carry `context` rather than `name`, and a check
-  // still in flight has no completedAt: its last update stands in, so an
-  // unfinished pull request cannot look faster than it is.
+  // Legacy commit statuses carry `context` rather than `name` and a single
+  // timestamp with no completion: that instant is both their start and end,
+  // so a status posted after the Actions jobs finish still closes the window.
+  // A check still in flight has no completedAt: its last update stands in, so
+  // an unfinished pull request cannot look faster than it is.
   const inFlight = checkWindow([
     {
       __typename: "StatusContext",
@@ -77,12 +80,24 @@ test("a re-run's later completion lengthens the window; queued checks fall back 
     }),
   ])
   assert.deepEqual(inFlight, {
-    startedAt: "2026-09-12T10:00:30.000Z",
+    startedAt: "2026-09-12T10:00:00.000Z",
     completedAt: "2026-09-12T10:06:00.000Z",
-    minutes: 5.5,
-    firstCheck: "CI / E2E (mobile-safari, pack 1)",
+    minutes: 6,
+    firstCheck: "Vercel",
     lastCheck: "CI / E2E (mobile-safari, pack 1)",
   })
+  assert.equal(
+    checkWindow([
+      check("Release gate", "2026-09-12T10:08:00Z", "2026-09-12T10:08:30Z"),
+      {
+        __typename: "StatusContext",
+        context: "Vercel",
+        startedAt: "2026-09-12T10:09:00Z",
+      },
+    ]).lastCheck,
+    "Vercel",
+    "a status posted after the jobs finish is the last thing the contributor waited for"
+  )
 
   assert.equal(checkWindow([]), null)
   assert.equal(
@@ -150,39 +165,91 @@ test("the sample statistics are the readiness signal's: mean of measured windows
   assert.throws(() => summariseFeedback(null))
 })
 
-test("collection asks gh for merged pull requests with their status checks and nothing else", () => {
+test("collection lists merge times cheaply, then reads each chosen pull request's checks", () => {
   const calls = []
   const summary = collectFeedback({
     count: 7,
     read: (args) => {
       calls.push(args)
-      return [
-        {
-          number: 9,
-          title: "t",
-          mergedAt: "2026-09-12T10:10:00Z",
-          statusCheckRollup: [
-            check("a", "2026-09-12T10:00:00Z", "2026-09-12T10:04:00Z"),
-          ],
-        },
-      ]
+      if (args[1] === "list")
+        return [{ number: 9, mergedAt: "2026-09-12T10:10:00Z" }]
+      assert.deepEqual(args.slice(0, 3), ["pr", "view", "9"])
+      return {
+        number: 9,
+        title: "t",
+        mergedAt: "2026-09-12T10:10:00Z",
+        statusCheckRollup: [
+          check("a", "2026-09-12T10:00:00Z", "2026-09-12T10:04:00Z"),
+        ],
+      }
     },
   })
-  assert.equal(calls.length, 1)
-  assert.deepEqual(calls[0].slice(0, 2), ["pr", "list"])
-  assert.ok(calls[0].includes("--state") && calls[0].includes("merged"))
+  assert.equal(calls.length, 2)
+  const list = calls[0]
+  assert.deepEqual(list.slice(0, 2), ["pr", "list"])
+  assert.ok(list.includes("--state") && list.includes("merged"))
+  // Three times the sample, so a long-lived pull request merged today is in
+  // the window; only numbers and merge times, so the list stays cheap.
   assert.deepEqual(
-    calls[0].slice(
-      calls[0].indexOf("--limit"),
-      calls[0].indexOf("--limit") + 2
-    ),
-    ["--limit", "7"]
+    list.slice(list.indexOf("--limit"), list.indexOf("--limit") + 2),
+    ["--limit", "21"]
   )
-  assert.equal(calls[0].at(-1), "number,title,mergedAt,statusCheckRollup")
-  assert.ok(!calls[0].includes("--method"), "collection is read-only")
+  assert.equal(list.at(-1), "number,mergedAt")
+  assert.equal(calls[1].at(-1), "number,title,mergedAt,statusCheckRollup")
+  for (const call of calls)
+    assert.ok(!call.includes("--method"), "collection is read-only")
   assert.equal(summary.meanMinutes, 4)
   assert.equal(summary.samples[0].mergedAt, "2026-09-12T10:10:00Z")
 
   for (const count of [0, 51, 2.5, "20"])
     assert.throws(() => collectFeedback({ count, read: () => [] }))
+})
+
+test("the sample is the most recently merged pull requests, not the most recently created", () => {
+  // gh orders `pr list` by creation date. A long-lived pull request merged
+  // today must not be pushed out of the sample by a newer one merged earlier.
+  const longLived = { number: 100, mergedAt: "2026-09-12T15:00:00Z" }
+  const newer = { number: 300, mergedAt: "2026-09-12T09:00:00Z" }
+  const newest = { number: 301, mergedAt: "2026-09-12T12:00:00Z" }
+  assert.deepEqual(
+    mostRecentlyMerged([newest, newer, longLived], 2).map((pr) => pr.number),
+    [100, 301]
+  )
+  assert.deepEqual(mostRecentlyMerged([], 5), [])
+  assert.throws(() => mostRecentlyMerged([{ number: 1 }], 1))
+  assert.throws(() => mostRecentlyMerged(null, 1))
+
+  const detail = {
+    300: {
+      number: 300,
+      title: "created later, merged earlier",
+      mergedAt: "2026-09-12T09:00:00Z",
+      statusCheckRollup: [
+        check("a", "2026-09-12T08:00:00Z", "2026-09-12T08:20:00Z"),
+      ],
+    },
+    100: {
+      number: 100,
+      title: "long-lived",
+      mergedAt: "2026-09-12T15:00:00Z",
+      statusCheckRollup: [
+        check("a", "2026-09-12T14:00:00Z", "2026-09-12T14:05:00Z"),
+      ],
+    },
+  }
+  const summary = collectFeedback({
+    count: 1,
+    read: (args) =>
+      args[1] === "list"
+        ? [
+            { number: 300, mergedAt: "2026-09-12T09:00:00Z" },
+            { number: 100, mergedAt: "2026-09-12T15:00:00Z" },
+          ]
+        : detail[args[2]],
+  })
+  assert.deepEqual(
+    summary.samples.map((sample) => sample.number),
+    [100]
+  )
+  assert.equal(summary.meanMinutes, 5)
 })

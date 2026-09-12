@@ -12,13 +12,26 @@ import { githubJson } from "../../ops/factory/github.mjs"
 // time is not counted, only the span of the checks themselves.
 //
 // The window is read from `statusCheckRollup` exactly as `gh pr list` returns
-// it, so a re-run's later completion, a second workflow (CodeQL, dependency
-// review) and a check that is still queued are all reflected the way a
-// contributor sees them on the pull request page.
+// it, so a second workflow (CodeQL, dependency review), a legacy commit
+// status (Vercel) and a check that is still queued are all reflected the way
+// a contributor sees them on the pull request page. The rollup is the current
+// state of the head commit, not an attempt history: re-running only the
+// failed jobs keeps the first attempt's passing jobs beside the re-run, so
+// that wait is counted, while "Re-run all jobs" replaces the first attempt
+// wholesale and the rollup - and this figure, and the readiness signal that
+// reads the same rollup - then sees the re-run alone.
 export const FEEDBACK_THRESHOLD_MINUTES = 10
 export const DEFAULT_SAMPLE_SIZE = 20
 const MAX_SAMPLE_SIZE = 50
+// `gh pr list --state merged` orders by creation date, so a long-lived pull
+// request merged today can fall outside a creation-ordered `--limit`. List a
+// wider window of numbers and merge times (cheap), take the most recently
+// *merged* ones, then read each chosen pull request's checks on its own:
+// GitHub's GraphQL gateway answers 504 to a single list of forty or more
+// pull requests carrying their status-check rollups.
+const FETCH_MULTIPLIER = 3
 const REPOSITORY = "lapeninns/nabaperks"
+const SAMPLE_FIELDS = "number,title,mergedAt,statusCheckRollup"
 
 function parseTime(value) {
   const parsed = typeof value === "string" ? Date.parse(value) : NaN
@@ -37,7 +50,10 @@ function checkName(check) {
  * started. A check that has not completed reports `updatedAt`, which is the
  * last time GitHub touched it; an in-flight check therefore contributes its
  * most recent progress rather than being dropped, so a pull request whose
- * checks are still running is never reported as faster than it is.
+ * checks are still running is never reported as faster than it is. A legacy
+ * commit status carries a single timestamp and no completion at all: it is a
+ * point-in-time event, so that timestamp is both its start and its end, and
+ * a status posted after the Actions jobs finish still closes the window.
  */
 export function checkWindow(statusCheckRollup) {
   if (!Array.isArray(statusCheckRollup))
@@ -49,8 +65,8 @@ export function checkWindow(statusCheckRollup) {
   for (const check of statusCheckRollup) {
     const start = parseTime(check.startedAt)
     if (start === null) continue
-    const end = parseTime(check.completedAt) ?? parseTime(check.updatedAt)
-    if (end === null) continue
+    const end =
+      parseTime(check.completedAt) ?? parseTime(check.updatedAt) ?? start
     if (startedAt === null || start < startedAt) {
       startedAt = start
       earliest = checkName(check)
@@ -132,7 +148,7 @@ export function collectFeedback({
     throw new Error(
       `Sample must contain one to ${MAX_SAMPLE_SIZE} pull requests`
     )
-  const pullRequests = read([
+  const listed = read([
     "pr",
     "list",
     "--repo",
@@ -140,11 +156,40 @@ export function collectFeedback({
     "--state",
     "merged",
     "--limit",
-    String(count),
+    String(count * FETCH_MULTIPLIER),
     "--json",
-    "number,title,mergedAt,statusCheckRollup",
+    "number,mergedAt",
   ])
+  const pullRequests = mostRecentlyMerged(listed, count).map((pullRequest) =>
+    read([
+      "pr",
+      "view",
+      String(pullRequest.number),
+      "--repo",
+      REPOSITORY,
+      "--json",
+      SAMPLE_FIELDS,
+    ])
+  )
   return summariseFeedback(pullRequests, { threshold })
+}
+
+/** The `count` most recently merged pull requests, newest merge first. */
+export function mostRecentlyMerged(pullRequests, count) {
+  if (!Array.isArray(pullRequests))
+    throw new Error("Expected a list of pull requests")
+  const merged = pullRequests
+    .map((pullRequest) => ({
+      pullRequest,
+      mergedAt: parseTime(pullRequest?.mergedAt),
+    }))
+    .filter((entry) => entry.mergedAt !== null)
+  if (merged.length !== pullRequests.length)
+    throw new Error("Every sampled pull request must carry its merge time")
+  return merged
+    .sort((a, b) => b.mergedAt - a.mergedAt)
+    .slice(0, count)
+    .map((entry) => entry.pullRequest)
 }
 
 function formatMinutes(value) {

@@ -97,14 +97,16 @@ That is a real but second-order lever; it is recorded here, not taken.
 
 The two things that actually broke the bar:
 
-- **Flaky shard re-runs.** #325 and #327 each failed
+- **Flaky shard re-runs.** #325, #326 and #327 each failed
   `E2E (desktop-firefox, pack 2)` on the first attempt on the same test — the
   throttled venue-code path in `tests/e2e/customer-venue-code-flow.ts` —
   passed on Playwright's retry, and were still red because `failOnFlakyTests`
   is deliberately on. The failed jobs were re-run by hand ten to thirteen
   minutes later, and that whole wait is contributor-visible feedback time
-  (18.5 and 15.8 minutes). The same file flaked on desktop Firefox in at least
-  two other recent pull-request runs. The cause was the venue-code input's
+  (18.5, 17.1 and 15.8 minutes). The same file flaked on desktop Firefox in
+  at least two other recent pull-request runs. (#326's first attempt also
+  lost `Lighthouse (home)` to a largest-contentful-paint assertion, a separate
+  flake this change does not touch.) The cause was the venue-code input's
   `scrollIntoView({ behavior: "smooth" })` on focus: Firefox scrolls on the
   compositor, so the submit button read as stable while still sliding, and the
   click after `fill` landed beside it. The form now scrolls instantly like the
@@ -118,5 +120,19 @@ The two things that actually broke the bar:
 Re-measure with `node scripts/ci/pr-feedback-time.mjs 20` (read-only; exits 1
 while the mean is at or over ten minutes). The unit tests in
 `tests/unit/ci-pr-feedback-time.test.mjs` pin the definition: earliest
-`startedAt` to latest `completedAt` (or `updatedAt` for an unfinished check)
-across every check on the pull request, re-runs included.
+`startedAt` to latest `completedAt` (or `updatedAt` for an unfinished check,
+or the status's own timestamp for a legacy commit status such as Vercel)
+across every check on the pull request. Two properties of the source data
+are worth knowing when reading the figure:
+
+- The sample is the twenty most recently _merged_ pull requests. `gh pr list
+--state merged` orders by creation date, so the script lists a wider window
+  of merge times and then reads each chosen pull request's checks
+  individually (a single listing of forty or more with their rollups is
+  answered 504 by GitHub's GraphQL gateway).
+- `statusCheckRollup` is the head commit's current rollup, not an attempt
+  history. Re-running only the failed jobs leaves the first attempt's passing
+  jobs beside the re-run, so that wait is counted (this is what #325 and #327
+  show). "Re-run all jobs" replaces the first attempt wholesale, and the
+  rollup — and therefore both this figure and the readiness signal, which
+  reads the same rollup — then sees only the re-run.
