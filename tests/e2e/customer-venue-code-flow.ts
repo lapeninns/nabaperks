@@ -356,6 +356,10 @@ async function refuseGeolocationInBrowser(page: Page) {
       POSITION_UNAVAILABLE: 2,
       TIMEOUT: 3,
     }
+    Object.defineProperty(window, "HTMLGeolocationElement", {
+      configurable: true,
+      value: undefined,
+    })
     Object.defineProperty(navigator, "geolocation", {
       configurable: true,
       value: {

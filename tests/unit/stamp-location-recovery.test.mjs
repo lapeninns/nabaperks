@@ -155,6 +155,12 @@ test("copy detection separates iOS and Android Chrome, Safari, iPad desktop mode
     ),
     "android-chrome"
   )
+  assert.equal(
+    locationHelpBrowser(
+      browser("Macintosh Chrome/145.0.0.0 Safari/537.36", "MacIntel", 0)
+    ),
+    "desktop-chrome"
+  )
   assert.match(
     LOCATION_HELP["ios-safari"].steps,
     /Website Settings.*Location.*Allow/
@@ -164,4 +170,12 @@ test("copy detection separates iOS and Android Chrome, Safari, iPad desktop mode
     /Location Services.*Chrome.*While Using/
   )
   assert.match(LOCATION_HELP["ios-chrome"].detail, /Reload or reopen/)
+  assert.match(
+    LOCATION_HELP["desktop-chrome"].steps,
+    /padlock.*Location.*Allow/
+  )
+  assert.match(
+    LOCATION_HELP["android-chrome"].detail,
+    /in-page location button can reopen/
+  )
 })

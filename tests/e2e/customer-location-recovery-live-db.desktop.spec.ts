@@ -40,6 +40,10 @@ test.describe("location recovery with the real local stamp action", () => {
       await page.addInitScript(
         ({ latitude, longitude }) => {
           let calls = 0
+          Object.defineProperty(window, "HTMLGeolocationElement", {
+            configurable: true,
+            value: undefined,
+          })
           Object.defineProperty(navigator, "geolocation", {
             configurable: true,
             value: {
@@ -142,6 +146,10 @@ test.describe("location recovery with the real local stamp action", () => {
       // exceeds the precision ceiling. Only the browser callback is simulated.
       await page.addInitScript(
         ({ latitude, longitude }) => {
+          Object.defineProperty(window, "HTMLGeolocationElement", {
+            configurable: true,
+            value: undefined,
+          })
           Object.defineProperty(navigator, "geolocation", {
             configurable: true,
             value: {

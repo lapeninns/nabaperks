@@ -434,6 +434,19 @@ body[data-grain="true"]::after {
    variant instead.
    ============================================================ */
 
+/* Chrome's <geolocation> control after a saved deny. Only properties the
+   element accepts are set; violating contrast or opacity disables it. */
+geolocation.np-geolocation {
+  width: 100%;
+  min-height: 2.75rem;
+  max-height: 3em;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--w-accent-ink);
+  background-color: var(--w-accent);
+  border: 2px solid var(--w-ink);
+}
+
 /* THE focus recipe — one treatment for the whole system: a 2px vermillion
    outline offset 2px. It never fights the hard offset shadows and reads on
    paper, card, and spot-ink fills alike. `.pressable` (every Button) carries
