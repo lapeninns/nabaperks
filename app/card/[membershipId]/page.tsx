@@ -4,7 +4,7 @@ import { CustomerCardExperience } from "@/components/customer/customer-card-expe
 import { deriveCustomerExperience } from "@/lib/customer/experience/derive"
 import { loadCardExperienceContext } from "@/lib/customer/experience/load-card"
 import { listCustomerOfferPassesForMembership } from "@/lib/customer/offer-pass"
-import { offerClaimNoticeFromParams } from "@/lib/customer/offer-pass-view"
+import { loadOfferClaimNotice } from "@/lib/customer/offer-claim-notice"
 import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 
 export const metadata: Metadata = {
@@ -39,9 +39,10 @@ export default async function CustomerCardPage({
   const query = await searchParams
   // The card and its discount passes are independent reads, so they run
   // together rather than one after the other.
-  const [context, offerPasses] = await Promise.all([
+  const [context, offerPasses, offerClaimNotice] = await Promise.all([
     loadCardExperienceContext(membershipId, query),
     listCustomerOfferPassesForMembership(membershipId),
+    loadOfferClaimNotice(membershipId, query),
   ])
   const experience = deriveCustomerExperience({ entry: "card", context })
 
@@ -49,7 +50,7 @@ export default async function CustomerCardPage({
     <CustomerCardExperience
       experience={experience}
       offerPasses={offerPasses}
-      offerClaimNotice={offerClaimNoticeFromParams(query)}
+      offerClaimNotice={offerClaimNotice}
     />
   )
 }

@@ -97,6 +97,7 @@ export function StampGrid({
   slamIndex = -1,
   pendingIndex = -1,
   showEmptySlotNumbers = false,
+  receiptCaptions = false,
   rewardSlot,
   previewJourney = false,
   compact = false,
@@ -117,6 +118,8 @@ export function StampGrid({
   /** Slot inking while a stamp request is in flight (wet outline, not earned). */
   pendingIndex?: number
   showEmptySlotNumbers?: boolean
+  /** Printed slot captions for the welcome journey; existing grids keep their dates. */
+  receiptCaptions?: boolean
   /** Reward-ticket chip destination after the stamp slots. */
   rewardSlot?: RewardSlotState
   /** Illustrate nearly-complete progress on join previews (total − 1 earned). */
@@ -157,7 +160,13 @@ export function StampGrid({
   function renderSlot(slot: StampGridSlot, key: string) {
     if (slot.kind === "reward") {
       return (
-        <span key={key} role="listitem">
+        <span
+          key={key}
+          role="listitem"
+          className={
+            receiptCaptions ? "mx-auto w-full max-w-[3.75rem]" : undefined
+          }
+        >
           <RewardChip slotState={slot.slotState} compact={compact} />
         </span>
       )
@@ -169,6 +178,11 @@ export function StampGrid({
       <span
         key={key}
         role="listitem"
+        className={
+          receiptCaptions
+            ? "mx-auto grid w-full max-w-[3.75rem] justify-items-center gap-2"
+            : undefined
+        }
         style={
           earned
             ? ({
@@ -181,7 +195,7 @@ export function StampGrid({
           earned={earned}
           pending={!earned && slot.index === pendingIndex}
           label={`Stamp ${slot.index + 1} ${earned ? "earned" : "empty"}`}
-          date={earned ? dates?.[slot.index] : undefined}
+          date={earned && !receiptCaptions ? dates?.[slot.index] : undefined}
           slotNumber={slot.index + 1}
           showEmptySlotNumber={showEmptySlotNumbers}
           slammed={slot.index === slamIndex}
@@ -190,6 +204,11 @@ export function StampGrid({
           venueInitials={venueInitials}
           onSlamComplete={slot.index === slamIndex ? onSlamComplete : undefined}
         />
+        {receiptCaptions ? (
+          <span className="mono-id text-center tracking-normal whitespace-nowrap text-muted-foreground">
+            {earned ? `Stamp ${slot.index + 1}` : "Next visit"}
+          </span>
+        ) : null}
       </span>
     )
   }

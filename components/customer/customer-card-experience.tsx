@@ -3,7 +3,6 @@ import Link from "next/link"
 import {
   ArrowDown01Icon,
   ArrowLeft01Icon,
-  DiscountTag01Icon,
   GiftIcon,
 } from "@hugeicons/core-free-icons"
 
@@ -30,7 +29,6 @@ import {
 import {
   RewardCelebration,
   StatusBanner,
-  formatOfferPassDate,
   type RewardTicketState,
 } from "@/components/loyalty"
 import { StampCelebration } from "@/components/motion"
@@ -44,6 +42,11 @@ import {
 import { rewardSourceBadge } from "@/lib/customer/issued-reward-display"
 import { hasVisibleReferralBonusBank } from "@/lib/customer/referral-bonus-bank-copy"
 import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
+import {
+  OfferFlowShell,
+  OfferVenueLine,
+} from "@/components/customer/offer-flow-shell"
+import { OfferPassRail } from "@/components/customer/offer-pass-rail"
 import type { CustomerOfferPass } from "@/lib/customer/offer-pass"
 import type { OfferClaimNotice } from "@/lib/customer/offer-pass-view"
 import type {
@@ -78,6 +81,26 @@ export function CustomerCardExperience({
   offerClaimNotice: OfferClaimNotice | null
 }) {
   const vm = getCustomerExperienceViewModel(experience)
+
+  if (experience.kind === "card_collecting" && offerPasses.length > 0) {
+    return (
+      <>
+        <OfferFlowShell backHref="/home" label="Your card" className="pb-28">
+          <OfferVenueLine>{experience.merchantName}</OfferVenueLine>
+          <h1 className="text-3xl leading-tight font-extrabold tracking-tight">
+            Your {experience.merchantName} card
+          </h1>
+          <ExperiencePanel
+            experience={experience}
+            vm={vm}
+            offerPasses={offerPasses}
+            offerClaimNotice={offerClaimNotice}
+          />
+        </OfferFlowShell>
+        <CustomerTabBar />
+      </>
+    )
+  }
 
   return (
     <>
@@ -153,6 +176,7 @@ function CardProgressPanel({
   offerPasses: readonly CustomerOfferPass[]
   offerClaimNotice: OfferClaimNotice | null
 }) {
+  const offerLayout = offerPasses.length > 0
   const cardComplete = exp.total > 0 && exp.current >= exp.total
   const rewardState: RewardTicketState =
     exp.reward === "ready"
@@ -215,13 +239,15 @@ function CardProgressPanel({
       {exp.justStamped || exp.justJoined || exp.justRedeemed ? (
         <CelebrationUrlCleanup />
       ) : null}
-      <Link
-        href="/home"
-        className="inline-flex w-fit items-center gap-1.5 text-sm font-bold text-ink-soft underline-offset-4 transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:text-foreground hover:underline motion-reduce:transition-none"
-      >
-        <Icon icon={ArrowLeft01Icon} size={16} />
-        Your cards
-      </Link>
+      {offerLayout ? null : (
+        <Link
+          href="/home"
+          className="inline-flex w-fit items-center gap-1.5 text-sm font-bold text-ink-soft underline-offset-4 transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:text-foreground hover:underline motion-reduce:transition-none"
+        >
+          <Icon icon={ArrowLeft01Icon} size={16} />
+          Your cards
+        </Link>
+      )}
 
       {offerClaimNotice ? (
         <OfferClaimBanner
@@ -231,6 +257,7 @@ function CardProgressPanel({
       ) : null}
 
       <CustomerStampCard
+        offerLayout={offerLayout}
         venueName={exp.merchantName}
         cardName={exp.cardName}
         current={exp.current}
@@ -260,7 +287,9 @@ function CardProgressPanel({
                     : "Your reward is yours from opening time on the next UK business day."
                 }
               />
-            ) : exp.justJoined && !exp.firstStampRecovery ? (
+            ) : exp.justJoined &&
+              !exp.firstStampRecovery &&
+              !offerClaimNotice ? (
               <StampCelebration>
                 <StatusBanner
                   title={`Welcome to ${exp.merchantName}.`}
@@ -296,39 +325,7 @@ function CardProgressPanel({
           </>
         }
       >
-        {exp.firstStampRecovery ? (
-          <JoinFirstStampRecoveryPanel
-            membershipId={exp.membershipId}
-            recovery={exp.firstStampRecovery}
-          />
-        ) : exp.reward === "ready" && exp.rewardId ? (
-          <Button asChild size="lg" variant="reward" className="w-full">
-            <Link href={`/reward/${exp.rewardId}`}>Open reward QR</Link>
-          </Button>
-        ) : exp.reward === "waiting" ? (
-          <StatusNotice
-            title="Give it a day to breathe"
-            message={waitingRewardTiming(exp.rewardRedeemableFrom)}
-          />
-        ) : exp.justStamped ? (
-          // Today's stamp is already on the card — confirm it instead of
-          // prompting another scan, which would read as a failure.
-          <StatusBanner title="Stamp secured." tone="success">
-            Your next scan window opens on the next UK business day.
-          </StatusBanner>
-        ) : (
-          // One action and one line: the instruction lives in the button,
-          // so the card stays inside the first screen (the stamp-per-day rule
-          // is in the card details disclosure below).
-          <div className="grid gap-1.5">
-            <Button asChild size="lg" variant="secondary" className="w-full">
-              <Link href="/scan">Scan to stamp</Link>
-            </Button>
-            <p className="text-center text-xs leading-5 text-muted-foreground">
-              Use the printed QR at the venue to add today&apos;s stamp.
-            </p>
-          </div>
-        )}
+        {offerLayout ? null : <CardPrimaryAction exp={exp} />}
       </CustomerStampCard>
 
       {exp.gift ? (
@@ -336,8 +333,10 @@ function CardProgressPanel({
       ) : null}
 
       {offerPasses.map((pass) => (
-        <CardOfferPassChip key={pass.entitlementId} pass={pass} />
+        <OfferPassRail key={pass.entitlementId} pass={pass} />
       ))}
+
+      {offerLayout ? <CardPrimaryAction exp={exp} /> : null}
 
       {hasVisibleReferralBonusBank(exp.referralBonusBank) ? (
         <ReferralBonusBankNotice bank={exp.referralBonusBank} />
@@ -369,6 +368,46 @@ function CardProgressPanel({
  * on its own rail, never implying the stamp card is complete. Redeemable gifts
  * offer their own QR; a not-yet-open gift shows a calm "ready from" note.
  */
+function CardPrimaryAction({
+  exp,
+}: {
+  exp: Extract<CustomerExperience, { kind: "card_collecting" }>
+}) {
+  return exp.firstStampRecovery ? (
+    <JoinFirstStampRecoveryPanel
+      membershipId={exp.membershipId}
+      recovery={exp.firstStampRecovery}
+    />
+  ) : exp.reward === "ready" && exp.rewardId ? (
+    <Button asChild size="lg" variant="reward" className="w-full">
+      <Link href={`/reward/${exp.rewardId}`}>Open reward QR</Link>
+    </Button>
+  ) : exp.reward === "waiting" ? (
+    <StatusNotice
+      title="Give it a day to breathe"
+      message={waitingRewardTiming(exp.rewardRedeemableFrom)}
+    />
+  ) : exp.justStamped ? (
+    // Today's stamp is already on the card — confirm it instead of
+    // prompting another scan, which would read as a failure.
+    <StatusBanner title="Stamp secured." tone="success">
+      Your next scan window opens on the next UK business day.
+    </StatusBanner>
+  ) : (
+    // One action and one line: the instruction lives in the button,
+    // so the card stays inside the first screen (the stamp-per-day rule
+    // is in the card details disclosure below).
+    <div className="grid gap-1.5">
+      <Button asChild size="lg" variant="secondary" className="w-full">
+        <Link href="/scan">Scan to stamp</Link>
+      </Button>
+      <p className="text-center text-xs leading-5 text-muted-foreground">
+        Use the printed QR at the venue to add today&apos;s stamp.
+      </p>
+    </div>
+  )
+}
+
 function CardGiftChip({
   gift,
   merchantName,
@@ -459,57 +498,6 @@ function OfferClaimBanner({
       and rewards are unchanged.
     </StatusBanner>
   )
-}
-
-/**
- * A discount pass shown on its own rail beside the card, never inside the
- * reward panels. The stamp card and the pass are separate promises: a pass can
- * be used again and again while it is in date, so folding it into the reward
- * rail would either imply it is spent after one use or imply the card is
- * further along than it is. The full face and the scannable code live on
- * `/pass/<id>`; this chip is the way in.
- */
-function CardOfferPassChip({ pass }: { pass: CustomerOfferPass }) {
-  const closes = formatOfferPassDate(pass.validTo)
-  const opens = formatOfferPassDate(pass.validFrom)
-
-  return (
-    <div className="grid gap-2 rounded-lg border-2 border-ink bg-seal/15 p-3">
-      <div className="flex items-center gap-1.5">
-        <Icon icon={DiscountTag01Icon} size={16} />
-        <span className="mono-id tracking-[0.08em] text-ink">
-          Discount pass
-        </span>
-      </div>
-      <p className="text-sm leading-tight font-extrabold break-words">
-        {pass.discountPercent}% off at {pass.venueName}
-      </p>
-      {pass.presentable ? (
-        <Button asChild size="sm" variant="reward" className="w-full">
-          <Link href={`/pass/${pass.entitlementId}`}>Show pass QR</Link>
-        </Button>
-      ) : (
-        <p className="text-xs text-muted-foreground">
-          {offerPassChipNote(pass, opens, closes)}
-        </p>
-      )}
-    </div>
-  )
-}
-
-function offerPassChipNote(
-  pass: CustomerOfferPass,
-  opens: string | null,
-  closes: string | null
-): string {
-  if (pass.state === "not_started") {
-    return opens ? `Opens ${opens}.` : "Opens on its start date."
-  }
-  if (pass.state === "revoked") return "No longer active."
-  if (pass.state === "expired") {
-    return closes ? `Ran until ${closes}.` : "This pass has finished."
-  }
-  return pass.unavailableReason ?? "Not available just now."
 }
 
 /**

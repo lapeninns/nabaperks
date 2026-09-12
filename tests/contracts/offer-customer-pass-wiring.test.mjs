@@ -148,37 +148,16 @@ describe("contract-offer-customer-pass-wiring source contract", () => {
     assert.match(home, /groupOfferPassesByMembership\(offerPasses\)/)
     // The card's own route to the code; the home tile carries a second one,
     // pinned below. Between them the chain closes from either surface.
-    assert.match(experience, /href=\{`\/pass\/\$\{pass\.entitlementId\}`\}/)
+    assert.match(experience, /<OfferPassRail/)
   })
 
-  it("never offers a code for a pass the venue would refuse", () => {
-    const experience = flatten(
-      readProjectFile("components/customer/customer-card-experience.tsx")
-    )
-    const tile = flatten(
-      readProjectFile("components/customer/home-card-tile.tsx")
-    )
-    // Both surfaces now offer the code themselves, so both must gate it.
-    for (const [name, source] of [
-      ["customer-card-experience.tsx", experience],
-      ["home-card-tile.tsx", tile],
-    ]) {
-      const passLinkIndex = source.indexOf("/pass/${pass.entitlementId}")
-      const gateIndex = source.lastIndexOf("pass.presentable ?", passLinkIndex)
-
-      assert.ok(
-        passLinkIndex !== -1,
-        `${name} must carry a route to the pass code`
-      )
-      assert.ok(
-        gateIndex !== -1,
-        `${name} must sit the pass link inside a presentable gate`
-      )
-      assert.ok(gateIndex < passLinkIndex, `${name} must gate before it links`)
-      // `presentable` already folds the pass's own state together with whether
-      // the venue can honour it, so no surface re-derives that judgement.
-      assert.doesNotMatch(source, /state === "active" &&/)
-    }
+  it("retains authorised pass navigation while the pass page gates the QR", () => {
+    const rail = readProjectFile("components/customer/offer-pass-rail.tsx")
+    assert.match(rail, /href=\{`\/pass\/\$\{pass\.entitlementId\}`\}/)
+    assert.match(rail, /pass.presentable \? "Show pass QR" : "View pass"/)
+    const page = readProjectFile("app/pass/[entitlementId]/page.tsx")
+    assert.match(page, /if \(pass.presentable\)/)
+    assert.match(page, /<OfferPassQr/)
   })
 
   it("keeps a route to the pass when a redeemable reward takes over the tile", () => {
@@ -209,7 +188,7 @@ describe("contract-offer-customer-pass-wiring source contract", () => {
 
     // And having left that link, the chip carries the destination itself.
     assert.ok(
-      tile.includes("/pass/${pass.entitlementId}"),
+      tile.includes("<OfferPassRail"),
       "the tile must offer its own route to the pass code"
     )
   })
@@ -230,11 +209,14 @@ describe("contract-offer-customer-pass-wiring source contract", () => {
 
     assert.match(cardPage, /offer\?: string/)
     assert.match(cardPage, /membership\?: string/)
-    assert.match(
-      cardPage,
-      /offerClaimNotice=\{offerClaimNoticeFromParams\(query\)\}/
-    )
+    assert.match(cardPage, /loadOfferClaimNotice\(membershipId, query\)/)
 
+    const noticeRead = readProjectFile("lib/customer/offer-claim-notice.ts")
+    assert.match(noticeRead, /getCurrentCustomer\(\)/)
+    assert.match(noticeRead, /\.from\("offer_campaign_claims"\)/)
+    assert.match(noticeRead, /\.eq\("customer_id", customer.id\)/)
+    assert.match(noticeRead, /\.eq\("membership_id", membershipId\)/)
+    assert.match(noticeRead, /!error && data \? notice : null/)
     for (const notice of ["claimed", "already_claimed"]) {
       assert.ok(
         experience.includes(`notice === "${notice}"`),

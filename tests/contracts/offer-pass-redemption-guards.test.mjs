@@ -217,18 +217,15 @@ describe("contract-offer-pass-redemption-guards source contract", () => {
     assert.doesNotMatch(tile, /OfferClaimBanner|offerClaimNotice/)
 
     assert.equal(
-      tile.split("<TilePassChip").length - 1,
+      tile.split("<OfferPassRail").length - 1,
       1,
       "the tile must render the pass chip in exactly one place"
     )
     assert.ok(
-      tile.indexOf("offerPasses.map(") < tile.indexOf("<TilePassChip"),
+      tile.indexOf("offerPasses.map(") < tile.indexOf("<OfferPassRail"),
       "the chip must be rendered per pass, never unconditionally"
     )
-    assert.ok(
-      tile.indexOf("offerPasses.map(") < tile.indexOf("Discount pass"),
-      "no pass copy may sit outside the per-pass chip"
-    )
+    assert.doesNotMatch(tile, /Discount pass/)
   })
 
   it("keeps the surfaces it touches inside the design rules", () => {

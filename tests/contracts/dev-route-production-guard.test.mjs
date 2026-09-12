@@ -45,6 +45,7 @@ const expectedDevPages = [
   "app/dev/nfc-square-preview/page.tsx",
   "app/dev/poster-preview/page.tsx",
   "app/dev/tent-preview/page.tsx",
+  "app/dev/welcome-offer/page.tsx",
 ]
 
 function readProjectFile(...segments) {

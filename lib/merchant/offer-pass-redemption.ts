@@ -53,6 +53,7 @@ export type MerchantOfferPassScanContext =
       discountPercent: number
       requiresIdCheck: boolean
       extraTerms: string
+      validFrom: string | null
       validTo: string | null
       membershipId: string
       customerLabel: string
@@ -244,6 +245,7 @@ function passContext(
     discountPercent,
     requiresIdCheck: row.requires_id_check === true,
     extraTerms: rpcStringField(row, "extra_terms") ?? "",
+    validFrom: rpcStringField(row, "valid_from"),
     validTo: rpcStringField(row, "valid_to"),
     membershipId,
     // Only the masked label leaves this loader. The raw email and phone ending

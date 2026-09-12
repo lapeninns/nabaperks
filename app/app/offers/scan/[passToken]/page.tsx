@@ -2,22 +2,15 @@ import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { Suspense } from "react"
 
-import { Eyebrow, PageTitle, ReceiptCard } from "@/components/brand"
+import { OfferFlowShell } from "@/components/customer/offer-flow-shell"
+import { OfferPassScanPanel } from "@/components/merchant/offer-pass-scan"
 import { StatusBanner } from "@/components/loyalty"
 import { OfferPassScanContentSkeleton } from "@/components/merchant/loading-skeletons"
-import { MerchantOfferPassRedeemForm } from "@/components/merchant/offer-pass-redeem-form"
 import { Button } from "@/components/ui/button"
 import { getCurrentMerchant } from "@/lib/auth/session"
-import {
-  loadMerchantOfferPassScanContext,
-  type MerchantOfferPassScanContext,
-} from "@/lib/merchant/offer-pass-redemption"
+import { loadMerchantOfferPassScanContext } from "@/lib/merchant/offer-pass-redemption"
 import { merchantLoginHref } from "@/lib/navigation/safe-next-path"
-import {
-  offerPassDiscountLabel,
-  offerPassScanBanner,
-  offerPassValidityLabel,
-} from "@/lib/offers/redeem-core"
+import { offerPassScanBanner } from "@/lib/offers/redeem-core"
 
 export const dynamic = "force-dynamic"
 
@@ -104,49 +97,13 @@ async function PassScanStream({
     return <UnmatchedPassNotice />
   }
 
-  const banner = offerPassScanBanner(context.status, context.blockedReason)
-
   return (
-    <>
-      <PassFace context={context} />
-
-      <h2 className="sr-only">Member and card details</h2>
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-xl border-2 border-ink bg-card p-4 text-sm">
-        <dt className="font-bold text-muted-foreground">Member</dt>
-        <dd className="text-right font-bold">{context.customerLabel}</dd>
-        <dt className="font-bold text-muted-foreground">Card</dt>
-        <dd className="mono-id text-right">
-          {context.membershipId.slice(0, 8)}
-        </dd>
-      </dl>
-
-      <StatusBanner title={banner.title} tone={banner.tone}>
-        {/* Server state is authoritative: ?redeemed=1 only upgrades the copy on
-            the fresh post-confirm render, and the status behind it comes from
-            the database, so a bookmark or bfcache replay cannot fake it. */}
-        {redeemed && context.status === "redeemed"
-          ? "Discount applied. "
-          : null}
-        {banner.body}
-      </StatusBanner>
-
-      {context.status === "ready" ? (
-        <MerchantOfferPassRedeemForm
-          scanToken={context.scanToken}
-          discountPercent={context.discountPercent}
-          requiresIdCheck={context.requiresIdCheck}
-        />
-      ) : null}
-
-      {context.status === "redeemed" ? (
-        <Button asChild className="w-full">
-          <Link href="/app/scan">Scan another code</Link>
-        </Button>
-      ) : null}
-      <Button asChild variant="secondary" className="w-full">
-        <Link href="/app">Back to dashboard</Link>
-      </Button>
-    </>
+    <OfferPassScanPanel
+      stickyAction
+      context={context}
+      venueName={merchant.business_name}
+      redeemed={redeemed}
+    />
   )
 }
 
@@ -159,54 +116,27 @@ function UnmatchedPassNotice() {
         {banner.body}
       </StatusBanner>
       <Button asChild variant="secondary">
-        <Link href="/app">Back to dashboard</Link>
+        <Link href="/app/scan">Scan another code</Link>
       </Button>
     </>
   )
 }
 
-function PassFace({
-  context,
-}: {
-  context: Extract<MerchantOfferPassScanContext, { entitlementId: string }>
-}) {
-  const validity = offerPassValidityLabel(context.validTo)
-
-  return (
-    <ReceiptCard edge padding="md">
-      <Eyebrow>Discount pass</Eyebrow>
-      {/* The two facts staff check first, read across a counter as one line. */}
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <p className="text-3xl font-extrabold tracking-tight">
-          {offerPassDiscountLabel(context.discountPercent)}
-        </p>
-        {validity ? (
-          <p className="text-sm font-bold text-muted-foreground">{validity}</p>
-        ) : null}
-      </div>
-      {context.extraTerms ? (
-        <p className="text-sm leading-6 text-muted-foreground">
-          {context.extraTerms}
-        </p>
-      ) : null}
-      <p className="text-sm leading-6 text-muted-foreground">
-        {context.requiresIdCheck ? "Photo ID check required. " : null}
-        Cannot be used with another reward or offer.
-      </p>
-    </ReceiptCard>
-  )
-}
-
 function PassScanShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mx-auto grid max-w-xl gap-6">
-      <PageTitle
-        eyebrow="Discount pass"
-        title="Check and redeem discount"
-        description="Confirm the member is at the counter, then apply the discount to their bill."
-      />
-      <section className="grid gap-4">{children}</section>
-    </div>
+    <OfferFlowShell
+      backHref="/app/scan"
+      label="At the counter"
+      className="pb-28"
+    >
+      <div className="grid gap-3">
+        <p className="mono-id text-cobalt">01 Scanned · 02 Confirm</p>
+        <h1 className="text-3xl leading-tight font-extrabold tracking-tight">
+          Check this pass.
+        </h1>
+      </div>
+      {children}
+    </OfferFlowShell>
   )
 }
 
