@@ -9,6 +9,7 @@ import {
   isMerchantSetupPath,
   isOfferPassScanPath,
   isPosterPrintPath,
+  shouldShowMerchantSetupReminder,
 } from "@/lib/navigation/merchant-shell"
 
 import { Icon, Logo } from "@/components/brand"
@@ -27,6 +28,7 @@ import { merchantAccountItems, merchantNavItems } from "./console-nav"
 
 export function MerchantAppShell({
   children,
+  setupReminder,
   signOutAction,
   activePath: activePathProp,
   variant: variantProp,
@@ -34,6 +36,8 @@ export function MerchantAppShell({
   hideMobileChrome: hideMobileChromeProp,
 }: {
   children: ReactNode
+  /** Server-rendered readiness content; visibility follows the live route. */
+  setupReminder?: ReactNode
   signOutAction: ComponentProps<"form">["action"]
   /** Override the nav highlight target. Defaults to the live pathname. */
   activePath?: string
@@ -189,6 +193,7 @@ export function MerchantAppShell({
                 : "mx-auto w-full max-w-merchant"
             }
           >
+            {shouldShowMerchantSetupReminder(pathname) ? setupReminder : null}
             {children}
           </div>
         </div>

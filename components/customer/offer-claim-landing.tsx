@@ -86,7 +86,8 @@ export function OfferClaimLanding({
   // The pass sits one level under the promise, so the outline never skips a
   // level on the landing route (h1 → h2) or collides on the review step, where
   // the promise is already an h3.
-  const passHeading = headingLevel === "h1" ? "h2" : "h3"
+  const childHeading =
+    headingLevel === "h1" ? "h2" : headingLevel === "h2" ? "h3" : "h4"
   const lines = benefitLines({
     stamps,
     percent,
@@ -162,6 +163,7 @@ export function OfferClaimLanding({
             current={stamps}
             total={stampsRequired}
             rewardName={rewardName}
+            headingLevel={childHeading}
           />
         </section>
       ) : null}
@@ -178,7 +180,7 @@ export function OfferClaimLanding({
             validTo={endsOn ?? ""}
             requiresIdCheck={requiresIdCheck}
             extraTerms={extraTerms}
-            headingLevel={passHeading}
+            headingLevel={childHeading}
           />
         </section>
       ) : null}

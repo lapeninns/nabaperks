@@ -31,7 +31,7 @@ export function OfferPassScanPanel({
         requiresIdCheck={context.requiresIdCheck}
         extraTerms={context.extraTerms}
         headingLevel="h2"
-        termsExpanded={false}
+        termsExpanded
         statusTag={
           <MonoTag tone={context.status === "ready" ? "leaf" : "sun"}>
             {recorded ? "Use recorded" : banner.title}

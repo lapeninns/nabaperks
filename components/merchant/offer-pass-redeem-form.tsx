@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState, useId, useState } from "react"
+import { useActionState, useId } from "react"
 
 import {
   confirmOfferPassRedemptionAction,
@@ -37,8 +37,6 @@ export function MerchantOfferPassRedeemForm({
   requiresIdCheck: boolean
   stickyAction?: boolean
 }) {
-  const [idChecked, setIdChecked] = useState(false)
-  const [noStacking, setNoStacking] = useState(false)
   const [state, action] = useActionState(
     confirmOfferPassRedemptionAction,
     initialState
@@ -65,8 +63,6 @@ export function MerchantOfferPassRedeemForm({
         {requiresIdCheck ? (
           <AttestationCheckbox
             name="idChecked"
-            checked={idChecked}
-            onCheckedChange={setIdChecked}
             label={OFFER_PASS_ID_CHECK_LABEL}
             error={state.errors?.idCheck}
           />
@@ -74,8 +70,6 @@ export function MerchantOfferPassRedeemForm({
 
         <AttestationCheckbox
           name="noStacking"
-          checked={noStacking}
-          onCheckedChange={setNoStacking}
           label={OFFER_PASS_NO_STACKING_LABEL}
           error={state.errors?.noStacking}
         />
@@ -88,11 +82,7 @@ export function MerchantOfferPassRedeemForm({
             "fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-customer border-t border-line bg-background px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
         )}
       >
-        <SubmitButton
-          size="lg"
-          disabled={!noStacking || (requiresIdCheck && !idChecked)}
-          pendingLabel="Applying discount…"
-        >
+        <SubmitButton size="lg" pendingLabel="Applying discount…">
           Apply {offerPassDiscountLabel(discountPercent)}
         </SubmitButton>
       </div>
@@ -104,14 +94,10 @@ function AttestationCheckbox({
   name,
   label,
   error,
-  checked,
-  onCheckedChange,
 }: {
   name: string
   label: string
   error?: string
-  checked: boolean
-  onCheckedChange: (checked: boolean) => void
 }) {
   const errorId = useId()
   return (
@@ -121,11 +107,10 @@ function AttestationCheckbox({
           type="checkbox"
           name={name}
           value="1"
-          checked={checked}
-          onChange={(event) => onCheckedChange(event.target.checked)}
+          required
           aria-describedby={error ? errorId : undefined}
           aria-invalid={error ? true : undefined}
-          className="mt-0.5 size-6 shrink-0 accent-[var(--w-leaf)]"
+          className="mt-0.5 size-6 shrink-0 scroll-mt-24 scroll-mb-32 accent-[var(--w-leaf)]"
         />
         <span className="text-sm leading-6 text-foreground">{label}</span>
       </label>

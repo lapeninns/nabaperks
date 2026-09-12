@@ -13,6 +13,8 @@ import {
 } from "./helpers/customer-join-live-db"
 import { customerReadbackLiveDbSkipReason } from "./helpers/customer-readback-live-db"
 import { dismissPwaInstall } from "./helpers/harness"
+import { merchantOnboardingLiveDbSkipReason } from "./helpers/merchant-onboarding-live-db"
+import { verifyWelcomeOfferCounter } from "./helpers/welcome-offer-counter-live-db"
 import {
   cleanupPublicQrRouterFixture,
   createPublicQrRouterFixture,
@@ -45,7 +47,8 @@ async function claimCount(sql: Sql, merchantId: string) {
 }
 
 test.describe("@customer-flow welcome offer real local join", () => {
-  const reason = customerReadbackLiveDbSkipReason()
+  const reason =
+    customerReadbackLiveDbSkipReason() || merchantOnboardingLiveDbSkipReason()
   test.skip(Boolean(reason), reason)
 
   test("grants only after verification and loyalty consent, and repeated scans keep the same card and pass", async ({
@@ -168,8 +171,23 @@ test.describe("@customer-flow welcome offer real local join", () => {
       } finally {
         await otherContext.close()
       }
+      await verifyWelcomeOfferCounter({
+        sql,
+        browser,
+        fixture,
+        entitlementId: pass.id as string,
+        baseURL: new URL(page.url()).origin,
+      })
     } finally {
       if (fixture) {
+        // The loopback-only fixture crosses browser connections, so it cannot
+        // use the rollback transaction used by tests/db. Suppress the local
+        // append-only trigger only for this transaction's exact owned rows.
+        const merchantId = fixture.merchantId
+        await sql.begin(async (tx) => {
+          await tx`set local session_replication_role = replica`
+          await tx`delete from public.offer_redemptions where merchant_id = ${merchantId}::uuid`
+        })
         await sql`delete from public.offer_pass_scan_tokens where merchant_id = ${fixture.merchantId}::uuid`
         await sql`delete from public.offer_campaigns where merchant_id = ${fixture.merchantId}::uuid`
       }

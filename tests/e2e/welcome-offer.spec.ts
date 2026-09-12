@@ -37,6 +37,7 @@ test.describe("@customer-flow @a11y welcome offer composition", () => {
             page.getByRole("heading", { name: /25% off/ }).first()
           ).toBeVisible()
           expect((await claim.boundingBox())?.height).toBeGreaterThanOrEqual(44)
+          await expect(page.getByRole("heading", { level: 2 })).toHaveCount(2)
         }
         if (surface === "pass") {
           await expect(page.getByRole("img", { name: /QR code/ })).toHaveCount(
@@ -53,6 +54,11 @@ test.describe("@customer-flow @a11y welcome offer composition", () => {
           await page.locator("#loyalty-terms").check()
           await expect(page.locator("#marketing-opt-in")).not.toBeChecked()
         }
+        if (surface === "counter") {
+          await expect(
+            page.getByText(/Food ordered from the seasonal menu only/).last()
+          ).toBeVisible()
+        }
         await expectNoAxeViolations(page, `welcome ${surface} ${width}`)
         await testInfo.attach(`${surface}-${width}`, {
           body: await page.screenshot({ fullPage: true }),
@@ -68,13 +74,23 @@ test.describe("@customer-flow @a11y welcome offer composition", () => {
     await page.goto("/dev/welcome-offer?surface=counter")
     const apply = page.getByRole("button", { name: "Apply 10% off" })
     await expect(apply).toBeInViewport()
-    await expect(apply).toBeDisabled()
-    await page.locator('[name="idChecked"]').check()
-    await expect(apply).toBeDisabled()
-    await page.locator('[name="noStacking"]').check()
+    const form = apply.locator("xpath=ancestor::form")
     await expect(apply).toBeEnabled()
+    expect(
+      await form.evaluate((el) => (el as HTMLFormElement).checkValidity())
+    ).toBe(false)
+    await page.locator('[name="idChecked"]').check()
+    expect(
+      await form.evaluate((el) => (el as HTMLFormElement).checkValidity())
+    ).toBe(false)
+    await page.locator('[name="noStacking"]').check()
+    expect(
+      await form.evaluate((el) => (el as HTMLFormElement).checkValidity())
+    ).toBe(true)
     await page.locator('[name="idChecked"]').uncheck()
-    await expect(apply).toBeDisabled()
+    expect(
+      await form.evaluate((el) => (el as HTMLFormElement).checkValidity())
+    ).toBe(false)
     // Read the controlled recovery states without posting any redemption.
     for (const state of ["expired", "redeemed", "blocked"]) {
       await page.goto(`/dev/welcome-offer?surface=counter&state=${state}`)

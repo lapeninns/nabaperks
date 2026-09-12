@@ -94,7 +94,7 @@ export type OfferPassProps = {
    * Outline level for the discount lockup. `h1` is for the pass screen, where
    * the pass is the page; `h3` is the default for a rail beside a card.
    */
-  readonly headingLevel?: "h1" | "h2" | "h3"
+  readonly headingLevel?: "h1" | "h2" | "h3" | "h4"
   readonly termsExpanded?: boolean
   /** A context-specific, server-derived status (e.g. code expired at the till). */
   readonly statusTag?: ReactNode

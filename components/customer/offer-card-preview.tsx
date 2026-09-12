@@ -7,11 +7,13 @@ export function OfferCardPreview({
   current,
   total,
   rewardName,
+  headingLevel: Heading = "h2",
 }: {
   venueName: string | null
   current: number
   total: number
   rewardName: string | null
+  headingLevel?: "h2" | "h3" | "h4"
 }) {
   const remaining = Math.max(total - current, 0)
   return (
@@ -24,9 +26,9 @@ export function OfferCardPreview({
         <div className="grid min-w-0 gap-1">
           <Eyebrow>Loyalty card</Eyebrow>
           {venueName ? (
-            <h3 className="text-xl leading-tight font-extrabold break-words">
+            <Heading className="text-xl leading-tight font-extrabold break-words">
               {venueName}
-            </h3>
+            </Heading>
           ) : null}
         </div>
         {venueName ? <VenueMark name={venueName} size={44} /> : null}

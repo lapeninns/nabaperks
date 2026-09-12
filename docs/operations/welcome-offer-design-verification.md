@@ -61,6 +61,15 @@ Verified in an isolated worktree on 12 September 2026:
 - Manual Chromium checks at 200% zoom with reduced motion enabled show no
   horizontal overflow on landing, consent and counter; keyboard disclosure
   activation retains focus.
+- Review follow-up verifies the counter's native required confirmations with
+  application JavaScript disabled, including focus clearance above its fixed
+  action. The fixture-only hydration gate is removed for that browser check.
+  The full merchant terms are initially open at the counter, and preview
+  headings follow their parent outline level.
+- An authenticated disposable merchant check confirms that the cached setup
+  reminder follows live navigation, returns after a direct counter-to-dashboard
+  link, and stays absent at the counter. The real redemption action records
+  exactly one use; the entitlement stays active and can issue another code.
 - macOS visual baselines for the affected creator/customer/counter harnesses
   were rendered and reviewed. Five changed canonical Linux snapshots were read
   from hosted CI run `34698588984` at application revision `05746181dbf8`;
