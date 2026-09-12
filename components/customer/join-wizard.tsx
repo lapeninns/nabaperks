@@ -2,6 +2,9 @@ import type { ReactNode } from "react"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 
+import { OfferFlowShell } from "@/components/customer/offer-flow-shell"
+import { JoinOfferReminder } from "@/components/customer/join-offer-reminder"
+import type { PendingJoinOffer } from "@/lib/customer/pending-join-offer"
 import { VenueMark } from "@/components/brand"
 import {
   CustomerFlowShell,
@@ -58,9 +61,11 @@ const CustomerOtpForm = dynamic<CustomerOtpFormProps>(() =>
 export function JoinWizard({
   experience,
   referralCode,
+  pendingOffer,
 }: {
   experience: CustomerExperience
   referralCode?: string
+  pendingOffer?: PendingJoinOffer | null
 }) {
   const vm = getCustomerExperienceViewModel(experience)
 
@@ -70,11 +75,32 @@ export function JoinWizard({
         <WelcomeStep exp={experience} vm={vm} referralCode={referralCode} />
       )
     case "join_phone":
-      return <PhoneStep exp={experience} vm={vm} referralCode={referralCode} />
+      return (
+        <PhoneStep
+          exp={experience}
+          vm={vm}
+          referralCode={referralCode}
+          pendingOffer={pendingOffer}
+        />
+      )
     case "join_otp":
-      return <OtpStep exp={experience} vm={vm} referralCode={referralCode} />
+      return (
+        <OtpStep
+          exp={experience}
+          vm={vm}
+          referralCode={referralCode}
+          pendingOffer={pendingOffer}
+        />
+      )
     case "join_terms":
-      return <TermsStep exp={experience} vm={vm} referralCode={referralCode} />
+      return (
+        <TermsStep
+          exp={experience}
+          vm={vm}
+          referralCode={referralCode}
+          pendingOffer={pendingOffer}
+        />
+      )
     case "join_returning":
       return <ReturningStep exp={experience} vm={vm} />
     default:
@@ -88,18 +114,25 @@ function PhoneStep({
   exp,
   vm,
   referralCode,
+  pendingOffer,
 }: {
   exp: Extract<CustomerExperience, { kind: "join_phone" }>
   vm: CustomerExperienceViewModel
   referralCode?: string
+  pendingOffer?: PendingJoinOffer | null
 }) {
   return (
     <JoinShell
       vm={vm}
+      pendingOffer={pendingOffer}
+      venueName={exp.merchant.name}
+      venueSlug={exp.merchant.slug}
       progress={joinProgress("join_phone", Boolean(exp.qrId))}
       dense
     >
-      <UnlockingReminder merchant={exp.merchant} card={exp.card} />
+      {pendingOffer ? null : (
+        <UnlockingReminder merchant={exp.merchant} card={exp.card} />
+      )}
       <CustomerIdentityForm
         merchantSlug={exp.merchant.slug}
         qrId={exp.qrId}
@@ -114,14 +147,19 @@ function OtpStep({
   exp,
   vm,
   referralCode,
+  pendingOffer,
 }: {
   exp: Extract<CustomerExperience, { kind: "join_otp" }>
   vm: CustomerExperienceViewModel
   referralCode?: string
+  pendingOffer?: PendingJoinOffer | null
 }) {
   return (
     <JoinShell
       vm={vm}
+      pendingOffer={pendingOffer}
+      venueName={exp.merchant.name}
+      venueSlug={exp.merchant.slug}
       progress={joinProgress("join_otp", Boolean(exp.qrId))}
       dense
     >
@@ -140,18 +178,23 @@ function TermsStep({
   exp,
   vm,
   referralCode,
+  pendingOffer,
 }: {
   exp: Extract<CustomerExperience, { kind: "join_terms" }>
   vm: CustomerExperienceViewModel
   referralCode?: string
+  pendingOffer?: PendingJoinOffer | null
 }) {
   return (
     <JoinShell
       vm={vm}
+      pendingOffer={pendingOffer}
+      venueName={exp.merchant.name}
+      venueSlug={exp.merchant.slug}
       progress={joinProgress("join_terms", Boolean(exp.qrId))}
       dense
     >
-      {exp.qrId ? (
+      {pendingOffer ? null : exp.qrId ? (
         <TermsFirstStampPreview merchant={exp.merchant} card={exp.card} />
       ) : (
         <TermsSavedCardPreview merchant={exp.merchant} card={exp.card} />
@@ -322,13 +365,57 @@ function JoinShell({
   centered = false,
   dense = false,
   children,
+  pendingOffer,
+  venueName,
+  venueSlug,
 }: {
+  pendingOffer?: PendingJoinOffer | null
+  venueName?: string
+  venueSlug?: string
   vm: CustomerExperienceViewModel
   progress?: FlowProgress
   centered?: boolean
   dense?: boolean
   children: ReactNode
 }) {
+  if (pendingOffer && venueName && venueSlug) {
+    return (
+      <OfferFlowShell backHref={`/m/${venueSlug}`} label={venueName}>
+        {progress ? (
+          <div
+            className="grid grid-cols-3 gap-2"
+            aria-label={`Step ${progress.step} of 3`}
+          >
+            {["Your number", "Your code", "Your card"].map((label, index) => (
+              <span
+                key={label}
+                aria-current={index + 1 === progress.step ? "step" : undefined}
+                className={`mono-id border-t-4 pt-2 tracking-normal ${index + 1 === progress.step ? "border-cobalt text-cobalt" : "border-line-strong text-muted-foreground"}`}
+              >
+                {index + 1} {label}
+              </span>
+            ))}
+          </div>
+        ) : null}
+        <div className="grid gap-2">
+          <p className="eyebrow text-cobalt">
+            {progress?.step === 1
+              ? "One text, no password"
+              : progress?.step === 2
+                ? "Check your messages"
+                : "Last step"}
+          </p>
+          <h1 className="text-3xl leading-tight font-extrabold tracking-tight">
+            {progress?.step === 1
+              ? "Save your card to your number"
+              : vm.headline}
+          </h1>
+        </div>
+        <JoinOfferReminder offer={pendingOffer} venueName={venueName} />
+        {children}
+      </OfferFlowShell>
+    )
+  }
   return (
     <CustomerFlowShell
       eyebrow={vm.eyebrow}

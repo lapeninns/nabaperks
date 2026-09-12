@@ -195,7 +195,9 @@ export function CustomerReceipt({
   hideFooter = false,
   compact = false,
   className,
+  offerLayout = false,
 }: {
+  offerLayout?: boolean
   venueName: string
   /**
    * Receipt headline. Omit it so a screen runs a single headline through the
@@ -220,7 +222,8 @@ export function CustomerReceipt({
 }) {
   return (
     <ReceiptCard
-      edge
+      edge={!offerLayout}
+      padding={offerLayout ? "sm" : "md"}
       wrapperClassName="w-full"
       className={cn("grid gap-4", className)}
       data-edge-class="receipt-edge"
@@ -248,13 +251,15 @@ export function CustomerReceipt({
           ) : null}
         </div>
         <VenueMark
-          size={compact ? 48 : 58}
+          size={offerLayout ? 44 : compact ? 48 : 58}
           name={venueName}
           className="shrink-0"
         />
       </div>
 
-      <hr className={cn("w-rule", !title && !eyebrow && "squat:hidden")} />
+      {offerLayout ? null : (
+        <hr className={cn("w-rule", !title && !eyebrow && "squat:hidden")} />
+      )}
       {children}
       {metaLines ? (
         <div className="mono-id grid gap-1 tracking-[0.08em] text-muted-foreground">
@@ -302,7 +307,9 @@ export function CustomerStampCard({
   children,
   rewardSlot,
   onSlamComplete,
+  offerLayout = false,
 }: {
+  offerLayout?: boolean
   venueName: string
   cardName: ReactNode
   current: number
@@ -350,8 +357,11 @@ export function CustomerStampCard({
   return (
     <CustomerReceipt
       venueName={venueName}
-      title={hideHeaderText ? undefined : cardName}
-      eyebrow={hideHeaderText ? undefined : venueName}
+      title={offerLayout ? venueName : hideHeaderText ? undefined : cardName}
+      eyebrow={
+        offerLayout ? "Loyalty card" : hideHeaderText ? undefined : venueName
+      }
+      offerLayout={offerLayout}
       metaLines={metaLines}
       hideFooter={hideFooter}
       compact={compact}
@@ -367,8 +377,9 @@ export function CustomerStampCard({
           rewardSlot ?? (reward.state === "sealed" ? "locked" : undefined)
         }
         venueName={venueName}
-        layout={wrapStamps ? "wrap" : "row"}
-        wrapColumns={wrapColumnCount}
+        layout={wrapStamps || offerLayout ? "wrap" : "row"}
+        receiptCaptions={offerLayout}
+        wrapColumns={offerLayout ? Math.min(total + 1, 4) : wrapColumnCount}
         compact={compact}
         // Landscape floor: cap the row so the auto-fit tracks shrink the discs
         // (never below their 44px minimum) instead of filling the column.
@@ -376,13 +387,30 @@ export function CustomerStampCard({
         onSlamComplete={onSlamComplete}
       />
       {afterGrid}
-      <RewardTicket
-        state={reward.state}
-        name={reward.name}
-        description={reward.description}
-        readyDate={reward.readyDate}
-        sealSlammed={reward.sealSlammed}
-      />
+      {offerLayout && reward.state === "sealed" ? (
+        <div className="grid gap-3 border-t-2 border-dashed border-line pt-3">
+          <p className="text-sm leading-5">
+            {total <= current
+              ? "Your card is complete."
+              : total - current === 1
+                ? "One more visit to unlock your reward."
+                : `${total - current} more visits to unlock your reward.`}
+          </p>
+          {reward.description ? (
+            <p className="text-xs leading-5 text-muted-foreground">
+              {reward.description}
+            </p>
+          ) : null}
+        </div>
+      ) : (
+        <RewardTicket
+          state={reward.state}
+          name={reward.name}
+          description={reward.description}
+          readyDate={reward.readyDate}
+          sealSlammed={reward.sealSlammed}
+        />
+      )}
       {children}
     </CustomerReceipt>
   )

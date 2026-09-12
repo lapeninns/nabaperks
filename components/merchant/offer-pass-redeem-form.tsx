@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState } from "react"
+import { useActionState, useId, useState } from "react"
 
 import {
   confirmOfferPassRedemptionAction,
@@ -8,6 +8,7 @@ import {
 } from "@/app/app/offers/scan/[passToken]/actions"
 import { FormMessage, SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty"
+import { cn } from "@/lib/utils"
 import {
   OFFER_PASS_ID_CHECK_LABEL,
   OFFER_PASS_NO_STACKING_LABEL,
@@ -29,11 +30,15 @@ export function MerchantOfferPassRedeemForm({
   scanToken,
   discountPercent,
   requiresIdCheck,
+  stickyAction = false,
 }: {
   scanToken: string
   discountPercent: number
   requiresIdCheck: boolean
+  stickyAction?: boolean
 }) {
+  const [idChecked, setIdChecked] = useState(false)
+  const [noStacking, setNoStacking] = useState(false)
   const [state, action] = useActionState(
     confirmOfferPassRedemptionAction,
     initialState
@@ -60,6 +65,8 @@ export function MerchantOfferPassRedeemForm({
         {requiresIdCheck ? (
           <AttestationCheckbox
             name="idChecked"
+            checked={idChecked}
+            onCheckedChange={setIdChecked}
             label={OFFER_PASS_ID_CHECK_LABEL}
             error={state.errors?.idCheck}
           />
@@ -67,18 +74,28 @@ export function MerchantOfferPassRedeemForm({
 
         <AttestationCheckbox
           name="noStacking"
+          checked={noStacking}
+          onCheckedChange={setNoStacking}
           label={OFFER_PASS_NO_STACKING_LABEL}
           error={state.errors?.noStacking}
         />
       </fieldset>
 
-      <SubmitButton
-        size="lg"
-        variant="reward"
-        pendingLabel="Applying discount…"
+      <div
+        className={cn(
+          "grid",
+          stickyAction &&
+            "fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-customer border-t border-line bg-background px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+        )}
       >
-        Apply {offerPassDiscountLabel(discountPercent)}
-      </SubmitButton>
+        <SubmitButton
+          size="lg"
+          disabled={!noStacking || (requiresIdCheck && !idChecked)}
+          pendingLabel="Applying discount…"
+        >
+          Apply {offerPassDiscountLabel(discountPercent)}
+        </SubmitButton>
+      </div>
     </form>
   )
 }
@@ -87,24 +104,36 @@ function AttestationCheckbox({
   name,
   label,
   error,
+  checked,
+  onCheckedChange,
 }: {
   name: string
   label: string
   error?: string
+  checked: boolean
+  onCheckedChange: (checked: boolean) => void
 }) {
+  const errorId = useId()
   return (
     <div className="grid gap-1.5">
-      <label className="focus-ring-within flex cursor-pointer items-start gap-3 rounded-lg border-[1.5px] border-border bg-card p-3 transition-[border-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] has-checked:border-ink motion-reduce:transition-none">
+      <label className="focus-ring-within flex cursor-pointer items-start gap-3 rounded-lg border-2 border-ink bg-card p-3 transition-[border-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] has-checked:border-ink motion-reduce:transition-none">
         <input
           type="checkbox"
           name={name}
           value="1"
+          checked={checked}
+          onChange={(event) => onCheckedChange(event.target.checked)}
+          aria-describedby={error ? errorId : undefined}
           aria-invalid={error ? true : undefined}
-          className="mt-0.5 size-4 shrink-0 accent-[var(--w-leaf)]"
+          className="mt-0.5 size-6 shrink-0 accent-[var(--w-leaf)]"
         />
         <span className="text-sm leading-6 text-foreground">{label}</span>
       </label>
-      {error ? <FormMessage>{error}</FormMessage> : null}
+      {error ? (
+        <div id={errorId} role="alert">
+          <FormMessage>{error}</FormMessage>
+        </div>
+      ) : null}
     </div>
   )
 }

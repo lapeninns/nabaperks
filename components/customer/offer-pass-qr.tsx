@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState, type Ref } from "react"
 
 import { QrFrame, StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
@@ -46,6 +46,39 @@ export function OfferPassQr({
   // route 404 forever, so repeated failures offer a sign-in path rather than an
   // unwinnable retry loop. A successful load resets the count.
   const [failCount, setFailCount] = useState(0)
+  const freshCodeButton = useRef<HTMLButtonElement>(null)
+  const qrImage = useRef<HTMLImageElement>(null)
+  const restoreRetryFocus = useRef(false)
+
+  useEffect(() => {
+    const image = qrImage.current
+    if (!image) return
+    let current = true
+    // decode also observes a load/error that happened before hydration. An
+    // onError handler alone can miss a fast 404 and leave the skeleton forever.
+    void image.decode().then(
+      () => {
+        if (!current) return
+        setLoaded(true)
+        setFailCount(0)
+      },
+      () => {
+        if (!current) return
+        setErrored(true)
+        setFailCount((count) => count + 1)
+      }
+    )
+    return () => {
+      current = false
+    }
+  }, [tick])
+
+  useEffect(() => {
+    if ((loaded || errored) && restoreRetryFocus.current) {
+      freshCodeButton.current?.focus({ preventScroll: true })
+      restoreRetryFocus.current = false
+    }
+  }, [loaded, errored])
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -58,6 +91,8 @@ export function OfferPassQr({
   }, [])
 
   function retry() {
+    restoreRetryFocus.current =
+      document.activeElement === freshCodeButton.current
     setLoaded(false)
     setErrored(false)
     setTick((value) => value + 1)
@@ -69,18 +104,22 @@ export function OfferPassQr({
         entitlementId={entitlementId}
         suggestSignIn={failCount >= 2}
         onRetry={retry}
+        buttonRef={freshCodeButton}
       />
     )
   }
 
   return (
-    <div className="grid gap-3">
+    <div className="grid gap-3" aria-busy={!loaded}>
+      <p role="status" aria-live="polite" className="sr-only">
+        {loaded ? "Your pass code is ready." : "Preparing your code…"}
+      </p>
       {/* Capped so the helper banner and the fresh-code button stay above the
           fold at the counter; the code inside scales up crisply because the
           route renders it at full resolution. */}
       <QrFrame
         label={`Staff-scan QR for your ${discountPercent}% pass`}
-        className="mx-auto w-full max-w-[16rem] sm:max-w-[18rem]"
+        className="mx-auto w-full max-w-[13.5rem]"
       >
         <div className="relative aspect-square w-full">
           {loaded ? null : (
@@ -91,21 +130,14 @@ export function OfferPassQr({
           )}
           {/* eslint-disable-next-line @next/next/no-img-element -- same-origin pass QR, minted by a protected route on every request */}
           <img
+            ref={qrImage}
             src={offerPassQrCacheBustedSrc(entitlementId, tick)}
             alt={`QR code for your ${discountPercent}% discount pass at ${venueName}`}
             className="aspect-square w-full object-contain"
-            onLoad={() => {
-              setLoaded(true)
-              setFailCount(0)
-            }}
-            onError={() => {
-              setErrored(true)
-              setFailCount((count) => count + 1)
-            }}
           />
         </div>
       </QrFrame>
-      <p className="rounded-xl bg-secondary px-3 py-2 text-center text-sm font-bold text-foreground">
+      <p className="mx-auto max-w-[28ch] text-center text-sm leading-5 font-bold text-foreground">
         A team member scans this before they apply the discount
       </p>
       {/* Each code is single-use and lasts ten minutes, but the pass itself has
@@ -114,9 +146,10 @@ export function OfferPassQr({
           scheduled refresh came round, so the promise that it "works as many
           times as you like" needs a button, not just a timer. */}
       <Button
+        ref={freshCodeButton}
         type="button"
         size="lg"
-        variant="secondary"
+        variant="link"
         className="w-full"
         onClick={retry}
       >
@@ -130,10 +163,12 @@ function PassQrRecovery({
   entitlementId,
   suggestSignIn,
   onRetry,
+  buttonRef,
 }: {
   entitlementId: string
   suggestSignIn: boolean
   onRetry: () => void
+  buttonRef: Ref<HTMLButtonElement>
 }) {
   return (
     <StatusBanner title="We could not show your pass code" tone="warning">
@@ -152,6 +187,7 @@ function PassQrRecovery({
           </span>
         ) : null}
         <Button
+          ref={buttonRef}
           type="button"
           size="lg"
           variant="secondary"

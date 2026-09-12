@@ -3,8 +3,28 @@ import { test } from "node:test"
 
 import {
   isMerchantSetupPath,
+  isOfferPassScanPath,
   shouldShowMerchantSetupReminder,
 } from "@/lib/navigation/merchant-shell"
+
+test("only a concrete pass scan gets the focused counter shell", () => {
+  for (const path of [
+    "/app/offers/scan/token",
+    "/app/offers/scan/token/?redeemed=1",
+  ]) {
+    assert.equal(isOfferPassScanPath(path), true)
+    assert.equal(shouldShowMerchantSetupReminder(path), false)
+  }
+  for (const path of [
+    "/app/offers",
+    "/app/offers/scan",
+    "/app/offers/scan/token/extra",
+    "/app/scan",
+  ]) {
+    assert.equal(isOfferPassScanPath(path), false)
+    assert.equal(shouldShowMerchantSetupReminder(path), true)
+  }
+})
 
 test("merchant setup shell is reserved for onboarding", () => {
   assert.equal(isMerchantSetupPath("/app/onboarding"), true)

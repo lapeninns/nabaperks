@@ -7,6 +7,7 @@ import { Building02Icon, Logout01Icon } from "@hugeicons/core-free-icons"
 
 import {
   isMerchantSetupPath,
+  isOfferPassScanPath,
   isPosterPrintPath,
 } from "@/lib/navigation/merchant-shell"
 
@@ -56,6 +57,11 @@ export function MerchantAppShell({
   const variant =
     variantProp ?? (isMerchantSetupPath(pathname) ? "setup" : "full")
   const hideMobileChrome = hideMobileChromeProp ?? isPosterPrintPath(pathname)
+
+  // The counter is a focused scan journey; authentication remains in app/app/layout.tsx.
+  if (isOfferPassScanPath(pathname)) {
+    return <>{children}</>
+  }
 
   if (variant === "setup") {
     return (

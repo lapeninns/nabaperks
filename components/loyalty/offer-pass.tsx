@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import {
-  Calendar03Icon,
+  ArrowRight01Icon,
   DiscountTag01Icon,
   IdentityCardIcon,
 } from "@hugeicons/core-free-icons"
@@ -8,6 +8,7 @@ import {
 import { Eyebrow, Icon, MonoTag } from "@/components/brand"
 import { OFFER_NO_STACKING_TERM } from "@/lib/merchant/offer-campaign-fields"
 import { cn } from "@/lib/utils"
+import { offerTermExcerpts } from "./offer-pass-copy"
 
 /**
  * `OfferPass` — the customer's discount pass, as one printed face.
@@ -84,7 +85,7 @@ export type OfferPassProps = {
   readonly extraTerms?: string | null
   readonly state?: OfferPassState
   /**
-   * Slot below the terms — the live QR on the pass screen, or a link through to
+   * Slot above the terms — the live QR on the pass screen, or a link through to
    * it from a rail. Omitted for a pass that cannot be presented.
    */
   readonly children?: ReactNode
@@ -94,6 +95,10 @@ export type OfferPassProps = {
    * the pass is the page; `h3` is the default for a rail beside a card.
    */
   readonly headingLevel?: "h1" | "h2" | "h3"
+  readonly termsExpanded?: boolean
+  /** A context-specific, server-derived status (e.g. code expired at the till). */
+  readonly statusTag?: ReactNode
+  readonly supportLine?: ReactNode
 }
 
 export function OfferPass({
@@ -107,10 +112,14 @@ export function OfferPass({
   children,
   className,
   headingLevel: Heading = "h3",
+  termsExpanded = true,
+  statusTag,
+  supportLine,
 }: OfferPassProps) {
   const badge = STATE_BADGE[state]
   const opens = formatOfferPassDate(validFrom)
   const closes = formatOfferPassDate(validTo)
+  const excerpts = offerTermExcerpts(extraTerms)
   const active = state === "active"
 
   return (
@@ -118,79 +127,123 @@ export function OfferPass({
       aria-label={`Discount pass for ${venueName}`}
       data-offer-pass-state={state}
       className={cn(
-        "grid gap-4 rounded-lg bg-card p-4 text-left",
-        active
-          ? "border-2 border-ink shadow-sm"
-          : "border-2 border-dashed border-line-strong",
+        "grid min-w-0 rounded-lg border-2 bg-card text-left",
+        active ? "border-ink shadow-md" : "border-dashed border-line-strong",
         className
       )}
     >
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="flex shrink-0 items-center gap-1.5">
-          <Icon icon={DiscountTag01Icon} size={16} />
+      <div className="grid min-w-0 gap-3 border-b-2 border-dashed border-line-strong p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <Eyebrow>Discount pass</Eyebrow>
-        </span>
-        {/* The tags move as one unit: on a very narrow screen the pair drops
-            to a second row whole rather than breaking mid-tag. */}
-        <span className="flex shrink-0 flex-wrap items-center gap-1.5">
-          {requiresIdCheck ? (
-            <MonoTag tone="sun" icon={IdentityCardIcon}>
-              Photo ID
-            </MonoTag>
-          ) : null}
-          <MonoTag tone={badge.tone}>{badge.label}</MonoTag>
-        </span>
-      </div>
-
-      <div className="grid gap-1">
-        <Heading className="flex flex-wrap items-baseline gap-2">
+          {statusTag ?? <MonoTag tone={badge.tone}>{badge.label}</MonoTag>}
+        </div>
+        <Heading className="flex flex-wrap items-baseline gap-3 font-extrabold">
           <span
             className={cn(
-              "numeric-tabular text-5xl leading-none font-extrabold",
-              active ? "text-foreground" : "text-muted-foreground"
+              "numeric-tabular text-[4rem] leading-none tracking-tighter",
+              !active && "text-muted-foreground"
             )}
           >
-            {discountPercent}%
-          </span>
-          <span className="min-w-0 text-sm leading-tight font-extrabold break-words">
-            off the whole bill at {venueName}
+            {discountPercent}
+            <span className="text-4xl">%</span>
+          </span>{" "}
+          <span className="min-w-0 text-xl leading-tight tracking-tight break-words">
+            off at <br />
+            {venueName}
           </span>
         </Heading>
-        {/* mono-meta, not mono-id: the window is the one fact a customer has to
-            be able to read across a counter, so it stays above the 10px floor. */}
-        <span className="mono-meta flex w-fit max-w-full items-center gap-1.5 rounded-md border-2 border-ink bg-seal/25 px-2 py-0.5 text-ink">
-          <Icon icon={Calendar03Icon} size={13} strokeWidth={2.25} />
-          <span className="min-w-0 truncate">
-            {opens && closes ? `${opens} to ${closes}` : "Dates from the venue"}
-          </span>
-        </span>
+        {excerpts.scope ? (
+          <p className="text-sm leading-5 font-bold break-words whitespace-pre-line">
+            {excerpts.scope}
+          </p>
+        ) : null}
+        {requiresIdCheck ? (
+          <MonoTag tone="sun" icon={IdentityCardIcon} className="w-fit">
+            Photo ID
+          </MonoTag>
+        ) : null}
+        <dl className="mono-meta grid gap-2 border-t-2 border-ink pt-3 tracking-normal">
+          {opens ? (
+            <div className="grid grid-cols-[3rem_minmax(0,1fr)] gap-2">
+              <dt className="text-muted-foreground">From</dt>
+              <dd>{opens}</dd>
+            </div>
+          ) : null}
+          {closes ? (
+            <div className="grid grid-cols-[3rem_minmax(0,1fr)] gap-2">
+              <dt className="text-muted-foreground">Until</dt>
+              <dd>{closes}</dd>
+            </div>
+          ) : null}
+          {!opens && !closes ? (
+            <div>
+              <dt className="sr-only">Validity</dt>
+              <dd>Dates from the venue</dd>
+            </div>
+          ) : null}
+        </dl>
       </div>
 
-      <p className="text-sm leading-6 text-muted-foreground">
-        {passLead(state, opens, closes)}
-      </p>
-
-      <ul className="grid list-disc gap-1 pl-4 text-xs leading-5 text-muted-foreground">
-        {/* Always printed, never editable by the venue: staff attest to this
-            same rule on every redemption. */}
-        <li>{OFFER_NO_STACKING_TERM}</li>
-        {requiresIdCheck ? (
-          <li>
-            Bring photo identification. The team will check it before the
-            discount is applied.
-          </li>
-        ) : null}
-        {extraTerms ? <li>{extraTerms}</li> : null}
-      </ul>
-
-      {/* The QR slot sits behind a dashed rule, ticket-stub style: the face
-          above is what the pass promises, what follows is how it is shown. */}
       {children ? (
-        <>
-          <hr className="w-rule my-0" />
+        <div className="grid gap-3 border-b-2 border-dashed border-line-strong p-4">
           {children}
-        </>
+        </div>
       ) : null}
+
+      <div className="grid min-w-0 gap-4 p-4">
+        <div className="text-sm leading-5 text-muted-foreground">
+          {supportLine ?? passLead(state, opens, closes)}
+        </div>
+        <div className="flex items-start gap-2">
+          <Icon
+            icon={DiscountTag01Icon}
+            size={20}
+            className="mt-0.5 shrink-0"
+          />
+          <p className="min-w-0 text-sm leading-5 font-bold">
+            {OFFER_NO_STACKING_TERM}
+          </p>
+        </div>
+        {requiresIdCheck ? (
+          <div className="flex items-start gap-2 rounded-lg border-2 border-ink bg-seal p-3 text-seal-foreground">
+            <Icon
+              icon={IdentityCardIcon}
+              size={20}
+              className="mt-0.5 shrink-0"
+            />
+            <div className="grid min-w-0 gap-2 text-sm leading-5">
+              <p className="font-extrabold">Photo ID</p>
+              <p>
+                Bring photo identification. The team will check it before the
+                discount is applied.
+              </p>
+              {excerpts.identification ? (
+                <p className="break-words whitespace-pre-line">
+                  {excerpts.identification}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+        {extraTerms ? (
+          <details
+            className="group min-w-0 border-t-2 border-dashed border-line pt-2"
+            open={termsExpanded}
+          >
+            <summary className="focus-ring flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 text-sm font-extrabold [&::-webkit-details-marker]:hidden">
+              Extra terms
+              <Icon
+                icon={ArrowRight01Icon}
+                size={16}
+                className="shrink-0 transition-transform group-open:rotate-90 motion-reduce:transition-none"
+              />
+            </summary>
+            <p className="pt-2 text-sm leading-5 break-words whitespace-pre-line">
+              {extraTerms}
+            </p>
+          </details>
+        ) : null}
+      </div>
     </section>
   )
 }

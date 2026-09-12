@@ -1,8 +1,9 @@
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 
-import { CustomerFlowShell } from "@/components/customer/customer-flow-system"
+import { OfferFlowShell } from "@/components/customer/offer-flow-shell"
 import { OfferPassQr } from "@/components/customer/offer-pass-qr"
+import { MonoTag } from "@/components/brand"
 import { CustomerTabBar } from "@/components/layout"
 import { OfferPass, StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
@@ -54,13 +55,14 @@ export default async function CustomerOfferPassPage({
 
   return (
     <>
-      <CustomerFlowShell
-        eyebrow="Discount pass"
-        title={`${pass.discountPercent}% off at ${pass.venueName}`}
-        description={shellSupportLine(pass)}
+      <OfferFlowShell
+        backHref={`/card/${pass.membershipId}`}
+        label="Your discount pass"
         className="pb-28"
-        screenLabel="Customer discount pass"
       >
+        <h1 className="sr-only">
+          {pass.discountPercent}% off at {pass.venueName}
+        </h1>
         <div className="grid gap-4">
           <OfferPass
             venueName={pass.venueName}
@@ -71,15 +73,24 @@ export default async function CustomerOfferPassPage({
             extraTerms={pass.extraTerms}
             state={pass.state}
             headingLevel="h2"
+            termsExpanded={false}
+            statusTag={
+              !pass.presentable && pass.state === "active" ? (
+                <MonoTag tone="sun">Not available</MonoTag>
+              ) : undefined
+            }
           >
             <PassBody pass={pass} />
           </OfferPass>
 
+          <p className="text-sm leading-5 text-muted-foreground">
+            {shellSupportLine(pass)}
+          </p>
           <Button asChild size="lg" variant="secondary" className="w-full">
             <Link href={`/card/${pass.membershipId}`}>Back to your card</Link>
           </Button>
         </div>
-      </CustomerFlowShell>
+      </OfferFlowShell>
       <CustomerTabBar />
     </>
   )
@@ -116,12 +127,14 @@ function PassBody({ pass }: { pass: CustomerOfferPass }) {
 
 function shellSupportLine(pass: CustomerOfferPass): string {
   if (pass.presentable) {
-    return "Show the code below at the counter. It refreshes on its own, so there is nothing to keep track of."
+    return "Your code refreshes on its own, so there is nothing to keep track of."
   }
   if (pass.state === "not_started") {
     return "Your pass is saved. The code appears the day it opens."
   }
-  if (pass.state === "expired" || pass.state === "revoked") {
+  if (pass.state === "revoked")
+    return "This pass has been withdrawn, so there is no code to show."
+  if (pass.state === "expired") {
     return "This pass is no longer in date, so there is no code to show."
   }
   return "There is no code to show at the moment."

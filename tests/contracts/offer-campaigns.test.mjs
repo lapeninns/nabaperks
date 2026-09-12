@@ -52,6 +52,15 @@ const OFFER_TABLES = [
  * review moment.
  */
 const OFFER_SOURCE_FILES = [
+  "components/customer/offer-claim-landing.tsx",
+  "components/customer/offer-card-preview.tsx",
+  "components/customer/offer-pass-rail.tsx",
+  "components/customer/join-offer-reminder.tsx",
+  "components/loyalty/offer-pass-copy.ts",
+  "components/merchant/offer-pass-scan.tsx",
+  "lib/customer/offer-claim-notice.ts",
+  "lib/customer/pending-join-offer.ts",
+
   "app/app/offers/page.tsx",
   "app/app/offers/actions.ts",
   "app/app/offers/new/page.tsx",
@@ -125,8 +134,6 @@ const FORBIDDEN_DATA_NAMES = [
  * are pinned there rather than here.
  */
 const CUSTOMER_LANDING_COPY = [
-  "added to your card the moment you join. There is no app to download.",
-  "discount pass you can use as often as you like while the offer runs.",
   "Claim this offer",
   "This offer opens on ",
   "Scan the code again once it opens and you can claim it then.",
@@ -139,11 +146,6 @@ const CUSTOMER_LANDING_COPY = [
   "You are already a member here",
   "This offer is a welcome for people joining for the first time, so there is nothing to add to your card. Your card is where it always is.",
   "Open your card",
-]
-
-const STAFF_PASS_FACE_COPY = [
-  "Photo ID check required. ",
-  "Cannot be used with another reward or offer.",
 ]
 
 const OFFERS_EMPTY_STATE_COPY = [
@@ -410,6 +412,13 @@ describe("contract-offer-campaigns migration source contract", () => {
       readProjectFile("app/dev/app-harness/offers/harness-client.tsx")
     )
 
+    assert.match(harness, /<OfferClaimLanding/)
+    assert.match(harness, /<OfferPassScanPanel/)
+    assert.match(
+      readProjectFile("components/merchant/offer-pass-scan.tsx"),
+      /<OfferPass/
+    )
+
     const transcriptions = [
       [
         [
@@ -418,7 +427,6 @@ describe("contract-offer-campaigns migration source contract", () => {
         ],
         CUSTOMER_LANDING_COPY,
       ],
-      [["app/app/offers/scan/[passToken]/page.tsx"], STAFF_PASS_FACE_COPY],
       [["app/app/offers/page.tsx"], OFFERS_EMPTY_STATE_COPY],
     ]
 
