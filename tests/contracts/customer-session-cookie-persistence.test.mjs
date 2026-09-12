@@ -24,11 +24,24 @@ test("Given Safari discards Max-Age-only cookies When customer cookies are set T
   )
 })
 
-test("Given a returning Safari visit When the proxy runs Then it refreshes the verified device cookie and keeps cookieless requests unscoped", () => {
+test("Given a returning Safari visit When the proxy runs Then it refreshes the verified device cookie on GET and keeps cookieless requests unscoped", () => {
   const proxy = read("proxy.ts")
 
   assert.match(proxy, /token: issueCustomerDeviceToken\(verified, secret\)/)
   assert.match(proxy, /customerDevice\?\.isNew \? undefined/)
+  assert.match(
+    proxy,
+    /if \(joinJourney && canPersistFirstPartyCookies\(request\)\)/
+  )
+  assert.match(
+    proxy,
+    /if \(customerDevice && canPersistFirstPartyCookies\(request\)\)/
+  )
+  assert.match(
+    proxy,
+    /request\.method === "GET" \|\| request\.method === "HEAD"/
+  )
+  assert.doesNotMatch(proxy, /isNew \|\| canPersistFirstPartyCookies/)
   assert.doesNotMatch(
     proxy,
     /request\.cookies\.get\(CUSTOMER_SESSION_COOKIE\)\?\.value/
