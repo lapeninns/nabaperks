@@ -171,6 +171,10 @@ test("copy detection separates iOS and Android Chrome, Safari, iPad desktop mode
   )
   assert.match(LOCATION_HELP["ios-chrome"].detail, /Reload or reopen/)
   assert.match(
+    LOCATION_HELP["ios-chrome"].detail,
+    /delete Chrome, install it again/
+  )
+  assert.match(
     LOCATION_HELP["desktop-chrome"].steps,
     /padlock.*Location.*Allow/
   )
