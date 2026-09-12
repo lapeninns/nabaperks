@@ -79,7 +79,10 @@ export async function proxy(request: NextRequest) {
     ? createResponse()
     : await refreshSupabaseSession(request, createResponse)
 
-  if (joinJourney) {
+  if (
+    joinJourney &&
+    (joinJourney.isNew || canPersistFirstPartyCookies(request))
+  ) {
     response.cookies.set(
       JOIN_JOURNEY_COOKIE,
       joinJourney.token,
@@ -87,7 +90,10 @@ export async function proxy(request: NextRequest) {
     )
   }
 
-  if (customerDevice) {
+  if (
+    customerDevice &&
+    (customerDevice.isNew || canPersistFirstPartyCookies(request))
+  ) {
     response.cookies.set(
       CUSTOMER_DEVICE_COOKIE,
       customerDevice.token,
@@ -133,6 +139,13 @@ function forwardedRequestHeaders(
   }
 
   return requestHeaders
+}
+
+function canPersistFirstPartyCookies(request: NextRequest): boolean {
+  // Server Actions return form state on POST. Extra Set-Cookie on that
+  // response makes Next drop the action result and re-render the form empty,
+  // which failed the in-person ID collection proof and blocked promotion.
+  return request.method === "GET" || request.method === "HEAD"
 }
 
 function isOperationalProbePath(pathname: string): boolean {
