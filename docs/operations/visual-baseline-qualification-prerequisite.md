@@ -9,6 +9,10 @@ because its `visual` prefix also matches `visual.spec.ts`.
 This prerequisite stages an exact replacement for `scripts/ci/plan-checks.mjs`
 and a focused regression test under `config/ci-qualification-inputs/`. It changes
 no active workflow, planner, test or merge requirement.
+It also synchronises the older staged operational-readiness contract with the
+current active contract, preserving its `customerDevice` assertion. Every other
+existing staged input is byte-aligned with its active target, so activation has
+exactly the two intended active-file changes.
 
 The proposed planner excludes only direct `.png` references in the existing
 visual snapshot directory from policy qualification. The ordinary classifier
@@ -30,5 +34,8 @@ reviewed base. Then update #326 onto the installed policy and repeat current-hea
 checks and review. No failing check or protected approval is bypassed by either
 step.
 
-Rollback is to revert the activated planner through the normal reviewed process.
-This proposal has no application, database or provider configuration changes.
+Any rollback must handle the planner and its corresponding regression test
+together; reverting only the planner leaves failing assertions in the fast lane.
+Changes to active selection code still require a reviewed prerequisite and
+qualification, including compatible test expectations. This inert proposal has
+no application, database or provider configuration changes.
