@@ -79,10 +79,7 @@ export async function proxy(request: NextRequest) {
     ? createResponse()
     : await refreshSupabaseSession(request, createResponse)
 
-  if (
-    joinJourney &&
-    (joinJourney.isNew || canPersistFirstPartyCookies(request))
-  ) {
+  if (joinJourney && canPersistFirstPartyCookies(request)) {
     response.cookies.set(
       JOIN_JOURNEY_COOKIE,
       joinJourney.token,
@@ -90,10 +87,7 @@ export async function proxy(request: NextRequest) {
     )
   }
 
-  if (
-    customerDevice &&
-    (customerDevice.isNew || canPersistFirstPartyCookies(request))
-  ) {
+  if (customerDevice && canPersistFirstPartyCookies(request)) {
     response.cookies.set(
       CUSTOMER_DEVICE_COOKIE,
       customerDevice.token,
@@ -143,8 +137,8 @@ function forwardedRequestHeaders(
 
 function canPersistFirstPartyCookies(request: NextRequest): boolean {
   // Server Actions return form state on POST. Extra Set-Cookie on that
-  // response makes Next drop the action result and re-render the form empty,
-  // which failed the in-person ID collection proof and blocked promotion.
+  // response, including a newly minted device or join cookie, makes Next drop
+  // the action result and re-render the form empty. Persist on GET instead.
   return request.method === "GET" || request.method === "HEAD"
 }
 

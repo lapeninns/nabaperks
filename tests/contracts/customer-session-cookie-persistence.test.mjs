@@ -29,11 +29,19 @@ test("Given a returning Safari visit When the proxy runs Then it refreshes the v
 
   assert.match(proxy, /token: issueCustomerDeviceToken\(verified, secret\)/)
   assert.match(proxy, /customerDevice\?\.isNew \? undefined/)
-  assert.match(proxy, /canPersistFirstPartyCookies\(request\)/)
+  assert.match(
+    proxy,
+    /if \(joinJourney && canPersistFirstPartyCookies\(request\)\)/
+  )
+  assert.match(
+    proxy,
+    /if \(customerDevice && canPersistFirstPartyCookies\(request\)\)/
+  )
   assert.match(
     proxy,
     /request\.method === "GET" \|\| request\.method === "HEAD"/
   )
+  assert.doesNotMatch(proxy, /isNew \|\| canPersistFirstPartyCookies/)
   assert.doesNotMatch(
     proxy,
     /request\.cookies\.get\(CUSTOMER_SESSION_COOKIE\)\?\.value/
