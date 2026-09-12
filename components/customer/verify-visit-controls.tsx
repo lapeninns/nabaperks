@@ -2,13 +2,13 @@
 
 import { useEffect, useRef, useState } from "react"
 
+import { LocationPermissionHelp } from "@/components/customer/location-permission-help"
 import { Button } from "@/components/ui/button"
 import {
-  geolocationPermissionState,
   resolveStampLocation,
-  type GeolocationPermissionState,
   type StampLocationCapture,
 } from "@/lib/customer/stamp-location-capture"
+import type { StampLocationIssue } from "@/lib/customer/stamp-location-recovery"
 
 /** After this long without an answer the hint says so; the wait itself goes on. */
 const SLOW_FIX_HINT_MS = 10_000
@@ -16,6 +16,10 @@ const SLOW_FIX_HINT_MS = 10_000
 export type VerifyVisitControlsProps = {
   /** A stamp request is in flight or the card is secured — neither control may start anything. */
   disabled: boolean
+  recoveryIssue?: StampLocationIssue
+  retry?: boolean
+  graceRemaining?: number
+  onUseGrace: () => void
   /** The code form is already open beneath, so its button is redundant. */
   codeOpen: boolean
   /** The browser answered (a fix, a refusal, or a timeout). Never called for a cancelled wait. */
@@ -36,6 +40,10 @@ export type VerifyVisitControlsProps = {
  */
 export function VerifyVisitControls({
   disabled,
+  recoveryIssue,
+  retry,
+  graceRemaining,
+  onUseGrace,
   codeOpen,
   onCapture,
   onOpenCode,
@@ -43,22 +51,7 @@ export function VerifyVisitControls({
 }: VerifyVisitControlsProps) {
   const [acquiring, setAcquiring] = useState(false)
   const [slow, setSlow] = useState(false)
-  const [permission, setPermission] =
-    useState<GeolocationPermissionState>("unknown")
   const abortRef = useRef<AbortController | null>(null)
-
-  // Copy only: a blocked site cannot be re-prompted by script, so the hint
-  // names where to allow it. A missing or throwing Permissions API resolves
-  // to "unknown" and hides nothing.
-  useEffect(() => {
-    let live = true
-    void geolocationPermissionState().then((state) => {
-      if (live) setPermission(state)
-    })
-    return () => {
-      live = false
-    }
-  }, [acquiring])
 
   useEffect(() => {
     return () => {
@@ -67,7 +60,7 @@ export function VerifyVisitControls({
   }, [])
 
   async function askForLocation() {
-    if (disabled || acquiring) return
+    if (disabled || abortRef.current) return
     const controller = new AbortController()
     abortRef.current = controller
     setAcquiring(true)
@@ -84,10 +77,12 @@ export function VerifyVisitControls({
       if (capture && !controller.signal.aborted) onCapture(capture)
     } finally {
       window.clearTimeout(slowTimer)
-      if (abortRef.current === controller) abortRef.current = null
-      setAcquiring(false)
-      setSlow(false)
-      onAcquiringChange(false)
+      if (abortRef.current === controller) {
+        abortRef.current = null
+        setAcquiring(false)
+        setSlow(false)
+        onAcquiringChange(false)
+      }
     }
   }
 
@@ -99,24 +94,33 @@ export function VerifyVisitControls({
   const hint =
     acquiring && slow
       ? "Taking longer than expected. Keep waiting, or enter today's venue code."
-      : !acquiring && permission === "denied"
-        ? "Location is blocked for this site. Allow it in your browser settings, then tap again."
-        : null
+      : null
 
   return (
     <div data-verify-visit className="grid gap-2">
       <Button
         type="button"
         size="lg"
-        className="w-full"
+        className="w-full hover:bg-primary"
         disabled={disabled || acquiring}
         onClick={() => {
           void askForLocation()
         }}
         data-use-location
       >
-        {acquiring ? "Checking location" : "Use my location"}
+        {acquiring
+          ? "Checking location"
+          : retry
+            ? "Try Again"
+            : "Use my location"}
       </Button>
+      {recoveryIssue === "denied" ? <LocationPermissionHelp /> : null}
+      {recoveryIssue ? (
+        <p className="text-sm leading-5 text-muted-foreground">
+          No stamp added. You can also ask a team member for today&apos;s venue
+          code.
+        </p>
+      ) : null}
       {codeOpen ? null : (
         <Button
           type="button"
@@ -130,6 +134,30 @@ export function VerifyVisitControls({
           Enter venue code
         </Button>
       )}
+      {recoveryIssue && (graceRemaining ?? 0) > 0 ? (
+        <details>
+          <summary className="min-h-11 cursor-pointer py-3 text-sm font-bold focus-visible:outline-2 focus-visible:outline-offset-2">
+            Can&apos;t get location working?
+          </summary>
+          <div className="grid gap-2 pb-2">
+            <p className="text-sm leading-5">
+              You have {graceRemaining} unverified{" "}
+              {graceRemaining === 1 ? "stamp" : "stamps"} left. Adding one uses
+              this allowance. Trying location again doesn&apos;t.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              className="w-full"
+              disabled={disabled || acquiring}
+              onClick={onUseGrace}
+            >
+              Add without location
+            </Button>
+          </div>
+        </details>
+      ) : null}
       {hint ? (
         <p
           className="text-xs leading-5 text-muted-foreground"

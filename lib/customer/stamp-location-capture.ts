@@ -1,3 +1,9 @@
+import {
+  LOCATION_ISSUE_COPY,
+  stampLocationIssue,
+  type StampLocationIssue,
+} from "@/lib/customer/stamp-location-recovery"
+
 export function shouldAttemptStampLocation(
   requireGeofence: boolean,
   nextVisitNumber: number,
@@ -38,9 +44,9 @@ export type GeolocationPermissionState =
   "granted" | "denied" | "prompt" | "unknown"
 
 /**
- * Ask the browser for a fix. Always asks: a hard-blocked site answers
- * PERMISSION_DENIED at once and at no cost, and asking is the only way to
- * notice that the customer has since allowed location in site settings. The
+ * Ask the browser for a fix. Always requests location from a customer tap:
+ * a blocked site may answer PERMISSION_DENIED without showing a prompt.
+ * A fresh request notices when the customer has allowed site access. The
  * Permissions API is for copy only (see {@link geolocationPermissionState}).
  *
  * The browser's own `timeout` is the deadline. Per spec it does not start
@@ -116,9 +122,15 @@ export async function geolocationPermissionState(): Promise<GeolocationPermissio
 export type CaptureDecision =
   | { readonly action: "submit" }
   | { readonly action: "ignore" }
-  | { readonly action: "refuse"; readonly message: string }
+  | {
+      readonly action: "refuse"
+      readonly message: string
+      readonly issue: StampLocationIssue
+    }
 
 export type CaptureDecisionInput = {
+  /** Explicit fallback choice, never set by a GPS retry. */
+  readonly useUnverifiedGrace?: boolean
   /**
    * Unverified stamps the server will still commit for this membership, from
    * the page payload. Undefined when the page could not say.
@@ -132,44 +144,26 @@ export type CaptureDecisionInput = {
 }
 
 /**
- * Whether a capture is worth a stamp request. A fix always is. A capture with
- * no fix is only worth it while the server would still commit an unverified
- * stamp against the grace; once that is spent, submitting it charges the
- * attempt bucket and comes back refused — ten of those was how a member lost
- * the venue-code form. Decided here, on the phone, so the code stays offered.
+ * Recovery comes before spending grace. Accurate fixes go to the server for
+ * the distance check; failed/imprecise captures wait for an explicit fallback
+ * choice. Unknown or exhausted grace never probes the stamp attempt bucket.
  */
 export function decideCaptureSubmission(
   capture: StampLocationCapture | null,
   input: CaptureDecisionInput
 ): CaptureDecision {
-  if (!capture || capture.locationStatus === "granted") {
+  if (!capture) return { action: "submit" }
+  if (capture.locationStatus === "cancelled") return { action: "ignore" }
+  const issue = stampLocationIssue(capture)
+  if (!issue) return { action: "submit" }
+  if (
+    input.useUnverifiedGrace &&
+    (input.unverifiedGraceRemaining ?? 0) > 0 &&
+    !input.refusedWithoutFix
+  ) {
     return { action: "submit" }
   }
-  if (capture.locationStatus === "cancelled") {
-    return { action: "ignore" }
-  }
-
-  const graceLeft =
-    input.unverifiedGraceRemaining === undefined
-      ? !input.refusedWithoutFix
-      : input.unverifiedGraceRemaining > 0 && !input.refusedWithoutFix
-  if (graceLeft) {
-    return { action: "submit" }
-  }
-
-  return { action: "refuse", message: noFixMessage(capture.locationStatus) }
-}
-
-function noFixMessage(locationStatus: string): string {
-  switch (locationStatus) {
-    case "denied":
-      return "Location is blocked for this site. Allow it in your browser settings, or enter today's venue code."
-    case "unsupported":
-      return "This browser can't share location. Enter today's venue code instead."
-    default:
-      // timeout, unavailable, or anything the browser invents later.
-      return "Couldn't get a location fix. Try again nearer a window or door, or enter today's venue code."
-  }
+  return { action: "refuse", issue, message: LOCATION_ISSUE_COPY[issue].body }
 }
 
 function captureGeolocation(
@@ -194,35 +188,42 @@ function captureGeolocation(
     }
     signal?.addEventListener("abort", onAbort, { once: true })
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { coords } = position
-        finish({
-          latitude: coords.latitude,
-          longitude: coords.longitude,
-          accuracyMeters: coords.accuracy,
-          locationStatus: "granted",
-          captureElapsedMs: elapsedMs(startedAt),
-        })
-      },
-      (error) => {
-        finish({
-          ...emptyCapture(
-            error.code === error.PERMISSION_DENIED
-              ? "denied"
-              : error.code === error.TIMEOUT
-                ? "timeout"
-                : "unavailable"
-          ),
-          captureElapsedMs: elapsedMs(startedAt),
-        })
-      },
-      {
-        enableHighAccuracy: true,
-        maximumAge: 0,
-        timeout: waitMs,
-      }
-    )
+    try {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { coords } = position
+          finish({
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            accuracyMeters: coords.accuracy,
+            locationStatus: "granted",
+            captureElapsedMs: elapsedMs(startedAt),
+          })
+        },
+        (error) => {
+          finish({
+            ...emptyCapture(
+              error.code === error.PERMISSION_DENIED
+                ? "denied"
+                : error.code === error.TIMEOUT
+                  ? "timeout"
+                  : "unavailable"
+            ),
+            captureElapsedMs: elapsedMs(startedAt),
+          })
+        },
+        {
+          enableHighAccuracy: true,
+          maximumAge: 0,
+          timeout: waitMs,
+        }
+      )
+    } catch {
+      finish({
+        ...emptyCapture("unavailable"),
+        captureElapsedMs: elapsedMs(startedAt),
+      })
+    }
   })
 }
 

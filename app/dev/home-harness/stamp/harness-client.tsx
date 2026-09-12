@@ -40,8 +40,8 @@ const VERIFY_MODES: Partial<
         "Turn on location for this venue and scan again, or ask a team member for today's code.",
     },
   },
-  // One courtesy stamp left: a capture without a fix is sent once and lands
-  // unverified.
+  // One courtesy stamp left: an explicit fallback choice sends the failed
+  // capture once and lands unverified. GPS retries send nothing.
   "verify-grace-left": {
     unverifiedGraceRemaining: 1,
     stamp: {
@@ -54,6 +54,15 @@ const VERIFY_MODES: Partial<
     },
   },
   // The browser gave a fix (the spec grants geolocation) and it verified.
+  "verify-out-of-range": {
+    unverifiedGraceRemaining: 2,
+    stamp: {
+      status: "error",
+      reason: "location_out_of_range",
+      message:
+        "Try again at the entrance, or ask a team member for today's venue code.",
+    },
+  },
   "verify-located": {
     unverifiedGraceRemaining: 0,
     stamp: {
@@ -269,12 +278,12 @@ export function StampHarnessClient({
           verify
             ? {
                 requireGeofence: true,
-                geofenceRadiusMeters: 75,
+                geofenceRadiusMeters: 150,
                 firstVerifiedVisit: 3,
                 nextVisitNumber: 4,
                 unverifiedGraceRemaining: verify.unverifiedGraceRemaining,
               }
-            : { requireGeofence: false, geofenceRadiusMeters: 75 }
+            : { requireGeofence: false, geofenceRadiusMeters: 150 }
         }
         submitStamp={submitStamp}
         submitVenueCode={submitVenueCode}

@@ -19,6 +19,7 @@ import { VenueCodeForm } from "@/components/customer/venue-code-form"
 import { VerifyVisitControls } from "@/components/customer/verify-visit-controls"
 import {
   initialStampChoreographyState,
+  locationRetryOffered,
   readbackBonusStampsApplied,
   reduceStampChoreography,
   stampChoreographyView,
@@ -140,7 +141,8 @@ export function StampCollector({
   const requestInFlightRef = useRef(false)
   // The server answered `location_required` to a capture without a fix during
   // this visit: the grace is spent whatever the page payload said.
-  const refusedWithoutFixRef = useRef(false)
+  const [refusedWithoutFix, setRefusedWithoutFix] = useState(false)
+  const recoveryCaptureRef = useRef<StampLocationCapture | null>(null)
   const refresh = refreshCard ?? router.refresh
   const view = stampChoreographyView(state, {
     canStamp,
@@ -204,7 +206,7 @@ export function StampCollector({
     if (next.status === "error") {
       requestInFlightRef.current = false
       if (next.reason === "location_required") {
-        refusedWithoutFixRef.current = true
+        setRefusedWithoutFix(true)
       }
       dispatch({
         type: "request_blocked",
@@ -261,22 +263,31 @@ export function StampCollector({
   }
 
   /**
-   * The browser has answered. A fix is always sent. A capture without one is
-   * sent only while the server would still commit it against the unverified
-   * grace; otherwise the refusal is decided here, no request is spent, and
-   * the venue code stays on screen.
+   * The browser has answered. Only an accurate fix is sent automatically.
+   * Recovery and GPS retries spend no stamp requests. Grace is a separate
+   * customer choice and still goes through the authoritative server checks.
    */
-  function handleCapture(capture: StampLocationCapture) {
+  function handleCapture(
+    capture: StampLocationCapture,
+    useUnverifiedGrace = false
+  ) {
+    if (requestInFlightRef.current || view.secured || !canStamp) return
+    recoveryCaptureRef.current = capture
     const decision = decideCaptureSubmission(capture, {
+      useUnverifiedGrace,
       unverifiedGraceRemaining: location.unverifiedGraceRemaining,
-      refusedWithoutFix: refusedWithoutFixRef.current,
+      refusedWithoutFix,
     })
     if (decision.action === "submit") {
       void issueStamp(capture)
       return
     }
     if (decision.action === "refuse") {
-      dispatch({ type: "capture_refused", message: decision.message })
+      dispatch({
+        type: "capture_refused",
+        message: decision.message,
+        issue: decision.issue,
+      })
       markStampPhase("blocked")
     }
   }
@@ -364,9 +375,32 @@ export function StampCollector({
                   <VerifyVisitControls
                     disabled={view.pending || view.secured}
                     codeOpen={showVenueCodeForm}
+                    recoveryIssue={
+                      state.phase === "blocked"
+                        ? state.locationIssue
+                        : undefined
+                    }
+                    retry={
+                      state.phase === "blocked" &&
+                      locationRetryOffered(state.reason)
+                    }
+                    graceRemaining={
+                      state.phase === "blocked" &&
+                      state.locationIssue &&
+                      !refusedWithoutFix
+                        ? location.unverifiedGraceRemaining
+                        : undefined
+                    }
+                    onUseGrace={() => {
+                      if (recoveryCaptureRef.current)
+                        handleCapture(recoveryCaptureRef.current, true)
+                    }}
                     onCapture={handleCapture}
                     onOpenCode={() => setCodeOpen(true)}
-                    onAcquiringChange={setAcquiringLocation}
+                    onAcquiringChange={(acquiring) => {
+                      if (acquiring) recoveryCaptureRef.current = null
+                      setAcquiringLocation(acquiring)
+                    }}
                   />
                 ) : null}
                 {showVenueCodeForm ? (
