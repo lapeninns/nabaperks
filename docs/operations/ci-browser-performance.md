@@ -68,3 +68,55 @@ Review of all 32 pack inventories and outcomes, and comparison of image/setup
 time, retries and failures, remains the standing qualification for any further
 change to this matrix. Main, security and deployment checks remain separately
 required.
+
+## Pull-request feedback time
+
+Measured on 2026-09-12 over the twenty most recently merged pull requests
+(#306–#329), the window from the first check starting to the last check
+finishing averaged **10.42 minutes** (median 8.68, maximum 19.17). Fifteen of
+the twenty finished between 6.6 and 9.8 minutes; five took 11–19. The
+[agent-readiness "fast CI feedback" signal](../../scripts/ci/pr-feedback-time.mjs)
+is judged on that mean against a ten-minute bar, so the outliers are what fail
+it, not the typical run.
+
+The typical run's floor is the e2e critical path, not any single lane:
+
+| Segment                                   | Wall clock |
+| ----------------------------------------- | ---------- |
+| Select required checks                    | ~0.5 min   |
+| E2E (mobile-safari, pack 1) — the slowest | ~7.4 min   |
+| E2E gate + Release gate                   | ~0.6 min   |
+
+Inside the slowest pack, ~55 s is job setup, ~12 s the inventory listing and
+~80 s eight fresh dev-server starts; the remaining ~6 min is test time. The
+packs are far from even — `mobile-safari` packs 1–4 carried 368 s, ~170 s,
+322 s and 306 s of test time on run 34689434054 — so the consecutive grouping
+that `packShards` deliberately keeps (see [ci-cost-baseline.md](ci-cost-baseline.md))
+now costs roughly 45–60 s of wall clock against a measured-weight grouping.
+That is a real but second-order lever; it is recorded here, not taken.
+
+The two things that actually broke the bar:
+
+- **Flaky shard re-runs.** #325 and #327 each failed
+  `E2E (desktop-firefox, pack 2)` on the first attempt on the same test — the
+  throttled venue-code path in `tests/e2e/customer-venue-code-flow.ts` —
+  passed on Playwright's retry, and were still red because `failOnFlakyTests`
+  is deliberately on. The failed jobs were re-run by hand ten to thirteen
+  minutes later, and that whole wait is contributor-visible feedback time
+  (18.5 and 15.8 minutes). The same file flaked on desktop Firefox in at least
+  two other recent pull-request runs. The cause was the venue-code input's
+  `scrollIntoView({ behavior: "smooth" })` on focus: Firefox scrolls on the
+  compositor, so the submit button read as stable while still sliding, and the
+  click after `fill` landed beside it. The form now scrolls instantly like the
+  other customer forms, which also honours `prefers-reduced-motion` (the
+  reduced-motion CSS never applied to an explicit JS `behavior`).
+- **Runner queueing under concurrent runs.** #310 (17.9 min) and #324
+  (11.3 min) had no failures; their packs waited 2–7 minutes for a runner
+  because five pull requests and a main push were running 53-job CI runs at
+  once. Job count per run is the lever there; nothing in this change alters it.
+
+Re-measure with `node scripts/ci/pr-feedback-time.mjs 20` (read-only; exits 1
+while the mean is at or over ten minutes). The unit tests in
+`tests/unit/ci-pr-feedback-time.test.mjs` pin the definition: earliest
+`startedAt` to latest `completedAt` (or `updatedAt` for an unfinished check)
+across every check on the pull request, re-runs included.
