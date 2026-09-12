@@ -75,6 +75,15 @@ Verified in an isolated worktree on 12 September 2026:
   from hosted CI run `34698588984` at application revision `05746181dbf8`;
   each original/retry image was byte-identical and visually reviewed before
   replacing its previous baseline. The next revision must pass hosted CI.
+  After review fixes, the two staff Linux baselines were reviewed again from
+  run `34700301888` at application revision `368d5b38976a`; both original/retry
+  pairs were byte-identical. This completes the baseline work for that repair.
+
+CI run `34699110959` passed all nine hosted roots, but its final gate classified
+these PNG updates as CI selection changes and rejected the changed application
+tree during frozen-source qualification. PR #327 stages the narrow planner
+prerequisite. It must be reviewed, merged and activated through qualification
+before this application PR can complete current-head checks and review.
 
 The `/dev/welcome-offer` display fixture mounts the production components and
 is blocked in production by both the dev layout and its own `notFound` gate.
