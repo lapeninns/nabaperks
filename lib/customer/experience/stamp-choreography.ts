@@ -1,3 +1,7 @@
+import {
+  LOCATION_ISSUE_COPY,
+  type StampLocationIssue,
+} from "@/lib/customer/stamp-location-recovery"
 import { REFERRAL_BONUS_STAMP_LABEL } from "@/lib/customer/card-stamp-labels"
 import type { CustomerBlockReason } from "@/lib/customer/experience/block-reasons"
 import type {
@@ -21,7 +25,11 @@ export type StampChoreographyState =
     }
   | { phase: "printing"; result: IssuedStamp }
   | { phase: "confirmed"; result: IssuedStamp }
-  | ({ phase: "blocked"; message: string } & SelfStampBlockedDetail)
+  | ({
+      phase: "blocked"
+      message: string
+      locationIssue?: StampLocationIssue
+    } & SelfStampBlockedDetail)
   | { phase: "unknown" }
   | { phase: "closed" }
 
@@ -31,11 +39,11 @@ export type StampChoreographyEvent =
   | ({ type: "request_blocked"; message: string } & SelfStampBlockedDetail)
   | { type: "request_unknown" }
   /**
-   * The phone refused to spend a request: the capture carried no fix and the
-   * unverified grace is spent. Nothing was sent, so this lands from idle or
+   * The phone offered recovery before spending a request: the capture was
+   * missing or imprecise. Nothing was sent, so this lands from idle or
    * from an earlier block, never from an in-flight request.
    */
-  | { type: "capture_refused"; message: string }
+  | { type: "capture_refused"; message: string; issue?: StampLocationIssue }
   | { type: "readback_issued"; result: IssuedStamp }
   | { type: "readback_closed" }
   | { type: "print_settled" }
@@ -118,6 +126,7 @@ export function reduceStampChoreography(
             phase: "blocked",
             message: event.message,
             reason: "location_blocked",
+            locationIssue: event.issue,
           }
         : state
     case "readback_issued":
@@ -412,8 +421,12 @@ export function stampChoreographyView(
       confirmed: false,
       ariaBusy: false,
       buttonLabel: "Try today's stamp again",
-      announcement: `Stamp not added. ${state.message}`,
-      statusTitle: "Stamp not added.",
+      announcement: `Stamp not added. ${state.locationIssue ? `${LOCATION_ISSUE_COPY[state.locationIssue].title}. ` : ""}${state.message}`,
+      statusTitle: state.locationIssue
+        ? LOCATION_ISSUE_COPY[state.locationIssue].title
+        : state.reason === "location_out_of_range"
+          ? "You appear to be outside the pub"
+          : "Stamp not added.",
       statusBody: blockedBody(state, fallback),
       rewardUnlocked: false,
       rewardSlammed: false,

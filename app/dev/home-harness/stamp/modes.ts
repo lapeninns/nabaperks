@@ -16,6 +16,7 @@ export const STAMP_HARNESS_MODES = [
   "verify-grace-spent",
   "verify-grace-left",
   "verify-located",
+  "verify-out-of-range",
   "verify-rate-limited",
   "verify-code-locked",
   "verify-code-throttled",

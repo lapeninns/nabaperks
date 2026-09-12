@@ -45,7 +45,7 @@ test("GPS is asked for only from the customer's location tap — never on page l
   )
 })
 
-test("a capture without a fix is only sent while the server would still commit it", () => {
+test("a failed capture offers recovery before an explicit grace submission", () => {
   const start = collector.indexOf("function handleCapture")
   const end = collector.indexOf("async function issueWithCode")
   const body = collector.slice(start, end)
@@ -54,7 +54,7 @@ test("a capture without a fix is only sent while the server would still commit i
     body,
     /unverifiedGraceRemaining: location\.unverifiedGraceRemaining/
   )
-  assert.match(body, /refusedWithoutFix: refusedWithoutFixRef\.current/)
+  assert.match(body, /refusedWithoutFix,/)
   assert.match(
     body,
     /decision\.action === "refuse"[\s\S]{0,120}capture_refused/,
@@ -62,7 +62,7 @@ test("a capture without a fix is only sent while the server would still commit i
   )
   assert.match(
     collector,
-    /next\.reason === "location_required"[\s\S]{0,60}refusedWithoutFixRef\.current = true/,
+    /next\.reason === "location_required"[\s\S]{0,60}setRefusedWithoutFix\(true\)/,
     "the server's location_required outranks the page payload for the rest of the visit"
   )
   assert.doesNotMatch(

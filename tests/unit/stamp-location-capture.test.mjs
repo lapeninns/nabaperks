@@ -258,23 +258,35 @@ test("a fix is always submitted, and a visit with no location asked is too", () 
   }
 })
 
-test("a capture without a fix is submitted only while the server would still commit it", () => {
+test("a no-fix capture requires an explicit choice and known remaining grace", () => {
   const denied = noFix("denied")
   assert.deepEqual(
     decideCaptureSubmission(denied, {
       unverifiedGraceRemaining: 1,
       refusedWithoutFix: false,
+      useUnverifiedGrace: true,
     }),
     { action: "submit" },
     "grace left: the courtesy stamp is the server's to commit"
   )
-  assert.deepEqual(
+  for (const remaining of [undefined, 0, 1, 2]) {
+    assert.equal(
+      decideCaptureSubmission(denied, {
+        unverifiedGraceRemaining: remaining,
+        refusedWithoutFix: false,
+      }).action,
+      "refuse",
+      "GPS retries never consume grace"
+    )
+  }
+  assert.equal(
     decideCaptureSubmission(denied, {
       unverifiedGraceRemaining: undefined,
       refusedWithoutFix: false,
-    }),
-    { action: "submit" },
-    "unknown grace: one request finds out"
+      useUnverifiedGrace: true,
+    }).action,
+    "refuse",
+    "unknown grace cannot spend an attempt"
   )
   assert.equal(
     decideCaptureSubmission(denied, {
@@ -296,13 +308,14 @@ test("a capture without a fix is submitted only while the server would still com
     decideCaptureSubmission(denied, {
       unverifiedGraceRemaining: 2,
       refusedWithoutFix: true,
+      useUnverifiedGrace: true,
     }).action,
     "refuse",
     "the server's answer outranks a stale payload"
   )
 })
 
-test("the refusal names the browser's actual answer and always offers the code", () => {
+test("the refusal distinguishes each browser failure", () => {
   const spent = { unverifiedGraceRemaining: 0, refusedWithoutFix: false }
   const messages = Object.fromEntries(
     ["denied", "unsupported", "timeout", "unavailable"].map((status) => [
@@ -310,13 +323,11 @@ test("the refusal names the browser's actual answer and always offers the code",
       decideCaptureSubmission(noFix(status), spent).message,
     ])
   )
-  assert.match(messages.denied, /blocked for this site/)
-  assert.match(messages.unsupported, /can't share location/)
-  assert.match(messages.timeout, /Couldn't get a location fix/)
-  assert.equal(messages.unavailable, messages.timeout)
-  for (const message of Object.values(messages)) {
-    assert.match(message, /venue code/, "every refusal points at the code")
-  }
+  assert.match(messages.denied, /hasn't allowed location/)
+  assert.match(messages.unsupported, /Safari or Chrome/)
+  assert.match(messages.timeout, /window or the entrance/)
+  assert.match(messages.unavailable, /Location Services and connection/)
+  assert.notEqual(messages.unavailable, messages.timeout)
 })
 
 test("an abandoned wait is neither submitted nor a refusal", () => {
@@ -353,3 +364,17 @@ function geoError(code) {
     TIMEOUT,
   }
 }
+
+test("a browser throwing synchronously is unavailable and can retry", async () => {
+  installGeolocation(() => {
+    throw new Error("browser failure")
+  })
+  assert.equal(
+    (await resolveStampLocation(true))?.locationStatus,
+    "unavailable"
+  )
+  installGeolocation((success) =>
+    success({ coords: { latitude: 52.2, longitude: 0.1, accuracy: 12 } })
+  )
+  assert.equal((await resolveStampLocation(true))?.locationStatus, "granted")
+})
