@@ -27,11 +27,14 @@ test("Given pending customer identity When its codec is inspected Then only pend
 
 test("Given pending customer cookies When their adapter is inspected Then privacy attributes remain server-controlled", () => {
   const session = read("lib", "customer", "session.ts")
+  const cookie = read("lib", "http", "persistent-cookie-options.ts")
 
-  assert.match(session, /httpOnly: true/)
-  assert.match(session, /sameSite: "lax" as const/)
-  assert.match(session, /secure: process\.env\.NODE_ENV === "production"/)
-  assert.match(session, /path: "\/"/)
+  assert.match(session, /persistentCookieOptions\(/)
+  assert.match(cookie, /httpOnly: true/)
+  assert.match(cookie, /sameSite: "lax"/)
+  assert.match(cookie, /secure: process\.env\.NODE_ENV === "production"/)
+  assert.match(cookie, /path: "\/"/)
+  assert.match(cookie, /expires: new Date/)
   assert.match(session, /const pendingPhoneTtlSeconds = 10 \* 60/)
   assert.match(session, /const pendingEmailTtlSeconds = 10 \* 60/)
 })

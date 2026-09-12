@@ -9,6 +9,7 @@ import {
 
 import { cookies } from "next/headers"
 
+import { persistentCookieOptions } from "@/lib/http/persistent-cookie-options"
 import { requiredCustomerSessionSecret } from "@/lib/security/customer-session-secret"
 
 /**
@@ -46,13 +47,7 @@ export async function setInviteCookie(
     expiresAt: Math.floor(Date.now() / 1000) + TTL_SECONDS,
   }
   const store = await cookies()
-  store.set(COOKIE_NAME, encrypt(payload), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: TTL_SECONDS,
-  })
+  store.set(COOKIE_NAME, encrypt(payload), persistentCookieOptions(TTL_SECONDS))
 }
 
 export async function readInviteCookie(): Promise<InviteCookieContext | null> {

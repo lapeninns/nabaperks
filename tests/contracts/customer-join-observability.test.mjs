@@ -45,8 +45,6 @@ test("Given a join journey crosses the card redirect When proxy source is inspec
   const proxy = read("proxy.ts")
 
   assert.match(proxy, /request\.nextUrl\.pathname\.startsWith\("\/card\/"\)/)
-  assert.match(proxy, /httpOnly: true/)
-  assert.match(proxy, /sameSite: "lax"/)
-  assert.match(proxy, /secure: process\.env\.NODE_ENV === "production"/)
+  assert.match(proxy, /persistentCookieOptions\(JOIN_JOURNEY_TTL_SECONDS\)/)
   assert.match(proxy, /JOIN_JOURNEY_HEADER/)
 })
