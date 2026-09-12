@@ -62,8 +62,10 @@ Verified in an isolated worktree on 12 September 2026:
   horizontal overflow on landing, consent and counter; keyboard disclosure
   activation retains focus.
 - macOS visual baselines for the affected creator/customer/counter harnesses
-  were rendered and reviewed. Canonical Linux snapshots must also pass hosted
-  CI before this revision is ready to merge.
+  were rendered and reviewed. Five changed canonical Linux snapshots were read
+  from hosted CI run `34698588984` at application revision `05746181dbf8`;
+  each original/retry image was byte-identical and visually reviewed before
+  replacing its previous baseline. The next revision must pass hosted CI.
 
 The `/dev/welcome-offer` display fixture mounts the production components and
 is blocked in production by both the dev layout and its own `notFound` gate.
