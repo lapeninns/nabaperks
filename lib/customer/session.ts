@@ -29,13 +29,18 @@ import {
 } from "@/lib/customer/session-load-row"
 import { isMissingRpcError } from "@/lib/supabase/missing-rpc"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
+import {
+  CUSTOMER_SESSION_COOKIE,
+  CUSTOMER_SESSION_TTL_SECONDS,
+  persistentCookieOptions,
+} from "@/lib/http/persistent-cookie-options"
 import { requiredCustomerSessionSecret } from "@/lib/security/customer-session-secret"
 import { customerDeviceHashFromHeaders } from "@/lib/security/rate-limit"
 
 export const pendingPhoneCookieName = "nabaperks_pending_phone"
 export const pendingEmailCookieName = "nabaperks_pending_email"
 export const pendingAccessRecoveryCookieName = "nabaperks_access_recovery"
-export const customerSessionCookieName = "nabaperks_customer_session"
+export const customerSessionCookieName = CUSTOMER_SESSION_COOKIE
 
 type PendingPhoneInput = {
   purpose: PendingPhonePurpose
@@ -59,7 +64,7 @@ type PendingAccessRecoveryInput = Omit<
 const pendingPhoneTtlSeconds = 10 * 60
 const pendingEmailTtlSeconds = 10 * 60
 const pendingAccessRecoveryTtlSeconds = 10 * 60
-const customerSessionTtlSeconds = 30 * 24 * 60 * 60
+const customerSessionTtlSeconds = CUSTOMER_SESSION_TTL_SECONDS
 
 export async function setPendingPhoneVerification(
   input: PendingPhoneInput
@@ -79,7 +84,7 @@ export async function setPendingPhoneVerification(
   cookieStore.set(
     pendingPhoneCookieName,
     createPendingPhoneCookieValue(payload, requiredCustomerSessionSecret()),
-    cookieOptions(pendingPhoneTtlSeconds)
+    persistentCookieOptions(pendingPhoneTtlSeconds)
   )
 
   return payload
@@ -119,7 +124,7 @@ export async function setPendingEmailVerification(
   cookieStore.set(
     pendingEmailCookieName,
     createPendingEmailCookieValue(payload, requiredCustomerSessionSecret()),
-    cookieOptions(pendingEmailTtlSeconds)
+    persistentCookieOptions(pendingEmailTtlSeconds)
   )
 
   return payload
@@ -160,7 +165,7 @@ export async function setPendingAccessRecovery(
       payload,
       requiredCustomerSessionSecret()
     ),
-    cookieOptions(pendingAccessRecoveryTtlSeconds)
+    persistentCookieOptions(pendingAccessRecoveryTtlSeconds)
   )
   return payload
 }
@@ -206,7 +211,7 @@ export async function setCustomerSession(
   cookieStore.set(
     customerSessionCookieName,
     createCustomerSessionCookieValue(payload, requiredCustomerSessionSecret()),
-    cookieOptions(customerSessionTtlSeconds)
+    persistentCookieOptions(customerSessionTtlSeconds)
   )
 
   return payload
@@ -349,16 +354,6 @@ async function revokeCustomerSession(
 
   if (error) {
     throw new Error(`Unable to revoke customer session: ${error.message}`)
-  }
-}
-
-function cookieOptions(maxAge: number) {
-  return {
-    httpOnly: true,
-    sameSite: "lax" as const,
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge,
   }
 }
 

@@ -65,6 +65,7 @@ test("production exposes separate versioned liveness and dependency readiness", 
   assert.match(readiness, /requireCronHealth: targetEnvironment !== "staging"/)
   assert.match(readiness, /signals: operational\.signals/)
   assert.match(proxy, /isOperationalProbePath\(request\.nextUrl\.pathname\)/)
+  assert.match(proxy, /const customerDevice = operationalProbe\s*\?\s*null/)
   assert.match(proxy, /customerDevice\?\.isNew/)
   assert.match(proxy, /operationalProbe\s*\?\s*createResponse\(\)/)
 })

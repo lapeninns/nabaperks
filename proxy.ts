@@ -20,15 +20,17 @@ import {
   COMMON_SECURITY_HEADERS,
   dynamicContentSecurityPolicy,
 } from "@/lib/security/csp"
+import {
+  CUSTOMER_DEVICE_COOKIE,
+  CUSTOMER_DEVICE_TTL_SECONDS,
+  persistentCookieOptions,
+} from "@/lib/http/persistent-cookie-options"
 import { CUSTOMER_DEVICE_HEADER } from "@/lib/security/rate-limit-core"
 import {
   issueCustomerDeviceToken,
   verifyCustomerDeviceToken,
 } from "@/lib/security/customer-device-token"
 import { refreshSupabaseSession } from "@/lib/supabase/update-session"
-
-const CUSTOMER_DEVICE_COOKIE = "nabaperks_device"
-const CUSTOMER_DEVICE_TTL_SECONDS = 365 * 24 * 60 * 60
 
 // Next.js 16 Proxy (formerly middleware). Refreshes Supabase auth cookies on
 // stateful application requests, then attaches observability and security
@@ -77,24 +79,20 @@ export async function proxy(request: NextRequest) {
     ? createResponse()
     : await refreshSupabaseSession(request, createResponse)
 
-  if (joinJourney?.isNew) {
-    response.cookies.set(JOIN_JOURNEY_COOKIE, joinJourney.token, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: JOIN_JOURNEY_TTL_SECONDS,
-    })
+  if (joinJourney) {
+    response.cookies.set(
+      JOIN_JOURNEY_COOKIE,
+      joinJourney.token,
+      persistentCookieOptions(JOIN_JOURNEY_TTL_SECONDS)
+    )
   }
 
-  if (customerDevice?.isNew) {
-    response.cookies.set(CUSTOMER_DEVICE_COOKIE, customerDevice.token, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: CUSTOMER_DEVICE_TTL_SECONDS,
-    })
+  if (customerDevice) {
+    response.cookies.set(
+      CUSTOMER_DEVICE_COOKIE,
+      customerDevice.token,
+      persistentCookieOptions(CUSTOMER_DEVICE_TTL_SECONDS)
+    )
   }
 
   if (isAdminPath(request.nextUrl.pathname)) {
@@ -154,7 +152,13 @@ function resolveCustomerDevice(request: NextRequest): {
   const current = request.cookies.get(CUSTOMER_DEVICE_COOKIE)?.value
   if (current && secret) {
     const verified = verifyCustomerDeviceToken(current, secret)
-    if (verified) return { id: verified, token: current, isNew: false }
+    if (verified) {
+      return {
+        id: verified,
+        token: issueCustomerDeviceToken(verified, secret),
+        isNew: false,
+      }
+    }
   }
   const id = crypto.randomUUID()
   return {
