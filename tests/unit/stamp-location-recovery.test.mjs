@@ -171,6 +171,15 @@ test("copy detection separates iOS and Android Chrome, Safari, iPad desktop mode
   )
   assert.match(LOCATION_HELP["ios-chrome"].detail, /Reload or reopen/)
   assert.match(
+    LOCATION_HELP["ios-chrome"].detail,
+    /deleting Chrome and installing it again/
+  )
+  // Reinstalling clears the customer session, so the copy must send them back
+  // through sign-in and the venue QR rather than stranding them on a dead tap.
+  assert.match(LOCATION_HELP["ios-chrome"].detail, /removes its local data/)
+  assert.match(LOCATION_HELP["ios-chrome"].detail, /sign in again/)
+  assert.match(LOCATION_HELP["ios-chrome"].detail, /rescan the venue QR code/)
+  assert.match(
     LOCATION_HELP["desktop-chrome"].steps,
     /padlock.*Location.*Allow/
   )
