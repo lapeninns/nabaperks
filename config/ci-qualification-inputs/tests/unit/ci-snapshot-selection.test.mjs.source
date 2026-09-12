@@ -11,6 +11,7 @@ test("ordinary visual baselines keep all hosted roots without policy qualificati
   for (const path of [
     "tests/e2e/visual.spec.ts-snapshots/harness-offers-staff-chromium-linux.png",
     "tests/e2e/visual.spec.ts-snapshots/harness-offers-customer-mobile-safari.png",
+    "tests/e2e/visual.spec.ts-snapshots/marketing-about-desktop-firefox-linux.png",
   ]) {
     assert.equal(needsSelectionComparison(path), false, path)
     const impact = classifyChanges([
