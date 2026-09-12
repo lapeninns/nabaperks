@@ -530,7 +530,11 @@ describe("contract-offer-campaign-ui source contract", () => {
     // The promise, the stamp row and the discount face are defined there and
     // only there — the stamp row through the real StampGrid at the venue's real
     // card length, the face through the shared OfferPass the customer keeps.
-    assert.match(shared, /<StampGrid/)
+    assert.match(shared, /<OfferCardPreview/)
+    assert.match(
+      readProjectFile("components/customer/offer-card-preview.tsx"),
+      /<StampGrid/
+    )
     assert.match(shared, /<OfferPass/)
     assert.match(shared, /total=\{stampsRequired\}/)
     for (const [file, source] of [

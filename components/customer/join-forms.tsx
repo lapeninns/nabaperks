@@ -82,7 +82,11 @@ export function CustomerIdentityForm({
             }
           />
           {state.errors?.contact ? (
-            <p id="contact-error" className="text-sm text-destructive">
+            <p
+              id="contact-error"
+              role="alert"
+              className="text-sm text-destructive"
+            >
               {state.errors.contact}
             </p>
           ) : (

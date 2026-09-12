@@ -161,7 +161,11 @@ export function describeOfferCampaignJourney(): void {
       ).toBeVisible()
       await expect(rail).toContainText("2 of 3 stamps — 1 more to unlock")
       await expect(
-        rail.getByText("10% off at Old Crown Girton").first()
+        rail
+          .getByRole("link", {
+            name: /Show pass QR, 10% discount pass at Old Crown Girton/,
+          })
+          .first()
       ).toBeVisible()
     })
 
@@ -196,7 +200,7 @@ export function describeOfferCampaignJourney(): void {
       // So the pass chip must carry its own destination, and that destination
       // must not be nested inside the tile's link — a link inside a link is
       // invalid and unreachable.
-      const passLinks = rail.getByRole("link", { name: "Show pass QR" })
+      const passLinks = rail.getByRole("link", { name: /^Show pass QR,/ })
       await expect(passLinks).toHaveCount(2)
       await expect(passLinks.first()).toHaveAttribute("href", /^\/pass\//)
       await expect(rail.locator("a a")).toHaveCount(0)

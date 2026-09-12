@@ -4,7 +4,7 @@ import {
   StampIcon,
 } from "@hugeicons/core-free-icons"
 
-import { Eyebrow, MonoTag, ReceiptCard } from "@/components/brand"
+import { Eyebrow, MonoTag } from "@/components/brand"
 import type { IconGlyph } from "@/components/brand/icon"
 import { OfferClaimLanding } from "@/components/customer/offer-claim-landing"
 import { Button } from "@/components/ui/button"
@@ -96,7 +96,7 @@ export function OfferBenefitPreview({
         <MonoTag tone="plain">Preview</MonoTag>
       </div>
 
-      <ReceiptCard edge className="grid gap-4" padding="sm">
+      <div className="mx-auto w-full max-w-customer bg-background p-4">
         <OfferClaimLanding
           venueName={venueName}
           campaignName={campaignName}
@@ -116,7 +116,7 @@ export function OfferBenefitPreview({
             </Button>
           }
         />
-      </ReceiptCard>
+      </div>
 
       <p className="text-xs leading-5 text-muted-foreground">
         This is the page your link opens. The claim button is switched off here

@@ -2,10 +2,15 @@ import type { ReactNode } from "react"
 
 import Link from "next/link"
 
-import { CheckmarkCircle02Icon } from "@hugeicons/core-free-icons"
-
-import { Eyebrow, Icon, MonoTag } from "@/components/brand"
-import { OfferPass, StampGrid, formatOfferPassDate } from "@/components/loyalty"
+import { Eyebrow, MonoTag } from "@/components/brand"
+import { OfferPass, formatOfferPassDate } from "@/components/loyalty"
+import {
+  offerClaimHeadline,
+  offerStampWord,
+} from "@/components/loyalty/offer-pass-copy"
+import { OfferCardPreview } from "./offer-card-preview"
+import { OfferVenueLine } from "./offer-flow-shell"
+import { cn } from "@/lib/utils"
 
 /**
  * The body of the customer's offer landing page — the screen someone reaches by
@@ -52,6 +57,8 @@ export type OfferClaimLandingProps = {
   readonly headingLevel?: "h1" | "h2" | "h3"
   /** The claim control, supplied by the surface that is allowed to claim. */
   readonly claimAction?: ReactNode
+  /** Public page pins the same action/footer; merchant preview stays in its panel. */
+  readonly stickyAction?: boolean
 }
 
 export function OfferClaimLanding({
@@ -68,6 +75,7 @@ export function OfferClaimLanding({
   endsOn,
   headingLevel = "h1",
   claimAction,
+  stickyAction = false,
 }: OfferClaimLandingProps) {
   const Heading = headingLevel
   const venue = venueName?.trim() || null
@@ -78,7 +86,8 @@ export function OfferClaimLanding({
   // The pass sits one level under the promise, so the outline never skips a
   // level on the landing route (h1 → h2) or collides on the review step, where
   // the promise is already an h3.
-  const passHeading = headingLevel === "h1" ? "h2" : "h3"
+  const childHeading =
+    headingLevel === "h1" ? "h2" : headingLevel === "h2" ? "h3" : "h4"
   const lines = benefitLines({
     stamps,
     percent,
@@ -89,142 +98,112 @@ export function OfferClaimLanding({
   })
 
   return (
-    <div className="grid gap-4">
-      {venue ? <MonoTag tone="leaf">{venue}</MonoTag> : null}
-
-      <div className="grid gap-1">
-        {campaign ? <Eyebrow>{campaign}</Eyebrow> : null}
-        <Heading className="text-xl leading-tight font-extrabold text-balance">
-          {offerClaimHeadline(stamps, percent)}
-        </Heading>
+    <div className="grid min-w-0 gap-6">
+      <div className="grid gap-4">
+        {venue ? <OfferVenueLine>{venue}</OfferVenueLine> : null}
+        <div className="grid gap-2">
+          {campaign ? (
+            <Eyebrow className="max-w-[30ch] break-words">{campaign}</Eyebrow>
+          ) : null}
+          <Heading className="max-w-[14ch] text-3xl leading-[1.06] font-extrabold tracking-tight break-words sm:text-4xl">
+            {stamps ? (
+              <>
+                <span className="text-primary">{offerStampWord(stamps)}</span>
+                {percent ? (
+                  <>
+                    {" "}
+                    <br />
+                    and {percent}% off <br />
+                    to start with
+                  </>
+                ) : (
+                  " to start your card"
+                )}
+              </>
+            ) : (
+              offerClaimHeadline(stamps, percent)
+            )}
+          </Heading>
+        </div>
+        {customerDescription ? (
+          <p className="text-base leading-6 break-words whitespace-pre-line">
+            {customerDescription}
+          </p>
+        ) : null}
       </div>
 
-      {/* Merchant-authored copy, rendered as text. */}
-      {customerDescription ? (
-        <p className="text-sm leading-6 text-foreground">
-          {customerDescription}
-        </p>
-      ) : null}
-
       {lines.length > 0 ? (
-        <ul className="grid gap-1.5 text-sm leading-6 text-muted-foreground">
-          {lines.map((line) => (
-            <li key={line} className="flex items-start gap-1.5">
-              <Icon
-                icon={CheckmarkCircle02Icon}
-                size={16}
-                className="mt-1 shrink-0 text-reward"
-              />
-              <span className="min-w-0">{line}</span>
+        <ul className="grid gap-3 text-sm leading-5">
+          {lines.map((line, index) => (
+            <li
+              key={line}
+              className="grid grid-cols-[1.5rem_minmax(0,1fr)] items-start gap-3"
+            >
+              <span aria-hidden="true" className="mono-id pt-0.5 text-cobalt">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <span className="min-w-0 break-words whitespace-pre-line">
+                {line}
+              </span>
             </li>
           ))}
         </ul>
       ) : null}
 
       {stamps && stampsRequired > 0 ? (
-        <>
-          <hr className="w-rule my-0" />
-          <CardProgress
-            bonusStampCount={stamps}
-            stampsRequired={stampsRequired}
-            rewardName={rewardName}
+        <section className="grid min-w-0 gap-3">
+          <div className="border-t-2 border-dashed border-line-strong pt-2">
+            <Eyebrow>Your card, once you join</Eyebrow>
+          </div>
+          <MonoTag tone="leaf">
+            {stamps} welcome {stamps === 1 ? "stamp" : "stamps"}
+          </MonoTag>
+          <OfferCardPreview
             venueName={venue}
+            current={stamps}
+            total={stampsRequired}
+            rewardName={rewardName}
+            headingLevel={childHeading}
           />
-        </>
+        </section>
       ) : null}
 
       {percent ? (
-        <>
-          <hr className="w-rule my-0" />
-          <section className="grid gap-2">
+        <section className="grid min-w-0 gap-3">
+          <div className="border-t-2 border-dashed border-line-strong pt-2">
             <Eyebrow>The pass you will keep</Eyebrow>
-            <OfferPass
-              venueName={venue ?? "the venue"}
-              discountPercent={percent}
-              validFrom={startsOn ?? ""}
-              validTo={endsOn ?? ""}
-              requiresIdCheck={requiresIdCheck}
-              extraTerms={extraTerms}
-              headingLevel={passHeading}
-            />
-          </section>
-        </>
+          </div>
+          <OfferPass
+            venueName={venue ?? "the venue"}
+            discountPercent={percent}
+            validFrom={startsOn ?? ""}
+            validTo={endsOn ?? ""}
+            requiresIdCheck={requiresIdCheck}
+            extraTerms={extraTerms}
+            headingLevel={childHeading}
+          />
+        </section>
       ) : null}
 
-      {claimAction}
-
-      <p className="text-xs leading-5 text-muted-foreground">
-        You will verify your mobile number and accept the loyalty terms before
-        anything is added.{" "}
-        <Link href="/privacy" className="underline">
-          Privacy notice
-        </Link>
-        .
-      </p>
+      <div
+        className={cn(
+          "grid gap-3",
+          stickyAction &&
+            "sticky bottom-0 z-10 -mx-5 border-t border-line bg-background px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] max-[374px]:-mx-4 max-[374px]:px-4"
+        )}
+      >
+        {claimAction}
+        <p className="text-center text-xs leading-5 text-muted-foreground">
+          You will verify your mobile number and accept the loyalty terms before
+          anything is added.{" "}
+          <Link href="/privacy" className="focus-ring font-bold underline">
+            Privacy notice
+          </Link>
+          .
+        </p>
+      </div>
     </div>
   )
-}
-
-/**
- * The venue's real card with the welcome stamps already on it. `stampsRequired`
- * is the card length the venue actually runs, so a card that cannot be read is
- * not drawn at all rather than drawn at a made-up length.
- */
-function CardProgress({
-  bonusStampCount,
-  stampsRequired,
-  rewardName,
-  venueName,
-}: {
-  bonusStampCount: number
-  stampsRequired: number
-  rewardName: string | null
-  venueName: string | null
-}) {
-  const remaining = Math.max(stampsRequired - bonusStampCount, 0)
-
-  return (
-    <section className="grid gap-2">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <Eyebrow>Your card, once you join</Eyebrow>
-        <MonoTag tone="leaf">
-          {bonusStampCount} welcome {bonusStampCount === 1 ? "stamp" : "stamps"}
-        </MonoTag>
-      </div>
-      <StampGrid
-        current={bonusStampCount}
-        total={stampsRequired}
-        layout="wrap"
-        wrapColumns={5}
-        compact
-        rewardSlot="locked"
-        venueName={venueName ?? undefined}
-      />
-      <p className="text-xs leading-5 text-muted-foreground">
-        {remaining === 1
-          ? "One more visit and you reach"
-          : `${remaining} more visits and you reach`}{" "}
-        {rewardName ?? "your reward"}.
-      </p>
-    </section>
-  )
-}
-
-/**
- * One sentence naming everything the offer gives, in the order the customer
- * cares about. It is derived from the benefit, never authored, so it cannot
- * promise something the campaign does not carry.
- */
-function offerClaimHeadline(
-  bonusStampCount: number | null,
-  discountPercent: number | null
-): string {
-  if (bonusStampCount && discountPercent) {
-    return `${stampWord(bonusStampCount)} and ${discountPercent}% off to start with`
-  }
-  if (bonusStampCount) return `${stampWord(bonusStampCount)} to start your card`
-  if (discountPercent) return `${discountPercent}% off when you join`
-  return "An offer for joining"
 }
 
 /**
@@ -251,7 +230,7 @@ function benefitLines({
 
   if (stamps) {
     lines.push(
-      `${stampWord(stamps)} added to your card the moment you join. There is no app to download.`
+      `${offerStampWord(stamps)} added to your card the moment you join. There is no app to download.`
     )
   }
   if (percent) {
@@ -263,8 +242,4 @@ function benefitLines({
   if (extraTerms) lines.push(extraTerms)
 
   return lines
-}
-
-function stampWord(count: number): string {
-  return count === 1 ? "One bonus stamp" : `${count} bonus stamps`
 }

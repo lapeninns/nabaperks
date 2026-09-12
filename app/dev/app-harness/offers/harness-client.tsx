@@ -2,10 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import {
-  CheckmarkCircle02Icon,
-  DiscountTag01Icon,
-} from "@hugeicons/core-free-icons"
+import { DiscountTag01Icon } from "@hugeicons/core-free-icons"
 
 import type { OfferCampaignState } from "@/app/app/offers/actions"
 import {
@@ -16,6 +13,8 @@ import {
   ReceiptCard,
   SectionHeader,
 } from "@/components/brand"
+import { OfferClaimLanding } from "@/components/customer/offer-claim-landing"
+import { OfferPassScanPanel } from "@/components/merchant/offer-pass-scan"
 import { HomeCardTile } from "@/components/customer/home-card-tile"
 import { SubmitButton } from "@/components/forms"
 import { OfferPass, StatusBanner } from "@/components/loyalty"
@@ -24,7 +23,6 @@ import {
   OfferActionNotice,
   OfferCampaignPanel,
 } from "@/components/merchant/offer-campaign-panel"
-import { MerchantOfferPassRedeemForm } from "@/components/merchant/offer-pass-redeem-form"
 import { OFFER_BENEFIT_PRESETS } from "@/components/merchant/offers/offer-benefit-preview"
 import { Button } from "@/components/ui/button"
 import type { HomeCard } from "@/lib/customer/home-types"
@@ -33,9 +31,7 @@ import type { MerchantOfferCampaign } from "@/lib/merchant/offer-campaigns"
 import { OFFERS_HOME_PATH, OFFERS_NEW_PATH } from "@/lib/merchant/offer-nav"
 import type { OfferCampaignStatus } from "@/lib/offers/constants"
 import {
-  offerPassDiscountLabel,
   offerPassScanBanner,
-  offerPassValidityLabel,
   type OfferPassScanStatus,
 } from "@/lib/offers/redeem-core"
 
@@ -52,14 +48,8 @@ import {
  * Where a real component exists it is MOUNTED, not re-drawn: the desk states are
  * the real {@link OfferCampaignPanel}, the creator is the real
  * {@link OfferCampaignForm} seeded through its `seedState` prop, the pass face is
- * the real {@link OfferPass}, the staff confirm is the real
- * {@link MerchantOfferPassRedeemForm}, and the staff banner copy comes from the
- * real `offerPassScanBanner`. Two page-level compositions are private to their
- * routes and are therefore reproduced from the same brand primitives, and each
- * says so where it is defined: the customer landing shell and the staff pass
- * face. Every sentence copied across with them is pinned in
- * tests/contracts/offer-campaigns.test.mjs against the surface it came from, so
- * a lane showing last month's wording fails the gate rather than passing QA.
+ * the real {@link OfferPass}, and both the landing and the counter are shared
+ * production compositions. Only the route's recovery copy is transcribed.
  *
  * Long copy means the maximums the database enforces, all at once: a
  * 60-character name, a 160-character customer description and 500 characters of
@@ -591,118 +581,42 @@ function CustomerSurface() {
         eyebrow="Landing · available"
         title="The offer a new customer scans into"
       >
-        <LandingShell venue={VENUE_NAME} campaignName="Summer welcome">
-          <h3 className="text-xl leading-tight font-extrabold text-balance">
-            2 bonus stamps and 10% off to start with
-          </h3>
-          <p className="text-sm leading-6 text-foreground">
-            Two stamps on your card the moment you join, and 10% off the whole
-            bill while the offer runs.
-          </p>
-          {/* The real landing renders these lines as a compact checkmark
-              list; the transcription keeps the same shape and wording. */}
-          <ul className="grid gap-1.5 text-sm leading-6 text-muted-foreground">
-            <li className="flex items-start gap-1.5">
-              <Icon
-                icon={CheckmarkCircle02Icon}
-                size={16}
-                className="mt-1 shrink-0 text-reward"
-              />
-              <span className="min-w-0">
-                2 bonus stamps added to your card the moment you join. There is
-                no app to download.
-              </span>
-            </li>
-            <li className="flex items-start gap-1.5">
-              <Icon
-                icon={CheckmarkCircle02Icon}
-                size={16}
-                className="mt-1 shrink-0 text-reward"
-              />
-              <span className="min-w-0">
-                A 10% discount pass you can use as often as you like while the
-                offer runs.
-              </span>
-            </li>
-            <li className="flex items-start gap-1.5">
-              <Icon
-                icon={CheckmarkCircle02Icon}
-                size={16}
-                className="mt-1 shrink-0 text-reward"
-              />
-              <span className="min-w-0">
-                The offer runs until 30 September 2026.
-              </span>
-            </li>
-            <li className="flex items-start gap-1.5">
-              <Icon
-                icon={CheckmarkCircle02Icon}
-                size={16}
-                className="mt-1 shrink-0 text-reward"
-              />
-              <span className="min-w-0">
-                The discount cannot be used with any other offer.
-              </span>
-            </li>
-          </ul>
-          <ClaimForm />
-        </LandingShell>
+        <OfferClaimLanding
+          venueName={VENUE_NAME}
+          campaignName="Summer welcome"
+          customerDescription="Two welcome stamps and a discount pass when you join."
+          bonusStampCount={2}
+          discountPercent={10}
+          stampsRequired={STAMPS_REQUIRED}
+          rewardName={REWARD_NAME}
+          startsOn={OPENS}
+          endsOn={CLOSES}
+          requiresIdCheck={false}
+          extraTerms={null}
+          headingLevel="h3"
+          claimAction={<ClaimForm />}
+        />
       </HarnessSection>
-
       <HarnessSection
         id="landing-long-copy"
         eyebrow="Landing · long copy"
         title="The same landing at every maximum length"
       >
-        <LandingShell venue={VENUE_NAME} campaignName={LONG_NAME}>
-          <h3 className="text-xl leading-tight font-extrabold text-balance">
-            2 bonus stamps and 25% off to start with
-          </h3>
-          <p className="text-sm leading-6 text-foreground">
-            {LONG_DESCRIPTION}
-          </p>
-          <ul className="grid gap-1.5 text-sm leading-6 text-muted-foreground">
-            <li className="flex items-start gap-1.5">
-              <Icon
-                icon={CheckmarkCircle02Icon}
-                size={16}
-                className="mt-1 shrink-0 text-reward"
-              />
-              <span className="min-w-0">
-                The offer runs until 30 September 2026.
-              </span>
-            </li>
-            <li className="flex items-start gap-1.5">
-              <Icon
-                icon={CheckmarkCircle02Icon}
-                size={16}
-                className="mt-1 shrink-0 text-reward"
-              />
-              <span className="min-w-0">
-                Bring photo identification when you use the discount.
-              </span>
-            </li>
-            <li className="flex items-start gap-1.5">
-              <Icon
-                icon={CheckmarkCircle02Icon}
-                size={16}
-                className="mt-1 shrink-0 text-reward"
-              />
-              <span className="min-w-0">
-                The discount cannot be used with any other offer.
-              </span>
-            </li>
-            <li className="flex items-start gap-1.5">
-              <Icon
-                icon={CheckmarkCircle02Icon}
-                size={16}
-                className="mt-1 shrink-0 text-reward"
-              />
-              <span className="min-w-0">{LONG_TERMS}</span>
-            </li>
-          </ul>
-          <ClaimForm />
-        </LandingShell>
+        <OfferClaimLanding
+          venueName={VENUE_NAME}
+          campaignName={LONG_NAME}
+          customerDescription={LONG_DESCRIPTION}
+          bonusStampCount={2}
+          discountPercent={25}
+          stampsRequired={STAMPS_REQUIRED}
+          rewardName={REWARD_NAME}
+          startsOn={OPENS}
+          endsOn={CLOSES}
+          requiresIdCheck
+          extraTerms={LONG_TERMS}
+          headingLevel="h3"
+          claimAction={<ClaimForm />}
+        />
       </HarnessSection>
 
       <HarnessSection
@@ -972,55 +886,33 @@ function StaffScanScreen({
   extraTerms?: string | null
   discountPercent?: number
 }) {
-  const banner = offerPassScanBanner(status, blockedReason)
-  const validity = offerPassValidityLabel(CLOSES)
-
-  return (
-    <div className="mx-auto grid w-full max-w-xl gap-4">
-      <ReceiptCard edge padding="md">
-        <Eyebrow>Discount pass</Eyebrow>
-        {/* Mirrors the route's PassFace: the two facts staff check first, read
-            across a counter as one line. */}
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <p className="text-3xl font-extrabold tracking-tight">
-            {offerPassDiscountLabel(discountPercent)}
-          </p>
-          {validity ? (
-            <p className="text-sm font-bold text-muted-foreground">
-              {validity}
-            </p>
-          ) : null}
-        </div>
-        {extraTerms ? (
-          <p className="text-sm leading-6 text-muted-foreground">
-            {extraTerms}
-          </p>
-        ) : null}
-        <p className="text-sm leading-6 text-muted-foreground">
-          {requiresIdCheck ? "Photo ID check required. " : null}
-          Cannot be used with another reward or offer.
-        </p>
-      </ReceiptCard>
-
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-xl border-2 border-ink bg-card p-4 text-sm">
-        <dt className="font-bold text-muted-foreground">Member</dt>
-        {/* Merchant surfaces show a masked identifier and never a number. */}
-        <dd className="text-right font-bold">Phone ending 421</dd>
-        <dt className="font-bold text-muted-foreground">Card</dt>
-        <dd className="mono-id text-right">{MEMBERSHIP_ID.slice(0, 8)}</dd>
-      </dl>
-
+  if (status === "unauthorized") {
+    const banner = offerPassScanBanner(status)
+    return (
       <StatusBanner title={banner.title} tone={banner.tone}>
         {banner.body}
       </StatusBanner>
-
-      {status === "ready" ? (
-        <MerchantOfferPassRedeemForm
-          scanToken={SCAN_TOKEN}
-          discountPercent={discountPercent}
-          requiresIdCheck={requiresIdCheck}
-        />
-      ) : null}
+    )
+  }
+  return (
+    <div className="mx-auto grid w-full max-w-customer gap-4">
+      <OfferPassScanPanel
+        venueName={VENUE_NAME}
+        redeemed={false}
+        context={{
+          status,
+          blockedReason,
+          scanToken: SCAN_TOKEN,
+          entitlementId: "fixture-entitlement",
+          membershipId: MEMBERSHIP_ID,
+          customerLabel: "Phone ending 421",
+          discountPercent,
+          requiresIdCheck,
+          extraTerms: extraTerms ?? "",
+          validFrom: OPENS,
+          validTo: CLOSES,
+        }}
+      />
     </div>
   )
 }

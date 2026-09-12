@@ -4,7 +4,12 @@ import Link from "next/link"
 import { headers } from "next/headers"
 import { after } from "next/server"
 
-import { Logo, MonoTag, ReceiptCard } from "@/components/brand"
+import { Icon } from "@/components/brand"
+import { ArrowRight01Icon } from "@hugeicons/core-free-icons"
+import {
+  OfferFlowShell,
+  OfferVenueLine,
+} from "@/components/customer/offer-flow-shell"
 import { OfferClaimLanding } from "@/components/customer/offer-claim-landing"
 import { SubmitButton } from "@/components/forms"
 import { Button } from "@/components/ui/button"
@@ -123,7 +128,7 @@ export default async function OfferClaimPage({
     if (error instanceof RateLimitError) {
       return (
         <OfferShell title="Try again shortly">
-          <p className="text-sm leading-6 text-muted-foreground">
+          <p className="text-base leading-6 text-muted-foreground">
             Too many attempts from here. Please try again in a few minutes.
           </p>
         </OfferShell>
@@ -147,7 +152,7 @@ export default async function OfferClaimPage({
     const recovery = recoveryCopy(context)
     return (
       <OfferShell title={recovery.title} venue={context.businessName}>
-        <p className="text-sm leading-6 text-muted-foreground">
+        <p className="text-base leading-6 text-muted-foreground">
           {recovery.body}
         </p>
         <p className="text-sm">
@@ -173,7 +178,7 @@ export default async function OfferClaimPage({
         }
         venue={context.businessName}
       >
-        <p className="text-sm leading-6 text-muted-foreground">
+        <p className="text-base leading-6 text-muted-foreground">
           {member.claimedThisCampaign
             ? "It is on your card already, so scanning again adds nothing. Open your card to see your stamps and any discount pass."
             : "This offer is a welcome for people joining for the first time, so there is nothing to add to your card. Your card is where it always is."}
@@ -202,6 +207,7 @@ export default async function OfferClaimPage({
         startsOn={context.startsOn}
         endsOn={context.endsOn}
         headingLevel="h1"
+        stickyAction
         claimAction={
           <form action={startOfferClaimAction} className="grid gap-3">
             <input type="hidden" name="token" value={token} />
@@ -211,6 +217,7 @@ export default async function OfferClaimPage({
               pendingLabel="Just a moment…"
             >
               Claim this offer
+              <Icon icon={ArrowRight01Icon} data-icon="inline-end" />
             </SubmitButton>
           </form>
         }
@@ -235,29 +242,26 @@ function OfferShell({
 }) {
   const name = venue?.trim()
   return (
-    <main className="min-h-svh bg-background px-4 py-6 sm:py-10">
-      <div className="mx-auto grid w-full max-w-customer gap-6">
-        <Logo href="/home" />
-        <ReceiptCard className="grid gap-4">
-          {name ? <MonoTag tone="leaf">{name}</MonoTag> : null}
-          {title ? (
-            <div className="grid gap-1">
-              <h1 className="text-xl leading-tight font-extrabold">{title}</h1>
-            </div>
-          ) : null}
-          {children}
-        </ReceiptCard>
-      </div>
-    </main>
+    <OfferFlowShell>
+      {name ? <OfferVenueLine>{name}</OfferVenueLine> : null}
+      {title ? (
+        <h1 className="text-3xl leading-tight font-extrabold tracking-tight sm:text-4xl">
+          {title}
+        </h1>
+      ) : null}
+      {children}
+      {title ? (
+        <Link
+          href="/privacy"
+          className="focus-ring inline-flex min-h-11 items-center justify-center text-xs font-bold underline"
+        >
+          Privacy notice
+        </Link>
+      ) : null}
+    </OfferFlowShell>
   )
 }
 
-/**
- * The five states a scan can land in, each with its own honest answer. A
- * campaign that has not opened yet must never be reported as expired, and an
- * ended campaign is indistinguishable from a replaced link by design — ending
- * scrubs the stored hash, so the page says both rather than guessing.
- */
 function recoveryCopy(context: OfferClaimContext): {
   title: string
   body: string

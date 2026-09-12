@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 
+import { loadPendingJoinOffer } from "@/lib/customer/pending-join-offer"
 import { JoinWizard } from "@/components/customer/join-wizard"
 import { deriveCustomerExperience } from "@/lib/customer/experience/derive"
 import { loadJoinExperienceContext } from "@/lib/customer/experience/load-join"
@@ -65,7 +66,17 @@ export default async function MerchantJoinPage({
     })
   }
 
+  const pendingOffer = ["join_phone", "join_otp", "join_terms"].includes(
+    experience.kind
+  )
+    ? await loadPendingJoinOffer(merchantSlug)
+    : null
+
   return (
-    <JoinWizard experience={experience} referralCode={resolvedSearchParams.ref} />
+    <JoinWizard
+      experience={experience}
+      referralCode={resolvedSearchParams.ref}
+      pendingOffer={pendingOffer}
+    />
   )
 }

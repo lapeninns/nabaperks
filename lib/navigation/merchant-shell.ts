@@ -20,6 +20,11 @@ export function isPosterPrintPath(path: string): boolean {
   return path.startsWith("/app/qr/poster/")
 }
 
+/** A pass scan carries its own counter chrome, including on desktop. */
+export function isOfferPassScanPath(path: string): boolean {
+  return /^\/app\/offers\/scan\/[^/]+\/?$/.test(normalizeMerchantPath(path))
+}
+
 /** Strip query/hash before route predicates run. */
 export function normalizeMerchantPath(path: string): string {
   return path.split(/[?#]/, 1)[0] ?? path
@@ -41,7 +46,7 @@ export function shouldShowMerchantSetupReminder(path: string): boolean {
     return false
   }
 
-  if (isPosterPrintPath(normalized)) {
+  if (isPosterPrintPath(normalized) || isOfferPassScanPath(normalized)) {
     return false
   }
 
