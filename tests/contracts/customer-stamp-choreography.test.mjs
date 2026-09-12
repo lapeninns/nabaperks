@@ -28,8 +28,13 @@ test("GPS is asked for only from the customer's location tap — never on page l
   )
   assert.match(
     controls,
-    /resolveStampLocation\(\s*true,\s*undefined,\s*controller\.signal\s*\)/,
-    "the only call site is the Use my location tap, and it can be abandoned"
+    /resolveStampLocation\(\s*true,\s*controller\.signal\s*\)/,
+    "the JS API call site is the Use my location tap, and it can be abandoned"
+  )
+  assert.match(
+    controls,
+    /recoveryIssue === "denied" && supportsNativeGeolocationElement/,
+    "a Chrome deny swaps to the native location control that can reopen a block"
   )
   assert.match(
     controls,

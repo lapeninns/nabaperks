@@ -15,8 +15,10 @@ export function shouldAttemptStampLocation(
   )
 }
 
-// Indoor pub GPS often needs several seconds. The previous 1.2s window timed
-// out before a fix arrived and then ignored the late success.
+// Indoor pub GPS often needs several seconds. This is the on-screen "still
+// waiting" hint, not a browser deadline: passing `timeout` into
+// getCurrentPosition can dismiss Chrome's permission sheet and quiet-block
+// the origin so Location cannot be turned back on for the site.
 export const SOFT_GPS_CAPTURE_TIMEOUT_MS = 10_000
 
 /**
@@ -49,14 +51,13 @@ export type GeolocationPermissionState =
  * A fresh request notices when the customer has allowed site access. The
  * Permissions API is for copy only (see {@link geolocationPermissionState}).
  *
- * The browser's own `timeout` is the deadline. Per spec it does not start
- * until permission is granted, so a customer reading the permission sheet is
- * never timed out under it. Pass a signal to abandon the wait when the
- * customer switches to the venue code; a fix arriving after that is ignored.
+ * Do not pass a Geolocation `timeout`. Chrome can treat a timed-out permission
+ * sheet as a dismiss, then quiet-block the origin. The wait stays open until
+ * the browser answers or the caller aborts (venue code). A late fix after
+ * abort is ignored.
  */
 export async function resolveStampLocation(
   shouldAttemptLocation: boolean,
-  timeoutMs = SOFT_GPS_CAPTURE_TIMEOUT_MS,
   signal?: AbortSignal
 ): Promise<StampLocationCapture | null> {
   if (!shouldAttemptLocation || typeof navigator === "undefined") {
@@ -73,7 +74,7 @@ export async function resolveStampLocation(
     return emptyCapture("cancelled")
   }
 
-  return captureGeolocation(timeoutMs, signal)
+  return captureGeolocation(signal)
 }
 
 export function addLocationCapture(
@@ -166,13 +167,69 @@ export function decideCaptureSubmission(
   return { action: "refuse", issue, message: LOCATION_ISSUE_COPY[issue].body }
 }
 
+function captureFromGeolocationPosition(
+  position: GeolocationPosition,
+  startedAt: number
+): StampLocationCapture {
+  const { coords } = position
+  return {
+    latitude: coords.latitude,
+    longitude: coords.longitude,
+    accuracyMeters: coords.accuracy,
+    locationStatus: "granted",
+    captureElapsedMs: elapsedMs(startedAt),
+  }
+}
+
+export function supportsNativeGeolocationElement(): boolean {
+  return typeof Reflect.get(globalThis, "HTMLGeolocationElement") === "function"
+}
+
+export type NativeGeolocationHost = HTMLElement & {
+  readonly position: GeolocationPosition | null
+  readonly error: GeolocationPositionError | null
+}
+
+export function captureFromNativeGeolocationHost(
+  host: NativeGeolocationHost,
+  startedAt: number
+): StampLocationCapture {
+  if (host.position) {
+    return captureFromGeolocationPosition(host.position, startedAt)
+  }
+  if (host.error) {
+    return captureFromGeolocationError(host.error, startedAt)
+  }
+  return {
+    ...emptyCapture("unavailable"),
+    captureElapsedMs: elapsedMs(startedAt),
+  }
+}
+
+function captureFromGeolocationError(
+  error: Pick<
+    GeolocationPositionError,
+    "code" | "PERMISSION_DENIED" | "TIMEOUT"
+  >,
+  startedAt: number
+): StampLocationCapture {
+  return {
+    ...emptyCapture(
+      error.code === error.PERMISSION_DENIED
+        ? "denied"
+        : error.code === error.TIMEOUT
+          ? "timeout"
+          : "unavailable"
+    ),
+    captureElapsedMs: elapsedMs(startedAt),
+  }
+}
+
 function captureGeolocation(
-  timeoutMs: number,
   signal: AbortSignal | undefined
 ): Promise<StampLocationCapture> {
   return new Promise((resolve) => {
     const startedAt = nowMs()
-    const waitMs = Math.max(Math.trunc(timeoutMs), 1)
     let settled = false
     const finish = (capture: StampLocationCapture) => {
       if (settled) return
@@ -191,31 +248,14 @@ function captureGeolocation(
     try {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const { coords } = position
-          finish({
-            latitude: coords.latitude,
-            longitude: coords.longitude,
-            accuracyMeters: coords.accuracy,
-            locationStatus: "granted",
-            captureElapsedMs: elapsedMs(startedAt),
-          })
+          finish(captureFromGeolocationPosition(position, startedAt))
         },
         (error) => {
-          finish({
-            ...emptyCapture(
-              error.code === error.PERMISSION_DENIED
-                ? "denied"
-                : error.code === error.TIMEOUT
-                  ? "timeout"
-                  : "unavailable"
-            ),
-            captureElapsedMs: elapsedMs(startedAt),
-          })
+          finish(captureFromGeolocationError(error, startedAt))
         },
         {
           enableHighAccuracy: true,
           maximumAge: 0,
-          timeout: waitMs,
         }
       )
     } catch {

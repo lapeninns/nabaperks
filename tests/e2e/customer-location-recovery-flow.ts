@@ -33,6 +33,8 @@ async function captureSequence(
             if (!navigator.userActivation.isActive)
               throw new Error("GPS must start on a user tap")
             const outcome = outcomes[Math.min(calls++, outcomes.length - 1)]
+            if (options.timeout != null)
+              throw new Error("browser timeout quiet-blocks Chrome")
             if (options.maximumAge !== 0 || !options.enableHighAccuracy)
               throw new Error("expected a fresh precise fix")
             if (outcome === "throw") throw new Error("browser failure")
@@ -72,6 +74,10 @@ async function captureSequence(
             }, 20)
           },
         },
+      })
+      Object.defineProperty(window, "HTMLGeolocationElement", {
+        configurable: true,
+        value: undefined,
       })
       Object.defineProperty(navigator, "permissions", {
         configurable: true,

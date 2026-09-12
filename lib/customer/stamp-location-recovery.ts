@@ -63,7 +63,7 @@ export const LOCATION_ISSUE_COPY: Record<
 }
 
 export type LocationHelpBrowser =
-  "ios-safari" | "ios-chrome" | "android-chrome" | "generic"
+  "ios-safari" | "ios-chrome" | "android-chrome" | "desktop-chrome" | "generic"
 
 /** Copy only, with a manual selector. Never controls capture or verification. */
 export function locationHelpBrowser(
@@ -75,6 +75,13 @@ export function locationHelpBrowser(
     !/EdgA\/|OPR\/|SamsungBrowser\/|; wv\)/.test(browser.userAgent)
   )
     return "android-chrome"
+  if (
+    /Chrome\//.test(browser.userAgent) &&
+    !/Android|Mobile|Edg\/|EdgA\/|OPR\/|SamsungBrowser\//.test(
+      browser.userAgent
+    )
+  )
+    return "desktop-chrome"
   const ios =
     /iPad|iPhone|iPod/.test(browser.userAgent) ||
     (browser.platform === "MacIntel" && browser.maxTouchPoints > 1)
@@ -109,9 +116,16 @@ export const LOCATION_HELP: Record<
   "android-chrome": {
     label: "Chrome on Android",
     steps:
-      "Chrome site controls beside the address bar → Permissions → Location → Allow. Return here and tap Try Again.",
+      "Use the location button on this page if Chrome shows one, and choose Allow. Otherwise open site controls beside the address bar → Permissions → Location → Allow, then tap Try Again.",
     detail:
-      "You can also open Chrome → Settings → Site settings → Location and check Nabaperks under blocked sites. In Android Settings, check that Location is on and Chrome has location permission. Turn on precise location if your phone offers it. Menu names may vary by phone.",
+      "A previous deny or a timed-out prompt can leave this site blocked so Chrome will not show the ordinary prompt again. The in-page location button can reopen it. You can also open Chrome → Settings → Site settings → Location and check Nabaperks under blocked sites. In Android Settings, check that Location is on and Chrome has location permission. Turn on precise location if your phone offers it. Menu names may vary by phone.",
+  },
+  "desktop-chrome": {
+    label: "Chrome on a computer",
+    steps:
+      "Use the location button on this page if Chrome shows one, and choose Allow. Otherwise click the padlock beside the address bar → Site settings → Location → Allow, reload, then tap Try Again.",
+    detail:
+      "A previous deny or a timed-out prompt can leave Location blocked for this site, and the padlock switch may stay off. Chrome Settings → Privacy and security → Site settings → Location lists blocked sites; remove Nabaperks, set Location so sites can ask, then reload. The in-page location button can reopen Chrome's prompt without those settings when your Chrome version offers it.",
   },
   generic: {
     label: "Other browser",

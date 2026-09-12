@@ -3,11 +3,13 @@ import { afterEach, test } from "node:test"
 
 import {
   addLocationCapture,
+  captureFromNativeGeolocationHost,
   decideCaptureSubmission,
   geolocationPermissionState,
   resolveStampLocation,
   shouldAttemptStampLocation,
   SOFT_GPS_CAPTURE_TIMEOUT_MS,
+  supportsNativeGeolocationElement,
 } from "@/lib/customer/stamp-location-capture"
 
 const PERMISSION_DENIED = 1
@@ -30,11 +32,12 @@ test("soft GPS waits long enough for an indoor fix", () => {
 afterEach(() => {
   Reflect.deleteProperty(globalThis, "navigator")
   Reflect.deleteProperty(globalThis, "localStorage")
+  Reflect.deleteProperty(globalThis, "HTMLGeolocationElement")
 })
 
 test("a late GPS fix inside the wait is granted instead of timed out", async () => {
   installGeolocation((success, _error, options) => {
-    assert.equal(options?.timeout, 80)
+    assert.equal(options?.timeout, undefined)
     assert.equal(options?.maximumAge, 0)
     assert.equal(options?.enableHighAccuracy, true)
     setTimeout(() => {
@@ -44,19 +47,19 @@ test("a late GPS fix inside the wait is granted instead of timed out", async () 
     }, 40)
   })
 
-  const capture = await resolveStampLocation(true, 80)
+  const capture = await resolveStampLocation(true)
   assert.equal(capture?.locationStatus, "granted")
   assert.equal(capture?.latitude, 52.208)
   assert.equal(capture?.longitude, 0.091)
 })
 
 test("a request the browser has not answered stays open until the caller abandons it", async () => {
-  // The browser's own timeout does not start until permission is granted, so
-  // a customer reading the permission sheet must not be timed out from here.
+  // No Geolocation timeout is sent, so a customer reading the permission
+  // sheet is never dismissed into a Chrome quiet-block from here.
   installGeolocation(() => {})
   const controller = new AbortController()
   let settled = false
-  const pending = resolveStampLocation(true, 20, controller.signal).then(
+  const pending = resolveStampLocation(true, controller.signal).then(
     (capture) => {
       settled = true
       return capture
@@ -77,7 +80,7 @@ test("a fix that arrives after the caller abandoned the wait is ignored", async 
     deliver = success
   })
   const controller = new AbortController()
-  const pending = resolveStampLocation(true, 80, controller.signal)
+  const pending = resolveStampLocation(true, controller.signal)
   controller.abort()
   const capture = await pending
   assert.equal(capture?.locationStatus, "cancelled")
@@ -94,7 +97,7 @@ test("an already-abandoned wait never asks the browser", async () => {
   })
   const controller = new AbortController()
   controller.abort()
-  const capture = await resolveStampLocation(true, 80, controller.signal)
+  const capture = await resolveStampLocation(true, controller.signal)
   assert.equal(capture?.locationStatus, "cancelled")
   assert.equal(called, 0)
 })
@@ -103,7 +106,7 @@ test("a browser timeout is recorded as timeout", async () => {
   installGeolocation((_success, error) => {
     error(geoError(TIMEOUT))
   })
-  const capture = await resolveStampLocation(true, 80)
+  const capture = await resolveStampLocation(true)
   assert.equal(capture?.locationStatus, "timeout")
 })
 
@@ -116,7 +119,7 @@ test("a blocked permission still asks the browser, because that is the only grou
     called += 1
     error(geoError(PERMISSION_DENIED))
   }, "denied")
-  const capture = await resolveStampLocation(true, 80)
+  const capture = await resolveStampLocation(true)
   assert.equal(called, 1)
   assert.equal(capture?.locationStatus, "denied")
   assert.notEqual(
@@ -130,7 +133,7 @@ test("a later Allow is captured even after a previous denial", async () => {
   installGeolocation((_success, error) => {
     error(geoError(PERMISSION_DENIED))
   })
-  const denied = await resolveStampLocation(true, 80)
+  const denied = await resolveStampLocation(true)
   assert.equal(denied?.locationStatus, "denied")
 
   installGeolocation((success) => {
@@ -138,7 +141,7 @@ test("a later Allow is captured even after a previous denial", async () => {
       coords: { latitude: 52.208, longitude: 0.091, accuracy: 18 },
     })
   }, "granted")
-  const capture = await resolveStampLocation(true, 80)
+  const capture = await resolveStampLocation(true)
   assert.equal(capture?.locationStatus, "granted")
   assert.equal(capture?.latitude, 52.208)
 })
@@ -151,7 +154,7 @@ test("prompt permission still asks the browser so the dialog can return", async 
       coords: { latitude: 52.208, longitude: 0.091, accuracy: 18 },
     })
   }, "prompt")
-  const capture = await resolveStampLocation(true, 80)
+  const capture = await resolveStampLocation(true)
   assert.equal(called, 1)
   assert.equal(capture?.locationStatus, "granted")
 })
@@ -190,7 +193,7 @@ test("the legacy denial flag is cleared on sight and storage failure does not bl
   installGeolocation((success) => {
     success({ coords: { latitude: 52.208, longitude: 0.091, accuracy: 18 } })
   })
-  const capture = await resolveStampLocation(true, 80)
+  const capture = await resolveStampLocation(true)
   assert.equal(capture?.locationStatus, "granted")
   assert.deepEqual(removed, ["nabaperks:soft-gps-denied:v1"])
 
@@ -202,7 +205,7 @@ test("the legacy denial flag is cleared on sight and storage failure does not bl
       },
     },
   })
-  const again = await resolveStampLocation(true, 80)
+  const again = await resolveStampLocation(true)
   assert.equal(again?.locationStatus, "granted")
 })
 
@@ -211,7 +214,7 @@ test("an unsupported browser is reported without asking", async () => {
     configurable: true,
     value: {},
   })
-  const capture = await resolveStampLocation(true, 80)
+  const capture = await resolveStampLocation(true)
   assert.equal(capture?.locationStatus, "unsupported")
 })
 
@@ -377,4 +380,41 @@ test("a browser throwing synchronously is unavailable and can retry", async () =
     success({ coords: { latitude: 52.2, longitude: 0.1, accuracy: 12 } })
   )
   assert.equal((await resolveStampLocation(true))?.locationStatus, "granted")
+})
+
+test("Chrome's native location host is detected from the constructor only", () => {
+  Reflect.deleteProperty(globalThis, "HTMLGeolocationElement")
+  assert.equal(supportsNativeGeolocationElement(), false)
+  Object.defineProperty(globalThis, "HTMLGeolocationElement", {
+    configurable: true,
+    value: function FakeGeolocation() {},
+  })
+  assert.equal(supportsNativeGeolocationElement(), true)
+  Reflect.deleteProperty(globalThis, "HTMLGeolocationElement")
+})
+
+test("Chrome's native location host maps a fix and a denial", () => {
+  const granted = captureFromNativeGeolocationHost(
+    {
+      position: {
+        coords: { latitude: 52.208, longitude: 0.091, accuracy: 18 },
+      },
+      error: null,
+    },
+    0
+  )
+  assert.equal(granted.locationStatus, "granted")
+  assert.equal(granted.latitude, 52.208)
+  assert.equal(granted.longitude, 0.091)
+  assert.equal(granted.accuracyMeters, 18)
+
+  const denied = captureFromNativeGeolocationHost(
+    {
+      position: null,
+      error: geoError(PERMISSION_DENIED),
+    },
+    0
+  )
+  assert.equal(denied.locationStatus, "denied")
+  assert.equal(denied.latitude, null)
 })

@@ -3,15 +3,15 @@
 import { useEffect, useRef, useState } from "react"
 
 import { LocationPermissionHelp } from "@/components/customer/location-permission-help"
+import { NativeGeolocationButton } from "@/components/customer/native-geolocation-button"
 import { Button } from "@/components/ui/button"
 import {
   resolveStampLocation,
+  SOFT_GPS_CAPTURE_TIMEOUT_MS,
+  supportsNativeGeolocationElement,
   type StampLocationCapture,
 } from "@/lib/customer/stamp-location-capture"
 import type { StampLocationIssue } from "@/lib/customer/stamp-location-recovery"
-
-/** After this long without an answer the hint says so; the wait itself goes on. */
-const SLOW_FIX_HINT_MS = 10_000
 
 export type VerifyVisitControlsProps = {
   /** A stamp request is in flight or the card is secured — neither control may start anything. */
@@ -35,8 +35,9 @@ export type VerifyVisitControlsProps = {
  * before anything has been refused. "Use my location" is the only thing that
  * asks the browser for a fix — never page load, never the stamp press — so a
  * customer who has since allowed location in site settings gets a real
- * reading on the tap. "Enter venue code" opens the six-digit form without a
- * failed location attempt first.
+ * reading on the tap. After a Chrome deny, the native location control can
+ * reopen a blocked prompt. "Enter venue code" opens the six-digit form
+ * without a failed location attempt first.
  */
 export function VerifyVisitControls({
   disabled,
@@ -52,38 +53,76 @@ export function VerifyVisitControls({
   const [acquiring, setAcquiring] = useState(false)
   const [slow, setSlow] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
+  const slowTimerRef = useRef<number | null>(null)
+  const nativeRecovery =
+    recoveryIssue === "denied" && supportsNativeGeolocationElement()
 
   useEffect(() => {
     return () => {
       abortRef.current?.abort()
+      if (slowTimerRef.current !== null) {
+        window.clearTimeout(slowTimerRef.current)
+      }
     }
   }, [])
 
-  async function askForLocation() {
-    if (disabled || abortRef.current) return
+  function beginWait() {
+    abortRef.current?.abort()
     const controller = new AbortController()
     abortRef.current = controller
     setAcquiring(true)
     setSlow(false)
     onAcquiringChange(true)
-    const slowTimer = window.setTimeout(() => setSlow(true), SLOW_FIX_HINT_MS)
+    if (slowTimerRef.current !== null) {
+      window.clearTimeout(slowTimerRef.current)
+    }
+    slowTimerRef.current = window.setTimeout(
+      () => setSlow(true),
+      SOFT_GPS_CAPTURE_TIMEOUT_MS
+    )
+    return controller
+  }
+
+  function endWait(controller: AbortController) {
+    if (slowTimerRef.current !== null) {
+      window.clearTimeout(slowTimerRef.current)
+      slowTimerRef.current = null
+    }
+    if (abortRef.current === controller) {
+      abortRef.current = null
+      setAcquiring(false)
+      setSlow(false)
+      onAcquiringChange(false)
+    }
+  }
+
+  async function askForLocation() {
+    if (disabled || abortRef.current) return
+    const controller = beginWait()
 
     try {
-      const capture = await resolveStampLocation(
-        true,
-        undefined,
-        controller.signal
-      )
+      const capture = await resolveStampLocation(true, controller.signal)
       if (capture && !controller.signal.aborted) onCapture(capture)
     } finally {
-      window.clearTimeout(slowTimer)
-      if (abortRef.current === controller) {
-        abortRef.current = null
-        setAcquiring(false)
-        setSlow(false)
-        onAcquiringChange(false)
-      }
+      endWait(controller)
     }
+  }
+
+  function handleNativeBusy(busy: boolean) {
+    if (busy) {
+      if (disabled || abortRef.current) return
+      beginWait()
+      return
+    }
+    const controller = abortRef.current
+    if (controller) endWait(controller)
+  }
+
+  function handleNativeCapture(capture: StampLocationCapture) {
+    const controller = abortRef.current
+    if (!controller || controller.signal.aborted) return
+    endWait(controller)
+    onCapture(capture)
   }
 
   function openCode() {
@@ -98,23 +137,33 @@ export function VerifyVisitControls({
 
   return (
     <div data-verify-visit className="grid gap-2">
-      <Button
-        type="button"
-        size="lg"
-        className="w-full hover:bg-primary"
-        disabled={disabled || acquiring}
-        onClick={() => {
-          void askForLocation()
-        }}
-        data-use-location
-      >
-        {acquiring
-          ? "Checking location"
-          : retry
-            ? "Try Again"
-            : "Use my location"}
-      </Button>
-      {recoveryIssue === "denied" ? <LocationPermissionHelp /> : null}
+      {nativeRecovery ? (
+        <NativeGeolocationButton
+          disabled={disabled || acquiring}
+          onCapture={handleNativeCapture}
+          onBusyChange={handleNativeBusy}
+        />
+      ) : (
+        <Button
+          type="button"
+          size="lg"
+          className="w-full hover:bg-primary"
+          disabled={disabled || acquiring}
+          onClick={() => {
+            void askForLocation()
+          }}
+          data-use-location
+        >
+          {acquiring
+            ? "Checking location"
+            : retry
+              ? "Try Again"
+              : "Use my location"}
+        </Button>
+      )}
+      {recoveryIssue === "denied" ? (
+        <LocationPermissionHelp nativeRecovery={nativeRecovery} />
+      ) : null}
       {recoveryIssue ? (
         <p className="text-sm leading-5 text-muted-foreground">
           No stamp added. You can also ask a team member for today&apos;s venue

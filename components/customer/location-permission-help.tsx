@@ -9,7 +9,11 @@ import {
 } from "@/lib/customer/stamp-location-recovery"
 
 /** Mounted only after a browser capture fails; no server-side UA assumption. */
-export function LocationPermissionHelp() {
+export function LocationPermissionHelp({
+  nativeRecovery = false,
+}: {
+  nativeRecovery?: boolean
+}) {
   const id = useId()
   const [browser, setBrowser] = useState<LocationHelpBrowser>(() =>
     typeof navigator === "undefined"
@@ -20,8 +24,9 @@ export function LocationPermissionHelp() {
   return (
     <div className="grid gap-2 text-sm leading-5" data-location-permission-help>
       <p>
-        If access was blocked before, your browser may not show the prompt
-        again. Update its location settings, then retry.
+        {nativeRecovery
+          ? "Use the location button above and choose Allow. Chrome can ask again even if this site was blocked before."
+          : "If access was blocked before, your browser may not show the prompt again. Update its location settings, then retry."}
       </p>
       <p>
         <strong>{help.label}</strong>
