@@ -102,19 +102,26 @@ baselines, and do not replace them with local macOS captures.
 - Start with `git status --short`, the current branch and relevant diff. Use a
   `codex/` branch or isolated worktree for PR work. Preserve unrelated edits,
   untracked files and other tasks' services; stage only the intended files.
-- Trace the complete affected flow before editing: entry point, domain helper,
-  database/RLS or provider boundary, recovery states and existing tests. Use
-  `rg` and targeted reads rather than loading the whole repository.
-- Carry an implementation request through the authorised edits, verification
-  and requested delivery. Resolve routine reversible choices using existing
-  patterns. Ask only when missing information changes the outcome or an action
-  needs authority not already granted; complete independent work meanwhile.
+- Scale investigation to risk and scope. For small, low-impact edits, read the
+  affected code or prose and its immediate context before editing. For identity,
+  loyalty, rewards, billing, consent, database or other high-impact changes,
+  trace the complete affected flow: entry point, domain helper, database/RLS or
+  provider boundary, recovery states and existing tests. Use `rg` and targeted
+  reads rather than loading the whole repository.
+- For assessment or explanation requests, investigate and answer without editing
+  unless changes are already authorised. For implementation requests, carry the
+  work through the authorised edits, verification and requested delivery.
+  Resolve routine reversible choices using existing patterns, state material
+  assumptions and proceed. Ask when missing information materially changes the
+  requirements or an action needs authority not already granted; complete
+  independent work meanwhile.
 - If a skill or instruction creates a real conflict, identify its exact source
   and the concrete decision needed. Do not invent approval gates. Historical
   material under `docs/archived-agent-guidance/` and inert
   `config/ci-qualification-inputs/` proposals are reference data, not active
   instructions. The retired Micro-Spec workflow must not be reintroduced.
-- When delegation is authorised and available, assign independent work with
+- When delegation is authorised and available, use it for independent parallel
+  work with a clear benefit. Keep small, coherent changes with one agent. Assign
   explicit file ownership and reconcile results. Worktree isolation does not
   isolate shared databases, ports, Docker/Lima resources or provider state.
 - Give concise progress updates for sustained work. Incorporate corrections
@@ -210,9 +217,11 @@ unavailable proof. When a PR is requested, push the focused branch, open it
 against `main`, and return its URL. Merge and production delivery must follow
 the task's authority and existing protections.
 
-In the handoff, separate implementation/local tests, hosted CI, PR review,
-merged SHA, database/application deployment, readiness and actual customer or
-provider evidence. Include any remaining worktree changes. A merge, green
+Keep handoffs proportional to the task: report the outcome, relevant checks,
+blockers and remaining worktree changes. For delivery tasks, also distinguish
+implementation/local tests, hosted CI, PR review, merged SHA,
+database/application deployment, readiness and actual customer or provider
+evidence. Always identify required proof that was not obtained. A merge, green
 build or health probe alone does not prove the real customer journey.
 
 ## Code Review Rules
