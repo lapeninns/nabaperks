@@ -12,11 +12,11 @@ export function JoinOfferReminder({
   return (
     <aside
       aria-label="Offer in progress"
-      className="flex min-w-0 items-center gap-3 border-y-2 border-dashed border-line-strong py-3 text-left"
+      className="surface-card flex min-w-0 items-center gap-3 p-3 text-left"
     >
-      <VenueMark name={venueName} size={40} />
+      <VenueMark name={venueName} size={40} className="shrink-0" />
       <div className="grid min-w-0 gap-1">
-        <p className="mono-id break-words text-cobalt">
+        <p className="eyebrow break-words text-muted-foreground">
           {venueName} · offer in progress
         </p>
         {offer.campaignName ? (
@@ -24,7 +24,7 @@ export function JoinOfferReminder({
             {offer.campaignName}
           </p>
         ) : null}
-        <p className="text-sm leading-5 font-bold">
+        <p className="text-xs leading-snug text-muted-foreground">
           {offerClaimHeadline(offer.bonusStampCount, offer.discountPercent)}
         </p>
       </div>

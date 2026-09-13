@@ -10,6 +10,8 @@ import { loadProfileGate } from "./load-profile-gate"
 
 type RewardExperienceFlags = {
   readonly justRedeemed?: boolean
+  /** `?prepare=1` — the customer chose to complete collection details early. */
+  readonly prepare?: boolean
 }
 
 /**
@@ -47,8 +49,12 @@ export async function loadRewardExperienceContext(
     unavailableReason: rewardState.unavailableReason,
   })
   const availableForReview = availability.status === "ready"
-  // The gate only governs a ready reward — skip the profile lookup otherwise.
-  const profileGate = availableForReview ? await loadProfileGate() : undefined
+  // The gate governs collection, so it is read for a reward the customer can
+  // collect *or* is still waiting on — the waiting screen offers the optional
+  // early preparation step from exactly the same requirements. A redeemed or
+  // blocked reward has nothing left to gate, so it skips the profile lookup.
+  const gateApplies = availability.status !== "blocked"
+  const profileGate = gateApplies ? await loadProfileGate() : undefined
 
   return {
     reward: {
@@ -65,6 +71,7 @@ export async function loadRewardExperienceContext(
     // redeemed panel (F26). Null until the merchant scan marks it collected.
     redeemedAt: reward.redeemed_at,
     justRedeemed: flags.justRedeemed === true,
+    prepare: flags.prepare === true,
     location,
     unavailableReason:
       availability.status === "blocked" ? availability.reason : undefined,

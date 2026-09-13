@@ -67,6 +67,7 @@ export function welcomeJoinExperience(step: string) {
         rewardTerms:
           "Fixture venue terms. No live consent is collected on this display route.",
       },
+      qrId: step === "welcome" ? "welcome-fixture-qr" : undefined,
       hasSession: step === "terms",
       pendingOtp: step === "code",
       pendingPhone: "+447700900123",

@@ -2,6 +2,10 @@ import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
 import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
 import { buildCustomerJoinHref } from "@/lib/navigation/customer-join-intent"
 
+import {
+  COLLECTION_STAGE_INSTRUCTION,
+  collectionSetup,
+} from "./collection-stage"
 import { assertNever, type CustomerExperience } from "./types"
 
 /**
@@ -228,18 +232,63 @@ function cardCollectingViewModel(
       }
 }
 
+/**
+ * The headline is the one thing this customer must do *now* (CUS-P2-09). While
+ * anything is outstanding it names that step, so no screen asks for a code the
+ * customer cannot produce yet; once nothing is outstanding the reward itself is
+ * the headline and the instruction sits beside the QR.
+ */
 function rewardViewModel(exp: RewardExperience): CustomerExperienceViewModel {
-  // The support line matches the state below it (CUS-P2-09): while the reward
-  // waits there is no QR to show, so the line carries the unlock timing
-  // instead of inviting a counter visit the banner underneath then cancels.
-  return {
-    eyebrow: "Reward",
-    headline: exp.reward.rewardName,
-    supportLine:
-      exp.kind === "reward_waiting"
-        ? waitingRewardSupportLine(exp.reward.redeemableFrom)
-        : `${exp.merchantName} — show this at the counter.`,
+  if (exp.kind === "reward_waiting") {
+    return exp.preparing
+      ? preparingRewardViewModel(exp)
+      : {
+          eyebrow: "Reward",
+          headline: exp.reward.rewardName,
+          supportLine: waitingRewardSupportLine(exp.reward.redeemableFrom),
+        }
   }
+
+  const setup = collectionSetup(exp.profileGate)
+
+  if (setup.outstanding) {
+    return {
+      eyebrow: "Before you collect",
+      headline: COLLECTION_STAGE_INSTRUCTION[setup.stage],
+      supportLine: rewardIdentityLine(exp),
+    }
+  }
+
+  return {
+    eyebrow: "Ready to collect",
+    headline: exp.reward.rewardName,
+    supportLine: exp.merchantName,
+  }
+}
+
+/**
+ * Preparing a waiting reward. The timing line stays out of the headline: this
+ * screen is about the outstanding step, and the panel repeats — once — that
+ * finishing it does not move the collection date.
+ */
+function preparingRewardViewModel(
+  exp: Extract<CustomerExperience, { kind: "reward_waiting" }>
+): CustomerExperienceViewModel {
+  const setup = exp.profileGate ? collectionSetup(exp.profileGate) : undefined
+
+  return {
+    eyebrow: "Before you collect",
+    headline:
+      setup && setup.outstanding
+        ? COLLECTION_STAGE_INSTRUCTION[setup.stage]
+        : "You are ready to collect",
+    supportLine: rewardIdentityLine(exp),
+  }
+}
+
+/** Venue and reward identity, kept visible as context beside a setup step. */
+function rewardIdentityLine(exp: RewardExperience): string {
+  return `${exp.reward.rewardName} at ${exp.merchantName}`
 }
 
 function waitingRewardSupportLine(redeemableFrom: string | null): string {

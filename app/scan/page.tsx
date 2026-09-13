@@ -1,6 +1,5 @@
 import type { Metadata } from "next"
 
-import { signOutCustomerAction } from "@/app/home/actions"
 import { CustomerQrScannerLoader } from "@/components/customer/customer-qr-scanner-loader"
 import { CustomerAppShell, CustomerShell } from "@/components/layout"
 import { getCustomerSession } from "@/lib/customer/session"
@@ -16,7 +15,7 @@ export default async function ScanPage() {
 
   if (session) {
     return (
-      <CustomerAppShell signOutAction={signOutCustomerAction}>
+      <CustomerAppShell>
         <CustomerQrScannerLoader />
       </CustomerAppShell>
     )

@@ -220,6 +220,62 @@ export function registerLocationRecoveryTests() {
       ).toBe(1)
     })
 
+    test("a blocked permission puts the venue code above the folded-away help", async ({
+      page,
+    }) => {
+      await captureSequence(page, ["denied"])
+      const root = await open(page)
+      await root.getByRole("button", { name: "Use my location" }).click()
+      await expect(
+        root.getByText("Location access is blocked", { exact: true })
+      ).toBeVisible()
+
+      // The code a team member reads out is what works while the customer is
+      // standing at the counter, so it precedes the site-settings walkthrough.
+      await expect(root.locator("[data-venue-code-route]")).toContainText(
+        "Ask a team member for today's venue code"
+      )
+      await expect(
+        root.getByText("Help with location access", { exact: true })
+      ).toBeVisible()
+      expect(
+        await root.evaluate((node) => {
+          const code = node.querySelector("[data-venue-code-route]")
+          const help = node.querySelector("[data-location-permission-help]")
+          if (!code || !help) return "missing"
+          return code.compareDocumentPosition(help) &
+            Node.DOCUMENT_POSITION_FOLLOWING
+            ? "code-first"
+            : "help-first"
+        })
+      ).toBe("code-first")
+
+      // Nothing of the browser walkthrough is on screen until it is asked for,
+      // while the six-digit field the refusal opened needs no disclosure.
+      await expect(root.getByLabel("Your browser")).toBeHidden()
+      await expect(
+        root.locator("[data-location-permission-help] p").first()
+      ).toBeHidden()
+      await expect(
+        root.getByLabel("Today's code from a team member")
+      ).toBeVisible()
+
+      await root.getByText("Help with location access", { exact: true }).click()
+      await expect(root.getByLabel("Your browser")).toBeVisible()
+      await expect(
+        root.locator("[data-location-permission-help]")
+      ).toContainText("Nabaperks can't change these settings for you.")
+
+      // Retry is still a real browser location attempt, never a pretend reset.
+      await root.getByRole("button", { name: "Try Again", exact: true }).click()
+      await expect
+        .poll(() =>
+          page.evaluate(() => Reflect.get(window, "locationTestCalls"))
+        )
+        .toBe(2)
+      await expect(page.locator("[data-submit-count]")).toHaveText("0")
+    })
+
     test("blocked help is selectable, accessible and fits a small iPhone @a11y", async ({
       page,
     }) => {
@@ -227,12 +283,12 @@ export function registerLocationRecoveryTests() {
       await captureSequence(page, ["denied"])
       const root = await open(page, "verify-grace-left")
       await root.getByRole("button", { name: "Use my location" }).click()
-      await root.getByText("Need help?", { exact: true }).click()
+      await root.getByText("Help with location access", { exact: true }).click()
       await root.getByLabel("Your browser").selectOption("ios-safari")
       await expect(
         root.locator("[data-location-permission-help]")
       ).toContainText("Website Settings → Location → Allow")
-      await root.getByText("Need help?", { exact: true }).click()
+      await root.getByText("Help with location access", { exact: true }).click()
       await root.getByRole("button", { name: "Try Again", exact: true }).click()
       await expect(
         root.getByText("Location access is blocked", { exact: true })
@@ -240,7 +296,7 @@ export function registerLocationRecoveryTests() {
       await page.screenshot({
         path: test.info().outputPath("blocked-safari-mobile.png"),
       })
-      await root.getByText("Need help?", { exact: true }).click()
+      await root.getByText("Help with location access", { exact: true }).click()
       await root.getByLabel("Your browser").selectOption("ios-chrome")
       await expect(
         root.locator("[data-location-permission-help]")
@@ -254,7 +310,7 @@ export function registerLocationRecoveryTests() {
       await expect(
         root.locator("[data-location-permission-help]")
       ).toContainText("sign in again, reopen or rescan the venue QR code")
-      await root.getByText("Need help?", { exact: true }).click()
+      await root.getByText("Help with location access", { exact: true }).click()
       await root.getByRole("button", { name: "Try Again", exact: true }).click()
       await expect(
         root.getByText("Location access is blocked", { exact: true })
@@ -262,12 +318,12 @@ export function registerLocationRecoveryTests() {
       await page.screenshot({
         path: test.info().outputPath("blocked-chrome-ios-mobile.png"),
       })
-      await root.getByText("Need help?", { exact: true }).click()
+      await root.getByText("Help with location access", { exact: true }).click()
       await root.getByLabel("Your browser").selectOption("android-chrome")
       await expect(
         root.locator("[data-location-permission-help]")
       ).toContainText("Permissions → Location → Allow")
-      await root.getByText("Need help?", { exact: true }).click()
+      await root.getByText("Help with location access", { exact: true }).click()
       await page.screenshot({
         path: test.info().outputPath("blocked-chrome-android-mobile.png"),
       })

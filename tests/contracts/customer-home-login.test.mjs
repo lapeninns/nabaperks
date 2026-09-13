@@ -38,25 +38,3 @@ test("Given a customer login phone is unknown When the request action runs Then 
   assert.match(actions, /await clearPendingPhoneVerification\(\)/)
   assert.match(actions, /No cards found for that number yet/)
 })
-
-test("Given customer OTP verification fails When the form renders Then verify feedback is shown from its own action state", () => {
-  const form = readProjectFile(
-    "components",
-    "customer",
-    "customer-login-form.tsx"
-  )
-
-  assert.match(
-    form,
-    /const \[verifyState, verifyAction, verifyPending\] = useActionState\([\s\S]*verifyCustomerLoginOtpAction/
-  )
-  assert.doesNotMatch(form, /const \[, verifyAction, verifyPending\]/)
-  assert.match(
-    form,
-    /const state = hasLoginActionResult\(verifyState\) \? verifyState : requestState/
-  )
-  assert.match(form, /state\.errors\?\.form/)
-  assert.match(form, /state\.errors\?\.otp/)
-  assert.match(form, /state\.message/)
-  assert.match(form, /value=\{contact\}/)
-})

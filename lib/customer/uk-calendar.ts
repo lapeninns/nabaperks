@@ -1,4 +1,28 @@
 const LONDON = "Europe/London"
+// Fixed receipt copy: ICU abbreviates September differently in Node and WebKit.
+const MONTH_LABELS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+] as const
+const WEEKDAY_LABELS = [
+  "Sun",
+  "Mon",
+  "Tue",
+  "Wed",
+  "Thu",
+  "Fri",
+  "Sat",
+] as const
 
 export function ukTodayIso() {
   return formatLondonIso(new Date())
@@ -15,14 +39,7 @@ export function addUkCalendarDays(iso: string, days: number) {
 export function formatStampDisplayDateFromIso(iso: string) {
   const [year, month, day] = iso.split("-").map(Number)
   const anchor = new Date(Date.UTC(year, month - 1, day, 12))
-  const formatted = new Intl.DateTimeFormat("en-GB", {
-    timeZone: LONDON,
-    day: "numeric",
-    month: "short",
-  }).format(anchor)
-  const [dayLabel, monthLabel] = formatted.split(" ")
-
-  return `${dayLabel} ${monthLabel.replace(/\./g, "").toUpperCase()}`
+  return `${anchor.getUTCDate()} ${MONTH_LABELS[anchor.getUTCMonth()].toUpperCase()}`
 }
 
 /** Reward-ready chip label with weekday, e.g. `Thu 18 Jun`. */
@@ -30,12 +47,7 @@ export function formatRewardReadyDate(iso: string) {
   const [year, month, day] = iso.split("-").map(Number)
   const anchor = new Date(Date.UTC(year, month - 1, day, 12))
 
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: LONDON,
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  }).format(anchor)
+  return `${WEEKDAY_LABELS[anchor.getUTCDay()]} ${anchor.getUTCDate()} ${MONTH_LABELS[anchor.getUTCMonth()]}`
 }
 
 /** Preview dates for the join journey: view-day, +5 days, +10 days, … */

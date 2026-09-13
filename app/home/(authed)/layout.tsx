@@ -2,7 +2,6 @@ import type { Metadata } from "next"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
-import { signOutCustomerAction } from "@/app/home/actions"
 import { CustomerAppShell } from "@/components/layout"
 import { getCustomerSession } from "@/lib/customer/session"
 import { getCurrentCustomer } from "@/lib/customer/identity"
@@ -33,9 +32,8 @@ export default async function HomeLayout({
     redirect(customerSessionResetHref(returnPath))
   }
 
-  return (
-    <CustomerAppShell signOutAction={signOutCustomerAction}>
-      {children}
-    </CustomerAppShell>
-  )
+  // Sign-out is not a shell concern any more: it lives in the Profile screen's
+  // account section (`app/home/(authed)/profile/page.tsx`), still submitted from a
+  // form to the same `signOutCustomerAction` server action.
+  return <CustomerAppShell>{children}</CustomerAppShell>
 }

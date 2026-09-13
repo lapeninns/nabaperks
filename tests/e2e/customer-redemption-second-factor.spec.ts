@@ -55,9 +55,12 @@ test.describe("reward collection second-factor gates", () => {
     await page.goto(`${HARNESS}?gate=ready`)
 
     await expect(
-      page.getByText("Ready for merchant scan.", { exact: true })
+      page.getByText("Show this code to the team.", { exact: true })
     ).toBeVisible()
     await expect(page.getByRole("img", { name: COLLECTION_QR })).toBeVisible()
     await expect(page.getByLabel("Email code")).toHaveCount(0)
+    // The photo-ID requirement belongs to the unverified date of birth, not to
+    // every collection, so a fully verified customer must not see it.
+    await expect(page.getByText("Photo ID needed")).toHaveCount(0)
   })
 })

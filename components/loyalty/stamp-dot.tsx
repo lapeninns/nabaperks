@@ -65,7 +65,7 @@ export function StampDot({
           data-compact={compactStampData(earned, compact)}
           data-slammed={slammedStampData(earned, slammed)}
           className={cn(
-            "relative grid aspect-square w-full place-items-center overflow-hidden rounded-full border-2 transition-[background-color,border-color,transform] duration-[var(--w-dur-move)] ease-[var(--w-ease)] motion-reduce:transition-none",
+            "@container relative grid aspect-square w-full place-items-center overflow-hidden rounded-full border-2 transition-[background-color,border-color,transform] duration-[var(--w-dur-move)] ease-[var(--w-ease)] motion-reduce:transition-none",
             compact ? "min-h-9" : "min-h-11",
             earned
               ? "border-ink bg-stamp text-stamp-foreground shadow-sm"
@@ -164,13 +164,20 @@ function StampDateText({
     <span
       aria-hidden="true"
       className={cn(
-        "mono-id leading-none",
+        "mono-id leading-none whitespace-nowrap",
         compact
           ? "tracking-[0.04em]"
           : "mt-px border-t border-stamp-foreground/40 pt-px tracking-[0.09em]"
       )}
     >
-      {dateText}
+      {compact ? (
+        dateText
+      ) : (
+        <>
+          <span className="hidden @min-[3.5rem]:inline">{dateText}</span>
+          <span className="@min-[3.5rem]:hidden">{dateText.split(" ")[0]}</span>
+        </>
+      )}
     </span>
   )
 }

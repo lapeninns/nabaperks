@@ -329,6 +329,21 @@ export function StampCollector({
     (view.venueCodeLockedUntil !== null ||
       (view.venueCodeOffer && (codeOpen || state.phase === "blocked")))
 
+  // Built once and handed to VerifyVisitControls when those controls are on
+  // screen, so the six-digit field sits inside the recovery area beside the
+  // code instruction instead of below the grace and settings disclosures. A
+  // code lockout withholds the controls entirely, and the notice stands alone.
+  const venueCodeForm = showVenueCodeForm ? (
+    <VenueCodeForm
+      attemptsRemaining={view.venueCodeAttemptsRemaining}
+      lockedUntil={view.venueCodeLockedUntil}
+      pending={view.pending}
+      onSubmit={(code) => {
+        void issueWithCode(code)
+      }}
+    />
+  ) : null
+
   return (
     <div aria-busy={view.ariaBusy || undefined} data-stamp-phase={state.phase}>
       <CustomerStampCard
@@ -350,6 +365,7 @@ export function StampCollector({
         rewardSlot={rewardUnlocked ? "revealed" : "locked"}
         hideFooter
         hideHeaderText
+        actionFirst={showVenueCodeForm}
         // The stamp control sits directly under its feedback band, *above*
         // the reward ticket: grid → status → (verify pair / code) → press →
         // ticket. With the ticket in between, the button fell below the fold
@@ -365,16 +381,32 @@ export function StampCollector({
         // and pushed the press to row 3 — exactly when the keyboard makes
         // height scarcest.
         afterGrid={
-          <div className="grid gap-3 short:gap-2 squat:grid-cols-[minmax(0,1fr)_auto] squat:items-center">
+          <div
+            className={cn(
+              "grid gap-3 short:gap-2 squat:grid-cols-[minmax(0,1fr)_auto] squat:items-center",
+              showLocationControls &&
+                !showVenueCodeForm &&
+                state.phase !== "blocked" &&
+                "squat:min-[480px]:grid-cols-2"
+            )}
+          >
             <div className="squat:col-start-1 squat:row-start-1">
               <StampStatusBand view={view} phase={state.phase} />
             </div>
             {showLocationControls || showVenueCodeForm ? (
-              <div className="grid gap-3 squat:col-span-2 squat:row-start-2">
+              <div
+                className={cn(
+                  "grid min-w-0 gap-3 squat:col-span-2 squat:row-start-2",
+                  !showVenueCodeForm &&
+                    state.phase !== "blocked" &&
+                    "squat:min-[480px]:col-span-1 squat:min-[480px]:col-start-2 squat:min-[480px]:row-start-1"
+                )}
+              >
                 {showLocationControls ? (
                   <VerifyVisitControls
                     disabled={view.pending || view.secured}
                     codeOpen={showVenueCodeForm}
+                    venueCodeSlot={venueCodeForm}
                     recoveryIssue={
                       state.phase === "blocked"
                         ? state.locationIssue
@@ -403,16 +435,7 @@ export function StampCollector({
                     }}
                   />
                 ) : null}
-                {showVenueCodeForm ? (
-                  <VenueCodeForm
-                    attemptsRemaining={view.venueCodeAttemptsRemaining}
-                    lockedUntil={view.venueCodeLockedUntil}
-                    pending={view.pending}
-                    onSubmit={(code) => {
-                      void issueWithCode(code)
-                    }}
-                  />
-                ) : null}
+                {showLocationControls ? null : venueCodeForm}
               </div>
             ) : null}
             <div className="grid justify-items-center gap-3 pt-1 short:gap-2 short:pt-0 squat:col-start-2 squat:row-start-1">
