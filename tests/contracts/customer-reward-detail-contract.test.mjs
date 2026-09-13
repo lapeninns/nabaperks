@@ -55,7 +55,7 @@ test("Given a reward might be waiting, blocked, or ready When the loader compute
   )
 })
 
-test("Given profile completion is only needed for collection When the reward is not redeemable Then the profile gate is skipped", () => {
+test("Given collection requirements govern a collectable or waiting reward When the reward is blocked Then the profile gate is skipped", () => {
   const loader = readProjectFile(
     "lib",
     "customer",
@@ -63,11 +63,31 @@ test("Given profile completion is only needed for collection When the reward is 
     "load-reward.ts"
   )
 
+  // The waiting screen offers the same requirements as an optional early step,
+  // so the gate is read whenever collection is still ahead — and never for a
+  // reward the server has already blocked or expired.
+  assert.match(loader, /const gateApplies = availability\.status !== "blocked"/)
   assert.match(
     loader,
-    /const profileGate = availableForReview \? await loadProfileGate\(\) : undefined/
+    /const profileGate = gateApplies \? await loadProfileGate\(\) : undefined/
   )
   assert.match(loader, /profileGate,?/)
+})
+
+test("Given early preparation is opt-in When the reward route is loaded Then the prepare flag only reaches the profile gate", () => {
+  const loader = readProjectFile(
+    "lib",
+    "customer",
+    "experience",
+    "load-reward.ts"
+  )
+  const derive = readProjectFile("lib", "customer", "experience", "derive.ts")
+
+  assert.match(loader, /prepare: flags\.prepare === true/)
+  // Nothing about redeemability may be computed from the flag.
+  assert.doesNotMatch(loader, /availableForReview =[^\n]*prepare/)
+  assert.doesNotMatch(derive, /availableForReview[^\n]*prepare/)
+  assert.match(derive, /preparing:\s*\n?\s*context\.prepare === true/)
 })
 
 test("Given the reward state uses service-role reads When source is inspected Then another customer's reward cannot become a detail page", () => {

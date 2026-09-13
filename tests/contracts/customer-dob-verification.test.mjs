@@ -51,6 +51,17 @@ test("DOB verification retains audited admin support while the QR allows owner r
     "customer",
     "reward-panels.tsx"
   )
+  const collectionStage = readProjectFile(
+    "lib",
+    "customer",
+    "experience",
+    "collection-stage.ts"
+  )
+  const collectionQr = readProjectFile(
+    "components",
+    "customer",
+    "reward-collection-qr.tsx"
+  )
   const rewardQrRoute = readProjectFile(
     "app",
     "reward",
@@ -78,8 +89,13 @@ test("DOB verification retains audited admin support while the QR allows owner r
   assert.match(data, /date_of_birth_verified_at/)
   assert.match(panel, /Confirm only after checking reliable evidence\./)
   assert.match(panel, /Verify date of birth/)
-  assert.match(rewardPanel, /profileGate\.dateOfBirthVerified/)
-  assert.match(rewardPanel, /ID check needed/)
+  // An unverified date of birth still gets its own collection stage, and the
+  // requirement is stated beside the code the venue scans — not folded into the
+  // ordinary ready state, and not hidden behind the details disclosure.
+  assert.match(collectionStage, /gate\.dateOfBirthVerified \? "ready" : "id_check"/)
+  assert.match(rewardPanel, /idCheckRequired=\{setup\.stage === "id_check"\}/)
+  assert.match(collectionQr, /idCheckRequired \? \(/)
+  assert.match(collectionQr, /Photo ID needed/)
   assert.doesNotMatch(rewardQrRoute, /!profile\.dateOfBirthVerified/)
   assert.match(rewardQrRoute, /!profile\?\.complete/)
 })

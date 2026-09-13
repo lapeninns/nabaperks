@@ -1,6 +1,8 @@
 import type { ReactNode } from "react"
 import Link from "next/link"
+import { ArrowDown01Icon } from "@hugeicons/core-free-icons"
 
+import { Icon } from "@/components/brand"
 import { CelebrationUrlCleanup } from "@/components/customer/celebration-url-cleanup"
 import { CustomerReceipt } from "@/components/customer/customer-flow-system"
 import { CustomerProfileGateForm } from "@/components/customer/profile-gate-forms"
@@ -8,6 +10,10 @@ import { RewardCollectionLive } from "@/components/customer/reward-collection-li
 import { RewardTicket, StatusBanner } from "@/components/loyalty"
 import { StampCelebration } from "@/components/motion"
 import { Button } from "@/components/ui/button"
+import {
+  collectionSetup,
+  type CollectionSetup,
+} from "@/lib/customer/experience/collection-stage"
 import {
   waitingRewardTiming,
   type CustomerExperienceViewModel,
@@ -19,14 +25,20 @@ import type {
 } from "@/lib/customer/experience/types"
 import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
 
-export function RewardWaitingPanel({
-  exp,
-}: {
-  exp: Extract<CustomerExperience, { kind: "reward_waiting" }>
-}) {
+type WaitingExperience = Extract<
+  CustomerExperience,
+  { kind: "reward_waiting" }
+>
+
+type ReadyExperience = Extract<CustomerExperience, { kind: "reward_ready" }>
+
+export function RewardWaitingPanel({ exp }: { exp: WaitingExperience }) {
+  if (exp.preparing) return <RewardPreparePanel exp={exp} />
+
   const readyDate = exp.reward.redeemableFrom
     ? formatStampDisplayDateFromIso(exp.reward.redeemableFrom)
     : null
+  const setup = exp.profileGate ? collectionSetup(exp.profileGate) : undefined
 
   return (
     <CustomerReceipt
@@ -44,6 +56,15 @@ export function RewardWaitingPanel({
       <StatusBanner title="Give it a day to breathe" tone="warning">
         {waitingRewardTiming(exp.reward.redeemableFrom)}
       </StatusBanner>
+      {/* Offered only where something is genuinely outstanding: a customer
+          whose details are already saved and verified sees no extra step. */}
+      {setup?.outstanding ? (
+        <Button asChild size="lg" className="w-full">
+          <Link href={`/reward/${exp.reward.rewardId}?prepare=1`}>
+            Get ready to collect
+          </Link>
+        </Button>
+      ) : null}
       <Button asChild size="lg" variant="secondary" className="w-full">
         <Link href={`/card/${exp.reward.membershipId}`}>Return to card</Link>
       </Button>
@@ -51,50 +72,148 @@ export function RewardWaitingPanel({
   )
 }
 
-export function RewardReadyPanel({
-  exp,
-}: {
-  exp: Extract<CustomerExperience, { kind: "reward_ready" }>
-}) {
+/**
+ * The optional early step from a waiting reward: the same collection details
+ * the ready reward asks for, completed before the reward opens. It reuses the
+ * existing gate form and its server actions, so nothing here can move the
+ * reward's timing or make it collectable sooner — the panel says so in as many
+ * words, and there is no QR on this screen.
+ */
+function RewardPreparePanel({ exp }: { exp: WaitingExperience }) {
+  const gate = exp.profileGate
+  const setup = gate ? collectionSetup(gate) : undefined
+  const backHref = `/reward/${exp.reward.rewardId}`
+
   return (
-    <CustomerReceipt
-      venueName={exp.merchantName}
-      eyebrow="Mystery reward"
-      footerLeft={cardNumber(exp.reward.membershipId)}
-    >
-      <RewardTicket
-        headingLevel="h2"
-        state={
-          exp.profileGate.dateOfBirthVerified
-            ? "ready"
-            : "verification_required"
-        }
-        name={exp.reward.rewardName}
-        description={rewardTermsNode(exp.reward)}
-      />
-      {exp.profileGate.complete ? (
+    <section className="grid gap-4">
+      {gate && setup?.outstanding ? (
         <>
-          {/* One instruction per screen (F18b): the title confirms the state and
-              the single "scans this QR" line lives beside the QR itself. */}
-          {exp.profileGate.dateOfBirthVerified ? (
-            <StatusBanner title="Ready for merchant scan." tone="success" />
-          ) : (
-            <StatusBanner title="ID check needed" tone="warning">
-              Show this code and your photo ID to the venue owner.
-            </StatusBanner>
-          )}
-          <RewardCollectionLive
-            rewardId={exp.reward.rewardId}
-            rewardName={exp.reward.rewardName}
-          />
+          <CustomerProfileGateForm rewardId={exp.reward.rewardId} gate={gate} />
+          <p className="text-center text-xs leading-5 text-muted-foreground">
+            Finishing this now does not change when your reward opens.{" "}
+            {waitingRewardTiming(exp.reward.redeemableFrom)}
+          </p>
         </>
       ) : (
-        <CustomerProfileGateForm
-          rewardId={exp.reward.rewardId}
-          gate={exp.profileGate}
-        />
+        <StatusBanner title="Your details are ready" tone="success">
+          Nothing else to complete. {waitingRewardTiming(exp.reward.redeemableFrom)}
+        </StatusBanner>
       )}
-    </CustomerReceipt>
+      <Button asChild size="lg" variant="secondary" className="w-full">
+        <Link href={backHref}>Back to your reward</Link>
+      </Button>
+    </section>
+  )
+}
+
+export function RewardReadyPanel({
+  exp,
+  qrSrc,
+}: {
+  exp: ReadyExperience
+  /** Harness-only QR source override — see {@link RewardCollectionQr}. */
+  qrSrc?: string
+}) {
+  const setup = collectionSetup(exp.profileGate)
+
+  return setup.outstanding ? (
+    <RewardCollectionSetupPanel exp={exp} setup={setup} />
+  ) : (
+    <RewardCollectionPanel exp={exp} setup={setup} qrSrc={qrSrc} />
+  )
+}
+
+/**
+ * Collection requirements that are still outstanding. The shell headline is the
+ * step ("Complete your details" / "Verify your email") and the reward stays
+ * named beside it as context, so nothing on the screen tells the customer to
+ * present a code they cannot produce yet.
+ */
+function RewardCollectionSetupPanel({
+  exp,
+  setup,
+}: {
+  exp: ReadyExperience
+  setup: CollectionSetup
+}) {
+  return (
+    <section className="grid gap-4">
+      <CustomerProfileGateForm
+        rewardId={exp.reward.rewardId}
+        gate={exp.profileGate}
+      />
+      {setup.stage === "details" ? (
+        <p className="text-center text-xs leading-5 text-muted-foreground">
+          Your reward is held for you while you finish this.
+        </p>
+      ) : null}
+    </section>
+  )
+}
+
+/**
+ * The collection screen, with the code first. Repeated headings, the receipt
+ * frame and the reward blurb used to push the QR below the fold on a 390×844
+ * phone; the shell now carries the reward name and venue, so this panel is the
+ * scannable code, the one instruction beside it, the photo-ID requirement where
+ * the venue still has to check it, and the terms behind a disclosure.
+ */
+function RewardCollectionPanel({
+  exp,
+  setup,
+  qrSrc,
+}: {
+  exp: ReadyExperience
+  setup: CollectionSetup
+  qrSrc?: string
+}) {
+  return (
+    <section className="grid gap-3 short:gap-2">
+      <RewardCollectionLive
+        rewardId={exp.reward.rewardId}
+        rewardName={exp.reward.rewardName}
+        idCheckRequired={setup.stage === "id_check"}
+        qrSrc={qrSrc}
+      />
+      <RewardDetailsDisclosure
+        reward={exp.reward}
+        merchantName={exp.merchantName}
+      />
+    </section>
+  )
+}
+
+/**
+ * The reward blurb, its terms and the card number, after the code rather than
+ * above it. Collapsed by default and keyboard operable — the same quiet
+ * disclosure the card screen uses for its own technical details.
+ */
+function RewardDetailsDisclosure({
+  reward,
+  merchantName,
+}: {
+  reward: RewardView
+  merchantName: string
+}) {
+  return (
+    <details className="group text-left">
+      <summary className="focus-ring flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 rounded-sm text-xs font-bold text-ink-soft underline-offset-4 hover:underline [&::-webkit-details-marker]:hidden">
+        Reward details and terms
+        <Icon
+          icon={ArrowDown01Icon}
+          size={14}
+          className="text-ink-soft transition-transform duration-[var(--w-dur-fast)] ease-[var(--w-ease)] group-open:rotate-180 motion-reduce:transition-none"
+        />
+      </summary>
+      <div className="mt-2 grid gap-2">
+        <p className="text-sm leading-6 text-muted-foreground">
+          {reward.rewardName} at {merchantName}. {reward.rewardTerms}
+        </p>
+        <p className="mono-id tracking-[0.08em] text-muted-foreground">
+          {cardNumber(reward.membershipId)}
+        </p>
+      </div>
+    </details>
   )
 }
 
@@ -124,7 +243,7 @@ export function RedeemedProofPanel({
         sealSlammed={exp.justRedeemed}
       />
       <StatusBanner title="Reward collected." tone="success">
-        The merchant has scanned your QR. A new stamp cycle has started.
+        The team has scanned your code. A new stamp cycle has started.
       </StatusBanner>
       {proofLine ? (
         <p className="mono-id text-center tracking-[0.08em] text-muted-foreground">

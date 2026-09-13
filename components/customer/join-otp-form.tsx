@@ -166,7 +166,7 @@ export function CustomerOtpForm({
               ) : null}
               <Link
                 href={phoneStepHref}
-                className="w-fit text-xs font-bold underline underline-offset-4"
+                className="focus-ring inline-flex min-h-11 w-fit items-center text-xs font-bold underline underline-offset-4"
               >
                 Wrong number? Use a different one
               </Link>

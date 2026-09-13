@@ -142,13 +142,11 @@ test("CUS-P2-08: logged-out card access asks for the action the button performs"
 test("CUS-P2-09: the reward support line matches the state it renders over", () => {
   const copy = readProjectFile("lib", "customer", "experience", "copy.ts")
 
-  assert.doesNotMatch(
-    copy,
-    / - show this at the counter when ready\./,
-    "spaced-hyphen counter line must not render on the waiting state"
-  )
+  // No reward state may invite a counter visit before the customer can produce
+  // a code for it. The per-stage headlines are asserted behaviourally in
+  // tests/unit/customer-experience-reward.test.mjs.
+  assert.doesNotMatch(copy, /show this at the counter/)
   assert.match(copy, /Unlocked — yours from/)
-  assert.match(copy, /— show this at the counter\./)
 })
 
 test("CUS-P2-10: redemption-gate resend links meet the tap-size contract", () => {
@@ -235,7 +233,11 @@ test("CUS-P2-14: the authed header Log out meets the 44px contract", () => {
 })
 
 test("VCU-P2-01: the login screen says My Nabaperks once", () => {
-  const login = readProjectFile("app", "home", "login", "page.tsx")
+  const login = readProjectFile(
+    "components",
+    "customer",
+    "customer-login-form.tsx"
+  )
 
   assert.doesNotMatch(login, /<Eyebrow>My Nabaperks<\/Eyebrow>/)
   assert.match(login, /caption="My Nabaperks"/)

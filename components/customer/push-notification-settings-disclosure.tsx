@@ -22,7 +22,7 @@ export function PushNotificationSettingsDisclosure() {
       className="surface-card p-5"
       onToggle={(event) => setOpen(event.currentTarget.open)}
     >
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 [&::-webkit-details-marker]:hidden">
+      <summary className="focus-ring flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 [&::-webkit-details-marker]:hidden">
         <SectionHeader eyebrow="Push" title="Browser notifications" />
         <IconRoundel
           size="sm"

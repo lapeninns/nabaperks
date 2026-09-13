@@ -29,17 +29,48 @@ export const dynamic = "force-dynamic"
 export default async function WelcomeOfferHarness({
   searchParams,
 }: {
-  searchParams: Promise<{ surface?: string; state?: string; long?: string }>
+  searchParams: Promise<{
+    surface?: string
+    state?: string
+    long?: string
+    offer?: string
+  }>
 }) {
   if (process.env.NODE_ENV === "production") notFound()
   const query = await searchParams
   const offer = query.long === "1" ? LONG_WELCOME_OFFER : WELCOME_OFFER
 
-  if (["phone", "code", "terms"].includes(query.surface ?? "")) {
+  if (["welcome", "phone", "code", "terms"].includes(query.surface ?? "")) {
     return (
       <JoinWizard
         experience={welcomeJoinExperience(query.surface ?? "phone")}
-        pendingOffer={WELCOME_OFFER}
+        pendingOffer={query.offer === "none" ? null : offer}
+      />
+    )
+  }
+  if (query.surface === "stamp") {
+    return (
+      <CustomerCardExperience
+        offerPasses={[]}
+        offerClaimNotice={null}
+        experience={{
+          kind: "stamp_confirm",
+          membershipId: WELCOME_PASS.membershipId,
+          merchantName: "Old Crown Girton",
+          cardName: "Mystery Visit Card",
+          qrId: "welcome-fixture-qr",
+          current: 3,
+          total: 5,
+          stampDates: ["1 Sep", "5 Sep", "12 Sep"],
+          todayLabel: "12 Sep",
+          location: {
+            requireGeofence: query.state === "verify",
+            geofenceRadiusMeters: 150,
+            firstVerifiedVisit: 3,
+            nextVisitNumber: 4,
+            unverifiedGraceRemaining: 0,
+          },
+        }}
       />
     )
   }
@@ -47,7 +78,7 @@ export default async function WelcomeOfferHarness({
     return (
       <CustomerCardExperience
         experience={WELCOME_CARD}
-        offerPasses={[WELCOME_PASS]}
+        offerPasses={query.offer === "none" ? [] : [WELCOME_PASS]}
         offerClaimNotice={query.state === "claimed" ? "claimed" : null}
       />
     )

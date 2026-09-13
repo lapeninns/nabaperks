@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation"
 
+import { signOutCustomerAction } from "@/app/home/actions"
 import { PageTitle } from "@/components/brand"
 import { CustomerProfileAboutYou } from "@/components/customer/profile-about-you"
+import { CustomerProfileAccountSection } from "@/components/customer/profile-account-section"
 import { CustomerProfileMarketing } from "@/components/customer/profile-marketing-consent"
 import { PushNotificationSettingsDisclosure } from "@/components/customer/push-notification-settings-disclosure"
 import { StatusBanner } from "@/components/loyalty"
@@ -55,9 +57,11 @@ export default async function HomeProfilePage() {
 
       <PushNotificationSettingsDisclosure />
 
-      <p className="mono-id tracking-[0.08em] text-muted-foreground">
-        Member since {formatMonthYear(profile.memberSince)} · {venueLabel}
-      </p>
+      <CustomerProfileAccountSection
+        memberSinceLabel={formatMonthYear(profile.memberSince)}
+        venueLabel={venueLabel}
+        signOutAction={signOutCustomerAction}
+      />
     </div>
   )
 }

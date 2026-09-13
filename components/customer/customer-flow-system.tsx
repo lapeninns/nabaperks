@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import { Fragment, type ReactNode } from "react"
 
 import { Eyebrow, MonoTag, ReceiptCard, VenueMark } from "@/components/brand"
 import {
@@ -43,12 +43,12 @@ export function CustomerFlowShell({
    */
   dense?: boolean
   /**
-   * Opt the screen into the landscape floor (≤480px tall): the headline steps
-   * down to one quiet line and the support line gives way, so the screen's
-   * control can reach the first screen. Only screens whose panel carries the
-   * state in its own words (the stamp screen's band) should ask for this —
-   * on join, reward and access-recovery screens the support line *is* the
-   * instruction, so they keep it.
+   * Compact short screens while keeping the venue support line visible, so the
+   * screen's control can reach the first screen. Only screens whose panel
+   * carries the state in its own words should ask for this — the stamp screen's
+   * band, and the reward collection code with its instruction beside it. On
+   * join, reward-setup and access-recovery screens the support line *is* the
+   * instruction, so they keep it at full size.
    */
   landscapeCompact?: boolean
   screenLabel?: string
@@ -110,13 +110,16 @@ export function CustomerFlowShell({
           <section
             className={cn(
               "grid gap-3 text-center",
-              landscapeCompact && "squat:gap-1"
+              landscapeCompact && "short:gap-1"
             )}
           >
             {title ? (
               <h1
                 className={cn(
-                  "leading-[1.04] font-extrabold tracking-tight text-balance",
+                  // A reward or venue name can be one unbroken word; the shell's
+                  // `overflow-x-clip` would silently cut it off rather than
+                  // scroll, so the headline is allowed to break mid-word.
+                  "leading-[1.04] font-extrabold tracking-tight text-balance [overflow-wrap:anywhere]",
                   // Fluid between the 320px and 430px phone widths so a
                   // two-line headline never becomes three on the narrowest
                   // devices and never shouts on the widest. On an opted-in
@@ -126,21 +129,20 @@ export function CustomerFlowShell({
                   dense
                     ? "text-[clamp(1.45rem,4.2vw+0.5rem,1.65rem)]"
                     : "text-[clamp(1.75rem,5.6vw+0.4rem,2.1rem)]",
-                  landscapeCompact && "squat:text-xl squat:leading-tight"
+                  landscapeCompact &&
+                    "short:text-2xl short:leading-tight squat:text-xl"
                 )}
               >
                 {title}
               </h1>
             ) : null}
             {description ? (
-              // On an opted-in landscape floor the support line is the first
-              // thing to give way (the panel's own band carries the state).
-              // Elsewhere it stays: on join, reward and sign-in screens it is
-              // the instruction itself.
+              // The stamp support line names the venue: tighten it on short
+              // screens, but keep that identity visible beside the action.
               <p
                 className={cn(
-                  "mx-auto max-w-[31ch] text-[0.96rem] leading-6 text-muted-foreground",
-                  landscapeCompact && "squat:hidden"
+                  "mx-auto max-w-[31ch] text-[0.96rem] leading-6 [overflow-wrap:anywhere] text-muted-foreground",
+                  landscapeCompact && "short:text-sm short:leading-5"
                 )}
               >
                 {description}
@@ -193,11 +195,10 @@ export function CustomerReceipt({
   footerLeft,
   footerRight = "ONE STAMP PER BUSINESS DAY",
   hideFooter = false,
+  hideHeader = false,
   compact = false,
   className,
-  offerLayout = false,
 }: {
-  offerLayout?: boolean
   venueName: string
   /**
    * Receipt headline. Omit it so a screen runs a single headline through the
@@ -216,25 +217,30 @@ export function CustomerReceipt({
    * on the dashboard — pass this to keep the receipt calm and uncluttered.
    */
   hideFooter?: boolean
+  /** Recovery controls take priority over a repeated decorative venue mark. */
+  hideHeader?: boolean
   /** Tighter receipt header for narrow merchant preview surfaces. */
   compact?: boolean
   className?: string
 }) {
   return (
     <ReceiptCard
-      edge={!offerLayout}
-      padding={offerLayout ? "sm" : "md"}
+      edge
       wrapperClassName="w-full"
-      className={cn("grid gap-4", className)}
+      className={cn(
+        "grid gap-4",
+        !title && !eyebrow && "short:gap-3 squat:[--card-spacing:--spacing(3)]",
+        className
+      )}
       data-edge-class="receipt-edge"
     >
       {/* When the receipt carries no headline text the header row is only the
           venue mark — identity the stamps themselves already print — so on the
-          landscape floor it and its rule give way to the grid and control. */}
+          short screens it and its rule give way to the grid and control. */}
       <div
         className={cn(
           "flex min-w-0 items-start justify-between gap-3 sm:gap-4",
-          !title && !eyebrow && "squat:hidden"
+          hideHeader ? "hidden" : !title && !eyebrow && "short:hidden"
         )}
       >
         <div className="grid min-w-0 gap-1 text-left">
@@ -251,15 +257,18 @@ export function CustomerReceipt({
           ) : null}
         </div>
         <VenueMark
-          size={offerLayout ? 44 : compact ? 48 : 58}
+          size={compact ? 48 : 58}
           name={venueName}
           className="shrink-0"
         />
       </div>
 
-      {offerLayout ? null : (
-        <hr className={cn("w-rule", !title && !eyebrow && "squat:hidden")} />
-      )}
+      <hr
+        className={cn(
+          "w-rule",
+          hideHeader ? "hidden" : !title && !eyebrow && "short:hidden"
+        )}
+      />
       {children}
       {metaLines ? (
         <div className="mono-id grid gap-1 tracking-[0.08em] text-muted-foreground">
@@ -304,12 +313,11 @@ export function CustomerStampCard({
   wrapStamps = false,
   compact = false,
   afterGrid,
+  actionFirst = false,
   children,
   rewardSlot,
   onSlamComplete,
-  offerLayout = false,
 }: {
-  offerLayout?: boolean
   venueName: string
   cardName: ReactNode
   current: number
@@ -342,6 +350,8 @@ export function CustomerStampCard({
   /** Slot rendered between the stamp grid and the reward ticket — used for
    * celebrations so the grid stays the receipt's first focal point. */
   afterGrid?: ReactNode
+  /** Put recovery controls before stamp history, in both DOM and visual order. */
+  actionFirst?: boolean
   children?: ReactNode
   rewardSlot?: RewardSlotState
   onSlamComplete?: () => void
@@ -354,63 +364,49 @@ export function CustomerStampCard({
   const wrapColumnCount =
     total + (reward.state === "sealed" ? 1 : 0) <= 4 ? total + 1 : 3
 
+  // Stable keys preserve the form and focus when recovery moves ahead of the
+  // stamp history. On confirmation the same action returns below the stamps.
+  const action = <Fragment key="action">{afterGrid}</Fragment>
+  const stampGrid = (
+    <StampGrid
+      key="stamps"
+      current={current}
+      total={total}
+      dates={stampDates}
+      slamIndex={slamIndex}
+      pendingIndex={pendingIndex}
+      showEmptySlotNumbers
+      rewardSlot={
+        rewardSlot ?? (reward.state === "sealed" ? "locked" : undefined)
+      }
+      venueName={venueName}
+      layout={wrapStamps ? "wrap" : "row"}
+      wrapColumns={wrapColumnCount}
+      compact={compact}
+      // Fit five stamps and the reward on one landscape row at the 44px floor.
+      className="py-1 squat:mx-auto squat:w-full squat:max-w-[20rem]"
+      onSlamComplete={onSlamComplete}
+    />
+  )
+
   return (
     <CustomerReceipt
       venueName={venueName}
-      title={offerLayout ? venueName : hideHeaderText ? undefined : cardName}
-      eyebrow={
-        offerLayout ? "Loyalty card" : hideHeaderText ? undefined : venueName
-      }
-      offerLayout={offerLayout}
+      title={hideHeaderText ? undefined : cardName}
+      eyebrow={hideHeaderText ? undefined : venueName}
       metaLines={metaLines}
       hideFooter={hideFooter}
+      hideHeader={actionFirst}
       compact={compact}
     >
-      <StampGrid
-        current={current}
-        total={total}
-        dates={stampDates}
-        slamIndex={slamIndex}
-        pendingIndex={pendingIndex}
-        showEmptySlotNumbers
-        rewardSlot={
-          rewardSlot ?? (reward.state === "sealed" ? "locked" : undefined)
-        }
-        venueName={venueName}
-        layout={wrapStamps || offerLayout ? "wrap" : "row"}
-        receiptCaptions={offerLayout}
-        wrapColumns={offerLayout ? Math.min(total + 1, 4) : wrapColumnCount}
-        compact={compact}
-        // Landscape floor: cap the row so the auto-fit tracks shrink the discs
-        // (never below their 44px minimum) instead of filling the column.
-        className="py-1 squat:mx-auto squat:w-full squat:max-w-[18rem]"
-        onSlamComplete={onSlamComplete}
+      {actionFirst ? [action, stampGrid] : [stampGrid, action]}
+      <RewardTicket
+        state={reward.state}
+        name={reward.name}
+        description={reward.description}
+        readyDate={reward.readyDate}
+        sealSlammed={reward.sealSlammed}
       />
-      {afterGrid}
-      {offerLayout && reward.state === "sealed" ? (
-        <div className="grid gap-3 border-t-2 border-dashed border-line pt-3">
-          <p className="text-sm leading-5">
-            {total <= current
-              ? "Your card is complete."
-              : total - current === 1
-                ? "One more visit to unlock your reward."
-                : `${total - current} more visits to unlock your reward.`}
-          </p>
-          {reward.description ? (
-            <p className="text-xs leading-5 text-muted-foreground">
-              {reward.description}
-            </p>
-          ) : null}
-        </div>
-      ) : (
-        <RewardTicket
-          state={reward.state}
-          name={reward.name}
-          description={reward.description}
-          readyDate={reward.readyDate}
-          sealSlammed={reward.sealSlammed}
-        />
-      )}
       {children}
     </CustomerReceipt>
   )

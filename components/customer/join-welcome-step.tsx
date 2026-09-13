@@ -64,7 +64,7 @@ export function WelcomeStep({
           rewardTerms: exp.card.rewardTerms,
         }}
         triggerLabel="View full venue terms"
-        triggerClassName="inline-flex w-fit text-xs font-bold underline underline-offset-4"
+        triggerClassName="focus-ring inline-flex min-h-11 w-fit items-center text-xs font-bold underline underline-offset-4"
       />
     </CustomerFlowShell>
   )
@@ -78,7 +78,7 @@ export function WelcomeStep({
 function HowItWorksList() {
   return (
     <details className="group grid gap-2 text-left">
-      <summary className="focus-ring eyebrow flex cursor-pointer list-none items-center justify-between gap-3 rounded-md py-1 text-muted-foreground [&::-webkit-details-marker]:hidden">
+      <summary className="focus-ring eyebrow flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-md py-2 text-muted-foreground [&::-webkit-details-marker]:hidden">
         <span>{JOIN_WELCOME_HOW_IT_WORKS_LABEL}</span>
         <span
           aria-hidden="true"

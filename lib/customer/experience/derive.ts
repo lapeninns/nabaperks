@@ -131,6 +131,8 @@ export type RewardContext =
       /** Server-confirmed collection instant for the redeemed-proof line (F26). */
       redeemedAt?: string | null
       justRedeemed: boolean
+      /** The customer asked to complete collection details before the reward opens. */
+      prepare?: boolean
       location: LocationRequirement
       profileGate?: ProfileGate
     }
@@ -437,6 +439,11 @@ function deriveReward(context: RewardContext): CustomerExperience {
         reward: context.reward,
         merchantName: context.merchantName,
         fromCard: true,
+        profileGate: context.profileGate,
+        // Preparing is offered only where there is something to complete, so a
+        // customer whose details are already saved is never asked again.
+        preparing:
+          context.prepare === true && context.profileGate !== undefined,
       }
     default:
       return {

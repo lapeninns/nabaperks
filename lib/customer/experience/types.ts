@@ -282,6 +282,14 @@ export type CustomerExperience =
       reward: RewardView
       merchantName: string
       fromCard: boolean
+      /**
+       * Collection requirements, so the waiting screen can offer the optional
+       * "Get ready to collect" step. Preparing changes the profile only — never
+       * the reward's timing or its eligibility to be collected.
+       */
+      profileGate?: ProfileGate
+      /** The customer asked to prepare early (`/reward/[id]?prepare=1`). */
+      preparing?: boolean
     }
   | {
       kind: "reward_ready"

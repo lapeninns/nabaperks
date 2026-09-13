@@ -2,7 +2,10 @@ import { notFound } from "next/navigation"
 
 import { PageTitle } from "@/components/brand"
 import { HomeBirthdayPrompt } from "@/components/customer/home-birthday-prompt"
+import { HomeRedeemBanner } from "@/components/customer/home-redeem-banner"
+import { HomeSummaryStrip } from "@/components/customer/home-summary-strip"
 import { HomeCardTile } from "@/components/customer/home-card-tile"
+import { buildHomeSummary } from "@/lib/customer/home-dashboard"
 import type { HomeCard } from "@/lib/customer/home-types"
 
 export const runtime = "nodejs"
@@ -36,7 +39,7 @@ const VENUE_DETAILS_CARD: HomeCard = {
 export default async function HomeHarnessHomePage({
   searchParams,
 }: {
-  searchParams?: Promise<{ dob?: string }>
+  searchParams?: Promise<{ dob?: string; reward?: string; long?: string }>
 }) {
   if (process.env.NODE_ENV === "production") {
     notFound()
@@ -47,12 +50,37 @@ export default async function HomeHarnessHomePage({
 
   return (
     <div className="grid gap-6">
-      <PageTitle
-        eyebrow="My Nabaperks"
-        title="Your cards"
-        description="Every card you've collected. Tap one to see its stamps and rewards."
+      {/* Mirrors the real wallet: title only, no description. */}
+      <PageTitle eyebrow="My Nabaperks" title="Your cards" />
+
+      {/* The strip is always on so both summary labels — a card that can still
+          take a stamp, and a card with a reward ready — stay screenshot-provable.
+          Counts come from the real `buildHomeSummary` over the fixture card, with
+          only the reward count switched by `?reward=ready` (the fixture carries no
+          issued reward of its own). */}
+      <HomeSummaryStrip
+        summary={{
+          ...buildHomeSummary([VENUE_DETAILS_CARD]),
+          redeemableCount: params.reward === "ready" ? 1 : 0,
+        }}
       />
 
+      {params.reward === "ready" ? (
+        <HomeRedeemBanner
+          topRedeemable={{
+            rewardId: "harness-reward",
+            membershipId: VENUE_DETAILS_CARD.membershipId,
+            businessName:
+              params.long === "1"
+                ? "The extraordinarily long neighbourhood venue name"
+                : VENUE_DETAILS_CARD.businessName,
+            rewardName:
+              params.long === "1"
+                ? "AnExtraordinarilyLongUnbrokenRewardNameForLayoutTesting"
+                : "A mystery reward",
+          }}
+        />
+      ) : null}
       {hasDob ? null : <HomeBirthdayPrompt />}
 
       <HomeCardTile card={VENUE_DETAILS_CARD} offerPasses={[]} />

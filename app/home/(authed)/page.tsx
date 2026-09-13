@@ -32,11 +32,10 @@ export default async function HomeDashboardPage() {
 
   return (
     <div className="grid gap-6">
-      <PageTitle
-        eyebrow="My Nabaperks"
-        title="Your cards"
-        description="Every card you've collected. Tap one to see its stamps and rewards."
-      />
+      {/* No description: a returning wallet should reach its summary, ready
+          reward and cards immediately, and the empty wallet is explained in full
+          by HomeEmptyState below rather than twice over. */}
+      <PageTitle eyebrow="My Nabaperks" title="Your cards" />
 
       {cards.length === 0 ? (
         <HomeEmptyState />

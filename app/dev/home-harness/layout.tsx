@@ -21,10 +21,6 @@ export const metadata: Metadata = {
  * parent `app/dev/layout.tsx` already returns notFound in production; the guard
  * is repeated here for defence in depth.
  */
-async function noopSignOutAction() {
-  "use server"
-}
-
 export default function HomeHarnessLayout({
   children,
 }: {
@@ -35,8 +31,6 @@ export default function HomeHarnessLayout({
   }
 
   return (
-    <CustomerAppShell signOutAction={noopSignOutAction}>
-      {children}
-    </CustomerAppShell>
+    <CustomerAppShell>{children}</CustomerAppShell>
   )
 }

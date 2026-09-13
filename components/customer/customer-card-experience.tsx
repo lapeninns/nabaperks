@@ -15,6 +15,7 @@ import {
   CustomerFlowShell,
   CustomerReceipt,
   CustomerStampCard,
+  type FlowProgress,
 } from "@/components/customer/customer-flow-system"
 import { ReferralBonusBankNotice } from "@/components/customer/referral-bonus-bank-panels"
 import { CustomerTabBar } from "@/components/layout"
@@ -35,6 +36,10 @@ import { StampCelebration } from "@/components/motion"
 import { Button } from "@/components/ui/button"
 import { SEALED_REWARD_NAME, SEALED_REWARD_NOTE } from "@/lib/copy/product-copy"
 import {
+  collectionProgressVisible,
+  collectionSetup,
+} from "@/lib/customer/experience/collection-stage"
+import {
   getCustomerExperienceViewModel,
   waitingRewardTiming,
   type CustomerExperienceViewModel,
@@ -42,10 +47,6 @@ import {
 import { rewardSourceBadge } from "@/lib/customer/issued-reward-display"
 import { hasVisibleReferralBonusBank } from "@/lib/customer/referral-bonus-bank-copy"
 import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
-import {
-  OfferFlowShell,
-  OfferVenueLine,
-} from "@/components/customer/offer-flow-shell"
 import { OfferPassRail } from "@/components/customer/offer-pass-rail"
 import type { CustomerOfferPass } from "@/lib/customer/offer-pass"
 import type { OfferClaimNotice } from "@/lib/customer/offer-pass-view"
@@ -75,32 +76,15 @@ export function CustomerCardExperience({
   experience,
   offerPasses,
   offerClaimNotice,
+  qrSrc,
 }: {
   experience: CustomerExperience
   offerPasses: readonly CustomerOfferPass[]
   offerClaimNotice: OfferClaimNotice | null
+  /** Harness-only reward QR source override; production never passes it. */
+  qrSrc?: string
 }) {
   const vm = getCustomerExperienceViewModel(experience)
-
-  if (experience.kind === "card_collecting" && offerPasses.length > 0) {
-    return (
-      <>
-        <OfferFlowShell backHref="/home" label="Your card" className="pb-28">
-          <OfferVenueLine>{experience.merchantName}</OfferVenueLine>
-          <h1 className="text-3xl leading-tight font-extrabold tracking-tight">
-            Your {experience.merchantName} card
-          </h1>
-          <ExperiencePanel
-            experience={experience}
-            vm={vm}
-            offerPasses={offerPasses}
-            offerClaimNotice={offerClaimNotice}
-          />
-        </OfferFlowShell>
-        <CustomerTabBar />
-      </>
-    )
-  }
 
   return (
     <>
@@ -108,12 +92,13 @@ export function CustomerCardExperience({
         eyebrow={vm.eyebrow}
         title={vm.headline}
         description={vm.supportLine}
+        progress={collectionProgress(experience)}
         className="pb-28"
-        // Only the stamp screens opt into the landscape floor: their band
-        // restates the state, so the support line can give way there. The
-        // access-recovery and reward screens keep theirs — it is the
-        // instruction.
-        landscapeCompact={isStampScreen(experience.kind)}
+        // Screens whose panel states what to do in its own words opt into the
+        // landscape floor: the stamp band, and the collection code, whose
+        // instruction sits beside it. Everywhere else the support line *is* the
+        // instruction, so it stays at full size.
+        landscapeCompact={landscapeCompact(experience)}
         screenLabel={screenLabelFor(experience.kind)}
       >
         <ExperiencePanel
@@ -121,6 +106,7 @@ export function CustomerCardExperience({
           vm={vm}
           offerPasses={offerPasses}
           offerClaimNotice={offerClaimNotice}
+          qrSrc={qrSrc}
         />
       </CustomerFlowShell>
       <CustomerTabBar />
@@ -133,11 +119,13 @@ function ExperiencePanel({
   vm,
   offerPasses,
   offerClaimNotice,
+  qrSrc,
 }: {
   experience: CustomerExperience
   vm: CustomerExperienceViewModel
   offerPasses: readonly CustomerOfferPass[]
   offerClaimNotice: OfferClaimNotice | null
+  qrSrc?: string
 }) {
   switch (experience.kind) {
     case "card_collecting":
@@ -156,7 +144,7 @@ function ExperiencePanel({
     case "reward_waiting":
       return <RewardWaitingPanel exp={experience} />
     case "reward_ready":
-      return <RewardReadyPanel exp={experience} />
+      return <RewardReadyPanel exp={experience} qrSrc={qrSrc} />
     case "redeemed_proof":
       return <RedeemedProofPanel exp={experience} vm={vm} />
     case "unavailable":
@@ -176,7 +164,6 @@ function CardProgressPanel({
   offerPasses: readonly CustomerOfferPass[]
   offerClaimNotice: OfferClaimNotice | null
 }) {
-  const offerLayout = offerPasses.length > 0
   const cardComplete = exp.total > 0 && exp.current >= exp.total
   const rewardState: RewardTicketState =
     exp.reward === "ready"
@@ -239,15 +226,13 @@ function CardProgressPanel({
       {exp.justStamped || exp.justJoined || exp.justRedeemed ? (
         <CelebrationUrlCleanup />
       ) : null}
-      {offerLayout ? null : (
-        <Link
-          href="/home"
-          className="inline-flex w-fit items-center gap-1.5 text-sm font-bold text-ink-soft underline-offset-4 transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:text-foreground hover:underline motion-reduce:transition-none"
-        >
-          <Icon icon={ArrowLeft01Icon} size={16} />
-          Your cards
-        </Link>
-      )}
+      <Link
+        href="/home"
+        className="inline-flex w-fit items-center gap-1.5 text-sm font-bold text-ink-soft underline-offset-4 transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:text-foreground hover:underline motion-reduce:transition-none"
+      >
+        <Icon icon={ArrowLeft01Icon} size={16} />
+        Your cards
+      </Link>
 
       {offerClaimNotice ? (
         <OfferClaimBanner
@@ -257,7 +242,6 @@ function CardProgressPanel({
       ) : null}
 
       <CustomerStampCard
-        offerLayout={offerLayout}
         venueName={exp.merchantName}
         cardName={exp.cardName}
         current={exp.current}
@@ -325,7 +309,7 @@ function CardProgressPanel({
           </>
         }
       >
-        {offerLayout ? null : <CardPrimaryAction exp={exp} />}
+        <CardPrimaryAction exp={exp} />
       </CustomerStampCard>
 
       {exp.gift ? (
@@ -335,8 +319,6 @@ function CardProgressPanel({
       {offerPasses.map((pass) => (
         <OfferPassRail key={pass.entitlementId} pass={pass} />
       ))}
-
-      {offerLayout ? <CardPrimaryAction exp={exp} /> : null}
 
       {hasVisibleReferralBonusBank(exp.referralBonusBank) ? (
         <ReferralBonusBankNotice bank={exp.referralBonusBank} />
@@ -508,7 +490,7 @@ function OfferClaimBanner({
 function CardDetailsDisclosure({ cardNumber }: { cardNumber: string }) {
   return (
     <details className="group text-left">
-      <summary className="focus-ring flex w-fit cursor-pointer list-none items-center gap-1.5 rounded-sm text-xs font-bold text-ink-soft underline-offset-4 hover:underline [&::-webkit-details-marker]:hidden">
+      <summary className="focus-ring flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 rounded-sm text-xs font-bold text-ink-soft underline-offset-4 hover:underline [&::-webkit-details-marker]:hidden">
         Card details
         <Icon
           icon={ArrowDown01Icon}
@@ -690,12 +672,43 @@ function cardNumber(membershipId: string): string {
   return `CARD Nº ${membershipId.slice(0, 8).toUpperCase()}`
 }
 
-function isStampScreen(kind: CustomerExperienceKind): boolean {
+function landscapeCompact(experience: CustomerExperience): boolean {
+  if (
+    experience.kind === "stamp_confirm" ||
+    experience.kind === "card_stamped_today" ||
+    experience.kind === "stamp_unmatched"
+  ) {
+    return true
+  }
+
+  // Only the collection stage: while a setup step is outstanding the headline
+  // is the instruction and must not shrink.
   return (
-    kind === "stamp_confirm" ||
-    kind === "card_stamped_today" ||
-    kind === "stamp_unmatched"
+    experience.kind === "reward_ready" &&
+    !collectionSetup(experience.profileGate).outstanding
   )
+}
+
+/**
+ * The collection setup readout, and only where it is true. It appears when this
+ * customer genuinely has more than one step left, counts the steps their own
+ * profile still needs, and never renders once the requirements are met.
+ */
+function collectionProgress(
+  experience: CustomerExperience
+): FlowProgress | undefined {
+  const gate =
+    experience.kind === "reward_ready"
+      ? experience.profileGate
+      : experience.kind === "reward_waiting" && experience.preparing
+        ? experience.profileGate
+        : undefined
+  if (!gate) return undefined
+
+  const setup = collectionSetup(gate)
+  if (!collectionProgressVisible(setup)) return undefined
+
+  return { step: setup.step, total: setup.total, label: "Collection setup" }
 }
 
 function screenLabelFor(kind: CustomerExperienceKind): string {

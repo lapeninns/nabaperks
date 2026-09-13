@@ -48,6 +48,10 @@ test.describe("@customer-flow customer home dashboard", () => {
       await expect(
         page.getByRole("link", { name: "Scan venue QR" })
       ).toBeVisible()
+      // Sign-out left the sticky header for the Profile screen's account
+      // section; the fixed tab bar keeps it two taps from every screen.
+      await expect(page.getByRole("button", { name: "Log out" })).toHaveCount(0)
+      await expect(page.getByRole("link", { name: "Profile" })).toBeVisible()
       await expect(page.getByText(fixture.businessName)).toHaveCount(0)
       await expectNoHorizontalOverflow(page)
     } finally {
@@ -77,7 +81,13 @@ test.describe("@customer-flow customer home dashboard", () => {
       await expect(
         page.getByRole("heading", { level: 1, name: "Your cards" })
       ).toBeVisible()
-      await expect(page.getByText(/1 card.*1 reward ready/)).toBeVisible()
+      // The strip names what it counts: cards with a reward ready, and cards
+      // that could still take a stamp — never a stamp presented as collected.
+      await expect(
+        page.getByText(
+          /^1 card \/ 1 card with a reward ready \/ \d+ cards? ready for a stamp$/
+        )
+      ).toBeVisible()
       await expect(page.getByText("Ready for scan")).toBeVisible()
       await expect(
         page.getByRole("heading", { name: fixture.readyRewardName })
@@ -85,6 +95,9 @@ test.describe("@customer-flow customer home dashboard", () => {
       await expect(page.getByText(fixture.businessName).first()).toBeVisible()
       await expect(page.getByText("Reward ready").first()).toBeVisible()
       await expect(page.getByText("Open reward QR").first()).toBeVisible()
+      await expect(
+        page.getByText("Reward ready to collect — show the QR at the counter")
+      ).toBeVisible()
       await expect(page.getByText("Latest visits")).toBeVisible()
       await expect(
         page.getByText(`Reward redeemed at ${fixture.businessName}`)
@@ -124,7 +137,11 @@ test.describe("@customer-flow customer home dashboard", () => {
       await expect(
         page.getByRole("heading", { level: 1, name: "Your cards" })
       ).toBeVisible()
-      await expect(page.getByText(/1 card.*0 rewards ready/)).toBeVisible()
+      await expect(
+        page.getByText(
+          /^1 card \/ 0 cards with a reward ready \/ \d+ cards? ready for a stamp$/
+        )
+      ).toBeVisible()
       await expect(page.getByText(fixture.businessName).first()).toBeVisible()
       await expect(page.getByText("Reward soon")).toBeVisible()
       await expect(page.getByText("Your reward")).toBeVisible()

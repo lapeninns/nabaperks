@@ -81,8 +81,11 @@ export function registerMerchantIdVerificationTests() {
             response.status() === 200
         )
         await page.goto(`/reward/${fixture.rewardEventId}`)
+        // The photo-ID requirement stays beside the collection code, not behind
+        // the details disclosure: it is what the customer needs in hand.
+        await expect(page.getByText("Photo ID needed")).toBeVisible()
         await expect(
-          page.getByText("Show this code and your photo ID to the venue owner.")
+          page.getByText("Show this code to the team.", { exact: true })
         ).toBeVisible()
         await expect(
           page.getByRole("img", {
@@ -104,7 +107,7 @@ export function registerMerchantIdVerificationTests() {
         await expect(
           page
             .getByRole("figure", {
-              name: `Merchant-scan QR for ${fixture.rewardName}`,
+              name: `Collection code for ${fixture.rewardName}`,
             })
             .locator("[aria-busy]")
         ).toHaveAttribute("aria-busy", "false")

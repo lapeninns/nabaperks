@@ -17,6 +17,7 @@ type RewardPageProps = {
   }>
   searchParams: Promise<{
     reward?: string | string[]
+    prepare?: string | string[]
   }>
 }
 
@@ -28,6 +29,10 @@ export default async function RewardPage({
   const query = await searchParams
   const context = await loadRewardExperienceContext(rewardId, {
     justRedeemed: firstParam(query.reward) === "redeemed",
+    // The early "Get ready to collect" step. It only opens the existing profile
+    // gate form — reward timing and collection eligibility stay server-derived
+    // and are untouched by this flag.
+    prepare: firstParam(query.prepare) === "1",
   })
   const experience = deriveCustomerExperience({ entry: "reward", context })
 
