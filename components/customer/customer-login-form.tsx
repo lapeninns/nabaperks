@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState, useState } from "react"
+import { useActionState } from "react"
 
 import type { CustomerLoginOtpState } from "@/app/home/actions"
 import { submitCustomerLoginOtpAction } from "@/app/home/login/otp-action"
@@ -9,7 +9,6 @@ import { CustomerOtpInput } from "@/components/customer/customer-otp-input"
 import { customerInputClass } from "@/components/customer/input-class"
 import { SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty"
-import { Button } from "@/components/ui/button"
 import { Field, FieldGroup } from "@/components/ui/field"
 import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
 import { JOIN_PHONE_CODE_HINT } from "@/lib/customer/experience/copy"
@@ -29,11 +28,7 @@ export function CustomerLoginForm({
   loginAction = submitCustomerLoginOtpAction,
 }: CustomerLoginFormProps) {
   const [state, submitAction, pending] = useActionState(loginAction, {})
-  // Editing belongs to this result only; the next server result exits it and
-  // replaces stale errors without wrapping the Server Action in client code.
-  const [editingResult, setEditingResult] =
-    useState<CustomerLoginOtpState | null>(null)
-  const editingContact = editingResult === state
+  const editingContact = Boolean(state.fields?.editingContact)
   const contact = state.fields?.contact ?? ""
   const otpSent = Boolean(state.fields?.otpSent) && !editingContact
   const contactError = editingContact ? undefined : state.errors?.contact
@@ -130,16 +125,19 @@ export function CustomerLoginForm({
                 Resend code
               </SubmitButton>
             </form>
-            <Button
-              type="button"
-              variant="link"
-              size="xs"
-              className="h-auto min-h-11 justify-start px-0 text-left whitespace-normal"
-              disabled={pending}
-              onClick={() => setEditingResult(state)}
-            >
-              Wrong number? Use a different one
-            </Button>
+            <form action={submitAction}>
+              <input type="hidden" name="intent" value="edit" />
+              <input type="hidden" name="contact" value={contact} />
+              <SubmitButton
+                variant="link"
+                size="xs"
+                className="h-auto min-h-11 justify-start px-0 text-left whitespace-normal"
+                disabled={pending}
+                pendingLabel="Changing number…"
+              >
+                Wrong number? Use a different one
+              </SubmitButton>
+            </form>
             <p
               role="status"
               aria-live="polite"

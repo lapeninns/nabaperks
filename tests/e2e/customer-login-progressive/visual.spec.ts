@@ -6,26 +6,39 @@ test.beforeEach(async ({ page }) => {
   // The test harness marks the whole body inert until its hydration signal.
   // Production has no such guard. Remove only that test attribute from native
   // navigation responses so this fixture represents the ordinary no-JS page.
-  await page.route("**/dev/customer-login", async (route) => {
-    const response = await route.fetch()
-    const html = await response.text()
-    expect(html).toContain('data-playwright-harness="true"')
-    await route.fulfill({
-      response,
-      body: html.replace(/(<body\b[^>]*?)\s+inert=""/, "$1"),
-    })
-  })
+  await page.route(
+    (url) => url.pathname === "/dev/customer-login",
+    async (route) => {
+      const response = await route.fetch()
+      const html = await response.text()
+      expect(html).toContain('data-playwright-harness="true"')
+      await route.fulfill({
+        response,
+        body: html.replace(/(<body\b[^>]*?)\s+inert=""/, "$1"),
+      })
+    }
+  )
 })
 
-test("login requests, resends and checks a code without JavaScript", async ({
+test("login corrects the number, resends and checks a code without JavaScript", async ({
   page,
 }) => {
-  await page.goto("/dev/customer-login")
+  await page.goto("/dev/customer-login?next=%2Fhome%2Frewards")
   await page.getByLabel("Phone number", { exact: true }).fill("07700900123")
   await page.getByRole("button", { name: "Send code", exact: true }).click()
   await expect(
     page.getByRole("heading", { name: "Enter your code" })
   ).toBeVisible()
+  await page
+    .getByRole("button", { name: "Wrong number? Use a different one" })
+    .click()
+  const phone = page.getByLabel("Phone number", { exact: true })
+  await expect(phone).toBeVisible()
+  await expect(phone).toHaveValue("07700900123")
+  await phone.fill("07700900456")
+  await page.getByRole("button", { name: "Send code", exact: true }).click()
+  await expect(page.getByText("Phone ending 0456")).toBeVisible()
+  await expect(page.locator('input[name="next"]')).toHaveValue("/home/rewards")
   await page.getByLabel("Phone code").fill("000000")
   await page.getByRole("button", { name: "Open my cards" }).click()
   await expect(page.getByText("That code was not accepted.")).toBeVisible()

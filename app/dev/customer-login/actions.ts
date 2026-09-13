@@ -10,6 +10,14 @@ export async function submitLoginFixture(
   data: FormData
 ): Promise<CustomerLoginOtpState> {
   if (process.env.NODE_ENV === "production") notFound()
+  if (data.get("intent") === "edit") {
+    return {
+      fields: {
+        contact: String(data.get("contact") ?? ""),
+        editingContact: true,
+      },
+    }
+  }
   return data.get("intent") === "verify"
     ? verifyLoginFixture(scenario, state, data)
     : requestLoginFixture(scenario, state, data)
