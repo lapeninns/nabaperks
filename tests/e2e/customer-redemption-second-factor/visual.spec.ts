@@ -9,9 +9,9 @@ test("hides collection value until the profile email is verified", async ({
 
   await expect(page.getByLabel("Email address")).toBeVisible()
   await expect(
-    page.getByText(/one-time code to verify a new email/i)
+    page.getByText(/one-time code to confirm your address/i)
   ).toBeVisible()
-  await expect(page.getByAltText(/collection QR/i)).toHaveCount(0)
+  await expect(page.getByAltText(/QR code for collecting/i)).toHaveCount(0)
   await expect(
     page.getByRole("button", { name: "Save and email my code" })
   ).toBeVisible()

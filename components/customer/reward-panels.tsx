@@ -142,7 +142,7 @@ function RewardCollectionSetupPanel({
       />
       {setup.stage === "details" ? (
         <p className="text-center text-xs leading-5 text-muted-foreground">
-          Your reward is held for you while you finish this.
+          Complete these details before showing your reward code.
         </p>
       ) : null}
     </section>

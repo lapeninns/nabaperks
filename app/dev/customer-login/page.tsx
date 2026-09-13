@@ -2,7 +2,7 @@ import { notFound } from "next/navigation"
 
 import { CustomerLoginForm } from "@/components/customer/customer-login-form"
 import { CustomerShell } from "@/components/layout"
-import { requestLoginFixture, verifyLoginFixture } from "./actions"
+import { submitLoginFixture } from "./actions"
 
 export default async function CustomerLoginHarness({
   searchParams,
@@ -15,8 +15,7 @@ export default async function CustomerLoginHarness({
     <CustomerShell>
       <CustomerLoginForm
         next="/home"
-        requestCodeAction={requestLoginFixture.bind(null, scenario)}
-        verifyCodeAction={verifyLoginFixture.bind(null, scenario)}
+        loginAction={submitLoginFixture.bind(null, scenario)}
       />
     </CustomerShell>
   )

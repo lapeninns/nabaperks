@@ -69,6 +69,15 @@ const GATES: Record<string, ProfileGate> = {
     email: "alex@example.test",
     emailLocked: true,
   },
+  "details-unverified-email": {
+    complete: false,
+    dateOfBirthVerified: false,
+    needsEmailVerification: true,
+    fullName: null,
+    dateOfBirth: null,
+    email: "alex@example.test",
+    emailLocked: false,
+  },
   email: {
     complete: false,
     dateOfBirthVerified: false,

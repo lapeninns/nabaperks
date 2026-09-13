@@ -2,11 +2,8 @@
 
 import { useActionState, useState } from "react"
 
-import {
-  requestCustomerLoginOtpAction,
-  verifyCustomerLoginOtpAction,
-  type CustomerLoginOtpState,
-} from "@/app/home/actions"
+import type { CustomerLoginOtpState } from "@/app/home/actions"
+import { submitCustomerLoginOtpAction } from "@/app/home/login/otp-action"
 import { ReceiptCard, VenueMark } from "@/components/brand"
 import { CustomerOtpInput } from "@/components/customer/customer-otp-input"
 import { customerInputClass } from "@/components/customer/input-class"
@@ -24,28 +21,19 @@ type LoginAction = (
 
 type CustomerLoginFormProps = {
   readonly next: string
-  readonly requestCodeAction?: LoginAction
-  readonly verifyCodeAction?: LoginAction
+  readonly loginAction?: LoginAction
 }
 
 export function CustomerLoginForm({
   next,
-  requestCodeAction = requestCustomerLoginOtpAction,
-  verifyCodeAction = verifyCustomerLoginOtpAction,
+  loginAction = submitCustomerLoginOtpAction,
 }: CustomerLoginFormProps) {
-  const [editingContact, setEditingContact] = useState(false)
-  // One result stream means a fresh request replaces stale verification errors.
-  // The server actions still own rate limits, the pending phone and the session.
-  const [state, submitAction, pending] = useActionState<
-    CustomerLoginOtpState,
-    FormData
-  >(async (previous, data) => {
-    const result = await (data.get("intent") === "verify"
-      ? verifyCodeAction(previous, data)
-      : requestCodeAction(previous, data))
-    setEditingContact(false)
-    return result
-  }, {})
+  const [state, submitAction, pending] = useActionState(loginAction, {})
+  // Editing belongs to this result only; the next server result exits it and
+  // replaces stale errors without wrapping the Server Action in client code.
+  const [editingResult, setEditingResult] =
+    useState<CustomerLoginOtpState | null>(null)
+  const editingContact = editingResult === state
   const contact = state.fields?.contact ?? ""
   const otpSent = Boolean(state.fields?.otpSent) && !editingContact
   const contactError = editingContact ? undefined : state.errors?.contact
@@ -148,7 +136,7 @@ export function CustomerLoginForm({
               size="xs"
               className="h-auto min-h-11 justify-start px-0 text-left whitespace-normal"
               disabled={pending}
-              onClick={() => setEditingContact(true)}
+              onClick={() => setEditingResult(state)}
             >
               Wrong number? Use a different one
             </Button>
