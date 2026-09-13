@@ -7,6 +7,81 @@ test.describe("@customer-flow @a11y welcome offer composition", () => {
     await dismissPwaInstall(page)
   })
 
+  test("offer content uses the standard joining layout and independent consent controls", async ({
+    page,
+  }) => {
+    for (const surface of ["phone", "code", "terms"]) {
+      for (const offer of ["none", "attached"]) {
+        await page.goto(`/dev/welcome-offer?surface=${surface}&offer=${offer}`)
+        const shell = page.locator('[data-screen-label="Customer join"]')
+        await expect(shell.locator("header")).toContainText("nabaperks")
+        await expect(shell.getByText(/Step \d of 3/)).toBeVisible()
+        await expect(shell.getByRole("heading", { level: 1 })).toHaveCSS(
+          "text-align",
+          "center"
+        )
+        const reminder = shell.getByRole("complementary", {
+          name: "Offer in progress",
+        })
+        if (offer === "attached") {
+          await expect(reminder).toContainText("Student & Staff Welcome Pass")
+          await expect(reminder).toContainText("2 bonus stamps and 10% off")
+        } else {
+          await expect(reminder).toHaveCount(0)
+        }
+        if (surface === "terms") {
+          await expect(page.locator("#loyalty-terms")).not.toBeChecked()
+          await expect(page.locator("#marketing-opt-in")).not.toBeChecked()
+          await page.locator("#loyalty-terms").check()
+          await expect(page.locator("#marketing-opt-in")).not.toBeChecked()
+        }
+      }
+    }
+  })
+
+  test("a discount pass preserves the standard card, reward ticket and stamp action", async ({
+    page,
+  }) => {
+    for (const offer of ["none", "attached"]) {
+      await page.goto(`/dev/welcome-offer?surface=card&offer=${offer}`)
+      await expect(
+        page.getByRole("heading", { name: "Loyalty card" })
+      ).toBeVisible()
+      await expect(
+        page.getByRole("link", { name: "Your cards", exact: true })
+      ).toHaveAttribute("href", "/home")
+      const receipt = page.locator('[data-edge-class="receipt-edge"]')
+      await expect(
+        receipt.getByRole("list", { name: /2 of 3 stamps/ })
+      ).toBeVisible()
+      await expect(
+        receipt.getByText("Something's under there.", { exact: true })
+      ).toBeVisible()
+      await expect(
+        receipt.getByRole("link", { name: "Scan to stamp" })
+      ).toHaveAttribute("href", "/scan")
+      const pass = page.getByRole("link", { name: /^Show pass QR,/ })
+      if (offer === "attached") {
+        await expect(pass).toHaveAttribute(
+          "href",
+          "/pass/abcd1234-0000-4000-8000-0000000000e1"
+        )
+        await expect(
+          receipt.getByRole("link", { name: /^Show pass QR,/ })
+        ).toHaveCount(0)
+      } else {
+        await expect(pass).toHaveCount(0)
+      }
+    }
+    await page.goto("/dev/welcome-offer?surface=card&state=claimed")
+    await expect(
+      page.getByText("Offer added to your card.", { exact: true })
+    ).toBeVisible()
+    await expect(
+      page.getByRole("link", { name: /^Show pass QR,/ })
+    ).toBeVisible()
+  })
+
   for (const width of [390, 320, 1024]) {
     test(`reflows real offer surfaces at ${width}px with complete long terms`, async ({
       page,

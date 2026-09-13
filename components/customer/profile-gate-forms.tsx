@@ -12,6 +12,7 @@ import { CustomerOtpInput } from "@/components/customer/customer-otp-input"
 import { profileInputClass } from "@/components/customer/profile-form-parts"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
+import { collectionSetup } from "@/lib/customer/experience/collection-stage"
 import type { ProfileGate } from "@/lib/customer/experience/types"
 import { latestAdultBirthDate } from "@/lib/customer/profile-fields"
 
@@ -24,7 +25,7 @@ export function CustomerProfileGateForm({
   rewardId: string
   gate: ProfileGate
 }) {
-  if (gate.needsEmailVerification) {
+  if (collectionSetup(gate).stage === "email") {
     return <ProfileEmailStep rewardId={rewardId} email={gate.email} />
   }
 
@@ -47,15 +48,16 @@ function ProfileDetailsStep({
     <form action={action} className="grid gap-4">
       <input type="hidden" name="rewardId" value={rewardId} />
 
-      <StatusBanner
-        title="A few details before this one's yours"
-        tone="neutral"
-      >
-        Add your name, date of birth, and email before collection.
+      {/* The screen headline already names this step, so the lead says only
+          what the details are for. Checking photo ID is a separate thing the
+          venue does in person and is never mentioned here. */}
+      <p className="text-sm leading-6 text-muted-foreground">
+        Venues need your name and date of birth before a reward can be handed
+        over.
         {gate.emailLocked
           ? null
-          : " We'll send a one-time code to verify a new email."}
-      </StatusBanner>
+          : " We'll email a one-time code to confirm your address."}
+      </p>
 
       <Field
         label="Full name"
@@ -143,10 +145,10 @@ function ProfileEmailStep({
 
   return (
     <div className="grid gap-4">
-      <StatusBanner title="Confirm your email" tone="neutral">
-        Enter the code we sent{email ? ` to ${email}` : ""} to verify your email
-        before collection.
-      </StatusBanner>
+      <p className="text-sm leading-6 text-muted-foreground">
+        Enter the code we sent{email ? ` to ${email}` : ""}. This confirms the
+        address only — your details are already saved.
+      </p>
 
       <form action={action} className="grid gap-4">
         <input type="hidden" name="rewardId" value={rewardId} />

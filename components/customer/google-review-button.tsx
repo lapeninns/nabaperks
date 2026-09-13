@@ -11,9 +11,16 @@ export function GoogleReviewButton({
   venueName: string
 }) {
   return (
-    <Button asChild size="sm" variant="outline" className="w-full">
+    <Button
+      asChild
+      size="sm"
+      variant="outline"
+      className="h-auto min-h-11 w-full py-2 whitespace-normal"
+    >
       <a href={url} target="_blank" rel="noreferrer">
-        Review {venueName} on Google
+        <span className="min-w-0 [overflow-wrap:anywhere]">
+          Review {venueName} on Google
+        </span>
         <Icon icon={ArrowUpRight01Icon} size={14} />
       </a>
     </Button>

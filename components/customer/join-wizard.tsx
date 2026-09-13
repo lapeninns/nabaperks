@@ -2,7 +2,6 @@ import type { ReactNode } from "react"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 
-import { OfferFlowShell } from "@/components/customer/offer-flow-shell"
 import { JoinOfferReminder } from "@/components/customer/join-offer-reminder"
 import type { PendingJoinOffer } from "@/lib/customer/pending-join-offer"
 import { VenueMark } from "@/components/brand"
@@ -126,7 +125,6 @@ function PhoneStep({
       vm={vm}
       pendingOffer={pendingOffer}
       venueName={exp.merchant.name}
-      venueSlug={exp.merchant.slug}
       progress={joinProgress("join_phone", Boolean(exp.qrId))}
       dense
     >
@@ -159,7 +157,6 @@ function OtpStep({
       vm={vm}
       pendingOffer={pendingOffer}
       venueName={exp.merchant.name}
-      venueSlug={exp.merchant.slug}
       progress={joinProgress("join_otp", Boolean(exp.qrId))}
       dense
     >
@@ -190,7 +187,6 @@ function TermsStep({
       vm={vm}
       pendingOffer={pendingOffer}
       venueName={exp.merchant.name}
-      venueSlug={exp.merchant.slug}
       progress={joinProgress("join_terms", Boolean(exp.qrId))}
       dense
     >
@@ -367,65 +363,32 @@ function JoinShell({
   children,
   pendingOffer,
   venueName,
-  venueSlug,
 }: {
   pendingOffer?: PendingJoinOffer | null
   venueName?: string
-  venueSlug?: string
   vm: CustomerExperienceViewModel
   progress?: FlowProgress
   centered?: boolean
   dense?: boolean
   children: ReactNode
 }) {
-  if (pendingOffer && venueName && venueSlug) {
-    return (
-      <OfferFlowShell backHref={`/m/${venueSlug}`} label={venueName}>
-        {progress ? (
-          <div
-            className="grid grid-cols-3 gap-2"
-            aria-label={`Step ${progress.step} of 3`}
-          >
-            {["Your number", "Your code", "Your card"].map((label, index) => (
-              <span
-                key={label}
-                aria-current={index + 1 === progress.step ? "step" : undefined}
-                className={`mono-id border-t-4 pt-2 tracking-normal ${index + 1 === progress.step ? "border-cobalt text-cobalt" : "border-line-strong text-muted-foreground"}`}
-              >
-                {index + 1} {label}
-              </span>
-            ))}
-          </div>
-        ) : null}
-        <div className="grid gap-2">
-          <p className="eyebrow text-cobalt">
-            {progress?.step === 1
-              ? "One text, no password"
-              : progress?.step === 2
-                ? "Check your messages"
-                : "Last step"}
-          </p>
-          <h1 className="text-3xl leading-tight font-extrabold tracking-tight">
-            {progress?.step === 1
-              ? "Save your card to your number"
-              : vm.headline}
-          </h1>
-        </div>
-        <JoinOfferReminder offer={pendingOffer} venueName={venueName} />
-        {children}
-      </OfferFlowShell>
-    )
-  }
   return (
     <CustomerFlowShell
       eyebrow={vm.eyebrow}
-      title={vm.headline}
+      title={
+        pendingOffer && progress?.step === 1
+          ? "Save your card to your number"
+          : vm.headline
+      }
       description={vm.supportLine}
       progress={progress}
       dense={dense}
       className={centered ? "content-center" : undefined}
       screenLabel="Customer join"
     >
+      {pendingOffer && venueName ? (
+        <JoinOfferReminder offer={pendingOffer} venueName={venueName} />
+      ) : null}
       {children}
     </CustomerFlowShell>
   )

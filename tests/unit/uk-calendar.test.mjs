@@ -41,3 +41,31 @@ test("Given ISO dates When display labels are formatted Then they use short Brit
   assert.equal(formatStampDisplayDateFromIso("2026-06-14"), "14 JUN")
   assert.equal(formatRewardReadyDate("2026-06-18"), "Thu 18 Jun")
 })
+
+test("Receipt dates stay deterministic across months, including Safari's September abbreviation", () => {
+  const months = [
+    "JAN",
+    "FEB",
+    "MAR",
+    "APR",
+    "MAY",
+    "JUN",
+    "JUL",
+    "AUG",
+    "SEP",
+    "OCT",
+    "NOV",
+    "DEC",
+  ]
+  for (const [index, month] of months.entries()) {
+    assert.equal(
+      formatStampDisplayDateFromIso(
+        `2026-${String(index + 1).padStart(2, "0")}-12`
+      ),
+      `12 ${month}`
+    )
+  }
+  assert.equal(formatRewardReadyDate("2026-09-12"), "Sat 12 Sep")
+  assert.equal(formatRewardReadyDate("2026-12-31"), "Thu 31 Dec")
+  assert.equal(formatRewardReadyDate("2027-01-01"), "Fri 1 Jan")
+})

@@ -13,7 +13,10 @@ import { GoogleReviewButton } from "@/components/customer/google-review-button"
 import { ReferralBonusBankMini } from "@/components/customer/referral-bonus-bank-panels"
 import { ReferralShareButton } from "@/components/customer/referral-share-button"
 import { StampGrid } from "@/components/loyalty"
-import { homeCardStatusCopy } from "@/lib/customer/home-dashboard"
+import {
+  homeCardNextStep,
+  homeCardStatusCopy,
+} from "@/lib/customer/home-dashboard"
 import { rewardSourceBadge } from "@/lib/customer/issued-reward-display"
 import { hasVisibleReferralBonusBank } from "@/lib/customer/referral-bonus-bank-copy"
 import { formatRewardReadyDate } from "@/lib/customer/uk-calendar"
@@ -41,12 +44,10 @@ export function HomeCardTile({
   const href = card.stampRewardId
     ? `/reward/${card.stampRewardId}`
     : `/card/${card.membershipId}`
-  const rewardTag =
-    card.stampRewardId !== undefined
-      ? { tone: "leaf" as const, label: "Reward ready" }
-      : card.unlockedRewards > 0
-        ? { tone: "sun" as const, label: "Reward soon" }
-        : null
+  // One chip names what this card can do next — a reward to collect, a reward
+  // still waiting, a stamp the venue can add today, or today's stamp already
+  // collected — so the tile's next step reads at a glance.
+  const nextStep = homeCardNextStep(card)
   const rewardSlot = card.stampRewardId
     ? "ready"
     : card.unlockedRewards > 0
@@ -57,10 +58,10 @@ export function HomeCardTile({
     : "Back next opening day"
 
   return (
-    <div className="grid gap-2">
+    <div className="grid min-w-0 gap-2">
       <Link
         href={href}
-        className="focus-ring block rounded-[var(--radius)]"
+        className="focus-ring block min-w-0 rounded-[var(--radius)]"
         aria-label={`Open your ${card.businessName} card`}
       >
         {/* No hover shadow utilities here: the unlayered card layer pins the
@@ -83,8 +84,8 @@ export function HomeCardTile({
             <MonoTag tone={card.stampRewardId ? "leaf" : "plain"}>
               {card.stampRewardId ? "Open reward QR" : "Open card"}
             </MonoTag>
-            {rewardTag ? (
-              <MonoTag tone={rewardTag.tone}>{rewardTag.label}</MonoTag>
+            {nextStep ? (
+              <MonoTag tone={nextStep.tone}>{nextStep.label}</MonoTag>
             ) : null}
           </div>
 

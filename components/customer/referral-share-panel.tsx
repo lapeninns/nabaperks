@@ -122,7 +122,7 @@ export function ReferralSharePanel({
           {url}
         </span>
         <details className="group text-left">
-          <summary className="focus-ring flex w-fit cursor-pointer list-none items-center gap-1 rounded-sm text-xs font-bold text-ink-soft underline-offset-4 hover:underline [&::-webkit-details-marker]:hidden">
+          <summary className="focus-ring flex min-h-11 w-fit cursor-pointer list-none items-center gap-1 rounded-sm text-xs font-bold text-ink-soft underline-offset-4 hover:underline [&::-webkit-details-marker]:hidden">
             More options
             <span
               aria-hidden="true"

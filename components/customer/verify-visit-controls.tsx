@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 
 import { LocationPermissionHelp } from "@/components/customer/location-permission-help"
 import { NativeGeolocationButton } from "@/components/customer/native-geolocation-button"
@@ -12,6 +12,7 @@ import {
   type StampLocationCapture,
 } from "@/lib/customer/stamp-location-capture"
 import type { StampLocationIssue } from "@/lib/customer/stamp-location-recovery"
+import { cn } from "@/lib/utils"
 
 export type VerifyVisitControlsProps = {
   /** A stamp request is in flight or the card is secured — neither control may start anything. */
@@ -22,6 +23,13 @@ export type VerifyVisitControlsProps = {
   onUseGrace: () => void
   /** The code form is already open beneath, so its button is redundant. */
   codeOpen: boolean
+  /**
+   * The six-digit form itself, rendered inside the recovery area rather than
+   * after it. A blocked permission is exactly when a customer needs the field
+   * in front of them: leaving it below the grace and settings disclosures put
+   * the one thing that still works at the bottom of the screen.
+   */
+  venueCodeSlot?: ReactNode
   /** The browser answered (a fix, a refusal, or a timeout). Never called for a cancelled wait. */
   onCapture: (capture: StampLocationCapture) => void
   /** The customer chose the code. An in-flight location wait is abandoned first. */
@@ -37,7 +45,10 @@ export type VerifyVisitControlsProps = {
  * customer who has since allowed location in site settings gets a real
  * reading on the tap. After a Chrome deny, the native location control can
  * reopen a blocked prompt. "Enter venue code" opens the six-digit form
- * without a failed location attempt first.
+ * without a failed location attempt first. Once permission is refused the
+ * order flips: the venue code sits before the retry control and the
+ * site-settings steps fold into "Help with location access" beneath, so the
+ * route that works at the counter is never below a screen of instructions.
  */
 export function VerifyVisitControls({
   disabled,
@@ -46,6 +57,7 @@ export function VerifyVisitControls({
   graceRemaining,
   onUseGrace,
   codeOpen,
+  venueCodeSlot,
   onCapture,
   onOpenCode,
   onAcquiringChange,
@@ -135,8 +147,38 @@ export function VerifyVisitControls({
       ? "Taking longer than expected. Keep waiting, or enter today's venue code."
       : null
 
+  // A refused permission is the one issue a retry rarely fixes on the spot:
+  // the browser stops prompting, and the settings route ends in a different
+  // app. So the code a team member reads out becomes the primary recovery and
+  // the location attempt stays as a real, honest second chance. Every other
+  // issue (a slow, missing or coarse fix) can be answered by trying again,
+  // and keeps its own instruction and primary retry.
+  const deniedRecovery = recoveryIssue === "denied"
+  const venueCodeButton = codeOpen ? null : (
+    <Button
+      type="button"
+      variant={deniedRecovery ? "default" : "outline"}
+      size="lg"
+      className="w-full"
+      disabled={disabled}
+      onClick={openCode}
+      data-enter-venue-code
+    >
+      Enter venue code
+    </Button>
+  )
+
   return (
     <div data-verify-visit className="grid gap-2">
+      {deniedRecovery ? (
+        <div className="grid gap-2" data-venue-code-route>
+          <p className="text-sm leading-5">
+            Ask a team member for today&apos;s venue code.
+          </p>
+          {venueCodeButton}
+          {venueCodeSlot}
+        </div>
+      ) : null}
       {nativeRecovery ? (
         <NativeGeolocationButton
           disabled={disabled || acquiring}
@@ -146,8 +188,9 @@ export function VerifyVisitControls({
       ) : (
         <Button
           type="button"
+          variant={deniedRecovery ? "outline" : "default"}
           size="lg"
-          className="w-full hover:bg-primary"
+          className={cn("w-full", !deniedRecovery && "hover:bg-primary")}
           disabled={disabled || acquiring}
           onClick={() => {
             void askForLocation()
@@ -161,28 +204,14 @@ export function VerifyVisitControls({
               : "Use my location"}
         </Button>
       )}
-      {recoveryIssue === "denied" ? (
-        <LocationPermissionHelp nativeRecovery={nativeRecovery} />
-      ) : null}
-      {recoveryIssue ? (
+      {recoveryIssue && !deniedRecovery ? (
         <p className="text-sm leading-5 text-muted-foreground">
           No stamp added. You can also ask a team member for today&apos;s venue
           code.
         </p>
       ) : null}
-      {codeOpen ? null : (
-        <Button
-          type="button"
-          variant="outline"
-          size="lg"
-          className="w-full"
-          disabled={disabled}
-          onClick={openCode}
-          data-enter-venue-code
-        >
-          Enter venue code
-        </Button>
-      )}
+      {deniedRecovery ? null : venueCodeButton}
+      {deniedRecovery ? null : venueCodeSlot}
       {recoveryIssue && (graceRemaining ?? 0) > 0 ? (
         <details>
           <summary className="min-h-11 cursor-pointer py-3 text-sm font-bold focus-visible:outline-2 focus-visible:outline-offset-2">
@@ -214,6 +243,9 @@ export function VerifyVisitControls({
         >
           {hint}
         </p>
+      ) : null}
+      {deniedRecovery ? (
+        <LocationPermissionHelp nativeRecovery={nativeRecovery} />
       ) : null}
     </div>
   )

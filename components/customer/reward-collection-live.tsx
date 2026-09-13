@@ -19,9 +19,15 @@ const POLL_INTERVAL_MS = 1500
 export function RewardCollectionLive({
   rewardId,
   rewardName,
+  idCheckRequired = false,
+  qrSrc,
 }: {
   rewardId: string
   rewardName: string
+  /** Passed through so the photo-ID requirement stays beside the code. */
+  idCheckRequired?: boolean
+  /** Harness-only QR source override — see {@link RewardCollectionQr}. */
+  qrSrc?: string
 }) {
   const router = useRouter()
   const [redeemed, setRedeemed] = useState(false)
@@ -98,12 +104,17 @@ export function RewardCollectionLive({
   }, [rewardId, redeemed, router])
 
   return (
-    <div className="grid gap-3">
-      <RewardCollectionQr rewardId={rewardId} rewardName={rewardName} />
+    <div className="grid gap-3 short:gap-2">
+      <RewardCollectionQr
+        rewardId={rewardId}
+        rewardName={rewardName}
+        idCheckRequired={idCheckRequired}
+        qrSrc={qrSrc}
+      />
       <p className="sr-only" role="status" aria-live="polite">
         {redeemed
           ? "Reward collected. Updating your screen."
-          : "Waiting for the merchant to scan your reward QR."}
+          : "Waiting for the team to scan your collection code."}
       </p>
     </div>
   )

@@ -34,6 +34,8 @@ export type CustomerLoginOtpState = {
     contact?: string
     /** A code has been sent — show the code entry step. */
     otpSent?: boolean
+    /** Focus the phone field after the customer asks to correct it. */
+    editingContact?: boolean
   }
   errors?: {
     contact?: string
