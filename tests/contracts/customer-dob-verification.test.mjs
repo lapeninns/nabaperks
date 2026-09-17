@@ -92,7 +92,10 @@ test("DOB verification retains audited admin support while the QR allows owner r
   // An unverified date of birth still gets its own collection stage, and the
   // requirement is stated beside the code the venue scans — not folded into the
   // ordinary ready state, and not hidden behind the details disclosure.
-  assert.match(collectionStage, /gate\.dateOfBirthVerified \? "ready" : "id_check"/)
+  assert.match(
+    collectionStage,
+    /gate\.dateOfBirthVerified \? "ready" : "id_check"/
+  )
   assert.match(rewardPanel, /idCheckRequired=\{setup\.stage === "id_check"\}/)
   assert.match(collectionQr, /idCheckRequired \? \(/)
   assert.match(collectionQr, /Photo ID needed/)

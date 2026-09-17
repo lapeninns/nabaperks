@@ -43,7 +43,8 @@ export const COLLECTION_STAGE_INSTRUCTION: Record<CollectionStage, string> = {
  * two, not back at the beginning.
  */
 export function collectionSetup(gate: ProfileGate): CollectionSetup {
-  if (!gate.complete && gate.needsEmailVerification) {
+  const detailsSaved = Boolean(gate.fullName?.trim() && gate.dateOfBirth)
+  if (!gate.complete && detailsSaved && gate.needsEmailVerification) {
     return { stage: "email", outstanding: true, step: 2, total: 2 }
   }
 

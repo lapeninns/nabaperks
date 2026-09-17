@@ -56,9 +56,7 @@ test.describe("@customer-flow profile email verification layout", () => {
     // The wallet header carries the wordmark only; the account action sits in
     // Profile, which the fixed tab bar reaches from every screen.
     const header = page.locator("header").first()
-    await expect(
-      header.getByRole("button", { name: "Log out" })
-    ).toHaveCount(0)
+    await expect(header.getByRole("button", { name: "Log out" })).toHaveCount(0)
     await expect(
       page.getByRole("link", { name: "Profile", exact: true })
     ).toBeVisible()

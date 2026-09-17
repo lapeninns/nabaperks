@@ -30,7 +30,5 @@ export default function HomeHarnessLayout({
     notFound()
   }
 
-  return (
-    <CustomerAppShell>{children}</CustomerAppShell>
-  )
+  return <CustomerAppShell>{children}</CustomerAppShell>
 }

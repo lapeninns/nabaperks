@@ -81,12 +81,10 @@ test.describe("@customer-flow customer home dashboard", () => {
       await expect(
         page.getByRole("heading", { level: 1, name: "Your cards" })
       ).toBeVisible()
-      // The strip names what it counts: cards with a reward ready, and cards
-      // that could still take a stamp — never a stamp presented as collected.
+      // Both fixtures have a full three-stamp card. Zero-action counts stay
+      // hidden, so only the ready fixture advertises a collectible reward.
       await expect(
-        page.getByText(
-          /^1 card \/ 1 card with a reward ready \/ \d+ cards? ready for a stamp$/
-        )
+        page.getByText("1 card / 1 card with a reward ready", { exact: true })
       ).toBeVisible()
       await expect(page.getByText("Ready for scan")).toBeVisible()
       await expect(
@@ -137,11 +135,7 @@ test.describe("@customer-flow customer home dashboard", () => {
       await expect(
         page.getByRole("heading", { level: 1, name: "Your cards" })
       ).toBeVisible()
-      await expect(
-        page.getByText(
-          /^1 card \/ 0 cards with a reward ready \/ \d+ cards? ready for a stamp$/
-        )
-      ).toBeVisible()
+      await expect(page.getByText("1 card", { exact: true })).toBeVisible()
       await expect(page.getByText(fixture.businessName).first()).toBeVisible()
       await expect(page.getByText("Reward soon")).toBeVisible()
       await expect(page.getByText("Your reward")).toBeVisible()

@@ -186,7 +186,6 @@ test("blocked or expired reward facts render unavailable copy instead of collect
   })
 })
 
-
 test("each collection stage leads with the one step that customer must take", () => {
   const stages = [
     [MISSING_DETAILS, "details"],
@@ -247,6 +246,35 @@ test("collection progress counts only the steps this customer still has", () => 
 
   // Nothing outstanding is never dressed up as a step in progress.
   assert.equal(collectionProgressVisible(collectionSetup(profileGate())), false)
+})
+
+test("missing profile details precede an unverified email", () => {
+  for (const missing of [
+    { fullName: null },
+    { fullName: "   " },
+    { dateOfBirth: null },
+  ]) {
+    const gate = { ...UNVERIFIED_EMAIL, ...missing }
+    assert.deepEqual(collectionSetup(gate), {
+      stage: "details",
+      outstanding: true,
+      step: 1,
+      total: 2,
+    })
+    // Once these fields are saved the same unverified email is the final step.
+    assert.equal(collectionSetup(UNVERIFIED_EMAIL).stage, "email")
+    const verifiedEmail = {
+      ...gate,
+      emailLocked: true,
+      needsEmailVerification: false,
+    }
+    assert.deepEqual(collectionSetup(verifiedEmail), {
+      stage: "details",
+      outstanding: true,
+      step: 1,
+      total: 1,
+    })
+  }
 })
 
 test("a waiting reward offers early preparation without becoming collectable", () => {

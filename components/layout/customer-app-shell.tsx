@@ -3,11 +3,7 @@ import type { ReactNode } from "react"
 import { Logo } from "@/components/brand"
 import { CustomerTabBar } from "./customer-tab-bar"
 
-export function CustomerAppShell({
-  children,
-}: {
-  children: ReactNode
-}) {
+export function CustomerAppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-svh bg-background">
       <header className="sticky top-0 z-40 border-b-2 border-ink bg-card">

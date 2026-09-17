@@ -25,10 +25,7 @@ import type {
 } from "@/lib/customer/experience/types"
 import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
 
-type WaitingExperience = Extract<
-  CustomerExperience,
-  { kind: "reward_waiting" }
->
+type WaitingExperience = Extract<CustomerExperience, { kind: "reward_waiting" }>
 
 type ReadyExperience = Extract<CustomerExperience, { kind: "reward_ready" }>
 
@@ -96,7 +93,8 @@ function RewardPreparePanel({ exp }: { exp: WaitingExperience }) {
         </>
       ) : (
         <StatusBanner title="Your details are ready" tone="success">
-          Nothing else to complete. {waitingRewardTiming(exp.reward.redeemableFrom)}
+          Nothing else to complete.{" "}
+          {waitingRewardTiming(exp.reward.redeemableFrom)}
         </StatusBanner>
       )}
       <Button asChild size="lg" variant="secondary" className="w-full">
@@ -144,7 +142,7 @@ function RewardCollectionSetupPanel({
       />
       {setup.stage === "details" ? (
         <p className="text-center text-xs leading-5 text-muted-foreground">
-          Your reward is held for you while you finish this.
+          Complete these details before showing your reward code.
         </p>
       ) : null}
     </section>

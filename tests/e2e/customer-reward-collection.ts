@@ -63,6 +63,25 @@ export function describeCustomerRewardCollection() {
     await dismissPwaInstall(page)
   })
 
+  test("missing details come before an existing unverified email", async ({
+    page,
+  }) => {
+    await gotoHydratedPage(page, `${HARNESS}?state=details-unverified-email`)
+    await expect(
+      page.getByRole("heading", { name: "Complete your details" })
+    ).toBeVisible()
+    await expect(page.getByLabel("Full name")).toBeVisible()
+    await expect(page.getByLabel("Date of birth")).toBeVisible()
+    await expect(page.getByLabel("Email address")).toHaveValue(
+      "alex@example.test"
+    )
+    await expect(page.getByLabel("Email code")).toHaveCount(0)
+    await expect(
+      page.getByRole("img", { name: /QR code for collecting/i })
+    ).toHaveCount(0)
+    await expect(page.getByText(/reward is held/i)).toHaveCount(0)
+  })
+
   for (const [width, height] of PORTRAIT) {
     test(`the whole collection code and its instruction fit ${width}x${height}`, async ({
       page,
