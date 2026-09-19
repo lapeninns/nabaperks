@@ -101,6 +101,23 @@ test("unlocked rewards that are not yet redeemable render the waiting state", ()
   })
 })
 
+test("a waiting reward renders its authoritative London instant through the real view model", () => {
+  const experience = deriveCustomerExperience({
+    entry: "reward",
+    context: rewardContext({
+      reward: rewardView({ redeemableFrom: "2026-10-27T05:30:00Z" }),
+      availableForReview: false,
+    }),
+  })
+
+  assert.equal(experience.kind, "reward_waiting")
+  assert.deepEqual(getCustomerExperienceViewModel(experience), {
+    eyebrow: "Reward",
+    headline: "Mystery round",
+    supportLine: "Unlocked — yours from Tuesday 27 October at 05:30.",
+  })
+})
+
 test("redeemable rewards carry the profile gate into the ready state", () => {
   const profileGate = {
     complete: false,

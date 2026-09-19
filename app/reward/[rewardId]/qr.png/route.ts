@@ -34,7 +34,7 @@ export async function GET(_request: Request, context: RewardQrRouteContext) {
     return NextResponse.json(
       {
         state: rewardState.collection.state,
-        reason: availability.status === "blocked" ? availability.reason : null,
+        reason: rewardState.collection.reason,
         availableFrom: rewardState.collection.availableFrom,
       },
       { status: 409, headers: { "Cache-Control": "private, no-store" } }

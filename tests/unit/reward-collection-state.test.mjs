@@ -3,6 +3,7 @@ import { test } from "node:test"
 
 import {
   formatCollectionAvailability,
+  formatCollectionAvailableLabel,
   parseRewardCollectionState,
 } from "@/lib/customer/reward-collection-state"
 
@@ -28,7 +29,12 @@ test("Given an authoritative collection instant When formatted Then the London d
     formatCollectionAvailability("2026-10-27T05:30:00Z"),
     "Ready Tuesday 27 October at 05:30"
   )
+  assert.equal(
+    formatCollectionAvailableLabel("2026-10-27T05:30:00Z"),
+    "Tuesday 27 October at 05:30"
+  )
   assert.equal(formatCollectionAvailability(null), null)
+  assert.equal(formatCollectionAvailableLabel(null), null)
 })
 
 test("Given stale or malformed predicate facts When parsed Then they fail closed", () => {

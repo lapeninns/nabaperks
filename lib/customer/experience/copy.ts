@@ -1,6 +1,8 @@
 import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
-import { formatCollectionAvailability } from "@/lib/customer/reward-collection-state"
-import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
+import {
+  formatCollectionAvailability,
+  formatCollectionAvailableLabel,
+} from "@/lib/customer/reward-collection-state"
 import { buildCustomerJoinHref } from "@/lib/navigation/customer-join-intent"
 
 import {
@@ -291,9 +293,8 @@ function rewardIdentityLine(exp: RewardExperience): string {
 }
 
 function waitingRewardSupportLine(redeemableFrom: string | null): string {
-  if (redeemableFrom) {
-    return `Unlocked — yours from ${formatStampDisplayDateFromIso(redeemableFrom)}.`
-  }
+  const available = formatCollectionAvailableLabel(redeemableFrom)
+  if (available) return `Unlocked — yours from ${available}.`
   return "Unlocked — yours from the next opening day."
 }
 

@@ -81,7 +81,7 @@ test("Given a reward QR image is requested When source is inspected Then token m
   assert.match(route, /!profile\?\.complete/)
   assert.doesNotMatch(route, /!profile\.dateOfBirthVerified/)
   assert.match(route, /state: rewardState\.collection\.state/)
-  assert.match(route, /reason:/)
+  assert.match(route, /reason: rewardState\.collection\.reason/)
   assert.match(route, /availableFrom: rewardState\.collection\.availableFrom/)
   assert.match(
     route,

@@ -35,6 +35,12 @@ export function formatCollectionAvailability(
   return `Ready ${LONDON_AVAILABILITY.format(instant).replace(",", " at")}`
 }
 
+export function formatCollectionAvailableLabel(
+  value: string | null
+): string | null {
+  return formatCollectionAvailability(value)?.replace(/^Ready /, "") ?? null
+}
+
 const MALFORMED = "Unable to load reward: malformed collection state"
 
 export function parseRewardCollectionState(
