@@ -50,7 +50,7 @@ async function state(tx, membershipId, customerId) {
 
 async function expectedCard(tx, merchantId) {
   const [card] = await tx`select card_name, stamps_required, reward_name,
-      reward_terms, is_active
+      reward_terms, is_active, minimum_spend_pence, one_transaction_per_stamp
     from public.loyalty_cards
     where merchant_id = ${merchantId}::uuid
     order by is_active desc, created_at asc

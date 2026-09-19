@@ -1,10 +1,10 @@
-import { isRedeemableFrom } from "@/lib/customer/uk-date"
+import type { RewardCollectionState } from "@/lib/customer/reward-collection-state"
 
 export type UnlockedRewardPickRow = {
   id: string
   source?: string | null
   created_at?: string | null
-  redeemable_from: string | null
+  collection_state: RewardCollectionState
 }
 
 /** Earned cycle rewards outrank issued gifts when both are unlocked. */
@@ -22,8 +22,8 @@ export function comparePrimaryUnlockedRewards(
   const sourceDelta = sourceRank(a.source) - sourceRank(b.source)
   if (sourceDelta !== 0) return sourceDelta
 
-  const aRedeemable = isRedeemableFrom(a.redeemable_from)
-  const bRedeemable = isRedeemableFrom(b.redeemable_from)
+  const aRedeemable = a.collection_state === "ready"
+  const bRedeemable = b.collection_state === "ready"
   if (aRedeemable !== bRedeemable) return aRedeemable ? -1 : 1
 
   const aCreated = a.created_at ?? ""
@@ -43,9 +43,9 @@ export function pickPrimaryUnlockedReward<T extends UnlockedRewardPickRow>(
  * Only stamp-cycle rewards block new stamps and stamp-route QR collection.
  * Issued rewards (birthday, merchant direct) redeem on their own rail.
  */
-export function pickStampBlockingUnlockedReward<T extends UnlockedRewardPickRow>(
-  rows: readonly T[]
-): T | null {
+export function pickStampBlockingUnlockedReward<
+  T extends UnlockedRewardPickRow,
+>(rows: readonly T[]): T | null {
   return pickPrimaryUnlockedReward(
     rows.filter((row) => (row.source ?? "stamp_cycle") === "stamp_cycle")
   )

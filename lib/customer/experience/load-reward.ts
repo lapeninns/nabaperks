@@ -36,17 +36,13 @@ export async function loadRewardExperienceContext(
     }
   }
 
-  const { reward, assignedReward, loyaltyCard, merchant, membership } =
+  const { reward, assignedReward, collection, loyaltyCard, merchant } =
     rewardState
   const location = await getLocationRequirement(loyaltyCard.location_id)
   const availability = rewardQrAvailability({
-    status: reward.status,
-    source: reward.source,
-    redeemableFrom: reward.redeemable_from,
-    expiresAt: reward.expires_at,
-    currentStampCount: membership.current_stamp_count,
-    stampsRequired: loyaltyCard.stamps_required,
-    unavailableReason: rewardState.unavailableReason,
+    collectionState: collection.state,
+    collectionReason: collection.reason,
+    availableFrom: collection.availableFrom,
   })
   const availableForReview = availability.status === "ready"
   // The gate governs collection, so it is read for a reward the customer can

@@ -1,14 +1,12 @@
-import { rewardStampThresholdMet } from "@/lib/customer/issued-reward-display"
-import { formatLondonIso } from "@/lib/customer/uk-calendar"
+import {
+  rewardCollectionBlockedCopy,
+  type RewardCollectionState,
+} from "@/lib/customer/reward-collection-state"
 
 type RewardQrFacts = {
-  status: string
-  source: string | null
-  redeemableFrom: string | null
-  expiresAt: string | null
-  currentStampCount: number
-  stampsRequired: number
-  unavailableReason?: string
+  readonly collectionState: RewardCollectionState
+  readonly collectionReason: string | null
+  readonly availableFrom: string | null
 }
 
 export type RewardQrAvailability =
@@ -18,38 +16,25 @@ export type RewardQrAvailability =
  * Verified DOB is deliberately a collection requirement, not a QR requirement.
  */
 export function rewardQrAvailability(
-  facts: RewardQrFacts,
-  now: Date = new Date()
+  facts: RewardQrFacts
 ): RewardQrAvailability {
-  if (
-    facts.status === "expired" ||
-    (facts.expiresAt && Date.parse(facts.expiresAt) <= now.getTime())
-  ) {
-    return { status: "blocked", reason: "This reward has expired." }
+  switch (facts.collectionState) {
+    case "ready":
+      return { status: "ready" }
+    case "waiting":
+      return { status: "waiting" }
+    case "expired":
+      return { status: "blocked", reason: "This reward has expired." }
+    case "redeemed":
+    case "cancelled":
+      return {
+        status: "blocked",
+        reason: "This reward is no longer available to collect.",
+      }
+    case "blocked":
+      return {
+        status: "blocked",
+        reason: rewardCollectionBlockedCopy(facts.collectionReason),
+      }
   }
-  if (facts.status !== "unlocked") {
-    return {
-      status: "blocked",
-      reason: "This reward is no longer available to collect.",
-    }
-  }
-  if (facts.unavailableReason) {
-    return { status: "blocked", reason: facts.unavailableReason }
-  }
-  if (
-    !rewardStampThresholdMet(
-      facts.source,
-      facts.currentStampCount,
-      facts.stampsRequired
-    )
-  ) {
-    return {
-      status: "blocked",
-      reason: "Collect the remaining stamps before opening this reward.",
-    }
-  }
-  if (facts.redeemableFrom && facts.redeemableFrom > formatLondonIso(now)) {
-    return { status: "waiting" }
-  }
-  return { status: "ready" }
 }

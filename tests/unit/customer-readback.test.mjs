@@ -24,12 +24,88 @@ function customerRow(overrides = {}) {
     },
     activeReward: {
       id: "reward_event_1",
-      redeemable_from: "2026-06-30",
+      collection_state: "ready",
     },
     last_redeemed_at: null,
     ...overrides,
   }
 }
+
+test("a v2 waiting reward stays waiting at both 0/3 and 3/3 stamps", () => {
+  for (const currentStampCount of [0, 3]) {
+    const waiting = buildMerchantCustomerReadback(
+      customerRow({
+        current_stamp_count: currentStampCount,
+        stamps_required: 3,
+        activeReward: {
+          id: "reward_event_waiting",
+          collection_state: "waiting",
+        },
+      }),
+      now
+    )
+    assert.deepEqual(waiting.badge, {
+      label: "Reward waiting",
+      tone: "waiting",
+      redeemable: false,
+    })
+  }
+})
+
+test("a cap-blocked reward is unavailable even at the old stamp threshold", () => {
+  const row = buildMerchantCustomerReadback(
+    customerRow({
+      current_stamp_count: 3,
+      stamps_required: 3,
+      activeReward: {
+        id: "reward_event_cap_blocked",
+        collection_state: "blocked",
+      },
+    }),
+    now
+  )
+  assert.deepEqual(row.badge, {
+    label: "Reward unavailable",
+    tone: "waiting",
+    redeemable: false,
+  })
+})
+
+test("an expired reward is never shown as ready", () => {
+  const row = buildMerchantCustomerReadback(
+    customerRow({
+      activeReward: {
+        id: "reward_event_expired",
+        collection_state: "expired",
+      },
+    }),
+    now
+  )
+  assert.deepEqual(row.badge, {
+    label: "Reward expired",
+    tone: "redeemed",
+    redeemable: false,
+  })
+})
+
+test("a ready reward stays ready with a fresh 0/3 cycle", () => {
+  const row = buildMerchantCustomerReadback(
+    customerRow({
+      current_stamp_count: 0,
+      stamps_required: 3,
+      activeReward: {
+        id: "reward_event_ready",
+        collection_state: "ready",
+      },
+    }),
+    now
+  )
+  assert.deepEqual(row.badge, {
+    label: "Reward ready",
+    tone: "ready",
+    redeemable: true,
+  })
+})
 
 test("ready reward rows do not expose a reward event id as a scan token", () => {
   const row = buildMerchantCustomerReadback(customerRow(), now)

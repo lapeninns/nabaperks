@@ -29,7 +29,7 @@ test("Given a reward detail route is loaded When source is inspected Then reward
     /const location = await getLocationRequirement\(loyaltyCard\.location_id\)/
   )
   assert.match(loader, /redeemedAt: reward\.redeemed_at/)
-  assert.match(loader, /unavailableReason: rewardState\.unavailableReason/)
+  assert.match(loader, /availability\.status === "blocked"/)
   assert.doesNotMatch(loader, /searchParams|request|customerId:\s*string/)
 })
 
@@ -46,13 +46,9 @@ test("Given a reward might be waiting, blocked, or ready When the loader compute
   )
 
   assert.match(redeemableBlock, /rewardQrAvailability\(/)
-  assert.match(redeemableBlock, /status: reward\.status/)
-  assert.match(redeemableBlock, /source: reward\.source/)
-  assert.match(redeemableBlock, /expiresAt: reward\.expires_at/)
-  assert.match(
-    redeemableBlock,
-    /unavailableReason: rewardState\.unavailableReason/
-  )
+  assert.match(redeemableBlock, /collectionState: collection\.state/)
+  assert.match(redeemableBlock, /collectionReason: collection\.reason/)
+  assert.match(redeemableBlock, /availableFrom: collection\.availableFrom/)
 })
 
 test("Given collection requirements govern a collectable or waiting reward When the reward is blocked Then the profile gate is skipped", () => {
@@ -108,7 +104,7 @@ test("Given the reward state uses service-role reads When source is inspected Th
   )
   assert.ok(
     stateLoader.indexOf("reward.customer_id !== currentCustomer.id") <
-      stateLoader.indexOf("loyaltyAvailability"),
+      stateLoader.indexOf("await getRewardCollectionState"),
     "reward ownership must be checked before availability facts are returned"
   )
 })

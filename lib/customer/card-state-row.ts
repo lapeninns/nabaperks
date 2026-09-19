@@ -1,3 +1,8 @@
+import {
+  parseRewardCollectionState,
+  type RewardCollectionState,
+} from "@/lib/customer/reward-collection-state"
+
 /**
  * Narrows the jsonb returned by `public.get_customer_card_state` and holds the
  * reward-summary shape the card surfaces render, so the RPC loader and its
@@ -12,6 +17,9 @@ export type UnlockedRewardRow = {
   expires_at: string | null
   source: string | null
   created_at: string | null
+  collection_state: RewardCollectionState
+  collection_reason: string | null
+  available_from: string | null
 }
 
 export type RewardSummary = Omit<UnlockedRewardRow, "created_at">
@@ -106,6 +114,9 @@ export function toRewardSummary(
     redeemable_from: reward.redeemable_from,
     expires_at: reward.expires_at,
     source: reward.source,
+    collection_state: reward.collection_state,
+    collection_reason: reward.collection_reason,
+    available_from: reward.available_from,
   }
 }
 
@@ -124,6 +135,12 @@ function parseLoyaltyCard(value: unknown) {
 
 function parseReward(value: unknown): UnlockedRewardRow {
   if (!isRecord(value)) throw new Error(MALFORMED)
+  const collection = parseRewardCollectionState({
+    state: value.collection_state,
+    reason: value.collection_reason,
+    available_from: value.available_from,
+    expires_at: value.expires_at,
+  })
 
   return {
     id: requireString(value.id),
@@ -134,6 +151,9 @@ function parseReward(value: unknown): UnlockedRewardRow {
     expires_at: nullableString(value.expires_at),
     source: nullableString(value.source),
     created_at: nullableString(value.created_at),
+    collection_state: collection.state,
+    collection_reason: collection.reason,
+    available_from: collection.availableFrom,
   }
 }
 

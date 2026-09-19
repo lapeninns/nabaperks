@@ -49,6 +49,11 @@ const EXPECTED_SIGNATURES = {
     "p_customer_id uuid, p_session_id uuid, p_device_hash text",
   ],
   get_customer_card_state: ["p_membership_id uuid, p_customer_id uuid"],
+  get_reward_collection_state: ["p_reward_id uuid"],
+  get_reward_collection_states: ["p_reward_ids uuid[]"],
+  list_pending_reward_notification_candidates: [
+    "p_event_type text, p_now timestamp with time zone, p_limit integer",
+  ],
 }
 
 const ready = await isLiveDbReady()

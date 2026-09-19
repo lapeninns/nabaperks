@@ -1,7 +1,10 @@
 import "server-only"
 
-import { loyaltyAvailability } from "@/lib/customer/availability"
 import { getCurrentCustomer } from "@/lib/customer/identity"
+import {
+  parseRewardCollectionState,
+  type RewardCollectionSnapshot,
+} from "@/lib/customer/reward-collection-state"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export type CustomerRewardState =
@@ -9,7 +12,7 @@ export type CustomerRewardState =
   | {
       status: "ready"
       customerId: string
-      unavailableReason?: string
+      collection: RewardCollectionSnapshot
       reward: {
         id: string
         status: string
@@ -58,13 +61,12 @@ export type CustomerRewardStatus =
       reward: {
         status: string
         redeemed_at: string | null
+        collection_state: RewardCollectionSnapshot["state"]
       }
     }
 
 type BillingCustomerEmbed =
-  | { status: string | null }
-  | Array<{ status: string | null }>
-  | null
+  { status: string | null } | Array<{ status: string | null }> | null
 
 type RawReward = {
   id: string
@@ -155,12 +157,15 @@ export async function getCustomerRewardStatus(
     return { status: "unauthorized" }
   }
 
+  const collection = await getRewardCollectionState(supabase, rewardId)
+
   return {
     status: "ready",
     customerId: reward.customer_id,
     reward: {
       status: reward.status,
       redeemed_at: reward.redeemed_at,
+      collection_state: collection.state,
     },
   }
 }
@@ -188,27 +193,22 @@ export async function getCustomerRewardState(
   if (!data) return { status: "not_found" }
 
   const reward = data as RawReward
+  if (reward.customer_id !== currentCustomer.id) {
+    return { status: "unauthorized" }
+  }
+
   const membership = first(reward.customer_memberships)
   const merchant = first(reward.merchants)
   const loyaltyCard = first(reward.loyalty_cards)
   const billingStatus =
     firstNullable(merchant.billing_customers)?.status ?? null
 
-  if (reward.customer_id !== currentCustomer.id) {
-    return { status: "unauthorized" }
-  }
-
-  const unavailableReason = loyaltyAvailability({
-    merchantStatus: merchant.status,
-    cardActive: loyaltyCard.is_active,
-    billingStatus,
-    requiresBilling: merchant.requires_billing,
-  }).message
+  const collection = await getRewardCollectionState(supabase, rewardId)
 
   return {
     status: "ready",
     customerId: reward.customer_id,
-    unavailableReason,
+    collection,
     reward: {
       id: reward.id,
       status: reward.status,
@@ -233,6 +233,21 @@ export async function getCustomerRewardState(
     loyaltyCard,
     billingStatus,
   }
+}
+
+export async function getRewardCollectionState(
+  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
+  rewardId: string
+): Promise<RewardCollectionSnapshot> {
+  const { data, error } = await supabase.rpc("get_reward_collection_state", {
+    p_reward_id: rewardId,
+  })
+  if (error) {
+    throw new Error(`Unable to load reward collection state: ${error.message}`)
+  }
+
+  const value = Array.isArray(data) ? data[0] : data
+  return parseRewardCollectionState(value)
 }
 
 function first<T>(value: T | T[]) {

@@ -6,6 +6,7 @@ import {
   formatMerchantCustomerIdentifier,
   type MerchantCustomerIdentity,
 } from "@/lib/merchant/customer-identity-display"
+import type { RewardCollectionState } from "@/lib/customer/reward-collection-state"
 import type { MerchantCustomerRow } from "@/lib/merchant/dashboard"
 
 const LONDON = "Europe/London"
@@ -48,12 +49,7 @@ export const MAX_STAMPS_REQUIRED = 6
 export const MERCHANT_GONE_QUIET_DAYS = 30
 
 export type MerchantCustomerRewardTone =
-  | "ready"
-  | "waiting"
-  | "new"
-  | "quiet"
-  | "redeemed"
-  | "collecting"
+  "ready" | "waiting" | "new" | "quiet" | "redeemed" | "collecting"
 
 export type MerchantCustomerRewardBadge = {
   label: string
@@ -65,10 +61,8 @@ export type MerchantCustomerRewardBadge = {
 export type MerchantCustomerRewardInput = {
   createdAt: string
   lastVisitAt: string | null
-  currentStampCount: number
-  stampsRequired: number
   lastRedeemedAt: string | null
-  activeReward: { id: string; redeemableFrom: string | null } | null
+  activeReward: { id: string; collectionState: RewardCollectionState } | null
 }
 
 type MerchantCustomerReadbackQueryError = {
@@ -128,8 +122,8 @@ export type MerchantCustomerReadbackRow = {
 }
 
 /**
- * Reward status for a membership, first match wins:
- * ready → waiting → new today → gone quiet → redeemed → collecting.
+ * Reward status for a membership. An active reward's canonical collection
+ * state wins; membership recency/history applies only when no reward is open.
  */
 export function deriveMerchantCustomerRewardBadge(
   input: MerchantCustomerRewardInput,
@@ -139,16 +133,27 @@ export function deriveMerchantCustomerRewardBadge(
   const active = input.activeReward
 
   if (active) {
-    const redeemableKey = active.redeemableFrom
-      ? londonDateKey(active.redeemableFrom)
-      : todayKey
-
-    if (redeemableKey <= todayKey) {
-      return { label: "Reward ready", tone: "ready", redeemable: true }
-    }
-
-    if (input.currentStampCount >= input.stampsRequired) {
-      return { label: "Reward waiting", tone: "waiting", redeemable: false }
+    switch (active.collectionState) {
+      case "ready":
+        return { label: "Reward ready", tone: "ready", redeemable: true }
+      case "waiting":
+        return { label: "Reward waiting", tone: "waiting", redeemable: false }
+      case "blocked":
+        return {
+          label: "Reward unavailable",
+          tone: "waiting",
+          redeemable: false,
+        }
+      case "expired":
+        return { label: "Reward expired", tone: "redeemed", redeemable: false }
+      case "redeemed":
+        return { label: "Reward redeemed", tone: "redeemed", redeemable: false }
+      case "cancelled":
+        return {
+          label: "Reward cancelled",
+          tone: "redeemed",
+          redeemable: false,
+        }
     }
   }
 
@@ -238,13 +243,11 @@ export function buildMerchantCustomerReadback(
     {
       createdAt: row.created_at,
       lastVisitAt: row.last_visit_at,
-      currentStampCount: row.current_stamp_count,
-      stampsRequired: row.stamps_required,
       lastRedeemedAt: row.last_redeemed_at,
       activeReward: row.activeReward
         ? {
             id: row.activeReward.id,
-            redeemableFrom: row.activeReward.redeemable_from,
+            collectionState: row.activeReward.collection_state,
           }
         : null,
     },

@@ -99,7 +99,7 @@ test(
         select scan_status, blocked_reason from public.get_reward_scan_context(
           ${tokenId}::uuid, ${fixture.merchantId}::uuid)`
       assert.equal(ctx.scan_status, "blocked")
-      assert.match(ctx.blocked_reason, /stamps/i)
+      assert.equal(ctx.blocked_reason, "Reward is not ready to redeem")
     })
   }
 )

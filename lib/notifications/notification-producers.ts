@@ -6,6 +6,7 @@ import {
   type NotificationPayload,
 } from "@/lib/notifications/catalog"
 import { londonBusinessDate } from "@/lib/notifications/london-time"
+import { parseRewardCollectionState } from "@/lib/customer/reward-collection-state"
 import { logger } from "@/lib/observability/logger"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
@@ -80,18 +81,14 @@ export async function produceDueNotificationEvents(now = new Date()) {
 
 async function enqueueRewardExpiringSoon(now: Date) {
   const supabase = createSupabaseServiceRoleClient()
-  const upperBound = new Date(now.getTime() + 72 * 60 * 60 * 1000)
-  const { data, error } = await supabase
-    .from("reward_events")
-    .select(
-      "id, customer_id, merchant_id, membership_id, reward_name, expires_at, cycle_number, merchants(business_name)"
-    )
-    .eq("status", "unlocked")
-    .not("expires_at", "is", null)
-    .gt("expires_at", now.toISOString())
-    .lte("expires_at", upperBound.toISOString())
-    .order("expires_at", { ascending: true })
-    .limit(100)
+  const { data, error } = await supabase.rpc(
+    "list_pending_reward_notification_candidates",
+    {
+      p_event_type: "reward_expiring_soon",
+      p_now: now.toISOString(),
+      p_limit: 100,
+    }
+  )
 
   if (error) {
     logger.warn("push_reward_expiring_producer_failed", {
@@ -100,18 +97,27 @@ async function enqueueRewardExpiringSoon(now: Date) {
     return 0
   }
 
+  const rows = records(data)
+  const collectionStates = await loadCollectionStates(supabase, rows)
   let count = 0
-  for (const row of data ?? []) {
-    if (!isRecord(row)) continue
+  for (const row of rows) {
+    const rewardEventId = stringValue(row.reward_event_id)
+    const collection = collectionStates.get(rewardEventId)
+    if (
+      !collection ||
+      !["waiting", "ready"].includes(collection.state) ||
+      !collection.expiresAt
+    )
+      continue
     const eventType = "reward_expiring_soon"
     const payload = buildNotificationPayload({
       eventType,
-      businessName: businessName(row),
+      businessName: stringValue(row.business_name) || "Your venue",
       rewardName: stringValue(row.reward_name),
       url: "/home/rewards",
       merchantId: stringValue(row.merchant_id),
       membershipId: stringValue(row.membership_id),
-      rewardEventId: stringValue(row.id),
+      rewardEventId,
     })
     const queued = await enqueueRawEvent(eventType, row, payload, {
       source: "scheduled_worker",
@@ -125,34 +131,36 @@ async function enqueueRewardExpiringSoon(now: Date) {
 
 async function enqueueRewardReady(now: Date) {
   const supabase = createSupabaseServiceRoleClient()
-  const { data, error } = await supabase
-    .from("reward_events")
-    .select(
-      "id, customer_id, merchant_id, membership_id, reward_name, redeemable_from, cycle_number, merchants(business_name)"
-    )
-    .eq("status", "unlocked")
-    .eq("source", "stamp_cycle")
-    .lte("redeemable_from", londonBusinessDate(now))
-    .order("redeemable_from", { ascending: true })
-    .limit(100)
+  const { data, error } = await supabase.rpc(
+    "list_pending_reward_notification_candidates",
+    {
+      p_event_type: "reward_ready",
+      p_now: now.toISOString(),
+      p_limit: 100,
+    }
+  )
 
   if (error) {
     logger.warn("push_reward_ready_producer_failed", { reason: error.message })
     return 0
   }
 
+  const rows = records(data)
+  const collectionStates = await loadCollectionStates(supabase, rows)
   let count = 0
-  for (const row of data ?? []) {
-    if (!isRecord(row)) continue
+  for (const row of rows) {
+    const rewardEventId = stringValue(row.reward_event_id)
+    const collection = collectionStates.get(rewardEventId)
+    if (collection?.state !== "ready") continue
     const eventType = "reward_ready"
     const payload = buildNotificationPayload({
       eventType,
-      businessName: businessName(row),
+      businessName: stringValue(row.business_name) || "Your venue",
       rewardName: stringValue(row.reward_name),
       url: "/home/rewards",
       merchantId: stringValue(row.merchant_id),
       membershipId: stringValue(row.membership_id),
-      rewardEventId: stringValue(row.id),
+      rewardEventId,
     })
     const queued = await enqueueRawEvent(eventType, row, payload, {
       source: "scheduled_worker",
@@ -161,6 +169,29 @@ async function enqueueRewardReady(now: Date) {
   }
 
   return count
+}
+
+async function loadCollectionStates(
+  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
+  rows: readonly Record<string, unknown>[]
+) {
+  const rewardIds = rows
+    .map((row) => stringValue(row.reward_event_id))
+    .filter(Boolean)
+  if (rewardIds.length === 0) return new Map()
+
+  const { data, error } = await supabase.rpc("get_reward_collection_states", {
+    p_reward_ids: rewardIds,
+  })
+  if (error) {
+    throw new Error(`Unable to load reward collection states: ${error.message}`)
+  }
+  return new Map(
+    records(data).map((row) => [
+      stringValue(row.reward_id),
+      parseRewardCollectionState(row),
+    ])
+  )
 }
 
 async function enqueueNextStampAvailable(now: Date) {
@@ -260,9 +291,9 @@ async function enqueueRawEvent(
     p_customer_id: stringValue(row.customer_id),
     p_merchant_id: nullableString(row.merchant_id),
     p_membership_id: nullableString(row.membership_id),
-    p_reward_event_id: eventType.startsWith("reward_")
-      ? nullableString(row.id)
-      : null,
+    p_reward_event_id:
+      nullableString(row.reward_event_id) ??
+      (eventType.startsWith("reward_") ? nullableString(row.id) : null),
     p_cycle_number: numberValue(row.cycle_number),
     p_business_date: businessDate,
     p_due_at: new Date().toISOString(),
@@ -284,6 +315,10 @@ async function enqueueRawEvent(
 function businessName(row: Record<string, unknown>) {
   const merchant = firstRecord(row.merchants)
   return stringValue(merchant?.business_name) || "Your venue"
+}
+
+function records(value: unknown): Record<string, unknown>[] {
+  return Array.isArray(value) ? value.filter(isRecord) : []
 }
 
 function errorMessage(error: unknown) {

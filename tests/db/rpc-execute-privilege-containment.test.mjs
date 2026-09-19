@@ -106,6 +106,9 @@ const AUTHENTICATED_ALLOWLIST = new Set([
 const MUST_BE_LOCKED = [
   "touch_customer_session_and_load",
   "get_customer_card_state",
+  "get_reward_collection_state",
+  "get_reward_collection_states",
+  "list_pending_reward_notification_candidates",
   "create_merchant_onboarding",
   "admin_purge_stale_customer_pii",
   "claim_due_notification_events",

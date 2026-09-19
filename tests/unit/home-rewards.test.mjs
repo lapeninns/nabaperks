@@ -6,16 +6,13 @@ import {
   getTopRedeemable,
 } from "@/lib/customer/home-rewards"
 
-// Fixed past/future dates keep redeemability deterministic regardless of clock.
-const PAST = "2020-01-01"
-const FUTURE = "2099-01-01"
-
 function row(overrides = {}) {
   return {
     id: "r",
     membership_id: "mem_1",
     reward_name: "Reward",
-    redeemable_from: PAST,
+    collection_state: "ready",
+    redeemable_from: "2026-07-02T05:00:00Z",
     source: "stamp_cycle",
     created_at: "2026-07-01T09:00:00.000Z",
     ...overrides,
@@ -24,7 +21,11 @@ function row(overrides = {}) {
 
 test("stamp-cycle and issued rewards land on separate rails", () => {
   const counts = buildRewardCountsByMembership([
-    row({ id: "stamp_ready", source: "stamp_cycle", reward_name: "Free coffee" }),
+    row({
+      id: "stamp_ready",
+      source: "stamp_cycle",
+      reward_name: "Free coffee",
+    }),
     row({
       id: "bday_ready",
       source: "birthday_month",
@@ -61,7 +62,8 @@ test("a waiting stamp-cycle reward drives the revealed ticket, not the ready sta
     row({
       id: "stamp_wait",
       source: "stamp_cycle",
-      redeemable_from: FUTURE,
+      collection_state: "waiting",
+      redeemable_from: "2026-07-03T05:00:00Z",
       reward_name: "Free pastry",
     }),
   ])
@@ -69,7 +71,7 @@ test("a waiting stamp-cycle reward drives the revealed ticket, not the ready sta
 
   assert.equal(mem.stampRewardId, null)
   assert.equal(mem.revealedRewardName, "Free pastry")
-  assert.equal(mem.revealedRewardRedeemableFrom, FUTURE)
+  assert.equal(mem.revealedRewardRedeemableFrom, "2026-07-03T05:00:00Z")
   assert.equal(mem.stampUnlocked, 1)
   assert.equal(mem.gift, null)
 })
@@ -94,7 +96,11 @@ test("getTopRedeemable surfaces a redeemable gift when there is no earned reward
 
 test("getTopRedeemable prefers the earned stamp reward over a gift on the same card", () => {
   const counts = buildRewardCountsByMembership([
-    row({ id: "stamp_ready", source: "stamp_cycle", reward_name: "Free coffee" }),
+    row({
+      id: "stamp_ready",
+      source: "stamp_cycle",
+      reward_name: "Free coffee",
+    }),
     row({
       id: "gift_ready",
       source: "birthday_month",
@@ -108,9 +114,38 @@ test("getTopRedeemable prefers the earned stamp reward over a gift on the same c
 
 test("getTopRedeemable ignores a gift that is not yet redeemable", () => {
   const counts = buildRewardCountsByMembership([
-    row({ id: "gift_wait", source: "birthday_month", redeemable_from: FUTURE }),
+    row({
+      id: "gift_wait",
+      source: "birthday_month",
+      collection_state: "waiting",
+    }),
   ])
   const cards = [{ membershipId: "mem_1", businessName: "Old Crown" }]
 
   assert.equal(getTopRedeemable(cards, counts), undefined)
+})
+
+test("database readiness supports legacy full cards and post-cutover fresh cards", () => {
+  const counts = buildRewardCountsByMembership([
+    row({ id: "legacy_reward", membership_id: "legacy_3_of_3" }),
+    row({ id: "cutover_reward", membership_id: "fresh_0_of_2" }),
+  ])
+  const cards = [
+    {
+      membershipId: "legacy_3_of_3",
+      businessName: "Legacy Arms",
+      currentStamps: 3,
+      stampsRequired: 3,
+    },
+    {
+      membershipId: "fresh_0_of_2",
+      businessName: "Cutover Arms",
+      currentStamps: 0,
+      stampsRequired: 2,
+    },
+  ]
+
+  assert.equal(counts.get("legacy_3_of_3")?.stampRewardId, "legacy_reward")
+  assert.equal(counts.get("fresh_0_of_2")?.stampRewardId, "cutover_reward")
+  assert.equal(getTopRedeemable(cards, counts)?.rewardId, "legacy_reward")
 })

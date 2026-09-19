@@ -3,6 +3,11 @@ import "server-only"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import {
+  loadMerchantRewardCollectionStates,
+  type MerchantUnlockedRewardRef,
+  type MerchantUnlockedRewardWithCollectionState,
+} from "@/lib/merchant/customer-collection-states"
+import {
   assertMerchantCustomerRewardStateLoaded,
   buildMerchantCustomerReadback,
   DEFAULT_STAMPS_REQUIRED,
@@ -65,7 +70,7 @@ export type MerchantCustomerRow = {
   }
   activeReward: {
     id: string
-    redeemable_from: string | null
+    collection_state: MerchantUnlockedRewardWithCollectionState["collection_state"]
   } | null
   last_redeemed_at: string | null
 }
@@ -169,7 +174,16 @@ export async function getMerchantCustomers(
   })
 
   const stampsRequired = resolveStampsRequired(cardResult)
-  const rewardByMembership = indexUnlockedRewards(rewardResult)
+  const authorisedRewards = (rewardResult.data ??
+    []) as MerchantUnlockedRewardRef[]
+  const rewardsWithCollectionState = await loadMerchantRewardCollectionStates(
+    authorisedRewards,
+    async (args) => {
+      const service = createSupabaseServiceRoleClient()
+      return service.rpc("get_reward_collection_states", args)
+    }
+  )
+  const rewardByMembership = indexUnlockedRewards(rewardsWithCollectionState)
 
   const lastRedeemedByMembership = new Map<string, string>()
   for (const r of redeemedResult.data ?? []) {
@@ -333,7 +347,7 @@ function getUnlockedRewardResult(
 ) {
   return supabase
     .from("reward_events")
-    .select("id, membership_id, redeemable_from")
+    .select("id, membership_id")
     .eq("merchant_id", merchantId)
     .eq("status", "unlocked")
     .in("membership_id", membershipIds)
@@ -347,25 +361,23 @@ function resolveStampsRequired(cardResult: ActiveCardResult): number {
   )
 }
 
+type ActiveMerchantCustomerReward = Exclude<
+  MerchantCustomerRow["activeReward"],
+  null
+>
+
 function indexUnlockedRewards(
-  rewardResult: Awaited<ReturnType<typeof getUnlockedRewardResult>>
-): Map<string, { id: string; redeemable_from: string | null }> {
+  rewards: readonly MerchantUnlockedRewardWithCollectionState[]
+): Map<string, ActiveMerchantCustomerReward> {
   // Index by membership_id for O(1) lookups; keep the first row per membership
-  // to match the prior behaviour the badge logic was tuned against.
-  const rewardByMembership = new Map<
-    string,
-    { id: string; redeemable_from: string | null }
-  >()
-  for (const r of rewardResult.data ?? []) {
-    const row = r as {
-      id: string
-      membership_id: string
-      redeemable_from: string | null
-    }
+  // to match the query's deterministic order. Readiness is the authoritative
+  // predicate result and is never reconstructed from dates or stamp counts.
+  const rewardByMembership = new Map<string, ActiveMerchantCustomerReward>()
+  for (const row of rewards) {
     if (!rewardByMembership.has(row.membership_id)) {
       rewardByMembership.set(row.membership_id, {
         id: row.id,
-        redeemable_from: row.redeemable_from,
+        collection_state: row.collection_state,
       })
     }
   }

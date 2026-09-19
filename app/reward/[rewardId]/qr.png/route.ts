@@ -25,13 +25,9 @@ export async function GET(_request: Request, context: RewardQrRouteContext) {
   }
 
   const availability = rewardQrAvailability({
-    status: rewardState.reward.status,
-    source: rewardState.reward.source,
-    redeemableFrom: rewardState.reward.redeemable_from,
-    expiresAt: rewardState.reward.expires_at,
-    currentStampCount: rewardState.membership.current_stamp_count,
-    stampsRequired: rewardState.loyaltyCard.stamps_required,
-    unavailableReason: rewardState.unavailableReason,
+    collectionState: rewardState.collection.state,
+    collectionReason: rewardState.collection.reason,
+    availableFrom: rewardState.collection.availableFrom,
   })
 
   if (availability.status !== "ready") {

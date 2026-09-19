@@ -27,6 +27,7 @@ import {
   isShareableReferralCode,
 } from "@/lib/customer/referral"
 import { getReferralBonusBanksByMembership } from "@/lib/customer/referral-bonus-bank"
+import { loadCustomerRewardCollectionStates } from "@/lib/customer/reward-collection-batch"
 import { ukTodayIso } from "@/lib/customer/uk-date"
 import {
   normalizeGoogleReviewUrl,
@@ -189,8 +190,24 @@ export async function getCustomerHomeDashboard(): Promise<HomeDashboard> {
     billingByMerchant.set(row.merchant_id, row.status)
   }
 
+  const rewardRows = rewardsResult.data ?? []
+  const rewardIds = rewardRows.map((reward) => reward.id)
+  const collectionsByReward = await loadCustomerRewardCollectionStates(
+    rewardIds,
+    async (args) => supabase.rpc("get_reward_collection_states", args)
+  )
   const rewardsByMembership = buildRewardCountsByMembership(
-    (rewardsResult.data ?? []) as RawHomeReward[]
+    rewardRows.map((reward) => {
+      const collection = collectionsByReward.get(reward.id)
+      if (!collection) {
+        throw new Error("Unable to load reward collection state")
+      }
+      return {
+        ...reward,
+        collection_state: collection.state,
+        redeemable_from: collection.availableFrom,
+      }
+    }) as RawHomeReward[]
   )
 
   const today = ukTodayIso()

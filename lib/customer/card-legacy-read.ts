@@ -109,7 +109,12 @@ export async function legacyGetCustomerCardState(
     throw new Error(`Unable to load billing status: ${billingError.message}`)
   }
 
-  const unlockedRewardRows = unlockedRewards ?? []
+  const unlockedRewardRows = (unlockedRewards ?? []).map((reward) => ({
+    ...reward,
+    collection_state: "blocked" as const,
+    collection_reason: "Reward collection status is updating",
+    available_from: null,
+  }))
 
   return {
     status: "ready",

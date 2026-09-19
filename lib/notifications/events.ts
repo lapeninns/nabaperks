@@ -21,6 +21,9 @@ import {
 import { londonBusinessDate } from "@/lib/notifications/london-time"
 import { hasPushMarketingConsent } from "@/lib/notifications/push-marketing-eligibility"
 
+import { parseRewardCollectionState } from "@/lib/customer/reward-collection-state"
+import { rewardUnlockedNotificationEvent } from "@/lib/notifications/reward-event-plan-core"
+
 export type EnqueueNotificationInput = {
   eventType: NotificationEventType
   customerId: string
@@ -41,8 +44,7 @@ export type EnqueueNotificationInput = {
 }
 
 export type EnqueueNotificationResult =
-  | { status: "queued"; eventId: string }
-  | { status: "skipped"; reason: string }
+  { status: "queued"; eventId: string } | { status: "skipped"; reason: string }
 
 type NotificationPreferences = {
   transactional_enabled: boolean
@@ -67,24 +69,11 @@ type RewardNotificationContext = {
   membershipId: string
   businessName: string
   rewardName: string
-  redeemableFrom: string | null
-  expiresAt: string | null
   cycleNumber: number | null
-  customerFullName: string | null
-  customerDateOfBirth: string | null
-  customerEmail: string | null
-  customerEmailVerifiedAt: string | null
 }
 
 type MerchantRelation = {
   business_name?: unknown
-}
-
-type CustomerRelation = {
-  full_name?: unknown
-  date_of_birth?: unknown
-  email?: unknown
-  email_verified_at?: unknown
 }
 
 export async function enqueueNotificationEvent(
@@ -165,13 +154,10 @@ export async function enqueueStampTransitionNotifications({
     const reward = await getLatestUnlockedRewardContext(membershipId)
     if (!reward) return
 
-    const profileComplete = isRewardProfileComplete(reward)
-    const eventType =
-      isRedeemableToday(reward.redeemableFrom) && profileComplete
-        ? "reward_ready"
-        : isRedeemableToday(reward.redeemableFrom)
-          ? "profile_required_to_collect"
-          : "reward_unlocked_waiting"
+    const collection = await getRewardCollectionState(reward.rewardEventId)
+    if (!collection) return
+    const eventType = rewardUnlockedNotificationEvent(collection)
+    if (!eventType) return
 
     await enqueueNotificationEvent({
       eventType,
@@ -388,7 +374,7 @@ async function getLatestUnlockedRewardContext(membershipId: string) {
   const { data, error } = await supabase
     .from("reward_events")
     .select(
-      "id, customer_id, merchant_id, membership_id, reward_name, redeemable_from, expires_at, cycle_number, customers(full_name, date_of_birth, email, email_verified_at), merchants(business_name)"
+      "id, customer_id, merchant_id, membership_id, reward_name, cycle_number, merchants(business_name)"
     )
     .eq("membership_id", membershipId)
     .eq("status", "unlocked")
@@ -412,7 +398,7 @@ async function getRewardNotificationContext(rewardEventId: string) {
   const { data, error } = await supabase
     .from("reward_events")
     .select(
-      "id, customer_id, merchant_id, membership_id, reward_name, redeemable_from, expires_at, cycle_number, customers(full_name, date_of_birth, email, email_verified_at), merchants(business_name)"
+      "id, customer_id, merchant_id, membership_id, reward_name, cycle_number, merchants(business_name)"
     )
     .eq("id", rewardEventId)
     .maybeSingle()
@@ -428,10 +414,30 @@ async function getRewardNotificationContext(rewardEventId: string) {
   return data ? rewardContext(data) : null
 }
 
+async function getRewardCollectionState(rewardEventId: string) {
+  const supabase = createSupabaseServiceRoleClient()
+  const { data, error } = await supabase.rpc("get_reward_collection_state", {
+    p_reward_id: rewardEventId,
+  })
+  if (error) {
+    logger.warn("push_reward_collection_state_failed", {
+      rewardEventId,
+      reason: error.message,
+    })
+    return null
+  }
+
+  try {
+    return parseRewardCollectionState(Array.isArray(data) ? data[0] : data)
+  } catch {
+    logger.warn("push_reward_collection_state_malformed", { rewardEventId })
+    return null
+  }
+}
+
 function rewardContext(
   row: Record<string, unknown>
 ): RewardNotificationContext {
-  const customer = first(row.customers) as CustomerRelation | undefined
   const merchant = first(row.merchants) as MerchantRelation | undefined
 
   return {
@@ -441,26 +447,8 @@ function rewardContext(
     membershipId: stringValue(row.membership_id),
     businessName: stringValue(merchant?.business_name) || "Your venue",
     rewardName: stringValue(row.reward_name) || "your reward",
-    redeemableFrom: nullableString(row.redeemable_from),
-    expiresAt: nullableString(row.expires_at),
     cycleNumber: numberValue(row.cycle_number),
-    customerFullName: nullableString(customer?.full_name),
-    customerDateOfBirth: nullableString(customer?.date_of_birth),
-    customerEmail: nullableString(customer?.email),
-    customerEmailVerifiedAt: nullableString(customer?.email_verified_at),
   }
-}
-
-function isRewardProfileComplete(reward: RewardNotificationContext) {
-  return Boolean(
-    reward.customerFullName?.trim() &&
-    reward.customerDateOfBirth &&
-    (!reward.customerEmail || reward.customerEmailVerifiedAt)
-  )
-}
-
-function isRedeemableToday(redeemableFrom: string | null) {
-  return !redeemableFrom || redeemableFrom <= londonBusinessDate(new Date())
 }
 
 function first<T>(value: T | T[] | null | undefined): T | null {
@@ -470,10 +458,6 @@ function first<T>(value: T | T[] | null | undefined): T | null {
 
 function stringValue(value: unknown) {
   return typeof value === "string" ? value : ""
-}
-
-function nullableString(value: unknown) {
-  return typeof value === "string" ? value : null
 }
 
 function numberValue(value: unknown) {

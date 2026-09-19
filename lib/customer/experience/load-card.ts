@@ -13,11 +13,7 @@ import {
   buildReferralJoinUrl,
   isShareableReferralCode,
 } from "@/lib/customer/referral"
-import {
-  narrowRewardSource,
-  rewardStampThresholdMet,
-} from "@/lib/customer/issued-reward-display"
-import { isRedeemableFrom } from "@/lib/customer/uk-date"
+import { narrowRewardSource } from "@/lib/customer/issued-reward-display"
 import {
   normalizeGoogleReviewUrl,
   normalizeVenueLocality,
@@ -118,13 +114,7 @@ export async function loadCardExperienceContext(
           name: stampCycleReward.reward_name,
           terms: stampCycleReward.reward_terms,
           redeemableFrom: stampCycleReward.redeemable_from,
-          redeemable:
-            isRedeemableFrom(stampCycleReward.redeemable_from) &&
-            rewardStampThresholdMet(
-              stampCycleReward.source,
-              membership.current_stamp_count,
-              target
-            ),
+          redeemable: stampCycleReward.collection_state === "ready",
         }
       : null
 
@@ -137,7 +127,7 @@ export async function loadCardExperienceContext(
           name: issuedReward.reward_name,
           source: narrowRewardSource(issuedReward.source),
           redeemableFrom: issuedReward.redeemable_from,
-          redeemable: isRedeemableFrom(issuedReward.redeemable_from),
+          redeemable: issuedReward.collection_state === "ready",
         }
       : null
 

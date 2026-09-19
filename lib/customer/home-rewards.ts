@@ -1,4 +1,4 @@
-import { isRedeemableFrom } from "@/lib/customer/uk-date"
+import type { RewardCollectionState } from "@/lib/customer/reward-collection-state"
 import {
   pickIssuedUnlockedReward,
   pickPrimaryUnlockedReward,
@@ -14,6 +14,7 @@ export type RawHomeReward = {
   id: string
   membership_id: string
   reward_name: string
+  collection_state: RewardCollectionState
   redeemable_from: string | null
   source?: string | null
   created_at?: string | null
@@ -68,7 +69,7 @@ export function buildRewardCountsByMembership(
     entry.stampUnlocked = stampRows.length
 
     const stampRedeemable = pickPrimaryUnlockedReward(
-      stampRows.filter((row) => isRedeemableFrom(row.redeemable_from))
+      stampRows.filter((row) => row.collection_state === "ready")
     )
     if (stampRedeemable) {
       entry.stampRewardId = stampRedeemable.id
@@ -76,7 +77,7 @@ export function buildRewardCountsByMembership(
     }
 
     const stampWaiting = pickPrimaryUnlockedReward(
-      stampRows.filter((row) => !isRedeemableFrom(row.redeemable_from))
+      stampRows.filter((row) => row.collection_state === "waiting")
     )
     if (stampWaiting) {
       entry.revealedRewardName = stampWaiting.reward_name
@@ -89,7 +90,7 @@ export function buildRewardCountsByMembership(
         rewardId: issued.id,
         rewardName: issued.reward_name,
         source: narrowRewardSource(issued.source),
-        redeemable: isRedeemableFrom(issued.redeemable_from),
+        redeemable: issued.collection_state === "ready",
         redeemableFrom: issued.redeemable_from,
       }
     }

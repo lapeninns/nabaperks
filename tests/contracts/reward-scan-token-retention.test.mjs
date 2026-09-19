@@ -76,7 +76,7 @@ test("Given a reward QR image is requested When source is inspected Then token m
     /return new NextResponse\("Reward QR not found", \{ status: 404 \}\)/
   )
   assert.match(route, /rewardQrAvailability\(/)
-  assert.match(route, /expiresAt: rewardState\.reward\.expires_at/)
+  assert.match(route, /collectionState: rewardState\.collection\.state/)
   assert.match(route, /availability\.status !== "ready"/)
   assert.match(route, /!profile\?\.complete/)
   assert.doesNotMatch(route, /!profile\.dateOfBirthVerified/)

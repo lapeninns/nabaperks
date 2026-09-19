@@ -43,6 +43,9 @@ const ready = {
       expires_at: "2026-10-08T00:00:00+00:00",
       source: "stamp_cycle",
       created_at: "2026-09-07T10:00:00+00:00",
+      collection_state: "waiting",
+      collection_reason: null,
+      available_from: "2026-09-08T05:00:00+00:00",
     },
   ],
   billing_status: "trialing",
@@ -66,6 +69,7 @@ test("a ready payload narrows every field the card surfaces use", () => {
   assert.equal(parsed.merchant.requires_billing, true)
   assert.equal(parsed.loyaltyCard?.stamps_required, 6)
   assert.equal(parsed.unlockedRewards[0]?.redeemable_from, "2026-09-08")
+  assert.equal(parsed.unlockedRewards[0]?.collection_state, "waiting")
   assert.equal(parsed.billingStatus, "trialing")
 })
 
@@ -94,13 +98,16 @@ test("a malformed payload throws rather than rendering a wrong card", () => {
   ]) {
     assert.throws(
       () => parseCustomerCardStateRow(input),
-      /Unable to load customer card: malformed state/
+      /malformed (collection )?state/
     )
   }
 })
 
-test("toRewardSummary drops created_at and keeps the redeem window", () => {
-  assert.deepEqual(toRewardSummary(ready.unlocked_rewards[0]), {
+test("toRewardSummary drops created_at and keeps the server collection state", () => {
+  const parsed = parseCustomerCardStateRow(ready)
+  assert.equal(parsed.status, "ready")
+  if (parsed.status !== "ready") return
+  assert.deepEqual(toRewardSummary(parsed.unlockedRewards[0]), {
     id: "r1",
     status: "unlocked",
     reward_name: "Free coffee",
@@ -108,6 +115,9 @@ test("toRewardSummary drops created_at and keeps the redeem window", () => {
     redeemable_from: "2026-09-08",
     expires_at: "2026-10-08T00:00:00+00:00",
     source: "stamp_cycle",
+    collection_state: "waiting",
+    collection_reason: null,
+    available_from: "2026-09-08T05:00:00+00:00",
   })
   assert.equal(toRewardSummary(null), null)
 })
