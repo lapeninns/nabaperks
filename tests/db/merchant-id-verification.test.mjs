@@ -249,20 +249,15 @@ for (const condition of [
   "future_reward",
   "inactive_card",
   "inactive_merchant",
-  "insufficient_stamps",
   "underage",
   "incomplete_profile",
 ]) {
   test(
-    `ID verification refuses ${condition}${condition === "insufficient_stamps" ? " under legacy_v1" : ""} without side effects`,
+    `ID verification refuses ${condition} without side effects`,
     { skip },
     async () => {
       await inVerificationTxn(async (tx) => {
-        const f = await createIdCheckFixture(
-          tx,
-          "stamp_cycle",
-          condition === "insufficient_stamps" ? "legacy_v1" : "v2"
-        )
+        const f = await createIdCheckFixture(tx, "stamp_cycle", "v2")
         if (condition === "expired_token")
           await tx`update public.reward_scan_tokens set expires_at = now() - interval '1 second' where id = ${f.scanToken}::uuid`
         if (condition === "superseded_token")
@@ -275,8 +270,6 @@ for (const condition of [
           await tx`update public.loyalty_cards set is_active = false where id = ${f.cardId}::uuid`
         if (condition === "inactive_merchant")
           await tx`update public.merchants set status = 'cancelled' where id = ${f.merchantId}::uuid`
-        if (condition === "insufficient_stamps")
-          await tx`update public.customer_memberships set current_stamp_count = 1 where id = ${f.membershipId}::uuid`
         if (condition === "incomplete_profile")
           await tx`update public.customers set full_name = null where id = ${f.customerId}::uuid`
         if (condition === "underage") {
@@ -312,6 +305,30 @@ for (const condition of [
     }
   )
 }
+
+test(
+  "ID verification collects an issued legacy reward at zero stamps without changing its open cycle",
+  { skip },
+  async () => {
+    await inVerificationTxn(async (tx) => {
+      const f = await createIdCheckFixture(tx, "stamp_cycle", "legacy_v1")
+      await tx`
+        update public.customer_memberships
+        set current_stamp_count = 0
+        where id = ${f.membershipId}::uuid`
+      const [collected] = await verifyFixture(tx, f)
+      assert.equal(collected.reward_event_id, f.rewardEventId)
+      assert.equal(collected.new_stamp_count, 0)
+      const state = await readIdCheckState(tx, f)
+      assert.equal(state.status, "redeemed")
+      assert.equal(state.stamps, 0)
+      assert.equal(state.cycle, 1)
+      assert.equal(state.receipts, 1)
+      assert.equal(state.checks, 1)
+      assert.ok(state.consumed_at)
+    })
+  }
+)
 
 test(
   "a downstream collection failure rolls back the ID check and audit",

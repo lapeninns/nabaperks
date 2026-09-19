@@ -85,7 +85,7 @@ test(
 )
 
 test(
-  "R-3 legacy control: get_reward_scan_context blocks a stamp_cycle reward below the threshold",
+  "R-3 activated control: get_reward_scan_context keeps an issued legacy reward ready at zero stamps",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
@@ -96,7 +96,7 @@ test(
         source: "stamp_cycle",
       })
       const tokenId = await insertScanToken(tx, fixture, rewardId)
-      // Mint while eligible, then prove collection readback rechecks the balance.
+      // Issuance completed the prior cycle; the open cycle balance is unrelated.
       await tx`
         update public.customer_memberships
         set current_stamp_count = 0
@@ -104,8 +104,15 @@ test(
       const [ctx] = await tx`
         select scan_status, blocked_reason from public.get_reward_scan_context(
           ${tokenId}::uuid, ${fixture.merchantId}::uuid)`
-      assert.equal(ctx.scan_status, "blocked")
-      assert.match(ctx.blocked_reason, /not ready to redeem/i)
+      assert.deepEqual(ctx, { scan_status: "ready", blocked_reason: null })
+      const [cycle] = await tx`
+        select current_stamp_count, active_cycle_number
+        from public.customer_memberships
+        where id = ${fixture.membershipId}::uuid`
+      assert.deepEqual(cycle, {
+        current_stamp_count: 0,
+        active_cycle_number: 1,
+      })
     })
   }
 )

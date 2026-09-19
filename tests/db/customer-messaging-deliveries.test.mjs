@@ -3,6 +3,10 @@ import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 import { createRewardPoolFixture } from "./helpers/reward-pool-fixture.mjs"
+import "../support/register-alias.mjs"
+
+const { deliverCustomerPhoneChannel } =
+  await import("../../lib/notifications/customer-message-delivery.ts")
 
 const ready = await isLiveDbReady()
 const skip = ready ? false : "live Supabase DB not reachable/current"
@@ -30,6 +34,211 @@ async function begin(tx, f, channel = "whatsapp") {
     ${f.event}, ${f.customer}, ${channel}, 1, '1234') as id`
   return row.id
 }
+
+function transactionServiceClient(tx) {
+  return {
+    from(table) {
+      assert.equal(table, "notification_deliveries")
+      const filters = {}
+      const query = {
+        select() {
+          return query
+        },
+        eq(column, value) {
+          filters[column] = value
+          return query
+        },
+        order() {
+          return query
+        },
+        async limit() {
+          const rows = await tx`select attempt_number
+            from public.notification_deliveries
+            where notification_event_id = ${filters.notification_event_id}
+              and channel = ${filters.channel}
+            order by attempt_number desc
+            limit 1`
+          return { data: [...rows], error: null }
+        },
+      }
+      return query
+    },
+    async rpc(name, args) {
+      assert.equal(name, "admit_notification_message_delivery")
+      try {
+        let deliveryId
+        await tx.savepoint(async (sql) => {
+          const [row] =
+            await sql`select public.admit_notification_message_delivery(
+              ${args.p_notification_event_id}, ${args.p_customer_id},
+              ${args.p_channel}, ${args.p_attempt_number},
+              ${args.p_recipient_last4}) as id`
+          deliveryId = row.id
+        })
+        return { data: deliveryId, error: null }
+      } catch (error) {
+        if (
+          error &&
+          typeof error === "object" &&
+          "code" in error &&
+          "message" in error
+        ) {
+          return {
+            data: null,
+            error: { code: error.code, message: error.message },
+          }
+        }
+        throw error
+      }
+    },
+  }
+}
+
+function phoneDeliveryInput(tx, f) {
+  return {
+    supabase: transactionServiceClient(tx),
+    event: {
+      id: f.event,
+      event_type: "reward_ready",
+      customer_id: f.customer,
+      merchant_id: f.merchant,
+      payload: {},
+    },
+    channel: "sms",
+    recipient: { e164: "+447700900123", last4: "0123" },
+    category: "transactional",
+    copy: { smsBody: "Fixture", whatsappVariables: {} },
+    dryRun: false,
+  }
+}
+
+async function messagingBudgetSnapshot(tx) {
+  const rows = await tx`select bucket_key, count, reset_at, updated_at
+    from public.rate_limit_buckets
+    where bucket_key like 'customer-messaging:%'
+    order by bucket_key`
+  return [...rows].map((row) => ({
+    bucketKey: row.bucket_key,
+    count: row.count,
+    resetAt: row.reset_at.toISOString(),
+    updatedAt: row.updated_at.toISOString(),
+  }))
+}
+
+test(
+  "replayed delivery boundary leaves every budget bucket unchanged and makes no provider call",
+  { skip },
+  async (t) => {
+    await inRolledBackTxn(async (tx) => {
+      const f = await fixture(tx)
+      await tx`delete from public.rate_limit_buckets where bucket_key like 'customer-messaging:%'`
+      await tx`select public.admit_notification_message_delivery(
+        ${f.event}, ${f.customer}, 'sms', 1, '0123')`
+      const before = await messagingBudgetSnapshot(tx)
+      const provider = t.mock.method(globalThis, "fetch", () => {
+        throw new Error("Unexpected provider attempt")
+      })
+
+      const outcome = await deliverCustomerPhoneChannel(
+        phoneDeliveryInput(tx, f)
+      )
+
+      assert.equal(outcome.status, "defer")
+      assert.deepEqual(await messagingBudgetSnapshot(tx), before)
+      assert.equal(provider.mock.callCount(), 0)
+      const [{ pending }] = await tx`select count(*)::int as pending
+        from public.notification_deliveries
+        where notification_event_id = ${f.event}
+          and channel = 'sms'
+          and status = 'pending'`
+      assert.equal(pending, 1)
+    })
+  }
+)
+
+test(
+  "budget-refused delivery boundary leaves no pending fence and makes no provider call",
+  { skip },
+  async (t) => {
+    await inRolledBackTxn(async (tx) => {
+      const f = await fixture(tx)
+      await tx`delete from public.rate_limit_buckets where bucket_key like 'customer-messaging:%'`
+      await tx`insert into public.rate_limit_buckets (bucket_key, count, reset_at)
+        values ('customer-messaging:global:minute:v1', 60, now() + interval '1 hour')`
+      const before = await messagingBudgetSnapshot(tx)
+      const provider = t.mock.method(globalThis, "fetch", () => {
+        throw new Error("Unexpected provider attempt")
+      })
+
+      const outcome = await deliverCustomerPhoneChannel(
+        phoneDeliveryInput(tx, f)
+      )
+
+      assert.equal(outcome.status, "defer")
+      assert.deepEqual(await messagingBudgetSnapshot(tx), before)
+      assert.equal(provider.mock.callCount(), 0)
+      const [{ pending }] = await tx`select count(*)::int as pending
+        from public.notification_deliveries
+        where notification_event_id = ${f.event}
+          and channel = 'sms'
+          and status = 'pending'`
+      assert.equal(pending, 0)
+    })
+  }
+)
+
+test(
+  "delivery insert conflict rolls back every budget debit",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const f = await fixture(tx)
+      await tx`delete from public.rate_limit_buckets where bucket_key like 'customer-messaging:%'`
+      await tx`insert into public.notification_deliveries
+        (notification_event_id, customer_id, channel, status, attempt_number, recipient_last4)
+        values (${f.event}, ${f.customer}, 'sms', 'retryable_failure', 1, '0123')`
+      const before = await messagingBudgetSnapshot(tx)
+
+      await assert.rejects(
+        tx.savepoint(
+          (sql) => sql`select public.admit_notification_message_delivery(
+            ${f.event}, ${f.customer}, 'sms', 1, '0123')`
+        ),
+        { code: "NBM01" }
+      )
+
+      assert.deepEqual(await messagingBudgetSnapshot(tx), before)
+      const [{ pending }] = await tx`select count(*)::int as pending
+        from public.notification_deliveries
+        where notification_event_id = ${f.event}
+          and channel = 'sms'
+          and status = 'pending'`
+      assert.equal(pending, 0)
+    })
+  }
+)
+
+test(
+  "atomic delivery admission derives the marketing venue budget from the locked event",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const f = await fixture(tx)
+      await tx`delete from public.rate_limit_buckets where bucket_key like 'customer-messaging:%'`
+      await tx`update public.notification_events
+        set event_type = 'venue_announcement', category = 'transactional'
+        where id = ${f.event}`
+
+      await tx`select public.admit_notification_message_delivery(
+        ${f.event}, ${f.customer}, 'sms', 1, '0123')`
+
+      const [venueBucket] = await tx`select count
+        from public.rate_limit_buckets
+        where bucket_key = ${`customer-messaging:merchant:${f.merchant}:day:v1`}`
+      assert.equal(venueBucket.count, 1)
+    })
+  }
+)
 
 test(
   "phone attempt fence rejects duplicate attempts and invalid channels",

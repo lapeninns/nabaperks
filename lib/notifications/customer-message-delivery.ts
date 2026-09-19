@@ -7,9 +7,14 @@ import type {
 } from "@/lib/notifications/catalog"
 import type { CustomerPhoneRecipient } from "@/lib/notifications/customer-messaging-address"
 import { sendCustomerMessage } from "@/lib/notifications/twilio-messaging"
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
+import type { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 type ServiceClient = ReturnType<typeof createSupabaseServiceRoleClient>
+
+type MessageDeliveryAdmission =
+  | { readonly status: "admitted"; readonly deliveryId: string }
+  | { readonly status: "budget_refused" }
+  | { readonly status: "duplicate" }
 
 type PhoneDeliveryInput = {
   readonly supabase: ServiceClient
@@ -42,15 +47,20 @@ export async function deliverCustomerPhoneChannel(
     return { status: "continue", failed: false }
   }
 
-  const admitted = await admitBudget(input)
-  if (!admitted) {
-    return { status: "defer", dueAt: new Date(Date.now() + 60 * 60_000) }
+  const admission = await admitDelivery(input)
+  switch (admission.status) {
+    case "budget_refused":
+      return { status: "defer", dueAt: new Date(Date.now() + 60 * 60_000) }
+    case "duplicate":
+      return { status: "defer", dueAt: new Date(Date.now() + 5 * 60_000) }
+    case "admitted":
+      break
+    default: {
+      const unreachable: never = admission
+      return unreachable
+    }
   }
-
-  const deliveryId = await beginDelivery(input)
-  if (!deliveryId) {
-    return { status: "defer", dueAt: new Date(Date.now() + 5 * 60_000) }
-  }
+  const { deliveryId } = admission
 
   const result = await sendCustomerMessage({
     channel: input.channel,
@@ -117,27 +127,13 @@ export async function deliverCustomerPhoneChannel(
   return { status: "push", failed: true }
 }
 
-async function admitBudget(input: PhoneDeliveryInput) {
-  if (!input.event.merchant_id) return false
-  const { data, error } = await input.supabase.rpc(
-    "admit_customer_message_dispatch",
-    {
-      p_merchant_id: input.event.merchant_id,
-      p_category: input.category,
-    }
-  )
-  if (error) {
-    throw new Error(
-      `Unable to admit customer message dispatch: ${error.message}`
-    )
-  }
-  return data === true
-}
-
-async function beginDelivery(input: PhoneDeliveryInput) {
+async function admitDelivery(
+  input: PhoneDeliveryInput
+): Promise<MessageDeliveryAdmission> {
+  if (!input.event.merchant_id) return { status: "budget_refused" }
   const attemptNumber = await nextPhoneAttemptNumber(input)
   const { data, error } = await input.supabase.rpc(
-    "begin_notification_message_delivery",
+    "admit_notification_message_delivery",
     {
       p_notification_event_id: input.event.id,
       p_customer_id: input.event.customer_id,
@@ -146,16 +142,17 @@ async function beginDelivery(input: PhoneDeliveryInput) {
       p_recipient_last4: input.recipient.last4,
     }
   )
-  if (error?.code === "NBM01") return null
+  if (error?.code === "NBM01") return { status: "duplicate" }
   if (error) {
     throw new Error(
-      `Unable to begin customer message delivery: ${error.message}`
+      `Unable to admit customer message delivery: ${error.message}`
     )
   }
+  if (data === null) return { status: "budget_refused" }
   if (typeof data !== "string") {
     throw new Error("Customer message delivery did not return an identifier.")
   }
-  return data
+  return { status: "admitted", deliveryId: data }
 }
 
 async function nextPhoneAttemptNumber(input: PhoneDeliveryInput) {

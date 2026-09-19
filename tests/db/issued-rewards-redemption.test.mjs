@@ -107,7 +107,7 @@ test(
 )
 
 test(
-  "R-3 legacy control: a stamp_cycle reward below the threshold cannot mint a token",
+  "R-3 activated control: an issued legacy reward can mint at any open-cycle stamp count",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
@@ -122,17 +122,18 @@ test(
         source: "stamp_cycle",
       })
 
-      let rejection = ""
-      try {
-        await tx.savepoint(async (sp) => {
-          await sp`
-            select scan_token from public.create_reward_scan_token(
-              ${rewardId}::uuid, ${fixture.customerId}::uuid)`
-        })
-      } catch (error) {
-        rejection = String(error.message)
-      }
-      assert.match(rejection, /not ready to redeem/i)
+      const [minted] = await tx`
+        select scan_token from public.create_reward_scan_token(
+          ${rewardId}::uuid, ${fixture.customerId}::uuid)`
+      assert.ok(minted.scan_token)
+      const [cycle] = await tx`
+        select current_stamp_count, active_cycle_number
+        from public.customer_memberships
+        where id = ${fixture.membershipId}::uuid`
+      assert.deepEqual(cycle, {
+        current_stamp_count: 1,
+        active_cycle_number: 1,
+      })
     })
   }
 )

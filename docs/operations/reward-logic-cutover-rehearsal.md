@@ -48,10 +48,10 @@ release. Do not put them in `vercel.json`, because changing that file would
 create another deployment and break the exact-baseline identity chain.
 
 1. `reward-logic-release-probes`: match `Environment Equals Production` **and**
-   `Request Path Is any of` `/api/health`, `/api/readiness`,
-   `/api/auth/hooks/send-email`; action `Bypass`. Place it before the deny rule.
-   These are the only exclusions: they are the protected release/readiness and
-   signed Auth-hook paths already exercised by the production workflow.
+   `Request Path Is any of` `/api/health`, `/api/readiness`; action `Bypass`.
+   Place it before the deny rule. These are the only exclusions: they are
+   read-only release/readiness paths already exercised by the production
+   workflow.
 2. `reward-logic-customer-fence`: match `Environment Equals Production` **and**
    `Request Path Starts with /`; action `Deny`. Do not configure a persistent
    action, because an IP must not remain denied after the rule is removed.
@@ -61,6 +61,8 @@ the protected workflow and retain the full alias deployment ID and revision.
 Publish both reviewed rules together. Then record all of these binary readbacks:
 
 - unauthenticated requests to `/`, `/terms`, `/privacy` and `/sw.js` are denied;
+- customer and provider write requests, including POST requests to
+  `/api/auth/hooks/send-email` and `/api/twilio/inbound`, are denied;
 - `/api/health` remains `200` and reports the same Stage A revision;
 - the protected `/api/readiness` probe remains `200` with the same revision;
 - a second authenticated `deployed-baseline.mjs` readback has the same alias,
@@ -70,15 +72,18 @@ Only after those checks may the protected job write the Stage B schema. Keep the
 rules published through candidate deployment and promotion. The normal
 `before-promotion` alias readback must still equal Stage A; the immediate
 post-promotion authenticated alias readback must equal the exact Stage B
-candidate. The workflow health, readiness and signed Auth-hook probes continue
-through the three bypass paths, so they do not require a broad customer bypass.
+candidate. The workflow health and readiness probes continue through the two
+bypass paths.
 
 After the Stage B alias readback and probes pass, remove both temporary rules in
 one reviewed WAF publication. Recheck `/`, `/terms`, `/privacy` and `/sw.js`
 without any special header, then repeat the exact public health/readiness and
-authenticated alias readbacks. If the rules cannot be read back, an excluded
-path differs, a customer path is reachable during the schema interval, or the
-alias changes unexpectedly, stop without applying or promoting another step.
+authenticated alias readbacks. Any separately authorised signed Auth-hook
+validation runs only after the fence is removed under the existing production
+runbook; it is not a fence bypass or an identity probe. If the rules cannot be
+read back, an excluded path differs, a customer path is reachable during the
+schema interval, or the alias changes unexpectedly, stop without applying or
+promoting another step.
 Retain the before/after rule configuration, HTTP status receipts and both alias
 identity records with the release evidence. This runbook does not authorise a
 live WAF change; the protected production release remains the approval boundary.

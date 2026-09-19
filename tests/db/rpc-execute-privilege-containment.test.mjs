@@ -117,6 +117,7 @@ const MUST_BE_LOCKED = [
   "enqueue_notification_event",
   "expire_due_reward_events",
   "record_notification_delivery",
+  "admit_notification_message_delivery",
   "record_operational_cron_run",
   "production_operational_signals",
   "production_operational_signals_v2",

@@ -68,64 +68,112 @@ test(
 )
 
 test(
-  "legacy 3/1 rewards use the database predicate without activating 0/2",
+  "issued rewards ignore current stamp counters across legacy and v2 policies",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
-      const fixture = await createRewardPoolFixture(tx)
-      await tx`
-        insert into public.reward_events (
-          id, merchant_id, customer_id, membership_id, loyalty_card_id,
-          status, reward_name, reward_terms, redeemable_from, source,
-          cycle_number, reward_policy_version, reward_policy_snapshot
-        ) values (
-          ${fixture.rewardEventId}::uuid,
-          ${fixture.merchantId}::uuid,
-          ${fixture.customerId}::uuid,
-          ${fixture.membershipId}::uuid,
-          ${fixture.cardId}::uuid,
-          'unlocked', 'Legacy reward', 'Subject to availability.',
-          public.uk_business_date(now()), 'stamp_cycle', 1, 'legacy_v1',
-          '{"collection":"next_uk_business_day","age_check":false,"expiry":"never"}'::jsonb
-        )`
+      for (const rewardPolicy of ["legacy_v1", "v2"]) {
+        for (const cardPolicy of ["legacy_v1", "v2"]) {
+          const fixture = await createRewardPoolFixture(tx)
+          await tx`
+            update public.loyalty_cards
+            set reward_policy_version = ${rewardPolicy}
+            where id = ${fixture.cardId}::uuid`
+          await tx`
+            insert into public.reward_events (
+              id, merchant_id, customer_id, membership_id, loyalty_card_id,
+              status, reward_name, reward_terms, redeemable_from, source,
+              cycle_number, reward_policy_version, created_at, updated_at
+            ) values (
+              ${fixture.rewardEventId}::uuid,
+              ${fixture.merchantId}::uuid,
+              ${fixture.customerId}::uuid,
+              ${fixture.membershipId}::uuid,
+              ${fixture.cardId}::uuid,
+              'unlocked', ${`${rewardPolicy} reward`}, 'Subject to availability.',
+              public.uk_business_date(now()), 'stamp_cycle', 1, ${rewardPolicy},
+              now() - interval '2 days', now() - interval '2 days'
+            )`
 
-      const readyRows = await tx`
-        select reward_id, state, reason, requires_age_check
-        from public.get_reward_collection_states(
-          array[${fixture.rewardEventId}::uuid, ${fixture.rewardEventId}::uuid]
-        )`
-      assert.deepEqual(
-        [...readyRows],
-        [
-          {
-            reward_id: fixture.rewardEventId,
-            state: "ready",
-            reason: null,
-            requires_age_check: false,
-          },
-        ]
-      )
+          const [issued] = await tx`
+            select reward_policy_version,
+                   reward_policy_snapshot ->> 'collection' as collection_rule
+            from public.reward_events
+            where id = ${fixture.rewardEventId}::uuid`
+          assert.equal(issued.reward_policy_version, rewardPolicy)
+          assert.equal(
+            issued.collection_rule,
+            rewardPolicy === "legacy_v1"
+              ? "next_uk_business_day"
+              : "next_trading_day"
+          )
 
-      await tx`
-        update public.customer_memberships
-        set current_stamp_count = 0
-        where id = ${fixture.membershipId}::uuid`
-      const [blocked] = await tx`
-        select state, reason
-        from public.get_reward_collection_state(${fixture.rewardEventId}::uuid)`
-      assert.deepEqual(blocked, {
-        state: "blocked",
-        reason: "Reward is not ready to redeem",
-      })
+          await tx`
+            update public.loyalty_cards
+            set reward_policy_version = ${cardPolicy}
+            where id = ${fixture.cardId}::uuid`
+          const [fullState] = await tx`
+            select state, reason
+            from public.get_reward_collection_state(${fixture.rewardEventId}::uuid)`
+          assert.deepEqual(fullState, { state: "ready", reason: null })
 
-      const [cycle] = await tx`
-        select current_stamp_count, active_cycle_number
-        from public.customer_memberships
-        where id = ${fixture.membershipId}::uuid`
-      assert.deepEqual(cycle, {
-        current_stamp_count: 0,
-        active_cycle_number: 1,
-      })
+          await tx`
+            update public.customer_memberships
+            set current_stamp_count = 0
+            where id = ${fixture.membershipId}::uuid`
+          const [emptyState] = await tx`
+            select state, reason
+            from public.get_reward_collection_state(${fixture.rewardEventId}::uuid)`
+          assert.deepEqual(emptyState, { state: "ready", reason: null })
+
+          const [minted] = await tx`
+            select scan_token
+            from public.create_reward_scan_token(
+              ${fixture.rewardEventId}::uuid,
+              ${fixture.customerId}::uuid
+            )`
+          const [context] = await tx`
+            select scan_status, blocked_reason
+            from public.get_reward_scan_context(
+              ${minted.scan_token}::uuid,
+              ${fixture.merchantId}::uuid
+            )`
+          assert.deepEqual(context, {
+            scan_status: "ready",
+            blocked_reason: null,
+          })
+
+          const [collected] = await tx`
+            select reward_event_id, membership_id, new_stamp_count
+            from public.collect_reward_scan_token(
+              ${minted.scan_token}::uuid,
+              ${fixture.merchantId}::uuid
+            )`
+          assert.deepEqual(collected, {
+            reward_event_id: fixture.rewardEventId,
+            membership_id: fixture.membershipId,
+            new_stamp_count: 0,
+          })
+          const [cycle] = await tx`
+            select memberships.current_stamp_count,
+                   memberships.active_cycle_number,
+                   rewards.status as reward_status,
+                   tokens.consumed_at is not null as token_consumed
+            from public.customer_memberships memberships
+            join public.reward_events rewards
+              on rewards.membership_id = memberships.id
+             and rewards.id = ${fixture.rewardEventId}::uuid
+            join public.reward_scan_tokens tokens
+              on tokens.reward_event_id = rewards.id
+            where memberships.id = ${fixture.membershipId}::uuid`
+          assert.deepEqual(cycle, {
+            current_stamp_count: 0,
+            active_cycle_number: 1,
+            reward_status: "redeemed",
+            token_consumed: true,
+          })
+        }
+      }
     })
   }
 )

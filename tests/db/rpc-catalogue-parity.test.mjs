@@ -75,6 +75,9 @@ const EXPECTED_SIGNATURES = {
   record_notification_delivery: [
     "p_notification_event_id uuid, p_push_subscription_id uuid, p_customer_id uuid, p_status text, p_attempt_number integer, p_response_status integer, p_failure_reason text, p_metadata jsonb, p_channel text, p_recipient_last4 text",
   ],
+  admit_notification_message_delivery: [
+    "p_notification_event_id uuid, p_customer_id uuid, p_channel text, p_attempt_number integer, p_recipient_last4 text",
+  ],
   save_venue_collection_windows: [
     "p_merchant_id uuid, p_location_id uuid, p_windows jsonb",
   ],

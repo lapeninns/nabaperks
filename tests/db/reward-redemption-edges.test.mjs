@@ -187,55 +187,68 @@ test("scan-token minting requires reward ownership", { skip }, async () => {
   })
 })
 
+test("scan-token minting refuses terminal rewards", { skip }, async () => {
+  await inRolledBackTxn(async (tx) => {
+    const [m] = await tx.unsafe(PICK)
+    assert.ok(m, "a billing-eligible seeded membership exists")
+
+    const redeemedRewardId = await readyReward(tx, m)
+    await tx`
+      update public.reward_events
+      set status = 'redeemed', redeemed_at = now()
+      where id = ${redeemedRewardId}`
+    await assertMintRejected(
+      tx,
+      redeemedRewardId,
+      m.customer_id,
+      /already redeemed/i,
+      "an already redeemed reward cannot mint a fresh scan token"
+    )
+
+    const cancelledRewardId = await readyReward(tx, m)
+    await tx`
+      update public.reward_events
+      set status = 'cancelled',
+          cancelled_reason = 'Cancelled by the venue (test fixture).'
+      where id = ${cancelledRewardId}`
+    await assertMintRejected(
+      tx,
+      cancelledRewardId,
+      m.customer_id,
+      /not ready to collect/i,
+      "a non-unlocked reward cannot mint a scan token"
+    )
+  })
+})
+
 test(
-  "scan-token minting refuses redeemed and not-ready rewards",
+  "scan-token minting accepts an issued legacy reward at any open-cycle count",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
       const [m] = await tx.unsafe(PICK)
       assert.ok(m, "a billing-eligible seeded membership exists")
-
-      const redeemedRewardId = await readyReward(tx, m)
-      await tx`
-      update public.reward_events
-      set status = 'redeemed', redeemed_at = now()
-      where id = ${redeemedRewardId}`
-      await assertMintRejected(
-        tx,
-        redeemedRewardId,
-        m.customer_id,
-        /already redeemed/i,
-        "an already redeemed reward cannot mint a fresh scan token"
-      )
-
-      const cancelledRewardId = await readyReward(tx, m)
-      await tx`
-      update public.reward_events
-      set status = 'cancelled',
-          cancelled_reason = 'Cancelled by the venue (test fixture).'
-      where id = ${cancelledRewardId}`
-      await assertMintRejected(
-        tx,
-        cancelledRewardId,
-        m.customer_id,
-        /not ready to collect/i,
-        "a non-unlocked reward cannot mint a scan token"
-      )
-
       await tx`update public.loyalty_cards set reward_policy_version = 'legacy_v1'
         where id = ${m.loyalty_card_id}`
-      const underStampedRewardId = await readyReward(tx, m)
+      const rewardId = await readyReward(tx, m)
       await tx`
-      update public.customer_memberships
-      set current_stamp_count = ${m.stamps_required - 1}
-      where id = ${m.membership_id}`
-      await assertMintRejected(
-        tx,
-        underStampedRewardId,
-        m.customer_id,
-        /not ready to redeem/i,
-        "a reward below the required stamp count cannot mint a scan token"
-      )
+        update public.customer_memberships
+        set current_stamp_count = ${m.stamps_required - 1}
+        where id = ${m.membership_id}`
+      const [minted] = await tx`
+        select scan_token from public.create_reward_scan_token(
+          ${rewardId}::uuid,
+          ${m.customer_id}::uuid
+        )`
+      assert.ok(minted.scan_token)
+      const [cycle] = await tx`
+        select current_stamp_count, active_cycle_number
+        from public.customer_memberships
+        where id = ${m.membership_id}`
+      assert.deepEqual(cycle, {
+        current_stamp_count: m.stamps_required - 1,
+        active_cycle_number: 2,
+      })
     })
   }
 )
