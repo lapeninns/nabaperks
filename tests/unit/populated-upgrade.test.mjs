@@ -38,9 +38,14 @@ test("only the named cycle migration permits the exact transition with preserved
     cycle: { currentStampCount: 0, activeCycleNumber: 2 },
     cutoverAuditRows: [
       {
-        action: "cycle_opened_at_policy_cutover",
+        actorType: "system",
+        actorId: "system",
+        merchantId: "ee100000-0000-4000-8000-000000000001",
+        customerId: "ee500000-0000-4000-8000-000000000001",
+        targetTable: "customer_memberships",
         targetId: "ee600000-0000-4000-8000-000000000001",
-        cycleNumber: 1,
+        action: "cycle_opened_at_policy_cutover",
+        metadata: { cycle_number: 1 },
       },
     ],
   }
@@ -64,6 +69,25 @@ test("only the named cycle migration permits the exact transition with preserved
     assert.throws(() =>
       assertUpgradeInvariants(before, { ...after, ...changed }, delta)
     )
+
+  const audit = after.cutoverAuditRows[0]
+  for (const changedAudit of [
+    { ...audit, actorType: "merchant" },
+    { ...audit, actorId: "unexpected-actor" },
+    { ...audit, merchantId: "ee100000-0000-4000-8000-000000000002" },
+    { ...audit, customerId: "ee500000-0000-4000-8000-000000000002" },
+    { ...audit, targetTable: "reward_events" },
+    { ...audit, metadata: { cycle_number: 1, unexpected: true } },
+    { ...audit, metadata: { cycle_number: 2 } },
+  ]) {
+    assert.throws(() =>
+      assertUpgradeInvariants(
+        before,
+        { ...after, cutoverAuditRows: [changedAudit] },
+        delta
+      )
+    )
+  }
 })
 test("upgrade only accepts explicit disposable loopback targets without provider credentials", () => {
   assert.equal(validateDisposableTarget(url, marker, {}).hostname, "127.0.0.1")
@@ -192,9 +216,14 @@ test("staged upgrade runs all three applications on the transitioned schema", ()
                 cutoverAuditRows: upgraded
                   ? [
                       {
-                        action: "cycle_opened_at_policy_cutover",
+                        actorType: "system",
+                        actorId: "system",
+                        merchantId: "ee100000-0000-4000-8000-000000000001",
+                        customerId: "ee500000-0000-4000-8000-000000000001",
+                        targetTable: "customer_memberships",
                         targetId: "ee600000-0000-4000-8000-000000000001",
-                        cycleNumber: 1,
+                        action: "cycle_opened_at_policy_cutover",
+                        metadata: { cycle_number: 1 },
                       },
                     ]
                   : null,

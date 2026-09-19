@@ -39,9 +39,14 @@ export function assertUpgradeInvariants(before, after, delta) {
     assert.equal(before.cutoverAuditRows, null)
     assert.deepEqual(after.cutoverAuditRows, [
       {
-        action: "cycle_opened_at_policy_cutover",
+        actorType: "system",
+        actorId: "system",
+        merchantId: "ee100000-0000-4000-8000-000000000001",
+        customerId: "ee500000-0000-4000-8000-000000000001",
+        targetTable: "customer_memberships",
         targetId: "ee600000-0000-4000-8000-000000000001",
-        cycleNumber: 1,
+        action: "cycle_opened_at_policy_cutover",
+        metadata: { cycle_number: 1 },
       },
     ])
   }
