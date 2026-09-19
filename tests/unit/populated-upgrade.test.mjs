@@ -14,6 +14,7 @@ import { createHash } from "node:crypto"
 import assert from "node:assert/strict"
 import {
   runPopulatedUpgrade,
+  assertUpgradeInvariants,
   probeTreeDigest,
   validateProbeArtifact,
   transactionalMigration,
@@ -23,6 +24,47 @@ import {
 } from "../../scripts/release/populated-upgrade.mjs"
 const marker = "ee000000-0000-4000-8000-000000000001"
 const url = "postgres://postgres:fixture@127.0.0.1:54322/codex_upgrade_unit"
+test("only the named cycle migration permits the exact transition with preserved rows and audit", () => {
+  const before = {
+    fixtureRows: 18,
+    cycle: { currentStampCount: 3, activeCycleNumber: 1 },
+    stampRows: [{ id: "stamp", stamps_delta: 3 }],
+    rewardRows: [{ id: "reward", status: "unlocked" }],
+    seededAuditRows: [{ id: "audit", action: "reward_unlocked" }],
+    cutoverAuditRows: null,
+  }
+  const after = {
+    ...before,
+    cycle: { currentStampCount: 0, activeCycleNumber: 2 },
+    cutoverAuditRows: [
+      {
+        action: "cycle_opened_at_policy_cutover",
+        targetId: "ee600000-0000-4000-8000-000000000001",
+        cycleNumber: 1,
+      },
+    ],
+  }
+  const delta = [{ name: "20260924100000_open_next_cycle_on_completion.sql" }]
+  const laterDelta = [{ name: "20261005100000_later_change.sql" }]
+  assertUpgradeInvariants(before, before, [])
+  assertUpgradeInvariants(before, after, delta)
+  assertUpgradeInvariants(after, after, [])
+  assertUpgradeInvariants(after, after, laterDelta)
+  assert.throws(() => assertUpgradeInvariants(before, after, []))
+  assert.throws(() => assertUpgradeInvariants(before, before, delta))
+  assert.throws(() => assertUpgradeInvariants(after, after, delta))
+  for (const changed of [
+    { fixtureRows: 17 },
+    { stampRows: [] },
+    { rewardRows: [] },
+    { seededAuditRows: [] },
+    { cutoverAuditRows: [] },
+    { cycle: { currentStampCount: 0, activeCycleNumber: 3 } },
+  ])
+    assert.throws(() =>
+      assertUpgradeInvariants(before, { ...after, ...changed }, delta)
+    )
+})
 test("upgrade only accepts explicit disposable loopback targets without provider credentials", () => {
   assert.equal(validateDisposableTarget(url, marker, {}).hostname, "127.0.0.1")
   for (const bad of [
@@ -91,6 +133,113 @@ test("app proof requires exact revision schema challenge and all executed contra
         challenge
       )
     )
+})
+
+test("staged upgrade runs all three applications on the transitioned schema", () => {
+  const baseline = makeProbe("a".repeat(40))
+  const candidate = makeProbe("b".repeat(40))
+  let upgraded = false
+  const executed = []
+  try {
+    const result = runPopulatedUpgrade(
+      {
+        databaseUrl: url,
+        marker,
+        repository: process.cwd(),
+        baselineRevision: baseline.probe.revision,
+        candidateRevision: candidate.probe.revision,
+        rollbackRevision: baseline.probe.revision,
+        probes: [baseline.probe, candidate.probe, baseline.probe],
+      },
+      {
+        env: { PATH: process.env.PATH },
+        spawn(command, args, options) {
+          let stdout = ""
+          if (command === "git") {
+            if (args[0] === "rev-parse") stdout = args[1].slice(0, 40)
+            if (args[0] === "ls-tree")
+              stdout =
+                "supabase/migrations/20260101000000_first.sql" +
+                (args.includes(candidate.probe.revision)
+                  ? "\nsupabase/migrations/20260924100000_open_next_cycle_on_completion.sql"
+                  : "")
+            if (args[0] === "show")
+              stdout = args[1].includes("20260924100000")
+                ? "select 'open-next-cycle';"
+                : "select 1;"
+          } else if (command === "psql") {
+            const sql = options.input
+            if (
+              sql.startsWith("select marker") ||
+              sql.startsWith("update codex_upgrade_guard.target")
+            )
+              stdout = marker
+            else if (sql.startsWith("select count(*)")) stdout = "0"
+            else if (sql.includes("then 'supabase-platform-ready'"))
+              stdout = "supabase-platform-ready"
+            else if (sql.startsWith("begin;\nselect 'open-next-cycle'"))
+              upgraded = true
+            else if (sql.startsWith("begin read only;"))
+              stdout = JSON.stringify({
+                fixtureRows: 18,
+                cycle: {
+                  currentStampCount: upgraded ? 0 : 3,
+                  activeCycleNumber: upgraded ? 2 : 1,
+                },
+                stampRows: [{ id: "stamp" }],
+                rewardRows: [{ id: "reward" }],
+                seededAuditRows: [{ id: "audit" }],
+                cutoverAuditRows: upgraded
+                  ? [
+                      {
+                        action: "cycle_opened_at_policy_cutover",
+                        targetId: "ee600000-0000-4000-8000-000000000001",
+                        cycleNumber: 1,
+                      },
+                    ]
+                  : null,
+              })
+          } else {
+            assert.equal(
+              upgraded,
+              true,
+              "Every app must execute after the cutover"
+            )
+            executed.push(options.env.UPGRADE_APP_REVISION)
+            stdout = JSON.stringify({
+              revision: options.env.UPGRADE_APP_REVISION,
+              migrationDigest: options.env.UPGRADE_MIGRATION_DIGEST,
+              challenge: options.env.UPGRADE_CHALLENGE,
+              result: "success",
+              checks: ["billing", "loyalty", "webhook"].map((contract) => ({
+                contract,
+                assertions: 1,
+              })),
+            })
+          }
+          return { status: 0, stdout }
+        },
+      }
+    )
+    assert.deepEqual(executed, [
+      baseline.probe.revision,
+      candidate.probe.revision,
+      baseline.probe.revision,
+    ])
+    assert.deepEqual(
+      result.checks.map((check) => check.name),
+      [
+        "populated-upgrade",
+        "baseline-app-upgraded-schema",
+        "candidate-app-upgraded-schema",
+        "rollback-app-upgraded-schema",
+      ]
+    )
+    assert.equal(result.appliedMigrationCount, 1)
+  } finally {
+    baseline.cleanup()
+    candidate.cleanup()
+  }
 })
 
 test("runner refuses unmarked database before any database mutation", () => {

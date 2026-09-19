@@ -49,6 +49,20 @@ and produces no applied ledger version. Migrations with explicit top-level
 transaction control or psql commands are refused pending separate review.
 Every app probe must preserve the complete invariant JSON, including row counts;
 a successful SQL exit alone is not accepted.
+The fixture also seeds an audit record, preserved separately from its 18 domain
+rows. Ordered stamp rows, issued reward identity/content and the seeded audit row are
+compared across the upgrade. Only a suffix containing
+`20260924100000_open_next_cycle_on_completion.sql` permits the exact membership
+transition from stamp count/cycle `3/1` to `0/2`. The SQL asserts the expected
+state against the applied migration ledger. That transition must add exactly one
+`cycle_opened_at_policy_cutover` audit row for cycle 1; all other invariant fields
+remain equal. The immutable stamp snapshot includes its non-null
+`earned_business_date`; the reward snapshot includes `redeemable_from`,
+`expires_at`, and `redeemed_at`, so trading-day and collection-window changes
+cannot silently rewrite existing commercial evidence. A baseline already
+containing Step 4 seeds `0/2` through its insert trigger and requires equality.
+Each baseline, candidate and rollback application probe runs after all candidate
+migrations and must preserve that upgraded state.
 The baseline must include the durable billing and issued-reward schema. Older
 baselines fail rather than silently substituting a toy fixture.
 
