@@ -114,6 +114,17 @@ export async function legacyGetCustomerCardState(
     collection_state: "blocked" as const,
     collection_reason: "Reward collection status is updating",
     available_from: null,
+    in_window: false,
+    window_id: null,
+    window_ends_at: null,
+    upgrade_pool_item_id: null,
+    upgrade_reward_name: null,
+    upgrade_reward_terms: null,
+    next_window_starts_at: null,
+    next_window_ends_at: null,
+    next_window_upgrade_name: null,
+    requires_age_check: true,
+    earning_terms: null,
   }))
 
   return {
@@ -129,6 +140,7 @@ export async function legacyGetCustomerCardState(
       current_stamp_count: membership.current_stamp_count,
       total_rewards_redeemed: membership.total_rewards_redeemed,
       active_cycle_number: membership.active_cycle_number,
+      policy_cutover_notice_at: null,
       referral_code: membership.referral_code,
       referral_code_active: membership.referral_code_active,
     },
@@ -140,7 +152,13 @@ export async function legacyGetCustomerCardState(
       pub_google_review: merchant.pub_google_review,
       locals: merchant.locals,
     },
-    loyaltyCard,
+    loyaltyCard: loyaltyCard
+      ? {
+          ...loyaltyCard,
+          minimum_spend_pence: null,
+          one_transaction_per_stamp: true,
+        }
+      : null,
     stampCycleReward: toRewardSummary(
       pickStampBlockingUnlockedReward(unlockedRewardRows)
     ),

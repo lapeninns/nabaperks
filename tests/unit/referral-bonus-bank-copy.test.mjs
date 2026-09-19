@@ -26,7 +26,7 @@ test("bank copy explains the venue stamp lands before available referral bonuses
   )
   assert.equal(
     copy.ruleSummary,
-    "Venue stamp first. Up to 2 referral bonus stamps can land per UK business day; the rest stay banked."
+    "Venue stamp first. Up to 2 referral bonus stamps can land per venue trading day; the rest stay banked."
   )
 })
 
@@ -38,7 +38,7 @@ test("bank copy shows no referral bonuses apply when the daily cap is already us
   assert.equal(copy.stats[2]?.value, "0")
   assert.equal(
     copy.detail,
-    "Your venue stamp can still land today. Referral bonus limit is full, so these stay banked for another UK business day."
+    "Your venue stamp can still land today. Referral bonus limit is full, so these stay banked for another venue trading day."
   )
   assert.equal(
     copy.compactDetail,
@@ -46,7 +46,7 @@ test("bank copy shows no referral bonuses apply when the daily cap is already us
   )
   assert.equal(
     copy.ruleSummary,
-    "Venue stamp first. Up to 2 referral bonus stamps can land per UK business day; the rest stay banked."
+    "Venue stamp first. Up to 2 referral bonus stamps can land per venue trading day; the rest stay banked."
   )
 })
 
@@ -57,11 +57,11 @@ test("bank copy distinguishes applied bonuses when nothing is waiting", () => {
   assert.equal(copy.badgeLabel, "1 / 2 today")
   assert.equal(
     copy.detail,
-    "You still keep your venue stamp separately. Referral bonuses are capped at 2 per UK business day."
+    "You still keep your venue stamp separately. Referral bonuses are capped at 2 per venue trading day."
   )
   assert.equal(
     copy.compactDetail,
-    "Venue stamps are separate. Referral bonus limit: 2 per UK business day."
+    "Venue stamps are separate. Referral bonus limit: 2 per venue trading day."
   )
   assert.equal(
     copy.ruleSummary,

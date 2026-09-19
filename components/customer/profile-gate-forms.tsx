@@ -56,7 +56,7 @@ function ProfileDetailsStep({
         over.
         {gate.emailLocked
           ? null
-          : " We'll email a one-time code to confirm your address."}
+          : " Email is optional. If you add one, we'll send a one-time code to confirm it."}
       </p>
 
       <Field
@@ -88,13 +88,12 @@ function ProfileDetailsStep({
         </>
       ) : (
         <Field
-          label="Email address"
+          label="Email address (optional)"
           name="email"
           type="email"
           inputMode="email"
           autoComplete="email"
-          hint="We'll send a one-time code to verify this email."
-          required
+          hint="If you add an email, we'll send a one-time code to verify it."
           defaultValue={state.fields?.email ?? gate.email ?? ""}
           error={state.errors?.email}
         />
@@ -115,13 +114,7 @@ function ProfileDetailsStep({
           event.currentTarget.scrollIntoView({ block: "center" })
         }
       >
-        {pending
-          ? gate.emailLocked
-            ? "Saving…"
-            : "Sending…"
-          : gate.emailLocked
-            ? "Save and continue"
-            : "Save and email my code"}
+        {pending ? "Saving…" : "Save and continue"}
       </Button>
     </form>
   )

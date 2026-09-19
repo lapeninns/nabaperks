@@ -25,12 +25,11 @@ const cardStampLabels = read("lib/customer/card-stamp-labels.ts")
 const cardStamps = read("lib/customer/card-stamps.ts")
 const loadStamp = read("lib/customer/experience/load-stamp.ts")
 const referralBonusBank = read("lib/customer/referral-bonus-bank.ts")
+const stampService = read("lib/customer/stamp.ts")
 const homeTile = read("components/customer/home-card-tile.tsx")
 const bankPanels = read("components/customer/referral-bonus-bank-panels.tsx")
 const bankCopy = read("lib/customer/referral-bonus-bank-copy.ts")
-const stampChoreography = read(
-  "lib/customer/experience/stamp-choreography.ts"
-)
+const stampChoreography = read("lib/customer/experience/stamp-choreography.ts")
 const referral = read("lib/customer/referral.ts")
 const liveDbTest = read("tests/db/referral-bonus-stamp.test.mjs")
 
@@ -119,7 +118,24 @@ test("the next venue stamp drains banked referral bonuses for that member", () =
   )
 })
 
-test("the referral bonus cap banks after two awards per UK business day", () => {
+test("referral settlement cannot turn a valid customer scan into reward-ready-first", () => {
+  assert.doesNotMatch(
+    stampService,
+    /filledByReferralBonus|rewardReadyFirst/,
+    "the removed completed-card compatibility branch cannot block a valid scan"
+  )
+  assert.equal(
+    (
+      stampService.match(
+        /const issuedStamp = issuedStampResult\(row\)[\s\S]*?if \(!issuedStamp\) throw new Error/g
+      ) ?? []
+    ).length,
+    2,
+    "self-service and venue-code scans both require and return the authoritative issued stamp"
+  )
+})
+
+test("the referral bonus cap banks after two awards per venue trading day", () => {
   assert.match(
     migration,
     /v_daily_bonus_cap\s+constant\s+integer\s*:=\s*2/,
@@ -128,7 +144,7 @@ test("the referral bonus cap banks after two awards per UK business day", () => 
   assert.match(
     migration,
     /public\.uk_business_date\(referrals\.referrer_bonus_awarded_at\)\s*=\s*v_business_date/,
-    "awarded bonuses are counted by UK business day"
+    "awarded bonuses are counted by venue trading day"
   )
   assert.match(
     migration,

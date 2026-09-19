@@ -29,6 +29,7 @@ type VenueLocationFormValues = VenueAddressFormFields & {
   requireGeofence: boolean
   /** Optional so callers that never expose the knob (dev harness) keep the 3 default. */
   softGeofenceTriggerStamp?: string
+  tradingDayStartsAt: string
 }
 
 import {
@@ -155,6 +156,37 @@ export function VenueLocationForm({
       />
 
       <VenueProviderProvenanceFields provenance={provenance} />
+
+      <div className="grid gap-2">
+        <label htmlFor="trading-day-start" className="text-sm font-bold">
+          Venue day rolls over at
+        </label>
+        <input
+          id="trading-day-start"
+          name="tradingDayStartsAt"
+          type="time"
+          min="00:00"
+          max="12:00"
+          step="900"
+          defaultValue={initialValues.tradingDayStartsAt}
+          aria-invalid={Boolean(state.errors?.tradingDayStartsAt)}
+          aria-describedby="trading-day-start-hint"
+          className="h-12 w-full rounded-lg border-2 border-ink bg-card px-3 text-foreground sm:max-w-48"
+        />
+        <p
+          id="trading-day-start-hint"
+          className="text-sm leading-6 text-muted-foreground"
+        >
+          Your day rolls over at {initialValues.tradingDayStartsAt}, so
+          late-night visits count as the same day. Your daily venue code rolls
+          at the same time.
+        </p>
+        {state.errors?.tradingDayStartsAt ? (
+          <p className="text-sm text-destructive">
+            {state.errors.tradingDayStartsAt}
+          </p>
+        ) : null}
+      </div>
 
       <input type="hidden" name="venueLatitude" value={pin?.latitude ?? ""} />
       <input type="hidden" name="venueLongitude" value={pin?.longitude ?? ""} />

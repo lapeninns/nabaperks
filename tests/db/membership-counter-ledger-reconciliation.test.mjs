@@ -17,19 +17,15 @@ import { ensureVerifiedCustomerEmail } from "./helpers/verified-customer-email.m
  * ledger before. This test locks the invariant so a future RPC edit that
  * updates a counter without a matching ledger row (or vice versa) fails.
  *
- * Redeem resets current_stamp_count directly (no compensating ledger delta), so
- * the current count reconciles against the EARNED rows of the active cycle, not
- * the delta sum. Four invariants hold along an organic lifecycle (seed rows may
+ * Reward issuance opens the next cycle immediately, so the current count
+ * reconciles against the EARNED rows of that active cycle. Four invariants hold
+ * along an organic lifecycle (seed rows may
  * manufacture states that violate the earned/cycle ones, so those are asserted
  * only on the organic drive):
  *   1. current_stamp_count    == count(earned events where cycle = active cycle)
  *   2. total_stamps_earned    == count(stamp_events event_type='earned')
  *   3. total_rewards_redeemed == count(reward_events status='redeemed')
- *   4. active_cycle_number    == total_rewards_redeemed + total_rewards_expired
- *                                 + total_rewards_cancelled + 1
- *      (20260805100200 made an expired stamp-cycle reward release the card, so an
- *      expiry advances the cycle exactly as a redemption does; total_rewards_expired
- *      is what keeps the identity true instead of quietly breaking it.)
+ *   4. active_cycle_number    == distinct issued stamp-cycle reward cycles + 1
  * Only #3 is asserted across all seeded memberships: a redeemed-reward tally that
  * disagrees with the reward rows is always a bug, regardless of how a row was
  * produced.
@@ -57,15 +53,16 @@ const PICK = /* sql */ `
 async function reconcile(tx, membershipId) {
   const [row] = await tx`
     select cm.current_stamp_count, cm.total_stamps_earned,
-           cm.total_rewards_redeemed, cm.total_rewards_expired,
-           cm.total_rewards_cancelled, cm.active_cycle_number,
+           cm.total_rewards_redeemed, cm.total_rewards_expired, cm.active_cycle_number,
            (select count(*) from public.stamp_events se
              where se.membership_id = cm.id and se.event_type = 'earned'
                and se.cycle_number = cm.active_cycle_number)::int as earned_active_cycle,
            (select count(*) from public.stamp_events se
              where se.membership_id = cm.id and se.event_type = 'earned')::int as earned_rows,
            (select count(*) from public.reward_events re
-             where re.membership_id = cm.id and re.status = 'redeemed')::int as redeemed_rows
+             where re.membership_id = cm.id and re.status = 'redeemed')::int as redeemed_rows,
+           (select count(distinct re.cycle_number) from public.reward_events re
+             where re.membership_id = cm.id and re.source = 'stamp_cycle')::int as issued_cycles
     from public.customer_memberships cm where cm.id = ${membershipId}`
   return row
 }
@@ -88,8 +85,8 @@ function assertReconciled(m, label) {
   )
   assert.equal(
     m.active_cycle_number,
-    m.total_rewards_redeemed + m.total_rewards_expired + m.total_rewards_cancelled + 1,
-    `${label}: active_cycle_number == total_rewards_redeemed + total_rewards_expired + total_rewards_cancelled + 1`
+    m.issued_cycles + 1,
+    `${label}: active_cycle_number == distinct issued reward cycles + 1`
   )
 }
 
@@ -109,6 +106,11 @@ test(
                 '1990-01-01', now(), now())
         returning id`
       await ensureVerifiedCustomerEmail(tx, customer.id)
+      await tx`
+        update public.customers
+        set date_of_birth_verified_at = now(),
+            date_of_birth_verification_source = 'trusted_database'
+        where id = ${customer.id}::uuid`
 
       const ageStamps = (membershipId) => tx`
         update public.stamp_events
@@ -136,17 +138,22 @@ test(
       const [s3] = await stamp(membershipId)
       assert.equal(s3.reward_unlocked, true, "stamp 3 unlocks a reward")
       const afterUnlock = await reconcile(tx, membershipId)
-      assert.equal(afterUnlock.current_stamp_count, 3, "card is full at 3/3")
+      assert.equal(
+        afterUnlock.current_stamp_count,
+        0,
+        "fresh cycle opens at 0/3"
+      )
       assertReconciled(afterUnlock, "after unlock")
 
-      // Redeem next business day: counters must roll over in lockstep with the
-      // ledger (a -stamps_required reversal delta + a redeemed reward row).
+      // Redeem next trading day: outcome counters change, while cycle arithmetic
+      // remains where reward issuance already opened it.
       const [reward] = await tx`
         select id from public.reward_events where membership_id = ${membershipId}`
       const ukToday = (
         await tx`select (now() at time zone 'Europe/London')::date as d`
       )[0].d
-      await tx`update public.reward_events set redeemable_from = ${ukToday}
+      await tx`update public.reward_events
+               set redeemable_from = ${ukToday}, available_from = now() - interval '1 minute'
                where id = ${reward.id}`
       const [minted] = await tx`
         select * from public.create_reward_scan_token(
@@ -154,8 +161,12 @@ test(
       await tx`select * from public.collect_reward_scan_token(
           ${minted.scan_token}::uuid, ${v.merchant_id}::uuid)`
       const afterRedeem = await reconcile(tx, membershipId)
-      assert.equal(afterRedeem.current_stamp_count, 0, "count rolls to 0")
-      assert.equal(afterRedeem.active_cycle_number, 2, "advanced to cycle 2")
+      assert.equal(
+        afterRedeem.current_stamp_count,
+        0,
+        "opened cycle stays at 0"
+      )
+      assert.equal(afterRedeem.active_cycle_number, 2, "remains on cycle 2")
       assertReconciled(afterRedeem, "after redeem")
 
       // First stamp of cycle 2 — clean card, counters still reconciled.

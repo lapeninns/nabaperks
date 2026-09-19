@@ -3,25 +3,47 @@ import { test } from "node:test"
 
 import {
   cardRewardCollectable,
+  collectionWindowCopy,
   formatCollectionAvailability,
   formatCollectionAvailableLabel,
+  formatCollectionDeadline,
   parseRewardCollectionState,
   rewardCollectionBlockedCopy,
 } from "@/lib/customer/reward-collection-state"
 
-test("Given an authoritative predicate row When parsed Then readiness and timestamps are preserved", () => {
+test("Given a complete predicate row When parsed Then server collection facts are preserved", () => {
   assert.deepEqual(
     parseRewardCollectionState({
       state: "ready",
       reason: null,
       available_from: "2026-10-27T05:00:00Z",
       expires_at: "2026-12-22T15:00:00Z",
+      in_window: true,
+      window_id: "window-1",
+      window_ends_at: "2026-10-27T15:00:00Z",
+      upgrade_pool_item_id: "item-2",
+      upgrade_reward_name: "Free starter",
+      upgrade_reward_terms: "Choose one starter.",
+      next_window_starts_at: null,
+      next_window_ends_at: null,
+      next_window_upgrade_name: null,
+      requires_age_check: false,
     }),
     {
       state: "ready",
       reason: null,
       availableFrom: "2026-10-27T05:00:00Z",
       expiresAt: "2026-12-22T15:00:00Z",
+      inWindow: true,
+      windowId: "window-1",
+      windowEndsAt: "2026-10-27T15:00:00Z",
+      upgradePoolItemId: "item-2",
+      upgradeRewardName: "Free starter",
+      upgradeRewardTerms: "Choose one starter.",
+      nextWindowStartsAt: null,
+      nextWindowEndsAt: null,
+      nextWindowUpgradeName: null,
+      requiresAgeCheck: false,
     }
   )
 })
@@ -29,22 +51,22 @@ test("Given an authoritative predicate row When parsed Then readiness and timest
 test("Given an authoritative collection instant When formatted Then the London date and time are shown", () => {
   assert.equal(
     formatCollectionAvailability("2026-10-27T05:30:00Z"),
-    "Ready Tuesday 27 October at 05:30"
+    "Ready Tue 27 Oct at 05:30"
   )
   assert.equal(
     formatCollectionAvailableLabel("2026-10-27T05:30:00Z"),
-    "Tuesday 27 October at 05:30"
+    "Tue 27 Oct at 05:30"
   )
   assert.equal(formatCollectionAvailability(null), null)
   assert.equal(formatCollectionAvailableLabel(null), null)
   // Date-only legacy values open at London midnight in summer and winter.
   assert.equal(
     formatCollectionAvailability("2026-07-02"),
-    "Ready Thursday 2 July at 00:00"
+    "Ready Thu 2 Jul at 00:00"
   )
   assert.equal(
     formatCollectionAvailability("2026-01-15"),
-    "Ready Thursday 15 January at 00:00"
+    "Ready Thu 15 Jan at 00:00"
   )
 })
 
@@ -60,7 +82,12 @@ test("an under-18 customer is told the age policy, not to show ID", () => {
 })
 
 test("Given stale or malformed predicate facts When parsed Then they fail closed", () => {
-  for (const value of [null, {}, { state: "surprise" }]) {
+  for (const value of [
+    null,
+    {},
+    { state: "surprise" },
+    { state: "ready", in_window: "yes" },
+  ]) {
     assert.throws(
       () => parseRewardCollectionState(value),
       /malformed collection state/
@@ -96,4 +123,47 @@ test("a programme-level block is not described as a deliberate pause", () => {
     rewardCollectionBlockedCopy("venue_paused"),
     "This venue has paused reward collection."
   )
+})
+
+test("Given the predicate has no effective age flag When parsed Then the UI does not claim ID is needed", () => {
+  const collection = parseRewardCollectionState({
+    state: "ready",
+    reason: null,
+    in_window: false,
+  })
+
+  assert.equal(collection.requiresAgeCheck, false)
+})
+
+test("Given current and upcoming upgrade windows When formatted Then copy names the server window", () => {
+  assert.equal(
+    collectionWindowCopy({
+      inWindow: true,
+      windowEndsAt: "2026-10-27T15:00:00Z",
+      upgradeRewardName: "Free starter",
+      nextWindowStartsAt: null,
+      nextWindowEndsAt: null,
+      nextWindowUpgradeName: null,
+    }),
+    "Collect now and get Free starter — until 15:00"
+  )
+  assert.equal(
+    collectionWindowCopy({
+      inWindow: false,
+      windowEndsAt: null,
+      upgradeRewardName: null,
+      nextWindowStartsAt: "2026-10-28T12:00:00Z",
+      nextWindowEndsAt: "2026-10-28T15:00:00Z",
+      nextWindowUpgradeName: "Free starter",
+    }),
+    "Collect on Wed 12:00–15:00 and get Free starter instead"
+  )
+})
+
+test("Given an expiry instant When formatted Then the customer sees the London deadline", () => {
+  assert.equal(
+    formatCollectionDeadline("2026-10-27T15:00:00Z"),
+    "Expires Tue 27 Oct at 15:00"
+  )
+  assert.equal(formatCollectionDeadline(null), null)
 })

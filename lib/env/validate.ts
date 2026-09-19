@@ -58,9 +58,72 @@ export function assertValidEnv(
   }
 
   invalid.push(...validateCustomerOtpBypassMode(customerOtpBypassMode))
+  invalid.push(...validateCustomerMessaging(values))
 
   if (missing.length || invalid.length) {
     throw new EnvConfigError({ missing, invalid })
+  }
+}
+
+function validateCustomerMessaging(values: Record<string, string | undefined>) {
+  const invalid: string[] = []
+  const mode = values.CUSTOMER_MESSAGING_MODE?.trim() || "off"
+  const bypass = values.CUSTOMER_MESSAGING_BYPASS_MODE?.trim()
+
+  if (!["off", "dry_run", "live"].includes(mode)) {
+    invalid.push("CUSTOMER_MESSAGING_MODE must be off, dry_run or live")
+  }
+  if (bypass && bypass !== "log") {
+    invalid.push("CUSTOMER_MESSAGING_BYPASS_MODE must be log or blank")
+  }
+  if (mode !== "off") {
+    for (const name of [
+      "TWILIO_AUTH_TOKEN",
+      "TWILIO_ACCOUNT_SID",
+      "TWILIO_CUSTOMER_MESSAGING_SERVICE_SID",
+      "TWILIO_CONTENT_SIDS",
+    ]) {
+      if (!values[name]?.trim())
+        invalid.push(`${name} is required when customer messaging is enabled`)
+    }
+  }
+  const contentSids = values.TWILIO_CONTENT_SIDS?.trim()
+  if (contentSids && !hasTwilioContentSidMapShape(contentSids)) {
+    invalid.push("TWILIO_CONTENT_SIDS must be a JSON object of HX Content SIDs")
+  } else if (mode !== "off" && contentSids) {
+    const missingTemplates = missingTwilioContentSids(contentSids)
+    if (missingTemplates.length > 0) {
+      invalid.push(
+        `TWILIO_CONTENT_SIDS is missing approved templates for: ${missingTemplates.join(", ")}`
+      )
+    }
+  }
+  return invalid
+}
+
+function missingTwilioContentSids(value: string) {
+  const parsed = JSON.parse(value) as Record<string, string>
+  return customerMessagingContentEvents.filter(
+    (eventType) => !parsed[eventType]
+  )
+}
+
+function hasTwilioContentSidMapShape(value: string) {
+  try {
+    const parsed: unknown = JSON.parse(value)
+    return (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      !Array.isArray(parsed) &&
+      Object.entries(parsed).every(
+        ([eventType, sid]) =>
+          /^[a-z][a-z0-9_]*$/.test(eventType) &&
+          typeof sid === "string" &&
+          /^HX[0-9a-f]{32}$/i.test(sid)
+      )
+    )
+  } catch {
+    return false
   }
 }
 
@@ -121,3 +184,4 @@ function validateCustomerOtpBypassMode(mode: string | undefined) {
   ]
 }
 import { isStrongCustomerSessionSecret } from "@/lib/security/customer-session-secret-core"
+import customerMessagingContentEvents from "@/config/customer-messaging-content-events.json" with { type: "json" }

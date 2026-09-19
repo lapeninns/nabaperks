@@ -1,5 +1,6 @@
 import {
   createCipheriv,
+  createDecipheriv,
   createHash,
   createHmac,
   randomBytes,
@@ -16,11 +17,20 @@ import {
 
 const hmacSecretName = "CUSTOMER_PHONE_HMAC_SECRET"
 const encryptionKeyName = "CUSTOMER_PHONE_ENCRYPTION_KEY"
+const VERSION_PREFIX = "v1"
+const TAG_BYTES = 16
 
 export type PhonePii = {
   phoneHmac: string
   phoneCiphertext: string
   phoneLast4: string
+}
+
+export class CustomerPhoneCipherIntegrityError extends Error {
+  constructor() {
+    super("Customer phone ciphertext failed integrity verification.")
+    this.name = "CustomerPhoneCipherIntegrityError"
+  }
 }
 
 export function customerPhonePii(e164: string): PhonePii {
@@ -38,11 +48,10 @@ export function customerPhoneHmac(e164: string): string {
 }
 
 export function encryptCustomerPhone(e164: string): string {
-  const key = createHash("sha256")
-    .update(requiredEnv(encryptionKeyName))
-    .digest()
   const iv = randomBytes(12)
-  const cipher = createCipheriv("aes-256-gcm", key, iv)
+  const cipher = createCipheriv("aes-256-gcm", cipherKey(), iv, {
+    authTagLength: TAG_BYTES,
+  })
   const ciphertext = Buffer.concat([
     cipher.update(e164, "utf8"),
     cipher.final(),
@@ -50,11 +59,36 @@ export function encryptCustomerPhone(e164: string): string {
   const tag = cipher.getAuthTag()
 
   return [
-    "v1",
+    VERSION_PREFIX,
     iv.toString("base64url"),
     tag.toString("base64url"),
     ciphertext.toString("base64url"),
   ].join(".")
+}
+
+export function decryptCustomerPhone(stored: string): string {
+  const parts = stored.split(".")
+  if (parts.length !== 4 || parts[0] !== VERSION_PREFIX) {
+    throw new CustomerPhoneCipherIntegrityError()
+  }
+
+  const [, ivPart, tagPart, bodyPart] = parts
+  try {
+    const decipher = createDecipheriv(
+      "aes-256-gcm",
+      cipherKey(),
+      Buffer.from(ivPart, "base64url"),
+      { authTagLength: TAG_BYTES }
+    )
+    decipher.setAuthTag(Buffer.from(tagPart, "base64url"))
+    return Buffer.concat([
+      decipher.update(Buffer.from(bodyPart, "base64url")),
+      decipher.final(),
+    ]).toString("utf8")
+  } catch (error) {
+    if (error instanceof Error && /required/.test(error.message)) throw error
+    throw new CustomerPhoneCipherIntegrityError()
+  }
 }
 
 export function maskedPhoneFromLast4(last4: string | null): string | null {
@@ -65,6 +99,10 @@ export function maskedPhoneFromLast4(last4: string | null): string | null {
 
 function lastFourDigits(e164: string): string {
   return e164.replace(/\D/g, "").slice(-4)
+}
+
+function cipherKey(): Buffer {
+  return createHash("sha256").update(requiredEnv(encryptionKeyName)).digest()
 }
 
 function requiredEnv(name: string): string {

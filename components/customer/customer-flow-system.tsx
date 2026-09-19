@@ -328,6 +328,10 @@ export function CustomerStampCard({
     name: ReactNode
     description?: ReactNode
     readyDate?: string | null
+    requiresAgeCheck?: boolean
+    earningTerms?: string | null
+    expiryText?: string | null
+    collectionWindowText?: string | null
     sealSlammed?: boolean
   }
   slamIndex?: number
@@ -405,6 +409,10 @@ export function CustomerStampCard({
         name={reward.name}
         description={reward.description}
         readyDate={reward.readyDate}
+        requiresAgeCheck={reward.requiresAgeCheck}
+        earningTerms={reward.earningTerms}
+        expiryText={reward.expiryText}
+        collectionWindowText={reward.collectionWindowText}
         sealSlammed={reward.sealSlammed}
       />
       {children}

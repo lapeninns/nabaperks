@@ -20,7 +20,6 @@ import {
 } from "@/lib/notifications/frequency-cap"
 import { londonBusinessDate } from "@/lib/notifications/london-time"
 import { hasPushMarketingConsent } from "@/lib/notifications/push-marketing-eligibility"
-
 import { parseRewardCollectionState } from "@/lib/customer/reward-collection-state"
 import { rewardUnlockedNotificationEvent } from "@/lib/notifications/reward-event-plan-core"
 
@@ -39,6 +38,7 @@ export type EnqueueNotificationInput = {
     rewardName?: string | null
     announcementTitle?: string | null
     announcementBody?: string | null
+    expiresAt?: string | null
   }
   metadata?: Record<string, unknown>
 }
@@ -50,6 +50,7 @@ type NotificationPreferences = {
   transactional_enabled: boolean
   reminder_enabled: boolean
   marketing_enabled: boolean
+  phone_messages_enabled: boolean
 }
 
 type MembershipNotificationContext = {
@@ -92,6 +93,7 @@ export async function enqueueNotificationEvent(
     rewardName: input.payload?.rewardName,
     announcementTitle: input.payload?.announcementTitle,
     announcementBody: input.payload?.announcementBody,
+    expiresAt: input.payload?.expiresAt,
     url: input.payload?.url,
     merchantId: input.merchantId,
     membershipId: input.membershipId,
@@ -176,7 +178,12 @@ export async function enqueueStampTransitionNotifications({
             ? `/reward/${reward.rewardEventId}`
             : "/home/rewards",
       },
-      metadata: { source: "confirmed_stamp" },
+      metadata: {
+        source: "confirmed_stamp",
+        collection_state: collection.state,
+        available_from: collection.availableFrom,
+        expires_at: collection.expiresAt,
+      },
     })
     return
   }
@@ -230,13 +237,21 @@ async function notificationEligibility(
   const category = notificationEventCategory(input.eventType)
   if (category === "operational") return { allowed: true as const }
 
-  const [preferences, enabledSubscriptions] = await Promise.all([
+  const [preferences, enabledSubscriptions, verifiedPhone] = await Promise.all([
     getNotificationPreferences(supabase, input.customerId),
     countEnabledSubscriptions(supabase, input.customerId),
+    hasVerifiedPhoneRecipient(supabase, input.customerId),
   ])
+  const phoneReachable = verifiedPhone && preferences.phone_messages_enabled
 
-  if (enabledSubscriptions === 0) {
-    return { allowed: false as const, reason: "no_enabled_push_subscription" }
+  if (
+    !isCustomerReachable({
+      enabledSubscriptions,
+      verifiedPhone,
+      phoneMessagesEnabled: preferences.phone_messages_enabled,
+    })
+  ) {
+    return { allowed: false as const, reason: "no_enabled_delivery_channel" }
   }
 
   if (
@@ -249,25 +264,34 @@ async function notificationEligibility(
     return { allowed: false as const, reason: "notification_frequency_cap" }
   }
 
-  if (category === "transactional" && !preferences.transactional_enabled) {
+  if (
+    category === "transactional" &&
+    !preferences.transactional_enabled &&
+    !phoneReachable
+  ) {
     return { allowed: false as const, reason: "transactional_push_disabled" }
   }
 
-  if (category === "reminder" && !preferences.reminder_enabled) {
+  if (
+    category === "reminder" &&
+    !preferences.reminder_enabled &&
+    !phoneReachable
+  ) {
     return { allowed: false as const, reason: "reminder_push_disabled" }
   }
 
   if (notificationRequiresMarketingConsent(input.eventType)) {
-    if (!preferences.marketing_enabled) {
+    if (!preferences.marketing_enabled && !phoneReachable) {
       return { allowed: false as const, reason: "marketing_push_disabled" }
     }
 
     if (
-      !input.merchantId ||
-      !(await hasPushMarketingConsent(supabase, {
-        customerId: input.customerId,
-        merchantId: input.merchantId,
-      }))
+      !phoneReachable &&
+      (!input.merchantId ||
+        !(await hasPushMarketingConsent(supabase, {
+          customerId: input.customerId,
+          merchantId: input.merchantId,
+        })))
     ) {
       return { allowed: false as const, reason: "marketing_consent_missing" }
     }
@@ -282,7 +306,9 @@ async function getNotificationPreferences(
 ): Promise<NotificationPreferences> {
   const { data, error } = await supabase
     .from("notification_preferences")
-    .select("transactional_enabled, reminder_enabled, marketing_enabled")
+    .select(
+      "transactional_enabled, reminder_enabled, marketing_enabled, phone_messages_enabled"
+    )
     .eq("customer_id", customerId)
     .maybeSingle()
 
@@ -294,7 +320,38 @@ async function getNotificationPreferences(
     transactional_enabled: data?.transactional_enabled ?? true,
     reminder_enabled: data?.reminder_enabled ?? true,
     marketing_enabled: data?.marketing_enabled ?? false,
+    phone_messages_enabled: data?.phone_messages_enabled ?? true,
   }
+}
+
+export function isCustomerReachable(input: {
+  readonly enabledSubscriptions: number
+  readonly verifiedPhone: boolean
+  readonly phoneMessagesEnabled: boolean
+}) {
+  return (
+    input.enabledSubscriptions > 0 ||
+    (input.verifiedPhone && input.phoneMessagesEnabled)
+  )
+}
+
+async function hasVerifiedPhoneRecipient(
+  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
+  customerId: string
+) {
+  const { data, error } = await supabase
+    .from("customers")
+    .select("phone_ciphertext, phone_verified_at")
+    .eq("id", customerId)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(
+      `Unable to load customer phone reachability: ${error.message}`
+    )
+  }
+
+  return Boolean(data?.phone_ciphertext && data.phone_verified_at)
 }
 
 async function countEnabledSubscriptions(

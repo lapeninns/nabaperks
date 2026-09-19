@@ -44,6 +44,7 @@ const STAMP_SQLSTATE_REASONS: Readonly<Record<string, CustomerBlockReason>> = {
   NBS14: "venue_code_refusal_missing",
   NBC01: "venue_code_locked",
   NBC02: "venue_code_format",
+  NBR01: "reward_daily_cap",
 }
 
 /**
@@ -109,9 +110,11 @@ export function toStampBlockReason(
 export function blockReasonCopy(reason: CustomerBlockReason): string {
   switch (reason) {
     case "already_stamped_today":
-      return "You're already stamped today. Come back on the next UK business day."
+      return "You're already stamped for this venue trading day. Try again after the venue's next daily reset."
     case "reward_ready_first":
       return "Your reward is ready — redeem it before collecting more stamps."
+    case "reward_daily_cap":
+      return "You've collected a reward here in this venue trading day. Your next reward is available after the venue's daily reset."
     case "billing_required":
       return "This venue isn't taking stamps yet."
     case "rate_limited":

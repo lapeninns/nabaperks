@@ -7,7 +7,13 @@ import {
   ToggleOnIcon,
 } from "@hugeicons/core-free-icons"
 
-import { regenerateQrAction, setQrActiveAction } from "@/app/admin/actions"
+import {
+  regenerateQrAction,
+  reinstateMerchantAction,
+  setCustomerMessagingEnabledAction,
+  setQrActiveAction,
+  suspendMerchantAction,
+} from "@/app/admin/actions"
 import { AdminActionForm } from "@/components/admin/action-form"
 import {
   AdminConfirmCheck,
@@ -65,7 +71,7 @@ export default async function AdminMerchantsPage() {
       <PageTitle
         eyebrow="Internal admin"
         title="Merchants"
-        description="Merchant account, plan status, and QR support controls."
+        description="Merchant accounts, customer messaging, suspension and QR support controls."
       />
 
       <MerchantAccountsPanel merchants={merchants} />
@@ -200,6 +206,11 @@ function MerchantAccountsPanel({
               </time>
             ),
           },
+          {
+            key: "controls",
+            header: "Controls",
+            cell: (merchant) => <MerchantControls merchant={merchant} />,
+          },
         ]}
         mobileCard={(merchant) => {
           const billing = formatAdminBillingStatus(
@@ -232,11 +243,86 @@ function MerchantAccountsPanel({
                   ),
                 },
               ]}
+              action={<MerchantControls merchant={merchant} />}
             />
           )
         }}
       />
     </AdminPanel>
+  )
+}
+
+function MerchantControls({ merchant }: { readonly merchant: AdminMerchant }) {
+  const messagingEnabled = merchant.customer_messaging_enabled === true
+  const suspended = merchant.status === "suspended"
+  return (
+    <AdminRecordActions label="Merchant controls" group="merchant-controls">
+      <div className="grid gap-4 text-sm">
+        <AdminActionForm action={setCustomerMessagingEnabledAction}>
+          <input type="hidden" name="merchantId" value={merchant.id} />
+          <input
+            type="hidden"
+            name="enabled"
+            value={String(!messagingEnabled)}
+          />
+          <p>
+            Customer messaging: {messagingEnabled ? "enabled" : "disabled"}.
+          </p>
+          <p className="text-muted-foreground">
+            WhatsApp and SMS follow the platform messaging mode and each
+            member’s preferences. Marketing still requires consent.
+          </p>
+          <SubmitButton pendingLabel="Updating…" variant="secondary">
+            {messagingEnabled
+              ? "Disable customer messaging"
+              : "Enable customer messaging"}
+          </SubmitButton>
+        </AdminActionForm>
+        {suspended ? (
+          <AdminActionForm action={reinstateMerchantAction}>
+            <input type="hidden" name="merchantId" value={merchant.id} />
+            <p>
+              Suspended{" "}
+              {merchant.suspended_at
+                ? formatAdminDate(merchant.suspended_at)
+                : "—"}
+              .
+              {merchant.status_before_suspension
+                ? ` Previous account status: ${merchant.status_before_suspension}.`
+                : ""}
+            </p>
+            {merchant.suspension_reason ? (
+              <p className="break-words">{merchant.suspension_reason}</p>
+            ) : null}
+            {merchant.suspended_by ? (
+              <p className="font-mono text-xs break-all text-muted-foreground">
+                Admin {merchant.suspended_by}
+              </p>
+            ) : null}
+            <p className="text-muted-foreground">
+              Reinstating removes the suspension. Billing and other account
+              checks still apply.
+            </p>
+            <SubmitButton pendingLabel="Reinstating…" variant="secondary">
+              Reinstate merchant
+            </SubmitButton>
+          </AdminActionForm>
+        ) : (
+          <AdminActionForm action={suspendMerchantAction}>
+            <input type="hidden" name="merchantId" value={merchant.id} />
+            <AdminField
+              label="Suspension reason"
+              helper="New stamps stop immediately. Eligible rewards issued before suspension can still be collected during a 30-day grace period. The reason is logged to the audit trail."
+            >
+              <Input name="reason" required minLength={4} maxLength={500} />
+            </AdminField>
+            <SubmitButton pendingLabel="Suspending…" variant="destructive">
+              Suspend merchant
+            </SubmitButton>
+          </AdminActionForm>
+        )}
+      </div>
+    </AdminRecordActions>
   )
 }
 

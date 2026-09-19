@@ -7,6 +7,7 @@ import {
   RedeemableReward,
 } from "@/components/customer/reward-list-cards"
 import { formatDate } from "@/lib/customer/format"
+import { formatCollectionAvailability } from "@/lib/customer/reward-collection-state"
 
 import { HOME_HARNESS_REWARDS } from "../fixtures"
 
@@ -66,9 +67,8 @@ export default function HomeHarnessRewardsPage() {
                   reward={reward}
                   tone="sun"
                   note={
-                    reward.redeemableFrom
-                      ? `Ready from ${formatDate(reward.redeemableFrom)}.`
-                      : "Available from the next UK business day."
+                    formatCollectionAvailability(reward.availableFrom) ??
+                    "Collection timing will appear here."
                   }
                 />
               ))}

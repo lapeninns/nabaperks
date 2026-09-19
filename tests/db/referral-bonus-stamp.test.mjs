@@ -160,12 +160,33 @@ async function edgeState(tx, referredMembershipId) {
   return edge
 }
 
-async function stampsRequiredFor(tx, merchantId) {
+async function fillReferrerToOneShort(tx, seeded, merchantId) {
   const [card] = await tx`
-    select stamps_required from public.loyalty_cards
-    where merchant_id = ${merchantId} and is_active
+    select id, location_id, stamps_required from public.loyalty_cards
+    where merchant_id = ${merchantId}::uuid and is_active
     order by created_at asc limit 1`
-  return card?.stamps_required
+  const [{ earned }] = await tx`
+    select count(*)::integer as earned from public.stamp_events
+    where membership_id = ${seeded.referrer.membership_id}::uuid
+      and event_type = 'earned' and cycle_number = 1`
+  const missing = card.stamps_required - Number(earned) - 1
+  assert.ok(missing >= 0, "fixture starts before the completing stamp")
+  await tx`
+    insert into public.stamp_events (
+      merchant_id, customer_id, membership_id, loyalty_card_id, location_id,
+      event_type, stamps_delta, earned_business_date, cycle_number, metadata
+    )
+    select ${merchantId}::uuid, ${seeded.referrerCustomer}::uuid,
+           ${seeded.referrer.membership_id}::uuid, ${card.id}::uuid,
+           ${card.location_id}::uuid, 'earned', 1, null, 1,
+           jsonb_build_object('source', 'referral_completion_fixture')
+    from generate_series(1, ${missing}::integer)`
+  await tx`
+    update public.customer_memberships
+    set current_stamp_count = ${card.stamps_required - 1},
+        total_stamps_earned = total_stamps_earned + ${missing}
+    where id = ${seeded.referrer.membership_id}::uuid`
+  return card
 }
 
 // A referrer + attributed friend at the same venue; friend has an edge, no stamp.
@@ -305,38 +326,35 @@ test(
 )
 
 test(
-  "RB-5/RB-6: a full-card referrer holds the bonus due, drain pays it when room frees",
+  "RB-5/RB-6: a pool hold recovers once and repeated global drains do not duplicate it",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
       const [qr] = await tx.unsafe(PICK_QR)
       const s = await seedReferrerAndFriend(tx, qr)
-      const required = await stampsRequiredFor(tx, qr.merchant_id)
-
-      // Force the referrer's card full (reward awaiting redemption).
-      await tx`update public.customer_memberships
-             set current_stamp_count = ${required}
-             where id = ${s.referrer.membership_id}`
+      const card = await fillReferrerToOneShort(tx, s, qr.merchant_id)
+      await tx`update public.reward_pool_items set is_active = false
+        where loyalty_card_id = ${card.id}::uuid`
 
       await stamp(tx, s.friend.membership_id, s.friendCustomer, qr.qr_id)
       assert.equal(
         (await bonusStampsFor(tx, s.referrer.membership_id)).length,
         0,
-        "no stamp onto a full card (RB-5)"
+        "no completing bonus while the reward pool is unavailable (RB-5)"
       )
       let edge = await edgeState(tx, s.friend.membership_id)
       assert.ok(edge.referrer_bonus_due_at, "bonus recorded due")
       assert.equal(edge.referrer_bonus_awarded_at, null, "not yet awarded")
 
-      // Room frees; the sweep pays the owed bonus.
-      await tx`update public.customer_memberships set current_stamp_count = 0
-             where id = ${s.referrer.membership_id}`
+      await tx`update public.reward_pool_items set is_active = true
+        where loyalty_card_id = ${card.id}::uuid`
+      await tx`select public.drain_due_referrer_bonuses()`
       await tx`select public.drain_due_referrer_bonuses()`
 
       assert.equal(
         (await bonusStampsFor(tx, s.referrer.membership_id)).length,
         1,
-        "drain pays the owed bonus (RB-6)"
+        "recovery and repeated drains pay exactly one owed bonus (RB-6)"
       )
       edge = await edgeState(tx, s.friend.membership_id)
       assert.ok(edge.referrer_bonus_awarded_at, "edge now awarded")
@@ -345,27 +363,31 @@ test(
 )
 
 test(
-  "RB-6 (member drain): the referrer's next venue stamp can drain their own bank",
+  "RB-6 (member drain): a scheduled processing hold pays exactly once",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
       const [qr] = await tx.unsafe(PICK_QR)
       const s = await seedReferrerAndFriend(tx, qr)
-      const required = await stampsRequiredFor(tx, qr.merchant_id)
-
-      await tx`update public.customer_memberships
-             set current_stamp_count = ${required}
-             where id = ${s.referrer.membership_id}`
+      const card = await fillReferrerToOneShort(tx, s, qr.merchant_id)
+      await tx`update public.reward_pool_items set is_active = false
+        where loyalty_card_id = ${card.id}::uuid`
       await stamp(tx, s.friend.membership_id, s.friendCustomer, qr.qr_id)
+      const [edge] = await tx`select id from public.referrals
+        where referred_membership_id = ${s.friend.membership_id}::uuid`
+      await tx`select public.hold_referral_bonus(
+        ${edge.id}::uuid, 'temporary_processing_error', 'retry fixture')`
 
       assert.equal(
         (await bonusStampsFor(tx, s.referrer.membership_id)).length,
         0,
-        "the bonus is banked while the referrer's card is full"
+        "the bonus remains banked after a processing hold"
       )
 
-      await tx`update public.customer_memberships set current_stamp_count = 0
-             where id = ${s.referrer.membership_id}`
+      await tx`update public.reward_pool_items set is_active = true
+        where loyalty_card_id = ${card.id}::uuid`
+      await tx`update public.referrals set next_retry_at = now() - interval '1 minute'
+        where id = ${edge.id}::uuid`
       const [{ applied }] = await tx`
         select public.drain_due_referrer_bonuses_for_membership(
           ${s.referrer.membership_id}::uuid
@@ -376,6 +398,11 @@ test(
         1,
         "the member-scoped drain applies one banked stamp"
       )
+      const [{ applied: repeated }] = await tx`
+        select public.drain_due_referrer_bonuses_for_membership(
+          ${s.referrer.membership_id}::uuid
+        ) as applied`
+      assert.equal(repeated, 0, "a repeated drain awards nothing")
       assert.equal(
         (await bonusStampsFor(tx, s.referrer.membership_id)).length,
         1,
@@ -447,13 +474,14 @@ test(
   }
 )
 
-test(
-  "RB-4: a bonus that completes the referrer's card unlocks their reward",
-  { skip },
-  async () => {
-    await inRolledBackTxn(async (tx) => {
-      const [qr] = await tx`
-      select q.qr_id, m.business_slug, m.id as merchant_id, lc.stamps_required
+for (const policyVersion of ["legacy_v1", "v2"]) {
+  test(
+    `RB-4: a completing bonus opens the next cycle and snapshots ${policyVersion}`,
+    { skip },
+    async () => {
+      await inRolledBackTxn(async (tx) => {
+        const [qr] = await tx`
+      select q.qr_id, m.business_slug, m.id as merchant_id, lc.stamps_required, lc.id as loyalty_card_id
       from public.qr_codes q
       join public.merchants m on m.id = q.merchant_id
       join public.loyalty_cards lc on lc.merchant_id = m.id and lc.is_active
@@ -465,33 +493,48 @@ test(
              where rpi.loyalty_card_id = lc.id and rpi.is_active) >= 3
       order by q.created_at
       limit 1`
-      if (!qr) return // no rewards-rich merchant seeded; unlock proven where data allows
-      const s = await seedReferrerAndFriend(tx, qr)
-      // Put the referrer one stamp short of a full card so the bonus completes it.
-      await tx`update public.customer_memberships
-             set current_stamp_count = ${qr.stamps_required - 1}
-             where id = ${s.referrer.membership_id}`
+        assert.ok(qr, "a reward-backed card exists")
+        await tx`update public.loyalty_cards set reward_policy_version = ${policyVersion}
+        where id = ${qr.loyalty_card_id}::uuid`
+        const s = await seedReferrerAndFriend(tx, qr)
+        await fillReferrerToOneShort(tx, s, qr.merchant_id)
 
-      await stamp(tx, s.friend.membership_id, s.friendCustomer, qr.qr_id)
+        await stamp(tx, s.friend.membership_id, s.friendCustomer, qr.qr_id)
 
-      const [{ n }] = await tx`
+        const [state] = await tx`
+        select current_stamp_count, active_cycle_number
+        from public.customer_memberships where id = ${s.referrer.membership_id}::uuid`
+        assert.deepEqual(
+          {
+            count: state.current_stamp_count,
+            cycle: state.active_cycle_number,
+          },
+          { count: 0, cycle: 2 }
+        )
+        const [reward] = await tx`
+        select reward_policy_version from public.reward_events
+        where membership_id = ${s.referrer.membership_id}::uuid
+          and source = 'stamp_cycle' and cycle_number = 1`
+        assert.equal(reward.reward_policy_version, policyVersion)
+        const [{ n }] = await tx`
       select count(*)::int as n from public.reward_events
       where membership_id = ${s.referrer.membership_id}
         and status = 'unlocked'
         and metadata->>'source' = 'referral_bonus'`
-      assert.equal(
-        n,
-        1,
-        "the completing bonus unlocked exactly one referrer reward"
-      )
-      assert.equal(
-        (await bonusStampsFor(tx, s.referrer.membership_id)).length,
-        1,
-        "and issued the bonus stamp"
-      )
-    })
-  }
-)
+        assert.equal(
+          n,
+          1,
+          "the completing bonus unlocked exactly one referrer reward"
+        )
+        assert.equal(
+          (await bonusStampsFor(tx, s.referrer.membership_id)).length,
+          1,
+          "and issued the bonus stamp"
+        )
+      })
+    }
+  )
+}
 
 test(
   "RB-10: past the per-referrer daily cap, the bonus is held due and flagged",
@@ -764,16 +807,14 @@ test(
           )
         order by q.created_at
         limit 1`
-      if (!qr) return // no multi-stamp seeded card; pool guard is data-dependent
+      assert.ok(qr, "a multi-stamp card exists")
       const s = await seedReferrerAndFriend(tx, qr)
 
       // Referrer one short of full, but the merchant's reward pool is below the
       // 3-active minimum the ledger needs to unlock — the bonus must hold, not
       // push the card into an uncompletable full state. Scope the pool change to
       // this loyalty card so other merchant cards are not disturbed.
-      await tx`update public.customer_memberships
-               set current_stamp_count = ${qr.stamps_required - 1}
-               where id = ${s.referrer.membership_id}`
+      await fillReferrerToOneShort(tx, s, qr.merchant_id)
       await tx`update public.reward_pool_items set is_active = false
                where loyalty_card_id = ${qr.loyalty_card_id}::uuid`
 

@@ -43,7 +43,7 @@ test("the join lookup is cached in two stages under the merchant tag, with no si
   // the whole lookup.
   assert.match(
     lookup,
-    /reward_pool_items!reward_pool_items_loyalty_card_id_fkey\(reward_name, is_active, display_order\)/
+    /reward_pool_items!reward_pool_items_loyalty_card_id_fkey\(reward_name, reward_terms, requires_age_check, is_active, display_order, id, created_at\)/
   )
   assert.doesNotMatch(lookup, /[^!]reward_pool_items\(/)
   assert.equal(
@@ -169,4 +169,21 @@ test("every QR writer without the merchant fan-out now revalidates the merchant 
   assert.match(billing, /revalidateMerchantCacheTags\(merchantId\)/)
   assert.match(merchantPage, /export const dynamic = "force-dynamic"/)
   assert.match(termsPage, /export const dynamic = "force-dynamic"/)
+})
+
+test("legal activation reads collection windows only for the selected merchant and location", () => {
+  const join = read("lib", "customer", "join.ts")
+  assert.match(join, /from\("venue_collection_windows"\)/)
+  assert.match(join, /\.eq\("merchant_id", merchantId\)/)
+  assert.match(join, /\.eq\("location_id", card.location_id\)/)
+  assert.match(join, /\.eq\("is_active", true\)/)
+  assert.match(
+    join,
+    /reward_pool_items!venue_collection_windows_upgrade_matches_location/
+  )
+  assert.match(join, /upgrade\?\.is_active/)
+  assert.match(
+    join,
+    /\.order\("isodow"\)[\s\S]*\.order\("starts_at"\)[\s\S]*\.order\("id"\)/
+  )
 })

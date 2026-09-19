@@ -25,6 +25,7 @@ export type VenueLocationActionState = {
     geofenceRadiusMeters?: string
     requireGeofence?: boolean
     softGeofenceTriggerStamp?: string
+    tradingDayStartsAt?: string
     venueLatitude?: string
     venueLongitude?: string
     geofencePinSource?: string
@@ -32,6 +33,7 @@ export type VenueLocationActionState = {
   errors?: VenueAddressFieldErrors & {
     geofenceRadiusMeters?: string
     softGeofenceTriggerStamp?: string
+    tradingDayStartsAt?: string
     form?: string
   }
   saved?: boolean
@@ -135,6 +137,7 @@ function submissionToFields(
     venueLatitude: submission.venueLatitude,
     venueLongitude: submission.venueLongitude,
     geofencePinSource: submission.geofencePinSource,
+    tradingDayStartsAt: submission.tradingDayStartsAt,
   }
 }
 

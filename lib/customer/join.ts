@@ -11,6 +11,7 @@ import {
   loadQrIdentity,
   loadQrJoinState,
   type JoinLoyaltyCardRow,
+  type JoinLocationRow,
 } from "@/lib/customer/join-lookup"
 import { rewardExamplesFromPool } from "@/lib/customer/reward-examples"
 import { enforceQrScanRateLimit } from "@/lib/customer/qr-rate-limit"
@@ -34,6 +35,12 @@ export type CustomerJoinContext = {
     card_name: string
     stamps_required: number
     reward_terms: string
+    collection_windows?: import("@/lib/legal/content").VenueTermsInput["collectionWindows"]
+    trading_day_starts_at?: string
+    reward_expires_after_days?: number | null
+    minimum_spend_pence?: number | null
+    one_transaction_per_stamp?: boolean
+    reward_pool?: import("@/lib/legal/content").VenueTermsInput["rewardPool"]
     /** Active reward-pool names in display order — examples of the draw,
      *  never a promise of one reward. */
     reward_examples: string[]
@@ -127,7 +134,7 @@ export async function resolveQrForJoin(
     qrId: qrCode.qr_id,
     qrCodeId: qrCode.id,
     merchant,
-    loyaltyCard: joinLoyaltyCard(loyaltyCard),
+    loyaltyCard: await joinLoyaltyCard(loyaltyCard, merchant.id),
   } satisfies CustomerJoinContext
 }
 
@@ -177,16 +184,71 @@ export async function getMerchantJoinContext(
       email: data.email,
       phone: data.phone,
     },
-    loyaltyCard: joinLoyaltyCard(loyaltyCard),
+    loyaltyCard: await joinLoyaltyCard(loyaltyCard, data.id),
   } satisfies CustomerJoinContext
 }
 
-function joinLoyaltyCard(card: JoinLoyaltyCardRow) {
+async function joinLoyaltyCard(card: JoinLoyaltyCardRow, merchantId: string) {
+  const supabase = createSupabaseServiceRoleClient()
+  const { data: windows, error } = await supabase
+    .from("venue_collection_windows")
+    .select(
+      "isodow, starts_at, ends_at, is_active, reward_pool_items!venue_collection_windows_upgrade_matches_location(reward_name, reward_terms, requires_age_check, is_active, display_order, id, created_at)"
+    )
+    .eq("merchant_id", merchantId)
+    .eq("location_id", card.location_id)
+    .eq("is_active", true)
+    .order("isodow")
+    .order("starts_at")
+    .order("id")
+  if (error)
+    throw new Error(`Unable to load venue collection terms: ${error.message}`)
+  const activeWindows: JoinLocationRow["venue_collection_windows"] =
+    windows ?? []
+  const collectionWindows = activeWindows
+    .filter((window) => window.is_active)
+    .sort(
+      (a, b) => a.isodow - b.isodow || a.starts_at.localeCompare(b.starts_at)
+    )
+    .map((window) => {
+      const upgrade = firstNullable(window.reward_pool_items)
+      return {
+        isodow: window.isodow,
+        startsAt: window.starts_at,
+        endsAt: window.ends_at,
+        upgrade: upgrade?.is_active
+          ? {
+              rewardName: upgrade.reward_name,
+              rewardTerms: upgrade.reward_terms,
+              requiresAgeCheck: upgrade.requires_age_check,
+            }
+          : null,
+      }
+    })
   return {
     id: card.id,
     card_name: card.card_name,
     stamps_required: card.stamps_required,
     reward_terms: card.reward_terms,
+    collection_windows: collectionWindows,
+    trading_day_starts_at: firstNullable(card.merchant_locations)
+      ?.trading_day_starts_at,
+    reward_expires_after_days: card.reward_expires_after_days,
+    minimum_spend_pence: card.minimum_spend_pence,
+    one_transaction_per_stamp: card.one_transaction_per_stamp,
+    reward_pool: (card.reward_pool_items ?? [])
+      .filter((item) => item.is_active)
+      .sort(
+        (a, b) =>
+          (a.display_order ?? 0) - (b.display_order ?? 0) ||
+          a.created_at.localeCompare(b.created_at) ||
+          a.id.localeCompare(b.id)
+      )
+      .map((item) => ({
+        rewardName: item.reward_name,
+        rewardTerms: item.reward_terms,
+        requiresAgeCheck: item.requires_age_check,
+      })),
     reward_examples: rewardExamplesFromPool(card.reward_pool_items),
   }
 }

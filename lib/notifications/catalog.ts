@@ -20,15 +20,16 @@ export const notificationEventTypes = [
   "referral_friend_joined",
   "referral_qualified",
   "referral_bonus_saved",
+  "collection_window_opens",
+  "reward_upgraded",
+  "loyalty_terms_updated",
+  "venue_paused",
 ] as const
 
 export type NotificationEventType = (typeof notificationEventTypes)[number]
 
 export type NotificationCategory =
-  | "transactional"
-  | "reminder"
-  | "marketing"
-  | "operational"
+  "transactional" | "reminder" | "marketing" | "operational"
 
 export type NotificationPayload = {
   title: string
@@ -49,6 +50,7 @@ export type BuildNotificationPayloadInput = {
   rewardName?: string | null
   announcementTitle?: string | null
   announcementBody?: string | null
+  expiresAt?: string | null
   url?: string | null
   merchantId?: string | null
   membershipId?: string | null
@@ -77,12 +79,19 @@ const EVENT_CATEGORY: Record<NotificationEventType, NotificationCategory> = {
   referral_friend_joined: "transactional",
   referral_qualified: "transactional",
   referral_bonus_saved: "transactional",
+  collection_window_opens: "marketing",
+  reward_upgraded: "transactional",
+  loyalty_terms_updated: "transactional",
+  venue_paused: "transactional",
 }
 
 const BLOCKED_METADATA_KEYS = new Set([
   "auth",
+  "body",
   "email",
   "endpoint",
+  "e164",
+  "from",
   "latitude",
   "longitude",
   "phone",
@@ -90,15 +99,19 @@ const BLOCKED_METADATA_KEYS = new Set([
   "raw_coordinates",
   "rawcoordinates",
   "rawlocation",
+  "recipient",
   "secret",
   "token",
+  "to",
 ])
 
 type PayloadCopyInput = {
   businessName: string
   rewardName: string
+  url: string
   announcementTitle?: string | null
   announcementBody?: string | null
+  expiresAt?: string | null
 }
 
 type PayloadCopy = Pick<NotificationPayload, "title" | "body">
@@ -149,7 +162,9 @@ const PAYLOAD_COPY: Record<
   }),
   reward_expiring_soon: (input) => ({
     title: "Reward expiring soon",
-    body: `${input.rewardName} is close to its expiry time.`,
+    body: input.expiresAt
+      ? `Collect ${input.rewardName} by ${input.expiresAt}.`
+      : `${input.rewardName} is close to its expiry time.`,
   }),
   reward_expired: (input) => ({
     title: "Reward expired",
@@ -157,7 +172,7 @@ const PAYLOAD_COPY: Record<
   }),
   reward_collected_cycle_started: (input) => ({
     title: "Reward collected",
-    body: `A new ${input.businessName} stamp cycle has started.`,
+    body: `${input.rewardName} collected at ${input.businessName}.`,
   }),
   dormant_progress: (input) => ({
     title: "Stamp card waiting",
@@ -191,6 +206,117 @@ const PAYLOAD_COPY: Record<
     title: "Bonus saved",
     body: `Your referral bonus at ${input.businessName} is saved and will be added automatically.`,
   }),
+  collection_window_opens: (input) => ({
+    title: "Collection window open",
+    body: `${input.businessName} has a reward collection window open now.`,
+  }),
+  reward_upgraded: (input) => ({
+    title: "Reward upgraded",
+    body: `${input.rewardName} was upgraded at ${input.businessName}.`,
+  }),
+  loyalty_terms_updated: () => ({
+    title: "Loyalty terms updated",
+    body: "Your card now keeps earning while you hold a reward. Rewards are collectable from the next day; one per visit.",
+  }),
+  venue_paused: (input) => ({
+    title: "Loyalty programme paused",
+    body: `${input.businessName} paused its loyalty programme. Existing rewards remain in your wallet.`,
+  }),
+}
+
+export type PhoneMessageCopy = {
+  readonly smsBody: string
+  readonly whatsappVariables: Readonly<Record<string, string>>
+}
+
+export const PHONE_COPY: Record<
+  NotificationEventType,
+  (input: PayloadCopyInput) => PhoneMessageCopy
+> = {
+  push_permission_prompt_viewed: phoneCopyFor("push_permission_prompt_viewed"),
+  push_permission_granted: phoneCopyFor("push_permission_granted"),
+  push_subscription_created: phoneCopyFor("push_subscription_created"),
+  push_subscription_disabled: phoneCopyFor("push_subscription_disabled"),
+  push_subscription_failed: phoneCopyFor("push_subscription_failed"),
+  one_stamp_away: phoneCopyFor("one_stamp_away"),
+  next_stamp_available: phoneCopyFor("next_stamp_available"),
+  reward_unlocked_waiting: phoneCopyFor("reward_unlocked_waiting"),
+  reward_ready: phoneCopyFor("reward_ready"),
+  profile_required_to_collect: phoneCopyFor("profile_required_to_collect"),
+  reward_expiring_soon: phoneCopyFor("reward_expiring_soon"),
+  reward_expired: phoneCopyFor("reward_expired"),
+  reward_collected_cycle_started: phoneCopyFor(
+    "reward_collected_cycle_started"
+  ),
+  dormant_progress: phoneCopyFor("dormant_progress"),
+  venue_announcement: phoneCopyFor("venue_announcement"),
+  birthday_reward_issued: phoneCopyFor("birthday_reward_issued"),
+  merchant_reward_received: phoneCopyFor("merchant_reward_received"),
+  referral_bonus_stamp_issued: phoneCopyFor("referral_bonus_stamp_issued"),
+  referral_friend_joined: phoneCopyFor("referral_friend_joined"),
+  referral_qualified: phoneCopyFor("referral_qualified"),
+  referral_bonus_saved: phoneCopyFor("referral_bonus_saved"),
+  collection_window_opens: phoneCopyFor("collection_window_opens"),
+  reward_upgraded: phoneCopyFor("reward_upgraded"),
+  loyalty_terms_updated: phoneCopyFor("loyalty_terms_updated"),
+  venue_paused: phoneCopyFor("venue_paused"),
+}
+
+export function buildPhoneMessageCopy(
+  input: BuildNotificationPayloadInput
+): PhoneMessageCopy | null {
+  const copy = PHONE_COPY[input.eventType]
+  if (!copy) return null
+  return copy({
+    businessName: cleanText(input.businessName) ?? "Your venue",
+    rewardName: cleanText(input.rewardName) ?? "your reward",
+    url: safeNotificationPath(input.url),
+    announcementTitle: cleanText(input.announcementTitle),
+    announcementBody: cleanText(input.announcementBody),
+    expiresAt: formatLondonDeadline(input.expiresAt),
+  })
+}
+
+function phoneCopyFor(eventType: NotificationEventType) {
+  return (input: PayloadCopyInput): PhoneMessageCopy => {
+    const payload = PAYLOAD_COPY[eventType](input)
+    return phoneCopyFromPayload(eventType, { ...payload, url: input.url })
+  }
+}
+
+export function buildPhoneMessageCopyFromPayload(
+  eventType: NotificationEventType,
+  payload: Readonly<Record<string, unknown>>
+): PhoneMessageCopy | null {
+  if (
+    typeof payload.title !== "string" ||
+    typeof payload.body !== "string" ||
+    typeof payload.url !== "string"
+  ) {
+    return null
+  }
+  return phoneCopyFromPayload(eventType, {
+    title: payload.title,
+    body: payload.body,
+    url: payload.url,
+  })
+}
+
+function phoneCopyFromPayload(
+  eventType: NotificationEventType,
+  payload: Pick<NotificationPayload, "title" | "body" | "url">
+): PhoneMessageCopy {
+  const suffix =
+    EVENT_CATEGORY[eventType] === "marketing" ? " Reply STOP to opt out." : ""
+  const maximumBodyLength = 160 - suffix.length
+  return {
+    smsBody: `${payload.body.slice(0, maximumBodyLength).trimEnd()}${suffix}`,
+    whatsappVariables: {
+      "1": payload.title,
+      "2": payload.body,
+      "3": payload.url,
+    },
+  }
 }
 
 export function notificationEventCategory(
@@ -215,8 +341,10 @@ export function buildNotificationPayload(
   const base = payloadCopy(input.eventType, {
     businessName,
     rewardName,
+    url,
     announcementTitle: cleanText(input.announcementTitle),
     announcementBody: cleanText(input.announcementBody),
+    expiresAt: formatLondonDeadline(input.expiresAt),
   })
 
   return {
@@ -267,4 +395,22 @@ function safeNotificationPath(value: string | null | undefined) {
 function cleanText(value: string | null | undefined) {
   const trimmed = value?.trim()
   return trimmed ? trimmed.slice(0, 180) : null
+}
+
+function formatLondonDeadline(value: string | null | undefined) {
+  if (!value) return null
+  const deadline = new Date(value)
+  if (Number.isNaN(deadline.getTime())) return null
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/London",
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(deadline)
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((item) => item.type === type)?.value ?? ""
+  return `${part("weekday")} ${part("day")} ${part("month")} at ${part("hour")}:${part("minute")}`
 }

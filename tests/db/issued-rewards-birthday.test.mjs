@@ -47,79 +47,159 @@ async function issue(tx, fixture, sweep = false) {
   return row.count
 }
 
-test("R-1: an eligible member is issued one birthday reward with the right shape + side effects", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    const fixture = await createRewardPoolFixture(tx)
-    await makeEligible(tx, fixture)
+for (const policy of ["v2", "legacy_v1"]) {
+  test(
+    `R-1 (${policy}): an eligible member is issued one birthday reward with the right shape + side effects`,
+    { skip },
+    async () => {
+      await inRolledBackTxn(async (tx) => {
+        const fixture = await createRewardPoolFixture(tx)
+        await tx`update public.loyalty_cards set reward_policy_version = ${policy}
+      where id = ${fixture.cardId}::uuid`
+        await makeEligible(tx, fixture)
 
-    assert.equal(await issue(tx, fixture), 1, "one reward issued")
+        assert.equal(await issue(tx, fixture), 1, "one reward issued")
 
-    const [r] = await tx`
-      select source, birthday_year, reward_name, status, cycle_number,
-             redeemable_from, expires_at
+        const [r] = await tx`
+      select id, source, birthday_year, reward_name, status, cycle_number,
+             redeemable_from, available_from, expires_at, reward_policy_version
       from public.reward_events
       where source = 'birthday_month' and customer_id = ${fixture.customerId}::uuid`
-    assert.equal(r.source, "birthday_month")
-    assert.equal(r.status, "unlocked")
-    assert.equal(r.reward_name, "Birthday drink")
-    assert.equal(r.cycle_number, null)
+        assert.equal(r.source, "birthday_month")
+        assert.equal(r.status, "unlocked")
+        assert.equal(r.reward_name, "Birthday drink")
+        assert.equal(r.cycle_number, null)
 
-    const [{ y, d, exp }] = await tx`
+        const [{ y, d, exp, available, v2Expires }] = await tx`
       select extract(year from now() at time zone 'Europe/London')::int as y,
              public.uk_business_date(now()) as d,
              (date_trunc('month', now() at time zone 'Europe/London') + interval '1 month')
-               at time zone 'Europe/London' as exp`
-    assert.equal(r.birthday_year, y, "birthday_year is the London year")
-    assert.equal(r.redeemable_from.getTime(), d.getTime(), "redeemable today")
-    assert.equal(
-      new Date(r.expires_at).getTime(),
-      new Date(exp).getTime(),
-      "expires at the first instant of next London month"
-    )
+               at time zone 'Europe/London' as exp,
+             ((public.venue_trading_date(${fixture.merchantId}::uuid, now()) + 1)
+               + time '05:00') at time zone 'Europe/London' as available,
+             ((public.venue_trading_date(${fixture.merchantId}::uuid, now() + interval '56 days') + 1)
+               + time '05:00') at time zone 'Europe/London' as "v2Expires"`
+        assert.equal(r.birthday_year, y, "birthday_year is the London year")
+        assert.equal(r.reward_policy_version, policy)
+        if (policy === "v2") {
+          assert.equal(
+            new Date(r.available_from).getTime(),
+            available.getTime(),
+            "v2 opens at the next 05:00 venue boundary"
+          )
+          const [{ state }] =
+            await tx`select state from public.get_reward_collection_state(${r.id}::uuid)`
+          assert.equal(state, "waiting", "same-day collection is refused")
+          await assert.rejects(
+            () =>
+              tx.savepoint(
+                (sp) => sp`select scan_token
+              from public.create_reward_scan_token(${r.id}::uuid, ${fixture.customerId}::uuid)`
+              ),
+            /not ready to collect yet/i,
+            "the token mint gate agrees with the waiting predicate"
+          )
+        } else {
+          assert.equal(
+            r.redeemable_from.getTime(),
+            d.getTime(),
+            "legacy rewards are redeemable today"
+          )
+        }
+        assert.equal(
+          new Date(r.expires_at).getTime(),
+          new Date(policy === "v2" ? v2Expires : exp).getTime(),
+          "expiry follows the snapshotted policy: v2 card horizon or legacy source-specific deadline"
+        )
 
-    const [{ n: notif }] = await tx`
+        const [{ n: notif }] = await tx`
       select count(*)::int as n from public.notification_events
       where event_type = 'birthday_reward_issued' and customer_id = ${fixture.customerId}::uuid`
-    assert.equal(notif, 1, "a birthday_reward_issued notification is enqueued")
+        assert.equal(
+          notif,
+          1,
+          "a birthday_reward_issued notification is enqueued"
+        )
 
-    const [{ n: evt }] = await tx`
+        const [{ n: evt }] = await tx`
       select count(*)::int as n from public.product_events
       where event_name = 'reward_issued' and customer_id = ${fixture.customerId}::uuid
         and metadata->>'source' = 'birthday_month'`
-    assert.equal(evt, 1, "a reward_issued product event is recorded")
-  })
-})
+        assert.equal(evt, 1, "a reward_issued product event is recorded")
+      })
+    }
+  )
+}
 
-test("R-2: issuance is idempotent and a cancelled reward does not free a re-issue", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    const fixture = await createRewardPoolFixture(tx)
-    await makeEligible(tx, fixture)
+test(
+  "R-2: issuance is idempotent and a cancelled reward does not free a re-issue",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const fixture = await createRewardPoolFixture(tx)
+      await makeEligible(tx, fixture)
 
-    assert.equal(await issue(tx, fixture), 1)
-    assert.equal(await issue(tx, fixture), 0, "second run issues nothing")
+      assert.equal(await issue(tx, fixture), 1)
+      assert.equal(await issue(tx, fixture), 0, "second run issues nothing")
 
-    await tx`
+      await tx`
       update public.reward_events
       set status = 'cancelled',
           cancelled_reason = 'Cancelled by the venue (test fixture).'
       where source = 'birthday_month' and customer_id = ${fixture.customerId}::uuid`
-    assert.equal(await issue(tx, fixture), 0, "a cancelled birthday reward still blocks re-issue")
-  })
-})
+      assert.equal(
+        await issue(tx, fixture),
+        0,
+        "a cancelled birthday reward still blocks re-issue"
+      )
+    })
+  }
+)
 
 const GATES = [
-  ["disabled card", async (tx, f) => tx`update public.loyalty_cards set birthday_reward_enabled = false where id = ${f.cardId}::uuid`],
-  ["inactive merchant", async (tx, f) => tx`update public.merchants set status = 'paused' where id = ${f.merchantId}::uuid`],
-  ["billing required but absent", async (tx, f) => tx`update public.merchants set requires_billing = true where id = ${f.merchantId}::uuid`],
-  ["billing cancelled", async (tx, f) => {
-    await tx`update public.merchants set requires_billing = true where id = ${f.merchantId}::uuid`
-    await tx`insert into public.billing_customers (merchant_id, stripe_customer_id, stripe_subscription_id, status)
+  [
+    "disabled card",
+    async (tx, f) =>
+      tx`update public.loyalty_cards set birthday_reward_enabled = false where id = ${f.cardId}::uuid`,
+  ],
+  [
+    "inactive merchant",
+    async (tx, f) =>
+      tx`update public.merchants set status = 'paused' where id = ${f.merchantId}::uuid`,
+  ],
+  [
+    "billing required but absent",
+    async (tx, f) =>
+      tx`update public.merchants set requires_billing = true where id = ${f.merchantId}::uuid`,
+  ],
+  [
+    "billing cancelled",
+    async (tx, f) => {
+      await tx`update public.merchants set requires_billing = true where id = ${f.merchantId}::uuid`
+      await tx`insert into public.billing_customers (merchant_id, stripe_customer_id, stripe_subscription_id, status)
              values (${f.merchantId}::uuid, ${"cus_b_" + f.merchantId.slice(0, 8)}, ${"sub_b_" + f.merchantId.slice(0, 8)}, 'cancelled')`
-  }],
-  ["wrong birthday month", async (tx, f) => tx`update public.customers set date_of_birth = make_date(1996, case when extract(month from now() at time zone 'Europe/London') = 1 then 2 else 1 end, 15) where id = ${f.customerId}::uuid`],
-  ["null DOB", async (tx, f) => tx`update public.customers set date_of_birth = null where id = ${f.customerId}::uuid`],
-  ["under 18", async (tx, f) => tx`update public.customers set date_of_birth = make_date((extract(year from now())::int - 10), extract(month from (now() at time zone 'Europe/London'))::int, 15) where id = ${f.customerId}::uuid`],
-  ["dormant over 12 months", async (tx, f) => tx`update public.customer_memberships set last_visit_at = now() - interval '13 months' where id = ${f.membershipId}::uuid`],
+    },
+  ],
+  [
+    "wrong birthday month",
+    async (tx, f) =>
+      tx`update public.customers set date_of_birth = make_date(1996, case when extract(month from now() at time zone 'Europe/London') = 1 then 2 else 1 end, 15) where id = ${f.customerId}::uuid`,
+  ],
+  [
+    "null DOB",
+    async (tx, f) =>
+      tx`update public.customers set date_of_birth = null where id = ${f.customerId}::uuid`,
+  ],
+  [
+    "under 18",
+    async (tx, f) =>
+      tx`update public.customers set date_of_birth = make_date((extract(year from now())::int - 10), extract(month from (now() at time zone 'Europe/London'))::int, 15) where id = ${f.customerId}::uuid`,
+  ],
+  [
+    "dormant over 12 months",
+    async (tx, f) =>
+      tx`update public.customer_memberships set last_visit_at = now() - interval '13 months' where id = ${f.membershipId}::uuid`,
+  ],
 ]
 
 for (const [label, breakIt] of GATES) {
@@ -137,26 +217,34 @@ for (const [label, breakIt] of GATES) {
   })
 }
 
-test("R-4: the null-arg sweep issues for every eligible member", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    const fixture = await createRewardPoolFixture(tx)
-    await makeEligible(tx, fixture)
+test(
+  "R-4: the null-arg sweep issues for every eligible member",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const fixture = await createRewardPoolFixture(tx)
+      await makeEligible(tx, fixture)
 
-    // A second eligible member on the same merchant/card.
-    const authId = randomUUID()
-    const customer2 = randomUUID()
-    const membership2 = randomUUID()
-    await tx`insert into auth.users (id) values (${authId}::uuid)`
-    await tx`
+      // A second eligible member on the same merchant/card.
+      const authId = randomUUID()
+      const customer2 = randomUUID()
+      const membership2 = randomUUID()
+      await tx`insert into auth.users (id) values (${authId}::uuid)`
+      await tx`
       insert into public.customers (id, auth_user_id, email, full_name, date_of_birth, email_verified_at)
       values (${customer2}::uuid, ${authId}::uuid, ${"bday2-" + customer2.slice(0, 8) + "@example.test"},
         'Second Member',
         make_date((extract(year from now())::int - 25), extract(month from (now() at time zone 'Europe/London'))::int, 10),
         now())`
-    await tx`
+      await tx`
       insert into public.customer_memberships (id, merchant_id, customer_id, current_stamp_count, total_stamps_earned, active_cycle_number, last_visit_at)
       values (${membership2}::uuid, ${fixture.merchantId}::uuid, ${customer2}::uuid, 0, 0, 1, now())`
 
-    assert.equal(await issue(tx, fixture, true), 2, "the sweep issues for both eligible members")
-  })
-})
+      assert.equal(
+        await issue(tx, fixture, true),
+        2,
+        "the sweep issues for both eligible members"
+      )
+    })
+  }
+)

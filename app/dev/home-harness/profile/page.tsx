@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 import { PageTitle } from "@/components/brand"
 import { CustomerProfileAboutYou } from "@/components/customer/profile-about-you"
 import { CustomerProfileAccountSection } from "@/components/customer/profile-account-section"
+import { PhoneMessagingSettings } from "@/components/customer/phone-messaging-settings"
 
 /**
  * Fixture sign-out. The real screen submits `signOutCustomerAction`; the harness
@@ -33,6 +34,13 @@ export default function CustomerProfileHarnessPage() {
           emailVerified: false,
           emailLocked: false,
           needsEmailVerification: true,
+        }}
+      />
+      <PhoneMessagingSettings
+        preferences={{
+          phoneMessagesEnabled: true,
+          preferredPhoneChannel: "whatsapp",
+          whatsappUnavailableAt: "2026-09-19T09:00:00.000Z",
         }}
       />
       <CustomerProfileAccountSection

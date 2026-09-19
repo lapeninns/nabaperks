@@ -62,6 +62,12 @@ export function WelcomeStep({
           merchantName: exp.merchant.name,
           stampsRequired: exp.card.stampsRequired,
           rewardTerms: exp.card.rewardTerms,
+          collectionWindows: exp.card.collectionWindows,
+          tradingDayStartsAt: exp.card.tradingDayStartsAt,
+          rewardExpiresAfterDays: exp.card.rewardExpiresAfterDays,
+          minimumSpendPence: exp.card.minimumSpendPence,
+          oneTransactionPerStamp: exp.card.oneTransactionPerStamp,
+          rewardPool: exp.card.rewardPool,
         }}
         triggerLabel="View full venue terms"
         triggerClassName="focus-ring inline-flex min-h-11 w-fit items-center text-xs font-bold underline underline-offset-4"

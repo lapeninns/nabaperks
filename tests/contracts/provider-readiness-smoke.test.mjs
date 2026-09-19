@@ -44,6 +44,9 @@ const supabaseMigrationScript = readFileSync(
 const envCheckScript = readFileSync("scripts/check-env.mjs", "utf8")
 const envKeysScript = readFileSync("scripts/env-keys.mjs", "utf8")
 const envContract = JSON.parse(readFileSync("config/env-contract.json", "utf8"))
+const customerMessagingContentEvents = JSON.parse(
+  readFileSync("config/customer-messaging-content-events.json", "utf8")
+)
 const remediationLog = readFileSync(
   "docs/architecture-flows/11-remediation-log.md",
   "utf8"
@@ -311,7 +314,10 @@ test("production env validation executes with analytics off and fails closed for
           // Enumerated optional settings: a placeholder string is not a valid
           // value, and blank (their default) is what production uses.
           entry.name !== "CUSTOMER_OTP_BYPASS_MODE" &&
-          entry.name !== "CUSTOMER_OTP_PRIMARY_CHANNEL"
+          entry.name !== "CUSTOMER_OTP_PRIMARY_CHANNEL" &&
+          entry.name !== "CUSTOMER_MESSAGING_MODE" &&
+          entry.name !== "CUSTOMER_MESSAGING_BYPASS_MODE" &&
+          entry.name !== "TWILIO_CONTENT_SIDS"
       )
       .map((entry) => [entry.name, validTestEnvValue(entry)])
   )
@@ -324,9 +330,37 @@ test("production env validation executes with analytics off and fails closed for
       join(projectDir, "config", "env-contract.json"),
       JSON.stringify(envContract)
     )
+    writeFileSync(
+      join(projectDir, "config", "customer-messaging-content-events.json"),
+      JSON.stringify(customerMessagingContentEvents)
+    )
 
     const disabled = runProductionEnvCheck(projectDir, baseValues)
     assert.equal(disabled.status, 0, disabled.stderr)
+
+    const completeContentSids = Object.fromEntries(
+      customerMessagingContentEvents.map((eventType, index) => [
+        eventType,
+        `HX${String(index).padStart(32, "0")}`,
+      ])
+    )
+    const messagingLive = runProductionEnvCheck(projectDir, {
+      ...baseValues,
+      CUSTOMER_MESSAGING_MODE: "live",
+      TWILIO_CONTENT_SIDS: JSON.stringify(completeContentSids),
+    })
+    assert.equal(messagingLive.status, 0, messagingLive.stderr)
+
+    const [missingEventType] = customerMessagingContentEvents
+    const incompleteContentSids = { ...completeContentSids }
+    delete incompleteContentSids[missingEventType]
+    const messagingIncomplete = runProductionEnvCheck(projectDir, {
+      ...baseValues,
+      CUSTOMER_MESSAGING_MODE: "live",
+      TWILIO_CONTENT_SIDS: JSON.stringify(incompleteContentSids),
+    })
+    assert.equal(messagingIncomplete.status, 1)
+    assert.match(messagingIncomplete.stderr, new RegExp(missingEventType))
 
     const nonExact = runProductionEnvCheck(projectDir, {
       ...baseValues,

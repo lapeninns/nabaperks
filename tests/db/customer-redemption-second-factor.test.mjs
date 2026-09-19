@@ -22,12 +22,12 @@ test(
       await tx`
         insert into public.reward_events (
           id, merchant_id, customer_id, membership_id, loyalty_card_id,
-          status, reward_name, reward_terms, redeemable_from
+          status, reward_name, reward_terms, redeemable_from, reward_policy_version, available_from, created_at
         ) values (
           ${fixture.reward_id}::uuid, ${created.merchantId}::uuid,
           ${fixture.customer_id}::uuid, ${created.membershipId}::uuid,
           ${created.cardId}::uuid, 'unlocked', 'Verified email reward',
-          'Subject to availability.', public.uk_business_date(now())
+          'Subject to availability.', public.uk_business_date(now()), 'v2', now() - interval '1 minute', now() - interval '1 day'
         )`
 
       await tx`

@@ -55,7 +55,10 @@ test(
                 f.merchantId,
               ])
             ),
-          /verified adult date of birth required/i
+          (error) =>
+            error.code === "P0001" &&
+            error.message ===
+              "Customer must have verified photo ID and be 18 or over to redeem"
         )
       }
       for (const role of ["service_role", "authenticated"]) {
@@ -69,7 +72,10 @@ test(
         select * from public.redeem_self_service_reward(${f.rewardEventId}::uuid, ${f.customerId}::uuid)
       `
             ),
-          /verified adult date of birth required/i
+          (error) =>
+            error.code === "P0001" &&
+            error.message ===
+              "Customer must have verified photo ID and be 18 or over to redeem"
         )
       }
       const state = await readIdCheckState(tx, f)
@@ -87,6 +93,9 @@ for (const source of ["stamp_cycle", "merchant_direct"]) {
     async () => {
       await inVerificationTxn(async (tx) => {
         const f = await createIdCheckFixture(tx, source)
+        const before = await readIdCheckState(tx, f)
+        assert.equal(before.stamps, source === "stamp_cycle" ? 0 : 3)
+        assert.equal(before.cycle, source === "stamp_cycle" ? 2 : 1)
         const [collected] = await verifyFixture(tx, f)
         assert.equal(collected.reward_event_id, f.rewardEventId)
         const state = await readIdCheckState(tx, f)
@@ -245,11 +254,15 @@ for (const condition of [
   "incomplete_profile",
 ]) {
   test(
-    `ID verification refuses ${condition} without side effects`,
+    `ID verification refuses ${condition}${condition === "insufficient_stamps" ? " under legacy_v1" : ""} without side effects`,
     { skip },
     async () => {
       await inVerificationTxn(async (tx) => {
-        const f = await createIdCheckFixture(tx)
+        const f = await createIdCheckFixture(
+          tx,
+          "stamp_cycle",
+          condition === "insufficient_stamps" ? "legacy_v1" : "v2"
+        )
         if (condition === "expired_token")
           await tx`update public.reward_scan_tokens set expires_at = now() - interval '1 second' where id = ${f.scanToken}::uuid`
         if (condition === "superseded_token")
@@ -257,11 +270,11 @@ for (const condition of [
         if (condition === "expired_reward")
           await tx`update public.reward_events set expires_at = now() - interval '1 second' where id = ${f.rewardEventId}::uuid`
         if (condition === "future_reward")
-          await tx`update public.reward_events set redeemable_from = public.uk_business_date(now()) + 1 where id = ${f.rewardEventId}::uuid`
+          await tx`update public.reward_events set available_from = now() + interval '1 day' where id = ${f.rewardEventId}::uuid`
         if (condition === "inactive_card")
           await tx`update public.loyalty_cards set is_active = false where id = ${f.cardId}::uuid`
         if (condition === "inactive_merchant")
-          await tx`update public.merchants set status = 'suspended' where id = ${f.merchantId}::uuid`
+          await tx`update public.merchants set status = 'cancelled' where id = ${f.merchantId}::uuid`
         if (condition === "insufficient_stamps")
           await tx`update public.customer_memberships set current_stamp_count = 1 where id = ${f.membershipId}::uuid`
         if (condition === "incomplete_profile")
@@ -337,9 +350,9 @@ test(
         await tx`insert into public.customer_memberships(merchant_id, customer_id)
       values (${other.merchantId}::uuid, ${f.customerId}::uuid) returning id`
       const [reward] = await tx`insert into public.reward_events(
-      merchant_id, customer_id, membership_id, loyalty_card_id, status, source, reward_name, reward_terms, redeemable_from
+      merchant_id, customer_id, membership_id, loyalty_card_id, status, source, reward_name, reward_terms, redeemable_from, reward_policy_version, available_from
     ) values (${other.merchantId}::uuid, ${f.customerId}::uuid, ${membership.id}::uuid, ${other.cardId}::uuid,
-      'unlocked', 'merchant_direct', 'Another venue gift', 'One reward per member.', public.uk_business_date(now())) returning id`
+      'unlocked', 'merchant_direct', 'Another venue gift', 'One reward per member.', public.uk_business_date(now()), 'v2', now() - interval '1 minute') returning id`
       const [token] =
         await tx`select * from public.create_reward_scan_token(${reward.id}::uuid, ${f.customerId}::uuid)`
       const [context] = await asPostgrestRole(
@@ -402,7 +415,7 @@ test(
 test(
   "simultaneous owner submissions produce one collection and one receipt",
   { skip },
-  async () => {
+  async (t) => {
     const sql = verificationDb()
     let fixture
     try {
@@ -421,7 +434,21 @@ test(
       assert.equal(state.cycle, 2)
       assert.equal(state.stamps, 0)
     } finally {
-      if (fixture) await cleanupRewardPoolFixture(sql, fixture)
+      if (fixture) {
+        await cleanupRewardPoolFixture(sql, fixture)
+        const [remaining] = await sql`
+          select
+            (select count(*)::int from public.reward_events
+             where id = ${fixture.rewardEventId}::uuid) as rewards,
+            (select count(*)::int from public.reward_scan_tokens
+             where id = ${fixture.scanToken}::uuid) as tokens,
+            (select count(*)::int from private.merchant_id_verification_receipts
+             where customer_id = ${fixture.customerId}::uuid) as receipts`
+        assert.deepEqual(remaining, { rewards: 0, tokens: 0, receipts: 0 })
+        t.diagnostic(
+          `Committed concurrency fixture cleanup: ${JSON.stringify(remaining)}`
+        )
+      }
     }
   }
 )

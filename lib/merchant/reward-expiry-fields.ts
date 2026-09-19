@@ -4,10 +4,9 @@
  * implementation.
  *
  * WHAT THE SETTING MEANS
- * How long an earned reward stays claimable. When it lapses, 20260805100200
- * expires the reward AND releases the card, so the customer starts a fresh cycle
- * instead of being blocked for ever by a reward they never collected. Shortening
- * it makes cards recycle sooner; lengthening it gives customers more time.
+ * The horizon used to select the last collection-window end for a reward. A
+ * closure may extend the stored deadline, while earning continues on the next
+ * card cycle.
  *
  * The DB CHECK on loyalty_cards.reward_expires_after_days permits 1..3660 and
  * save_loyalty_card raises NBS12 outside that. The UI offers a smaller, opinionated
@@ -16,10 +15,10 @@
  */
 
 /** Options the merchant may pick, in days. */
-export const REWARD_EXPIRY_OPTIONS = [14, 30, 60, 90, 180] as const
+export const REWARD_EXPIRY_OPTIONS = [14, 30, 56, 90, 180] as const
 
 /** Matches the loyalty_cards.reward_expires_after_days default. */
-export const DEFAULT_REWARD_EXPIRY_DAYS = 30
+export const DEFAULT_REWARD_EXPIRY_DAYS = 56
 
 /** Widest range the database will accept, mirroring the column CHECK. */
 export const MIN_REWARD_EXPIRY_DAYS = 1

@@ -80,7 +80,7 @@ export function merchantBillingStateCopy(status: string): MerchantBillingCopy {
     past_due: {
       title: `Billing ${formatMerchantBillingStatus(state)}`,
       description:
-        "A payment needs attention. New stamps and rewards are paused until billing is restored.",
+        "A payment needs attention. New stamps are paused. Rewards issued before the billing pause can still be collected for 30 days.",
       className: warningClassName,
       noteClassName: warningNoteClassName,
       titleClassName: "text-destructive",
@@ -91,7 +91,7 @@ export function merchantBillingStateCopy(status: string): MerchantBillingCopy {
     cancelled: {
       title: `Billing ${formatMerchantBillingStatus(state)}`,
       description:
-        "New stamps and rewards are paused until billing is restored.",
+        "New stamps are paused. Rewards issued before billing ended can still be collected for 30 days.",
       className: warningClassName,
       noteClassName: warningNoteClassName,
       titleClassName: "text-destructive",
@@ -102,7 +102,7 @@ export function merchantBillingStateCopy(status: string): MerchantBillingCopy {
     suspended: {
       title: `Billing ${formatMerchantBillingStatus(state)}`,
       description:
-        "New stamps and rewards are paused until billing is restored.",
+        "New stamps are paused. Rewards issued before the pause can still be collected for 30 days.",
       className: warningClassName,
       noteClassName: warningNoteClassName,
       titleClassName: "text-destructive",

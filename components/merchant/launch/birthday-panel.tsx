@@ -13,6 +13,7 @@ export function BirthdayRewardPanel({
   enabled,
   rewardName,
   rewardTerms,
+  requiresAgeCheck,
   template,
   saveAction,
 }: {
@@ -20,6 +21,7 @@ export function BirthdayRewardPanel({
   enabled: boolean
   rewardName: string | null
   rewardTerms: string | null
+  requiresAgeCheck: boolean
   template: BirthdayRewardTemplate
   saveAction?: (
     state: BirthdayRewardActionState,
@@ -41,6 +43,7 @@ export function BirthdayRewardPanel({
           enabled,
           rewardName: rewardName ?? "",
           rewardTerms: rewardTerms ?? "",
+          requiresAgeCheck,
         }}
         template={template}
         saveAction={saveAction}

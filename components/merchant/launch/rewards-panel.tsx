@@ -3,6 +3,8 @@ import { redirect } from "next/navigation"
 
 import { PageTitle, ReceiptCard } from "@/components/brand"
 import { BirthdayRewardPanel } from "@/components/merchant/launch/birthday-panel"
+import { CollectionWindowsForm } from "@/components/merchant/launch/collection-windows-form"
+import { VenueClosuresForm } from "@/components/merchant/launch/venue-closures-form"
 import { birthdayRewardTemplateForBusinessType } from "@/lib/merchant/birthday-reward-template"
 import {
   RewardPoolForm,
@@ -11,7 +13,10 @@ import {
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { Button } from "@/components/ui/button"
 import { LAUNCH_MIN_ACTIVE_REWARDS } from "@/lib/merchant/launch-readiness-contract"
-import { getLoyaltyCardSetup } from "@/lib/merchant/loyalty-card"
+import {
+  getCollectionSettings,
+  getLoyaltyCardSetup,
+} from "@/lib/merchant/loyalty-card"
 import { rewardPresetsForBusinessType } from "@/lib/merchant/reward-presets"
 
 export type RewardsPanelParams = {
@@ -71,9 +76,11 @@ export async function RewardsPanel({
     weight: String(item.weight),
     displayOrder: String(item.display_order),
     isActive: item.is_active,
+    requiresAgeCheck: item.requires_age_check !== false,
   }))
   const activeRewardCount = poolItems.filter((item) => item.isActive).length
   const rewardsReady = activeRewardCount >= LAUNCH_MIN_ACTIVE_REWARDS
+  const collection = await getCollectionSettings(merchant.id, location.id)
 
   return (
     <div className="grid min-w-0 gap-3 sm:gap-5">
@@ -94,7 +101,18 @@ export async function RewardsPanel({
         enabled={card.birthday_reward_enabled}
         rewardName={card.birthday_reward_name}
         rewardTerms={card.birthday_reward_terms}
+        requiresAgeCheck={card.birthday_reward_requires_age_check !== false}
         template={birthdayRewardTemplateForBusinessType(merchant.business_type)}
+      />
+      <CollectionWindowsForm
+        locationId={location.id}
+        windows={collection.windows}
+        rewardPoolItems={rewardPoolItems}
+      />
+      <VenueClosuresForm
+        locationId={location.id}
+        closures={collection.closures}
+        now={new Date().toISOString()}
       />
     </div>
   )
@@ -111,6 +129,18 @@ function RewardsStatus({
   activeRewardPoolItemCount: number
   needsBillingActivation: boolean
 }) {
+  const collectionSaved = {
+    windows: "Collection windows saved.",
+    closure: "Venue closure added.",
+    "closure-ended": "Venue closure ended.",
+  }
+  const savedCollectionMessage = Object.entries(collectionSaved).find(
+    ([key]) => key === params.saved
+  )?.[1]
+  if (savedCollectionMessage) {
+    return <StatusBanner tone="success" title={savedCollectionMessage} />
+  }
+
   if (params.saved === "birthday") {
     return (
       <StatusBanner tone="success" title="Birthday reward saved.">

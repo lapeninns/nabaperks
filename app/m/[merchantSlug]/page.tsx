@@ -99,7 +99,7 @@ export default async function MerchantRewardsPage({
           description={
             <>
               Collect {loyaltyCard.stamps_required} stamps to unseal a surprise
-              reward, yours from the next UK business day.
+              reward, yours from the next venue trading day.
             </>
           }
           className="min-w-0"
@@ -121,6 +121,12 @@ export default async function MerchantRewardsPage({
             merchantName: merchant.business_name,
             stampsRequired: loyaltyCard.stamps_required,
             rewardTerms: loyaltyCard.reward_terms,
+            collectionWindows: loyaltyCard.collection_windows,
+            tradingDayStartsAt: loyaltyCard.trading_day_starts_at,
+            rewardExpiresAfterDays: loyaltyCard.reward_expires_after_days,
+            minimumSpendPence: loyaltyCard.minimum_spend_pence,
+            oneTransactionPerStamp: loyaltyCard.one_transaction_per_stamp,
+            rewardPool: loyaltyCard.reward_pool,
             contact: [merchant.email, merchant.phone]
               .filter(Boolean)
               .join(" · "),

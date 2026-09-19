@@ -16,7 +16,7 @@ test("Given an existing under-age DOB When profile completion runs Then the prof
   assert.equal(completion.dateOfBirth, null)
 })
 
-test("Given an adult DOB without verified email When profile completion runs Then reward collection stays gated", () => {
+test("Given an adult DOB without an email When profile completion runs Then reward collection can proceed", () => {
   const completion = profileCompletionFrom({
     fullName: "Adult Customer",
     dateOfBirth: "1990-01-01",
@@ -25,7 +25,7 @@ test("Given an adult DOB without verified email When profile completion runs The
     emailVerifiedAt: null,
   })
 
-  assert.equal(completion.complete, false)
+  assert.equal(completion.complete, true)
   assert.equal(completion.dateOfBirth, "1990-01-01")
 })
 

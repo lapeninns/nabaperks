@@ -2,12 +2,14 @@ import "server-only"
 
 import { getCurrentCustomer } from "@/lib/customer/identity"
 import { legacyRewardCollectionRow } from "@/lib/customer/reward-collection-batch"
+import { parseCustomerCardStateRow } from "@/lib/customer/card-state-row"
 import {
   parseRewardCollectionState,
   type RewardCollectionSnapshot,
 } from "@/lib/customer/reward-collection-state"
 import { isMissingRpcError } from "@/lib/supabase/missing-rpc"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
+import { loyaltyEarningTermsFromRewardSnapshot } from "@/lib/loyalty/earning-terms"
 
 export type CustomerRewardState =
   | { status: "unauthenticated" | "unauthorized" | "not_found" }
@@ -27,12 +29,15 @@ export type CustomerRewardState =
         expires_at: string | null
         expired_at: string | null
         source: string | null
+        requires_age_check: boolean
+        earning_terms: string | null
       }
       assignedReward: {
         reward_name: string
         reward_terms: string
         redeemable_from: string | null
         expires_at: string | null
+        requires_age_check: boolean
       }
       membership: {
         current_stamp_count: number
@@ -67,7 +72,9 @@ export type CustomerRewardStatus =
     }
 
 type BillingCustomerEmbed =
-  { status: string | null } | Array<{ status: string | null }> | null
+  | { status: string | null }
+  | Array<{ status: string | null }>
+  | null
 
 type RawReward = {
   id: string
@@ -83,6 +90,7 @@ type RawReward = {
   expires_at: string | null
   expired_at: string | null
   source: string | null
+  reward_policy_snapshot: unknown
   customer_memberships:
     | {
         current_stamp_count: number
@@ -179,7 +187,7 @@ export async function getCustomerRewardState(
   const { data, error } = await supabase
     .from("reward_events")
     .select(
-      "id, status, membership_id, merchant_id, customer_id, created_at, redeemed_at, reward_name, reward_terms, redeemable_from, expires_at, expired_at, source, customer_memberships!reward_events_membership_id_fkey(current_stamp_count, total_rewards_redeemed), merchants(business_name, business_slug, status, requires_billing, billing_customers(status)), loyalty_cards(card_name, stamps_required, reward_name, reward_terms, location_id, is_active)"
+      "id, status, membership_id, merchant_id, customer_id, created_at, redeemed_at, reward_name, reward_terms, redeemable_from, expires_at, expired_at, source, reward_policy_snapshot, customer_memberships!reward_events_membership_id_fkey(current_stamp_count, total_rewards_redeemed), merchants(business_name, business_slug, status, requires_billing, billing_customers(status)), loyalty_cards(card_name, stamps_required, reward_name, reward_terms, location_id, is_active)"
     )
     .eq("id", rewardId)
     .maybeSingle()
@@ -201,9 +209,27 @@ export async function getCustomerRewardState(
   const billingStatus =
     firstNullable(merchant.billing_customers)?.status ?? null
 
-  const collection = await getRewardCollectionState(supabase, rewardId, {
-    redeemableFrom: reward.redeemable_from,
-  })
+  const [baseCollection, cardState] = await Promise.all([
+    getRewardCollectionState(supabase, rewardId, {
+      redeemableFrom: reward.redeemable_from,
+    }),
+    supabase.rpc("get_customer_card_state", {
+      p_membership_id: reward.membership_id,
+      p_customer_id: currentCustomer.id,
+    }),
+  ])
+  if (cardState.error) {
+    throw new Error(`Unable to load reward card state: ${cardState.error.message}`)
+  }
+  const parsedCardState = parseCustomerCardStateRow(cardState.data)
+  const effectiveReward =
+    parsedCardState.status === "ready"
+      ? parsedCardState.unlockedRewards.find((entry) => entry.id === reward.id)
+      : undefined
+  const collection: RewardCollectionSnapshot = {
+    ...baseCollection,
+    requiresAgeCheck: effectiveReward?.requires_age_check ?? false,
+  }
 
   return {
     status: "ready",
@@ -221,12 +247,17 @@ export async function getCustomerRewardState(
       expires_at: reward.expires_at,
       expired_at: reward.expired_at,
       source: reward.source,
+      requires_age_check: collection.requiresAgeCheck,
+      earning_terms: loyaltyEarningTermsFromRewardSnapshot(
+        reward.reward_policy_snapshot
+      ),
     },
     assignedReward: {
       reward_name: reward.reward_name,
       reward_terms: reward.reward_terms,
       redeemable_from: reward.redeemable_from,
       expires_at: reward.expires_at,
+      requires_age_check: collection.requiresAgeCheck,
     },
     membership,
     merchant,

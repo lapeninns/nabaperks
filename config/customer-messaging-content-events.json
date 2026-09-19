@@ -1,0 +1,20 @@
+[
+  "one_stamp_away",
+  "reward_unlocked_waiting",
+  "reward_ready",
+  "profile_required_to_collect",
+  "reward_expiring_soon",
+  "reward_expired",
+  "reward_collected_cycle_started",
+  "venue_announcement",
+  "birthday_reward_issued",
+  "merchant_reward_received",
+  "referral_bonus_stamp_issued",
+  "referral_friend_joined",
+  "referral_qualified",
+  "referral_bonus_saved",
+  "collection_window_opens",
+  "reward_upgraded",
+  "loyalty_terms_updated",
+  "venue_paused"
+]

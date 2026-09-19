@@ -44,7 +44,7 @@ export async function getAdminMerchants() {
   const { data, error } = await supabase
     .from("merchants")
     .select(
-      "id, business_name, business_slug, email, status, created_at, billing_customers(status, plan, current_period_end)"
+      "id, business_name, business_slug, email, status, customer_messaging_enabled, suspended_at, suspension_reason, suspended_by, status_before_suspension, created_at, billing_customers(status, plan, current_period_end)"
     )
     .order("created_at", { ascending: false })
     .limit(100)

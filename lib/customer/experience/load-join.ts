@@ -64,6 +64,12 @@ export async function loadJoinExperienceContext(
     name: context.loyaltyCard.card_name,
     stampsRequired: context.loyaltyCard.stamps_required,
     rewardTerms: context.loyaltyCard.reward_terms,
+    collectionWindows: context.loyaltyCard.collection_windows,
+    tradingDayStartsAt: context.loyaltyCard.trading_day_starts_at,
+    rewardExpiresAfterDays: context.loyaltyCard.reward_expires_after_days,
+    minimumSpendPence: context.loyaltyCard.minimum_spend_pence,
+    oneTransactionPerStamp: context.loyaltyCard.one_transaction_per_stamp,
+    rewardPool: context.loyaltyCard.reward_pool,
     rewardExamples: context.loyaltyCard.reward_examples,
   }
   // Geofence gate is only consumed by the final terms step (the only screen that

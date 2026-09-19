@@ -21,6 +21,7 @@ export function RewardCollectionLive({
   rewardName,
   idCheckRequired = false,
   qrSrc,
+  poll = true,
 }: {
   rewardId: string
   rewardName: string
@@ -28,12 +29,13 @@ export function RewardCollectionLive({
   idCheckRequired?: boolean
   /** Harness-only QR source override — see {@link RewardCollectionQr}. */
   qrSrc?: string
+  poll?: boolean
 }) {
   const router = useRouter()
   const [redeemed, setRedeemed] = useState(false)
 
   useEffect(() => {
-    if (redeemed) return
+    if (redeemed || !poll) return
 
     let active = true
     let polling = false
@@ -101,7 +103,7 @@ export function RewardCollectionLive({
       document.removeEventListener("visibilitychange", resume)
       window.removeEventListener("focus", resume)
     }
-  }, [rewardId, redeemed, router])
+  }, [poll, rewardId, redeemed, router])
 
   return (
     <div className="grid gap-3 short:gap-2">

@@ -10,8 +10,8 @@ import { createRewardPoolFixture } from "./helpers/reward-pool-fixture.mjs"
  *
  * Proves the source rails: an issued reward (birthday_month / merchant_direct)
  * shares the earned-reward redemption flow and every trust gate, but the
- * stamp-count threshold is scoped to stamp_cycle rewards and a redeemed issued
- * reward never touches the stamp cycle.
+ * legacy stamp-count threshold is scoped to stamp_cycle rewards. Collection
+ * records the outcome without changing the already-open v2 stamp cycle.
  *
  * R-3 stamp gate scoped · R-4 side-effects by source · R-5 gates preserved ·
  * R-7 collect notification by source.
@@ -30,6 +30,10 @@ after(async () => {
  * spec blast radius.
  */
 async function insertReward(tx, fixture, opts = {}) {
+  await tx`update public.customers
+    set date_of_birth_verified_at = now(),
+        date_of_birth_verification_source = 'trusted_database'
+    where id = ${fixture.customerId}::uuid`
   const id = opts.id ?? randomUUID()
   const source = opts.source ?? "stamp_cycle"
   const birthdayYear = opts.birthdayYear ?? null
@@ -45,7 +49,11 @@ async function insertReward(tx, fixture, opts = {}) {
       ${id}::uuid, ${fixture.merchantId}::uuid, ${fixture.customerId}::uuid,
       ${fixture.membershipId}::uuid, ${fixture.cardId}::uuid,
       'unlocked', ${source}, ${birthdayYear}, ${rewardName}, 'Subject to availability.',
-      public.uk_business_date(now()), ${expiresAt}, ${cycleNumber}, now(), now())`
+      public.uk_business_date(now()), ${expiresAt}, ${cycleNumber}, now() - interval '2 days', now())`
+  if (expiresAt) {
+    await tx`update public.reward_events set expires_at = ${expiresAt}
+      where id = ${id}::uuid`
+  }
   return id
 }
 
@@ -66,7 +74,7 @@ test(
   async () => {
     await inRolledBackTxn(async (tx) => {
       const fixture = await createRewardPoolFixture(tx)
-      // Below the 3-stamp threshold: an earned reward would be refused here.
+      // Issued rewards can be collected while the active card is incomplete.
       await tx`
         update public.customer_memberships
         set current_stamp_count = 1, active_cycle_number = 1, total_rewards_redeemed = 0
@@ -99,11 +107,13 @@ test(
 )
 
 test(
-  "R-3 control: a stamp_cycle reward below the threshold cannot mint a token",
+  "R-3 legacy control: a stamp_cycle reward below the threshold cannot mint a token",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
       const fixture = await createRewardPoolFixture(tx)
+      await tx`update public.loyalty_cards set reward_policy_version = 'legacy_v1'
+        where id = ${fixture.cardId}::uuid`
       await tx`
         update public.customer_memberships
         set current_stamp_count = 1
@@ -128,14 +138,14 @@ test(
 )
 
 test(
-  "R-4 regression: an earned redemption still decrements stamps and advances the cycle",
+  "R-4: v2 earned redemption preserves the already-open next cycle",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
       const fixture = await createRewardPoolFixture(tx)
       await tx`
         update public.customer_memberships
-        set current_stamp_count = 3, active_cycle_number = 1, total_rewards_redeemed = 0
+        set current_stamp_count = 1, active_cycle_number = 2, total_rewards_redeemed = 0
         where id = ${fixture.membershipId}::uuid`
       const rewardId = await insertReward(tx, fixture, {
         source: "stamp_cycle",
@@ -149,13 +159,13 @@ test(
         from public.customer_memberships where id = ${fixture.membershipId}::uuid`
       assert.equal(
         m.current_stamp_count,
-        0,
-        "3 stamps consumed by the earned reward"
+        1,
+        "stamps on the next card are not consumed"
       )
       assert.equal(
         m.active_cycle_number,
         2,
-        "cycle advances on an earned redemption"
+        "collection leaves the already-open cycle unchanged"
       )
       assert.equal(
         m.total_rewards_redeemed,
@@ -166,51 +176,79 @@ test(
   }
 )
 
-test(
-  "R-7: collecting an issued reward skips the cycle-started notification; an earned collect enqueues it",
-  { skip },
-  async () => {
-    await inRolledBackTxn(async (tx) => {
-      const fixture = await createRewardPoolFixture(tx)
+for (const policy of ["v2", "legacy_v1"]) {
+  test(
+    `R-7 (${policy}): earned collection records truthful copy without starting another cycle`,
+    { skip },
+    async () => {
+      await inRolledBackTxn(async (tx) => {
+        const fixture = await createRewardPoolFixture(tx)
+        await tx`update public.loyalty_cards set reward_policy_version = ${policy}
+        where id = ${fixture.cardId}::uuid`
 
-      // Earned control: full card → collect → cycle-started notification queued.
-      await tx`
+        // The next card already opened when the earned reward was issued.
+        await tx`
         update public.customer_memberships
-        set current_stamp_count = 3, active_cycle_number = 1
+        set current_stamp_count = 0, active_cycle_number = 2
         where id = ${fixture.membershipId}::uuid`
-      const earnedId = await insertReward(tx, fixture, {
-        source: "stamp_cycle",
-        cycleNumber: 1,
-      })
-      await collect(tx, earnedId, fixture)
-      const [earnedNotif] = await tx`
+        const earnedId = await insertReward(tx, fixture, {
+          source: "stamp_cycle",
+          cycleNumber: 1,
+        })
+        const [issued] = await tx`select reward_policy_version
+        from public.reward_events where id = ${earnedId}::uuid`
+        assert.equal(issued.reward_policy_version, policy)
+        // Old rewards retain their snapshot after the card activates v2.
+        await tx`update public.loyalty_cards set reward_policy_version = 'v2'
+        where id = ${fixture.cardId}::uuid`
+        await collect(tx, earnedId, fixture)
+        const [earnedNotif] = await tx`
         select count(*)::int as n from public.notification_events
         where event_type = 'reward_collected_cycle_started'
           and reward_event_id = ${earnedId}::uuid`
-      assert.equal(
-        earnedNotif.n,
-        1,
-        "earned collect enqueues reward_collected_cycle_started"
-      )
+        assert.equal(
+          earnedNotif.n,
+          1,
+          "earned collection emits one deduplicated service event"
+        )
 
-      // Issued: birthday reward → collect → NO cycle-started notification.
-      const birthdayId = await insertReward(tx, fixture, {
-        source: "birthday_month",
-        birthdayYear: 2026,
-      })
-      await collect(tx, birthdayId, fixture)
-      const [issuedNotif] = await tx`
+        const [collected] = await tx`
+        select payload->>'title' as title, payload->>'body' as body,
+               metadata->'cycle_started' as "cycleStarted"
+        from public.notification_events
+        where event_type = 'reward_collected_cycle_started'
+          and reward_event_id = ${earnedId}::uuid`
+        assert.deepEqual(collected, {
+          title: "Reward collected",
+          body: "Test reward collected at Reward Pool DB Test.",
+          cycleStarted: false,
+        })
+        const [card] = await tx`select current_stamp_count, active_cycle_number
+        from public.customer_memberships where id = ${fixture.membershipId}::uuid`
+        assert.deepEqual(card, {
+          current_stamp_count: 0,
+          active_cycle_number: 2,
+        })
+
+        // Issued: birthday reward → collect → NO cycle-started notification.
+        const birthdayId = await insertReward(tx, fixture, {
+          source: "birthday_month",
+          birthdayYear: 2026,
+        })
+        await collect(tx, birthdayId, fixture)
+        const [issuedNotif] = await tx`
         select count(*)::int as n from public.notification_events
         where event_type = 'reward_collected_cycle_started'
           and reward_event_id = ${birthdayId}::uuid`
-      assert.equal(
-        issuedNotif.n,
-        0,
-        "issued collect does not enqueue a new cycle"
-      )
-    })
-  }
-)
+        assert.equal(
+          issuedNotif.n,
+          0,
+          "issued collect does not enqueue a new cycle"
+        )
+      })
+    }
+  )
+}
 
 test(
   "R-5: the profile and 18+ gates still block an issued reward",

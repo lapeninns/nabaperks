@@ -13,7 +13,9 @@ import {
   buildReferralJoinUrl,
   isShareableReferralCode,
 } from "@/lib/customer/referral"
-import { narrowRewardSource } from "@/lib/customer/issued-reward-display"
+import {
+  narrowRewardSource,
+} from "@/lib/customer/issued-reward-display"
 import { cardRewardCollectable } from "@/lib/customer/reward-collection-state"
 import {
   normalizeGoogleReviewUrl,
@@ -111,10 +113,23 @@ export async function loadCardExperienceContext(
   const reward =
     stampCycleReward?.status === "unlocked"
       ? {
-          id: stampCycleReward.id,
-          name: stampCycleReward.reward_name,
-          terms: stampCycleReward.reward_terms,
-          redeemableFrom: stampCycleReward.redeemable_from,
+          view: {
+            rewardId: stampCycleReward.id,
+            membershipId: membership.id,
+            rewardName: stampCycleReward.reward_name,
+            rewardTerms: stampCycleReward.reward_terms,
+            redeemableFrom: stampCycleReward.redeemable_from,
+            availableFrom: stampCycleReward.available_from,
+            expiresAt: stampCycleReward.expires_at,
+            requiresAgeCheck: stampCycleReward.requires_age_check,
+            earningTerms: stampCycleReward.earning_terms,
+            inWindow: stampCycleReward.in_window,
+            windowEndsAt: stampCycleReward.window_ends_at,
+            upgradeRewardName: stampCycleReward.upgrade_reward_name,
+            nextWindowStartsAt: stampCycleReward.next_window_starts_at,
+            nextWindowEndsAt: stampCycleReward.next_window_ends_at,
+            nextWindowUpgradeName: stampCycleReward.next_window_upgrade_name,
+          },
           redeemable: cardRewardCollectable(
             stampCycleReward.collection_state,
             stampCycleReward.collection_reason
@@ -130,7 +145,7 @@ export async function loadCardExperienceContext(
           id: issuedReward.id,
           name: issuedReward.reward_name,
           source: narrowRewardSource(issuedReward.source),
-          redeemableFrom: issuedReward.redeemable_from,
+          availableFrom: issuedReward.available_from,
           redeemable: cardRewardCollectable(
             issuedReward.collection_state,
             issuedReward.collection_reason

@@ -25,6 +25,12 @@ export type CustomerConsent = {
   optedIn: boolean
 }
 
+export type PhoneMessagingPreferences = {
+  readonly phoneMessagesEnabled: boolean
+  readonly preferredPhoneChannel: "whatsapp" | "sms"
+  readonly whatsappUnavailableAt: string | null
+}
+
 export type CustomerProfile = {
   fullName: string | null
   dateOfBirth: string | null
@@ -36,6 +42,7 @@ export type CustomerProfile = {
   memberSince: string
   membershipCount: number
   consents: CustomerConsent[]
+  phoneMessagingPreferences: PhoneMessagingPreferences | null
 }
 
 export async function getCustomerProfileCompletion(): Promise<CustomerProfileCompletion | null> {
@@ -193,7 +200,7 @@ export async function getCustomerProfile(): Promise<CustomerProfile | null> {
 
   const supabase = createSupabaseServiceRoleClient()
 
-  const [membershipResult, consentResult] = await Promise.all([
+  const [membershipResult, consentResult, phoneResult] = await Promise.all([
     supabase
       .from("customer_memberships")
       .select("id", { count: "exact", head: true })
@@ -203,6 +210,9 @@ export async function getCustomerProfile(): Promise<CustomerProfile | null> {
       .select("channel, consent_status, created_at")
       .eq("customer_id", customer.id)
       .order("created_at", { ascending: false }),
+    supabase.rpc("get_notification_preferences_for_customer", {
+      p_customer_id: customer.id,
+    }),
   ])
 
   if (membershipResult.error) {
@@ -228,6 +238,27 @@ export async function getCustomerProfile(): Promise<CustomerProfile | null> {
   )
 
   const completion = profileCompletionFrom(customer)
+  const phone: unknown = Array.isArray(phoneResult.data)
+    ? phoneResult.data[0]
+    : phoneResult.data
+  const phoneMessagingPreferences: PhoneMessagingPreferences | null =
+    !phoneResult.error &&
+    phone &&
+    typeof phone === "object" &&
+    "phone_messages_enabled" in phone &&
+    typeof phone.phone_messages_enabled === "boolean" &&
+    "preferred_phone_channel" in phone &&
+    (phone.preferred_phone_channel === "whatsapp" ||
+      phone.preferred_phone_channel === "sms") &&
+    "whatsapp_unavailable_at" in phone &&
+    (phone.whatsapp_unavailable_at === null ||
+      typeof phone.whatsapp_unavailable_at === "string")
+      ? {
+          phoneMessagesEnabled: phone.phone_messages_enabled,
+          preferredPhoneChannel: phone.preferred_phone_channel,
+          whatsappUnavailableAt: phone.whatsapp_unavailable_at,
+        }
+      : null
 
   return {
     fullName: completion.fullName,
@@ -240,6 +271,7 @@ export async function getCustomerProfile(): Promise<CustomerProfile | null> {
     memberSince: customer.createdAt,
     membershipCount: membershipResult.count ?? 0,
     consents,
+    phoneMessagingPreferences,
   }
 }
 

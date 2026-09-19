@@ -48,6 +48,12 @@ export default async function MerchantTermsPage({
     merchantName: merchant.business_name,
     stampsRequired: loyaltyCard.stamps_required,
     rewardTerms: loyaltyCard.reward_terms ?? "",
+    collectionWindows: loyaltyCard.collection_windows,
+    tradingDayStartsAt: loyaltyCard.trading_day_starts_at,
+    rewardExpiresAfterDays: loyaltyCard.reward_expires_after_days,
+    minimumSpendPence: loyaltyCard.minimum_spend_pence,
+    oneTransactionPerStamp: loyaltyCard.one_transaction_per_stamp,
+    rewardPool: loyaltyCard.reward_pool,
     contact,
   })
 

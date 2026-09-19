@@ -7,6 +7,10 @@ import {
   rewardSourceBadge,
 } from "@/lib/customer/issued-reward-display"
 import type { CustomerRewardItem } from "@/lib/customer/rewards"
+import {
+  formatCollectionDeadline,
+  rewardCollectionBlockedCopy,
+} from "@/lib/customer/reward-collection-state"
 import { NO_ADDITIONAL_EXCLUSIONS } from "@/lib/legal/content"
 
 /**
@@ -28,7 +32,9 @@ function rewardDescription(reward: CustomerRewardItem): string | null {
 export function RedeemableReward({ reward }: { reward: CustomerRewardItem }) {
   const description = rewardDescription(reward)
   const badge = rewardSourceBadge(reward.source, reward.businessName)
-  const expiryNote = rewardExpiryNote(reward.expiresAt)
+  const expiryNote =
+    formatCollectionDeadline(reward.expiresAt) ??
+    rewardExpiryNote(reward.expiresAt)
 
   return (
     <ReceiptCard className="grid gap-3 bg-accent text-accent-foreground">
@@ -65,6 +71,10 @@ export function QuietReward({
   note: string
 }) {
   const badge = rewardSourceBadge(reward.source, reward.businessName)
+  const collectionNote =
+    reward.collectionState === "blocked"
+      ? rewardCollectionBlockedCopy(reward.collectionReason)
+      : note
 
   return (
     <ReceiptCard className="grid gap-2">
@@ -75,7 +85,9 @@ export function QuietReward({
       <h2 className="text-base leading-tight font-extrabold">
         {reward.rewardName}
       </h2>
-      <p className="text-sm leading-6 text-muted-foreground">{note}</p>
+      <p className="text-sm leading-6 text-muted-foreground">
+        {collectionNote}
+      </p>
     </ReceiptCard>
   )
 }

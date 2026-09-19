@@ -20,9 +20,11 @@ const DATE_OF_BIRTH_FORMAT = new Intl.DateTimeFormat("en-GB", {
 export function MerchantRewardCollectionForm({
   scanToken,
   idCheck,
+  upgradeRewardName,
 }: {
   scanToken: string
   idCheck?: { fullName: string; dateOfBirth: string }
+  upgradeRewardName?: string
 }) {
   const [state, action, pending] = useActionState(
     confirmMerchantRewardCollectionAction,
@@ -96,7 +98,9 @@ export function MerchantRewardCollectionForm({
           ? "Marking collected…"
           : idCheck
             ? "Verify ID and collect reward"
-            : "Mark reward collected"}
+            : upgradeRewardName
+              ? `Collect and upgrade to ${upgradeRewardName}`
+              : "Mark reward collected"}
       </Button>
     </form>
   )

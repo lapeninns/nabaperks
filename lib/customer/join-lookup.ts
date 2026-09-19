@@ -32,7 +32,7 @@ export const JOIN_CONTEXT_CACHE_SECONDS = 60
  * entries a previous deploy wrote, instead of serving a row the new code
  * cannot read. Stage A holds only identity, so it never needs this.
  */
-export const JOIN_CONTEXT_SHAPE = "v2"
+export const JOIN_CONTEXT_SHAPE = "v4"
 
 export type QrIdentity = {
   qrCodeId: string
@@ -58,12 +58,32 @@ export type JoinMerchantRow = {
 }
 
 export type JoinRewardPoolItemRow = {
+  id: string
+  created_at: string
+  reward_terms: string
+  requires_age_check: boolean
   reward_name: string
   is_active: boolean
   display_order: number | null
 }
 
+export type JoinLocationRow = {
+  trading_day_starts_at: string
+  venue_collection_windows: {
+    isodow: number
+    starts_at: string
+    ends_at: string
+    is_active: boolean
+    reward_pool_items: JoinRewardPoolItemRow | JoinRewardPoolItemRow[] | null
+  }[]
+}
+
 export type JoinLoyaltyCardRow = {
+  location_id: string
+  reward_expires_after_days: number | null
+  merchant_locations: JoinLocationRow | JoinLocationRow[] | null
+  minimum_spend_pence: number | null
+  one_transaction_per_stamp: boolean
   id: string
   card_name: string
   stamps_required: number
@@ -93,7 +113,7 @@ export type MerchantJoinStateRow = Omit<JoinMerchantRow, "id"> & {
 // the embed names the simple constraint explicitly; an unhinted embed is a
 // PostgREST 300 that would turn every scan into "unavailable".
 const CARD_COLUMNS =
-  "id, card_name, stamps_required, reward_terms, is_active, reward_pool_items!reward_pool_items_loyalty_card_id_fkey(reward_name, is_active, display_order)"
+  "id, location_id, card_name, stamps_required, reward_terms, reward_expires_after_days, merchant_locations!location_id(trading_day_starts_at), minimum_spend_pence, one_transaction_per_stamp, is_active, reward_pool_items!reward_pool_items_loyalty_card_id_fkey(reward_name, reward_terms, requires_age_check, is_active, display_order, id, created_at)"
 
 const QR_JOIN_STATE_SELECT = `id, qr_id, is_active, destination_type, merchants(id, business_name, business_slug, email, phone, status, requires_billing, billing_customers(status)), loyalty_cards!loyalty_card_id(${CARD_COLUMNS})`
 

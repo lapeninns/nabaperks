@@ -12,7 +12,7 @@ function row(overrides = {}) {
     membership_id: "mem_1",
     reward_name: "Reward",
     collection_state: "ready",
-    redeemable_from: "2026-07-02T05:00:00Z",
+    available_from: "2026-07-02T05:00:00Z",
     source: "stamp_cycle",
     created_at: "2026-07-01T09:00:00.000Z",
     ...overrides,
@@ -21,11 +21,7 @@ function row(overrides = {}) {
 
 test("stamp-cycle and issued rewards land on separate rails", () => {
   const counts = buildRewardCountsByMembership([
-    row({
-      id: "stamp_ready",
-      source: "stamp_cycle",
-      reward_name: "Free coffee",
-    }),
+    row({ id: "stamp_ready", source: "stamp_cycle", reward_name: "Free coffee" }),
     row({
       id: "bday_ready",
       source: "birthday_month",
@@ -63,7 +59,7 @@ test("a waiting stamp-cycle reward drives the revealed ticket, not the ready sta
       id: "stamp_wait",
       source: "stamp_cycle",
       collection_state: "waiting",
-      redeemable_from: "2026-07-03T05:00:00Z",
+      available_from: "2026-07-03T05:00:00Z",
       reward_name: "Free pastry",
     }),
   ])
@@ -71,7 +67,7 @@ test("a waiting stamp-cycle reward drives the revealed ticket, not the ready sta
 
   assert.equal(mem.stampRewardId, null)
   assert.equal(mem.revealedRewardName, "Free pastry")
-  assert.equal(mem.revealedRewardRedeemableFrom, "2026-07-03T05:00:00Z")
+  assert.equal(mem.revealedRewardAvailableFrom, "2026-07-03T05:00:00Z")
   assert.equal(mem.stampUnlocked, 1)
   assert.equal(mem.gift, null)
 })
@@ -96,11 +92,7 @@ test("getTopRedeemable surfaces a redeemable gift when there is no earned reward
 
 test("getTopRedeemable prefers the earned stamp reward over a gift on the same card", () => {
   const counts = buildRewardCountsByMembership([
-    row({
-      id: "stamp_ready",
-      source: "stamp_cycle",
-      reward_name: "Free coffee",
-    }),
+    row({ id: "stamp_ready", source: "stamp_cycle", reward_name: "Free coffee" }),
     row({
       id: "gift_ready",
       source: "birthday_month",

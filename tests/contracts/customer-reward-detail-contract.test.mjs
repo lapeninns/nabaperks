@@ -29,7 +29,9 @@ test("Given a reward detail route is loaded When source is inspected Then reward
     /const location = await getLocationRequirement\(loyaltyCard\.location_id\)/
   )
   assert.match(loader, /redeemedAt: reward\.redeemed_at/)
-  assert.match(loader, /availability\.status === "blocked"/)
+  assert.match(loader, /collectionState: collection\.state/)
+  assert.match(loader, /collectionReason: collection\.reason/)
+  assert.match(loader, /availableFrom: collection\.availableFrom/)
   assert.doesNotMatch(loader, /searchParams|request|customerId:\s*string/)
 })
 
@@ -40,15 +42,12 @@ test("Given a reward might be waiting, blocked, or ready When the loader compute
     "experience",
     "load-reward.ts"
   )
-  const redeemableBlock = loader.slice(
-    loader.indexOf("const availability ="),
-    loader.indexOf("const profileGate =")
-  )
-
-  assert.match(redeemableBlock, /rewardQrAvailability\(/)
-  assert.match(redeemableBlock, /collectionState: collection\.state/)
-  assert.match(redeemableBlock, /collectionReason: collection\.reason/)
-  assert.match(redeemableBlock, /availableFrom: collection\.availableFrom/)
+  assert.match(loader, /rewardQrAvailability\(/)
+  assert.match(loader, /collectionState: collection\.state/)
+  assert.match(loader, /collectionReason: collection\.reason/)
+  assert.match(loader, /availableFrom: collection\.availableFrom/)
+  assert.match(loader, /availableForReview = availability\.status === "ready"/)
+  assert.doesNotMatch(loader, /current_stamp_count\s*[>=<]/)
 })
 
 test("Given collection requirements govern a collectable or waiting reward When the reward is blocked Then the profile gate is skipped", () => {
@@ -104,7 +103,7 @@ test("Given the reward state uses service-role reads When source is inspected Th
   )
   assert.ok(
     stateLoader.indexOf("reward.customer_id !== currentCustomer.id") <
-      stateLoader.indexOf("await getRewardCollectionState"),
+      stateLoader.indexOf("getRewardCollectionState(supabase, rewardId)"),
     "reward ownership must be checked before availability facts are returned"
   )
 })

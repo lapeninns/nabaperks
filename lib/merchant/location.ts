@@ -24,6 +24,7 @@ export type MerchantVenueLocation = {
   geofence_pin_source: GeofencePinSource
   geofence_pin_updated_at: string | null
   is_primary: boolean
+  trading_day_starts_at: string
 }
 
 export async function getCurrentVenueLocation() {
@@ -37,7 +38,7 @@ export async function getCurrentVenueLocation() {
   const { data: location, error } = await supabase
     .from("merchant_locations")
     .select(
-      "id, name, address, address_line_1, address_line_2, address_city, address_postcode, address_source, address_provider, address_provider_id, latitude, longitude, geofence_radius_meters, require_geofence, soft_geofence_trigger_stamp_number, geocoded_at, geofence_pin_source, geofence_pin_updated_at, is_primary"
+      "id, name, address, address_line_1, address_line_2, address_city, address_postcode, address_source, address_provider, address_provider_id, latitude, longitude, geofence_radius_meters, require_geofence, soft_geofence_trigger_stamp_number, geocoded_at, geofence_pin_source, geofence_pin_updated_at, is_primary, trading_day_starts_at"
     )
     .eq("merchant_id", merchant.id)
     .order("is_primary", { ascending: false })
@@ -84,6 +85,7 @@ export async function getCurrentVenueLocation() {
               : "geocoded",
           geofence_pin_updated_at: location.geofence_pin_updated_at,
           is_primary: Boolean(location.is_primary),
+          trading_day_starts_at: location.trading_day_starts_at ?? "05:00:00",
         }
       : null,
   }

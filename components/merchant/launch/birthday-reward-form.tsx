@@ -25,7 +25,7 @@ type BirthdayRewardSaveAction = (
   state: BirthdayRewardActionState,
   formData: FormData
 ) => Promise<BirthdayRewardActionState>
-type PendingBirthdaySave = readonly [boolean, string, string]
+type PendingBirthdaySave = readonly [boolean, string, string, boolean]
 
 export function BirthdayRewardForm({
   loyaltyCardId,
@@ -38,6 +38,7 @@ export function BirthdayRewardForm({
     enabled: boolean
     rewardName: string
     rewardTerms: string
+    requiresAgeCheck: boolean
   }
   template: BirthdayRewardTemplate
   saveAction?: BirthdayRewardSaveAction
@@ -53,17 +54,26 @@ export function BirthdayRewardForm({
     state.fields?.rewardTerms ?? initialValues.rewardTerms
   )
   const [dirty, setDirty] = useState(false)
+  const [requiresAgeCheck, setRequiresAgeCheck] = useState(
+    state.fields?.requiresAgeCheck ?? initialValues.requiresAgeCheck
+  )
   const savedValues = useRef(initialValues)
   const saveInFlight = useRef(false)
   const queuedSave = useRef<PendingBirthdaySave | null>(null)
 
   const dispatchSave = useCallback(
-    (nextEnabled: boolean, nextName: string, nextTerms: string) => {
+    (
+      nextEnabled: boolean,
+      nextName: string,
+      nextTerms: string,
+      nextRequiresAgeCheck: boolean
+    ) => {
       const formData = new FormData()
       formData.set("loyaltyCardId", loyaltyCardId)
       if (nextEnabled) formData.set("enabled", "on")
       formData.set("rewardName", nextName)
       formData.set("rewardTerms", nextTerms)
+      if (nextRequiresAgeCheck) formData.set("requiresAgeCheck", "on")
       saveInFlight.current = true
       setDirty(false)
       startTransition(() => action(formData))
@@ -72,12 +82,22 @@ export function BirthdayRewardForm({
   )
 
   const save = useCallback(
-    (nextEnabled: boolean, nextName: string, nextTerms: string) => {
+    (
+      nextEnabled: boolean,
+      nextName: string,
+      nextTerms: string,
+      nextRequiresAgeCheck: boolean
+    ) => {
       if (saveInFlight.current) {
-        queuedSave.current = [nextEnabled, nextName, nextTerms]
+        queuedSave.current = [
+          nextEnabled,
+          nextName,
+          nextTerms,
+          nextRequiresAgeCheck,
+        ]
         return
       }
-      dispatchSave(nextEnabled, nextName, nextTerms)
+      dispatchSave(nextEnabled, nextName, nextTerms, nextRequiresAgeCheck)
     },
     [dispatchSave]
   )
@@ -94,11 +114,11 @@ export function BirthdayRewardForm({
   useEffect(() => {
     if (!dirty || !enabled) return
     const timeout = window.setTimeout(
-      () => save(enabled, rewardName, rewardTerms),
+      () => save(enabled, rewardName, rewardTerms, requiresAgeCheck),
       600
     )
     return () => window.clearTimeout(timeout)
-  }, [dirty, enabled, rewardName, rewardTerms, save])
+  }, [dirty, enabled, requiresAgeCheck, rewardName, rewardTerms, save])
 
   useEffect(() => {
     if (!state.saved || !state.fields) return
@@ -106,14 +126,23 @@ export function BirthdayRewardForm({
       enabled: state.fields.enabled ?? enabled,
       rewardName: state.fields.rewardName ?? rewardName,
       rewardTerms: state.fields.rewardTerms ?? rewardTerms,
+      requiresAgeCheck: state.fields.requiresAgeCheck ?? requiresAgeCheck,
     }
-  }, [enabled, rewardName, rewardTerms, state.fields, state.saved])
+  }, [
+    enabled,
+    requiresAgeCheck,
+    rewardName,
+    rewardTerms,
+    state.fields,
+    state.saved,
+  ])
 
   useEffect(() => {
     if (!state.errors?.form) return
     setEnabled(savedValues.current.enabled)
     setRewardName(savedValues.current.rewardName)
     setRewardTerms(savedValues.current.rewardTerms)
+    setRequiresAgeCheck(savedValues.current.requiresAgeCheck)
   }, [state.errors?.form])
 
   function handleToggle(next: boolean) {
@@ -131,7 +160,7 @@ export function BirthdayRewardForm({
     setEnabled(next)
     setRewardName(nextName)
     setRewardTerms(nextTerms)
-    save(next, nextName, nextTerms)
+    save(next, nextName, nextTerms, requiresAgeCheck)
   }
 
   return (
@@ -176,10 +205,23 @@ export function BirthdayRewardForm({
               setRewardName(event.target.value)
               setDirty(true)
             }}
-            onBlur={() => save(enabled, rewardName, rewardTerms)}
+            onBlur={() =>
+              save(enabled, rewardName, rewardTerms, requiresAgeCheck)
+            }
             maxLength={100}
             disabled={pending}
             error={state.errors?.rewardName}
+          />
+          <ToggleRow
+            name="requiresAgeCheck"
+            label="Needs photo ID (18+)"
+            hint="Switch this off when the birthday treat can be served without an age check."
+            checked={requiresAgeCheck}
+            disabled={pending}
+            onChange={(checked) => {
+              setRequiresAgeCheck(checked)
+              save(enabled, rewardName, rewardTerms, checked)
+            }}
           />
           <TextareaField
             id="birthday-reward-terms"
@@ -191,7 +233,9 @@ export function BirthdayRewardForm({
               setRewardTerms(event.target.value)
               setDirty(true)
             }}
-            onBlur={() => save(enabled, rewardName, rewardTerms)}
+            onBlur={() =>
+              save(enabled, rewardName, rewardTerms, requiresAgeCheck)
+            }
             maxLength={500}
             disabled={pending}
             error={state.errors?.rewardTerms}

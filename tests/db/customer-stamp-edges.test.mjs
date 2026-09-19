@@ -9,9 +9,8 @@ import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
  *
  * Beyond the one-per-UK-day moat, these prove the stamp RPC's other guards that
  * were previously untested at runtime:
- *   - a FULL card refuses further stamps ("A reward is already ready to redeem"),
- *   - the mid-cycle stamps_required BRICK (lowering the threshold under an
- *     in-flight cycle wedges the card full with no reward ever minted),
+ *   - a completed card opens the next cycle before redemption,
+ *   - lowering stamps_required reconciles an already-complete in-flight cycle,
  *   - geofence is SOFT on stamping — an out-of-range trigger stamp still lands
  *     and merely raises a fraud flag,
  *   - the unlocking stamp is refused when the reward pool has < 3 active items.
@@ -81,41 +80,85 @@ async function seed(tx) {
   return { v, customer, membershipId, ageStamps, stamp, count, rewards }
 }
 
-test("a full card refuses further stamps", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    const s = await seed(tx)
-    // Fill to 3/3 (join gave #1) → reward unlocks but is NOT redeemed.
-    await s.ageStamps()
-    await s.stamp()
-    await s.ageStamps()
-    await s.stamp()
-    assert.equal(await s.count(), 3, "card is full at 3/3")
-    assert.equal(
-      await s.rewards(),
-      1,
-      "the full card has minted exactly one reward"
-    )
+test(
+  "a completed card opens the next cycle without waiting for redemption",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const s = await seed(tx)
+      // Fill cycle 1 (join gave #1) → reward unlocks and cycle 2 opens.
+      await s.ageStamps()
+      await s.stamp()
+      await s.ageStamps()
+      await s.stamp()
+      assert.equal(await s.count(), 0, "fresh cycle opens at 0/3")
+      assert.equal(
+        await s.rewards(),
+        1,
+        "the full card has minted exactly one reward"
+      )
 
-    await s.ageStamps()
-    let refused = false
-    try {
-      await tx.savepoint(async () => {
-        await s.stamp()
-      })
-    } catch (error) {
-      refused = /already ready to redeem/i.test(String(error.message))
-    }
-    assert.ok(refused, "a full, unredeemed card cannot take another stamp")
-    assert.equal(
-      await s.count(),
-      3,
-      "the rejected stamp did not advance the card"
-    )
-  })
-})
+      const [waitingReward] = await tx`
+        select collection.state as collection_state
+        from public.reward_events rewards
+        cross join lateral public.get_reward_collection_state(rewards.id) collection
+        where rewards.membership_id = ${s.membershipId}
+          and rewards.status = 'unlocked'`
+      assert.equal(
+        waitingReward.collection_state,
+        "waiting",
+        "the open reward is still waiting while the fresh card can earn"
+      )
+
+      await s.ageStamps()
+      const [nextCycleStamp] = await s.stamp()
+      assert.equal(nextCycleStamp.new_stamp_count, 1)
+      assert.equal(await s.count(), 1, "cycle 2 collects before redemption")
+
+      await assert.rejects(
+        () => s.stamp(),
+        (error) => error?.code === "NBS01",
+        "the venue-day cap still refuses a second cycle-2 stamp"
+      )
+    })
+  }
+)
 
 test(
-  "mid-cycle stamps_required reduction bricks the card (no reward minted)",
+  "a ready open reward also permits the first stamp on the fresh cycle",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const s = await seed(tx)
+      await s.ageStamps()
+      await s.stamp()
+      await s.ageStamps()
+      await s.stamp()
+      assert.equal(await s.count(), 0, "reward issuance opens cycle 2 empty")
+
+      await tx`
+        update public.reward_events
+        set redeemable_from = public.venue_trading_date(${s.v.merchant_id}::uuid, now()),
+            available_from = now() - interval '1 minute'
+        where membership_id = ${s.membershipId} and status = 'unlocked'`
+      const [readyReward] = await tx`
+        select collection.state as collection_state
+        from public.reward_events rewards
+        cross join lateral public.get_reward_collection_state(rewards.id) collection
+        where rewards.membership_id = ${s.membershipId}
+          and rewards.status = 'unlocked'`
+      assert.equal(readyReward.collection_state, "ready")
+
+      await s.ageStamps()
+      const [nextCycleStamp] = await s.stamp()
+      assert.equal(nextCycleStamp.new_stamp_count, 1)
+      assert.equal(await s.count(), 1, "cycle 2 earns while reward is ready")
+    })
+  }
+)
+
+test(
+  "mid-cycle threshold reduction reconciles the completed cycle",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
@@ -125,25 +168,36 @@ test(
 
       // Lower the card threshold UNDER the in-flight cycle count.
       await tx`update public.loyalty_cards set stamps_required = 1 where id = ${s.v.loyalty_card_id}`
+      const [{ eligible }] = await tx`
+        select count(*)::integer as eligible
+        from public.customer_memberships memberships
+        where memberships.merchant_id = ${s.v.merchant_id}::uuid
+          and (
+            select count(*)
+            from public.stamp_events stamps
+            where stamps.membership_id = memberships.id
+              and stamps.event_type = 'earned'
+              and stamps.cycle_number = memberships.active_cycle_number
+          ) >= 1
+          and not exists (
+            select 1
+            from public.reward_events rewards
+            where rewards.membership_id = memberships.id
+              and rewards.source = 'stamp_cycle'
+              and rewards.cycle_number = memberships.active_cycle_number
+          )`
 
-      await s.ageStamps()
-      let bricked = false
-      try {
-        await tx.savepoint(async () => {
-          await s.stamp()
-        })
-      } catch (error) {
-        bricked = /already ready to redeem/i.test(String(error.message))
-      }
-      assert.ok(
-        bricked,
-        "the card is wedged: the guard fires before any unlock"
-      )
+      const [{ minted }] = await tx`
+        select public.reconcile_loyalty_card_threshold_rewards(
+          ${s.v.merchant_id}::uuid, ${s.v.loyalty_card_id}::uuid, 3, 1
+        ) as minted`
       assert.equal(
-        await s.rewards(),
-        0,
-        "BRICK: card reads full but no reward was ever minted"
+        minted,
+        eligible,
+        "every eligible in-flight cycle is reconciled exactly once"
       )
+      assert.equal(await s.rewards(), 1, "one reward is minted")
+      assert.equal(await s.count(), 0, "the next cycle opens empty")
     })
   }
 )

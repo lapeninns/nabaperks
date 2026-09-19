@@ -9,6 +9,10 @@ import {
   merchantCacheTag,
 } from "@/lib/cache/tags"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
+import type {
+  CollectionWindowSummary,
+  VenueClosureSummary,
+} from "@/lib/merchant/collection-window-fields"
 
 export type MerchantLocationSummary = {
   id: string
@@ -27,6 +31,9 @@ export type LoyaltyCardSummary = {
   birthday_reward_enabled: boolean
   birthday_reward_name: string | null
   birthday_reward_terms: string | null
+  birthday_reward_requires_age_check: boolean
+  minimum_spend_pence: number | null
+  one_transaction_per_stamp: boolean
 }
 
 export type RewardPoolItemSummary = {
@@ -36,6 +43,7 @@ export type RewardPoolItemSummary = {
   weight: number
   is_active: boolean
   display_order: number
+  requires_age_check: boolean
 }
 
 export type LoyaltyCardSetup = {
@@ -93,7 +101,7 @@ async function loadLoyaltyCardSetup(
   const { data: card, error: cardError } = await supabase
     .from("loyalty_cards")
     .select(
-      "id, card_name, stamps_required, reward_name, reward_terms, is_active, reward_expires_after_days, birthday_reward_enabled, birthday_reward_name, birthday_reward_terms"
+      "id, card_name, stamps_required, reward_name, reward_terms, is_active, reward_expires_after_days, birthday_reward_enabled, birthday_reward_name, birthday_reward_terms, birthday_reward_requires_age_check, minimum_spend_pence, one_transaction_per_stamp"
     )
     .eq("merchant_id", merchant.id)
     .eq("location_id", location.id)
@@ -112,7 +120,9 @@ async function loadLoyaltyCardSetup(
 
   const { data: rewardPoolItems, error: poolError } = await supabase
     .from("reward_pool_items")
-    .select("id, reward_name, reward_terms, weight, is_active, display_order")
+    .select(
+      "id, reward_name, reward_terms, weight, is_active, display_order, requires_age_check"
+    )
     .eq("merchant_id", merchant.id)
     .eq("location_id", location.id)
     .eq("loyalty_card_id", card.id)
@@ -132,3 +142,42 @@ async function loadLoyaltyCardSetup(
 }
 
 export const getLoyaltyCardSetup = cache(getLoyaltyCardSetupForCurrentMerchant)
+
+export async function getCollectionSettings(
+  merchantId: string,
+  locationId: string
+): Promise<{
+  readonly windows: readonly CollectionWindowSummary[]
+  readonly closures: readonly VenueClosureSummary[]
+}> {
+  return cacheByScope(
+    async () => {
+      const supabase = createSupabaseServiceRoleClient()
+      const [windows, closures] = await Promise.all([
+        supabase
+          .from("venue_collection_windows")
+          .select(
+            "id, isodow, starts_at, ends_at, upgrade_pool_item_id, is_active"
+          )
+          .eq("merchant_id", merchantId)
+          .eq("location_id", locationId)
+          .eq("is_active", true)
+          .order("isodow")
+          .order("starts_at"),
+        supabase
+          .from("venue_closures")
+          .select("id, starts_at, ends_at, reason, ended_early_at")
+          .eq("merchant_id", merchantId)
+          .eq("location_id", locationId)
+          .is("ended_early_at", null)
+          .order("starts_at"),
+      ])
+      if (windows.error || closures.error) {
+        throw new Error("Unable to load collection windows and closures.")
+      }
+      return { windows: windows.data ?? [], closures: closures.data ?? [] }
+    },
+    ["venue-collection-settings", merchantId, locationId],
+    [loyaltyCardSetupCacheTag(merchantId)]
+  )
+}

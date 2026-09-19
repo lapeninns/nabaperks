@@ -21,6 +21,10 @@ export type MerchantRewardScanContext =
       customerLabel: string
       idCheck?: { fullName: string; dateOfBirth: string }
       blockedReason?: string
+      inWindow: boolean
+      windowEndsAt?: string
+      upgradeRewardName?: string
+      upgradeRewardTerms?: string
     }
 
 export type MerchantScannedRewardCollectionResult =
@@ -160,6 +164,14 @@ export function merchantCollectionBlockedCopy(message: string): string {
       "This reward cannot be collected until the next opening day.",
     ],
     [
+      ["NBR01", "One reward per visit day already collected"],
+      "You've collected a reward in this trading day. Your next one is ready from the next trading day.",
+    ],
+    [
+      ["venue_paused"],
+      "New stamps are paused. Rewards issued before the pause can be collected during the 30-day grace period.",
+    ],
+    [
       ["Complete your profile", "Verified email required"],
       "Ask the customer to finish their profile before this reward can be collected.",
     ],
@@ -234,6 +246,10 @@ function scanContext(
       phoneLast4: stringField(row, "customer_phone_last4"),
     }),
     blockedReason: stringField(row, "blocked_reason") ?? undefined,
+    inWindow: row.in_window === true,
+    windowEndsAt: stringField(row, "window_ends_at") ?? undefined,
+    upgradeRewardName: stringField(row, "upgrade_reward_name") ?? undefined,
+    upgradeRewardTerms: stringField(row, "upgrade_reward_terms") ?? undefined,
   }
 }
 

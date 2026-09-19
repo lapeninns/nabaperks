@@ -41,18 +41,22 @@ const PICK = /* sql */ `
 // Manufacture a redeemable reward for the picked membership and return its id.
 async function readyReward(tx, m) {
   await tx`update public.customer_memberships
-           set current_stamp_count = ${m.stamps_required} where id = ${m.membership_id}`
+           set current_stamp_count = 1, active_cycle_number = 2 where id = ${m.membership_id}`
   await tx`update public.customers
            set full_name = 'Redeem Tester', date_of_birth = '1990-01-01'
            where id = ${m.customer_id}`
   await ensureVerifiedCustomerEmail(tx, m.customer_id)
+  await tx`update public.customers
+    set date_of_birth_verified_at = now(),
+        date_of_birth_verification_source = 'trusted_database'
+    where id = ${m.customer_id}`
   const [reward] = await tx`
     insert into public.reward_events
       (merchant_id, customer_id, membership_id, loyalty_card_id, status,
        reward_name, reward_terms, redeemable_from, metadata, created_at, updated_at)
     values (${m.merchant_id}, ${m.customer_id}, ${m.membership_id}, ${m.loyalty_card_id},
             'unlocked', 'Edge reward', 'terms',
-            (now() at time zone 'Europe/London')::date, '{}'::jsonb, now(), now())
+            (now() at time zone 'Europe/London')::date, '{}'::jsonb, now() - interval '2 days', now())
     returning id`
   return reward.id
 }
@@ -75,7 +79,7 @@ async function assertMintRejected(tx, rewardId, customerId, pattern, message) {
 }
 
 test(
-  "a double redeem is idempotent and never advances the cycle twice",
+  "a double v2 redeem is idempotent and never changes the already-open cycle",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
@@ -86,22 +90,22 @@ test(
       // idempotency is asserted on DELTAS, not absolute values.
       const before = (
         await tx`
-      select active_cycle_number, total_rewards_redeemed
+      select current_stamp_count, active_cycle_number, total_rewards_redeemed
       from public.customer_memberships where id = ${m.membership_id}`
       )[0]
 
-      // First redeem advances the cycle by exactly one.
+      // Collection records the outcome without changing the already-open card.
       await tx`select * from public.redeem_self_service_reward(
       ${rewardId}::uuid, ${m.customer_id}::uuid, null, null)`
       const afterFirst = (
         await tx`
-      select active_cycle_number, total_rewards_redeemed
+      select current_stamp_count, active_cycle_number, total_rewards_redeemed
       from public.customer_memberships where id = ${m.membership_id}`
       )[0]
       assert.equal(
         afterFirst.active_cycle_number,
-        before.active_cycle_number + 1,
-        "cycle advances once"
+        before.active_cycle_number,
+        "collection does not advance the cycle"
       )
       assert.equal(
         afterFirst.total_rewards_redeemed,
@@ -109,14 +113,20 @@ test(
         "exactly one redemption is recorded"
       )
 
-      // Second redeem of the SAME reward is a no-op read-back — no double advance.
+      assert.equal(afterFirst.current_stamp_count, before.current_stamp_count)
+
+      // Replaying the same reward leaves all card counters unchanged.
       await tx`select * from public.redeem_self_service_reward(
       ${rewardId}::uuid, ${m.customer_id}::uuid, null, null)`
       const afterSecond = (
         await tx`
-      select active_cycle_number, total_rewards_redeemed
+      select current_stamp_count, active_cycle_number, total_rewards_redeemed
       from public.customer_memberships where id = ${m.membership_id}`
       )[0]
+      assert.equal(
+        afterSecond.current_stamp_count,
+        afterFirst.current_stamp_count
+      )
       assert.equal(
         afterSecond.active_cycle_number,
         afterFirst.active_cycle_number,
@@ -212,6 +222,8 @@ test(
         "a non-unlocked reward cannot mint a scan token"
       )
 
+      await tx`update public.loyalty_cards set reward_policy_version = 'legacy_v1'
+        where id = ${m.loyalty_card_id}`
       const underStampedRewardId = await readyReward(tx, m)
       await tx`
       update public.customer_memberships
@@ -236,7 +248,11 @@ test(
       const [m] = await tx.unsafe(PICK)
       assert.ok(m, "a billing-eligible seeded membership exists")
 
+      await tx`update public.loyalty_cards set reward_policy_version = 'legacy_v1'
+        where id = ${m.loyalty_card_id}`
       const futureRewardId = await readyReward(tx, m)
+      await tx`update public.customer_memberships set current_stamp_count = ${m.stamps_required}
+        where id = ${m.membership_id}`
       await tx`
       update public.reward_events
       set redeemable_from = (now() at time zone 'Europe/London')::date + 1
@@ -249,6 +265,8 @@ test(
         "a next-day-gated reward cannot mint a scan token early"
       )
 
+      await tx`update public.loyalty_cards set reward_policy_version = 'v2'
+        where id = ${m.loyalty_card_id}`
       const blockedRewardId = await readyReward(tx, m)
       await tx`
       update public.merchants
@@ -259,22 +277,29 @@ test(
         merchant_id,
         stripe_customer_id,
         stripe_subscription_id,
-        status
+        status,
+        stripe_state_event_created_at,
+        stripe_state_event_id
       )
       values (
         ${m.merchant_id},
         ${`cus_block_${String(m.merchant_id).slice(0, 8)}`},
         ${`sub_block_${String(m.merchant_id).slice(0, 8)}`},
-        'cancelled'
+        'cancelled',
+        now() - interval '31 days',
+        ${`evt_edge_${String(m.merchant_id).slice(0, 8)}`}
       )
       on conflict (merchant_id) do update
-      set status = 'cancelled', updated_at = now()`
+      set status = 'cancelled',
+          stripe_state_event_created_at = excluded.stripe_state_event_created_at,
+          stripe_state_event_id = excluded.stripe_state_event_id,
+          updated_at = now()`
       await assertMintRejected(
         tx,
         blockedRewardId,
         m.customer_id,
-        /unavailable/i,
-        "a billing-blocked loyalty programme cannot mint a scan token"
+        /^venue_paused$/i,
+        "a reward issued after the billing suspension cannot mint a scan token"
       )
 
       await tx`

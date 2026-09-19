@@ -134,12 +134,6 @@ export async function issueSelfServiceStamp(
   }
 
   const row = firstRecord(data)
-
-  // A separately settled referral bonus can fill the card before the visit stamp
-  // is reached. The RPC returns no stamp id so the customer sees the waiting
-  // reward without the scan being counted as a location-verified visit.
-  if (filledByReferralBonus(row)) return rewardReadyFirst()
-
   const issuedStamp = issuedStampResult(row)
   if (!issuedStamp) throw new Error("Unable to issue a stamp")
 
@@ -216,8 +210,6 @@ export async function issueVenueCodeStamp(
     }
   }
 
-  if (filledByReferralBonus(row)) return rewardReadyFirst()
-
   const issuedStamp = issuedStampResult(row)
   if (!issuedStamp) throw new Error("Unable to issue a venue-code stamp")
 
@@ -230,27 +222,6 @@ function notSignedIn(): BlockedStampResult {
     reason: "Open your cards first.",
     blockReason: "unauthenticated",
   }
-}
-
-function rewardReadyFirst(): BlockedStampResult {
-  return {
-    status: "blocked",
-    reason: blockReasonCopy("reward_ready_first"),
-    blockReason: "reward_ready_first",
-  }
-}
-
-/**
- * A separately settled referral bonus can fill the card before the visit
- * stamp is reached. The RPC then returns no stamp id, so the customer sees the
- * waiting reward without the scan being counted as a location-verified visit.
- */
-function filledByReferralBonus(row: Record<string, unknown> | null): boolean {
-  return (
-    row !== null &&
-    !stringValue(row.stamp_event_id) &&
-    booleanValue(row.reward_unlocked)
-  )
 }
 
 function buildIssueStampRpcParams(

@@ -1,8 +1,5 @@
 import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
-import {
-  formatCollectionAvailability,
-  formatCollectionAvailableLabel,
-} from "@/lib/customer/reward-collection-state"
+import { formatCollectionAvailability } from "@/lib/customer/reward-collection-state"
 import { buildCustomerJoinHref } from "@/lib/navigation/customer-join-intent"
 
 import {
@@ -174,7 +171,7 @@ export function getCustomerExperienceViewModel(
         eyebrow: "Today's stamp",
         headline: "You're stamped for today",
         supportLine:
-          "Come back on the next UK business day to keep building your card.",
+          "Come back on the next venue trading day to keep building your card.",
         primaryAction: {
           label: "View card",
           href: `/card/${exp.membershipId}`,
@@ -246,11 +243,14 @@ function rewardViewModel(exp: RewardExperience): CustomerExperienceViewModel {
       : {
           eyebrow: "Reward",
           headline: exp.reward.rewardName,
-          supportLine: waitingRewardSupportLine(exp.reward.redeemableFrom),
+          supportLine: waitingRewardSupportLine(exp.reward.availableFrom),
         }
   }
 
-  const setup = collectionSetup(exp.profileGate)
+  const setup = collectionSetup(
+    exp.profileGate,
+    exp.reward.requiresAgeCheck
+  )
 
   if (setup.outstanding) {
     return {
@@ -275,7 +275,9 @@ function rewardViewModel(exp: RewardExperience): CustomerExperienceViewModel {
 function preparingRewardViewModel(
   exp: Extract<CustomerExperience, { kind: "reward_waiting" }>
 ): CustomerExperienceViewModel {
-  const setup = exp.profileGate ? collectionSetup(exp.profileGate) : undefined
+  const setup = exp.profileGate
+    ? collectionSetup(exp.profileGate, exp.reward.requiresAgeCheck)
+    : undefined
 
   return {
     eyebrow: "Before you collect",
@@ -292,10 +294,11 @@ function rewardIdentityLine(exp: RewardExperience): string {
   return `${exp.reward.rewardName} at ${exp.merchantName}`
 }
 
-function waitingRewardSupportLine(redeemableFrom: string | null): string {
-  const available = formatCollectionAvailableLabel(redeemableFrom)
-  if (available) return `Unlocked — yours from ${available}.`
-  return "Unlocked — yours from the next opening day."
+function waitingRewardSupportLine(availableFrom: string | null): string {
+  if (availableFrom) {
+    return `Unlocked — ${formatCollectionAvailability(availableFrom)?.toLocaleLowerCase("en-GB")}.`
+  }
+  return "Unlocked — collection timing will appear here."
 }
 
 function unavailableViewModel(

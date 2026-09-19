@@ -3,6 +3,7 @@ export type RewardPreset = {
   readonly rewardName: string
   readonly rewardTerms: string
   readonly description: string
+  readonly requiresAgeCheck: boolean
 }
 
 export type RewardPoolItemPresetValues = {
@@ -11,6 +12,7 @@ export type RewardPoolItemPresetValues = {
   readonly weight: string
   readonly displayOrder: string
   readonly isActive: boolean
+  readonly requiresAgeCheck: boolean
 }
 
 export type CardCadencePreset = {
@@ -27,6 +29,7 @@ export const PUB_REWARD_PRESETS: readonly RewardPreset[] = [
     rewardTerms:
       "One house pint, small wine, or soft drink for the member. Valid once issued.",
     description: "Good for wet-led regulars.",
+    requiresAgeCheck: true,
   },
   {
     id: "free-starter",
@@ -34,6 +37,7 @@ export const PUB_REWARD_PRESETS: readonly RewardPreset[] = [
     rewardTerms:
       "One starter up to GBP 8 with any main meal. Valid once issued.",
     description: "Works for food-led visits.",
+    requiresAgeCheck: false,
   },
   {
     id: "dessert-on-the-house",
@@ -41,6 +45,7 @@ export const PUB_REWARD_PRESETS: readonly RewardPreset[] = [
     rewardTerms:
       "One dessert from the main menu with any paid main. Valid once issued.",
     description: "Useful after evening meals.",
+    requiresAgeCheck: false,
   },
   {
     id: "coffee-after-lunch",
@@ -48,6 +53,7 @@ export const PUB_REWARD_PRESETS: readonly RewardPreset[] = [
     rewardTerms:
       "One tea, coffee, or soft drink after a paid lunch. Valid once issued.",
     description: "Fits lunch and daytime trade.",
+    requiresAgeCheck: false,
   },
   {
     id: "kids-meal",
@@ -55,6 +61,7 @@ export const PUB_REWARD_PRESETS: readonly RewardPreset[] = [
     rewardTerms:
       "One kids' meal with a paid adult main course. Valid once issued.",
     description: "A family-table reward.",
+    requiresAgeCheck: false,
   },
   {
     id: "sunday-roast-upgrade",
@@ -62,6 +69,7 @@ export const PUB_REWARD_PRESETS: readonly RewardPreset[] = [
     rewardTerms:
       "One roast upgrade or extra side with a Sunday main. Valid once issued.",
     description: "A Sunday-led nudge.",
+    requiresAgeCheck: false,
   },
   {
     id: "ten-percent-off",
@@ -69,6 +77,7 @@ export const PUB_REWARD_PRESETS: readonly RewardPreset[] = [
     rewardTerms:
       "Ten percent off food on one visit, excluding drinks. Valid once issued.",
     description: "Simple, familiar value.",
+    requiresAgeCheck: false,
   },
 ]
 
@@ -79,6 +88,7 @@ export const GENERIC_REWARD_PRESETS: readonly RewardPreset[] = [
     rewardTerms:
       "One eligible item from the standard menu or service list. Valid once issued.",
     description: "A simple reward any local business can tune.",
+    requiresAgeCheck: false,
   },
   {
     id: "member-upgrade",
@@ -86,6 +96,7 @@ export const GENERIC_REWARD_PRESETS: readonly RewardPreset[] = [
     rewardTerms:
       "One complimentary upgrade on an eligible purchase. Valid once issued.",
     description: "Good when an upsell has low fulfilment risk.",
+    requiresAgeCheck: false,
   },
   {
     id: "ten-percent-off",
@@ -93,6 +104,7 @@ export const GENERIC_REWARD_PRESETS: readonly RewardPreset[] = [
     rewardTerms:
       "Ten percent off one eligible purchase, excluding gift cards and third-party fees. Valid once issued.",
     description: "Familiar value without naming a venue type.",
+    requiresAgeCheck: false,
   },
   {
     id: "member-perk",
@@ -100,6 +112,7 @@ export const GENERIC_REWARD_PRESETS: readonly RewardPreset[] = [
     rewardTerms:
       "One member-only perk chosen by the business team. Valid once issued.",
     description: "A flexible placeholder for teams still deciding.",
+    requiresAgeCheck: false,
   },
 ]
 
@@ -200,10 +213,7 @@ export function resolveRewardPresetsByIds(
     requestedIds.add(id)
   }
 
-  if (
-    requestedIds.size < 1 ||
-    requestedIds.size > MAX_REWARD_PRESET_BATCH
-  ) {
+  if (requestedIds.size < 1 || requestedIds.size > MAX_REWARD_PRESET_BATCH) {
     throw new Error(INVALID_REWARD_PRESET_SELECTION)
   }
 
@@ -228,5 +238,6 @@ export function rewardPresetToPoolItemValues(
     weight: "1",
     displayOrder: String(displayOrder),
     isActive: true,
+    requiresAgeCheck: preset.requiresAgeCheck,
   }
 }

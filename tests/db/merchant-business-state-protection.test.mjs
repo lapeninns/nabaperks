@@ -85,7 +85,7 @@ test("an owner cannot flip status to active directly", async (t) => {
     (error) => {
       assert.match(
         String(error.message),
-        /status|protected|not authorized|privilege/i
+        /status|state|protected|not authorized|privilege/i
       )
       return true
     }

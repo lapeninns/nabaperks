@@ -41,12 +41,15 @@ export type LoyaltyCardActionState = {
     rewardTerms?: string
     rewardExpiryDays?: string
     isActive?: boolean
+    minimumSpendPence?: string
+    oneTransactionPerStamp?: boolean
   }
   errors?: {
     cardName?: string
     stampsRequired?: string
     rewardTerms?: string
     rewardExpiryDays?: string
+    minimumSpendPence?: string
     form?: string
   }
 }
@@ -60,6 +63,7 @@ export type RewardPoolItemActionState = {
     weight?: string
     displayOrder?: string
     isActive?: boolean
+    requiresAgeCheck?: boolean
   }
   errors?: {
     loyaltyCardId?: string
@@ -80,6 +84,7 @@ export type RewardPresetBatchItem = {
   weight: string
   displayOrder: string
   isActive: boolean
+  requiresAgeCheck: boolean
   presetId: string
   savedAction: "reward_pool_item_created" | "reward_pool_item_existing"
 }
@@ -129,6 +134,7 @@ function rewardPoolFields(formData: FormData) {
     weight: value(formData, "weight") || "1",
     displayOrder: value(formData, "displayOrder") || "0",
     isActive: formData.get("isActive") === "on",
+    requiresAgeCheck: formData.get("requiresAgeCheck") === "on",
   }
 }
 
@@ -150,6 +156,8 @@ export async function saveLoyaltyCardAction(
   const rewardTerms = value(formData, "rewardTerms")
   const rewardExpiryDays = value(formData, "rewardExpiryDays")
   const isActive = formData.get("isActive") === "on"
+  const minimumSpendPence = value(formData, "minimumSpendPence")
+  const oneTransactionPerStamp = formData.get("oneTransactionPerStamp") === "on"
   const fields = {
     cardId,
     cardName,
@@ -157,13 +165,21 @@ export async function saveLoyaltyCardAction(
     rewardTerms,
     rewardExpiryDays,
     isActive,
+    minimumSpendPence,
+    oneTransactionPerStamp,
   }
   const errors: NonNullable<LoyaltyCardActionState["errors"]> = {}
   const parsedStampsRequired = parseInteger(stampsRequired)
   const parsedRewardExpiryDays = parseRewardExpiryDays(rewardExpiryDays)
+  const parsedMinimumSpendPence = minimumSpendPence
+    ? parseInteger(minimumSpendPence)
+    : null
 
   if (parsedRewardExpiryDays === null) {
     errors.rewardExpiryDays = REWARD_EXPIRY_ERROR
+  }
+  if (minimumSpendPence && parsedMinimumSpendPence === null) {
+    errors.minimumSpendPence = "Enter a whole number of pence."
   }
 
   if (!cardName) errors.cardName = "Enter a card name."
@@ -204,6 +220,8 @@ export async function saveLoyaltyCardAction(
     p_reward_terms: rewardTerms,
     p_is_active: isActive,
     p_reward_expires_after_days: parsedRewardExpiryDays,
+    p_minimum_spend_pence: parsedMinimumSpendPence,
+    p_one_transaction_per_stamp: oneTransactionPerStamp,
   })
 
   if (error) {
@@ -299,6 +317,7 @@ export async function saveRewardPoolItemAction(
     p_weight: parsedWeight,
     p_is_active: fields.isActive,
     p_display_order: parsedDisplayOrder,
+    p_requires_age_check: fields.requiresAgeCheck,
   })
 
   if (error) {
@@ -395,6 +414,7 @@ export async function addRewardPresetsAction(
       preset_id: preset.id,
       reward_name: preset.rewardName,
       reward_terms: preset.rewardTerms,
+      requires_age_check: preset.requiresAgeCheck,
     })),
   })
 
@@ -425,6 +445,7 @@ export async function addRewardPresetsAction(
     weight: String(row.weight),
     displayOrder: String(row.display_order),
     isActive: row.is_active === true,
+    requiresAgeCheck: row.requires_age_check !== false,
     presetId: String(row.preset_id),
     savedAction:
       row.saved_action === "reward_pool_item_existing"
@@ -473,6 +494,7 @@ export type BirthdayRewardActionState = {
     enabled?: boolean
     rewardName?: string
     rewardTerms?: string
+    requiresAgeCheck?: boolean
   }
   errors?: {
     rewardName?: string
@@ -504,7 +526,14 @@ export async function saveBirthdayRewardAction(
   const enabled = formData.get("enabled") === "on"
   const rewardName = value(formData, "rewardName")
   const rewardTerms = value(formData, "rewardTerms")
-  const fields = { loyaltyCardId, enabled, rewardName, rewardTerms }
+  const requiresAgeCheck = formData.get("requiresAgeCheck") === "on"
+  const fields = {
+    loyaltyCardId,
+    enabled,
+    rewardName,
+    rewardTerms,
+    requiresAgeCheck,
+  }
   const errors: NonNullable<BirthdayRewardActionState["errors"]> = {}
 
   if (!loyaltyCardId) {
@@ -539,6 +568,7 @@ export async function saveBirthdayRewardAction(
     p_enabled: enabled,
     p_reward_name: rewardName || null,
     p_reward_terms: rewardTerms || null,
+    p_requires_age_check: requiresAgeCheck,
   })
 
   if (error) {

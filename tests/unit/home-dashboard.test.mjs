@@ -129,7 +129,12 @@ test("the five per-card states read differently from one another", () => {
   const states = {
     stampAvailable: homeCardStatusCopy(card()),
     stampedToday: homeCardStatusCopy(card({ stampedToday: true })),
-    rewardWaiting: homeCardStatusCopy(card({ unlockedRewards: 1 })),
+    rewardWaiting: homeCardStatusCopy(
+      card({
+        unlockedRewards: 1,
+        revealedRewardAvailableFrom: "2026-09-22T09:00:00.000Z",
+      })
+    ),
     rewardReady: homeCardStatusCopy(card({ stampRewardId: "reward_1" })),
     unavailable: homeCardStatusCopy(
       card({
@@ -158,9 +163,7 @@ test("the five per-card states read differently from one another", () => {
     ]
   )
   assert.match(states.rewardReady, /Reward ready to collect/)
-  // `redeemable_from` can skip closed days, so the waiting reward never promises
-  // "tomorrow" — it points at the venue's next opening day.
-  assert.match(states.rewardWaiting, /next opening day/)
+  assert.match(states.rewardWaiting, /ready tue 22 sept at 10:00/)
   assert.doesNotMatch(states.rewardWaiting, /tomorrow/i)
   // The server's own reason is passed through untouched.
   assert.equal(states.unavailable, "This venue has paused stamps.")
@@ -174,4 +177,22 @@ test("a ready reward still sorts above a card that is only ready for a stamp", (
     sortHomeCards([available, ready]).map((entry) => entry.membershipId),
     ["mem_ready", "mem_available"]
   )
+})
+
+test("a ready gift keeps the stamp card's own next step", () => {
+  const next = homeCardNextStep(
+    card({
+      currentStamps: 2,
+      stampsRemaining: 3,
+      gift: {
+        rewardId: "gift_1",
+        rewardName: "Birthday fizz",
+        source: "birthday_month",
+        redeemable: true,
+        availableFrom: "2026-09-19T05:00:00Z",
+      },
+    })
+  )
+
+  assert.equal(next?.label, "Ready for a stamp")
 })

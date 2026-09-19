@@ -9,6 +9,7 @@ import {
   VenueMark,
 } from "@/components/brand"
 import { OfferPassRail } from "@/components/customer/offer-pass-rail"
+import { PolicyCutoverNotice } from "@/components/customer/policy-cutover-notice"
 import { GoogleReviewButton } from "@/components/customer/google-review-button"
 import { ReferralBonusBankMini } from "@/components/customer/referral-bonus-bank-panels"
 import { ReferralShareButton } from "@/components/customer/referral-share-button"
@@ -19,7 +20,7 @@ import {
 } from "@/lib/customer/home-dashboard"
 import { rewardSourceBadge } from "@/lib/customer/issued-reward-display"
 import { hasVisibleReferralBonusBank } from "@/lib/customer/referral-bonus-bank-copy"
-import { formatRewardReadyDate } from "@/lib/customer/uk-calendar"
+import { formatCollectionAvailability } from "@/lib/customer/reward-collection-state"
 import type { HomeCard } from "@/lib/customer/home"
 import type { HomeCardGift } from "@/lib/customer/home-types"
 import type { CustomerOfferPass } from "@/lib/customer/offer-pass"
@@ -48,17 +49,18 @@ export function HomeCardTile({
   // still waiting, a stamp the venue can add today, or today's stamp already
   // collected — so the tile's next step reads at a glance.
   const nextStep = homeCardNextStep(card)
-  const rewardSlot = card.stampRewardId
-    ? "ready"
-    : card.unlockedRewards > 0
-      ? "revealed"
-      : "locked"
-  const rewardReadyLabel = card.revealedRewardRedeemableFrom
-    ? `Ready · ${formatRewardReadyDate(card.revealedRewardRedeemableFrom)}`
-    : "Back next opening day"
+  const rewardReadyLabel =
+    formatCollectionAvailability(card.revealedRewardAvailableFrom ?? null) ??
+    "Ready from the next trading day"
 
   return (
     <div className="grid min-w-0 gap-2">
+      {card.policyCutoverNoticeAt ? (
+        <PolicyCutoverNotice
+          membershipId={card.membershipId}
+          issuedAt={card.policyCutoverNoticeAt}
+        />
+      ) : null}
       <Link
         href={href}
         className="focus-ring block min-w-0 rounded-[var(--radius)]"
@@ -95,7 +97,7 @@ export function HomeCardTile({
               total={card.stampsRequired}
               dates={card.stampDates}
               showEmptySlotNumbers
-              rewardSlot={rewardSlot}
+              rewardSlot="locked"
               venueName={card.businessName}
               compact
               className="rounded-lg bg-accent p-3"
@@ -104,18 +106,20 @@ export function HomeCardTile({
             <div className="rounded-lg border-2 border-dashed border-ink/20 bg-card p-3" />
           )}
 
-          {rewardSlot === "revealed" ? (
+          {card.unlockedRewards > 0 ? (
             <div
               data-reward-ticket="revealed"
               className="grid gap-1.5 rounded-lg border-2 border-ink bg-seal/15 p-3"
             >
-              <Eyebrow>Your reward</Eyebrow>
+              <Eyebrow>Your reward wallet</Eyebrow>
               {/* Reward name wraps freely on its own row — never truncated or clipped. */}
               <p className="text-sm leading-tight font-extrabold break-words">
-                {card.revealedRewardName ?? "Your reward"}
+                {card.stampRewardName ??
+                  card.revealedRewardName ??
+                  "Your reward"}
               </p>
               <span className="mono-id w-fit max-w-full rounded-md border-2 border-ink bg-seal/25 px-2 py-0.5">
-                {rewardReadyLabel}
+                {card.stampRewardId ? "Ready to collect" : rewardReadyLabel}
               </span>
             </div>
           ) : (
@@ -175,9 +179,10 @@ function TileGiftChip({
   const badge = rewardSourceBadge(gift.source, businessName) ?? "Gift"
   const label = gift.redeemable
     ? "Ready to collect"
-    : gift.redeemableFrom
-      ? `Ready · ${formatRewardReadyDate(gift.redeemableFrom)}`
-      : "Back next opening day"
+    : gift.availableFrom
+      ? (formatCollectionAvailability(gift.availableFrom) ??
+        "Ready from the next trading day")
+      : "Collection timing will appear here"
 
   return (
     <div

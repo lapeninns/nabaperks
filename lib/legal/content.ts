@@ -1,3 +1,4 @@
+import { loyaltyEarningTermsText } from "@/lib/loyalty/earning-terms"
 import {
   GUARANTEE,
   GUARANTEE_ROI,
@@ -11,7 +12,7 @@ export type LegalSection = {
   body: string
 }
 
-export const CUSTOMER_LEGAL_VERSION = "2026-07-19"
+export const CUSTOMER_LEGAL_VERSION = "2026-09-26"
 
 export const NO_ADDITIONAL_EXCLUSIONS = "No additional exclusions configured."
 
@@ -34,17 +35,17 @@ export const PLATFORM_TERMS_SECTIONS: LegalSection[] = [
   {
     id: "stamps",
     title: "Collecting stamps",
-    body: "A normal visit stamp requires a valid venue QR and an active membership, loyalty card, venue, and merchant subscription. Only one normal visit stamp can be earned for the same venue location on each Europe/London calendar date. Referral bonuses and audited support adjustments are recorded separately from normal visit stamps.",
+    body: "A normal visit stamp requires a valid venue QR and an active membership, loyalty card, venue, and merchant subscription. Only one normal visit stamp can be earned for the same venue location on each venue trading day, using the venue’s Europe/London daily reset. Any configured minimum spend and one-transaction-per-stamp wording describes the venue’s earning terms; Nabaperks does not check spend or transaction totals. Referral bonuses and audited support adjustments are recorded separately from normal visit stamps.",
   },
   {
     id: "reward-selection",
     title: "Reward selection",
-    body: "When the final stamp completes your first loyalty cycle, Nabaperks assigns the venue's first active configured reward, ordered by the venue's display order and then by when the reward was created. Later completed cycles use the venue's configured reward weightings. A live venue card is kept with at least three active reward-pool items, but the reward you receive is fixed when it is issued.",
+    body: "When the final stamp completes your first loyalty cycle, Nabaperks assigns the venue's first active configured reward, ordered by the venue's display order and then by when the reward was created. Later completed cycles use the venue's configured reward weightings. A live venue card is kept with at least three active reward-pool items, but the reward you receive and its terms are fixed when issued. The final stamp immediately opens a fresh card, so an uncollected reward does not lock earning. Existing issued rewards retain their recorded terms.",
   },
   {
     id: "redemption",
     title: "Reward redemption",
-    body: "A cycle reward becomes redeemable on the next Europe/London weekday after it is issued, skipping Saturday and Sunday. To generate and use the reward QR, you must provide your full name and date of birth, be at least 18, and have a verified email address. The venue completes redemption by scanning the reward QR.",
+    body: "Cycle rewards are collectable from the next venue trading day, including weekends when the venue trades. One standard reward can be collected per venue trading day. A configured collection window may offer a displayed bonus or upgrade; eligibility and the collection deadline are shown on the reward. Cycle rewards use the expiry configured when issued; use the displayed expiry for each reward. Provide your full name and date of birth and be at least 18. Email is optional; if supplied, it must be verified. Photo ID is required only for rewards marked as age checked. Show the reward QR for the venue team to scan.",
   },
   {
     id: "additional-rewards",
@@ -59,7 +60,7 @@ export const PLATFORM_TERMS_SECTIONS: LegalSection[] = [
   {
     id: "availability",
     title: "Availability",
-    body: "Joining, stamping, issuing rewards, or redeeming may be paused when a venue, loyalty card, or QR is inactive, a reward is not yet redeemable, or the merchant's billing state is not active or trialling. When billing is no longer active or trialling, existing rewards cannot be redeemed through the current product flow.",
+    body: "New joins, stamps and reward issue may pause when the venue, card, QR or subscription is inactive. Rewards issued before suspension remain collectable for a 30-day grace period from suspension, with their deadline extended to the end of that period; collection rules still apply. Check the reward for its current availability.",
   },
   {
     id: "records-and-support",
@@ -69,12 +70,12 @@ export const PLATFORM_TERMS_SECTIONS: LegalSection[] = [
 ]
 
 export const PLATFORM_TERMS_META = {
-  eyebrow: "For customers · effective 19 July 2026",
+  eyebrow: "For customers · effective 26 September 2026",
   title: "Nabaperks customer terms.",
   description:
     "The terms for keeping venue loyalty cards, collecting stamps, and redeeming rewards through Nabaperks.",
   cardTitle: "Customer terms",
-  docNumber: "CT-2026-07",
+  docNumber: "CT-2026-09-26",
 }
 
 export const PRIVACY_SECTIONS: LegalSection[] = [
@@ -350,12 +351,37 @@ export type VenueTermsInput = {
   stampsRequired: number
   rewardTerms: string
   contact?: string
+  collectionWindows?: readonly {
+    readonly isodow: number
+    readonly startsAt: string
+    readonly endsAt: string
+    readonly upgrade: {
+      readonly rewardName: string
+      readonly rewardTerms: string
+      readonly requiresAgeCheck: boolean
+    } | null
+  }[]
+  tradingDayStartsAt?: string
+  rewardExpiresAfterDays?: number | null
+  minimumSpendPence?: number | null
+  oneTransactionPerStamp?: boolean
+  rewardPool?: readonly {
+    readonly rewardName: string
+    readonly rewardTerms: string
+    readonly requiresAgeCheck: boolean
+  }[]
 }
 
 export function buildVenueTermsSections({
   stampsRequired,
   rewardTerms,
   contact,
+  collectionWindows = [],
+  tradingDayStartsAt,
+  rewardExpiresAfterDays,
+  minimumSpendPence = null,
+  oneTransactionPerStamp = true,
+  rewardPool = [],
 }: VenueTermsInput): LegalSection[] {
   return [
     {
@@ -366,17 +392,41 @@ export function buildVenueTermsSections({
     {
       id: "earning-rule",
       title: "Earning rule",
-      body: `Collect ${stampsRequired} normal visit stamps using a valid venue QR. Only one normal visit stamp can be earned for this venue location on each Europe/London calendar date. A valid QR join normally attempts to add the first eligible stamp.`,
+      body: `Collect ${stampsRequired} normal visit stamps using a valid venue QR. ${loyaltyEarningTermsText({ minimumSpendPence, oneTransactionPerStamp })} These are the venue’s earning terms; Nabaperks does not check spend or transaction totals. Only one normal visit stamp can be earned for this venue location on each venue trading day, using the venue’s Europe/London daily reset. ${tradingDayStartsAt ? `The daily reset is ${tradingDayStartsAt.slice(0, 5)} Europe/London time. ` : ""}A valid QR join normally attempts to add the first eligible stamp.`,
     },
     {
       id: "reward",
       title: "Reward selection",
-      body: "When you earn the final stamp, your first completed cycle receives the venue's first active configured reward. Later completed cycles use the venue's configured reward weightings. The assigned reward and its terms are fixed when it is issued.",
+      body: "When you earn the final stamp, your first completed cycle receives the venue's first active configured reward. Later completed cycles use the venue's configured reward weightings. The final stamp issues the reward and immediately opens a fresh card; an uncollected reward does not lock earning. The assigned reward, earning terms and age-check policy are fixed when it is issued. Existing issued rewards retain their recorded terms.",
     },
     {
       id: "redemption",
       title: "Redemption",
-      body: "A cycle reward is redeemable from the next Europe/London weekday after it is issued, skipping Saturday and Sunday. Before generating its reward QR, you must provide your full name and date of birth, be at least 18, and have a verified email address. Show the reward QR at the counter for the venue team to scan.",
+      body: `Cycle rewards are collectable from the next venue trading day, including weekends when the venue trades. One standard reward can be collected per venue trading day. A configured collection window may offer a displayed bonus or upgrade; eligibility and the collection deadline are shown on the reward. Cycle rewards use the expiry configured when issued; use the displayed expiry for each reward. Provide your full name and date of birth and be at least 18. Email is optional; if supplied, it must be verified. Photo ID is required only for rewards marked as age checked. Show the reward QR for the venue team to scan. ${rewardExpiresAfterDays === null ? "No expiry is configured for new cycle rewards." : rewardExpiresAfterDays === undefined ? "Check the issued reward for its expiry." : `New cycle rewards expire after ${rewardExpiresAfterDays} days.`}`,
+    },
+    {
+      id: "reward-pool",
+      title: "Current reward pool",
+      body:
+        rewardPool
+          .map(
+            (item) =>
+              `${item.rewardName}: ${item.rewardTerms || NO_ADDITIONAL_EXCLUSIONS}${item.requiresAgeCheck ? " Photo ID needed (18+)." : ""}`
+          )
+          .join("\n") ||
+        "Ask the venue team for the current reward pool. Issued rewards retain their own recorded terms.",
+    },
+    {
+      id: "collection-windows",
+      title: "Collection windows",
+      body:
+        collectionWindows
+          .map(
+            (window) =>
+              `${["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][window.isodow - 1]} ${window.startsAt.slice(0, 5)}–${window.endsAt.slice(0, 5)} Europe/London.${window.upgrade ? ` Upgrade: ${window.upgrade.rewardName}. ${window.upgrade.rewardTerms}${window.upgrade.requiresAgeCheck ? " Photo ID needed (18+)." : ""}` : " No upgrade configured."}`
+          )
+          .join("\n") ||
+        "No collection windows configured. Ordinary collection does not require a collection window.",
     },
     {
       id: "exclusions",
@@ -396,7 +446,7 @@ export function buildVenueTermsSections({
     {
       id: "availability",
       title: "Availability",
-      body: "New joins, stamps, reward issue, and redemption may be paused if the venue, card, or QR is inactive, the reward is not yet redeemable, or the venue's Nabaperks subscription is not active or trialling.",
+      body: "New joins, stamps and reward issue may pause when the venue, card, QR or subscription is inactive. Rewards issued before suspension remain collectable for a 30-day grace period from suspension, with their deadline extended to the end of that period; collection rules still apply. Check the reward for its current availability.",
     },
     {
       id: "merchant-contact",

@@ -53,7 +53,7 @@ for (const state of [
         } else if (state === "redeemed") {
           await verifyFixture(tx, f)
         } else if (state === "blocked") {
-          await tx`update public.customer_memberships set current_stamp_count = 0 where id = ${f.membershipId}::uuid`
+          await tx`update public.loyalty_cards set is_active = false where id = ${f.cardId}::uuid`
         } else if (state === "expired") {
           await tx`update public.reward_scan_tokens set expires_at = now() - interval '1 second' where id = ${f.scanToken}::uuid`
         } else if (state === "superseded") {

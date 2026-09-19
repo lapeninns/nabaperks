@@ -42,7 +42,10 @@ export const COLLECTION_STAGE_INSTRUCTION: Record<CollectionStage, string> = {
  * no progress readout), and one who has saved their details is on step two of
  * two, not back at the beginning.
  */
-export function collectionSetup(gate: ProfileGate): CollectionSetup {
+export function collectionSetup(
+  gate: ProfileGate,
+  requiresAgeCheck = true
+): CollectionSetup {
   const detailsSaved = Boolean(gate.fullName?.trim() && gate.dateOfBirth)
   if (!gate.complete && detailsSaved && gate.needsEmailVerification) {
     return { stage: "email", outstanding: true, step: 2, total: 2 }
@@ -54,7 +57,8 @@ export function collectionSetup(gate: ProfileGate): CollectionSetup {
     return { stage: "details", outstanding: true, step: 1, total }
   }
 
-  const stage: CollectionStage = gate.dateOfBirthVerified ? "ready" : "id_check"
+  const stage: CollectionStage =
+    !requiresAgeCheck || gate.dateOfBirthVerified ? "ready" : "id_check"
 
   return { stage, outstanding: false, step: 1, total: 1 }
 }

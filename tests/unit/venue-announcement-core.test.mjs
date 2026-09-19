@@ -97,6 +97,49 @@ test("Given mixed announcement eligibility inputs When audience is resolved Then
   assert.deepEqual([...audience], ["customer-a"])
 })
 
+test("Given verified phone consent When push is absent Then the audience includes phone recipients unless STOP disabled messages", () => {
+  const audience = resolveVenueAnnouncementAudienceCustomerIds({
+    memberships: [
+      { id: "membership-a", customerId: "customer-a" },
+      { id: "membership-b", customerId: "customer-b" },
+    ],
+    preferences: [
+      { customer_id: "customer-a", phone_messages_enabled: true },
+      { customer_id: "customer-b", phone_messages_enabled: false },
+    ],
+    subscriptions: [],
+    consents: [
+      {
+        customer_id: "customer-a",
+        channel: "sms",
+        consent_status: "opted_in",
+        created_at: "2026-01-01",
+      },
+      {
+        customer_id: "customer-b",
+        channel: "whatsapp",
+        consent_status: "opted_in",
+        created_at: "2026-01-01",
+      },
+    ],
+    phoneRecipients: [
+      {
+        id: "customer-a",
+        phone_ciphertext: "encrypted-a",
+        phone_verified_at: "2026-01-01",
+      },
+      {
+        id: "customer-b",
+        phone_ciphertext: "encrypted-b",
+        phone_verified_at: "2026-01-01",
+      },
+    ],
+    phoneMessagingEnabled: true,
+  })
+
+  assert.deepEqual([...audience], ["customer-a"])
+})
+
 test("Given an announcement When a dedupe key is built Then it is stable per merchant customer and copy", () => {
   const base = {
     merchantId: "merchant-1",

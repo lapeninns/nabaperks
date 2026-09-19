@@ -66,6 +66,11 @@ export async function CardPanel({ params }: { params: CardPanelParams }) {
             card?.reward_terms
           ),
           isActive: card?.is_active ?? true,
+          minimumSpendPence:
+            card?.minimum_spend_pence == null
+              ? ""
+              : String(card.minimum_spend_pence),
+          oneTransactionPerStamp: card?.one_transaction_per_stamp ?? true,
         }}
         cadencePresets={CARD_CADENCE_PRESETS}
       />

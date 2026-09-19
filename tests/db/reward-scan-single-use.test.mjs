@@ -45,10 +45,10 @@ test(
       const [m] = await tx.unsafe(PICK)
       assert.ok(m, "a billing-eligible seeded membership exists")
 
-      // Make the reward genuinely redeemable: full card + complete profile.
+      // The reward is from the completed card; the next card already has one stamp.
       await tx`
         update public.customer_memberships
-        set current_stamp_count = ${m.stamps_required}
+        set current_stamp_count = 1, active_cycle_number = 2
         where id = ${m.membership_id}`
       // Keep the customer's existing contact (a null email would violate
       // customers_contact_present); satisfy the profile gate by marking the
@@ -58,6 +58,10 @@ test(
         set full_name = 'E2E Tester', date_of_birth = '1990-01-01'
         where id = ${m.customer_id}`
       await ensureVerifiedCustomerEmail(tx, m.customer_id)
+      await tx`update public.customers
+        set date_of_birth_verified_at = now(),
+            date_of_birth_verification_source = 'trusted_database'
+        where id = ${m.customer_id}`
 
       const [reward] = await tx`
         insert into public.reward_events (
@@ -65,7 +69,7 @@ test(
           status, reward_name, reward_terms, metadata, created_at, updated_at)
         values (
           ${m.merchant_id}, ${m.customer_id}, ${m.membership_id}, ${m.loyalty_card_id},
-          'unlocked', 'E2E test reward', 'E2E test terms', '{}'::jsonb, now(), now())
+          'unlocked', 'E2E test reward', 'E2E test terms', '{}'::jsonb, now() - interval '2 days', now())
         returning id`
       assert.ok(reward?.id, "manufactured an unlocked reward event")
 
@@ -254,13 +258,17 @@ test(
       const [m] = await tx.unsafe(PICK)
       await tx`
         update public.customer_memberships
-        set current_stamp_count = ${m.stamps_required}
+        set current_stamp_count = 1, active_cycle_number = 2
         where id = ${m.membership_id}`
       await tx`
         update public.customers
         set full_name = 'E2E Tester', date_of_birth = '1990-01-01'
         where id = ${m.customer_id}`
       await ensureVerifiedCustomerEmail(tx, m.customer_id)
+      await tx`update public.customers
+        set date_of_birth_verified_at = now(),
+            date_of_birth_verification_source = 'trusted_database'
+        where id = ${m.customer_id}`
 
       const [reward] = await tx`
         insert into public.reward_events (
@@ -269,7 +277,7 @@ test(
         values (
           ${m.merchant_id}, ${m.customer_id}, ${m.membership_id}, ${m.loyalty_card_id},
           'unlocked', 'Stale form reward', 'Stale form reward terms', '{}'::jsonb,
-          now(), now())
+          now() - interval '2 days', now())
         returning id`
       const [minted] = await tx`
         select * from public.create_reward_scan_token(

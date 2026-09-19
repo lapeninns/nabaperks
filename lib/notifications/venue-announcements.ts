@@ -162,29 +162,48 @@ async function resolveAnnouncementAudience(
   merchantId: string
 ) {
   const supabase = createSupabaseServiceRoleClient()
+  const { data: merchant, error: merchantError } = await supabase
+    .from("merchants")
+    .select("customer_messaging_enabled")
+    .eq("id", merchantId)
+    .maybeSingle()
+  if (merchantError) {
+    throw new Error(
+      `Unable to load announcement messaging state: ${merchantError.message}`
+    )
+  }
+  const phoneMessagingEnabled =
+    process.env.CUSTOMER_MESSAGING_MODE !== "off" &&
+    Boolean(process.env.CUSTOMER_MESSAGING_MODE) &&
+    merchant?.customer_messaging_enabled === true
   const customerIds = [...new Set(memberships.map((row) => row.customerId))]
   const batches = await Promise.all(
     chunkVenueAnnouncementCustomerIds(customerIds).map(
       async (customerIdBatch) => {
-        const [preferences, subscriptions, consents] = await Promise.all([
-          supabase
-            .from("notification_preferences")
-            .select("customer_id, marketing_enabled")
-            .in("customer_id", customerIdBatch),
-          supabase
-            .from("push_subscriptions")
-            .select("customer_id")
-            .in("customer_id", customerIdBatch)
-            .eq("enabled", true)
-            .is("revoked_at", null),
-          supabase
-            .from("consent_records")
-            .select("customer_id, channel, consent_status, created_at")
-            .eq("merchant_id", merchantId)
-            .eq("channel", "push")
-            .in("customer_id", customerIdBatch)
-            .order("created_at", { ascending: false }),
-        ])
+        const [preferences, subscriptions, consents, phoneRecipients] =
+          await Promise.all([
+            supabase
+              .from("notification_preferences")
+              .select("customer_id, marketing_enabled, phone_messages_enabled")
+              .in("customer_id", customerIdBatch),
+            supabase
+              .from("push_subscriptions")
+              .select("customer_id")
+              .in("customer_id", customerIdBatch)
+              .eq("enabled", true)
+              .is("revoked_at", null),
+            supabase
+              .from("consent_records")
+              .select("customer_id, channel, consent_status, created_at")
+              .eq("merchant_id", merchantId)
+              .in("channel", ["push", "sms", "whatsapp"])
+              .in("customer_id", customerIdBatch)
+              .order("created_at", { ascending: false }),
+            supabase
+              .from("customers")
+              .select("id, phone_ciphertext, phone_verified_at")
+              .in("id", customerIdBatch),
+          ])
 
         if (preferences.error) {
           throw new Error(
@@ -201,11 +220,17 @@ async function resolveAnnouncementAudience(
             `Unable to load announcement consent: ${consents.error.message}`
           )
         }
+        if (phoneRecipients.error) {
+          throw new Error(
+            `Unable to load announcement phone recipients: ${phoneRecipients.error.message}`
+          )
+        }
 
         return {
           preferences: preferences.data ?? [],
           subscriptions: subscriptions.data ?? [],
           consents: consents.data ?? [],
+          phoneRecipients: phoneRecipients.data ?? [],
         }
       }
     )
@@ -216,6 +241,8 @@ async function resolveAnnouncementAudience(
     preferences: batches.flatMap((batch) => batch.preferences),
     subscriptions: batches.flatMap((batch) => batch.subscriptions),
     consents: batches.flatMap((batch) => batch.consents),
+    phoneRecipients: batches.flatMap((batch) => batch.phoneRecipients),
+    phoneMessagingEnabled,
   })
 }
 

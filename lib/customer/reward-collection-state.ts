@@ -14,38 +14,154 @@ export type RewardCollectionSnapshot = {
   readonly reason: string | null
   readonly availableFrom: string | null
   readonly expiresAt: string | null
+  readonly inWindow: boolean
+  readonly windowId: string | null
+  readonly windowEndsAt: string | null
+  readonly upgradePoolItemId: string | null
+  readonly upgradeRewardName: string | null
+  readonly upgradeRewardTerms: string | null
+  readonly nextWindowStartsAt: string | null
+  readonly nextWindowEndsAt: string | null
+  readonly nextWindowUpgradeName: string | null
+  readonly requiresAgeCheck: boolean
 }
 
-const LONDON_AVAILABILITY = new Intl.DateTimeFormat("en-GB", {
-  weekday: "long",
-  day: "numeric",
-  month: "long",
+type CollectionWindowFacts = Pick<
+  RewardCollectionSnapshot,
+  | "inWindow"
+  | "windowEndsAt"
+  | "upgradeRewardName"
+  | "nextWindowStartsAt"
+  | "nextWindowEndsAt"
+  | "nextWindowUpgradeName"
+>
+
+const MALFORMED = "Unable to load reward: malformed collection state"
+const LONDON_TIME = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Europe/London",
   hour: "2-digit",
   minute: "2-digit",
   hour12: false,
-  timeZone: "Europe/London",
 })
+const LONDON_WEEKDAY = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Europe/London",
+  weekday: "short",
+})
+const LONDON_DEADLINE = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Europe/London",
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+})
+export function parseRewardCollectionState(
+  value: unknown
+): RewardCollectionSnapshot {
+  if (!isRecord(value) || !isRewardCollectionState(value.state)) {
+    throw new Error(MALFORMED)
+  }
+  if (typeof value.in_window !== "boolean") throw new Error(MALFORMED)
 
-export function formatCollectionAvailability(
-  value: string | null
+  return {
+    state: value.state,
+    reason: nullableString(value.reason),
+    availableFrom: nullableString(value.available_from),
+    expiresAt: nullableString(value.expires_at),
+    inWindow: value.in_window,
+    windowId: nullableString(value.window_id),
+    windowEndsAt: nullableString(value.window_ends_at),
+    upgradePoolItemId: nullableString(value.upgrade_pool_item_id),
+    upgradeRewardName: nullableString(value.upgrade_reward_name),
+    upgradeRewardTerms: nullableString(value.upgrade_reward_terms),
+    nextWindowStartsAt: nullableString(value.next_window_starts_at),
+    nextWindowEndsAt: nullableString(value.next_window_ends_at),
+    nextWindowUpgradeName: nullableString(value.next_window_upgrade_name),
+    requiresAgeCheck: value.requires_age_check === true,
+  }
+}
+
+export function rewardCollectionBlockedCopy(reason: string | null): string {
+  switch (reason) {
+    case "venue_paused":
+      return "This venue has paused reward collection."
+    // Programme-level availability (inactive merchant or card, billing) is not
+    // a deliberate pause; keep the neutral wording the card uses.
+    case "This loyalty programme is unavailable right now":
+      return "This loyalty programme is unavailable at the moment."
+    case "one_reward_per_day":
+    case "One reward per visit day already collected":
+      return "You've collected a reward here in this venue trading day. Your next reward is available after the venue's daily reset."
+    case "profile_incomplete":
+    case "Complete your profile before redeeming":
+      return "Complete your profile before collecting this reward."
+    case "Verified email required for reward collection":
+      return "Verify your email before collecting this reward."
+    case "age_verification_required":
+      return "Photo ID is needed to collect this reward."
+    case "Customer must be 18 or over to redeem":
+      return "This reward can only be collected by customers aged 18 or over."
+    case "expired":
+      return "This reward has expired."
+    case null:
+      return "This reward is not available to collect right now."
+    default:
+      return "This reward is not available to collect right now."
+  }
+}
+
+export function isCollectionSetupBlock(reason: string | null): boolean {
+  return (
+    reason === "profile_incomplete" ||
+    reason === "Complete your profile before redeeming" ||
+    reason === "Verified email required for reward collection"
+  )
+}
+
+export function collectionWindowCopy(
+  facts: CollectionWindowFacts
 ): string | null {
+  if (
+    facts.inWindow &&
+    facts.windowEndsAt &&
+    facts.upgradeRewardName
+  ) {
+    return `Collect now and get ${facts.upgradeRewardName} — until ${formatTime(facts.windowEndsAt)}`
+  }
+
+  if (
+    facts.nextWindowStartsAt &&
+    facts.nextWindowEndsAt &&
+    facts.nextWindowUpgradeName
+  ) {
+    return `Collect on ${LONDON_WEEKDAY.format(parseInstant(facts.nextWindowStartsAt))} ${formatTime(facts.nextWindowStartsAt)}–${formatTime(facts.nextWindowEndsAt)} and get ${facts.nextWindowUpgradeName} instead`
+  }
+
+  return null
+}
+
+export function formatCollectionDeadline(value: string | null): string | null {
   if (!value) return null
-  // A date-only legacy `redeemable_from` opens at London midnight; parsing it
-  // as UTC would show 01:00 during British Summer Time.
-  const instant = DATE_ONLY.test(value)
-    ? londonMidnight(value)
-    : new Date(value)
-  if (Number.isNaN(instant.getTime())) throw new Error(MALFORMED)
-  return `Ready ${LONDON_AVAILABILITY.format(instant).replace(",", " at")}`
+  return `Expires ${LONDON_DEADLINE.format(parseInstant(value)).replace(",", " at")}`
+}
+
+export function formatCollectionAvailability(value: string | null): string | null {
+  if (!value) return null
+  return `Ready ${formatCollectionAvailableLabel(value)}`
 }
 
 export function formatCollectionAvailableLabel(
   value: string | null
 ): string | null {
-  return formatCollectionAvailability(value)?.replace(/^Ready /, "") ?? null
+  if (!value) return null
+  return LONDON_DEADLINE.format(parseInstant(value)).replace(",", " at")
 }
 
-const MALFORMED = "Unable to load reward: malformed collection state"
+function formatTime(value: string): string {
+  return LONDON_TIME.format(parseInstant(value))
+}
+
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/
 const LONDON_HOUR = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Europe/London",
@@ -63,52 +179,15 @@ function londonMidnight(dateIso: string): Date {
   return new Date(utcMidnight.getTime() - offsetHours * 3_600_000)
 }
 
-export function parseRewardCollectionState(
-  value: unknown
-): RewardCollectionSnapshot {
-  if (!isRecord(value) || !isRewardCollectionState(value.state)) {
-    throw new Error(MALFORMED)
-  }
-
-  return {
-    state: value.state,
-    reason: nullableString(value.reason),
-    availableFrom: nullableString(value.available_from),
-    expiresAt: nullableString(value.expires_at),
-  }
+function parseInstant(value: string): Date {
+  // A date-only legacy `redeemable_from` opens at London midnight; parsing it
+  // as UTC would show 01:00 during British Summer Time.
+  const result = DATE_ONLY.test(value) ? londonMidnight(value) : new Date(value)
+  if (Number.isNaN(result.getTime())) throw new Error(MALFORMED)
+  return result
 }
 
-export function rewardCollectionBlockedCopy(reason: string | null): string {
-  switch (reason) {
-    case "venue_paused":
-      return "This venue has paused reward collection."
-    // Programme-level availability (inactive merchant or card, billing) is not
-    // a deliberate pause; keep the neutral wording the card uses.
-    case "This loyalty programme is unavailable right now":
-      return "This loyalty programme is unavailable at the moment."
-    case "one_reward_per_day":
-    case "One reward per visit day already collected":
-      return "You've collected a reward here today. Your next reward will become available when the venue's next collection day begins."
-    case "profile_incomplete":
-    case "Complete your profile before redeeming":
-      return "Complete your profile before collecting this reward."
-    case "Verified email required for reward collection":
-      return "Verify your email before collecting this reward."
-    case "age_verification_required":
-      return "Photo ID is needed to collect this reward."
-    case "Customer must be 18 or over to redeem":
-      return "This reward can only be collected by customers aged 18 or over."
-    case "expired":
-      return "This reward has expired."
-    case null:
-    default:
-      return "This reward is not available to collect right now."
-  }
-}
-
-function isRewardCollectionState(
-  value: unknown
-): value is RewardCollectionState {
+function isRewardCollectionState(value: unknown): value is RewardCollectionState {
   return (
     typeof value === "string" &&
     REWARD_COLLECTION_STATES.some((state) => state === value)
@@ -123,14 +202,6 @@ function nullableString(value: unknown): string | null {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
-}
-
-export function isCollectionSetupBlock(reason: string | null): boolean {
-  return (
-    reason === "profile_incomplete" ||
-    reason === "Complete your profile before redeeming" ||
-    reason === "Verified email required for reward collection"
-  )
 }
 
 /**

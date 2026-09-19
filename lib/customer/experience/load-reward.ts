@@ -4,6 +4,7 @@ import { getCustomerRewardState } from "@/lib/customer/reward"
 import { getLocationRequirement } from "@/lib/customer/stamp"
 import { isCollectionSetupBlock } from "@/lib/customer/reward-collection-state"
 import { rewardQrAvailability } from "@/lib/customer/reward-qr-eligibility"
+import { isCollectionSetupBlock } from "@/lib/customer/reward-collection-state"
 import { customerLoginHref } from "@/lib/navigation/safe-next-path"
 
 import type { RewardContext } from "./derive"
@@ -65,7 +66,17 @@ export async function loadRewardExperienceContext(
       membershipId: reward.membership_id,
       rewardName: assignedReward.reward_name,
       rewardTerms: assignedReward.reward_terms,
-      redeemableFrom: collection.availableFrom,
+      redeemableFrom: reward.redeemable_from,
+      availableFrom: collection.availableFrom,
+      expiresAt: collection.expiresAt,
+      requiresAgeCheck: collection.requiresAgeCheck,
+      earningTerms: reward.earning_terms,
+      inWindow: collection.inWindow,
+      windowEndsAt: collection.windowEndsAt,
+      upgradeRewardName: collection.upgradeRewardName,
+      nextWindowStartsAt: collection.nextWindowStartsAt,
+      nextWindowEndsAt: collection.nextWindowEndsAt,
+      nextWindowUpgradeName: collection.nextWindowUpgradeName,
     },
     merchantName: merchant.business_name,
     status: reward.status,

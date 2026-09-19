@@ -376,11 +376,92 @@ export async function proveRolledBackLoyaltyJourney(sql, config) {
           null
         )
       `
-      assert.equal(third?.new_stamp_count, 3, "staging third stamp failed")
+      assert.equal(
+        third?.new_stamp_count,
+        3,
+        "staging third stamp did not report the completing stamp"
+      )
       assert.equal(
         third?.reward_unlocked,
         true,
         "staging reward did not unlock"
+      )
+
+      const [issued] = await tx`
+        select
+          memberships.current_stamp_count,
+          memberships.active_cycle_number,
+          rewards.id as reward_event_id,
+          rewards.cycle_number,
+          rewards.available_from,
+          rewards.status
+        from public.customer_memberships memberships
+        join public.reward_events rewards
+          on rewards.membership_id = memberships.id
+         and rewards.source = 'stamp_cycle'
+         and rewards.cycle_number = 1
+        where memberships.id = ${membershipId}::uuid
+      `
+      assert.deepEqual(
+        {
+          activeCycleNumber: issued?.active_cycle_number,
+          currentStampCount: issued?.current_stamp_count,
+          cycleNumber: issued?.cycle_number,
+          status: issued?.status,
+        },
+        {
+          activeCycleNumber: 2,
+          currentStampCount: 0,
+          cycleNumber: 1,
+          status: "unlocked",
+        },
+        "staging completion did not issue cycle 1 and atomically open cycle 2"
+      )
+      assert.ok(
+        issued.available_from > new Date(),
+        "staging v2 reward did not wait for the next trading day"
+      )
+
+      const [waiting] = await tx`
+        select * from public.get_reward_collection_state(
+          ${issued.reward_event_id}::uuid
+        )
+      `
+      assert.notEqual(
+        waiting?.state,
+        "ready",
+        "staging reward was collectable on its earning trading day"
+      )
+
+      // Advance only this rolled-back synthetic reward across its already-proved
+      // next-trading-day boundary; production evidence is never rewritten.
+      await tx`
+        update public.reward_events
+        set available_from = now() - interval '1 minute'
+        where id = ${issued.reward_event_id}::uuid
+      `
+      const [readyToCollect] = await tx`
+        select * from public.get_reward_collection_state(
+          ${issued.reward_event_id}::uuid
+        )
+      `
+      assert.equal(
+        readyToCollect?.state,
+        "ready",
+        "staging reward did not become ready next trading day"
+      )
+      const [collected] = await tx`
+        select * from public.redeem_self_service_reward(
+          ${issued.reward_event_id}::uuid,
+          ${customerId}::uuid,
+          null,
+          null
+        )
+      `
+      assert.equal(
+        collected?.reward_event_id,
+        issued.reward_event_id,
+        "staging next-trading-day collection failed"
       )
 
       const [joinedAgain] = await tx`
@@ -407,15 +488,28 @@ export async function proveRolledBackLoyaltyJourney(sql, config) {
         select
           (select count(*)::int from public.customer_memberships where id = ${membershipId}::uuid) as memberships,
           (select count(*)::int from public.stamp_events where membership_id = ${membershipId}::uuid and event_type = 'earned') as stamps,
-          (select count(*)::int from public.reward_events where membership_id = ${membershipId}::uuid and status = 'unlocked') as rewards
+          (select count(*)::int from public.reward_events where membership_id = ${membershipId}::uuid) as rewards,
+          (select count(*)::int from public.reward_events where membership_id = ${membershipId}::uuid and status = 'redeemed') as redeemed,
+          (select active_cycle_number::int from public.customer_memberships where id = ${membershipId}::uuid) as active_cycle_number,
+          (select current_stamp_count::int from public.customer_memberships where id = ${membershipId}::uuid) as current_stamp_count
       `
       assert.deepEqual(
         {
+          activeCycleNumber: ledger.active_cycle_number,
+          currentStampCount: ledger.current_stamp_count,
           memberships: ledger.memberships,
+          redeemed: ledger.redeemed,
           rewards: ledger.rewards,
           stamps: ledger.stamps,
         },
-        { memberships: 1, rewards: 1, stamps: 3 },
+        {
+          activeCycleNumber: 2,
+          currentStampCount: 0,
+          memberships: 1,
+          redeemed: 1,
+          rewards: 1,
+          stamps: 3,
+        },
         "staging loyalty ledger is inconsistent"
       )
 

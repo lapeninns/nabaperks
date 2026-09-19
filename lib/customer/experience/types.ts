@@ -48,6 +48,7 @@ export function externalAccessProblem(
 export type StampBlockReason =
   | "already_stamped_today"
   | "reward_ready_first"
+  | "reward_daily_cap"
   | "rate_limited"
   | "pool_unavailable"
   | "unauthenticated"
@@ -117,6 +118,12 @@ export type JoinMerchant = {
 }
 
 export type JoinCard = {
+  collectionWindows?: import("@/lib/legal/content").VenueTermsInput["collectionWindows"]
+  tradingDayStartsAt?: string
+  rewardExpiresAfterDays?: number | null
+  minimumSpendPence?: number | null
+  oneTransactionPerStamp?: boolean
+  rewardPool?: import("@/lib/legal/content").VenueTermsInput["rewardPool"]
   name: string
   stampsRequired: number
   rewardTerms: string
@@ -131,6 +138,16 @@ export type RewardView = {
   rewardName: string
   rewardTerms: string
   redeemableFrom: string | null
+  availableFrom: string | null
+  expiresAt: string | null
+  requiresAgeCheck: boolean
+  earningTerms: string | null
+  inWindow: boolean
+  windowEndsAt: string | null
+  upgradeRewardName: string | null
+  nextWindowStartsAt: string | null
+  nextWindowEndsAt: string | null
+  nextWindowUpgradeName: string | null
 }
 
 export type RedeemedRewardView = RewardView & {
@@ -147,7 +164,7 @@ export type CardGift = {
   rewardName: string
   source: RewardSource
   redeemable: boolean
-  redeemableFrom: string | null
+  availableFrom: string | null
 }
 
 export type CustomerExperience =
@@ -262,6 +279,7 @@ export type CustomerExperience =
       rewardName?: string
       rewardTerms: string
       rewardRedeemableFrom: string | null
+      walletReward?: RewardView
       /** Issued reward shown as a distinct gift chip, separate from the
        *  stamp-cycle completion reward above. Absent/null when there is none. */
       gift?: CardGift | null

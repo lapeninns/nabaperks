@@ -51,6 +51,7 @@ export type RewardPoolItemValues = {
   weight: string
   displayOrder: string
   isActive: boolean
+  requiresAgeCheck: boolean
 }
 
 const initialPoolState: RewardPoolItemActionState = {}
@@ -547,6 +548,7 @@ function buildBlankRewardValues(displayOrder: number): RewardPoolItemValues {
     weight: "1",
     displayOrder: String(displayOrder),
     isActive: true,
+    requiresAgeCheck: true,
   }
 }
 
@@ -763,6 +765,7 @@ function RewardPoolItemForm({
       weight: state.fields.weight ?? "1",
       displayOrder: state.fields.displayOrder ?? "0",
       isActive: state.fields.isActive ?? false,
+      requiresAgeCheck: state.fields.requiresAgeCheck ?? true,
     })
 
     const params = new URLSearchParams({
@@ -818,6 +821,13 @@ function RewardPoolItemForm({
           hint="Counts toward the 3 needed to launch."
           checked={draft.isActive}
           onChange={(checked) => updateDraft("isActive", checked)}
+        />
+        <ToggleRow
+          name="requiresAgeCheck"
+          label="Needs photo ID (18+)"
+          hint="Switch this off for rewards that can be served without an age check. The setting is fixed when the reward is issued."
+          checked={draft.requiresAgeCheck}
+          onChange={(checked) => updateDraft("requiresAgeCheck", checked)}
         />
 
         <Disclosure label="Weighting" defaultOpen={advancedTouched}>

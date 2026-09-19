@@ -44,6 +44,27 @@ function rewardContext(overrides = {}) {
   }
 }
 
+function rewardView(overrides = {}) {
+  return {
+    rewardId: "reward_1",
+    membershipId: "membership_1",
+    rewardName: "Mystery round",
+    rewardTerms: "Ask at the bar.",
+    redeemableFrom: "2026-07-01",
+    availableFrom: "2026-07-01T00:00:00.000Z",
+    expiresAt: null,
+    requiresAgeCheck: false,
+    earningTerms: null,
+    inWindow: false,
+    windowEndsAt: null,
+    upgradeRewardName: null,
+    nextWindowStartsAt: null,
+    nextWindowEndsAt: null,
+    nextWindowUpgradeName: null,
+    ...overrides,
+  }
+}
+
 test("card ownership and absence are externally indistinguishable", () => {
   const experience = deriveCustomerExperience({
     entry: "card",
@@ -95,10 +116,7 @@ test("redeemable active rewards drive the card-ready footer without changing the
       current: 5,
       total: 5,
       reward: {
-        id: "reward_1",
-        name: "Mystery round",
-        terms: "Ask at the bar.",
-        redeemableFrom: "2026-07-01",
+        view: rewardView(),
         redeemable: true,
       },
     }),
@@ -123,7 +141,7 @@ test("an incomplete card with only an issued reward never reads as reward-ready"
         id: "gift_1",
         name: "Birthday fizz",
         source: "birthday_month",
-        redeemableFrom: "2020-01-01",
+        availableFrom: "2020-01-01T00:00:00.000Z",
         redeemable: true,
       },
     }),
@@ -147,17 +165,17 @@ test("a completed stamp card and an issued gift surface side by side", () => {
       current: 5,
       total: 5,
       reward: {
-        id: "reward_1",
-        name: "Mystery round",
-        terms: "Ask at the bar.",
-        redeemableFrom: "2020-01-01",
+        view: rewardView({
+          redeemableFrom: "2020-01-01",
+          availableFrom: "2020-01-01T00:00:00.000Z",
+        }),
         redeemable: true,
       },
       giftReward: {
         id: "gift_2",
         name: "Manager's thank-you",
         source: "merchant_direct",
-        redeemableFrom: "2020-01-01",
+        availableFrom: "2020-01-01T00:00:00.000Z",
         redeemable: true,
       },
     }),

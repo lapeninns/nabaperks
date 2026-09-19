@@ -107,6 +107,8 @@ test(
         p_response_status: 201,
         p_failure_reason: null,
         p_metadata: "{}",
+        p_channel: "push",
+        p_recipient_last4: null,
       }
       const params = argNames.map((name) =>
         name in valueByName ? valueByName[name] : null

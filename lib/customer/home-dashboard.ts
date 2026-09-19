@@ -1,4 +1,5 @@
 import type { HomeCard, HomeSummary } from "@/lib/customer/home-types"
+import { formatCollectionAvailability } from "@/lib/customer/reward-collection-state"
 
 /** A card has something to collect now — an earned stamp reward or a ready gift. */
 export function hasRedeemableReward(card: HomeCard): boolean {
@@ -78,7 +79,7 @@ export function buildHomeSummary(cards: readonly HomeCard[]): HomeSummary {
 export function homeCardNextStep(
   card: HomeCard
 ): { tone: "leaf" | "sun" | "plain"; label: string } | null {
-  if (card.stampRewardId || card.gift?.redeemable) {
+  if (card.stampRewardId) {
     return { tone: "leaf", label: "Reward ready" }
   }
   if (!card.available) return null
@@ -112,11 +113,13 @@ export function homeCardStatusCopy(card: HomeCard): string {
   if (!card.available) {
     return card.unavailableReason ?? "This card is unavailable right now."
   }
-  // A waiting reward (unlocked but not yet redeemable) outranks stamped-today and
-  // progress copy so it is not hidden — `redeemable_from` may skip weekends, so
-  // avoid promising "tomorrow".
   if (card.unlockedRewards > 0) {
-    return "Reward unlocked — ready to collect on the next opening day"
+    const timing = formatCollectionAvailability(
+      card.revealedRewardAvailableFrom ?? null
+    )
+    return timing
+      ? `Reward unlocked — ${timing.toLocaleLowerCase("en-GB")}`
+      : "Reward unlocked — check the reward for collection timing"
   }
   if (card.stampedToday) {
     return "Stamp collected today — your next stamp comes on a later visit"

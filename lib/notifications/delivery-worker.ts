@@ -7,10 +7,12 @@ import {
   shouldProcessNextEvent,
 } from "@/lib/notifications/drain-plan"
 import {
+  buildPhoneMessageCopyFromPayload,
   isNotificationEventType,
   notificationEventCategory,
-  notificationRequiresMarketingConsent,
 } from "@/lib/notifications/catalog"
+import { deliverCustomerPhoneChannel } from "@/lib/notifications/customer-message-delivery"
+import { resolveNotificationDeliveryDecision } from "@/lib/notifications/delivery-decision"
 import {
   produceDueNotificationEvents,
   scheduledNotificationProducerEventTypes,
@@ -28,7 +30,6 @@ import {
   isWithinQuietHours,
   nextQuietHoursEnd,
 } from "@/lib/notifications/london-time"
-import { hasPushMarketingConsent } from "@/lib/notifications/push-marketing-eligibility"
 import {
   isPermanentWebPushFailure,
   sendWebPushNotification,
@@ -99,12 +100,6 @@ export async function runPushNotificationDeliveryWorker({
     sent: 0,
     skipped: 0,
     failed: 0,
-  }
-
-  if (!getWebPushServerConfig()) {
-    logger.warn("push_delivery_worker_not_configured")
-    void recordWorkerProductEvent(result, "not_configured")
-    return result
   }
 
   // Drain: claim successive batches until the due queue is empty or the run
@@ -247,18 +242,81 @@ async function deliverNotificationEvent(
     return result
   }
 
-  const allowed = await isDeliveryAllowed(supabase, event, preferences)
-  if (!allowed) {
+  const enabledSubscriptions = await getEnabledSubscriptions(
+    supabase,
+    event.customer_id
+  )
+  const decision = await resolveNotificationDeliveryDecision({
+    supabase,
+    eventType,
+    category,
+    customerId: event.customer_id,
+    merchantId: event.merchant_id,
+    metadata: event.metadata,
+    preferences,
+    pushAvailable:
+      Boolean(getWebPushServerConfig()) && enabledSubscriptions.length > 0,
+  })
+  if (decision.channels.length === 0) {
     await markEvent(supabase, event.id, "cancelled")
     await recordDelivery(supabase, event, null, "skipped", 1, 0, "not_eligible")
     result.skipped += 1
     return result
   }
 
-  const enabledSubscriptions = await getEnabledSubscriptions(
-    supabase,
-    event.customer_id
-  )
+  const phoneCopy = buildPhoneMessageCopyFromPayload(eventType, event.payload)
+
+  let phoneFailures = 0
+  for (const channel of decision.channels) {
+    if (channel === "push") break
+    if (!decision.recipient) continue
+    if (!phoneCopy) {
+      await markEvent(supabase, event.id, "failed")
+      result.failed += 1
+      return result
+    }
+    const phoneDelivery = await deliverCustomerPhoneChannel({
+      supabase,
+      event,
+      channel,
+      recipient: decision.recipient,
+      category,
+      copy: phoneCopy,
+      dryRun: decision.dryRun,
+    })
+    if (phoneDelivery.status === "accepted") {
+      await markEvent(supabase, event.id, "sent")
+      result.sent += 1
+      return result
+    }
+    if (phoneDelivery.status === "defer") {
+      await deferEvent(supabase, event.id, phoneDelivery.dueAt)
+      result.skipped += 1
+      return result
+    }
+    if (phoneDelivery.status === "failed") {
+      await markEvent(supabase, event.id, "failed")
+      result.failed += 1
+      return result
+    }
+    if (phoneDelivery.status === "push") {
+      phoneFailures += phoneDelivery.failed ? 1 : 0
+      break
+    }
+    if (phoneDelivery.failed) phoneFailures += 1
+  }
+
+  if (!decision.channels.includes("push")) {
+    await markEvent(
+      supabase,
+      event.id,
+      phoneFailures > 0 ? "failed" : "cancelled"
+    )
+    result.failed += phoneFailures
+    result.skipped += phoneFailures === 0 ? 1 : 0
+    return result
+  }
+
   const subscriptions = await filterAlreadySentSubscriptions(
     supabase,
     event.id,
@@ -387,29 +445,6 @@ async function disableRejectedPushSubscription(
   }
 }
 
-async function isDeliveryAllowed(
-  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
-  event: NotificationEventRow,
-  preferences: NotificationPreferenceState
-) {
-  if (!isNotificationEventType(event.event_type)) return false
-  const category = notificationEventCategory(event.event_type)
-
-  if (category === "transactional" && !preferences.transactionalEnabled) {
-    return false
-  }
-  if (category === "reminder" && !preferences.reminderEnabled) return false
-  if (notificationRequiresMarketingConsent(event.event_type)) {
-    if (!preferences.marketingEnabled || !event.merchant_id) return false
-    return hasPushMarketingConsent(supabase, {
-      customerId: event.customer_id,
-      merchantId: event.merchant_id,
-    })
-  }
-
-  return true
-}
-
 async function getPreferences(
   supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
   customerId: string
@@ -428,6 +463,10 @@ async function getPreferences(
     transactionalEnabled: booleanValue(row?.transactional_enabled, true),
     reminderEnabled: booleanValue(row?.reminder_enabled, true),
     marketingEnabled: booleanValue(row?.marketing_enabled, false),
+    phoneMessagesEnabled: booleanValue(row?.phone_messages_enabled, true),
+    preferredPhoneChannel:
+      row?.preferred_phone_channel === "sms" ? "sms" : "whatsapp",
+    whatsappUnavailableAt: nullableString(row?.whatsapp_unavailable_at),
     quietHoursStart: nullableString(row?.quiet_hours_start),
     quietHoursEnd: nullableString(row?.quiet_hours_end),
     activeSubscriptionCount: numberValue(row?.active_subscription_count) ?? 0,
@@ -529,6 +568,8 @@ async function recordDelivery(
     p_response_status: responseStatus || null,
     p_failure_reason: failureReason,
     p_metadata: {},
+    p_channel: "push",
+    p_recipient_last4: null,
   })
   if (error) {
     throw new Error(`Unable to record notification delivery: ${error.message}`)
@@ -615,6 +656,7 @@ async function markEvent(
       cancelled_at: status === "cancelled" ? new Date().toISOString() : null,
     })
     .eq("id", eventId)
+    .eq("status", "delivering")
 
   if (error) {
     throw new Error(

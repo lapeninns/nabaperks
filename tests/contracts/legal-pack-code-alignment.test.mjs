@@ -47,12 +47,12 @@ test("Given legal copy follows product behaviour When the shared content is insp
   const content = readProjectFile("lib", "legal", "content.ts")
 
   for (const expected of [
-    'CUSTOMER_LEGAL_VERSION = "2026-07-19"',
-    "Europe/London calendar date",
+    'CUSTOMER_LEGAL_VERSION = "2026-09-26"',
+    "venue trading day",
     "first active configured reward",
     "configured reward weightings",
     "be at least 18",
-    "verified email address",
+    "Email is optional",
     "active or trialling",
     "eligible for anonymisation after seven days",
     "eligible for anonymisation after 365 days",
@@ -112,4 +112,60 @@ test("Given the venue terms version changes When a customer joins Then the recor
   ]) {
     assert.ok(migration.includes(`'id', '${section}'`))
   }
+})
+
+test("Given the reward-logic activation When September terms are accepted Then the snapshot preserves the displayed policy", () => {
+  const migration = readProjectFile(
+    "supabase",
+    "migrations",
+    "20260926100000_loyalty_terms_snapshot_v20260926.sql"
+  )
+
+  assert.match(migration, /new\.policy_version <> '2026-09-26'/)
+  assert.match(
+    migration,
+    /extensions\.digest\(new\.terms_snapshot::text, 'sha256'\)/
+  )
+  assert.match(migration, /private\.loyalty_earning_terms_text\(v_card\.id\)/)
+  assert.match(
+    migration,
+    /order by items\.display_order, items\.created_at, items\.id/
+  )
+  assert.match(
+    migration,
+    /order by windows\.isodow, windows\.starts_at, windows\.id/
+  )
+  assert.match(migration, /and upgrades\.merchant_id = windows\.merchant_id/)
+  assert.match(migration, /and upgrades\.location_id = windows\.location_id/)
+
+  for (const section of [
+    "joining",
+    "earning-rule",
+    "reward",
+    "redemption",
+    "reward-pool",
+    "collection-windows",
+    "exclusions",
+    "referrals-and-additional-rewards",
+    "fraud-and-abuse",
+    "availability",
+    "merchant-contact",
+  ]) {
+    assert.ok(migration.includes(`'id', '${section}'`))
+  }
+
+  for (const displayedRule of [
+    "venue trading day",
+    "immediately opens a fresh card",
+    "Email is optional; if supplied, it must be verified",
+    "Photo ID is required only for rewards marked as age checked",
+    "No collection windows configured",
+    "30-day grace period",
+  ]) {
+    assert.ok(
+      migration.includes(displayedRule),
+      `activation snapshot includes ${displayedRule}`
+    )
+  }
+  assert.doesNotMatch(migration, /normally expire within 56 days/)
 })

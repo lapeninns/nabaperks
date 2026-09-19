@@ -32,8 +32,21 @@ export async function inVerificationTxn(fn) {
   }
 }
 
-export async function createIdCheckFixture(tx, source = "stamp_cycle") {
+export async function createIdCheckFixture(
+  tx,
+  source = "stamp_cycle",
+  policyVersion = "v2"
+) {
   const fixture = await createRewardPoolFixture(tx)
+  await tx`
+    update public.loyalty_cards set reward_policy_version = ${policyVersion}
+    where id = ${fixture.cardId}::uuid`
+  if (source === "stamp_cycle" && policyVersion === "v2") {
+    await tx`
+      update public.customer_memberships
+      set current_stamp_count = 0, active_cycle_number = 2
+      where id = ${fixture.membershipId}::uuid`
+  }
   await asPostgrestRole(
     tx,
     "service_role",
@@ -45,12 +58,14 @@ export async function createIdCheckFixture(tx, source = "stamp_cycle") {
   await tx`
     insert into public.reward_events (
       id, merchant_id, customer_id, membership_id, loyalty_card_id,
-      status, source, reward_name, reward_terms, redeemable_from, cycle_number
+      status, source, reward_name, reward_terms, redeemable_from, cycle_number,
+      reward_policy_version, available_from, created_at
     ) values (
       ${fixture.rewardEventId}::uuid, ${fixture.merchantId}::uuid,
       ${fixture.customerId}::uuid, ${fixture.membershipId}::uuid, ${fixture.cardId}::uuid,
       'unlocked', ${source}, 'ID check test reward', 'One test reward, subject to availability.',
-      public.uk_business_date(now()), ${source === "stamp_cycle" ? 1 : null}
+      public.uk_business_date(now()), ${source === "stamp_cycle" ? 1 : null},
+      ${policyVersion}, now() - interval '1 minute', now() - interval '1 day'
     )`
   const [minted] = await asPostgrestRole(
     tx,

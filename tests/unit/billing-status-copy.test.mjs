@@ -45,10 +45,11 @@ test("post-activation attention states route to Account billing for management",
   }
 })
 
-test("past-due copy says loyalty value is paused", () => {
+test("past-due copy explains paused stamps and the existing reward grace", () => {
   const { description } = merchantBillingStateCopy("past_due")
 
-  assert.match(description, /stamps and rewards are paused/i)
+  assert.match(description, /new stamps are paused/i)
+  assert.match(description, /collected for 30 days/i)
   assert.doesNotMatch(description, /still works for now/i)
 })
 

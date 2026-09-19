@@ -146,7 +146,8 @@ test("CUS-P2-09: the reward support line matches the state it renders over", () 
   // a code for it. The per-stage headlines are asserted behaviourally in
   // tests/unit/customer-experience-reward.test.mjs.
   assert.doesNotMatch(copy, /show this at the counter/)
-  assert.match(copy, /Unlocked — yours from/)
+  assert.match(copy, /formatCollectionAvailability\(availableFrom\)/)
+  assert.match(copy, /Unlocked — collection timing will appear here/)
 })
 
 test("CUS-P2-10: redemption-gate resend links meet the tap-size contract", () => {

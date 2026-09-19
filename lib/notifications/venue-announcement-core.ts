@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto"
 
 import { pushMarketingConsentCustomerIds } from "@/lib/notifications/push-marketing-eligibility-core"
+import { resolvePhoneMarketingConsent } from "@/lib/notifications/phone-marketing-consent-core"
 
 export type VenueAnnouncementMembership = {
   readonly id: string
@@ -19,6 +20,8 @@ export type VenueAnnouncementAudienceInput = {
   readonly preferences: unknown
   readonly subscriptions: unknown
   readonly consents: unknown
+  readonly phoneRecipients?: unknown
+  readonly phoneMessagingEnabled?: boolean
 }
 
 export type VenueAnnouncementDedupeInput = {
@@ -95,6 +98,9 @@ export function resolveVenueAnnouncementAudienceCustomerIds(
     recordRows(input.consents)
   )
   const audience = new Set<string>()
+  const phoneRecipients = phoneRecipientCustomerIds(input.phoneRecipients)
+  const phoneConsents = phoneConsentByCustomer(input.consents)
+  const phoneDisabled = phoneDisabledCustomerIds(input.preferences)
   const seen = new Set<string>()
 
   for (const membership of input.memberships) {
@@ -102,16 +108,70 @@ export function resolveVenueAnnouncementAudienceCustomerIds(
     if (seen.has(customerId)) continue
     seen.add(customerId)
 
-    if (
+    const pushEligible =
       enabledPreference.has(customerId) &&
       enabledSubscription.has(customerId) &&
       consentAllowed.has(customerId)
-    ) {
+    const phoneConsent = phoneConsents.get(customerId)
+    const phoneEligible =
+      input.phoneMessagingEnabled === true &&
+      phoneRecipients.has(customerId) &&
+      !phoneDisabled.has(customerId) &&
+      (phoneConsent?.whatsapp === true || phoneConsent?.sms === true)
+
+    if (pushEligible || phoneEligible) {
       audience.add(customerId)
     }
   }
 
   return audience
+}
+
+function phoneDisabledCustomerIds(value: unknown) {
+  return new Set(
+    recordRows(value)
+      .filter((row) => row.phone_messages_enabled === false)
+      .map((row) => stringValue(row.customer_id))
+      .filter(Boolean)
+  )
+}
+
+function phoneRecipientCustomerIds(value: unknown) {
+  const customerIds = new Set<string>()
+  for (const row of recordRows(value)) {
+    const customerId = stringValue(row.id)
+    if (
+      customerId &&
+      typeof row.phone_ciphertext === "string" &&
+      typeof row.phone_verified_at === "string"
+    ) {
+      customerIds.add(customerId)
+    }
+  }
+  return customerIds
+}
+
+function phoneConsentByCustomer(value: unknown) {
+  const rowsByCustomer = new Map<string, Record<string, unknown>[]>()
+  for (const row of recordRows(value)) {
+    const customerId = stringValue(row.customer_id)
+    if (
+      !customerId ||
+      !["sms", "whatsapp"].includes(stringValue(row.channel))
+    ) {
+      continue
+    }
+    rowsByCustomer.set(customerId, [
+      ...(rowsByCustomer.get(customerId) ?? []),
+      row,
+    ])
+  }
+  return new Map(
+    [...rowsByCustomer].map(([customerId, rows]) => [
+      customerId,
+      resolvePhoneMarketingConsent(rows),
+    ])
+  )
 }
 
 export function venueAnnouncementDedupeKey(

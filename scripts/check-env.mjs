@@ -13,6 +13,12 @@ const checkProfile = parseCheckProfile(
 const envContract = JSON.parse(
   readFileSync(join(projectDir, "config/env-contract.json"), "utf8")
 )
+const customerMessagingContentEvents = JSON.parse(
+  readFileSync(
+    join(projectDir, "config/customer-messaging-content-events.json"),
+    "utf8"
+  )
+)
 const productionRequiredEnvNames = new Set([
   "CRON_SECRET",
   "PRODUCTION_MONITOR_SECRET",
@@ -78,6 +84,9 @@ const customerOtpBypassModeAnyFourDigits = "any-4-digits"
 const customerOtpTwilioBypassed =
   customerOtpBypassMode === customerOtpBypassModeAnyFourDigits
 const customerDevOtpCode = values.CUSTOMER_DEV_OTP_CODE?.trim()
+const customerMessagingMode = values.CUSTOMER_MESSAGING_MODE?.trim() || "off"
+const customerMessagingBypassMode =
+  values.CUSTOMER_MESSAGING_BYPASS_MODE?.trim()
 const hostedVercelEnvironment = ["preview", "production"].includes(
   values.VERCEL_ENV?.trim()
 )
@@ -282,6 +291,48 @@ if (hostedOrProductionProfile && customerDevOtpCode) {
   invalid.push("CUSTOMER_DEV_OTP_CODE must be blank outside local development")
 }
 
+if (!["off", "dry_run", "live"].includes(customerMessagingMode)) {
+  invalid.push("CUSTOMER_MESSAGING_MODE must be off, dry_run or live")
+}
+
+if (customerMessagingBypassMode && customerMessagingBypassMode !== "log") {
+  invalid.push("CUSTOMER_MESSAGING_BYPASS_MODE must be log or blank")
+}
+
+if (hostedOrProductionProfile && customerMessagingBypassMode) {
+  invalid.push(
+    "CUSTOMER_MESSAGING_BYPASS_MODE must be blank outside local development"
+  )
+}
+
+if (customerMessagingMode !== "off") {
+  for (const name of [
+    "TWILIO_AUTH_TOKEN",
+    "TWILIO_ACCOUNT_SID",
+    "TWILIO_CUSTOMER_MESSAGING_SERVICE_SID",
+    "TWILIO_CONTENT_SIDS",
+  ]) {
+    if (!values[name]?.trim()) {
+      missing.push(`${name} (required when customer messaging is enabled)`)
+    }
+  }
+}
+
+const twilioContentSids = values.TWILIO_CONTENT_SIDS?.trim()
+if (twilioContentSids && !hasTwilioContentSidMapShape(twilioContentSids)) {
+  invalid.push("TWILIO_CONTENT_SIDS must be a JSON object of HX Content SIDs")
+} else if (customerMessagingMode !== "off" && twilioContentSids) {
+  const contentSidMap = JSON.parse(twilioContentSids)
+  const missingTemplates = customerMessagingContentEvents.filter(
+    (eventType) => !contentSidMap[eventType]
+  )
+  if (missingTemplates.length > 0) {
+    invalid.push(
+      `TWILIO_CONTENT_SIDS is missing approved templates for: ${missingTemplates.join(", ")}`
+    )
+  }
+}
+
 const customerOtpPrimaryChannel = values.CUSTOMER_OTP_PRIMARY_CHANNEL?.trim()
 if (
   customerOtpPrimaryChannel &&
@@ -327,6 +378,25 @@ function isSafePostHogHost(value) {
       url.pathname === "/" &&
       !url.search &&
       !url.hash
+    )
+  } catch {
+    return false
+  }
+}
+
+function hasTwilioContentSidMapShape(value) {
+  try {
+    const parsed = JSON.parse(value)
+    return (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      !Array.isArray(parsed) &&
+      Object.entries(parsed).every(
+        ([eventType, sid]) =>
+          /^[a-z][a-z0-9_]*$/.test(eventType) &&
+          typeof sid === "string" &&
+          /^HX[0-9a-f]{32}$/i.test(sid)
+      )
     )
   } catch {
     return false
