@@ -58,7 +58,7 @@ export async function loadRewardExperienceContext(
       membershipId: reward.membership_id,
       rewardName: assignedReward.reward_name,
       rewardTerms: assignedReward.reward_terms,
-      redeemableFrom: reward.redeemable_from,
+      redeemableFrom: collection.availableFrom,
     },
     merchantName: merchant.business_name,
     status: reward.status,

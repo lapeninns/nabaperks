@@ -1,7 +1,10 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { parseRewardCollectionState } from "@/lib/customer/reward-collection-state"
+import {
+  formatCollectionAvailability,
+  parseRewardCollectionState,
+} from "@/lib/customer/reward-collection-state"
 
 test("Given an authoritative predicate row When parsed Then readiness and timestamps are preserved", () => {
   assert.deepEqual(
@@ -18,6 +21,14 @@ test("Given an authoritative predicate row When parsed Then readiness and timest
       expiresAt: "2026-12-22T15:00:00Z",
     }
   )
+})
+
+test("Given an authoritative collection instant When formatted Then the London date and time are shown", () => {
+  assert.equal(
+    formatCollectionAvailability("2026-10-27T05:30:00Z"),
+    "Ready Tuesday 27 October at 05:30"
+  )
+  assert.equal(formatCollectionAvailability(null), null)
 })
 
 test("Given stale or malformed predicate facts When parsed Then they fail closed", () => {

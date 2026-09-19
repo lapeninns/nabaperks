@@ -31,12 +31,26 @@ export async function GET(_request: Request, context: RewardQrRouteContext) {
   })
 
   if (availability.status !== "ready") {
-    return new NextResponse("Reward QR not ready", { status: 404 })
+    return NextResponse.json(
+      {
+        state: rewardState.collection.state,
+        reason: availability.status === "blocked" ? availability.reason : null,
+        availableFrom: rewardState.collection.availableFrom,
+      },
+      { status: 409, headers: { "Cache-Control": "private, no-store" } }
+    )
   }
 
   const profile = await getCustomerProfileCompletion()
   if (!profile?.complete) {
-    return new NextResponse("Reward QR not ready", { status: 404 })
+    return NextResponse.json(
+      {
+        state: "blocked",
+        reason: "Complete your profile before collecting this reward.",
+        availableFrom: rewardState.collection.availableFrom,
+      },
+      { status: 409, headers: { "Cache-Control": "private, no-store" } }
+    )
   }
 
   const token = await createRewardScanToken({

@@ -16,6 +16,25 @@ export type RewardCollectionSnapshot = {
   readonly expiresAt: string | null
 }
 
+const LONDON_AVAILABILITY = new Intl.DateTimeFormat("en-GB", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+  timeZone: "Europe/London",
+})
+
+export function formatCollectionAvailability(
+  value: string | null
+): string | null {
+  if (!value) return null
+  const instant = new Date(value)
+  if (Number.isNaN(instant.getTime())) throw new Error(MALFORMED)
+  return `Ready ${LONDON_AVAILABILITY.format(instant).replace(",", " at")}`
+}
+
 const MALFORMED = "Unable to load reward: malformed collection state"
 
 export function parseRewardCollectionState(
