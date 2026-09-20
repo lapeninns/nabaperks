@@ -52,7 +52,7 @@ test("Given legal copy follows product behaviour When the shared content is insp
     "first active configured reward",
     "configured reward weightings",
     "be at least 18",
-    "Email is optional",
+    "A verified email address is required before reward collection",
     "active or trialling",
     "eligible for anonymisation after seven days",
     "eligible for anonymisation after 365 days",
