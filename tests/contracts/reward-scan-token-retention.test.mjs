@@ -76,13 +76,16 @@ test("Given a reward QR image is requested When source is inspected Then token m
     /return new NextResponse\("Reward QR not found", \{ status: 404 \}\)/
   )
   assert.match(route, /rewardQrAvailability\(/)
-  assert.match(route, /expiresAt: rewardState\.reward\.expires_at/)
+  assert.match(route, /collectionState: rewardState\.collection\.state/)
   assert.match(route, /availability\.status !== "ready"/)
   assert.match(route, /!profile\?\.complete/)
   assert.doesNotMatch(route, /!profile\.dateOfBirthVerified/)
+  assert.match(route, /state: rewardState\.collection\.state/)
+  assert.match(route, /reason: rewardState\.collection\.reason/)
+  assert.match(route, /availableFrom: rewardState\.collection\.availableFrom/)
   assert.match(
     route,
-    /return new NextResponse\("Reward QR not ready", \{ status: 404 \}\)/
+    /\{ status: 409, headers: \{ "Cache-Control": "private, no-store" \} \}/
   )
   assert.match(route, /rewardId,\s*customerId: rewardState\.customerId/)
   assert.match(

@@ -6,10 +6,11 @@ import {
   reconcileCardStampCount,
   stampDisplayLabelsForCount,
 } from "@/lib/customer/card"
+import { legacyRewardBlocksStamps } from "@/lib/customer/legacy-reward-stamp-block"
 import { getStampQrContextForMembership } from "@/lib/customer/join"
 import { getMembershipLocationRequirement } from "@/lib/customer/stamp"
 import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
-import { isRedeemableFrom, ukTodayIso } from "@/lib/customer/uk-date"
+import { ukTodayIso } from "@/lib/customer/uk-date"
 import { customerLoginHref } from "@/lib/navigation/safe-next-path"
 import { logger } from "@/lib/observability/logger"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
@@ -59,10 +60,18 @@ export async function loadStampExperienceContext(
     }
   }
 
-  // A stamp-cycle reward blocks new stamps until collected; issued rewards do not.
+  // Only a legacy full card blocks new stamps while its reward is uncollected.
   const unlocked = cardState.stampCycleReward
-  if (unlocked && unlocked.status === "unlocked") {
-    const redeemable = isRedeemableFrom(unlocked.redeemable_from)
+  if (
+    unlocked &&
+    cardState.loyaltyCard &&
+    legacyRewardBlocksStamps({
+      reward: unlocked,
+      currentStampCount: cardState.membership.current_stamp_count,
+      stampsRequired: cardState.loyaltyCard.stamps_required,
+    })
+  ) {
+    const redeemable = unlocked.collection_state === "ready"
     const unlockedReward = {
       rewardId: unlocked.id,
       membershipId,

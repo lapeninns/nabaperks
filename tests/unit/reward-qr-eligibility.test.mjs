@@ -4,14 +4,10 @@ import { test } from "node:test"
 import { rewardQrAvailability } from "@/lib/customer/reward-qr-eligibility"
 import { profileCompletionFrom } from "@/lib/customer/profile-completion"
 
-const now = new Date("2026-09-05T12:00:00Z")
 const ready = {
-  status: "unlocked",
-  source: "stamp_cycle",
-  redeemableFrom: "2026-09-05",
-  expiresAt: "2026-09-05T23:00:00Z",
-  currentStampCount: 3,
-  stampsRequired: 3,
+  collectionState: "ready",
+  collectionReason: null,
+  availableFrom: "2026-09-05T05:00:00Z",
 }
 
 test("an otherwise eligible unverified adult can display a QR for ID review", () => {
@@ -24,12 +20,12 @@ test("an otherwise eligible unverified adult can display a QR for ID review", ()
   })
   assert.equal(profile.complete, true)
   assert.equal(profile.dateOfBirthVerified, false)
-  assert.equal(rewardQrAvailability(ready, now).status, "ready")
+  assert.equal(rewardQrAvailability(ready).status, "ready")
 })
 
-test("the QR refuses an expired reward even before the expiry job updates its status", () => {
+test("the QR refuses an expired reward from the server predicate", () => {
   assert.deepEqual(
-    rewardQrAvailability({ ...ready, expiresAt: now.toISOString() }, now),
+    rewardQrAvailability({ ...ready, collectionState: "expired" }),
     {
       status: "blocked",
       reason: "This reward has expired.",
@@ -37,52 +33,33 @@ test("the QR refuses an expired reward even before the expiry job updates its st
   )
 })
 
-test("future reward availability follows the UK business date", () => {
+test("waiting stays waiting even after the browser clock passes available_from", () => {
   assert.equal(
-    rewardQrAvailability(
-      { ...ready, redeemableFrom: "2026-09-06", expiresAt: null },
-      now
-    ).status,
+    rewardQrAvailability({
+      ...ready,
+      collectionState: "waiting",
+      availableFrom: "2020-01-01T05:00:00Z",
+    }).status,
     "waiting"
   )
-  assert.equal(
-    rewardQrAvailability(
-      { ...ready, redeemableFrom: "2026-09-06", expiresAt: null },
-      new Date("2026-09-05T23:00:00Z")
-    ).status,
-    "ready"
-  )
 })
 
-test("issued gifts can be presented below the stamp threshold while earned rewards cannot", () => {
-  assert.equal(
-    rewardQrAvailability({ ...ready, currentStampCount: 1 }, now).status,
-    "blocked"
-  )
-  assert.equal(
-    rewardQrAvailability(
-      { ...ready, source: "merchant_direct", currentStampCount: 1 },
-      now
-    ).status,
-    "ready"
-  )
-})
-
-test("unavailable programmes and terminal rewards never show a QR", () => {
-  for (const status of ["redeemed", "cancelled", "expired"]) {
+test("blocked and terminal predicate states never show a QR", () => {
+  for (const collectionState of ["redeemed", "cancelled", "expired"]) {
     assert.equal(
-      rewardQrAvailability({ ...ready, status }, now).status,
+      rewardQrAvailability({ ...ready, collectionState }).status,
       "blocked"
     )
   }
   assert.deepEqual(
-    rewardQrAvailability(
-      { ...ready, unavailableReason: "Programme paused" },
-      now
-    ),
+    rewardQrAvailability({
+      ...ready,
+      collectionState: "blocked",
+      collectionReason: "venue_paused",
+    }),
     {
       status: "blocked",
-      reason: "Programme paused",
+      reason: "This venue has paused reward collection.",
     }
   )
 })

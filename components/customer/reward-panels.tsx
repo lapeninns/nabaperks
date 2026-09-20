@@ -23,7 +23,7 @@ import type {
   CustomerExperience,
   RewardView,
 } from "@/lib/customer/experience/types"
-import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
+import { formatCollectionAvailableLabel } from "@/lib/customer/reward-collection-state"
 
 type WaitingExperience = Extract<CustomerExperience, { kind: "reward_waiting" }>
 
@@ -33,7 +33,7 @@ export function RewardWaitingPanel({ exp }: { exp: WaitingExperience }) {
   if (exp.preparing) return <RewardPreparePanel exp={exp} />
 
   const readyDate = exp.reward.redeemableFrom
-    ? formatStampDisplayDateFromIso(exp.reward.redeemableFrom)
+    ? formatCollectionAvailableLabel(exp.reward.redeemableFrom)
     : null
   const setup = exp.profileGate ? collectionSetup(exp.profileGate) : undefined
 

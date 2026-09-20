@@ -1,4 +1,5 @@
 const LONDON = "Europe/London"
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/
 // Fixed receipt copy: ICU abbreviates September differently in Node and WebKit.
 const MONTH_LABELS = [
   "Jan",
@@ -44,7 +45,10 @@ export function formatStampDisplayDateFromIso(iso: string) {
 
 /** Reward-ready chip label with weekday, e.g. `Thu 18 Jun`. */
 export function formatRewardReadyDate(iso: string) {
-  const [year, month, day] = iso.split("-").map(Number)
+  // Accepts the date-only `redeemable_from` and the timestamptz collection
+  // `available_from`; an instant is read on the London calendar.
+  const dateIso = DATE_ONLY.test(iso) ? iso : formatLondonIso(new Date(iso))
+  const [year, month, day] = dateIso.split("-").map(Number)
   const anchor = new Date(Date.UTC(year, month - 1, day, 12))
 
   return `${WEEKDAY_LABELS[anchor.getUTCDay()]} ${anchor.getUTCDate()} ${MONTH_LABELS[anchor.getUTCMonth()]}`

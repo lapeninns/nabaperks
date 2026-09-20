@@ -1,5 +1,8 @@
 import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
-import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
+import {
+  formatCollectionAvailability,
+  formatCollectionAvailableLabel,
+} from "@/lib/customer/reward-collection-state"
 import { buildCustomerJoinHref } from "@/lib/navigation/customer-join-intent"
 
 import {
@@ -80,16 +83,14 @@ export function joinCompletionHint({ hasQr }: { hasQr: boolean }): string {
     : "Your card is saved to this number, ready for your first visit."
 }
 
-/**
- * Reward overnight-hold timing. `redeemable_from` is the *next UK business date*,
- * which skips weekends and bank holidays — so "tomorrow" is wrong on a Friday.
- * Render the real reopening date when known, else "the next opening day".
- */
-export function waitingRewardTiming(redeemableFrom: string | null): string {
-  if (redeemableFrom) {
-    return `It's yours from ${formatStampDisplayDateFromIso(redeemableFrom)}.`
-  }
-  return "It's yours from the next opening day."
+export function waitingRewardTiming(
+  availableFrom: string | null,
+  nextWindow: string | null = null
+): string {
+  const timing = formatCollectionAvailability(availableFrom ?? nextWindow)
+  return timing
+    ? `${timing.replace("Ready", "It's yours from")}.`
+    : "Check back shortly for the collection time."
 }
 
 export function getCustomerExperienceViewModel(
@@ -292,9 +293,8 @@ function rewardIdentityLine(exp: RewardExperience): string {
 }
 
 function waitingRewardSupportLine(redeemableFrom: string | null): string {
-  if (redeemableFrom) {
-    return `Unlocked — yours from ${formatStampDisplayDateFromIso(redeemableFrom)}.`
-  }
+  const available = formatCollectionAvailableLabel(redeemableFrom)
+  if (available) return `Unlocked — yours from ${available}.`
   return "Unlocked — yours from the next opening day."
 }
 

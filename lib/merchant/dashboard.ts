@@ -1,7 +1,16 @@
 import "server-only"
 
+import { legacyRewardCollectionBatch } from "@/lib/customer/reward-collection-batch"
+import { isMissingRpcError } from "@/lib/supabase/missing-rpc"
+
 import type { SupabaseClient } from "@supabase/supabase-js"
 
+import {
+  loadMerchantRewardCollectionStates,
+  type MerchantUnlockedRewardRef,
+  preferredUnlockedReward,
+  type MerchantUnlockedRewardWithCollectionState,
+} from "@/lib/merchant/customer-collection-states"
 import {
   assertMerchantCustomerRewardStateLoaded,
   buildMerchantCustomerReadback,
@@ -65,7 +74,7 @@ export type MerchantCustomerRow = {
   }
   activeReward: {
     id: string
-    redeemable_from: string | null
+    collection_state: MerchantUnlockedRewardWithCollectionState["collection_state"]
   } | null
   last_redeemed_at: string | null
 }
@@ -169,7 +178,34 @@ export async function getMerchantCustomers(
   })
 
   const stampsRequired = resolveStampsRequired(cardResult)
-  const rewardByMembership = indexUnlockedRewards(rewardResult)
+  const authorisedRewards = (rewardResult.data ??
+    []) as MerchantUnlockedRewardRef[]
+  const rewardsWithCollectionState = await loadMerchantRewardCollectionStates(
+    authorisedRewards,
+    async (args) => {
+      const service = createSupabaseServiceRoleClient()
+      const result = await service.rpc("get_reward_collection_states", args)
+      if (!result.error || !isMissingRpcError(result.error)) return result
+      // App deployed ahead of the migration: derive readiness as the previous
+      // release did, for one release.
+      const redeemableFromById = new Map(
+        authorisedRewards.map((reward) => [
+          reward.id,
+          reward.redeemable_from ?? null,
+        ])
+      )
+      return {
+        data: legacyRewardCollectionBatch(
+          args.p_reward_ids.map((id) => ({
+            id,
+            redeemable_from: redeemableFromById.get(id) ?? null,
+          }))
+        ),
+        error: null,
+      }
+    }
+  )
+  const rewardByMembership = indexUnlockedRewards(rewardsWithCollectionState)
 
   const lastRedeemedByMembership = new Map<string, string>()
   for (const r of redeemedResult.data ?? []) {
@@ -347,26 +383,28 @@ function resolveStampsRequired(cardResult: ActiveCardResult): number {
   )
 }
 
+type ActiveMerchantCustomerReward = Exclude<
+  MerchantCustomerRow["activeReward"],
+  null
+>
+
 function indexUnlockedRewards(
-  rewardResult: Awaited<ReturnType<typeof getUnlockedRewardResult>>
-): Map<string, { id: string; redeemable_from: string | null }> {
-  // Index by membership_id for O(1) lookups; keep the first row per membership
-  // to match the prior behaviour the badge logic was tuned against.
-  const rewardByMembership = new Map<
-    string,
-    { id: string; redeemable_from: string | null }
-  >()
-  for (const r of rewardResult.data ?? []) {
-    const row = r as {
-      id: string
-      membership_id: string
-      redeemable_from: string | null
-    }
-    if (!rewardByMembership.has(row.membership_id)) {
-      rewardByMembership.set(row.membership_id, {
-        id: row.id,
-        redeemable_from: row.redeemable_from,
-      })
+  rewards: readonly MerchantUnlockedRewardWithCollectionState[]
+): Map<string, ActiveMerchantCustomerReward> {
+  // Index by membership_id for O(1) lookups. A ready reward is preferred over a
+  // waiting, blocked or lapsed one so an older row the expiry worker has not
+  // yet closed cannot hide a collectable reward; equal states keep the query's
+  // first row. Readiness is the authoritative predicate result and is never
+  // reconstructed from dates or stamp counts.
+  const rewardByMembership = new Map<string, ActiveMerchantCustomerReward>()
+  for (const row of rewards) {
+    const current = rewardByMembership.get(row.membership_id)
+    const preferred = preferredUnlockedReward(current, {
+      id: row.id,
+      collection_state: row.collection_state,
+    })
+    if (preferred !== current) {
+      rewardByMembership.set(row.membership_id, preferred)
     }
   }
   return rewardByMembership

@@ -1,5 +1,7 @@
 import "server-only"
 
+import { isMissingRpcError } from "@/lib/supabase/missing-rpc"
+
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import {
   getMembershipStampDisplayDatesByMembership,
@@ -27,6 +29,8 @@ import {
   isShareableReferralCode,
 } from "@/lib/customer/referral"
 import { getReferralBonusBanksByMembership } from "@/lib/customer/referral-bonus-bank"
+import { legacyRewardCollectionBatch,
+  loadCustomerRewardCollectionStates } from "@/lib/customer/reward-collection-batch"
 import { ukTodayIso } from "@/lib/customer/uk-date"
 import {
   normalizeGoogleReviewUrl,
@@ -189,8 +193,42 @@ export async function getCustomerHomeDashboard(): Promise<HomeDashboard> {
     billingByMerchant.set(row.merchant_id, row.status)
   }
 
+  const rewardRows = rewardsResult.data ?? []
+  const rewardIds = rewardRows.map((reward) => reward.id)
+  const collectionsByReward = await loadCustomerRewardCollectionStates(
+    rewardIds,
+    async (args) => {
+      const result = await supabase.rpc("get_reward_collection_states", args)
+      // App deployed ahead of the migration: placeholder blocks for one
+      // release, matching the legacy card read.
+      if (!result.error || !isMissingRpcError(result.error)) return result
+      const redeemableFromById = new Map(
+        rewardRows.map((reward) => [reward.id, reward.redeemable_from ?? null])
+      )
+      return {
+        data: legacyRewardCollectionBatch(
+          args.p_reward_ids.map((id) => ({
+            id,
+            redeemable_from: redeemableFromById.get(id) ?? null,
+          }))
+        ),
+        error: null,
+      }
+    }
+  )
   const rewardsByMembership = buildRewardCountsByMembership(
-    (rewardsResult.data ?? []) as RawHomeReward[]
+    rewardRows.map((reward) => {
+      const collection = collectionsByReward.get(reward.id)
+      if (!collection) {
+        throw new Error("Unable to load reward collection state")
+      }
+      return {
+        ...reward,
+        collection_state: collection.state,
+        collection_reason: collection.reason,
+        redeemable_from: collection.availableFrom,
+      }
+    }) as RawHomeReward[]
   )
 
   const today = ukTodayIso()

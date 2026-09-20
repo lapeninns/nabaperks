@@ -1,7 +1,12 @@
 import "server-only"
 
-import { loyaltyAvailability } from "@/lib/customer/availability"
 import { getCurrentCustomer } from "@/lib/customer/identity"
+import { legacyRewardCollectionRow } from "@/lib/customer/reward-collection-batch"
+import {
+  parseRewardCollectionState,
+  type RewardCollectionSnapshot,
+} from "@/lib/customer/reward-collection-state"
+import { isMissingRpcError } from "@/lib/supabase/missing-rpc"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export type CustomerRewardState =
@@ -9,7 +14,7 @@ export type CustomerRewardState =
   | {
       status: "ready"
       customerId: string
-      unavailableReason?: string
+      collection: RewardCollectionSnapshot
       reward: {
         id: string
         status: string
@@ -62,9 +67,7 @@ export type CustomerRewardStatus =
     }
 
 type BillingCustomerEmbed =
-  | { status: string | null }
-  | Array<{ status: string | null }>
-  | null
+  { status: string | null } | Array<{ status: string | null }> | null
 
 type RawReward = {
   id: string
@@ -188,27 +191,24 @@ export async function getCustomerRewardState(
   if (!data) return { status: "not_found" }
 
   const reward = data as RawReward
+  if (reward.customer_id !== currentCustomer.id) {
+    return { status: "unauthorized" }
+  }
+
   const membership = first(reward.customer_memberships)
   const merchant = first(reward.merchants)
   const loyaltyCard = first(reward.loyalty_cards)
   const billingStatus =
     firstNullable(merchant.billing_customers)?.status ?? null
 
-  if (reward.customer_id !== currentCustomer.id) {
-    return { status: "unauthorized" }
-  }
-
-  const unavailableReason = loyaltyAvailability({
-    merchantStatus: merchant.status,
-    cardActive: loyaltyCard.is_active,
-    billingStatus,
-    requiresBilling: merchant.requires_billing,
-  }).message
+  const collection = await getRewardCollectionState(supabase, rewardId, {
+    redeemableFrom: reward.redeemable_from,
+  })
 
   return {
     status: "ready",
     customerId: reward.customer_id,
-    unavailableReason,
+    collection,
     reward: {
       id: reward.id,
       status: reward.status,
@@ -233,6 +233,29 @@ export async function getCustomerRewardState(
     loyaltyCard,
     billingStatus,
   }
+}
+
+export async function getRewardCollectionState(
+  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
+  rewardId: string,
+  legacy?: { redeemableFrom: string | null }
+): Promise<RewardCollectionSnapshot> {
+  const { data, error } = await supabase.rpc("get_reward_collection_state", {
+    p_reward_id: rewardId,
+  })
+  if (error) {
+    if (legacy && isMissingRpcError(error)) {
+      // App deployed ahead of the migration: derive readiness as the previous
+      // release did, for one release.
+      return parseRewardCollectionState(
+        legacyRewardCollectionRow(legacy.redeemableFrom)
+      )
+    }
+    throw new Error(`Unable to load reward collection state: ${error.message}`)
+  }
+
+  const value = Array.isArray(data) ? data[0] : data
+  return parseRewardCollectionState(value)
 }
 
 function first<T>(value: T | T[]) {

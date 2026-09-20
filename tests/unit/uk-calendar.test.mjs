@@ -40,6 +40,11 @@ test("Given a timestamp around midnight UTC When formatted for London Then the U
 test("Given ISO dates When display labels are formatted Then they use short British receipt copy", () => {
   assert.equal(formatStampDisplayDateFromIso("2026-06-14"), "14 JUN")
   assert.equal(formatRewardReadyDate("2026-06-18"), "Thu 18 Jun")
+  // The collection predicate reports a timestamptz; it is read on the London
+  // calendar rather than split as a date-only string.
+  assert.equal(formatRewardReadyDate("2026-07-03T05:00:00Z"), "Fri 3 Jul")
+  assert.equal(formatRewardReadyDate("2026-07-02T23:30:00.000Z"), "Fri 3 Jul")
+  assert.equal(formatRewardReadyDate("2026-12-31T23:30:00Z"), "Thu 31 Dec")
 })
 
 test("Receipt dates stay deterministic across months, including Safari's September abbreviation", () => {

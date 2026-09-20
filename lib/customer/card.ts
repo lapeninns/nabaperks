@@ -5,6 +5,7 @@ import { legacyGetCustomerCardState } from "@/lib/customer/card-legacy-read"
 import {
   parseCustomerCardStateRow,
   toRewardSummary,
+  type RewardSummary,
 } from "@/lib/customer/card-state-row"
 import { getCurrentCustomer } from "@/lib/customer/identity"
 import {
@@ -51,26 +52,10 @@ export type CustomerCardState =
         is_active: boolean
       } | null
       /** Unlocked stamp-cycle reward only — the card's own completion reward. */
-      stampCycleReward: {
-        id: string
-        status: string
-        reward_name: string
-        reward_terms: string
-        redeemable_from: string | null
-        expires_at: string | null
-        source: string | null
-      } | null
+      stampCycleReward: RewardSummary | null
       /** Best unlocked issued reward (birthday/merchant) — the card's gift rail,
        *  kept separate so it never drives the stamp-cycle completion state. */
-      issuedReward: {
-        id: string
-        status: string
-        reward_name: string
-        reward_terms: string
-        redeemable_from: string | null
-        expires_at: string | null
-        source: string | null
-      } | null
+      issuedReward: RewardSummary | null
       billingStatus: string | null
     }
 
