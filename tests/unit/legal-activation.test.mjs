@@ -48,7 +48,10 @@ test("venue terms preserve configured earning and individual reward terms", () =
   assert.match(body("reward-pool"), /Soup: Lunch only/)
   assert.match(body("reward-pool"), /Wine: 125ml.*Photo ID/)
   assert.doesNotMatch(body("reward-pool"), /Soup: Lunch only[^\n]*Photo ID/)
-  assert.match(body("redemption"), /Email is optional/)
+  assert.match(
+    body("redemption"),
+    /A verified email address is required before reward collection/
+  )
   assert.match(body("availability"), /grace period/)
 })
 
@@ -69,7 +72,11 @@ test("null expiry and disabled spend terms do not invent a deadline or transacti
   assert.match(earning, /06:30 Europe\/London/)
   assert.doesNotMatch(earning, /Minimum spend|one transaction per stamp/)
   assert.match(redemption, /No expiry is configured/)
-  assert.doesNotMatch(redemption, /56 days|weekday|verified email address/)
+  assert.doesNotMatch(redemption, /56 days|weekday/)
+  assert.match(
+    redemption,
+    /A verified email address is required before reward collection/
+  )
 })
 
 test("configured windows show exact schedule and upgrade terms without gating ordinary collection", () => {
