@@ -227,3 +227,60 @@ test(
     })
   }
 )
+
+test(
+  "collection readiness requires a verified email like the profile and QR gates",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const fixture = await createRewardPoolFixture(tx)
+      await tx`
+        insert into public.reward_events (
+          id, merchant_id, customer_id, membership_id, loyalty_card_id,
+          status, reward_name, reward_terms, redeemable_from, source,
+          cycle_number, reward_policy_version, reward_policy_snapshot
+        ) values (
+          ${fixture.rewardEventId}::uuid,
+          ${fixture.merchantId}::uuid,
+          ${fixture.customerId}::uuid,
+          ${fixture.membershipId}::uuid,
+          ${fixture.cardId}::uuid,
+          'unlocked', 'Legacy reward', 'Subject to availability.',
+          public.uk_business_date(now()), 'stamp_cycle', 1, 'legacy_v1',
+          '{"collection":"next_uk_business_day","age_check":false,"expiry":"never"}'::jsonb
+        )`
+      const stateOf = async () => {
+        const [row] = await tx`
+          select state, reason
+          from public.get_reward_collection_state(${fixture.rewardEventId}::uuid)`
+        return row
+      }
+      const blockedByEmail = {
+        state: "blocked",
+        reason: "Verified email required for reward collection",
+      }
+
+      assert.deepEqual(await stateOf(), { state: "ready", reason: null })
+
+      for (const email of [null, "", "   "]) {
+        await tx`
+          update public.customers
+          set email = ${email}, email_verified_at = null
+          where id = ${fixture.customerId}::uuid`
+        assert.deepEqual(await stateOf(), blockedByEmail)
+      }
+
+      await tx`
+        update public.customers
+        set email = 'stage-a-unverified@example.test', email_verified_at = null
+        where id = ${fixture.customerId}::uuid`
+      assert.deepEqual(await stateOf(), blockedByEmail)
+
+      await tx`
+        update public.customers
+        set email_verified_at = now()
+        where id = ${fixture.customerId}::uuid`
+      assert.deepEqual(await stateOf(), { state: "ready", reason: null })
+    })
+  }
+)

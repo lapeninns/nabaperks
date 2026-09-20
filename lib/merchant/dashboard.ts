@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import {
   loadMerchantRewardCollectionStates,
   type MerchantUnlockedRewardRef,
+  preferredUnlockedReward,
   type MerchantUnlockedRewardWithCollectionState,
 } from "@/lib/merchant/customer-collection-states"
 import {
@@ -369,16 +370,20 @@ type ActiveMerchantCustomerReward = Exclude<
 function indexUnlockedRewards(
   rewards: readonly MerchantUnlockedRewardWithCollectionState[]
 ): Map<string, ActiveMerchantCustomerReward> {
-  // Index by membership_id for O(1) lookups; keep the first row per membership
-  // to match the query's deterministic order. Readiness is the authoritative
-  // predicate result and is never reconstructed from dates or stamp counts.
+  // Index by membership_id for O(1) lookups. A ready reward is preferred over a
+  // waiting, blocked or lapsed one so an older row the expiry worker has not
+  // yet closed cannot hide a collectable reward; equal states keep the query's
+  // first row. Readiness is the authoritative predicate result and is never
+  // reconstructed from dates or stamp counts.
   const rewardByMembership = new Map<string, ActiveMerchantCustomerReward>()
   for (const row of rewards) {
-    if (!rewardByMembership.has(row.membership_id)) {
-      rewardByMembership.set(row.membership_id, {
-        id: row.id,
-        collection_state: row.collection_state,
-      })
+    const current = rewardByMembership.get(row.membership_id)
+    const preferred = preferredUnlockedReward(current, {
+      id: row.id,
+      collection_state: row.collection_state,
+    })
+    if (preferred !== current) {
+      rewardByMembership.set(row.membership_id, preferred)
     }
   }
   return rewardByMembership

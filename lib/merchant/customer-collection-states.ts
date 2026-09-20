@@ -15,6 +15,30 @@ export type MerchantUnlockedRewardWithCollectionState =
     readonly collection_state: RewardCollectionState
   }
 
+const COLLECTION_STATE_RANK: Record<RewardCollectionState, number> = {
+  ready: 0,
+  waiting: 1,
+  blocked: 2,
+  expired: 3,
+  redeemed: 4,
+  cancelled: 5,
+}
+
+/**
+ * The row a merchant should see for one membership: a collectable reward wins
+ * over one that is waiting, blocked or lapsed, and equal states keep the
+ * caller's first row so the query order stays deterministic.
+ */
+export function preferredUnlockedReward<
+  T extends { readonly collection_state: RewardCollectionState },
+>(current: T | undefined, candidate: T): T {
+  if (!current) return candidate
+  return COLLECTION_STATE_RANK[candidate.collection_state] <
+    COLLECTION_STATE_RANK[current.collection_state]
+    ? candidate
+    : current
+}
+
 type BatchResult = {
   readonly data: unknown
   readonly error: { readonly message: string } | null

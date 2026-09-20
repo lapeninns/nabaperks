@@ -61,7 +61,6 @@ export type CustomerRewardStatus =
       reward: {
         status: string
         redeemed_at: string | null
-        collection_state: RewardCollectionSnapshot["state"]
       }
     }
 
@@ -157,15 +156,12 @@ export async function getCustomerRewardStatus(
     return { status: "unauthorized" }
   }
 
-  const collection = await getRewardCollectionState(supabase, rewardId)
-
   return {
     status: "ready",
     customerId: reward.customer_id,
     reward: {
       status: reward.status,
       redeemed_at: reward.redeemed_at,
-      collection_state: collection.state,
     },
   }
 }

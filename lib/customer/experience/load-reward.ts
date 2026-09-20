@@ -2,6 +2,7 @@ import "server-only"
 
 import { getCustomerRewardState } from "@/lib/customer/reward"
 import { getLocationRequirement } from "@/lib/customer/stamp"
+import { isCollectionSetupBlock } from "@/lib/customer/reward-collection-state"
 import { rewardQrAvailability } from "@/lib/customer/reward-qr-eligibility"
 import { customerLoginHref } from "@/lib/navigation/safe-next-path"
 
@@ -39,11 +40,17 @@ export async function loadRewardExperienceContext(
   const { reward, assignedReward, collection, loyaltyCard, merchant } =
     rewardState
   const location = await getLocationRequirement(loyaltyCard.location_id)
-  const availability = rewardQrAvailability({
-    collectionState: collection.state,
-    collectionReason: collection.reason,
-    availableFrom: collection.availableFrom,
-  })
+  // A profile or email block is a setup step the customer can complete here,
+  // so it keeps the gate (and the recovery form) instead of the dead end.
+  const setupBlocked =
+    collection.state === "blocked" && isCollectionSetupBlock(collection.reason)
+  const availability = setupBlocked
+    ? ({ status: "ready" } as const)
+    : rewardQrAvailability({
+        collectionState: collection.state,
+        collectionReason: collection.reason,
+        availableFrom: collection.availableFrom,
+      })
   const availableForReview = availability.status === "ready"
   // The gate governs collection, so it is read for a reward the customer can
   // collect *or* is still waiting on — the waiting screen offers the optional

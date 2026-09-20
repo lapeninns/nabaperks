@@ -40,7 +40,6 @@ export async function GET(
     {
       redeemed: reward.status === "redeemed",
       status: reward.status,
-      collectionState: reward.collection_state,
       redeemedAt: reward.redeemed_at,
     },
     200

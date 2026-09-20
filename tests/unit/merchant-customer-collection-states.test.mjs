@@ -1,7 +1,10 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { loadMerchantRewardCollectionStates } from "@/lib/merchant/customer-collection-states"
+import {
+  loadMerchantRewardCollectionStates,
+  preferredUnlockedReward,
+} from "@/lib/merchant/customer-collection-states"
 
 function rewards(count) {
   return Array.from({ length: count }, (_, index) => ({
@@ -109,4 +112,19 @@ test("missing, duplicate, foreign and malformed rows fail closed", async () => {
       /malformed/
     )
   }
+})
+
+test("a ready reward is preferred over an older lapsed or waiting row for the same membership", () => {
+  const expired = { id: "old", collection_state: "expired" }
+  const ready = { id: "new", collection_state: "ready" }
+  const waiting = { id: "later", collection_state: "waiting" }
+  const blocked = { id: "held", collection_state: "blocked" }
+
+  assert.equal(preferredUnlockedReward(undefined, expired), expired)
+  assert.equal(preferredUnlockedReward(expired, ready), ready)
+  assert.equal(preferredUnlockedReward(ready, expired), ready)
+  assert.equal(preferredUnlockedReward(waiting, ready), ready)
+  assert.equal(preferredUnlockedReward(blocked, waiting), waiting)
+  // Equal states keep the first row the caller supplied.
+  assert.equal(preferredUnlockedReward(ready, { ...ready, id: "second" }), ready)
 })
