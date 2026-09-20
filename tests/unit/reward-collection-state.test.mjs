@@ -7,7 +7,9 @@ import {
   formatCollectionAvailability,
   formatCollectionAvailableLabel,
   formatCollectionDeadline,
+  isCollectionSetupBlock,
   parseRewardCollectionState,
+  photoIdSetupApplies,
   rewardCollectionBlockedCopy,
 } from "@/lib/customer/reward-collection-state"
 
@@ -116,7 +118,9 @@ test("the card links to the reward page for ready and setup-blocked rewards only
 
 test("a programme-level block is not described as a deliberate pause", () => {
   assert.equal(
-    rewardCollectionBlockedCopy("This loyalty programme is unavailable right now"),
+    rewardCollectionBlockedCopy(
+      "This loyalty programme is unavailable right now"
+    ),
     "This loyalty programme is unavailable at the moment."
   )
   assert.equal(
@@ -166,4 +170,20 @@ test("Given an expiry instant When formatted Then the customer sees the London d
     "Expires Tue 27 Oct at 15:00"
   )
   assert.equal(formatCollectionDeadline(null), null)
+})
+
+test("an age-checked reward awaiting in-person photo ID stays a setup step, not a dead end", () => {
+  const reason =
+    "Customer must have verified photo ID and be 18 or over to redeem"
+  assert.equal(isCollectionSetupBlock(reason), true)
+  assert.equal(cardRewardCollectable("blocked", reason), true)
+  // Only a stated adult date of birth makes it a counter step; an under-age
+  // customer is a policy block.
+  assert.equal(photoIdSetupApplies(reason, true), true)
+  assert.equal(photoIdSetupApplies(reason, false), false)
+  assert.equal(photoIdSetupApplies("venue_paused", true), false)
+  assert.equal(
+    rewardCollectionBlockedCopy(reason),
+    "Photo ID is needed to collect this reward."
+  )
 })

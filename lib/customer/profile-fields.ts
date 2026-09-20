@@ -75,6 +75,20 @@ export function latestAdultBirthDate(now: Date = new Date()): string {
   return cutoff.toISOString().slice(0, 10)
 }
 
+/**
+ * Whether a stated `YYYY-MM-DD` date of birth makes the customer an adult
+ * today, by the same rule as {@link latestAdultBirthDate}. A missing date is
+ * never an adult.
+ */
+export function isAdultDateOfBirth(
+  dateOfBirth: string | null | undefined,
+  now: Date = new Date()
+): boolean {
+  return (
+    Boolean(dateOfBirth) && (dateOfBirth as string) <= latestAdultBirthDate(now)
+  )
+}
+
 export function isEmailAddress(raw: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)
 }

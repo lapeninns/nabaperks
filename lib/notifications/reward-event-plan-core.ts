@@ -1,5 +1,6 @@
 import {
   isCollectionSetupBlock,
+  PHOTO_ID_REQUIRED_REASON,
   type RewardCollectionSnapshot,
 } from "@/lib/customer/reward-collection-state"
 
@@ -16,7 +17,10 @@ export function rewardUnlockedNotificationEvent(
   if (collection.state === "waiting") return "reward_unlocked_waiting"
   if (
     collection.state === "blocked" &&
-    isCollectionSetupBlock(collection.reason)
+    isCollectionSetupBlock(collection.reason) &&
+    // Awaiting the venue's in-person photo-ID check is not a profile task, so
+    // it sends no "finish your details" message.
+    collection.reason !== PHOTO_ID_REQUIRED_REASON
   ) {
     return "profile_required_to_collect"
   }
