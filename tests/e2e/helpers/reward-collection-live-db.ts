@@ -128,8 +128,8 @@ export async function createRewardCollectionFixture(
         'Browser collection fixture',
         public.uk_business_date(now()),
         jsonb_build_object('source', 'merchant-reward-scan-e2e'),
-        now(),
-        now()
+        now() - interval '2 days',
+        now() - interval '2 days'
       )`
 
     await sql`
