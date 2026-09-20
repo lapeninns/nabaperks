@@ -86,3 +86,14 @@ test("the card links to the reward page for ready and setup-blocked rewards only
   assert.equal(cardRewardCollectable("waiting", null), false)
   assert.equal(cardRewardCollectable("expired", "expired"), false)
 })
+
+test("a programme-level block is not described as a deliberate pause", () => {
+  assert.equal(
+    rewardCollectionBlockedCopy("This loyalty programme is unavailable right now"),
+    "This loyalty programme is unavailable at the moment."
+  )
+  assert.equal(
+    rewardCollectionBlockedCopy("venue_paused"),
+    "This venue has paused reward collection."
+  )
+})

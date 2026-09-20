@@ -81,8 +81,11 @@ export function parseRewardCollectionState(
 export function rewardCollectionBlockedCopy(reason: string | null): string {
   switch (reason) {
     case "venue_paused":
-    case "This loyalty programme is unavailable right now":
       return "This venue has paused reward collection."
+    // Programme-level availability (inactive merchant or card, billing) is not
+    // a deliberate pause; keep the neutral wording the card uses.
+    case "This loyalty programme is unavailable right now":
+      return "This loyalty programme is unavailable at the moment."
     case "one_reward_per_day":
     case "One reward per visit day already collected":
       return "You've collected a reward here today. Your next reward will become available when the venue's next collection day begins."
