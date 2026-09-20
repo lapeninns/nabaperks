@@ -149,3 +149,32 @@ test("database readiness supports legacy full cards and post-cutover fresh cards
   assert.equal(counts.get("fresh_0_of_2")?.stampRewardId, "cutover_reward")
   assert.equal(getTopRedeemable(cards, counts)?.rewardId, "legacy_reward")
 })
+
+test("a stamp reward held only by a setup step stays the ready action on Home", () => {
+  const counts = buildRewardCountsByMembership([
+    row({
+      id: "needs_email",
+      collection_state: "blocked",
+      collection_reason: "Verified email required for reward collection",
+    }),
+  ])
+  const mem = counts.get("mem_1")
+
+  assert.equal(mem.stampRewardId, "needs_email")
+  assert.equal(mem.revealedRewardName, null)
+})
+
+test("a stamp reward blocked by the venue is neither ready nor soon on Home", () => {
+  const counts = buildRewardCountsByMembership([
+    row({
+      id: "paused",
+      collection_state: "blocked",
+      collection_reason: "This loyalty programme is unavailable right now",
+    }),
+  ])
+  const mem = counts.get("mem_1")
+
+  assert.equal(mem.stampRewardId, null)
+  assert.equal(mem.revealedRewardName, null)
+  assert.equal(mem.stampUnlocked, 1)
+})

@@ -1,7 +1,10 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { loadCustomerRewardCollectionStates } from "@/lib/customer/reward-collection-batch"
+import {
+  legacyRewardCollectionBatch,
+  loadCustomerRewardCollectionStates,
+} from "@/lib/customer/reward-collection-batch"
 
 function rewardIds(count) {
   return Array.from(
@@ -72,5 +75,21 @@ test("missing, duplicate, foreign and malformed batch rows fail closed", async (
       })),
       /malformed batch result|malformed collection state/
     )
+  }
+})
+
+test("the missing-RPC placeholder blocks every reward without a collection promise", async () => {
+  const ids = ["11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"]
+  const states = await loadCustomerRewardCollectionStates(ids, async ({ p_reward_ids }) => ({
+    data: legacyRewardCollectionBatch(p_reward_ids),
+    error: null,
+  }))
+  for (const id of ids) {
+    assert.deepEqual(states.get(id), {
+      state: "blocked",
+      reason: "Reward collection status is updating",
+      availableFrom: null,
+      expiresAt: null,
+    })
   }
 })

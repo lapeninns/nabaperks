@@ -6,6 +6,7 @@ import {
   formatCollectionAvailability,
   formatCollectionAvailableLabel,
   parseRewardCollectionState,
+  rewardCollectionBlockedCopy,
 } from "@/lib/customer/reward-collection-state"
 
 test("Given an authoritative predicate row When parsed Then readiness and timestamps are preserved", () => {
@@ -36,6 +37,26 @@ test("Given an authoritative collection instant When formatted Then the London d
   )
   assert.equal(formatCollectionAvailability(null), null)
   assert.equal(formatCollectionAvailableLabel(null), null)
+  // Date-only legacy values open at London midnight in summer and winter.
+  assert.equal(
+    formatCollectionAvailability("2026-07-02"),
+    "Ready Thursday 2 July at 00:00"
+  )
+  assert.equal(
+    formatCollectionAvailability("2026-01-15"),
+    "Ready Thursday 15 January at 00:00"
+  )
+})
+
+test("an under-18 customer is told the age policy, not to show ID", () => {
+  assert.equal(
+    rewardCollectionBlockedCopy("Customer must be 18 or over to redeem"),
+    "This reward can only be collected by customers aged 18 or over."
+  )
+  assert.equal(
+    rewardCollectionBlockedCopy("age_verification_required"),
+    "Photo ID is needed to collect this reward."
+  )
 })
 
 test("Given stale or malformed predicate facts When parsed Then they fail closed", () => {

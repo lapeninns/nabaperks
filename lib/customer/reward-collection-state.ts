@@ -30,7 +30,11 @@ export function formatCollectionAvailability(
   value: string | null
 ): string | null {
   if (!value) return null
-  const instant = new Date(value)
+  // A date-only legacy `redeemable_from` opens at London midnight; parsing it
+  // as UTC would show 01:00 during British Summer Time.
+  const instant = DATE_ONLY.test(value)
+    ? londonMidnight(value)
+    : new Date(value)
   if (Number.isNaN(instant.getTime())) throw new Error(MALFORMED)
   return `Ready ${LONDON_AVAILABILITY.format(instant).replace(",", " at")}`
 }
@@ -42,6 +46,22 @@ export function formatCollectionAvailableLabel(
 }
 
 const MALFORMED = "Unable to load reward: malformed collection state"
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/
+const LONDON_HOUR = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Europe/London",
+  hour: "2-digit",
+  hourCycle: "h23",
+})
+
+/** The instant at which a London calendar date begins (00:00 Europe/London). */
+function londonMidnight(dateIso: string): Date {
+  const [year, month, day] = dateIso.split("-").map(Number)
+  const utcMidnight = new Date(Date.UTC(year, month - 1, day, 0, 0, 0))
+  // London is UTC or UTC+1, so the hour London shows for UTC midnight is
+  // exactly the offset to subtract.
+  const offsetHours = Number(LONDON_HOUR.format(utcMidnight))
+  return new Date(utcMidnight.getTime() - offsetHours * 3_600_000)
+}
 
 export function parseRewardCollectionState(
   value: unknown
@@ -72,8 +92,9 @@ export function rewardCollectionBlockedCopy(reason: string | null): string {
     case "Verified email required for reward collection":
       return "Verify your email before collecting this reward."
     case "age_verification_required":
-    case "Customer must be 18 or over to redeem":
       return "Photo ID is needed to collect this reward."
+    case "Customer must be 18 or over to redeem":
+      return "This reward can only be collected by customers aged 18 or over."
     case "expired":
       return "This reward has expired."
     case null:

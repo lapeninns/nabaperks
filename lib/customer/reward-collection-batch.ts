@@ -69,3 +69,28 @@ function malformedBatch(): Error {
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
 }
+
+/**
+ * One-release compatibility for an application deployed ahead of its
+ * migration: the batch RPC is absent, so every reward reads as a conservative
+ * placeholder block, exactly as the legacy card read reports it. The home page
+ * then shows the pending reward without a collection promise instead of
+ * failing outright.
+ */
+export function legacyRewardCollectionBatch(
+  rewardIds: readonly string[]
+): Array<{
+  reward_id: string
+  state: "blocked"
+  reason: string
+  available_from: null
+  expires_at: null
+}> {
+  return rewardIds.map((rewardId) => ({
+    reward_id: rewardId,
+    state: "blocked",
+    reason: "Reward collection status is updating",
+    available_from: null,
+    expires_at: null,
+  }))
+}

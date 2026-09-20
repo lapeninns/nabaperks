@@ -1,4 +1,7 @@
-import type { RewardCollectionState } from "@/lib/customer/reward-collection-state"
+import {
+  cardRewardCollectable,
+  type RewardCollectionState,
+} from "@/lib/customer/reward-collection-state"
 import {
   pickIssuedUnlockedReward,
   pickPrimaryUnlockedReward,
@@ -15,6 +18,8 @@ export type RawHomeReward = {
   membership_id: string
   reward_name: string
   collection_state: RewardCollectionState
+  /** Predicate reason; a profile or verified-email block keeps the reward actionable. */
+  collection_reason?: string | null
   redeemable_from: string | null
   source?: string | null
   created_at?: string | null
@@ -68,8 +73,12 @@ export function buildRewardCountsByMembership(
     )
     entry.stampUnlocked = stampRows.length
 
+    // A reward held only by a setup step (profile, verified email) is still the
+    // customer's next action, so it keeps the ready tile and its reward link.
+    const actionable = (row: RawHomeReward) =>
+      cardRewardCollectable(row.collection_state, row.collection_reason ?? null)
     const stampRedeemable = pickPrimaryUnlockedReward(
-      stampRows.filter((row) => row.collection_state === "ready")
+      stampRows.filter(actionable)
     )
     if (stampRedeemable) {
       entry.stampRewardId = stampRedeemable.id
@@ -90,7 +99,7 @@ export function buildRewardCountsByMembership(
         rewardId: issued.id,
         rewardName: issued.reward_name,
         source: narrowRewardSource(issued.source),
-        redeemable: issued.collection_state === "ready",
+        redeemable: actionable(issued),
         redeemableFrom: issued.redeemable_from,
       }
     }
