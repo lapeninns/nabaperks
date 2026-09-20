@@ -14,5 +14,7 @@ Externally consumed liveness and protected readiness contracts. Product-internal
 | GET    | `/api/health`                           | Read public service liveness                           | `app/api/health/route.ts`                           |
 | GET    | `/api/readiness`                        | Read protected dependency readiness                    | `app/api/readiness/route.ts`                        |
 | POST   | `/api/resend/webhook`                   | Receive Resend delivery events for loyalty invitations | `app/api/resend/webhook/route.ts`                   |
+| POST   | `/api/twilio/inbound`                   | Receive Twilio customer-message replies                | `app/api/twilio/inbound/route.ts`                   |
+| POST   | `/api/twilio/status`                    | Receive Twilio customer-message delivery status        | `app/api/twilio/status/route.ts`                    |
 
 The protected readiness endpoint requires `Authorization: Bearer <PRODUCTION_MONITOR_SECRET>`. During a documented zero-downtime rotation, the temporary `PRODUCTION_MONITOR_SECRET_NEXT` is also accepted until cutover completes.

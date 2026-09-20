@@ -242,6 +242,12 @@ export function CustomerJoinForm({
                   merchantName,
                   stampsRequired: card.stampsRequired,
                   rewardTerms: card.rewardTerms,
+                  collectionWindows: card.collectionWindows,
+                  tradingDayStartsAt: card.tradingDayStartsAt,
+                  rewardExpiresAfterDays: card.rewardExpiresAfterDays,
+                  minimumSpendPence: card.minimumSpendPence,
+                  oneTransactionPerStamp: card.oneTransactionPerStamp,
+                  rewardPool: card.rewardPool,
                 }}
               />
             </span>
@@ -260,8 +266,8 @@ export function CustomerJoinForm({
           <span className="grid gap-0.5">
             <Eyebrow>Offers and perks</Eyebrow>
             <span className="text-xs leading-5 text-muted-foreground">
-              Occasional offers from {merchantName}. Optional, unsubscribe any
-              time.
+              Occasional offers from {merchantName} by WhatsApp or text.
+              Optional, reply STOP or unsubscribe any time.
             </span>
           </span>
         </label>

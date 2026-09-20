@@ -2,6 +2,7 @@ import {
   parseRewardCollectionState,
   type RewardCollectionState,
 } from "@/lib/customer/reward-collection-state"
+import { loyaltyEarningTermsFromRewardSnapshot } from "@/lib/loyalty/earning-terms"
 
 /**
  * Narrows the jsonb returned by `public.get_customer_card_state` and holds the
@@ -20,6 +21,17 @@ export type UnlockedRewardRow = {
   collection_state: RewardCollectionState
   collection_reason: string | null
   available_from: string | null
+  in_window: boolean
+  window_id: string | null
+  window_ends_at: string | null
+  upgrade_pool_item_id: string | null
+  upgrade_reward_name: string | null
+  upgrade_reward_terms: string | null
+  next_window_starts_at: string | null
+  next_window_ends_at: string | null
+  next_window_upgrade_name: string | null
+  requires_age_check: boolean
+  earning_terms: string | null
 }
 
 export type RewardSummary = Omit<UnlockedRewardRow, "created_at">
@@ -36,6 +48,7 @@ export type CustomerCardStateRow =
         current_stamp_count: number
         total_rewards_redeemed: number
         active_cycle_number: number
+        policy_cutover_notice_at: string | null
         referral_code: string
         referral_code_active: boolean
       }
@@ -53,6 +66,8 @@ export type CustomerCardStateRow =
         reward_name: string
         reward_terms: string
         is_active: boolean
+        minimum_spend_pence: number | null
+        one_transaction_per_stamp: boolean
       } | null
       readonly unlockedRewards: UnlockedRewardRow[]
       readonly billingStatus: string | null
@@ -84,6 +99,9 @@ export function parseCustomerCardStateRow(data: unknown): CustomerCardStateRow {
       current_stamp_count: requireNumber(membership.current_stamp_count),
       total_rewards_redeemed: requireNumber(membership.total_rewards_redeemed),
       active_cycle_number: requireNumber(membership.active_cycle_number),
+      policy_cutover_notice_at: nullableString(
+        membership.policy_cutover_notice_at
+      ),
       referral_code: nullableString(membership.referral_code) ?? "",
       referral_code_active: membership.referral_code_active === true,
     },
@@ -117,6 +135,17 @@ export function toRewardSummary(
     collection_state: reward.collection_state,
     collection_reason: reward.collection_reason,
     available_from: reward.available_from,
+    in_window: reward.in_window,
+    window_id: reward.window_id,
+    window_ends_at: reward.window_ends_at,
+    upgrade_pool_item_id: reward.upgrade_pool_item_id,
+    upgrade_reward_name: reward.upgrade_reward_name,
+    upgrade_reward_terms: reward.upgrade_reward_terms,
+    next_window_starts_at: reward.next_window_starts_at,
+    next_window_ends_at: reward.next_window_ends_at,
+    next_window_upgrade_name: reward.next_window_upgrade_name,
+    requires_age_check: reward.requires_age_check,
+    earning_terms: reward.earning_terms,
   }
 }
 
@@ -130,6 +159,8 @@ function parseLoyaltyCard(value: unknown) {
     reward_name: requireString(value.reward_name),
     reward_terms: requireString(value.reward_terms),
     is_active: value.is_active === true,
+    minimum_spend_pence: nullableNumber(value.minimum_spend_pence),
+    one_transaction_per_stamp: value.one_transaction_per_stamp !== false,
   }
 }
 
@@ -140,7 +171,20 @@ function parseReward(value: unknown): UnlockedRewardRow {
     reason: value.collection_reason,
     available_from: value.available_from,
     expires_at: value.expires_at,
+    in_window: value.in_window,
+    window_id: value.window_id,
+    window_ends_at: value.window_ends_at,
+    upgrade_pool_item_id: value.upgrade_pool_item_id,
+    upgrade_reward_name: value.upgrade_reward_name,
+    upgrade_reward_terms: value.upgrade_reward_terms,
+    next_window_starts_at: value.next_window_starts_at,
+    next_window_ends_at: value.next_window_ends_at,
+    next_window_upgrade_name: value.next_window_upgrade_name,
+    requires_age_check: value.requires_age_check,
   })
+  const policySnapshot = isRecord(value.reward_policy_snapshot)
+    ? value.reward_policy_snapshot
+    : null
 
   return {
     id: requireString(value.id),
@@ -154,6 +198,20 @@ function parseReward(value: unknown): UnlockedRewardRow {
     collection_state: collection.state,
     collection_reason: collection.reason,
     available_from: collection.availableFrom,
+    in_window: collection.inWindow,
+    window_id: collection.windowId,
+    window_ends_at: collection.windowEndsAt,
+    upgrade_pool_item_id: collection.upgradePoolItemId,
+    upgrade_reward_name: collection.upgradeRewardName,
+    upgrade_reward_terms: collection.upgradeRewardTerms,
+    next_window_starts_at: collection.nextWindowStartsAt,
+    next_window_ends_at: collection.nextWindowEndsAt,
+    next_window_upgrade_name: collection.nextWindowUpgradeName,
+    requires_age_check:
+      typeof value.requires_age_check === "boolean"
+        ? collection.requiresAgeCheck
+        : policySnapshot?.age_check === true,
+    earning_terms: loyaltyEarningTermsFromRewardSnapshot(policySnapshot),
   }
 }
 
@@ -171,6 +229,11 @@ function requireNumber(value: unknown): number {
 
 function nullableString(value: unknown): string | null {
   return typeof value === "string" ? value : null
+}
+
+function nullableNumber(value: unknown): number | null {
+  if (value === null || value === undefined) return null
+  return requireNumber(value)
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

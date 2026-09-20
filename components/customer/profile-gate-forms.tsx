@@ -56,7 +56,7 @@ function ProfileDetailsStep({
         over.
         {gate.emailLocked
           ? null
-          : " We'll email a one-time code to confirm your address."}
+          : " A verified email is also required. We'll send a one-time code to confirm your address."}
       </p>
 
       <Field
@@ -93,8 +93,8 @@ function ProfileDetailsStep({
           type="email"
           inputMode="email"
           autoComplete="email"
-          hint="We'll send a one-time code to verify this email."
           required
+          hint="Verify your email before collecting a reward."
           defaultValue={state.fields?.email ?? gate.email ?? ""}
           error={state.errors?.email}
         />
@@ -110,18 +110,12 @@ function ProfileDetailsStep({
         type="submit"
         size="lg"
         disabled={pending}
-        className="w-full"
+        className="w-full hover:bg-primary"
         onFocus={(event) =>
           event.currentTarget.scrollIntoView({ block: "center" })
         }
       >
-        {pending
-          ? gate.emailLocked
-            ? "Saving…"
-            : "Sending…"
-          : gate.emailLocked
-            ? "Save and continue"
-            : "Save and email my code"}
+        {pending ? "Saving…" : "Save and continue"}
       </Button>
     </form>
   )
@@ -183,7 +177,12 @@ function ProfileEmailStep({
           </StatusBanner>
         ) : null}
 
-        <Button type="submit" size="lg" disabled={pending} className="w-full">
+        <Button
+          type="submit"
+          size="lg"
+          disabled={pending}
+          className="w-full hover:bg-primary"
+        >
           {pending ? "Confirming…" : "Confirm email"}
         </Button>
       </form>

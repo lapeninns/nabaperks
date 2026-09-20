@@ -11,11 +11,12 @@ export type HomeCardGift = {
   rewardName: string
   source: RewardSource
   redeemable: boolean
-  redeemableFrom: string | null
+  availableFrom: string | null
 }
 
 export type HomeCard = {
   membershipId: string
+  policyCutoverNoticeAt?: string | null
   businessName: string
   businessSlug: string
   locality?: string | null
@@ -35,10 +36,11 @@ export type HomeCard = {
   referralBonusBank?: ReferralBonusBank
   /** Stamp-cycle redeemable reward → the tile's "Reward ready" state and QR link. */
   stampRewardId?: string
+  stampRewardName?: string | null
   /** Name of the waiting (unlocked, not-yet-redeemable) stamp-cycle reward, for the mini ticket. */
   revealedRewardName?: string | null
   /** UK business date the waiting reward opens — drives the mini ticket timing chip. */
-  revealedRewardRedeemableFrom?: string | null
+  revealedRewardAvailableFrom?: string | null
   /** Issued reward (birthday/merchant) shown as a distinct gift chip on the tile. */
   gift?: HomeCardGift | null
   available: boolean

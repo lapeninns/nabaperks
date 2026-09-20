@@ -8,16 +8,13 @@ const LEGACY_DEFAULT_REWARD_TERMS =
   "Complete 3 visits to reveal a surprise reward. Redeem from the next UK business day."
 
 export function clampStampsRequired(value: number) {
-  return Math.min(
-    MAX_STAMPS_REQUIRED,
-    Math.max(MIN_STAMPS_REQUIRED, value)
-  )
+  return Math.min(MAX_STAMPS_REQUIRED, Math.max(MIN_STAMPS_REQUIRED, value))
 }
 
 export function defaultLoyaltyCardRewardTerms(stampsRequired: number) {
   const count = clampStampsRequired(stampsRequired)
 
-  return `Collect ${count} visit stamps to unlock a surprise reward. Redeem from the next UK business day.`
+  return `Collect ${count} visit stamps to unlock a surprise reward. Redeem from the next venue trading day.`
 }
 
 /** Generic card name used before a venue is known, and the length ceiling that
@@ -33,7 +30,9 @@ const LOYALTY_CARD_NAME_MAX_LENGTH = 80
  * the composed name would exceed the card-name field limit. Mirrors
  * {@link defaultLoyaltyCardRewardTerms} — a suggestion, not a saved value.
  */
-export function defaultLoyaltyCardName(businessName: string | null | undefined) {
+export function defaultLoyaltyCardName(
+  businessName: string | null | undefined
+) {
   const trimmed = businessName?.trim()
 
   if (!trimmed) return GENERIC_LOYALTY_CARD_NAME
@@ -58,6 +57,12 @@ export function isDefaultLoyaltyCardRewardTerms(terms: string) {
     count += 1
   ) {
     if (trimmed === defaultLoyaltyCardRewardTerms(count)) return true
+    if (
+      trimmed ===
+      `Collect ${count} visit stamps to unlock a surprise reward. Redeem from the next UK business day.`
+    ) {
+      return true
+    }
   }
 
   return false

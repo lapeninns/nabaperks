@@ -27,12 +27,14 @@ export type VenueLocationSubmission = {
   addressProviderId: string
   providerLatitude: string
   providerLongitude: string
+  tradingDayStartsAt: string
 }
 
 export type VenueLocationSubmissionErrors = VenueAddressFieldErrors & {
   venueName?: string
   geofenceRadiusMeters?: string
   softGeofenceTriggerStamp?: string
+  tradingDayStartsAt?: string
   form?: string
 }
 
@@ -51,6 +53,7 @@ export type VenueLocationPersistencePayload = {
   require_geofence: boolean
   soft_geofence_trigger_stamp_number: number
   geofence_pin_source: "geocoded" | "merchant_pin"
+  trading_day_starts_at: string
 }
 
 export type VenueLocationWritePayload = VenueLocationPersistencePayload & {
@@ -83,6 +86,7 @@ export function parseVenueLocationSubmission(
     addressProviderId: value(formData, "addressProviderId"),
     providerLatitude: value(formData, "providerLatitude"),
     providerLongitude: value(formData, "providerLongitude"),
+    tradingDayStartsAt: value(formData, "tradingDayStartsAt") || "05:00",
   }
 }
 
@@ -110,6 +114,11 @@ export function validateVenueLocationSubmission(
           submission.venueLongitude
         )
       : null
+
+  if (!isValidTradingDayStart(submission.tradingDayStartsAt)) {
+    errors.tradingDayStartsAt =
+      "Choose a rollover time from midnight to midday."
+  }
 
   if (!submission.venueName) {
     errors.venueName = "Enter the venue name."
@@ -236,6 +245,7 @@ export async function resolveVenueLocationPersistencePayload(
       require_geofence: submission.requireGeofence,
       soft_geofence_trigger_stamp_number: options.softGeofenceTriggerStamp ?? 3,
       geofence_pin_source: options.manualPin ? "merchant_pin" : "geocoded",
+      trading_day_starts_at: submission.tradingDayStartsAt,
     },
   }
 }
@@ -283,4 +293,16 @@ function value(formData: FormData, key: string) {
 function parseInteger(input: string) {
   if (!/^\d+$/.test(input)) return null
   return Number.parseInt(input, 10)
+}
+
+export function isValidTradingDayStart(input: string): boolean {
+  const match = /^(\d{2}):(\d{2})$/.exec(input)
+  if (!match) return false
+  const hours = Number.parseInt(match[1] ?? "", 10)
+  const minutes = Number.parseInt(match[2] ?? "", 10)
+  return (
+    minutes >= 0 &&
+    minutes < 60 &&
+    (hours < 12 || (hours === 12 && minutes === 0))
+  )
 }

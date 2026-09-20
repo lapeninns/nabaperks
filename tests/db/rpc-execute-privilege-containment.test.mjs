@@ -32,6 +32,8 @@ const AUTHENTICATED_DIRECT_RPCS = [
   "revoke_viewer_admin_webauthn_credential",
   "admin_adjust_membership_stamps",
   "admin_cancel_reward",
+  "admin_suspend_merchant",
+  "admin_reinstate_merchant",
   "admin_confirm_merchant_launch_delivered",
   "admin_resolve_fraud_flag",
   "admin_mark_merchant_launch_dispatched",
@@ -56,6 +58,9 @@ const AUTHENTICATED_DIRECT_RPCS = [
   "set_reward_pool_item_active",
   "add_reward_pool_presets",
   "save_loyalty_card_birthday_reward",
+  "save_venue_collection_windows",
+  "add_venue_closure",
+  "end_venue_closure",
   "delete_reward_pool_item",
   "create_bounded_merchant_reward_invite",
   "issue_merchant_direct_reward",
@@ -106,15 +111,13 @@ const AUTHENTICATED_ALLOWLIST = new Set([
 const MUST_BE_LOCKED = [
   "touch_customer_session_and_load",
   "get_customer_card_state",
-  "get_reward_collection_state",
-  "get_reward_collection_states",
-  "list_pending_reward_notification_candidates",
   "create_merchant_onboarding",
   "admin_purge_stale_customer_pii",
   "claim_due_notification_events",
   "enqueue_notification_event",
   "expire_due_reward_events",
   "record_notification_delivery",
+  "admit_notification_message_delivery",
   "record_operational_cron_run",
   "production_operational_signals",
   "production_operational_signals_v2",
@@ -136,6 +139,7 @@ const MUST_BE_LOCKED = [
   "issue_self_service_stamp",
   "consume_venue_code_attempt",
   "issue_venue_code_stamp",
+  "list_pending_next_stamp_available",
 ]
 
 const SERVICE_ROLE_EXCLUDED_FUNCTIONS = new Set([
@@ -150,6 +154,11 @@ const SERVICE_ROLE_EXCLUDED_FUNCTIONS = new Set([
   // Bound to auth.uid(): only the signed-in owner may read or reset the code.
   "get_venue_code_today",
   "rotate_venue_code",
+  "save_venue_collection_windows",
+  "add_venue_closure",
+  "end_venue_closure",
+  "admin_suspend_merchant",
+  "admin_reinstate_merchant",
   "require_eligible_reward_for_scan_token",
   "purge_merchant_id_checks_after_customer_erasure",
   "purge_customer_otp_devices_after_erasure",
@@ -163,7 +172,10 @@ after(closeDb)
 
 async function publicFunctions() {
   return db()`
-    select p.oid, p.proname
+    select
+      p.oid,
+      p.proname,
+      p.prorettype = 'pg_catalog.trigger'::regtype as is_trigger
     from pg_proc p
     join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public' and p.prokind = 'f'
@@ -225,7 +237,11 @@ test("service_role can execute every public function except internal hooks and o
   for (const fn of fns) {
     const [{ can }] = await db()`
       select has_function_privilege('service_role', ${fn.oid}::oid, 'EXECUTE') as can`
-    if (!can && !SERVICE_ROLE_EXCLUDED_FUNCTIONS.has(fn.proname)) {
+    if (
+      !can &&
+      !fn.is_trigger &&
+      !SERVICE_ROLE_EXCLUDED_FUNCTIONS.has(fn.proname)
+    ) {
       missing.push(fn.proname)
     }
   }

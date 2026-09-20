@@ -5,6 +5,7 @@ import "server-only"
 export {
   customerPhonePii,
   customerPhoneHmac,
+  decryptCustomerPhone,
   encryptCustomerPhone,
   maskedPhoneFromLast4,
 } from "@/lib/customer/phone-pii-core"

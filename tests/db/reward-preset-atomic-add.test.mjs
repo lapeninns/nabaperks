@@ -19,7 +19,7 @@ import {
 
 const MIGRATION_PATH = join(
   process.cwd(),
-  "supabase/migrations/20260710110000_atomic_reward_preset_add.sql"
+  "supabase/migrations/20260925100000_reward_pool_item_age_check.sql"
 )
 const LOCAL_DB_HOSTS = new Set(["127.0.0.1", "localhost"])
 const localDbUrl = resolveLocalDbUrl()
@@ -106,7 +106,8 @@ test(
           "is_active boolean",
           "display_order integer",
           "saved_action text",
-          "active_reward_count integer)",
+          "active_reward_count integer",
+          "requires_age_check boolean)",
         ].join(", "),
         "the action receives authoritative rows, outcomes, and the final active count"
       )
@@ -955,7 +956,7 @@ test(
 )
 
 test(
-  "the atomic reward-preset migration replays without widening its exact contract",
+  "the current reward-preset definition replays without changing its exact expanded contract",
   { skip },
   async () => {
     assert.ok(
@@ -963,15 +964,32 @@ test(
       "atomic reward-preset migration must exist (RED until implemented)"
     )
     const source = readFileSync(MIGRATION_PATH, "utf8")
+    const definitionStart = source.indexOf(
+      "create or replace function public.add_reward_pool_presets("
+    )
+    const definitionEndMarker =
+      "grant execute on function public.add_reward_pool_presets(uuid,uuid,jsonb)\n  to authenticated, service_role;"
+    const definitionEnd = source.indexOf(definitionEndMarker, definitionStart)
+    assert.ok(definitionStart >= 0, "the final public definition is present")
+    assert.ok(definitionEnd >= 0, "the final public grant is present")
+    const definition = source.slice(
+      definitionStart,
+      definitionEnd + definitionEndMarker.length
+    )
 
     await inRolledBackTxn(async (tx) => {
-      await tx.unsafe(source)
-      await tx.unsafe(source)
+      const [{ definition: beforeDefinition }] = await tx`
+        select pg_get_functiondef(
+          'public.add_reward_pool_presets(uuid, uuid, jsonb)'::regprocedure
+        ) as definition`
+      await tx.unsafe(definition)
+      await tx.unsafe(definition)
 
       const [contract] = await tx`
         select
           pg_get_function_identity_arguments(oid) as identity_arguments,
-          has_function_privilege('anon', oid, 'execute') as anon_can_execute
+          has_function_privilege('anon', oid, 'execute') as anon_can_execute,
+          pg_get_functiondef(oid) as definition
         from pg_proc
         where oid = 'public.add_reward_pool_presets(uuid, uuid, jsonb)'::regprocedure`
       assert.equal(
@@ -979,6 +997,11 @@ test(
         "p_merchant_id uuid, p_loyalty_card_id uuid, p_presets jsonb"
       )
       assert.equal(contract.anon_can_execute, false)
+      assert.equal(
+        contract.definition,
+        beforeDefinition,
+        "replaying the final defining block is byte-stable in PostgreSQL"
+      )
     })
   }
 )

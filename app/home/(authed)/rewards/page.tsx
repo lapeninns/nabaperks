@@ -7,6 +7,7 @@ import {
 } from "@/components/customer/reward-list-cards"
 import { formatDate } from "@/lib/customer/format"
 import { getCustomerRewards } from "@/lib/customer/rewards"
+import { formatCollectionAvailability } from "@/lib/customer/reward-collection-state"
 
 export const metadata = {
   title: "Your rewards · Nabaperks",
@@ -55,9 +56,8 @@ export default async function HomeRewardsPage() {
                   reward={reward}
                   tone="sun"
                   note={
-                    reward.redeemableFrom
-                      ? `Ready from ${formatDate(reward.redeemableFrom)}.`
-                      : "Available from the next UK business day."
+                    formatCollectionAvailability(reward.availableFrom) ??
+                    "Collection timing will appear here."
                   }
                 />
               ))}

@@ -29,9 +29,12 @@ import {
   isShareableReferralCode,
 } from "@/lib/customer/referral"
 import { getReferralBonusBanksByMembership } from "@/lib/customer/referral-bonus-bank"
-import { legacyRewardCollectionBatch,
-  loadCustomerRewardCollectionStates } from "@/lib/customer/reward-collection-batch"
-import { ukTodayIso } from "@/lib/customer/uk-date"
+import {
+  legacyRewardCollectionBatch,
+  loadCustomerRewardCollectionStates,
+} from "@/lib/customer/reward-collection-batch"
+import { parseCustomerCardStateRow } from "@/lib/customer/card-state-row"
+import { getVenueTradingDate } from "@/lib/customer/venue-trading-date"
 import {
   normalizeGoogleReviewUrl,
   normalizeVenueLocality,
@@ -148,7 +151,7 @@ export async function getCustomerHomeDashboard(): Promise<HomeDashboard> {
     supabase
       .from("reward_events")
       .select(
-        "id, membership_id, reward_name, redeemable_from, source, created_at"
+        "id, membership_id, reward_name, source, created_at, redeemable_from"
       )
       .in("membership_id", membershipIds)
       .eq("status", "unlocked"),
@@ -194,9 +197,8 @@ export async function getCustomerHomeDashboard(): Promise<HomeDashboard> {
   }
 
   const rewardRows = rewardsResult.data ?? []
-  const rewardIds = rewardRows.map((reward) => reward.id)
   const collectionsByReward = await loadCustomerRewardCollectionStates(
-    rewardIds,
+    rewardRows.map((reward) => reward.id),
     async (args) => {
       const result = await supabase.rpc("get_reward_collection_states", args)
       // App deployed ahead of the migration: placeholder blocks for one
@@ -216,8 +218,8 @@ export async function getCustomerHomeDashboard(): Promise<HomeDashboard> {
       }
     }
   )
-  const rewardsByMembership = buildRewardCountsByMembership(
-    rewardRows.map((reward) => {
+  const rewardsWithCollectionState: RawHomeReward[] = rewardRows.map(
+    (reward) => {
       const collection = collectionsByReward.get(reward.id)
       if (!collection) {
         throw new Error("Unable to load reward collection state")
@@ -226,12 +228,45 @@ export async function getCustomerHomeDashboard(): Promise<HomeDashboard> {
         ...reward,
         collection_state: collection.state,
         collection_reason: collection.reason,
-        redeemable_from: collection.availableFrom,
+        available_from: collection.availableFrom,
       }
-    }) as RawHomeReward[]
+    }
+  )
+  const rewardsByMembership = buildRewardCountsByMembership(
+    rewardsWithCollectionState
+  )
+  const policyNoticesByMembership = new Map(
+    await Promise.all(
+      memberships.map(async (membership) => {
+        const { data: cardStateData, error: cardStateError } =
+          await supabase.rpc("get_customer_card_state", {
+            p_membership_id: membership.id,
+            p_customer_id: customer.id,
+          })
+        if (cardStateError) {
+          throw new Error(
+            `Unable to load customer card state: ${cardStateError.message}`
+          )
+        }
+        const cardState = parseCustomerCardStateRow(cardStateData)
+        return [
+          membership.id,
+          cardState.status === "ready"
+            ? cardState.membership.policy_cutover_notice_at
+            : null,
+        ] as const
+      })
+    )
+  )
+  const tradingDateByMerchant = new Map(
+    await Promise.all(
+      merchantIds.map(
+        async (merchantId) =>
+          [merchantId, await getVenueTradingDate(merchantId)] as const
+      )
+    )
   )
 
-  const today = ukTodayIso()
   const cards: HomeCard[] = memberships.map((membership) => {
     const merchant = firstOf(membership.merchants)
     const card = cardByMerchant.get(membership.merchant_id) ?? null
@@ -275,6 +310,10 @@ export async function getCustomerHomeDashboard(): Promise<HomeDashboard> {
 
     return {
       membershipId: membership.id,
+      policyCutoverNoticeAt:
+        membership.current_stamp_count === 0
+          ? (policyNoticesByMembership.get(membership.id) ?? null)
+          : null,
       businessName: merchant?.business_name ?? "Unknown venue",
       businessSlug: merchant?.business_slug ?? "",
       locality: normalizeVenueLocality(merchant?.locals),
@@ -285,7 +324,9 @@ export async function getCustomerHomeDashboard(): Promise<HomeDashboard> {
       currentStamps,
       stampsRequired,
       stampDates,
-      stampedToday: stampInfo.latestBusinessDate === today,
+      stampedToday:
+        stampInfo.latestBusinessDate ===
+        tradingDateByMerchant.get(membership.merchant_id),
       lastVisitAt: membership.last_visit_at,
       stampsRemaining:
         stampsRequired !== null
@@ -296,8 +337,9 @@ export async function getCustomerHomeDashboard(): Promise<HomeDashboard> {
       ...(rewards.stampRewardId
         ? { stampRewardId: rewards.stampRewardId }
         : {}),
+      stampRewardName: rewards.stampRewardName,
       revealedRewardName: rewards.revealedRewardName,
-      revealedRewardRedeemableFrom: rewards.revealedRewardRedeemableFrom,
+      revealedRewardAvailableFrom: rewards.revealedRewardAvailableFrom,
       gift: rewards.gift,
       available: !unavailableReason,
       unavailableReason,

@@ -118,10 +118,10 @@ test(
       const [reward] = await tx`
         insert into public.reward_events
           (merchant_id, customer_id, membership_id, loyalty_card_id, status,
-           reward_name, reward_terms, redeemable_from, metadata, created_at, updated_at)
+           reward_name, reward_terms, redeemable_from, reward_policy_version, available_from, metadata, created_at, updated_at)
         values (${m.merchant_id}, ${m.customer_id}, ${m.membership_id}, ${m.loyalty_card_id},
                 'unlocked', 'Profile-gate reward', 'terms',
-                (now() at time zone 'Europe/London')::date, '{}'::jsonb, now(), now())
+                (now() at time zone 'Europe/London')::date, 'v2', now() - interval '1 minute', '{}'::jsonb, now() - interval '1 day', now())
         returning id`
 
       // Incomplete profile → minting a scan token is refused.

@@ -35,7 +35,7 @@ test("ready and expiry producers use fair pending candidates and one authoritati
   )
   // A recoverable setup block still receives the final expiry warning.
   assert.match(producer, /isCollectionSetupBlock\(collection\.reason\)/)
-  assert.match(producer, /!collection\.expiresAt/)
+  assert.match(producer, /expiresAt: collection\.expiresAt/)
   assert.match(producer, /nullableString\(row\.reward_event_id\)/)
 })
 

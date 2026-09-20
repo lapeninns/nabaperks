@@ -129,6 +129,7 @@ test("the consent step offers one-tap select-all without pre-ticking or hiding t
     /name="loyaltyTerms"[\s\S]*checked=\{loyaltyTermsAccepted\}/
   )
   assert.match(form, /name="marketingOptIn"[\s\S]*checked=\{marketingOptIn\}/)
-  assert.match(form, /Optional, unsubscribe any/)
+  assert.match(form, /offers from \{merchantName\} by WhatsApp or text/)
+  assert.match(form, /Optional, reply STOP or unsubscribe any time/)
   assert.doesNotMatch(form, /defaultChecked/)
 })

@@ -77,6 +77,8 @@ test("Given a reward QR image is requested When source is inspected Then token m
   )
   assert.match(route, /rewardQrAvailability\(/)
   assert.match(route, /collectionState: rewardState\.collection\.state/)
+  assert.match(route, /collectionReason: rewardState\.collection\.reason/)
+  assert.match(route, /availableFrom: rewardState\.collection\.availableFrom/)
   assert.match(route, /availability\.status !== "ready"/)
   assert.match(route, /!profile\?\.complete/)
   assert.doesNotMatch(route, /!profile\.dateOfBirthVerified/)
@@ -87,6 +89,7 @@ test("Given a reward QR image is requested When source is inspected Then token m
     route,
     /\{ status: 409, headers: \{ "Cache-Control": "private, no-store" \} \}/
   )
+  assert.match(route, /state: rewardState\.collection\.state/)
   assert.match(route, /rewardId,\s*customerId: rewardState\.customerId/)
   assert.match(
     route,

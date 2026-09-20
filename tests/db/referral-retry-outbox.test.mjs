@@ -92,6 +92,35 @@ async function eventCount(tx, edgeId, eventName) {
   return n
 }
 
+async function fillReferrerToOneShort(tx, seeded, merchantId) {
+  const [card] = await tx`
+    select id, location_id, stamps_required from public.loyalty_cards
+    where merchant_id = ${merchantId}::uuid and is_active
+    order by created_at asc limit 1`
+  const [{ earned }] = await tx`
+    select count(*)::integer as earned from public.stamp_events
+    where membership_id = ${seeded.referrer.membership_id}::uuid
+      and event_type = 'earned' and cycle_number = 1`
+  const missing = card.stamps_required - Number(earned) - 1
+  assert.ok(missing >= 0, "fixture starts before the completing stamp")
+  await tx`
+    insert into public.stamp_events (
+      merchant_id, customer_id, membership_id, loyalty_card_id, location_id,
+      event_type, stamps_delta, earned_business_date, cycle_number, metadata
+    )
+    select ${merchantId}::uuid, ${seeded.referrerCustomer}::uuid,
+           ${seeded.referrer.membership_id}::uuid, ${card.id}::uuid,
+           ${card.location_id}::uuid, 'earned', 1, null, 1,
+           jsonb_build_object('source', 'referral_completion_fixture')
+    from generate_series(1, ${missing}::integer)`
+  await tx`
+    update public.customer_memberships
+    set current_stamp_count = ${card.stamps_required - 1},
+        total_stamps_earned = total_stamps_earned + ${missing}
+    where id = ${seeded.referrer.membership_id}::uuid`
+  return card
+}
+
 // Referrer (no same-day stamp) + friend qualified, ready to settle/hold.
 async function seedQualified(tx, qr) {
   const referrerCustomer = await makeCustomer(tx)
@@ -189,8 +218,9 @@ test(
         "one referral_qualified notification (RO-2)"
       )
 
-      // Full card → hold → bonus-saved notification.
-      await tx`update public.customer_memberships set current_stamp_count = ${s.card.stamps_required} where id = ${s.referrer.membership_id}`
+      const card = await fillReferrerToOneShort(tx, s, qr.merchant_id)
+      await tx`update public.reward_pool_items set is_active = false
+        where loyalty_card_id = ${card.id}::uuid`
       await tx`select public.settle_referral_bonus(${s.edgeId}::uuid)`
       assert.equal(
         (await edgeRow(tx, s.friend.membership_id)).status,
@@ -211,8 +241,8 @@ test(
         "bonus-saved deduped (RO-6)"
       )
 
-      // Free room, settle → awarded notification (RO-4).
-      await tx`update public.customer_memberships set current_stamp_count = 0 where id = ${s.referrer.membership_id}`
+      await tx`update public.reward_pool_items set is_active = true
+        where loyalty_card_id = ${card.id}::uuid`
       await tx`select public.settle_referral_bonus(${s.edgeId}::uuid)`
       assert.equal(
         (await edgeRow(tx, s.friend.membership_id)).status,
@@ -258,24 +288,22 @@ test(
 )
 
 test(
-  "RO-7: a held card_full bonus settles on the referrer's next venue visit (stamp ordering)",
+  "RO-7: a due processing hold settles before the next venue visit",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
       const [qr] = await tx.unsafe(PICK_QR)
       const s = await seedQualified(tx, qr) // referrer joined without a same-day stamp
-      // Full card → hold card_full.
-      await tx`update public.customer_memberships set current_stamp_count = ${s.card.stamps_required} where id = ${s.referrer.membership_id}`
-      await tx`select public.settle_referral_bonus(${s.edgeId}::uuid)`
+      await tx`select public.hold_referral_bonus(
+        ${s.edgeId}::uuid, 'temporary_processing_error', 'retry fixture')`
       assert.equal(
         (await edgeRow(tx, s.friend.membership_id)).status,
         "held",
-        "held on the full card"
+        "held for retry"
       )
 
-      // Room frees and the referrer makes their next visit: the settlement stamp
-      // ordering hook settles the owed bonus before their own stamp — exactly once.
-      await tx`update public.customer_memberships set current_stamp_count = 0 where id = ${s.referrer.membership_id}`
+      await tx`update public.referrals set next_retry_at = now() - interval '1 minute'
+        where id = ${s.edgeId}::uuid`
       await tx`select * from public.issue_self_service_stamp(
       ${s.referrer.membership_id}::uuid, ${s.referrerCustomer}::uuid, ${qr.qr_id}, null, null)`
       assert.equal(
@@ -298,10 +326,10 @@ test(
   async () => {
     await inRolledBackTxn(async (tx) => {
       const [qr] = await tx.unsafe(PICK_QR_REWARDS)
-      if (!qr) return // no rewards-rich multi-stamp card seeded
+      assert.ok(qr, "a reward-backed card exists")
       const s = await seedQualified(tx, qr)
       // Completing bonus, but the pool is emptied → hold reward_unavailable.
-      await tx`update public.customer_memberships set current_stamp_count = ${qr.stamps_required - 1} where id = ${s.referrer.membership_id}`
+      await fillReferrerToOneShort(tx, s, qr.merchant_id)
       await tx`update public.reward_pool_items set is_active = false where loyalty_card_id = ${qr.loyalty_card_id}::uuid`
       await tx`select public.settle_referral_bonus(${s.edgeId}::uuid)`
       assert.equal(
@@ -327,28 +355,22 @@ test(
 )
 
 test(
-  "review hardening: a bonus that completes the card survives the QR transaction",
+  "review hardening: a completing bonus and the next-cycle visit survive one QR transaction",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
       const [qr] = await tx.unsafe(PICK_QR_REWARDS)
-      if (!qr) return
+      assert.ok(qr, "a reward-backed card exists")
       const s = await seedQualified(tx, qr)
-      await tx`update public.customer_memberships
-      set current_stamp_count = ${qr.stamps_required - 1}
-      where id = ${s.referrer.membership_id}`
-
-      const [before] = await tx`
-      select last_visit_at from public.customer_memberships
-      where id = ${s.referrer.membership_id}`
+      await fillReferrerToOneShort(tx, s, qr.merchant_id)
 
       const [result] = await tx`select * from public.issue_self_service_stamp(
       ${s.referrer.membership_id}::uuid, ${s.referrerCustomer}::uuid, ${qr.qr_id}, null, null)`
 
       assert.equal(
         result.reward_unlocked,
-        true,
-        "the scan reports the reward unlocked by the bonus"
+        false,
+        "the visit itself starts the next cycle without completing it"
       )
       assert.equal(
         (await bonusStamps(tx, s.referrer.membership_id)).length,
@@ -364,20 +386,25 @@ test(
       select count(*)::int as n from public.stamp_events
       where membership_id = ${s.referrer.membership_id}
         and event_type = 'earned'
-        and coalesce(metadata->>'source', '') <> 'referral_bonus'`
+        and metadata->>'source' = 'self_service_qr' and cycle_number = 2`
       assert.equal(
         visits,
-        0,
-        "the wrapper stops before adding a visit stamp to the completed card"
+        1,
+        "the visit is added to the next cycle opened by the referral bonus"
       )
       const [after] = await tx`
-      select last_visit_at from public.customer_memberships
-      where id = ${s.referrer.membership_id}`
-      assert.equal(
-        after.last_visit_at?.toISOString() ?? null,
-        before.last_visit_at?.toISOString() ?? null,
-        "a scan that skipped location verification is not counted as a visit"
+        select last_visit_at, current_stamp_count, active_cycle_number
+        from public.customer_memberships where id = ${s.referrer.membership_id}`
+      assert.ok(after.last_visit_at, "the actual visit updates last_visit_at")
+      assert.deepEqual(
+        { count: after.current_stamp_count, cycle: after.active_cycle_number },
+        { count: 1, cycle: 2 }
       )
+      const [{ rewards }] = await tx`
+        select count(*)::integer as rewards from public.reward_events
+        where membership_id = ${s.referrer.membership_id}::uuid
+          and source = 'stamp_cycle' and cycle_number = 1`
+      assert.equal(rewards, 1, "the bonus creates exactly one cycle-one reward")
       const [{ n: visitEvents }] = await tx`
       select count(*)::int as n from public.product_events
       where membership_id = ${s.referrer.membership_id}

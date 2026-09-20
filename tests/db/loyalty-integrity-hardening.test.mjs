@@ -472,7 +472,7 @@ async function driveToFullCard(tx, v, customerId) {
 }
 
 test(
-  "an unredeemed reward expires and hands the card back",
+  "an unredeemed reward expires without changing the already-open card",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
@@ -485,20 +485,10 @@ test(
       from public.customer_memberships where id = ${membershipId}`
       assert.equal(
         before.current_stamp_count,
-        v.stamps_required,
-        "card is full"
+        0,
+        "reward issuance opened an empty card"
       )
-      assert.equal(before.active_cycle_number, 1)
-
-      // A full card refuses new stamps until something clears it.
-      await ageStamps(tx, membershipId)
-      assert.equal(
-        await sqlstateOf(tx, (sp) =>
-          stampAt(sp, v, membershipId, customerId, { status: "denied" })
-        ),
-        "NBS02",
-        "a full card is parked"
-      )
+      assert.equal(before.active_cycle_number, 2)
 
       // Age the reward past its window and run the sweep.
       await tx`
@@ -515,18 +505,18 @@ test(
       assert.equal(
         after_.active_cycle_number,
         2,
-        "the cycle advanced on expiry"
+        "expiry does not advance the cycle"
       )
       assert.equal(after_.total_rewards_expired, 1)
       assert.equal(
         after_.current_stamp_count,
         0,
-        "the card was handed back empty"
+        "the already-open card remains empty"
       )
       assert.equal(
         after_.active_cycle_number,
-        after_.total_rewards_redeemed + after_.total_rewards_expired + 1,
-        "the counter identity still holds after an expiry"
+        before.active_cycle_number,
+        "the cycle identity is unchanged by expiry"
       )
 
       // And the customer can collect again — the point of the whole change.
@@ -746,6 +736,19 @@ test(
         update public.customer_memberships
         set current_stamp_count = 3
         where id = ${refused.membershipId}::uuid`
+      await tx`
+        insert into public.stamp_events (
+          merchant_id, customer_id, membership_id, loyalty_card_id, location_id,
+          event_type, stamps_delta, earned_business_date, cycle_number, metadata
+        )
+        select ${refused.merchantId}::uuid,
+               ${refused.customerId}::uuid,
+               ${refused.membershipId}::uuid,
+               ${refused.cardId}::uuid,
+               ${refused.locationId}::uuid,
+               'earned', 1, null, 1,
+               jsonb_build_object('source', 'refusal_fixture')
+        from generate_series(1, 3)`
 
       const [{ healed }] = await tx`
         select public.release_completed_cycles_without_reward(2) as healed`
@@ -755,7 +758,11 @@ test(
         select sqlstate, attempt_count, last_failed_at
         from public.reward_cycle_heal_failures
         where membership_id = ${refused.membershipId}::uuid`
-      assert.equal(failure.sqlstate, "NBS15")
+      assert.equal(
+        failure.sqlstate,
+        "NBS03",
+        "the missing reward pool is recorded without aborting the batch"
+      )
       assert.equal(failure.attempt_count, 1)
 
       const [healthyReward] = await tx`
@@ -842,7 +849,10 @@ test(
       1,
       "the superseded 7-argument signature must be gone"
     )
-    assert.match(rows[0].signature, /boolean,\s?integer\)$/)
+    assert.equal(
+      rows[0].signature,
+      "save_loyalty_card(uuid,uuid,text,integer,text,text,boolean,integer,integer,boolean)"
+    )
     // The merchant desk calls this through the user-JWT client; losing this grant
     // in the drop/recreate would take the card screen down.
     assert.equal(rows[0].authenticated_may_execute, true)

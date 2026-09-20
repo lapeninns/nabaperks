@@ -16,6 +16,11 @@ function readProjectFile(...segments) {
 test("Given marketing consent spans channels When push notifications deliver Then only push consent is authoritative", () => {
   const events = readProjectFile("lib", "notifications", "events.ts")
   const worker = readProjectFile("lib", "notifications", "delivery-worker.ts")
+  const decision = readProjectFile(
+    "lib",
+    "notifications",
+    "delivery-decision.ts"
+  )
   const announcements = readProjectFile(
     "lib",
     "notifications",
@@ -37,7 +42,8 @@ test("Given marketing consent spans channels When push notifications deliver The
     /\.from\("consent_records"\)[\s\S]*\.eq\("channel", "push"\)[\s\S]*latestPushMarketingConsentOptedIn/
   )
   assert.match(events, /hasPushMarketingConsent/)
-  assert.match(worker, /hasPushMarketingConsent/)
+  assert.match(worker, /resolveNotificationDeliveryDecision/)
+  assert.match(decision, /hasPushMarketingConsent/)
   assert.match(announcements, /resolveVenueAnnouncementAudienceCustomerIds/)
   assert.match(core, /pushMarketingConsentCustomerIds/)
   assert.match(core, /function isPushMarketingConsentOptedIn/)

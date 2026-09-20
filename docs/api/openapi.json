@@ -96,6 +96,159 @@
         }
       }
     },
+    "/api/twilio/status": {
+      "post": {
+        "summary": "Receive Twilio customer-message delivery status",
+        "operationId": "postTwilioCustomerMessageStatus",
+        "description": "Validates the X-Twilio-Signature against the canonical query-bearing callback URL and applies a monotonic status to the delivery identified by delivery_id and MessageSid.",
+        "x-source": "app/api/twilio/status/route.ts",
+        "security": [],
+        "parameters": [
+          {
+            "name": "delivery_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "X-Twilio-Signature",
+            "in": "header",
+            "required": true,
+            "description": "Twilio HMAC-SHA1 signature over the canonical query-bearing callback URL and every form field.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": ["MessageSid", "MessageStatus"],
+                "properties": {
+                  "MessageSid": {
+                    "type": "string",
+                    "pattern": "^(SM|MM)[0-9A-Fa-f]{32}$"
+                  },
+                  "MessageStatus": {
+                    "enum": [
+                      "accepted",
+                      "scheduled",
+                      "queued",
+                      "sending",
+                      "sent",
+                      "delivered",
+                      "read",
+                      "undelivered",
+                      "failed",
+                      "canceled"
+                    ]
+                  },
+                  "ErrorCode": {
+                    "type": "string",
+                    "pattern": "^[0-9]{1,8}$"
+                  }
+                },
+                "additionalProperties": { "type": "string" }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The signed callback was applied or acknowledged as an idempotent duplicate or stale status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["ok"],
+                  "properties": { "ok": { "const": true } }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The form payload or delivery identifier was invalid."
+          },
+          "401": { "description": "The Twilio signature was invalid." },
+          "413": { "description": "The form body exceeded the webhook limit." },
+          "415": {
+            "description": "The request was not URL-encoded form data."
+          },
+          "503": {
+            "description": "Webhook credentials are missing or the delivery cannot yet be correlated."
+          }
+        }
+      }
+    },
+    "/api/twilio/inbound": {
+      "post": {
+        "summary": "Receive Twilio customer-message replies",
+        "operationId": "postTwilioCustomerMessageInbound",
+        "description": "Validates the X-Twilio-Signature, classifies STOP, START and HELP, and records only a sender HMAC and keyword. The plaintext sender and body are not stored.",
+        "x-source": "app/api/twilio/inbound/route.ts",
+        "security": [],
+        "parameters": [
+          {
+            "name": "X-Twilio-Signature",
+            "in": "header",
+            "required": true,
+            "description": "Twilio HMAC-SHA1 signature over the canonical inbound URL and every form field.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": ["MessageSid", "From"],
+                "properties": {
+                  "MessageSid": {
+                    "type": "string",
+                    "pattern": "^(SM|MM)[0-9A-Fa-f]{32}$"
+                  },
+                  "From": {
+                    "type": "string",
+                    "pattern": "^(whatsapp:)?\\+[1-9][0-9]{7,14}$"
+                  },
+                  "Body": { "type": "string" },
+                  "OptOutType": { "enum": ["STOP", "START", "HELP"] }
+                },
+                "additionalProperties": { "type": "string" }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The signed inbound message was recorded and an XML TwiML response returned. Advanced Opt-Out callbacks receive an empty Response element because Twilio has already replied.",
+            "content": {
+              "application/xml": {
+                "schema": {
+                  "type": "string",
+                  "description": "TwiML Response with zero or one Message element."
+                }
+              }
+            }
+          },
+          "400": { "description": "The form payload was invalid." },
+          "401": { "description": "The Twilio signature was invalid." },
+          "413": { "description": "The form body exceeded the webhook limit." },
+          "415": {
+            "description": "The request was not URL-encoded form data."
+          },
+          "429": { "description": "The sender rate limit was exceeded." },
+          "500": {
+            "description": "The verified inbound message could not be persisted."
+          },
+          "503": {
+            "description": "Webhook or phone-HMAC configuration is unavailable."
+          }
+        }
+      }
+    },
     "/api/email/unsubscribe/invite/{token}": {
       "post": {
         "summary": "Suppress future venue invite email",

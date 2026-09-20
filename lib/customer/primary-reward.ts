@@ -56,9 +56,9 @@ export function pickPrimaryUnlockedReward<T extends UnlockedRewardPickRow>(
  * Only stamp-cycle rewards block new stamps and stamp-route QR collection.
  * Issued rewards (birthday, merchant direct) redeem on their own rail.
  */
-export function pickStampBlockingUnlockedReward<
-  T extends UnlockedRewardPickRow,
->(rows: readonly T[]): T | null {
+export function pickStampBlockingUnlockedReward<T extends UnlockedRewardPickRow>(
+  rows: readonly T[]
+): T | null {
   return pickPrimaryUnlockedReward(
     rows.filter((row) => (row.source ?? "stamp_cycle") === "stamp_cycle")
   )

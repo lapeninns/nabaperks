@@ -74,6 +74,9 @@ async function insertUnlockedReward(tx, fixture) {
       reward_name,
       reward_terms,
       redeemable_from,
+      reward_policy_version,
+      available_from,
+      created_at,
       metadata
     ) values (
       ${fixture.merchantId}::uuid,
@@ -84,6 +87,9 @@ async function insertUnlockedReward(tx, fixture) {
       'Verified DOB test reward',
       'Subject to availability.',
       public.uk_business_date(now()),
+      'v2',
+      now() - interval '1 minute',
+      now() - interval '1 day',
       '{}'::jsonb
     )
     returning id`
@@ -201,7 +207,10 @@ test(
               ${reviewToken.scan_token}::uuid, ${fixture.merchantId}::uuid
             )`
             ),
-          /verified adult date of birth required/i
+          (error) =>
+            error.code === "P0001" &&
+            error.message ===
+              "Customer must have verified photo ID and be 18 or over to redeem"
         )
         await assert.rejects(
           () =>
@@ -222,7 +231,10 @@ test(
                 ${rewardId}::uuid, ${fixture.customerId}::uuid, null, null
               )`
             ),
-          /verified adult date of birth required/i
+          (error) =>
+            error.code === "P0001" &&
+            error.message ===
+              "Customer must have verified photo ID and be 18 or over to redeem"
         )
       })
 
@@ -318,6 +330,9 @@ test(
         from public.reward_events
         where customer_id = ${fixture.customerId}::uuid
           and source = 'birthday_month'`
+      await tx`
+        update public.reward_events set available_from = now() - interval '1 minute'
+        where id = ${birthdayReward.id}::uuid`
       const [minted] = await tx`
         select * from public.create_reward_scan_token(
           ${birthdayReward.id}::uuid, ${fixture.customerId}::uuid

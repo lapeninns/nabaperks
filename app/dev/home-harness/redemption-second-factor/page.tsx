@@ -16,6 +16,16 @@ const BASE_REWARD = {
   rewardName: "A mystery reward",
   rewardTerms: "Ask the team when you collect.",
   redeemableFrom: null,
+  availableFrom: null,
+  expiresAt: "2026-12-24T15:00:00Z",
+  requiresAgeCheck: true,
+  earningTerms: "One stamp per visit.",
+  inWindow: false,
+  windowEndsAt: null,
+  upgradeRewardName: null,
+  nextWindowStartsAt: null,
+  nextWindowEndsAt: null,
+  nextWindowUpgradeName: null,
 } as const
 
 function profileGate(gate: string): ProfileGate {

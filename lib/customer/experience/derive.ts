@@ -68,10 +68,7 @@ export type CardContext =
       current: number
       total: number
       reward: {
-        id: string
-        name: string
-        terms: string
-        redeemableFrom: string | null
+        view: RewardView
         redeemable: boolean
       } | null
       /** Issued reward (birthday/merchant) to show as a distinct gift chip. */
@@ -79,7 +76,7 @@ export type CardContext =
         id: string
         name: string
         source: CardGift["source"]
-        redeemableFrom: string | null
+        availableFrom: string | null
         redeemable: boolean
       } | null
       rewardTerms: string
@@ -208,7 +205,7 @@ function deriveCard(context: CardContext): CustomerExperience {
         rewardName: giftReward.name,
         source: giftReward.source,
         redeemable: giftReward.redeemable,
-        redeemableFrom: giftReward.redeemableFrom,
+        availableFrom: giftReward.availableFrom,
       }
     : null
 
@@ -223,10 +220,11 @@ function deriveCard(context: CardContext): CustomerExperience {
     total: context.total,
     slamIndex: context.justStamped ? context.current - 1 : -1,
     reward: rewardStatus,
-    rewardId: reward?.id,
-    rewardName: reward?.name,
-    rewardTerms: reward?.terms ?? context.rewardTerms,
-    rewardRedeemableFrom: reward?.redeemableFrom ?? null,
+    rewardId: reward?.view.rewardId,
+    rewardName: reward?.view.rewardName,
+    rewardTerms: reward?.view.rewardTerms ?? context.rewardTerms,
+    rewardRedeemableFrom: reward?.view.redeemableFrom ?? null,
+    walletReward: reward?.view,
     gift,
     stampDates: context.stampDates,
     justStamped: context.justStamped,
@@ -326,12 +324,6 @@ function deriveStamp(context: StampContext): CustomerExperience {
     return { kind: "unavailable", reason: FULL_CARD_NO_REWARD_REASON }
   }
 
-  // A completed card whose reward is not yet redeemable holds on the live card —
-  // the customer keeps the full grid and reveal, with the reward one tap away —
-  // instead of the stamp screen swapping straight to the waiting voucher. There
-  // is nothing to collect at the counter until the next UK business day, so the
-  // calm card moment is allowed to breathe. A ready reward still falls through to
-  // its own state below (the route redirects to collect it now).
   const heldReward = heldStampReward(context)
   if (heldReward) {
     return stampScreenExperience("card_stamped_today", context, heldReward)
@@ -572,11 +564,7 @@ function accessProblemReason(access: AccessProblem): string {
 function stripRedeemable(
   reward: RewardView & { redeemable: boolean }
 ): RewardView {
-  return {
-    rewardId: reward.rewardId,
-    membershipId: reward.membershipId,
-    rewardName: reward.rewardName,
-    rewardTerms: reward.rewardTerms,
-    redeemableFrom: reward.redeemableFrom,
-  }
+  const { redeemable, ...view } = reward
+  void redeemable
+  return view
 }

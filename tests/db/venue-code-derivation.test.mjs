@@ -74,12 +74,21 @@ test(
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
+      const [[venue]] = [await tx.unsafe(PICK_TWO)]
+      assert.ok(venue, "a seeded venue exists")
+
       // Cast to text: the client would otherwise hand back a JS Date in local time.
       const [row] = await tx`
       select
-        private.venue_code_day('2026-09-07T04:59:00+01:00'::timestamptz)::text as before_five,
-        private.venue_code_day('2026-09-07T05:00:00+01:00'::timestamptz)::text as at_five,
-        private.venue_code_day('2026-09-07T00:10:00+01:00'::timestamptz)::text as after_midnight`
+        private.venue_code_day(
+          ${venue.id}::uuid, '2026-09-07T04:59:00+01:00'::timestamptz
+        )::text as before_five,
+        private.venue_code_day(
+          ${venue.id}::uuid, '2026-09-07T05:00:00+01:00'::timestamptz
+        )::text as at_five,
+        private.venue_code_day(
+          ${venue.id}::uuid, '2026-09-07T00:10:00+01:00'::timestamptz
+        )::text as after_midnight`
 
       assert.equal(
         String(row.before_five),
@@ -139,7 +148,7 @@ test("no API role can read the seed or derive a code", { skip }, async () => {
           ${role}, 'private.venue_code_for(uuid, timestamptz)', 'EXECUTE'
         ) as derive,
         has_function_privilege(
-          ${role}, 'private.venue_code_day(timestamptz)', 'EXECUTE'
+          ${role}, 'private.venue_code_day(uuid, timestamptz)', 'EXECUTE'
         ) as day`
     // Schema-level USAGE is deliberately granted (20260902138000) so PostgREST
     // can call the private pre-request guard on every request; containment here

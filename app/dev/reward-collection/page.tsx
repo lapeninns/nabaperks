@@ -21,6 +21,16 @@ const REWARD = {
   rewardTerms:
     "Harness fixture reward. The venue team confirms the eligible item.",
   redeemableFrom: "2026-09-14",
+  availableFrom: "2026-09-14T05:00:00Z",
+  expiresAt: "2026-11-09T15:00:00Z",
+  requiresAgeCheck: true,
+  earningTerms: "One stamp per visit.",
+  inWindow: false,
+  windowEndsAt: null,
+  upgradeRewardName: null,
+  nextWindowStartsAt: "2026-09-15T12:00:00Z",
+  nextWindowEndsAt: "2026-09-15T15:00:00Z",
+  nextWindowUpgradeName: "Free starter",
 }
 
 const LONG_REWARD = {

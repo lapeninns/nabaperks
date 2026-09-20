@@ -32,15 +32,15 @@ test.describe("@customer-flow customer issued rewards wallet", () => {
     await expect(page.getByText("Birthday treat").first()).toBeVisible()
     await expect(page.getByText("Sent by The Anchor").first()).toBeVisible()
 
-    // Expiry note on an issued reward.
-    await expect(page.getByText("Expires 15 Aug 2026").first()).toBeVisible()
+    // Expiry note on an issued reward: the collection deadline in London time.
+    await expect(
+      page.getByText("Expires Sat 15 Aug at 13:00").first()
+    ).toBeVisible()
 
     // Earned reward still renders its collect CTA.
     await expect(page.getByText("Open reward QR").first()).toBeVisible()
 
     // History still buckets expired rewards.
-    await expect(
-      page.getByRole("heading", { name: "Expired" })
-    ).toBeVisible()
+    await expect(page.getByRole("heading", { name: "Expired" })).toBeVisible()
   })
 })

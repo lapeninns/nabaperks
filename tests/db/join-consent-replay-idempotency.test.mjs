@@ -169,6 +169,7 @@ async function joinConsentCount(tx, fixture) {
     select count(*)::int as n from public.consent_records
     where customer_id = ${fixture.customerId}::uuid
       and source = 'customer_join'
+      and channel = 'email'
       and consent_status = 'opted_in'`
   return row.n
 }

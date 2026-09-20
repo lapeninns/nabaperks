@@ -46,7 +46,12 @@ import {
 } from "@/lib/customer/experience/copy"
 import { rewardSourceBadge } from "@/lib/customer/issued-reward-display"
 import { hasVisibleReferralBonusBank } from "@/lib/customer/referral-bonus-bank-copy"
-import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
+import {
+  collectionWindowCopy,
+  formatCollectionAvailability,
+  formatCollectionAvailableLabel,
+  formatCollectionDeadline,
+} from "@/lib/customer/reward-collection-state"
 import { OfferPassRail } from "@/components/customer/offer-pass-rail"
 import type { CustomerOfferPass } from "@/lib/customer/offer-pass"
 import type { OfferClaimNotice } from "@/lib/customer/offer-pass-view"
@@ -175,9 +180,10 @@ function CardProgressPanel({
     rewardState === "sealed"
       ? SEALED_REWARD_NAME
       : (exp.rewardName ?? "Your reward")
+  const walletReward = exp.walletReward
   const rewardReadyDate =
-    rewardState === "waiting" && exp.rewardRedeemableFrom
-      ? formatStampDisplayDateFromIso(exp.rewardRedeemableFrom)
+    rewardState === "waiting" && walletReward?.availableFrom
+      ? formatCollectionAvailableLabel(walletReward.availableFrom)
       : null
   // The bottom band is purely informational only in the "stamp secured" case;
   // every other branch (redeem, waiting, blocked, scan prompt) is an instruction
@@ -188,36 +194,12 @@ function CardProgressPanel({
     exp.reward !== "waiting"
   const hasPrimaryAction = !stampSecuredOnly
 
-  const rewardDetails = <>{exp.rewardTerms}</>
-  let rewardDescription: ReactNode
-  if (rewardState === "sealed") {
-    // Show the longer mystery terms only when the action band is informational
-    // (stamp secured), not while it is instructing the customer to act.
-    rewardDescription = hasPrimaryAction ? (
-      SEALED_REWARD_NOTE
-    ) : (
-      <>
-        {SEALED_REWARD_NOTE} {exp.rewardTerms}
-      </>
-    )
-  } else if (rewardState === "waiting") {
-    // The waiting notice in the action band already explains the wait.
-    rewardDescription = hasPrimaryAction ? undefined : (
-      <>
-        {rewardDetails}
-        {` Give it a day to breathe. ${waitingRewardTiming(exp.rewardRedeemableFrom)}`}
-      </>
-    )
-  } else {
-    rewardDescription = hasPrimaryAction ? (
-      rewardDetails
-    ) : (
-      <>
-        {rewardDetails}
-        {" Reward ready for merchant scan."}
-      </>
-    )
-  }
+  const rewardDescription = cardRewardDescription({
+    state: rewardState,
+    hasPrimaryAction,
+    terms: exp.rewardTerms,
+    availableFrom: walletReward?.availableFrom ?? null,
+  })
 
   return (
     <div className="grid gap-4">
@@ -253,6 +235,12 @@ function CardProgressPanel({
           name: rewardName,
           description: rewardDescription,
           readyDate: rewardReadyDate,
+          requiresAgeCheck: walletReward?.requiresAgeCheck,
+          earningTerms: walletReward?.earningTerms,
+          expiryText: formatCollectionDeadline(walletReward?.expiresAt ?? null),
+          collectionWindowText: walletReward
+            ? collectionWindowCopy(walletReward)
+            : null,
         }}
         hideFooter
         hideHeaderText
@@ -265,11 +253,7 @@ function CardProgressPanel({
               // the ticket below shows the now-revealed reward.
               <RewardCelebration
                 title="That's the full card."
-                message={
-                  exp.reward === "ready"
-                    ? "Your reward is ready, claim it at the counter while you're here."
-                    : "Your reward is yours from opening time on the next UK business day."
-                }
+                message={completedCardMessage(exp, walletReward?.availableFrom)}
               />
             ) : exp.justJoined &&
               !exp.firstStampRecovery &&
@@ -345,6 +329,43 @@ function CardProgressPanel({
   )
 }
 
+function cardRewardDescription({
+  state,
+  hasPrimaryAction,
+  terms,
+  availableFrom,
+}: {
+  state: RewardTicketState
+  hasPrimaryAction: boolean
+  terms: string
+  availableFrom: string | null
+}): ReactNode {
+  if (state === "sealed") {
+    return hasPrimaryAction
+      ? SEALED_REWARD_NOTE
+      : `${SEALED_REWARD_NOTE} ${terms}`
+  }
+  if (state === "waiting") {
+    return hasPrimaryAction
+      ? undefined
+      : `${terms} Give it a day to breathe. ${waitingRewardTiming(availableFrom)}`
+  }
+  return hasPrimaryAction ? terms : `${terms} Reward ready for merchant scan.`
+}
+
+function completedCardMessage(
+  exp: Extract<CustomerExperience, { kind: "card_collecting" }>,
+  availableFrom: string | null | undefined
+): string {
+  if (exp.reward === "ready") {
+    return "Your reward is ready, claim it at the counter while you're here."
+  }
+  return (
+    formatCollectionAvailability(availableFrom ?? null) ??
+    "Open your reward for collection timing."
+  )
+}
+
 /**
  * A birthday / merchant-sent reward shown as a distinct gift beside the card —
  * on its own rail, never implying the stamp card is complete. Redeemable gifts
@@ -367,13 +388,13 @@ function CardPrimaryAction({
   ) : exp.reward === "waiting" ? (
     <StatusNotice
       title="Give it a day to breathe"
-      message={waitingRewardTiming(exp.rewardRedeemableFrom)}
+      message={waitingRewardTiming(exp.walletReward?.availableFrom ?? null)}
     />
   ) : exp.justStamped ? (
     // Today's stamp is already on the card — confirm it instead of
     // prompting another scan, which would read as a failure.
     <StatusBanner title="Stamp secured." tone="success">
-      Your next scan window opens on the next UK business day.
+      Your next scan window opens after the venue&apos;s daily reset.
     </StatusBanner>
   ) : (
     // One action and one line: the instruction lives in the button,
@@ -416,9 +437,8 @@ function CardGiftChip({
         </Button>
       ) : (
         <p className="text-xs text-muted-foreground">
-          {gift.redeemableFrom
-            ? `Ready ${formatStampDisplayDateFromIso(gift.redeemableFrom)}.`
-            : "Ready from the next opening day."}
+          {formatCollectionAvailability(gift.availableFrom) ??
+            "Collection timing will appear here."}
         </p>
       )}
     </div>
@@ -501,7 +521,7 @@ function CardDetailsDisclosure({ cardNumber }: { cardNumber: string }) {
       <dl className="mono-id mt-2 grid gap-1.5 tracking-[0.08em] text-muted-foreground">
         <div className="flex justify-between gap-3">
           <dt>{cardNumber}</dt>
-          <dd>One stamp per UK business day</dd>
+          <dd>One stamp per venue trading day</dd>
         </div>
       </dl>
     </details>
@@ -685,7 +705,8 @@ function landscapeCompact(experience: CustomerExperience): boolean {
   // is the instruction and must not shrink.
   return (
     experience.kind === "reward_ready" &&
-    !collectionSetup(experience.profileGate).outstanding
+    !collectionSetup(experience.profileGate, experience.reward.requiresAgeCheck)
+      .outstanding
   )
 }
 
@@ -703,9 +724,13 @@ function collectionProgress(
       : experience.kind === "reward_waiting" && experience.preparing
         ? experience.profileGate
         : undefined
-  if (!gate) return undefined
+  const reward =
+    experience.kind === "reward_ready" || experience.kind === "reward_waiting"
+      ? experience.reward
+      : undefined
+  if (!gate || !reward) return undefined
 
-  const setup = collectionSetup(gate)
+  const setup = collectionSetup(gate, reward.requiresAgeCheck)
   if (!collectionProgressVisible(setup)) return undefined
 
   return { step: setup.step, total: setup.total, label: "Collection setup" }

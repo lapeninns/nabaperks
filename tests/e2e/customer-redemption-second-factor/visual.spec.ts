@@ -13,7 +13,7 @@ test("hides collection value until the profile email is verified", async ({
   ).toBeVisible()
   await expect(page.getByAltText(/QR code for collecting/i)).toHaveCount(0)
   await expect(
-    page.getByRole("button", { name: "Save and email my code" })
+    page.getByRole("button", { name: "Save and continue" })
   ).toBeVisible()
   await expectNoAxeViolations(page, "reward collection second-factor gate")
   expect(
@@ -29,7 +29,7 @@ test("hides collection value until the profile email is verified", async ({
     page.getByLabel("Full name"),
     page.getByLabel("Date of birth"),
     page.getByLabel("Email address"),
-    page.getByRole("button", { name: "Save and email my code" }),
+    page.getByRole("button", { name: "Save and continue" }),
   ]) {
     await field.focus()
     await expect
@@ -42,6 +42,6 @@ test("hides collection value until the profile email is verified", async ({
       .toBe(true)
   }
 
-  await page.getByRole("button", { name: "Save and email my code" }).click()
+  await page.getByRole("button", { name: "Save and continue" }).click()
   await expect(page.getByLabel("Email address")).toBeFocused()
 })

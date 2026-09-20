@@ -6,11 +6,11 @@ import {
   reconcileCardStampCount,
   stampDisplayLabelsForCount,
 } from "@/lib/customer/card"
-import { legacyRewardBlocksStamps } from "@/lib/customer/legacy-reward-stamp-block"
 import { getStampQrContextForMembership } from "@/lib/customer/join"
+import { legacyRewardBlocksStamps } from "@/lib/customer/legacy-reward-stamp-block"
 import { getMembershipLocationRequirement } from "@/lib/customer/stamp"
 import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
-import { ukTodayIso } from "@/lib/customer/uk-date"
+import { getVenueTradingDate } from "@/lib/customer/venue-trading-date"
 import { customerLoginHref } from "@/lib/navigation/safe-next-path"
 import { logger } from "@/lib/observability/logger"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
@@ -22,7 +22,7 @@ const DEFAULT_LOCATION = { requireGeofence: false, geofenceRadiusMeters: 150 }
 
 /**
  * Impure loader for the stamp route. Resolves card state, an unlocked reward,
- * whether the customer is already stamped for the UK business day, and the
+ * whether the customer is already stamped for the venue trading day, and the
  * scanned QR — then hands pure facts to {@link deriveCustomerExperience}.
  */
 export async function loadStampExperienceContext(
@@ -60,7 +60,6 @@ export async function loadStampExperienceContext(
     }
   }
 
-  // Only a legacy full card blocks new stamps while its reward is uncollected.
   const unlocked = cardState.stampCycleReward
   if (
     unlocked &&
@@ -78,6 +77,16 @@ export async function loadStampExperienceContext(
       rewardName: unlocked.reward_name,
       rewardTerms: unlocked.reward_terms,
       redeemableFrom: unlocked.redeemable_from,
+      availableFrom: unlocked.available_from,
+      expiresAt: unlocked.expires_at,
+      requiresAgeCheck: unlocked.requires_age_check,
+      earningTerms: unlocked.earning_terms,
+      inWindow: unlocked.in_window,
+      windowEndsAt: unlocked.window_ends_at,
+      upgradeRewardName: unlocked.upgrade_reward_name,
+      nextWindowStartsAt: unlocked.next_window_starts_at,
+      nextWindowEndsAt: unlocked.next_window_ends_at,
+      nextWindowUpgradeName: unlocked.next_window_upgrade_name,
       redeemable,
     }
 
@@ -86,7 +95,8 @@ export async function loadStampExperienceContext(
     // instant swap to the waiting voucher. Load the card progress so that held
     // card can render. A ready reward instead surfaces its collection path now.
     if (!redeemable) {
-      const progress = await loadCardProgress(cardState)
+      const tradingDate = await getVenueTradingDate(cardState.merchant.id)
+      const progress = await loadCardProgress(cardState, tradingDate)
       return {
         membershipId,
         merchantName,
@@ -156,9 +166,10 @@ export async function loadStampExperienceContext(
         (error: unknown) => ({ ok: false as const, error })
       )
     : Promise.resolve({ ok: true as const, value: null })
+  const tradingDate = await getVenueTradingDate(cardState.merchant.id)
   const [progress, stampedToday] = await Promise.all([
-    loadCardProgress(cardState),
-    isStampedToday(membershipId),
+    loadCardProgress(cardState, tradingDate),
+    isStampedToday(membershipId, tradingDate),
   ])
 
   if (stampedToday) {
@@ -225,15 +236,18 @@ export async function loadStampExperienceContext(
 }
 
 /** Card name, current/total stamps, dates, and today's label for the stamp UI. */
-async function loadCardProgress(cardState: {
-  membership: {
-    id: string
-    current_stamp_count: number
-    active_cycle_number: number
-  }
-  loyaltyCard: { card_name: string; stamps_required: number } | null
-}) {
-  const todayLabel = formatStampDisplayDateFromIso(ukTodayIso())
+async function loadCardProgress(
+  cardState: {
+    membership: {
+      id: string
+      current_stamp_count: number
+      active_cycle_number: number
+    }
+    loyaltyCard: { card_name: string; stamps_required: number } | null
+  },
+  tradingDate: string
+) {
+  const todayLabel = formatStampDisplayDateFromIso(tradingDate)
   const loyaltyCard = cardState.loyaltyCard
   if (!loyaltyCard) {
     return { cardName: "", current: 0, total: 0, stampDates: [], todayLabel }
@@ -263,7 +277,10 @@ async function loadCardProgress(cardState: {
 }
 
 /** True when the membership already has an `earned` stamp for today's UK date. */
-async function isStampedToday(membershipId: string): Promise<boolean> {
+async function isStampedToday(
+  membershipId: string,
+  tradingDate: string
+): Promise<boolean> {
   const supabase = createSupabaseServiceRoleClient()
   const { data, error } = await supabase
     .from("stamp_events")
@@ -284,5 +301,5 @@ async function isStampedToday(membershipId: string): Promise<boolean> {
       ? data.earned_business_date
       : null
 
-  return latest !== null && latest === ukTodayIso()
+  return latest !== null && latest === tradingDate
 }

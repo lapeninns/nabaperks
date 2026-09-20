@@ -79,7 +79,7 @@ test("Given two QR stamp attempts When they race for one membership Then only on
   }
 })
 
-test("Given two reward collection scans When they race for one token Then only one collection advances the cycle", async () => {
+test("Given two reward collection scans When they race for one token Then only one collection redeems without changing the opened cycle", async () => {
   const setupSql = createSqlClient()
   const firstSql = createSqlClient()
   const secondSql = createSqlClient()
@@ -258,7 +258,7 @@ test("Given billing is past due When a merchant sends a direct reward Then no re
   }
 })
 
-test("Given billing lapses after token mint When collection is attempted Then reward and token remain untouched", async () => {
+test("Given billing lapses after token mint When collection is attempted Then collection succeeds during the 30-day grace", async () => {
   const sql = createSqlClient()
 
   try {
@@ -274,10 +274,7 @@ test("Given billing lapses after token mint When collection is attempted Then re
       set status = 'past_due'
       where merchant_id = ${fixture.merchantId}::uuid`
 
-    await assert.rejects(
-      () => collectReward(sql, fixture),
-      /billing|unavailable/i
-    )
+    await collectReward(sql, fixture)
 
     const [{ rewardStatus, consumedAt, currentStampCount, activeCycleNumber }] =
       await sql`
@@ -297,10 +294,53 @@ test("Given billing lapses after token mint When collection is attempted Then re
         from public.customer_memberships
         where id = ${fixture.membershipId}::uuid`
 
+    assert.equal(rewardStatus, "redeemed")
+    assert.notEqual(consumedAt, null)
+    assert.equal(currentStampCount, 0)
+    assert.equal(activeCycleNumber, 2)
+  } finally {
+    await sql.end({ timeout: 5 })
+  }
+})
+
+test("Given billing grace elapsed after token mint When collection is attempted Then reward and token remain untouched", async () => {
+  const sql = createSqlClient()
+
+  try {
+    const fixture = await createFixture(sql, {
+      billingStatus: "active",
+      membershipStampCount: 3,
+      rewardToken: true,
+    })
+
+    await setServiceRole(sql)
+    await sql`
+      update public.billing_customers
+      set status = 'past_due',
+          loyalty_suspended_at = now() - interval '31 days',
+          stripe_state_event_created_at = now() - interval '31 days',
+          stripe_state_event_id = ${`evt_architecture_elapsed_${fixture.merchantId.slice(0, 8)}`}
+      where merchant_id = ${fixture.merchantId}::uuid`
+
+    await assert.rejects(
+      () => collectReward(sql, fixture),
+      /expired|paused|unavailable/i
+    )
+
+    const [{ rewardStatus, consumedAt, currentStampCount, activeCycleNumber }] =
+      await sql`
+        select
+          (select status from public.reward_events where id = ${fixture.rewardEventId}::uuid) as reward_status,
+          (select consumed_at from public.reward_scan_tokens where id = ${fixture.scanTokenId}::uuid) as consumed_at,
+          current_stamp_count,
+          active_cycle_number
+        from public.customer_memberships
+        where id = ${fixture.membershipId}::uuid`
+
     assert.equal(rewardStatus, "unlocked")
     assert.equal(consumedAt, null)
-    assert.equal(currentStampCount, 3)
-    assert.equal(activeCycleNumber, 1)
+    assert.equal(currentStampCount, 0)
+    assert.equal(activeCycleNumber, 2)
   } finally {
     await sql.end({ timeout: 5 })
   }
@@ -366,13 +406,14 @@ registerBillingLapseRace({
 
 registerBillingLapseRace({
   title:
-    "Given a billing lapse owns the merchant lock When redemption races Then redemption waits and fails closed",
+    "Given a billing lapse owns the merchant lock When redemption races Then redemption waits and succeeds within grace",
   fixtureOptions: {
     billingStatus: "active",
     membershipStampCount: 3,
     rewardToken: true,
   },
   attempt: collectReward,
+  expectedOutcome: "fulfilled",
   assertUntouched: async (sql, fixture) => {
     const [{ rewardStatus, consumedAt, currentStampCount, activeCycleNumber }] =
       await sql`
@@ -392,10 +433,50 @@ registerBillingLapseRace({
         from public.customer_memberships
         where id = ${fixture.membershipId}::uuid`
 
-    assert.equal(rewardStatus, "unlocked")
-    assert.equal(consumedAt, null)
-    assert.equal(currentStampCount, 3)
-    assert.equal(activeCycleNumber, 1)
+    assert.equal(rewardStatus, "redeemed")
+    assert.notEqual(consumedAt, null)
+    assert.equal(currentStampCount, 0)
+    assert.equal(activeCycleNumber, 2)
+  },
+})
+
+registerBillingLapseRace({
+  title:
+    "Given a billing lapse owns the merchant lock When owner ID verification redemption races Then verification waits and collection succeeds within grace",
+  fixtureOptions: {
+    billingStatus: "active",
+    membershipStampCount: 3,
+    rewardToken: true,
+    requiresAgeCheck: true,
+  },
+  attempt: verifyAndCollectReward,
+  expectedOutcome: "fulfilled",
+  assertUntouched: async (sql, fixture) => {
+    const [state] = await sql`
+      select rewards.status as reward_status,
+             tokens.consumed_at,
+             memberships.current_stamp_count,
+             memberships.active_cycle_number,
+             customers.date_of_birth_verified_at,
+             (
+               select count(*)::integer
+               from private.merchant_id_verification_receipts receipts
+               where receipts.reward_event_id = ${fixture.rewardEventId}::uuid
+             ) as receipt_count
+      from public.reward_events rewards
+      join public.reward_scan_tokens tokens
+        on tokens.id = ${fixture.scanTokenId}::uuid
+      join public.customer_memberships memberships
+        on memberships.id = rewards.membership_id
+      join public.customers customers on customers.id = rewards.customer_id
+      where rewards.id = ${fixture.rewardEventId}::uuid`
+
+    assert.equal(state.rewardStatus, "redeemed")
+    assert.notEqual(state.consumedAt, null)
+    assert.equal(state.currentStampCount, 0)
+    assert.equal(state.activeCycleNumber, 2)
+    assert.notEqual(state.dateOfBirthVerifiedAt, null)
+    assert.equal(state.receiptCount, 1)
   },
 })
 
@@ -477,9 +558,22 @@ test("Given a direct reward owns the merchant lock When billing lapses Then bill
 
 test("Given the billing serialization migration When it replays Then both trigger functions keep the exact lock and privilege contract", async () => {
   const sql = createSqlClient()
+  let replayTransactionOpen = false
 
   try {
+    const before = await sql`
+      select proname, pg_get_functiondef(pg_proc.oid) as definition
+      from pg_proc
+      join pg_namespace on pg_namespace.oid = pg_proc.pronamespace
+      where pg_namespace.nspname = 'public'
+        and proname in (
+          'enforce_stamp_billing_entitlement',
+          'enforce_reward_billing_entitlement'
+        )
+      order by proname`
     const migrationSql = readFileSync(BILLING_SERIALIZATION_MIGRATION, "utf8")
+    await sql`begin`
+    replayTransactionOpen = true
     await sql.unsafe(migrationSql)
     await sql.unsafe(migrationSql)
 
@@ -523,7 +617,22 @@ test("Given the billing serialization migration When it replays Then both trigge
         )`
 
     assert.equal(triggerCount, 3)
+    await sql`rollback`
+    replayTransactionOpen = false
+
+    const after = await sql`
+      select proname, pg_get_functiondef(pg_proc.oid) as definition
+      from pg_proc
+      join pg_namespace on pg_namespace.oid = pg_proc.pronamespace
+      where pg_namespace.nspname = 'public'
+        and proname in (
+          'enforce_stamp_billing_entitlement',
+          'enforce_reward_billing_entitlement'
+        )
+      order by proname`
+    assert.deepEqual([...after], [...before])
   } finally {
+    if (replayTransactionOpen) await sql`rollback`
     await sql.end({ timeout: 5 })
   }
 })
@@ -556,6 +665,19 @@ async function collectReward(sql, fixture) {
     from public.collect_reward_scan_token(
       ${fixture.scanTokenId}::uuid,
       ${fixture.merchantId}::uuid
+    )
+  `
+}
+
+async function verifyAndCollectReward(sql, fixture) {
+  await sql`select set_config('request.jwt.claim.role', 'authenticated', false)`
+  await sql`select set_config('request.jwt.claim.sub', ${fixture.ownerUserId}, false)`
+  return sql`
+    select *
+    from public.verify_and_collect_reward_scan_token(
+      ${fixture.scanTokenId}::uuid,
+      date '1990-01-01',
+      true
     )
   `
 }
@@ -596,6 +718,7 @@ function registerBillingLapseRace({
   fixtureOptions,
   attempt,
   assertUntouched,
+  expectedOutcome = "rejected",
 }) {
   test(title, async () => {
     const setupSql = createSqlClient()
@@ -634,11 +757,13 @@ function registerBillingLapseRace({
       billingTransactionOpen = false
 
       const outcome = await loyaltyAttempt
-      assert.equal(outcome.status, "rejected")
-      assert.match(
-        String(outcome.error?.message ?? outcome.error),
-        /billing|unavailable/i
-      )
+      assert.equal(outcome.status, expectedOutcome)
+      if (expectedOutcome === "rejected") {
+        assert.match(
+          String(outcome.error?.message ?? outcome.error),
+          /billing|unavailable/i
+        )
+      }
       await assertUntouched(setupSql, fixture)
     } finally {
       if (billingTransactionOpen) await billingSql`rollback`
@@ -822,9 +947,9 @@ async function createFixture(sql, options) {
       ${fixture.membershipId}::uuid,
       ${fixture.merchantId}::uuid,
       ${fixture.customerId}::uuid,
+      ${options.rewardToken ? 0 : options.membershipStampCount},
       ${options.membershipStampCount},
-      ${options.membershipStampCount},
-      1
+      ${options.rewardToken ? 2 : 1}
     )
   `
 
@@ -838,7 +963,8 @@ async function createFixture(sql, options) {
       reward_terms,
       weight,
       is_active,
-      display_order
+      display_order,
+      requires_age_check
     )
     values
       (
@@ -850,7 +976,8 @@ async function createFixture(sql, options) {
         'Subject to availability.',
         1,
         true,
-        1
+        1,
+        ${options.requiresAgeCheck ?? false}
       ),
       (
         ${fixture.rewardPoolItemIds[1]}::uuid,
@@ -861,7 +988,8 @@ async function createFixture(sql, options) {
         'Subject to availability.',
         1,
         true,
-        2
+        2,
+        ${options.requiresAgeCheck ?? false}
       ),
       (
         ${fixture.rewardPoolItemIds[2]}::uuid,
@@ -872,7 +1000,8 @@ async function createFixture(sql, options) {
         'Subject to availability.',
         1,
         true,
-        3
+        3,
+        ${options.requiresAgeCheck ?? false}
       )
   `
 
@@ -926,6 +1055,7 @@ async function createFixture(sql, options) {
         reward_name,
         reward_terms,
         redeemable_from,
+        created_at,
         status,
         cycle_number
       )
@@ -938,7 +1068,8 @@ async function createFixture(sql, options) {
         ${fixture.rewardPoolItemIds[0]}::uuid,
         'First drink',
         'Subject to availability.',
-        public.uk_business_date(now()),
+        public.venue_trading_date(${fixture.merchantId}::uuid, now() - interval '2 days') + 1,
+        now() - interval '2 days',
         'unlocked',
         1
       )

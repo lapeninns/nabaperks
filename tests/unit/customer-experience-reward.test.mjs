@@ -46,6 +46,16 @@ function rewardView(overrides = {}) {
     rewardName: "Mystery round",
     rewardTerms: "Ask at the bar.",
     redeemableFrom: "2026-07-01",
+    availableFrom: "2026-07-01T05:00:00Z",
+    expiresAt: "2026-08-26T15:00:00Z",
+    requiresAgeCheck: true,
+    earningTerms: "One stamp per visit.",
+    inWindow: false,
+    windowEndsAt: null,
+    upgradeRewardName: null,
+    nextWindowStartsAt: null,
+    nextWindowEndsAt: null,
+    nextWindowUpgradeName: null,
     ...overrides,
   }
 }
@@ -105,7 +115,7 @@ test("a waiting reward renders its authoritative London instant through the real
   const experience = deriveCustomerExperience({
     entry: "reward",
     context: rewardContext({
-      reward: rewardView({ redeemableFrom: "2026-10-27T05:30:00Z" }),
+      reward: rewardView({ availableFrom: "2026-10-27T05:30:00Z" }),
       availableForReview: false,
     }),
   })
@@ -114,7 +124,7 @@ test("a waiting reward renders its authoritative London instant through the real
   assert.deepEqual(getCustomerExperienceViewModel(experience), {
     eyebrow: "Reward",
     headline: "Mystery round",
-    supportLine: "Unlocked — yours from Tuesday 27 October at 05:30.",
+    supportLine: "Unlocked — ready tue 27 oct at 05:30.",
   })
 })
 
@@ -263,6 +273,15 @@ test("collection progress counts only the steps this customer still has", () => 
 
   // Nothing outstanding is never dressed up as a step in progress.
   assert.equal(collectionProgressVisible(collectionSetup(profileGate())), false)
+})
+
+test("an unflagged reward does not request photo ID from an unverified adult", () => {
+  assert.deepEqual(collectionSetup(ID_CHECK_PENDING, false), {
+    stage: "ready",
+    outstanding: false,
+    step: 1,
+    total: 1,
+  })
 })
 
 test("missing profile details precede an unverified email", () => {

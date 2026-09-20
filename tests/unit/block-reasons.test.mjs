@@ -31,6 +31,7 @@ test("Given every customer block reason When copy is rendered Then raw technical
   const reasons = [
     "already_stamped_today",
     "reward_ready_first",
+    "reward_daily_cap",
     "billing_required",
     "rate_limited",
     "pool_unavailable",
@@ -66,10 +67,10 @@ test("Given an unknown RPC message When it is mapped Then generic recovery copy 
   )
 })
 
-test("Given a same-day stamp block When copy is rendered Then the next UK business day is named exactly", () => {
+test("Given a same-day stamp block When copy is rendered Then the venue reset is named exactly", () => {
   assert.equal(
     blockReasonCopy("already_stamped_today"),
-    "You're already stamped today. Come back on the next UK business day."
+    "You're already stamped for this venue trading day. Try again after the venue's next daily reset."
   )
 })
 
@@ -88,6 +89,7 @@ test("Given a stamp refusal SQLSTATE When it is mapped Then the code decides the
     ["NBS14", "venue_code_refusal_missing"],
     ["NBC01", "venue_code_locked"],
     ["NBC02", "venue_code_format"],
+    ["NBR01", "reward_daily_cap"],
   ]
 
   for (const [code, reason] of cases) {

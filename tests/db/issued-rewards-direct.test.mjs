@@ -45,70 +45,115 @@ async function expectRejection(tx, run, pattern) {
   assert.match(message, pattern)
 }
 
-test("R-1: an owner sends a direct reward with the full ledger + side effects", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    const fixture = await createRewardPoolFixture(tx)
+for (const policy of ["v2", "legacy_v1"]) {
+  test(
+    `R-1 (${policy}): an owner sends a direct reward with the full ledger + side effects`,
+    { skip },
+    async () => {
+      await inRolledBackTxn(async (tx) => {
+        const fixture = await createRewardPoolFixture(tx)
+        await tx`update public.loyalty_cards set reward_policy_version = ${policy}
+      where id = ${fixture.cardId}::uuid`
 
-    const [sent] = await send(tx, fixture.merchantId, fixture.membershipId)
-    assert.ok(sent.reward_event_id, "returns the new reward id")
+        const [sent] = await send(tx, fixture.merchantId, fixture.membershipId)
+        assert.ok(sent.reward_event_id, "returns the new reward id")
 
-    const [r] = await tx`
-      select source, status, reward_name, cycle_number, redeemable_from, expires_at,
+        const [r] = await tx`
+      select source, status, reward_name, cycle_number, redeemable_from, available_from, expires_at, reward_policy_version,
              metadata->>'issued_by' as issued_by
       from public.reward_events where id = ${sent.reward_event_id}::uuid`
-    assert.equal(r.source, "merchant_direct")
-    assert.equal(r.status, "unlocked")
-    assert.equal(r.reward_name, NAME)
-    assert.equal(r.cycle_number, null)
-    assert.equal(r.issued_by, "merchant_direct")
+        assert.equal(r.source, "merchant_direct")
+        assert.equal(r.status, "unlocked")
+        assert.equal(r.reward_name, NAME)
+        assert.equal(r.cycle_number, null)
+        assert.equal(r.issued_by, "merchant_direct")
 
-    const [{ d, exp }] = await tx`
-      select public.uk_business_date(now()) as d, now() + interval '30 days' as exp`
-    assert.equal(r.redeemable_from.getTime(), d.getTime(), "redeemable today")
-    assert.equal(
-      new Date(r.expires_at).getTime(),
-      new Date(exp).getTime(),
-      "expires now + 30 days"
-    )
+        const [{ d, exp, available, v2Expires }] = await tx`
+      select public.uk_business_date(now()) as d, now() + interval '30 days' as exp,
+             ((public.venue_trading_date(${fixture.merchantId}::uuid, now()) + 1)
+               + time '05:00') at time zone 'Europe/London' as available,
+             ((public.venue_trading_date(${fixture.merchantId}::uuid, now() + interval '56 days') + 1)
+               + time '05:00') at time zone 'Europe/London' as "v2Expires"`
+        assert.equal(r.reward_policy_version, policy)
+        if (policy === "v2") {
+          assert.equal(
+            new Date(r.available_from).getTime(),
+            available.getTime(),
+            "v2 opens at the next 05:00 venue boundary"
+          )
+          const [{ state }] =
+            await tx`select state from public.get_reward_collection_state(${sent.reward_event_id}::uuid)`
+          assert.equal(state, "waiting", "same-day collection is refused")
+          await assert.rejects(
+            () =>
+              tx.savepoint(
+                (sp) => sp`select scan_token
+              from public.create_reward_scan_token(${sent.reward_event_id}::uuid, ${fixture.customerId}::uuid)`
+              ),
+            /not ready to collect yet/i,
+            "the token mint gate agrees with the waiting predicate"
+          )
+        } else {
+          assert.equal(
+            r.redeemable_from.getTime(),
+            d.getTime(),
+            "legacy rewards are redeemable today"
+          )
+        }
+        assert.equal(
+          new Date(r.expires_at).getTime(),
+          new Date(policy === "v2" ? v2Expires : exp).getTime(),
+          "expiry follows the snapshotted policy: v2 card horizon or legacy source-specific deadline"
+        )
 
-    const [{ n: evt }] = await tx`
+        const [{ n: evt }] = await tx`
       select count(*)::int as n from public.product_events
       where event_name = 'reward_sent' and membership_id = ${fixture.membershipId}::uuid`
-    assert.equal(evt, 1, "a reward_sent product event is recorded")
+        assert.equal(evt, 1, "a reward_sent product event is recorded")
 
-    const [{ n: audit }] = await tx`
+        const [{ n: audit }] = await tx`
       select count(*)::int as n from public.audit_logs
       where action = 'direct_reward_issued' and target_id = ${sent.reward_event_id}::uuid`
-    assert.equal(audit, 1, "a direct_reward_issued audit log is recorded")
+        assert.equal(audit, 1, "a direct_reward_issued audit log is recorded")
 
-    const [{ n: notif }] = await tx`
+        const [{ n: notif }] = await tx`
       select count(*)::int as n from public.notification_events
       where event_type = 'merchant_reward_received' and customer_id = ${fixture.customerId}::uuid`
-    assert.equal(notif, 1, "a merchant_reward_received notification is enqueued")
-  })
-})
+        assert.equal(
+          notif,
+          1,
+          "a merchant_reward_received notification is enqueued"
+        )
+      })
+    }
+  )
+}
 
-test("R-2: a non-owner and a foreign membership are rejected", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    const fixture = await createRewardPoolFixture(tx)
+test(
+  "R-2: a non-owner and a foreign membership are rejected",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const fixture = await createRewardPoolFixture(tx)
 
-    // Foreign membership: a second merchant's membership under this merchant id.
-    const other = await createRewardPoolFixture(tx)
-    await expectRejection(
-      tx,
-      (sp) => send(sp, fixture.merchantId, other.membershipId),
-      /membership not found for merchant/i
-    )
+      // Foreign membership: a second merchant's membership under this merchant id.
+      const other = await createRewardPoolFixture(tx)
+      await expectRejection(
+        tx,
+        (sp) => send(sp, fixture.merchantId, other.membershipId),
+        /membership not found for merchant/i
+      )
 
-    // Non-owner (authenticated but not the owner).
-    await actAsMerchantOwner(tx, randomUUID())
-    await expectRejection(
-      tx,
-      (sp) => send(sp, fixture.merchantId, fixture.membershipId),
-      /owner|access|privilege/i
-    )
-  })
-})
+      // Non-owner (authenticated but not the owner).
+      await actAsMerchantOwner(tx, randomUUID())
+      await expectRejection(
+        tx,
+        (sp) => send(sp, fixture.merchantId, fixture.membershipId),
+        /owner|access|privilege/i
+      )
+    })
+  }
+)
 
 test("R-3: the billing trio rejects a direct send", { skip }, async () => {
   await inRolledBackTxn(async (tx) => {
@@ -134,33 +179,36 @@ test("R-3: the billing trio rejects a direct send", { skip }, async () => {
   })
 })
 
-test("R-4: the per-membership and per-merchant daily caps reject", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    const fixture = await createRewardPoolFixture(tx)
+test(
+  "R-4: the per-membership and per-merchant daily caps reject",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const fixture = await createRewardPoolFixture(tx)
 
-    // First send succeeds; a same-day repeat to the same member is refused.
-    await send(tx, fixture.merchantId, fixture.membershipId)
-    await expectRejection(
-      tx,
-      (sp) => send(sp, fixture.merchantId, fixture.membershipId),
-      /already been sent to this member today/i
-    )
+      // First send succeeds; a same-day repeat to the same member is refused.
+      await send(tx, fixture.merchantId, fixture.membershipId)
+      await expectRejection(
+        tx,
+        (sp) => send(sp, fixture.merchantId, fixture.membershipId),
+        /already been sent to this member today/i
+      )
 
-    // Drive the merchant to 100 today (attributed to member 1), then a fresh
-    // member (0 today) still hits the per-merchant ceiling.
-    const authId = randomUUID()
-    const customer2 = randomUUID()
-    const membership2 = randomUUID()
-    await tx`insert into auth.users (id) values (${authId}::uuid)`
-    await tx`
+      // Drive the merchant to 100 today (attributed to member 1), then a fresh
+      // member (0 today) still hits the per-merchant ceiling.
+      const authId = randomUUID()
+      const customer2 = randomUUID()
+      const membership2 = randomUUID()
+      await tx`insert into auth.users (id) values (${authId}::uuid)`
+      await tx`
       insert into public.customers (id, auth_user_id, email, full_name, date_of_birth, email_verified_at)
       values (${customer2}::uuid, ${authId}::uuid, ${"send2-" + customer2.slice(0, 8) + "@example.test"}, 'Send Two', date '1990-01-01', now())`
-    await tx`
+      await tx`
       insert into public.customer_memberships (id, merchant_id, customer_id, current_stamp_count, total_stamps_earned, active_cycle_number)
       values (${membership2}::uuid, ${fixture.merchantId}::uuid, ${customer2}::uuid, 0, 0, 1)`
 
-    // Backfill the merchant to 100 merchant_direct rewards today (member 1).
-    await tx`
+      // Backfill the merchant to 100 merchant_direct rewards today (member 1).
+      await tx`
       insert into public.reward_events (
         merchant_id, customer_id, membership_id, loyalty_card_id,
         status, source, reward_name, reward_terms, redeemable_from, created_at, updated_at)
@@ -169,32 +217,42 @@ test("R-4: the per-membership and per-merchant daily caps reject", { skip }, asy
              'Subject to availability.', public.uk_business_date(now()), now(), now()
       from generate_series(1, 99)`
 
-    await expectRejection(
-      tx,
-      (sp) => send(sp, fixture.merchantId, membership2),
-      /daily.*limit|limit.*reached/i
-    )
-  })
-})
+      await expectRejection(
+        tx,
+        (sp) => send(sp, fixture.merchantId, membership2),
+        /daily.*limit|limit.*reached/i
+      )
+    })
+  }
+)
 
-test("R-5: out-of-range name / terms / expiry are rejected", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    const fixture = await createRewardPoolFixture(tx)
+test(
+  "R-5: out-of-range name / terms / expiry are rejected",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const fixture = await createRewardPoolFixture(tx)
 
-    await expectRejection(
-      tx,
-      (sp) => send(sp, fixture.merchantId, fixture.membershipId, { terms: "too short" }),
-      /terms/i
-    )
-    await expectRejection(
-      tx,
-      (sp) => send(sp, fixture.merchantId, fixture.membershipId, { name: "" }),
-      /name/i
-    )
-    await expectRejection(
-      tx,
-      (sp) => send(sp, fixture.merchantId, fixture.membershipId, { days: 400 }),
-      /expiry|365|days/i
-    )
-  })
-})
+      await expectRejection(
+        tx,
+        (sp) =>
+          send(sp, fixture.merchantId, fixture.membershipId, {
+            terms: "too short",
+          }),
+        /terms/i
+      )
+      await expectRejection(
+        tx,
+        (sp) =>
+          send(sp, fixture.merchantId, fixture.membershipId, { name: "" }),
+        /name/i
+      )
+      await expectRejection(
+        tx,
+        (sp) =>
+          send(sp, fixture.merchantId, fixture.membershipId, { days: 400 }),
+        /expiry|365|days/i
+      )
+    })
+  }
+)

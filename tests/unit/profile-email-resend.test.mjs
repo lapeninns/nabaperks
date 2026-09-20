@@ -42,6 +42,8 @@ async function loadAction() {
                 "export function clearPendingEmailVerification() {}",
               "@/lib/security/rate-limit":
                 "export class RateLimitError extends Error {}",
+              "@/lib/supabase/server":
+                "export function createSupabaseServiceRoleClient() {}",
               "@/lib/customer/email-verification":
                 'import {state} from "fixture-state"; import {RateLimitError} from "@/lib/security/rate-limit"; export function checkCustomerEmailVerification() {} export async function startCustomerEmailVerification(email) {if(state.failure === "cooldown") throw new RateLimitError(); if(state.failure) throw new Error("provider unavailable"); state.sends.push(email)}',
             }

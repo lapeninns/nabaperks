@@ -15,6 +15,7 @@ const ready = {
     current_stamp_count: 3,
     total_rewards_redeemed: 1,
     active_cycle_number: 2,
+    policy_cutover_notice_at: "2026-09-19T09:00:00Z",
     referral_code: "ABCD1234",
     referral_code_active: true,
   },
@@ -32,6 +33,8 @@ const ready = {
     reward_name: "Free coffee",
     reward_terms: "One per visit.",
     is_active: true,
+    minimum_spend_pence: 500,
+    one_transaction_per_stamp: true,
   },
   unlocked_rewards: [
     {
@@ -46,6 +49,21 @@ const ready = {
       collection_state: "waiting",
       collection_reason: null,
       available_from: "2026-09-08T05:00:00+00:00",
+      in_window: false,
+      window_id: null,
+      window_ends_at: null,
+      upgrade_pool_item_id: null,
+      upgrade_reward_name: null,
+      upgrade_reward_terms: null,
+      next_window_starts_at: "2026-09-09T12:00:00+00:00",
+      next_window_ends_at: "2026-09-09T15:00:00+00:00",
+      next_window_upgrade_name: "Free starter",
+      requires_age_check: false,
+      reward_policy_snapshot: {
+        age_check: false,
+        minimum_spend_pence: 500,
+        one_transaction_per_stamp: true,
+      },
     },
   ],
   billing_status: "trialing",
@@ -66,10 +84,13 @@ test("a ready payload narrows every field the card surfaces use", () => {
   if (parsed.status !== "ready") return
   assert.equal(parsed.membership.customer_id, "c1")
   assert.equal(parsed.membership.current_stamp_count, 3)
+  assert.equal(parsed.membership.policy_cutover_notice_at, "2026-09-19T09:00:00Z")
   assert.equal(parsed.merchant.requires_billing, true)
   assert.equal(parsed.loyaltyCard?.stamps_required, 6)
   assert.equal(parsed.unlockedRewards[0]?.redeemable_from, "2026-09-08")
   assert.equal(parsed.unlockedRewards[0]?.collection_state, "waiting")
+  assert.equal(parsed.unlockedRewards[0]?.requires_age_check, false)
+  assert.match(parsed.unlockedRewards[0]?.earning_terms ?? "", /£5\.00/)
   assert.equal(parsed.billingStatus, "trialing")
 })
 
@@ -118,6 +139,18 @@ test("toRewardSummary drops created_at and keeps the server collection state", (
     collection_state: "waiting",
     collection_reason: null,
     available_from: "2026-09-08T05:00:00+00:00",
+    in_window: false,
+    window_id: null,
+    window_ends_at: null,
+    upgrade_pool_item_id: null,
+    upgrade_reward_name: null,
+    upgrade_reward_terms: null,
+    next_window_starts_at: "2026-09-09T12:00:00+00:00",
+    next_window_ends_at: "2026-09-09T15:00:00+00:00",
+    next_window_upgrade_name: "Free starter",
+    requires_age_check: false,
+    earning_terms:
+      "One stamp per visit, one transaction per stamp. Minimum spend £5.00.",
   })
   assert.equal(toRewardSummary(null), null)
 })

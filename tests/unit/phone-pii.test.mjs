@@ -7,6 +7,7 @@ process.env.CUSTOMER_PHONE_ENCRYPTION_KEY ??= "unit-test-encryption-key"
 const {
   customerPhonePii,
   customerPhoneHmac,
+  decryptCustomerPhone,
   encryptCustomerPhone,
   maskedPhoneFromLast4,
 } = await import("@/lib/customer/phone-pii-core")
@@ -29,7 +30,10 @@ test("the HMAC is deterministic, hex, and not the plaintext", () => {
   assert.equal(a, b, "same number → same HMAC (usable as a lookup key)")
   assert.match(a, /^[0-9a-f]{64}$/, "HMAC is 32-byte hex (SHA-256)")
   assert.notEqual(a, PHONE, "the HMAC is not the phone number")
-  assert.ok(!a.includes("447700900123"), "no digits of the number survive in the HMAC")
+  assert.ok(
+    !a.includes("447700900123"),
+    "no digits of the number survive in the HMAC"
+  )
 })
 
 test("different numbers produce different HMACs", () => {
@@ -42,16 +46,47 @@ test("the ciphertext is versioned AES-GCM, never plaintext, with a fresh IV each
   const parts = one.split(".")
   assert.equal(parts.length, 4, "format is v1.iv.tag.ciphertext")
   assert.equal(parts[0], "v1", "carries a version tag")
-  assert.ok(!one.includes("447700900123"), "no digits of the number survive in the ciphertext")
+  assert.ok(
+    !one.includes("447700900123"),
+    "no digits of the number survive in the ciphertext"
+  )
   assert.notEqual(one, two, "a fresh random IV makes each encryption distinct")
+  assert.equal(decryptCustomerPhone(one), PHONE)
+})
+
+test("decrypt rejects malformed, truncated-tag, and tampered ciphertext", () => {
+  const encrypted = encryptCustomerPhone(PHONE)
+  const [version, iv, tag, body] = encrypted.split(".")
+  const tamperedBody = `${body[0] === "A" ? "B" : "A"}${body.slice(1)}`
+
+  assert.throws(() => decryptCustomerPhone(PHONE), /integrity verification/)
+  assert.throws(
+    () => decryptCustomerPhone(`${version}.${iv}.${tag.slice(0, -4)}.${body}`),
+    /integrity verification/
+  )
+  assert.throws(
+    () => decryptCustomerPhone(`${version}.${iv}.${tag}.${tamperedBody}`),
+    /integrity verification/
+  )
 })
 
 test("customerPhonePii bundles hmac + ciphertext + last4 (no plaintext field)", () => {
   const pii = customerPhonePii(PHONE)
-  assert.deepEqual(Object.keys(pii).sort(), ["phoneCiphertext", "phoneHmac", "phoneLast4"])
+  assert.deepEqual(Object.keys(pii).sort(), [
+    "phoneCiphertext",
+    "phoneHmac",
+    "phoneLast4",
+  ])
   assert.equal(pii.phoneLast4, "0123", "last4 is the final four digits")
-  assert.equal(pii.phoneHmac, customerPhoneHmac(PHONE), "hmac matches the standalone codec")
-  assert.ok(!JSON.stringify(pii).includes("447700900123"), "the bundle never carries the full number")
+  assert.equal(
+    pii.phoneHmac,
+    customerPhoneHmac(PHONE),
+    "hmac matches the standalone codec"
+  )
+  assert.ok(
+    !JSON.stringify(pii).includes("447700900123"),
+    "the bundle never carries the full number"
+  )
 })
 
 test("maskedPhoneFromLast4 renders a readback label, null-safe", () => {
@@ -62,6 +97,9 @@ test("maskedPhoneFromLast4 renders a readback label, null-safe", () => {
 test("the codec throws if the secret env is missing", async () => {
   const saved = process.env.CUSTOMER_PHONE_HMAC_SECRET
   process.env.CUSTOMER_PHONE_HMAC_SECRET = ""
-  assert.throws(() => customerPhoneHmac(PHONE), /CUSTOMER_PHONE_HMAC_SECRET is required/)
+  assert.throws(
+    () => customerPhoneHmac(PHONE),
+    /CUSTOMER_PHONE_HMAC_SECRET is required/
+  )
   process.env.CUSTOMER_PHONE_HMAC_SECRET = saved
 })

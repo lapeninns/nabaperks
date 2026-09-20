@@ -84,8 +84,8 @@ test(
       await seedJoin(tx, fixture, fixture.dayIso(-1), 2)
       await seedJoin(tx, fixture, fixture.dayIso(0), 1)
       await seedStamps(tx, fixture, fixture.dayIso(0), 1050)
-      await seedRedeemedReward(tx, fixture, fixture.dayIso(-2), 1)
-      await seedRedeemedReward(tx, fixture, fixture.dayIso(0), 2)
+      await seedRedeemedReward(tx, fixture, fixture.dayIso(-2))
+      await seedRedeemedReward(tx, fixture, fixture.dayIso(0))
 
       const rows = await asServiceRole(tx, (sp) =>
         sp.unsafe(`
@@ -364,7 +364,7 @@ async function seedStamps(tx, fixture, createdAtIso, count) {
   `)
 }
 
-async function seedRedeemedReward(tx, fixture, createdAtIso, cycleNumber) {
+async function seedRedeemedReward(tx, fixture, createdAtIso) {
   await tx.unsafe(`
     insert into public.reward_events (
       merchant_id, customer_id, membership_id, loyalty_card_id, status,
@@ -372,7 +372,7 @@ async function seedRedeemedReward(tx, fixture, createdAtIso, cycleNumber) {
     ) values (
       '${fixture.merchantId}'::uuid, '${fixture.customerId}'::uuid,
       '${fixture.membershipId}'::uuid, '${fixture.cardId}'::uuid, 'redeemed',
-      'Analytics Reward', 'One free pint', 'stamp_cycle', ${cycleNumber},
+      'Analytics Reward', 'One free pint', 'merchant_direct', null,
       '${createdAtIso}'::timestamptz, '${createdAtIso}'::timestamptz
     )
   `)

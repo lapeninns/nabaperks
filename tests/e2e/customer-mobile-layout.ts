@@ -318,7 +318,7 @@ export function describeCustomerMobileLayout() {
     expect((await details.boundingBox())!.height).toBeGreaterThanOrEqual(44)
     await details.click()
     await expect(page.locator("details[open]")).toContainText(
-      "One stamp per UK business day"
+      "One stamp per venue trading day"
     )
     expect(errors).toEqual([])
   })

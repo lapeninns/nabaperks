@@ -328,7 +328,7 @@ function issuedCopy(
   return {
     announcement: `Stamp added. That's ${result.newStampCount} of ${total}.`,
     statusTitle: `Stamp ${result.newStampCount} of ${total} added.`,
-    statusBody: `${remaining} to go. Your next scan window opens on the next UK business day.${extra}`,
+    statusBody: `${remaining} to go. Your next scan window opens after the venue's daily reset.${extra}`,
   }
 }
 
@@ -537,7 +537,7 @@ export function stampChoreographyView(
         ? "Confirm you're at the venue."
         : "Ready for today's stamp.",
     statusBody: closed
-      ? "Come back on the next UK business day."
+      ? "Come back after the venue's next daily reset."
       : fallback.locationControls
         ? "Use your phone's location, or enter today's code from a team member."
         : "Tap the stamp, or press and hold, to print today's mark.",

@@ -110,6 +110,7 @@ async function RewardScanStream({
         }
         name={context.rewardName}
         description={context.rewardTerms}
+        requiresAgeCheck={Boolean(context.idCheck)}
         sealSlammed={isRedeemed && collected}
       />
 
@@ -147,10 +148,20 @@ async function RewardScanStream({
               ? "Check the customer's photo ID before serving this reward."
               : "Check the reward against the order. Mark it collected when you have served it."}
           </StatusBanner>
+          {context.inWindow && context.upgradeRewardName ? (
+            <StatusBanner title="Upgrade applies" tone="success">
+              {context.upgradeRewardName} — serve this instead of{" "}
+              {context.rewardName}
+              {context.windowEndsAt
+                ? ` before ${formatLondonTime(context.windowEndsAt)}.`
+                : "."}
+            </StatusBanner>
+          ) : null}
           <MerchantRewardCollectionForm
             key={context.idCheck?.dateOfBirth ?? "verified"}
             scanToken={context.scanToken}
             idCheck={context.idCheck}
+            upgradeRewardName={context.upgradeRewardName}
           />
         </>
       )}
@@ -184,4 +195,12 @@ function ScanShell({ children }: { children: React.ReactNode }) {
 
 function firstParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value
+}
+
+function formatLondonTime(value: string): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/London",
+  }).format(new Date(value))
 }

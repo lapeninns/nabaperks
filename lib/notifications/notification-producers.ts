@@ -6,10 +6,12 @@ import {
   type NotificationPayload,
 } from "@/lib/notifications/catalog"
 import { londonBusinessDate } from "@/lib/notifications/london-time"
-import { parseRewardCollectionState } from "@/lib/customer/reward-collection-state"
 import { logger } from "@/lib/observability/logger"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
-import { isCollectionSetupBlock } from "@/lib/customer/reward-collection-state"
+import {
+  isCollectionSetupBlock,
+  parseRewardCollectionState,
+} from "@/lib/customer/reward-collection-state"
 
 export const scheduledNotificationProducerEventTypes = [
   "next_stamp_available",
@@ -17,6 +19,8 @@ export const scheduledNotificationProducerEventTypes = [
   "reward_expiring_soon",
   "reward_expired",
   "dormant_progress",
+  "collection_window_opens",
+  "loyalty_terms_updated",
 ] as const
 
 type NotificationProducer = {
@@ -56,6 +60,14 @@ export async function produceDueNotificationEvents(now = new Date()) {
     {
       failureEvent: "push_dormant_progress_producer_failed",
       produce: () => enqueueDormantProgress(now),
+    },
+    {
+      failureEvent: "push_collection_window_producer_failed",
+      produce: () => enqueueCollectionWindowOpens(now),
+    },
+    {
+      failureEvent: "push_loyalty_terms_updated_producer_failed",
+      produce: () => enqueueLoyaltyTermsUpdated(now),
     },
   ]
 
@@ -120,6 +132,7 @@ async function enqueueRewardExpiringSoon(now: Date) {
       merchantId: stringValue(row.merchant_id),
       membershipId: stringValue(row.membership_id),
       rewardEventId,
+      expiresAt: collection.expiresAt,
     })
     const queued = await enqueueRawEvent(eventType, row, payload, {
       source: "scheduled_worker",
@@ -198,15 +211,10 @@ async function loadCollectionStates(
 
 async function enqueueNextStampAvailable(now: Date) {
   const supabase = createSupabaseServiceRoleClient()
-  const businessDate = londonBusinessDate(now)
-  const { data, error } = await supabase
-    .from("customer_memberships")
-    .select(
-      "id, customer_id, merchant_id, current_stamp_count, active_cycle_number, merchants(business_name)"
-    )
-    .gt("current_stamp_count", 0)
-    .order("updated_at", { ascending: true })
-    .limit(100)
+  const { data, error } = await supabase.rpc(
+    "list_pending_next_stamp_available",
+    { p_now: now.toISOString(), p_limit: 100 }
+  )
 
   if (error) {
     logger.warn("push_next_stamp_producer_failed", { reason: error.message })
@@ -214,22 +222,31 @@ async function enqueueNextStampAvailable(now: Date) {
   }
 
   let count = 0
-  for (const row of data ?? []) {
-    if (!isRecord(row)) continue
+  for (const row of records(data)) {
+    const membershipId = stringValue(row.membership_id)
+    const businessDate = stringValue(row.business_date)
+    const dedupeKey = stringValue(row.dedupe_key)
+    if (!membershipId || !businessDate || !dedupeKey) continue
     const eventType = "next_stamp_available"
     const payload = buildNotificationPayload({
       eventType,
-      businessName: businessName(row),
-      url: `/card/${stringValue(row.id)}`,
+      businessName: stringValue(row.business_name) || "Your venue",
+      url: `/card/${membershipId}`,
       merchantId: stringValue(row.merchant_id),
-      membershipId: stringValue(row.id),
+      membershipId,
     })
     const queued = await enqueueRawEvent(
       eventType,
-      { ...row, membership_id: row.id, cycle_number: row.active_cycle_number },
+      row,
       payload,
-      { source: "scheduled_worker" },
-      businessDate
+      {
+        source: "scheduled_worker",
+        last_earned_business_date: nullableString(
+          row.last_earned_business_date
+        ),
+      },
+      businessDate,
+      { dueAt: now.toISOString(), dedupeKey }
     )
     count += queued ? 1 : 0
   }
@@ -280,12 +297,138 @@ async function enqueueDormantProgress(now: Date) {
   return count
 }
 
+async function enqueueCollectionWindowOpens(now: Date) {
+  const supabase = createSupabaseServiceRoleClient()
+  const { data, error } = await supabase.rpc(
+    "list_collection_window_reminders",
+    { p_now: now.toISOString(), p_horizon_hours: 24 }
+  )
+  if (error) throw new Error(error.message)
+
+  const rows = (data ?? []).filter(
+    (row: unknown): row is Record<string, unknown> => isRecord(row)
+  )
+  const merchantIds = [
+    ...new Set(
+      rows
+        .map((row: Record<string, unknown>) => stringValue(row.merchant_id))
+        .filter(Boolean)
+    ),
+  ]
+  const businessNames = new Map<string, string>()
+  if (merchantIds.length > 0) {
+    const merchantResult = await supabase
+      .from("merchants")
+      .select("id, business_name")
+      .in("id", merchantIds)
+    if (merchantResult.error) throw new Error(merchantResult.error.message)
+    for (const merchant of merchantResult.data ?? []) {
+      if (!isRecord(merchant)) continue
+      businessNames.set(
+        stringValue(merchant.id),
+        stringValue(merchant.business_name)
+      )
+    }
+  }
+
+  let count = 0
+  for (const row of rows) {
+    const eventType = "collection_window_opens"
+    const rewardEventId = stringValue(row.reward_event_id)
+    const membershipId = stringValue(row.membership_id)
+    const merchantId = stringValue(row.merchant_id)
+    const windowStartsAt = stringValue(row.window_starts_at)
+    const dueAt = stringValue(row.due_at)
+    const dedupeKey = stringValue(row.dedupe_key)
+    if (
+      !rewardEventId ||
+      !membershipId ||
+      !merchantId ||
+      !dueAt ||
+      !dedupeKey
+    ) {
+      continue
+    }
+    const payload = buildNotificationPayload({
+      eventType,
+      businessName: businessNames.get(merchantId) ?? "Your venue",
+      rewardName: stringValue(row.upgrade_reward_name),
+      url: `/reward/${rewardEventId}`,
+      merchantId,
+      membershipId,
+      rewardEventId,
+    })
+    const queued = await enqueueRawEvent(
+      eventType,
+      row,
+      payload,
+      {
+        source: "scheduled_worker",
+        window_id: nullableString(row.window_id),
+        window_starts_at: nullableString(row.window_starts_at),
+        window_ends_at: nullableString(row.window_ends_at),
+        upgrade_reward_name: nullableString(row.upgrade_reward_name),
+      },
+      windowStartsAt
+        ? londonBusinessDate(new Date(windowStartsAt))
+        : londonBusinessDate(now),
+      { dueAt, dedupeKey }
+    )
+    count += queued ? 1 : 0
+  }
+  return count
+}
+
+async function enqueueLoyaltyTermsUpdated(now: Date) {
+  const supabase = createSupabaseServiceRoleClient()
+  const { data, error } = await supabase.rpc(
+    "list_pending_loyalty_terms_updates",
+    {
+      p_limit: 100,
+    }
+  )
+  if (error) throw new Error(error.message)
+
+  let count = 0
+  for (const row of data ?? []) {
+    if (!isRecord(row)) continue
+    const membershipId = stringValue(row.membership_id)
+    const cutoverAt = stringValue(row.policy_cutover_notice_at)
+    if (!membershipId || !cutoverAt) continue
+    const eventType = "loyalty_terms_updated"
+    const payload = buildNotificationPayload({
+      eventType,
+      businessName: stringValue(row.business_name) || "Your venue",
+      url: `/card/${membershipId}`,
+      merchantId: stringValue(row.merchant_id),
+      membershipId,
+    })
+    const queued = await enqueueRawEvent(
+      eventType,
+      { ...row, cycle_number: row.active_cycle_number },
+      payload,
+      {
+        source: "policy_cutover",
+        policy_cutover_notice_at: cutoverAt,
+      },
+      londonBusinessDate(new Date(cutoverAt)),
+      {
+        dueAt: now.toISOString(),
+        dedupeKey: `loyalty_terms_updated:${membershipId}:${cutoverAt}`,
+      }
+    )
+    count += queued ? 1 : 0
+  }
+  return count
+}
+
 async function enqueueRawEvent(
   eventType: NotificationEventType,
   row: Record<string, unknown>,
   payload: NotificationPayload,
   metadata: Record<string, unknown>,
-  businessDate = londonBusinessDate(new Date())
+  businessDate = londonBusinessDate(new Date()),
+  schedule?: { readonly dueAt: string; readonly dedupeKey: string }
 ) {
   const supabase = createSupabaseServiceRoleClient()
   const { error } = await supabase.rpc("enqueue_notification_event", {
@@ -298,8 +441,8 @@ async function enqueueRawEvent(
       (eventType.startsWith("reward_") ? nullableString(row.id) : null),
     p_cycle_number: numberValue(row.cycle_number),
     p_business_date: businessDate,
-    p_due_at: new Date().toISOString(),
-    p_dedupe_key: null,
+    p_due_at: schedule?.dueAt ?? new Date().toISOString(),
+    p_dedupe_key: schedule?.dedupeKey ?? null,
     p_payload: payload,
     p_metadata: metadata,
   })

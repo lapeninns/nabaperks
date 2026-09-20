@@ -6,7 +6,8 @@ import {
   narrowRewardSource,
   type RewardSource,
 } from "@/lib/customer/issued-reward-display"
-import { isRedeemableFrom } from "@/lib/customer/uk-date"
+import { getRewardCollectionState } from "@/lib/customer/reward"
+import type { RewardCollectionState } from "@/lib/customer/reward-collection-state"
 
 export type CustomerRewardItem = {
   rewardId: string
@@ -15,6 +16,9 @@ export type CustomerRewardItem = {
   rewardName: string
   rewardTerms: string
   source: RewardSource
+  collectionState: RewardCollectionState
+  collectionReason: string | null
+  availableFrom: string | null
   redeemableFrom: string | null
   expiresAt: string | null
   expiredAt: string | null
@@ -66,13 +70,17 @@ export async function getCustomerRewards(): Promise<CustomerRewards> {
   }
 
   const rows = (data ?? []) as RawRewardEvent[]
+  const collections = await Promise.all(
+    rows.map((row) => getRewardCollectionState(supabase, row.id))
+  )
   const redeemable: CustomerRewardItem[] = []
   const upcoming: CustomerRewardItem[] = []
   const redeemed: CustomerRewardItem[] = []
   const expired: CustomerRewardItem[] = []
 
-  for (const row of rows) {
+  for (const [index, row] of rows.entries()) {
     const merchant = firstOf(row.merchants)
+    const collection = collections[index]
     const item: CustomerRewardItem = {
       rewardId: row.id,
       membershipId: row.membership_id,
@@ -80,18 +88,24 @@ export async function getCustomerRewards(): Promise<CustomerRewards> {
       rewardName: row.reward_name,
       rewardTerms: row.reward_terms,
       source: narrowRewardSource(row.source),
+      collectionState: collection.state,
+      collectionReason: collection.reason,
+      availableFrom: collection.availableFrom,
       redeemableFrom: row.redeemable_from,
-      expiresAt: row.expires_at,
+      expiresAt: collection.expiresAt,
       expiredAt: row.expired_at,
       redeemedAt: row.redeemed_at,
       createdAt: row.created_at,
     }
 
-    if (row.status === "redeemed") {
+    if (collection.state === "redeemed") {
       redeemed.push(item)
-    } else if (row.status === "expired" || isRewardExpired(row.expires_at)) {
+    } else if (
+      collection.state === "expired" ||
+      collection.state === "cancelled"
+    ) {
       expired.push(item)
-    } else if (isRedeemableFrom(row.redeemable_from)) {
+    } else if (collection.state === "ready") {
       redeemable.push(item)
     } else {
       upcoming.push(item)
@@ -108,8 +122,4 @@ export async function getCustomerRewards(): Promise<CustomerRewards> {
   )
 
   return { redeemable, upcoming, redeemed, expired }
-}
-
-export function isRewardExpired(expiresAt: string | null, now = new Date()) {
-  return expiresAt ? new Date(expiresAt).getTime() <= now.getTime() : false
 }

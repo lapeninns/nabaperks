@@ -7,7 +7,7 @@ import { loadMerchantRewardCollectionStates } from "@/lib/merchant/customer-coll
 import { deriveMerchantCustomerRewardBadge } from "@/lib/merchant/customer-readback"
 import { rewardUnlockedNotificationEvent } from "@/lib/notifications/reward-event-plan-core"
 
-test("Stage A readers preserve activated 0/2 readiness across the trading availability boundary", async () => {
+test("Inherited readers preserve activated 0/2 readiness across the trading availability boundary", async () => {
   for (const state of ["waiting", "ready"]) {
     const row = {
       reward_id: "reward-cycle-1",
@@ -15,6 +15,7 @@ test("Stage A readers preserve activated 0/2 readiness across the trading availa
       reason: state === "waiting" ? "Reward is not redeemable yet" : null,
       available_from: "2026-10-27T05:00:00Z",
       expires_at: null,
+      in_window: false,
     }
     const membership = { currentStampCount: 0, activeCycleNumber: 2 }
     const collection = parseRewardCollectionState(row)

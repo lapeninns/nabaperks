@@ -29,6 +29,7 @@ import {
   rewardExpiryLabel,
 } from "@/lib/merchant/reward-expiry-fields"
 import { cn } from "@/lib/utils"
+import { loyaltyEarningTermsText } from "@/lib/loyalty/earning-terms"
 
 type LoyaltyCardFormValues = {
   cardId?: string
@@ -36,6 +37,8 @@ type LoyaltyCardFormValues = {
   stampsRequired: string
   rewardTerms: string
   rewardExpiryDays: string
+  minimumSpendPence: string
+  oneTransactionPerStamp: boolean
   isActive: boolean
 }
 
@@ -185,6 +188,38 @@ export function LoyaltyCardForm({
           error={state.errors?.rewardTerms}
         />
 
+        <Field
+          id="minimumSpendPence"
+          label="Minimum spend (optional)"
+          name="minimumSpendPence"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          placeholder="500"
+          value={draft.minimumSpendPence}
+          onChange={(event) =>
+            updateDraft("minimumSpendPence", event.target.value)
+          }
+          hint="Terms only. Enter pence, so 500 means £5.00. Nabaperks does not check the till value."
+          error={state.errors?.minimumSpendPence}
+        />
+
+        <ToggleRow
+          name="oneTransactionPerStamp"
+          label="One transaction per stamp"
+          hint="Shown in the member terms. Nabaperks does not inspect till transactions."
+          checked={draft.oneTransactionPerStamp}
+          onChange={(checked) => updateDraft("oneTransactionPerStamp", checked)}
+        />
+        <p className="rounded-lg bg-secondary px-3 py-2 text-sm leading-6 text-muted-foreground">
+          Member terms:{" "}
+          {loyaltyEarningTermsText({
+            minimumSpendPence: /^\d+$/.test(draft.minimumSpendPence)
+              ? Number.parseInt(draft.minimumSpendPence, 10)
+              : null,
+            oneTransactionPerStamp: draft.oneTransactionPerStamp,
+          })}
+        </p>
+
         <div className="space-y-2">
           <label
             htmlFor="rewardExpiryDays"
@@ -208,8 +243,9 @@ export function LoyaltyCardForm({
             ))}
           </select>
           <p className="text-xs leading-5 text-muted-foreground">
-            After this, an uncollected reward lapses and the member starts a
-            fresh card. Without it a full card would stop collecting for good.
+            This is the collection horizon. The reward expires at the final
+            collection window in that period, or at the venue-day boundary when
+            no windows are set. Earning continues on the next card.
           </p>
           {state.errors?.rewardExpiryDays ? (
             <p className="text-sm text-destructive">

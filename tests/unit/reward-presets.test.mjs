@@ -87,7 +87,11 @@ describe("merchant reward presets", () => {
       "FETCH",
       "PGRST301",
     ]) {
-      assert.equal(isDefiniteRewardPresetRollbackCode(code), false, String(code))
+      assert.equal(
+        isDefiniteRewardPresetRollbackCode(code),
+        false,
+        String(code)
+      )
     }
   })
 
@@ -150,7 +154,21 @@ describe("merchant reward presets", () => {
       weight: "1",
       displayOrder: "4",
       isActive: true,
+      requiresAgeCheck: true,
     })
+  })
+
+  it("requires ID for the alcoholic preset and leaves food presets ungated", () => {
+    assert.equal(
+      PUB_REWARD_PRESETS.find((preset) => preset.id === "regulars-pint")
+        ?.requiresAgeCheck,
+      true
+    )
+    for (const preset of PUB_REWARD_PRESETS.filter(
+      (candidate) => candidate.id !== "regulars-pint"
+    )) {
+      assert.equal(preset.requiresAgeCheck, false, preset.id)
+    }
   })
 
   it("keeps cadence presets inside the current card range", () => {

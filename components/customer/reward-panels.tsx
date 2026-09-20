@@ -23,7 +23,11 @@ import type {
   CustomerExperience,
   RewardView,
 } from "@/lib/customer/experience/types"
-import { formatCollectionAvailableLabel } from "@/lib/customer/reward-collection-state"
+import {
+  collectionWindowCopy,
+  formatCollectionAvailableLabel,
+  formatCollectionDeadline,
+} from "@/lib/customer/reward-collection-state"
 
 type WaitingExperience = Extract<CustomerExperience, { kind: "reward_waiting" }>
 
@@ -32,10 +36,12 @@ type ReadyExperience = Extract<CustomerExperience, { kind: "reward_ready" }>
 export function RewardWaitingPanel({ exp }: { exp: WaitingExperience }) {
   if (exp.preparing) return <RewardPreparePanel exp={exp} />
 
-  const readyDate = exp.reward.redeemableFrom
-    ? formatCollectionAvailableLabel(exp.reward.redeemableFrom)
+  const readyDate = exp.reward.availableFrom
+    ? formatCollectionAvailableLabel(exp.reward.availableFrom)
     : null
-  const setup = exp.profileGate ? collectionSetup(exp.profileGate) : undefined
+  const setup = exp.profileGate
+    ? collectionSetup(exp.profileGate, exp.reward.requiresAgeCheck)
+    : undefined
 
   return (
     <CustomerReceipt
@@ -49,9 +55,13 @@ export function RewardWaitingPanel({ exp }: { exp: WaitingExperience }) {
         name={exp.reward.rewardName}
         description={rewardTermsNode(exp.reward)}
         readyDate={readyDate}
+        requiresAgeCheck={exp.reward.requiresAgeCheck}
+        earningTerms={exp.reward.earningTerms}
+        expiryText={formatCollectionDeadline(exp.reward.expiresAt)}
+        collectionWindowText={collectionWindowCopy(exp.reward)}
       />
       <StatusBanner title="Give it a day to breathe" tone="warning">
-        {waitingRewardTiming(exp.reward.redeemableFrom)}
+        {waitingRewardTiming(exp.reward.availableFrom)}
       </StatusBanner>
       {/* Offered only where something is genuinely outstanding: a customer
           whose details are already saved and verified sees no extra step. */}
@@ -78,7 +88,9 @@ export function RewardWaitingPanel({ exp }: { exp: WaitingExperience }) {
  */
 function RewardPreparePanel({ exp }: { exp: WaitingExperience }) {
   const gate = exp.profileGate
-  const setup = gate ? collectionSetup(gate) : undefined
+  const setup = gate
+    ? collectionSetup(gate, exp.reward.requiresAgeCheck)
+    : undefined
   const backHref = `/reward/${exp.reward.rewardId}`
 
   return (
@@ -88,13 +100,13 @@ function RewardPreparePanel({ exp }: { exp: WaitingExperience }) {
           <CustomerProfileGateForm rewardId={exp.reward.rewardId} gate={gate} />
           <p className="text-center text-xs leading-5 text-muted-foreground">
             Finishing this now does not change when your reward opens.{" "}
-            {waitingRewardTiming(exp.reward.redeemableFrom)}
+            {waitingRewardTiming(exp.reward.availableFrom)}
           </p>
         </>
       ) : (
         <StatusBanner title="Your details are ready" tone="success">
           Nothing else to complete.{" "}
-          {waitingRewardTiming(exp.reward.redeemableFrom)}
+          {waitingRewardTiming(exp.reward.availableFrom)}
         </StatusBanner>
       )}
       <Button asChild size="lg" variant="secondary" className="w-full">
@@ -112,7 +124,7 @@ export function RewardReadyPanel({
   /** Harness-only QR source override — see {@link RewardCollectionQr}. */
   qrSrc?: string
 }) {
-  const setup = collectionSetup(exp.profileGate)
+  const setup = collectionSetup(exp.profileGate, exp.reward.requiresAgeCheck)
 
   return setup.outstanding ? (
     <RewardCollectionSetupPanel exp={exp} setup={setup} />
@@ -172,7 +184,16 @@ function RewardCollectionPanel({
         rewardName={exp.reward.rewardName}
         idCheckRequired={setup.stage === "id_check"}
         qrSrc={qrSrc}
+        poll={qrSrc === undefined}
       />
+      {/* The upgrade window is a nudge, not the action: it sits after the code so
+          a short landscape viewport still shows the whole scannable code above
+          the fixed navigation. */}
+      {collectionWindowCopy(exp.reward) ? (
+        <StatusBanner title="Collection upgrade" tone="success">
+          {collectionWindowCopy(exp.reward)}
+        </StatusBanner>
+      ) : null}
       <RewardDetailsDisclosure
         reward={exp.reward}
         merchantName={exp.merchantName}
@@ -207,6 +228,16 @@ function RewardDetailsDisclosure({
         <p className="text-sm leading-6 text-muted-foreground">
           {reward.rewardName} at {merchantName}. {reward.rewardTerms}
         </p>
+        {reward.earningTerms ? (
+          <p className="text-sm leading-6 text-muted-foreground">
+            {reward.earningTerms}
+          </p>
+        ) : null}
+        {formatCollectionDeadline(reward.expiresAt) ? (
+          <p className="text-sm leading-6 text-muted-foreground">
+            {formatCollectionDeadline(reward.expiresAt)}
+          </p>
+        ) : null}
         <p className="mono-id tracking-[0.08em] text-muted-foreground">
           {cardNumber(reward.membershipId)}
         </p>

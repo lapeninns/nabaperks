@@ -44,6 +44,10 @@ function initialVenueFormValues(location: CurrentVenueLocation) {
     softGeofenceTriggerStamp: String(
       location?.soft_geofence_trigger_stamp_number ?? 3
     ),
+    tradingDayStartsAt: (location?.trading_day_starts_at ?? "05:00").slice(
+      0,
+      5
+    ),
   }
 }
 

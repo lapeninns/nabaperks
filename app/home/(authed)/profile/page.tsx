@@ -5,6 +5,7 @@ import { PageTitle } from "@/components/brand"
 import { CustomerProfileAboutYou } from "@/components/customer/profile-about-you"
 import { CustomerProfileAccountSection } from "@/components/customer/profile-account-section"
 import { CustomerProfileMarketing } from "@/components/customer/profile-marketing-consent"
+import { PhoneMessagingSettings } from "@/components/customer/phone-messaging-settings"
 import { PushNotificationSettingsDisclosure } from "@/components/customer/push-notification-settings-disclosure"
 import { StatusBanner } from "@/components/loyalty"
 import { getCustomerProfile } from "@/lib/customer/profile"
@@ -54,6 +55,8 @@ export default async function HomeProfilePage() {
       />
 
       <CustomerProfileMarketing consents={profile.consents} />
+
+      <PhoneMessagingSettings preferences={profile.phoneMessagingPreferences} />
 
       <PushNotificationSettingsDisclosure />
 

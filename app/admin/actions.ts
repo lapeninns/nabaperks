@@ -10,6 +10,11 @@ import {
 } from "@/lib/admin/action-state"
 import { createAdminServiceRoleClient } from "@/lib/admin/service-role"
 import {
+  parseAdminMerchantId,
+  parseCustomerMessagingEnabled,
+  parseMerchantSuspensionReason,
+} from "@/lib/admin/merchant-control-fields"
+import {
   qrImageContextCacheTag,
   revalidateCacheTag,
   revalidateMerchantCacheTags,
@@ -37,6 +42,95 @@ function rpcFailure(
   safeMessage: string
 ): AdminActionState | null {
   return error ? adminActionError(safeMessage) : null
+}
+
+function revalidateMerchantControls(merchantId: string) {
+  revalidateMerchantCacheTags(merchantId)
+  revalidatePath("/admin/merchants")
+  revalidatePath("/admin/audit")
+  revalidatePath("/app", "layout")
+  revalidatePath("/home", "layout")
+}
+
+export async function setCustomerMessagingEnabledAction(
+  _previousState: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
+  await requireAdminAction()
+  const merchantId = parseAdminMerchantId(formData.get("merchantId"))
+  const enabled = parseCustomerMessagingEnabled(formData.get("enabled"))
+  if (!merchantId || enabled === null) {
+    return adminActionError("Choose a merchant and a valid messaging setting.")
+  }
+
+  const supabase = await createAdminServiceRoleClient()
+  const { data, error } = await supabase
+    .from("merchants")
+    .update({ customer_messaging_enabled: enabled })
+    .eq("id", merchantId)
+    .select("id")
+    .single()
+  if (error || !data) {
+    return adminActionError(
+      "Customer messaging could not be updated. Try again."
+    )
+  }
+
+  revalidateMerchantControls(merchantId)
+  return adminActionSuccess(
+    enabled ? "Customer messaging enabled." : "Customer messaging disabled."
+  )
+}
+
+export async function suspendMerchantAction(
+  _previousState: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
+  await requireAdminAction()
+  const merchantId = parseAdminMerchantId(formData.get("merchantId"))
+  const reason = parseMerchantSuspensionReason(formData.get("reason"))
+  if (!merchantId) return adminActionError("Merchant context is required.")
+  if (!reason) {
+    return adminActionError(
+      "Suspension reason must be between 4 and 500 characters."
+    )
+  }
+
+  const supabase = await createSupabaseServerClient()
+  const { error } = await supabase.rpc("admin_suspend_merchant", {
+    p_merchant_id: merchantId,
+    p_reason: reason,
+  })
+  const failure = rpcFailure(
+    error,
+    "Merchant suspension failed. Try again or review audit logs."
+  )
+  if (failure) return failure
+
+  revalidateMerchantControls(merchantId)
+  return adminActionSuccess("Merchant suspended. Logged to the audit trail.")
+}
+
+export async function reinstateMerchantAction(
+  _previousState: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
+  await requireAdminAction()
+  const merchantId = parseAdminMerchantId(formData.get("merchantId"))
+  if (!merchantId) return adminActionError("Merchant context is required.")
+
+  const supabase = await createSupabaseServerClient()
+  const { error } = await supabase.rpc("admin_reinstate_merchant", {
+    p_merchant_id: merchantId,
+  })
+  const failure = rpcFailure(
+    error,
+    "Merchant reinstatement failed. Try again or review audit logs."
+  )
+  if (failure) return failure
+
+  revalidateMerchantControls(merchantId)
+  return adminActionSuccess("Merchant reinstated. Logged to the audit trail.")
 }
 
 export async function adjustStampsAction(

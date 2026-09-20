@@ -22,6 +22,7 @@ import {
 import { validateProfileFields } from "@/lib/customer/profile-fields"
 import { clearPendingEmailVerification } from "@/lib/customer/session"
 import { RateLimitError } from "@/lib/security/rate-limit"
+import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 const PROFILE_PATH = "/home/profile"
 
@@ -203,6 +204,51 @@ export async function clearHomeProfileEmailAction(): Promise<void> {
     return
   }
   revalidatePath(PROFILE_PATH)
+}
+
+export type PhoneMessagingState = {
+  readonly error?: string
+  readonly message?: string
+}
+
+export async function updateHomePhoneMessagingAction(
+  _state: PhoneMessagingState,
+  formData: FormData
+): Promise<PhoneMessagingState> {
+  const customer = await getCurrentCustomer()
+  if (!customer) return { error: "Sign in to change your phone messages." }
+
+  const preferredPhoneChannel = value(formData, "preferredPhoneChannel")
+  const phoneMessages = formData.get("phoneMessagesEnabled")
+  if (
+    (preferredPhoneChannel !== "whatsapp" && preferredPhoneChannel !== "sms") ||
+    (phoneMessages !== null && phoneMessages !== "on")
+  ) {
+    return { error: "Choose WhatsApp or text for your phone messages." }
+  }
+
+  try {
+    const supabase = createSupabaseServiceRoleClient()
+    const { error } = await supabase.rpc(
+      "update_customer_phone_messaging_preferences",
+      {
+        p_customer_id: customer.id,
+        p_phone_messages_enabled: phoneMessages === "on",
+        p_preferred_phone_channel: preferredPhoneChannel,
+      }
+    )
+    if (error)
+      return { error: "We couldn't save your phone preferences. Try again." }
+  } catch (error) {
+    if (!(error instanceof Error)) throw error
+    return {
+      error:
+        "We couldn't confirm your phone preferences. Reload to check them.",
+    }
+  }
+
+  revalidatePath(PROFILE_PATH)
+  return { message: "Your phone preferences are saved." }
 }
 
 function value(formData: FormData, key: string) {

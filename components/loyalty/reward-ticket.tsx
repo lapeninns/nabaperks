@@ -7,7 +7,12 @@ import { cn } from "@/lib/utils"
 import { RewardSeal } from "./reward-seal"
 
 export type RewardTicketState =
-  "sealed" | "waiting" | "ready" | "verification_required" | "redeemed"
+  | "sealed"
+  | "waiting"
+  | "ready"
+  | "verification_required"
+  | "redeemed"
+  | "expired"
 
 /** Mono eyebrow printed on the ticket face per state. */
 const KICKER: Record<RewardTicketState, string> = {
@@ -16,6 +21,7 @@ const KICKER: Record<RewardTicketState, string> = {
   ready: "Your reward · ready",
   verification_required: "Your reward · ID check needed",
   redeemed: "Redeemed",
+  expired: "Your reward · expired",
 }
 
 /** Mono status word printed on the stub per state. */
@@ -25,6 +31,7 @@ const STUB_WORD: Record<RewardTicketState, string> = {
   ready: "Ready",
   verification_required: "ID check",
   redeemed: "Done",
+  expired: "Expired",
 }
 
 /**
@@ -40,6 +47,11 @@ export function RewardTicket({
   name,
   description,
   readyDate,
+  requiresAgeCheck = false,
+  earningTerms,
+  expiryText,
+  collectionDeadlineText,
+  collectionWindowText,
   sealSlammed = false,
   eyebrow,
   className,
@@ -51,6 +63,13 @@ export function RewardTicket({
   description?: ReactNode
   /** UK business day the reward opens — printed as a sun chip while waiting. */
   readyDate?: string | null
+  readonly requiresAgeCheck?: boolean
+  /** Immutable terms from the issued reward, supplied by the caller. */
+  readonly earningTerms?: string | null
+  readonly expiryText?: string | null
+  readonly collectionDeadlineText?: string | null
+  /** Server-selected window with already-formatted dates; no eligibility calculation. */
+  readonly collectionWindowText?: string | null
   /** Fire the print-pop on the stub seal — e.g. hero reveal loop. */
   sealSlammed?: boolean
   /** Override the state kicker — e.g. "Clear reward" on merchant previews. */
@@ -102,6 +121,27 @@ export function RewardTicket({
             {description}
           </p>
         ) : null}
+        {requiresAgeCheck ? (
+          <p className="mono-meta mt-1 text-muted-foreground">
+            Photo ID needed
+          </p>
+        ) : null}
+        {[earningTerms, expiryText, collectionDeadlineText].map(
+          (text, index) =>
+            text ? (
+              <p
+                key={index}
+                className="text-sm leading-6 text-muted-foreground"
+              >
+                {text}
+              </p>
+            ) : null
+        )}
+        {collectionWindowText ? (
+          <p className="text-sm leading-6 font-semibold">
+            {collectionWindowText}
+          </p>
+        ) : null}
         {state === "waiting" && readyDate ? (
           // mono-meta, not mono-id: the ready date is the one fact a customer
           // must read to claim the prize — it stays above the 10px floor.
@@ -135,14 +175,22 @@ export function RewardTicket({
         )}
       >
         <RewardSeal
-          state={state === "verification_required" ? "waiting" : state}
+          state={
+            state === "verification_required" || state === "expired"
+              ? "waiting"
+              : state
+          }
           label={
-            state === "verification_required" ? "ID check needed" : undefined
+            state === "expired"
+              ? "Reward expired"
+              : state === "verification_required"
+                ? "ID check needed"
+                : undefined
           }
           size="md"
           wiggle={state === "sealed"}
           breathe={state === "waiting" || state === "ready"}
-          slammed={sealSlammed}
+          slammed={state !== "expired" && sealSlammed}
         />
         <span className="mono-id text-muted-foreground">
           {STUB_WORD[state]}

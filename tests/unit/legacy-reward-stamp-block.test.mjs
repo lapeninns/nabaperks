@@ -4,12 +4,13 @@ import { test } from "node:test"
 import { legacyRewardBlocksStamps } from "@/lib/customer/legacy-reward-stamp-block"
 import { rewardQrAvailability } from "@/lib/customer/reward-qr-eligibility"
 
-test("the same ready reward blocks legacy full-card stamps but permits a fresh cycle", () => {
-  for (const [currentStampCount, activeCycleNumber, blocked] of [
-    [3, 1, true],
-    [0, 2, false],
+test("an open reward blocks a legacy full card but permits every fresh-cycle collection state", () => {
+  for (const [collectionState, currentStampCount, blocked] of [
+    ["ready", 3, true],
+    ["ready", 0, false],
+    ["waiting", 0, false],
   ]) {
-    const reward = { status: "unlocked", collection_state: "ready" }
+    const reward = { status: "unlocked", collection_state: collectionState }
     assert.equal(
       legacyRewardBlocksStamps({
         reward,
@@ -17,7 +18,7 @@ test("the same ready reward blocks legacy full-card stamps but permits a fresh c
         stampsRequired: 3,
       }),
       blocked,
-      `cycle ${activeCycleNumber}`
+      `${collectionState} at ${currentStampCount}/3`
     )
     assert.equal(
       rewardQrAvailability({
@@ -25,7 +26,7 @@ test("the same ready reward blocks legacy full-card stamps but permits a fresh c
         collectionReason: null,
         availableFrom: null,
       }).status,
-      "ready"
+      collectionState === "ready" ? "ready" : "waiting"
     )
   }
 })

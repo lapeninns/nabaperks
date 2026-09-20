@@ -22,6 +22,9 @@ export type NotificationPreferenceState = {
   transactionalEnabled: boolean
   reminderEnabled: boolean
   marketingEnabled: boolean
+  phoneMessagesEnabled: boolean
+  preferredPhoneChannel: "whatsapp" | "sms"
+  whatsappUnavailableAt: string | null
   quietHoursStart: string | null
   quietHoursEnd: string | null
   activeSubscriptionCount: number
@@ -226,6 +229,10 @@ function preferenceState(
     transactionalEnabled: booleanValue(row?.transactional_enabled, true),
     reminderEnabled: booleanValue(row?.reminder_enabled, true),
     marketingEnabled: booleanValue(row?.marketing_enabled, false),
+    phoneMessagesEnabled: booleanValue(row?.phone_messages_enabled, true),
+    preferredPhoneChannel:
+      row?.preferred_phone_channel === "sms" ? "sms" : "whatsapp",
+    whatsappUnavailableAt: nullableString(row?.whatsapp_unavailable_at),
     quietHoursStart: nullableString(row?.quiet_hours_start),
     quietHoursEnd: nullableString(row?.quiet_hours_end),
     activeSubscriptionCount: numberValue(row?.active_subscription_count),

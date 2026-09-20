@@ -1,7 +1,19 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { parseVenueLocationSubmission } from "../../lib/merchant/venue-location-submission.ts"
+import {
+  isValidTradingDayStart,
+  parseVenueLocationSubmission,
+} from "../../lib/merchant/venue-location-submission.ts"
+
+test("venue trading-day rollover accepts midnight through midday only", () => {
+  for (const value of ["00:00", "04:59", "05:00", "11:45", "12:00"]) {
+    assert.equal(isValidTradingDayStart(value), true, value)
+  }
+  for (const value of ["", "5:00", "12:01", "23:00", "00:60"]) {
+    assert.equal(isValidTradingDayStart(value), false, value)
+  }
+})
 
 test("Given a forged venueName When launch parses the form Then the canonical merchant name wins", () => {
   const formData = new FormData()

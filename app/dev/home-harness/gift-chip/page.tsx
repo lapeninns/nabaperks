@@ -36,7 +36,7 @@ const INCOMPLETE_WITH_READY_GIFT: HomeCard = {
     rewardName: "Birthday fizz",
     source: "birthday_month",
     redeemable: true,
-    redeemableFrom: "2026-07-01",
+    availableFrom: "2026-07-01T05:00:00Z",
   },
 }
 
@@ -48,7 +48,7 @@ const INCOMPLETE_WITH_WAITING_GIFT: HomeCard = {
     rewardName: "Manager's thank-you drink",
     source: "merchant_direct",
     redeemable: false,
-    redeemableFrom: "2026-12-24",
+    availableFrom: "2026-12-24T05:00:00Z",
   },
 }
 
@@ -77,7 +77,7 @@ const COMPLETE_WITH_GIFT: HomeCard = {
     rewardName: "Birthday fizz",
     source: "birthday_month",
     redeemable: true,
-    redeemableFrom: "2026-07-01",
+    availableFrom: "2026-07-01T05:00:00Z",
   },
 }
 

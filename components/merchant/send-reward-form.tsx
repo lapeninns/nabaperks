@@ -33,6 +33,7 @@ export function SendRewardForm({
   // needed for name/terms.
   const [rewardName, setRewardName] = useState("")
   const [rewardTerms, setRewardTerms] = useState("")
+  const [requiresAgeCheck, setRequiresAgeCheck] = useState(true)
 
   if (state.message) {
     return (
@@ -84,6 +85,7 @@ export function SendRewardForm({
                   // until the merchant presses Send reward.
                   setRewardName(preset.rewardName)
                   setRewardTerms(preset.rewardTerms)
+                  setRequiresAgeCheck(preset.requiresAgeCheck)
                 }}
                 className="focus-ring rounded-lg border-2 border-dashed border-ink/25 bg-transparent px-3 py-1.5 text-sm font-bold text-foreground transition-[background-color,border-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:border-ink hover:bg-card motion-reduce:transition-none [@media(pointer:coarse)]:min-h-11"
               >
@@ -114,6 +116,22 @@ export function SendRewardForm({
         maxLength={500}
         error={state.errors?.rewardTerms}
       />
+
+      <label className="flex min-h-11 items-start gap-3 rounded-lg border border-border bg-secondary p-3">
+        <input
+          name="requiresAgeCheck"
+          type="checkbox"
+          checked={requiresAgeCheck}
+          onChange={(event) => setRequiresAgeCheck(event.currentTarget.checked)}
+          className="mt-0.5 size-5 shrink-0 accent-primary"
+        />
+        <span className="grid gap-1">
+          <span className="font-bold">Needs photo ID (18+)</span>
+          <span className="text-sm leading-6 text-muted-foreground">
+            Switch this off when the reward can be served without an age check.
+          </span>
+        </span>
+      </label>
 
       <div className="grid gap-1.5">
         <label htmlFor="send-reward-expiry">

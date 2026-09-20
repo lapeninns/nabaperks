@@ -37,6 +37,7 @@ export type SendRewardState = {
     rewardTerms?: string
     expiresInDays?: string
     message?: string
+    requiresAgeCheck?: boolean
   }
   errors?: SendRewardErrors
   message?: string
@@ -150,6 +151,7 @@ async function createRewardInviteForUnmatchedContact(
     rewardName: string
     rewardTerms: string
     message: string
+    requiresAgeCheck: boolean
   },
   expiresInDays: number
 ): Promise<RewardInviteCreateResult> {
@@ -203,6 +205,7 @@ async function createRewardInviteForUnmatchedContact(
       p_reward_expires_after_days: expiresInDays,
       p_claim_token_hash: claimTokenHash,
       p_unsubscribe_token_hash: unsubscribeTokenHash,
+      p_requires_age_check: input.requiresAgeCheck,
     }
   )
   if (error) return { ok: false }
@@ -285,6 +288,7 @@ export async function sendMerchantRewardAction(
     rewardTerms: value(formData, "rewardTerms"),
     expiresInDays: value(formData, "expiresInDays") || "30",
     message: value(formData, "message"),
+    requiresAgeCheck: formData.get("requiresAgeCheck") === "on",
   }
   const fields = { ...input }
   const contactEntered = !input.membershipId
@@ -328,6 +332,7 @@ export async function sendMerchantRewardAction(
           rewardName: input.rewardName,
           rewardTerms: input.rewardTerms,
           message: input.message,
+          requiresAgeCheck: input.requiresAgeCheck,
         },
         expiresInDays
       )
@@ -346,6 +351,7 @@ export async function sendMerchantRewardAction(
     p_reward_terms: input.rewardTerms,
     p_expires_in_days: expiresInDays,
     p_reason: input.message || null,
+    p_requires_age_check: input.requiresAgeCheck,
   })
 
   if (error) {

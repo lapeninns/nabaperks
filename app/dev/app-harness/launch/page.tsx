@@ -6,12 +6,18 @@ import {
   startCheckoutAction,
 } from "@/app/app/billing/actions"
 import type { BirthdayRewardActionState } from "@/app/app/card/actions"
+import type {
+  CollectionWindowActionState,
+  VenueClosureActionState,
+} from "@/app/app/launch/collection-actions"
 import { PageTitle } from "@/components/brand"
 import { SetupBillingActivationCard } from "@/components/merchant/account/billing-activation-card"
 import { BillingPanelView } from "@/components/merchant/account/billing-panel-view"
 import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-panel"
 import { BirthdayRewardPanel } from "@/components/merchant/launch/birthday-panel"
+import { CollectionWindowsForm } from "@/components/merchant/launch/collection-windows-form"
 import { LaunchFlowFooter } from "@/components/merchant/launch/launch-flow-footer"
+import { VenueClosuresForm } from "@/components/merchant/launch/venue-closures-form"
 import { birthdayRewardTemplateForBusinessType } from "@/lib/merchant/birthday-reward-template"
 import { DEFAULT_REWARD_EXPIRY_DAYS } from "@/lib/merchant/reward-expiry-fields"
 import {
@@ -78,10 +84,46 @@ async function saveHarnessBirthdayReward(
       enabled,
       rewardName: String(formData.get("rewardName") ?? ""),
       rewardTerms: String(formData.get("rewardTerms") ?? ""),
+      requiresAgeCheck: formData.get("requiresAgeCheck") === "on",
     },
     saved: true,
     message: enabled ? "Birthday treat saved." : "Birthday treat switched off.",
   }
+}
+
+async function saveHarnessCollectionWindows(
+  _state: CollectionWindowActionState,
+  _formData: FormData
+): Promise<CollectionWindowActionState> {
+  "use server"
+  void _state
+  void _formData
+  return {}
+}
+
+async function addHarnessVenueClosure(
+  _state: VenueClosureActionState,
+  formData: FormData
+): Promise<VenueClosureActionState> {
+  "use server"
+  return {
+    fields: {
+      locationId: String(formData.get("locationId") ?? ""),
+      startsAt: String(formData.get("startsAt") ?? ""),
+      endsAt: String(formData.get("endsAt") ?? ""),
+      reason: String(formData.get("reason") ?? ""),
+    },
+  }
+}
+
+async function endHarnessVenueClosure(
+  _state: CollectionWindowActionState,
+  _formData: FormData
+): Promise<CollectionWindowActionState> {
+  "use server"
+  void _state
+  void _formData
+  return {}
 }
 
 /**
@@ -210,6 +252,8 @@ export default async function LaunchHarnessPage({
               rewardTerms: "A surprise reward on the house after 3 visits.",
               rewardExpiryDays: String(DEFAULT_REWARD_EXPIRY_DAYS),
               isActive: true,
+              minimumSpendPence: "",
+              oneTransactionPerStamp: true,
             }}
             cadencePresets={CARD_CADENCE_PRESETS}
           />
@@ -226,8 +270,22 @@ export default async function LaunchHarnessPage({
               enabled={false}
               rewardName={null}
               rewardTerms={null}
+              requiresAgeCheck={true}
               template={birthdayRewardTemplateForBusinessType("pub")}
               saveAction={saveHarnessBirthdayReward}
+            />
+            <CollectionWindowsForm
+              locationId="7b51a3ee-40ec-4f9f-9b35-e3db731f2e61"
+              windows={HARNESS_COLLECTION_WINDOWS}
+              rewardPoolItems={HARNESS_UPGRADE_REWARDS}
+              saveAction={saveHarnessCollectionWindows}
+            />
+            <VenueClosuresForm
+              locationId="7b51a3ee-40ec-4f9f-9b35-e3db731f2e61"
+              closures={HARNESS_VENUE_CLOSURES}
+              now="2026-09-19T12:00:00.000Z"
+              addAction={addHarnessVenueClosure}
+              endAction={endHarnessVenueClosure}
             />
           </div>
         ) : activeTab === "qr" &&
@@ -282,6 +340,7 @@ export default async function LaunchHarnessPage({
               addressPostcode: "CB3 0QH",
               geofenceRadiusMeters: "150",
               requireGeofence: false,
+              tradingDayStartsAt: "05:00",
             }}
             geocoded={{ latitude: 52.2399, longitude: 0.0826 }}
             pinSource="geocoded"
@@ -307,12 +366,7 @@ function resolveTab(value: string | undefined): LaunchHubTab {
 }
 
 type LaunchHarnessState =
-  | "default"
-  | "billing"
-  | "lapsed"
-  | "paused"
-  | "qr"
-  | "live"
+  "default" | "billing" | "lapsed" | "paused" | "qr" | "live"
 
 function resolveHarnessState(value: string | undefined): LaunchHarnessState {
   if (
@@ -357,6 +411,7 @@ const READY_REWARD_POOL: readonly RewardPoolItemValues[] = [
     weight: "3",
     displayOrder: "1",
     isActive: true,
+    requiresAgeCheck: false,
   },
   {
     id: "rwd_2",
@@ -365,6 +420,7 @@ const READY_REWARD_POOL: readonly RewardPoolItemValues[] = [
     weight: "2",
     displayOrder: "2",
     isActive: true,
+    requiresAgeCheck: false,
   },
   {
     id: "rwd_3",
@@ -373,8 +429,43 @@ const READY_REWARD_POOL: readonly RewardPoolItemValues[] = [
     weight: "1",
     displayOrder: "3",
     isActive: true,
+    requiresAgeCheck: false,
   },
 ]
+
+const HARNESS_UPGRADE_REWARDS = [
+  {
+    id: "6f7eca8d-23fe-4fe9-a772-6cfc9bd1da94",
+    reward_name: "Free starter",
+    is_active: true,
+  },
+  {
+    id: "a5976c94-360a-4faf-a7e4-e8749abde99c",
+    reward_name: "House dessert",
+    is_active: true,
+  },
+] as const
+
+const HARNESS_COLLECTION_WINDOWS = [
+  {
+    id: "32dd2bbb-536b-4e17-a1f9-ac812e54ad75",
+    isodow: 2,
+    starts_at: "12:00:00",
+    ends_at: "15:00:00",
+    upgrade_pool_item_id: HARNESS_UPGRADE_REWARDS[0].id,
+    is_active: true,
+  },
+] as const
+
+const HARNESS_VENUE_CLOSURES = [
+  {
+    id: "3fbb3508-161d-4b40-a168-2568d81e3876",
+    starts_at: "2026-09-19T08:00:00.000Z",
+    ends_at: "2026-09-20T20:00:00.000Z",
+    reason: "Emergency kitchen repair",
+    ended_early_at: null,
+  },
+] as const
 
 function resolveHarnessRewardPool(
   state: string | undefined
@@ -392,6 +483,7 @@ function resolveHarnessRewardPool(
         weight: "1",
         displayOrder: "1",
         isActive: true,
+        requiresAgeCheck: false,
       },
     ]
   }

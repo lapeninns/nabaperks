@@ -321,6 +321,70 @@ test(
 )
 
 test(
+  "an existing-member campaign re-scan reconciles a complete ledger without another grant",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const fx = await createRewardPoolFixture(tx)
+      const customerId = await freshPhoneCustomer(tx)
+      const [membership] = await tx`
+        insert into public.customer_memberships (
+          merchant_id, customer_id, current_stamp_count, total_stamps_earned
+        ) values (${fx.merchantId}::uuid, ${customerId}::uuid, 3, 3)
+        returning id`
+      await tx`
+        insert into public.stamp_events (
+          merchant_id, customer_id, membership_id, loyalty_card_id, location_id,
+          event_type, stamps_delta, earned_business_date, cycle_number, metadata
+        ) select
+          ${fx.merchantId}::uuid, ${customerId}::uuid, ${membership.id}::uuid,
+          ${fx.cardId}::uuid, ${fx.locationId}::uuid, 'earned', 1,
+          date '1900-01-01' + visit_number, 1,
+          jsonb_build_object('source', 'fixture_visit')
+        from generate_series(1, 3) visit_number`
+      await tx`
+        insert into public.reward_pool_items (
+          merchant_id, location_id, loyalty_card_id, reward_name, reward_terms,
+          weight, is_active, display_order
+        ) select ${fx.merchantId}::uuid, ${fx.locationId}::uuid,
+          ${fx.cardId}::uuid, 'Reward ' || n, 'Fixture reward terms', 1, true, n
+        from generate_series(1, 3) n`
+      const campaign = await publishCampaign(tx, fx.merchantId, {
+        bonusStampCount: 2,
+      })
+
+      const [claimed] = await claim(tx, customerId, campaign.claimHash)
+      assert.equal(claimed.status, "already_member")
+      assert.equal(claimed.stamps_awarded, 0)
+      const [replayed] = await claim(tx, customerId, campaign.claimHash)
+      assert.equal(replayed.status, "already_member")
+      assert.equal(replayed.stamps_awarded, 0)
+      const [{ stamps }] = await tx`
+        select count(*)::integer as stamps from public.stamp_events
+        where membership_id = ${membership.id}::uuid and event_type = 'earned'`
+      assert.equal(stamps, 3, "re-scans grant no promotional stamps")
+      const [state] = await tx`
+        select memberships.current_stamp_count, memberships.active_cycle_number,
+               count(rewards.id)::integer as rewards
+        from public.customer_memberships memberships
+        left join public.reward_events rewards
+          on rewards.membership_id = memberships.id
+         and rewards.source = 'stamp_cycle' and rewards.cycle_number = 1
+        where memberships.id = ${membership.id}::uuid
+        group by memberships.id`
+      assert.deepEqual(
+        {
+          count: state.current_stamp_count,
+          cycle: state.active_cycle_number,
+          rewards: state.rewards,
+        },
+        { count: 0, cycle: 2, rewards: 1 }
+      )
+    })
+  }
+)
+
+test(
   "a re-scan awards nothing and hands back the existing card and pass",
   { skip },
   async () => {

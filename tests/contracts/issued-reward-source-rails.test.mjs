@@ -56,18 +56,14 @@ test("R-8: the reward-ready push producer only enqueues stamp_cycle rewards", ()
     "notifications",
     "notification-producers.ts"
   )
-  const start = worker.indexOf("async function enqueueRewardReady")
-  assert.ok(start >= 0, "enqueueRewardReady exists")
-  const after = worker.indexOf("async function", start + 1)
-  const body = worker.slice(start, after === -1 ? undefined : after)
-  assert.match(body, /"list_pending_reward_notification_candidates"/)
   const migration = readProjectFile(
     "supabase",
     "migrations",
     "20260922100100_reward_collection_state.sql"
   )
+  assert.match(worker, /p_event_type: "reward_ready"/)
+  assert.match(migration, /p_event_type = 'reward_ready'/)
   assert.match(migration, /rewards\.source = 'stamp_cycle'/)
-  assert.match(migration, /collection\.state = 'ready'/)
 })
 
 test("R-10: the issued-reward product events are registered in analytics", () => {

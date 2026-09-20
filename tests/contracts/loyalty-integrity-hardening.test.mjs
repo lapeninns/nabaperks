@@ -47,6 +47,16 @@ const FAIR_REWARD_CYCLE_HEALING = migration(
 const VENUE_CODE_RPCS =
   migration("20260908100000_venue_code_rpcs.sql") +
   migration("20260911120000_venue_code_direct_entry.sql")
+const REWARD_LOGIC_REFUSALS = [
+  "20260923100000_venue_trading_day.sql",
+  "20260924100000_open_next_cycle_on_completion.sql",
+  "20261001100200_collection_window_upgrade_on_collect.sql",
+]
+  .map(migration)
+  .join("\n")
+const OPEN_NEXT_CYCLE = migration(
+  "20260924100000_open_next_cycle_on_completion.sql"
+)
 const BLOCK_REASONS = readFileSync(
   new URL("../../lib/customer/experience/block-reasons.ts", import.meta.url),
   "utf8"
@@ -162,15 +172,16 @@ test("Given the card-uniqueness migration Then it reconciles before it constrain
   assert.match(CARD_UNIQUENESS, /order by cards\.created_at asc, cards\.id asc/)
 })
 
-test("Given every NBS refusal code in SQL Then block-reasons.ts maps exactly the same set", () => {
+test("Given every NB[SCR] refusal code in SQL Then block-reasons.ts maps exactly the same set", () => {
   const inSql = new Set(
     [
       ...STAMP_CODES.matchAll(/errcode = '(NB[SC]\d{2})'/g),
       ...VENUE_CODE_RPCS.matchAll(/errcode = '(NB[SC]\d{2})'/g),
+      ...REWARD_LOGIC_REFUSALS.matchAll(/errcode = '(NB[SCR]\d{2})'/g),
     ].map((m) => m[1])
   )
   const inTs = new Set(
-    [...BLOCK_REASONS.matchAll(/^\s{2}(NB[SC]\d{2}):/gm)].map((m) => m[1])
+    [...BLOCK_REASONS.matchAll(/^\s{2}(NB[SCR]\d{2}):/gm)].map((m) => m[1])
   )
 
   assert.ok(inSql.size >= 8, `expected the NBS table, saw ${inSql.size}`)
@@ -179,6 +190,76 @@ test("Given every NBS refusal code in SQL Then block-reasons.ts maps exactly the
     [...inTs].sort(),
     "every code raised in SQL must be classified in TypeScript, and vice versa"
   )
+})
+
+test("Given every cycle award path Then completion follows its locked stamp award and precedes return", () => {
+  const body = (start, end) => {
+    const startAt = OPEN_NEXT_CYCLE.indexOf(start)
+    const endAt = OPEN_NEXT_CYCLE.indexOf(end, startAt + start.length)
+    assert.ok(startAt >= 0, `${start} is present`)
+    assert.ok(endAt > startAt, `${end} follows ${start}`)
+    return OPEN_NEXT_CYCLE.slice(startAt, endAt)
+  }
+  const ordered = (source, anchors) => {
+    let previous = -1
+    for (const anchor of anchors) {
+      const at = source.indexOf(anchor)
+      assert.ok(at > previous, `${anchor} follows the previous award anchor`)
+      previous = at
+    }
+  }
+
+  const visit = body(
+    "create or replace function private.issue_visit_stamp(",
+    "revoke all on function private.issue_visit_stamp("
+  )
+  ordered(visit, [
+    "insert into public.stamp_events",
+    "private.complete_cycle_if_full(",
+    "return next;",
+  ])
+  assert.doesNotMatch(visit, /issue_visit_stamp_legacy_v1/)
+
+  const referral = body(
+    "create or replace function public.settle_referral_bonus(",
+    "revoke all on function public.settle_referral_bonus("
+  )
+  ordered(referral, [
+    "for update of m",
+    "insert into public.stamp_events",
+    "private.complete_cycle_if_full(",
+    "return 'awarded';",
+  ])
+  assert.doesNotMatch(referral, /settle_referral_bonus_legacy_v1/)
+
+  const threshold = body(
+    "create or replace function public.reconcile_loyalty_card_threshold_rewards(",
+    "revoke all on function public.reconcile_loyalty_card_threshold_rewards("
+  )
+  ordered(threshold, [
+    "for update",
+    "private.complete_cycle_if_full(",
+    "return v_minted_count;",
+  ])
+
+  for (const promo of [
+    [
+      "create or replace function public.claim_loyalty_invite(",
+      "revoke all on function public.claim_loyalty_invite(",
+      "private.claim_loyalty_invite_legacy_v1(",
+    ],
+    [
+      "create or replace function public.claim_offer_campaign(",
+      "revoke all on function public.claim_offer_campaign(",
+      "private.claim_offer_campaign_legacy_v1(",
+    ],
+  ]) {
+    ordered(body(promo[0], promo[1]), [
+      promo[2],
+      "private.complete_cycle_if_full(",
+      "return next;",
+    ])
+  }
 })
 
 test("Given the reward-ready refusal Then it carries its own code rather than the billing wording", () => {

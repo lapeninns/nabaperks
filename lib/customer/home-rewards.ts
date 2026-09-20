@@ -20,7 +20,7 @@ export type RawHomeReward = {
   collection_state: RewardCollectionState
   /** Predicate reason; a profile or verified-email block keeps the reward actionable. */
   collection_reason?: string | null
-  redeemable_from: string | null
+  available_from: string | null
   source?: string | null
   created_at?: string | null
 }
@@ -33,7 +33,7 @@ export type RewardCounts = {
   stampRewardName: string | null
   /** Stamp-cycle waiting (unlocked, not-yet-redeemable) reward → revealed ticket. */
   revealedRewardName: string | null
-  revealedRewardRedeemableFrom: string | null
+  revealedRewardAvailableFrom: string | null
   /** Best issued reward (birthday/merchant) → a distinct gift chip. */
   gift: HomeCardGift | null
 }
@@ -44,7 +44,7 @@ export function emptyRewardCounts(): RewardCounts {
     stampRewardId: null,
     stampRewardName: null,
     revealedRewardName: null,
-    revealedRewardRedeemableFrom: null,
+    revealedRewardAvailableFrom: null,
     gift: null,
   }
 }
@@ -90,7 +90,7 @@ export function buildRewardCountsByMembership(
     )
     if (stampWaiting) {
       entry.revealedRewardName = stampWaiting.reward_name
-      entry.revealedRewardRedeemableFrom = stampWaiting.redeemable_from
+      entry.revealedRewardAvailableFrom = stampWaiting.available_from
     }
 
     const issued = pickIssuedUnlockedReward(membershipRows)
@@ -100,7 +100,7 @@ export function buildRewardCountsByMembership(
         rewardName: issued.reward_name,
         source: narrowRewardSource(issued.source),
         redeemable: actionable(issued),
-        redeemableFrom: issued.redeemable_from,
+        availableFrom: issued.available_from,
       }
     }
 

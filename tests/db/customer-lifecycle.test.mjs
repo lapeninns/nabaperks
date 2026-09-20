@@ -12,9 +12,9 @@ import { ensureVerifiedCustomerEmail } from "./helpers/verified-customer-email.m
  * precondition (force-setting current_stamp_count, hand-inserting an unlocked
  * reward), this walks the WHOLE arc organically through the real RPCs:
  *
- *   join (stamp 1) → stamp 2 → stamp 3 (card full, reward UNLOCKED by stamping)
- *     → next-business-day gate → redeem (token consumed) → cycle resets,
- *     active_cycle_number increments → first stamp of cycle 2 starts clean.
+ *   join (stamp 1) → stamp 2 → stamp 3 (reward UNLOCKED and cycle 2 opened)
+ *     → next-trading-day gate → redeem (token consumed without cycle mutation)
+ *     → first stamp of cycle 2.
  *
  * Nothing is manufactured except the passage of time: the one-stamp-per-UK-day
  * guard is satisfied by ageing each prior earned row's `earned_business_date`
@@ -49,7 +49,7 @@ const PICK = /* sql */ `
   limit 1`
 
 test(
-  "customer lifecycle: join → stamp to full → unlock by stamping → redeem → cycle 2 starts clean",
+  "customer lifecycle: join → complete cycle → fresh card opens → redeem → continue cycle 2",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
@@ -74,6 +74,11 @@ test(
         returning id`
       assert.ok(customer?.id, "created a fresh verified customer")
       await ensureVerifiedCustomerEmail(tx, customer.id)
+      await tx`
+        update public.customers
+        set date_of_birth_verified_at = now(),
+            date_of_birth_verification_source = 'trusted_database'
+        where id = ${customer.id}::uuid`
 
       // Age every prior earned stamp for this membership a week back so "today"
       // is always free of the one-per-UK-business-day guard.
@@ -149,11 +154,15 @@ test(
         "STEP 3: the third stamp unlocks a reward"
       )
       m = await member(membershipId)
-      assert.equal(m.current_stamp_count, 3, "STEP 3: card is full at 3/3")
+      assert.equal(
+        m.current_stamp_count,
+        0,
+        "STEP 3: a fresh card opens at 0/3"
+      )
       assert.equal(
         m.active_cycle_number,
-        1,
-        "STEP 3: unlock does not advance the cycle"
+        2,
+        "STEP 3: reward issuance opens cycle 2"
       )
 
       // Exactly one reward, earned (not hand-inserted), scoped to cycle 1, and
@@ -170,7 +179,7 @@ test(
       )[0].d
       assert.ok(
         reward.redeemable_from > ukToday,
-        "STEP 3: reward opens on a later UK business day, not same-day"
+        "STEP 3: reward opens on a later trading day, not same-day"
       )
 
       // A same-day redemption attempt must be refused by the next-day gate.
@@ -181,7 +190,9 @@ test(
             ${reward.id}::uuid, ${customer.id}::uuid)`
         })
       } catch (error) {
-        sameDayRefused = /next UK business day/i.test(String(error.message))
+        sameDayRefused = /next.*(?:business|trading) day|not ready/i.test(
+          String(error.message)
+        )
       }
       assert.ok(
         sameDayRefused,
@@ -190,7 +201,8 @@ test(
 
       // ---- STEP 4: the next business day arrives → REDEEM via scan token.
       await tx`
-        update public.reward_events set redeemable_from = ${ukToday}
+        update public.reward_events
+        set redeemable_from = ${ukToday}, available_from = now() - interval '1 minute'
         where id = ${reward.id}`
       const [minted] = await tx`
         select * from public.create_reward_scan_token(
@@ -214,20 +226,16 @@ test(
         select status from public.reward_events where id = ${reward.id}`
       assert.equal(rewardStatus, "redeemed", "STEP 4: reward is redeemed")
 
-      // ---- STEP 5: CYCLE RESETS. The real invariant is not "== 0" but the
-      // rollover: greatest(count - required, 0) and cycle == redeemed + 1.
+      // ---- STEP 5: redemption records the outcome without changing the card
+      // that already opened when the reward was issued.
       m = await member(membershipId)
-      assert.equal(
-        m.current_stamp_count,
-        0,
-        "STEP 5: stamp count rolls over to 0"
-      )
-      assert.equal(m.active_cycle_number, 2, "STEP 5: advanced to cycle 2")
+      assert.equal(m.current_stamp_count, 0, "STEP 5: opened card remains at 0")
+      assert.equal(m.active_cycle_number, 2, "STEP 5: remains on cycle 2")
       assert.equal(m.total_rewards_redeemed, 1, "STEP 5: one reward redeemed")
       assert.equal(
         m.active_cycle_number,
-        m.total_rewards_redeemed + 1,
-        "STEP 5: cycle invariant active_cycle_number == total_rewards_redeemed + 1"
+        rewards.length + 1,
+        "STEP 5: cycle identity follows distinct issued reward cycles"
       )
 
       // ---- STEP 6: the FIRST stamp of cycle 2 starts a clean card, not 4/3.

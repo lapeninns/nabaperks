@@ -33,6 +33,7 @@ export type CustomerCardState =
         current_stamp_count: number
         total_rewards_redeemed: number
         active_cycle_number: number
+        policy_cutover_notice_at: string | null
         referral_code: string
         referral_code_active: boolean
       }
@@ -50,6 +51,8 @@ export type CustomerCardState =
         reward_name: string
         reward_terms: string
         is_active: boolean
+        minimum_spend_pence: number | null
+        one_transaction_per_stamp: boolean
       } | null
       /** Unlocked stamp-cycle reward only — the card's own completion reward. */
       stampCycleReward: RewardSummary | null
@@ -115,6 +118,7 @@ export async function getCustomerCardState(
       current_stamp_count: membership.current_stamp_count,
       total_rewards_redeemed: membership.total_rewards_redeemed,
       active_cycle_number: membership.active_cycle_number,
+      policy_cutover_notice_at: membership.policy_cutover_notice_at,
       referral_code: membership.referral_code,
       referral_code_active: membership.referral_code_active,
     },

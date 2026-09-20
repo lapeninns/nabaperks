@@ -62,6 +62,32 @@ test("Given a QR id crosses into stamping When context is resolved Then inactive
   )
 })
 
+test("Given an open cycle reward and a fresh card When stamp context is loaded Then collection state does not lock the new cycle", () => {
+  const loader = readProjectFile(
+    "lib",
+    "customer",
+    "experience",
+    "load-stamp.ts"
+  )
+  const rewardBranch = loader.slice(
+    loader.indexOf("const unlocked = cardState.stampCycleReward"),
+    loader.indexOf("// No unlocked reward")
+  )
+
+  assert.match(
+    rewardBranch,
+    /legacyRewardBlocksStamps\(\{[\s\S]*currentStampCount: cardState\.membership\.current_stamp_count,[\s\S]*stampsRequired: cardState\.loyaltyCard\.stamps_required/
+  )
+  assert.match(
+    rewardBranch,
+    /const redeemable = unlocked\.collection_state === "ready"/
+  )
+  assert.doesNotMatch(
+    rewardBranch,
+    /if \(unlocked && unlocked\.status === "unlocked"\)/
+  )
+})
+
 test("Given stamp context is loaded for the page When QR is missing or invalid Then the UI receives non-stamping state", () => {
   const loader = readProjectFile(
     "lib",
@@ -108,4 +134,17 @@ test("Given a stamp is issued When post-issue side effects run Then they occur o
     action,
     /enqueueStampTransitionNotifications\(\{[\s\S]*rewardUnlocked: result\.rewardUnlocked/
   )
+})
+
+test("Given a stamp unlocks a reward When its notification is classified Then the collection predicate decides readiness", () => {
+  const events = readProjectFile("lib", "notifications", "events.ts")
+  const transition = events.slice(
+    events.indexOf("export async function enqueueStampTransitionNotifications"),
+    events.indexOf("export async function enqueueRewardCollectedCycleStarted")
+  )
+
+  assert.match(events, /rpc\("get_reward_collection_state"/)
+  assert.match(transition, /getRewardCollectionState\(reward\.rewardEventId\)/)
+  assert.match(transition, /rewardUnlockedNotificationEvent\(collection\)/)
+  assert.doesNotMatch(events, /isRedeemableToday|redeemableFrom <=/)
 })
