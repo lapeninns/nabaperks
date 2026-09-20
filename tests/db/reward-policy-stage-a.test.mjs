@@ -292,7 +292,8 @@ test(
         insert into public.reward_events (
           id, merchant_id, customer_id, membership_id, loyalty_card_id,
           status, reward_name, reward_terms, redeemable_from, source,
-          cycle_number, reward_policy_version, reward_policy_snapshot
+          cycle_number, reward_policy_version, reward_policy_snapshot,
+          created_at, updated_at
         ) values (
           ${fixture.rewardEventId}::uuid,
           ${fixture.merchantId}::uuid,
@@ -301,7 +302,8 @@ test(
           ${fixture.cardId}::uuid,
           'unlocked', 'Legacy reward', 'Subject to availability.',
           public.uk_business_date(now()), 'stamp_cycle', 1, 'legacy_v1',
-          '{"collection":"next_uk_business_day","age_check":false,"expiry":"never"}'::jsonb
+          '{"collection":"next_uk_business_day","age_check":false,"expiry":"never"}'::jsonb,
+          now() - interval '2 days', now() - interval '2 days'
         )`
       const stateOf = async () => {
         const [row] = await tx`
