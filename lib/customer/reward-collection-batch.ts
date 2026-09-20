@@ -1,4 +1,4 @@
-import { isRedeemableFrom } from "@/lib/customer/uk-date"
+import { ukTodayIso } from "@/lib/customer/uk-calendar"
 import {
   parseRewardCollectionState,
   type RewardCollectionSnapshot,
@@ -108,7 +108,8 @@ export function legacyRewardCollectionRow(redeemableFrom: string | null): {
   requires_age_check: false
 } {
   return {
-    state: isRedeemableFrom(redeemableFrom) ? "ready" : "waiting",
+    state:
+      !redeemableFrom || redeemableFrom <= ukTodayIso() ? "ready" : "waiting",
     reason: null,
     available_from: redeemableFrom,
     expires_at: null,

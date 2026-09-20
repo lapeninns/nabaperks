@@ -150,7 +150,9 @@ export async function getCustomerHomeDashboard(): Promise<HomeDashboard> {
       .order("created_at", { ascending: true }),
     supabase
       .from("reward_events")
-      .select("id, membership_id, reward_name, source, created_at")
+      .select(
+        "id, membership_id, reward_name, source, created_at, redeemable_from"
+      )
       .in("membership_id", membershipIds)
       .eq("status", "unlocked"),
     supabase
