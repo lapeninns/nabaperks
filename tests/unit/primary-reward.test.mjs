@@ -81,3 +81,29 @@ test("pickIssuedUnlockedReward prefers a redeemable gift over a waiting one", ()
     "bday-ready"
   )
 })
+
+test("an older gift held only by a setup step outranks a newer waiting gift", () => {
+  const setupBlocked = {
+    id: "gift-setup",
+    source: "birthday_month",
+    created_at: "2026-07-01T10:00:00.000Z",
+    collection_state: "blocked",
+    collection_reason: "Verified email required for reward collection",
+  }
+  const newerWaiting = {
+    id: "gift-waiting",
+    source: "birthday_month",
+    created_at: "2026-07-05T10:00:00.000Z",
+    collection_state: "waiting",
+  }
+  const venueBlocked = {
+    id: "gift-paused",
+    source: "birthday_month",
+    created_at: "2026-07-06T10:00:00.000Z",
+    collection_state: "blocked",
+    collection_reason: "venue_paused",
+  }
+  assert.equal(pickIssuedUnlockedReward([newerWaiting, setupBlocked])?.id, "gift-setup")
+  // A block the customer cannot act on ranks like any other non-ready row.
+  assert.equal(pickIssuedUnlockedReward([venueBlocked, newerWaiting])?.id, "gift-paused")
+})

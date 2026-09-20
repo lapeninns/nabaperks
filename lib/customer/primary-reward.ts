@@ -1,10 +1,15 @@
-import type { RewardCollectionState } from "@/lib/customer/reward-collection-state"
+import {
+  cardRewardCollectable,
+  type RewardCollectionState,
+} from "@/lib/customer/reward-collection-state"
 
 export type UnlockedRewardPickRow = {
   id: string
   source?: string | null
   created_at?: string | null
   collection_state: RewardCollectionState
+  /** Predicate reason; a setup block keeps the reward actionable in ranking. */
+  collection_reason?: string | null
 }
 
 /** Earned cycle rewards outrank issued gifts when both are unlocked. */
@@ -22,8 +27,16 @@ export function comparePrimaryUnlockedRewards(
   const sourceDelta = sourceRank(a.source) - sourceRank(b.source)
   if (sourceDelta !== 0) return sourceDelta
 
-  const aRedeemable = a.collection_state === "ready"
-  const bRedeemable = b.collection_state === "ready"
+  // Actionable first: ready, or held only by a setup step the customer can
+  // complete, so an older setup-blocked gift outranks a newer waiting one.
+  const aRedeemable = cardRewardCollectable(
+    a.collection_state,
+    a.collection_reason ?? null
+  )
+  const bRedeemable = cardRewardCollectable(
+    b.collection_state,
+    b.collection_reason ?? null
+  )
   if (aRedeemable !== bRedeemable) return aRedeemable ? -1 : 1
 
   const aCreated = a.created_at ?? ""
