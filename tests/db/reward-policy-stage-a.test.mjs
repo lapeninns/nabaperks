@@ -262,24 +262,33 @@ test(
 
       assert.deepEqual(await stateOf(), { state: "ready", reason: null })
 
-      for (const email of [null, "", "   "]) {
+      // The contact-change trigger protects a verified address; the erasure
+      // setting is the reviewed path for the trusted purge/rewrite here. A
+      // phone contact keeps the customer row valid while the email is absent.
+      const setEmail = async (email, verifiedAt) => {
+        await tx`select set_config('app.customer_erasure', 'true', true)`
         await tx`
           update public.customers
-          set email = ${email}, email_verified_at = null
+          set email = ${email},
+              email_verified_at = ${verifiedAt},
+              phone_hmac = encode(extensions.digest(id::text, 'sha256'), 'hex'),
+              email_hmac = case
+                when ${email}::text is null then null
+                else encode(extensions.digest(lower(${email}::text), 'sha256'), 'hex')
+              end
           where id = ${fixture.customerId}::uuid`
+        await tx`select set_config('app.customer_erasure', 'false', true)`
+      }
+
+      for (const email of [null, "", "   "]) {
+        await setEmail(email, null)
         assert.deepEqual(await stateOf(), blockedByEmail)
       }
 
-      await tx`
-        update public.customers
-        set email = 'stage-a-unverified@example.test', email_verified_at = null
-        where id = ${fixture.customerId}::uuid`
+      await setEmail("stage-a-unverified@example.test", null)
       assert.deepEqual(await stateOf(), blockedByEmail)
 
-      await tx`
-        update public.customers
-        set email_verified_at = now()
-        where id = ${fixture.customerId}::uuid`
+      await setEmail("stage-a-verified@example.test", new Date())
       assert.deepEqual(await stateOf(), { state: "ready", reason: null })
     })
   }
