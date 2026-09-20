@@ -20,6 +20,48 @@ const sha256 = (value) => createHash("sha256").update(value).digest("hex")
 const SHA = /^[a-f0-9]{40}$/
 const UUID =
   /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/
+const OPEN_NEXT_CYCLE_MIGRATION =
+  "20260924100000_open_next_cycle_on_completion.sql"
+
+export function assertUpgradeInvariants(before, after, delta) {
+  const opensNextCycle = delta.some(
+    (migration) => migration.name === OPEN_NEXT_CYCLE_MIGRATION
+  )
+  if (opensNextCycle) {
+    assert.deepEqual(before.cycle, {
+      currentStampCount: 3,
+      activeCycleNumber: 1,
+    })
+    assert.deepEqual(after.cycle, {
+      currentStampCount: 0,
+      activeCycleNumber: 2,
+    })
+    assert.equal(before.cutoverAuditRows, null)
+    assert.deepEqual(after.cutoverAuditRows, [
+      {
+        actorType: "system",
+        actorId: "system",
+        merchantId: "ee100000-0000-4000-8000-000000000001",
+        customerId: "ee500000-0000-4000-8000-000000000001",
+        targetTable: "customer_memberships",
+        targetId: "ee600000-0000-4000-8000-000000000001",
+        action: "cycle_opened_at_policy_cutover",
+        metadata: { cycle_number: 1 },
+      },
+    ])
+  }
+  assert.deepEqual(
+    after,
+    opensNextCycle
+      ? {
+          ...before,
+          cycle: after.cycle,
+          cutoverAuditRows: after.cutoverAuditRows,
+        }
+      : before,
+    "Populated invariants changed during migration"
+  )
+}
 
 export function validateDisposableTarget(
   databaseUrl,
@@ -454,11 +496,7 @@ export function runPopulatedUpgrade(
   assert.equal(before.fixtureRows, 18, "Synthetic fixture row count mismatch")
   for (const migration of delta) psql(transactions.get(migration.name))
   const after = JSON.parse(psql(invariants))
-  assert.deepEqual(
-    after,
-    before,
-    "Populated invariants changed during migration"
-  )
+  assertUpgradeInvariants(before, after, delta)
   const checks = [
     {
       name: "populated-upgrade",
@@ -498,7 +536,7 @@ export function runPopulatedUpgrade(
     )
     assert.deepEqual(
       JSON.parse(psql(invariants)),
-      before,
+      after,
       "Populated invariants changed after application probe"
     )
     validateProbeArtifact(probe, revisions[index])

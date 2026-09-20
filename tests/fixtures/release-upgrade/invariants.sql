@@ -7,7 +7,9 @@ begin
   if not exists (
     select 1 from public.customer_memberships m
     join public.reward_events r on r.membership_id=m.id and r.merchant_id=m.merchant_id and r.customer_id=m.customer_id
-    where m.id='ee600000-0000-4000-8000-000000000001' and m.current_stamp_count=3 and m.total_stamps_earned=3
+    where m.id='ee600000-0000-4000-8000-000000000001' and m.total_stamps_earned=3
+      and m.current_stamp_count=case when exists (select 1 from supabase_migrations.schema_migrations where version='20260924100000') then 0 else 3 end
+      and m.active_cycle_number=case when exists (select 1 from supabase_migrations.schema_migrations where version='20260924100000') then 2 else 1 end
       and r.id='ee800000-0000-4000-8000-000000000001' and r.status='unlocked' and r.source='stamp_cycle'
       and (select sum(stamps_delta) from public.stamp_events where membership_id=m.id)=3
   ) then raise exception 'Synthetic stamp and reward relationship changed'; end if;
@@ -27,5 +29,10 @@ select json_build_object('fixtureRows',
   (select count(*) from public.stamp_events where id='ee700000-0000-4000-8000-000000000001') +
   (select count(*) from public.reward_events where id='ee800000-0000-4000-8000-000000000001') +
   (select count(*) from public.stripe_webhook_events where stripe_event_id in ('evt_synthetic_upgrade_done','evt_synthetic_upgrade_retry')),
-  'subscriptions',3,'memberships',1,'stampEvents',1,'rewards',1,'webhooks',2);
+  'subscriptions',3,'memberships',1,'stampEvents',1,'rewards',1,'webhooks',2,
+  'cycle', (select json_build_object('currentStampCount', current_stamp_count, 'activeCycleNumber', active_cycle_number) from public.customer_memberships where id='ee600000-0000-4000-8000-000000000001'),
+  'stampRows', (select jsonb_agg(jsonb_build_object('id',s.id,'merchantId',s.merchant_id,'customerId',s.customer_id,'membershipId',s.membership_id,'cardId',s.loyalty_card_id,'locationId',s.location_id,'eventType',s.event_type,'delta',s.stamps_delta,'earnedBusinessDate',s.earned_business_date,'cycle',s.cycle_number,'metadata',s.metadata,'createdAt',s.created_at) order by s.id) from public.stamp_events s where membership_id='ee600000-0000-4000-8000-000000000001'),
+  'rewardRows', (select jsonb_agg(jsonb_build_object('id',r.id,'merchantId',r.merchant_id,'customerId',r.customer_id,'membershipId',r.membership_id,'cardId',r.loyalty_card_id,'name',r.reward_name,'terms',r.reward_terms,'redeemableFrom',r.redeemable_from,'expiresAt',r.expires_at,'redeemedAt',r.redeemed_at,'status',r.status,'source',r.source,'cycle',r.cycle_number,'metadata',r.metadata,'createdAt',r.created_at) order by r.id) from public.reward_events r where membership_id='ee600000-0000-4000-8000-000000000001'),
+  'seededAuditRows', (select jsonb_agg(jsonb_build_object('id',a.id,'actorType',a.actor_type,'actorId',a.actor_id,'merchantId',a.merchant_id,'customerId',a.customer_id,'targetTable',a.target_table,'targetId',a.target_id,'action',a.action,'metadata',a.metadata) order by a.id) from public.audit_logs a where a.target_id='ee800000-0000-4000-8000-000000000001'),
+  'cutoverAuditRows', (select jsonb_agg(jsonb_build_object('actorType',a.actor_type,'actorId',a.actor_id,'merchantId',a.merchant_id,'customerId',a.customer_id,'targetTable',a.target_table,'targetId',a.target_id,'action',a.action,'metadata',a.metadata) order by a.id) from public.audit_logs a where a.target_id='ee600000-0000-4000-8000-000000000001' and a.action='cycle_opened_at_policy_cutover'));
 commit;
