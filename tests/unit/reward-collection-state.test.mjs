@@ -9,6 +9,7 @@ import {
   formatCollectionDeadline,
   isCollectionSetupBlock,
   parseRewardCollectionState,
+  photoIdSetupApplies,
   rewardCollectionBlockedCopy,
 } from "@/lib/customer/reward-collection-state"
 
@@ -176,6 +177,11 @@ test("an age-checked reward awaiting in-person photo ID stays a setup step, not 
     "Customer must have verified photo ID and be 18 or over to redeem"
   assert.equal(isCollectionSetupBlock(reason), true)
   assert.equal(cardRewardCollectable("blocked", reason), true)
+  // Only a stated adult date of birth makes it a counter step; an under-age
+  // customer is a policy block.
+  assert.equal(photoIdSetupApplies(reason, true), true)
+  assert.equal(photoIdSetupApplies(reason, false), false)
+  assert.equal(photoIdSetupApplies("venue_paused", true), false)
   assert.equal(
     rewardCollectionBlockedCopy(reason),
     "Photo ID is needed to collect this reward."

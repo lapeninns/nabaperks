@@ -131,6 +131,20 @@ export function isCollectionSetupBlock(reason: string | null): boolean {
 export const PHOTO_ID_REQUIRED_REASON =
   "Customer must have verified photo ID and be 18 or over to redeem"
 
+/**
+ * The predicate reports one reason for two situations: an adult whose photo ID
+ * the venue has not yet checked in person (a setup step, the code is shown), and
+ * a customer whose stated date of birth is under age (a policy block). Only the
+ * former is recoverable at the counter, so callers pass the stated date of
+ * birth to tell them apart.
+ */
+export function photoIdSetupApplies(
+  reason: string | null,
+  statedDateOfBirthIsAdult: boolean
+): boolean {
+  return reason === PHOTO_ID_REQUIRED_REASON && statedDateOfBirthIsAdult
+}
+
 export function collectionWindowCopy(
   facts: CollectionWindowFacts
 ): string | null {

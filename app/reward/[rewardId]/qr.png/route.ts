@@ -3,7 +3,12 @@ import { NextResponse } from "next/server"
 import { getCustomerRewardState } from "@/lib/customer/reward"
 import { createRewardScanToken } from "@/lib/customer/reward-scan-token"
 import { getCustomerProfileCompletion } from "@/lib/customer/profile"
-import { isCollectionSetupBlock } from "@/lib/customer/reward-collection-state"
+import { isAdultDateOfBirth } from "@/lib/customer/profile-fields"
+import {
+  isCollectionSetupBlock,
+  PHOTO_ID_REQUIRED_REASON,
+  rewardCollectionBlockedCopy,
+} from "@/lib/customer/reward-collection-state"
 import { rewardQrAvailability } from "@/lib/customer/reward-qr-eligibility"
 import { getServerEnv } from "@/lib/env/server"
 import { renderQrCodePng } from "@/lib/qr/assets"
@@ -62,10 +67,42 @@ export async function GET(_request: Request, context: RewardQrRouteContext) {
     )
   }
 
-  const token = await createRewardScanToken({
-    rewardId,
-    customerId: rewardState.customerId,
-  })
+  // The photo-ID reason is only a counter step for a stated adult date of
+  // birth; an under-age customer gets the age policy, never a mint attempt.
+  if (
+    rewardState.collection.reason === PHOTO_ID_REQUIRED_REASON &&
+    !isAdultDateOfBirth(profile.dateOfBirth)
+  ) {
+    return NextResponse.json(
+      {
+        state: "blocked",
+        reason: rewardCollectionBlockedCopy(
+          "Customer must be 18 or over to redeem"
+        ),
+        availableFrom: rewardState.collection.availableFrom,
+      },
+      { status: 409, headers: { "Cache-Control": "private, no-store" } }
+    )
+  }
+
+  let token: Awaited<ReturnType<typeof createRewardScanToken>>
+  try {
+    token = await createRewardScanToken({
+      rewardId,
+      customerId: rewardState.customerId,
+    })
+  } catch {
+    // The database mint is the authoritative gate; a refusal is a block for
+    // the customer, not a server failure.
+    return NextResponse.json(
+      {
+        state: "blocked",
+        reason: rewardCollectionBlockedCopy(null),
+        availableFrom: rewardState.collection.availableFrom,
+      },
+      { status: 409, headers: { "Cache-Control": "private, no-store" } }
+    )
+  }
   const scanUrl = `${serverEnv.NEXT_PUBLIC_APP_URL}/r/${token.scanToken}`
   const png = await renderQrCodePng(scanUrl)
 

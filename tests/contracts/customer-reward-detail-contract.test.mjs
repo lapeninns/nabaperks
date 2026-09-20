@@ -64,7 +64,13 @@ test("Given collection requirements govern a collectable or waiting reward When 
   assert.match(loader, /const gateApplies = availability\.status !== "blocked"/)
   assert.match(
     loader,
-    /const profileGate = gateApplies \? await loadProfileGate\(\) : undefined/
+    /const profileGate = gateApplies\s*\?\s*\(earlyGate \?\? \(await loadProfileGate\(\)\)\)\s*:\s*undefined/
+  )
+  // The one early read: the in-person photo-ID reason needs the stated date of
+  // birth to tell an adult awaiting the counter from an under-age customer.
+  assert.match(
+    loader,
+    /const earlyGate = photoIdPending \? await loadProfileGate\(\) : undefined/
   )
   assert.match(loader, /profileGate,?/)
 })

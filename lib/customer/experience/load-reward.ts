@@ -2,7 +2,12 @@ import "server-only"
 
 import { getCustomerRewardState } from "@/lib/customer/reward"
 import { getLocationRequirement } from "@/lib/customer/stamp"
-import { isCollectionSetupBlock } from "@/lib/customer/reward-collection-state"
+import { isAdultDateOfBirth } from "@/lib/customer/profile-fields"
+import {
+  isCollectionSetupBlock,
+  PHOTO_ID_REQUIRED_REASON,
+  rewardCollectionBlockedCopy,
+} from "@/lib/customer/reward-collection-state"
 import { rewardQrAvailability } from "@/lib/customer/reward-qr-eligibility"
 import { customerLoginHref } from "@/lib/navigation/safe-next-path"
 
@@ -41,23 +46,42 @@ export async function loadRewardExperienceContext(
     rewardState
   const location = await getLocationRequirement(loyaltyCard.location_id)
   // A profile or email block is a setup step the customer can complete here,
-  // so it keeps the gate (and the recovery form) instead of the dead end.
+  // so it keeps the gate (and the recovery form) instead of the dead end. The
+  // in-person photo-ID reason is a setup step only for a stated adult date of
+  // birth; an under-age customer sees the age policy instead.
+  const photoIdPending =
+    collection.state === "blocked" &&
+    collection.reason === PHOTO_ID_REQUIRED_REASON
+  const earlyGate = photoIdPending ? await loadProfileGate() : undefined
+  const underAge =
+    photoIdPending && !isAdultDateOfBirth(earlyGate?.dateOfBirth ?? null)
   const setupBlocked =
-    collection.state === "blocked" && isCollectionSetupBlock(collection.reason)
+    collection.state === "blocked" &&
+    !underAge &&
+    isCollectionSetupBlock(collection.reason)
   const availability = setupBlocked
     ? ({ status: "ready" } as const)
-    : rewardQrAvailability({
-        collectionState: collection.state,
-        collectionReason: collection.reason,
-        availableFrom: collection.availableFrom,
-      })
+    : underAge
+      ? ({
+          status: "blocked",
+          reason: rewardCollectionBlockedCopy(
+            "Customer must be 18 or over to redeem"
+          ),
+        } as const)
+      : rewardQrAvailability({
+          collectionState: collection.state,
+          collectionReason: collection.reason,
+          availableFrom: collection.availableFrom,
+        })
   const availableForReview = availability.status === "ready"
   // The gate governs collection, so it is read for a reward the customer can
   // collect *or* is still waiting on — the waiting screen offers the optional
   // early preparation step from exactly the same requirements. A redeemed or
   // blocked reward has nothing left to gate, so it skips the profile lookup.
   const gateApplies = availability.status !== "blocked"
-  const profileGate = gateApplies ? await loadProfileGate() : undefined
+  const profileGate = gateApplies
+    ? (earlyGate ?? (await loadProfileGate()))
+    : undefined
 
   return {
     reward: {

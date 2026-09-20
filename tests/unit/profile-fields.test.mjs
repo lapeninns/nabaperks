@@ -164,3 +164,14 @@ describe("DOB gate — Section F: latestAdultBirthDate (date-input max)", () => 
     assert.equal(validateDateOfBirth(addDays(cutoff, 1)), AGE_ERROR)
   })
 })
+
+test("isAdultDateOfBirth follows the latest adult birth date rule", async () => {
+  const { isAdultDateOfBirth, latestAdultBirthDate } =
+    await import("@/lib/customer/profile-fields")
+  const now = new Date("2026-09-20T12:00:00Z")
+  const cutoff = latestAdultBirthDate(now)
+  assert.equal(isAdultDateOfBirth(cutoff, now), true)
+  assert.equal(isAdultDateOfBirth("1990-01-01", now), true)
+  assert.equal(isAdultDateOfBirth("2015-06-01", now), false)
+  assert.equal(isAdultDateOfBirth(null, now), false)
+})

@@ -54,3 +54,15 @@ test("confirmed-stamp integration reads the database collection predicate", () =
   assert.match(source, /rewardUnlockedNotificationEvent\(collection\)/)
   assert.doesNotMatch(source, /isRedeemableToday|redeemableFrom\s*<=/)
 })
+
+test("awaiting the venue's in-person photo ID sends no profile message", () => {
+  assert.equal(
+    rewardUnlockedNotificationEvent(
+      collection(
+        "blocked",
+        "Customer must have verified photo ID and be 18 or over to redeem"
+      )
+    ),
+    null
+  )
+})
