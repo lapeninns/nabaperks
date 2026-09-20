@@ -9,6 +9,7 @@ import { londonBusinessDate } from "@/lib/notifications/london-time"
 import { parseRewardCollectionState } from "@/lib/customer/reward-collection-state"
 import { logger } from "@/lib/observability/logger"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
+import { isCollectionSetupBlock } from "@/lib/customer/reward-collection-state"
 
 export const scheduledNotificationProducerEventTypes = [
   "next_stamp_available",
@@ -103,12 +104,13 @@ async function enqueueRewardExpiringSoon(now: Date) {
   for (const row of rows) {
     const rewardEventId = stringValue(row.reward_event_id)
     const collection = collectionStates.get(rewardEventId)
-    if (
-      !collection ||
-      !["waiting", "ready"].includes(collection.state) ||
-      !collection.expiresAt
-    )
-      continue
+    // A setup block (profile, verified email) is recoverable, so the final
+    // expiry warning still goes out; other blocks and terminal states do not.
+    const warnable =
+      ["waiting", "ready"].includes(collection?.state ?? "") ||
+      (collection?.state === "blocked" &&
+        isCollectionSetupBlock(collection.reason))
+    if (!collection || !warnable || !collection.expiresAt) continue
     const eventType = "reward_expiring_soon"
     const payload = buildNotificationPayload({
       eventType,

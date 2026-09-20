@@ -1,10 +1,12 @@
 import "server-only"
 
 import { getCurrentCustomer } from "@/lib/customer/identity"
+import { legacyRewardCollectionRow } from "@/lib/customer/reward-collection-batch"
 import {
   parseRewardCollectionState,
   type RewardCollectionSnapshot,
 } from "@/lib/customer/reward-collection-state"
+import { isMissingRpcError } from "@/lib/supabase/missing-rpc"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export type CustomerRewardState =
@@ -199,7 +201,9 @@ export async function getCustomerRewardState(
   const billingStatus =
     firstNullable(merchant.billing_customers)?.status ?? null
 
-  const collection = await getRewardCollectionState(supabase, rewardId)
+  const collection = await getRewardCollectionState(supabase, rewardId, {
+    redeemableFrom: reward.redeemable_from,
+  })
 
   return {
     status: "ready",
@@ -233,12 +237,20 @@ export async function getCustomerRewardState(
 
 export async function getRewardCollectionState(
   supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
-  rewardId: string
+  rewardId: string,
+  legacy?: { redeemableFrom: string | null }
 ): Promise<RewardCollectionSnapshot> {
   const { data, error } = await supabase.rpc("get_reward_collection_state", {
     p_reward_id: rewardId,
   })
   if (error) {
+    if (legacy && isMissingRpcError(error)) {
+      // App deployed ahead of the migration: derive readiness as the previous
+      // release did, for one release.
+      return parseRewardCollectionState(
+        legacyRewardCollectionRow(legacy.redeemableFrom)
+      )
+    }
     throw new Error(`Unable to load reward collection state: ${error.message}`)
   }
 

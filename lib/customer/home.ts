@@ -201,9 +201,19 @@ export async function getCustomerHomeDashboard(): Promise<HomeDashboard> {
       const result = await supabase.rpc("get_reward_collection_states", args)
       // App deployed ahead of the migration: placeholder blocks for one
       // release, matching the legacy card read.
-      return result.error && isMissingRpcError(result.error)
-        ? { data: legacyRewardCollectionBatch(args.p_reward_ids), error: null }
-        : result
+      if (!result.error || !isMissingRpcError(result.error)) return result
+      const redeemableFromById = new Map(
+        rewardRows.map((reward) => [reward.id, reward.redeemable_from ?? null])
+      )
+      return {
+        data: legacyRewardCollectionBatch(
+          args.p_reward_ids.map((id) => ({
+            id,
+            redeemable_from: redeemableFromById.get(id) ?? null,
+          }))
+        ),
+        error: null,
+      }
     }
   )
   const rewardsByMembership = buildRewardCountsByMembership(

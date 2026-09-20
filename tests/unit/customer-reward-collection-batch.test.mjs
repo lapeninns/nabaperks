@@ -78,18 +78,28 @@ test("missing, duplicate, foreign and malformed batch rows fail closed", async (
   }
 })
 
-test("the missing-RPC placeholder blocks every reward without a collection promise", async () => {
-  const ids = ["11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"]
-  const states = await loadCustomerRewardCollectionStates(ids, async ({ p_reward_ids }) => ({
-    data: legacyRewardCollectionBatch(p_reward_ids),
-    error: null,
-  }))
-  for (const id of ids) {
-    assert.deepEqual(states.get(id), {
-      state: "blocked",
-      reason: "Reward collection status is updating",
-      availableFrom: null,
-      expiresAt: null,
+test("the missing-RPC fallback derives legacy readiness from redeemable_from", async () => {
+  const rows = [
+    { id: "11111111-1111-4111-8111-111111111111", redeemable_from: "2000-01-01" },
+    { id: "22222222-2222-4222-8222-222222222222", redeemable_from: "2999-12-31" },
+    { id: "33333333-3333-4333-8333-333333333333", redeemable_from: null },
+  ]
+  const states = await loadCustomerRewardCollectionStates(
+    rows.map((row) => row.id),
+    async ({ p_reward_ids }) => ({
+      data: legacyRewardCollectionBatch(
+        p_reward_ids.map((id) => rows.find((row) => row.id === id))
+      ),
+      error: null,
     })
+  )
+  assert.equal(states.get(rows[0].id).state, "ready")
+  assert.equal(states.get(rows[0].id).availableFrom, "2000-01-01")
+  assert.equal(states.get(rows[1].id).state, "waiting")
+  assert.equal(states.get(rows[1].id).availableFrom, "2999-12-31")
+  assert.equal(states.get(rows[2].id).state, "ready")
+  for (const row of rows) {
+    assert.equal(states.get(row.id).reason, null)
+    assert.equal(states.get(row.id).expiresAt, null)
   }
 })

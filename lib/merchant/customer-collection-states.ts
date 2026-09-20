@@ -8,6 +8,8 @@ export const MAX_MERCHANT_REWARD_STATE_BATCH = 256
 export type MerchantUnlockedRewardRef = {
   readonly id: string
   readonly membership_id: string
+  /** Legacy readiness input for the one-release missing-RPC fallback. */
+  readonly redeemable_from?: string | null
 }
 
 export type MerchantUnlockedRewardWithCollectionState =

@@ -281,7 +281,18 @@ begin
         p_event_type = 'reward_expiring_soon'
         and collection.expires_at > p_now
         and collection.expires_at <= p_now + interval '72 hours'
-        and collection.state in ('waiting', 'ready')
+        and (
+          collection.state in ('waiting', 'ready')
+          -- A setup block (profile, verified email) is recoverable, so the
+          -- final expiry warning still goes out.
+          or (
+            collection.state = 'blocked'
+            and collection.reason in (
+              'Complete your profile before redeeming',
+              'Verified email required for reward collection'
+            )
+          )
+        )
       )
     )
   order by

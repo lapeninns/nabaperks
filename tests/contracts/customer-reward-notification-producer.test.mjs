@@ -31,8 +31,10 @@ test("ready and expiry producers use fair pending candidates and one authoritati
   assert.match(producer, /collection\?\.state !== "ready"/)
   assert.match(
     producer,
-    /\["waiting", "ready"\]\.includes\(collection\.state\)/
+    /\["waiting", "ready"\]\.includes\(collection\?\.state \?\? ""\)/
   )
+  // A recoverable setup block still receives the final expiry warning.
+  assert.match(producer, /isCollectionSetupBlock\(collection\.reason\)/)
   assert.match(producer, /!collection\.expiresAt/)
   assert.match(producer, /nullableString\(row\.reward_event_id\)/)
 })
@@ -44,6 +46,10 @@ test("pending candidates remove notified and blocked rewards before the bounded 
   )
   assert.match(migration, /collection\.state = 'ready'/)
   assert.match(migration, /collection\.state in \('waiting', 'ready'\)/)
+  assert.match(
+    migration,
+    /collection\.state = 'blocked'[\s\S]*?'Complete your profile before redeeming'[\s\S]*?'Verified email required for reward collection'/
+  )
   assert.match(migration, /limit p_limit/)
   assert.doesNotMatch(migration, /grant execute[\s\S]*?to authenticated/)
 })

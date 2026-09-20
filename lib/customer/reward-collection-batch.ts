@@ -1,3 +1,4 @@
+import { isRedeemableFrom } from "@/lib/customer/uk-date"
 import {
   parseRewardCollectionState,
   type RewardCollectionSnapshot,
@@ -72,25 +73,46 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /**
  * One-release compatibility for an application deployed ahead of its
- * migration: the batch RPC is absent, so every reward reads as a conservative
- * placeholder block, exactly as the legacy card read reports it. The home page
- * then shows the pending reward without a collection promise instead of
- * failing outright.
+ * migration: the collection RPCs are absent, so readiness is derived the way
+ * the previous release derived it, from `redeemable_from` against the UK
+ * business date. No expiry or window facts are invented.
  */
+export type LegacyRewardCollectionRow = {
+  readonly id: string
+  readonly redeemable_from: string | null
+}
+
 export function legacyRewardCollectionBatch(
-  rewardIds: readonly string[]
+  rows: readonly LegacyRewardCollectionRow[]
 ): Array<{
   reward_id: string
-  state: "blocked"
-  reason: string
-  available_from: null
+  state: "ready" | "waiting"
+  reason: null
+  available_from: string | null
   expires_at: null
+  in_window: false
+  requires_age_check: false
 }> {
-  return rewardIds.map((rewardId) => ({
-    reward_id: rewardId,
-    state: "blocked",
-    reason: "Reward collection status is updating",
-    available_from: null,
-    expires_at: null,
+  return rows.map((row) => ({
+    reward_id: row.id,
+    ...legacyRewardCollectionRow(row.redeemable_from),
   }))
+}
+
+export function legacyRewardCollectionRow(redeemableFrom: string | null): {
+  state: "ready" | "waiting"
+  reason: null
+  available_from: string | null
+  expires_at: null
+  in_window: false
+  requires_age_check: false
+} {
+  return {
+    state: isRedeemableFrom(redeemableFrom) ? "ready" : "waiting",
+    reason: null,
+    available_from: redeemableFrom,
+    expires_at: null,
+    in_window: false,
+    requires_age_check: false,
+  }
 }

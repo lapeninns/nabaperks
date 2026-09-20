@@ -1,5 +1,8 @@
 import "server-only"
 
+import { legacyRewardCollectionBatch } from "@/lib/customer/reward-collection-batch"
+import { isMissingRpcError } from "@/lib/supabase/missing-rpc"
+
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import {
@@ -181,7 +184,25 @@ export async function getMerchantCustomers(
     authorisedRewards,
     async (args) => {
       const service = createSupabaseServiceRoleClient()
-      return service.rpc("get_reward_collection_states", args)
+      const result = await service.rpc("get_reward_collection_states", args)
+      if (!result.error || !isMissingRpcError(result.error)) return result
+      // App deployed ahead of the migration: derive readiness as the previous
+      // release did, for one release.
+      const redeemableFromById = new Map(
+        authorisedRewards.map((reward) => [
+          reward.id,
+          reward.redeemable_from ?? null,
+        ])
+      )
+      return {
+        data: legacyRewardCollectionBatch(
+          args.p_reward_ids.map((id) => ({
+            id,
+            redeemable_from: redeemableFromById.get(id) ?? null,
+          }))
+        ),
+        error: null,
+      }
     }
   )
   const rewardByMembership = indexUnlockedRewards(rewardsWithCollectionState)
@@ -348,7 +369,7 @@ function getUnlockedRewardResult(
 ) {
   return supabase
     .from("reward_events")
-    .select("id, membership_id")
+    .select("id, membership_id, redeemable_from")
     .eq("merchant_id", merchantId)
     .eq("status", "unlocked")
     .in("membership_id", membershipIds)

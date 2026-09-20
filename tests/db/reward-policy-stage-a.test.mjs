@@ -368,3 +368,47 @@ test(
     })
   }
 )
+
+test(
+  "expiry warnings keep setup-blocked rewards and drop venue-blocked ones",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const setup = await createRewardPoolFixture(tx)
+      const paused = await createRewardPoolFixture(tx)
+      await tx`update public.customers set full_name = null
+        where id = ${setup.customerId}::uuid`
+      await tx`update public.loyalty_cards set is_active = false
+        where id = ${paused.cardId}::uuid`
+      for (const f of [setup, paused]) {
+        await tx`
+          insert into public.reward_events (
+            id, merchant_id, customer_id, membership_id, loyalty_card_id,
+            status, reward_name, reward_terms, redeemable_from, source,
+            cycle_number, reward_policy_version, reward_policy_snapshot,
+            expires_at, created_at, updated_at
+          ) values (
+            ${f.rewardEventId}::uuid, ${f.merchantId}::uuid, ${f.customerId}::uuid,
+            ${f.membershipId}::uuid, ${f.cardId}::uuid,
+            'unlocked', 'Expiring reward', 'Subject to availability.',
+            public.uk_business_date(now()) - 1, 'stamp_cycle', 1, 'legacy_v1',
+            '{"collection":"next_uk_business_day","age_check":false,"expiry":"never"}'::jsonb,
+            now() + interval '24 hours', now() - interval '2 days', now() - interval '2 days'
+          )`
+      }
+      const [setupState] = await tx`
+        select state, reason from public.get_reward_collection_state(${setup.rewardEventId}::uuid)`
+      assert.deepEqual(setupState, {
+        state: "blocked",
+        reason: "Complete your profile before redeeming",
+      })
+      const rows = await tx`
+        select reward_event_id from public.list_pending_reward_notification_candidates(
+          'reward_expiring_soon', now(), 500
+        )`
+      const ids = rows.map((row) => row.reward_event_id)
+      assert.ok(ids.includes(setup.rewardEventId), "setup-blocked reward is warned")
+      assert.ok(!ids.includes(paused.rewardEventId), "venue-blocked reward is not warned")
+    })
+  }
+)
