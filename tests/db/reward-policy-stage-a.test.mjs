@@ -445,6 +445,10 @@ test(
             '{"collection":"next_uk_business_day","age_check":false,"expiry":"never"}'::jsonb,
             now() + interval '24 hours', now() - interval '2 days', now() - interval '2 days'
           )`
+        // The activated issuance trigger stores its own policy expiry; the
+        // warning window under test is the explicit 24-hour one.
+        await tx`update public.reward_events set expires_at = now() + interval '24 hours'
+          where id = ${f.rewardEventId}::uuid`
       }
       const [setupState] = await tx`
         select state, reason from public.get_reward_collection_state(${setup.rewardEventId}::uuid)`
@@ -457,8 +461,14 @@ test(
           'reward_expiring_soon', now(), 500
         )`
       const ids = rows.map((row) => row.reward_event_id)
-      assert.ok(ids.includes(setup.rewardEventId), "setup-blocked reward is warned")
-      assert.ok(!ids.includes(paused.rewardEventId), "venue-blocked reward is not warned")
+      assert.ok(
+        ids.includes(setup.rewardEventId),
+        "setup-blocked reward is warned"
+      )
+      assert.ok(
+        !ids.includes(paused.rewardEventId),
+        "venue-blocked reward is not warned"
+      )
     })
   }
 )

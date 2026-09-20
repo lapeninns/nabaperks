@@ -103,7 +103,7 @@ test("Given the reward state uses service-role reads When source is inspected Th
   )
   assert.ok(
     stateLoader.indexOf("reward.customer_id !== currentCustomer.id") <
-      stateLoader.indexOf("getRewardCollectionState(supabase, rewardId)"),
+      stateLoader.indexOf("getRewardCollectionState(supabase, rewardId"),
     "reward ownership must be checked before availability facts are returned"
   )
 })
