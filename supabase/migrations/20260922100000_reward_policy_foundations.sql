@@ -104,6 +104,10 @@ $function$;
 revoke all on function private.standard_reward_daily_cap_reached(uuid, timestamptz)
   from public, anon, authenticated, service_role;
 
+alter table public.customer_memberships
+  add column if not exists total_rewards_cancelled integer not null default 0
+  check (total_rewards_cancelled >= 0);
+
 create or replace function public.admin_cancel_reward(
   p_reward_id uuid,
   p_reason text
@@ -149,9 +153,13 @@ begin
 
   if reward_record.source = 'stamp_cycle'
      and reward_record.cycle_number = membership_record.active_cycle_number then
+    -- A cancelled active-cycle reward closes that cycle like an expiry does,
+    -- and is counted so active_cycle_number keeps reconciling against
+    -- redeemed + expired + cancelled + 1.
     update public.customer_memberships
     set active_cycle_number = active_cycle_number + 1,
-        current_stamp_count = 0
+        current_stamp_count = 0,
+        total_rewards_cancelled = total_rewards_cancelled + 1
     where id = reward_record.membership_id;
 
     insert into public.audit_logs (

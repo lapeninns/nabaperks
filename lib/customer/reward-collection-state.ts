@@ -108,3 +108,17 @@ export function isCollectionSetupBlock(reason: string | null): boolean {
     reason === "Verified email required for reward collection"
   )
 }
+
+/**
+ * Whether the card should point at the reward page: a collectable reward, or
+ * one held only by a profile or verified-email step the customer completes on
+ * that page. Anything else is genuinely waiting or unavailable.
+ */
+export function cardRewardCollectable(
+  state: RewardCollectionState,
+  reason: string | null
+): boolean {
+  return (
+    state === "ready" || (state === "blocked" && isCollectionSetupBlock(reason))
+  )
+}

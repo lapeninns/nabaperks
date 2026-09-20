@@ -83,16 +83,17 @@ begin
     state := 'blocked'; reason := 'Reward is not ready to collect'; return next; return;
   end if;
 
+  -- Programme availability is decided before timing: a paused or unbillable
+  -- venue must not advertise a later collection time it cannot honour.
+  if v_reward.unavailable_reason is not null then
+    state := 'blocked'; reason := 'This loyalty programme is unavailable right now'; return next; return;
+  end if;
   if v_reward.reward_policy_version = 'legacy_v1'
      and v_reward.redeemable_from > public.uk_business_date(p_at) then
     state := 'waiting'; reason := 'Reward is not redeemable until the next UK business day'; return next; return;
   elsif v_reward.reward_policy_version <> 'legacy_v1'
      and available_from is not null and p_at < available_from then
     state := 'waiting'; reason := 'Reward is not ready to collect yet'; return next; return;
-  end if;
-
-  if v_reward.unavailable_reason is not null then
-    state := 'blocked'; reason := 'This loyalty programme is unavailable right now'; return next; return;
   end if;
   if v_reward.source = 'stamp_cycle'
      and v_reward.card_policy_version <> 'v2'

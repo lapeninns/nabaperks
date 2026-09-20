@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 
 import {
+  cardRewardCollectable,
   formatCollectionAvailability,
   formatCollectionAvailableLabel,
   parseRewardCollectionState,
@@ -44,4 +45,23 @@ test("Given stale or malformed predicate facts When parsed Then they fail closed
       /malformed collection state/
     )
   }
+})
+
+test("the card links to the reward page for ready and setup-blocked rewards only", () => {
+  assert.equal(cardRewardCollectable("ready", null), true)
+  assert.equal(
+    cardRewardCollectable("blocked", "Complete your profile before redeeming"),
+    true
+  )
+  assert.equal(
+    cardRewardCollectable(
+      "blocked",
+      "Verified email required for reward collection"
+    ),
+    true
+  )
+  assert.equal(cardRewardCollectable("blocked", "venue_paused"), false)
+  assert.equal(cardRewardCollectable("blocked", null), false)
+  assert.equal(cardRewardCollectable("waiting", null), false)
+  assert.equal(cardRewardCollectable("expired", "expired"), false)
 })

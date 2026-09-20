@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import { after, test } from "node:test"
 
 import { closeDb, db, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
+import { asPostgrestRole } from "./helpers/postgrest-role.mjs"
 import { createRewardPoolFixture } from "./helpers/reward-pool-fixture.mjs"
 
 const ready = await isLiveDbReady()
@@ -290,6 +291,75 @@ test(
 
       await setEmail("stage-a-verified@example.test", new Date())
       assert.deepEqual(await stateOf(), { state: "ready", reason: null })
+    })
+  }
+)
+
+test(
+  "an admin cancellation closes the active cycle and is counted in the reconciliation model",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const fixture = await createRewardPoolFixture(tx)
+      const [before] = await tx`
+        select active_cycle_number, total_rewards_redeemed, total_rewards_expired,
+               total_rewards_cancelled
+        from public.customer_memberships
+        where id = ${fixture.membershipId}::uuid`
+      await tx`
+        insert into public.reward_events (
+          id, merchant_id, customer_id, membership_id, loyalty_card_id,
+          status, reward_name, reward_terms, redeemable_from, source,
+          cycle_number, reward_policy_version, reward_policy_snapshot,
+          created_at, updated_at
+        ) values (
+          ${fixture.rewardEventId}::uuid,
+          ${fixture.merchantId}::uuid,
+          ${fixture.customerId}::uuid,
+          ${fixture.membershipId}::uuid,
+          ${fixture.cardId}::uuid,
+          'unlocked', 'Cancelled reward', 'Subject to availability.',
+          public.uk_business_date(now()), 'stamp_cycle',
+          ${before.active_cycle_number}, 'legacy_v1',
+          '{"collection":"next_uk_business_day","age_check":false,"expiry":"never"}'::jsonb,
+          now() - interval '2 days', now() - interval '2 days'
+        )`
+
+      await asPostgrestRole(
+        tx,
+        "authenticated",
+        { sub: fixture.adminUserId, aal: "aal2" },
+        (sp) => sp`select public.admin_cancel_reward(
+          ${fixture.rewardEventId}::uuid, 'Issued in error during review'
+        )`
+      )
+
+      const [reward] = await tx`
+        select status, cancelled_reason from public.reward_events
+        where id = ${fixture.rewardEventId}::uuid`
+      assert.deepEqual(reward, {
+        status: "cancelled",
+        cancelled_reason: "Issued in error during review",
+      })
+      const [after] = await tx`
+        select active_cycle_number, current_stamp_count, total_rewards_redeemed,
+               total_rewards_expired, total_rewards_cancelled
+        from public.customer_memberships
+        where id = ${fixture.membershipId}::uuid`
+      assert.deepEqual(after, {
+        active_cycle_number: before.active_cycle_number + 1,
+        current_stamp_count: 0,
+        total_rewards_redeemed: before.total_rewards_redeemed,
+        total_rewards_expired: before.total_rewards_expired,
+        total_rewards_cancelled: before.total_rewards_cancelled + 1,
+      })
+      assert.equal(
+        after.active_cycle_number,
+        after.total_rewards_redeemed +
+          after.total_rewards_expired +
+          after.total_rewards_cancelled +
+          1
+      )
     })
   }
 )

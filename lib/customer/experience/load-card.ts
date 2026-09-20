@@ -14,6 +14,7 @@ import {
   isShareableReferralCode,
 } from "@/lib/customer/referral"
 import { narrowRewardSource } from "@/lib/customer/issued-reward-display"
+import { cardRewardCollectable } from "@/lib/customer/reward-collection-state"
 import {
   normalizeGoogleReviewUrl,
   normalizeVenueLocality,
@@ -114,7 +115,10 @@ export async function loadCardExperienceContext(
           name: stampCycleReward.reward_name,
           terms: stampCycleReward.reward_terms,
           redeemableFrom: stampCycleReward.redeemable_from,
-          redeemable: stampCycleReward.collection_state === "ready",
+          redeemable: cardRewardCollectable(
+            stampCycleReward.collection_state,
+            stampCycleReward.collection_reason
+          ),
         }
       : null
 
@@ -127,7 +131,10 @@ export async function loadCardExperienceContext(
           name: issuedReward.reward_name,
           source: narrowRewardSource(issuedReward.source),
           redeemableFrom: issuedReward.redeemable_from,
-          redeemable: issuedReward.collection_state === "ready",
+          redeemable: cardRewardCollectable(
+            issuedReward.collection_state,
+            issuedReward.collection_reason
+          ),
         }
       : null
 
