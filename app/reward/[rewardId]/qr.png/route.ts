@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 import { getCustomerRewardState } from "@/lib/customer/reward"
 import { createRewardScanToken } from "@/lib/customer/reward-scan-token"
 import { getCustomerProfileCompletion } from "@/lib/customer/profile"
+import { isCollectionSetupBlock } from "@/lib/customer/reward-collection-state"
 import { rewardQrAvailability } from "@/lib/customer/reward-qr-eligibility"
 import { getServerEnv } from "@/lib/env/server"
 import { renderQrCodePng } from "@/lib/qr/assets"
@@ -24,11 +25,19 @@ export async function GET(_request: Request, context: RewardQrRouteContext) {
     return new NextResponse("Reward QR not found", { status: 404 })
   }
 
-  const availability = rewardQrAvailability({
-    collectionState: rewardState.collection.state,
-    collectionReason: rewardState.collection.reason,
-    availableFrom: rewardState.collection.availableFrom,
-  })
+  // A setup block (profile, verified email, in-person photo ID) is cleared on
+  // the reward page or at the counter, so the code itself is still served; the
+  // profile check below still refuses an incomplete profile.
+  const setupBlocked =
+    rewardState.collection.state === "blocked" &&
+    isCollectionSetupBlock(rewardState.collection.reason)
+  const availability = setupBlocked
+    ? ({ status: "ready" } as const)
+    : rewardQrAvailability({
+        collectionState: rewardState.collection.state,
+        collectionReason: rewardState.collection.reason,
+        availableFrom: rewardState.collection.availableFrom,
+      })
 
   if (availability.status !== "ready") {
     return NextResponse.json(

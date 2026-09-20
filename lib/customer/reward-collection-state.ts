@@ -99,6 +99,7 @@ export function rewardCollectionBlockedCopy(reason: string | null): string {
     case "Verified email required for reward collection":
       return "Verify your email before collecting this reward."
     case "age_verification_required":
+    case PHOTO_ID_REQUIRED_REASON:
       return "Photo ID is needed to collect this reward."
     case "Customer must be 18 or over to redeem":
       return "This reward can only be collected by customers aged 18 or over."
@@ -111,22 +112,29 @@ export function rewardCollectionBlockedCopy(reason: string | null): string {
   }
 }
 
+/**
+ * Blocks the customer clears by completing a step on the reward page: their
+ * profile, a verified email, or an in-person photo-ID check that the venue
+ * records at collection. The code is still shown for these; the merchant scan
+ * context reports them as verification required rather than refusing.
+ */
 export function isCollectionSetupBlock(reason: string | null): boolean {
   return (
     reason === "profile_incomplete" ||
     reason === "Complete your profile before redeeming" ||
-    reason === "Verified email required for reward collection"
+    reason === "Verified email required for reward collection" ||
+    reason === PHOTO_ID_REQUIRED_REASON
   )
 }
+
+/** The predicate's reason when an age-checked reward needs in-person ID. */
+export const PHOTO_ID_REQUIRED_REASON =
+  "Customer must have verified photo ID and be 18 or over to redeem"
 
 export function collectionWindowCopy(
   facts: CollectionWindowFacts
 ): string | null {
-  if (
-    facts.inWindow &&
-    facts.windowEndsAt &&
-    facts.upgradeRewardName
-  ) {
+  if (facts.inWindow && facts.windowEndsAt && facts.upgradeRewardName) {
     return `Collect now and get ${facts.upgradeRewardName} — until ${formatTime(facts.windowEndsAt)}`
   }
 
@@ -146,7 +154,9 @@ export function formatCollectionDeadline(value: string | null): string | null {
   return `Expires ${LONDON_DEADLINE.format(parseInstant(value)).replace(",", " at")}`
 }
 
-export function formatCollectionAvailability(value: string | null): string | null {
+export function formatCollectionAvailability(
+  value: string | null
+): string | null {
   if (!value) return null
   return `Ready ${formatCollectionAvailableLabel(value)}`
 }
@@ -187,7 +197,9 @@ function parseInstant(value: string): Date {
   return result
 }
 
-function isRewardCollectionState(value: unknown): value is RewardCollectionState {
+function isRewardCollectionState(
+  value: unknown
+): value is RewardCollectionState {
   return (
     typeof value === "string" &&
     REWARD_COLLECTION_STATES.some((state) => state === value)
