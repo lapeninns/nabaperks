@@ -124,10 +124,7 @@ export function RewardReadyPanel({
   /** Harness-only QR source override — see {@link RewardCollectionQr}. */
   qrSrc?: string
 }) {
-  const setup = collectionSetup(
-    exp.profileGate,
-    exp.reward.requiresAgeCheck
-  )
+  const setup = collectionSetup(exp.profileGate, exp.reward.requiresAgeCheck)
 
   return setup.outstanding ? (
     <RewardCollectionSetupPanel exp={exp} setup={setup} />
@@ -182,11 +179,6 @@ function RewardCollectionPanel({
 }) {
   return (
     <section className="grid gap-3 short:gap-2">
-      {collectionWindowCopy(exp.reward) ? (
-        <StatusBanner title="Collection upgrade" tone="success">
-          {collectionWindowCopy(exp.reward)}
-        </StatusBanner>
-      ) : null}
       <RewardCollectionLive
         rewardId={exp.reward.rewardId}
         rewardName={exp.reward.rewardName}
@@ -194,6 +186,14 @@ function RewardCollectionPanel({
         qrSrc={qrSrc}
         poll={qrSrc === undefined}
       />
+      {/* The upgrade window is a nudge, not the action: it sits after the code so
+          a short landscape viewport still shows the whole scannable code above
+          the fixed navigation. */}
+      {collectionWindowCopy(exp.reward) ? (
+        <StatusBanner title="Collection upgrade" tone="success">
+          {collectionWindowCopy(exp.reward)}
+        </StatusBanner>
+      ) : null}
       <RewardDetailsDisclosure
         reward={exp.reward}
         merchantName={exp.merchantName}
