@@ -124,7 +124,7 @@ export function blockReasonCopy(reason: CustomerBlockReason): string {
     case "unauthenticated":
       return "Verify your identity from the venue QR before continuing."
     case "profile_incomplete":
-      return "Add your details before collection — a name and date of birth, plus a verified email if you add one."
+      return "Add your name, date of birth and a verified email before collection."
     case "location_out_of_range":
       // Positive evidence of absence: the device reported a position and it is
       // not the venue. Named plainly, without accusing anyone of anything — and

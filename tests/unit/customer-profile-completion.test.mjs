@@ -16,7 +16,7 @@ test("Given an existing under-age DOB When profile completion runs Then the prof
   assert.equal(completion.dateOfBirth, null)
 })
 
-test("Given an adult DOB without an email When profile completion runs Then reward collection can proceed", () => {
+test("Given an adult DOB without an email When profile completion runs Then reward collection requires an email", () => {
   const completion = profileCompletionFrom({
     fullName: "Adult Customer",
     dateOfBirth: "1990-01-01",
@@ -25,9 +25,26 @@ test("Given an adult DOB without an email When profile completion runs Then rewa
     emailVerifiedAt: null,
   })
 
-  assert.equal(completion.complete, true)
+  assert.equal(completion.complete, false)
   assert.equal(completion.dateOfBirth, "1990-01-01")
+  assert.equal(completion.needsEmailVerification, false)
 })
+
+for (const email of [null, "", "   ", "adult@example.test"]) {
+  test(`Given email ${JSON.stringify(email)} without verification When profile completion runs Then collection stays blocked`, () => {
+    const completion = profileCompletionFrom({
+      fullName: "Adult Customer",
+      dateOfBirth: "1990-01-01",
+      dateOfBirthVerifiedAt: null,
+      email,
+      emailVerifiedAt: null,
+    })
+
+    assert.equal(completion.complete, false)
+    assert.equal(completion.emailLocked, false)
+    assert.equal(completion.needsEmailVerification, Boolean(email?.trim()))
+  })
+}
 
 test("Given an adult profile and verified email When profile completion runs Then reward collection can proceed", () => {
   const completion = profileCompletionFrom({

@@ -32,8 +32,7 @@ export function profileCompletionFrom(
   const emailVerified = Boolean(email) && Boolean(customer.emailVerifiedAt)
   const emailLocked = emailVerified
   const needsEmailVerification = Boolean(email) && !customer.emailVerifiedAt
-  const complete =
-    Boolean(fullName) && Boolean(dateOfBirth) && (!email || emailVerified)
+  const complete = Boolean(fullName) && Boolean(dateOfBirth) && emailVerified
 
   return {
     complete,

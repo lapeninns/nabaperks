@@ -202,7 +202,7 @@ test(
         {
           id: "redemption",
           title: "Redemption",
-          body: "Cycle rewards are collectable from the next venue trading day, including weekends when the venue trades. One standard reward can be collected per venue trading day. A configured collection window may offer a displayed bonus or upgrade; eligibility and the collection deadline are shown on the reward. Cycle rewards use the expiry configured when issued; use the displayed expiry for each reward. Provide your full name and date of birth and be at least 18. Email is optional; if supplied, it must be verified. Photo ID is required only for rewards marked as age checked. Show the reward QR for the venue team to scan. New cycle rewards expire after 56 days.",
+          body: "Cycle rewards are collectable from the next venue trading day, including weekends when the venue trades. One standard reward can be collected per venue trading day. A configured collection window may offer a displayed bonus or upgrade; eligibility and the collection deadline are shown on the reward. Cycle rewards use the expiry configured when issued; use the displayed expiry for each reward. Provide your full name and date of birth and be at least 18. A verified email address is required before reward collection. Photo ID is required only for rewards marked as age checked. Show the reward QR for the venue team to scan. New cycle rewards expire after 56 days.",
         },
         {
           id: "reward-pool",

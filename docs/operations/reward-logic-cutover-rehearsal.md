@@ -20,7 +20,7 @@ Ship three independently reviewed releases:
    not include the Step 4 transform, policy-cutover presentation, minimum-spend
    policy, age gates, collection windows, messaging or suspension behaviour.
 3. **Stage B activation.** After Stage A is the authenticated production
-   baseline, release migrations 20260923100000 through 20261005100000 in
+   baseline, release migrations 20260923100000 through 20261005100300 in
    timestamp order with the remaining application changes. Enter controlled
    maintenance before applying this suffix. Keep the Stage A application serving
    only the maintenance response while the Stage B schema is applied, then promote
@@ -84,6 +84,16 @@ runbook; it is not a fence bypass or an identity probe. If the rules cannot be
 read back, an excluded path differs, a customer path is reachable during the
 schema interval, or the alias changes unexpectedly, stop without applying or
 promoting another step.
+
+The fence also denies Twilio status/inbound callbacks and every scheduled cron
+route. Keep customer-message dispatch paused while it is active so the release
+does not create callbacks that the Stage A application cannot accept. After the
+fence is removed, verify one separately authorised signed callback against the
+exact Stage B alias, invoke the notifications cron with its normal protected
+credential until the bounded drain reports no due work, and read back the
+notification queue age plus the recorded cron outcome. Reconcile any delivery
+still marked pending with its provider status before enabling dispatch; do not
+treat WAF removal alone as callback or queue catch-up proof.
 Retain the before/after rule configuration, HTTP status receipts and both alias
 identity records with the release evidence. This runbook does not authorise a
 live WAF change; the protected production release remains the approval boundary.

@@ -95,7 +95,7 @@ export type AccessRecovery = {
 
 /**
  * Redeem-time profile gate carried onto a ready reward. When `complete` is false
- * the reward panel collects the missing details (Name, DOB, optional verified
+ * the reward panel collects the missing details (Name, DOB, required verified
  * email) before exposing the redeem action. Phone is already verified at sign-up.
  */
 export type ProfileGate = {

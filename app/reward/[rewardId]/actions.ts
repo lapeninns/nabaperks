@@ -32,7 +32,7 @@ export type ProfileGateActionState = {
 }
 
 /**
- * Step one of the redeem-time profile gate: capture Name + DOB and optional email.
+ * Step one of the redeem-time profile gate: capture Name + DOB and required email.
  * When a new/unverified email is entered, kick off email verification and let
  * the re-rendered reward panel show the "enter your code" step.
  */
@@ -53,6 +53,7 @@ export async function saveProfileForRedeemAction(
   const fields = { fullName, dateOfBirth, email }
 
   const errors = validateProfileFields({ fullName, dateOfBirth, email })
+  if (!email) errors.email = "Enter your email address."
   if (Object.keys(errors).length > 0) return { fields, errors }
 
   let emailVerificationRequired = false
@@ -148,7 +149,7 @@ export async function resendProfileEmailAction(
   return { message: "Code sent. Check your email." }
 }
 
-/** "Continue without email" — drops the entered email so the gate clears on Name + DOB. */
+/** Clears an unverified address so a different email can be entered. */
 export async function clearProfileEmailAction(
   formData: FormData
 ): Promise<void> {

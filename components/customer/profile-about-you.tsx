@@ -182,12 +182,12 @@ function AboutYouEditForm({
         </StatusBanner>
       ) : (
         <Field
-          label="Email (optional)"
+          label="Email"
           name="email"
           type="email"
           inputMode="email"
           autoComplete="email"
-          hint="Add one to get reward updates. We'll send a code to confirm it."
+          hint="A verified email is required before reward collection. We'll send a code to confirm it."
           defaultValue={state.fields?.email ?? profile.email ?? ""}
           error={state.errors?.email}
         />
