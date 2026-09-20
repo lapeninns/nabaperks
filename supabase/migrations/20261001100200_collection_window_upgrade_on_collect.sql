@@ -75,11 +75,15 @@ begin
   customer_email := v_scan.safe_customer_email;
   customer_phone_last4 := v_scan.safe_customer_phone_last4;
 
-  if v_scan.superseded_at is not null or v_scan.token_expires_at <= now() then
+  if v_scan.superseded_at is not null then
     scan_status := 'expired'; return next; return;
   end if;
+  -- A consumed token stays redeemed after its own expiry, as before.
   if v_scan.consumed_at is not null then
     scan_status := 'redeemed'; return next; return;
+  end if;
+  if v_scan.token_expires_at <= now() then
+    scan_status := 'expired'; return next; return;
   end if;
 
   select * into v_collection

@@ -153,13 +153,6 @@ begin
   if not v_in_grace and expires_at is not null and expires_at <= p_at then
     state := 'expired'; reason := 'Reward expired'; return next; return;
   end if;
-  if v_reward.reward_policy_version = 'legacy_v1'
-     and v_reward.redeemable_from > public.uk_business_date(p_at) then
-    state := 'waiting'; reason := 'Reward is not redeemable until the next UK business day'; return next; return;
-  elsif v_reward.reward_policy_version <> 'legacy_v1'
-     and available_from is not null and p_at < available_from then
-    state := 'waiting'; reason := 'Reward is not ready to collect yet'; return next; return;
-  end if;
   if v_suspended_at is not null and not v_in_grace then
     state := 'blocked'; reason := 'venue_paused'; return next; return;
   end if;
@@ -168,6 +161,15 @@ begin
        'merchant_inactive', 'billing_blocked', 'billing_required'
      )) then
     state := 'blocked'; reason := 'This loyalty programme is unavailable right now'; return next; return;
+  end if;
+  -- Programme availability is decided before timing: a paused or unbillable
+  -- venue must not advertise a later collection time it cannot honour.
+  if v_reward.reward_policy_version = 'legacy_v1'
+     and v_reward.redeemable_from > public.uk_business_date(p_at) then
+    state := 'waiting'; reason := 'Reward is not redeemable until the next UK business day'; return next; return;
+  elsif v_reward.reward_policy_version <> 'legacy_v1'
+     and available_from is not null and p_at < available_from then
+    state := 'waiting'; reason := 'Reward is not ready to collect yet'; return next; return;
   end if;
   if private.standard_reward_daily_cap_reached(p_reward_id, p_at) then
     state := 'blocked'; reason := 'One reward per visit day already collected'; return next; return;
