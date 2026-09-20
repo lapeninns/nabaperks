@@ -4,7 +4,6 @@ import { getCustomerRewardState } from "@/lib/customer/reward"
 import { getLocationRequirement } from "@/lib/customer/stamp"
 import { isCollectionSetupBlock } from "@/lib/customer/reward-collection-state"
 import { rewardQrAvailability } from "@/lib/customer/reward-qr-eligibility"
-import { isCollectionSetupBlock } from "@/lib/customer/reward-collection-state"
 import { customerLoginHref } from "@/lib/navigation/safe-next-path"
 
 import type { RewardContext } from "./derive"

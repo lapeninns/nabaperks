@@ -15,7 +15,7 @@ Ship three independently reviewed releases:
    alone may transform membership cycle `3/1` to `0/2`, and it must create one
    `cycle_opened_at_policy_cutover` audit row for cycle 1.
 2. **Stage A compatibility support.** Release migrations 20260922100000 through
-   20260922100100 plus the application consumer that reads database-owned
+   20260922100200 plus the application consumer that reads database-owned
    collection state for both legacy `3/1` and activated `0/2` memberships. Do
    not include the Step 4 transform, policy-cutover presentation, minimum-spend
    policy, age gates, collection windows, messaging or suspension behaviour.
