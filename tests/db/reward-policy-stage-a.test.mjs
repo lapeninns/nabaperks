@@ -2,6 +2,10 @@ import assert from "node:assert/strict"
 import { after, test } from "node:test"
 
 import { closeDb, db, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
+import {
+  closeVerificationDb,
+  inVerificationTxn,
+} from "./helpers/merchant-id-verification.mjs"
 import { asPostgrestRole } from "./helpers/postgrest-role.mjs"
 import { createRewardPoolFixture } from "./helpers/reward-pool-fixture.mjs"
 
@@ -9,6 +13,7 @@ const ready = await isLiveDbReady()
 const skip = ready ? false : "live Supabase DB not reachable/current"
 
 after(async () => {
+  await closeVerificationDb()
   await closeDb()
 })
 
@@ -299,7 +304,7 @@ test(
   "an admin cancellation closes the active cycle and is counted in the reconciliation model",
   { skip },
   async () => {
-    await inRolledBackTxn(async (tx) => {
+    await inVerificationTxn(async (tx) => {
       const fixture = await createRewardPoolFixture(tx)
       const [before] = await tx`
         select active_cycle_number, total_rewards_redeemed, total_rewards_expired,
