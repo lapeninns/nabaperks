@@ -52,11 +52,15 @@ export function MerchantBillingStripView({
       <AlertTitle>{copy.title}</AlertTitle>
       <AlertDescription>{copy.description}</AlertDescription>
       {copy.actionHref ? (
-        <Button asChild variant="outline" size="sm" className="mt-2 w-fit">
-          <Link href={copy.actionHref} prefetch={false}>
-            {copy.actionLabel}
-          </Link>
-        </Button>
+        // Column 2 beside the icon, like the title and description, so the
+        // CTA never widens the icon column on compact phones.
+        <div className="col-start-2 mt-2">
+          <Button asChild variant="outline" size="sm" className="w-fit">
+            <Link href={copy.actionHref} prefetch={false}>
+              {copy.actionLabel}
+            </Link>
+          </Button>
+        </div>
       ) : null}
     </Alert>
   )

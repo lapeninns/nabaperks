@@ -51,8 +51,10 @@ export function MerchantTabBar({
       <nav
         aria-label="Console"
         data-console-nav="rail"
+        // Scrolls on a wide but short viewport (900×460) so the account
+        // links and log out stay reachable inside the fixed-height shell.
         className={cn(
-          "flex min-h-0 flex-col border-r-2 border-ink bg-card",
+          "flex min-h-0 flex-col overflow-y-auto border-r-2 border-ink bg-card",
           className
         )}
       >

@@ -16,6 +16,7 @@ import { Icon, Logo, VenueMark } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { ConsoleOfflineStrip } from "./console-offline-strip"
+import { ConsoleTopBarDate } from "./console-top-bar-date"
 import { MerchantTabBar } from "./merchant-tab-bar"
 
 /** Body gutters: 16px to 359, 20px from 360, 24px from 430 (handoff §8). */
@@ -159,7 +160,7 @@ export function MerchantAppShell({
             {name}
           </p>
           {todayLabel ? (
-            <p className="mono-meta shrink-0 text-ink-soft">{todayLabel}</p>
+            <ConsoleTopBarDate initial={todayLabel} live={liveDate} />
           ) : null}
         </header>
       )}
@@ -171,7 +172,7 @@ export function MerchantAppShell({
         // scrollable-region-focusable).
         tabIndex={0}
         data-console-body
-        className="col-start-1 row-start-2 min-h-0 overflow-x-clip overflow-y-auto outline-none min-[900px]:col-start-2"
+        className="focus-ring col-start-1 row-start-2 min-h-0 overflow-x-clip overflow-y-auto min-[900px]:col-start-2"
       >
         {hideMobileChrome ? null : <ConsoleOfflineStrip force={forceOffline} />}
         {/* hideMobileChrome strips ALL content padding for the full-bleed

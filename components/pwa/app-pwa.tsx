@@ -89,6 +89,16 @@ function hasCustomerTabBar(pathname: string): boolean {
     return pathname !== "/home/login"
   }
 
+  // The merchant console's bottom tab bar (below 900px) sits at the same
+  // height as the customer bar; onboarding and the poster print preview
+  // render without it.
+  if (pathname === "/app" || pathname.startsWith("/app/")) {
+    return (
+      !pathname.startsWith("/app/onboarding") &&
+      !pathname.startsWith("/app/qr/poster/")
+    )
+  }
+
   return false
 }
 
