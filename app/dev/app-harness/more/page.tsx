@@ -13,7 +13,7 @@ async function noopSignOutAction() {
 }
 
 const FULL: MoreRowsInput = {
-  posterPrinted: true,
+  printKitDownloaded: true,
   memberCount: 1842,
   activeOfferName: "Two-stamp Tuesday",
   lastAnnouncementAt: "2026-09-19T17:30:00.000Z",
@@ -25,7 +25,7 @@ const FULL: MoreRowsInput = {
 const STATES: Record<string, MoreRowsInput> = {
   default: FULL,
   "subtitles-failed": {
-    posterPrinted: null,
+    printKitDownloaded: null,
     memberCount: null,
     activeOfferName: null,
     lastAnnouncementAt: null,
@@ -35,13 +35,14 @@ const STATES: Record<string, MoreRowsInput> = {
   },
   "setup-incomplete": {
     ...FULL,
-    posterPrinted: false,
+    printKitDownloaded: false,
     activeOfferName: "",
     lastAnnouncementAt: "",
     setup: { completed: 3, total: 5, launchReady: false },
     billingStatus: "not_started",
   },
   "billing-past-due": { ...FULL, billingStatus: "past_due" },
+  "billing-not-required": { ...FULL, billingStatus: "not_required" },
   trial: { ...FULL, billingStatus: "trialing", trialDaysLeft: 12 },
 }
 

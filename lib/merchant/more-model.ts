@@ -6,7 +6,9 @@ import { formatMerchantBillingStatus } from "@/lib/merchant/billing-status-copy"
  * §7.5). Pure so the harness and unit tests share the shape.
  */
 export type MoreRowsInput = {
-  readonly posterPrinted: boolean | null
+  /** Whether any print kit asset has been downloaded (the durable signal;
+   *  a plain browser print of a table tent leaves no event). */
+  readonly printKitDownloaded: boolean | null
   readonly memberCount: number | null
   /** The live campaign's name, `""` when none is running, null on failure. */
   readonly activeOfferName: string | null
@@ -17,6 +19,8 @@ export type MoreRowsInput = {
     readonly total: number
     readonly launchReady: boolean
   } | null
+  /** Billing state, "not_started" for a required but missing billing row,
+   *  "not_required" when the venue does not need billing; null on failure. */
   readonly billingStatus: string | null
   readonly trialDaysLeft: number | null
 }
@@ -38,11 +42,11 @@ export function buildMoreRows(input: MoreRowsInput): readonly MoreRow[] {
       href: "/app/qr",
       title: "Poster & print",
       subtitle:
-        input.posterPrinted === null
+        input.printKitDownloaded === null
           ? null
-          : input.posterPrinted
-            ? "Printed"
-            : "Not yet printed",
+          : input.printKitDownloaded
+            ? "Print kit downloaded"
+            : "No download yet",
       chip: null,
     },
     {
@@ -79,13 +83,20 @@ export function buildMoreRows(input: MoreRowsInput): readonly MoreRow[] {
     },
   ]
 
-  if (input.setup && !input.setup.launchReady) {
-    const left = Math.max(0, input.setup.total - input.setup.completed)
+  // Setup hides only when readiness explicitly reports launch-ready; a failed
+  // readiness read keeps the row navigable, without a subtitle.
+  if (!input.setup?.launchReady) {
+    const left = input.setup
+      ? Math.max(0, input.setup.total - input.setup.completed)
+      : null
     rows.push({
       key: "setup",
       href: "/app/launch",
       title: "Setup",
-      subtitle: `${left} of ${input.setup.total} ${left === 1 ? "step" : "steps"} left`,
+      subtitle:
+        input.setup && left !== null
+          ? `${left} of ${input.setup.total} ${left === 1 ? "step" : "steps"} left`
+          : null,
       chip: null,
     })
   }
@@ -97,7 +108,9 @@ export function buildMoreRows(input: MoreRowsInput): readonly MoreRow[] {
     subtitle:
       input.billingStatus === null
         ? null
-        : `Billing ${formatMerchantBillingStatus(input.billingStatus)}`,
+        : input.billingStatus === "not_required"
+          ? "Billing not required"
+          : `Billing ${formatMerchantBillingStatus(input.billingStatus)}`,
     chip:
       input.trialDaysLeft === null
         ? null
