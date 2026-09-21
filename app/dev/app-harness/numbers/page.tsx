@@ -100,10 +100,7 @@ export default async function NumbersHarnessPage({
       <h1 className="sr-only">Numbers</h1>
       <NumbersOverview
         model={model}
-        basePath={`${basePath}${state === "full" ? "" : `?state=${state}&`}`.replace(
-          /&$/,
-          ""
-        )}
+        basePath={state === "full" ? basePath : `${basePath}?state=${state}`}
       />
     </>
   )

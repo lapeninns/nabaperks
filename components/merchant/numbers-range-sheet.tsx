@@ -47,7 +47,7 @@ export function NumbersRangeSheet({
         properties: { range: next, from_range: range },
       })
       startTransition(() => {
-        router.push(`${basePath}?range=${next}`, { scroll: false })
+        router.push(withRange(basePath, next), { scroll: false })
       })
     }
     setOpen(false)
@@ -122,4 +122,12 @@ export function NumbersRangeSheet({
       </SheetContent>
     </Sheet>
   )
+}
+
+/** `basePath` may already carry a query (the harness's `?state=`). */
+function withRange(basePath: string, range: NumbersRange): string {
+  const [path, query = ""] = basePath.split("?", 2)
+  const params = new URLSearchParams(query)
+  params.set("range", String(range))
+  return `${path}?${params.toString()}`
 }
