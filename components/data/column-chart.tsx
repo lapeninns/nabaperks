@@ -179,12 +179,15 @@ export function ColumnChart({
 }
 
 /**
- * Day captions: every column for a 7-day range; for 14, every third column
- * always and every second from 360px (handoff §8). Hidden captions keep
- * their cell so the columns above never shift.
+ * Day captions (handoff §8): for a 7-day range every second column below
+ * 430px and every column from there; for 14, every third column always and
+ * every second from 360px. Hidden captions keep their cell so the columns
+ * above never shift.
  */
 function columnLabelVisibility(index: number, total: number): string {
-  if (total <= 7) return ""
+  if (total <= 7) {
+    return index % 2 === 0 ? "" : "invisible min-[430px]:visible"
+  }
   if (index % 3 === 0) return ""
   if (index % 2 === 0) return "invisible min-[360px]:visible"
   return "invisible"

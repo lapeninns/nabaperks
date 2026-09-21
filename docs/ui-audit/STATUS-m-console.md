@@ -20,6 +20,11 @@ on the previous lane until it merges.
 | L7   | More, live subtitles, 900px redirect                                                                                         | not started |                                                         |                                                                                                                                                                                                                                    |
 | L8   | Sweep: skeletons, harness, visual and a11y suites, bundle, dead code                                                         | not started |                                                         |                                                                                                                                                                                                                                    |
 
+## Open tickets this rebuild needs from the data layer
+
+- **Numbers breakdowns (§6.3.2).** No query exists for joins by channel (QR / team code / invite), stamps by hour of day or by claim method, the reward lifecycle split (unlocked / redeemed / expired / sent) with median days to redemption, or QR scans vs downloads vs poster prints. Each is a new aggregate over `product_events` (or the stamping wrapper's rows) and needs a product decision on definitions before it is drawn.
+- **28-day range (§6.3.1).** `getMerchantDashboardSeriesByQuery` builds `DASHBOARD_SERIES_DAYS = 14` buckets; a `days` parameter on it (and on the `get_merchant_dashboard_series` RPC's `p_days`) unlocks 28. That file is sign-off gated (§16.6).
+
 ## Deviations from the handoff, with reasons
 
 - **Pinned slot mechanism (§5.1).** The handoff describes a fourth grid row

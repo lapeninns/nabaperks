@@ -65,6 +65,11 @@ export const HARNESS_NUMBERS_SERIES = {
   joins: [4, 3, 4, 3, 4, 4, 3, 3, 4, 4, 3, 4, 3, 4],
 } as const
 
+/** Rewards redeemed per day: 10 then 3, the reference "7 fewer". */
+export const HARNESS_NUMBERS_REWARDS = [
+  2, 1, 2, 1, 2, 1, 1, 0, 1, 0, 1, 0, 1, 0,
+] as const
+
 export const HARNESS_NUMBERS_ZERO_SERIES = {
   days: HARNESS_NUMBERS_DAYS,
   stamps: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],

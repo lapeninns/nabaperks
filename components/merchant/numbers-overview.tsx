@@ -143,7 +143,7 @@ export function NumbersOverview({
         </ReceiptCard>
       )}
 
-      <DeltaReceipt model={model} />
+      <DeltaReceipt model={model} basePath={basePath} />
 
       <p className="mono-id text-ink-soft" data-numbers-footnote>
         {rangeLabel} · Europe/London · refreshed{" "}
@@ -268,7 +268,19 @@ function DayReadout({
   )
 }
 
-function DeltaReceipt({ model }: { model: NumbersOverviewModel }) {
+const DETAIL_METRIC = {
+  newMembers: "members",
+  stamps: "stamps",
+  rewards: "rewards",
+} as const
+
+function DeltaReceipt({
+  model,
+  basePath,
+}: {
+  model: NumbersOverviewModel
+  basePath?: string
+}) {
   if (!model.deltas) return null
 
   return (
@@ -283,7 +295,22 @@ function DeltaReceipt({ model }: { model: NumbersOverviewModel }) {
             key={row.key}
             className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 py-2.5 min-[430px]:grid-cols-[minmax(0,1fr)_auto_minmax(0,12rem)]"
           >
-            <dt className="text-sm font-bold">{row.label}</dt>
+            <dt className="text-sm font-bold">
+              <Link
+                href={`${basePath ?? "/app/numbers"}/${DETAIL_METRIC[row.key]}`}
+                prefetch={false}
+                data-numbers-metric-link={DETAIL_METRIC[row.key]}
+                onClick={() => {
+                  void recordConsoleEventAction({
+                    name: "numbers_metric_opened",
+                    properties: { metric: DETAIL_METRIC[row.key] },
+                  })
+                }}
+                className="focus-ring inline-flex min-h-11 items-center underline underline-offset-4"
+              >
+                {row.label}
+              </Link>
+            </dt>
             <dd className="font-mono text-lg leading-none font-bold tabular-nums">
               {row.trend.current.toLocaleString("en-GB")}
             </dd>
@@ -309,13 +336,27 @@ function DeltaReceipt({ model }: { model: NumbersOverviewModel }) {
           </div>
         ))}
       </dl>
-      <div className="pt-3">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 pt-3">
         <Link
           href="/app/activity"
           prefetch={false}
           className="focus-ring inline-flex min-h-11 items-center text-sm font-bold text-foreground underline underline-offset-4"
         >
           See the activity behind these
+        </Link>
+        <Link
+          href={`${basePath ?? "/app/numbers"}/qr`}
+          prefetch={false}
+          data-numbers-metric-link="qr"
+          onClick={() => {
+            void recordConsoleEventAction({
+              name: "numbers_metric_opened",
+              properties: { metric: "qr" },
+            })
+          }}
+          className="focus-ring inline-flex min-h-11 items-center text-sm font-bold text-foreground underline underline-offset-4"
+        >
+          QR downloads
         </Link>
       </div>
     </ReceiptCard>

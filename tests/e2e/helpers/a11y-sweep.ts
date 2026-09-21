@@ -38,6 +38,8 @@ const HARNESS_LANES = [
   HARNESS_ROUTES.numbers,
   `${HARNESS_ROUTES.numbers}?state=partial`,
   `${HARNESS_ROUTES.numbers}?state=early`,
+  `${HARNESS_ROUTES.numbers}/stamps`,
+  `${HARNESS_ROUTES.numbers}/qr`,
   HARNESS_ROUTES.account,
   HARNESS_ROUTES.qr,
   HARNESS_ROUTES.scan,
