@@ -17,6 +17,7 @@ import type {
   ActivitySummary,
 } from "@/lib/merchant/activity"
 import type { MerchantDashboardMerchant } from "@/lib/merchant/dashboard"
+import { buildMerchantDashboardTrends } from "@/lib/merchant/dashboard-trends"
 import type { MerchantCustomerReadbackRow } from "@/lib/merchant/customer-readback"
 
 // ─── Merchant identity ──────────────────────────────────────────────────────
@@ -32,6 +33,57 @@ export const HARNESS_TODAY_LABEL = "Mon 21 Sep"
 
 /** The fixture clock: 13:00 London on the harness day. */
 export const HARNESS_NOW_ISO = "2026-09-21T12:00:00.000Z"
+
+// ─── Numbers overview ────────────────────────────────────────────────────────
+
+/** Fourteen London day keys ending on the harness day. */
+export const HARNESS_NUMBERS_DAYS = [
+  "2026-09-08",
+  "2026-09-09",
+  "2026-09-10",
+  "2026-09-11",
+  "2026-09-12",
+  "2026-09-13",
+  "2026-09-14",
+  "2026-09-15",
+  "2026-09-16",
+  "2026-09-17",
+  "2026-09-18",
+  "2026-09-19",
+  "2026-09-20",
+  "2026-09-21",
+] as const
+
+/**
+ * Reproduces the reference screenshot's deltas so visual diffs stay
+ * comparable: stamps 59 then 51 (8 fewer), joins 25 then 25 (same),
+ * rewards 10 then 3 (7 fewer). Members total 81.
+ */
+export const HARNESS_NUMBERS_SERIES = {
+  days: HARNESS_NUMBERS_DAYS,
+  stamps: [9, 8, 7, 10, 8, 9, 8, 7, 8, 6, 9, 7, 8, 6],
+  joins: [4, 3, 4, 3, 4, 4, 3, 3, 4, 4, 3, 4, 3, 4],
+} as const
+
+export const HARNESS_NUMBERS_ZERO_SERIES = {
+  days: HARNESS_NUMBERS_DAYS,
+  stamps: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  joins: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+} as const
+
+export const HARNESS_NUMBERS_TOTALS = {
+  members: 81,
+  stampsIssued: 412,
+  rewardsRedeemed: 37,
+  qrDownloads: 6,
+} as const
+
+export const HARNESS_NUMBERS_TRENDS = buildMerchantDashboardTrends({
+  newMembers: { current: 25, previous: 25 },
+  stamps: { current: 51, previous: 59 },
+  rewards: { current: 3, previous: 10 },
+  qrDownloads: { current: 0, previous: 0 },
+})
 
 // ─── Dashboard KPI strip ────────────────────────────────────────────────────
 

@@ -87,6 +87,90 @@ export function TeamCodePanelSkeleton() {
   )
 }
 
+// ─── Numbers ───────────────────────────────────────────────────────────────────
+
+/** Mirrors {@link ColumnChart}: caption row, the 112px column area, day labels. */
+export function ColumnChartSkeleton() {
+  return (
+    <div className="grid gap-2">
+      <div className="flex items-baseline justify-between">
+        <Skeleton className="h-[0.9375rem] w-16" />
+        <Skeleton className="h-[0.8125rem] w-12" />
+      </div>
+      <div className="grid h-28 auto-cols-fr grid-flow-col items-end gap-0.5 border-b-2 border-ink pb-px min-[430px]:gap-1">
+        {[40, 55, 35, 70, 50, 45, 80, 60, 30, 65, 50, 75, 45, 55].map(
+          (height, index) => (
+            <Skeleton
+              key={index}
+              className="w-full rounded-t-sm rounded-b-none"
+              style={{ height: `${height}%` }}
+            />
+          )
+        )}
+      </div>
+      <Skeleton className="h-[0.8125rem] w-full" />
+    </div>
+  )
+}
+
+/**
+ * Mirrors {@link NumbersOverview} at final height: headline, range row, the
+ * two chart blocks, the readout, and three delta rows.
+ */
+export function NumbersOverviewSkeleton() {
+  return (
+    <div
+      role="status"
+      aria-label="Loading your numbers"
+      className="mx-auto grid w-full max-w-[35rem] gap-5 min-[900px]:max-w-[51.25rem]"
+    >
+      <div className="grid gap-1">
+        <Skeleton className="h-[0.9375rem] w-20" />
+        <Skeleton className="h-9 w-24" />
+        <Skeleton className="h-4 w-48" />
+      </div>
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-[0.9375rem] w-14" />
+        <Skeleton className="h-11 w-36" />
+      </div>
+      <ReceiptCard className="grid gap-5 min-[600px]:grid-cols-2 min-[600px]:gap-6">
+        <ColumnChartSkeleton />
+        <ColumnChartSkeleton />
+      </ReceiptCard>
+      <div className="flex items-center justify-between gap-3 rounded-lg border-2 border-ink bg-card px-3 py-2 shadow-xs">
+        <Skeleton className="size-11" />
+        <div className="grid justify-items-center gap-1">
+          <Skeleton className="h-[0.9375rem] w-40" />
+          <Skeleton className="h-4 w-28" />
+        </div>
+        <Skeleton className="size-11" />
+      </div>
+      <ReceiptCard edge className="grid gap-0">
+        <div className="flex items-baseline justify-between pb-2">
+          <Skeleton className="h-[0.9375rem] w-20" />
+          <Skeleton className="h-[0.8125rem] w-28" />
+        </div>
+        <div className="grid divide-y-2 divide-dashed divide-line">
+          {[0, 1, 2].map((row) => (
+            <div
+              key={row}
+              className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 py-2.5"
+            >
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-[1.125rem] w-10" />
+              <Skeleton className="col-span-2 mt-1 h-[0.8125rem] w-40" />
+            </div>
+          ))}
+        </div>
+        <div className="flex min-h-11 items-center pt-3">
+          <Skeleton className="h-4 w-44" />
+        </div>
+      </ReceiptCard>
+      <Skeleton className="h-[0.8125rem] w-56" />
+    </div>
+  )
+}
+
 // ─── Dashboard metrics ─────────────────────────────────────────────────────────
 
 /**

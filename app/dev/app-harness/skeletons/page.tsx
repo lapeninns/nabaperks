@@ -6,12 +6,14 @@ import {
   AccountBillingPanelSkeleton,
   AccountProfilePanelSkeleton,
   ActivityFeedSkeleton,
+  ColumnChartSkeleton,
   CounterQrCardSkeleton,
   LaunchPanelSkeleton,
   MerchantCompactActivitySkeleton,
   MerchantCustomersTableSkeleton,
   MerchantDashboardMetricsSkeleton,
   MerchantPageTitleSkeleton,
+  NumbersOverviewSkeleton,
   RewardScanContentSkeleton,
   TeamCodePanelSkeleton,
 } from "@/components/merchant/loading-skeletons"
@@ -55,6 +57,16 @@ export default function SkeletonsHarnessPage() {
       <HarnessSection id="team-code" title="TeamCodePanelSkeleton">
         <div className="mx-auto w-full max-w-[35rem]">
           <TeamCodePanelSkeleton />
+        </div>
+      </HarnessSection>
+
+      <HarnessSection id="numbers-overview" title="NumbersOverviewSkeleton">
+        <NumbersOverviewSkeleton />
+      </HarnessSection>
+
+      <HarnessSection id="column-chart" title="ColumnChartSkeleton">
+        <div className="mx-auto w-full max-w-[35rem]">
+          <ColumnChartSkeleton />
         </div>
       </HarnessSection>
 
