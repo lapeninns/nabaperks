@@ -27,6 +27,9 @@ export const HARNESS_MERCHANT: MerchantDashboardMerchant = {
   status: "active",
 }
 
+/** The console top bar date, a literal for byte-stable screenshots. */
+export const HARNESS_TODAY_LABEL = "Mon 21 Sep"
+
 // ─── Dashboard KPI strip ────────────────────────────────────────────────────
 
 /** A 14-point series, deterministic, shaped to read like a real sparkline. */

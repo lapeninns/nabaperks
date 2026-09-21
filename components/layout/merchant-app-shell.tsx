@@ -12,43 +12,46 @@ import {
   shouldShowMerchantSetupReminder,
 } from "@/lib/navigation/merchant-shell"
 
-import { Icon, Logo } from "@/components/brand"
+import { Icon, Logo, VenueMark } from "@/components/brand"
 import { Button } from "@/components/ui/button"
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
-import { CONSOLE_SIDEBAR_STYLE, ConsoleSidebarNav } from "./console-sidebar-nav"
-import { merchantAccountItems, merchantNavItems } from "./console-nav"
+import { cn } from "@/lib/utils"
+import { ConsoleOfflineStrip } from "./console-offline-strip"
+import { MerchantTabBar } from "./merchant-tab-bar"
+
+/** Body gutters: 16px to 359, 20px from 360, 24px from 430 (handoff §8). */
+const BODY_GUTTER = "px-4 min-[360px]:px-5 min-[430px]:px-6"
 
 export function MerchantAppShell({
   children,
   setupReminder,
+  billingNotice,
   signOutAction,
   activePath: activePathProp,
   variant: variantProp,
-  defaultSidebarOpen = true,
   hideMobileChrome: hideMobileChromeProp,
+  venueName,
+  todayLabel,
 }: {
   children: ReactNode
   /** Server-rendered readiness content; visibility follows the live route. */
   setupReminder?: ReactNode
+  /** Server-rendered billing attention strip; shown on every tab. */
+  billingNotice?: ReactNode
   signOutAction: ComponentProps<"form">["action"]
   /** Override the nav highlight target. Defaults to the live pathname. */
   activePath?: string
   /** Force a chrome variant. Defaults to deriving it from the live pathname. */
   variant?: "full" | "setup"
-  /** Seeds the desktop expanded/collapsed state from the persisted cookie. */
-  defaultSidebarOpen?: boolean
-  /** Drops the mobile sticky header + bottom tab bar for full-bleed surfaces
-   *  like the poster print preview, which carry their own focused chrome.
-   *  Defaults to deriving it from the live pathname. */
+  /** Drops the top bar + bottom tab bar for full-bleed surfaces like the
+   *  poster print preview, which carry their own focused chrome. The rail
+   *  stays from 900px. Defaults to deriving it from the live pathname. */
   hideMobileChrome?: boolean
+  /** The signed-in venue, named in the top bar so the operator knows which
+   *  venue this phone is on. */
+  venueName?: string
+  /** Today's date in the receipt register, formatted server-side in
+   *  Europe/London so hydration and harness screenshots stay stable. */
+  todayLabel?: string
 }) {
   // Derive the chrome from the LIVE route, not a server prop. This shell lives
   // in a shared layout that the App Router preserves across soft navigations,
@@ -119,61 +122,55 @@ export function MerchantAppShell({
     )
   }
 
+  const showReminder = shouldShowMerchantSetupReminder(pathname)
+  const name = venueName?.trim() || "Your venue"
+
+  // Four-row application grid: top / body / nav below 900px, with a 200px
+  // rail column from 900px. Only the body row scrolls; the pinned action row
+  // is rendered by the owning screen inside the body (ConsolePinnedAction),
+  // stuck to its foot, so nothing else here ever moves. Every child is
+  // placed explicitly so a missing top bar or tab bar (poster print) leaves
+  // its auto row collapsed instead of shifting the body into it.
   return (
-    <SidebarProvider
-      className="min-h-svh bg-background"
-      style={CONSOLE_SIDEBAR_STYLE}
-      defaultOpen={defaultSidebarOpen}
+    <div
+      data-console-shell={hideMobileChrome ? "chromeless" : "full"}
+      className="relative grid h-dvh min-h-dvh grid-cols-1 grid-rows-[auto_minmax(0,1fr)_auto] bg-background min-[900px]:grid-cols-[12.5rem_minmax(0,1fr)] min-[900px]:grid-rows-[auto_minmax(0,1fr)]"
     >
-      <Sidebar collapsible="icon">
-        <SidebarHeader className="border-b-2 border-ink p-4">
-          <div
-            data-sidebar-header-row
-            className="flex items-center justify-between gap-2"
-          >
-            <span data-collapse-hide className="inline-flex min-w-0">
-              <Logo href="/app" prefetch={false} />
-            </span>
-            <SidebarTrigger
-              className="hidden shrink-0 md:flex"
-              aria-label="Toggle navigation"
-              title="Toggle navigation"
-            />
-          </div>
-        </SidebarHeader>
-        <SidebarContent className="flex flex-1 flex-col px-2 py-3">
-          <ConsoleSidebarNav
-            ariaLabel="Merchant navigation"
-            items={merchantNavItems}
-            secondaryItems={merchantAccountItems}
-            secondaryLabel="Account"
-            activePath={activePath}
-          />
-        </SidebarContent>
-        <SidebarFooter className="border-t-2 border-ink p-4">
-          <form action={signOutAction}>
-            <Button
-              type="submit"
-              variant="secondary"
-              data-collapse-center
-              className="w-full justify-start"
-            >
-              <Icon icon={Logout01Icon} size={16} />
-              <span data-collapse-label>Log out</span>
-            </Button>
-          </form>
-        </SidebarFooter>
-      </Sidebar>
-      <SidebarInset className="min-w-0">
-        {hideMobileChrome ? null : (
-          <header className="sticky top-0 z-30 flex min-h-14 items-center gap-3 border-b-2 border-ink bg-card px-4 py-2 pt-[calc(0.5rem_+_env(safe-area-inset-top))] md:hidden">
-            <SidebarTrigger
-              className="size-11 shrink-0"
-              aria-label="Open menu"
-            />
-            <Logo href="/app" prefetch={false} />
-          </header>
-        )}
+      <a
+        href="#console-body"
+        className="focus-ring absolute top-3 left-3 z-50 -translate-y-[200%] rounded-lg border-2 border-ink bg-card px-4 py-2 text-sm font-bold text-foreground opacity-0 shadow-xs transition-transform duration-[var(--w-dur-fast)] ease-[var(--w-ease)] focus:translate-y-0 focus:opacity-100 motion-reduce:transition-none"
+      >
+        Skip to content
+      </a>
+
+      {hideMobileChrome ? null : (
+        <header
+          data-console-top-bar
+          className={cn(
+            "col-start-1 row-start-1 flex min-h-[3.25rem] items-center gap-3 border-b-2 border-ink bg-card pt-[env(safe-area-inset-top)] min-[900px]:col-start-2 [@media(max-height:460px)]:min-h-[2.625rem]",
+            BODY_GUTTER
+          )}
+        >
+          <VenueMark name={name} size={32} className="shrink-0" />
+          <p className="min-w-0 flex-1 truncate text-base leading-tight font-extrabold text-foreground">
+            {name}
+          </p>
+          {todayLabel ? (
+            <p className="mono-meta shrink-0 text-ink-soft">{todayLabel}</p>
+          ) : null}
+        </header>
+      )}
+
+      <main
+        id="console-body"
+        // A tab stop, not just a skip-link target: WebKit cannot scroll a
+        // region from the keyboard unless it is focusable (axe
+        // scrollable-region-focusable).
+        tabIndex={0}
+        data-console-body
+        className="col-start-1 row-start-2 min-h-0 overflow-x-clip overflow-y-auto outline-none min-[900px]:col-start-2"
+      >
+        {hideMobileChrome ? null : <ConsoleOfflineStrip />}
         {/* hideMobileChrome strips ALL content padding for the full-bleed
             poster sheet. Contract: any non-poster surface reachable under a
             chromeless path must self-pad — app/app/error.tsx and the scoped
@@ -183,22 +180,32 @@ export function MerchantAppShell({
           className={
             hideMobileChrome
               ? "w-full min-w-0"
-              : "w-full px-4 py-8 pb-16 sm:px-6 md:pb-10"
+              : cn(
+                  "mx-auto flex min-h-full w-full max-w-merchant min-w-0 flex-col pt-4 pb-6 min-[900px]:pt-6 min-[900px]:pb-10",
+                  BODY_GUTTER
+                )
           }
         >
-          <div
-            className={
-              hideMobileChrome
-                ? "w-full min-w-0"
-                : "mx-auto w-full max-w-merchant"
-            }
-          >
-            {shouldShowMerchantSetupReminder(pathname) ? setupReminder : null}
-            {children}
-          </div>
+          {hideMobileChrome ? null : billingNotice}
+          {showReminder ? setupReminder : null}
+          {children}
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+      </main>
+
+      {hideMobileChrome ? null : (
+        <MerchantTabBar
+          form="tabs"
+          activePath={activePath}
+          className="col-start-1 row-start-3 min-[900px]:hidden"
+        />
+      )}
+      <MerchantTabBar
+        form="rail"
+        activePath={activePath}
+        signOutAction={signOutAction}
+        className="hidden min-[900px]:col-start-1 min-[900px]:row-span-2 min-[900px]:row-start-1 min-[900px]:flex"
+      />
+    </div>
   )
 }
 

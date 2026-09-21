@@ -82,6 +82,20 @@ export const productEventNames = [
   "offer_campaign_token_rotated",
   "offer_campaign_claimed",
   "offer_pass_redeemed",
+  // Merchant console interaction events (counter-first shell). Raised by client
+  // components and validated by lib/analytics/console-contract.ts before the
+  // console-events server action mirrors them.
+  "console_tab_selected",
+  "counter_qr_presented",
+  "counter_qr_present_closed",
+  "team_code_revealed",
+  "team_code_reset_confirmed",
+  "team_code_reset_cancelled",
+  "numbers_range_changed",
+  "numbers_day_selected",
+  "numbers_metric_opened",
+  "activity_group_expanded",
+  "activity_filter_changed",
 ] as const
 
 export type ProductEventName = (typeof productEventNames)[number]

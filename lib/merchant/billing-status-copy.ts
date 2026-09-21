@@ -33,6 +33,16 @@ export function shouldShowMerchantDashboardBillingNotice(status: string) {
   return state !== "active" && state !== "trialing"
 }
 
+/**
+ * Post-activation billing states that need the owner's attention. These carry
+ * a persistent strip under the console top bar on every tab; first-run
+ * `not_started` is the setup reminder's job, and the QR is never blocked.
+ */
+export function shouldShowMerchantBillingStrip(status: string) {
+  const state = normalizeMerchantBillingStatus(status)
+  return state === "past_due" || state === "cancelled" || state === "suspended"
+}
+
 export function formatMerchantBillingStatus(status: string) {
   return normalizeMerchantBillingStatus(status).replaceAll("_", " ")
 }

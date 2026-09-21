@@ -170,7 +170,7 @@ export const merchantTabItems = [
     label: "More",
     icon: CONSOLE_TAB_ICON.more,
   },
-] as const satisfies readonly MerchantTabItem[]
+] satisfies readonly MerchantTabItem[]
 
 /**
  * Which bottom tab a merchant route belongs to, or `null` for routes the tab

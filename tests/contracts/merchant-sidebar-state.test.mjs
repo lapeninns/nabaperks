@@ -13,7 +13,7 @@ function readProjectFile(...segments) {
   return readFileSync(path.join(projectRoot, ...segments), "utf8")
 }
 
-test("Given merchant layout state is preserved When the cookie-backed default changes Then SidebarProvider resets uncontrolled state", () => {
+test("Given admin layout state is preserved When the cookie-backed default changes Then SidebarProvider resets uncontrolled state", () => {
   // Given
   const sidebar = readProjectFile("components", "ui", "sidebar.tsx")
 
@@ -42,20 +42,14 @@ test("Given merchant layout state is preserved When the cookie-backed default ch
   assert.doesNotMatch(sidebar, /setInternalOpen\(defaultOpen\)/)
 })
 
-test("Given poster preview routes When the app shell is seeded Then poster focus does not override the saved sidebar cookie", () => {
+test("Given the counter-first console When the merchant shell mounts Then it carries no sidebar and reads no sidebar cookie", () => {
   // Given
-  const appLayout = readProjectFile("app", "app", "layout.tsx")
-
-  // When / Then
-  assert.match(appLayout, /defaultSidebarOpen=\{sidebarCookieOpen\}/)
-  assert.doesNotMatch(
-    appLayout,
-    /defaultSidebarOpen=\{posterFocus \? false : sidebarCookieOpen\}/
+  const shell = readProjectFile(
+    "components",
+    "layout",
+    "merchant-app-shell.tsx"
   )
-})
-
-test("Given mobile poster preview When shell mobile chrome is hidden Then the poster top bar still opens merchant navigation", () => {
-  // Given
+  const appLayout = readProjectFile("app", "app", "layout.tsx")
   const posterChrome = readProjectFile(
     "components",
     "merchant",
@@ -63,13 +57,29 @@ test("Given mobile poster preview When shell mobile chrome is hidden Then the po
     "poster-preview-chrome.tsx"
   )
 
-  // When / Then
+  // When / Then — the rail replaced SidebarProvider on /app; admin keeps it.
+  assert.doesNotMatch(shell, /@\/components\/ui\/sidebar/)
+  assert.match(shell, /<MerchantTabBar[\s\S]*form="tabs"/)
+  assert.match(shell, /<MerchantTabBar[\s\S]*form="rail"/)
+  assert.doesNotMatch(appLayout, /sidebar_state|defaultSidebarOpen/)
+  assert.doesNotMatch(posterChrome, /@\/components\/ui\/sidebar/)
   assert.match(
-    posterChrome,
-    /import \{ SidebarTrigger \} from "@\/components\/ui\/sidebar"/
+    readProjectFile("components", "layout", "admin-shell.tsx"),
+    /SidebarProvider/
   )
+})
+
+test("Given the poster print path When the shell is chromeless Then only the top bar and tab bar go and the body still self-pads", () => {
+  const shell = readProjectFile(
+    "components",
+    "layout",
+    "merchant-app-shell.tsx"
+  )
+
+  assert.match(shell, /hideMobileChrome \? null : \(\s*<header/)
   assert.match(
-    posterChrome,
-    /<SidebarTrigger[\s\S]*className="[^"]*\bmd:hidden\b[^"]*"[\s\S]*aria-label="Open menu"[\s\S]*\/>/
+    shell,
+    /hideMobileChrome \? null : \(\s*<MerchantTabBar\s+form="tabs"/
   )
+  assert.match(shell, /hideMobileChrome\s*\? "w-full min-w-0"/)
 })

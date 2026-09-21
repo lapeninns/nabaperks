@@ -95,16 +95,19 @@ describe("contract-offer-campaign-ui source contract", () => {
   it("offers every merchant the section, with no rollout switch left to read", () => {
     const nav = readProjectFile("components/layout/console-nav.ts")
     const shell = readProjectFile("components/layout/merchant-app-shell.tsx")
+    const tabBar = readProjectFile("components/layout/merchant-tab-bar.tsx")
     const homeActions = readProjectFile(
       "components/merchant/dashboard-header-actions.tsx"
     )
     const layout = readProjectFile("app/app/layout.tsx")
     const dashboard = readProjectFile("app/app/page.tsx")
 
-    // Offers is an ordinary merchant section: the sidebar renders the registered
-    // list as it stands, and neither entry point takes a switch to decide by.
-    assert.match(shell, /items=\{merchantNavItems\}/)
-    for (const source of [nav, shell, homeActions, layout, dashboard]) {
+    // Offers is an ordinary merchant section: the console rail renders the
+    // registered list as it stands, and neither entry point takes a switch to
+    // decide by.
+    assert.match(shell, /<MerchantTabBar[\s\S]*form="rail"/)
+    assert.match(tabBar, /items=\{merchantNavItems\}/)
+    for (const source of [nav, shell, tabBar, homeActions, layout, dashboard]) {
       assert.doesNotMatch(source, /offersEnabled/)
       assert.doesNotMatch(source, /merchantNavItemsFor/)
     }
