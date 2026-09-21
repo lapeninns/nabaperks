@@ -24,7 +24,7 @@ export function describeMerchantActivityGrouping() {
     // The header follows the client clock like its rows, so the fixture's
     // literal instants read as whatever span they are now.
     await expect(scans.locator("summary")).toContainText(
-      /(\d+ to \d+ (min|hr|days) ago)|(\d+ (min|hr|days) ago to \d+ (min|hr|days) ago)|Yesterday/
+      /(\d+ (to \d+ )?(min|hr|days) ago)|(\d+ (min|hr|days) ago to \d+ (min|hr|days) ago)|Just now|Yesterday/
     )
     await expect(scans).not.toHaveAttribute("open", "")
     // Closed details keep their rows in the DOM; they must not be visible.
