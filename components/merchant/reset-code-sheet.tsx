@@ -51,6 +51,10 @@ export function ResetCodeSheet({
   const [open, setOpen] = useState(false)
   const [state, formAction, pending] = useActionState(action, initialState)
   const handled = useRef<VenueCodeResetActionState | null>(null)
+  // Per opening, not per action result: after one successful reset the
+  // action state keeps `reset: true`, so cancellation must be judged by
+  // whether this opening submitted.
+  const submittedThisOpening = useRef(false)
 
   useEffect(() => {
     if (!state.reset || handled.current === state) return
@@ -64,7 +68,8 @@ export function ResetCodeSheet({
 
   function handleOpenChange(next: boolean) {
     if (!next && pending) return
-    if (!next && open && !state.reset) {
+    if (next) submittedThisOpening.current = false
+    if (!next && open && !submittedThisOpening.current) {
       void recordConsoleEventAction({
         name: "team_code_reset_cancelled",
         properties: {},
@@ -110,6 +115,7 @@ export function ResetCodeSheet({
           <form
             action={formAction}
             onSubmit={() => {
+              submittedThisOpening.current = true
               void recordConsoleEventAction({
                 name: "team_code_reset_confirmed",
                 properties: {},

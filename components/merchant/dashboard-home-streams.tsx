@@ -23,14 +23,17 @@ import { timeServerLoader } from "@/lib/perf/server-timing"
 
 export async function MerchantDashboardStream({
   merchant,
+  route = "/app/numbers",
 }: {
   readonly merchant: MerchantDashboardMerchant
+  /** The route the loaders are timed against (PERF_LOG). */
+  readonly route?: string
 }) {
   const [dashboard, series] = await Promise.all([
-    timeServerLoader("/app", "getMerchantDashboardData", () =>
+    timeServerLoader(route, "getMerchantDashboardData", () =>
       getMerchantDashboardData(merchant)
     ),
-    timeServerLoader("/app", "getMerchantDashboardSeries", () =>
+    timeServerLoader(route, "getMerchantDashboardSeries", () =>
       getMerchantDashboardSeries(merchant.id)
     ),
   ])

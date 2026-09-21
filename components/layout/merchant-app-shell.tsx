@@ -32,6 +32,7 @@ export function MerchantAppShell({
   hideMobileChrome: hideMobileChromeProp,
   venueName,
   todayLabel,
+  liveDate = false,
   forceOffline = false,
 }: {
   children: ReactNode
@@ -54,6 +55,8 @@ export function MerchantAppShell({
   /** Today's date in the receipt register, formatted server-side in
    *  Europe/London so hydration and harness screenshots stay stable. */
   todayLabel?: string
+  /** Re-read the date on the client across midnight (production only). */
+  liveDate?: boolean
   /** Harness only: pin the offline strip on. */
   forceOffline?: boolean
 }) {
