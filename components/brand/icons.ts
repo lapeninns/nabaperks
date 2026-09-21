@@ -1,11 +1,14 @@
 import {
+  Activity03Icon,
   Alert02Icon,
+  AnalyticsUpIcon,
   Cancel01Icon,
   CheckmarkBadge04Icon,
   CheckmarkCircle02Icon,
   Clock01Icon,
   GiftIcon,
   InformationCircleIcon,
+  Menu01Icon,
   QrCode01Icon,
   Settings01Icon,
   UserAdd01Icon,
@@ -29,11 +32,7 @@ export const STATUS_ICON: Record<StatusKind, IconGlyph> = {
 }
 
 export type ActivityCategory =
-  | "customer"
-  | "stamp"
-  | "reward"
-  | "qr"
-  | "account"
+  "customer" | "stamp" | "reward" | "qr" | "account"
 
 export const ACTIVITY_CATEGORY_ICON: Record<ActivityCategory, IconGlyph> = {
   customer: UserAdd01Icon,
@@ -41,4 +40,18 @@ export const ACTIVITY_CATEGORY_ICON: Record<ActivityCategory, IconGlyph> = {
   reward: GiftIcon,
   qr: QrCode01Icon,
   account: Settings01Icon,
+}
+
+/**
+ * The four bottom-tab destinations of the merchant console below the rail
+ * breakpoint. Registered here (not inline in console-nav.ts) so the shell,
+ * the More screen and the harness index all draw the same glyph per tab.
+ */
+export type ConsoleTab = "counter" | "activity" | "numbers" | "more"
+
+export const CONSOLE_TAB_ICON: Record<ConsoleTab, IconGlyph> = {
+  counter: QrCode01Icon,
+  activity: Activity03Icon,
+  numbers: AnalyticsUpIcon,
+  more: Menu01Icon,
 }
