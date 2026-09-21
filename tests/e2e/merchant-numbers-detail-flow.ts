@@ -19,6 +19,14 @@ export function describeMerchantNumbersDetail() {
     await expect(page.locator("[data-numbers-detail-headline]")).toContainText(
       "stamps in the last 14 days"
     )
+
+    // The chosen range travels into the detail link.
+    await gotoHydratedPage(page, `${HARNESS_ROUTES.numbers}?range=7`)
+    await page.locator('[data-numbers-metric-link="rewards"]').click()
+    await page.waitForURL((url) => url.searchParams.get("range") === "7")
+    await expect(page.locator("[data-numbers-detail-headline]")).toContainText(
+      "rewards unlocked in the last 7 days"
+    )
   })
 
   test("stamps detail: range total, own chart, comparison in words, best and quietest day, recent rows", async ({
@@ -49,9 +57,10 @@ export function describeMerchantNumbersDetail() {
       .locator('[data-column-chart="stamps"]')
       .getByRole("button", { name: "Wednesday 16 September, 8 stamps" })
       .click()
-    await expect(page.locator("[data-numbers-detail-readout]")).toContainText(
-      "Wednesday 16 September"
-    )
+    const readout = page.locator("[data-numbers-readout]")
+    await expect(readout).toContainText("Wednesday 16 September")
+    await readout.getByRole("button", { name: "Next day" }).click()
+    await expect(readout).toContainText("Thursday 17 September")
   })
 
   test("QR has no daily series: total and comparison only, no chart and no range control", async ({
@@ -79,9 +88,11 @@ export function describeMerchantNumbersDetail() {
       "not enough history to compare yet"
     )
     await expect(
-      page.locator('[data-column-chart="rewards"]').getByRole("button", {
-        name: /not yet recorded$/,
-      })
+      page
+        .locator('[data-column-chart="rewards unlocked"]')
+        .getByRole("button", {
+          name: /not yet recorded$/,
+        })
     ).toHaveCount(7)
 
     await gotoHydratedPage(

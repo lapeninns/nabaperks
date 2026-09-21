@@ -32,7 +32,7 @@ export default async function MerchantMorePage() {
 async function MoreListStream({
   merchant,
 }: {
-  merchant: { readonly id: string; readonly status: string }
+  merchant: { readonly id: string; readonly requires_billing: boolean | null }
 }) {
   const input = await loadMoreRowsInput(merchant)
   return <MoreList rows={buildMoreRows(input)} signOutAction={signOutAction} />

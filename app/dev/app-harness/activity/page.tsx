@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
 
+import { ActivityControls } from "@/components/merchant/activity-controls"
 import { ActivityDetailFeed } from "@/components/merchant/activity-detail-feed"
 import { parseActivityScope } from "@/lib/merchant/activity-scope"
 
@@ -18,6 +19,8 @@ type ActivityHarnessParams = {
   filter?: string
   range?: string
   limit?: string
+  /** `0` marks a venue that has never had an event. */
+  lifetime?: string
 }
 
 /**
@@ -56,6 +59,9 @@ export default async function ActivityHarnessPage({
   return (
     <>
       <h1 className="sr-only">Activity</h1>
+      <div className="mb-4">
+        <ActivityControls filter={filter} scope={scope} />
+      </div>
       <ActivityDetailFeed
         summary={HARNESS_ACTIVITY_SUMMARY}
         rows={scopedRows}
@@ -65,6 +71,7 @@ export default async function ActivityHarnessPage({
         initialQuery=""
         initialScope={scope}
         posterHref="/dev/app-harness/qr"
+        hasEverHadActivity={params.lifetime === "0" ? false : true}
       />
     </>
   )

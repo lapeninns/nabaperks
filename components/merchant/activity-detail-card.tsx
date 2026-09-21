@@ -25,7 +25,7 @@ export function ActivityDetailCard({ row }: ActivityDetailCardProps) {
           activityDotClass(row.category)
         )}
       />
-      <article className="group/activity surface-card border-ink px-4 py-3 transition-[border-color,box-shadow,transform] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none hover:-translate-y-0.5">
+      <article className="group/activity surface-card border-ink px-4 py-3 transition-[border-color,box-shadow,transform] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:-translate-y-0.5 motion-reduce:transition-none">
         <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-start">
           <div className="min-w-0">
             <p className="text-sm leading-6 font-extrabold text-foreground">
@@ -106,7 +106,7 @@ function RelativeTime({
  * Returns `null` past seven days so the caller can fall back to the server's
  * locale-correct absolute label instead of re-implementing the timezone format.
  */
-function relativeTimeFromNow(value: string): string | null {
+export function relativeTimeFromNow(value: string): string | null {
   const diffMs = Date.now() - new Date(value).getTime()
   if (!Number.isFinite(diffMs)) return null
 

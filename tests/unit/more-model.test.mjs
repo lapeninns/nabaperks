@@ -4,7 +4,7 @@ import { test } from "node:test"
 import { buildMoreRows, formatMoreDate } from "@/lib/merchant/more-model"
 
 const FULL = {
-  posterPrinted: true,
+  printKitDownloaded: true,
   memberCount: 1842,
   activeOfferName: "Two-stamp Tuesday",
   lastAnnouncementAt: "2026-09-19T17:30:00.000Z",
@@ -18,7 +18,7 @@ test("every row carries a live subtitle and the setup row hides once launch is r
   assert.deepEqual(
     rows.map((row) => [row.key, row.href, row.subtitle]),
     [
-      ["poster", "/app/qr", "Printed"],
+      ["poster", "/app/qr", "Print kit downloaded"],
       ["members", "/app/customers", "1,842 on the card"],
       ["offers", "/app/offers", "Two-stamp Tuesday"],
       ["announce", "/app/announcements", "Last sent Sat 19 Sep"],
@@ -30,7 +30,7 @@ test("every row carries a live subtitle and the setup row hides once launch is r
 test("setup shows steps left while launch is incomplete, and quiet states read plainly", () => {
   const rows = buildMoreRows({
     ...FULL,
-    posterPrinted: false,
+    printKitDownloaded: false,
     activeOfferName: "",
     lastAnnouncementAt: "",
     setup: { completed: 3, total: 5, launchReady: false },
@@ -38,7 +38,7 @@ test("setup shows steps left while launch is incomplete, and quiet states read p
   })
   assert.equal(
     rows.find((row) => row.key === "poster").subtitle,
-    "Not yet printed"
+    "No download yet"
   )
   assert.equal(
     rows.find((row) => row.key === "offers").subtitle,
@@ -60,7 +60,7 @@ test("setup shows steps left while launch is incomplete, and quiet states read p
 
 test("a failed read leaves the row without a subtitle; the trial chip is Account only", () => {
   const rows = buildMoreRows({
-    posterPrinted: null,
+    printKitDownloaded: null,
     memberCount: null,
     activeOfferName: null,
     lastAnnouncementAt: null,
@@ -68,8 +68,16 @@ test("a failed read leaves the row without a subtitle; the trial chip is Account
     billingStatus: null,
     trialDaysLeft: null,
   })
-  assert.equal(rows.length, 5)
+  // Setup stays navigable when readiness could not be read.
+  assert.equal(rows.length, 6)
   assert.ok(rows.every((row) => row.subtitle === null))
+  assert.equal(rows.find((row) => row.key === "setup").href, "/app/launch")
+
+  const notRequired = buildMoreRows({ ...FULL, billingStatus: "not_required" })
+  assert.equal(
+    notRequired.find((row) => row.key === "account").subtitle,
+    "Billing not required"
+  )
 
   const trial = buildMoreRows({
     ...FULL,

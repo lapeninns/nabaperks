@@ -398,7 +398,7 @@ export function RewardPoolForm({
       {selectedPresetIds.length > 0 && editingId === null ? (
         <form
           action={batchAction}
-          className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 mx-auto grid max-w-[calc(100vw-1.5rem)] gap-3 rounded-lg border-2 border-ink bg-card/95 p-3 shadow-hard backdrop-blur-sm sm:static sm:inset-auto sm:z-auto sm:max-w-none sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:bg-card sm:p-4 sm:backdrop-blur-none"
+          className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+4.5rem)] z-30 mx-auto grid max-w-[calc(100vw-1.5rem)] gap-3 rounded-lg border-2 border-ink bg-card/95 p-3 shadow-hard backdrop-blur-sm sm:static sm:inset-auto sm:z-auto sm:max-w-none sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:bg-card sm:p-4 sm:backdrop-blur-none"
         >
           <input type="hidden" name="loyaltyCardId" value={loyaltyCardId} />
           {selectedPresetIds.map((presetId) => (

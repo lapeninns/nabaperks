@@ -1,43 +1,46 @@
 import "server-only"
 
-import { getMerchantLaunchReadiness } from "@/lib/merchant/launch-readiness"
-import { countRows, getBillingStatus } from "@/lib/merchant/dashboard-counts"
+import {
+  getLaunchBillingReadiness,
+  getMerchantLaunchReadiness,
+} from "@/lib/merchant/launch-readiness"
+import { countRows } from "@/lib/merchant/dashboard-counts"
 import type { MoreRowsInput } from "@/lib/merchant/more-model"
-import { getActiveOfferCampaign } from "@/lib/merchant/offer-campaigns"
+import { getLiveOfferCampaignName } from "@/lib/merchant/offer-campaigns"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 /**
  * The More screen's live subtitles, each read settling on its own: a failed
  * read yields null and the row renders without a subtitle. Every value
- * traces to an existing counter or event: the latest qr_downloaded event
- * (printed), customer_memberships (members), the live campaign row
- * (offers), the latest push_venue_announcement_queued event (announce),
- * launch readiness (setup) and billing_customers (account).
+ * traces to an existing counter or durable ledger: the latest qr_downloaded
+ * event (print kit downloaded), customer_memberships (members), the live
+ * campaign row (offers, throwing on failure), the notification ledger's
+ * latest queued venue announcement (announce), launch readiness (setup) and
+ * the billing readiness read (account), where a required but missing billing
+ * row is "not started" and a venue that needs no billing says so.
  */
 export async function loadMoreRowsInput(merchant: {
   readonly id: string
-  readonly status: string
+  readonly requires_billing: boolean | null
 }): Promise<MoreRowsInput> {
   const [printed, members, offer, announced, readiness, billing] =
     await Promise.allSettled([
-      latestEventAt(merchant.id, "qr_downloaded"),
+      latestProductEventAt(merchant.id, "qr_downloaded"),
       countRows("customer_memberships", merchant.id),
-      getActiveOfferCampaign(merchant.id),
-      latestEventAt(merchant.id, "push_venue_announcement_queued"),
+      getLiveOfferCampaignName(merchant.id),
+      latestQueuedAnnouncementAt(merchant.id),
       getMerchantLaunchReadiness(),
-      getBillingStatus(merchant.id, merchant.status),
+      getLaunchBillingReadiness(
+        merchant.id,
+        merchant.requires_billing !== false
+      ),
     ])
 
   return {
-    posterPrinted:
+    printKitDownloaded:
       printed.status === "fulfilled" ? printed.value !== null : null,
     memberCount: members.status === "fulfilled" ? members.value : null,
-    activeOfferName:
-      offer.status === "fulfilled"
-        ? offer.value?.status === "live"
-          ? (offer.value.name ?? "Live offer")
-          : ""
-        : null,
+    activeOfferName: offer.status === "fulfilled" ? (offer.value ?? "") : null,
     lastAnnouncementAt:
       announced.status === "fulfilled" ? (announced.value ?? "") : null,
     setup:
@@ -48,12 +51,17 @@ export async function loadMoreRowsInput(merchant: {
             launchReady: readiness.value.launchReady,
           }
         : null,
-    billingStatus: billing.status === "fulfilled" ? billing.value : null,
+    billingStatus:
+      billing.status === "fulfilled"
+        ? billing.value.requiresBilling
+          ? (billing.value.status ?? "not_started")
+          : "not_required"
+        : null,
     trialDaysLeft: null,
   }
 }
 
-async function latestEventAt(
+async function latestProductEventAt(
   merchantId: string,
   eventName: string
 ): Promise<string | null> {
@@ -69,6 +77,28 @@ async function latestEventAt(
 
   if (error) {
     throw new Error(`Unable to read ${eventName}: ${error.message}`)
+  }
+
+  return typeof data?.created_at === "string" ? data.created_at : null
+}
+
+/** The durable ledger: a venue_announcement row that was actually queued. */
+async function latestQueuedAnnouncementAt(
+  merchantId: string
+): Promise<string | null> {
+  const supabase = createSupabaseServiceRoleClient()
+  const { data, error } = await supabase
+    .from("notification_events")
+    .select("created_at")
+    .eq("merchant_id", merchantId)
+    .eq("event_type", "venue_announcement")
+    .in("status", ["queued", "delivering", "sent"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(`Unable to read announcements: ${error.message}`)
   }
 
   return typeof data?.created_at === "string" ? data.created_at : null

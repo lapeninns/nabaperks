@@ -107,7 +107,7 @@ export function describeMerchantConsoleShell() {
     await expect(page.locator("#console-body")).toBeFocused()
   })
 
-  test("rail from 900px: seven destinations, account items, log out, no tab bar", async ({
+  test("rail from 900px: eight destinations, account items, log out, no tab bar", async ({
     page,
   }) => {
     for (const width of [900, 1024, 1280]) {
@@ -124,6 +124,7 @@ export function describeMerchantConsoleShell() {
         "Poster",
         "Members",
         "Activity",
+        "Numbers",
         "Announce",
         "Offers",
         "Profile",

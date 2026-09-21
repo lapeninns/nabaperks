@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { QrCode01Icon, Search01Icon } from "@hugeicons/core-free-icons"
 
 import { recordConsoleEventAction } from "@/app/app/console-events"
-import { EmptyState, FilterPills, Icon } from "@/components/brand"
+import { EmptyState, Icon } from "@/components/brand"
 import { StatStrip } from "@/components/data"
 import { WetInkRise } from "@/components/motion"
 import { Button } from "@/components/ui/button"
@@ -23,29 +23,18 @@ import {
   type ActivityListEntry,
 } from "@/lib/merchant/activity-grouping"
 import {
-  ACTIVITY_SCOPE_PILLS,
   activityScopeLabel,
   type ActivityScope,
 } from "@/lib/merchant/activity-scope"
 
 import { ActivityDetailCard } from "./activity-detail-card"
+import { ACTIVITY_FILTER_OPTIONS } from "./activity-controls"
 import { ActivityGroupDetails } from "./activity-group"
 
-const filterOptions: Array<{
-  id: "all" | ActivityCategory
-  label: string
-}> = [
-  { id: "all", label: "All" },
-  { id: "customer", label: "Members" },
-  { id: "stamp", label: "Stamps" },
-  { id: "reward", label: "Rewards" },
-  { id: "qr", label: "QR" },
-  { id: "account", label: "Account" },
-]
-
 const filterLabel = (filter: "all" | ActivityCategory) =>
-  filterOptions.find((option) => option.id === filter)?.label.toLowerCase() ??
-  "matching"
+  ACTIVITY_FILTER_OPTIONS.find(
+    (option) => option.id === filter
+  )?.label.toLowerCase() ?? "matching"
 
 /**
  * The owner's activity read (handoff §6.2, §7.3). Scope (Today / 7 days /
@@ -64,6 +53,7 @@ export function ActivityDetailFeed({
   initialQuery = "",
   initialScope = "7d",
   posterHref = "/app/qr",
+  hasEverHadActivity = null,
 }: {
   summary: ActivitySummary
   rows: ActivityDisplayRow[]
@@ -76,13 +66,16 @@ export function ActivityDetailFeed({
    *  are owned here now. */
   emptyState?: ReactNode
   posterHref?: string
+  /** Lifetime evidence for the empty copy: false means the venue has never
+   *  had an event; null means unknown (the count failed). */
+  hasEverHadActivity?: boolean | null
 }) {
   const pathname = usePathname()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [filter, setFilter] = useState<"all" | ActivityCategory>(() =>
-    normalizeFilter(initialFilter)
-  )
+  // The category is URL state owned by ActivityControls; the page re-keys
+  // this feed on it, so it is read from the prop rather than mirrored.
+  const filter = normalizeFilter(initialFilter)
   const [query, setQuery] = useState(() => initialQuery)
   const scope = initialScope
   const normalizedQuery = query.trim().toLowerCase()
@@ -133,45 +126,20 @@ export function ActivityDetailFeed({
     [filteredRows, rows.length]
   )
 
-  const singleRow = rows.length === 1
   const scopeLabel = activityScopeLabel(scope)
-
-  const scopePills = (
-    <FilterPills
-      aria-label="Activity range"
-      value={scope}
-      onValueChange={(id) => {
-        const next = ACTIVITY_SCOPE_PILLS.find((pill) => pill.id === id)?.id
-        if (!next || next === scope) return
-        cancelPendingUrlWrite()
-        void recordConsoleEventAction({
-          name: "activity_filter_changed",
-          properties: { filter, range: next },
-        })
-        updateUrl({ filter, query, scope: next })
-      }}
-      items={ACTIVITY_SCOPE_PILLS.map((pill) => ({
-        id: pill.id,
-        label: pill.label,
-      }))}
-    />
-  )
 
   if (!rows.length) {
     return (
-      <div className="grid gap-4">
-        {scopePills}
-        <ActivityEmpty
-          filter={filter}
-          scope={scope}
-          posterHref={posterHref}
-          onClearFilter={() => {
-            setFilter("all")
-            updateUrl({ filter: "all", query, scope })
-          }}
-          onWiden={() => updateUrl({ filter, query, scope: "7d" })}
-        />
-      </div>
+      <ActivityEmpty
+        filter={filter}
+        scope={scope}
+        posterHref={posterHref}
+        hasEverHadActivity={hasEverHadActivity}
+        onClearFilter={() => trackAndUpdate({ filter: "all", query, scope })}
+        onWiden={(nextScope) =>
+          trackAndUpdate({ filter, query, scope: nextScope })
+        }
+      />
     )
   }
 
@@ -190,49 +158,25 @@ export function ActivityDetailFeed({
       </section>
 
       <section className="surface-card grid gap-3 p-3 sm:p-4">
-        {scopePills}
-        {singleRow ? null : (
-          <>
-            <div className="relative">
-              <Icon
-                icon={Search01Icon}
-                size={16}
-                className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
-              />
-              <Input
-                type="search"
-                value={query}
-                onChange={(event) => {
-                  const nextQuery = event.target.value
-                  setQuery(nextQuery)
-                  scheduleQueryUrlWrite(nextQuery)
-                }}
-                placeholder="Search activity"
-                aria-label="Search activity"
-                className="pl-9"
-              />
-            </div>
-            <FilterPills
-              aria-label="Filter activity by type"
-              value={filter}
-              onValueChange={(id) => {
-                const next = normalizeFilter(id)
-                setFilter(next)
-                cancelPendingUrlWrite()
-                void recordConsoleEventAction({
-                  name: "activity_filter_changed",
-                  properties: { filter: next, range: scope },
-                })
-                updateUrl({ filter: next, query, scope })
-              }}
-              className="flex-wrap"
-              items={filterOptions.map((option) => ({
-                id: option.id,
-                label: option.label,
-              }))}
-            />
-          </>
-        )}
+        <div className="relative">
+          <Icon
+            icon={Search01Icon}
+            size={16}
+            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
+          />
+          <Input
+            type="search"
+            value={query}
+            onChange={(event) => {
+              const nextQuery = event.target.value
+              setQuery(nextQuery)
+              scheduleQueryUrlWrite(nextQuery)
+            }}
+            placeholder="Search activity"
+            aria-label="Search activity"
+            className="pl-9"
+          />
+        </div>
         <p
           className="text-xs text-muted-foreground"
           role="status"
@@ -252,10 +196,8 @@ export function ActivityDetailFeed({
               type="button"
               variant="secondary"
               onClick={() => {
-                setFilter("all")
                 setQuery("")
-                cancelPendingUrlWrite()
-                updateUrl({ filter: "all", query: "", scope })
+                trackAndUpdate({ filter: "all", query: "", scope })
               }}
             >
               Clear filter
@@ -307,6 +249,19 @@ export function ActivityDetailFeed({
     </div>
   )
 
+  function trackAndUpdate(next: {
+    filter: "all" | ActivityCategory
+    query: string
+    scope: ActivityScope
+  }) {
+    cancelPendingUrlWrite()
+    void recordConsoleEventAction({
+      name: "activity_filter_changed",
+      properties: { filter: next.filter, range: next.scope },
+    })
+    updateUrl(next)
+  }
+
   function updateUrl({
     filter: nextFilter,
     query: nextQuery,
@@ -341,14 +296,16 @@ function ActivityEmpty({
   filter,
   scope,
   posterHref,
+  hasEverHadActivity,
   onClearFilter,
   onWiden,
 }: {
   filter: "all" | ActivityCategory
   scope: ActivityScope
   posterHref: string
+  hasEverHadActivity: boolean | null
   onClearFilter: () => void
-  onWiden: () => void
+  onWiden: (scope: ActivityScope) => void
 }) {
   if (filter !== "all") {
     return (
@@ -373,7 +330,11 @@ function ActivityEmpty({
           title="Nothing yet today."
           description="Scans, joins and stamps land here as they happen."
           actions={
-            <Button type="button" variant="secondary" onClick={onWiden}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => onWiden("7d")}
+            >
               See the last 7 days
             </Button>
           }
@@ -389,9 +350,32 @@ function ActivityEmpty({
           title="Nothing in the last 7 days."
           description="A quiet week. The last 28 days may have more."
           actions={
-            <Button asChild variant="secondary">
-              <Link href="?range=28d" prefetch={false}>
-                See the last 28 days
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => onWiden("28d")}
+            >
+              See the last 28 days
+            </Button>
+          }
+        />
+      </div>
+    )
+  }
+
+  // 28 days, unfiltered. Only a venue with no event in its whole history is
+  // "brand new"; an established venue that went quiet gets range-neutral copy.
+  if (hasEverHadActivity === false) {
+    return (
+      <div data-activity-empty="new">
+        <EmptyState
+          title="Nothing here yet."
+          description="The first scan of your QR lands here."
+          icon={QrCode01Icon}
+          actions={
+            <Button asChild>
+              <Link href={posterHref} prefetch={false}>
+                Open your Poster kit
               </Link>
             </Button>
           }
@@ -401,13 +385,12 @@ function ActivityEmpty({
   }
 
   return (
-    <div data-activity-empty="new">
+    <div data-activity-empty="quiet">
       <EmptyState
-        title="Nothing here yet."
-        description="The first scan of your QR lands here."
-        icon={QrCode01Icon}
+        title="Nothing in the last 28 days."
+        description="Older activity is not shown here. Your members and rewards are unchanged."
         actions={
-          <Button asChild>
+          <Button asChild variant="secondary">
             <Link href={posterHref} prefetch={false}>
               Open your Poster kit
             </Link>

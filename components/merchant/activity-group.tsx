@@ -1,12 +1,16 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { ArrowDown01Icon } from "@hugeicons/core-free-icons"
 
 import { recordConsoleEventAction } from "@/app/app/console-events"
 import { CategoryBadge, Icon } from "@/components/brand"
-import type { ActivityGroup } from "@/lib/merchant/activity-grouping"
+import {
+  formatGroupSummary,
+  type ActivityGroup,
+} from "@/lib/merchant/activity-grouping"
 
-import { ActivityDetailCard } from "./activity-detail-card"
+import { ActivityDetailCard, relativeTimeFromNow } from "./activity-detail-card"
 
 /**
  * A collapsed run of same-event rows as a native `<details>`: expansion
@@ -16,6 +20,8 @@ import { ActivityDetailCard } from "./activity-detail-card"
  * keeps its own primary action (the group header never has one).
  */
 export function ActivityGroupDetails({ group }: { group: ActivityGroup }) {
+  const summary = useLiveGroupSummary(group)
+
   return (
     <li>
       <details
@@ -39,7 +45,7 @@ export function ActivityGroupDetails({ group }: { group: ActivityGroup }) {
                 category={group.category}
                 label={group.badgeLabel}
               />
-              <span className="numeric-tabular">{group.summary}</span>
+              <span className="numeric-tabular">{summary}</span>
             </div>
           </div>
           <span className="mono-id flex shrink-0 items-center gap-1 text-ink-soft">
@@ -62,4 +68,31 @@ export function ActivityGroupDetails({ group }: { group: ActivityGroup }) {
       </details>
     </li>
   )
+}
+
+/**
+ * Re-derives the "8 to 12 min ago" span on the client every minute, the
+ * same cadence as the expanded rows, so a long-lived till tab never shows a
+ * header that disagrees with its own rows. The server summary is the first
+ * paint.
+ */
+function useLiveGroupSummary(group: ActivityGroup): string {
+  const [summary, setSummary] = useState(group.summary)
+
+  useEffect(() => {
+    const update = () => {
+      const earliest = relativeTimeFromNow(group.earliest)
+      const latest = relativeTimeFromNow(group.latest)
+      setSummary(
+        earliest && latest
+          ? formatGroupSummary(earliest, latest)
+          : group.summary
+      )
+    }
+    update()
+    const interval = window.setInterval(update, 60_000)
+    return () => window.clearInterval(interval)
+  }, [group])
+
+  return summary
 }

@@ -27,10 +27,20 @@ export type ActivityGroup = {
 
 export type ActivityListEntry = ActivityDisplayRow | ActivityGroup
 
-const COLLAPSIBLE_CATEGORIES: ReadonlySet<ActivityCategory> = new Set([
-  "qr",
-  "customer",
+/**
+ * Only the two high-volume, low-information events collapse: a QR scan and
+ * a join. Other qr-category events (downloads, pauses, resumes) are rare
+ * and each says something the owner should read on its own.
+ */
+const COLLAPSIBLE_EVENTS: ReadonlySet<string> = new Set([
+  "qr_scanned",
+  "customer_joined",
 ])
+
+const PLURAL_HEADLINE: Record<string, string> = {
+  qr_scanned: "QR scans",
+  customer_joined: "joins",
+}
 
 export const DEFAULT_COLLAPSE_FROM = 3
 
@@ -57,7 +67,7 @@ export function groupActivityRows(
   const runs = new Map<string, ActivityDisplayRow[]>()
 
   for (const row of rows) {
-    if (!COLLAPSIBLE_CATEGORIES.has(row.category)) continue
+    if (!COLLAPSIBLE_EVENTS.has(row.eventName)) continue
     const key = `${row.eventName}:${row.dateGroup}`
     const run = runs.get(key)
     if (run) run.push(row)
@@ -69,7 +79,7 @@ export function groupActivityRows(
 
   for (const row of rows) {
     const key = `${row.eventName}:${row.dateGroup}`
-    const run = COLLAPSIBLE_CATEGORIES.has(row.category)
+    const run = COLLAPSIBLE_EVENTS.has(row.eventName)
       ? runs.get(key)
       : undefined
     if (!run || run.length < collapseFrom) {
@@ -100,7 +110,7 @@ function buildGroup(
     key,
     category: first.category,
     badgeLabel: first.badgeLabel,
-    headline: `${rows.length} ${pluralBadge(first.badgeLabel)}`,
+    headline: `${rows.length} ${PLURAL_HEADLINE[first.eventName] ?? pluralBadge(first.badgeLabel)}`,
     summary: formatGroupSummary(
       earliestRow.relativeTime,
       latestRow.relativeTime
@@ -114,7 +124,7 @@ function buildGroup(
   }
 }
 
-/** "QR scanned" → "QR scans", "Join" → "joins". */
+/** "QR scanned" → "QR scans", "Join" → "joins"; anything else counts as "× label". */
 export function pluralBadge(badgeLabel: string): string {
   switch (badgeLabel) {
     case "QR scanned":
@@ -122,7 +132,7 @@ export function pluralBadge(badgeLabel: string): string {
     case "Join":
       return "joins"
     default:
-      return `${badgeLabel.toLowerCase()}s`
+      return `× ${badgeLabel}`
   }
 }
 
@@ -139,5 +149,14 @@ export function formatGroupSummary(earliest: string, latest: string): string {
   if (from && to && from[2] === to[2]) {
     return `${from[1]} to ${to[1]} ${to[2]} ago`
   }
-  return `${latest} to ${earliest}`
+  // Relative labels read newest first ("Just now to 2 hr ago"); absolute
+  // clock labels read in time order ("09:00 to 12:00").
+  const relative =
+    RELATIVE.test(earliest) ||
+    RELATIVE.test(latest) ||
+    earliest === "Just now" ||
+    latest === "Just now" ||
+    earliest === "Yesterday" ||
+    latest === "Yesterday"
+  return relative ? `${latest} to ${earliest}` : `${earliest} to ${latest}`
 }

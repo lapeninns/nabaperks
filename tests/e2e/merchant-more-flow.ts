@@ -21,7 +21,7 @@ export function describeMerchantMore() {
     const rows = page.locator("[data-more-row]")
     await expect(rows).toHaveCount(5)
     await expect(page.locator('[data-more-row="poster"]')).toContainText(
-      "Printed"
+      "Print kit downloaded"
     )
     await expect(page.locator('[data-more-row="members"]')).toContainText(
       "1,842 on the card"
@@ -58,7 +58,7 @@ export function describeMerchantMore() {
       "2 of 5 steps left"
     )
     await expect(page.locator('[data-more-row="poster"]')).toContainText(
-      "Not yet printed"
+      "No download yet"
     )
     await expect(page.locator('[data-more-row="offers"]')).toContainText(
       "None running"
@@ -72,6 +72,11 @@ export function describeMerchantMore() {
     await expect(page.locator('[data-more-row="members"]')).toHaveAttribute(
       "href",
       "/app/customers"
+    )
+    // Setup stays navigable when readiness could not be read.
+    await expect(page.locator('[data-more-row="setup"]')).toHaveAttribute(
+      "href",
+      "/app/launch"
     )
 
     await gotoHydratedPage(page, `${HARNESS_ROUTES.more}?state=trial`)

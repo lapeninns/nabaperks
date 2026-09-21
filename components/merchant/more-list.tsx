@@ -1,10 +1,9 @@
 import Link from "next/link"
 import type { ComponentProps } from "react"
-import { Logout01Icon } from "@hugeicons/core-free-icons"
-
-import { Icon, Logo, MonoTag } from "@/components/brand"
-import { Button } from "@/components/ui/button"
+import { Logo, MonoTag } from "@/components/brand"
 import type { MoreRow } from "@/lib/merchant/more-model"
+
+import { MoreLogoutButton } from "./more-logout-button"
 
 /**
  * The More screen (handoff §6.4): everything configured once, as two
@@ -74,17 +73,7 @@ export function MoreList({
       />
 
       <form action={signOutAction} className="surface-card p-3">
-        <Button
-          type="submit"
-          variant="secondary"
-          size="lg"
-          className="w-full justify-start"
-          disabled={logoutPending}
-          aria-busy={logoutPending}
-        >
-          <Icon icon={Logout01Icon} size={18} />
-          {logoutPending ? "Logging out…" : "Log out"}
-        </Button>
+        <MoreLogoutButton pending={logoutPending} />
       </form>
     </div>
   )

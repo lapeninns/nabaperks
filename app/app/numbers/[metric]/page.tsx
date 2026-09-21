@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation"
 import { Suspense } from "react"
 
-import { NumbersOverviewSkeleton } from "@/components/merchant/loading-skeletons"
+import { NumbersDetailSkeleton } from "@/components/merchant/loading-skeletons"
 import { NumbersDetail } from "@/components/merchant/numbers-detail"
 import { StreamErrorBoundary } from "@/components/merchant/stream-error-boundary"
 import { getCurrentMerchant } from "@/lib/auth/session"
@@ -54,7 +54,7 @@ export default async function MerchantNumbersDetailPage({
       <StreamErrorBoundary label="this metric">
         <Suspense
           key={`${metric}:${range}`}
-          fallback={<NumbersOverviewSkeleton />}
+          fallback={<NumbersDetailSkeleton />}
         >
           <NumbersDetailStream
             merchant={merchant}
@@ -100,7 +100,11 @@ async function NumbersDetailStream({
       "/app/numbers/[metric]",
       "getEnrichedMerchantActivity",
       () =>
-        getEnrichedMerchantActivity(merchant.id, { limit: 5, filter: category })
+        // Stamp pairs thread into one card; fetch a margin and slice to five.
+        getEnrichedMerchantActivity(merchant.id, {
+          limit: 12,
+          filter: category,
+        })
     ),
   ])
 
@@ -130,7 +134,9 @@ async function NumbersDetailStream({
   return (
     <NumbersDetail
       model={model}
-      recentRows={recent.status === "fulfilled" ? recent.value.rows : null}
+      recentRows={
+        recent.status === "fulfilled" ? recent.value.rows.slice(0, 5) : null
+      }
     />
   )
 }
