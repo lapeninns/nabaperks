@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import Link from "next/link"
 import { notFound } from "next/navigation"
 import {
   Activity03Icon,
@@ -22,6 +23,68 @@ import { StatusBanner } from "@/components/loyalty/status-banner"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
+
+/** One link per row of the console handoff's state matrices (§7.1–§7.5). */
+const CONSOLE_STATE_LINKS: ReadonlyArray<readonly [string, string]> = [
+  ["Counter — ready", "/dev/app-harness/dashboard"],
+  ["Counter — QR paused", "/dev/app-harness/dashboard?qr=paused"],
+  ["Counter — QR gated", "/dev/app-harness/dashboard?qr=gated"],
+  ["Counter — QR missing", "/dev/app-harness/dashboard?qr=missing"],
+  ["Counter — QR failed to load", "/dev/app-harness/dashboard?qr=error"],
+  ["Counter — QR loading", "/dev/app-harness/dashboard?qr=loading"],
+  ["Counter — code revealed", "/dev/app-harness/dashboard?code=revealed"],
+  ["Counter — code unavailable", "/dev/app-harness/dashboard?code=unavailable"],
+  ["Counter — code loading", "/dev/app-harness/dashboard?code=loading"],
+  ["Counter — reset refused", "/dev/app-harness/dashboard?reset=fail"],
+  ["Counter — reset in flight", "/dev/app-harness/dashboard?reset=slow"],
+  ["Counter — setup incomplete", "/dev/app-harness/dashboard?setup=incomplete"],
+  ["Shell — offline strip", "/dev/app-harness/dashboard?offline=1"],
+  [
+    "Shell — billing past due strip",
+    "/dev/app-harness/dashboard?billing=past_due",
+  ],
+  [
+    "Shell — billing cancelled strip",
+    "/dev/app-harness/activity?billing=cancelled",
+  ],
+  ["Numbers — full history", "/dev/app-harness/numbers"],
+  ["Numbers — 7 days", "/dev/app-harness/numbers?range=7"],
+  ["Numbers — 3–13 days", "/dev/app-harness/numbers?state=partial"],
+  ["Numbers — under 3 days", "/dev/app-harness/numbers?state=early"],
+  ["Numbers — no stamp yet", "/dev/app-harness/numbers?state=never"],
+  ["Numbers — zero activity", "/dev/app-harness/numbers?state=zero"],
+  ["Numbers — series failed", "/dev/app-harness/numbers?state=series-error"],
+  ["Numbers — totals failed", "/dev/app-harness/numbers?state=totals-error"],
+  ["Numbers — both failed", "/dev/app-harness/numbers?state=both-error"],
+  ["Numbers — loading", "/dev/app-harness/numbers?state=loading"],
+  ["Numbers — members detail", "/dev/app-harness/numbers/members"],
+  ["Numbers — stamps detail", "/dev/app-harness/numbers/stamps"],
+  ["Numbers — rewards detail", "/dev/app-harness/numbers/rewards"],
+  ["Numbers — QR detail", "/dev/app-harness/numbers/qr"],
+  ["Activity — grouped", "/dev/app-harness/activity?fixture=grouped"],
+  ["Activity — single row", "/dev/app-harness/activity?fixture=single"],
+  ["Activity — load more", "/dev/app-harness/activity?fixture=load-more"],
+  [
+    "Activity — empty, filtered",
+    "/dev/app-harness/activity?fixture=empty&filter=reward",
+  ],
+  [
+    "Activity — empty, today",
+    "/dev/app-harness/activity?fixture=empty&range=today",
+  ],
+  [
+    "Activity — empty, brand new",
+    "/dev/app-harness/activity?fixture=empty&range=28d",
+  ],
+  ["More — all subtitles", "/dev/app-harness/more"],
+  ["More — subtitles failed", "/dev/app-harness/more?state=subtitles-failed"],
+  ["More — setup incomplete", "/dev/app-harness/more?state=setup-incomplete"],
+  ["More — billing past due", "/dev/app-harness/more?state=billing-past-due"],
+  ["More — trial", "/dev/app-harness/more?state=trial"],
+  ["More — log out in flight", "/dev/app-harness/more?state=logout-pending"],
+  ["More — loading", "/dev/app-harness/more?state=loading"],
+  ["Skeletons", "/dev/app-harness/skeletons"],
+]
 
 const ZERO_KPIS = [
   { label: "Members", value: 0, icon: UserMultiple02Icon },
@@ -49,6 +112,25 @@ export default function StatesHarnessPage() {
         title="Empty & error states"
         description="The first-run empty states and load-failure banners across the /app surface, mounted via the real body components with empty/error fixtures."
       />
+
+      <HarnessSection
+        id="console-rebuild"
+        title="Counter-first console — every handoff §7 state"
+      >
+        <ul className="grid gap-1 text-sm sm:grid-cols-2">
+          {CONSOLE_STATE_LINKS.map(([label, href]) => (
+            <li key={href}>
+              <Link
+                href={href}
+                prefetch={false}
+                className="focus-ring inline-flex min-h-11 items-center font-bold underline underline-offset-4"
+              >
+                {label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </HarnessSection>
 
       <HarnessSection id="customers-empty" title="Members — empty (no members)">
         <CustomerReadbackTable
@@ -134,7 +216,10 @@ export default function StatesHarnessPage() {
         title="Error fixtures — the real StatusBanner load-failure surfaces"
       >
         <div className="grid gap-4">
-          <StatusBanner tone="error" title="Billing details could not be loaded">
+          <StatusBanner
+            tone="error"
+            title="Billing details could not be loaded"
+          >
             Try again.
           </StatusBanner>
           <StatusBanner tone="error" title="QR action failed.">

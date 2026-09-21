@@ -13,29 +13,26 @@ function readProjectFile(...segments) {
   return readFileSync(path.join(projectRoot, ...segments), "utf8")
 }
 
-test("dashboard QR quick action stays hidden until scans are available", () => {
+test("counter QR card presents only when scans are available and never tracks downloads", () => {
   const source = readProjectFile(
     "components",
     "merchant",
-    "dashboard-qr-card.tsx"
+    "counter-qr-card.tsx"
   )
 
   assert.match(source, /getLaunchBillingReadiness/)
   assert.match(source, /buildLaunchReadiness/)
-  assert.match(source, /scansAvailable=\{readiness\.launchReady\}/)
-  assert.match(
-    source,
-    /const thumbnailQrSrc = scansAvailable\s+\? `\/app\/qr\/image\/\$\{qrCodeId\}\?w=256`\s+: null/
-  )
-  assert.match(source, /thumbnailQrSrc \? \([\s\S]*<img/)
-  // Counter-ticket architecture: present-QR triggers (the tappable ticket and
-  // the labelled button) and the dialog root itself all gate on scan
-  // availability — a gated/paused card presents nothing.
-  assert.match(source, /scansAvailable \? \([\s\S]*<PresentQrTrigger/)
-  assert.match(source, /scansAvailable \? \([\s\S]*<CopyUrlButton/)
-  assert.match(source, /return scansAvailable \? \(\s*<PresentQrRoot/)
-  assert.match(source, /Launch gated/)
-  assert.match(source, /QR paused/)
+  assert.match(source, /launchReady: readiness\.launchReady/)
+  // Counter architecture: the card itself is the one present-mode trigger,
+  // and the dialog root only mounts for a ready QR — paused, gated and
+  // missing cards present nothing and are not tappable.
+  assert.match(source, /state === "ready" \? \(\s*<PresentQrTrigger>\s*<button/)
+  assert.match(source, /return state === "ready" \? \(\s*<PresentQrRoot/)
+  assert.match(source, /state !== "ready" && "opacity-40"/)
+  assert.match(source, /\{state === "paused" \? "Paused" : "Not live yet"\}/)
+  assert.match(source, /Your venue QR is not ready yet/)
+  assert.match(source, /logger\.warn\("counter\.qr_missing"/)
+  assert.doesNotMatch(source, /Show full screen/)
   assert.doesNotMatch(source, /className="[^"]*max-w-full[^"]*"/)
 })
 

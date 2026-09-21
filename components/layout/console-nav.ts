@@ -130,6 +130,12 @@ export const merchantNavItems = [
     icon: Activity03Icon,
     prefetch: "auto",
   },
+  {
+    href: "/app/numbers",
+    label: "Numbers",
+    icon: AnalyticsUpIcon,
+    prefetch: "auto",
+  },
   { href: "/app/announcements", label: "Announce", icon: Megaphone01Icon },
   {
     href: "/app/offers",
@@ -170,7 +176,7 @@ export const merchantTabItems = [
     label: "More",
     icon: CONSOLE_TAB_ICON.more,
   },
-] as const satisfies readonly MerchantTabItem[]
+] satisfies readonly MerchantTabItem[]
 
 /**
  * Which bottom tab a merchant route belongs to, or `null` for routes the tab

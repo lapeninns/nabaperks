@@ -1,8 +1,8 @@
 /**
  * Pure billing-status → merchant-facing copy/routing logic. No React, no I/O, so
  * it is unit-testable in isolation (tests/unit/billing-status-copy). The
- * presentation components (`MerchantBillingNotice`, `MerchantBillingAccessNote`)
- * in `components/merchant/billing-status.tsx` render this.
+ * console's billing strip (`components/merchant/merchant-billing-strip.tsx`)
+ * and the More screen's Account row render this.
  *
  * Routing contract: `not_started` is the FIRST-RUN activation state and routes
  * to the launch billing step (`/app/launch?tab=billing`) with the shared
@@ -31,6 +31,16 @@ const warningNoteClassName =
 export function shouldShowMerchantDashboardBillingNotice(status: string) {
   const state = normalizeMerchantBillingStatus(status)
   return state !== "active" && state !== "trialing"
+}
+
+/**
+ * Post-activation billing states that need the owner's attention. These carry
+ * a persistent strip under the console top bar on every tab; first-run
+ * `not_started` is the setup reminder's job, and the QR is never blocked.
+ */
+export function shouldShowMerchantBillingStrip(status: string) {
+  const state = normalizeMerchantBillingStatus(status)
+  return state === "past_due" || state === "cancelled" || state === "suspended"
 }
 
 export function formatMerchantBillingStatus(status: string) {

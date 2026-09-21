@@ -14,6 +14,8 @@ import {
   UserAdd01Icon,
 } from "@hugeicons/core-free-icons"
 
+import type { ConsoleTab } from "@/lib/navigation/console-tabs"
+
 import type { IconGlyph } from "./icon"
 
 /**
@@ -47,7 +49,7 @@ export const ACTIVITY_CATEGORY_ICON: Record<ActivityCategory, IconGlyph> = {
  * breakpoint. Registered here (not inline in console-nav.ts) so the shell,
  * the More screen and the harness index all draw the same glyph per tab.
  */
-export type ConsoleTab = "counter" | "activity" | "numbers" | "more"
+export type { ConsoleTab }
 
 export const CONSOLE_TAB_ICON: Record<ConsoleTab, IconGlyph> = {
   counter: QrCode01Icon,

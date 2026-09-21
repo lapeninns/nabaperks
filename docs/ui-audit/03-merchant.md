@@ -16,6 +16,37 @@ only); merchant column max 1152px (`max-w-merchant`); 44px tap-target floor.
 
 ---
 
+## Resolution — counter-first console rebuild (September 2026)
+
+The shell and dashboard findings below were closed by the structural rebuild
+specified in
+[`counter-console-rebuild/handoff-counter-console-implementation.md`](./counter-console-rebuild/handoff-counter-console-implementation.md)
+and tracked in [`STATUS-m-console.md`](./STATUS-m-console.md). The handoff's
+own numbering of the twelve 375px failures maps onto this audit as follows.
+
+| Handoff § | Failure                                                | Audit finding(s) | Resolved by          |
+| --------- | ------------------------------------------------------ | ---------------- | -------------------- |
+| 1         | 7 destinations + 2 account items behind one hamburger  | 03#2, 03#3, 03#6 | L1 #347, L2 #348     |
+| 2         | Three stacked full-width CTAs open the page            | 03#8             | L3 #349              |
+| 3         | QR is the smallest thing on its own card               | 03#12            | L3 #349              |
+| 4         | Two solid vermillion primaries in one viewport         | 03#7             | L2 #348, L3 #349     |
+| 5         | Destructive reset gated by a 16px checkbox             | —                | L3 #349              |
+| 6         | Four ~160px KPI tiles with ~60px sparklines            | 03#10, 03#11     | L4 #350              |
+| 7         | Trend direction carried by colour alone                | —                | L4 #350              |
+| 8         | 14-day chart with no values, no axis, no touch readout | —                | L4 #350              |
+| 9         | Four identical activity rows, each with its own button | —                | L6 #352              |
+| 11        | Nothing pinned                                         | 03#1             | L2 #348, L3 #349     |
+| 12        | One breakpoint (md); 320 and 768–1024 unconsidered     | 03#1, 03#11      | L2 #348 (900px rail) |
+
+Also closed in passing: 03#13 (the "Do next" component is removed with the
+dashboard it never shipped on), 03#14 (the billing notice is now a strip
+streamed from the layout on every tab, not inside the metrics stream), and
+03#15 (the empty and populated Counter share one rhythm; the metrics moved
+to Numbers with their own bands). 03#4 (nav labels) is superseded: the tab
+bar's labels are Counter · Activity · Numbers · More and the rail keeps the
+existing seven. 03#5 (pending dot) is unchanged in the rail and is not
+present in the tab bar.
+
 ## 1. App shell, sidebar and console navigation
 
 ### 1. Merchant shell content padding is one fixed rhythm from 320px to 1920px

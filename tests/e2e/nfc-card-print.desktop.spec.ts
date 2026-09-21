@@ -17,20 +17,27 @@ test.describe("CR80 NFC card printing", () => {
         throw new Error("NFC card print root was not rendered")
       }
 
+      // Synthesise the console shell the print sheet sits in: a fixed-height
+      // grid with a top bar, a padded scrolling body row and a bottom nav.
       const wrapper = document.createElement("div")
-      wrapper.style.display = "flex"
-      const sidebar = document.createElement("aside")
-      sidebar.dataset.slot = "sidebar"
-      sidebar.style.width = "320px"
-      sidebar.style.flex = "none"
-      const inset = document.createElement("main")
-      inset.dataset.slot = "sidebar-inset"
-      inset.style.padding = "180px 32px 0"
-      inset.style.width = "100%"
+      wrapper.dataset.consoleShell = "chromeless"
+      wrapper.style.display = "grid"
+      wrapper.style.height = "100vh"
+      wrapper.style.gridTemplateRows = "auto minmax(0,1fr) auto"
+      const topBar = document.createElement("header")
+      topBar.dataset.consoleTopBar = "true"
+      topBar.style.height = "52px"
+      const body = document.createElement("main")
+      body.dataset.consoleBody = "true"
+      body.style.padding = "180px 32px 0"
+      body.style.overflowY = "auto"
+      const nav = document.createElement("nav")
+      nav.dataset.consoleNav = "tabs"
+      nav.style.height = "56px"
 
       printRoot.before(wrapper)
-      wrapper.append(sidebar, inset)
-      inset.append(printRoot)
+      wrapper.append(topBar, body, nav)
+      body.append(printRoot)
     })
 
     await page.emulateMedia({ media: "print" })

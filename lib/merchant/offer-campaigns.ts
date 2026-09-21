@@ -107,6 +107,32 @@ export function resolveOfferClaimLink(campaign: {
   return hashOfferToken(derived) === claimTokenHash ? derived : null
 }
 
+/**
+ * The live campaign's name for a subtitle, or null when none is live. Unlike
+ * {@link getActiveOfferCampaign}, a query failure throws, so a caller can tell
+ * "no offer" from "could not read".
+ */
+export async function getLiveOfferCampaignName(
+  merchantId: string
+): Promise<string | null> {
+  const supabase = createSupabaseServiceRoleClient()
+  const { data, error } = await supabase
+    .from("offer_campaigns")
+    .select("name")
+    .eq("merchant_id", merchantId)
+    .eq("status", "live")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(`Unable to read the live offer: ${error.message}`)
+  }
+
+  if (!data) return null
+  return typeof data.name === "string" && data.name ? data.name : "Live offer"
+}
+
 export async function getActiveOfferCampaign(
   merchantId: string
 ): Promise<MerchantOfferCampaign | null> {

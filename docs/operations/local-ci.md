@@ -11,6 +11,23 @@ installing the GitHub App, installing the host service, qualifying the local
 plane against the hosted plane, recovering from an offline Mac, verifying log
 evidence, and auditing the security boundary.
 
+## Running the nine roots locally first
+
+`ops/local-ci/roots/run-roots.sh <branch> [root ...]` runs the hosted roots
+(`fast`, `coverage`, `quality`, `build`, `a11y`, `visual`, `e2e`,
+`lighthouse`, `zap`, `db`) on a clean worktree of the branch before a PR is
+opened or updated, so hosted minutes are spent only on what local proof
+cannot give. Browser roots run inside the CI-pinned Playwright image on the
+headless shell channel visual CI uses (regular Chromium for e2e and a11y);
+Lighthouse and ZAP build the branch on the host; `db` starts an isolated
+Supabase stack on the `557xx` port range with the Homebrew CLI. The
+workflow's synthetic env is extracted from `ci.yml` by
+`workflow-env.mjs`, never real secrets. This is advisory proof: hosted CI
+on the PR remains the merge authority. Known local differences: the host is
+arm64 while hosted runners are amd64, so a handful of image-heavy visual
+baselines (poster sheets) can differ by about 0.01 of pixels; the `coverage`
+root's worktree-guard and `jq` tests need a non-root host run.
+
 ## Status: what is and is not active today
 
 The current source implements **CI redesign Phase 1**, described in

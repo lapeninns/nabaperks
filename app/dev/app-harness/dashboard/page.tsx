@@ -1,53 +1,28 @@
-import Link from "next/link"
 import { notFound } from "next/navigation"
-import {
-  Activity03Icon,
-  CheckmarkBadge04Icon,
-  GiftIcon,
-  UserAdd01Icon,
-  UserMultiple02Icon,
-} from "@hugeicons/core-free-icons"
 
-import {
-  EmptyState,
-  KpiTile,
-  PageTitle,
-  ReceiptCard,
-  SectionHeader,
-} from "@/components/brand"
-import { TrendChart } from "@/components/data"
-import { ActivityCompactFeed } from "@/components/merchant/activity-compact-feed"
-import { MerchantDashboardHeaderActions } from "@/components/merchant/dashboard-header-actions"
-import { DashboardMembersEmptyState } from "@/components/merchant/dashboard-home-streams"
-import { DashboardQrCardView } from "@/components/merchant/dashboard-qr-card"
-import { DashboardVenueCodeCardView } from "@/components/merchant/dashboard-venue-code-card"
-import { MerchantNextActions } from "@/components/merchant/dashboard-next-actions"
+import { CounterPinnedAction } from "@/components/merchant/counter-pinned-action"
+import { PresentableQrCard } from "@/components/merchant/counter-qr-card"
 import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-panel"
-import { WetInkRise } from "@/components/motion"
-import { Button } from "@/components/ui/button"
+import {
+  CounterQrCardSkeleton,
+  TeamCodePanelSkeleton,
+} from "@/components/merchant/loading-skeletons"
+import { StreamErrorCard } from "@/components/merchant/stream-error-boundary"
+import { TeamCodePanelView } from "@/components/merchant/team-code-panel-view"
 import { buildLaunchReadiness } from "@/lib/merchant/launch-readiness"
 import { LAUNCH_MIN_ACTIVE_REWARDS } from "@/lib/merchant/launch-readiness-contract"
 
+import { HARNESS_MERCHANT, HARNESS_NOW_ISO } from "../fixtures"
 import {
-  HARNESS_ACTIVITY_ROWS,
-  HARNESS_KPIS,
-  HARNESS_MERCHANT,
-  HARNESS_NEXT_ACTIONS,
-  HARNESS_TREND_SERIES,
-} from "../fixtures"
-import { noopResetVenueCodeAction } from "./actions"
+  failingResetVenueCodeAction,
+  noopResetVenueCodeAction,
+  slowResetVenueCodeAction,
+} from "./actions"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-const KPI_ICON = {
-  Members: UserMultiple02Icon,
-  "New (7d)": UserAdd01Icon,
-  "Stamps (7d)": CheckmarkBadge04Icon,
-  "Rewards (7d)": GiftIcon,
-} as const
-
-/** Shared DB-free inputs for the dashboard's live, paused, and setup states. */
+/** Shared DB-free inputs for the Counter's live, paused, and setup states. */
 const HARNESS_ACTIVE_CARD = {
   id: "card_harness",
   card_name: "Mystery Visit Card",
@@ -66,26 +41,32 @@ const HARNESS_LOCATION = {
   geocoded_at: "2026-06-20T10:00:00.000Z",
 } as const
 
-function buildDashboardHarnessReadiness({
+/** Today's code rotates at 5am London; the fixture clock sits at 13:00. */
+const HARNESS_ROTATES_AT = "2026-09-22T04:00:00.000Z"
+
+function buildCounterHarnessReadiness({
   setupIncomplete,
   qrPaused,
   qrGated,
+  qrMissing,
 }: {
   readonly setupIncomplete: boolean
   readonly qrPaused: boolean
   readonly qrGated: boolean
+  readonly qrMissing: boolean
 }) {
   return buildLaunchReadiness({
     activeCard: HARNESS_ACTIVE_CARD,
     activeRewardPoolItemCount: setupIncomplete ? 1 : LAUNCH_MIN_ACTIVE_REWARDS,
-    qrCode: setupIncomplete
-      ? null
-      : {
-          id: "qr_harness",
-          qr_id: "old-crown-girton",
-          destination_type: "join",
-          is_active: !qrPaused,
-        },
+    qrCode:
+      setupIncomplete || qrMissing
+        ? null
+        : {
+            id: "qr_harness",
+            qr_id: "old-crown-girton",
+            destination_type: "join",
+            is_active: !qrPaused,
+          },
     location: HARNESS_LOCATION,
     billing: {
       requiresBilling: true,
@@ -94,19 +75,29 @@ function buildDashboardHarnessReadiness({
   })
 }
 
+type CounterHarnessParams = {
+  setup?: string
+  /** ready (default) · paused · gated · missing · error · loading */
+  qr?: string
+  /** hidden (default) · revealed · unavailable · loading */
+  code?: string
+  /** fail · slow */
+  reset?: string
+  /** Accepted for the existing visual route; the Counter has no metrics. */
+  members?: string
+}
+
 /**
- * Dashboard harness — mounts the REAL presentational primitives that
- * {@link MerchantDashboardStream} renders (KpiTile 2-up→4-up grid, TrendChart,
- * the "Do next" ReceiptCard, ProgressTrack, and ActivityCompactFeed) fed
- * DB-free fixtures. The async stream wrappers themselves fetch Supabase, so —
- * per the qa-harness spec — their presentational children are mounted directly.
- * The page header renders the same readiness-driven action component as
- * /app/page.tsx, so incomplete and operational states cannot drift.
+ * Counter harness — mounts the REAL Counter composition (`PresentableQrCard`,
+ * `TeamCodePanelView`, `CounterPinnedAction`) fed DB-free fixtures, one state
+ * per query, so every row of handoff §7.2 is screenshot- and axe-provable
+ * without a login. The async loaders themselves hit Supabase, so their
+ * presentational halves are mounted directly.
  */
-export default async function DashboardHarnessPage({
+export default async function CounterHarnessPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ setup?: string; members?: string; qr?: string }>
+  searchParams?: Promise<CounterHarnessParams>
 }) {
   if (process.env.NODE_ENV === "production") {
     notFound()
@@ -114,128 +105,76 @@ export default async function DashboardHarnessPage({
 
   const params = searchParams ? await searchParams : {}
   const showSetupReminder = params.setup === "incomplete"
-  const showEmptyMembers = params.members === "empty"
-  const qrPaused = params.qr === "paused"
-  const qrGated = params.qr === "gated"
-  const readiness = buildDashboardHarnessReadiness({
+  const qr = params.qr ?? "ready"
+  const code = params.code ?? "hidden"
+  const readiness = buildCounterHarnessReadiness({
     setupIncomplete: showSetupReminder,
-    qrPaused,
-    qrGated,
+    qrPaused: qr === "paused",
+    qrGated: qr === "gated",
+    qrMissing: qr === "missing",
   })
-
-  const { readyCount, quietCount, repeatCustomers, members } =
-    HARNESS_NEXT_ACTIONS
+  const resetAction =
+    params.reset === "fail"
+      ? failingResetVenueCodeAction
+      : params.reset === "slow"
+        ? slowResetVenueCodeAction
+        : noopResetVenueCodeAction
 
   return (
-    <div className="grid gap-6">
-      {/* Incomplete-setup reminder — the real compact readiness panel the
-          merchant layout shows while launch is unfinished. */}
+    <>
+      <h1 className="sr-only">Counter</h1>
       {showSetupReminder ? (
         <LaunchReadinessPanel
           readiness={readiness}
           variant="compact"
           showHeader={false}
+          className="mb-5"
         />
       ) : null}
-      <PageTitle
-        eyebrow="Your venue"
-        title={HARNESS_MERCHANT.business_name}
-        description="A quick read on how your loyalty card is doing: members, repeat visits, and rewards."
-        actions={<MerchantDashboardHeaderActions readiness={readiness} />}
-      />
 
-      <DashboardQrCardView
-        qrCodeId="qr_harness"
-        venueName={HARNESS_MERCHANT.business_name}
-        shareUrl="https://nabaperks.com/q/old-crown-girton"
-        isActive={readiness.tabs.qr}
-        scansAvailable={readiness.launchReady}
-        actionHref={qrGated ? "/app/launch?tab=billing" : "/app/qr"}
-        actionLabel={qrGated ? "Finish launch setup" : "Review QR setup"}
-      />
-
-      <DashboardVenueCodeCardView
-        code="482913"
-        resetAction={noopResetVenueCodeAction}
-      />
-
-      {showEmptyMembers ? (
-        <DashboardMembersEmptyState />
-      ) : (
-        <section className="grid gap-3">
-          <SectionHeader
-            eyebrow="Last 14 days"
-            title="How the week is going"
-            description="Deltas compare this week with the seven days before; the lines trace the last fortnight."
+      <div className="mx-auto grid w-full max-w-[35rem] gap-5 min-[600px]:max-w-none min-[600px]:grid-cols-2 min-[600px]:items-start min-[900px]:max-w-[51.25rem]">
+        {qr === "loading" ? (
+          <CounterQrCardSkeleton />
+        ) : qr === "error" ? (
+          <StreamErrorCard label="your venue QR" onRetry={noopRetry} />
+        ) : (
+          <PresentableQrCard
+            state={
+              qr === "paused"
+                ? "paused"
+                : qr === "gated" || showSetupReminder
+                  ? "gated"
+                  : qr === "missing"
+                    ? "missing"
+                    : "ready"
+            }
+            qrCodeId="qr_harness"
+            venueName={HARNESS_MERCHANT.business_name}
+            shareUrl="https://nabaperks.com/q/old-crown-girton"
+            gatedAction={readiness.nextStep}
           />
+        )}
 
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {HARNESS_KPIS.map((kpi, index) => (
-              <WetInkRise
-                key={kpi.label}
-                className="min-w-0"
-                delay={index * 0.045}
-                distance={12}
-              >
-                <KpiTile
-                  label={kpi.label}
-                  value={kpi.value.toLocaleString("en-GB")}
-                  icon={KPI_ICON[kpi.label]}
-                  series={[...kpi.series]}
-                  seriesColor={kpi.seriesColor}
-                  trend={kpi.trend}
-                />
-              </WetInkRise>
-            ))}
-          </div>
+        {code === "loading" ? (
+          <TeamCodePanelSkeleton />
+        ) : (
+          <TeamCodePanelView
+            code={code === "unavailable" ? null : "482913"}
+            rotatesAt={HARNESS_ROTATES_AT}
+            nowIso={HARNESS_NOW_ISO}
+            initialRevealed={code === "revealed"}
+            rotationAvailable={code !== "unavailable"}
+            resetAction={resetAction}
+          />
+        )}
+      </div>
 
-          <ReceiptCard className="grid gap-3" padding="md">
-            <p className="eyebrow">Stamps vs joins</p>
-            <TrendChart
-              startLabel="2 weeks ago"
-              endLabel="Today"
-              aria-label="Daily stamps issued and new members over the last 14 days"
-              series={HARNESS_TREND_SERIES.map((s) => ({
-                ...s,
-                data: [...s.data],
-              }))}
-            />
-          </ReceiptCard>
-        </section>
-      )}
-
-      {showEmptyMembers ? null : (
-        <MerchantNextActions
-          readyCount={readyCount}
-          quietCount={quietCount}
-          repeatCustomers={repeatCustomers}
-          members={members}
-        />
-      )}
-
-      <ReceiptCard className="grid gap-4">
-        <SectionHeader
-          title="Recent activity"
-          actions={
-            <Button asChild variant="secondary" size="sm">
-              <Link href="/app/activity">View all</Link>
-            </Button>
-          }
-        />
-        <ActivityCompactFeed
-          inset
-          rows={showEmptyMembers ? [] : HARNESS_ACTIVITY_ROWS.slice(0, 4)}
-          emptyState={
-            <EmptyState
-              title="No activity yet"
-              description="Activity will appear after members join, add stamps, redeem rewards, or download QR assets."
-              icon={Activity03Icon}
-              className="bg-background"
-              headingLevel={3}
-            />
-          }
-        />
-      </ReceiptCard>
-    </div>
+      <CounterPinnedAction readiness={readiness} />
+    </>
   )
+}
+
+// A no-op for the mounted fallback: the harness has nothing to refetch.
+async function noopRetry() {
+  "use server"
 }

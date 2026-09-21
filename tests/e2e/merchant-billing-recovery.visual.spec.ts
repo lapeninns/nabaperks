@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test"
 
 import { dismissPwaInstall, HARNESS_ROUTES } from "./helpers/harness"
+import { expandConsoleShellForFullPage } from "./helpers/console-harness"
 
 test("annual billing receipt @visual", async ({ page }) => {
   await dismissPwaInstall(page)
@@ -29,6 +30,7 @@ test("annual billing receipt @visual", async ({ page }) => {
     page.getByText("Paid upfront after the pilot", { exact: true })
   ).toBeVisible()
   await expect(page.getByText("Free trial", { exact: true })).toHaveCount(0)
+  await expandConsoleShellForFullPage(page)
   await expect(page).toHaveScreenshot("annual-billing-receipt.png", {
     fullPage: true,
     maxDiffPixelRatio: 0.04,

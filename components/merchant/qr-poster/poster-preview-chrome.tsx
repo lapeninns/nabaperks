@@ -9,7 +9,6 @@ import {
 
 import { Icon } from "@/components/brand"
 import { Button } from "@/components/ui/button"
-import { SidebarTrigger } from "@/components/ui/sidebar"
 import type { QrPosterTemplateId } from "@/lib/qr/poster-templates"
 import { cn } from "@/lib/utils"
 import {
@@ -25,7 +24,6 @@ type PosterChromeProps = {
   readonly merchantName: string
   readonly qrCodeId?: string
   readonly backHref?: string
-  readonly showSidebarTrigger?: boolean
 }
 
 type PosterPreviewChromeProps = PosterChromeProps & {
@@ -39,7 +37,6 @@ export function PosterPreviewChrome({
   merchantName,
   qrCodeId,
   backHref = "/app/qr",
-  showSidebarTrigger = true,
   ref,
 }: PosterPreviewChromeProps) {
   const [guidanceOpen, setGuidanceOpen] = useState(false)
@@ -63,13 +60,6 @@ export function PosterPreviewChrome({
       className="qr-poster-chrome sticky top-0 z-20 border-b-2 border-ink bg-paper/95 backdrop-blur-sm"
     >
       <div className="mx-auto flex w-full max-w-[var(--poster-frame-max)] items-center gap-3 px-4 py-2.5 sm:px-6 sm:py-3 lg:max-w-none">
-        {showSidebarTrigger ? (
-          <SidebarTrigger
-            className="size-11 shrink-0 md:hidden"
-            aria-label="Open menu"
-          />
-        ) : null}
-
         <Button
           asChild
           variant="outline"

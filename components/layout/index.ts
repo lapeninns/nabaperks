@@ -4,6 +4,8 @@ export { CustomerShell } from "./customer-shell"
 export { CustomerTabBar } from "./customer-tab-bar"
 export { MarketingLayout } from "./marketing-layout"
 export { MerchantAppShell } from "./merchant-app-shell"
+export { MerchantTabBar } from "./merchant-tab-bar"
+export { ConsolePinnedAction } from "./console-pinned-action"
 export {
   adminNavItems,
   merchantAccountItems,

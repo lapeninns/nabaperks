@@ -28,7 +28,7 @@ const panelLive = readFileSync(
   "utf8"
 )
 const dashboardCard = readFileSync(
-  "components/merchant/dashboard-qr-card.tsx",
+  "components/merchant/counter-qr-card.tsx",
   "utf8"
 )
 
@@ -72,6 +72,6 @@ test("inline QR previews stay untracked", () => {
   assert.doesNotMatch(
     dashboardCard,
     /qr_downloaded/,
-    "the dashboard inline preview must not record download events"
+    "the counter inline preview must not record download events"
   )
 })

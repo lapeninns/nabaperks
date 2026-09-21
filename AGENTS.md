@@ -154,8 +154,13 @@ Respect the ESLint file-length and complexity budgets, and link TODO/FIXME
 markers to an issue, such as `TODO(#123)`. Reuse existing utilities before
 adding dependencies; update the pnpm lockfile when dependencies change.
 
-Keep the Wet Ink system in `DESIGN.md`, `app/globals.css` and shared brand/UI
-components aligned. Use plain British English for guest copy, with no emoji
+Merchant console client components report interactions only through the
+`app/app/console-events.ts` server action; register each event in
+`lib/analytics/events.ts` and `lib/analytics/console-contract.ts`. The DB-free
+`app/dev/app-harness/*` lanes mount the real console screens from pure model
+builders with literal fixtures; add a lane state there for every new screen
+state. Keep the Wet Ink system in `DESIGN.md`, `app/globals.css` and shared
+brand/UI components aligned. Use plain British English for guest copy, with no emoji
 or exclamation marks. Preserve verified venue facts and configured rewards;
 never invent benefits, delivery promises or customer activity. Keep generated
 build/test output, local env files and scratch evidence ignored; use
@@ -248,3 +253,13 @@ The autonomy, instruction-conflict and verification guidance was informed by
 and [Factory's AGENTS.md guide](https://docs.factory.ai/harness/agents-md),
 reviewed on 12 September 2026. The operating rules apply across supported agents;
 this file does not select a model or change runtime configuration.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

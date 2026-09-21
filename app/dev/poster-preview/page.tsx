@@ -69,13 +69,7 @@ export default async function PosterPreviewPage({
       notFound()
     }
 
-    return (
-      <A4Poster
-        template={template.id}
-        showSidebarTrigger={false}
-        {...posterProps}
-      />
-    )
+    return <A4Poster template={template.id} {...posterProps} />
   }
 
   return (
@@ -88,11 +82,7 @@ export default async function PosterPreviewPage({
           <p className="text-center font-mono text-xs font-bold tracking-[0.16em] text-[var(--w-ink-soft)] uppercase">
             {getQrPosterTemplate(template)?.name ?? template} template
           </p>
-          <A4Poster
-            template={template}
-            showSidebarTrigger={false}
-            {...posterProps}
-          />
+          <A4Poster template={template} {...posterProps} />
         </section>
       ))}
     </div>

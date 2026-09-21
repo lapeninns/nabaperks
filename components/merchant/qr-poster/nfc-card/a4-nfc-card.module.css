@@ -111,19 +111,26 @@
     display: none !important;
   }
 
-  :global(body):has(.page) :global([data-slot="sidebar"]),
-  :global(body):has(.page) :global([data-slot="sidebar-gap"]),
-  :global(body):has(.page) :global([data-slot="sidebar-container"]),
-  :global(body):has(.page) :global([data-slot="sidebar-inset"] > header) {
+  /* The console shell is a fixed-height grid with one scrolling row; for
+     print it collapses to a plain block so the fixed .page owns the sheet. */
+  :global(body):has(.page) :global([data-console-nav]),
+  :global(body):has(.page) :global([data-console-top-bar]) {
     display: none !important;
   }
 
-  :global(body):has(.page) :global([data-slot="sidebar-inset"]) {
+  :global(body):has(.page) :global([data-console-shell]) {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  :global(body):has(.page) :global([data-console-body]) {
+    overflow: visible !important;
     padding: 0 !important;
     margin: 0 !important;
   }
 
-  :global(body):has(.page) :global([data-slot="sidebar-inset"] > div) {
+  :global(body):has(.page) :global([data-console-body] > div) {
     padding: 0 !important;
     margin: 0 !important;
     max-width: none !important;

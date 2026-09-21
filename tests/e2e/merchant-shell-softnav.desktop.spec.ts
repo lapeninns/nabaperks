@@ -20,12 +20,13 @@ const SEED_MERCHANT_PASSWORD = "NabaperksDemo1!"
 const SEED_MERCHANT_SLUG = "old-crown-girton"
 const LOCAL_DB_HOSTS = new Set(["127.0.0.1", "localhost"])
 
+// The full shell renders the console rail at desktop widths; the setup shell
+// renders the "Account profile" icon link instead and no rail.
 const fullShellControl = (page: Page) =>
-  page.getByRole("button", { name: "Toggle navigation" }).first()
+  page.locator('nav[aria-label="Console"][data-console-nav="rail"]')
 const setupAccountLink = (page: Page) =>
   page.getByRole("link", { name: "Account profile" })
-const sidebarNav = (page: Page) =>
-  page.getByRole("navigation", { name: "Merchant navigation" })
+const sidebarNav = (page: Page) => fullShellControl(page)
 
 async function signIn(
   page: Page,
@@ -117,6 +118,8 @@ function localLoopbackIp(nonce: string): string {
 }
 
 test.describe("merchant shell variant survives client-side navigation", () => {
+  test.use({ viewport: { width: 1280, height: 800 } })
+
   test.beforeEach(async ({ page }) => {
     test.skip(
       process.env.ADMIN_LIVE_DB_E2E !== "1" || !localDbUrl(),
@@ -125,7 +128,7 @@ test.describe("merchant shell variant survives client-side navigation", () => {
     await dismissPwaInstall(page)
   })
 
-  test("full -> launch: sidebar stays when navigating to /app/launch", async ({
+  test("full -> launch: rail stays when navigating to /app/launch", async ({
     page,
   }) => {
     await signIn(page, "/app", "a101")
@@ -133,7 +136,7 @@ test.describe("merchant shell variant survives client-side navigation", () => {
     await expect(fullShellControl(page)).toBeVisible()
     await expect(setupAccountLink(page)).toHaveCount(0)
 
-    // Soft navigation via the in-app sidebar "Setup" link (no full reload).
+    // Soft navigation via the in-app rail "Setup" link (no full reload).
     await sidebarNav(page).getByRole("link", { name: "Setup" }).click()
     await page.waitForURL((url) => url.pathname === "/app/launch")
 
@@ -141,7 +144,7 @@ test.describe("merchant shell variant survives client-side navigation", () => {
     await expect(setupAccountLink(page)).toHaveCount(0)
   })
 
-  test("launch -> full: sidebar stays when navigating back to /app", async ({
+  test("launch -> full: rail stays when navigating back to /app", async ({
     page,
   }) => {
     await signIn(page, "/app/launch", "b202")

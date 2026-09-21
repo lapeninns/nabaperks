@@ -27,7 +27,7 @@ export function buildMetricWeekTrend(pair: WeekCountPair): MetricWeekTrend {
     ...pair,
     delta,
     direction,
-    label: formatMetricTrendLabel(delta, direction),
+    label: formatMetricTrendLabel(delta, direction, pair),
   }
 }
 
@@ -42,16 +42,39 @@ export function buildMerchantDashboardTrends(
   }
 }
 
+/**
+ * Direction in words, never a sign alone: "25 more than last week", "8 fewer
+ * than last week", "same as last week". Two silent weeks say so ("no
+ * activity either week") rather than claiming sameness. Colour is redundant
+ * on top of this (metricTrendClassName); the row must read in greyscale.
+ */
 export function formatMetricTrendLabel(
   delta: number,
-  direction: MetricTrendDirection
+  direction: MetricTrendDirection,
+  pair?: WeekCountPair
 ): string {
   if (direction === "flat") {
-    return "Same as last week"
+    return pair && pair.current === 0 && pair.previous === 0
+      ? "no activity either week"
+      : "same as last week"
   }
 
-  const sign = delta > 0 ? "+" : "−"
-  return `${sign}${Math.abs(delta)} vs last week`
+  const magnitude = Math.abs(delta)
+  return delta > 0
+    ? `${magnitude} more than last week`
+    : `${magnitude} fewer than last week`
+}
+
+/** The glyph that pairs with the words: ▲ ▼ = (aria-hidden at the call site). */
+export function metricTrendGlyph(direction: MetricTrendDirection): string {
+  switch (direction) {
+    case "up":
+      return "▲"
+    case "down":
+      return "▼"
+    case "flat":
+      return "="
+  }
 }
 
 export function metricTrendClassName(direction: MetricTrendDirection): string {

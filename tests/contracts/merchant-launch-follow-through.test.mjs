@@ -7,9 +7,7 @@ const read = (path) => (existsSync(path) ? readFileSync(path, "utf8") : "")
 const dashboard = read("app/app/page.tsx")
 const dashboardHarness = read("app/dev/app-harness/dashboard/page.tsx")
 const launchHarness = read("app/dev/app-harness/launch/page.tsx")
-const dashboardActions = read(
-  "components/merchant/dashboard-header-actions.tsx"
-)
+const counterAction = read("components/merchant/counter-pinned-action.tsx")
 const readinessPanel = read("components/merchant/launch-readiness-panel.tsx")
 const qrPanel = read("components/merchant/launch/qr-panel-live.tsx")
 const qrWorkspace = read("components/merchant/launch/qr-redesign-concept.tsx")
@@ -24,12 +22,16 @@ const billingActivation = read(
 )
 const billingPanel = read("components/merchant/account/billing-panel-view.tsx")
 
-test("dashboard production and harness share one readiness-driven header action", () => {
-  assert.match(dashboard, /MerchantDashboardHeaderActions/)
-  assert.match(dashboardHarness, /MerchantDashboardHeaderActions/)
-  assert.match(dashboardActions, /isVenueOperational\(readiness\)/)
-  assert.match(dashboardActions, /Finish setup/)
-  assert.match(dashboardActions, /Scan code/)
+test("counter production and harness share one readiness-driven pinned action", () => {
+  assert.match(dashboard, /<CounterPinnedAction readiness=\{readiness\} \/>/)
+  assert.match(
+    dashboardHarness,
+    /<CounterPinnedAction readiness=\{readiness\} \/>/
+  )
+  assert.match(counterAction, /isVenueOperational\(readiness\)/)
+  assert.match(counterAction, /Finish setup/)
+  assert.match(counterAction, /Scan a customer code/)
+  assert.match(counterAction, /ConsolePinnedAction/)
   assert.match(dashboardHarness, /requiresBilling:\s*true/)
 })
 

@@ -59,7 +59,7 @@ export async function getEnrichedMerchantActivity(
   // also carry PII we must not expose to a search predicate. `q` therefore
   // stays a client-side refinement over the loaded window (the feed filters on
   // its richer searchText index).
-  const { data, error } = await supabase
+  let query = supabase
     .from("product_events")
     .select(
       `
@@ -80,6 +80,12 @@ export async function getEnrichedMerchantActivity(
     .in("event_name", eventsForCategory(filter))
     .order("created_at", { ascending: false })
     .limit(limit + 1)
+
+  if (options.since) {
+    query = query.gte("created_at", options.since)
+  }
+
+  const { data, error } = await query
 
   if (error) {
     throw new Error(`Unable to load activity: ${error.message}`)

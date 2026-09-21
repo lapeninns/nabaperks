@@ -3,6 +3,7 @@ export {
   type ActivityFeedItem,
   type ActivityFeedTone,
 } from "./activity-feed"
+export { ColumnChart, type ColumnChartProps } from "./column-chart"
 export { DataTable, type DataTableColumn } from "./data-table"
 export { FunnelChart, type FunnelChartItem } from "./funnel-chart"
 export { Sparkline, type SparklineProps } from "./sparkline"

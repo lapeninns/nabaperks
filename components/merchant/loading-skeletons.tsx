@@ -29,53 +29,249 @@ export function MerchantPageTitleSkeleton() {
   )
 }
 
-// ─── Dashboard QR quick-access ─────────────────────────────────────────────────
+// ─── Counter ───────────────────────────────────────────────────────────────────
 
-/** Mirrors {@link DashboardQrCardView}: the tappable QR ticket (frame +
- *  mono caption) beside the status row, venue title, and action row. */
-export function DashboardVenueCodeCardSkeleton() {
+/**
+ * Mirrors {@link PresentableQrCard} in its ready state at the exact final
+ * height: the bordered card holding a `min(62vw, 236px)` QR (58vw/264px from
+ * 430px) plus the mono hint, then the note and the two text links. A shifting
+ * QR card at the till is worse than a slow one, so every line reserves its
+ * real height.
+ */
+export function CounterQrCardSkeleton() {
   return (
-    <ReceiptCard edge className="grid gap-4">
-      <div className="grid gap-2">
-        <div className="flex items-center gap-2.5">
-          <Skeleton className="h-3 w-24" />
-          <Skeleton className="h-5 w-36 rounded-full" />
+    <div
+      role="status"
+      aria-label="Loading your venue QR"
+      className="grid gap-4"
+    >
+      <div className="grid w-full justify-items-center gap-3 rounded-lg border-2 border-ink bg-card p-4 shadow-xs">
+        <div className="rounded-md bg-white p-2">
+          <Skeleton className="aspect-square h-auto w-[min(62vw,14.75rem)] rounded-md min-[430px]:w-[min(58vw,16.5rem)]" />
         </div>
-        <Skeleton className="h-6 w-40" />
-        <Skeleton className="h-4 w-full max-w-md" />
+        <Skeleton className="h-[0.9375rem] w-28" />
       </div>
-      <Skeleton className="h-10 w-48" />
-      <Skeleton className="h-9 w-28" />
+      <div className="grid justify-items-center gap-2">
+        <Skeleton className="h-6 w-64 max-w-full" />
+        <div className="flex min-h-11 items-center gap-5">
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-4 w-24" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Mirrors {@link TeamCodePanelView}: eyebrow, the disclosure with the
+ *  30px code line and hint, the rotation line, the sentence, the reset link. */
+export function TeamCodePanelSkeleton() {
+  return (
+    <ReceiptCard
+      edge
+      className="grid gap-3"
+      role="status"
+      aria-label="Loading today's team code"
+    >
+      <Skeleton className="h-[0.9375rem] w-20" />
+      <div className="grid gap-1 rounded-lg border-2 border-ink bg-paper-deep/50 px-4 py-3 shadow-xs">
+        <Skeleton className="h-[1.875rem] w-44 max-w-full" />
+        <Skeleton className="h-[0.9375rem] w-24" />
+      </div>
+      <Skeleton className="h-[0.9375rem] w-40" />
+      <Skeleton className="h-4 w-full" />
+      <Skeleton className="h-4 w-4/5" />
+      <div className="flex min-h-11 items-center">
+        <Skeleton className="h-4 w-28" />
+      </div>
     </ReceiptCard>
   )
 }
 
-export function DashboardQrCardSkeleton() {
+// ─── Numbers ───────────────────────────────────────────────────────────────────
+
+/** Mirrors {@link ColumnChart}: caption row, the 112px column area, day labels. */
+export function ColumnChartSkeleton() {
   return (
-    <ReceiptCard
-      edge
-      className="grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start sm:gap-6"
+    <div className="grid gap-2">
+      <div className="flex items-baseline justify-between">
+        <Skeleton className="h-[0.9375rem] w-16" />
+        <Skeleton className="h-[0.8125rem] w-12" />
+      </div>
+      <div className="grid h-28 auto-cols-fr grid-flow-col items-end gap-0.5 border-b-2 border-ink pb-px min-[430px]:gap-1">
+        {[40, 55, 35, 70, 50, 45, 80, 60, 30, 65, 50, 75, 45, 55].map(
+          (height, index) => (
+            <Skeleton
+              key={index}
+              className="w-full rounded-t-sm rounded-b-none"
+              style={{ height: `${height}%` }}
+            />
+          )
+        )}
+      </div>
+      <Skeleton className="h-[0.8125rem] w-full" />
+    </div>
+  )
+}
+
+/**
+ * Mirrors {@link NumbersOverview} at final height: headline, range row, the
+ * two chart blocks, the readout, and three delta rows.
+ */
+export function NumbersOverviewSkeleton() {
+  return (
+    <div
+      role="status"
+      aria-label="Loading your numbers"
+      className="mx-auto grid w-full max-w-[35rem] gap-5 min-[900px]:max-w-[51.25rem]"
     >
-      <div className="mx-auto grid w-fit justify-items-center gap-2 sm:mx-0">
-        <Skeleton className="aspect-square size-[9.25rem] rounded-lg" />
-        <Skeleton className="h-3 w-32" />
+      <div className="grid gap-1">
+        <Skeleton className="h-[0.9375rem] w-20" />
+        <Skeleton className="h-9 w-24" />
+        <Skeleton className="h-4 w-48" />
+      </div>
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-[0.9375rem] w-14" />
+        <Skeleton className="h-11 w-36" />
+      </div>
+      <ReceiptCard className="grid gap-5 min-[600px]:grid-cols-2 min-[600px]:gap-6">
+        <ColumnChartSkeleton />
+        <ColumnChartSkeleton />
+      </ReceiptCard>
+      <div className="flex items-center justify-between gap-3 rounded-lg border-2 border-ink bg-card px-3 py-2 shadow-xs">
+        <Skeleton className="size-11" />
+        <div className="grid justify-items-center gap-1">
+          <Skeleton className="h-[0.9375rem] w-40" />
+          <Skeleton className="h-4 w-28" />
+        </div>
+        <Skeleton className="size-11" />
+      </div>
+      <ReceiptCard edge className="grid gap-0">
+        <div className="flex items-baseline justify-between pb-2">
+          <Skeleton className="h-[0.9375rem] w-20" />
+          <Skeleton className="h-[0.8125rem] w-28" />
+        </div>
+        <div className="grid divide-y-2 divide-dashed divide-line">
+          {[0, 1, 2].map((row) => (
+            <div
+              key={row}
+              className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 py-2.5"
+            >
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-[1.125rem] w-10" />
+              <Skeleton className="col-span-2 mt-1 h-[0.8125rem] w-40" />
+            </div>
+          ))}
+        </div>
+        <div className="flex min-h-11 items-center pt-3">
+          <Skeleton className="h-4 w-44" />
+        </div>
+      </ReceiptCard>
+      <Skeleton className="h-[0.8125rem] w-56" />
+    </div>
+  )
+}
+
+/**
+ * Mirrors {@link NumbersDetail}: back row, headline, one chart block, the
+ * readout, the comparison card, best / quietest, and five recent rows.
+ */
+export function NumbersDetailSkeleton() {
+  return (
+    <div
+      role="status"
+      aria-label="Loading this metric"
+      className="mx-auto grid w-full max-w-[35rem] gap-5 min-[900px]:max-w-[51.25rem]"
+    >
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-4 w-20" />
+        <Skeleton className="h-11 w-36" />
+      </div>
+      <div className="grid gap-1">
+        <Skeleton className="h-[0.9375rem] w-20" />
+        <Skeleton className="h-9 w-20" />
+        <Skeleton className="h-4 w-44" />
+      </div>
+      <ReceiptCard className="grid gap-4">
+        <ColumnChartSkeleton />
+        <div className="flex items-center justify-between gap-3 rounded-lg border-2 border-ink bg-card px-3 py-2 shadow-xs">
+          <Skeleton className="size-11" />
+          <div className="grid justify-items-center gap-1">
+            <Skeleton className="h-[0.9375rem] w-40" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+          <Skeleton className="size-11" />
+        </div>
+      </ReceiptCard>
+      <ReceiptCard edge className="grid gap-2">
+        <Skeleton className="h-[0.9375rem] w-32" />
+        <Skeleton className="h-5 w-48" />
+        <Skeleton className="h-[0.8125rem] w-40" />
+      </ReceiptCard>
+      <div className="grid grid-cols-2 gap-3">
+        {[0, 1].map((cell) => (
+          <div
+            key={cell}
+            className="grid gap-1 rounded-lg border-2 border-ink bg-card p-3 shadow-xs"
+          >
+            <Skeleton className="h-[0.8125rem] w-16" />
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-[1.125rem] w-20" />
+          </div>
+        ))}
       </div>
       <div className="grid gap-3">
-        <div className="grid gap-2">
-          <div className="flex items-center gap-2.5">
-            <Skeleton className="h-3 w-24" />
-            <Skeleton className="h-5 w-14 rounded-full" />
-          </div>
-          <Skeleton className="h-6 w-52 max-w-full" />
+        <div className="flex items-baseline justify-between">
+          <Skeleton className="h-[0.9375rem] w-40" />
+          <Skeleton className="h-4 w-24" />
         </div>
-        <Skeleton className="h-4 w-full max-w-md" />
-        <div className="flex flex-wrap gap-2">
-          <Skeleton className="h-11 w-40" />
-          <Skeleton className="h-11 w-28" />
-          <Skeleton className="h-9 w-32" />
+        <div className="surface-card divide-y-2 divide-dashed divide-line p-0">
+          {[0, 1, 2, 3, 4].map((row) => (
+            <div key={row} className="grid gap-2 p-4">
+              <Skeleton className="h-5 w-24 rounded-full" />
+              <Skeleton className="h-4 w-56 max-w-full" />
+            </div>
+          ))}
         </div>
       </div>
-    </ReceiptCard>
+    </div>
+  )
+}
+
+// ─── More ──────────────────────────────────────────────────────────────────────
+
+/** Mirrors {@link MoreList} on the launch-ready path: title row, five 58px
+ *  rows (Setup is the sixth only while launch is incomplete), the rule,
+ *  log out. */
+export function MoreListSkeleton() {
+  return (
+    <div
+      role="status"
+      aria-label="Loading more"
+      className="mx-auto grid w-full max-w-[35rem] gap-5"
+    >
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-6 w-16" />
+        <Skeleton className="size-9 rounded-full" />
+      </div>
+      <div className="surface-card divide-y-2 divide-dashed divide-line overflow-hidden p-0">
+        {[0, 1, 2, 3, 4, 5].map((row) => (
+          <div
+            key={row}
+            className="flex min-h-[3.625rem] items-center gap-3 px-4 py-2"
+          >
+            <div className="grid flex-1 gap-1">
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-3.5 w-36" />
+            </div>
+            <Skeleton className="h-3 w-2" />
+          </div>
+        ))}
+      </div>
+      <div className="border-t-2 border-dashed border-line-strong" />
+      <div className="surface-card p-3">
+        <Skeleton className="h-12 w-full" />
+      </div>
+    </div>
   )
 }
 

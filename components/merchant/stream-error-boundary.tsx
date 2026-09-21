@@ -42,7 +42,9 @@ export class StreamErrorBoundary extends Component<
   }
 }
 
-function StreamErrorCard({
+/** The boundary's fallback. Exported so the DB-free harness can mount the
+ *  real "could not load" state without throwing inside a server render. */
+export function StreamErrorCard({
   label,
   onRetry,
 }: {

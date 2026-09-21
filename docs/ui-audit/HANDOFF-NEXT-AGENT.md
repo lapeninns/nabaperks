@@ -1,5 +1,12 @@
 # Handoff for the next agent
 
+> **Counter console rebuild (September 2026):** if you are here for the
+> merchant `/app` shell, Counter, Numbers, Activity or More, start at
+> `docs/ui-audit/STATUS-m-console.md` and the spec in
+> `docs/ui-audit/counter-console-rebuild/`. Those lanes live on stacked
+> `codex/console-l<N>-*` branches (PRs #347–#354), not on the audit branch
+> below.
+
 HEAD `a2a105be`, 346 commits ahead of `origin/main`, worktree clean, everything
 pushed. PR #215 is open and `MERGEABLE`.
 

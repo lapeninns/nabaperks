@@ -12,6 +12,9 @@ const VENUE_CODE_RESET_WINDOW_MS = 15 * 60 * 1000
 export type VenueCodeResetActionState = {
   errors?: { form?: string }
   reset?: boolean
+  /** The new code, so the panel reveals it without waiting for a refresh. */
+  code?: string
+  rotatesAt?: string
 }
 
 /**
@@ -28,10 +31,11 @@ export async function resetVenueCodeAction(
     return { errors: { form: "Sign in to your venue account first." } }
   }
 
+  // The confirmation sheet posts this; a bare POST without it is refused.
   if (formData.get("confirmReset") !== "true") {
     return {
       errors: {
-        form: "Tick the box to confirm you'll tell the team the new code.",
+        form: "Confirm the reset from the team code panel to change the code.",
       },
     }
   }
@@ -59,5 +63,5 @@ export async function resetVenueCodeAction(
   }
 
   revalidatePath("/app")
-  return { reset: true }
+  return { reset: true, code: rotated.code, rotatesAt: rotated.rotatesAt }
 }
