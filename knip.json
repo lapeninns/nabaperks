@@ -4,6 +4,7 @@
     "components/ui/**/*.{ts,tsx}",
     "components/merchant/launch/launch-billing-cta.tsx",
     "scripts/**/*.mjs",
+    "ops/local-ci/roots/*.mjs",
     "tests/**/*.{mjs,ts,tsx}",
     "app/**/{page,layout,route,error,loading,not-found,template,default}.{ts,tsx}"
   ],
