@@ -84,6 +84,9 @@ export async function createRewardCollectionFixture(
         now()
       )`
 
+    // The activated reward logic opens the next cycle when a card completes:
+    // the issued reward belongs to cycle 1 while the membership already sits
+    // on cycle 2 with no stamps, so collection leaves the count at 0.
     await sql`
       insert into public.customer_memberships (
         id,
@@ -97,9 +100,9 @@ export async function createRewardCollectionFixture(
         ${fixture.membershipId}::uuid,
         ${setup.merchant_id}::uuid,
         ${fixture.customerId}::uuid,
+        0,
         ${setup.stamps_required},
-        ${setup.stamps_required},
-        1
+        2
       )`
 
     await sql`
@@ -110,6 +113,7 @@ export async function createRewardCollectionFixture(
         membership_id,
         loyalty_card_id,
         status,
+        cycle_number,
         reward_name,
         reward_terms,
         redeemable_from,
@@ -124,6 +128,7 @@ export async function createRewardCollectionFixture(
         ${fixture.membershipId}::uuid,
         ${setup.loyalty_card_id}::uuid,
         'unlocked',
+        1,
         ${fixture.rewardName},
         'Browser collection fixture',
         public.uk_business_date(now()),
