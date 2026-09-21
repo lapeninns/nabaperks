@@ -18,6 +18,7 @@ export const HARNESS_ROUTES = {
   invite: "/dev/app-harness/invite",
   activity: "/dev/app-harness/activity",
   numbers: "/dev/app-harness/numbers",
+  more: "/dev/app-harness/more",
   account: "/dev/app-harness/account",
   qr: "/dev/app-harness/qr",
   scan: "/dev/app-harness/scan",

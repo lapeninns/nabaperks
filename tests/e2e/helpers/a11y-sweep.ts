@@ -40,6 +40,8 @@ const HARNESS_LANES = [
   `${HARNESS_ROUTES.numbers}?state=early`,
   `${HARNESS_ROUTES.numbers}/stamps`,
   `${HARNESS_ROUTES.numbers}/qr`,
+  HARNESS_ROUTES.more,
+  `${HARNESS_ROUTES.more}?state=setup-incomplete`,
   HARNESS_ROUTES.account,
   HARNESS_ROUTES.qr,
   HARNESS_ROUTES.scan,

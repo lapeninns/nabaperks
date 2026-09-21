@@ -77,9 +77,7 @@ const OFFER_SURFACE_FILES = [
 describe("contract-offer-campaign-ui source contract", () => {
   it("adds sidebar and home entry points for the offers route", () => {
     const nav = readProjectFile("components/layout/console-nav.ts")
-    const homeActions = readProjectFile(
-      "components/merchant/dashboard-header-actions.tsx"
-    )
+    const homeActions = readProjectFile("lib/merchant/more-model.ts")
     const navBlock = blockBetween(
       nav,
       "export const merchantNavItems = [",
@@ -89,16 +87,14 @@ describe("contract-offer-campaign-ui source contract", () => {
     assert.match(nav, /DiscountTag01Icon/)
     assert.match(navBlock, /href: "\/app\/offers"/)
     assert.match(navBlock, /label: "Offers"/)
-    assert.match(homeActions, /href="\/app\/offers"/)
+    assert.match(homeActions, /href: "\/app\/offers"/)
   })
 
   it("offers every merchant the section, with no rollout switch left to read", () => {
     const nav = readProjectFile("components/layout/console-nav.ts")
     const shell = readProjectFile("components/layout/merchant-app-shell.tsx")
     const tabBar = readProjectFile("components/layout/merchant-tab-bar.tsx")
-    const homeActions = readProjectFile(
-      "components/merchant/dashboard-header-actions.tsx"
-    )
+    const homeActions = readProjectFile("lib/merchant/more-model.ts")
     const layout = readProjectFile("app/app/layout.tsx")
     const dashboard = readProjectFile("app/app/page.tsx")
 

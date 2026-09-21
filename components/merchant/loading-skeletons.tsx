@@ -171,6 +171,42 @@ export function NumbersOverviewSkeleton() {
   )
 }
 
+// ─── More ──────────────────────────────────────────────────────────────────────
+
+/** Mirrors {@link MoreList}: title row, six 58px rows, the rule, log out. */
+export function MoreListSkeleton() {
+  return (
+    <div
+      role="status"
+      aria-label="Loading more"
+      className="mx-auto grid w-full max-w-[35rem] gap-5"
+    >
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-6 w-16" />
+        <Skeleton className="size-9 rounded-full" />
+      </div>
+      <div className="surface-card divide-y-2 divide-dashed divide-line overflow-hidden p-0">
+        {[0, 1, 2, 3, 4, 5].map((row) => (
+          <div
+            key={row}
+            className="flex min-h-[3.625rem] items-center gap-3 px-4 py-2"
+          >
+            <div className="grid flex-1 gap-1">
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-3.5 w-36" />
+            </div>
+            <Skeleton className="h-3 w-2" />
+          </div>
+        ))}
+      </div>
+      <div className="border-t-2 border-dashed border-line-strong" />
+      <div className="surface-card p-3">
+        <Skeleton className="h-12 w-full" />
+      </div>
+    </div>
+  )
+}
+
 // ─── Dashboard metrics ─────────────────────────────────────────────────────────
 
 /**

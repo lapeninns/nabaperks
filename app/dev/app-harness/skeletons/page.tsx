@@ -13,6 +13,7 @@ import {
   MerchantCustomersTableSkeleton,
   MerchantDashboardMetricsSkeleton,
   MerchantPageTitleSkeleton,
+  MoreListSkeleton,
   NumbersOverviewSkeleton,
   RewardScanContentSkeleton,
   TeamCodePanelSkeleton,
@@ -58,6 +59,10 @@ export default function SkeletonsHarnessPage() {
         <div className="mx-auto w-full max-w-[35rem]">
           <TeamCodePanelSkeleton />
         </div>
+      </HarnessSection>
+
+      <HarnessSection id="more-list" title="MoreListSkeleton">
+        <MoreListSkeleton />
       </HarnessSection>
 
       <HarnessSection id="numbers-overview" title="NumbersOverviewSkeleton">
