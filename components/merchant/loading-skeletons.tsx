@@ -29,51 +29,59 @@ export function MerchantPageTitleSkeleton() {
   )
 }
 
-// ─── Dashboard QR quick-access ─────────────────────────────────────────────────
+// ─── Counter ───────────────────────────────────────────────────────────────────
 
-/** Mirrors {@link DashboardQrCardView}: the tappable QR ticket (frame +
- *  mono caption) beside the status row, venue title, and action row. */
-export function DashboardVenueCodeCardSkeleton() {
+/**
+ * Mirrors {@link PresentableQrCard} in its ready state at the exact final
+ * height: the bordered card holding a `min(62vw, 236px)` QR (58vw/264px from
+ * 430px) plus the mono hint, then the note and the two text links. A shifting
+ * QR card at the till is worse than a slow one, so every line reserves its
+ * real height.
+ */
+export function CounterQrCardSkeleton() {
   return (
-    <ReceiptCard edge className="grid gap-4">
-      <div className="grid gap-2">
-        <div className="flex items-center gap-2.5">
-          <Skeleton className="h-3 w-24" />
-          <Skeleton className="h-5 w-36 rounded-full" />
+    <div
+      role="status"
+      aria-label="Loading your venue QR"
+      className="grid gap-4"
+    >
+      <div className="grid w-full justify-items-center gap-3 rounded-lg border-2 border-ink bg-card p-4 shadow-xs">
+        <div className="rounded-md bg-white p-2">
+          <Skeleton className="aspect-square h-auto w-[min(62vw,14.75rem)] rounded-md min-[430px]:w-[min(58vw,16.5rem)]" />
         </div>
-        <Skeleton className="h-6 w-40" />
-        <Skeleton className="h-4 w-full max-w-md" />
+        <Skeleton className="h-[0.9375rem] w-28" />
       </div>
-      <Skeleton className="h-10 w-48" />
-      <Skeleton className="h-9 w-28" />
-    </ReceiptCard>
+      <div className="grid justify-items-center gap-2">
+        <Skeleton className="h-6 w-64 max-w-full" />
+        <div className="flex min-h-11 items-center gap-5">
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-4 w-24" />
+        </div>
+      </div>
+    </div>
   )
 }
 
-export function DashboardQrCardSkeleton() {
+/** Mirrors {@link TeamCodePanelView}: eyebrow, the disclosure with the
+ *  30px code line and hint, the rotation line, the sentence, the reset link. */
+export function TeamCodePanelSkeleton() {
   return (
     <ReceiptCard
       edge
-      className="grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start sm:gap-6"
+      className="grid gap-3"
+      role="status"
+      aria-label="Loading today's team code"
     >
-      <div className="mx-auto grid w-fit justify-items-center gap-2 sm:mx-0">
-        <Skeleton className="aspect-square size-[9.25rem] rounded-lg" />
-        <Skeleton className="h-3 w-32" />
+      <Skeleton className="h-[0.9375rem] w-20" />
+      <div className="grid gap-1 rounded-lg border-2 border-ink bg-paper-deep/50 px-4 py-3 shadow-xs">
+        <Skeleton className="h-[1.875rem] w-44 max-w-full" />
+        <Skeleton className="h-[0.9375rem] w-24" />
       </div>
-      <div className="grid gap-3">
-        <div className="grid gap-2">
-          <div className="flex items-center gap-2.5">
-            <Skeleton className="h-3 w-24" />
-            <Skeleton className="h-5 w-14 rounded-full" />
-          </div>
-          <Skeleton className="h-6 w-52 max-w-full" />
-        </div>
-        <Skeleton className="h-4 w-full max-w-md" />
-        <div className="flex flex-wrap gap-2">
-          <Skeleton className="h-11 w-40" />
-          <Skeleton className="h-11 w-28" />
-          <Skeleton className="h-9 w-32" />
-        </div>
+      <Skeleton className="h-[0.9375rem] w-40" />
+      <Skeleton className="h-4 w-full" />
+      <Skeleton className="h-4 w-4/5" />
+      <div className="flex min-h-11 items-center">
+        <Skeleton className="h-4 w-28" />
       </div>
     </ReceiptCard>
   )

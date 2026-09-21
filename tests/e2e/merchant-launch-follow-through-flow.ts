@@ -27,13 +27,16 @@ export function defineMerchantLaunchFollowThroughTests() {
     await expect(finishSetup).toBeVisible()
     await expect(finishSetup).toHaveAttribute("href", "/app/launch?tab=rewards")
     const main = page.getByRole("main")
-    await expect(main.getByRole("link", { name: "Scan code" })).toHaveCount(0)
-    await expect(main.getByRole("link", { name: "Announce" })).toHaveCount(0)
+    await expect(
+      main.getByRole("link", { name: "Scan a customer code" })
+    ).toHaveCount(0)
     await expectNoAxeViolations(page, "incomplete merchant dashboard")
     await expectNoHorizontalOverflow(page)
-    await expect(page.getByRole("img", { name: /^QR code for / })).toHaveCount(
-      0
-    )
+    // The QR draws dimmed under a "Not live yet" chip and is not a button.
+    await expect(page.locator('[data-counter-qr="gated"]')).toBeVisible()
+    await expect(
+      page.getByRole("button", { name: /^QR code for / })
+    ).toHaveCount(0)
   })
 
   test("incomplete dashboard visual baseline @visual", async ({ page }) => {
@@ -44,13 +47,12 @@ export function defineMerchantLaunchFollowThroughTests() {
     await expect(finishSetup).toBeVisible()
     await expect(finishSetup).toHaveAttribute("href", "/app/launch?tab=rewards")
     const main = page.getByRole("main")
-    await expect(main.getByRole("link", { name: "Scan code" })).toHaveCount(0)
-    await expect(main.getByRole("link", { name: "Announce" })).toHaveCount(0)
+    await expect(
+      main.getByRole("link", { name: "Scan a customer code" })
+    ).toHaveCount(0)
     await expectNoAxeViolations(page, "incomplete merchant dashboard")
     await expectNoHorizontalOverflow(page)
-    await expect(page.getByRole("img", { name: /^QR code for / })).toHaveCount(
-      0
-    )
+    await expect(page.locator('[data-counter-qr="gated"]')).toBeVisible()
     await expect(page).toHaveScreenshot(
       "dashboard-incomplete-follow-through.png",
       {
@@ -60,28 +62,26 @@ export function defineMerchantLaunchFollowThroughTests() {
     )
   })
 
-  test("zero-member dashboard replaces KPI zeros with an encouraging QR next action @a11y", async ({
+  test("counter keeps the QR and scanner up whatever the member count @a11y", async ({
     page,
   }) => {
+    // `members=empty` used to switch the dashboard metrics to their empty
+    // state; the Counter carries no metrics, so the QR stays the whole job.
     await page.goto(`${HARNESS_ROUTES.dashboard}?members=empty`)
 
     await expect(
-      page.getByRole("heading", {
-        name: "No members yet — that's expected",
-      })
+      page.getByRole("button", { name: /^QR code for .*Tap to present/ })
     ).toBeVisible()
     await expect(
       page.getByRole("heading", { name: "How the week is going" })
     ).toHaveCount(0)
     await expect(
-      page.getByRole("button", { name: "Show full screen", exact: true })
-    ).toBeVisible()
-    await expect(page.getByRole("heading", { name: "Do next" })).toHaveCount(0)
-    await expect(
-      page.getByRole("heading", { name: "No activity yet" })
+      page.locator("[data-console-pin]").getByRole("link", {
+        name: "Scan a customer code",
+      })
     ).toBeVisible()
     await expect(page.getByText(/Phone ending/)).toHaveCount(0)
-    await expectNoAxeViolations(page, "zero-member merchant dashboard")
+    await expectNoAxeViolations(page, "counter")
     await expectNoHorizontalOverflow(page)
   })
 
@@ -90,10 +90,12 @@ export function defineMerchantLaunchFollowThroughTests() {
   }) => {
     await page.goto(`${HARNESS_ROUTES.dashboard}?qr=gated`)
 
-    const finishSetup = page.getByRole("link", { name: "Finish setup" })
+    const finishSetup = page
+      .locator("[data-console-pin]")
+      .getByRole("link", { name: "Finish setup" })
     await expect(finishSetup).toHaveAttribute("href", "/app/launch?tab=billing")
     await expect(
-      page.getByRole("main").getByRole("link", { name: "Scan code" })
+      page.getByRole("main").getByRole("link", { name: "Scan a customer code" })
     ).toHaveCount(0)
   })
 
@@ -111,12 +113,20 @@ export function defineMerchantLaunchFollowThroughTests() {
         )
         const main = variantPage.getByRole("main")
         await expect(
-          main.getByRole("link", { name: "Scan code" })
+          main.getByRole("link", { name: "Scan a customer code" })
         ).toBeVisible()
-        await expect(main.getByRole("link", { name: "Announce" })).toBeVisible()
         await expect(
           variantPage.getByRole("link", { name: "Finish setup" })
         ).toHaveCount(0)
+        // A paused QR is drawn dimmed under its chip and is never a button.
+        if (suffix) {
+          await expect(
+            variantPage.locator('[data-counter-qr="paused"]')
+          ).toBeVisible()
+          await expect(
+            variantPage.getByRole("button", { name: /^QR code for / })
+          ).toHaveCount(0)
+        }
       } finally {
         await variantPage.close()
       }

@@ -1,88 +1,105 @@
 "use client"
 
-import { useState, type ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import { Dialog as DialogPrimitive } from "radix-ui"
-import { Cancel01Icon, QrCode01Icon } from "@hugeicons/core-free-icons"
 
-import { Icon } from "@/components/brand"
+import { recordConsoleEventAction } from "@/app/app/console-events"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
 
 type PresentQrDetails = {
   readonly qrCodeId: string
   readonly venueName: string
-  readonly shareUrl: string
 }
 
 /**
- * Composable "present the join QR" dialog. `PresentQrRoot` owns the open state
- * and the full-screen overlay; any number of `PresentQrTrigger` surfaces
- * inside it open the same dialog — the dashboard counter ticket makes both
- * the QR itself and a labelled button triggers of one overlay. The overlay
- * reuses the protected `/app/qr/image/{id}` endpoint the Poster page renders
- * (merchant-cookie scoped), so the browser can serve it from cache.
+ * Present mode — the full-screen join QR a customer scans at the counter.
+ *
+ * `PresentQrRoot` owns the open state and the overlay; `PresentQrTrigger`
+ * marks the one surface that opens it (the Counter card). Radix gives the
+ * dialog semantics: `role="dialog" aria-modal="true"`, focus trapped, Escape
+ * closes, focus returns to the trigger. While open the screen wake lock is
+ * requested where the API exists and released on close; a refusal is silent
+ * because the customer at the bar must never see a toast about it.
  */
 export function PresentQrRoot({
   qrCodeId,
   venueName,
-  shareUrl,
   children,
 }: PresentQrDetails & { children: ReactNode }) {
   const [open, setOpen] = useState(false)
-  const shareLabel = shareUrl.replace(/^https?:\/\//, "")
+  const openedAt = useRef<number | null>(null)
+
+  function handleOpenChange(next: boolean) {
+    setOpen(next)
+    if (next) {
+      openedAt.current = Date.now()
+      void recordConsoleEventAction({
+        name: "counter_qr_presented",
+        properties: { source: "card" },
+      })
+      return
+    }
+    const duration = openedAt.current ? Date.now() - openedAt.current : 0
+    openedAt.current = null
+    void recordConsoleEventAction({
+      name: "counter_qr_present_closed",
+      properties: { duration_ms: Math.max(0, Math.round(duration)) },
+    })
+  }
+
+  useScreenWakeLock(open)
 
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
+    <DialogPrimitive.Root open={open} onOpenChange={handleOpenChange}>
       {children}
       <DialogPrimitive.Portal>
         {/* Keyframes (animate-in/out), not transitions: Radix Presence only
             awaits `animationend` on close, so a transition-based exit never
             plays. Full-screen surface fades in place — no slide. */}
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-ink/90 supports-backdrop-filter:backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:animate-none" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-ink duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:animate-none data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
         <DialogPrimitive.Content
-          aria-describedby={undefined}
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 overflow-y-auto p-5 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 duration-[var(--w-dur-move)] ease-[var(--w-ease)] focus:outline-none motion-reduce:animate-none sm:gap-6"
+          aria-modal="true"
+          data-present-qr
+          className="fixed inset-0 z-50 grid grid-rows-[minmax(0,1fr)_auto] bg-ink text-paper duration-[var(--w-dur-move)] ease-[var(--w-ease)] focus:outline-none motion-reduce:animate-none data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0"
         >
-          <DialogPrimitive.Close asChild>
-            <Button
-              type="button"
-              variant="secondary"
-              size="icon"
-              className="absolute top-4 right-4 sm:top-6 sm:right-6"
-            >
-              <Icon icon={Cancel01Icon} size={20} />
-              <span className="sr-only">Close full screen QR</span>
-            </Button>
-          </DialogPrimitive.Close>
+          {/* Short landscape (h ≤ 460): the code sits beside the heading
+              rather than above it so the QR keeps its size. */}
+          <div className="grid min-h-0 content-center items-center justify-items-center gap-5 overflow-y-auto px-5 pt-[calc(1.25rem+env(safe-area-inset-top))] pb-4 [@media(max-height:460px)]:grid-cols-[auto_minmax(0,1fr)] [@media(max-height:460px)]:gap-8">
+            <div className="rounded-lg border-2 border-ink bg-white p-3 shadow-2xl [@media(max-height:460px)]:order-first">
+              {/* eslint-disable-next-line @next/next/no-img-element -- protected QR image needs merchant cookies */}
+              <img
+                src={`/app/qr/image/${qrCodeId}`}
+                alt={`QR code for ${venueName}`}
+                width={720}
+                height={720}
+                className="block aspect-square h-auto w-[min(74vw,66vh,26.25rem)] rounded-md bg-white [@media(max-height:460px)]:w-[min(44vw,70vh,26.25rem)]"
+              />
+            </div>
 
-          <div className="grid justify-items-center gap-2 text-center">
-            <p className="mono-meta tracking-[0.2em] text-paper/70">
-              Scan to join
-            </p>
-            <DialogPrimitive.Title className="max-w-[16ch] text-2xl leading-tight font-extrabold text-balance text-paper sm:text-3xl">
-              {venueName}
-            </DialogPrimitive.Title>
+            <div className="grid max-w-[22rem] justify-items-center gap-2 text-center [@media(max-height:460px)]:justify-items-start [@media(max-height:460px)]:text-left">
+              <DialogPrimitive.Title className="text-2xl leading-tight font-extrabold text-balance text-paper sm:text-3xl">
+                Scan to join · {venueName}
+              </DialogPrimitive.Title>
+              <DialogPrimitive.Description className="text-base leading-6 text-paper/85">
+                Your first stamp is waiting.
+              </DialogPrimitive.Description>
+              <p className="mono-meta text-paper/70">
+                One stamp per business day
+              </p>
+            </div>
           </div>
 
-          <div className="rounded-2xl border-2 border-ink bg-white p-4 shadow-[8px_8px_0_var(--w-shadow-color)] sm:p-6">
-            {/* eslint-disable-next-line @next/next/no-img-element -- protected QR image needs merchant cookies */}
-            <img
-              src={`/app/qr/image/${qrCodeId}`}
-              alt={`QR code for ${venueName}`}
-              width={720}
-              height={720}
-              className="aspect-square h-auto w-[min(80vmin,32rem)] rounded-lg bg-white"
-            />
-          </div>
-
-          <div className="grid max-w-sm justify-items-center gap-1 text-center">
-            <p className="text-sm leading-6 text-balance text-paper/85">
-              Customers scan to join and collect today&apos;s stamp — no app to
-              download.
-            </p>
-            <p className="font-mono text-[11px] tracking-[0.06em] break-all text-paper/55">
-              {shareLabel}
-            </p>
+          <div className="px-5 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+            <DialogPrimitive.Close asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="lg"
+                className="w-full text-paper hover:bg-paper/10 hover:text-paper"
+              >
+                Done
+              </Button>
+            </DialogPrimitive.Close>
           </div>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
@@ -90,43 +107,38 @@ export function PresentQrRoot({
   )
 }
 
-/** Marks any element inside `PresentQrRoot` as an open-the-overlay surface. */
+/** Marks the element inside `PresentQrRoot` that opens present mode. */
 export function PresentQrTrigger({ children }: { children: ReactNode }) {
   return <DialogPrimitive.Trigger asChild>{children}</DialogPrimitive.Trigger>
 }
 
-type PresentQrButtonProps = PresentQrDetails & {
-  /** Trigger copy — defaults to the counter phrasing. */
-  readonly triggerLabel?: string
-  readonly triggerClassName?: string
+type WakeLockSentinel = { release: () => Promise<void> }
+type WakeLockNavigator = Navigator & {
+  wakeLock?: { request: (type: "screen") => Promise<WakeLockSentinel> }
 }
 
-/**
- * One-tap "present the join QR to a customer" launcher — the self-contained
- * form of PresentQrRoot for surfaces that just need the labelled button.
- */
-export function PresentQrButton({
-  qrCodeId,
-  venueName,
-  shareUrl,
-  triggerLabel = "Show full screen",
-  triggerClassName,
-}: PresentQrButtonProps) {
-  return (
-    <PresentQrRoot
-      qrCodeId={qrCodeId}
-      venueName={venueName}
-      shareUrl={shareUrl}
-    >
-      <PresentQrTrigger>
-        <Button
-          type="button"
-          className={cn("w-full sm:w-auto", triggerClassName)}
-        >
-          <Icon icon={QrCode01Icon} size={18} />
-          {triggerLabel}
-        </Button>
-      </PresentQrTrigger>
-    </PresentQrRoot>
-  )
+/** Progressive: guarded for browsers without the API, silent on refusal. */
+function useScreenWakeLock(active: boolean) {
+  useEffect(() => {
+    if (!active) return
+    const wakeLock = (navigator as WakeLockNavigator).wakeLock
+    if (!wakeLock) return
+
+    let sentinel: WakeLockSentinel | null = null
+    let cancelled = false
+    wakeLock
+      .request("screen")
+      .then((lock) => {
+        if (cancelled) void lock.release()
+        else sentinel = lock
+      })
+      .catch(() => {
+        // Denied or unavailable (low battery, background tab): nothing to say.
+      })
+
+    return () => {
+      cancelled = true
+      void sentinel?.release()
+    }
+  }, [active])
 }

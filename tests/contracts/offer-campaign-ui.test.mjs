@@ -609,7 +609,8 @@ describe("contract-offer-campaign-ui source contract", () => {
 
     for (const kept of [
       "MerchantPageTitleSkeleton",
-      "DashboardQrCardSkeleton",
+      "CounterQrCardSkeleton",
+      "TeamCodePanelSkeleton",
       "MerchantDashboardMetricsSkeleton",
       "MerchantCompactActivitySkeleton",
       "ActivityFeedSkeleton",

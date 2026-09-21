@@ -20,18 +20,22 @@ test.describe("e2e harness smoke", () => {
   }) => {
     await page.goto(HARNESS_ROUTES.dashboard)
 
-    // PageTitle <h1> from the seeded harness merchant
+    // The shell's top bar names the seeded harness merchant
     // (app/dev/app-harness/fixtures.ts → HARNESS_MERCHANT.business_name).
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Old Crown Girton" })
-    ).toBeVisible()
+    await expect(page.locator("[data-console-top-bar]")).toContainText(
+      "Old Crown Girton"
+    )
 
-    // Stable <h2> section landmarks hardcoded in the dashboard body.
+    // The Counter body: its landmark heading, the presentable QR card and
+    // the pinned scanner.
     await expect(
-      page.getByRole("heading", { name: "Recent activity" })
+      page.getByRole("heading", { level: 1, name: "Counter" })
+    ).toHaveCount(1)
+    await expect(
+      page.getByRole("button", { name: /^QR code for .*Tap to present/ })
     ).toBeVisible()
     await expect(
-      page.getByRole("heading", { name: "Do next" })
+      page.getByRole("link", { name: "Scan a customer code" })
     ).toBeVisible()
   })
 

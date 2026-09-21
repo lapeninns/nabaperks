@@ -31,6 +31,7 @@ export function MerchantAppShell({
   hideMobileChrome: hideMobileChromeProp,
   venueName,
   todayLabel,
+  forceOffline = false,
 }: {
   children: ReactNode
   /** Server-rendered readiness content; visibility follows the live route. */
@@ -52,6 +53,8 @@ export function MerchantAppShell({
   /** Today's date in the receipt register, formatted server-side in
    *  Europe/London so hydration and harness screenshots stay stable. */
   todayLabel?: string
+  /** Harness only: pin the offline strip on. */
+  forceOffline?: boolean
 }) {
   // Derive the chrome from the LIVE route, not a server prop. This shell lives
   // in a shared layout that the App Router preserves across soft navigations,
@@ -170,7 +173,7 @@ export function MerchantAppShell({
         data-console-body
         className="col-start-1 row-start-2 min-h-0 overflow-x-clip overflow-y-auto outline-none min-[900px]:col-start-2"
       >
-        {hideMobileChrome ? null : <ConsoleOfflineStrip />}
+        {hideMobileChrome ? null : <ConsoleOfflineStrip force={forceOffline} />}
         {/* hideMobileChrome strips ALL content padding for the full-bleed
             poster sheet. Contract: any non-poster surface reachable under a
             chromeless path must self-pad — app/app/error.tsx and the scoped

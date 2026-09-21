@@ -88,7 +88,9 @@ export function registerCustomerVenueCodeLiveDbTests() {
         await owner.goto("/app")
         const codeLine = owner.locator("[data-venue-code]")
         await expect(codeLine).toHaveAttribute("data-venue-code", "hidden")
-        await owner.getByRole("button", { name: "Show code" }).click()
+        await owner
+          .getByRole("button", { name: /Today's code, hidden/ })
+          .click()
         await expect(codeLine).toHaveAttribute("data-venue-code", "shown")
         const shownCode = (await codeLine.textContent())?.trim() ?? ""
         expect(shownCode).toMatch(/^[0-9]{6}$/)

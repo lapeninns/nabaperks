@@ -6,12 +6,14 @@ import {
   AccountBillingPanelSkeleton,
   AccountProfilePanelSkeleton,
   ActivityFeedSkeleton,
+  CounterQrCardSkeleton,
   LaunchPanelSkeleton,
   MerchantCompactActivitySkeleton,
   MerchantCustomersTableSkeleton,
   MerchantDashboardMetricsSkeleton,
   MerchantPageTitleSkeleton,
   RewardScanContentSkeleton,
+  TeamCodePanelSkeleton,
 } from "@/components/merchant/loading-skeletons"
 
 export const runtime = "nodejs"
@@ -42,6 +44,18 @@ export default function SkeletonsHarnessPage() {
 
       <HarnessSection id="page-title" title="MerchantPageTitleSkeleton">
         <MerchantPageTitleSkeleton />
+      </HarnessSection>
+
+      <HarnessSection id="counter-qr" title="CounterQrCardSkeleton">
+        <div className="mx-auto w-full max-w-[35rem]">
+          <CounterQrCardSkeleton />
+        </div>
+      </HarnessSection>
+
+      <HarnessSection id="team-code" title="TeamCodePanelSkeleton">
+        <div className="mx-auto w-full max-w-[35rem]">
+          <TeamCodePanelSkeleton />
+        </div>
       </HarnessSection>
 
       <HarnessSection

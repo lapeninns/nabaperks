@@ -78,6 +78,9 @@ export default async function AppHarnessLayout({
   const queryIndex = requestPath.indexOf("?")
   const pathname =
     queryIndex >= 0 ? requestPath.slice(0, queryIndex) : requestPath
+  const search =
+    queryIndex >= 0 ? new URLSearchParams(requestPath.slice(queryIndex)) : null
+  const forceOffline = search?.get("offline") === "1"
 
   const lane = resolveLaneFromPath(pathname)
   const variant = SETUP_LANES.has(lane) ? "setup" : "full"
@@ -91,6 +94,7 @@ export default async function AppHarnessLayout({
       variant={variant}
       venueName={HARNESS_MERCHANT.business_name}
       todayLabel={HARNESS_TODAY_LABEL}
+      forceOffline={forceOffline}
     >
       {children}
     </MerchantAppShell>

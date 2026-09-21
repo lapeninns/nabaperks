@@ -20,10 +20,15 @@ const readServerOnline = () => true
  * mutations and the scanner disable themselves with a reason of their own.
  * Server snapshot is "online" so the strip never flashes during hydration.
  */
-export function ConsoleOfflineStrip() {
+export function ConsoleOfflineStrip({
+  force = false,
+}: {
+  /** Harness only: render the strip regardless of the browser's state. */
+  force?: boolean
+}) {
   const online = useSyncExternalStore(subscribe, readOnline, readServerOnline)
 
-  if (online) return null
+  if (online && !force) return null
 
   return (
     <p

@@ -30,6 +30,9 @@ export const HARNESS_MERCHANT: MerchantDashboardMerchant = {
 /** The console top bar date, a literal for byte-stable screenshots. */
 export const HARNESS_TODAY_LABEL = "Mon 21 Sep"
 
+/** The fixture clock: 13:00 London on the harness day. */
+export const HARNESS_NOW_ISO = "2026-09-21T12:00:00.000Z"
+
 // ─── Dashboard KPI strip ────────────────────────────────────────────────────
 
 /** A 14-point series, deterministic, shaped to read like a real sparkline. */
