@@ -35,6 +35,27 @@ const routes = [
     name: "harness-dashboard-empty",
     path: "/dev/app-harness/dashboard?members=empty",
   },
+  // Counter-first console (docs/ui-audit/counter-console-rebuild): each
+  // screen's default state plus the states that change its shape.
+  {
+    name: "harness-counter-paused",
+    path: "/dev/app-harness/dashboard?qr=paused",
+  },
+  { name: "harness-numbers", path: "/dev/app-harness/numbers" },
+  {
+    name: "harness-numbers-partial",
+    path: "/dev/app-harness/numbers?state=partial",
+  },
+  {
+    name: "harness-numbers-early",
+    path: "/dev/app-harness/numbers?state=early",
+  },
+  { name: "harness-numbers-stamps", path: "/dev/app-harness/numbers/stamps" },
+  {
+    name: "harness-activity-grouped",
+    path: "/dev/app-harness/activity?fixture=grouped",
+  },
+  { name: "harness-more", path: "/dev/app-harness/more" },
   // The offers lane renders one surface per request. Each of the four carries a
   // state the others cannot show, so each needs its own baseline.
   { name: "harness-offers-desk", path: "/dev/app-harness/offers" },
@@ -145,4 +166,30 @@ test.describe("visual regression @visual", () => {
       })
     })
   }
+})
+
+/**
+ * Greyscale pass over the delta receipt (handoff §9): every trend must read
+ * with colour removed, so the receipt is captured with `filter: grayscale(1)`
+ * on the root and compared against its own baseline.
+ */
+test.describe("@visual greyscale", () => {
+  test("Given the Numbers delta receipt When colour is removed Then direction still reads", async ({
+    page,
+  }) => {
+    await dismissPwaInstall(page)
+    await page.goto("/dev/app-harness/numbers")
+    await page.evaluate(() => document.fonts.ready)
+    await page.addStyleTag({
+      content: "html { filter: grayscale(1) !important; }",
+    })
+    const receipt = page.locator("[data-numbers-deltas]")
+    await expect(receipt).toBeVisible()
+    await expect(receipt).toHaveScreenshot(
+      "numbers-delta-receipt-greyscale.png",
+      {
+        maxDiffPixelRatio: 0.001,
+      }
+    )
+  })
 })

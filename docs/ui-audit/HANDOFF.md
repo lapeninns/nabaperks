@@ -4,6 +4,13 @@
 > `docs/ui-audit/HANDOFF-NEXT-AGENT.md` first — worktree, gates, the verification
 > boundary, and the traps that cost this campaign real time.
 
+> **Merchant console (September 2026):** the `/app` shell and dashboard were
+> rebuilt as a counter-first application shell. The spec, prototype and
+> before-strip live in `docs/ui-audit/counter-console-rebuild/`; lane status,
+> deviations and open data-layer tickets are in `STATUS-m-console.md`. The
+> merchant findings that rebuild closed are mapped at the top of
+> `03-merchant.md`.
+
 Branch `feat/ui-redesign-audit-fixes`, 138 commits.
 Read `COVERAGE.md` for the evidence behind every number here.
 

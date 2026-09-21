@@ -1,8 +1,8 @@
 /**
  * Pure billing-status → merchant-facing copy/routing logic. No React, no I/O, so
  * it is unit-testable in isolation (tests/unit/billing-status-copy). The
- * presentation components (`MerchantBillingNotice`, `MerchantBillingAccessNote`)
- * in `components/merchant/billing-status.tsx` render this.
+ * console's billing strip (`components/merchant/merchant-billing-strip.tsx`)
+ * and the More screen's Account row render this.
  *
  * Routing contract: `not_started` is the FIRST-RUN activation state and routes
  * to the launch billing step (`/app/launch?tab=billing`) with the shared

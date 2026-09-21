@@ -16,6 +16,8 @@ estimated rendered heights and grep-quantified consistency metrics. No source wa
 | [`03-merchant.md`](./03-merchant.md)                           | Merchant console                                     | 67       |
 | [`04-admin.md`](./04-admin.md)                                 | Admin back-office, shared data display, dev surfaces | 74       |
 | [`05-design-system.md`](./05-design-system.md)                 | Design system, primitives, shells, accessibility     | 67       |
+| [`counter-console-rebuild/`](./counter-console-rebuild/)       | Merchant console rebuild: spec, prototype, before    | —        |
+| [`STATUS-m-console.md`](./STATUS-m-console.md)                 | Console rebuild lanes, deviations, open tickets      | —        |
 
 Severity split: 33 Critical, 131 High, 146 Medium, 37 Low.
 
