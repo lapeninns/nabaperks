@@ -373,3 +373,74 @@ export const HARNESS_ACTIVITY_ROWS: ActivityDisplayRow[] = [
     searchText: "loyalty card updated card setup",
   },
 ]
+
+function harnessQrScan(index: number, minutesAgo: number): ActivityDisplayRow {
+  return {
+    id: `evt_qr_scan_${index}`,
+    eventName: "qr_scanned",
+    category: "qr",
+    badgeLabel: "QR scanned",
+    headline: "Someone scanned the QR",
+    summary: "A customer opened the venue QR resolver.",
+    timestamp: `2026-09-21T${String(11 - Math.floor(minutesAgo / 60)).padStart(2, "0")}:${String((60 - (minutesAgo % 60)) % 60).padStart(2, "0")}:00.000Z`,
+    timestampLabel: `${String(12 - Math.floor(minutesAgo / 60)).padStart(2, "0")}:${String((60 - (minutesAgo % 60)) % 60).padStart(2, "0")}`,
+    relativeTime: `${minutesAgo} min ago`,
+    dateGroup: "today",
+    dateGroupLabel: "Today",
+    details: [],
+    searchText: "qr scanned",
+  }
+}
+
+function harnessJoin(index: number, hoursAgo: number): ActivityDisplayRow {
+  return {
+    id: `evt_join_group_${index}`,
+    eventName: "customer_joined",
+    category: "customer",
+    badgeLabel: "Join",
+    headline: `Phone ending ${String(100 + index)} joined`,
+    summary: "Joined via the venue QR.",
+    timestamp: `2026-09-20T${String(20 - hoursAgo).padStart(2, "0")}:15:00.000Z`,
+    timestampLabel: `${String(21 - hoursAgo).padStart(2, "0")}:15`,
+    relativeTime: "Yesterday",
+    dateGroup: "yesterday",
+    dateGroupLabel: "Yesterday",
+    details: [],
+    primaryAction: { label: "View member", href: "/app/customers" },
+    searchText: `phone ending ${String(100 + index)} joined`,
+  }
+}
+
+/**
+ * Runs that collapse: four QR scans today (8 to 12 minutes ago), three joins
+ * yesterday, one reward redeemed today (never collapses) and two stamps.
+ * Newest first, like the query.
+ */
+export const HARNESS_ACTIVITY_GROUPED_ROWS: ActivityDisplayRow[] = [
+  harnessQrScan(1, 8),
+  harnessQrScan(2, 9),
+  {
+    ...HARNESS_ACTIVITY_ROWS.find(
+      (row) => row.eventName === "reward_redeemed"
+    )!,
+    id: "evt_group_reward",
+    relativeTime: "10 min ago",
+  },
+  harnessQrScan(3, 11),
+  harnessQrScan(4, 12),
+  {
+    ...HARNESS_ACTIVITY_ROWS.find((row) => row.eventName === "stamp_issued")!,
+    id: "evt_group_stamp_1",
+    relativeTime: "25 min ago",
+  },
+  harnessJoin(1, 2),
+  harnessJoin(2, 3),
+  harnessJoin(3, 5),
+  {
+    ...HARNESS_ACTIVITY_ROWS.find((row) => row.eventName === "stamp_issued")!,
+    id: "evt_group_stamp_2",
+    dateGroup: "yesterday",
+    dateGroupLabel: "Yesterday",
+    relativeTime: "Yesterday",
+  },
+]

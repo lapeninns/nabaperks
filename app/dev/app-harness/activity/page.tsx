@@ -1,49 +1,84 @@
 import { notFound } from "next/navigation"
-import { Activity03Icon } from "@hugeicons/core-free-icons"
 
-import { EmptyState, PageTitle } from "@/components/brand"
 import { ActivityDetailFeed } from "@/components/merchant/activity-detail-feed"
+import { parseActivityScope } from "@/lib/merchant/activity-scope"
 
-import { HARNESS_ACTIVITY_ROWS, HARNESS_ACTIVITY_SUMMARY } from "../fixtures"
+import {
+  HARNESS_ACTIVITY_GROUPED_ROWS,
+  HARNESS_ACTIVITY_ROWS,
+  HARNESS_ACTIVITY_SUMMARY,
+} from "../fixtures"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
+type ActivityHarnessParams = {
+  /** default · grouped · single · empty · load-more */
+  fixture?: string
+  filter?: string
+  range?: string
+  limit?: string
+}
+
 /**
- * Activity harness — mounts the REAL {@link ActivityDetailFeed} (the client body
- * the /app/activity stream renders) with DB-free fixture rows + a "this week"
- * summary, inside the same PageTitle the real route uses. Exercises the
- * StatStrip, search box, FilterPills, the date-grouped timeline cards, and the
- * "events loaded" footer.
+ * Activity harness — mounts the REAL {@link ActivityDetailFeed} with DB-free
+ * fixture rows. `?fixture=grouped` supplies runs of QR scans and joins that
+ * collapse into `<details>` groups; `single` mounts one row (no grouping, no
+ * pills); `empty` with `?filter=` / `?range=` reaches each empty state;
+ * `load-more` sets `hasMore`. The category and range are echoed from the
+ * query so the feed's URL round-trips behave as in production.
  */
-export default function ActivityHarnessPage() {
+export default async function ActivityHarnessPage({
+  searchParams,
+}: {
+  searchParams?: Promise<ActivityHarnessParams>
+}) {
   if (process.env.NODE_ENV === "production") {
     notFound()
   }
 
-  return (
-    <div className="grid gap-6">
-      <PageTitle
-        eyebrow="Activity"
-        title="Activity"
-        description="Everything happening on your loyalty card: joins, stamps, rewards, and QR downloads."
-      />
+  const params = searchParams ? await searchParams : {}
+  const fixture = params.fixture ?? "default"
+  const filter = normalizeFilter(params.filter)
+  const scope = parseActivityScope(params.range)
+  const rows =
+    fixture === "grouped"
+      ? HARNESS_ACTIVITY_GROUPED_ROWS
+      : fixture === "single"
+        ? HARNESS_ACTIVITY_ROWS.slice(0, 1)
+        : fixture === "empty"
+          ? []
+          : HARNESS_ACTIVITY_ROWS
+  const scopedRows =
+    filter === "all" ? rows : rows.filter((row) => row.category === filter)
+  const limit = Number(params.limit) > 0 ? Number(params.limit) : 25
 
+  return (
+    <>
+      <h1 className="sr-only">Activity</h1>
       <ActivityDetailFeed
         summary={HARNESS_ACTIVITY_SUMMARY}
-        rows={HARNESS_ACTIVITY_ROWS}
-        limit={25}
-        hasMore={false}
-        initialFilter="all"
+        rows={scopedRows}
+        limit={limit}
+        hasMore={fixture === "load-more" && limit < 50}
+        initialFilter={filter}
         initialQuery=""
-        emptyState={
-          <EmptyState
-            title="No activity yet"
-            description="Activity will appear after members join, add stamps, redeem rewards, or download QR assets."
-            icon={Activity03Icon}
-          />
-        }
+        initialScope={scope}
+        posterHref="/dev/app-harness/qr"
       />
-    </div>
+    </>
   )
+}
+
+function normalizeFilter(value: string | undefined) {
+  switch (value) {
+    case "customer":
+    case "stamp":
+    case "reward":
+    case "qr":
+    case "account":
+      return value
+    default:
+      return "all" as const
+  }
 }

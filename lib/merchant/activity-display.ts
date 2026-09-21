@@ -123,6 +123,12 @@ export type ActivityQueryOptions = {
    * reachable, rather than re-pulling a larger window of every event type.
    */
   filter?: "all" | ActivityCategory
+  /**
+   * Only events at or after this instant (ISO). The Activity screen's
+   * Today / 7 days / 28 days scope; pushed into the query like `filter` so
+   * "Load more" grows the scoped set.
+   */
+  since?: string
 }
 
 export type RawActivityRow = {

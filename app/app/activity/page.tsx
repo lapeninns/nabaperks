@@ -1,18 +1,20 @@
-import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Suspense } from "react"
-import { Activity03Icon, QrCode01Icon } from "@hugeicons/core-free-icons"
 
-import { EmptyState, Icon, PageTitle } from "@/components/brand"
 import { ActivityDetailFeed } from "@/components/merchant/activity-detail-feed"
 import { ActivityFeedSkeleton } from "@/components/merchant/loading-skeletons"
-import { Button } from "@/components/ui/button"
+import { StreamErrorBoundary } from "@/components/merchant/stream-error-boundary"
 import { getCurrentMerchant } from "@/lib/auth/session"
 import {
   type ActivityCategory,
   getEnrichedMerchantActivity,
   getMerchantActivitySummary,
 } from "@/lib/merchant/activity"
+import {
+  activityScopeSince,
+  parseActivityScope,
+  type ActivityScope,
+} from "@/lib/merchant/activity-scope"
 
 // cacheComponents is OFF for this repo, so the literal force-dynamic segment
 // config is valid: this feed reflects per-request searchParams and live data
@@ -23,8 +25,14 @@ type MerchantActivitySearchParams = {
   filter?: string | string[]
   q?: string | string[]
   limit?: string | string[]
+  range?: string | string[]
 }
 
+/**
+ * Activity — the owner's read of what happened (handoff §6.2). Scope and
+ * category are server-side query params so "Load more" grows the scoped,
+ * filtered set.
+ */
 export default async function MerchantActivityPage({
   searchParams,
 }: {
@@ -38,44 +46,46 @@ export default async function MerchantActivityPage({
   }
 
   const filter = normalizeActivityFilter(firstParam(query?.filter))
+  const scope = parseActivityScope(firstParam(query?.range))
   const searchQuery = firstParam(query?.q) ?? ""
   const limit = parseActivityLimit(firstParam(query?.limit))
 
   return (
-    <div className="grid gap-6">
-      <PageTitle
-        eyebrow="Activity"
-        title="Activity"
-        description="Everything happening on your loyalty card: joins, stamps, rewards, and QR downloads."
-      />
-
-      {/* Re-key the streamed feed on the filter pill only, so its client
-          filter/search state re-initializes on a real filter nav. `limit` is
-          deliberately NOT in the key: "Load more" must extend the list in
-          place (rows arrive via props during the Link transition) instead of
-          unmounting everything the merchant has read into a skeleton. `q` is
+    <>
+      <h1 className="sr-only">Activity</h1>
+      {/* Re-key the streamed feed on the filter and scope only, so its client
+          state re-initializes on a real navigation. `limit` is deliberately
+          NOT in the key: "Load more" must extend the list in place. `q` is
           also excluded: it refetches via props but must not remount the live
           search box on every keystroke. */}
-      <Suspense key={filter} fallback={<ActivityFeedSkeleton />}>
-        <ActivityFeedStream
-          merchantId={merchant.id}
-          filter={filter}
-          searchQuery={searchQuery}
-          limit={limit}
-        />
-      </Suspense>
-    </div>
+      <StreamErrorBoundary label="your activity">
+        <Suspense
+          key={`${filter}:${scope}`}
+          fallback={<ActivityFeedSkeleton />}
+        >
+          <ActivityFeedStream
+            merchantId={merchant.id}
+            filter={filter}
+            scope={scope}
+            searchQuery={searchQuery}
+            limit={limit}
+          />
+        </Suspense>
+      </StreamErrorBoundary>
+    </>
   )
 }
 
 async function ActivityFeedStream({
   merchantId,
   filter,
+  scope,
   searchQuery,
   limit,
 }: {
   merchantId: string
   filter: "all" | ActivityCategory
+  scope: ActivityScope
   searchQuery: string
   limit: number
 }) {
@@ -83,6 +93,7 @@ async function ActivityFeedStream({
     getEnrichedMerchantActivity(merchantId, {
       limit,
       filter,
+      since: activityScopeSince(scope, new Date()),
     }),
     getMerchantActivitySummary(merchantId),
   ])
@@ -95,21 +106,7 @@ async function ActivityFeedStream({
       hasMore={activity.hasMore}
       initialFilter={filter}
       initialQuery={searchQuery}
-      emptyState={
-        <EmptyState
-          title="No activity yet"
-          description="Activity will appear after members join, add stamps, redeem rewards, or download QR assets."
-          icon={Activity03Icon}
-          actions={
-            <Button asChild>
-              <Link href="/app/qr" prefetch={false}>
-                <Icon icon={QrCode01Icon} size={16} />
-                Open your Poster kit
-              </Link>
-            </Button>
-          }
-        />
-      }
+      initialScope={scope}
     />
   )
 }
