@@ -67,6 +67,7 @@ test("QR has no daily series: running total, week comparison, no chart", () => {
   const model = buildNumbersDetailModel({ ...base, metric: "qr", range: 14 })
   assert.equal(model.headline, 6)
   assert.equal(model.headlineCaption, "QR downloads, all time")
+  assert.equal(model.chartLabel, "QR downloads")
   assert.equal(model.chart, null)
   assert.equal(model.bestDay, null)
   assert.equal(model.comparison.label, "2 more than last week")
@@ -80,6 +81,8 @@ test("best and quietest days skip placeholder columns in the partial band", () =
     firstStampAt: "2026-09-15T09:00:00Z",
   })
   assert.equal(model.band, "partial")
+  assert.equal(model.chartLabel, "Rewards unlocked")
+  assert.equal(model.comparisonLabel, "Rewards redeemed")
   assert.equal(model.chart.placeholderCount, 7)
   assert.equal(model.comparisonEnabled, false)
   assert.deepEqual(model.bestDay, { name: "Wednesday 16 September", value: 1 })
@@ -97,7 +100,8 @@ test("too early: no chart and a come-back date; missing series keeps the compari
     firstStampAt: "2026-09-20T09:00:00Z",
   })
   assert.equal(early.chart, null)
-  assert.equal(early.headline, null)
+  assert.equal(early.headline, 412)
+  assert.equal(early.headlineCaption, "stamps, all time")
   assert.equal(early.trendFrom, "2026-09-23")
 
   const noSeries = buildNumbersDetailModel({
