@@ -1,6 +1,9 @@
 import { expect, test } from "@playwright/test"
 
-import { dismissPwaInstall } from "./helpers/harness"
+import {
+  dismissPwaInstall,
+  expandConsoleShellForFullPage,
+} from "./helpers/harness"
 
 const routes = [
   { name: "marketing-landing", path: "/" },
@@ -153,6 +156,10 @@ test.describe("visual regression @visual", () => {
             )
           )
           .toBe(true)
+      }
+
+      if (route.path.startsWith("/dev/app-harness/")) {
+        await expandConsoleShellForFullPage(page)
       }
 
       const strictComparison =

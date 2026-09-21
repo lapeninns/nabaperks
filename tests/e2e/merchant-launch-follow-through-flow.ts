@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test"
 import { expectNoAxeViolations } from "./helpers/axe"
 import {
   dismissPwaInstall,
+  expandConsoleShellForFullPage,
   gotoHydratedPage,
   HARNESS_ROUTES,
 } from "./helpers/harness"
@@ -53,6 +54,7 @@ export function defineMerchantLaunchFollowThroughTests() {
     await expectNoAxeViolations(page, "incomplete merchant dashboard")
     await expectNoHorizontalOverflow(page)
     await expect(page.locator('[data-counter-qr="gated"]')).toBeVisible()
+    await expandConsoleShellForFullPage(page)
     await expect(page).toHaveScreenshot(
       "dashboard-incomplete-follow-through.png",
       {
@@ -398,6 +400,7 @@ export function defineMerchantLaunchFollowThroughTests() {
     await expectNoAxeViolations(page, "merchant poster follow-through")
     await expectNoHorizontalOverflow(page)
     await expectVenueQrLoaded(page)
+    await expandConsoleShellForFullPage(page)
     await expect(page).toHaveScreenshot("launch-qr-follow-through.png", {
       fullPage: true,
       maxDiffPixelRatio: 0.001,
