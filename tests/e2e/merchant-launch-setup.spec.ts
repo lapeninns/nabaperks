@@ -132,9 +132,13 @@ test.describe("merchant launch setup @launch-setup", () => {
     await page.goto(`${HARNESS_ROUTES.dashboard}?setup=incomplete`)
 
     await expect(page.getByText("Next: Your rewards")).toBeVisible()
-    await expect(
-      page.getByRole("link", { name: /Add rewards/ })
-    ).toHaveAttribute("href", "/app/launch?tab=rewards")
+    // The gated Counter card links the same next step, so scope to the rail.
+    const rewardsLinks = page.getByRole("link", { name: /Add rewards/ })
+    await expect(rewardsLinks.first()).toHaveAttribute(
+      "href",
+      "/app/launch?tab=rewards"
+    )
+    await expect(rewardsLinks).toHaveCount(2)
     expect(await horizontalOverflow(page)).toBeLessThanOrEqual(1)
   })
 })
