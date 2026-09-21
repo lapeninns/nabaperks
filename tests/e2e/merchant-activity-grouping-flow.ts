@@ -21,7 +21,11 @@ export function describeMerchantActivityGrouping() {
     const scans = page.locator('[data-activity-group="qr_scanned:today"]')
     await expect(scans).toBeVisible()
     await expect(scans).toContainText("4 QR scans")
-    await expect(scans).toContainText("8 to 12 min ago")
+    // The header follows the client clock like its rows, so the fixture's
+    // literal instants read as whatever span they are now.
+    await expect(scans.locator("summary")).toContainText(
+      /(\d+ to \d+ (min|hr|days) ago)|(\d+ (min|hr|days) ago to \d+ (min|hr|days) ago)|Yesterday/
+    )
     await expect(scans).not.toHaveAttribute("open", "")
     // Closed details keep their rows in the DOM; they must not be visible.
     await expect(
@@ -73,12 +77,14 @@ export function describeMerchantActivityGrouping() {
     await expect(loadMore).toHaveAttribute("href", /limit=50/)
   })
 
-  test("one row: no grouping and no filter pills", async ({ page }) => {
+  test("one row: no grouping, and the controls stay so a filter can be undone", async ({
+    page,
+  }) => {
     await gotoHydratedPage(page, `${HARNESS_ROUTES.activity}?fixture=single`)
     await expect(page.locator("[data-activity-group]")).toHaveCount(0)
     await expect(
       page.getByRole("group", { name: "Filter activity by type" })
-    ).toHaveCount(0)
+    ).toBeVisible()
     await expect(
       page.getByRole("group", { name: "Activity range" })
     ).toBeVisible()
@@ -109,6 +115,14 @@ export function describeMerchantActivityGrouping() {
     await gotoHydratedPage(
       page,
       `${HARNESS_ROUTES.activity}?fixture=empty&range=28d`
+    )
+    await expect(page.locator('[data-activity-empty="quiet"]')).toContainText(
+      "Nothing in the last 28 days."
+    )
+
+    await gotoHydratedPage(
+      page,
+      `${HARNESS_ROUTES.activity}?fixture=empty&range=28d&lifetime=0`
     )
     await expect(page.locator('[data-activity-empty="new"]')).toContainText(
       "The first scan of your QR lands here."

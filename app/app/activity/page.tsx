@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { Suspense } from "react"
 
+import { ActivityControls } from "@/components/merchant/activity-controls"
 import { ActivityDetailFeed } from "@/components/merchant/activity-detail-feed"
 import { ActivityFeedSkeleton } from "@/components/merchant/loading-skeletons"
 import { StreamErrorBoundary } from "@/components/merchant/stream-error-boundary"
@@ -15,6 +16,7 @@ import {
   parseActivityScope,
   type ActivityScope,
 } from "@/lib/merchant/activity-scope"
+import { countRows } from "@/lib/merchant/dashboard-counts"
 
 // cacheComponents is OFF for this repo, so the literal force-dynamic segment
 // config is valid: this feed reflects per-request searchParams and live data
@@ -53,6 +55,11 @@ export default async function MerchantActivityPage({
   return (
     <>
       <h1 className="sr-only">Activity</h1>
+      {/* Scope and category are URL state and live outside the boundary, so
+          a failing query never takes the controls with it. */}
+      <div className="mx-auto mb-4 w-full max-w-[35rem] min-[900px]:max-w-[51.25rem]">
+        <ActivityControls filter={filter} scope={scope} />
+      </div>
       {/* Re-key the streamed feed on the filter and scope only, so its client
           state re-initializes on a real navigation. `limit` is deliberately
           NOT in the key: "Load more" must extend the list in place. `q` is
@@ -89,13 +96,18 @@ async function ActivityFeedStream({
   searchQuery: string
   limit: number
 }) {
-  const [activity, summary] = await Promise.all([
+  const [activity, summary, lifetime] = await Promise.all([
     getEnrichedMerchantActivity(merchantId, {
       limit,
       filter,
       since: activityScopeSince(scope, new Date()),
     }),
     getMerchantActivitySummary(merchantId),
+    // Lifetime evidence for the empty copy; a failed count means "unknown".
+    countRows("product_events", merchantId).then(
+      (count) => count > 0,
+      () => null
+    ),
   ])
 
   return (
@@ -107,6 +119,7 @@ async function ActivityFeedStream({
       initialFilter={filter}
       initialQuery={searchQuery}
       initialScope={scope}
+      hasEverHadActivity={lifetime}
     />
   )
 }

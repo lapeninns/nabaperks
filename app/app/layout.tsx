@@ -43,6 +43,7 @@ export default async function MerchantAppLayout({
       signOutAction={signOutAction}
       venueName={merchant?.business_name}
       todayLabel={formatConsoleDate(new Date())}
+      liveDate
       billingNotice={
         <Suspense fallback={null}>
           <MerchantBillingStrip />

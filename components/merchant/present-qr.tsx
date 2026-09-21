@@ -126,18 +126,28 @@ function useScreenWakeLock(active: boolean) {
 
     let sentinel: WakeLockSentinel | null = null
     let cancelled = false
-    wakeLock
-      .request("screen")
-      .then((lock) => {
-        if (cancelled) void lock.release()
-        else sentinel = lock
-      })
-      .catch(() => {
-        // Denied or unavailable (low battery, background tab): nothing to say.
-      })
+    const request = () => {
+      wakeLock
+        .request("screen")
+        .then((lock) => {
+          if (cancelled) void lock.release()
+          else sentinel = lock
+        })
+        .catch(() => {
+          // Denied or unavailable (low battery, background tab): nothing to say.
+        })
+    }
+    // The browser releases the lock when the tab is hidden; take it again
+    // when the operator comes back while present mode is still open.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") request()
+    }
+    request()
+    document.addEventListener("visibilitychange", onVisible)
 
     return () => {
       cancelled = true
+      document.removeEventListener("visibilitychange", onVisible)
       void sentinel?.release()
     }
   }, [active])

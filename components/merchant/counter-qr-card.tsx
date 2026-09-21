@@ -16,6 +16,7 @@ import {
   buildLaunchReadiness,
   getLaunchBillingReadiness,
 } from "@/lib/merchant/launch-readiness"
+import { isLaunchSetupCompleteWithoutQr } from "@/lib/merchant/launch-readiness-core"
 import { getQrSetup } from "@/lib/merchant/qr-code"
 import { logger } from "@/lib/observability/logger"
 import { cn } from "@/lib/utils"
@@ -49,9 +50,13 @@ export async function CounterQrCard() {
     launchReady: readiness.launchReady,
   })
 
-  if (state === "missing") {
-    // ensure-join-qr.ts provisions the row during launch; reaching the
-    // Counter without one is a bug worth a durable log line, not a prompt.
+  if (
+    state === "missing" &&
+    isLaunchSetupCompleteWithoutQr(readiness.checklist)
+  ) {
+    // ensure-join-qr.ts provisions the row once the card, rewards, venue and
+    // billing gates are met; a missing row past that point is a bug worth a
+    // durable log line. Before then its absence is ordinary first-run setup.
     logger.warn("counter.qr_missing", { merchantId: merchant?.id ?? null })
   }
 
@@ -67,6 +72,14 @@ export async function CounterQrCard() {
     />
   )
 }
+
+/**
+ * The QR's white frame: `min(62vw, 236px)` (58vw / 264px from 430px), and
+ * never wider than its column, so the 600px two-up layout fits the card's
+ * padding and borders instead of clipping the code.
+ */
+const QR_FRAME_CLASS =
+  "box-border w-[min(62vw,14.75rem)] max-w-full rounded-md bg-white p-2 min-[430px]:w-[min(58vw,16.5rem)]"
 
 export type PresentableQrCardProps = {
   readonly state: CounterQrState
@@ -106,7 +119,7 @@ export function PresentableQrCard({
       width={512}
       height={512}
       className={cn(
-        "block aspect-square h-auto w-[min(62vw,14.75rem)] rounded-md bg-white min-[430px]:w-[min(58vw,16.5rem)]",
+        "block aspect-square h-auto w-full rounded-md bg-white",
         state !== "ready" && "opacity-40"
       )}
     />
@@ -120,7 +133,7 @@ export function PresentableQrCard({
           data-counter-qr={state}
           className="pressable grid w-full justify-items-center gap-3 rounded-lg border-2 border-primary bg-card p-4 shadow-md transition-shadow duration-[var(--w-dur-press)] ease-[var(--w-ease)] active:shadow-2xs motion-reduce:transition-none"
         >
-          <span className="rounded-md bg-white p-2">{image}</span>
+          <span className={QR_FRAME_CLASS}>{image}</span>
           <span className="mono-meta text-ink-soft">Tap to present</span>
         </button>
       </PresentQrTrigger>
@@ -129,7 +142,7 @@ export function PresentableQrCard({
         data-counter-qr={state}
         className="grid w-full justify-items-center gap-3 rounded-lg border-2 border-ink bg-card p-4 shadow-xs"
       >
-        <span className="relative rounded-md bg-white p-2">
+        <span className={cn("relative", QR_FRAME_CLASS)}>
           {image}
           <MonoTag
             tone="ink"
@@ -166,13 +179,17 @@ export function PresentableQrCard({
       </div>
     )
 
+  // Only a live QR advertises joining and hands out its link: a paused or
+  // gated code would be a dead link. Those states keep Poster & print only.
   const links = (
     <div className="grid justify-items-center gap-2 text-center">
-      <p className="text-sm leading-6 text-muted-foreground">
-        Customers scan to join and take today&apos;s stamp.
-      </p>
+      {state === "ready" ? (
+        <p className="text-sm leading-6 text-muted-foreground">
+          Customers scan to join and take today&apos;s stamp.
+        </p>
+      ) : null}
       <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-sm font-bold">
-        {shareUrl ? (
+        {state === "ready" && shareUrl ? (
           <CopyUrlButton url={shareUrl} variant="link" label="Copy link" />
         ) : null}
         <Link
@@ -183,6 +200,16 @@ export function PresentableQrCard({
           Poster &amp; print
         </Link>
       </div>
+      {state === "ready" && shareUrl ? (
+        // The link itself, selectable, so a failed clipboard copy still has
+        // something to copy by hand.
+        <p
+          className="mono-id break-all text-ink-soft select-all"
+          data-counter-share-url
+        >
+          {shareUrl.replace(/^https?:\/\//, "")}
+        </p>
+      ) : null}
     </div>
   )
 

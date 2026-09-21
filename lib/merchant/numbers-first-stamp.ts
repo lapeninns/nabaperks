@@ -4,18 +4,20 @@ import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 /**
  * When the venue issued its first stamp — the clock the Numbers low-data
- * bands run on. One indexed row read (merchant_id, event_name, created_at);
- * null for a venue that has never stamped.
+ * bands run on. Read from the same `stamp_events` ledger the dashboard
+ * counts and series use (event_type = earned), so stamps that arrived via
+ * invitations, offers or referral bonuses count exactly as they do in the
+ * totals. One indexed row read; null for a venue that has never stamped.
  */
 export async function getFirstStampAt(
   merchantId: string
 ): Promise<string | null> {
   const supabase = createSupabaseServiceRoleClient()
   const { data, error } = await supabase
-    .from("product_events")
+    .from("stamp_events")
     .select("created_at")
     .eq("merchant_id", merchantId)
-    .eq("event_name", "stamp_issued")
+    .eq("event_type", "earned")
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle()

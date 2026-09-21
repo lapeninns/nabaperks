@@ -130,6 +130,12 @@ export const merchantNavItems = [
     icon: Activity03Icon,
     prefetch: "auto",
   },
+  {
+    href: "/app/numbers",
+    label: "Numbers",
+    icon: AnalyticsUpIcon,
+    prefetch: "auto",
+  },
   { href: "/app/announcements", label: "Announce", icon: Megaphone01Icon },
   {
     href: "/app/offers",

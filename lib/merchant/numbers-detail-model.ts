@@ -36,6 +36,11 @@ export type NumbersDetailDay = {
 export type NumbersDetailModel = {
   readonly metric: NumbersMetric
   readonly label: string
+  /** What the daily series counts — "Rewards unlocked" for rewards, since
+   *  the series buckets unlock dates while the week comparison counts
+   *  redemptions. */
+  readonly chartLabel: string
+  readonly comparisonLabel: string
   readonly noun: { singular: string; plural: string }
   readonly range: NumbersRange
   readonly band: NumbersBand
@@ -68,6 +73,20 @@ const METRIC_NOUNS: Record<
   stamps: { singular: "stamp", plural: "stamps" },
   rewards: { singular: "reward", plural: "rewards" },
   qr: { singular: "download", plural: "downloads" },
+}
+
+const CHART_LABEL: Record<NumbersMetric, string> = {
+  members: "Joins",
+  stamps: "Stamps",
+  rewards: "Rewards unlocked",
+  qr: "QR downloads",
+}
+
+const COMPARISON_LABEL: Record<NumbersMetric, string> = {
+  members: "New members",
+  stamps: "Stamps",
+  rewards: "Rewards redeemed",
+  qr: "QR downloads",
 }
 
 const METRIC_CATEGORY: Record<NumbersMetric, ActivityCategory> = {
@@ -141,12 +160,13 @@ export function buildNumbersDetailModel({
     ? recorded.reduce((low, day) => (day.value < low.value ? day : low))
     : null
 
+  // The range total when the chart is drawn; the running total (all time)
+  // when the band withholds the chart, so a new venue still sees a number.
+  const runningTotal = totals ? runningTotalFor(totals, metric) : null
   const headline =
-    metric === "qr"
-      ? (totals?.qrDownloads ?? null)
-      : chart
-        ? chart.values.reduce((sum, value) => sum + value, 0)
-        : null
+    metric === "qr" || !chart
+      ? runningTotal
+      : chart.values.reduce((sum, value) => sum + value, 0)
 
   return {
     metric,
@@ -157,9 +177,11 @@ export function buildNumbersDetailModel({
     trendFrom: trendAvailableFrom(firstStampAt),
     headline,
     headlineCaption:
-      metric === "qr"
-        ? "QR downloads, all time"
-        : `${noun.plural} in the last ${range} days`,
+      metric === "qr" || !chart
+        ? `${chartLabelLower(metric)}, all time`
+        : `${chartLabelLower(metric)} in the last ${range} days`,
+    chartLabel: CHART_LABEL[metric],
+    comparisonLabel: COMPARISON_LABEL[metric],
     chart,
     comparison: trends ? trendFor(trends, metric) : null,
     comparisonEnabled,
@@ -202,4 +224,21 @@ function trendFor(
     case "qr":
       return trends.qrDownloads
   }
+}
+
+function runningTotalFor(totals: NumbersTotals, metric: NumbersMetric): number {
+  switch (metric) {
+    case "members":
+      return totals.members
+    case "stamps":
+      return totals.stampsIssued
+    case "rewards":
+      return totals.rewardsRedeemed
+    case "qr":
+      return totals.qrDownloads
+  }
+}
+
+function chartLabelLower(metric: NumbersMetric): string {
+  return metric === "qr" ? "QR downloads" : CHART_LABEL[metric].toLowerCase()
 }

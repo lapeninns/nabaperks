@@ -8,6 +8,7 @@ import {
   ActivityFeedSkeleton,
   ColumnChartSkeleton,
   CounterQrCardSkeleton,
+  NumbersDetailSkeleton,
   LaunchPanelSkeleton,
   MerchantCompactActivitySkeleton,
   MerchantCustomersTableSkeleton,
@@ -67,6 +68,10 @@ export default function SkeletonsHarnessPage() {
 
       <HarnessSection id="numbers-overview" title="NumbersOverviewSkeleton">
         <NumbersOverviewSkeleton />
+      </HarnessSection>
+
+      <HarnessSection id="numbers-detail" title="NumbersDetailSkeleton">
+        <NumbersDetailSkeleton />
       </HarnessSection>
 
       <HarnessSection id="column-chart" title="ColumnChartSkeleton">

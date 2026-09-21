@@ -145,3 +145,27 @@ test("summaries and plurals read naturally", () => {
   assert.equal(pluralBadge("QR scanned"), "QR scans")
   assert.equal(pluralBadge("Join"), "joins")
 })
+
+test("other qr-category events never collapse, and unknown labels count as × label", () => {
+  const downloads = Array.from({ length: 3 }, (_, index) =>
+    row({
+      id: `dl-${index}`,
+      eventName: "qr_downloaded",
+      category: "qr",
+      badgeLabel: "QR downloaded",
+      timestamp: `2026-09-21T10:0${index}:00Z`,
+    })
+  )
+  assert.equal(
+    groupActivityRows(downloads).every((entry) => !isActivityGroup(entry)),
+    true
+  )
+  assert.equal(pluralBadge("QR downloaded"), "× QR downloaded")
+})
+
+test("absolute clock labels read in time order", () => {
+  assert.equal(
+    formatGroupSummary("Mon 1 Sep, 09:00", "Mon 1 Sep, 12:00"),
+    "Mon 1 Sep, 09:00 to Mon 1 Sep, 12:00"
+  )
+})
