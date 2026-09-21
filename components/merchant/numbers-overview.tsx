@@ -2,12 +2,10 @@
 
 import Link from "next/link"
 import { useState } from "react"
-import { ArrowLeft01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons"
 
 import { recordConsoleEventAction } from "@/app/app/console-events"
-import { Icon, ReceiptCard } from "@/components/brand"
+import { ReceiptCard } from "@/components/brand"
 import { ColumnChart } from "@/components/data/column-chart"
-import { Button } from "@/components/ui/button"
 import {
   metricTrendClassName,
   metricTrendGlyph,
@@ -19,6 +17,7 @@ import {
 } from "@/lib/merchant/numbers-overview-model"
 import { cn } from "@/lib/utils"
 
+import { NumbersDayReadout } from "./numbers-day-readout"
 import { NumbersRangeSheet } from "./numbers-range-sheet"
 
 const STAMP_NOUN = { singular: "stamp", plural: "stamps" }
@@ -121,10 +120,18 @@ export function NumbersOverview({
             />
           </ReceiptCard>
 
-          <DayReadout
+          <NumbersDayReadout
             name={chart.names[selected] ?? ""}
-            stamps={chart.stamps[selected] ?? 0}
-            joins={chart.joins[selected] ?? 0}
+            values={[
+              {
+                value: chart.stamps[selected] ?? 0,
+                noun: (chart.stamps[selected] ?? 0) === 1 ? "stamp" : "stamps",
+              },
+              {
+                value: chart.joins[selected] ?? 0,
+                noun: (chart.joins[selected] ?? 0) === 1 ? "join" : "joins",
+              },
+            ]}
             canStepBack={selected > chart.placeholderCount}
             canStepForward={selected < lastIndex}
             onStep={(delta) => select({ delta }, "stepper", "stamps")}
@@ -215,57 +222,14 @@ function TooEarlyNote({ model }: { model: NumbersOverviewModel }) {
   )
 }
 
-function DayReadout({
-  name,
-  stamps,
-  joins,
-  canStepBack,
-  canStepForward,
-  onStep,
-}: {
-  name: string
-  stamps: number
-  joins: number
-  canStepBack: boolean
-  canStepForward: boolean
-  onStep: (delta: -1 | 1) => void
-}) {
-  return (
-    <div
-      className="flex items-center justify-between gap-3 rounded-lg border-2 border-ink bg-card px-3 py-2 shadow-xs"
-      data-numbers-readout
-    >
-      <Button
-        type="button"
-        variant="secondary"
-        size="icon"
-        aria-label="Previous day"
-        disabled={!canStepBack}
-        onClick={() => onStep(-1)}
-      >
-        <Icon icon={ArrowLeft01Icon} size={18} />
-      </Button>
-      <p aria-live="polite" className="min-w-0 text-center">
-        <span className="mono-meta block text-ink-soft">{name}</span>
-        <span className="block text-sm font-bold">
-          <span className="font-mono tabular-nums">{stamps}</span>{" "}
-          {stamps === 1 ? "stamp" : "stamps"} ·{" "}
-          <span className="font-mono tabular-nums">{joins}</span>{" "}
-          {joins === 1 ? "join" : "joins"}
-        </span>
-      </p>
-      <Button
-        type="button"
-        variant="secondary"
-        size="icon"
-        aria-label="Next day"
-        disabled={!canStepForward}
-        onClick={() => onStep(1)}
-      >
-        <Icon icon={ArrowRight01Icon} size={18} />
-      </Button>
-    </div>
-  )
+/** Drilling into a metric keeps the range the owner chose. */
+function detailHref(
+  basePath: string | undefined,
+  metric: string,
+  range: number
+): string {
+  const path = `${(basePath ?? "/app/numbers").split("?")[0]}/${metric}`
+  return range === 14 ? path : `${path}?range=${range}`
 }
 
 const DETAIL_METRIC = {
@@ -297,7 +261,7 @@ function DeltaReceipt({
           >
             <dt className="text-sm font-bold">
               <Link
-                href={`${basePath ?? "/app/numbers"}/${DETAIL_METRIC[row.key]}`}
+                href={detailHref(basePath, DETAIL_METRIC[row.key], model.range)}
                 prefetch={false}
                 data-numbers-metric-link={DETAIL_METRIC[row.key]}
                 onClick={() => {
@@ -345,7 +309,7 @@ function DeltaReceipt({
           See the activity behind these
         </Link>
         <Link
-          href={`${basePath ?? "/app/numbers"}/qr`}
+          href={detailHref(basePath, "qr", model.range)}
           prefetch={false}
           data-numbers-metric-link="qr"
           onClick={() => {

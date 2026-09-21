@@ -18,6 +18,7 @@ import { numbersRangeLabel } from "@/lib/merchant/numbers-nav"
 import { formatComeBackDate } from "@/lib/merchant/numbers-overview-model"
 import { cn } from "@/lib/utils"
 
+import { NumbersDayReadout } from "./numbers-day-readout"
 import { NumbersRangeSheet } from "./numbers-range-sheet"
 
 /**
@@ -51,6 +52,32 @@ export function NumbersDetail({
   const rangeLabel = numbersRangeLabel(model.range)
   const metricForEvent = model.metric
 
+  function select(
+    target: { index: number } | { delta: -1 | 1 },
+    method: "column" | "stepper"
+  ) {
+    if (!chart) return
+    setSelection((previous) => {
+      const current =
+        previous.range === model.range
+          ? Math.min(previous.index, lastIndex)
+          : lastIndex
+      const requested =
+        "index" in target ? target.index : current + target.delta
+      // Placeholder days are not selectable: clamp like the overview.
+      const next = Math.min(
+        Math.max(requested, chart.placeholderCount),
+        lastIndex
+      )
+      if (next === current) return previous
+      void recordConsoleEventAction({
+        name: "numbers_day_selected",
+        properties: { metric: metricForEvent, method },
+      })
+      return { range: model.range, index: next }
+    })
+  }
+
   return (
     <div className="mx-auto grid w-full max-w-[35rem] gap-5 min-[900px]:max-w-[51.25rem]">
       <div className="flex items-center justify-between gap-3">
@@ -71,7 +98,7 @@ export function NumbersDetail({
       </div>
 
       <div className="grid gap-1" data-numbers-detail-headline>
-        <p className="mono-meta text-ink-soft">{model.label}</p>
+        <p className="mono-meta text-ink-soft">{model.chartLabel}</p>
         <p className="font-mono text-4xl leading-none font-bold tabular-nums">
           {model.headline === null
             ? "—"
@@ -96,38 +123,32 @@ export function NumbersDetail({
       ) : chart ? (
         <ReceiptCard className="grid gap-4">
           <ColumnChart
-            title={model.label}
+            title={model.chartLabel}
             noun={model.noun}
             labels={chart.labels}
             names={chart.names}
             values={chart.values}
             placeholderCount={chart.placeholderCount}
             selectedIndex={selected}
-            onSelect={(index) => {
-              setSelection({ range: model.range, index })
-              void recordConsoleEventAction({
-                name: "numbers_day_selected",
-                properties: { metric: metricForEvent, method: "column" },
-              })
-            }}
+            onSelect={(index) => select({ index }, "column")}
             tone={chart.tone}
             rangeLabel={rangeLabel}
           />
-          <p
-            aria-live="polite"
-            data-numbers-detail-readout
-            className="text-center text-sm font-bold"
-          >
-            <span className="mono-meta block text-ink-soft">
-              {chart.names[selected]}
-            </span>
-            <span className="font-mono tabular-nums">
-              {chart.values[selected] ?? 0}
-            </span>{" "}
-            {(chart.values[selected] ?? 0) === 1
-              ? model.noun.singular
-              : model.noun.plural}
-          </p>
+          <NumbersDayReadout
+            name={chart.names[selected] ?? ""}
+            values={[
+              {
+                value: chart.values[selected] ?? 0,
+                noun:
+                  (chart.values[selected] ?? 0) === 1
+                    ? model.noun.singular
+                    : model.noun.plural,
+              },
+            ]}
+            canStepBack={selected > chart.placeholderCount}
+            canStepForward={selected < lastIndex}
+            onStep={(delta) => select({ delta }, "stepper")}
+          />
         </ReceiptCard>
       ) : model.metric === "qr" ? null : (
         <ReceiptCard
@@ -142,7 +163,9 @@ export function NumbersDetail({
 
       {model.comparison ? (
         <ReceiptCard edge className="grid gap-2" data-numbers-comparison>
-          <p className="mono-meta text-ink-soft">This week</p>
+          <p className="mono-meta text-ink-soft">
+            {model.comparisonLabel} this week
+          </p>
           <p className="text-sm font-bold">
             <span className="font-mono text-lg tabular-nums">
               {model.comparison.current.toLocaleString("en-GB")}

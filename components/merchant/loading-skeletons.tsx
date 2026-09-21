@@ -171,6 +171,72 @@ export function NumbersOverviewSkeleton() {
   )
 }
 
+/**
+ * Mirrors {@link NumbersDetail}: back row, headline, one chart block, the
+ * readout, the comparison card, best / quietest, and five recent rows.
+ */
+export function NumbersDetailSkeleton() {
+  return (
+    <div
+      role="status"
+      aria-label="Loading this metric"
+      className="mx-auto grid w-full max-w-[35rem] gap-5 min-[900px]:max-w-[51.25rem]"
+    >
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-4 w-20" />
+        <Skeleton className="h-11 w-36" />
+      </div>
+      <div className="grid gap-1">
+        <Skeleton className="h-[0.9375rem] w-20" />
+        <Skeleton className="h-9 w-20" />
+        <Skeleton className="h-4 w-44" />
+      </div>
+      <ReceiptCard className="grid gap-4">
+        <ColumnChartSkeleton />
+        <div className="flex items-center justify-between gap-3 rounded-lg border-2 border-ink bg-card px-3 py-2 shadow-xs">
+          <Skeleton className="size-11" />
+          <div className="grid justify-items-center gap-1">
+            <Skeleton className="h-[0.9375rem] w-40" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+          <Skeleton className="size-11" />
+        </div>
+      </ReceiptCard>
+      <ReceiptCard edge className="grid gap-2">
+        <Skeleton className="h-[0.9375rem] w-32" />
+        <Skeleton className="h-5 w-48" />
+        <Skeleton className="h-[0.8125rem] w-40" />
+      </ReceiptCard>
+      <div className="grid grid-cols-2 gap-3">
+        {[0, 1].map((cell) => (
+          <div
+            key={cell}
+            className="grid gap-1 rounded-lg border-2 border-ink bg-card p-3 shadow-xs"
+          >
+            <Skeleton className="h-[0.8125rem] w-16" />
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-[1.125rem] w-20" />
+          </div>
+        ))}
+      </div>
+      <div className="grid gap-3">
+        <div className="flex items-baseline justify-between">
+          <Skeleton className="h-[0.9375rem] w-40" />
+          <Skeleton className="h-4 w-24" />
+        </div>
+        <div className="surface-card divide-y-2 divide-dashed divide-line p-0">
+          {[0, 1, 2, 3, 4].map((row) => (
+            <div key={row} className="grid gap-2 p-4">
+              <Skeleton className="h-5 w-24 rounded-full" />
+              <Skeleton className="h-4 w-56 max-w-full" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Dashboard metrics ─────────────────────────────────────────────────────────
 
 /**
