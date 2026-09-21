@@ -1,4 +1,5 @@
 import { formatMerchantBillingStatus } from "@/lib/merchant/billing-status-copy"
+import { formatShortDate } from "@/lib/merchant/london-date"
 
 /**
  * Inputs for the More screen's live subtitles. Each is `null` when its read
@@ -120,16 +121,9 @@ export function buildMoreRows(input: MoreRowsInput): readonly MoreRow[] {
   return rows
 }
 
-/** "Fri 19 Sep" in London time for the announcement row. */
+/** "Sat 19 Sep" in London time for the announcement row. */
 export function formatMoreDate(iso: string): string {
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return "recently"
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Europe/London",
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  })
-    .format(date)
-    .replace("Sept", "Sep")
+  return formatShortDate(date, "Europe/London")
 }

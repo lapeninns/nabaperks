@@ -39,6 +39,14 @@ const CONSOLE_STATE_LINKS: ReadonlyArray<readonly [string, string]> = [
   ["Counter — reset in flight", "/dev/app-harness/dashboard?reset=slow"],
   ["Counter — setup incomplete", "/dev/app-harness/dashboard?setup=incomplete"],
   ["Shell — offline strip", "/dev/app-harness/dashboard?offline=1"],
+  [
+    "Shell — billing past due strip",
+    "/dev/app-harness/dashboard?billing=past_due",
+  ],
+  [
+    "Shell — billing cancelled strip",
+    "/dev/app-harness/activity?billing=cancelled",
+  ],
   ["Numbers — full history", "/dev/app-harness/numbers"],
   ["Numbers — 7 days", "/dev/app-harness/numbers?range=7"],
   ["Numbers — 3–13 days", "/dev/app-harness/numbers?state=partial"],

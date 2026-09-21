@@ -193,3 +193,55 @@ test.describe("@visual greyscale", () => {
     )
   })
 })
+
+/**
+ * The console breakpoint contract (handoff §8): the three screens whose
+ * layout changes across the 600px two-up and 900px rail transitions are
+ * captured at each named width, independent of the project's own viewport.
+ * One baseline per width per screen, so a regression at a boundary is
+ * caught even when the project defaults sit either side of it.
+ */
+const CONSOLE_BREAKPOINT_ROUTES = [
+  { name: "console-counter", path: "/dev/app-harness/dashboard" },
+  { name: "console-numbers", path: "/dev/app-harness/numbers" },
+  { name: "console-more", path: "/dev/app-harness/more" },
+] as const
+
+const CONSOLE_WIDTHS = [320, 375, 430, 600, 768, 900, 1024] as const
+
+test.describe("@visual console breakpoints", () => {
+  for (const width of CONSOLE_WIDTHS) {
+    test.describe(`${width}px`, () => {
+      test.use({ viewport: { width, height: width < 600 ? 800 : 900 } })
+
+      for (const route of CONSOLE_BREAKPOINT_ROUTES) {
+        test(`Given ${route.name} at ${width}px When it renders Then the layout matches its baseline`, async ({
+          page,
+        }) => {
+          await dismissPwaInstall(page)
+          await page.goto(route.path)
+          await page.evaluate(() => document.fonts.ready)
+          if (route.name === "console-counter") {
+            const qr = page.getByRole("img", {
+              name: "QR code for Old Crown Girton",
+            })
+            await expect(qr).toBeVisible()
+            await expect
+              .poll(() =>
+                qr.evaluate(
+                  (image) =>
+                    image instanceof HTMLImageElement &&
+                    image.complete &&
+                    image.naturalWidth > 0
+                )
+              )
+              .toBe(true)
+          }
+          await expect(page).toHaveScreenshot(`${route.name}-${width}.png`, {
+            maxDiffPixelRatio: 0.001,
+          })
+        })
+      }
+    })
+  }
+})

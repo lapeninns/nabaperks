@@ -33,6 +33,8 @@ const PUBLIC_ROUTES = [
 
 const HARNESS_LANES = [
   HARNESS_ROUTES.dashboard,
+  `${HARNESS_ROUTES.dashboard}?billing=past_due`,
+  `${HARNESS_ROUTES.dashboard}?qr=paused`,
   HARNESS_ROUTES.customers,
   HARNESS_ROUTES.activity,
   HARNESS_ROUTES.numbers,

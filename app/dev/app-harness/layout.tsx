@@ -4,6 +4,7 @@ import { headers } from "next/headers"
 import { notFound } from "next/navigation"
 
 import { MerchantAppShell } from "@/components/layout/merchant-app-shell"
+import { MerchantBillingStripView } from "@/components/merchant/merchant-billing-strip"
 import { REQUEST_PATH_HEADER } from "@/lib/navigation/request-path"
 
 import { HARNESS_MERCHANT, HARNESS_TODAY_LABEL } from "./fixtures"
@@ -83,6 +84,15 @@ export default async function AppHarnessLayout({
   const search =
     queryIndex >= 0 ? new URLSearchParams(requestPath.slice(queryIndex)) : null
   const forceOffline = search?.get("offline") === "1"
+  // `?billing=past_due|cancelled|suspended` mounts the persistent billing
+  // strip the real layout streams on every tab.
+  const billing = search?.get("billing")
+  const billingNotice =
+    billing === "past_due" ||
+    billing === "cancelled" ||
+    billing === "suspended" ? (
+      <MerchantBillingStripView status={billing} />
+    ) : null
 
   const lane = resolveLaneFromPath(pathname)
   const variant = SETUP_LANES.has(lane) ? "setup" : "full"
@@ -97,6 +107,7 @@ export default async function AppHarnessLayout({
       venueName={HARNESS_MERCHANT.business_name}
       todayLabel={HARNESS_TODAY_LABEL}
       forceOffline={forceOffline}
+      billingNotice={billingNotice}
     >
       {children}
     </MerchantAppShell>

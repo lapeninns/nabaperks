@@ -9,6 +9,11 @@ import {
   trendAvailableFrom,
   type NumbersBand,
 } from "@/lib/merchant/numbers-banding"
+import {
+  formatLongDate,
+  formatShortDate,
+  formatShortWeekdayDay,
+} from "@/lib/merchant/london-date"
 import type { NumbersRange } from "@/lib/merchant/numbers-nav"
 
 export type NumbersTotals = {
@@ -127,41 +132,22 @@ function sliceSeries(
   }
 }
 
-const COLUMN_LABEL = new Intl.DateTimeFormat("en-GB", {
-  timeZone: "UTC",
-  weekday: "short",
-  day: "numeric",
-})
-const DAY_NAME = new Intl.DateTimeFormat("en-GB", {
-  timeZone: "UTC",
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-})
-
 /** Day keys are London dates; formatting them at UTC noon keeps the date. */
 function dayKeyToDate(key: string): Date {
   return new Date(`${key}T12:00:00Z`)
 }
 
 export function formatColumnLabel(key: string): string {
-  return COLUMN_LABEL.format(dayKeyToDate(key))
+  return formatShortWeekdayDay(dayKeyToDate(key), "UTC")
 }
 
 export function formatDayName(key: string): string {
-  return DAY_NAME.format(dayKeyToDate(key))
+  return formatLongDate(dayKeyToDate(key), "UTC")
 }
 
 /** "Thu 24 Sep" for the come-back note. */
 export function formatComeBackDate(isoDate: string): string {
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: "UTC",
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  })
-    .format(dayKeyToDate(isoDate))
-    .replace("Sept", "Sep")
+  return formatShortDate(dayKeyToDate(isoDate), "UTC")
 }
 
 /** "Wed 16 September, 9 stamps" — the column button's accessible name. */

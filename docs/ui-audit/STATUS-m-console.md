@@ -20,6 +20,34 @@ on the previous lane until it merges.
 | L7   | More, live subtitles, 900px redirect                                                                                         | not started |                                                         |                                                                                                                                                                                                                                    |
 | L8   | Sweep: skeletons, harness, visual and a11y suites, bundle, dead code                                                         | not started |                                                         |                                                                                                                                                                                                                                    |
 
+## Review follow-ups (Codex, 2026-09-21)
+
+Each lane branch carries a `fix(...): review follow-ups` commit answering
+that lane's inline findings; later lanes merge the earlier fixes forward.
+Decisions that changed under review:
+
+- The rewards daily series buckets unlock dates (the series query is
+  sign-off gated), so the detail screen labels it "Rewards unlocked" and
+  keeps the week comparison as "Rewards redeemed".
+- The Activity scope and category controls are URL state rendered outside
+  the feed's boundary, so a failing query never removes them; the
+  "one row hides the pills" rule is dropped because a one-result filter
+  must still be undoable.
+- The first stamp is read from `stamp_events` (event_type earned), the same
+  ledger as the counts, and a failed read rejects the stream rather than
+  reading as "never stamped".
+- More's Poster row reports "Print kit downloaded" / "No download yet"
+  (the durable signal); "Last sent" reads the notification ledger; Account
+  reads the launch billing readiness ("not started", "not required").
+- Two findings are answered rather than changed: the Numbers lane's interim
+  metrics stream labels (superseded by L4, which removed the stream) and
+  the L8 status-ledger note (the ledger was updated in that same commit).
+- Visual baselines: generated inside the CI-pinned
+  `mcr.microsoft.com/playwright:v1.62.1-noble` image (same digest as
+  `ci.yml`) for the console routes, the greyscale receipt and the breakpoint
+  matrix, and committed on the L8 branch. The four `harness-dashboard*`
+  baselines were regenerated the same way.
+
 ## Open tickets this rebuild needs from the data layer
 
 - **Numbers breakdowns (§6.3.2).** No query exists for joins by channel (QR / team code / invite), stamps by hour of day or by claim method, the reward lifecycle split (unlocked / redeemed / expired / sent) with median days to redemption, or QR scans vs downloads vs poster prints. Each is a new aggregate over `product_events` (or the stamping wrapper's rows) and needs a product decision on definitions before it is drawn.
