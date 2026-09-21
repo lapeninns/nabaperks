@@ -103,7 +103,9 @@ export function ColumnChart({
                   : describeColumn(name, value, noun)
               }
               aria-current={selected ? "date" : undefined}
-              disabled={!onSelect}
+              // A placeholder day has nothing to select: disabling it keeps
+              // the readout honest instead of redirecting to another day.
+              disabled={!onSelect || placeholder}
               onClick={() => onSelect?.(index)}
               className="focus-ring group/col flex h-full min-w-0 flex-col justify-end rounded-sm"
             >

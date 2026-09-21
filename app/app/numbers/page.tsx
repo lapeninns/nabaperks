@@ -79,6 +79,11 @@ async function NumbersOverviewStream({
   if (dashboard.status === "rejected" && series.status === "rejected") {
     throw dashboard.reason
   }
+  // A failed first-stamp read is not "never stamped": without the clock the
+  // bands cannot be chosen honestly, so the boundary takes over with Retry.
+  if (firstStamp.status === "rejected") {
+    throw firstStamp.reason
+  }
 
   const totals =
     dashboard.status === "fulfilled" ? dashboard.value.metrics : null
