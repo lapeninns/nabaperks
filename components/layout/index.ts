@@ -8,9 +8,12 @@ export {
   adminNavItems,
   merchantAccountItems,
   merchantNavItems,
+  merchantTabItems,
   isActiveNavItem,
   isActivePath,
   parseNavHref,
+  resolveMerchantTab,
+  type MerchantTabItem,
   type ShellNavItem,
 } from "./console-nav"
 export { ConsoleSidebarNav } from "./console-sidebar-nav"
