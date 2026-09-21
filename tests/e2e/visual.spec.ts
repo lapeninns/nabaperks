@@ -1,9 +1,6 @@
 import { expect, test } from "@playwright/test"
 
-import {
-  dismissPwaInstall,
-  expandConsoleShellForFullPage,
-} from "./helpers/harness"
+import { dismissPwaInstall } from "./helpers/harness"
 
 const routes = [
   { name: "marketing-landing", path: "/" },
@@ -38,27 +35,6 @@ const routes = [
     name: "harness-dashboard-empty",
     path: "/dev/app-harness/dashboard?members=empty",
   },
-  // Counter-first console (docs/ui-audit/counter-console-rebuild): each
-  // screen's default state plus the states that change its shape.
-  {
-    name: "harness-counter-paused",
-    path: "/dev/app-harness/dashboard?qr=paused",
-  },
-  { name: "harness-numbers", path: "/dev/app-harness/numbers" },
-  {
-    name: "harness-numbers-partial",
-    path: "/dev/app-harness/numbers?state=partial",
-  },
-  {
-    name: "harness-numbers-early",
-    path: "/dev/app-harness/numbers?state=early",
-  },
-  { name: "harness-numbers-stamps", path: "/dev/app-harness/numbers/stamps" },
-  {
-    name: "harness-activity-grouped",
-    path: "/dev/app-harness/activity?fixture=grouped",
-  },
-  { name: "harness-more", path: "/dev/app-harness/more" },
   // The offers lane renders one surface per request. Each of the four carries a
   // state the others cannot show, so each needs its own baseline.
   { name: "harness-offers-desk", path: "/dev/app-harness/offers" },
@@ -158,10 +134,6 @@ test.describe("visual regression @visual", () => {
           .toBe(true)
       }
 
-      if (route.path.startsWith("/dev/app-harness/")) {
-        await expandConsoleShellForFullPage(page)
-      }
-
       const strictComparison =
         route.name === "harness-dashboard" ||
         route.name === "harness-dashboard-empty" ||
@@ -171,84 +143,6 @@ test.describe("visual regression @visual", () => {
         fullPage: true,
         maxDiffPixelRatio: strictComparison ? 0.001 : 0.04,
       })
-    })
-  }
-})
-
-/**
- * Greyscale pass over the delta receipt (handoff §9): every trend must read
- * with colour removed, so the receipt is captured with `filter: grayscale(1)`
- * on the root and compared against its own baseline.
- */
-test.describe("@visual greyscale", () => {
-  test("Given the Numbers delta receipt When colour is removed Then direction still reads", async ({
-    page,
-  }) => {
-    await dismissPwaInstall(page)
-    await page.goto("/dev/app-harness/numbers")
-    await page.evaluate(() => document.fonts.ready)
-    await page.addStyleTag({
-      content: "html { filter: grayscale(1) !important; }",
-    })
-    const receipt = page.locator("[data-numbers-deltas]")
-    await expect(receipt).toBeVisible()
-    await expect(receipt).toHaveScreenshot(
-      "numbers-delta-receipt-greyscale.png",
-      {
-        maxDiffPixelRatio: 0.001,
-      }
-    )
-  })
-})
-
-/**
- * The console breakpoint contract (handoff §8): the three screens whose
- * layout changes across the 600px two-up and 900px rail transitions are
- * captured at each named width, independent of the project's own viewport.
- * One baseline per width per screen, so a regression at a boundary is
- * caught even when the project defaults sit either side of it.
- */
-const CONSOLE_BREAKPOINT_ROUTES = [
-  { name: "console-counter", path: "/dev/app-harness/dashboard" },
-  { name: "console-numbers", path: "/dev/app-harness/numbers" },
-  { name: "console-more", path: "/dev/app-harness/more" },
-] as const
-
-const CONSOLE_WIDTHS = [320, 375, 430, 600, 768, 900, 1024] as const
-
-test.describe("@visual console breakpoints", () => {
-  for (const width of CONSOLE_WIDTHS) {
-    test.describe(`${width}px`, () => {
-      test.use({ viewport: { width, height: width < 600 ? 800 : 900 } })
-
-      for (const route of CONSOLE_BREAKPOINT_ROUTES) {
-        test(`Given ${route.name} at ${width}px When it renders Then the layout matches its baseline`, async ({
-          page,
-        }) => {
-          await dismissPwaInstall(page)
-          await page.goto(route.path)
-          await page.evaluate(() => document.fonts.ready)
-          if (route.name === "console-counter") {
-            const qr = page.getByRole("img", {
-              name: "QR code for Old Crown Girton",
-            })
-            await expect(qr).toBeVisible()
-            await expect
-              .poll(() =>
-                qr.evaluate(
-                  (image) =>
-                    image instanceof HTMLImageElement &&
-                    image.complete &&
-                    image.naturalWidth > 0
-                )
-              )
-              .toBe(true)
-          }
-          await expect(page).toHaveScreenshot(`${route.name}-${width}.png`, {
-            maxDiffPixelRatio: 0.001,
-          })
-        })
-      }
     })
   }
 })

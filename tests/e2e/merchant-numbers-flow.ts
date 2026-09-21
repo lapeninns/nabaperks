@@ -1,10 +1,7 @@
 import { expect, test, type Page } from "@playwright/test"
 
-import {
-  dismissPwaInstall,
-  gotoHydratedPage,
-  HARNESS_ROUTES,
-} from "./helpers/harness"
+import { dismissPwaInstall, gotoHydratedPage } from "./helpers/harness"
+import { CONSOLE_HARNESS_ROUTES } from "./helpers/console-harness"
 
 /**
  * Numbers overview (handoff §6.3.1, §6.3.3, §7.4) on the DB-free harness.
@@ -27,7 +24,7 @@ export function describeMerchantNumbers() {
     page,
   }) => {
     await page.setViewportSize({ width: 375, height: 667 })
-    await gotoHydratedPage(page, HARNESS_ROUTES.numbers)
+    await gotoHydratedPage(page, CONSOLE_HARNESS_ROUTES.numbers)
 
     await expect(page.locator("[data-numbers-headline]")).toContainText("81")
     await expect(page.locator("[data-numbers-headline]")).toContainText(
@@ -87,7 +84,7 @@ export function describeMerchantNumbers() {
   test("the range sheet round-trips through the URL and keeps 7 days", async ({
     page,
   }) => {
-    await gotoHydratedPage(page, HARNESS_ROUTES.numbers)
+    await gotoHydratedPage(page, CONSOLE_HARNESS_ROUTES.numbers)
 
     await page.locator("[data-numbers-range-trigger]").click()
     const sheet = page.locator("[data-numbers-range-sheet]")
@@ -110,7 +107,10 @@ export function describeMerchantNumbers() {
   test("low-data bands: partial draws placeholders and suppresses deltas; early has no chart", async ({
     page,
   }) => {
-    await gotoHydratedPage(page, `${HARNESS_ROUTES.numbers}?state=partial`)
+    await gotoHydratedPage(
+      page,
+      `${CONSOLE_HARNESS_ROUTES.numbers}?state=partial`
+    )
     await expect(
       chart(page, "stamps").getByRole("button", { name: /not yet recorded$/ })
     ).toHaveCount(7)
@@ -130,14 +130,20 @@ export function describeMerchantNumbers() {
     )
     await expect(previous).toBeDisabled()
 
-    await gotoHydratedPage(page, `${HARNESS_ROUTES.numbers}?state=early`)
+    await gotoHydratedPage(
+      page,
+      `${CONSOLE_HARNESS_ROUTES.numbers}?state=early`
+    )
     await expect(page.locator("[data-numbers-too-early]")).toContainText(
       "Come back on Wed 23 Sep"
     )
     await expect(page.locator("[data-column-chart]")).toHaveCount(0)
     await expect(page.locator("[data-numbers-too-early]")).toContainText("412")
 
-    await gotoHydratedPage(page, `${HARNESS_ROUTES.numbers}?state=never`)
+    await gotoHydratedPage(
+      page,
+      `${CONSOLE_HARNESS_ROUTES.numbers}?state=never`
+    )
     await expect(page.locator("[data-numbers-too-early]")).toContainText(
       "Your first stamp starts the clock."
     )
@@ -146,21 +152,30 @@ export function describeMerchantNumbers() {
   test("zero activity draws a labelled baseline, and partial failures keep the other half", async ({
     page,
   }) => {
-    await gotoHydratedPage(page, `${HARNESS_ROUTES.numbers}?state=zero`)
+    await gotoHydratedPage(page, `${CONSOLE_HARNESS_ROUTES.numbers}?state=zero`)
     await expect(chart(page, "stamps")).toContainText("No stamps in this range")
     await expect(chart(page, "stamps").getByRole("button")).toHaveCount(14)
 
-    await gotoHydratedPage(page, `${HARNESS_ROUTES.numbers}?state=series-error`)
+    await gotoHydratedPage(
+      page,
+      `${CONSOLE_HARNESS_ROUTES.numbers}?state=series-error`
+    )
     await expect(page.locator("[data-numbers-series-error]")).toBeVisible()
     await expect(page.locator("[data-numbers-deltas]")).toBeVisible()
     await expect(page.locator("[data-column-chart]")).toHaveCount(0)
 
-    await gotoHydratedPage(page, `${HARNESS_ROUTES.numbers}?state=totals-error`)
+    await gotoHydratedPage(
+      page,
+      `${CONSOLE_HARNESS_ROUTES.numbers}?state=totals-error`
+    )
     await expect(page.locator("[data-numbers-totals-error]")).toBeVisible()
     await expect(page.locator("[data-column-chart]")).toHaveCount(2)
     await expect(page.locator("[data-numbers-deltas]")).toHaveCount(0)
 
-    await gotoHydratedPage(page, `${HARNESS_ROUTES.numbers}?state=both-error`)
+    await gotoHydratedPage(
+      page,
+      `${CONSOLE_HARNESS_ROUTES.numbers}?state=both-error`
+    )
     await expect(
       page.getByRole("heading", { name: "Could not load your numbers" })
     ).toBeVisible()
@@ -170,7 +185,7 @@ export function describeMerchantNumbers() {
     page,
   }) => {
     await page.setViewportSize({ width: 320, height: 568 })
-    await gotoHydratedPage(page, HARNESS_ROUTES.numbers)
+    await gotoHydratedPage(page, CONSOLE_HARNESS_ROUTES.numbers)
     const overflow = await page.evaluate(() => {
       const root = document.scrollingElement ?? document.documentElement
       const body = document.querySelector("[data-console-body]")!

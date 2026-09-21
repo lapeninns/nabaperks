@@ -5,6 +5,7 @@ import {
   gotoHydratedPage,
   HARNESS_ROUTES,
 } from "./helpers/harness"
+import { CONSOLE_HARNESS_ROUTES } from "./helpers/console-harness"
 
 /** More (handoff §6.4, §7.5) on the DB-free harness. */
 export function describeMerchantMore() {
@@ -16,7 +17,7 @@ export function describeMerchantMore() {
     page,
   }) => {
     await page.setViewportSize({ width: 375, height: 667 })
-    await gotoHydratedPage(page, HARNESS_ROUTES.more)
+    await gotoHydratedPage(page, CONSOLE_HARNESS_ROUTES.more)
 
     const rows = page.locator("[data-more-row]")
     await expect(rows).toHaveCount(5)
@@ -52,7 +53,7 @@ export function describeMerchantMore() {
   }) => {
     await gotoHydratedPage(
       page,
-      `${HARNESS_ROUTES.more}?state=setup-incomplete`
+      `${CONSOLE_HARNESS_ROUTES.more}?state=setup-incomplete`
     )
     await expect(page.locator('[data-more-row="setup"]')).toContainText(
       "2 of 5 steps left"
@@ -66,7 +67,7 @@ export function describeMerchantMore() {
 
     await gotoHydratedPage(
       page,
-      `${HARNESS_ROUTES.more}?state=subtitles-failed`
+      `${CONSOLE_HARNESS_ROUTES.more}?state=subtitles-failed`
     )
     await expect(page.locator("[data-more-subtitle]")).toHaveCount(0)
     await expect(page.locator('[data-more-row="members"]')).toHaveAttribute(
@@ -79,12 +80,15 @@ export function describeMerchantMore() {
       "/app/launch"
     )
 
-    await gotoHydratedPage(page, `${HARNESS_ROUTES.more}?state=trial`)
+    await gotoHydratedPage(page, `${CONSOLE_HARNESS_ROUTES.more}?state=trial`)
     await expect(page.locator('[data-more-row="account"]')).toContainText(
       "12 days left"
     )
 
-    await gotoHydratedPage(page, `${HARNESS_ROUTES.more}?state=logout-pending`)
+    await gotoHydratedPage(
+      page,
+      `${CONSOLE_HARNESS_ROUTES.more}?state=logout-pending`
+    )
     await expect(
       page.getByRole("button", { name: /Logging out/ })
     ).toBeDisabled()
@@ -92,12 +96,12 @@ export function describeMerchantMore() {
 
   test("from 900px More redirects to the console root", async ({ page }) => {
     await page.setViewportSize({ width: 1024, height: 800 })
-    await gotoHydratedPage(page, `${HARNESS_ROUTES.more}?redirect=1`)
+    await gotoHydratedPage(page, `${CONSOLE_HARNESS_ROUTES.more}?redirect=1`)
     await page.waitForURL((url) => url.pathname === HARNESS_ROUTES.dashboard)
 
     await page.setViewportSize({ width: 390, height: 844 })
-    await gotoHydratedPage(page, `${HARNESS_ROUTES.more}?redirect=1`)
+    await gotoHydratedPage(page, `${CONSOLE_HARNESS_ROUTES.more}?redirect=1`)
     await expect(page.locator("[data-more-list]")).toBeVisible()
-    expect(new URL(page.url()).pathname).toBe(HARNESS_ROUTES.more)
+    expect(new URL(page.url()).pathname).toBe(CONSOLE_HARNESS_ROUTES.more)
   })
 }

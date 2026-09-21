@@ -17,8 +17,6 @@ export const HARNESS_ROUTES = {
   customers: "/dev/app-harness/customers",
   invite: "/dev/app-harness/invite",
   activity: "/dev/app-harness/activity",
-  numbers: "/dev/app-harness/numbers",
-  more: "/dev/app-harness/more",
   account: "/dev/app-harness/account",
   qr: "/dev/app-harness/qr",
   scan: "/dev/app-harness/scan",
@@ -68,21 +66,4 @@ export async function waitForHydratedPage(page: Page): Promise<void> {
       "html[data-playwright-harness='true'][data-playwright-hydrated='true'] body:not([inert])"
     )
     .waitFor({ state: "attached", timeout: 15_000 })
-}
-
-/**
- * The merchant console shell is a fixed-height grid whose body row scrolls,
- * so a `fullPage` screenshot of a harness lane would only show the first
- * screen. Before a full-page capture, let the shell grow with its content
- * (as the print stylesheet does) so the baseline still reviews the whole
- * lane. The `@visual console breakpoints` cases capture the shell itself at
- * viewport size and do not use this.
- */
-export async function expandConsoleShellForFullPage(page: Page): Promise<void> {
-  await page.addStyleTag({
-    content:
-      "[data-console-shell]{display:block!important;height:auto!important;min-height:0!important}" +
-      "[data-console-body]{overflow:visible!important}" +
-      "[data-console-pin]{position:static!important}",
-  })
 }

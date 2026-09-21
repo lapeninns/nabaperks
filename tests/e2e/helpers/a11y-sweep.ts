@@ -33,17 +33,8 @@ const PUBLIC_ROUTES = [
 
 const HARNESS_LANES = [
   HARNESS_ROUTES.dashboard,
-  `${HARNESS_ROUTES.dashboard}?billing=past_due`,
-  `${HARNESS_ROUTES.dashboard}?qr=paused`,
   HARNESS_ROUTES.customers,
   HARNESS_ROUTES.activity,
-  HARNESS_ROUTES.numbers,
-  `${HARNESS_ROUTES.numbers}?state=partial`,
-  `${HARNESS_ROUTES.numbers}?state=early`,
-  `${HARNESS_ROUTES.numbers}/stamps`,
-  `${HARNESS_ROUTES.numbers}/qr`,
-  HARNESS_ROUTES.more,
-  `${HARNESS_ROUTES.more}?state=setup-incomplete`,
   HARNESS_ROUTES.account,
   HARNESS_ROUTES.qr,
   HARNESS_ROUTES.scan,

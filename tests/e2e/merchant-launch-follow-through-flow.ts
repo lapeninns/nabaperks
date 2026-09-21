@@ -3,10 +3,10 @@ import { expect, test } from "@playwright/test"
 import { expectNoAxeViolations } from "./helpers/axe"
 import {
   dismissPwaInstall,
-  expandConsoleShellForFullPage,
   gotoHydratedPage,
   HARNESS_ROUTES,
 } from "./helpers/harness"
+import { expandConsoleShellForFullPage } from "./helpers/console-harness"
 
 const DISABLED_PROMO_PERK =
   "Go live by 31 July 2026 and we print and post your first counter-poster run — free."

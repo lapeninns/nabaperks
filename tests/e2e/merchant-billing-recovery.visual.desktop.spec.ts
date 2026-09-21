@@ -1,10 +1,7 @@
 import { expect, test } from "@playwright/test"
 
-import {
-  dismissPwaInstall,
-  expandConsoleShellForFullPage,
-  HARNESS_ROUTES,
-} from "./helpers/harness"
+import { dismissPwaInstall, HARNESS_ROUTES } from "./helpers/harness"
+import { expandConsoleShellForFullPage } from "./helpers/console-harness"
 
 test("annual billing receipt desktop @visual", async ({ page }) => {
   await dismissPwaInstall(page)

@@ -1,10 +1,7 @@
 import { expect, test } from "@playwright/test"
 
-import {
-  dismissPwaInstall,
-  gotoHydratedPage,
-  HARNESS_ROUTES,
-} from "./helpers/harness"
+import { dismissPwaInstall, gotoHydratedPage } from "./helpers/harness"
+import { CONSOLE_HARNESS_ROUTES } from "./helpers/console-harness"
 
 /** Numbers metric detail (handoff §6.3.2, §7.4) on the DB-free harness. */
 export function describeMerchantNumbersDetail() {
@@ -13,7 +10,7 @@ export function describeMerchantNumbersDetail() {
   })
 
   test("the overview's delta rows open the metric detail", async ({ page }) => {
-    await gotoHydratedPage(page, HARNESS_ROUTES.numbers)
+    await gotoHydratedPage(page, CONSOLE_HARNESS_ROUTES.numbers)
     await page.locator('[data-numbers-metric-link="stamps"]').click()
     await page.waitForURL((url) => url.pathname.endsWith("/numbers/stamps"))
     await expect(page.locator("[data-numbers-detail-headline]")).toContainText(
@@ -21,7 +18,7 @@ export function describeMerchantNumbersDetail() {
     )
 
     // The chosen range travels into the detail link.
-    await gotoHydratedPage(page, `${HARNESS_ROUTES.numbers}?range=7`)
+    await gotoHydratedPage(page, `${CONSOLE_HARNESS_ROUTES.numbers}?range=7`)
     await page.locator('[data-numbers-metric-link="rewards"]').click()
     await page.waitForURL((url) => url.searchParams.get("range") === "7")
     await expect(page.locator("[data-numbers-detail-headline]")).toContainText(
@@ -33,7 +30,10 @@ export function describeMerchantNumbersDetail() {
     page,
   }) => {
     await page.setViewportSize({ width: 375, height: 667 })
-    await gotoHydratedPage(page, `${HARNESS_ROUTES.numbers}/stamps?range=7`)
+    await gotoHydratedPage(
+      page,
+      `${CONSOLE_HARNESS_ROUTES.numbers}/stamps?range=7`
+    )
 
     const headline = page.locator("[data-numbers-detail-headline]")
     await expect(headline).toContainText("51")
@@ -66,7 +66,7 @@ export function describeMerchantNumbersDetail() {
   test("QR has no daily series: total and comparison only, no chart and no range control", async ({
     page,
   }) => {
-    await gotoHydratedPage(page, `${HARNESS_ROUTES.numbers}/qr`)
+    await gotoHydratedPage(page, `${CONSOLE_HARNESS_ROUTES.numbers}/qr`)
     await expect(page.locator("[data-numbers-detail-headline]")).toContainText(
       "QR downloads, all time"
     )
@@ -82,7 +82,7 @@ export function describeMerchantNumbersDetail() {
   }) => {
     await gotoHydratedPage(
       page,
-      `${HARNESS_ROUTES.numbers}/rewards?state=partial`
+      `${CONSOLE_HARNESS_ROUTES.numbers}/rewards?state=partial`
     )
     await expect(page.locator("[data-numbers-comparison]")).toContainText(
       "not enough history to compare yet"
@@ -97,19 +97,21 @@ export function describeMerchantNumbersDetail() {
 
     await gotoHydratedPage(
       page,
-      `${HARNESS_ROUTES.numbers}/members?state=early`
+      `${CONSOLE_HARNESS_ROUTES.numbers}/members?state=early`
     )
     await expect(page.locator("[data-numbers-too-early]")).toBeVisible()
     await expect(page.locator("[data-column-chart]")).toHaveCount(0)
 
     await gotoHydratedPage(
       page,
-      `${HARNESS_ROUTES.numbers}/stamps?state=series-error`
+      `${CONSOLE_HARNESS_ROUTES.numbers}/stamps?state=series-error`
     )
     await expect(page.locator("[data-numbers-series-error]")).toBeVisible()
     await expect(page.locator("[data-numbers-comparison]")).toBeVisible()
 
-    const response = await page.goto(`${HARNESS_ROUTES.numbers}/revenue`)
+    const response = await page.goto(
+      `${CONSOLE_HARNESS_ROUTES.numbers}/revenue`
+    )
     expect(response?.status()).toBe(404)
   })
 }
