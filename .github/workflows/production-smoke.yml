@@ -17,7 +17,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: production-smoke
+  group: production-smoke-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || 'scheduled' }}
   cancel-in-progress: true
 
 env:
@@ -73,16 +73,29 @@ jobs:
           exit 1
       - name: Verify public liveness
         run: |
+          mkdir -p "$RUNNER_TEMP/production-smoke"
           body="$(curl --fail --silent --show-error --max-time 10 https://nabaperks.com/api/health)"
+          printf '%s\n' "$body" | tee "$RUNNER_TEMP/production-smoke/health.json" >/dev/null
           jq -e --arg revision "$EXPECTED_REVISION" '.status == "ok" and .scope == "liveness" and .service == "nabaperks" and (try (.time | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601 | type == "number") catch false) and (.revision | type == "string" and length == 12) and ($revision == "" or .revision == ($revision[0:12])) and .environment == "production" and .targetEnvironment == "production"' <<<"$body"
       - name: Verify dependency readiness
         run: |
           body="$(curl --fail --silent --show-error --max-time 10 --header "Authorization: Bearer ${PRODUCTION_MONITOR_SECRET}" https://nabaperks.com/api/readiness)"
+          printf '%s\n' "$body" | tee "$RUNNER_TEMP/production-smoke/readiness.json" >/dev/null
           jq -e --arg revision "$EXPECTED_REVISION" '.status == "ready" and .scope == "readiness" and .checks.database == "ok" and .checks.operational == "ok" and (.signals.notificationQueueAgeMinutes | type == "number") and (.signals.loyaltyInviteQueueAgeMinutes | type == "number") and (.signals.providerDeliveryFailureRate24h | type == "number") and (.signals.cronJobs | type == "array" and length == 8) and .service == "nabaperks" and (try (.time | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601 | type == "number") catch false) and (.revision | type == "string" and length == 12) and ($revision == "" or .revision == ($revision[0:12])) and .environment == "production" and .targetEnvironment == "production"' <<<"$body"
       - name: Enforce production probe latency
         env:
           PRODUCTION_SLO_CONFIG: config/production-slos.json
-        run: node scripts/check-production-probe-latency.mjs
+        run: |
+          set -o pipefail
+          node scripts/check-production-probe-latency.mjs | tee "$RUNNER_TEMP/production-smoke/probe-latency.json"
+      - name: Preserve probe evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: production-smoke-evidence
+          path: ${{ runner.temp }}/production-smoke/
+          retention-days: 90
+          if-no-files-found: warn
 
   incident:
     name: Error to insight
