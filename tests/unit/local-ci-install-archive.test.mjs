@@ -332,3 +332,32 @@ test("archive failure aborts before the release directory, the current symlink a
   )
   assert.ok(installed > -1 && installed < materialise)
 })
+
+test("clears a disabled launchd override before bootstrap registration", () => {
+  const installedPlist = INSTALLER.indexOf(
+    'install -m 0644 "${revision_plist}" "${installed_plist}"'
+  )
+  const plistIdentity = INSTALLER.indexOf(
+    'cmp -s "${revision_plist}" "${installed_plist}"'
+  )
+  const plistLint = INSTALLER.indexOf(
+    'plutil -lint "${installed_plist}" >/dev/null'
+  )
+  const enable = INSTALLER.indexOf('launchctl enable "gui/${uid}/${LABEL}"')
+  const bootstrap = INSTALLER.indexOf(
+    'launchctl bootstrap "gui/${uid}" "${installed_plist}"'
+  )
+  const kickstart = INSTALLER.indexOf(
+    'launchctl kickstart -k "gui/${uid}/${LABEL}"'
+  )
+
+  assert.ok(enable > -1, "installer must clear the launchd disabled override")
+  assert.ok(
+    installedPlist < plistIdentity &&
+      plistIdentity < plistLint &&
+      plistLint < enable &&
+      enable < bootstrap &&
+      bootstrap < kickstart,
+    "the validated plist must be enabled before bootstrap and kickstart"
+  )
+})
