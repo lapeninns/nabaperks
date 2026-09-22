@@ -505,27 +505,36 @@ proof that an external monitor is configured or remains operational.
 ## Availability SLO and error budget
 
 `config/production-slos.json` owns the production availability objective:
-99.9% over a rolling 30 days, measured from the scheduled 15-minute Production
-smoke workflow with at least 95% evidence coverage. Failed workflow runs and
-missing scheduled slots are reported separately: failures consume service error
-budget, while missing slots breach the monitor-coverage floor and are not
-mislabelled as confirmed downtime. The ten-minute evaluation lag excludes a
-probe that may still be running.
+99% of observed scheduled Production smoke runs over a rolling 30 days. The
+smoke cron is nominally every 15 minutes, but GitHub throttles scheduled
+workflows and has delivered about 6.8 runs a day, so the report measures the
+samples it actually observed instead of nominal cron slots. At that density a
+30-day window holds about 200 samples, which leaves an error budget of two
+failed runs. Missing scheduled runs are not counted as downtime. Instead, the
+observed-sample floor requires at least four samples per observed day
+(`minimumObservedSamplesPerDay`); a report below that floor is `breached`
+because the monitor itself has stopped providing evidence. The ten-minute
+evaluation lag excludes a probe that may still be running.
 
 `Production SLO report` evaluates the window daily, retains its JSON evidence
 for one year and starts measurement from its own first workflow run, so older
 probe history from a different monitoring contract is excluded. The first
 seven observed days are `warming`: the gate is red, but no page or incident is
-created. After that minimum, an availability or coverage miss is `breached` and
-must create or update the durable GitHub incident and trigger the external
-`availability-slo` page. A later `compliant` result resolves the external alert
-before closing the issue.
+created. After that minimum, an availability or observed-sample floor miss is
+`breached`: the first breached run opens the durable GitHub incident and every
+breached run triggers the external `availability-slo` page, which the receiver
+deduplicates. Later breached runs do not comment on the open issue; each run's
+evidence stays in its artifact and step summary. A later `compliant` result
+resolves the external alert, then posts one recovery comment and closes the
+issue.
 
 Treat an error-budget breach as an incident signal, then classify current
 customer impact using the P0/P1/P2 definitions. Freeze discretionary releases
 while the budget is exhausted unless the incident commander records why a
-release reduces risk. The metric is conservative: a failure elsewhere in the
-Production smoke workflow counts as unavailable even if its HTTP probe passed.
+release reduces risk. The metric is conservative: the scheduled run's
+conclusion is the outage signal, so a failure elsewhere in the Production smoke
+workflow, including a broken alert webhook, counts as unavailable even if its
+HTTP probe passed.
 The retained report also publishes `errorRate`, the failed scheduled-probe
 ratio over the same observed window. Each scheduled run separately enforces the
 3-second liveness and 5-second readiness network thresholds from

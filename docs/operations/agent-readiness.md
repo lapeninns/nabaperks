@@ -33,7 +33,7 @@ of implementation truth.
 | Exact-revision verification   | Successful main CI triggers production revision/readiness proof    |
 | Isolated staging gate         | Protected staging migration, webhook and rollback-only journey     |
 | Recovery verification         | Read-only physical-backup drill against a disposable project       |
-| Availability objective        | 30-day SLO, coverage floor, error budget and retained daily report |
+| Availability objective        | 30-day SLO, observed-sample floor, error budget and daily evidence |
 | Stuck promotion janitor       | Scheduled rejection of Production approvals past evidence expiry   |
 
 ## Proof boundaries
@@ -59,12 +59,12 @@ of implementation truth.
   (past the one-hour evidence expiry) are rejected or cancelled with an
   annotation. It does not approve releases or prove that a reviewer is
   available.
-- `pnpm ops:slo:check` derives the rolling 99.9% availability objective and
-  error budget from completed scheduled Production smoke runs. It treats failed
-  probes as unavailable, reports missing post-activation probes as a separate
-  fail-closed coverage breach, requires seven observed days and 95% evidence
-  coverage, and retains a daily report. Because both signals are GitHub-hosted,
-  this is not proof of independent external monitoring.
+- `pnpm ops:slo:check` derives the rolling 99% availability objective and
+  error budget from the completed scheduled Production smoke runs it observed.
+  It treats failed runs as unavailable, does not count scheduler gaps as
+  downtime, fails closed below four observed samples per day, requires seven
+  observed days, and retains a daily report. Because both signals are
+  GitHub-hosted, this is not proof of independent external monitoring.
 
 Factory evaluates repository state from GitHub. After these controls merge,
 refresh the report and inspect every binary criterion rather than inferring a
