@@ -85,6 +85,9 @@ jobs:
               healthy: {
                 heartbeat: process.env.HEARTBEAT_MONITORED === 'true' ? process.env.HEARTBEAT_HEALTHY === 'true' : null,
                 publicHealth: process.env.PUBLIC_HEALTHY === 'true',
+                // nightly.yml observes and reconciles its own incidents.
+                nightly: null,
+                mutation: null,
               },
               runUrl: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
               assignee: contract.agentLiveness.notificationAssignee,
