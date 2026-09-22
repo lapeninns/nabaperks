@@ -5,9 +5,17 @@ name: Production promotion janitor
 # does not count against timeout-minutes because the gated job has not started
 # on a runner, yet the run keeps the production-release concurrency slot. This
 # janitor rejects such stale gates, falling back to cancelling the run.
+#
+# GitHub delivers this repository's schedules sparsely, so the janitor also
+# wakes whenever a new promotion is requested: that is the moment a stale
+# approval starts blocking the production-release slot. A workflow_run event
+# checks out the default branch, never the triggering run's code.
 on:
   schedule:
     - cron: "9/15 * * * *"
+  workflow_run:
+    workflows: ["Production database promotion"]
+    types: [requested]
   workflow_dispatch:
 
 concurrency:

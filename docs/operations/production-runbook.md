@@ -77,7 +77,15 @@ full webhook payloads.
 ## Promote and verify
 
 1. Merge the independently reviewed branch through protected `main`; do not
-   bypass checks.
+   bypass checks. Merge from an account that is not the `Production`
+   reviewer. The environment uses `prevent_self_review` and has one reviewer,
+   `amanshresthaa`, and every promotion runs as the account that merged. A
+   promotion started by that reviewer's own merge can never be approved and
+   holds the release slot until the janitor cancels it. Merge as
+   `lapeninns` instead: promotion 35780140771 for `43f3dcb9` ran as
+   `lapeninns` on 2026-09-22 and listed `amanshresthaa` as its eligible
+   reviewer. A second eligible reviewer would remove this constraint; adding
+   one is an environment setting reserved for the repository owner.
 2. Wait for exact-main CI and CodeQL, then review the protected
    `Authenticate the deployed baseline` job in `Production database promotion`.
    This first approval permits the authenticated Vercel baseline readback. If
@@ -337,7 +345,10 @@ ledger must not be redated or accepted to resume a consequential operation.
 
 The `Production promotion janitor`
 (`.github/workflows/production-promotion-janitor.yml`) runs every 15 minutes
-(minute 9) and on manual dispatch. It lists active `Production database
+(minute 9), whenever a new `Production database promotion` run is requested,
+and on manual dispatch. GitHub delivers this repository's schedules sparsely,
+so the promotion trigger is what bounds a stale wait in practice: a stale gate
+only blocks anything once another promotion queues behind it. It lists active `Production database
 promotion` runs on `main`, reads each run's pending deployments and measures
 how long any `Production` gate has waited from the waiting job's gate entry.
 The threshold is more than 75 minutes: the one-hour expiry plus headroom for
@@ -347,7 +358,10 @@ still holds the release slot, so the janitor treats every `Production` gate
 alike. It re-reads the pending deployments, then rejects the stale gate with
 the comment "Promotion janitor: Production approval exceeded the 1h
 release-evidence expiry". If GitHub refuses that review, it cancels the run
-instead; a `409` means the run already finished. Each action is recorded as a workflow
+instead; a `409` means the run already finished. The workflow token is not a
+required `Production` reviewer, so in practice GitHub refuses the review with
+`422` and the janitor cancels the run; the first live pass on 2026-09-22
+cancelled a gate that had waited 408 minutes this way. Each action is recorded as a workflow
 annotation and in the run summary. The janitor never approves, never touches
 other workflows or environments and needs no secrets. After it acts, review
 the completed stages and start a fresh complete outer run once a reviewer is
