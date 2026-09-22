@@ -30,13 +30,19 @@ root's worktree-guard and `jq` tests need a non-root host run.
 
 ## Status: what is and is not active today
 
-The current source implements **CI redesign Phase 1**, described in
-[CI redesign](ci-redesign.md). This describes source behaviour, not a claim
-that the installed Mac agent or provider configuration has been updated.
+The current source implements **CI redesign Phase 2**, described in
+[CI redesign](ci-redesign.md), plus the installed
+[change-aware selection policy](change-aware-ci.md). This describes source
+behaviour, not a claim that the installed Mac agent or provider configuration
+has been updated.
 
-- `Release gate` retains its name and requires all nine hosted roots: `fast`,
-  `quality`, `build`, `e2e`, `a11y`, `visual`, `lighthouse`, `zap-baseline`, `db`.
-  No test coverage is removed or routed locally by this phase.
+- `Release gate` retains its name and is plan-driven. Its `needs` list is the
+  nine hosted roots (`fast`, `quality`, `build`, `e2e`, `a11y`, `visual`,
+  `lighthouse`, `zap-baseline`, `db`) plus the `selection`, `documentation`,
+  `targeted-browser`, `targeted-visual` and `selection-comparison` jobs. Eligible
+  documentation and literal public-page PRs select their checks; unselected
+  roots are reported as not required. Full-profile PRs and exact-main CI still
+  require all nine hosted roots. No test coverage is routed locally.
 - The advisory observer is in `.github/workflows/local-ci-shadow.yml`, separate
   from `CI`. It preserves the same same-repository/event allowlist, reads once
   with `LOCAL_CI_OBSERVE_ONCE=true`, and has a two-minute job timeout. It does not
@@ -388,7 +394,7 @@ data in `config/local-ci-contract.json` under `githubApp.permissions`.
 | Permission        | Level          | Why it is needed                                                                                                                                                                                                                                                                                                                                                                                            |
 | ----------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Checks**        | Read and write | The agent creates the `Nabaperks Local CI` check run for a head SHA and completes it with the conclusion and the lane summary. This is the agent's only published output.                                                                                                                                                                                                                                   |
-| **Actions**       | Read and write | Read: workflow metadata. Write: the existing helper is restricted **solely** to `POST /repos/lapeninns/nabaperks/actions/runs/{run_id}/rerun-failed-jobs` for the historical bridge-repair design; Phase 1 does not wire that repair (section 5). The contract pins `allowedActionsWriteOperations` to that single operation, and a contract test asserts it is the only non-GET Actions call under `ops/`. |
+| **Actions**       | Read and write | Read: workflow metadata. Write: the existing helper is restricted **solely** to `POST /repos/lapeninns/nabaperks/actions/runs/{run_id}/rerun-failed-jobs` for the historical bridge-repair design; no CI phase has wired this repair (section 5). The contract pins `allowedActionsWriteOperations` to that single operation, and a contract test asserts it is the only non-GET Actions call under `ops/`. |
 | **Contents**      | Read           | Fetch `refs/heads/<branch>` and read the commit graph to build the candidate set. Read-only: the agent never pushes, never tags, never opens a pull request.                                                                                                                                                                                                                                                |
 | **Pull requests** | Read           | Enumerate open pull requests and read `head.repo.full_name`, `head.repo.id`, `head.ref`, `head.sha` and `base.ref` — the inputs to the fork allowlist predicate.                                                                                                                                                                                                                                            |
 | **Metadata**      | Read           | Mandatory; GitHub grants it automatically alongside any repository permission.                                                                                                                                                                                                                                                                                                                              |
@@ -505,13 +511,15 @@ tokens expire on their own within the hour.
 
 ### 2.6 Pin the identifiers in the contract
 
-`config/local-ci-contract.json` ships `githubApp.appId`,
-`githubApp.installationId` and `githubApp.repositoryId` as `null` sentinels.
-Open a pull request setting all three to the positive integers recorded in 2.3
+This step is complete. `config/local-ci-contract.json` pins
+`githubApp.appId` (`4839346`), `githubApp.installationId` (`159244911`) and
+`githubApp.repositoryId` (`1268458916`); its notes record the pinning on
+2026-09-05. If the App or its installation is ever replaced, open a reviewed
+pull request setting all three to the new positive integers recorded in 2.3
 and 2.4.
 
 No proof lane may be promoted from advisory to blocking while any of the three
-is `null`, so this pull request is a precondition for qualification. It is also
+is `null`, so the pinning is a precondition for qualification. It is also
 why a leaked App ID alone changes nothing: the check-run selector matches on
 `app.id`, so a correctly named check run published by any other App is rejected
 as impersonation.
@@ -1080,8 +1088,9 @@ The reason is exact: Playwright encodes only `process.platform` in the
 ARM64 run that resolved those baselines would compare against the wrong images
 — and, worse, Playwright's default `updateSnapshots` behaviour **writes** the
 actual image before failing. Local runs therefore never write and never compare
-visual snapshots. The hosted `visual` and `visual-gate` jobs in `ci.yml` are
-retained in redesign Phase 1 and required by `Release gate`.
+visual snapshots. The hosted `visual` and `visual-gate` jobs in `ci.yml` remain
+hosted-only and are required by `Release gate` on every full-profile PR and
+exact-main run.
 
 ---
 
@@ -1444,8 +1453,8 @@ Both containers disable additional swap. The runner rejects overcommitted or
 malformed budgets before admission. The sidecar's privileges remain inside the
 VM; this is not evidence of a disposable VM or qualification for authoritative
 untrusted execution. Browser projects can overlap in separate containers; each project retains
-its eight sequential shards and one Playwright worker. Browser heaps are capped
-at 6 GiB within their 8 GiB containers. The fast lane explicitly caps Node test
+its 32 sequential shards and one Playwright worker. Browser V8 old space is
+capped at 4096 MiB within their 8 GiB containers. The fast lane explicitly caps Node test
 processes at four; hosted Node tests retain their existing default.
 
 The [verified image cache](local-ci-image-cache.md) avoids repeated registry
