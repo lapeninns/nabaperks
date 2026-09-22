@@ -9,18 +9,21 @@ function read(path) {
   return readFileSync(path, "utf8")
 }
 
-test("the promotion janitor runs on a 15-minute schedule and on demand", () => {
+test("the promotion janitor runs on a 15-minute schedule, on every new promotion and on demand", () => {
   const workflow = read(WORKFLOW)
 
   assert.match(
     workflow,
     /\non:\n  schedule:\n    - cron: "9\/15 \* \* \* \*"\n/
   )
-  assert.match(workflow, /\n  workflow_dispatch:\n/)
-  assert.doesNotMatch(
+  // GitHub delivers this repository's schedules sparsely, so a new promotion
+  // queuing behind a stale approval also wakes the janitor.
+  assert.match(
     workflow,
-    /\n  (push|pull_request|pull_request_target|workflow_run):/
+    /\n  workflow_run:\n    workflows: \["Production database promotion"\]\n    types: \[requested\]\n/
   )
+  assert.match(workflow, /\n  workflow_dispatch:\n/)
+  assert.doesNotMatch(workflow, /\n  (push|pull_request|pull_request_target):/)
   assert.match(
     workflow,
     /\nconcurrency:\n  group: production-promotion-janitor\n  cancel-in-progress: true\n/
