@@ -182,9 +182,14 @@ test("nightly browser hardening is isolated, bounded and has a stable gate", () 
     nightly,
     /name: Full cross-browser Playwright\n    needs: cross-browser/
   )
-  for (const timeout of [45, 90, 20, 15, 30]) {
-    assert.match(nightly, new RegExp(`timeout-minutes: ${timeout}`))
-  }
+  // cross-browser, its gate, mutation, load, zap-full and notify: every job
+  // is bounded, and the dead load-race job's 15 minutes are gone with it.
+  assert.deepEqual(
+    [...nightly.matchAll(/timeout-minutes: (\d+)\n/g)].map((match) =>
+      Number(match[1])
+    ),
+    [45, 1, 90, 20, 30, 2]
+  )
 })
 
 test("production database promotion is CI-led, protected and exact-revision", () => {
