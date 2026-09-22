@@ -1,15 +1,15 @@
 /**
  * The nightly freshness monitor for the local CI plane.
  *
- * The advisory `local-proof` bridge in `.github/workflows/ci.yml` only ever
- * reports on commits that someone actually pushed. That leaves a blind spot
- * the whole cutover depends on closing: a Mac that is asleep, a VM that never
- * came back after a reboot, or an agent that died three days ago all look
- * exactly like "nobody has opened a pull request lately". This script closes
- * it by asserting, on a schedule and independently of any push, that the local
- * plane published a *successful* `nightlyProof.checkName` run for the default
- * branch within `nightlyProof.maxAgeHours` (36) - one 24-hour cadence plus a
- * 12-hour recovery window, so one missed night warns and two consecutive
+ * The advisory `local-proof` bridge in `.github/workflows/local-ci-shadow.yml`
+ * only ever reports on commits that someone actually pushed. That leaves a
+ * blind spot the whole cutover depends on closing: a Mac that is asleep, a VM
+ * that never came back after a reboot, or an agent that died three days ago all
+ * look exactly like "nobody has opened a pull request lately". This script
+ * closes it by asserting, on a schedule and independently of any push, that the
+ * local plane published a *successful* `nightlyProof.checkName` run for the
+ * default branch within `nightlyProof.maxAgeHours` (36) - one 24-hour cadence
+ * plus a 12-hour recovery window, so one missed night warns and two consecutive
  * misses fail.
  *
  * Structure mirrors `scripts/check-local-ci-proof.mjs`: the verdict is a pure
