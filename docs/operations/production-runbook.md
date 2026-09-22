@@ -264,6 +264,14 @@ replace an older pending run. Main advancement while waiting for approval may
 also invalidate the immutable main-tip guard. Inspect the last completed stage
 and actual provider state before proceeding.
 
+Every promotion shares the `production-release` concurrency group with
+`cancel-in-progress: false`. A run waiting for a `Production` approval keeps
+that slot, so later automatic promotions queue behind it until the approval is
+given, rejected or the run is cancelled. Environment approval waiting time does
+not count against `timeout-minutes`: the gated job has not started on a runner,
+so its timeout never arms, and GitHub reports the job's `started_at` as the
+moment it reached the gate.
+
 ### Release stage evidence and compatibility admission
 
 The release owner records `qualified → database-applied → candidate-ready →
@@ -319,6 +327,28 @@ Evidence expires after one hour across the whole chain. If approval waiting,
 main advancement, provider drift or a partial rerun invalidates it, start a
 fresh complete outer run after reviewing the actual completed stages. A stale
 ledger must not be redated or accepted to resume a consequential operation.
+
+The `Production promotion janitor`
+(`.github/workflows/production-promotion-janitor.yml`) runs every 15 minutes
+(minute 9) and on manual dispatch. It lists active `Production database
+promotion` runs on `main`, reads each run's pending deployments and measures
+how long any `Production` gate has waited from the waiting job's gate entry.
+The threshold is more than 75 minutes: the one-hour expiry plus headroom for
+an approval already in flight. A database or application gate past it can no
+longer pass the evidence checks, and an unattended baseline gate that long
+still holds the release slot, so the janitor treats every `Production` gate
+alike. It re-reads the pending deployments, then rejects the stale gate with
+the comment "Promotion janitor: Production approval exceeded the 1h
+release-evidence expiry". If GitHub refuses that review, it cancels the run
+instead; a `409` means the run already finished. Each action is recorded as a workflow
+annotation and in the run summary. The janitor never approves, never touches
+other workflows or environments and needs no secrets. After it acts, review
+the completed stages and start a fresh complete outer run once a reviewer is
+available; do not rerun the rejected attempt. Approval waiting time does not
+count against `timeout-minutes`, so this janitor, not a job timeout, bounds how
+long a stale gate can hold the release slot. To inspect its decisions locally
+without writing, run
+`GH_TOKEN="$(gh auth token)" node scripts/release/promotion-janitor.mjs --dry-run`.
 
 ### Administrator authentication policy
 
@@ -475,27 +505,36 @@ proof that an external monitor is configured or remains operational.
 ## Availability SLO and error budget
 
 `config/production-slos.json` owns the production availability objective:
-99.9% over a rolling 30 days, measured from the scheduled 15-minute Production
-smoke workflow with at least 95% evidence coverage. Failed workflow runs and
-missing scheduled slots are reported separately: failures consume service error
-budget, while missing slots breach the monitor-coverage floor and are not
-mislabelled as confirmed downtime. The ten-minute evaluation lag excludes a
-probe that may still be running.
+99% of observed scheduled Production smoke runs over a rolling 30 days. The
+smoke cron is nominally every 15 minutes, but GitHub throttles scheduled
+workflows and has delivered about 6.8 runs a day, so the report measures the
+samples it actually observed instead of nominal cron slots. At that density a
+30-day window holds about 200 samples, which leaves an error budget of two
+failed runs. Missing scheduled runs are not counted as downtime. Instead, the
+observed-sample floor requires at least four samples per observed day
+(`minimumObservedSamplesPerDay`); a report below that floor is `breached`
+because the monitor itself has stopped providing evidence. The ten-minute
+evaluation lag excludes a probe that may still be running.
 
 `Production SLO report` evaluates the window daily, retains its JSON evidence
 for one year and starts measurement from its own first workflow run, so older
 probe history from a different monitoring contract is excluded. The first
 seven observed days are `warming`: the gate is red, but no page or incident is
-created. After that minimum, an availability or coverage miss is `breached` and
-must create or update the durable GitHub incident and trigger the external
-`availability-slo` page. A later `compliant` result resolves the external alert
-before closing the issue.
+created. After that minimum, an availability or observed-sample floor miss is
+`breached`: the first breached run opens the durable GitHub incident and every
+breached run triggers the external `availability-slo` page, which the receiver
+deduplicates. Later breached runs do not comment on the open issue; each run's
+evidence stays in its artifact and step summary. A later `compliant` result
+resolves the external alert, then posts one recovery comment and closes the
+issue.
 
 Treat an error-budget breach as an incident signal, then classify current
 customer impact using the P0/P1/P2 definitions. Freeze discretionary releases
 while the budget is exhausted unless the incident commander records why a
-release reduces risk. The metric is conservative: a failure elsewhere in the
-Production smoke workflow counts as unavailable even if its HTTP probe passed.
+release reduces risk. The metric is conservative: the scheduled run's
+conclusion is the outage signal, so a failure elsewhere in the Production smoke
+workflow, including a broken alert webhook, counts as unavailable even if its
+HTTP probe passed.
 The retained report also publishes `errorRate`, the failed scheduled-probe
 ratio over the same observed window. Each scheduled run separately enforces the
 3-second liveness and 5-second readiness network thresholds from
