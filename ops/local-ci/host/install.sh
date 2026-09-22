@@ -640,8 +640,10 @@ cmp -s "${revision_plist}" "${installed_plist}" \
 
 plutil -lint "${installed_plist}" >/dev/null || die "${installed_plist} is not a valid property list"
 
-launchctl bootstrap "gui/${uid}" "${installed_plist}"
+# Clear any per-user disabled override before bootstrap. launchd rejects a
+# disabled label with EIO, so enabling after bootstrap cannot repair it.
 launchctl enable "gui/${uid}/${LABEL}"
+launchctl bootstrap "gui/${uid}" "${installed_plist}"
 launchctl kickstart -k "gui/${uid}/${LABEL}"
 note "bootstrapped gui/${uid}/${LABEL}"
 
