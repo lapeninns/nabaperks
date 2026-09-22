@@ -264,24 +264,16 @@ test("a truncated archive is a refusal, not a partial activation", () => {
     const staging = join(scratch, "release")
     const releaseArchive = join(scratch, "release.tar")
 
+    const fullArchive = join(root, "full.tar")
+
     execFileSync(
       "git",
-      [
-        "-C",
-        repo,
-        "archive",
-        "--format=tar",
-        `--output=${releaseArchive}`,
-        sha,
-      ],
+      ["-C", repo, "archive", "--format=tar", `--output=${fullArchive}`, sha],
       { stdio: ["ignore", "pipe", "pipe"] }
     )
-    const fullSize = statSync(releaseArchive).size
-    assert.ok(fullSize > 8192)
-    writeFileSync(
-      releaseArchive,
-      Buffer.from(readFileSync(releaseArchive)).subarray(0, 4096)
-    )
+    const full = readFileSync(fullArchive)
+    assert.ok(full.length > 8192)
+    writeFileSync(releaseArchive, full.subarray(0, 4096))
 
     const result = runArchiveBlock({
       repoRoot: repo,
