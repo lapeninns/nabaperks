@@ -115,6 +115,7 @@ export function runDocumentation(
           ["pnpm", "test:contracts"],
           ["pnpm", "docs:check"],
           ["pnpm", "agents:check"],
+          ["pnpm", "test:unit"],
         ]),
     ...(files.length
       ? [["pnpm", "exec", "prettier", "--check", "--", ...files]]
