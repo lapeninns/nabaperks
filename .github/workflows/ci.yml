@@ -127,14 +127,35 @@ jobs:
     needs: selection
     if: ${{ needs.selection.outputs.profile == 'documentation' || (needs.selection.outputs.profile == 'public-pages' && contains(fromJSON(needs.selection.outputs.plan).required, 'documentation')) || needs.selection.outputs.comparison == 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # The unit tier added to `runDocumentation` runs the complete unit suite
+    # through a real Chromium (measured: coverage 61s + browser install 15s on
+    # main run 35627783271), so the bound rises with it from 5 to 15 minutes
+    # while keeping the same order of margin the targeted tiers carry.
+    timeout-minutes: 15
     env:
       CI_IMPACT_PLAN: ${{ needs.selection.outputs.plan }}
+      # The staged unit tier runs `pnpm test:unit`, whose suite reads the same
+      # non-secret fixture values the fast lane gives its unit coverage step.
+      # Deliberate placeholders mirroring that lane; never real credentials.
+      RESEND_FROM: Nabaperks CI <ci@example.test>
+      CRON_SECRET: "N7!qL2@vR9#cT4$yH6^mK8&pD3*zF5?x"
+      PRODUCTION_MONITOR_SECRET: "P4@wS8#nC2!kV6$rJ9^tB3&yM7*zQ5?e"
+      CUSTOMER_SESSION_SECRET: "H9!mD4@qL7#vR2$tK8^xC5&pN3*zW6?g"
+      CUSTOMER_PHONE_HMAC_SECRET: "Q6!rF3@wM8#kT2$yP9^cD4&vL7*zN5?h"
+      CUSTOMER_PHONE_ENCRYPTION_KEY: "V2!pK7@mR4#xH9$cF3^nQ8&wT5*zD6?j"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
       - uses: ./.github/actions/setup
+      # Four tests in tests/unit/google-review-pdf.test.mjs render through a
+      # real Chromium (google-review-pdf -> google-review-pdf-render ->
+      # print-kit-browser -> chromium.launch()), so the unit tier needs a
+      # browser just like the E2E tiers do.
+      - name: Install Chromium for the browser-backed unit tests
+        uses: ./.github/actions/playwright
+        with:
+          project: chromium
       - run: node scripts/ci/run-targeted-checks.mjs documentation
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
