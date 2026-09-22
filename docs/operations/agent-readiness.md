@@ -34,6 +34,7 @@ of implementation truth.
 | Isolated staging gate         | Protected staging migration, webhook and rollback-only journey     |
 | Recovery verification         | Read-only physical-backup drill against a disposable project       |
 | Availability objective        | 30-day SLO, observed-sample floor, error budget and daily evidence |
+| Stuck promotion janitor       | Scheduled rejection of Production approvals past evidence expiry   |
 
 ## Proof boundaries
 
@@ -53,6 +54,11 @@ of implementation truth.
   readiness, sends a signed, retrying, deduplicated external page, and creates
   a durable incident issue. Recovery requires two consecutive scheduled green
   probes and resolves the external page before closing that issue.
+- The production promotion janitor proves only that, when it runs, active
+  promotion runs whose `Production` approval has waited more than 75 minutes
+  (past the one-hour evidence expiry) are rejected or cancelled with an
+  annotation. It does not approve releases or prove that a reviewer is
+  available.
 - `pnpm ops:slo:check` derives the rolling 99% availability objective and
   error budget from the completed scheduled Production smoke runs it observed.
   It treats failed runs as unavailable, does not count scheduler gaps as

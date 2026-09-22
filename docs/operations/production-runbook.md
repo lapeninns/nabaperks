@@ -264,6 +264,14 @@ replace an older pending run. Main advancement while waiting for approval may
 also invalidate the immutable main-tip guard. Inspect the last completed stage
 and actual provider state before proceeding.
 
+Every promotion shares the `production-release` concurrency group with
+`cancel-in-progress: false`. A run waiting for a `Production` approval keeps
+that slot, so later automatic promotions queue behind it until the approval is
+given, rejected or the run is cancelled. Environment approval waiting time does
+not count against `timeout-minutes`: the gated job has not started on a runner,
+so its timeout never arms, and GitHub reports the job's `started_at` as the
+moment it reached the gate.
+
 ### Release stage evidence and compatibility admission
 
 The release owner records `qualified → database-applied → candidate-ready →
@@ -319,6 +327,28 @@ Evidence expires after one hour across the whole chain. If approval waiting,
 main advancement, provider drift or a partial rerun invalidates it, start a
 fresh complete outer run after reviewing the actual completed stages. A stale
 ledger must not be redated or accepted to resume a consequential operation.
+
+The `Production promotion janitor`
+(`.github/workflows/production-promotion-janitor.yml`) runs every 15 minutes
+(minute 9) and on manual dispatch. It lists active `Production database
+promotion` runs on `main`, reads each run's pending deployments and measures
+how long any `Production` gate has waited from the waiting job's gate entry.
+The threshold is more than 75 minutes: the one-hour expiry plus headroom for
+an approval already in flight. A database or application gate past it can no
+longer pass the evidence checks, and an unattended baseline gate that long
+still holds the release slot, so the janitor treats every `Production` gate
+alike. It re-reads the pending deployments, then rejects the stale gate with
+the comment "Promotion janitor: Production approval exceeded the 1h
+release-evidence expiry". If GitHub refuses that review, it cancels the run
+instead; a `409` means the run already finished. Each action is recorded as a workflow
+annotation and in the run summary. The janitor never approves, never touches
+other workflows or environments and needs no secrets. After it acts, review
+the completed stages and start a fresh complete outer run once a reviewer is
+available; do not rerun the rejected attempt. Approval waiting time does not
+count against `timeout-minutes`, so this janitor, not a job timeout, bounds how
+long a stale gate can hold the release slot. To inspect its decisions locally
+without writing, run
+`GH_TOKEN="$(gh auth token)" node scripts/release/promotion-janitor.mjs --dry-run`.
 
 ### Administrator authentication policy
 
