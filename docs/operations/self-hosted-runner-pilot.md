@@ -383,7 +383,7 @@ irreducible floor. The current workflow triggers divide it as follows:
 | `production-database.yml`                    | 1,500                  | Completed main CI runs and manual dispatches; successful preflight controls which downstream jobs execute.       |
 | `codeql.yml`                                 | 570                    | PRs, main pushes and a weekly schedule; only the scheduled part is independent of changes.                       |
 | `dependency-review.yml`                      | 190                    | PR events.                                                                                                       |
-| `factory-status.yml`                         | 160                    | Scheduled, workflow-completion, PR-target and manual events.                                                     |
+| `factory-status.yml`                         | 160                    | Workflow-completion, PR-target and manual events.                                                                |
 | `production-deploy.yml`                      | 50                     | Reusable release workflow calls; the historical separate-run count must not be treated as a standing schedule.   |
 | `slo-report.yml`                             | 30                     | Scheduled and manual runs.                                                                                       |
 | `release-notes.yml`                          | 50                     | Main pushes and manual dispatches.                                                                               |
