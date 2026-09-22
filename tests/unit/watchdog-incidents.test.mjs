@@ -274,6 +274,31 @@ test("nightly observations never open or close the local CI and production incid
   }
 })
 
+test("an ordinary night that skips weekly mutation testing still closes the nightly incident", async () => {
+  const { options, issues } = fixture()
+  const observe = (nightly, mutation) =>
+    reconcileWatchdogIncidents({
+      ...options,
+      healthy: { ...WATCHDOG_UNOBSERVED, nightly, mutation },
+    })
+
+  await observe(false, null)
+  assert.equal(issues.length, 1)
+  assert.equal(issues[0].title, "[Watchdog] Nightly QA hardening failed")
+
+  const results = await observe(true, null)
+  assert.equal(
+    results.find((row) => row.monitor === "nightly").action,
+    "closed"
+  )
+  assert.equal(
+    issues[0].state,
+    "closed",
+    "a skipped mutation job is no failure"
+  )
+  assert.equal(issues.length, 1, "and it opens no mutation incident either")
+})
+
 test("weekly mutation testing has its own incident and a run that skips it is not a recovery", async () => {
   const { options, issues, writes } = fixture()
   const observe = (nightly, mutation) =>

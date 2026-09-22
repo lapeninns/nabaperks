@@ -77,6 +77,10 @@ test("nightly failures reach one read-only-observed, issue-writing notify job", 
     notify,
     /NIGHTLY_HEALTHY: \$\{\{ needs\.cross-browser-gate\.result == 'success' && needs\.load\.result == 'success' && needs\.zap-full\.result == 'success' \}\}/
   )
+  // Mutation's weekly skip must never keep the nightly incident open, so the
+  // nightly health expression does not read the mutation result at all.
+  const nightlyHealth = notify.match(/NIGHTLY_HEALTHY: .*\n/)[0]
+  assert.doesNotMatch(nightlyHealth, /mutation/)
   assert.match(
     notify,
     /MUTATION_MONITORED: \$\{\{ needs\.mutation\.result != 'skipped' \}\}/
