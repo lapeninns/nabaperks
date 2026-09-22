@@ -61,6 +61,14 @@ issues are never changed. GitHub issue notifications provide outage and recovery
 alerts without emailing a failed workflow on every watchdog run. Errors running
 the observer or delivering alerts still surface in workflow results and incidents.
 
+The same reconciler, `scripts/watchdog-incidents.mjs`, also owns the hosted
+nightly incidents: `nightly` (the cross-browser gate, k6 load checks and ZAP
+full scan) and `mutation` (weekly mutation testing). Only the notify job in
+`.github/workflows/nightly.yml` observes them. This watchdog reports both as
+`null`, so it never opens or closes them, just as the nightly job reports the
+heartbeat and public-health monitors as `null`. See
+`docs/operations/nightly.md`.
+
 ## Activate and rehearse
 
 1. Merge through the normal review and CI rules, build the merged job image,
