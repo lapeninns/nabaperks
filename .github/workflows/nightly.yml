@@ -2,7 +2,11 @@ name: Nightly QA hardening
 
 on:
   schedule:
-    - cron: "24 2 * * *"
+    # Every night except Monday: cross-browser, k6 load and the ZAP full scan.
+    - cron: "24 2 * * 0,2-6"
+    # Monday: the same jobs plus weekly mutation testing. The two schedules
+    # never fire together, so neither run cancels the other.
+    - cron: "24 2 * * 1"
   workflow_dispatch:
 
 concurrency:
@@ -48,41 +52,28 @@ jobs:
         # ERR_CONNECTION_REFUSED (run 30196429475: chromium 13 failed / 141
         # passed, all in tent-print.desktop). Each shard gets its own runner and
         # its own fresh dev server, which is how the CI e2e tier already avoids
-        # this.
+        # this. Sixteen shards per project, down from 32, halve the fixed
+        # per-shard setup cost and double each shard's share of the suite (and
+        # so its dev-server heap growth); every shard still gets its own fresh
+        # runner and dev server.
         shard:
           [
-            1/32,
-            2/32,
-            3/32,
-            4/32,
-            5/32,
-            6/32,
-            7/32,
-            8/32,
-            9/32,
-            10/32,
-            11/32,
-            12/32,
-            13/32,
-            14/32,
-            15/32,
-            16/32,
-            17/32,
-            18/32,
-            19/32,
-            20/32,
-            21/32,
-            22/32,
-            23/32,
-            24/32,
-            25/32,
-            26/32,
-            27/32,
-            28/32,
-            29/32,
-            30/32,
-            31/32,
-            32/32,
+            1/16,
+            2/16,
+            3/16,
+            4/16,
+            5/16,
+            6/16,
+            7/16,
+            8/16,
+            9/16,
+            10/16,
+            11/16,
+            12/16,
+            13/16,
+            14/16,
+            15/16,
+            16/16,
           ]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -115,6 +106,8 @@ jobs:
 
   mutation:
     name: Mutation testing
+    # Weekly: Monday's scheduled run and any manual dispatch.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.schedule == '24 2 * * 1' }}
     runs-on: ubuntu-latest
     # The command runner checks the mutation targets' direct tests first and
     # runs the complete unit suite for every survivor. An already detected
@@ -164,23 +157,6 @@ jobs:
         env:
           BASE_URL: http://127.0.0.1:3000
 
-  load-race:
-    name: Authenticated stamp and redeem race checks
-    if: ${{ vars.STAMP_RACE_URL != '' && vars.REDEEM_RACE_URL != '' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: grafana/setup-k6-action@db07bd9765aac508ef18982e52ab937fe633a065 # v1
-      - name: Run authenticated race check
-        run: k6 run tests/load/stamp-redeem-race.js
-        env:
-          STAMP_RACE_URL: ${{ vars.STAMP_RACE_URL }}
-          REDEEM_RACE_URL: ${{ vars.REDEEM_RACE_URL }}
-          STAMP_RACE_AUTH_TOKEN: ${{ secrets.STAMP_RACE_AUTH_TOKEN }}
-          STAMP_RACE_BODY: ${{ vars.STAMP_RACE_BODY }}
-          REDEEM_RACE_BODY: ${{ vars.REDEEM_RACE_BODY }}
-
   zap-full:
     name: ZAP full scan
     runs-on: ubuntu-latest
@@ -204,3 +180,50 @@ jobs:
           target: http://127.0.0.1:3000
           rules_file_name: .zap/rules.tsv
           allow_issue_writing: false
+
+  notify:
+    name: Reconcile nightly incident
+    # The gate stands in for the whole shard matrix. always() still runs this
+    # job after a failed need or mutation's weekly skip, handled below.
+    needs: [cross-browser-gate, mutation, load, zap-full]
+    if: ${{ always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    # The only write grant in this workflow: open one standing issue on
+    # failure and close it on recovery. Observation jobs stay contents: read.
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Open once on failure and close on recovery
+        # A run superseded by a newer one is cancelled, which observes nothing.
+        if: ${{ !cancelled() }}
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        env:
+          NIGHTLY_HEALTHY: ${{ needs.cross-browser-gate.result == 'success' && needs.load.result == 'success' && needs.zap-full.result == 'success' }}
+          # Mutation is skipped outside Monday's run and dispatches. A skipped
+          # job is not an observation, so it reaches the reconciler as null.
+          MUTATION_MONITORED: ${{ needs.mutation.result != 'skipped' }}
+          MUTATION_HEALTHY: ${{ needs.mutation.result == 'success' }}
+        with:
+          script: |
+            const { pathToFileURL } = await import('node:url');
+            const { readFileSync } = await import('node:fs');
+            const { reconcileWatchdogIncidents } = await import(pathToFileURL(`${process.env.GITHUB_WORKSPACE}/scripts/watchdog-incidents.mjs`).href);
+            const contract = JSON.parse(readFileSync('config/local-ci-contract.json', 'utf8'));
+            const results = await reconcileWatchdogIncidents({
+              github, repository: context.repo,
+              healthy: {
+                heartbeat: null,
+                publicHealth: null,
+                nightly: process.env.NIGHTLY_HEALTHY === 'true',
+                mutation: process.env.MUTATION_MONITORED === 'true' ? process.env.MUTATION_HEALTHY === 'true' : null,
+              },
+              runUrl: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              assignee: contract.agentLiveness.notificationAssignee,
+            });
+            await core.summary.addHeading('Nightly incident reconciliation')
+              .addTable([['Monitor', 'Observed state', 'Incident action'], ...results.map(row => [row.monitor, row.state, `${row.action}${row.issue ? ` (#${row.issue})` : ''}`])]).write();

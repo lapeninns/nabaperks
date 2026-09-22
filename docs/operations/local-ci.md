@@ -103,7 +103,13 @@ single run suggests: `main` 11 success / 14 failure / 9 cancelled / 1 timed out;
 `pr` 19 success / 21 failure / 11 cancelled. No `nightly` run has ever
 succeeded — `db-stress` fails deterministically with
 `Cannot find package 'postgres'`, and `zap-full` is pinned `x64-only` and so
-never executes locally.
+never executes locally. Both belong to the local `nightly` profile
+(`ops/local-ci/profiles/nightly.json`); the hosted
+`.github/workflows/nightly.yml` has no database job. The hosted nightly runs the
+cross-browser suite (four projects, 16 shards each), k6 load checks and the ZAP
+full scan every night, adds mutation testing on Mondays and manual dispatches,
+and reports failures through standing watchdog issues rather than per-run
+alerts; see `docs/operations/nightly.md`.
 
 **Hosted cost, for comparison.** A CI run is 72 jobs and roughly 165
 machine-minutes, with a 6–7 minute wall clock. Over 25 consecutive runs in a

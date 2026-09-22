@@ -10,6 +10,10 @@ const eslintConfig = defineConfig([
     // Default ignores of eslint-config-next:
     ".next/**",
     ".next-e2e/**",
+    // Git-excluded local artifacts: a parallel Linux build output and QA
+    // evidence captures. Clean CI checkouts never contain them.
+    ".next-e2e-linux/**",
+    "QA_CERTIFICATION_EVIDENCE/**",
     "out/**",
     "build/**",
     "next-env.d.ts",
