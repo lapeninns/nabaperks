@@ -99,7 +99,13 @@ full webhook payloads.
    immutable deployment ID, then promotes that ID. Immediate public proof
    remains inside the outer lock. This is one release run, with protected
    environments on both database and application jobs.
-3. Record the deployment URL and Git commit SHA.
+3. Record the deployment URL and Git commit SHA. Confirm that the
+   `Deploy and prove the production alert receiver` step of the
+   `Production deployment` job passed. Before promotion, every application
+   release redeploys both the `production-alert` and `admin-webauthn` Supabase
+   Edge Functions with `--no-verify-jwt`, requires each to be listed `ACTIVE`,
+   and only then triggers and resolves the `release-canary` alert
+   (`.github/workflows/production-deploy.yml`).
 4. Verify the exact revision and both probes:
 
    ```sh
@@ -114,9 +120,10 @@ full webhook payloads.
    `signals` object must include eight cron jobs plus numeric queue-age and
    provider-delivery fields. Both probes must show the promoted revision.
 
-5. Confirm `/` returns 404. Run anonymous smoke checks for `/signup`,
-   `/privacy`, `/terms`, `/cookies`, `/merchant-terms`, `/data-processing`,
-   `/login`, `/home/login`, and confirm every `/dev/*` route remains 404.
+5. Confirm `/` returns 200 and renders the public marketing site. Run
+   anonymous smoke checks for `/signup`, `/privacy`, `/terms`, `/cookies`,
+   `/merchant-terms`, `/data-processing`, `/login`, `/home/login`, and
+   confirm every `/dev/*` route remains 404.
 6. Complete one controlled merchant login, one customer login, one QR join,
    one stamp/redeem lifecycle, one email delivery and one OTP delivery in the
    target environment. Never use production customer data as a test fixture.
@@ -364,6 +371,12 @@ but enrolment or possession does not change administrator authority. Do not run
 the bootstrap or activation workflows as a prerequisite for database or
 application promotion. Confirm instead that an authenticated active admin is
 allowed, while an authenticated non-admin and an inactive admin are denied.
+
+The release path keeps that dormant verifier deployed: every application
+release redeploys the `admin-webauthn` Edge Function alongside
+`production-alert` and fails unless both are `ACTIVE`. A failure there blocks
+the release like any other deployment step; it is not evidence that
+administrator authority depends on WebAuthn.
 
 This policy increases the impact of a compromised primary account. It must not
 be described as remediation of the administrator-MFA finding; record that

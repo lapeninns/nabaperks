@@ -36,11 +36,16 @@ a legitimate way to change that — see "Scope discipline".
 
 ## The single most important invariant
 
-`Release gate` in `.github/workflows/ci.yml` blocks on **all nine hosted roots**:
-`fast`, `quality`, `build`, `e2e`, `a11y`, `visual`, `lighthouse`,
-`zap-baseline`, `db`. The historical `[fast, build]` gate this file used to
-describe was retired; do not restore fast/build-only merge semantics to obtain a
-green result.
+`Release gate` in `.github/workflows/ci.yml` is plan-driven. It needs the nine
+hosted roots (`fast`, `quality`, `build`, `e2e`, `a11y`, `visual`,
+`lighthouse`, `zap-baseline`, `db`) plus the `selection`, `documentation`,
+`targeted-browser`, `targeted-visual` and `selection-comparison` jobs, and
+enforces exactly the checks the [change-aware plan](change-aware-ci.md)
+selects. Eligible documentation and literal public-page PRs select a subset
+and report unselected roots as not required; full-profile PRs and exact-main
+CI require **all nine hosted roots**. The historical `[fast, build]` gate this
+file used to describe was retired; do not restore fast/build-only merge
+semantics to obtain a green result.
 
 `tests/contracts/devops-local-ci.test.mjs` enforces the gate's membership
 mechanically, and no job may list the bridge in `needs:`. That interlock is not
@@ -172,10 +177,10 @@ Each of these was re-verified against the tree on 2026-09-09.
   declares a `knownLocalGaps` record. Existing fixture-dependent skips remain,
   and the local snapshot guard still excludes actual visual tests.
 - **Unsharded Playwright against one webpack dev server is fatal** (heap OOM,
-  recorded in `nightly.yml` as run 30196429475). Local lanes shard 1/8. Hosted
-  E2E keeps the 32-shard denominators but packs four consecutive shards into one
-  job (eight packs per browser, since `aed95ca9b`); hosted accessibility shards
-  1/8 and hosted visual 1/4. Hosted sharding buys runner parallelism a single VM
+  recorded in `nightly.yml` as run 30196429475). Local e2e lanes shard 1/32
+  (a11y 1/8). Hosted E2E keeps the 32-shard denominators and packs eight
+  consecutive shards into each of four packs per browser; hosted accessibility
+  and visual both shard 1/4. Hosted sharding buys runner parallelism a single VM
   does not have.
 - **GitHub's "Re-run failed jobs" does not re-run _skipped_ jobs.** The Mac-
   outage fallback requires "Re-run all jobs".
@@ -225,8 +230,9 @@ If you touched `ci.yml`, re-run the two interlock mutations described above.
 ## Scope discipline
 
 Do not delete `ci.yml` lanes while the bridge is advisory. `Release gate`
-requires all nine hosted roots, and the local plane has no lane at all for four
-of them (`build`, `visual`, `lighthouse`, `zap-baseline`). Removing hosted lanes
+requires all nine hosted roots on every full-profile PR and exact-main run, and
+the local plane has no lane at all for four of them (`build`, `visual`,
+`lighthouse`, `zap-baseline`). Removing hosted lanes
 now would leave real coverage ungated, not relocated.
 
 Do not acquire local merge authority by changing `LOCAL_CI_MODE`,
