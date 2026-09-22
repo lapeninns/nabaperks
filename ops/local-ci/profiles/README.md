@@ -269,13 +269,15 @@ recorded in that lane's `notes` — `zaproxy/action-full-scan@v0.13.0` becomes t
 `docker run` of the image it wraps, with the workspace mounted at `/zap/wrk` so
 the relative `.zap/rules.tsv` path resolves identically.
 
-Two hosted jobs are deliberately **not** reproduced:
+One hosted job is deliberately **not** reproduced:
 
 - `nightly.yml`'s `cross-browser` runs the same command as ci.yml's `e2e` tier,
   which the four `e2e-*` lanes already cover for all four projects.
-- `nightly.yml`'s `load-race` reads `secrets.STAMP_RACE_AUTH_TOKEN`. A
-  repository secret cannot reach this plane at all — see the contract's
-  `hostSecretsPolicy` — so it stays hosted permanently.
+
+`nightly.yml`'s former `load-race` job read `secrets.STAMP_RACE_AUTH_TOKEN`,
+which cannot reach this plane at all (see the contract's `hostSecretsPolicy`),
+so it was never reproduced. It was deleted from `nightly.yml` on 2026-09-22
+(#366); any replacement must stay hosted.
 
 ## What these files do not do
 
