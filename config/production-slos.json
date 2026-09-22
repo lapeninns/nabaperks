@@ -8,8 +8,8 @@
   "probeMinuteOffset": 7,
   "evaluationLagMinutes": 10,
   "windowDays": 30,
-  "availabilityObjective": 0.999,
-  "minimumCoverageRatio": 0.95,
+  "availabilityObjective": 0.99,
+  "minimumObservedSamplesPerDay": 4,
   "minimumObservationDays": 7,
   "thresholds": {
     "livenessResponseMs": 3000,

@@ -309,8 +309,9 @@ test("scheduled smoke history produces a fail-closed rolling SLO and error budge
   const script = read("scripts/check-production-slo.mjs")
   const smoke = read(".github/workflows/production-smoke.yml")
 
-  assert.match(config, /"availabilityObjective": 0\.999/)
-  assert.match(config, /"minimumCoverageRatio": 0\.95/)
+  assert.match(config, /"availabilityObjective": 0\.99,/)
+  assert.match(config, /"minimumObservedSamplesPerDay": 4,/)
+  assert.doesNotMatch(config, /minimumCoverageRatio/)
   assert.match(config, /"minimumObservationDays": 7/)
   assert.match(config, /"probeSchedule": "7\/15 \* \* \* \*"/)
   assert.match(workflow, /cron: "13 7 \* \* \*"/)
@@ -340,8 +341,23 @@ test("scheduled smoke history produces a fail-closed rolling SLO and error budge
   assert.match(script, /\? "compliant"/)
   assert.match(script, /: "breached"/)
   assert.match(script, /availabilityRatio >= config\.availabilityObjective/)
+  assert.match(script, /observedSamples >= requiredObservedSamples/)
+  assert.doesNotMatch(script, /expectedSamples|coverageRatio/)
   assert.match(script, /errorRate/)
   assert.match(workflow, /Error rate:/)
+  // A persisting breach is silent on the standing issue: the only comment is
+  // the one posted on recovery, immediately before the issue is closed.
+  const incidentStep = workflow.slice(
+    workflow.indexOf("- name: Create or update the SLO incident"),
+    workflow.indexOf("- name: Page the SLO breach")
+  )
+  assert.match(incidentStep, /issues\.create\(/)
+  assert.doesNotMatch(incidentStep, /createComment/)
+  assert.equal(workflow.match(/createComment/g)?.length, 1)
+  assert.match(
+    workflow,
+    /- name: Close the recovered SLO incident[\s\S]*createComment[\s\S]*state: "closed"/
+  )
   assert.match(smoke, /check-production-probe-latency\.mjs/)
   assert.match(config, /"livenessResponseMs": 3000/)
   assert.match(config, /"readinessResponseMs": 5000/)

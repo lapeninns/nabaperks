@@ -58,7 +58,7 @@ jobs:
         run: |
           if [[ -f "$RUNNER_TEMP/production-slo-report.json" ]]; then
             if jq -e . "$RUNNER_TEMP/production-slo-report.json" >/dev/null; then
-              jq -r '"## Production SLO\n\n- State: \(.state)\n- Availability: \(.availabilityRatio * 100)%\n- Error rate: \(.errorRate * 100)%\n- Objective: \(.objective * 100)%\n- Coverage: \(.coverageRatio * 100)%\n- Observation: \(.observationDays) days (minimum \(.minimumObservationDays))\n- Successful probes: \(.successfulSamples)/\(.expectedSamples)\n- Error-budget slots remaining: \(.remainingUnavailableSamples)\n- Compliant: \(.compliant)"' "$RUNNER_TEMP/production-slo-report.json" >> "$GITHUB_STEP_SUMMARY"
+              jq -r '"## Production SLO\n\n- State: \(.state)\n- Availability: \(.availabilityRatio * 100)% of observed scheduled probes\n- Error rate: \(.errorRate * 100)%\n- Objective: \(.objective * 100)%\n- Observed probes: \(.observedSamples) (floor \(.requiredObservedSamples) at \(.minimumObservedSamplesPerDay)/day; met: \(.sampleFloorMet))\n- Observation: \(.observationDays) days (minimum \(.minimumObservationDays))\n- Successful probes: \(.successfulSamples)/\(.observedSamples)\n- Error-budget samples remaining: \(.remainingUnavailableSamples)\n- Compliant: \(.compliant)"' "$RUNNER_TEMP/production-slo-report.json" >> "$GITHUB_STEP_SUMMARY"
             else
               echo "## Production SLO\n\nReport generation failed before valid evidence was written." >> "$GITHUB_STEP_SUMMARY"
             fi
@@ -80,10 +80,14 @@ jobs:
               per_page: 100,
             });
             const existing = issues.find((issue) => !issue.pull_request && issue.title === title);
-            const body = `The rolling production availability objective or monitor-coverage floor is breached. Triage current customer and data impact before changing severity.\n\nEvidence: ${runUrl}\n\nFollow docs/operations/incident-response.md.`;
+            // One standing issue per breach: it is opened on the first breached
+            // run and stays silent while the breach persists. Recovery posts
+            // one comment and closes it below. Each run's evidence stays in
+            // its artifact and step summary.
             if (existing) {
-              await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, body });
+              core.info(`SLO incident #${existing.number} is already open; not commenting again.`);
             } else {
+              const body = `The rolling production availability objective or observed-sample floor is breached. Triage current customer and data impact before changing severity.\n\nFirst observed: ${runUrl}\n\nThis issue stays open without further comments while the breach persists and closes after a compliant report. Follow docs/operations/incident-response.md.`;
               await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body, labels: ["bug", "area: platform", "priority: p1-high"] });
             }
       - name: Page the SLO breach

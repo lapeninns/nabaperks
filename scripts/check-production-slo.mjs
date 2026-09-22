@@ -12,6 +12,10 @@ const SLO_RUNS_PATH =
 const SMOKE_RUNS_PATH =
   "/repos/lapeninns/nabaperks/actions/workflows/production-smoke.yml/runs"
 
+// `probeIntervalMinutes` is the smoke cron's NOMINAL cadence. It aligns the
+// report window and evaluation lag only. GitHub throttles scheduled workflows:
+// the 15-minute cron has been delivered as ~6.8 runs a day, so counting
+// nominal cron slots measured GitHub's scheduler rather than production.
 export function readSloConfig(path = "config/production-slos.json") {
   const config = JSON.parse(readFileSync(path, "utf8"))
   assert.equal(config.schema, "nabaperks.production-slos.v1")
@@ -33,8 +37,16 @@ export function readSloConfig(path = "config/production-slos.json") {
   assert.ok(
     config.availabilityObjective > 0.9 && config.availabilityObjective < 1
   )
+  assert.equal(
+    Object.hasOwn(config, "minimumCoverageRatio"),
+    false,
+    "minimumCoverageRatio was replaced by minimumObservedSamplesPerDay"
+  )
   assert.ok(
-    config.minimumCoverageRatio > 0.5 && config.minimumCoverageRatio <= 1
+    Number.isFinite(config.minimumObservedSamplesPerDay) &&
+      config.minimumObservedSamplesPerDay > 0 &&
+      config.minimumObservedSamplesPerDay <= 1440 / config.probeIntervalMinutes,
+    "observed-sample floor must be positive and within the nominal cadence"
   )
   assert.ok(
     Number.isInteger(config.minimumObservationDays) &&
@@ -188,6 +200,13 @@ function githubHeaders(token) {
   }
 }
 
+// Availability is measured over OBSERVED samples: each completed scheduled
+// Production smoke run is one sample and its run conclusion is the outage
+// signal. That is conservative: a failure in any step of the run, including a
+// broken alert webhook while every HTTP probe passed (the August 2026 resolver
+// storm), consumes error budget. Per-job probe precision is a follow-up.
+// Missing scheduled runs are not downtime; the observed-sample floor instead
+// fails the report closed when too few samples arrive to judge availability.
 export function calculateAvailabilityReport(
   config,
   runs,
@@ -195,7 +214,7 @@ export function calculateAvailabilityReport(
   measurementRuns = runs
 ) {
   assert.ok(now instanceof Date && Number.isFinite(now.getTime()))
-  const { intervalMs, windowEndMs, windowStartMs } = reportWindow(config, now)
+  const { windowEndMs, windowStartMs } = reportWindow(config, now)
 
   const eligible = runs.filter((run) => {
     const createdAt = new Date(run.created_at).getTime()
@@ -220,33 +239,31 @@ export function calculateAvailabilityReport(
     ? Math.max(windowStartMs, firstSlotAtOrAfter(config, earliestMeasurementMs))
     : windowEndMs
   const observationDays = (windowEndMs - observationStartMs) / 86_400_000
-  const expectedSamples = Math.floor(
-    (windowEndMs - observationStartMs) / intervalMs
+  const observedSamples = observed.length
+  const requiredObservedSamples = Math.ceil(
+    Number((config.minimumObservedSamplesPerDay * observationDays).toFixed(6))
   )
   const successfulSamples = observed.filter(
     ({ conclusion }) => conclusion === "success"
   ).length
-  const failedSamples = observed.length - successfulSamples
-  const missingSamples = Math.max(0, expectedSamples - observed.length)
-  const coverageRatio = expectedSamples
-    ? Math.min(1, observed.length / expectedSamples)
+  const failedSamples = observedSamples - successfulSamples
+  const availabilityRatio = observedSamples
+    ? Math.min(1, successfulSamples / observedSamples)
     : 0
-  const availabilityRatio = observed.length
-    ? Math.min(1, successfulSamples / observed.length)
-    : 0
-  const errorRate = observed.length
-    ? Math.min(1, failedSamples / observed.length)
+  const errorRate = observedSamples
+    ? Math.min(1, failedSamples / observedSamples)
     : 1
   const allowedUnavailableSamples = Math.floor(
-    expectedSamples * (1 - config.availabilityObjective)
+    Number((observedSamples * (1 - config.availabilityObjective)).toFixed(6))
   )
   const consumedUnavailableSamples = failedSamples
   const remainingUnavailableSamples =
     allowedUnavailableSamples - consumedUnavailableSamples
   const hasMinimumObservation = observationDays >= config.minimumObservationDays
+  const sampleFloorMet =
+    observedSamples > 0 && observedSamples >= requiredObservedSamples
   const meetsObjective =
-    coverageRatio >= config.minimumCoverageRatio &&
-    availabilityRatio >= config.availabilityObjective
+    sampleFloorMet && availabilityRatio >= config.availabilityObjective
   const state = !hasMinimumObservation
     ? "warming"
     : meetsObjective
@@ -254,7 +271,7 @@ export function calculateAvailabilityReport(
       : "breached"
 
   return {
-    schema: "nabaperks.production-slo-report.v1",
+    schema: "nabaperks.production-slo-report.v2",
     generatedAt: now.toISOString(),
     windowStart: new Date(windowStartMs).toISOString(),
     windowEnd: new Date(windowEndMs).toISOString(),
@@ -264,15 +281,14 @@ export function calculateAvailabilityReport(
     observationStart: new Date(observationStartMs).toISOString(),
     observationDays: Number(observationDays.toFixed(3)),
     minimumObservationDays: config.minimumObservationDays,
-    intervalMinutes: config.probeIntervalMinutes,
+    nominalProbeIntervalMinutes: config.probeIntervalMinutes,
     objective: config.availabilityObjective,
-    minimumCoverage: config.minimumCoverageRatio,
-    expectedSamples,
-    observedSamples: observed.length,
+    minimumObservedSamplesPerDay: config.minimumObservedSamplesPerDay,
+    requiredObservedSamples,
+    sampleFloorMet,
+    observedSamples,
     successfulSamples,
     failedSamples,
-    missingSamples,
-    coverageRatio: Number(coverageRatio.toFixed(6)),
     availabilityRatio: Number(availabilityRatio.toFixed(6)),
     errorRate: Number(errorRate.toFixed(6)),
     allowedUnavailableSamples,
