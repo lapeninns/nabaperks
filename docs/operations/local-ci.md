@@ -697,7 +697,7 @@ Test the sleep path once:
 
 Repeat 3.1 with the new `origin/main` revision. The installer keeps the last
 five release directories, so a rollback is a second
-`install.sh --revision <previous sha>` — the release is already extracted and
+`install.sh --revision <previous sha> --definitely-not-a-real-flag` — the release is already extracted and
 the `current` symlink is repointed atomically.
 
 `git pull` inside `/opt/nabaperks-local-ci/` is **not** an upgrade path.
