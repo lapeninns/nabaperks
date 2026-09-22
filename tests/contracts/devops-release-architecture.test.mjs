@@ -50,6 +50,78 @@ test("successful application promotion verifies the exact production revision", 
   assert.match(smoke, /Production did not expose expected revision/)
 })
 
+test("post-promotion smokes are isolated from scheduled supersession", () => {
+  const smoke = read(".github/workflows/production-smoke.yml")
+  const concurrency = smoke.match(/\nconcurrency:\n((?: {2}\S.*\n)+)/)?.[1]
+
+  assert.equal(
+    concurrency,
+    "  group: production-smoke-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || 'scheduled' }}\n" +
+      "  cancel-in-progress: true\n"
+  )
+  assert.doesNotMatch(smoke, /group: production-smoke\n/)
+  assert.equal(smoke.match(/\nconcurrency:/g)?.length, 1)
+})
+
+test("production smoke preserves liveness, readiness and latency evidence", () => {
+  const smoke = read(".github/workflows/production-smoke.yml")
+  const probeJob = smoke.match(/\n  probes:\n([\s\S]*?)\n  incident:\n/)?.[1]
+  assert.ok(probeJob, "production smoke keeps a dedicated probes job")
+
+  const step = (name) =>
+    probeJob
+      .match(
+        new RegExp(
+          `\\n      - name: ${name}\\n([\\s\\S]*?)(?=\\n      - name: |$)`
+        )
+      )?.[1]
+      ?.trimEnd()
+  const liveness = step("Verify public liveness")
+  const readiness = step("Verify dependency readiness")
+  const latency = step("Enforce production probe latency")
+  assert.ok(liveness && readiness && latency)
+
+  assert.match(liveness, /mkdir -p "\$RUNNER_TEMP\/production-smoke"/)
+  for (const [body, file] of [
+    [liveness, "health"],
+    [readiness, "readiness"],
+  ]) {
+    const preserve = body.indexOf(
+      `printf '%s\\n' "$body" | tee "$RUNNER_TEMP/production-smoke/${file}.json" >/dev/null`
+    )
+    assert.ok(preserve > 0, `${file} body is preserved`)
+    assert.ok(
+      preserve < body.indexOf("jq -e"),
+      `${file} body is preserved before validation so failures keep evidence`
+    )
+  }
+  // An unspecified run shell is `bash -e` without pipefail, so the latency
+  // gate must opt in or `tee` would mask a threshold breach.
+  assert.match(
+    latency,
+    /run: \|\n {10}set -o pipefail\n {10}node scripts\/check-production-probe-latency\.mjs \| tee "\$RUNNER_TEMP\/production-smoke\/probe-latency\.json"$/
+  )
+  assert.doesNotMatch(latency, /shell:/)
+
+  const upload = step("Preserve probe evidence")
+  assert.equal(
+    upload,
+    "        if: ${{ !cancelled() }}\n" +
+      "        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7\n" +
+      "        with:\n" +
+      "          name: production-smoke-evidence\n" +
+      "          path: ${{ runner.temp }}/production-smoke/\n" +
+      "          retention-days: 90\n" +
+      "          if-no-files-found: warn"
+  )
+  assert.ok(
+    probeJob.indexOf("Preserve probe evidence") >
+      probeJob.indexOf("Enforce production probe latency"),
+    "evidence upload is the final probes step"
+  )
+  assert.equal(smoke.match(/actions\/upload-artifact@/g)?.length, 1)
+})
+
 test("production CD attests immutable source, builds remotely, verifies and then promotes", () => {
   const workflow = read(".github/workflows/production-deploy.yml")
 
