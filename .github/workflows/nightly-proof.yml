@@ -2,11 +2,11 @@ name: Local CI nightly proof
 
 # The freshness monitor for the local CI execution plane.
 #
-# The advisory `local-proof` bridge in ci.yml only reports on commits somebody
-# pushed, which leaves the blind spot this workflow exists to close: a sleeping
-# Mac, a VM that never came back from a reboot, and an agent that died on
-# Tuesday are indistinguishable from a quiet week. Once a day this asks a
-# different question - did the local plane publish a *successful*
+# The advisory `local-proof` bridge in local-ci-shadow.yml only reports on
+# commits somebody pushed, which leaves the blind spot this workflow exists to
+# close: a sleeping Mac, a VM that never came back from a reboot, and an agent
+# that died on Tuesday are indistinguishable from a quiet week. Once a day this
+# asks a different question - did the local plane publish a *successful*
 # `Nabaperks Local CI (nightly)` check for the default branch inside
 # `nightlyProof.maxAgeHours` (36)? - and that question has an answer even when
 # nobody has opened a pull request.
