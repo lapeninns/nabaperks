@@ -8,7 +8,10 @@ import type { Page, Response } from "@playwright/test"
  * deterministic, needs no Supabase, and runs against a dev server only.
  */
 
-/** PWA install prompt dismissal key — components/pwa/app-pwa.tsx. */
+/**
+ * Former install-prompt dismissal key. The prompt is gone; existing browser
+ * specs still call dismissPwaInstall so they do not need a mechanical edit.
+ */
 export const PWA_DISMISS_KEY = "nabaperks:pwa-install-dismissed:v2"
 
 /** DB-free `/dev` harness routes — the e2e DB-free tier surface. */
@@ -37,9 +40,8 @@ export const HARNESS_ROUTES = {
 } as const
 
 /**
- * Pre-dismiss the PWA install prompt so it never intercepts navigation or
- * clicks during an e2e run (platform e2e harness H-8). Register before the
- * first `page.goto`; the init script runs on every document in the context.
+ * Retained so existing browser specs keep a stable init script. The install
+ * prompt has been removed, so this no longer hides a control.
  */
 export async function dismissPwaInstall(page: Page): Promise<void> {
   await page.addInitScript((key: string) => {

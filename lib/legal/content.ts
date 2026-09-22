@@ -132,7 +132,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
   {
     id: "browser-storage",
     title: "Cookies and browser storage",
-    body: "Nabaperks uses essential authentication, verification, device, journey, and interface-state cookies, plus limited local storage, session storage, service-worker caches, and optional push-subscription data. The cookie and browser-storage notice lists the current items and durations.",
+    body: "Nabaperks uses essential authentication, verification, device, journey, and interface-state cookies, plus limited local storage, session storage, and optional push-subscription data. The cookie and browser-storage notice lists the current items and durations.",
   },
   {
     id: "contact",
@@ -184,12 +184,7 @@ export const COOKIE_SECTIONS: LegalSection[] = [
   {
     id: "local-storage",
     title: "Local storage",
-    body: "Local storage may hold an in-progress merchant onboarding draft, a remembered refusal of the soft location prompt, dismissal of the app-install prompt, and dismissal of the birthday-profile prompt. The birthday dismissal is reconsidered after 30 days. Other entries remain until replaced, removed by the application, or cleared in the browser. None is authoritative server-side loyalty, billing, reward, or consent state.",
-  },
-  {
-    id: "offline-cache",
-    title: "Offline cache",
-    body: "The Nabaperks service worker caches the offline page, selected icons, and static application assets. Authenticated application routes, customer state, and API requests are treated as network-only and are not used as an offline source of truth.",
+    body: "Local storage may hold an in-progress merchant onboarding draft, a remembered refusal of the soft location prompt, and dismissal of the birthday-profile prompt. The birthday dismissal is reconsidered after 30 days. Other entries remain until replaced, removed by the application, or cleared in the browser. None is authoritative server-side loyalty, billing, reward, or consent state.",
   },
   {
     id: "push-and-analytics",
@@ -207,7 +202,7 @@ export const COOKIE_META = {
   eyebrow: "Browser data · effective 15 July 2026",
   title: "Cookie and browser-storage notice.",
   description:
-    "The cookies, local browser storage, offline cache, and push information used by Nabaperks.",
+    "The cookies, local browser storage, and push information used by Nabaperks.",
   cardTitle: "Browser storage",
   docNumber: "CS-2026-07",
 }
@@ -298,7 +293,7 @@ export const DATA_PROCESSING_SECTIONS: LegalSection[] = [
   {
     id: "operations",
     title: "Processing operations",
-    body: "The application collects, validates, encrypts, hashes, stores, queries, displays, transmits, updates, exports, suppresses, revokes, anonymises, and deletes information according to the relevant product flow. Server state is authoritative; browser storage is used only for authentication, journey continuity, security, convenience, offline assets, and optional notifications.",
+    body: "The application collects, validates, encrypts, hashes, stores, queries, displays, transmits, updates, exports, suppresses, revokes, anonymises, and deletes information according to the relevant product flow. Server state is authoritative; browser storage is used only for authentication, journey continuity, security, convenience, and optional notifications.",
   },
   {
     id: "access-and-scoping",
