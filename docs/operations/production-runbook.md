@@ -77,7 +77,15 @@ full webhook payloads.
 ## Promote and verify
 
 1. Merge the independently reviewed branch through protected `main`; do not
-   bypass checks.
+   bypass checks. Merge from an account that is not the `Production`
+   reviewer. The environment uses `prevent_self_review` and has one reviewer,
+   `amanshresthaa`, and every promotion runs as the account that merged. A
+   promotion started by that reviewer's own merge can never be approved and
+   holds the release slot until the janitor cancels it. Merge as
+   `lapeninns` instead: promotion 35780140771 for `43f3dcb9` ran as
+   `lapeninns` on 2026-09-22 and listed `amanshresthaa` as its eligible
+   reviewer. A second eligible reviewer would remove this constraint; adding
+   one is an environment setting reserved for the repository owner.
 2. Wait for exact-main CI and CodeQL, then review the protected
    `Authenticate the deployed baseline` job in `Production database promotion`.
    This first approval permits the authenticated Vercel baseline readback. If
