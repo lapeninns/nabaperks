@@ -17,6 +17,7 @@
 /reports/mutation/
 /reports/jscpd/
 /reports/profiles/
+/reports/research/delivery-audit/data/
 .jscpd
 /.stryker-tmp/
 
