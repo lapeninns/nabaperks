@@ -152,7 +152,7 @@
     "shadcn": "^4.16.1",
     "tailwindcss": "^4",
     "typescript": "^6",
-    "vercel": "56.5.0"
+    "vercel": "59.10.0"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
