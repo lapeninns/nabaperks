@@ -125,7 +125,7 @@ jobs:
         with:
           version: 2.106.0
       - name: Verify the locked deployment CLI
-        run: test "$(pnpm exec vercel --version | tail -n 1)" = "56.5.0"
+        run: test "$(pnpm exec vercel --version | tail -n 1)" = "59.10.0"
       - name: Verify canonical Vercel project identity
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}

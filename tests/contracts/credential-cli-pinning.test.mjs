@@ -17,7 +17,7 @@ test("Supabase and Vercel credential tooling uses pinned provider CLIs", () => {
   const packageJson = JSON.parse(readProjectFile("package.json"))
   const envKeys = readProjectFile("scripts", "env-keys.mjs")
 
-  assert.equal(packageJson.devDependencies.vercel, "56.5.0")
+  assert.equal(packageJson.devDependencies.vercel, "59.10.0")
   assert.match(envKeys, /"dlx",\s*"supabase@2\.106\.0"/)
   assert.match(envKeys, /\["exec", "vercel", \.\.\.args\]/)
   assert.doesNotMatch(envKeys, /pnpm dlx supabase(?!@)/)
