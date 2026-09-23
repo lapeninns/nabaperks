@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test"
 
 import { expectNoAxeViolations } from "./axe"
 import { dismissPwaInstall, HARNESS_ROUTES } from "./harness"
+import { CONSOLE_HARNESS_ROUTES } from "./console-harness"
 
 const PUBLIC_ROUTES = [
   "/",
@@ -32,8 +33,17 @@ const PUBLIC_ROUTES = [
 
 const HARNESS_LANES = [
   HARNESS_ROUTES.dashboard,
+  `${HARNESS_ROUTES.dashboard}?billing=past_due`,
+  `${HARNESS_ROUTES.dashboard}?qr=paused`,
   HARNESS_ROUTES.customers,
   HARNESS_ROUTES.activity,
+  CONSOLE_HARNESS_ROUTES.numbers,
+  `${CONSOLE_HARNESS_ROUTES.numbers}?state=partial`,
+  `${CONSOLE_HARNESS_ROUTES.numbers}?state=early`,
+  `${CONSOLE_HARNESS_ROUTES.numbers}/stamps`,
+  `${CONSOLE_HARNESS_ROUTES.numbers}/qr`,
+  CONSOLE_HARNESS_ROUTES.more,
+  `${CONSOLE_HARNESS_ROUTES.more}?state=setup-incomplete`,
   HARNESS_ROUTES.account,
   HARNESS_ROUTES.qr,
   HARNESS_ROUTES.scan,
