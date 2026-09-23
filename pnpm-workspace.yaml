@@ -22,6 +22,7 @@ overrides:
   "@vercel/static-config>ajv": ^8.18.0
   js-yaml@3.15.0: 3.15.2
   js-yaml@4.2.0: 4.3.2
+  path-to-regexp@6.1.0: 6.3.0
   postcss: 8.5.23
   nanoid: 3.3.18
   qs: 6.16.0
