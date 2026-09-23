@@ -22,7 +22,6 @@ const PUBLIC_ROUTES = [
   "/cookies",
   "/merchant-terms",
   "/data-processing",
-  "/offline",
   "/signup",
   "/signup/verify?email=test@example.com",
   "/login",

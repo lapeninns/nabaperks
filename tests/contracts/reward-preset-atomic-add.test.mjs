@@ -125,10 +125,14 @@ test("RA-1/RA-2/RA-11: reward ideas expose draft multi-selection, separate custo
   assert.match(form, /role="alert"/)
 })
 
-test("RA-11: the optional PWA install prompt yields the launch action area", () => {
-  const pwa = readProjectFile("components", "pwa", "app-pwa.tsx")
+test("RA-11: launch has no install prompt over the action area", () => {
+  const layout = readProjectFile("app", "layout.tsx")
 
-  assert.match(pwa, /pathname === "\/app\/launch"/)
+  assert.doesNotMatch(layout, /AppPwa/)
+  assert.equal(
+    existsSync(join(projectRoot, "components", "pwa", "app-pwa.tsx")),
+    false
+  )
 })
 
 test("RA-4 through RA-9: the additive migration defines a locked atomic RPC and closes bypass ACLs", () => {

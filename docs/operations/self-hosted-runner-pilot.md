@@ -74,6 +74,8 @@ and never with the pull-request path. Keep `zap-full` hosted until its native
 ARM execution is qualified, even though an ARM64 image is now published. `nightly.yml`'s sixth job, `load-race`
 (`:167-183`), passes `secrets.STAMP_RACE_AUTH_TOKEN` to candidate code and must
 be pinned hosted by an explicit `runs-on: ubuntu-latest` plus a contract test.
+_Later change, 2026-09-22: `load-race` was deleted from `nightly.yml` (#366),
+so the hosted pin is moot until a replacement job exists._
 An earlier draft recommended "start with `nightly.yml`" without that carve-out,
 which would have put a repository secret on the pilot machine the first time
 those variables were set. See prerequisite 12.
@@ -383,7 +385,7 @@ irreducible floor. The current workflow triggers divide it as follows:
 | `production-database.yml`                    | 1,500                  | Completed main CI runs and manual dispatches; successful preflight controls which downstream jobs execute.       |
 | `codeql.yml`                                 | 570                    | PRs, main pushes and a weekly schedule; only the scheduled part is independent of changes.                       |
 | `dependency-review.yml`                      | 190                    | PR events.                                                                                                       |
-| `factory-status.yml`                         | 160                    | Scheduled, workflow-completion, PR-target and manual events.                                                     |
+| `factory-status.yml`                         | 160                    | Workflow-completion, PR-target and manual events.                                                                |
 | `production-deploy.yml`                      | 50                     | Reusable release workflow calls; the historical separate-run count must not be treated as a standing schedule.   |
 | `slo-report.yml`                             | 30                     | Scheduled and manual runs.                                                                                       |
 | `release-notes.yml`                          | 50                     | Main pushes and manual dispatches.                                                                               |
@@ -1089,6 +1091,7 @@ documentation.
   returns only `LOCAL_CI_MODE` and `LOCAL_CI_WATCHDOG_ENABLED`, so the job is
   conditioned out of every run today and bills nothing. It passes
   `secrets.STAMP_RACE_AUTH_TOKEN` when it does run (`nightly.yml:180`).
+  _Later change, 2026-09-22: the job was deleted from `nightly.yml` (#366)._
 - The `.github/actions/playwright` composite is invoked by exactly three
   `ci.yml` jobs — `fast` (`:78`), `quality` (`:110`) and `visual` (`:290`) —
   and by `nightly.yml`'s `cross-browser` (`:91`) and `mutation` (`:133`).

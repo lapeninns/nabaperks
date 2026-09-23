@@ -214,7 +214,6 @@ export const config = {
     "/m/:path*",
     "/merchant/:path*",
     "/offer/:path*",
-    "/offline",
     "/p/:path*",
     "/pass/:path*",
     "/q/:path*",

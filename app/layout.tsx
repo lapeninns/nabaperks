@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from "next"
 import { BRAND_FONT_CLASSES, BRAND_FONT_VARIABLES } from "@/lib/brand-fonts"
 
 import "./globals.css"
+import { RegisterPushWorker } from "@/components/customer/register-push-worker"
 import { PlaywrightHydrationSignal } from "@/components/dev-tools/playwright-hydration-signal"
-import { AppPwa } from "@/components/pwa/app-pwa"
 import { JsonLd } from "@/components/seo/json-ld"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
@@ -43,12 +43,6 @@ export const metadata: Metadata = {
     title: `${BRAND.name} — ${BRAND.motto}`,
     images: [OG_IMAGE],
   },
-  manifest: "/manifest.webmanifest",
-  appleWebApp: {
-    capable: true,
-    title: "Nabaperks",
-    statusBarStyle: "default",
-  },
 }
 
 export const viewport: Viewport = {
@@ -81,7 +75,7 @@ export default function RootLayout({
       <body className="font-sans" inert={isPlaywrightHarness}>
         <ThemeProvider>
           {children}
-          <AppPwa />
+          <RegisterPushWorker />
           <Toaster closeButton />
           {isPlaywrightHarness && <PlaywrightHydrationSignal />}
         </ThemeProvider>

@@ -39,11 +39,11 @@ test("Given the compact stamp journey renders on phone width When source is insp
   assert.match(preview, /min-\[420px\]:\[grid-template-columns:repeat/)
 })
 
-test("Given public merchant preview is a conversion route When PWA install copy is mounted Then it does not cover the join CTA", () => {
-  const pwa = readProjectFile("components", "pwa", "app-pwa.tsx")
+test("Given public merchant preview is a conversion route When the app shell mounts Then no install prompt covers the join CTA", () => {
+  const layout = readProjectFile("app", "layout.tsx")
 
-  assert.match(pwa, /pathname\.startsWith\("\/m\/"\)/)
-  assert.match(pwa, /surface === "marketing"/)
+  assert.doesNotMatch(layout, /AppPwa|manifest\.webmanifest|appleWebApp/)
+  assert.throws(() => readProjectFile("components", "pwa", "app-pwa.tsx"))
 })
 
 test("Given a returning QR customer verifies When navigation resolves Then the customer chooses the stamp explicitly", () => {
