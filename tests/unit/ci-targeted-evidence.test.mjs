@@ -58,6 +58,33 @@ test("mixed page and documentation validation adds formatting and links without 
   )
 })
 
+test("documentation validation adds the unit tier after its shared checks", () => {
+  const commands = []
+  const path = "docs/operations/ci-selection-verifier.md"
+  const result = runDocumentation(
+    {
+      profile: "documentation",
+      required: ["documentation"],
+      changes: [{ path, status: "M" }],
+    },
+    {
+      spawn(command, args) {
+        commands.push([command, ...args])
+        return { status: 0 }
+      },
+    }
+  )
+  assert.deepEqual(commands, [
+    ["pnpm", "secrets:check"],
+    ["pnpm", "test:contracts"],
+    ["pnpm", "docs:check"],
+    ["pnpm", "agents:check"],
+    ["pnpm", "test:unit"],
+    ["pnpm", "exec", "prettier", "--check", "--", path],
+  ])
+  assert.deepEqual(result, { files: 1, missing: [] })
+})
+
 test("local link validation rejects missing inline and reference targets", () => {
   const cwd = mkdtempSync(join(tmpdir(), "nabaperks-markdown-links-"))
   try {

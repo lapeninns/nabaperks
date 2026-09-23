@@ -115,14 +115,22 @@ the trusted supervisor is not installed.
 
 ## Current operating authority
 
-The nine-root gate is live main behaviour as of `d30ae19ee`; the wider
-architecture is still the hosted bridge-shadow system. Read back 2026-09-09:
-`LOCAL_CI_MODE=shadow`, contract `stage` `bridge-shadow`, `cutoverStep` 1,
-`bridge.enforcement` `advisory`, `bridge.requiredCheck` false. Neither the
-observer nor a configuration label grants local merge authority.
+The nine-root gate became live main behaviour in `d30ae19ee`. Change-aware
+selection is now installed and active on main: `ci.yml` gained the selection
+jobs in `eb11928f` (#307) and `scripts/ci/plan-checks.mjs` landed in
+`3494befe` (#315), both on 2026-09-11. The `selection` job runs that
+classifier. Eligible documentation PRs run only the `documentation` job, and
+literal public-page PRs run `fast`, `quality`, `build`, `targeted-browser` and
+`targeted-visual` instead of the full suite (see
+[change-aware CI](change-aware-ci.md)). Full-profile PRs and exact-main CI
+still require all nine hosted roots. The wider architecture is still the hosted
+bridge-shadow system. Read back 2026-09-09: `LOCAL_CI_MODE=shadow`, contract
+`stage` `bridge-shadow`, `cutoverStep` 1, `bridge.enforcement` `advisory`,
+`bridge.requiredCheck` false. Neither the observer nor a configuration label
+grants local merge authority.
 
-Main retains all hosted roots and independent security checks. Affected-test
-selection is not activated. The local profile is **not** equivalent to the nine
+Exact-main CI retains all hosted roots and independent security checks. The
+local profile is **not** equivalent to the nine
 hosted roots: the `pr` and `main` profiles declare `fast`, `quality`,
 `print-kit`, four `e2e-*`, two `a11y-*` and `db`, so `build`, `visual`,
 `lighthouse` and `zap-baseline` have no local lane at all and depend entirely on

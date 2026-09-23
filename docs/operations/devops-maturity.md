@@ -62,9 +62,9 @@ recovery exercises require separate readback before they may be marked complete.
       retrying, deduplicated external page; recovery is acknowledged externally
       before the incident closes. Live receiver provisioning remains
       provider-owned.
-- [x] Scheduled probe history produces a 30-day, 99.9% availability SLO with a
-      95% evidence-coverage floor, fail-closed missing-probe accounting, a
-      seven-day non-paging warm-up, daily retained evidence and breach paging.
+- [x] Scheduled probe history produces a 30-day, 99% availability SLO over
+      observed samples with a fail-closed observed-sample floor, a seven-day
+      non-paging warm-up, daily retained evidence and breach paging.
       This GitHub-hosted signal is correlated with the deployment control plane;
       independent uptime evidence remains provider-owned.
 - [x] Protected readiness reduces service-role-only database aggregates for
@@ -222,11 +222,12 @@ non-zero while the production ledger or recovery posture is behind the target.
   errors without making an optional error-tracking vendor a release gate.
 - P0/P1 alerts page a human outside GitHub; GitHub issues remain the durable
   incident record, not the only notification channel.
-- The source-owned availability objective is 99.9% over a rolling 30 days with
-  at least 95% scheduled-probe coverage. Missing probes after monitor start
-  breach the evidence-coverage floor without being misreported as service
-  downtime. The first seven observed days are a fail-closed, non-paging warm-up;
-  later breaches page and open a durable incident.
+- The source-owned availability objective is 99% of observed scheduled probes
+  over a rolling 30 days. GitHub delivers the nominal 15-minute probe cron as
+  about 6.8 runs a day, so missing runs are not counted as downtime; fewer than
+  four observed samples per day breach the observed-sample floor instead. The
+  first seven observed days are a fail-closed, non-paging warm-up; later
+  breaches page and open one durable incident that stays silent until recovery.
 - Service-level indicators cover availability, readiness, latency, error rate,
   queue age, cron failures and provider delivery outcomes. Alert thresholds map
   to an owner and runbook.

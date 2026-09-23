@@ -77,7 +77,15 @@ full webhook payloads.
 ## Promote and verify
 
 1. Merge the independently reviewed branch through protected `main`; do not
-   bypass checks.
+   bypass checks. Merge from an account that is not the `Production`
+   reviewer. The environment uses `prevent_self_review` and has one reviewer,
+   `amanshresthaa`, and every promotion runs as the account that merged. A
+   promotion started by that reviewer's own merge can never be approved and
+   holds the release slot until the janitor cancels it. Merge as
+   `lapeninns` instead: promotion 35780140771 for `43f3dcb9` ran as
+   `lapeninns` on 2026-09-22 and listed `amanshresthaa` as its eligible
+   reviewer. A second eligible reviewer would remove this constraint; adding
+   one is an environment setting reserved for the repository owner.
 2. Wait for exact-main CI and CodeQL, then review the protected
    `Authenticate the deployed baseline` job in `Production database promotion`.
    This first approval permits the authenticated Vercel baseline readback. If
@@ -99,7 +107,13 @@ full webhook payloads.
    immutable deployment ID, then promotes that ID. Immediate public proof
    remains inside the outer lock. This is one release run, with protected
    environments on both database and application jobs.
-3. Record the deployment URL and Git commit SHA.
+3. Record the deployment URL and Git commit SHA. Confirm that the
+   `Deploy and prove the production alert receiver` step of the
+   `Production deployment` job passed. Before promotion, every application
+   release redeploys both the `production-alert` and `admin-webauthn` Supabase
+   Edge Functions with `--no-verify-jwt`, requires each to be listed `ACTIVE`,
+   and only then triggers and resolves the `release-canary` alert
+   (`.github/workflows/production-deploy.yml`).
 4. Verify the exact revision and both probes:
 
    ```sh
@@ -114,9 +128,10 @@ full webhook payloads.
    `signals` object must include eight cron jobs plus numeric queue-age and
    provider-delivery fields. Both probes must show the promoted revision.
 
-5. Confirm `/` returns 404. Run anonymous smoke checks for `/signup`,
-   `/privacy`, `/terms`, `/cookies`, `/merchant-terms`, `/data-processing`,
-   `/login`, `/home/login`, and confirm every `/dev/*` route remains 404.
+5. Confirm `/` returns 200 and renders the public marketing site. Run
+   anonymous smoke checks for `/signup`, `/privacy`, `/terms`, `/cookies`,
+   `/merchant-terms`, `/data-processing`, `/login`, `/home/login`, and
+   confirm every `/dev/*` route remains 404.
 6. Complete one controlled merchant login, one customer login, one QR join,
    one stamp/redeem lifecycle, one email delivery and one OTP delivery in the
    target environment. Never use production customer data as a test fixture.
@@ -264,6 +279,14 @@ replace an older pending run. Main advancement while waiting for approval may
 also invalidate the immutable main-tip guard. Inspect the last completed stage
 and actual provider state before proceeding.
 
+Every promotion shares the `production-release` concurrency group with
+`cancel-in-progress: false`. A run waiting for a `Production` approval keeps
+that slot, so later automatic promotions queue behind it until the approval is
+given, rejected or the run is cancelled. Environment approval waiting time does
+not count against `timeout-minutes`: the gated job has not started on a runner,
+so its timeout never arms, and GitHub reports the job's `started_at` as the
+moment it reached the gate.
+
 ### Release stage evidence and compatibility admission
 
 The release owner records `qualified → database-applied → candidate-ready →
@@ -320,6 +343,34 @@ main advancement, provider drift or a partial rerun invalidates it, start a
 fresh complete outer run after reviewing the actual completed stages. A stale
 ledger must not be redated or accepted to resume a consequential operation.
 
+The `Production promotion janitor`
+(`.github/workflows/production-promotion-janitor.yml`) runs every 15 minutes
+(minute 9), whenever a new `Production database promotion` run is requested,
+and on manual dispatch. GitHub delivers this repository's schedules sparsely,
+so the promotion trigger is what bounds a stale wait in practice: a stale gate
+only blocks anything once another promotion queues behind it. It lists active `Production database
+promotion` runs on `main`, reads each run's pending deployments and measures
+how long any `Production` gate has waited from the waiting job's gate entry.
+The threshold is more than 75 minutes: the one-hour expiry plus headroom for
+an approval already in flight. A database or application gate past it can no
+longer pass the evidence checks, and an unattended baseline gate that long
+still holds the release slot, so the janitor treats every `Production` gate
+alike. It re-reads the pending deployments, then rejects the stale gate with
+the comment "Promotion janitor: Production approval exceeded the 1h
+release-evidence expiry". If GitHub refuses that review, it cancels the run
+instead; a `409` means the run already finished. The workflow token is not a
+required `Production` reviewer, so in practice GitHub refuses the review with
+`422` and the janitor cancels the run; the first live pass on 2026-09-22
+cancelled a gate that had waited 408 minutes this way. Each action is recorded as a workflow
+annotation and in the run summary. The janitor never approves, never touches
+other workflows or environments and needs no secrets. After it acts, review
+the completed stages and start a fresh complete outer run once a reviewer is
+available; do not rerun the rejected attempt. Approval waiting time does not
+count against `timeout-minutes`, so this janitor, not a job timeout, bounds how
+long a stale gate can hold the release slot. To inspect its decisions locally
+without writing, run
+`GH_TOKEN="$(gh auth token)" node scripts/release/promotion-janitor.mjs --dry-run`.
+
 ### Administrator authentication policy
 
 Administrator MFA is an explicitly accepted product risk. TOTP remains
@@ -334,6 +385,12 @@ but enrolment or possession does not change administrator authority. Do not run
 the bootstrap or activation workflows as a prerequisite for database or
 application promotion. Confirm instead that an authenticated active admin is
 allowed, while an authenticated non-admin and an inactive admin are denied.
+
+The release path keeps that dormant verifier deployed: every application
+release redeploys the `admin-webauthn` Edge Function alongside
+`production-alert` and fails unless both are `ACTIVE`. A failure there blocks
+the release like any other deployment step; it is not evidence that
+administrator authority depends on WebAuthn.
 
 This policy increases the impact of a compromised primary account. It must not
 be described as remediation of the administrator-MFA finding; record that
@@ -475,27 +532,36 @@ proof that an external monitor is configured or remains operational.
 ## Availability SLO and error budget
 
 `config/production-slos.json` owns the production availability objective:
-99.9% over a rolling 30 days, measured from the scheduled 15-minute Production
-smoke workflow with at least 95% evidence coverage. Failed workflow runs and
-missing scheduled slots are reported separately: failures consume service error
-budget, while missing slots breach the monitor-coverage floor and are not
-mislabelled as confirmed downtime. The ten-minute evaluation lag excludes a
-probe that may still be running.
+99% of observed scheduled Production smoke runs over a rolling 30 days. The
+smoke cron is nominally every 15 minutes, but GitHub throttles scheduled
+workflows and has delivered about 6.8 runs a day, so the report measures the
+samples it actually observed instead of nominal cron slots. At that density a
+30-day window holds about 200 samples, which leaves an error budget of two
+failed runs. Missing scheduled runs are not counted as downtime. Instead, the
+observed-sample floor requires at least four samples per observed day
+(`minimumObservedSamplesPerDay`); a report below that floor is `breached`
+because the monitor itself has stopped providing evidence. The ten-minute
+evaluation lag excludes a probe that may still be running.
 
 `Production SLO report` evaluates the window daily, retains its JSON evidence
 for one year and starts measurement from its own first workflow run, so older
 probe history from a different monitoring contract is excluded. The first
 seven observed days are `warming`: the gate is red, but no page or incident is
-created. After that minimum, an availability or coverage miss is `breached` and
-must create or update the durable GitHub incident and trigger the external
-`availability-slo` page. A later `compliant` result resolves the external alert
-before closing the issue.
+created. After that minimum, an availability or observed-sample floor miss is
+`breached`: the first breached run opens the durable GitHub incident and every
+breached run triggers the external `availability-slo` page, which the receiver
+deduplicates. Later breached runs do not comment on the open issue; each run's
+evidence stays in its artifact and step summary. A later `compliant` result
+resolves the external alert, then posts one recovery comment and closes the
+issue.
 
 Treat an error-budget breach as an incident signal, then classify current
 customer impact using the P0/P1/P2 definitions. Freeze discretionary releases
 while the budget is exhausted unless the incident commander records why a
-release reduces risk. The metric is conservative: a failure elsewhere in the
-Production smoke workflow counts as unavailable even if its HTTP probe passed.
+release reduces risk. The metric is conservative: the scheduled run's
+conclusion is the outage signal, so a failure elsewhere in the Production smoke
+workflow, including a broken alert webhook, counts as unavailable even if its
+HTTP probe passed.
 The retained report also publishes `errorRate`, the failed scheduled-probe
 ratio over the same observed window. Each scheduled run separately enforces the
 3-second liveness and 5-second readiness network thresholds from

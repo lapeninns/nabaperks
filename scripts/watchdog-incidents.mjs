@@ -1,6 +1,33 @@
 const MONITORS = Object.freeze({
   heartbeat: "Local CI agent heartbeat cannot be verified",
   publicHealth: "Public production health probe failed",
+  nightly: "Nightly QA hardening failed",
+  mutation: "Weekly mutation testing failed",
+})
+
+// Where each incident's observations come from and what an operator follows.
+// Every observer reports all monitors; the ones it does not watch are `null`.
+const LOCAL_CI_GUIDE = Object.freeze({
+  workflow: "agent-watchdog.yml",
+  guidance:
+    "This issue remains open while the outage persists and closes after a healthy observation. Repeated failures do not add comments. The agent heartbeat measures polling, not successful CI execution; intentional Mac sleep also stops heartbeats. GitHub scheduling or outages can delay detection.",
+  runbook: "docs/operations/local-ci-watchdog.md",
+})
+const GUIDES = Object.freeze({
+  heartbeat: LOCAL_CI_GUIDE,
+  publicHealth: LOCAL_CI_GUIDE,
+  nightly: Object.freeze({
+    workflow: "nightly.yml",
+    guidance:
+      "Nightly QA hardening is advisory and blocks no merge or release. This issue covers the cross-browser gate, the k6 load checks and the ZAP full scan. It remains open while any of them fails and closes on the first scheduled or dispatched run in which all three succeed. Repeated failures do not add comments, and a superseded (cancelled) run is not an observation.",
+    runbook: "docs/operations/nightly.md",
+  }),
+  mutation: Object.freeze({
+    workflow: "nightly.yml",
+    guidance:
+      "Mutation testing runs in the Monday nightly run and on manual dispatch. This issue remains open while it fails and closes on the next run in which it succeeds. Runs that skip mutation testing neither open nor close it, and repeated failures do not add comments.",
+    runbook: "docs/operations/nightly.md",
+  }),
 })
 
 function marker(kind) {
@@ -52,7 +79,7 @@ export async function reconcileWatchdogIncidents({
   }
   for (const kind of Object.keys(MONITORS)) {
     if (typeof healthy[kind] !== "boolean" && healthy[kind] !== null)
-      throw new Error("Both watchdog observations are required")
+      throw new Error("Every watchdog observation is required")
   }
   const open = []
   for (let page = 1; page <= 10; page += 1) {
@@ -112,7 +139,7 @@ export async function reconcileWatchdogIncidents({
         repo,
         title: `[Watchdog] ${MONITORS[kind]}`,
         assignees: [assignee],
-        body: `${marker(kind)}\n\n${MONITORS[kind]}.\n\nFirst observed: ${runUrl}\nLatest observations: https://github.com/${owner}/${repo}/actions/workflows/agent-watchdog.yml\n\nThis issue remains open while the outage persists and closes after a healthy observation. Repeated failures do not add comments. The agent heartbeat measures polling, not successful CI execution; intentional Mac sleep also stops heartbeats. GitHub scheduling or outages can delay detection.\n\nFollow docs/operations/local-ci-watchdog.md.`,
+        body: `${marker(kind)}\n\n${MONITORS[kind]}.\n\nFirst observed: ${runUrl}\nLatest observations: https://github.com/${owner}/${repo}/actions/workflows/${GUIDES[kind].workflow}\n\n${GUIDES[kind].guidance}\n\nFollow ${GUIDES[kind].runbook}.`,
       })
       results.push({
         monitor: kind,

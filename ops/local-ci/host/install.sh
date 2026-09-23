@@ -547,10 +547,24 @@ if [ -d "${release_dir}" ]; then
   note "release ${release_sha} is already installed"
 else
   staging="${scratch}/release"
+  release_archive="${scratch}/release.tar"
   mkdir -p "${staging}"
   # git archive emits exactly the tracked bytes of the verified commit: no
   # build output, no editor droppings, no ignored files, nothing untracked.
-  git -C "${repo_root}" archive --format=tar "${release_sha}" | tar -x -C "${staging}"
+  # The archive is materialised to a file first and extracted in a separate,
+  # checked step. Piping git archive into tar never returns cleanly on macOS:
+  # bsdtar stops reading at the end-of-archive marker, so git wrote onto a
+  # closed pipe, exited 141 (SIGPIPE) and `set -o pipefail` aborted a valid
+  # install before release activation. A file has no reader to outlive. The
+  # non-empty check matters because bsdtar reads a zero-byte input as an
+  # empty archive and exits 0, which would turn a truncated export into an
+  # empty release.
+  git -C "${repo_root}" archive --format=tar --output="${release_archive}" "${release_sha}" \
+    || die "could not export revision ${release_sha} from ${repo_root}"
+  [ -s "${release_archive}" ] \
+    || die "the exported archive of revision ${release_sha} is empty"
+  tar -x -f "${release_archive}" -C "${staging}" \
+    || die "could not extract revision ${release_sha} into ${staging}"
   sudo rm -rf "${release_dir}.partial"
   sudo mkdir -p "${release_dir}.partial"
   sudo cp -R "${staging}/." "${release_dir}.partial/"
@@ -626,8 +640,10 @@ cmp -s "${revision_plist}" "${installed_plist}" \
 
 plutil -lint "${installed_plist}" >/dev/null || die "${installed_plist} is not a valid property list"
 
-launchctl bootstrap "gui/${uid}" "${installed_plist}"
+# Clear any per-user disabled override before bootstrap. launchd rejects a
+# disabled label with EIO, so enabling after bootstrap cannot repair it.
 launchctl enable "gui/${uid}/${LABEL}"
+launchctl bootstrap "gui/${uid}" "${installed_plist}"
 launchctl kickstart -k "gui/${uid}/${LABEL}"
 note "bootstrapped gui/${uid}/${LABEL}"
 
