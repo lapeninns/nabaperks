@@ -2,7 +2,10 @@ import {
   LOCATION_ISSUE_COPY,
   type StampLocationIssue,
 } from "@/lib/customer/stamp-location-recovery"
-import { REFERRAL_BONUS_STAMP_LABEL } from "@/lib/customer/card-stamp-labels"
+import {
+  FULL_CARD_REWARD_PENDING_COPY,
+  REFERRAL_BONUS_STAMP_LABEL,
+} from "@/lib/customer/card-stamp-labels"
 import type { CustomerBlockReason } from "@/lib/customer/experience/block-reasons"
 import type {
   SelfStampActionState,
@@ -315,6 +318,16 @@ function issuedCopy(
   const extra =
     bonusCopy(result.bonusStampsApplied) +
     verificationCopy(result, unverifiedGraceRemaining)
+  // The card is full but the server issued no reward behind the final stamp
+  // (reward_unlocked is false). Confirm the stamp and the full card, never an
+  // unlock; the reward itself is sorted server-side.
+  if (complete && !result.rewardUnlocked) {
+    return {
+      announcement: `Stamp added. That's the full card. ${FULL_CARD_REWARD_PENDING_COPY}`,
+      statusTitle: "That's the full card.",
+      statusBody: `${FULL_CARD_REWARD_PENDING_COPY}${extra}`,
+    }
+  }
   if (complete) {
     return {
       announcement:
