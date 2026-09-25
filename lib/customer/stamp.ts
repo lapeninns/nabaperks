@@ -92,6 +92,17 @@ export async function issueSelfServiceStamp(
   if (!customer) return notSignedIn()
 
   const supabase = createSupabaseServiceRoleClient()
+  if (
+    !(await loadOwnedMembership(
+      supabase,
+      membershipId,
+      customer.id,
+      "stamp membership"
+    ))
+  ) {
+    return membershipUnavailable()
+  }
+
   const { error: attemptError } = await supabase.rpc(
     "consume_self_service_stamp_attempt",
     {
@@ -158,6 +169,17 @@ export async function issueVenueCodeStamp(
   if (!customer) return notSignedIn()
 
   const supabase = createSupabaseServiceRoleClient()
+  if (
+    !(await loadOwnedMembership(
+      supabase,
+      input.membershipId,
+      customer.id,
+      "stamp membership"
+    ))
+  ) {
+    return membershipUnavailable()
+  }
+
   const { error: attemptError } = await supabase.rpc(
     "consume_venue_code_attempt",
     {
@@ -222,6 +244,45 @@ function notSignedIn(): BlockedStampResult {
     reason: "Open your cards first.",
     blockReason: "unauthenticated",
   }
+}
+
+/**
+ * The URL membership id is client-supplied and the stamp RPCs run with the
+ * service role, so a membership that is missing or belongs to someone else is
+ * refused here, before any attempt is charged or stamp RPC called. The RPCs'
+ * own tenant guards stay in place; this is defence in depth.
+ */
+function membershipUnavailable(): BlockedStampResult {
+  return {
+    status: "blocked",
+    reason: blockReasonCopy("unavailable"),
+    blockReason: "unavailable",
+  }
+}
+
+type OwnedMembership = { readonly merchantId: string | null }
+
+/** The membership when the given customer owns it, otherwise null. */
+async function loadOwnedMembership(
+  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
+  membershipId: string,
+  customerId: string,
+  purpose: string
+): Promise<OwnedMembership | null> {
+  const { data: membership, error } = await supabase
+    .from("customer_memberships")
+    .select("merchant_id, customer_id")
+    .eq("id", membershipId)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(`Unable to load ${purpose}: ${error.message}`)
+  }
+
+  if (!isRecord(membership)) return null
+  if (stringValue(membership.customer_id) !== customerId) return null
+
+  return { merchantId: stringValue(membership.merchant_id) }
 }
 
 function buildIssueStampRpcParams(
@@ -380,25 +441,13 @@ export async function getMembershipLocationRequirement(
   if (!customer) return defaultLocationRequirement()
 
   const supabase = createSupabaseServiceRoleClient()
-  const { data: membership, error: membershipError } = await supabase
-    .from("customer_memberships")
-    .select("merchant_id, customer_id")
-    .eq("id", membershipId)
-    .maybeSingle()
-
-  if (membershipError) {
-    throw new Error(
-      `Unable to load membership location: ${membershipError.message}`
-    )
-  }
-
-  if (!isRecord(membership)) return defaultLocationRequirement()
-
-  if (stringValue(membership.customer_id) !== customer.id) {
-    return defaultLocationRequirement()
-  }
-
-  const merchantId = stringValue(membership.merchant_id)
+  const membership = await loadOwnedMembership(
+    supabase,
+    membershipId,
+    customer.id,
+    "membership location"
+  )
+  const merchantId = membership?.merchantId
   if (!merchantId) return defaultLocationRequirement()
 
   const { count, error: visitCountError } = await supabase

@@ -51,6 +51,7 @@ const AUTHENTICATED_DIRECT_RPCS = [
   "admin_verify_customer_date_of_birth",
   "get_owner_reward_scan_context",
   "verify_and_collect_reward_scan_token",
+  "collect_owner_reward_scan_token",
   "get_venue_code_today",
   "rotate_venue_code",
   "save_loyalty_card",
@@ -151,6 +152,7 @@ const SERVICE_ROLE_EXCLUDED_FUNCTIONS = new Set([
   "guard_qr_status_update",
   "get_owner_reward_scan_context",
   "verify_and_collect_reward_scan_token",
+  "collect_owner_reward_scan_token",
   // Bound to auth.uid(): only the signed-in owner may read or reset the code.
   "get_venue_code_today",
   "rotate_venue_code",

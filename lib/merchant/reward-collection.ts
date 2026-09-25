@@ -7,6 +7,7 @@ import {
   createSupabaseServiceRoleClient,
 } from "@/lib/supabase/server"
 import { LOYALTY_PROGRAMME_UNAVAILABLE } from "@/lib/copy/product-copy"
+import { isMissingRpcError } from "@/lib/supabase/missing-rpc"
 
 export type MerchantRewardScanContext =
   | { status: "unauthenticated" | "not_found" | "unauthorized" | "expired" }
@@ -88,14 +89,7 @@ export async function collectMerchantScannedReward(
       reason: "Log in to your merchant account to mark this reward collected.",
     }
 
-  const supabase = createSupabaseServiceRoleClient()
-  const { data, error } = await supabase.rpc(
-    "collect_current_reward_scan_token",
-    {
-      p_scan_token: scanToken,
-      p_merchant_id: merchant.id,
-    }
-  )
+  const { data, error } = await collectAsOwner(scanToken, merchant.id)
 
   if (error) {
     return {
@@ -121,6 +115,26 @@ export async function collectMerchantScannedReward(
     rewardName,
     membershipId,
   }
+}
+
+// The database derives owner authority from this session, so the audit trail
+// records the signed-in owner rather than customer self-service.
+async function collectAsOwner(
+  scanToken: string,
+  merchantId: string
+): Promise<{ data: unknown; error: { message: string } | null }> {
+  const supabase = await createSupabaseServerClient()
+  const owner = await supabase.rpc("collect_owner_reward_scan_token", {
+    p_scan_token: scanToken,
+  })
+  if (!owner.error || !isMissingRpcError(owner.error)) return owner
+
+  // One-release fallback for an app deployed before its migration. Remove it
+  // together with the service-role grant on collect_current_reward_scan_token.
+  return createSupabaseServiceRoleClient().rpc(
+    "collect_current_reward_scan_token",
+    { p_scan_token: scanToken, p_merchant_id: merchantId }
+  )
 }
 
 export function merchantCollectionBlockedCopy(message: string): string {

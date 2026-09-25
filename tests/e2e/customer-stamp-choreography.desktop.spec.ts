@@ -157,9 +157,9 @@ test.describe("customer stamp choreography — normal motion", () => {
     // milliseconds. Keep the interaction well inside the 200 ms "good" INP
     // boundary while still failing repeated or genuinely blocking work.
     expect(longTasks.length).toBeLessThanOrEqual(1)
-    expect(Math.max(0, ...longTasks.map(({ duration }) => duration))).toBeLessThan(
-      INTERACTION_TASK_BUDGET_MS
-    )
+    expect(
+      Math.max(0, ...longTasks.map(({ duration }) => duration))
+    ).toBeLessThan(INTERACTION_TASK_BUDGET_MS)
   })
 
   test("reveals the full-card reward and durable CTA in place", async ({
@@ -190,6 +190,37 @@ test.describe("customer stamp choreography — normal motion", () => {
     ).toBeVisible()
     await expect(root.locator('[role="status"]')).toHaveCount(1)
     await expect(page.locator("[data-refresh-count]")).toHaveText("1")
+  })
+
+  test("confirms a full card with no reward issued without claiming an unlock", async ({
+    page,
+  }) => {
+    await page.goto(`${HARNESS}?mode=final-pending&delay=120`)
+    const root = page.locator("[data-stamp-phase]")
+
+    await root.getByRole("button", { name: "Add today's stamp" }).click()
+    await expect(root).toHaveAttribute("data-stamp-phase", "confirmed")
+    await expect(
+      root.getByRole("list", { name: /5 of 5 stamps earned/ })
+    ).toBeVisible()
+    await expect(
+      root.getByText("That's the full card.", { exact: true })
+    ).toBeVisible()
+    await expect(
+      root.getByText(
+        "We're sorting your reward. Check back shortly, or ask a team member.",
+        { exact: true }
+      )
+    ).toBeVisible()
+    await expect(root.locator('[role="status"]')).toHaveText(
+      "Stamp added. That's the full card. We're sorting your reward. Check back shortly, or ask a team member."
+    )
+    await expect(root.locator('[data-ticket-state="sealed"]')).toBeVisible()
+    await expect(root.locator('[data-ticket-state="waiting"]')).toHaveCount(0)
+    await expect(
+      page.getByRole("link", { name: "See your reward" })
+    ).toHaveCount(0)
+    await expect(page.locator("[data-refresh-count]")).toHaveText("0")
   })
 
   test("supports a first retry after a returned block", async ({ page }) => {
